@@ -27,14 +27,14 @@ function sText(text, params={}) {
 
 
 let textAreaFrameState_default = {
-  size = [sw(40), 60]
+  size = static [sw(40), 60]
   pos  = [100, 100]
 }
 
 let state = mkWatched(persist,"state")
 
 function textAreaContainer() {
-  let w = state.value ?? textAreaFrameState_default
+  let w = state.get() ?? textAreaFrameState_default
   return {
     rendObj = ROBJ_BOX
     borderColor = Color(200,100,100)
@@ -59,7 +59,7 @@ function textAreaContainer() {
     watch = [state]
     onMoveResize = function(dx, dy, dw, dh) {
       let n = {size = [max(5, w.size[0]+dw), max(20, w.size[1]+dh)] pos = [w.pos[0]+dx, w.pos[1]+dy]}
-      state.update(n)
+      state.set(n)
       return n
     }
   }
@@ -76,7 +76,7 @@ return {
 //    flow = FLOW_VERTICAL
 //    halign = ALIGN_CENTER
 //    valign = ALIGN_CENTER
-    size = [sw(80),sh(80)]
+    size = static [sw(80),sh(80)]
     gap = 10
     children = [
       sText("Resizble, moveble and Scrollable by wheel text area with split by line")

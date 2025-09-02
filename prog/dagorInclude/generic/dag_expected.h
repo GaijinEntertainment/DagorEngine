@@ -50,12 +50,12 @@ public:
   {}
 
   template <typename TErr, eastl::enable_if_t<eastl::is_convertible_v<TErr, E>, bool> = true>
-  constexpr explicit Unexpected(TErr &&err) : m_error(std::forward<TErr>(err))
+  constexpr explicit Unexpected(TErr &&err) : m_error(eastl::forward<TErr>(err))
   {}
 
   constexpr const E &error() const & { return m_error; }
   constexpr E &error() & { return m_error; }
-  constexpr const E &&error() const && { return std::move(m_error); }
+  constexpr const E &&error() const && { return eastl::move(m_error); }
   constexpr E &&error() && { return eastl::move(m_error); }
 
   template <eastl::enable_if_t<eastl::is_swappable_v<E>, bool> = true>

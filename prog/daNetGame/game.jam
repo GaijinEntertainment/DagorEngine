@@ -5,30 +5,106 @@ if $(Game) != $(Game:L) { Exit Game=$(Game) contains uppercase letters; use only
 gameMain = \# include \"main/main.cpp\" ;
 gameVersion = \# include \"main/version.cpp\" ;
 
-DefVars_$(Game) = const char* default_game_name \= \"$(Game)\"; ;
+GameWindowTitle ?= $(Game) ;
+GameUserDirName ?= $(Game) ;
+GameTelemetryName ?= $(Game) ;
+GameYupName ?= "" ;
+GameMainVromFilePath ?= $(Game).vromfs.bin ;
+GameMainVromMountDir ?= $(GameMainVromFilePath:D) ;
+GameUserConfigPathPrefix ?= $(Game).config ;
+
+DefVars_$(Game) = "namespace gameproj{ " ;
+
+DefVars_$(Game) += const char* game_codename(){ return \"$(Game)\";} ;
+if $(GameMainVromFilePath) != * { DefVars_$(Game) += const char* main_vromfs_fpath(){ return \"$(GameMainVromFilePath)\";} ; }
+if $(GameMainVromMountDir) != * { DefVars_$(Game) += const char* main_vromfs_mount_dir(){ return \"$(GameMainVromMountDir)\";} ; }
+DefVars_$(Game) += const char* config_name_prefix(){ return \"$(GameUserConfigPathPrefix)\";} ;
+DefVars_$(Game) += const char* game_window_title(){ return \"$(GameWindowTitle)\";} ;
+DefVars_$(Game) += const char* game_user_dir_name(){ return \"$(GameUserDirName)\";} ;
+DefVars_$(Game) += const char* game_telemetry_name(){ return \"$(GameTelemetryName)\";} ;
+DefVars_$(Game) += const char* game_yup_name(){ return \"$(GameYupName)\";} ;
 
 local statsd_url_str = \"$(UseGameStatsdURL)\" ;
 statsd_url_str ?= nullptr ;
-DefVars_$(Game) += const char* default_game_statsd_url \= $(statsd_url_str); ;
+DefVars_$(Game) += const char* default_statsd_url(){ return $(statsd_url_str);} ;
 
 local statsd_key_str = \"$(UseGameStatsdKey)\" ;
 statsd_key_str ?= \"$(Game)\" ;
-DefVars_$(Game) += const char* default_game_statsd_key \= $(statsd_key_str); ;
+DefVars_$(Game) += const char* statsd_key(){ return $(statsd_key_str);} ;
 
 local eventlog_agent_str = \"$(UseGameEventlogAgent)\" ;
 eventlog_agent_str ?= \"$(Game)\" ;
-DefVars_$(Game) += const char* default_game_eventlog_agent \= $(eventlog_agent_str); ;
+DefVars_$(Game) += const char* eventlog_agent(){ return $(eventlog_agent_str);} ;
 
 local eventlog_proj_str = \"$(UseGameEventlogDefProj)\" ;
 eventlog_proj_str ?= \"\" ;
-DefVars_$(Game) += const char* default_game_eventlog_project \= $(eventlog_proj_str); ;
+DefVars_$(Game) += const char* default_eventlog_project(){ return $(eventlog_proj_str);} ;
 
-if $(GamePublicKeyDER) {
-  if ! $(GamePublicKeyDER[292]) || $(GamePublicKeyDER[293]) { exit bad public key, must be in DER format (292 hex-byte strings): $(GamePublicKeyDER) ; }
-  gamePublicKeyDER = extern \"C\" const unsigned char game_public_key_DER[292] \= \{ $(GamePublicKeyDER) \}\; ;
-} else {
-  gamePublicKeyDER = extern \"C\" const unsigned char game_public_key_DER[292] \= {0} \; ;
+UseGameCallbacks ?= no ;
+if $(UseGameCallbacks) = no {
+  DefVars_$(Game) += void before_init_video(){} ;
+  DefVars_$(Game) += void init_before_main_loop(){} ;
+  DefVars_$(Game) += void update_before_dagor_work_cycle(){} ;
+  DefVars_$(Game) += void post_shutdown_handler(){} ;
+  DefVars_$(Game) += void reset_game_resources(){} ;
 }
+
+DefVars_$(Game) += "}" ;
+
+UseHostedInternalServer ?= no ;
+
+DefVars_$(Game)_$(UseHostedInternalServer)_$(TargetType) = "namespace gameproj{ " ;
+if $(UseHostedInternalServer) = no || $(TargetType) != dll {
+  DefVars_$(Game)_$(UseHostedInternalServer)_$(TargetType) += bool is_hosted_server_instance(){ return false;} ;
+}
+else {
+  DefVars_$(Game)_$(UseHostedInternalServer)_$(TargetType) += bool is_hosted_server_instance(){ return true;} ;
+}
+DefVars_$(Game)_$(UseHostedInternalServer)_$(TargetType) += "}" ;
+
+gamePublicKeyDER = "namespace gameproj{ " ;
+if $(GamePublicKeyDER) {
+  if ! $(GamePublicKeyDER[256]) { exit bad public key, must be in DER format (at least 256 hex-byte strings): $(GamePublicKeyDER) ; }
+  gamePublicKeyDER += static const unsigned char pubkey_DER[] \= \{ $(GamePublicKeyDER) \}\; ;
+} else {
+  gamePublicKeyDER += static const unsigned char pubkey_DER[292] \= {0} \; ;
+}
+gamePublicKeyDER += const unsigned char *public_key_DER(){ return pubkey_DER;} ;
+gamePublicKeyDER += unsigned public_key_DER_len(){ return sizeof(pubkey_DER);} ;
+gamePublicKeyDER += "}" ;
+
+local partnersKeysExist = no ;
+partnerPublicKeysDER = "namespace gameproj{ " ;
+for partnerKey in $(PartnersPublicKeysDER) {
+  partnerPublicKeysDER += static const unsigned char $(partnerKey)[] \= \{ $($(partnerKey)) \}\; ;
+  partnersKeysExist = yes ;
+}
+
+if $(partnersKeysExist) = yes {
+  partnerPublicKeysDER += static const unsigned char* const partnerPublicKeysDER[] \= \{ ;
+  for partnerKey in $(PartnersPublicKeysDER) {
+    if $(partnerKey) != $(PartnersPublicKeysDER[0]) { partnerPublicKeysDER += \, ; }
+    partnerPublicKeysDER += $(partnerKey) ;
+  }
+  partnerPublicKeysDER += \}\; ;
+
+  partnerPublicKeysDER += static const unsigned int partnerPublicKeysDERLen[] \= \{ ;
+  for partnerKey in $(PartnersPublicKeysDER) {
+    if $(partnerKey) != $(PartnersPublicKeysDER[0]) { partnerPublicKeysDER += \, ; }
+    partnerPublicKeysDER += sizeof($(partnerKey)) ;
+  }
+  partnerPublicKeysDER += \}\; ;
+  partnerPublicKeysDER += const unsigned char *partner_public_key_DER(int i){ return partnerPublicKeysDER[i];} ;
+  partnerPublicKeysDER += unsigned partner_public_key_DER_len(int i){ return partnerPublicKeysDERLen[i];} ;
+  partnerPublicKeysDER += unsigned partner_public_keys_count(){ return sizeof(partnerPublicKeysDER) / sizeof(const unsigned char*);} ;
+}
+else {
+  partnerPublicKeysDER += const unsigned char *partner_public_key_DER(int){ return nullptr;} ;
+  partnerPublicKeysDER += unsigned partner_public_key_DER_len(int){ return 0;} ;
+  partnerPublicKeysDER += unsigned partner_public_keys_count(){ return 0;} ;
+}
+
+partnerPublicKeysDER += \} ;
 
 rule MakeAuthKeyJamvar name : func : key : forced {
   $(name) = "#include \"net/userid.h\"" ;
@@ -47,8 +123,10 @@ Sources +=
   gameMain.jamvar
   gameVersion.jamvar
   DefVars_$(Game).jamvar
+  DefVars_$(Game)_$(UseHostedInternalServer)_$(TargetType).jamvar
   gamePlatformAuthKey.jamvar
   gamePublicKeyDER.jamvar
+  partnerPublicKeysDER.jamvar
 ;
 
 if $(Platform) in windows && $(HaveRenderer) = yes && $(ExportOptimus) = yes {
@@ -97,4 +175,23 @@ if $(Dedicated) = yes  {
 if $(Config) = rel && $(ForceLogs) = yes && $(GameLogCryptKey) {
   getLogCryptKey = const unsigned char *get_dagor_log_crypt_key() \{ static const unsigned char key[128] \= \{ $(GameLogCryptKey) \} \; return key \; \} ;
   Sources += getLogCryptKey.jamvar ;
+}
+
+include $(Root)/prog/daNetGame/target_name_rules.jam ;
+
+if $(UseHostedInternalServer) = yes {
+  local t = [ FormInternalHostedServerName ] ;
+
+  dedicName = extern\ \"C\"{ const char *dedicated_server_dll_fn=\"$(t)\"; \} ;
+  Sources += dedicName.jamvar ;
+
+  if $(TargetType) = dll {
+    gameBuildStamp = extern\ \"C\"{ const char *dagor_exe_build_date=__DATE__; const char *dagor_exe_build_time=__TIME__; \} ;
+    dedicated_dll_start = \# include \"net/dedicated/dedicated_dll_starter.inc.cpp\" ;
+    Sources += gameBuildStamp.jamvar dedicated_dll_start.jamvar ;
+    LINKopt += gdi32.lib dbghelp.lib ;
+  }
+} else {
+  dedicName = extern\ \"C\"{ const char *dedicated_server_dll_fn=\"no_name_as_game_doesnt_use_hosted_dedic_feature\"; \} ;
+  Sources += dedicName.jamvar ;
 }

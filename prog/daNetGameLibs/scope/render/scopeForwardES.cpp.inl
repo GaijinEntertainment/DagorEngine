@@ -1,24 +1,24 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include "scopeAimRender.h"
+#include <render/scopeAimRender/scopeAimRender.h>
 #include "scopeMobileNodes.h"
 
 #include <daECS/core/entityManager.h>
 #include <daECS/core/entitySystem.h>
-#include <render/daBfg/ecs/frameGraphNode.h>
+#include <render/daFrameGraph/ecs/frameGraphNode.h>
 #include <render/rendererFeatures.h>
 #include <render/renderEvent.h>
 #include <render/renderSettings.h>
 #include <render/world/frameGraphNodes/frameGraphNodes.h>
 
-static void make_forward_scope_nodes(dabfg::NodeHandle &forwardSetupAimRenderingDataNode,
-  dabfg::NodeHandle &scopeForwardPrepassNode,
-  dabfg::NodeHandle &scopeForwardNode,
-  dabfg::NodeHandle &scopeForwardLensMaskNode,
-  dabfg::NodeHandle &scopeForwardVrsMaskNode,
-  dabfg::NodeHandle &scopeForwardLensHoleNode,
-  dabfg::NodeHandle &scopeLensMobileNode,
-  dabfg::NodeHandle &setupScopeAimRenderingDataNode)
+static void make_forward_scope_nodes(dafg::NodeHandle &forwardSetupAimRenderingDataNode,
+  dafg::NodeHandle &scopeForwardPrepassNode,
+  dafg::NodeHandle &scopeForwardNode,
+  dafg::NodeHandle &scopeForwardLensMaskNode,
+  dafg::NodeHandle &scopeForwardVrsMaskNode,
+  dafg::NodeHandle &scopeForwardLensHoleNode,
+  dafg::NodeHandle &scopeLensMobileNode,
+  dafg::NodeHandle &setupScopeAimRenderingDataNode)
 {
   forwardSetupAimRenderingDataNode = makeGenAimRenderingDataNode();
   scopeForwardPrepassNode = mk_scope_forward_node();
@@ -33,14 +33,14 @@ static void make_forward_scope_nodes(dabfg::NodeHandle &forwardSetupAimRendering
 ECS_TAG(render)
 ECS_ON_EVENT(OnRenderSettingsReady)
 static void init_forward_scope_rendering_es_event_handler(const ecs::Event &,
-  dabfg::NodeHandle &forward__setup_aim_rendering_data_node,
-  dabfg::NodeHandle &scope__forward__prepass_node,
-  dabfg::NodeHandle &scope__forward__node,
-  dabfg::NodeHandle &scope__forward__lens_mask_node,
-  dabfg::NodeHandle &scope__forward__vrs_mask_node,
-  dabfg::NodeHandle &scope__forward__lens_hole_node,
-  dabfg::NodeHandle &scope__lens_mobile_node,
-  dabfg::NodeHandle &setup_scope_aim_rendering_data_node)
+  dafg::NodeHandle &forward__setup_aim_rendering_data_node,
+  dafg::NodeHandle &scope__forward__prepass_node,
+  dafg::NodeHandle &scope__forward__node,
+  dafg::NodeHandle &scope__forward__lens_mask_node,
+  dafg::NodeHandle &scope__forward__vrs_mask_node,
+  dafg::NodeHandle &scope__forward__lens_hole_node,
+  dafg::NodeHandle &scope__lens_mobile_node,
+  dafg::NodeHandle &setup_scope_aim_rendering_data_node)
 {
   if (!renderer_has_feature(FeatureRenderFlags::FORWARD_RENDERING) || renderer_has_feature(FeatureRenderFlags::MOBILE_DEFERRED))
     return;
@@ -53,14 +53,14 @@ static void init_forward_scope_rendering_es_event_handler(const ecs::Event &,
 ECS_TAG(render)
 ECS_ON_EVENT(ChangeRenderFeatures)
 static void forward_scope_render_features_changed_es_event_handler(const ecs::Event &evt,
-  dabfg::NodeHandle &forward__setup_aim_rendering_data_node,
-  dabfg::NodeHandle &scope__forward__prepass_node,
-  dabfg::NodeHandle &scope__forward__node,
-  dabfg::NodeHandle &scope__forward__lens_mask_node,
-  dabfg::NodeHandle &scope__forward__vrs_mask_node,
-  dabfg::NodeHandle &scope__forward__lens_hole_node,
-  dabfg::NodeHandle &scope__lens_mobile_node,
-  dabfg::NodeHandle &setup_scope_aim_rendering_data_node)
+  dafg::NodeHandle &forward__setup_aim_rendering_data_node,
+  dafg::NodeHandle &scope__forward__prepass_node,
+  dafg::NodeHandle &scope__forward__node,
+  dafg::NodeHandle &scope__forward__lens_mask_node,
+  dafg::NodeHandle &scope__forward__vrs_mask_node,
+  dafg::NodeHandle &scope__forward__lens_hole_node,
+  dafg::NodeHandle &scope__lens_mobile_node,
+  dafg::NodeHandle &setup_scope_aim_rendering_data_node)
 {
   if (auto *changedFeatures = evt.cast<ChangeRenderFeatures>())
     if (!(changedFeatures->isFeatureChanged(FeatureRenderFlags::FORWARD_RENDERING)))

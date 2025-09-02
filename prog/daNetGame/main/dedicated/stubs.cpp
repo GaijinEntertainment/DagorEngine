@@ -23,7 +23,7 @@ static String dng_get_log_prefix()
   String prefix(dedicated::setup_log());
   if (!prefix.empty())
     return prefix;
-  return String(".log/");
+  return String(".game_logs/");
 }
 
 #include <startup/dag_mainCon.inc.cpp>

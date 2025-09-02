@@ -13,36 +13,34 @@ class occplugin::ObjEd : public ObjectEditor
 {
 public:
   ObjEd();
-  virtual ~ObjEd();
+  ~ObjEd() override;
 
   // ObjectEditor interface implementation
-  virtual void fillToolBar(PropPanel::ContainerPropertyControl *toolbar);
-  virtual void updateToolbarButtons();
+  void registerViewportAccelerators(IWndManager &wndManager) override;
+  void fillToolBar(PropPanel::ContainerPropertyControl *toolbar) override;
+  void updateToolbarButtons() override;
 
-  // virtual void handleCommand(int cmd);
-  virtual void handleKeyPress(IGenViewportWnd *wnd, int vk, int modif);
-  virtual void handleKeyRelease(IGenViewportWnd *wnd, int vk, int modif);
-  virtual bool handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
-  virtual bool handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
-  virtual bool handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
-  virtual bool handleMouseRBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
-  virtual void gizmoStarted();
-  virtual void gizmoEnded(bool apply);
+  bool handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
+  bool handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
+  bool handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
+  bool handleMouseRBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
+  void gizmoStarted() override;
+  void gizmoEnded(bool apply) override;
 
-  virtual void beforeRender();
-  virtual void render() {}
-  virtual void renderTrans() {}
+  void beforeRender() override;
+  void render() override {}
+  void renderTrans() override {}
 
-  virtual void update(real dt);
+  void update(real dt) override;
 
   void save(DataBlock &blk);
   void load(const DataBlock &blk);
 
-  virtual void getObjNames(Tab<String> &names, Tab<String> &sel_names, const Tab<int> &types);
-  virtual void getTypeNames(Tab<String> &names);
-  virtual void onSelectedNames(const Tab<String> &names);
+  void getObjNames(Tab<String> &names, Tab<String> &sel_names, const Tab<int> &types) override;
+  void getTypeNames(Tab<String> &names) override;
+  void onSelectedNames(const Tab<String> &names) override;
 
-  virtual void addButton(PropPanel::ContainerPropertyControl *tb, int id, const char *bmp_name, const char *hint, bool check = false);
+  void addButton(PropPanel::ContainerPropertyControl *tb, int id, const char *bmp_name, const char *hint, bool check = false) override;
 
   void reset();
   inline bool isCloneMode() { return cloneMode; }
@@ -50,7 +48,7 @@ public:
   void objRender(dag::ConstSpan<TMatrix> ob, dag::ConstSpan<IOccluderGeomProvider::Quad> oq);
   void objRenderTr(dag::ConstSpan<TMatrix> ob, dag::ConstSpan<IOccluderGeomProvider::Quad> oq);
 
-  virtual void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel);
+  void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
 
 public:
   bool showLocalOccluders, showGlobalOccluders;

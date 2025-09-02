@@ -1,13 +1,18 @@
-Root    ?= ../../.. ;
-Location = prog/engine/imgui ;
+Root                 ?= ../../.. ;
+Location              = prog/engine/imgui ;
 
-TargetType  = lib ;
-Target      = engine/imgui.lib ;
+TargetType            = lib ;
+Target                = engine/imgui.lib ;
+EnableNetImguiClient ?= yes ;
 
 Sources =
   imguiImpl.cpp
   imguiRenderer.cpp
 ;
+
+if $(Platform) in windows { Sources += imgui_impl_win32.cpp ; }
+else if $(Platform) in macOS { Sources += imgui_impl_osx.mm ; }
+else { Sources += imgui_impl_stub.cpp ; }
 
 AddIncludes =
   $(Root)/prog/engine/sharedInclude
@@ -16,5 +21,11 @@ AddIncludes =
 UseProgLibs =
   3rdPartyLibs/imgui
 ;
+
+if $(Platform) in windows && $(EnableNetImguiClient) = yes {
+  CPPopt += -DENABLE_NET_IMGUI ;
+  UseProgLibs += 3rdPartyLibs/netImgui ;
+}
+
 
 include $(Root)/prog/_jBuild/build.jam ;

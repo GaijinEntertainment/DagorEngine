@@ -22,12 +22,12 @@ extern IDagorAssetRefProvider *create_stategraph_ref_provider();
 class PageSysHelper : public IPageSysHelper
 {
 public:
-  virtual void postMsgV(bool error, const char *caption, const char *fmt, const DagorSafeArg *arg, int anum)
+  void postMsgV(bool error, const char *caption, const char *fmt, const DagorSafeArg *arg, int anum) override
   {
     logmessage_fmt(error ? LOGLEVEL_ERR : LOGLEVEL_DEBUG, fmt, arg, anum);
   }
-  virtual const char *getDagorCdkDir() { return dagorCdkDir; }
-  virtual const char *getSgCppDestDir() { return sgOutDir.empty() ? NULL : sgOutDir.str(); }
+  const char *getDagorCdkDir() override { return dagorCdkDir; }
+  const char *getSgCppDestDir() override { return sgOutDir.empty() ? NULL : sgOutDir.str(); }
 
 public:
   SimpleString dagorCdkDir, sgOutDir;
@@ -56,7 +56,7 @@ public:
     refStateGraph = NULL;
   }
 
-  virtual bool __stdcall init(const DataBlock &appblk)
+  bool __stdcall init(const DataBlock &appblk) override
   {
     sysHelper.dagorCdkDir = appblk.getStr("dagorCdkDir", NULL);
     const char *p =
@@ -70,14 +70,14 @@ public:
     ::page_sys_hlp = &sysHelper;
     return true;
   }
-  virtual void __stdcall destroy()
+  void __stdcall destroy() override
   {
     ::page_sys_hlp = NULL;
     delete this;
   }
 
-  virtual int __stdcall getExpCount() { return 3; }
-  virtual const char *__stdcall getExpType(int idx)
+  int __stdcall getExpCount() override { return 3; }
+  const char *__stdcall getExpType(int idx) override
   {
     switch (idx)
     {
@@ -87,7 +87,7 @@ public:
       default: return NULL;
     }
   }
-  virtual IDagorAssetExporter *__stdcall getExp(int idx)
+  IDagorAssetExporter *__stdcall getExp(int idx) override
   {
     switch (idx)
     {
@@ -107,9 +107,9 @@ public:
     }
   }
 
-  virtual int __stdcall getRefProvCount() { return getExpCount(); }
-  virtual const char *__stdcall getRefProvType(int idx) { return getExpType(idx); }
-  virtual IDagorAssetRefProvider *__stdcall getRefProv(int idx)
+  int __stdcall getRefProvCount() override { return getExpCount(); }
+  const char *__stdcall getRefProvType(int idx) override { return getExpType(idx); }
+  IDagorAssetRefProvider *__stdcall getRefProv(int idx) override
   {
     switch (idx)
     {

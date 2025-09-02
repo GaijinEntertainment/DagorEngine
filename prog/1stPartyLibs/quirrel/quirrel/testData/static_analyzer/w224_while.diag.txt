@@ -16,3 +16,12 @@ testData/static_analyzer/w224_while.nut:8:18
 }
 
 
+WARNING: w315 (invalid-indentation) Invalid indentation. Pay attention to lines 4 and 8.
+testData/static_analyzer/w224_while.nut:8:4
+
+      break;
+  } while (x < 6) ;
+    ^
+}
+
+

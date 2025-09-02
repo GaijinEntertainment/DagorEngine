@@ -134,8 +134,56 @@ eastl::optional<ShaderModuleHeader> spirv_extractor::getHeader(VkShaderStageFlag
   {
     auto &hdr = *reinterpret_cast<const spirv::ShaderHeader *>(chunk_data.data() + selected->offset);
     if (hdr.verMagic != spirv::HEADER_MAGIC_VER)
+    {
+      // try to fix header to prev version to speedup header change integration
+      if (hdr.verMagic == spirv::HEADER_MAGIC_VER_PREV)
+      {
+        auto &oldHdr = *reinterpret_cast<const spirv::ShaderHeaderPrev *>(chunk_data.data() + selected->offset);
+        spirv::ShaderHeader convertedHeader;
+        memset(&convertedHeader, 0, sizeof(convertedHeader));
+        convertedHeader.verMagic = spirv::HEADER_MAGIC_VER;
+        for (int i = 0; i < spirv::REGISTER_ENTRIES_OLD; ++i)
+        {
+          convertedHeader.descriptorTypes[i] = oldHdr.descriptorTypes[i];
+          convertedHeader.imageViewTypes[i] = oldHdr.imageViewTypes[i];
+          convertedHeader.inputAttachmentIndex[i] = oldHdr.inputAttachmentIndex[i];
+          convertedHeader.registerIndex[i] = oldHdr.registerIndex[i];
+          convertedHeader.imageCheckIndices[i] = oldHdr.imageCheckIndices[i];
+          convertedHeader.bufferCheckIndices[i] = oldHdr.bufferCheckIndices[i];
+          convertedHeader.missingTableIndex[i] = oldHdr.missingTableIndex[i];
+        }
+        for (int i = 0; i < spirv::SHADER_HEADER_DECRIPTOR_COUNT_SIZE; ++i)
+          convertedHeader.descriptorCounts[i] = oldHdr.descriptorCounts[i];
+        for (int i = 0; i < spirv::T_REGISTER_INDEX_MAX; ++i)
+        {
+          convertedHeader.bufferViewCheckIndices[i] = oldHdr.bufferViewCheckIndices[i];
+          convertedHeader.accelerationStructureCheckIndices[i] = oldHdr.accelerationStructureCheckIndices[i];
+        }
+        for (int i = 0; i < spirv::B_REGISTER_INDEX_MAX; ++i)
+          convertedHeader.constBufferCheckIndices[i] = oldHdr.constBufferCheckIndices[i];
+
+        convertedHeader.maxConstantCount = oldHdr.maxConstantCount;
+        convertedHeader.bonesConstantsUsed = oldHdr.bonesConstantsUsed;
+        convertedHeader.tRegisterUseMask = oldHdr.tRegisterUseMask;
+        convertedHeader.uRegisterUseMask = oldHdr.uRegisterUseMask;
+        convertedHeader.bRegisterUseMask = oldHdr.bRegisterUseMask;
+        convertedHeader.sRegisterUseMask = oldHdr.sRegisterUseMask;
+        convertedHeader.inputMask = oldHdr.inputMask;
+        convertedHeader.outputMask = oldHdr.outputMask;
+        convertedHeader.inputAttachmentCount = oldHdr.inputAttachmentCount;
+        convertedHeader.imageCount = oldHdr.imageCount;
+        convertedHeader.bufferCount = oldHdr.bufferCount;
+        convertedHeader.bufferViewCount = oldHdr.bufferViewCount;
+        convertedHeader.constBufferCount = oldHdr.constBufferCount;
+        convertedHeader.accelerationStructureCount = oldHdr.accelerationStructureCount;
+        convertedHeader.descriptorCountsCount = oldHdr.descriptorCountsCount;
+        convertedHeader.registerCount = oldHdr.registerCount;
+        convertedHeader.pushConstantsCount = oldHdr.pushConstantsCount;
+        return ShaderModuleHeader{convertedHeader, selected->hash, stage};
+      }
       DAG_FATAL("vulkan: expected shader header ver %08lX got %08lX, check shader dump integrity!", spirv::HEADER_MAGIC_VER,
         hdr.verMagic);
+    }
     return ShaderModuleHeader{hdr, selected->hash, stage};
   }
   return {};

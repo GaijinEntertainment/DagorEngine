@@ -11,7 +11,7 @@ AddIncludes =
   $(Root)/prog/gameLibs/publicInclude
   $(Root)/prog/daNetGame
   $(Root)/prog/1stPartyLibs/daScript/include
-  $(Root)/prog/gameLibs/render/daBfg
+  $(Root)/prog/gameLibs/render/daFrameGraph
 ;
 
 

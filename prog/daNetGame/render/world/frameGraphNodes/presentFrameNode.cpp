@@ -1,18 +1,19 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <render/daBfg/bfg.h>
+#include <render/daFrameGraph/daFG.h>
 
 #include "frameGraphNodes.h"
+#include <render/world/frameGraphHelpers.h>
 
 #define INSIDE_RENDERER 1
 #include "../private_worldRenderer.h"
 
-dabfg::NodeHandle makeFrameToPresentProducerNode()
+dafg::NodeHandle makeFrameToPresentProducerNode()
 {
-  return dabfg::register_node("present_frame_producer", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
-    registry.multiplex(dabfg::multiplexing::Mode::Viewport);
+  return dafg::register_node("present_frame_producer", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.multiplex(dafg::multiplexing::Mode::Viewport);
     auto &wr = *static_cast<WorldRenderer *>(get_world_renderer());
-    registry.registerTexture2d("frame_to_present",
-      [&wr](const dabfg::multiplexing::Index) -> ManagedTexView { return *wr.finalTargetFrame; });
+    registry.registerTexture("frame_to_present",
+      [&wr](const dafg::multiplexing::Index) -> ManagedTexView { return *wr.finalTargetFrame; });
   });
 }

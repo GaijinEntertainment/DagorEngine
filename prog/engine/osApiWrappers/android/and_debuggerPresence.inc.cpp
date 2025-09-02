@@ -17,8 +17,8 @@ bool isDebuggerPresent_android()
   attachArgs.name = "NativeThread";
   attachArgs.group = NULL;
 
-  jint result = javaVM->AttachCurrentThread(&jniEnv, &attachArgs);
-  if (result == JNI_ERR)
+  jint result = android::attach_current_thread(javaVM, &jniEnv, &attachArgs);
+  if (result != JNI_OK)
     return false;
 
   jclass class_debug = jniEnv->FindClass("android/os/Debug");

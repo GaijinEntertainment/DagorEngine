@@ -6,7 +6,7 @@ function sampleSText(params={}) {
   return {
     rendObj = ROBJ_INSCRIPTION
     color = Color(255,255,55)
-    size = [400,SIZE_TO_CONTENT]
+    size = static [400,SIZE_TO_CONTENT]
     text = "Static Text (inscription)"
 //    fontScale = 0.65 //scale just scale text, not render it in new resolution
     fontSize = hdpx(10)
@@ -17,7 +17,7 @@ function sampleDText(params={}) {
   return {
     rendObj = ROBJ_TEXT
     color = Color(105,255,155)
-    size = [400,SIZE_TO_CONTENT]
+    size = static [400,SIZE_TO_CONTENT]
     text = "Dynamic Text (font atlas based)"
   }.__update(params)
 }
@@ -50,7 +50,7 @@ function labeledElem(elem,text,vert_size=36) {
 let sampleSTextFxGlow = @() {
   text = "Static Text with Glow 48"
   rendObj = ROBJ_INSCRIPTION
-  size = [400,SIZE_TO_CONTENT]
+  size = static [400,SIZE_TO_CONTENT]
   fontFxColor = Color(255, 155, 0, 0)
   fontFxFactor = 128
   fontFx = FFT_GLOW
@@ -63,7 +63,7 @@ function sampleHAlignedCenterDText(text) {
     rendObj = ROBJ_TEXT
     halign = ALIGN_CENTER
     text = text
-    size = [flex(), flex()]
+    size = flex()
   }
 }
 
@@ -73,7 +73,7 @@ function sampleHAlignedRightSText(text) {
     halign = ALIGN_RIGHT
     valign = ALIGN_CENTER
     text = text
-    size = [flex(), flex()]
+    size = flex()
   }
 }
 
@@ -102,13 +102,13 @@ function basicsRoot() {
           labeledElem(sampleDText({fontFxColor = Color(255, 155, 0, 0) color =Color(255,255,255) spacing=sh(1)}), "'ROBJ_TEXT'. Dynamic text. spacing=sh(1)")
           labeledElem(sampleHAlignedCenterDText("Horiz aligned dynamic text"), "'ROBJ_TEXT'. Dynamic text. halign=ALIGN_CENTER")
           labeledElem(sampleHAlignedRightSText("Horiz aligned static text"), "'ROBJ_INSCRIPTION'. Static text. halign=ALIGN_RIGHT")
-          { size=[flex(), 50] flow=FLOW_HORIZONTAL gap = 20 children = [
-              {text = "Vert aligned static text" rendObj = ROBJ_INSCRIPTION valign = ALIGN_CENTER  size = [400,flex()] children={ rendObj=ROBJ_FRAME size=flex()}}
+          { size=static [flex(), 50] flow=FLOW_HORIZONTAL gap = 20 children = [
+              {text = "Vert aligned static text" rendObj = ROBJ_INSCRIPTION valign = ALIGN_CENTER  size = static [400,flex()] children={ rendObj=ROBJ_FRAME size=flex()}}
               {text="'ROBJ_TEXT'. Dynamic text. valign=ALIGN_CENTER" rendObj=ROBJ_TEXT }
             ]
           }
-          { size=[flex(), 50] flow=FLOW_HORIZONTAL gap = 20 children = [
-              {text = "Vert aligned dynamic text" rendObj = ROBJ_TEXT valign = ALIGN_BOTTOM  size = [400,flex()] children={ rendObj=ROBJ_FRAME size=flex()}}
+          { size=static [flex(), 50] flow=FLOW_HORIZONTAL gap = 20 children = [
+              {text = "Vert aligned dynamic text" rendObj = ROBJ_TEXT valign = ALIGN_BOTTOM  size = static [400,flex()] children={ rendObj=ROBJ_FRAME size=flex()}}
               {text="'ROBJ_TEXT'. Dynamic text. valign=ALIGN_BOTTOM" rendObj=ROBJ_INSCRIPTION }
             ]
           }

@@ -30,6 +30,7 @@ enum RenderFeatures
 };
 
 // TODO: move this into GuiScene
-void render_panels_in_world(const darg::IGuiScene &scene, const Point3 &view_point, RenderPass render_pass);
+void render_panels_in_world(const darg::IGuiScene &scene, RenderPass render_pass, const Point3 &view_point, const TMatrix &view_tm,
+  const TMatrix *prev_view_tm = nullptr, const TMatrix4 *prev_proj_current_jitter = nullptr, int view_index = 0);
 
 } // namespace darg_panel_renderer

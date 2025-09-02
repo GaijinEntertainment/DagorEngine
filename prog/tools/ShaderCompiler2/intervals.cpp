@@ -1,6 +1,8 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "intervals.h"
+#include "shTargetContext.h"
+#include "deSerializationContext.h"
 #include "varMap.h"
 #include "shLog.h"
 #include "hashStrings.h"
@@ -12,24 +14,13 @@
 const real IntervalValue::VALUE_NEG_INFINITY = -MAX_REAL;
 const real IntervalValue::VALUE_INFINITY = MAX_REAL;
 
-static HashStrings intervalMap;
-
-int IntervalValue::addIntervalNameId(const char *name) { return intervalMap.addNameId(name); }
-int IntervalValue::getIntervalNameId(const char *name) { return intervalMap.getNameId(name); }
-const char *IntervalValue::getIntervalName(int id) { return intervalMap.getName(id); }
-void IntervalValue::resetIntervalNames() { intervalMap.reset(); }
-
-Interval::Interval(const char *init_name, ShaderVariant::VarType interval_type, bool optional, eastl::string file_name) :
-  valueList(midmem), intervalType(interval_type), optional(optional), fileName(eastl::move(file_name))
-{
-  nameId = IntervalValue::addIntervalNameId(init_name);
-}
+const char *IntervalValue::Adapter::getName(int id) { return get_shaders_de_serialization_ctx()->intervalNameMap().getName(id); }
+int IntervalValue::Adapter::addName(const char *name) { return get_shaders_de_serialization_ctx()->intervalNameMap().addNameId(name); }
 
 // add interval value to a list  (return false, if value already exists)
-bool Interval::addValue(const char *value_name, const real smaller_than)
+bool Interval::addValue(int name_id, const real smaller_than)
 {
-  int id = IntervalValue::addIntervalNameId(value_name);
-  if (valueExists(id))
+  if (valueExists(name_id))
     return false;
 
   RealValueRange range(IntervalValue::VALUE_NEG_INFINITY, smaller_than);
@@ -41,12 +32,12 @@ bool Interval::addValue(const char *value_name, const real smaller_than)
       return false;
   }
 
-  valueList.push_back(IntervalValue(id, range));
+  valueList.push_back(IntervalValue(name_id, range));
 
   return true;
 }
 
-IntervalValue *Interval::getValue(int value_name_id)
+IntervalValue *Interval::getValueByNameId(int value_name_id)
 {
   for (int i = 0; i < valueList.size(); i++)
     if (valueList[i].getNameId() == value_name_id)
@@ -55,7 +46,7 @@ IntervalValue *Interval::getValue(int value_name_id)
 }
 
 bool Interval::checkExpression(ShaderVariant::ValueType left_op_normalized, const Interval::BooleanExpr expr, const char *right_op,
-  String &error_msg) const
+  String &error_msg, shc::TargetContext &ctx) const
 {
   if (expr == EXPR_NOTINIT)
     return false;
@@ -64,12 +55,13 @@ bool Interval::checkExpression(ShaderVariant::ValueType left_op_normalized, cons
 
   if (!indexRange.isInRange(left_op_normalized))
   {
-    error_msg.printf(0, 256, "illegal normalized value (%d) for this interval (%s)", left_op_normalized, getNameStr());
+    error_msg.printf(0, 256, "illegal normalized value (%d) for this interval (%s)", left_op_normalized,
+      get_interval_name(*this, ctx));
     return false;
   }
 
   ShaderVariant::ValueType right_op_normalized = -1;
-  int right_op_id = IntervalValue::addIntervalNameId(right_op);
+  int right_op_id = ctx.intervalNameMap().addNameId(right_op);
 
   if (right_op_id != -1)
     for (int i = 0; i < valueList.size(); i++)
@@ -81,7 +73,7 @@ bool Interval::checkExpression(ShaderVariant::ValueType left_op_normalized, cons
 
   if (!indexRange.isInRange(right_op_normalized))
   {
-    error_msg.printf(0, 256, "undefined value (%s) for this interval (%s)", right_op, getNameStr());
+    error_msg.printf(0, 256, "undefined value (%s) for this interval (%s)", right_op, get_interval_name(*this, ctx));
     return false;
   }
 
@@ -117,11 +109,7 @@ bool IntervalList::addInterval(const Interval &interval)
 }
 
 // return true, if interval exists
-bool IntervalList::intervalExists(const char *name) const
-{
-  int id = IntervalValue::getIntervalNameId(name);
-  return id != -1 && getIntervalIndex(id) != INTERVAL_NOT_INIT;
-}
+bool IntervalList::intervalExists(int name_id) const { return name_id != -1 && getIntervalIndex(name_id) != INTERVAL_NOT_INIT; }
 
 const Interval *IntervalList::getIntervalByNameId(int name_id) const
 {
@@ -139,7 +127,7 @@ ShaderVariant::ExtType IntervalList::getIntervalIndex(int name_id) const
   return INTERVAL_NOT_INIT;
 }
 
-String IntervalList::getStringInfo() const
+String IntervalList::getStringInfo(const shc::TargetContext &ctx) const
 {
   String out;
 
@@ -147,7 +135,7 @@ String IntervalList::getStringInfo() const
   {
     if (out.length())
       out.aprintf(2, " ");
-    out.aprintf(64, "%s(%d, %d)", intervals[i]->getNameStr(), (int)intervals[i]->getIndexRange().getMin(),
+    out.aprintf(64, "%s(%d, %d)", get_interval_name(*intervals[i], ctx), (int)intervals[i]->getIndexRange().getMin(),
       (int)intervals[i]->getIndexRange().getMax());
   }
 
@@ -155,3 +143,16 @@ String IntervalList::getStringInfo() const
 }
 
 void IntervalList::clear() { clear_and_shrink(intervals); }
+
+const char *get_interval_value_name(const IntervalValue &value, const shc::TargetContext &ctx)
+{
+  return ctx.intervalNameMap().getName(value.getNameId());
+}
+const char *get_interval_value_name(const Interval &ival, int value_idx, const shc::TargetContext &ctx)
+{
+  return get_interval_value_name(ival.getValue(value_idx), ctx);
+}
+const char *get_interval_name(const Interval &ival, const shc::TargetContext &ctx)
+{
+  return ctx.intervalNameMap().getName(ival.getNameId());
+}

@@ -88,7 +88,7 @@ bool StaticGeometryContainer::optimize(bool faces, bool materials)
         {
           Face &face = mfaces[fi];
 
-          int m = __min(__min(face.v[0], face.v[1]), face.v[2]);
+          int m = ::min(::min(face.v[0], face.v[1]), face.v[2]);
           if (m == face.v[1])
           {
             m = face.v[0];

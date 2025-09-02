@@ -5,12 +5,12 @@ let cursors = require("samples_prog/_cursors.nut")
 let stateFlags = Watched(0)
 
 function button0() {
-  let sf = stateFlags.value
+  let sf = stateFlags.get()
   return {
     watch = [stateFlags]
-    onElemState = @(sf) stateFlags.update(sf)
+    onElemState = @(s) stateFlags.set(s)
     rendObj = ROBJ_BOX
-    size = [sh(20),SIZE_TO_CONTENT]
+    size = static [sh(20),SIZE_TO_CONTENT]
     padding = sh(2)
     fillColor = (sf & S_ACTIVE) ? Color(0,0,0) : Color(200,200,200)
     borderWidth = (sf & S_HOVER) ? 2 : 0
@@ -37,7 +37,7 @@ function button0() {
 
 let button1 = watchElemState( @(sf) {
     rendObj = ROBJ_BOX
-    size = [sh(20),SIZE_TO_CONTENT]
+    size = static [sh(20),SIZE_TO_CONTENT]
     padding = sh(2)
     fillColor = (sf & S_ACTIVE) ? Color(0,0,0) : Color(200,200,200)
     borderWidth = (sf & S_HOVER) ? 2 : 0

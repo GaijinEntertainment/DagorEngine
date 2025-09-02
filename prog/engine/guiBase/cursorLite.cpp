@@ -2,6 +2,7 @@
 
 #include <gui/dag_baseCursor.h>
 #include <gui/dag_stdGuiRender.h>
+#include <drv/3d/dag_sampler.h>
 
 class GuiCursorLite : public IGenGuiCursor
 {

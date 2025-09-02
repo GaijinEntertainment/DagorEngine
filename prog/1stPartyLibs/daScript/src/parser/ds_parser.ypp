@@ -30,6 +30,13 @@
         CorM_CLONE  = (1<<1)
     };
 
+    enum {
+        CorS_Struct = 0,
+        CorS_Class  = 1,
+        CorS_StructTemplate = 2,
+        CorS_ClassTemplate  = 3
+    };
+
     using namespace das;
 
     #include "parser_impl.h"
@@ -73,6 +80,8 @@
 
     namespace das { class Module; }
     void das_collect_keywords ( das::Module * mod, yyscan_t yyscanner );
+
+    void das_strfmt ( yyscan_t yyscanner );
 
     #undef yyextra
     #define yyextra (*((das::DasParserState **)(scanner)))
@@ -248,6 +257,7 @@
 %token  DAS_GENERATOR       "generator"
 %token  DAS_YIELD           "yield"
 %token  DAS_SEALED          "sealed"
+%token  DAS_TEMPLATE        "template"
 
 /* operators */
 %token  ADDEQU              "+="
@@ -306,13 +316,16 @@
 %token  BRABRAB             "[["    /* [[ */
 %token  BRACBRB             "[{"    /* [{ */
 %token  CBRCBRB             "{{"    /* {{ */
+%token<i>  OPEN_BRACE       "new scope"
+%token<i>  CLOSE_BRACE      "close scope"
+%token  SEMICOLON           "end of line"
 
 %token<i>       INTEGER                 "integer constant"
 %token<i64>     LONG_INTEGER            "long integer constant"
 %token<ui>      UNSIGNED_INTEGER        "unsigned integer constant"
 %token<ui64>    UNSIGNED_LONG_INTEGER   "unsigned long integer constant"
 %token<ui>      UNSIGNED_INT8           "unsigned int8 constant"
-%token<fd>      FLOAT                   "floating point constant"
+%token<fd>      DAS_FLOAT               "floating point constant"
 %token<d>       DOUBLE                  "double constant"
 %token<s>       NAME                    "name"
 %token<s>       KEYWORD                 "keyword"
@@ -361,8 +374,11 @@
 %type <pVarDeclList>    global_variable_declaration_list
 %type <pVarDeclList>    optional_function_argument_list
 %type <pVarDeclList>    function_argument_list
+%type <pVarDecl>        variable_declaration_no_type
+%type <pVarDecl>        variable_declaration_type
 %type <pVarDecl>        variable_declaration
-%type <pVarDecl>        function_argument_declaration
+%type <pVarDecl>        function_argument_declaration_no_type
+%type <pVarDecl>        function_argument_declaration_type
 %type <pVarDecl>        structure_variable_declaration
 %type <pVarDecl>        let_variable_declaration
 %type <pVarDecl>        tuple_expansion_variable_declaration
@@ -379,6 +395,8 @@
 %type <s>               optional_structure_parent
 %type <s>               require_module_name
 %type <s>               annotation_argument_name
+%type <s>               format_string
+%type <s>               optional_format_string
 %type <aa>              annotation_argument
 %type <aa>              annotation_argument_value
 %type <aaList>          annotation_argument_list
@@ -392,7 +410,7 @@
 %type <pStructure>      structure_name
 %type <aTypePair>       table_type_pair
 
-%type <b>               class_or_struct
+%type <i>               class_or_struct
 %type <b>               copy_or_move
 %type <i>               optional_override
 %type <b>               optional_constant
@@ -400,6 +418,7 @@
 %type <b>               kwd_let_var_or_nothing
 %type <b>               is_public_module
 %type <b>               optional_shared
+%type <b>               optional_not_required
 %type <b>               optional_sealed
 %type <i>               block_or_lambda
 %type <b>               optional_ref
@@ -558,11 +577,11 @@ program
     |   program tuple_alias_declaration         { yyextra->das_has_type_declarations = true; }
     |   program bitfield_alias_declaration      { yyextra->das_has_type_declarations = true; }
     |   program top_level_reader_macro
-    |   program ';'
+    |   program semicolon
     ;
 
 top_level_reader_macro
-    :   expr_reader[rdr] ';' {
+    :   expr_reader[rdr] semicolon {
         delete $rdr;    // we do nothing, we don't even attemp to 'visit'
     }
     ;
@@ -578,13 +597,19 @@ module_name
     |   NAME[name]  { $$ = $name; }
     ;
 
+optional_not_required
+    :   { $$ = false; }
+    |   '!' DAS_INSCOPE { $$ = true; }
+    ;
+
 module_declaration
-    :   DAS_MODULE  module_name[name] optional_shared[mtype] optional_public_or_private_module[ispub] {
+    :   DAS_MODULE  module_name[name] optional_shared[mtype] optional_public_or_private_module[ispub] optional_not_required[notreq] {
         yyextra->g_Program->thisModuleName = *$name;
         yyextra->g_Program->thisModule->isPublic = $ispub;
         yyextra->g_Program->thisModule->isModule = true;
+        yyextra->g_Program->thisModule->visibleEverywhere = $notreq;
         if ( yyextra->g_Program->thisModule->name.empty() ) {
-            yyextra->g_Program->thisModule->name = *$name;
+            yyextra->g_Program->library.renameModule(yyextra->g_Program->thisModule.get(),*$name);
         } else if ( yyextra->g_Program->thisModule->name != *$name ){
             das_yyerror(scanner,"this module already has a name " + yyextra->g_Program->thisModule->name,tokAt(scanner,@name),
                 CompilationError::module_already_has_a_name);
@@ -608,6 +633,16 @@ string_constant
     |   BEGIN_STRING END_STRING                            { $$ = new string(); }
     ;
 
+format_string
+    :   { $$ = new string(); }
+    |   format_string[ss] STRING_CHARACTER[char] { $$ = $ss; $ss->push_back($char); }
+    ;
+
+optional_format_string
+    :   { $$ = new string(""); }
+    |   ':' { das_strfmt(scanner); } format_string[fmt] { $$ = $fmt; }
+    ;
+
 string_builder_body
     :   {
         $$ = new ExprStringBuilder();
@@ -623,10 +658,17 @@ string_builder_body
         static_cast<ExprStringBuilder *>($sb)->elements.push_back(sc);
         $$ = $sb;
     }
-    |   string_builder_body[sb] BEGIN_STRING_EXPR expr[subexpr] END_STRING_EXPR %prec BEGIN_STRING_EXPR {
-        auto se = ExpressionPtr($subexpr);
+    |   string_builder_body[sb] BEGIN_STRING_EXPR expr[subexpr] optional_format_string[sfmt] END_STRING_EXPR %prec BEGIN_STRING_EXPR {
+        auto se = $subexpr;
+        if ( !$sfmt->empty() ) {
+            auto call_fmt = new ExprCall(tokAt(scanner,@sfmt), "_::fmt");
+            call_fmt->arguments.push_back(make_smart<ExprConstString>(tokAt(scanner,@sfmt),":" + *$sfmt));
+            call_fmt->arguments.push_back(se);
+            se = call_fmt;
+        }
         static_cast<ExprStringBuilder *>($sb)->elements.push_back(se);
         $$ = $sb;
+        delete $sfmt;
     }
     ;
 
@@ -803,7 +845,7 @@ expression_goto
         $$ = new ExprGoto(tokAt(scanner,@loc),$labname);
     }
     | DAS_GOTO[loc] expr[lab]  {
-        $$ = new ExprGoto(tokAt(scanner,@loc),ExpressionPtr($lab));
+        $$ = new ExprGoto(tokAt(scanner,@loc),$lab);
     }
     ;
 
@@ -816,12 +858,17 @@ expression_else
     :                                                      { $$ = nullptr; }
     |   DAS_ELSE expression_block[block]                   { $$ = $block; }
     |   elif_or_static_elif[loc] expr[cond] expression_block[block] expression_else[then] {
-        auto eite = new ExprIfThenElse(tokAt(scanner,@loc),ExpressionPtr($cond),
-            ExpressionPtr($block),ExpressionPtr($then));
+        auto eite = new ExprIfThenElse(tokAt(scanner,@loc),$cond,
+            $block,$then);
         eite->isStatic = $loc;
         $$ = eite;
     }
     ;
+
+semicolon
+    : SEMICOLON[colon] {}
+    | ';' {}
+
 
 if_or_static_if
     :   DAS_IF          { $$ = false; }
@@ -845,13 +892,13 @@ expression_if_one_liner
 
 expression_if_then_else
     :   if_or_static_if[loc] expr[cond] expression_block[block] expression_else[then] {
-        auto eite = new ExprIfThenElse(tokAt(scanner,@loc),ExpressionPtr($cond),
-            ExpressionPtr($block),ExpressionPtr($then));
+        auto eite = new ExprIfThenElse(tokAt(scanner,@loc),$cond,
+            $block,$then);
         eite->isStatic = $loc;
         $$ = eite;
     }
-    |   expression_if_one_liner[if_true] DAS_IF[loc] { yyextra->das_need_oxford_comma = true; } expr[cond] expression_else_one_liner[if_false] ';' {
-        $$ = new ExprIfThenElse(tokAt(scanner,@loc),ExpressionPtr($cond),ExpressionPtr(ast_wrapInBlock($if_true)),$if_false ? ExpressionPtr(ast_wrapInBlock($if_false)) : nullptr);
+    |   expression_if_one_liner[if_true] DAS_IF[loc] { yyextra->das_need_oxford_comma = true; } expr[cond] expression_else_one_liner[if_false] semicolon {
+        $$ = new ExprIfThenElse(tokAt(scanner,@loc),$cond,ast_wrapInBlock($if_true),$if_false ? ast_wrapInBlock($if_false) : nullptr);
     }
     ;
 
@@ -864,7 +911,7 @@ expression_for_loop
 expression_unsafe
     :   DAS_UNSAFE[loc]  expression_block[block] {
         auto pUnsafe = new ExprUnsafe(tokAt(scanner,@loc));
-        pUnsafe->body = ExpressionPtr($block);
+        pUnsafe->body = $block;
         $$ = pUnsafe;
     }
     ;
@@ -872,8 +919,8 @@ expression_unsafe
 expression_while_loop
     :   DAS_WHILE[loc] expr[condition] expression_block[block] {
         auto pWhile = new ExprWhile(tokAt(scanner,@loc));
-        pWhile->cond = ExpressionPtr($condition);
-        pWhile->body = ExpressionPtr($block);
+        pWhile->cond = $condition;
+        pWhile->body = $block;
         ((ExprBlock *)$block)->inTheLoop = true;
         $$ = pWhile;
     }
@@ -882,8 +929,8 @@ expression_while_loop
 expression_with
     :   DAS_WITH[loc] expr[with] expression_block[block] {
         auto pWith = new ExprWith(tokAt(scanner,@loc));
-        pWith->with = ExpressionPtr($with);
-        pWith->body = ExpressionPtr($block);
+        pWith->with = $with;
+        pWith->body = $block;
         $$ = pWith;
     }
     ;
@@ -899,7 +946,7 @@ annotation_argument_value
     :   string_constant[value]   { $$ = new AnnotationArgument("",*$value); delete $value; }
     |   NAME[value]              { $$ = new AnnotationArgument("",*$value); delete $value; }
     |   INTEGER[value]           { $$ = new AnnotationArgument("",$value); }
-    |   FLOAT[value]             { $$ = new AnnotationArgument("",float($value)); }
+    |   DAS_FLOAT[value]         { $$ = new AnnotationArgument("",float($value)); }
     |   DAS_TRUE                 { $$ = new AnnotationArgument("",true); }
     |   DAS_FALSE                { $$ = new AnnotationArgument("",false); }
     ;
@@ -927,7 +974,7 @@ annotation_argument
     :   annotation_argument_name[name] '=' string_constant[value]   { $$ = new AnnotationArgument(*$name,*$value,tokAt(scanner,@name)); delete $value; delete $name; }
     |   annotation_argument_name[name] '=' NAME[value]              { $$ = new AnnotationArgument(*$name,*$value,tokAt(scanner,@name)); delete $value; delete $name; }
     |   annotation_argument_name[name] '=' INTEGER[value]           { $$ = new AnnotationArgument(*$name,$value,tokAt(scanner,@name)); delete $name; }
-    |   annotation_argument_name[name] '=' FLOAT[value]             { $$ = new AnnotationArgument(*$name,float($value),tokAt(scanner,@name)); delete $name; }
+    |   annotation_argument_name[name] '=' DAS_FLOAT[value]         { $$ = new AnnotationArgument(*$name,float($value),tokAt(scanner,@name)); delete $name; }
     |   annotation_argument_name[name] '=' DAS_TRUE                 { $$ = new AnnotationArgument(*$name,true,tokAt(scanner,@name)); delete $name; }
     |   annotation_argument_name[name] '=' DAS_FALSE                { $$ = new AnnotationArgument(*$name,false,tokAt(scanner,@name)); delete $name; }
     |   annotation_argument_name[name]                              { $$ = new AnnotationArgument(*$name,true,tokAt(scanner,@name)); delete $name; }
@@ -952,7 +999,7 @@ metadata_argument_list
     |   metadata_argument_list[argL] '@' annotation_argument[arg] {
         $$ = ast_annotationArgumentListEntry(scanner,$argL,$arg);
     }
-    |   metadata_argument_list[argL] ';' {
+    |   metadata_argument_list[argL] semicolon {
         $$ = $argL;
     }
     ;
@@ -961,6 +1008,7 @@ annotation_declaration_name
     :   name_in_namespace[name]     { $$ = $name; }
     |   DAS_REQUIRE                 { $$ = new string("require"); }
     |   DAS_PRIVATE                 { $$ = new string("private"); }
+    |   DAS_TEMPLATE                { $$ = new string("template"); }
     ;
 
 annotation_declaration_basic
@@ -1134,6 +1182,17 @@ function_name
     |   DAS_OPERATOR QDOT    { $$ = new string("?."); }
     |   DAS_OPERATOR '.' NAME[name]    { $$ = new string(".`"+*$name); delete $name; }
     |   DAS_OPERATOR '.' NAME[name] CLONEEQU { $$ = new string(".`"+*$name+"`clone"); delete $name; }
+    |   DAS_OPERATOR '.' NAME[name] ADDEQU { $$ = new string(".`"+*$name+"`+="); delete $name; }
+    |   DAS_OPERATOR '.' NAME[name] SUBEQU { $$ = new string(".`"+*$name+"`-="); delete $name; }
+    |   DAS_OPERATOR '.' NAME[name] MULEQU { $$ = new string(".`"+*$name+"`*="); delete $name; }
+    |   DAS_OPERATOR '.' NAME[name] DIVEQU { $$ = new string(".`"+*$name+"`/="); delete $name; }
+    |   DAS_OPERATOR '.' NAME[name] MODEQU { $$ = new string(".`"+*$name+"`%="); delete $name; }
+    |   DAS_OPERATOR '.' NAME[name] ANDEQU { $$ = new string(".`"+*$name+"`&="); delete $name; }
+    |   DAS_OPERATOR '.' NAME[name] OREQU { $$ = new string(".`"+*$name+"`|="); delete $name; }
+    |   DAS_OPERATOR '.' NAME[name] XOREQU { $$ = new string(".`"+*$name+"`^="); delete $name; }
+    |   DAS_OPERATOR '.' NAME[name] ANDANDEQU { $$ = new string(".`"+*$name+"`&&="); delete $name; }
+    |   DAS_OPERATOR '.' NAME[name] OROREQU { $$ = new string(".`"+*$name+"`||="); delete $name; }
+    |   DAS_OPERATOR '.' NAME[name] XORXOREQU { $$ = new string(".`"+*$name+"`^^="); delete $name; }
     |   DAS_OPERATOR QDOT NAME[name]   { $$ = new string("?.`"+*$name); delete $name;}
     |   DAS_OPERATOR CLONEEQU   { $$ = new string("clone"); }
     |   DAS_OPERATOR DAS_DELETE { $$ = new string("finalize"); }
@@ -1209,7 +1268,7 @@ function_declaration
             for ( auto & crd : yyextra->g_CommentReaders ) crd->beforeFunction(tak);
         }
     } function_declaration_header[func] expression_block[block] {
-        $func->body = ExpressionPtr($block);
+        $func->body = $block;
         $func->privateFunction = !$pub_func;
         $$ = $func;
         if ( !yyextra->g_CommentReaders.empty() ) {
@@ -1219,12 +1278,21 @@ function_declaration
     }
     ;
 
+
+open_block
+    : '{'
+    | OPEN_BRACE[depth]
+
+close_block
+    : '}'
+    | CLOSE_BRACE[depth]
+
 expression_block
-    :   '{' [bbegin] expressions[block] '}' [bend] {
+    :   open_block [bbegin] expressions[block] close_block [bend] {
         $$ = $block;
         $$->at = tokRangeAt(scanner,@bbegin,@bend);
     }
-    |   '{' [bbegin] expressions[block] '}' DAS_FINALLY '{' expressions[final] '}' [bend] {
+    |   open_block [bbegin] expressions[block] close_block DAS_FINALLY open_block expressions[final] close_block [bend] {
         auto pB = (ExprBlock *) $block;
         auto pF = (ExprBlock *) $final;
         swap ( pB->finalList, pF->list );
@@ -1237,7 +1305,7 @@ expression_block
 expr_call_pipe
     : expr[call] expr_full_block_assumed_piped[block] {
         if ( $call->rtti_isCallLikeExpr() ) {
-            ((ExprLooksLikeCall *)$call)->arguments.push_back(ExpressionPtr($block));
+            ((ExprLooksLikeCall *)$call)->arguments.push_back($block);
             $$ = $call;
         } else {
             $$ = $call;
@@ -1246,7 +1314,7 @@ expr_call_pipe
     }
     | expression_keyword[call] expr_full_block_assumed_piped[block] {
         if ( $call->rtti_isCallLikeExpr() ) {
-            ((ExprLooksLikeCall *)$call)->arguments.push_back(ExpressionPtr($block));
+            ((ExprLooksLikeCall *)$call)->arguments.push_back($block);
             $$ = $call;
         } else {
             $$ = $call;
@@ -1259,27 +1327,27 @@ expr_call_pipe
     ;
 
 expression_any
-    :   ';'                                 { $$ = nullptr; }
+    :   semicolon                                 { $$ = nullptr; }
     |   expr_pipe[subexpr]                  { $$ = $subexpr; }
     |   expr_keyword[subexpr]               { $$ = $subexpr; }
     |   expr_assign_pipe[subexpr]           { $$ = $subexpr; }
-    |   expr_assign[subexpr] ';'            { $$ = $subexpr; }
-    |   expression_delete[subexpr] ';'      { $$ = $subexpr; }
+    |   expr_assign[subexpr] semicolon            { $$ = $subexpr; }
+    |   expression_delete[subexpr] semicolon      { $$ = $subexpr; }
     |   expression_let[subexpr]             { $$ = $subexpr; }
     |   expression_while_loop[subexpr]      { $$ = $subexpr; }
     |   expression_unsafe[subexpr]          { $$ = $subexpr; }
     |   expression_with[subexpr]            { $$ = $subexpr; }
     |   expression_with_alias[subexpr]      { $$ = $subexpr; }
     |   expression_for_loop[subexpr]        { $$ = $subexpr; }
-    |   expression_break[subexpr] ';'       { $$ = $subexpr; }
-    |   expression_continue[subexpr] ';'    { $$ = $subexpr; }
+    |   expression_break[subexpr] semicolon       { $$ = $subexpr; }
+    |   expression_continue[subexpr] semicolon    { $$ = $subexpr; }
     |   expression_return[subexpr]          { $$ = $subexpr; }
     |   expression_yield[subexpr]           { $$ = $subexpr; }
     |   expression_if_then_else[subexpr]    { $$ = $subexpr; }
     |   expression_try_catch[subexpr]       { $$ = $subexpr; }
-    |   expression_label[subexpr] ';'       { $$ = $subexpr; }
-    |   expression_goto[subexpr] ';'        { $$ = $subexpr; }
-    |   DAS_PASS ';'                        { $$ = nullptr; }
+    |   expression_label[subexpr] semicolon       { $$ = $subexpr; }
+    |   expression_goto[subexpr] semicolon        { $$ = $subexpr; }
+    |   DAS_PASS semicolon                        { $$ = nullptr; }
     ;
 
 expressions
@@ -1291,7 +1359,7 @@ expressions
     |   expressions[block] expression_any[subexpr]      {
         $$ = $block;
         if ( $subexpr ) {
-            static_cast<ExprBlock*>($block)->list.push_back(ExpressionPtr($subexpr));
+            static_cast<ExprBlock*>($block)->list.push_back($subexpr);
         }
     }
     |   expressions[block] error {
@@ -1302,10 +1370,10 @@ expressions
 expr_keyword
     :   KEYWORD[kwd] expr[subexpr] expression_block[block] {
         auto pCall = yyextra->g_Program->makeCall(tokAt(scanner,@kwd),*$kwd);
-        pCall->arguments.push_back(ExpressionPtr($subexpr));
+        pCall->arguments.push_back($subexpr);
         auto resT = new TypeDecl(Type::autoinfer);
         auto blk = ast_makeBlock(scanner,0,nullptr,nullptr,nullptr,resT,$block,tokAt(scanner,@block),tokAt(scanner,@block));
-        pCall->arguments.push_back(ExpressionPtr(blk));
+        pCall->arguments.push_back(blk);
         delete $kwd;
         $$ = pCall;
     };
@@ -1356,13 +1424,13 @@ expr_pipe
         Expression * pipeCall = $fncall->tail();
         if ( pipeCall->rtti_isCallLikeExpr() ) {
             auto pCall = (ExprLooksLikeCall *) pipeCall;
-            pCall->arguments.push_back(ExpressionPtr($arg));
+            pCall->arguments.push_back($arg);
             $$ = $fncall;
         } else if ( pipeCall->rtti_isVar() ) {
             // a += b <| c
             auto pVar = (ExprVar *) pipeCall;
             auto pCall = yyextra->g_Program->makeCall(pVar->at,pVar->name);
-            pCall->arguments.push_back(ExpressionPtr($arg));
+            pCall->arguments.push_back($arg);
             if ( !$fncall->swap_tail(pVar,pCall) ) {
                 delete pVar;
                 $$ = pCall;
@@ -1418,10 +1486,10 @@ name_in_namespace
 
 expression_delete
     :   DAS_DELETE[loc] expr[subexpr] {
-        $$ = new ExprDelete(tokAt(scanner,@loc), ExpressionPtr($subexpr));
+        $$ = new ExprDelete(tokAt(scanner,@loc), $subexpr);
     }
     |   DAS_DELETE[loc] DAS_EXPLICIT expr[subexpr] {
-        auto delExpr = new ExprDelete(tokAt(scanner,@loc), ExpressionPtr($subexpr));
+        auto delExpr = new ExprDelete(tokAt(scanner,@loc), $subexpr);
         delExpr->native = true;
         $$ = delExpr;
     }
@@ -1438,14 +1506,14 @@ new_type_declaration
 
 expr_new
     :   DAS_NEWT[loc] new_type_declaration[typeDecl]   {
-        $$ = new ExprNew(tokAt(scanner,@loc),TypeDeclPtr($typeDecl),false);
+        $$ = new ExprNew(tokAt(scanner,@loc),$typeDecl,false);
     }
     |   DAS_NEWT[loc] new_type_declaration[typeDecl] '(' use_initializer[init] ')'   {
-        $$ = new ExprNew(tokAt(scanner,@loc),TypeDeclPtr($typeDecl),true);
+        $$ = new ExprNew(tokAt(scanner,@loc),$typeDecl,true);
         ((ExprNew *)$$)->initializer = $init;
     }
     |   DAS_NEWT[loc] new_type_declaration[typeDecl] '(' expr_list[arguments] ')'   {
-        auto pNew = new ExprNew(tokAt(scanner,@loc),TypeDeclPtr($typeDecl),true);
+        auto pNew = new ExprNew(tokAt(scanner,@loc),$typeDecl,true);
         $$ = parseFunctionArguments(pNew,$arguments);
     }
     |   DAS_NEWT[loc] new_type_declaration[typeDecl] '(' make_struct_single[dd] ')'   {
@@ -1453,17 +1521,17 @@ expr_new
         ((ExprMakeStruct *)$dd)->makeType = $typeDecl;
         ((ExprMakeStruct *)$dd)->useInitializer = true; // $init;
         ((ExprMakeStruct *)$dd)->alwaysUseInitializer = true;
-        $$ = new ExprAscend(tokAt(scanner,@loc),ExpressionPtr($dd));
+        $$ = new ExprAscend(tokAt(scanner,@loc),$dd);
     }
     |   DAS_NEWT[loc] new_type_declaration[typeDecl] '(' DAS_UNINITIALIZED make_struct_single[dd] ')'   {
         ((ExprMakeStruct *)$dd)->at = tokAt(scanner,@typeDecl);
         ((ExprMakeStruct *)$dd)->makeType = $typeDecl;
         ((ExprMakeStruct *)$dd)->useInitializer = false; // $init;
         ((ExprMakeStruct *)$dd)->alwaysUseInitializer = true;
-        $$ = new ExprAscend(tokAt(scanner,@loc),ExpressionPtr($dd));
+        $$ = new ExprAscend(tokAt(scanner,@loc),$dd);
     }
     |   DAS_NEWT[loc] make_decl[md] {
-        $$ = new ExprAscend(tokAt(scanner,@loc),ExpressionPtr($md));
+        $$ = new ExprAscend(tokAt(scanner,@loc),$md);
     }
     ;
 
@@ -1490,14 +1558,14 @@ expression_return_no_pipe
     ;
 
 expression_return
-    :   expression_return_no_pipe[result] ';' {
+    :   expression_return_no_pipe[result] semicolon {
         $$ = $result;
     }
     |   DAS_RETURN[loc] expr_pipe[subexpr] {
-        $$ = new ExprReturn(tokAt(scanner,@loc),ExpressionPtr($subexpr));
+        $$ = new ExprReturn(tokAt(scanner,@loc),$subexpr);
     }
     |   DAS_RETURN[loc] LARROW expr_pipe[subexpr] {
-        auto pRet = new ExprReturn(tokAt(scanner,@loc),ExpressionPtr($subexpr));
+        auto pRet = new ExprReturn(tokAt(scanner,@loc),$subexpr);
         pRet->moveSemantics = true;
         $$ = pRet;
     }
@@ -1505,24 +1573,24 @@ expression_return
 
 expression_yield_no_pipe
     :   DAS_YIELD[loc] expr[subexpr] {
-        $$ = new ExprYield(tokAt(scanner,@loc),ExpressionPtr($subexpr));
+        $$ = new ExprYield(tokAt(scanner,@loc),$subexpr);
     }
     |   DAS_YIELD[loc] LARROW expr[subexpr] {
-        auto pRet = new ExprYield(tokAt(scanner,@loc),ExpressionPtr($subexpr));
+        auto pRet = new ExprYield(tokAt(scanner,@loc),$subexpr);
         pRet->moveSemantics = true;
         $$ = pRet;
     }
     ;
 
 expression_yield
-    :   expression_yield_no_pipe[result] ';' {
+    :   expression_yield_no_pipe[result] semicolon {
         $$ = $result;
     }
     |   DAS_YIELD[loc] expr_pipe[subexpr] {
-        $$ = new ExprYield(tokAt(scanner,@loc),ExpressionPtr($subexpr));
+        $$ = new ExprYield(tokAt(scanner,@loc),$subexpr);
     }
     |   DAS_YIELD[loc] LARROW expr_pipe[subexpr] {
-        auto pRet = new ExprYield(tokAt(scanner,@loc),ExpressionPtr($subexpr));
+        auto pRet = new ExprYield(tokAt(scanner,@loc),$subexpr);
         pRet->moveSemantics = true;
         $$ = pRet;
     }
@@ -1530,7 +1598,7 @@ expression_yield
 
 expression_try_catch
     :   DAS_TRY[loc] expression_block[tryBlock] DAS_CATCH expression_block[catchBlock] {
-        $$ = new ExprTryCatch(tokAt(scanner,@loc),ExpressionPtr($tryBlock),ExpressionPtr($catchBlock));
+        $$ = new ExprTryCatch(tokAt(scanner,@loc),$tryBlock,$catchBlock);
     }
     ;
 
@@ -1564,19 +1632,31 @@ tuple_expansion
     ;
 
 tuple_expansion_variable_declaration
-    :   BRABRAB tuple_expansion[list] ']' ']' ':' type_declaration_no_options[typeDecl] copy_or_move_or_clone[com] expr[init] ';' {
+    :   BRABRAB tuple_expansion[list] ']' ']' ':' type_declaration_no_options[typeDecl] copy_or_move_or_clone[com] expr[init] semicolon {
         $$ = new VariableDeclaration($list,tokAt(scanner,@list),$typeDecl,$init);
         $$->init_via_move  = ($com & CorM_MOVE) !=0;
         $$->init_via_clone = ($com & CorM_CLONE) !=0;
         $$->isTupleExpansion = true;
     }
-    |   '(' tuple_expansion[list] ')' ':' type_declaration_no_options[typeDecl] copy_or_move_or_clone[com] expr[init] ';' {
+    |   BRABRAB tuple_expansion[list] ']' ']' ':' type_declaration_no_options[typeDecl] copy_or_move_or_clone[com] expr_pipe[init] {
         $$ = new VariableDeclaration($list,tokAt(scanner,@list),$typeDecl,$init);
         $$->init_via_move  = ($com & CorM_MOVE) !=0;
         $$->init_via_clone = ($com & CorM_CLONE) !=0;
         $$->isTupleExpansion = true;
     }
-    |   BRABRAB tuple_expansion[list] ']' ']' optional_ref[ref] copy_or_move_or_clone[com] expr[init] ';' {
+    |   '(' tuple_expansion[list] ')' ':' type_declaration_no_options[typeDecl] copy_or_move_or_clone[com] expr[init] semicolon {
+        $$ = new VariableDeclaration($list,tokAt(scanner,@list),$typeDecl,$init);
+        $$->init_via_move  = ($com & CorM_MOVE) !=0;
+        $$->init_via_clone = ($com & CorM_CLONE) !=0;
+        $$->isTupleExpansion = true;
+    }
+    |   '(' tuple_expansion[list] ')' ':' type_declaration_no_options[typeDecl] copy_or_move_or_clone[com] expr_pipe[init] {
+        $$ = new VariableDeclaration($list,tokAt(scanner,@list),$typeDecl,$init);
+        $$->init_via_move  = ($com & CorM_MOVE) !=0;
+        $$->init_via_clone = ($com & CorM_CLONE) !=0;
+        $$->isTupleExpansion = true;
+    }
+    |   BRABRAB tuple_expansion[list] ']' ']' optional_ref[ref] copy_or_move_or_clone[com] expr[init] semicolon {
         auto typeDecl = new TypeDecl(Type::autoinfer);
         typeDecl->at = tokAt(scanner,@list);
         typeDecl->ref = $ref;
@@ -1585,7 +1665,25 @@ tuple_expansion_variable_declaration
         $$->init_via_clone = ($com & CorM_CLONE) !=0;
         $$->isTupleExpansion = true;
     }
-    |   '(' tuple_expansion[list] ')' optional_ref[ref] copy_or_move_or_clone[com] expr[init] ';' {
+    |   BRABRAB tuple_expansion[list] ']' ']' optional_ref[ref] copy_or_move_or_clone[com] expr_pipe[init] {
+        auto typeDecl = new TypeDecl(Type::autoinfer);
+        typeDecl->at = tokAt(scanner,@list);
+        typeDecl->ref = $ref;
+        $$ = new VariableDeclaration($list,tokAt(scanner,@list),typeDecl,$init);
+        $$->init_via_move  = ($com & CorM_MOVE) !=0;
+        $$->init_via_clone = ($com & CorM_CLONE) !=0;
+        $$->isTupleExpansion = true;
+    }
+    |   '(' tuple_expansion[list] ')' optional_ref[ref] copy_or_move_or_clone[com] expr[init] semicolon {
+        auto typeDecl = new TypeDecl(Type::autoinfer);
+        typeDecl->at = tokAt(scanner,@list);
+        typeDecl->ref = $ref;
+        $$ = new VariableDeclaration($list,tokAt(scanner,@list),typeDecl,$init);
+        $$->init_via_move  = ($com & CorM_MOVE) !=0;
+        $$->init_via_clone = ($com & CorM_CLONE) !=0;
+        $$->isTupleExpansion = true;
+    }
+    |   '(' tuple_expansion[list] ')' optional_ref[ref] copy_or_move_or_clone[com] expr_pipe[init] {
         auto typeDecl = new TypeDecl(Type::autoinfer);
         typeDecl->at = tokAt(scanner,@list);
         typeDecl->ref = $ref;
@@ -1607,15 +1705,15 @@ expression_let
 
 expr_cast
     :   DAS_CAST[loc] '<' { yyextra->das_arrow_depth ++; } type_declaration_no_options[decl] '>' { yyextra->das_arrow_depth --; } expr[subexpr] {
-        $$ = new ExprCast(tokAt(scanner,@loc),ExpressionPtr($subexpr),TypeDeclPtr($decl));
+        $$ = new ExprCast(tokAt(scanner,@loc),$subexpr,$decl);
     }
     |   DAS_UPCAST[loc] '<' { yyextra->das_arrow_depth ++; } type_declaration_no_options[decl] '>' { yyextra->das_arrow_depth --; } expr[subexpr] {
-        auto pCast = new ExprCast(tokAt(scanner,@loc),ExpressionPtr($subexpr),TypeDeclPtr($decl));
+        auto pCast = new ExprCast(tokAt(scanner,@loc),$subexpr,$decl);
         pCast->upcast = true;
         $$ = pCast;
     }
     |   DAS_REINTERPRET[loc] '<' { yyextra->das_arrow_depth ++; } type_declaration_no_options[decl] '>' { yyextra->das_arrow_depth --; } expr[subexpr] {
-        auto pCast = new ExprCast(tokAt(scanner,@loc),ExpressionPtr($subexpr),TypeDeclPtr($decl));
+        auto pCast = new ExprCast(tokAt(scanner,@loc),$subexpr,$decl);
         pCast->reinterpret = true;
         $$ = pCast;
     }
@@ -1623,7 +1721,7 @@ expr_cast
 
 expr_type_decl
     :  DAS_TYPE[loc] '<' { yyextra->das_arrow_depth ++; } type_declaration[decl] '>' { yyextra->das_arrow_depth --; } {
-        $$ = new ExprTypeDecl(tokAt(scanner,@loc),TypeDeclPtr($decl));
+        $$ = new ExprTypeDecl(tokAt(scanner,@loc),$decl);
     }
     ;
 
@@ -1634,7 +1732,7 @@ expr_type_info
                 $$ = new ExprTypeInfo(tokAt(scanner,@loc),*$trait,ptd->typeexpr);
                 delete $subexpr;
             } else {
-                $$ = new ExprTypeInfo(tokAt(scanner,@loc),*$trait,ExpressionPtr($subexpr));
+                $$ = new ExprTypeInfo(tokAt(scanner,@loc),*$trait,$subexpr);
             }
             delete $trait;
     }
@@ -1644,7 +1742,7 @@ expr_type_info
                 $$ = new ExprTypeInfo(tokAt(scanner,@loc),*$trait,ptd->typeexpr,*$subtrait);
                 delete $subexpr;
             } else {
-                $$ = new ExprTypeInfo(tokAt(scanner,@loc),*$trait,ExpressionPtr($subexpr),*$subtrait);
+                $$ = new ExprTypeInfo(tokAt(scanner,@loc),*$trait,$subexpr,*$subtrait);
             }
             delete $trait;
             delete $subtrait;
@@ -1655,7 +1753,7 @@ expr_type_info
                 $$ = new ExprTypeInfo(tokAt(scanner,@loc),*$trait,ptd->typeexpr,*$subtrait,*$extratrait);
                 delete $subexpr;
             } else {
-                $$ = new ExprTypeInfo(tokAt(scanner,@loc),*$trait,ExpressionPtr($subexpr),*$subtrait,*$extratrait);
+                $$ = new ExprTypeInfo(tokAt(scanner,@loc),*$trait,$subexpr,*$subtrait,*$extratrait);
             }
             delete $trait;
             delete $subtrait;
@@ -1668,7 +1766,7 @@ expr_type_info
                 $$ = new ExprTypeInfo(tokAt(scanner,@loc),*$trait,ptd->typeexpr);
                 delete $subexpr;
             } else {
-                $$ = new ExprTypeInfo(tokAt(scanner,@loc),*$trait,ExpressionPtr($subexpr));
+                $$ = new ExprTypeInfo(tokAt(scanner,@loc),*$trait,$subexpr);
             }
             delete $trait;
     }
@@ -1678,7 +1776,7 @@ expr_type_info
                 $$ = new ExprTypeInfo(tokAt(scanner,@loc),*$trait,ptd->typeexpr,*$subtrait);
                 delete $subexpr;
             } else {
-                $$ = new ExprTypeInfo(tokAt(scanner,@loc),*$trait,ExpressionPtr($subexpr),*$subtrait);
+                $$ = new ExprTypeInfo(tokAt(scanner,@loc),*$trait,$subexpr,*$subtrait);
             }
             delete $trait;
             delete $subtrait;
@@ -1689,7 +1787,7 @@ expr_type_info
                 $$ = new ExprTypeInfo(tokAt(scanner,@loc),*$trait,ptd->typeexpr,*$subtrait,*$extratrait);
                 delete $subexpr;
             } else {
-                $$ = new ExprTypeInfo(tokAt(scanner,@loc),*$trait,ExpressionPtr($subexpr),*$subtrait,*$extratrait);
+                $$ = new ExprTypeInfo(tokAt(scanner,@loc),*$trait,$subexpr,*$subtrait,*$extratrait);
             }
             delete $trait;
             delete $subtrait;
@@ -1702,21 +1800,21 @@ expr_list
         $$ = $subexpr;
     }
     |   expr_list[left] ',' expr[right]     {
-            $$ = new ExprSequence(tokAt(scanner,@left),ExpressionPtr($left),ExpressionPtr($right));
+            $$ = new ExprSequence(tokAt(scanner,@left),$left,$right);
     }
     ;
 
 block_or_simple_block
     :   expression_block[block]     { $$ = $block; }
     |   MAPTO[loc] expr[subexpr]        {
-            auto retE = make_smart<ExprReturn>(tokAt(scanner,@loc), ExpressionPtr($subexpr));
+            auto retE = make_smart<ExprReturn>(tokAt(scanner,@loc), $subexpr);
             auto blkE = new ExprBlock();
             blkE->at = tokAt(scanner,@loc);
             blkE->list.push_back(retE);
             $$ = blkE;
     }
     |   MAPTO[loc] LARROW expr[subexpr]        {
-            auto retE = make_smart<ExprReturn>(tokAt(scanner,@loc), ExpressionPtr($subexpr));
+            auto retE = make_smart<ExprReturn>(tokAt(scanner,@loc), $subexpr);
             retE->moveSemantics = true;
             auto blkE = new ExprBlock();
             blkE->at = tokAt(scanner,@loc);
@@ -1761,7 +1859,7 @@ optional_capture_list
 expr_block
     :   expression_block[block]             {
         ExprBlock * closure = (ExprBlock *) $block;
-        $$ = new ExprMakeBlock(tokAt(scanner,@block),ExpressionPtr($block));
+        $$ = new ExprMakeBlock(tokAt(scanner,@block),$block);
         closure->returnType = make_smart<TypeDecl>(Type::autoinfer);
     }
     |   block_or_lambda[bal] optional_annotation_list[annL] optional_capture_list[clist] optional_function_argument_list[list]
@@ -1792,30 +1890,30 @@ expr_numeric_const
     |   LONG_INTEGER[const]                   { $$ = new ExprConstInt64(tokAt(scanner,@const),(int64_t)$const); }
     |   UNSIGNED_LONG_INTEGER[const]          { $$ = new ExprConstUInt64(tokAt(scanner,@const),(uint64_t)$const); }
     |   UNSIGNED_INT8[const]                  { $$ = new ExprConstUInt8(tokAt(scanner,@const),(uint8_t)$const); }
-    |   FLOAT[const]                          { $$ = new ExprConstFloat(tokAt(scanner,@const),(float)$const); }
+    |   DAS_FLOAT[const]                      { $$ = new ExprConstFloat(tokAt(scanner,@const),(float)$const); }
     |   DOUBLE[const]                         { $$ = new ExprConstDouble(tokAt(scanner,@const),(double)$const); }
     ;
 
 expr_assign
     :   expr[ex]                             { $$ = $ex; }
-    |   expr[left] '='[loc]    expr[right]   { $$ = new ExprCopy(tokAt(scanner,@loc),ExpressionPtr($left),ExpressionPtr($right)); }
-    |   expr[left] LARROW[loc] expr[right]   { $$ = new ExprMove(tokAt(scanner,@loc),ExpressionPtr($left), ExpressionPtr($right)); }
-    |   expr[left] CLONEEQU[loc] expr[right] { $$ = new ExprClone(tokAt(scanner,@loc),ExpressionPtr($left), ExpressionPtr($right)); }
-    |   expr[left] ANDEQU[loc] expr[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"&=", ExpressionPtr($left), ExpressionPtr($right)); }
-    |   expr[left] OREQU[loc] expr[right]    { $$ = new ExprOp2(tokAt(scanner,@loc),"|=", ExpressionPtr($left), ExpressionPtr($right)); }
-    |   expr[left] XOREQU[loc] expr[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"^=", ExpressionPtr($left), ExpressionPtr($right)); }
-    |   expr[left] ANDANDEQU[loc] expr[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"&&=", ExpressionPtr($left), ExpressionPtr($right)); }
-    |   expr[left] OROREQU[loc] expr[right]     { $$ = new ExprOp2(tokAt(scanner,@loc),"||=", ExpressionPtr($left), ExpressionPtr($right)); }
-    |   expr[left] XORXOREQU[loc] expr[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"^^=", ExpressionPtr($left), ExpressionPtr($right)); }
-    |   expr[left] ADDEQU[loc] expr[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"+=", ExpressionPtr($left), ExpressionPtr($right)); }
-    |   expr[left] SUBEQU[loc] expr[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"-=", ExpressionPtr($left), ExpressionPtr($right)); }
-    |   expr[left] MULEQU[loc] expr[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"*=", ExpressionPtr($left), ExpressionPtr($right)); }
-    |   expr[left] DIVEQU[loc] expr[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"/=", ExpressionPtr($left), ExpressionPtr($right)); }
-    |   expr[left] MODEQU[loc] expr[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"%=", ExpressionPtr($left), ExpressionPtr($right)); }
-    |   expr[left] SHLEQU[loc] expr[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"<<=", ExpressionPtr($left), ExpressionPtr($right)); }
-    |   expr[left] SHREQU[loc] expr[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),">>=", ExpressionPtr($left), ExpressionPtr($right)); }
-    |   expr[left] ROTLEQU[loc] expr[right]  { $$ = new ExprOp2(tokAt(scanner,@loc),"<<<=", ExpressionPtr($left), ExpressionPtr($right)); }
-    |   expr[left] ROTREQU[loc] expr[right]  { $$ = new ExprOp2(tokAt(scanner,@loc),">>>=", ExpressionPtr($left), ExpressionPtr($right)); }
+    |   expr[left] '='[loc]    expr[right]   { $$ = new ExprCopy(tokAt(scanner,@loc),$left,$right); }
+    |   expr[left] LARROW[loc] expr[right]   { $$ = new ExprMove(tokAt(scanner,@loc),$left, $right); }
+    |   expr[left] CLONEEQU[loc] expr[right] { $$ = new ExprClone(tokAt(scanner,@loc),$left, $right); }
+    |   expr[left] ANDEQU[loc] expr[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"&=", $left, $right); }
+    |   expr[left] OREQU[loc] expr[right]    { $$ = new ExprOp2(tokAt(scanner,@loc),"|=", $left, $right); }
+    |   expr[left] XOREQU[loc] expr[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"^=", $left, $right); }
+    |   expr[left] ANDANDEQU[loc] expr[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"&&=", $left, $right); }
+    |   expr[left] OROREQU[loc] expr[right]     { $$ = new ExprOp2(tokAt(scanner,@loc),"||=", $left, $right); }
+    |   expr[left] XORXOREQU[loc] expr[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"^^=", $left, $right); }
+    |   expr[left] ADDEQU[loc] expr[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"+=", $left, $right); }
+    |   expr[left] SUBEQU[loc] expr[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"-=", $left, $right); }
+    |   expr[left] MULEQU[loc] expr[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"*=", $left, $right); }
+    |   expr[left] DIVEQU[loc] expr[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"/=", $left, $right); }
+    |   expr[left] MODEQU[loc] expr[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"%=", $left, $right); }
+    |   expr[left] SHLEQU[loc] expr[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"<<=", $left, $right); }
+    |   expr[left] SHREQU[loc] expr[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),">>=", $left, $right); }
+    |   expr[left] ROTLEQU[loc] expr[right]  { $$ = new ExprOp2(tokAt(scanner,@loc),"<<<=", $left, $right); }
+    |   expr[left] ROTREQU[loc] expr[right]  { $$ = new ExprOp2(tokAt(scanner,@loc),">>>=", $left, $right); }
     ;
 
 expr_assign_pipe_right
@@ -1827,23 +1925,23 @@ expr_assign_pipe_right
 
 
 expr_assign_pipe
-    :   expr[left] '='[loc]       expr_assign_pipe_right[right]   { $$ = new ExprCopy(tokAt(scanner,@loc),ExpressionPtr($left),ExpressionPtr($right)); }
-    |   expr[left] LARROW[loc]    expr_assign_pipe_right[right]   { $$ = new ExprMove(tokAt(scanner,@loc),ExpressionPtr($left),ExpressionPtr($right)); }
-    |   expr[left] ANDEQU[loc]    expr_assign_pipe_right[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"&=", ExpressionPtr($left), ExpressionPtr($right)); }
-    |   expr[left] OREQU[loc]     expr_assign_pipe_right[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"|=", ExpressionPtr($left), ExpressionPtr($right)); }
-    |   expr[left] XOREQU[loc]    expr_assign_pipe_right[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"^=", ExpressionPtr($left), ExpressionPtr($right)); }
-    |   expr[left] ANDANDEQU[loc] expr_assign_pipe_right[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"&&=", ExpressionPtr($left), ExpressionPtr($right)); }
-    |   expr[left] OROREQU[loc]   expr_assign_pipe_right[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"||=", ExpressionPtr($left), ExpressionPtr($right)); }
-    |   expr[left] XORXOREQU[loc] expr_assign_pipe_right[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"^^=", ExpressionPtr($left), ExpressionPtr($right)); }
-    |   expr[left] ADDEQU[loc]    expr_assign_pipe_right[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"+=", ExpressionPtr($left), ExpressionPtr($right)); }
-    |   expr[left] SUBEQU[loc]    expr_assign_pipe_right[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"-=", ExpressionPtr($left), ExpressionPtr($right)); }
-    |   expr[left] MULEQU[loc]    expr_assign_pipe_right[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"*=", ExpressionPtr($left), ExpressionPtr($right)); }
-    |   expr[left] DIVEQU[loc]    expr_assign_pipe_right[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"/=", ExpressionPtr($left), ExpressionPtr($right)); }
-    |   expr[left] MODEQU[loc]    expr_assign_pipe_right[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"%=", ExpressionPtr($left), ExpressionPtr($right)); }
-    |   expr[left] SHLEQU[loc]    expr_assign_pipe_right[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"<<=", ExpressionPtr($left), ExpressionPtr($right)); }
-    |   expr[left] SHREQU[loc]    expr_assign_pipe_right[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),">>=", ExpressionPtr($left), ExpressionPtr($right)); }
-    |   expr[left] ROTLEQU[loc]   expr_assign_pipe_right[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"<<<=", ExpressionPtr($left), ExpressionPtr($right)); }
-    |   expr[left] ROTREQU[loc]   expr_assign_pipe_right[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),">>>=", ExpressionPtr($left), ExpressionPtr($right)); }
+    :   expr[left] '='[loc]       expr_assign_pipe_right[right]   { $$ = new ExprCopy(tokAt(scanner,@loc),$left,$right); }
+    |   expr[left] LARROW[loc]    expr_assign_pipe_right[right]   { $$ = new ExprMove(tokAt(scanner,@loc),$left,$right); }
+    |   expr[left] ANDEQU[loc]    expr_assign_pipe_right[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"&=", $left, $right); }
+    |   expr[left] OREQU[loc]     expr_assign_pipe_right[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"|=", $left, $right); }
+    |   expr[left] XOREQU[loc]    expr_assign_pipe_right[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"^=", $left, $right); }
+    |   expr[left] ANDANDEQU[loc] expr_assign_pipe_right[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"&&=", $left, $right); }
+    |   expr[left] OROREQU[loc]   expr_assign_pipe_right[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"||=", $left, $right); }
+    |   expr[left] XORXOREQU[loc] expr_assign_pipe_right[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"^^=", $left, $right); }
+    |   expr[left] ADDEQU[loc]    expr_assign_pipe_right[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"+=", $left, $right); }
+    |   expr[left] SUBEQU[loc]    expr_assign_pipe_right[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"-=", $left, $right); }
+    |   expr[left] MULEQU[loc]    expr_assign_pipe_right[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"*=", $left, $right); }
+    |   expr[left] DIVEQU[loc]    expr_assign_pipe_right[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"/=", $left, $right); }
+    |   expr[left] MODEQU[loc]    expr_assign_pipe_right[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"%=", $left, $right); }
+    |   expr[left] SHLEQU[loc]    expr_assign_pipe_right[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"<<=", $left, $right); }
+    |   expr[left] SHREQU[loc]    expr_assign_pipe_right[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),">>=", $left, $right); }
+    |   expr[left] ROTLEQU[loc]   expr_assign_pipe_right[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"<<<=", $left, $right); }
+    |   expr[left] ROTREQU[loc]   expr_assign_pipe_right[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),">>>=", $left, $right); }
 
     ;
 
@@ -1898,13 +1996,13 @@ func_addr_expr
     }
     |   '@' '@' '<' { yyextra->das_arrow_depth ++; } type_declaration_no_options[blockType] '>' { yyextra->das_arrow_depth --; } func_addr_name[faddr] {
         auto expr = (ExprAddr *) ($faddr->rtti_isAddr() ? $faddr : (((ExprTag *) $faddr)->value.get()));
-        expr->funcType = TypeDeclPtr($blockType);
+        expr->funcType = $blockType;
         $$ = $faddr;
     }
     |   '@' '@' '<' { yyextra->das_arrow_depth ++; } optional_function_argument_list[list] optional_function_type[result] '>' { yyextra->das_arrow_depth --; } func_addr_name[faddr] {
         auto expr = (ExprAddr *) ($faddr->rtti_isAddr() ? $faddr : (((ExprTag *) $faddr)->value.get()));
         expr->funcType = make_smart<TypeDecl>(Type::tFunction);
-        expr->funcType->firstType = TypeDeclPtr($result);
+        expr->funcType->firstType = $result;
         if ( $list ) {
             varDeclToTypeDecl(scanner, expr->funcType.get(), $list);
             deleteVariableDeclarationList($list);
@@ -1915,11 +2013,11 @@ func_addr_expr
 
 expr_field
     :   expr[subexpr] '.'[loc] NAME[name]     {
-        $$ = new ExprField(tokAt(scanner,@loc), tokAt(scanner,@name), ExpressionPtr($subexpr), *$name);
+        $$ = new ExprField(tokAt(scanner,@loc), tokAt(scanner,@name), $subexpr, *$name);
         delete $name;
     }
     |   expr[subexpr] '.' '.'[loc] NAME[name]     {
-        $$ = new ExprField(tokAt(scanner,@loc), tokAt(scanner,@name), ExpressionPtr($subexpr), *$name, true);
+        $$ = new ExprField(tokAt(scanner,@loc), tokAt(scanner,@name), $subexpr, *$name, true);
         delete $name;
     }
     |   expr[left] '.'[loc] NAME[method_name] '(' ')' {
@@ -1934,6 +2032,15 @@ expr_field
         delete $method_name;
         $$ = pInvoke;
     }
+    |   expr[left] '.'[loc] NAME[method_name] '(' '[' make_struct_fields[list] ']' ')' {
+        auto nc = new ExprNamedCall(tokAt(scanner,@method_name),*$method_name);
+        nc->methodCall = true;
+        nc->arguments = *$list;
+        nc->nonNamedArguments.push_back($left);
+        delete $list;
+        delete $method_name;
+        $$ = nc;
+    }
     |   expr[left] '.'[loc] basic_type_declaration[method_type] '(' ')' {
         auto method_name = das_to_string($method_type);
         auto pInvoke = makeInvokeMethod(tokAt(scanner,@loc), $left, method_name);
@@ -1947,7 +2054,7 @@ expr_field
         $$ = pInvoke;
     }
     |   expr[subexpr] '.'[loc] { yyextra->das_suppress_errors=true; } error { yyextra->das_suppress_errors=false; } {
-        $$ = new ExprField(tokAt(scanner,@loc), tokAt(scanner,@loc), ExpressionPtr($subexpr), "");
+        $$ = new ExprField(tokAt(scanner,@loc), tokAt(scanner,@loc), $subexpr, "");
         yyerrok;
     }
     ;
@@ -1960,8 +2067,7 @@ expr_call
     |   name_in_namespace[name] '(' DAS_UNINITIALIZED ')' {
             auto dd = new ExprMakeStruct(tokAt(scanner,@name));
             dd->at = tokAt(scanner,@name);
-            dd->makeType = new TypeDecl(Type::alias);
-            dd->makeType->alias = *$name;
+            dd->makeType = yyextra->g_Program->makeTypeDeclaration(tokAt(scanner,@name),*$name);
             dd->useInitializer = false;
             dd->alwaysUseInitializer = true;
             delete $name;
@@ -1969,8 +2075,7 @@ expr_call
     }
     |   name_in_namespace[name] '(' make_struct_single[dd] ')' {
             ((ExprMakeStruct *)$dd)->at = tokAt(scanner,@name);
-            ((ExprMakeStruct *)$dd)->makeType = new TypeDecl(Type::alias);
-            ((ExprMakeStruct *)$dd)->makeType->alias = *$name;
+            ((ExprMakeStruct *)$dd)->makeType = yyextra->g_Program->makeTypeDeclaration(tokAt(scanner,@name),*$name);
             ((ExprMakeStruct *)$dd)->useInitializer = true;
             ((ExprMakeStruct *)$dd)->alwaysUseInitializer = true;
             delete $name;
@@ -1978,8 +2083,7 @@ expr_call
     }
     |   name_in_namespace[name] '(' DAS_UNINITIALIZED make_struct_single[dd] ')' {
             ((ExprMakeStruct *)$dd)->at = tokAt(scanner,@name);
-            ((ExprMakeStruct *)$dd)->makeType = new TypeDecl(Type::alias);
-            ((ExprMakeStruct *)$dd)->makeType->alias = *$name;
+            ((ExprMakeStruct *)$dd)->makeType = yyextra->g_Program->makeTypeDeclaration(tokAt(scanner,@name),*$name);
             ((ExprMakeStruct *)$dd)->useInitializer = false;
             ((ExprMakeStruct *)$dd)->alwaysUseInitializer = true;
             delete $name;
@@ -2008,41 +2112,41 @@ expr
     |   DAS_FALSE[loc]                        { $$ = new ExprConstBool(tokAt(scanner,@loc),false); }
     |   expr_field[subexpr]                   { $$ = $subexpr; }
     |   expr_mtag[subexpr]                    { $$ = $subexpr; }
-    |   '!'[loc] expr[subexpr]                { $$ = new ExprOp1(tokAt(scanner,@loc),"!",ExpressionPtr($subexpr)); }
-    |   '~'[loc] expr[subexpr]                { $$ = new ExprOp1(tokAt(scanner,@loc),"~",ExpressionPtr($subexpr)); }
-    |   '+'[loc] expr[subexpr] %prec  UNARY_PLUS  { $$ = new ExprOp1(tokAt(scanner,@loc),"+",ExpressionPtr($subexpr)); }
-    |   '-'[loc] expr[subexpr] %prec  UNARY_MINUS { $$ = new ExprOp1(tokAt(scanner,@loc),"-",ExpressionPtr($subexpr)); }
-    |   expr[left] SHL[loc]    expr[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"<<", ExpressionPtr($left), ExpressionPtr($right)); }
-    |   expr[left] SHR[loc]    expr[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),">>", ExpressionPtr($left), ExpressionPtr($right)); }
-    |   expr[left] ROTL[loc]    expr[right]  { $$ = new ExprOp2(tokAt(scanner,@loc),"<<<", ExpressionPtr($left), ExpressionPtr($right)); }
-    |   expr[left] ROTR[loc]    expr[right]  { $$ = new ExprOp2(tokAt(scanner,@loc),">>>", ExpressionPtr($left), ExpressionPtr($right)); }
-    |   expr[left] '+'[loc]    expr[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"+", ExpressionPtr($left), ExpressionPtr($right)); }
-    |   expr[left] '-'[loc]    expr[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"-", ExpressionPtr($left), ExpressionPtr($right)); }
-    |   expr[left] '*'[loc]    expr[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"*", ExpressionPtr($left), ExpressionPtr($right)); }
-    |   expr[left] '/'[loc]    expr[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"/", ExpressionPtr($left), ExpressionPtr($right)); }
-    |   expr[left] '%'[loc]    expr[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"%", ExpressionPtr($left), ExpressionPtr($right)); }
-    |   expr[left] '<'[loc]    expr[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"<", ExpressionPtr($left), ExpressionPtr($right)); }
-    |   expr[left] '>'[loc]    expr[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),">", ExpressionPtr($left), ExpressionPtr($right)); }
-    |   expr[left] EQUEQU[loc] expr[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"==", ExpressionPtr($left), ExpressionPtr($right)); }
-    |   expr[left] NOTEQU[loc] expr[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"!=", ExpressionPtr($left), ExpressionPtr($right)); }
-    |   expr[left] LEEQU[loc]  expr[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"<=", ExpressionPtr($left), ExpressionPtr($right)); }
-    |   expr[left] GREQU[loc]  expr[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),">=", ExpressionPtr($left), ExpressionPtr($right)); }
-    |   expr[left] '&'[loc] expr[right]      { $$ = new ExprOp2(tokAt(scanner,@loc),"&", ExpressionPtr($left), ExpressionPtr($right)); }
-    |   expr[left] '|'[loc] expr[right]      { $$ = new ExprOp2(tokAt(scanner,@loc),"|", ExpressionPtr($left), ExpressionPtr($right)); }
-    |   expr[left] '^'[loc] expr[right]      { $$ = new ExprOp2(tokAt(scanner,@loc),"^", ExpressionPtr($left), ExpressionPtr($right)); }
-    |   expr[left] ANDAND[loc] expr[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"&&", ExpressionPtr($left), ExpressionPtr($right)); }
-    |   expr[left] OROR[loc] expr[right]     { $$ = new ExprOp2(tokAt(scanner,@loc),"||", ExpressionPtr($left), ExpressionPtr($right)); }
-    |   expr[left] XORXOR[loc] expr[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"^^", ExpressionPtr($left), ExpressionPtr($right)); }
+    |   '!'[loc] expr[subexpr]                { $$ = new ExprOp1(tokAt(scanner,@loc),"!",$subexpr); }
+    |   '~'[loc] expr[subexpr]                { $$ = new ExprOp1(tokAt(scanner,@loc),"~",$subexpr); }
+    |   '+'[loc] expr[subexpr] %prec  UNARY_PLUS  { $$ = new ExprOp1(tokAt(scanner,@loc),"+",$subexpr); }
+    |   '-'[loc] expr[subexpr] %prec  UNARY_MINUS { $$ = new ExprOp1(tokAt(scanner,@loc),"-",$subexpr); }
+    |   expr[left] SHL[loc]    expr[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"<<", $left, $right); }
+    |   expr[left] SHR[loc]    expr[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),">>", $left, $right); }
+    |   expr[left] ROTL[loc]    expr[right]  { $$ = new ExprOp2(tokAt(scanner,@loc),"<<<", $left, $right); }
+    |   expr[left] ROTR[loc]    expr[right]  { $$ = new ExprOp2(tokAt(scanner,@loc),">>>", $left, $right); }
+    |   expr[left] '+'[loc]    expr[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"+", $left, $right); }
+    |   expr[left] '-'[loc]    expr[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"-", $left, $right); }
+    |   expr[left] '*'[loc]    expr[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"*", $left, $right); }
+    |   expr[left] '/'[loc]    expr[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"/", $left, $right); }
+    |   expr[left] '%'[loc]    expr[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"%", $left, $right); }
+    |   expr[left] '<'[loc]    expr[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"<", $left, $right); }
+    |   expr[left] '>'[loc]    expr[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),">", $left, $right); }
+    |   expr[left] EQUEQU[loc] expr[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"==", $left, $right); }
+    |   expr[left] NOTEQU[loc] expr[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"!=", $left, $right); }
+    |   expr[left] LEEQU[loc]  expr[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"<=", $left, $right); }
+    |   expr[left] GREQU[loc]  expr[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),">=", $left, $right); }
+    |   expr[left] '&'[loc] expr[right]      { $$ = new ExprOp2(tokAt(scanner,@loc),"&", $left, $right); }
+    |   expr[left] '|'[loc] expr[right]      { $$ = new ExprOp2(tokAt(scanner,@loc),"|", $left, $right); }
+    |   expr[left] '^'[loc] expr[right]      { $$ = new ExprOp2(tokAt(scanner,@loc),"^", $left, $right); }
+    |   expr[left] ANDAND[loc] expr[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"&&", $left, $right); }
+    |   expr[left] OROR[loc] expr[right]     { $$ = new ExprOp2(tokAt(scanner,@loc),"||", $left, $right); }
+    |   expr[left] XORXOR[loc] expr[right]   { $$ = new ExprOp2(tokAt(scanner,@loc),"^^", $left, $right); }
     |   expr[left] DOTDOT[loc] expr[right]   {
         auto itv = yyextra->g_Program->makeCall(tokAt(scanner,@loc),"interval");
-        itv->arguments.push_back(ExpressionPtr($left));
-        itv->arguments.push_back(ExpressionPtr($right));
+        itv->arguments.push_back($left);
+        itv->arguments.push_back($right);
         $$ = itv;
     }
-    |   ADDADD[loc] expr[subexpr] %prec PRE_INC  { $$ = new ExprOp1(tokAt(scanner,@loc),"++", ExpressionPtr($subexpr)); }
-    |   SUBSUB[loc] expr[subexpr] %prec PRE_DEC  { $$ = new ExprOp1(tokAt(scanner,@loc),"--", ExpressionPtr($subexpr)); }
-    |   expr[subexpr] ADDADD[loc] %prec POST_INC { $$ = new ExprOp1(tokAt(scanner,@loc),"+++", ExpressionPtr($subexpr)); }
-    |   expr[subexpr] SUBSUB[loc] %prec POST_DEC { $$ = new ExprOp1(tokAt(scanner,@loc),"---", ExpressionPtr($subexpr)); }
+    |   ADDADD[loc] expr[subexpr] %prec PRE_INC  { $$ = new ExprOp1(tokAt(scanner,@loc),"++", $subexpr); }
+    |   SUBSUB[loc] expr[subexpr] %prec PRE_DEC  { $$ = new ExprOp1(tokAt(scanner,@loc),"--", $subexpr); }
+    |   expr[subexpr] ADDADD[loc] %prec POST_INC { $$ = new ExprOp1(tokAt(scanner,@loc),"+++", $subexpr); }
+    |   expr[subexpr] SUBSUB[loc] %prec POST_DEC { $$ = new ExprOp1(tokAt(scanner,@loc),"---", $subexpr); }
     |   '(' expr_list[subexpr] optional_comma[comma] ')' {
             if ( $subexpr->rtti_isSequence() ) {
                 auto mkt = new ExprMakeTuple(tokAt(scanner,@subexpr));
@@ -2056,62 +2160,71 @@ expr
                 $$ = $subexpr;
             }
         }
-    |   expr[subexpr] '['[loc] expr[index] ']'   { $$ = new ExprAt(tokAt(scanner,@loc), ExpressionPtr($subexpr), ExpressionPtr($index)); }
-    |   expr[subexpr] '.' '['[loc] expr[index] ']'   { $$ = new ExprAt(tokAt(scanner,@loc), ExpressionPtr($subexpr), ExpressionPtr($index), true); }
-    |   expr[subexpr] QBRA[loc] expr[index] ']'  { $$ = new ExprSafeAt(tokAt(scanner,@loc), ExpressionPtr($subexpr), ExpressionPtr($index)); }
-    |   expr[subexpr] '.' QBRA[loc] expr[index] ']'  { $$ = new ExprSafeAt(tokAt(scanner,@loc), ExpressionPtr($subexpr), ExpressionPtr($index), true); }
-    |   expr[subexpr] QDOT[loc] NAME[name]       { $$ = new ExprSafeField(tokAt(scanner,@loc), tokAt(scanner,@name), ExpressionPtr($subexpr), *$name); delete $name; }
-    |   expr[subexpr] '.' QDOT[loc] NAME[name]       { $$ = new ExprSafeField(tokAt(scanner,@loc), tokAt(scanner,@name), ExpressionPtr($subexpr), *$name, true); delete $name; }
+    | '(' make_struct_single[mks] ')' {
+        auto mkt = new ExprMakeTuple(tokAt(scanner,@mks));
+        for ( auto & arg : *(((ExprMakeStruct *)$mks)->structs.back()) ) {
+            mkt->values.push_back(arg->value);
+            mkt->recordNames.push_back(arg->name);
+        }
+        delete $mks;
+        $$ = mkt;
+    }
+    |   expr[subexpr] '['[loc] expr[index] ']'   { $$ = new ExprAt(tokAt(scanner,@loc), $subexpr, $index); }
+    |   expr[subexpr] '.' '['[loc] expr[index] ']'   { $$ = new ExprAt(tokAt(scanner,@loc), $subexpr, $index, true); }
+    |   expr[subexpr] QBRA[loc] expr[index] ']'  { $$ = new ExprSafeAt(tokAt(scanner,@loc), $subexpr, $index); }
+    |   expr[subexpr] '.' QBRA[loc] expr[index] ']'  { $$ = new ExprSafeAt(tokAt(scanner,@loc), $subexpr, $index, true); }
+    |   expr[subexpr] QDOT[loc] NAME[name]       { $$ = new ExprSafeField(tokAt(scanner,@loc), tokAt(scanner,@name), $subexpr, *$name); delete $name; }
+    |   expr[subexpr] '.' QDOT[loc] NAME[name]       { $$ = new ExprSafeField(tokAt(scanner,@loc), tokAt(scanner,@name), $subexpr, *$name, true); delete $name; }
     |   func_addr_expr[subexpr]                  { $$ = $subexpr; }
     |   expr_call[call] { $$ = $call; }
-    |   '*'[loc] expr[subexpr] %prec DEREF         { $$ = new ExprPtr2Ref(tokAt(scanner,@loc),ExpressionPtr($subexpr)); }
-    |   DAS_DEREF[loc] '(' expr[subexpr] ')'       { $$ = new ExprPtr2Ref(tokAt(scanner,@loc),ExpressionPtr($subexpr)); }
-    |   DAS_ADDR[loc] '(' expr[subexpr] ')'        { $$ = new ExprRef2Ptr(tokAt(scanner,@loc),ExpressionPtr($subexpr)); }
+    |   '*'[loc] expr[subexpr] %prec DEREF         { $$ = new ExprPtr2Ref(tokAt(scanner,@loc),$subexpr); }
+    |   DAS_DEREF[loc] '(' expr[subexpr] ')'       { $$ = new ExprPtr2Ref(tokAt(scanner,@loc),$subexpr); }
+    |   DAS_ADDR[loc] '(' expr[subexpr] ')'        { $$ = new ExprRef2Ptr(tokAt(scanner,@loc),$subexpr); }
     |   DAS_GENERATOR[loc] '<' type_declaration_no_options[typeDecl] '>' optional_capture_list[clist] '(' ')' {
         $$ = ast_makeGenerator(scanner,$typeDecl,$clist,nullptr,tokAt(scanner,@loc));
     }
     |   DAS_GENERATOR[loc] '<' type_declaration_no_options[typeDecl] '>' optional_capture_list[clist] '(' expr[subexpr] ')' {
         $$ = ast_makeGenerator(scanner,$typeDecl,$clist,$subexpr,tokAt(scanner,@loc));
     }
-    |   expr[subexpr] QQ[loc] expr[dval]           { $$ = new ExprNullCoalescing(tokAt(scanner,@loc),ExpressionPtr($subexpr),ExpressionPtr($dval)); }
+    |   expr[subexpr] QQ[loc] expr[dval]           { $$ = new ExprNullCoalescing(tokAt(scanner,@loc),$subexpr,$dval); }
     |   expr[subexpr] '?'[loc] expr[left] ':' expr[right] {
-            $$ = new ExprOp3(tokAt(scanner,@loc),"?",ExpressionPtr($subexpr),ExpressionPtr($left),ExpressionPtr($right));
+            $$ = new ExprOp3(tokAt(scanner,@loc),"?",$subexpr,$left,$right);
         }
     |   expr[subexpr] DAS_IS[loc] DAS_TYPE '<' { yyextra->das_arrow_depth ++; } type_declaration_no_options[decl] '>' { yyextra->das_arrow_depth --; } {
-        $$ = new ExprIs(tokAt(scanner,@loc),ExpressionPtr($subexpr),TypeDeclPtr($decl));
+        $$ = new ExprIs(tokAt(scanner,@loc),$subexpr,$decl);
     }
     |   expr[subexpr] DAS_IS[loc] basic_type_declaration[decl] {
         auto vdecl = new TypeDecl($decl);
         vdecl->at = tokAt(scanner,@decl);
-        $$ = new ExprIs(tokAt(scanner,@loc),ExpressionPtr($subexpr),vdecl);
+        $$ = new ExprIs(tokAt(scanner,@loc),$subexpr,vdecl);
     }
     |   expr[subexpr] DAS_IS[loc] NAME[vname] {
-        $$ = new ExprIsVariant(tokAt(scanner,@loc),ExpressionPtr($subexpr),*$vname);
+        $$ = new ExprIsVariant(tokAt(scanner,@loc),$subexpr,*$vname);
         delete $vname;
     }
     |   expr[subexpr] DAS_AS[loc] NAME[vname] {
-        $$ = new ExprAsVariant(tokAt(scanner,@loc),ExpressionPtr($subexpr),*$vname);
+        $$ = new ExprAsVariant(tokAt(scanner,@loc),$subexpr,*$vname);
         delete $vname;
     }
     |   expr[subexpr] DAS_AS[loc] DAS_TYPE '<' { yyextra->das_arrow_depth ++; } type_declaration[decl] '>' { yyextra->das_arrow_depth --; } {
         auto vname = $decl->describe();
-        $$ = new ExprAsVariant(tokAt(scanner,@loc),ExpressionPtr($subexpr),vname);
+        $$ = new ExprAsVariant(tokAt(scanner,@loc),$subexpr,vname);
         delete $decl;
     }
     |   expr[subexpr] DAS_AS[loc] basic_type_declaration[decl] {
-        $$ = new ExprAsVariant(tokAt(scanner,@loc),ExpressionPtr($subexpr),das_to_string($decl));
+        $$ = new ExprAsVariant(tokAt(scanner,@loc),$subexpr,das_to_string($decl));
     }
     |   expr[subexpr] '?' DAS_AS[loc] NAME[vname] {
-        $$ = new ExprSafeAsVariant(tokAt(scanner,@loc),ExpressionPtr($subexpr),*$vname);
+        $$ = new ExprSafeAsVariant(tokAt(scanner,@loc),$subexpr,*$vname);
         delete $vname;
     }
     |   expr[subexpr] '?' DAS_AS[loc] DAS_TYPE '<' { yyextra->das_arrow_depth ++; } type_declaration[decl] '>' { yyextra->das_arrow_depth --; } {
         auto vname = $decl->describe();
-        $$ = new ExprSafeAsVariant(tokAt(scanner,@loc),ExpressionPtr($subexpr),vname);
+        $$ = new ExprSafeAsVariant(tokAt(scanner,@loc),$subexpr,vname);
         delete $decl;
     }
     |   expr[subexpr] '?' DAS_AS[loc] basic_type_declaration[decl] {
-        $$ = new ExprSafeAsVariant(tokAt(scanner,@loc),ExpressionPtr($subexpr),das_to_string($decl));
+        $$ = new ExprSafeAsVariant(tokAt(scanner,@loc),$subexpr,das_to_string($decl));
     }
     |   expr_type_info[subexpr]                 { $$ = $subexpr; }
     |   expr_type_decl[subexpr]                 { $$ = $subexpr; }
@@ -2152,31 +2265,31 @@ expr_mtag
             $$ = new ExprTag(tokAt(scanner,@cname),$subexpr,ccall,"c");
         }
     |   expr[subexpr] '.'[loc] MTAG_F[cname] '(' expr[name] ')' {
-        auto cfield = new ExprField(tokAt(scanner,@loc), tokAt(scanner,@name), ExpressionPtr($subexpr), "``MACRO``TAG``FIELD``");
+        auto cfield = new ExprField(tokAt(scanner,@loc), tokAt(scanner,@name), $subexpr, "``MACRO``TAG``FIELD``");
         $$ = new ExprTag(tokAt(scanner,@name),$name,cfield,"f");
     }
     |   expr[subexpr] QDOT[loc] MTAG_F[cname] '(' expr[name] ')' {
-        auto cfield = new ExprSafeField(tokAt(scanner,@loc), tokAt(scanner,@name), ExpressionPtr($subexpr), "``MACRO``TAG``FIELD``");
+        auto cfield = new ExprSafeField(tokAt(scanner,@loc), tokAt(scanner,@name), $subexpr, "``MACRO``TAG``FIELD``");
         $$ = new ExprTag(tokAt(scanner,@name),$name,cfield,"f");
     }
     |   expr[subexpr] '.' '.'[loc] MTAG_F[cname] '(' expr[name] ')' {
-        auto cfield = new ExprField(tokAt(scanner,@loc), tokAt(scanner,@name), ExpressionPtr($subexpr), "``MACRO``TAG``FIELD``", true);
+        auto cfield = new ExprField(tokAt(scanner,@loc), tokAt(scanner,@name), $subexpr, "``MACRO``TAG``FIELD``", true);
         $$ = new ExprTag(tokAt(scanner,@name),$name,cfield,"f");
     }
     |   expr[subexpr] '.' QDOT[loc] MTAG_F[cname] '(' expr[name] ')' {
-        auto cfield = new ExprSafeField(tokAt(scanner,@loc), tokAt(scanner,@name), ExpressionPtr($subexpr), "``MACRO``TAG``FIELD``", true);
+        auto cfield = new ExprSafeField(tokAt(scanner,@loc), tokAt(scanner,@name), $subexpr, "``MACRO``TAG``FIELD``", true);
         $$ = new ExprTag(tokAt(scanner,@name),$name,cfield,"f");
     }
     |   expr[subexpr] DAS_AS[loc] MTAG_F[cname] '(' expr[name] ')' {
-        auto cfield = new ExprAsVariant(tokAt(scanner,@loc),ExpressionPtr($subexpr),"``MACRO``TAG``FIELD``");
+        auto cfield = new ExprAsVariant(tokAt(scanner,@loc),$subexpr,"``MACRO``TAG``FIELD``");
         $$ = new ExprTag(tokAt(scanner,@name),$name,cfield,"f");
     }
     |   expr[subexpr] '?' DAS_AS[loc] MTAG_F[cname] '(' expr[name] ')' {
-        auto cfield = new ExprSafeAsVariant(tokAt(scanner,@loc),ExpressionPtr($subexpr),"``MACRO``TAG``FIELD``");
+        auto cfield = new ExprSafeAsVariant(tokAt(scanner,@loc),$subexpr,"``MACRO``TAG``FIELD``");
         $$ = new ExprTag(tokAt(scanner,@name),$name,cfield,"f");
     }
     |   expr[subexpr] DAS_IS[loc] MTAG_F[cname] '(' expr[name] ')' {
-        auto cfield = new ExprIsVariant(tokAt(scanner,@loc),ExpressionPtr($subexpr),"``MACRO``TAG``FIELD``");
+        auto cfield = new ExprIsVariant(tokAt(scanner,@loc),$subexpr,"``MACRO``TAG``FIELD``");
         $$ = new ExprTag(tokAt(scanner,@name),$name,cfield,"f");
     }
     |   '@' '@'[loc] MTAG_C[cname] '(' expr[subexpr] ')' {
@@ -2228,12 +2341,15 @@ struct_variable_declaration_list
     :   {
         $$ = new vector<VariableDeclaration*>();
     }
+    |   struct_variable_declaration_list[list] semicolon {
+        $$ = $list;
+    }
     |   struct_variable_declaration_list[list] {
         if ( !yyextra->g_CommentReaders.empty() ) {
             auto tak = tokAt(scanner,@list);
             for ( auto & crd : yyextra->g_CommentReaders ) crd->beforeStructureFields(tak);
         }
-    } structure_variable_declaration[decl] ';' {
+    } structure_variable_declaration[decl] semicolon {
         $$ = $list;
         if ( $decl ) $list->push_back($decl);
         if ( !yyextra->g_CommentReaders.empty() ) {
@@ -2253,11 +2369,12 @@ struct_variable_declaration_list
                     auto tak = tokAt(scanner,@isPrivate);
                     for ( auto & crd : yyextra->g_CommentReaders ) crd->beforeFunction(tak);
                 }
-            } function_declaration_header[func] ';' {
+            } function_declaration_header[func] semicolon {
                 if ( !yyextra->g_CommentReaders.empty() ) {
                     auto tak = tokAt(scanner,@func);
                     for ( auto & crd : yyextra->g_CommentReaders ) crd->afterFunction($func,tak);
                 }
+                $func->isTemplate = yyextra->g_thisStructure ? yyextra->g_thisStructure->isTemplate : false;
                 $$ = ast_structVarDefAbstract(scanner,$list,$annL,$isPrivate,$cnst, $func);
             }
     |   struct_variable_declaration_list[list] optional_annotation_list[annL]
@@ -2271,9 +2388,10 @@ struct_variable_declaration_list
                     auto tak = tokAt(scanner,@block);
                     for ( auto & crd : yyextra->g_CommentReaders ) crd->afterFunction($func,tak);
                 }
+                $func->isTemplate = yyextra->g_thisStructure ? yyextra->g_thisStructure->isTemplate : false;
                 $$ = ast_structVarDef(scanner,$list,$annL,$isStatic,$isPrivate,$ovr,$cnst,$func,$block,tokRangeAt(scanner,@from,@block),tokAt(scanner,@annL));
             }
-    |   struct_variable_declaration_list[list] '[' annotation_list[annL] ']' ';' {
+    |   struct_variable_declaration_list[list] '[' annotation_list[annL] ']' semicolon {
         das_yyerror(scanner,"structure field or class method annotation expected to remain on the same line with the field or the class",
             tokAt(scanner,@annL), CompilationError::syntax_error);
         delete $annL;
@@ -2281,8 +2399,20 @@ struct_variable_declaration_list
     }
     ;
 
-function_argument_declaration
-    :   optional_field_annotation[ann] kwd_let_var_or_nothing[is_let] variable_declaration[decl]  {
+function_argument_declaration_no_type
+    :   optional_field_annotation[ann] kwd_let_var_or_nothing[is_let] variable_declaration_no_type[decl]  {
+            $$ = $decl;
+            if ( $is_let ) {
+                $decl->pTypeDecl->constant = true;
+            } else {
+                $decl->pTypeDecl->removeConstant = true;
+            }
+            $decl->annotation = $ann;
+        }
+    ;
+
+function_argument_declaration_type
+    :   optional_field_annotation[ann] kwd_let_var_or_nothing[is_let] variable_declaration_type[decl]  {
             $$ = $decl;
             if ( $is_let ) {
                 $decl->pTypeDecl->constant = true;
@@ -2293,7 +2423,7 @@ function_argument_declaration
         }
     |   MTAG_A '(' expr[subexpr] ')' {
             auto na = new vector<VariableNameAndPosition>();
-            na->push_back(VariableNameAndPosition{"``MACRO``TAG``","",tokAt(scanner,@subexpr)});
+            na->push_back(VariableNameAndPosition("``MACRO``TAG``","",tokAt(scanner,@subexpr)));
             auto decl = new VariableDeclaration(na, new TypeDecl(Type::none), $subexpr);
             decl->pTypeDecl->isTag = true;
             $$ = decl;
@@ -2301,8 +2431,11 @@ function_argument_declaration
     ;
 
 function_argument_list
-    :   function_argument_declaration[decl]                                      { $$ = new vector<VariableDeclaration*>(); $$->push_back($decl); }
-    |   function_argument_list[list] ';' function_argument_declaration[decl]     { $$ = $list; $list->push_back($decl); }
+    :   function_argument_declaration_no_type[decl]                                   { $$ = new vector<VariableDeclaration*>(); $$->push_back($decl); }
+    |   function_argument_declaration_type[decl]                                      { $$ = new vector<VariableDeclaration*>(); $$->push_back($decl); }
+    |   function_argument_declaration_no_type[decl] semicolon function_argument_list[list]  { $$ = $list; $list->insert($list->begin(),$decl); }
+    |   function_argument_declaration_type[decl]    semicolon function_argument_list[list]  { $$ = $list; $list->insert($list->begin(),$decl); }
+    |   function_argument_declaration_type[decl]    ',' function_argument_list[list]  { $$ = $list; $list->insert($list->begin(),$decl); }
     ;
 
 tuple_type
@@ -2311,7 +2444,7 @@ tuple_type
     }
     |   NAME[name] ':' type_declaration [typeDecl] {
         auto na = new vector<VariableNameAndPosition>();
-        na->push_back(VariableNameAndPosition{*$name,"",tokAt(scanner,@name)});
+        na->push_back(VariableNameAndPosition(*$name,"",tokAt(scanner,@name)));
         $$ = new VariableDeclaration(na,$typeDecl,nullptr);
         delete $name;
     }
@@ -2347,7 +2480,7 @@ tuple_alias_type_list
 variant_type
     :   NAME[name] ':' type_declaration [typeDecl] {
         auto na = new vector<VariableNameAndPosition>();
-        na->push_back(VariableNameAndPosition{*$name,"",tokAt(scanner,@name)});
+        na->push_back(VariableNameAndPosition(*$name,"",tokAt(scanner,@name)));
         $$ = new VariableDeclaration(na,$typeDecl,nullptr);
         delete $name;
     }
@@ -2383,7 +2516,7 @@ copy_or_move
     |   LARROW      { $$ = true; }
     ;
 
-variable_declaration        /* this one can have uninitialized variable which has no type */
+variable_declaration_no_type        /* this one can have uninitialized variable which has no type */
     :   variable_name_with_pos_list[list] {
         auto autoT = new TypeDecl(Type::autoinfer);
         autoT->at = tokAt(scanner,@list);
@@ -2396,24 +2529,30 @@ variable_declaration        /* this one can have uninitialized variable which ha
         autoT->ref = true;
         $$ = new VariableDeclaration($list,autoT,nullptr);
     }
-    |   variable_name_with_pos_list[list] ':' type_declaration[typeDecl]  {
-        $$ = new VariableDeclaration($list,$typeDecl,nullptr);
-    }
-    |   variable_name_with_pos_list[list] ':' type_declaration[typeDecl] copy_or_move[com] expr[init] {
-        $$ = new VariableDeclaration($list,$typeDecl,$init);
-        $$->init_via_move = $com;
-    }
     |   variable_name_with_pos_list[list] copy_or_move[com] expr[init] {
         auto typeDecl = new TypeDecl(Type::autoinfer);
         typeDecl->at = tokAt(scanner,@list);
         $$ = new VariableDeclaration($list,typeDecl,$init);
         $$->init_via_move = $com;
     }
-    |   variable_name_with_pos_list[list] copy_or_move[com] expr_pipe[init] {
-        auto typeDecl = new TypeDecl(Type::autoinfer);
-        typeDecl->at = tokAt(scanner,@list);
-        $$ = new VariableDeclaration($list,typeDecl,$init);
+    ;
+
+variable_declaration_type
+    :   variable_name_with_pos_list[list] ':' type_declaration[typeDecl]  {
+        $$ = new VariableDeclaration($list,$typeDecl,nullptr);
+    }
+    |   variable_name_with_pos_list[list] ':' type_declaration[typeDecl] copy_or_move[com] expr[init] {
+        $$ = new VariableDeclaration($list,$typeDecl,$init);
         $$->init_via_move = $com;
+    }
+    ;
+
+variable_declaration
+    :   variable_declaration_type[decl] {
+        $$ = $decl;
+    }
+    |   variable_declaration_no_type[decl] {
+        $$ = $decl;
     }
     ;
 
@@ -2432,34 +2571,34 @@ let_variable_name_with_pos_list
     :   NAME[name]  {
         das_checkName(scanner,*$name,tokAt(scanner,@name));
         auto pSL = new vector<VariableNameAndPosition>();
-        pSL->push_back(VariableNameAndPosition{*$name,"",tokAt(scanner,@name)});
+        pSL->push_back(VariableNameAndPosition(*$name,"",tokAt(scanner,@name)));
         $$ = pSL;
         delete $name;
     }
     |   MTAG_I '(' expr[subexpr] ')' {
         auto pSL = new vector<VariableNameAndPosition>();
-        pSL->push_back(VariableNameAndPosition{"``MACRO``TAG``","",tokAt(scanner,@subexpr),ExpressionPtr($subexpr)});
+        pSL->push_back(VariableNameAndPosition("``MACRO``TAG``","",tokAt(scanner,@subexpr),$subexpr));
         $$ = pSL;
     }
     |   NAME[name] DAS_AKA NAME[akaname] {
         das_checkName(scanner,*$name,tokAt(scanner,@name));
         das_checkName(scanner,*$akaname,tokAt(scanner,@akaname));
         auto pSL = new vector<VariableNameAndPosition>();
-        pSL->push_back(VariableNameAndPosition{*$name,*$akaname,tokAt(scanner,@name)});
+        pSL->push_back(VariableNameAndPosition(*$name,*$akaname,tokAt(scanner,@name)));
         $$ = pSL;
         delete $name;
         delete $akaname;
     }
     |   let_variable_name_with_pos_list[list] ',' NAME[name] {
         das_checkName(scanner,*$name,tokAt(scanner,@name));
-        $list->push_back(VariableNameAndPosition{*$name,"",tokAt(scanner,@name)});
+        $list->push_back(VariableNameAndPosition(*$name,"",tokAt(scanner,@name)));
         $$ = $list;
         delete $name;
     }
     |   let_variable_name_with_pos_list[list] ',' NAME[name] DAS_AKA NAME[akaname] {
         das_checkName(scanner,*$name,tokAt(scanner,@name));
         das_checkName(scanner,*$akaname,tokAt(scanner,@akaname));
-        $list->push_back(VariableNameAndPosition{*$name,*$akaname,tokAt(scanner,@name)});
+        $list->push_back(VariableNameAndPosition(*$name,*$akaname,tokAt(scanner,@name)));
         $$ = $list;
         delete $name;
         delete $akaname;
@@ -2467,10 +2606,10 @@ let_variable_name_with_pos_list
     ;
 
 let_variable_declaration    /* let x; is prohibited. this one can't have uninitialized variable which has no type */
-    :   let_variable_name_with_pos_list[list] ':' type_declaration_no_options[typeDecl] ';' {
+    :   let_variable_name_with_pos_list[list] ':' type_declaration_no_options[typeDecl] semicolon {
         $$ = new VariableDeclaration($list,$typeDecl,nullptr);
     }
-    |   let_variable_name_with_pos_list[list] ':' type_declaration_no_options[typeDecl] copy_or_move_or_clone[com] expr[init] ';' {
+    |   let_variable_name_with_pos_list[list] ':' type_declaration_no_options[typeDecl] copy_or_move_or_clone[com] expr[init] semicolon {
         $$ = new VariableDeclaration($list,$typeDecl,$init);
         $$->init_via_move  = ($com & CorM_MOVE) !=0;
         $$->init_via_clone = ($com & CorM_CLONE) !=0;
@@ -2480,7 +2619,7 @@ let_variable_declaration    /* let x; is prohibited. this one can't have uniniti
         $$->init_via_move  = ($com & CorM_MOVE) !=0;
         $$->init_via_clone = ($com & CorM_CLONE) !=0;
     }
-    |   let_variable_name_with_pos_list[list] optional_ref[ref] copy_or_move_or_clone[com] expr[init] ';' {
+    |   let_variable_name_with_pos_list[list] optional_ref[ref] copy_or_move_or_clone[com] expr[init] semicolon {
         auto typeDecl = new TypeDecl(Type::autoinfer);
         typeDecl->at = tokAt(scanner,@list);
         typeDecl->ref = $ref;
@@ -2501,6 +2640,9 @@ let_variable_declaration    /* let x; is prohibited. this one can't have uniniti
 global_variable_declaration_list
     :   {
         $$ = new vector<VariableDeclaration*>();
+    }
+    |   global_variable_declaration_list[list] SEMICOLON {
+        $$ = $list;
     }
     |   global_variable_declaration_list[list] {
         if ( !yyextra->g_CommentReaders.empty() ) {
@@ -2533,7 +2675,7 @@ optional_public_or_private_variable
     ;
 
 global_let
-    :   kwd_let optional_shared[glob_shar] optional_public_or_private_variable[pub_var] '{' global_variable_declaration_list[list] '}' {
+    :   kwd_let optional_shared[glob_shar] optional_public_or_private_variable[pub_var] open_block global_variable_declaration_list[list] close_block {
         ast_globalLetList(scanner,$kwd_let,$glob_shar,$pub_var,$list);
     }
     |   kwd_let optional_shared[glob_shar] optional_public_or_private_variable[pub_var] {
@@ -2558,10 +2700,10 @@ enum_list
     :   {
         $$ = new Enumeration();
     }
-    |   enum_list[pE] ';' {
+    |   enum_list[pE] semicolon {
         $$ = $pE;
     }
-    |   enum_list[pE] NAME[name] ';' {
+    |   enum_list[pE] NAME[name] semicolon {
         das_checkName(scanner,*$name,tokAt(scanner,@name));
         if ( !$pE->add(*$name,nullptr,tokAt(scanner,@name)) ) {
             das_yyerror(scanner,"enumeration already declared " + *$name, tokAt(scanner,@name),
@@ -2576,9 +2718,9 @@ enum_list
         delete $name;
         $$ = $pE;
     }
-    |   enum_list[pE] NAME[name] '=' expr[value] ';' {
+    |   enum_list[pE] NAME[name] '=' expr[value] semicolon {
         das_checkName(scanner,*$name,tokAt(scanner,@name));
-        if ( !$pE->add(*$name,ExpressionPtr($value),tokAt(scanner,@name)) ) {
+        if ( !$pE->add(*$name,$value,tokAt(scanner,@name)) ) {
             das_yyerror(scanner,"enumeration value already declared " + *$name, tokAt(scanner,@name),
                 CompilationError::enumeration_value_already_declared);
         }
@@ -2615,7 +2757,7 @@ single_alias
                 CompilationError::invalid_type);
         }
         $tdecl->alias = *$name;
-        if ( !yyextra->g_Program->addAlias(TypeDeclPtr($tdecl)) ) {
+        if ( !yyextra->g_Program->addAlias($tdecl) ) {
             das_yyerror(scanner,"type alias is already defined "+*$name,tokAt(scanner,@name),
                 CompilationError::type_alias_already_declared);
         }
@@ -2628,13 +2770,13 @@ single_alias
     ;
 
 alias_list
-    :   single_alias ';'
-    |   alias_list single_alias ';'
+    :   single_alias semicolon
+    |   alias_list single_alias semicolon
     ;
 
 alias_declaration
-    :   DAS_TYPEDEF '{' alias_list '}'
-    |   DAS_TYPEDEF { yyextra->das_force_oxford_comma=true;} single_alias ';'
+    :   DAS_TYPEDEF open_block alias_list close_block
+    |   DAS_TYPEDEF { yyextra->das_force_oxford_comma=true;} single_alias semicolon
     ;
 
 optional_public_or_private_enum
@@ -2654,7 +2796,7 @@ enum_name
     ;
 
 enum_declaration
-    :   optional_annotation_list[annL] DAS_ENUM[loc] optional_public_or_private_enum[pubE] enum_name[edecl] '{' {
+    :   optional_annotation_list[annL] DAS_ENUM[loc] optional_public_or_private_enum[pubE] enum_name[edecl] open_block {
         if ( !yyextra->g_CommentReaders.empty() ) {
             auto tak = tokAt(scanner,@edecl);
             for ( auto & crd : yyextra->g_CommentReaders ) crd->beforeEnumerationEntries(tak);
@@ -2664,14 +2806,14 @@ enum_declaration
             auto tak = tokAt(scanner,@pE);
             for ( auto & crd : yyextra->g_CommentReaders ) crd->afterEnumerationEntries(tak);
         }
-    } '}' {
+    } close_block {
         if ( !yyextra->g_CommentReaders.empty() ) {
             auto pubename = tokAt(scanner,@pE);
             for ( auto & crd : yyextra->g_CommentReaders ) crd->afterEnumeration($edecl->name.c_str(),pubename);
         }
         ast_enumDeclaration(scanner,$annL,tokAt(scanner,@annL),$pubE,$edecl,$pE,Type::tInt);
     }
-    |   optional_annotation_list[annL] DAS_ENUM[loc] optional_public_or_private_enum[pubE] enum_name[edecl] ':' enum_basic_type_declaration[ebt] '{' {
+    |   optional_annotation_list[annL] DAS_ENUM[loc] optional_public_or_private_enum[pubE] enum_name[edecl] ':' enum_basic_type_declaration[ebt] open_block {
         if ( !yyextra->g_CommentReaders.empty() ) {
             auto tak = tokAt(scanner,@edecl);
             for ( auto & crd : yyextra->g_CommentReaders ) crd->beforeEnumerationEntries(tak);
@@ -2681,7 +2823,7 @@ enum_declaration
             auto tak = tokAt(scanner,@pE);
             for ( auto & crd : yyextra->g_CommentReaders ) crd->afterEnumerationEntries(tak);
         }
-    } '}' {
+    } close_block {
         if ( !yyextra->g_CommentReaders.empty() ) {
             auto pubename = tokAt(scanner,@pE);
             for ( auto & crd : yyextra->g_CommentReaders ) crd->afterEnumeration($edecl->name.c_str(),pubename);
@@ -2707,8 +2849,10 @@ structure_name
     ;
 
 class_or_struct
-    :   DAS_CLASS   { $$ = true; }
-    |   DAS_STRUCT  { $$ = false; }
+    :   DAS_CLASS   { $$ = CorS_Class; }
+    |   DAS_STRUCT  { $$ = CorS_Struct; }
+    |   DAS_TEMPLATE DAS_CLASS   { $$ = CorS_ClassTemplate; }
+    |   DAS_TEMPLATE DAS_STRUCT  { $$ = CorS_StructTemplate; }
     ;
 
 optional_public_or_private_structure
@@ -2721,7 +2865,7 @@ optional_struct_variable_declaration_list
     :   {
         $$ = new vector<VariableDeclaration*>();
     }
-    |   '{' struct_variable_declaration_list[list] '}' {
+    |   open_block struct_variable_declaration_list[list] close_block {
         $$ = $list;
     }
     ;
@@ -2732,7 +2876,13 @@ structure_declaration
             auto tak = tokAt(scanner,@loc);
             for ( auto & crd : yyextra->g_CommentReaders ) crd->beforeStructure(tak);
         }
-    } structure_name[ps] { if ( $ps ) { $ps->isClass = $loc; $ps->privateStructure = !$pub_str; } } optional_struct_variable_declaration_list[list] {
+    } structure_name[ps] {
+        if ( $ps ) {
+            $ps->isClass = $loc==CorS_Class || $loc==CorS_ClassTemplate;
+            $ps->isTemplate = $loc==CorS_ClassTemplate || $loc==CorS_StructTemplate;
+            $ps->privateStructure = !$pub_str;
+        }
+    } optional_struct_variable_declaration_list[list] {
         if ( $ps ) {
             ast_structureDeclaration ( scanner, $annL, tokAt(scanner,@loc), $ps, tokAt(scanner,@ps), $list );
             if ( !yyextra->g_CommentReaders.empty() ) {
@@ -2749,34 +2899,34 @@ variable_name_with_pos_list
     :   NAME[name]  {
         das_checkName(scanner,*$name,tokAt(scanner,@name));
         auto pSL = new vector<VariableNameAndPosition>();
-        pSL->push_back(VariableNameAndPosition{*$name,"",tokAt(scanner,@name)});
+        pSL->push_back(VariableNameAndPosition(*$name,"",tokAt(scanner,@name)));
         $$ = pSL;
         delete $name;
     }
     |   MTAG_I '(' expr[subexpr] ')' {
         auto pSL = new vector<VariableNameAndPosition>();
-        pSL->push_back(VariableNameAndPosition{"``MACRO``TAG``","",tokAt(scanner,@subexpr),$subexpr});
+        pSL->push_back(VariableNameAndPosition("``MACRO``TAG``","",tokAt(scanner,@subexpr),$subexpr));
         $$ = pSL;
     }
     |   NAME[name] DAS_AKA NAME[akaname] {
         das_checkName(scanner,*$name,tokAt(scanner,@name));
         das_checkName(scanner,*$akaname,tokAt(scanner,@akaname));
         auto pSL = new vector<VariableNameAndPosition>();
-        pSL->push_back(VariableNameAndPosition{*$name,*$akaname,tokAt(scanner,@name)});
+        pSL->push_back(VariableNameAndPosition(*$name,*$akaname,tokAt(scanner,@name)));
         $$ = pSL;
         delete $name;
         delete $akaname;
     }
     |   variable_name_with_pos_list[list] ',' NAME[name] {
         das_checkName(scanner,*$name,tokAt(scanner,@name));
-        $list->push_back(VariableNameAndPosition{*$name,"",tokAt(scanner,@name)});
+        $list->push_back(VariableNameAndPosition(*$name,"",tokAt(scanner,@name)));
         $$ = $list;
         delete $name;
     }
     |   variable_name_with_pos_list[list] ',' NAME[name] DAS_AKA NAME[akaname] {
         das_checkName(scanner,*$name,tokAt(scanner,@name));
         das_checkName(scanner,*$akaname,tokAt(scanner,@akaname));
-        $list->push_back(VariableNameAndPosition{*$name,*$akaname,tokAt(scanner,@name)});
+        $list->push_back(VariableNameAndPosition(*$name,*$akaname,tokAt(scanner,@name)));
         $$ = $list;
         delete $name;
         delete $akaname;
@@ -2866,7 +3016,7 @@ bitfield_bits
         $$ = pSL;
         delete $name;
     }
-    |   bitfield_bits[list] ';' NAME[name] {
+    |   bitfield_bits[list] semicolon NAME[name] {
         das_checkName(scanner,*$name,tokAt(scanner,@name));
         $list->push_back(*$name);
         $$ = $list;
@@ -2880,10 +3030,10 @@ bitfield_alias_bits
         $$ = pSL;
 
     }
-    |   bitfield_alias_bits[list] ';' {
+    |   bitfield_alias_bits[list] semicolon {
         $$ = $list;
     }
-    |   bitfield_alias_bits[list] NAME[name] ';' {
+    |   bitfield_alias_bits[list] NAME[name] semicolon {
         das_checkName(scanner,*$name,tokAt(scanner,@name));
         $list->push_back(*$name);
         $$ = $list;
@@ -2910,7 +3060,7 @@ bitfield_type_declaration
 
 c_or_s
     :   ','
-    |   ';'
+    |   semicolon
     ;
 
 table_type_pair
@@ -3036,50 +3186,51 @@ type_declaration_no_options
     |   type_declaration_no_options[typeDecl] '?' {
         $$ = new TypeDecl(Type::tPointer);
         $$->at = tokAt(scanner,@typeDecl);
-        $$->firstType = TypeDeclPtr($typeDecl);
+        $$->firstType = $typeDecl;
     }
     |   DAS_SMART_PTR[loc] '<' { yyextra->das_arrow_depth ++; } type_declaration[typeDecl] '>' { yyextra->das_arrow_depth --; } {
         $$ = new TypeDecl(Type::tPointer);
         $$->at = tokAt(scanner,@loc);
         $$->smartPtr = true;
-        $$->firstType = TypeDeclPtr($typeDecl);
+        $$->firstType = $typeDecl;
     }
     |   type_declaration_no_options[typeDecl] QQ {
         $$ = new TypeDecl(Type::tPointer);
         $$->at = tokAt(scanner,@typeDecl);
         $$->firstType = make_smart<TypeDecl>(Type::tPointer);
         $$->firstType->at = tokAt(scanner,@typeDecl);
-        $$->firstType->firstType = TypeDeclPtr($typeDecl);
+        $$->firstType->firstType = $typeDecl;
     }
     |   DAS_ARRAY[loc] '<' { yyextra->das_arrow_depth ++; } type_declaration[typeDecl] '>' { yyextra->das_arrow_depth --; } {
         $$ = new TypeDecl(Type::tArray);
         $$->at = tokAt(scanner,@loc);
-        $$->firstType = TypeDeclPtr($typeDecl);
+        $$->firstType = $typeDecl;
     }
     |   DAS_TABLE[loc] '<' { yyextra->das_arrow_depth ++; } table_type_pair[ttp] '>' { yyextra->das_arrow_depth --; } {
         $$ = new TypeDecl(Type::tTable);
         $$->at = tokAt(scanner,@loc);
-        $$->firstType = TypeDeclPtr($ttp.firstType);
-        $$->secondType = TypeDeclPtr($ttp.secondType);
+        $$->firstType = $ttp.firstType;
+        $$->secondType = $ttp.secondType;
     }
     |   DAS_ITERATOR[loc] '<'  { yyextra->das_arrow_depth ++; } type_declaration[itTypeDecl] '>' { yyextra->das_arrow_depth --; } {
         $$ = new TypeDecl(Type::tIterator);
         $$->at = tokAt(scanner,@loc);
-        $$->firstType = TypeDeclPtr($itTypeDecl);
+        $$->firstType = $itTypeDecl;
     }
     |   DAS_TBLOCK[loc] {
         $$ = new TypeDecl(Type::tBlock);
+        $$->firstType = make_smart<TypeDecl>(Type::tVoid);
         $$->at = tokAt(scanner,@loc);
     }
     |   DAS_TBLOCK[loc] '<'  { yyextra->das_arrow_depth ++; } type_declaration[blockType] '>' { yyextra->das_arrow_depth --; } {
         $$ = new TypeDecl(Type::tBlock);
         $$->at = tokAt(scanner,@loc);
-        $$->firstType = TypeDeclPtr($blockType);
+        $$->firstType = $blockType;
     }
     |   DAS_TBLOCK[loc] '<'  { yyextra->das_arrow_depth ++; } optional_function_argument_list[list] optional_function_type[result] '>' { yyextra->das_arrow_depth --; } {
         $$ = new TypeDecl(Type::tBlock);
         $$->at = tokAt(scanner,@loc);
-        $$->firstType = TypeDeclPtr($result);
+        $$->firstType = $result;
         if ( $list ) {
             varDeclToTypeDecl(scanner, $$, $list);
             deleteVariableDeclarationList($list);
@@ -3087,17 +3238,18 @@ type_declaration_no_options
     }
     |   DAS_TFUNCTION[loc] {
         $$ = new TypeDecl(Type::tFunction);
+        $$->firstType = make_smart<TypeDecl>(Type::tVoid);
         $$->at = tokAt(scanner,@loc);
     }
     |   DAS_TFUNCTION[loc] '<' { yyextra->das_arrow_depth ++; } type_declaration[blockType] '>' { yyextra->das_arrow_depth --; } {
         $$ = new TypeDecl(Type::tFunction);
         $$->at = tokAt(scanner,@loc);
-        $$->firstType = TypeDeclPtr($blockType);
+        $$->firstType = $blockType;
     }
     |   DAS_TFUNCTION[loc] '<' { yyextra->das_arrow_depth ++; } optional_function_argument_list[list] optional_function_type[result] '>' { yyextra->das_arrow_depth --; } {
         $$ = new TypeDecl(Type::tFunction);
         $$->at = tokAt(scanner,@loc);
-        $$->firstType = TypeDeclPtr($result);
+        $$->firstType = $result;
         if ( $list ) {
             varDeclToTypeDecl(scanner, $$, $list);
             deleteVariableDeclarationList($list);
@@ -3105,17 +3257,18 @@ type_declaration_no_options
     }
     |   DAS_TLAMBDA[loc] {
         $$ = new TypeDecl(Type::tLambda);
+        $$->firstType = make_smart<TypeDecl>(Type::tVoid);
         $$->at = tokAt(scanner,@loc);
     }
     |   DAS_TLAMBDA[loc] '<' { yyextra->das_arrow_depth ++; } type_declaration[blockType] '>' { yyextra->das_arrow_depth --; } {
         $$ = new TypeDecl(Type::tLambda);
         $$->at = tokAt(scanner,@loc);
-        $$->firstType = TypeDeclPtr($blockType);
+        $$->firstType = $blockType;
     }
     |   DAS_TLAMBDA[loc] '<' { yyextra->das_arrow_depth ++; } optional_function_argument_list[list] optional_function_type[result] '>' { yyextra->das_arrow_depth --; } {
         $$ = new TypeDecl(Type::tLambda);
         $$->at = tokAt(scanner,@loc);
-        $$->firstType = TypeDeclPtr($result);
+        $$->firstType = $result;
         if ( $list ) {
             varDeclToTypeDecl(scanner, $$, $list);
             deleteVariableDeclarationList($list);
@@ -3171,7 +3324,7 @@ tuple_alias_declaration
             auto atvname = tokAt(scanner,@vname);
             for ( auto & crd : yyextra->g_CommentReaders ) crd->beforeTuple(atvname);
         }
-    } '{' {
+    } open_block {
         if ( !yyextra->g_CommentReaders.empty() ) {
             auto atvname = tokAt(scanner,@vname);
             for ( auto & crd : yyextra->g_CommentReaders ) crd->beforeTupleEntries(atvname);
@@ -3181,7 +3334,7 @@ tuple_alias_declaration
             auto atvname = tokAt(scanner,@vname);
             for ( auto & crd : yyextra->g_CommentReaders ) crd->afterTupleEntries(atvname);
         }
-    } '}' {
+    } close_block {
         auto vtype = make_smart<TypeDecl>(Type::tTuple);
         vtype->alias = *$vname;
         vtype->at = tokAt(scanner,@vname);
@@ -3206,7 +3359,7 @@ variant_alias_declaration
             auto atvname = tokAt(scanner,@vname);
             for ( auto & crd : yyextra->g_CommentReaders ) crd->beforeVariant(atvname);
         }
-    } '{' {
+    } open_block {
         if ( !yyextra->g_CommentReaders.empty() ) {
             auto atvname = tokAt(scanner,@vname);
             for ( auto & crd : yyextra->g_CommentReaders ) crd->beforeVariantEntries(atvname);
@@ -3217,7 +3370,7 @@ variant_alias_declaration
             auto atvname = tokAt(scanner,@vname);
             for ( auto & crd : yyextra->g_CommentReaders ) crd->afterVariantEntries(atvname);
         }
-    } '}' {
+    } close_block {
         auto vtype = make_smart<TypeDecl>(Type::tVariant);
         vtype->alias = *$vname;
         vtype->at = tokAt(scanner,@vname);
@@ -3242,7 +3395,7 @@ bitfield_alias_declaration
             auto atvname = tokAt(scanner,@vname);
             for ( auto & crd : yyextra->g_CommentReaders ) crd->beforeBitfield(atvname);
         }
-    } '{' {
+    } open_block {
         if ( !yyextra->g_CommentReaders.empty() ) {
             auto atvname = tokAt(scanner,@vname);
             for ( auto & crd : yyextra->g_CommentReaders ) crd->beforeBitfieldEntries(atvname);
@@ -3252,7 +3405,7 @@ bitfield_alias_declaration
             auto atvname = tokAt(scanner,@vname);
             for ( auto & crd : yyextra->g_CommentReaders ) crd->afterBitfieldEntries(atvname);
         }
-    } '}' {
+    } close_block {
         auto btype = make_smart<TypeDecl>(Type::tBitfield);
         btype->alias = *$vname;
         btype->at = tokAt(scanner,@vname);
@@ -3286,67 +3439,70 @@ make_decl
 
 make_struct_fields
     :   NAME[fn] copy_or_move[com] expr[value] {
-        auto mfd = make_smart<MakeFieldDecl>(tokAt(scanner,@fn),*$fn,ExpressionPtr($value),$com,false);
+        auto mfd = make_smart<MakeFieldDecl>(tokAt(scanner,@fn),*$fn,$value,$com,false);
         delete $fn;
         auto msd = new MakeStruct();
         msd->push_back(mfd);
         $$ = msd;
     }
     |   NAME[fn] CLONEEQU expr[value] {
-        auto mfd = make_smart<MakeFieldDecl>(tokAt(scanner,@fn),*$fn,ExpressionPtr($value),false,true);
+        auto mfd = make_smart<MakeFieldDecl>(tokAt(scanner,@fn),*$fn,$value,false,true);
         delete $fn;
         auto msd = new MakeStruct();
         msd->push_back(mfd);
         $$ = msd;
     }
     |   make_struct_fields[msd] ',' NAME[fn] copy_or_move[com] expr[value] {
-        auto mfd = make_smart<MakeFieldDecl>(tokAt(scanner,@fn),*$fn,ExpressionPtr($value),$com,false);
+        auto mfd = make_smart<MakeFieldDecl>(tokAt(scanner,@fn),*$fn,$value,$com,false);
         delete $fn;
         ((MakeStruct *)$msd)->push_back(mfd);
         $$ = $msd;
     }
     |   make_struct_fields[msd] ',' NAME[fn] CLONEEQU expr[value] {
-        auto mfd = make_smart<MakeFieldDecl>(tokAt(scanner,@fn),*$fn,ExpressionPtr($value),false,true);
+        auto mfd = make_smart<MakeFieldDecl>(tokAt(scanner,@fn),*$fn,$value,false,true);
         delete $fn;
         ((MakeStruct *)$msd)->push_back(mfd);
         $$ = $msd;
     }
     |   MTAG_F '(' expr[subexpr] ')' copy_or_move[com] expr[value] {
-        auto mfd = make_smart<MakeFieldDecl>(tokAt(scanner,@subexpr),"``MACRO``TAG``FIELD``",ExpressionPtr($value),$com,false);
-        mfd->tag = ExpressionPtr($subexpr);
+        auto mfd = make_smart<MakeFieldDecl>(tokAt(scanner,@subexpr),"``MACRO``TAG``FIELD``",$value,$com,false);
+        mfd->tag = $subexpr;
         auto msd = new MakeStruct();
         msd->push_back(mfd);
         $$ = msd;
     }
     |   MTAG_F '(' expr[subexpr] ')' CLONEEQU expr[value] {
-        auto mfd = make_smart<MakeFieldDecl>(tokAt(scanner,@subexpr),"``MACRO``TAG``FIELD``",ExpressionPtr($value),false,true);
-        mfd->tag = ExpressionPtr($subexpr);
+        auto mfd = make_smart<MakeFieldDecl>(tokAt(scanner,@subexpr),"``MACRO``TAG``FIELD``",$value,false,true);
+        mfd->tag = $subexpr;
         auto msd = new MakeStruct();
         msd->push_back(mfd);
         $$ = msd;
     }
     |   make_struct_fields[msd] ',' MTAG_F '(' expr[subexpr] ')' copy_or_move[com] expr[value] {
-        auto mfd = make_smart<MakeFieldDecl>(tokAt(scanner,@subexpr),"``MACRO``TAG``FIELD``",ExpressionPtr($value),$com,false);
-        mfd->tag = ExpressionPtr($subexpr);
+        auto mfd = make_smart<MakeFieldDecl>(tokAt(scanner,@subexpr),"``MACRO``TAG``FIELD``",$value,$com,false);
+        mfd->tag = $subexpr;
         ((MakeStruct *)$msd)->push_back(mfd);
         $$ = $msd;
     }
     |   make_struct_fields[msd] ',' MTAG_F '(' expr[subexpr] ')' CLONEEQU expr[value] {
-        auto mfd = make_smart<MakeFieldDecl>(tokAt(scanner,@subexpr),"``MACRO``TAG``FIELD``",ExpressionPtr($value),false,true);
-        mfd->tag = ExpressionPtr($subexpr);
+        auto mfd = make_smart<MakeFieldDecl>(tokAt(scanner,@subexpr),"``MACRO``TAG``FIELD``",$value,false,true);
+        mfd->tag = $subexpr;
         ((MakeStruct *)$msd)->push_back(mfd);
         $$ = $msd;
     }
     ;
 
 make_variant_dim
-    :   make_struct_fields[msd] {
+    :  {
+        $$ = ast_makeStructToMakeVariant(nullptr, LineInfo());
+    }
+    | make_struct_fields[msd] {
         $$ = ast_makeStructToMakeVariant($msd, tokAt(scanner,@msd));
     }
     ;
 
 make_struct_single
-    :   make_struct_fields[msf] {
+    :   make_struct_fields[msf] optional_comma {
         auto msd = new ExprMakeStruct();
         msd->structs.push_back(MakeStructPtr($msf));
         $$ = msd;
@@ -3433,76 +3589,80 @@ use_initializer
 
 make_struct_decl
     :   BRABRAB [loc] type_declaration_no_options[mkt] make_struct_dim[msd] optional_block[blk] optional_trailing_delim_sqr_sqr {
-        ((ExprMakeStruct *)$msd)->makeType = TypeDeclPtr($mkt);
+        ((ExprMakeStruct *)$msd)->makeType = $mkt;
         ((ExprMakeStruct *)$msd)->block = $blk;
         $msd->at = tokAt(scanner,@loc);
         $$ = $msd;
     }
     |   BRABRAB [loc] type_declaration_no_options[mkt] optional_block[blk] optional_trailing_delim_sqr_sqr {
         auto msd = new ExprMakeStruct();
-        msd->makeType = TypeDeclPtr($mkt);
+        msd->makeType = $mkt;
         msd->block = $blk;
         msd->at = tokAt(scanner,@loc);
         $$ = msd;
     }
     |   BRABRAB [loc] type_declaration_no_options[mkt] '(' ')' optional_block[blk] optional_trailing_delim_sqr_sqr {
         auto msd = new ExprMakeStruct();
-        msd->makeType = TypeDeclPtr($mkt);
+        msd->makeType = $mkt;
         msd->useInitializer = true;
         msd->block = $blk;
         msd->at = tokAt(scanner,@loc);
         $$ = msd;
     }
     |   BRABRAB [loc] type_declaration_no_options[mkt] '(' ')' make_struct_dim[msd] optional_block[blk] optional_trailing_delim_sqr_sqr {
-        ((ExprMakeStruct *)$msd)->makeType = TypeDeclPtr($mkt);
+        ((ExprMakeStruct *)$msd)->makeType = $mkt;
         ((ExprMakeStruct *)$msd)->useInitializer = true;
         ((ExprMakeStruct *)$msd)->block = $blk;
         $msd->at = tokAt(scanner,@loc);
         $$ = $msd;
     }
     |   BRACBRB [loc] type_declaration_no_options[mkt] make_struct_dim[msd] optional_block[blk] optional_trailing_delim_cur_sqr {
-        ((ExprMakeStruct *)$msd)->makeType = TypeDeclPtr($mkt);
+        ((ExprMakeStruct *)$msd)->makeType = $mkt;
         ((ExprMakeStruct *)$msd)->block = $blk;
         $msd->at = tokAt(scanner,@loc);
         auto tam = yyextra->g_Program->makeCall(tokAt(scanner,@loc),"to_array_move");
-        tam->arguments.push_back(ExpressionPtr($msd));
+        tam->arguments.push_back($msd);
         $$ = tam;
     }
     |   BRACBRB [loc] type_declaration_no_options[mkt] '(' ')' make_struct_dim[msd] optional_block[blk] optional_trailing_delim_cur_sqr {
-        ((ExprMakeStruct *)$msd)->makeType = TypeDeclPtr($mkt);
+        ((ExprMakeStruct *)$msd)->makeType = $mkt;
         ((ExprMakeStruct *)$msd)->useInitializer = true;
         ((ExprMakeStruct *)$msd)->block = $blk;
         $msd->at = tokAt(scanner,@loc);
         auto tam = yyextra->g_Program->makeCall(tokAt(scanner,@loc),"to_array_move");
-        tam->arguments.push_back(ExpressionPtr($msd));
+        tam->arguments.push_back($msd);
         $$ = tam;
     }
     |   DAS_STRUCT [loc] '<' { yyextra->das_force_oxford_comma=true; yyextra->das_arrow_depth ++; } type_declaration_no_options[mkt] '>' { yyextra->das_arrow_depth --; } '(' use_initializer[init] optional_make_struct_dim_decl[msd] ')'  {
         $msd->at = tokAt(scanner,@loc);
-        ((ExprMakeStruct *)$msd)->makeType = TypeDeclPtr($mkt);
+        ((ExprMakeStruct *)$msd)->makeType = $mkt;
         ((ExprMakeStruct *)$msd)->useInitializer = $init;
         ((ExprMakeStruct *)$msd)->forceStruct = true;
         ((ExprMakeStruct *)$msd)->alwaysUseInitializer = true;
         $$ = $msd;
     }
-    |   DAS_CLASS [loc] '<' { yyextra->das_force_oxford_comma=true; yyextra->das_arrow_depth ++; } type_declaration_no_options[mkt] '>' { yyextra->das_arrow_depth --; } '('use_initializer[init] optional_make_struct_dim_decl[msd] ')'  {
+    |   DAS_CLASS [loc] '<' { yyextra->das_force_oxford_comma=true; yyextra->das_arrow_depth ++; } type_declaration_no_options[mkt] '>' { yyextra->das_arrow_depth --; } '(' use_initializer[init] optional_make_struct_dim_decl[msd] ')'  {
         $msd->at = tokAt(scanner,@loc);
-        ((ExprMakeStruct *)$msd)->makeType = TypeDeclPtr($mkt);
+        ((ExprMakeStruct *)$msd)->makeType = $mkt;
         ((ExprMakeStruct *)$msd)->useInitializer = $init;
         ((ExprMakeStruct *)$msd)->forceClass = true;
         $$ = $msd;
     }
-    |   DAS_TVARIANT [loc] '<' { yyextra->das_force_oxford_comma=true; yyextra->das_arrow_depth ++; } type_declaration_no_options[mkt] '>' { yyextra->das_arrow_depth --; } '(' make_variant_dim[msd] ')'  {
+    |   DAS_TVARIANT [loc] '<' { yyextra->das_force_oxford_comma=true; yyextra->das_arrow_depth ++; } variant_type_list[list] '>' { yyextra->das_arrow_depth --; } '(' use_initializer[init] make_variant_dim[msd] ')'  {
+        auto mkt = new TypeDecl(Type::tVariant);
+        mkt->at = tokAt(scanner,@loc);
+        varDeclToTypeDecl(scanner, mkt, $list, true);
+        deleteVariableDeclarationList($list);
         $msd->at = tokAt(scanner,@loc);
-        ((ExprMakeStruct *)$msd)->makeType = TypeDeclPtr($mkt);
-        ((ExprMakeStruct *)$msd)->useInitializer = true;
+        ((ExprMakeStruct *)$msd)->makeType = mkt;
+        ((ExprMakeStruct *)$msd)->useInitializer = $init;
         ((ExprMakeStruct *)$msd)->forceVariant = true;
         $$ = $msd;
     }
     |   DAS_DEFAULT [loc] '<' { yyextra->das_arrow_depth ++; } type_declaration_no_options[mkt] '>' { yyextra->das_arrow_depth --; } use_initializer[init] {
         auto msd = new ExprMakeStruct();
         msd->at = tokAt(scanner,@loc);
-        msd->makeType = TypeDeclPtr($mkt);
+        msd->makeType = $mkt;
         msd->useInitializer = $init;
         msd->alwaysUseInitializer = true;
         $$ = msd;
@@ -3515,8 +3675,8 @@ make_tuple
     }
     |   expr[kval] MAPTO[mkt] expr[vval] {
         ExprMakeTuple * mt = new ExprMakeTuple(tokAt(scanner,@mkt));
-        mt->values.push_back(ExpressionPtr($kval));
-        mt->values.push_back(ExpressionPtr($vval));
+        mt->values.push_back($kval);
+        mt->values.push_back($vval);
         $$ = mt;
     }
     |   make_tuple[mkt] ',' expr[val] {
@@ -3525,9 +3685,9 @@ make_tuple
             mt = static_cast<ExprMakeTuple *>($mkt);
         } else {
             mt = new ExprMakeTuple(tokAt(scanner,@mkt));
-            mt->values.push_back(ExpressionPtr($mkt));
+            mt->values.push_back($mkt);
         }
-        mt->values.push_back(ExpressionPtr($val));
+        mt->values.push_back($val);
         $$ = mt;
     }
     ;
@@ -3535,8 +3695,8 @@ make_tuple
 make_map_tuple
     :   expr[kval] MAPTO[mkt] expr[vval] {
         ExprMakeTuple * mt = new ExprMakeTuple(tokAt(scanner,@mkt));
-        mt->values.push_back(ExpressionPtr($kval));
-        mt->values.push_back(ExpressionPtr($vval));
+        mt->values.push_back($kval);
+        mt->values.push_back($vval);
         $$ = mt;
     }
     | expr[kval] {
@@ -3551,9 +3711,13 @@ make_tuple_call
         mkt->makeType = make_smart<TypeDecl>(Type::autoinfer);
         $$ = mkt;
     }
-    |   DAS_TTUPLE [loc] '<' { yyextra->das_force_oxford_comma=true; yyextra->das_arrow_depth ++; } type_declaration_no_options[mkt] '>' { yyextra->das_arrow_depth --; } '(' use_initializer[init] optional_make_struct_dim_decl[msd] ')'  {
+    |   DAS_TTUPLE [loc] '<' { yyextra->das_force_oxford_comma=true; yyextra->das_arrow_depth ++; } tuple_type_list[list] '>' { yyextra->das_arrow_depth --; } '(' use_initializer[init] optional_make_struct_dim_decl[msd] ')'  {
+        auto mkt = new TypeDecl(Type::tTuple);
+        mkt->at = tokAt(scanner,@loc);
+        varDeclToTypeDecl(scanner, mkt, $list, true);
+        deleteVariableDeclarationList($list);
         $msd->at = tokAt(scanner,@loc);
-        ((ExprMakeStruct *)$msd)->makeType = TypeDeclPtr($mkt);
+        ((ExprMakeStruct *)$msd)->makeType = mkt;
         ((ExprMakeStruct *)$msd)->useInitializer = $init;
         ((ExprMakeStruct *)$msd)->forceTuple = true;
         $$ = $msd;
@@ -3563,40 +3727,50 @@ make_tuple_call
 make_dim
     :   make_tuple[val] {
         auto mka = new ExprMakeArray();
-        mka->values.push_back(ExpressionPtr($val));
+        mka->values.push_back($val);
         $$ = mka;
     }
     |   make_dim[mka] ';' make_tuple[val] {
-        ((ExprMakeArray *) $mka)->values.push_back(ExpressionPtr($val));
+        ((ExprMakeArray *) $mka)->values.push_back($val);
         $$ = $mka;
     }
     ;
 
 make_dim_decl
-    :   '[' [loc] expr_list[arguments] optional_comma ']' {
-        auto mka = make_smart<ExprMakeArray>(tokAt(scanner,@loc));
-        mka->values = sequenceToList($arguments);
-        mka->makeType = make_smart<TypeDecl>(Type::autoinfer);
-        mka->gen2 = true;
-        auto tam = yyextra->g_Program->makeCall(tokAt(scanner,@loc),"to_array_move");
-        tam->arguments.push_back(mka);
-        $$ = tam;
+    :   '[' [loc] optional_expr_list[arguments] ']' {
+        if ( $arguments ) {
+            auto mka = make_smart<ExprMakeArray>(tokAt(scanner,@loc));
+            mka->values = sequenceToList($arguments);
+            mka->makeType = make_smart<TypeDecl>(Type::autoinfer);
+            mka->gen2 = true;
+            auto tam = yyextra->g_Program->makeCall(tokAt(scanner,@loc),"to_array_move");
+            tam->arguments.push_back(mka);
+            $$ = tam;
+        } else {
+            auto mks = new ExprMakeStruct();
+            mks->at = tokAt(scanner,@loc);
+            mks->makeType = make_smart<TypeDecl>(Type::tArray);
+            mks->makeType->firstType = make_smart<TypeDecl>(Type::autoinfer);
+            mks->useInitializer = true;
+            mks->alwaysUseInitializer = true;
+            $$ = mks;
+        }
     }
     |   BRABRAB [loc] type_declaration_no_options[mkt] make_dim[mka] optional_trailing_semicolon_sqr_sqr {
-        ((ExprMakeArray *)$mka)->makeType = TypeDeclPtr($mkt);
+        ((ExprMakeArray *)$mka)->makeType = $mkt;
         $mka->at = tokAt(scanner,@loc);
         $$ = $mka;
     }
     |   BRACBRB [loc] type_declaration_no_options[mkt] make_dim[mka] optional_trailing_semicolon_cur_sqr {
-        ((ExprMakeArray *)$mka)->makeType = TypeDeclPtr($mkt);
+        ((ExprMakeArray *)$mka)->makeType = $mkt;
         $mka->at = tokAt(scanner,@loc);
         auto tam = yyextra->g_Program->makeCall(tokAt(scanner,@loc),"to_array_move");
-        tam->arguments.push_back(ExpressionPtr($mka));
+        tam->arguments.push_back($mka);
         $$ = tam;
     }
-    |   DAS_ARRAY [loc] DAS_STRUCT '<' { yyextra->das_arrow_depth ++; } type_declaration_no_options[mkt] '>' { yyextra->das_arrow_depth --; } '(' use_initializer[init] optional_make_struct_dim_decl[msd] ')'  {
+    |   DAS_ARRAY [loc] DAS_STRUCT '<' { yyextra->das_force_oxford_comma=true; yyextra->das_arrow_depth ++; } type_declaration_no_options[mkt] '>' { yyextra->das_arrow_depth --; } '(' use_initializer[init] optional_make_struct_dim_decl[msd] ')'  {
         $msd->at = tokAt(scanner,@loc);
-        ((ExprMakeStruct *)$msd)->makeType = TypeDeclPtr($mkt);
+        ((ExprMakeStruct *)$msd)->makeType = $mkt;
         ((ExprMakeStruct *)$msd)->useInitializer = $init;
         ((ExprMakeStruct *)$msd)->forceStruct = true;
         ((ExprMakeStruct *)$msd)->alwaysUseInitializer = true;
@@ -3604,9 +3778,13 @@ make_dim_decl
         tam->arguments.push_back($msd);
         $$ = tam;
     }
-    |   DAS_ARRAY [loc] DAS_TTUPLE '<' { yyextra->das_arrow_depth ++; } type_declaration_no_options[mkt] '>' { yyextra->das_arrow_depth --; } '(' use_initializer[init] optional_make_struct_dim_decl[msd] ')'  {
+    |   DAS_ARRAY [loc] DAS_TTUPLE '<' { yyextra->das_arrow_depth ++; } tuple_type_list[list] '>' { yyextra->das_arrow_depth --; } '(' use_initializer[init] optional_make_struct_dim_decl[msd] ')'  {
+        auto mkt = new TypeDecl(Type::tTuple);
+        mkt->at = tokAt(scanner,@loc);
+        varDeclToTypeDecl(scanner, mkt, $list, true);
+        deleteVariableDeclarationList($list);
         $msd->at = tokAt(scanner,@loc);
-        ((ExprMakeStruct *)$msd)->makeType = TypeDeclPtr($mkt);
+        ((ExprMakeStruct *)$msd)->makeType = mkt;
         ((ExprMakeStruct *)$msd)->useInitializer = $init;
         ((ExprMakeStruct *)$msd)->forceTuple = true;
         ((ExprMakeStruct *)$msd)->alwaysUseInitializer = true;
@@ -3614,9 +3792,13 @@ make_dim_decl
         tam->arguments.push_back($msd);
         $$ = tam;
     }
-    |   DAS_ARRAY [loc] DAS_TVARIANT '<' { yyextra->das_arrow_depth ++; } type_declaration_no_options[mkt] '>' { yyextra->das_arrow_depth --; } '(' make_variant_dim[msd] ')'  {
+    |   DAS_ARRAY [loc] DAS_TVARIANT '<' { yyextra->das_arrow_depth ++; } variant_type_list[list] '>' { yyextra->das_arrow_depth --; } '(' make_variant_dim[msd] ')'  {
+        auto mkt = new TypeDecl(Type::tVariant);
+        mkt->at = tokAt(scanner,@loc);
+        varDeclToTypeDecl(scanner, mkt, $list, true);
+        deleteVariableDeclarationList($list);
         $msd->at = tokAt(scanner,@loc);
-        ((ExprMakeStruct *)$msd)->makeType = TypeDeclPtr($mkt);
+        ((ExprMakeStruct *)$msd)->makeType = mkt;
         ((ExprMakeStruct *)$msd)->useInitializer = true;
         ((ExprMakeStruct *)$msd)->forceVariant = true;
         ((ExprMakeStruct *)$msd)->alwaysUseInitializer = true;
@@ -3637,7 +3819,7 @@ make_dim_decl
         if ( $arguments ) {
             auto mka = make_smart<ExprMakeArray>(tokAt(scanner,@loc));
             mka->values = sequenceToList($arguments);
-            mka->makeType = TypeDeclPtr($mkt);
+            mka->makeType = $mkt;
             mka->gen2 = true;
             auto tam = yyextra->g_Program->makeCall(tokAt(scanner,@loc),"to_array_move");
             tam->arguments.push_back(mka);
@@ -3646,7 +3828,7 @@ make_dim_decl
             auto msd = new ExprMakeStruct();
             msd->at = tokAt(scanner,@loc);
             msd->makeType = make_smart<TypeDecl>(Type::tArray);
-            msd->makeType->firstType = TypeDeclPtr($mkt);
+            msd->makeType->firstType = $mkt;
             msd->at = tokAt(scanner,@mkt);
             msd->useInitializer = true;
             msd->alwaysUseInitializer = true;
@@ -3663,7 +3845,7 @@ make_dim_decl
     |   DAS_FIXED_ARRAY[loc] '<' { yyextra->das_arrow_depth ++; } type_declaration_no_options[mkt] '>' { yyextra->das_arrow_depth --; } '(' expr_list[arguments] optional_comma ')' {
         auto mka = new ExprMakeArray(tokAt(scanner,@loc));
         mka->values = sequenceToList($arguments);
-        mka->makeType = TypeDeclPtr($mkt);
+        mka->makeType = $mkt;
         mka->gen2 = true;
         $$ = mka;
     }
@@ -3672,11 +3854,11 @@ make_dim_decl
 make_table
     :   make_map_tuple[val] {
         auto mka = new ExprMakeArray();
-        mka->values.push_back(ExpressionPtr($val));
+        mka->values.push_back($val);
         $$ = mka;
     }
     |   make_table[mka] ';' make_map_tuple[val] {
-        ((ExprMakeArray *) $mka)->values.push_back(ExpressionPtr($val));
+        ((ExprMakeArray *) $mka)->values.push_back($val);
         $$ = $mka;
     }
     ;
@@ -3686,18 +3868,29 @@ expr_map_tuple_list
         $$ = $subexpr;
     }
     |   expr_map_tuple_list[left] ',' make_map_tuple[right]     {
-            $$ = new ExprSequence(tokAt(scanner,@left),ExpressionPtr($left),ExpressionPtr($right));
+            $$ = new ExprSequence(tokAt(scanner,@left),$left,$right);
     }
     ;
 
 make_table_decl
-    :   '{' [loc] expr_map_tuple_list[arguments] optional_comma '}' {
-        auto mka = make_smart<ExprMakeArray>(tokAt(scanner,@loc));
-        mka->values = sequenceToList($arguments);
-        mka->makeType = make_smart<TypeDecl>(Type::autoinfer);
-        auto ttm = yyextra->g_Program->makeCall(tokAt(scanner,@loc),"to_table_move");
-        ttm->arguments.push_back(mka);
-        $$ = ttm;
+    :   '{' [loc] optional_expr_map_tuple_list[arguments] '}' {
+        if ( $arguments ) {
+            auto mka = make_smart<ExprMakeArray>(tokAt(scanner,@loc));
+            mka->values = sequenceToList($arguments);
+            mka->makeType = make_smart<TypeDecl>(Type::autoinfer);
+            auto ttm = yyextra->g_Program->makeCall(tokAt(scanner,@loc),"to_table_move");
+            ttm->arguments.push_back(mka);
+            $$ = ttm;
+        } else {
+            auto mks = new ExprMakeStruct();
+            mks->at = tokAt(scanner,@loc);
+            mks->makeType = make_smart<TypeDecl>(Type::tTable);
+            mks->makeType->firstType = make_smart<TypeDecl>(Type::autoinfer);
+            mks->makeType->secondType = make_smart<TypeDecl>(Type::autoinfer);
+            mks->useInitializer = true;
+            mks->alwaysUseInitializer = true;
+            $$ = mks;
+        }
     }
     |   CBRCBRB [loc] make_table[mka] optional_trailing_semicolon_cur_cur {
         auto mkt = make_smart<TypeDecl>(Type::autoinfer);
@@ -3705,7 +3898,7 @@ make_table_decl
         ((ExprMakeArray *)$mka)->makeType = mkt;
         $mka->at = tokAt(scanner,@loc);
         auto ttm = yyextra->g_Program->makeCall(tokAt(scanner,@loc),"to_table_move");
-        ttm->arguments.push_back(ExpressionPtr($mka));
+        ttm->arguments.push_back($mka);
         $$ = ttm;
     }
     |   DAS_TABLE[loc] '(' optional_expr_map_tuple_list[arguments] ')' {
@@ -3720,7 +3913,7 @@ make_table_decl
         if ( $arguments ) {
             auto mka = make_smart<ExprMakeArray>(tokAt(scanner,@loc));
             mka->values = sequenceToList($arguments);
-            mka->makeType = TypeDeclPtr($decl);
+            mka->makeType = $decl;
             auto ttm = yyextra->g_Program->makeCall(tokAt(scanner,@loc),"to_table_move");
             ttm->arguments.push_back(mka);
             $$ = ttm;
@@ -3728,7 +3921,7 @@ make_table_decl
             auto msd = new ExprMakeStruct();
             msd->at = tokAt(scanner,@loc);
             msd->makeType = make_smart<TypeDecl>(Type::tTable);
-            msd->makeType->firstType = TypeDeclPtr($decl);
+            msd->makeType->firstType = $decl;
             msd->makeType->secondType = make_smart<TypeDecl>(Type::tVoid);
             msd->at = tokAt(scanner,@loc);
             msd->useInitializer = true;
@@ -3750,8 +3943,8 @@ make_table_decl
             auto msd = new ExprMakeStruct();
             msd->at = tokAt(scanner,@loc);
             msd->makeType = make_smart<TypeDecl>(Type::tTable);
-            msd->makeType->firstType = TypeDeclPtr($decl);
-            msd->makeType->secondType = TypeDeclPtr($to_decl);
+            msd->makeType->firstType = $decl;
+            msd->makeType->secondType = $to_decl;
             msd->at = tokAt(scanner,@loc);
             msd->useInitializer = true;
             msd->alwaysUseInitializer = true;
@@ -3818,5 +4011,3 @@ LineInfo tokRangeAt ( yyscan_t scanner, const struct DAS_YYLTYPE & li, const str
         li.first_column,li.first_line,
         lie.last_column,lie.last_line);
 }
-
-

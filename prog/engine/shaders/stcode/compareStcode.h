@@ -6,6 +6,8 @@
 #include <drv/3d/dag_consts.h>
 #include <drv/3d/dag_sampler.h>
 
+#include "../shStateBlock.h"
+
 struct RaytraceTopAccelerationStructure;
 
 namespace stcode::dbg
@@ -29,9 +31,13 @@ void record_set_sampler(RecordType type, int stage, cpp::uint reg, d3d::SamplerH
 void record_set_rwtex(RecordType type, int stage, cpp::uint reg, BaseTexture *tex);
 void record_set_rwbuf(RecordType type, int stage, cpp::uint reg, Sbuffer *buf);
 void record_request_sampler(RecordType type, const d3d::SamplerInfo &base_info);
-void record_set_const(RecordType type, int stage, unsigned int id, cpp::float4 *val, int cnt);
+void record_set_const(RecordType type, int stage, unsigned int id, const void *val, int cnt);
+void record_reg_bindless(RecordType type, unsigned int id, TEXTUREID tid);
+void record_set_static_tex(RecordType type, int stage, cpp::uint reg, TEXTUREID tid);
+void record_multidraw_support(RecordType type, bool is_enabled);
 
-void validate_accumulated_records(int routine_id, const char *shname);
+void require_exact_record_matches();
+void validate_accumulated_records(int cpp_routine_id, int ref_routine_id, const char *shname, bool dynamic);
 
 #else
 
@@ -45,9 +51,13 @@ inline void record_set_sampler(RecordType, int, cpp::uint, d3d::SamplerHandle) {
 inline void record_set_rwtex(RecordType, int, cpp::uint, BaseTexture *) {}
 inline void record_set_rwbuf(RecordType, int, cpp::uint, Sbuffer *) {}
 inline void record_request_sampler(RecordType, const d3d::SamplerInfo &) {}
-inline void record_set_const(RecordType, int, unsigned int, cpp::float4 *, int) {}
+inline void record_set_const(RecordType, int, unsigned int, const void *, int) {}
+inline void record_reg_bindless(RecordType, unsigned int, TEXTUREID) {}
+inline void record_set_static_tex(RecordType, int, cpp::uint, TEXTUREID) {}
+inline void record_multidraw_support(RecordType, bool) {}
 
-inline void validate_accumulated_records(int, const char *) {}
+inline void require_exact_record_matches() {}
+inline void validate_accumulated_records(int, int, const char *, bool) {}
 
 #endif
 

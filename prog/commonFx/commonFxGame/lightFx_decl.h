@@ -1,7 +1,10 @@
-// clang-format off  // generated text, do not modify!
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
+// clang-format off  // generated text, do not modify!
 #include "readType.h"
 
+#include <math/dag_Point3.h>
 #include <math/dag_curveParams.h>
 #include <fx/dag_paramScript.h>
 
@@ -14,7 +17,7 @@ namespace ScriptHelpers
 class TunedElement;
 };
 
-#include <staticVisSphere_decl.h>
+#include <lightfxShadow_decl.h>
 
 class LightFxColor
 {
@@ -30,18 +33,23 @@ public:
 
   static ScriptHelpers::TunedElement *createTunedElement(const char *name);
 
-  void load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
+  bool load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
   {
     G_UNREFERENCED(load_cb);
-    CHECK_FX_VERSION(ptr, len, 2);
+    CHECK_FX_VERSION_OPT(ptr, len, 3);
 
     allow_game_override = readType<int>(ptr, len);
     color = readType<E3DCOLOR>(ptr, len);
     scale = readType<real>(ptr, len);
-    rFunc.load(ptr, len);
-    gFunc.load(ptr, len);
-    bFunc.load(ptr, len);
-    aFunc.load(ptr, len);
+    if (!rFunc.load(ptr, len))
+      return false;
+    if (!gFunc.load(ptr, len))
+      return false;
+    if (!bFunc.load(ptr, len))
+      return false;
+    if (!aFunc.load(ptr, len))
+      return false;
+    return true;
   }
 };
 
@@ -54,13 +62,15 @@ public:
 
   static ScriptHelpers::TunedElement *createTunedElement(const char *name);
 
-  void load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
+  bool load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
   {
     G_UNREFERENCED(load_cb);
-    CHECK_FX_VERSION(ptr, len, 1);
+    CHECK_FX_VERSION_OPT(ptr, len, 2);
 
     radius = readType<real>(ptr, len);
-    sizeFunc.load(ptr, len);
+    if (!sizeFunc.load(ptr, len))
+      return false;
+    return true;
   }
 };
 
@@ -72,19 +82,25 @@ public:
   bool cloudLight;
   LightFxColor color;
   LightFxSize size;
+  LightfxShadowParams shadow;
 
 
   static ScriptHelpers::TunedElement *createTunedElement(const char *name);
 
-  void load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
+  bool load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
   {
     G_UNREFERENCED(load_cb);
-    CHECK_FX_VERSION(ptr, len, 3);
+    CHECK_FX_VERSION_OPT(ptr, len, 3);
 
     phaseTime = readType<real>(ptr, len);
     burstMode = readType<int>(ptr, len);
     cloudLight = readType<int>(ptr, len);
-    color.load(ptr, len, load_cb);
-    size.load(ptr, len, load_cb);
+    if (!color.load(ptr, len, load_cb))
+      return false;
+    if (!size.load(ptr, len, load_cb))
+      return false;
+    if (!shadow.load(ptr, len, load_cb))
+      return false;
+    return true;
   }
 };

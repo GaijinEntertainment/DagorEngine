@@ -45,7 +45,7 @@ class FrameTimeMetricsAggregator
   eastl::optional<IPoint2> renderingResolution;
 
 public:
-  void update(float current_time_msec, uint32_t frame_no, float dt, PerfDisplayMode display_mode);
+  void update(float current_time_msec, uint32_t frame_no, float dt, PerfDisplayMode display_mode, uint32_t last_frame_count = 1);
   const auto &getFpsInfoString() const { return fpsText; }
   const auto &getLatencyInfoString() const { return latencyText; }
   float getLastMinFrameTime() const { return lastMinFrameTime; }

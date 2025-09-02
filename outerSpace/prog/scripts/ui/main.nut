@@ -1,23 +1,29 @@
 #default:forbid-root-table
 
 from "%darg/ui_imports.nut" import *
-from "widgets/simpleComponents.nut" import normalCursor
-from "widgets/msgbox.nut" import msgboxComponent, hasMsgBoxes
+from "%scripts/ui/widgets/simpleComponents.nut" import normalCursor
+from "%scripts/ui/widgets/msgbox.nut" import msgboxComponent, hasMsgBoxes
 import "console" as console
+from "frp" import warn_on_deprecated_methods //set_nested_observable_debug, set_subscriber_validation
+from "dagor.system" import DBGLEVEL
+
+//set_nested_observable_debug( DBGLEVEL>0)
+//set_subscriber_validation( DBGLEVEL>0)
+warn_on_deprecated_methods( DBGLEVEL>0)
 
 let ecs = require_optional("ecs")
 ecs?.clear_vm_entity_systems()
 
-require("ui_config.nut")
-require("settings/graphics_options.nut").graphicsPresetApply()
-let { mainMenu, background} = require("main_menu.nut")
-let { showGameMenu, mkHud, mkDebriefing} = require("hud.nut")
-let { sessionResult, isInMainMenu, isLoadingState } = require("app_state.nut")
-let { editor, showUIinEditor, editorIsActive} = require("editor.nut")
+require("%scripts/ui/ui_config.nut")
+require("%scripts/ui/settings/graphics_options.nut").graphicsPresetApply()
+let { mainMenu, background} = require("%scripts/ui/main_menu.nut")
+let { showGameMenu, mkHud, mkDebriefing} = require("%scripts/ui/hud.nut")
+let { sessionResult, isInMainMenu, isLoadingState } = require("%scripts/ui/app_state.nut")
+let { editor, showUIinEditor, editorIsActive} = require("%scripts/ui/editor.nut")
 let { take_screenshot_nogui, take_screenshot} = require("screencap")
-let { showControlsMenu, controlsMenuUi } = require("settings/input_settings.nut")
-let { showSettingsMenu, settingsMenuUi } = require("settings/main_settings.nut")
-let { showLicense, licenseUi } = require("licenseTxt.nut")
+let { showControlsMenu, controlsMenuUi } = require("%scripts/ui/settings/input_settings.nut")
+let { showSettingsMenu, settingsMenuUi } = require("%scripts/ui/settings/main_settings.nut")
+let { showLicense, licenseUi } = require("%scripts/ui/licenseTxt.nut")
 let inspectorToggle = require("%darg/helpers/inspector.nut")
 
 

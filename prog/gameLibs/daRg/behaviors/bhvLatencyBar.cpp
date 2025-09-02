@@ -40,7 +40,7 @@ int BhvLatencyBar::update(UpdateStage /*stage*/, darg::Element *elem, float /*dt
   if (textVersion != frameTimeMetrics->getTextVersion())
   {
     textVersion = frameTimeMetrics->getTextVersion();
-    elem->props.text.setStr(frameTimeMetrics->getLatencyInfoString().c_str());
+    elem->props.text = frameTimeMetrics->getLatencyInfoString().c_str();
     discard_text_cache(elem->robjParams);
   }
   return 0;

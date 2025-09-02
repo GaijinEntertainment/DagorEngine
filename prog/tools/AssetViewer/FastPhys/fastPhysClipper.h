@@ -10,23 +10,23 @@ class FPObjectClipper : public IFPObject
 public:
   FPObjectClipper(FpdObject *obj, FastPhysEditor &editor);
 
-  virtual void refillPanel(PropPanel::ContainerPropertyControl *panel);
-  virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel);
-  virtual void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel);
+  void refillPanel(PropPanel::ContainerPropertyControl *panel) override;
+  void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
+  void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
 
-  virtual void render();
+  void render() override;
 
-  virtual bool isSelectedByPointClick(IGenViewportWnd *vp, int x, int y) const;
-  virtual bool isSelectedByRectangle(IGenViewportWnd *vp, const EcRect &rect) const;
-  virtual bool getWorldBox(BBox3 &box) const;
+  bool isSelectedByPointClick(IGenViewportWnd *vp, int x, int y) const override;
+  bool isSelectedByRectangle(IGenViewportWnd *vp, const EcRect &rect) const override;
+  bool getWorldBox(BBox3 &box) const override;
 
   E3DCOLOR getColor() const;
   int calcLineSegs(real len);
 
-  virtual void setMatrix(const Matrix3 &tm);
-  virtual bool setPos(const Point3 &p);
+  void setMatrix(const Matrix3 &tm) override;
+  bool setPos(const Point3 &p) override;
 
-  virtual void putScaleUndo() {}
+  void putScaleUndo() override {}
 
   static E3DCOLOR normalColor, selectedColor, pointColor, selPointColor;
 };

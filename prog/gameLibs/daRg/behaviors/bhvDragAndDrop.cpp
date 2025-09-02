@@ -32,6 +32,8 @@ struct DragAndDropState
   float maxMoveDistance = 0;
   Sqrat::Object targetHandler;
   int lastClickTime = 0;
+  int timeStartPress = 0;
+  int dragStartDelay = 0;
   bool needDelayedRecalcAfterWheel = false;
 
   bool isClicked() const { return activeDeviceId != DEVID_NONE; }
@@ -90,6 +92,7 @@ struct DragAndDropState
     isDragMode = false;
     waitForDragEnable = false;
     needDelayedRecalcAfterWheel = false;
+    timeStartPress = 0;
   }
 };
 
@@ -200,7 +203,7 @@ Element *BhvDragAndDrop::findDropTarget(ElementTree *etree, const Point2 &cursor
   Sqrat::Object dropData = own_elem->props.getObject(own_elem->csk->dropData);
 
   InputStack stack_point_hit, stack_cover, stack_overlap;
-  trace_hit(cursor_pos, own_elem, etree->guiScene->getInputStack(), dropData, &stack_point_hit, &stack_cover, &stack_overlap);
+  trace_hit(cursor_pos, own_elem, etree->screen->getInputStack(), dropData, &stack_point_hit, &stack_cover, &stack_overlap);
 
   Element *target = nullptr;
 
@@ -223,7 +226,7 @@ Element *BhvDragAndDrop::findDropTarget(ElementTree *etree, const Point2 &cursor
 
 Element *BhvDragAndDrop::findElemByHandler(ElementTree *etree, const Sqrat::Object &handler)
 {
-  InputStack &inputStack = etree->guiScene->getInputStack();
+  InputStack &inputStack = etree->screen->getInputStack();
   for (InputStack::Stack::iterator it = inputStack.stack.begin(); it != inputStack.stack.end(); ++it)
   {
     Sqrat::Object onDrop = it->elem->props.scriptDesc.RawGetSlot(it->elem->csk->onDrop);
@@ -309,6 +312,9 @@ int BhvDragAndDrop::pointingEvent(ElementTree *etree, Element *elem, InputDevice
     if (activeDrag != nullptr)
       return 0;
 
+    if (ddState->dragStartDelay != 0)
+      ddState->timeStartPress = ::get_time_msec();
+
     bool canDrag = !dropData.IsNull();
 
     if (canDrag)
@@ -386,11 +392,7 @@ int BhvDragAndDrop::pointingEvent(ElementTree *etree, Element *elem, InputDevice
   else if (event == INP_EV_POINTER_MOVE)
   {
     if (ddState->isDraggingOrWaitingForDragEnable(device, pointer_id))
-    {
-      applyPointerMove(pointer_pos, ddState, elem, etree, activeStateFlag);
-
-      result |= R_PROCESSED;
-    }
+      result |= applyPointerMove(pointer_pos, ddState, elem, etree, activeStateFlag);
   }
   else if (event == INP_EV_MOUSE_WHEEL)
   {
@@ -412,7 +414,7 @@ void BhvDragAndDrop::startVisualDrag(ElementTree *etree, darg::Element *elem)
   etree->updateSceneStateFlags(ElementTree::F_DRAG_ACTIVE, true);
 }
 
-void BhvDragAndDrop::applyPointerMove(const Point2 &pointer_pos, darg::DragAndDropState *ddState, darg::Element *elem,
+int BhvDragAndDrop::applyPointerMove(const Point2 &pointer_pos, darg::DragAndDropState *ddState, darg::Element *elem,
   darg::ElementTree *etree, int activeStateFlag)
 {
   Point2 dPos = pointer_pos - ddState->startPointerPos;
@@ -421,8 +423,10 @@ void BhvDragAndDrop::applyPointerMove(const Point2 &pointer_pos, darg::DragAndDr
 
   if (ddState->isWaitingForDragEnable())
   {
+    if (ddState->isDragMode || ddState->dragStartDelay > 0)
+      return 0;
     if (ddState->maxMoveDistance < move_click_threshold(etree->guiScene))
-      return;
+      return 0;
 
     ddState->startDrag();
     startVisualDrag(etree, elem);
@@ -437,6 +441,7 @@ void BhvDragAndDrop::applyPointerMove(const Point2 &pointer_pos, darg::DragAndDr
   Sqrat::Object curTargetHandler;
   Element *curTarget = findDropTarget(etree, pointer_pos, elem, curTargetHandler);
   activateTarget(etree, elem, ddState, curTarget, curTargetHandler, activeStateFlag);
+  return R_PROCESSED;
 }
 
 
@@ -447,6 +452,18 @@ void BhvDragAndDrop::onAttach(Element *elem)
 }
 
 
+void BhvDragAndDrop::onRecalcLayout(Element *elem)
+{
+  DragAndDropState *ddState = elem->props.storage.RawGetSlotValue<DragAndDropState *>(elem->csk->dragAndDropState, nullptr);
+  if (!ddState)
+    return;
+
+  Sqrat::Object dragStartDelay = elem->props.getObject(elem->csk->dragStartDelay);
+  if (!dragStartDelay.IsNull())
+    ddState->dragStartDelay = dragStartDelay.Cast<float>() * 1000;
+}
+
+
 void BhvDragAndDrop::onDetach(Element *elem, DetachMode)
 {
   DragAndDropState *ddState = elem->props.storage.RawGetSlotValue<DragAndDropState *>(elem->csk->dragAndDropState, nullptr);
@@ -454,6 +471,7 @@ void BhvDragAndDrop::onDetach(Element *elem, DetachMode)
   {
     if (ddState->isDragging())
     {
+      elem->etree->updateSceneStateFlags(ElementTree::F_DRAG_ACTIVE, false);
       GuiScene *guiScene = GuiScene::get_from_elem(elem);
       callDragModeHandler(guiScene, elem, false);
     }
@@ -490,6 +508,17 @@ int BhvDragAndDrop::onDeactivateInput(Element *elem, InputDevice device, int poi
 }
 
 
+void BhvDragAndDrop::startElemDragAfterDelay(darg::DragAndDropState *ddState, darg::Element *elem)
+{
+  ElementTree *etree = elem->etree;
+  if (ddState->isWaitingForDragEnable() && !ddState->isDragMode && ddState->maxMoveDistance < move_click_threshold(etree->guiScene))
+  {
+    ddState->startDrag();
+    startVisualDrag(etree, elem);
+  }
+}
+
+
 int BhvDragAndDrop::update(UpdateStage /*stage*/, Element *elem, float /*dt*/)
 {
   DragAndDropState *ddState = elem->props.storage.RawGetSlotValue<DragAndDropState *>(elem->csk->dragAndDropState, nullptr);
@@ -508,6 +537,11 @@ int BhvDragAndDrop::update(UpdateStage /*stage*/, Element *elem, float /*dt*/)
     applyPointerMove(mousePos, ddState, elem, etree, activeStateFlag);
 
     ddState->needDelayedRecalcAfterWheel = false;
+  }
+  if (ddState->timeStartPress > 0 && (ddState->timeStartPress + ddState->dragStartDelay <= ::get_time_msec()))
+  {
+    ddState->timeStartPress = 0;
+    startElemDragAfterDelay(ddState, elem);
   }
 
   return 0;

@@ -1,0 +1,77 @@
+macro INIT_TREE_GRADIENT_STATIC()
+  static float uv_flow_multiply = 0.0;
+  static float uv_flow_min = 0.0;
+  static float uv_flow_max = 1.0;
+  static float normal_tiled_1_scale_uv = 10.0;
+  static float normal_tiled_2_scale_uv = 10.0;
+  static float gradient_smoothness_min = 0.5;
+  static float gradient_smoothness_max = 1.0;
+  static float gradient_metalness_min = 0.5;
+  static float gradient_metalness_max = 1.0;
+  static float texture_coord_scale = 0.005;
+  static float perlin_scale = 8.0;
+endmacro
+
+macro TREE_GRADIENT_FUNCS()
+  hlsl(ps) {
+    float3 blend_angle_corrected_normals(float3 base_normal, float3 add_normal)
+    {
+      float3 correctedBaseNorm = float3(base_normal.xy, base_normal.z + 1.0);
+      float3 correctedAddNorm = float3(add_normal.xy * -1.0, add_normal.z);
+
+      float3 result = (correctedBaseNorm * dot(correctedBaseNorm, correctedAddNorm)) - (correctedAddNorm * correctedBaseNorm.b);
+      return result;
+    }
+
+    half4 sample_detail_color(float2 tex_coord, float height, float2 offset)
+    {
+      half4 detailColor1 = tex2DBindless(get_detail_tex(), (tex_coord + offset)* get_normal_tiled_1_scale_uv()); //tiled albedo
+      half4 detailColor2 = tex2DBindless(get_detail_tex(), (tex_coord - offset)* get_normal_tiled_1_scale_uv()); //tiled albedo
+      return lerp(detailColor1, detailColor2, height);
+    }
+
+    half3 sample_tiled_normal(float2 tex_coord, float perlin, float2 offset, float mask, float detail_value)
+    {
+      float2 modifiedUV = tex_coord + offset * sign(perlin*2 - 1);
+      float2 normalTiledUV1= modifiedUV * get_normal_tiled_1_scale_uv();
+      float2 normalTiledUV2= modifiedUV * get_normal_tiled_2_scale_uv();
+      half4 packedNormalTiledMap1 = tex2DBindless(get_normal_tiled_tex(), normalTiledUV1);
+      half4 packedNormalTiledMap2 = tex2DBindless(get_normal_tiled_tex(), normalTiledUV2);
+
+      float gradientUVComponent = (mask * detail_value);
+      float2 gradientUV = float2(gradientUVComponent, gradientUVComponent);
+      float gradientMask = tex2DBindless(get_gradient_tex(), gradientUV).x;
+
+      half3 normalTiledMap1 = restore_normal(packedNormalTiledMap1.ag);
+      half3 normalTiledMap2 = restore_normal(packedNormalTiledMap2.rb);
+
+      half3 tiledNormal = lerp(normalTiledMap2.xyz, normalTiledMap1.xyz, gradientMask);
+      return tiledNormal;
+    }
+
+    half3 sample_gradient_color(float mask, float detail_value)
+    {
+      float coloringUVComponent = (mask * detail_value + mask)* detail_value;
+      float2 coloringUV = float2(coloringUVComponent, coloringUVComponent);
+      half3 gradientColoring = tex2DBindless(get_gradient_tex(), coloringUV).xyz;
+      return gradientColoring;
+    }
+  }
+endmacro
+
+macro USE_TREE_GRADIENT(code)
+  (code) {
+    uv_flow_multiply@f1 = uv_flow_multiply;
+    uv_flow_min@f1 = uv_flow_min;
+    uv_flow_max@f1 = uv_flow_max;
+    normal_tiled_1_scale_uv@f1 = normal_tiled_1_scale_uv;
+    normal_tiled_2_scale_uv@f1 = normal_tiled_2_scale_uv;
+    gradient_smoothness_min@f1 = gradient_smoothness_min;
+    gradient_smoothness_max@f1 = gradient_smoothness_max;
+    gradient_metalness_min@f1 = gradient_metalness_min;
+    gradient_metalness_max@f1 = gradient_metalness_max;
+    texture_coord_scale@f1 = texture_coord_scale;
+    perlin_scale@f1 = perlin_scale;
+  }
+  TREE_GRADIENT_FUNCS()
+endmacro

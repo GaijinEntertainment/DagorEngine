@@ -4,9 +4,9 @@
 //
 #pragma once
 
-#include <EASTL/map.h>
-#include <EASTL/set.h>
 #include <EASTL/string.h>
+#include <EASTL/vector_set.h>
+#include <EASTL/vector_map.h>
 #include <ioSys/dag_dataBlock.h>
 #include <ioSys/dag_memIo.h>
 #include <math/dag_Point4.h>
@@ -76,6 +76,12 @@ inline void addOverrideParam(DataBlock &dst, const DataBlock &src, int idx, bool
         dst.setIPoint3(name, src.getIPoint3(idx));
       else
         dst.addIPoint3(name, src.getIPoint3(idx));
+      break;
+    case DataBlock::TYPE_IPOINT4:
+      if (override)
+        dst.setIPoint4(name, src.getIPoint4(idx));
+      else
+        dst.addIPoint4(name, src.getIPoint4(idx));
       break;
     case DataBlock::TYPE_BOOL:
       if (override)
@@ -673,6 +679,7 @@ inline void setParam(DataBlock &dst, DstIndex dstIndex, const DataBlock &src, in
     case DataBlock::TYPE_POINT4: dst.setPoint4(dstIndex, src.getPoint4(srcIndex)); break;
     case DataBlock::TYPE_IPOINT2: dst.setIPoint2(dstIndex, src.getIPoint2(srcIndex)); break;
     case DataBlock::TYPE_IPOINT3: dst.setIPoint3(dstIndex, src.getIPoint3(srcIndex)); break;
+    case DataBlock::TYPE_IPOINT4: dst.setIPoint4(dstIndex, src.getIPoint4(srcIndex)); break;
     case DataBlock::TYPE_BOOL: dst.setBool(dstIndex, src.getBool(srcIndex)); break;
     case DataBlock::TYPE_E3DCOLOR: dst.setE3dcolor(dstIndex, src.getE3dcolor(srcIndex)); break;
     case DataBlock::TYPE_MATRIX: dst.setTm(dstIndex, src.getTm(srcIndex)); break;
@@ -685,19 +692,21 @@ inline void setParam(DataBlock &dst, DstIndex dstIndex, const DataBlock &src, in
 template <class T>
 inline void merge_data_block(DataBlock &dst, const DataBlock &src, T &strategy)
 {
-  eastl::set<eastl::string> initialDstBlocks;
-  for (int bi = 0, bn = dst.blockCount(); bi < bn; bi++)
-    initialDstBlocks.emplace(dst.getBlock(bi)->getBlockName());
-
-  for (int bi = 0, bn = src.blockCount(); bi < bn; bi++)
+  if (int sbn = src.blockCount())
   {
-    const DataBlock *sub_src = src.getBlock(bi);
-    DataBlock *dstSubBlk = (initialDstBlocks.find(sub_src->getBlockName()) != initialDstBlocks.end())
-                             ? dst.addBlock(sub_src->getBlockName())
-                             : dst.addNewBlock(sub_src->getBlockName());
-    merge_data_block<T>(*dstSubBlk, *sub_src, strategy);
-  }
+    eastl::vector_set<uint32_t, eastl::less<uint32_t>, framemem_allocator> initialDstBlocks;
+    initialDstBlocks.reserve(dst.blockCount());
+    for (int bi = 0, bn = dst.blockCount(); bi < bn; bi++)
+      initialDstBlocks.emplace(eastl::hash<const char *>()(dst.getBlock(bi)->getBlockName()));
 
+    for (int bi = 0; bi < sbn; bi++)
+    {
+      const DataBlock *sub_src = src.getBlock(bi);
+      const char *ssbn = sub_src->getBlockName();
+      DataBlock *dstSubBlk = initialDstBlocks.count(eastl::hash<const char *>()(ssbn)) ? dst.addBlock(ssbn) : dst.addNewBlock(ssbn);
+      merge_data_block<T>(*dstSubBlk, *sub_src, strategy);
+    }
+  }
   strategy.process(dst, src);
 }
 
@@ -816,61 +825,6 @@ struct OverrideIdsUnsafe : public OverrideIds, MergeUnsafe
 };
 
 
-struct PreserveOrder
-{
-  void process(DataBlock &dst, const DataBlock &src)
-  {
-    // key: nameId of param in src
-    // value: DstInfo:
-    // - nameId of src param in dst (for caching only)
-    // - dstIdx for last occurence we updated, -1 if wasn't found
-    struct DstInfo
-    {
-      int nameId, idx;
-    };
-    eastl::map<int, DstInfo> idxmap;
-
-    for (int srcIdx = 0, cnt = src.paramCount(); srcIdx < cnt; srcIdx++)
-    {
-      // Look for next occurence of param from src in dst
-      int nameId = src.getParamNameId(srcIdx);
-      auto pair = idxmap.find(nameId);
-      int dstIdx;
-      if (pair != idxmap.end())
-      {
-        int dstNameId = pair->second.nameId;
-        dstIdx = pair->second.idx;
-        if (dstIdx >= 0)
-        {
-          dstIdx = dst.findParam(dstNameId, dstIdx); // find next
-          idxmap[nameId] = {dstNameId, dstIdx};      // update map
-        }
-      }
-      else
-      {
-        int dstNameId = dst.getNameId(src.getParamName(srcIdx));
-        dstIdx = dst.findParam(dstNameId);    // find first
-        idxmap[nameId] = {dstNameId, dstIdx}; // update map
-      }
-
-      if (dstIdx >= 0) // if found, set at found location
-        setParam(dst, dstIdx, src, srcIdx);
-      else // otherwise, append to the end
-        addOverrideParam(dst, src, srcIdx, false);
-    }
-
-    // remove potential additional occurances of params in dst, of which previous occurances were updated
-    for (const auto &pair : idxmap)
-    {
-      if (pair.second.nameId >= 0 && pair.second.idx >= 0)
-        for (int i = dst.paramCount(); i > pair.second.idx; i--)
-          if (dst.getParamNameId(i) == pair.second.nameId)
-            dst.removeParam(i);
-    }
-  }
-};
-
-
 } // namespace blkmerge
 
 
@@ -915,9 +869,63 @@ inline void merge_data_block(DataBlock &dst, const DataBlock &src, bool strict_p
 
 
 // overwrite parameters and blocks from src to dst (unique for dst parameters and blocks remain as is)
+template <typename T = void> // Dummy template to instantiate this function only when it's called
 inline void merge_data_block_and_save_order(DataBlock &dst, const DataBlock &src)
 {
-  blkmerge::PreserveOrder strategy;
+  struct PreserveOrder
+  {
+    void process(DataBlock &dst, const DataBlock &src)
+    {
+      // key: nameId of param in src
+      // value: DstInfo:
+      // - nameId of src param in dst (for caching only)
+      // - dstIdx for last occurence we updated, -1 if wasn't found
+      struct DstInfo
+      {
+        int nameId, idx;
+      };
+      eastl::vector_map<int, DstInfo, eastl::less<int>, framemem_allocator> idxmap;
+      idxmap.reserve(src.paramCount());
+      for (int srcIdx = 0, cnt = src.paramCount(); srcIdx < cnt; srcIdx++)
+      {
+        // Look for next occurence of param from src in dst
+        int nameId = src.getParamNameId(srcIdx);
+        auto it = idxmap.lower_bound(nameId);
+        int dstIdx;
+        if (it != idxmap.end() && it->first == nameId)
+        {
+          int dstNameId = it->second.nameId;
+          dstIdx = it->second.idx;
+          if (dstIdx >= 0)
+          {
+            dstIdx = dst.findParam(dstNameId, dstIdx); // find next
+            it->second = DstInfo{dstNameId, dstIdx};   // update map
+          }
+        }
+        else
+        {
+          int dstNameId = dst.getNameId(src.getParamName(srcIdx));
+          dstIdx = dst.findParam(dstNameId);                                       // find first
+          idxmap.insert(it, eastl::make_pair(nameId, DstInfo{dstNameId, dstIdx})); // update map
+        }
+
+        if (dstIdx >= 0) // if found, set at found location
+          setParam(dst, dstIdx, src, srcIdx);
+        else // otherwise, append to the end
+          addOverrideParam(dst, src, srcIdx, false);
+      }
+
+      // remove potential additional occurances of params in dst, of which previous occurances were updated
+      for (const auto &pair : idxmap)
+      {
+        if (pair.second.nameId >= 0 && pair.second.idx >= 0)
+          for (int i = dst.paramCount(); i > pair.second.idx; i--)
+            if (dst.getParamNameId(i) == pair.second.nameId)
+              dst.removeParam(i);
+      }
+    }
+  };
+  PreserveOrder strategy;
   merge_data_block(dst, src, strategy);
 }
 
@@ -953,6 +961,7 @@ inline bool compare_blk_to_blk_subset(const DataBlock &left, const DataBlock &ri
       case DataBlock::TYPE_POINT4: eq = (left.getPoint4(name) == right.getPoint4(i)); break;
       case DataBlock::TYPE_IPOINT2: eq = (left.getIPoint2(name) == right.getIPoint2(i)); break;
       case DataBlock::TYPE_IPOINT3: eq = (left.getIPoint3(name) == right.getIPoint3(i)); break;
+      case DataBlock::TYPE_IPOINT4: eq = (left.getIPoint4(name) == right.getIPoint4(i)); break;
       case DataBlock::TYPE_BOOL: eq = (left.getBool(name) == right.getBool(i)); break;
       case DataBlock::TYPE_E3DCOLOR: eq = (left.getE3dcolor(name) == right.getE3dcolor(i)); break;
       case DataBlock::TYPE_MATRIX: eq = (left.getTm(name) == right.getTm(i)); break;

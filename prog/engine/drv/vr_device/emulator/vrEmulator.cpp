@@ -21,7 +21,6 @@
 #include <math/dag_Point3.h>
 #include <math/dag_Quat.h>
 #include <perfMon/dag_perfTimer.h>
-#include <perfMon/dag_sleepPrecise.h>
 #include <perfMon/dag_statDrv.h>
 #include <atomic>
 
@@ -79,8 +78,6 @@ VREmulatorDevice::VREmulatorDevice(const char *profile)
   isHmdWorn = isHmdOn;
   callFirstHmdOn = isHmdOn;
 
-#if !_TARGET_C2
-  // On the PS5, the profile can't be changed, as there is no point in emulating any other HMD than the PSVR2
   if (profile)
   {
     int resolution_h, resolution_v;
@@ -110,7 +107,7 @@ VREmulatorDevice::VREmulatorDevice(const char *profile)
       hmd_vergence = vergence;
     }
   }
-#endif
+  debug("[XR] emulator enabled, resolution %dx%d", hmd_resolution_h, hmd_resolution_v);
 }
 
 VREmulatorDevice::~VREmulatorDevice() {}
@@ -140,7 +137,11 @@ float VREmulatorDevice::getViewAspect() const
 
 bool VREmulatorDevice::isHDR() const
 {
+#if _TARGET_C2
+
+#else
   static bool isHDR = ::dgs_get_settings()->getBlockByNameEx("xr")->getBool("emulatorHDR", false);
+#endif
   return isHDR;
 }
 
@@ -347,7 +348,7 @@ bool VREmulatorDevice::prepareFrame(FrameData &frameData, float zNear, float zFa
     const unsigned frameTimeUs = (unsigned)profile_time_usec(startRefTicks);
     int sleepUs = targetFrameTimeUs - frameTimeUs;
     if (sleepUs > 0 && sleepUs < 1e5)
-      sleep_precise_usec(sleepUs);
+      sleep_precise_usec(sleepUs, preciseSleepContext);
 
     startRefTicks = profile_ref_ticks();
   }
@@ -452,8 +453,8 @@ bool VREmulatorDevice::prepareFrame(FrameData &frameData, float zNear, float zFa
   calcViewTransforms(frameData.views[0], zNear, zFar, zoom);
   calcViewTransforms(frameData.views[1], zNear, zFar, zoom);
 
-  zFar += calcBoundingView(frameData);
-  calcViewTransforms(frameData.boundingView, zNear, zFar, zoom);
+  const float extraZFar = calcBoundingView(frameData);
+  calcViewTransforms(frameData.boundingView, zNear, zFar + extraZFar, zoom);
 
   frameData.zoom = zoom;
 
@@ -461,6 +462,7 @@ bool VREmulatorDevice::prepareFrame(FrameData &frameData, float zNear, float zFa
 
   frameData.nearZ = zNear;
   frameData.farZ = zFar;
+  frameData.boundingExtraZFar = extraZFar;
 
   static uint64_t frameId = 0;
   frameData.frameId = frameId++;
@@ -496,7 +498,7 @@ void VREmulatorDevice::beginRender(FrameData &) {}
 void VREmulatorDevice::endRender(FrameData &frameData) {}
 
 bool VREmulatorDevice::hasQuitRequest() const { return false; }
-bool VREmulatorDevice::hasScreenMask() { return emulate_screen_mask; }
+bool VREmulatorDevice::hasScreenMask() { return !disableScreenMask && emulate_screen_mask; }
 void VREmulatorDevice::retrieveScreenMaskTriangles(const TMatrix4 &projection, eastl::vector<Point4> &visibilityMaskVertices,
   eastl::vector<uint16_t> &visibilityMaskIndices, int view_index)
 {

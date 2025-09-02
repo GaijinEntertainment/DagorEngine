@@ -48,7 +48,7 @@ struct ComponentsIterator;
 struct NestedQueryRestorer;
 
 typedef eastl::function<void(EntityId /*created_entity*/)> create_entity_async_cb_t;
-typedef void (*replication_cb_t)(EntityId eid, component_index_t cidx);
+typedef void (*replication_cb_t)(ecs::EntityManager &mgr, EntityId eid, component_index_t cidx);
 
 class EntityManager
 {
@@ -253,7 +253,7 @@ public:
   //! not checked for non-pod types. named for ecs20 compatibility
   void set(EntityId eid, const HashedConstString name, ChildComponent &&);
   //! not checked for non-pod types. Won't assert if missing. named for ecs20 compatibility
-  void setOptional(EntityId eid, const HashedConstString name, ChildComponent &&);
+  bool setOptional(EntityId eid, const HashedConstString name, ChildComponent &&);
 
   const EntityComponentRef getComponentRef(EntityId eid, component_index_t) const;
   EntityComponentRef getComponentRefRW(EntityId eid, component_index_t);
@@ -285,7 +285,7 @@ public:
   void set(EntityId eid, const HashedConstString name, const T &__restrict v);
   void set(EntityId eid, const HashedConstString name, const char *v);
   template <class T>
-  void setOptional(EntityId eid, const HashedConstString name, const T &__restrict v); // won't assert if missing
+  bool setOptional(EntityId eid, const HashedConstString name, const T &__restrict v); // won't assert if missing
 
   // fast versions (about 40% faster in release)
   // they skip hasmap lookup version, and type validation. One have to validate type when resolve component_index_t
@@ -301,7 +301,7 @@ public:
   template <class T>
   T *__restrict getNullableRWFast(EntityId eid, const FastGetInfo name);
   template <class T>
-  void setOptionalFast(EntityId eid, const FastGetInfo name, const T &__restrict v); // won't assert if missing
+  bool setOptionalFast(EntityId eid, const FastGetInfo name, const T &__restrict v); // won't assert if missing. return true on success
   template <class T>
   void setFast(EntityId eid, const FastGetInfo name, const T &__restrict v, const LTComponentList *__restrict list);
 
@@ -310,7 +310,8 @@ public:
   template <typename T>
   typename eastl::enable_if<eastl::is_rvalue_reference<T &&>::value>::type set(EntityId eid, const HashedConstString name, T &&v);
   template <typename T>
-  typename eastl::enable_if<eastl::is_rvalue_reference<T &&>::value>::type setOptional(EntityId eid, const HashedConstString name,
+  typename eastl::enable_if<eastl::is_rvalue_reference<T &&>::value, bool>::type setOptional(EntityId eid,
+    const HashedConstString name,
     T &&v); // won't assert if missing
   template <class T>
   bool is(const HashedConstString name) const;
@@ -321,7 +322,7 @@ public:
   const component_index_t *queryComponents(QueryId) const; // invalid index means unresolved
 
   void setMaxUpdateJobs(uint32_t max_num_jobs);
-  uint32_t getMaxWorkerId() const; // this is inclusive! i.e. it can return setMaxUpdateJobs()/MAX_POSSIBLE_WORKERS_COUNT + 1!
+  uint32_t getMaxWorkerId() const; // this is inclusive! i.e. it can return setMaxUpdateJobs()/threadpool::MAX_WORKER_COUNT + 1!
   void setQueryUpdateQuant(const char *es, uint16_t min_quant);
 
   // this function to be explicitly called only when new systems or tags appeared/disappeared
@@ -506,7 +507,7 @@ void a_ecs_codegen_set_call(const char *, T &&);
 #define ECS_GET_RW_MGR(mgr, type_, eid, aname)          a_ecs_codegen_get_call<type_>(#aname, #type_)
 #define ECS_GET_NULLABLE_RW_MGR(mgr, type_, eid, aname) nullable_a_ecs_codegen_get_call<type_>(#aname, #type_)
 #define ECS_SET_MGR(mgr, eid, aname, v)                 a_ecs_codegen_set_call(#aname, v)
-#define ECS_SET_OPTIONAL_MGR(mgr, eid, aname, v)        a_ecs_codegen_set_call(#aname, v)
+#define ECS_SET_OPTIONAL_MGR(mgr, eid, aname, v)        (a_ecs_codegen_set_call(#aname, v), true)
 
 #define ECS_INIT(to, aname, v) a_ecs_codegen_set_call(#aname, v)
 
@@ -521,14 +522,14 @@ void a_ecs_codegen_set_call(const char *, T &&);
 #define ECS_SET(eid, aname, v)                 g_entity_mgr->setFast(eid, aname##_component.getInfo(), v, &aname##_component)
 #define ECS_SET_OPTIONAL(eid, aname, v)        g_entity_mgr->setOptionalFast(eid, aname##_component.getInfo(), v)
 
-#define ECS_GET_MGR(mgr, type_, eid, aname)          mgr->getFast<type_>(eid, aname##_component.getCidx(), &aname##_component)
-#define ECS_GET_OR_MGR(mgr, eid, aname, def)         mgr->getOrFast(eid, aname##_component.getCidx(), def)
-#define ECS_GET_NULLABLE_MGR(mgr, type_, eid, aname) mgr->getNullableFast<type_>(eid, aname##_component.getCidx())
+#define ECS_GET_MGR(mgr, type_, eid, aname)          (mgr).getFast<type_>(eid, aname##_component.getCidx(), &aname##_component)
+#define ECS_GET_OR_MGR(mgr, eid, aname, def)         (mgr).getOrFast(eid, aname##_component.getCidx(), def)
+#define ECS_GET_NULLABLE_MGR(mgr, type_, eid, aname) (mgr).getNullableFast<type_>(eid, aname##_component.getCidx())
 
-#define ECS_GET_RW_MGR(mgr, type_, eid, aname)          mgr->getRWFast<type_>(eid, aname##_component.getInfo(), &aname##_component)
-#define ECS_GET_NULLABLE_RW_MGR(mgr, type_, eid, aname) mgr->getNullableRWFast<type_>(eid, aname##_component.getInfo())
-#define ECS_SET_MGR(mgr, eid, aname, v)                 mgr->setFast(eid, aname##_component.getInfo(), v, &aname##_component)
-#define ECS_SET_OPTIONAL_MGR(mgr, eid, aname, v)        mgr->setOptionalFast(eid, aname##_component.getInfo(), v)
+#define ECS_GET_RW_MGR(mgr, type_, eid, aname)          (mgr).getRWFast<type_>(eid, aname##_component.getInfo(), &aname##_component)
+#define ECS_GET_NULLABLE_RW_MGR(mgr, type_, eid, aname) (mgr).getNullableRWFast<type_>(eid, aname##_component.getInfo())
+#define ECS_SET_MGR(mgr, eid, aname, v)                 (mgr).setFast(eid, aname##_component.getInfo(), v, &aname##_component)
+#define ECS_SET_OPTIONAL_MGR(mgr, eid, aname, v)        (mgr).setOptionalFast(eid, aname##_component.getInfo(), v)
 
 #define ECS_INIT(to, aname, v) to.insert(aname##_component.getName(), aname##_component.getInfo(), v, aname##_component.getNameStr())
 

@@ -16,6 +16,7 @@ source
   include "../../../gameLibs/daGI2/shaders/shadersList.blk"
   include "../../../gameLibs/daSDF/shaders/daSDFList.blk"
   include shadersList.blk
+  include shadersListForTools.blk
 }
 
 common_valid_variants
@@ -29,7 +30,7 @@ common_assume_vars {}
 Compile
 {
   fsh:t = 5.0
-  group_size_in_kb:i=1019
+  group_size_in_kb:i=128
   assume_vars {
     include common_assumes.blk
     supports_sh_6_1:i = 0
@@ -39,8 +40,10 @@ Compile
     dagi_sp_calc_exposure:i=1
     hdr_ps_output_mode:i=0
     dagi_warp64_irradiance:i=0
+    can_use_half_precision:i=0
   }
   dict_size_in_kb:i=4096
+  required_shaders {}
 }
 
 explicit_var_ref

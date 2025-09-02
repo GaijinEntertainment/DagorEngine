@@ -171,8 +171,7 @@ struct SparseMat
   {
     assert(out.size == A.numRows);
     assert(x.size == A.numCols);
-    concurrency::parallel_for<size_t>(
-      0, A.numRows, [&](auto r) { out[r] = Dot(x, A.rows[r]); }, concurrency::simple_partitioner(100));
+    concurrency::parallel_for<size_t>(0, A.numRows, [&](auto r) { out[r] = Dot(x, A.rows[r]); }, concurrency::simple_partitioner(100));
   }
 
 private:

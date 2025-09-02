@@ -1245,7 +1245,7 @@ bool TextureGenerator::startNode(NodeData &data, const DataBlock &node, eastl::h
             data.usedRegs.push_back(treg);
           }
 
-          if (tex && (data.nodeW <= 0 || autoFmt == 0) && tex->restype() == RES3D_TEX)
+          if (tex && (data.nodeW <= 0 || autoFmt == 0) && tex->getType() == D3DResourceType::TEX)
           {
             TextureInfo tinfo;
             tex->getinfo(tinfo, 0);
@@ -1320,7 +1320,7 @@ bool TextureGenerator::startNode(NodeData &data, const DataBlock &node, eastl::h
               if (!shouldBeKilled)
               {
                 D3dResource *tex = reg_manager.getResource(treg);
-                if (tex && tex->restype() != RES3D_TEX)
+                if (tex && tex->getType() != D3DResourceType::TEX)
                   shouldBeKilled = true;
                 else if (tex)
                 {
@@ -1383,9 +1383,8 @@ bool TextureGenerator::startNode(NodeData &data, const DataBlock &node, eastl::h
             else
             {
               D3dResource *output = reg_manager.getResource(treg);
-              if (output && output->restype() == RES3D_TEX)
+              if (output && output->getType() == D3DResourceType::TEX)
               {
-                ((Texture *)output)->texaddr(wrap ? TEXADDR_WRAP : TEXADDR_CLAMP);
                 const DataBlock *particlesBlock = node.getBlockByName(PARTICLES);
                 const char *particlesRegName = particlesBlock ? particlesBlock->getStr("reg", NULL) : 0;
                 if (particlesRegName) // initialize to zero if it has particles scatter
@@ -1427,13 +1426,6 @@ bool TextureGenerator::startNode(NodeData &data, const DataBlock &node, eastl::h
       }
       data.usedRegs.push_back(preg);
     }
-  }
-
-  if (ret)
-  {
-    for (int i = 0; i < data.inputs.size(); ++i)
-      if (data.inputs[i].tex && data.inputs[i].tex->restype() == RES3D_TEX)
-        ((Texture *)data.inputs[i].tex)->texaddr(data.inputs[i].wrap ? TEXADDR_WRAP : TEXADDR_CLAMP);
   }
 
   data.use_depth = data.blending == DEPTH_TEST || data.blending == NO_BLENDING || data.blending == ALPHA_BLENDING;
@@ -1488,7 +1480,7 @@ uint32_t extend_tex_fmt_to_32f(const BaseTexture *texture)
     case TEXFMT_R16F:
     case TEXFMT_R32F:
     case TEXFMT_L16:
-    case TEXFMT_L8: return TEXFMT_R32F;
+    case TEXFMT_R8: return TEXFMT_R32F;
 
     case TEXFMT_G16R16:
     case TEXFMT_G16R16F:

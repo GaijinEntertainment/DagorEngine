@@ -108,7 +108,7 @@ half static_shadow_sample_8_tap(float2 pos, float z, STATIC_SHADOW_TEXTURE_REF t
 #endif
 
 
-half getStaticShadowMask(float3 worldPos, float dither, out uint cascade_id, out half mask, float radius_scale)
+half getStaticShadowMask(float3 worldPos, float dither, out uint cascade_id, out half mask, float radius_scale, float2 depth_bias_per_cascade)
 {
   cascade_id = 2;
   mask = 0.h;
@@ -121,6 +121,7 @@ half getStaticShadowMask(float3 worldPos, float dither, out uint cascade_id, out
 
   float3 baseTc0 = get_static_shadow_tc_base(worldPos, static_shadow_matrix_0_0, static_shadow_matrix_1_0, static_shadow_matrix_2_0, static_shadow_matrix_3_0);
   float4 tc = get_static_shadow_tc(baseTc0, static_shadow_cascade_0_tor, dither, hardVignette0);
+  tc.z += depth_bias_per_cascade.x;
   float texel_size = static_shadow_matrix_0_0.w;
   float layer = 0;
   #if STATIC_SHADOW_USE_CASCADE_1
@@ -130,8 +131,9 @@ half getStaticShadowMask(float3 worldPos, float dither, out uint cascade_id, out
     #endif
     float3 baseTc1 = get_static_shadow_tc_base(worldPos, static_shadow_matrix_0_1, static_shadow_matrix_1_1, static_shadow_matrix_2_1, static_shadow_matrix_3_1);
     float4 tc1 = get_static_shadow_tc(baseTc1, static_shadow_cascade_1_tor.xy, dither, hardVignette1);
+    tc1.z += depth_bias_per_cascade.y;
     FLATTEN
-    if ( !(tc.w > 0 && tc.z > 0.f) || (tc.z >= 1 && tc1.z < 1))
+    if ( !(tc.w > 0 && tc.z > static_shadow_scrolled_depth_min_0) || (tc.z >= static_shadow_scrolled_depth_max_0 && tc1.z < 1))
     {
       layer = 1;
       tc = tc1;
@@ -143,8 +145,8 @@ half getStaticShadowMask(float3 worldPos, float dither, out uint cascade_id, out
   if ( tc.w > 0 && tc.z > 0.f )
   {
     cascade_id = layer;
-    ret = 1.h - static_shadow_sample_opt(
-      tc.xy, tc.z, static_shadow_tex, static_shadow_tex_cmpSampler, layer, texel_size, dither, radius_scale);
+    ret = half(1.h - static_shadow_sample_opt(
+      tc.xy, tc.z, static_shadow_tex, static_shadow_tex_cmpSampler, layer, texel_size, dither, radius_scale));
     mask = half(tc.w);
   }
 #endif
@@ -153,11 +155,16 @@ half getStaticShadowMask(float3 worldPos, float dither, out uint cascade_id, out
 }
 
 
-half getStaticShadow(float3 worldPos, float dither, out uint cascade_id, float radius_scale)
+half getStaticShadowWithBias(float3 worldPos, float dither, out uint cascade_id, float radius_scale, float2 depth_bias_per_cascade)
 {
   half mask;
-  half ret = getStaticShadowMask(worldPos, dither, cascade_id, mask, radius_scale);
-  return (1.h - 1.h*mask) + ret*mask;
+  half ret = getStaticShadowMask(worldPos, dither, cascade_id, mask, radius_scale, depth_bias_per_cascade);
+  return half((1.h - 1.h*mask) + ret*mask);
+}
+
+half getStaticShadow(float3 worldPos, float dither, out uint cascade_id, float radius_scale)
+{
+  return getStaticShadowWithBias(worldPos, dither, cascade_id, radius_scale, float2(0,0));
 }
 
 

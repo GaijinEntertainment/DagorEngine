@@ -57,6 +57,8 @@ protected:
 
   static ShaderGraphRecompiler *fogInstance;
 
+  static ShaderGraphRecompiler *enviCoverInstance;
+
 private:
   webui::GraphEditor *shader_editor = nullptr;
 
@@ -87,5 +89,7 @@ String collect_template_files(const String &template_dir, const Tab<String> &tem
 
 
 extern webui::HttpPlugin get_fog_shader_graph_editor_http_plugin();
+extern webui::HttpPlugin get_envi_cover_shader_graph_editor_http_plugin();
 
-#define FOG_SHADER_EDITOR_PLUGIN_NAME "fog_shader_editor"
+#define FOG_SHADER_EDITOR_PLUGIN_NAME        "fog_shader_editor"
+#define ENVI_COVER_SHADER_EDITOR_PLUGIN_NAME "envi_cover_shader_editor"

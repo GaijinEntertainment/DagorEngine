@@ -7,16 +7,16 @@ Variant
 Variants are nameless types which provide support for values that can be one of a number of named cases,
 possibly each with different values and types::
 
-    var t : variant<i_value:uint;f_value:float>
+    var t : variant<i_value:uint,f_value:float>
 
 There is a shorthand type alias syntax to define a variant::
 
-    variant U_F
+    variant U_F {
         i_value : uint
         f_value : float
+    }
 
-    typedef
-        U_F = variant<i_value:uint;f_value:float> // exactly the same as the declaration above
+    typedef U_F = variant<i_value:uint,f_value:float> // exactly the same as the declaration above
 
 Any two variants are the same type if they have the same named cases of the same types in the same order.
 
@@ -29,12 +29,12 @@ The current case selection can be checked via the ``is`` operator, and accessed 
 
 The entire variant selection can be modified by copying the properly constructed variant of a different case::
 
-    t = [[U_F i_value = 0x40000000]]    // now case is i_value
-    t = [[U_F f_value = 1.0]]           // now case is f_value
+    t = U_F(i_value = 0x40000000)    // now case is i_value
+    t = U_F(f_value = 1.0)           // now case is f_value
 
 Accessing a variant case of the incorrect type will cause a panic::
 
-    t = [[U_F i_value = 0x40000000]]
+    t = U_F(i_value = 0x40000000)
     return t as f_value                 // panic, invalid variant index
 
 Safe navigation is available via the ``?as`` operation::
@@ -43,9 +43,10 @@ Safe navigation is available via the ``?as`` operation::
 
 Cases can also be accessed in an unsafe manner without checking the type::
 
-    unsafe
+    unsafe {
         t.i_value = 0x3f800000
         return t.f_value                    // will return memory, occupied by f_value - i.e. 1.0f
+    }
 
 The current index can be determined via the ``variant_index`` function::
 
@@ -66,7 +67,7 @@ The index value for a specific case can be determine via the ``variant_index`` a
 Current case selection can be modified with the unsafe operation ``safe_variant_index``::
 
     unsafe
-        set_variant_index(t, typeinfo(variant_index<f_value> t))
+        set_variant_index(t, typeinfo variant_index<f_value>(t))
 
 -------------------------
 Alignment and data layout

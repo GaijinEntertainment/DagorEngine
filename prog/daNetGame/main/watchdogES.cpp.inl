@@ -5,13 +5,15 @@
 #include "main/level.h"
 #include "main/gameLoad.h"
 #include "ui/overlay.h"
+#include "fatal.h"
 
-#include <daGame/timers.h>
+#include <statsd/statsd.h>
 #include <ioSys/dag_dataBlock.h>
 #include <startup/dag_globalSettings.h>
 #include <math/random/dag_random.h>
 #include "render/animatedSplashScreen.h"
 #include <ecs/core/entityManager.h>
+#include "net/net.h" // net_stop
 
 #include <sqModules/sqModules.h>
 #include <sqrat.h>
@@ -50,16 +52,28 @@ static Mode modes[WatchdogMode::COUNT];
 static const char *mode_names[] = {"loading", "game_session", "lobby"};
 static WatchdogMode current_mode = WatchdogMode::COUNT;
 
-
 static void initialize_watchdog(int sleep, int trigger, int callstacks, bool fatal)
 {
   WatchdogConfig wcfg;
   wcfg.triggering_threshold_ms = trigger;
   wcfg.dump_threads_threshold_ms = callstacks;
   wcfg.sleep_time_ms = sleep;
+  if (fatal)
+  {
+#if DAGOR_DBGLEVEL <= 0 && _TARGET_PC
+    wcfg.on_freeze_cb = [](unsigned, int64_t) {
+      // Warn: intentinonally don't do anything time-sensitive (incl logging or flushing) here as it might
+      // skew crash report generating bogus crash server signature
+      fatal::force_immediate_dump(/*freeze*/ true);
 
-  if (!fatal)
-    wcfg.flags |= WATCHDOG_NO_FATAL;
+      statsd::counter("fatal", 1, {{"type", "Hang"}});
+      net_stop();
+      terminate_process(1);
+    };
+#endif
+  }
+  else
+    wcfg.on_freeze_cb = [](unsigned t, int64_t) { logerr("Watchdog: freeze detected, timeout %u msec", t); };
 
   if (wcfg.triggering_threshold_ms)
   {

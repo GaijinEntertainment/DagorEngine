@@ -36,12 +36,22 @@ public:
   virtual size_t decode(SystemIndex sys_idx, const uint8_t *inData, size_t inLimit, uint8_t *outData, size_t outLimit) = 0;
 };
 
+struct DaNetPeerExecutionContext
+{
+  DaNetPeerExecutionContext();
+
+public:
+  Tab<PacketToSend *> packetsTmp;
+  DaNetTime curTime;
+  DaNetTime prevTime;
+};
+
 class DaNetPeerInterface : public DaThread
 {
 public:
   static constexpr int DEF_BLOCK_DURATION = 600;
 
-  DaNetPeerInterface(_ENetHost *ehost = nullptr);
+  DaNetPeerInterface(_ENetHost *ehost = nullptr, bool is_threaded = false);
   ~DaNetPeerInterface();
 
   static DaNetPeerInterface *create(size_t asz = 0, void **outp = nullptr);
@@ -66,7 +76,7 @@ public:
     return Send(bs.getSlice(), priority_, reliability, orderingChannel, system_index, broadcast, dup_delay_ms);
   }
 
-  bool Connect(const char *host, uint16_t port, uint32_t connect_data = 0);
+  bool Connect(const char *host, uint16_t port, uint32_t connect_data = 0, bool is_relay_connection = false);
   void CloseConnection(const SystemAddress &addr, DisconnectionCause cause = DC_CONNECTION_CLOSED);
   void CloseConnection(SystemIndex idx, DisconnectionCause cause = DC_CONNECTION_CLOSED);
 
@@ -74,6 +84,9 @@ public:
 
   bool IsPeerConnected(const SystemAddress &a) const;
   bool IsPeerResponsive(SystemIndex sys_idx) const;
+
+  bool IsRelayConnection(SystemIndex sys_idx) const { return sys_idx == relayPeerIdx; }
+
 
   const DaNetStatistics *GetStatistics(SystemIndex sys_idx) const;
 
@@ -105,11 +118,13 @@ public:
 
   void AllowReceivePlaintext(SystemIndex system_index, bool allow);
 
-  const _ENetHost *GetHostRaw() const
-  {
-    return host;
-  } // This is supposed to be for debug only. Also it means not what you think it means
+  const _ENetHost *GetHostRaw() const { return host; }
+
+  _ENetHost *GetHostMutable() const { return host; }
+
   const _ENetPeer *GetENetPeer(SystemIndex sys_idx) const;
+
+  void ExecuteSingleUpdate(DaNetPeerExecutionContext &context);
 
 private:
   virtual void execute();
@@ -127,8 +142,9 @@ private:
   _ENetHost *host; // client or server host actually
   int sleep_time;  // how often wake up in thread for handling network events
   uint32_t maximumIncomingConnections;
-
+  bool is_threaded;
   WinCritSec packetsCrit; // guard send queue, receive queue & packets pool
+  SystemIndex relayPeerIdx = UNASSIGNED_SYSTEM_INDEX;
 
   struct DisconnectCommand
   {

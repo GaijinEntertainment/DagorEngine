@@ -340,7 +340,7 @@ protected:
 class ShaderMesh
 {
 public:
-  enum
+  enum Stage
   {
     STG_opaque = 0,
     STG_atest,
@@ -411,9 +411,18 @@ public:
   void rebaseAndClone(void *new_base, const void *old_base);
 
   // rendering
-  void render() const { render(getElems(STG_opaque, STG_atest)); }
-  void render_trans() const { render(getElems(STG_trans)); }
-  void render_distortion() const { render(getElems(STG_distortion)); }
+  void render() const { render(getElems(STG_opaque, STG_atest), nullptr); }
+  void render_trans() const { render(getElems(STG_trans), nullptr); }
+  void render_distortion() const { render(getElems(STG_distortion), nullptr); }
+
+
+  // The filter functor is called with parameters:
+  // - int i: The index of the RElem that is currently tested
+  template <typename FilterFunctor>
+  void renderWithFilter(FilterFunctor filter_cb) const
+  {
+    render(getElems(STG_opaque, STG_atest), filter_cb);
+  }
 
   // render with current shader
   void renderRawImmediate(bool trans) const;
@@ -478,7 +487,35 @@ private:
   int _resv = 0;
 
   // render items
-  void render(dag::Span<RElem> elem_array) const;
+  template <typename FilterFunctor>
+  void render(dag::Span<RElem> elem_array, FilterFunctor filter_cb) const
+  {
+    GlobalVertexData *vertexData = NULL;
+    for (int i = 0; i < elem_array.size(); i++)
+    {
+      const RElem &re = elem_array[i];
+
+      if constexpr (!eastl::is_null_pointer_v<FilterFunctor>)
+      {
+        if (!filter_cb(i))
+          continue;
+      }
+
+      if (!re.e)
+        continue;
+
+      if (re.vertexData->isEmpty())
+        continue;
+
+      if (re.vertexData != vertexData)
+      {
+        vertexData = re.vertexData;
+
+        vertexData->setToDriver();
+      }
+      re.render();
+    }
+  }
 
 #if DAGOR_DBGLEVEL > 0
   static bool dbgRenderStarted;

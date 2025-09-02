@@ -35,11 +35,13 @@ void register_random(SqModules *module_mgr)
 
   ///@module dagor.random
   exports //
+    .SetValue("DAGOR_RAND_MAX", DAGOR_RAND_MAX)
     .Func("rnd", script_rnd)
     .Func("frnd", script_frnd)
     .Func("srnd", script_srnd)
     .Func("rnd_float", script_rnd_float)
     .Func("rnd_int", script_rnd_int)
+    .Func("rnd_range", [](int a, int b) { return _rnd_range(script_rnd_seed, a, b); })
     .Func("set_rnd_seed", script_set_rnd_seed)
     .Func("get_rnd_seed", script_get_rnd_seed)
     .SquirrelFunc("gauss_rnd", gauss_rnd_safe, 2, ".n")

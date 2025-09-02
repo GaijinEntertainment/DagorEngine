@@ -1,0 +1,41 @@
+include "decals/dynamic_decal_inc.dshl"
+include "decals/blend_diffuse_decal_inc.dshl"
+
+
+shader dynamic_blend_diffuse_decal, dynamic_deferred_decal
+{
+  render_stage decal;
+  z_write = false;
+
+  ENABLE_ASSERT(ps)
+  DYNAMIC_BLOCK()
+  SUPPORT_MULTIDRAW(false)
+
+  if (dyn_model_render_pass != render_pass_normal)
+  {
+    dont_render;
+  }
+
+  if (shader == dynamic_deferred_decal)
+  {
+    static int atest = 0;
+    interval atest: atestOff < 1, atestOn;
+    INIT_ZNZFAR()
+  }
+
+  static int draw_order = 0 no_warnings;
+  INIT_DECAL_PAINTED()
+  SETUP_CHARACTER_MICRODETAIL()
+  if (shader == dynamic_deferred_decal)
+  {
+    BLEND_DIFFUSE_DECAL_TEXTURES(true)
+    DYNAMIC_DECAL_VS(true)
+    BLEND_DIFFUSE_DECAL_PS(true)
+  }
+  else
+  {
+    BLEND_DIFFUSE_DECAL_TEXTURES(false)
+    DYNAMIC_DECAL_VS(false)
+    BLEND_DIFFUSE_DECAL_PS(false)
+  }
+}

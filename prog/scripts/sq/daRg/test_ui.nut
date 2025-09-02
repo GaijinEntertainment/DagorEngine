@@ -1,8 +1,9 @@
+from "dagor.system" import exit, get_arg_value_by_name
+from "%sqstd/string.nut" import tostring_r
 from "debug" import getstackinfos
-let {exit, get_arg_value_by_name} = require("dagor.system")
-let {tostring_r} = require("%sqstd/string.nut")
 
-let knownProps = ["size","rendObj","watch","behavior","halign","valign","flow","pos","hplace","vplace","padding", "margin", "eventHandlers", "hotkeys"].reduce(function(res, a) {res[a] <- a; return res}, {})
+let knownProps = static ["size","rendObj","watch","behavior","halign","valign","flow","pos","hplace","vplace","padding", "margin", "eventHandlers", "hotkeys"].totable()
+
 function checkIsUiComponent(table) {
   if (table.len()==0)
     return true
@@ -39,18 +40,19 @@ function test(entryPoint = null){
   entryPoint = entryPoint ?? get_arg_value_by_name("ui")
   if (entryPoint==null) {
     println($"Usage: csq {__FILE__} -ui:<path_to_darg_ui.nut>")
-    exit(0)
+    return 0
   }
-  println($"starting test for '{entryPoint}'...")
+  println($"Starting test for '{entryPoint}'...")
   if (!testUi(require(entryPoint))){
     println("failed to run")
-    exit(1)
+    return 1
   }
   println("all ok")
+  return 0
 }
 
 if (__name__ == "__main__") {
-  test()
+  exit(test())
 }
 
-return {testUi, test, checkIsUiComponent}
+return freeze({testUi, test, checkIsUiComponent})

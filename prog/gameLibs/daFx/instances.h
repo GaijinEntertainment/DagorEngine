@@ -11,6 +11,8 @@
 
 namespace dafx
 {
+struct SystemTemplate;
+
 struct InstanceState
 {
   int aliveStart;
@@ -46,6 +48,7 @@ constexpr int dummy_instance_sid = 0xfffffff0;
 enum : int
 {
   INST_RID,
+  INST_SYS_ID,
   INST_FLAGS,
   INST_REF_FLAGS,
   INST_SYNCED_FLAGS,
@@ -114,6 +117,8 @@ enum : int
   INST_BBOX,
   INST_POSITION,
   INST_VIEW_DIST,
+  INST_VIEW_DIST_MIN,
+  INST_PROJ_SIZE_MAX,
   INST_RENDER_SORT_DEPTH,
   INST_CULLING_ID,
   INST_LAST_VALID_BBOX_FRAME,
@@ -131,6 +136,7 @@ enum : int
 };
 
 using InstanceStream = eastl::tuple_vector<InstanceId, // INST_RID
+  SystemId,                                            // INST_SYS_ID
   uint32_t,                                            // INST_FLAGS
   uint32_t,                                            // INST_REF_FLAGS
   uint32_t,                                            // INST_SYNCED_FLAGS
@@ -199,6 +205,8 @@ using InstanceStream = eastl::tuple_vector<InstanceId, // INST_RID
   bbox3f,       // INST_BBOX (this should be fine, since eastl::tuple_vector have alignment-friendly allocator)
   Point4,       // INST_POSITION
   float,        // INST_VIEW_DIST
+  float,        // INST_VIEW_DIST_MIN
+  float,        // INST_PROJ_SIZE_MAX
   int,          // INST_RENDER_SORT_DEPTH
   int,          // INST_CULLING_ID
   unsigned int, // INST_LAST_VALID_BBOX_FRAME
@@ -317,5 +325,6 @@ void set_instance_status_from_queue(Context &ctx);
 void set_instance_visibility_from_queue(Context &ctx);
 void set_instance_emission_rate_from_queue(Context &ctx);
 void set_instance_value_from_queue(Context &ctx);
+void adjust_buffer_size_by_quality(Context &ctx, const SystemTemplate &sys, int &cpu_size, int &gpu_size, bool force_dummy);
 } // namespace dafx
 DAG_DECLARE_RELOCATABLE(dafx::InstanceStream);

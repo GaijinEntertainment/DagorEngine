@@ -41,12 +41,9 @@ struct EntityCreationProfiler
     manager(manager), templ(t), reft((da_profiler::get_active_mode() & da_profiler::EVENTS) ? profile_ref_ticks() : 0)
   {}
 
-#define _X(x)               \
-  uint64_t x##D = 0;        \
-  AutoTimer x()             \
-  {                         \
-    return AutoTimer(x##D); \
-  }
+#define _X(x)        \
+  uint64_t x##D = 0; \
+  AutoTimer x() { return AutoTimer(x##D); }
   DECL_ENT_CREATE_MARKERS
 #undef _X
 

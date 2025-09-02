@@ -1,5 +1,5 @@
 Root    ?= ../../../.. ;
-Location = prog/tools/AssetViewer/Collision ;
+Location = prog/tools/AssetViewer/collision ;
 
 TargetType  = lib ;
 Target      = tools/AssetViewer/collision.lib ;

@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "dasEventES.cpp.inl"
 ECS_DEF_PULL_VAR(dasEvent);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc global_unicast_dasevent_client_es_event_handler_comps[] =
 {
@@ -61,10 +63,10 @@ static ecs::EntitySystemDesc global_unicast_dasevent_es_event_handler_es_desc
 //static constexpr ecs::ComponentDesc invalidate_dasevents_cache_on_connect_to_server_es_event_handler_comps[] ={};
 static void invalidate_dasevents_cache_on_connect_to_server_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
-  G_UNUSED(components);
   G_FAST_ASSERT(evt.is<EventOnConnectedToServer>());
   invalidate_dasevents_cache_on_connect_to_server_es_event_handler(static_cast<const EventOnConnectedToServer&>(evt)
-        );
+        , components.manager()
+    );
 }
 static ecs::EntitySystemDesc invalidate_dasevents_cache_on_connect_to_server_es_event_handler_es_desc
 (
@@ -81,10 +83,10 @@ static ecs::EntitySystemDesc invalidate_dasevents_cache_on_connect_to_server_es_
 //static constexpr ecs::ComponentDesc invalidate_dasevents_on_network_destroyed_es_event_handler_comps[] ={};
 static void invalidate_dasevents_on_network_destroyed_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
-  G_UNUSED(components);
   G_FAST_ASSERT(evt.is<EventOnNetworkDestroyed>());
   invalidate_dasevents_on_network_destroyed_es_event_handler(static_cast<const EventOnNetworkDestroyed&>(evt)
-        );
+        , components.manager()
+    );
 }
 static ecs::EntitySystemDesc invalidate_dasevents_on_network_destroyed_es_event_handler_es_desc
 (
@@ -101,10 +103,10 @@ static ecs::EntitySystemDesc invalidate_dasevents_on_network_destroyed_es_event_
 //static constexpr ecs::ComponentDesc invalidate_dasevents_cache_on_client_change_es_event_handler_comps[] ={};
 static void invalidate_dasevents_cache_on_client_change_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
-  G_UNUSED(components);
   G_FAST_ASSERT(evt.is<EventOnClientConnected>());
   invalidate_dasevents_cache_on_client_change_es_event_handler(static_cast<const EventOnClientConnected&>(evt)
-        );
+        , components.manager()
+    );
 }
 static ecs::EntitySystemDesc invalidate_dasevents_cache_on_client_change_es_event_handler_es_desc
 (

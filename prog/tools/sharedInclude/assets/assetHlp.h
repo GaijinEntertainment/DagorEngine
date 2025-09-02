@@ -14,6 +14,7 @@ class IGenSave;
 class String;
 namespace ddsx
 {
+struct Header;
 struct Buffer;
 struct ConvertParams;
 } // namespace ddsx
@@ -100,6 +101,9 @@ bool set_fast_conv(bool fast);
 //! returns when texture asset is convertible
 bool is_tex_asset_convertible(DagorAsset &a);
 
+//! prepares ddsx::Header for convertible assets and fills TQ/HQ/UHQ levels (if applicable)
+bool get_convertible_tex_asset_header(DagorAsset &a, ddsx::Header &dest_hdr, unsigned &dest_lev_desc);
+
 //! checks cache for specified asset and converted when cache is outdated;
 //! returns: -1=error, 0=cache invalid, 1=cache valid, 2=cache updated
 int validate_tex_asset_cache(DagorAsset &a, unsigned target, const char *profile, ILogWriter *l, bool upd = true);
@@ -110,10 +114,10 @@ bool get_tex_asset_built_ddsx(DagorAsset &a, ddsx::Buffer &dest, unsigned target
 //! writes source DDS or converted DDSx texture asset contents to stream; returns size of data or -1 on error
 int write_tex_contents(IGenSave &cwr, DagorAsset &a, unsigned target, const char *profile, ILogWriter *l);
 //! return size of source DDS or converted DDSx texture asset
-int get_tex_size(DagorAsset &a, unsigned target, const char *profile);
+int get_tex_size(DagorAsset &a, unsigned target, const char *profile, int tex_q = 0);
 
-//! checks whether texture loaded from FAST cache
-bool is_tex_built_fast(DagorAsset &a, unsigned target, const char *profile);
+//! checks whether texture cache is ready/valid and texture can be loaded from FAST or PRODUCTION cache
+bool is_tex_built_and_actual(DagorAsset &a, unsigned target, const char *profile, bool &is_prod_ready);
 
 //! writes DDS for specified asset performing necessary processing for FLG_NEED_PAIRED_BASETEX; returns size of data or -1 on error
 int __stdcall write_built_dds_final(IGenSave &cwr, DagorAsset &a, unsigned target, const char *profile, ILogWriter *l);

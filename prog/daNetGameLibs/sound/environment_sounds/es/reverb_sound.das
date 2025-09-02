@@ -2,7 +2,9 @@ require ecs
 require ecs.safe
 require soundEvent
 require soundSystem
+require math.random
 require math.base
+require math
 require DagorMath
 require Dacoll
 require AnimV20
@@ -13,10 +15,10 @@ require PhysMat
 
 
 [es(tag=sound, on_appear)]
-def reverb_sound_appear(evt : Event;
-                        reverb_sound__physmatAbsorption : Array;
-                        reverb_sound__defAbsorption : float;
-                        var reverb_sound__PMIDToAbsorption : FloatList&)
+def reverb_sound_init_absorption(evt : Event;
+                                 reverb_sound__physmatAbsorption : Array;
+                                 reverb_sound__defAbsorption : float;
+                                 var reverb_sound__PMIDToAbsorption : FloatList&)
   var maxCount = 0
   for it in reverb_sound__physmatAbsorption
     let physmats = get_ecs_StringList(it as Object?.physmats)
@@ -51,123 +53,142 @@ def reverb_sound_appear(evt : Event;
           reverb_sound__PMIDToAbsorption[pmid] = val
 
 
-def make_param(value : float; max_value : float; num_rays : int)
-  return saturate(safediv(value, float(num_rays) * max_value)) * 100.
+[es(tag=sound, on_appear)]
+def human_reverb_sound_init_node_id(evt : Event;
+                                    animchar : AnimcharBaseComponent;
+                                    attach_reverb_sound_to_watchable__nodeName : string;
+                                    var attach_reverb_sound_to_watchable__nodeId : int&)
+  if !empty(attach_reverb_sound_to_watchable__nodeName)
+    attach_reverb_sound_to_watchable__nodeId = geomtree_findNodeIndex(*animchar.nodeTree, attach_reverb_sound_to_watchable__nodeName)
+    if attach_reverb_sound_to_watchable__nodeId == -1
+      logerr("Reverb node '{attach_reverb_sound_to_watchable__nodeName}' not found")
+
+
+[es(tag=sound, on_appear, on_event=EventOnMasterSoundPresetLoaded)]
+def reverb_sound_appear(evt : Event;
+                        reverb_sound__intensityVar : string;
+                        reverb_sound__path : string;
+                        var reverb_sound__rayId : int&;
+                        var reverb_sound__offsetId : int&;
+                        var reverb_sound__intensity_roomSize_absorption_weight : float4&;
+                        var reverb_sound__intensity_roomSize_absorption_blend : float4&;
+                        var reverb_sound__event : SoundEvent&)
+  reverb_sound__event |> release_immediate()
+  if sound_banks_is_master_preset_loaded()
+    reverb_sound__event |> play(reverb_sound__path, get_reverb_3d_pos())
+    set_var_global(reverb_sound__intensityVar, 0.)
+  reverb_sound__intensity_roomSize_absorption_blend = float4(0., 0., 0., 0.)
+  reverb_sound__intensity_roomSize_absorption_weight = float4(0., 0., 0., 0.)
+  reverb_sound__rayId = 0
+  reverb_sound__offsetId = 0
+
+
+[es(tag=sound, on_disappear)]
+def reverb_sound_disappear(evt : Event;
+                           reverb_sound__intensityVar : string)
+  if sound_banks_is_master_preset_loaded()
+    set_var_global(reverb_sound__intensityVar, 0.)
+
+
+def make_param(value, max_value : float; max_param = 100.)
+  return saturate(safediv(value, max_value)) * max_param
 
 
 def get_reverb_3d_pos()
   var pos = get_listener_pos()
-  query() <| $ [es] (is_watched_sound : bool;
-                     human_reverb_sound__nodeId : int;
-                     animchar : AnimcharBaseComponent)
-    if is_watched_sound && human_reverb_sound__nodeId >= 0
-      pos = geomtree_getNodeWpos(*animchar.nodeTree, human_reverb_sound__nodeId) + float3(0., 0.1, 0.)
+  query() <| $ [es(REQUIRE=watchedByPlr)] (attach_reverb_sound_to_watchable__nodeId : int; animchar : AnimcharBaseComponent)
+    if attach_reverb_sound_to_watchable__nodeId >= 0
+      pos = geomtree_getNodeWpos(*animchar.nodeTree, attach_reverb_sound_to_watchable__nodeId) + float3(0., 0.1, 0.)
   return pos
 
 
 [es(tag=sound, on_event=ParallelUpdateFrameDelayed, after=(animchar_before_render_es, sound_begin_update_es), before=sound_end_update_es)]
 def reverb_sound_update(evt : Event;
                         var reverb_sound__rayId : int&;
-                        var reverb_sound__intensityValue : float&;
-                        var reverb_sound__roomSizeValue : float&;
-                        var reverb_sound__absorptionValue : float&;
-                        var reverb_sound__absorptionRays : int&;
+                        var reverb_sound__offsetId : int&;
                         var reverb_sound__intensity_roomSize_absorption_weight : float4&;
+                        var reverb_sound__intensity_roomSize_absorption_blend : float4&;
                         reverb_sound__PMIDToAbsorption : FloatList;
                         reverb_sound__defAbsorption : float;
                         reverb_sound__absorptionVar : string;
-                        reverb_sound__absorptionNormalize : bool;
                         reverb_sound__intensityMax : float;
                         reverb_sound__intensityVar : string;
                         reverb_sound__roomSizeMax : float;
                         reverb_sound__roomSizeVar : string;
-                        reverb_sound__rays : Point3List;
                         reverb_sound__rayLength : float;
                         reverb_sound__fadeOutPower : float;
+                        reverb_sound__decay : float;
+                        reverb_sound__numTraces : int = 2;
+                        reverb_sound__rays : Point3List;
+                        reverb_sound__offsets : Point3List;
                         reverb_sound__event : SoundEvent&)
+
+  if !sound_banks_is_master_preset_loaded()
+    return
+
+  assume _intensity = reverb_sound__intensity_roomSize_absorption_weight.x
+  assume _roomSize = reverb_sound__intensity_roomSize_absorption_weight.y
+  assume _absorption = reverb_sound__intensity_roomSize_absorption_weight.z
+  assume _weight = reverb_sound__intensity_roomSize_absorption_weight.w
+  assume blend = reverb_sound__intensity_roomSize_absorption_blend
+
   if !is_valid_handle_value(reverb_sound__event)
     return
 
-  let numRays = length(reverb_sound__rays)
-  assert(uint(reverb_sound__rayId) < uint(numRays))
+  let maxRays = length(reverb_sound__rays)
+  let maxOffsets = length(reverb_sound__offsets)
+  if maxRays <= 0 || maxOffsets <= 0
+    return
+
+  let up = get_listener_up()
+  let upDecayDot = float2(-0.5, 0.)
   let pos = get_reverb_3d_pos()
-  let dir = reverb_sound__rays[reverb_sound__rayId]
   set_pos(reverb_sound__event, pos)
 
-  if reverb_sound__intensity_roomSize_absorption_weight.w >= 1.
-    set_var_global(reverb_sound__intensityVar, reverb_sound__intensity_roomSize_absorption_weight.x)
-    set_var(reverb_sound__event, reverb_sound__roomSizeVar, reverb_sound__intensity_roomSize_absorption_weight.y)
-    set_var(reverb_sound__event, reverb_sound__absorptionVar, reverb_sound__intensity_roomSize_absorption_weight.z)
+  if blend.w >= 1.
+    set_var_global(reverb_sound__intensityVar, blend.x)
+    set_var(reverb_sound__event, reverb_sound__roomSizeVar, blend.y)
+    set_var(reverb_sound__event, reverb_sound__absorptionVar, blend.z)
     reverb_sound__rayId = 0
-    reverb_sound__intensityValue = 0.
-    reverb_sound__roomSizeValue = 0.
-    reverb_sound__absorptionValue = 0.
-    reverb_sound__absorptionRays = 0
+    reverb_sound__offsetId = 0
+    reverb_sound__intensity_roomSize_absorption_weight = float4(0., 0., 0., 0.)
   else
-    var pmid = PHYSMAT_INVALID
-    var norm : float3
-    var t = reverb_sound__rayLength
-    var riDesc = RendInstDesc()
-    if traceray_normalized(pos, dir, t, pmid, norm, ETF_FRT | ETF_RI | ETF_STRUCTURES, riDesc, -1)
-      let distT = saturate(safediv(t, reverb_sound__rayLength))
-      reverb_sound__intensityValue += saturate(-dot(norm, dir)) * (1. - pow(distT, reverb_sound__fadeOutPower))
-      reverb_sound__roomSizeValue += t
-      if pmid >= 0 && pmid < length(reverb_sound__PMIDToAbsorption)
-        reverb_sound__absorptionValue += reverb_sound__PMIDToAbsorption[pmid]
+    var i = reverb_sound__numTraces
+    while --i >= 0
+
+      var pmid = PHYSMAT_INVALID
+      var norm : float3
+      var t = reverb_sound__rayLength
+      var riDesc = RendInstDesc()
+      let dir = reverb_sound__rays[reverb_sound__rayId] * reverb_sound__offsets[reverb_sound__offsetId]
+      let u = cvt(dot(dir, up), upDecayDot.x, upDecayDot.y, 0., 1.)
+      if u > 0. && traceray_normalized(pos, dir, t, pmid, norm, ETF_LMESH | ETF_FRT | ETF_RI | ETF_STRUCTURES, riDesc, -1)
+        _roomSize += t * u
+        let distT = saturate(safediv(t, reverb_sound__rayLength))
+        _intensity += saturate(-dot(norm, dir)) * (1. - pow(distT, reverb_sound__fadeOutPower)) * u
+        if pmid >= 0 && pmid < length(reverb_sound__PMIDToAbsorption)
+          _absorption += reverb_sound__PMIDToAbsorption[pmid] * u
+        else
+          _absorption += reverb_sound__defAbsorption * u
       else
-        reverb_sound__absorptionValue += reverb_sound__defAbsorption
-      ++reverb_sound__absorptionRays
-    else
-      reverb_sound__roomSizeValue += reverb_sound__rayLength
-      if !reverb_sound__absorptionNormalize
-        ++reverb_sound__absorptionRays
+        _roomSize += reverb_sound__rayLength * u
+      _weight += u
 
-    ++reverb_sound__rayId
-    if reverb_sound__rayId >= numRays
-      let valueFlipped = 1. - reverb_sound__intensity_roomSize_absorption_weight.w
-      let intensity = make_param(reverb_sound__intensityValue, reverb_sound__intensityMax, numRays) * valueFlipped + reverb_sound__intensity_roomSize_absorption_weight.x * reverb_sound__intensity_roomSize_absorption_weight.w
-      let roomSize = make_param(reverb_sound__roomSizeValue, reverb_sound__roomSizeMax, numRays) * valueFlipped + reverb_sound__intensity_roomSize_absorption_weight.y * reverb_sound__intensity_roomSize_absorption_weight.w
-      let absorption = reverb_sound__absorptionValue / float(max(1, reverb_sound__absorptionRays)) * valueFlipped + reverb_sound__intensity_roomSize_absorption_weight.z * reverb_sound__intensity_roomSize_absorption_weight.w
+      if ++reverb_sound__rayId >= maxRays
 
-      set_var_global(reverb_sound__intensityVar, intensity)
-      set_var(reverb_sound__event, reverb_sound__roomSizeVar, roomSize)
-      set_var(reverb_sound__event, reverb_sound__absorptionVar, absorption)
+        let intensity = lerp(make_param(_intensity, _weight * reverb_sound__intensityMax), blend.x, blend.w)
+        let roomSize = lerp(make_param(_roomSize, _weight * reverb_sound__roomSizeMax), blend.y, blend.w)
+        let absorption = lerp(make_param(_absorption, _weight, 1.), blend.z, blend.w)
 
-      reverb_sound__rayId = 0
-      reverb_sound__intensityValue = 0.
-      reverb_sound__roomSizeValue = 0.
-      reverb_sound__absorptionValue = 0.
-      reverb_sound__absorptionRays = 0
+        set_var_global(reverb_sound__intensityVar, intensity)
+        set_var(reverb_sound__event, reverb_sound__roomSizeVar, roomSize)
+        set_var(reverb_sound__event, reverb_sound__absorptionVar, absorption)
 
-  reverb_sound__intensity_roomSize_absorption_weight.w = 0.
+        //logerr("intensity={intensity}  roomSize={roomSize}   absorption={absorption}     weight={_weight}  offset={reverb_sound__offsets[reverb_sound__offsetId]}")
 
+        // new cycle
+        reverb_sound__rayId = 0
+        reverb_sound__offsetId = (reverb_sound__offsetId + 1) % maxOffsets
+        reverb_sound__intensity_roomSize_absorption_weight *= reverb_sound__decay
 
-[es(tag=sound, track=sound_banks_state__isPresetLoaded)]
-def reverb_sound_toggle(evt : Event;
-                        sound_banks_state__isPresetLoaded : bool;
-                        reverb_sound__path : string;
-                        reverb_sound__intensityVar : string;
-                        var reverb_sound__event : SoundEvent&)
-  release_immediate(reverb_sound__event)
-  if sound_banks_state__isPresetLoaded
-    reverb_sound__event |> play(reverb_sound__path, get_reverb_3d_pos())
-    set_var_global(reverb_sound__intensityVar, 0.)
-
-
-[es(tag=sound, on_disappear)]
-def reverb_sound_destroyed(evt : Event;
-                           reverb_sound__intensityVar : string;
-                           var reverb_sound__event : SoundEvent&)
-  release(reverb_sound__event)
-  set_var_global(reverb_sound__intensityVar, 0.)
-
-
-[es(tag=sound, on_appear)]
-def human_reverb_sound_init_node_id(evt : Event;
-                                    animchar : AnimcharBaseComponent;
-                                    human_animchar_sound__reverbNode : string;
-                                    var human_reverb_sound__nodeId : int&)
-  if !empty(human_animchar_sound__reverbNode)
-    human_reverb_sound__nodeId = geomtree_findNodeIndex(*animchar.nodeTree, human_animchar_sound__reverbNode)
-    if human_reverb_sound__nodeId == -1
-      logerr("Reverb node '{human_animchar_sound__reverbNode}' not found")
+  blend.w = 0.

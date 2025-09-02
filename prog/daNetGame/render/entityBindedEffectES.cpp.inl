@@ -5,7 +5,7 @@
 #include <ecs/phys/collRes.h>
 #include <gameRes/dag_collisionResource.h>
 #include <daECS/core/coreEvents.h>
-#include "render/fx/effectManager.h"
+#include <effectManager/effectManager.h>
 #include "render/fx/fx.h"
 #include "render/fx/effectEntity.h"
 #include "game/gameEvents.h"
@@ -53,6 +53,16 @@ static inline void validate_auto_delete_tag_on_client_only_entities_es(const ecs
     static_cast<ecs::entity_id_t>(eid), g_entity_mgr->getEntityTemplateName(eid));
 }
 
+ECS_TAG(render)
+ECS_ON_EVENT(on_appear)
+ECS_REQUIRE(ecs::Tag autodeleteEffectEntity)
+ECS_REQUIRE_NOT(ecs::auto_type replication)
+static inline void init_auto_delete_fx_es(const ecs::Event &, const TheEffect &effect)
+{
+  for (const auto &fx : effect.getEffects())
+    fx.fx->enableActiveQuery();
+}
+
 
 ECS_TAG(render)
 ECS_NO_ORDER
@@ -62,7 +72,7 @@ static inline void auto_delete_client_entity_with_effect_component_es(
   const ecs::UpdateStageInfoAct &, ecs::EntityId eid, const TheEffect &effect)
 {
   for (const auto &fx : effect.getEffects())
-    if (!fx.fx->isUpdated() || fx.fx->queryIsActive()) // isAlive() doesn't work for locked effects
+    if (fx.fx->isActive())
       return;
 
   g_entity_mgr->destroyEntity(eid);
@@ -70,7 +80,8 @@ static inline void auto_delete_client_entity_with_effect_component_es(
 
 ecs::EntityId spawn_fx(const TMatrix &fx_tm, const int fx_id)
 {
-  AcesEffect *fxPtr = acesfx::start_effect(fx_id, fx_tm, TMatrix::IDENT, false);
+  AcesEffect *fxPtr = nullptr;
+  acesfx::start_effect(fx_id, fx_tm, TMatrix::IDENT, false, -1.0f, &fxPtr);
   if (fxPtr == nullptr)
     return ecs::INVALID_ENTITY_ID;
   ecs::ComponentsInitializer attrs;
@@ -86,7 +97,8 @@ ecs::EntityId spawn_human_binded_fx(const TMatrix &fx_tm,
   const Color4 &color_mult,
   const char *tmpl)
 {
-  AcesEffect *fxPtr = acesfx::start_effect(fx_id, fx_tm, TMatrix::IDENT, false);
+  AcesEffect *fxPtr = nullptr;
+  acesfx::start_effect(fx_id, fx_tm, TMatrix::IDENT, false, -1.0f, &fxPtr);
   if (fxPtr == nullptr || node_coll_id < 0)
     return ecs::INVALID_ENTITY_ID;
   fxPtr->setColorMult(color_mult);

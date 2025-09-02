@@ -18,6 +18,11 @@
 
 #define codemem midmem
 
+namespace shc
+{
+class TargetContext;
+}
+
 class SerializableSlice
 {
   bindump::Address<int> mPtr;
@@ -55,13 +60,16 @@ public:
   SerializableTab<int> initcode;
   SerializableTab<ShaderVarTextureType> staticTextureTypes;
 
-  struct StVarMap
+  struct StVarMapping
   {
     int v, sv;
   };
-  SerializableTab<StVarMap> stvarmap;
+  SerializableTab<StVarMapping> stvarmap;
 
   int flags;
+
+  int branchedCppStcodeId = -1;
+  int branchedCppStblkcodeId = -1; // @TODO: remove, as it can't be used
 
   unsigned int getVertexStride() const;
 
@@ -71,6 +79,10 @@ public:
     int32_t vprog = -1;
     int stcodeNo = -1;
     int stblkcodeNo = -1;
+    int branchlessCppStcodeId = -1;
+    int branchlessCppStblkcodeId = -1;
+    int branchedCppStcodeTableOffset = -1;
+    int branchedCppStblkcodeTableOffset = -1; // @TODO: remove, as it can't be used
     int renderStateNo = -1;
     eastl::array<uint16_t, 3> threadGroupSizes = {};
     bool scarlettWave32 = false;
@@ -103,7 +115,7 @@ public:
     clear_and_shrink(passes);
   }
 
-  void link();
+  void link(shc::TargetContext &ctx);
 };
 
 class ShaderClass
@@ -133,8 +145,6 @@ public:
     ShaderVarType type;
     StVarValue defval;
     Var() { memset(&defval, 0, sizeof(defval)); }
-
-    inline const char *getName() const { return VarMap::getName(nameId); }
   };
   SerializableTab<Var> stvar;
   SerializableTab<int> shInitCode;
@@ -167,7 +177,7 @@ public:
   // After this function, stvarsAreDynamic field is invalidated, so it should be done after all var additions
   void sortStaticVarsByMode();
 
-  int find_static_var(const int variable_name_id);
+  int find_static_var(const int variable_name_id) const;
 };
 
 #undef codemem

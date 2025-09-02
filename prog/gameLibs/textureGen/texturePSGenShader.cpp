@@ -242,6 +242,8 @@ class PSGenShader : public TextureGenShader
 {
   shaders::RenderStateId renderState;
   eastl::array<eastl::array<shaders::UniqueOverrideStateId, BLENDS_COUNT>, 4> blendTypes;
+  d3d::SamplerHandle wrapSampler;
+  d3d::SamplerHandle clampSampler;
 
 public:
   struct ShaderCode
@@ -302,6 +304,11 @@ public:
     state.cull = CULL_NONE;
     state.colorWr = WRITEMASK_ALL;
     renderState = shaders::render_states::create(state);
+    d3d::SamplerInfo smpInfo;
+    smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
+    clampSampler = d3d::request_sampler(smpInfo);
+    smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Wrap;
+    wrapSampler = d3d::request_sampler(smpInfo);
   }
 
   void initConstants(const DataBlock &params_, TextureGenLogger &logger)
@@ -433,7 +440,7 @@ public:
   unsigned subSteps(const TextureGenNodeData &data) const override
   {
     for (int i = 0; i < data.outputs.size(); ++i)
-      if (data.outputs[i] && data.outputs[i]->restype() == RES3D_SBUF)
+      if (data.outputs[i] && data.outputs[i]->getType() == D3DResourceType::SBUF)
         return 1;
 
     int maxSubStepSize = getMaxSubStepSize(data);
@@ -529,7 +536,10 @@ public:
 
     int inputsCnt = min<int>(inputs.size(), getRegCount(TSHADER_REG_TYPE_INPUT));
     for (int i = 0; i < inputsCnt; ++i)
+    {
       d3d::settex(i, inputs[i].tex);
+      d3d::set_sampler(STAGE_PS, i, inputs[i].wrap ? wrapSampler : clampSampler);
+    }
 
 
     if (particles)
@@ -555,7 +565,7 @@ public:
     int particlesOut = 0, rtOut = 0;
     for (int i = 0; i < outputsCnt; ++i)
     {
-      if (outputs[i] && outputs[i]->restype() == RES3D_SBUF)
+      if (outputs[i] && outputs[i]->getType() == D3DResourceType::SBUF)
       {
         uint32_t *dataIndirect;
         d3d_err(particlesInstancesIndirect->lock(0, 0, (void **)&dataIndirect, VBLOCK_WRITEONLY));
@@ -577,7 +587,7 @@ public:
         continue;
       }
 
-      Texture *tex = outputs[i]->restype() == RES3D_TEX ? ((Texture *)outputs[i]) : 0;
+      Texture *tex = outputs[i]->getType() == D3DResourceType::TEX ? ((Texture *)outputs[i]) : 0;
       if (!tex)
       {
         d3d::set_render_target(rtOut - 1, 0, 0);
@@ -869,6 +879,7 @@ static int create_constants_param_block(DataBlock &params, const DataBlock &para
       case params_.TYPE_IPOINT2: params.addIPoint2(name, params_.getIPoint2(i)); break;
       case params_.TYPE_POINT2: params.addPoint2(name, params_.getPoint2(i)); break;
       case params_.TYPE_IPOINT3: params.addIPoint3(name, params_.getIPoint3(i)); break;
+      case params_.TYPE_IPOINT4: params.addIPoint4(name, params_.getIPoint4(i)); break;
       case params_.TYPE_POINT3: params.addPoint3(name, params_.getPoint3(i)); break;
       case params_.TYPE_POINT4: params.addPoint4(name, params_.getPoint4(i)); break;
       case params_.TYPE_BOOL: params.addBool(name, params_.getBool(i)); break;

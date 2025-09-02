@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "initAnimationES.cpp.inl"
 ECS_DEF_PULL_VAR(initAnimation);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc init_mm_limit_per_frame_es_comps[] =
 {
@@ -84,6 +86,37 @@ static ecs::EntitySystemDesc on_motion_matching_controller_removed_es_es_desc
                        ecs::EventComponentsDisappear>::build(),
   0
 ,"render");
+static constexpr ecs::ComponentDesc load_animation_data_base_es_comps[] =
+{
+//start of 3 ro components at [0]
+  {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
+  {ECS_HASH("main_database__skeletonRes"), ecs::ComponentTypeInfo<ecs::string>()},
+  {ECS_HASH("main_database__animGraphRes"), ecs::ComponentTypeInfo<ecs::string>()}
+};
+static void load_animation_data_base_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
+    load_animation_data_base_es(evt
+        , ECS_RO_COMP(load_animation_data_base_es_comps, "eid", ecs::EntityId)
+    , ECS_RO_COMP(load_animation_data_base_es_comps, "main_database__skeletonRes", ecs::string)
+    , ECS_RO_COMP(load_animation_data_base_es_comps, "main_database__animGraphRes", ecs::string)
+    );
+  while (++comp != compE);
+}
+static ecs::EntitySystemDesc load_animation_data_base_es_es_desc
+(
+  "load_animation_data_base_es",
+  "prog/daNetGameLibs/motion_matching/es/initAnimationES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, load_animation_data_base_es_all_events),
+  empty_span(),
+  make_span(load_animation_data_base_es_comps+0, 3)/*ro*/,
+  empty_span(),
+  empty_span(),
+  ecs::EventSetBuilder<InvalidateAnimationDataBase,
+                       ecs::EventEntityCreated,
+                       ecs::EventComponentsAppear>::build(),
+  0
+);
 static constexpr ecs::ComponentDesc init_animations_es_comps[] =
 {
 //start of 7 rw components at [0]
@@ -128,13 +161,12 @@ static ecs::EntitySystemDesc init_animations_es_es_desc
                        ecs::EventComponentsAppear>::build(),
   0
 ,"render");
-static constexpr ecs::ComponentDesc get_data_base_ecs_query_comps[] =
+static constexpr ecs::ComponentDesc load_data_base_ecs_query_comps[] =
 {
 //start of 2 rw components at [0]
   {ECS_HASH("main_database__loaded"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("dataBase"), ecs::ComponentTypeInfo<AnimationDataBase>()},
-//start of 14 ro components at [2]
-  {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
+//start of 16 ro components at [2]
   {ECS_HASH("data_bases_paths"), ecs::ComponentTypeInfo<ecs::StringList>()},
   {ECS_HASH("main_database__availableTags"), ecs::ComponentTypeInfo<ecs::StringList>()},
   {ECS_HASH("main_database__presetsTagsName"), ecs::ComponentTypeInfo<ecs::StringList>()},
@@ -147,13 +179,63 @@ static constexpr ecs::ComponentDesc get_data_base_ecs_query_comps[] =
   {ECS_HASH("main_database__nodeMasksPath"), ecs::ComponentTypeInfo<ecs::string>()},
   {ECS_HASH("main_database__pbcWeightOverrides"), ecs::ComponentTypeInfo<ecs::Object>()},
   {ECS_HASH("main_database__footLockerCtrlName"), ecs::ComponentTypeInfo<ecs::string>()},
-  {ECS_HASH("main_database__footLockerNodes"), ecs::ComponentTypeInfo<ecs::StringList>()}
+  {ECS_HASH("main_database__footLockerNodes"), ecs::ComponentTypeInfo<ecs::StringList>()},
+  {ECS_HASH("main_database__validateNextClipPosThreshold"), ecs::ComponentTypeInfo<float>()},
+  {ECS_HASH("main_database__validateNextClipRotThreshold"), ecs::ComponentTypeInfo<float>()},
+  {ECS_HASH("main_database__validateNextClipSclThreshold"), ecs::ComponentTypeInfo<float>()}
+};
+static ecs::CompileTimeQueryDesc load_data_base_ecs_query_desc
+(
+  "load_data_base_ecs_query",
+  make_span(load_data_base_ecs_query_comps+0, 2)/*rw*/,
+  make_span(load_data_base_ecs_query_comps+2, 16)/*ro*/,
+  empty_span(),
+  empty_span());
+template<typename Callable>
+inline void load_data_base_ecs_query(ecs::EntityId eid, Callable function)
+{
+  perform_query(g_entity_mgr, eid, load_data_base_ecs_query_desc.getHandle(),
+    [&function](const ecs::QueryView& __restrict components)
+    {
+        constexpr size_t comp = 0;
+        {
+          function(
+              ECS_RW_COMP(load_data_base_ecs_query_comps, "main_database__loaded", bool)
+            , ECS_RO_COMP(load_data_base_ecs_query_comps, "data_bases_paths", ecs::StringList)
+            , ECS_RO_COMP(load_data_base_ecs_query_comps, "main_database__availableTags", ecs::StringList)
+            , ECS_RO_COMP(load_data_base_ecs_query_comps, "main_database__presetsTagsName", ecs::StringList)
+            , ECS_RO_COMP(load_data_base_ecs_query_comps, "main_database__root_node", ecs::string)
+            , ECS_RO_COMP(load_data_base_ecs_query_comps, "main_database__root_motion_a2d_node", ecs::string)
+            , ECS_RO_COMP(load_data_base_ecs_query_comps, "main_database__direction_nodes", ecs::StringList)
+            , ECS_RO_COMP(load_data_base_ecs_query_comps, "main_database__direction_weights", ecs::FloatList)
+            , ECS_RO_COMP(load_data_base_ecs_query_comps, "main_database__center_of_mass_nodes", ecs::StringList)
+            , ECS_RO_COMP(load_data_base_ecs_query_comps, "main_database__center_of_mass_params", ecs::Point4List)
+            , ECS_RO_COMP(load_data_base_ecs_query_comps, "main_database__nodeMasksPath", ecs::string)
+            , ECS_RO_COMP(load_data_base_ecs_query_comps, "main_database__pbcWeightOverrides", ecs::Object)
+            , ECS_RO_COMP(load_data_base_ecs_query_comps, "main_database__footLockerCtrlName", ecs::string)
+            , ECS_RO_COMP(load_data_base_ecs_query_comps, "main_database__footLockerNodes", ecs::StringList)
+            , ECS_RO_COMP(load_data_base_ecs_query_comps, "main_database__validateNextClipPosThreshold", float)
+            , ECS_RO_COMP(load_data_base_ecs_query_comps, "main_database__validateNextClipRotThreshold", float)
+            , ECS_RO_COMP(load_data_base_ecs_query_comps, "main_database__validateNextClipSclThreshold", float)
+            , ECS_RW_COMP(load_data_base_ecs_query_comps, "dataBase", AnimationDataBase)
+            );
+
+        }
+    }
+  );
+}
+static constexpr ecs::ComponentDesc get_data_base_ecs_query_comps[] =
+{
+//start of 3 ro components at [0]
+  {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
+  {ECS_HASH("main_database__loaded"), ecs::ComponentTypeInfo<bool>()},
+  {ECS_HASH("dataBase"), ecs::ComponentTypeInfo<AnimationDataBase>()}
 };
 static ecs::CompileTimeQueryDesc get_data_base_ecs_query_desc
 (
   "get_data_base_ecs_query",
-  make_span(get_data_base_ecs_query_comps+0, 2)/*rw*/,
-  make_span(get_data_base_ecs_query_comps+2, 14)/*ro*/,
+  empty_span(),
+  make_span(get_data_base_ecs_query_comps+0, 3)/*ro*/,
   empty_span(),
   empty_span());
 template<typename Callable>
@@ -166,21 +248,8 @@ inline void get_data_base_ecs_query(Callable function)
         {
           function(
               ECS_RO_COMP(get_data_base_ecs_query_comps, "eid", ecs::EntityId)
-            , ECS_RW_COMP(get_data_base_ecs_query_comps, "main_database__loaded", bool)
-            , ECS_RO_COMP(get_data_base_ecs_query_comps, "data_bases_paths", ecs::StringList)
-            , ECS_RO_COMP(get_data_base_ecs_query_comps, "main_database__availableTags", ecs::StringList)
-            , ECS_RO_COMP(get_data_base_ecs_query_comps, "main_database__presetsTagsName", ecs::StringList)
-            , ECS_RO_COMP(get_data_base_ecs_query_comps, "main_database__root_node", ecs::string)
-            , ECS_RO_COMP(get_data_base_ecs_query_comps, "main_database__root_motion_a2d_node", ecs::string)
-            , ECS_RO_COMP(get_data_base_ecs_query_comps, "main_database__direction_nodes", ecs::StringList)
-            , ECS_RO_COMP(get_data_base_ecs_query_comps, "main_database__direction_weights", ecs::FloatList)
-            , ECS_RO_COMP(get_data_base_ecs_query_comps, "main_database__center_of_mass_nodes", ecs::StringList)
-            , ECS_RO_COMP(get_data_base_ecs_query_comps, "main_database__center_of_mass_params", ecs::Point4List)
-            , ECS_RO_COMP(get_data_base_ecs_query_comps, "main_database__nodeMasksPath", ecs::string)
-            , ECS_RO_COMP(get_data_base_ecs_query_comps, "main_database__pbcWeightOverrides", ecs::Object)
-            , ECS_RO_COMP(get_data_base_ecs_query_comps, "main_database__footLockerCtrlName", ecs::string)
-            , ECS_RO_COMP(get_data_base_ecs_query_comps, "main_database__footLockerNodes", ecs::StringList)
-            , ECS_RW_COMP(get_data_base_ecs_query_comps, "dataBase", AnimationDataBase)
+            , ECS_RO_COMP(get_data_base_ecs_query_comps, "main_database__loaded", bool)
+            , ECS_RO_COMP(get_data_base_ecs_query_comps, "dataBase", AnimationDataBase)
             );
 
         }while (++comp != compE);

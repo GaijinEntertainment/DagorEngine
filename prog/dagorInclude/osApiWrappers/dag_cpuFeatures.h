@@ -28,12 +28,21 @@ KRNLIMP extern bool cpu_feature_sse41_checked;
 KRNLIMP extern bool cpu_feature_sse42_checked;
 KRNLIMP extern bool cpu_feature_popcnt_checked;
 KRNLIMP extern bool cpu_feature_fma_checked;
+KRNLIMP extern bool cpu_feature_f16c_checked;
 KRNLIMP extern bool cpu_feature_avx_checked;
 KRNLIMP extern bool cpu_feature_avx2_checked;
 KRNLIMP extern bool cpu_feature_fast_256bit_avx_checked;
 
 #if (__cplusplus >= 201703L) || (defined(_MSVC_LANG) && _MSVC_LANG >= 201703L) // for inline bool
 // MSVC defines only __AVX__ and __AVX2__
+
+#if defined(__AVX2__)
+constexpr bool cpu_feature_f16c = true; // checked this assumption with https://github.com/mmcloughlin/cpudb.git
+#elif !_TARGET_SIMD_SSE
+constexpr bool cpu_feature_f16c = false;
+#else
+inline bool &cpu_feature_f16c = cpu_feature_f16c_checked;
+#endif
 
 #if _TARGET_SIMD_SSE >= 4 || defined(__SSE4_1__) || defined(__AVX__)
 constexpr bool cpu_feature_sse41 = true;

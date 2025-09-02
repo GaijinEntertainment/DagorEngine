@@ -27,6 +27,11 @@ struct LogicAddress
     access |= v.access;
   }
   bool equal(const LogicAddress &v) { return stage == v.stage && access == v.access; }
+  void clear()
+  {
+    stage = VK_PIPELINE_STAGE_NONE;
+    access = VK_ACCESS_NONE;
+  }
 
   static LogicAddress forBufferOnExecStage(ExtendedShaderStage stage, RegisterType reg_type);
   static LogicAddress forAttachmentWithLayout(VkImageLayout layout);

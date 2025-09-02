@@ -13,37 +13,37 @@ let mkBanner = @(cfg) {
 
 let list = [
   {
-    size = [hdpx(150), hdpx(50)]
+    size = static [hdpx(150), hdpx(50)]
     imgSize = [hdpx(150), hdpx(50)]
     text = "Pixel perfect"
     color = 0xFFFF0000
   }
   {
-    size = [hdpx(700), hdpx(50)]
+    size = static [hdpx(700), hdpx(50)]
     imgSize = [hdpx(700), hdpx(50)]
     text = "Pixel perfect"
     color = 0xFFFF0000
   }
   {
-    size = [hdpx(250), hdpx(50)]
+    size = static [hdpx(250), hdpx(50)]
     imgSize = [hdpx(150), hdpx(4)]
     text = "Stretched"
     color = 0xFF00FF00
   }
   {
-    size = [hdpx(700), hdpx(100)]
+    size = static [hdpx(700), hdpx(100)]
     imgSize = [hdpx(150), hdpx(4)]
     text = "Stretched"
     color = 0xFF00FF00
   }
   {
-    size = [hdpx(270), hdpx(40)]
+    size = static [hdpx(270), hdpx(40)]
     imgSize = [hdpx(300), hdpx(200)]
     text = "Gripped"
     color = 0xFF00FF00
   }
   {
-    size = [hdpx(500), hdpx(120)]
+    size = static [hdpx(500), hdpx(120)]
     imgSize = [hdpx(700), hdpx(300)]
     text = "Gripped"
     color = 0xFF00FF00

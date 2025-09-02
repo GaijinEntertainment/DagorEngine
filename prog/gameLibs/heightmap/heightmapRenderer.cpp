@@ -20,7 +20,7 @@
 #include <frustumCulling/frustumPlanes.h>
 #include <memory/dag_framemem.h>
 #include <util/dag_convar.h>
-#include <EASTL/bit.h>
+#include <util/dag_bitwise_cast.h>
 
 constexpr uint32_t SUBPATCHES_DEPTH = 1;
 // Current implementation supports SUBPATCHES_DEPTH not bigger than 3.
@@ -118,7 +118,7 @@ bool LodGridVertexData::createBuffers()
 
   const int indexSize = 2;
   indicesCnt = patchDim * patchDim * 6;
-  int totalIndicesCnt = indicesCnt * 2;
+  int totalIndicesCnt = indicesCnt * 4;
   G_ASSERT(!ib);
   ib = d3d::create_ib(totalIndicesCnt * indexSize, (indexSize == 4 ? SBCF_INDEX32 : 0), "lod_grid_vdata_ib");
   d3d_err(ib);
@@ -126,8 +126,10 @@ bool LodGridVertexData::createBuffers()
     return false;
   if (auto lockedIndices = lock_sbuffer<uint16_t>(ib, 0, 0, VBLOCK_WRITEONLY))
   {
-    faceCnt = generate_patch_indices(patchDim, lockedIndices, 0, 0, 0) / 3;
-    generate_patch_indices(patchDim, LockedBufferWithOffset(lockedIndices, indicesCnt), 0, 0, 1);
+    faceCnt = generate_patch_indices(patchDim, lockedIndices, 0) / 3;
+    generate_patch_indices(patchDim, LockedBufferWithOffset(lockedIndices, indicesCnt), 1);
+    generate_patch_indices(patchDim, LockedBufferWithOffset(lockedIndices, indicesCnt * 2), 1, 0); // REGULAR_RTLB
+    generate_patch_indices(patchDim, LockedBufferWithOffset(lockedIndices, indicesCnt * 3), 0, 0); // REGULAR_LTRB
   }
   else
     return false;
@@ -234,18 +236,15 @@ bool HeightmapRenderer::init(const char *shader_name, const char *mat_script, co
 
 void HeightmapRenderer::setRenderClip(const BBox2 *clip) const
 {
-  if (!VariableMap::isGlobVariablePresent(heightmap_region_gvid))
-    return;
-  if (clip)
-    ShaderGlobal::set_color4_fast(heightmap_region_gvid, Color4(clip->left(), clip->top(), clip->right(), clip->bottom()));
-  else
-    ShaderGlobal::set_color4_fast(heightmap_region_gvid, Color4(-(128 << 10), -(128 << 10), 128 << 10, 128 << 10));
+  Color4 c =
+    clip ? Color4(clip->left(), clip->top(), clip->right(), clip->bottom()) : Color4(-(128 << 20), -(128 << 20), 128 << 20, 128 << 20);
+  ShaderGlobal::set_color4_fast(heightmap_region_gvid, c);
 }
 
 void HeightmapRenderer::renderPatchesByBatches(dag::ConstSpan<LodGridPatchParams> patches, const int buffer_size, const int vDataIndex,
-  int startFlipped, const bool render_quads, int primitiveCount) const
+  int startFlipped, const bool render_quads, int primitiveCount, int startInd) const
 {
-  int startInd = 0, nextStartInd = 0;
+  int nextStartInd = 0;
   for (int patch = 0, total_instances = patches.size(); total_instances > 0;)
   {
     int current_batch_size = min(total_instances, buffer_size);
@@ -263,7 +262,11 @@ void HeightmapRenderer::renderPatchesByBatches(dag::ConstSpan<LodGridPatchParams
       if (render_quads)
         d3d::drawind_instanced(PRIM_4_CONTROL_POINTS, startInd, primitiveCount, 0, current_batch_size);
       else
+      {
         d3d::drawind_instanced(PRIM_TRILIST, startInd, primitiveCount, 0, current_batch_size);
+        // no difference performance wise on Xb1 or XbSX
+        // d3d::draw_instanced(PRIM_TRILIST, startInd, primitiveCount, current_batch_size);
+      }
     }
 
     total_instances -= current_batch_size;
@@ -275,7 +278,7 @@ void HeightmapRenderer::renderPatchesByBatches(dag::ConstSpan<LodGridPatchParams
 void HeightmapRenderer::render(const LodGrid &lodGrid, const LodGridCullData &cull_data, LodGridVertexData *vData, int vDataDim) const
 {
   int vDataIndex = dimBits - VDATA_OFS;
-  if (!shElem || !cull_data.patches.size())
+  if (!shElem || !cull_data.hasPatches())
     return;
   d3d::setvsrc_ex(0, NULL, 0, 0);
   TIME_D3D_PROFILE(heightmap);
@@ -285,13 +288,14 @@ void HeightmapRenderer::render(const LodGrid &lodGrid, const LodGridCullData &cu
   const bool hwTesselationUsage = get_hw_tesselation_usage(hmap_tess_factorVarId, cull_data);
   ShaderGlobal::set_real(var::hmap_object_tess_factor, hwTesselationUsage ? 1 : 0);
 
-  if (cull_data.patches.size())
+  if (cull_data.hasPatches())
   {
     const int maxReqInstances = MAX_HW_INSTANCING;
     const int buffer_size = d3d::set_vs_constbuffer_size(maxReqInstances + heightmap_scale_offset_c) - heightmap_scale_offset_c;
     int dim = vDataDim >= 0 ? vDataDim : getDim();
     LodGridVertexData *vdataPtr = vData ? vData : &vdata[vDataIndex];
-    d3d::set_vs_const1(heightmap_scale_offset_c - 1, dim, dim + 1, cull_data.scaleX, 0);
+    d3d::set_vs_const1(heightmap_scale_offset_c - 1, dim, bitwise_cast<float>(dim + 1), cull_data.scaleX,
+      bitwise_cast<float>(get_log2i(dim)));
 
     G_ASSERT(cull_data.lod0PatchesCount <= cull_data.startFlipped);
     const bool renderQuads = hwTesselationUsage && cull_data.lod0PatchesCount && lodGrid.lod0SubDiv >= 1;
@@ -323,6 +327,13 @@ void HeightmapRenderer::render(const LodGrid &lodGrid, const LodGridCullData &cu
       make_span_const(cull_data.patches).last(cull_data.getCount() - renderedQuads);
     renderPatchesByBatches(otherLodsPatches, buffer_size, vDataIndex, cull_data.startFlipped - renderedQuads, false,
       vdataPtr->faceCnt);
+    int startIndex = vdata[vDataIndex].indicesCnt;
+    for (int i = 0; i < cull_data.additionalTriPatches.size(); ++i)
+    {
+      renderPatchesByBatches(make_span_const(cull_data.additionalTriPatches[i]), buffer_size, vDataIndex,
+        cull_data.additionalTriPatches[i].size(), false, vdataPtr->faceCnt, startIndex);
+      startIndex += vdata[vDataIndex].indicesCnt;
+    }
 
     d3d::set_vs_constbuffer_size(0);
   }
@@ -341,7 +352,8 @@ void HeightmapRenderer::renderOnePatch(const Point2 &left_top, const Point2 &bot
   TIME_D3D_PROFILE(heightmapOnePatch);
   G_ASSERT(fabs((bottom_right.y - left_top.y) - (bottom_right.x - left_top.x)) < 0.00001);
   Point4 oneConst = Point4((bottom_right.x - left_top.x), 0, left_top.x, left_top.y);
-  d3d::set_vs_const1(heightmap_scale_offset_c - 1, getDim(), getDim() + 1, 0, 0);
+  d3d::set_vs_const1(heightmap_scale_offset_c - 1, getDim(), bitwise_cast<float>(getDim() + 1), 0,
+    bitwise_cast<float>(get_log2i(getDim())));
   d3d::set_vs_const(heightmap_scale_offset_c, &oneConst.x, 1);
   d3d::drawind(PRIM_TRILIST, 0, 2, 0);
   d3d::setvsrc_ex(1, NULL, 0, 0);
@@ -358,7 +370,8 @@ void HeightmapRenderer::renderEmpty() const
     return;
   TIME_D3D_PROFILE(heightmapOnePatch);
   Point4 oneConst = Point4(0, 0, -1000000, -1000000);
-  d3d::set_vs_const1(heightmap_scale_offset_c - 1, getDim(), getDim() + 1, 0, 0);
+  d3d::set_vs_const1(heightmap_scale_offset_c - 1, getDim(), bitwise_cast<float>(getDim() + 1), 0,
+    bitwise_cast<float>(get_log2i(getDim())));
   d3d::set_vs_const(heightmap_scale_offset_c, &oneConst.x, 1);
   d3d::drawind(PRIM_TRILIST, 0, 1, 0);
 }
@@ -447,15 +460,14 @@ static inline uint32_t mask_0_LSb(int bits_count) { return ~((1 << bits_count) -
 
 static inline uint32_t edge_tess_encode(int lod_difference)
 {
-  return min((1 << lod_difference) - 1, 15); // -1 fits [1, 16] range to 4bit [0, 15] range.
+  return min(lod_difference, 15); // fits range to 4bit [0, 15] range.
 }
-
-static inline float float_pack_edges_tess(int edgeTessOut[4])
+static inline uint32_t uint_pack_edges_tess(int edgeTessOut[4])
 {
   // Pack 4 x 4bit = 16 bit of information in a integer and then static_cast it as float. Shader unpacks edge tesselation.
   // Note: float has 23 bit of mantissa + 1 implicit bit. Thus, up to 24 bits can be packed using this trick.
   int packed_edge_tess = edgeTessOut[0] | (edgeTessOut[1] << 4) | (edgeTessOut[2] << 8) | (edgeTessOut[3] << 12);
-  return float(packed_edge_tess);
+  return packed_edge_tess;
 }
 
 void cull_lod_grid(const LodGrid &lodGrid, int maxLod, float originPosX, float originPosY, float scaleX, float scaleY, float alignX,
@@ -796,6 +808,6 @@ void cull_lod_grid(const LodGrid &lodGrid, int maxLod, float originPosX, float o
       }
     }
 
-    patch.params.y = float_pack_edges_tess(edgeTessOut);
+    patch.params.y = bitwise_cast<float>(uint_pack_edges_tess(edgeTessOut));
   }
 }

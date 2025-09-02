@@ -467,7 +467,7 @@ BEGIN_BITFIELD_TYPE(ImageViewState, uint64_t)
   }
   template <typename T>
   // NOTE: does not take plane index into account
-  void iterateSubresources(D3D12_RESOURCE_DIMENSION dim, MipMapCount mip_per_array, T clb)
+  void iterateSubresources(D3D12_RESOURCE_DIMENSION dim, MipMapCount mip_per_array, T clb) const
   {
     if (D3D12_RESOURCE_DIMENSION_TEXTURE3D == dim)
     {

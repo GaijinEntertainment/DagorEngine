@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "animatedSplashScreenES.cpp.inl"
 ECS_DEF_PULL_VAR(animatedSplashScreen);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 //static constexpr ecs::ComponentDesc stop_splash_on_disconnect_es_event_handler_comps[] ={};
 static void stop_splash_on_disconnect_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)

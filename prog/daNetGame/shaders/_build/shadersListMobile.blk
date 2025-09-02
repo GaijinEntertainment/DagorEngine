@@ -1,5 +1,4 @@
   include shadersListCommon.blk
   file:t = "../renderFullTonemapLUT.dshl"
   file:t = "../resolve_thin_g_buffer.dshl"
-  file:t = "android_screen_rotate.dshl"
   file:t = "etc2_compression.dshl"

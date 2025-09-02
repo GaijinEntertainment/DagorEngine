@@ -158,8 +158,8 @@ namespace das {
     };
 
     void createFusionEngine_misc_copy_reference() {
-        (*g_fusionEngine)["CopyReference"].emplace_back(new FusionPoint_MiscCopyReference());
-        (*g_fusionEngine)["CopyRefValue"].emplace_back(new FusionPoint_MiscCopyRefValue());
+        (**g_fusionEngine)["CopyReference"].emplace_back(new FusionPoint_MiscCopyReference());
+        (**g_fusionEngine)["CopyRefValue"].emplace_back(new FusionPoint_MiscCopyRefValue());
     }
 }
 

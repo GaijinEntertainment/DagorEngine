@@ -9,6 +9,18 @@ float3 tangent_to_world( float3 vec, float3 tangentZ )
   return tangentX * vec.x + tangentY * vec.y + tangentZ * vec.z;
 }
 
+float3x3 tangent_to_world_matrix( float3 tangentZ )
+{
+  float3 up = abs(tangentZ.z) < 0.999 ? float3(0,0,1) : float3(1,0,0);
+  float3 tangentX = normalize( cross( up, tangentZ ) );
+  float3 tangentY = cross( tangentZ, tangentX );
+  float3x3 r;
+  r[0] = tangentX;
+  r[1] = tangentY;
+  r[2] = tangentZ;
+  return r;
+}
+
 float3x3 create_tbn_matrix(float3 N)
 {
   float3 U;

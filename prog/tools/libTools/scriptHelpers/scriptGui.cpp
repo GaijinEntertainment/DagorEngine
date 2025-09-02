@@ -71,9 +71,9 @@ public:
   SimpleHelperObject() : radius(0.5f) {}
 
 
-  virtual void update(real dt) {}
+  void update(real dt) override {}
 
-  virtual void beforeRender() {}
+  void beforeRender() override {}
 
   E3DCOLOR getRenderColor() const
   {
@@ -84,38 +84,38 @@ public:
     return E3DCOLOR(255, 200, 10);
   }
 
-  virtual void render()
+  void render() override
   {
     set_cached_debug_lines_wtm(getWtm());
     draw_cached_debug_sphere(Point3(0, 0, 0), radius, getRenderColor());
   }
 
-  virtual void renderTrans() {}
+  void renderTrans() override {}
 
-  virtual bool isSelectedByPointClick(IGenViewportWnd *vp, int x, int y) const
+  bool isSelectedByPointClick(IGenViewportWnd *vp, int x, int y) const override
   {
     return ::is_sphere_hit_by_point(getPos(), radius, vp, x, y);
   }
 
-  virtual bool isSelectedByRectangle(IGenViewportWnd *vp, const EcRect &rect) const
+  bool isSelectedByRectangle(IGenViewportWnd *vp, const EcRect &rect) const override
   {
     return ::is_sphere_hit_by_rect(getPos(), radius, vp, rect);
   }
 
-  virtual bool getWorldBox(BBox3 &box) const
+  bool getWorldBox(BBox3 &box) const override
   {
     box.makecube(getPos(), radius * 2);
     return true;
   }
 
 
-  virtual void scaleObject(const Point3 &delta, const Point3 &origin, IEditorCoreEngine::BasisType basis)
+  void scaleObject(const Point3 &delta, const Point3 &origin, IEditorCoreEngine::BasisType basis) override
   {
     real dr = delta.x * delta.y * delta.z;
     radius *= dr;
   }
 
-  virtual void putScaleUndo()
+  void putScaleUndo() override
   {
     /*
     if (objEditor)
@@ -123,8 +123,8 @@ public:
     */
   }
 
-  virtual void onPPChange(int pid, bool edit_finished, PropPanel::ContainerPropertyControl &panel,
-    dag::ConstSpan<RenderableEditableObject *> objects)
+  void onPPChange(int pid, bool edit_finished, PropPanel::ContainerPropertyControl &panel,
+    dag::ConstSpan<RenderableEditableObject *> objects) override
   {}
 
 protected:
@@ -137,18 +137,18 @@ protected:
 
     UndoRadius(SimpleHelperObject *o) : obj(o) { oldRadius = redoRadius = obj->radius; }
 
-    virtual void restore(bool save_redo)
+    void restore(bool save_redo) override
     {
       if (save_redo)
         redoRadius = obj->radius;
       obj->radius = oldRadius;
     }
 
-    virtual void redo() { obj->radius = redoRadius; }
+    void redo() override { obj->radius = redoRadius; }
 
-    virtual size_t size() { return sizeof(*this); }
-    virtual void accepted() {}
-    virtual void get_description(String &s) { s = "UndoRadius"; }
+    size_t size() override { return sizeof(*this); }
+    void accepted() override {}
+    void get_description(String &s) override { s = "UndoRadius"; }
   };
 };
 
@@ -180,29 +180,29 @@ public:
   }
 
 
-  virtual TunedElement *cloneElem() { return new TunedPosHelper(*this); }
+  TunedElement *cloneElem() override { return new TunedPosHelper(*this); }
 
-  virtual int subElemCount() const { return 0; }
-  virtual TunedElement *getSubElem(int index) const { return NULL; }
+  int subElemCount() const override { return 0; }
+  TunedElement *getSubElem(int index) const override { return NULL; }
 
 
-  virtual void fillPropPanel(int &pid, PropPanel::ContainerPropertyControl &panel) {}
+  void fillPropPanel(int &pid, PropPanel::ContainerPropertyControl &panel) override {}
 
-  virtual void getValues(int &pid, PropPanel::ContainerPropertyControl &panel) {}
+  void getValues(int &pid, PropPanel::ContainerPropertyControl &panel) override {}
 
-  virtual void saveData(mkbindump::BinDumpSaveCB &cwr, SaveDataCB *save_cb)
+  void saveData(mkbindump::BinDumpSaveCB &cwr, SaveDataCB *save_cb) override
   {
     Point3 pos = obj->getPos();
     cwr.write32ex(&pos, sizeof(pos));
   }
 
-  virtual void saveValues(DataBlock &blk, SaveValuesCB *save_cb)
+  void saveValues(DataBlock &blk, SaveValuesCB *save_cb) override
   {
     Point3 pos = obj->getPos();
     blk.setPoint3("pos", pos);
   }
 
-  virtual void loadValues(const DataBlock &blk)
+  void loadValues(const DataBlock &blk) override
   {
     Point3 pos = obj->getPos();
     pos = blk.getPoint3("pos", pos);

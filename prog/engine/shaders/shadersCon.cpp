@@ -60,6 +60,46 @@ public:
       return true;
     }
 
+    CONSOLE_CHECK_NAME_EX("render", "switch_debug_shaders", 2, 4, "Loads/unloads debug shaderdump compiled with -debug.",
+      "[off/on] [optional:shader_model_version_major] [optional:shader_model_version_minor]")
+    {
+      if (d3d::get_driver_code() != d3d::dx12 || dgs_get_settings()->getBlockByNameEx("video")->getBool("compatibilityMode", false))
+      {
+        console::print_d("This feature is only availabel on DX12 PC version, with compability mode off");
+        return true;
+      }
+
+      bool load = console::to_bool(argv[1]);
+
+      if (argc > 3)
+      {
+        if (!(load ? load_shaders_debug_bindump(d3d::shadermodel::Version(console::to_int(argv[2]), console::to_int(argv[3])))
+                   : unload_shaders_debug_bindump(d3d::shadermodel::Version(console::to_int(argv[2]), console::to_int(argv[3])))))
+        {
+          console::print("Failed to load/unload the debug shaderdump");
+        }
+      }
+      else
+      {
+        const Driver3dDesc &dsc = d3d::get_driver_desc();
+
+        for (auto version : d3d::smAll)
+        {
+          if (dsc.shaderModel < version)
+            continue;
+
+          bool success = load ? load_shaders_debug_bindump(version) : unload_shaders_debug_bindump(version);
+
+          if (success)
+          {
+            console::print("Succesfully loaded/unloaded debug dump");
+            break;
+          }
+          console::print_d("Failed to load/unload the debug dump of version: %s", version.psName);
+        }
+      }
+    }
+
     return found;
   }
 
@@ -271,21 +311,21 @@ public:
 
         String outTexFn(0, "SavedTex/%s", tex_fn);
         dd_mkpath(outTexFn);
-        switch (tex->restype())
+        switch (tex->getType())
         {
-          case RES3D_TEX:
+          case D3DResourceType::TEX:
             save_tex_as_ddsx((Texture *)tex, outTexFn + ".ddsx", srgb);
             console::print_d("saved Tex(%s) as %s.ddsx", tex_nm, outTexFn);
             break;
-          case RES3D_CUBETEX:
+          case D3DResourceType::CUBETEX:
             save_cubetex_as_ddsx((CubeTexture *)tex, outTexFn + ".cube.ddsx", srgb);
             console::print_d("saved CubeTex(%s) as %s.cube.ddsx", tex_nm, outTexFn);
             break;
-          case RES3D_VOLTEX:
+          case D3DResourceType::VOLTEX:
             save_voltex_as_ddsx((VolTexture *)tex, outTexFn + ".vol.ddsx", srgb);
             console::print_d("saved VolTex(%s) as %s.vol.ddsx", tex_nm, outTexFn);
             break;
-          default: console::print_d("ERR: texture(%s) restype=%d", tex_nm, tex->restype());
+          default: console::print_d("ERR: texture(%s) type=%d", tex_nm, eastl::to_underlying(tex->getType()));
         }
       }
       else
@@ -307,11 +347,11 @@ public:
           fn.replaceAll(":", "_");
           dd_mkpath("SavedTex/" + fn);
           bool res = false;
-          if (tex->restype() == RES3D_TEX)
+          if (tex->getType() == D3DResourceType::TEX)
             res = save_tex_as_ddsx((Texture *)tex, fn = String(0, "SavedTex/%s.ddsx", fn));
-          else if (tex->restype() == RES3D_CUBETEX)
+          else if (tex->getType() == D3DResourceType::CUBETEX)
             res = save_cubetex_as_ddsx((CubeTexture *)tex, fn = String(0, "SavedTex/%s.cube.ddsx", fn));
-          else if (tex->restype() == RES3D_VOLTEX)
+          else if (tex->getType() == D3DResourceType::VOLTEX)
             res = save_voltex_as_ddsx((VolTexture *)tex, fn = String(0, "SavedTex/%s.vol.ddsx", fn));
           release_managed_tex(i);
           if (res)

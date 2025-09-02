@@ -5,9 +5,11 @@ TargetType  = lib ;
 Target      = engine/shaders.lib ;
 
 CamStub ?= yes ;
+ShaderVarsStub ?= no ;
 
 Sources =
   shaderVariableInfo.cpp
+  bindumpReloadListener.cpp
   overrideStates.cpp
   renderStates.cpp
   shadersBinaryDataDbg2.cpp
@@ -31,7 +33,6 @@ Sources =
   scene.cpp
   scene_vis.cpp
   shadersBinaryDataLoad.cpp
-  shadersBinaryDataVars.cpp
   shadersBinaryDataDbg.cpp
   shadersDbg.cpp
   shadersCon.cpp
@@ -50,6 +51,7 @@ Sources =
   matVdataLoad.cpp
   shaderMeshTexLoadCtrl.cpp
   computeShaders.cpp
+  meshShaders.cpp
   sh_vars.cpp
   shMaterialUtils.cpp
   shStateBlockBindless.cpp
@@ -57,6 +59,17 @@ Sources =
   shAssert.cpp
   bindposeBufferManager.cpp
 ;
+
+if $(ShaderVarsStub) = no {
+  Sources +=
+    shadersBinaryDataVars.cpp
+  ;
+} else {
+  Sources +=
+    shadersBinaryDataVarsStub.cpp
+  ;
+}
+
 
 AddIncludes =
   $(Root)/1stPartyLibs
@@ -77,20 +90,24 @@ if $(ShadersMeasurePerf) = yes {
   CPPopt += -DMEASURE_STCODE_PERF ;
 }
 
+if $(Platform)-$(PlatformArch) = windows-x86_64 && $(SSEVersion) != 4 {
+  CppStcode = disable ;
+}
+
 if $(CppStcode) = enable {
   Target = $(Target:S=-stcpp.lib) ;
   Sources +=
     stcode.cpp
     stcode/stcodeCallbacksImpl.cpp
   ;
-  CPPopt += -DCPP_STCODE=1 ;
+  CPPopt += -DCPP_STCODE ;
 } else if $(CppStcode) = both {
   Target = $(Target:S=-stboth.lib) ;
   Sources +=
     stcode.cpp
     stcode/stcodeCallbacksImpl.cpp
   ;
-  CPPopt += -DCPP_STCODE=1 -DSTCODE_RUNTIME_CHOICE=1 ;
+  CPPopt += -DCPP_STCODE -DSTCODE_RUNTIME_CHOICE ;
 } else if $(CppStcode) = validate {
   Target = $(Target:S=-stcpp-val.lib) ;
   Sources +=
@@ -98,18 +115,25 @@ if $(CppStcode) = enable {
     stcode/stcodeCallbacksImpl.cpp
     stcode/compareStcode.cpp
   ;
-  CPPopt += -DCPP_STCODE=1 -DVALIDATE_CPP_STCODE=1 ;
+  CPPopt += -DCPP_STCODE -DVALIDATE_CPP_STCODE ;
+} else {
+  CppStcodeMode = ;
+}
+
+if $(CppStcodeMode) = branched {
+  Target = $(Target:S=-branched.lib) ;
+  CPPopt += -DCPP_STCODE_DYNAMIC_BRANCHING ;
 }
 
 if $(CamStub) = yes {
   Target = $(Target:S=-cs.lib) ;
-  CPPopt += -DCAM_STUB=1 ;
+  CPPopt += -DCAM_STUB ;
 }
 
 if $(ProfileStcode) = yes {
   Target = $(Target:S=-sp.lib) ;
   Sources += profileStcode.cpp ;
-  CPPopt += -DPROFILE_STCODE=1 ;
+  CPPopt += -DPROFILE_STCODE ;
 }
 
 include $(Root)/prog/_jBuild/build.jam ;

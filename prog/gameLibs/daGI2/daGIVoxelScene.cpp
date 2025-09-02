@@ -19,7 +19,7 @@ CONSOLE_INT_VAL("gi", gi_voxel_scene_update_from_gbuf_speed_count, 8192, 0, 256 
   VAR(dagi_lit_voxel_scene_to_sdf)        \
   VAR(dagi_lit_voxel_scene_alpha_samplerstate)
 
-#define VAR(a) static ShaderVariableInfo a##VarId(#a);
+#define VAR(a) static ShaderVariableInfo a##VarId(#a, true);
 GLOBAL_VARS_LIST
 #undef VAR
 
@@ -29,6 +29,12 @@ DaGIVoxelScene::~DaGIVoxelScene() { ShaderGlobal::set_int4(dagi_lit_voxel_scene_
 void DaGIVoxelScene::init(uint32_t sdfW, uint32_t sdfH, float scale, uint32_t first_sdf_clip, uint32_t voxel_scene_clips, Aniso ani,
   Radiance rad)
 {
+#define VAR(a)     \
+  if (!(a##VarId)) \
+    logerr("mandatory shader variable is missing: %s", #a);
+  GLOBAL_VARS_LIST
+#undef VAR
+
   const bool aniso = ani == Aniso::On;
   const bool luma = rad == Radiance::Luma;
   voxel_scene_clips = max<int>(voxel_scene_clips, 1);
@@ -51,7 +57,7 @@ void DaGIVoxelScene::init(uint32_t sdfW, uint32_t sdfH, float scale, uint32_t fi
   const uint32_t fmt = lumaOnly ? TEXFMT_R16F : TEXFMT_R11G11B10F;
   dagi_lit_voxel_scene = dag::create_voltex(resW, resW, fullAtlasResD, TEXCF_UNORDERED | fmt, 1, "dagi_lit_voxel_scene");
   dagi_lit_voxel_scene_alpha =
-    dag::create_voltex(resW, resW, fullAtlasResD, TEXCF_UNORDERED | TEXFMT_L8, 1, "dagi_lit_voxel_scene_alpha");
+    dag::create_voltex(resW, resW, fullAtlasResD, TEXCF_UNORDERED | TEXFMT_R8, 1, "dagi_lit_voxel_scene_alpha");
   dagi_lit_voxel_scene_alpha_samplerstateVarId.set_sampler(d3d::request_sampler({}));
   ShaderGlobal::set_int4(dagi_lit_voxel_scene_resVarId, resW, resD, clips, anisotropy ? 1 : 0);
 

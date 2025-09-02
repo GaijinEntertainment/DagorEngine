@@ -76,6 +76,7 @@ public:
   const mat44f &getVolumeTexMatrix(uint16_t id) const { return volumesTexTM[id]; }
   const Point4 &getOctahedralVolumeTexData(uint16_t id) const { return volumesOctahedralData[id]; }
   const bbox3f &getVolumeBox(uint16_t id) const { return volumesBox[id]; }
+  bool isVolumeContentValid(uint16_t id) const { return volumes[id].isValidContent(); }
   void startRenderVolumes(const dag::ConstSpan<uint16_t> &volumesToRender);
 
   enum RenderFlags
@@ -146,15 +147,16 @@ protected:
 
   struct AtlasRect : public rbp::Rect
   {
-    AtlasRect(const rbp::Rect &r) : rbp::Rect(r) {}
-    AtlasRect &operator=(const rbp::Rect &r)
-    {
-      (rbp::Rect &)*this = r;
-      return *this;
-    }
+    /* implicit */ AtlasRect(const rbp::Rect &r) : rbp::Rect(r) {}
+
     void reset() { width = height = 0; }
     bool isEmpty() const { return height == 0; }
     AtlasRect() { reset(); }
+
+    friend bool operator==(const AtlasRect &a, const AtlasRect &b)
+    {
+      return a.x == b.x && a.y == b.y && a.width == b.width && a.height == b.height;
+    }
   };
   struct Volume
   {
@@ -185,6 +187,11 @@ protected:
     void buildView(mat44f &view, mat44f &invVIew, uint32_t view_id) const;
     void buildViewProj(mat44f &viewproj, uint32_t view_id) const;
     bool isOctahedral() const { return flags & OCTAHEDRAL; }
+
+    // 3 types of lights:
+    // 1. fully dynamic -- everything is dynamic, we only have 1 atlas texture where everything is rendered
+    // 2. mixed -- separate static texture and dynamic texture
+    // 3. fully static -- everything is static, only need 1 texture
 
     // hasOnlyStaticCasters() should be in practical ways behave equal as isDynamic() (except no dynamic data should be rendered to)
     bool hasOnlyStaticCasters() const { return flags & ONLY_STATIC; }

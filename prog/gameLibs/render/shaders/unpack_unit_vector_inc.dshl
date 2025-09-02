@@ -1,0 +1,12 @@
+macro USE_UNPACK_UNIT_VECTOR(stage)
+  hlsl(stage) {
+    float3 unpack_unit_vector(float3 packedUnitVector)
+    {
+      return BGR_SWIZZLE(packedUnitVector) * 2. - 1.;
+    }
+  }
+endmacro
+
+macro USE_UNPACK_UNIT_VECTOR_VS()
+  USE_UNPACK_UNIT_VECTOR(vs)
+endmacro

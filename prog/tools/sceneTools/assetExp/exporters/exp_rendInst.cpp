@@ -20,21 +20,21 @@ BEGIN_DABUILD_PLUGIN_NAMESPACE(rendInst)
 class RendInstExporter : public IDagorAssetExporter
 {
 public:
-  virtual const char *__stdcall getExporterIdStr() const { return "rendInst exp"; }
+  const char *__stdcall getExporterIdStr() const override { return "rendInst exp"; }
 
-  virtual const char *__stdcall getAssetType() const { return TYPE; }
-  virtual unsigned __stdcall getGameResClassId() const { return RendInstGameResClassId; }
-  virtual unsigned __stdcall getGameResVersion() const
+  const char *__stdcall getAssetType() const override { return TYPE; }
+  unsigned __stdcall getGameResClassId() const override { return RendInstGameResClassId; }
+  unsigned __stdcall getGameResVersion() const override
   {
-    const int ord_ver = 5;
+    const int ord_ver = 9;
     const int base_ver = 26 + ord_ver * 6 + (splitMatToDescBin && !shadermeshbuilder_strip_d3dres ? 3 : 0);
     return base_ver + (ShaderMeshData::preferZstdPacking ? (ShaderMeshData::allowOodlePacking ? 2 : 1) : 0);
   }
 
-  virtual void __stdcall onRegister() { buildResultsBlk = NULL; }
-  virtual void __stdcall onUnregister() { buildResultsBlk = NULL; }
+  void __stdcall onRegister() override { buildResultsBlk = NULL; }
+  void __stdcall onUnregister() override { buildResultsBlk = NULL; }
 
-  virtual void __stdcall setBuildResultsBlk(DataBlock *b) { buildResultsBlk = b; }
+  void __stdcall setBuildResultsBlk(DataBlock *b) override { buildResultsBlk = b; }
 
   void __stdcall gatherSrcDataFiles(const DagorAsset &a, Tab<SimpleString> &files) override
   {
@@ -72,21 +72,15 @@ public:
     add_shdump_deps(files);
   }
 
-  virtual bool __stdcall isExportableAsset(DagorAsset &a) { return true; }
+  bool __stdcall isExportableAsset(DagorAsset &a) override { return true; }
 
-  virtual bool __stdcall buildAssetFast(DagorAsset &a, mkbindump::BinDumpSaveCB &cwr, ILogWriter &log)
-  {
-    ShaderMeshData::fastNoPacking = true;
-    bool ret = exportAsset(a, cwr, log);
-    ShaderMeshData::fastNoPacking = false;
-    return ret;
-  }
-
-  virtual bool __stdcall exportAsset(DagorAsset &a, mkbindump::BinDumpSaveCB &cwr, ILogWriter &log)
+  bool __stdcall exportAsset(DagorAsset &a, mkbindump::BinDumpSaveCB &cwr, ILogWriter &log) override
   {
     ShaderMeshData::reset_channel_cvt_errors();
     AutoContext auto_ctx(a, log);
     String sn;
+    uint64_t tc_storage = 0;
+    const char *tc_str = mkbindump::get_target_str(cwr.getTarget(), tc_storage);
 
     DataBlock lodsBlk;
     const DataBlock &a_props = a.getProfileTargetProps(cwr.getTarget(), cwr.getProfile());
@@ -156,7 +150,7 @@ public:
     bool prevIgnoreMappingInPrepareBillboardMesh = ::ignore_mapping_in_prepare_billboard_mesh;
     ::ignore_mapping_in_prepare_billboard_mesh = ri_blk->getBool("ignoreMappingInPrepareBillboardMesh", true);
 
-    const DataBlock *generateBlk = ri_blk->getBlockByNameEx(mkbindump::get_target_str(cwr.getTarget()));
+    const DataBlock *generateBlk = ri_blk->getBlockByNameEx(tc_str);
 
     bool prevGenerateQuads = ::generate_quads;
     ::generate_quads = generateBlk->getBool("generateQuads", false);
@@ -187,7 +181,7 @@ public:
 
     if (const DataBlock *lodsToKeepBlk = ri_blk->getBlockByName("lodsToKeep"))
     {
-      const char *pkname = a.getCustomPackageName(mkbindump::get_target_str(cwr.getTarget()), cwr.getProfile());
+      const char *pkname = a.getCustomPackageName(tc_str, cwr.getProfile());
       int lodsToKeep = lodsToKeepBlk->getInt(pkname ? String(0, "package.%s", pkname).c_str() : "package.*", -1);
       lodsToKeep = lodsToKeep >= 0
                      ? lodsToKeep
@@ -204,10 +198,14 @@ public:
 
     if (buildResultsBlk)
     {
-      const char *pkname = a.getCustomPackageName(mkbindump::get_target_str(cwr.getTarget()), cwr.getProfile());
+      const char *pkname = a.getCustomPackageName(tc_str, cwr.getProfile());
       RenderableInstanceLodsResSrc::buildResultsBlk = buildResultsBlk->addBlock(pkname ? pkname : ".")->addBlock(a.getName());
-      RenderableInstanceLodsResSrc::sepMatToBuildResultsBlk = splitMatToDescBin && !ShaderMeshData::fastNoPacking;
+      RenderableInstanceLodsResSrc::sepMatToBuildResultsBlk = splitMatToDescBin && !cwr.isFastBuild();
     }
+    RenderableInstanceLodsResSrc::warnTwoSided = appBlkCopy.getBlockByNameEx("assets")
+                                                   ->getBlockByNameEx("build")
+                                                   ->getBlockByNameEx("rendInst")
+                                                   ->getBlockByNameEx("warnTwoSided", nullptr);
 
     install_fatal_handler();
     ShaderMeshData::buildForTargetCode = cwr.getTarget();
@@ -229,6 +227,7 @@ public:
     ShaderMeshData::buildForTargetCode = _MAKE4C('PC');
     RenderableInstanceLodsResSrc::buildResultsBlk = NULL;
     RenderableInstanceLodsResSrc::sepMatToBuildResultsBlk = false;
+    RenderableInstanceLodsResSrc::warnTwoSided = nullptr;
 
     ::ignore_mapping_in_prepare_billboard_mesh = prevIgnoreMappingInPrepareBillboardMesh;
     ::generate_quads = prevGenerateQuads;
@@ -281,20 +280,20 @@ public:
 class RendInstRefs : public IDagorAssetRefProvider
 {
 public:
-  virtual const char *__stdcall getRefProviderIdStr() const { return "rendInst refs"; }
+  const char *__stdcall getRefProviderIdStr() const override { return "rendInst refs"; }
 
-  virtual const char *__stdcall getAssetType() const { return TYPE; }
+  const char *__stdcall getAssetType() const override { return TYPE; }
 
-  virtual void __stdcall onRegister() {}
-  virtual void __stdcall onUnregister() {}
+  void __stdcall onRegister() override {}
+  void __stdcall onUnregister() override {}
 
-  dag::ConstSpan<Ref> __stdcall getAssetRefs(DagorAsset &a) override
+  void __stdcall getAssetRefs(DagorAsset &a, Tab<Ref> &refs) override
   {
     int nid = a.props.getNameId("lod"), id = 0;
     const char *basePath = a.getFolderPath();
     String fn, sn;
 
-    tmp_refs.clear();
+    refs.clear();
 
     setup_tex_subst(a.props);
     GenericTexSubstProcessMaterialData pm(a.getName(), get_process_mat_blk(a.props, TYPE),
@@ -304,9 +303,8 @@ public:
       {
         sn.printf(260, "%s.lod%02d.dag", a.props.getStr("lod_fn_prefix", a.getName()), id++);
         fn.printf(260, "%s/%s", basePath, blk->getStr("fname", sn));
-        add_dag_texture_and_proxymat_refs(fn, tmp_refs, a, pm.mayProcess() ? &pm : nullptr);
+        add_dag_texture_and_proxymat_refs(fn, refs, a, pm.mayProcess() ? &pm : nullptr);
       }
-    return tmp_refs;
   }
 };
 

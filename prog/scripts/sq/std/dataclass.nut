@@ -1,4 +1,4 @@
-let tostring_r = require("string.nut").tostring_r
+from "string.nut" import tostring_r
 //local pp = @(...) print(vargv.reduce(@(a,b) a+", " +b) + "\n")
 
 /*

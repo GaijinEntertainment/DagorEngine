@@ -28,6 +28,7 @@ Sources =
   init_d3di.cpp
   d3d_buffers.mm
   d3d_bindless.mm
+  d3d_initialSettings.cpp
   d3d_unimplemented.cpp
   d3d_shaders.mm
   d3d_texture.mm
@@ -44,7 +45,7 @@ CPPopt += -include $(Root)/$(Location)/d3d_config.h ;
 CPPopt += -DINSIDE_DRIVER ;
 
 if $(UseMetalfx) = yes {
-  CPPopt += -DUSE_METALFX_UPSCALE=1 ;
+  CPPopt += -DUSE_METALFX_UPSCALE ;
 }
 
 AddIncludes =

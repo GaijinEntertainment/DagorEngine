@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "waterEffectsES.cpp.inl"
 ECS_DEF_PULL_VAR(waterEffects);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc attempt_to_enable_water_effects_es_comps[] =
 {
@@ -199,16 +201,16 @@ static constexpr ecs::ComponentDesc set_up_water_effect_nodes_es_comps[] =
 {
 //start of 3 rw components at [0]
   {ECS_HASH("water_effects"), ecs::ComponentTypeInfo<WaterEffects>()},
-  {ECS_HASH("water_effects__init_res_node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()},
-  {ECS_HASH("water_effects__node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()}
+  {ECS_HASH("water_effects__init_res_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
+  {ECS_HASH("water_effects__node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()}
 };
 static void set_up_water_effect_nodes_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     set_up_water_effect_nodes_es(evt
         , ECS_RW_COMP(set_up_water_effect_nodes_es_comps, "water_effects", WaterEffects)
-    , ECS_RW_COMP(set_up_water_effect_nodes_es_comps, "water_effects__init_res_node", dabfg::NodeHandle)
-    , ECS_RW_COMP(set_up_water_effect_nodes_es_comps, "water_effects__node", dabfg::NodeHandle)
+    , ECS_RW_COMP(set_up_water_effect_nodes_es_comps, "water_effects__init_res_node", dafg::NodeHandle)
+    , ECS_RW_COMP(set_up_water_effect_nodes_es_comps, "water_effects__node", dafg::NodeHandle)
     );
   while (++comp != compE);
 }

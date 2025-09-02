@@ -63,9 +63,9 @@ replicate_component_filter_index_t find_component_filter(const char *name)
   return it == replicate_component_filter_map.end() ? invalid_filter_id : it->second;
 }
 
-replicate_component_filter_index_t find_component_filter_for_component(ecs::component_t component)
+replicate_component_filter_index_t find_component_filter_for_component(const ecs::EntityManager &mgr, ecs::component_t component)
 {
-  ecs::component_index_t cidx = g_entity_mgr->getDataComponents().findComponentId(component);
+  ecs::component_index_t cidx = mgr.getDataComponents().findComponentId(component);
   if (cidx != ecs::INVALID_COMPONENT_INDEX)
     return cidx < replicate_component_filter_index.size() ? replicate_component_filter_index[cidx] : replicate_everywhere_filter_id;
   auto it = eastl::find_if(delayed_components_filter.rbegin(), delayed_components_filter.rend(),
@@ -95,8 +95,9 @@ replicate_component_filter_index_t register_component_filter(const char *name, c
   return index;
 }
 
-void set_component_filter_cidx(ecs::component_index_t cidx, replicate_component_filter_index_t filter)
+void set_component_filter_cidx(const ecs::EntityManager &mgr, ecs::component_index_t cidx, replicate_component_filter_index_t filter)
 {
+  G_UNUSED(mgr);
   if (filter >= replicate_component_filters.size())
   {
     logerr("invalid replication  filter# %d, maximum registered %d", filter, replicate_component_filters.size());
@@ -105,59 +106,61 @@ void set_component_filter_cidx(ecs::component_index_t cidx, replicate_component_
   if (cidx >= replicate_component_filter_index.size())
     replicate_component_filter_index.resize(cidx + 1, replicate_everywhere_filter_id);
   VERBOSE_DEBUG("cidx: set <%s> repl. filter for <%s> component", get_component_filter_name(filter),
-    g_entity_mgr->getDataComponents().getComponentNameById(cidx));
+    mgr.getDataComponents().getComponentNameById(cidx));
   replicate_component_filter_index[cidx] = filter;
 }
 
-static bool set_component_filter_internal(ecs::component_t component, replicate_component_filter_index_t filter)
+static bool set_component_filter_internal(const ecs::EntityManager &mgr, ecs::component_t component,
+  replicate_component_filter_index_t filter)
 {
-  ecs::component_index_t cidx = g_entity_mgr->getDataComponents().findComponentId(component);
+  G_UNUSED(mgr);
+  ecs::component_index_t cidx = mgr.getDataComponents().findComponentId(component);
   if (cidx != ecs::INVALID_COMPONENT_INDEX)
   {
-    set_component_filter_cidx(cidx, filter);
+    set_component_filter_cidx(mgr, cidx, filter);
     return true;
   }
-  VERBOSE_DEBUG("unresolved <0x%X|%s> component for repl. filter", component,
-    g_entity_mgr->getDataComponents().findComponentName(component), get_component_filter_name(filter));
+  VERBOSE_DEBUG("unresolved <0x%X|%s> component for repl. filter", component, mgr.getDataComponents().findComponentName(component),
+    get_component_filter_name(filter));
   return false;
 }
 
-void set_component_filter(ecs::component_t component, const char *filter_name)
+void set_component_filter(const ecs::EntityManager &mgr, ecs::component_t component, const char *filter_name)
 {
   VERBOSE_DEBUG("set <%s> repl. filter for <0x%X|%s> component", filter_name, component,
-    g_entity_mgr->getDataComponents().findComponentName(component));
+    mgr.getDataComponents().findComponentName(component));
   auto it = replicate_component_filter_map.find_as(filter_name);
   if (it == replicate_component_filter_map.end())
   {
     logerr("replication filter %s is not registered", filter_name);
     return;
   }
-  if (!set_component_filter_internal(component, it->second))
+  if (!set_component_filter_internal(mgr, component, it->second))
     delayed_components_filter.emplace_back(component, it->second);
 }
 
-void set_component_filter(ecs::component_t component, replicate_component_filter_index_t filter)
+void set_component_filter(const ecs::EntityManager &mgr, ecs::component_t component, replicate_component_filter_index_t filter)
 {
   VERBOSE_DEBUG("set <%s> filter for <0x%X|%s> component", get_component_filter_name(filter), component,
-    g_entity_mgr->getDataComponents().findComponentName(component));
+    mgr.getDataComponents().findComponentName(component));
   if (filter >= replicate_component_filters.size())
   {
     logerr("replication filter %d is not registered", filter);
     return;
   }
-  if (!set_component_filter_internal(component, filter))
+  if (!set_component_filter_internal(mgr, component, filter))
     delayed_components_filter.emplace_back(component, filter);
 }
 
-void register_pending_component_filters()
+void register_pending_component_filters(const ecs::EntityManager &mgr)
 {
-  if (last_components_count == g_entity_mgr->getDataComponents().size()) // no sense to check delayed, unless number haschanged - there
-                                                                         // would be nothing to do
+  if (last_components_count == mgr.getDataComponents().size()) // no sense to check delayed, unless number haschanged - there
+                                                               // would be nothing to do
     return;
-  last_components_count = g_entity_mgr->getDataComponents().size();
+  last_components_count = mgr.getDataComponents().size();
   for (auto i = delayed_components_filter.begin(); i != delayed_components_filter.end();)
   {
-    if (set_component_filter_internal(i->first, i->second))
+    if (set_component_filter_internal(mgr, i->first, i->second))
       i = delayed_components_filter.erase(i);
     else
       ++i;

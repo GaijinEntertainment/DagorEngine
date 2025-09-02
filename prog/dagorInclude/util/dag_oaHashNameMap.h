@@ -15,12 +15,14 @@
 #include <util/dag_hashedKeyMap.h>
 #include <util/dag_nameHashers.h>
 
+using oa_hash_t = uint32_t;
+
 template <bool ignore_case, typename Hasher = DefaultOAHasher<ignore_case>>
 struct OAHashNameMap
 {
-  typedef uint32_t hash_t;
+  using hash_t = oa_hash_t;
   HashedKeyMap<hash_t, uint32_t> hashToStringId;
-  SmallTab<uint32_t> strings;
+  SmallTab<uint64_t> strings; // Note: high 32 bits - length of string
   StringTableAllocator allocator;
   bool noCollisions() const { return allocator.padding == 0; }
   uint8_t &hasCollisions() { return allocator.padding; }
@@ -30,7 +32,7 @@ struct OAHashNameMap
     const uint32_t stringId = (uint32_t)strings.size();
     const uint32_t at = allocator.addDataRaw(name, len);
     const_cast<char *>(allocator.head.data.get() + allocator.get_page_ofs(at))[name_len] = 0; // ensure term zero
-    strings.push_back(at);
+    strings.push_back((uint64_t(name_len) << 32) | uint64_t(at));
     return stringId;
   }
   uint32_t addString(const char *name) { return addString(name, strlen(name)); }
@@ -56,42 +58,10 @@ struct OAHashNameMap
     return (max_len >= name_len ? memcmp(str, name, name_len) : strncmp(str, name, name_len)) == 0; // we actually probably don't ever
                                                                                                     // collide
   }
-  int getNameId(const char *name, size_t name_len, const hash_t hash) const
-  {
-    if (DAGOR_LIKELY(noCollisions()))
-    {
-      const int it = hashToStringId.findOr(hash, -1);
-      if (it == -1 || !string_equal(name, name_len, it))
-        return -1;
-      return it;
-    }
-    // check hash collision
-    return hashToStringId.findOr(hash, -1, [this, name, name_len](uint32_t id) { return string_equal(name, name_len, id); });
-  }
+  int getNameId(const char *name, size_t name_len, const hash_t hash) const;
   int getNameId(const char *name, size_t name_len) const { return getNameId(name, name_len, string_hash(name, name_len)); }
   int getNameId(const char *name) const { return name ? getNameId(name, strlen(name)) : -1; }
-  int addNameId(const char *name, size_t name_len, hash_t hash)
-  {
-    int it = -1;
-    if (DAGOR_LIKELY(noCollisions()))
-    {
-      it = hashToStringId.findOr(hash, -1);
-      if (DAGOR_UNLIKELY(it != -1 && !string_equal(name, name_len, it)))
-      {
-        hasCollisions() = 1;
-        it = -1;
-      }
-    }
-    else
-      it = hashToStringId.findOr(hash, -1, [this, name, name_len](uint32_t id) { return string_equal(name, name_len, id); });
-    if (it == -1)
-    {
-      uint32_t id = addString(name, name_len);
-      hashToStringId.emplace(hash, eastl::move(id));
-      return id;
-    }
-    return it;
-  }
+  int addNameId(const char *name, size_t name_len, hash_t hash);
   int addNameId(const char *name, size_t name_len) { return addNameId(name, name_len, string_hash(name, name_len)); }
   int addNameId(const char *name) { return name ? addNameId(name, strlen(name)) : -1; } //-V1071
   void erase(uint32_t id)
@@ -112,10 +82,12 @@ struct OAHashNameMap
   }
 
   int nameCount() const { return (int)strings.size(); }
-  const char *getName(int name_id) const
+  const char *getName(int name_id, uint32_t *plen = nullptr) const
   {
     if (uint32_t(name_id) >= strings.size())
       return NULL;
+    if (plen)
+      *plen = strings[name_id] >> 32;
     return getStringDataUnsafe(name_id);
   }
   size_t totalAllocated() const { return allocator.totalAllocated(); }
@@ -153,7 +125,7 @@ struct OAHashNameMap
 
 struct FixedCapacityOAHashNameMap
 {
-  typedef uint32_t hash_t;
+  using hash_t = oa_hash_t;
   // strings_size is used only for validation. 'zeroed' means that keys array is already zeroed
   bool fillNames(uint32_t names_cnt, uint32_t strings_size, bool zeroed)
   {
@@ -228,6 +200,13 @@ using NameMap = OAHashNameMap<false>;
 using NameMapCI = OAHashNameMap<true>;
 using FastNameMap = OAHashNameMap<false>;
 typedef FastNameMap FastNameMapEx;
+#ifdef _TARGET_STATIC_LIB
+extern template struct OAHashNameMap<false>;
+extern template struct OAHashNameMap<true>;
+extern template struct OAHashNameMap<false, FNV1OAHasher<false>>;
+#else
+#include "dag_oaHashNameMapImpl.inl"
+#endif
 
 #include <supp/dag_iterateStatus.h>
 

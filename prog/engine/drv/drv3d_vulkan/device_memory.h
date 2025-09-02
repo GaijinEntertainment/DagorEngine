@@ -28,6 +28,8 @@ enum class DeviceMemoryClass
   INVALID = COUNT
 };
 
+bool isMemoryClassHostResident(DeviceMemoryClass dmc);
+
 #if _TARGET_C3
 
 
@@ -206,6 +208,13 @@ public:
   void free(const DeviceMemory &memory);
   bool checkAllocationLimits(const DeviceMemoryTypeAllocationInfo &info);
   void logAllocationError(const DeviceMemoryTypeAllocationInfo &info, const char *reason, bool verbose = false);
+
+#if _TARGET_C3
+
+#else
+  bool hasDedicatedMemory() const { return memoryConfig == DeviceMemoryConfiguration::DEDICATED_DEVICE_MEMORY; }
+#endif
+
 
   DeviceMemoryConfiguration getMemoryConfiguration() const
   {

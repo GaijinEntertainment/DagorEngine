@@ -46,6 +46,6 @@ public:
   virtual void registerPoint3Editbox(Point3 *, const char *, const char *) {}
   virtual void registerIPoint3Editbox(IPoint3 *, const char *, const char *) {}
   virtual void registerE3dcolor(E3DCOLOR *, const char *, const char *) {}
-  virtual void registerCurve(EditorCurve *, const char *, const char *){};
+  virtual void registerCurve(EditorCurve *, const char *, const char *) {}
   virtual void removeVariable(void *) {}
 };

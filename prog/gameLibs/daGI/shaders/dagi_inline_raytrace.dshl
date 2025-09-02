@@ -38,7 +38,7 @@ macro RAY_CAST_INLINE_RT(code)
 
   (code) {
     ssgi_current_frame@f2 = (ssgi_current_frame * ssgi_total_scene_mark_dipatch, ssgi_total_scene_mark_dipatch,0,0);
-    globtm@f44[] = {globtm_psf_0, globtm_psf_1, globtm_psf_2, globtm_psf_3};
+    globtm@f44 = {globtm_psf_0, globtm_psf_1, globtm_psf_2, globtm_psf_3};
     bindlessRange@i1 = (inlineRTBindlessRange);
     accelerationStructure@tlas : register(dagi_accelerationStructure_const_no) hlsl {
       RaytracingAccelerationStructure accelerationStructure@tlas;

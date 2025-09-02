@@ -87,7 +87,7 @@ static Tab<Point3> pathForDebug;
 static Tab<BBox3> navDebugBoxes;
 static int lastNavMeshDebugIdx = NM_MAIN;
 
-static Tab<PolyState> meshStateStorage;
+static Tab<PolyState> meshStateStorage[NMS_COUNT];
 
 static NavMeshData &get_nav_mesh_data(int nav_mesh_idx)
 {
@@ -129,9 +129,10 @@ public:
     setAreaCost(POLYAREA_OBSTACLE, 10000.f);
   }
 
-  explicit NavQueryFilter(const CustomNav *custom_nav, float max_jump_up_height = FLT_MAX, bool for_optimize = false,
+  explicit NavQueryFilter(int nav_mesh_idx, const CustomNav *custom_nav, float max_jump_up_height = FLT_MAX, bool for_optimize = false,
     const ska::flat_hash_map<dtPolyRef, float> &cost_addition = {}) :
-    NavQueryFilter(get_nav_mesh_ptr(NM_MAIN), get_nav_params(NM_MAIN), custom_nav, max_jump_up_height, for_optimize, cost_addition)
+    NavQueryFilter(get_nav_mesh_ptr(nav_mesh_idx), get_nav_params(nav_mesh_idx), custom_nav, max_jump_up_height, for_optimize,
+      cost_addition)
   {}
 
   template <typename AreaCosts>
@@ -170,7 +171,8 @@ public:
         pa = &tmpVerts[0].x;
         pb = &tmpVerts[1].x;
         len = dtVdist(pa, pb);
-        weight = isJumpDown ? navParams.jump_down_weight : canJumpUp ? navParams.jump_weight : 10000.f * safeinv(len);
+        weight = isJumpDown ? navParams.jump_down_weight : canJumpUp ? navParams.jump_weight : navParams.jump_over_weight;
+        weight *= safeinv(len); // to compenstate return value of 'len * weight' below
       }
       else
         LOGERR_CTX("getCost for poly at (%f, %f, %f) - bad jump link", pa[0], pa[1], pa[2]);
@@ -282,10 +284,12 @@ void clear_nav_mesh(int nav_mesh_idx, bool clear_nav_data)
 void clear(bool clear_nav_data)
 {
   for (int i = 0; i < NMS_COUNT; ++i)
+  {
     clear_nav_mesh(i, clear_nav_data);
+    clear_and_shrink(meshStateStorage[i]);
+  }
   clear_and_shrink(pathForDebug);
   clear_and_shrink(navDebugBoxes);
-  clear_and_shrink(meshStateStorage);
 }
 
 static bool loadNavMeshChunked(IGenLoad &crd, NavMeshType type, tile_check_cb_t tile_check_cb, Tab<uint8_t> &out_buff)
@@ -324,7 +328,7 @@ static bool loadNavMeshChunked(IGenLoad &crd, NavMeshType type, tile_check_cb_t 
       break;
     uint32_t tileDataOff = out_buff.size();
     READ_BYTES(sizeof(dtMeshHeader));
-#if _TARGET_BE
+#if _TARGET_CPU_BE
     if (!dtNavMeshHeaderSwapEndian(&out_buff[tileDataOff], sizeof(dtMeshHeader)))
     {
       LOGERR_CTX("dtNavMeshHeaderSwapEndian fails");
@@ -357,7 +361,7 @@ static bool loadNavMeshChunked(IGenLoad &crd, NavMeshType type, tile_check_cb_t 
       break;
     uint32_t tileDataOff = out_buff.size();
     READ_BYTES(sizeof(dtTileCacheLayerHeader));
-#if _TARGET_BE
+#if _TARGET_CPU_BE
     if (!dtNavMeshHeaderSwapEndian(&out_buff[tileDataOff], sizeof(dtTileCacheLayerHeader)))
     {
       LOGERR_CTX("dtNavMeshHeaderSwapEndian fails");
@@ -572,6 +576,7 @@ void init_weights_ex(int nav_mesh_idx, const DataBlock *navQueryFilterWeightsBlk
     navParams.max_path_weight = navQueryFilterWeightsBlk->getReal("maxPathWeight", FLT_MAX);
     navParams.jump_weight = navQueryFilterWeightsBlk->getReal("jumpWeight", 40.f);
     navParams.jump_down_weight = navQueryFilterWeightsBlk->getReal("jumpDownWeight", 20.f);
+    navParams.jump_over_weight = navQueryFilterWeightsBlk->getReal("jumpOverWeight", 20.f);
     navParams.jump_down_threshold = navQueryFilterWeightsBlk->getReal("jumpDownThreshold", 0.4f);
   }
 }
@@ -813,7 +818,7 @@ bool load_nav_mesh_ex(int nav_mesh_idx, const char *kind, IGenLoad &_crd, NavMes
 
   if (type == NMT_SIMPLE)
   {
-#if _TARGET_BE
+#if _TARGET_CPU_BE
     if (!dtNavMeshHeaderSwapEndian(&navDataLocal[0], navDataSize)
     {
       LOGERR_CTX("dtNavMeshHeaderSwapEndian fails");
@@ -852,7 +857,7 @@ bool load_nav_mesh_ex(int nav_mesh_idx, const char *kind, IGenLoad &_crd, NavMes
       INIT_BY_PTR(int, tileDataSize);
       if (!*tileRef || !*tileDataSize)
         break;
-#if _TARGET_BE
+#if _TARGET_CPU_BE
       if (!dtNavMeshHeaderSwapEndian(curPtr, *tileDataSize))
       {
         LOGERR_CTX("dtNavMeshHeaderSwapEndian fails");
@@ -1063,7 +1068,7 @@ inline bool find_polyref(int nav_mesh_idx, const Point3 &pos, float horz_dist, i
   const CustomNav *custom_nav, float max_vert_dist = FLT_MAX)
 {
   const Point3 extents(horz_dist, max_vert_dist, horz_dist);
-  NavQueryFilter filter(get_nav_mesh_ptr(nav_mesh_idx), get_nav_params(nav_mesh_idx), custom_nav);
+  NavQueryFilter filter(nav_mesh_idx, custom_nav);
   filter.setIncludeFlags(incl_flags);
   filter.setExcludeFlags(excl_flags);
   return dtStatusSucceed(get_nav_mesh_data(nav_mesh_idx).navQuery->findNearestPoly(&pos.x, &extents.x, &filter, &res, nullptr)) &&
@@ -1072,7 +1077,7 @@ inline bool find_polyref(int nav_mesh_idx, const Point3 &pos, float horz_dist, i
 
 inline bool find_end_poly(FindRequest &req, const CustomNav *custom_nav)
 {
-  NavQueryFilter filter(custom_nav);
+  NavQueryFilter filter(NM_MAIN, custom_nav);
   filter.setIncludeFlags(req.includeFlags);
   filter.setExcludeFlags(req.excludeFlags);
   filter.setAreasCost(req.areasCost);
@@ -1389,10 +1394,10 @@ FindPathResult find_path_ex(int nav_mesh_idx, Tab<Point3> &path, FindRequest &re
 }
 
 FindPathResult find_path_ex(int nav_mesh_idx, const Point3 &start_pos, const Point3 &end_pos, Tab<Point3> &path, float dist_to_path,
-  float step_size, float slop, const CustomNav *custom_nav, int incl_flags, int excl_flags)
+  float step_size, float slop, const CustomNav *custom_nav, const dag::Vector<Point2> &areasCost, int incl_flags, int excl_flags)
 {
   const Point3 extents(dist_to_path, FLT_MAX, dist_to_path);
-  FindRequest req = {start_pos, end_pos, incl_flags, excl_flags, extents, FLT_MAX, 0, dtPolyRef(), dtPolyRef()};
+  FindRequest req = {start_pos, end_pos, incl_flags, excl_flags, extents, FLT_MAX, 0, dtPolyRef(), dtPolyRef(), areasCost};
   return find_path_ex(nav_mesh_idx, path, req, step_size, slop, custom_nav);
 }
 
@@ -1602,17 +1607,18 @@ float calc_approx_path_length(dtNavMeshQuery *nav_query, FindRequest &req, const
   return INVALID_PATH_DISTANCE;
 }
 
-static inline bool project_to_nearest_navmesh_point_impl(Point3 &pos, float horx_extents, float hory_extents, float horz_extents,
-  uint16_t inc_flags, const CustomNav *custom_nav)
+static inline bool project_to_nearest_navmesh_point_impl_ex(int nav_mesh_idx, Point3 &pos, float horx_extents, float hory_extents,
+  float horz_extents, uint16_t inc_flags, const CustomNav *custom_nav)
 {
-  if (!navQuery)
+  NavMeshData &nmData = get_nav_mesh_data(nav_mesh_idx);
+  if (!nmData.navQuery)
     return false;
-  NavQueryFilter filter(custom_nav);
+  NavQueryFilter filter(nav_mesh_idx, custom_nav);
   filter.setIncludeFlags(inc_flags);
   const Point3 extents(horx_extents, hory_extents, horz_extents);
   Point3 resPos;
   dtPolyRef nearestPoly;
-  if (dtStatusSucceed(navQuery->findNearestPoly(&pos.x, &extents.x, &filter, &nearestPoly, &resPos.x)) && nearestPoly != 0)
+  if (dtStatusSucceed(nmData.navQuery->findNearestPoly(&pos.x, &extents.x, &filter, &nearestPoly, &resPos.x)) && nearestPoly != 0)
   {
     pos = resPos;
     return true;
@@ -1620,11 +1626,17 @@ static inline bool project_to_nearest_navmesh_point_impl(Point3 &pos, float horx
   return false;
 }
 
+static inline bool project_to_nearest_navmesh_point_impl(Point3 &pos, float horx_extents, float hory_extents, float horz_extents,
+  uint16_t inc_flags, const CustomNav *custom_nav)
+{
+  return project_to_nearest_navmesh_point_impl_ex(NM_MAIN, pos, horx_extents, hory_extents, horz_extents, inc_flags, custom_nav);
+}
+
 bool project_to_nearest_navmesh_point_ref(Point3 &pos, const Point3 &extents, dtPolyRef &nearestPoly)
 {
   if (!navQuery)
     return false;
-  NavQueryFilter filter(nullptr);
+  NavQueryFilter filter(NM_MAIN, nullptr);
   filter.setIncludeFlags(POLYFLAGS_WALK);
   Point3 resPos;
   if (dtStatusSucceed(navQuery->findNearestPoly(&pos.x, &extents.x, &filter, &nearestPoly, &resPos.x)) && nearestPoly != 0)
@@ -1650,11 +1662,27 @@ bool project_to_nearest_navmesh_point_no_obstacles(Point3 &pos, const Point3 &ex
   return project_to_nearest_navmesh_point_impl(pos, extents.x, extents.y, extents.z, POLYFLAG_GROUND, custom_nav);
 }
 
+bool project_to_nearest_navmesh_point_ex(int nav_mesh_idx, Point3 &pos, float horz_extents, const CustomNav *custom_nav)
+{
+  return project_to_nearest_navmesh_point_impl_ex(nav_mesh_idx, pos, horz_extents, FLT_MAX, horz_extents, POLYFLAGS_WALK, custom_nav);
+}
+
+bool project_to_nearest_navmesh_point_ex(int nav_mesh_idx, Point3 &pos, const Point3 &extents, const CustomNav *custom_nav)
+{
+  return project_to_nearest_navmesh_point_impl_ex(nav_mesh_idx, pos, extents.x, extents.y, extents.z, POLYFLAGS_WALK, custom_nav);
+}
+
+bool project_to_nearest_navmesh_point_no_obstacles_ex(int nav_mesh_idx, Point3 &pos, const Point3 &extents,
+  const CustomNav *custom_nav)
+{
+  return project_to_nearest_navmesh_point_impl_ex(nav_mesh_idx, pos, extents.x, extents.y, extents.z, POLYFLAG_GROUND, custom_nav);
+}
+
 bool navmesh_point_has_obstacle(const Point3 &pos, const CustomNav *custom_nav)
 {
   if (!navQuery)
     return false;
-  NavQueryFilter filter(custom_nav);
+  NavQueryFilter filter(NM_MAIN, custom_nav);
   filter.setIncludeFlags(POLYFLAGS_WALK);
   const Point3 extents(0.01f, FLT_MAX, 0.01f);
   Point3 resPos;
@@ -1672,7 +1700,7 @@ static bool query_navmesh_projections_impl(const Point3 &pos, const Point3 &exte
 {
   if (!navQuery)
     return false;
-  NavQueryFilter filter(custom_nav);
+  NavQueryFilter filter(NM_MAIN, custom_nav);
   filter.setIncludeFlags(POLYFLAGS_WALK);
   filter.setExcludeFlags(0);
   eastl::fixed_vector<dtPolyRef, 16, true, framemem_allocator> polys;
@@ -1714,7 +1742,7 @@ float get_distance_to_wall(const Point3 &pos, float horz_extents, float search_r
 {
   if (!navQuery)
     return FLT_MAX;
-  NavQueryFilter filter(custom_nav);
+  NavQueryFilter filter(NM_MAIN, custom_nav);
   filter.setIncludeFlags(POLYFLAGS_WALK);
   filter.setExcludeFlags(0);
   const Point3 extents(horz_extents, FLT_MAX, horz_extents);
@@ -1735,7 +1763,7 @@ bool find_random_point_around_circle(const Point3 &pos, float radius, Point3 &re
   dtPolyRef startRef;
   if (!find_polyref(NM_MAIN, pos, 0.1f, POLYFLAGS_WALK, 0, startRef, custom_nav))
     return false;
-  NavQueryFilter filter(custom_nav);
+  NavQueryFilter filter(NM_MAIN, custom_nav);
   filter.setIncludeFlags(POLYFLAGS_WALK);
   filter.setExcludeFlags(0);
   dtPolyRef retRef;
@@ -1749,7 +1777,7 @@ bool find_random_points_around_circle(const Point3 &pos, float radius, int num_p
   dtPolyRef startRef;
   if (!find_polyref(NM_MAIN, pos, 0.1f, POLYFLAGS_WALK, 0, startRef, nullptr))
     return false;
-  NavQueryFilter filter(nullptr);
+  NavQueryFilter filter(NM_MAIN, nullptr);
   filter.setIncludeFlags(POLYFLAGS_WALK);
   filter.setExcludeFlags(0);
   Tab<dtPolyRef> refs(framemem_ptr());
@@ -1778,7 +1806,7 @@ bool find_random_point_inside_circle(const Point3 &start_pos, float radius, floa
   if (!pathfinder::find_random_points_around_circle(start_pos, radius, numPoints, points))
     return false;
 
-  NavQueryFilter filter(nullptr);
+  NavQueryFilter filter(NM_MAIN, nullptr);
   filter.setIncludeFlags(POLYFLAGS_WALK);
   filter.setExcludeFlags(0);
   float t;
@@ -1884,10 +1912,17 @@ bool traceray_navmesh(dtNavMeshQuery *nav_query, const Point3 &start_pos, const 
   return t <= 1.f;
 }
 
+static inline int rnd_color_rnd(int &seed)
+{
+  unsigned int a = ((unsigned)seed) * 0x41C64E6D + 0x3039;
+  seed = (int)a;
+  return int((a >> 16) & 32767);
+}
+
 static inline E3DCOLOR rnd_color(int &seed)
 {
-  uint32_t r1 = _rnd(seed);
-  uint32_t r2 = _rnd(seed);
+  uint32_t r1 = rnd_color_rnd(seed);
+  uint32_t r2 = rnd_color_rnd(seed);
   uint32_t rgbValue = (r1 << 8u) | (r2 >> 8u);
   uint32_t forceBits = (0xC0 << (8u * (r2 % 3u))) | 0xFF000000;
   return E3DCOLOR(rgbValue | forceBits);
@@ -2050,8 +2085,7 @@ inline NavQueryFilter init_request_filter(int nav_mesh_idx, const CorridorInput 
 {
   req = {inp.start, inp.target, inp.includeFlags, inp.excludeFlags, inp.extents, inp.maxJumpUpHeight, 0, inp.startPoly, inp.targetPoly,
     inp.areasCost};
-  NavQueryFilter filter(get_nav_mesh_ptr(nav_mesh_idx), get_nav_params(nav_mesh_idx), custom_nav, req.maxJumpUpHeight, false,
-    inp.costAddition);
+  NavQueryFilter filter(nav_mesh_idx, custom_nav, req.maxJumpUpHeight, false, inp.costAddition);
   filter.setIncludeFlags(req.includeFlags);
   filter.setExcludeFlags(req.excludeFlags);
   filter.setAreasCost(req.areasCost);
@@ -2064,15 +2098,16 @@ inline NavQueryFilter init_request_filter(const CorridorInput &inp, const Custom
   return init_request_filter(NM_MAIN, inp, custom_nav, req);
 }
 
-FindPathResult set_path_corridor(dtPathCorridor &corridor, const CorridorInput &inp, const CustomNav *custom_nav)
+FindPathResult set_path_corridor_ex(int nav_mesh_idx, dtPathCorridor &corridor, const CorridorInput &inp, const CustomNav *custom_nav)
 {
-  if (!navQuery)
+  NavMeshData &nmData = get_nav_mesh_data(nav_mesh_idx);
+  if (!nmData.navQuery)
     return FPR_FAILED;
   dtPolyRef polys[max_path_size];
   FindRequest req;
-  NavQueryFilter filter = init_request_filter(inp, custom_nav, req);
+  NavQueryFilter filter = init_request_filter(nav_mesh_idx, inp, custom_nav, req);
   FindPathResult fpr;
-  fpr = find_poly_path(navQuery, req, get_nav_params(NM_MAIN), polys, filter, max_path_size);
+  fpr = find_poly_path(nmData.navQuery, req, get_nav_params(nav_mesh_idx), polys, filter, max_path_size);
 
   if (fpr > FPR_FAILED)
   {
@@ -2080,6 +2115,11 @@ FindPathResult set_path_corridor(dtPathCorridor &corridor, const CorridorInput &
     corridor.setCorridor(&inp.target.x, polys, req.numPolys);
   }
   return fpr;
+}
+
+FindPathResult set_path_corridor(dtPathCorridor &corridor, const CorridorInput &inp, const CustomNav *custom_nav)
+{
+  return set_path_corridor_ex(NM_MAIN, corridor, inp, custom_nav);
 }
 
 FindPathResult set_curved_path_corridor(dtPathCorridor &corridor, const CorridorInput &inp, float max_deflection_angle,
@@ -2137,16 +2177,20 @@ bool get_offmesh_connection_end_points(int nav_mesh_idx, dtPolyRef poly, const f
 }
 
 // This function different from corridor::findCorners in that it does not cut off-mesh connections
-int find_corridor_corners(dtPathCorridor &corridor, float *corner_verts, unsigned char *corner_flags, dtPolyRef *corner_polys,
-  const int max_corners)
+int find_corridor_corners_ex(int nav_mesh_idx, dtPathCorridor &corridor, float *corner_verts, unsigned char *corner_flags,
+  dtPolyRef *corner_polys, const int max_corners)
 {
+  NavMeshData &nmData = get_nav_mesh_data(nav_mesh_idx);
+  if (!nmData.navQuery)
+    return 0;
+
   if (!corridor.getPath() || corridor.getPathCount() == 0)
     return 0;
 
   static const float MIN_TARGET_DIST = 0.01f;
 
   int ncorners = 0;
-  navQuery->findStraightPath(corridor.getPos(), corridor.getTarget(), corridor.getPath(), corridor.getPathCount(), corner_verts,
+  nmData.navQuery->findStraightPath(corridor.getPos(), corridor.getTarget(), corridor.getPath(), corridor.getPathCount(), corner_verts,
     corner_flags, corner_polys, &ncorners, max_corners);
 
   // Prune points in the beginning of the path which are too close.
@@ -2157,11 +2201,11 @@ int find_corridor_corners(dtPathCorridor &corridor, float *corner_verts, unsigne
       break;
     uint16_t polyFlags = 0;
     // cut-off almost passed offmesh connections
-    if (ncorners > 1 && dtStatusSucceed(navMesh->getPolyFlags(corner_polys[0], &polyFlags)) &&
+    if (ncorners > 1 && dtStatusSucceed(nmData.navMesh->getPolyFlags(corner_polys[0], &polyFlags)) &&
         (polyFlags & (POLYFLAG_JUMP | POLYFLAG_LADDER)))
     {
       Point3 start, end;
-      if (get_offmesh_connection_end_points(NM_MAIN, corner_polys[0], &corner_verts[3], start, end) &&
+      if (get_offmesh_connection_end_points(nav_mesh_idx, corner_polys[0], &corner_verts[3], start, end) &&
           dtVdistSqr(corridor.getPos(), &end.x) > dtSqr(MIN_TARGET_DIST))
       {
         corner_flags[0] = corner_flags[0] | DT_STRAIGHTPATH_OFFMESH_CONNECTION;
@@ -2180,9 +2224,17 @@ int find_corridor_corners(dtPathCorridor &corridor, float *corner_verts, unsigne
   return ncorners;
 }
 
-FindCornersResult find_corridor_corners(dtPathCorridor &corridor, Tab<Point3> &corners, int num, const CustomNav *)
+int find_corridor_corners(dtPathCorridor &corridor, float *corner_verts, unsigned char *corner_flags, dtPolyRef *corner_polys,
+  const int max_corners)
 {
-  if (!navQuery || corridor.getPathCount() < 1)
+  return find_corridor_corners_ex(NM_MAIN, corridor, corner_verts, corner_flags, corner_polys, max_corners);
+}
+
+FindCornersResult find_corridor_corners_ex(int nav_mesh_idx, dtPathCorridor &corridor, Tab<Point3> &corners, int num,
+  const CustomNav *)
+{
+  NavMeshData &nmData = get_nav_mesh_data(nav_mesh_idx);
+  if (!nmData.navQuery || corridor.getPathCount() < 1)
     return {};
 
   FindCornersResult res;
@@ -2190,10 +2242,16 @@ FindCornersResult find_corridor_corners(dtPathCorridor &corridor, Tab<Point3> &c
   res.cornerPolys.resize(num);
 
   corners.resize(num);
-  int numCorners = find_corridor_corners(corridor, &corners[0].x, res.cornerFlags.data(), res.cornerPolys.data(), num);
+  int numCorners =
+    find_corridor_corners_ex(nav_mesh_idx, corridor, &corners[0].x, res.cornerFlags.data(), res.cornerPolys.data(), num);
   corners.resize(numCorners);
 
   return res;
+}
+
+FindCornersResult find_corridor_corners(dtPathCorridor &corridor, Tab<Point3> &corners, int num, const CustomNav *custom_nav)
+{
+  return find_corridor_corners_ex(NM_MAIN, corridor, corners, num, custom_nav);
 }
 
 bool set_poly_flags(dtPolyRef ref, unsigned short flags) { return dtStatusSucceed(navMesh->setPolyFlags(ref, flags)); }
@@ -2233,7 +2291,6 @@ int move_over_offmesh_link_in_corridor(dtPathCorridor &corridor, const Point3 &p
     OVER_LADDER_LINK = 2,
   };
 
-  const float minJumpThreshold = 2.5f;
   if (ctx.cornerFlags.empty() || ctx.cornerPolys.empty()) // we must have at least two refs for offmesh connection
     return 0;
   uint8_t cornerFlag = ctx.cornerFlags[0];
@@ -2287,7 +2344,7 @@ int move_over_offmesh_link_in_corridor(dtPathCorridor &corridor, const Point3 &p
 
   dtPolyRef curRef;
   bool overConnection = true;
-  NavQueryFilter filter(custom_nav);
+  NavQueryFilter filter(NM_MAIN, custom_nav);
   filter.setIncludeFlags(POLYFLAGS_WALK | POLYFLAG_JUMP);
   filter.setExcludeFlags(0);
   if (dtStatusSucceed(navQuery->findNearestPoly(&pos.x, &extents.x, &filter, &curRef, nullptr)))
@@ -2310,10 +2367,11 @@ int move_over_offmesh_link_in_corridor(dtPathCorridor &corridor, const Point3 &p
     dtPolyRef refs[2];
     // moveOver only if endRef is the start of some jump link
     bool standaloneJumpLink = true;
+    Point3 tmp = start;
     if (dtStatusSucceed(navMesh->getPolyFlags(endRef, &polyFlags)) && (polyFlags & POLYFLAG_JUMP))
     {
       // first moveOver is not in loop, cause idx may be greater than zero
-      corridor.moveOverOffmeshConnection(connRef, refs, &start.x, &end.x, navQuery);
+      corridor.moveOverOffmeshConnection(connRef, refs, &tmp.x, &end.x, navQuery);
       standaloneJumpLink = false;
     }
     int pathCount = corridor.getPathCount();
@@ -2324,7 +2382,7 @@ int move_over_offmesh_link_in_corridor(dtPathCorridor &corridor, const Point3 &p
       if (dtStatusFailed(navMesh->getPolyFlags(corridor.getPath()[1], &polyFlags)) || !(polyFlags & POLYFLAG_JUMP))
         break;
       prevPathCount = pathCount;
-      corridor.moveOverOffmeshConnection(corridor.getPath()[0], refs, &start.x, &end.x, navQuery);
+      corridor.moveOverOffmeshConnection(corridor.getPath()[0], refs, &tmp.x, &end.x, navQuery);
       pathCount = corridor.getPathCount();
     }
     if (!standaloneJumpLink)
@@ -2338,19 +2396,25 @@ int move_over_offmesh_link_in_corridor(dtPathCorridor &corridor, const Point3 &p
 
     if (dtStatusFailed(navQuery->closestPointOnPoly(endRef, &pos.x, &closestNextPos.x, &overNextPos)))
       return 0;
-    if (!get_offmesh_connection_end_points(NM_MAIN, connRef, &closestNextPos.x, start, end))
+    if (!get_offmesh_connection_end_points(NM_MAIN, connRef, &closestNextPos.x, tmp, end))
       return 0;
+
     static const float MIN_TARGET_DIST_SQ = 0.01f;
+    static const float MAX_HEIGHT_OVER = 0.25f;
+    static const float MIN_JUMP_THRESHOLD = 2.5f;
     if (lengthSq(end - pos) < MIN_TARGET_DIST_SQ)
       overConnection = false;
-    if (start.y - end.y > minJumpThreshold)
+    else if (pos.y > start.y + MAX_HEIGHT_OVER && pos.y > end.y + MAX_HEIGHT_OVER)
       overConnection = false;
+    else if (start.y - end.y > MIN_JUMP_THRESHOLD)
+      overConnection = false;
+
     clear_and_shrink(corners);
     insert_item_at(corners, 0, end);
     if (curRef == endRef) // we're over final polygon - prune
     {
       over_link = 0;
-      corridor.moveOverOffmeshConnection(connRef, refs, &start.x, &end.x, navQuery);
+      corridor.moveOverOffmeshConnection(connRef, refs, &tmp.x, &end.x, navQuery);
     }
     out_from = start;
     out_to = end;
@@ -2358,17 +2422,24 @@ int move_over_offmesh_link_in_corridor(dtPathCorridor &corridor, const Point3 &p
   return overConnection ? SHOULD_JUMP : 0;
 }
 
-bool set_corridor_agent_position(dtPathCorridor &corridor, const Point3 &pos, dag::ConstSpan<Point2> *areas_cost,
+bool set_corridor_agent_position_ex(int nav_mesh_idx, dtPathCorridor &corridor, const Point3 &pos, dag::ConstSpan<Point2> *areas_cost,
   const CustomNav *custom_nav)
 {
-  if (!navQuery || corridor.getPathCount() < 1)
+  NavMeshData &nmData = get_nav_mesh_data(nav_mesh_idx);
+  if (!nmData.navQuery || corridor.getPathCount() < 1)
     return false;
-  NavQueryFilter filter(custom_nav);
+  NavQueryFilter filter(nav_mesh_idx, custom_nav);
   filter.setIncludeFlags(POLYFLAGS_WALK | POLYFLAG_JUMP | POLYFLAG_LADDER);
   filter.setExcludeFlags(0);
   if (areas_cost)
     filter.setAreasCost(*areas_cost);
-  return corridor.movePosition(&pos.x, navQuery, &filter);
+  return corridor.movePosition(&pos.x, nmData.navQuery, &filter);
+}
+
+bool set_corridor_agent_position(dtPathCorridor &corridor, const Point3 &pos, dag::ConstSpan<Point2> *areas_cost,
+  const CustomNav *custom_nav)
+{
+  return set_corridor_agent_position_ex(NM_MAIN, corridor, pos, areas_cost, custom_nav);
 }
 
 bool set_corridor_target(dtPathCorridor &corridor, const Point3 &target, dag::ConstSpan<Point2> *areas_cost,
@@ -2376,7 +2447,7 @@ bool set_corridor_target(dtPathCorridor &corridor, const Point3 &target, dag::Co
 {
   if (!navQuery || corridor.getPathCount() < 1)
     return false;
-  NavQueryFilter filter(custom_nav);
+  NavQueryFilter filter(NM_MAIN, custom_nav);
   filter.setIncludeFlags(POLYFLAGS_WALK | POLYFLAG_JUMP);
   filter.setExcludeFlags(0);
   if (areas_cost)
@@ -2388,7 +2459,7 @@ bool optimize_corridor_path(dtPathCorridor &corridor, const FindRequest &req, bo
 {
   if (!navQuery || corridor.getPathCount() < 1)
     return false;
-  NavQueryFilter filter(custom_nav, req.maxJumpUpHeight, true);
+  NavQueryFilter filter(NM_MAIN, custom_nav, req.maxJumpUpHeight, true);
   const int incFlags = POLYFLAGS_WALK | (inc_jump ? POLYFLAG_JUMP : 0);
   filter.setIncludeFlags(incFlags);
   filter.setExcludeFlags(POLYFLAG_OBSTACLE | POLYFLAG_BLOCKED);
@@ -2425,7 +2496,7 @@ bool is_corridor_valid(dtPathCorridor &corridor, const CustomNav *custom_nav)
 {
   if (!tilecache_is_loaded())
     return true;
-  NavQueryFilter filter(custom_nav);
+  NavQueryFilter filter(NM_MAIN, custom_nav);
   filter.setIncludeFlags(POLYFLAGS_WALK | POLYFLAG_JUMP | POLYFLAG_LADDER);
   filter.setExcludeFlags(0);
   // For the find_corridor_corners function, we should to check the whole path,
@@ -2457,7 +2528,7 @@ bool move_along_surface(FindRequest &req)
 {
   if (!navMesh)
     return false;
-  NavQueryFilter filter(nullptr);
+  NavQueryFilter filter(NM_MAIN, nullptr);
   filter.setIncludeFlags(req.includeFlags);
   filter.setExcludeFlags(req.excludeFlags);
   filter.setAreasCost(req.areasCost);
@@ -2486,7 +2557,7 @@ bool is_valid_poly_ref(const FindRequest &req)
 {
   if (!navQuery)
     return false;
-  NavQueryFilter filter(nullptr);
+  NavQueryFilter filter(NM_MAIN, nullptr);
   filter.setIncludeFlags(req.includeFlags);
   filter.setExcludeFlags(req.excludeFlags);
   filter.setAreasCost(req.areasCost);
@@ -2717,13 +2788,13 @@ int squash_jumplinks(const TMatrix &tm, const BBox3 &bbox)
   return res;
 }
 
-bool find_polys_in_circle_by_tile(const dtMeshTile &tile, dag::Vector<dtPolyRef, framemem_allocator> &polys, const Point3 &pos,
-  float radius, float height_half_offset)
+bool find_polys_in_circle_by_tile(const dtNavMesh *nav_mesh, const dtMeshTile &tile, dag::Vector<dtPolyRef, framemem_allocator> &polys,
+  const Point3 &pos, float radius, float height_half_offset)
 {
   // iter all polys in tile
   bool res = false;
   float posY = pos.y;
-  const dtPolyRef base = navMesh->getPolyRefBase(&tile);
+  const dtPolyRef base = nav_mesh->getPolyRefBase(&tile);
   BSphere3 bsphere(pos, radius);
   for (int k = 0; k < tile.header->polyCount; ++k)
   {
@@ -2766,9 +2837,11 @@ bool find_polys_in_circle_by_tile(const dtMeshTile &tile, dag::Vector<dtPolyRef,
   return res;
 }
 
-bool find_polys_in_circle(dag::Vector<dtPolyRef, framemem_allocator> &polys, const Point3 &pos, float radius, float height_half_offset)
+bool find_polys_in_circle_ex(int nav_mesh_idx, dag::Vector<dtPolyRef, framemem_allocator> &polys, const Point3 &pos, float radius,
+  float height_half_offset)
 {
-  if (!navMesh)
+  const dtNavMesh *navMeshUsed = pathfinder::get_nav_mesh_ptr(nav_mesh_idx);
+  if (!navMeshUsed)
     return false;
   polys.clear();
   int minx, miny, maxx, maxy;
@@ -2776,8 +2849,8 @@ bool find_polys_in_circle(dag::Vector<dtPolyRef, framemem_allocator> &polys, con
   bbox.inflateXZ(0.2f);  // extra 0.2m horizontal threshold
   bbox.lim[0].y = -0.1f; // flatten vertical threshold
   bbox.lim[1].y = 0.1f;
-  navMesh->calcTileLoc(&bbox.lim[0].x, &minx, &miny);
-  navMesh->calcTileLoc(&bbox.lim[1].x, &maxx, &maxy);
+  navMeshUsed->calcTileLoc(&bbox.lim[0].x, &minx, &miny);
+  navMeshUsed->calcTileLoc(&bbox.lim[1].x, &maxx, &maxy);
 
   static const int MAX_NEIS = 64;
   const dtMeshTile *neis[MAX_NEIS];
@@ -2786,14 +2859,19 @@ bool find_polys_in_circle(dag::Vector<dtPolyRef, framemem_allocator> &polys, con
     for (int x = minx; x <= maxx; ++x)
     {
       // collect nearest tiles
-      const int nneis = navMesh->getTilesAt(x, y, neis, MAX_NEIS);
+      const int nneis = navMeshUsed->getTilesAt(x, y, neis, MAX_NEIS);
       for (int i = 0; i < nneis; ++i)
       {
         const dtMeshTile *tile = neis[i];
-        res |= find_polys_in_circle_by_tile(*tile, polys, pos, radius, height_half_offset);
+        res |= find_polys_in_circle_by_tile(navMeshUsed, *tile, polys, pos, radius, height_half_offset);
       }
     }
   return res;
+}
+
+bool find_polys_in_circle(dag::Vector<dtPolyRef, framemem_allocator> &polys, const Point3 &pos, float radius, float height_half_offset)
+{
+  return find_polys_in_circle_ex(NM_MAIN, polys, pos, radius, height_half_offset);
 }
 
 void mark_polygons_lower(float world_level, uint8_t area_id)
@@ -3073,9 +3151,9 @@ void change_navpolys_flags_all(int nav_mesh_idx, unsigned short set_flags, unsig
 
 const scene::TiledScene *tilecache_get_ladders() { return navMeshData[NM_MAIN].tcMeshProc.getLadders(); }
 
-int get_poly_count()
+int get_poly_count(int nav_mesh_idx)
 {
-  const dtNavMesh *nav = pathfinder::getNavMeshPtr();
+  const dtNavMesh *nav = pathfinder::get_nav_mesh_ptr(nav_mesh_idx);
   if (nav == nullptr)
     return 0;
 
@@ -3090,16 +3168,16 @@ int get_poly_count()
   return count;
 }
 
-bool store_mesh_state(Tab<PolyState> *buffer)
+bool store_mesh_state(int nav_mesh_idx, Tab<PolyState> *buffer)
 {
   if (buffer == nullptr)
-    buffer = &meshStateStorage;
+    buffer = &meshStateStorage[nav_mesh_idx];
 
-  dtNavMesh *nav = pathfinder::getNavMeshPtr();
+  dtNavMesh *nav = pathfinder::get_nav_mesh_ptr(nav_mesh_idx);
   if (nav == nullptr)
     return false;
 
-  buffer->resize(get_poly_count());
+  buffer->resize(get_poly_count(nav_mesh_idx));
   PolyState *state = buffer->data();
   for (int ti = 0; ti < nav->getMaxTiles(); ti++)
   {
@@ -3118,16 +3196,16 @@ bool store_mesh_state(Tab<PolyState> *buffer)
   return !buffer->empty();
 }
 
-bool restore_mesh_state(const Tab<PolyState> *buffer)
+bool restore_mesh_state(int nav_mesh_idx, const Tab<PolyState> *buffer)
 {
   if (buffer == nullptr)
-    buffer = &meshStateStorage;
+    buffer = &meshStateStorage[nav_mesh_idx];
 
-  dtNavMesh *nav = pathfinder::getNavMeshPtr();
+  dtNavMesh *nav = pathfinder::get_nav_mesh_ptr(nav_mesh_idx);
   if (nav == nullptr)
     return false;
 
-  int expectedBufferSize = get_poly_count();
+  int expectedBufferSize = get_poly_count(nav_mesh_idx);
   if (expectedBufferSize != buffer->size())
     return false;
 
@@ -3149,49 +3227,17 @@ bool restore_mesh_state(const Tab<PolyState> *buffer)
   return true;
 }
 
-bool is_stored_state_valid(const Tab<PolyState> *buffer)
+bool is_stored_state_valid(int nav_mesh_idx)
 {
-  if (buffer == nullptr)
-    buffer = &meshStateStorage;
-
-  if (buffer->empty())
-    return false;
-
-  if (buffer->size() != get_poly_count())
-    return false;
-
-  return true;
+  auto &buffer = meshStateStorage[nav_mesh_idx];
+  return !buffer.empty() || buffer.size() == get_poly_count(nav_mesh_idx);
 }
 
-Tab<PolyState> &get_internal_stored_state_buffer() { return meshStateStorage; }
+Tab<PolyState> &get_internal_stored_state_buffer(int nav_mesh_idx) { return meshStateStorage[nav_mesh_idx]; }
 
-bool is_walkable(Point2 pos, const Tab<TMatrix> &walkableAreas, const Tab<TMatrix> &unwalkableAreas)
+bool update_walkability(int nav_mesh_idx, const eastl::function<bool(const Point2 &)> &is_walkable_cb)
 {
-  static const BBox2 unitArea(-0.5f * Point2::ONE, 0.5f * Point2::ONE);
-  for (const TMatrix &itm : unwalkableAreas)
-  {
-    Point2 p = Point2::xz(itm * Point3::x0y(pos));
-    if (unitArea & p)
-      return false;
-  }
-
-  // if no walkable areas specified, then entire map is walkable
-  if (walkableAreas.empty())
-    return true;
-
-  for (const TMatrix &itm : walkableAreas)
-  {
-    Point2 p = Point2::xz(itm * Point3::x0y(pos));
-    if (unitArea & p)
-      return true;
-  }
-
-  return false;
-}
-
-bool update_walkability(const Tab<TMatrix> &walkableAreas, const Tab<TMatrix> &unwalkableAreas)
-{
-  dtNavMesh *nav = pathfinder::getNavMeshPtr();
+  dtNavMesh *nav = pathfinder::get_nav_mesh_ptr(nav_mesh_idx);
   if (nav == nullptr)
     return false;
 
@@ -3207,7 +3253,7 @@ bool update_walkability(const Tab<TMatrix> &walkableAreas, const Tab<TMatrix> &u
       dtPoly &poly = tile->polys[j];
       Point2 center = get_poly_center_xz(tile, &poly);
 
-      if (!is_walkable(center, walkableAreas, unwalkableAreas))
+      if (!is_walkable_cb(center))
       {
         poly.setArea(pathfinder::POLYAREA_UNWALKABLE);
         poly.flags = 0;

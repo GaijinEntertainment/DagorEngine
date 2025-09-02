@@ -11,6 +11,7 @@
 #include <math/dag_TMatrix.h>
 #include <math/dag_e3dColor.h>
 #include <math/dag_frustum.h>
+#include <EASTL/array.h>
 #include <EASTL/vector.h>
 #include <EASTL/optional.h>
 #include <drv/3d/dag_texture.h>
@@ -43,6 +44,8 @@ class Element;
 class BaseScriptHandler;
 struct IGuiScene;
 struct PanelSpatialInfo;
+
+static constexpr int MAIN_SCREEN_ID = 1000000;
 
 enum SceneErrorRenderMode
 {
@@ -153,7 +156,7 @@ public:
   virtual int onJoystickBtnEvent(HumanInput::IGenJoystick *joy, InputEvent event, int key_idx, int dev_n,
     const HumanInput::ButtonBits &buttons, int prev_result = 0) = 0;
   // returns a combination of BehaviorResult flags
-  virtual int onVrInputEvent(InputEvent event, int hand, int prev_result = 0) = 0;
+  virtual int onVrInputEvent(InputEvent event, int hand, int button_id, int prev_result = 0) = 0;
 
   virtual void setVrStickScroll(int hand, const Point2 &scroll) = 0;
 
@@ -191,14 +194,30 @@ public:
   virtual bool isAnyPanelTouchedWithHand(int /*hand*/) const { return false; }
   typedef bool (*vr_surface_intersect)(const Point3 &pos, const Point3 &dir, Point2 &point_in_gui, Point3 &hit_pos);
   using EntityTransformResolver = TMatrix (*)(uint32_t, const char *);
-  struct VrSceneData
+  struct SpatialSceneData
   {
     TMatrix vrSpaceOrigin = TMatrix::IDENT;
     TMatrix camera = TMatrix::IDENT;
     Frustum cameraFrustum;
 
+    enum AimOrigin
+    {
+      Undefined = -1,
+      LeftHand = 0,
+      RightHand,
+      Generic,
+
+      Total
+    };
+    struct Aim
+    {
+      AimOrigin origin = AimOrigin::Undefined;
+      Point3 pos;
+      Point3 dir;
+    };
+    eastl::array<Aim, AimOrigin::Total> aims;
+
     TMatrix hands[2] = {TMatrix::IDENT, TMatrix::IDENT};
-    TMatrix aims[2] = {TMatrix::IDENT, TMatrix::IDENT};
     TMatrix indexFingertips[2] = {TMatrix::IDENT, TMatrix::IDENT};
 
     vr_surface_intersect vrSurfaceIntersector = nullptr;
@@ -206,10 +225,13 @@ public:
   };
 
   virtual void renderPanelTo(int panel_idx, BaseTexture *dst) = 0;
-  virtual void updateSpatialElements(const VrSceneData &vr_scene) = 0;
+  virtual void updateSpatialElements(const SpatialSceneData &vr_scene) = 0;
   virtual void refreshVrCursorProjections() = 0;
   virtual bool hasAnyPanels() = 0;
   virtual const darg::PanelSpatialInfo *getPanelSpatialInfo(int id) const = 0;
+
+  virtual void forceFrpUpdateDeferred() = 0;
+  virtual void setPictureDiscardAllowed(bool /*discardAllowed*/) {}
 
   // Returns true iff panel was hit.
   // TODO: it is awkward tha GUI has to know about the game world...

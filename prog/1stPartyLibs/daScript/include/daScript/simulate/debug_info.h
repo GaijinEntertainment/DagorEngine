@@ -8,7 +8,7 @@ namespace das
 #endif
 
 #ifndef DAS_ENABLE_KEEPALIVE
-#define DAS_ENABLE_KEEPALIVE 0
+#define DAS_ENABLE_KEEPALIVE 1
 #endif
 
     enum Type : int32_t {
@@ -145,6 +145,22 @@ namespace das
     struct RequireRecord {
         string              name;
         vector<FileInfo *>  chain;
+    };
+
+    struct MissingRecord : RequireRecord {
+        string              hintName;
+    };
+
+    struct NamelessModuleReq {
+        string              moduleName;
+        string              fileName;
+    };
+
+    struct NamelessMismatch {
+        string              moduleName;
+        string              fileName;
+        string              moduleName2;
+        string              fileName2;
     };
 
     typedef smart_ptr<class FileAccess> FileAccessPtr;

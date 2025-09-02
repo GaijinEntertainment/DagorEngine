@@ -24,8 +24,6 @@
 
 #include <winGuiWrapper/wgw_dialogs.h>
 
-#include <texConverter/textureConverterDlg.h>
-
 #include <string.h>
 #include <stdio.h>
 
@@ -144,7 +142,7 @@ bool remap_dag_textures(const char *dag_name, const Tab<String> &original_tex, c
 
             if (index == -1)
               debug("texture named '%s' not found in original_tex", name);
-          }                           // for each texture in src DAG
+          } // for each texture in src DAG
           new_textures_size += 4 + 2; // block-ID + tex-count
 
 
@@ -242,9 +240,8 @@ static String absolute_path_(const char *path)
   else
   {
     char cwd[512];
-
-    ::getcwd(cwd, countof(cwd));
-    result.printf(1024, "%s\\%s", cwd, path);
+    if (::getcwd(cwd, countof(cwd)))
+      result.printf(1024, "%s\\%s", cwd, path);
   }
 
   return result;
@@ -283,7 +280,7 @@ bool import_dag(const char *dag_src, const char *dag_dst, CoolConsole *con)
 
   // ensure DAG path & dst_location are absolute pathes
 
-  ::getcwd(cwd, countof(cwd));
+  G_VERIFY(::getcwd(cwd, countof(cwd)));
 
   if (isalpha(dag_dst[0]) && dag_dst[1] == ':')
     strcpy(dag_dstfile, dag_dst);
@@ -501,25 +498,20 @@ bool erase_local_dag_textures(const char *dag_wildcard)
 {
   String location;
   String file;
-  alefind_t find_data;
   Tab<String> matched_dag(tmpmem);
   Tab<String> nonmatched_dag(tmpmem);
-  bool found = dd_find_first(dag_wildcard, 0, &find_data);
 
   split_path(dag_wildcard, location, file);
   if (location.length() == 0)
     location = ".";
 
-  while (found)
+  for (const alefind_t &find_data : dd_find_iterator(dag_wildcard, DA_FILE))
   {
     matched_dag.push_back(location + String("\\") + String(find_data.name));
-    found = dd_find_next(&find_data);
   }
 
-  dd_find_close(&find_data);
 
-  found = dd_find_first(location + "\\*.dag", 0, &find_data);
-  while (found)
+  for (const alefind_t &find_data : dd_find_iterator(location + "\\*.dag", DA_FILE))
   {
     bool unique = true;
     String name(location + String("\\") + String(find_data.name));
@@ -535,11 +527,7 @@ bool erase_local_dag_textures(const char *dag_wildcard)
 
     if (unique)
       nonmatched_dag.push_back(name);
-
-    found = dd_find_next(&find_data);
   }
-
-  dd_find_close(&find_data);
 
 
   // build list of textures to erase

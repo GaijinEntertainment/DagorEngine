@@ -1,11 +1,16 @@
 include "rendinst_simple_inc.dshl"
 include "simple_inc.dshl"
+include "riextra_per_instance.dshl"
 
 shader rendinst_simple, rendinst_simple_colored
 {
   ENABLE_ASSERT(ps)
 
-  COMMON_RENDINST_SIMPLE_INIT()
+  NO_DYNSTCODE()
+
+  USE_RIEXTRA_PER_INSTANCE_RENDER_DATA(vs)
+  COMMON_RENDINST_SIMPLE_INIT(true)
+  INIT_AND_USE_COMMON_RENDINST_MOTION_VECTORS()
 
   texture tex = material.texture.diffuse;
   texture normal = material.texture[2];

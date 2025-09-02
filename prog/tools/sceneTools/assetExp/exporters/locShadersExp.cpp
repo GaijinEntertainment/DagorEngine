@@ -25,6 +25,7 @@ BEGIN_DABUILD_PLUGIN_NAMESPACE(locShader)
 
 static const char *TYPE = "lshader";
 static String compilerExePath;
+static Tab<String> compilerDllsUsedByExe;
 static String permutationsFileName;
 static DataBlock permutationsFile;
 static String nonOptionalFileName;
@@ -74,19 +75,21 @@ static String extractGraphName(const String &path)
 class NodeBasedLocShaderExporter : public IDagorAssetExporter
 {
 public:
-  virtual const char *__stdcall getExporterIdStr() const { return "lshader exp"; }
+  const char *__stdcall getExporterIdStr() const override { return "lshader exp"; }
 
-  virtual const char *__stdcall getAssetType() const { return TYPE; }
-  virtual unsigned __stdcall getGameResClassId() const { return LShaderGameResClassId; }
-  virtual unsigned __stdcall getGameResVersion() const { return 1; }
+  const char *__stdcall getAssetType() const override { return TYPE; }
+  unsigned __stdcall getGameResClassId() const override { return LShaderGameResClassId; }
+  unsigned __stdcall getGameResVersion() const override { return 1; }
 
-  virtual void __stdcall onRegister() {}
-  virtual void __stdcall onUnregister() {}
+  void __stdcall onRegister() override {}
+  void __stdcall onUnregister() override {}
 
   void __stdcall gatherSrcDataFiles(const DagorAsset &a, Tab<SimpleString> &files) override
   {
     files.clear();
     files.push_back() = compilerExePath;
+    for (const String &dl : compilerDllsUsedByExe)
+      files.push_back() = dl;
     if (!permutationsFileName.empty())
       files.push_back() = permutationsFileName;
     for (const String &optGraph : gatherOptionalGraphFilenames(a))
@@ -127,9 +130,9 @@ public:
     return optionalGraphs;
   }
 
-  virtual bool __stdcall isExportableAsset(DagorAsset &a) { return true; }
+  bool __stdcall isExportableAsset(DagorAsset &a) override { return true; }
 
-  virtual bool __stdcall exportAsset(DagorAsset &a, mkbindump::BinDumpSaveCB &cwr, ILogWriter &log)
+  bool __stdcall exportAsset(DagorAsset &a, mkbindump::BinDumpSaveCB &cwr, ILogWriter &log) override
   {
     String inputJson(a.getTargetFilePath());
     String out_tmp_fn(0, "%s.tmp.bin", a.getName());
@@ -239,6 +242,7 @@ private:
 
     templateNames.push_back(String("ps4Defines.hlsl"));
 
+    templateNames.push_back(String("../../../daSDF/shaders/world_sdf.hlsli")); // Needs to be before globalHlsl
     templateNames.push_back(String("globalHlslFunctions.hlsl"));
     templateNames.push_back(String("../../../render/shaders/wang_hash.hlsl"));
     templateNames.push_back(String("../../../render/shaders/pcg_hash.hlsl"));
@@ -246,7 +250,13 @@ private:
     templateNames.push_back(String("../../../render/shaders/phase_functions.hlsl"));
     templateNames.push_back(String("../../../render/volumetricLights/shaders/volfog_common_def.hlsli"));
     templateNames.push_back(String("../../../render/volumetricLights/shaders/volfog_common.hlsl"));
+    templateNames.push_back(String("../../../render/shaders/depth_above.hlsl"));
     templateNames.push_back(String("../../../render/shaders/wind/sample_wind_common.hlsl"));
+    templateNames.push_back(String("../../../fftWater/shaders/water_heigtmap.hlsl"));
+    templateNames.push_back(String("nbsSDF.hlsl"));
+    templateNames.push_back(String("../../../daSDF/shaders/world_sdf_math.hlsl"));
+    templateNames.push_back(String("../../../daSDF/shaders/world_sdf_use.hlsl"));
+
 
     templateNames.push_back(String("../../../render/shaders/static_shadow_int.hlsl"));
     templateNames.push_back(String("../../../render/shaders/static_shadow.hlsl"));
@@ -275,19 +285,19 @@ private:
 class NodeBasedLevelShaderRefs : public IDagorAssetRefProvider
 {
 public:
-  virtual const char *__stdcall getRefProviderIdStr() const { return "lshader refs"; }
-  virtual const char *__stdcall getAssetType() const { return TYPE; }
+  const char *__stdcall getRefProviderIdStr() const override { return "lshader refs"; }
+  const char *__stdcall getAssetType() const override { return TYPE; }
 
-  virtual void __stdcall onRegister() {}
-  virtual void __stdcall onUnregister() {}
+  void __stdcall onRegister() override {}
+  void __stdcall onUnregister() override {}
 
-  dag::ConstSpan<Ref> __stdcall getAssetRefs(DagorAsset &a) override { return {}; }
+  void __stdcall getAssetRefs(DagorAsset &a, Tab<Ref> &refs) override { return refs.clear(); }
 };
 
 class NodeBasedLocShaderExporterPlugin : public IDaBuildPlugin
 {
 public:
-  virtual bool __stdcall init(const DataBlock &appblk)
+  bool __stdcall init(const DataBlock &appblk) override
   {
     dd_get_fname_location(appBlkDir, appblk.resolveFilename());
 
@@ -305,6 +315,7 @@ public:
     char exePath[1024];
     dag_get_appmodule_dir(exePath, sizeof(exePath));
     compilerExePath.printf(0, "%s/dsc2-nodeBased-dev.exe", exePath);
+    compilerDllsUsedByExe.emplace_back(0, "%s/hlslCompiler-dev.dll", exePath);
     if (!permutationsFileName.empty())
       permutationsFile.load(permutationsFileName);
     if (!nonOptionalFileName.empty())
@@ -312,14 +323,14 @@ public:
     return true;
   }
 
-  virtual void __stdcall destroy() { delete this; }
+  void __stdcall destroy() override { delete this; }
 
-  virtual int __stdcall getExpCount() { return 1; }
-  virtual const char *__stdcall getExpType(int) { return TYPE; }
-  virtual IDagorAssetExporter *__stdcall getExp(int) { return &expNodeBased; }
-  virtual int __stdcall getRefProvCount() { return 1; }
-  virtual const char *__stdcall getRefProvType(int) { return TYPE; }
-  virtual IDagorAssetRefProvider *__stdcall getRefProv(int) { return &refsNodeBased; }
+  int __stdcall getExpCount() override { return 1; }
+  const char *__stdcall getExpType(int) override { return TYPE; }
+  IDagorAssetExporter *__stdcall getExp(int) override { return &expNodeBased; }
+  int __stdcall getRefProvCount() override { return 1; }
+  const char *__stdcall getRefProvType(int) override { return TYPE; }
+  IDagorAssetRefProvider *__stdcall getRefProv(int) override { return &refsNodeBased; }
 
 protected:
   NodeBasedLocShaderExporter expNodeBased;

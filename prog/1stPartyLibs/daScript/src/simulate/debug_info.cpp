@@ -82,7 +82,7 @@ namespace das
     }
 
     void TypeInfo::resolveAnnotation() const {
-        if ( daScriptEnvironment::bound->modules ) Module::resolveAnnotation(this);
+        if ( (*daScriptEnvironment::bound)->modules ) Module::resolveAnnotation(this);
     }
 
 
@@ -386,7 +386,7 @@ namespace das
         if ( THIS->type==Type::tHandle && THIS->getAnnotation()!=decl->getAnnotation() ) {
             return false;
         }
-        if ( THIS->type==Type::tStructure && THIS->structType!=decl->structType ) {
+        if ( THIS->type==Type::tStructure && THIS->structType->hash!=decl->structType->hash ) {
             return false;
         }
         if ( THIS->type==Type::tPointer || THIS->type==Type::tIterator ) {
@@ -402,7 +402,7 @@ namespace das
             if ( THIS->type != decl->type ) {
                 return false;
             }
-            if ( THIS->enumType && decl->enumType && THIS->enumType!=decl->enumType ) {
+            if ( THIS->enumType && decl->enumType && THIS->enumType->hash!=decl->enumType->hash ) {
                 return false;
             }
         }

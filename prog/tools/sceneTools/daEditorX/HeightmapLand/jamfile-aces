@@ -22,7 +22,7 @@ AddIncludes =
 Sources =
   renderLandNormals.cpp 
   hmlExportHmap.cpp
-  hmlClipping.cpp
+  hmlCollision.cpp
   hmlExport.cpp
   hmlObject.cpp
   hmlLayers.cpp
@@ -52,7 +52,7 @@ Sources =
   hmlHoleObject.cpp
   hmlOutliner.cpp
   hmlSnow.cpp
-  LandClassSlotsMgr.cpp
+  landClassSlotsMgr.cpp
   entityCopyDlg.cpp
   materialMgr.cpp
   buildRoad.cpp
@@ -84,7 +84,7 @@ UseProgLibs =
   tools/libTools/staticGeom
   tools/libTools/dagFileRW
   gameLibs/landMesh
-  engine/SceneRay
+  engine/sceneRay
   engine/image
   engine/perfMon/daProfilerStub
 
@@ -105,7 +105,7 @@ UseProgLibs =
 ;
 
 
-CPPopt = -DUSE_HMAP_ACES=1 -DUSE_LMESH_ACES=1 ;
+CPPopt = -DUSE_HMAP_ACES -DUSE_LMESH_ACES ;
 include $(Root)/prog/tools/sceneTools/daEditorX/plugin_setup.jam ;
 
 include $(Root)/prog/_jBuild/build.jam ;

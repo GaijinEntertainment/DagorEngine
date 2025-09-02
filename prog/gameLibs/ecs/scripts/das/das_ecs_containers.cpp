@@ -248,7 +248,9 @@ struct ObjectAnnotation final : das::ManagedStructureAnnotation<ecs::Object, fal
   struct SimNodeAtObject : das::SimNode_At
   {
     DAS_PTR_NODE;
-    SimNodeAtObject(const das::LineInfo &at, das::SimNode *rv, das::SimNode *idx, uint32_t ofs) : SimNode_At(at, rv, idx, 0, ofs, 0) {}
+    SimNodeAtObject(const das::LineInfo &at, das::SimNode *rv, das::SimNode *idx, uint32_t ofs) :
+      SimNode_At(at, rv, idx, 0, ofs, 0, "")
+    {}
     __forceinline char *compute(das::Context &context)
     {
       ObjectType *pValue = (ObjectType *)value->evalPtr(context);
@@ -384,7 +386,8 @@ struct ArrayAnnotation final : das::ManagedStructureAnnotation<ecs::Array, false
   struct SimNodeAtArray : das::SimNode_At
   {
     DAS_PTR_NODE;
-    SimNodeAtArray(const das::LineInfo &at, das::SimNode *rv, das::SimNode *idx, uint32_t ofs) : SimNode_At(at, rv, idx, 0, ofs, 0) {}
+    SimNodeAtArray(const das::LineInfo &at, das::SimNode *rv, das::SimNode *idx, uint32_t ofs) : SimNode_At(at, rv, idx, 0, ofs, 0, "")
+    {}
     __forceinline char *compute(das::Context &context)
     {
       Array *pValue = (Array *)value->evalPtr(context);

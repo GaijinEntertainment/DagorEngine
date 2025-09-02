@@ -41,13 +41,14 @@ struct SpatialHashGridReader
   {
 #if DAGOR_DBGLEVEL > 0
     uint32_t result = interlocked_increment(users);
-    G_ASSERTF((result & WRITER_MASK) == 0, "Attempt to read from grid during update");
+    G_ASSERTF((result & WRITER_MASK) == 0, "Attempt to read from grid during update users=%x", result);
 #endif
   }
   ~SpatialHashGridReader()
   {
 #if DAGOR_DBGLEVEL > 0
-    interlocked_decrement(users);
+    uint32_t result = interlocked_decrement(users);
+    G_ASSERTF((result & WRITER_MASK) == 0, "Attempt to update grid during read users=%x", result);
 #endif
   }
 };
@@ -66,7 +67,8 @@ struct SpatialHashGridWriter
   ~SpatialHashGridWriter()
   {
 #if DAGOR_DBGLEVEL > 0
-    interlocked_release_store(users, 0);
+    uint32_t prev = interlocked_exchange(users, 0);
+    G_ASSERTF(prev == WRITER_MASK, "Attempt to read from grid during writing prev=%x", prev);
 #endif
   }
 };

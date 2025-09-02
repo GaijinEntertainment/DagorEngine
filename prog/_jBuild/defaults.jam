@@ -9,7 +9,7 @@ if ! $(__DEFAULTS_INCLUDED) {
   include $(Root)/prog/_jBuild/defPlatform.jam ;
 
   PlatformSpec_$(Platform) ?= $(PlatformSpec_$(Platform)_$(PlatformArch)) ;
-  PlatformSpec_windows ?= vc16 ;
+  PlatformSpec_windows ?= vc17 ;
   PlatformSpec_xboxOne ?= clang ;
   PlatformSpec_scarlett ?= clang ;
   PlatformSpec_ps4 ?= clang ;
@@ -20,24 +20,29 @@ if ! $(__DEFAULTS_INCLUDED) {
   PlatformSpec_nswitch ?= clang ;
   PlatformSpec_android ?= clang ;
   PlatformSpec_linux ?= gcc ;
-  CLangVer ?= 15.0.7 ;
-  DefaultCPPStd = 17 ;
-  CPPStd ?= 17 ;
+  CLangVer ?= 18.1.8 ;
+  DefaultCPPStd = 20 ;
+  CPPStd ?= 20 ;
   Sanitize ?= disabled ;
   NoMemBaseInclude ?= no ;
+  Fuzzer ?= no ;
 
   PlatformSpec ?= $(PlatformSpec_$(Platform)) ;
   switch $(PlatformSpec) {
-    case vc17 : VCUpdateVer ?= 17.9.5 ;
+    case vc17 : VCUpdateVer ?= 17.14.4 ;
     case vc16 : VCUpdateVer ?= 16.11.34 ;
     case vc15 : VCUpdateVer ?= 15.9.5 ;
     case * :    VCUpdateVer ?= 3 ;
   }
 
-  # clang 15.0.7 fails to install asan interceptors on xbox
-  # https://github.com/llvm/llvm-project/issues/51063
-  if $(Platform) in xboxOne scarlett && $(PlatformSpec) = clang && $(Sanitize) = address {
+  # clang 15.0.7 fails to install asan interceptors on xbox (https://github.com/llvm/llvm-project/issues/51063 )
+  if $(Platform) in xboxOne scarlett && $(PlatformSpec) = clang && $(Sanitize) = address && $(CLangVer) <= 15.0.7 {
     CLangVer = 16.0.6 ;
+  }
+
+  # clang 18.1.8 fails to install asan interceptors on xbox (https://github.com/llvm/llvm-project/pull/111638 )
+  if $(Platform) in xboxOne scarlett && $(PlatformSpec) = clang && $(Sanitize) = address && $(CLangVer) > 16.0.6 && $(CLangVer) < 20.1.7 {
+    CLangVer = 20.1.7 ;
   }
 
   if $(PlatformSpec) = clang {
@@ -51,9 +56,11 @@ if ! $(__DEFAULTS_INCLUDED) {
   Config        ?= dev ;
   KernelLinkage ?= static ;
   UseGDK        ?= no ; # explicitly enabled later for xboxes
-  GdkVer        ?= 240602 ;
+  GdkVer        ?= 250401 ;
   GdkWinSdk     ?= 22621 ;
   PS4SdkVer     ?= 1050 ;
+  local 1200 = 1000 ;
+  local 1150 = 900 ;
   local 1050 = 700 ;
   local 850 = 300 ;
   PS4CrossGenSdkVer ?= $($(PS4SdkVer)) ;
@@ -64,7 +71,7 @@ if ! $(__DEFAULTS_INCLUDED) {
   iOSMinVer     ?= $(iOSVer) ;
   tvOSVer       ?= 11.4 ;
   tvOSMinVer    ?= $(tvOSVer) ;
-  AndroidNdkVer ?= r25c ;
+  AndroidNdkVer ?= r27c ;
   AndroidApiVer ?= 33 ;
   AndroidSdkTarget ?= $(AndroidApiVer) ;
   AndroidApiMinVer ?= 28 ;
@@ -90,7 +97,7 @@ if ! $(__DEFAULTS_INCLUDED) {
   BundleVersion ?= 1.0.0 ;
   ZstdVer       ?= 1.4.5 ;
   DbgDigest     ?= once ;  # once, min, max, stop
-  AgilitySdkVer ?= 1.614.1 ;
+  AgilitySdkVer ?= 1.616.1 ;
   AgsSdkVer     ?= 6.2.0 ;
   DefFreeTypeVer = 2.8 ;
   FreeTypeVer   ?= $(DefFreeTypeVer) ;
@@ -131,6 +138,7 @@ if ! $(__DEFAULTS_INCLUDED) {
   }
 
   if $(Platform) in macOS iOS { SSEVersion = ; } # use only default SSEVersion for these platforms
+  if $(Platform) in xboxOne scarlett ps4 ps5 { SSEVersion = 4 ; } # force SSE 4 for platforms that use -D_TARGET_SIMD_SSE=4
   if $(Platform) in macOS iOS || $(Platform)-$(PlatformArch) in windows-x86_64 linux-e2k {
     SSEVersion ?= 4 ;
   } else if $(Platform)-$(PlatformArch) = windows-x86 && $(Config) in dev dbg && $(PlatformSpec) != clang {
@@ -272,6 +280,10 @@ if ! $(__DEFAULTS_INCLUDED) {
       return $(target) ;
     }
 
+    if $(Fuzzer) != no {
+      target = $(target:B)-fuzz$(target:S) ;
+    }
+
     if $(Platform) = windows && $(UseGDK) != no {
       target = $(target:B)-gdk$(target:S) ;
     }
@@ -281,6 +293,7 @@ if ! $(__DEFAULTS_INCLUDED) {
       local thread = tsan ;
       local leak = lsan ;
       local undefined = ubsan ;
+      local memory = msan ;
       target = $(target:B)-$($(Sanitize))$(target:S) ;
     }
 
@@ -300,7 +313,7 @@ if ! $(__DEFAULTS_INCLUDED) {
       if $(Platform) in ps4 ps5 { return $(1).self ; }
       if $(Platform) in android { return $(1:B=)/$(1:B).apk ; }
     } else if $(type) = dll {
-      if $(Platform) in windows xboxOne { return $(1).dll ; }
+      if $(Platform) in windows xboxOne scarlett { return $(1).dll ; }
       if $(Platform) in ps4 ps5 { return $(1).prx ; }
       if $(Platform) in android { return $(1).so ; }
       if $(Platform) in iOS { return $(1).dylib ; }
@@ -410,7 +423,7 @@ if ! $(__DEFAULTS_INCLUDED) {
     }
     if $(ForceLogs) = yes {
       if $(Config) != rel { Exit why set ForceLogs=$(ForceLogs) for Config=$(Config) \!\= rel  ?? ; }
-      if ! -DDAGOR_FORCE_LOGS=1 in $(GlobalCPPopt) { GlobalCPPopt += -DDAGOR_FORCE_LOGS=1 ; }
+      if ! -DDAGOR_FORCE_LOGS in $(GlobalCPPopt) { GlobalCPPopt += -DDAGOR_FORCE_LOGS ; }
       out = $(out)~log ;
     }
     if $(Exceptions) != no {
@@ -448,6 +461,9 @@ if ! $(__DEFAULTS_INCLUDED) {
     if $(DisableFusion) = yes {
       GlobalCPPopt += -DDAS_FUSION=0 ;
       out = $(out)~nofn ;
+    }
+    if $(Fuzzer) != no {
+      out = $(out)~fuz ;
     }
 
     if $(NoMemBaseInclude) = yes {

@@ -28,6 +28,12 @@
 #include <rendInst/rendInstGenRender.h>
 #include <main/main.h>
 
+
+namespace var
+{
+static ShaderVariableInfo use_satellite_rendering{"use_satellite_rendering", true};
+}
+
 namespace WorldRenderSatellite
 {
 // current height of camera
@@ -35,7 +41,7 @@ CONSOLE_FLOAT_VAL("render_sat", height, 40);
 // fixed height of camera
 CONSOLE_FLOAT_VAL("render_sat", height_fixed, 40);
 // height offset from land if use_land_based_height_offset enabled
-CONSOLE_FLOAT_VAL("render_sat", height_ofs, 25);
+CONSOLE_FLOAT_VAL("render_sat", height_ofs, 40);
 // use offset from land height instead of constant height
 CONSOLE_BOOL_VAL("render_sat", use_land_based_height_offset, true);
 // size of targets in pixels
@@ -59,8 +65,37 @@ CONSOLE_INT_VAL("render_sat", zlevels, 5, 1, 10);
 // before saving result, wait for some frames for streaming to finish its nasty job
 CONSOLE_INT_VAL("render_sat", scan_settle_frames, 20, 3, 1000);
 
+struct ScopedCameraParams
+{
+  CameraParams originalCamera;
+  CameraParams &cameraRef;
+
+  ScopedCameraParams(CameraParams &orig) : cameraRef(orig), originalCamera(orig) {}
+
+  ~ScopedCameraParams() { cameraRef = originalCamera; }
+};
+
+struct ScopedShVars
+{
+  Color4 originalZnZfar;
+  Color4 originalWorldPos;
+
+  ScopedShVars(Point3 in_pos)
+  {
+    originalZnZfar = ShaderGlobal::get_color4(zn_zfarVarId);
+    originalWorldPos = ShaderGlobal::get_color4(world_view_posVarId);
+    ShaderGlobal::set_color4(world_view_posVarId, in_pos.x, in_pos.y, in_pos.z, 1);
+    ShaderGlobal::set_color4(zn_zfarVarId, zn, zf, 0, 0);
+  }
+
+  ~ScopedShVars()
+  {
+    ShaderGlobal::set_color4(zn_zfarVarId, originalZnZfar);
+    ShaderGlobal::set_color4(world_view_posVarId, originalWorldPos);
+  }
+};
 } // namespace WorldRenderSatellite
-extern int rendinstDepthSceneBlockId;
+extern ShaderBlockIdHolder rendinstDepthSceneBlockId;
 
 using namespace WorldRenderSatellite;
 
@@ -78,7 +113,6 @@ void SatelliteRenderer::ensureTargets()
 
   targetTex.close();
   targetTex = dag::create_tex(NULL, size, size, TEXCF_RTARGET | TEXFMT_DEFAULT, 1, "satellite_target");
-  targetTex->disableSampler();
 
   if (!riGenVisibility)
   {
@@ -114,36 +148,6 @@ void SatelliteRenderer::adjustRenderHeight(Point3 &in_pos, const CallbackParams 
   }
   in_pos.y = height;
 }
-
-struct ScopedCameraParams
-{
-  CameraParams originalCamera;
-  CameraParams &cameraRef;
-
-  ScopedCameraParams(CameraParams &orig) : cameraRef(orig), originalCamera(orig) {}
-
-  ~ScopedCameraParams() { cameraRef = originalCamera; }
-};
-
-struct ScopedShVars
-{
-  Color4 originalZnZfar;
-  Color4 originalWorldPos;
-
-  ScopedShVars(Point3 in_pos)
-  {
-    originalZnZfar = ShaderGlobal::get_color4(zn_zfarVarId);
-    originalWorldPos = ShaderGlobal::get_color4(world_view_posVarId);
-    ShaderGlobal::set_color4(world_view_posVarId, in_pos.x, in_pos.y, in_pos.z, 1);
-    ShaderGlobal::set_color4(zn_zfarVarId, zn, zf, 0, 0);
-  }
-
-  ~ScopedShVars()
-  {
-    ShaderGlobal::set_color4(zn_zfarVarId, originalZnZfar);
-    ShaderGlobal::set_color4(world_view_posVarId, originalWorldPos);
-  }
-};
 
 // todo: A copy from TiledMapContext, move to some common place
 eastl::string tileXYToQuadKey(int tileX, int tileY, int zoom)
@@ -221,8 +225,7 @@ void SatelliteRenderer::renderFromPos(Point3 in_pos, const CallbackParams &callb
   camera_params.jitterFrustum = frustum;
   camera_params.noJitterFrustum = frustum;
 
-  static int use_satellite_renderingVarId = get_shader_variable_id("use_satellite_rendering");
-  ShaderGlobal::set_int(use_satellite_renderingVarId, 1);
+  STATE_GUARD_0(ShaderGlobal::set_int(var::use_satellite_rendering, VALUE), 1);
 
   // start deferred pass
   {
@@ -230,7 +233,7 @@ void SatelliteRenderer::renderFromPos(Point3 in_pos, const CallbackParams &callb
     d3d::clearview(CLEAR_TARGET | CLEAR_ZBUFFER, 0, 0, 0);
     FRAME_LAYER_GUARD(globalFrameBlockId);
 
-    callback_params.renderLandmesh(globtm, frustum, in_pos);
+    callback_params.renderLandmesh(globtm, proj, frustum, in_pos);
 
     // RI+RIex visibility
     rendinst::prepareRIGenExtraVisibilityBox(boxCull, 0, 0, 0, *riGenVisibility, &actualBox);
@@ -264,8 +267,6 @@ void SatelliteRenderer::renderFromPos(Point3 in_pos, const CallbackParams &callb
     ShaderGlobal::set_texture(downsampled_far_depth_texVarId, renderTargetGbuf->getDepthId());
     callback_params.renderWater(targetTex.getBaseTex(), view_itm, renderTargetGbuf->getDepth());
   }
-
-  ShaderGlobal::set_int(use_satellite_renderingVarId, 0);
 
   // save if requested
   if (save)
@@ -338,7 +339,7 @@ void SatelliteRenderer::renderScripted(CameraParams &camera_params)
 
   // change camera pos to currently scanned position, to sync streaming and other stuff with ortho rendering
   TMatrix citm = get_cam_itm();
-  citm.col[3] = {x, height * 2, y};
+  citm.col[3] = {x, height * 1.1f, y};
   set_cam_itm(citm);
 
   scanSettleCheck(callbackParams.clipmapGetLastUpdatedTileCount());

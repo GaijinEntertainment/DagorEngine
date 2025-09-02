@@ -10,8 +10,11 @@
 #include <EASTL/internal/config.h>
 #include <EASTL/type_traits.h>
 #include <EASTL/iterator.h>
+#include <EASTL/numeric_limits.h>
+#include <EASTL/compare.h>
 #include <EASTL/internal/functional_base.h>
 #include <EASTL/internal/move_help.h>
+#include <EASTL/meta.h>
 #include <EABase/eahave.h>
 
 #include <EASTL/internal/integer_sequence.h>
@@ -22,8 +25,10 @@
 
 // 4619 - There is no warning number 'number'.
 // 4217 - Member template functions cannot be used for copy-assignment or copy-construction.
-// 4512 - 'class' : assignment operator could not be generated.  // This disabling would best be put elsewhere.
-EA_DISABLE_VC_WARNING(4619 4217 4512);
+// 4512/4626 - 'class' : assignment operator could not be generated.  // This disabling would best be put elsewhere.
+EA_DISABLE_VC_WARNING(4619 4217 4512 4626);
+// Error in string's swap (error: ...‘eastl::basic_string<char, eastl::allocator>::Layout::._anon_111::raw’ is used uninitialized [-Werror=uninitialized])
+EA_DISABLE_GCC_WARNING(-Wuninitialized);
 
 
 #if defined(EA_PRAGMA_ONCE_SUPPORTED)
@@ -31,10 +36,6 @@ EA_DISABLE_VC_WARNING(4619 4217 4512);
 #endif
 
 
-#if defined(__GNUC__) && !defined(__clang__)
-#	pragma GCC diagnostic push
-#	pragma GCC diagnostic ignored "-Wuninitialized" // Gaijin: false-positive unitialized warning in swap function
-#endif
 
 namespace eastl
 {
@@ -245,7 +246,7 @@ namespace eastl
 		typedef typename eastl::iterator_traits<ForwardIterator1>::reference  reference_a;
 		typedef typename eastl::iterator_traits<ForwardIterator2>::reference  reference_b;
 
-		eastl::iter_swap_impl<eastl::type_and<eastl::is_same<value_type_a, value_type_b>::value, eastl::is_same<value_type_a&, reference_a>::value, eastl::is_same<value_type_b&, reference_b>::value >::value >::iter_swap(a, b);
+		eastl::iter_swap_impl<eastl::conjunction<eastl::is_same<value_type_a, value_type_b>, eastl::is_same<value_type_a&, reference_a>, eastl::is_same<value_type_b&, reference_b>>::value >::iter_swap(a, b);
 	}
 
 
@@ -356,6 +357,90 @@ namespace eastl
 	}
 
 
+	#if defined(EA_COMPILER_CPP20_ENABLED)
+	///////////////////////////////////////////////////////////////////////
+	/// Safe Integral Comparisons
+	///
+	template <typename T, typename U>
+	EA_CONSTEXPR bool cmp_equal(const T x, const U y) EA_NOEXCEPT
+	{
+		// Assert types are not chars, bools, etc.
+		static_assert(eastl::is_integral_v<T> && !eastl::is_same_v<eastl::remove_cv_t<T>, bool> && !eastl::is_same_v<eastl::remove_cv_t<T>, char>);
+		static_assert(eastl::is_integral_v<U> && !eastl::is_same_v<eastl::remove_cv_t<U>, bool> && !eastl::is_same_v<eastl::remove_cv_t<U>, char>);
+
+		using UT = eastl::make_unsigned_t<T>;
+		using UU = eastl::make_unsigned_t<U>;
+
+		if constexpr (eastl::is_signed_v<T> == eastl::is_signed_v<U>)
+		{
+			return x == y;
+		}
+		else if (eastl::is_signed_v<T>)
+		{
+			return (x < 0) ? false : UT(x) == y;
+		}
+		else
+		{
+			return (y < 0) ? false : x == UU(y);
+		}
+	}
+
+
+	template <typename T, typename U>
+	EA_CONSTEXPR bool cmp_not_equal(const T x, const U y) EA_NOEXCEPT
+		{ return !eastl::cmp_equal(x, y); }
+
+
+	template <typename T, typename U>
+	EA_CONSTEXPR bool cmp_less(const T x, const U y) EA_NOEXCEPT
+	{
+		static_assert(eastl::is_integral_v<T> && !eastl::is_same_v<eastl::remove_cv_t<T>, bool> && !eastl::is_same_v<eastl::remove_cv_t<T>, char>);
+		static_assert(eastl::is_integral_v<U> && !eastl::is_same_v<eastl::remove_cv_t<U>, bool> && !eastl::is_same_v<eastl::remove_cv_t<U>, char>);
+
+		using UT = eastl::make_unsigned_t<T>;
+		using UU = eastl::make_unsigned_t<U>;
+
+		if constexpr (eastl::is_signed_v<T> == eastl::is_signed_v<U>)
+		{
+			return x < y;
+		}
+		else if (eastl::is_signed_v<T>)
+		{
+			return (x < 0) ? true : UT(x) < y;
+		}
+		else
+		{
+			return (y < 0) ? false : x < UU(y);
+		}
+	}
+
+
+	template <typename T, typename U>
+	EA_CONSTEXPR bool cmp_greater(const T x, const U y) EA_NOEXCEPT
+		{ return eastl::cmp_less(y, x); }
+
+
+	template <typename T, typename U>
+	EA_CONSTEXPR bool cmp_less_equal(const T x, const U y) EA_NOEXCEPT
+		{ return !eastl::cmp_greater(x, y); }
+
+
+	template <typename T, typename U>
+	EA_CONSTEXPR bool cmp_greater_equal(const T x, const U y) EA_NOEXCEPT
+		{ return !eastl::cmp_less(x, y); }
+
+
+	template <typename T, typename U>
+	EA_CONSTEXPR bool in_range(const U x) EA_NOEXCEPT
+	{
+		static_assert(eastl::is_integral_v<T> && !eastl::is_same_v<eastl::remove_cv_t<T>, bool> && !eastl::is_same_v<eastl::remove_cv_t<T>, char>);
+		static_assert(eastl::is_integral_v<U> && !eastl::is_same_v<eastl::remove_cv_t<U>, bool> && !eastl::is_same_v<eastl::remove_cv_t<U>, char>);
+
+		return eastl::cmp_greater_equal(x, eastl::numeric_limits<T>::min()) && eastl::cmp_less_equal(x, eastl::numeric_limits<T>::max());
+	}
+	#endif
+
+
 	///////////////////////////////////////////////////////////////////////
 	/// pair_first_construct
 	///
@@ -364,7 +449,7 @@ namespace eastl
 	struct pair_first_construct_t {};
 	EA_CONSTEXPR pair_first_construct_t pair_first_construct = pair_first_construct_t();
 
-
+	
 	///////////////////////////////////////////////////////////////////////
 	/// pair
 	///
@@ -436,7 +521,7 @@ namespace eastl
 		//	
 		// error: 'eastl::pair<T1, T2>::pair(T1&&) [with T1 = const int&; T2 = const int&]' cannot be overloaded	
 		// error: with 'eastl::pair<T1, T2>::pair(const T1&) [with T1 = const int&; T2 = const int&]'
-		#if /*!defined(EA_COMPILER_GNUC)*/ 0 // Gaijin: not MSVC2015 nor ps4 clang (3.8.1) can't compile this
+		#if !defined(EA_COMPILER_GNUC)
 			template <typename TT2 = T2, typename = single_pair_ctor_sfinae<TT2>>
 			EA_CPP14_CONSTEXPR pair(pair_first_construct_t, T1&& x)
 				: first(eastl::move(x)), second()
@@ -455,6 +540,8 @@ namespace eastl
 
 		EA_CPP14_CONSTEXPR pair(pair&& p) = default;
 		EA_CPP14_CONSTEXPR pair(const pair&) = default;
+		EA_CPP14_CONSTEXPR pair& operator=(const pair&) = default;
+		EA_CPP14_CONSTEXPR pair& operator=(pair&&) = default;
 
 		template <
 		    typename U,
@@ -522,14 +609,6 @@ namespace eastl
 		}
 
 	public:
-		pair& operator=(const pair& p)
-		    EA_NOEXCEPT_IF(eastl::is_nothrow_copy_assignable_v<T1>&& eastl::is_nothrow_copy_assignable_v<T2>)
-		{
-			first = p.first;
-			second = p.second;
-			return *this;
-		}
-
 		template <typename U,
 		          typename V,
 		          typename = eastl::enable_if_t<eastl::is_convertible_v<U, T1> && eastl::is_convertible_v<V, T2>>>
@@ -537,14 +616,6 @@ namespace eastl
 		{
 			first = p.first;
 			second = p.second;
-			return *this;
-		}
-
-		pair& operator=(pair&& p)
-		    EA_NOEXCEPT_IF(eastl::is_nothrow_move_assignable_v<T1>&& eastl::is_nothrow_move_assignable_v<T2>)
-		{
-			first = eastl::forward<T1>(p.first);
-			second = eastl::forward<T2>(p.second);
 			return *this;
 		}
 
@@ -580,7 +651,7 @@ namespace eastl
 	/// generic programming.
 	///
 	template <typename T>
-	struct use_self             // : public unary_function<T, T> // Perhaps we want to make it a subclass of unary_function.
+	struct use_self
 	{
 		typedef T result_type;
 
@@ -611,7 +682,7 @@ namespace eastl
 	/// This is the same thing as the SGI SGL select2nd utility
 	///
 	template <typename Pair>
-	struct use_second           // : public unary_function<Pair, typename Pair::second_type> // Perhaps we want to make it a subclass of unary_function.
+	struct use_second
 	{
 		typedef Pair argument_type;
 		typedef typename Pair::second_type result_type;
@@ -634,7 +705,17 @@ namespace eastl
 		return ((a.first == b.first) && (a.second == b.second));
 	}
 
-
+	#if defined(EA_COMPILER_HAS_THREE_WAY_COMPARISON)
+	template <typename T1, typename T2>
+	EA_CONSTEXPR inline std::common_comparison_category_t<synth_three_way_result<T1>, synth_three_way_result<T2>> operator<=>(const pair<T1, T2>& a, const pair<T1, T2>& b)
+	{
+		if (auto result = synth_three_way{}(a.first, b.first); result != 0)
+		{
+			return result;
+		}
+		return synth_three_way{}(a.second, b.second);
+	}
+	#else
 	template <typename T1, typename T2>
 	EA_CPP14_CONSTEXPR inline bool operator<(const pair<T1, T2>& a, const pair<T1, T2>& b)
 	{
@@ -672,25 +753,23 @@ namespace eastl
 	{
 		return !(b < a);
 	}
-
+	#endif
 
 
 
 	///////////////////////////////////////////////////////////////////////
-	/// make_pair / make_pair_ref
+	/// make_pair
 	///
-	/// make_pair is the same as std::make_pair specified by the C++ standard.
-	/// If you look at the C++ standard, you'll see that it specifies T& instead of T.
-	/// However, it has been determined that the C++ standard is incorrect and has 
-	/// flagged it as a defect (http://www.open-std.org/jtc1/sc22/wg21/docs/lwg-defects.html#181).
-	/// In case you feel that you want a more efficient version that uses references,
-	/// we provide the make_pair_ref function below, though C++11 move support
-	/// makes that no longer necessary.
+	/// Create a pair, deducing the element types from the types of arguments.
 	/// 
-	/// Note: You don't usually need to use make_pair in order to make a pair. 
-	/// The following code is equivalent, and the latter avoids one more level of inlining:
-	///     return make_pair(charPtr, charPtr);
-	///     return pair<char*, char*>(charPtr, charPtr);
+	/// Note: You don't need to use make_pair in order to make a pair, it's a convenience for deducing the element types. 
+	/// C++17's class template argument deduction (https://en.cppreference.com/w/cpp/language/class_template_argument_deduction)
+	/// performs the same purpose as make_unique, make_tuple and similar.
+	/// 
+	/// The following code all declare pairs of the same type:
+	///     pair<char*, char*> p1(1, "explicit");
+	///     auto p2 = make_pair(2, "deduce types");
+	///     pair p3(3, "language feature"); // requires C++17
 	///
 	template <typename T1, typename T2>
 	EA_CPP14_CONSTEXPR inline pair<typename eastl::remove_reference_wrapper<typename eastl::decay<T1>::type>::type, 
@@ -704,24 +783,31 @@ namespace eastl
 	}
 
 
-	// Without the following, VC++ fails to compile code like this: pair<const char*, int> p = eastl::make_pair<const char*, int>("hello", 0);
-	// We define a const reference version alternative to the above. "hello" is of type char const(&)[6] (array of 6 const chars), 
-	// but VC++ decays it to const char* and allows this make_pair to be called with that. VC++ fails below with make_pair("hello", "people") 
-	// because you can't assign arrays and until we have a better solution we just disable this make_pair specialization for when T1 or T2 
-	// are of type char const(&)[].
-	#if defined(_MSC_VER)
-		template <typename T1, typename T2>
-		EA_CPP14_CONSTEXPR inline pair<T1, T2> make_pair(
-			const T1& a,
-			const T2& b,
-			typename eastl::enable_if<!eastl::is_array<T1>::value && !eastl::is_array<T2>::value>::type* = 0)
-		{
-			return eastl::pair<T1, T2>(a, b);
-		}
-    #endif
+	// Note: DO NOT pass type parameters to make_pair().
+	// eg.
+	//   const int myInt = 0;
+	//   const char* myCStr = "example";
+	//   auto pair1 = eastl::make_pair<int, eastl::string>(myInt, myCStr);
+	//                                ^^^^^^^^^^^^^^^^^^^^--- wrong.
+	// 
+	// use one of the following, depending on the intended pair type: 
+	//   eastl::pair<int, const char*> pair2 = eastl::make_pair(myInt, myCStr);
+	//   eastl::pair<int, eastl::string> pair3(myInt, myCStr);
+	//
+#if defined(_MSC_VER)
+	template <typename T1, typename T2, typename DeduceT1, typename DeduceT2>
+	EASTL_REMOVE_AT_2024_SEPT EA_CPP14_CONSTEXPR inline pair<T1, T2> make_pair(
+		const DeduceT1& a,
+		const DeduceT2& b,
+		typename eastl::enable_if<!eastl::is_array<T1>::value && !eastl::is_array<T2>::value>::type* = 0)
+	{
+		return eastl::pair<T1, T2>(a, b);
+	}
+#endif
 
-	// For backwards compatibility
+	// use make_pair() instead. they are equivalent.
 	template <typename T1, typename T2>
+	EASTL_REMOVE_AT_2024_SEPT
 	EA_CPP14_CONSTEXPR inline pair<typename eastl::remove_reference_wrapper<typename eastl::decay<T1>::type>::type, 
 								   typename eastl::remove_reference_wrapper<typename eastl::decay<T2>::type>::type>
 	make_pair_ref(T1&& a, T2&& b)
@@ -735,106 +821,175 @@ namespace eastl
 #if EASTL_TUPLE_ENABLED
 
 		template <typename T1, typename T2>
-		class tuple_size<pair<T1, T2>> : public integral_constant<size_t, 2>
+		struct tuple_size<pair<T1, T2>> : public integral_constant<size_t, 2>
 		{
 		};
 
 		template <typename T1, typename T2>
-		class tuple_size<const pair<T1, T2>> : public integral_constant<size_t, 2>
+		struct tuple_size<const pair<T1, T2>> : public integral_constant<size_t, 2>
 		{
 		};
 
 		template <typename T1, typename T2>
-		class tuple_element<0, pair<T1, T2>>
+		struct tuple_element<0, pair<T1, T2>>
 		{
 		public:
 			typedef T1 type;
 		};
 
 		template <typename T1, typename T2>
-		class tuple_element<1, pair<T1, T2>>
+		struct tuple_element<1, pair<T1, T2>>
 		{
 		public:
 			typedef T2 type;
 		};
 
 		template <typename T1, typename T2>
-		class tuple_element<0, const pair<T1, T2>>
+		struct tuple_element<0, const pair<T1, T2>>
 		{
 		public:
 			typedef const T1 type;
 		};
 
 		template <typename T1, typename T2>
-		class tuple_element<1, const pair<T1, T2>>
+		struct tuple_element<1, const pair<T1, T2>>
 		{
 		public:
 			typedef const T2 type;
 		};
 
-		template <size_t I>
-		struct GetPair;
-
-		template <>
-		struct GetPair<0>
+		namespace internal
 		{
-			template <typename T1, typename T2>
-			static EA_CONSTEXPR T1& getInternal(pair<T1, T2>& p)
-			{
-				return p.first;
-			}
+			template <size_t I>
+			struct GetPair;
 
-			template <typename T1, typename T2>
-			static EA_CONSTEXPR const T1& getInternal(const pair<T1, T2>& p)
+			template <>
+			struct GetPair<0>
 			{
-				return p.first;
-			}
+				template <typename T1, typename T2>
+				static EA_CONSTEXPR T1& get(pair<T1, T2>& p)
+				{
+					return p.first;
+				}
 
-			template <typename T1, typename T2>
-			static EA_CONSTEXPR T1&& getInternal(pair<T1, T2>&& p)
-			{
-				return eastl::forward<T1>(p.first);
-			}
-		};
+				template <typename T1, typename T2>
+				static EA_CONSTEXPR const T1& get(const pair<T1, T2>& p)
+				{
+					return p.first;
+				}
 
-		template <>
-		struct GetPair<1>
-		{
-			template <typename T1, typename T2>
-			static EA_CONSTEXPR T2& getInternal(pair<T1, T2>& p)
-			{
-				return p.second;
-			}
+				template <typename T1, typename T2>
+				static EA_CONSTEXPR T1&& get(pair<T1, T2>&& p)
+				{
+					return eastl::forward<T1>(p.first);
+				}
 
-			template <typename T1, typename T2>
-			static EA_CONSTEXPR const T2& getInternal(const pair<T1, T2>& p)
-			{
-				return p.second;
-			}
+				template <typename T1, typename T2>
+				static EA_CONSTEXPR const T1&& get(const pair<T1, T2>&& p)
+				{
+					return eastl::forward<const T1>(p.first);
+				}
+			};
 
-			template <typename T1, typename T2>
-			static EA_CONSTEXPR T2&& getInternal(pair<T1, T2>&& p)
+			template <>
+			struct GetPair<1>
 			{
-				return eastl::forward<T2>(p.second);
-			}
-		};
+				template <typename T1, typename T2>
+				static EA_CONSTEXPR T2& get(pair<T1, T2>& p)
+				{
+					return p.second;
+				}
+
+				template <typename T1, typename T2>
+				static EA_CONSTEXPR const T2& get(const pair<T1, T2>& p)
+				{
+					return p.second;
+				}
+
+				template <typename T1, typename T2>
+				static EA_CONSTEXPR T2&& get(pair<T1, T2>&& p)
+				{
+					return eastl::forward<T2>(p.second);
+				}
+
+				template <typename T1, typename T2>
+				static EA_CONSTEXPR const T2&& get(const pair<T1, T2>&& p)
+				{
+					return eastl::forward<const T2>(p.second);
+				}
+			};
+		} // namespace internal
 
 		template <size_t I, typename T1, typename T2>
-		tuple_element_t<I, pair<T1, T2>>& get(pair<T1, T2>& p)
+		EA_CPP14_CONSTEXPR tuple_element_t<I, pair<T1, T2>>& get(pair<T1, T2>& p)
 		{
-			return GetPair<I>::getInternal(p);
+			return internal::GetPair<I>::get(p);
 		}
 
 		template <size_t I, typename T1, typename T2>
-		const tuple_element_t<I, pair<T1, T2>>& get(const pair<T1, T2>& p)
+		EA_CPP14_CONSTEXPR const tuple_element_t<I, pair<T1, T2>>& get(const pair<T1, T2>& p)
 		{
-			return GetPair<I>::getInternal(p);
+			return internal::GetPair<I>::get(p);
 		}
 
 		template <size_t I, typename T1, typename T2>
-		tuple_element_t<I, pair<T1, T2>>&& get(pair<T1, T2>&& p)
+		EA_CPP14_CONSTEXPR tuple_element_t<I, pair<T1, T2>>&& get(pair<T1, T2>&& p)
 		{
-			return GetPair<I>::getInternal(eastl::move(p));
+			return internal::GetPair<I>::get(eastl::move(p));
+		}
+
+		template <size_t I, typename T1, typename T2>
+		EA_CPP14_CONSTEXPR const tuple_element_t<I, pair<T1, T2>>&& get(const pair<T1, T2>&& p)
+		{
+			return internal::GetPair<I>::get(eastl::move(p));
+		}
+
+		template <typename T1, typename T2>
+		EA_CONSTEXPR T1& get(pair<T1, T2>& p) EA_NOEXCEPT
+		{
+			return internal::GetPair<0>::get(p);
+		}
+
+		template <typename T2, typename T1>
+		EA_CONSTEXPR T2& get(pair<T1, T2>& p) EA_NOEXCEPT
+		{
+			return internal::GetPair<1>::get(p);
+		}
+
+		template <typename T1, typename T2>
+		EA_CONSTEXPR const T1& get(const pair<T1, T2>& p) EA_NOEXCEPT
+		{
+			return internal::GetPair<0>::get(p);
+		}
+
+		template <typename T2, typename T1>
+		EA_CONSTEXPR const T2& get(const pair<T1, T2>& p) EA_NOEXCEPT
+		{
+			return internal::GetPair<1>::get(p);
+		}
+
+		template <typename T1, typename T2>
+		EA_CONSTEXPR T1&& get(pair<T1, T2>&& p) EA_NOEXCEPT
+		{
+			return internal::GetPair<0>::get(eastl::move(p));
+		}
+
+		template <typename T2, typename T1>
+		EA_CONSTEXPR T2&& get(pair<T1, T2>&& p) EA_NOEXCEPT
+		{
+			return internal::GetPair<1>::get(eastl::move(p));
+		}
+
+		template <typename T1, typename T2>
+		EA_CONSTEXPR const T1&& get(const pair<T1, T2>&& p) EA_NOEXCEPT
+		{
+			return internal::GetPair<0>::get(eastl::move(p));
+		}
+
+		template <typename T2, typename T1>
+		EA_CONSTEXPR const T2&& get(const pair<T1, T2>&& p) EA_NOEXCEPT
+		{
+			return internal::GetPair<1>::get(eastl::move(p));
 		}
 
 #endif  // EASTL_TUPLE_ENABLED
@@ -842,39 +997,31 @@ namespace eastl
 
 }  // namespace eastl
 
-#if defined(__GNUC__) && !defined(__clang__)
-# pragma GCC diagnostic pop // Gaijin: false-positive unitialized warning in swap function
-#endif
-
 ///////////////////////////////////////////////////////////////
 // C++17 structured bindings support for eastl::pair
 //
 #ifndef EA_COMPILER_NO_STRUCTURED_BINDING
-	#include <tuple>
+// we can't forward declare tuple_size and tuple_element because some std implementations
+// don't declare it in the std namespace, but instead alias it.
+#include <utility>
+
 	namespace std
 	{
-		// NOTE(rparolin): Some platform implementations didn't check the standard specification and implemented the
-		// "tuple_size" and "tuple_element" primary template with as a struct.  The standard specifies they are
-		// implemented with the class keyword so we provide the template specializations as a class and disable the
-		// generated warning.
-		EA_DISABLE_CLANG_WARNING(-Wmismatched-tags)
-
 		template <class... Ts>
-		class tuple_size<::eastl::pair<Ts...>> : public ::eastl::integral_constant<size_t, sizeof...(Ts)>
+		struct tuple_size<::eastl::pair<Ts...>> : public ::eastl::integral_constant<size_t, sizeof...(Ts)>
 		{
 		};
 
 		template <size_t I, class... Ts>
-		class tuple_element<I, ::eastl::pair<Ts...>> : public ::eastl::tuple_element<I, ::eastl::pair<Ts...>>
+		struct tuple_element<I, ::eastl::pair<Ts...>> : public ::eastl::tuple_element<I, ::eastl::pair<Ts...>>
 		{
 		};
-
-		EA_RESTORE_CLANG_WARNING()
 	}
 #endif
 
 
 EA_RESTORE_VC_WARNING();
+EA_RESTORE_GCC_WARNING();
 
 
 #endif // Header include guard

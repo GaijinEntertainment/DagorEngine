@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <gameRes/dag_stdGameRes.h>
+#include <gameRes/dag_gameResHooks.h>
 #include <util/dag_fileMd5Validate.h>
 #include <ioSys/dag_chainedMemIo.h>
 #include <ioSys/dag_dataBlock.h>
@@ -9,6 +10,8 @@
 
 void gameres_append_desc(DataBlock &desc, const char *desc_fn, const char *pkg_folder, bool allow_override)
 {
+  if (gamereshooks::on_gameres_pack_load_confirm && !gamereshooks::on_gameres_pack_load_confirm(desc_fn, false))
+    return;
   if (dd_file_exists(desc_fn) && !desc.getBool(pkg_folder, false))
   {
     DataBlock blk;
@@ -55,6 +58,8 @@ void gameres_append_desc(DataBlock &desc, const char *desc_fn, const char *pkg_f
 }
 void gameres_patch_desc(DataBlock &desc, const char *patch_desc_fn, const char *pkg_folder, const char *desc_fn)
 {
+  if (gamereshooks::on_gameres_pack_load_confirm && !gamereshooks::on_gameres_pack_load_confirm(patch_desc_fn, false))
+    return;
   if (dd_file_exists(patch_desc_fn))
   {
     DataBlock blk;

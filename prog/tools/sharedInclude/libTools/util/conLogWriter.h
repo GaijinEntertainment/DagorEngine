@@ -14,9 +14,9 @@ class ConsoleLogWriter : public ILogWriter
 public:
   ConsoleLogWriter() : err(false) {}
 
-  virtual void addMessageFmt(MessageType type, const char *fmt, const DagorSafeArg *arg, int anum);
-  virtual bool hasErrors() const { return err; }
+  void addMessageFmt(MessageType type, const char *fmt, const DagorSafeArg *arg, int anum) override;
+  bool hasErrors() const override { return err; }
 
-  virtual void startLog() {}
-  virtual void endLog() {}
+  void startLog() override {}
+  void endLog() override {}
 };

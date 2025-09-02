@@ -3,7 +3,7 @@ require ecs
 require soundSystem
 require soundEvent
 require DagorConsole
-require app
+require app // get_sync_time
 
 
 [console_cmd(name="snd.debug_positioning")]

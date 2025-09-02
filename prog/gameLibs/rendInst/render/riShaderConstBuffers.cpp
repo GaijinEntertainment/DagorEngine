@@ -129,9 +129,9 @@ void RiShaderConstBuffers::setRadiusFade(float radius, float drown_scale)
   consts.ao_mul__inv_height = v_perm_xycd(consts.ao_mul__inv_height, radius_drownScale);
 }
 
-void RiShaderConstBuffers::setInteractionParams(float hardness, float rendinst_height, float center_x, float center_z)
+void RiShaderConstBuffers::setInteractionParams(float softness, float rendinst_height, float center_x, float center_z)
 {
-  consts.rendinst_interaction_params = v_make_vec4f(hardness, rendinst_height, center_x, center_z);
+  consts.rendinst_interaction_params = v_make_vec4f(softness, rendinst_height, center_x, center_z);
 }
 
 void RiShaderConstBuffers::flushPerDraw() const

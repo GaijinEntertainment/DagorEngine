@@ -8,11 +8,12 @@
 #define CFG_GLOBAL_NAME   _T("_global_params")
 #define CFG_SETTINGS_NAME _T("_settings")
 
-#define CFG_PARAM_TEXT  _T("text ")
-#define CFG_PARAM_REAL  _T("real ")
-#define CFG_PARAM_RANGE _T("real(")
-#define CFG_PARAM_ENUM  _T("enum(")
-#define CFG_PARAM_COLOR _T("color ")
+#define CFG_PARAM_TEXT  _T("text")
+#define CFG_PARAM_BOOL  _T("bool")
+#define CFG_PARAM_INT   _T("int")
+#define CFG_PARAM_REAL  _T("real")
+#define CFG_PARAM_ENUM  _T("enum")
+#define CFG_PARAM_COLOR _T("color")
 
 #define CFG_PARAM_GLOBAL   _T("global")
 #define CFG_PARAM_OPTIONAL _T("optional")
@@ -28,11 +29,13 @@
 #define CFG_COMMON   0
 #define CFG_OPTIONAL 1
 
-#define CFG_TEXT  0
-#define CFG_REAL  1
-#define CFG_RANGE 2
-#define CFG_ENUM  3
-#define CFG_COLOR 4
+#define CFG_UNKNOWN (-1)
+#define CFG_TEXT    0
+#define CFG_BOOL    1
+#define CFG_INT     2
+#define CFG_REAL    3
+#define CFG_ENUM    4
+#define CFG_COLOR   5
 
 typedef std::vector<M_STD_STRING> StringVector;
 

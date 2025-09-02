@@ -82,12 +82,48 @@ macro USE_IN_FRUSTUM_GI(code)
 
       } else*/
       {
-        get_directional_ambient(ambient, worldViewPos, screenUV, linearDepth, worldPos, diffuseDir, toCameraDir, toCameraDist, filteringNormal, noise);
-        #if DAGI_IRRADIANCE_GRID_TYPE != DAGI_IRRADIANCE_GRID_TYPE_SKYVIS
-        return get_directional_radiance(radiance, worldViewPos, screenUV, linearDepth, worldPos, radianceDir, toCameraDir, toCameraDist, filteringNormal, noise);
-        #else
-        return false;
+
+        #if DAGI_IRRADIANCE_GRID_TYPE == DAGI_IRRADIANCE_GRID_TYPE_AUTO
+        bool isSkyVis = dagi_irrad_is_sky_vis();
+        #elif DAGI_IRRADIANCE_GRID_TYPE == DAGI_IRRADIANCE_GRID_TYPE_IRRADIANCE
+        bool isSkyVis  = false;
+        #elif DAGI_IRRADIANCE_GRID_TYPE == DAGI_IRRADIANCE_GRID_TYPE_SKYVIS
+        bool isSkyVis  = true;
         #endif
+
+        if (!isSkyVis)
+        {
+          get_directional_ambient(ambient, worldViewPos, screenUV, linearDepth, worldPos, diffuseDir, toCameraDir, toCameraDist, filteringNormal, noise);
+          return get_directional_radiance(radiance, worldViewPos, screenUV, linearDepth, worldPos, radianceDir, toCameraDir, toCameraDist, filteringNormal, noise);
+        } else
+        {
+          uint cascade; float3 coordF; float vignette;
+          if (!dagi_irrad_grid_diffuse_biased_smooth_cascade(worldViewPos, worldPos, toCameraDir, toCameraDist, filteringNormal, noise, cascade, coordF, vignette))
+            return false;
+          //optimize me
+          float4 sh1 = dagi_irrad_grid_get_irradiance_sh1_encoded(dagi_irrad_grid_abs_coord_to_atlas_tc(cascade, coordF)).directional;
+          half3 ambientBase = GetSHFunctionValueSimple(diffuseDir, skyVis_enviSPH0*sh1.wyzx, skyVis_enviSPH1*sh1.wyzx, skyVis_enviSPH2*sh1.wyzx);
+
+          float4 sh1N = 1;
+          float3 nextLt = dagi_irrad_grid_abs_coord_lt(cascade + 1u);
+          FLATTEN
+          if (cascade + 1u < dagi_irrad_grid_get_clip_count())
+          {
+            ambient = ambientBase;
+            sh1N = sh1;
+          }
+          coordF = coordF*0.5 - nextLt;
+          BRANCH
+          if (all(and(coordF > 0, coordF < float3(dagi_irrad_grid_get_clip_size().xxy))) && vignette > 0)
+          {
+            sh1N = dagi_irrad_grid_get_irradiance_sh1_encoded(dagi_irrad_grid_abs_coord_to_atlas_tc(cascade+1, nextLt + clamp(coordF, 0.5, dagi_irrad_grid_get_clip_size().xxy - 0.5))).directional;
+            ambient = GetSHFunctionValueSimple(diffuseDir, skyVis_enviSPH0*sh1N.wyzx, skyVis_enviSPH1*sh1N.wyzx, skyVis_enviSPH2*sh1N.wyzx);
+          }
+          ambient = lerp(ambientBase, ambient, vignette);
+          sh1 = lerp(sh1, sh1N, vignette);
+          radiance *= saturate(dot(sh1, float4(1, radianceDir.yzx)));
+          return false;
+        }
       }
     }
   }

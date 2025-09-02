@@ -12,7 +12,7 @@
 #include <gui/dag_stdGuiRender.h>
 #include <3d/dag_picMgr.h>
 
-#include "game/team.h"
+#include "ecs/game/generic/team.h"
 #include "render/renderEvent.h"
 
 class MinimapContext

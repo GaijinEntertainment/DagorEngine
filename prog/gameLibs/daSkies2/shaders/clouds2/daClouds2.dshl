@@ -12,6 +12,7 @@ include "panorama.dshl"
 include "skies_special_vision.dshl"
 include "renderSkiesInc.dshl"
 include "tonemapHelpers/use_full_tonemap_lut_inc.dshl"
+include "camera_in_camera.dshl"
 
 texture clouds_field_volume_low;
 float4 clouds_field_res;//.xy - xz&y of res, .zw - xz&y of target res
@@ -27,10 +28,17 @@ int clouds_panorama_frame;
 float4 nuke_light_color;
 float4 nuke_light_pos;
 
+
+int clouds_use_legacy_tracing = 0; // for testing, will be removed
+interval clouds_use_legacy_tracing: no < 1, yes;
+
+
 //the higher the better quality is. but after 4 it doesn't really changes.
 //If you fly in clouds, use pow-of-2 (i.e 1,2,4), otherwise you will get some blinking due to fp precision and rounding errors
 float clouds_steps_per_sequence = 2;//2 is default, 4 is excellent
 float4 clouds_trace_steps = (256, 64, 0, 0);    // x - at horizon, y - at zenith
+
+float clouds_blend_fadeout_start = 0.95;
 
 float4 lightning_point_light_pos = (0, 0, 0, 0);
 float4 lightning_point_light_color = (0.8, 0.8, 0.8, 0);
@@ -64,7 +72,7 @@ macro RAYCAST_CLOUDS(code)
       #define DUAL_PANORAMA 1
       #include <panorama_samples.hlsli>
     ##endif
-    ##if shader == clouds2_direct || shader == clouds2_direct_cs
+    ##if shader == clouds2_direct
       #define HAS_DEPTH_TARGET 0
       #define TEMPORAL_REPROJECTION 0
       #define INFINITE_SKIES 1
@@ -84,33 +92,20 @@ macro RAYCAST_CLOUDS(code)
   }
 
   hlsl {
-    //settings
-    #define WEIGHTED_ATMOSPHERE_SCATTERING_SEQUENCE 3//For planes better use WEIGHTED_ATMOSPHERE_SCATTERING_SEQUENCE.
-    #define WEIGHTED_ATMOSPHERE_SCATTERING_ONCE 2//produces some artefacts when clouds visible through clouds. For planes better use WEIGHTED_ATMOSPHERE_SCATTERING_SEQUENCE, for panorama/view from ground is good enough
-    #define WEIGHTED_ATMOSPHERE_SCATTERING_NONE 0//No atmosphere
+    #define WEIGHTED_ATMOSPHERE_SCATTERING_SEQUENCE 2//For planes better use WEIGHTED_ATMOSPHERE_SCATTERING_SEQUENCE.
+    #define WEIGHTED_ATMOSPHERE_SCATTERING_ONCE 1//produces some artefacts when clouds visible through clouds. For planes better use WEIGHTED_ATMOSPHERE_SCATTERING_SEQUENCE, for panorama/view from ground is good enough
 
-    //#define CAN_BE_IN_CLOUDS 0//For panorama and 'shooter' mode (tank/ship)
-    //#define CLOUDS_JUST_ONE_SEQUENCE 1//if we are not flying through clouds, stability isn't a concern. But that's way faster. For panorama and 'shooter' mode (tank/ship) (CAN_BE_IN_CLOUDS  = 1) after defined
+    // CLOUDS_JUST_ONE_SEQUENCE: if we are not flying through clouds, stability isn't a concern. But that's way faster. For panorama and 'shooter' mode (tank/ship) (CAN_BE_IN_CLOUDS  = 1) after defined
 
    //panorama
    #if DUAL_PANORAMA
-     //#define WEIGHTED_ATMOSPHERE_SCATTERING WEIGHTED_ATMOSPHERE_SCATTERING_ONCE
      #define CLOUDS_FIXED_LOD 1
-     #define CAN_BE_IN_CLOUDS 1//panorama should not be rendered FROM clouds//todo: remove me!
-     //#define CLOUDS_STATE 0//below clouds
+     #define CAN_BE_IN_CLOUDS 0
      #define CLOUDS_LIGHT_SAMPLES 6
      #define INFINITE_SKIES 1//don't sample depth
      #define DUAL_PANORAMA 1
      #define WEIGHTED_ATMOSPHERE_SCATTERING WEIGHTED_ATMOSPHERE_SCATTERING_SEQUENCE
-     #define CLOUDS_JUST_ONE_SEQUENCE 1//?
-   #elif defined(CAN_BE_IN_CLOUDS) && !CAN_BE_IN_CLOUDS
-     //we don't need variance clipping for that, and can immedieately reproject
-     #define WEIGHTED_ATMOSPHERE_SCATTERING WEIGHTED_ATMOSPHERE_SCATTERING_ONCE
-     #define CLOUDS_FIXED_LOD 1
-     //#define CLOUDS_STATE 0//below clouds
-     #define CLOUDS_LIGHT_SAMPLES 6
      #define CLOUDS_JUST_ONE_SEQUENCE 1
-     //#error not supported yet
    #else
      //flying through clouds - temporal + close
      #define CLOUDS_LIGHT_SAMPLES 6
@@ -125,7 +120,7 @@ macro RAYCAST_CLOUDS(code)
      #endif
 
      #if !JUST_CLOSE_SEQUENCE
-       #define WEIGHTED_ATMOSPHERE_SCATTERING WEIGHTED_ATMOSPHERE_SCATTERING_SEQUENCE//WEIGHTED_ATMOSPHERE_SCATTERING_ONCE
+       #define WEIGHTED_ATMOSPHERE_SCATTERING WEIGHTED_ATMOSPHERE_SCATTERING_SEQUENCE
        #define CLOUDS_FIXED_LOD 0
        #define CLOUDS_CHECK_ALT_FRACTION_IS_OUT (!_HARDWARE_XBOX && !_HARDWARE_PS4 && !_HARDWARE_PS5)//on nvidia it seems to help a bit, for unknown reason
        #define RENDER_TO_TAA_SPACE TEMPORAL_REPROJECTION
@@ -143,27 +138,6 @@ macro RAYCAST_CLOUDS(code)
        #define SIMPLIFIED_ALT_FRACTION 1//difference is small. we can assume it is not changing
      #endif
     #endif
-
-    /*#undef CLOUDS_JUST_ONE_SEQUENCE
-    #undef WEIGHTED_ATMOSPHERE_SCATTERING
-    #define CLOUDS_JUST_ONE_SEQUENCE 1
-    #define WEIGHTED_ATMOSPHERE_SCATTERING WEIGHTED_ATMOSPHERE_SCATTERING_ONCE*/
-
-    //#if CLOUDS_JUST_ONE_SEQUENCE ==1 && WEIGHTED_ATMOSPHERE_SCATTERING != WEIGHTED_ATMOSPHERE_SCATTERING_ONCE
-    //  #error invalid combination
-    //#endif
-
-    //if we can't use panorama, but we are definetly below clouds (i.e. looking from ground)
-    /*#define CLOUDS_JUST_ONE_SEQUENCE 1
-    #if CLOUDS_JUST_ONE_SEQUENCE
-      #undef CLOUDS_LIGHT_SAMPLES
-      #define CLOUDS_LIGHT_SAMPLES 6
-
-      #undef WEIGHTED_ATMOSPHERE_SCATTERING
-      #define WEIGHTED_ATMOSPHERE_SCATTERING WEIGHTED_ATMOSPHERE_SCATTERING_ONCE
-    #endif*/
-
-    //end of settings
   }
   if (shader == clouds2_close_temporal_ps || shader == clouds2_close_temporal_cs)
   {
@@ -171,7 +145,7 @@ macro RAYCAST_CLOUDS(code)
   } else if (shader == clouds2_temporal_ps || shader == clouds2_temporal_cs)
   {
     USE_CLOUDS_DISTANCE(code)
-    (code) {clouds_has_close_sequence@f1 = (clouds_has_close_sequence*(1-clouds_infinite_skies),0,0,0);}
+    (code) {clouds_has_close_sequence@f1 = clouds_has_close_sequence;}
   } else if (shader == clouds2_direct)
   {
     hlsl(code){static const bool clouds_has_close_sequence = false;}
@@ -188,20 +162,17 @@ macro RAYCAST_CLOUDS(code)
     SAMPLE_CLOUDS_DENSITY_TEXTURE(code, offseted_view_pos)
   }
 
-  //CLOUDS_MULTIPLE_SCATTERING(code)
   INIT_ZNZFAR_STAGE(code)
   (code) {
     skies_world_view_pos@f3 = (skies_world_view_pos.x, max(skies_world_view_pos.y, 10.-min_ground_offset), skies_world_view_pos.z, 0);
     clouds_start_trace_base@f3 = (offseted_view_pos);
+    clouds_min_apply_dist@f1 = clouds_min_apply_dist;
   }
   if (shader != clouds_panorama && shader != clouds_alpha_panorama)
   {
-    (code) { clouds_offset@f1 = (clouds_offset); }
     (code) {
+      clouds_offset@f1 = (clouds_offset);
       steps_per_sequence@f1 = (16*max(1, clouds_steps_per_sequence),0,0,0);//can be independent parameter. but better be pow2
-    }
-    hlsl(code) {
-      #define USE_FROXELS_FOG 1
     }
   } else
   {
@@ -215,20 +186,18 @@ macro RAYCAST_CLOUDS(code)
 
   INIT_BRUNETON_FOG(code)
   BASE_USE_BRUNETON_FOG(code)
-  //BRUNETON_IRRADIANCE(code)
   CLOUDS_SUN_SKY_LIGHT_COLOR(code)
   (code) {
     clouds_altitudes@f2 = (clouds_start_altitude2+skies_planet_radius, clouds_start_altitude2+skies_planet_radius+clouds_thickness2,0,0);
     skies_primary_sun_light_dir@f3 = skies_primary_sun_light_dir;
+    clouds_blend_fadeout_start@f1 = clouds_blend_fadeout_start;
   }
   hlsl(code) {
-    //#define SunLightingPixelHelper half_octaves
     struct SunLightingPixelHelper {half_octaves phase;};
     SunLightingPixelHelper getSunHelper(float3 view)
     {
       float cos0 = dot(skies_primary_sun_light_dir.xyz, view.xzy);
       half_octaves phase = henyey_greenstein_optimized_multiple_scattering(cos0);
-      //return SunLightingPixelHelper(phase);
       SunLightingPixelHelper ret;
       ret.phase = phase;
       return ret;
@@ -301,7 +270,8 @@ macro RAYCAST_CLOUDS(code)
     infinite_skies_madd@f3 = (infMul, skies_frustum_scattering_last_tz - skies_froxels_dist*infMul, 1 - 0.5/skies_froxels_resolution.z,0);
     nuke_light_color@f4 = nuke_light_color;
     nuke_light_pos@f3 = (nuke_light_pos.x + clouds_origin_offset.x, nuke_light_pos.y, nuke_light_pos.z+clouds_origin_offset.y, 0);
-    shadow_steps_for_nuke__trace_steps@f4 = (1 + clouds_steps_per_sequence, 1.0 / (1 + clouds_steps_per_sequence), clouds_trace_steps.x, clouds_trace_steps.y);
+    shadow_steps_for_nuke@f2 = (1 + clouds_steps_per_sequence, 1.0 / (1 + clouds_steps_per_sequence));
+    trace_steps@f2 = (clouds_trace_steps.x, clouds_trace_steps.y);
   }
 
   if (lightning_in_clouds == on && shader != clouds_panorama && shader != clouds_alpha_panorama) {
@@ -316,10 +286,7 @@ macro RAYCAST_CLOUDS(code)
   SAMPLE_CLOUDS_NUKE_INVERSION(code)
 
   hlsl(code) {
-    #define shadow_steps_for_nuke float2(shadow_steps_for_nuke__trace_steps.xy)
-    #define trace_steps float2(shadow_steps_for_nuke__trace_steps.zw)
-
-    struct AccumulationConstParams
+    struct AdditionalLightingConstParams
     {
       float3 pos;
       float cloud_density;
@@ -331,7 +298,7 @@ macro RAYCAST_CLOUDS(code)
       float3 integrated_scattering_transmittance;
     };
 
-    void calculate_additional_lighting(AccumulationConstParams cp, inout float3 additional_lighting, float randomOfs)
+    void calculate_additional_lighting(AdditionalLightingConstParams cp, inout float3 additional_lighting, float randomOfs)
     {
 ##if nuke_in_atmosphere == on && shader != clouds_panorama && shader != clouds_alpha_panorama
       if (nuke_light_color.w > 0)
@@ -381,37 +348,157 @@ macro RAYCAST_CLOUDS(code)
   }
 
   hlsl(code) {
+    static const float EPS = 1e-9;
+
     float get_scattering_tc_long_z(float dist)
     {
       float tcZ = sqrt(dist*skies_panoramic_scattering__inv_distance.y);
       FLATTEN if (tcZ > skies_panoramic_scattering__inv_distance.w)
         tcZ = saturate(dist*infinite_skies_madd.x + infinite_skies_madd.y);
-        //tcZ = 1-pow2(1-saturate(dist*infinite_skies_madd.x + infinite_skies_madd.y));
-        //tcZ = sqrt(saturate(dist*infinite_skies_madd.x + infinite_skies_madd.y));
       return tcZ;
     }
 
-    void performSequence(float distStart, int e, float3 view, float stepSize, float end,
+    #if CLOUDS_OPTIMIZE_OUTER_LOOP
+    bool check_cloud_hit(float3 sample_pos, float3 clouds_hole_offset)
+    {
+      return tex3Dlod(clouds_field_volume_low, float4(getFieldTC(sample_pos, clouds_hole_offset), 0)).x > 0;
+    }
+
+    void optimize_sequence_loop_num_steps(inout int num_steps, inout float dist,
+      float stepSize, float3 view, float3 clouds_start_trace, float3 clouds_hole_offset)
+    {
+      const int skipIterations = lowres_texel_size / stepSize;
+
+      BRANCH
+      if (skipIterations <= 2)
+        return;
+
+      float skipStepSize = stepSize * skipIterations;
+      int forwardIndex = 0;
+
+      // Forward loop to skip unnecessary iterations
+      LOOP
+      for (; forwardIndex < num_steps; forwardIndex += skipIterations)
+      {
+        float3 currentSamplePosition = view * dist + clouds_start_trace;
+        if (check_cloud_hit(currentSamplePosition, clouds_hole_offset))
+        {
+          FLATTEN if (forwardIndex != 0)
+          {
+            dist -= skipStepSize;
+            forwardIndex -= skipIterations;
+          }
+          break;
+        }
+
+        dist += skipStepSize;
+      }
+
+      num_steps -= forwardIndex;
+
+      float3 refinedEndPosition = view * (dist + (num_steps - 1.0) * stepSize) + clouds_start_trace;
+      int backwardIndex = 0;
+
+      // Backward loop to refine the end position
+      LOOP
+      for (; backwardIndex < num_steps; backwardIndex += skipIterations, refinedEndPosition -= view * skipStepSize)
+      {
+        if (check_cloud_hit(refinedEndPosition, clouds_hole_offset))
+        {
+          FLATTEN if (backwardIndex != 0)
+            backwardIndex -= skipIterations;
+          break;
+        }
+      }
+
+      num_steps -= backwardIndex;
+    }
+    #endif
+
+    #if !defined(CLOUDS_USE_APPROXIMATE_ALT_FRACTION)
+      #if !CLOUDS_JUST_ONE_SEQUENCE && !JUST_CLOSE_SEQUENCE
+        #define CLOUDS_USE_APPROXIMATE_ALT_FRACTION 1
+      #else
+        #define CLOUDS_USE_APPROXIMATE_ALT_FRACTION 0
+      #endif
+    #endif
+
+    #if !defined(CLOUDS_PRESELECTED_SEQUENCE)
+      #define CLOUDS_PRESELECTED_SEQUENCE 0 // legacy
+    #endif
+
+    #if !defined(CLOUDS_PRESELECTED_SEQUENCE_NO)
+      #define CLOUDS_PRESELECTED_SEQUENCE_NO 666 // doesn't matter, it is checked by CLOUDS_USE_PRESELECTED_SEQUENCE first
+      #define CLOUDS_USE_PRESELECTED_SEQUENCE 0
+    #else
+      #define CLOUDS_USE_PRESELECTED_SEQUENCE 1
+    #endif
+
+    #define CLOUDS_IS_PRESELECTED_FURTHEST_SEQUENCE (CLOUDS_PRESELECTED_SEQUENCE_NO == 2)
+
+    struct CloudDensitySampleParams
+    {
+      float erosion_level;
+      float mip;
+      float3 clouds_hole_offset;
+    #if CLOUDS_USE_APPROXIMATE_ALT_FRACTION
+      float heightFractionStep;
+      float heightFractionStart;
+    #endif
+    };
+
+    CloudDensitySampleParams prepare_clouds_density_sample_params(
+      float erosion_level, float mip, float3 clouds_hole_offset,
+      int num_steps, float3 view, float dist, float stepSize, float3 clouds_start_trace)
+    {
+      CloudDensitySampleParams params;
+      params.erosion_level = erosion_level;
+      params.mip = mip;
+      params.clouds_hole_offset = clouds_hole_offset;
+      #if CLOUDS_USE_APPROXIMATE_ALT_FRACTION
+        float3 st = view*dist + clouds_start_trace;
+        params.heightFractionStart = precise_alt_fraction_in_clouds(st);
+        float totalDist = num_steps*stepSize;
+        float heightFractionEnd = precise_alt_fraction_in_clouds(st + view*totalDist);
+        params.heightFractionStep = (heightFractionEnd - params.heightFractionStart)/totalDist;
+        params.heightFractionStart -= params.heightFractionStep*dist;
+      #endif
+      return params;
+    }
+
+    float sample_clouds_density(CloudDensitySampleParams params, float3 sample_pos, float dist, out float height_fraction)
+    {
+    #if CLOUDS_USE_APPROXIMATE_ALT_FRACTION
+      height_fraction = params.heightFractionStart + dist*params.heightFractionStep;//instead of accurate alt fraction we use partial linear
+    #else
+      height_fraction = alt_fraction_in_clouds_with_hole(sample_pos, params.clouds_hole_offset);
+    #endif
+      float cloudDensity = sampleCloudDensity(sample_pos, params.erosion_level, params.mip, height_fraction);
+    ##if nuke_in_atmosphere == on
+      cloudDensity = sampleNukeCloudsInversion(sample_pos - params.clouds_hole_offset, cloudDensity, height_fraction);
+    ##endif
+      return cloudDensity;
+    }
+
+    void reduce_steps(inout int num_steps, inout float dist, float stepSize, float distStart, float end)
+    {
+      num_steps = min(num_steps, int(floor((end - dist) / stepSize)));
+      const float offsetStepCnt = clamp(ceil((distStart - dist) / stepSize), 0, num_steps);
+      num_steps -= int(offsetStepCnt);
+      dist += offsetStepCnt*stepSize;
+    }
+
+    void performSequence(float distStart, int num_steps, float3 view, float stepSize, float end,
                            SunLightingPixelHelper sunPixelHelper,
-                           float savedRandomOfs,
+                           float randomOfs,
                            float threshold,
                            inout float weightedSequenceDist,
                            inout float totalSequenceWeight,
                            inout float3 integratedScatteringTransmittance, inout float dist,
                            inout float3 additionalLighting,
-                           float2 distMulAdd, float erosion_level, bool first_slice_disapper = false)
+                           float2 distMulAdd, float erosion_level, bool first_slice_disappear)
     {
-      float3 viewStep = view*stepSize;//can be replaced with inout viewStep and add
       float mip = distMulAdd.x != 0 ? clamp(dist/30000-1, 0, 2) : 0;//switch off mip selection on first sequence
-      e = min(e, int(floor((end-dist)/stepSize)));//do not go outside planned
-
-      #if !defined(CLOUDS_USE_APPROXIMATE_ALT_FRACTION)
-        #if !CLOUDS_JUST_ONE_SEQUENCE && !JUST_CLOSE_SEQUENCE
-          #define CLOUDS_USE_APPROXIMATE_ALT_FRACTION 1
-        #else
-          #define CLOUDS_USE_APPROXIMATE_ALT_FRACTION 0
-        #endif
-      #endif
 
       // Early exit might introduce a bit of banding for really close clouds (but saves performance)
       // for mobile devices it is better to keep it on
@@ -421,98 +508,54 @@ macro RAYCAST_CLOUDS(code)
 
       float3 clouds_hole_offset = get_clouds_hole_pos_vec();
       float3 clouds_start_trace = clouds_start_trace_base + clouds_hole_offset;
+
+      reduce_steps(num_steps, dist, stepSize, distStart, end);
+
       #if CLOUDS_OPTIMIZE_OUTER_LOOP
-      const int skipLoops = lowres_texel_size/stepSize;
-      if (skipLoops > 2)
-      {
-        float skipStepSize = stepSize*skipLoops;
-        int fi = 0;
-        LOOP
-        for (; fi < e; fi+=skipLoops)
-        {
-          //this is actually end of loop footer, but we use continue instead of branch.
-          float3 sample_pos = view*dist + clouds_start_trace;
-          bool isHit = tex3Dlod(clouds_field_volume_low, float4(getFieldTC(sample_pos, clouds_hole_offset),0)).x>0;
-          if (isHit)
-          {
-            dist = (fi != 0) ? dist - skipStepSize : dist;
-            fi = (fi != 0) ? fi-skipLoops : fi;
-            break;
-          }
-          dist += skipStepSize;
-        }
-        e -= fi;
-
-        float3 endPos = view*(dist+(e-1.)*stepSize) + clouds_start_trace;
-        int ei = 0;
-        LOOP
-        for (; ei < e; ei += skipLoops, endPos -= view*skipStepSize)
-        {
-          //this is actually end of loop footer, but we use continue instead of branch.
-          bool isHit = tex3Dlod(clouds_field_volume_low, float4(getFieldTC(endPos, clouds_hole_offset),0)).x>0;
-
-          if (isHit)
-          {
-            ei = (ei!=0) ? ei-skipLoops : ei;
-            break;
-          }
-        }
-        e -= ei;
-      }
+      optimize_sequence_loop_num_steps(num_steps, dist, stepSize, view, clouds_start_trace, clouds_hole_offset);
       #endif
 
-      #if CLOUDS_USE_APPROXIMATE_ALT_FRACTION
-      float heightFractionStart, heightFractionStep;
-      {
-        float3 st = view*dist + clouds_start_trace;
-        heightFractionStart = precise_alt_fraction_in_clouds(st);
-        float totalDist = e*stepSize;
-        float heightFractionEnd = precise_alt_fraction_in_clouds(st + view*totalDist);
-        heightFractionStep = (heightFractionEnd-heightFractionStart)/totalDist;
-        heightFractionStart -= heightFractionStep*dist;
-      }
-      #endif
+      CloudDensitySampleParams cloudSampleParams = prepare_clouds_density_sample_params(
+        erosion_level, mip, clouds_hole_offset, num_steps, view, dist, stepSize, clouds_start_trace);
 
-      float negSteps = min(0, max(-e, floor((dist-distStart)/stepSize)));
-      e += int(negSteps);
-      dist -= negSteps*stepSize;
       float sigmaDs = CLOUDS_SIGMA*stepSize;//0.04..0.012 are valid clouds extinction coef
-      //int count = 0;
+
+      #ifndef EARLY_LOOP_EXIT_CHECK
+        #define EARLY_LOOP_EXIT_CHECK 0
+      #endif
+
       LOOP
-      for (int i = 0; i < e; ++i, dist += stepSize)
+      for (int i = 0; i < num_steps; ++i, dist += stepSize)
       {
-        float3 sample_pos = view*dist + clouds_start_trace;
-        // end of end-of-loop footer
-        //float erosion_level = saturate(3 + (-1./30000)*dist);//start disappearing at 40km, completely disappears at 60km
-        //erosion_level = 1;
-        //count++;
-        float heightFraction;
-        #if CLOUDS_USE_APPROXIMATE_ALT_FRACTION
-        heightFraction = heightFractionStart + dist*heightFractionStep;//instead of accurate alt fraction we use partial linear
-        float cloudDensity = sampleCloudDensity(sample_pos, erosion_level, mip, heightFraction, true);
-        #else
-        float cloudDensity = sampleCloudDensityWithHole(sample_pos, erosion_level, mip, heightFraction, clouds_hole_offset);
+        #if EARLY_LOOP_EXIT_CHECK
+          #if !JUST_CLOSE_SEQUENCE || FORCE_CLOSE_SEQUENCE_TRANSMITTANCE_CHECK
+          if (integratedScatteringTransmittance.z<threshold)//early exit if we already get all light
+          {
+            break;
+          }
+          #endif
         #endif
 
-        ##if nuke_in_atmosphere == on
-          cloudDensity = sampleNukeCloudsInversion(sample_pos-clouds_hole_offset, cloudDensity, heightFraction);
-        ##endif
+        float3 sample_pos = view*dist + clouds_start_trace;
+
+        float heightFraction;
+        float cloudDensity = sample_clouds_density(cloudSampleParams, sample_pos, dist, heightFraction);
 
         //this is for near plane transition. Only needed for first sequence. Cost up to 0.1ms
         if (cloudDensity <= 0.0000001)
           continue;
-        //beers law
-        //cloudDensity *= sqrt(saturate(dist*distMulAdd.x + distMulAdd.y));//smoothstep(0, 1, (dist*distMulAdd.x + distMulAdd.y));
-        if (first_slice_disapper)//that is useful only for first slice
+
+        if (first_slice_disappear)//that is useful only for first slice
           cloudDensity *= saturate(dist*1./32);
+
         float beers_term = exp2(cloudDensity * sigmaDs);
-        beers_term = lerp(1, beers_term, saturate(dist*distMulAdd.x + distMulAdd.y));//smoothstep(0, 1, (dist*distMulAdd.x + distMulAdd.y));
+        beers_term = lerp(1, beers_term, saturate(dist*distMulAdd.x + distMulAdd.y));
         float transmittance  = beers_term;
         float weight = 1-transmittance;
         weightedSequenceDist += dist*weight;
         totalSequenceWeight += weight;
 
-        AccumulationConstParams cp;
+        AdditionalLightingConstParams cp;
         cp.pos = sample_pos - clouds_hole_offset;
         cp.cloud_density = cloudDensity;
         cp.clouds_hole_offset = clouds_hole_offset;
@@ -522,35 +565,34 @@ macro RAYCAST_CLOUDS(code)
         cp.beers_term = beers_term;
         cp.integrated_scattering_transmittance = integratedScatteringTransmittance;
 
-        calculate_additional_lighting(cp, additionalLighting, savedRandomOfs);
+        calculate_additional_lighting(cp, additionalLighting, randomOfs);
 
         // Get sun luminance according to volumetric shadow and phase function
         float2 luminance = sunAmbientLuminance(sample_pos, heightFraction, mip, erosion_level, sunPixelHelper);
 
         //improved analytical scattering: frostbite clouds
         float2 integScatt = ( luminance - luminance * beers_term );//analytical integral for beers law. Scattering term is always (cloudDensity*sigma), and integral is divided by (cloudDensity*sigma), so it is just not needed
-        //const float3 integScatt = ( luminance * -cloudDensity * sigmaDs);//simple integral
 
-        integratedScatteringTransmittance.rg = integratedScatteringTransmittance.z * integScatt + integratedScatteringTransmittance.rg;
-        //integratedScatteringTransmittance.rgb = float(i)/STEPS_PER_SEQUENCE;integratedScatteringTransmittance.a = 0;break;
+        integratedScatteringTransmittance.xy = integratedScatteringTransmittance.z * integScatt + integratedScatteringTransmittance.xy;
         integratedScatteringTransmittance.z *= transmittance;
 
-        #if !JUST_CLOSE_SEQUENCE || FORCE_CLOSE_SEQUENCE_TRANSMITTANCE_CHECK
-        if (integratedScatteringTransmittance.z<threshold)//early exit if we already get all light
-        {
-          //re-apply last sample - hides banding
-          //but costs 0.05ms on XB1
-          #if !_HARDWARE_XBOX && !_HARDWARE_PS4
-          integratedScatteringTransmittance.rg = integratedScatteringTransmittance.z * integScatt + integratedScatteringTransmittance.rg;
-          integratedScatteringTransmittance.z *= transmittance;
+        #if !EARLY_LOOP_EXIT_CHECK
+          #if !JUST_CLOSE_SEQUENCE || FORCE_CLOSE_SEQUENCE_TRANSMITTANCE_CHECK
+          if (integratedScatteringTransmittance.z<threshold)//early exit if we already get all light
+          {
+            //re-apply last sample - hides banding
+            //but costs 0.05ms on XB1
+            #if !_HARDWARE_XBOX && !_HARDWARE_PS4
+            integratedScatteringTransmittance.xy = integratedScatteringTransmittance.z * integScatt + integratedScatteringTransmittance.xy;
+            integratedScatteringTransmittance.z *= transmittance;
+            #endif
+            break;
+          }
           #endif
-          break;
-        }
         #endif
       }
-      //integratedScatteringTransmittance = float(count)/e;
-      //integratedScatteringTransmittance.z = 0;
     }
+
     half3 decodeScatteringColor(float2 integratedScattering, float3 worldPos)
     {
       half3 sun_light, amb_color;
@@ -567,8 +609,6 @@ macro RAYCAST_CLOUDS(code)
     #include <pixelPacking/yCoCgSpace.hlsl>
     CLOUDS_RET get_clouds_ret(float4 integratedScatteringTransmittance, float dist, float3 additional_lighting)
     {
-      //integratedScatteringTransmittance.rgb/=max(1e-6, 1-integratedScatteringTransmittance.a);
-      //integratedScatteringTransmittance.rgb *= 1./TAA_BRIGHTNESS_SCALE;
       integratedScatteringTransmittance.rgb += additional_lighting;
       #if ALREADY_TONEMAPPED_SCENE && RENDER_TO_TAA_SPACE
         integratedScatteringTransmittance.rgb = PackToYCoCg(integratedScatteringTransmittance.rgb);
@@ -593,59 +633,65 @@ macro RAYCAST_CLOUDS(code)
       return result;
     }
 
-    float get_rounded_dist(float start, float stepSize, float clouds_offset)
+    float get_rounded_dist(float start, float stepSize)
     {
-      float ofs = frac(-frac((clouds_offset) * (1./stepSize)));
-      return (floor(start*(1./stepSize))+ofs)*stepSize;
+      const float stepSizeInv = 1.0 / stepSize;
+      float ofs = frac(-frac(clouds_offset * stepSizeInv));
+      return (floor(start * stepSizeInv) + ofs) * stepSize;
     }
 
-    void get_offseted_dist(out float dist, inout float start, float randomOfs, float stepSize, float clouds_offset, float maxRandom, int stepsPerSequence)
+    void get_offseted_dist(out float dist, inout float next_sequence_start, float randomOfs, float stepSize, float maxRandom, int stepsPerSequence)
     {
-      dist = get_rounded_dist(start,  stepSize, clouds_offset);
-      start = dist+stepSize*(float(stepsPerSequence));
+      const float sequenceLength = stepsPerSequence*stepSize;
+      dist = get_rounded_dist(next_sequence_start,  stepSize);
+      next_sequence_start = dist + sequenceLength;
       dist -= randomOfs*stepSize;
-      //dist -= randomOfs*min(stepSize, maxRandom);
     }
 
-    int get_steps(inout float nextStart, float cStep, float nextStepSize, int stepsPerSequence)
+    int get_steps(inout float next_sequence_start, float cStep, float nextStepSize, int stepsPerSequence)
     {
-      int e = stepsPerSequence;
+      int num_steps = stepsPerSequence;
       float stepMult = nextStepSize/cStep;
-      float dif = (get_rounded_dist(nextStart, nextStepSize, clouds_offset) - nextStart)/cStep;
+      float dif = (get_rounded_dist(next_sequence_start, nextStepSize) - next_sequence_start)/cStep;
       FLATTEN
       if (dif>=0.0 && dif <= stepMult-1.0);
       {
-        e += int(dif)+1;
-        nextStart += nextStepSize;
+        num_steps += int(dif)+1;
+        next_sequence_start += nextStepSize;
       }
-      return e;
+      return num_steps;
     }
 
-    void get_close_fog(float2 scattering_tc, float3 v, float d, out float3 ext, out float3 insc)
+    void get_fog_impl(float2 scattering_tc, float3 v, float d, out float3 ext, out float3 insc, bool use_inf_fog)
     {
-      float tcZ = get_scattering_tc_z(d);
+      #if !DUAL_PANORAMA
+        if (skies_panoramic_scattering__inv_distance.x)
+          scattering_tc = get_panoramic_scattering_tc(v);
+      #endif
+
+      float tcZ;
+      if (use_inf_fog)
+        tcZ = get_scattering_tc_long_z(d);
+      else
+        tcZ = get_scattering_tc_z(d);
       float4 combined = tex3Dlod(skies_frustum_scattering, float4(scattering_tc, tcZ, 0));
       insc.rgb = combined.rgb;
       float3 colored_transmittance = get_fog_prepared_tc(long_get_prepared_scattering_tc(v .y, d, preparedScatteringDistToTc));
       ext = color_scatter_loss(combined, colored_transmittance);
+    }
+
+##if clouds_use_legacy_tracing == yes
+    void get_close_fog(float2 scattering_tc, float3 v, float d, out float3 ext, out float3 insc)
+    {
+      get_fog_impl(scattering_tc, v, d, ext, insc, false);
     }
     void get_inf_fog(float2 scattering_tc, float3 v, float d, out float3 ext, out float3 insc)
     {
-      float tcZ = get_scattering_tc_long_z(d);
-      float4 combined = tex3Dlod(skies_frustum_scattering, float4(scattering_tc, tcZ, 0));
-      insc.rgb = combined.rgb;
-      float3 colored_transmittance = get_fog_prepared_tc(long_get_prepared_scattering_tc(v .y, d, preparedScatteringDistToTc));
-      ext = color_scatter_loss(combined, colored_transmittance);
+      get_fog_impl(scattering_tc, v, d, ext, insc, true);
     }
+##endif
 
-    float randFast( uint2 pixelPos, float Magic = 3571.0 )
-    {
-      float2 random2 = ( 1.0 / 4320.0 ) * pixelPos + float2( 0.25, 0.0 );
-      float random = frac( dot( random2 * random2, Magic ) );
-      random = frac( random * random * (2 * Magic) );
-      return random;
-    }
-    #include <interleavedGradientNoise.hlsl>
+  #if DUAL_PANORAMA
     static const float blue_noise_jitter[4*4] =//better make it texture
     {
       0.000000,0.500000,0.125000,0.625000,
@@ -653,35 +699,411 @@ macro RAYCAST_CLOUDS(code)
       0.187500,0.687500,0.062500,0.562500,
       0.937500,0.437500,0.812500,0.312500
     };
+  #endif
 
-    CLOUDS_RET trace_clouds(float3 viewVect, float2 texcoord, uint2 screenpos, float2 scatteringTc)
+    float get_random_offset(uint2 screenpos)
     {
-      #ifndef STEPS_PER_SEQUENCE
-        #if TEMPORAL_REPROJECTION
-          #if CLOUDS_FULLRES
-            #define STEPS_PER_SEQUENCE 64 // fullres clouds can utilize more steps, since it's not blurred as much
-          #else
-            #define STEPS_PER_SEQUENCE 32
-          #endif
-        #elif JUST_CLOSE_SEQUENCE
-        #define STEPS_PER_SEQUENCE closeSequenceSteps
+      #if TEMPORAL_REPROJECTION
+        uint frameOver = TAA_CLOUDS_FRAMES;//with 16 results are slightly better, but we need to store "newFrame weight" in taa, to sample it from history, so we adjust weight accordingly (increase new frame weight, where pixel was offscreen in previous frame, not current one)
+        return ((uint(current_frame_info.x) + uint(screenpos.x)*2789 + uint(screenpos.y)*2791)&(frameOver-1))/float(frameOver);
+      #elif DUAL_PANORAMA
+        uint frameOver = PANORAMA_TEMPORAL_SAMPLES;//todo: make this setting
+        return ((current_frame_info.x%frameOver) + blue_noise_jitter[(uint(screenpos.x)&3) + 4*(uint(screenpos.y)&3)].x)/frameOver;
+      #else
+        return 0;
+      #endif
+    }
+
+    #ifndef STEPS_PER_SEQUENCE
+      #if TEMPORAL_REPROJECTION
+        #if CLOUDS_FULLRES
+          #define STEPS_PER_SEQUENCE 64 // fullres clouds can utilize more steps, since it's not blurred as much
         #else
+          #define STEPS_PER_SEQUENCE 32
+        #endif
+      #elif JUST_CLOSE_SEQUENCE
+        #define STEPS_PER_SEQUENCE closeSequenceSteps
+      #else
         #define STEPS_PER_SEQUENCE 64
+      #endif
+    #endif
+
+    #ifndef REDUCED_SEQUENCE_COUNT
+      #define REDUCED_SEQUENCE_COUNT 0
+    #endif
+
+    #ifndef REDUCED_IN_CLOUDS_STEPS
+      #define REDUCED_IN_CLOUDS_STEPS 0
+    #endif
+
+    #ifndef DETAILED_CLOUDS_REFLECTIONS
+      #define DETAILED_CLOUDS_REFLECTIONS 0
+    #endif
+
+    #if CAN_BE_IN_CLOUDS && JUST_CLOSE_SEQUENCE
+      #define IGNORE_CLOSE_OBJECTS 1
+      #define CHECK_START_ON_IGNORE 1
+    #elif CAN_BE_IN_CLOUDS && TEMPORAL_REPROJECTION
+      ##if clouds_ignore_close_objects == on
+        #define IGNORE_CLOSE_OBJECTS 1
+      ##endif
+    #endif
+
+    float calc_dist_to_ground(float2 texcoord, float start, float viewLen)
+    {
+      #if INFINITE_SKIES
+        return INFINITE_TRACE_DIST;
+      #else
+        float rawDepth = tex2Dlod(clouds_depth_gbuf, float4(texcoord,0,0)).x;
+        float depth = linearize_z(rawDepth, zn_zfar.zw);
+        #if IGNORE_CLOSE_OBJECTS
+          bool ignoreClose = depth < clouds_min_apply_dist - 0.5;
+          #if CHECK_START_ON_IGNORE
+            ignoreClose = ignoreClose && start == 0;
+          #endif
+          FLATTEN if (ignoreClose)
+            rawDepth = 0;
+        #endif
+        return rawDepth == 0 ? INFINITE_TRACE_DIST : depth*viewLen;
+      #endif
+    }
+
+    float calc_erosion_level(int seqNo, float dist)
+    {
+      #if CLOUDS_JUST_ONE_SEQUENCE
+        return 1.0;
+      #else
+        return seqNo < 3 ? 1 : 0.5*saturate(3 + (-1./60000)*dist);
+      #endif
+    }
+
+    struct TraceConstParams
+    {
+      float3 view;
+      float end;
+      SunLightingPixelHelper sunPixelHelper;
+      float2 scatteringTc;
+      int stepsPerSequence;
+      float randomOfs;
+      float distStart;
+      float2 distMulAdd;
+      bool first_slice_disappear;
+    };
+
+    struct TraceAccumulationParams
+    {
+      float dist;
+      float weightedDist;
+      float totalWeight;
+      float integratedTransmittance;
+      float3 additionalLighting;
+    #if WEIGHTED_ATMOSPHERE_SCATTERING == WEIGHTED_ATMOSPHERE_SCATTERING_SEQUENCE
+      float3 integratedScatteringColor; // TODO: we can combine it with integratedTransmittance
+    #else
+      float3 integratedScatteringTransmittanceEncoded;
+    #endif
+    };
+
+    TraceAccumulationParams get_initial_accumulation_params()
+    {
+      TraceAccumulationParams ap;
+      ap.dist = 0;
+      ap.weightedDist = 0;
+      ap.totalWeight = 0;
+      ap.integratedTransmittance = 1;
+      ap.additionalLighting = float3(0,0,0);
+    #if WEIGHTED_ATMOSPHERE_SCATTERING == WEIGHTED_ATMOSPHERE_SCATTERING_SEQUENCE
+      ap.integratedScatteringColor = float3(0,0,0);
+    #else
+      ap.integratedScatteringTransmittanceEncoded = float3(0,0,1);
+    #endif
+      return ap;
+    }
+
+    float get_close_sequence_end()
+    {
+      return closeSequenceStepSize * closeSequenceSteps;
+    }
+
+    void get_and_apply_trace_init_modifiers(inout float start, float end, inout float stepSize, out float distStart, out float2 distMulAdd, out float first_slice_disappear)
+    {
+      distStart = 0;
+      first_slice_disappear = false;
+      distMulAdd = float2(0,1);
+
+      #if CAN_BE_IN_CLOUDS && TEMPORAL_REPROJECTION
+        float opacityDist = 3*closeSequenceStepSize;
+        distStart = clouds_has_close_sequence ? get_close_sequence_end() - closeSequenceStepSize - opacityDist : 0;
+        distStart = max(distStart, start);
+        start = 0; // TODO: investigate if/why this is needed (probably stability)
+        distMulAdd = float2(1./opacityDist, -distStart/opacityDist);
+      #elif CAN_BE_IN_CLOUDS && JUST_CLOSE_SEQUENCE
+        float opacityDist = 2.*closeSequenceStepSize;
+        distMulAdd = float2(-1./opacityDist, (end-closeSequenceStepSize)/opacityDist);
+        first_slice_disappear = true;
+      #elif DUAL_PANORAMA
+        stepSize = max(8., (end-start)/1024);
+      #endif
+    }
+
+    // returns false if there is nothing to trace
+    bool calc_trace_init_distances(float max_trace_dist, float2 texcoord, uint2 screenpos, float3 view, float viewLen, float startStepSize,
+      out float start, out float end, out float infinite_end)
+    {
+      float distanceToClouds0, distanceToClouds1;
+      distance_to_clouds(-view, distanceToClouds0, distanceToClouds1);
+
+      distanceToClouds1 *= 1000;
+      distanceToClouds0 *= 1000;
+
+      start = distanceToClouds0;
+      end = min(max_trace_dist, distanceToClouds1);
+
+      BRANCH
+      if (view.y < 0)
+        end = min(distance_to_planet(view, INFINITE_TRACE_DIST), end);
+
+      infinite_end = end;//probably better use distanceToClouds1, to avoid gbuffer interference
+
+      BRANCH
+      if (close_layer_should_early_exit())
+        return false;
+
+      float distToGround = calc_dist_to_ground(texcoord, start, viewLen);
+
+      end = min(end, distToGround);
+      #if CAN_BE_IN_CLOUDS && JUST_CLOSE_SEQUENCE
+        end = min(get_close_sequence_end(), end);
+      #endif
+
+      const float unclampedStart = start;
+      //todo: use tile info or previous frame info to get min distance to cloud in tile
+      closest_tiled_dist_clamp(start, screenpos.xy);
+
+      const float maxRandomOffset = startStepSize;
+      start = max(start - maxRandomOffset, unclampedStart); // need to adjust for random offset (tile optimization does not account for it)
+
+      return start >= 0 && start < end;
+    }
+
+    bool use_inf_fog_at_trace_end()
+    {
+      #if !CLOUDS_JUST_ONE_SEQUENCE && (CLOUDS_IS_PRESELECTED_FURTHEST_SEQUENCE || SEQUENCE_COUNT >=3)
+        return true;
+      #else
+        return false;
+      #endif
+    }
+
+    CLOUDS_RET process_cloud_trace_result(const float next_sequence_start, const float startStepSize, const int SEQUENCE_COUNT, const float infiniteEnd,
+      const TraceConstParams cp, const TraceAccumulationParams ap)
+    {
+      float averageDist = ap.totalWeight>EPS ? ap.weightedDist/ap.totalWeight : infiniteEnd;
+      #if WEIGHTED_ATMOSPHERE_SCATTERING == WEIGHTED_ATMOSPHERE_SCATTERING_ONCE
+        float3 integratedScatteringColor = decodeScatteringColor(ap.integratedScatteringTransmittanceEncoded.xy, skies_world_view_pos + cp.view*averageDist);
+        BRANCH
+        if (ap.integratedTransmittance<1)
+        {
+          float3 extinction, inscatter;
+          const float emptySkyFogSamplingDist = 0.5*(next_sequence_start + cp.end); // TODO: looks arbitrary
+          const float fogSamplingDist = ap.totalWeight>EPS ? averageDist : emptySkyFogSamplingDist;
+          get_fog_impl(cp.scatteringTc, cp.view, fogSamplingDist, extinction, inscatter, use_inf_fog_at_trace_end());
+          integratedScatteringColor = extinction*integratedScatteringColor + inscatter*(1-ap.integratedTransmittance);
+        }
+      #else
+        float3 integratedScatteringColor = ap.integratedScatteringColor;
+      #endif
+
+      float integratedTransmittance = ap.integratedTransmittance;
+      const bool useBlendFadout = clouds_blend_fadeout_start > 0 && (!CLOUDS_USE_PRESELECTED_SEQUENCE || CLOUDS_IS_PRESELECTED_FURTHEST_SEQUENCE);
+      if (useBlendFadout)
+      {
+        // TODO: this fading is not correct, we need to use the actual step size (which can vary per sequence)
+        #if CLOUDS_USE_PRESELECTED_SEQUENCE
+          // the "next sequence start" is the distance to the end of the sequence, we can use that as the blending end distance
+          const float blendDistEnd = next_sequence_start; // TODO: use this elsewhere
+        #else
+          // TODO: startStepSize and SEQUENCE_COUNT don't make sense here in all cases, the blending end dist can differ based on other values, fix it!
+          const float blendDistEnd = CALC_PREV_LAYER_CLOUD_TRACE_DIST(SEQUENCE_COUNT, cp.stepsPerSequence, startStepSize);
+        #endif
+        const float blendDistStart = blendDistEnd*clouds_blend_fadeout_start;
+        float blendOut = saturate(1-(averageDist-blendDistStart)/(blendDistEnd-blendDistStart));
+        integratedScatteringColor *= blendOut;
+        integratedTransmittance = 1-blendOut*(1-integratedTransmittance);
+      }
+      return get_clouds_ret(float4(integratedScatteringColor, integratedTransmittance), averageDist, ap.additionalLighting);
+    }
+
+    void perform_cloud_trace_sequence_impl(const int num_steps, const float stepSize,
+      const float erosionLevel, const bool use_inf_fog,
+      const TraceConstParams cp, inout TraceAccumulationParams ap)
+    {
+      float3 additionalLighting2 = 0;
+
+      #if WEIGHTED_ATMOSPHERE_SCATTERING == WEIGHTED_ATMOSPHERE_SCATTERING_SEQUENCE
+        float weightedSequenceDist = 0, totalSequenceWeight = 0;
+        float3 integratedScatteringTransmittance2 = float3(0,0,1);
+        performSequence(cp.distStart, num_steps, cp.view, stepSize,cp.end,cp.sunPixelHelper, cp.randomOfs, CLOUDS_TRANSMITTANCE_THRESHOLD/max(ap.integratedTransmittance, EPS),
+                        weightedSequenceDist, totalSequenceWeight, integratedScatteringTransmittance2, ap.dist, additionalLighting2, cp.distMulAdd, erosionLevel, false);
+        float seqAvgDist = weightedSequenceDist/max(EPS, totalSequenceWeight);
+        float3 decodedScatteringColor = decodeScatteringColor(integratedScatteringTransmittance2.xy, skies_world_view_pos + cp.view*seqAvgDist);
+        if (totalSequenceWeight > EPS && integratedScatteringTransmittance2.z<1)
+        {
+          half3 extinction, inscatter;
+          get_fog_impl(cp.scatteringTc, cp.view, seqAvgDist, extinction, inscatter, use_inf_fog);
+          decodedScatteringColor.rgb = extinction*decodedScatteringColor.rgb + inscatter*(1-integratedScatteringTransmittance2.z);
+          ap.additionalLighting.rgb += extinction * ap.integratedTransmittance*additionalLighting2;
+        }
+        ap.integratedScatteringColor.rgb += ap.integratedTransmittance*decodedScatteringColor.rgb;
+        ap.integratedTransmittance *= integratedScatteringTransmittance2.z;
+        ap.weightedDist += weightedSequenceDist; ap.totalWeight += totalSequenceWeight;
+      #else
+        performSequence(cp.distStart, num_steps, cp.view, stepSize,cp.end,cp.sunPixelHelper, cp.randomOfs, CLOUDS_TRANSMITTANCE_THRESHOLD,
+                        ap.weightedDist, ap.totalWeight, ap.integratedScatteringTransmittanceEncoded, ap.dist, additionalLighting2, cp.distMulAdd, erosionLevel, cp.first_slice_disappear);
+        ap.additionalLighting.rgb += ap.integratedTransmittance*additionalLighting2;
+        ap.integratedTransmittance = ap.integratedScatteringTransmittanceEncoded.z;
+      #endif
+    }
+
+  #if CLOUDS_JUST_ONE_SEQUENCE
+    #if WEIGHTED_ATMOSPHERE_SCATTERING != WEIGHTED_ATMOSPHERE_SCATTERING_SEQUENCE
+      error "CLOUDS_JUST_ONE_SEQUENCE requires WEIGHTED_ATMOSPHERE_SCATTERING_SEQUENCE"
+    #endif
+
+    void perform_full_trace_single_sequence(const float start, const float3 viewVect,
+      const TraceConstParams cp, inout TraceAccumulationParams ap)
+    {
+      const float erosionLevel = 1.0f;
+      const bool use_inf_fog = false;
+
+      const int count = lerp(trace_steps.x, trace_steps.y, sqrt(saturate(viewVect.y)));
+      const float stepSize = max(64., (cp.end - start)/count);
+      ap.dist = start - stepSize*cp.randomOfs;
+
+      int num_steps = ceil((cp.end-ap.dist)/stepSize);
+      num_steps = ceil((cp.end-ap.dist)*0.5/stepSize);//half dist
+      perform_cloud_trace_sequence_impl(num_steps, stepSize, erosionLevel, use_inf_fog, cp, ap);
+      num_steps = ceil((cp.end-ap.dist)/stepSize);
+      perform_cloud_trace_sequence_impl(num_steps, stepSize, erosionLevel, use_inf_fog, cp, ap);
+    }
+
+  #else
+
+    float get_step_size_mul(const int seqNo, const int SEQUENCE_COUNT)
+    {
+      #if CLOUDS_USE_PRESELECTED_SEQUENCE
+        #if REDUCED_SEQUENCE_COUNT
+          if (seqNo == 1)
+            return 4.0;
+        #else
+          if (seqNo == 2)
+            return 4.0;
+        #endif
+      #else
+        if (seqNo > 0 && SEQUENCE_COUNT == 3)
+          return 4.0;
+      #endif
+      return 2.0;
+    }
+
+    bool check_use_inf_fog(const int seqNo)
+    {
+      return seqNo >= 2;
+    }
+
+    static const float OFFSETTED_DIST_MAX_RANDOM = 64*4; // TODO: potentially incorrect
+
+    void perform_cloud_trace_sequence(const int seqNo,
+      inout float next_sequence_start, inout float stepSize, const int SEQUENCE_COUNT,
+      const TraceConstParams cp, inout TraceAccumulationParams ap)
+    {
+      const bool use_inf_fog = check_use_inf_fog(seqNo);
+      const float stepSizeMul = get_step_size_mul(seqNo, SEQUENCE_COUNT);
+      get_offseted_dist(ap.dist, next_sequence_start, cp.randomOfs, stepSize, OFFSETTED_DIST_MAX_RANDOM, cp.stepsPerSequence);
+      int num_steps = get_steps(next_sequence_start, stepSize, stepSize*stepSizeMul, cp.stepsPerSequence);
+      const float erosionLevel = calc_erosion_level(seqNo, ap.dist);
+      perform_cloud_trace_sequence_impl(num_steps, stepSize, erosionLevel, use_inf_fog, cp, ap);
+      stepSize *= stepSizeMul;
+    }
+
+    void perform_full_trace_preselected_sequences(inout float next_sequence_start, const float startStepSize, const int SEQUENCE_COUNT,
+      TraceConstParams cp, inout TraceAccumulationParams ap)
+    {
+      float stepSize = startStepSize;
+
+      #if CLOUDS_PRESELECTED_SEQUENCE_NO >= 1
+        cp.distMulAdd = float2(0,1);
+        cp.first_slice_disappear = false;
+      #endif
+
+      // we do one sequence at a time for a shader execution, so we need to process the distance from the prev sequences
+      UNROLL
+      for (int i = 0; i < CLOUDS_PRESELECTED_SEQUENCE_NO; ++i)
+      {
+        float stepSizeMul = get_step_size_mul(i, SEQUENCE_COUNT);
+        get_offseted_dist(ap.dist, next_sequence_start, cp.randomOfs, stepSize, OFFSETTED_DIST_MAX_RANDOM, cp.stepsPerSequence);
+        int num_steps = get_steps(next_sequence_start, stepSize, stepSize*stepSizeMul, cp.stepsPerSequence);
+        stepSize *= stepSizeMul;
+      }
+
+      perform_cloud_trace_sequence(CLOUDS_PRESELECTED_SEQUENCE_NO, next_sequence_start, stepSize, SEQUENCE_COUNT, cp, ap);
+    }
+
+    void perform_full_trace_regular_sequences(inout float next_sequence_start, const float startStepSize, const int SEQUENCE_COUNT,
+      TraceConstParams cp, inout TraceAccumulationParams ap)
+    {
+      float stepSize = startStepSize;
+
+      perform_cloud_trace_sequence(0, next_sequence_start, stepSize, SEQUENCE_COUNT, cp, ap);
+      cp.distMulAdd = float2(0,1);
+      cp.first_slice_disappear = false;
+      BRANCH
+      if (SEQUENCE_COUNT >= 2 && ap.integratedTransmittance >= CLOUDS_TRANSMITTANCE_THRESHOLD && ap.dist<=cp.end)
+      {
+        perform_cloud_trace_sequence(1, next_sequence_start, stepSize, SEQUENCE_COUNT, cp, ap);
+
+        UNROLL
+        for (int i = 2; i <= 5; ++i)
+        {
+          BRANCH
+          if (SEQUENCE_COUNT > i && ap.integratedTransmittance >= CLOUDS_TRANSMITTANCE_THRESHOLD && ap.dist <= cp.end)
+            perform_cloud_trace_sequence(i, next_sequence_start, stepSize, SEQUENCE_COUNT, cp, ap);
+        }
+      }
+    }
+  #endif
+
+    CLOUDS_RET trace_clouds_impl(const float start, const float startStepSize, const int SEQUENCE_COUNT,
+      const float3 viewVect, const float infiniteEnd, TraceConstParams cp)
+    {
+      TraceAccumulationParams ap = get_initial_accumulation_params();
+      float nextSequenceStart = start;
+
+      #if CLOUDS_JUST_ONE_SEQUENCE
+        perform_full_trace_single_sequence(start, viewVect, cp, ap);
+        nextSequenceStart = 0; // TODO: this isn't consistent with the other case!
+      #else
+        float stepSize = startStepSize;
+        get_and_apply_trace_init_modifiers(nextSequenceStart, cp.end, stepSize, cp.distStart, cp.distMulAdd, cp.first_slice_disappear);
+        #if CLOUDS_USE_PRESELECTED_SEQUENCE
+          perform_full_trace_preselected_sequences(nextSequenceStart, stepSize, SEQUENCE_COUNT, cp, ap);
+        #else
+          perform_full_trace_regular_sequences(nextSequenceStart, stepSize, SEQUENCE_COUNT, cp, ap);
         #endif
       #endif
 
-      #ifndef REDUCED_SEQUENCE_COUNT
-        #define REDUCED_SEQUENCE_COUNT 0
-      #endif
+      return process_cloud_trace_result(nextSequenceStart, startStepSize, SEQUENCE_COUNT, infiniteEnd, cp, ap);
+    }
 
-      #ifndef REDUCED_IN_CLOUDS_STEPS
-        #define REDUCED_IN_CLOUDS_STEPS 0
-      #endif
-
+    CLOUDS_RET trace_clouds(float3 viewVect, float2 texcoord, uint2 screenpos, float2 scatteringTc)
+    {
       int stepsPerSequence = STEPS_PER_SEQUENCE;
-      #if CAN_BE_IN_CLOUDS && JUST_CLOSE_SEQUENCE
-        #define IGNORE_CLOSE_OBJECTS 1
-        #define CHECK_START_ON_IGNORE 1
+
+      // TODO: refactor this mess
+      #if CLOUDS_USE_PRESELECTED_SEQUENCE
+        const int SEQUENCE_COUNT = 3;
+        const float startStepSize = DETAILED_CLOUDS_REFLECTIONS ? 128 : 512; // cube or reflection
+      #elif CAN_BE_IN_CLOUDS && JUST_CLOSE_SEQUENCE
         const int SEQUENCE_COUNT = 1;
         stepsPerSequence = REDUCED_IN_CLOUDS_STEPS ? steps_per_sequence / 2 : steps_per_sequence;
         const float startStepSize = closeSequenceStepSize*(32./stepsPerSequence);
@@ -690,16 +1112,11 @@ macro RAYCAST_CLOUDS(code)
         const float startStepSize = 256;
       #elif CAN_BE_IN_CLOUDS && !TEMPORAL_REPROJECTION
         const int SEQUENCE_COUNT = REDUCED_SEQUENCE_COUNT ? 3 : 4;
-        const float startStepSize = 512;//cube or reflection
+        const float startStepSize = DETAILED_CLOUDS_REFLECTIONS ? 128 : 512; // cube or reflection
       #elif CAN_BE_IN_CLOUDS && TEMPORAL_REPROJECTION
         const int SEQUENCE_COUNT = REDUCED_SEQUENCE_COUNT ? 3 : 5;
         stepsPerSequence = REDUCED_IN_CLOUDS_STEPS ? steps_per_sequence / 2 : steps_per_sequence;
         const float startStepSize = 256*(32./stepsPerSequence);
-
-      ##if clouds_ignore_close_objects == on
-        #define IGNORE_CLOSE_OBJECTS 1
-      ##endif
-
       #elif !CAN_BE_IN_CLOUDS && TEMPORAL_REPROJECTION
         const int SEQUENCE_COUNT = REDUCED_SEQUENCE_COUNT ? 2 : 3;
         const float startStepSize = 256;
@@ -707,135 +1124,71 @@ macro RAYCAST_CLOUDS(code)
         const int SEQUENCE_COUNT = REDUCED_SEQUENCE_COUNT ? 3 : 4;
         const float startStepSize = 128;
       #endif
-      const float actualTraceDist = (((1U<<SEQUENCE_COUNT)-1)*stepsPerSequence + (1U<<SEQUENCE_COUNT))*startStepSize;
+
+      #if CLOUDS_USE_PRESELECTED_SEQUENCE
+      // TODO: special case only to keep legacy behavior, and same perf
+      const float actualTraceDist = CALC_CLOUD_TRACE_DIST(REDUCED_SEQUENCE_COUNT ? 3 : 4, stepsPerSequence, startStepSize);
+
+      #else
+      // TODO: this is not correct, we need to use the actual step size (which can vary per sequence)
+      const float actualTraceDist = CALC_CLOUD_TRACE_DIST(SEQUENCE_COUNT, stepsPerSequence, startStepSize);
+      #endif
+
       float stepSize = startStepSize;
 
-      //float2 texcoord = screenpos.xy*clouds_rt_params.zw;
       float viewLenSq = dot(viewVect, viewVect);
       float invViewLen = rsqrt(viewLenSq);
       float viewLen = rcp(invViewLen);
-      float3 view   = viewVect*invViewLen;
+      float3 view = viewVect*invViewLen;
 
-      float distanceToClouds0, distanceToClouds1;
-      distance_to_clouds(-view, distanceToClouds0, distanceToClouds1);
+      float start, end, infiniteEnd;
+      BRANCH if (!calc_trace_init_distances(actualTraceDist, texcoord, screenpos, view, viewLen, startStepSize, start, end, infiniteEnd))
+        return get_clouds_ret(float4(0,0,0,1), infiniteEnd, 0); // use INF dist
 
-      distanceToClouds1 *= 1000;
-      distanceToClouds0 *= 1000;
-      float start = distanceToClouds0, end = min(actualTraceDist, distanceToClouds1);
+##if clouds_use_legacy_tracing == no
+      TraceConstParams cp;
+      cp.view = view;
+      cp.end = end;
+      cp.sunPixelHelper = getSunHelper(view);
+      cp.scatteringTc = scatteringTc;
+      cp.stepsPerSequence = stepsPerSequence;
+      cp.randomOfs = get_random_offset(screenpos);
+      cp.distStart = 0; // overwritten by get_and_apply_trace_init_modifiers
+      cp.distMulAdd = float2(0, 1); // NOP by default
+      cp.first_slice_disappear = false;
 
-      BRANCH
-      if (view.y<0)
-        end = min(distance_to_planet(view, INFINITE_TRACE_DIST), end);
+      return trace_clouds_impl(start, startStepSize, SEQUENCE_COUNT, viewVect, infiniteEnd, cp);
+##else
 
-      BRANCH
-      if (close_layer_should_early_exit())
-        return get_clouds_ret(float4(0,0,0,1), end, 0);
-
-      float distToGround = INFINITE_TRACE_DIST;
-      #if !INFINITE_SKIES
-        {
-          float rawDepth = tex2Dlod(clouds_depth_gbuf, float4(texcoord,0,0)).x;
-          float depth = linearize_z(rawDepth, zn_zfar.zw);
-          #if IGNORE_CLOSE_OBJECTS
-            FLATTEN
-            if (depth < 40-0.5
-              #if CHECK_START_ON_IGNORE
-                && start == 0
-              #endif
-            )//40 is copy-paste from daCloudsApply pre-shader
-              rawDepth = 0;
-          #endif
-          distToGround = rawDepth == 0 ? INFINITE_TRACE_DIST : depth*viewLen;
-        }
-      #endif
-
-
-      float closeSequenceEnd = closeSequenceStepSize*closeSequenceSteps;
-      float infiniteEnd = end;//probably better use distanceToClouds1, to avoid gbuffer interference
-      end = min(end, distToGround);
-      #if CAN_BE_IN_CLOUDS && JUST_CLOSE_SEQUENCE
-      end = min(closeSequenceEnd, end);
-      //stepSize = (end-start)/stepsPerSequence;
-      #endif
-      //start = 0.0;
-      //end = 12000;
-      //todo: use tile info or previous frame info to get min distance to cloud in tile
-
-      closest_tiled_dist_clamp(start, screenpos.xy);
-
-      BRANCH
-      if (end<=start || start<0)
-        return get_clouds_ret(float4(0,0,0,1), infiniteEnd , 0);
       SunLightingPixelHelper sunPixelHelper = getSunHelper(view);
 
       float dist = 0;
-      float3 viewStep = view*stepSize;
 
-      float savedRandomOfs = 0;
-      #if TEMPORAL_REPROJECTION
-        uint frameOver = TAA_CLOUDS_FRAMES;//with 16 results are slightly better, but we need to store "newFrame weight" in taa, to sample it from history, so we adjust weight accordingly (increase new frame weight, where pixel was offscreen in previous frame, not current one)
-        float randomOfs = ((uint(current_frame_info.x) + uint(screenpos.x)*2789 + uint(screenpos.y)*2791)&(frameOver-1))/float(frameOver);
-        //randomOfs += float((uint(screenpos.x)*5741 + uint(screenpos.y)*5743)%4)*(0.99/(4.0*float(frameOver)));
-      #elif DUAL_PANORAMA
-        float randomOfs = randFast(uint2(screenpos.xy));
-        //randomOfs = randomOfs*0.25 + ((uint(current_frame_info.x)+uint(screenpos.x) + uint(screenpos.y))&3)/4.0;
-        //randomOfs = randomOfs*0.25 + ((uint(current_frame_info.x)+uint(screenpos.x) + uint(screenpos.y))&3)/4.0;
-        //randomOfs = interleavedGradientNoiseFramed(screenpos.xy, current_frame_info.x%4);
-        uint frameOver = PANORAMA_TEMPORAL_SAMPLES;//todo: make this setting
-        //randomOfs = ((uint(current_frame_info.x) + uint(screenpos.x)*2789 + uint(screenpos.y)*2791)%frameOver)/float(frameOver);
-        randomOfs = ((current_frame_info.x%frameOver) + blue_noise_jitter[(uint(screenpos.x)&3) + 4*(uint(screenpos.y)&3)].x)/frameOver;
-        //randomOfs = (current_frame_info.x%frameOver)/frameOver;// + blue_noise_jitter[(uint(screenpos.x)&3) + 4*(uint(screenpos.y)&3)]/frameOver;
-        //randomOfs = randFast(screenpos.xy+uint2(uint(current_frame_info.x)&1,(uint(current_frame_info.x)>>1)&1));
-        //randomOfs = current_frame_info.x/frameOver;
-        //randomOfs = randFast(screenpos.xy+uint2(uint(current_frame_info.x)&1,(uint(current_frame_info.x)>>1)&1));
-      #else
-        float randomOfs = 0;
-      #endif
-
-      savedRandomOfs = randomOfs;
+      float randomOfs = get_random_offset(screenpos);
 
       // Contains integrated scattered luminance (in rgb ) and trasmittance (in a) along a ray .
       float weightedDist = 0, totalWeight = 0;
       float3 integratedScatteringColor = 0; float integratedTransmittance = 1.0;
       float3 additionalLighting = 0;
       float3 integratedScatteringTransmittanceEncoded = float3(0,0,1);
-      float2 distMulAdd = float2(0,1);
       #define GET_FOG get_close_fog
 
       #if CLOUDS_JUST_ONE_SEQUENCE
-        //int count = viewVect.y > 0.1 ? 128 : 196;
         int count = lerp(trace_steps.x, trace_steps.y, sqrt(saturate(viewVect.y)));
-        //int count = 256;
-        //#if DUAL_PANORAMA
-        //  count = lerp(128, 64, (current_frame_info.x%frameOver)/frameOver);
-        //#endif
-        //int count = min(256, (end-start)/256);
-        //start += 128*randomOfs;randomOfs =0;
         stepSize = max(64., (end-start)/count);
         start -= (stepSize)*randomOfs;
         dist = start; start = 0;
-        randomOfs = 0;
 
-        /*count = 32;
-        stepSize = 32.0;
-        randomOfs = 0;
-        end = min(end, count*stepSize);
-        dist = get_rounded_dist(start, stepSize, clouds_offset);
-        if (dist < 0)
-          dist += stepSize;
-        //get_offseted_dist(dist, start, randomOfs, stepSize, clouds_offset, 64*4);
-        start = dist;
-        e = (end-start)/stepSize;*/
         #if WEIGHTED_ATMOSPHERE_SCATTERING == WEIGHTED_ATMOSPHERE_SCATTERING_SEQUENCE
-          #define PERFORM_SEQUENCE(st, en) {\
+          #define PERFORM_SINGLE_SEQUENCE(num_steps) {\
             float weightedSequenceDist = 0, totalSequenceWeight = 0;\
             float3 integratedScatteringTransmittance2 = float3(0,0,1);\
             float3 additionalLighting2 = 0;\
-            performSequence(st, en, view, stepSize,end,sunPixelHelper, savedRandomOfs, CLOUDS_TRANSMITTANCE_THRESHOLD/integratedTransmittance,\
-                            weightedSequenceDist, totalSequenceWeight, integratedScatteringTransmittance2, dist, additionalLighting2, float2(0,1), 1);\
-            float seqAvgDist = weightedSequenceDist/max(1e-9, totalSequenceWeight);\
+            performSequence(0, num_steps, view, stepSize,end,sunPixelHelper, randomOfs, CLOUDS_TRANSMITTANCE_THRESHOLD/max(integratedTransmittance, EPS),\
+                            weightedSequenceDist, totalSequenceWeight, integratedScatteringTransmittance2, dist, additionalLighting2, float2(0,1), 1, false);\
+            float seqAvgDist = weightedSequenceDist/max(EPS, totalSequenceWeight);\
             float3 decodedScatteringColor = decodeScatteringColor(integratedScatteringTransmittance2.xy, skies_world_view_pos + view*seqAvgDist);\
-            if (totalSequenceWeight > 1e-9 && integratedScatteringTransmittance2.z<1)\
+            if (totalSequenceWeight > EPS && integratedScatteringTransmittance2.z<1)\
             {\
               half3 extinction, inscatter;\
               GET_FOG(scatteringTc, view, seqAvgDist, extinction, inscatter);\
@@ -847,35 +1200,35 @@ macro RAYCAST_CLOUDS(code)
             weightedDist += weightedSequenceDist; totalWeight += totalSequenceWeight;\
           }
         #else
-          #define PERFORM_SEQUENCE(st, en)\
-            performSequence(st, en, view, stepSize,end,sunPixelHelper, savedRandomOfs, CLOUDS_TRANSMITTANCE_THRESHOLD,\
-                            weightedDist, totalWeight, integratedScatteringTransmittanceEncoded, dist, additionalLighting2, float2(0,1), 1);\
+          #define PERFORM_SINGLE_SEQUENCE(num_steps)\
+            performSequence(0, num_steps, view, stepSize,end,sunPixelHelper, randomOfs, CLOUDS_TRANSMITTANCE_THRESHOLD,\
+                            weightedDist, totalWeight, integratedScatteringTransmittanceEncoded, dist, additionalLighting2, float2(0,1), 1, false);\
             integratedTransmittance = integratedScatteringTransmittanceEncoded.z;
         #endif
 
-        int e = ceil((end-dist)/stepSize);
+        int num_steps = ceil((end-dist)/stepSize);
         #if WEIGHTED_ATMOSPHERE_SCATTERING == WEIGHTED_ATMOSPHERE_SCATTERING_SEQUENCE
-          e = ceil((end-dist)*0.5/stepSize);//half dist
-          PERFORM_SEQUENCE(0, e);
-          e = ceil((end-dist)/stepSize);
-          PERFORM_SEQUENCE(0, e);
+          num_steps = ceil((end-dist)*0.5/stepSize);//half dist
+          PERFORM_SINGLE_SEQUENCE(num_steps);
+          num_steps = ceil((end-dist)/stepSize);
+          PERFORM_SINGLE_SEQUENCE(num_steps);
         #else
-          PERFORM_SEQUENCE(0, e);
+        PERFORM_SINGLE_SEQUENCE(num_steps);
         #endif
       #else
         #if WEIGHTED_ATMOSPHERE_SCATTERING == WEIGHTED_ATMOSPHERE_SCATTERING_SEQUENCE
           #define PERFORM_SEQUENCE(seqNo, mulS) \
-            get_offseted_dist(dist, start, randomOfs, stepSize, clouds_offset, 64*4, stepsPerSequence);\
+            get_offseted_dist(dist, start, randomOfs, stepSize, 64*4, stepsPerSequence);\
             float weightedSequenceDist = 0, totalSequenceWeight = 0;\
             float3 integratedScatteringTransmittance2 = float3(0,0,1);\
             float3 additionalLighting2 = 0;\
-            int e = get_steps(start, stepSize, stepSize*mulS, stepsPerSequence);\
-            float erosionLevel = seqNo < 3 ? 1 : 0.5*saturate(3 + (-1./60000)*dist);\
-            performSequence(distStart, e, view, stepSize,end,sunPixelHelper, savedRandomOfs, CLOUDS_TRANSMITTANCE_THRESHOLD/integratedTransmittance,\
-                            weightedSequenceDist, totalSequenceWeight, integratedScatteringTransmittance2, dist, additionalLighting2, distMulAdd, erosionLevel);\
-            float seqAvgDist = weightedSequenceDist/max(1e-9, totalSequenceWeight);\
+            int num_steps = get_steps(start, stepSize, stepSize*mulS, stepsPerSequence);\
+            float erosionLevel = calc_erosion_level(seqNo, dist);\
+            performSequence(distStart, num_steps, view, stepSize,end,sunPixelHelper, randomOfs, CLOUDS_TRANSMITTANCE_THRESHOLD/integratedTransmittance,\
+                            weightedSequenceDist, totalSequenceWeight, integratedScatteringTransmittance2, dist, additionalLighting2, distMulAdd, erosionLevel, false);\
+            float seqAvgDist = weightedSequenceDist/max(EPS, totalSequenceWeight);\
             float3 decodedScatteringColor = decodeScatteringColor(integratedScatteringTransmittance2.xy, skies_world_view_pos + view*seqAvgDist);\
-            if (totalSequenceWeight > 1e-9 && integratedScatteringTransmittance2.z<1)\
+            if (totalSequenceWeight > EPS && integratedScatteringTransmittance2.z<1)\
             {\
               half3 extinction, inscatter;\
               GET_FOG(scatteringTc, view, seqAvgDist, extinction, inscatter);\
@@ -888,36 +1241,21 @@ macro RAYCAST_CLOUDS(code)
             stepSize=stepSize*mulS;
         #else
           #define PERFORM_SEQUENCE(seqNo, mulS)\
-            get_offseted_dist(dist, start, randomOfs, stepSize, clouds_offset, 64*4, stepsPerSequence);\
-            int e = get_steps(start, stepSize, stepSize*mulS, stepsPerSequence);\
-            float erosionLevel = seqNo < 3 ? 1 : 0.5*saturate(3 + (-1./60000)*dist);\
+            get_offseted_dist(dist, start, randomOfs, stepSize, 64*4, stepsPerSequence);\
+            int num_steps = get_steps(start, stepSize, stepSize*mulS, stepsPerSequence);\
+            float erosionLevel = calc_erosion_level(seqNo, dist);\
             float3 additionalLighting2 = 0;\
-            performSequence(distStart, e, view, stepSize,end,sunPixelHelper, savedRandomOfs, CLOUDS_TRANSMITTANCE_THRESHOLD,\
+            performSequence(distStart, num_steps, view, stepSize,end,sunPixelHelper, randomOfs, CLOUDS_TRANSMITTANCE_THRESHOLD,\
                             weightedDist, totalWeight, integratedScatteringTransmittanceEncoded, dist, additionalLighting2, distMulAdd, erosionLevel, first_slice_disappear);\
             additionalLighting.rgb += integratedTransmittance*additionalLighting2;\
             integratedTransmittance = integratedScatteringTransmittanceEncoded.z;\
             stepSize=stepSize*mulS;
         #endif
 
-        float distStart = 0;
-        bool first_slice_disappear = false;
-        #if CAN_BE_IN_CLOUDS && TEMPORAL_REPROJECTION
-          float opacityDist = 3*closeSequenceStepSize;
-          distStart = clouds_has_close_sequence ? closeSequenceEnd-closeSequenceStepSize - opacityDist : 0;// + 64*64;//two sequences
-          distStart = max(distStart, start);
-          start = 0;
-          distMulAdd = float2(1./opacityDist, -distStart/opacityDist);
-          //distMulAdd = clouds_has_close_sequence ? distMulAdd : float2(0, 1);
-          //cross fade
-        #elif CAN_BE_IN_CLOUDS && JUST_CLOSE_SEQUENCE
-          float opacityDist = 2.*closeSequenceStepSize;
-          distMulAdd = float2(-1./opacityDist, (end-closeSequenceStepSize)/opacityDist);
-          first_slice_disappear = true;
-        #endif
-        #if DUAL_PANORAMA
-          stepSize = max(8., (end-start)/1024);
-        #else
-        #endif
+        float distStart;
+        float2 distMulAdd;
+        bool first_slice_disappear;
+        get_and_apply_trace_init_modifiers(start, end, stepSize, distStart, distMulAdd, first_slice_disappear);
 
         #if CLOUDS_PRESELECTED_SEQUENCE > 0
           // not exactly precise compared to original approach, but good enough
@@ -942,7 +1280,6 @@ macro RAYCAST_CLOUDS(code)
         PERFORM_SEQUENCE(0, 2.0)
         distMulAdd = float2(0,1);
         first_slice_disappear = false;
-        //integratedScatteringTransmittance = float4(0,0,0,1);weightedDist = 0, totalWeight = 0;
         BRANCH
         if (SEQUENCE_COUNT >= 2 && integratedTransmittance >= CLOUDS_TRANSMITTANCE_THRESHOLD && dist<=end)
         {
@@ -975,33 +1312,31 @@ macro RAYCAST_CLOUDS(code)
 
         #endif
       #endif
-      float averageDist = totalWeight>1e-9 ? weightedDist/totalWeight : infiniteEnd;
+      float averageDist = totalWeight>EPS ? weightedDist/totalWeight : infiniteEnd;
       #if WEIGHTED_ATMOSPHERE_SCATTERING == WEIGHTED_ATMOSPHERE_SCATTERING_ONCE
       integratedScatteringColor = decodeScatteringColor(integratedScatteringTransmittanceEncoded.xy, skies_world_view_pos + view*averageDist);
       BRANCH
       if (integratedTransmittance<1)
       {
         float3 extinction, inscatter;
-        float useDist = totalWeight>1e-9 ? averageDist : 0.5*(start+end);
+        float useDist = totalWeight>EPS ? averageDist : 0.5*(start+end);
         GET_FOG(scatteringTc, view, useDist, extinction, inscatter);
         integratedScatteringColor.rgb = extinction*integratedScatteringColor.rgb + inscatter*(1-integratedTransmittance);
       }
       #endif
-      #define BLEND_OUT 1
-      #if BLEND_OUT
-      //const float lastStepSize = (1U<<(SEQUENCE_COUNT-1))*startStepSize;
+
       #if CLOUDS_PRESELECTED_SEQUENCE > 0
-        const float blendDistEnd = (((1U<<CLOUDS_PRESELECTED_SEQUENCE)-1)*stepsPerSequence)*startStepSize;
+        const float blendDistEnd = CALC_PREV_LAYER_CLOUD_TRACE_DIST(CLOUDS_PRESELECTED_SEQUENCE, stepsPerSequence, startStepSize);
       #else
-        const float blendDistEnd = (((1U<<SEQUENCE_COUNT)-1)*stepsPerSequence)*startStepSize;
+        const float blendDistEnd = CALC_PREV_LAYER_CLOUD_TRACE_DIST(SEQUENCE_COUNT, stepsPerSequence, startStepSize);
       #endif
-      const float blendDistStart = blendDistEnd*0.95;
+      const float blendDistStart = blendDistEnd*clouds_blend_fadeout_start;
       float blendOut = saturate(1-(averageDist-blendDistStart)/(blendDistEnd-blendDistStart));
       integratedScatteringColor *= blendOut;
       integratedTransmittance = 1-blendOut*(1-integratedTransmittance);
-      #endif
 
       return get_clouds_ret(float4(integratedScatteringColor, integratedTransmittance), averageDist, additionalLighting);
+##endif
     }
   }
 endmacro
@@ -1018,6 +1353,16 @@ shader clouds2_temporal_ps, clouds2_close_temporal_ps, clouds2_direct
     INIT_HDR(ps)
     USE_HDR(ps)
     hlsl {
+      // sequence are applied in reversed order: the first sequence is the furthest from the camera
+      ##if clouds_direct_sequence == first
+        #define CLOUDS_PRESELECTED_SEQUENCE_NO 2
+      ##elif clouds_direct_sequence == second
+        #define CLOUDS_PRESELECTED_SEQUENCE_NO 1
+      ##elif clouds_direct_sequence == third
+        #define CLOUDS_PRESELECTED_SEQUENCE_NO 0
+      ##endif
+
+      // TODO: these are deprecated, and only used for the legacy version
       ##if clouds_direct_sequence == first
         #define CLOUDS_PRESELECTED_SEQUENCE 1
       ##elif clouds_direct_sequence == second
@@ -1049,7 +1394,7 @@ shader clouds2_temporal_ps, clouds2_close_temporal_ps, clouds2_direct
       float2 pos = getPostfxVertexPositionById(vertexId);
       output.pos = float4(pos.xy, 1, 1);
       #if INFINITE_SKIES
-      output.pos.z = 0;
+        output.pos.z = 0;
       #endif
       output.tc = screen_to_texcoords(pos);
       output.viewVect = get_view_vec_by_vertex_id(vertexId);
@@ -1070,13 +1415,11 @@ shader clouds2_temporal_ps, clouds2_close_temporal_ps, clouds2_direct
       float4 screenpos = GET_SCREEN_POS(input.pos);
       float2 texcoord = input.tc;//fixme: remove me in panoram
 
-      //pass from vertex shader, it is faster
       float3 viewVect = input.viewVect;
-      //float3 viewVect = view_vecLT + (view_vecRT_minus_view_vecLT)*texcoord.x + (view_vecLB_minus_view_vecLT)*texcoord.y;
       CLOUDS_RET tr = trace_clouds(viewVect, texcoord, uint2(screenpos.xy), texcoord);
       ##if shader == clouds2_direct
-      applySpecialVision(tr.target0);
-      tr.target0.rgb = pack_hdr(tr.target0.rgb);
+        applySpecialVision(tr.target0);
+        tr.target0.rgb = pack_hdr(tr.target0.rgb);
       ##endif
       PS_CLOUDS_RET ret;
       ret.target0 = tr.target0;
@@ -1094,8 +1437,9 @@ shader clouds2_temporal_ps, clouds2_close_temporal_ps, clouds2_direct
 int4 clouds2_resolution;
 float4 clouds2_dispatch_groups;
 
-shader clouds2_temporal_cs, clouds2_close_temporal_cs//, clouds2_direct_cs
+shader clouds2_temporal_cs, clouds2_close_temporal_cs
 {
+  INIT_AND_USE_ON_TOP_CAMERA_IN_CAMERA(cs)
   ENABLE_ASSERT(cs)
   RAYCAST_CLOUDS(cs)
   VIEW_VEC_OPTIMIZED(cs)
@@ -1119,17 +1463,16 @@ shader clouds2_temporal_cs, clouds2_close_temporal_cs//, clouds2_direct_cs
   hlsl(cs) {
     RWTexture2D<float4> target0: register(u0);
     RWTexture2D<float4> target1: register(u1);
-    //#include <L2_cache_friendly_dispatch.hlsl>
 
     [numthreads(CLOUD_TRACE_WARP_X, CLOUD_TRACE_WARP_Y, 1)]
-    // void cs_main(uint2 dtid_ : SV_DispatchThreadID, uint2 gid_ : SV_GroupID, uint3 tid_ : SV_GroupThreadID)
     void cs_main(uint2 dtid : SV_DispatchThreadID)
     {
       if (any(dtid >= res))
         return;
 
-      //texture2DAt(target0, dtid) = flattenedGroupIdOrigin/float(dispatchGridDim.x*dispatchGridDim.y);
       float2 texcoord = dtid*invres.xy + invres.zw;
+      DISCARD_IF_INVALID_VIEW_AREA_CS(texcoord);
+
       float3 viewVect = getViewVecOptimized(texcoord);
       CLOUDS_RET tr = trace_clouds(viewVect, texcoord, dtid, texcoord);
 
@@ -1149,6 +1492,8 @@ float4 clouds_panorama_temp_res;
 float4 clouds_panorama_tex_res;
 float clouds_panorama_blend;
 
+int subpassTrace0_reg_no = 11;
+
 shader clouds_panorama, clouds_alpha_panorama
 {
   cull_mode=none;
@@ -1159,8 +1504,8 @@ shader clouds_panorama, clouds_alpha_panorama
   if (shader == clouds_panorama)
   {
     USE_SKIES_SUN_COLOR(ps)
-    (ps) { skies_transmittance_texture@smp2d = skies_transmittance_texture; }
     (ps) {
+      skies_transmittance_texture@smp2d = skies_transmittance_texture;
       sky_panorama_tex@smp2d = sky_panorama_tex;
       skies_froxels_resolutionInv@f3 = (1./skies_froxels_resolution.x, 1./skies_froxels_resolution.y, 1./skies_froxels_resolution.z);
     }
@@ -1193,10 +1538,10 @@ shader clouds_panorama, clouds_alpha_panorama
   (vs) { tc_pos_ofs@f4 = panoramaTC; }
   (ps) {
     tc_pos_ofs@f4 = panoramaTC;
-    skies_panorama_mu_horizon@f1 = (skies_panorama_mu_horizon);
     skies_panorama_sun_opposite_tc_x@f1 = skies_panorama_sun_opposite_tc_x;
     clouds_panorama_blend_weight@f1 = (clouds_panorama_blend,0,0,0);
   }
+  INIT_AND_USE_PANORAMA_VIEW_VECT(ps)
 
   RAYCAST_CLOUDS(ps)
   hlsl(ps) {
@@ -1211,9 +1556,19 @@ shader clouds_panorama, clouds_alpha_panorama
   if (clouds_panorama_split == blend && shader == clouds_panorama)
   {
     USE_SUBPASS_LOADS()
-    hlsl(ps)
+
+    // @TODO: make SUBPASS_RESOURCE a dshl macro which uses the new syntax for hardcoding vars
+    if (hardware.vulkan || hardware.metaliOS)
     {
-      SUBPASS_RESOURCE(subpassTrace0, t11, 0); // subpass_read_bind_offset
+      hlsl(ps) {
+        SUBPASS_RESOURCE(subpassTrace0, t11, 0); // subpass_read_bind_offset
+      }
+    }
+    else
+    {
+      (ps) {
+        subpassTrace0@tex2d : register(subpassTrace0_reg_no);
+      }
     }
   }
 
@@ -1247,20 +1602,14 @@ shader clouds_panorama, clouds_alpha_panorama
       float4 screenpos = GET_SCREEN_POS(input.pos);
       int2 screenposi = int2(screenpos.xy);
       float2 texcoord = input.tc;
-      ##if shader != clouds_alpha_panorama
-        //texcoord += clouds_panorama_subpixel_offset.xy;
-        //screenposi = int2(clouds_panorama_subpixel.zw)*screenposi.xy + int2(clouds_panorama_subpixel.xy);
-        //float2 jitPos = 0.5*float2(((uint(current_frame_info.x)&1)-0.5)/clouds_panorama_tex_res.x, (((uint(current_frame_info.x)>>1)&1)-0.5)/clouds_panorama_tex_res.y);
-        //if (uint(current_frame_info.x) >= 4)
-        //  jitPos = 0.7*float2(jitPos.x*sin(45*PI/180) + jitPos.y*sin(45*PI/180), -jitPos.x*cos(45*PI/180) + jitPos.y*sin(45*PI/180));
-        //texcoord += jitPos;
-      ##endif
 
       // Make bottom of the panorama uniformly dark (avoid unpleasant pole).
       if (int(screenpos.y) <= 1 && tc_pos_ofs.z != 0)
         texcoord = float2(skies_panorama_sun_opposite_tc_x, 0);
-      GENERATE_PANORAMA_VIEWVECT(texcoord)
-      GENERATE_PANORAMA_PATCH_VIEWVECT(texcoord)
+
+      float3 viewVect = get_panorama_viewvect(texcoord);
+      float3 patchView = get_panorama_patch_viewvect(texcoord);
+
       if (tc_pos_ofs.z == 0)
       {
         viewVect = patchView;
@@ -1269,9 +1618,9 @@ shader clouds_panorama, clouds_alpha_panorama
 
         float2 panoramaTc = texcoord;
         if (tc_pos_ofs.z == 0)
-          panoramaTc = float2(atan2( viewVect.x, viewVect.z) * (0.5/PI)+0.5, PANORAMA_TC_FROM_VIEW(viewVect.y));
+          panoramaTc = get_panorama_tc_from_view(viewVect);
+
         float2 scatteringTc = panoramaTc;//we render scattering specially for panorama. Better distribution, knowing that not much is needed lower than horizon
-        //get_panoramic_scattering_tc(viewVect);
         #if !MOBILE_DEVICE
           float radius = (((uint(current_frame_info.x)%(PANORAMA_TEMPORAL_SAMPLES+1))>>2)+0.5)/((PANORAMA_TEMPORAL_SAMPLES)>>2);
           //blur scattering a bit
@@ -1301,11 +1650,9 @@ shader clouds_panorama, clouds_alpha_panorama
       ##endif
 
       ##if shader == clouds_alpha_panorama
-        tr.target0.a = tr.target0.a;
         ret.target0 = (1 - tr.target0.a)*(1-get_strata_clouds(viewVect, 0).a);
         ret.target0.a = clouds_panorama_blend_weight ? clouds_panorama_blend_weight : 0.1;
       ##else
-        //if (tr.target0.a<1)
         half3 sky = 0;
         //BRANCH
         //if (tr.target0.a < 1)
@@ -1327,21 +1674,19 @@ shader clouds_panorama, clouds_alpha_panorama
           }
           half4 strata = get_strata_clouds(viewVect, scatteringTc);
           sky.rgb = lerp(sky.rgb, strata.rgb, strata.a);
-          //sky = strata.rgb*strata.a;
           tr.target0.rgb = tr.target0.rgb + (1-tr.target0.a)*sky;
-          //tr.target0.a = tr.target0.a*(1-strata.a);
         }
 
         float3 resultRGB = tr.target0.rgb;
         float resultAlpha = clouds_panorama_blend_weight ? clouds_panorama_blend_weight :
           (tr.target0.a > 0 ? lerp(0.15, 0.12, tr.target0.a) : 0.15);
-##if use_postfx == off
-  //with PBR we apply tonemap at panorama apply
-  //otherwise exposure will be applied wrongly
-  #if !PBR_FORWARD_SHADING
-        resultRGB = performLUTTonemap(resultRGB);
-  #endif
-##endif
+      ##if use_postfx == off
+        //with PBR we apply tonemap at panorama apply
+        //otherwise exposure will be applied wrongly
+        #if !PBR_FORWARD_SHADING
+          resultRGB = performLUTTonemap(resultRGB);
+        #endif
+      ##endif
 
         float4 result = float4(resultRGB, resultAlpha);
 

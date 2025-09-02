@@ -87,6 +87,7 @@ macro USE_BURNING_FOLIAGE_GBUFFER()
           diffuse= perlin.y*(2 + burnFactor.y*2)*float3(0.1+0.5*initialDiffuse.g, 0.05*initialDiffuse.r, 0);
           init_material(gbuffer, SHADING_SELFILLUM);
           init_emission(gbuffer, 100*(burnFactor.x -0.9));
+          init_emission_color(gbuffer, 1); // Albedo used as emission color
           init_emission_part(gbuffer, 0.8);
         }
         init_albedo(gbuffer, diffuse.rgb);

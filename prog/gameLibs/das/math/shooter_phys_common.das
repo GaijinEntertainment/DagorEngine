@@ -1,3 +1,4 @@
+options indenting = 2
 module shooter_phys_common shared
 require math
 require DagorMath

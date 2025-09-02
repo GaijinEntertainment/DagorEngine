@@ -15,6 +15,7 @@
 #include <daRg/dag_picture.h>
 
 #include <math/dag_mathUtils.h>
+#include <dasModules/dasSystem.h>
 #include <gui/dag_stdGuiRender.h>
 
 
@@ -86,7 +87,7 @@ bool RobjDasCanvasParams::load(const Element *elem)
   }
   else
   {
-    DasEnvironmentGuard envGuard(scene->dasScriptsData->dasEnv);
+    das::daScriptEnvironmentGuard envGuard(scene->dasScriptsData->dasEnv, scene->dasScriptsData->dasEnv);
 
     DasScript *script = scriptObj.Cast<DasScript *>();
     das::Context *ctx = script->ctx.get();
@@ -116,6 +117,7 @@ bool RobjDasCanvasParams::load(const Element *elem)
             data.resize(argType->size);
             vec4f args[2] = {das::cast<const Properties &>::from(elem->props), das::cast<void *>::from(data.data())};
             ctx->tryRestartAndLock();
+            bind_dascript::RAIIStackwalkOnLogerr stackwalkOnLogerr(ctx);
 
             ctx->evalWithCatch(setupFunc, args, nullptr);
 
@@ -174,11 +176,12 @@ void RobjDasCanvas::render(GuiContext &ctx, const Element *elem, const ElemRende
     das::cast<const RenderState &>::from(render_state), das::cast<void *>::from(params->data.data())};
 
   params->dasCtx->tryRestartAndLock();
+  bind_dascript::RAIIStackwalkOnLogerr stackwalkOnLogerr(params->dasCtx);
 
   GuiScene *scene = GuiScene::get_from_elem(elem);
 
   {
-    DasEnvironmentGuard envGuard(scene->dasScriptsData->dasEnv);
+    das::daScriptEnvironmentGuard envGuard(scene->dasScriptsData->dasEnv, scene->dasScriptsData->dasEnv);
     params->dasCtx->evalWithCatch(params->drawFunc, args, nullptr);
   }
 

@@ -6,7 +6,7 @@ include "clipmap.dshl"
 include "land_block_inc.dshl"
 
 macro USE_HMAP_BLEND() //use after RENDINST_BLOCK()
-  if (enable_hmap_blend == yes && compatibility_mode != compatibility_mode_on && tex_hmap_low != NULL)
+  if (has_hmap_blend)
   {
     NO_VERTICAL_TEX_USE()
     USE_CLIPMAP_NORMAL()
@@ -15,6 +15,7 @@ macro USE_HMAP_BLEND() //use after RENDINST_BLOCK()
     USE_LAND_MICRODETAILS_PS()
     USE_LAND_MICRODETAIL_PARAMS_PS()
     HEIGHTMAP_CALCULATIONS()
+    USE_UAV_RENDERING_FEEDBACK_RENDINST()
     hlsl (ps)
     {
       struct RiHmapBlendShadervars
@@ -94,7 +95,11 @@ macro USE_HMAP_BLEND() //use after RENDINST_BLOCK()
         return land_blend_koef;
       }
 
-      void blend_with_landscape(inout UnpackedGbuffer gbuffer, float3 worldPos, float3 worldVertexNormal, float3 pointToEye,
+
+    ##if rendinst_render_pass != rendinst_render_pass_to_heightmap
+      GLOBAL_UAV_FEEDBACK
+
+      void blend_with_landscape(inout UnpackedGbuffer gbuffer, float4 screenpos, float3 worldPos, float3 worldVertexNormal, float3 pointToEye,
                                 RI_HMAP_BLEND_VS_TYPE vs_params)
       {
         float3 worldNormal = gbuffer.normal;
@@ -108,8 +113,17 @@ macro USE_HMAP_BLEND() //use after RENDINST_BLOCK()
         float3 worldPosMirrored = worldPos;
         if (landWorldHeight - worldPos.y > 0)
           worldPosMirrored.y += (landWorldHeight - worldPos.y ) * 2;
-        float verticalInfluence = smoothstep(0, 1, (landWorldHeight + 1.0f - worldPosMirrored.y));
+
+        const float HEIGHT_DIFF_OFFSET = 1.0;
+        float verticalInfluence = smoothstep(0, 1, (landWorldHeight + HEIGHT_DIFF_OFFSET - worldPosMirrored.y));
+
+        const float NORMAL_WEIGHT_THRESHOLD = 0.45;
+        float normalWeight = smoothstep(0, NORMAL_WEIGHT_THRESHOLD, abs(worldVertexNormal.y));
+        if (!debug_disable_new_layered_hmap_blend)
+          verticalInfluence *= 1 - normalWeight;
+
         float3 clipWorldPos = worldPosMirrored - verticalInfluence * (worldPosMirrored.y - landWorldHeight) * worldVertexNormal;
+
         UvWithDerivates clipmapUv = clipmap_get_uv_and_derivates(clipWorldPos.xz);
         UvWithDerivates microdetailsUv = microdetails_get_uv_and_derivates(clipWorldPos.xz);
 
@@ -126,8 +140,9 @@ macro USE_HMAP_BLEND() //use after RENDINST_BLOCK()
           init_gbuffer(result);
           half2 clipNormalXY = 0;
           DetailDesc detailNo;
-          float smooth_mip = 0; //no uav feedback
           float emission = 0;
+
+          WRITE_UAV_FEEDBACK(clipWorldPos.xz, 0, worldPosGradients); // clipWorldPos is a good approximation for ddx/ddy of offsetWPosXZ // TODO: is it?
 
           //sample clipmap
           sample_clipmaps_no_grad(clipWorldPos.xz, worldPosGradients, result.albedo.rgb, clipNormalXY,
@@ -161,13 +176,15 @@ macro USE_HMAP_BLEND() //use after RENDINST_BLOCK()
           init_metalness(gbuffer, lerp(result.metalness, 0, land_blend_koef));
         }
       }
+    ##endif
+
     }
   }
   else
   {
     hlsl (ps)
     {
-      #define blend_with_landscape(gbuffer, worldPos, worldVertexNormal, pointToEye, vs_params)
+      #define blend_with_landscape(gbuffer, screenpos, worldPos, worldVertexNormal, pointToEye, vs_params)
     }
   }
 endmacro

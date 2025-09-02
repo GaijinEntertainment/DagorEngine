@@ -5,6 +5,7 @@
 #include <gameRes/dag_gameResSystem.h>
 #include <gameRes/dag_stdGameRes.h>
 #include <shaders/dag_shaderMeshTexLoadCtrl.h>
+#include <memory/dag_framemem.h>
 #include <ioSys/dag_dataBlock.h>
 #include <EASTL/vector.h>
 #include <generic/dag_initOnDemand.h>
@@ -240,11 +241,12 @@ static void batch_reload_res(void *)
 #if DAGOR_DBGLEVEL > 0 && !defined(__SANITIZE_THREAD__)
   int64_t reft = profile_ref_ticks();
 #endif
-  PtrTab<RenderableInstanceLodsResource> pendingReloadResListCopy;
+  PtrTab<RenderableInstanceLodsResource> pendingReloadResListCopy(framemem_ptr());
   {
     // Move buffer away, so that we can release the lock before calling functions on riUnitedVdata
     std::lock_guard<std::mutex> scopedLock(pendingReloadResListMutex);
-    pendingReloadResListCopy = eastl::move(pendingReloadResList);
+    pendingReloadResListCopy.assign(pendingReloadResList.begin(), pendingReloadResList.end());
+    pendingReloadResList.clear();
   }
   riUnitedVdata.discardUnusedResToFreeReqMem();
   for (RenderableInstanceLodsResource *res : pendingReloadResListCopy)
@@ -266,7 +268,7 @@ static void batch_reload_res(void *)
     COPY_STAT(reloadDataSizeKb);
     COPY_STAT(reloadDataCount);
 #undef COPY_STAT
-    String status_str;
+    String status_str(framemem_ptr());
     riUnitedVdata.buildStatusStr(status_str, false);
     debug("unitedVdata<%s>: reloaded %u models (%uK for %u msec) during last %u msec [total reloaded %uK of %u models]\n\n%s\n",
       RenderableInstanceLodsResource::getStaticClassName(), diff_mls.reloadDataCount, diff_mls.reloadDataSizeKb,

@@ -17,16 +17,16 @@ public:
 
   Tab<PropPanel::GradientKey> values;
   TunedGradientBoxParam(const char *nm) { name = nm; }
-  ~TunedGradientBoxParam() {}
+  ~TunedGradientBoxParam() override {}
 
   //---------------------------------------------
 
-  virtual TunedElement *cloneElem() { return new TunedGradientBoxParam(*this); }
+  TunedElement *cloneElem() override { return new TunedGradientBoxParam(*this); }
 
-  virtual int subElemCount() const { return 0; }
-  virtual TunedElement *getSubElem(int index) const { return NULL; }
+  int subElemCount() const override { return 0; }
+  TunedElement *getSubElem(int index) const override { return NULL; }
 
-  virtual void saveData(mkbindump::BinDumpSaveCB &cwr, SaveDataCB *save_cb)
+  void saveData(mkbindump::BinDumpSaveCB &cwr, SaveDataCB *save_cb) override
   {
     cwr.writeInt32e((uint32_t)values.size());
     for (size_t i = 0; i < values.size(); ++i)
@@ -36,7 +36,7 @@ public:
     }
   }
 
-  virtual void saveValues(DataBlock &blk, SaveValuesCB *save_cb)
+  void saveValues(DataBlock &blk, SaveValuesCB *save_cb) override
   {
     for (int i = 0; i < values.size(); ++i)
     {
@@ -51,7 +51,7 @@ public:
     }
   }
 
-  virtual void loadValues(const DataBlock &blk)
+  void loadValues(const DataBlock &blk) override
   {
     clear_and_shrink(values);
 

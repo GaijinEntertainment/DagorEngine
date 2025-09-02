@@ -317,8 +317,13 @@ public:
   }
 
   const CompressedHeightmap &getCompressedData() const { return compressed; }
+  bool repackCompressedData(uint8_t use_hrbSubSz);
+
+  void initRaw(const uint16_t *raw, float cell, uint16_t w, uint16_t h, float hmin, float hscale, const Point2 &ofs,
+    uint8_t blockShift = 3, uint8_t hrbSubSz = 4);
 
 protected:
+  void finalizeLoad();
   void updateBlockMinMax(uint32_t blockId, uint16_t ht, float updateBlockMinMax = 1.f);
   Point3 getClippedOrigin(const Point3 &origin_pos) const;
   CompressedHeightmap compressed;

@@ -20,8 +20,8 @@ Basic Includes
 
 .. code-block:: cpp
 
-  #include <sqrat.h>
-  #include <sqModules.h>
+    #include <sqrat.h>
+    #include <sqModules.h>
 
 
 Create a module
@@ -35,6 +35,7 @@ Example of module creation:
   Sqrat::Table exports(vm); // Create a table to hold the exported functions and classes
   exports
     .Func("function_name", function) // Export a C++ function with automatic handling of arguments and return values
+    .SquirrelFuncDeclString(add, "add(a: int, b: int): int", "Returns the sum of two integers, optional string")// Export a C++ function that works with the Squirrel stack, fully documented
     .SquirrelFunc("function_name", low_level_function) // Export a C++ function that works with the Squirrel stack
     .SetValue("SOME_ID", value) // Exports is a table, so it can hold any Quirrel value
   ;
@@ -68,7 +69,7 @@ Usage in Quirrel:
 
 
 
-Bind function that work with Squirrel stack
+Bind Function that Works with Squirrel Stack
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 For more control, you can manually handle the Squirrel stack by using SquirrelFunc.
@@ -108,6 +109,42 @@ Full signature of SquirrelFunc:
   :param docstring: optional docstring, nfreevars and freevars - free variables of function.
   :param nfreevars: number of free variables
   :param freevars: free variables to capture
+
+
+  :remarks: The typemask is a string that represent the expected parameter type. The types are expressed as follows: 'o' null, 'i' integer, 'f' float, 'n' integer or float, 's' string, 't' table, 'a' array, 'u' userdata, 'c' closure and nativeclosure, 'g' generator, 'p' userpointer, 'v' thread, 'x' instance(class instance), 'y' class, 'b' bool. and '.' any type. The symbol '|' can be used as 'or' to accept multiple types on the same parameter. There isn't any limit on the number of 'or' that can be used. Spaces are ignored so can be inserted between types to increase readability. For instance to check a function that expect a table as 'this' a string as first parameter and a number or a userpointer as second parameter, the string would be "tsn|p" (table,string,number or userpointer). If the parameters mask is contains fewer parameters than 'nparamscheck', the remaining parameters will not be typechecked.
+
+
+
+The preferred method for binding C++ functions that work with the Squirrel stack is to use `.SquirrelFuncDeclString`.  
+This declarative method allows you to specify the function signature, argument types (including optional/default values), return type, and documentation string all in one place.
+
+**Example:**
+
+.. code-block:: cpp
+
+    .SquirrelFuncDeclString(
+        do_math,
+        "pure do_math(a: int, [b: number = 2]): float",
+        "Performs math operation. Optional argument 'b' defaults to 2."
+    )
+
+This approach allows the engine to:
+- Parse argument types and generate typemasks for type checking
+- Reflect metadata for documentation and scripting tools
+- Recognize pure functions for optimization
+
+**Why use SquirrelFuncDeclString?**
+
+- **Declarative:** Full signature, types, defaults, and docstring in a single place.
+- **Robust:** More accurate binding and automatic validation.
+- **Documentation-friendly:** Signature and docs are automatically extracted.
+
+**Deprecation Notice:**
+
+The older `.SquirrelFunc` macro is now **deprecated**.  
+It required manually handling arguments from the Squirrel VM stack, which is more error-prone and lacks reflection support.  
+**Always prefer `.SquirrelFuncDeclString` for new bindings.**
+
 
 Bind classes, constants and values
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

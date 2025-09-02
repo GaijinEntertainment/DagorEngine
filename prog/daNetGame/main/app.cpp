@@ -37,6 +37,7 @@
 #include <workCycle/dag_gameSettings.h>
 #include <workCycle/dag_workCycle.h>
 #include <rendInst/rendInstGen.h>
+#include <rendInst/riexSync.h>
 #include <EASTL/tuple.h>
 #include <daGame/timers.h>
 #include <ecs/core/entityManager.h>
@@ -61,7 +62,6 @@
 #include <math/random/dag_random.h>
 
 #include "appProfile.h"
-#include "camTrack/camTrack.h"
 #include "camera/sceneCam.h"
 #include <daEditorE/editorCommon/inGameEditor.h>
 #include <webui/shaderEditors.h>
@@ -101,8 +101,8 @@
 #include "ui/uiRender.h"
 #include "main/browser/webBrowser.h"
 #include "main/storeApiEvents.h"
+#include "main/gameProjConfig.h"
 #include <render/tdrGpu.h>
-#include <render/androidScreenRotation.h>
 #include <shaders/dag_rendInstRes.h>
 
 #include <gamePhys/collision/collisionLib.h>
@@ -113,8 +113,8 @@
 
 #if _TARGET_C1 | _TARGET_C2
 
-#elif _TARGET_GDK
-#include <gdk/main.h>
+#elif _TARGET_C4
+
 #elif _TARGET_C3
 
 
@@ -139,7 +139,10 @@ DEF_INPUT_EVENTS
 
 #include <ecs/os/window.h>
 
-extern void wait_start_fx_job_done(bool finish_async_update = false);
+namespace acesfx
+{
+extern void wait_fx_managers_update_and_allow_accum_cmds();
+}
 
 extern const float DM_DEFAULT_BSPHERE_RAD = 2.15f; // Max empirically measured distance to root (climbing onto something pose) is ~2.14
 
@@ -157,8 +160,8 @@ namespace game_scene
 double total_time = 0.0;
 static float timeSpeed = 1.f;
 bool parallel_logic_mode = false;
+bool parallel_no_latency_mode = false;
 static String scenePath;
-static TMatrix cur_view_itm;
 
 void updateInput(float rtDt, float dt, float cur_time)
 {
@@ -180,8 +183,8 @@ void update(float dt, float real_dt, float cur_time)
 #endif
 #if _TARGET_C1 | _TARGET_C2
 
-#elif _TARGET_GDK
-    gdk::update();
+#elif _TARGET_C4
+
 #elif _TARGET_C3
 
 #endif
@@ -193,11 +196,12 @@ void update(float dt, float real_dt, float cur_time)
 
   // This is only needed for cases when render/draw_scene isn't called (e.g. fullscreen & alt+tab on PC)
   // some fx can started on creation events or on update stages.
-  wait_start_fx_job_done(/*finish_async_update*/ true);
+  acesfx::wait_fx_managers_update_and_allow_accum_cmds();
 
   g_entity_mgr->tick();
 
   imgui_update();
+  riexsync::update();
 
   {
     if (is_level_loaded())
@@ -217,11 +221,8 @@ void update(float dt, float real_dt, float cur_time)
     }
   }
   g_entity_mgr->broadcastEventImmediate(UpdateStageGameLogic(dt, cur_time));
-  if (get_world_renderer() && !sceneload::is_load_in_progress())
-  {
-    TIME_PROFILE(get_world_renderer__update);
-    get_world_renderer()->update(dt, real_dt, get_cam_itm());
-  }
+  g_entity_mgr->broadcastEventImmediate(EventOnGameUpdateAfterGameLogic(dt, cur_time));
+  update_world_renderer(dt, real_dt, get_cam_itm(), sceneload::is_load_in_progress());
   g_entity_mgr->broadcastEventImmediate(EventOnGameUpdateAfterRenderer(dt, cur_time));
 
   if (is_level_loaded())
@@ -242,6 +243,7 @@ void update(float dt, float real_dt, float cur_time)
 #if _TARGET_C3
 
 #endif
+  sqeventbus::process_events(gamescripts::get_vm());
 }
 
 eastl::tuple<float, float, float> updateTime() // [rtDt, dt, curTime]
@@ -293,7 +295,6 @@ static void act_scene()
       game::g_timers_mgr->act(dt);
     }
 
-    camtrack::update_record(curTime, cur_view_itm);
     update(dt, rtDt, curTime); // input and netUpdate in parallel mode called between updateStageInfoAct and ParallelUpdateFrameDelayed
   }
   else
@@ -307,7 +308,6 @@ static void act_scene()
     }
 
     net_update();
-    camtrack::update_record(curTime, cur_view_itm);
     update(dt, rtDt, curTime);
   }
 
@@ -332,7 +332,7 @@ static void act_scene()
 
 void before_draw_scene(int realtime_elapsed_usec, float gametime_elapsed_sec)
 {
-  ::before_draw_scene(realtime_elapsed_usec, gametime_elapsed_sec, timeSpeed, get_cur_cam_entity(), cur_view_itm);
+  ::before_draw_scene(realtime_elapsed_usec, gametime_elapsed_sec, timeSpeed, get_cur_cam_entity());
   if (is_level_loaded())
   {
     dacoll::get_phys_world()->fetchSimRes(true);
@@ -343,7 +343,7 @@ void before_draw_scene(int realtime_elapsed_usec, float gametime_elapsed_sec)
   }
 }
 
-void draw_scene() { ::draw_scene(cur_view_itm); }
+void draw_scene(uint32_t frame_id) { ::draw_scene(frame_id); }
 
 void on_scene_deselected()
 {
@@ -371,7 +371,7 @@ static int loading_job_mgr_id = -1;
 void load_res_package(const char *folder, bool optional)
 {
   String mnt0(0, "%s/", folder);
-  String mntP(0, "content/patch/%s", mnt0);
+  String mntP(0, "%s/%s", dgs_get_settings()->getStr("addonsPatchRoot", "patch"), mnt0);
   bool base_pkg_loaded = false;
   bool load_tex = !dgs_get_settings()->getBlockByNameEx("texStreaming")->getBool("disableTexScan", false) && have_renderer();
 
@@ -422,7 +422,7 @@ void load_res_package(const char *folder, bool optional)
 void init_loading_job_manager()
 {
   G_ASSERT(loading_job_mgr_id < 0 || loading_job_mgr_id == cpujobs::COREID_IMMEDIATE);
-#if (_TARGET_C1 || _TARGET_PC_LINUX) && DAGOR_DBGLEVEL > 0
+#if _TARGET_PC_LINUX && DAGOR_DBGLEVEL > 0
   constexpr int stackSize = 512 << 10; // debug mode has huge stack heaps
 #else
   constexpr int stackSize = (128 + 64) << 10;
@@ -483,8 +483,8 @@ static void init_threads(const DataBlock &cfg)
   // Note: according to measurements of current threadpool & ecs parallel for implementation there is (almost)
   // no perfomance gain with more then 6 work threads (together with main thread this corresponds to 7/8 cores
   // of typical consumer Intel CCU or one Ryzen's CCX)
-  int maxWorkThreads = cfg.getInt("maxWorkThreads", 6);
-  int num_workers = eastl::max(cfg.getInt("numWorkThreads", eastl::min(coreCount - /*main*/ 1, maxWorkThreads)), 0);
+  int numWorkThreads = cfg.getInt("numWorkThreads", eastl::min(coreCount - /*main*/ 1, cfg.getInt("maxWorkThreads", 6)));
+  int num_workers = eastl::clamp(numWorkThreads, 0, threadpool::MAX_WORKER_COUNT);
   int stack_size = cfg.getInt("workThreadsStackSize", 192 << 10);
 #if DAGOR_DBGLEVEL > 1 || defined(__SANITIZE_THREAD__)
   stack_size *= 2;
@@ -502,10 +502,13 @@ static void init_main_thread(void *)
 #if _TARGET_PC_WIN || _TARGET_XBOX
   const DataBlock &cfg = *dgs_get_settings()->getBlockByNameEx("debug");
   G_ASSERT(is_main_thread());
-  // boost main thread priority in order to overrule loading threads (resources, textures, etc...)
-  // we increase main thread priority by one step. We only support two priorities: high and low
+  // Note: boost main thread priority in order to overrule loading threads (resources, textures, etc...)
   if (cfg.getBool("boostMainThreadPriority", true))
+#if _TARGET_XBOX // Note: when all cores are saturated this ensures that main thread is less likely target to be scheduled out
+    DaThread::applyThisThreadPriority(THREAD_PRIORITY_HIGHEST);
+#else
     DaThread::applyThisThreadPriority(THREAD_PRIORITY_ABOVE_NORMAL);
+#endif
 
   if (cfg.getBool("pinMainThreadToCore", true))
     G_VERIFY(SetThreadAffinityMask(GetCurrentThread(), MAIN_THREAD_AFFINITY));
@@ -536,17 +539,19 @@ void app_close()
   memoryreport::stop_report();
 
   if (!dedicated::is_dedicated())
-  {
     send_exit_metrics();
-    android_screen_rotation::shutdown();
-  }
   else
     send_dedicated_exit_metrics();
 #if _TARGET_PC_WIN
-  if (!is_level_loaded())
+  if (!is_initial_loading_complete() || sceneload::is_load_in_progress())
   {
     net_stop();
-    _exit(0);
+    if (!gameproj::is_hosted_server_instance())
+    {
+      debug("app_close -> _exit(0) since no level is loaded and is not internal dedicated server");
+      debug_flush(false);
+      _exit(0);
+    }
   }
 #endif
   ecs_os::cleanup_window_handler();
@@ -555,7 +560,7 @@ void app_close()
   PictureManager::prepare_to_release();
   gamescripts::shutdown_before_ecs();
   sceneload::unload_current_game();
-  net_destroy(/*final=*/true);
+  net_destroy(*g_entity_mgr, /*final=*/true);
 
   browserutils::shutdown_web_browser();
 
@@ -680,12 +685,17 @@ static void init_auth()
       logwarn("failed to load text BLK from %s%s", conf_fn, overrides_detected ? ", overrides detected" : "");
   }
 
-  g_entity_mgr->broadcastEventImmediate(NetAuthEventOnInit{::get_game_name(), gameDistr, app_profile::get().appId});
+  g_entity_mgr->broadcastEventImmediate(NetAuthEventOnInit{gameproj::game_codename(), gameDistr, app_profile::get().appId});
 }
 
 extern void register_vsync_plugin();
 
-void app_start()
+namespace riexsync
+{
+bool is_server() { return ::is_server(); }
+} // namespace riexsync
+
+void app_start(bool register_dagor_scene)
 {
 #if _TARGET_ANDROID || _TARGET_IOS
   crashlytics::AppState appState("app_start");
@@ -708,6 +718,15 @@ void app_start()
 
   ::dgs_limit_fps = settings.getBool("limitFps", false);
   dagor_set_game_act_rate(settings.getInt("actRate", -60));
+
+  if (gameproj::is_hosted_server_instance())
+  {
+    DataBlock *video = const_cast<DataBlock *>(::dgs_get_settings())->addBlock("video");
+    video->setBool("threadedWindow", false);
+    video->setStr("driver", "stub");
+  }
+
+
   if (!dedicated::is_dedicated())
     init_threads(debugSettings);
 
@@ -717,7 +736,7 @@ void app_start()
 
   sceneload::GamePackage gameInfo = sceneload::load_game_package();
   sceneload::load_package_files(gameInfo, false);
-  load_gameparams(get_game_name());
+  load_gameparams();
 
   if (!dedicated::is_dedicated())
   {
@@ -731,7 +750,6 @@ void app_start()
       params.addBlock("baseUrls")->addStr("url", "http://localhost:8000");
       webVromfs->init(params, folders::get_path("webcache", "webcache"));
     }
-    android_screen_rotation::init();
   }
 
   init_world_renderer();
@@ -755,8 +773,7 @@ void app_start()
     if (selfDestructTime > 0.f)
     {
       game::Timer timer;
-      game::g_timers_mgr->setTimer(
-        timer, []() { exit_game("session self destruct timer"); }, selfDestructTime);
+      game::g_timers_mgr->setTimer(timer, []() { exit_game("session self destruct timer"); }, selfDestructTime);
       timer.release(); // fire & forget
     }
   }
@@ -801,13 +818,13 @@ void app_start()
     {
       if (is_animated_splash_screen_in_thread())
       {
-        animated_splash_screen_draw(d3d::get_backbuffer_tex());
+        d3d::set_render_target();
+        animated_splash_screen_draw();
         if (imgui_get_state() != ImGuiState::OFF)
           imgui_endframe();
         return;
       }
-      game_scene::draw_scene();
-      android_screen_rotation::onFrameEnd();
+      game_scene::draw_scene(0);
     }
     virtual void sceneDeselected(DagorGameScene *) override { game_scene::on_scene_deselected(); }
     virtual void beforeDrawScene(int realtime_elapsed_usec, float gametime_elapsed_sec) override
@@ -819,7 +836,9 @@ void app_start()
   } dagor_game_scene;
 
   game_scene::parallel_logic_mode = ::dgs_get_settings()->getBool("parallel_logic_mode", false);
-  dagor_select_game_scene(&dagor_game_scene);
+  game_scene::parallel_no_latency_mode = ::dgs_get_settings()->getBool("parallel_no_latency_mode", false);
+  if (register_dagor_scene)
+    dagor_select_game_scene(&dagor_game_scene);
 
   G_VERIFY(gamescripts::init());
 
@@ -873,6 +892,7 @@ void init_game()
 void term_game()
 {
   ridestr::shutdown();
+  riexsync::shutdown();
   rendinst::termRIGen();
   propsreg::cleanup_props();
   dacoll::clear_collision_world();

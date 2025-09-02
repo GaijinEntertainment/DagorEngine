@@ -32,12 +32,17 @@ struct GraphicsState
     VIEWPORT_DIRTY,
     USE_WIREFRAME,
 
+    STREAM_OUTPUT_BUFFER_DIRTY,
     INDEX_BUFFER_DIRTY,
     VERTEX_BUFFER_0_DIRTY,
     VERTEX_BUFFER_1_DIRTY,
     VERTEX_BUFFER_2_DIRTY,
     VERTEX_BUFFER_3_DIRTY,
     // state
+    STREAM_OUTPUT_BUFFER_STATE_0_DIRTY,
+    STREAM_OUTPUT_BUFFER_STATE_1_DIRTY,
+    STREAM_OUTPUT_BUFFER_STATE_2_DIRTY,
+    STREAM_OUTPUT_BUFFER_STATE_3_DIRTY,
     INDEX_BUFFER_STATE_DIRTY,
     VERTEX_BUFFER_STATE_0_DIRTY,
     VERTEX_BUFFER_STATE_1_DIRTY,
@@ -47,6 +52,13 @@ struct GraphicsState
     PREDICATION_BUFFER_STATE_DIRTY,
 
     COUNT
+  };
+
+  struct StreamOutputBound
+  {
+    BufferResourceReferenceAndAddressRange buffer;
+    BufferResourceReferenceAndAddress counter;
+    bool operator==(const StreamOutputBound &) const = default;
   };
 
   BasePipeline *basePipeline = nullptr;
@@ -67,6 +79,7 @@ struct GraphicsState
   DXGI_FORMAT indexBufferFormat = DXGI_FORMAT_R16_UINT;
   BufferResourceReferenceAndAddressRange vertexBuffers[MAX_VERTEX_INPUT_STREAMS];
   uint32_t vertexBufferStrides[MAX_VERTEX_INPUT_STREAMS] = {};
+  StreamOutputBound streamOutputSlots[MAX_STREAM_OUTPUT_BUFFERS] = {};
   BufferResourceReferenceAndOffset predicationBuffer;
   BufferResourceReferenceAndOffset activePredicationBuffer;
 
@@ -83,6 +96,11 @@ struct GraphicsState
 
   void dirtyBufferState(BufferGlobalId ident)
   {
+    for (auto [i, soBuffer] : enumerate(streamOutputSlots, STREAM_OUTPUT_BUFFER_STATE_0_DIRTY))
+    {
+      if (soBuffer.buffer.resourceId == ident || soBuffer.counter.resourceId == ident)
+        statusBits.set(i);
+    }
     if (indexBuffer.resourceId == ident)
     {
       statusBits.set(INDEX_BUFFER_STATE_DIRTY);
@@ -134,6 +152,13 @@ struct GraphicsState
     indexBuffer = {};
     statusBits.set(INDEX_BUFFER_DIRTY);
     statusBits.set(INDEX_BUFFER_STATE_DIRTY);
+
+    statusBits.reset(STREAM_OUTPUT_BUFFER_DIRTY);
+    for (uint32_t i = 0; i < MAX_STREAM_OUTPUT_BUFFERS; ++i)
+    {
+      streamOutputSlots[i] = {};
+      statusBits.reset(STREAM_OUTPUT_BUFFER_STATE_0_DIRTY + i);
+    }
 
     for (uint32_t i = 0; i < MAX_VERTEX_INPUT_STREAMS; ++i)
     {

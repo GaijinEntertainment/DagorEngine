@@ -42,9 +42,11 @@ void CloudsField::initCompressed()
     "clouds_field_volume_tmp");
   cloudsFieldVolCompressed =
     dag::create_voltex(resXZ, resXZ, resY, TEXFMT_ATI1N | TEXCF_UPDATE_DESTINATION, 1, "clouds_field_volume_compressed");
-  cloudsFieldVolCompressed->texaddru(TEXADDR_WRAP);
-  cloudsFieldVolCompressed->texaddrv(TEXADDR_WRAP);
-  cloudsFieldVolCompressed->texaddrw(TEXADDR_BORDER);
+  d3d::SamplerInfo smpInfo;
+  smpInfo.address_mode_u = d3d::AddressMode::Wrap;
+  smpInfo.address_mode_v = d3d::AddressMode::Wrap;
+  smpInfo.address_mode_w = d3d::AddressMode::Border;
+  ShaderGlobal::set_sampler(clouds_field_volume_samplerstateVarId, d3d::request_sampler(smpInfo));
   ShaderGlobal::set_texture(clouds_field_volumeVarId, cloudsFieldVolCompressed);
 }
 
@@ -93,9 +95,8 @@ void CloudsField::initDownsampledField()
 {
   cloudsDownSampledField.close();
   downsampleCloudsField.initVoltex(cloudsDownSampledField, (resXZ + downsampleRatio - 1) / downsampleRatio,
-    (resXZ + downsampleRatio - 1) / downsampleRatio, (resY + downsampleRatio - 1) / downsampleRatio, TEXFMT_L8, 1,
+    (resXZ + downsampleRatio - 1) / downsampleRatio, (resY + downsampleRatio - 1) / downsampleRatio, TEXFMT_R8, 1,
     "clouds_field_volume_low");
-  cloudsDownSampledField->disableSampler();
   d3d::SamplerInfo smpInfo;
   smpInfo.address_mode_u = d3d::AddressMode::Wrap;
   smpInfo.address_mode_v = d3d::AddressMode::Wrap;
@@ -125,10 +126,9 @@ void CloudsField::init()
   if (!cloudsFieldVolTemp)
   {
     genCloudsField.init("gen_cloud_field", "gen_cloud_field_ps");
-    genCloudsField.initVoltex(cloudsFieldVol, resXZ, resXZ, resY, TEXFMT_L8, 1, "clouds_field_volume");
+    genCloudsField.initVoltex(cloudsFieldVol, resXZ, resXZ, resY, TEXFMT_R8, 1, "clouds_field_volume");
     if (!genCloudsField.isComputeLoaded())
       genCloudLayersNonEmpty.init("gen_cloud_layers_non_empty", nullptr, 0, "gen_cloud_layers_non_empty", false);
-    cloudsFieldVol->disableSampler();
     {
       d3d::SamplerInfo smpInfo;
       smpInfo.address_mode_u = d3d::AddressMode::Wrap;
@@ -154,7 +154,6 @@ void CloudsField::init()
   {
     layersHeights = dag::create_tex(nullptr, 2, 1, (refineAltitudes ? TEXCF_UNORDERED : TEXCF_RTARGET) | TEXFMT_A32B32G32R32F, 1,
       "cloud_layers_altitudes_tex");
-    layersHeights->disableSampler();
   }
   if (!readbackData.query)
   {

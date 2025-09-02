@@ -614,7 +614,7 @@ INLINE SingleScatteringResult IntegrateScatteredLuminanceMS(
   float tMaxFloor = tMax;
   if (variableSampleCount)
   {
-    sampleCount = lerp(rayMarchMinMaxSPP.x, rayMarchMinMaxSPP.y, saturate(tMax*0.01));
+    sampleCount = lerp(rayMarchMinMaxSPP.x, rayMarchMinMaxSPP.y, saturate(tMax*0.01f));
     sampleCountFloor = floor(sampleCount);
     tMaxFloor = tMax * sampleCountFloor / sampleCount;  // rescale tMax to map to the last entire step segment.
   }

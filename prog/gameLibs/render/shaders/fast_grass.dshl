@@ -1,0 +1,500 @@
+include "shader_global.dshl"
+include "globtm.dshl"
+include "gbuffer.dshl"
+include "static_shadow.dshl"
+include "toroidal_grass.dshl"
+include "heightmap_common.dshl"
+include "heightmap_ofs.dshl"
+include "rendinst_heightmap_ofs.dshl"
+include "land_block_inc.dshl"
+include "wetness.dshl"
+include "fast_grass_inc.dshl"
+
+texture perlin_noise3d;
+include "wind/wind_simulation_inc.dshl"
+
+texture grass_far_mask_tex;
+texture grass_far_color_tex;
+float4 world_to_far_grass     = (1.0/512, 1.0/512, 0, 0);
+float4 world_to_far_grass_ofs = (1.0/512, 1.0/512, 0, 0);
+
+float4 camera_base_offset = (0, 0, 0, 0);
+
+macro USE_FAST_GRASS_CLIP_RECTS(code)
+  (code)
+  {
+    FGClipRects@cbuf = fast_grass_clip_rects hlsl {
+      #include <grassInstance.hlsli>
+      cbuffer FGClipRects@cbuf
+      {
+        float4 fast_grass_clip_rects[FAST_GRASS_MAX_CLIPMAP_CASCADES*2+1];
+      };
+    };
+  }
+  hlsl(code) {
+    float4 _get_fast_grass_clip_rect(uint i)
+    {
+      ##assert(i < FAST_GRASS_MAX_CLIPMAP_CASCADES*2+1, "fast_grass_clip_rects OOB (%d)", i);
+      return fast_grass_clip_rects[i];
+    }
+    float4 get_world_to_fg_clip(uint cascade)
+    {
+      return _get_fast_grass_clip_rect(cascade*2);
+    }
+    float4 get_fg_clip_to_world(uint cascade)
+    {
+      return _get_fast_grass_clip_rect(cascade*2+1);
+    }
+  }
+endmacro
+
+shader fast_grass
+{
+  supports global_const_block;
+  supports global_frame;
+
+  ENABLE_ASSERT(ps)
+  HEIGHTMAP_DECODE_EDGE_TESSELATION()
+  INIT_HMAP_HOLES(vs)
+  USE_HMAP_HOLES(vs)
+
+  INIT_USE_COMBINED_WIND(ps)
+  INIT_STATICS_WETNESS()
+  USE_MICRODETAIL_BASED_WETNESS()
+
+  USE_FAST_GRASS_CLIP_RECTS(vs)
+  USE_FAST_GRASS_CLIP_RECTS(ps)
+
+  (vs)
+  {
+    globtm@f44 = globtm;
+    camera_base_offset@f4 = camera_base_offset;
+    noise_64_tex@smp2d = noise_64_tex;
+    world_to_hmap_low@f4 = (world_to_hmap_low.x, world_to_hmap_low.y, world_to_hmap_low.z + 0.5*tex_hmap_inv_sizes.x, world_to_hmap_low.w+0.5*tex_hmap_inv_sizes.y);
+    tex_hmap_low@smp2d = tex_hmap_low;
+    heightmap_scale@f4 = (heightmap_scale.x, heightmap_scale.y, 1.5*tex_hmap_inv_sizes.x, 1.5*tex_hmap_inv_sizes.y);
+    pre_dim@f2 = get_dimensions(fast_grass_pre_gmap, 0);
+    pre_half_texel@f1 = 0.5 / get_dimensions(fast_grass_pre_gmap, 0).x;
+    pre_levels@u1 = fast_grass_num_clips;
+    pre_hmap_tex@smpArray = fast_grass_pre_hmap;
+    pre_gmap_tex@tex   = fast_grass_pre_gmap hlsl { Texture2DArray<uint> pre_gmap_tex@tex; };
+    pre_cmap_tex@smpArray = fast_grass_pre_cmap;
+  }
+
+  (ps)
+  {
+    camera_base_offset@f4 = camera_base_offset;
+    heightmap_scale@f4 = (heightmap_scale.x, heightmap_scale.y, 1.5*tex_hmap_inv_sizes.x, 1.5*tex_hmap_inv_sizes.y);
+    pre_dim@f2 = get_dimensions(fast_grass_pre_gmap, 0);
+    pre_half_texel@f1 = 0.5 / get_dimensions(fast_grass_pre_gmap, 0).x;
+    pre_levels@u1 = fast_grass_num_clips;
+    pre_hmap_tex@smpArray = fast_grass_pre_hmap;
+    pre_gmap_tex@tex   = fast_grass_pre_gmap hlsl { Texture2DArray<uint> pre_gmap_tex@tex; };
+    pre_cmap_tex@smpArray = fast_grass_pre_cmap;
+  }
+
+  no_ablend;
+  cull_mode = ccw;
+
+  hlsl {
+    #define DISABLE_TOONSHADING 1
+
+    struct VsOutput
+    {
+      linear noperspective centroid VS_OUT_POSITION(pos)
+      float4 p2e_gy : TEXCOORD0;
+      float3 land_normal : TEXCOORD1;
+    };
+
+    #define sampleGrassMaskParams(tex, tc) tex.SampleLevel(grass_mask_tex_samplerstate, tc, 0)
+
+    void unpackGrassMaskParams(float4 packedGrassMask, out float maskScale, out float displacementScale, out float decalsGrassMask)
+    {
+      maskScale = packedGrassMask.g;
+      displacementScale = packedGrassMask.b;
+      decalsGrassMask = packedGrassMask.a;
+    }
+
+    float3 computePrecompTC(float2 xz)
+    {
+      for (uint clip = 0; clip < pre_levels; clip++)
+      {
+        float4 proj = get_world_to_fg_clip(clip);
+        float2 tc = proj.xy * xz + proj.zw;
+        if (all(tc == clamp(tc, pre_half_texel*3, 1 - 5*pre_half_texel)) || clip + 1u == pre_levels)
+          return float3(tc, clip);
+      }
+      return float3(-1, -1, 0);
+    }
+
+    float sampleHeight(float3 worldPos)
+    {
+      float rawh = tex3Dlod(pre_hmap_tex, float4(computePrecompTC(worldPos.xz), 0)).r;
+      return rawh * heightmap_scale.x + heightmap_scale.y;
+    }
+  }
+
+  WRITE_GBUFFER()
+  INIT_ZNZFAR()
+
+  hlsl(vs) {
+    float2 decodeWorldPosXZ(int2 inPos input_used_instance_id)
+    {
+      float4 instance_const = heightmap_scale_offset[instance_id.x];
+      uint4 border = decode_edge_tesselation(instance_const);
+
+      inPos.y = adapt_edge_tesselation(inPos.y, inPos.x == 0 ? border.x : (inPos.x == patchDim ? border.y : 1));
+      inPos.x = adapt_edge_tesselation(inPos.x, inPos.y == 0 ? border.z : (inPos.y == patchDim ? border.w : 1));
+      return decodeWorldPosXZConst(instance_const, inPos);
+    }
+
+    bool hasGrassAt(float3 wpos)
+    {
+      float3 tc = computePrecompTC(wpos.xz);
+      uint ch = texelFetch(pre_gmap_tex, int3(tc.xy * pre_dim, tc.z), 0);
+      half wt = tex3Dlod(pre_cmap_tex, float4(tc, 0)).a;
+      ch = min(ch, GRASS_MAX_CHANNELS);
+      float height = fast_grass_types[ch].height;
+      return height > 0 && wt > 0.01;
+    }
+
+    half3 getNormalLow(float2 pos)
+    {
+      float2 tex_hmap_inv_sizes = heightmap_scale.zw;
+      float sizeInMeters = 2*tex_hmap_inv_sizes.x/world_to_hmap_low.x/heightmap_scale.x;
+      float3 offset = float3(tex_hmap_inv_sizes.x, 0, tex_hmap_inv_sizes.y);
+      half W = tex2Dlod(tex_hmap_low, float4(pos.xy - offset.xy,0,0)).x;//textureOffset (-1,0)
+      half E = tex2Dlod(tex_hmap_low, float4(pos.xy + offset.xy,0,0)).x;
+      half N = tex2Dlod(tex_hmap_low, float4(pos.xy - offset.yz,0,0)).x;
+      half S = tex2Dlod(tex_hmap_low, float4(pos.xy + offset.yz,0,0)).x;
+      return normalize(half3(W-E, sizeInMeters, N-S));
+    }
+
+    bool sampleGrassVS(inout float3 worldPos, float cellSize,
+      out uint grassChannel, out float grassWeight, out float3 landNormal)
+    {
+      float3 pre_tc = computePrecompTC(worldPos.xz);
+
+      grassChannel = pre_gmap_tex.Load(int4(pre_tc.xy * pre_dim, pre_tc.z, 0));
+
+      if (checkHeightmapHoles(worldPos.xyz))
+        grassChannel = GRASS_MAX_CHANNELS;
+
+      grassChannel = min(grassChannel, GRASS_MAX_CHANNELS);
+
+      if (fast_grass_types[grassChannel].height <= 0)
+      {
+        bool noGrass = true;
+        UNROLL
+        for (int dz = -1; dz <= 1; dz++)
+          for (int dx = -1; dx <= 1; dx++)
+            if (dx != 0 || dz != 0)
+            {
+              float3 wp = worldPos + float3(dx, 0, dz) * cellSize;
+              if (checkHeightmapHoles(wp))
+                continue;
+              else if (!hasGrassAt(wp))
+                continue;
+              noGrass = false;
+            }
+        if (noGrass)
+        {
+          grassWeight = 0;
+          landNormal = float3(0, 1, 0);
+          return false;
+        }
+      }
+
+      worldPos.y = sampleHeight(worldPos);
+      grassWeight  = tex3Dlod(pre_cmap_tex, float4(pre_tc, 0)).a;
+
+      float2 tex_hmap_tc = worldPos.xz*world_to_hmap_low.xy + world_to_hmap_low.zw;
+      landNormal = getNormalLow(tex_hmap_tc);
+
+      return true;
+    }
+
+    #define FAST_GRASS_VS_END \
+      output.pos = mul(float4(worldPos, 1) + camera_base_offset, globtm);
+  }
+
+  hlsl(ps) {
+    float TriangleWave(float x)
+    {
+      float y = abs(frac(x + 0.5) * 2. - 1.);
+      return y * y * (3. - 2. * y);
+    }
+
+    float3 getFastGrassWind(float u, float v, float3 pos, float grassHeight, float stiffness)
+    {
+      const float WIND_TIME_MULT = 0.25;
+      const float WIND_MULT = 0.03;
+      float3 wind = sampleWindCurrentTime(pos, 2 - stiffness, 0);
+      float wind_speed = length(wind);
+      float t = WIND_TIME_MULT * (ambient_wind__speed__current_time__previous_time.y + wind_speed);
+      wind.xz += 0.2 * wind_speed * float2(TriangleWave(pos.x + t), TriangleWave(pos.z + t));
+      wind *= WIND_MULT * stiffness;
+      wind = wind * grassHeight / length(wind + float3(0, grassHeight, 0));
+      float heightFactor = 1 - saturate(v);
+      return wind * heightFactor;
+    }
+
+    void sampleGrassPS(float3 pre_tc,
+      out uint grassChannel, out half maskScale, out half3 landColor)
+    {
+      grassChannel = pre_gmap_tex.Load(int4(pre_tc.xy * pre_dim, pre_tc.z, 0));
+      half4 cmap = tex3Dlod(pre_cmap_tex, float4(pre_tc, 0));
+      maskScale = cmap.a;
+      landColor = cmap.rgb;
+    }
+
+    float3 computeGrassAlbedo(half3 albedo, uint hitChannel, half2 hitRandom, half3 landColor)
+    {
+      // taken from billboard grass:
+      half3 mask_r = lerp(fast_grass_types[hitChannel].mask_r_color0.rgb, fast_grass_types[hitChannel].mask_r_color1.rgb, hitRandom.x);
+      half3 mask_b = lerp(fast_grass_types[hitChannel].mask_b_color0.rgb, fast_grass_types[hitChannel].mask_b_color1.rgb, hitRandom.y);
+      half3 color = lerp( landColor, mask_r, albedo.r );
+      color = lerp( color, mask_b, albedo.b );
+      half3 mask_g = lerp(fast_grass_types[hitChannel].mask_g_color0.rgb, fast_grass_types[hitChannel].mask_g_color1.rgb, albedo.g);
+      color *= mask_g * COLOR_CORRECTION_MULTIPLIER; // no idea about the number, it's from billboard grass
+      return color;
+    }
+
+    #define FAST_GRASS_PS_DECL \
+      half3 landColor = 0; \
+      float4 grassBounds = get_world_to_fg_clip(pre_levels); \
+      float2 grassTcOfs = curPos.xz * grassBounds.xy + grassBounds.zw; \
+      float2 vignette = saturate(abs(grassTcOfs.xy*2-1) * 10 - 9); \
+      baseFade = saturate(1 - dot(vignette, vignette));
+
+    #define FAST_GRASS_PS_SAMPLE \
+      half4 random4_high = tex2Dlod(noise_64_tex, float4(dot(curPos.xz, sliceTang)*0.171, curPos.y*0.171, 0, 0)); \
+      float3 pre_tc = computePrecompTC(curPos.xz + (random4_high.zw*2 - 1) * startSliceStep); \
+      uint grassChannel; \
+      half maskScale; \
+      half3 grassColor; \
+      bool isDecal = false; \
+      bool isFarLod = false; \
+      sampleGrassPS(pre_tc, grassChannel, maskScale, grassColor);
+
+    #define FAST_GRASS_PS_HIT \
+      landColor = grassColor;
+
+    #define FAST_GRASS_PS_POST \
+      grassAlbedo = computeGrassAlbedo(albedo, hitChannel, hitRandom, landColor); \
+      reflectance = 0.5 * saturate(3 * (1 - hitV) * hitGrassHeight); \
+      reflectance *= 0.5 + 0.5*saturate(1.25-hitV); \
+      ao = lerp(pow(1 - hitV, grass_ao_curve), 1, grass_ao_max);
+  }
+
+  USE_FAST_GRASS()
+
+  hlsl(ps) {
+    GBUFFER_OUTPUT grass_ps(VsOutput input HW_USE_SCREEN_POS INPUT_VFACE, out float depth : SV_DepthLessEqual)
+    {
+      float4 screenpos = GET_SCREEN_POS(input.pos);
+
+      float3 worldPos;
+      half3 worldNormal;
+      half3 grassAlbedo;
+      half smoothness, reflectance, translucency, ao, shadow;
+      fastGrassPixelShader(screenpos, input, worldPos, worldNormal,
+        grassAlbedo, smoothness, reflectance, translucency, ao, shadow);
+
+    ##if mobile_render == off
+      apply_wetness_by_porosity(grass_porosity, worldPos, grassAlbedo.rgb, worldNormal, reflectance, smoothness, ao);
+    ##endif
+
+      UnpackedGbuffer result;
+      init_gbuffer(result);
+
+      init_albedo(result, grassAlbedo);
+      init_smoothness(result, smoothness);
+      init_reflectance(result, reflectance);
+      init_translucency(result, translucency);
+      init_normal(result, worldNormal);
+
+      init_ao(result, ao);
+      init_shadow(result, shadow);
+
+      init_material(result, SHADING_FOLIAGE);
+      init_isLandscape(result, 1);
+      init_order(result, GBUFFER_ORDER_DYNAMIC);
+
+      float pw = mul(float4(worldPos, 1.0) + camera_base_offset, globtm_psf).w;
+      depth = inv_linearizeZ(max(pw, screenpos.w), zn_zfar);
+      // depth = inv_linearizeZ(screenpos.w, zn_zfar); //== check that writing shell depth works
+      return encode_gbuffer(result, input.p2e_gy.xyz, screenpos);
+    }
+  }
+
+  compile("target_vs", "grass_vs");
+  compile("target_ps", "grass_ps");
+}
+
+
+shader fast_grass_precomp
+{
+  (cs) {
+    output_hmap@uav = fast_grass_pre_hmap hlsl {
+      RWTexture2DArray<float> output_hmap@uav;
+    };
+    output_gmap@uav = fast_grass_pre_gmap hlsl {
+      RWTexture2DArray<uint> output_gmap@uav;
+    };
+    output_cmap@uav = fast_grass_pre_cmap hlsl {
+      RWTexture2DArray<half4> output_cmap@uav;
+    };
+    output_size@u2 = get_dimensions(fast_grass_pre_hmap, 0);
+    world_to_hmap_low@f4 = (world_to_hmap_low.x, world_to_hmap_low.y, world_to_hmap_low.z + 0.5*tex_hmap_inv_sizes.x, world_to_hmap_low.w+0.5*tex_hmap_inv_sizes.y);
+    tex_hmap_low@smp2d = tex_hmap_low;
+    heightmap_scale@f4 = (heightmap_scale.x, heightmap_scale.y, 1.5*tex_hmap_inv_sizes.x, 1.5*tex_hmap_inv_sizes.y);
+    grass_color_tex@smp2d = grass_color_tex;
+    grass_mask_dim@f2 = get_dimensions(grass_mask_tex, 0);
+    noise_64_tex@smp2d = noise_64_tex;
+    if (grass_far_mask_tex != NULL && compatibility_mode == compatibility_mode_off)
+    {
+      grass_far_mask_dim@f2 = get_dimensions(grass_far_mask_tex, 0);
+      grass_far_mask_tex@smp2d = grass_far_mask_tex;
+      grass_far_color_tex@smp2d = grass_far_color_tex;
+      world_to_far_grass@f4 = world_to_far_grass;
+      world_to_far_grass_ofs@f4 = world_to_far_grass_ofs;
+    }
+  }
+
+  ENABLE_ASSERT(cs)
+  USE_GRASS_TC(cs)
+  INIT_HEIGHTMAP_OFS(cs)
+  USE_HEIGHTMAP_OFS(cs)
+  INIT_RENDINST_HEIGHTMAP_OFS(cs)
+  USE_RENDINST_HEIGHTMAP_OFS(cs)
+  INIT_HMAP_HOLES(cs)
+  USE_HMAP_HOLES(cs)
+  USE_FAST_GRASS_CLIP_RECTS(cs)
+
+  hlsl(cs) {
+    #include <grassInstance.hlsli>
+
+    float sampleHeight(float3 worldPos)
+    {
+      if (checkHeightmapHoles(worldPos)) return -10000;
+
+      float2 tex_hmap_tc = worldPos.xz*world_to_hmap_low.xy + world_to_hmap_low.zw;
+      float groundPos = tex2Dlod(tex_hmap_low, float4(tex_hmap_tc,0,0)).r*heightmap_scale.x+heightmap_scale.y;
+
+      float displacementEffect;
+      groundPos += get_hmap_ofs(worldPos.xz, 0, displacementEffect);
+
+      apply_renderinst_hmap_ofs(worldPos.xz, groundPos);
+##if hmap_patches_tex != NULL
+      apply_height_patches(worldPos.xz, groundPos);
+##endif
+      return groundPos;
+    }
+
+    #define sampleGrassMaskParams(tex, tc) tex.SampleLevel(grass_mask_tex_samplerstate, tc, 0)
+
+    void unpackGrassMaskParams(float4 packedGrassMask, out float maskScale, out float displacementScale, out float decalsGrassMask)
+    {
+      maskScale = packedGrassMask.g;
+      displacementScale = packedGrassMask.b;
+      decalsGrassMask = packedGrassMask.a;
+    }
+
+    uint sampleGrassChannel(Texture2D tex, float2 grass_mask_tc, float2 dim)
+    {
+      float2 bilW = frac(grass_mask_tc * dim - 0.5f);
+      float4 red = tex.GatherRed(grass_mask_tex_samplerstate, grass_mask_tc);
+      float2 redX = bilW.y>0.5 ? red.xy : red.wz;
+      float redChannel = bilW.x>0.5 ? redX.x : redX.y;
+      return uint(redChannel*255);
+    }
+
+    void sampleGrassCS(inout float3 worldPos, out uint grassChannel, out half grassWeight, out half3 grassColor)
+    {
+      worldPos.y = sampleHeight(worldPos);
+
+      float2 grass_mask_tc = getGrassTC(worldPos.xyz);
+      float2 grassTcOfs = worldPos.xz*world_to_grass_ofs.x + world_to_grass_ofs.zw;
+      bool clamped = any(abs(grassTcOfs*2-1) > 1);
+
+    ##if grass_far_mask_tex != NULL && compatibility_mode == compatibility_mode_off
+      const float2 farDim = grass_far_mask_dim;
+      float2 grass_far_mask_tc = worldPos.xz*world_to_far_grass.xy + world_to_far_grass.zw;
+      float2 grassFarTcOfs = worldPos.xz*world_to_far_grass_ofs.xy + world_to_far_grass_ofs.zw;
+      bool farClamped = any(abs(grassFarTcOfs*2-1) > 1);
+    ##endif
+
+      const float2 dim = grass_mask_dim;
+      grassChannel = sampleGrassChannel(grass_mask_tex, grass_mask_tc, dim);
+
+      float maskScale;
+      float displacementScale;
+      float decals_grass_mask;
+      unpackGrassMaskParams(
+        sampleGrassMaskParams(grass_mask_tex, grass_mask_tc), maskScale,
+        displacementScale, decals_grass_mask);
+
+      float4 decalColor = tex2Dlod(grass_color_tex, float4(grass_mask_tc,0,0));//point_sampler
+      uint decals_grass_channel = floor(decalColor.a*255+0.5);
+
+      grassColor = grass_color_tex.SampleLevel(grass_mask_tex_samplerstate, grass_mask_tc, 0).rgb;
+
+    ##if grass_far_mask_tex != NULL && compatibility_mode == compatibility_mode_off
+      if (clamped)
+      {
+        if (!farClamped)
+        {
+          grassChannel = sampleGrassChannel(grass_far_mask_tex, grass_far_mask_tc, farDim);
+          unpackGrassMaskParams(
+            sampleGrassMaskParams(grass_far_mask_tex, grass_far_mask_tc), maskScale,
+            displacementScale, decals_grass_mask);
+          decals_grass_channel = floor(tex2Dlod(grass_far_color_tex, float4(grass_far_mask_tc,0,0)).a*255+0.5);
+          grassColor = grass_far_color_tex.SampleLevel(grass_mask_tex_samplerstate, grass_far_mask_tc, 0).rgb;
+          clamped = false;
+        }
+      }
+    ##endif
+
+      float4 random4_low = tex2Dlod(noise_64_tex, float4(worldPos.xz*0.171, 0, 0));
+
+      if (decals_grass_channel >= GRASS_MAX_CHANNELS || clamped)
+      {
+        grassChannel = GRASS_MAX_CHANNELS;
+      }
+      else if (decals_grass_mask > 0.1)
+      {
+        float probability = decals_grass_mask;
+        if (probability >= random4_low.x)
+        {
+          grassChannel = decals_grass_channel;
+          maskScale = decals_grass_mask;
+        }
+      }
+
+      if (checkHeightmapHoles(worldPos.xyz))
+        grassChannel = GRASS_MAX_CHANNELS;
+
+      grassChannel = min(grassChannel, GRASS_MAX_CHANNELS);
+      grassWeight = maskScale;
+    }
+
+    [numthreads(16, 16, 1)]
+    void main(uint3 dtId : SV_DispatchThreadID)
+    {
+      if (any(dtId.xy >= output_size))
+        return;
+      float4 proj = get_fg_clip_to_world(dtId.z);
+      float3 wpos = float3(dtId.xy * proj.xy + proj.zw, 0).xzy;
+      half grassWeight;
+      uint grassChannel;
+      half3 grassColor;
+      sampleGrassCS(wpos, grassChannel, grassWeight, grassColor);
+      texture3DAt(output_hmap, dtId) = (wpos.y - heightmap_scale.y) * (1.0 / heightmap_scale.x);
+      texture3DAt(output_gmap, dtId) = grassChannel;
+      texture3DAt(output_cmap, dtId) = half4(grassColor, grassWeight);
+    }
+  }
+
+  compile("target_cs", "main");
+}

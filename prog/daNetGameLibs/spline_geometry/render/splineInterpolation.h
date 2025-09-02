@@ -6,4 +6,5 @@
 
 struct SplineGenSpline;
 
-eastl::vector<SplineGenSpline, framemem_allocator> interpolate_points(const ecs::List<Point3> &points, int stripes);
+eastl::vector<SplineGenSpline, framemem_allocator> interpolate_points(
+  const ecs::List<Point3> &points, const ecs::List<Point2> &radii, const ecs::List<Point3> &emissive_points, int stripes);

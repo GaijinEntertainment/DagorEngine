@@ -1,4 +1,4 @@
-set GDK_VER=240602
+set GDK_VER=250401
 set LLVM_VER=15.0.7
 
 call :NORMALIZEPATH "..\..\..\..\"

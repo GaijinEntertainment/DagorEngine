@@ -230,7 +230,8 @@ void AnimV20::LegsIKCtrl::process(IPureAnimStateHolder &st, real wt, GeomNodeTre
         foot_wtm.col3 = footNewPos;
       else
         foot_wtm.col3 = v_perm_xyzd(v_madd(vup, v_splats(nodes[i].dy), move_foot ? foot_p1 : foot_wtm.col3), V_C_UNIT_0001);
-      solve_2bones_ik(leg_wtm, knee_wtm, foot_wtm, foot_wtm, len0, len1);
+      vec3f flex_direction = v_cross3(v_sub(foot_wtm.col3, leg_wtm.col3), leg_wtm.col2);
+      solve_2bones_ik(leg_wtm, knee_wtm, foot_wtm, foot_wtm, len0, len1, flex_direction);
       if (ctx.acScale)
       {
         vec3f s = *ctx.acScale;

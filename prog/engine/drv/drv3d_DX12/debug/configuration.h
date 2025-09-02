@@ -23,6 +23,7 @@ union Configuration
     bool enableDagorGPUTrace : 1;
     bool enableCPUValidation : 1;
     bool enableGPUValidation : 1;
+    bool enableNVRTValidation : 1;
     bool enableAgsTrace : 1;
     bool enableAgsProfile : 1;
   };
@@ -56,17 +57,17 @@ union Configuration
     enableGPUDumps = enableAftermath; // -V547
     enableCPUValidation = false;
     enableGPUValidation = false;
+    enableNVRTValidation = false;
   }
 
   void applyDevDefaults()
   {
-    auto gfx = dgs_get_settings()->getBlockByNameEx("graphics");
     enableGPUCapturers = true;
-    loadPIXCapturer = !gfx->getBool("enableBVH", false) && stricmp(gfx->getStr("bvhMode", "off"), "off") == 0;
+    loadPIXCapturer = false;
     enableAftermath = true;
     enableAgsTrace = false;
     enableAgsProfile = false;
-    enableDagorGPUTrace = false;
+    enableDagorGPUTrace = true;
     trackPageFaults = true;
     enableShaderErrorReporting = false;
     enableDRED = true;
@@ -75,13 +76,13 @@ union Configuration
     enableGPUDumps = enableAftermath; // -V547
     enableCPUValidation = false;
     enableGPUValidation = false;
+    enableNVRTValidation = false;
   }
 
   void applyDebugDefaults()
   {
-    auto gfx = dgs_get_settings()->getBlockByNameEx("graphics");
     enableGPUCapturers = true;
-    loadPIXCapturer = !gfx->getBool("enableBVH", false) && stricmp(gfx->getStr("bvhMode", "off"), "off") == 0;
+    loadPIXCapturer = false;
     enableAftermath = true;
     enableAgsTrace = false;
     enableAgsProfile = false;
@@ -94,6 +95,7 @@ union Configuration
     enableGPUDumps = enableAftermath; // -V547
     enableCPUValidation = true;
     enableGPUValidation = false;
+    enableNVRTValidation = false;
   }
 
   void applyPIXProfile() { enableGPUCapturers = loadPIXCapturer = true; }
@@ -113,6 +115,7 @@ union Configuration
     enableGPUDumps = true;
     enableCPUValidation = false;
     enableGPUValidation = true;
+    enableNVRTValidation = true;
   }
 
   void applyTraceProfile()
@@ -128,6 +131,7 @@ union Configuration
     enableGPUDumps = true;
     enableCPUValidation = false;
     enableGPUValidation = false;
+    enableNVRTValidation = false;
   }
 
   void applyAftermathProfile()
@@ -143,6 +147,7 @@ union Configuration
     enableGPUDumps = true;
     enableCPUValidation = false;
     enableGPUValidation = false;
+    enableNVRTValidation = false;
   }
 
   void applyDREDProfile()
@@ -197,7 +202,7 @@ union Configuration
     }
     else if (0 == profile.compare("debug"))
     {
-      applyDevDefaults();
+      applyDebugDefaults();
     }
     else if (0 == profile.compare("pix"))
     {
@@ -287,6 +292,7 @@ union Configuration
     enableGPUDumps = modernSettings->getBool("gpuDumps", enableAftermath);
     enableCPUValidation = settings->getBool("cpuValidation", enableCPUValidation || debugLevel > 1);
     enableGPUValidation = settings->getBool("gpuValidation", enableGPUValidation || debugLevel > 2);
+    enableNVRTValidation = modernSettings->getBool("nvRTValidation", enableNVRTValidation || debugLevel > 1);
 
     applyDebugProfile(modernSettings->getStr("profile", ""));
   }

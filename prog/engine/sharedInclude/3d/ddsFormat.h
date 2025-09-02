@@ -580,7 +580,11 @@ typedef struct _DDSHDR_DXT10
 
 #if _TARGET_PC_WIN
 #include <d3d9types.h>
+#include <DXGIFormat.h>
 #else
+#if _TARGET_XBOX
+#include <DXGIFormat.h>
+#endif
 enum D3DFORMAT
 {
   D3DFMT_UNKNOWN = 0,

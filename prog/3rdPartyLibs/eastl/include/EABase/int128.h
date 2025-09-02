@@ -111,20 +111,12 @@ protected:
 
 	EA_CONSTEXPR uint64_t Low() const
 	{
-	#ifdef EA_SYSTEM_BIG_ENDIAN
 		return mPart0;
-	#else
-		return mPart1;
-	#endif
 	}
 
 	EA_CONSTEXPR uint64_t High() const
 	{
-	#ifdef EA_SYSTEM_BIG_ENDIAN
 		return mPart1;
-	#else
-		return mPart0;
-	#endif
 	}
 
 protected:
@@ -286,7 +278,7 @@ EA_CONSTEXPR inline int128_t_base::operator signed char() const        { return 
 EA_CONSTEXPR inline int128_t_base::operator unsigned char() const      { return static_cast<unsigned char>(Low()); }
 EA_CONSTEXPR inline int128_t_base::operator unsigned int() const       { return static_cast<unsigned int>(Low()); }
 EA_CONSTEXPR inline int128_t_base::operator unsigned long long() const { return static_cast<unsigned long long>(Low()); }
-EA_CONSTEXPR inline int128_t_base::operator unsigned long() const      { return static_cast<unsigned long>(Low()); }
+EA_CONSTEXPR inline int128_t_base::operator unsigned long() const	   { return static_cast<unsigned long>(Low()); }
 EA_CONSTEXPR inline int128_t_base::operator unsigned short() const     { return static_cast<unsigned short>(Low()); }
 EA_CONSTEXPR inline int128_t_base::operator float() const              { return static_cast<float>(Low()); }
 EA_CONSTEXPR inline int128_t_base::operator double() const             { return static_cast<double>(Low()); }

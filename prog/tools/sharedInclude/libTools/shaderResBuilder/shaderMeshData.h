@@ -32,7 +32,7 @@ public:
 class IdentColorConvert : public IColorConvert
 {
 public:
-  virtual Color4 convert(Color4 from) { return from; }
+  Color4 convert(Color4 from) override { return from; }
 
   static IdentColorConvert object;
 };
@@ -62,7 +62,7 @@ public:
 
   // ctor/dtor
   GlobalVertexDataSrc();
-  ~GlobalVertexDataSrc();
+  ~GlobalVertexDataSrc() override;
 
   decl_class_name(GlobalVertexDataSrc);
 
@@ -107,7 +107,6 @@ public:
   static bool forceZlibPacking;       // =false by default
   static bool preferZstdPacking;      // =false by default
   static bool allowOodlePacking;      // =false by default
-  static bool fastNoPacking;          // =false by default
   static unsigned zstdMaxWindowLog;   // =0 by default (to use zstd defaults for compression level)
   static int zstdCompressionLevel;    // =18 by default
 

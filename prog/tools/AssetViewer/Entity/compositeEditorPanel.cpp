@@ -398,7 +398,7 @@ CompositeEditorRefreshType CompositeEditorPanel::onChange(CompositeEditorTreeDat
     {
       if (useTransformationMatrix)
       {
-        treeDataNode.params.setTm("tm", TMatrix::IDENT);
+        treeDataNode.setIdentityTransformationMatrix();
       }
       else
       {

@@ -4,6 +4,7 @@
 #include <drv/3d/dag_buffers.h>
 #include <atomic>
 #include <value_range.h>
+#include <resourceName.h>
 #include "buffer_resource.h"
 #include "async_completion_state.h"
 #include "temp_buffers.h"
@@ -12,7 +13,7 @@
 
 namespace drv3d_vulkan
 {
-class GenericBufferInterface final : public Sbuffer
+class GenericBufferInterface final : public D3dResourceNameImpl<Sbuffer>
 {
   uint32_t bufSize = 0;
   uint32_t bufFlags = 0;
@@ -102,22 +103,27 @@ public:
     const char *stat_name);
   ~GenericBufferInterface();
 
-  int ressize() const override;
+  uint32_t getSize() const override;
   int getFlags() const override;
   void destroy() override;
   int unlock() override;
   int lock(unsigned ofs_bytes, unsigned size_bytes, void **ptr, int flags) override;
   int getElementSize() const override;
   int getNumElements() const override;
-  virtual void setResApiName(const char *name) const override { Globals::Dbg::naming.setBufName(ref.buffer, name); }
+  void setApiName(const char *name) const override { Globals::Dbg::naming.setBufName(ref.buffer, name); }
   bool copyTo(Sbuffer *dst) override;
   bool copyTo(Sbuffer *dst, uint32_t dst_offset, uint32_t src_offset, uint32_t size_bytes) override;
   bool updateData(uint32_t ofs_bytes, uint32_t size_bytes, const void *__restrict src, uint32_t lockFlags) override;
+  bool setReloadCallback(Sbuffer::IReloadData *_rld) override;
   void useExternalResource(Buffer *resource);
   BufferRef fillFrameMemWithDummyData();
 
   const BufferRef &getBufferRef() const { return ref; }
   VkIndexType getIndexType() const { return bufFlags & SBCF_INDEX32 ? VK_INDEX_TYPE_UINT32 : VK_INDEX_TYPE_UINT16; }
+  Sbuffer::IReloadData *rld = nullptr;
+
+  void onDeviceReset();
+  void afterDeviceReset();
 };
 
 GenericBufferInterface *allocate_buffer(uint32_t struct_size, uint32_t element_count, uint32_t flags, FormatStore format, bool managed,

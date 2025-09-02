@@ -4,9 +4,18 @@
 //
 #pragma once
 
+#include "rendInstConsts.h"
 #include <util/dag_bitFlagsMask.h>
 #include <util/dag_stdint.h>
 
+
+enum
+{
+  RI_EXTRA_VB_CTX_MAIN,
+  RI_EXTRA_VB_CTX_ASYNC,
+  RI_EXTRA_VB_CTX_CAMCAM_ASYNC,
+  RI_EXTRA_VB_CTX_CNT,
+};
 
 namespace rendinst
 {
@@ -16,7 +25,7 @@ namespace rendinst
 // in refactoring.
 
 inline constexpr int RIEXTRA_LODS_THRESHOLD = 2;
-inline constexpr int MAX_LOD_COUNT = 5;
+inline constexpr int MAX_LOD_COUNT = RI_MAX_LODS + 1;
 inline constexpr int RIEX_STAGE_COUNT = 4;
 
 enum class GatherRiTypeFlag : uint32_t
@@ -69,7 +78,8 @@ enum class DestrOptionFlag : uint32_t
   ForceDestroy = 1 << 0,
   AddDestroyedRi = 1 << 1,
   UseFullBbox = 1 << 2,
-  DestroyedByExplosion = 1 << 3
+  DestroyedByExplosion = 1 << 3,
+  DestroyedByCollision = 1 << 4
 };
 using DestrOptionFlags = BitFlagsMask<DestrOptionFlag>;
 BITMASK_DECLARE_FLAGS_OPERATORS(DestrOptionFlag);

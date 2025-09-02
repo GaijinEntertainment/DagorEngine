@@ -31,9 +31,17 @@ Sqrat::Object jsoncpp_to_quirrel(HSQUIRRELVM vm, const Json::Value &obj)
   {
     if (obj.isMember(BLOB_KEY))
     {
-      auto s = obj[BLOB_KEY].asString();
-      auto p = sqstd_createblob(vm, s.size());
-      memcpy(p, s.c_str(), s.size());
+      auto size = obj[BLOB_KEY].asLargestUInt();
+      auto &data = obj["data"];
+      auto p = (char *)sqstd_createblob(vm, size);
+      for (int i = 0; i < data.size(); i += 2)
+      {
+        const char *s = data[i + 1].asCString();
+        auto o = data[i].asLargestUInt();
+        auto l = strlen(s);
+        G_ASSERT(o + l <= size);
+        memcpy(p + o, s, l);
+      }
       Sqrat::Var<Sqrat::Object> blob(vm, -1);
       sq_pop(vm, 1);
       return blob.value;
@@ -123,7 +131,22 @@ Json::Value quirrel_to_jsoncpp(Sqrat::Object obj)
     if (ptr && size >= 0)
     {
       // export blob
-      jobj[BLOB_KEY] = Json::Value(ptr, ptr + size);
+      jobj[BLOB_KEY] = Json::UInt(size);
+      auto &data = jobj["data"];
+      const char *p = ptr;
+      const char *end = ptr + size;
+      while (p != end)
+      {
+        while (p != end && *p == 0)
+          p++;
+        if (p == end)
+          break;
+        const char *start = p;
+        data.append(Json::UInt(start - ptr));
+        while (p != end && *p != 0)
+          p++;
+        data.append(Json::Value(start, p));
+      }
     }
     else
     {

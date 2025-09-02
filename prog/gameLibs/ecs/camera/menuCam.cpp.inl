@@ -17,7 +17,7 @@
 ECS_DEF_PULL_VAR(menu_cam);
 
 template <typename Callable>
-static void menu_cam_target_ecs_query(ecs::EntityId eid, Callable c);
+static void menu_cam_target_ecs_query(ecs::EntityManager &mgr, ecs::EntityId eid, Callable c);
 
 ECS_TAG(render)
 ECS_AFTER(camera_set_sync)
@@ -38,13 +38,13 @@ ECS_TAG(render)
 ECS_AFTER(camera_set_sync)
 ECS_BEFORE(before_camera_sync)
 ECS_REQUIRE(eastl::false_type menu_cam__shouldRotateTarget)
-static __forceinline void menu_cam_es(const ecs::UpdateStageInfoAct &act, ecs::EntityId menu_cam__target,
+static __forceinline void menu_cam_es(const ecs::UpdateStageInfoAct &act, ecs::EntityManager &manager, ecs::EntityId menu_cam__target,
   const Point3 &menu_cam__offset, const Point3 &menu_cam__offsetMult, const Point2 &menu_cam__initialAngles,
   float menu_cam__target_pos_threshold, Point3 &menu_cam__reference_target_pos_internal, Point2 &menu_cam__angles_smooth_internal,
   Point3 &menu_cam__offset_smooth_internal, Point2 &menu_cam__angles, TMatrix &transform)
 {
   TMatrix &itm = transform;
-  menu_cam_target_ecs_query(menu_cam__target, [&](const TMatrix &transform) {
+  menu_cam_target_ecs_query(manager, menu_cam__target, [&](const TMatrix &transform) {
     Point2 angleFrom = menu_cam__angles_smooth_internal;
     Point2 angleTo = menu_cam__angles;
 
@@ -87,10 +87,10 @@ static __forceinline void menu_cam_es(const ecs::UpdateStageInfoAct &act, ecs::E
 }
 
 template <typename Callable>
-static void menu_rotate_target_cam_ecs_query(ecs::EntityId eid, Callable c);
+static void menu_rotate_target_cam_ecs_query(ecs::EntityManager &mgr, ecs::EntityId eid, Callable c);
 
 template <typename Callable>
-static void menu_rotate_target_cam_with_offset_ecs_query(ecs::EntityId eid, Callable c);
+static void menu_rotate_target_cam_with_offset_ecs_query(ecs::EntityManager &mgr, ecs::EntityId eid, Callable c);
 
 ECS_TAG(render)
 ECS_AFTER(menu_cam_es)
@@ -99,11 +99,11 @@ ECS_BEFORE(before_camera_sync)
 ECS_BEFORE(menu_rotate_target_cam_es)
 ECS_REQUIRE(eastl::true_type menu_cam__shouldRotateTarget)
 ECS_REQUIRE(eastl::false_type menu_cam__dirInited)
-static __forceinline void menu_rotate_target_cam_init_es(const ecs::UpdateStageInfoAct &, ecs::EntityId menu_cam__target,
-  ecs::EntityId &menu_cam__lastTarget, TMatrix &menu_cam__initialTransform, Point2 &menu_cam__angles,
+static __forceinline void menu_rotate_target_cam_init_es(const ecs::UpdateStageInfoAct &, ecs::EntityManager &manager,
+  ecs::EntityId menu_cam__target, ecs::EntityId &menu_cam__lastTarget, TMatrix &menu_cam__initialTransform, Point2 &menu_cam__angles,
   Point2 &menu_cam__angles_smooth_internal, bool &menu_cam__dirInited)
 {
-  menu_rotate_target_cam_ecs_query(menu_cam__target, [&](TMatrix &transform) {
+  menu_rotate_target_cam_ecs_query(manager, menu_cam__target, [&](TMatrix &transform) {
     menu_cam__dirInited = true;
     menu_cam__angles.zero();
     menu_cam__angles_smooth_internal.zero();
@@ -119,11 +119,11 @@ ECS_AFTER(camera_set_sync)
 ECS_BEFORE(before_camera_sync)
 ECS_REQUIRE(eastl::true_type menu_cam__shouldRotateTarget)
 ECS_REQUIRE(eastl::true_type menu_cam__dirInited)
-static __forceinline void menu_rotate_target_cam_es(const ecs::UpdateStageInfoAct &, const ecs::EntityId &menu_cam__target,
-  const TMatrix menu_cam__initialTransform, Point2 &menu_cam__angles, const TMatrix &transform)
+static __forceinline void menu_rotate_target_cam_es(const ecs::UpdateStageInfoAct &, ecs::EntityManager &manager,
+  const ecs::EntityId &menu_cam__target, const TMatrix menu_cam__initialTransform, Point2 &menu_cam__angles, const TMatrix &transform)
 {
   const TMatrix &cameraTransform = transform;
-  menu_rotate_target_cam_with_offset_ecs_query(menu_cam__target,
+  menu_rotate_target_cam_with_offset_ecs_query(manager, menu_cam__target,
     [&](TMatrix &transform, const Point3 &menu_item__boundingBoxCenter,
       const Point3 &menu_item__rotationOffset = Point3(0.f, 0.f, 0.f), const float menu_item__cameraCenterOffsetProportion = 1.0f) {
       const Quat qY(Point3(0.f, 1.f, 0.f), menu_cam__angles.x);

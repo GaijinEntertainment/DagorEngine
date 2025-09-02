@@ -31,6 +31,7 @@ UseProgLibs =
   engine/startup
   engine/baseUtil
   engine/math
+  engine/perfMon/daProfilerStub
   tools/libTools/util
 ;
 if $(Platform) = linux { UseProgLibs += engine/osApiWrappers/messageBox/stub ; }

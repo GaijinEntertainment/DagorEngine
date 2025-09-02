@@ -36,10 +36,10 @@ def reset_winching(info : UpdateStageInfoAct; var vehicle_net_phys : VehiclePhys
 
 def query_phys_body_data(eid : EntityId; ri_extra__handle : riex_handle_t; b : block<(arg1 : PhysBodyData) : JointResult>)
   if eid == INVALID_ENTITY_ID
-    let res = invoke(b, [[PhysBodyData transform=IDENT_TM, cog=float3(0, 0, 0),
-                             velocity=float3(0, 0, 0), omega=float3(0, 0, 0),
-                             mass=0f, momentOfInertia=float3(0, 0, 0),
-                             lambdaLimit=FLT_MAX]])
+    let res = invoke(b, PhysBodyData(transform = IDENT_TM, cog = float3(0, 0, 0),
+                             velocity = float3(0, 0, 0), omega = float3(0, 0, 0),
+                             mass = 0f, momentOfInertia = float3(0, 0, 0),
+                             lambdaLimit = FLT_MAX))
     if res.lambdaSum > 0f && riex_isRiGenExtraValid(ri_extra__handle)
       let dir = normalize(res.addVel)
       apply_impulse_to_riextra(ri_extra__handle, res.lambdaSum, dir, res.contactPt)
@@ -52,17 +52,17 @@ def query_phys_body_data(eid : EntityId; ri_extra__handle : riex_handle_t; b : b
     var transform : float3x4
     location_toTM(state.location, transform)
 
-    let res = invoke(b, [[PhysBodyData transform=transform, cog=phys.mass.centerOfGravity,
-                                       velocity=float3(state.velocity), omega=float3(state.omega),
-                                       mass=phys.mass.mass, momentOfInertia=float3(phys.mass.momentOfInertia),
-                                       lambdaLimit=joint__lambdaLimit]])
+    let res = invoke(b, PhysBodyData(transform = transform, cog = phys.mass.state.centerOfGravity,
+                                       velocity = float3(state.velocity), omega = float3(state.omega),
+                                       mass = phys.mass.state.mass, momentOfInertia = float3(phys.mass.state.momentOfInertia),
+                                       lambdaLimit = joint__lambdaLimit))
 
     if length(res.addVel) > 0f
       state.velocity += DPoint3(res.addVel)
       state.omega += DPoint3(res.addOmega)
       state.damageState.winching = true
-      ground_control_state_setAxisValue(phys.producedCT, EGroundControlAxis GCA_BRAKE_LEFT, 0.f)
-      ground_control_state_setAxisValue(phys.producedCT, EGroundControlAxis GCA_BRAKE_RIGHT, 0.f)
+      ground_control_state_setAxisValue(phys.producedCT, EGroundControlAxis.GCA_BRAKE_LEFT, 0.f)
+      ground_control_state_setAxisValue(phys.producedCT, EGroundControlAxis.GCA_BRAKE_RIGHT, 0.f)
       wakeUp(phys)
 
     query(eid) <| $ [es] (var joint__lambdaSum : float&)
@@ -75,10 +75,10 @@ def query_phys_body_data(eid : EntityId; ri_extra__handle : riex_handle_t; b : b
     var transform : float3x4
     location_toTM(state.location, transform)
 
-    let res = invoke(b, [[PhysBodyData transform=transform, cog=phys.mass.centerOfGravity,
-                                       velocity=float3(state.velocity), omega=float3(state.omega),
-                                       mass=phys.mass.mass, momentOfInertia=float3(phys.mass.momentOfInertia),
-                                       lambdaLimit=joint__lambdaLimit]])
+    let res = invoke(b, PhysBodyData(transform = transform, cog = phys.mass.state.centerOfGravity,
+                                       velocity = float3(state.velocity), omega = float3(state.omega),
+                                       mass = phys.mass.state.mass, momentOfInertia = float3(phys.mass.state.momentOfInertia),
+                                       lambdaLimit = joint__lambdaLimit))
 
     if length(res.addVel) > 0f
       state.velocity += DPoint3(res.addVel)
@@ -93,10 +93,10 @@ def query_phys_body_data(eid : EntityId; ri_extra__handle : riex_handle_t; b : b
     var transform : float3x4
     location_toTM(state.location, transform)
 
-    let res = invoke(b, [[PhysBodyData transform=transform, cog=phys.M.centerOfGravity,
-                                       velocity=float3(state.velocity), omega=float3(state.omega),
-                                       mass=phys.M.mass, momentOfInertia=float3(phys.M.momentOfInertia),
-                                       lambdaLimit=joint__lambdaLimit]])
+    let res = invoke(b, PhysBodyData(transform = transform, cog = phys.M.state.centerOfGravity,
+                                       velocity = float3(state.velocity), omega = float3(state.omega),
+                                       mass = phys.M.state.mass, momentOfInertia = float3(phys.M.state.momentOfInertia),
+                                       lambdaLimit = joint__lambdaLimit))
 
     if length(res.addVel) > 0f
       state.velocity += DPoint3(res.addVel)
@@ -109,10 +109,10 @@ def query_phys_body_data(eid : EntityId; ri_extra__handle : riex_handle_t; b : b
     var transform : float3x4
     location_toTM(state.location, transform)
 
-    let res = invoke(b, [[PhysBodyData transform=transform, cog=float3(0f, 1f, 0f),
-                                       velocity=state.velocity, omega=float3(0),
-                                       mass=80f, momentOfInertia=float3(0f),
-                                       lambdaLimit=joint__lambdaLimit]])
+    let res = invoke(b, PhysBodyData(transform = transform, cog = float3(0f, 1f, 0f),
+                                       velocity = state.velocity, omega = float3(0),
+                                       mass = 80f, momentOfInertia = float3(0f),
+                                       lambdaLimit = joint__lambdaLimit))
 
     if length(res.addVel) > 0f
       state.velocity += res.addVel
@@ -124,10 +124,10 @@ def query_phys_body_data(eid : EntityId; ri_extra__handle : riex_handle_t; b : b
     var transform : float3x4
     location_toTM(state.location, transform)
 
-    let res = invoke(b, [[PhysBodyData transform=transform, cog=phys.centerOfMass,
-                                       velocity=state.velocity, omega=state.omega,
-                                       mass=phys.mass, momentOfInertia=phys.momentOfInertia,
-                                       lambdaLimit=joint__lambdaLimit]])
+    let res = invoke(b, PhysBodyData(transform = transform, cog = phys.centerOfMass,
+                                       velocity = state.velocity, omega = state.omega,
+                                       mass = phys.mass, momentOfInertia = phys.momentOfInertia,
+                                       lambdaLimit = joint__lambdaLimit))
 
     if length(res.addVel) > joint__minSpeed
       state.velocity += res.addVel
@@ -199,8 +199,8 @@ def phys_joint_update(info : UpdateStageInfoAct;
           addVel2 += axis2 * l * invMass2
           addOmega2 += w2 * invMoi2 * l
         joint__lambdaSum = lambdaSum
-      return [[JointResult contactPt=secondAnchorWorld, addVel=addVel2, addOmega=addOmega2, deltaLen=deltaLen, lambdaSum=lambdaSum]]
-    return [[JointResult contactPt=firstAnchorWorld, addVel=addVel1, addOmega=addOmega1, deltaLen=deltaLen, lambdaSum=lambdaSum]]
+      return JointResult(contactPt = secondAnchorWorld, addVel = addVel2, addOmega = addOmega2, deltaLen = deltaLen, lambdaSum = lambdaSum)
+    return JointResult(contactPt = firstAnchorWorld, addVel = addVel1, addOmega = addOmega1, deltaLen = deltaLen, lambdaSum = lambdaSum)
 
 def update_winch(dt : float; eid : EntityId; var phys_joint__jointLength : float&)
   query(eid) <| $ [es] (winch__pulls, winch__extends : bool;

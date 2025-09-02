@@ -7,7 +7,7 @@
 #include "buffer_resource.h"
 #include "render_pass_resource.h"
 
-#if D3D_HAS_RAY_TRACING
+#if VULKAN_HAS_RAYTRACING
 #include "raytrace_as_resource.h"
 #endif
 
@@ -96,10 +96,25 @@ void DebugNaming::setRenderPassName(RenderPassResource *rp, const char *name)
   setVkObjectDebugName(generalize(rp->getHandle()), VK_DEBUG_REPORT_OBJECT_TYPE_RENDER_PASS_EXT, VK_OBJECT_TYPE_RENDER_PASS, name);
 }
 
-#if D3D_HAS_RAY_TRACING
+void DebugNaming::setRenderPassName(VulkanRenderPassHandle rp, const char *name)
+{
+  setVkObjectDebugName(generalize(rp), VK_DEBUG_REPORT_OBJECT_TYPE_RENDER_PASS_EXT, VK_OBJECT_TYPE_RENDER_PASS, name);
+}
+
+#if VULKAN_HAS_RAYTRACING
 void DebugNaming::setAccelerationStructureName(RaytraceAccelerationStructure *as, const char *name)
 {
   setVkObjectDebugName(generalize(as->getHandle()), VK_DEBUG_REPORT_OBJECT_TYPE_ACCELERATION_STRUCTURE_KHR_EXT,
     VK_OBJECT_TYPE_ACCELERATION_STRUCTURE_KHR, name);
 }
 #endif
+
+void DebugNaming::setSamplerName(VulkanSamplerHandle sampler, const char *name)
+{
+  setVkObjectDebugName(generalize(sampler), VK_DEBUG_REPORT_OBJECT_TYPE_SAMPLER_EXT, VK_OBJECT_TYPE_SAMPLER, name);
+}
+
+void DebugNaming::setSemaphoreName(VulkanSemaphoreHandle sem, const char *name)
+{
+  setVkObjectDebugName(generalize(sem), VK_DEBUG_REPORT_OBJECT_TYPE_SEMAPHORE_EXT, VK_OBJECT_TYPE_SEMAPHORE, name);
+}

@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "waterRipplesGeneratorES.cpp.inl"
 ECS_DEF_PULL_VAR(waterRipplesGenerator);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc attempt_to_enable_water_ripples_es_comps[] =
 {

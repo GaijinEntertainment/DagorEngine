@@ -15,7 +15,7 @@ inline void active_relative_poly_capzones_ecs_query(Callable c);
 
 namespace game
 {
-extern const BBox3 IDENTITY_BBOX3(Point3(-0.5f, -0.5f, -0.5f), Point3(0.5f, 0.5f, 0.5f));
+const BBox3 IDENTITY_BBOX3(Point3(-0.5f, -0.5f, -0.5f), Point3(0.5f, 0.5f, 0.5f));
 }
 
 void game::get_active_capzones_on_pos(const Point3 &pos, const char *tag_to_have_not_null, Tab<ecs::EntityId> &zones_in)

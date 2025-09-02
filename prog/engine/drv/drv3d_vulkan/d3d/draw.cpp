@@ -69,7 +69,7 @@ bool d3d::draw_base(int type, int start, int numprim, uint32_t num_instances, ui
 
 bool d3d::drawind_base(int type, int startind, int numprim, int base_vertex, uint32_t num_instances, uint32_t start_instance)
 {
-  G_ASSERT(num_instances > 0);
+  D3D_CONTRACT_ASSERT(num_instances > 0);
   VkPrimitiveTopology topology = before_draw(type);
   uint32_t nverts = nprim_to_nverts(type, numprim);
 
@@ -119,8 +119,8 @@ bool d3d::draw_indexed_indirect(int prim_type, Sbuffer *args, uint32_t byte_offs
 
 bool d3d::multi_draw_indirect(int prim_type, Sbuffer *args, uint32_t draw_count, uint32_t stride_bytes, uint32_t byte_offset)
 {
-  G_ASSERTF(args != nullptr, "multi_draw_indirect with nullptr buffer is invalid");
-  G_ASSERTF(args->getFlags() & SBCF_MISC_DRAWINDIRECT, "multi_draw_indirect buffer is not usable as indirect buffer");
+  D3D_CONTRACT_ASSERTF(args != nullptr, "multi_draw_indirect with nullptr buffer is invalid");
+  D3D_CONTRACT_ASSERTF(args->getFlags() & SBCF_MISC_DRAWINDIRECT, "multi_draw_indirect buffer is not usable as indirect buffer");
   VkPrimitiveTopology topology = before_draw(prim_type);
   GenericBufferInterface *buffer = (GenericBufferInterface *)args;
 
@@ -133,8 +133,9 @@ bool d3d::multi_draw_indirect(int prim_type, Sbuffer *args, uint32_t draw_count,
 
 bool d3d::multi_draw_indexed_indirect(int prim_type, Sbuffer *args, uint32_t draw_count, uint32_t stride_bytes, uint32_t byte_offset)
 {
-  G_ASSERTF(args != nullptr, "multi_draw_indexed_indirect with nullptr buffer is invalid");
-  G_ASSERTF(args->getFlags() & SBCF_MISC_DRAWINDIRECT, "multi_draw_indexed_indirect buffer is not usable as indirect buffer");
+  D3D_CONTRACT_ASSERTF(args != nullptr, "multi_draw_indexed_indirect with nullptr buffer is invalid");
+  D3D_CONTRACT_ASSERTF(args->getFlags() & SBCF_MISC_DRAWINDIRECT,
+    "multi_draw_indexed_indirect buffer is not usable as indirect buffer");
   VkPrimitiveTopology topology = before_draw(prim_type);
   GenericBufferInterface *buffer = (GenericBufferInterface *)args;
 

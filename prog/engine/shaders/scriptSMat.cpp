@@ -34,6 +34,12 @@ static TEXTUREID get_diffuse_mipmap_tex(TEXTUREID tex_id);
 static inline TEXTUREID get_diffuse_mipmap_tex(TEXTUREID tex_id) { return tex_id; }
 #endif
 
+#if DAGOR_DBGLEVEL > 0
+#define LOGERR_IN_DEV logerr
+#else
+#define LOGERR_IN_DEV logwarn
+#endif
+
 const char *get_shader_class_name_by_material_name(const char *mat_name)
 {
   const shaderbindump::ShaderClass *sc = shBinDumpEx(true).findShaderClass(mat_name);
@@ -125,8 +131,8 @@ void ScriptedShaderMaterial::gatherUsedTex(TextureIdSet &tex_id_list) const
     varElem->gatherUsedTex(tex_id_list);
 
   if (props.sclass->localVars.v.size() != props.stvar.size())
-    logerr("%s: props.sclass->localVars.v.size()=%d != %d=props.stvar.size()"
-           " Try to rebuild shaders or re-export assets.",
+    LOGERR_IN_DEV("%s: props.sclass->localVars.v.size()=%d != %d=props.stvar.size()"
+                  " Try to rebuild shaders or re-export assets.",
       (const char *)props.sclass->name, props.sclass->localVars.v.size(), props.stvar.size());
   else
     for (int i = 0; i < props.stvar.size(); i++)
@@ -151,8 +157,8 @@ bool ScriptedShaderMaterial::replaceTexture(TEXTUREID tex_id_old, TEXTUREID tex_
   if (tex_id_old == tex_id_new)
     ; // skip next cycle and proceed to MAXMATTEXNUM
   else if (props.sclass->localVars.v.size() != props.stvar.size())
-    logerr("%s: props.sclass->localVars.v.size()=%d != %d=props.stvar.size()"
-           " Try to rebuild shaders or re-export assets.",
+    LOGERR_IN_DEV("%s: props.sclass->localVars.v.size()=%d != %d=props.stvar.size()"
+                  " Try to rebuild shaders or re-export assets.",
       (const char *)props.sclass->name, props.sclass->localVars.v.size(), props.stvar.size());
   else
     for (i = 0; i < props.stvar.size(); i++)
@@ -181,6 +187,8 @@ bool ScriptedShaderMaterial::replaceTexture(TEXTUREID tex_id_old, TEXTUREID tex_
 ScriptedShaderMaterial *ScriptedShaderMaterial::create(const ShaderMaterialProperties &p, bool clone_mat)
 {
   ScriptedShaderMaterial *mat = NULL;
+  if (!p.sclass)
+    return mat;
   size_t sz = sizeof(ScriptedShaderMaterial) + elem_size(p.stvar) * p.sclass->localVars.v.size();
   if (shaders_internal::shader_reload_allowed)
     sz += shaders_internal::shader_pad_for_reload;
@@ -224,7 +232,7 @@ ScriptedShaderMaterial::ScriptedShaderMaterial(const ShaderMaterialProperties &p
       if (props.sclass->localVars.v[i].type == SHVT_TEXTURE)
         props.stvar[i].texId = BAD_TEXTUREID;
       else if (props.sclass->localVars.v[i].type == SHVT_SAMPLER)
-        props.stvar[i].samplerHnd = d3d::INVALID_SAMPLER_HANDLE;
+        props.stvar[i].samplerHnd = d3d::request_sampler({});
       else if (props.sclass->localVars.v[i].type == SHVT_REAL && check_nan(props.stvar[i].r))
         props.stvar[i].r = 0;
   }
@@ -237,6 +245,8 @@ ScriptedShaderMaterial::~ScriptedShaderMaterial()
 
 void ScriptedShaderMaterial::recreateMat(bool delete_programs)
 {
+  if (!props.sclass)
+    return;
   int variant = varElem.get() ? &varElem->code - props.sclass->code.begin() : -1;
   int rc = ref_count;
   int nsrc = nonSharedRefCount;
@@ -296,7 +306,8 @@ void ScriptedShaderMaterial::recreateMat(bool delete_programs)
 ShaderMaterial *ScriptedShaderMaterial::clone() const
 {
   ScriptedShaderMaterial *mat = ScriptedShaderMaterial::create(props, true);
-  mat->varElem = NULL;
+  if (mat)
+    mat->varElem = NULL;
   return mat;
 }
 
@@ -387,6 +398,19 @@ bool ScriptedShaderMaterial::getTextureVariable(const int variable_id, TEXTUREID
 bool ScriptedShaderMaterial::getSamplerVariable(const int variable_id, d3d::SamplerHandle &value) const
 {
   GET_VARIABLE(get_sampler_stvar);
+}
+
+ShaderVarType ScriptedShaderMaterial::getVariableType(const int variable_id) const
+{
+  if (variable_id < 0 || variable_id >= props.shBinDumpOwner().maxShadervarCnt())
+    return SHVT_UNKNOWN;
+  int vid = props.shBinDumpOwner().varIndexMap[variable_id];
+  if (vid >= SHADERVAR_IDX_ABSENT)
+    return SHVT_UNKNOWN;
+  int var = props.sclass->localVars.findVar(vid);
+  if (var < 0)
+    return SHVT_UNKNOWN;
+  return (ShaderVarType)props.sclass->localVars.v[var].type;
 }
 
 #undef GET_VARIABLE
@@ -679,7 +703,7 @@ ShaderMaterialProperties *ShaderMaterialProperties::create(const shaderbindump::
   bool sec_dump_for_exp)
 {
   ShaderMaterialProperties *mp = NULL;
-  void *mem = memalloc(sizeof(ShaderMaterialProperties) + elem_size(mp->stvar) * sc->localVars.v.size(), midmem);
+  void *mem = memalloc(sizeof(ShaderMaterialProperties) + sizeof(ShaderMatData::VarValue) * sc->localVars.v.size(), midmem);
   mp = new (mem, _NEW_INPLACE) ShaderMaterialProperties(sc, m, sec_dump_for_exp);
   return mp;
 }
@@ -727,7 +751,7 @@ ShaderMaterialProperties::ShaderMaterialProperties(const shaderbindump::ShaderCl
       case SHVT_COLOR4: stvar[i].c4() = c.getcolor4(varName, sclass->localVars.get<Color4>(i)); break;
       case SHVT_INT: stvar[i].i = c.getint(varName, sclass->localVars.get<int>(i)); break;
       case SHVT_REAL: stvar[i].r = c.getreal(varName, sclass->localVars.get<real>(i)); break;
-      case SHVT_TEXTURE: stvar[i].texId = sclass->localVars.getTex(i).texId; break;
+      case SHVT_TEXTURE: stvar[i].texId = sclass->localVars.get<shaders_internal::Tex>(i).texId; break;
       case SHVT_SAMPLER: stvar[i].samplerHnd = sclass->localVars.get<d3d::SamplerHandle>(i); break;
       default: G_ASSERT(0);
     }
@@ -744,6 +768,15 @@ ShaderMaterialProperties::ShaderMaterialProperties(const shaderbindump::ShaderCl
     matflags |= SHFLG_REAL2SIDED;
 }
 
+#if DAGOR_DBGLEVEL > 0
+#include <util/dag_hashedKeyMap.h>
+static OSSpinlock reported_lock; // SpinLockReadWriteLock ?
+typedef uint32_t reported_hash_t;
+static HashedKeyMap<reported_hash_t, uint32_t> reportedMap;
+void reset_shaders_logerr_info() { reportedMap.clear(); }
+#else
+void reset_shaders_logerr_info() {}
+#endif
 void ShaderMaterialProperties::patchNonSharedData(void *base, dag::Span<TEXTUREID> texMap)
 {
   stvar.patch(base);
@@ -751,12 +784,28 @@ void ShaderMaterialProperties::patchNonSharedData(void *base, dag::Span<TEXTUREI
   sclass = ::shBinDump().findShaderClass(shname);
 
   if (!sclass)
-    DAG_FATAL("shader <%s> not found!", shname);
-
+  {
+    if (::shBinDumpOwner().getDump())
+    {
+      logerr("shader <%s> not found!", shname);
+      sclass = &shaderbindump::null_shader_class(false);
+    }
+    return;
+  }
   if (stvar.size() != sclass->localVars.v.size())
-    logerr("%s: props.sclass->localVars.v.size()=%d != %d=props.stvar.size()"
-           " Try to rebuild shaders or re-export assets.",
-      (const char *)sclass->name, sclass->localVars.v.size(), stvar.size());
+  {
+#if DAGOR_DBGLEVEL > 0
+    OSSpinlockScopedLock lock(reported_lock);
+    auto it = reportedMap.emplace_if_missing((reported_hash_t)wyhash((const char *)sclass->name, sclass->name.size() - 1, 1));
+    const bool report = it.second || *it.first != stvar.size();
+    *it.first = stvar.size();
+    if (report)
+#endif
+
+      LOGERR_IN_DEV("%s: props.sclass->localVars.v.size()=%d != %d=props.stvar.size()"
+                    " Try to rebuild shaders or re-export assets.",
+        (const char *)sclass->name, sclass->localVars.v.size(), stvar.size());
+  }
 
   for (int i = 0; i < MAXMATTEXNUM; i++)
     textureId[i] = unsigned(textureId[i]) < texMap.size() ? texMap[unsigned(textureId[i])] : BAD_TEXTUREID;
@@ -776,8 +825,8 @@ void ShaderMaterialProperties::recreateMat()
   }
 
   if (stvar.size() != sclass->localVars.v.size())
-    logerr("%s: props.sclass->localVars.v.size()=%d != %d=props.stvar.size()"
-           " Try to rebuild shaders or re-export assets.",
+    LOGERR_IN_DEV("%s: props.sclass->localVars.v.size()=%d != %d=props.stvar.size()"
+                  " Try to rebuild shaders or re-export assets.",
       (const char *)sclass->name, sclass->localVars.v.size(), stvar.size());
 }
 
@@ -894,7 +943,7 @@ static TEXTUREID get_diffuse_mipmap_tex(TEXTUREID tex_id)
   if (!t)
     return tex_id;
 
-  if (t->restype() != RES3D_TEX)
+  if (t->getType() != D3DResourceType::TEX)
   {
     release_managed_tex(tex_id);
     return tex_id;

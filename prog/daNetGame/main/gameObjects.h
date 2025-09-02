@@ -16,7 +16,12 @@
 
 struct ObjectsToPlace;
 
-typedef eastl::unique_ptr<scene::TiledScene> GOScenePtr;
+struct GameObjectsTiledScene : public scene::TiledScene
+{
+  eastl::unique_ptr<DataBlock> addData;
+};
+typedef eastl::unique_ptr<GameObjectsTiledScene> GOScenePtr;
+
 struct GameObjects
 {
   // To consider: use hash of string (instead of string) as key

@@ -15,17 +15,17 @@ public:
     PropertyControlBase(id, event_handler, parent, x, y, w, hdpi::Px(0)), controlCaption(caption), selectionIndex(index)
   {}
 
-  virtual unsigned getTypeMaskForSet() const override { return CONTROL_DATA_TYPE_BOOL | CONTROL_CAPTION; }
-  virtual unsigned getTypeMaskForGet() const override { return CONTROL_DATA_TYPE_BOOL | CONTROL_DATA_TYPE_INT; }
+  unsigned getTypeMaskForSet() const override { return CONTROL_DATA_TYPE_BOOL | CONTROL_CAPTION; }
+  unsigned getTypeMaskForGet() const override { return CONTROL_DATA_TYPE_BOOL | CONTROL_DATA_TYPE_INT; }
 
-  virtual int getIntValue() const override { return selectionIndex; }
-  virtual bool getBoolValue() const override { return checked; }
-  virtual void setBoolValue(bool value) override { checked = value; }
-  virtual void setCaptionValue(const char value[]) override { controlCaption = value; }
+  int getIntValue() const override { return selectionIndex; }
+  bool getBoolValue() const override { return checked; }
+  void setBoolValue(bool value) override { checked = value; }
+  void setCaptionValue(const char value[]) override { controlCaption = value; }
 
-  virtual void setEnabled(bool enabled) override { controlEnabled = enabled; }
+  void setEnabled(bool enabled) override { controlEnabled = enabled; }
 
-  virtual void updateImgui() override
+  void updateImgui() override
   {
     ScopedImguiBeginDisabled scopedDisabled(!controlEnabled);
 
@@ -43,7 +43,7 @@ public:
   }
 
 private:
-  virtual void onWcChange(WindowBase *source) override
+  void onWcChange(WindowBase *source) override
   {
     // NOTE: ImGui porting: this is implemented a bit differently than in the original propPanel2
     mParent->setIntValue(selectionIndex);

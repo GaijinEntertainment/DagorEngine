@@ -1,0 +1,25 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/AssetViewer/ecsTemplate ;
+
+include $(Root)/prog/_jBuild/jCommonRules.jam ;
+
+TargetType  = lib ;
+Target      = tools/AssetViewer/ecsTemplate.lib ;
+
+AddIncludes =
+  $(Root)/prog/tools/sceneTools/daEditorX/include
+  $(Root)/prog/tools/sharedInclude
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+Sources = ;
+SourceES =
+  ecsTemplatePreviewES.cpp.inl
+;
+for s in $(SourceES) { GenESSourceFile $(s) ; }
+
+UseProgLibs =
+  tools/libTools/ecsPropPanel
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

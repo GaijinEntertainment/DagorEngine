@@ -4,7 +4,7 @@
 #include <EASTL/array.h>
 #include <vecmath/dag_vecMathDecl.h>
 #include <heightmap/heightmapHandler.h>
-#include "render/world/parallelOcclusionRasterizer.h"
+#include <render/occlusion/parallelOcclusionRasterizer.h>
 #include <landMesh/lmeshManager.h>
 #include <util/dag_convar.h>
 

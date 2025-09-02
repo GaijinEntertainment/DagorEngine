@@ -1,8 +1,8 @@
 
-All about .blk
+All About ``.blk`` Files
 =========================================
 
-The .blk files and their interaction with assets.
+The ``.blk`` files and their interaction with assets.
 
 .. toctree::
    :maxdepth: 2

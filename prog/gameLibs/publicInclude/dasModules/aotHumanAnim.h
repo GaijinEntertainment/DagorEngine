@@ -4,7 +4,7 @@
 //
 #pragma once
 
-#include <daScript/daScript.h>
+#include <daScript/daScriptBind.h>
 #include <gamePhys/phys/walker/humanAnimState.h>
 
 MAKE_TYPE_FACTORY(HumanAnimState, HumanAnimState);

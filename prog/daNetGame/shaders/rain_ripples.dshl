@@ -167,7 +167,7 @@ shader rain_ripples
 
       float depthVignette = 0;
       float3 biasedWorldPos = worldPos + normal;
-      float depthAbove = getWorldBlurredDepth(biasedWorldPos, depthVignette);
+      float depthAbove = get_depth_above_fast(biasedWorldPos, depthVignette);
 
       float depthInfl = 1 - saturate(depthAbove - biasedWorldPos.y);
       BRANCH

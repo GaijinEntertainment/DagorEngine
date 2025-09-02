@@ -41,76 +41,47 @@ public:
   /// Render current brush.
   void renderBrush();
 
-  /// #CTLWM_TIMER event handler.
-  /// Used to work with such drawing tools as air brush
-  /// (brush in autorepeat mode).
-  virtual void handleTimer();
-
-  // IGenEventHandler
-  //*******************************************************
-  ///@name UI commands handlers.
-  //@{
-  // virtual void handleCommand(int cmd) {}
-
-  // virtual void handleButtonClick(int btn_id, CtlBtnTemplate* btn,
-  //                                bool btn_pressed) {}
-  //@}
-
-  //*******************************************************
-  ///@name Keyboard commands handlers.
-  //@{
-  virtual void handleKeyPress(IGenViewportWnd *wnd, int vk, int modif) {}
-  virtual void handleKeyRelease(IGenViewportWnd *wnd, int vk, int modif) {}
-  //@}
-
   //*******************************************************
   ///@name Mouse events handlers.
   //@{
   /// Handles mouse move.
   /// The function calls Brush::mouseMove().
   /// @copydoc IGenEventHandler::handleMouseMove()
-  virtual bool handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
+  bool handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
 
   /// Handles mouse left button press.
   /// The function calls Brush::mouseLBPress().
   /// @copydoc IGenEventHandler::handleMouseLBPress()
-  virtual bool handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
+  bool handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
 
   /// Handles mouse left button release.
   /// The function calls Brush::mouseLBRelease().
   /// @copydoc IGenEventHandler::handleMouseLBRelease()
-  virtual bool handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
+  bool handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
 
   /// Handles mouse right button press.
   /// The function calls Brush::mouseRBPress().
   /// @copydoc IGenEventHandler::handleMouseRBPress()
-  virtual bool handleMouseRBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
+  bool handleMouseRBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
 
   /// Handles mouse right button release.
   /// The function calls Brush::mouseRBRelease().
   /// @copydoc IGenEventHandler::handleMouseRBRelease()
-  virtual bool handleMouseRBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
+  bool handleMouseRBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
 
-  virtual bool handleMouseCBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) { return false; }
-  virtual bool handleMouseCBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) { return false; }
+  bool handleMouseCBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override { return false; }
+  bool handleMouseCBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override { return false; }
 
-  virtual bool handleMouseWheel(IGenViewportWnd *wnd, int wheel_d, int x, int y, int key_modif) { return false; }
-  virtual bool handleMouseDoubleClick(IGenViewportWnd *wnd, int x, int y, int key_modif) { return false; }
+  bool handleMouseWheel(IGenViewportWnd *wnd, int wheel_d, int x, int y, int key_modif) override { return false; }
+  bool handleMouseDoubleClick(IGenViewportWnd *wnd, int x, int y, int key_modif) override { return false; }
 
   //@}
 
   //*******************************************************
   ///@name Viewport redraw/change events handlers.
   //@{
-  virtual void handleViewportPaint(IGenViewportWnd *wnd) {}
-  virtual void handleViewChange(IGenViewportWnd *wnd) {}
-  //@}
-
-  //*******************************************************
-  ///@name CTL child window creation/close events handlers.
-  //@{
-  // virtual void handleChildCreate(CtlWndObject* child) {}
-  // virtual void handleChildClose(CtlWndObject* child) {}
+  void handleViewportPaint(IGenViewportWnd *wnd) override {}
+  void handleViewChange(IGenViewportWnd *wnd) override {}
   //@}
 
 private:

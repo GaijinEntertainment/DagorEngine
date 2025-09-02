@@ -1,6 +1,5 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <windows.h>
 #include "hmlSplineObject.h"
 #include "hmlSplinePoint.h"
 #include "hmlObjectsEditor.h"
@@ -13,6 +12,7 @@
 #include <math/dag_mathAng.h>
 #include <math/dag_quatInterp.h>
 #include <math/dag_math2d.h>
+#include <osApiWrappers/dag_dynLib.h>
 #include <perfMon/dag_cpuFreq.h>
 #include <EditorCore/ec_IEditorCore.h>
 
@@ -24,7 +24,7 @@ using namespace roadbuildertool;
 typedef RoadBuilder *(*get_new_road_builder_t)(void);
 typedef void (*delete_road_builder_t)(RoadBuilder *);
 
-static HMODULE hDll = NULL;
+static void *hDll = NULL;
 static get_new_road_builder_t get_new_road_builder = NULL;
 static delete_road_builder_t delete_road_builder = NULL;
 static RoadBuilder *road_builder = NULL;
@@ -39,20 +39,20 @@ static bool loadRoadBuilderDll()
 
   String fn = ::make_full_start_path("roadBuilder.dll");
 
-  hDll = LoadLibrary(fn);
+  hDll = os_dll_load_deep_bind(fn);
   if (!hDll)
   {
     DAEDITOR3.conError("Can't load road builder: %s", (char *)fn);
     return false;
   }
-  get_new_road_builder = (get_new_road_builder_t)GetProcAddress(hDll, "get_new_road_builder");
-  delete_road_builder = (delete_road_builder_t)GetProcAddress(hDll, "delete_road_builder");
+  get_new_road_builder = (get_new_road_builder_t)os_dll_get_symbol(hDll, "get_new_road_builder");
+  delete_road_builder = (delete_road_builder_t)os_dll_get_symbol(hDll, "delete_road_builder");
   if (!get_new_road_builder || !delete_road_builder)
   {
     DAEDITOR3.conError("Can't init road builder");
     get_new_road_builder = NULL;
     delete_road_builder = NULL;
-    FreeLibrary(hDll);
+    os_dll_close(hDll);
     hDll = NULL;
     return false;
   }
@@ -96,7 +96,7 @@ void HmapLandObjectEditor::unloadRoadBuilderDll()
   road_builder = NULL;
   get_new_road_builder = NULL;
   delete_road_builder = NULL;
-  FreeLibrary(hDll);
+  os_dll_close(hDll);
   hDll = NULL;
 }
 

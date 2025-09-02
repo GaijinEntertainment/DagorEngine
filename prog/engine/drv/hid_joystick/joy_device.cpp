@@ -24,7 +24,7 @@ static void decodeDataDef(const DIJOYSTATE2 &is, JoystickRawState &os);
 static void setupButtonNamesDef(dag::Span<String> btn);
 
 Di8JoystickDevice::Di8JoystickDevice(IDirectInputDevice8 *dev, bool must_poll, bool remap_360, bool quiet, unsigned *guid) :
-  buttons(inimem), axes(inimem), povHats(midmem), fxList(midmem), remapAsX360(remap_360)
+  buttons(inimem), axes(inimem), povHats(midmem), fxList(midmem), remapAsX360(remap_360), isActualGamepad(false)
 {
   if (guid[1] == 0 && guid[2] == 0x49500000 && guid[3] == 0x44495644)
     SNPRINTF(devID, sizeof(devID), "%04X:%04X", guid[0] & 0xFFFF, guid[0] >> 16);
@@ -159,7 +159,7 @@ void Di8JoystickDevice::addAxis(AxisType axis_type, int di_type, const char *axi
 
 void Di8JoystickDevice::addButton(const char *button_name)
 {
-  if (remapAsX360)
+  if (shouldRemapAsX360())
     return;
   if (buttons.size() >= MAX_BUTTONS)
   {
@@ -173,7 +173,7 @@ void Di8JoystickDevice::addButton(const char *button_name)
 
 void Di8JoystickDevice::addPovHat(const char *hat_name)
 {
-  if (remapAsX360)
+  if (shouldRemapAsX360())
     return;
   if (povHats.size() >= JoystickRawState::MAX_POV_HATS)
   {
@@ -306,7 +306,10 @@ void Di8JoystickDevice::applyRemapX360(const char *product_name)
     setupButtonNamesPS3(make_span(buttons));
     decodeData = &decodeDataPS3;
   }
-  else if (strstr(deviceId, "054c:05c4") || strstr(deviceId, "054c:09cc")) // DualShock 4 || DualShock 4 (gen2)
+  else if (strstr(deviceId, "054c:05c4")     // DualShock 4
+           || strstr(deviceId, "054c:09cc")  // DualShock 4 (gen2)
+           || strstr(deviceId, "054c:0ce6")  // DualSense PS5
+           || strstr(deviceId, "054c:0df2")) // DualSense PS5 Edge
   {
     setupButtonNamesPS4(make_span(buttons));
     decodeData = &decodeDataPS4;
@@ -415,7 +418,7 @@ bool Di8JoystickDevice::updateState(int dt_msec, bool def)
     char prev_state[DATA_SZ];
     memcpy(prev_state, &state, DATA_SZ);
 
-    if (!remapAsX360)
+    if (!shouldRemapAsX360())
     {
       state.x = js.lX;
       state.y = js.lY;
@@ -835,7 +838,7 @@ static void decodeDataPS4(const DIJOYSTATE2 &is, JoystickRawState &os)
   DEADCLAMP(os.rx, 2500);
   DEADCLAMP(os.ry, 2500);
 
-  static unsigned btn_remap[12] = {JOY_XINPUT_REAL_MASK_Y, JOY_XINPUT_REAL_MASK_A, JOY_XINPUT_REAL_MASK_B, JOY_XINPUT_REAL_MASK_X,
+  static unsigned btn_remap[12] = {JOY_XINPUT_REAL_MASK_X, JOY_XINPUT_REAL_MASK_A, JOY_XINPUT_REAL_MASK_B, JOY_XINPUT_REAL_MASK_Y,
     JOY_XINPUT_REAL_MASK_L_SHOULDER, JOY_XINPUT_REAL_MASK_R_SHOULDER, JOY_XINPUT_REAL_MASK_L_TRIGGER, JOY_XINPUT_REAL_MASK_R_TRIGGER,
     JOY_XINPUT_REAL_MASK_BACK, JOY_XINPUT_REAL_MASK_START, JOY_XINPUT_REAL_MASK_L_THUMB, JOY_XINPUT_REAL_MASK_R_THUMB};
 
@@ -894,7 +897,7 @@ static void setupButtonNamesDef(dag::Span<String> btn)
 
 int Di8JoystickDevice::getPairedButtonForAxis(int axis_idx) const
 {
-  if (!remapAsX360)
+  if (!shouldRemapAsX360())
     return -1;
   if (axis_idx == JOY_XINPUT_REAL_AXIS_L_TRIGGER)
     return JOY_XINPUT_REAL_BTN_L_TRIGGER;
@@ -904,7 +907,7 @@ int Di8JoystickDevice::getPairedButtonForAxis(int axis_idx) const
 }
 int Di8JoystickDevice::getPairedAxisForButton(int btn_idx) const
 {
-  if (!remapAsX360)
+  if (!shouldRemapAsX360())
     return -1;
   if (btn_idx == JOY_XINPUT_REAL_BTN_L_TRIGGER)
     return JOY_XINPUT_REAL_AXIS_L_TRIGGER;
@@ -914,7 +917,7 @@ int Di8JoystickDevice::getPairedAxisForButton(int btn_idx) const
 }
 int Di8JoystickDevice::getJointAxisForAxis(int axis_idx) const
 {
-  if (!remapAsX360)
+  if (!shouldRemapAsX360())
     return -1;
   switch (axis_idx)
   {

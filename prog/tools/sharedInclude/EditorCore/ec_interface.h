@@ -6,8 +6,7 @@
 #include <drv/3d/dag_resId.h>
 
 #include <EditorCore/ec_decl.h>
-#include <sepGui/wndCommon.h>
-#include <sepGui/wndMenuInterface.h>
+#include <propPanel/control/menu.h>
 #include <libTools/util/hdpiUtil.h>
 
 // forward declarations for external classes
@@ -136,6 +135,11 @@ public:
   /// @param[out] world_dir - camera's direction
   virtual void clientToWorld(const Point2 &screen, Point3 &world, Point3 &world_dir) = 0;
 
+  /// Convert viewport world coordinates to normal device coordinates.
+  /// @param[in] world - world coordinates
+  /// @param[out] ndc - normal device coordinates
+  virtual void worldToNDC(const Point3 &world, Point3 &ndc) const = 0;
+
   /// Convert viewport world coordinates to screen coordinates.
   /// @param[in] world - world coordinates
   /// @param[out] screen - screen coordinates
@@ -234,10 +238,13 @@ public:
 
   /// Sets a custom menu event handler for the custom context menu
   /// of the viewport.
-  virtual void setMenuEventHandler(IMenuEventHandler *meh) = 0;
+  virtual void setMenuEventHandler(PropPanel::IMenuEventHandler *meh) = 0;
 
   /// Retrieves the custom context menu of the viewport if it's active/open.
   virtual PropPanel::IMenu *getContextMenu() = 0;
+
+  virtual void setScreenshotMode(Point2 size) = 0;
+  virtual void resetScreenshotMode() = 0;
 };
 
 
@@ -251,22 +258,6 @@ public:
 class IGenEventHandler
 {
 public:
-  //*******************************************************
-  ///@name Keyboard commands handlers.
-  //@{
-  /// Handle key press
-  ///@param[in] wnd - pointer to viewport window that generated the message
-  ///@param[in] vk - virtual key code (see #CtlVirtualKeys)
-  ///@param[in] modif - <b>shift keys</b> state (see #CtlShiftKeys)
-  virtual void handleKeyPress(IGenViewportWnd *wnd, int vk, int modif) = 0;
-
-  /// Handle key release
-  ///@param[in] wnd - pointer to viewport window that generated the message
-  ///@param[in] vk - virtual key code (see #CtlVirtualKeys)
-  ///@param[in] modif - <b>shift keys</b> state (see #CtlShiftKeys)
-  virtual void handleKeyRelease(IGenViewportWnd *wnd, int vk, int modif) = 0;
-  //@}
-
   //*******************************************************
   ///@name Mouse events handlers.
   //@{
@@ -384,12 +375,12 @@ public:
   /// Used to set values in proper toolbar fields.
   /// @param[out] p - Euler angles
   /// @return @b true if the function succeeds, @b false in other case
-  virtual bool getRot(Point3 &p) { return false; }
+  virtual bool getRot([[maybe_unused]] Point3 &p) { return false; }
 
   /// Get current Gizmo scaling in X,Y,Z dimensions.
   /// @param[out] p - <b>X,Y,Z</b> scaling ratio
   /// @return @b true if the function succeeds, @b false in other case
-  virtual bool getScl(Point3 &p) { return false; }
+  virtual bool getScl([[maybe_unused]] Point3 &p) { return false; }
 
   /// Get current Gizmo X,Y,Z axes
   /// @param[out] ax - <b>X axis</b>
@@ -405,6 +396,9 @@ public:
   }
   //@}
 
+  /// Switch between relative and absolute deltas passed to changed()
+  /// @return @b true to make changed() calls receive total delta since startGizmo()
+  virtual bool shouldComputeDeltaFromStartPos() { return false; }
 
   //*******************************************************
   ///@name Methods called by Gizmo to inform client code about Gizmo's changes.
@@ -442,6 +436,13 @@ public:
   ///                   with Gizmo begins\n
   ///                   @b false - no actions
   virtual bool canStartChangeAt(IGenViewportWnd *wnd, int x, int y, int gizmo_sel) = 0;
+
+  //*******************************************************
+  /// Test whether mouse cursor is on the object.
+  /// @param[in] wnd - pointer to viewport window (where user clicks)
+  /// @param[in] x,y - <b>x,y</b> coordinates where user clicks
+  /// @return @b true if mouse cursor is on the object, @b false in other case
+  virtual bool isMouseOver(IGenViewportWnd *wnd, int x, int y) = 0;
 
   /// Returns flags which informs Gizmo about modes supported by plugin
   /// @return flags representing types of modes supported by plugin
@@ -482,9 +483,10 @@ public:
   /// Gizmo basis
   enum BasisType
   {
-    BASIS_None = 0,       ///< No Gizmo basis.
-    BASIS_World = 0x0001, ///< Gizmo has 'World' basis.
-    BASIS_Local = 0x0002, ///< Gizmo has 'Local' basis.
+    BASIS_None = 0,        ///< No Gizmo basis.
+    BASIS_World = 0x0001,  ///< Gizmo has 'World' basis.
+    BASIS_Local = 0x0002,  ///< Gizmo has 'Local' basis.
+    BASIS_Parent = 0x0004, ///< Gizmo has 'Parent' basis.
   };
   /// Gizmo bit masks
   enum
@@ -577,7 +579,7 @@ public:
 
   ///@name UI management
   //@{
-  /// Get pointer to sepGui window manager
+  /// Get pointer to the window manager
   virtual IWndManager *getWndManager() const = 0;
 
   /// Get custom panel (property/toolbar/etc)
@@ -701,7 +703,10 @@ public:
   ///                        deeply inside capsule
   /// @return distance between cap_pt and world_pt. If capsule not intersects
   ///         collision surface the function <b>returns 0</b>
-  virtual real clipCapsuleStatic(const Capsule &c, Point3 &cap_pt, Point3 &world_pt) { return 0; }
+  virtual real clipCapsuleStatic([[maybe_unused]] const Capsule &c, [[maybe_unused]] Point3 &cap_pt, [[maybe_unused]] Point3 &world_pt)
+  {
+    return 0;
+  }
   //@}
 
 
@@ -733,6 +738,11 @@ public:
   ///@return @b true if event successfully processed, @b false in other case
   virtual void startGizmo(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) = 0;
 
+  /// End the currently onging gizmo operation the same way as if the user finished it by releasing the left mouse
+  /// button or canceled it by pressing the right mouse button.
+  /// @param[in] apply - whether the apply or cancel the onging operation
+  virtual void endGizmo(bool apply) = 0;
+
   /// Get Gizmo mode.
   ///@return Gizmo mode (see #ModeType)
   virtual ModeType getGizmoModeType() = 0;
@@ -748,6 +758,10 @@ public:
   /// Get Gizmo center type.
   ///@return Gizmo center type (see #CenterType)
   virtual CenterType getGizmoCenterType() = 0;
+
+  /// Get Gizmo center type for a specific mode.
+  ///@return Gizmo center type a specific mode (see #CenterType and see #ModeType)
+  virtual CenterType getGizmoCenterTypeForMode(ModeType tp) = 0;
 
   /// Tests whether a gizmo operation is in progress.
   /// (For example pressing the left mouse button on the translation gizmo and moving an object.)
@@ -831,6 +845,9 @@ public:
   /// @return reference to grid
   virtual GridObject &getGrid() = 0;
 
+  /// Get gizmo event filter.
+  /// @return reference to gizmo event filter
+  virtual GizmoEventFilter &getGizmoEventFilter() = 0;
 
   /// Get pointer to current editor core instance.
   /// @return pointer to current editor core instance

@@ -18,6 +18,7 @@ class RunningSampleAverageAccumulator
 {
 public:
   static constexpr ssize_t DONT_USE_EPOCHS = -1;
+  static constexpr int WINDOW_SIZE = int(window_size);
 
   void addSample(T sample_val, ssize_t epoch = DONT_USE_EPOCHS)
   {

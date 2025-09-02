@@ -1,3 +1,4 @@
+options gen2
 options no_unused_block_arguments = false
 options no_unused_function_arguments = false
 options indenting = 4
@@ -19,7 +20,7 @@ var private appFile = "app.das"
 var private appDir  = get_das_root() + "/modules/dasGlfw/framework"
 var private appLive = false
 
-var private appTime : table<string;clock>
+var private appTime : table<string; clock>
 var private watchTime = get_clock()
 
 var private liveFunctionLookup : table<string; bool>
@@ -28,213 +29,282 @@ var public decsLiveData : array<uint8>
 
 var private liveContext : smart_ptr<Context>
 
-def public get_live_context : smart_ptr<Context>
+def public get_live_context : smart_ptr<Context> {
     //! get live context. WARNING: this does not increase reference count, no need for delete
     //! intended use is invoke_in_context(get_live_context()) <| @ ...
-    unsafe
+    unsafe {
         return liveContext  // we don't clone here?
+    }
+}
 
 [export]
-def saveLiveContext
-    to_log(LOG_TRACE, "LIVE: saveLiveContext\n");
+def saveLiveContext {
+    to_log(LOG_TRACE, "LIVE: saveLiveContext\n")
     decsLiveData <- mem_archive_save(decsState)
+}
 
 [export]
-def restoreLiveContext
-    to_log(LOG_TRACE, "LIVE: restoreLiveContext\n");
-    if length(decsLiveData) > 0
-        try
+def restoreLiveContext {
+    to_log(LOG_TRACE, "LIVE: restoreLiveContext\n")
+    if (length(decsLiveData) > 0) {
+        try {
             decsLiveData |> mem_archive_load(decsState)
-        recover
+        } recover {
             to_log(LOG_ERROR, "exception during restoreLiveContext\n")
+        }
+    }
+}
 
 [finalize]
-def private go_offline
-    to_log(LOG_TRACE, "LIVE: go_offline\n");
+def private go_offline {
+    to_log(LOG_TRACE, "LIVE: go_offline\n")
     appPtr := null
+}
 
-def public is_live
+def public is_live {
     return appLive
+}
 
-def public is_app_live
+def public is_app_live {
     return appPtr != null
+}
 
-def public go_main
-    to_log(LOG_TRACE, "LIVE: go_main\n");
+def public go_main {
+    to_log(LOG_TRACE, "LIVE: go_main\n")
     delete decsLiveData
     appLive = false
-    unsafe
-        var ctx <- reinterpret<smart_ptr<Context>> addr(this_context())
-        appPtr := ctx
+    unsafe {
+        move_new(appPtr) <| reinterpret<smart_ptr<Context>> addr(this_context())
+    }
+}
 
-def public go_live ( appf, appd : string )
-    to_log(LOG_TRACE, "LIVE: go_life appFile={appf} appDir={appd}\n");
+def public go_live(appf, appd : string) {
+    to_log(LOG_TRACE, "LIVE: go_life appFile={appf} appDir={appd}\n")
     appLive = true
     this_context().name := "Live context"
     appFile = appf
     appDir = appd
     delete decsLiveData
     recompile()
+}
 
-def private live_lookup(fn)
-    if appPtr==null
+def private live_lookup(fn) {
+    if (appPtr == null) {
         return false
-    if !liveFunctionLookup |> key_exists(fn)
+    }
+    if (!liveFunctionLookup |> key_exists(fn)) {
         liveFunctionLookup |> insert(fn, *appPtr |> has_function(fn))
+    }
     return liveFunctionLookup |> get_value(fn)
+}
 
-def public invoke_live ( fn:string )
-    if live_lookup(fn)
-        try
-            unsafe
+def public invoke_live(fn : string) {
+    if (live_lookup(fn)) {
+        try {
+            unsafe {
                 invoke_in_context(appPtr, fn)
-        recover
+            }
+        } recover {
             to_log(LOG_ERROR, "exception during '{fn}()'\n{appPtr.last_exception}\n{describe(appPtr.exceptionAt)}\n")
             appPtr := null
+        }
+    }
+}
 
-def public invoke_live ( fn:string; a1 )
-    if live_lookup(fn)
-        try
-            unsafe
+def public invoke_live(fn : string; a1) {
+    if (live_lookup(fn)) {
+        try {
+            unsafe {
                 invoke_in_context(appPtr, fn, a1)
-        recover
+            }
+        } recover {
             to_log(LOG_ERROR, "exception during '{fn}({a1})'\n{appPtr.last_exception}\n{describe(appPtr.exceptionAt)}\n")
             appPtr := null
+        }
+    }
+}
 
-def public invoke_live ( fn:string; a1; a2 )
-    if live_lookup(fn)
-        try
-            unsafe
+def public invoke_live(fn : string; a1; a2) {
+    if (live_lookup(fn)) {
+        try {
+            unsafe {
                 invoke_in_context(appPtr, fn, a1, a2)
-        recover
+            }
+        } recover {
             to_log(LOG_ERROR, "exception during '{fn}({a1},{a2})'\n{appPtr.last_exception}\n{describe(appPtr.exceptionAt)}\n")
             appPtr := null
+        }
+    }
+}
 
-def public invoke_live ( fn:string; a1; a2; a3 )
-    if live_lookup(fn)
-        try
-            unsafe
+def public invoke_live(fn : string; a1; a2; a3) {
+    if (live_lookup(fn)) {
+        try {
+            unsafe {
                 invoke_in_context(appPtr, fn, a1, a2, a3)
-        recover
+            }
+        } recover {
             to_log(LOG_ERROR, "exception during '{fn}({a1},{a2},{a3})'\n{appPtr.last_exception}\n{describe(appPtr.exceptionAt)}\n")
             appPtr := null
+        }
+    }
+}
 
-def public invoke_live ( fn:string; a1; a2; a3; a4 )
-    if live_lookup(fn)
-        try
-            unsafe
+def public invoke_live(fn : string; a1; a2; a3; a4) {
+    if (live_lookup(fn)) {
+        try {
+            unsafe {
                 invoke_in_context(appPtr, fn, a1, a2, a3, a4)
-        recover
+            }
+        } recover {
             to_log(LOG_ERROR, "exception during '{fn}({a1},{a2},{a3},{a4})'\n{appPtr.last_exception}\n{describe(appPtr.exceptionAt)}\n")
             appPtr := null
+        }
+    }
+}
 
-def public watch_files
+def public watch_files {
     var clk = get_clock()
-    if (clk - watchTime) <= 0.0lf
+    if ((clk - watchTime) <= 0.0lf) {
         return false
+    }
     watchTime = clk
     var any = false
-    dir(appDir) <| $ (fname)
-        if !(ends_with(fname, ".das") || ends_with(fname, ".das_project"))
+    dir(appDir) <| $(fname) {
+        if (!(ends_with(fname, ".das") || ends_with(fname, ".das_project"))) {
             return
+        }
         let fileName = "{appDir}\/{fname}"
         var st : FStat
-        if stat(fileName,st)
-            if st.is_reg
-                if appTime |> key_exists(fname)
-                    if appTime |> get_value(fname) != st.mtime
+        if (stat(fileName, st)) {
+            if (st.is_reg) {
+                if (appTime |> key_exists(fname)) {
+                    if (appTime |> get_value(fname) != st.mtime) {
                         any = true
+                    }
+                }
                 appTime |> insert(fname, st.mtime)
+            }
+        }
+    }
     return any
+}
 
 [export]
-def set_new_context ( var ptr : smart_ptr<Context>; full_restart:bool = false )
+def set_new_context(var ptr : smart_ptr<Context>; full_restart : bool = false) {
     to_log(LOG_TRACE, "LIVE: set new context {intptr(get_ptr(ptr))}\n")
     invoke_live("shutdown")
-    if appPtr != null
-        unsafe
-            // fixup decs if its there
-            var pvar = get_context_global_variable(appPtr, "decsState")
-            if pvar != null
-                var pstate : array<uint8> ? = unsafe(reinterpret<array<uint8>?> get_context_global_variable(appPtr, "decsLiveData"))
-                assert(pstate!=null)
-                var css <- @ <|
-                    saveLiveContext()
-                invoke_in_context(appPtr, css)
-                decsLiveData := *pstate
-                delete css
+    if (appPtr != null) {
+        // fixup decs if its there
+        var pvar = unsafe(get_context_global_variable(appPtr, "decsState"))
+        if (pvar != null) {
+            var pstate : array<uint8>? = unsafe(reinterpret<array<uint8>?>(unsafe(get_context_global_variable(appPtr, "decsLiveData"))))
+            assert(pstate != null)
+            var css <- @() {
+                saveLiveContext()
+            }
+            unsafe(invoke_in_context(appPtr, css))
+            decsLiveData := *pstate
+            delete css
+        }
+    }
     appPtr := ptr
     delete liveFunctionLookup
-    if appPtr != null
+    if (appPtr != null) {
         appPtr.alwaysErrorOnException = true
         appPtr.alwaysStackWalkOnException = true
-        unsafe
+        unsafe {
             // fixup decs if its there
             var pvar = get_context_global_variable(appPtr, "decsState")
-            if pvar != null
-                var pstate : array<uint8> ? = unsafe(reinterpret<array<uint8>?> get_context_global_variable(appPtr, "decsLiveData"))
-                assert(pstate!=null)
-                var css <- @ <| [[&decsState,&decsLiveData]] ( data : array<uint8># )
+            if (pvar != null) {
+                var pstate : array<uint8>? = unsafe(reinterpret<array<uint8>?> get_context_global_variable(appPtr, "decsLiveData"))
+                assert(pstate != null)
+                var css <- @capture(& decsState, & decsLiveData) (data : array<uint8> #) {
                     decsLiveData := data
                     restoreLiveContext()
                     delete decsLiveData
+                }
                 invoke_in_context(appPtr, css, decsLiveData)
                 delete css
+            }
             // fix-up live context, if its there
             var pctx_var = get_context_global_variable(appPtr, "liveContext")
-            if pctx_var != null
+            if (pctx_var != null) {
                 var lContext <- reinterpret<smart_ptr<Context>> addr(this_context())
-                var css <- @ <| [[&decsState]] ( state : DecsState? )
-                    unsafe
+                var css <- @capture(& decsState) (state : DecsState ?) {
+                    unsafe {
                         liveContext <- lContext
+                    }
+                }
                 invoke_in_context(appPtr, css, addr(decsState))
                 delete css
+            }
+        }
         invoke_live("initialize", full_restart)
+    }
+}
 
-def public recompile(full_restart:bool=false)
+def public recompile(full_restart : bool = false) {
     to_log(LOG_TRACE, "LIVE: recompile full_restart={full_restart}\n")
     var inscope access <- make_file_access("")
-    using <| $(var mg:ModuleGroup)
-        using <| $(var cop:CodeOfPolicies)
+    using <| $(var mg : ModuleGroup) {
+        using <| $(var cop : CodeOfPolicies) {
             cop.threadlock_context = true
-            compile_file("{appDir}/{appFile}",access,unsafe(addr(mg)),cop) <| $(ok,program,issues)
-                if ok
-                    simulate(program) <| $ ( sok; context; serrors )
-                        if sok
+            compile_file("{appDir}/{appFile}", access, unsafe(addr(mg)), cop) <| $(ok, program, issues) {
+                if (ok) {
+                    simulate(program) <| $(sok; context; serrors) {
+                        if (sok) {
                             // TODO: beep print("reloaded...\n")
                             to_log(LOG_TRACE, "LIVE: reloaded\n")
-                            set_new_context(context,full_restart)
-                        else
+                            set_new_context(context, full_restart)
+                        } else {
                             to_log(LOG_ERROR, "LIVE: {appFile} failed to simulate:\n{issues}\n")
-                            set_new_context([[smart_ptr<Context>]],full_restart)
-                else
+                            set_new_context(default<smart_ptr<Context>>, full_restart)
+                        }
+                    }
+                } else {
                     to_log(LOG_ERROR, "LIVE: {appFile} failed to compile:\n{issues}\n")
-                    set_new_context([[smart_ptr<Context>]],full_restart)
+                    set_new_context(default<smart_ptr<Context>>, full_restart)
+                }
+            }
+        }
+    }
+}
 
-def public live_keypressed ( keycode, scancode, action, mods : int )
-    invoke_live("keypressed", keycode, scancode, action, mods )
-    if is_live()
-        if scancode==19 && action==1 && mods==2
+def public live_keypressed(keycode, scancode, action, mods : int) {
+    invoke_live("keypressed", keycode, scancode, action, mods)
+    if (is_live()) {
+        if (scancode == 19 && action == 1 && mods == 2) {
             recompile(true)
+        }
+    }
+}
 
-def public live_charpressed ( charcode : uint )
-    invoke_live("charpressed", charcode )
+def public live_charpressed(charcode : uint) {
+    invoke_live("charpressed", charcode)
+}
 
-def public live_mousemoved ( x, y : double )
-    invoke_live("mousemoved", x, y )
+def public live_mousemoved(x, y : double) {
+    invoke_live("mousemoved", x, y)
+}
 
-def public live_mouseenter ( yes : bool )
+def public live_mouseenter(yes : bool) {
     invoke_live("mouseenter", yes)
+}
 
-def public live_mousebutton ( button, action, mods : int )
-    invoke_live("mousebutton", button, action, mods )
+def public live_mousebutton(button, action, mods : int) {
+    invoke_live("mousebutton", button, action, mods)
+}
 
-def public live_mousescroll ( x, y : double )
-    invoke_live("mousescroll", x, y )
+def public live_mousescroll(x, y : double) {
+    invoke_live("mousescroll", x, y)
+}
 
-def public live_update ( appTime : double )
-    static_let <|
+def public live_update(appTime : double) {
+    static_let <| $() {
         var t = 0.0lf
+    }
     let dt = float(appTime - t)
     t = appTime
     invoke_live("act", dt)
+}

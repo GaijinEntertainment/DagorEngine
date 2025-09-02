@@ -37,16 +37,16 @@ return {
       flow = FLOW_VERTICAL
       halign = ALIGN_LEFT
       valign = ALIGN_CENTER
-      size = [flex(4),flex()]
+      size = static [flex(4),flex()]
       gap = 10
       children = [
         sText("Default")
-        {rendObj = ROBJ_FRAME size = [hdpx(507),hdpx(107)] padding=hdpx(5)
+        {rendObj = ROBJ_FRAME size = static [hdpx(507),hdpx(107)] padding=hdpx(5)
            children = { size = flex() rendObj = ROBJ_TEXTAREA text = text behavior = Behaviors.TextArea }
         }
 
         sText("preformatted=true (All flags)")
-        {rendObj = ROBJ_FRAME size = [hdpx(507),hdpx(107)] padding=hdpx(5)
+        {rendObj = ROBJ_FRAME size = static [hdpx(507),hdpx(107)] padding=hdpx(5)
            children = { size = flex() rendObj = ROBJ_TEXTAREA text = text behavior = Behaviors.TextArea preformatted=true}
         }
       ]
@@ -55,31 +55,31 @@ return {
       flow = FLOW_VERTICAL
       halign = ALIGN_LEFT
       valign = ALIGN_CENTER
-      size = [flex(4),flex()]
+      size = static [flex(4),flex()]
       gap = 10
       children = [
         sText("preformatted=FMT_IGNORE_TAGS")
-        {rendObj = ROBJ_FRAME size = [hdpx(807),hdpx(107)] padding=hdpx(5)
+        {rendObj = ROBJ_FRAME size = static [hdpx(807),hdpx(107)] padding=hdpx(5)
            children = { size = flex() rendObj = ROBJ_TEXTAREA text = colored_text behavior = Behaviors.TextArea preformatted=FMT_IGNORE_TAGS}
         }
 
         sText("preformatted=FMT_KEEP_SPACES")
-        {rendObj = ROBJ_FRAME size = [hdpx(807),hdpx(107)] padding=hdpx(5)
+        {rendObj = ROBJ_FRAME size = static [hdpx(807),hdpx(107)] padding=hdpx(5)
            children = { size = flex() rendObj = ROBJ_TEXTAREA text = text behavior = Behaviors.TextArea preformatted=FMT_KEEP_SPACES}
         }
 
         sText("preformatted=FMT_HIDE_ELLIPSIS")
-        {rendObj = ROBJ_FRAME size = [hdpx(807),hdpx(107)] padding=hdpx(5)
+        {rendObj = ROBJ_FRAME size = static [hdpx(807),hdpx(107)] padding=hdpx(5)
            children = { size = flex() rendObj = ROBJ_TEXTAREA text = text behavior = Behaviors.TextArea preformatted=FMT_HIDE_ELLIPSIS}
         }
 
         sText("preformatted=FMT_NO_WRAP")
-        {rendObj = ROBJ_FRAME size = [hdpx(807),hdpx(107)] padding=hdpx(5)
+        {rendObj = ROBJ_FRAME size = static [hdpx(807),hdpx(107)] padding=hdpx(5)
            children = { size = flex() rendObj = ROBJ_TEXTAREA text = text behavior = Behaviors.TextArea preformatted=FMT_NO_WRAP}
         }
 
         sText("preformatted=FMT_AS_IS")
-        {rendObj = ROBJ_FRAME size = [hdpx(807),hdpx(107)] padding=hdpx(5)
+        {rendObj = ROBJ_FRAME size = static [hdpx(807),hdpx(107)] padding=hdpx(5)
            children = { size = flex() rendObj = ROBJ_TEXTAREA text = text behavior = Behaviors.TextArea preformatted=FMT_AS_IS}
         }
       ]

@@ -25,7 +25,7 @@ bool LatencyInputEventListener::gkehButtonUp(const Context &, int) { return fals
 
 void LatencyInputEventListener::register_handler()
 {
-  if (!registered && lowlatency::is_inited())
+  if (!registered)
   {
     register_hid_event_handler(this, 5);
     registered = true;

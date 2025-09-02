@@ -9,7 +9,7 @@
 #include <math/dag_Point3.h>
 #include <EditorCore/ec_interface.h>
 #include <util/dag_string.h>
-#include <math/random/dag_random.h>
+#include <gameMath/objgenPrng.h>
 #include <ioSys/dag_genIo.h>
 #include <libTools/staticGeom/geomObject.h>
 #include <coolConsole/coolConsole.h>
@@ -62,7 +62,7 @@ static constexpr unsigned CID_IvyObject = 0xA407C109u; // IvyObject
 class IvyNode
 {
 public:
-  IvyNode() : climb(false), length(0.0f), floatingLength(0.0f){};
+  IvyNode() : climb(false), length(0.0f), floatingLength(0.0f) {}
 
   unsigned short iteration;
 
@@ -181,7 +181,7 @@ public:
 class IvyObject : public RenderableEditableObject
 {
 protected:
-  ~IvyObject() {}
+  ~IvyObject() override {}
 
 public:
   class CollisionCallback
@@ -198,11 +198,11 @@ public:
   void defaults();
   void clipMax();
 
-  virtual void update(float);
+  void update(float) override;
 
-  virtual void beforeRender() {}
-  virtual void render();
-  virtual void renderTrans();
+  void beforeRender() override {}
+  void render() override;
+  void renderTrans() override;
   void renderPts(DynRenderBuffer &dynBuf, const TMatrix4 &gtm, const Point2 &s, bool start = false);
 
   void renderGeom();
@@ -211,35 +211,34 @@ public:
   static void initStatics();
   static void initCollisionCallback();
 
-  virtual bool isSelectedByRectangle(IGenViewportWnd *vp, const EcRect &rect) const;
-  virtual bool isSelectedByPointClick(IGenViewportWnd *vp, int x, int y) const;
-  virtual bool getWorldBox(BBox3 &box) const;
+  bool isSelectedByRectangle(IGenViewportWnd *vp, const EcRect &rect) const override;
+  bool isSelectedByPointClick(IGenViewportWnd *vp, int x, int y) const override;
+  bool getWorldBox(BBox3 &box) const override;
 
-  virtual void fillProps(PropPanel::ContainerPropertyControl &panel, DClassID for_class_id,
-    dag::ConstSpan<RenderableEditableObject *> objects);
+  void fillProps(PropPanel::ContainerPropertyControl &panel, DClassID for_class_id,
+    dag::ConstSpan<RenderableEditableObject *> objects) override;
 
-  virtual void onPPChange(int pid, bool edit_finished, PropPanel::ContainerPropertyControl &panel,
-    dag::ConstSpan<RenderableEditableObject *> objects);
+  void onPPChange(int pid, bool edit_finished, PropPanel::ContainerPropertyControl &panel,
+    dag::ConstSpan<RenderableEditableObject *> objects) override;
 
-  virtual void onPPBtnPressed(int pid, PropPanel::ContainerPropertyControl &panel, dag::ConstSpan<RenderableEditableObject *> objects);
-  // virtual bool onPPValidateParam(int pid, PropPanel::ContainerPropertyControl &panel,
-  //   dag::ConstSpan<RenderableEditableObject*> objects);
+  void onPPBtnPressed(int pid, PropPanel::ContainerPropertyControl &panel,
+    dag::ConstSpan<RenderableEditableObject *> objects) override;
 
   // restrict rotate/scale transformations to BASIS_Local/selCenter
 
-  virtual void putMoveUndo();
+  void putMoveUndo() override;
 
-  virtual void moveObject(const Point3 &delta, IEditorCoreEngine::BasisType basis);
-  virtual void rotateObject(const Point3 &delta, const Point3 &origin, IEditorCoreEngine::BasisType basis) {}
-  virtual void scaleObject(const Point3 &delta, const Point3 &origin, IEditorCoreEngine::BasisType basis) {}
+  void moveObject(const Point3 &delta, IEditorCoreEngine::BasisType basis) override;
+  void rotateObject(const Point3 &delta, const Point3 &origin, IEditorCoreEngine::BasisType basis) override {}
+  void scaleObject(const Point3 &delta, const Point3 &origin, IEditorCoreEngine::BasisType basis) override {}
 
-  virtual void save(DataBlock &blk);
-  virtual void load(const DataBlock &blk);
+  void save(DataBlock &blk);
+  void load(const DataBlock &blk);
 
-  virtual void setWtm(const TMatrix &wtm);
+  void setWtm(const TMatrix &wtm) override;
 
-  virtual bool mayRename() { return true; }
-  virtual bool mayDelete() { return true; }
+  bool mayRename() override { return true; }
+  bool mayDelete() override { return true; }
 
   EO_IMPLEMENT_RTTI(CID_IvyObject)
 
@@ -305,7 +304,8 @@ public:
   bool computeCollision(const Point3 &oldPos, Point3 &newPos, bool &climbing, CollisionCallback &cb);
   inline Point3 getRandomized()
   {
-    return normalize(Point3(_frnd(currentSeed) - 0.5f, _frnd(currentSeed) - 0.5f, _frnd(currentSeed) - 0.5f));
+    using namespace objgenerator; // prng
+    return normalize(Point3(frnd(currentSeed) - 0.5f, frnd(currentSeed) - 0.5f, frnd(currentSeed) - 0.5f));
   }
   void debugRender();
 

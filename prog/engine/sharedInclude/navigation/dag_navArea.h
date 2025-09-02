@@ -137,25 +137,24 @@ public:
   bool IsOverlapping(const CNavArea *area) const;  ///< return true if 'area' overlaps our 2D extents
   bool IsOverlappingX(const CNavArea *area) const; ///< return true if 'area' overlaps our X extent
   bool IsOverlappingZ(const CNavArea *area) const; ///< return true if 'area' overlaps our Z extent
-  //      int GetPlayerCount( int teamID = 0 ) const;                                     ///< return number of players with given
-  //      teamID in this area (teamID == 0 means any/all)
+  // int GetPlayerCount( int teamID = 0 ) const; ///< return number of players with given teamID in this area (teamID==0 means any/all)
   float GetY(const Vector *pos) const;         ///< return Z of area at (x,y) of 'pos'
   float GetY(float x, float z) const;          ///< return Z of area at (x,y) of 'pos'
   bool Contains(const Vector *pos) const;      ///< return true if given point is on or above this area, but no others
   bool IsCoplanar(const CNavArea *area) const; ///< return true if this area and given area are approximately co-planar
-  void GetClosestPointOnArea(const Vector *pos, Vector *close) const; ///< return closest point to 'pos' on this area - returned point
-                                                                      ///< in 'close'
-  float GetDistanceSquaredToPoint(const Vector *pos) const;           ///< return shortest distance between point and this area
-  bool IsDegenerate(void) const;                                      ///< return true if this area is badly formed
-  bool IsRoughlySquare(void) const;                                   ///< return true if this area is approximately square
+
+  /// return closest point to 'pos' on this area - returned point in 'close'
+  void GetClosestPointOnArea(const Vector *pos, Vector *close) const;
+
+  float GetDistanceSquaredToPoint(const Vector *pos) const; ///< return shortest distance between point and this area
+  bool IsDegenerate(void) const;                            ///< return true if this area is badly formed
+  bool IsRoughlySquare(void) const;                         ///< return true if this area is approximately square
 
   bool IsEdge(NavDirType dir) const; ///< return true if there are no bi-directional links on the given side
 
-  int GetAdjacentCount(NavDirType dir) const
-  {
-    return m_connect[dir].Count();
-  }                                                       ///< return number of connected areas in given direction
-  CNavArea *GetAdjacentArea(NavDirType dir, int i) const; /// return the i'th adjacent area in the given direction
+  /// return number of connected areas in given direction
+  int GetAdjacentCount(NavDirType dir) const { return m_connect[dir].Count(); }
+  CNavArea *GetAdjacentArea(NavDirType dir, int i) const; ///< return the i'th adjacent area in the given direction
   CNavArea *GetRandomAdjacentArea(NavDirType dir) const;
 
   // dagor gcc
@@ -167,16 +166,12 @@ public:
   float ComputeHeightChange(const CNavArea *area);              ///< compute change in height from this area to given area
 
 
-  void ComputePortal(const CNavArea *to, NavDirType dir, Vector *center, float *halfWidth) const; ///< compute portal to adjacent area
-  void ComputeClosestPointInPortal(const CNavArea *to, NavDirType dir, const Vector *fromPos, Vector *closePos) const; ///< compute
-                                                                                                                       ///< closest
-                                                                                                                       ///< point
-                                                                                                                       ///< within the
-                                                                                                                       ///< "portal"
-                                                                                                                       ///< between to
-                                                                                                                       ///< adjacent
-                                                                                                                       ///< areas
-  NavDirType ComputeDirection(const Vector *point) const; ///< return direction from this area to the given point
+  /// compute portal to adjacent area
+  void ComputePortal(const CNavArea *to, NavDirType dir, Vector *center, float *halfWidth) const;
+  /// compute closest point within the "portal" between to adjacent areas
+  void ComputeClosestPointInPortal(const CNavArea *to, NavDirType dir, const Vector *fromPos, Vector *closePos) const;
+  /// return direction from this area to the given point
+  NavDirType ComputeDirection(const Vector *point) const;
 
   //- for hunting algorithm ---------------------------------------------------------------------------
   void SetClearedTimestamp(int teamID) { m_clearedTimestamp[teamID] = ::globalTime; } ///< set this area's "clear" timestamp to now
@@ -190,9 +185,9 @@ public:
   virtual int getHidingSpotCount() const { return m_hidingSpotList.Count(); }
   virtual INavHidingSpot *getHidingSpot(int index) const { return m_hidingSpotList[index]; }
 
-  SpotEncounter *GetSpotEncounter(const CNavArea *from, const CNavArea *to); ///< given the areas we are moving between, return the
-                                                                             ///< spots we will encounter
-  void ComputeSpotEncounters(void);                                          ///< compute spot encounter data - for map learning
+  /// given the areas we are moving between, return the spots we will encounter
+  SpotEncounter *GetSpotEncounter(const CNavArea *from, const CNavArea *to);
+  void ComputeSpotEncounters(void); ///< compute spot encounter data - for map learning
 
   //- "danger" ----------------------------------------------------------------------------------------
   void IncreaseDanger(int teamID, float amount); ///< increase the danger of this area for the given team
@@ -259,9 +254,8 @@ public:
   void Draw(byte red, byte green, byte blue, int duration = 50); ///< draw area for debugging & editing
   void DrawConnectedAreas(void);
   void DrawMarkedCorner(NavCornerType corner, byte red, byte green, byte blue, int duration = 50);
-  bool SplitEdit(bool splitAlongX, float splitEdge, CNavArea **outAlpha = NULL, CNavArea **outBeta = NULL); ///< split this area into
-                                                                                                            ///< two areas at the given
-                                                                                                            ///< edge
+  /// split this area into two areas at the given edge
+  bool SplitEdit(bool splitAlongX, float splitEdge, CNavArea **outAlpha = NULL, CNavArea **outBeta = NULL);
   bool MergeEdit(CNavArea *adj);                      ///< merge this area and given adjacent area
   bool SpliceEdit(CNavArea *other);                   ///< create a new area between this area and given area
   void RaiseCorner(NavCornerType corner, int amount); ///< raise/lower a corner (or all corners if corner == NUM_CORNERS)
@@ -295,10 +289,10 @@ private:
 
   static unsigned int m_nextID; ///< used to allocate unique IDs
   unsigned int m_id;            ///< unique area ID
-  unsigned int index;           /// used to find area index
-  Extent m_extent; ///< extents of area in world coords (NOTE: lo.z is not necessarily the minimum Z, but corresponds to Z at point
-                   ///< (lo.x, lo.y), etc
-  Vector m_center; ///< centroid of area
+  unsigned int index;           ///< used to find area index
+  /// extents of area in world coords (NOTE: lo.z is not necessarily the minimum Z, but corresponds to Z at point (lo.x, lo.y), etc
+  Extent m_extent;
+  Vector m_center;                ///< centroid of area
   unsigned char m_attributeFlags; ///< set of attribute bit flags (see NavAttributeType)
   Place m_place;                  ///< place descriptor
 
@@ -311,8 +305,8 @@ private:
   float m_clearedTimestamp[MAX_AREA_TEAMS]; ///< time this area was last "cleared" of enemies
 
   //- "danger" ----------------------------------------------------------------------------------------
-  float m_danger[MAX_AREA_TEAMS]; ///< danger of this area, allowing bots to avoid areas where they died in the past - zero is no
-                                  ///< danger
+  /// danger of this area, allowing bots to avoid areas where they died in the past - zero is no danger
+  float m_danger[MAX_AREA_TEAMS];
   float m_dangerTimestamp[MAX_AREA_TEAMS]; ///< time when danger value was set - used for decaying
   void DecayDanger(void);
 
@@ -322,9 +316,8 @@ private:
 
   //- encounter spots ---------------------------------------------------------------------------------
   SpotEncounterList m_spotEncounterList; ///< list of possible ways to move thru this area, and the spots to look at as we do
-  void AddSpotEncounters(const CNavArea *from, NavDirType fromDir, const CNavArea *to, NavDirType toDir); ///< add spot encounter data
-                                                                                                          ///< when moving from area to
-                                                                                                          ///< area
+  ///< add spot encounter data when moving from area to area
+  void AddSpotEncounters(const CNavArea *from, NavDirType fromDir, const CNavArea *to, NavDirType toDir);
 
   //- approach areas ----------------------------------------------------------------------------------
   static constexpr int MAX_APPROACH_AREAS = 16;

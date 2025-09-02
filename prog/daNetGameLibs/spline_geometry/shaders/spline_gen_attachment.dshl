@@ -9,6 +9,7 @@ shader dynamic_spline_attachment
   {
     cull_mode = none;
   }
+  ENABLE_ASSERT(ps)
 
   USING_ATEST_HALF()
 
@@ -47,8 +48,8 @@ shader dynamic_spline_attachment
     {
       ##if in_editor_assume == no
         uint hardwareInstanceId = attachment_instance_id / spline_gen_attachment_max_no;
-        InstanceId instanceId = spline_gen_culled_buffer[hardwareInstanceId];
-        SplineGenInstance instanceData = spline_gen_instancing_buffer[instanceId];
+        InstanceId instanceId = structuredBufferAt(spline_gen_culled_buffer, hardwareInstanceId);
+        SplineGenInstance instanceData = structuredBufferAt(spline_gen_instancing_buffer, instanceId);
         uint objectId = attachment_instance_id % spline_gen_attachment_max_no;
         BRANCH
         if (objectId >= instanceData.objCount)
@@ -58,10 +59,10 @@ shader dynamic_spline_attachment
           return offscreenOutput;
         }
 
-        uint objBatchId = spline_gen_obj_batch_id_buffer[instanceData.batchIdsStart + objectId / spline_gen_attachment_batch_size];
+        uint objBatchId = bufferAt(spline_gen_obj_batch_id_buffer, instanceData.batchIdsStart + objectId / spline_gen_attachment_batch_size);
         uint idInBatch = objectId % spline_gen_attachment_batch_size;
         uint dataIndex = objBatchId * spline_gen_attachment_batch_size + idInBatch;
-        AttachmentData currData = spline_gen_attachment_data[dataIndex];
+        AttachmentData currData = structuredBufferAt(spline_gen_attachment_data, dataIndex);
         float3x3 currRotScaleMat;
         float3 currBaseWorldPos;
         unpack_tm(currData, currRotScaleMat, currBaseWorldPos);

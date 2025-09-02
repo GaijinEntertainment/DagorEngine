@@ -1,14 +1,17 @@
 from "%darg/ui_imports.nut" import *
+import "dagor.profiler" as profiler
+from "datetime" import clock
 
 let cursors = require("samples_prog/_cursors.nut")
 
 let {makeVertScroll} = require("samples_prog/_basic/components/scrollbar.nut")
-let units = {
+let units = freeze({
   ["a-20g"] = Picture("!ui/atlas#a-20g")
-}
-let atlas = {
+})
+
+let atlas = freeze({
   spades = Picture("!ui/atlas#hud_tank_arrow_right_02.svg")
-}
+})
 
 let Text = kwarg(function(text, color=null,
         //common component arguments
@@ -145,21 +148,21 @@ let Box = kwarg(function(
 
 function mkResearchItem(idx) {
   return Box({
-    size = [sh(15),sh(5)]
-    margin=[0,hdpx(10),hdpx(20),hdpx(10)]
+    size = static [sh(15),sh(5)]
+    margin=static [0,hdpx(10),hdpx(20),hdpx(10)]
     borderColor = Color(20,20,20)
     borderWidth = 2
     children = [
-      Box({size=[hdpx(30),hdpx(10)] vplace=ALIGN_BOTTOM pos=[hdpx(10),hdpx(10)] fillColor = Color(10,100,10)})//crew button
-      Box({ size = [flex(),flex()]
+      Box(static {size=[hdpx(30),hdpx(10)] vplace=ALIGN_BOTTOM pos=[hdpx(10),hdpx(10)] fillColor = Color(10,100,10)})//crew button
+      Box({ size = flex()
         fillColor = Color(30,30,30)
         children = [
           Container({ //images
             size = flex()
             children = [
-              Image({size = flex(), image=units["a-20g"]})
+              Image(static {size = flex(), image=units["a-20g"]})
               Image({
-                size = [hdpx(40),hdpx(40)]
+                size = hdpx(40)
                 hplace = ALIGN_RIGHT
                 color = Color(0,0,0)
                 image=atlas.spades
@@ -168,8 +171,8 @@ function mkResearchItem(idx) {
           })
           Container({  //plane name
             flow = FLOW_VERTICAL
-            size = [flex(),flex()]
-            padding=[hdpx(4),hdpx(4),0,0]
+            size = flex()
+            padding=static [hdpx(4),hdpx(4),0,0]
             valign=ALIGN_CENTER
 
             children = [
@@ -180,7 +183,7 @@ function mkResearchItem(idx) {
                 gap = hdpx(4)
                 children = [
                   Text({text=100*idx })//price or research_progress
-                  {size = [hdpx(5),flex(1)]}
+                  static {size = [hdpx(5),flex(1)]}
                   Text({text="1.3" })//BR
                   Text({text="*"})//type
                 ]
@@ -190,7 +193,7 @@ function mkResearchItem(idx) {
 
         ]
       })
-      Box({size=[hdpx(10),hdpx(10)] hplace = ALIGN_CENTER vplace=ALIGN_TOP pos=[hdpx(10),0] fillColor = Color(120,0,0)})//crew button
+      Box(static {size=hdpx(10) hplace = ALIGN_CENTER vplace=ALIGN_TOP pos=[hdpx(10),0] fillColor = Color(120,0,0)})//crew button
     ]
   })
 }
@@ -199,7 +202,7 @@ function researchLine(_,r) {
   return Box({
     flow = FLOW_HORIZONTAL
     halign = ALIGN_CENTER
-    size = [flex(),SIZE_TO_CONTENT]
+    size = static [flex(),SIZE_TO_CONTENT]
     borderWidth = hdpx(1)
     borderColor = Color(5,25,5)
     children = array(9).map(@(_, i) mkResearchItem(i+r*100))
@@ -210,12 +213,12 @@ function researchTree() {
   return Container({
     flow = FLOW_VERTICAL
     gap = hdpx(10)
-    size = [sw(80),SIZE_TO_CONTENT]
+    size = static [sw(80),SIZE_TO_CONTENT]
     children = array(20).map(researchLine)
-    transform = {
+    transform = static {
       pivot = [0, 1]
     }
-    animations = [
+    animations = static [
       { prop=AnimProp.translate, to=[0,0], from=[0, 500], duration=0.5, play=true, easing=OutCubic }
       { prop=AnimProp.scale, from=[0.01,1], to=[1,1], duration=0.5, play=true, easing=OutCubic }
       { prop=AnimProp.scale, from=[1,1], to=[0.01,1], duration=0.5, playFadeOut=true, easing=OutCubic }
@@ -225,7 +228,7 @@ function researchTree() {
 
 function researchTreeBlock(key) {
   return Container({
-    size = [sw(80),sh(80)]
+    size = static [sw(80),sh(80)]
     hplace = ALIGN_CENTER
     vplace = ALIGN_CENTER
     key
@@ -234,14 +237,21 @@ function researchTreeBlock(key) {
 }
 
 let generation = Watched(0)
-let start = function start(){
-  if (generation.value < 20) {
-    generation(generation.value+1)
-    gui_scene.resetTimeout(0.6, start)
+function updateGen(){
+  generation.modify(@(v)v+1)
+  if (generation.get() <= 500) {
+    gui_scene.resetTimeout(0.02, updateGen)
   }
-  else
-    generation(0)
-
+  else{
+    generation.set(0)
+    profiler.stop()
+    dlog("profiler stopped")
+  }
+}
+let start = function start(){
+  dlog("profiler started")
+  profiler.start()
+  updateGen()
 }
 let btn = {
   behavior = Behaviors.Button
@@ -256,7 +266,7 @@ let btn = {
 return @() {
   children = [
     btn
-    researchTreeBlock(generation.value)
+    researchTreeBlock(generation.get())
   ]
   watch = generation
   size = flex()

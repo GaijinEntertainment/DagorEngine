@@ -13,7 +13,7 @@ int d3d::set_cs_constbuffer_size(int required_size)
 {
   VERIFY_GLOBAL_LOCK_ACQUIRED();
 
-  G_ASSERTF(required_size >= 0, "Negative register count?");
+  D3D_CONTRACT_ASSERTF(required_size >= 0, "Negative register count?");
   return Frontend::GCB.setComputeConstRegisterCount(required_size);
 }
 
@@ -21,7 +21,7 @@ int d3d::set_vs_constbuffer_size(int required_size)
 {
   VERIFY_GLOBAL_LOCK_ACQUIRED();
 
-  G_ASSERTF(required_size >= 0, "Negative register count?");
+  D3D_CONTRACT_ASSERTF(required_size >= 0, "Negative register count?");
   return Frontend::GCB.setVertexConstRegisterCount(required_size);
 }
 
@@ -29,7 +29,7 @@ bool d3d::set_const(unsigned stage, unsigned first, const void *data, unsigned c
 {
   VERIFY_GLOBAL_LOCK_ACQUIRED();
 
-  G_ASSERT(stage < STAGE_MAX);
+  D3D_CONTRACT_ASSERT(stage < STAGE_MAX);
   Frontend::GCB.setConstRegisters(stage, first * SHADER_REGISTER_ELEMENTS,
     make_span((const uint32_t *)data, count * SHADER_REGISTER_ELEMENTS));
   return true;

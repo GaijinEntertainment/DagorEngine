@@ -5,7 +5,7 @@
 #pragma once
 
 // Visit "Dear ImGui and ImPlot" wiki page for information and examples on how to use ImGui in our tech:
-// https://info.gaijin.lan/display/EL/Dear+ImGui+and+ImPlot
+// https://dagor.rtd.gaijin.lan/en/latest/dagor-tools/dear-imgui/dear_imgui.html
 //
 // Feel free to extend the documentation I linked above, or add additional features to our ImGui integration. Add me as
 // reviewer if you do so (g.szaloki@gaijin.team). Write me on Pararam (@gabor_szaloki1) in case you have any ImGui-
@@ -17,6 +17,8 @@
 
 class DataBlock;
 struct ImFont;
+struct ImDrawData;
+class BaseTexture;
 
 enum class ImGuiState
 {
@@ -30,6 +32,7 @@ using OnStateChangeHandlerFunc = eastl::function<void(ImGuiState, ImGuiState)>;
 
 bool imgui_init_on_demand();
 void imgui_set_override_blk(const DataBlock &imgui_blk); // call this before imgui_init_on_demand() called
+void imgui_set_main_window_override(void *hwnd);         // call this before imgui_init_on_demand() called
 void imgui_enable_imgui_submenu(bool enabled);
 void imgui_shutdown();
 ImGuiState imgui_get_state();
@@ -39,10 +42,12 @@ void imgui_register_on_state_change_handler(OnStateChangeHandlerFunc func);
 void imgui_update(int display_width = 0, int display_height = 0);
 void imgui_endframe();
 void imgui_render();
+void imgui_render_drawdata_to_texture(ImDrawData *draw_data, BaseTexture *rt);
 DataBlock *imgui_get_blk();
 void imgui_save_blk();
 void imgui_window_set_visible(const char *group, const char *name, const bool visible);
 bool imgui_window_is_visible(const char *group, const char *name);
+bool imgui_window_is_collapsed(const char *group, const char *name);
 void imgui_perform_registered(bool with_menu_bar = true);
 void imgui_cascade_windows();
 void imgui_set_bold_font();

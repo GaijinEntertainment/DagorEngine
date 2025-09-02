@@ -1316,7 +1316,10 @@ void OpenXRDevice::tick(const SessionCallback &cb)
 
       case XR_TYPE_EVENT_DATA_REFERENCE_SPACE_CHANGE_PENDING: setUpReferenceSpace(); break;
 
-      case XR_TYPE_EVENT_DATA_INTERACTION_PROFILE_CHANGED: inputHandler.updateCurrentBindings(); break;
+      case XR_TYPE_EVENT_DATA_INTERACTION_PROFILE_CHANGED:
+        debug("[XR][HID] interaction profile changed");
+        inputHandler.updateCurrentBindings();
+        break;
 
       default: debug("default case in switch(eventBuffer.type)"); break;
     }
@@ -1514,6 +1517,7 @@ bool OpenXRDevice::prepareFrame(FrameData &frameData, float zNear, float zFar)
 
   frameData.nearZ = zNear;
   frameData.farZ = zFar;
+  frameData.boundingExtraZFar = extraZFar;
 
   frameData.frameStartedSuccessfully = false;
   frameData.frameId = frameId++;

@@ -27,10 +27,10 @@ namespace das {
             if ( ti!=nullptr ) si = ti->structType;
             else invalidData(); // we are walking uninitialized class here
         }
-        if ( canVisitStructure(ps, si) ) {
-            beforeStructure(ps, si);
+        if ( canVisitStructure_(ps, si) ) {
+            beforeStructure_(ps, si);
             if ( cancel() ) {
-                afterStructureCancel(ps, si);
+                afterStructureCancel_(ps, si);
                 return;
             }
             for ( uint32_t i=0, is=si->count; i!=is; ++i ) {
@@ -39,21 +39,21 @@ namespace das {
                 char * pf = ps + vi->offset;
                 beforeStructureField(ps, si, pf, vi, last);
                 if ( cancel() ) {
-                    afterStructureCancel(ps, si);
+                    afterStructureCancel_(ps, si);
                     return;
                 }
                 walk(pf, vi);
                 if ( cancel() ) {
-                    afterStructureCancel(ps, si);
+                    afterStructureCancel_(ps, si);
                     return;
                 }
                 afterStructureField(ps, si, pf, vi, last);
                 if ( cancel() ) {
-                    afterStructureCancel(ps, si);
+                    afterStructureCancel_(ps, si);
                     return;
                 }
             }
-            afterStructure(ps, si);
+            afterStructure_(ps, si);
         }
     }
 
@@ -68,11 +68,11 @@ namespace das {
                 auto fa = getTypeAlign(vi) - 1;
                 fieldOffset = (fieldOffset + fa) & ~fa;
                 char * pf = ps + fieldOffset;
-                beforeTupleEntry(ps, ti, pf, vi, last);
+                beforeTupleEntry(ps, ti, pf, i, last);
                 if ( cancel() ) return;
                 walk(pf, vi);
                 if ( cancel() ) return;
-                afterTupleEntry(ps, ti, pf, vi, last);
+                afterTupleEntry(ps, ti, pf, i, last);
                 if ( cancel() ) return;
                 fieldOffset += vi->size;
             }
@@ -84,16 +84,18 @@ namespace das {
         if ( canVisitVariant(ps,ti) ) {
             beforeVariant(ps, ti);
             if ( cancel() ) return;
-            int32_t fidx = *((int32_t *)ps);
-            DAS_ASSERTF(uint32_t(fidx)<ti->argCount,"invalid variant index");
-            int fieldOffset = getTypeBaseSize(Type::tInt);
-            TypeInfo * vi = ti->argTypes[fidx];
-            auto fa = getTypeAlign(ti) - 1;
-            fieldOffset = (fieldOffset + fa) & ~fa;
-            char * pf = ps + fieldOffset;
-            if ( cancel() ) return;
-            walk(pf, vi);
-            if ( cancel() ) return;
+            if (ti->argCount != 0) {
+                int32_t fidx = *((int32_t *)ps);
+                DAS_ASSERTF(uint32_t(fidx)<ti->argCount,"invalid variant index");
+                int fieldOffset = getTypeBaseSize(Type::tInt);
+                TypeInfo * vi = ti->argTypes[fidx];
+                auto fa = getTypeAlign(ti) - 1;
+                fieldOffset = (fieldOffset + fa) & ~fa;
+                char * pf = ps + fieldOffset;
+                if ( cancel() ) return;
+                walk(pf, vi);
+                if ( cancel() ) return;
+            }
             afterVariant(ps, ti);
         }
     }
@@ -281,12 +283,18 @@ namespace das {
                     }
                     break;
                 case Type::tHandle:
-                    if ( canVisitHandle(pa, info) ) {
-                        beforeHandle(pa, info);
-                        if ( cancel() ) return;
+                    if ( canVisitHandle_(pa, info) ) {
+                        beforeHandle_(pa, info);
+                        if ( cancel() ) {
+                            afterHandleCancel_(pa, info);
+                            return;
+                        }
                         info->getAnnotation()->walk(*this, pa);
-                        if ( cancel() ) return;
-                        afterHandle(pa, info);
+                        if ( cancel() ) {
+                            afterHandleCancel_(pa, info);
+                            return;
+                        }
+                        afterHandle_(pa, info);
                     }
                     break;
                 case Type::tVoid:       break;  // skip void

@@ -1,0 +1,114 @@
+hlsl(cs) {
+  #include "NRDEncoding.hlsli"
+
+  #pragma hlsl2021
+}
+
+shader nrd_reblur_diffuse_prepass
+{
+  hlsl(cs) {
+    #include "REBLUR_Diffuse_PrePass.cs.hlsl"
+  }
+
+  compile("cs_6_5", "main");
+}
+
+shader nrd_reblur_perf_diffuse_prepass
+{
+  hlsl(cs) {
+    #include "REBLUR_Perf_Diffuse_PrePass.cs.hlsl"
+  }
+
+  compile("cs_6_5", "main");
+}
+
+shader nrd_reblur_diffuse_temporal_accumulation
+{
+  hlsl(cs) {
+    #include "REBLUR_Diffuse_TemporalAccumulation.cs.hlsl"
+  }
+
+  compile("cs_6_5", "main");
+}
+
+shader nrd_reblur_perf_diffuse_temporal_accumulation
+{
+  hlsl(cs) {
+    #include "REBLUR_Perf_Diffuse_TemporalAccumulation.cs.hlsl"
+  }
+
+  compile("cs_6_5", "main");
+}
+
+shader nrd_reblur_diffuse_history_fix
+{
+  hlsl(cs) {
+    #include "REBLUR_Diffuse_HistoryFix.cs.hlsl"
+  }
+
+  compile("cs_6_5", "main");
+}
+
+shader nrd_reblur_perf_diffuse_history_fix
+{
+  hlsl(cs) {
+    #include "REBLUR_Perf_Diffuse_HistoryFix.cs.hlsl"
+  }
+
+  compile("cs_6_5", "main");
+}
+
+shader nrd_reblur_diffuse_blur
+{
+  hlsl(cs) {
+    #include "REBLUR_Diffuse_Blur.cs.hlsl"
+  }
+
+  compile("cs_6_5", "main");
+}
+
+shader nrd_reblur_perf_diffuse_blur
+{
+  hlsl(cs) {
+    #include "REBLUR_Perf_Diffuse_Blur.cs.hlsl"
+  }
+
+  compile("cs_6_5", "main");
+}
+
+shader nrd_reblur_diffuse_postblur
+{
+  hlsl(cs) {
+    #include "REBLUR_Diffuse_PostBlur.cs.hlsl"
+  }
+
+  compile("cs_6_5", "main");
+}
+
+shader nrd_reblur_perf_diffuse_postblur
+{
+  hlsl(cs) {
+    #include "REBLUR_Perf_Diffuse_PostBlur.cs.hlsl"
+  }
+
+  compile("cs_6_5", "main");
+}
+
+shader nrd_reblur_diffuse_temporal_stabilization
+{
+  hlsl (cs) {
+    #include "REBLUR_Diffuse_TemporalStabilization.cs.hlsl"
+  }
+
+  compile("cs_6_5", "main");
+}
+
+shader nrd_reblur_perf_diffuse_temporal_stabilization
+{
+  hlsl (cs) {
+    #include "REBLUR_Perf_Diffuse_TemporalStabilization.cs.hlsl"
+  }
+
+  compile("cs_6_5", "main");
+}
+

@@ -1,0 +1,44 @@
+lens_glow_config {
+    _tags:t="render"
+    _singleton:b=true
+    _track:b=yes
+
+    enabled:b=no
+
+    // Intensity based on bloom
+    lens_glow_config__bloom_offset:r=0
+    lens_glow_config__bloom_multiplier:r=1
+
+    // Intensity based on lens flares
+    lens_glow_config__lens_flare_offset:r=0
+    lens_glow_config__lens_flare_multiplier:r=1
+
+    // Lens glow texture parameters
+    lens_glow_config__texture_intensity_multiplier:r=1
+    lens_glow_config__texture_tint:p3=1.0, 1.0, 1.0
+
+    // Lens glow texture
+    // The texture will be selected from these, based on which fits the current screensize better. Resolution and aspect ratio are both considered.
+    "lens_glow_config__texture_variants:array" {
+        // "texture_variant:object" {
+        //    target_res:ip2=1024, 768
+        //    texture:t="lens_glow_texture_1024x768"
+        // }
+    }
+
+    // Resulting intensity =
+    //  texture_value * intensity_mul * tint * ((bloom - bloom_offset)*bloom_mul + (lens_flare - flare_offset)*flare_mul)
+    // Note:
+    //  Calculations are done after pre-exposure is applied
+    //   -> offset parameters (bloom/lens flare) should produce the same visual result if we double the light intensity and half the exposure
+
+    // Texture selection logic:
+    //  1. Stretching:    The process prioritizes textures that don't need to be stretched (and loose quality).
+    //                    Stretching applies when the display resolution is higher than the texture's target resolution.
+    //  2. Unused texels: If no stretching occurs (target res >= display res), the texture is picked based on aspect ratio.
+    //                    This process prefers textures that waste less invisible texels (when texture goes out of screen due to screen fitting)
+    //
+    //  The selected texture is fitted around the screen, maintaining its aspect ratio.
+    //  In other words, the texture fully contains the screen and it might have some invisible areas.
+    //  The middle of the texture is kept in the middle of the screen.
+}

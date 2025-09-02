@@ -1,4 +1,5 @@
 include "sky_shader_global.dshl"
+include "gbuffer.dshl"
 include "viewVecVS.dshl"
 include "clouds2/clouds_alt_fraction.dshl"
 include "panorama.dshl"
@@ -9,11 +10,7 @@ include "use_custom_fog_sky.dshl"
 include "lightningFlashPanorama.dshl"
 include "brunetonSky.dshl"
 include "rgbm_inc.dshl"
-
-hlsl(ps) {
-  #define INFINITE_TRACE_DIST 320000.0f
-}
-
+include "camera_in_camera.dshl"
 
 float4 clouds_panorama_tex_res;
 float4 skies_panorama_light_dir;
@@ -37,6 +34,7 @@ texture uav_depth_texture;
 shader applyCloudsPanorama
 {
   //blend_src = 1; blend_dst = sa;
+  IMPORT_ON_TOP_CAMERA_IN_CAMERA(ps)
 
   INIT_HDR(ps)
   USE_HDR(ps)
@@ -91,13 +89,8 @@ shader applyCloudsPanorama
     float2 get_panorama_uv(float3 origin, inout float3 view)
     {
       float cloudDist = max(distanceToClouds0(origin, view), 1000);
-
-      float3 currentViewDirection = normalize(view*cloudDist - currentPanoramaWorldOffset.xyz);//reprojection
-      float theta = atan2( currentViewDirection.x, currentViewDirection.z );
-      //float phi = asin ( viewDirection.y );
-      //float2 sky_uv = float2( theta * 0.5/PI, viewDirection.y);//(sin(phi))
-      view = currentViewDirection; //for patch it is always new
-      return float2(theta * (0.5/PI)+0.5, PANORAMA_TC_FROM_VIEW(currentViewDirection.y));
+      view = normalize(view*cloudDist - currentPanoramaWorldOffset.xyz); //reprojection
+      return get_panorama_tc_from_view(view);
     }
   }
   INIT_PANORAMA_LIGHTNING_FLASH()
@@ -243,7 +236,7 @@ shader applyCloudsPanorama
         float2 sky_uv = get_panorama_uv(skies_world_view_pos, viewDirection);
         float3 currentViewDirection = viewDirection;
       #else
-        float2 sky_uv = float2( atan2( viewDirection.x, viewDirection.z ) * (0.5/PI)+0.5,PANORAMA_TC_FROM_VIEW(viewDirection.y));
+        float2 sky_uv = get_panorama_tc_from_view(viewDirection);
       #endif
 
       #if USE_BIQUADRATIC_SAMPLING
@@ -264,7 +257,7 @@ shader applyCloudsPanorama
         {
           float2 patchTc = viewDirection.xz*(0.5/PANORAMA_PATCH_THRESHOLD)+0.5;
           half4 ptch = tex2Dlod( clouds_panorama_patch_tex, float4(patchTc,0,0) );
-          panorama = lerp(panorama, ptch, saturate((-1.f/(1-PANORAMA_PATCH_LERP_AMOUNT))*patch_vignette + PANORAMA_PATCH_THRESHOLD*PANORAMA_PATCH_LERP_AMOUNT/(1-PANORAMA_PATCH_LERP_AMOUNT) ));
+          panorama = lerp_panorama(panorama, ptch, patch_vignette);
         }
       ##endif
 

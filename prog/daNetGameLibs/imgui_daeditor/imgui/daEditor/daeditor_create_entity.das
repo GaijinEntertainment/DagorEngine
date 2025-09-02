@@ -72,7 +72,7 @@ def create_entity_daeditor()
 
   imgui::BeginChild("sub", float2(0, 0))
 
-  if imgui::BeginTable("list", 1, ImGuiTableFlags BordersOuter | ImGuiTableFlags RowBg)
+  if imgui::BeginTable("list", 1, ImGuiTableFlags.BordersOuter | ImGuiTableFlags.RowBg)
     getTemplateDB() |> find_templateDB() <| $(name; tmpl)
       if !(*filter |> PassFilter(name))
         return false
@@ -80,8 +80,8 @@ def create_entity_daeditor()
       TableNextColumn()
       let text = "{tmpl.isSingleton ? "[S] " : ""}{name}"
       var selected = selectedItem == name
-      if imgui::Selectable(text, safe_addr(selected), ImGuiSelectableFlags AllowDoubleClick)
-        if imgui::IsMouseDoubleClicked(ImGuiMouseButton Left)
+      if imgui::Selectable(text, safe_addr(selected), ImGuiSelectableFlags.AllowDoubleClick)
+        if imgui::IsMouseDoubleClicked(ImGuiMouseButton.Left)
           if !GetIO().KeyCtrl || *templateName |> to_string |> empty()
             *templateName |> clear()
             *templateName |> make_input_buffer(clone_string(name), TEMPLATE_MAX_LEN)

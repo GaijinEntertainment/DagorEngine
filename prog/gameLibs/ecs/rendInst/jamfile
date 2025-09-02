@@ -13,6 +13,7 @@ AddIncludes =
 ;
 
 Sources =
+  riexSyncNet.cpp
 ;
 
 UseProgLibs +=

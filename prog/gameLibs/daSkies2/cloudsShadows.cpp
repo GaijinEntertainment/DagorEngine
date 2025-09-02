@@ -24,7 +24,6 @@ void CloudsShadows::initTemporal()
   smpInfo.filter_mode = d3d::FilterMode::Point;
   smpInfo.mip_map_mode = d3d::MipMapMode::Point;
   ShaderGlobal::set_sampler(::get_shader_variable_id("cloud_shadows_old_values_samplerstate"), d3d::request_sampler(smpInfo));
-  cloudsShadowsTemp->disableSampler();
 
   ShaderGlobal::set_color4(clouds_compute_widthVarId, CLOUDS_MAX_SHADOW_TEMPORAL_XZ_WD, CLOUDS_MAX_SHADOW_TEMPORAL_XZ_WD,
     CLOUDS_MAX_SHADOW_TEMPORAL_Y_WD, 0);
@@ -92,7 +91,6 @@ void CloudsShadows::init()
                                                                                                                       : TEXFMT_R8G8;
   genCloudShadowsVolume.initVoltex(cloudsShadowsVol, CLOUD_SHADOWS_VOLUME_RES_XZ, CLOUD_SHADOWS_VOLUME_RES_XZ,
     CLOUD_SHADOWS_VOLUME_RES_Y, fmt, 1, "clouds_shadows_volume");
-  cloudsShadowsVol->disableSampler();
   {
     d3d::SamplerInfo smpInfo;
     smpInfo.address_mode_u = d3d::AddressMode::Wrap;
@@ -130,7 +128,7 @@ void CloudsShadows::forceFullUpdate(const Point3 &main_light_dir, bool update_am
 CloudsChangeFlags CloudsShadows::render(const Point3 &main_light_dir) // todo: use main_light_dir for next temporality
 {
   const uint32_t cresetGen = get_d3d_full_reset_counter();
-  if (lastLightDir != main_light_dir)
+  if (!are_approximately_equal(lastLightDir, main_light_dir))
     forceFullUpdate(main_light_dir, false);
   if (cresetGen == resetGen) // and sun light changed
   {
@@ -209,7 +207,8 @@ void CloudsShadows::initShadows2D()
     return;
   // may be build a mip chain?
   cloudsShadows2d =
-    dag::create_tex(NULL, CLOUD_SHADOWS_VOLUME_RES_XZ, CLOUD_SHADOWS_VOLUME_RES_XZ, TEXFMT_L8 | TEXCF_RTARGET, 1, "clouds_shadows_2d");
+    dag::create_tex(NULL, CLOUD_SHADOWS_VOLUME_RES_XZ, CLOUD_SHADOWS_VOLUME_RES_XZ, TEXFMT_R8 | TEXCF_RTARGET, 1, "clouds_shadows_2d");
+  ShaderGlobal::set_sampler(::get_shader_variable_id("clouds_shadows_2d_samplerstate"), d3d::request_sampler({}));
   build_shadows_2d_ps.init("build_shadows_2d_ps");
   rerenderShadows2D = true;
 }

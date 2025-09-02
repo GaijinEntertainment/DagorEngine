@@ -1,0 +1,132 @@
+fn(a =, 111)
+ERROR: Expected default value after '='
+at testData\types\default_values_invalid.nut.txt:1:7
+
+fn(a: bool = [true)
+ERROR: Unmatched ')' in default value
+at testData\types\default_values_invalid.nut.txt:2:19
+
+fn(x, a = 111})
+ERROR: Unmatched '}' in default value
+at testData\types\default_values_invalid.nut.txt:3:14
+
+fn(x, a: bool = ")
+ERROR: Unterminated function type string
+at testData\types\default_values_invalid.nut.txt:4:19
+
+fn(x: bool, a =( 111)
+ERROR: Unterminated function type string
+at testData\types\default_values_invalid.nut.txt:5:22
+
+fn(x: bool, a: bool, = true)
+ERROR: Expected argument name
+at testData\types\default_values_invalid.nut.txt:6:22
+
+fn(x: bool, a = 1}11)
+ERROR: Unmatched '}' in default value
+at testData\types\default_values_invalid.nut.txt:7:18
+
+fn(tab: table = {[})
+ERROR: Unmatched '}' in default value
+at testData\types\default_values_invalid.nut.txt:8:19
+
+fn(tab: table = {x = 5), y = 6})
+ERROR: Unmatched ')' in default value
+at testData\types\default_values_invalid.nut.txt:9:23
+
+fn(arr: array [= [])
+ERROR: Expected argument name
+at testData\types\default_values_invalid.nut.txt:10:16
+
+fn(arr: array = [234, null, {{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{value])
+ERROR: Default value too complex. Too many nested structures
+at testData\types\default_values_invalid.nut.txt:11:67
+
+fn(expr: int = ((((0))))
+ERROR: Unterminated function type string
+at testData\types\default_values_invalid.nut.txt:12:25
+
+fn(expr: int = ,(20 + 50 * 10))
+ERROR: Expected default value after '='
+at testData\types\default_values_invalid.nut.txt:13:16
+
+fn(c: int = Color32(123, 45, 45, 23\"),)
+ERROR: Unfinished default value, unmatched brackets
+at testData\types\default_values_invalid.nut.txt:14:41
+
+fn(c: int = '{\')
+ERROR: Unterminated function type string
+at testData\types\default_values_invalid.nut.txt:15:18
+
+fn(c: int = '")
+ERROR: Unterminated function type string
+at testData\types\default_values_invalid.nut.txt:16:16
+
+fn(c: int = "\')
+ERROR: Unterminated function type string
+at testData\types\default_values_invalid.nut.txt:17:17
+
+fn(c1: int := Color32(123, 45, 45, 23), c2: int = Color32(33, 44, 55, 66))
+ERROR: Expected ',' or ')'
+at testData\types\default_values_invalid.nut.txt:18:12
+
+fn([a = 1,11])
+ERROR: Expected argument name
+at testData\types\default_values_invalid.nut.txt:19:11
+
+fn([a: bool = [true])
+ERROR: Unmatched '['
+at testData\types\default_values_invalid.nut.txt:20:21
+
+fn([x, a = 111}])
+ERROR: Unmatched '}' in default value
+at testData\types\default_values_invalid.nut.txt:21:15
+
+fn([x, a: bool = true][)
+ERROR: Optional block must be the last argument
+at testData\types\default_values_invalid.nut.txt:22:23
+
+fn([x: bool, a = 111][])
+ERROR: Optional block must be the last argument
+at testData\types\default_values_invalid.nut.txt:23:22
+
+fn([x: bool, a: bool = [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[true])
+ERROR: Default value too complex. Too many nested structures
+at testData\types\default_values_invalid.nut.txt:24:63
+
+fn([x: bool, a = [111])
+ERROR: Unmatched '['
+at testData\types\default_values_invalid.nut.txt:25:23
+
+fn([tab: table = {]}])
+ERROR: Unmatched ']' in default value
+at testData\types\default_values_invalid.nut.txt:26:19
+
+fn([tab: table := {x = 5, y = 6}])
+ERROR: Expected ',' or ')'
+at testData\types\default_values_invalid.nut.txt:27:16
+
+fn([arr: array = [{]])
+ERROR: Unmatched ']' in default value
+at testData\types\default_values_invalid.nut.txt:28:20
+
+fn([arr: array = [234, null, value]] = null)
+ERROR: Argument after optional block
+at testData\types\default_values_invalid.nut.txt:29:38
+
+fn([expr: int = ](0)])
+ERROR: Expected default value after '='
+at testData\types\default_values_invalid.nut.txt:30:17
+
+fn([expr: int = (20 + 50 * 10)}])
+ERROR: Unmatched '}' in default value
+at testData\types\default_values_invalid.nut.txt:31:31
+
+fn([c: int = Color32({123, 45, 45, 23)])
+ERROR: Unmatched ')' in default value
+at testData\types\default_values_invalid.nut.txt:32:38
+
+fn([c1: int = Color32(123, 45, 45, 23), c2: int = Color32,(33, 44, 55, 66)])
+ERROR: Expected argument name
+at testData\types\default_values_invalid.nut.txt:33:59
+

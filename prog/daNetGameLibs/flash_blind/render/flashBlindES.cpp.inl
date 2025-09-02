@@ -39,14 +39,14 @@ static void flash_blind_es(const ecs::Event &, float flash_blind__intensity)
       const float flashTime = log(DECAY_LIMIT / flash_blind__intensity) / log(flash_blind__decay_factor);
       flash_blind__remaining_time = max(flash_blind__remaining_time, flashTime);
       flash_blind__just_captured = false;
-      flashBlind = resource_slot::register_access("flash_blind", DABFG_PP_NODE_SRC, {resource_slot::Read{"postfx_input_slot"}},
-        [](resource_slot::State slotsState, dabfg::Registry registry) {
+      flashBlind = resource_slot::register_access("flash_blind", DAFG_PP_NODE_SRC, {resource_slot::Read{"postfx_input_slot"}},
+        [](resource_slot::State slotsState, dafg::Registry registry) {
           registry.readTexture(slotsState.resourceToReadFrom("postfx_input_slot"))
-            .atStage(dabfg::Stage::PS)
+            .atStage(dafg::Stage::PS)
             .bindToShaderVar("flash_blind_source_tex");
-          registry.requestRenderPass().color({registry.createTexture2d("flash_blind_tex", dabfg::History::ClearZeroOnFirstFrame,
+          registry.requestRenderPass().color({registry.createTexture2d("flash_blind_tex", dafg::History::ClearZeroOnFirstFrame,
             {TEXFMT_R11G11B10F | TEXCF_RTARGET, registry.getResolution<2>("post_fx", 0.5f)})});
-          registry.readTextureHistory("flash_blind_tex").atStage(dabfg::Stage::PS).bindToShaderVar("flash_blind_prev_tex");
+          registry.readTextureHistory("flash_blind_tex").atStage(dafg::Stage::PS).bindToShaderVar("flash_blind_prev_tex");
           return [renderer = PostFxRenderer("flash_blind"), capture = PostFxRenderer("flash_blind_capture")] {
             if (flash_blind_do_capture_query())
               capture.render();

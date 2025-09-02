@@ -8,8 +8,36 @@ float4 world_to_hmap_patches_ofs = (1,1,0,0);
 float4 world_to_hmap_patches_tex_ofs;
 
 texture grass_mask_tex;
-float4 world_to_grass = (1/2048,1/2048, 0,0);
 float4 world_to_grass_ofs;
+
+// dummies
+macro INIT_HEIGHTMAP_OFS_SQ(stage)
+endmacro
+macro USE_HEIGHTMAP_OFS_SQ(stage)
+  hlsl(stage) {
+    float get_hmap_ofs(float2 worldPosXZ, float lod, out float displacementEffect)
+    {
+      displacementEffect = 0;
+      return 0;
+    }
+
+    void apply_height_patches(float2 worldPosXZ, inout float height)
+    {
+    }
+
+    float get_hmap_ofs_no_vignette(float2 worldPosXZ)
+    {
+      return 0.0;
+    }
+
+    float get_hmap_ofs_no_grass_vignette(float2 worldPosXZ)
+    {
+      return 0;
+    }
+  }
+endmacro
+
+
 
 macro INIT_HEIGHTMAP_OFS(stage)
   (stage) {
@@ -29,17 +57,24 @@ endmacro
 
 macro USE_HEIGHTMAP_OFS(stage)
   hlsl(stage) {
-    float get_hmap_ofs(float2 worldPosXZ, float lod, out float displacementEffect)
+    float get_hmap_ofs_height_vignette(float2 worldPosXZ, float lod, out float vignetteEffect)
     {
-      float2 tc = saturate(worldPosXZ*world_to_hmap_ofs.x + world_to_hmap_ofs.zw);
-      float2 vignette = saturate( abs(tc*2-1) * 10 - 9 );
-      float vignetteEffect = saturate( 1.0 - dot( vignette, vignette ) );
+      float2 tc = saturate(worldPosXZ * world_to_hmap_ofs.x + world_to_hmap_ofs.zw);
+      float2 vignette = saturate(abs(tc*2-1) * 10 - 9);
+      vignetteEffect = saturate( 1.0 - dot( vignette, vignette ) );
       float height = 0;
 
     ##if hmap_ofs_tex != NULL
       if (vignetteEffect>0)
-        height = tex2Dlod(hmap_ofs_tex, float4(tc - world_to_hmap_tex_ofs.xy,0,lod)).x;
+        height = tex2Dlod(hmap_ofs_tex, float4(tc - world_to_hmap_tex_ofs.xy, 0, lod)).x;
     ##endif
+      return height;
+    }
+
+    float get_hmap_ofs(float2 worldPosXZ, float lod, out float displacementEffect)
+    {
+      float vignetteEffect;
+      float height = get_hmap_ofs_height_vignette(worldPosXZ, lod, vignetteEffect);
 
       displacementEffect = vignetteEffect;
       ##if grass_mask_tex != NULL
@@ -86,19 +121,22 @@ macro USE_HEIGHTMAP_OFS(stage)
     ##endif
     }
 
+    float get_hmap_ofs_with_vignette_no_extras(float2 worldPosXZ)
+    {
+      float vignetteEffect;
+      float height = get_hmap_ofs_height_vignette(worldPosXZ, 0, vignetteEffect) * vignetteEffect;
+
+      return height * world_to_hmap_tex_ofs.z + world_to_hmap_tex_ofs.w;
+    }
+
     float get_hmap_ofs_no_grass_vignette(float2 worldPosXZ)
     {
-      float2 tc = saturate(worldPosXZ * world_to_hmap_ofs.x + world_to_hmap_ofs.zw);
-      float2 vignette = saturate(abs(tc*2-1) * 10 - 9);
-      float vignetteEffect = saturate(1.0 - dot(vignette, vignette));
-      float height = 0;
+      float vignetteEffect;
+      float height = get_hmap_ofs_height_vignette(worldPosXZ, 0, vignetteEffect);
 
-      BRANCH
-      if (vignetteEffect > 0)
-        height = tex2Dlod(hmap_ofs_tex, float4(tc - world_to_hmap_tex_ofs.xy,0,0)).x;
       ##if grass_mask_tex != NULL
         BRANCH
-        if (vignetteEffect < 1)
+        if (vignetteEffect > 0 && vignetteEffect < 1)
         {
           float2 grass_mask_tc = worldPosXZ * world_to_grass.x + world_to_grass.zw;
           float grassHeight = tex2Dlod(grass_mask_tex, float4(grass_mask_tc,0,0)).z;

@@ -54,11 +54,13 @@ public:
     return getAssetDataPos(aname, o, l);
   }
   bool getTargetFileHash(unsigned char out_hash[HASH_SZ]);
+  dag::ConstSpan<String> getWarnings() const { return warnings; }
 
   void setTargetFileHash(const char *fname);
   void setAssetDataPos(const char *full_asset_name, int data_ofs, int data_len);
   void resetAssetDataPos(const char *aname) { setAssetDataPos(aname, -1, 0); }
   void setAssetExpVer(int asset_type, unsigned classid, int ver);
+  void setWarnings(const dag::ConstSpan<String> in_warnings) { warnings = in_warnings; }
   bool resetExtraAssets(dag::ConstSpan<DagorAsset *> assets);
 
   static bool getFileHash(const char *fname, unsigned char out_hash[HASH_SZ]);
@@ -66,7 +68,7 @@ public:
   static unsigned getFileTime(const char *fname, unsigned &out_sz);
 
   static void setSdkRoot(const char *root_dir, const char *subdir = nullptr) { sdkRoot.setSdkRoot(root_dir, subdir); }
-  static const char *mkRelPath(const char *fpath) { return sdkRoot.mkRelPath(fpath); }
+  static const char *mkRelPath(const char *fpath, TwoStepRelPath::storage_t &stor) { return sdkRoot.mkRelPath(fpath, stor); }
 
   bool isTimeChanged() { return timeChanged == 1; }
 
@@ -79,6 +81,7 @@ public:
   static void sharedDataRemoveRebuildType(int a_type);
   static void sharedDataResetForceRebuildAssetsList();
   static void sharedDataAddForceRebuildAsset(const char *asset_name_typified);
+  static bool sharedDataIsAssetInForceRebuildList(const DagorAsset &a);
   static bool sharedDataGetFileHash(const char *fname, unsigned char out_hash[HASH_SZ]);
   static void sharedDataAppendHash(const void *data, size_t data_len, unsigned char inout_hash[HASH_SZ]);
   static bool saveSharedData();
@@ -91,7 +94,7 @@ protected:
   {
     unsigned char hash[HASH_SZ];
     unsigned timeStamp;
-    unsigned changed : 1;
+    unsigned changed : 1, _resv0 : 31;
   };
   struct AssetData
   {
@@ -108,6 +111,7 @@ protected:
   Tab<FileDataHash> rec;
   Tab<AssetData> adPos;
   Tab<AssetTypeVer> assetTypeVer;
+  Tab<String> warnings;
   FileDataHash target;
 
   typedef HierBitArray<ConstSizeBitArray<8>> bitarray_t;

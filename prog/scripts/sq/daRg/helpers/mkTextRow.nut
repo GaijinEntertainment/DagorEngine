@@ -6,8 +6,8 @@
     let mkText = @(text) {rendObj = ROBJ_TEXT, text=text}
     let curUser = Watched("Bob")
     let replaceTable = {
-      ["<<user>>"] = {text=curUser.value, rendObj = ROBJ_TEXT, color = Color(255,200,200)},
-      ["<<time>>"] = {text=curTime.value, rendObj = ROBJ_TEXT, color = Color(200,255,200)}
+      ["<<user>>"] = {text=curUser.get(), rendObj = ROBJ_TEXT, color = Color(255,200,200)},
+      ["<<time>>"] = {text=curTime.get(), rendObj = ROBJ_TEXT, color = Color(200,255,200)}
     }
 
     let greeting = @(){

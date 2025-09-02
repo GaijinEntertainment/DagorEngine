@@ -1,4 +1,4 @@
-# Shader: rendinst_interior_mapping
+# `rendinst_interior_mapping`
 
 ## Overview
 
@@ -9,7 +9,7 @@ cubemap onto a plane or box. This shader creates the illusion of an interior
 either from a custom-made cubemap or from an environment cubemap that is
 generated each time the map is loaded.
 
-## General Parameters
+## Parameters
 
 Common parameters:
 

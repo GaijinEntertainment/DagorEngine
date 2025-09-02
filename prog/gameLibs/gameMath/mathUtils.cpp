@@ -5,6 +5,9 @@
 #include <math/random/dag_random.h>
 #include <math/dag_mathUtils.h>
 
+const Point3 VEC_UNIT_UP = Point3(0.f, 1.f, 0.f);
+const Point3 VEC_UNIT_FWD = Point3(1.f, 0.f, 0.f);
+
 float distance_to_triangle(const Point3 &p, const Point3 &a, const Point3 &b, const Point3 &c, Point3 &out_contact, Point3 &out_normal)
 {
   Point3 edge0 = b - a;
@@ -49,18 +52,4 @@ void get_random_point_on_sphere(float min_x, float max_x, int &rand_seed, Point3
   out_pnt.z *= w;
 }
 
-float min(std::initializer_list<float> val_list)
-{
-  float result = VERY_BIG_NUMBER;
-  for (float val : val_list)
-    inplace_min(result, val);
-  return result;
-}
-
-float max(std::initializer_list<float> val_list)
-{
-  float result = VERY_SMALL_NUMBER;
-  for (float val : val_list)
-    inplace_max(result, val);
-  return result;
-}
+float cvt_p4(float val, const Point4 &m) { return cvt(val, m.x, m.y, m.z, m.w); }

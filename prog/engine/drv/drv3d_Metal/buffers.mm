@@ -3,6 +3,7 @@
 #include <math/dag_TMatrix.h>
 #include "render.h"
 #include "drv_log_defs.h"
+#include "drv_assert_defs.h"
 
 #include <osApiWrappers/dag_miscApi.h>
 
@@ -36,8 +37,8 @@ namespace drv3d_metal
   static drv3d_generic::ObjectPoolWithLock<BufferProxyPtr> g_buffers("buffers");
   void clear_buffers_pool_garbage() { g_buffers.clearGarbage(); }
 
-  void Buffer::BufTex::create(MTLResourceOptions storage, MTLTextureDescriptor* pTexDesc,
-                              int aligment, int tex_format, const char* name)
+  void Buffer::BufTex::create(Buffer *buf, MTLResourceOptions storage, MTLTextureDescriptor* pTexDesc,
+                              int alignment, int tex_format, const char* name)
   {
     String buf_name;
     buf_name.printf(0, "%s (%d)", name ? name : "(null)", render.frame);
@@ -51,7 +52,7 @@ namespace drv3d_metal
       g_buffer_memory_used += bufsize;
 
     if (flags & SBCF_ZEROMEM)
-      render.clearBuffer(this);
+      render.clearBuffer(buf, this);
     else
       initialized = true;
 
@@ -59,7 +60,7 @@ namespace drv3d_metal
     {
       id<MTLTexture> tex = [buffer newTextureWithDescriptor : pTexDesc
                                                      offset : 0
-                                                bytesPerRow : aligment];
+                                                bytesPerRow : alignment];
       texture = new Texture(tex, tex_format, name);
     }
     else
@@ -67,6 +68,22 @@ namespace drv3d_metal
       texture = nullptr;
     }
     TEXQL_ON_BUF_ALLOC(this);
+
+    BufferProxyPtr e;
+    e.obj = this;
+    this->tid = g_buffers.safeAllocAndSet(e);
+  }
+
+  void Buffer::BufTex::create(id<MTLBuffer> mtl_buf, const char *name)
+  {
+    bufsize = 0;
+    buffer = mtl_buf;
+    initialized = true;
+    texture = nullptr;
+
+#if DAGOR_DBGLEVEL > 0
+    mtl_buf.label = [NSString stringWithUTF8String : name];
+#endif
 
     BufferProxyPtr e;
     e.obj = this;
@@ -106,7 +123,7 @@ namespace drv3d_metal
 
   Buffer::Buffer(uint32_t bsize, int ssize,int buf_flags, int set_tex_format, const char* name)
   {
-    setResName(name);
+    setName(name);
 
     if (buf_flags & SBCF_BIND_CONSTANT || ((buf_flags & SBCF_DYNAMIC) && set_tex_format))
     {
@@ -123,7 +140,7 @@ namespace drv3d_metal
     bufSize = ((ssize > 0 ? bsize * ssize : bsize) + 3) & ~3;
     bufFlags = buf_flags;
 
-    G_ASSERTF(set_tex_format == 0 || ((bufFlags&(SBCF_BIND_VERTEX|SBCF_BIND_INDEX|SBCF_MISC_STRUCTURED|SBCF_MISC_ALLOW_RAW)) == 0),
+    D3D_CONTRACT_ASSERTF(set_tex_format == 0 || ((bufFlags&(SBCF_BIND_VERTEX|SBCF_BIND_INDEX|SBCF_MISC_STRUCTURED|SBCF_MISC_ALLOW_RAW)) == 0),
             "can't create buffer with texture format which is Structured, Vertex, Index or Raw");
     tex_format = set_tex_format;
 
@@ -131,8 +148,8 @@ namespace drv3d_metal
     {
       MTLPixelFormat metal_format = Texture::format2Metal(tex_format);
 
-      aligment = [render.device minimumLinearTextureAlignmentForPixelFormat:metal_format];
-      bufSize = fmax(bufSize, aligment);
+      alignment = [render.device minimumLinearTextureAlignmentForPixelFormat:metal_format];
+      bufSize = fmax(bufSize, alignment);
 
       int widBytes, nBytes;
       Texture::getStride(tex_format, 1, 1, 0, widBytes, nBytes);
@@ -143,17 +160,17 @@ namespace drv3d_metal
       {
         w = 4096;
         h = DivideRoundingUp(bufSize, 4096 * widBytes);
-        aligment = w * widBytes;
-        bufSize = h * aligment;
+        alignment = w * widBytes;
+        bufSize = h * alignment;
       }
       else
       {
-        if (bufSize % aligment != 0)
+        if (bufSize % alignment != 0)
         {
-          bufSize = DivideRoundingUp(bufSize, aligment) * aligment;
+          bufSize = DivideRoundingUp(bufSize, alignment) * alignment;
         }
 
-        aligment = bufSize;
+        alignment = bufSize;
       }
 
       pTexDesc = [[MTLTextureDescriptor texture2DDescriptorWithPixelFormat : metal_format
@@ -189,7 +206,7 @@ namespace drv3d_metal
       pTexDesc.resourceOptions = storage;
 
     if (bufFlags & SBCF_ZEROMEM)
-      G_ASSERT(fast_discard == false);
+      D3D_CONTRACT_ASSERT(fast_discard == false);
 
     if (isDynamic && !fast_discard)
     {
@@ -199,7 +216,7 @@ namespace drv3d_metal
       {
         BufTex* buf = new BufTex(bufSize, bufFlags);
         buf->index = i;
-        buf->create(storage, pTexDesc, aligment, tex_format, name);
+        buf->create(this, storage, pTexDesc, alignment, tex_format, name);
 
         if (i==0)
         {
@@ -226,9 +243,35 @@ namespace drv3d_metal
     else
     {
       cur_buffer = new BufTex(bufSize, bufFlags);
-      cur_buffer->create(storage, pTexDesc, aligment, tex_format, name);
+      cur_buffer->create(this, storage, pTexDesc, alignment, tex_format, name);
       cur_render_buffer = cur_buffer;
     }
+  }
+
+  Buffer::Buffer(id<MTLBuffer> buf, int buf_flags, const char* name)
+  {
+    setName(name);
+
+    D3D_CONTRACT_ASSERT((buf_flags & (SBCF_BIND_CONSTANT | SBCF_DYNAMIC | SBCF_FRAMEMEM | SBCF_CPU_ACCESS_READ | SBCF_CPU_ACCESS_WRITE)) == 0);
+
+    locked_offset = -1;
+    locked_size = -1;
+    isDynamic = false;
+    fast_discard = false;
+
+    tex_format = 0;
+    structSize = 4;
+    bufSize = buf.length;
+    bufFlags = buf_flags;
+    use_upload_buffer = true;
+    storage = MTLResourceStorageModePrivate;
+    max_buffers = Render::MAX_FRAMES_TO_RENDER;
+
+    D3D_CONTRACT_ASSERT(bufFlags & (SBCF_BIND_VERTEX | SBCF_BIND_INDEX | SBCF_MISC_STRUCTURED | SBCF_MISC_ALLOW_RAW | SBCF_BIND_UNORDERED));
+
+    cur_buffer = new BufTex(bufSize, bufFlags);
+    cur_buffer->create(buf, name);
+    cur_render_buffer = cur_buffer;
   }
 
   Buffer::~Buffer()
@@ -239,6 +282,8 @@ namespace drv3d_metal
 
   int Buffer::lock(unsigned ofs_bytes, unsigned size_bytes, void **ptr, int flags)
   {
+    D3D_CONTRACT_ASSERT(locked_offset == -1);
+    D3D_CONTRACT_ASSERT(locked_size == -1);
     checkLockParams(ofs_bytes, size_bytes, flags, bufFlags);
     if (!ptr)
     {
@@ -257,7 +302,7 @@ namespace drv3d_metal
     locked_offset = offset_bytes;
     locked_size = size_bytes;
 
-    G_ASSERT(size_bytes <= bufSize);
+    D3D_CONTRACT_ASSERT(size_bytes <= bufSize);
     if (size_bytes == 0)
     {
       locked_size = bufSize - offset_bytes;
@@ -265,15 +310,19 @@ namespace drv3d_metal
 
     if (fast_discard)
     {
-      G_ASSERT(offset_bytes == 0);
+      D3D_CONTRACT_ASSERT(offset_bytes == 0);
 #if DAGOR_DBGLEVEL > 0
       if (render.validate_framemem_bounds)
       {
+        String name;
+        name.printf(0, "dynamic for %s %llu", getName(), render.frame);
+
         uint32_t s = bufFlags & SBCF_BIND_CONSTANT ? bufSize : locked_size;
         dynamic_buffer = [render.device newBufferWithLength : s
                                                     options : MTLResourceCPUCacheModeWriteCombined | MTLResourceStorageModeShared];
+        dynamic_buffer.label = [NSString stringWithUTF8String : name.c_str()];
         dynamic_offset = 0;
-        render.queueBufferForDeletion(dynamic_buffer);
+        render.queueResourceForDeletion(dynamic_buffer);
       }
       else
 #endif
@@ -302,14 +351,14 @@ namespace drv3d_metal
         {
           #if DAGOR_DBGLEVEL > 0
           if (!pTexDesc) // Currently SBCF_FRAMEMEM + tex_format treated as allow_resize_ring_buffer
-            D3D_ERROR("METAL reallocating dynamic buffer %s, consider using SBCF_FRAMEMEM",
+            D3D_CONTRACT_ERROR("METAL reallocating dynamic buffer %s, consider using SBCF_FRAMEMEM",
                 [ring_buffer->buffer.label UTF8String]);
           #endif
 
           max_buffers++;
 
           BufTex* buf = new BufTex(bufSize, bufFlags);
-          buf->create(storage, pTexDesc, aligment, tex_format, "");
+          buf->create(this, storage, pTexDesc, alignment, tex_format, "");
           buf->index = max_buffers - 1;
 
           prev_buffer->next = buf;
@@ -326,9 +375,9 @@ namespace drv3d_metal
           D3D_ERROR("METAL locking dynamic buffer %s with VBLOCK_DISCARD multiple times during last %d frames",
               [ring_buffer->buffer.label UTF8String], max_buffers);
           #endif
-          render.acquireOwnerShip();
+          render.acquireOwnership();
           render.flush(true);
-          render.releaseOwnerShip();
+          render.releaseOwnership();
         }
         else if (render.acquire_depth.load())
           render.markBufferDirty(this);
@@ -338,20 +387,20 @@ namespace drv3d_metal
       cur_render_buffer = cur_buffer;
     }
 
-    G_ASSERT(!use_upload_buffer || !(flags & VBLOCK_READONLY) || (bufFlags & SBCF_USAGE_READ_BACK));
+    D3D_CONTRACT_ASSERT(!use_upload_buffer || !(flags & VBLOCK_READONLY) || (bufFlags & SBCF_USAGE_READ_BACK));
     if ((flags & VBLOCK_READONLY) && (last_locked_submit == ~0ull || (render.submits_completed < last_locked_submit)))
     {
 #if DAGOR_DBGLEVEL > 0
       if (render.report_stalls)
-        D3D_ERROR("[METAL_BUFFER] flushing to readback buffer %s, frame %llu (%llu)", getResName(), render.frame, render.submits_completed);
+        D3D_ERROR("[METAL_BUFFER] flushing to readback buffer %s, frame %llu (%llu)", getName(), render.frame, render.submits_completed);
 #endif
-      render.acquireOwnerShip();
+      render.acquireOwnership();
       @autoreleasepool
       {
         render.flush(true);
       }
       last_locked_submit = render.submits_scheduled;
-      render.releaseOwnerShip();
+      render.releaseOwnership();
     }
 
     if (use_upload_buffer && !(flags & VBLOCK_READONLY))
@@ -359,23 +408,14 @@ namespace drv3d_metal
       locked_size = (locked_size + 3) & ~3;
       @autoreleasepool
       {
-        uint64_t cur_thread = 0;
-        pthread_threadid_np(NULL, &cur_thread);
-
-        bool from_thread = render.acquire_depth == 0 || cur_thread != render.cur_thread;
-        if (from_thread || locked_size > 256 * 1024)
-        {
-          String name;
-          name.printf(0, "upload for %s %llu", getResName(), render.frame);
-          upload_buffer = render.createBuffer(locked_size, MTLResourceCPUCacheModeWriteCombined | MTLResourceStorageModeShared, name);
-          upload_buffer_offset = 0;
-        }
-        else
-          upload_buffer = [render.AllocateDynamicBuffer(locked_size, upload_buffer_offset, locked_size) retain];
+        String name;
+        name.printf(0, "upload for %s %llu", getName(), render.frame);
+        upload_buffer = render.createBuffer(locked_size, MTLResourceCPUCacheModeWriteCombined | MTLResourceStorageModeShared, name);
+        upload_buffer_offset = 0;
       }
-      G_ASSERT((upload_buffer_offset & 3) == 0);
-      G_ASSERT((offset_bytes & 3) == 0);
-      G_ASSERT((locked_size & 3) == 0);
+      D3D_CONTRACT_ASSERT((upload_buffer_offset & 3) == 0);
+      D3D_CONTRACT_ASSERT((offset_bytes & 3) == 0);
+      D3D_CONTRACT_ASSERT((locked_size & 3) == 0);
 
       return (void*)((uint8_t*)[upload_buffer contents] + upload_buffer_offset);
     }
@@ -398,10 +438,11 @@ namespace drv3d_metal
 
     if (use_upload_buffer && upload_buffer)
     {
-      G_ASSERT(upload_buffer);
-      G_ASSERT(cur_buffer->initialized);
-      render.queueCopyBuffer(upload_buffer, upload_buffer_offset, cur_buffer->buffer, locked_offset, locked_size);
-      render.queueBufferForDeletion(upload_buffer);
+      D3D_CONTRACT_ASSERT(upload_buffer);
+      D3D_CONTRACT_ASSERT(cur_buffer->initialized);
+      D3D_CONTRACT_ASSERT(!fast_discard);
+      render.queueCopyBuffer(this, upload_buffer, upload_buffer_offset, cur_buffer->buffer, locked_offset, locked_size);
+      render.queueResourceForDeletion(upload_buffer);
       upload_buffer = nil;
       upload_buffer_offset = 0;
     }
@@ -414,7 +455,7 @@ namespace drv3d_metal
 
   bool Buffer::updateData(uint32_t ofs_bytes, uint32_t size_bytes, const void *__restrict src, uint32_t lockFlags)
   {
-    G_ASSERT_RETURN(size_bytes != 0, false);
+    D3D_CONTRACT_ASSERT_RETURN(size_bytes != 0, false);
 
     uint64_t cur_thread = 0;
     pthread_threadid_np(NULL, &cur_thread);
@@ -426,8 +467,9 @@ namespace drv3d_metal
       return updateDataWithLock(ofs_bytes, size_bytes, src, lockFlags);
     }
 
-    G_ASSERT(dynamic_offset == 0);
-    G_ASSERT(ofs_bytes + size_bytes <= bufSize);
+    D3D_CONTRACT_ASSERT(!fast_discard);
+    D3D_CONTRACT_ASSERT(dynamic_offset == 0);
+    D3D_CONTRACT_ASSERT(ofs_bytes + size_bytes <= bufSize);
 
     id<MTLBuffer> tempBuffer = nil;
     int tempOffset = 0;
@@ -436,7 +478,7 @@ namespace drv3d_metal
       if (size_bytes > 128 * 1024)
       {
         String name;
-        name.printf(0, "upload for %s %llu", getResName(), render.frame);
+        name.printf(0, "upload for %s %llu", getName(), render.frame);
         tempBuffer = render.createBuffer(size_bytes, MTLResourceCPUCacheModeWriteCombined | MTLResourceStorageModeShared, name);
       }
       else
@@ -446,8 +488,8 @@ namespace drv3d_metal
     G_ASSERT(tempBuffer);
     memcpy((uint8_t*)[tempBuffer contents] + tempOffset, src, size_bytes);
 
-    render.queueUpdateBuffer(tempBuffer, tempOffset, cur_buffer->buffer, ofs_bytes, size_bytes);
-    render.queueBufferForDeletion(tempBuffer);
+    render.queueUpdateBuffer(tempBuffer, tempOffset, this, ofs_bytes, size_bytes);
+    render.queueResourceForDeletion(tempBuffer);
 
     return true;
   }
@@ -460,20 +502,20 @@ namespace drv3d_metal
 
   bool Buffer::copyTo(Sbuffer * dest, uint32_t dst_ofs_bytes, uint32_t src_ofs_bytes, uint32_t size_bytes)
   {
-    render.acquireOwnerShip();
+    render.acquireOwnership();
     render.copyBuffer(this, src_ofs_bytes, dest, dst_ofs_bytes, size_bytes);
-    render.releaseOwnerShip();
+    render.releaseOwnership();
     return true;
   }
 
   id<MTLBuffer> Buffer::getBuffer()
   {
-    G_ASSERTF(dynamic_buffer || cur_render_buffer, "probably <%s> fastdiscard buffer is used and not updated this frame", getResName());
+    D3D_CONTRACT_ASSERTF(dynamic_buffer || cur_render_buffer, "probably <%s> fastdiscard buffer is used and not updated this frame", getName());
     if (dynamic_buffer && dynamic_frame != render.frame)
     {
 #if DAGOR_DBGLEVEL > 0
-      D3D_ERROR("METAL setting buffer <%s> which has SBCF_FRAMEMEM and wasn't locked this frame",
-               getResName());
+      D3D_CONTRACT_ERROR("METAL setting buffer <%s> which has SBCF_FRAMEMEM and wasn't locked this frame",
+               getName());
 #endif
       return nullptr;
     }
@@ -487,6 +529,19 @@ namespace drv3d_metal
 
   void Buffer::destroy()
   {
+    BufTex* buf = ring_buffer;
+    if (buf)
+    {
+      for (int i = 0; i < max_buffers; i++)
+      {
+        BufTex* prev_buf = buf;
+        if (prev_buf && prev_buf->texture)
+          prev_buf->texture->waiting2delete = true;
+        buf = buf->next;
+      }
+    }
+    else if ((!isDynamic || fast_discard) && cur_buffer && cur_buffer->texture)
+      cur_buffer->texture->waiting2delete = true;
     render.deleteBuffer(this);
   }
 
@@ -515,7 +570,7 @@ namespace drv3d_metal
     delete this;
   }
 
-  void Buffer::setResApiName(const char *name) const
+  void Buffer::setApiName(const char *name) const
   {
 #if DAGOR_DBGLEVEL > 0
     if (ring_buffer == nullptr)

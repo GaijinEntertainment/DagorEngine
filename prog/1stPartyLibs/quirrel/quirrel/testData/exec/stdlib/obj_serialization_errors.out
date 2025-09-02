@@ -1,0 +1,10 @@
+PASS: Max depth test - Maximum serialization depth exceeded
+PASS: Unsupported class test - Unsupported class for serialization
+PASS: Missing __getstate test - Instance must have __getstate method for serialization
+PASS: Invalid __getstate test - Instance method __getstate must be a closure
+PASS: Invalid available classes test - parameter 2 has an invalid type 'string' ; expected: 'table'
+PASS: Class not found test - Class not found in available classes during deserialization
+PASS: Invalid constructor test - Instance found during deserialization, but available classes not set or not a table
+PASS: Invalid start marker test - Invalid start marker during deserialization
+PASS: Invalid end marker test - Invalid start marker during deserialization
+PASS: Unexpected end test - Unexpected end of data during deserialization

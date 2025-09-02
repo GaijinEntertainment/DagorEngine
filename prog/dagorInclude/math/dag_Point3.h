@@ -551,6 +551,13 @@ INLINE Point3 perpendicular(const Point3 &v)
   }
 }
 
+INLINE bool are_approximately_equal(const Point3 &a, const Point3 &b, float epsilon = 8 * FLT_EPSILON) // Three bits precision by
+                                                                                                       // default.
+{
+  return are_approximately_equal(a.x, b.x, epsilon) && are_approximately_equal(a.y, b.y, epsilon) &&
+         are_approximately_equal(a.z, b.z, epsilon);
+}
+
 #undef INLINE
 
 /// @}

@@ -1,4 +1,4 @@
-ModuleDependsOnVars = HaveSound ;
+ModuleDependsOnVars = HaveSound PhysName ;
 HaveSound ?= yes ;
 
 Root    ?= ../../../.. ;

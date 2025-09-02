@@ -108,10 +108,13 @@ public:
     {
       if (!interlocked_exchange(inited, false))
         return;
+      getObj()->~T();
     }
-    else if (!eastl::exchange(inited, false))
-      return;
-    getObj()->~T();
+    else if (inited)
+    {
+      getObj()->~T();
+      inited = false;
+    }
   }
 
 private:

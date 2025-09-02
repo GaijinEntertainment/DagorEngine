@@ -102,12 +102,12 @@ CPPopt = -D__B_KERNEL_LIB -D__B_NO_MEM_BASE_INCLUDE ;
 if $(Sanitize) != disabled && $(Platform) in linux macOS { # To consider: configure this bhv via jam opt
   # Sanitizer writes to stderr and we'd like to get its output
   # Note that this disables asynchronous log writes
-  CPPopt += -DDAGOR_CAPTURE_STDERR=1 ;
+  CPPopt += -DDAGOR_CAPTURE_STDERR ;
 }
 
 if $(Platform) in android {
   if $(AndroidUseSignalHandler) = yes && $(AndroidUploadCrashlyticsSymbols) != yes {
-    CPPopt += -DANDROID_ENABLE_SIGNAL_LOG=1 ;
+    CPPopt += -DANDROID_ENABLE_SIGNAL_LOG ;
     Target = $(Target:S=~and-sighandler.lib) ;
   }
   AddIncludes += $(_A_NDK_DIR)/sources/android/cpufeatures ;

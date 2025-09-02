@@ -2,8 +2,6 @@
 
 #include "joy_device.h"
 #include <drv/hid/dag_hiXInputMappings.h>
-#include <sys/stat.h>
-#include <fcntl.h>
 #include <unistd.h>
 
 #include <perfMon/dag_cpuFreq.h>
@@ -12,31 +10,43 @@
 #include <drv/hid/dag_hiDInput.h>
 #include <drv/hid/dag_hiGlobals.h>
 #include <stdio.h>
-#include <limits.h>
 #include <generic/dag_carray.h>
+#include "evdev_helpers.h"
 
 using namespace HumanInput;
 
-static const carray<uint32_t, JOY_XINPUT_REAL_BTN_COUNT> x360KeyMap = {KEY_MAX, KEY_MAX, KEY_MAX, KEY_MAX, BTN_START, BTN_SELECT,
-  BTN_THUMBL, BTN_THUMBR, BTN_TL, BTN_TR, KEY_MAX, KEY_MAX, BTN_A, BTN_B, BTN_X, BTN_Y, KEY_MAX, KEY_MAX, KEY_MAX, KEY_MAX, KEY_MAX,
-  KEY_MAX, KEY_MAX, KEY_MAX, KEY_MAX, KEY_MAX, KEY_MAX, KEY_MAX};
-
-#define AXIS_KEY_NUM 2
-
-struct AxisKey
+// int32 is not enough for [-32768; 32768] to [-32000; 32000] conversion
+static int64_t cvt_int(int64_t val, int64_t vmin, int64_t vmax, int64_t omin, int64_t omax)
 {
-  int code[AXIS_KEY_NUM];
-};
+  if (val <= vmin)
+    return omin;
+  if (val >= vmax)
+    return omax;
+  return omin + (omax - omin) * (val - vmin) / (vmax - vmin);
+}
 
-static const AxisKey x360AxisMap[JOY_XINPUT_REAL_AXIS_COUNT] = {
-  {ABS_X, ABS_MAX}, {ABS_Y, ABS_MAX}, {ABS_RX, ABS_MAX}, {ABS_RY, ABS_MAX}, {ABS_Z, ABS_BRAKE}, {ABS_RZ, ABS_GAS}};
+inline int deadzone_apply(input_absinfo &axis, const input_absinfo &target)
+{
+  int threshold = cvt_int(axis.flat, 0, axis.maximum, 0, target.maximum);
+  int64_t value = cvt_int(axis.value, axis.minimum, axis.maximum, target.minimum, target.maximum);
 
-#define test_bit(nr, addr) (((1UL << ((nr) % (sizeof(long) * 8))) & ((addr)[(nr) / (sizeof(long) * 8)])) != 0)
-#define NBITS(x)           ((((x)-1) / (sizeof(long) * 8)) + 1)
-
-static const float VIRTUAL_THUMBKEY_PRESS_THRESHOLD = 0.5f;
-
-static const carray<int, JOY_XINPUT_REAL_AXIS_COUNT> axis_dead_thres = {7849, 7849, 8689, 8689, 3000, 3000};
+  // use deadzone only for symmetric axes
+  if (target.minimum == -target.maximum)
+  {
+    if (value <= threshold && value >= -threshold)
+      value = 0;
+    else
+    {
+      if (value > 0)
+        value -= threshold;
+      else
+        value += threshold;
+    }
+    return cvt_int(value, eastl::min<int>(target.minimum + threshold, 0), eastl::max<int>(target.maximum - threshold, 0),
+      target.minimum, target.maximum);
+  }
+  return value;
+}
 
 static const char *get_abs_axis_name(int axis)
 {
@@ -50,178 +60,163 @@ static const char *get_abs_axis_name(int axis)
     case ABS_RZ: return "Rz Axis";
     case ABS_THROTTLE: return "Throttle";
     case ABS_RUDDER: return "Rudder";
-    case ABS_HAT0X: return "Hot0 X";
-    case ABS_HAT0Y: return "Hot0 Y";
+    case ABS_WHEEL: return "Wheel";
+    case ABS_GAS: return "Gas";
+    case ABS_BRAKE: return "Brake";
+    case ABS_PRESSURE: return "Pressure";
+    case ABS_DISTANCE: return "Distance";
+    case ABS_TILT_X: return "X Tilt";
+    case ABS_TILT_Y: return "Y Tilt";
+    case ABS_MISC: return "Misc";
   }
-  return NULL;
+  return nullptr;
 }
 
-HidJoystickDevice::HidJoystickDevice(UDev::Device const &dev, bool remap_360) :
-  device(dev), buttons(midmem), axes(midmem), povHats(midmem), remapAsX360(remap_360)
+static const char *get_button_name(int btn)
 {
-  debug("added joystick: <%s> %04LX:%04LX (%s)", dev.name, dev.id.vendor, dev.id.product, dev.devnode);
+  switch (btn)
+  {
+    case BTN_TRIGGER: return "TRIGGER";
+    case BTN_THUMB: return "THUMB";
+    case BTN_THUMB2: return "THUMB2";
+    case BTN_TOP: return "TOP";
+    case BTN_TOP2: return "TOP2";
+    case BTN_PINKIE: return "PINKIE";
+    case BTN_BASE: return "BASE";
+    case BTN_BASE2: return "BASE2";
+    case BTN_BASE3: return "BASE3";
+    case BTN_BASE4: return "BASE4";
+    case BTN_BASE5: return "BASE5";
+    case BTN_BASE6: return "BASE6";
+    case BTN_DEAD: return "DEAD";
+    case BTN_A: return "A";
+    case BTN_B: return "B";
+    case BTN_C: return "C";
+    case BTN_X: return "X";
+    case BTN_Y: return "Y";
+    case BTN_Z: return "Z";
+    case BTN_TL: return "TL";
+    case BTN_TR: return "TR";
+    case BTN_TL2: return "TL2";
+    case BTN_TR2: return "TR2";
+    case BTN_SELECT: return "SELECT";
+    case BTN_START: return "START";
+    case BTN_MODE: return "MODE";
+    case BTN_THUMBL: return "THUMBL";
+    case BTN_THUMBR: return "THUMBR";
+    case BTN_GEAR_DOWN: return "GEAR DOWN";
+    case BTN_GEAR_UP: return "GEAR UP";
+  }
+  return nullptr;
+}
+
+HidJoystickDevice::HidJoystickDevice(UDev::Device const &dev) : device(dev)
+{
+  JOY_LOG("added device: <%s> %04LX:%04LX (%s)", dev.name, dev.id.vendor, dev.id.product, dev.devnode);
   SNPRINTF(devID, sizeof(devID), "%04X:%04X", dev.id.vendor, dev.id.product);
+  id = dev.id;
 
   jfd = open(device.devnode, O_RDONLY, 0);
   G_ASSERT(jfd >= 0);
 
-  unsigned long keybit[NBITS(KEY_MAX)] = {0};
-  unsigned long absbit[NBITS(ABS_MAX)] = {0};
-  unsigned long relbit[NBITS(REL_MAX)] = {0};
+  InputBitArray<KEY_MAX> keybit;
+  InputBitArray<ABS_MAX> absbit;
+  InputBitArray<REL_MAX> relbit;
 
-  if ((ioctl(jfd, EVIOCGBIT(EV_KEY, sizeof(keybit)), keybit) >= 0) && (ioctl(jfd, EVIOCGBIT(EV_ABS, sizeof(absbit)), absbit) >= 0))
+  if (keybit.evdevRead(jfd, EV_KEY) && absbit.evdevRead(jfd, EV_ABS))
   {
     for (int axis = ABS_HAT0X; axis <= ABS_HAT3X; axis += 2)
     {
-      if (!test_bit(axis, absbit) || !test_bit(axis + 1, absbit))
+      if (!absbit.test(axis) || !absbit.test(axis + 1))
         continue;
 
       input_absinfo absinfo;
-      if (ioctl(jfd, EVIOCGABS(axis), &absinfo) < 0)
+      if (!read_axis(jfd, axis, absinfo))
         continue;
-
       PovHatData &a = povHats.push_back();
-      a.axis_info = absinfo;
-      a.axis = axis;
-      a.min_val = -1.0f;
-      a.max_val = 1.0f;
-      a.attached = true;
+      a.sysAbsInfo = absinfo;
+      a.sysAxisId = axis;
+      a.minVal = absinfo.minimum;
+      a.maxVal = absinfo.maximum;
       a.name = String(0, "POV%d", povHats.size());
       a.axisName[0] = String(0, "POV%d_H", povHats.size());
       a.axisName[1] = String(0, "POV%d_V", povHats.size());
+      a.padX = 0;
+      a.padY = 0;
 
-      debug("joystick has povHat '%s'. val: %d min: %d max: %d fuzz: %d flat: %d res: %d", a.name, absinfo.value, absinfo.minimum,
+      JOY_LOG("device has povHat '%s'. val: %d min: %d max: %d fuzz: %d flat: %d res: %d", a.name, absinfo.value, absinfo.minimum,
         absinfo.maximum, absinfo.fuzz, absinfo.flat, absinfo.resolution);
     }
 
-    if (remapAsX360)
-    {
-      axes.resize(JOY_XINPUT_REAL_AXIS_COUNT);
-      for (int axisNo = 0; axisNo < axes.size(); ++axisNo)
-      {
-        AxisData &a = axes[axisNo];
-        a.min_val = -1.0f;
-        a.max_val = 1.0f;
-        a.name = joyXInputAxisName[axisNo];
-        memset(&a.axis_info, 0, sizeof(a.axis_info));
-
-        for (int keyNo = 0; keyNo < AXIS_KEY_NUM; ++keyNo)
-        {
-          a.axis = x360AxisMap[axisNo].code[keyNo];
-          a.attached = test_bit(a.axis, absbit) && ioctl(jfd, EVIOCGABS(a.axis), &a.axis_info) >= 0;
-          if (a.attached)
-            break;
-        }
-      }
-
-      buttons.resize(x360KeyMap.size());
-      for (int btnNo = 0; btnNo < buttons.size(); ++btnNo)
-      {
-        ButtonData &b = buttons[btnNo];
-        b.btn = x360KeyMap[btnNo];
-        b.name = joyXInputButtonName[btnNo];
-        b.attached = test_bit(b.btn, keybit);
-      }
-
-      // One left stick is quite enough for x360 gamepad input,
-      // it is needed by steam controller in mouse mode
-      if (!(axes[JOY_XINPUT_REAL_AXIS_L_TRIGGER].attached && axes[JOY_XINPUT_REAL_AXIS_R_TRIGGER].attached &&
-            axes[JOY_XINPUT_REAL_AXIS_L_THUMB_H].attached && axes[JOY_XINPUT_REAL_AXIS_L_THUMB_V].attached))
-      {
-        remapAsX360 = false;
-      }
-
-      if (
-        !(buttons[JOY_XINPUT_REAL_BTN_A].attached && buttons[JOY_XINPUT_REAL_BTN_B].attached &&
-          buttons[JOY_XINPUT_REAL_BTN_X].attached && buttons[JOY_XINPUT_REAL_BTN_Y].attached &&
-          buttons[JOY_XINPUT_REAL_BTN_START].attached && buttons[JOY_XINPUT_REAL_BTN_BACK].attached &&
-          buttons[JOY_XINPUT_REAL_BTN_L_SHOULDER].attached && buttons[JOY_XINPUT_REAL_BTN_R_SHOULDER].attached && povHats.size() > 0))
-      {
-        remapAsX360 = false;
-      }
-
-      if (!remapAsX360)
-      {
-        clear_and_shrink(axes);
-        clear_and_shrink(buttons);
-      }
-    }
 
     for (int axis = ABS_X; axis < ABS_MAX; ++axis)
     {
       if (axis >= ABS_HAT0X && axis <= ABS_HAT3Y)
         continue;
 
-      if (!test_bit(axis, absbit))
+      if (!absbit.test(axis))
         continue;
 
-      if (remapAsX360)
-      {
-        bool foundAxis = false;
-        for (int axisNo = 0; axisNo < JOY_XINPUT_REAL_AXIS_COUNT && !foundAxis; ++axisNo)
-          for (int keyNo = 0; keyNo < AXIS_KEY_NUM; ++keyNo)
-            if (axis == x360AxisMap[axisNo].code[keyNo])
-              foundAxis = true;
-        if (foundAxis)
-          continue;
-      }
-
       input_absinfo absinfo;
-      if (ioctl(jfd, EVIOCGABS(axis), &absinfo) < 0)
+      if (!read_axis(jfd, axis, absinfo))
         continue;
 
       AxisData &a = axes.push_back();
-      a.axis_info = absinfo;
-      a.axis = axis;
-      a.min_val = -1.0f;
-      a.max_val = 1.0f;
-      a.attached = true;
+      a.sysAbsInfo = absinfo;
+      a.sysAxisId = axis;
+      a.sysAbsInfo.minimum = -32000;
+      a.sysAbsInfo.maximum = 32000;
+      a.remapIdx = -1;
+      a.minVal = a.sysAbsInfo.minimum;
+      a.maxVal = a.sysAbsInfo.maximum;
+
+      a.sysAbsInfo.value = deadzone_apply(absinfo, a.sysAbsInfo);
+
       const char *name = get_abs_axis_name(axis);
       if (!name)
         a.name = String(0, "Axis%d", axes.size());
       else
         a.name = name;
 
-      debug("joystick has axis '%s'. val: %d min: %d max: %d fuzz: %d flat: %d res: %d", a.name, absinfo.value, absinfo.minimum,
+      JOY_LOG("device has axis '%s'. val: %d min: %d max: %d fuzz: %d flat: %d res: %d", a.name, absinfo.value, absinfo.minimum,
         absinfo.maximum, absinfo.fuzz, absinfo.flat, absinfo.resolution);
     }
 
     for (int btn = BTN_MISC; btn < KEY_MAX; ++btn)
     {
-      if (!test_bit(btn, keybit))
+      if (!keybit.test(btn))
         continue;
 
-      if (remapAsX360)
-      {
-        bool foundBtn = false;
-        for (int btnNo = 0; btnNo < x360KeyMap.size() && !foundBtn; ++btnNo)
-          if (btn == x360KeyMap[btnNo])
-            foundBtn = true;
-        if (foundBtn)
-          continue;
-      }
-
       ButtonData &b = buttons.push_back();
-      b.btn = btn;
-      b.name = String(0, "Button%d", buttons.size());
-      b.attached = true;
+      b.sysBtnId = btn;
+      const char *name = get_button_name(btn);
+      if (!name)
+        b.name = String(0, "Button%d", buttons.size());
+      else
+        b.name = name;
+      JOY_LOG("device has button '%s' with code 0x%x", b.name, b.sysBtnId);
     }
 
-    debug("joystick has %d axes", axes.size());
+    JOY_LOG("device has %d axes", axes.size());
     if (povHats.size() > 0)
-      debug("joystick has %d pov hats", povHats.size());
-    debug("joystick has %d buttons", buttons.size());
+      JOY_LOG("device has %d pov hats", povHats.size());
+    JOY_LOG("device has %d buttons", buttons.size());
   }
 
-  if (ioctl(jfd, EVIOCGBIT(EV_REL, sizeof(relbit)), relbit) >= 0)
+  if (relbit.evdevRead(jfd, EV_REL))
   {
+    bool hasRelAxes = false;
     for (int i = REL_X; i < REL_MAX; ++i)
-      if (test_bit(REL_X, relbit))
-        debug("joystick has relative axis %d", i);
+      if (relbit.test(REL_X))
+      {
+        hasRelAxes = true;
+        JOY_LOG("device has relative axis %x", i);
+      }
+    if (hasRelAxes)
+      JOY_LOG("relative axes not supported");
   }
 
   connected = true;
-  client = NULL;
   memset(&state, 0, sizeof(state));
 
   updateState(0, false);
@@ -255,8 +250,6 @@ void HidJoystickDevice::setConnected(bool con)
   }
 }
 
-bool HidJoystickDevice::isRemappedAsX360() const { return remapAsX360; }
-
 bool HidJoystickDevice::updateState(int dt_msec, bool def)
 {
   if (!connected)
@@ -264,7 +257,6 @@ bool HidJoystickDevice::updateState(int dt_msec, bool def)
 
   bool changed = false;
 
-  static int lastKeyPressedTime = 0;
   int ctime = ::get_time_msec();
 
   if (state.buttons.hasAny() && ctime > lastKeyPressedTime + stg_joy.keyRepeatDelay)
@@ -281,166 +273,74 @@ bool HidJoystickDevice::updateState(int dt_msec, bool def)
       raw_state_joy.repeat = false;
   }
 
-  // record event
-  static constexpr int DATA_SZ = 14 * sizeof(int);
-  char prev_state[DATA_SZ];
-  memcpy(prev_state, &state, DATA_SZ);
-
-#define DEADCLAMP(value, threshold)                        \
-  if (((value) < (threshold)) && ((value) > -(threshold))) \
-  value = 0
-
   input_absinfo absinfo;
   for (int i = 0; i < axes.size(); ++i)
   {
     AxisData &axis = axes[i];
-    if (axis.axis != ABS_MAX && ioctl(jfd, EVIOCGABS(axis.axis), &absinfo) >= 0)
+    if (axis.sysAxisId != ABS_MAX && read_axis(jfd, axis.sysAxisId, absinfo))
     {
-      int minAxisVal = JOY_XINPUT_MIN_AXIS_VAL;
-      int maxAxisVal = JOY_XINPUT_MAX_AXIS_VAL;
-      int absMin = absinfo.minimum;
-      int absMax = absinfo.maximum;
-
-      if (remapAsX360)
+      int val = deadzone_apply(absinfo, axis.sysAbsInfo);
+      if (val != axis.sysAbsInfo.value)
       {
-        switch (axis.axis)
-        {
-          case ABS_Y:
-          case ABS_RY: eastl::swap(absMin, absMax); break;
-          case ABS_Z:
-          case ABS_RZ: minAxisVal = 0; break;
-        }
-      }
-
-      int cvtval = cvt(absinfo.value, absMin, absMax, minAxisVal, maxAxisVal);
-      if (remapAsX360 && i < axis_dead_thres.size())
-        DEADCLAMP(cvtval, axis_dead_thres[i]);
-      if (cvtval != axis.axis_info.value)
-      {
-        axis.axis_info.value = cvtval;
+        axis.sysAbsInfo.value = val;
         changed = true;
+        JOY_TRACE("[%s] %s: %d (%d)", getName(), axis.name, axis.sysAbsInfo.value, absinfo.value);
+      }
+      switch (axis.sysAxisId)
+      {
+        case ABS_X: state.x = val; break;
+        case ABS_Y: state.y = val; break;
+        case ABS_Z: state.z = val; break;
+        case ABS_RX: state.rx = val; break;
+        case ABS_RY: state.ry = val; break;
+        case ABS_RZ: state.rz = val; break;
+        case ABS_BRAKE: state.slider[0] = val; break;
+        case ABS_GAS: state.slider[1] = val; break;
       }
     }
   }
 
-#undef DEADCLAMP
-
-  int16_t padX = 0, padY = 0;
 
   for (int i = 0; i < povHats.size(); ++i)
   {
-    AxisData &axis = povHats[i];
+    PovHatData &axis = povHats[i];
     input_absinfo absinfoY;
     input_absinfo absinfoX;
 
-    if ((ioctl(jfd, EVIOCGABS(axis.axis), &absinfoX) >= 0) && (ioctl(jfd, EVIOCGABS(axis.axis + 1), &absinfoY) >= 0))
+    if (read_axis(jfd, axis.sysAxisId, absinfoX) && read_axis(jfd, axis.sysAxisId + 1, absinfoY))
     {
-      if (remapAsX360)
-        absinfoY.value = -absinfoY.value;
-
-      int angle = 0;
-      if (absinfoX.value == 0)
-      {
-        if (absinfoY.value == 0)
-          angle = -1;
-        else if (absinfoY.value == 1)
-          angle = 0;
-        else if (absinfoY.value == -1)
-          angle = 180 * 100;
-      }
-      else if (absinfoX.value == 1)
-      {
-        if (absinfoY.value == 0)
-          angle = 90 * 100;
-        else if (absinfoY.value == 1)
-          angle = 45 * 100;
-        else if (absinfoY.value == -1)
-          angle = 135 * 100;
-      }
-      else if (absinfoX.value == -1)
-      {
-        if (absinfoY.value == 0)
-          angle = 270 * 100;
-        else if (absinfoY.value == 1)
-          angle = 315 * 100;
-        else if (absinfoY.value == -1)
-          angle = 225 * 100;
-      }
-
-      if (i == 0)
-      {
-        padX = absinfoX.value;
-        padY = absinfoY.value;
-      }
+      axis.padX = absinfoX.value;
+      axis.padY = -absinfoY.value;
+      int angle = povhat_pads_to_angle(axis.padX, axis.padY);
 
       state.povValuesPrev[i] = state.povValues[i];
       state.povValues[i] = angle;
-      changed |= (state.povValuesPrev[i] != angle);
+      bool povChanged = (state.povValuesPrev[i] != angle);
+      changed |= povChanged;
+
+      if (povChanged)
+      {
+        JOY_TRACE("[%s] hat.x %d hat.y %d, angle %d", getName(), axis.padX, axis.padY, angle);
+      }
     }
   }
 
   state.buttonsPrev = state.buttons;
   state.buttons.reset();
-  unsigned long keybit[NBITS(KEY_MAX)] = {0};
-  if (ioctl(jfd, EVIOCGKEY(sizeof(keybit)), keybit) >= 0)
+  if (sysKeys.evdevRead(jfd))
   {
     for (int i = 0; i < buttons.size(); ++i)
     {
       ButtonData &b = buttons[i];
-      if (b.btn != KEY_MAX && test_bit(b.btn, keybit))
+      if (b.sysBtnId == KEY_MAX)
+        continue;
+      if (sysKeys.test(b.sysBtnId))
+      {
+        if (!state.buttonsPrev.get(i))
+          JOY_TRACE("[%s] button pressed %s %d", getName(), b.name, i);
         state.buttons.set(i);
-      else
-        state.buttons.clr(i);
+      }
     }
-  }
-
-  if (remapAsX360)
-  {
-    state.x = axes[JOY_XINPUT_REAL_AXIS_L_THUMB_H].axis_info.value;
-    state.y = axes[JOY_XINPUT_REAL_AXIS_L_THUMB_V].axis_info.value;
-
-    state.rx = axes[JOY_XINPUT_REAL_AXIS_R_THUMB_H].axis_info.value;
-    state.ry = axes[JOY_XINPUT_REAL_AXIS_R_THUMB_V].axis_info.value;
-
-    state.slider[0] = axes[JOY_XINPUT_REAL_AXIS_L_TRIGGER].axis_info.value;
-    state.slider[1] = axes[JOY_XINPUT_REAL_AXIS_R_TRIGGER].axis_info.value;
-
-    // Virtual keys
-
-    if (state.x > SHRT_MAX * VIRTUAL_THUMBKEY_PRESS_THRESHOLD)
-      state.buttons.set(JOY_XINPUT_REAL_BTN_L_THUMB_RIGHT);
-    else if (state.x < SHRT_MAX * -VIRTUAL_THUMBKEY_PRESS_THRESHOLD)
-      state.buttons.set(JOY_XINPUT_REAL_BTN_L_THUMB_LEFT);
-
-    if (state.y > SHRT_MAX * VIRTUAL_THUMBKEY_PRESS_THRESHOLD)
-      state.buttons.set(JOY_XINPUT_REAL_BTN_L_THUMB_UP);
-    else if (state.y < SHRT_MAX * -VIRTUAL_THUMBKEY_PRESS_THRESHOLD)
-      state.buttons.set(JOY_XINPUT_REAL_BTN_L_THUMB_DOWN);
-
-    if (state.rx > SHRT_MAX * VIRTUAL_THUMBKEY_PRESS_THRESHOLD)
-      state.buttons.set(JOY_XINPUT_REAL_BTN_R_THUMB_RIGHT);
-    else if (state.rx < SHRT_MAX * -VIRTUAL_THUMBKEY_PRESS_THRESHOLD)
-      state.buttons.set(JOY_XINPUT_REAL_BTN_R_THUMB_LEFT);
-
-    if (state.ry > SHRT_MAX * VIRTUAL_THUMBKEY_PRESS_THRESHOLD)
-      state.buttons.set(JOY_XINPUT_REAL_BTN_R_THUMB_UP);
-    else if (state.ry < SHRT_MAX * -VIRTUAL_THUMBKEY_PRESS_THRESHOLD)
-      state.buttons.set(JOY_XINPUT_REAL_BTN_R_THUMB_DOWN);
-
-    if (state.slider[0] > SHRT_MAX * VIRTUAL_THUMBKEY_PRESS_THRESHOLD)
-      state.buttons.set(JOY_XINPUT_REAL_BTN_L_TRIGGER);
-    if (state.slider[1] > SHRT_MAX * VIRTUAL_THUMBKEY_PRESS_THRESHOLD)
-      state.buttons.set(JOY_XINPUT_REAL_BTN_R_TRIGGER);
-
-    if (padX > 0)
-      state.buttons.set(JOY_XINPUT_REAL_BTN_D_RIGHT);
-    else if (padX < 0)
-      state.buttons.set(JOY_XINPUT_REAL_BTN_D_LEFT);
-
-    if (padY > 0)
-      state.buttons.set(JOY_XINPUT_REAL_BTN_D_UP);
-    else if (padY < 0)
-      state.buttons.set(JOY_XINPUT_REAL_BTN_D_DOWN);
   }
 
   if (state.getKeysPressed().hasAny()) // Little trick to avoid new static bool isFirstTimePressed
@@ -459,8 +359,6 @@ bool HidJoystickDevice::updateState(int dt_msec, bool def)
     if (state.buttonsPrev.getIter(i, inc))
       state.bDownTms[i] += dt_msec;
 
-  if (!changed)
-    changed = memcmp(prev_state, &state, DATA_SZ) != 0;
 
   if (def)
   {
@@ -473,7 +371,7 @@ bool HidJoystickDevice::updateState(int dt_msec, bool def)
   if (client && changed)
     client->stateChanged(this, 0);
 
-  return changed && !state.buttons.cmpEq(state.buttonsPrev);
+  return changed;
 }
 
 // IGenJoystick interface implementation
@@ -555,8 +453,8 @@ void HidJoystickDevice::setAxisLimits(int axis_id, float min_val, float max_val)
   if (axis_id >= 0 && axis_id < ac)
   {
     AxisData &axis = axes[axis_id];
-    axis.min_val = min_val;
-    axis.max_val = max_val;
+    axis.minVal = min_val;
+    axis.maxVal = max_val;
   }
 }
 
@@ -568,8 +466,7 @@ float HidJoystickDevice::getAxisPos(int axis_id) const
   if (axis_id >= 0 && axis_id < ac)
   {
     AxisData const &axis = axes[axis_id];
-    return cvt(axis.axis_info.value, JOY_XINPUT_MIN_AXIS_VAL, JOY_XINPUT_MAX_AXIS_VAL, axis.min_val * JOY_XINPUT_MAX_AXIS_VAL,
-      axis.max_val * JOY_XINPUT_MAX_AXIS_VAL);
+    return cvt(axis.sysAbsInfo.value, axis.sysAbsInfo.minimum, axis.sysAbsInfo.maximum, axis.minVal, axis.maxVal);
   }
   if (axis_id >= ac && axis_id < ac + 2 * povHats.size())
     return getVirtualPOVAxis((axis_id - ac) / 2, (axis_id - ac) % 2);
@@ -580,7 +477,7 @@ int HidJoystickDevice::getAxisPosRaw(int axis_id) const
 {
   const int ac = axes.size();
   if (axis_id >= 0 && axis_id < ac)
-    return axes[axis_id].axis_info.value;
+    return axes[axis_id].sysAbsInfo.value;
   if (axis_id >= ac && axis_id < ac + 2 * povHats.size())
     return getVirtualPOVAxis((axis_id - ac) / 2, (axis_id - ac) % 2);
   return 0;

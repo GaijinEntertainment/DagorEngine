@@ -10,6 +10,7 @@
 #include <debug/dag_debug.h>
 #include <image/tiff-4.4.0/tiffio.h>
 #include <util/dag_texMetaData.h>
+#include <generic/dag_tab.h>
 
 
 class TiffCreateTexFactory : public ICreateTexFactory
@@ -27,13 +28,16 @@ public:
       return NULL;
     }
 
-    uint16_t spp = 1, bpp = 8, fileFormat = SAMPLEFORMAT_UINT;
+    uint16_t spp = 1, bpp = 8, fileFormat = SAMPLEFORMAT_UINT, photometric = PHOTOMETRIC_MINISBLACK;
     uint32_t width = 1, height = 1;
     TIFFGetField(image, TIFFTAG_IMAGELENGTH, &height);
     TIFFGetField(image, TIFFTAG_IMAGEWIDTH, &width);
     TIFFGetField(image, TIFFTAG_BITSPERSAMPLE, &bpp);
     TIFFGetField(image, TIFFTAG_SAMPLESPERPIXEL, &spp);
     TIFFGetField(image, TIFFTAG_SAMPLEFORMAT, &fileFormat);
+    TIFFGetField(image, TIFFTAG_PHOTOMETRIC, &photometric);
+
+    bool invert = (photometric == PHOTOMETRIC_MINISWHITE);
 
     struct FormatMap
     {
@@ -43,8 +47,8 @@ public:
     };
 
     const static struct FormatMap formatMap[] = {
-      {SAMPLEFORMAT_UINT, false, 1, 1, TEXFMT_L8, false, 8, 1, false},
-      {SAMPLEFORMAT_UINT, false, 8, 1, TEXFMT_L8, false, 8, 1, false},
+      {SAMPLEFORMAT_UINT, false, 1, 1, TEXFMT_R8, false, 8, 1, false},
+      {SAMPLEFORMAT_UINT, false, 8, 1, TEXFMT_R8, false, 8, 1, false},
       {SAMPLEFORMAT_UINT, false, 8, 2, TEXFMT_R8G8, false, 8, 2, false},
       {SAMPLEFORMAT_UINT, false, 8, 3, TEXFMT_A8R8G8B8, false, 8, 4, true},
       {SAMPLEFORMAT_UINT, false, 8, 4, TEXFMT_A8R8G8B8, false, 8, 4, true},
@@ -56,8 +60,8 @@ public:
       {SAMPLEFORMAT_UINT, false, 32, 1, TEXFMT_R32UI, false, 32, 1, false},
       {SAMPLEFORMAT_UINT, false, 32, 3, TEXFMT_A32B32G32R32UI, false, 32, 4, false},
       {SAMPLEFORMAT_UINT, false, 32, 4, TEXFMT_A32B32G32R32UI, false, 32, 4, false},
-      {SAMPLEFORMAT_INT, false, 1, 1, TEXFMT_L8, false, 8, 1, false},
-      {SAMPLEFORMAT_INT, false, 8, 1, TEXFMT_L8, false, 8, 1, false},
+      {SAMPLEFORMAT_INT, false, 1, 1, TEXFMT_R8, false, 8, 1, false},
+      {SAMPLEFORMAT_INT, false, 8, 1, TEXFMT_R8, false, 8, 1, false},
       {SAMPLEFORMAT_INT, false, 8, 2, TEXFMT_R8G8, false, 8, 2, false},
       {SAMPLEFORMAT_INT, false, 8, 3, TEXFMT_A8R8G8B8, false, 8, 4, true},
       {SAMPLEFORMAT_INT, false, 8, 4, TEXFMT_A8R8G8B8, false, 8, 4, true},
@@ -118,7 +122,7 @@ public:
 
     if (t)
     {
-      apply_gen_tex_props(t, tmd);
+      set_texture_separate_sampler(get_managed_texture_id(fn), get_sampler_info(tmd, false));
 
       uint8_t *data = NULL;
       int stride = 0;
@@ -132,7 +136,7 @@ public:
           int idx = stride * y;
           TIFFReadScanline(image, tiffLine.data(), y, 0);
           if (!convert_image_line(tiffLine.data(), width, fm.tiffChannels, fm.tiffBitsPerChannel, fm.tiffIsFloat, data + idx,
-                fm.dagorChannels, fm.dagorBitsPerChannel, fm.dagorIsFloat, fm.swapRB))
+                fm.dagorChannels, fm.dagorBitsPerChannel, fm.dagorIsFloat, fm.swapRB, invert))
           {
             break;
           }

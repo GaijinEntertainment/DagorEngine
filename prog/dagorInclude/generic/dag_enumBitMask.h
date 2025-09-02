@@ -23,7 +23,7 @@
 /*
  * Note on implementation:
  * pure template-based approach was choosen because MSVC (15 at least) does not supports expression like:
- * std::enable_if<decltype(has_some_property(declval<E>())::value),E>::type
+ * eastl::enable_if_t<decltype(has_some_property(declval<E>())::value),E>
  * which required for function-based implementation
  * And struct specialization approach doesn't supports non global enums.
  */
@@ -45,10 +45,7 @@
     return static_cast<Enum>(                                                                                                         \
       static_cast<eastl::underlying_type<Enum>::type>(lhs) ^ static_cast<eastl::underlying_type<Enum>::type>(rhs));                   \
   }                                                                                                                                   \
-  inline Enum operator~(Enum rhs)                                                                                                     \
-  {                                                                                                                                   \
-    return static_cast<Enum>(~static_cast<eastl::underlying_type<Enum>::type>(rhs));                                                  \
-  }                                                                                                                                   \
+  inline Enum operator~(Enum rhs) { return static_cast<Enum>(~static_cast<eastl::underlying_type<Enum>::type>(rhs)); }                \
   inline Enum &operator|=(Enum &lhs, Enum rhs)                                                                                        \
   {                                                                                                                                   \
     lhs =                                                                                                                             \

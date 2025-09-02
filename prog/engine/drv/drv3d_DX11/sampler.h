@@ -30,8 +30,10 @@ struct SamplerKey
   };
 
   SamplerKey() = default;
-  SamplerKey(const BaseTex *tex);
-  bool operator==(const SamplerKey &other) { return k == other.k && lodBias == other.lodBias && borderColor == other.borderColor; }
+  bool operator==(const SamplerKey &other) const
+  {
+    return k == other.k && lodBias == other.lodBias && borderColor == other.borderColor;
+  }
   uint32_t getHash() const { return hash32shiftmult(k); }
 };
 

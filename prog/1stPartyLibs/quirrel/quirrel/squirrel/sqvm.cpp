@@ -697,6 +697,7 @@ SQRESULT SQVM::Suspend()
 
 
 #define _FINISH(howmuchtojump) {jump = howmuchtojump; return true; }
+#define _CHECK_FREEZE() { if (o1._flags & SQOBJ_FLAG_IMMUTABLE) { o2._flags |= SQOBJ_FLAG_IMMUTABLE; o3._flags |= SQOBJ_FLAG_IMMUTABLE; } }
 bool SQVM::FOREACH_OP(SQObjectPtr &o1,SQObjectPtr &o2,SQObjectPtr
 &o3,SQObjectPtr &o4,SQInteger SQ_UNUSED_ARG(arg_2),int exitpos,int &jump)
 {
@@ -704,15 +705,18 @@ bool SQVM::FOREACH_OP(SQObjectPtr &o1,SQObjectPtr &o2,SQObjectPtr
     switch(sq_type(o1)) {
     case OT_TABLE:
         if((nrefidx = _table(o1)->Next(false,o4, o2, o3)) == -1) _FINISH(exitpos);
+        _CHECK_FREEZE();
         o4 = (SQInteger)nrefidx; _FINISH(1);
     case OT_ARRAY:
         if((nrefidx = _array(o1)->Next(o4, o2, o3)) == -1) _FINISH(exitpos);
+        _CHECK_FREEZE();
         o4 = (SQInteger) nrefidx; _FINISH(1);
     case OT_STRING:
         if((nrefidx = _string(o1)->Next(o4, o2, o3)) == -1)_FINISH(exitpos);
         o4 = (SQInteger)nrefidx; _FINISH(1);
     case OT_CLASS:
         if((nrefidx = _class(o1)->Next(o4, o2, o3)) == -1)_FINISH(exitpos);
+        _CHECK_FREEZE();
         o4 = (SQInteger)nrefidx; _FINISH(1);
     case OT_USERDATA:
     case OT_INSTANCE:
@@ -729,6 +733,7 @@ bool SQVM::FOREACH_OP(SQObjectPtr &o1,SQObjectPtr &o2,SQObjectPtr
                         Raise_Error(_SC("_nexti returned an invalid idx")); // cloud be changed
                         return false;
                     }
+                    _CHECK_FREEZE();
                     _FINISH(1);
                 }
                 else {
@@ -739,6 +744,7 @@ bool SQVM::FOREACH_OP(SQObjectPtr &o1,SQObjectPtr &o2,SQObjectPtr
               _FINISH(exitpos);
 
             _instance(o1)->Get(o2, o3);
+            _CHECK_FREEZE();
             o4 = (SQInteger)nrefidx;
             _FINISH(1);
         }
@@ -760,6 +766,7 @@ bool SQVM::FOREACH_OP(SQObjectPtr &o1,SQObjectPtr &o2,SQObjectPtr
     }
     return false; //cannot be hit(just to avoid warnings)
 }
+#undef _CHECK_FREEZE
 
 #define COND_LITERAL (arg3!=0?ci->_literals[arg1]:STK(arg1))
 
@@ -1165,7 +1172,7 @@ exception_restore:
                 if (arg0 != 0xFF) TARGET = STK(arg3);
                 continue;
             case _OP_SETI: case _OP_SETK:
-                if (!Set(STK(arg2), _i_.op == _OP_SETI ? SQInteger(arg1) : ci->_literals[arg1], STK(arg3),arg2)) { SQ_THROW(); }
+                if (!Set(STK(arg2), _i_.op == _OP_SETI ? SQObjectPtr(SQInteger(arg1)) : ci->_literals[arg1], STK(arg3),arg2)) { SQ_THROW(); }
                 if (arg0 != 0xFF) TARGET = STK(arg3);
                 continue;
             case _OP_GET_LITERAL:{
@@ -1283,7 +1290,7 @@ exception_restore:
             case _OP_ADD:
               _ARITH_(+,TARGET,STK(arg2),STK(arg1));
               continue;
-            case _OP_ADDI: {SQObjectPtr ai = (SQInteger)arg1; _ARITH_(+,TARGET,STK(arg2), ai); continue;}
+            case _OP_ADDI: {SQObjectPtr ai((SQInteger)arg1); _ARITH_(+,TARGET,STK(arg2), ai); continue;}
             case _OP_SUB: _ARITH_(-,TARGET,STK(arg2),STK(arg1)); continue;
             case _OP_MUL: _ARITH_(*,TARGET,STK(arg2),STK(arg1)); continue;
             case _OP_DIV: _ARITH_NOZERO(/,TARGET,STK(arg2),STK(arg1)); continue;
@@ -1367,9 +1374,9 @@ exception_restore:
             continue;
             case _OP_NEWOBJ:
                 switch(arg3) {
-                    case NOT_TABLE: TARGET = SQTable::Create(_ss(this), arg1); continue;
-                    case NOT_ARRAY: TARGET = SQArray::Create(_ss(this), 0); _array(TARGET)->Reserve(arg1); continue;
-                    case NOT_CLASS: _GUARD(CLASS_OP(TARGET,arg1)); continue;
+                    case NEWOBJ_TABLE: TARGET = SQTable::Create(_ss(this), arg1); continue;
+                    case NEWOBJ_ARRAY: TARGET = SQArray::Create(_ss(this), 0); _array(TARGET)->Reserve(arg1); continue;
+                    case NEWOBJ_CLASS: _GUARD(CLASS_OP(TARGET,arg1)); continue;
                     default: assert(0); continue;
                 }
             case _OP_APPENDARRAY:
@@ -1495,7 +1502,7 @@ exception_restore:
                     traps -= ci->_etraps;
                     if(sarg1 != MAX_FUNC_STACKSIZE) _Swap(STK(arg1),temp_reg);//STK(arg1) = temp_reg;
                 }
-                else { Raise_Error(_SC("trying to yield a '%s',only genenerator can be yielded"), GetTypeName(ci->_generator)); SQ_THROW();}
+                else { Raise_Error(_SC("trying to yield a '%s',only genenerator can be yielded"), GetTypeName(SQObjectPtr(ci->_generator))); SQ_THROW();}
                 if(Return<debughookPresent>(arg0, arg1, temp_reg)){
                     assert(traps == 0);
                     outres = temp_reg;
@@ -1570,6 +1577,48 @@ exception_restore:
             case _OP_CLOSE:
                 if(_openouters) CloseOuters(&(STK(arg1)));
                 continue;
+            case _OP_PATCH_DOCOBJ: {
+                SQObjectPtr &o = TARGET;
+                SQObjectPtr findKey;
+                SQObjectPtr foundValue;
+                findKey._unVal.raw = arg1;
+                findKey._type = OT_USERPOINTER;
+                SQTable * tbl = _table(_sharedstate->doc_objects);
+                if (tbl->Get(findKey, foundValue)) {
+                    SQObjectPtr replaceWithKey;
+                    replaceWithKey._unVal.pUserPointer = o._unVal.pUserPointer;
+                    replaceWithKey._type = OT_USERPOINTER;
+                    tbl->NewSlot(replaceWithKey, foundValue);
+                    tbl->Remove(findKey);
+                }
+                continue;
+                }
+            case _OP_LOAD_STATIC_MEMO:
+                // _staticmemos[arg1] -> STK(arg0), jump to ((arg2 << 8) + arg3)
+                STK(arg0) = _closure(ci->_closure)->_function->_staticmemos[arg1];
+                ci->_ip += (arg2 << 8) + arg3;  //-V595
+                continue;
+            case _OP_SAVE_STATIC_MEMO: {
+                // STK(arg0) -> _staticmemos[arg1], STK(arg0) -> STK(loadInstr->_arg0),
+                // modify instruction op at -((arg2 << 8) + arg3) to _OP_LOAD_STATIC_MEMO
+                SQObjectPtr & staticmemo = STK(arg0);
+                SQObjectType tp = sq_type(staticmemo);
+                if (tp == OT_ARRAY || tp == OT_TABLE || tp == OT_INSTANCE || tp == OT_CLASS || tp == OT_USERDATA)
+                    staticmemo._flags |= SQOBJ_FLAG_IMMUTABLE;
+
+                SQObjectPtr & storedStatic = _closure(ci->_closure)->_function->_staticmemos[arg1]; //-V595
+                storedStatic = staticmemo;
+
+                SQInstruction * loadInstr = (ci->_ip - (arg2 << 8) - arg3);  //-V595
+                if (loadInstr->_arg0 != arg0)
+                    STK(loadInstr->_arg0) = staticmemo;
+                loadInstr->op = _OP_LOAD_STATIC_MEMO;
+                continue;
+                }
+            case _OP_FREEZE:
+                STK(arg1)._flags |= SQOBJ_FLAG_IMMUTABLE;
+                TARGET = STK(arg1);
+                continue;
             }
 
         }
@@ -1630,8 +1679,10 @@ bool SQVM::CreateClassInstance(SQClass *theclass, SQObjectPtr &__restrict out_in
 
 void SQVM::CallErrorHandler(SQObjectPtr &error)
 {
-  ci->_ip--;
-  if (_debughook_native)
+  if (ci)
+    ci->_ip--;
+
+  if (_debughook_native && ci)
   {
     if (ci->_closure._type == OT_NATIVECLOSURE)
     {
@@ -1659,7 +1710,8 @@ void SQVM::CallErrorHandler(SQObjectPtr &error)
         Pop(2);
     }
 
-  ci->_ip++;
+  if (ci)
+    ci->_ip++;
 }
 
 
@@ -1673,10 +1725,10 @@ void SQVM::CallDebugHook(SQInteger type,SQInteger forcedline)
             SQObjectPtr temp_reg; // -V688
             SQInteger nparams = 5;
             Push(_roottable);
-            Push(type);
-            Push(SQString::Create(_ss(this), _SC("")));
-            Push(SQInteger(-1));
-            Push(SQString::Create(_ss(this), _SC("")));
+            Push(SQObjectPtr(type));
+            Push(SQObjectPtr(SQString::Create(_ss(this), _SC(""))));
+            Push(SQObjectPtr(SQInteger(-1)));
+            Push(SQObjectPtr(SQString::Create(_ss(this), _SC(""))));
             Call(_debughook_closure, nparams, _top - nparams, temp_reg, SQFalse);
             Pop(nparams);
         }
@@ -1694,7 +1746,11 @@ void SQVM::CallDebugHook(SQInteger type,SQInteger forcedline)
     else {
         SQObjectPtr temp_reg;
         SQInteger nparams=5;
-        Push(_roottable); Push(type); Push(func->_sourcename); Push(forcedline?forcedline:func->GetLine(ci->_ip)); Push(func->_name);
+        Push(_roottable);
+        Push(SQObjectPtr(type));
+        Push(func->_sourcename);
+        Push(SQObjectPtr(forcedline ? forcedline : func->GetLine(ci->_ip)));
+        Push(func->_name);
         Call(_debughook_closure,nparams,_top-nparams,temp_reg,SQFalse);
         Pop(nparams);
     }
@@ -1782,7 +1838,7 @@ bool SQVM::CallNative(SQNativeClosure *nclosure, SQInteger nargs, SQInteger newb
 bool SQVM::TailCall(SQClosure *closure, SQInteger parambase,SQInteger nparams)
 {
     SQInteger last_top = _top;
-    SQObjectPtr clo = closure;
+    SQObjectPtr clo(closure);
     if (ci->_root)
     {
         Raise_Error("root calls cannot invoke tailcalls");
@@ -2046,7 +2102,7 @@ SQInteger SQVM::FallBackSet(const SQObjectPtr &self,const SQObjectPtr &key,const
     switch(sq_type(self)) {
         case OT_TABLE:
             if(_table(self)->_delegate) {
-                if(Set(_table(self)->_delegate,key,val,DONT_FALL_BACK)) return SLOT_RESOLVE_STATUS_OK;
+                if(Set(SQObjectPtr(_table(self)->_delegate),key,val,DONT_FALL_BACK)) return SLOT_RESOLVE_STATUS_OK;
             }
             //keps on going
         case OT_INSTANCE:
@@ -2118,7 +2174,6 @@ bool SQVM::NewSlot(const SQObjectPtr &self,const SQObjectPtr &key,const SQObject
         return false;
     }
 
-    if(sq_type(key) == OT_NULL) { Raise_Error(_SC("null cannot be used as index")); return false; }
     switch(sq_type(self)) {
     case OT_TABLE: {
         bool rawcall = true;
@@ -2161,7 +2216,7 @@ bool SQVM::NewSlot(const SQObjectPtr &self,const SQObjectPtr &key,const SQObject
                 return false;
             }
             else {
-                SQObjectPtr oval = PrintObjVal(key);
+                SQObjectPtr oval(PrintObjVal(key));
                 Raise_Error(_SC("the property '%s' already exists"),_stringval(oval));
                 return false;
             }
@@ -2201,7 +2256,7 @@ bool SQVM::DeleteSlot(const SQObjectPtr &self,const SQObjectPtr &key,SQObjectPtr
                     _table(self)->Remove(key);
                 }
                 else {
-                    Raise_IdxError((const SQObject &)key);
+                    Raise_IdxError(key);
                     return false;
                 }
             }

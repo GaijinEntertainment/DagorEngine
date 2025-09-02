@@ -7,6 +7,7 @@
 #include <3d/dag_picMgr.h>
 #include <gui/dag_stdGuiRender.h>
 #include <squirrel.h>
+#include <util/dag_string.h>
 
 namespace Sqrat
 {
@@ -40,6 +41,7 @@ public:
   const PictureManager::PicDesc &getPic();
   BlendMode getBlendMode() const { return blendMode; }
   const char *getName() const { return srcName; }
+  Point2 getLoadedPicSize();
 
 protected:
   bool load(const char *name); //> return true if loaded, false if requested to load asynchronously

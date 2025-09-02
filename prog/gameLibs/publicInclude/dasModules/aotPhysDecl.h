@@ -9,8 +9,7 @@
 #include <ecs/phys/ragdoll.h>
 #include <ecs/phys/physBody.h>
 #include <memory/dag_framemem.h>
-
-#include <phys/dag_physics.h>
+#include <phys/dag_physDecl.h>
 
 MAKE_TYPE_FACTORY(PhysRagdoll, PhysRagdoll);
 MAKE_TYPE_FACTORY(PhysSystemInstance, PhysSystemInstance);
@@ -25,7 +24,7 @@ inline PhysSystemInstance *ragdoll_getPhysSys(PhysRagdoll &ragdoll) { return rag
 inline PhysBody *phys_system_instance_getBody(PhysSystemInstance &instance, int index) { return instance.getBody(index); }
 
 inline void projectile_impulse_get_data(const ProjectileImpulse &impulse,
-  const das::TBlock<void, das::TTemporary<das::TArray<das::ProjectileImpulseDataPair>>> &block, das::Context *context,
+  const das::TBlock<void, const das::TTemporary<das::TArray<das::ProjectileImpulseDataPair>>> &block, das::Context *context,
   das::LineInfoArg *at)
 {
   Tab<das::ProjectileImpulseDataPair> pairs(framemem_ptr());

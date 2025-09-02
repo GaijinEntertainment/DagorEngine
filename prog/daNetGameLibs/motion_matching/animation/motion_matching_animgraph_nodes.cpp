@@ -2,6 +2,7 @@
 
 #include "motion_matching_animgraph_nodes.h"
 #include <anim/dag_animBlendCtrl.h>
+#include <gameRes/dag_gameResSystem.h>
 
 constexpr uint32_t MM_TAG_NEGATION_BIT = 1 << 31;
 
@@ -10,10 +11,11 @@ void load_motion_matching_animgraph_nodes(AnimationDataBase &data_base, AnimV20:
   data_base.animGraphNodeTagsRemap.clear();
   G_ASSERT(anim_graph);
   data_base.referenceAnimGraph = anim_graph;
+  data_base.animGraphGameRes.reset(get_game_resource(anim_graph->resId)); // automatically increment ref counter
   for (int i = 0, ie = anim_graph->getAnimNodeCount(); i < ie; ++i)
   {
     AnimV20::IAnimBlendNode *node = anim_graph->getBlendNodePtr(i);
-    if (!node->isSubOf(AnimV20::AnimBlendCtrl_SetMotionMatchingTagCID))
+    if (!node || !node->isSubOf(AnimV20::AnimBlendCtrl_SetMotionMatchingTagCID))
       continue;
     AnimV20::AnimBlendCtrl_SetMotionMatchingTag *mmTagNode = static_cast<AnimV20::AnimBlendCtrl_SetMotionMatchingTag *>(node);
     const char *tagName = mmTagNode->getTagName();

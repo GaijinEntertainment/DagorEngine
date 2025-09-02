@@ -26,7 +26,7 @@ namespace ps
 {
 // Texture creation
 Texture *create_raw_tex();
-void update_raw_tex(Texture *tex, void *gnm_texture, void *gnm_sampler = NULL);
+void update_raw_tex(Texture *tex, void *gnm_texture);
 
 // direct access to gpu heaps
 void *alloc_mem_block(bool onion, uint32_t size, uint32_t alignment);

@@ -13,9 +13,11 @@ static constexpr ecs::component_t team_get_type();
 static ecs::LTComponentList team_component(ECS_HASH("team"), team_get_type(), "prog/daNetGame/game/playerES.cpp.inl", "players_eid_connection_ecs_query", 0);
 static constexpr ecs::component_t transform_get_type();
 static ecs::LTComponentList transform_component(ECS_HASH("transform"), transform_get_type(), "prog/daNetGame/game/playerES.cpp.inl", "", 0);
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "playerES.cpp.inl"
 ECS_DEF_PULL_VAR(player);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc players_search_ecs_query_comps[] =
 {
@@ -35,7 +37,7 @@ template<typename Callable>
 inline void players_search_ecs_query(Callable function)
 {
   perform_query(g_entity_mgr, players_search_ecs_query_desc.getHandle(),
-    [&function](const ecs::QueryView& __restrict components)
+    ecs::stoppable_query_cb_t([&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
         {
@@ -46,7 +48,7 @@ inline void players_search_ecs_query(Callable function)
             return ecs::QueryCbResult::Stop;
         }while (++comp != compE);
           return ecs::QueryCbResult::Continue;
-    }
+    })
   );
 }
 static constexpr ecs::ComponentDesc players_search_by_platfrom_ecs_query_comps[] =
@@ -67,7 +69,7 @@ template<typename Callable>
 inline void players_search_by_platfrom_ecs_query(Callable function)
 {
   perform_query(g_entity_mgr, players_search_by_platfrom_ecs_query_desc.getHandle(),
-    [&function](const ecs::QueryView& __restrict components)
+    ecs::stoppable_query_cb_t([&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
         {
@@ -78,7 +80,39 @@ inline void players_search_by_platfrom_ecs_query(Callable function)
             return ecs::QueryCbResult::Stop;
         }while (++comp != compE);
           return ecs::QueryCbResult::Continue;
-    }
+    })
+  );
+}
+static constexpr ecs::ComponentDesc players_search_by_name_ecs_query_comps[] =
+{
+//start of 1 rw components at [0]
+  {ECS_HASH("player"), ecs::ComponentTypeInfo<game::Player>()},
+//start of 1 ro components at [1]
+  {ECS_HASH("name"), ecs::ComponentTypeInfo<eastl::string>()}
+};
+static ecs::CompileTimeQueryDesc players_search_by_name_ecs_query_desc
+(
+  "players_search_by_name_ecs_query",
+  make_span(players_search_by_name_ecs_query_comps+0, 1)/*rw*/,
+  make_span(players_search_by_name_ecs_query_comps+1, 1)/*ro*/,
+  empty_span(),
+  empty_span());
+template<typename Callable>
+inline void players_search_by_name_ecs_query(Callable function)
+{
+  perform_query(g_entity_mgr, players_search_by_name_ecs_query_desc.getHandle(),
+    ecs::stoppable_query_cb_t([&function](const ecs::QueryView& __restrict components)
+    {
+        auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
+        {
+          if (function(
+              ECS_RW_COMP(players_search_by_name_ecs_query_comps, "player", game::Player)
+            , ECS_RO_COMP(players_search_by_name_ecs_query_comps, "name", eastl::string)
+            ) == ecs::QueryCbResult::Stop)
+            return ecs::QueryCbResult::Stop;
+        }while (++comp != compE);
+          return ecs::QueryCbResult::Continue;
+    })
   );
 }
 static constexpr ecs::ComponentDesc players_connection_ecs_query_comps[] =
@@ -134,7 +168,7 @@ template<typename Callable>
 inline void players_eid_connection_ecs_query(Callable function)
 {
   perform_query(g_entity_mgr, players_eid_connection_ecs_query_desc.getHandle(),
-    [&function](const ecs::QueryView& __restrict components)
+    ecs::stoppable_query_cb_t([&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
         {
@@ -147,7 +181,7 @@ inline void players_eid_connection_ecs_query(Callable function)
             return ecs::QueryCbResult::Stop;
         }while (++comp != compE);
           return ecs::QueryCbResult::Continue;
-    }
+    })
   );
 }
 static constexpr ecs::ComponentDesc players_ecs_query_comps[] =
@@ -169,7 +203,7 @@ template<typename Callable>
 inline void players_ecs_query(Callable function)
 {
   perform_query(g_entity_mgr, players_ecs_query_desc.getHandle(),
-    [&function](const ecs::QueryView& __restrict components)
+    ecs::stoppable_query_cb_t([&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
         {
@@ -180,7 +214,7 @@ inline void players_ecs_query(Callable function)
             return ecs::QueryCbResult::Stop;
         }while (++comp != compE);
           return ecs::QueryCbResult::Continue;
-    }
+    })
   );
 }
 static constexpr ecs::component_t connid_get_type(){return ecs::ComponentTypeInfo<int>::type; }

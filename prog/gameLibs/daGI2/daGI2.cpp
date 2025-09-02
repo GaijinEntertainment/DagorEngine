@@ -1,5 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#include <ioSys/dag_dataBlock.h>
 #include <util/dag_convar.h>
 #include <perfMon/dag_statDrv.h>
 #include <daSDF/worldSDF.h>
@@ -48,6 +49,8 @@ CONSOLE_INT_VAL("gi", gi_debug_sky_visibility, 0, 0, 9);
 CONSOLE_BOOL_VAL("gi", gi_radiance_grid_update_position, true);
 CONSOLE_INT_VAL("gi", gi_debug_radiance_grid_type, 0, 0, 4);
 CONSOLE_INT_VAL("gi", gi_debug_irradiance_grid_type, 0, 0, 6);
+CONSOLE_BOOL_VAL("gi", gi_auto_invalidation, true);
+
 
 #define GLOBAL_VARS_LIST VAR(world_view_pos)
 
@@ -81,12 +84,14 @@ struct DaGIImpl final : public DaGI
   void fix(DaGI::Settings &s) const;
   DaGI::Settings getCurrentSettings() const { return currentSettings; }
   DaGI::Settings getNextSettings() const { return nextSettings; }
+  void afterSettingsChanged() const;
   const WorldSDF &getWorldSDF() const { return *worldSdf; }
   WorldSDF &getWorldSDF() { return *worldSdf; }
   void beforeRender(uint32_t sw, uint32_t sh, uint32_t maxw, uint32_t maxh, const TMatrix &viewItm, const TMatrix4 &projTm, float zn,
-    float zf);
+    float zf, RadianceUpdate);
   void beforeFrameLit(float quality);
-  void afterFrameRendered(FrameData frame_featues);
+  void afterFrameRendered(FrameData frame_featues, const bool allow_update_from_gbuf);
+  uint32_t getHistoryFrames() const override { return historyFrames; }
 
   eastl::unique_ptr<WorldSDF> worldSdf;
   DaGIImpl()
@@ -98,6 +103,7 @@ struct DaGIImpl final : public DaGI
     ShaderGlobal::set_int(dagi_warp64_irradianceVarId,
       d3d::get_driver_desc().caps.hasWaveOps && (d3d::get_driver_desc().minWarpSize == 64));
     worldSdf.reset(new_world_sdf());
+    view.frustum = Frustum(TMatrix4::IDENT);
 #if RADIANCE_CACHE
     radianceCache.reset(new RadianceCache);
 #endif
@@ -118,6 +124,8 @@ struct DaGIImpl final : public DaGI
     Point3 giPos = {0, 0, 0};
     uint32_t sw = 0, sh = 0;
   } view;
+  RadianceUpdate allowUpdate = RadianceUpdate::Off;
+  uint32_t historyFrames = 0;
   uint32_t frame = 0;
   eastl::unique_ptr<DaGIMediaScene> mediaScene;
   eastl::unique_ptr<DaGIVoxelScene> voxelScene;
@@ -125,6 +133,7 @@ struct DaGIImpl final : public DaGI
   eastl::unique_ptr<SkyVisibility> skyVisibility;
   UniqueBuf commonTempBuffer;
   bool unoderedTypedLoad = true;
+  bool positionUpdated = false;
   void workAroundUAVslots()
   {
     // Workaround for RW texture stuck in u slot, conflicting with RT on DX11.
@@ -279,6 +288,7 @@ void DaGIImpl::updatePosition(const rasterize_sdf_radiance_cb &sdf_cb, const ras
 {
   if (!gi_world_sdf_update)
     return;
+  positionUpdated = true;
   workAroundUAVslots();
   // fixme gi position
   view.giPos = view.world_view_pos; // fixme: gi position is not same as view position!
@@ -307,9 +317,14 @@ void DaGIImpl::updatePosition(const rasterize_sdf_radiance_cb &sdf_cb, const ras
       uintptr_t handle = 0;
       renderedSdf = sdf_cb(world_clip, box, voxelSize, handle) == UpdateGiQualityStatus::RENDERED;
       if (voxelScene && renderedSdf)
+      {
+        G_ASSERTF(allowUpdate == RadianceUpdate::On || !voxelScene || world_clip >= voxelScene->getSdfClips(),
+          "allowUpdate = %d world_clip = %d >= %d", (int)allowUpdate, world_clip, voxelScene ? voxelScene->getSdfClips() : -1);
         voxelScene->rbFinish();
+      }
       return renderedSdf;
-    });
+    },
+    voxelScene &&allowUpdate == RadianceUpdate::Off ? ~((1 << voxelScene->getSdfClips()) - 1) : ~0u);
   if (voxelScene && renderedSdf)
     voxelScene->rbFinish(); // after copy slice
 
@@ -489,16 +504,20 @@ void DaGIImpl::afterReset()
     voxelScene->afterReset();
   if (worldSdf)
     worldSdf->fullReset();
-
+  historyFrames = 0;
 #if RADIANCE_CACHE
   G_ASSERTF(0, "fixme: reset support are not implemented yet");
 #endif
 }
 
-void DaGIImpl::afterFrameRendered(FrameData frame_featues)
+void DaGIImpl::afterFrameRendered(FrameData frame_featues, const bool allow_update_from_gbuf)
 {
+  if (!positionUpdated)
+    return;
   DA_PROFILE_GPU;
-  if (gi_update_from_gbuf)
+  if (allowUpdate == RadianceUpdate::Off)
+    frame_featues = FrameData(frame_featues & ~FrameHasLitScene);
+  if (gi_update_from_gbuf && allow_update_from_gbuf)
   {
     if (frame_featues & FrameHasDynamic)
     {
@@ -523,9 +542,22 @@ void DaGIImpl::afterFrameRendered(FrameData frame_featues)
   workAroundUAVslots();
 }
 
-void DaGIImpl::beforeRender(uint32_t sw, uint32_t sh, uint32_t maxW, uint32_t maxH, const TMatrix &viewItm, const TMatrix4 &projTm,
-  float zn, float zf)
+void DaGIImpl::afterSettingsChanged() const
 {
+  auto cache = nextSettings.giDatablockCache;
+  const DataBlock *graphicsGI = dgs_get_settings()->getBlockByNameEx("graphics")->getBlockByNameEx("gi");
+  cache.voxelSceneResScale = graphicsGI->getReal("voxelSceneResScale", 0.5);
+  cache.sdfClips = graphicsGI->getInt("sdfClips", -1);
+  cache.sdfVoxel0 = clamp(graphicsGI->getReal("sdfVoxel0", 0.15), 0.065f, 0.45f);
+  cache.albedoClips = graphicsGI->getInt("albedoClips", 3);
+  cache.radianceGridClipW = graphicsGI->getInt("radianceGridClipW", 28);
+  cache.radianceGridClips = graphicsGI->getInt("radianceGridClips", 4);
+}
+
+void DaGIImpl::beforeRender(uint32_t sw, uint32_t sh, uint32_t maxW, uint32_t maxH, const TMatrix &viewItm, const TMatrix4 &projTm,
+  float zn, float zf, RadianceUpdate ru)
+{
+  positionUpdated = false;
   maxSW = maxW;
   maxSH = maxH;
   ((DaGIFrameInfo &)view) = get_frame_info(viewItm, projTm, zn, zf);
@@ -680,7 +712,7 @@ void DaGIImpl::beforeRender(uint32_t sw, uint32_t sh, uint32_t maxW, uint32_t ma
 
     skyVisibility->init(currentSettings.skyVisibility.clipW, clipD, currentSettings.skyVisibility.clips, skyVisProbeSize,
       currentSettings.skyVisibility.framesToUpdateTemporally, !bool(radianceGrid));
-    skyVisibility->setHasSimulatedBounceCascade(currentSettings.skyVisibility.simulateLightBounceClips);
+    skyVisibility->setHasSimulatedBounceCascade(ru == RadianceUpdate::On ? currentSettings.skyVisibility.simulateLightBounceClips : 0);
     float halfSdfSize = 0.5 * worldSdf->getVoxelSize(worldSdf->getClipsCount() - 1) * sdfW;
     const float traceDist = currentSettings.skyVisibility.traceDist > 0 ? currentSettings.skyVisibility.traceDist : halfSdfSize / 3.f;
     skyVisibility->setTracingDistances(traceDist, currentSettings.skyVisibility.upscaleInProbes,
@@ -727,6 +759,19 @@ void DaGIImpl::beforeRender(uint32_t sw, uint32_t sh, uint32_t maxW, uint32_t ma
   G_ASSERT(!screenProbes || radianceGrid);
   G_ASSERT(bool(skyVisibility) != bool(radianceGrid));
   G_ASSERT(skyVisibility || !currentSettings.voxelScene.onlyLuma);
+  if (allowUpdate == RadianceUpdate::Off && ru == RadianceUpdate::On && gi_auto_invalidation)
+  {
+    if (volumetricGI)
+      volumetricGI->resetHistoryAge();
+    if (screenProbes)
+      screenProbes->resetHistoryAge();
+    if (radianceGrid)
+      radianceGrid->resetHistoryAge();
+    if (mediaScene)
+      mediaScene->resetHistoryAge();
+    historyFrames = 0;
+  }
+  allowUpdate = ru;
 }
 
 void DaGIImpl::beforeFrameLit(float dynamic_quality)
@@ -780,11 +825,12 @@ void DaGIImpl::beforeFrameLit(float dynamic_quality)
   if (volumetricGI)
     volumetricGI->calc(view.viewItm, view.projTm, view.znear, view.zfar, dynamic_quality);
   workAroundUAVslots();
+  historyFrames++;
 }
 
 bool is_only_low_gi_supported()
 {
-  constexpr uint32_t FORMARS_TO_CHECK[] = {TEXFMT_L8, TEXFMT_A16B16G16R16F, TEXFMT_R11G11B10F, TEXFMT_R16F};
+  constexpr uint32_t FORMARS_TO_CHECK[] = {TEXFMT_R8, TEXFMT_A16B16G16R16F, TEXFMT_R11G11B10F, TEXFMT_R16F};
   for (int i = 0; i < countof(FORMARS_TO_CHECK); i++)
   {
     if (!(d3d::get_texformat_usage(FORMARS_TO_CHECK[i]) & d3d::USAGE_UNORDERED_LOAD))

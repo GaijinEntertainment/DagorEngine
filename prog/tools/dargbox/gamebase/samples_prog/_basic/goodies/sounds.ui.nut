@@ -6,11 +6,11 @@ let showElem = Watched(false)
 
 function extraItem() {
   let children = []
-  if (showElem.value)
+  if (showElem.get())
     children.append({
       rendObj = ROBJ_SOLID
       color = Color(0,40,0)
-      size = [300,200]
+      size = static [300,200]
       valign = ALIGN_CENTER
       halign = ALIGN_CENTER
       sound = {
@@ -31,11 +31,11 @@ function sampleButton() {
   return {
     rendObj = ROBJ_SOLID
     color = Color(0,25,205)
-    size = [200,50]
+    size = static [200,50]
     behavior = Behaviors.Button
     valign = ALIGN_CENTER
     halign = ALIGN_CENTER
-    onClick = @() showElem.update(false)
+    onClick = @() showElem.set(false)
     sound = {
       click  = "ui/click"
       active = null
@@ -52,7 +52,7 @@ function sampleButton2() {
   return {
     rendObj = ROBJ_SOLID
     color = Color(0,205,25)
-    size = [200,50]
+    size = static [200,50]
     behavior = Behaviors.Button
     valign = ALIGN_CENTER
     halign = ALIGN_CENTER
@@ -64,7 +64,7 @@ function sampleButton2() {
       rendObj = ROBJ_TEXT
       text = "show item"
     }
-    onClick = @() showElem.update(true)
+    onClick = @() showElem.set(true)
   }
 }
 

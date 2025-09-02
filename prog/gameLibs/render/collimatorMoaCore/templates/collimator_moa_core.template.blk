@@ -1,0 +1,120 @@
+//----USAGE-----------
+// 1. Create an entity with collimator_moa_render template
+//
+// 2. For EACH collimator image create template with _use:t="collimator_moa_image"
+//    and initialize "collimator_moa_image__shapes:array"
+//
+//    Example:
+//    my_collimator_image{
+//    _use:t="collimator_moa_image"
+//    "collimator_moa_image__shapes:array" {
+//      "shape:object" {
+//        type:t="circle"
+//        pos:p2 = 0,0
+//        radius:r = 6.0
+//      }
+// 3. Create an entity with it template
+//
+// 4. add _use:t="scope_collimator_moa" to the scope template
+//    usually it's a gunmod with _use:t="scope_gunmod"
+//
+// 5. initialize gunmod__collimator_moa_img_template:t=""
+//    with required collimator image template name from #2 step
+//    It can be done during the game also.
+//
+//----Shapes format:-----
+// "collimator_moa_image__shapes:array" {
+//   "shape:object" {
+//      type:t="TYPE_NAME"
+//      params1
+//      params2
+//      ...
+//    }
+// }
+//----Available Shapes:-----
+// 1. Circle
+//  type:t="circle"
+//  center:p2 = 0,0
+//  radius:r = 6.0
+//
+// 2. Ring
+//  type:t="ring"
+//  center:p2 = 0,0
+//  radius:r = 6.0
+//  width:r = 6.0
+//
+// 3. Line
+//  type:t="line"
+//  begin:p2 = 0,0
+//  end:p2 = 6,6
+//  width:r = 6.0
+//
+// 4. Triangle
+//  type:t="triangle"
+//  point_a:p2 = -1,0
+//  point_b:p2 = 0,1
+//  point_c:p2 = 1,0
+//
+// 5. Arc
+//  type:t="arc"
+//  center:p2 = 0,0
+//  radius:r = 32
+//  width:r = 6
+//  begin:r = -90
+//  end:r = 160
+
+collimator_moa_image{
+  _singleton:b=yes
+  _tags:t="render"
+  _tracked:t="collimator_moa_image__shapes"
+
+  "collimator_moa_image__shapes:array" {}
+  collimator_moa_image__valid:b = no
+}
+
+scope_collimator_moa{
+  _tracked:t="gunmod__collimator_moa_img_template"
+
+  gunmod__collimator_moa_img_template:t=""
+  gunmod__collimator_moa_parallax_plane_dist:r = 10.0
+  gunmod__collimator_moa_reticle_offset_y:r=0
+
+  gunmod__collimator_moa_color:p4 = 1, 0 , 0, 1
+  gunmod__collimator_moa_border_min:r = 0.3
+  gunmod__collimator_moa_border_scale:r = 0.8
+
+  gunmod__collimator_moa_use_noise:b=no
+  gunmod__collimator_moa_noise_min_intensity:r=0.01
+
+  gunmod__collimator_moa_light_noise_thinness:r=0.001
+  gunmod__collimator_moa_light_noise_intensity_scale:r=15.0
+
+  gunmod__collimator_moa_static_noise_uv_scale:r=2.0
+  gunmod__collimator_moa_static_noise_add:r=0.1
+  gunmod__collimator_moa_static_noise_scale:r=0.6
+
+  gunmod__collimator_moa_dynamic_noise_uv_scale:r=17.0
+  gunmod__collimator_moa_dynamic_noise_sub_scale:r=0.56
+  gunmod__collimator_moa_dynamic_noise_scale:r=40.0
+  gunmod__collimator_moa_dynamic_noise_add:r=-0.112
+  gunmod__collimator_moa_dynamic_noise_intensity_scale:r=0.0
+  gunmod__collimator_moa_dynamic_noise_speed:p2=0.1, 0.27
+
+  "gunmod__collimator_moa_img_eid:eid"{}
+}
+
+collimator_moa_render{
+  _singleton:b=yes
+  _tags:t="render"
+
+  "collimator_moa_render__active_image_eid:eid"{}
+  collimator_moa_render__active_shapes_count:i = 0
+  collimator_moa_render__shapes_buf_reg_count:i = 0
+  "collimator_moa_render__current_shapes_buf:UniqueBufHolder"{}
+
+  "collimator_moa_render__gun_mod_eid:eid"{}
+  "collimator_moa_render__rigid_id:i"{}
+  "collimator_moa_render__relem_id:i"{}
+  collimator_moa_render__relem_update_required:b = no
+  collimator_moa_render__calibration_range_cm:r = 14.6
+}

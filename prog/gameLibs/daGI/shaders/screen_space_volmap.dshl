@@ -226,9 +226,11 @@ shader temporal_ambient_voxels_cs
       StructuredBuffer<uint> voxelsWeightHistogram@buf;
     };
     visible_ambient_voxels@uav : register(temporal_ambient_voxels_cs_visible_ambient_voxels_uav_no) hlsl {
+      #include "dagi_common_types.hlsli"
       RWStructuredBuffer<VisibleAmbientVoxel> visible_ambient_voxels@uav;
     };
     visible_ambient_voxels_walls_planes@uav : register(temporal_ambient_voxels_cs_visible_ambient_voxels_walls_planes_uav_no) hlsl {
+      #include "dagi_common_types.hlsli"
       RWStructuredBuffer<AmbientVoxelsPlanes> visible_ambient_voxels_walls_planes@uav;
     };
   }

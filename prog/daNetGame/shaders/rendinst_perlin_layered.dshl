@@ -1,12 +1,18 @@
 include "rendinst_simple_inc.dshl"
 include "rendinst_hmap_inc.dshl"
 include "perlin_layered_inc.dshl"
+include "gbuffer.dshl"
+include "optional_puddle_access.dshl"
 
 
 shader rendinst_perlin_layered
 {
+  ENABLE_ASSERT(ps)
+  USE_RIEXTRA_PER_INSTANCE_RENDER_DATA(vs)
+  INIT_COMMON_RENDINST_TESSELLATION_VARS()
+  COMMON_RENDINST_SIMPLE_INIT(true)
   INIT_COMMON_RENDINST_TESSELLATION()
-  COMMON_RENDINST_SIMPLE_INIT()
+  INIT_AND_USE_COMMON_RENDINST_MOTION_VECTORS()
   INIT_COMMON_RENDINST_TESSELLATION_CHANNELS()
 
   INIT_PERLIN_LAYERED()
@@ -25,6 +31,8 @@ shader rendinst_perlin_layered
 
   COMMON_RENDINST_VS_IO_DEFINES()
 
+  NO_DYNSTCODE()
+
   hlsl {
     struct VsOutput
     {
@@ -35,7 +43,8 @@ shader rendinst_perlin_layered
         RI_HMAP_BLEND_VS_TYPE riHmapBlend : TEXCOORD7;
       #endif
 
-      float3 initPos                    : TEXCOORD6;
+      float3 initPos                      : TEXCOORD6;
+      float localPosY                     : TEXCOORD8;
     };
     #define HsInput VsOutput
   }
@@ -46,14 +55,29 @@ shader rendinst_perlin_layered
     #define VS_SPECIFIC_OUTPUT 1
 
     #define VS_SPECIFIC_OUTPUT_INIT_FIELDS(output) \
-      output.initPos = float3(0,0,0);
+      output.initPos = float3(0,0,0); \
+      output.localPosY = 0;
 
-    void vs_specific_output(VsInput input, float3 worldPos, float3 worldLocalPos, inout VsOutput output)
+    void vs_specific_output(VsInput input, float3 worldPos, float3 worldLocalPos, uint perInstanceRenderDataOffset, uint perInstanceRenderDataFlags,
+      float3 worldLocalX, float3 worldLocalY, float3 worldLocalZ, inout VsOutput output, inout float3 prev_input_pos)
     {
+      uint initialTm3x3Flag = RIEXTRA_PER_INSTANCE_RENDER_DATA__INITIAL_TM_3X3__FLAG;
+      uint initialTmPosFlag = RIEXTRA_PER_INSTANCE_RENDER_DATA__INITIAL_TM_POS__FLAG;
+      float4x4 firstGlobTm;
+      uint initialTm3x3Offset = RIEXTRA_PER_INSTANCE_RENDER_DATA__INITIAL_TM_3X3__OFFSET(perInstanceRenderDataFlags);
+      uint initialTmPosOffset = RIEXTRA_PER_INSTANCE_RENDER_DATA__INITIAL_TM_POS__OFFSET(perInstanceRenderDataFlags);
+      firstGlobTm[0] = LOAD_RIEXTRA_PID(initialTm3x3Offset+0, initialTm3x3Flag, float4(worldLocalX, 0));
+      firstGlobTm[1] = LOAD_RIEXTRA_PID(initialTm3x3Offset+1, initialTm3x3Flag, float4(worldLocalY, 0));
+      firstGlobTm[2] = LOAD_RIEXTRA_PID(initialTm3x3Offset+2, initialTm3x3Flag, float4(worldLocalZ, 0));
+      firstGlobTm[3] = LOAD_RIEXTRA_PID(initialTmPosOffset, initialTmPosFlag, float4(worldLocalPos, 1));
+
       if (get_perlin_noise_offs().w != 0)
         output.initPos = input.pos + get_perlin_noise_offs().xyz;
       else
-        output.initPos = worldPos;
+        output.initPos = mulPointTm(input.pos, firstGlobTm).xyz;
+
+      // Needed for local moss (third detail) noise
+      output.localPosY = input.pos.y;
 
       ##if (rendinst_render_pass == rendinst_render_pass_to_shadow)
         output.pos.z += get_zBias(); // Apply material zbias to fix shadow acne in specific cases.
@@ -74,6 +98,11 @@ shader rendinst_perlin_layered
       #define USE_INITIAL_POS
     }
 
+    if (rendinst_render_pass == rendinst_render_pass_normal)
+    {
+      PACK_UNPACK_GBUFFER_BASE(ps)
+      USE_RI_PUDDLES()
+    }
     PERLIN_LAYERED_PS((rendinst_render_pass != rendinst_render_pass_voxelize_albedo), true)
   }
 
@@ -90,7 +119,8 @@ shader rendinst_perlin_layered
           nointerpolation RI_HMAP_BLEND_VS_TYPE riHmapBlend : TEXCOORD7;
         #endif
 
-        float3 initPos : TEXCOORD6;
+        float3 initPos  : TEXCOORD6;
+        float localPosY : TEXCOORD8;
       };
     }
 
@@ -104,6 +134,7 @@ shader rendinst_perlin_layered
           PROXY_FIELD_VALUE(riHmapBlend);
         #endif
         PROXY_FIELD_VALUE(initPos);
+        PROXY_FIELD_VALUE(localPosY);
       }
     }
 
@@ -111,7 +142,7 @@ shader rendinst_perlin_layered
 
     hlsl(ds)
     {
-      void fields_barycentric_values(const OutputPatch<HsControlPoint, 3> input, inout VsOutput output, float3 uvw)
+      void fields_barycentric_values(const OutputPatch<HsControlPoint, 3> input, inout VsOutput output, float3 uvw, float tessellation_transition_weight)
       {
         BARYCENTRIC_COORDS_UNPACK(uvw)
         COMMON_RENDINST_TESS_FIELD_BARYCENTRIC_VALUE
@@ -120,8 +151,9 @@ shader rendinst_perlin_layered
           FIELD_BARYCENTRIC_VALUE(riHmapBlend);
         #endif
         FIELD_BARYCENTRIC_VALUE(initPos);
+        FIELD_BARYCENTRIC_VALUE(localPosY);
 
-        modify_tessellation_displacement(input, output, uvw);
+        modify_tessellation_displacement(input, output, uvw, tessellation_transition_weight);
       }
     }
 

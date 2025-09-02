@@ -7,10 +7,11 @@
 #include <EASTL/type_traits.h>
 #include <EASTL/algorithm.h>
 #include <util/dag_globDef.h>
+
 template <typename T, bool bConst>
 struct NullableComponent
 {
-  typedef typename eastl::type_select<bConst, const T, T>::type T_const_type;
+  typedef typename eastl::conditional<bConst, const T, T>::type T_const_type;
   typedef const T *cptr_type;
   typedef const T &cref_type;
   typedef T_const_type *ptr_type;

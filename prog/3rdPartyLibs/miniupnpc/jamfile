@@ -41,6 +41,6 @@ if $(PlatformSpec) in gcc clang {
   Copt += -Wno-unused-parameter ;
 }
 
-Copt += -DMINIUPNPC_SET_SOCKET_TIMEOUT=1 -DMINIUPNPC_GET_SRC_ADDR=1 ;
+Copt += -DMINIUPNPC_SET_SOCKET_TIMEOUT -DMINIUPNPC_GET_SRC_ADDR ;
 
 include $(Root)/prog/_jBuild/build.jam ;

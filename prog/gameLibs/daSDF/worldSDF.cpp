@@ -31,32 +31,33 @@ CONSOLE_BOOL_VAL("render", world_sdf_update_one_mip, true);
 CONSOLE_INT_VAL("render", world_sdf_ping_pong_iterations, 1, 0, 8);
 CONSOLE_INT_VAL("render", world_sdf_invalidate_clip, -1, -1, 8);
 CONSOLE_INT_VAL("render", world_sdf_depth_mark_pass, 16384, 0, 131072);
-#define GLOBAL_VARS_LIST                 \
-  VAR(world_sdf_update_current_frame)    \
-  VAR(world_sdf_update_old)              \
-  VAR(world_sdf_update_lt_coord)         \
-  VAR(world_sdf_update_sz_coord)         \
-  VAR(world_sdf_raster_lt_coord)         \
-  VAR(world_sdf_raster_sz_coord)         \
-  VAR(world_sdf_inv_size)                \
-  VAR(sdf_grid_culled_instances_grid_lt) \
-  VAR(sdf_grid_culled_instances_res)     \
-  VAR(sdf_grid_cell_size)                \
-  VAR(world_sdf_cull_update_lt)          \
-  VAR(world_sdf_cull_update_rb)          \
-  VAR(world_sdf_cull_grid_boxes_count)   \
-  VAR(world_sdf_res)                     \
-  VAR(world_sdf_res_np2)                 \
-  VAR(world_sdf_update_mip)              \
-  VAR(world_sdf_use_grid)                \
-  VAR(world_sdf_clipmap_samplerstate)    \
+#define GLOBAL_VARS_LIST                          \
+  VAR(world_sdf_update_current_frame)             \
+  VAR(world_sdf_update_old)                       \
+  VAR(world_sdf_update_lt_coord)                  \
+  VAR(world_sdf_update_sz_coord)                  \
+  VAR(world_sdf_raster_lt_coord)                  \
+  VAR(world_sdf_raster_sz_coord)                  \
+  VAR(world_sdf_to_atlas_decode__gradient_offset) \
+  VAR(sdf_grid_culled_instances_grid_lt)          \
+  VAR(sdf_grid_culled_instances_res)              \
+  VAR(sdf_grid_cell_size)                         \
+  VAR(world_sdf_cull_update_lt)                   \
+  VAR(world_sdf_cull_update_rb)                   \
+  VAR(world_sdf_cull_grid_boxes_count)            \
+  VAR(world_sdf_res)                              \
+  VAR(world_sdf_res_np2)                          \
+  VAR(world_sdf_update_mip)                       \
+  VAR(world_sdf_use_grid)                         \
+  VAR(world_sdf_clipmap_samplerstate)             \
   VAR(world_sdf_clipmap_rasterize)
 
-#define OPTIONAL_VARS_LIST VAR(world_sdf_support_uav_load)
+#define OPTIONAL_VARS_LIST        \
+  VAR(world_sdf_support_uav_load) \
+  VAR(world_sdf_inv_size)
 
-static ShaderVariableInfo world_sdf_coord_ltVarId[MAX_WORLD_SDF_CLIPS], world_sdf_to_tc_addVarId[MAX_WORLD_SDF_CLIPS],
-  world_sdf_ltVarId[MAX_WORLD_SDF_CLIPS], world_sdf_cull_grid_ltVarId[6], world_sdf_cull_grid_rbVarId[6];
-#define VAR(a) static ShaderVariableInfo a##VarId(#a);
+static ShaderVariableInfo world_sdf_cull_grid_ltVarId[6], world_sdf_cull_grid_rbVarId[6];
+#define VAR(a) static ShaderVariableInfo a##VarId(#a, true);
 GLOBAL_VARS_LIST
 #undef VAR
 
@@ -77,10 +78,22 @@ float WorldSDF::get_voxel_size(float voxel0Size, uint32_t i) { return voxel0Size
 
 VECTORCALL VECMATH_FINLINE vec4f v_perm_xzyw(vec4f a) { return v_perm_xzac(a, v_perm_yzwx(a)); }
 
+struct WorldSDFParams
+{
+  Point4 world_sdf_lt[MAX_WORLD_SDF_CLIPS];
+  Point4 world_sdf_lt_invalid;
+  Point4 world_sdf_to_tc_add[MAX_WORLD_SDF_CLIPS];
+  Point4 world_sdf_to_tc_add_invalid;
+};
+
 struct WorldSDFImpl final : public WorldSDF
 {
+  WorldSDFParams world_sdf_params;
+  eastl::array<IPoint4, MAX_WORLD_SDF_CLIPS> world_sdf_coord_lt;
   PostFxRenderer sdf_world_debug;
   UniqueTexHolder world_sdf_clipmap;
+  UniqueBufHolder world_sdf_coord_lt_buf;
+  UniqueBufHolder world_sdf_params_buf;
   UniqueBufHolder culled_sdf_instances, culled_sdf_instances_grid;
   UniqueBuf world_sdf_clipmap_rasterize_owned;
   Sbuffer *world_sdf_clipmap_rasterize = nullptr;
@@ -91,6 +104,7 @@ struct WorldSDFImpl final : public WorldSDF
   eastl::unique_ptr<ComputeShaderElement> world_sdf_from_gbuf_cs, world_sdf_from_gbuf_remove_cs;
 
   int w = 128, d = 128;
+  uint32_t updatedMask = 0;
   float clip0VoxelSize = 0.5;
   float temporalSpeed = 0.5f;
   uint32_t currentInstancesBufferSz = 0;
@@ -142,10 +156,14 @@ struct WorldSDFImpl final : public WorldSDF
     {
       for (int clip = 0; clip < MAX_WORLD_SDF_CLIPS; ++clip)
       {
-        ShaderGlobal::set_int4(world_sdf_coord_ltVarId[clip], 0, 0, 0, 0);
-        ShaderGlobal::set_color4(world_sdf_ltVarId[clip], -1e9f, 1e9f, 1e9f, 0);
-        ShaderGlobal::set_color4(world_sdf_to_tc_addVarId[clip], 0, 0, 0, 0);
+        world_sdf_params.world_sdf_lt[clip] = Point4(-1e9f, 1e9f, 1e9f, 0);
+        world_sdf_params.world_sdf_to_tc_add[clip] = Point4::ZERO;
       }
+      world_sdf_params.world_sdf_lt_invalid = Point4(-1e9f, 1e9f, 1e9f, 0);
+      world_sdf_params.world_sdf_to_tc_add_invalid = Point4::ZERO;
+      std::memset(world_sdf_coord_lt.data(), 0, sizeof(world_sdf_coord_lt));
+      updateCBuffers();
+      updatedMask = 0;
     }
   }
 
@@ -191,7 +209,7 @@ struct WorldSDFImpl final : public WorldSDF
     clip0VoxelSize = voxel0;
     if (clipmap.size() == clips && w == w_ && d == h_)
       return;
-    const uint32_t texFmt = TEXFMT_L8;
+    const uint32_t texFmt = TEXFMT_R8;
     supportUnorderedLoad = d3d::get_texformat_usage(texFmt | TEXCF_UNORDERED) & d3d::USAGE_UNORDERED_LOAD;
     debug("world sdf inited with %dx%dx%d clips=%d, voxel %f dist = %f, uav load = %d", w_, h_, w_, clips, voxel0,
       0.5f * voxel0 * w_ * (1 << (clips - 1)), supportUnorderedLoad);
@@ -209,11 +227,26 @@ struct WorldSDFImpl final : public WorldSDF
     ShaderGlobal::set_int4(world_sdf_res_np2VarId, w, d, is_pow_of2(w) ? 0 : (max_pos / w) * w, is_pow_of2(d) ? 0 : (max_pos / d) * d);
     int fullTextureDepth = (d + 2) * clipmap.size();
     ShaderGlobal::set_color4(world_sdf_inv_sizeVarId, 1. / w, 1. / d, 1. / fullTextureDepth, float(d) / fullTextureDepth);
+
+    float x = float(d) / fullTextureDepth;
+    float dInv = 1. / d;
+    float y = x * dInv * (1. / max(dInv, 0.00000001f) + 2.0f);
+    ShaderGlobal::set_color4(world_sdf_to_atlas_decode__gradient_offsetVarId, x, y, 1.f / fullTextureDepth, 1.f / w);
   }
 
   WorldSDFImpl()
   {
+#define VAR(a)     \
+  if (!(a##VarId)) \
+    logerr("mandatory shader variable is missing: %s", #a);
+    GLOBAL_VARS_LIST
+#undef VAR
+
     eastl::string str;
+    world_sdf_coord_lt_buf = dag::buffers::create_persistent_cb(world_sdf_coord_lt.size(), "world_sdf_coord_lt_buf");
+    static_assert(sizeof(WorldSDFParams) % d3d::buffers::CBUFFER_REGISTER_SIZE == 0);
+    world_sdf_params_buf =
+      dag::buffers::create_persistent_cb(sizeof(WorldSDFParams) / d3d::buffers::CBUFFER_REGISTER_SIZE, "world_sdf_params");
     for (int i = 0; i < 6; ++i)
     {
       str.sprintf("world_sdf_cull_grid_lt_%d", i);
@@ -223,13 +256,6 @@ struct WorldSDFImpl final : public WorldSDF
     }
     for (int i = 0; i < MAX_WORLD_SDF_CLIPS; ++i)
     {
-      str.sprintf("world_sdf_coord_lt_%d", i);
-      world_sdf_coord_ltVarId[i] = get_shader_variable_id(str.c_str(), true);
-      str.sprintf("world_sdf_lt_%d", i);
-      world_sdf_ltVarId[i] = get_shader_variable_id(str.c_str(), true);
-      str.sprintf("world_sdf_to_tc_add_%d", i);
-      world_sdf_to_tc_addVarId[i] = get_shader_variable_id(str.c_str(), true);
-
       str.sprintf("world_sdf_mip%d", i);
       world_sdf_mip_dap[i] = DA_PROFILE_ADD_LOCAL_DESCRIPTION(0, str.c_str());
       str.sprintf("world_sdf_clip_cull%d", i);
@@ -237,7 +263,6 @@ struct WorldSDFImpl final : public WorldSDF
       str.sprintf("world_sdf_clip%d", i);
       world_sdf_clip_dap[i] = DA_PROFILE_ADD_LOCAL_DESCRIPTION(0, str.c_str());
     }
-    sdf_world_debug.init("sdf_world_debug");
 #define CS_SHADER(name) name.reset(new_compute_shader(#name));
     ShaderGlobal::set_int(get_shader_variable_id("supports_sh_6_1", true), d3d::get_driver_desc().shaderModel >= 6.1_sm ? 1 : 0);
 
@@ -342,6 +367,21 @@ struct WorldSDFImpl final : public WorldSDF
     Updated,
     Postponed
   };
+
+  void updateCBuffers()
+  {
+    if (!world_sdf_params_buf.getBuf()->updateData(0, sizeof(world_sdf_params), &world_sdf_params, VBLOCK_DISCARD))
+    {
+      logerr("WorldSDF: could not update buffer %s", world_sdf_params_buf.getBuf()->getBufName());
+      return;
+    }
+    if (!world_sdf_coord_lt_buf.getBuf()->updateData(0, sizeof(world_sdf_coord_lt), world_sdf_coord_lt.data(), VBLOCK_DISCARD))
+    {
+      logerr("WorldSDF: could not update buffer %s", world_sdf_coord_lt_buf.getBuf()->getBufName());
+      return;
+    }
+  }
+
   UpdateStatus updateMip(int clip, const Point3 &originPos, IPoint3 center_coord, float voxelSize, const request_instances_cb &cb,
     const render_instances_cb &render_cb)
   {
@@ -463,12 +503,10 @@ struct WorldSDFImpl final : public WorldSDF
 
     {
       const Point3 lt = Point3(worldCoordLT.x, worldCoordLT.z, worldCoordLT.y) * voxelSize;
-
-      ShaderGlobal::set_int4(world_sdf_coord_ltVarId[clip],
-        IPoint4(worldCoordLT.x, worldCoordLT.y, worldCoordLT.z, bitwise_cast<int>(voxelSize)));
-      ShaderGlobal::set_color4(world_sdf_ltVarId[clip], lt.x, lt.y, lt.z, voxelSize);
-      ShaderGlobal::set_color4(world_sdf_to_tc_addVarId[clip], 1. / (w * voxelSize), 1. / (w * voxelSize), 1. / (d * voxelSize),
-        1. / voxelSize);
+      world_sdf_coord_lt[clip] = IPoint4(worldCoordLT.x, worldCoordLT.y, worldCoordLT.z, bitwise_cast<int>(voxelSize));
+      world_sdf_params.world_sdf_lt[clip] = Point4(lt.x, lt.y, lt.z, voxelSize);
+      world_sdf_params.world_sdf_to_tc_add[clip] =
+        Point4(1. / (w * voxelSize), 1. / (w * voxelSize), 1. / (d * voxelSize), 1. / voxelSize);
     }
 
 #if HAS_OBJECT_SDF
@@ -833,7 +871,8 @@ struct WorldSDFImpl final : public WorldSDF
     logwarn("WorldSDF: Created a new temporal buffer (size: %d)", sizeNeeded);
   }
 
-  uint32_t updateNoPrefetch(const Point3 &pos, const request_instances_cb &cb, const render_instances_cb &render_cb)
+  uint32_t updateNoPrefetch(const Point3 &pos, const request_instances_cb &cb, const render_instances_cb &render_cb,
+    uint32_t allow_update_mask)
   {
     uint32_t updated = 0;
     if (!world_sdf_update_cs)
@@ -848,6 +887,8 @@ struct WorldSDFImpl final : public WorldSDF
 
     for (int i = clipmap.size() - 1; i >= 0; --i)
     {
+      if (!(allow_update_mask & (1 << i)))
+        continue;
       IPoint3 coord = clip_world_voxels_center_from_world_pos(i, pos);
       auto ret = updateMip(i, pos, coord, clip_voxel_size(i), cb, render_cb);
       if (ret != UpdateStatus::NotChanged)
@@ -855,25 +896,31 @@ struct WorldSDFImpl final : public WorldSDF
       if (ret != UpdateStatus::NotChanged && !allMips)
         break;
     }
+    if (updated)
+      updateCBuffers();
     d3d::set_rwtex(STAGE_CS, 0, nullptr, 0, 0);
     d3d::resource_barrier({world_sdf_clipmap.getVolTex(), RB_RO_SRV | RB_STAGE_COMPUTE | RB_STAGE_PIXEL, 0, 0});
     return updated;
   }
 
-  void update(const Point3 &pos, const request_instances_cb &cb, const request_prefetch_cb &rcb,
-    const render_instances_cb &render_cb) override
+  void update(const Point3 &pos, const request_instances_cb &cb, const request_prefetch_cb &rcb, const render_instances_cb &render_cb,
+    uint32_t allow_update_mask) override
   {
     if (clipmap.empty())
       return;
-    uint32_t mask = updateNoPrefetch(pos, cb, render_cb);
+    uint32_t mask = updateNoPrefetch(pos, cb, render_cb, allow_update_mask);
     prefetchAll(pos, rcb, mask);
+    updatedMask |= mask;
   }
+  uint32_t getClipsReady() const override { return updatedMask; }
   void debugRender() override
   {
     TIME_D3D_PROFILE(world_sdf_render);
     TMatrix4 globtm;
     d3d::getglobtm(globtm);
     set_globtm_to_shader(globtm);
+    if (!sdf_world_debug.getElem())
+      sdf_world_debug.init("sdf_world_debug");
     sdf_world_debug.render();
   }
   int getClipsCount() const override { return clipmap.size(); }

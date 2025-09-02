@@ -185,7 +185,7 @@ public:
   void save_text(const char *) {}
   virtual void setFontId(int) {}
   virtual const char *getEditTextBeforeModify() const override { return nullptr; }
-  virtual void set_progress_indicator(const char *, const char *) override{};
+  virtual void set_progress_indicator(const char *, const char *) override {}
 };
 
 void console_gen(RequestInfo *params)

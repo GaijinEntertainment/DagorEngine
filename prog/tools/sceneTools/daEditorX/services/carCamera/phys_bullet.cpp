@@ -20,8 +20,8 @@ void phys_bullet_init() { phys_init(); }
 void phys_bullet_close() { phys_close(); }
 
 void phys_bullet_before_render() { phys_before_render(); }
-void phys_bullet_render_trans() { phys_render_trans(); }
-void phys_bullet_render() { phys_render(); }
+void phys_bullet_render() { phys_render(IDynRenderService::Stage::STG_RENDER_DYNAMIC_OPAQUE); }
+void phys_bullet_render_trans() { phys_render(IDynRenderService::Stage::STG_RENDER_DYNAMIC_TRANS); }
 
 bool phys_bullet_get_phys_tm(int body_id, TMatrix &phys_tm, bool &obj_active)
 {
@@ -33,7 +33,7 @@ void phys_bullet_add_impulse(int body_ind, const Point3 &pos, const Point3 &delt
   add_impulse(body_ind, pos, delta, spring_factor, damper_factor, dt);
 }
 
-bool phys_bullet_load_collision(IGenLoad &crd) { return pw ? pw->loadSceneCollision(crd, 0) : false; }
+bool phys_bullet_load_collision(IGenLoad &crd) { return pw && pw->loadSceneCollision(crd, 0); }
 
 void phys_bullet_install_tracer(bool (*traceray)(const Point3 &p, const Point3 &d, float &mt, Point3 &out_n, int &out_pmid))
 {

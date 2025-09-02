@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "deferToAct.cpp.inl"
 ECS_DEF_PULL_VAR(deferToAct);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 //static constexpr ecs::ComponentDesc defer_to_act_es_comps[] ={};
 static void defer_to_act_es_all(const ecs::UpdateStageInfo &__restrict info, const ecs::QueryView & __restrict components)

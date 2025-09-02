@@ -32,6 +32,7 @@ private:
   };
   eastl::unique_ptr<light_probe::Cube, LightProbeDestructor> rtCube;
   eastl::unique_ptr<BcCompressor> compressor;
+  d3d::SamplerHandle sampler;
   eastl::unique_ptr<ComputeShaderElement> bc6hHighQualityCompressor;
 
   int cubeSize = 0;

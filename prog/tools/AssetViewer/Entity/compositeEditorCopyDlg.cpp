@@ -4,7 +4,7 @@
 #include <propPanel/commonWindow/dialogWindow.h>
 #include <propPanel/control/container.h>
 
-CompositeEditorCopyDlg::CompositeEditorCopyDlg() : DialogWindow(nullptr, hdpi::_pxScaled(290), hdpi::_pxScaled(290), "Clone object")
+CompositeEditorCopyDlg::CompositeEditorCopyDlg() : DialogWindow(nullptr, hdpi::_pxScaled(250), hdpi::_pxScaled(100), "Clone object")
 {
   propertiesPanel->createEditInt(PID_CLONE_COUNT, "Count of clones:", 1);
 }

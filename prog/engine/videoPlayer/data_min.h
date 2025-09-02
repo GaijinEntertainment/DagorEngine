@@ -27,7 +27,7 @@ public:
     int w = wd, h = ht;
     int tex_flags;
 
-    tex_flags = TEXFMT_L8;
+    tex_flags = TEXFMT_R8;
 #if _TARGET_C1 | _TARGET_C2
 
 #elif _TARGET_PC
@@ -70,10 +70,6 @@ public:
 
       texName[0] = 'v';
       b.texIdV = register_managed_tex(texName, b.texV);
-
-      b.texY->disableSampler();
-      b.texU->disableSampler();
-      b.texV->disableSampler();
     }
     d3d::SamplerInfo smpInfo;
     smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;

@@ -105,6 +105,7 @@ bool per_instance_visibility_for_everyone = true; // todo: change in tank to tru
 bool per_instance_front_to_back = true;
 bool useConditionalRendering = false; // obsolete - not working
 shaders::UniqueOverrideStateId afterDepthPrepassOverride;
+shaders::UniqueOverrideStateId afterDepthPrepassWithStencilTestOverride;
 
 bool vertical_billboards = false;
 static bool ri_extra_render_enabled = true;
@@ -133,10 +134,10 @@ float additionalRiExtraLodDistMul = 1;
 float riExtraLodsShiftDistMul = 1.f;
 float riExtraMulScale = 1;
 float riExtraLodsShiftDistMulForCulling = 1.f;
-int globalFrameBlockId = -1;
-int rendinstSceneBlockId = -1;
-int rendinstSceneTransBlockId = -1;
-int rendinstDepthSceneBlockId = -1;
+ShaderBlockIdHolder globalFrameBlockId{"global_frame"};
+ShaderBlockIdHolder rendinstSceneBlockId{"rendinst_scene"};
+ShaderBlockIdHolder rendinstSceneTransBlockId{"rendinst_trans_scene"};
+ShaderBlockIdHolder rendinstDepthSceneBlockId{"rendinst_depth_scene"};
 bool forceImpostors = false;
 bool useCellSbuffer = false;
 
@@ -455,6 +456,7 @@ void RendInstGenData::termRenderGlobals()
 
   rendinst::gpuobjects::shutdown();
   shaders::overrides::destroy(rendinst::render::afterDepthPrepassOverride);
+  shaders::overrides::destroy(rendinst::render::afterDepthPrepassWithStencilTestOverride);
   rendinst::render::close_instances_tb();
   rendinst::render::riExtraPerDrawData.close();
   for (UniqueBuf &riGenPerDrawData : rendinst::render::riGenPerDrawDataForLayer)
@@ -477,6 +479,9 @@ float cascade0Dist = -1.f;
 
 void RendInstGenData::initRenderGlobals(bool use_color_padding, bool should_init_gpu_objects)
 {
+  d3d::GpuAutoLock gpuLock; // We will create d3d resources. If we are on LoadingJobMgr thread, we should prevent the device from
+                            // getting in a reset state. That's a common scenario during loading because VR is doing a device reset.
+
 #define GET_REG_NO(a)                                             \
   {                                                               \
     int a##VarId = get_shader_variable_id(#a);                    \
@@ -534,12 +539,8 @@ void RendInstGenData::initRenderGlobals(bool use_color_padding, bool should_init
   else
     instanceBuffNo = 4, perinstBuffNo = 5;
 
-  rendinst::render::globalFrameBlockId = ShaderGlobal::getBlockId("global_frame");
-  rendinst::render::rendinstSceneBlockId = ShaderGlobal::getBlockId("rendinst_scene");
-  rendinst::render::rendinstSceneTransBlockId = ShaderGlobal::getBlockId("rendinst_scene_trans");
   if (rendinst::render::rendinstSceneTransBlockId < 0)
     rendinst::render::rendinstSceneTransBlockId = rendinst::render::rendinstSceneBlockId;
-  rendinst::render::rendinstDepthSceneBlockId = ShaderGlobal::getBlockId("rendinst_depth_scene");
   if (rendinst::render::rendinstDepthSceneBlockId < 0)
     rendinst::render::rendinstDepthSceneBlockId = rendinst::render::rendinstSceneBlockId;
 
@@ -582,6 +583,10 @@ void RendInstGenData::initRenderGlobals(bool use_color_padding, bool should_init
   state.set(shaders::OverrideState::Z_FUNC | shaders::OverrideState::Z_WRITE_DISABLE);
   state.zFunc = CMPF_EQUAL;
   rendinst::render::afterDepthPrepassOverride.reset(shaders::overrides::create(state));
+
+  state.set(shaders::OverrideState::Z_FUNC | shaders::OverrideState::Z_WRITE_DISABLE | shaders::OverrideState::STENCIL);
+  state.stencil.set(CMPF_EQUAL, STNCLOP_KEEP, STNCLOP_KEEP, STNCLOP_KEEP, 0xFF, 0xFF);
+  rendinst::render::afterDepthPrepassWithStencilTestOverride.reset(shaders::overrides::create(state));
 
   if (should_init_gpu_objects)
   {
@@ -636,7 +641,6 @@ void RendInstGenData::initPaletteVb() { allocatePaletteVB(); }
 
 void RendInstGenData::initRender(const DataBlock *level_blk)
 {
-  logwarn("We need to fix format to ushort, from half of short. change exporting tools");
   bool main_layer = rendinst::isRgLayerPrimary(rtData->layerIdx);
   clear_and_resize(rtData->rtPoolData, rtData->riRes.size());
   mem_set_0(rtData->rtPoolData);
@@ -667,7 +671,7 @@ void RendInstGenData::initRender(const DataBlock *level_blk)
             get_impostor_texture_mgr() ? get_impostor_texture_mgr()->getPreferredShadowAtlasMipOffset() : 0;
           int preshadowFormat = get_impostor_texture_mgr() && get_impostor_texture_mgr()->hasBcCompression()
                                   ? TEXFMT_ATI1N | TEXCF_UPDATE_DESTINATION
-                                  : TEXCF_RTARGET | TEXFMT_L8 | TEXCF_GENERATEMIPS;
+                                  : TEXCF_RTARGET | TEXFMT_R8 | TEXCF_GENERATEMIPS;
           rtData->riRes[i]->prepareTextures(rtData->riResName[i], shadowAtlasSize, preshadowAtlasMipOffset, preshadowFormat);
           Tab<ShaderMaterial *> mats;
           rtData->riRes[i]->lods.back().scene->gatherUsedMat(mats);
@@ -867,20 +871,19 @@ void RendInstGenData::RtData::setTextureMinMipWidth(int textureSize, int imposto
       BaseTexture *bTex = acquire_managed_tex(texId);
       G_ASSERT(bTex);
 
-      if (bTex->restype() == RES3D_TEX)
+      if (bTex->getType() == D3DResourceType::TEX)
       {
         Texture *tex = (Texture *)bTex;
         int lastMip = get_last_mip_idx(tex, textureSize);
-#if _TARGET_C1
-
-
-
-
-
-
-#else
-        tex->texmiplevel(0, lastMip);
-#endif
+        int loadedLevel = get_managed_res_loaded_lev(texId);
+        TextureInfo tinfo;
+        tex->getinfo(tinfo, 0);
+        // skip mips that are not loaded yet, counting from max level, not from mip count
+        // because mip count can be less than levels count
+        int maxLevel = get_log2i(max(tinfo.h, tinfo.w));
+        int startMip = max(maxLevel - loadedLevel, 0);
+        if (startMip <= lastMip)
+          tex->texmiplevel(startMip, lastMip);
       }
 
       release_managed_tex(texId);
@@ -938,7 +941,7 @@ RendInstGenData::RtData::RtData(int layer_idx) :
   maxDebris[0] = maxDebris[1] = curDebris[0] = curDebris[1] = 0;
   rendinstDistMul = rendinstDistMulFar = rendinstDistMulImpostorTrees = rendinstDistMulFarImpostorTrees =
     impostorsFarDistAdditionalMul = impostorsDistAdditionalMul = 1.0f;
-  impostorsMinRange = eastl::numeric_limits<float>::infinity();
+  impostorsMinRange = INFINITY;
   rendinstFarPlane = 1.f;
   rendinstMaxLod0Dist = 1.f;
   rendinstMaxDestructibleSizeSum = 1.f;
@@ -1073,13 +1076,18 @@ void RendInstGenData::CellRtData::update(int size, RendInstGenData &rgd)
             v_stu(d + sizeof(Point4) * 0, tm.col0);
             v_stu(d + sizeof(Point4) * 1, tm.col1);
             v_stu(d + sizeof(Point4) * 2, tm.col2);
-
 #if RIGEN_PERINST_ADD_DATA_FOR_TOOLS
-            for (int j = 0; j < rgd.perInstDataDwords; ++j)
+            if (!rtData->riZeroInstSeeds[p])
             {
-              uint16_t packed = *((const uint16_t *)(src + i * srcStride + RIGEN_TM_STRIDE_B(false, 0) + j * sizeof(uint16_t)));
-              uint32_t unpacked = packed; // Written as uint32, and read back with asuint from the shader.
-              memcpy(d + RIGEN_TM_STRIDE_B(false, 0) * unpackRatio + j * sizeof(float), &unpacked, sizeof(uint32_t));
+              // @RiExtraTmLayout - Ri tm's 4th row stores user data in zw components, xy should be 0.
+              static const int userDataStartOffset = 2 * sizeof(float);
+              memset(d + RIGEN_TM_STRIDE_B(false, 0) * unpackRatio, 0, userDataStartOffset);
+              for (int j = 0; j < rgd.perInstDataDwords; ++j)
+              {
+                uint32_t perInstData = *((const uint32_t *)(src + i * srcStride + RIGEN_TM_STRIDE_B(false, 0) + j * sizeof(uint32_t)));
+                memcpy(d + RIGEN_TM_STRIDE_B(false, 0) * unpackRatio + userDataStartOffset + j * sizeof(float), &perInstData,
+                  sizeof(uint32_t));
+              }
             }
 #endif
           }
@@ -1104,7 +1112,24 @@ void RendInstGenData::CellRtData::update(int size, RendInstGenData &rgd)
   else
     cellStateFlags = (cellStateFlags & (~(CLIPMAP_SHADOW_RENDERED_ALLCASCADE | STATIC_SHADOW_RENDERED))) | LOADED;
 
+  setDataUploadFlag(true);
   rtData->updateVbResetCS.unlock();
+}
+
+void RendInstGenData::allocateVb(CellRtData &crt, int idx)
+{
+  if (!RendInstGenData::renderResRequired || !crt.vbSize || !crt.sysMemData)
+    return;
+
+  crt.allocate(idx);
+}
+
+void RendInstGenData::updateOnlyVb(RendInstGenData::CellRtData &crt)
+{
+  if (!RendInstGenData::renderResRequired || !crt.vbSize || !crt.sysMemData)
+    return;
+
+  crt.update(crt.vbSize, *this);
 }
 
 void RendInstGenData::updateVb(RendInstGenData::CellRtData &crt, int idx)
@@ -1158,9 +1183,10 @@ void RendInstGenData::renderOptimizationDepthPrepass(const RiGenVisibility &visi
     WinAutoLock lock(rtData->updateVbResetCS);
     d3d::set_buffer(STAGE_VS, rendinst::render::instancingTexRegNo, rtData->cellsVb.getHeap().getBuf());
     renderer.addCellVisibleObjects(*rtData, visibility, cells, {cellNumW, cellNumH});
+    renderer.render(*rtData, visibility);
   }
-
-  renderer.render(*rtData, visibility);
+  else
+    renderer.render(*rtData, visibility);
 
   rendinst::render::endRenderInstancing();
   ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_SCENE);
@@ -1263,7 +1289,6 @@ void RendInstGenData::updateHeapVbNoLock()
 
   // To consider: maintain one combined generation for all cels and skip whole this loop when it's equal
 
-  auto currentHeapGen = rtData->cellsVb.getManager().getHeapGeneration();
   dag::ConstSpan<int> ld = rtData->loaded.getList();
   for (auto ldi : ld)
   {
@@ -1273,8 +1298,20 @@ void RendInstGenData::updateHeapVbNoLock()
       continue;
     RendInstGenData::CellRtData &crt = *crt_ptr;
 
-    if (crt.heapGen != currentHeapGen)
-      updateVb(crt, ldi);
+    if (!crt.isDataUploaded())
+      allocateVb(crt, ldi);
+  }
+
+  auto currentHeapGen = rtData->cellsVb.getManager().getHeapGeneration();
+  for (auto ldi : ld)
+  {
+    RendInstGenData::Cell &cell = cells[ldi];
+    RendInstGenData::CellRtData *crt_ptr = cell.isReady();
+    if (!crt_ptr)
+      continue;
+    RendInstGenData::CellRtData &crt = *crt_ptr;
+    if (crt.heapGen != currentHeapGen || !crt.isDataUploaded())
+      updateOnlyVb(crt);
   }
 }
 
@@ -1319,17 +1356,14 @@ void RendInstGenData::renderPreparedOpaque(rendinst::RenderPass render_pass, ren
 
   ScopedLockRead lock(rtData->riRwCs);
 
-  updateHeapVbNoLock();
-
   ShaderGlobal::set_int_fast(isRenderByCellsVarId, 1);
 
   {
     WinAutoLock lock(rtData->updateVbResetCS);
     d3d::set_buffer(STAGE_VS, rendinst::render::instancingTexRegNo, rtData->cellsVb.getHeap().getBuf());
     renderer.addCellVisibleObjects(*rtData, visibility, cells, {cellNumW, cellNumH});
+    renderer.render(*rtData, visibility);
   }
-
-  renderer.render(*rtData, visibility);
 
   rendinst::render::endRenderInstancing();
 

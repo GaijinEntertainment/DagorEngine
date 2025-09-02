@@ -219,11 +219,8 @@ void ShaderProgramDatabase::initDebugProg(bool has_bindless, DeviceContext &dc)
     spirv::ShaderHeader &spvHeader = smh.header;
     spvHeader.descriptorTypes[0] = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
     spvHeader.imageViewTypes[0] = VK_IMAGE_VIEW_TYPE_MAX_ENUM;
-    uint32_t cbSet = 0;
-    if (has_bindless)
-      cbSet += spirv::bindless::MAX_SETS;
-    spvHeader.descriptorCounts[cbSet].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-    spvHeader.descriptorCounts[cbSet].descriptorCount = 1;
+    spvHeader.descriptorCounts[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+    spvHeader.descriptorCounts[0].descriptorCount = 1;
     spvHeader.maxConstantCount = 4 * 4;
     spvHeader.bonesConstantsUsed = -1; // @TODO: remove
     spvHeader.bRegisterUseMask = 1;

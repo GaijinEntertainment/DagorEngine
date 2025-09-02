@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "heightmapES.cpp.inl"
 ECS_DEF_PULL_VAR(heightmap);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc heightmap_density_mask_disappeared_es_comps[] =
 {
@@ -106,15 +108,21 @@ static ecs::EntitySystemDesc heightmap_view_finalize_es_es_desc
 ,nullptr,nullptr,"*");
 static constexpr ecs::ComponentDesc dagdp_placer_heightmap_changed_es_comps[] =
 {
-//start of 9 rq components at [0]
+//start of 15 rq components at [0]
+  {ECS_HASH("dagdp__discard_on_grass_erasure"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("dagdp__heightmap_allow_unoptimal_grids"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("dagdp__heightmap_lower_level"), ecs::ComponentTypeInfo<bool>()},
+  {ECS_HASH("dagdp__heightmap_use_decals"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("dagdp__biomes"), ecs::ComponentTypeInfo<ecs::List<int>>()},
   {ECS_HASH("dagdp__name"), ecs::ComponentTypeInfo<ecs::string>()},
   {ECS_HASH("dagdp_placer_heightmap"), ecs::ComponentTypeInfo<ecs::Tag>()},
   {ECS_HASH("dagdp__density"), ecs::ComponentTypeInfo<float>()},
+  {ECS_HASH("dagdp__displacement_noise_scale"), ecs::ComponentTypeInfo<float>()},
+  {ECS_HASH("dagdp__displacement_strength"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("dagdp__heightmap_cell_size"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("dagdp__jitter"), ecs::ComponentTypeInfo<float>()},
+  {ECS_HASH("dagdp__placement_noise_scale"), ecs::ComponentTypeInfo<float>()},
+  {ECS_HASH("dagdp__sample_range"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("dagdp__seed"), ecs::ComponentTypeInfo<int>()}
 };
 static void dagdp_placer_heightmap_changed_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
@@ -130,14 +138,14 @@ static ecs::EntitySystemDesc dagdp_placer_heightmap_changed_es_es_desc
   ecs::EntitySystemOps(nullptr, dagdp_placer_heightmap_changed_es_all_events),
   empty_span(),
   empty_span(),
-  make_span(dagdp_placer_heightmap_changed_es_comps+0, 9)/*rq*/,
+  make_span(dagdp_placer_heightmap_changed_es_comps+0, 15)/*rq*/,
   empty_span(),
   ecs::EventSetBuilder<ecs::EventEntityCreated,
                        ecs::EventComponentsAppear,
                        ecs::EventEntityDestroyed,
                        ecs::EventComponentsDisappear>::build(),
   0
-,"render","dagdp__biomes,dagdp__density,dagdp__heightmap_allow_unoptimal_grids,dagdp__heightmap_cell_size,dagdp__heightmap_lower_level,dagdp__jitter,dagdp__name,dagdp__seed");
+,"render","dagdp__biomes,dagdp__density,dagdp__discard_on_grass_erasure,dagdp__displacement_noise_scale,dagdp__displacement_strength,dagdp__heightmap_allow_unoptimal_grids,dagdp__heightmap_cell_size,dagdp__heightmap_lower_level,dagdp__heightmap_use_decals,dagdp__jitter,dagdp__name,dagdp__placement_noise_scale,dagdp__sample_range,dagdp__seed");
 static constexpr ecs::ComponentDesc manager_ecs_query_comps[] =
 {
 //start of 1 rw components at [0]
@@ -200,25 +208,32 @@ inline void dagdp::heightmap_density_masks_ecs_query(Callable function)
 }
 static constexpr ecs::ComponentDesc heightmap_placers_ecs_query_comps[] =
 {
-//start of 9 ro components at [0]
+//start of 16 ro components at [0]
   {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
   {ECS_HASH("dagdp__biomes"), ecs::ComponentTypeInfo<ecs::List<int>>()},
   {ECS_HASH("dagdp__density"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("dagdp__seed"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("dagdp__jitter"), ecs::ComponentTypeInfo<float>()},
+  {ECS_HASH("dagdp__displacement_noise_scale"), ecs::ComponentTypeInfo<float>()},
+  {ECS_HASH("dagdp__displacement_strength"), ecs::ComponentTypeInfo<float>()},
+  {ECS_HASH("dagdp__placement_noise_scale"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("dagdp__heightmap_lower_level"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("dagdp__heightmap_allow_unoptimal_grids"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("dagdp__heightmap_cell_size"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("dagdp__name"), ecs::ComponentTypeInfo<ecs::string>()},
-//start of 1 rq components at [9]
+  {ECS_HASH("dagdp__density_mask_channel_weights"), ecs::ComponentTypeInfo<Point4>()},
+  {ECS_HASH("dagdp__heightmap_use_decals"), ecs::ComponentTypeInfo<bool>()},
+  {ECS_HASH("dagdp__sample_range"), ecs::ComponentTypeInfo<float>()},
+  {ECS_HASH("dagdp__discard_on_grass_erasure"), ecs::ComponentTypeInfo<bool>()},
+//start of 1 rq components at [16]
   {ECS_HASH("dagdp_placer_heightmap"), ecs::ComponentTypeInfo<ecs::Tag>()}
 };
 static ecs::CompileTimeQueryDesc heightmap_placers_ecs_query_desc
 (
   "dagdp::heightmap_placers_ecs_query",
   empty_span(),
-  make_span(heightmap_placers_ecs_query_comps+0, 9)/*ro*/,
-  make_span(heightmap_placers_ecs_query_comps+9, 1)/*rq*/,
+  make_span(heightmap_placers_ecs_query_comps+0, 16)/*ro*/,
+  make_span(heightmap_placers_ecs_query_comps+16, 1)/*rq*/,
   empty_span());
 template<typename Callable>
 inline void dagdp::heightmap_placers_ecs_query(Callable function)
@@ -234,10 +249,17 @@ inline void dagdp::heightmap_placers_ecs_query(Callable function)
             , ECS_RO_COMP(heightmap_placers_ecs_query_comps, "dagdp__density", float)
             , ECS_RO_COMP(heightmap_placers_ecs_query_comps, "dagdp__seed", int)
             , ECS_RO_COMP(heightmap_placers_ecs_query_comps, "dagdp__jitter", float)
+            , ECS_RO_COMP(heightmap_placers_ecs_query_comps, "dagdp__displacement_noise_scale", float)
+            , ECS_RO_COMP(heightmap_placers_ecs_query_comps, "dagdp__displacement_strength", float)
+            , ECS_RO_COMP(heightmap_placers_ecs_query_comps, "dagdp__placement_noise_scale", float)
             , ECS_RO_COMP(heightmap_placers_ecs_query_comps, "dagdp__heightmap_lower_level", bool)
             , ECS_RO_COMP(heightmap_placers_ecs_query_comps, "dagdp__heightmap_allow_unoptimal_grids", bool)
             , ECS_RO_COMP(heightmap_placers_ecs_query_comps, "dagdp__heightmap_cell_size", float)
             , ECS_RO_COMP(heightmap_placers_ecs_query_comps, "dagdp__name", ecs::string)
+            , ECS_RO_COMP(heightmap_placers_ecs_query_comps, "dagdp__density_mask_channel_weights", Point4)
+            , ECS_RO_COMP(heightmap_placers_ecs_query_comps, "dagdp__heightmap_use_decals", bool)
+            , ECS_RO_COMP(heightmap_placers_ecs_query_comps, "dagdp__sample_range", float)
+            , ECS_RO_COMP(heightmap_placers_ecs_query_comps, "dagdp__discard_on_grass_erasure", bool)
             );
 
         }while (++comp != compE);

@@ -150,7 +150,7 @@ shader calc_screenspace_irradiance_cs
     float sp_getRadianceResf() {return screenspace_probe_resf.w;}
     float3 sample_texture_radiance(uint2 tci, float2 uv)
     {
-      return sp_decode_texture_radiance(tex2Dlod(screenprobes_current_radiance, float4((tci + clamp(uv, sp_radiance_res_clamp.x, sp_radiance_res_clamp.y))*screenspace_probe_atlas_size.zw,0,0)).xyz);
+      return tex2Dlod(screenprobes_current_radiance, float4((tci + clamp(uv, sp_radiance_res_clamp.x, sp_radiance_res_clamp.y))*screenspace_probe_atlas_size.zw,0,0)).xyz;
     }
     void writeSharedRadiance(uint tid, uint2 atlasProbeCoordOfs, uint sharedRadianceProbeOffset, uint sourceRadianceRes)
     {
@@ -161,7 +161,7 @@ shader calc_screenspace_irradiance_cs
       uint index = sharedRadianceProbeOffset + tid;
       if (tid < uint(sp_radiance_area) && index < SHARED_RAD_SIZE)
       {
-        sharedRadiance[index].xyz = sp_decode_texture_radiance(texture2DAt(screenprobes_current_radiance, atlasProbeCoordOfs + rCoord).xyz);
+        sharedRadiance[index].xyz = texture2DAt(screenprobes_current_radiance, atlasProbeCoordOfs + rCoord).xyz;
       }
     }
 
@@ -253,7 +253,7 @@ shader calc_screenspace_irradiance_cs
 
         //assert(uint(sp_irradiance_res.w) >= sourceRadianceResArea);
         {
-          float3 readRadiance = sp_decode_texture_radiance(texture2DAt(screenprobes_current_radiance, atlasProbeCoord*sourceRadianceRes + rCoord).xyz);
+          float3 readRadiance = texture2DAt(screenprobes_current_radiance, atlasProbeCoord*sourceRadianceRes + rCoord).xyz;
           ##assert(tid < SHARED_RAD_SIZE, "[%s:%.f] Out of bounds: Buffer 'sharedRadiance' has size %.f, but access to (%.f)", _FILE_, __LINE__, SHARED_RAD_SIZE, tid);
           sharedRadiance[tid].xyz = readRadiance;
         }
@@ -396,7 +396,7 @@ shader calc_screenspace_irradiance_sph3_cs
 
     float3 sample_texture_radiance(uint2 tci, float2 uv)
     {
-      return sp_decode_texture_radiance(tex2Dlod(screenprobes_current_radiance, float4((tci + clamp(uv, sp_radiance_res_clamp.x, sp_radiance_res_clamp.y))*screenspace_probe_atlas_size.zw,0,0)).xyz);
+      return tex2Dlod(screenprobes_current_radiance, float4((tci + clamp(uv, sp_radiance_res_clamp.x, sp_radiance_res_clamp.y))*screenspace_probe_atlas_size.zw,0,0)).xyz;
     }
 
     #include "sh3.hlsl"
@@ -444,7 +444,7 @@ shader calc_screenspace_irradiance_sph3_cs
       //atlasProbeCoord = min(atlasProbeCoord, uint2(screenspace_probe_atlas_size.xy - 1));
       if (tid < uint(sp_radiance_area))
       {
-        return sp_decode_texture_radiance(texture2DAt(screenprobes_current_radiance, atlasProbeCoordOfs + rCoord).xyz);
+        return texture2DAt(screenprobes_current_radiance, atlasProbeCoordOfs + rCoord).xyz;
       }
       return 0;
     }
@@ -609,7 +609,7 @@ shader calc_screenspace_irradiance_sph3_cs
         {
           //assert(uint(sp_irradiance_res.w) >= sourceRadianceResArea);
           {
-            readRadiance = sp_decode_texture_radiance(texture2DAt(screenprobes_current_radiance, atlasProbeCoord*sourceRadianceRes + gtId).xyz);
+            readRadiance = texture2DAt(screenprobes_current_radiance, atlasProbeCoord*sourceRadianceRes + gtId).xyz;
             #if !DAGI_USE_EQUAL_AREA_OCTAHEDRAL
             readRadiance *= dagi_octahedral_solid_angle_fast(gtId*screenspace_probe_radiance_res_decode.x + screenspace_probe_radiance_res_decode.y, screenspace_probe_radiance_res_decode.x);
             #endif

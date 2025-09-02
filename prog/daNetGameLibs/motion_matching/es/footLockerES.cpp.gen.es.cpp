@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "footLockerES.cpp.inl"
 ECS_DEF_PULL_VAR(footLocker);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc motion_matching_update_anim_tree_foot_locker_es_comps[] =
 {
@@ -30,4 +32,4 @@ static ecs::EntitySystemDesc motion_matching_update_anim_tree_foot_locker_es_es_
   empty_span(),
   ecs::EventSetBuilder<ParallelUpdateFrameDelayed>::build(),
   0
-,"render",nullptr,"animchar_es","wait_motion_matching_job_es");
+,"render",nullptr,"before_animchar_update_sync","wait_motion_matching_job_es");

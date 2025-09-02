@@ -15,7 +15,7 @@ struct TexPixel32
 {
   union
   {
-#if defined(_TARGET_CPU_BE)
+#if _TARGET_CPU_BE
     struct
     {
       unsigned char a, r, g, b;

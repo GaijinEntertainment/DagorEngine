@@ -2,7 +2,7 @@ require ecs
 require app
 require soundEvent
 require soundSystem
-require sound_utils_net.modules.sound_utils_net_events
+require danetlibs.renderer.includes.pufd_events
 require DagorMath
 
 
@@ -12,14 +12,14 @@ struct EventOnWeaponSound
   isLoop : bool
 
 
-[es(tag=sound, track=sound_banks_state__isPresetLoaded)]
-def birds_sound_toggle(evt : Event;
-                       sound_banks_state__isPresetLoaded : bool;
+[es(tag=sound, on_appear, on_event=EventOnMasterSoundPresetLoaded)]
+def birds_sound_appear(evt : Event;
                        birds_global_sound_var__name : string;
                        var birds_global_sound_var__id : SoundVarId&;
                        var birds_global_sound_var__value : float&)
-  if sound_banks_state__isPresetLoaded
+  if sound_banks_is_master_preset_loaded()
     birds_global_sound_var__id = get_var_id_global(birds_global_sound_var__name)
+    birds_global_sound_var__value = -1.
     if !birds_global_sound_var__id
       sound_debug("birds \"{birds_global_sound_var__name}\" global var is missing: should remove template from scene")
   else

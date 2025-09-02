@@ -96,6 +96,28 @@ macro USE_R5G6B5_2BPP_COMPRESSION(code)
 
   hlsl(code)
   {
+    static const uint3 R5G6B5_SHIFTS = uint3(3, 2, 3);
+    static const uint3 R5G6B5_STEP = 1U << R5G6B5_SHIFTS; // Actaully step is R5G6B5_STEP or R5G6B5_STEP + 1.
+    static const uint3 R5G6B5_MASK = ~(R5G6B5_STEP - 1);
+    uint3 round_to_r5g6b5_range(uint3 color_rgb8)
+    {
+      // Most BC decoders copy R5G6B5 MSB after LSB and use R8G8B8 HW to do the casting. On BC7 this is specs behavior.
+      uint3 color_trancated = color_rgb8 & R5G6B5_MASK;
+      uint3 color_trancated_next = color_trancated + R5G6B5_STEP;
+      uint3 color_trancated_prev = color_trancated - R5G6B5_STEP;
+
+      uint3 color_this = color_trancated | (color_trancated >> (8 - R5G6B5_SHIFTS));
+      uint3 color_next = color_trancated_next |  (color_trancated_next >> (8 - R5G6B5_SHIFTS));
+      uint3 color_prev = color_trancated_prev |  (color_trancated_prev >> (8 - R5G6B5_SHIFTS));
+
+      // Between each rounded value there are R5G6B5_SHIFTS - 1 or R5G6B5_SHIFTS full 8bit values.
+      uint3 color_final = color_prev;
+      color_final = lerp(color_final, color_this, color_rgb8 > color_this || color_this - color_rgb8 <= R5G6B5_STEP / 2);
+      color_final = lerp(color_final, color_next, color_next - color_rgb8 <= R5G6B5_STEP / 2);
+
+      return color_final;
+    }
+
     // pack 8 texels for pack_r5g6b5_2bpp_block
     int pack_2bpp_8_texels( half4 texels[16], int offset, half3 min_color, half3 color_vec, float inv_color_len )
     {
@@ -105,9 +127,8 @@ macro USE_R5G6B5_2BPP_COMPRESSION(code)
       for ( uint i = 0 ; i < 8 ; ++i )
       {
         float progr = dot( texels[i + offset].rgb - min_color, color_vec ) * inv_color_len; // color progress on color line
-        //float3 cmp = step(float3( 1.f / 4.f+0.0000001, 2.f / 4.f+0.0000001, 3.f / 4.f +0.0000001), progr.xxx); // checking region
-        int3 cmp = progr.xxx >= float3( 1.f / 4.f+0.0000001, 2.f / 4.f+0.0000001, 3.f / 4.f +0.0000001); // checking region
-        //float3 cmp = progr.xxx > float3( 1.f / 4.f, 2.f / 4.f, 3.f / 4.f ); // checking region
+        int3 cmp = progr.xxx > float3( 1.f / 6.f, 1.f / 2.f, 5.f / 6.f); // checking region
+
         // cmp res - bin output
         // c0 = max_color, c1 = min_color
         // 000 - 0|1 (0x01)
@@ -126,18 +147,26 @@ macro USE_R5G6B5_2BPP_COMPRESSION(code)
     // pack 64b block (4x16), r5g6b5 min/max color and 4x4 values 2bpp
     int4 pack_r5g6b5_2bpp_block( half4 texels[16], half4 min_color, half4 max_color )
     {
-      const int3 color_convert = int3( 0x1f, 0x3f, 0x1f ); // r5g6b5 normalization
+      uint3 min_color_rgb8 = uint3(255.f * min_color.rgb + 0.5f);
+      uint3 max_color_rgb8 = uint3(255.f * max_color.rgb + 0.5f);
 
-      int3 min_color_int = min_color.rgb * color_convert;
-      int3 max_color_int = max_color.rgb * color_convert;
+      uint3 min_color_int_full = round_to_r5g6b5_range(min_color_rgb8);
+      uint3 max_color_int_full = round_to_r5g6b5_range(max_color_rgb8);
 
-      int packed_min_color = (min_color_int.x << 11) + (min_color_int.y << 5) + (min_color_int.z);
-      int packed_max_color = (max_color_int.x << 11) + (max_color_int.y << 5) + (max_color_int.z);
+      uint3 min_color_int = min_color_int_full >> R5G6B5_SHIFTS;
+      uint3 max_color_int = max_color_int_full >> R5G6B5_SHIFTS;
+
+      uint packed_min_color = (min_color_int.x << 11) + (min_color_int.y << 5) + (min_color_int.z);
+      uint packed_max_color = (max_color_int.x << 11) + (max_color_int.y << 5) + (max_color_int.z);
       //int packed_min_color = dot( min_color_int, packing_convert );
       //int packed_max_color = dot( max_color_int, packing_convert );
 
       if ( packed_min_color == packed_max_color ) // early out
         return int4( packed_max_color, 0x00, 0x00, 0x00 );
+
+      // Recalibrate min-max color
+      min_color = half4(min_color_int_full, 0) * (1/255.f);
+      max_color = half4(max_color_int_full, 0) * (1/255.f);
 
       // check than c0 > c1, otherwise - swap em
       half4 tmp_min = min_color;
@@ -287,8 +316,8 @@ macro USE_X8_3BPP_COMPRESSION(code)
       #define ONE_TEXEL(i)\
         {\
           float progr = ( texels[i + offset][component] - min_color ) *inv_color_len;  /*value progress on color line*/\
-          int4 cmp1 = progr.xxxx > float4( 1.f / 8.f, 2.f / 8.f, 3.f / 8.f, 4.f / 8.f );\
-          int3 cmp2 = progr.xxx > float3( 5.f / 8.f, 6.f / 8.f, 7.f / 8.f );\
+          int4 cmp1 = progr.xxxx > float4( 1.f / 14.f, 3.f / 14.f, 5.f / 14.f, 7.f / 14.f );\
+          int3 cmp2 = progr.xxx > float3( 9.f / 14.f, 11.f / 14.f, 13.f / 14.f );\
           int val = 1.0 + dot( cmp1, int4( 6, -1, -1, -1 ) ) + dot( cmp2, int3( -1, -1, -2 ) );  /*convert cmp to bin pack*/\
           res |= uint(val) << (3*i); /* bit offset*/\
         }

@@ -28,11 +28,11 @@ def jetflame_fx_init_es(evt : Event;
       if nodeId < 0
         return
 
-      push(JetFlameFxEmitter, [[JetFlameFxEmitter
-        jetflame_fx_emitter__nodeId=nodeId,
-        jetflame_fx_emitter__main=main,
-        jetflame_fx_emitter__fxEid=INVALID_ENTITY_ID
-      ]])
+      push(JetFlameFxEmitter, JetFlameFxEmitter(
+        jetflame_fx_emitter__nodeId = nodeId,
+        jetflame_fx_emitter__main = main,
+        jetflame_fx_emitter__fxEid = INVALID_ENTITY_ID
+      ))
 
 
 [soa_def]
@@ -96,7 +96,7 @@ def jetflame_fx_update_effects_es(evt : UpdateStageInfoAct;
                                   csu_engine_agileR__thrust : float3;
                                   var JetFlameFxEmitter : JetFlameFxEmitter_SOA)
   // split actual thrust of main/agile engines into 26 actual nozzles
-  var thrust : float[26 + 1];
+  var thrust : float[26 + 1]
   let main_thres = 3.f
   let agile_thres = 3.f
   if csu_engine_mainA__thrust > +main_thres

@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "replayES.cpp.inl"
 ECS_DEF_PULL_VAR(replay);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 //static constexpr ecs::ComponentDesc replay_save_key_frame_es_comps[] ={};
 static void replay_save_key_frame_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)

@@ -3,18 +3,18 @@
 from "math" import min
 from "%darg/ui_imports.nut" import *
 import "console" as console
-from "widgets/simpleComponents.nut" import normalCursor
+from "%scripts/ui/widgets/simpleComponents.nut" import normalCursor
 
-require("ui_config.nut")
+require("%scripts/ui/ui_config.nut")
 let ecs = require("%dngscripts/ecs.nut")
 ecs.clear_vm_entity_systems()
-let {licenseWnd, showLicense} = require("licenseTxt.nut")
-let {editor, showUIinEditor, editorIsActive} = require("editor.nut")
+let {licenseWnd, showLicense} = require("%scripts/ui/licenseTxt.nut")
+let {editor, showUIinEditor, editorIsActive} = require("%scripts/ui/editor.nut")
 let {take_screenshot_nogui, take_screenshot} = require("screencap")
 let inspectorToggle = require("%darg/helpers/inspector.nut")
 let { exit_game } =require("app")
-let { showGameMenu, gameMenu } = require("game_menu.nut")
-let { showSettingsMenu, settingsMenuUi } = require("settings/main_settings.nut")
+let { showGameMenu, gameMenu } = require("%scripts/ui/game_menu.nut")
+let { showSettingsMenu, settingsMenuUi } = require("%scripts/ui/settings/main_settings.nut")
 
 let eventHandlers = freeze({
   ["Global.Screenshot"] = @(...) take_screenshot(),

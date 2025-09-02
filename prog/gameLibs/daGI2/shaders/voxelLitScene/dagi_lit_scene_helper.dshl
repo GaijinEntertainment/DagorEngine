@@ -101,36 +101,35 @@ define_macro_if_not_defined PROJECT_GET_WORLD_RADIANCE_AT(code)
 
   hlsl(code) {
     //when ray we hit the scene
-    float3 dagi_get_radiance_at(float3 worldPos, float3 worldNormal)
+    bool dagi_get_radiance_at_valid(float3 worldPos, float3 worldNormal, out float3 radiance)
     {
       //fixme add per-project ray hit result (as some of ray hits can return additional info)
-      uint cascade = 0;
-      uint maxCascade = dagi_lit_scene_voxels_clip_count();
-
       //float oneClipSizeWithBorderInTexels = dagi_lit_voxel_scene_to_sdf_clips.z;
       //float oneAxisSliceSizeWithBorderInTexels = dagi_lit_voxel_scene_to_sdf_clips.w;
       //float oneAxisSliceSizeWithoutBorderInTexels = dagi_lit_voxel_scene_res.y;
       //float fullAtlasSizeInTexels = dagi_lit_scene_voxels_full_atlas_res_d();
       //float4 lit_scene_to_atlas_decode = float4(oneAxisSliceSizeWithoutBorderInTexels, oneClipSizeWithBorderInTexels, oneAxisSliceSizeWithBorderInTexels, 1) / fullAtlasSizeInTexels;
+      if (dagi_get_voxels_lit_scene_radiance_at(worldPos, worldNormal, radiance))
+        return true;
+      #ifndef DAGI_RADIANCE_AT_SKIP_ALBEDO
+        float3 albedo = DAGI_MISSED_ALBEDO;
+        dagi_sample_albedo_best(worldPos, albedo);
+        radiance = project_get_lit_color_at_trace_hit(worldPos, worldNormal, albedo);
+      #else
+        radiance = DAGI_RADIANCE_AT_SKIP_ALBEDO;
+      #endif
+      return false;
+    }
+
+    float3 dagi_get_radiance_at(float3 worldPos, float3 worldNormal)
+    {
       float3 radiance;
-      if (!dagi_get_voxels_lit_scene_radiance_at(worldPos, worldNormal, radiance))
-      {
-        #ifndef DAGI_RADIANCE_AT_SKIP_ALBEDO
-          float3 albedo = DAGI_MISSED_ALBEDO;
-          dagi_sample_albedo_best(worldPos, albedo);
-          radiance = project_get_lit_color_at_trace_hit(worldPos, worldNormal, albedo);
-        #else
-          radiance = DAGI_RADIANCE_AT_SKIP_ALBEDO;
-        #endif
-      }
-      //avoid using return from mid function, as dx11 compilers is going crazy about unitialized variables
+      dagi_get_radiance_at_valid(worldPos, worldNormal, radiance);
       return radiance;
     }
 
     float3 dagi_get_radiance_at_with_albedo(float3 worldPos, float3 worldNormal, float3 albedo)
     {
-      uint cascade = 0;
-      uint maxCascade = dagi_lit_scene_voxels_clip_count();
       float3 radiance;
       if (!dagi_get_voxels_lit_scene_radiance_at(worldPos, worldNormal, radiance))
         radiance = project_get_lit_color_at_trace_hit(worldPos, worldNormal, albedo);

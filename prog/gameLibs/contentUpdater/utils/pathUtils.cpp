@@ -53,7 +53,7 @@ eastl::string updater::fs::normalize_path(const char *path)
 
 const char *updater::fs::get_filename_relative_to_path(const eastl::string &base_path, const char *path)
 {
-  const size_t basePathOffset = base_path.length() + 1;
+  const size_t basePathOffset = base_path.length() + (base_path.back() == PATH_DELIM ? 0 : 1);
   return path + basePathOffset;
 }
 

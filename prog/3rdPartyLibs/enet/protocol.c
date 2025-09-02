@@ -11,6 +11,9 @@
 
 #define ENET_MIN_ROUND_TRIP_TIMEOUT (30)
 
+#define HOSTPORT_FMT   "%d.%d.%d.%d:%d"
+#define HOSTPORT(h, p) (h) & 255, ((h) >> 8) & 255, ((h) >> 16) & 255, (h) >> 24, (p)
+
 static size_t commandSizes [ENET_PROTOCOL_COMMAND_COUNT] =
 {
     0,
@@ -25,7 +28,8 @@ static size_t commandSizes [ENET_PROTOCOL_COMMAND_COUNT] =
     sizeof (ENetProtocolSendUnsequenced),
     sizeof (ENetProtocolBandwidthLimit),
     sizeof (ENetProtocolThrottleConfigure),
-    sizeof (ENetProtocolSendFragment)
+    sizeof (ENetProtocolSendFragment),
+    sizeof (ENetProtocolPingTargetPortForRelay),
 };
 
 size_t
@@ -412,7 +416,7 @@ enet_protocol_handle_connect (ENetHost * host, ENetProtocolHeader * header, ENet
     if (windowSize > ENET_PROTOCOL_MAXIMUM_WINDOW_SIZE)
       windowSize = ENET_PROTOCOL_MAXIMUM_WINDOW_SIZE;
 
-    verifyCommand.header.command = ENET_PROTOCOL_COMMAND_VERIFY_CONNECT | ENET_PROTOCOL_COMMAND_FLAG_ACKNOWLEDGE;
+    verifyCommand.header.command = (enet_uint8)ENET_PROTOCOL_COMMAND_VERIFY_CONNECT | (enet_uint8)ENET_PROTOCOL_COMMAND_FLAG_ACKNOWLEDGE;
     verifyCommand.header.channelID = 0xFF;
     verifyCommand.verifyConnect.outgoingPeerID = ENET_HOST_TO_NET_16 (peer -> incomingPeerID);
     verifyCommand.verifyConnect.incomingSessionID = incomingSessionID;
@@ -759,6 +763,22 @@ enet_protocol_handle_ping (ENetHost * host, ENetPeer * peer, const ENetProtocol 
 }
 
 static int
+enet_protocol_handle_ping_target_port_for_relay (ENetHost * host, ENetPeer * peer, const ENetProtocol * command)
+{
+    enet_uint16 port = command->pingTargetPortForRelay.port;
+    ENetAddress addr;
+    addr.host = peer->address.host;
+    addr.port = port;
+    enet_uint32 empty_buffer[1] = { 0 };
+    ENetBuffer buffer;
+    buffer.data = (void *)&empty_buffer[0];
+    buffer.dataLength = 1;
+    enet_socket_send(host->socket, &addr, &buffer, 1);
+    enet_logf("punch udp hole for peer " HOSTPORT_FMT, HOSTPORT(addr.host, addr.port));
+    return 0;
+}
+
+static int
 enet_protocol_handle_bandwidth_limit (ENetHost * host, ENetPeer * peer, const ENetProtocol * command)
 {
     if (peer -> state != ENET_PEER_STATE_CONNECTED && peer -> state != ENET_PEER_STATE_DISCONNECT_LATER)
@@ -1005,8 +1025,6 @@ enet_protocol_handle_verify_connect (ENetHost * host, ENetEvent * event, ENetPee
     return 0;
 }
 
-#define HOSTPORT_FMT "%d.%d.%d.%d:%d"
-#define HOSTPORT(h, p) (h)&255,((h)>>8)&255,((h)>>16)&255,(h)>>24,(p)
 
 static int
 enet_protocol_handle_incoming_commands (ENetHost * host, ENetEvent * event)
@@ -1212,6 +1230,11 @@ enet_protocol_handle_incoming_commands (ENetHost * host, ENetEvent * event)
             goto commandError;
           break;
 
+       case ENET_PROTOCOL_COMMAND_PING_TARGET_PORT_FOR_RELAY:
+          if (enet_protocol_handle_ping_target_port_for_relay (host, peer, command))
+            goto commandError;
+          break;
+
        default:
           goto commandError;
        }
@@ -1289,7 +1312,15 @@ enet_protocol_receive_incoming_commands (ENetHost * host, ENetEvent * event)
           {
           case 1:
              if (event != NULL && event -> type != ENET_EVENT_TYPE_NONE)
-               return 1;
+             {
+               if (event -> type == ENET_EVENT_TYPE_INTERCEPTED)
+               {
+                 if (packets == 255)
+                   return 1;
+               }
+               else
+                 return 1;
+             }
 
              continue;
           
@@ -2035,3 +2066,35 @@ enet_host_service (ENetHost * host, ENetEvent * event, enet_uint32 timeout)
     return 0; 
 }
 
+
+int
+enet_host_service_only_incoming_commands (ENetHost * host, ENetEvent * event, enet_uint32 timeout)
+{
+  if (event != NULL)
+  {
+    event -> type = ENET_EVENT_TYPE_NONE;
+    event -> peer = NULL;
+    event -> packet = NULL;
+  }
+
+  host -> serviceTime = enet_time_get ();
+
+  timeout += host -> serviceTime;
+
+  switch (enet_protocol_receive_incoming_commands (host, event))
+  {
+  case 1:
+    return 1;
+
+  case -1:
+#ifdef ENET_DEBUG
+    perror ("Error receiving incoming packets");
+#endif
+
+    return -1;
+
+  default:
+    break;
+  }
+  return 0;
+}

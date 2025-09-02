@@ -11,6 +11,10 @@ interval detect_cockpit_by_distance: no < 1, yes;
 float cockpit_distance = 0;
 texture occlusionExclusionMask;
 
+texture occlusion_lens_mask;
+int occlusion_lens_mask_mode = 0;
+interval occlusion_lens_mask_mode : world_area < 1 , lens_area;
+
 int downsample_depth_from_const_no = 4 always_referenced;
 hlsl(ps) {
   Texture2D downsample_depth_from:register(t4);
@@ -50,6 +54,13 @@ shader downsample_depth_hzb
     INIT_READ_IS_HERO_COCKPIT(ps)
     USE_READ_IS_HERO_COCKPIT(ps)
   }
+
+  if (occlusion_lens_mask != NULL)
+    {
+      (ps) {
+        occlusion_lens_mask@smp2d = occlusion_lens_mask;
+    }
+  }
   PS4_DEF_TARGET_FMT_32_AR()
 
   hlsl(ps) {
@@ -57,6 +68,23 @@ shader downsample_depth_hzb
     float downsample_ps(VsOutput IN HW_USE_SCREEN_POS):SV_Target0
     {
       float4 pos = GET_SCREEN_POS(IN.pos);
+
+  ##if (downsampleTypeId == final2x2 || downsampleTypeId == final4x4) && (occlusion_lens_mask != NULL)
+    float lensDepth = tex2Dlod(occlusion_lens_mask, float4(IN.tc, 0, 0)).x;
+    ##if occlusion_lens_mask_mode == world_area
+    if (lensDepth > 0)
+    {
+      return -lensDepth;
+    }
+    ##else
+    if (lensDepth == 0)
+    {
+      const float closeCockpitDistance = -0.001;
+      return closeCockpitDistance;
+    }
+    ##endif
+  ##endif
+
       //float2 tc = IN.tc;
       ##if downsampleTypeId == down4x4 || downsampleTypeId == final4x4
         float2 posFloored = floor(pos.xy);

@@ -1,6 +1,5 @@
 options no_aot
 
-require app
 require ecs.fs
 require ECSGlobalTags
 
@@ -9,7 +8,7 @@ require ECSGlobalTags
 def load_sound_utils_net(base_path : string) : bool
   var ok = true
 
-  if ecs_has_tag("soundNet") || app::get_game_name() == "aot"
+  if ecs_has_tag("soundNet") || is_in_aot()
     ok = load_sub_folder(base_path, "modules") && ok
     ok = load_sub_folder(base_path, "es") && ok
 

@@ -4,6 +4,7 @@
 #include <daECS/core/entityComponent.h>
 #include <math/dag_Point4.h>
 #include <shaders/dag_shaders.h>
+#include <drv/3d/dag_sampler.h>
 
 static Color4 inline to_color4(const Point4 &p) { return Color4(p.x, p.y, p.z, p.w); }
 inline void set_shader_var(int varId, const char *name, const ecs::EntityComponentRef in_attr)

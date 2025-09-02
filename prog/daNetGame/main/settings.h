@@ -7,13 +7,10 @@
 
 class DataBlock;
 
-const char *get_allowed_addon_src_files_prefix(const char *game_name);
-void prepare_before_loading_game_settings_blk(const char *game_name);
-void restore_after_loading_game_settings_blk();
-String get_config_filename(const char *game_name);
+String get_config_filename();
 
-void load_settings(const char *game_name, bool resolve_tex_streaming = true, bool use_on_reload_backup = false);
-void load_gameparams(const char *game_name);
+void initial_load_settings();
+void load_gameparams();
 void save_settings(const SettingsHashMap *changed_settings, bool apply_settings = true);
 void clear_settings();
 void commit_settings(const eastl::function<void(DataBlock &)> &mutate_cb);
@@ -41,3 +38,12 @@ void dgs_apply_changes_to_config(DataBlock &config_blk, bool need_merge_cmd = fa
 
 // apply changes by graphics preset name from .patch file
 void dgs_apply_console_preset_params(DataBlock &config_blk, const char *preset_name);
+
+// apply changes by graphics preset name from settings.blk, to avoid waiting for UI (only "essential" params, ie. texture quality)
+void dgs_apply_essential_pc_preset_params(DataBlock &config_blk, const char *preset_name);
+
+// apply preset params (from pcGraphicalPresets) to config, from commandline
+void dgs_apply_essential_pc_preset_params_to_config_from_cmd();
+
+// apply auto graphical settings based on hardware
+void try_apply_auto_graphical_settings();

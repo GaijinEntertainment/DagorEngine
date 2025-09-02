@@ -1,0 +1,624 @@
+/*
+  MIT License
+
+  Copyright (c) 2021 niedap
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+*/
+
+macro INIT_ASTC_COMPRESSION_STAGE(stage)
+hlsl(stage)
+{
+  #define BLOCK_SIZE 16
+
+  #define BLOCK_BYTES 16
+
+  #define X_GRIDS 4
+  #define Y_GRIDS 4
+
+  #define SMALL_VALUE 0.00001
+
+  // supported color_endpoint_mode
+  #define CEM_LDR_RGBA_DIRECT 12
+
+  // from [ARM:astc-encoder] normalized numeric ranges that can be represented with 8 bits or less
+  #define QUANT_2 0
+  #define QUANT_3 1
+  #define QUANT_4 2
+  #define QUANT_5 3
+  #define QUANT_6 4
+  #define QUANT_8 5
+  #define QUANT_10 6
+  #define QUANT_12 7
+  #define QUANT_16 8
+  #define QUANT_20 9
+  #define QUANT_24 10
+  #define QUANT_32 11
+  #define QUANT_40 12
+  #define QUANT_48 13
+  #define QUANT_64 14
+  #define QUANT_80 15
+  #define QUANT_96 16
+  #define QUANT_128 17
+  #define QUANT_160 18
+  #define QUANT_192 19
+  #define QUANT_256 20
+  #define QUANT_MAX 21
+
+  // from [ARM:astc-encoder] quantization_and_transfer_table and quant_and_xfer_tables
+  #define WEIGHT_QUANTIZE_NUM 32
+  static const int scramble_table[12 * WEIGHT_QUANTIZE_NUM] = {
+    // quantization method 0, range 0..1
+      0, 1,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+
+    // quantization method 1, range 0..2
+      0, 1, 2,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+
+    // quantization method 2, range 0..3
+      0, 1, 2, 3,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+
+    // quantization method 3, range 0..4
+      0, 1, 2, 3, 4,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+
+    // quantization method 4, range 0..5
+      0, 2, 4, 5, 3, 1,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+
+    // quantization method 5, range 0..7
+      0, 1, 2, 3, 4, 5, 6, 7,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+
+    // quantization method 6, range 0..9
+      0, 2, 4, 6, 8, 9, 7, 5, 3, 1,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+
+    // quantization method 7, range 0..11
+      0, 4, 8, 2, 6, 10, 11, 7, 3, 9, 5, 1,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+
+    // quantization method 8, range 0..15
+      0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+
+    // quantization method 9, range 0..19
+      0, 4, 8, 12, 16, 2, 6, 10, 14, 18, 19, 15, 11, 7, 3, 17, 13, 9, 5, 1,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+
+    // quantization method 10, range 0..23
+      0, 8, 16, 2, 10, 18, 4, 12, 20, 6, 14, 22, 23, 15, 7, 21, 13, 5, 19,
+      11, 3, 17, 9, 1, 0, 0, 0, 0, 0, 0, 0, 0,
+
+    // quantization method 11, range 0..31
+      0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+      20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31,
+  };
+
+  // Table that describes the number of trits or quints along with bits required
+  // for storing each range.
+  static const int bits_trits_quints_table[QUANT_MAX * 3] =
+  {
+    1, 0, 0,  // RANGE_2
+    0, 1, 0,  // RANGE_3
+    2, 0, 0,  // RANGE_4
+    0, 0, 1,  // RANGE_5
+    1, 1, 0,  // RANGE_6
+    3, 0, 0,  // RANGE_8
+    1, 0, 1,  // RANGE_10
+    2, 1, 0,  // RANGE_12
+    4, 0, 0,  // RANGE_16
+    2, 0, 1,  // RANGE_20
+    3, 1, 0,  // RANGE_24
+    5, 0, 0,  // RANGE_32
+    3, 0, 1,  // RANGE_40
+    4, 1, 0,  // RANGE_48
+    6, 0, 0,  // RANGE_64
+    4, 0, 1,  // RANGE_80
+    5, 1, 0,  // RANGE_96
+    7, 0, 0,  // RANGE_128
+    5, 0, 1,  // RANGE_160
+    6, 1, 0,  // RANGE_192
+    8, 0, 0   // RANGE_256
+  };
+
+  // number must be <= 255; bit_count must be <= 8
+  void orbits8_ptr(inout uint4 outputs, inout uint bit_offset, uint number, uint bit_count)
+  {
+    uint newpos = bit_offset + bit_count;
+
+    uint nidx = newpos >> 5;
+    uint uidx = bit_offset >> 5;
+    uint bit_idx = bit_offset & 31;
+
+    outputs[uidx] |= (number << bit_idx);
+    outputs[uidx + 1] |= (nidx > uidx) ? (number >> (32 - bit_idx)) : 0;
+
+    bit_offset = newpos;
+  }
+
+  void split_high_low(uint n, uint i, out int high, out uint low)
+  {
+    uint low_mask = (uint)((1 << i) - 1);
+    low = n & low_mask;
+    high = (n >> i) & 0xFF;
+  }
+
+  // Reverse bits
+  uint reverse_byte(uint p)
+  {
+    p = ((p & 0xF) << 4) | ((p >> 4) & 0xF);
+    p = ((p & 0x33) << 2) | ((p >> 2) & 0x33);
+    p = ((p & 0x55) << 1) | ((p >> 1) & 0x55);
+    return p;
+  }
+
+  static const int integer_from_trits[243] =
+  {
+    0,1,2,    4,5,6,    8,9,10,
+    16,17,18, 20,21,22, 24,25,26,
+    3,7,15,   19,23,27, 12,13,14,
+    32,33,34, 36,37,38, 40,41,42,
+    48,49,50, 52,53,54, 56,57,58,
+    35,39,47, 51,55,59, 44,45,46,
+    64,65,66, 68,69,70, 72,73,74,
+    80,81,82, 84,85,86, 88,89,90,
+    67,71,79, 83,87,91, 76,77,78,
+
+    128,129,130, 132,133,134, 136,137,138,
+    144,145,146, 148,149,150, 152,153,154,
+    131,135,143, 147,151,155, 140,141,142,
+    160,161,162, 164,165,166, 168,169,170,
+    176,177,178, 180,181,182, 184,185,186,
+    163,167,175, 179,183,187, 172,173,174,
+    192,193,194, 196,197,198, 200,201,202,
+    208,209,210, 212,213,214, 216,217,218,
+    195,199,207, 211,215,219, 204,205,206,
+
+    96,97,98,    100,101,102, 104,105,106,
+    112,113,114, 116,117,118, 120,121,122,
+    99,103,111,  115,119,123, 108,109,110,
+    224,225,226, 228,229,230, 232,233,234,
+    240,241,242, 244,245,246, 248,249,250,
+    227,231,239, 243,247,251, 236,237,238,
+    28,29,30,    60,61,62,    92,93,94,
+    156,157,158, 188,189,190, 220,221,222,
+    31,63,127,   159,191,255, 252,253,254,
+
+  };
+
+  // Encode a group of 5 numbers using trits and bits.
+  void encode_trits(uint bit_count,
+    uint b0,
+    uint b1,
+    uint b2,
+    uint b3,
+    uint b4,
+    inout uint4 outputs, inout uint out_pos)
+  {
+    int t0, t1, t2, t3, t4;
+    uint m0, m1, m2, m3, m4;
+
+    split_high_low(b0, bit_count, t0, m0);
+    split_high_low(b1, bit_count, t1, m1);
+    split_high_low(b2, bit_count, t2, m2);
+    split_high_low(b3, bit_count, t3, m3);
+    split_high_low(b4, bit_count, t4, m4);
+
+    uint packhigh = integer_from_trits[t4 * 81 + t3 * 27 + t2 * 9 + t1 * 3 + t0];
+
+    orbits8_ptr(outputs, out_pos, m0, bit_count);
+    orbits8_ptr(outputs, out_pos, packhigh & 3, 2);
+
+    orbits8_ptr(outputs, out_pos, m1, bit_count);
+    orbits8_ptr(outputs, out_pos, (packhigh >> 2) & 3, 2);
+
+    orbits8_ptr(outputs, out_pos, m2, bit_count);
+    orbits8_ptr(outputs, out_pos, (packhigh >> 4) & 1, 1);
+
+    orbits8_ptr(outputs, out_pos, m3, bit_count);
+    orbits8_ptr(outputs, out_pos, (packhigh >> 5) & 3, 2);
+
+    orbits8_ptr(outputs, out_pos, m4, bit_count);
+    orbits8_ptr(outputs, out_pos, (packhigh >> 7) & 1, 1);
+
+  }
+
+  static const int integer_from_quints[125] =
+  {
+    0,1,2,3,4,        8,9,10,11,12,        16,17,18,19,20,      24,25,26,27,28,      5,13,21,29,6,
+    32,33,34,35,36,   40,41,42,43,44,      48,49,50,51,52,      56,57,58,59,60,      37,45,53,61,14,
+    64,65,66,67,68,   72,73,74,75,76,      80,81,82,83,84,      88,89,90,91,92,      69,77,85,93,22,
+    96,97,98,99,100,  104,105,106,107,108, 112,113,114,115,116, 120,121,122,123,124, 101,109,117,125,30,
+    102,103,70,71,38, 110,111,78,79,46,    118,119,86,87,54,    126,127,94,95,62,    39,47,55,63,31
+  };
+
+  //  Encode a group of 3 numbers using quints and bits.
+  void encode_quints(uint bit_count,
+    uint b0,
+    uint b1,
+    uint b2,
+    inout uint4 outputs, inout uint out_pos)
+  {
+    int q0, q1, q2;
+    uint m0, m1, m2;
+
+    split_high_low(b0, bit_count, q0, m0);
+    split_high_low(b1, bit_count, q1, m1);
+    split_high_low(b2, bit_count, q2, m2);
+
+    uint packhigh = integer_from_quints[q2 * 25 + q1 * 5 + q0];
+
+    orbits8_ptr(outputs, out_pos, m0, bit_count);
+    orbits8_ptr(outputs, out_pos, packhigh & 7, 3);
+
+    orbits8_ptr(outputs, out_pos, m1, bit_count);
+    orbits8_ptr(outputs, out_pos, (packhigh >> 3) & 3, 2);
+
+    orbits8_ptr(outputs, out_pos, m2, bit_count);
+    orbits8_ptr(outputs, out_pos, (packhigh >> 5) & 3, 2);
+
+  }
+
+  void bise_endpoints(uint numbers[8], int range, inout uint4 outputs)
+  {
+    uint bitpos = 0;
+    uint bits = bits_trits_quints_table[range * 3 + 0];
+    uint trits = bits_trits_quints_table[range * 3 + 1];
+    uint quints = bits_trits_quints_table[range * 3 + 2];
+
+    int count = 8;
+    BRANCH
+    if (trits == 1)
+    {
+      encode_trits(bits, numbers[0], numbers[1], numbers[2], numbers[3], numbers[4], outputs, bitpos);
+      encode_trits(bits, numbers[5], numbers[6], numbers[7], 0, 0, outputs, bitpos);
+      bitpos = ((8 + 5 * bits) * count + 4) / 5;
+    }
+    else if (quints == 1)
+    {
+      encode_quints(bits, numbers[0], numbers[1], numbers[2], outputs, bitpos);
+      encode_quints(bits, numbers[3], numbers[4], numbers[5], outputs, bitpos);
+      encode_quints(bits, numbers[6], numbers[7], 0, outputs, bitpos);
+      bitpos = ((7 + 3 * bits) * count + 2) / 3;
+    }
+    else
+    {
+      UNROLL
+      for (int i = 0; i < count; ++i)
+      {
+        orbits8_ptr(outputs, bitpos, numbers[i], bits);
+      }
+    }
+  }
+
+  void bise_weights(uint numbers[16], int range, inout uint4 outputs)
+  {
+    uint bitpos = 0;
+    uint bits = bits_trits_quints_table[range * 3 + 0];
+    uint trits = bits_trits_quints_table[range * 3 + 1];
+    uint quints = bits_trits_quints_table[range * 3 + 2];
+
+    BRANCH
+    if (trits == 1)
+    {
+      encode_trits(bits, numbers[0], numbers[1], numbers[2], numbers[3], numbers[4], outputs, bitpos);
+      encode_trits(bits, numbers[5], numbers[6], numbers[7], numbers[8], numbers[9], outputs, bitpos);
+      encode_trits(bits, numbers[10], numbers[11], numbers[12], numbers[13], numbers[14], outputs, bitpos);
+      encode_trits(bits, numbers[15], 0, 0, 0, 0, outputs, bitpos);
+    }
+    else if (quints == 1)
+    {
+      encode_quints(bits, numbers[0], numbers[1], numbers[2], outputs, bitpos);
+      encode_quints(bits, numbers[3], numbers[4], numbers[5], outputs, bitpos);
+      encode_quints(bits, numbers[6], numbers[7], numbers[8], outputs, bitpos);
+      encode_quints(bits, numbers[9], numbers[10], numbers[11], outputs, bitpos);
+      encode_quints(bits, numbers[12], numbers[13], numbers[14], outputs, bitpos);
+      encode_quints(bits, numbers[15], 0, 0, outputs, bitpos);
+      bitpos = ((7 + 3 * bits) * 16 + 2) / 3;
+    }
+    else
+    {
+      UNROLL
+      for (int i = 0; i < 16; ++i)
+      {
+        orbits8_ptr(outputs, bitpos, numbers[i], bits);
+      }
+    }
+  }
+
+  ///////////////////////////////////////
+  // dominant axis
+  ///////////////////////////////////////
+  void swap(inout float4 lhs, inout float4 rhs)
+  {
+    float4 tmp = lhs;
+    lhs = rhs;
+    rhs = tmp;
+  }
+
+  float4 eigen_vector(float4x4 m)
+  {
+    // calc the max eigen value by iteration
+    float4 v = float4(0.26726f, 0.80178f, 0.53452f, 0.0f);
+    UNROLL
+    for (int i = 0; i < 8; ++i)
+    {
+      v = mul(m, v);
+      BRANCH
+      if (length(v) < SMALL_VALUE) {
+        return v;
+      }
+      v = normalize(mul(m, v));
+    }
+    return v;
+  }
+
+  void find_min_max(float4 texels[BLOCK_SIZE], float4 pt_mean, float4 vec_k, out float4 e0, out float4 e1)
+  {
+    float a = 1e31f;
+    float b = -1e31f;
+    UNROLL
+    for (int i = 0; i < BLOCK_SIZE; ++i)
+    {
+      float4 texel = texels[i] - pt_mean;
+      float t = dot(texel, vec_k);
+      a = min(a, t);
+      b = max(b, t);
+    }
+
+    e0 = clamp(vec_k * a + pt_mean, 0.0f, 255.0f);
+    e1 = clamp(vec_k * b + pt_mean, 0.0f, 255.0f);
+
+    // if the direction-vector ends up pointing from light to dark, FLIP IT!
+    // this will make the first endpoint the darkest one.
+    float4 e0u = round(e0);
+    float4 e1u = round(e1);
+    if (e0u.x + e0u.y + e0u.z > e1u.x + e1u.y + e1u.z)
+    {
+      swap(e0, e1);
+    }
+  }
+
+  void principal_component_analysis(float4 texels[BLOCK_SIZE], out float4 e0, out float4 e1, float4 pt_mean)
+  {
+    float4x4 cov = 0;
+    UNROLL
+    for (int k = 0; k < BLOCK_SIZE; ++k)
+    {
+      float4 texel = texels[k] - pt_mean;
+      UNROLL
+      for (int i = 0; i < 4; ++i)
+      {
+        UNROLL
+        for (int j = 0; j < 4; ++j)
+        {
+          cov[i][j] += texel[i] * texel[j];
+        }
+      }
+    }
+    cov /= BLOCK_SIZE - 1;
+
+    float4 vec_k = eigen_vector(cov);
+
+    find_min_max(texels, pt_mean, vec_k, e0, e1);
+  }
+
+  ///////////////////////////////////////
+  // quantize endpoints
+  ///////////////////////////////////////
+  void encode_color(float4 e0, float4 e1, out uint endpoint_quantized[8])
+  {
+    uint4 e0q = round(e0);
+    uint4 e1q = round(e1);
+    endpoint_quantized[0] = e0q.r;
+    endpoint_quantized[1] = e1q.r;
+    endpoint_quantized[2] = e0q.g;
+    endpoint_quantized[3] = e1q.g;
+    endpoint_quantized[4] = e0q.b;
+    endpoint_quantized[5] = e1q.b;
+    endpoint_quantized[6] = e0q.a;
+    endpoint_quantized[7] = e1q.a;
+  }
+
+  ///////////////////////////////////////
+  // calculate quantized weights
+  ///////////////////////////////////////
+  uint quantize_weight(uint weight_range, float weight)
+  {
+    uint q = round(weight * weight_range);
+    return clamp(q, 0, weight_range);
+  }
+
+  void calculate_and_quantize_normal_weights(float4 texels[BLOCK_SIZE],
+    int weight_range,
+    float4 ep0,
+    float4 ep1,
+    out uint weights[BLOCK_SIZE])
+  {
+    float4 vec_k = ep1 - ep0;
+    int i = 0;
+    float len = length(vec_k);
+    BRANCH
+    if (len < SMALL_VALUE)
+    {
+      return;
+    }
+    else
+    {
+      vec_k = vec_k / len;
+      float minw = 1e31f;
+      float maxw = -1e31f;
+      float projw[BLOCK_SIZE];
+      UNROLL
+      for (i = 0; i < BLOCK_SIZE; ++i)
+      {
+        float4 texel = texels[i];
+        float w = dot(vec_k, texel - ep0);
+        minw = min(w, minw);
+        maxw = max(w, maxw);
+        projw[i] = w;
+      }
+
+      float invlen = 1.0f / max(SMALL_VALUE, maxw - minw);
+      UNROLL
+      for (i = 0; i < BLOCK_SIZE; ++i)
+      {
+        weights[i] = quantize_weight(weight_range, (projw[i] - minw) * invlen);
+      }
+    }
+  }
+
+  ///////////////////////////////////////
+  // encode single partition
+  ///////////////////////////////////////
+  uint4 assemble_block(uint blockmode, uint color_endpoint_mode, uint partition_count, uint partition_index, uint4 ep_ise, uint4 wt_ise)
+  {
+    uint4 phy_blk = uint4(0, 0, 0, 0);
+    // weights ise
+    phy_blk.w |= reverse_byte(wt_ise.x & 0xFF) << 24;
+    phy_blk.w |= reverse_byte((wt_ise.x >> 8) & 0xFF) << 16;
+    phy_blk.w |= reverse_byte((wt_ise.x >> 16) & 0xFF) << 8;
+    phy_blk.w |= reverse_byte((wt_ise.x >> 24) & 0xFF);
+
+    phy_blk.z |= reverse_byte(wt_ise.y & 0xFF) << 24;
+    phy_blk.z |= reverse_byte((wt_ise.y >> 8) & 0xFF) << 16;
+    phy_blk.z |= reverse_byte((wt_ise.y >> 16) & 0xFF) << 8;
+    phy_blk.z |= reverse_byte((wt_ise.y >> 24) & 0xFF);
+
+    phy_blk.y |= reverse_byte(wt_ise.z & 0xFF) << 24;
+    phy_blk.y |= reverse_byte((wt_ise.z >> 8) & 0xFF) << 16;
+    phy_blk.y |= reverse_byte((wt_ise.z >> 16) & 0xFF) << 8;
+    phy_blk.y |= reverse_byte((wt_ise.z >> 24) & 0xFF);
+
+    // blockmode & partition count
+    phy_blk.x = blockmode; // blockmode is 11 bit
+
+    // cem: color_endpoint_mode is 4 bit
+    phy_blk.x |= (color_endpoint_mode & 0xF) << 13;
+
+    // endpoints start from ( multi_part ? bits 29 : bits 17 )
+    phy_blk.x |= (ep_ise.x & 0x7FFF) << 17;
+    phy_blk.y = ((ep_ise.x >> 15) & 0x1FFFF);
+    phy_blk.y |= (ep_ise.y & 0x7FFF) << 17;
+    phy_blk.z |= ((ep_ise.y >> 15) & 0x1FFFF);
+
+    return phy_blk;
+  }
+
+  uint assemble_blockmode(uint weight_quantmethod)
+  {
+    uint a = (Y_GRIDS - 2) & 0x3;
+    uint b = (X_GRIDS - 4) & 0x3;
+
+    uint h = (weight_quantmethod < 6) ? 0 : 1; // "a precision bit H"
+    uint r = (weight_quantmethod % 6) + 2; // "The weight ranges are encoded using a 3 bit value R"
+
+    // block mode
+    uint blockmode = (r >> 1) & 0x3;
+    blockmode |= (r & 0x1) << 4;
+    blockmode |= (a & 0x3) << 5;
+    blockmode |= (b & 0x3) << 7;
+    blockmode |= h << 9;
+    return blockmode;
+  }
+
+  uint4 endpoint_ise(float4 ep0, float4 ep1, uint endpoint_quantmethod)
+  {
+    // encode endpoints
+    uint ep_quantized[8];
+    encode_color(ep0, ep1, ep_quantized);
+
+    // endpoints quantized ise encode
+    uint4 ep_ise = 0;
+    bise_endpoints(ep_quantized, endpoint_quantmethod, ep_ise);
+    return ep_ise;
+  }
+
+  uint4 weight_ise(float4 texels[BLOCK_SIZE], uint weight_range, float4 ep0, float4 ep1, uint weight_quantmethod)
+  {
+    // encode weights
+    uint wt_quantized[BLOCK_SIZE];
+    calculate_and_quantize_normal_weights(texels, weight_range, ep0, ep1, wt_quantized);
+
+    UNROLL
+    for (int i = 0; i < BLOCK_SIZE; ++i)
+    {
+      int w = weight_quantmethod * WEIGHT_QUANTIZE_NUM + wt_quantized[i];
+      wt_quantized[i] = scramble_table[w];
+    }
+
+    // weights quantized ise encode
+    uint4 wt_ise = 0;
+    bise_weights(wt_quantized, weight_quantmethod, wt_ise);
+    return wt_ise;
+  }
+
+  uint4 ASTCCompressBlock_ASTC_RGBA(float4 texels[BLOCK_SIZE], float4 pt_mean)
+  {
+    float4 ep0, ep1;
+    principal_component_analysis(texels, ep0, ep1, pt_mean);
+
+    // Possible combos
+    // QUANT_3  QUANT_256
+    // QUANT_4
+    // QUANT_5
+    // QUANT_6
+    // QUANT_8  QUANT_192
+    // QUANT_12 QUANT_96
+    // QUANT_16 QUANT_48
+    // QUANT_20 QUANT_32
+    // QUANT_24 QUANT_24
+    // QUANT_32 QUANT_12
+
+    uint weight_quantmethod = QUANT_6;
+    uint endpoint_quantmethod = QUANT_256;
+    uint weight_range = 6;
+
+    uint blockmode = assemble_blockmode(weight_quantmethod);
+
+    uint4 ep_ise = endpoint_ise(ep0, ep1, endpoint_quantmethod);
+
+    uint4 wt_ise = weight_ise(texels, weight_range - 1, ep0, ep1, weight_quantmethod);
+
+    // assemble to astc block
+    return assemble_block(blockmode, CEM_LDR_RGBA_DIRECT, 1, 0, ep_ise, wt_ise);
+  }
+
+  uint4 ASTCCompressBlock_ASTC_RGBA(float4 texels[BLOCK_SIZE])
+  {
+    float4 pt_mean = 0;
+    UNROLL
+    for (int i = 0; i < BLOCK_SIZE; ++i)
+    {
+      pt_mean += texels[i];
+    }
+    pt_mean /= BLOCK_SIZE;
+
+    return ASTCCompressBlock_ASTC_RGBA(texels, pt_mean);
+  }
+}
+endmacro
+
+macro INIT_ASTC_COMPRESSION()
+  hlsl(cs){ RWTexture2D<uint4> compressedTexture : register( u2 ); }
+  INIT_ASTC_COMPRESSION_STAGE(cs)
+endmacro

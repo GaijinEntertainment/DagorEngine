@@ -9,15 +9,8 @@
 #include "animation/motion_matching_controller.h"
 #include "animation/animation_data_base.h"
 
-
-ECS_TAG(render)
-ECS_BEFORE(animchar_es)
-ECS_AFTER(wait_motion_matching_job_es)
-static void motion_matching_update_anim_tree_foot_locker_es(const ParallelUpdateFrameDelayed &,
-  AnimV20::AnimcharBaseComponent &animchar,
-  const MotionMatchingController &motion_matching__controller)
+void motion_matching_update_anim_tree_foot_locker(AnimV20::AnimcharBaseComponent &animchar, const MotionMatchingController &controller)
 {
-  const MotionMatchingController &controller = motion_matching__controller;
   if (!controller.dataBase)
     return;
 
@@ -54,4 +47,14 @@ static void motion_matching_update_anim_tree_foot_locker_es(const ParallelUpdate
     else
       leg.needLock = false;
   }
+}
+
+ECS_TAG(render)
+ECS_BEFORE(before_animchar_update_sync)
+ECS_AFTER(wait_motion_matching_job_es)
+static void motion_matching_update_anim_tree_foot_locker_es(const ParallelUpdateFrameDelayed &,
+  AnimV20::AnimcharBaseComponent &animchar,
+  const MotionMatchingController &motion_matching__controller)
+{
+  motion_matching_update_anim_tree_foot_locker(animchar, motion_matching__controller);
 }

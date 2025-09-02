@@ -1,5 +1,5 @@
 include "water_3d_geometry.dshl"
-include "water_3d_color.dshl"
+include "water_3d_color_dng.dshl"
 include "viewVecVS.dshl"
 
 shader water_distant
@@ -18,9 +18,10 @@ shader water_distant
     }
   }
 
-  INIT_WATER_3D_DEFERRED_COLOR()
+  bool colorPass = false;
+  INIT_SELECT_WATER_3D_DEFERRED_COLOR()
+  USE_SELECT_WATER_3D_DEFERRED_COLOR()
   USE_WATER_DISTANT_COMMON()
-  USE_WATER_3D_DEFERRED_COLOR()
 
   hlsl(ps) {
     float4 water_nv_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target0

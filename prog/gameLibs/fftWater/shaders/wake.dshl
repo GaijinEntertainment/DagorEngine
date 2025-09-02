@@ -16,7 +16,7 @@ macro INIT_WAKE()
   }
   else
   {
-    USE_WATER_RIPPLES()
+    USE_WATER_RIPPLES(@smp2d)
   }
 endmacro
 
@@ -40,7 +40,7 @@ macro INIT_WAKE_VS(tid, sid)
   }
   else
   {
-    USE_WATER_RIPPLES_DISPL(vs)
+    USE_WATER_RIPPLES_DISPL(vs, @smp2d)
   }
 
   (ps) { wake_main_dir@f4 = wake_main_dir; }

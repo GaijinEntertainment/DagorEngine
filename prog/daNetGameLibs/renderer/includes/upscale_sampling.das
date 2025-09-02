@@ -5,29 +5,29 @@ require DagorResPtr
 
 //same as in c++ code
 let UPSCALE_WEIGHTS_COUNT = 16
-let UPSCALE_DATA_SIZE = typeinfo(sizeof type<float4>)
+let UPSCALE_DATA_SIZE = typeinfo sizeof(type<float4>)
 
 [generic]
 def upload_weights(upscale_weights_buffer : UniqueBufHolder)
-  let UPSCALE_WEIGHTS_DATA <- [{ float[UPSCALE_WEIGHTS_COUNT * 4]
-    1f; 1f; 1f; 1f;
-    0f; 0f; 0f; 1f;
-    0f; 0f; 1f; 0f;
-    0f; 0f; 1f; 1f;
-    0f; 1f; 0f; 0f;
-    0f; 1f; 0f; 1f;
-    0f; 1f; 1f; 0f;
-    0f; 1f; 1f; 1f;
+  let UPSCALE_WEIGHTS_DATA <-  array<float>(
+    1f, 1f, 1f, 1f,
+    0f, 0f, 0f, 1f,
+    0f, 0f, 1f, 0f,
+    0f, 0f, 1f, 1f,
+    0f, 1f, 0f, 0f,
+    0f, 1f, 0f, 1f,
+    0f, 1f, 1f, 0f,
+    0f, 1f, 1f, 1f,
 
-    1f; 0f; 0f; 0f;
-    1f; 0f; 0f; 1f;
-    1f; 0f; 1f; 0f;
-    1f; 0f; 1f; 1f;
-    1f; 1f; 0f; 0f;
-    1f; 1f; 0f; 1f;
-    1f; 1f; 1f; 0f;
-    1f; 1f; 1f; 1f
-  }]
+    1f, 0f, 0f, 0f,
+    1f, 0f, 0f, 1f,
+    1f, 0f, 1f, 0f,
+    1f, 0f, 1f, 1f,
+    1f, 1f, 0f, 0f,
+    1f, 1f, 0f, 1f,
+    1f, 1f, 1f, 0f,
+    1f, 1f, 1f, 1f
+  )
   *getBuf(upscale_weights_buffer) |> updateData(UPSCALE_WEIGHTS_DATA, VBLOCK_WRITEONLY | VBLOCK_DISCARD)
 
 [generic]

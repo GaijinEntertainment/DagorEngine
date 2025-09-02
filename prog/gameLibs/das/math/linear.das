@@ -1,8 +1,15 @@
+options indenting = 2
 module linear shared
 require math
 require DagorSystem
 require DagorMath
 
+
+[generic] // closest_pt_on_line from dag_mathUtils.h
+def closest_pt_on_line(point, a, b)
+  let dir = normalize(b - a)
+  let t = dot((point - a), dir)
+  return a + dir * t
 
 [generic] // closest_pt_on_seg from dag_mathUtils.h
 def closest_pt_on_seg(point, a, b; var t : float&)
@@ -164,7 +171,7 @@ def private extend_hull(var hull : array<float2>; var outside : array<float2>; f
     swap(from, to)
   if maxDst >= 0.0
     var newOutside : array<float2>
-    let polygon = [[float2[3] hull[from]; outside[maxP]; hull[to]]]
+    let polygon = fixed_array<float2>(hull[from], outside[maxP], hull[to])
     for p, oidx in outside, iter_range(outside)
       if oidx != maxP && !test_point_in_2d_triangle(p, polygon, !swap_direction)
         push(newOutside, p)

@@ -43,7 +43,9 @@ jam -sPlatformSpec=vc17 -s Root=../.. -f shaderCompiler2/jamfile-hlsl2metal
   if errorlevel 1 goto error
 jam -sPlatformSpec=vc17 -s Root=../.. -f shaderCompiler2/jamfile-dx12
   if errorlevel 1 goto error
-jam -sPlatformSpec=vc17 -s Root=../.. -f shaderCompiler2/hlslCompiler/jamfile
+jam -sPlatformSpec=vc17 Root=../.. -f shaderCompiler2/jamfile-stub
+  if errorlevel 1 goto error
+jam -sPlatformSpec=vc17 Root=../.. -f shaderCompiler2/hlslCompiler/jamfile
   if errorlevel 1 goto error
 jam -sPlatformSpec=vc17 -s Root=../.. -f shaderCompiler2/nodeBased/jamfile
   if errorlevel 1 goto error
@@ -97,17 +99,15 @@ __build_pack.py FINAL
 popd
 
 rem 3ds Max plugins, we don't care if these plugins fail to compile (this could happen due to missing SDK or compiler)
+
+
 jam -sPlatformSpec=vc17 -s Root=../.. -s MaxVer=Max2025 -f maxplug/jamfile
-jam -sPlatformSpec=vc17 -s Root=../.. -s MaxVer=Max2025 -f maxplug/jamfile-imp
 
 jam -sPlatformSpec=vc17 -s Root=../.. -s MaxVer=Max2024 -f maxplug/jamfile
-jam -sPlatformSpec=vc17 -s Root=../.. -s MaxVer=Max2024 -f maxplug/jamfile-imp
 
 jam -sPlatformSpec=vc17 -s Root=../.. -s MaxVer=Max2023 -f maxplug/jamfile
-jam -sPlatformSpec=vc17 -s Root=../.. -s MaxVer=Max2023 -f maxplug/jamfile-imp
 
 jam -sPlatformSpec=vc17 -s Root=../.. -s MaxVer=Max2022 -f maxplug/jamfile
-jam -sPlatformSpec=vc17 -s Root=../.. -s MaxVer=Max2022 -f maxplug/jamfile-imp
 if errorlevel 1 goto EOF
 
 goto EOF

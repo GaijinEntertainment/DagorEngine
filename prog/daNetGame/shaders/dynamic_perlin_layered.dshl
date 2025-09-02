@@ -46,6 +46,7 @@ shader dynamic_perlin_layered
         float4 out_pos                          : TEXCOORD5;
         float4 out_pos_prev                     : TEXCOORD6;
         #endif
+        float localPosY                         : TEXCOORD7;
       };
     }
   }
@@ -55,22 +56,13 @@ shader dynamic_perlin_layered
     void vs_post_function(VsInput input, inout VsOutput output)
     {
       #if COLOR_NEEDED
-        float4 initialTm0;
-        float4 initialTm1;
-        float4 initialTm2;
-        output.colorMul = getColorMul(get_per_instance_hashval());
-        ##if in_editor_assume == yes
-          initialTm0 = float4(1, 0, 0, 0);
-          initialTm1 = float4(0, 1, 0, 0);
-          initialTm2 = float4(0, 0, 1, 0);
-        ##else
-          get_per_instance_data(initialTm2, 2);
-          get_per_instance_data(initialTm1, 3);
-          get_per_instance_data(initialTm0, 4);
-        ##endif
+        output.colorMul = getColorMul(GET_PER_INSTANCE_HASHVAL);
+        float4 initialTm0, initialTm1, initialTm2;
+        get_initial_tm(initialTm0, initialTm1, initialTm2);
         float3 localPos = float3(dot(initialTm0, float4(input.pos, 1)), dot(initialTm1, float4(input.pos, 1)), dot(initialTm2, float4(input.pos, 1)));
         output.pointToEye.w = localPos.y - initialTm1.w;
         output.initPos = localPos;
+        output.localPosY = localPos.y;
       #endif
     }
   }

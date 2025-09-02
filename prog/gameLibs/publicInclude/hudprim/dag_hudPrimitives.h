@@ -351,12 +351,12 @@ public:
     int align, // -1 - left, 0 - center, 1 - right
     const char *text);
 
-  void beginRenderBufferedText(){};
+  void beginRenderBufferedText() {}
   void renderBufferedText(int x, int y, E3DCOLOR color, const BufferedText *buffered_text, float z = 0.f,
     float w = 1.f); // buffered_text must be valid until endRenderBufferedText.
 
   void renderBufferedText(int x, int y, E3DCOLOR color, int font_no, int align, const char *text, float z = 0.f, float w = 1.f);
-  void endRenderBufferedText(){};
+  void endRenderBufferedText() {}
 
   void setColorMul(E3DCOLOR color_mul);
   void clear();

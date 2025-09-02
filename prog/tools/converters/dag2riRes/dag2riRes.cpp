@@ -132,7 +132,7 @@ bool optimizeDag(const char *base_path, const char *file)
   class NoChangeResolver : public ITextureNameResolver
   {
   public:
-    virtual bool resolveTextureName(const char *src_name, String &out_str) { return false; }
+    bool resolveTextureName(const char *src_name, String &out_str) override { return false; }
   } resolveCb;
 
   static char fileNameBuf[260];
@@ -245,7 +245,7 @@ static void addObject(Node &n, const char *name, const DataBlock &obj_blk)
   class ParamEnum : public Node::NodeEnumCB
   {
   public:
-    virtual int node(Node &c)
+    int node(Node &c) override
     {
       c.script = NULL;
       return 0;
@@ -368,7 +368,7 @@ static bool processDag(const char *fn, const char *base_path, bool fast_tex_cvt)
 
     TexReplace() : mat(tmpmem) {}
 
-    virtual int node(Node &c)
+    int node(Node &c) override
     {
       if (c.mat)
         for (int i = 0; i < c.mat->list.size(); i++)

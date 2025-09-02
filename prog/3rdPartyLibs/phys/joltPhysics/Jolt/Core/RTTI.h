@@ -90,11 +90,11 @@ JPH_NAMESPACE_BEGIN
 ///		IsKindOf(bar_ptr, RTTI(Foo)) returns true
 ///		IsKindOf(bar_ptr, RTTI(Bar)) returns true
 ///
-///		StaticCast<Bar>(foo_ptr) asserts and returns foo_ptr casted to pBar
-///		StaticCast<Bar>(bar_ptr) returns bar_ptr casted to pBar
+///		StaticCast<Bar>(foo_ptr) asserts and returns foo_ptr casted to Bar *
+///		StaticCast<Bar>(bar_ptr) returns bar_ptr casted to Bar *
 ///
 ///		DynamicCast<Bar>(foo_ptr) returns nullptr
-///		DynamicCast<Bar>(bar_ptr) returns bar_ptr casted to pBar
+///		DynamicCast<Bar>(bar_ptr) returns bar_ptr casted to Bar *
 ///
 /// Other feature of DynamicCast:
 ///
@@ -308,7 +308,7 @@ public:																												\
 
 #define JPH_DECLARE_RTTI_WITH_NAMESPACE_FOR_FACTORY(linkage, name_space, class_name)								\
 	namespace name_space {																							\
-		class class_name; 																							\
+		class class_name;																							\
 		linkage RTTI *			GetRTTIOfType(class class_name *);													\
 	}
 

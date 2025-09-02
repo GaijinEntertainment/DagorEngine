@@ -5,26 +5,27 @@
 #include <libTools/util/progressInd.h>
 #include <libTools/containers/dag_StrMap.h>
 #include <gui/dag_visConsole.h>
+#include <math/dag_e3dColor.h>
+#include <propPanel/messageQueue.h>
 
 #include <util/dag_string.h>
 
 #include "iConsoleCmd.h"
 
-
-struct HWND__;
-struct HFONT__;
 class DataBlock;
 
-class CoolConsole : public ILogWriter, public IGenericProgressIndicator, public IConsoleCmd, public console::IVisualConsoleDriver
+class CoolConsole : public ILogWriter,
+                    public IGenericProgressIndicator,
+                    public IConsoleCmd,
+                    public console::IVisualConsoleDriver,
+                    public PropPanel::IDelayedCallbackHandler
 {
 public:
-  CoolConsole(const char *caption, HWND__ *parent_wnd = NULL);
-  ~CoolConsole();
+  CoolConsole();
+  ~CoolConsole() override;
 
-  void setCaption(const char *capt);
   inline void setCanClose(bool can_close = true);
   inline void setCanMinimize(bool can_minimize = true);
-  inline void setParentWnd(HWND__ *wnd) { parentWnd = wnd; }
 
   inline bool isCanClose() const { return flags & CC_CAN_CLOSE; }
   inline bool isCanMinimize() const { return flags & CC_CAN_MINIMIZE; }
@@ -32,14 +33,13 @@ public:
   inline bool isCountMessages() const { return flags & CC_COUNT_MESSAGES; }
 
   bool isVisible() const;
-  bool isTopmost() const;
 
   inline int getNotesCount() const { return notesCnt; }
   inline int getWarningsCount() const { return warningsCnt; }
   inline int getErrorsCount() const { return errorsCnt; }
   inline int getFatalsCount() const { return fatalsCnt; }
 
-  virtual bool hasErrors() const { return errorsCnt || fatalsCnt; }
+  bool hasErrors() const override { return errorsCnt || fatalsCnt; }
   inline bool hasWarnings() const { return warningsCnt; }
 
   // Global counters are never reset, get a counter before operation(s) and compare it after one.
@@ -51,30 +51,28 @@ public:
   bool registerCommand(const char *cmd, IConsoleCmd *handler);
   // unregisters command if it was registered to mentioned handler
   bool unregisterCommand(const char *cmd, IConsoleCmd *handler);
-  // runs command line 'cmd'. if 'cmd' is NULL run command from console's command line
-  bool runCommand(const char *cmd = NULL);
+  // runs command line 'cmd'
+  bool runCommand(const char *cmd);
 
   bool initConsole();
   void destroyConsole();
 
   void showConsole(bool activate = false);
-  void hideConsole() const;
-  void clearConsole() const;
+  void hideConsole();
+  void clearConsole();
   void saveToFile(const char *file_name) const;
 
-  void moveOnBottom() const;
+  void startLog() override;
+  void endLog() override;
 
-  virtual void startLog();
-  virtual void endLog();
+  void addMessageFmt(MessageType type, const char *fmt, const DagorSafeArg *arg, int anum) override;
 
-  virtual void addMessageFmt(MessageType type, const char *fmt, const DagorSafeArg *arg, int anum);
-
-  virtual void startProgress(IProgressCB *progress_cb = NULL);
-  virtual void endProgress();
-  virtual void setActionDescFmt(const char *desc, const DagorSafeArg *arg, int anum);
-  virtual void setTotal(int total_cnt);
-  virtual void setDone(int done_cnt);
-  virtual void incDone(int inc = 1);
+  void startProgress(IProgressCB *progress_cb = NULL) override;
+  void endProgress() override;
+  void setActionDescFmt(const char *desc, const DagorSafeArg *arg, int anum) override;
+  void setTotal(int total_cnt) override;
+  void setDone(int done_cnt) override;
+  void incDone(int inc = 1) override;
 
   inline void endLogAndProgress()
   {
@@ -83,10 +81,10 @@ public:
   }
 
   // IConsoleCmd
-  virtual bool onConsoleCommand(const char *cmd, dag::ConstSpan<const char *> params);
-  virtual const char *onConsoleCommandHelp(const char *cmd);
+  bool onConsoleCommand(const char *cmd, dag::ConstSpan<const char *> params) override;
+  const char *onConsoleCommandHelp(const char *cmd) override;
 
-  void onCmdArrowKey(bool up, bool ctrl_modif);
+  String onCmdArrowKey(bool up, const char *current_command);
   void saveCmdHistory(DataBlock &blk) const;
   void loadCmdHistory(const DataBlock &blk);
 
@@ -109,20 +107,19 @@ public:
   void setFontId(int) override {}
   const char *getEditTextBeforeModify() const override { return nullptr; }
 
-private:
-  HWND__ *hWnd;
-  HWND__ *parentWnd;
-  HWND__ *logWnd;
-  HWND__ *progressWnd;
-  HWND__ *cmdWnd;
-  HWND__ *cmdListWnd;
-  HWND__ *cancelBtn;
+  void updateImgui();
 
-  String caption;
+private:
   unsigned flags;
+  bool visible = false;
+  bool justMadeVisible = false;
   bool lastVisible;
+  bool activateOnShow = false;
+  bool scrollToBottomOnShow = false;
 
   IProgressCB *progressCb;
+  int progressPosition = 0;
+  int progressMaxPosition = 0;
 
   int notesCnt;
   int warningsCnt;
@@ -135,20 +132,10 @@ private:
   Tab<String> cmdNames;
   StriMap<IConsoleCmd *> commands;
 
+  String commandInputText;
   Tab<String> cmdHistory;
   bool cmdHistoryLastUnfinished;
   int cmdHistoryPos;
-
-  static unsigned wndClassId;
-  static void *richEditDll;
-
-  static HFONT__ *conFont;
-  static int conFontHeight;
-
-  static HFONT__ *interfaceFont;
-
-  static int conCount;
-  static int lastDagorIdleCall;
 
   enum
   {
@@ -158,21 +145,20 @@ private:
     CC_COUNT_MESSAGES = 1 << 3,
   };
 
-  virtual void redrawScreen() {}
-  virtual void destroy() {}
+  void redrawScreen() override {}
+  void destroy() override {}
 
-  void alignControls(bool align_progress_only = false);
+  void onImguiDelayedCallback(void *user_data) override;
 
   void runHelp(const char *command);
   void runCmdList();
 
   void getCmds(const char *prefix, Tab<String> &cmds) const;
-  void showCmdList();
 
-  void addTextToLog(const char *text, unsigned color = 0, const unsigned *pos = NULL, bool bold = false);
+  void addTextToLog(const char *text, int color_index, bool bold = false, bool start_new_line = true);
 
-  static bool registerWndClass();
-  static intptr_t __stdcall wndProc(void *wnd, unsigned msg, intptr_t w_param, intptr_t l_param);
+  void renderLogTextUI(float height);
+  void renderCommandInputUI();
 
   static int compareCmd(const String *s1, const String *s2);
 };
@@ -225,11 +211,9 @@ inline void CoolConsole::endLog()
 class QuietConsole : public CoolConsole
 {
 public:
-  QuietConsole() : CoolConsole("") {}
-  virtual void setActionDesc(const char *desc) {}
-  virtual void setTotal(int total_cnt) {}
-  virtual void setDone(int done_cnt) {}
-  virtual void incDone(int inc = 1) {}
-  virtual void redrawScreen() {}
-  virtual void destroy() {}
+  void setTotal(int) override {}
+  void setDone(int) override {}
+  void incDone(int) override {}
+  void redrawScreen() override {}
+  void destroy() override {}
 };

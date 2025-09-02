@@ -5,8 +5,11 @@ AddIncludes +=
 ;
 
 CPPopt +=
-  -DWIN32 -DNDEBUG
+  -DNDEBUG
   -DCARVE_NODEBUG
   -DCARVE_USE_EXACT_PREDICATES
 ;
+
+if $(Platform) = windows { CPPopt += -DWIN32 ; }
+
 if $(Platform)-$(PlatformArch) = windows-x86_64 { CPPopt += -wd4267 ; } # no support for > 4G vertices

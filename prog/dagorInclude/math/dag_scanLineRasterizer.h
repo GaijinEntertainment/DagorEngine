@@ -223,11 +223,8 @@ template <int Width, int Height>
 class RenderSWNoInterp
 {
 public:
-  enum
-  {
-    WIDTH = Width,
-    HEIGHT = Height
-  };
+  static constexpr int WIDTH = Width;
+  static constexpr int HEIGHT = Height;
   typedef uint8_t DepthType;
   struct DepthFrameBuffer
   {

@@ -79,14 +79,14 @@ static bool load_asg(AsgStatesGraph &asg, DagorAsset &a)
 class StateGraphExporter : public IDagorAssetExporter
 {
 public:
-  virtual const char *__stdcall getExporterIdStr() const { return "state graph exp"; }
+  const char *__stdcall getExporterIdStr() const override { return "state graph exp"; }
 
-  virtual const char *__stdcall getAssetType() const { return TYPE; }
-  virtual unsigned __stdcall getGameResClassId() const { return AnimCharGameResClassId; }
-  virtual unsigned __stdcall getGameResVersion() const { return 6; }
+  const char *__stdcall getAssetType() const override { return TYPE; }
+  unsigned __stdcall getGameResClassId() const override { return AnimCharGameResClassId; }
+  unsigned __stdcall getGameResVersion() const override { return 6; }
 
-  virtual void __stdcall onRegister() {}
-  virtual void __stdcall onUnregister() {}
+  void __stdcall onRegister() override {}
+  void __stdcall onUnregister() override {}
 
   void __stdcall gatherSrcDataFiles(const DagorAsset &a, Tab<SimpleString> &files) override
   {
@@ -107,9 +107,9 @@ public:
       files.push_back() = String(260, "%s/%s_statesGraph.cpp", page_sys_hlp->getSgCppDestDir(), a.getName());
   }
 
-  virtual bool __stdcall isExportableAsset(DagorAsset &a) { return a.props.getBool("export", true); }
+  bool __stdcall isExportableAsset(DagorAsset &a) override { return a.props.getBool("export", true); }
 
-  virtual bool __stdcall exportAsset(DagorAsset &a, mkbindump::BinDumpSaveCB &cwr, ILogWriter &log)
+  bool __stdcall exportAsset(DagorAsset &a, mkbindump::BinDumpSaveCB &cwr, ILogWriter &log) override
   {
     init_atypes(a.getMgr());
     AsgStatesGraph asg;
@@ -272,18 +272,17 @@ public:
 class StateGraphRefs : public IDagorAssetRefProvider
 {
 public:
-  virtual const char *__stdcall getRefProviderIdStr() const { return "state graph refs"; }
+  const char *__stdcall getRefProviderIdStr() const override { return "state graph refs"; }
 
-  virtual const char *__stdcall getAssetType() const { return TYPE; }
+  const char *__stdcall getAssetType() const override { return TYPE; }
 
-  virtual void __stdcall onRegister() {}
-  virtual void __stdcall onUnregister() {}
+  void __stdcall onRegister() override {}
+  void __stdcall onUnregister() override {}
 
-  dag::ConstSpan<Ref> __stdcall getAssetRefs(DagorAsset &a) override
+  void __stdcall getAssetRefs(DagorAsset &a, Tab<Ref> &refs) override
   {
-    static Tab<IDagorAssetRefProvider::Ref> tmpRefs(tmpmem);
     init_atypes(a.getMgr());
-    tmpRefs.clear();
+    refs.clear();
 
     AsgStatesGraph asg;
     load_asg(asg, a);
@@ -294,7 +293,7 @@ public:
 
     for (int i = 0; i < a2d.nameCount(); i++)
     {
-      IDagorAssetRefProvider::Ref &r = tmpRefs.push_back();
+      IDagorAssetRefProvider::Ref &r = refs.push_back();
       String a2d_name(DagorAsset::fpath2asset(a2d.getName(i)));
       DagorAsset *ra = a.getMgr().findAsset(a2d_name, a2d_atype);
       r.flags = IDagorAssetRefProvider::RFLG_EXTERNAL;
@@ -308,7 +307,7 @@ public:
     if (at_name)
     {
       DagorAsset *ra = a.getMgr().findAsset(at_name, animtree_atype);
-      IDagorAssetRefProvider::Ref &r = tmpRefs.push_back();
+      IDagorAssetRefProvider::Ref &r = refs.push_back();
       r.flags = 0;
       if (!ra)
         r.setBrokenRef(String(64, "%s:animTree", at_name));
@@ -320,15 +319,13 @@ public:
     if (sg_name)
     {
       DagorAsset *ra = sg_name ? a.getMgr().findAsset(sg_name, shared_atype) : NULL;
-      IDagorAssetRefProvider::Ref &r = tmpRefs.push_back();
+      IDagorAssetRefProvider::Ref &r = refs.push_back();
       r.flags = 0;
       if (!ra)
         r.setBrokenRef(String(64, "%s:shared", sg_name));
       else
         r.refAsset = ra;
     }
-
-    return tmpRefs;
   }
 };
 END_DABUILD_PLUGIN_NAMESPACE(stateGraph)

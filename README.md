@@ -29,7 +29,7 @@ After the script completes its work, the X:\develop\devtools folder will be conf
 
 * Agility.SDK.1.614.1 - DirectX 12 Agility SDK
 * astcenc-4.6.1 - Adaptive Scalable Texture Compression (ASTC) Encoder
-* DXC-1.7.2207 - DirectX Compiler
+* DXC-1.8.2407 - DirectX Compiler
 * FidelityFX_SC - a library for image quality enhancement
 * fmod-studio-2.xx.xx [optional] - FMOD sound library
 * ispc-v1.23.0-windows - Implicit SPMD Program Compiler

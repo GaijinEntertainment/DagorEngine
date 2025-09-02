@@ -26,36 +26,36 @@ public:
   typedef const T &const_reference;
 
   typedef int (*typed_cmp_func_t)(const T *, const T *);
-  static const unsigned static_size = N;
+  static constexpr unsigned static_size = N;
 
   /// Index operator
-  __forceinline T &operator[](uint32_t idx)
+  __forceinline constexpr T &operator[](uint32_t idx)
   {
     CARRAY_VALIDATE_IDX(idx);
     return *(data() + idx);
   }
 
   /// Const index operator
-  __forceinline const T &operator[](uint32_t idx) const
+  __forceinline constexpr const T &operator[](uint32_t idx) const
   {
     CARRAY_VALIDATE_IDX(idx);
     return *(data() + idx);
   }
 
   /// Explicit indexing
-  const T &at(uint32_t idx) const
+  constexpr const T &at(uint32_t idx) const
   {
     CARRAY_VALIDATE_IDX(idx);
     return *(data() + idx);
   }
-  T &at(uint32_t idx)
+  constexpr T &at(uint32_t idx)
   {
     CARRAY_VALIDATE_IDX(idx);
     return *(data() + idx);
   }
 
-  T *data() { return dptr; }
-  const T *data() const { return dptr; }
+  constexpr T *data() { return dptr; }
+  constexpr const T *data() const { return dptr; }
 
   static constexpr uint32_t size() { return N; }
   static constexpr uint32_t capacity() { return N; }
@@ -64,18 +64,18 @@ public:
   // STL compatibility
   //
 
-  iterator begin() { return data(); }
-  const_iterator begin() const { return data(); }
-  const_iterator cbegin() const { return data(); }
+  constexpr iterator begin() { return data(); }
+  constexpr const_iterator begin() const { return data(); }
+  constexpr const_iterator cbegin() const { return data(); }
 
-  iterator end() { return data() + N; }
-  const_iterator end() const { return data() + N; }
-  const_iterator cend() const { return data() + N; }
+  constexpr iterator end() { return data() + N; }
+  constexpr const_iterator end() const { return data() + N; }
+  constexpr const_iterator cend() const { return data() + N; }
 
-  reference front() { return *data(); }
-  const_reference front() const { return *data(); }
-  reference back() { return *(data() + N - 1); }
-  const_reference back() const { return *(data() + N - 1); }
+  constexpr reference front() { return *data(); }
+  constexpr const_reference front() const { return *data(); }
+  constexpr reference back() { return *(data() + N - 1); }
+  constexpr const_reference back() const { return *(data() + N - 1); }
 
   T dptr[N];
 };

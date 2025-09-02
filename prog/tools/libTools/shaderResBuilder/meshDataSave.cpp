@@ -240,7 +240,7 @@ void ShaderMaterialsSaver::writeMatVdata(mkbindump::BinDumpSaveCB &cwr, ShaderTe
 
   // write MatVdataHdr
   {
-    mkbindump::BinDumpSaveCB cwr_d(64 << 20, cwr.getTarget(), cwr.WRITE_BE);
+    mkbindump::BinDumpSaveCB cwr_d(64 << 20, cwr);
 
     mat_pt.reserveTab(cwr_d);
     vdh_pt.reserveTab(cwr_d);
@@ -378,7 +378,7 @@ void ShaderMaterialsSaver::writeMatVdata(mkbindump::BinDumpSaveCB &cwr, ShaderTe
 
     final_sz = raw_sz = cwr_d.getSize();
 
-    if (cwr_d.getSize() < (2 << 10) || matVdataHdrSz == 0 || ShaderMeshData::fastNoPacking)
+    if (cwr_d.getSize() < (2 << 10) || matVdataHdrSz == 0 || cwr.isFastBuild())
       cwr.copyRawFrom(cwr_d);
     else if (ShaderMeshData::preferZstdPacking)
     {

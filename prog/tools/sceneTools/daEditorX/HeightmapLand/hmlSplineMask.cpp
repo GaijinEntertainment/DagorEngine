@@ -14,6 +14,7 @@
 #include <libTools/math/bitrender.h>
 #include <sceneRay/dag_sceneRay.h>
 
+using namespace objgenerator; // prng
 using editorcore_extapi::dagGeom;
 
 objgenerator::WorldHugeBitmask bm_loft_mask[LAYER_ORDER_MAX], bm_poly_mask;
@@ -330,12 +331,12 @@ void HmapLandPlugin::rebuildSplinesBitmask(bool auto_regen)
         int px = p.x + n.x * i, py = p.y + n.y * i;
         int seed = py * bmExcl.w + px;
 
-        if (_rnd(seed) > thres)
+        if (rnd(seed) > thres)
           bmExcl.mark(px, py);
 
         px = p.x - n.x * i, py = p.y - n.y * i;
         seed = py * bmExcl.w + px;
-        if (_rnd(seed) > thres)
+        if (rnd(seed) > thres)
           bmExcl.mark(px, py);
       }
       has_width = true;
@@ -375,12 +376,12 @@ void HmapLandPlugin::rebuildSplinesBitmask(bool auto_regen)
         int px = p.x + n.x * i, py = p.y + n.y * i;
         int seed = py * bm2Excl.w + px;
 
-        if (_rnd(seed) > thres)
+        if (rnd(seed) > thres)
           bm2Excl.mark(px, py);
 
         px = p.x - n.x * i, py = p.y - n.y * i;
         seed = py * bm2Excl.w + px;
-        if (_rnd(seed) > thres)
+        if (rnd(seed) > thres)
           bm2Excl.mark(px, py);
       }
       has_width = true;

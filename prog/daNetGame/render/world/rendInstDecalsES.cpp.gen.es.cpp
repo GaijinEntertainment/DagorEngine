@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "rendInstDecalsES.cpp.inl"
 ECS_DEF_PULL_VAR(rendInstDecals);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 //static constexpr ecs::ComponentDesc rend_inst_decals_render_es_comps[] ={};
 static void rend_inst_decals_render_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)

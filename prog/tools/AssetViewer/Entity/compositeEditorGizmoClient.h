@@ -14,14 +14,15 @@ public:
 
 private:
   // IGizmoClient
-  virtual Point3 getPt() override;
-  virtual bool getRot(Point3 &p) override;
-  virtual bool getScl(Point3 &p) override;
-  virtual void changed(const Point3 &delta) override;
-  virtual void gizmoStarted() override;
-  virtual void gizmoEnded(bool apply) override;
-  virtual void release() override;
-  virtual bool canStartChangeAt(IGenViewportWnd *wnd, int x, int y, int gizmo_sel) override;
+  Point3 getPt() override;
+  bool getRot(Point3 &p) override;
+  bool getScl(Point3 &p) override;
+  void changed(const Point3 &delta) override;
+  void gizmoStarted() override;
+  void gizmoEnded(bool apply) override;
+  void release() override;
+  bool canStartChangeAt(IGenViewportWnd *wnd, int x, int y, int gizmo_sel) override;
+  bool isMouseOver(IGenViewportWnd *wnd, int x, int y) override;
 
   void moveNode(TMatrix &tm, const Point3 &delta, IEditorCoreEngine::BasisType basis, IEditorCoreEngine::CenterType center);
   void rotateNode(TMatrix &tm, const Point3 &delta, IEditorCoreEngine::BasisType basis, IEditorCoreEngine::CenterType center);

@@ -123,6 +123,7 @@ enum
   TAB_MOVE_SPEED_STOP,
 
   TAB_SPEED_TURBO,
+  TAB_SPEED_TURBO_MULT,
   TAB_FREE_SPEED_CHANGE_MULTIPLIER,
 
   TAB_ROT_SPEED,
@@ -155,7 +156,13 @@ enum
 FreeCameraTab::FreeCameraTab(PropPanel::ContainerPropertyControl *tab_page, CameraConfig *config) :
 
   mTabPage(tab_page), mConfig(config)
+{}
+
+
+void FreeCameraTab::fill()
 {
+  mTabPage->clear();
+
   mTabPage->createStatic(0, "Speed, ms");
   mTabPage->createStatic(0, "   Inertia", false);
   mTabPage->createStatic(0, "", false);
@@ -163,7 +170,7 @@ FreeCameraTab::FreeCameraTab(PropPanel::ContainerPropertyControl *tab_page, Came
   mTabPage->createEditFloat(TAB_MOVE_SPEED, "Move", mConfig->moveStep);
   mTabPage->createEditFloat(TAB_MOVE_SPEED_START, "  Start", mConfig->commonInertia.move, 3, true, false);
   mTabPage->createEditFloat(TAB_MOVE_SPEED_STOP, "  Stop", mConfig->commonInertia.stop, 3, true, false);
-  mTabPage->createEditFloat(TAB_SPEED_TURBO, "Turbo, ms", mConfig->moveStep * mConfig->controlMultiplier);
+  mTabPage->createEditFloat(TAB_SPEED_TURBO, "Turbo, ms", mConfig->moveStep * mConfig->controlMultiplier, 3);
 
   mTabPage->createStatic(0, "", false);
   mTabPage->createStatic(0, "", false);
@@ -175,17 +182,25 @@ FreeCameraTab::FreeCameraTab(PropPanel::ContainerPropertyControl *tab_page, Came
   mTabPage->createSeparator(0);
   mTabPage->createEditFloat(TAB_FREE_SPEED_CHANGE_MULTIPLIER, "Mouse wheel speed multiplier", mConfig->speedChangeMultiplier, 3);
   mTabPage->createStatic(0, "", false);
+  mTabPage->createEditFloat(TAB_SPEED_TURBO_MULT, "Turbo multiplier", mConfig->controlMultiplier, 3);
+  mTabPage->setMinMaxStep(TAB_SPEED_TURBO_MULT, 1.f, 1000.f, 0.1f);
+  mTabPage->createStatic(0, "", false);
 }
 
 
-void FreeCameraTab::onOk()
+void FreeCameraTab::updateConfigFromUserInterface(int pcb_id)
 {
   mConfig->moveStep = mTabPage->getFloat(TAB_MOVE_SPEED);
   mConfig->rotationStep = mTabPage->getFloat(TAB_ROT_SPEED);
 
-  if (mConfig->moveStep)
+  if (pcb_id == TAB_SPEED_TURBO && mConfig->moveStep)
   {
     mConfig->controlMultiplier = mTabPage->getFloat(TAB_SPEED_TURBO) / mConfig->moveStep;
+  }
+
+  if (pcb_id == TAB_SPEED_TURBO_MULT)
+  {
+    mConfig->controlMultiplier = mTabPage->getFloat(TAB_SPEED_TURBO_MULT);
   }
 
   mConfig->strifeStep = mConfig->moveStep;
@@ -197,14 +212,30 @@ void FreeCameraTab::onOk()
   mConfig->hangInertia.move = mTabPage->getFloat(TAB_ROT_SPEED_START);
   mConfig->vangInertia.stop = mTabPage->getFloat(TAB_ROT_SPEED_STOP);
   mConfig->vangInertia.move = mTabPage->getFloat(TAB_ROT_SPEED_START);
+
+  if (pcb_id == TAB_SPEED_TURBO || pcb_id == TAB_SPEED_TURBO_MULT || pcb_id == TAB_MOVE_SPEED)
+  {
+    if (mConfig->controlMultiplier < 1.f)
+    {
+      mConfig->controlMultiplier = 1.f;
+    }
+
+    mTabPage->setFloat(TAB_SPEED_TURBO, mConfig->moveStep * mConfig->controlMultiplier);
+    mTabPage->setFloat(TAB_SPEED_TURBO_MULT, mConfig->controlMultiplier);
+  }
 }
 
 
 //-----------------------------------------------------------------------------
 
 
-FPSCameraTab::FPSCameraTab(PropPanel::ContainerPropertyControl *tab_page, CameraConfig *options) : FreeCameraTab(tab_page, options)
+FPSCameraTab::FPSCameraTab(PropPanel::ContainerPropertyControl *tab_page, CameraConfig *options) : FreeCameraTab(tab_page, options) {}
+
+
+void FPSCameraTab::fill()
 {
+  FreeCameraTab::fill();
+
   mTabPage->createSeparator(0);
 
   FpsCameraConfig *fpsConf = (FpsCameraConfig *)mConfig;
@@ -226,9 +257,9 @@ FPSCameraTab::FPSCameraTab(PropPanel::ContainerPropertyControl *tab_page, Camera
 }
 
 
-void FPSCameraTab::onOk()
+void FPSCameraTab::updateConfigFromUserInterface(int pcb_id)
 {
-  FreeCameraTab::onOk();
+  FreeCameraTab::updateConfigFromUserInterface(pcb_id);
 
   FpsCameraConfig *fpsConf = (FpsCameraConfig *)mConfig;
   if (!fpsConf)
@@ -247,8 +278,13 @@ void FPSCameraTab::onOk()
 //-----------------------------------------------------------------------------
 
 
-TPSCameraTab::TPSCameraTab(PropPanel::ContainerPropertyControl *tab_page, CameraConfig *options) : FPSCameraTab(tab_page, options)
+TPSCameraTab::TPSCameraTab(PropPanel::ContainerPropertyControl *tab_page, CameraConfig *options) : FPSCameraTab(tab_page, options) {}
+
+
+void TPSCameraTab::fill()
 {
+  FPSCameraTab::fill();
+
   mTabPage->createSeparator(0);
 
   TpsCameraConfig *tpsConf = (TpsCameraConfig *)mConfig;
@@ -266,9 +302,9 @@ TPSCameraTab::TPSCameraTab(PropPanel::ContainerPropertyControl *tab_page, Camera
 }
 
 
-void TPSCameraTab::onOk()
+void TPSCameraTab::updateConfigFromUserInterface(int pcb_id)
 {
-  FPSCameraTab::onOk();
+  FPSCameraTab::updateConfigFromUserInterface(pcb_id);
 
   TpsCameraConfig *tpsConf = (TpsCameraConfig *)mConfig;
   if (!tpsConf)
@@ -298,17 +334,6 @@ CamerasConfigDlg::CamerasConfigDlg(void *phandle, CameraConfig *max_cc, CameraCo
   PropPanel::ContainerPropertyControl *_tpanel = _panel->createTabPanel(DIALOG_TAB_PANEL, "");
 
   mTabPage = _tpanel->createTabPage(DIALOG_TAB_MAX, "MAX-like camera");
-  {
-    mTabPage->createEditFloat(TAB_MAX_MOVE_STEP, "Move", mConfig->strifeStep);
-    mTabPage->createStatic(0, "", false);
-    mTabPage->createEditFloat(TAB_MAX_ROT_STEP, "Rotate", mConfig->rotationStep);
-    mTabPage->createStatic(0, "", false);
-
-    mTabPage->createEditFloat(TAB_MAX_ZOOM_STEP, "Zoom", mConfig->moveStep);
-    mTabPage->createStatic(0, "", false);
-    mTabPage->createEditFloat(TAB_MAX_MUL, "Acceleration", mConfig->controlMultiplier);
-    mTabPage->createStatic(0, "", false);
-  }
 
   PropPanel::ContainerPropertyControl *_tpage = _tpanel->createTabPage(DIALOG_TAB_FREE, "Free camera");
   mFreeCameraTab = new FreeCameraTab(_tpage, free_cc);
@@ -329,16 +354,33 @@ CamerasConfigDlg::~CamerasConfigDlg()
 }
 
 
-bool CamerasConfigDlg::onOk()
+void CamerasConfigDlg::fill()
+{
+  mTabPage->clear();
+  mTabPage->createEditFloat(TAB_MAX_MOVE_STEP, "Move", mConfig->strifeStep);
+  mTabPage->createStatic(0, "", false);
+  mTabPage->createEditFloat(TAB_MAX_ROT_STEP, "Rotate", mConfig->rotationStep);
+  mTabPage->createStatic(0, "", false);
+
+  mTabPage->createEditFloat(TAB_MAX_ZOOM_STEP, "Zoom", mConfig->moveStep);
+  mTabPage->createStatic(0, "", false);
+  mTabPage->createEditFloat(TAB_MAX_MUL, "Acceleration", mConfig->controlMultiplier);
+  mTabPage->createStatic(0, "", false);
+
+  mFreeCameraTab->fill();
+  mFPSCameraTab->fill();
+  mTPSCameraTab->fill();
+}
+
+
+void CamerasConfigDlg::onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
   mConfig->moveStep = mTabPage->getFloat(TAB_MAX_ZOOM_STEP);
   mConfig->rotationStep = mTabPage->getFloat(TAB_MAX_ROT_STEP);
   mConfig->controlMultiplier = mTabPage->getFloat(TAB_MAX_MUL);
   mConfig->strifeStep = mTabPage->getFloat(TAB_MAX_MOVE_STEP);
 
-  mFreeCameraTab->onOk();
-  mFPSCameraTab->onOk();
-  mTPSCameraTab->onOk();
-
-  return true;
+  mFreeCameraTab->updateConfigFromUserInterface(pcb_id);
+  mFPSCameraTab->updateConfigFromUserInterface(pcb_id);
+  mTPSCameraTab->updateConfigFromUserInterface(pcb_id);
 }

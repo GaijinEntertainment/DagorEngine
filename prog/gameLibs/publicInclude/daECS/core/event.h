@@ -64,17 +64,15 @@ struct EventSetBuilder<First, Rest...>
 typedef uint16_t event_flags_t;
 typedef uint16_t event_size_t;
 
-enum EventCastType
+enum EventFlags : event_flags_t
 {
+  //  EventCastType
   EVCAST_UNKNOWN = 0x00,
   EVCAST_UNICAST = 0x01,
   EVCAST_BROADCAST = 0x02,
   EVCAST_BOTH = 0x03,
-};
 
-enum EventFlags : event_flags_t
-{
-  EVFLG_CASTMASK = 0x03,   // EventCastType
+  EVFLG_CASTMASK = EVCAST_BOTH,
   EVFLG_SERIALIZE = 0x04,  // need (de)serialization for networking
   EVFLG_DESTROY = 0x08,    // need destruction
   EVFLG_SCHEMELESS = 0x10, // actual class is ecs::SchemelessEvent. This is temporarily, as we plan to get rid of all schemeless
@@ -120,8 +118,9 @@ public:
   template <int pow_of_two_capacity_shift>
   friend struct EventCircularBuffer; // for asserts
 };
-typedef void destroy_event(ecs::Event &);
-typedef void move_out_event(void *__restrict to, ecs::Event &&from); // will be moved out (move constructor called)
+typedef void destroy_event(ecs::EntityManager &, ecs::Event &);
+typedef void move_out_event(ecs::EntityManager &, void *__restrict to, ecs::Event &&from); // will be moved out (move constructor
+                                                                                           // called)
 
 
 #define ECS_INSIDE_EVENT_DECL(Klass, Flags)                                                       \
@@ -129,15 +128,9 @@ typedef void move_out_event(void *__restrict to, ecs::Event &&from); // will be 
   {                                                                                               \
     return (Flags) | (eastl::is_trivially_destructible<Klass>::value ? 0 : ::ecs::EVFLG_DESTROY); \
   }                                                                                               \
-  static constexpr ::ecs::event_type_t staticType()                                               \
-  {                                                                                               \
-    return ECS_HASH(#Klass).hash;                                                                 \
-  }                                                                                               \
-  static constexpr const char *staticName()                                                       \
-  {                                                                                               \
-    return #Klass;                                                                                \
-  }                                                                                               \
-  static void destroy(Event &e)                                                                   \
+  static constexpr ::ecs::event_type_t staticType() { return ECS_HASH(#Klass).hash; }             \
+  static constexpr const char *staticName() { return #Klass; }                                    \
+  static void destroy(ecs::EntityManager &, Event &e)                                             \
   {                                                                                               \
     G_STATIC_ASSERT(sizeof(Klass) <= ::ecs::Event::max_event_size);                               \
     if (!(Klass::staticFlags() & ::ecs::EVFLG_DESTROY)) /*to reduce generated code size*/         \
@@ -145,7 +138,7 @@ typedef void move_out_event(void *__restrict to, ecs::Event &&from); // will be 
     DAECS_EXT_ASSERT(e.getType() == staticType());                                                \
     static_cast<Klass &>(e).~Klass();                                                             \
   }                                                                                               \
-  static void move_out(void *__restrict allocateAt, Event &&from)                                 \
+  static void move_out(ecs::EntityManager &, void *__restrict allocateAt, Event &&from)           \
   {                                                                                               \
     if (!(Klass::staticFlags() & ::ecs::EVFLG_DESTROY)) /*to reduce generated code size*/         \
       return;                                                                                     \
@@ -169,8 +162,7 @@ typedef void move_out_event(void *__restrict to, ecs::Event &&from); // will be 
     {                                                                                                        \
       G_STATIC_ASSERT(sizeof(Klass) <= ecs::Event::max_event_size);                                          \
     }                                                                                                        \
-    Klass(TupleType &&tup) : ECS_EVENT_CONSTRUCTOR(Klass), TupleType(eastl::move(tup))                       \
-    {}                                                                                                       \
+    Klass(TupleType &&tup) : ECS_EVENT_CONSTRUCTOR(Klass), TupleType(eastl::move(tup)) {}                    \
     template <size_t I>                                                                                      \
     const typename eastl::tuple_element<I, TupleType>::type &get() const                                     \
     {                                                                                                        \
@@ -227,7 +219,7 @@ protected:
   move_out_event *move_out = nullptr;
   EventInfoLinkedList *next = nullptr;
   static EventInfoLinkedList *tail, *registered_tail;
-  static volatile uint32_t generation;
+  static inline uint32_t generation = 0;
   friend class EventsDB;
 };
 

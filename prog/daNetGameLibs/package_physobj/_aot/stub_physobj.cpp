@@ -15,8 +15,8 @@ bool PhysObjControlState::deserializeMinimalState(const danet::BitStream &, cons
   G_ASSERT_RETURN(false, false);
 }
 void PhysObjControlState::applyMinimalState(const PhysObjControlState &) { G_ASSERT(0); }
-void PhysObjControlState::reset() { G_ASSERT(0); }
 void PhysObj::addForce(const Point3 &arm, const Point3 &force) { G_ASSERT(0); }
+void PhysObj::initCustomControls(int sz) { G_ASSERT(0); }
 void PhysObj::updatePhys(float, float, bool) { G_ASSERT(0); }
 void PhysObj::applyOffset(Point3 const &) { G_ASSERT(0); }
 TMatrix PhysObj::getCollisionObjectsMatrix() const { G_ASSERT_RETURN(false, TMatrix::IDENT); }

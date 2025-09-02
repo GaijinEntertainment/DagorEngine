@@ -1,6 +1,7 @@
 
 hlsl {
   #include "volfog_common_def.hlsli"
+  #include "light_consts.hlsli"
   #include "heightFogNode.hlsli"
   #include "pcg_hash.hlsl"
   #include "phase_functions.hlsl"

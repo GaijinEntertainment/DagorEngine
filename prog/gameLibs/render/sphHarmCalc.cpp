@@ -272,13 +272,16 @@ bool SphHarmCalc::gpuFinalReduction(const int values_to_sum, const bool force_re
   ShaderGlobal::set_int_fast(final_reduction_sizeVarId, values_to_sum);
 
   {
-    TIME_D3D_PROFILE(dispatchArray)
-    d3d::resource_barrier({harmonicsPreSum.get(), RB_RO_SRV | RB_STAGE_COMPUTE});
-    d3d::set_rwbuffer(STAGE_CS, 0, harmonicsSum.get());
-    d3d::set_buffer(STAGE_CS, 0, harmonicsPreSum.get());
-    spHarmFinalReductor->dispatch(1, 1, 1);
-    d3d::set_rwbuffer(STAGE_CS, 0, 0);
-    d3d::set_buffer(STAGE_CS, 0, 0);
+    if (!inProgress)
+    {
+      TIME_D3D_PROFILE(dispatchArray)
+      d3d::resource_barrier({harmonicsPreSum.get(), RB_RO_SRV | RB_STAGE_COMPUTE});
+      d3d::set_rwbuffer(STAGE_CS, 0, harmonicsSum.get());
+      d3d::set_buffer(STAGE_CS, 0, harmonicsPreSum.get());
+      spHarmFinalReductor->dispatch(1, 1, 1);
+      d3d::set_rwbuffer(STAGE_CS, 0, 0);
+      d3d::set_buffer(STAGE_CS, 0, 0);
+    }
     if (force_recalc)
     {
       bool shouldRetry = true;
@@ -312,14 +315,14 @@ bool SphHarmCalc::processFaceDataGpu(Texture *texture, const int face, int width
   static const int gammaVarId = ::get_shader_variable_id("sp_harm_gamma");
 
 
-  if (envi_type == EnviromentTextureType::CubeMap && texture->restype() != RES3D_CUBETEX)
+  if (envi_type == EnviromentTextureType::CubeMap && texture->getType() != D3DResourceType::CUBETEX)
   {
-    logerr("passing not cubemap to harmonics, texname %s, type %d", texture->getResName(), texture->restype());
+    logerr("passing not cubemap to harmonics, texname %s, type %d", texture->getName(), eastl::to_underlying(texture->getType()));
     return false;
   }
-  if (envi_type == EnviromentTextureType::Panorama && texture->restype() != RES3D_TEX)
+  if (envi_type == EnviromentTextureType::Panorama && texture->getType() != D3DResourceType::TEX)
   {
-    logerr("passing not texture2d to harmonics, texname %s, type %d", texture->getResName(), texture->restype());
+    logerr("passing not texture2d to harmonics, texname %s, type %d", texture->getName(), eastl::to_underlying(texture->getType()));
     return false;
   }
 
@@ -345,11 +348,12 @@ bool SphHarmCalc::processFaceDataGpu(Texture *texture, const int face, int width
     previousRunSize = groupsToRun;
 
     if (!harmonicsSum)
-      harmonicsSum.reset(d3d::buffers::create_ua_structured_readback(sizeof(HarmCoefs), 1, "harmonicsValues"));
+      harmonicsSum.reset(d3d::buffers::create_ua_structured_readback(sizeof(HarmCoefs), 1, "harmonicsValuesFinal"));
   }
   d3d::set_rwbuffer(STAGE_CS, 0, harmonicsPreSum.get());
 
   d3d::set_tex(STAGE_CS, 1, texture);
+  d3d::set_sampler(STAGE_CS, 1, d3d::request_sampler({}));
 
   ShaderGlobal::set_int_fast(cube_face_widthVarId, sampling_resolution);
   ShaderGlobal::set_int_fast(face_numberVarId, face);
@@ -366,7 +370,7 @@ bool SphHarmCalc::processFaceDataGpu(Texture *texture, const int face, int width
 
   bool ret = gpuFinalReduction(groupsToRun, force_recalc);
   d3d::set_rwbuffer(STAGE_CS, 0, 0);
-  d3d::set_tex(STAGE_CS, 1, 0);
+  d3d::set_tex(STAGE_CS, 1, nullptr);
   return ret;
 }
 
@@ -517,7 +521,7 @@ void SphHarmCalc::reset()
   bool init_compute = d3d::get_driver_code()
                         .map(d3d::iOS, false)                   // compute version hangs mobile gpu
                         .map(d3d::macOSX && d3d::vulkan, false) // Mac+Vulkan has problems with compute version
-                        .map(d3d::macOSX, d3d_get_gpu_cfg().primaryVendor != D3D_VENDOR_INTEL) // on some intel drivers it fails to
+                        .map(d3d::macOSX, d3d_get_gpu_cfg().primaryVendor != GpuVendor::INTEL) // on some intel drivers it fails to
                                                                                                // create pipeline state on mac
                         .map(d3d::any, driverDesc.shaderModel >= 5.0_sm && !driverDesc.issues.hasComputeTimeLimited);
 

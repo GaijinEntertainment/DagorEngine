@@ -20,6 +20,12 @@ struct WarmupParams
   BaseTexture *depthTarget = nullptr;
 };
 
+// NOTE: requires GPU acquire!
+// returns true if warmup is in progress
+bool get_warmup_status(uint32_t &completed, uint32_t &total);
+// reference status rendering
+void draw_warmup_status();
+
 void warmup_shaders(const Tab<const char *> &graphics_shader_names, const Tab<const char *> &compute_shader_names,
   const WarmupParams &params, const bool is_loading_thread);
 

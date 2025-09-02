@@ -3,13 +3,14 @@
 
 #include <propPanel/control/propertyControlBase.h>
 #include <propPanel/imguiHelper.h>
+#include <propPanel/immediateFocusLossHandler.h>
 #include "spinEditStandalone.h"
 #include "../scopedImguiBeginDisabled.h"
 
 namespace PropPanel
 {
 
-class SpinEditFloatPropertyControl : public PropertyControlBase
+class SpinEditFloatPropertyControl : public PropertyControlBase, public IImmediateFocusLossHandler
 {
 public:
   // width_includes_label: if true then the width set to control includes both the label and the spin edit, and the
@@ -23,29 +24,35 @@ public:
     widthIncludesLabel(width_includes_label)
   {}
 
-  virtual unsigned getTypeMaskForSet() const override
+  ~SpinEditFloatPropertyControl() override
+  {
+    if (get_focused_immediate_focus_loss_handler() == this)
+      set_focused_immediate_focus_loss_handler(nullptr);
+  }
+
+  unsigned getTypeMaskForSet() const override
   {
     return CONTROL_DATA_TYPE_FLOAT | CONTROL_DATA_MIN_MAX_STEP | CONTROL_CAPTION | CONTROL_DATA_PREC;
   }
 
-  virtual unsigned getTypeMaskForGet() const override { return CONTROL_DATA_TYPE_FLOAT; }
+  unsigned getTypeMaskForGet() const override { return CONTROL_DATA_TYPE_FLOAT; }
 
-  virtual float getFloatValue() const override { return spinEdit.getValue(); }
-  virtual void setFloatValue(float value) override { spinEdit.setValue(value); }
-  virtual void setMinMaxStepValue(float min, float max, float step) override { spinEdit.setMinMaxStepValue(min, max, step); }
-  virtual void setPrecValue(int prec) override { spinEdit.setPrecValue(prec); }
-  virtual void setCaptionValue(const char value[]) override { controlCaption = value; }
+  float getFloatValue() const override { return spinEdit.getValue(); }
+  void setFloatValue(float value) override { spinEdit.setValue(value); }
+  void setMinMaxStepValue(float min, float max, float step) override { spinEdit.setMinMaxStepValue(min, max, step); }
+  void setPrecValue(int prec) override { spinEdit.setPrecValue(prec); }
+  void setCaptionValue(const char value[]) override { controlCaption = value; }
 
-  virtual void reset() override
+  void reset() override
   {
     setFloatValue(spinEdit.getMinValue());
 
     PropertyControlBase::reset();
   }
 
-  virtual void setEnabled(bool enabled) override { controlEnabled = enabled; }
+  void setEnabled(bool enabled) override { controlEnabled = enabled; }
 
-  virtual void updateImgui() override
+  void updateImgui() override
   {
     ScopedImguiBeginDisabled scopedDisabled(!controlEnabled);
 
@@ -82,9 +89,16 @@ public:
     ImGui::SetNextItemWidth(spinEditWidth);
     setFocusToNextImGuiControlIfRequested();
     spinEdit.updateImgui(*this, &controlTooltip, this);
+
+    if (spinEdit.isTextInputFocused())
+      set_focused_immediate_focus_loss_handler(this);
+    else if (get_focused_immediate_focus_loss_handler() == this)
+      set_focused_immediate_focus_loss_handler(nullptr);
   }
 
 private:
+  void onImmediateFocusLoss() override { spinEdit.sendWcChangeIfVarChanged(*this); }
+
   String controlCaption;
   bool controlEnabled = true;
   const bool widthIncludesLabel;

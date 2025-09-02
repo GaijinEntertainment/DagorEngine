@@ -237,13 +237,25 @@ protected:
     auto poolAccess = texturePool.access();
     auto sz = poolAccess->size();
 #if DAGOR_DBGLEVEL > 0
-    poolAccess->iterateAllocated([](auto tex) { logwarn("DX12: Texture <%s> still alive!", tex->getResName()); });
+    poolAccess->iterateAllocated([](auto tex) { logwarn("DX12: Texture <%s> still alive!", tex->getName()); });
 #endif
     G_ASSERTF(0 == sz, "DX12: Shutdown without destroying all textures, there are still %u textures alive!", sz);
     G_UNUSED(sz);
     poolAccess->freeAll();
 
     BaseType::shutdown();
+  }
+
+  void resetTqlStatsForRecovery()
+  {
+    auto poolAccess = texturePool.access();
+    // TQL stats must be updated before resources.preRecovery() since stubs info is used.
+    poolAccess->iterateAllocated([](auto tex) {
+      // Memory is being freed during recovery.
+      const auto tid = tex->getTID();
+      if (tex->image && (tid == BAD_TEXTUREID || !tex->isStub()))
+        TEXQL_ON_RELEASE(tex);
+    });
   }
 
   void preRecovery()

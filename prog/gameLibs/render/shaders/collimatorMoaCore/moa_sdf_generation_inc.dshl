@@ -1,0 +1,155 @@
+buffer dcm_shapes_buf;
+int dcm_shapes_buf_reg_count = 0;
+int dcm_shapes_count = 0;
+
+macro INIT_MOA_SDF_GENERATION(code)
+  (code) {
+    dcm_shapes_buf_reg_count@i1 = dcm_shapes_buf_reg_count;
+    shapes_count@i1 = dcm_shapes_count;
+    dcm_shapes_buf@cbuf = dcm_shapes_buf hlsl {
+      cbuffer dcm_shapes_buf@cbuf
+      {
+        float4 packed_shapes_data[1024];
+      }
+    }
+  }
+endmacro
+
+macro USE_MOA_SDF_GENERATION(code)
+  hlsl(code) {
+    #include "unpacked_moa_shapes.hlsli"
+    #include "moa_math.hlsli"
+
+    float4 read_shape_reg(int buf_offset)
+    {
+      ##assert(buf_offset < dcm_shapes_buf_reg_count,"OOB in 'packed_shapes_data': array size:'%.f', access to '%.f'", dcm_shapes_buf_reg_count, buf_offset);
+      return packed_shapes_data[buf_offset];
+    }
+
+    int unpack_circle(int buf_offset, out UnpackedCircle circle)
+    {
+      float4 r1 = read_shape_reg(buf_offset);
+
+      circle.center.x = r1.y;
+      circle.center.y = r1.z;
+      circle.radius = r1.w;
+
+      int float4RegCount = 1;
+      return float4RegCount;
+    }
+
+    int unpack_ring(int buf_offset, out UnpackedRing ring)
+    {
+      float4 r1 = read_shape_reg(buf_offset);
+      float4 r2 = read_shape_reg(buf_offset+1);
+
+      ring.center = r1.yz;
+      ring.radiusNear = r1.w;
+      ring.radiusFar = r2.x;
+
+      int float4RegCount = 2;
+      return float4RegCount;
+    }
+
+    int unpack_line(int buf_offset, out UnpackedLine ln)
+    {
+      float4 r1 = read_shape_reg(buf_offset);
+      float4 r2 = read_shape_reg(buf_offset+1);
+
+      ln.begin = r1.yz;
+      ln.end = float2(r1.w, r2.x);
+      ln.halfWidth = r2.y;
+
+      int float4RegCount = 2;
+      return float4RegCount;
+    }
+
+    int unpack_triangle(int buf_offset, out UnpackedTriangle tri)
+    {
+      float4 r1 = read_shape_reg(buf_offset);
+      float4 r2 = read_shape_reg(buf_offset+1);
+
+      tri.a = r1.yz;
+      tri.b = float2(r1.w, r2.x);
+      tri.c = r2.yz;
+
+      int float4RegCount = 2;
+      return float4RegCount;
+    }
+
+    int unpack_arc(int buf_offset, out UnpackedArc arc)
+    {
+      float4 r1 = read_shape_reg(buf_offset);
+      float4 r2 = read_shape_reg(buf_offset+1);
+      float4 r3 = read_shape_reg(buf_offset+2);
+
+      arc.center = r1.yz;
+      arc.radius = r1.w;
+      arc.halfWidth = r2.x;
+
+      float2 rotSC = r2.yz;
+      arc.rotation = float4(rotSC.y, - rotSC.x, rotSC.x, rotSC.y);
+      arc.edgePlaneN = float2(r2.w, r3.x);
+      arc.edgePoint = r3.yz;
+
+      int float4RegCount = 3;
+      return float4RegCount;
+    }
+
+    float calc_sdf_from_shapes(float2 xy)
+    {
+      float sdf = 1000;
+
+      int offset = 0;
+      for (int i = 0; i < shapes_count; ++i)
+      {
+        float tag = read_shape_reg(offset).x;
+        switch (tag)
+        {
+          case SDF_SHAPE_CIRCLE:
+          {
+            UnpackedCircle circle;
+            offset += unpack_circle(offset, circle);
+            sdf = min(sdf, dist_circle(xy, circle));
+            break;
+          }
+          case SDF_SHAPE_RING:
+          {
+            UnpackedRing ring;
+            offset += unpack_ring(offset, ring);
+            sdf = min(sdf, dist_ring(xy, ring));
+            break;
+          }
+          case SDF_SHAPE_LINE:
+          {
+            UnpackedLine ln;
+            offset += unpack_line(offset, ln);
+            sdf = min(sdf, dist_line(xy, ln));
+            break;
+          }
+          case SDF_SHAPE_TRIANGLE:
+          {
+            UnpackedTriangle tri;
+            offset += unpack_triangle(offset, tri);
+            sdf = min(sdf, dist_triangle(xy, tri));
+            break;
+          }
+          case SDF_SHAPE_ARC:
+          {
+            UnpackedArc arc;
+            offset += unpack_arc(offset, arc);
+            sdf = min(sdf, dist_arc(xy, arc));
+            break;
+          }
+        }
+      }
+
+      return sdf;
+    }
+  }
+endmacro
+
+macro INIT_AND_USE_MOA_SDF_GENERATION(code)
+  INIT_MOA_SDF_GENERATION(code)
+  USE_MOA_SDF_GENERATION(code)
+endmacro

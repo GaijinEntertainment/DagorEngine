@@ -16,7 +16,8 @@
 #include <EASTL/fixed_function.h>
 #include <memory/dag_framemem.h>
 #include <generic/dag_relocatableFixedVector.h>
-#include <3d/dag_resPtr.h>
+
+#include "rendIntsExtraAdditionalData.h"
 
 
 class RenderableInstanceLodsResource;
@@ -36,8 +37,6 @@ void requestRiExResources(const char *ri_res_name, const eastl::fixed_function<s
   AddRIFlags ri_flags = {});
 int getRIGenExtraResIdx(const char *ri_res_name);
 int getOrAddMissingRIGenExtraResIdx(const char *ri_res_name, AddRIFlags ri_flags);
-void updatePerDrawGatheredData(uint32_t id);
-const UniqueBuf &getPerDrawGatheredData();
 int cloneRIGenExtraResIdx(const char *source_res_name, const char *new_res_name);
 void setRIGenExtraResDynamic(const char *ri_res_name);
 bool isRIGenExtraDynamic(int res_idx);
@@ -55,19 +54,22 @@ const char *getRIGenExtraName(uint32_t res_idx);
 void iterateRIExtraMap(eastl::fixed_function<sizeof(void *) * 3, void(int, const char *)> cb);
 int getRIExtraMapSize();
 
+int getRIExtraPoolRef(int res_idx);
+
 uint64_t getRIExtraGlobalWorldVersion(bool add, bool del);
 
 bool updateRiExtraReqLod(uint32_t res_idx, unsigned lod);
 
 void applyTiledScenesUpdateForRIGenExtra(int max_quota_usec, int max_maintenance_quota_usec);
 
-riex_handle_t addRIGenExtra43(int res_idx, bool movable, mat43f_cref tm, bool collision, int orig_cell, int orig_offset,
-  int add_data_dwords = 0, const int32_t *add_data = nullptr, bool on_loading = false);
-riex_handle_t addRIGenExtra44(int res_idx, bool movable, mat44f_cref tm, bool collision, int orig_cell, int orig_offset,
-  int add_data_dwords = 0, const int32_t *add_data = nullptr, bool on_loading = false);
+riex_handle_t addRIGenExtra43(int res_idx, mat43f_cref tm, bool collision, int orig_cell, int orig_offset, int add_data_dwords = 0,
+  const int32_t *add_data = nullptr, bool on_loading = false);
+riex_handle_t addRIGenExtra44(int res_idx, mat44f_cref tm, bool collision, int orig_cell, int orig_offset, int add_data_dwords = 0,
+  const int32_t *add_data = nullptr, bool on_loading = false);
 void processDelayedGridAdds(int cell_idx);
 
 void moveToOriginalScene(riex_handle_t id);
+void removeFromTiledScene(riex_handle_t id);
 // Returns true if lock succeed
 bool moveRIGenExtra43(riex_handle_t id, mat43f_cref tm, bool moved, bool do_not_wait);
 inline bool moveRIGenExtra44(riex_handle_t id, mat44f_cref tm, bool moved, bool do_not_wait)
@@ -94,11 +96,17 @@ bool delRIGenExtra(riex_handle_t id); // return true if ri exta was actually del
 void delRIGenExtraFromCell(riex_handle_t id, int cell_Id, int offset);
 void delRIGenExtraFromCell(const RendInstDesc &desc);
 
+using add_riextra_cb = void (*)(riex_handle_t, bool);
+void registerRIGenExtraAddedCb(add_riextra_cb cb);
+bool unregisterRIGenExtraAddedCb(add_riextra_cb cb);
+void onRIGenExtraAdded(riex_handle_t id, bool on_loading);
+
 using invalidate_handle_cb = void (*)(riex_handle_t invalidate_handle);
 void registerRIGenExtraInvalidateHandleCb(invalidate_handle_cb cb);
 bool unregisterRIGenExtraInvalidateHandleCb(invalidate_handle_cb cb);
 void onRIGenExtraInvalidateHandle(riex_handle_t id);
 bool removeRIGenExtraFromGrid(riex_handle_t id);
+bool restoreRIGenExtraInGrid(riex_handle_t id);
 
 using ri_destruction_cb = void (*)(riex_handle_t handle, bool is_dynamic, bool create_destr_effects, int32_t user_data,
   const Point3 &impulse, const Point3 &impulse_pos);
@@ -106,6 +114,22 @@ void registerRiExtraDestructionCb(ri_destruction_cb cb);
 bool unregisterRiExtraDestructionCb(ri_destruction_cb cb);
 void onRiExtraDestruction(riex_handle_t id, bool is_dynamic, bool create_destr_effects, int32_t user_data = -1,
   const Point3 &impulse = Point3::ZERO, const Point3 &impulse_pos = Point3::ZERO);
+
+struct RiExtraDestrData
+{
+  mat43f tm;
+  int resIdx;
+  bool destrColl;
+  bool scaleDebris;
+
+  int destrCellId;
+  int destrOffset;
+  riex_handle_t outDestrHandle;
+};
+using ri_override_destr_data_cb = void (*)(riex_handle_t handle, RiExtraDestrData &destr);
+void registerRiExtraDestrDataOverrideCb(ri_override_destr_data_cb cb);
+bool unregisterRiExtraDestrDataOverrideCb(ri_override_destr_data_cb cb);
+void onRiExtraDestrDataOverride(riex_handle_t handle, RiExtraDestrData &destr);
 
 using ri_impulse_cb = void (*)(riex_handle_t handle, float impulse, const Point3 &impulse_dir, const Point3 &impulse_pos,
   const Point3 &collision_normal, int32_t user_data);
@@ -127,14 +151,27 @@ bool applyDamageRIGenExtra(const RendInstDesc &desc, float dmg_pts, float *absor
 bool damageRIGenExtra(riex_handle_t id, float dmg_pts, mat44f *out_destr_tm, riex_handle_t &out_destroyed_riex_handle,
   int *out_destroyed_riex_offset = nullptr, DestrOptionFlags destroy_flags = DestrOptionFlag::AddDestroyedRi);
 
-struct RiExtraPerInstanceItem
-{
-  uint32_t data[4];
-};
-
-uint32_t getRiExtraPerInstanceRenderDataOffset(riex_handle_t id);
-void setRiExtraPerInstanceRenderData(riex_handle_t id, const RiExtraPerInstanceItem *data, uint32_t cnt);
-void resetPerInstanceRenderDataAfterFrame();
+uint32_t getRiExtraPerInstanceRenderEncodedAdditionalData(riex_handle_t id);
+bool getRiExtraPerInstanceRenderAdditionalData(riex_handle_t id, uint32_t &offset, uint32_t &data_flags, uint32_t &optional_flags);
+dag::ConstSpan<RiExtraPerInstanceGpuItem> getRiExtraPerInstanceRenderAdditionalData(riex_handle_t id, RiExtraPerInstanceDataType type);
+uint32_t getRiExtraPerInstanceRenderAdditionalDataFlags(riex_handle_t id);
+// returns data_id, which can be used to remove the data later
+uint64_t setRiExtraPerInstanceRenderAdditionalData(riex_handle_t id, RiExtraPerInstanceDataType type,
+  RiExtraPerInstanceDataPersistence persistence_mode_verification, const RiExtraPerInstanceGpuItem *data, uint32_t gpu_data_count);
+// Adds data when the next rendinst::before_render()/prepareAndUploadBuffer() is called.
+// It can be used outside the normal scheduling limitations
+void setRiExtraPerInstanceRenderAdditionalDataDeferred(riex_handle_t id, RiExtraPerInstanceDataType type,
+  RiExtraPerInstanceDataPersistence persistence_mode_verification, const RiExtraPerInstanceGpuItem *data, uint32_t gpu_data_count);
+void transferRiExtraPerInstanceRenderAdditionalData(uint32_t old_scene, uint32_t old_node_id, uint32_t new_scene,
+  uint32_t new_node_id);
+void setRiExtraPerInstanceOptionalFlag(riex_handle_t id, RiExtraOptionalFlag optional_flag);
+void unsetRiExtraPerInstanceOptionalFlag(riex_handle_t id, RiExtraOptionalFlag optional_flag);
+uint32_t getRiExtraPerInstanceOptionalFlags(riex_handle_t id);
+void removeRiExtraPerInstanceRenderAdditionalData(uint64_t data_id, RiExtraPerInstanceDataType type);
+uint32_t encodeRiExtraPerInstanceRenderData(uint32_t offset, uint32_t data_flags, uint32_t optional_flags);
+void decodeRiExtraPerInstanceRenderData(uint32_t data, uint32_t &offset, uint32_t &data_flags, uint32_t &optional_flags);
+void clearAllRiPerInstanceRenderAdditionalData();
+void clearRiPerInstanceRenderAdditionalData(uint32_t scene, uint32_t node_id);
 
 void before_render();
 
@@ -146,6 +183,7 @@ void gatherRIGenExtraCollidable(riex_collidable_t &out_handles, const Capsule &c
 void gatherRIGenExtraCollidable(riex_collidable_t &out_handles, const TMatrix &tm, const BBox3 &box, bool read_lock);
 void gatherRIGenExtraCollidable(riex_collidable_t &out_handles, const Point3 &p0, const Point3 &dir, float len, bool read_lock);
 void gatherRIGenExtraCollidableMin(riex_collidable_t &out_handles, bbox3f_cref box, float min_bsph_rad);
+void gatherRIGenExtraCollidableMax(riex_collidable_t &out_handles, const BSphere3 &sphere, float max_bsph_rad);
 void gatherRIGenExtraCollidable(dag::RelocatableFixedVector<RiGenCollidableData, 64, true, framemem_allocator> &out_data,
   const Point3 &pos, float radius, bool read_lock);
 
@@ -159,9 +197,9 @@ void gatherRIGenExtraRenderable(Tab<mat44f> &out_handles, bbox3f_cref box, bool 
 // if fast, it will be checked using spheres only
 void gatherRIGenExtraRenderable(Tab<mat44f> &out_handles, const BBox3 &box, bool fast, SceneSelection s);
 void gatherRIGenExtraToTestForShadows(Tab<bbox3f> &out_bboxes, mat44f_cref globtm_cull, float static_shadow_texel_size,
-  uint32_t usr_data);
+  uint32_t usr_data, uint32_t max_gather_count, uint32_t &left_ri_count);
 void gatherRIGenExtraShadowInvisibleBboxes(Tab<bbox3f> &out_bboxes, bbox3f_cref gather_bbox);
-
+float getRIGenExtraRenderableUpperBound(bbox3f_cref box, float min_cmp_value);
 
 struct pos_and_render_info_t
 {
@@ -185,6 +223,7 @@ HasRIClipmap hasRIClipmapPools();
 
 int getRiGenExtraInstances(Tab<riex_handle_t> &out_handles, uint32_t res_idx);
 int getRiGenExtraInstances(Tab<riex_handle_t> &out_handles, uint32_t res_idx, const bbox3f &box);
+int getRiGenExtraInstances(Tab<riex_handle_t> &out_handles, uint32_t res_idx, const BSphere3 &sphere);
 
 void updateRiExtraBBoxScalesForPrepasses(const DataBlock &blk);
 void updateRiExtraForceDisableShadowList(const DataBlock &blk);

@@ -28,21 +28,21 @@ XeSuperSampling::XeSuperSampling(const IPoint2 &outputResolution) : AntiAliasing
   float y = inputResolution.y;
   d3d::driver_command(Drv3dCommand::SET_XESS_VELOCITY_SCALE, &x, &y);
 
-  applierNode = dabfg::register_node("xess", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
+  applierNode = dafg::register_node("xess", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
     auto opaqueFinalTargetHndl =
-      registry.readTexture("final_target_with_motion_blur").atStage(dabfg::Stage::CS).useAs(dabfg::Usage::SHADER_RESOURCE).handle();
+      registry.readTexture("final_target_with_motion_blur").atStage(dafg::Stage::CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
     auto depthHndl =
-      registry.readTexture("depth_after_transparency").atStage(dabfg::Stage::CS).useAs(dabfg::Usage::SHADER_RESOURCE).handle();
+      registry.readTexture("depth_after_transparency").atStage(dafg::Stage::CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
     auto motionVecsHndl = registry.readTexture("motion_vecs_after_transparency")
                             .optional()
-                            .atStage(dabfg::Stage::CS)
-                            .useAs(dabfg::Usage::SHADER_RESOURCE)
+                            .atStage(dafg::Stage::CS)
+                            .useAs(dafg::Usage::SHADER_RESOURCE)
                             .handle();
     auto antialiasedHndl = registry
-                             .createTexture2d("frame_after_aa", dabfg::History::No,
+                             .createTexture2d("frame_after_aa", dafg::History::No,
                                {TEXFMT_A16B16G16R16F | TEXCF_UNORDERED, registry.getResolution<2>("display")})
-                             .atStage(dabfg::Stage::CS)
-                             .useAs(dabfg::Usage::SHADER_RESOURCE)
+                             .atStage(dafg::Stage::CS)
+                             .useAs(dafg::Usage::SHADER_RESOURCE)
                              .handle();
     return [this, depthHndl, motionVecsHndl, opaqueFinalTargetHndl, antialiasedHndl] {
       OptionalInputParams params;

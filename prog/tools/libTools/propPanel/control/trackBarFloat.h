@@ -4,13 +4,14 @@
 #include <propPanel/control/propertyControlBase.h>
 #include <propPanel/constants.h>
 #include <propPanel/imguiHelper.h>
+#include <propPanel/immediateFocusLossHandler.h>
 #include "spinEditStandalone.h"
 #include "../scopedImguiBeginDisabled.h"
 
 namespace PropPanel
 {
 
-class TrackBarFloatPropertyControl : public PropertyControlBase
+class TrackBarFloatPropertyControl : public PropertyControlBase, public IImmediateFocusLossHandler
 {
 public:
   TrackBarFloatPropertyControl(ControlEventHandler *event_handler, ContainerPropertyControl *parent, int id, int x, int y, hdpi::Px w,
@@ -23,12 +24,18 @@ public:
     spinEdit.setValue(min);
   }
 
-  virtual unsigned getTypeMaskForSet() const override { return CONTROL_DATA_TYPE_FLOAT | CONTROL_DATA_MIN_MAX_STEP | CONTROL_CAPTION; }
-  virtual unsigned getTypeMaskForGet() const override { return CONTROL_DATA_TYPE_FLOAT; }
+  ~TrackBarFloatPropertyControl() override
+  {
+    if (get_focused_immediate_focus_loss_handler() == this)
+      set_focused_immediate_focus_loss_handler(nullptr);
+  }
 
-  virtual float getFloatValue() const override { return spinEdit.getValue(); }
+  unsigned getTypeMaskForSet() const override { return CONTROL_DATA_TYPE_FLOAT | CONTROL_DATA_MIN_MAX_STEP | CONTROL_CAPTION; }
+  unsigned getTypeMaskForGet() const override { return CONTROL_DATA_TYPE_FLOAT; }
 
-  virtual void setFloatValue(float value) override
+  float getFloatValue() const override { return spinEdit.getValue(); }
+
+  void setFloatValue(float value) override
   {
     const float step = spinEdit.getStepValue();
     const float min = spinEdit.getMinValue();
@@ -41,20 +48,20 @@ public:
     spinEdit.setValue(value);
   }
 
-  virtual void setMinMaxStepValue(float min, float max, float step) override { spinEdit.setMinMaxStepValue(min, max, step); }
+  void setMinMaxStepValue(float min, float max, float step) override { spinEdit.setMinMaxStepValue(min, max, step); }
 
-  virtual void setCaptionValue(const char value[]) override { controlCaption = value; }
+  void setCaptionValue(const char value[]) override { controlCaption = value; }
 
-  virtual void reset() override
+  void reset() override
   {
     setFloatValue(spinEdit.getMinValue());
 
     PropertyControlBase::reset();
   }
 
-  virtual void setEnabled(bool enabled) override { controlEnabled = enabled; }
+  void setEnabled(bool enabled) override { controlEnabled = enabled; }
 
-  virtual void updateImgui() override
+  void updateImgui() override
   {
     ScopedImguiBeginDisabled scopedDisabled(!controlEnabled);
 
@@ -90,12 +97,23 @@ public:
 
     setFocusToNextImGuiControlIfRequested();
     spinEdit.updateImgui(*this, &controlTooltip, this);
+
+    if (spinEdit.isTextInputFocused())
+      set_focused_immediate_focus_loss_handler(this);
+    else if (get_focused_immediate_focus_loss_handler() == this)
+      set_focused_immediate_focus_loss_handler(nullptr);
   }
 
 private:
+  void onImmediateFocusLoss() override { spinEdit.sendWcChangeIfVarChanged(*this); }
+
   bool sliderFloat(float &value)
   {
-    return ImGui::SliderFloat("##s", &value, spinEdit.getMinValue(), spinEdit.getMaxValue(), "", ImGuiSliderFlags_NoInput);
+    pushTrackBarColorOverrides();
+    const bool changed =
+      ImGui::SliderFloat("##s", &value, spinEdit.getMinValue(), spinEdit.getMaxValue(), "", ImGuiSliderFlags_NoInput);
+    popTrackBarColorOverrides();
+    return changed;
   }
 
   bool sliderFloatPower(float &value)
@@ -107,7 +125,9 @@ private:
     const float max = spinEdit.getMaxValue();
     float ratio = min == max ? 0.0f : pow((spinEdit.getValue() - min) / (max - min), 1.0f / controlPower);
 
+    pushTrackBarColorOverrides();
     const bool changed = ImGui::SliderFloat("##s", &ratio, 0.0f, 1.0f, "", ImGuiSliderFlags_NoInput);
+    popTrackBarColorOverrides();
     if (!changed)
       return false;
 

@@ -1,6 +1,7 @@
 require DagorDebug3DSolid
 require DagorMath
 require ecs
+options indenting = 2
 
 [generic]
 def draw_debug_tm_buffered(tm : float3x4 | #; color : Color4; frames : int)

@@ -1,15 +1,15 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include "scopeAimRender.h"
+#include <render/scopeAimRender/scopeAimRender.h>
 #include "scopeMobileNodes.h"
 
 #include <3d/dag_render.h>
-#include <render/daBfg/bfg.h>
+#include <render/daFrameGraph/daFG.h>
 #include <render/world/global_vars.h>
 
-dabfg::NodeHandle mk_scope_lens_mobile_node()
+dafg::NodeHandle mk_scope_lens_mobile_node()
 {
-  return dabfg::register_node("scope_lens_mobile", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
+  return dafg::register_node("scope_lens_mobile", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     // it depends on depth_for_transparent_effects only
     // and might break RP during trans rendering, so we need a direct order here
     registry.orderMeBefore("occlusion_preparing_mobile");
@@ -24,7 +24,7 @@ dabfg::NodeHandle mk_scope_lens_mobile_node()
     const auto scopeAimDataHndl = registry.readBlob<ScopeAimRenderingData>("scope_aim_render_data").handle();
     auto strmCtxHndl = registry.readBlob<TexStreamingContext>("tex_ctx").handle();
 
-    registry.readTexture("scope_lens_mask").atStage(dabfg::Stage::PS).bindToShaderVar("scope_lens_mask");
+    registry.readTexture("scope_lens_mask").atStage(dafg::Stage::PS).bindToShaderVar("scope_lens_mask");
     registry.read("scope_lens_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("scope_lens_mask_samplerstate");
 
     return [aimDataHndl, scopeAimDataHndl, strmCtxHndl]() {

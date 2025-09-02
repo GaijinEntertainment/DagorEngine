@@ -5,7 +5,7 @@
 #include "debug.h"
 
 template <class T>
-inline T *__memchk(T *o, char *f, int l)
+inline T *__memchk(T *o, const char *f, int l)
 {
   if (!o)
   {
@@ -54,8 +54,8 @@ public:
     Node *sub0;
 
     Node() : sub0(NULL) {}
-    bool traceray(Point3 &p, Point3 &dir, real &t, int &fi, Point3 &bc);
-    bool traceray_back(Point3 &p, Point3 &dir, real &t, int &fi, Point3 &bc);
+    bool traceray(const Point3 &p, const Point3 &dir, real &t, int &fi, Point3 &bc);
+    bool traceray_back(const Point3 &p, const Point3 &dir, real &t, int &fi, Point3 &bc);
   };
   struct BNode : Node
   {
@@ -67,19 +67,19 @@ public:
     Tab<RTface> face;
 
     LNode() {}
-    bool traceray(Point3 &p, Point3 &dir, real &t, int &fi, Point3 &bc);
-    bool traceray_back(Point3 &p, Point3 &dir, real &t, int &fi, Point3 &bc);
+    bool traceray(const Point3 &p, const Point3 &dir, real &t, int &fi, Point3 &bc);
+    bool traceray_back(const Point3 &p, const Point3 &dir, real &t, int &fi, Point3 &bc);
     void build(Mesh &m, int *fc, int numf);
   };
   void kill_node(Node *);
   Node *root;
 
   StaticMeshRTracer() : root(NULL) {}
-  ~StaticMeshRTracer() { kill_node(root); }
-  bool traceray(Point3 &p, Point3 &dir, real &t, int &fi, Point3 &bc);
-  bool traceray_back(Point3 &p, Point3 &dir, real &t, int &fi, Point3 &bc);
+  ~StaticMeshRTracer() override { kill_node(root); }
+  bool traceray(const Point3 &p, const Point3 &dir, real &t, int &fi, Point3 &bc) override;
+  bool traceray_back(const Point3 &p, const Point3 &dir, real &t, int &fi, Point3 &bc) override;
   Node *build_node(Mesh &m, int *fc, int numf);
-  void build(Mesh &m);
+  void build(Mesh &m) override;
 };
 
 
@@ -101,7 +101,7 @@ void StaticMeshRTracer::kill_node(Node *n)
   }
 }
 
-bool StaticMeshRTracer::LNode::traceray(Point3 &p, Point3 &dir, real &mint, int &fid, Point3 &bary)
+bool StaticMeshRTracer::LNode::traceray(const Point3 &p, const Point3 &dir, real &mint, int &fid, Point3 &bary)
 {
   bool hit = false;
   for (int fi = 0; fi < face.Count(); ++fi)
@@ -146,7 +146,7 @@ bool StaticMeshRTracer::LNode::traceray(Point3 &p, Point3 &dir, real &mint, int 
 }
 
 
-bool StaticMeshRTracer::Node::traceray(Point3 &p, Point3 &dir, real &mint, int &fid, Point3 &bary)
+bool StaticMeshRTracer::Node::traceray(const Point3 &p, const Point3 &dir, real &mint, int &fid, Point3 &bary)
 {
   Point3 pc = p - bsc;
   real b = DotProd(pc, dir) * 2;
@@ -177,7 +177,7 @@ bool StaticMeshRTracer::Node::traceray(Point3 &p, Point3 &dir, real &mint, int &
 }
 
 
-bool StaticMeshRTracer::traceray(Point3 &p, Point3 &dir, real &mint, int &fid, Point3 &bary)
+bool StaticMeshRTracer::traceray(const Point3 &p, const Point3 &dir, real &mint, int &fid, Point3 &bary)
 {
   if (!root)
     return false;
@@ -190,7 +190,7 @@ bool StaticMeshRTracer::traceray(Point3 &p, Point3 &dir, real &mint, int &fid, P
 
 // Back
 
-bool StaticMeshRTracer::LNode::traceray_back(Point3 &p, Point3 &dir, real &mint, int &fid, Point3 &bary)
+bool StaticMeshRTracer::LNode::traceray_back(const Point3 &p, const Point3 &dir, real &mint, int &fid, Point3 &bary)
 {
   bool hit = false;
   for (int fi = 0; fi < face.Count(); ++fi)
@@ -235,7 +235,7 @@ bool StaticMeshRTracer::LNode::traceray_back(Point3 &p, Point3 &dir, real &mint,
 }
 
 
-bool StaticMeshRTracer::Node::traceray_back(Point3 &p, Point3 &dir, real &mint, int &fid, Point3 &bary)
+bool StaticMeshRTracer::Node::traceray_back(const Point3 &p, const Point3 &dir, real &mint, int &fid, Point3 &bary)
 {
   Point3 pc = p - bsc;
   real b = DotProd(pc, dir) * 2;
@@ -266,7 +266,7 @@ bool StaticMeshRTracer::Node::traceray_back(Point3 &p, Point3 &dir, real &mint, 
 }
 
 
-bool StaticMeshRTracer::traceray_back(Point3 &p, Point3 &dir, real &mint, int &fid, Point3 &bary)
+bool StaticMeshRTracer::traceray_back(const Point3 &p, const Point3 &dir, real &mint, int &fid, Point3 &bary)
 {
   if (!root)
     return false;

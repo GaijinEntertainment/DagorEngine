@@ -52,8 +52,8 @@ inline void free_list_insert_and_coalesce(C &container, ValueRange<R> range)
         break;
       }
 
-      // did we just full in the gap in between pat and at?
-      // TODO should be inpossible.
+      // did we just fill in the gap in between pat and at?
+      // TODO should be impossible.
       if (pat->stop == range.start)
       {
         pat->stop = at->stop;

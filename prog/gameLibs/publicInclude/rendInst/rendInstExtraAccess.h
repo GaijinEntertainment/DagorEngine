@@ -19,7 +19,9 @@ namespace rendinst
 {
 
 float get_riextra_destr_time_to_live(riex_handle_t);
+float get_riextra_destr_default_time_to_live(riex_handle_t);
 float get_riextra_destr_time_to_kinematic(riex_handle_t);
+float get_riextra_destr_time_to_sink_underground(riex_handle_t);
 bool get_riextra_immortality(riex_handle_t);
 
 uint32_t get_riextra_instance_seed(riex_handle_t);
@@ -53,6 +55,7 @@ bool isKillsNearEffects(riex_handle_t id);
 const char *getRIGenExtraName(uint32_t res_idx);
 int getRIGenExtraPreferrableLod(uint32_t res_idx, float squared_distance);
 int getRIGenExtraPreferrableLod(uint32_t res_idx, float squared_distance, bool &over_max_lod, int &last_lod);
+int getRIGenExtraPreferrableLodRawDistance(uint32_t res_idx, float squared_distance, bool &over_max_lod, int &last_lod);
 bool isRIExtraGenPosInst(uint32_t res_idx);
 bool updateRiExtraReqLod(uint32_t res_idx, unsigned lod);
 
@@ -64,4 +67,19 @@ void setRiGenResHp(uint32_t res_idx, float hp);
 void setRiGenResDestructionImpulse(uint32_t res_idx, float impulse);
 bool hasRiLayer(int res_idx, LayerFlag layer);
 
+vec4f getNodeBsphere(riex_handle_t handle, float &pool_rad);
+void prefetchNode(riex_handle_t handle);
+// hash is not filled out when the result is false!
+bool isVisibleByLodEst(riex_handle_t id, vec4f view_pos, float dist_mul, const mat43f *&mat_out, vec3f &pos, uint32_t &hash);
+
+float getCullDistSqMul();
+struct AllRendinstExtraScenesLockImpl;
+struct AllRendinstExtraScenesLock
+{
+  AllRendinstExtraScenesLock();
+  ~AllRendinstExtraScenesLock();
+
+private:
+  AllRendinstExtraScenesLockImpl *ptr;
+};
 } // namespace rendinst

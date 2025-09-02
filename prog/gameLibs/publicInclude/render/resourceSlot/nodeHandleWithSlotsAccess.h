@@ -4,7 +4,7 @@
 //
 #pragma once
 
-#include <render/daBfg/nameSpace.h>
+#include <render/daFrameGraph/nameSpace.h>
 
 
 namespace das
@@ -17,7 +17,7 @@ namespace resource_slot
 
 /** Handle for access to resource slots storage.
  *
- * Also it is proxy for dabfg::NodeHandle.
+ * Also it is proxy for dafg::NodeHandle.
  *
  * If use in usual code:
  *
@@ -56,12 +56,12 @@ struct NodeHandleWithSlotsAccess
    * INTERNAL use only
    * \private
    */
-  NodeHandleWithSlotsAccess(dabfg::NameSpace ns, int handle_id, unsigned generation_number);
+  NodeHandleWithSlotsAccess(dafg::NameSpace ns, int handle_id, unsigned generation_number);
 
   void _noteContext(const das::Context *context) const;
 
 private:
-  dabfg::NameSpace nameSpace;
+  dafg::NameSpace nameSpace;
   int id;
   unsigned generation : 31;
   unsigned isValid : 1;

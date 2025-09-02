@@ -28,20 +28,14 @@ namespace das
 
         int32_t            gcFlags = TypeInfo::flag_stringHeapGC | TypeInfo::flag_heapGC;
         int32_t            gcStructFlags = StructInfo::flag_stringHeapGC | StructInfo::flag_heapGC;
-        vector<loop_point> visited;
-        vector<loop_point> visited_handles;
 
         virtual bool canVisitStructure ( char * ps, StructInfo * info ) override {
             if ( !(info->flags & gcStructFlags) ) return false;
-            return find_if(visited.begin(),visited.end(),[&]( const loop_point & t ){
-                    return t.first==ps && t.second==info->hash;
-                }) == visited.end();
+            return true;
         }
         virtual bool canVisitHandle ( char * ps, TypeInfo * info ) override {
             if ( !(info->flags & gcFlags) ) return false;
-            return find_if(visited_handles.begin(),visited_handles.end(),[&]( const loop_point & t ){
-                    return t.first==ps && t.second==info->hash;
-                }) == visited_handles.end();
+            return true;
         }
         virtual bool canVisitPointer ( TypeInfo * ti ) override {
             return ti->flags & gcFlags;
@@ -60,15 +54,15 @@ namespace das
                 DAS_ASSERT(ti);
                 si = ti->structType;
             }
-            if ( canVisitStructure(ps, si) ) {
-                beforeStructure(ps, si);
+            if ( canVisitStructure_(ps, si) ) {
+                beforeStructure_(ps, si);
                 for ( uint32_t i=si->firstGcField, is=si->count; i!=is; ) {
                     VarInfo * vi = si->fields[i];
                     char * pf = ps + vi->offset;
                     walk(pf, vi);
                     i = vi->nextGcField;
                 }
-                afterStructure(ps, si);
+                afterStructure_(ps, si);
             }
         }
 
@@ -222,10 +216,10 @@ namespace das
                         }
                         break;
                     case Type::tHandle:
-                        if ( canVisitHandle(pa, info) ) {
-                            beforeHandle(pa, info);
+                        if ( canVisitHandle_(pa, info) ) {
+                            beforeHandle_(pa, info);
                             info->getAnnotation()->walk(*this, pa);
-                            afterHandle(pa, info);
+                            afterHandle_(pa, info);
                         }
                         break;
                     default: break;
@@ -335,7 +329,6 @@ namespace das
             if ( ti->flags & StructInfo::flag_heapGC ) tp << "<H>";
         }
         virtual void beforeHandle ( char * pa, TypeInfo * ti ) override {
-            visited_handles.emplace_back(make_pair(pa,ti->hash));
             auto tsize = ti->size;
             DAS_ASSERT(tsize==uint32_t(getTypeSize(ti)));
             PtrRange rdata(pa, tsize );
@@ -350,7 +343,9 @@ namespace das
         }
         virtual void afterHandle ( char *, TypeInfo * ) override {
             popRange();
-            visited_handles.pop_back();
+        }
+        virtual void afterHandleCancel ( char *, TypeInfo * ) override {
+            popRange();
         }
         virtual void beforeDim ( char * pa, TypeInfo * ti ) override {
             auto tsize = ti->size;
@@ -425,7 +420,6 @@ namespace das
             popRange();
         }
         virtual void beforeStructure ( char * ps, StructInfo * si ) override {
-            visited.emplace_back(make_pair(ps,si->hash));
             char * pa = ps;
             auto tsize = si->size;
             if ( si->flags & StructInfo::flag_lambda ) {
@@ -444,7 +438,6 @@ namespace das
         }
         virtual void afterStructure ( char *, StructInfo * ) override {
             popRange();
-            visited.pop_back();
         }
         virtual void beforeStructureField ( char *, StructInfo *, char *, VarInfo * vi, bool ) override {
             history.push_back(vi->name);
@@ -486,17 +479,10 @@ namespace das
         virtual void afterTuple ( char *, TypeInfo * ) override {
             popRange();
         }
-        virtual void beforeTupleEntry ( char *, TypeInfo * ti, char *, TypeInfo * vi, bool ) override {
-            uint32_t VI = -1u;
-            for ( uint32_t i=0, is=ti->argCount; i!=is; ++i ) {
-                if ( ti->argTypes[i]==vi ) {
-                    VI = i;
-                    break;
-                }
-            }
-            history.push_back(to_string(VI));
+        virtual void beforeTupleEntry ( char *, TypeInfo * ti, char *, int idx, bool ) override {
+            history.push_back(to_string(static_cast<uint32_t>(idx)));
         }
-        virtual void afterTupleEntry ( char *, TypeInfo *, char *, TypeInfo *, bool ) override {
+        virtual void afterTupleEntry ( char *, TypeInfo *, char *, int, bool ) override {
             history.pop_back();
         }
         virtual void beforeArrayElement ( char *, TypeInfo *, char *, uint32_t index, bool ) override {
@@ -523,15 +509,11 @@ namespace das
         }
         virtual bool canVisitStructure ( char * ps, StructInfo * info ) override {
             if ( !((info->flags | gcAlways) & gcStructFlags) ) return false;
-            return find_if(visited.begin(),visited.end(),[&]( const loop_point & t ){
-                    return t.first==ps && t.second==info->hash;
-                }) == visited.end();
+            return true;
         }
         virtual bool canVisitHandle ( char * ps, TypeInfo * info ) override {
             if ( !((info->flags | gcAlways) & gcFlags) ) return false;
-            return find_if(visited_handles.begin(),visited_handles.end(),[&]( const loop_point & t ){
-                    return t.first==ps && t.second==info->hash;
-                }) == visited_handles.end();
+            return true;
         }
         virtual bool canVisitPointer ( TypeInfo * ti ) override {
             return (ti->flags | gcAlways) & gcFlags;
@@ -579,9 +561,9 @@ namespace das
                     auto fa = getTypeAlign(vi) - 1;
                     fieldOffset = (fieldOffset + fa) & ~fa;
                     char * pf = ps + fieldOffset;
-                    beforeTupleEntry(ps, ti, pf, vi, last);
+                    beforeTupleEntry(ps, ti, pf, i, last);
                     walk(pf, vi);
-                    afterTupleEntry(ps, ti, pf, vi, last);
+                    afterTupleEntry(ps, ti, pf, i, last);
                     fieldOffset += vi->size;
                 }
                 afterTuple(ps, ti);
@@ -594,8 +576,8 @@ namespace das
                 DAS_ASSERT(ti);
                 si = ti->structType;
             }
-            if ( canVisitStructure(ps, si) ) {
-                beforeStructure(ps, si);
+            if ( canVisitStructure_(ps, si) ) {
+                beforeStructure_(ps, si);
                 for ( uint32_t i=0, is=si->count; i!=is; ++i ) {
                     bool last = i==(si->count-1);
                     VarInfo * vi = si->fields[i];
@@ -604,7 +586,7 @@ namespace das
                     walk(pf, vi);
                     afterStructureField(ps, si, pf, vi, last);
                 }
-                afterStructure(ps, si);
+                afterStructure_(ps, si);
             }
         }
 
@@ -777,13 +759,14 @@ namespace das
             ptrRangeStack.pop_back();
         }
         virtual void beforeHandle ( char * pa, TypeInfo * ti ) override {
-            visited_handles.emplace_back(make_pair(pa,ti->hash));
             PtrRange rdata(pa, ti->size);
             markAndPushRange(rdata);
         }
         virtual void afterHandle ( char *, TypeInfo * ) override {
             popRange();
-            visited_handles.pop_back();
+        }
+        virtual void afterHandleCancel ( char *, TypeInfo * ) override {
+            popRange();
         }
         virtual void beforeDim ( char * pa, TypeInfo * ti ) override {
             PtrRange rdata(pa, ti->size);
@@ -823,7 +806,6 @@ namespace das
             if ( *(char**)pa ) popRange();
         }
         virtual void beforeStructure ( char * pa, StructInfo * ti ) override {
-            visited.emplace_back(make_pair(pa,ti->hash));
             auto tsize = ti->size;
             if ( ti->flags & StructInfo::flag_lambda ) {
                 pa -= 16;
@@ -834,7 +816,6 @@ namespace das
         }
         virtual void afterStructure ( char *, StructInfo * ) override {
             popRange();
-            visited.pop_back();
         }
         virtual void beforeVariant ( char * ps, TypeInfo * ti ) override {
             char * pa = ps;
@@ -922,15 +903,15 @@ namespace das
                                 if (markAndPushRange(PtrRange(ps, tsize))) {
                                     // walk_struct(*(char**)pa, info->firstType->structType);
                                     ps = *(char**)pa;
-                                    if ( canVisitStructure(ps, si) ) {
-                                        visited.emplace_back(make_pair(ps,si->hash));
+                                    if ( canVisitStructure_(ps, si) ) {
+                                        beforeStructure_(ps, si);
                                         for ( uint32_t i=si->firstGcField, is=si->count; i!=is; ) {
                                             VarInfo * vi = si->fields[i];
                                             char * pf = ps + vi->offset;
                                             walk(pf, vi);
                                             i = vi->nextGcField;
                                         }
-                                        visited.pop_back();
+                                        afterStructure_(ps, si);
                                     }
                                 }
                                 popRange();
@@ -958,10 +939,10 @@ namespace das
                         }
                         break;
                     case Type::tHandle:
-                        if ( canVisitHandle(pa, info) ) {
-                            beforeHandle(pa, info);
+                        if ( canVisitHandle_(pa, info) ) {
+                            beforeHandle_(pa, info);
                             info->getAnnotation()->walk(*this, pa);
-                            afterHandle(pa, info);
+                            afterHandle_(pa, info);
                         }
                         break;
                     default: break;

@@ -16,6 +16,8 @@ struct TexImage8a;
 struct TexPixel32;
 struct IAllocImg;
 
+// read JPG headers and dimensions
+bool read_jpeg32_dimensions(const char *fn, int &out_w, int &out_h);
 
 // load JPG file
 TexImage32 *load_jpeg32(IGenLoad &crd, IMemAlloc *mem, eastl::string *comments = NULL);

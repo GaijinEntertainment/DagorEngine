@@ -3,6 +3,8 @@
 // driver commands implementation
 #include <drv/3d/dag_commands.h>
 #include <util/dag_stdint.h>
+#include <drv/3d/dag_texture.h>
+#include <3d/gpuLatency.h>
 #include "driver.h"
 #include "globals.h"
 #include "frontend.h"
@@ -15,7 +17,9 @@
 #include <perfMon/dag_statDrv.h>
 #include "util/scoped_timer.h"
 #include "pipeline/manager.h"
-#include "timestamp_queries.h"
+#include "queries.h"
+#include "dlss.h"
+#include "streamline_adapter.h"
 #include "pipeline_cache.h"
 #include "pipeline_cache_file.h"
 #include <osApiWrappers/dag_miscApi.h>
@@ -32,6 +36,10 @@
 #if DAGOR_DBGLEVEL > 0
 #include "3d/dag_resourceDump.h"
 #include "external_resource_pools.h"
+#endif
+
+#if _TARGET_PC_WIN
+GpuLatency *create_gpu_latency_nvidia();
 #endif
 
 namespace
@@ -75,6 +83,7 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
       Globals::shaderProgramDatabase.setShaderDebugName(ShaderID(*(int *)par1), (const char *)par2);
       break;
     case Drv3dCommand::D3D_FLUSH:
+    case Drv3dCommand::GPU_BARRIER_WAIT_ALL_COMMANDS: // TODO: Implement GPU_BARRIER_WAIT_ALL_COMMANDS separately
       // driver can merge multiple queue submits
       // and GPU will timeout itself if workload is too long
       // so use wait instead of simple flush
@@ -166,14 +175,17 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
     case Drv3dCommand::TIMESTAMPISSUE:
     {
       G_ASSERTF(par1, "vulkan: par1 for Drv3dCommand::TIMESTAMPISSUE must be not null");
-      TimestampQueryId &qId = *(reinterpret_cast<TimestampQueryId *>(par1));
-      qId = Globals::cfg.has.gpuTimestamps ? Globals::ctx.insertTimestamp() : -1;
+      QueryId &qId = *(reinterpret_cast<QueryId *>(par1));
+      qId = Globals::cfg.has.gpuTimestamps ? Globals::ctx.insertTimestamp() : 0;
       return 1;
     }
     break;
     case Drv3dCommand::TIMESTAMPGET:
     {
-      uint64_t gpuTimeStamp = Globals::ctx.getTimestampResult(reinterpret_cast<TimestampQueryId>(par1));
+      if (!par1)
+        return 0;
+
+      uint64_t gpuTimeStamp = Globals::ctx.getTimestampResult(reinterpret_cast<QueryId>(par1));
       if (!gpuTimeStamp)
         return 0;
 
@@ -242,11 +254,11 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
     case Drv3dCommand::RELEASE_QUERY:
       if (par1)
       {
-        TimestampQueryId &qId = *(reinterpret_cast<TimestampQueryId *>(par1));
-        qId = -1;
+        QueryId &qId = *(reinterpret_cast<QueryId *>(par1));
+        qId = 0;
       }
       break;
-    case Drv3dCommand::GET_VENDOR: return drv3d_vulkan::Globals::VK::phy.vendorId; break;
+    case Drv3dCommand::GET_VENDOR: return eastl ::to_underlying(drv3d_vulkan::Globals::VK::phy.vendor);
     case Drv3dCommand::GET_FRAMERATE_LIMITING_FACTOR:
     {
       return Globals::ctx.getFramerateLimitingFactor();
@@ -293,7 +305,49 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
       return totalMemory;
     }
 
-    case Drv3dCommand::GET_INSTANCE: *(VkInstance *)par1 = drv3d_vulkan::Globals::VK::dev.getInstance().get(); return 1;
+#if USE_STREAMLINE_FOR_DLSS
+    case Drv3dCommand::GET_STREAMLINE:
+    {
+      *static_cast<void **>(par1) =
+        drv3d_vulkan::Globals::VK::loader.streamlineAdapter ? &drv3d_vulkan::Globals::VK::loader.streamlineAdapter.value() : nullptr;
+      return 1;
+    }
+    break;
+    case Drv3dCommand::EXECUTE_DLSS:
+    {
+      Globals::ctx.executeStreamlineDlss(*(nv::DlssParams<> *)par1, par2 ? *(int *)par2 : 0);
+      return 1;
+    }
+    break;
+#else
+    case Drv3dCommand::GET_DLSS:
+    {
+      *(nv::DLSS **)par1 = &drv3d_vulkan::Globals::dlss;
+      return 1;
+    }
+    break;
+    case Drv3dCommand::EXECUTE_DLSS_NO_STREAMLINE:
+    {
+      Globals::ctx.executeDLSS(*(nv::DlssParams<BaseTexture> *)par1);
+      return 1;
+    }
+    break;
+#endif
+
+    case Drv3dCommand::CREATE_GPU_LATENCY:
+    {
+      switch (*(GpuVendor *)par1)
+      {
+#if _TARGET_PC_WIN
+        case GpuVendor::NVIDIA: *(GpuLatency **)par2 = create_gpu_latency_nvidia(); break;
+#endif
+        default: *(GpuLatency **)par2 = nullptr; return 0;
+      }
+
+      return 1;
+    }
+
+    case Drv3dCommand::GET_INSTANCE: *(VkInstance *)par1 = drv3d_vulkan::Globals::VK::inst.get(); return 1;
     case Drv3dCommand::GET_PHYSICAL_DEVICE: *(VkPhysicalDevice *)par1 = drv3d_vulkan::Globals::VK::phy.device; return 1;
     case Drv3dCommand::GET_QUEUE_FAMILY_INDEX:
       *(uint32_t *)par1 = drv3d_vulkan::Globals::VK::queue[DeviceQueueType::GRAPHICS].getFamily();
@@ -320,18 +374,13 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
       // and we must process them (by finishing frames), otherwise we will run out of memory
       // also not finishing frames can cause swapchain to bug out either by not updating on restore,
       // or hanging somewhere inside system (on android)
-      Globals::lock.acquire();
-      // keep pre rotated state to avoid glitching system preview
-      drv3d_vulkan::Globals::ctx.holdPreRotateStateForOneFrame();
-      d3d::update_screen();
-      Globals::lock.release();
-      return 1;
-    }
-    case Drv3dCommand::PRE_ROTATE_PASS:
-    {
-      uintptr_t v = (uintptr_t)par1;
-      Globals::ctx.startPreRotate((uint32_t)v);
-      return Globals::swapchain.getPreRotationAngle();
+      if (Frontend::swapchain.blitStillImage())
+      {
+        d3d::update_screen(0, false);
+        return 1;
+      }
+      else
+        return 2;
     }
     case Drv3dCommand::PROCESS_PENDING_RESOURCE_UPDATED:
     {
@@ -355,7 +404,7 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
     {
       G_ASSERTF(Globals::lock.isAcquired(), "vulkan: pipeline compile feedback begin must be under GPU lock");
       uint32_t *feedbackData = (uint32_t *)par1;
-      CmdAsyncPipeFeedbackPtr cmd{feedbackData};
+      CmdAsyncPipeFeedbackBegin cmd{feedbackData};
       Globals::ctx.dispatchCommand(cmd);
 
       const uint32_t feedbackDataContent = interlocked_relaxed_load(*feedbackData);
@@ -373,7 +422,7 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
     case Drv3dCommand::ASYNC_PIPELINE_COMPILATION_FEEDBACK_END:
     {
       G_ASSERTF(Globals::lock.isAcquired(), "vulkan: pipeline compile feedback end must be under GPU lock");
-      CmdAsyncPipeFeedbackPtr cmd{nullptr};
+      CmdAsyncPipeFeedbackEnd cmd{};
       Globals::ctx.dispatchCommand(cmd);
       return 1;
     }
@@ -400,8 +449,20 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
     {
       return Globals::window.refreshRate;
     }
-    case Drv3dCommand::DELAY_SYNC: Globals::ctx.dispatchCommand<CmdDelaySyncCompletion>({true}); return 0;
-    case Drv3dCommand::CONTINUE_SYNC: Globals::ctx.dispatchCommand<CmdDelaySyncCompletion>({false}); return 0;
+    case Drv3dCommand::DELAY_SYNC:
+#if VULKAN_ENABLE_DEBUG_FLUSHING_SUPPORT
+      if (Globals::cfg.bits.flushAfterEachDrawAndDispatch)
+        return 0;
+#endif
+      Globals::ctx.dispatchCommand<CmdDelaySyncCompletion>({true});
+      return 1;
+    case Drv3dCommand::CONTINUE_SYNC:
+#if VULKAN_ENABLE_DEBUG_FLUSHING_SUPPORT
+      if (Globals::cfg.bits.flushAfterEachDrawAndDispatch)
+        return 0;
+#endif
+      Globals::ctx.dispatchCommand<CmdDelaySyncCompletion>({false});
+      return 1;
     case Drv3dCommand::GET_RESOURCE_STATISTICS:
     {
 #if DAGOR_DBGLEVEL > 0
@@ -412,13 +473,14 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
       // Textures
       Globals::Res::tex.iterateAllocated([&](TextureInterfaceBase *tex) {
         resource_dump_types::TextureTypes type = resource_dump_types::TextureTypes::TEX2D;
-        switch (tex->resType)
+        switch (tex->pars.type)
         {
-          case RES3D_TEX: type = resource_dump_types::TextureTypes::TEX2D; break;
-          case RES3D_CUBETEX: type = resource_dump_types::TextureTypes::CUBETEX; break;
-          case RES3D_VOLTEX: type = resource_dump_types::TextureTypes::VOLTEX; break;
-          case RES3D_ARRTEX: type = resource_dump_types::TextureTypes::ARRTEX; break;
-          case RES3D_CUBEARRTEX: type = resource_dump_types::TextureTypes::CUBEARRTEX; break;
+          case D3DResourceType::TEX: type = resource_dump_types::TextureTypes::TEX2D; break;
+          case D3DResourceType::CUBETEX: type = resource_dump_types::TextureTypes::CUBETEX; break;
+          case D3DResourceType::VOLTEX: type = resource_dump_types::TextureTypes::VOLTEX; break;
+          case D3DResourceType::ARRTEX: type = resource_dump_types::TextureTypes::ARRTEX; break;
+          case D3DResourceType::CUBEARRTEX: type = resource_dump_types::TextureTypes::CUBEARRTEX; break;
+          case D3DResourceType::SBUF: break;
         }
         bool color = true;
         switch (tex->getFormat().asTexFlags())
@@ -429,7 +491,7 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
           case TEXFMT_DEPTH32_S8: color = false; break;
           default: break;
         }
-        Image *img = tex->getDeviceImage();
+        Image *img = tex->image;
         uint64_t heapID = (uint64_t)-1;
         uint64_t heapOffset = (uint64_t)-1;
         if (img && img->getMemoryId() != -1)
@@ -438,10 +500,11 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
           heapOffset = img->getMemory().offset;
         }
 
-        dumpInfo.emplace_back(ResourceDumpTexture({(uint64_t)-1, heapID, heapOffset, tex->width, tex->height, tex->level_count(),
-          (tex->resType == RES3D_VOLTEX || tex->resType == RES3D_CUBEARRTEX) ? tex->depth : -1,
-          (tex->resType == RES3D_TEX || tex->resType == RES3D_VOLTEX) ? -1 : (img ? img->getArrayLayers() : -1), tex->ressize(),
-          tex->cflg, tex->getFormat().asTexFlags(), type, color, tex->getResName(), ""}));
+        dumpInfo.emplace_back(ResourceDumpTexture({(uint64_t)-1, heapID, heapOffset, tex->pars.w, tex->pars.h, tex->level_count(),
+          (tex->pars.type == D3DResourceType::VOLTEX || tex->pars.type == D3DResourceType::CUBEARRTEX) ? tex->pars.d : -1,
+          (tex->pars.type == D3DResourceType::TEX || tex->pars.type == D3DResourceType::VOLTEX) ? -1
+                                                                                                : (img ? img->getArrayLayers() : -1),
+          tex->getSize(), (uint32_t)tex->pars.flg, tex->getFormat().asTexFlags(), type, color, tex->getName(), ""}));
       });
 
       // Buffers
@@ -471,17 +534,17 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
           heapOffset = bufferPtr->getMemory().offset;
         }
 
-        dumpInfo.emplace_back(ResourceDumpBuffer({gpuAddress, heapID, heapOffset, (uint64_t)-1, cpuAddress, buff->ressize(), -1,
-          buff->getFlags(), -1, bufferPtr ? (int)bufferPtr->getCurrentDiscardOffset() : -1,
-          bufferPtr ? (int)bufferPtr->getDiscardBlocks() : -1, -1, buff->getResName(), ""}));
+        dumpInfo.emplace_back(ResourceDumpBuffer({gpuAddress, heapID, heapOffset, (uint64_t)-1, cpuAddress, buff->getSize(),
+          (uint32_t)-1, buff->getFlags(), -1, bufferPtr ? (int)bufferPtr->getCurrentDiscardOffset() : -1,
+          bufferPtr ? (int)bufferPtr->getDiscardBlocks() : -1, -1, buff->getName(), ""}));
       });
 
       // Ray Acceleration Structures
-#if D3D_HAS_RAY_TRACING
+#if VULKAN_HAS_RAYTRACING
 
       Globals::Mem::res.iterateAllocated<RaytraceAccelerationStructure>([&](RaytraceAccelerationStructure *rayAS) {
-        dumpInfo.emplace_back(ResourceDumpRayTrace(
-          {(uint64_t)-1, (uint64_t)-1, (uint64_t)-1, (int)rayAS->getDescription().size, rayAS->getDescription().isTopLevel, true}));
+        dumpInfo.emplace_back(ResourceDumpRayTrace({(uint64_t)-1, (uint64_t)-1, (uint64_t)-1, (uint32_t)rayAS->getDescription().size,
+          rayAS->getDescription().isTopLevel, true}));
       });
 #endif
       return 1;
@@ -494,6 +557,44 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
       d3d_command_change_queue(static_cast<GpuPipeline>((intptr_t)par1));
       return 1;
     }
+    case Drv3dCommand::GETVISIBILITYBEGIN:
+      if (Globals::desc.caps.hasOcclusionQuery)
+      {
+        G_ASSERTF(par1, "vulkan: par1 for Drv3dCommand::GETVISIBILITYBEGIN must be not null");
+        QueryId &qId = *(reinterpret_cast<QueryId *>(par1));
+        qId = Globals::ctx.startOcclusionQuery();
+        return 1;
+      }
+      break;
+    case Drv3dCommand::GETVISIBILITYEND:
+      if (Globals::desc.caps.hasOcclusionQuery && par1)
+      {
+        Globals::ctx.endOcclusionQuery(reinterpret_cast<QueryId>(par1));
+        return 1;
+      }
+      break;
+    case Drv3dCommand::GETVISIBILITYCOUNT:
+      if (Globals::desc.caps.hasOcclusionQuery && par1)
+        return Globals::ctx.getOcclusionQueryResult(reinterpret_cast<QueryId>(par1));
+      break;
+    case Drv3dCommand::GET_RAYTRACE_ACCELERATION_STRUCTURES_MEMORY_USAGE:
+      if (par1)
+      {
+        auto &accelerationStructuresUsage = *static_cast<uint64_t *>(par1);
+        accelerationStructuresUsage = 0;
+#if VULKAN_HAS_RAYTRACING
+        if (Globals::desc.caps.hasRayAccelerationStructure)
+        {
+          WinAutoLock lk(Globals::Mem::mutex);
+          Globals::Mem::res.iterateAllocated<RaytraceAccelerationStructure>(
+            [&accelerationStructuresUsage](RaytraceAccelerationStructure *rayAS) {
+              accelerationStructuresUsage += rayAS->getDescription().size;
+            });
+        }
+#endif
+        return 0;
+      }
+      break;
     default: break;
   };
 

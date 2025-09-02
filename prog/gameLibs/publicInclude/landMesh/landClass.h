@@ -34,6 +34,7 @@ struct LandClassDetailTextures
   int editorId = -1;
   Point2 offset;
   float tile;
+  float weightMapNoiseScale;
 
   LandClassType lcType;
   TEXTUREID colormapId;
@@ -52,10 +53,12 @@ struct LandClassDetailTextures
   Point4 displacementMin;
   Point4 displacementMax;
   Point4 bumpScales;
+  Point4 puddleScales;
   Point4 compatibilityDiffuseScales;
   Point4 randomFlowmapParams;
   Point4 flowmapMask;
   Point4 waterDecalBumpScale;
+  Point4 weighMapMulOffset;
   // todo: we can just use dfferent Constant Buffers
   char shader_name[64] = {0};
 
@@ -81,6 +84,8 @@ struct LandClassDetailTextures
     lcType = LC_SIMPLE;
     offset = Point2(0, 0);
     tile = 1;
+    weighMapMulOffset = {-1, -1, -1, -1};
+    weightMapNoiseScale = 0;
     grassMaskTexId = colormapId = BAD_TEXTUREID; // normalMapId =
     detailsCB = 0;
     clear_and_shrink(lcDetailParamsVS);

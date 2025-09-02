@@ -7,19 +7,19 @@
 #include <render/resourceSlot/state.h>
 #include <render/resourceSlot/actions.h>
 
-#include <render/daBfg/bfg.h>
+#include <render/daFrameGraph/daFG.h>
 
 namespace resource_slot
 {
 
 /** Register access to resource slot state
  *
- * Enhanced version of dabfg::register_node()
+ * Enhanced version of dafg::register_node()
  *
  * Usage:
  *
  * \code{.cpp}
- *   resource_slot::NodeHandleWithSlotsAccess handle = resource_slot::register_access("node_name", DABFG_PP_NODE_SRC,{
+ *   resource_slot::NodeHandleWithSlotsAccess handle = resource_slot::register_access("node_name", DAFG_PP_NODE_SRC,{
  *     resource_slot::Read{"slot1"},
  *       // node CAN read slot1 from slotsState
  *     resource_slot::Create{"slot2", "tex2"},
@@ -30,7 +30,7 @@ namespace resource_slot
  *       // nodes with HIGHER priority will be updated AFTER nodes with LOWER priority:
  *       // first priority=100, then priority=200
  *       // dependency cycle in slots and priorities is programming error
- *   }, [](resource_slot::State slotsState, dabfg::Registry registry)
+ *   }, [](resource_slot::State slotsState, dafg::Registry registry)
  *   {
  *     registry.readTexture(slotsState.resourceToReadFrom("slot1")).atStage(...).bindToShaderVar(...);
  *       // read final state of slot1 after all updates by other nodes
@@ -51,7 +51,7 @@ namespace resource_slot
  *
  * \param ns name space where the slot, the node, and all of the resources will be looked up in
  * \param name node name
- * \param source_location SHOULD be DABFG_PP_NODE_SRC
+ * \param source_location SHOULD be DAFG_PP_NODE_SRC
  * \param action_list list of slots, that will be created, updated or read by the node
  * \param declaration_callback node declaration; gets State as first argument
  * \param storage_id      RESERVED for future use
@@ -59,12 +59,12 @@ namespace resource_slot
  * \returns handle for access to storage
  */
 template <class F>
-[[nodiscard]] resource_slot::NodeHandleWithSlotsAccess register_access(dabfg::NameSpace ns, const char *name,
+[[nodiscard]] resource_slot::NodeHandleWithSlotsAccess register_access(dafg::NameSpace ns, const char *name,
   const char *source_location, resource_slot::detail::ActionList &&action_list, F &&declaration_callback)
 {
   return resource_slot::detail::register_access(ns, name, eastl::move(action_list),
     [ns, declCb = eastl::forward<F>(declaration_callback), name, source_location](resource_slot::State s) {
-      return ns.registerNode(name, source_location, [&declCb, s](dabfg::Registry r) { return declCb(s, r); });
+      return ns.registerNode(name, source_location, [&declCb, s](dafg::Registry r) { return declCb(s, r); });
     });
 }
 
@@ -72,7 +72,7 @@ template <class F>
 [[nodiscard]] resource_slot::NodeHandleWithSlotsAccess register_access(const char *name, const char *source_location,
   resource_slot::detail::ActionList &&action_list, F &&declaration_callback)
 {
-  return resource_slot::register_access(dabfg::root(), name, source_location, eastl::move(action_list),
+  return resource_slot::register_access(dafg::root(), name, source_location, eastl::move(action_list),
     eastl::forward<F>(declaration_callback));
 }
 

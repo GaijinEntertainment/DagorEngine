@@ -1,0 +1,2 @@
+int glass_normal_pass = 0;
+interval glass_normal_pass : no < 1, yes;

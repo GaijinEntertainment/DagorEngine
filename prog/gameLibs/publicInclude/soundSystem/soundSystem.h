@@ -64,6 +64,7 @@ void lazy_update();
 void override_time_speed(float time_speed); // should be > 0 to override value provided within update(float dt, float time_speed = 1.f)
 
 Point3 get_3d_listener_pos();
+Point3 get_3d_listener_up();
 TMatrix get_3d_listener();
 Point3 get_3d_listener_vel();
 
@@ -78,7 +79,7 @@ float get_volume_bus(const char *bus_name);
 void set_mute(const char *bus_name, bool mute);
 bool get_mute(const char *bus_name);
 
-bool is_bus_exists(const char *bus_name);
+bool is_bus_exists(const char *bus_name, bool is_obligatory = true);
 
 void lock_channel_group(const char *bus_name, bool immediately);
 

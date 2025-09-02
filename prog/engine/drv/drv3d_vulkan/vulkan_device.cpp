@@ -4,6 +4,7 @@
 #include <EASTL/algorithm.h>
 #include <EASTL/sort.h>
 #include <ioSys/dag_dataBlock.h>
+#include "globals.h"
 
 using namespace drv3d_vulkan;
 
@@ -85,8 +86,7 @@ bool drv3d_vulkan::device_has_all_required_extensions(VulkanDevice &device, void
 }
 
 uint32_t drv3d_vulkan::fill_device_extension_list(Tab<const char *> &result,
-  const StaticTab<const char *, VulkanDevice::ExtensionCount> &white_list,
-  const eastl::vector<VkExtensionProperties> &device_extensions)
+  const StaticTab<const char *, VulkanDevice::ExtensionCount> &white_list, const dag::Vector<VkExtensionProperties> &device_extensions)
 {
   result.resize(VulkanDevice::ExtensionCount);
   uint32_t count = 0;
@@ -131,9 +131,10 @@ uint32_t drv3d_vulkan::fill_device_extension_list(Tab<const char *> &result,
   return remove_mutual_exclusive_extensions(list);
 }
 
-MemoryRequirementInfo drv3d_vulkan::get_memory_requirements(VulkanDevice &device, VulkanBufferHandle buffer)
+MemoryRequirementInfo drv3d_vulkan::get_memory_requirements(VulkanBufferHandle buffer)
 {
   MemoryRequirementInfo result = {};
+  VulkanDevice &device = Globals::VK::dev;
 
 #if VK_KHR_get_memory_requirements2
   if (device.hasExtension<GetMemoryRequirements2KHR>())
@@ -176,9 +177,10 @@ MemoryRequirementInfo drv3d_vulkan::get_memory_requirements(VulkanDevice &device
   return result;
 }
 
-MemoryRequirementInfo drv3d_vulkan::get_memory_requirements(VulkanDevice &device, VulkanImageHandle image)
+MemoryRequirementInfo drv3d_vulkan::get_memory_requirements(VulkanImageHandle image)
 {
   MemoryRequirementInfo result = {};
+  VulkanDevice &device = Globals::VK::dev;
 
 #if VK_KHR_get_memory_requirements2
   if (device.hasExtension<GetMemoryRequirements2KHR>())

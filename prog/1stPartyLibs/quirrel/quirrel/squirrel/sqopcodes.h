@@ -23,9 +23,9 @@ enum CmpOP {
 };
 
 enum NewObjectType {
-    NOT_TABLE = 0,
-    NOT_ARRAY = 1,
-    NOT_CLASS = 2
+    NEWOBJ_TABLE = 0,
+    NEWOBJ_ARRAY = 1,
+    NEWOBJ_CLASS = 2
 };
 
 enum AppendArrayType {
@@ -113,6 +113,10 @@ enum AppendArrayType {
     SQ_OPCODE(_OP_NULLCOALESCE) \
     SQ_OPCODE(_OP_NULLCALL) \
     SQ_OPCODE(_OP_LOADCALLEE) \
+    SQ_OPCODE(_OP_PATCH_DOCOBJ) \
+    SQ_OPCODE(_OP_LOAD_STATIC_MEMO) \
+    SQ_OPCODE(_OP_SAVE_STATIC_MEMO) \
+    SQ_OPCODE(_OP_FREEZE) \
 
 
 #define SQ_OPCODE(id) id,
@@ -165,5 +169,39 @@ typedef sqvector<SQInstruction> SQInstructionVec;
 #define OP_GET_FLAG_NO_ERROR            0x02
 #define OP_GET_FLAG_KEEP_VAL            0x04 //< only used with OP_GET_FLAG_NO_ERROR
 #define OP_GET_FLAG_TYPE_METHODS_ONLY   0x08
+
+inline int sq_opcode_length(int op) {
+    return (op == _OP_SET_LITERAL || op == _OP_GET_LITERAL) ? 2 : 1;
+}
+
+inline bool sq_is_pure_op(int op) {
+    return
+        op != _OP_SETOUTER &&
+        op != _OP_GETOUTER &&
+        op != _OP_SET_LITERAL &&
+        op != _OP_SET &&
+        op != _OP_SETI &&
+        op != _OP_SETK &&
+        op != _OP_CLOSURE &&
+        op != _OP_TAILCALL &&
+        op != _OP_CALL &&
+        op != _OP_NULLCALL &&
+        op != _OP_PREPCALL &&
+        op != _OP_PREPCALLK &&
+        op != _OP_NEWOBJ &&
+        op != _OP_APPENDARRAY &&
+        op != _OP_NEWSLOT &&
+        op != _OP_NEWSLOTK &&
+        op != _OP_NEWSLOTA &&
+        op != _OP_DELETE &&
+        op != _OP_YIELD &&
+        op != _OP_RESUME &&
+        op != _OP_CLONE &&
+        op != _OP_PUSHTRAP &&
+        op != _OP_POPTRAP &&
+        op != _OP_THROW &&
+        op != _OP_CLOSE &&
+        op != _OP_GETBASE;
+}
 
 #endif // _SQOPCODES_H_

@@ -1,6 +1,6 @@
 from "dagor.workcycle" import setTimeout, clearTimer
 from "dagor.random" import frnd
-let math = require("math")
+import "math" as math
 
 /*
 Creates and returns a new debounced version of the passed function which will postpone its execution until

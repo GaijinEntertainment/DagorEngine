@@ -54,7 +54,7 @@ inline bool recreate_material_with_new_params_2(AnimV20::AnimcharRendComponent &
 
 inline void scene_lods_gather_mats(const DynamicRenderableSceneLodsResource &scene_lods,
   int lod,
-  const das::TBlock<void, das::TTemporary<const das::TArray<ShaderMaterial *>>> &block,
+  const das::TBlock<void, const das::TTemporary<const das::TArray<ShaderMaterial *>>> &block,
   das::Context *context,
   das::LineInfoArg *at)
 {

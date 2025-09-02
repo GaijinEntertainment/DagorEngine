@@ -60,7 +60,7 @@ public:
   char portBuf[128], portBufUDP[128], adrBuf[128];
   char hostName[NI_MAXHOST];
   int family, socketType;
-  char *port, *portUdp, *address;
+  const char *port, *portUdp, *address;
 
   int numSocks, udpSocksStart;
   ADDRINFO hints, *addrInfo, *AI;

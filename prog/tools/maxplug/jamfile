@@ -26,39 +26,42 @@ Target     = $(MaxVer)Plugin/dagor.dlu ;
 include $(Root)/$(Location)/maxPlugin.jam ;
 
 Sources =
-  dagorLogWindow.cpp
-  mathang.cpp
-  rolluppanel.cpp
-  namemap.cpp
-  str.cpp
-  datablk.cpp
-  MilkShapeAnimImport.cpp
   cfg.cpp
-  Debug.cpp
-  Dllmain.cpp
-  Dummy.cpp
-  ExpAnim.cpp
+  common.cpp
+  dagimp.cpp
+  dagorLogWindow.cpp
+  datablk.cpp
+  debug.cpp
+  dllmain.cpp
+  dummy.cpp
+  expAnim.cpp
   expanim2.cpp
-  ExpUtil.cpp
-  Font.cpp
+  expUtil.cpp
+  font.cpp
   freecam.cpp
+  layout.cpp
   loadta.cpp
-  Ltmap.cpp
-  MatConvUtil.cpp
-  Mater.cpp
-  Mater2.cpp
+  ltmap.cpp
+  matConvUtil.cpp
+  mater.cpp
+  mater2.cpp
+  mathAng.cpp
   meshtrace.cpp
-  ObjectPropertiesEditor.cpp
+  milkShapeAnimImport.cpp
+  namemap.cpp
+  objectPropertiesEditor.cpp
   objonsrf.cpp
-  PhysExport.cpp
-  PolyBumpUtil.cpp
-  RBDummy.cpp
+  physExport.cpp
+  polyBumpUtil.cpp
+  rbDummy.cpp
+  rolluppanel.cpp
+  str.cpp
   ta.cpp
-  Util.cpp
-  Util2.cpp
-  vpconv.cpp
   Timer.cpp
-  Dagor.rc
+  util.cpp
+  util2.cpp
+  vpconv.cpp
+  dagor.rc
 ;
 
 AddIncludes += $(Root)/$(Location)/stubInclude ;

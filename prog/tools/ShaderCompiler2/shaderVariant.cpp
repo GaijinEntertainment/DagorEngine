@@ -1,5 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#include "shCompiler.h"
 #include "shaderVariant.h"
 #include <debug/dag_debug.h>
 #include "globVar.h"
@@ -59,7 +60,7 @@ ValueType TypeTable::normalizeValue(int index, real val) const
   else
   {
     if (!t.interval)
-      DAG_FATAL("normalize value %.4f: no interval ptr for interval type #%d in %s", val, index, (char *)getStringInfo());
+      sh_debug(SHLOG_FATAL, "normalize value %.4f: no interval ptr for interval type #%d in %s", val, index, (char *)getStringInfo());
     return t.interval->normalizeValue(val);
   }
 }
@@ -79,24 +80,24 @@ void TypeTable::updateTypeValRange(VariantType &t)
     case VARTYPE_GL_OVERRIDE_INTERVAL:
     {
       if (!iList || (t.extType == INTERVAL_NOT_INIT))
-        DAG_FATAL("interval type not initialized!");
+        sh_debug(SHLOG_FATAL, "interval type not initialized!");
 
       t.interval = iList->getInterval(t.extType);
       if (!t.interval)
-        DAG_FATAL("interval not found!");
+        sh_debug(SHLOG_FATAL, "interval not found!");
     }
     break;
     case VARTYPE_GLOBAL_INTERVAL:
     {
       if (t.extType == INTERVAL_NOT_INIT)
-        DAG_FATAL("interval type not initialized!");
+        sh_debug(SHLOG_FATAL, "interval type not initialized!");
 
-      t.interval = ShaderGlobal::getIntervalList().getInterval(t.extType);
+      t.interval = ctx->globVars().getIntervalList().getInterval(t.extType);
       if (!t.interval)
-        DAG_FATAL("interval not found!");
+        sh_debug(SHLOG_FATAL, "interval not found!");
     }
     break;
-    default: DAG_FATAL("unknown variant type - %d!", t.type);
+    default: G_ASSERTF(0, "unknown variant type - %d!", t.type);
   }
 
   if (t.interval)
@@ -124,7 +125,7 @@ String TypeTable::getTypeName(int i) const
       if (!interv)
         return String("IVAL[?]");
 
-      return String(128, "IVAL[%s]", interv->getNameStr());
+      return String(128, "IVAL[%s]", get_interval_name(*interv, *ctx));
     }
     case VARTYPE_GL_OVERRIDE_INTERVAL:
     {
@@ -132,15 +133,15 @@ String TypeTable::getTypeName(int i) const
       if (!interv)
         return String("G-o-IVAL[?]");
 
-      return String(128, "G-o-IVAL[%s]", interv->getNameStr());
+      return String(128, "G-o-IVAL[%s]", get_interval_name(*interv, *ctx));
     }
     case VARTYPE_GLOBAL_INTERVAL:
     {
-      const Interval *interv = ShaderGlobal::getIntervalList().getInterval(t.extType);
+      const Interval *interv = ctx->globVars().getIntervalList().getInterval(t.extType);
       if (!interv)
         return String("G-IVAL[?]");
 
-      return String(128, "G-IVAL[%s]", interv->getNameStr());
+      return String(128, "G-IVAL[%s]", get_interval_name(*interv, *ctx));
     }
     break;
   }
@@ -160,15 +161,15 @@ String TypeTable::getValueName(int type_index, int value_index) const
       if (!interv)
         break;
 
-      return String(128, "%s", interv->getValueName(value_index));
+      return String(128, "%s", get_interval_value_name(*interv, value_index, *ctx));
     }
     case VARTYPE_GLOBAL_INTERVAL:
     {
-      const Interval *interv = ShaderGlobal::getIntervalList().getInterval(t.extType);
+      const Interval *interv = ctx->globVars().getIntervalList().getInterval(t.extType);
       if (!interv)
         break;
 
-      return String(128, "%s", interv->getValueName(value_index));
+      return String(128, "%s", get_interval_value_name(*interv, value_index, *ctx));
     }
   }
 
@@ -191,9 +192,9 @@ const char *TypeTable::getIntervalName(int i) const
     break;
 
     case VARTYPE_INTERVAL:
-    case VARTYPE_GL_OVERRIDE_INTERVAL: return iList->getInterval(t.extType)->getNameStr();
+    case VARTYPE_GL_OVERRIDE_INTERVAL: return get_interval_name(*iList->getInterval(t.extType), *ctx);
 
-    case VARTYPE_GLOBAL_INTERVAL: return ShaderGlobal::getIntervalList().getInterval(t.extType)->getNameStr();
+    case VARTYPE_GLOBAL_INTERVAL: return get_interval_name(*ctx->globVars().getIntervalList().getInterval(t.extType), *ctx);
   }
   return "?t";
 }
@@ -225,7 +226,7 @@ void TypeTable::link(Tab<ExtType> &interval_link_table)
   }
 }
 
-VariantTable::VariantTable() : variants(midmem), cachedIndex(-1) {}
+VariantTable::VariantTable(shc::TargetContext &a_ctx) : types{a_ctx}, variants(midmem), cachedIndex(-1), ctx{&a_ctx} {}
 
 // create search info values for this variants
 SearchInfo *VariantTable::createSearchInfo(bool fill_with_defaults) { return new SearchInfo(types, fill_with_defaults); }

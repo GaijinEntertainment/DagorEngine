@@ -2,14 +2,14 @@ from "%darg/ui_imports.nut" import *
 
 let mkIcon = @() {
   rendObj = ROBJ_IMAGE
-  size = [hdpx(40), hdpx(40)]
+  size = hdpx(40)
   keepAspect = true
   image = Picture("ui/ca_cup1")
 }
 
 let item = @(text, hasIcon = false) {
   rendObj = ROBJ_SOLID
-  size = [flex(), SIZE_TO_CONTENT]
+  size = FLEX_H
   maxWidth = SIZE_TO_CONTENT
   valign = ALIGN_CENTER
   flow = FLOW_HORIZONTAL // remove this and text will appear
@@ -20,7 +20,7 @@ let item = @(text, hasIcon = false) {
     hasIcon ? mkIcon() : null
     {
       rendObj = ROBJ_TEXTAREA
-      size = [flex(), SIZE_TO_CONTENT]
+      size = FLEX_H
       maxWidth = SIZE_TO_CONTENT
       behavior = Behaviors.TextArea
       text
@@ -33,7 +33,7 @@ let item = @(text, hasIcon = false) {
 function itemTrick(text, hasIcon = false) {
   let textArea = {
     rendObj = ROBJ_TEXTAREA
-    size = [flex(), SIZE_TO_CONTENT]
+    size = FLEX_H
     maxWidth = SIZE_TO_CONTENT
     valign = ALIGN_CENTER
     behavior = Behaviors.TextArea
@@ -48,7 +48,7 @@ function itemTrick(text, hasIcon = false) {
   }
   return {
     rendObj = ROBJ_SOLID
-    size = [flex(), SIZE_TO_CONTENT]
+    size = FLEX_H
     maxWidth = SIZE_TO_CONTENT
     padding = hdpx(5)
     color = Color(0, 0, 0)
@@ -58,7 +58,7 @@ function itemTrick(text, hasIcon = false) {
 
 return {
   rendObj = ROBJ_SOLID
-  size = [sw(25), SIZE_TO_CONTENT]
+  size = static [sw(25), SIZE_TO_CONTENT]
   vplace = ALIGN_CENTER
   hplace = ALIGN_CENTER
   halign = ALIGN_CENTER

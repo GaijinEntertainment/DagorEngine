@@ -54,6 +54,50 @@ namespace eastl
 		//
 		template<size_t Extent, size_t Offset, size_t Count>
 		struct SubspanExtent : eastl::integral_constant<size_t, (Count != dynamic_extent ? Count : (Extent != dynamic_extent ? (Extent - Offset) : dynamic_extent))> {};
+
+		// is_eastl_array<PossiblyArray, T>
+		// 
+		// is an eastl::array<T, N> with elements T?
+		// NOT the same as is_array, which is a type trait for the C-style array type.
+		template<typename PossiblyArray, typename T>
+		struct is_eastl_array : public eastl::false_type {};
+
+		template<typename T, size_t N>
+		struct is_eastl_array<eastl::array<T, N>, T> : public eastl::true_type {};
+
+		// SpanStorage
+		//
+		// Holds all of the member variables for span, specialized to remove the size variable when
+		// given a static extent.
+		//
+		template <typename T, size_t Extent>
+		struct SpanStorage
+		{
+			T* mpData = nullptr;
+			static EA_CONSTEXPR eastl_size_t mnSize = Extent;
+
+			EA_CONSTEXPR SpanStorage() EA_NOEXCEPT
+			{
+				static_assert(Extent == 0, "impossible to default construct a span with a fixed Extent different than 0");
+			}
+
+			EA_CONSTEXPR SpanStorage(T* ptr, eastl_size_t size)
+				: mpData(ptr)
+			{
+				EA_UNUSED(size);
+				EASTL_ASSERT_MSG(Extent == size, "impossible to create a span with a fixed Extent different than the size of the supplied buffer");
+			}
+		};
+
+		template <typename T>
+		struct SpanStorage<T, eastl::dynamic_extent>
+		{
+			T* mpData = nullptr;
+			eastl_size_t mnSize = 0;
+
+			EA_CONSTEXPR SpanStorage() EA_NOEXCEPT = default;
+			EA_CONSTEXPR SpanStorage(T* ptr, eastl_size_t size) : mpData(ptr), mnSize(size) {}
+		};
 	}
 
 	template <typename T, size_t Extent = eastl::dynamic_extent>
@@ -76,7 +120,7 @@ namespace eastl
 		static EA_CONSTEXPR size_t extent = Extent;
 
 		// constructors / destructor
-		EA_CONSTEXPR span() EA_NOEXCEPT;
+		EA_CONSTEXPR span() EA_NOEXCEPT = default;
 		EA_CONSTEXPR span(const span& other) EA_NOEXCEPT = default;
 		EA_CONSTEXPR span(pointer ptr, index_type count);
 		EA_CONSTEXPR span(pointer pBegin, pointer pEnd);
@@ -99,7 +143,7 @@ namespace eastl
 		//
 		template <typename Container>
 		using SfinaeForGenericContainers =
-		    enable_if_t<!is_same_v<Container, span> && !is_same_v<Container, array<value_type>> &&
+		    enable_if_t<!is_same_v<Container, span> && !Internal::is_eastl_array<Container, value_type>::value &&
 		                !is_array_v<Container> &&
 		                Internal::HasSizeAndData<Container>::value &&
 		                is_convertible_v<remove_pointer_t<decltype(eastl::data(eastl::declval<Container&>()))> (*)[], element_type (*)[]>>;
@@ -150,8 +194,7 @@ namespace eastl
 		EA_CONSTEXPR const_reverse_iterator crend() const EA_NOEXCEPT;
 
 	private:
-		pointer mpData = nullptr;
-		index_type mnSize = 0;
+		Internal::SpanStorage<T, Extent> mStorage;
 
 	private:
 		EA_CONSTEXPR bool bounds_check(size_t) const;  // utility used in asserts
@@ -205,23 +248,15 @@ namespace eastl
 
 
 	template <typename T, size_t Extent>
-	EA_CONSTEXPR span<T, Extent>::span() EA_NOEXCEPT
-	{
-		static_assert(Extent == dynamic_extent || Extent == 0, "impossible to default construct a span with a fixed Extent different than 0");
-	}
-
-	template <typename T, size_t Extent>
 	EA_CONSTEXPR span<T, Extent>::span(pointer ptr, index_type size)
-	    : mpData(ptr), mnSize(size)
+	    : mStorage(ptr, size)
 	{
-		EASTL_ASSERT_MSG(Extent == dynamic_extent || Extent == mnSize, "impossible to create a span with a fixed Extent different than the size of the supplied buffer");
 	}
 
 	template <typename T, size_t Extent>
 	EA_CONSTEXPR span<T, Extent>::span(pointer pBegin, pointer pEnd)
-	    : mpData(pBegin), mnSize(static_cast<index_type>(pEnd - pBegin))
+	    : mStorage(pBegin, static_cast<index_type>(pEnd - pBegin))
 	{
-		EASTL_ASSERT_MSG(Extent == dynamic_extent || Extent == mnSize, "impossible to create a span with a fixed Extent different than the size of the supplied buffer");
 	}
 
 	template <typename T, size_t Extent>
@@ -275,13 +310,13 @@ namespace eastl
 	template <typename T, size_t Extent>
 	EA_CONSTEXPR typename span<T, Extent>::pointer span<T, Extent>::data() const EA_NOEXCEPT
 	{
-		return mpData;
+		return mStorage.mpData;
 	}
 
 	template <typename T, size_t Extent>
 	EA_CONSTEXPR typename span<T, Extent>::index_type span<T, Extent>::size() const EA_NOEXCEPT
 	{
-		return mnSize;
+		return mStorage.mnSize;
 	}
 
 	template <typename T, size_t Extent>
@@ -301,7 +336,7 @@ namespace eastl
 	{
 		EASTL_ASSERT_MSG(!empty(), "undefined behavior accessing an empty span");
 
-		return mpData[0];
+		return mStorage.mpData[0];
 	}
 
 	template <typename T, size_t Extent>
@@ -309,7 +344,7 @@ namespace eastl
 	{
 		EASTL_ASSERT_MSG(!empty(), "undefined behavior accessing an empty span");
 
-		return mpData[mnSize - 1];
+		return mStorage.mpData[mStorage.mnSize - 1];
 	}
 
 	template <typename T, size_t Extent>
@@ -318,7 +353,7 @@ namespace eastl
 		EASTL_ASSERT_MSG(!empty(),          "undefined behavior accessing an empty span");
 		EASTL_ASSERT_MSG(bounds_check(idx), "undefined behavior accessing out of bounds");
 
-		return mpData[idx];
+		return mStorage.mpData[idx];
 	}
 
 	template <typename T, size_t Extent>
@@ -327,55 +362,55 @@ namespace eastl
 		EASTL_ASSERT_MSG(!empty(),          "undefined behavior accessing an empty span");
 		EASTL_ASSERT_MSG(bounds_check(idx), "undefined behavior accessing out of bounds");
 
-		return mpData[idx];
+		return mStorage.mpData[idx];
 	}
 
 	template <typename T, size_t Extent>
 	EA_CONSTEXPR typename span<T, Extent>::iterator span<T, Extent>::begin() const EA_NOEXCEPT
 	{
-		return mpData;
+		return mStorage.mpData;
 	}
 
 	template <typename T, size_t Extent>
 	EA_CONSTEXPR typename span<T, Extent>::iterator span<T, Extent>::end() const EA_NOEXCEPT
 	{
-		return mpData + mnSize;
+		return mStorage.mpData + mStorage.mnSize;
 	}
 
 	template <typename T, size_t Extent>
 	EA_CONSTEXPR typename span<T, Extent>::const_iterator span<T, Extent>::cbegin() const EA_NOEXCEPT
 	{
-		return mpData;
+		return mStorage.mpData;
 	}
 
 	template <typename T, size_t Extent>
 	EA_CONSTEXPR typename span<T, Extent>::const_iterator span<T, Extent>::cend() const EA_NOEXCEPT
 	{
-		return mpData + mnSize;
+		return mStorage.mpData + mStorage.mnSize;
 	}
 
 	template <typename T, size_t Extent>
 	EA_CONSTEXPR typename span<T, Extent>::reverse_iterator span<T, Extent>::rbegin() const EA_NOEXCEPT
 	{
-		return reverse_iterator(mpData + mnSize);
+		return reverse_iterator(mStorage.mpData + mStorage.mnSize);
 	}
 
 	template <typename T, size_t Extent>
 	EA_CONSTEXPR typename span<T, Extent>::reverse_iterator span<T, Extent>::rend() const EA_NOEXCEPT
 	{
-		return reverse_iterator(mpData);
+		return reverse_iterator(mStorage.mpData);
 	}
 
 	template <typename T, size_t Extent>
 	EA_CONSTEXPR typename span<T, Extent>::const_reverse_iterator span<T, Extent>::crbegin() const EA_NOEXCEPT
 	{
-		return const_reverse_iterator(mpData + mnSize);
+		return const_reverse_iterator(mStorage.mpData + mStorage.mnSize);
 	}
 
 	template <typename T, size_t Extent>
 	EA_CONSTEXPR typename span<T, Extent>::const_reverse_iterator span<T, Extent>::crend() const EA_NOEXCEPT
 	{
-		return const_reverse_iterator(mpData);
+		return const_reverse_iterator(mStorage.mpData);
 	}
 
 	template <typename T, size_t Extent>

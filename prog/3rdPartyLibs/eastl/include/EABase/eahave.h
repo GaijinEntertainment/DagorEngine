@@ -144,11 +144,11 @@
 
 // Clang libc++
 #if !defined(EA_HAVE_LIBCPP_LIBRARY) && !defined(EA_NO_HAVE_LIBCPP_LIBRARY)
-	#if defined(__clang__)
-		#if defined(__cplusplus) && __has_include(<__config>)
+	#if EA_HAS_INCLUDE_AVAILABLE
+		#if EA_HAS_INCLUDE(<__config>)
 			#define EA_HAVE_LIBCPP_LIBRARY 1 // We could also #include <ciso646> and check if defined(_LIBCPP_VERSION).
 		#endif
-	#endif 
+	#endif
 
 	#if !defined(EA_HAVE_LIBCPP_LIBRARY) 
 		#define EA_NO_HAVE_LIBCPP_LIBRARY 1
@@ -234,7 +234,7 @@
 
 // #include <sys/signal.h>
 #if !defined(EA_HAVE_SYS_SIGNAL_H) && !defined(EA_NO_HAVE_SYS_SIGNAL_H)
-	#if defined(EA_PLATFORM_BSD) || defined(EA_PLATFORM_C1)
+	#if defined(EA_PLATFORM_BSD) || defined(EA_PLATFORM_C)
 		#define EA_HAVE_SYS_SIGNAL_H 1
 	#else
 		#define EA_NO_HAVE_SYS_SIGNAL_H 1
@@ -270,7 +270,7 @@
 
 // #include <alloca.h>
 #if !defined(EA_HAVE_ALLOCA_H) && !defined(EA_NO_HAVE_ALLOCA_H)
-	#if !defined(EA_HAVE_MALLOC_H) && !defined(EA_PLATFORM_C1)
+	#if !defined(EA_HAVE_MALLOC_H) && !defined(EA_PLATFORM_C)
 		#define EA_HAVE_ALLOCA_H 1
 	#else
 		#define EA_NO_HAVE_ALLOCA_H 1
@@ -592,7 +592,7 @@
 #endif
 
 #if !defined(EA_HAVE_nanosleep_DECL) && !defined(EA_NO_HAVE_nanosleep_DECL)
-	#if (defined(EA_PLATFORM_UNIX) && !defined(EA_PLATFORM_C)) || defined(EA_PLATFORM_IPHONE) || defined(EA_PLATFORM_OSX) || defined(EA_PLATFORM_C1) || defined(CS_UNDEFINED_STRING)
+	#if (defined(EA_PLATFORM_UNIX) && !defined(EA_PLATFORM_C)) || defined(EA_PLATFORM_IPHONE) || defined(EA_PLATFORM_OSX) || defined(EA_PLATFORM_C) || defined(CS_UNDEFINED_STRING)
 		#define EA_HAVE_nanosleep_DECL 1
 	#else
 		#define EA_NO_HAVE_nanosleep_DECL 1

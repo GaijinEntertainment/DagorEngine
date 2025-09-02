@@ -21,6 +21,18 @@
 
 using namespace spirv;
 
+struct spirv::DXCContext
+{
+  DagorDynLibHolder library;
+  uint32_t verMajor = 0;
+  uint32_t verMinor = 0;
+  uint32_t verCommitsCount = 0;
+  String verCommitHash;
+  String verString;
+  dag::Vector<std::wstring> extraParams;
+  DxcCreateInstanceProc dxcCreateInstance = nullptr;
+};
+
 struct WrappedBlob final : public IDxcBlobEncoding
 {
   WrappedBlob(dag::ConstSpan<char> s) : source{s} {}
@@ -247,6 +259,8 @@ static bool is_uav_resource(NodePointer<NodeOpVariable> var)
 static ReflectionInfo::Type convertReflectionType(NodePointer<NodeOpVariable> var)
 {
   auto ptrType = as<NodeOpTypePointer>(var->resultType);
+  if (is<NodeOpTypeSampler>(ptrType->type))
+    return ReflectionInfo::Type::Sampler;
   if (ptrType->storageClass == StorageClass::Uniform) // const or struct
     return get_buffer_kind(var) == BufferKind::Uniform ? ReflectionInfo::Type::ConstantBuffer : ReflectionInfo::Type::StructuredBuffer;
 
@@ -256,7 +270,7 @@ static ReflectionInfo::Type convertReflectionType(NodePointer<NodeOpVariable> va
   return imageType->dim == Dim::Buffer ? ReflectionInfo::Type::Buffer : ReflectionInfo::Type::Texture;
 }
 
-static ReflectionInfo convertVariableInfo(NodePointer<NodeOpVariable> var, bool sampler, bool overwrite_sets)
+static ReflectionInfo convertVariableInfo(NodePointer<NodeOpVariable> var, bool overwrite_sets)
 {
   ReflectionInfo ret = {};
 
@@ -264,7 +278,7 @@ static ReflectionInfo convertVariableInfo(NodePointer<NodeOpVariable> var, bool 
   PropertyBinding *binding = find_property<PropertyBinding>(var);
   PropertyDescriptorSet *set = find_property<PropertyDescriptorSet>(var);
   ret.name = name ? name->name : "";
-  ret.type = sampler ? ReflectionInfo::Type::Sampler : convertReflectionType(var);
+  ret.type = convertReflectionType(var);
   ret.uav = is_uav_resource(var);
 
   int type_set = int(ret.type) + (ret.uav ? 16 : 0);
@@ -293,7 +307,7 @@ static eastl::vector<ReflectionInfo> compileReflection(ModuleBuilder &builder, b
       auto ptrType = as<NodeOpTypePointer>(var->resultType);
       if (ptrType->storageClass == StorageClass::UniformConstant || ptrType->storageClass == StorageClass::Uniform)
       {
-        ReflectionInfo info = convertVariableInfo(var, is<NodeOpTypeSampler>(ptrType->type), overwrite_sets);
+        ReflectionInfo info = convertVariableInfo(var, overwrite_sets);
         ret.push_back(info);
 
         if (info.uav && info.type == ReflectionInfo::Type::Texture)
@@ -332,28 +346,37 @@ static eastl::vector<ReflectionInfo> compileReflection(ModuleBuilder &builder, b
   return ret;
 }
 
-CompileToSpirVResult spirv::compileHLSL_DXC(dag::ConstSpan<char> source, const char *entry, const char *profile, CompileFlags flags,
-  const eastl::vector<eastl::string_view> &disabledOptimizaions)
+spirv::DXCContext *spirv::setupDXC(const char *path, const dag::Vector<String> &extra_params,
+  int (*error_reporter)(const char *const, ...))
 {
-  CompileToSpirVResult result = {};
-  DXCErrorHandler errorHandler{result};
-  IDxcCompiler *compiler = nullptr;
-
-  eastl::array<char, DAGOR_MAX_PATH> dynlibPath{};
-  bool getRes = os_dll_get_dll_name_from_addr(dynlibPath.data(), dynlibPath.size(), (const void *)&compileHLSL_DXC);
-  String lookupPath("./");
-  if (getRes)
+  spirv::DXCContext *ret = new spirv::DXCContext();
+  for (const String &i : extra_params)
   {
+    using namespace std;
+    ret->extraParams.push_back(wstring_convert<codecvt_utf8<wchar_t>>().from_bytes(i.data(), i.data() + i.size()));
+  }
+
+  ret->verCommitHash = "<unknown hash>";
+
+  String lookupPath(path);
+  if (lookupPath.empty())
+  {
+    lookupPath = "./";
+    eastl::array<char, DAGOR_MAX_PATH> dynlibPath{};
+    bool getRes = os_dll_get_dll_name_from_addr(dynlibPath.data(), dynlibPath.size(), (const void *)&compileHLSL_DXC);
+    if (getRes)
+    {
 #if _TARGET_PC_WIN
-    const char *end = strrchr(dynlibPath.cbegin(), '\\');
+      const char *end = strrchr(dynlibPath.cbegin(), '\\');
 #else
-    const char *end = strrchr(dynlibPath.cbegin(), '/');
+      const char *end = strrchr(dynlibPath.cbegin(), '/');
 #endif
 
-    if (end)
-      lookupPath = String(dynlibPath.cbegin(), end - dynlibPath.cbegin() + 1);
-    else
-      lookupPath = String(dynlibPath.cbegin());
+      if (end)
+        lookupPath = String(dynlibPath.cbegin(), end - dynlibPath.cbegin() + 1);
+      else
+        lookupPath = String(dynlibPath.cbegin());
+    }
   }
 
 #if _TARGET_PC_WIN
@@ -363,23 +386,89 @@ CompileToSpirVResult spirv::compileHLSL_DXC(dag::ConstSpan<char> source, const c
 #elif _TARGET_PC_LINUX
   const String libPath = lookupPath + "libdxcompiler.so";
 #endif
-  DagorDynLibHolder library;
-  library.reset(os_dll_load_deep_bind(libPath.c_str()));
-  if (!library)
+  ret->library.reset(os_dll_load_deep_bind(libPath.c_str()));
+
+  if (!ret->library)
   {
-    result.infoLog.emplace_back("Error: Unable to load DXC dll: " + eastl::string(os_dll_get_last_error_str()));
+    (*error_reporter)("\n[WARNING] Can't load dxc from '%s'\n", libPath.c_str());
+    delete ret;
+    return nullptr;
+  }
+  ret->dxcCreateInstance = (DxcCreateInstanceProc)os_dll_get_symbol(ret->library.get(), "DxcCreateInstance");
+
+  if (!ret->dxcCreateInstance)
+  {
+    (*error_reporter)("\n[WARNING] Missing entry point DxcCreateInstance in dxcompiler lib\n");
+    delete ret;
+    return nullptr;
+  }
+
+  IDxcCompiler *compiler = nullptr;
+  ret->dxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&compiler));
+
+  if (!compiler)
+  {
+    (*error_reporter)("\n[WARNING] Failed to create initial DXC instance\n");
+    delete ret;
+    return nullptr;
+  }
+
+  {
+    IDxcVersionInfo *versionInfo = nullptr;
+    compiler->QueryInterface(__uuidof(IDxcVersionInfo), (void **)&versionInfo);
+    if (versionInfo)
+    {
+      versionInfo->GetVersion(&ret->verMajor, &ret->verMinor);
+      versionInfo->Release();
+    }
+  }
+
+  {
+    IDxcVersionInfo2 *versionInfo2 = nullptr;
+    compiler->QueryInterface(__uuidof(IDxcVersionInfo2), (void **)&versionInfo2);
+    if (versionInfo2)
+    {
+      char *hash = nullptr;
+      versionInfo2->GetCommitInfo(&ret->verCommitsCount, &hash);
+      if (hash)
+      {
+        ret->verCommitHash = hash;
+        CoTaskMemFree(hash);
+      }
+      versionInfo2->Release();
+    }
+  }
+
+  compiler->Release();
+
+  ret->verString = String(32, "%u.%u.%u.%s", ret->verMajor, ret->verMinor, ret->verCommitsCount, ret->verCommitHash.c_str());
+
+  // printf("\n[OK] DXC loaded from %s ver %s \n", libPath.c_str(), ret->verString.c_str());
+  return ret;
+}
+
+const char *spirv::getDXCVerString(const spirv::DXCContext *ctx) { return ctx ? ctx->verString : ""; }
+
+void spirv::shutdownDXC(spirv::DXCContext *ctx)
+{
+  if (ctx)
+    delete ctx;
+}
+
+CompileToSpirVResult spirv::compileHLSL_DXC(const spirv::DXCContext *dxc_ctx, dag::ConstSpan<char> source, const char *entry,
+  const char *profile, CompileFlags flags, const eastl::vector<eastl::string_view> &disabledOptimizaions)
+{
+  CompileToSpirVResult result = {};
+  DXCErrorHandler errorHandler{result};
+  IDxcCompiler *compiler = nullptr;
+
+  if (!dxc_ctx)
+  {
+    result.infoLog.emplace_back("Error: DXC failed to initialize");
     return result;
   }
-  DxcCreateInstanceProc DxcCreateInstance = (DxcCreateInstanceProc)os_dll_get_symbol(library.get(), "DxcCreateInstance");
 
-  if (!DxcCreateInstance)
-  {
-    result.infoLog.emplace_back("Error: Missing entry point DxcCreateInstance in dxcompiler lib");
-    return result;
-  }
-
-  DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&compiler));
-
+  dxc_ctx->dxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&compiler));
   if (!compiler)
   {
     result.infoLog.emplace_back("Error: unable to create compiler instance");
@@ -391,9 +480,14 @@ CompileToSpirVResult spirv::compileHLSL_DXC(dag::ConstSpan<char> source, const c
   for (int i = 0; entry[i]; ++i)
     entryBuf.push_back(entry[i]);
 
-  wchar_t targetProfile[] = L"xx_6_2";
+  bool meshShader = (flags & CompileFlags::ENABLE_MESH_SHADER) == CompileFlags::ENABLE_MESH_SHADER;
+  wchar_t targetProfile[7]{};
   targetProfile[0] = profile[0];
   targetProfile[1] = profile[1];
+  targetProfile[2] = '_';
+  targetProfile[3] = '6';
+  targetProfile[4] = '_';
+  targetProfile[5] = meshShader ? '5' : '2';
 
 #if !_TARGET_PC_WIN
 #define _MAX_ITOSTR_BASE10_COUNT 22
@@ -413,6 +507,14 @@ CompileToSpirVResult spirv::compileHLSL_DXC(dag::ConstSpan<char> source, const c
 
   std::wstring optConfig = getSpirvOptimizationConfigString(disabledOptimizaions);
 
+  // force vulkan1.0 to avoid any problems with new spir-v on old devices
+  // or vulkan1.1 to support wave intrinsics
+  const wchar_t *spirvVersion = L"-fspv-target-env=vulkan1.0";
+  if (meshShader)
+    spirvVersion = L"-fspv-target-env=vulkan1.1spirv1.4";
+  else if ((flags & CompileFlags::ENABLE_WAVE_INTRINSICS) == CompileFlags::ENABLE_WAVE_INTRINSICS)
+    spirvVersion = L"-fspv-target-env=vulkan1.1";
+
   // can't use static const here, because compiler interface does not take const pointer to const
   // wchar pointer...
   eastl::vector<LPCWSTR> argBuf = //
@@ -430,16 +532,25 @@ CompileToSpirVResult spirv::compileHLSL_DXC(dag::ConstSpan<char> source, const c
       // use slot 0 in a never used descriptor set 9 to ensure no collisions
       L"-fvk-bind-globals", L"0", L"9", optConfig.c_str(),
       // L"-Vd"
-      // force vulkan1.0 to avoid any problems with new spir-v on old devices
-      // or vulkan1.1 to support wave intrinsics
-      (flags & CompileFlags::ENABLE_WAVE_INTRINSICS) == CompileFlags::ENABLE_WAVE_INTRINSICS ? L"-fspv-target-env=vulkan1.1"
-                                                                                             : L"-fspv-target-env=vulkan1.0",
-      L"-fspv-extension=SPV_KHR_ray_tracing", L"-fspv-extension=SPV_KHR_ray_query", L"-fspv-flatten-resource-arrays"};
+      spirvVersion, L"-fspv-extension=SPV_KHR_ray_tracing", L"-fspv-extension=SPV_KHR_ray_query", L"-fspv-flatten-resource-arrays",
+      (flags & CompileFlags::ENABLE_HALFS) == CompileFlags::ENABLE_HALFS ? L"-fspv-extension=SPV_KHR_16bit_storage" : L"",
+      meshShader ? L"-fspv-extension=SPV_EXT_mesh_shader" : L""};
 
   if (bool(flags & CompileFlags::ENABLE_BINDLESS_SUPPORT))
   {
     argBuf.push_back(L"-fspv-extension=SPV_EXT_descriptor_indexing");
   }
+  if (bool(flags & CompileFlags::ENABLE_HLSL21))
+  {
+    argBuf.push_back(L"-HV 2021");
+  }
+  else
+  {
+    argBuf.push_back(L"-HV 2018");
+  }
+
+  for (const std::wstring &i : dxc_ctx->extraParams)
+    argBuf.push_back(i.c_str());
 
   WrappedBlob sourceBlob{source};
 
@@ -559,6 +670,7 @@ CompileToSpirVResult spirv::compileHLSL_DXC(dag::ConstSpan<char> source, const c
 
           result.header = compileHeader(module, flags, errorHandler);
 
+          fixDXCBugs(module, errorHandler);
           cleanupReflectionLeftouts(module, errorHandler);
           module.disableExtension(Extension::GOOGLE_hlsl_functionality1);
           module.disableExtension(Extension::GOOGLE_user_type);

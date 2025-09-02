@@ -42,8 +42,8 @@ public:
                                                                               // fixed frame for video or real fps) or adjusted value
   void renderTrans();
   int createTracer(const Point3 &start_pos, const Point3 &normalized_dir, float smoke_radius, const Color4 &smoke_color,
-    const Color4 &head_color, float time_to_live, float fade_dist, float begin_fade_time, float end_fade_time, float scroll_speed,
-    bool is_ray);
+    const Color3 &head_color, float luminosity, float burn_time, float time_to_live, float fade_dist, float begin_fade_time,
+    float end_fade_time, float scroll_speed, bool is_ray);
   int updateTracerPos(unsigned id, const Point3 &pos, const Point3 &start_pos); // we guide tracer, until it is off
   void updateTacLaserRenderSettings(const TacLaserRenderSettings &s) { tacLaserRenderSettings = s; };
   void leaveTracer(unsigned id);  // we don't auto destroy tracers, which are referenced by someone

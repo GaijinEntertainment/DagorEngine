@@ -240,11 +240,11 @@ inline void generateTiledEntitiesInsidePoly(const landclass::TiledEntities &lcd,
             e->setTm(tm);
             IColor *ecol = e->queryInterface<IColor>();
             if (ecol)
-              ecol->setColor(sep.colorRangeIdx), _skip_rnd_ivec4(seed);
+              ecol->setColor(sep.colorRangeIdx), skip_rnd_ivec4(seed);
             obj_idx++;
           }
           else
-            _rnd(seed);
+            rnd(seed);
         }
     pool.entUsed = obj_idx;
   }

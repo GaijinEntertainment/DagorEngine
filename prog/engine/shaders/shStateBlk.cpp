@@ -65,17 +65,15 @@ bool shaders_internal::reload_shaders_materials(ScriptedShadersBinDumpOwner &pre
 
   DEBUG_CP();
   // destroy shaders
-  for (int i = 0; i < prev_sh_owner.vprId.size(); i++)
-    if (prev_sh_owner.vprId[i] != BAD_VPROG)
-      d3d::delete_vertex_shader(prev_sh_owner.vprId[i]);
-  for (int i = 0; i < prev_sh_owner.fshId.size(); i++)
-    if (prev_sh_owner.fshId[i] != BAD_FSHADER)
-    {
-      if (prev_sh_owner.fshId[i] & 0x10000000)
-        d3d::delete_program(prev_sh_owner.fshId[i] & 0x0FFFFFFF);
-      else
-        d3d::delete_pixel_shader(prev_sh_owner.fshId[i]);
-    }
+  for (auto id : prev_sh_owner.vprId)
+    if (id != BAD_VPROG)
+      d3d::delete_vertex_shader(id);
+  for (auto id : prev_sh_owner.fshId)
+    if (id != BAD_FSHADER)
+      d3d::delete_pixel_shader(id);
+  for (auto id : prev_sh_owner.cshId)
+    if (id != BAD_PROGRAM)
+      d3d::delete_program(id);
 
   // copy global variables
   for (int i = 0; i < prev_sh.gvMap.size(); i++)
@@ -85,17 +83,18 @@ bool shaders_internal::reload_shaders_materials(ScriptedShadersBinDumpOwner &pre
       continue; // skip array auxiliary vars since they are not used as a real global shader vars
     int varId = VariableMap::getVariableId(name);
     const int prevGId = prev_sh.gvMap[i] >> 16;
-    auto const &vl = prev_sh.globVars;
-    switch (vl.getType(prevGId))
+    auto const &state = prev_sh_owner.globVarsState;
+    auto const &vars = prev_sh.globVars;
+    switch (vars.getType(prevGId))
     {
-      case SHVT_INT: ShaderGlobal::set_int(varId, vl.get<int>(prevGId)); break;
-      case SHVT_INT4: ShaderGlobal::set_int4(varId, vl.get<IPoint4>(prevGId)); break;
-      case SHVT_REAL: ShaderGlobal::set_real(varId, vl.get<real>(prevGId)); break;
-      case SHVT_COLOR4: ShaderGlobal::set_color4(varId, vl.get<Color4>(prevGId)); break;
-      case SHVT_TEXTURE: ShaderGlobal::set_texture(varId, vl.getTex(prevGId).texId); break;
-      case SHVT_BUFFER: ShaderGlobal::set_buffer(varId, vl.getBuf(prevGId).bufId); break;
-      case SHVT_SAMPLER: ShaderGlobal::set_sampler(varId, vl.get<d3d::SamplerHandle>(prevGId)); break;
-      case SHVT_TLAS: ShaderGlobal::set_tlas(varId, vl.get<RaytraceTopAccelerationStructure *>(prevGId)); break;
+      case SHVT_INT: ShaderGlobal::set_int(varId, state.get<int>(prevGId)); break;
+      case SHVT_INT4: ShaderGlobal::set_int4(varId, state.get<IPoint4>(prevGId)); break;
+      case SHVT_REAL: ShaderGlobal::set_real(varId, state.get<real>(prevGId)); break;
+      case SHVT_COLOR4: ShaderGlobal::set_color4(varId, state.get<Color4>(prevGId)); break;
+      case SHVT_TEXTURE: ShaderGlobal::set_texture(varId, state.get<shaders_internal::Tex>(prevGId).texId); break;
+      case SHVT_BUFFER: ShaderGlobal::set_buffer(varId, state.get<shaders_internal::Buf>(prevGId).bufId); break;
+      case SHVT_SAMPLER: ShaderGlobal::set_sampler(varId, state.get<d3d::SamplerHandle>(prevGId)); break;
+      case SHVT_TLAS: ShaderGlobal::set_tlas(varId, state.get<RaytraceTopAccelerationStructure *>(prevGId)); break;
     }
 
     // copy global intervals
@@ -158,12 +157,13 @@ bool shaders_internal::reload_shaders_materials(ScriptedShadersBinDumpOwner &pre
   for (int i = 0, e = prev_sh.gvMap.size(); i < e; i++)
   {
     const int prevGId = prev_sh.gvMap[i] >> 16;
+    auto const &state = prev_sh_owner.globVarsState;
     auto const &vl = prev_sh.globVars;
     auto type = vl.getType(prevGId);
     if (type == SHVT_TEXTURE)
-      release_managed_tex(vl.getTex(prevGId).texId);
+      release_managed_tex(state.get<shaders_internal::Tex>(prevGId).texId);
     else if (type == SHVT_BUFFER)
-      release_managed_res(vl.getBuf(prevGId).bufId);
+      release_managed_res(state.get<shaders_internal::Buf>(prevGId).bufId);
   }
 
   close_shader_block_stateblocks(false);
@@ -184,6 +184,7 @@ bool shaders_internal::reload_shaders_materials_on_driver_reset()
   // destroy shaders
   eastl::fill(shOwner.vprId.begin(), shOwner.vprId.end(), BAD_VPROG);
   eastl::fill(shOwner.fshId.begin(), shOwner.fshId.end(), BAD_FSHADER);
+  eastl::fill(shOwner.cshId.begin(), shOwner.cshId.end(), BAD_PROGRAM);
 
   auto elems = shader_mat_elems;
   for (auto e : elems)

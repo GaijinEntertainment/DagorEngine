@@ -16,14 +16,14 @@ public:
     ContainerPropertyControl(id, event_handler, parent, x, y, w, h), controlCaption(caption)
   {}
 
-  virtual int getImguiControlType() const { return (int)ControlType::TabPage; }
+  int getImguiControlType() const override { return (int)ControlType::TabPage; }
 
-  virtual unsigned getTypeMaskForSet() const override { return CONTROL_CAPTION; }
-  virtual unsigned getTypeMaskForGet() const override { return 0; }
+  unsigned getTypeMaskForSet() const override { return CONTROL_CAPTION; }
+  unsigned getTypeMaskForGet() const override { return 0; }
 
-  virtual void setCaptionValue(const char value[]) override { controlCaption = value; }
-  virtual void setEnabled(bool enabled) override { controlEnabled = enabled; }
-  virtual bool isRealContainer() override { return false; }
+  void setCaptionValue(const char value[]) override { controlCaption = value; }
+  void setEnabled(bool enabled) override { controlEnabled = enabled; }
+  bool isRealContainer() override { return false; }
 
   // There is getCaption but that returns with a new SimpleString, and there is getCaptionValue that copies to a buffer,
   // so here is a third function for the TabPanelPropertyControl to use.

@@ -6,16 +6,7 @@
 #include <ecs/core/entityManager.h>
 #include <daECS/core/entityId.h>
 
-#define VAR(a) int a##VarId = -1;
-SPLINE_GEN_VARS_LIST
-#undef VAR
-
-SplineGenGeometryRepository::SplineGenGeometryRepository()
-{
-#define VAR(a) a##VarId = get_shader_variable_id(#a);
-  SPLINE_GEN_VARS_LIST
-#undef VAR
-}
+SplineGenGeometryRepository::SplineGenGeometryRepository() {}
 
 SplineGenGeometryIb &SplineGenGeometryRepository::getOrMakeIb(uint32_t slices, uint32_t stripes)
 {
@@ -57,11 +48,16 @@ SplineGenGeometryManager &SplineGenGeometryRepository::getOrMakeManager(const ea
   eastl::string diffuseName;
   eastl::string normalName;
   eastl::string assetName;
+  eastl::string emissiveMaskName;
+  eastl::string aoTexName;
+  eastl::string shaderType;
   uint32_t assetLod;
   load_spline_gen_template_params_ecs_query(
     [&](const ecs::string &spline_gen_template__template_name, int spline_gen_template__slices, int spline_gen_template__stripes,
       const ecs::string &spline_gen_template__diffuse_name, const ecs::string &spline_gen_template__normal_name,
-      const ecs::string &spline_gen_template__asset_name, int spline_gen_template__asset_lod) {
+      const ecs::string &spline_gen_template__asset_name, const ecs::string &spline_gen_template__shader_type,
+      const ecs::string &spline_gen_template__emissive_mask_name, const ecs::string &spline_gen_template__skin_ao_tex_name,
+      int spline_gen_template__asset_lod) {
       if (spline_gen_template__template_name == template_name)
       {
         G_ASSERTF(!found, "Duplicate spline_gen_template definition for %s", template_name.c_str());
@@ -70,14 +66,17 @@ SplineGenGeometryManager &SplineGenGeometryRepository::getOrMakeManager(const ea
         stripes = spline_gen_template__stripes;
         diffuseName = spline_gen_template__diffuse_name;
         normalName = spline_gen_template__normal_name;
+        emissiveMaskName = spline_gen_template__emissive_mask_name;
+        aoTexName = spline_gen_template__skin_ao_tex_name;
         assetName = spline_gen_template__asset_name;
         assetLod = spline_gen_template__asset_lod;
+        shaderType = spline_gen_template__shader_type;
       }
     });
   G_ASSERTF(found, "spline_gen_template %s not found!", template_name.c_str());
   return *managers
             .emplace(template_name, eastl::make_unique<SplineGenGeometryManager>(template_name, slices, stripes, diffuseName,
-                                      normalName, assetName, assetLod))
+                                      normalName, emissiveMaskName, aoTexName, assetName, shaderType, assetLod))
             .first->second;
 }
 

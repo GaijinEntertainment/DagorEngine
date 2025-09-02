@@ -40,7 +40,7 @@ bool isConstDepthStencilTarget(Image *img, ImageViewState view)
   if (fbs.renderPassClass.hasRoDepth())
   {
     const RenderPassClass::FramebufferDescription::AttachmentInfo &dsai = fbs.frameBufferInfo.depthStencilAttachment;
-    G_ASSERTF(!dsai.empty(), "vulkan: empty depth attachment while it used by render pass class");
+    D3D_CONTRACT_ASSERTF(!dsai.empty(), "vulkan: empty depth attachment while it used by render pass class");
     if (dsai.img != img)
       return false;
 
@@ -146,7 +146,7 @@ void StateFieldTRegister::dumpLog(uint32_t index, const StateFieldResourceBindsS
     debug("regT %s:%u buf %p", formatShaderStage(state.stage), index, data.buf.buffer);
   else if (data.type == TRegister::TYPE_IMG)
     debug("regT %s:%u img %p", formatShaderStage(state.stage), index, data.img.ptr);
-#if D3D_HAS_RAY_TRACING
+#if VULKAN_HAS_RAYTRACING
   else if (data.type == TRegister::TYPE_AS)
     debug("regT %s:%u as %p", data.rtas);
 #endif
@@ -193,28 +193,27 @@ void StateFieldTRegister::applyTo(uint32_t index, StateFieldResourceBindsStorage
 
     sts.setTtexture(index, data.img.ptr, data.img.view, isConstDs, ivh);
   }
-#if D3D_HAS_RAY_TRACING
+#if VULKAN_HAS_RAYTRACING
   else if (data.type == TRegister::TYPE_AS)
-    sts.setTas(index, data.rtas);
+  {
+    if (!is_null(data.rtas->getHandle()))
+      sts.setTas(index, data.rtas);
+    else
+      sts.setTempty(index);
+  }
 #endif
   else
     sts.setTempty(index);
 }
 
-
 template <>
 void StateFieldSRegister::dumpLog(uint32_t index, const StateFieldResourceBindsStorage &state) const
 {
-  if (data.type == SRegister::TYPE_NULL)
-    debug("regS %s:%u empty", formatShaderStage(state.stage), index);
-  else if (data.type == SRegister::TYPE_RES)
-    debug("regS %s:%u res sampler_info %p state %llu colorHandle %u compareHandle %u", formatShaderStage(state.stage), index,
-      data.resPtr, data.resPtr->samplerInfo.state, data.resPtr->samplerInfo.colorSampler().value,
-      data.resPtr->samplerInfo.compareSampler().value);
-  else if (data.type == SRegister::TYPE_STATE)
-    debug("regS %s:%u state %llu", formatShaderStage(state.stage), index, data.state);
+  if (data.resPtr)
+    debug("regS %s:%u res sampler_info %p state %llu handle %u", formatShaderStage(state.stage), index, data.resPtr,
+      data.resPtr->samplerInfo.state, data.resPtr->samplerInfo.handle.value);
   else
-    debug("regS uknown sampler type %u", data.type);
+    debug("regS %s:%u empty", formatShaderStage(state.stage), index);
 }
 
 template <>
@@ -229,26 +228,13 @@ void StateFieldSRegister::applyTo(uint32_t index, StateFieldResourceBindsStorage
 {
   PipelineStageStateBase &sts = target.getResBinds(state.stage);
 
-  if (data.type == SRegister::TYPE_NULL)
+  if (!data.resPtr)
   {
     sts.setSempty(index);
     return;
   }
 
-  const SamplerInfo *splInfo;
-  if (data.type == SRegister::TYPE_RES)
-    splInfo = &data.resPtr->samplerInfo;
-  else
-  {
-    G_ASSERTF(data.type == SRegister::TYPE_STATE, "vulkan: unknown sampler type %u", data.type);
-    TRegister &tReg = state.tRegs.data[index].data;
-    // use cached sampler only when image is available
-    if (tReg.type == TRegister::TYPE_IMG)
-      splInfo = tReg.img.ptr->getSampler(data.state);
-    else
-      splInfo = Globals::samplers.get(data.state);
-  }
-  sts.setSSampler(index, splInfo);
+  sts.setSSampler(index, &data.resPtr->samplerInfo);
 }
 
 template <>
@@ -288,6 +274,39 @@ bool StateFieldResourceBinds::handleObjectRemoval(Buffer *object)
       ret |= true;
     }
   }
+  return ret;
+}
+
+template <>
+bool StateFieldResourceBinds::replaceResource(const Image *src, Image *dst)
+{
+  bool ret = false;
+  {
+    StateFieldTRegister *tRegs = &get<StateFieldTRegisterSet, StateFieldTRegister>();
+
+    for (uint32_t j = 0; j < spirv::T_REGISTER_INDEX_MAX; ++j)
+      if (tRegs[j].data.type == TRegister::TYPE_IMG && tRegs[j].data.img.ptr == src)
+      {
+        TRegister tReg = tRegs[j].data;
+        tReg.img.ptr = dst;
+        set<StateFieldTRegisterSet, StateFieldTRegister::Indexed>({j, tReg});
+        ret |= true;
+      }
+  }
+
+  {
+    StateFieldURegister *uRegs = &get<StateFieldURegisterSet, StateFieldURegister>();
+
+    for (uint32_t j = 0; j < spirv::U_REGISTER_INDEX_MAX; ++j)
+      if (uRegs[j].data.image == src)
+      {
+        URegister uReg = uRegs[j].data;
+        uReg.image = dst;
+        set<StateFieldURegisterSet, StateFieldURegister::Indexed>({j, uReg});
+        ret |= true;
+      }
+  }
+
   return ret;
 }
 
@@ -420,7 +439,7 @@ bool StateFieldResourceBinds::handleObjectRemoval(SamplerResource *object)
   StateFieldSRegister *sRegs = &get<StateFieldSRegisterSet, StateFieldSRegister>();
 
   for (uint32_t j = 0; j < spirv::S_REGISTER_INDEX_MAX; ++j)
-    if (sRegs[j].data.type == SRegister::TYPE_RES && sRegs[j].data.resPtr == object)
+    if (sRegs[j].data.resPtr == object)
     {
       set<StateFieldSRegisterSet, uint32_t>(j);
       ret |= true;
@@ -477,11 +496,25 @@ bool StateFieldResourceBinds::isReferenced(SamplerResource *object) const
   const StateFieldSRegister *sRegs = &getRO<StateFieldSRegisterSet, StateFieldSRegister>();
 
   for (uint32_t j = 0; j < spirv::S_REGISTER_INDEX_MAX; ++j)
-    if (sRegs[j].data.type == SRegister::TYPE_RES && sRegs[j].data.resPtr == object)
+    if (sRegs[j].data.resPtr == object)
       return true;
 
   return false;
 }
+
+#if VULKAN_HAS_RAYTRACING
+template <>
+bool StateFieldResourceBinds::isReferenced(RaytraceAccelerationStructure *object) const
+{
+  const StateFieldTRegister *tRegs = &getRO<StateFieldTRegisterSet, StateFieldTRegister>();
+
+  for (uint32_t j = 0; j < spirv::T_REGISTER_INDEX_MAX; ++j)
+    if (tRegs[j].data.type == TRegister::TYPE_AS && tRegs[j].data.rtas == object)
+      return true;
+
+  return false;
+}
+#endif
 
 template <>
 void StateFieldImmediateConst::dumpLog(const StateFieldResourceBindsStorage &state) const
@@ -492,17 +525,12 @@ void StateFieldImmediateConst::dumpLog(const StateFieldResourceBindsStorage &sta
 template <>
 void StateFieldImmediateConst::applyTo(StateFieldResourceBindsStorage &state, ExecutionState &target) const
 {
-  // TODO: reimplement with vkCmdPushConstants
-
   // don't bind buffer if disabled
   // user binding will be restored by state apply order
   if (!enabled)
     return;
 
-  ImmediateConstBuffer &icb = Backend::immediateConstBuffers[state.stage];
-  PipelineStageStateBase &sts = target.getResBinds(state.stage);
-
-  sts.setBbuffer(IMMEDAITE_CB_REGISTER_NO, icb.push(&data[0]));
+  target.getResBinds(state.stage).setImmediateConsts(&data[0]);
 }
 
 template <>
@@ -567,7 +595,7 @@ BufferRef ImmediateConstBuffer::push(const uint32_t *data)
     if (buf)
     {
       flushWrites();
-      Backend::gpuJob.get().cleanups.enqueueFromBackend<Buffer::CLEANUP_DESTROY>(*buf);
+      Backend::gpuJob.get().cleanups.enqueue(*buf);
     }
 
     buf = Buffer::create(alignedElementSize * initial_blocks, DeviceMemoryClass::DEVICE_RESIDENT_HOST_WRITE_ONLY_BUFFER, 1,
@@ -595,15 +623,18 @@ void ImmediateConstBuffer::onFlush()
 
 void ImmediateConstBuffer::shutdown()
 {
-  for (Buffer *i : ring)
+  for (Buffer *&i : ring)
   {
     if (i)
     {
       G_ASSERTF(Backend::State::pendingCleanups.removeWithReferenceCheck(i, Backend::State::pipe),
         "vulkan: immediate cb is still bound");
-      Backend::gpuJob.get().cleanups.enqueueFromBackend<Buffer::CLEANUP_DESTROY>(*i);
+      Backend::gpuJob.get().cleanups.enqueue(*i);
+      i = nullptr;
     }
   }
+  offset = 0;
+  ringIdx = 0;
 }
 
 void StateFieldResourceBindsStorage::makeDirty()
@@ -611,6 +642,7 @@ void StateFieldResourceBindsStorage::makeDirty()
   uRegs.makeDirty();
   tRegs.makeDirty();
   bRegs.makeDirty();
+  sRegs.makeDirty();
 }
 
 void StateFieldResourceBindsStorage::clearDirty()
@@ -618,6 +650,7 @@ void StateFieldResourceBindsStorage::clearDirty()
   uRegs.clearDirty();
   tRegs.clearDirty();
   bRegs.clearDirty();
+  sRegs.clearDirty();
 }
 
 // MSVC decides that zero-init ctors in union is non-trivial, making itself unhappy about any ctors
@@ -644,14 +677,14 @@ TRegister::TRegister(BaseTex *texture) : type(TYPE_NULL) //-V1077
   if (!texture)
     return;
 
-  img.ptr = texture->getDeviceImage();
+  img.ptr = texture->image;
   img.view = texture->getViewInfo();
 
-  G_ASSERTF(img.ptr, "vulkan: trying to bind texture %p:%s without underlying image", texture, texture->getResName());
+  D3D_CONTRACT_ASSERTF(img.ptr, "vulkan: trying to bind texture %p:%s without underlying image", texture, texture->getName());
   type = TYPE_IMG;
 }
 
-#if D3D_HAS_RAY_TRACING
+#if VULKAN_HAS_RAYTRACING
 TRegister::TRegister(RaytraceAccelerationStructure *in_as) : type(TYPE_NULL) //-V730
 {
   if (!in_as)
@@ -672,7 +705,7 @@ URegister::URegister(BaseTexture *tex, uint32_t face, uint32_t mip_level, bool a
   BaseTex *texture = cast_to_texture_base(tex);
   if (texture)
   {
-    image = texture->getDeviceImage();
+    image = texture->image;
     imageView = texture->getViewInfoUAV(mip_level, face, as_uint);
   }
 }
@@ -698,7 +731,7 @@ URegister::URegister(Sbuffer *sb)
 //   data.buffer = new_buf;
 //   data.image = nullptr;
 //   data.sampler = nullptr;
-// #if D3D_HAS_RAY_TRACING
+// #if VULKAN_HAS_RAYTRACING
 //   data.as = nullptr;
 // #endif
 // }

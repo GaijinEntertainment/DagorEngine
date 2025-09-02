@@ -17,14 +17,14 @@ class VirtualInvalidEntity : public IObjEntity
 public:
   VirtualInvalidEntity() : IObjEntity(-1) {}
 
-  virtual void setTm(const TMatrix &_tm) {}
-  virtual void getTm(TMatrix &_tm) const { _tm = TMatrix::IDENT; }
-  virtual void *queryInterfacePtr(unsigned huid) { return NULL; }
-  virtual void destroy() {}
+  void setTm(const TMatrix &_tm) override {}
+  void getTm(TMatrix &_tm) const override { _tm = TMatrix::IDENT; }
+  void *queryInterfacePtr(unsigned huid) override { return NULL; }
+  void destroy() override {}
 
-  virtual BSphere3 getBsph() const { return BSphere3(Point3(0, 0, 0), 1.0); }
-  virtual BBox3 getBbox() const { return BBox3(Point3(-0.5, -0.5, -0.5), Point3(0.5, 0.5, 0.5)); }
-  virtual const char *getObjAssetName() const { return NULL; }
+  BSphere3 getBsph() const override { return BSphere3(Point3(0, 0, 0), 1.0); }
+  BBox3 getBbox() const override { return BBox3(Point3(-0.5, -0.5, -0.5), Point3(0.5, 0.5, 0.5)); }
+  const char *getObjAssetName() const override { return NULL; }
 };
 
 class InvalidEntity : public VirtualInvalidEntity
@@ -32,14 +32,13 @@ class InvalidEntity : public VirtualInvalidEntity
 public:
   InvalidEntity() : idx(MAX_ENTITIES) {}
 
-  virtual void setTm(const TMatrix &tm_) { tm = tm_; }
-  virtual void getTm(TMatrix &tm_) const { tm_ = tm; }
-  virtual void destroy() { pool->delEntity(this); }
+  void setTm(const TMatrix &tm_) override { tm = tm_; }
+  void getTm(TMatrix &tm_) const override { tm_ = tm; }
+  void destroy() override { pool->delEntity(this); }
 
 public:
   enum
   {
-    STEP = 1024,
     MAX_ENTITIES = 0x7FFFFFFF
   };
 
@@ -58,32 +57,32 @@ public:
     setServiceVisible(true);
     InvalidEntity::pool = &pool;
   }
-  ~InvalidEntityManagementService()
+  ~InvalidEntityManagementService() override
   {
     pool.freeUnusedEntities();
     InvalidEntity::pool = NULL;
   }
 
   // IEditorService interface
-  virtual const char *getServiceName() const { return "_invalidEntMgr"; }
-  virtual const char *getServiceFriendlyName() const { return "(srv) Invalid entities"; }
+  const char *getServiceName() const override { return "_invalidEntMgr"; }
+  const char *getServiceFriendlyName() const override { return "(srv) Invalid entities"; }
 
-  virtual void setServiceVisible(bool vis) { IObjEntityFilter::setShowInvalidAsset(vis); }
-  virtual bool getServiceVisible() const { return IObjEntityFilter::getShowInvalidAsset(); }
+  void setServiceVisible(bool vis) override { IObjEntityFilter::setShowInvalidAsset(vis); }
+  bool getServiceVisible() const override { return IObjEntityFilter::getShowInvalidAsset(); }
 
-  virtual void actService(float) {}
-  virtual void beforeRenderService() {}
+  void actService(float) override {}
+  void beforeRenderService() override {}
 
-  virtual void renderService()
+  void renderService() override
   {
     int stType = IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_RENDER);
     uint64_t lh_mask = IObjEntityFilter::getLayerHiddenMask();
     ::render_invalid_entities(pool.getEntities(), stType);
   }
 
-  virtual void renderTransService() {}
-  virtual void onBeforeReset3dDevice() {}
-  virtual bool catchEvent(unsigned event_huid, void *userData)
+  void renderTransService() override {}
+  void onBeforeReset3dDevice() override {}
+  bool catchEvent(unsigned event_huid, void *userData) override
   {
     if (event_huid == HUID_DumpEntityStat)
     {
@@ -92,16 +91,16 @@ public:
     return false;
   }
 
-  virtual void *queryInterfacePtr(unsigned huid)
+  void *queryInterfacePtr(unsigned huid) override
   {
     RETURN_INTERFACE(huid, IObjEntityMgr);
     return NULL;
   }
 
   // IObjEntityMgr interface
-  virtual bool canSupportEntityClass(int entity_class) const { return entity_class == -1; }
+  bool canSupportEntityClass(int entity_class) const override { return entity_class == -1; }
 
-  virtual IObjEntity *createEntity(const DagorAsset &, bool virtual_ent)
+  IObjEntity *createEntity(const DagorAsset &, bool virtual_ent) override
   {
     if (virtual_ent)
       return &virtualEnt;
@@ -115,7 +114,7 @@ public:
     return ent;
   }
 
-  virtual IObjEntity *cloneEntity(IObjEntity *origin)
+  IObjEntity *cloneEntity(IObjEntity *origin) override
   {
     InvalidEntity *o = reinterpret_cast<InvalidEntity *>(origin);
     InvalidEntity *ent = pool.allocEntity();

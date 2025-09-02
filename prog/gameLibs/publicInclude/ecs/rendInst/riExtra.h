@@ -12,13 +12,17 @@
 #include <math/dag_bounds3.h>
 #include <math/dag_TMatrix.h>
 #include <rendInst/constants.h>
+#include <rendInst/rendInstDesc.h>
 #include <3d/dag_resPtr.h>
 
 struct RiExtraComponent
 {
   rendinst::riex_handle_t handle = rendinst::RIEX_HANDLE_NULL;
   static void requestResources(const char *, const ecs::resource_request_cb_t &res_cb);
-  RiExtraComponent(const ecs::EntityManager &mgr, ecs::EntityId eid);
+  RiExtraComponent(ecs::EntityManager &mgr, ecs::EntityId eid);
+
+  bool valid() const { return handle != rendinst::RIEX_HANDLE_NULL; }
+  void replaceRiHandle(rendinst::riex_handle_t new_handle);
 };
 
 ECS_DECLARE_RELOCATABLE_TYPE(RiExtraComponent);
@@ -26,11 +30,15 @@ ECS_BROADCAST_EVENT_TYPE(EventRendinstsLoaded);
 ECS_BROADCAST_EVENT_TYPE(EventRendinstInitForLevel, rendinst::riex_handle_t /*riex_handle*/);
 ECS_BROADCAST_EVENT_TYPE(EventOnRendinstDamage, rendinst::riex_handle_t, TMatrix, BBox3);
 ECS_UNICAST_EVENT_TYPE(EventRendinstSpawned);
-ECS_UNICAST_EVENT_TYPE(CmdDestroyRendinst, int32_t, bool);                            /* user_data, destroys_entity */
-ECS_UNICAST_EVENT_TYPE(EventOnRendinstDestruction, int32_t);                          /* user_data */
-ECS_UNICAST_EVENT_TYPE(EventRendinstImpulse, float, Point3, Point3, Point3, int32_t); /* impulse, impulse_dir, impulse_pos,
-                                                                                         collision_normal, user_data */
+ECS_UNICAST_EVENT_TYPE(EventOnRendinstMovement, rendinst::riex_handle_t, TMatrix, TMatrix); /* handle, original tm, new tm */
+ECS_UNICAST_EVENT_TYPE(CmdDestroyRendinst, int32_t, bool);                                  /* user_data, destroys_entity */
+ECS_UNICAST_EVENT_TYPE(EventOnRendinstDestruction, int32_t);                                /* user_data */
+ECS_UNICAST_EVENT_TYPE(EventRendinstImpulse, float, Point3, Point3, Point3, int32_t);       /* impulse, impulse_dir, impulse_pos,
+                                                                                               collision_normal, user_data */
+ECS_UNICAST_EVENT_TYPE(EventRiExtraHandleReplaced, rendinst::riex_handle_t, rendinst::riex_handle_t, bool) /* prev handle, new handle,
+                                                                                                              is restore */
 
+ECS_DECLARE_RELOCATABLE_TYPE(rendinst::RendInstDesc);
 
 ecs::EntityId find_ri_extra_eid(rendinst::riex_handle_t handle);
 void request_ri_resources(const ecs::resource_request_cb_t &res_cb, const char *riResName);

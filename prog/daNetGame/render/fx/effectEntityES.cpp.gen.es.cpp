@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "effectEntityES.cpp.inl"
 ECS_DEF_PULL_VAR(effectEntity);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc effect_es_comps[] =
 {
@@ -8,10 +10,9 @@ static constexpr ecs::ComponentDesc effect_es_comps[] =
   {ECS_HASH("effect"), ecs::ComponentTypeInfo<TheEffect>()},
 //start of 1 ro components at [1]
   {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()},
-//start of 4 no components at [2]
+//start of 3 no components at [2]
   {ECS_HASH("effect_animation__transform"), ecs::ComponentTypeInfo<TMatrix>()},
   {ECS_HASH("attachedEffect"), ecs::ComponentTypeInfo<ecs::Tag>()},
-  {ECS_HASH("attachedNoScaleEffect"), ecs::ComponentTypeInfo<ecs::Tag>()},
   {ECS_HASH("staticEffect"), ecs::ComponentTypeInfo<ecs::Tag>()}
 };
 static void effect_es_all(const ecs::UpdateStageInfo &__restrict info, const ecs::QueryView & __restrict components)
@@ -32,7 +33,7 @@ static ecs::EntitySystemDesc effect_es_es_desc
   make_span(effect_es_comps+0, 1)/*rw*/,
   make_span(effect_es_comps+1, 1)/*ro*/,
   empty_span(),
-  make_span(effect_es_comps+2, 4)/*no*/,
+  make_span(effect_es_comps+2, 3)/*no*/,
   ecs::EventSetBuilder<>::build(),
   (1<<ecs::UpdateStageInfoAct::STAGE)
 ,nullptr,nullptr,"*");
@@ -45,10 +46,9 @@ static constexpr ecs::ComponentDesc effect_debug_es_comps[] =
 //start of 2 rq components at [2]
   {ECS_HASH("daeditor__selected"), ecs::ComponentTypeInfo<ecs::Tag>()},
   {ECS_HASH("staticEffect"), ecs::ComponentTypeInfo<ecs::Tag>()},
-//start of 3 no components at [4]
+//start of 2 no components at [4]
   {ECS_HASH("effect_animation__transform"), ecs::ComponentTypeInfo<TMatrix>()},
-  {ECS_HASH("attachedEffect"), ecs::ComponentTypeInfo<ecs::Tag>()},
-  {ECS_HASH("attachedNoScaleEffect"), ecs::ComponentTypeInfo<ecs::Tag>()}
+  {ECS_HASH("attachedEffect"), ecs::ComponentTypeInfo<ecs::Tag>()}
 };
 static void effect_debug_es_all(const ecs::UpdateStageInfo &__restrict info, const ecs::QueryView & __restrict components)
 {
@@ -68,7 +68,7 @@ static ecs::EntitySystemDesc effect_debug_es_es_desc
   make_span(effect_debug_es_comps+0, 1)/*rw*/,
   make_span(effect_debug_es_comps+1, 1)/*ro*/,
   make_span(effect_debug_es_comps+2, 2)/*rq*/,
-  make_span(effect_debug_es_comps+4, 3)/*no*/,
+  make_span(effect_debug_es_comps+4, 2)/*no*/,
   ecs::EventSetBuilder<>::build(),
   (1<<ecs::UpdateStageInfoAct::STAGE)
 ,nullptr,nullptr,"*");
@@ -105,39 +105,6 @@ static ecs::EntitySystemDesc effect_attached_es_es_desc
   ecs::EventSetBuilder<>::build(),
   (1<<ecs::UpdateStageInfoAct::STAGE)
 ,nullptr,nullptr,"*");
-static constexpr ecs::ComponentDesc effect_attached_no_scale_es_comps[] =
-{
-//start of 1 rw components at [0]
-  {ECS_HASH("effect"), ecs::ComponentTypeInfo<TheEffect>()},
-//start of 1 ro components at [1]
-  {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()},
-//start of 1 rq components at [2]
-  {ECS_HASH("attachedNoScaleEffect"), ecs::ComponentTypeInfo<ecs::Tag>()},
-//start of 1 no components at [3]
-  {ECS_HASH("effect_animation__transform"), ecs::ComponentTypeInfo<TMatrix>()}
-};
-static void effect_attached_no_scale_es_all(const ecs::UpdateStageInfo &__restrict info, const ecs::QueryView & __restrict components)
-{
-  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE);
-  do
-    effect_attached_no_scale_es(*info.cast<ecs::UpdateStageInfoAct>()
-    , ECS_RW_COMP(effect_attached_no_scale_es_comps, "effect", TheEffect)
-    , ECS_RO_COMP(effect_attached_no_scale_es_comps, "transform", TMatrix)
-    );
-  while (++comp != compE);
-}
-static ecs::EntitySystemDesc effect_attached_no_scale_es_es_desc
-(
-  "effect_attached_no_scale_es",
-  "prog/daNetGame/render/fx/effectEntityES.cpp.inl",
-  ecs::EntitySystemOps(effect_attached_no_scale_es_all),
-  make_span(effect_attached_no_scale_es_comps+0, 1)/*rw*/,
-  make_span(effect_attached_no_scale_es_comps+1, 1)/*ro*/,
-  make_span(effect_attached_no_scale_es_comps+2, 1)/*rq*/,
-  make_span(effect_attached_no_scale_es_comps+3, 1)/*no*/,
-  ecs::EventSetBuilder<>::build(),
-  (1<<ecs::UpdateStageInfoAct::STAGE)
-,nullptr,nullptr,nullptr,"effect_attached_es");
 static constexpr ecs::ComponentDesc effect_anim_es_comps[] =
 {
 //start of 1 rw components at [0]
@@ -201,96 +168,6 @@ static ecs::EntitySystemDesc effect_attached_anim_es_es_desc
   ecs::EventSetBuilder<>::build(),
   (1<<ecs::UpdateStageInfoAct::STAGE)
 ,nullptr,nullptr,nullptr,"effect_attached_es");
-static constexpr ecs::ComponentDesc effect_attached_no_scale_anim_es_comps[] =
-{
-//start of 1 rw components at [0]
-  {ECS_HASH("effect"), ecs::ComponentTypeInfo<TheEffect>()},
-//start of 1 ro components at [1]
-  {ECS_HASH("effect_animation__transform"), ecs::ComponentTypeInfo<TMatrix>()},
-//start of 1 rq components at [2]
-  {ECS_HASH("attachedNoScaleEffect"), ecs::ComponentTypeInfo<ecs::Tag>()}
-};
-static void effect_attached_no_scale_anim_es_all(const ecs::UpdateStageInfo &__restrict info, const ecs::QueryView & __restrict components)
-{
-  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE);
-  do
-    effect_attached_no_scale_anim_es(*info.cast<ecs::UpdateStageInfoAct>()
-    , ECS_RW_COMP(effect_attached_no_scale_anim_es_comps, "effect", TheEffect)
-    , ECS_RO_COMP(effect_attached_no_scale_anim_es_comps, "effect_animation__transform", TMatrix)
-    );
-  while (++comp != compE);
-}
-static ecs::EntitySystemDesc effect_attached_no_scale_anim_es_es_desc
-(
-  "effect_attached_no_scale_anim_es",
-  "prog/daNetGame/render/fx/effectEntityES.cpp.inl",
-  ecs::EntitySystemOps(effect_attached_no_scale_anim_es_all),
-  make_span(effect_attached_no_scale_anim_es_comps+0, 1)/*rw*/,
-  make_span(effect_attached_no_scale_anim_es_comps+1, 1)/*ro*/,
-  make_span(effect_attached_no_scale_anim_es_comps+2, 1)/*rq*/,
-  empty_span(),
-  ecs::EventSetBuilder<>::build(),
-  (1<<ecs::UpdateStageInfoAct::STAGE)
-,nullptr,nullptr,nullptr,"effect_attached_es");
-static constexpr ecs::ComponentDesc effect_projectile_waiter_es_comps[] =
-{
-//start of 3 ro components at [0]
-  {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
-  {ECS_HASH("effect__templateAfterSuccessWait"), ecs::ComponentTypeInfo<ecs::string>()},
-  {ECS_HASH("projectile__visualPos"), ecs::ComponentTypeInfo<Point3>()}
-};
-static void effect_projectile_waiter_es_all(const ecs::UpdateStageInfo &__restrict info, const ecs::QueryView & __restrict components)
-{
-  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE);
-  do
-    effect_projectile_waiter_es(*info.cast<ecs::UpdateStageInfoAct>()
-    , ECS_RO_COMP(effect_projectile_waiter_es_comps, "eid", ecs::EntityId)
-    , ECS_RO_COMP(effect_projectile_waiter_es_comps, "effect__templateAfterSuccessWait", ecs::string)
-    , ECS_RO_COMP(effect_projectile_waiter_es_comps, "projectile__visualPos", Point3)
-    );
-  while (++comp != compE);
-}
-static ecs::EntitySystemDesc effect_projectile_waiter_es_es_desc
-(
-  "effect_projectile_waiter_es",
-  "prog/daNetGame/render/fx/effectEntityES.cpp.inl",
-  ecs::EntitySystemOps(effect_projectile_waiter_es_all),
-  empty_span(),
-  make_span(effect_projectile_waiter_es_comps+0, 3)/*ro*/,
-  empty_span(),
-  empty_span(),
-  ecs::EventSetBuilder<>::build(),
-  (1<<ecs::UpdateStageInfoAct::STAGE)
-,nullptr,nullptr,nullptr,"update_projectile_es");
-static constexpr ecs::ComponentDesc effect_projectile_es_comps[] =
-{
-//start of 1 rw components at [0]
-  {ECS_HASH("effect"), ecs::ComponentTypeInfo<TheEffect>()},
-//start of 1 ro components at [1]
-  {ECS_HASH("projectile__visualPos"), ecs::ComponentTypeInfo<Point3>()}
-};
-static void effect_projectile_es_all(const ecs::UpdateStageInfo &__restrict info, const ecs::QueryView & __restrict components)
-{
-  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE);
-  do
-    effect_projectile_es(*info.cast<ecs::UpdateStageInfoAct>()
-    , ECS_RW_COMP(effect_projectile_es_comps, "effect", TheEffect)
-    , ECS_RO_COMP(effect_projectile_es_comps, "projectile__visualPos", Point3)
-    );
-  while (++comp != compE);
-}
-static ecs::EntitySystemDesc effect_projectile_es_es_desc
-(
-  "effect_projectile_es",
-  "prog/daNetGame/render/fx/effectEntityES.cpp.inl",
-  ecs::EntitySystemOps(effect_projectile_es_all),
-  make_span(effect_projectile_es_comps+0, 1)/*rw*/,
-  make_span(effect_projectile_es_comps+1, 1)/*ro*/,
-  empty_span(),
-  empty_span(),
-  ecs::EventSetBuilder<>::build(),
-  (1<<ecs::UpdateStageInfoAct::STAGE)
-,nullptr,nullptr,nullptr,"effect_projectile_waiter_es");
 static constexpr ecs::ComponentDesc bound_camera_effect_es_comps[] =
 {
 //start of 4 rw components at [0]
@@ -298,9 +175,10 @@ static constexpr ecs::ComponentDesc bound_camera_effect_es_comps[] =
   {ECS_HASH("camera_prev_pos"), ecs::ComponentTypeInfo<Point3>()},
   {ECS_HASH("camera_prev_vel"), ecs::ComponentTypeInfo<Point3>()},
   {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()},
-//start of 2 ro components at [4]
+//start of 3 ro components at [4]
   {ECS_HASH("effect__smooth_coef"), ecs::ComponentTypeInfo<float>()},
-  {ECS_HASH("effect__bias_coef"), ecs::ComponentTypeInfo<float>()}
+  {ECS_HASH("effect__bias_coef"), ecs::ComponentTypeInfo<float>()},
+  {ECS_HASH("effect__use_deprecated_bound_camera_logic"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL}
 };
 static void bound_camera_effect_es_all(const ecs::UpdateStageInfo &__restrict info, const ecs::QueryView & __restrict components)
 {
@@ -313,6 +191,7 @@ static void bound_camera_effect_es_all(const ecs::UpdateStageInfo &__restrict in
     , ECS_RW_COMP(bound_camera_effect_es_comps, "transform", TMatrix)
     , ECS_RO_COMP(bound_camera_effect_es_comps, "effect__smooth_coef", float)
     , ECS_RO_COMP(bound_camera_effect_es_comps, "effect__bias_coef", float)
+    , ECS_RO_COMP_OR(bound_camera_effect_es_comps, "effect__use_deprecated_bound_camera_logic", bool(true))
     );
   while (++comp != compE);
 }
@@ -322,7 +201,7 @@ static ecs::EntitySystemDesc bound_camera_effect_es_es_desc
   "prog/daNetGame/render/fx/effectEntityES.cpp.inl",
   ecs::EntitySystemOps(bound_camera_effect_es_all),
   make_span(bound_camera_effect_es_comps+0, 4)/*rw*/,
-  make_span(bound_camera_effect_es_comps+4, 2)/*ro*/,
+  make_span(bound_camera_effect_es_comps+4, 3)/*ro*/,
   empty_span(),
   empty_span(),
   ecs::EventSetBuilder<>::build(),
@@ -383,6 +262,34 @@ static ecs::EntitySystemDesc pause_effects_es_es_desc
   ecs::EventSetBuilder<>::build(),
   (1<<ecs::UpdateStageInfoAct::STAGE)
 ,"render",nullptr,nullptr,"after_camera_sync");
+static constexpr ecs::ComponentDesc fx_magnification_es_comps[] =
+{
+//start of 2 ro components at [0]
+  {ECS_HASH("camera__totalMagnification"), ecs::ComponentTypeInfo<float>()},
+  {ECS_HASH("camera__active"), ecs::ComponentTypeInfo<bool>()}
+};
+static void fx_magnification_es_all(const ecs::UpdateStageInfo &__restrict info, const ecs::QueryView & __restrict components)
+{
+  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE);
+  do
+    fx_magnification_es(*info.cast<ecs::UpdateStageInfoAct>()
+    , ECS_RO_COMP(fx_magnification_es_comps, "camera__totalMagnification", float)
+    , ECS_RO_COMP(fx_magnification_es_comps, "camera__active", bool)
+    );
+  while (++comp != compE);
+}
+static ecs::EntitySystemDesc fx_magnification_es_es_desc
+(
+  "fx_magnification_es",
+  "prog/daNetGame/render/fx/effectEntityES.cpp.inl",
+  ecs::EntitySystemOps(fx_magnification_es_all),
+  empty_span(),
+  make_span(fx_magnification_es_comps+0, 2)/*ro*/,
+  empty_span(),
+  empty_span(),
+  ecs::EventSetBuilder<>::build(),
+  (1<<ecs::UpdateStageInfoAct::STAGE)
+,"render",nullptr,"*");
 static constexpr ecs::ComponentDesc alwasy_in_viewport_effects_es_comps[] =
 {
 //start of 1 rw components at [0]
@@ -469,6 +376,34 @@ static ecs::EntitySystemDesc effect_velocity_es_event_handler_es_desc
   ecs::EventSetBuilder<>::build(),
   0
 ,nullptr,"effect__velocity");
+static constexpr ecs::ComponentDesc effect_fake_brightness_es_event_handler_comps[] =
+{
+//start of 1 rw components at [0]
+  {ECS_HASH("effect"), ecs::ComponentTypeInfo<TheEffect>()},
+//start of 1 ro components at [1]
+  {ECS_HASH("effect__background_pos"), ecs::ComponentTypeInfo<Point3>()}
+};
+static void effect_fake_brightness_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
+    effect_fake_brightness_es_event_handler(evt
+        , ECS_RW_COMP(effect_fake_brightness_es_event_handler_comps, "effect", TheEffect)
+    , ECS_RO_COMP(effect_fake_brightness_es_event_handler_comps, "effect__background_pos", Point3)
+    );
+  while (++comp != compE);
+}
+static ecs::EntitySystemDesc effect_fake_brightness_es_event_handler_es_desc
+(
+  "effect_fake_brightness_es",
+  "prog/daNetGame/render/fx/effectEntityES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, effect_fake_brightness_es_event_handler_all_events),
+  make_span(effect_fake_brightness_es_event_handler_comps+0, 1)/*rw*/,
+  make_span(effect_fake_brightness_es_event_handler_comps+1, 1)/*ro*/,
+  empty_span(),
+  empty_span(),
+  ecs::EventSetBuilder<>::build(),
+  0
+,nullptr,"effect__background_pos");
 static constexpr ecs::ComponentDesc effect_velocity_scale_es_event_handler_comps[] =
 {
 //start of 1 rw components at [0]
@@ -553,34 +488,6 @@ static ecs::EntitySystemDesc effect_colorMult_es_event_handler_es_desc
   ecs::EventSetBuilder<>::build(),
   0
 ,nullptr,"effect__colorMult");
-static constexpr ecs::ComponentDesc effect_sound_enabled_es_event_handler_comps[] =
-{
-//start of 1 rw components at [0]
-  {ECS_HASH("effect"), ecs::ComponentTypeInfo<TheEffect>()},
-//start of 1 ro components at [1]
-  {ECS_HASH("sound_control__shouldPlay"), ecs::ComponentTypeInfo<bool>()}
-};
-static void effect_sound_enabled_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
-{
-  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
-    effect_sound_enabled_es_event_handler(evt
-        , ECS_RW_COMP(effect_sound_enabled_es_event_handler_comps, "effect", TheEffect)
-    , ECS_RO_COMP(effect_sound_enabled_es_event_handler_comps, "sound_control__shouldPlay", bool)
-    );
-  while (++comp != compE);
-}
-static ecs::EntitySystemDesc effect_sound_enabled_es_event_handler_es_desc
-(
-  "effect_sound_enabled_es",
-  "prog/daNetGame/render/fx/effectEntityES.cpp.inl",
-  ecs::EntitySystemOps(nullptr, effect_sound_enabled_es_event_handler_all_events),
-  make_span(effect_sound_enabled_es_event_handler_comps+0, 1)/*rw*/,
-  make_span(effect_sound_enabled_es_event_handler_comps+1, 1)/*ro*/,
-  empty_span(),
-  empty_span(),
-  ecs::EventSetBuilder<>::build(),
-  0
-,nullptr,"sound_control__shouldPlay");
 static constexpr ecs::ComponentDesc effect_spawnrate_es_event_handler_comps[] =
 {
 //start of 1 rw components at [0]
@@ -676,14 +583,45 @@ static ecs::EntitySystemDesc biome_query_init_es_es_desc
                        ecs::EventComponentsAppear>::build(),
   0
 ,"render");
+static constexpr ecs::ComponentDesc biome_query_calculate_replacement_id_es_comps[] =
+{
+//start of 1 rw components at [0]
+  {ECS_HASH("biome_query__biomeReplaceIdList"), ecs::ComponentTypeInfo<ecs::IntList>()},
+//start of 1 ro components at [1]
+  {ECS_HASH("biome_query__biomeReplaceNameList"), ecs::ComponentTypeInfo<ecs::StringList>()}
+};
+static void biome_query_calculate_replacement_id_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
+    biome_query_calculate_replacement_id_es(evt
+        , ECS_RO_COMP(biome_query_calculate_replacement_id_es_comps, "biome_query__biomeReplaceNameList", ecs::StringList)
+    , ECS_RW_COMP(biome_query_calculate_replacement_id_es_comps, "biome_query__biomeReplaceIdList", ecs::IntList)
+    );
+  while (++comp != compE);
+}
+static ecs::EntitySystemDesc biome_query_calculate_replacement_id_es_es_desc
+(
+  "biome_query_calculate_replacement_id_es",
+  "prog/daNetGame/render/fx/effectEntityES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, biome_query_calculate_replacement_id_es_all_events),
+  make_span(biome_query_calculate_replacement_id_es_comps+0, 1)/*rw*/,
+  make_span(biome_query_calculate_replacement_id_es_comps+1, 1)/*ro*/,
+  empty_span(),
+  empty_span(),
+  ecs::EventSetBuilder<OnLevelLoaded,
+                       ecs::EventEntityCreated,
+                       ecs::EventComponentsAppear>::build(),
+  0
+,"render");
 static constexpr ecs::ComponentDesc create_fx_based_on_biome_es_comps[] =
 {
-//start of 7 ro components at [0]
+//start of 1 rw components at [0]
+  {ECS_HASH("biome_query__color"), ecs::ComponentTypeInfo<Point4>()},
+//start of 6 ro components at [1]
   {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
   {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()},
   {ECS_HASH("biome_query__state"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("biome_query__groupId"), ecs::ComponentTypeInfo<int>()},
-  {ECS_HASH("biome_query__color"), ecs::ComponentTypeInfo<Point4>()},
   {ECS_HASH("hit_fx_name"), ecs::ComponentTypeInfo<ecs::string>()},
   {ECS_HASH("biome_query__desiredBiomeName"), ecs::ComponentTypeInfo<ecs::string>(), ecs::CDF_OPTIONAL}
 };
@@ -695,7 +633,7 @@ static void create_fx_based_on_biome_es_all_events(const ecs::Event &__restrict 
     , ECS_RO_COMP(create_fx_based_on_biome_es_comps, "transform", TMatrix)
     , ECS_RO_COMP(create_fx_based_on_biome_es_comps, "biome_query__state", int)
     , ECS_RO_COMP(create_fx_based_on_biome_es_comps, "biome_query__groupId", int)
-    , ECS_RO_COMP(create_fx_based_on_biome_es_comps, "biome_query__color", Point4)
+    , ECS_RW_COMP(create_fx_based_on_biome_es_comps, "biome_query__color", Point4)
     , ECS_RO_COMP(create_fx_based_on_biome_es_comps, "hit_fx_name", ecs::string)
     , ECS_RO_COMP_OR(create_fx_based_on_biome_es_comps, "biome_query__desiredBiomeName", ecs::string(""))
     );
@@ -706,8 +644,8 @@ static ecs::EntitySystemDesc create_fx_based_on_biome_es_es_desc
   "create_fx_based_on_biome_es",
   "prog/daNetGame/render/fx/effectEntityES.cpp.inl",
   ecs::EntitySystemOps(nullptr, create_fx_based_on_biome_es_all_events),
-  empty_span(),
-  make_span(create_fx_based_on_biome_es_comps+0, 7)/*ro*/,
+  make_span(create_fx_based_on_biome_es_comps+0, 1)/*rw*/,
+  make_span(create_fx_based_on_biome_es_comps+1, 6)/*ro*/,
   empty_span(),
   empty_span(),
   ecs::EventSetBuilder<>::build(),
@@ -746,6 +684,26 @@ static ecs::EntitySystemDesc paint_hit_fx_es_es_desc
                        ecs::EventComponentsAppear>::build(),
   0
 ,"render");
+//static constexpr ecs::ComponentDesc enable_fx_imm_mode_es_comps[] ={};
+static void enable_fx_imm_mode_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  G_UNUSED(components);
+  G_FAST_ASSERT(evt.is<ecs::EventEntityManagerBeforeClear>());
+  enable_fx_imm_mode_es(static_cast<const ecs::EventEntityManagerBeforeClear&>(evt)
+        );
+}
+static ecs::EntitySystemDesc enable_fx_imm_mode_es_es_desc
+(
+  "enable_fx_imm_mode_es",
+  "prog/daNetGame/render/fx/effectEntityES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, enable_fx_imm_mode_es_all_events),
+  empty_span(),
+  empty_span(),
+  empty_span(),
+  empty_span(),
+  ecs::EventSetBuilder<ecs::EventEntityManagerBeforeClear>::build(),
+  0
+,"render");
 static constexpr ecs::ComponentDesc destroy_effects_es_comps[] =
 {
 //start of 1 rw components at [0]
@@ -753,8 +711,9 @@ static constexpr ecs::ComponentDesc destroy_effects_es_comps[] =
 };
 static void destroy_effects_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
+  G_FAST_ASSERT(evt.is<ecs::EventEntityManagerBeforeClear>());
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
-    destroy_effects_es(evt
+    destroy_effects_es(static_cast<const ecs::EventEntityManagerBeforeClear&>(evt)
         , ECS_RW_COMP(destroy_effects_es_comps, "effect", TheEffect)
     );
   while (++comp != compE);
@@ -770,7 +729,7 @@ static ecs::EntitySystemDesc destroy_effects_es_es_desc
   empty_span(),
   ecs::EventSetBuilder<ecs::EventEntityManagerBeforeClear>::build(),
   0
-,"render");
+,"render",nullptr,nullptr,"enable_fx_imm_mode_es");
 static constexpr ecs::ComponentDesc validate_emit_range_limit_es_comps[] =
 {
 //start of 1 ro components at [0]
@@ -894,6 +853,36 @@ static ecs::EntitySystemDesc effect_manager_settings_es_es_desc
   ecs::EventSetBuilder<OnRenderSettingsReady>::build(),
   0
 ,"render","render_settings__effectsShadows,render_settings__effects__max_active_shadows,render_settings__shadowsQuality",nullptr,"init_shadows_es");
+static constexpr ecs::ComponentDesc get_replacement_color_ecs_query_comps[] =
+{
+//start of 2 ro components at [0]
+  {ECS_HASH("biome_query__biomeReplaceIdList"), ecs::ComponentTypeInfo<ecs::IntList>()},
+  {ECS_HASH("biome_query__mudBiomeColor"), ecs::ComponentTypeInfo<Point4>()}
+};
+static ecs::CompileTimeQueryDesc get_replacement_color_ecs_query_desc
+(
+  "get_replacement_color_ecs_query",
+  empty_span(),
+  make_span(get_replacement_color_ecs_query_comps+0, 2)/*ro*/,
+  empty_span(),
+  empty_span());
+template<typename Callable>
+inline void get_replacement_color_ecs_query(Callable function)
+{
+  perform_query(g_entity_mgr, get_replacement_color_ecs_query_desc.getHandle(),
+    [&function](const ecs::QueryView& __restrict components)
+    {
+        auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
+        {
+          function(
+              ECS_RO_COMP(get_replacement_color_ecs_query_comps, "biome_query__biomeReplaceIdList", ecs::IntList)
+            , ECS_RO_COMP(get_replacement_color_ecs_query_comps, "biome_query__mudBiomeColor", Point4)
+            );
+
+        }while (++comp != compE);
+    }
+  );
+}
 static constexpr ecs::ComponentDesc pause_effects_ecs_query_comps[] =
 {
 //start of 2 rw components at [0]

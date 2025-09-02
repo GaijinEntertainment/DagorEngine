@@ -21,7 +21,7 @@ return function() {
       @(){
         watch = axis
         rendObj = ROBJ_TEXT
-        text = axis.value
+        text = axis.get()
       }
     ]
   }

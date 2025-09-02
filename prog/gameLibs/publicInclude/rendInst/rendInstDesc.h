@@ -5,7 +5,6 @@
 #pragma once
 
 #include <rendInst/riexHandle.h>
-#include <EASTL/fixed_function.h>
 
 namespace rendinst
 {
@@ -55,6 +54,4 @@ struct RendInstDesc
 bool isRiGenDescValid(const RendInstDesc &desc);
 bool isRgLayerPrimary(const RendInstDesc &desc);
 
-using IgnoreFunc = eastl::fixed_function<sizeof(void *) * 3, bool(const RendInstDesc &)>;
-bool ignoreTraceRiExtra(const RendInstDesc &desc, IgnoreFunc f);
 } // namespace rendinst

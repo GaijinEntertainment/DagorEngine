@@ -1,5 +1,28 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#ifndef DX12_BEGIN_CONTEXT_COMMAND
+#define DX12_BEGIN_CONTEXT_COMMAND(isPrimary, name)
+#endif
+#ifndef DX12_BEGIN_CONTEXT_COMMAND_EXT_1
+#define DX12_BEGIN_CONTEXT_COMMAND_EXT_1(name, param0Type, param0Name)
+#endif
+#ifndef DX12_BEGIN_CONTEXT_COMMAND_EXT_2
+#define DX12_BEGIN_CONTEXT_COMMAND_EXT_2(name, param0Type, param0Name, param1Type, param1Name)
+#endif
+#ifndef DX12_END_CONTEXT_COMMAND
+#define DX12_END_CONTEXT_COMMAND
+#endif
+#ifndef DX12_CONTEXT_COMMAND_PARAM
+#define DX12_CONTEXT_COMMAND_PARAM(type, name)
+#endif
+#ifndef DX12_CONTEXT_COMMAND_PARAM_ARRAY
+#define DX12_CONTEXT_COMMAND_PARAM_ARRAY(type, name, size)
+#endif
+#ifndef DX12_CONTEXT_COMMAND_USE_DEVICE
+#define DX12_CONTEXT_COMMAND_USE_DEVICE(value)
+#endif
+
+
 /* Note: commands are sorted according to actual execution frequency (in order to help CPU's branch target predictor) */
 
 DX12_BEGIN_CONTEXT_COMMAND(true, DrawIndexed)
@@ -15,6 +38,7 @@ DX12_BEGIN_CONTEXT_COMMAND(true, DrawIndexed)
   ctx.ensureActivePass();
   ctx.flushIndexBuffer();
   ctx.flushVertexBuffers();
+  ctx.flushStreamOutputBuffer();
   ctx.flushGraphicsStateResourceBindings();
   ctx.flushGraphicsState(top);
   ctx.drawIndexed(count, instanceCount, indexStart, vertexBase, firstInstance);
@@ -102,6 +126,15 @@ DX12_BEGIN_CONTEXT_COMMAND(false, TextureBarrier)
 #endif
 DX12_END_CONTEXT_COMMAND
 
+DX12_BEGIN_CONTEXT_COMMAND(true, DiscardTexture)
+  DX12_CONTEXT_COMMAND_PARAM(Image *, image)
+  DX12_CONTEXT_COMMAND_PARAM(uint32_t, texFlags)
+
+#if DX12_CONTEXT_COMMAND_IMPLEMENTATION
+  ctx.discardTexture(image, texFlags);
+#endif
+DX12_END_CONTEXT_COMMAND
+
 DX12_BEGIN_CONTEXT_COMMAND(false, SetStaticRenderState)
   DX12_CONTEXT_COMMAND_PARAM(StaticRenderStateID, ident)
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
@@ -159,6 +192,15 @@ DX12_BEGIN_CONTEXT_COMMAND(false, SetFramebuffer)
 #endif
 DX12_END_CONTEXT_COMMAND
 
+DX12_BEGIN_CONTEXT_COMMAND(false, CheckFramebufferIntegrity)
+  DX12_CONTEXT_COMMAND_PARAM(Image *, deletedImage)
+
+#if DX12_CONTEXT_COMMAND_IMPLEMENTATION
+  TIME_PROFILE_DEV(CmdCheckFramebufferIntegrity);
+  ctx.checkFramebufferIntegrity(deletedImage);
+#endif
+DX12_END_CONTEXT_COMMAND
+
 DX12_BEGIN_CONTEXT_COMMAND(false, BufferBarrier)
   DX12_CONTEXT_COMMAND_PARAM(BufferResourceReference, buffer)
   DX12_CONTEXT_COMMAND_PARAM(ResourceBarrier, barrier)
@@ -201,6 +243,7 @@ DX12_BEGIN_CONTEXT_COMMAND(true, Draw)
   ctx.switchActivePipeline(ActivePipeline::Graphics);
   ctx.ensureActivePass();
   ctx.flushVertexBuffers();
+  ctx.flushStreamOutputBuffer();
   ctx.flushGraphicsStateResourceBindings();
   ctx.flushGraphicsState(top);
   ctx.draw(count, instanceCount, start, firstInstance);
@@ -272,6 +315,16 @@ DX12_BEGIN_CONTEXT_COMMAND(false, SetIndexBuffer)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
   ctx.setIndexBuffer(buffer, type);
+#endif
+DX12_END_CONTEXT_COMMAND
+
+DX12_BEGIN_CONTEXT_COMMAND(false, SetStreamOutputBuffer)
+  DX12_CONTEXT_COMMAND_PARAM(uint32_t, slot)
+  DX12_CONTEXT_COMMAND_PARAM(BufferResourceReferenceAndAddressRange, buffer)
+  DX12_CONTEXT_COMMAND_PARAM(BufferResourceReferenceAndAddress, counter)
+
+#if DX12_CONTEXT_COMMAND_IMPLEMENTATION
+  ctx.setStreamOutputBuffer(slot, buffer, counter);
 #endif
 DX12_END_CONTEXT_COMMAND
 
@@ -356,6 +409,7 @@ DX12_BEGIN_CONTEXT_COMMAND(true, DispatchMesh)
   TIME_PROFILE_DEV(CmdDispatchMesh);
   ctx.switchActivePipeline(ActivePipeline::Graphics);
   ctx.ensureActivePass();
+  ctx.flushStreamOutputBuffer();
   ctx.flushGraphicsStateResourceBindings();
   ctx.flushGraphicsMeshState();
   ctx.dispatchMesh(x, y, z);
@@ -372,6 +426,7 @@ DX12_BEGIN_CONTEXT_COMMAND(true, DispatchMeshIndirect)
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
   ctx.switchActivePipeline(ActivePipeline::Graphics);
   ctx.ensureActivePass();
+  ctx.flushStreamOutputBuffer();
   ctx.flushGraphicsStateResourceBindings();
   ctx.flushGraphicsMeshState();
   ctx.dispatchMeshIndirect(arguments, stride, count, maxCount);
@@ -467,6 +522,7 @@ DX12_BEGIN_CONTEXT_COMMAND(true, DrawIndirect)
   ctx.switchActivePipeline(ActivePipeline::Graphics);
   ctx.ensureActivePass();
   ctx.flushVertexBuffers();
+  ctx.flushStreamOutputBuffer();
   ctx.flushGraphicsStateResourceBindings();
   ctx.flushGraphicsState(top);
   ctx.drawIndirect(buffer, count, stride);
@@ -482,7 +538,8 @@ DX12_BEGIN_CONTEXT_COMMAND(false, BeginCPUTextureAccess)
 #endif
 DX12_END_CONTEXT_COMMAND
 
-DX12_BEGIN_CONTEXT_COMMAND(true, RegisterStaticRenderState)
+DX12_BEGIN_CONTEXT_COMMAND(false, RegisterStaticRenderState)
+  DX12_CONTEXT_COMMAND_USE_DEVICE(false)
   DX12_CONTEXT_COMMAND_PARAM(StaticRenderStateID, ident)
   DX12_CONTEXT_COMMAND_PARAM(RenderStateSystem::StaticState, state)
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
@@ -580,6 +637,16 @@ DX12_BEGIN_CONTEXT_COMMAND_EXT_1(false, SetScissorRects, D3D12_RECT, rects)
 #endif
 DX12_END_CONTEXT_COMMAND
 
+DX12_BEGIN_CONTEXT_COMMAND(false, FlushAndPresentToWindow)
+  DX12_CONTEXT_COMMAND_PARAM(uint64_t, progress)
+  DX12_CONTEXT_COMMAND_PARAM(uint32_t, windowIndex)
+
+#if DX12_CONTEXT_COMMAND_IMPLEMENTATION
+  ctx.flush(progress, {.mode = FrameCompletionInfo::Mode::ContinueCurrentFrame, .id = 0},
+    {.mode = PresentInfo::Mode::PresentSwapchain, .swapchainIndex = windowIndex});
+#endif
+DX12_END_CONTEXT_COMMAND
+
 DX12_BEGIN_CONTEXT_COMMAND(true, DrawIndexedIndirect)
   DX12_CONTEXT_COMMAND_PARAM(D3D12_PRIMITIVE_TOPOLOGY, top)
   DX12_CONTEXT_COMMAND_PARAM(uint32_t, count)
@@ -591,6 +658,7 @@ DX12_BEGIN_CONTEXT_COMMAND(true, DrawIndexedIndirect)
   ctx.ensureActivePass();
   ctx.flushIndexBuffer();
   ctx.flushVertexBuffers();
+  ctx.flushStreamOutputBuffer();
   ctx.flushGraphicsStateResourceBindings();
   ctx.flushGraphicsState(top);
   ctx.drawIndexedIndirect(buffer, count, stride);
@@ -608,6 +676,7 @@ DX12_BEGIN_CONTEXT_COMMAND(true, DrawUserData)
   ctx.ensureActivePass();
   ctx.bindVertexUserData(userData, stride);
   ctx.flushGraphicsStateResourceBindings();
+  ctx.flushStreamOutputBuffer();
   ctx.flushGraphicsState(top);
   ctx.draw(count, 1, 0, 0);
 #endif
@@ -625,6 +694,7 @@ DX12_BEGIN_CONTEXT_COMMAND(true, DrawIndexedUserData)
   ctx.ensureActivePass();
   ctx.bindIndexUser(indexData);
   ctx.bindVertexUserData(vertexData, vertexStride);
+  ctx.flushStreamOutputBuffer();
   ctx.flushGraphicsStateResourceBindings();
   ctx.flushGraphicsState(top);
   ctx.drawIndexed(count, 1, 0, 0, 0);
@@ -705,10 +775,16 @@ DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND(true, FlushWithFence)
   DX12_CONTEXT_COMMAND_PARAM(uint64_t, progress)
+  DX12_CONTEXT_COMMAND_PARAM(std::atomic<uint32_t> *, threadFinishSignal)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
   TIME_PROFILE_DEV(CmdFlushWithFence);
-  ctx.flush(progress);
+  ctx.flush(progress, {}, {});
+  if (threadFinishSignal)
+  {
+    *threadFinishSignal = 1;
+    ::notify_all(*threadFinishSignal);
+  }
 #endif
 DX12_END_CONTEXT_COMMAND
 
@@ -720,17 +796,29 @@ DX12_BEGIN_CONTEXT_COMMAND(true, EndSurvey)
 #endif
 DX12_END_CONTEXT_COMMAND
 
+DX12_BEGIN_CONTEXT_COMMAND(true, SetLatencyMarker)
+  DX12_CONTEXT_COMMAND_PARAM(uint32_t, frame_id)
+  DX12_CONTEXT_COMMAND_PARAM(lowlatency::LatencyMarkerType, type)
+
+#if DX12_CONTEXT_COMMAND_IMPLEMENTATION
+  ctx.setLatencyMarker(frame_id, type);
+#endif
+DX12_END_CONTEXT_COMMAND
+
 DX12_BEGIN_CONTEXT_COMMAND(true, FinishFrame)
   DX12_CONTEXT_COMMAND_PARAM(uint64_t, progress)
-  DX12_CONTEXT_COMMAND_PARAM(uint32_t, latencyFrameId)
   DX12_CONTEXT_COMMAND_PARAM(uint32_t, frontFrameId)
+  DX12_CONTEXT_COMMAND_PARAM(uint32_t, frameId)
   DX12_CONTEXT_COMMAND_PARAM(bool, presentOnSwapchain)
   DX12_CONTEXT_COMMAND_PARAM(Drv3dTimings *, timingData)
   DX12_CONTEXT_COMMAND_PARAM(int64_t, kickoffStamp)
+  DX12_CONTEXT_COMMAND_PARAM(ImageViewInfo, swapchainClearView)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
   TIME_PROFILE_DEV(CmdFinishFrame);
-  ctx.finishFrame(progress, timingData, kickoffStamp, latencyFrameId, frontFrameId, presentOnSwapchain);
+  ctx.finishFrame(progress, timingData, kickoffStamp, frontFrameId, frameId,
+    {.mode = presentOnSwapchain ? PresentInfo::Mode::PresentSwapchain : PresentInfo::Mode::DoNotPresent,
+      .clearView = swapchainClearView});
 #endif
 DX12_END_CONTEXT_COMMAND
 
@@ -788,7 +876,7 @@ DX12_BEGIN_CONTEXT_COMMAND(true, AddGraphicsProgram)
 DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND_EXT_1(true, PlaceAftermathMarker, char, string)
-
+  DX12_CONTEXT_COMMAND_USE_DEVICE(false)
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
   ctx.writeToDebug(string);
 #endif
@@ -832,6 +920,16 @@ DX12_BEGIN_CONTEXT_COMMAND(false, ChangePresentMode)
 #endif
 DX12_END_CONTEXT_COMMAND
 
+#if _TARGET_PC_WIN
+DX12_BEGIN_CONTEXT_COMMAND(false, ChangePresentWindow)
+  DX12_CONTEXT_COMMAND_PARAM(uint32_t, index)
+
+#if DX12_CONTEXT_COMMAND_IMPLEMENTATION
+  ctx.changePresentWindow(index);
+#endif
+DX12_END_CONTEXT_COMMAND
+#endif
+
 DX12_BEGIN_CONTEXT_COMMAND_EXT_1(false, UpdateVertexShaderName, char, name)
   DX12_CONTEXT_COMMAND_PARAM(ShaderID, shader)
 
@@ -865,11 +963,10 @@ DX12_END_CONTEXT_COMMAND
 DX12_BEGIN_CONTEXT_COMMAND_EXT_1(true, TextureReadBack, BufferImageCopy, regions)
   DX12_CONTEXT_COMMAND_PARAM(Image *, image)
   DX12_CONTEXT_COMMAND_PARAM(HostDeviceSharedMemoryRegion, cpuMemory)
-  DX12_CONTEXT_COMMAND_PARAM(DeviceQueueType, queue)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
   TIME_PROFILE_DEV(CmdTextureReadBack);
-  ctx.textureReadBack(image, cpuMemory, regions, queue);
+  ctx.textureReadBack(image, cpuMemory, regions);
 #endif
 DX12_END_CONTEXT_COMMAND
 
@@ -915,6 +1012,7 @@ DX12_BEGIN_CONTEXT_COMMAND(true, CreateDlssFeature)
 DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND(true, ReleaseDlssFeature)
+  DX12_CONTEXT_COMMAND_USE_DEVICE(false)
   DX12_CONTEXT_COMMAND_PARAM(bool, stereo_render)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
@@ -926,11 +1024,10 @@ DX12_END_CONTEXT_COMMAND
 DX12_BEGIN_CONTEXT_COMMAND(true, ExecuteDlss)
   DX12_CONTEXT_COMMAND_PARAM(nv::DlssParams<Image>, dlss_params)
   DX12_CONTEXT_COMMAND_PARAM(int, view_index)
-  DX12_CONTEXT_COMMAND_PARAM(uint32_t, frame_id)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
   TIME_PROFILE_DEV(CmdExecuteDlss);
-  ctx.executeDlss(dlss_params, view_index, frame_id);
+  ctx.executeDlss(dlss_params, view_index);
 #endif
 DX12_END_CONTEXT_COMMAND
 
@@ -953,6 +1050,15 @@ DX12_BEGIN_CONTEXT_COMMAND(true, ExecuteXess)
 #endif
 DX12_END_CONTEXT_COMMAND
 
+DX12_BEGIN_CONTEXT_COMMAND(true, ExecuteXeFg)
+  DX12_CONTEXT_COMMAND_PARAM(XessFgParamsDx12, params)
+
+#if DX12_CONTEXT_COMMAND_IMPLEMENTATION
+  TIME_PROFILE_DEV(CmdExecuteXeFg);
+  ctx.executeXeFg(params);
+#endif
+DX12_END_CONTEXT_COMMAND
+
 DX12_BEGIN_CONTEXT_COMMAND(true, DispatchFSR2)
   DX12_CONTEXT_COMMAND_PARAM(Fsr2ParamsDx12, params)
 
@@ -969,6 +1075,16 @@ DX12_BEGIN_CONTEXT_COMMAND(true, DispatchFSR)
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
   TIME_PROFILE_DEV(CmdDispatchFSR);
   ctx.executeFSR(fsr, params);
+#endif
+DX12_END_CONTEXT_COMMAND
+
+DX12_BEGIN_CONTEXT_COMMAND(true, DispatchFSRFG)
+  DX12_CONTEXT_COMMAND_PARAM(amd::FSR *, fsr)
+  DX12_CONTEXT_COMMAND_PARAM(FSRFrameGenArgs, params)
+
+#if DX12_CONTEXT_COMMAND_IMPLEMENTATION
+  TIME_PROFILE_DEV(CmdDispatchFSR);
+  ctx.executeFSRFG(fsr, params);
 #endif
 DX12_END_CONTEXT_COMMAND
 
@@ -1089,10 +1205,14 @@ DX12_END_CONTEXT_COMMAND
 
 // this command only exists to wake up a potentially sleeping worker
 DX12_BEGIN_CONTEXT_COMMAND(true, WorkerPing)
+  DX12_CONTEXT_COMMAND_USE_DEVICE(false)
 DX12_END_CONTEXT_COMMAND
 
-DX12_BEGIN_CONTEXT_COMMAND(true, Terminate)
+DX12_BEGIN_CONTEXT_COMMAND(true, FlushWithFenceAndTerminate)
+  DX12_CONTEXT_COMMAND_PARAM(uint64_t, progress)
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
+  TIME_PROFILE_DEV(CmdFlushWithFenceAndTerminate);
+  ctx.flush(progress, {}, {});
   ctx.terminateWorker();
 #endif
 DX12_END_CONTEXT_COMMAND
@@ -1106,6 +1226,7 @@ DX12_END_CONTEXT_COMMAND
 #endif
 
 DX12_BEGIN_CONTEXT_COMMAND_EXT_1(true, WriteDebugMessage, char, message)
+  DX12_CONTEXT_COMMAND_USE_DEVICE(false)
   DX12_CONTEXT_COMMAND_PARAM(int, severity)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
@@ -1156,6 +1277,7 @@ DX12_BEGIN_CONTEXT_COMMAND(false, BindlessCopyResourceDescriptors)
 DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND(false, RegisterFrameCompleteEvent)
+  DX12_CONTEXT_COMMAND_USE_DEVICE(false)
   DX12_CONTEXT_COMMAND_PARAM(os_event_t, event)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
@@ -1164,6 +1286,7 @@ DX12_BEGIN_CONTEXT_COMMAND(false, RegisterFrameCompleteEvent)
 DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND(false, RegisterFrameEventsCallback)
+  DX12_CONTEXT_COMMAND_USE_DEVICE(false)
   DX12_CONTEXT_COMMAND_PARAM(FrameEvents *, callback)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
@@ -1195,6 +1318,7 @@ DX12_END_CONTEXT_COMMAND
 #if _TARGET_PC_WIN
 
 DX12_BEGIN_CONTEXT_COMMAND(true, OnDeviceError)
+  DX12_CONTEXT_COMMAND_USE_DEVICE(false)
   DX12_CONTEXT_COMMAND_PARAM(HRESULT, removerReason)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
@@ -1203,13 +1327,8 @@ DX12_BEGIN_CONTEXT_COMMAND(true, OnDeviceError)
 #endif
 DX12_END_CONTEXT_COMMAND
 
-DX12_BEGIN_CONTEXT_COMMAND(true, OnSwapchainSwapCompleted)
-#if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  ctx.onSwapchainSwapCompleted();
-#endif
-DX12_END_CONTEXT_COMMAND
-
 DX12_BEGIN_CONTEXT_COMMAND(true, CommandFence)
+  DX12_CONTEXT_COMMAND_USE_DEVICE(false)
   DX12_CONTEXT_COMMAND_PARAM(std::atomic_bool &, signal)
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
   ctx.commandFence(signal);
@@ -1254,14 +1373,13 @@ DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND(true, ActivateBuffer)
   DX12_CONTEXT_COMMAND_PARAM(BufferResourceReferenceAndAddressRangeWithClearView, buffer)
-  DX12_CONTEXT_COMMAND_PARAM(ResourceMemory, memory)
+  DX12_CONTEXT_COMMAND_PARAM(ResourceMemoryLocation, memoryLocation)
   DX12_CONTEXT_COMMAND_PARAM(ResourceActivationAction, action)
-  DX12_CONTEXT_COMMAND_PARAM(ResourceClearValue, clearValue)
   DX12_CONTEXT_COMMAND_PARAM(GpuPipeline, queue)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
   TIME_PROFILE_DEV(CmdActivateBuffer);
-  ctx.activateBuffer(buffer, memory, action, clearValue, queue);
+  ctx.activateBuffer(buffer, memoryLocation, action, queue);
 #endif
 DX12_END_CONTEXT_COMMAND
 
@@ -1281,11 +1399,11 @@ DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND(true, DeactivateBuffer)
   DX12_CONTEXT_COMMAND_PARAM(BufferResourceReferenceAndAddressRange, buffer)
-  DX12_CONTEXT_COMMAND_PARAM(ResourceMemory, memory)
+  DX12_CONTEXT_COMMAND_PARAM(ResourceMemoryLocation, memoryLocation)
   DX12_CONTEXT_COMMAND_PARAM(GpuPipeline, queue)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  ctx.deactivateBuffer(buffer, memory, queue);
+  ctx.deactivateBuffer(buffer, memoryLocation, queue);
 #endif
 DX12_END_CONTEXT_COMMAND
 
@@ -1361,20 +1479,21 @@ DX12_BEGIN_CONTEXT_COMMAND(true, ResizeImageMipMapTransfer)
 DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND(true, DebugBreak)
+  DX12_CONTEXT_COMMAND_USE_DEVICE(false)
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
   ctx.debugBreak();
 #endif
 DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND_EXT_1(true, AddDebugBreakString, char, str)
-
+  DX12_CONTEXT_COMMAND_USE_DEVICE(false)
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
   ctx.addDebugBreakString(str);
 #endif
 DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND_EXT_1(true, RemoveDebugBreakString, char, str)
-
+  DX12_CONTEXT_COMMAND_USE_DEVICE(false)
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
   ctx.removeDebugBreakString(str);
 #endif
@@ -1471,3 +1590,34 @@ DX12_BEGIN_CONTEXT_COMMAND_EXT_1(true, DispatchRaysIndirect, uint32_t, rootConst
 #endif
 DX12_END_CONTEXT_COMMAND
 #endif
+
+#if D3D_HAS_RAY_TRACING
+DX12_BEGIN_CONTEXT_COMMAND(false, AccelerationStructurePoolBarrier)
+  DX12_CONTEXT_COMMAND_PARAM(::raytrace::AccelerationStructurePool, pool)
+
+#if DX12_CONTEXT_COMMAND_IMPLEMENTATION
+  ctx.accelerationStructurePoolBarrier(pool);
+#endif
+DX12_END_CONTEXT_COMMAND
+#endif
+
+
+DX12_BEGIN_CONTEXT_COMMAND(true, ExecuteFaultyTextureRead)
+  DX12_CONTEXT_COMMAND_PARAM(D3D12_CPU_DESCRIPTOR_HANDLE, srcViewDescriptor)
+  DX12_CONTEXT_COMMAND_PARAM(Image *, dst)
+  DX12_CONTEXT_COMMAND_PARAM(ImageViewState, dstView)
+  DX12_CONTEXT_COMMAND_PARAM(D3D12_CPU_DESCRIPTOR_HANDLE, dstViewDescriptor)
+#if DX12_CONTEXT_COMMAND_IMPLEMENTATION
+  ctx.executeFaultyTextureRead(srcViewDescriptor, dst, dstView, dstViewDescriptor);
+#endif
+DX12_END_CONTEXT_COMMAND
+
+
+#undef DX12_BEGIN_CONTEXT_COMMAND
+#undef DX12_BEGIN_CONTEXT_COMMAND_EXT_1
+#undef DX12_BEGIN_CONTEXT_COMMAND_EXT_2
+#undef DX12_END_CONTEXT_COMMAND
+#undef DX12_CONTEXT_COMMAND_PARAM
+#undef DX12_CONTEXT_COMMAND_PARAM_ARRAY
+#undef DX12_CONTEXT_COMMAND_USE_DEVICE
+#undef DX12_CONTEXT_COMMAND_IMPLEMENTATION

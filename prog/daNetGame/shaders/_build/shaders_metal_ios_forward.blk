@@ -30,7 +30,7 @@ common_assume_vars {}
 Compile
 {
   fsh:t = SpirV-5.0
-  group_size_in_kb:i=1019
+  group_size_in_kb:i=128
   assume_vars {
     //base mobile assumes
     include common_assumes.blk
@@ -49,6 +49,7 @@ Compile
     "@override:hmap_puddle_enabled":i=0
     "@override:hmap_use_fake_vert_normals":i=1
     "@override:hmap_ofs_tex":i=0
+    "@override:use_glass_dual_source_blending":i=0
 
     flash_blind_prev_tex:i=0
     static_shadows_cascades:i=2
@@ -60,7 +61,7 @@ Compile
     hmap_tess_factor:r=0
     water_tess_factor:r=0
     gi_ambient_volmap:i=0
-    envi_cover:i=0
+    envi_cover_use_in_resolve:i=0
     hdr_ps_output_mode:i=0
     volumetric_light_assumed_off:i=1
     enable_hmap_blend:i=0
@@ -75,6 +76,7 @@ Compile
     "@override:rendinst_use_cell_sbuffer":i=1
     depth_bounds_support:i=0
   }
+  required_shaders {}
 }
 
 explicit_var_ref

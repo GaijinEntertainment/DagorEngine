@@ -3,6 +3,7 @@ include "shader_global.dshl"
 include "use_volfog.dshl"
 include "viewVecVS.dshl"
 include "prev_screen_tc.dshl"
+include "camera_in_camera.dshl"
 
 include "heightmap_common.dshl"
 include "static_shadow.dshl"
@@ -86,6 +87,8 @@ int distant_fog_use_static_shadows = 1 always_referenced;
 
 shader distant_fog_raymarch_cs
 {
+  INIT_AND_USE_ON_TOP_CAMERA_IN_CAMERA(cs)
+
   supports global_const_block;
   (cs) {
     inv_volfog_froxel_volume_res@f3 = (inv_volfog_froxel_volume_res.x,inv_volfog_froxel_volume_res.y,inv_volfog_froxel_volume_res.z,0)
@@ -163,10 +166,20 @@ shader distant_fog_raymarch_cs
 
     #include "volfog_df_raymarch.hlsl"
 
+    groupshared uint camera_view_lds;
+
     [numthreads( RAYMARCH_WARP_SIZE, RAYMARCH_WARP_SIZE, 1 )]
-    void RayMarchDistantFog( uint2 dtId : SV_DispatchThreadID, uint2 tid : SV_GroupThreadID )
+    void RayMarchDistantFog( uint2 dtId : SV_DispatchThreadID, uint2 tid : SV_GroupThreadID, uint gidx : SV_GroupIndex )
     {
-      DistantFogRaymarchResult distantFogRaymarchResult = accumulateFog(dtId, tid);
+      if (gidx == 0)
+        camera_view_lds = 0;
+
+      FogAccumulationStartParams startParams = construct_fog_accumulation_start_params(dtId, tid);
+
+      CameraView currentViewType;
+      DISCARD_GROUP_IN_INVALID_VIEW_AREA(camera_view_lds, startParams.screenTc, currentViewType);
+
+      DistantFogRaymarchResult distantFogRaymarchResult = accumulateFog(dtId, tid, startParams, currentViewType);
 
       if (any(dtId >= (uint2)distant_fog_raymarch_resolution.xy))
         return;

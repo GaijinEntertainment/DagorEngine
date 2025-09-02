@@ -6,7 +6,6 @@
 
 #include <generic/dag_span.h>
 #include <vecmath/dag_vecMath.h>
-#include <supp/dag_prefetch.h>
 #include <util/dag_stdint.h>
 #include <scene/dag_visibility.h>
 #include <scene/dag_occlusion.h>

@@ -15,7 +15,6 @@
 #include <sstream>
 
 using std::logic_error;
-using std::uncaught_exception;
 using std::string;
 using std::ostringstream;
 
@@ -83,7 +82,12 @@ public:
         	traceback::reset();
 		}	
         ~checkpoint() {
-        	if (uncaught_exception()) traceback::append(location);
+#if defined(__cpp_lib_uncaught_exceptions) && __cpp_lib_uncaught_exceptions >= 201411L
+					if (std::uncaught_exceptions())
+#else
+					if (std::uncaught_exception())
+#endif
+						traceback::append(location);
 			else traceback::reset();
         }
 	};	

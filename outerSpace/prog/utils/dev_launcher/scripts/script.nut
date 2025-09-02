@@ -1,6 +1,12 @@
 from "%darg/ui_imports.nut" import *
 from "dagor.workcycle" import resetTimeout
 import "components/style.nut" as style
+from "frp" import set_nested_observable_debug, set_subscriber_validation, warn_on_deprecated_methods
+from "dagor.system" import DBGLEVEL
+
+//set_nested_observable_debug( DBGLEVEL>0)
+//set_subscriber_validation( DBGLEVEL>0)
+warn_on_deprecated_methods( DBGLEVEL>0)
 
 let {Preferences} = require("components/preferences.nut")
 let {set_app_window_title, dgs_get_settings} = require("dagor.system")
@@ -15,7 +21,7 @@ let {file_exists} = require("dagor.fs")
 let allScenes = ["planet_orbit.blk", "gaija_planet.blk"]
 
 let buildCommandLines = function(commands, params={}, formatters={}) {
-  local cmds = commands.map(@(cmd) buildStrByTemplates(cmd, params.map(@(v) v instanceof Watched ? v.value : v), formatters))
+  local cmds = commands.map(@(cmd) buildStrByTemplates(cmd, params.map(@(v) v instanceof Watched ? v.get() : v), formatters))
   local final_cmds = []
   foreach (ln in cmds)
     if (ln != "")
@@ -40,30 +46,35 @@ function mkSel(options, title="", defoptidx=0){
 }
 
 function get_executable_targets(){
-  let platform = require("platform").get_platform_string_id()
+  let host_platform = require("platform").get_host_platform()
+  let host_arch = require("platform").get_host_arch()
   local list = []
-  if (["win32", "win64", "win-arm64"].contains(platform))
-    list.append("win64", "win32")
-  else if (platform == "macosx")
-    list.append("macOS")
-  else if (platform == "linux64")
-    list.append("linux64")
-  if (platform == "win-arm64")
-    list.append("win-arm64")
+  if (host_platform == "windows") {
+    if (host_arch == "arm64")
+      list.append("windows-arm64")
+    list.append("windows-x86_64", "windows-x86")
+  } else if (host_platform == "macOS") {
+    list.append("macOS-x86_64")
+    if (host_arch == "arm64")
+      list.append("macOS-arm64")
+  } else if (host_platform == "linux")
+    list.append("-".concat(host_platform, host_arch))
   if (list.len() == 0)
     list.append("")
   return list
 }
 function get_d3d_targets(){
-  let platform = require("platform").get_platform_string_id()
+  let host_platform = require("platform").get_host_platform()
+  let host_arch = require("platform").get_host_arch()
   local list = ["game defined"]
-  if (["win32", "win64", "win-arm64"].contains(platform))
+  if (host_platform == "windows") {
     list.append("dx11")
-  if (["win64", "win-arm64"].contains(platform))
-    list.append("dx12")
-  if (["win64", "win-arm64", "linux64"].contains(platform))
+    if (["x86_64", "arm64"].contains(host_arch))
+      list.append("dx12", "vulkan")
+  }
+  if (host_platform == "linux")
     list.append("vulkan")
-  if (platform == "macosx")
+  if (host_platform == "macOS")
     list.append("Metal")
   return list
 }
@@ -74,7 +85,7 @@ let [selectedVideoDriver, comboVideoDriver] = mkSel(get_d3d_targets(), "Video Dr
 //let [selectedQualityPreset, comboQualityPreset] = mkSel(["minimum", "low","medium","high", "ultra"], "Quality Preset:", 3)
 let [selectedVromsMode, comboVromsMode] = mkSel(["game defined", "vroms", "source"], "Vroms:")
 let allSchemas     = WatchedRo(scheme.schema.map(@(v) [v.id, v.title]) ?? [])
-let selectedSchema = Watched(allSchemas.value?[0][0])
+let selectedSchema = Watched(allSchemas.get()?[0][0])
 let comboSchemas   = mkCombo(selectedSchema, allSchemas, "Launch:")
 //let [selectedScene, comboScene ] = mkSel(allScenes, "Scene:")
 let selectedScene = Watched(allScenes?[0])
@@ -106,7 +117,7 @@ let selections = {
   windowMode
   enableSound
   dasDebug
-}.map(@(v) v instanceof Watched ? {get = @() v.value, watch = [v], set = @(n) v(n)} : v)
+}.map(@(v) v instanceof Watched ? {get = @() v.get(), watch = [v], set = @(n) v.set(n)} : v)
 
 let effectiveSchema = Computed(@() selectedSchema.get())
 
@@ -170,7 +181,7 @@ let startButton = mkButton({
 let clipboardButton = mkButton({
   txtIcon = fa["clipboard"]
   function onClick() {
-    let windows_host = ["win32", "win64", "win-arm64"].contains(selectedPlatform.get())
+    let windows_host = selectedPlatform.get().startswith("windows-")
     // splitting by ' -' to avoid console commands being split as they can look like 'command.name param1 param2'
     let cmds = windows_host ? buildCmdLines().map(@(v) " ^\n  -".join(v.split(" -"))) : buildCmdLines().map(@(v) v)
     if (!windows_host && cmds.len() == 1)
@@ -231,6 +242,11 @@ let bottomBar = {size = [flex(), hdpx(50)]} // ?? status?
 function niceLauncher(){
   const bkg = "launcher_back.png"
   let use_image = file_exists(bkg)
+
+  let host_platform = require("platform").get_host_platform()
+  let host_arch = require("platform").get_host_arch()
+  print($"running on host: platform={host_platform} arch={host_arch}\n")
+
   return {
     size = flex()
     cursor = dgs_get_settings()?["use_system_cursor"] ? cursors.hidden : cursors.normal

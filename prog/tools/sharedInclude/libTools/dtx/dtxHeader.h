@@ -47,7 +47,7 @@ public:
 
   int mip_level_from_dtx_quality(Quality quality) const;
 
-  inline bool operator==(const Header &h)
+  bool operator==(const Header &h) const
   {
     return addr_mode_u == h.addr_mode_u && addr_mode_v == h.addr_mode_v && HQ_mip == h.HQ_mip && MQ_mip == h.MQ_mip &&
            LQ_mip == h.LQ_mip && contentType == h.contentType;

@@ -1,0 +1,32 @@
+Root    ?= ../../.. ;
+Location = prog/3rdPartyLibs/catch2 ;
+StrictCompile = no ;
+
+TargetType  = lib ;
+Target      = 3rdPartyLibs/catch2.lib ;
+
+AddIncludes     =  $(Root)/prog/3rdPartyLibs/catch2/src ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+
+local AllSrcFolder_CPP =
+  src/catch2
+  src/catch2/benchmark
+  src/catch2/benchmark/detail
+  src/catch2/generators
+  src/catch2/interfaces
+  src/catch2/internal
+  src/catch2/matchers
+  src/catch2/matchers/internal
+  src/catch2/reporters
+;
+
+
+AutoscanBuildLists $(AllSrcFolder_CPP) : *.cpp       : Sources ;
+
+
+CPPopt = -DCATCH_AMALGAMATED_CUSTOM_MAIN ;
+
+
+include $(Root)/prog/_jBuild/build.jam ;

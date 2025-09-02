@@ -14,6 +14,8 @@ float4 ambient_wind_noise__speed__scale__perpendicular__strength = (-0.640, -0.5
 float4 ambient_wind_grass_noise__speed__scale__perpendicular__strength = (-0.640, -0.537, 0.014, 1.182);
 float4 ambient_wind_map_scale__offset = (1. / 4096, 1. / 4096, 0.5, 0.5);
 
+int disable_wind = 0;
+
 macro INIT_FLUID_WIND(stage)
   (stage) {
       fluid_wind_tex@smp3d = fluid_wind_tex;
@@ -29,6 +31,7 @@ macro INIT_AMBIENT_WIND_BASE(stage)
     ambient_wind_noise__speed__scale__perpendicular__strength@f4 = ambient_wind_noise__speed__scale__perpendicular__strength;
     ambient_wind_grass_noise__speed__scale__perpendicular__strength@f4 = ambient_wind_grass_noise__speed__scale__perpendicular__strength;
     ambient_wind_map_scale__offset@f4 = ambient_wind_map_scale__offset;
+    disable_wind@i1 = disable_wind;
   }
 endmacro
 
@@ -48,7 +51,7 @@ macro USE_FLUID_WIND(stage)
       {
         float3 tcSpeed = (pos.xyz - fluid_wind_origin.xyz) / fluid_wind_world_size.xyz + 0.5;
         float4 speed = tex3Dlod(fluid_wind_tex, float4(tcSpeed.xzy, 0));
-        return speed.xzy;
+        return disable_wind ? 0 : speed.xzy;
       }
     }
   }
@@ -85,7 +88,7 @@ macro USE_AMBIENT_WIND(stage)
       res.xz = ambient_wind * (1 + noise_params.w * noise.x);
       res.xz += ambient_windT * noise_perpendicular * noise.y;
 
-      return res;
+      return disable_wind ? 0 : res;
     }
   }
 endmacro
@@ -137,7 +140,7 @@ macro USE_COMBINED_WIND(stage)
     #if FLUID_WIND_ON
       wind += fluid_wind_multiplier * sampleFluidWind(pos);
     #endif
-      return wind;
+      return disable_wind ? 0 : wind;
     }
 
     float3 sampleWindCurrentTime(float3 pos, float noise_speed_mult, float3 velocity)

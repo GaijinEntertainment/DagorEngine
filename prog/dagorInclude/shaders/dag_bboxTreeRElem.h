@@ -45,7 +45,7 @@ public:
 class BBoxTreeLeaf : public BBox3
 {
 public:
-  BBoxTreeLeaf() : relemList(midmem){};
+  BBoxTreeLeaf() : relemList(midmem) {}
 
 public:
   Tab<BBoxTreeRenderElement> relemList;
@@ -65,5 +65,5 @@ public:
   BBox3 *childArray_[CHILDREN_PER_NODE];
 
 protected:
-  ~BBoxTreeNode(){};
+  ~BBoxTreeNode() {}
 };

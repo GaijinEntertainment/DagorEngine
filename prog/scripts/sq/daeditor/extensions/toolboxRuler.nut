@@ -13,9 +13,9 @@ const POINTACTION_MODE_RULER_NAVMESH = "NavMesh distance meter"
 const RULER_MODE_DIRECT = 0
 const RULER_MODE_NAVMESH = 1
 
-let isRulerDirectMode = Computed(@() showPointAction.value && namePointAction.value == POINTACTION_MODE_RULER_DIRECT)
-let isRulerNavmeshMode = Computed(@() showPointAction.value && namePointAction.value == POINTACTION_MODE_RULER_NAVMESH)
-let isRulerMode = Computed(@() isRulerDirectMode.value || isRulerNavmeshMode.value)
+let isRulerDirectMode = Computed(@() showPointAction.get() && namePointAction.get() == POINTACTION_MODE_RULER_DIRECT)
+let isRulerNavmeshMode = Computed(@() showPointAction.get() && namePointAction.get() == POINTACTION_MODE_RULER_NAVMESH)
+let isRulerMode = Computed(@() isRulerDirectMode.get() || isRulerNavmeshMode.get())
 
 
 local rulerDisableCmd = function() {}
@@ -26,7 +26,7 @@ function callRulerDisableFn() {
 
 
 function onRulerAction(action) {
-  if (!isRulerMode.value)
+  if (!isRulerMode.get())
     return
 
   if (action.op == "action" && action.pos != null) {
@@ -66,8 +66,8 @@ function toolboxCmd_toggleRuler(mode) {
 }
 
 function addToolboxOptions_Ruler() {
-  addToolboxOption(@() isRulerDirectMode.value,  "ruler", { enabled = false, mode = 0 }, "Ruler",           @(_) toolboxCmd_toggleRuler(RULER_MODE_DIRECT),  null, "Toggle direct ruler")
-  addToolboxOption(@() isRulerNavmeshMode.value, null, null,                             "Ruler Navmesh",   @(_) toolboxCmd_toggleRuler(RULER_MODE_NAVMESH), null, "Toggle navmesh ruler")
+  addToolboxOption(@() isRulerDirectMode.get(),  "ruler", { enabled = false, mode = 0 }, "Ruler",           @(_) toolboxCmd_toggleRuler(RULER_MODE_DIRECT),  null, "Toggle direct ruler")
+  addToolboxOption(@() isRulerNavmeshMode.get(), null, null,                             "Ruler Navmesh",   @(_) toolboxCmd_toggleRuler(RULER_MODE_NAVMESH), null, "Toggle navmesh ruler")
 }
 
 return {

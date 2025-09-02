@@ -472,7 +472,7 @@ void send_dump_context(T *ctx_ptr, const void *dump, const char *ext, size_t siz
       meta[keyName] = info.shaderHash;
 
       _snprintf(keyName, sizeof(keyName), "shader-instance-%u", index);
-      meta[keyName] = info.shaderInstance;
+      meta[keyName] = info.shaderDebugInfoUid;
 
       _snprintf(keyName, sizeof(keyName), "shader-is-internal-%u", index);
       meta[keyName] = info.isInternal;
@@ -484,7 +484,7 @@ void send_dump_context(T *ctx_ptr, const void *dump, const char *ext, size_t siz
       meta[keyName] = to_string(info.shaderType);
 
       logdbg("DX12: Shader %u hash %016X", index, info.shaderHash);
-      logdbg("DX12: Shader %u instance %u", index, info.shaderInstance);
+      logdbg("DX12: Shader %u instance %u", index, info.shaderDebugInfoUid);
       logdbg("DX12: Shader %u is internal %s", index, info.isInternal ? "Yes" : "No");
       logdbg("DX12: Shader %u shader type %u %u", index, info.shaderType, to_string(info.shaderType));
     });
@@ -516,6 +516,14 @@ void send_dump_context(T *ctx_ptr, const void *dump, const char *ext, size_t siz
   meta["d3d_driver"] = d3d::get_driver_name();
   if (auto netManager = drv3d_dx12::get_device().netManager.get(); netManager)
     netManager->sendHttpEventLog("gpu_crash_dump", dump, size, &meta);
+}
+
+void set_name(ID3D12Resource *resource, eastl::string_view name)
+{
+  // lazy way of converting to wchar, this assumes name is not multi byte encoding
+  wchar_t wcharName[1024];
+  *eastl::copy(name.data(), min(name.data() + name.size(), name.data() + 1023), wcharName) = L'\0';
+  resource->SetName(wcharName);
 }
 } // namespace
 
@@ -551,6 +559,8 @@ Aftermath::ApiTable Aftermath::try_load_api(HMODULE module)
   }
 
   GPA(createContextHandle, "DX12_CreateContextHandle");
+  GPA(registerResource, "DX12_RegisterResource");
+  GPA(unregisterResource, "DX12_UnregisterResource");
   GPA(releaseContextHandle, "ReleaseContextHandle");
   GPA(setEventMarker, "SetEventMarker");
   GPA(getDeviceStatus, "GetDeviceStatus");
@@ -582,13 +592,77 @@ Aftermath::ApiTable Aftermath::try_load_api(HMODULE module)
   return table;
 }
 
+void Aftermath::waitForDump() const
+{
+  constexpr uint32_t collectingDataWait = 50;
+  constexpr uint32_t invokingCallbackWait = 50;
+  constexpr uint32_t unknownWait = 100;
+  // 100ms * 50 = 5 seconds, after that we abort waiting
+  constexpr uint32_t maxUnknownWaitCount = 50;
+
+  logdbg("DX12: Checking for NVIDIA Aftermath crash dumps...");
+
+  for (uint32_t unknownWaitCount = 0;;)
+  {
+    GFSDK_Aftermath_CrashDump_Status crashDumpStatus = GFSDK_Aftermath_CrashDump_Status_Unknown;
+    AFTHERMATH_CALL(api.getCrashDumpStatus(&crashDumpStatus));
+
+    if (GFSDK_Aftermath_CrashDump_Status_NotStarted == crashDumpStatus)
+    {
+      logdbg("DX12: ...reported no crash dump was generated");
+      break;
+    }
+    else if (GFSDK_Aftermath_CrashDump_Status_CollectingData == crashDumpStatus)
+    {
+      logdbg("DX12: ...collecting data, waiting for %ums...", collectingDataWait);
+      watchdog_kick();
+      sleep_msec(collectingDataWait);
+    }
+    else if (GFSDK_Aftermath_CrashDump_Status_CollectingDataFailed == crashDumpStatus)
+    {
+      logdbg("DX12: ...collecting data failed, no dump was produced");
+      break;
+    }
+    else if (GFSDK_Aftermath_CrashDump_Status_InvokingCallback == crashDumpStatus)
+    {
+      logdbg("DX12: ...processing crash dump, waiting for %ums...", invokingCallbackWait);
+      watchdog_kick();
+      sleep_msec(invokingCallbackWait);
+    }
+    else if (GFSDK_Aftermath_CrashDump_Status_Finished == crashDumpStatus)
+    {
+      logdbg("DX12: ...finished");
+      break;
+    }
+    else if (GFSDK_Aftermath_CrashDump_Status_Unknown == crashDumpStatus)
+    {
+      // For driver that do not fully support the query the lib will return unknown and may
+      // return either finished or failed.
+      // To be sure we have also a max iteration count and exit when reached.
+      logdbg("DX12: ...working, waiting for %ums...", unknownWait);
+      watchdog_kick();
+      sleep_msec(unknownWait);
+      if (++unknownWaitCount > maxUnknownWaitCount)
+      {
+        logdbg("DX12: ...max waiting reached, aborting");
+        break;
+      }
+    }
+    else
+    {
+      logdbg("DX12: ...unexpected return code %u, aborting", crashDumpStatus);
+      break;
+    }
+  }
+}
+
 bool Aftermath::tryEnableDumps()
 {
   logdbg("DX12: ...enabling GPU crash dumps...");
   // let Aftermath store data that might be needed for dumps
   auto result = api.enableGpuCrashDumps(GFSDK_Aftermath_Version_API, GFSDK_Aftermath_GpuCrashDumpWatchedApiFlags_DX,
     GFSDK_Aftermath_GpuCrashDumpFeatureFlags_DeferDebugInfoCallbacks, &onCrashDumpGenerateProxy, &onShaderDebugInfoProxy,
-    &onCrashDumpDescriptionProxy, &onResolveMarkerCallbackProxy, this);
+    &onCrashDumpDescriptionProxy, &onResolveMarkerCallbackProxy, &proxy);
   if (GFSDK_Aftermath_Result_Success != result)
   {
     logdbg("DX12: ...failed with %s...", to_string(result));
@@ -601,12 +675,10 @@ bool Aftermath::tryEnableDumps()
 
 void Aftermath::onCrashDumpGenerate(const void *dump, const uint32_t size, bool manually_send)
 {
-  auto rawTime = time(nullptr);
-  auto time = localtime(&rawTime);
   char path[DAGOR_MAX_PATH];
-  // same format as regular program crash dumps, just with .nv-gpudmp extension which can be opened with NVIDIA Nsight Graphics
-  _snprintf(path, sizeof(path), "%scrashDump-%.02d.%.02d.%.02d.nv-gpudmp", get_log_directory(), time->tm_hour, time->tm_min,
-    time->tm_sec);
+  // Same format as regular program crash dumps, just with .nv-gpudmp extension which can be opened with NVIDIA Nsight Graphics
+  // Log name is pre-determined for crashpad (no times, ids, etc.. within)
+  snprintf(path, sizeof(path), "%sgpuCrashDump.nv-gpudmp", get_log_directory());
   logdbg("DX12: Trying to write GPU crash dump to '%s'...", path);
   auto file = fopen(path, "wb");
   if (!file)
@@ -620,21 +692,19 @@ void Aftermath::onCrashDumpGenerate(const void *dump, const uint32_t size, bool 
 
   WinAutoLock lock{crashWriteMutex};
   logdbg("DX12: Added GPU crash dump to crash report file...");
-  if (get_device().netManager)
-    get_device().netManager->addFileToCrashReport(path);
+  if (auto nmgr = get_device().netManager.get())
+    nmgr->addFileToCrashReport(path);
 
   logdbg("DX12: Preparing to send GPU dump...");
   AftermathCrashDumpDecoder<decltype(api.crashDump)> crashDumpDecoder{api.crashDump, dump, size};
-  send_dump_context(&crashDumpDecoder, dump, "nv-gpudmp", size, rawTime, manually_send);
+  send_dump_context(&crashDumpDecoder, dump, "nv-gpudmp", size, time(nullptr), manually_send);
 }
 
 void Aftermath::onShaderDebugInfo(const void *dump, const uint32_t size)
 {
-  GFSDK_Aftermath_ShaderDebugInfoIdentifier ident{};
-  api.getShaderDebugInfoIdentifier(GFSDK_Aftermath_Version_API, dump, size, &ident);
-  auto rawTime = time(nullptr);
   char path[DAGOR_MAX_PATH];
-  _snprintf(path, sizeof(path), "%sshader-%016I64x-%016I64x.nvdbg", get_log_directory(), ident.id[0], ident.id[1]);
+  // Log name is pre-determined for crashpad (no times, idents, etc.. within)
+  _snprintf(path, sizeof(path), "%sshader.nvdbg", get_log_directory());
   logdbg("DX12: Trying to write shader debug info to '%s'...", path);
   auto file = fopen(path, "wb");
   if (!file)
@@ -648,11 +718,11 @@ void Aftermath::onShaderDebugInfo(const void *dump, const uint32_t size)
 
   WinAutoLock lock{crashWriteMutex};
   logdbg("DX12: Added shader debug info to crash report file...");
-  if (get_device().netManager)
-    get_device().netManager->addFileToCrashReport(path);
+  if (auto nmgr = get_device().netManager.get())
+    nmgr->addFileToCrashReport(path);
 
   logdbg("DX12: Preparing to send shader debug info...");
-  send_dump_context<AftermathCrashDumpDecoder<decltype(api.crashDump)>>(nullptr, dump, "nvdbg", size, rawTime, false);
+  send_dump_context<AftermathCrashDumpDecoder<decltype(api.crashDump)>>(nullptr, dump, "nvdbg", size, time(nullptr), false);
 }
 
 void Aftermath::onCrashDumpDescription(PFN_GFSDK_Aftermath_AddGpuCrashDumpDescription add_value)
@@ -685,171 +755,89 @@ void Aftermath::onResolveMarkerCallback(const void *marker_id, uint32_t marker_i
 
 void GFSDK_AFTERMATH_CALL Aftermath::onCrashDumpGenerateProxy(const void *dump, const uint32_t size, void *self)
 {
-  reinterpret_cast<Aftermath *>(self)->onCrashDumpGenerate(dump, size, false);
+  if (auto object = reinterpret_cast<Proxy *>(self)->object)
+    object->onCrashDumpGenerate(dump, size, false);
 }
 
 void GFSDK_AFTERMATH_CALL Aftermath::onShaderDebugInfoProxy(const void *dump, const uint32_t size, void *self)
 {
-  reinterpret_cast<Aftermath *>(self)->onShaderDebugInfo(dump, size);
+  if (auto object = reinterpret_cast<Proxy *>(self)->object)
+    object->onShaderDebugInfo(dump, size);
 }
 
 void GFSDK_AFTERMATH_CALL Aftermath::onCrashDumpDescriptionProxy(PFN_GFSDK_Aftermath_AddGpuCrashDumpDescription add_value, void *self)
 {
-  reinterpret_cast<Aftermath *>(self)->onCrashDumpDescription(add_value);
+  if (auto object = reinterpret_cast<Proxy *>(self)->object)
+    object->onCrashDumpDescription(add_value);
 }
 
 void GFSDK_AFTERMATH_CALL Aftermath::onResolveMarkerCallbackProxy(const void *marker_id, uint32_t marker_id_size, void *self,
   void **resolved_marker_data, uint32_t *marker_size)
 {
-  reinterpret_cast<Aftermath *>(self)->onResolveMarkerCallback(marker_id, marker_id_size, resolved_marker_data, marker_size);
+  if (auto object = reinterpret_cast<Proxy *>(self)->object)
+    object->onResolveMarkerCallback(marker_id, marker_id_size, resolved_marker_data, marker_size);
+}
+
+Aftermath::~Aftermath()
+{
+  if (lastError != S_OK && lastError != DXGI_ERROR_INVALID_CALL)
+  {
+    waitForDump();
+    // This will keep the aftermath dll loaded after we destroy the postmortem device,
+    // and if the nvidia driver interacts with the aftermath and calls back our registered functions
+    // through the proxy object, won't cause crash even when the main postmortem device is already destroyed.
+    library.release();
+    proxy.object = nullptr;
+  }
+
+  if (api.disableGpuCrashDumps)
+  {
+    logdbg("DX12: Shutting down NVIDIA Aftermath API");
+    api.disableGpuCrashDumps();
+  }
 }
 
 void Aftermath::configure() {}
 
-void Aftermath::beginCommandBuffer(ID3D12Device *, ID3D12GraphicsCommandList *cmd)
+void Aftermath::beginCommandBuffer(D3DDevice *, D3DGraphicsCommandList *cmd)
 {
-  commandListTable.beginListWithCallback(cmd, [=](auto cmd) {
+  commandListTable.beginListWithCallback(cmd, [DX12_CAPTURE_DEF_EQ](auto cmd) {
     GFSDK_Aftermath_ContextHandle handle = nullptr;
     api.createContextHandle(cmd, &handle);
     return ContextPointer(handle, {api.releaseContextHandle});
   });
 }
 
-void Aftermath::endCommandBuffer(ID3D12GraphicsCommandList *cmd) { commandListTable.endList(cmd); }
+void Aftermath::endCommandBuffer(D3DGraphicsCommandList *cmd) { commandListTable.endList(cmd); }
 
-void Aftermath::beginEvent(ID3D12GraphicsCommandList *cmd, eastl::span<const char>, const eastl::string &full_path)
+void Aftermath::beginEvent(D3DGraphicsCommandList *cmd, eastl::span<const char>, const eastl::string &full_path)
 {
   auto &context = commandListTable.getList(cmd);
   api.setEventMarker(context.get(), full_path.data(), full_path.size());
 }
 
-void Aftermath::endEvent(ID3D12GraphicsCommandList *cmd, const eastl::string &full_path)
+void Aftermath::endEvent(D3DGraphicsCommandList *cmd, const eastl::string &full_path)
 {
   auto &context = commandListTable.getList(cmd);
   api.setEventMarker(context.get(), full_path.data(), full_path.size());
 }
 
-void Aftermath::marker(ID3D12GraphicsCommandList *cmd, eastl::span<const char> text)
+void Aftermath::marker(D3DGraphicsCommandList *cmd, eastl::span<const char> text)
 {
   auto &context = commandListTable.getList(cmd);
   api.setEventMarker(context.get(), text.data(), text.size());
 }
 
-void Aftermath::draw(const call_stack::CommandData &, D3DGraphicsCommandList *, const PipelineStageStateBase &,
-  const PipelineStageStateBase &, BasePipeline &, PipelineVariant &, uint32_t, uint32_t, uint32_t, uint32_t, D3D12_PRIMITIVE_TOPOLOGY)
-{}
-
-void Aftermath::drawIndexed(const call_stack::CommandData &, D3DGraphicsCommandList *, const PipelineStageStateBase &,
-  const PipelineStageStateBase &, BasePipeline &, PipelineVariant &, uint32_t, uint32_t, uint32_t, int32_t, uint32_t,
-  D3D12_PRIMITIVE_TOPOLOGY)
-{}
-
-void Aftermath::drawIndirect(const call_stack::CommandData &, D3DGraphicsCommandList *, const PipelineStageStateBase &,
-  const PipelineStageStateBase &, BasePipeline &, PipelineVariant &, const BufferResourceReferenceAndOffset &)
-{}
-
-void Aftermath::drawIndexedIndirect(const call_stack::CommandData &, D3DGraphicsCommandList *, const PipelineStageStateBase &,
-  const PipelineStageStateBase &, BasePipeline &, PipelineVariant &, const BufferResourceReferenceAndOffset &)
-{}
-
-void Aftermath::dispatchIndirect(const call_stack::CommandData &, D3DGraphicsCommandList *, const PipelineStageStateBase &,
-  ComputePipeline &, const BufferResourceReferenceAndOffset &)
-{}
-
-void Aftermath::dispatch(const call_stack::CommandData &, D3DGraphicsCommandList *, const PipelineStageStateBase &, ComputePipeline &,
-  uint32_t, uint32_t, uint32_t)
-{}
-
-void Aftermath::dispatchMesh(const call_stack::CommandData &, D3DGraphicsCommandList *, const PipelineStageStateBase &,
-  const PipelineStageStateBase &, BasePipeline &, PipelineVariant &, uint32_t, uint32_t, uint32_t)
-{}
-
-void Aftermath::dispatchMeshIndirect(const call_stack::CommandData &, D3DGraphicsCommandList *, const PipelineStageStateBase &,
-  const PipelineStageStateBase &, BasePipeline &, PipelineVariant &, const BufferResourceReferenceAndOffset &,
-  const BufferResourceReferenceAndOffset &, uint32_t)
-{}
-
-void Aftermath::blit(const call_stack::CommandData &, D3DGraphicsCommandList *) {}
-
-#if D3D_HAS_RAY_TRACING
-void Aftermath::dispatchRays(const call_stack::CommandData &, D3DGraphicsCommandList *, const RayDispatchBasicParameters &,
-  const ResourceBindingTable &, const RayDispatchParameters &)
-{}
-
-void Aftermath::dispatchRaysIndirect(const call_stack::CommandData &, D3DGraphicsCommandList *, const RayDispatchBasicParameters &,
-  const ResourceBindingTable &, const RayDispatchIndirectParameters &)
-{}
-#endif
-
 void Aftermath::onDeviceRemoved(D3DDevice *, HRESULT reason, call_stack::Reporter &)
 {
+  lastError = reason;
   if (DXGI_ERROR_INVALID_CALL == reason)
   {
     // Invalid call is catched by the runtime and we will not get anything from Aftermath.
     return;
   }
 
-  logdbg("DX12: Checking for NVIDIA Aftermath crash dumps...");
-  GFSDK_Aftermath_CrashDump_Status crashDumpStatus = GFSDK_Aftermath_CrashDump_Status_Unknown;
-  AFTHERMATH_CALL(api.getCrashDumpStatus(&crashDumpStatus));
-  if (GFSDK_Aftermath_CrashDump_Status_NotStarted == crashDumpStatus)
-  {
-    logdbg("DX12: ...reported no crash dump was generated");
-    return;
-  }
-
-  constexpr uint32_t collectingDataWait = 50;
-  constexpr uint32_t invokingCallbackWait = 50;
-  constexpr uint32_t unkownWait = 100;
-  // 100ms * 50 = 5 seconds, after that we abort waiting
-  constexpr uint32_t maxUnkownWaitCount = 50;
-
-  uint32_t unkownWaitCount = 0;
-  for (;;)
-  {
-    AFTHERMATH_CALL(api.getCrashDumpStatus(&crashDumpStatus));
-    if (GFSDK_Aftermath_CrashDump_Status_CollectingData == crashDumpStatus)
-    {
-      logdbg("DX12: ...collecting data, waiting for %ums...", collectingDataWait);
-      watchdog_kick();
-      sleep_msec(collectingDataWait);
-    }
-    else if (GFSDK_Aftermath_CrashDump_Status_CollectingDataFailed == crashDumpStatus)
-    {
-      logdbg("DX12: ...collecting data failed, no dump was produced");
-      break;
-    }
-    else if (GFSDK_Aftermath_CrashDump_Status_InvokingCallback == crashDumpStatus)
-    {
-      logdbg("DX12: ...processing crash dump, waiting for %ums...", invokingCallbackWait);
-      watchdog_kick();
-      sleep_msec(invokingCallbackWait);
-    }
-    else if (GFSDK_Aftermath_CrashDump_Status_Finished == crashDumpStatus)
-    {
-      logdbg("DX12: ...finished");
-      break;
-    }
-    else if (GFSDK_Aftermath_CrashDump_Status_Unknown == crashDumpStatus)
-    {
-      // For driver that do not fully support the query the lib will return unknown and may
-      // return either finished or failed.
-      // To be sure we have also a max iteration count and exit when reached.
-      logdbg("DX12: ...working, waiting for %ums...", unkownWait);
-      watchdog_kick();
-      sleep_msec(unkownWait);
-      if (++unkownWaitCount > maxUnkownWaitCount)
-      {
-        logdbg("DX12: ...max waiting reached, aborting");
-        break;
-      }
-    }
-    else
-    {
-      logdbg("DX12: ...unexpected return code %u, aborting", crashDumpStatus);
-      break;
-    }
-  }
+  waitForDump();
 }
 
 bool Aftermath::sendGPUCrashDump(const char *type, const void *data, uintptr_t size)
@@ -864,7 +852,7 @@ bool Aftermath::sendGPUCrashDump(const char *type, const void *data, uintptr_t s
 
 void Aftermath::onDeviceShutdown() { commandListTable.reset(); }
 
-bool Aftermath::onDeviceSetup(ID3D12Device *device, const Configuration &config, const Direct3D12Enviroment &)
+bool Aftermath::onDeviceSetup(D3DDevice *device, const Configuration &config, const Direct3D12Enviroment &)
 {
   // clear old cached aftermath contexts, which can become invalid after manual
   // device reset for example
@@ -890,5 +878,20 @@ bool Aftermath::onDeviceSetup(ID3D12Device *device, const Configuration &config,
   }
   logdbg("DX12: ...NVIDIA Aftermath GPU postmortem trace enabled for device %p", device);
   return true;
+}
+
+void Aftermath::nameResource(ID3D12Resource *resource, eastl::string_view name)
+{
+  set_name(resource, name);
+  GFSDK_Aftermath_ResourceHandle handle;
+  api.registerResource(resource, &handle);
+}
+
+void Aftermath::nameResource(ID3D12Resource *resource, eastl::wstring_view name)
+{
+  // technically not correct, when name is a sub-string...
+  resource->SetName(name.data());
+  GFSDK_Aftermath_ResourceHandle handle;
+  api.registerResource(resource, &handle);
 }
 } // namespace drv3d_dx12::debug::gpu_postmortem::nvidia

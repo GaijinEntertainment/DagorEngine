@@ -1,13 +1,14 @@
+import "matching.errors" as matching_errors
+from "matching.api" import matching_listen_notify, matching_login, matching_logout, matching_call
+from "eventbus" import eventbus_subscribe, eventbus_subscribe_onehit
+from "json" import object_to_json_string, parse_json
+from "dagor.time" import format_unixtime, get_local_unixtime
 from "%darg/ui_imports.nut" import *
+
 let textInput = require("samples_prog/_basic/components/textInput.nut")
 let autoScrollTextArea = require("samples_prog/_basic/components/autoScrollTextArea.nut")
 let textLog  = require("textlog.nut")
 
-let { matching_listen_notify, matching_login, matching_logout, matching_call } = require("matching.api")
-let matching_errors = require("matching.errors")
-let { eventbus_subscribe, eventbus_subscribe_onehit } = require("eventbus")
-let { object_to_json_string, parse_json } = require("json")
-let {format_unixtime, get_local_unixtime} = require("dagor.time")
 
 enum LoginState {
   Disconnected,
@@ -31,24 +32,24 @@ local rpcCmd = Watched("")
 local rpcParams = Watched("{}")
 
 local loginBtnText = Computed(function() {
-  if (loginState.value == LoginState.Disconnected)
+  if (loginState.get() == LoginState.Disconnected)
     return "Login"
-  if (loginState.value == LoginState.Connecting)
+  if (loginState.get() == LoginState.Connecting)
     return "Cancel"
   return "Logout"
 })
 
 local loginStatusText = Computed(function() {
-  if (loginState.value == LoginState.Disconnected)
+  if (loginState.get() == LoginState.Disconnected)
     return "Disconnected"
-  else if (loginState.value == LoginState.Connecting)
+  else if (loginState.get() == LoginState.Connecting)
     return "Connecting"
   else
     return "Logged In"
 })
 
 local loginStatusColor = Computed(function() {
-  if (loginState.value == LoginState.LoggedIn)
+  if (loginState.get() == LoginState.LoggedIn)
     return Color(50, 128, 50)
   return Color(200, 200, 200)
 })
@@ -58,7 +59,7 @@ local serverNotify = Watched("")
 
 local resultLog = Watched([])
 lastResult.subscribe(function(val) {
-  local newKey = resultLog.value.len() ? resultLog.value.top().key + 1 : 0
+  local newKey = resultLog.get().len() ? resultLog.get().top().key + 1 : 0
   resultLog.mutate(@(v)
     v.append(
       {key = null, text = $"> {format_unixtime("%H:%M:%S", get_local_unixtime())}:", color=Color(255, 197, 17)}, //-format-arguments-count
@@ -69,7 +70,7 @@ lastResult.subscribe(function(val) {
 
 local notifyLog = Watched([])
 serverNotify.subscribe(function(val) {
-  local newKey = notifyLog.value.len() ? notifyLog.value.top().key + 1 : 0
+  local newKey = notifyLog.get().len() ? notifyLog.get().top().key + 1 : 0
   notifyLog.mutate(@(v) v.append(
     {key = null, text = $"> {format_unixtime("%H:%M:%S", get_local_unixtime())}:", color=Color(255, 197, 17)} //-format-arguments-count
     {key = newKey, text = val}
@@ -85,9 +86,9 @@ function subscribeNotify(name, handler = printNotify) {
 }
 
 function sendRPC() {
-  let reqInfo = matching_call(rpcCmd.value, parse_json(rpcParams.value))
+  let reqInfo = matching_call(rpcCmd.get(), parse_json(rpcParams.get()))
   if (reqInfo?.reqId != null) {
-    eventbus_subscribe_onehit($"{rpcCmd.value}.{reqInfo.reqId}",
+    eventbus_subscribe_onehit($"{rpcCmd.get()}.{reqInfo.reqId}",
       function(result) {
         if (result.error != 0)
           lastResult(matching_errors.error_string(result.error))
@@ -115,11 +116,11 @@ eventbus_subscribe("matching.on_disconnect", function(reason) {
 })
 
 function onLoginButtonClick() {
-  if (loginState.value == LoginState.Disconnected) {
+  if (loginState.get() == LoginState.Disconnected) {
     loginState(LoginState.Connecting)
     matching_login(loginInfo)
   }
-  else if (loginState.value == LoginState.LoggedIn)  {
+  else if (loginState.get() == LoginState.LoggedIn)  {
     matching_logout()
   }
 }
@@ -127,7 +128,7 @@ function onLoginButtonClick() {
 let loginButton = @() {
   rendObj = ROBJ_SOLID
   color = Color(0,25,205)
-  size = [pw(100), SIZE_TO_CONTENT]
+  size = static [pw(100), SIZE_TO_CONTENT]
   behavior = Behaviors.Button
   valign = ALIGN_CENTER
   halign = ALIGN_CENTER
@@ -136,15 +137,15 @@ let loginButton = @() {
   watch = loginBtnText
   children = {
     rendObj = ROBJ_TEXT
-    text = loginBtnText.value
+    text = loginBtnText.get()
   }
 }
 
 let loginStatus =  @() {
   rendObj = ROBJ_TEXT
   watch = loginStatusText
-  text = loginStatusText.value
-  color = loginStatusColor.value
+  text = loginStatusText.get()
+  color = loginStatusColor.get()
 }
 
 let loginInfoC = @() {
@@ -154,7 +155,7 @@ let loginInfoC = @() {
   padding = hdpx(5)
   children = loginInfo.map(@(value, key) {
     flow = FLOW_HORIZONTAL
-    size = [hdpx(500), SIZE_TO_CONTENT]
+    size = static [hdpx(500), SIZE_TO_CONTENT]
     children = [
       autoScrollTextArea({text = key})
       autoScrollTextArea({text = value})
@@ -164,43 +165,43 @@ let loginInfoC = @() {
 
 let logsBlock = @() {
   flow = FLOW_HORIZONTAL
-  size = [pw(100), flex()]
+  size = static [pw(100), flex()]
   watch = [lastResult, serverNotify]
   children = [
     {
       flow = FLOW_VERTICAL
-      size = [pw(40), flex()]
+      size = static [pw(40), flex()]
       children = [
         {
-          size = [pw(100), SIZE_TO_CONTENT]
+          size = static [pw(100), SIZE_TO_CONTENT]
           rendObj = ROBJ_TEXT
           text = "Result"
         }
         {
           rendObj = ROBJ_SOLID
           color = Color(0, 0, 0)
-          size = [flex(), flex()]
-          children = textLog(resultLog, {size = [pw(100), ph(100)]})
+          size = flex()
+          children = textLog(resultLog, {size = static [pw(100), ph(100)]})
         }
       ]
     }
     {
-      size = [flex(), 0]
+      size = static [flex(), 0]
     }
     {
       flow = FLOW_VERTICAL
-      size = [pw(40), flex()]
+      size = static [pw(40), flex()]
       children = [
         {
-          size = [pw(100), SIZE_TO_CONTENT]
+          size = static [pw(100), SIZE_TO_CONTENT]
           rendObj = ROBJ_TEXT
           text = "Notifications"
         }
         {
           rendObj = ROBJ_SOLID
           color = Color(0, 0, 0)
-          size = [flex(), flex()]
-          children = textLog(notifyLog, {size = [pw(100), ph(100)]})
+          size = flex()
+          children = textLog(notifyLog, {size = static [pw(100), ph(100)]})
         }
       ]
     }
@@ -212,13 +213,13 @@ local subscribeVal = Watched("")
 let rpcForm = {
   flow = FLOW_VERTICAL
   valign = ALIGN_TOP
-  size = [pw(100), ph(30)]
+  size = static [pw(100), ph(30)]
   gap = hdpx(6)
   children = [
     { rendObj = ROBJ_TEXT text = "Send command" }
     {
       flow = FLOW_HORIZONTAL
-      size = [pw(100), SIZE_TO_CONTENT]
+      size = static [pw(100), SIZE_TO_CONTENT]
       gap = sh(3)
       children = [
         {
@@ -228,7 +229,7 @@ let rpcForm = {
           children = [
             { rendObj = ROBJ_TEXT text = "Cmd:" }
             {
-              size = [flex(), flex()]
+              size = flex()
               children = textInput(rpcCmd, {
                 onReturn = sendRPC
                 margin=0
@@ -253,11 +254,11 @@ let rpcForm = {
         }
       ]
     }
-    { size = [0, flex()] }
+    { size = static [0, flex()] }
     { rendObj = ROBJ_TEXT text = "Subscribe" }
     {
-      size = [pw(50), SIZE_TO_CONTENT]
-      children = textInput(subscribeVal, { onReturn = @() subscribeNotify(subscribeVal.value)
+      size = static [pw(50), SIZE_TO_CONTENT]
+      children = textInput(subscribeVal, { onReturn = @() subscribeNotify(subscribeVal.get())
                                 margin = 0 textmargin = hdpx(2)})
     }
   ]
@@ -267,28 +268,28 @@ let rpcForm = {
 return {
   rendObj = ROBJ_SOLID
   color = Color(30,40,50)
-  size = [pw(100), ph(100)]
+  size = static [pw(100), ph(100)]
   children = {
     flow = FLOW_VERTICAL
     pos = [pw(5), ph(5)]
-    size = [pw(90), ph(90)]
+    size = static [pw(90), ph(90)]
     gap = sh(10)
     children = [{
         flow = FLOW_HORIZONTAL
-        size = [pw(100), SIZE_TO_CONTENT]
+        size = static [pw(100), SIZE_TO_CONTENT]
         children = [
           {
             flow = FLOW_VERTICAL
             gap = sh(1)
             valign = ALIGN_CENTER
             halign = ALIGN_CENTER
-            size = [pw(10), SIZE_TO_CONTENT]
+            size = static [pw(10), SIZE_TO_CONTENT]
             children = [
               loginStatus
               loginButton
             ]
           }
-          {size = [flex(), SIZE_TO_CONTENT]}
+          {size = FLEX_H}
           loginInfoC
         ]
       }

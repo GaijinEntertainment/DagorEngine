@@ -15,6 +15,7 @@
 #include "pipeline_state.h"
 #include "buffer.h"
 #include "texture.h"
+#include "sampler_cache.h"
 #include <perfMon/dag_graphStat.h>
 
 using namespace drv3d_vulkan;
@@ -81,8 +82,8 @@ bool d3d::setvdecl(VDECL vdecl)
 
 bool d3d::set_const_buffer(uint32_t stage, uint32_t unit, Sbuffer *buffer, uint32_t consts_offset, uint32_t consts_size)
 {
-  G_ASSERT_RETURN(!consts_offset && !consts_size, false); // not implemented
-  G_ASSERT((nullptr == buffer) || (buffer->getFlags() & SBCF_BIND_CONSTANT));
+  D3D_CONTRACT_ASSERT_RETURN(!consts_offset && !consts_size, false); // not implemented
+  D3D_CONTRACT_ASSERT((nullptr == buffer) || (buffer->getFlags() & SBCF_BIND_CONSTANT));
   LocalAccessor la;
 
   auto &resBinds = la.pipeState.getStageResourceBinds((ShaderStage)stage);
@@ -102,7 +103,7 @@ bool d3d::set_const_buffer(uint32_t stage, uint32_t unit, Sbuffer *buffer, uint3
 
 bool d3d::setvsrc_ex(int stream, Vbuffer *vb, int ofs, int stride_bytes)
 {
-  G_ASSERT(stream < MAX_VERTEX_INPUT_STREAMS);
+  D3D_CONTRACT_ASSERT(stream < MAX_VERTEX_INPUT_STREAMS);
   LocalAccessor la;
 
   using Bind = StateFieldGraphicsVertexBufferBind;
@@ -112,7 +113,7 @@ bool d3d::setvsrc_ex(int stream, Vbuffer *vb, int ofs, int stride_bytes)
   if (vb)
   {
     bRef = ((GenericBufferInterface *)vb)->getBufferRef();
-    G_ASSERTF(((GenericBufferInterface *)vb)->getFlags() & SBCF_BIND_VERTEX,
+    D3D_CONTRACT_ASSERTF(((GenericBufferInterface *)vb)->getFlags() & SBCF_BIND_VERTEX,
       "vulkan: using non vertex buffer %p:%s in vertex bind slot %u", bRef.buffer, bRef.buffer->getDebugName(), stream);
   }
   Bind bind{bRef, (uint32_t)ofs};
@@ -211,7 +212,7 @@ bool d3d::set_program(PROGRAM prog_id)
       }
       break;
       case program_type_compute: la.pipeState.set<StateFieldComputeProgram, ProgramID, FrontComputeState>(prog); break;
-      default: G_ASSERTF(false, "Broken program type"); return false;
+      default: D3D_CONTRACT_ASSERT_FAIL_RETURN(false, "Broken program type");
     }
   }
   return true;
@@ -226,7 +227,7 @@ bool d3d::set_blend_factor(E3DCOLOR color)
   return true;
 }
 
-bool d3d::set_tex(unsigned shader_stage, unsigned unit, BaseTexture *tex, bool use_sampler)
+bool d3d::set_tex(unsigned shader_stage, unsigned unit, BaseTexture *tex)
 {
   LocalAccessor la;
 
@@ -237,9 +238,9 @@ bool d3d::set_tex(unsigned shader_stage, unsigned unit, BaseTexture *tex, bool u
   auto &resBinds = la.pipeState.getStageResourceBinds((ShaderStage)shader_stage);
 
   bool anyDiff = false;
-  if (use_sampler && texture)
+  if (false && texture)
   {
-    SRegister sReg(texture->samplerState);
+    SRegister sReg(Globals::samplers.getDefaultSampler());
     anyDiff |= resBinds.set<StateFieldSRegisterSet, StateFieldSRegister::Indexed>({unit, sReg});
   }
   TRegister tReg(texture);
@@ -263,7 +264,7 @@ bool d3d::set_rwtex(unsigned shader_stage, unsigned unit, BaseTexture *tex, uint
 
 bool d3d::set_buffer(unsigned shader_stage, unsigned unit, Sbuffer *buffer)
 {
-  G_ASSERT((nullptr == buffer) || buffer->getFlags() & SBCF_BIND_SHADER_RES || buffer->getFlags() & SBCF_BIND_UNORDERED);
+  D3D_CONTRACT_ASSERT((nullptr == buffer) || buffer->getFlags() & SBCF_BIND_SHADER_RES || buffer->getFlags() & SBCF_BIND_UNORDERED);
   LocalAccessor la;
 
   auto &resBinds = la.pipeState.getStageResourceBinds((ShaderStage)shader_stage);
@@ -289,6 +290,8 @@ void d3d::set_sampler(unsigned shader_stage, unsigned unit, d3d::SamplerHandle s
   LocalAccessor la;
 
   SamplerResource *samplerResource = reinterpret_cast<SamplerResource *>(sampler);
+  D3D_CONTRACT_ASSERTF(!samplerResource || !is_null(samplerResource->samplerInfo.handle), "vulkan: invalid sampler %p supplied!",
+    samplerResource);
   auto &resBinds = la.pipeState.getStageResourceBinds((ShaderStage)shader_stage);
 
   SRegister sReg(samplerResource);

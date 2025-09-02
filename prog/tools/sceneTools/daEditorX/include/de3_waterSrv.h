@@ -29,7 +29,7 @@ public:
   virtual void hide_water() = 0;
 
   virtual void beforeRender(Stage stage) = 0;
-  virtual void renderGeometry(Stage stage) = 0;
+  void renderGeometry(Stage stage) override = 0;
   virtual void buildDistanceField(const Point2 &hmap_center, float hmap_rad, float rivers_size) = 0;
   virtual void term() = 0;
 

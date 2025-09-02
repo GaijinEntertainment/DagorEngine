@@ -43,7 +43,7 @@ struct CommandStreamSet
     else
     {
       CommandListStoreType newList;
-      if (newList.autoQuery([=](auto uuid, auto ptr) //
+      if (newList.autoQuery([DX12_CAPTURE_DEF_EQ](auto uuid, auto ptr) //
             { return DX12_DEBUG_OK(device->CreateCommandList(0, CommandListTypeName, pool.Get(), nullptr, uuid, ptr)); }))
       {
         lists.push_back(eastl::move(newList));

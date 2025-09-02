@@ -3,6 +3,7 @@
 #include <ioSys/dag_dataBlock.h>
 #include <math/dag_math3d.h>
 #include <math/dag_e3dColor.h>
+#include <math/integer/dag_IPoint4.h>
 #include <util/dag_simpleString.h>
 
 bool cpyBlkParam(const DataBlock &source, const int s_ind, DataBlock &dest, const char *new_name)
@@ -27,6 +28,8 @@ bool cpyBlkParam(const DataBlock &source, const int s_ind, DataBlock &dest, cons
     case DataBlock::TYPE_IPOINT2: dest.addIPoint2(name, source.getIPoint2(s_ind)); return true;
 
     case DataBlock::TYPE_IPOINT3: dest.addIPoint3(name, source.getIPoint3(s_ind)); return true;
+
+    case DataBlock::TYPE_IPOINT4: dest.addIPoint4(name, source.getIPoint4(s_ind)); return true;
 
     case DataBlock::TYPE_E3DCOLOR: dest.addE3dcolor(name, source.getE3dcolor(s_ind)); return true;
 
@@ -61,6 +64,8 @@ bool cmpBlkParam(const DataBlock &source, const int s_ind, DataBlock &dest, cons
     case DataBlock::TYPE_IPOINT2: return (source.getIPoint2(s_ind) == dest.getIPoint2(d_ind));
 
     case DataBlock::TYPE_IPOINT3: return (source.getIPoint3(s_ind) == dest.getIPoint3(d_ind));
+
+    case DataBlock::TYPE_IPOINT4: return (source.getIPoint4(s_ind) == dest.getIPoint4(d_ind));
 
     case DataBlock::TYPE_E3DCOLOR: return (source.getE3dcolor(s_ind) == dest.getE3dcolor(d_ind));
 

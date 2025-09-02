@@ -2,6 +2,7 @@
 #pragma once
 
 #include "tabPage.h"
+#include <propPanel/colors.h>
 #include "../scopedImguiBeginDisabled.h"
 
 namespace PropPanel
@@ -15,12 +16,12 @@ public:
     ContainerPropertyControl(id, event_handler, parent, x, y, w, h)
   {}
 
-  virtual unsigned getTypeMaskForSet() const override { return CONTROL_DATA_TYPE_INT; }
-  virtual unsigned getTypeMaskForGet() const override { return CONTROL_DATA_TYPE_INT; }
+  unsigned getTypeMaskForSet() const override { return CONTROL_DATA_TYPE_INT; }
+  unsigned getTypeMaskForGet() const override { return CONTROL_DATA_TYPE_INT; }
 
-  virtual int getIntValue() const override { return selectedId; }
+  int getIntValue() const override { return selectedId; }
 
-  virtual void setIntValue(int value) override
+  void setIntValue(int value) override
   {
     if (value == selectedId)
       return;
@@ -38,16 +39,16 @@ public:
     selectedId = found ? value : -1;
   }
 
-  virtual void onControlAdd(PropertyControlBase *control) override { G_ASSERT_LOG(false, "TabPanel can contain only TabPages!"); }
+  void onControlAdd(PropertyControlBase *control) override { G_ASSERT_LOG(false, "TabPanel can contain only TabPages!"); }
 
-  virtual void clear() override
+  void clear() override
   {
     selectedId = -1;
 
     ContainerPropertyControl::clear();
   }
 
-  virtual ContainerPropertyControl *createTabPage(int id, const char caption[]) override
+  ContainerPropertyControl *createTabPage(int id, const char caption[]) override
   {
     TabPagePropertyControl *newControl = new TabPagePropertyControl(mEventHandler, this, id, 0, 0, hdpi::Px(0), hdpi::Px(0), caption);
 
@@ -60,7 +61,7 @@ public:
     return newControl;
   }
 
-  virtual void updateImgui() override
+  void updateImgui() override
   {
     if (!ImGui::BeginTabBar("TabPanel"))
       return;
@@ -82,8 +83,10 @@ public:
       if (selected)
         ImGui::PushStyleColor(ImGuiCol_Tab, ImGui::GetStyleColorVec4(ImGuiCol_TabSelected));
 
+      ImGui::PushStyleColor(ImGuiCol_Text, PropPanel::getOverriddenColor(PropPanel::ColorOverride::TAB_BAR_TITLE));
       if (ImGui::TabItemButton(tabPage->getStringCaption()))
         newSelectedId = pageId;
+      ImGui::PopStyleColor();
 
       if (selected)
       {

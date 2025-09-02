@@ -21,7 +21,7 @@
 #include <ioSys/dag_lzmaIo.h>
 #include <ioSys/dag_btagCompr.h>
 #include <supp/dag_alloca.h>
-#include <atomic>
+#include <osApiWrappers/dag_atomic_types.h>
 
 #if DAGOR_DBGLEVEL > 0
 CONSOLE_BOOL_VAL("water", phys_tex_on, false);
@@ -36,7 +36,7 @@ class FFTWater
 #if DAGOR_DBGLEVEL > 0
   UniqueTex physTex;
 #endif
-  std::atomic<double> currentPhysTime;
+  dag::AtomicFloat<double> currentPhysTime;
   double lastTime;
   NVWaveWorks_FFT_CPU_Simulation::Params params;
   float waterLevel;
@@ -44,8 +44,8 @@ class FFTWater
   int minRenderResBits;
 
 public:
-  void setCurrentTime(double time) { currentPhysTime.store(time, std::memory_order_release); }
-  double getCurrentTime() const { return currentPhysTime.load(std::memory_order_acquire); }
+  void setCurrentTime(double time) { currentPhysTime.store(time, dag::memory_order_release); }
+  double getCurrentTime() const { return currentPhysTime.load(dag::memory_order_acquire); }
   double getLastTime() const { return lastTime; }
   void setPeriod(float period)
   {
@@ -59,8 +59,9 @@ public:
     if (physics)
       physics->reinit(Point2(params.wind_dir_x, params.wind_dir_y), params.wind_speed, params.fft_period);
   }
-  float getPeriod() { return params.fft_period; }
-  FFTWater(int num_render_cascades, int min_render_res_bits) : render(NULL), physics(NULL), numRenderCascades(num_render_cascades)
+  float getPeriod() const { return params.fft_period; }
+  FFTWater(int num_render_cascades, int min_render_res_bits) :
+    render(NULL), physics(NULL), numRenderCascades(num_render_cascades), currentPhysTime(0.0)
   {
     minRenderResBits = max<int>(min_render_res_bits, MIN_FFT_RESOLUTION);
     params.fft_resolution_bits = minRenderResBits;
@@ -70,11 +71,11 @@ public:
     params.choppy_scale = 1.0f;
     params.wave_amplitude = 0.7f;
     params.fft_period = 1000.0f;
-    lastTime = currentPhysTime = 0.0;
+    lastTime = 0.0;
     waterLevel = 0;
     setWind(1.0f, Point2(0.8, 0.6));
   }
-  void getWind(float &out_speed, Point2 &out_wind_dir)
+  void getWind(float &out_speed, Point2 &out_wind_dir) const
   {
     out_speed = params.wind_speed;
     out_wind_dir = Point2(params.wind_dir_x, params.wind_dir_y);
@@ -198,7 +199,8 @@ public:
     return params.fft_resolution_bits;
   }
 
-  void initRender(int quality, int geom_quality, bool depth_renderer, bool ssr_renderer, bool one_to_four_cascades)
+  void initRender(int quality, int geom_quality, bool depth_renderer, bool ssr_renderer, bool one_to_four_cascades,
+    bool water_heightmap_draw_patches)
   {
     bool saveParams = render != NULL;
     int aniso = saveParams ? render->getAnisotropy() : 0;
@@ -217,7 +219,7 @@ public:
     NVWaveWorks_FFT_CPU_Simulation::Params newParams = params;
     newParams.fft_resolution_bits = getActualFFTResolutionBits(quality);
     render = new WaterNVRender(newParams, simulation, quality, geom_quality, depth_renderer, ssr_renderer, one_to_four_cascades,
-      numRenderCascades, cascadeWindowLength, cascadeFacetSize, waterHeightmap.get());
+      numRenderCascades, cascadeWindowLength, cascadeFacetSize, waterHeightmap.get(), water_heightmap_draw_patches);
 
     if (saveParams)
     {
@@ -233,7 +235,7 @@ public:
   {
     if (render)
       initRender(render->getQuality(), render->getGeomQuality(), render->isDepthRendererEnabled(), render->isSSRRendererEnabled(),
-        render->getOneToFourCascades());
+        render->getOneToFourCascades(), render->isWaterHeightmapDrawPatches());
   }
   int getNumCascades() const { return numRenderCascades; }
   void setNumCascades(int cascades)
@@ -243,7 +245,7 @@ public:
     numRenderCascades = cascades;
     if (render)
       initRender(render->getQuality(), render->getGeomQuality(), render->isDepthRendererEnabled(), render->isSSRRendererEnabled(),
-        render->getOneToFourCascades());
+        render->getOneToFourCascades(), render->isWaterHeightmapDrawPatches());
   }
   void resetPhysics()
   {
@@ -256,7 +258,7 @@ public:
       physics->wait();
   }
   void closePhysics() { del_it(physics); }
-  bool validateNextTimeTick(double time) { return physics ? physics->validateNextTimeTick(time) : true; }
+  bool validateNextTimeTick(double time) const { return physics ? physics->validateNextTimeTick(time) : true; }
   void initPhysics()
   {
     G_ASSERT(physics == NULL);
@@ -267,14 +269,14 @@ public:
       getCascadeFacetSize(), waterHeightmap.get());
 
     lastTime = 0;
-    currentPhysTime = 0;
+    currentPhysTime.store(0);
   }
 
-  fft_water::WaterFlowmap *getFlowmap() { return waterFlowmap.get(); }
+  fft_water::WaterFlowmap *getFlowmap() const { return waterFlowmap.get(); }
   void createFlowmap() { waterFlowmap.reset(new fft_water::WaterFlowmap()); }
   void removeFlowmap() { waterFlowmap.reset(nullptr); }
 
-  const fft_water::WaterHeightmap *getHeightmap() { return waterHeightmap.get(); }
+  const fft_water::WaterHeightmap *getHeightmap() const { return waterHeightmap.get(); }
   void setHeightmap(eastl::unique_ptr<fft_water::WaterHeightmap> &&water_heightmap)
   {
     waterHeightmap = eastl::move(water_heightmap);
@@ -317,7 +319,7 @@ public:
 
       int fifo1, fifo2;
       float fifo2Part;
-      physics->getFifoIndex(currentPhysTime, fifo1, fifo2, fifo2Part);
+      physics->getFifoIndex(currentPhysTime.load(), fifo1, fifo2, fifo2Part);
       vec3f v_fifo2Part = v_splats(fifo2Part);
       Point3_vec4 displacements;
 
@@ -351,19 +353,30 @@ public:
     if (physics)
       physics->setLevel(level);
   }
-  float getHeight(const Point3 &point)
+  float getMinLevel() const
+  {
+    if (render)
+      return render->getMinLevel();
+    return waterLevel;
+  }
+  float getMaxLevel() const
+  {
+    if (render)
+      return render->getMaxLevel();
+    return waterLevel;
+  }
+  void setMinMaxLevel(float min_level, float max_level)
+  {
+    if (render)
+      render->setMinMaxLevel(min_level, max_level);
+  }
+  float getHeight(const Point3 &point) const
   {
     if (physics)
     {
       vec4f disp = physics->getHeightmapDataBilinear(point.x, point.z);
       return v_extract_z(disp);
     }
-    return waterLevel;
-  }
-  float getMaxLevel()
-  {
-    if (waterHeightmap)
-      return waterHeightmap->heightMax;
     return waterLevel;
   }
   float getMaxWaveHeight() const { return physics ? physics->getMaxWaveHeight() : 0.0f; }
@@ -693,14 +706,14 @@ void init() { init_nv_wave_works(); }
 void close() { close_nv_wave_works(); }
 
 FFTWater *create_water(RenderQuality quality, float period, int res_bits, bool depth_renderer, bool ssr_renderer,
-  bool one_to_four_cascades, int min_render_res_bits, RenderQuality geom_quality)
+  bool one_to_four_cascades, int min_render_res_bits, RenderQuality geom_quality, bool water_heightmap_draw_patches)
 {
   FFTWater *water = new FFTWater(fft_water::DEFAULT_NUM_CASCADES, min_render_res_bits);
   water->setFFTRenderResolution(res_bits);
   water->setPeriod(period);
   if (quality != DONT_RENDER)
     water->initRender(quality, geom_quality != RenderQuality::UNDEFINED ? geom_quality : quality, depth_renderer, ssr_renderer,
-      one_to_four_cascades);
+      one_to_four_cascades, water_heightmap_draw_patches);
   water->initPhysics();
   water->simulateAllAt(0);
 
@@ -713,17 +726,17 @@ FFTWater *create_water(RenderQuality quality, float period, int res_bits, bool d
   return water;
 }
 void init_render(FFTWater *handle, int quality, bool depth_renderer, bool ssr_renderer, bool one_to_four_cascades,
-  RenderQuality geom_quality)
+  RenderQuality geom_quality, bool water_heightmap_draw_patches)
 {
   if (!handle)
     return;
   if (quality != DONT_RENDER)
     handle->initRender(quality, geom_quality != RenderQuality::UNDEFINED ? geom_quality : quality, depth_renderer, ssr_renderer,
-      one_to_four_cascades);
+      one_to_four_cascades, water_heightmap_draw_patches);
   else
     handle->closeRender();
 }
-bool one_to_four_render_enabled(FFTWater *handle)
+bool one_to_four_render_enabled(const FFTWater *handle)
 {
   if (handle && handle->getRender())
     return handle->getRender()->getOneToFourCascades();
@@ -744,7 +757,7 @@ void set_period(FFTWater *a, float period)
   if (a)
     a->setPeriod(period);
 }
-float get_period(FFTWater *handle) { return handle ? handle->getPeriod() : 0.f; }
+float get_period(const FFTWater *handle) { return handle ? handle->getPeriod() : 0.f; }
 void delete_water(FFTWater *&a)
 {
 #if DAGOR_DBGLEVEL > 0
@@ -765,7 +778,7 @@ void simulate(FFTWater *handle, double time)
 
   handle->simulateAllAt(time);
 }
-void before_render(FFTWater *handle)
+void before_render(const FFTWater *handle)
 {
   if (!handle->getRender())
     return;
@@ -774,7 +787,7 @@ void before_render(FFTWater *handle)
   handle->getRender()->calculateGradients();
 }
 
-float getGridLod0AreaSize(FFTWater *handle)
+float getGridLod0AreaSize(const FFTWater *handle)
 {
   if (!handle->getRender())
     return 0.f;
@@ -787,8 +800,9 @@ void setGridLod0AdditionalTesselation(FFTWater *handle, float additional_tessela
     handle->getRender()->setGridLod0AdditionalTesselation(additional_tesselation);
 }
 
-void render(FFTWater *handle, const Point3 &pos, TEXTUREID distance_tex_id, const Frustum &frustum, const Driver3dPerspective &persp,
-  int geom_lod_quality, int survey_id, IWaterDecalsRenderHelper *decals_renderer, RenderMode render_mode)
+void render(const FFTWater *handle, const Point3 &pos, TEXTUREID distance_tex_id, const Frustum &frustum,
+  const Driver3dPerspective &persp, int geom_lod_quality, int survey_id, IWaterDecalsRenderHelper *decals_renderer,
+  RenderMode render_mode)
 {
   TIME_D3D_PROFILE(fft_water_render);
 
@@ -808,12 +822,14 @@ void prepare_refraction(FFTWater *handle, Texture *scene_target_tex)
     return;
   handle->getRender()->prepareRefraction(scene_target_tex);
 }
-float get_level(FFTWater *handle) { return handle->getLevel(); }
-float get_max_level(FFTWater *handle) { return handle->getMaxLevel(); }
+float get_level(const FFTWater *handle) { return handle->getLevel(); }
 void set_level(FFTWater *handle, float level) { handle->setLevel(level); }
-float get_height(FFTWater *handle, const Point3 &point) { return handle->getHeight(point); }
-float get_max_wave(FFTWater *handle) { return handle->getMaxWaveHeight(); }
-float get_significant_wave_height(FFTWater *handle) { return handle->getSignificantWaveHeight(); }
+float get_min_level(const FFTWater *handle) { return handle->getMinLevel(); }
+float get_max_level(const FFTWater *handle) { return handle->getMaxLevel(); }
+void set_min_max_level(FFTWater *handle, float min_level, float max_level) { handle->setMinMaxLevel(min_level, max_level); }
+float get_height(const FFTWater *handle, const Point3 &point) { return handle->getHeight(point); }
+float get_max_wave(const FFTWater *handle) { return handle->getMaxWaveHeight(); }
+float get_significant_wave_height(const FFTWater *handle) { return handle->getSignificantWaveHeight(); }
 void set_wave_displacement_distance(FFTWater *handle, const Point2 &value)
 {
   if (handle && handle->getRender())
@@ -826,14 +842,14 @@ void shore_enable(FFTWater *handle, bool enable)
     handle->getRender()->shoreEnable(enable);
 }
 
-bool is_shore_enabled(FFTWater *handle)
+bool is_shore_enabled(const FFTWater *handle)
 {
   if (handle && handle->getRender())
     return handle->getRender()->isShoreEnabled();
   return false;
 }
 
-float get_shore_wave_threshold(FFTWater *handle)
+float get_shore_wave_threshold(const FFTWater *handle)
 {
   if (handle && handle->getRender())
     return handle->getRender()->getShoreWaveThreshold();
@@ -846,7 +862,7 @@ void set_shore_wave_threshold(FFTWater *handle, float value)
     handle->getRender()->setShoreWaveThreshold(value);
 }
 
-int get_fft_resolution(FFTWater *handle)
+int get_fft_resolution(const FFTWater *handle)
 {
   if (handle)
     return handle->getFFTRenderResolution();
@@ -859,19 +875,13 @@ void set_fft_resolution(FFTWater *handle, int res_bits)
     handle->setFFTRenderResolution(res_bits);
 }
 
-void set_render_pass(FFTWater *handle, int pass)
-{
-  if (handle && handle->getRender())
-    handle->getRender()->setRenderPass(pass);
-}
-
 void reset_render(FFTWater *handle)
 {
   if (handle)
     handle->resetRender();
 }
 
-int get_num_cascades(FFTWater *handle)
+int get_num_cascades(const FFTWater *handle)
 {
   if (handle)
     return handle->getNumCascades();
@@ -888,7 +898,7 @@ void set_render_quality(FFTWater *handle, int quality, bool depth_renderer, bool
 {
   if (handle && handle->getRender() && handle->getRender()->getQuality() != quality)
     handle->initRender(quality, handle->getRender()->getGeomQuality(), depth_renderer, ssr_renderer,
-      handle->getRender()->getOneToFourCascades());
+      handle->getRender()->getOneToFourCascades(), handle->getRender()->isWaterHeightmapDrawPatches());
 }
 
 void setAnisotropy(FFTWater *handle, int aniso, float mip_bias)
@@ -897,7 +907,7 @@ void setAnisotropy(FFTWater *handle, int aniso, float mip_bias)
     handle->getRender()->setAnisotropy(aniso, mip_bias);
 }
 
-float get_small_wave_fraction(FFTWater *handle)
+float get_small_wave_fraction(const FFTWater *handle)
 {
   if (handle)
     return handle->getSmallWaveFraction();
@@ -910,7 +920,7 @@ void set_small_wave_fraction(FFTWater *handle, float smallWaveFraction)
     handle->setSmallWaveFraction(smallWaveFraction);
 }
 
-float get_cascade_window_length(FFTWater *handle)
+float get_cascade_window_length(const FFTWater *handle)
 {
   if (handle)
     return handle->getCascadeWindowLength();
@@ -923,7 +933,7 @@ void set_cascade_window_length(FFTWater *handle, float value)
     handle->setCascadeWindowLength(value);
 }
 
-float get_cascade_facet_size(FFTWater *handle)
+float get_cascade_facet_size(const FFTWater *handle)
 {
   if (handle)
     return handle->getCascadeFacetSize();
@@ -936,7 +946,7 @@ void set_cascade_facet_size(FFTWater *handle, float value)
     handle->setCascadeFacetSize(value);
 }
 
-SimulationParams get_simulation_params(FFTWater *handle)
+SimulationParams get_simulation_params(const FFTWater *handle)
 {
   if (handle)
     return handle->getSimulationParams();
@@ -955,7 +965,7 @@ void set_foam(FFTWater *handle, const FoamParams &params)
     handle->getRender()->setFoamParams(params);
 }
 
-FoamParams get_foam(FFTWater *handle)
+FoamParams get_foam(const FFTWater *handle)
 {
   if (handle && handle->getRender())
     return handle->getRender()->getFoamParams();
@@ -976,7 +986,7 @@ void enable_graphic_feature(FFTWater *handle, GraphicFeature feature, bool enabl
 #endif
 }
 
-void get_cascade_period(FFTWater *handle, int cascade_no, float &out_period, float &out_window_in, float &out_window_out)
+void get_cascade_period(const FFTWater *handle, int cascade_no, float &out_period, float &out_window_in, float &out_window_out)
 {
 #if DAGOR_DBGLEVEL > 0
   if (handle && handle->getRender())
@@ -993,16 +1003,16 @@ void get_cascade_period(FFTWater *handle, int cascade_no, float &out_period, flo
 void set_current_time(FFTWater *handle, double time) { return handle->setCurrentTime(time); }
 void reset_physics(FFTWater *handle) { handle->resetPhysics(); }
 void wait_physics(FFTWater *handle) { handle->waitPhysics(); }
-bool validate_next_time_tick(FFTWater *handle, double next_time) { return handle->validateNextTimeTick(next_time); }
-int intersect_segment(FFTWater *handle, const Point3 &start, const Point3 &end, float &result)
+bool validate_next_time_tick(const FFTWater *handle, double next_time) { return handle->validateNextTimeTick(next_time); }
+int intersect_segment(const FFTWater *handle, const Point3 &start, const Point3 &end, float &result)
 {
   return handle->getPhysics()->intersectSegment(handle->getCurrentTime(), start, end, result);
 }
-int intersect_segment_at_time(FFTWater *handle, double time, const Point3 &start, const Point3 &end, float &result)
+int intersect_segment_at_time(const FFTWater *handle, double time, const Point3 &start, const Point3 &end, float &result)
 {
   return handle->getPhysics()->intersectSegment(time, start, end, result);
 }
-int getHeightAboveWater(FFTWater *handle, const Point3 &in_point, float &result, bool matchRenderGrid)
+int getHeightAboveWater(const FFTWater *handle, const Point3 &in_point, float &result, bool matchRenderGrid)
 {
   return handle->getPhysics()->getHeightAboveWater(handle->getCurrentTime(), in_point, result, nullptr, matchRenderGrid);
 }
@@ -1015,13 +1025,13 @@ void setRenderParamsToPhysics(FFTWater *handle)
   handle->getRender()->getGridDataAtCamera(gridAlign, gridOffset);
   handle->getPhysics()->setRenderParams(gridAlign, gridOffset);
 }
-int getHeightAboveWaterAtTime(FFTWater *handle, double at_time, const Point3 &in_point, float &result, Point3 *displacement)
+int getHeightAboveWaterAtTime(const FFTWater *handle, double at_time, const Point3 &in_point, float &result, Point3 *displacement)
 {
   return handle->getPhysics()->getHeightAboveWater(at_time, in_point, result, displacement);
 }
-void get_wind_speed(FFTWater *handle, float &out_speed, Point2 &out_wind_dir) { handle->getWind(out_speed, out_wind_dir); }
+void get_wind_speed(const FFTWater *handle, float &out_speed, Point2 &out_wind_dir) { handle->getWind(out_speed, out_wind_dir); }
 void set_wind_speed(FFTWater *handle, float speed, const Point2 &wind_dir) { handle->setWind(speed, wind_dir); }
-void get_roughness(FFTWater *handle, float &out_roughness_base, float &out_cascades_roughness_base)
+void get_roughness(const FFTWater *handle, float &out_roughness_base, float &out_cascades_roughness_base)
 {
   out_roughness_base = 0;
   out_cascades_roughness_base = 0;
@@ -1068,7 +1078,7 @@ void force_actual_waves(FFTWater *handle, bool enforce)
   }
 }
 
-fft_water::WaterFlowmap *get_flowmap(FFTWater *handle)
+fft_water::WaterFlowmap *get_flowmap(const FFTWater *handle)
 {
   if (handle)
     return handle->getFlowmap();
@@ -1087,7 +1097,7 @@ void remove_flowmap(FFTWater *handle)
     handle->removeFlowmap();
 }
 
-const fft_water::WaterHeightmap *get_heightmap(FFTWater *handle) { return handle->getHeightmap(); }
+const fft_water::WaterHeightmap *get_heightmap(const FFTWater *handle) { return handle->getHeightmap(); }
 void set_heightmap(FFTWater *handle, eastl::unique_ptr<WaterHeightmap> &&heightmap) { handle->setHeightmap(eastl::move(heightmap)); }
 void remove_heightmap(FFTWater *handle) { handle->removeHeightmap(); }
 

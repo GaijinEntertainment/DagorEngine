@@ -33,7 +33,7 @@
 #define REPLAY_META_JSON       "replaymeta.json"
 #define REPLAY_CONN_ID         NET_MAX_PLAYERS
 
-extern net::CNetwork &net_ctx_init_client(net::INetDriver *drv);
+extern net::CNetwork &net_ctx_init_client(ecs::EntityManager &mgr, net::INetDriver *drv);
 extern void net_ctx_set_recording_replay_filename(const char *path);
 extern void set_time_internal(ITimeManager *tmgr);
 extern net::CNetwork *get_net_internal();
@@ -254,7 +254,7 @@ void net_replay_rewind()
     net::replay_rewind(get_net_internal()->getDriver(), replay.startTime * 1000);
 }
 
-bool try_create_replay_playback()
+bool try_create_replay_playback(ecs::EntityManager &mgr)
 {
   app_profile::ProfileSettings &profile = app_profile::getRW();
   auto &play = profile.replay.playFile;
@@ -273,14 +273,14 @@ bool try_create_replay_playback()
 
   load_replay_footer_info(replayFooterData, replay_meta_info);
 
-  auto &cnet = net_ctx_init_client(drv);
+  auto &cnet = net_ctx_init_client(mgr, drv);
   cnet.addConnection(net::create_stub_connection(), 0);
 
   if (profile.replay.startTime > 0)
     set_timespeed(0);
   set_time_internal(create_replay_time(profile.replay.startTime));
 
-  net::event::init_client();
+  net::event::init_client(&mgr);
   netstat::init();
 
   return true;

@@ -1,0 +1,14 @@
+"@override:source" {
+  file:t = "../../../prog/gameLibs/bvh/shaders/bvh_debug.dshl"
+  file:t = "../../../prog/gameLibs/bvh/shaders/bvh_hwinstance_copy_metal.dshl"
+  file:t = "../../../prog/gameLibs/bvh/shaders/bvh_process_dynrend_indices.dshl"
+  file:t = "../../../prog/gameLibs/bvh/shaders/bvh_process_ahs_vertices.dshl"
+  file:t = "../../../prog/gameLibs/bvh/shaders/bvh_process_skinned_vertices.dshl"
+  file:t = "../../../prog/gameLibs/bvh/shaders/bvh_process_heli_rotor_vertices.dshl"
+  file:t = "../../../prog/gameLibs/bvh/shaders/bvh_process_flag_vertices.dshl"
+  file:t = "../../../prog/gameLibs/bvh/shaders/bvh_process_deformed_vertices.dshl"
+  file:t = "../../../prog/gameLibs/bvh/shaders/bvh_process_tree_vertices.dshl"
+  file:t = "../../../prog/gameLibs/bvh/shaders/bvh_process_impostor_vertices.dshl"
+  file:t = "../../../prog/gameLibs/bvh/shaders/bvh_process_leaves_vertices.dshl"
+  file:t = "../../../prog/gameLibs/bvh/shaders/bvh_process_bake_texture_to_vertices.dshl"
+}

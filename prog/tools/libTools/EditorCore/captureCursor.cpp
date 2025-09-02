@@ -2,13 +2,16 @@
 
 #include <EditorCore/captureCursor.h>
 
-#include <windows.h>
 #include <osApiWrappers/dag_progGlobals.h>
 #include <debug/dag_debug.h>
 #include <startup/dag_inpDevClsDrv.h>
 #include <drv/hid/dag_hiPointing.h>
 
 #include <EditorCore/ec_rect.h>
+
+#if _TARGET_PC_WIN
+
+#include <windows.h>
 
 void capture_cursor(void *handle) { SetCapture((HWND)handle); }
 
@@ -110,3 +113,17 @@ void area_cursor_wrap(const EcRect &rc, int &p1, int &p2, int &wrapedX, int &wra
     SetCursorPos(pt.x - delta1, pt.y - delta2);
   }
 }
+
+#else
+
+// TODO: tools Linux porting: !!! captureCursor.cpp !!!
+
+void capture_cursor(void *handle) {}
+
+void release_cursor(void) {}
+
+void cursor_wrap(int &p1, int &p2, void *handle) {}
+
+void area_cursor_wrap(const EcRect &rc, int &p1, int &p2, int &wrapedX, int &wrapedY) {}
+
+#endif

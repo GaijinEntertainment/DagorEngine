@@ -65,14 +65,19 @@ UseProgLibs =
 
   gameLibs/webui
   gameLibs/daSkies2
+  gameLibs/resourcePool
   gameLibs/render
   gameLibs/visualConsole
   gameLibs/fftWater
   gameLibs/heightmap
   engine/consoleProc
-  gameLibs/render/daBfg
+  gameLibs/render/daFrameGraph
   gameLibs/folders
 ;
+
+if $(Config) = dev && $(Platform) in windows linux xboxOne scarlett ps4 ps5 {
+  CppStcode ?= both ;
+}
 
 if $(Platform) in windows {
   UseProgLibs +=

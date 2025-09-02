@@ -19,6 +19,7 @@
 #include <math/dag_vecMathCompatibility.h>
 #include <math/dag_Point4.h>
 #include <math/dag_mathUtils.h>
+#include <math/random/dag_random.h>
 #include <util/dag_oaHashNameMap.h>
 #include <memory/dag_framemem.h>
 #include <phys/dag_physResource.h>
@@ -67,7 +68,7 @@ static int sweepRIGenInBoxByMask(RendInstGenData *rgl, const BBox3 &_box, unsign
 
     auto mrange = make_span_const(crt.sysMemData.get(), crt.vbSize);
     int pcnt = crt.pools.size();
-    float cell_x0 = as_point4(&crt.cellOrigin).x, cell_z0 = as_point4(&crt.cellOrigin).z;
+    float cell_x0 = v_extract_x(crt.cellOrigin), cell_z0 = v_extract_z(crt.cellOrigin);
     vec3f v_cell_add = crt.cellOrigin;
     vec3f v_cell_mul =
       v_mul(rendinst::gen::VC_1div32767, v_make_vec4f(subcellSz * SUBCELL_DIV, crt.cellHeight, subcellSz * SUBCELL_DIV, 0));
@@ -126,7 +127,9 @@ static int sweepRIGenInBoxByMask(RendInstGenData *rgl, const BBox3 &_box, unsign
                   {
                     if (axis.lengthSq() < 0.001f)
                     {
-                      Point3 newAxis = as_point3(&tm.col3) - _box.center();
+                      Point3_vec4 pos;
+                      v_st(&pos.x, tm.col3);
+                      Point3 newAxis = pos - _box.center();
                       newAxis.y = 0.0f;
                       const float axisMultiplier = max(1 - (length(newAxis) / (_box.width().x * 0.5f)), 0.1f);
                       newAxis = normalize(newAxis);
@@ -329,12 +332,75 @@ rendinst::DestroyedRi *rendinst::doRIGenExternalControl(const rendinst::RendInst
   return ri;
 }
 
-bool rendinst::fillTreeInstData(const RendInstDesc &desc, const Point2 &impact_velocity_xz, bool from_damage, TreeInstData &out_data)
+Tab<rendinst::DestroyedRi *> rendinst::doRIGenExternalControlMultiple(const RendInstDesc &desc, int copy_count, bool rem_rendinst)
+{
+  if (desc.isRiExtra())
+  {
+    const int pool = rendinst::riExtra[desc.pool].riPoolRef;
+    if (pool < 0)
+      return {};
+
+    RendInstGenData *rgl = rendinst::getRgLayer(rendinst::riExtra[desc.pool].riPoolRefLayer);
+    G_ASSERT(rgl && pool < rgl->rtData->riProperties.size());
+
+    const bool treeBehaviour = rgl ? rgl->rtData->riProperties[pool].treeBehaviour : false;
+
+    if (!treeBehaviour)
+      return {};
+
+    TMatrix tm = rendinst::getRIGenMatrix(desc);
+    mat44f tm44;
+    v_mat44_make_from_43cu_unsafe(tm44, tm.array);
+
+    Tab<DestroyedRi *> result(framemem_ptr());
+    result.reserve(copy_count);
+    for (int i = 0; i < copy_count; ++i)
+    {
+      if (DestroyedRi *ri = rgl->rtData->addExternalDebris(tm44, pool))
+        result.push_back(ri);
+    }
+
+    return result;
+  }
+
+  RendInstGenData::Cell *cell = nullptr;
+  int16_t *data = desc.idx == 0 ? riutil::get_data_by_desc_no_subcell(desc, cell) : riutil::get_data_by_desc(desc, cell);
+  if (!data)
+    return {};
+  RendInstGenData *rgl = RendInstGenData::getGenDataByLayer(desc);
+
+  rendinst::RendInstBufferData buffer;
+  if (!riutil::extract_buffer_data(desc, rgl, data, buffer))
+    return {};
+  mat44f tm;
+  if (!riutil::get_rendinst_matrix(desc, rgl, data, cell, tm))
+    return {};
+  if (rem_rendinst)
+    riutil::remove_rendinst(desc, rgl, *cell->rtData, data);
+
+  Tab<DestroyedRi *> result(framemem_ptr());
+  result.reserve(copy_count);
+
+  for (int i = 0; i < copy_count; ++i)
+  {
+    if (DestroyedRi *ri = rgl->rtData->addExternalDebris(tm, desc.pool))
+    {
+      ri->savedData = buffer; // just POD copy
+      result.push_back(ri);
+    }
+  }
+  if (RendInstGenData::renderResRequired)
+    rgl->updateVb(*cell->rtData, desc.cellIdx);
+  return result;
+}
+
+
+bool rendinst::fillTreeInstData(const RendInstDesc &desc, bool from_damage, TreeInstData &out_data)
 {
   RendInstGenData *rgl = nullptr;
   int pool = -1;
 
-  rendinstdestr::TreeDestr::BranchDestr *branchDestr = nullptr;
+  rendinstdestr::BranchDestr *branchDestr = nullptr;
   if (desc.isRiExtra())
   {
     pool = rendinst::riExtra[desc.pool].riPoolRef;
@@ -357,12 +423,11 @@ bool rendinst::fillTreeInstData(const RendInstDesc &desc, const Point2 &impact_v
     from_damage ? &rgl->rtData->riProperties[pool].treeBranchDestrFromDamage : &rgl->rtData->riProperties[pool].treeBranchDestrOther;
 
   out_data.rndSeed = _rnd(rendinstTreeRndSeed);
-  out_data.impactXZ = impact_velocity_xz;
   out_data.branchDestr.apply(*branchDestr);
   return true;
 }
 
-void rendinst::updateTreeDestrRenderData(const TMatrix &original_tm, riex_handle_t ri_handle, TreeInstData &tree_inst_data,
+void rendinst::updateTreeDestrRenderData(riex_handle_t ri_handle, TreeInstData &tree_inst_data,
   const TreeInstDebugData *tree_inst_debug_data)
 {
   if (!tree_inst_data.branchDestr.enableBranchDestruction && !tree_inst_debug_data)
@@ -374,26 +439,61 @@ void rendinst::updateTreeDestrRenderData(const TMatrix &original_tm, riex_handle
                    : tree_inst_data.branchDestr;
 
   Point2 impulseXZ = tree_inst_data.impactXZ * branch.impulseMul;
-  rendinst::RiExtraPerInstanceItem perInstanceData[5];
+  rendinst::RiExtraPerInstanceGpuItem perInstanceData[2];
+  uint32_t perInstanceDataSize = countof(perInstanceData);
 
   auto fnPack = [](float v, float maxValue, int bits, int offset) -> uint32_t {
-    return clamp((uint32_t)(v / maxValue * ((1 << bits) - 1)), 0u, (1u << bits) - 1u) << offset;
+    float clampedValue = clamp(v, 0.0f, maxValue);
+    uint32_t packedValue = (uint32_t)(clampedValue / maxValue * (1u << bits));
+    packedValue = min(packedValue, (1u << bits) - 1);
+    return packedValue << offset;
   };
+
+  auto fnPackSigned = [](float v, float maxValue, int bits, int offset) -> uint32_t {
+    int valueBits = bits - 1;
+    float absV = fabsf(v);
+    float clampedAbsValue = clamp(absV, 0.0f, maxValue);
+    uint32_t result = (uint32_t)(clampedAbsValue / maxValue * (1 << valueBits));
+    result = min(result, (1u << valueBits) - 1);
+    result = result << offset;
+    if (v < 0.0f)
+      result |= 1 << (valueBits + offset);
+    return result;
+  };
+
+  TreeInstData::CutType cutType = tree_inst_data.cutType;
+  if (tree_inst_debug_data)
+    cutType = tree_inst_debug_data->disableCut ? TreeInstData::CutType::None : cutType;
 
   float impulseMagnitude = impulseXZ.length();
   float branchFallingChance = (impulseMagnitude - branch.impulseMin) / max(0.01f, branch.impulseMax - branch.impulseMin);
-  if (branchFallingChance <= 0.0f)
+  if (branchFallingChance <= 0.0f && cutType == TreeInstData::CutType::None)
     return;
 
   uint32_t randSeed = tree_inst_data.rndSeed % (1 << 8);
-  uint32_t randSeed_branchFallingChance = randSeed << 16 | fnPack(branchFallingChance, 1.0f, 16, 0);
+  uint32_t randSeed_branchFallingChance_topPart =
+    randSeed << 24 | fnPack(branchFallingChance, 1.0f, 16, 8) | (uint8_t)(tree_inst_data.cutType);
 
   float branchRangeInv = 1.0f / (branch.branchSizeMax - branch.branchSizeMin);
-  uint32_t branchSizeData =
-    fnPack(branch.branchSizeSlowDown, 1.0f, 8, 16) | fnPack(branch.branchSizeMin, 100.0f, 8, 8) | fnPack(branchRangeInv, 5.0f, 8, 0);
+  uint32_t branchSizeData = fnPack(branch.branchSizeSlowDown, 1.0f, 8, 24) | fnPack(branch.fallThroughGroundIfBigger, 20.0f, 8, 16) |
+                            fnPack(branch.branchSizeMin, 100.0f, 8, 8) | fnPack(branchRangeInv, 5.0f, 8, 0);
 
+  Point3 localImpactPos = tree_inst_data.localImpactPos;
+  if (tree_inst_debug_data && tree_inst_debug_data->useCutHeightOverride)
+    localImpactPos = normalize(localImpactPos) * tree_inst_debug_data->cutHeightOverride;
+  else if (cutType == TreeInstData::CutType::None)
+    localImpactPos.y = 10000.0f; // None renders as the bottom part, so the cut height is moved very high
+
+  uint32_t localImpactPosXZData = fnPackSigned(localImpactPos.x, 10.0f, 16, 16) | fnPackSigned(localImpactPos.z, 10.0f, 16, 0);
   perInstanceData[0] = {
-    randSeed_branchFallingChance, branchSizeData, bitwise_cast<uint32_t>(impulseXZ.x), bitwise_cast<uint32_t>(impulseXZ.y)};
+    randSeed_branchFallingChance_topPart, branchSizeData, localImpactPosXZData, bitwise_cast<uint32_t>(localImpactPos.y)};
+
+  if (branchFallingChance <= 0.0f)
+  { // No branches are falling, only cut info is needed in the shader
+    rendinst::setRiExtraPerInstanceRenderAdditionalData(ri_handle, rendinst::RiExtraPerInstanceDataType::DESTR_RENDER_DATA,
+      rendinst::RiExtraPerInstanceDataPersistence::SINGLE_FRAME, perInstanceData, perInstanceDataSize);
+    return;
+  }
 
   float timerSec = (tree_inst_data.timer + (tree_inst_debug_data ? tree_inst_debug_data->timer_offset : 0.0f));
   float disappearTimerSec = tree_inst_data.disappearStartTime < 0.0f ? timerSec : (int)tree_inst_data.disappearStartTime;
@@ -406,17 +506,12 @@ void rendinst::updateTreeDestrRenderData(const TMatrix &original_tm, riex_handle
   uint32_t speedData = fnPack(branch.fallingSpeedMul, 2.0f, 8, 16) | fnPack(branch.fallingSpeedRnd, 1.0f, 8, 8) |
                        fnPack(branch.horizontalSpeedMul, 20.0f, 8, 0);
 
-  perInstanceData[1] = {timersData, speedData, rotationData, 0};
+  uint32_t impulseData = fnPackSigned(impulseXZ.x, 20.0f, 16, 16) | fnPackSigned(impulseXZ.y, 20.0f, 16, 0);
 
-  perInstanceData[2] = {bitwise_cast<uint32_t>(original_tm.m[0][0]), bitwise_cast<uint32_t>(original_tm.m[0][1]),
-    bitwise_cast<uint32_t>(original_tm.m[0][2]), bitwise_cast<uint32_t>(original_tm.m[1][0])};
-  perInstanceData[3] = {bitwise_cast<uint32_t>(original_tm.m[1][1]), bitwise_cast<uint32_t>(original_tm.m[1][2]),
-    bitwise_cast<uint32_t>(original_tm.m[2][0]), bitwise_cast<uint32_t>(original_tm.m[2][1])};
-  perInstanceData[4] = {bitwise_cast<uint32_t>(original_tm.m[2][2]), bitwise_cast<uint32_t>(original_tm.m[3][0]),
-    bitwise_cast<uint32_t>(original_tm.m[3][1]), bitwise_cast<uint32_t>(original_tm.m[3][2])};
+  perInstanceData[1] = {timersData, speedData, rotationData, impulseData};
 
-  uint32_t perInstanceDataSize = countof(perInstanceData);
-  rendinst::setRiExtraPerInstanceRenderData(ri_handle, perInstanceData, perInstanceDataSize);
+  rendinst::setRiExtraPerInstanceRenderAdditionalData(ri_handle, rendinst::RiExtraPerInstanceDataType::DESTR_RENDER_DATA,
+    rendinst::RiExtraPerInstanceDataPersistence::SINGLE_FRAME, perInstanceData, perInstanceDataSize);
 }
 
 #if DEBUG_RI_DESTR
@@ -471,10 +566,23 @@ static bool debug_verify_destroy_pool_data(const rendinst::DestroyedPoolData &po
 }
 #endif
 
-static void add_destroyed_data(const rendinst::RendInstDesc &desc, RendInstGenData *ri_gen)
+static void add_destroyed_data(const rendinst::RendInstDesc &desc_, RendInstGenData *ri_gen)
 {
+  rendinst::RendInstDesc desc = desc_;
   G_ASSERTF(desc.isValid(), "add_destroyed_data: attemp to add invalid data cell %i idx %i pool %i offs %i", desc.cellIdx, desc.idx,
     desc.pool, desc.offs);
+
+  // ensure offs/cellIdx are initialized, because nothing prevents desc without them to be passed here
+  if (desc.isRiExtra() && rendinst::isRiGenDescValid(desc))
+  {
+    const auto restorable = rendinst::get_restorable_desc(desc);
+    G_ASSERTF_RETURN(restorable.isValid(), ,
+      "add_destroyed_data: invalid restorable desc for valid rendinst cell:%i idx:%i pool:%i offs:%i", desc.cellIdx, desc.idx,
+      desc.pool, desc.offs);
+    desc.offs = restorable.offs;
+    desc.cellIdx = restorable.cellIdx;
+  }
+
   rendinst::DestroyedCellData *destrCellData = nullptr;
 #if DEBUG_RI_DESTR
   print_debug_destr_data();
@@ -738,14 +846,15 @@ DynamicPhysObjectData *rendinst::doRIGenDestr(const RendInstDesc &desc, RendInst
 }
 
 DynamicPhysObjectData *rendinst::doRIGenDestrEx(const RendInstDesc &desc, bool create_destr_effects, ri_damage_effect_cb effect_cb,
-  int user_data)
+  int user_data, const Point3 &impulse, const Point3 &impulse_pos)
 {
   RendInstGenData *rgl = RendInstGenData::getGenDataByLayer(desc);
   if (desc.isRiExtra())
   {
     const RiExtraPool::ElemUniqueData *uniqueData = safe_at(riExtra[desc.pool].riUniqueData, desc.idx);
     bool isDynamicRi = riExtra[desc.pool].isDynamicRendinst || (uniqueData && uniqueData->cellId < 0);
-    rendinst::onRiExtraDestruction(rendinst::make_handle(desc.pool, desc.idx), isDynamicRi, create_destr_effects, user_data);
+    rendinst::onRiExtraDestruction(rendinst::make_handle(desc.pool, desc.idx), isDynamicRi, create_destr_effects, user_data, impulse,
+      impulse_pos);
     if (isDynamicRi)
       return nullptr;
 
@@ -915,7 +1024,7 @@ rendinst::riex_handle_t rendinst::restoreRiGenDestr(const RendInstDesc &desc, co
     RendInstDesc nonExtraDesc = desc;
     nonExtraDesc.cellIdx = -(nonExtraDesc.cellIdx + 1);
     nonExtraDesc.pool = riExtra[desc.pool].riPoolRef;
-    h = addRIGenExtra44(desc.pool, false, buffer.tm, true, nonExtraDesc.cellIdx, desc.offs);
+    h = addRIGenExtra44(desc.pool, buffer.tm, true /*has_collision*/, nonExtraDesc.cellIdx, desc.offs);
     if (h == RIEX_HANDLE_NULL)
       return h;
   }
@@ -1031,6 +1140,7 @@ void RendInstGenData::RtData::initDebris(const DataBlock &ri_blk, int (*get_fx_t
   rendinstGravitation = ::dgs_get_game_params()->getReal("rendinstGravitation", 2.f);
   rendinstAccumulatedPowerMult = ::dgs_get_game_params()->getReal("rendinstAccumulatedPowerMult", 3.f);
   rendinstAccumulatedRotation = ::dgs_get_game_params()->getReal("rendinstAccumulatedRotation", 0.5f);
+  bool immortalByDefault = ::dgs_get_game_params()->getBool("rendinstImmortalByDefault", false);
 
   FastNameMap debris_nm;
   FastNameMap destr_nm;
@@ -1067,6 +1177,8 @@ void RendInstGenData::RtData::initDebris(const DataBlock &ri_blk, int (*get_fx_t
   }
   G_ASSERTF(!errDuplicateBlocks, "Remove %d duplicate dmg{} descriptions in config/_*_dmg.blk", errDuplicateBlocks);
 
+  bool missingFxTemplateForTreesFlag = riExtraBlk->getBool("logwarnOnMissingFxTemplateForTrees", false);
+
   const rendinstdestr::TreeDestr &treeDestr = rendinstdestr::get_tree_destr();
   for (int i = 0; i < riResCnt; i++)
   {
@@ -1092,17 +1204,28 @@ void RendInstGenData::RtData::initDebris(const DataBlock &ri_blk, int (*get_fx_t
     if (objectDmgBlk)
     {
       riProperties[i].immortal = objectDmgBlk->getBool("immortal", false);
+      riProperties[i].damageable = objectDmgBlk->getReal("hp", -1.f) < 0.f &&
+                                   objectDmgBlk->getReal("destructionImpulse", -1.f) < 0.f &&
+                                   objectDmgBlk->getReal("impulseThreshold", -1.f) < 0.f;
+      if (!riProperties[i].immortal && immortalByDefault && !objectDmgBlk->paramExists("immortal"))
+        riProperties[i].immortal = !riProperties[i].damageable;
       riProperties[i].stopsBullets = objectDmgBlk->getBool("stopsBullets", true);
       riProperties[i].matId = PhysMat::getMaterialId(objectDmgBlk->getStr("material", defaultDmgBlk->getStr("material", nullptr)));
       riProperties[i].bushBehaviour = objectDmgBlk->getBool("bushBehaviour", false);
       riProperties[i].treeBehaviour = objectDmgBlk->getBool("treeBehaviour", false);
-      riProperties[i].canopyTriangle = objectDmgBlk->getBool("canopyTriangle", false);
+      const bool canopyTriangle = objectDmgBlk->getBool("canopyTriangle", false);
+      const bool canopySphere = objectDmgBlk->getBool("canopySphere", false);
+      riProperties[i].canopyShape = canopyTriangle ? RendInstGenData::CanopyShape::CONE
+                                    : canopySphere ? RendInstGenData::CanopyShape::SPHEROID
+                                                   : RendInstGenData::CanopyShape::BOX;
       riProperties[i].canopyTopOffset = objectDmgBlk->getReal("canopyTopOffset", 0.1f);
-      riProperties[i].canopyTopPart = objectDmgBlk->getReal("canopyTopPart", riProperties[i].canopyTriangle ? 0.75f : 0.4f);
+      riProperties[i].canopyTopPart = objectDmgBlk->getReal("canopyTopPart", canopyTriangle ? 0.75f : 0.4f);
       riProperties[i].canopyWidthPart = objectDmgBlk->getReal("canopyWidthPart", 0.3f);
       bool useCanopy = objectDmgBlk->paramExists("canopyTopPart") || objectDmgBlk->paramExists("canopyWidthPart") ||
-                       objectDmgBlk->paramExists("canopyTriangle") || objectDmgBlk->paramExists("canopyTopOffset");
+                       objectDmgBlk->paramExists("canopyTriangle") || objectDmgBlk->paramExists("canopyTopOffset") ||
+                       objectDmgBlk->paramExists("canopySphere");
       riProperties[i].canopyOpacity = objectDmgBlk->getReal("canopyOpacity", useCanopy ? 1.0f : 0.f);
+      riProperties[i].trunkRadius = objectDmgBlk->getReal("trunkDiam", -2.f) * 0.5f;
 
       riProperties[i].treeBranchDestrFromDamage = treeDestr.branchDestrFromDamage;
       rendinstdestr::branch_destr_load_from_blk(riProperties[i].treeBranchDestrFromDamage,
@@ -1120,6 +1243,8 @@ void RendInstGenData::RtData::initDebris(const DataBlock &ri_blk, int (*get_fx_t
       riDestr[i].isParent = objectDmgBlk->getBool("isParent", false);
       riDestr[i].destructibleByParent = objectDmgBlk->getBool("destructibleByParent", !riDestr[i].isParent);
       riDestr[i].destroyNeighbourDepth = objectDmgBlk->getInt("destroyNeighbourDepth", 1);
+      riDestr[i].tag = objectDmgBlk->getStr("tag", nullptr);
+      riDestr[i].destroyedByTag = objectDmgBlk->getStr("destroyedByTag", nullptr);
       riDestr[i].apexDestructible = objectDmgBlk->getBool("apexDestructible", false);
 
       riDestr[i].apexDestructionOptionsPresetName = objectDmgBlk->getStr("apexDestructionOptionsPresetName", nullptr);
@@ -1177,9 +1302,9 @@ void RendInstGenData::RtData::initDebris(const DataBlock &ri_blk, int (*get_fx_t
           scale = 0.5f * riRes[i]->bbox.width();
         else
           logerr("missing riResName[%d]=%s mentioned with scaleDebris", i, riResName[i]);
-        as_point4(&riDebrisMap[i].debrisTm.col0).x *= scale.x;
-        as_point4(&riDebrisMap[i].debrisTm.col1).y *= scale.y * 0.5f;
-        as_point4(&riDebrisMap[i].debrisTm.col2).z *= scale.z;
+        riDebrisMap[i].debrisTm.col0 = v_mul_x(riDebrisMap[i].debrisTm.col0, scale.x);
+        riDebrisMap[i].debrisTm.col1 = v_mul_y(riDebrisMap[i].debrisTm.col1, scale.y * 0.5f);
+        riDebrisMap[i].debrisTm.col2 = v_mul_z(riDebrisMap[i].debrisTm.col2, scale.z);
       }
       else
       {
@@ -1187,9 +1312,9 @@ void RendInstGenData::RtData::initDebris(const DataBlock &ri_blk, int (*get_fx_t
         mat33f m33;
         v_mat33_make_rot_cw_y(m33, v_splats(RadToDeg(objectDmgBlk->getReal("angle", 0.f))));
         riDebrisMap[i].debrisTm.set33(m33);
-        as_point4(&riDebrisMap[i].debrisTm.col0).x *= scale;
-        as_point4(&riDebrisMap[i].debrisTm.col1).y *= scale;
-        as_point4(&riDebrisMap[i].debrisTm.col2).z *= scale;
+        riDebrisMap[i].debrisTm.col0 = v_mul_x(riDebrisMap[i].debrisTm.col0, scale);
+        riDebrisMap[i].debrisTm.col1 = v_mul_y(riDebrisMap[i].debrisTm.col1, scale);
+        riDebrisMap[i].debrisTm.col2 = v_mul_z(riDebrisMap[i].debrisTm.col2, scale);
       }
 
       if (debris_get_fx_type_by_name)
@@ -1201,6 +1326,10 @@ void RendInstGenData::RtData::initDebris(const DataBlock &ri_blk, int (*get_fx_t
 
       if (const char *fxName = objectDmgBlk->getStr("fxTemplate", nullptr))
         riDebrisMap[i].fxTemplate = fxName;
+      else if (riPosInst[i] && missingFxTemplateForTreesFlag)
+      {
+        logwarn("Vegetation with riResName[%d]=%s have empty fxTemplate", i, riResName[i]);
+      }
 
       if (destroyedModelName)
       {
@@ -1220,19 +1349,26 @@ void RendInstGenData::RtData::initDebris(const DataBlock &ri_blk, int (*get_fx_t
     }
   }
 
-  if (const DataBlock *soundOccludersBlk = ri_blk.getBlockByName("soundOccluders"))
-    if (const DataBlock *soundOccluderTypesBlk = ri_blk.getBlockByName("soundOccluderTypes"))
+  const DataBlock *soundOccludersBlk = ri_blk.getBlockByName("soundOccluders");
+  const DataBlock *soundOccluderTypesBlk = ri_blk.getBlockByName("soundOccluderTypes");
+
+  if (soundOccludersBlk && soundOccluderTypesBlk)
+  {
+    G_ASSERT(riResName.size() == riProperties.size());
+    const int ricount = riResName.size();
+    for (int i = 0; i < ricount; ++i)
     {
-      G_ASSERT(riResName.size() == riProperties.size());
-      const int ricount = riResName.size();
-      for (int i = 0; i < ricount; ++i)
-      {
-        float value = 0.f;
-        if (const char *type = soundOccludersBlk->getStr(riResName[i], nullptr))
-          value = soundOccluderTypesBlk->getReal(type, 0.f);
-        riProperties[i].soundOcclusion = value;
-      }
+      float value = 0.f;
+      if (const char *type = soundOccludersBlk->getStr(riResName[i], nullptr))
+        value = soundOccluderTypesBlk->getReal(type, 0.f);
+      riProperties[i].soundOcclusion = value;
     }
+  }
+  else
+  {
+    for (auto &it : riProperties)
+      it.soundOcclusion = 0.f;
+  }
 
   if (rendinst::isRgLayerPrimary(layerIdx))
     addDebrisForRiExtraRange(ri_blk, 0, rendinst::riExtra.size());
@@ -1317,6 +1453,47 @@ void RendInstGenData::RtData::initDebris(const DataBlock &ri_blk, int (*get_fx_t
   }
 }
 
+void RendInstGenData::RtData::initRiSoundOccluders(
+  const dag::ConstSpan<eastl::pair<const char *, const char *>> &ri_name_to_occluder_type,
+  const dag::ConstSpan<eastl::pair<const char *, float>> &occluders)
+{
+  auto getType = [&](const char *res_name) {
+    if (res_name != nullptr)
+      for (auto &it : ri_name_to_occluder_type)
+        if (stricmp(it.first, res_name) == 0)
+          return it.second;
+    return (const char *)nullptr;
+  };
+
+  auto getValue = [&](const char *occluder_type) {
+    if (occluder_type != nullptr)
+      for (auto &it : occluders)
+        if (stricmp(it.first, occluder_type) == 0)
+          return it.second;
+    return 0.f;
+  };
+
+  const size_t ricount = min(riResName.size(), riProperties.size());
+  for (intptr_t i = 0; i < ricount; ++i)
+    riProperties[i].soundOcclusion = getValue(getType(riResName[i]));
+  const size_t ritotal = riProperties.size();
+  for (intptr_t i = ricount; i < ritotal; ++i)
+    riProperties[i].soundOcclusion = 0.f;
+}
+
+bool RendInstGenData::RtData::debugGetSoundOcclusion(const char *ri_name, float &value)
+{
+  if (ri_name == nullptr)
+    return false;
+  const size_t ricount = min(riResName.size(), riProperties.size());
+  for (intptr_t i = 0; i < ricount; ++i)
+    if (stricmp(riResName[i], ri_name) == 0)
+    {
+      value = riProperties[i].soundOcclusion;
+      return true;
+    }
+  return false;
+}
 
 void RendInstGenData::RtData::addDebris(mat44f &tm, int pool_idx, unsigned frameNo, const Point3 &axis, float accumulated_power)
 {
@@ -1331,7 +1508,7 @@ void RendInstGenData::RtData::addDebris(mat44f &tm, int pool_idx, unsigned frame
         mat43f m43;
         v_mat44_mul43(m, tm, riDebrisMap[pool_idx].debrisTm);
         v_mat44_transpose_to_mat43(m43, m);
-        rendinst::addRIGenExtra43(riDebris[debrisNo].resIdx, false, m43, false, -1, -1);
+        rendinst::addRIGenExtra43(riDebris[debrisNo].resIdx, m43, false /*has_collision*/, -1, -1);
         // debug("addDebris[%d] to %d %p", curDebris[0], debrisNo, riDebris[debrisNo].resIdx);
         curDebris[0]++;
         curTotal++;
@@ -1352,7 +1529,7 @@ void RendInstGenData::RtData::addDebris(mat44f &tm, int pool_idx, unsigned frame
       riDebrisDelayedRi.emplace_back(ri);
       rendinst::riExtra[debris.resIdx].useShadow = true;
       ri->debrisNo = debrisNo;
-      ri->riHandle = rendinst::addRIGenExtra44(debris.resIdx, false, tm, false, -1, -1);
+      ri->riHandle = rendinst::addRIGenExtra44(debris.resIdx, tm, false /*has_collision*/, -1, -1);
       ri->propsId = debris.props->needsUpdate() ? (debris.props - riDebrisMap.data()) : -1;
       ri->frameAdded = frameNo;
       ri->timeToDamage = riDebrisMap[pool_idx].damageDelay;
@@ -1360,13 +1537,10 @@ void RendInstGenData::RtData::addDebris(mat44f &tm, int pool_idx, unsigned frame
       ri->accumulatedPower = accumulated_power;
       ri->rotationPower = rnd_float(-rendinstAccumulatedRotation, rendinstAccumulatedRotation);
       if (axis.lengthSq() < FLT_EPSILON)
-      {
-        as_point4(&ri->axis).set(gsrnd(), 0.f, gsrnd(), 0);
-        normalizeDef(as_point3(&ri->axis), Point3(1.f, 0.f, 0.f));
-      }
+        ri->axis = v_norm3_safe(v_make_vec4f(gsrnd(), 0.f, gsrnd(), 0), V_C_UNIT_1000);
       else
-        as_point4(&ri->axis).set(axis.x, axis.y, axis.z, 0.f);
-      as_point4(&ri->normal).set(0.f, 1.f, 0.f, 0);
+        ri->axis = v_make_vec4f(axis.x, axis.y, axis.z, 0.f);
+      ri->normal = V_C_UNIT_0100;
       // debug("addDelayed[%d] to %d %p [%d  %08X-%08X]", curDebris[1], debrisNo, riDebris[debrisNo].resIdx, pool_idx, c0, c1);
       curDebris[1]++;
       curTotal++;
@@ -1390,7 +1564,7 @@ rendinst::DestroyedRi *RendInstGenData::RtData::addExternalDebris(mat44f &tm, in
   rendinst::DestroyedRi *ri = new rendinst::DestroyedRi;
   riDebrisDelayedRi.emplace_back(ri);
   rendinst::riExtra[debris.resIdx].useShadow = true;
-  ri->riHandle = rendinst::addRIGenExtra44(debris.resIdx, false, tm, false, -1, -1);
+  ri->riHandle = rendinst::addRIGenExtra44(debris.resIdx, tm, false /*has_collision*/, -1, -1);
   ri->debrisNo = debrisNo;
   ri->propsId = -1; // Doesn't matter since `shouldUpdate` == false
   ri->frameAdded = 0;
@@ -1399,8 +1573,8 @@ rendinst::DestroyedRi *RendInstGenData::RtData::addExternalDebris(mat44f &tm, in
   ri->rotationPower = 0.0f;
   ri->shouldUpdate = false;
   ri->fxType = riDebrisMap[pool_idx].fxType;
-  as_point4(&ri->axis).set(1.f, 0.f, 0.f, 0);
-  as_point4(&ri->normal).set(0.f, 1.f, 0.f, 0);
+  ri->axis = V_C_UNIT_1000;
+  ri->normal = V_C_UNIT_0100;
   curDebris[1]++;
   return ri;
 }
@@ -1493,6 +1667,12 @@ void RendInstGenData::RtData::addDebrisForRiExtraRange(const DataBlock &ri_blk, 
       riDestr[ref].destroyNeighbourDepth = b->getInt("destroyNeighbourDepth", 1);
       riDestr[ref].destructibleByParent = b->getBool("destructibleByParent", !riDestr[ref].isParent);
 
+      if (const char *tag = b->getStr("tag", nullptr))
+        riDestr[ref].tag = tag;
+
+      if (const char *destroyedByTag = b->getStr("destroyedByTag", nullptr))
+        riDestr[ref].destroyedByTag = destroyedByTag;
+
 #if RI_VERBOSE_OUTPUT
       debug("riExtra[%d] %s destructible! riPoolRef=%d fxType=%d fxScale=%.3f stopsBullets=%d destructionImpulse=%f", i, ri_res_name,
         ref, rendinst::riExtra[i].destrFxType, rendinst::riExtra[i].destrFxScale, (int)rendinst::riExtra[i].destrStopsBullets,
@@ -1581,6 +1761,8 @@ RendInstGenData::DestrProps &RendInstGenData::DestrProps::operator=(const DestrP
   isParent = p.isParent;
   destructibleByParent = p.destructibleByParent;
   destroyNeighbourDepth = p.destroyNeighbourDepth;
+  tag = p.tag;
+  destroyedByTag = p.destroyedByTag;
   destrName = p.destrName;
   destrFxId = p.destrFxId;
   destrFxName = p.destrFxName;

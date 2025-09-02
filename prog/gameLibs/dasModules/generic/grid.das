@@ -1,5 +1,6 @@
 require ecs
 require Grid
+options indenting = 2
 
 [generic]
 def for_each_entity_in_grid(grid_name_hash : uint; bounding : BBox3 | BSphere3; check_type : GridEntCheck; cb : block<(eid : EntityId; pos : float3) : void>)

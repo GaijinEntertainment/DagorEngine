@@ -400,7 +400,9 @@ bool SqModules::requireModule(const char *requested_fn, bool must_exist, const c
   sq_pushobject(vm, scriptClosure.GetObject());
   sq_pushnull(vm);
 
+  runningScriptClosuresStack.push_back(scriptClosure);
   SQRESULT callRes = sq_call(vm, 1, true, true);
+  runningScriptClosuresStack.pop_back();
 
   (void)rsIdx;
   SQRAT_ASSERT(runningScripts.size() == rsIdx+1);
@@ -427,6 +429,7 @@ bool SqModules::requireModule(const char *requested_fn, bool must_exist, const c
   module.fn = resolvedFn;
   module.stateStorage = stateStorage;
   module.refHolder = refHolder;
+  module.scriptClosure = scriptClosure;
   module.__name__ = __name__;
 
   modules.push_back(module);
@@ -444,6 +447,7 @@ bool SqModules::requireModule(const char *requested_fn, bool must_exist, const c
 
 bool SqModules::reloadModule(const char *fn, bool must_exist, const char *__name__, Sqrat::Object &exports, string &out_err_msg)
 {
+  resetStaticMemos();
   SQRAT_ASSERT(prevModules.empty());
 
   modules.swap(prevModules);
@@ -460,6 +464,7 @@ bool SqModules::reloadModule(const char *fn, bool must_exist, const char *__name
 
 bool SqModules::reloadAll(string &full_err_msg)
 {
+  resetStaticMemos();
   SQRAT_ASSERT(prevModules.empty());
   full_err_msg.clear();
 
@@ -484,14 +489,32 @@ bool SqModules::reloadAll(string &full_err_msg)
 }
 
 
-bool SqModules::addNativeModule(const char *module_name, const Sqrat::Object &exports)
+bool SqModules::addNativeModule(const char *module_name, const Sqrat::Object &exports, const char *module_doc_string)
 {
   if (!module_name || !*module_name)
     return false;
+
   auto ins = nativeModules.insert({string(module_name), exports});
+
+  if (module_doc_string && ins.second)
+    sq_setobjectdocstring(exports.vm, &const_cast<Sqrat::Object &>(exports).GetObject(), module_doc_string);
+
   return ins.second; // false if already registered
 }
 
+
+SQInteger SqModules::sqResetStaticMemos(HSQUIRRELVM vm)
+{
+  SQUserPointer selfPtr = nullptr;
+  if (SQ_FAILED(sq_getuserpointer(vm, -1, &selfPtr)) || !selfPtr)
+    return sq_throwerror(vm, "No module manager");
+
+  SqModules *self = reinterpret_cast<SqModules *>(selfPtr);
+  SQRAT_ASSERT(self->sqvm == vm);
+
+  self->resetStaticMemos();
+  return 0;
+}
 
 template<bool must_exist> SQInteger SqModules::sqRequire(HSQUIRRELVM vm)
 {
@@ -574,6 +597,24 @@ void SqModules::registerDebugLib()
   registerStdLibNativeModule("debug", sqstd_register_debuglib);
 }
 
+
+void SqModules::registerModulesLib()
+{
+  HSQOBJECT hModule;
+  sq_newtable(sqvm);
+  sq_getstackobj(sqvm, -1, &hModule);
+
+  sq_pushstring(sqvm, _SC("reset_static_memos"), -1);
+  sq_pushuserpointer(sqvm, this);
+  sq_newclosure(sqvm, sqResetStaticMemos, 1);
+  sq_setparamscheck(sqvm, 1, _SC("."));
+  sq_rawset(sqvm, -3);
+
+  bool regRes = addNativeModule("modules", Sqrat::Object(hModule, sqvm));
+  SQRAT_ASSERT(regRes);
+  sq_pop(sqvm, 1);
+}
+
 void SqModules::registerIoStreamLib()
 {
   HSQOBJECT hModule;
@@ -597,4 +638,16 @@ void SqModules::registerIoLib()
   }
 
   registerStdLibNativeModule("io", sqstd_register_iolib);
+}
+
+void SqModules::resetStaticMemos()
+{
+  for (Module & module : modules)
+    sq_reset_static_memos(sqvm, module.scriptClosure.GetObject());
+
+  for (Module & module : prevModules)
+    sq_reset_static_memos(sqvm, module.scriptClosure.GetObject());
+
+  for (Sqrat::Object &f : runningScriptClosuresStack)
+    sq_reset_static_memos(sqvm, f.GetObject());
 }

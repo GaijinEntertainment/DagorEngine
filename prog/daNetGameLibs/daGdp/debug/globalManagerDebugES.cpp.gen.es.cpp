@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "globalManagerDebugES.cpp.inl"
 ECS_DEF_PULL_VAR(globalManagerDebug);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc global_manager_debug_imgui_ecs_query_comps[] =
 {

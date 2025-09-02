@@ -1,5 +1,7 @@
 shader_root_dir:t="."
 outDumpName:t="../../game/compiledShaders/gameSpirV"
+engineRootDir:t="../../../.."
+compileCppStcode:b=yes
 
 include common_inc_dirs.blk
 source
@@ -18,7 +20,7 @@ common_assume_static { in_editor_assume:i=0; }
 
 Compile
 {
-  fsh:t = SpirV-4.0
+  fsh:t = SpirV
   assume_static {
     shore_waves_on:i= 0
     water_foam_tex:i = 0

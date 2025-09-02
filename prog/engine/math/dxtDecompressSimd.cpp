@@ -5,7 +5,7 @@
 #include <vecmath/dag_vecMath.h>
 #include <stdio.h>
 
-#define R_SHUFFLE_D(x, y, z, w) (((w)&3) << 6 | ((z)&3) << 4 | ((y)&3) << 2 | ((x)&3))
+#define R_SHUFFLE_D(x, y, z, w) (((w) & 3) << 6 | ((z) & 3) << 4 | ((y) & 3) << 2 | ((x) & 3))
 alignas(16) static int SIMD_SSE2_minus1[4] = {-1, 0, -1, 0};
 alignas(16) static unsigned short SIMD_SSE2_word_m3[8] = {0x0003, 0x0003, 0x0003, 0x0003, 0x0003, 0x0003, 0x0003, 0x0003};
 alignas(16) static unsigned int SIMD_SSE2_3[4] = {0x0003, 0, 0x0003, 0};

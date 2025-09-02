@@ -243,6 +243,13 @@ INLINE Point4 clamp(Point4 t, const Point4 min_val, const Point4 max_val)
   return min(max(t, min_val), max_val);
 }
 
+INLINE bool are_approximately_equal(const Point4 &a, const Point4 &b, float epsilon = 8 * FLT_EPSILON) // Three bits precision by
+                                                                                                       // default.
+{
+  return are_approximately_equal(a.x, b.x, epsilon) && are_approximately_equal(a.y, b.y, epsilon) &&
+         are_approximately_equal(a.z, b.z, epsilon) && are_approximately_equal(a.w, b.w, epsilon);
+}
+
 #undef INLINE
 
 /// @}

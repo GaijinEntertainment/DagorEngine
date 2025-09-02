@@ -71,13 +71,13 @@ class ColorDialog : public DialogWindow, public ICustomControl
 public:
   ColorDialog(void *phandle, const char caption[], E3DCOLOR color, hdpi::Px w = hdpi::_pxScaled(760),
     hdpi::Px h = hdpi::_pxScaled(390));
-  ~ColorDialog();
+  ~ColorDialog() override;
 
   // DialogWindow
-  virtual void show() override;
-  virtual void onChange(int pcb_id, ContainerPropertyControl *panel) override;
-  virtual void onClick(int pcb_id, ContainerPropertyControl *panel) override;
-  virtual void updateImguiDialog() override;
+  void show() override;
+  void onChange(int pcb_id, ContainerPropertyControl *panel) override;
+  void onClick(int pcb_id, ContainerPropertyControl *panel) override;
+  void updateImguiDialog() override;
 
   void fillPanel(ContainerPropertyControl *panel);
   E3DCOLOR getColor() const { return mColor; }
@@ -96,7 +96,7 @@ public:
 
 private:
   // ICustomControl
-  virtual void customControlUpdate(int id) override;
+  void customControlUpdate(int id) override;
 
   void setColor(E3DCOLOR color) { mOldColor = mColor = color; }
   void updatePalette();

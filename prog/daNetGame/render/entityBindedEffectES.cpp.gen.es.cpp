@@ -7,9 +7,11 @@ static constexpr ecs::component_t entity_binded_effect__entity_get_type();
 static ecs::LTComponentList entity_binded_effect__entity_component(ECS_HASH("entity_binded_effect__entity"), entity_binded_effect__entity_get_type(), "prog/daNetGame/render/entityBindedEffectES.cpp.inl", "", 0);
 static constexpr ecs::component_t entity_binded_effect__localEmitter_get_type();
 static ecs::LTComponentList entity_binded_effect__localEmitter_component(ECS_HASH("entity_binded_effect__localEmitter"), entity_binded_effect__localEmitter_get_type(), "prog/daNetGame/render/entityBindedEffectES.cpp.inl", "", 0);
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "entityBindedEffectES.cpp.inl"
 ECS_DEF_PULL_VAR(entityBindedEffect);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc entity_binded_effect_es_comps[] =
 {
@@ -102,6 +104,36 @@ static ecs::EntitySystemDesc validate_auto_delete_tag_on_client_only_entities_es
   make_span(validate_auto_delete_tag_on_client_only_entities_es_comps+0, 1)/*ro*/,
   make_span(validate_auto_delete_tag_on_client_only_entities_es_comps+1, 3)/*rq*/,
   empty_span(),
+  ecs::EventSetBuilder<ecs::EventEntityCreated,
+                       ecs::EventComponentsAppear>::build(),
+  0
+,"render");
+static constexpr ecs::ComponentDesc init_auto_delete_fx_es_comps[] =
+{
+//start of 1 ro components at [0]
+  {ECS_HASH("effect"), ecs::ComponentTypeInfo<TheEffect>()},
+//start of 1 rq components at [1]
+  {ECS_HASH("autodeleteEffectEntity"), ecs::ComponentTypeInfo<ecs::Tag>()},
+//start of 1 no components at [2]
+  {ECS_HASH("replication"), ecs::ComponentTypeInfo<ecs::auto_type>()}
+};
+static void init_auto_delete_fx_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
+    init_auto_delete_fx_es(evt
+        , ECS_RO_COMP(init_auto_delete_fx_es_comps, "effect", TheEffect)
+    );
+  while (++comp != compE);
+}
+static ecs::EntitySystemDesc init_auto_delete_fx_es_es_desc
+(
+  "init_auto_delete_fx_es",
+  "prog/daNetGame/render/entityBindedEffectES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, init_auto_delete_fx_es_all_events),
+  empty_span(),
+  make_span(init_auto_delete_fx_es_comps+0, 1)/*ro*/,
+  make_span(init_auto_delete_fx_es_comps+1, 1)/*rq*/,
+  make_span(init_auto_delete_fx_es_comps+2, 1)/*no*/,
   ecs::EventSetBuilder<ecs::EventEntityCreated,
                        ecs::EventComponentsAppear>::build(),
   0

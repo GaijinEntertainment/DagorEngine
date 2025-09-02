@@ -25,6 +25,7 @@
 #include <math/dag_TMatrix4.h>
 #include <math/dag_mathUtils.h>
 #include <math/dag_math3d.h>
+#include <math/dag_capsule.h>
 #include "riCollisionCallback.h"
 #include "collisionGlobals.h"
 
@@ -88,8 +89,8 @@ void update_ri_cache_in_volume_to_phys_world(const BBox3 &box)
   get_phys_world()->fetchSimRes(true);
 
   RIAddToWorldCB callback;
-  rendinst::testObjToRIGenIntersection(box, callback, rendinst::GatherRiTypeFlag::RiGenAndExtra, nullptr /*cache*/, PHYSMAT_INVALID,
-    true /*unlock_in_cb*/);
+  rendinst::testObjToRendInstIntersection(box, callback, rendinst::GatherRiTypeFlag::RiGenAndExtra, nullptr /*cache*/, PHYSMAT_INVALID,
+    true /*unlock_before_cb*/);
 }
 
 bool test_collision_ri(const CollisionObject &co, const BBox3 &box, Tab<gamephys::CollisionContactData> &out_contacts,
@@ -124,8 +125,47 @@ bool test_collision_ri(const CollisionObject &co, const BBox3 &box, Tab<gamephys
       trace_cache = nullptr;
   }
 
-  rendinst::testObjToRIGenIntersection(box, tm, callback, rendinst::GatherRiTypeFlag::RiGenAndExtra, trace_cache, mat_id,
-    true /*unlock_in_cb*/);
+  rendinst::testObjToRendInstIntersection(box, tm, callback, rendinst::GatherRiTypeFlag::RiGenAndExtra, trace_cache, mat_id,
+    true /*unlock_before_cb*/);
+  return out_contacts.size() > prev_cont;
+}
+
+bool test_collision_ri(const CollisionObject &co, const BSphere3 &sphere, Tab<gamephys::CollisionContactData> &out_contacts,
+  const TraceMeshFaces *trace_cache, int mat_id)
+{
+  if (!get_phys_world())
+    return false;
+
+  get_phys_world()->fetchSimRes(true);
+
+  int prev_cont = out_contacts.size();
+
+  TMatrix tm;
+  co.body->getTmInstant(tm);
+
+  WrapperContactResultCB contactCb(out_contacts, mat_id, dacoll::get_collision_object_collapse_threshold(co));
+  PairCollisionCB pairColl(co, contactCb);
+  RICollisionCB<PairCollisionCB> callback(pairColl);
+
+  if (trace_cache)
+  {
+    mat44f vtm;
+    v_mat44_make_from_43cu_unsafe(vtm, tm.array);
+    vec4f bsph;
+    v_bsph_init(bsph, vtm, v_ldu(&sphere.c.x), v_set_x(sphere.r));
+    bbox3f castBox;
+    v_bbox3_init_by_bsph(castBox, bsph, v_splat_w(bsph));
+    bool res = try_use_trace_cache(castBox, trace_cache);
+
+    BBox3 wbox;
+    v_stu_bbox3(wbox, castBox);
+    trace_utils::draw_trace_handle_debug_cast_result(trace_cache, wbox, res, false);
+    if (!res)
+      trace_cache = nullptr;
+  }
+
+  rendinst::testObjToRendInstIntersection(sphere, callback, rendinst::GatherRiTypeFlag::RiGenAndExtra, trace_cache, mat_id,
+    true /*unlock_before_cb*/);
   return out_contacts.size() > prev_cont;
 }
 
@@ -143,7 +183,7 @@ bool test_collision_ri(const CollisionObject &co, const BBox3 &box, Tab<gamephys
   co.body->getTmInstant(tm);
 
   WrapperRendinstContactResultCB contactCb(out_contacts, 0, mat_id, process_tree_behaviour);
-  WrapperRendInstCollisionCB<WrapperRendinstContactResultCB> callback(co, contactCb, provide_coll_info, at_time);
+  WrapperRendInstCollisionCB callback(co, contactCb, provide_coll_info, at_time);
 
   if (trace_cache)
   {
@@ -160,8 +200,8 @@ bool test_collision_ri(const CollisionObject &co, const BBox3 &box, Tab<gamephys
       trace_cache = nullptr;
   }
 
-  rendinst::testObjToRIGenIntersection(box, tm, callback, rendinst::GatherRiTypeFlag::RiGenAndExtra, trace_cache, mat_id,
-    true /*unlock_in_cb*/);
+  rendinst::testObjToRendInstIntersection(box, tm, callback, rendinst::GatherRiTypeFlag::RiGenAndExtra, trace_cache, mat_id,
+    true /*unlock_before_cb*/);
 
   return out_contacts.size() > prev_cont;
 }
@@ -239,17 +279,17 @@ void shape_query_ri(const PhysBody *shape, const TMatrix &from, const TMatrix &t
       handle = nullptr;
   }
 
-  rendinst::testObjToRIGenIntersection(capsule, callback, rendinst::GatherRiTypeFlag::RiGenAndExtra, handle, cast_mat_id,
-    true /*unlock_in_cb*/);
+  rendinst::testObjToRendInstIntersection(capsule, callback, rendinst::GatherRiTypeFlag::RiGenAndExtra, handle, cast_mat_id,
+    true /*unlock_before_cb*/);
 #if DA_PROFILER_ENABLED
   DA_PROFILE_TAG(shape_query_ri, ": %u contacts", sweepCb.contactsNum);
 #endif
 }
 
-void *register_collision_cb(const CollisionResource *collRes, const char *)
+void *register_collision_cb(const CollisionResource *collRes, const char *coll_name)
 {
-  CollisionObject obj =
-    add_dynamic_collision_from_coll_resource(NULL, collRes, NULL, ACO_NONE, EPL_STATIC, EPL_ALL & ~(EPL_KINEMATIC | EPL_STATIC));
+  int cmask = EPL_ALL & ~(EPL_KINEMATIC | EPL_STATIC);
+  CollisionObject obj = add_dynamic_collision_from_coll_resource(NULL, collRes, NULL, ACO_NONE, EPL_STATIC, cmask, NULL, coll_name);
   if (!obj)
     return nullptr;
   ri_instances.emplace_back(obj);

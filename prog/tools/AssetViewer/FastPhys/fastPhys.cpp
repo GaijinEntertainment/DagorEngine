@@ -30,7 +30,17 @@ enum
 
 //------------------------------------------------------------------
 
-FastPhysPlugin::FastPhysPlugin() : mFastPhysEditor(*this), mActionTree(NULL), mActionTreeCB(NULL), propPanel(NULL), mAsset(NULL) {}
+FastPhysPlugin::FastPhysPlugin() :
+  mFastPhysEditor(*this),
+  mActionTree(NULL),
+  mActionTreeCB(NULL),
+  propPanel(NULL),
+  mAsset(NULL),
+  mWindVel(0.0f, 0.0f, 0.0f),
+  mWindTurb(0.0f),
+  mWindPower(0.0f),
+  mRespondsToWind(false)
+{}
 
 
 FastPhysPlugin::~FastPhysPlugin() {}
@@ -131,6 +141,19 @@ bool FastPhysPlugin::end()
 }
 
 
+void FastPhysPlugin::registerMenuAccelerators()
+{
+  IWndManager &wndManager = *EDITORCORE->getWndManager();
+  mFastPhysEditor.registerViewportAccelerators(wndManager);
+}
+
+
+void FastPhysPlugin::handleViewportAcceleratorCommand([[maybe_unused]] IGenViewportWnd &wnd, [[maybe_unused]] unsigned id)
+{
+  mFastPhysEditor.onClick(id, getPluginPanel());
+}
+
+
 void *FastPhysPlugin::onWmCreateWindow(int type)
 {
   switch (type)
@@ -226,9 +249,6 @@ void FastPhysPlugin::refillPanel()
 
 
 void FastPhysPlugin::fillPropPanel(PropPanel::ContainerPropertyControl &panel) { refillPanel(); }
-
-
-void FastPhysPlugin::handleKeyPress(IGenViewportWnd *wnd, int vk, int modif) { mFastPhysEditor.handleKeyPress(wnd, vk, modif); }
 
 
 bool FastPhysPlugin::handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif)

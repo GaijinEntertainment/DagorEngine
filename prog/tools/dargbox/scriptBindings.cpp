@@ -11,6 +11,7 @@
 #include <quirrel/sqEventBus/sqEventBus.h>
 #include <quirrel/base64/base64.h>
 #include <quirrel/sqDataCache/datacache.h>
+#include <quirrel/lastInputMonitor/lastInputMonitor.h>
 #if HAS_MATCHING_MODULE
 #include <quirrel/matchingModule/matchingModule.h>
 #endif
@@ -60,7 +61,9 @@ void bind_dargbox_script_api(SqModules *module_mgr)
   bindquirrel::register_utf8(module_mgr);
   bindquirrel::register_platform_module(module_mgr);
   bindquirrel::bind_datacache(module_mgr);
+  inputmonitor::register_sq_module(module_mgr);
 
+  inputmonitor::register_input_handler();
 #if HAS_MATCHING_MODULE
   bindquirrel::matching_module::bind(module_mgr, get_io_events_poll());
 #endif
@@ -75,12 +78,13 @@ void bind_dargbox_script_api(SqModules *module_mgr)
   sq::auto_bind_native_api(module_mgr, sq::VM_INTERNAL_UI);
 
   Sqrat::Table sqDargbox(vm);
+  /* qdox @module dargbox Available in dargbox tools */
   sqDargbox.Func("reload_scripts", [](bool full_reinit) { delayed_reload_scripts(full_reinit); });
   module_mgr->addNativeModule("dargbox", sqDargbox);
-
+  /// @module dargbox.vr
   Sqrat::Table sqVR(vm);
   sqVR.Func("is_in_vr", []() { return vr::is_configured(); });
-  module_mgr->addNativeModule("daRg.vr", sqVR);
+  module_mgr->addNativeModule("dargbox.vr", sqVR);
 }
 
 void unbind_dargbox_script_api(HSQUIRRELVM vm)

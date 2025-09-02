@@ -10,23 +10,18 @@
 #include <EASTL/type_traits.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
 
-namespace detail
-{
-template <typename T, typename U>
-struct equal_to_2 : public eastl::equal_to_2<T, U>
-{};
 
-template <>
-struct equal_to_2<const eastl::string_view, const char *> : eastl::binary_function<const eastl::string_view, const char *, bool>
+#if EASTL_VERSION_N < 31903
+namespace eastl
 {
-  bool operator()(const eastl::string_view &a, const char *b) const { return strcmp(a.data(), b) == 0; }
-};
-} // namespace detail
+inline bool operator==(const char *a, const eastl::string_view &b) { return strcmp(a, b.data()) == 0; }
+} // namespace eastl
+#endif
 
 //
 // This is by design RO, append-only, mostly read container, ideal for WORM-like ("write once read many") usage patterns
 //
-// It's better then FastNameMap because:
+// It's better then (old) FastNameMap because:
 //  * O(1) (on average) vs O(log(N)) with very slow string compares
 //  * No CI branch in runtime
 // It's better then HashNameMap because:
@@ -47,7 +42,7 @@ public:
   eastl::pair<int, bool> insert(const char *name, int len = -1) // return true in second element of pair if was inserted (STL
                                                                 // insert-like bhv)
   {
-    auto it = nameIds.find_as(name, eastl::hash<const char *>(), detail::equal_to_2<const Str, const char *>());
+    auto it = nameIds.find_as(name, eastl::hash<const char *>(), eastl::equal_to<>());
     if (it != nameIds.end())
       return eastl::make_pair(it->second, false);
     int newNameId = (int)nameIds.size();
@@ -57,7 +52,7 @@ public:
   size_t size() const { return nameIds.size(); }
   int getNameId(const char *name) const
   {
-    auto it = nameIds.find_as(name, eastl::hash<const char *>(), detail::equal_to_2<const Str, const char *>());
+    auto it = nameIds.find_as(name, eastl::hash<const char *>(), eastl::equal_to<>());
     return it != nameIds.end() ? it->second : -1;
   }
   int getNameId(const Str &name) const

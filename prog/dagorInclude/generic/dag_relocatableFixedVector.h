@@ -262,7 +262,7 @@ public:
     a.used() = 0;
   }
   template <typename V, typename VT = typename V::value_type, typename U = T,
-    typename B = typename eastl::enable_if<eastl::is_same<VT const, U const>::value, bool>::type>
+    typename B = typename eastl::enable_if_t<eastl::is_same<VT const, U const>::value>>
   explicit RelocatableFixedVector(const V &v)
   {
     allocateAndCopy(v.size(), v.data());
@@ -274,18 +274,15 @@ public:
   RelocatableFixedVector(const RelocatableFixedVector &a) { allocateAndCopy(a.size(), a.data()); }
   RelocatableFixedVector &operator=(const RelocatableFixedVector &a)
   {
-    if (&a == this)
-      return *this;
-    clear();
-    allocateAndCopy(a.size(), a.data());
+    if (&a != this)
+      assign(a.begin(), a.end());
     return *this;
   }
   template <typename V, typename VT = typename V::value_type, typename U = T,
-    typename B = typename eastl::enable_if<eastl::is_same<VT const, U const>::value, bool>::type>
+    typename B = typename eastl::enable_if_t<eastl::is_same<VT const, U const>::value>>
   RelocatableFixedVector &operator=(const V &v)
   {
-    clear();
-    allocateAndCopy(v.size(), v.data());
+    assign(v.begin(), v.end());
     return *this;
   }
   void swap(RelocatableFixedVector &a);
@@ -305,9 +302,9 @@ public:
   iterator insert(const_iterator at, value_type &&v)
   {
     if (EASTL_LIKELY(data() > &v || data() + capacity() <= &v))
-      return new (insert_uninitialized(at), _NEW_INPLACE) value_type((value_type &&) v);
-    value_type tmp((value_type &&) v);
-    return new (insert_uninitialized(at), _NEW_INPLACE) value_type((value_type &&) tmp);
+      return new (insert_uninitialized(at), _NEW_INPLACE) value_type((value_type &&)v);
+    value_type tmp((value_type &&)v);
+    return new (insert_uninitialized(at), _NEW_INPLACE) value_type((value_type &&)tmp);
   }
   iterator insert(const_iterator at, const value_type &v) { return new (insert_uninitialized(at), _NEW_INPLACE) value_type(v); }
   iterator insert(const_iterator at, const value_type *first, const value_type *last);
@@ -335,7 +332,7 @@ public:
 
   value_type &push_back() { return *base_type::template defCtor<zero_init_scalars>(push_back_uninitialized()); }
   value_type &push_back(const value_type &v) { return *(new (push_back_uninitialized(), _NEW_INPLACE) value_type(v)); }
-  value_type &push_back(value_type &&v) { return *(new (push_back_uninitialized(), _NEW_INPLACE) value_type((value_type &&) v)); }
+  value_type &push_back(value_type &&v) { return *(new (push_back_uninitialized(), _NEW_INPLACE) value_type((value_type &&)v)); }
   iterator append_default(size_t n)
   {
     value_type *dest = (value_type *)push_back_uninitialized(n);
@@ -441,37 +438,66 @@ protected:
   {
     return (value_type *)base_type::mAllocatorAndCount.allocate(capacity * sizeof(value_type));
   }
-  value_type *reallocateToCapacity(value_type *p, size_type capacity)
-  {
-    return (value_type *)base_type::mAllocatorAndCount.realloc(p, capacity * sizeof(value_type));
-  }
-
   value_type *reallocateToCapacity(size_type new_capacity)
   {
     CHECK_RELOCATABLE_OR_INPLACE();
     base_type::heap.capacity = new_capacity;
-    return base_type::heap.data =
-             (value_type *)base_type::mAllocatorAndCount.realloc(base_type::heap.data, new_capacity * sizeof(value_type));
+    if constexpr (requires { base_type::mAllocatorAndCount.realloc(nullptr, 0); })
+      return base_type::heap.data =
+               (value_type *)base_type::mAllocatorAndCount.realloc(base_type::heap.data, new_capacity * sizeof(value_type));
+
+    if constexpr (requires { base_type::mAllocatorAndCount.resizeInPlace(nullptr, 0); })
+      if (base_type::mAllocatorAndCount.resizeInPlace(base_type::heap.data, new_capacity * sizeof(value_type)))
+        return base_type::heap.data;
+
+    value_type *newData = allocateCapacity(new_capacity);
+    memcpy(newData, base_type::heap.data, base_type::used() * sizeof(value_type)); // -V780
+    deallocate(base_type::heap.data);
+    return base_type::heap.data = newData;
   }
 };
 
 template <typename T, size_t N, bool O, typename A, typename C, bool Z>
 inline void RelocatableFixedVector<T, N, O, A, C, Z>::assign(const value_type *s, const value_type *e)
 {
-  const size_t newCount = e - s;
+  const size_type newCount = e - s;
   value_type *cData = data();
   if (newCount > capacity())
   {
     BOUNDS_CHECK_ASSERT(newCount > base_type::inplaceCapacity());
-    clear();
-    cData = base_type::heap.data = allocateCapacity(base_type::heap.capacity = newCount);
+    auto newCapacity = minHeapSize(newCount);
+    IF_CONSTEXPR (eastl::is_trivially_copyable_v<value_type>)
+    {
+      clear();
+      base_type::heap.data = allocateCapacity(newCapacity);
+    }
+    else if (size_type sz = size(); base_type::is_inplace(sz))
+    {
+      value_type *newHeapData = allocateCapacity(newCapacity);
+      if (sz)
+        memcpy((void *)newHeapData, (const void *)cData, sz * sizeof(value_type));
+      base_type::heap.data = newHeapData;
+    }
+    else
+      reallocateToCapacity(newCapacity);
+    base_type::heap.capacity = newCapacity;
+    cData = base_type::heap.data;
   }
-  const size_t oldCount = size();
-  for (auto i = data(), ie = data() + (newCount < oldCount ? newCount : oldCount); i != ie; ++i, ++s)
+  else if (base_type::isHeap() && base_type::is_inplace(newCount))
+  {
+    clear(); // Note `erase(begin() + newCount, end());` is bigger and doesn't seem to be called in practice
+    cData = base_type::inplaceData();
+  }
+  else
+    BOUNDS_CHECK_ASSERT(base_type::isInplace() == base_type::is_inplace(newCount));
+  const size_type oldCount = size();
+  for (auto i = cData, ie = cData + eastl::min(newCount, oldCount); i != ie; ++i, ++s)
     *i = *s;
-  if (newCount > size())
+  if (newCount > oldCount)
+  {
     for (auto i = cData + oldCount, ie = cData + newCount; i != ie; ++i, ++s)
       new (i, _NEW_INPLACE) value_type(*s); // unitialized copy
+  }
   else
     for (auto i = cData + newCount, ie = cData + oldCount; i != ie; ++i)
       i->~value_type();
@@ -485,16 +511,39 @@ inline void RelocatableFixedVector<T, N, O, A, C, Z>::assign(size_type newCount,
   if (newCount > capacity())
   {
     BOUNDS_CHECK_ASSERT(newCount > base_type::inplaceCapacity());
-    clear();
-    cData = base_type::heap.data = allocateCapacity(base_type::heap.capacity = newCount);
+    auto newCapacity = minHeapSize(newCount);
+    IF_CONSTEXPR (eastl::is_trivially_copyable_v<value_type>)
+    {
+      clear();
+      base_type::heap.data = allocateCapacity(newCapacity);
+    }
+    else if (size_type sz = size(); base_type::is_inplace(sz))
+    {
+      value_type *newHeapData = allocateCapacity(newCapacity);
+      if (sz)
+        memcpy((void *)newHeapData, (const void *)cData, sz * sizeof(value_type));
+      base_type::heap.data = newHeapData;
+    }
+    else
+      reallocateToCapacity(newCapacity);
+    base_type::heap.capacity = newCapacity;
+    cData = base_type::heap.data;
   }
-  const size_t oldCount = size();
-
-  for (auto i = cData, ie = cData + (newCount < oldCount ? newCount : oldCount); i != ie; ++i)
+  else if (base_type::isHeap() && base_type::is_inplace(newCount))
+  {
+    clear(); // Note `erase(begin() + newCount, end());` is bigger and doesn't seem to be called in practice
+    cData = base_type::inplaceData();
+  }
+  else
+    BOUNDS_CHECK_ASSERT(base_type::isInplace() == base_type::is_inplace(newCount));
+  const size_type oldCount = size();
+  for (auto i = cData, ie = cData + eastl::min(newCount, oldCount); i != ie; ++i)
     *i = v;
   if (newCount > oldCount)
+  {
     for (auto i = cData + oldCount, ie = cData + newCount; i != ie; ++i)
       new (i, _NEW_INPLACE) value_type(v); // unitialized copy
+  }
   else
     for (auto i = cData + newCount, ie = cData + oldCount; i != ie; ++i)
       i->~value_type();
@@ -751,7 +800,7 @@ inline typename RelocatableFixedVector<T, N, O, A, C, Z>::iterator RelocatableFi
   {
     for (value_type *od = oldData + newCount, *ed = od + delCount, *nd = newData + idx; od < ed; od++, nd++)
     {
-      *nd = (value_type &&) * od;
+      *nd = (value_type &&)*od;
       od->~value_type();
     }
   }
@@ -759,7 +808,7 @@ inline typename RelocatableFixedVector<T, N, O, A, C, Z>::iterator RelocatableFi
   {
     for (value_type *od = oldData + (delCount + idx), *nd = newData + idx, *ed = newData + newCount; nd < ed; od++, nd++)
     {
-      *nd = (value_type &&) * od;
+      *nd = (value_type &&)*od;
       od->~value_type();
     }
     for (value_type *od = oldData + newCount, *ed = oldData + (delCount + idx); od < ed; od++)
@@ -782,6 +831,19 @@ template <typename T, size_t N, bool O, typename A, typename C, bool Z>
 struct is_type_relocatable<RelocatableFixedVector<T, N, O, A, C, Z>, typename eastl::enable_if_t<is_type_relocatable<T>::value>>
   : public eastl::true_type
 {};
+
+template <typename T, size_t N1, bool O1, typename A1, typename C1, bool Z1, size_t N2, bool O2, typename A2, typename C2, bool Z2>
+inline bool operator==(const RelocatableFixedVector<T, N1, O1, A1, C1, Z1> &a, const RelocatableFixedVector<T, N2, O2, A2, C2, Z2> &b)
+{
+  return a.size() == b.size() && eastl::equal(a.begin(), a.end(), b.begin());
+}
+
+
+template <typename T, size_t N1, bool O1, typename A1, typename C1, bool Z1, size_t N2, bool O2, typename A2, typename C2, bool Z2>
+inline bool operator!=(const RelocatableFixedVector<T, N1, O1, A1, C1, Z1> &a, const RelocatableFixedVector<T, N2, O2, A2, C2, Z2> &b)
+{
+  return a.size() != b.size() || !eastl::equal(a.begin(), a.end(), b.begin());
+}
 
 } // namespace dag
 

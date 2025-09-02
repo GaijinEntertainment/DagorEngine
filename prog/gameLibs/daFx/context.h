@@ -46,6 +46,7 @@ struct AsyncPrepareJob final : public cpujobs::IJob
   ContextId cid;
   float dt = 0.f;
   bool gpu_fetch = false;
+  const char *getJobName(bool &) const override { return "dafx_prepare"; }
   void doJob() override;
 };
 
@@ -55,6 +56,7 @@ struct AsyncCpuComputeJob final : public cpujobs::IJob
   bool emission = false;
   int depth = 0;
   int threadId = 0;
+  const char *getJobName(bool &) const override { return "dafx_cpu_compute_tasks"; }
   void doJob() override;
 };
 
@@ -64,6 +66,7 @@ struct AsyncStartNextComputeBatchJob final : public cpujobs::IJob
   int depth;
   bool emission;
   cpujobs::IJob *prepare(ContextId cid_, int depth_, bool emi);
+  const char *getJobName(bool &) const override { return "AsyncStartNextComputeBatchJob"; }
   void doJob() override;
 };
 
@@ -72,6 +75,7 @@ struct AsyncCpuCullJob final : public cpujobs::IJob
   ContextId cid;
   int start = 0;
   int count = 0;
+  const char *getJobName(bool &) const override { return "AsyncCpuCullJob"; }
   void doJob() override;
 };
 
@@ -81,6 +85,7 @@ struct AsyncStats
   volatile int gpuElemProcessed;
   volatile int cpuDispatchCalls;
   volatile int gpuDispatchCalls;
+  volatile int updateEmitters;
 
   eastl::array<volatile int, Config::max_simulation_lods> cpuElemProcessedByLods;
   eastl::array<volatile int, Config::max_simulation_lods> gpuElemProcessedByLods;
@@ -111,11 +116,13 @@ struct Context
   GpuBufferPool gpuBufferPool;
   CpuBufferPool cpuBufferPool;
 
-  eastl::vector<UniqueBuf> multidrawBufers;
+  static constexpr int multiDrawBufferRingSize = 3;
+  eastl::vector<UniqueBuf> multidrawBufers[multiDrawBufferRingSize];
   eastl::vector<GpuResourcePtr> renderDispatchBuffers;
   eastl::vector<GpuResourcePtr> computeDispatchBuffers;
   int currentRenderDispatchBuffer = 0;
   int currentMutltidrawBuffer = 0;
+  int currentMutltidrawBufferRingId = 0;
   int rndSeed = 0;
 
   Systems systems;
@@ -145,6 +152,7 @@ struct Context
   dag::RelocatableFixedVector<AsyncCpuCullJob, 10> asyncCpuCullJobs;
 
   dag::Vector<bool> activeQueryContainer;
+  SimLodGenParams simLodGenParams;
 
   volatile int asyncCounter = -1;
 

@@ -1,11 +1,10 @@
 require ecs
 require ecs.safe
-require app
 require math.base
 require DagorMath
 require soundEvent
 require soundSystem
-require sound_utils_net.modules.sound_utils_net_events
+require danetlibs.renderer.includes.pufd_events
 require environment_sounds.modules.sound_field_common
 require DagorSystem
 require gameObject
@@ -18,23 +17,6 @@ struct Biome
   extent : float
 
 
-def get(x, y : int; field : array<float>; num_cells : int2)
-  return field[x + y * num_cells.x]
-
-
-def set(f : float; x, y : int; var field : array<float>&; num_cells : int2)
-  field[x + y * num_cells.x] = f
-
-
-def replace(f : float; x, y : int; var field : array<float>&; num_cells : int2)
-  let idx = x + y * num_cells.x
-  field[idx] = max(f, field[idx])
-
-
-def append(f : float; x, y : int; var field : array<float>&; num_cells : int2)
-  field[x + y * num_cells.x] += f
-
-
 def max_radius(tm : float3x4; extent : float) : float2
   let x = max(tm[0].x, tm[0].z) + extent
   return float2(x, x)
@@ -44,55 +26,11 @@ def init_field(var field : array<float>&; val : float)
   for f in field
     f = val
 
-def neighbor_blend(num_cells : int2;
-                   var field : array<float>&)
-
-  for z in range(0, num_cells.y - 1)
-    for x in range(0, num_cells.x - 1)
-      let c = get(x, z, field, num_cells)
-      let cx = (get(x + 1, z, field, num_cells) + c) * 0.5
-      let cz = (get(x, z + 1, field, num_cells) + c) * 0.5
-      let cxz = (get(x + 1, z + 1, field, num_cells) + c) * 0.5
-      set(max(max(max(c, cx), cz), cxz), x, z, field, num_cells)
-
-  var z = num_cells.y
-  while --z > 0
-    var x = num_cells.x
-    while --x > 0
-      let c = get(x, z, field, num_cells)
-      let cx = (get(x - 1, z, field, num_cells) + c) * 0.5
-      let cz = (get(x, z - 1, field, num_cells) + c) * 0.5
-      let cxz = (get(x - 1, z - 1, field, num_cells) + c) * 0.5
-      set(max(max(max(c, cx), cz), cxz), x, z, field, num_cells)
-
-
 /*
-def distance_field(num_cells : int2;
-                   var field : array<float>&)
-
-  let d2 = sqrt(2.)
-  for z in range(1, num_cells.y)
-    for x in range(1, num_cells.x)
-      let c = get(x, z, field, num_cells)
-      let cx = get(x - 1, z, field, num_cells)
-      let cz = get(x, z - 1, field, num_cells)
-      let cxz = get(x - 1, z - 1, field, num_cells)
-      set(min(min(min(c, cx + 1.), cz + 1.), cxz + d2), x, z, field, num_cells)
-
-  var z = num_cells.y - 1
-  while --z >= 0
-    var x = num_cells.x - 1
-    while --x >= 0
-      let c = get(x, z, field, num_cells)
-      let cx = get(x + 1, z, field, num_cells)
-      let cz = get(x, z + 1, field, num_cells)
-      let cxz = get(x + 1, z + 1, field, num_cells)
-      set(min(min(min(c, cx + 1.), cz + 1.), cxz + d2), x, z, field, num_cells)
-
-def make_field(biome : Biome&;
-               cell_size : float;
-               num_cells : int2;
-               offset : float2;
+def make_field(biome : Biome&
+               cell_size : float
+               num_cells : int2
+               offset : float2
                var field : array<float>&)
 
   let max_dist = 255.
@@ -302,6 +240,9 @@ def sound_field_update(info : ParallelUpdateFrameDelayed;
                        sound_field__numCells : int2;
                        sound_field__cellSize : float)
 
+  if !sound_banks_is_master_preset_loaded()
+    return
+
   let cell = sample_cell(get_listener_pos().xz, sound_field__cells, sound_field__offset, sound_field__numCells, sound_field__cellSize)
 
   var idx0, idx1, val0, val1 : uint
@@ -315,6 +256,6 @@ def sound_field_update(info : ParallelUpdateFrameDelayed;
 [es(tag=sound, on_disappear)]
 def sound_field_disappear(evt : Event;
                           sound_field__vars : StringList)
-
-  for name in sound_field__vars
-    set_var_global(string(name), 0.)
+  if sound_banks_is_master_preset_loaded()
+    for name in sound_field__vars
+      set_var_global(string(name), 0.)

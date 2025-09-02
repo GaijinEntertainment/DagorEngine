@@ -14,11 +14,12 @@
 #include <scene/dag_occlusion.h>
 #include <gamePhys/collision/collisionLib.h>
 #include <math/dag_mathUtils.h>
+#include <render/renderEvent.h>
 
 #include "global_vars.h"
 #include "dynModelRenderer.h"
 
-extern int dynamicSceneTransBlockId, dynamicSceneBlockId, dynamicDepthSceneBlockId;
+extern ShaderBlockIdHolder dynamicSceneTransBlockId, dynamicSceneBlockId, dynamicDepthSceneBlockId;
 using namespace dynmodel_renderer;
 
 ECS_TAG(render)
@@ -48,8 +49,15 @@ static __forceinline void destructables_before_render_es(const UpdateStageInfoBe
   }
 }
 
+enum class DestructablesRenderStage
+{
+  OPAQUE,
+  DECALS,
+  TRANSPARENT
+};
+
 static __forceinline void destructables_render(int render_pass,
-  bool transparent,
+  DestructablesRenderStage render_stage,
   bool to_depth,
   const Point3 &cam_pos,
   const Frustum &frustum,
@@ -57,9 +65,17 @@ static __forceinline void destructables_render(int render_pass,
   const TexStreamingContext &texCtx)
 {
   DynModelRenderingState &state = dynmodel_renderer::get_immediate_state();
-  uint32_t startStage = transparent ? ShaderMesh::STG_trans : 0;
-  uint32_t endStage = transparent ? ShaderMesh::STG_trans : ShaderMesh::STG_imm_decal;
-  const bool needPreviousMatrices = !transparent && !to_depth;
+  uint32_t startStage = 0, endStage = 0;
+  if (render_stage == DestructablesRenderStage::OPAQUE)
+  {
+    startStage = ShaderMesh::STG_opaque;
+    endStage = ShaderMesh::STG_imm_decal;
+  }
+  else if (render_stage == DestructablesRenderStage::DECALS)
+    startStage = endStage = ShaderMesh::STG_decal;
+  else if (render_stage == DestructablesRenderStage::TRANSPARENT)
+    startStage = endStage = ShaderMesh::STG_trans;
+  const bool needPreviousMatrices = (render_stage == DestructablesRenderStage::OPAQUE) && !to_depth;
   vec3f vCamPos = v_ldu(&cam_pos.x);
   for (const auto destr : destructables::getDestructableObjects())
   {
@@ -113,11 +129,14 @@ static __forceinline void destructables_render(int render_pass,
       if (!frustum.testBoxB(boxCull.bmin, boxCull.bmax) || (occlusion && !occlusion->isVisibleBox(boxCull)))
         continue;
 
-      state.process_animchar(startStage, endStage, modelDynScene, destr->intialTmAndHash, countof(destr->intialTmAndHash),
-        needPreviousMatrices, nullptr, nullptr, 0, 0, false, RenderPriority::HIGH, nullptr, texCtx);
+      auto additionalData =
+        animchar_additional_data::prepare_fixed_space<AAD_RAW_INITIAL_TM__HASHVAL>(make_span_const(destr->intialTmAndHash));
+      state.process_animchar(startStage, endStage, modelDynScene, additionalData, needPreviousMatrices, nullptr, nullptr, 0, 0, false,
+        RenderPriority::HIGH, nullptr, texCtx);
     }
   }
 
+  bool transparent = render_stage == DestructablesRenderStage::TRANSPARENT;
   state.prepareForRender();
   const DynamicBufferHolder *buffer = state.requestBuffer(
     transparent ? dynmodel_renderer::BufferType::TRANSPARENT_MAIN : dynmodel_renderer::get_buffer_type_from_render_pass(render_pass));
@@ -146,8 +165,20 @@ static __forceinline void destructables_render_es(const UpdateStageInfoRender &s
     vtm = inverse(itm);
   }
   d3d::settm(TM_VIEW, vtm);
-  destructables_render(stg.renderPass, false, !(stg.hints & UpdateStageInfoRender::RENDER_COLOR), stg.mainCamPos, stg.cullingFrustum,
-    stg.occlusion, stg.texCtx);
+  destructables_render(stg.renderPass, DestructablesRenderStage::OPAQUE, !(stg.hints & UpdateStageInfoRender::RENDER_COLOR),
+    stg.mainCamPos, stg.cullingFrustum, stg.occlusion, stg.texCtx);
+  d3d::settm(TM_VIEW, stg.viewTm);
+}
+
+ECS_TAG(render)
+static void destructables_render_decals_es(const RenderDecalsOnDynamic &stg)
+{
+  TIME_D3D_PROFILE(destructables_render_decals);
+  TMatrix vtm = stg.viewTm;
+  vtm.setcol(3, 0, 0, 0);
+  d3d::settm(TM_VIEW, vtm);
+  destructables_render(RENDER_MAIN, DestructablesRenderStage::DECALS, false, stg.mainCamPos, stg.cullingFrustum, stg.occlusion,
+    stg.texCtx);
   d3d::settm(TM_VIEW, stg.viewTm);
 }
 
@@ -158,10 +189,33 @@ static __forceinline void destructables_render_trans_es(const UpdateStageInfoRen
   TMatrix vtm = stg.viewTm;
   vtm.setcol(3, 0, 0, 0);
   d3d::settm(TM_VIEW, vtm);
-  destructables_render(RENDER_MAIN, true, false, stg.viewItm.getcol(3), stg.loadGlobTm(), stg.occlusion, stg.texCtx);
+  destructables_render(RENDER_MAIN, DestructablesRenderStage::TRANSPARENT, false, stg.viewItm.getcol(3), stg.loadGlobTm(),
+    stg.occlusion, stg.texCtx);
   d3d::settm(TM_VIEW, stg.viewTm);
 }
 
 destructables::DestrRendData *destructables::init_rend_data(DynamicPhysObjectClass<PhysWorld> *, bool) { return nullptr; }
 void destructables::clear_rend_data(destructables::DestrRendData *) {}
 void destructables::DestrRendDataDeleter::operator()(destructables::DestrRendData *) {}
+
+ECS_TAG(render)
+static void bvh_destructables_iterate_es(BVHAdditionalAnimcharIterate &event)
+{
+  for (const auto destr : destructables::getDestructableObjects())
+  {
+    if (!destr->physObj || !destr->isAlive())
+      continue;
+    for (int model = 0, modelCount = destr->physObj->getModelCount(); model < modelCount; ++model)
+    {
+      DynamicRenderableSceneInstance *modelDynScene = destr->physObj->getModel(model);
+      DynamicRenderableSceneResource *lodResource = modelDynScene->getCurSceneResource();
+      if (!lodResource)
+        continue;
+
+      auto additionalData =
+        animchar_additional_data::prepare_fixed_space<AAD_RAW_INITIAL_TM__HASHVAL>(make_span_const(destr->intialTmAndHash));
+
+      event.get<0>()({}, modelDynScene, lodResource, additionalData, VISFLG_BVH);
+    }
+  }
+};

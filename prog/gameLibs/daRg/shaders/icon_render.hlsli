@@ -1,0 +1,6 @@
+#ifndef ICON_RENDER_HLSLI
+#define ICON_RENDER_HLSLI
+
+#define ICON_RENDER_MAX_LIGHTS 5
+
+#endif

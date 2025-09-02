@@ -53,11 +53,17 @@ Copt =
   -DBUILDING_LIBCURL
   -DCURL_DISABLE_LDAP
   -DHTTP_ONLY
-  -DHAVE_BROTLI=1
-  -DHAVE_ZSTD=1
-  -DHAVE_LIBZ=1
-  -DHAVE_ZLIB_H=1
+  -DHAVE_BROTLI
+  -DHAVE_ZSTD
+  -DHAVE_LIBZ
+  -DHAVE_ZLIB_H
 ;
+
+if $(PlatformSpec) = clang {
+  if $(Sanitize) = undefined {
+    Copt += -fno-sanitize=undefined ;
+  }
+}
 
 if $(Platform) in macOS iOS tvOS linux android ps4 ps5 { CPPopt += -DHAVE_CONFIG_H ; }
 
@@ -67,10 +73,6 @@ if $(UseSystemLibcurl) = yes {
 
 if $(Platform) = nswitch {
   Exit Nintendo switch platform doesn't allow custom libcurl library. Look for UseSystemLibcurl option ;
-}
-
-if $(UseGDK) != no {
-  exit Can't use libcurl with GDK. Use gameLibs/asyncHTTPClient or XCurl instead. ;
 }
 
 include $(Root)/prog/_jBuild/build.jam ;

@@ -1,2 +1,3 @@
 ../../../../tools/dagor_cdk/macOS/dsc2-metal-dev ./shaders_tools11.blk -q -shaderOn -nodisassembly -commentPP -codeDumpErr -maxVSF 4096  -o ../../../../_output/shaders/dngSceneViewer-tools~metal -out ../../develop/toolShaders/toolsMTL
-../../../../tools/dagor_cdk/macOS/dsc2-metal-dev ./shaders_tools_exp.blk -q -shaderOn -relinkOnly  -o ../../../../_output/shaders/dngSceneViewer-tools~metal
+../../../../tools/dagor_cdk/macOS-x86_64/dsc2-stub-dev ./shaders_tools_exp.blk -q -shaderOn -no_sha1_cache  -o ../../../_output/shaders/dngSceneViewer~exp $@
+../../../../tools/dagor_cdk/macOS/dsc2-metal-dev ./shaders_impostorbaker.blk -q -shaderOn -nodisassembly -commentPP -codeDumpErr -maxVSF 4096  -o ../../../_output/shaders/dngSceneViewer-impostorbaker~metal -out ../../tools/tools.impostorbakerMTL $@

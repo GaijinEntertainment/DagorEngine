@@ -12,7 +12,7 @@
 
 #include <render/toroidal_update.h>
 #include "render/fx/fx.h"
-#include "render/fx/effectManager.h"
+#include <effectManager/effectManager.h>
 #include "camera/sceneCam.h"
 #include "effectEntity.h"
 

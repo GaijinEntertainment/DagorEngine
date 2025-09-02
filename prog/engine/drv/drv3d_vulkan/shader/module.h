@@ -2,9 +2,9 @@
 #pragma once
 
 #include <EASTL/unique_ptr.h>
-#include <EASTL/vector.h>
 
 #include "driver.h"
+#include "shader_module.h"
 
 namespace drv3d_vulkan
 {
@@ -31,7 +31,7 @@ struct ShaderModule
 
 class ShaderModuleStorage
 {
-  eastl::vector<eastl::unique_ptr<ShaderModule>> data;
+  dag::Vector<eastl::unique_ptr<ShaderModule>> data;
 
 public:
   ShaderModuleStorage() = default;

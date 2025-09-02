@@ -1,7 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <perfMon/dag_statDrv.h>
-#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_commands.h>
 #include <debug/dag_debug.h>
 
 #if TIME_PROFILER_ENABLED && TDR_PROFILE

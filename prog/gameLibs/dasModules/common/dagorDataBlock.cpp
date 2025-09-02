@@ -4,12 +4,13 @@
 #include <dasModules/dasDataBlock.h>
 #include <dasModules/aotDagorMath.h>
 #include "dagorDataBlockCast.h"
+#include <ioSys/dag_dataBlockUtils.h> // debug_print_datablock
 
 #include <memory/dag_framemem.h>
 #include <EASTL/memory.h>
 
 DAS_BASE_BIND_ENUM_98(::DataBlock::ParamType, DataBlockParamType, TYPE_NONE, TYPE_STRING, TYPE_INT, TYPE_REAL, TYPE_POINT2,
-  TYPE_POINT3, TYPE_POINT4, TYPE_IPOINT2, TYPE_IPOINT3, TYPE_BOOL, TYPE_E3DCOLOR, TYPE_MATRIX, TYPE_INT64)
+  TYPE_POINT3, TYPE_POINT4, TYPE_IPOINT2, TYPE_IPOINT3, TYPE_BOOL, TYPE_E3DCOLOR, TYPE_MATRIX, TYPE_INT64, TYPE_IPOINT4)
 
 DAS_BASE_BIND_ENUM(dblk::ReadFlag, DataBlockReadFlag, ROBUST, BINARY_ONLY, RESTORE_FLAGS, ALLOW_SS, ROBUST_IN_REL)
 
@@ -204,6 +205,7 @@ public:
     BLK_GET_SET_ADD_REF(Point4, Point4)
     BLK_GET_SET_ADD_REF(IPoint2, IPoint2)
     BLK_GET_SET_ADD_REF(IPoint3, IPoint3)
+    BLK_GET_SET_ADD_REF(IPoint4, IPoint4)
     BLK_GET_SET_ADD(E3dcolor, E3DCOLOR)
 
     // TMatrix require special bindings with SimNode_ExtFuncCallAndCopyOrMove

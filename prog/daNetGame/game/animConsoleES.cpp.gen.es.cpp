@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "animConsoleES.cpp.inl"
 ECS_DEF_PULL_VAR(animConsole);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc set_irq_pos_ecs_query_comps[] =
 {

@@ -5,6 +5,7 @@
 #include <ecs/scripts/dasEcsEntity.h>
 #include "render/cameraUtils.h"
 #include "camera/sceneCam.h"
+#include <dasModules/aotEcs.h>
 
 DAS_BIND_ENUM_CAST_98(CreateCameraFlags);
 DAS_BASE_BIND_ENUM_98(CreateCameraFlags, CreateCameraFlags, CCF_SET_TARGET_TEAM, CCF_SET_ENTITY);
@@ -47,6 +48,7 @@ public:
     tw << "#include \"camera/sceneCam.h\"\n";
     tw << "#include <ecs/scripts/dasEcsEntity.h>\n";
     tw << "#include \"render/cameraUtils.h\"\n";
+    tw << "#include <dasModules/aotEcs.h>\n";
     return das::ModuleAotType::cpp;
   }
 };

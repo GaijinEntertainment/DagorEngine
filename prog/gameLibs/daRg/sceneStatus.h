@@ -25,8 +25,8 @@ public:
   void renderError(StdGuiRender::GuiContext *ctx);
 
 public:
-  bool sceneIsBroken = false;
-  bool renderErrorFlag = false;
+  bool isShowingError = false;
+  bool isShowingFullErrorDetails = false;
   int errorCount = 0;
   int errorBeginRenderTimeMsec = 0;
 

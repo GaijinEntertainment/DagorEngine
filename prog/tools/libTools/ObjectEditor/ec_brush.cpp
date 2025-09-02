@@ -310,16 +310,13 @@ void Brush::addMaskList(int pid, PropPanel::ContainerPropertyControl &params, co
   for (int i = 0; i < 3; ++i)
   {
     String mask(getMaskPath(ext[i]));
-    alefind_t ff;
 
-    for (bool ok = ::dd_find_first(mask, DA_SUBDIR, &ff); ok; ok = ::dd_find_next(&ff))
+    for (const alefind_t &ff : dd_find_iterator(mask, DA_SUBDIR))
     {
       masx.push_back() = ff.name;
       if (def && !strcmp(ff.name, def))
         cur = masx.size() - 1;
     }
-
-    ::dd_find_close(&ff);
   }
 
   if (!def || !*def)

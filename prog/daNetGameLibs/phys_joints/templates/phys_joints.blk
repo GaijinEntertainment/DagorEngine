@@ -29,7 +29,10 @@ rope_base_phys {
   "rope_phys__prevPos:list<p3>" {}
 
   spline_gen_geometry__lods_name:t="rope"
-  spline_gen_geometry__radius:p3=0.0125, 0.0125, 0.0125
+  "spline_gen_geometry__radii:list<p2>"{
+    p:p2=0, 0.0125
+    p:p2=1, 0.0125
+  }
 }
 
 rope_phys {

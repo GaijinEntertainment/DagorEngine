@@ -105,12 +105,13 @@ typedef dag::Span<net::IConnection *> (*recipient_filter_t)(Tab<net::IConnection
 #ifdef _MSC_VER
 __declspec(noinline)
 #endif
-  // aka no filter (do not inline it to force compiler generate distinct address for this function)
-  dag::Span<net::IConnection *> broadcast_rcptf(Tab<net::IConnection *> &out_conns, ecs::EntityId, const IMessage &)
+// aka no filter (do not inline it to force compiler generate distinct address for this function)
+dag::Span<net::IConnection *>
+broadcast_rcptf(Tab<net::IConnection *> &out_conns, ecs::EntityId, const IMessage &)
 #ifdef __GNUC__ /* including clang */
-    __attribute__((noinline))
+  __attribute__((noinline))
 #endif
-    ;
+  ;
 dag::Span<net::IConnection *> direct_connection_rcptf(Tab<net::IConnection *> &out_conns, ecs::EntityId, const IMessage &);
 
 #define ECS_NET_NO_RCPTF nullptr
@@ -142,10 +143,24 @@ public:
   MessageClass(const char *class_name, uint32_t class_hash, uint32_t class_sz, MessageRouting rout, bool timed,
     recipient_filter_t rcptf = ECS_NET_NO_RCPTF, PacketReliability rlb = RELIABLE_ORDERED, uint8_t chn = 0,
     uint32_t flags_ = MF_DEFAULT_FLAGS, int dup_delay_ms = ECS_NET_NO_DUP, void (*msg_sink_handler)(const IMessage *) = nullptr);
+
+private:
+  static uint32_t initImpl(bool server, bool dbg_output_table);
+
+public:
   static uint32_t init(bool server);
+
+  static void startWaitingForMessageIdsSync();
+  static void resetMessageIdsSync();
+  static void writeMessageIdsSync(danet::BitStream &bs, uint64_t client_hash = 0u);
+  static bool applyMessageIdsSync(const danet::BitStream &bs);
+
   static const MessageClass *getById(int msg_class_id);
   static int getNumClassIdBits();
   static uint32_t calcNumMessageClasses();
+  static uint64_t calcAllMessagesHash();
+  static bool validateIncomingMessage(int msg_class_id, int dbg_conn_id);
+  static bool shouldIgnoreOutgoingMessage(int msg_class_id);
 
   virtual IMessage &create(void *mem) const = 0;
 };
@@ -169,14 +184,10 @@ public:
 #endif
 #define ECS_NET_MSG_CLASS_HASH(a) eastl::integral_constant<uint32_t, str_hash_fnv1(#a)>::value
 
-#define ECS_NET_DECL_MSG_CLASS_BASE(class_name, base_class)           \
-  static net::MessageClassInst<class_name> messageClass;              \
-  virtual const net::MessageClass &getMsgClass() const override final \
-  {                                                                   \
-    return messageClass;                                              \
-  }                                                                   \
-  class_name() : base_class                                           \
-  {}
+#define ECS_NET_DECL_MSG_CLASS_BASE(class_name, base_class)                                    \
+  static net::MessageClassInst<class_name> messageClass;                                       \
+  virtual const net::MessageClass &getMsgClass() const override final { return messageClass; } \
+  class_name() : base_class {}
 
 #define ECS_NET_DECL_MSG_CLASS(class_name) ECS_NET_DECL_MSG_CLASS_BASE(class_name, net::IMessage)
 

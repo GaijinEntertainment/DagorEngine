@@ -9,9 +9,9 @@ require daslib/safe_addr
 [unused_argument(level)]
 def draw_float4_as_color(eid : array<EntityId> implicit; name, typeName : string; refs : array<ComponentRenderInfo#>#; level : int; var changed : bool?; sub_menu : block<(var changed : bool?) : bool>) : void
   var val = unsafe(reinterpret<float4?> refs[0].rawData)
-  var color = [[float[4] (*val).x; (*val).y; (*val).z; (*val).w]]
+  var color = fixed_array<float>((*val).x, (*val).y, (*val).z, (*val).w)
   SetNextItemWidth(-FLT_MIN)
-  if ColorEdit4("##{name}", safe_addr(color[0]), ImGuiColorEditFlags Float)
+  if ColorEdit4("##{name}", safe_addr(color[0]), ImGuiColorEditFlags.Float)
     *changed = true
     (*val).x = color[0]
     (*val).y = color[1]

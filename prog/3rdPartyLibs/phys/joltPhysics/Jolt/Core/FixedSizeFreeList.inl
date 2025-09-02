@@ -79,7 +79,7 @@ uint32 FixedSizeFreeList<Object>::ConstructObject(Parameters &&... inParameters)
 			// Allocation successful
 			JPH_IF_ENABLE_ASSERTS(mNumFreeObjects.fetch_sub(1, memory_order_relaxed);)
 			ObjectStorage &storage = GetStorage(first_free);
-			::new (&storage.mObject) Object(std::forward<Parameters>(inParameters)...);
+			new (&storage.mObject) Object(std::forward<Parameters>(inParameters)...);
 			storage.mNextFreeObject.store(first_free, memory_order_release);
 			return first_free;
 		}
@@ -97,7 +97,7 @@ uint32 FixedSizeFreeList<Object>::ConstructObject(Parameters &&... inParameters)
 				// Allocation successful
 				JPH_IF_ENABLE_ASSERTS(mNumFreeObjects.fetch_sub(1, memory_order_relaxed);)
 				ObjectStorage &storage = GetStorage(first_free);
-				::new (&storage.mObject) Object(std::forward<Parameters>(inParameters)...);
+				new (&storage.mObject) Object(std::forward<Parameters>(inParameters)...);
 				storage.mNextFreeObject.store(first_free, memory_order_release);
 				return first_free;
 			}
@@ -108,8 +108,12 @@ uint32 FixedSizeFreeList<Object>::ConstructObject(Parameters &&... inParameters)
 template <typename Object>
 void FixedSizeFreeList<Object>::AddObjectToBatch(Batch &ioBatch, uint32 inObjectIndex)
 {
-	JPH_ASSERT(GetStorage(inObjectIndex).mNextFreeObject.load(memory_order_relaxed) == inObjectIndex, "Trying to add a object to the batch that is already in a free list");
 	JPH_ASSERT(ioBatch.mNumObjects != uint32(-1), "Trying to reuse a batch that has already been freed");
+
+	// Reset next index
+	atomic<uint32> &next_free_object = GetStorage(inObjectIndex).mNextFreeObject;
+	JPH_ASSERT(next_free_object.load(memory_order_relaxed) == inObjectIndex, "Trying to add a object to the batch that is already in a free list");
+	next_free_object.store(cInvalidObjectIndex, memory_order_release);
 
 	// Link object in batch to free
 	if (ioBatch.mFirstObjectIndex == cInvalidObjectIndex)
@@ -126,7 +130,7 @@ void FixedSizeFreeList<Object>::DestructObjectBatch(Batch &ioBatch)
 	if (ioBatch.mFirstObjectIndex != cInvalidObjectIndex)
 	{
 		// Call destructors
-		if constexpr (!is_trivially_destructible<Object>())
+		if constexpr (!std::is_trivially_destructible<Object>())
 		{
 			uint32 object_idx = ioBatch.mFirstObjectIndex;
 			do

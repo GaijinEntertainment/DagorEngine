@@ -13,7 +13,8 @@
 namespace spirv
 {
 
-constexpr uint32_t HEADER_MAGIC_VER = 0x73680002;
+constexpr uint32_t HEADER_MAGIC_VER = 0x73680006;
+constexpr uint32_t HEADER_MAGIC_VER_PREV = 0x73680005;
 
 struct HashValue
 {
@@ -117,7 +118,7 @@ const uint32_t U_REGISTER_INDEX_MAX = 13;
 const uint32_t T_INPUT_ATTACHMENT_INDEX_MAX = 8;
 
 // total combination of b, t and u register entries
-const uint32_t REGISTER_ENTRIES = B_REGISTER_INDEX_MAX + T_REGISTER_INDEX_MAX + U_REGISTER_INDEX_MAX;
+const uint32_t REGISTER_ENTRIES = B_REGISTER_INDEX_MAX + T_REGISTER_INDEX_MAX + U_REGISTER_INDEX_MAX + S_REGISTER_INDEX_MAX;
 
 const uint32_t WORK_GROUP_SIZE_X_CONSTANT_ID = 1;
 const uint32_t WORK_GROUP_SIZE_Y_CONSTANT_ID = 2;
@@ -126,12 +127,13 @@ const uint32_t WORK_GROUP_SIZE_Z_CONSTANT_ID = 3;
 const uint32_t B_CONST_BUFFER_OFFSET = 0;
 
 const uint32_t T_SAMPLED_IMAGE_OFFSET = B_CONST_BUFFER_OFFSET + B_REGISTER_INDEX_MAX;
-const uint32_t T_SAMPLED_IMAGE_WITH_COMPARE_OFFSET = T_SAMPLED_IMAGE_OFFSET + T_REGISTER_INDEX_MAX;
-const uint32_t T_BUFFER_SAMPLED_IMAGE_OFFSET = T_SAMPLED_IMAGE_WITH_COMPARE_OFFSET + T_REGISTER_INDEX_MAX;
+const uint32_t T_BUFFER_SAMPLED_IMAGE_OFFSET = T_SAMPLED_IMAGE_OFFSET + T_REGISTER_INDEX_MAX;
 const uint32_t T_BUFFER_OFFSET = T_BUFFER_SAMPLED_IMAGE_OFFSET + T_REGISTER_INDEX_MAX;
 const uint32_t T_INPUT_ATTACHMENT_OFFSET = T_BUFFER_OFFSET + T_REGISTER_INDEX_MAX;
 
-const uint32_t U_IMAGE_OFFSET = T_INPUT_ATTACHMENT_OFFSET + T_INPUT_ATTACHMENT_INDEX_MAX;
+const uint32_t S_SAMPLER_OFFSET = T_INPUT_ATTACHMENT_OFFSET + T_INPUT_ATTACHMENT_INDEX_MAX;
+
+const uint32_t U_IMAGE_OFFSET = S_SAMPLER_OFFSET + S_REGISTER_INDEX_MAX;
 const uint32_t U_BUFFER_IMAGE_OFFSET = U_IMAGE_OFFSET + U_REGISTER_INDEX_MAX;
 const uint32_t U_BUFFER_OFFSET = U_BUFFER_IMAGE_OFFSET + U_REGISTER_INDEX_MAX;
 
@@ -162,6 +164,8 @@ const uint32_t MISSING_STORAGE_IMAGE_CUBE_ARRAY_INDEX = 0x12;
 const uint32_t MISSING_STORAGE_BUFFER_SAMPLED_IMAGE_INDEX = 0x13;
 const uint32_t MISSING_STORAGE_BUFFER_INDEX = 0x14;
 const uint32_t MISSING_IS_FATAL_INDEX = 0x15;
+const uint32_t MISSING_TLAS_INDEX = 0x16;
+const uint32_t MISSING_INDEX_COUNT = 0x17;
 const uint8_t INVALID_INPUT_ATTACHMENT_INDEX = 0xFF;
 
 #define VK_DESCRIPTOR_TYPE_BEGIN_RANGE VK_DESCRIPTOR_TYPE_SAMPLER
@@ -200,6 +204,7 @@ struct ShaderHeader
   uint32_t tRegisterUseMask;
   uint32_t uRegisterUseMask;
   uint32_t bRegisterUseMask;
+  uint32_t sRegisterUseMask;
   uint32_t inputMask;
   uint32_t outputMask;
   uint8_t inputAttachmentIndex[REGISTER_ENTRIES];
@@ -215,9 +220,44 @@ struct ShaderHeader
   uint8_t bufferCount;
   uint8_t bufferViewCount;
   uint8_t constBufferCount;
-  uint8_t accelerationStructursCount;
+  uint8_t accelerationStructureCount;
   uint8_t descriptorCountsCount;
   uint8_t registerCount;
+  uint8_t pushConstantsCount;
+};
+
+const uint32_t REGISTER_ENTRIES_OLD = B_REGISTER_INDEX_MAX + T_REGISTER_INDEX_MAX + U_REGISTER_INDEX_MAX;
+struct ShaderHeaderPrev
+{
+  uint32_t verMagic;
+  VkDescriptorType descriptorTypes[REGISTER_ENTRIES_OLD];
+  VkImageViewType imageViewTypes[REGISTER_ENTRIES_OLD];
+  VkDescriptorPoolSize descriptorCounts[SHADER_HEADER_DECRIPTOR_COUNT_SIZE];
+  uint32_t maxConstantCount;
+  uint32_t bonesConstantsUsed;
+  uint32_t tRegisterUseMask;
+  uint32_t uRegisterUseMask;
+  uint32_t bRegisterUseMask;
+  uint32_t sRegisterUseMask;
+  uint32_t inputMask;
+  uint32_t outputMask;
+  uint8_t inputAttachmentIndex[REGISTER_ENTRIES_OLD];
+  uint8_t registerIndex[REGISTER_ENTRIES_OLD];
+  uint8_t imageCheckIndices[REGISTER_ENTRIES_OLD];
+  uint8_t bufferCheckIndices[REGISTER_ENTRIES_OLD];
+  uint8_t bufferViewCheckIndices[T_REGISTER_INDEX_MAX];
+  uint8_t constBufferCheckIndices[B_REGISTER_INDEX_MAX];
+  uint8_t accelerationStructureCheckIndices[T_REGISTER_INDEX_MAX];
+  uint8_t missingTableIndex[REGISTER_ENTRIES_OLD];
+  uint8_t inputAttachmentCount;
+  uint8_t imageCount;
+  uint8_t bufferCount;
+  uint8_t bufferViewCount;
+  uint8_t constBufferCount;
+  uint8_t accelerationStructureCount;
+  uint8_t descriptorCountsCount;
+  uint8_t registerCount;
+  uint8_t pushConstantsCount;
 };
 
 inline bool operator==(const ShaderHeader &l, const ShaderHeader &r) { return 0 == (memcmp(&l, &r, sizeof(ShaderHeader))); }

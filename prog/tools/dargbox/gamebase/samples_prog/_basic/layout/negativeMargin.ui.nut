@@ -2,7 +2,7 @@ let block = @(margin) {
   rendObj = ROBJ_FRAME
   borderWidth = 1
   color = 0xFF990099
-  size = [100, 100]
+  size = 100
   margin
 }
 

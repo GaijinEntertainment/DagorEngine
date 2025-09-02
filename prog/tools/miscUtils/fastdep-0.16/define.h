@@ -13,12 +13,12 @@ public:
   Define(FileStructure *aStructure, const std::string &aMacro);
   Define(FileStructure *aStructure, const std::string &aMacro, const std::string &aContent);
   Define(const Define &anOther);
-  virtual ~Define();
+  ~Define() override;
 
   Define &operator=(const Define &anOther);
 
-  virtual Element *copy() const;
-  virtual void getDependencies(CompileState *aState);
+  Element *copy() const override;
+  void getDependencies(CompileState *aState) override;
 
   std::string getContent() const;
 

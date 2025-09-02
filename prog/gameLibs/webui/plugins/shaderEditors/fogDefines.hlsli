@@ -1,0 +1,2 @@
+#define NBS_SHADER 1
+#define USE_CAMERA_IN_CAMERA 1

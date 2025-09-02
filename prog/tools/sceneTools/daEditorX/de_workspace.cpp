@@ -19,7 +19,7 @@
 
 #include <debug/dag_debug.h>
 
-#include <sepGui/wndGlobal.h>
+#include <EditorCore/ec_wndGlobal.h>
 
 
 //==============================================================================

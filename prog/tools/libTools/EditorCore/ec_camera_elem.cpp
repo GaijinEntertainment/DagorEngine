@@ -2,9 +2,9 @@
 
 #include <EditorCore/ec_camera_elem.h>
 #include <EditorCore/ec_camera_dlg.h>
+#include <EditorCore/ec_input.h>
 
 #include <stdlib.h>
-#include <windows.h>
 
 #include <math/dag_capsule.h>
 #include <math/dag_mathAng.h>
@@ -14,6 +14,7 @@
 #include <winGuiWrapper/wgw_input.h>
 #include <imgui/imgui_internal.h>
 
+extern bool camera_objects_config_changed;
 
 IGenViewportWnd *CCameraElem::vpw = NULL;
 int CCameraElem::currentType = CCameraElem::MAX_CAMERA;
@@ -140,6 +141,8 @@ void CCameraElem::handleKeyboardInput(unsigned viewport_id)
   // Shift is the speed accelerator key, it is allowed.
   const bool modOk = (ImGui::GetIO().KeyMods & (ImGuiMod_Ctrl | ImGuiMod_Alt)) == 0;
 
+  setMultiply((ImGui::GetIO().KeyMods & ImGuiMod_Shift) != 0);
+
   if (modOk && (ImGui::IsKeyDown(ImGuiKey_UpArrow, viewport_id) || ImGui::IsKeyDown(ImGuiKey_W, viewport_id)))
     forwardZFuture = 1;
   else if (modOk && (ImGui::IsKeyDown(ImGuiKey_DownArrow, viewport_id) || ImGui::IsKeyDown(ImGuiKey_S, viewport_id) ||
@@ -189,13 +192,12 @@ void CCameraElem::handleMouseWheel(int delta)
   const real speedChangeMultiplier = clamp(config->speedChangeMultiplier, 0.0001f, 10.0f);
   const real multiplier = delta > 0 ? speedChangeMultiplier : (1.0f / speedChangeMultiplier);
 
-  if (wingw::is_key_pressed(VK_SHIFT))
-    config->controlMultiplier = clamp(config->controlMultiplier * multiplier, 1.0f / 16.0f, 256.0f);
-  else
-    config->moveStep = clamp(config->moveStep * multiplier, 1.0f / 16.0f, 256.0f);
+  config->moveStep = clamp(config->moveStep * multiplier, 1.0f / 16.0f, 256.0f);
 
   // For non-MAX cameras the strife speed is always the same as the move speed. (See FreeCameraTab::onOk.)
   config->strifeStep = config->moveStep;
+
+  camera_objects_config_changed = true;
 }
 
 
@@ -398,15 +400,6 @@ void CCameraElem::strife(real dx, real dy, bool multiply_sencetive, bool config_
 }
 
 
-void CCameraElem::showConfigDlg(void *parent, CameraConfig *max_cc, CameraConfig *free_cc, CameraConfig *fps_cc, CameraConfig *tps_cc)
-{
-  CamerasConfigDlg dlg(parent, max_cc, free_cc, fps_cc, tps_cc);
-
-  // dlg.execute();
-  dlg.showDialog();
-}
-
-
 void CCameraElem::switchCamera(bool ctrl_pressed, bool shift_pressed)
 {
   int new_cam = MAX_CAMERA;
@@ -432,14 +425,12 @@ void CCameraElem::switchCamera(bool ctrl_pressed, bool shift_pressed)
 
       setCamera(MAX_CAMERA);
       debug("switch to max camera");
-      SetCursorPos(freeCamEnterPos.x, freeCamEnterPos.y);
+      ec_set_cursor_pos(freeCamEnterPos);
       break;
 
     case MAX_CAMERA:
-      POINT restore_pos;
-      GetCursorPos(&restore_pos);
+      freeCamEnterPos = ec_get_cursor_pos();
 
-      freeCamEnterPos = IPoint2(restore_pos.x, restore_pos.y);
       if (new_cam != MAX_CAMERA)
       {
         setCamera(new_cam);

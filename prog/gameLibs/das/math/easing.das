@@ -1,3 +1,4 @@
+options indenting = 2
 module easing shared
 require math
 require math.base

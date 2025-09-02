@@ -255,23 +255,23 @@ String DebugTexOverlay::TextureWrapper::initFromConsoleCmd(const char *argv[], i
   if (m >= tex->level_count())
     return String(128, "incorrect mip: %d, tex has only: %d", m, tex->level_count());
 
-  if (f != 0 && tex->restype() == RES3D_CUBETEX && f >= 6)
+  if (f != 0 && tex->getType() == D3DResourceType::CUBETEX && f >= 6)
     return String(128, "incorrect cube face: %d, tex has only: 6", f);
 
-  if (f != 0 && tex->restype() == RES3D_VOLTEX)
+  if (f != 0 && tex->getType() == D3DResourceType::VOLTEX)
   {
     if (f >= info.d)
       return String(128, "incorrect face: %d, tex has only: %d", f, info.d);
   }
 
-  if (f != 0 && (tex->restype() == RES3D_ARRTEX || tex->restype() == RES3D_CUBEARRTEX))
+  if (f != 0 && (tex->getType() == D3DResourceType::ARRTEX || tex->getType() == D3DResourceType::CUBEARRTEX))
   {
     if (f >= info.a)
       return String(128, "incorrect face: %d, tex has only: %d", f, info.a);
   }
 
-  if (f != 0 && (tex->restype() != RES3D_CUBETEX && tex->restype() != RES3D_ARRTEX && tex->restype() != RES3D_VOLTEX &&
-                  tex->restype() != RES3D_CUBEARRTEX))
+  if (f != 0 && (tex->getType() != D3DResourceType::CUBETEX && tex->getType() != D3DResourceType::ARRTEX &&
+                  tex->getType() != D3DResourceType::VOLTEX && tex->getType() != D3DResourceType::CUBEARRTEX))
     return String(128, "trying to use face id for non-cubic/non-array/non-voltex tex");
 
   offs.x = convert_int_param(params[0], 0);
@@ -415,12 +415,6 @@ void DebugTexOverlay::TextureWrapper::render(const Point2 &target_size, const Po
   offset = mul(offsetF, csz);
   size = mul(sizeF, csz);
 
-#if DAGOR_DBGLEVEL > 0
-  int curTexFilter = tex->getTexfilter();
-  if (curTexFilter == TEXFILTER_COMPARE)
-    tex->texfilter(TEXFILTER_POINT);
-#endif
-
   ShaderGlobal::set_texture(texVarId, texId);
   ShaderGlobal::set_sampler(samplerVarId, d3d::request_sampler({}));
 
@@ -431,20 +425,20 @@ void DebugTexOverlay::TextureWrapper::render(const Point2 &target_size, const Po
   }
 
   float faceUse = face;
-  if (tex->restype() == RES3D_TEX)
+  if (tex->getType() == D3DResourceType::TEX)
   {
     ShaderGlobal::set_int(texTypeVarId, 0);
   }
-  else if (tex->restype() == RES3D_CUBETEX)
+  else if (tex->getType() == D3DResourceType::CUBETEX)
   {
     ShaderGlobal::set_int(texTypeVarId, 1);
   }
-  else if (tex->restype() == RES3D_VOLTEX)
+  else if (tex->getType() == D3DResourceType::VOLTEX)
   {
     ShaderGlobal::set_int(texTypeVarId, 3);
     faceUse = (faceUse + .5f) / info.d;
   }
-  else if (tex->restype() == RES3D_ARRTEX)
+  else if (tex->getType() == D3DResourceType::ARRTEX)
   {
     if (tex->isCubeArray())
     {
@@ -478,11 +472,6 @@ void DebugTexOverlay::TextureWrapper::render(const Point2 &target_size, const Po
 
   ShaderGlobal::set_texture(texVarId, BAD_TEXTUREID);
   ShaderGlobal::set_sampler(samplerVarId, d3d::INVALID_SAMPLER_HANDLE);
-
-#if DAGOR_DBGLEVEL > 0
-  if (curTexFilter == TEXFILTER_COMPARE)
-    tex->texfilter(curTexFilter);
-#endif
 }
 
 void DebugTexOverlay::TextureWrapper::fixAspectRatio(const Point2 &targetSize)
@@ -492,7 +481,7 @@ void DebugTexOverlay::TextureWrapper::fixAspectRatio(const Point2 &targetSize)
 
   BaseTexture *tex = acquire_managed_tex(texId);
 
-  if (tex->restype() == RES3D_TEX || tex->restype() == RES3D_VOLTEX || tex->restype() == RES3D_ARRTEX)
+  if (tex->getType() == D3DResourceType::TEX || tex->getType() == D3DResourceType::VOLTEX || tex->getType() == D3DResourceType::ARRTEX)
   {
     TextureInfo ti;
     tex->getinfo(ti);

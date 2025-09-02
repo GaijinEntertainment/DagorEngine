@@ -808,9 +808,9 @@ static float traceht_water_at_time_internal(const Point3 &pos, float t, float ti
   FFTWater *water = dacoll::get_water();
   if (water)
   {
-    const float waterLevel = fft_water::get_level(water);
+    const float waterMaxLevel = fft_water::get_max_level(water);
     float toY = pos.y - t;
-    if (min(pos.y, toY) < waterLevel + fft_water::get_max_wave(water))
+    if (min(pos.y, toY) < waterMaxLevel + fft_water::get_max_wave(water))
     {
       float res = 1e9f;
       if (fft_water::getHeightAboveWaterAtTime(water, time, pos, res))

@@ -225,19 +225,21 @@ void TreesAbove::initTrees2d(const DataBlock &settings)
     float treesTexelSize = settings.getReal("treesTexel", 1.); // todo: use gi 25d voxel size
     trees2dDist = ((float)trees2dDRes / 2.0f) * treesTexelSize;
     debug("init trees2d map rex %d^2, %f", trees2dDRes, treesTexelSize);
-    // trees2d.set(d3d::create_tex(NULL, treesRes, treesRes, TEXCF_RTARGET|TEXFMT_L8, 1, "trees2d"), "trees2d");
+    // trees2d.set(d3d::create_tex(NULL, treesRes, treesRes, TEXCF_RTARGET|TEXFMT_R8, 1, "trees2d"), "trees2d");
     trees2d.set(d3d::create_tex(NULL, trees2dDRes, trees2dDRes,
                   TEXCF_RTARGET | TEXCF_CLEAR_ON_CREATE | TEXCF_SRGBREAD | TEXCF_SRGBWRITE, 1, "trees2d"),
       "trees2d");
     trees2dDepth.set(d3d::create_tex(NULL, trees2dDRes, trees2dDRes, TEXCF_RTARGET | TEXFMT_DEPTH16, 1, "trees2d_depth"),
       "trees2d_depth");    // to be removed, we should copy from back buffer
     trees2dDepth.setVar(); // to be removed, we should copy from back buffer
+    d3d::SamplerInfo smpInfo;
+    smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Wrap;
+    smpInfo.filter_mode = d3d::FilterMode::Point;
+    d3d::SamplerHandle smp = d3d::request_sampler(smpInfo);
+    ShaderGlobal::set_sampler(::get_shader_variable_id("trees2d_depth_samplerstate", true), smp);
+    ShaderGlobal::set_sampler(::get_shader_variable_id("trees2d_samplerstate", true), smp);
 
     trees2d.setVar();
-    trees2d.getTex2D()->texaddr(TEXADDR_WRAP);
-    trees2dDepth.getTex2D()->texaddr(TEXADDR_WRAP);
-    trees2d.getTex2D()->texfilter(TEXFILTER_POINT);
-    trees2dDepth.getTex2D()->texfilter(TEXFILTER_POINT);
     trees2dHelper.curOrigin = IPoint2(-1000000, 1000000);
     trees2dHelper.texSize = trees2dDRes;
     rendinst_trees_visibility = rendinst::createRIGenVisibility(midmem);

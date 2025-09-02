@@ -2116,6 +2116,7 @@ int ImFormatStringV(char* buf, size_t buf_size, const char* fmt, va_list args)
 #endif
     if (buf == NULL)
         return w;
+    IM_ASSERT((!(w == -1 || w >= (int)buf_size)) && "passed string is too long or broken"); // DAGOR patch
     if (w == -1 || w >= (int)buf_size)
         w = (int)buf_size - 1;
     buf[w] = 0;

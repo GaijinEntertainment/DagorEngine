@@ -33,7 +33,7 @@ class OcclusionSystemImpl final : public OcclusionSystem
 public:
   OcclusionSystemImpl() {}
   ~OcclusionSystemImpl() { close(); }
-  void init() override;
+  void init(const char *hzb_tex_name) override;
   void close() override;
   void reset() override;
   bool hasGPUFrame() const override { return currentCheckingFrame > 0; }
@@ -108,6 +108,8 @@ protected:
   Texture *currentTarget = nullptr;
   TEXTUREID currentTargetId = BAD_TEXTUREID;
   d3d::SamplerHandle clampPointSampler = d3d::INVALID_SAMPLER_HANDLE;
+
+  OcclusionRenderer<WIDTH, HEIGHT> occlusionRenderer{occlusionTest};
 };
 
 OcclusionSystem *OcclusionSystem::create() { return new OcclusionSystemImpl; }
@@ -148,7 +150,7 @@ void OcclusionSystemImpl::initSWRasterization()
   }
 }
 
-void OcclusionSystemImpl::init()
+void OcclusionSystemImpl::init(const char *hzb_tex_name)
 {
   close();
   width = WIDTH;
@@ -157,9 +159,8 @@ void OcclusionSystemImpl::init()
   if (shader_exists("downsample_depth_hzb")) // we don't support GPU readback on this platform
   {
     downsample.init("downsample_depth_hzb");
-    ringTextures.init(width, height, 3, "hzb",
+    ringTextures.init(width, height, 3, hzb_tex_name,
       TEXCF_LINEAR_LAYOUT | TEXFMT_R32F | TEXCF_RTARGET | TEXCF_CPU_CACHED_MEMORY | TEXCF_UNORDERED);
-    ringTextures.texaddr(TEXADDR_CLAMP);
     clear_and_resize(lastHWdepth, width * height);
     debug("use Coverage buffer/GPU HZB occlusion");
   }
@@ -167,6 +168,7 @@ void OcclusionSystemImpl::init()
     d3d::SamplerInfo smpInfo;
     smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
     smpInfo.filter_mode = d3d::FilterMode::Point;
+    smpInfo.mip_map_mode = d3d::MipMapMode::Point;
     clampPointSampler = d3d::request_sampler(smpInfo);
   }
 }
@@ -515,6 +517,10 @@ void OcclusionSystemImpl::prepareNextFrameImpl(vec3f view_pos, mat44f_cref view,
     globtmHistory[lastRenderedFrame % globtmHistory.size()].pos = view_pos;
     globtmHistory[lastRenderedFrame % globtmHistory.size()].zn = zn;
     globtmHistory[lastRenderedFrame % globtmHistory.size()].zf = zf;
+
+    // guard against inconsistent state when left eye not rendered
+    currentTarget = nullptr;
+    currentTargetId = BAD_TEXTUREID;
   }
 }
 
@@ -560,7 +566,7 @@ void OcclusionSystemImpl::readGPUframe()
 void OcclusionSystemImpl::clear()
 {
   TIME_PROFILE(occlusion_clear);
-  OcclusionTest<WIDTH, HEIGHT>::clear();
+  occlusionTest.clear();
 }
 
 void OcclusionSystemImpl::prepareGPUDepthFrame(vec3f pos, mat44f_cref view, mat44f_cref proj, mat44f_cref viewProj,
@@ -568,7 +574,7 @@ void OcclusionSystemImpl::prepareGPUDepthFrame(vec3f pos, mat44f_cref view, mat4
 {
   {
     TIME_PROFILE(occlusion_clear);
-    OcclusionRenderer<WIDTH, HEIGHT>::clear();
+    occlusionRenderer.clear();
   }
   if (currentCheckingFrame > 0) // occlusion is only valid after first frame
   {
@@ -598,13 +604,13 @@ void OcclusionSystemImpl::prepareGPUDepthFrame(vec3f pos, mat44f_cref view, mat4
         mat44f viewProjTm;
         v_mat44_mul(viewProjTm, proj, viewTm);
 
-        OcclusionRenderer<WIDTH, HEIGHT>::reprojectHWDepthBuffer(toWorldHW, v_zero(), globtmHistory[idx].zn, globtmHistory[idx].zf,
-          viewProjTm, 0, height, lastHWdepth.data(), cockpit_distance, cockpit_mode, actualAnim);
+        occlusionRenderer.reprojectHWDepthBuffer(toWorldHW, v_zero(), globtmHistory[idx].zn, globtmHistory[idx].zf, viewProjTm, 0,
+          height, lastHWdepth.data(), cockpit_distance, cockpit_mode, actualAnim);
       }
       else
       {
-        OcclusionRenderer<WIDTH, HEIGHT>::reprojectHWDepthBuffer(toWorldHW, globtmHistory[idx].pos, globtmHistory[idx].zn,
-          globtmHistory[idx].zf, viewProj, 0, height, lastHWdepth.data(), cockpit_distance, cockpit_mode, actualAnim);
+        occlusionRenderer.reprojectHWDepthBuffer(toWorldHW, globtmHistory[idx].pos, globtmHistory[idx].zn, globtmHistory[idx].zf,
+          viewProj, 0, height, lastHWdepth.data(), cockpit_distance, cockpit_mode, actualAnim);
       }
     }
   }
@@ -614,7 +620,7 @@ void OcclusionSystemImpl::combineWithSWRasterization()
 {
   if (moc)
   {
-    float *zb = OcclusionTest<WIDTH, HEIGHT>::getZbuffer(0);
+    float *zb = occlusionTest.getZbuffer(0);
     if (currentCheckingFrame > 0)
       moc->CombinePixelDepthBuffer2W(zb, WIDTH, HEIGHT);
     else
@@ -625,7 +631,7 @@ void OcclusionSystemImpl::combineWithSWRasterization()
 void OcclusionSystemImpl::buildMips()
 {
   TIME_PROFILE(occlusion_buildMips);
-  OcclusionTest<WIDTH, HEIGHT>::buildMips();
+  occlusionTest.buildMips();
 }
 
 void OcclusionSystemImpl::prepareDebug()
@@ -637,20 +643,18 @@ void OcclusionSystemImpl::prepareDebug()
   {
     uint32_t flags = TEXCF_READABLE | TEXCF_DYNAMIC | TEXCF_LINEAR_LAYOUT | TEXFMT_R32F;
     reprojected.set(d3d::create_tex(NULL, width, height, flags, mip_chain_cnt, "hzb_reprojected"), "hzb_reprojected");
-    reprojected.getTex2D()->texaddr(TEXADDR_CLAMP);
-    reprojected.getTex2D()->texfilter(TEXFILTER_POINT);
   }
 
   uint8_t *data;
   int stride;
   for (int mip = 0; mip < mip_chain_cnt; ++mip)
-    if (reprojected.getTex2D()->lockimg((void **)&data, stride, mip, TEXLOCK_UPDATEFROMSYSTEX | TEXLOCK_RWMASK | TEXLOCK_SYSTEXLOCK))
+    if (reprojected.getTex2D()->lockimg((void **)&data, stride, mip, TEXLOCK_READWRITE))
     {
-      const float *zbuffer = OcclusionTest<WIDTH, HEIGHT>::getZbuffer(mip);
+      const float *zbuffer = occlusionTest.getZbuffer(mip);
       if (mip == 0 && debug_reprojection.get())
       {
         for (int i = 0; i < height; ++i, data += stride)
-          memcpy(data, OcclusionRenderer<WIDTH, HEIGHT>::reprojectionDebug + i * width, width * sizeof(float));
+          memcpy(data, occlusionRenderer.reprojectionDebug + i * width, width * sizeof(float));
       }
       else
       {
@@ -674,13 +678,11 @@ void OcclusionSystemImpl::prepareDebugSWRasterization()
   {
     uint32_t flags = TEXCF_READABLE | TEXCF_DYNAMIC | TEXCF_LINEAR_LAYOUT | TEXFMT_R32F;
     masked.set(d3d::create_tex(NULL, mw, mh, flags, 1, "masked_z"), "masked_z");
-    masked.getTex2D()->texaddr(TEXADDR_CLAMP);
-    masked.getTex2D()->texfilter(TEXFILTER_POINT);
   }
 
   uint8_t *data;
   int stride;
-  if (masked.getTex2D()->lockimg((void **)&data, stride, 0, TEXLOCK_UPDATEFROMSYSTEX | TEXLOCK_RWMASK | TEXLOCK_SYSTEXLOCK))
+  if (masked.getTex2D()->lockimg((void **)&data, stride, 0, TEXLOCK_READWRITE))
   {
     float *depth = new float[mw * mh];
     moc->ComputePixelDepthBuffer(depth, false /* flipY */);

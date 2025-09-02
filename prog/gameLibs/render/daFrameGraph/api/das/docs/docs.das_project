@@ -1,0 +1,28 @@
+
+options indenting = 2
+options gc
+options persistent_heap
+require daslib/strings_boost
+
+let
+  commonAliasPath <- {
+    "daFrameGraph" => "../../../../../das/daFrameGraph.daFG.das",
+    "daFrameGraph.fg_ecs" => "../../../../../das/daFrameGraph/fg_ecs.das",
+    "daFrameGraph.resource_slot" => "../../../../../das/daFrameGraph/resource_slot.das",
+    "daFrameGraph.resource_slot_ecs" => "../../../../../das/daFrameGraph/resource_slot_ecs.das"
+  }
+
+[export]
+def module_get(req, from : string) : tuple<string; string; string> const
+  let rs <- split_by_chars(req, "./")
+  var fr <- split_by_chars(from, "/")
+  let mod_name = rs[length(rs) - 1]
+
+  let aliasPath = commonAliasPath?[req] ?? ""
+  if aliasPath != ""
+    return (mod_name, aliasPath, "")
+
+  if rs[0] == "daslib"
+    return (mod_name, "{get_das_root()}/daslib/{mod_name}.das", "")
+  else
+    return (mod_name, req + ".das", "")

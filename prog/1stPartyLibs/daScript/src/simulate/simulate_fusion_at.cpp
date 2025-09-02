@@ -43,7 +43,7 @@ namespace das {
             DAS_PROFILE_NODE \
             auto pl = l.compute##COMPUTEL(context); \
             auto rr = uint32_t(r.subexpr->evalInt(context)); \
-            if ( rr >= range ) context.throw_error_at(debugInfo,"index out of range, %u of %u", rr, range); \
+            if ( rr >= range ) context.throw_error_at(debugInfo,"index out of range, %u of %u%s", rr, range, errorMessage); \
             return *((CTYPE *)(pl + rr*stride + offset)); \
         } \
         DAS_NODE(TYPE,CTYPE); \
@@ -55,7 +55,7 @@ namespace das {
             DAS_PROFILE_NODE \
             auto pl = l.compute##COMPUTEL(context); \
             auto rr = *((uint32_t *)r.compute##COMPUTER(context)); \
-            if ( rr >= range ) context.throw_error_at(debugInfo,"index out of range, %u of %u", rr, range); \
+            if ( rr >= range ) context.throw_error_at(debugInfo,"index out of range, %u of %u%s", rr, range, errorMessage); \
             return *((CTYPE *)(pl + rr*stride + offset)); \
         } \
         DAS_NODE(TYPE,CTYPE); \
@@ -64,6 +64,7 @@ namespace das {
 #define IMPLEMENT_OP2_SET_SETUP_NODE(result,node) \
     auto rn = (SimNode_Op2At *)result; \
     auto sn = (SimNode_At *)node; \
+    rn->errorMessage = sn->errorMessage; \
     rn->stride = sn->stride; \
     rn->offset = sn->offset; \
     rn->range = sn->range;
@@ -85,7 +86,7 @@ namespace das {
             DAS_PROFILE_NODE \
             auto pl = l.compute##COMPUTEL(context); \
             auto rr = uint32_t(r.subexpr->evalInt(context)); \
-            if ( rr >= range ) context.throw_error_at(debugInfo,"index out of range, %u of %u", rr, range); \
+            if ( rr >= range ) context.throw_error_at(debugInfo,"index out of range, %u of %u%s", rr, range, errorMessage); \
             return v_ldu((const float *)(pl + rr*stride + offset)); \
         } \
     };
@@ -97,7 +98,7 @@ namespace das {
             DAS_PROFILE_NODE \
             auto pl = l.compute##COMPUTEL(context); \
             auto rr = *((uint32_t *)r.compute##COMPUTER(context)); \
-            if ( rr >= range ) context.throw_error_at(debugInfo,"index out of range, %u of %u", rr, range); \
+            if ( rr >= range ) context.throw_error_at(debugInfo,"index out of range, %u of %u%s", rr, range, errorMessage); \
             return v_ldu((const float *)(pl + rr*stride + offset)); \
         } \
     };
@@ -116,7 +117,7 @@ namespace das {
             DAS_PROFILE_NODE \
             auto pl = l.compute##COMPUTEL(context); \
             auto rr = uint32_t(r.subexpr->evalInt(context)); \
-            if ( rr >= range ) context.throw_error_at(debugInfo,"index out of range, %u of %u", rr, range); \
+            if ( rr >= range ) context.throw_error_at(debugInfo,"index out of range, %u of %u%s", rr, range, errorMessage); \
             return pl + rr*stride + offset; \
         } \
         DAS_PTR_NODE; \
@@ -129,7 +130,7 @@ namespace das {
             DAS_PROFILE_NODE \
             auto pl = l.compute##COMPUTEL(context); \
             auto rr = *((uint32_t *)r.compute##COMPUTER(context)); \
-            if ( rr >= range ) context.throw_error_at(debugInfo,"index out of range, %u of %u", rr, range); \
+            if ( rr >= range ) context.throw_error_at(debugInfo,"index out of range, %u of %u%s", rr, range, errorMessage); \
             return pl + rr*stride + offset; \
         } \
         DAS_PTR_NODE; \
@@ -139,6 +140,7 @@ namespace das {
 #define IMPLEMENT_OP2_SET_SETUP_NODE(result,node) \
     auto rn = (SimNode_Op2At *)result; \
     auto sn = (SimNode_At *)node; \
+    rn->errorMessage = sn->errorMessage; \
     rn->stride = sn->stride; \
     rn->offset = sn->offset; \
     rn->range = sn->range; \
@@ -153,8 +155,8 @@ namespace das {
     void createFusionEngine_at() {
         REGISTER_SETOP_SCALAR(AtR2V);
         REGISTER_SETOP_NUMERIC_VEC(AtR2V);
-        (*g_fusionEngine)["At"].emplace_back(new FusionPoint_Set_At_StringPtr());
-        (*g_fusionEngine)["At"].emplace_back(new FusionPoint_Set_At_VoidPtr());
+        (**g_fusionEngine)["At"].emplace_back(new FusionPoint_Set_At_StringPtr());
+        (**g_fusionEngine)["At"].emplace_back(new FusionPoint_Set_At_VoidPtr());
     }
 }
 

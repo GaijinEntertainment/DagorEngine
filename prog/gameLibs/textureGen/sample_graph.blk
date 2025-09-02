@@ -41,7 +41,7 @@ shaders
     float2 rotSC;
     sincos(instances[instance].angle, rotSC.x, rotSC.y);
     float2 xPos = (localPos-float2(0.5,0.5))*instances[instance].scale;
-    float2 inpos = instances[instance].pos + 
+    float2 inpos = instances[instance].pos +
                    float2( rotSC.y * xPos.x + rotSC.x * xPos.y, -rotSC.x * xPos.x + rotSC.y * xPos.y);
     //inpos = instances[instance].pos + xPos;
     output.pos = float4(inpos*float2(2,-2) - float2(1,-1) ,0,1);
@@ -60,7 +60,7 @@ shaders
     float angle, brightness;
     float depth;
   };
-  float3 getNormal(Texture2D tex, SamplerState smp, float2 tc, float cellSize) 
+  float3 getNormal(Texture2D tex, SamplerState smp, float2 tc, float cellSize)
   {
     float w,h;
     tex.GetDimensions(w,h);
@@ -181,11 +181,11 @@ shaders
    {
      //  https://github.com/BrianSharpe/Wombat/blob/master/Value2D.glsl
 
-     //	establish our grid cell and unit position
+     //  establish our grid cell and unit position
      float2 Pi = floor(P);
      float2 Pf = P - Pi;
 
-     //	calculate the hash.
+     //  calculate the hash.
      float4 Pt = float4( Pi.xy, Pi.xy + 1.0 );
      Pt = Pt - floor(Pt * ( 1.0 / 71.0 )) * 71.0;
      Pt += float2( 26.0, 161.0 ).xyxy;
@@ -193,12 +193,12 @@ shaders
      Pt = Pt.xzxz * Pt.yyww;
      float4 hash = frac( Pt * ( 1.0 / 951.135664 ) );
 
-     //	blend the results and return
+     //  blend the results and return
      float2 blend = Pf * Pf * Pf * (Pf * (Pf * 6.0 - 15.0) + 10.0);
      float4 blend2 = float4( blend, float2( 1.0 - blend ) );
      return dot( hash, blend2.zxzx * blend2.wwyy );
    }
-   
+
   #ifndef MRTOutput_DEFINED
     struct MRTOutput {float4 col0:SV_Target0;};
   #endif
@@ -486,7 +486,7 @@ shaders
        };
       #define MRTOutput_DEFINED
        struct MRTOutput {float4 col0:SV_Target0;float4 col1:SV_Target1;};
- 
+
      """
      shaderCode:t="""
      float2 pt = input.tc*frequency+ofs;
@@ -557,7 +557,7 @@ shaders
      ret/=max(0.0001,totalScale);
      float probability = scale*(ret*0.5+0.5);
      result.probability = probability;
-     
+
      ParticleInstance particle;
      particle.pos = input.tc + size*(randPos2-0.5)/sqrt(2);
      particle.scale = size*(-0.5*ret + 0.5);

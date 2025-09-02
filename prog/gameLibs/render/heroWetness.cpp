@@ -49,12 +49,9 @@ HeroWetness::HeroWetness() :
   heroFoamScroll(Point2(0.f, 0.f)),
   heroFoamScrollSpeed(0.5f),
   heroFoamFadeUnderWater(Point2(2.f, 2.f)),
-  numClearsToDo(heroWetnessTex.size()),
-  heroWetnessRenderIter(0)
+  numClearsToDo(1)
 {
-  mem_set_0(heroWetnessTex);
-  for (int texNo = 0; texNo < heroWetnessTexId.size(); ++texNo)
-    heroWetnessTexId[texNo] = BAD_TEXTUREID;
+  heroWetnessTex = nullptr;
 
   init();
 }
@@ -90,22 +87,22 @@ void HeroWetness::init()
   ShaderGlobal::set_real(heroWetnessAboveVarId, heroWetnessAboveDist);
 
   heroWetnessTexVarId = get_shader_variable_id("hero_wetness_tex", true);
+  heroWetnessTex_samplerstateVarId = get_shader_variable_id("hero_wetness_tex_samplerstate", true);
   ShaderGlobal::set_texture(heroWetnessTexVarId, BAD_TEXTUREID);
 
   globalFrameBlockId = ShaderGlobal::getBlockId("global_frame");
 
-  // flat 3d texture
-  for (int i = 0; i < heroWetnessTex.size(); i++)
+  heroWetnessRTPool =
+    RTargetPool::get(heroWetnessVolumeSizeX * heroWetnessVolumeSlices, heroWetnessVolumeSizeY, TEXCF_RTARGET | fmt, 1);
+
   {
-    String texName = String(100, "heroWetnessVolumeTex%d", i);
-    heroWetnessTex[i] = d3d::create_tex(NULL, heroWetnessVolumeSizeX * heroWetnessVolumeSlices, heroWetnessVolumeSizeY,
-      TEXCF_RTARGET | fmt, 1, texName.str());
-
-    heroWetnessTexId[i] = register_managed_tex(texName.str(), heroWetnessTex[i]);
-    heroWetnessTex[i]->texaddr(TEXADDR_CLAMP);
+    d3d::SamplerInfo smpInfo;
+    smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
+    smpInfo.filter_mode = d3d::FilterMode::Linear;
+    heroLinearSampler = d3d::request_sampler(smpInfo);
+    smpInfo.filter_mode = d3d::FilterMode::Point;
+    heroPointSampler = d3d::request_sampler(smpInfo);
   }
-
-  heroWetnessRenderIter = 0;
 
   // create optimized renderer
   const char *shader_name = "volume_water_height";
@@ -182,8 +179,7 @@ void HeroWetness::fillVertexBuffer(uint32_t size)
 
 void HeroWetness::close()
 {
-  ShaderGlobal::reset_from_vars_and_release_managed_tex_verified(heroWetnessTexId[0], heroWetnessTex[0]);
-  ShaderGlobal::reset_from_vars_and_release_managed_tex_verified(heroWetnessTexId[1], heroWetnessTex[1]);
+  heroWetnessTex = nullptr;
 
   del_d3dres(waterHeightRendererVb);
   waterHeightRendererShmat = NULL;
@@ -194,7 +190,7 @@ void HeroWetness::close()
 void HeroWetness::clearHeroWetnessVolume()
 {
   wetTime = -1.0f;
-  numClearsToDo = heroWetnessTex.size();
+  numClearsToDo = 1;
 }
 
 void HeroWetness::calcHeroWetnessVolume(float dt, const TMatrix &hero_tm, const BBox3 &hero_box, bool is_ship, bool has_water_3d,
@@ -291,12 +287,16 @@ void HeroWetness::calcHeroWetnessVolume(float dt, const TMatrix &hero_tm, const 
 
 
   // render flat-3d texture
-  int curTex = heroWetnessRenderIter;
-  heroWetnessTex[curTex]->texfilter(TEXFILTER_POINT);
+  if (heroWetnessTex == nullptr)
+  {
+    heroWetnessTex = heroWetnessRTPool->acquire();
+  }
 
-  ShaderGlobal::set_texture(heroWetnessTexVarId, heroWetnessTexId[heroWetnessRenderIter]);
-  heroWetnessRenderIter = heroWetnessRenderIter ^ 1; // 0  or 1
-  d3d::set_render_target(heroWetnessTex[heroWetnessRenderIter], 0);
+  ShaderGlobal::set_texture(heroWetnessTexVarId, heroWetnessTex->getTexId());
+  ShaderGlobal::set_sampler(heroWetnessTex_samplerstateVarId, heroPointSampler);
+
+  RTarget::Ptr newTarget = heroWetnessRTPool->acquire();
+  d3d::set_render_target(newTarget->getTex2D(), 0);
 
   ShaderGlobal::setBlock(globalFrameBlockId, ShaderGlobal::LAYER_FRAME);
   if (!waterHeightRendererShElem)
@@ -308,11 +308,12 @@ void HeroWetness::calcHeroWetnessVolume(float dt, const TMatrix &hero_tm, const 
     d3d::draw(PRIM_TRILIST, 0, 2 * heroWetnessVolumeSlices);
   }
 
-  d3d::resource_barrier({heroWetnessTex[heroWetnessRenderIter], RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+  d3d::resource_barrier({newTarget->getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
   // restore states
   d3d::set_render_target(prevRt);
-  heroWetnessTex[curTex]->texfilter(TEXFILTER_LINEAR);
-  ShaderGlobal::set_texture(heroWetnessTexVarId, heroWetnessTexId[heroWetnessRenderIter]);
+  ShaderGlobal::set_texture(heroWetnessTexVarId, newTarget->getTexId());
+  ShaderGlobal::set_sampler(heroWetnessTex_samplerstateVarId, heroLinearSampler);
+  heroWetnessTex = newTarget;
 }
 
 

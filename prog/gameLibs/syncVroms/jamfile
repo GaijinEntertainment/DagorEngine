@@ -18,13 +18,9 @@ AddIncludes =
   $(Root)/prog/gameLibs/publicInclude
 ;
 
-if $(UseSystemOpenSSL) != yes {
-  AddIncludes += $(Root)/prog/3rdPartyLibs/openssl-$(OpenSSLVer)/include ;
-  UseProgLibs += 3rdPartyLibs/openssl-$(OpenSSLVer) ;
-}
-
 UseProgLibs +=
   gameLibs/compressionUtils
+  3rdPartyLibs/hash
   3rdPartyLibs/hash/BLAKE3
 ;
 

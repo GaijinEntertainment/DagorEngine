@@ -1,21 +1,6 @@
 include "dagi_albedo_scene_common.dshl"
 include "giHelpers/voxelize_gs.dshl"
 
-macro COMPILE_RI_VS_TARGET_WITH_TESSELLATION(entry, use_tessellation)
-  if (use_tessellation)
-  {
-    compile("target_vs_for_tess", entry);
-  }
-  else
-  {
-    compile("target_vs", entry);
-  }
-endmacro
-
-macro COMPILE_RI_VS_TARGET(entry)
-  COMPILE_RI_VS_TARGET_WITH_TESSELLATION(entry, false)
-endmacro
-
 macro RI_NO_VOXELIZE_CODE()
   hlsl {
     #define VOXEL_CENTROID

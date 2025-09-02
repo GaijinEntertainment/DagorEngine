@@ -42,8 +42,10 @@ private:
   {
     uint64_t jobId;
     uint64_t hash;
+    uint64_t dataHash;
 #if DAGOR_DBGLEVEL > 0
     uint64_t caller;
+    const void *cmdPtr;
 #endif
   };
 

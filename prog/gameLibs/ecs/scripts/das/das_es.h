@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include <dasModules/aotEcsEvents.h>
 #include <dasModules/dasScriptsLoader.h>
 #include <ecs/scripts/dasEs.h>
 #include <daECS/core/updateStage.h>
@@ -64,12 +65,12 @@ struct BaseEsDesc
     return make_span_const<ecs::ComponentDesc>(compPtr(c), (uint32_t)compCount(c));
   }
   bool isResolved() const { return resolved; }
-  void resolveUnresolved()
+  void resolveUnresolved(ecs::EntityManager *mgr)
   {
     if (!isResolved())
-      resolveUnresolvedOutOfLine();
+      resolveUnresolvedOutOfLine(mgr);
   }
-  void resolveUnresolvedOutOfLine();
+  void resolveUnresolvedOutOfLine(ecs::EntityManager *mgr);
 };
 
 struct EsContext;
@@ -94,20 +95,23 @@ struct EsQueryDesc
 {
   ecs::QueryId query;
   BaseEsDesc base;
+  ecs::EntityManager *mgr = nullptr;
   bool shared = false;
-  EsQueryDesc() = default;
+  EsQueryDesc(ecs::EntityManager *mgr_) : mgr(mgr_) {}
   ~EsQueryDesc()
   {
-    if ((bool)query && g_entity_mgr)
-      g_entity_mgr->destroyQuery(query);
+    if ((bool)query && mgr)
+      mgr->destroyQuery(query);
   }
-  EsQueryDesc(EsQueryDesc &&a) : base(eastl::move(a.base)), query(a.query), shared(a.shared) { a.query = ecs::QueryId(); }
+  EsQueryDesc(EsQueryDesc &&a) : base(eastl::move(a.base)), query(a.query), shared(a.shared), mgr(a.mgr) { a.query = ecs::QueryId(); }
   EsQueryDesc &operator=(EsQueryDesc &&a)
   {
     shared = a.shared;
     base = eastl::move(a.base);
     query = a.query;
     a.query = ecs::QueryId();
+    mgr = a.mgr;
+    a.mgr = nullptr;
     return *this;
   }
   EsQueryDesc(const EsQueryDesc &) = delete;
@@ -135,16 +139,25 @@ struct QueryData
 
 struct ESModuleGroupData : das::ModuleGroupUserData
 {
-  DebugArgStrings &argStrings;
-  ecs::TemplateRefs trefs; // contains only components
+  ecs::EntityManager *mgr = nullptr;
+  DebugArgStrings *argStrings; // Note: nullptr in release
+  ecs::TemplateRefs trefs;     // contains only components
   das::vector<CreatingTemplate> templates;
-  ESModuleGroupData(DebugArgStrings &str, ecs::EntityManager *mgr) : das::ModuleGroupUserData("es"), argStrings(str), trefs(mgr) {}
+  ESModuleGroupData(DebugArgStrings *str, ecs::EntityManager *mgr_) :
+    das::ModuleGroupUserData("es"), mgr(mgr_), argStrings(str), trefs(mgr_)
+  {}
   eastl::vector<eastl::pair<EsDescUP, eastl::string>> unresolvedEs;
   eastl::vector<QueryData> unresolvedQueries;
   das::DebugInfoHelper *helper = nullptr;
   uint32_t hashedScriptName = 0;
+  eastl::vector_map<uint64_t, DasEventData> unresolvedDasEvents;
+  eastl::vector_map<uint64_t, CppEventData> unresolvedCppEvents;
   uint32_t es_resolve_function_ptrs(EsContext *ctx, dag::VectorSet<ecs::EntitySystemDesc *> &systems, const char *fname,
     uint64_t load_start_time, AotMode aot_mode, AotModeIsRequired aot_mode_is_required, DasEcsStatistics &stats);
+
+  void registerEvents();
 };
+
+ESModuleGroupData *getGroupData(das::ModuleGroup &group);
 
 }; // namespace bind_dascript

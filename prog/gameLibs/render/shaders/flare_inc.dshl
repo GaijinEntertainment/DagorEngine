@@ -70,11 +70,14 @@ macro INIT_FLARE()
               (coeff_2 + coeff_1 * x_add_abs_y * rcp(x_sub_abs_y));
       return sign(y) * angle;
     }
+
+    bool flare_enabled()
+    {
+      return flareEnabled.x > 0;
+    }
+
     half4 flare_value(float2 texcoord, float rotate)
     {
-        if (!flareEnabled.x)
-          return half4(0.0, 0.0, 0.0, 0.0);
-
         float2 suv = texcoord.xy*2.0 - 1.0;
         float angle = fast_atan2(suv.y, suv.x);
         float n_a = frac(angle*(1/PI) + rotate);

@@ -5,9 +5,10 @@
 #pragma once
 
 #include <generic/dag_tabFwd.h>
+#include <libTools/util/iLogWriter.h>
+#include <util/dag_string.h>
 class DataBlock;
 class IGenericProgressIndicator;
-class ILogWriter;
 namespace mkbindump
 {
 class BinDumpSaveCB;
@@ -17,12 +18,17 @@ class BinDumpSaveCB;
 class DagorAssetMgr;
 class DagorAsset;
 class IDagorAssetExporter;
-class String;
 
 
 class IDaBuildInterface
 {
 public:
+  struct BuildWarning
+  {
+    ILogWriter::MessageType messageType;
+    String message;
+  };
+
   inline bool checkVersion() { return apiVer == API_VERSION; }
   inline int getDllVer() { return apiVer; }
   inline int getReqVer() { return API_VERSION; }
@@ -67,6 +73,12 @@ public:
   // if asset builds very we don't save it in cache on disk
   virtual bool __stdcall getBuiltRes(DagorAsset &a, mkbindump::BinDumpSaveCB &cwr, IDagorAssetExporter *exp, const char *cache_folder,
     String &cache_path, int &data_offset, bool save_all_caches) = 0;
+
+  // Get build warnings for the given asset from the saved cache file.
+  // cache_up_to_date: output parameter. It is set to true if the cache file is up-to-date (so a getBuiltRes would not rebuild it).
+  // Returns true if the cache file exists.
+  virtual bool __stdcall getBuiltResWarnings(DagorAsset &asset, IDagorAssetExporter &exp, const char *cache_folder,
+    dag::Vector<BuildWarning> &warnings, bool &cache_up_to_date) = 0;
 
   virtual void __stdcall setExpCacheSharedData(void *) = 0;
 

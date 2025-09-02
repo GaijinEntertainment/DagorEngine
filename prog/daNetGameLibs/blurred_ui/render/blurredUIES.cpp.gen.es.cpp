@@ -1,14 +1,18 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "blurredUIES.cpp.inl"
 ECS_DEF_PULL_VAR(blurredUI);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc set_resolution_blurred_ui_manager_es_comps[] =
 {
-//start of 3 rw components at [0]
+//start of 5 rw components at [0]
   {ECS_HASH("blurred_ui__manager"), ecs::ComponentTypeInfo<BlurredUI>()},
   {ECS_HASH("blurred_ui__texid"), ecs::ComponentTypeInfo<TEXTUREID>()},
+  {ECS_HASH("blurred_ui__smp"), ecs::ComponentTypeInfo<d3d::SamplerHandle>()},
   {ECS_HASH("blurred_ui_sdr__texid"), ecs::ComponentTypeInfo<TEXTUREID>()},
-//start of 1 ro components at [3]
+  {ECS_HASH("blurred_ui_sdr__smp"), ecs::ComponentTypeInfo<d3d::SamplerHandle>()},
+//start of 1 ro components at [5]
   {ECS_HASH("blurred_ui__levels"), ecs::ComponentTypeInfo<uint32_t>()}
 };
 static void set_resolution_blurred_ui_manager_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
@@ -19,7 +23,9 @@ static void set_resolution_blurred_ui_manager_es_all_events(const ecs::Event &__
         , ECS_RW_COMP(set_resolution_blurred_ui_manager_es_comps, "blurred_ui__manager", BlurredUI)
     , ECS_RO_COMP(set_resolution_blurred_ui_manager_es_comps, "blurred_ui__levels", uint32_t)
     , ECS_RW_COMP(set_resolution_blurred_ui_manager_es_comps, "blurred_ui__texid", TEXTUREID)
+    , ECS_RW_COMP(set_resolution_blurred_ui_manager_es_comps, "blurred_ui__smp", d3d::SamplerHandle)
     , ECS_RW_COMP(set_resolution_blurred_ui_manager_es_comps, "blurred_ui_sdr__texid", TEXTUREID)
+    , ECS_RW_COMP(set_resolution_blurred_ui_manager_es_comps, "blurred_ui_sdr__smp", d3d::SamplerHandle)
     );
   while (++comp != compE);
 }
@@ -28,8 +34,8 @@ static ecs::EntitySystemDesc set_resolution_blurred_ui_manager_es_es_desc
   "set_resolution_blurred_ui_manager_es",
   "prog/daNetGameLibs/blurred_ui/render/blurredUIES.cpp.inl",
   ecs::EntitySystemOps(nullptr, set_resolution_blurred_ui_manager_es_all_events),
-  make_span(set_resolution_blurred_ui_manager_es_comps+0, 3)/*rw*/,
-  make_span(set_resolution_blurred_ui_manager_es_comps+3, 1)/*ro*/,
+  make_span(set_resolution_blurred_ui_manager_es_comps+0, 5)/*rw*/,
+  make_span(set_resolution_blurred_ui_manager_es_comps+5, 1)/*ro*/,
   empty_span(),
   empty_span(),
   ecs::EventSetBuilder<SetResolutionEvent>::build(),
@@ -37,11 +43,13 @@ static ecs::EntitySystemDesc set_resolution_blurred_ui_manager_es_es_desc
 ,"render");
 static constexpr ecs::ComponentDesc init_blurred_ui_manager_es_comps[] =
 {
-//start of 3 rw components at [0]
+//start of 5 rw components at [0]
   {ECS_HASH("blurred_ui__manager"), ecs::ComponentTypeInfo<BlurredUI>()},
   {ECS_HASH("blurred_ui__texid"), ecs::ComponentTypeInfo<TEXTUREID>()},
+  {ECS_HASH("blurred_ui__smp"), ecs::ComponentTypeInfo<d3d::SamplerHandle>()},
   {ECS_HASH("blurred_ui_sdr__texid"), ecs::ComponentTypeInfo<TEXTUREID>()},
-//start of 1 ro components at [3]
+  {ECS_HASH("blurred_ui_sdr__smp"), ecs::ComponentTypeInfo<d3d::SamplerHandle>()},
+//start of 1 ro components at [5]
   {ECS_HASH("blurred_ui__levels"), ecs::ComponentTypeInfo<uint32_t>()}
 };
 static void init_blurred_ui_manager_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
@@ -51,7 +59,9 @@ static void init_blurred_ui_manager_es_all_events(const ecs::Event &__restrict e
         , ECS_RW_COMP(init_blurred_ui_manager_es_comps, "blurred_ui__manager", BlurredUI)
     , ECS_RO_COMP(init_blurred_ui_manager_es_comps, "blurred_ui__levels", uint32_t)
     , ECS_RW_COMP(init_blurred_ui_manager_es_comps, "blurred_ui__texid", TEXTUREID)
+    , ECS_RW_COMP(init_blurred_ui_manager_es_comps, "blurred_ui__smp", d3d::SamplerHandle)
     , ECS_RW_COMP(init_blurred_ui_manager_es_comps, "blurred_ui_sdr__texid", TEXTUREID)
+    , ECS_RW_COMP(init_blurred_ui_manager_es_comps, "blurred_ui_sdr__smp", d3d::SamplerHandle)
     );
   while (++comp != compE);
 }
@@ -60,8 +70,8 @@ static ecs::EntitySystemDesc init_blurred_ui_manager_es_es_desc
   "init_blurred_ui_manager_es",
   "prog/daNetGameLibs/blurred_ui/render/blurredUIES.cpp.inl",
   ecs::EntitySystemOps(nullptr, init_blurred_ui_manager_es_all_events),
-  make_span(init_blurred_ui_manager_es_comps+0, 3)/*rw*/,
-  make_span(init_blurred_ui_manager_es_comps+3, 1)/*ro*/,
+  make_span(init_blurred_ui_manager_es_comps+0, 5)/*rw*/,
+  make_span(init_blurred_ui_manager_es_comps+5, 1)/*ro*/,
   empty_span(),
   empty_span(),
   ecs::EventSetBuilder<ecs::EventEntityCreated,

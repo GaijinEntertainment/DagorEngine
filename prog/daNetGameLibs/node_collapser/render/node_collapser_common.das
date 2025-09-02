@@ -17,20 +17,20 @@ struct AnimcharNodeCollapser
 [soa_def]
 def collapser(position : float3;
               var animchar_render : AnimcharRendComponent&;
-              animchar_visbits : uint8;
+              animchar_visbits : animchar_visbits_t;
               animchar_bsph : float3;
               animchar_node_collapser : AnimcharNodeCollapser_SOA;
               animchar_node_collapser__children : IntList;
               animchar_node_collapser__camThreshold : float;
               animchar_node_collapser__origin_threshold_sq : float)
-  if animchar_visbits == uint8(0)
+  if animchar_visbits == animchar_visbits_t(0)
     return
   if distance_sq(animchar_bsph, position) > animchar_node_collapser__origin_threshold_sq
     return
 
   assume scene = animchar_render.sceneInstance
 
-  var zeroTm = float3x4();
+  var zeroTm = float3x4()
   var from = 0
   for node in animchar_node_collapser
     var collide = false

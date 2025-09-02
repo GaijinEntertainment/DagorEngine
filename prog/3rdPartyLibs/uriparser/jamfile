@@ -27,8 +27,6 @@ AddIncludes =
   $(Root)/prog/3rdPartyLibs/uriparser/src
 ;
 
-CPPopt += -DURI_STATIC_BUILD=1
-          -DURI_NO_UNICODE=1
-  ;
+CPPopt += -DURI_STATIC_BUILD -DURI_NO_UNICODE ;
 
 include $(Root)/prog/_jBuild/build.jam ;

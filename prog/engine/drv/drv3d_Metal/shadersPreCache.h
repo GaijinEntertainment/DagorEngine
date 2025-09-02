@@ -8,6 +8,7 @@
 #include <hash/md5.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
 #include <memory/dag_fixedBlockAllocator.h>
+#include <util/dag_string.h>
 #include <util/dag_simpleString.h>
 
 #include "EASTL/vector.h"
@@ -87,12 +88,31 @@ class ShadersPreCache
 
   struct CachedPipelineState
   {
-    uint64_t vs_hash = 0;
+    union
+    {
+      struct
+      {
+        uint64_t vs_hash = 0;
+        uint64_t descriptor_hash = 0;
+      };
+      struct
+      {
+        uint64_t ms_hash;
+        uint64_t as_hash;
+      };
+    };
     uint64_t ps_hash = 0;
-    uint64_t descriptor_hash = 0;
     Program::RenderState rstate;
     id<MTLRenderPipelineState> pso = nil;
-    uint32_t discard = 0;
+    union
+    {
+      struct
+      {
+        uint32_t discard : 1;
+        uint32_t mesh_pipeline : 1;
+      };
+      uint32_t flags = 0;
+    };
     uint32_t output_mask = 0;
   };
 
@@ -112,8 +132,10 @@ class ShadersPreCache
   FixedBlockAllocator cso_cache_objects;
 
   uint32_t cache_version = 0;
+  uint32_t compilations_this_frame = 0;
 
   char shdCachePath[1024];
+  String shaderLogMask;
 
   struct QueuedShader
   {
@@ -163,6 +185,7 @@ public:
   id<MTLFunction> compileShader(const QueuedShader &shader);
   MTLVertexDescriptor *compileDescriptor(uint64_t hash, CachedVertexDescriptor &desc);
   id<MTLRenderPipelineState> compilePipeline(uint64_t hash, CachedPipelineState *pso, bool free);
+  id<MTLRenderPipelineState> compileMeshPipeline(uint64_t hash, CachedPipelineState *pso, bool free);
   id<MTLComputePipelineState> compilePipeline(uint64_t hash);
 
   void saveShaders(const ska::flat_hash_map<uint64_t, CachedShader *> &shaderCache);
@@ -171,6 +194,7 @@ public:
   void saveCSOs(const ska::flat_hash_map<uint64_t, CachedComputePipelineState *> &psoCache);
 
   void tickCache();
+  void tickCompilation();
 
   void saverThread();
   void compilerThread();

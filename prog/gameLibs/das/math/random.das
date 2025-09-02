@@ -1,3 +1,4 @@
+options indenting = 2
 module random shared
 require math
 require DagorRandom public
@@ -47,6 +48,9 @@ def rnd_point_on_ring(var seed : int&; radius_from, radius_to : float) : float2
   sincos(2f * PI * rndAngle, s, c)
   return float2(radius * c, radius * s)
 
+def rnd_point_on_ring(var seed : int&; radius : float2) : float2
+  return rnd_point_on_ring(seed, radius.x, radius.y)
+
 def choose_index_by_weight(list)
   var totalWeight = .0
   for item in list
@@ -54,6 +58,39 @@ def choose_index_by_weight(list)
   var rnd = gfrnd() * totalWeight
   for item, idx in list, iter_range(list)
     rnd -= item.weight
+    if rnd <= .0
+      return idx
+  return _::length(list) - 1
+
+def choose_index_by_weight(var seed : int&; list)
+  var totalWeight = .0
+  for item in list
+    totalWeight += item.weight
+  var rnd = _rnd_float(seed, .0, totalWeight)
+  for item, idx in list, iter_range(list)
+    rnd -= item.weight
+    if rnd <= .0
+      return idx
+  return _::length(list) - 1
+
+def choose_weight(list)
+  var totalWeight = .0
+  for item in list
+    totalWeight += item
+  var rnd = gfrnd() * totalWeight
+  for item, idx in list, iter_range(list)
+    rnd -= item
+    if rnd <= .0
+      return idx
+  return _::length(list) - 1
+
+def choose_weight(var seed : int&; list)
+  var totalWeight = .0
+  for item in list
+    totalWeight += item
+  var rnd = _rnd_float(seed, .0, totalWeight)
+  for item, idx in list, iter_range(list)
+    rnd -= item
     if rnd <= .0
       return idx
   return _::length(list) - 1
@@ -85,9 +122,9 @@ def shuffle_seeded(var list; var seed : int&; up_to : int = -1)
 
 //for the case when the list itself cannot be shuffled
 def get_shuffled_indexes(list; up_to : int = -1)
-  var indexes <- [{for idx in iter_range(list); idx}]
+  var indexes <- [for idx in iter_range(list); idx]
   shuffle(indexes, up_to)
-  return <- subarray(indexes, range(up_to))
+  return <- up_to >= 0 ? subarray(indexes, range(up_to)) : indexes
 
 
 def rnd_float(a : float2)

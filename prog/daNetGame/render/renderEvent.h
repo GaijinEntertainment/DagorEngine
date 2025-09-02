@@ -13,14 +13,40 @@
 #include "rendererFeatures.h"
 #include <3d/dag_texStreamingContext.h>
 #include <ecs/render/transformHolder.h>
+#include <ecs/render/renderPasses.h>
 #include <render/heroData.h>
 #include <render/fx/fx.h>
-#include <render/daBfg/bfg.h>
+#include <render/daFrameGraph/daFG.h>
 #include <ioSys/dag_dataBlock.h>
+#include <daECS/core/componentTypes.h>
+#include <generic/dag_fixedMoveOnlyFunction.h>
+#include <ecs/anim/animchar_visbits.h>
+#include <render/world/animCharRenderAdditionalData.h>
 
-
+struct RiGenVisibility;
+struct CameraParams;
 class Occlusion;
 // all render events are called with broadcastImmediate. It is just generalized update stage.
+
+struct OnCameraNodeConstruction : public ecs::Event
+{
+  ECS_BROADCAST_EVENT_DECL(OnCameraNodeConstruction)
+  OnCameraNodeConstruction(eastl::vector<dafg::NodeHandle> *nodes_storage) :
+    ECS_EVENT_CONSTRUCTOR(OnCameraNodeConstruction), nodes(nodes_storage)
+  {}
+  eastl::vector<dafg::NodeHandle> *nodes;
+};
+
+struct QueryShooterCamDistanceMultipliers : public ecs::Event
+{
+  ECS_BROADCAST_EVENT_DECL(QueryShooterCamDistanceMultipliers)
+  QueryShooterCamDistanceMultipliers(float *ri_distance_mul, float *impostor_distance_mul) :
+    ECS_EVENT_CONSTRUCTOR(QueryShooterCamDistanceMultipliers), riDistanceMul(ri_distance_mul), impostorDistMul(impostor_distance_mul)
+  {}
+  float *riDistanceMul;
+  float *impostorDistMul;
+};
+
 struct UpdateBlurredUI : public ecs::Event
 {
   const IBBox2 *begin;
@@ -109,12 +135,6 @@ struct RenderPostFx : public ecs::Event
     zFar(z_far),
     fovScale(fov_scale)
   {}
-};
-
-struct AfterRenderPostFx : public ecs::Event
-{
-  ECS_BROADCAST_EVENT_DECL(AfterRenderPostFx)
-  AfterRenderPostFx() : ECS_EVENT_CONSTRUCTOR(AfterRenderPostFx) {}
 };
 
 struct AfterRenderWorld : public ecs::Event
@@ -212,7 +232,8 @@ struct AnimcharRenderAsyncEvent : public ecs::Event
   const GlobalVariableStates *globVarsState;
   const Occlusion *occlusion;
   const Frustum cullingFrustum;
-  const uint8_t add_vis_bits, check_bits, filterMask;
+  const animchar_visbits_t add_vis_bits, check_bits;
+  const uint8_t filterMask;
   const bool needPrevious;
   const AnimcharRenderAsyncFilter eidFilter;
   TexStreamingContext texCtx;
@@ -222,8 +243,8 @@ struct AnimcharRenderAsyncEvent : public ecs::Event
     const Occlusion *occlusion_,
     const Frustum &frustum_,
     // uint32_t hints_,
-    uint8_t add_vis_bits_,
-    uint8_t check_bits_,
+    animchar_visbits_t add_vis_bits_,
+    animchar_visbits_t check_bits_,
     uint8_t filter_mask,
     bool needPrevious_,
     AnimcharRenderAsyncFilter eid_filter,
@@ -279,6 +300,17 @@ struct ResetAoEvent : public ecs::Event
   ResetAoEvent(IPoint2 ao_resolution, State state) : ECS_EVENT_CONSTRUCTOR(ResetAoEvent), aoResolution(ao_resolution), state(state) {}
 };
 
+struct UpdateStageInfoNeedDistortion : public ecs::Event, public TransformHolder
+{
+  mutable bool needed = false;
+  TMatrix viewItm;
+  ECS_BROADCAST_EVENT_DECL(UpdateStageInfoNeedDistortion);
+  UpdateStageInfoNeedDistortion(const TMatrix &view_tm, const TMatrix4 &proj_tm, const TMatrix &itm) :
+    ECS_EVENT_CONSTRUCTOR(UpdateStageInfoNeedDistortion), TransformHolder(view_tm, proj_tm), viewItm(itm)
+  {}
+};
+
+
 struct UpdateStageInfoRenderDistortion : public ecs::Event, public TransformHolder
 {
   TMatrix viewItm;
@@ -297,37 +329,86 @@ struct QueryHeroWtmAndBoxForRender : public ecs::Event, public HeroWtmAndBox
 };
 static_assert(alignof(QueryHeroWtmAndBoxForRender) < sizeof(vec4f)); // Cause das-aot can't provide vector alignment
 
+struct RenderStaticSceneEvent : public ecs::Event
+{
+  Frustum cullingFrustum;
+  Point3 mainCamPos;
+  int renderPass = RENDER_UNKNOWN;
+  ECS_BROADCAST_EVENT_DECL(RenderStaticSceneEvent);
+  RenderStaticSceneEvent(const Frustum &culling_frustum, const Point3 &main_cam_pos, int render_pass) :
+    ECS_EVENT_CONSTRUCTOR(RenderStaticSceneEvent), cullingFrustum(culling_frustum), mainCamPos(main_cam_pos), renderPass(render_pass)
+  {}
+};
 
-#define DEF_RENDER_EVENTS                                                                                                            \
-  DEF_RENDER_EVENT(RenderEventUI, TMatrix /* viewTm */, TMatrix /* viewItm */, mat44f /* globtm */, Driver3dPerspective /* persp */) \
-  DEF_RENDER_EVENT(RenderEventAfterUI, TMatrix /* viewTm */, TMatrix /* viewItm */, mat44f /* globtm */,                             \
-    Driver3dPerspective /* persp */)                                                                                                 \
-  DEF_RENDER_EVENT(RenderDebugWithJitter)                                                                                            \
-  DEF_RENDER_EVENT(RenderEventDebugGUI)                                                                                              \
-  DEF_RENDER_EVENT(UnloadLevel)                                                                                                      \
-  DEF_RENDER_EVENT(OnRenderDecals, TMatrix /* viewTm */, TMatrix4 /* projTm */, Point3 /* cameraWorldPos */)                         \
-  DEF_RENDER_EVENT(RenderDecalsOnDynamic)                                                                                            \
-  DEF_RENDER_EVENT(RenderDecalsOnGlass)                                                                                              \
-  DEF_RENDER_EVENT(AfterDeviceReset, bool /*fullReset*/)                                                                             \
-  DEF_RENDER_EVENT(RegisterPostfxResources, dabfg::Registry)                                                                         \
+struct RenderDecalsOnDynamic : public ecs::Event
+{
+  TMatrix viewTm;
+  Point3 mainCamPos;
+  Frustum cullingFrustum;
+  const Occlusion *occlusion;
+  TexStreamingContext texCtx;
+  ECS_BROADCAST_EVENT_DECL(RenderDecalsOnDynamic);
+  RenderDecalsOnDynamic(const TMatrix &view_tm,
+    const Point3 &main_cam_pos,
+    const Frustum &culling_frustum,
+    const Occlusion *occlusion_,
+    TexStreamingContext tex_ctx) :
+    ECS_EVENT_CONSTRUCTOR(RenderDecalsOnDynamic),
+    viewTm(view_tm),
+    mainCamPos(main_cam_pos),
+    cullingFrustum(culling_frustum),
+    occlusion(occlusion_),
+    texCtx(tex_ctx)
+  {}
+};
+
+#define DEF_RENDER_PROFILE_EVENTS                                                                        \
+  DEF_RENDER_PROF_EVENT(RenderEventUI, TMatrix /* viewTm */, TMatrix /* viewItm */, mat44f /* globtm */, \
+    Driver3dPerspective /* persp */)                                                                     \
+  DEF_RENDER_PROF_EVENT(RenderXray, TMatrix /* viewTm */, TMatrix /* viewItm */, mat44f /* globtm */,    \
+    Driver3dPerspective /* persp */)                                                                     \
+  DEF_RENDER_PROF_EVENT(RenderDebugWithJitter)                                                           \
+  DEF_RENDER_PROF_EVENT(RenderEventDebugGUI)
+
+#define DEF_RENDER_EVENTS                                                                              \
+  DEF_RENDER_EVENT(UnloadLevel)                                                                        \
+  DEF_RENDER_EVENT(OnRenderDecals, TMatrix /*viewTm*/, TMatrix /*viewItm*/, Point3 /*cameraWorldPos*/, \
+    TexStreamingContext /*texCtx*/, const RiGenVisibility * /*rendinstMainVisibility*/)                \
+  DEF_RENDER_EVENT(RenderDecalsOnGlass)                                                                \
+  DEF_RENDER_EVENT(RenderDecalsGlassMask)                                                              \
+  DEF_RENDER_EVENT(AfterDeviceReset, bool /*fullReset*/)                                               \
+  DEF_RENDER_EVENT(RegisterPostfxResources, dafg::Registry)                                            \
   DEF_RENDER_EVENT(AfterShaderReload)
 
 
-#define DEF_RENDER_EVENT ECS_BROADCAST_EVENT_TYPE
+#define DEF_RENDER_EVENT              ECS_BROADCAST_EVENT_TYPE
+#define DEF_RENDER_PROF_EVENT(K, ...) ECS_BASE_DECL_EVENT_TYPE(K, ::ecs::EVCAST_BROADCAST | ::ecs::EVFLG_PROFILE, ##__VA_ARGS__)
+DEF_RENDER_PROFILE_EVENTS
 DEF_RENDER_EVENTS
+#undef DEF_RENDER_PROF_EVENT
 #undef DEF_RENDER_EVENT
 
-ECS_UNICAST_EVENT_TYPE(CustomSkyRender)
+ECS_UNICAST_EVENT_TYPE(CustomSkyRender, TMatrix /* viewTm */, TMatrix4 /* projTm */, Driver3dPerspective /* persp */)
 ECS_BROADCAST_EVENT_TYPE(CustomDmPanelRender, RectInt /*rect*/)
 // this event ensures that WorldRenderer is created
 ECS_BROADCAST_EVENT_TYPE(BeforeLoadLevel)
-ECS_BROADCAST_EVENT_TYPE(SkiesLoaded)
 ECS_BROADCAST_EVENT_TYPE(InvalidateClipmapBox, BBox2 /*box*/);
 ECS_BROADCAST_EVENT_TYPE(InvalidateBoxAfterHeightmapChange, BBox3 /*box*/);
 ECS_BROADCAST_EVENT_TYPE(OnClipmapTileRender, Frustum /*frustum*/);
 ECS_BROADCAST_EVENT_TYPE(AfterHeightmapChange);
+ECS_BROADCAST_EVENT_TYPE(RendinstLodRangeIncreasedEvent, bool /*impostor*/, bool /*rendinst*/);
 
 class TextureIDPair;
 ECS_UNICAST_EVENT_TYPE(CustomEnviProbeRender, const ManagedTex *, int)
 ECS_BROADCAST_EVENT_TYPE(CustomEnviProbeGetSphericalHarmonics, eastl::vector<Color4>)
 ECS_BROADCAST_EVENT_TYPE(CustomEnviProbeLogSphericalHarmonics, const Color4 *)
+
+class DynamicRenderableSceneInstance;
+class DynamicRenderableSceneResource;
+using BVHAdditionalAnimcharIterateCallback = dag::FixedMoveOnlyFunction<32,
+  void(ecs::EntityId,
+    DynamicRenderableSceneInstance *,
+    DynamicRenderableSceneResource *,
+    animchar_additional_data::AnimcharAdditionalDataView,
+    const animchar_visbits_t &)>;
+ECS_BROADCAST_EVENT_TYPE(BVHAdditionalAnimcharIterate, BVHAdditionalAnimcharIterateCallback &)

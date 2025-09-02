@@ -15,15 +15,22 @@ DLL_EXPORT bool compile_compute_shader_spirv(const char *hlsl_text, unsigned len
 {
   enableBindless = false;
   bool enableFp16 = str_ends_with_c(profile, "_half");
-  CompileResult result = compileShaderSpirV(hlsl_text, profile, entry, false, enableFp16, false, true, 4096, "nodeBasedShader",
-    CompilerMode::DEFAULT, 0, enableBindless, hlslDebugLevel != DebugLevel::NONE);
+
+  dag::Vector<String> params;
+  spirv::DXCContext *ctx = spirv::setupDXC("", params);
+  CompileResult result = compileShaderSpirV(ctx, hlsl_text, profile, entry, false, false, enableFp16, false, true, 4096,
+    "nodeBasedShader", CompilerMode::DEFAULT, 0, enableBindless, hlslDebugLevel != DebugLevel::NONE, false);
+  if (!result.errors.empty())
+    out_err.aprintf(0, "%s\n", result.errors.c_str());
   if (result.bytecode.empty())
+  {
+    spirv::shutdownDXC(ctx);
     return false;
+  }
 
   shader_bin.assign((result.bytecode.size() + sizeof(uint32_t) - 1) / sizeof(uint32_t), 0);
   memcpy(shader_bin.data(), result.bytecode.data(), result.bytecode.size());
-  if (!result.errors.empty())
-    out_err = result.errors.c_str();
+  spirv::shutdownDXC(ctx);
   return true;
 }
 
@@ -32,14 +39,21 @@ DLL_EXPORT bool compile_compute_shader_spirv_bindless(const char *hlsl_text, uns
 {
   enableBindless = true;
   bool enableFp16 = str_ends_with_c(profile, "_half");
-  CompileResult result = compileShaderSpirV(hlsl_text, profile, entry, false, enableFp16, false, true, 4096, "nodeBasedShader",
-    CompilerMode::DEFAULT, 0, enableBindless, hlslDebugLevel != DebugLevel::NONE);
+
+  dag::Vector<String> params;
+  spirv::DXCContext *ctx = spirv::setupDXC("", params);
+  CompileResult result = compileShaderSpirV(ctx, hlsl_text, profile, entry, false, false, enableFp16, false, true, 4096,
+    "nodeBasedShader", CompilerMode::DEFAULT, 0, enableBindless, hlslDebugLevel != DebugLevel::NONE, false);
+  if (!result.errors.empty())
+    out_err.aprintf(0, "%s\n", result.errors.c_str());
   if (result.bytecode.empty())
+  {
+    spirv::shutdownDXC(ctx);
     return false;
+  }
 
   shader_bin.assign((result.bytecode.size() + sizeof(uint32_t) - 1) / sizeof(uint32_t), 0);
   memcpy(shader_bin.data(), result.bytecode.data(), result.bytecode.size());
-  if (!result.errors.empty())
-    out_err = result.errors.c_str();
+  spirv::shutdownDXC(ctx);
   return true;
 }

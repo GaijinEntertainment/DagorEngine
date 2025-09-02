@@ -2,6 +2,7 @@
 
 #include <dasModules/aotDagorConsole.h>
 #include <dasModules/dasSystem.h>
+#include <dasModules/dasScriptsLoader.h>
 #include <EASTL/bitvector.h>
 
 #include <util/dag_console.h>
@@ -14,7 +15,6 @@ DAS_BASE_BIND_ENUM(ConVarType, ConVarType, CVT_BOOL, CVT_INT, CVT_FLOAT)
 
 namespace bind_dascript
 {
-das::StackAllocator &get_shared_stack();
 
 static char dagorConsole_das[] =
 #include "dagorConsole.das.inl"
@@ -88,7 +88,7 @@ struct ConsoleCmdFunctionAnnotation : das::FunctionAnnotation, console::ICommand
   }
   bool apply(const das::FunctionPtr &fn, das::ModuleGroup &, const das::AnnotationArgumentList &, das::string &err) override
   {
-    auto program = das::daScriptEnvironment::bound->g_Program;
+    auto program = (*das::daScriptEnvironment::bound)->g_Program;
     if (program->thisModule->isModule)
     {
       err = "console cmd shouldn't be placed in the module. Please move the function to a file without module directive";
@@ -418,19 +418,16 @@ struct ConsoleCmdFunctionAnnotation : das::FunctionAnnotation, console::ICommand
     }
 
     closureInfo.context->tryRestartAndLock();
+    bind_dascript::RAIIAlwaysErrorOnException alwaysErrorOnException(closureInfo.context);
+    bind_dascript::RAIIStackwalkOnLogerr stackwalkOnLogerr(closureInfo.context);
     if (!closureInfo.context->ownStack)
     {
-      das::SharedStackGuard guard(*closureInfo.context, bind_dascript::get_shared_stack());
+      das::SharedFramememStackGuard guard(*closureInfo.context);
       closureInfo.context->evalWithCatch(fn, args);
     }
     else
     {
       closureInfo.context->evalWithCatch(fn, args);
-    }
-    if (auto exp = closureInfo.context->getException())
-    {
-      closureInfo.context->stackWalk(&closureInfo.context->exceptionAt, true, true);
-      logerr("console_cmd: %s", exp);
     }
     closureInfo.context->unlock();
 
@@ -485,6 +482,9 @@ public:
       "::console::command");
     das::addExtern<void (*)(const char *, E3DCOLOR, int), &visuallog::logmsg>(*this, lib, "_builtin_visual_log",
       das::SideEffects::modifyExternal, "::visuallog::logmsg");
+
+    das::addExtern<DAS_BIND_FUN(bind_dascript::visual_log_get_history)>(*this, lib, "visual_log_get_history",
+      das::SideEffects::accessExternal, "::bind_dascript::visual_log_get_history");
 
     das::addExtern<DAS_BIND_FUN(bind_dascript::add_hint)>(*this, lib, "add_hint", das::SideEffects::modifyArgument,
       "::bind_dascript::add_hint");

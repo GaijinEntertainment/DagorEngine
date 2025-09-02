@@ -54,7 +54,11 @@ define_macro_if_not_defined PROJECT_PREV_FRAME_SAMPLE_REPROJECT(code)
         //*/
         if (allow_uncertaincy)
           return false;
-        radiance = pack_hdr(0.01);
+        #if HAS_ADAPTATION_BUF
+        radiance = 0.08/max(1e-4f, getInvAverageLuma()); // maximum frame brightness is 1000. We can't hit anything brighter on prev frame miss
+        #else
+        radiance = 0;
+        #endif
         return true;
       }
     }

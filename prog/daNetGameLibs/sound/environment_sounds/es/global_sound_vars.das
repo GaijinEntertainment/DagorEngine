@@ -5,7 +5,7 @@ require soundSystem
 require strings
 require level
 require Dacoll
-require sound_utils_net.modules.sound_utils_net_events
+require danetlibs.renderer.includes.pufd_events
 
 
 // ..........................................................
@@ -14,12 +14,11 @@ require sound_utils_net.modules.sound_utils_net_events
 //
 // ..........................................................
 
-[es(tag=sound, track=sound_banks_state__isPresetLoaded)]
-def rain_global_sound_var_toggle(evt : Event;
-                                 sound_banks_state__isPresetLoaded : bool;
+[es(tag=sound, on_appear, on_event=EventOnMasterSoundPresetLoaded)]
+def rain_global_sound_var_appear(evt : Event;
                                  rain_global_sound_var__name : string;
                                  var rain_global_sound_var__id : SoundVarId&)
-  if sound_banks_state__isPresetLoaded
+  if sound_banks_is_master_preset_loaded()
     rain_global_sound_var__id = get_var_id_global(rain_global_sound_var__name)
     if !rain_global_sound_var__id
       sound_debug("rain '{rain_global_sound_var__name}' global var is missing: may remove template from scene")
@@ -47,12 +46,11 @@ def rain_global_sound_var_update(info : ParallelUpdateFrameDelayed;
 //
 // ..........................................................
 
-[es(tag=sound, track=sound_banks_state__isPresetLoaded)]
-def daytime_global_sound_var_toggle(evt : Event;
-                                    sound_banks_state__isPresetLoaded : bool;
+[es(tag=sound, on_appear, on_event=EventOnMasterSoundPresetLoaded)]
+def daytime_global_sound_var_appear(evt : Event;
                                     daytime_global_sound_var__name : string;
                                     var daytime_global_sound_var__id : SoundVarId&)
-  if sound_banks_state__isPresetLoaded
+  if sound_banks_is_master_preset_loaded()
     daytime_global_sound_var__id = get_var_id_global(daytime_global_sound_var__name)
     if !daytime_global_sound_var__id
       sound_debug("daytime '{daytime_global_sound_var__name}' global var is missing: may remove template from scene")
@@ -79,12 +77,11 @@ def daytime_global_sound_var_update(info : ParallelUpdateFrameDelayed;
 //
 // ..........................................................
 
-[es(tag=sound, track=sound_banks_state__isPresetLoaded)]
-def altitude_global_sound_var_toggle(evt : Event;
-                                     sound_banks_state__isPresetLoaded : bool;
+[es(tag=sound, on_appear, on_event=EventOnMasterSoundPresetLoaded)]
+def altitude_global_sound_var_appear(evt : Event;
                                      altitude_global_sound_var__name : string;
                                      var altitude_global_sound_var__id : SoundVarId&)
-  if sound_banks_state__isPresetLoaded
+  if sound_banks_is_master_preset_loaded()
     altitude_global_sound_var__id = get_var_id_global(altitude_global_sound_var__name)
     if !altitude_global_sound_var__id
       sound_debug("altitude '{altitude_global_sound_var__name}' global var is missing: may remove template from scene")
@@ -118,12 +115,11 @@ def altitude_global_sound_var_update(info : ParallelUpdateFrameDelayed;
 //
 // ..........................................................
 
-[es(tag=sound, track=sound_banks_state__isPresetLoaded)]
-def region_global_sound_var_toggle(evt : Event;
-                                   sound_banks_state__isPresetLoaded : bool;
+[es(tag=sound, on_appear, on_event=EventOnMasterSoundPresetLoaded)]
+def region_global_sound_var_appear(evt : Event;
                                    region_global_sound_var__name : string;
                                    var region_global_sound_var__id : SoundVarId&)
-  if sound_banks_state__isPresetLoaded
+  if sound_banks_is_master_preset_loaded()
     region_global_sound_var__id = get_var_id_global(region_global_sound_var__name)
     if !region_global_sound_var__id
       sound_debug("region '{region_global_sound_var__name}' global var is missing: may remove template from scene")

@@ -1,5 +1,4 @@
 require ecs
-require app
 require math
 require math.base
 require soundEvent
@@ -13,7 +12,6 @@ require gameObject
 
 [es(tag=sound, on_event=ParallelUpdateFrameDelayed, after=sound_begin_update_es, before=sound_end_update_es)]
 def spline_sound_update(evt : Event;
-                        sound_banks_state__isPresetLoaded : bool;
                         spline_sound__path : string;
                         spline_sound__points : Point4List;
                         spline_sound__range : float;
@@ -35,7 +33,8 @@ def spline_sound_update(evt : Event;
                         var spline_sound__isInside : bool&;
 
                         var spline_sound__event : SoundEvent&)
-  if !sound_banks_state__isPresetLoaded || length(spline_sound__points) < 2
+
+  if length(spline_sound__points) < 2 || spline_sound__range <= 0. || !sound_banks_is_master_preset_loaded()
     return
 
   let pointsToUpdate = clamp(length(spline_sound__points) / 8, 1, 16)
@@ -146,17 +145,16 @@ def spline_sound_update(evt : Event;
 
 
 
-[es(tag=sound, on_appear, track=sound_banks_state__isPresetLoaded)]
-def spline_sound_setup(evt : Event;
-                       var spline_sound__event : SoundEvent&;
-                       var spline_sound_update__idx : int&;
-                       var spline_sound_update__closestPtValid : bool&;
-                       var spline_sound_update__splineClosestPtValid : bool&;
-                       var spline_sound_update__midPt : float3&;
-                       var spline_sound_update__weight : float&;
-                       var spline_sound__range : float&;
-                       spline_sound__path : string;
-                       sound_banks_state__isPresetLoaded : bool)
+[es(tag=sound, on_appear, on_event=EventOnMasterSoundPresetLoaded)]
+def spline_sound_appear(evt : Event;
+                        var spline_sound__event : SoundEvent&;
+                        var spline_sound_update__idx : int&;
+                        var spline_sound_update__closestPtValid : bool&;
+                        var spline_sound_update__splineClosestPtValid : bool&;
+                        var spline_sound_update__midPt : float3&;
+                        var spline_sound_update__weight : float&;
+                        var spline_sound__range : float&;
+                        spline_sound__path : string)
   release_immediate(spline_sound__event)
   spline_sound__event.enabled = false
   spline_sound_update__idx = 0
@@ -164,11 +162,13 @@ def spline_sound_setup(evt : Event;
   spline_sound_update__splineClosestPtValid = false
   spline_sound_update__midPt = float3(0., 0., 0.)
   spline_sound_update__weight = 0.
-  if sound_banks_state__isPresetLoaded
+  spline_sound__range = 0.
+  if sound_banks_is_master_preset_loaded()
     spline_sound__range = get_max_distance(spline_sound__path)
 
 
-[es(tag=sound, on_appear, track=sound_banks_state__isPresetLoaded, REQUIRE=sound_banks_state__isPresetLoaded, on_event=EventGameObjectsCreated, after=spline_sound_setup)]
+
+[es(tag=sound, on_appear, on_event=EventGameObjectsCreated, after=spline_sound_appear)]
 def game_object_spline_sound_generator(evt : Event;
                                        game_object_spline_sound_generator__gameObjects : StringList;
                                        game_object_spline_sound_generator__pointRadiusMul : float;

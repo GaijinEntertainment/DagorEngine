@@ -8,13 +8,13 @@
 #include <string.h>
 #include <osApiWrappers/dag_miscApi.h>
 
+#include <supp/dag_define_KRNLIMP.h>
+
 enum WatchdogFlags
 {
   WATCHDOG_IGNORE_BACKGROUND = 1, // keep working in background mode (i.e. if window in background)
   WATCHDOG_IGNORE_DEBUGGER = 2,   // keep working even if debugger active
   WATCHDOG_DISABLED = 4,          // do not perform watchdog checks
-  WATCHDOG_NO_FATAL = 8,          // do not fatal on timeout, just dump stacks to log
-  WATCHDOG_SWAP_HANDICAP = 16
 };
 
 enum WatchdogOptions
@@ -27,22 +27,49 @@ enum WatchdogOptions
 
 static constexpr int WATCHDOG_DISABLE = 0;
 
+void KRNLIMP on_freeze_detected_default(unsigned time, int64_t user_data);
+
 struct WatchdogConfig
 {
-  bool (*keep_sleeping_cb)();
-  void (*on_freeze_cb)();
-  int flags;
-  int triggering_threshold_ms;
-  int dump_threads_threshold_ms;
-  int sleep_time_ms;
-  WatchdogConfig() { memset(this, 0, sizeof(*this)); }
+  bool (*keep_sleeping_cb)() = nullptr;
+  void (*on_freeze_cb)(unsigned time, int64_t user_data) = &on_freeze_detected_default;
+  int64_t user_data = 0;
+  int flags = 0;
+  int triggering_threshold_ms = 0;
+  int dump_threads_threshold_ms = 0;
+  int sleep_time_ms = 0;
 };
 
-#include <supp/dag_define_KRNLIMP.h>
-KRNLIMP void watchdog_init(WatchdogConfig *cfg = NULL);
+class IWatchDog
+
+{
+public:
+  // use watchdog_init_instance to create an instance
+
+  // kick() must be called periodically to reset watchdog timer
+  // if watchdog is enabled, it will call on_freeze_cb() if freeze detected
+  virtual void kick() = 0; // call this to reset watchdog timer
+
+  // use setOption to change watchdog options like timeouts, thread dumps, etc.
+  // returns old value on success, -1 on error
+  virtual intptr_t setOption(int option, intptr_t p0 = 0, intptr_t p1 = 0) = 0;
+
+  // virtual destructor to ensure proper cleanup of derived classes
+  // destructor actually terminate the watchdog thread
+  virtual ~IWatchDog() = default; // ensure proper destruction of derived classes
+};
+
+KRNLIMP void watchdog_init(WatchdogConfig *cfg = nullptr);
 KRNLIMP void watchdog_shutdown();
 KRNLIMP void watchdog_kick();
 KRNLIMP intptr_t watchdog_set_option(int option, intptr_t p0 = 0, intptr_t p1 = 0);
+
+// create an instance of IWatchDog
+// if cfg is nullptr, default watchdog config will be used
+// watchdog thread will be created and started by this function
+// use delete to destroy the instance
+KRNLIMP IWatchDog *watchdog_init_instance(WatchdogConfig *cfg = nullptr);
+
 #if _TARGET_PC_WIN
 KRNLIMP bool is_watchdog_thread(uintptr_t thread_id);
 #endif

@@ -185,30 +185,18 @@ struct BitFieldArray
   }
 };
 
-#define BEGIN_BITFIELD_TYPE(typeName, T) \
-  union typeName                         \
-  {                                      \
-    struct Wrapper                       \
-    {                                    \
-      T value;                           \
-    };                                   \
-    Wrapper wrapper;                     \
-    inline typeName()                    \
-    {                                    \
-      wrapper.value = 0;                 \
-    }                                    \
-    inline explicit typeName(T v)        \
-    {                                    \
-      wrapper.value = v;                 \
-    }                                    \
-    inline operator T &()                \
-    {                                    \
-      return wrapper.value;              \
-    }                                    \
-    inline operator T() const            \
-    {                                    \
-      return wrapper.value;              \
-    }                                    \
+#define BEGIN_BITFIELD_TYPE(typeName, T)                 \
+  union typeName                                         \
+  {                                                      \
+    struct Wrapper                                       \
+    {                                                    \
+      T value;                                           \
+    };                                                   \
+    Wrapper wrapper;                                     \
+    inline typeName() { wrapper.value = 0; }             \
+    inline explicit typeName(T v) { wrapper.value = v; } \
+    inline operator T &() { return wrapper.value; }      \
+    inline operator T() const { return wrapper.value; }  \
     typedef T StorageType;
 
 #define ADD_BITFIELD_MEMBER(memberName, offset, bits) BitFieldMember<StorageType, offset, bits> memberName;

@@ -14,6 +14,7 @@
 #include <propsRegistry/propsRegistry.h>
 #include <osApiWrappers/dag_direct.h>
 #include <startup/dag_globalSettings.h>
+#include <gamePhys/collision/collisionLib.h>
 
 static int register_physmat_props(const char *name, const DataBlock *blk, void *data)
 {
@@ -66,6 +67,7 @@ void physmat::init()
   }
 
   PhysMat::init("", &physMatFileBlk, &register_physmat_props, (void *)(uintptr_t)physMatPropsId);
+  dacoll::init_phys_materials();
   compute_used_billboard_decals();
   PhysMat::on_physmat_ready();
 }

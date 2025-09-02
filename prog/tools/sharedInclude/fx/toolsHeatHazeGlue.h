@@ -15,6 +15,15 @@ struct ToolsHeatHazeRendererGlue
     renderParticles = render_particles;
     renderRI = render_ri;
   }
+  void term()
+  {
+    heatHazeRenderer.reset();
+    targetHazeOffset = UniqueTexHolder{};
+    targetHazeDepth = UniqueTexHolder{};
+    targetHazeColor = UniqueTexHolder{};
+    targetHazeTemp = UniqueTex{};
+    zFuncAlwaysStateId.reset();
+  }
 
   void render()
   {
@@ -48,11 +57,14 @@ struct ToolsHeatHazeRendererGlue
 
           targetHazeOffset = dag::create_tex(nullptr, offsetTextureWidth, offsetTextureHeight, TEXFMT_A16B16G16R16F | TEXCF_RTARGET, 1,
             "haze_offset_tex");
+          ShaderGlobal::set_sampler(get_shader_variable_id("haze_offset_tex_samplerstate", true), d3d::request_sampler({}));
 
           targetHazeDepth =
             dag::create_tex(nullptr, offsetTextureWidth, offsetTextureHeight, TEXFMT_R16F | TEXCF_RTARGET, 1, "haze_depth_tex");
+          ShaderGlobal::set_sampler(get_shader_variable_id("haze_depth_tex_samplerstate", true), d3d::request_sampler({}));
           targetHazeColor =
             dag::create_tex(nullptr, offsetTextureWidth, offsetTextureHeight, TEXFMT_DEFAULT | TEXCF_RTARGET, 1, "haze_color_tex");
+          ShaderGlobal::set_sampler(get_shader_variable_id("haze_color_tex_samplerstate", true), d3d::request_sampler({}));
 
           if (heatHazeRenderer->isHazeAppliedManual())
           {

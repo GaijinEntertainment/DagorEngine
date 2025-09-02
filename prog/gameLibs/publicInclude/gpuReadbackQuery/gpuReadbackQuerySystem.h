@@ -135,7 +135,7 @@ GpuReadbackQuerySystem<InputT, ResultT>::GpuReadbackQuerySystem(const GpuReadbac
 
   resultRingBuffer.init(sizeof(ResultT), desc.maxQueriesPerFrame, 3, desc.resultBufferName, SBCF_UA_STRUCTURED_READBACK, 0, false);
 
-  const uint32_t inputBufferFlags = SBCF_MISC_STRUCTURED | SBCF_BIND_SHADER_RES;
+  const uint32_t inputBufferFlags = SBCF_MISC_STRUCTURED | SBCF_BIND_SHADER_RES | SBCF_DYNAMIC;
   inputBuffer = dag::create_sbuffer(sizeof(InputT), desc.maxQueriesPerFrame, inputBufferFlags, 0, desc.inputBufferName);
 
   inputs.resize(desc.maxQueriesPerFrame);
@@ -274,7 +274,7 @@ void GpuReadbackQuerySystem<InputT, ResultT>::dispatchNewQueries()
 
     TIME_D3D_PROFILE_NAME(gpu_readback_query, querySystemDesc.computeShaderName);
 
-    inputBuffer.getBuf()->updateData(0, (uint32_t)(numInputs * sizeof(inputs[0])), inputs.data(), 0);
+    inputBuffer.getBuf()->updateData(0, (uint32_t)(numInputs * sizeof(inputs[0])), inputs.data(), VBLOCK_DISCARD | VBLOCK_WRITEONLY);
     for (uint32_t offset = 0; offset < numInputs; offset += querySystemDesc.maxQueriesPerDispatch)
       dispatch(resultBuffer, offset, min(static_cast<unsigned int>(querySystemDesc.maxQueriesPerDispatch), numInputs - offset));
   }

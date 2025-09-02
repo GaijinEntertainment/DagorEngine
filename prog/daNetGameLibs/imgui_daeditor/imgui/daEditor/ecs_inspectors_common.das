@@ -92,6 +92,8 @@ struct ComponentRenderInfo
   dasTypeName : string
   idx : uint
   componentId : uint16
+  // Are idx and componentId are of a valid component
+  isValidComponent : bool
 
 typedef
   InspectorFn = function<(eid : array<EntityId> implicit; flags : uint; name : string; refs : array<ComponentRenderInfo#>#; level : int; var changed : bool?; sub_menu : block<(var changed : bool?) : bool>) : void>
@@ -102,10 +104,10 @@ typedef
 
 let AGENT_NAME = "ecs_inspectors"
 // TODO: rewrite using invoke_debug_agent_function
-var private [[ignore_heap_usage]] inspectors : table<string; array<InspectorDesc>>
-var private [[ignore_heap_usage]] editors : array<EditorDesc>
-var private [[ignore_heap_usage]] unselectedInspectors : array<ContextUnselectedInspectorFn?>
-var private [[ignore_heap_usage]] nameDescriptor : ContextEntityNameDescFn?
+var private @ignore_heap_usage inspectors : table<string; array<InspectorDesc>>
+var private @ignore_heap_usage editors : array<EditorDesc>
+var private @ignore_heap_usage unselectedInspectors : array<ContextUnselectedInspectorFn?>
+var private @ignore_heap_usage nameDescriptor : ContextEntityNameDescFn?
 
 
 def not_in_ecs_inspectors_context()
@@ -173,7 +175,7 @@ def add_inspector(typ_name, field_name, tag : string implicit; var fn : Inspecto
   let type_name = clone_string(typ_name)
   let tag_hash = !empty(tag) ? ecs_hash(tag) : 0u
   if !key_exists(inspectors, type_name)
-    inspectors[type_name] <- [[array<InspectorDesc>]]
+    inspectors[type_name] <- array<InspectorDesc>()
   inspectors |> get(type_name) <| $(list)
     for it in list
       if it.field_name == field_name && it.tag == tag_hash
@@ -181,7 +183,7 @@ def add_inspector(typ_name, field_name, tag : string implicit; var fn : Inspecto
         it.fn = new ContextInspectorFn(fn, ctx)
         return
 
-    list |> emplace <| [[InspectorDesc field_name=clone_string(field_name), tag=tag_hash, fn=new ContextInspectorFn(fn, ctx)]]
+    list |> emplace <| InspectorDesc(field_name = clone_string(field_name), tag = tag_hash, fn = new ContextInspectorFn(fn, ctx))
   return true
 
 
@@ -230,8 +232,8 @@ def call_inspector(type_name : string implicit; eid : array<EntityId> implicit; 
 
 [apply_in_context(ecs_inspectors)]
 def add_editor(prefix : bool; tags : array<string> implicit; var fn : EditorFn; var ctx : Context implicit) : bool
-  var tagHashes <- [{ for tag in tags; !empty(tag) ? ecs_hash(tag) : 0u }]
-  editors |> emplace <| [[EditorDesc prefix=prefix, tags <- tagHashes, fn=new ContextEditorFn(fn, ctx)]]
+  var tagHashes <- [ for tag in tags; !empty(tag) ? ecs_hash(tag) : 0u ]
+  editors |> emplace <| EditorDesc(prefix = prefix, tags <- tagHashes, fn = new ContextEditorFn(fn, ctx))
   return true
 
 

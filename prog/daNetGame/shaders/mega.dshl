@@ -44,7 +44,7 @@ hlsl(ps) {
     //weights *= rcp(dot(weights, 1));
 
     half4 combinedDiffuse;
-    colormap.rgb*=4.59479341998814;
+    colormap.rgb*=COLOR_CORRECTION_MULTIPLIER;
     combinedDiffuse = weights.x *half4(lerp(colormap.rgb, half3(1,1,1), saturate(detail1.a*1.5-1))*detail1.rgb, detail1.a)+
                       weights.y *half4(lerp(colormap.rgb, half3(1,1,1), saturate(detail2.a*1.5-1))*detail2.rgb, detail2.a)+
                       weights.z *half4(lerp(colormap.rgb, half3(1,1,1), saturate(detail3.a*1.5-1))*detail3.rgb, detail3.a)+
@@ -135,7 +135,7 @@ hlsl(ps) {
     #endif
 
     //normal.xzy = RNM_ndetail_normalized(normal.xzy, combinedNormal);
-    //diffuseColor = combinedDiffuse.rgb*colormap.rgb*4.59479341998814;
+    //diffuseColor = combinedDiffuse.rgb*colormap.rgb*COLOR_CORRECTION_MULTIPLIER;
     diffuseColor = combinedDiffuse.rgb;
     //half cnt = dot(weights > 0.00, 1);
     //diffuseColor = cnt == 1 ? half3(1,0,0) : cnt == 2 ? half3(0,1,0) : cnt == 3 ? half3(0,0,1) : cnt == 4 ? 1 : 0;

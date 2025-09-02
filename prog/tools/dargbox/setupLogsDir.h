@@ -12,6 +12,7 @@
 static String dargbox_get_log_prefix()
 {
   String prefix;
+  prefix = ".log/";
   const char *pathArg = ::dgs_get_argv("logspath");
   if (pathArg && *pathArg)
   {
@@ -19,6 +20,6 @@ static String dargbox_get_log_prefix()
     if (prefix[prefix.length() - 1] != '/' && prefix[prefix.length() - 1] != '\\')
       prefix.append("/");
   }
-  prefix.append(".logs/");
+
   return prefix;
 }

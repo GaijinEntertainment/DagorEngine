@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "distantHazeES.cpp.inl"
 ECS_DEF_PULL_VAR(distantHaze);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc init_distant_haze_manager_es_event_handler_comps[] =
 {
@@ -168,8 +170,8 @@ static constexpr ecs::ComponentDesc distant_haze_node_init_ecs_query_comps[] =
 {
 //start of 3 rw components at [0]
   {ECS_HASH("distant_haze__manager"), ecs::ComponentTypeInfo<DistantHazeManager>()},
-  {ECS_HASH("distant_haze__node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()},
-  {ECS_HASH("distant_haze__color_node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()}
+  {ECS_HASH("distant_haze__node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
+  {ECS_HASH("distant_haze__color_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()}
 };
 static ecs::CompileTimeQueryDesc distant_haze_node_init_ecs_query_desc
 (
@@ -188,8 +190,8 @@ inline void distant_haze_node_init_ecs_query(ecs::EntityId eid, Callable functio
         {
           function(
               ECS_RW_COMP(distant_haze_node_init_ecs_query_comps, "distant_haze__manager", DistantHazeManager)
-            , ECS_RW_COMP(distant_haze_node_init_ecs_query_comps, "distant_haze__node", dabfg::NodeHandle)
-            , ECS_RW_COMP(distant_haze_node_init_ecs_query_comps, "distant_haze__color_node", dabfg::NodeHandle)
+            , ECS_RW_COMP(distant_haze_node_init_ecs_query_comps, "distant_haze__node", dafg::NodeHandle)
+            , ECS_RW_COMP(distant_haze_node_init_ecs_query_comps, "distant_haze__color_node", dafg::NodeHandle)
             );
 
         }

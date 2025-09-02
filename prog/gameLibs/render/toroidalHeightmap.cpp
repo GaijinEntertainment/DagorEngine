@@ -19,6 +19,11 @@
 #include <render/toroidal_update_regions.h>
 #include <render/toroidalHeightmap.h>
 
+namespace var
+{
+static ShaderVariableInfo clipmap_writes_height_only("clipmap_writes_height_only", true);
+};
+
 void ToroidalHeightmap::close() { toroidalHeightmap.close(); }
 
 void ToroidalHeightmap::invalidate()
@@ -58,14 +63,13 @@ void ToroidalHeightmap::init(int heightmap_size, float near_lod_size, float far_
 
   toroidalHeightmap = dag::create_array_tex(heightmapCacheSize, heightmapCacheSize, LOD_COUNT, heightmapFormat | TEXCF_RTARGET, 1,
     "toroidal_heightmap_texarray");
-  toroidalHeightmap.getArrayTex()->disableSampler();
 
   // shader variables
   toroidalClipmap_world2uv_1VarId = ::get_shader_glob_var_id("toroidalClipmap_world2uv_1", true);
   toroidalClipmap_world2uv_2VarId = ::get_shader_glob_var_id("toroidalClipmap_world2uv_2", true);
   toroidalClipmap_world_offsetsVarId = ::get_shader_glob_var_id("toroidalClipmap_world_offsets", true);
   toroidalHeightmapSamplerVarId = ::get_shader_glob_var_id("toroidal_heightmap_texarray_samplerstate", true);
-  setTexFilter(d3d::FilterMode::Default);
+  setTexFilter(d3d::FilterMode::Linear);
 
   for (int j = 0; j < LOD_COUNT; ++j)
   {
@@ -225,6 +229,7 @@ void ToroidalHeightmap::updateHeightmap(ToroidalHeightmapRenderer &renderer, con
   SCOPE_RENDER_TARGET;
   SCOPE_VIEW_PROJ_MATRIX;
 
+  STATE_GUARD_0(ShaderGlobal::set_int(var::clipmap_writes_height_only, VALUE), 1);
   // update all generated regions for all cascades
   for (int cascadeNo = LOD_COUNT - 1; cascadeNo >= 0; cascadeNo--)
   {
@@ -256,4 +261,23 @@ void ToroidalHeightmap::updateHeightmap(ToroidalHeightmapRenderer &renderer, con
 
   toroidalHeightmap.setVar();
   d3d::resource_barrier({toroidalHeightmap.getBaseTex(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+}
+
+BBox2 ToroidalHeightmap::getBBox() const
+{
+  BBox2 bbox;
+  for (Color4 world2uv : worldToToroidal)
+  {
+    if (world2uv.r == 0 || world2uv.g == 0)
+      continue;
+
+    auto getWorldPos = [&world2uv](Point2 uv) { return Point2((uv.x - world2uv.b) / world2uv.r, (uv.y - world2uv.a) / world2uv.g); };
+
+    BBox2 subRegion;
+    subRegion[0] = getWorldPos(Point2::ZERO);
+    subRegion[1] = getWorldPos(Point2::ONE);
+    bbox += subRegion;
+  }
+
+  return bbox;
 }

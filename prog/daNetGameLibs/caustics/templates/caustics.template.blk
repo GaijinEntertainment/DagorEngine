@@ -1,7 +1,8 @@
 caustics{
   _singleton:b=yes
   _tags:t="render"
-  "caustics__node:dabfg::NodeHandle"{}
+  "caustics__perCameraResNode:dafg::NodeHandle"{}
+  "caustics__renderNode:dafg::NodeHandle"{}
   "caustics__indoor_probe_mask:UniqueTexHolder"{}
   "caustics__indoor_probe_shader:ShadersECS"{}
   caustics__indoor_probe_shader_name:t = "indoor_probe_to_depth"
@@ -13,4 +14,11 @@ caustics{
   "combined_shadows__additional_samplers:list<t>"{
     item:t="caustics_tex_samplerstate"
   }
+}
+
+caustics_settings{
+  _singleton:b=yes
+  _tags:t="render"
+  water_caustics_scroll_speed:r=0.75
+  water_caustics_world_scale:r=0.25
 }

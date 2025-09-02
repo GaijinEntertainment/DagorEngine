@@ -28,17 +28,17 @@ public:
     pbar = NULL;
   }
 
-  virtual void setActionDescFmt(const char *desc_fmt, const DagorSafeArg *arg, int anum)
+  void setActionDescFmt(const char *desc_fmt, const DagorSafeArg *arg, int anum) override
   {
     String desc;
     desc.vprintf(128, desc_fmt, arg, anum);
     pbar->setActionDesc(desc);
     ;
   }
-  virtual void setTotal(int total_cnt) { pbar->setTotal(total_cnt); }
-  virtual void setDone(int done_cnt) { pbar->setDone(done_cnt); }
-  virtual void incDone(int inc = 1) { pbar->incDone(inc); }
-  virtual void destroy() { delete this; }
+  void setTotal(int total_cnt) override { pbar->setTotal(total_cnt); }
+  void setDone(int done_cnt) override { pbar->setDone(done_cnt); }
+  void incDone(int inc = 1) override { pbar->incDone(inc); }
+  void destroy() override { delete this; }
 };
 
 int DagorWinMain(bool debugmode)

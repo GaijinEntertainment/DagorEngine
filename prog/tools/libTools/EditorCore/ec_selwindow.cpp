@@ -3,15 +3,16 @@
 #include <EditorCore/ec_selwindow.h>
 #include <EditorCore/ec_interface.h>
 #include <EditorCore/ec_interface_ex.h>
+#include <EditorCore/ec_wndGlobal.h>
 
 #include <generic/dag_sort.h>
+#include <osApiWrappers/dag_localConv.h>
 #include <util/dag_globDef.h>
 
 #include <libTools/util/strUtil.h>
 #include <ioSys/dag_fileIo.h>
 
 #include <propPanel/control/container.h>
-#include <sepGui/wndGlobal.h>
 #include <drv/3d/dag_renderTarget.h>
 #include <drv/3d/dag_driver.h>
 
@@ -41,7 +42,7 @@ enum
 
 
 //==============================================================================
-int str_compare(const String *s1, const String *s2) { return _stricmp(s1->str(), s2->str()); }
+int str_compare(const String *s1, const String *s2) { return dd_stricmp(s1->str(), s2->str()); }
 
 
 //==============================================================================
@@ -172,7 +173,7 @@ SelWindow::~SelWindow()
 
 int SelWindow::showDialog()
 {
-  autoSize();
+  autoSize(!hasEverBeenShown());
   setInitialFocus(PropPanel::DIALOG_ID_NONE);
   getPanel()->setFocusById(ID_NAME_MASK);
   return DialogWindow::showDialog();

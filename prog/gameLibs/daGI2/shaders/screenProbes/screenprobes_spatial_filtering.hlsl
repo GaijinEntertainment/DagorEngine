@@ -2,23 +2,25 @@
 
 void add_spatial_radiance(uint2 atlas_probe_coord, float3 probeCamPos, float3 camPos, float3 rayDir, float weight, uint2 octCoord, inout float3 radiance_distance, inout float cWeight, float normalizedNeighboorW)
 {
+  float4 neighboorRadiance = read_texture_radiance(atlas_probe_coord.x + atlas_probe_coord.y*screenspace_probe_res.x, atlas_probe_coord*sp_getRadianceRes(), octCoord);
   float cW;
   #if SP_USE_ANGLE_FILTERING
   {
-    float hitDist = texture2DAt(screenprobes_current_radiance_distance, atlas_probe_coord*sp_getRadianceRes() + octCoord).x;
-    hitDist = hitDist*clamp(normalizedNeighboorW*sp_hit_distance_decode.x, sp_hit_distance_decode.y, sp_hit_distance_decode.z);
+    float hitDist = neighboorRadiance.w;
     float3 neighborHitPos = probeCamPos + rayDir * hitDist;
     float3 toNeighbor = neighborHitPos - camPos;
     float toNeighborLen = length(toNeighbor);
     float neighborAngle = acosFast(dot(toNeighbor*(1./toNeighborLen), rayDir));
-    float invSpatialAngleWeight = 1./5;
+    float invSpatialAngleWeight = 1./PI;
     float angleWeight = toNeighborLen > 1e-6f ? 1.0f - saturate(neighborAngle * invSpatialAngleWeight) : 1.0f;
     cW = weight*angleWeight;
   }
   #endif
     cW = weight;
   cWeight += cW;
-  float3 neighboorRadiance = read_texture_radiance(atlas_probe_coord.x + atlas_probe_coord.y*screenspace_probe_res.x, atlas_probe_coord*sp_getRadianceRes(), octCoord);
+  #if SP_SPATIAL_FAVOR_DARK
+  neighboorRadiance.xyz = sqrt(neighboorRadiance.xyz); // favor dark
+  #endif
   radiance_distance.xyz += cW*neighboorRadiance.xyz;
 }
 #include <sp_def_precision.hlsl>

@@ -7,6 +7,7 @@
 #include <render/world/cameraParams.h>
 #include <render/world/shadowsManager.h>
 #include <render/world/frameGraphHelpers.h>
+#include <render/world/cameraViewVisibilityManager.h>
 
 #include <render/rendererFeatures.h>
 #include <render/debugMesh.h>
@@ -14,14 +15,14 @@
 #include <render/fx/fxRenderTags.h>
 #include <render/fx/fx.h>
 
-dabfg::NodeHandle mk_transparent_particles_mobile_node()
+dafg::NodeHandle mk_transparent_particles_mobile_node()
 {
-  return dabfg::register_node("transparent_particles_mobile_node", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
-    render_transparency(registry, "effects_depth_tex");
+  return dafg::register_node("transparent_particles_mobile_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    request_common_transparent_state(registry, "effects_depth_tex");
     registry.setPriority(TRANSPARENCY_NODE_PRIORITY_PARTICLES);
     registry.orderMeAfter("transparent_effects_setup_mobile");
 
-    const auto depthHndl = registry.readTexture("depth").atStage(dabfg::Stage::PS).useAs(dabfg::Usage::SHADER_RESOURCE).handle();
+    const auto depthHndl = registry.readTexture("depth").atStage(dafg::Stage::PS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
 
     registry.requestState().setFrameBlock("global_frame");
 
@@ -31,17 +32,20 @@ dabfg::NodeHandle mk_transparent_particles_mobile_node()
 
       acesfx::renderTransHighRes();
       acesfx::renderTransSpecial(ERT_TAG_ATEST);
+      acesfx::renderTransSpecial(ERT_TAG_XRAY);
     };
   });
 }
 
-dabfg::NodeHandle mk_transparent_effects_setup_mobile_node()
+dafg::NodeHandle mk_transparent_effects_setup_mobile_node()
 {
-  return dabfg::register_node("transparent_effects_setup_mobile", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
-    registry.setPriority(dabfg::PRIO_AS_LATE_AS_POSSIBLE);
+  return dafg::register_node("transparent_effects_setup_mobile", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.setPriority(dafg::PRIO_AS_LATE_AS_POSSIBLE);
     registry.requestState().setFrameBlock("global_frame");
     const auto cameraHndl = registry.readBlob<CameraParams>("current_camera").handle();
-
-    return [cameraHndl]() { acesfx::finish_update(cameraHndl.ref().jitterGlobtm); };
+    return [cameraHndl]() {
+      Occlusion *occlusion = cameraHndl.ref().jobsMgr->getOcclusion();
+      acesfx::finish_update(cameraHndl.ref().jitterGlobtm, occlusion);
+    };
   });
 }

@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "collResES.cpp.inl"
 ECS_DEF_PULL_VAR(collRes);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc get_animchar_collision_transform_ecs_query_comps[] =
 {

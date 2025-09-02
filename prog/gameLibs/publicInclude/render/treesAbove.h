@@ -10,6 +10,7 @@
 #include <render/toroidalHelper.h>
 #include <3d/dag_textureIDHolder.h>
 #include <shaders/dag_postFxRenderer.h>
+#include <generic/dag_tab.h>
 
 class DataBlock;
 struct RiGenVisibility;

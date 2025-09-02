@@ -6,6 +6,7 @@
 
 #include <math/dag_bounds2.h>
 #include <math/dag_TMatrix.h>
+#include <gameMath/objgenPrng.h>
 #include <de3_objEntity.h>
 #include <de3_interface.h>
 #include <de3_landClassData.h>
@@ -14,26 +15,17 @@
 
 namespace objgenerator
 {
+
 #define ADD_ENTITY_BYMASK(rect_test, mask, rect, ent, ret_word)                                 \
-  pos.x = mx + (ou + _frnd(seed)) * gstepx;                                                     \
+  pos.x = mx + (ou + frnd(seed)) * gstepx;                                                      \
   pos.y = 0;                                                                                    \
-  pos.z = my + (ov + _frnd(seed)) * gstepy;                                                     \
+  pos.z = my + (ov + frnd(seed)) * gstepy;                                                      \
   if ((rect_test && !(rect & Point2(pos.x, pos.z))) ||                                          \
       !mask.getClamped((pos.x - world0_x) * world2sampler, (pos.z - world0_y) * world2sampler)) \
     ret_word;                                                                                   \
   if (!is_place_allowed(pos.x + entity_ofs_x, pos.z + entity_ofs_z))                            \
     ret_word;                                                                                   \
   grassEnt->addGrassPoint(pos.x + entity_ofs_x, pos.z + entity_ofs_z);
-
-static __forceinline void _rnd_ivec2_mbit2(int &seed, int &x, int &y)
-{
-  static const int CMASK = landclass::DensMapLeaf::SZ - 1;
-  unsigned int a = (unsigned)seed * 0x41C64E6D + 0x3039, b;
-  b = (unsigned)a * 0x41C64E6D + 0x3039;
-  x = signed(a >> 16) & CMASK;
-  y = signed(b >> 16) & CMASK;
-  seed = (int)b;
-}
 
 namespace internal2
 {
@@ -71,14 +63,17 @@ struct GenGrassCB
       numc = CSZ * CSZ;
     }
     else
-      for (i = 0; i < CSZ * CSZ; ++i)
+    {
+      char *cuPtr = &cu[0][0];
+      for (i = 0; i < CSZ * CSZ; ++i, ++cuPtr)
         if (l->getByIdx(i))
         {
-          cu[0][i] = 1;
+          *cuPtr = 1;
           ++numc;
         }
         else
-          cu[0][i] = 0;
+          *cuPtr = 0;
+    }
 
     if (!numc)
       return;
@@ -88,9 +83,9 @@ struct GenGrassCB
     tm.identity();
 
     int seed1 = u0 + 97, seed2 = v0 + 79;
-    _rnd(seed1);
-    _rnd(seed2);
-    int seed = (grass.rseed ^ seed1 ^ seed2) + _rnd(seed1) + _rnd(seed2);
+    rnd(seed1);
+    rnd(seed2);
+    int seed = (grass.rseed ^ seed1 ^ seed2) + rnd(seed1) + rnd(seed2);
     int numu = 0;
     float num = floorf(numc * density * 1024.0f + 0.5f) / 1024.0f;
     float mx = gstepx * u0 + x0, my = gstepy * v0 + y0;
@@ -100,7 +95,7 @@ struct GenGrassCB
       int ou, ov;
       for (;;)
       {
-        _rnd_ivec2_mbit2(seed, ou, ov);
+        rnd_ivec2_mbit(landclass::DensMapLeaf::SZ - 1, seed, ou, ov);
         if (cu[ov][ou] == 1)
           break;
       }
@@ -108,9 +103,10 @@ struct GenGrassCB
       if (++numu >= numc)
       {
         numu = 0;
-        for (i = 0; i < CSZ * CSZ; ++i)
-          if (cu[0][i] == 2)
-            cu[0][i] = 1;
+        char *cuPtr = &cu[0][0];
+        for (i = 0; i < CSZ * CSZ; ++i, ++cuPtr)
+          if (*cuPtr == 2)
+            *cuPtr = 1;
       }
       ADD_ENTITY_BYMASK(!skip_test_rect, (*(BitMask *)pMask), rect, ent, continue);
     }
@@ -120,11 +116,11 @@ struct GenGrassCB
       int ou, ov;
       for (;;)
       {
-        _rnd_ivec2_mbit2(seed, ou, ov);
+        rnd_ivec2_mbit(landclass::DensMapLeaf::SZ - 1, seed, ou, ov);
         if (cu[ov][ou] == 1)
           break;
       }
-      if (_rnd(seed) < ((ptrdiff_t(l) == 1 || l->get(ov, ou)) ? int(num * 32768) + 1 : 0))
+      if (rnd(seed) < ((ptrdiff_t(l) == 1 || l->get(ov, ou)) ? int(num * 32768) + 1 : 0))
       {
         ADD_ENTITY_BYMASK(!skip_test_rect, (*(BitMask *)pMask), rect, ent, return);
       }
@@ -155,9 +151,9 @@ inline void generateGrassInMaskedRect(const landclass::GrassDensity &grass, IGra
     memset(cu2, 0, sizeof(cu2));
 
     int seed1 = int(mx / dx) + 97, seed2 = int(my / dy) + 79;
-    _rnd(seed1);
-    _rnd(seed2);
-    int seed = (grass.rseed ^ seed1 ^ seed2) + _rnd(seed1) + _rnd(seed2);
+    rnd(seed1);
+    rnd(seed2);
+    int seed = (grass.rseed ^ seed1 ^ seed2) + rnd(seed1) + rnd(seed2);
     int numu = 0;
 
     float cellSize = grassEnt->getCellSize();
@@ -171,7 +167,7 @@ inline void generateGrassInMaskedRect(const landclass::GrassDensity &grass, IGra
       int ou, ov;
       for (;;)
       {
-        _rnd_ivec2_mbit2(seed, ou, ov);
+        rnd_ivec2_mbit(landclass::DensMapLeaf::SZ - 1, seed, ou, ov);
         if (!(cu2[ov] & (1 << ou)))
           break;
       }
@@ -189,11 +185,11 @@ inline void generateGrassInMaskedRect(const landclass::GrassDensity &grass, IGra
       int ou, ov;
       for (;;)
       {
-        _rnd_ivec2_mbit2(seed, ou, ov);
+        rnd_ivec2_mbit(landclass::DensMapLeaf::SZ - 1, seed, ou, ov);
         if (!(cu2[ov] & (1 << ou)))
           break;
       }
-      if (_frnd(seed) <= num)
+      if (frnd(seed) <= num)
       {
         ADD_ENTITY_BYMASK(1, mask, internal2::rect, planted.ent, return);
       }

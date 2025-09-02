@@ -16,8 +16,15 @@
 #include <math/dag_mathUtils.h>
 #include "worldRendererQueries.h"
 #include <render/viewVecs.h>
+#include <render/world/frameGraphHelpers.h>
 
 static const int WATER_PLANAR_REFLECTION_RESOLUTION_DIV = 6;
+namespace var
+{
+static ShaderVariableInfo water_planar_reflection_dir("water_planar_reflection_dir");
+static ShaderVariableInfo water_planar_reflection_far_plane_pos("water_planar_reflection_far_plane_pos");
+static ShaderVariableInfo water_planar_reflection_view_proj("water_planar_reflection_view_proj");
+} // namespace var
 
 void WorldRenderer::initWaterPlanarReflection()
 {
@@ -35,19 +42,24 @@ void WorldRenderer::initWaterPlanarReflection()
   planarReflectionMipRenderer->init();
 
   waterPlanarReflectionCloudsNode =
-    dabfg::register_node("water_planar_reflection_clouds_node", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
-      registry.multiplex(dabfg::multiplexing::Mode::None);
+    dafg::register_node("water_planar_reflection_clouds_node", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
+      registry.multiplex(dafg::multiplexing::Mode::None);
+
       auto waterPlanarReflection = registry
-                                     .createTexture2d("water_planar_reflection_clouds", dabfg::History::No,
+                                     .createTexture2d("water_planar_reflection_clouds", dafg::History::No,
                                        {TEXFMT_A16B16G16R16F | TEXCF_RTARGET,
                                          registry.getResolution<2>("main_view", 1.0f / WATER_PLANAR_REFLECTION_RESOLUTION_DIV), 5})
-                                     .atStage(dabfg::Stage::POST_RASTER)
-                                     .useAs(dabfg::Usage::COLOR_ATTACHMENT)
+                                     .atStage(dafg::Stage::POST_RASTER)
+                                     .useAs(dafg::Usage::COLOR_ATTACHMENT)
                                      .handle();
-      registry.create("water_planar_reflection_clouds_sampler", dabfg::History::No).blob(d3d::request_sampler({}));
+
+      d3d::SamplerInfo smpInfo;
+      smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
+      registry.create("water_planar_reflection_clouds_sampler", dafg::History::No).blob(d3d::request_sampler(smpInfo));
       return [this, waterPlanarReflection]() {
         FRAME_LAYER_GUARD(-1);
-        ShaderGlobal::set_int(use_custom_fogVarId, 0);
+
+        STATE_GUARD_0(ShaderGlobal::set_int(disable_volfog_on_starsVarId, VALUE), 1);
 
         Point3 reflectionPos = waterPlanarReflectionViewItm.getcol(3);
         Point3 reflectionDir = waterPlanarReflectionViewItm.getcol(2);
@@ -63,7 +75,7 @@ void WorldRenderer::initWaterPlanarReflection()
 
         planarReflectionMipRenderer->render(waterPlanarReflection.get());
 
-        ShaderGlobal::set_int(use_custom_fogVarId, 1);
+        get_daskies()->useFog({}, main_pov_data, {}, {}, UpdateSky::Off);
       };
     });
 }
@@ -71,24 +83,26 @@ void WorldRenderer::initWaterPlanarReflection()
 void WorldRenderer::initWaterPlanarReflectionTerrainNode()
 {
   waterPlanarReflectionTerrainNode =
-    dabfg::register_node("water_planar_reflection_terrain_node", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
-      registry.setPriority(dabfg::PRIO_AS_LATE_AS_POSSIBLE); // Avoid waiting in renderLmeshReflection();
+    dafg::register_node("water_planar_reflection_terrain_node", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
+      registry.setPriority(dafg::PRIO_AS_LATE_AS_POSSIBLE); // Avoid waiting in renderLmeshReflection();
 
       // Avoid waiting in renderLmeshReflection(); since PRIO_AS_LATE_AS_POSSIBLE doesn't work
       registry.orderMeAfter("resolve_gbuffer_node");
       auto waterPlanarReflection = registry
-                                     .createTexture2d("water_planar_reflection_terrain", dabfg::History::No,
+                                     .createTexture2d("water_planar_reflection_terrain", dafg::History::No,
                                        {TEXFMT_R11G11B10F | TEXCF_RTARGET, registry.getResolution<2>("main_view", 0.5f), 1})
-                                     .atStage(dabfg::Stage::POST_RASTER)
-                                     .useAs(dabfg::Usage::COLOR_ATTACHMENT)
+                                     .atStage(dafg::Stage::POST_RASTER)
+                                     .useAs(dafg::Usage::COLOR_ATTACHMENT)
                                      .handle();
       auto waterPlanarReflectionDepth = registry
-                                          .createTexture2d("water_planar_reflection_terrain_depth", dabfg::History::No,
+                                          .createTexture2d("water_planar_reflection_terrain_depth", dafg::History::No,
                                             {TEXFMT_DEPTH16 | TEXCF_RTARGET, registry.getResolution<2>("main_view", 0.5f), 1})
-                                          .atStage(dabfg::Stage::POST_RASTER)
-                                          .useAs(dabfg::Usage::DEPTH_ATTACHMENT)
+                                          .atStage(dafg::Stage::POST_RASTER)
+                                          .useAs(dafg::Usage::DEPTH_ATTACHMENT)
                                           .handle();
-      return [this, waterPlanarReflection, waterPlanarReflectionDepth]() {
+
+      auto cameraHndl = registry.readBlob<CameraParams>("current_camera").handle();
+      return [this, waterPlanarReflection, waterPlanarReflectionDepth, cameraHndl]() {
         FRAME_LAYER_GUARD(-1);
         d3d::set_render_target(waterPlanarReflection.get(), 0);
         d3d::set_depth(waterPlanarReflectionDepth.get(), DepthAccess::RW);
@@ -98,9 +112,9 @@ void WorldRenderer::initWaterPlanarReflectionTerrainNode()
         d3d::settm(TM_PROJ, &waterPlanarReflectionProjTm);
         set_viewvecs_to_shader(waterPlanarReflectionViewTm, waterPlanarReflectionProjTm);
 
-        renderLmeshReflection();
-
-        waterPlanarReflectionDepth.view()->disableSampler();
+        CameraViewVisibilityMgr *camJobsMgr = cameraHndl.ref().jobsMgr;
+        camJobsMgr->waitGroundReflectionVisibility();
+        renderLmeshReflection(camJobsMgr->getLandMeshReflectionCullingData());
       };
     });
 }
@@ -142,6 +156,15 @@ void WorldRenderer::calcWaterPlanarReflectionMatrix()
   waterPlanarReflectionProjTm = waterProj;
   // some params like star brightness depend on persp, for these we want to use the same as for sky rendering
   waterPlanarReflectionPersp = currentFrameCamera.noJitterPersp;
+
+  Point3 reflectionPos = waterPlanarReflectionViewItm.getcol(3);
+  Point3 reflectionDir = waterPlanarReflectionViewItm.getcol(2);
+  Point3 farPlanePoint = reflectionPos + reflectionDir * waterPlanarReflectionPersp.zf;
+
+  ShaderGlobal::set_color4(var::water_planar_reflection_dir, reflectionDir, 0);
+  ShaderGlobal::set_color4(var::water_planar_reflection_far_plane_pos, farPlanePoint, 0);
+  ShaderGlobal::set_float4x4(var::water_planar_reflection_view_proj,
+    TMatrix4(waterPlanarReflectionViewTm) * waterPlanarReflectionProjTm);
 }
 
 void WorldRenderer::setupSkyPanoramaAndReflectionFromSetting(bool first_init)
@@ -191,7 +214,7 @@ void WorldRenderer::setupSkyPanoramaAndReflection(bool use_panorama, bool first_
       d3d::GpuAutoLock lock;
       ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
       get_daskies()->prepareSkyAndClouds(true, dpoint3(panoramaPosition), DPoint3(1, 0, 0), 3, TextureIDPair(), TextureIDPair(),
-        main_pov_data, viewTm, projTm, true, false);
+        main_pov_data, viewTm, projTm, UpdateSky::OnWithoutCloudsVisibilityCheck, false);
     }
   }
 

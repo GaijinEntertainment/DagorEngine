@@ -14,8 +14,8 @@ include "mulPointTm_inc.dshl"
 include "tonemapHelpers/use_full_tonemap_lut_inc.dshl"
 include "hmd_device_inc.dshl"
 
-int can_use_halves = 0;
-interval can_use_halves : no < 1, yes;
+int can_use_half_precision = 0;
+interval can_use_half_precision : no < 1, yes;
 
 float water_level;
 // this shader var is set to 0 by default, to not change existing levels
@@ -26,6 +26,8 @@ int special_vision = 0;
 
 float4 world_view_pos;
 float global_transp_r;
+
+float4 world_to_grass = (1/2048,1/2048, 0,0);
 
 int is_gather4_supported = 0;
 interval is_gather4_supported: unsupported <1, supported;
@@ -51,12 +53,11 @@ interval mobile_simplified_materials: no < 1, yes;
 int use_extended_global_frame_block = 0;
 interval use_extended_global_frame_block: no < 1, yes;
 
-int has_uav_in_vs_capability = 0;
-interval has_uav_in_vs_capability : no < 1, yes;
-
 float air_fog_density = 0.001;
 
 float4 lowres_tex_size = (0, 0, 0, 0);
+
+float4 glass_specular_color = (1, 1, 1, 0);
 
 macro USE_SUBPASS_LOADS()
   //match VS & PS compiler modes, so there is no IO layout problems
@@ -109,6 +110,8 @@ texture downsampled_far_depth_tex;
 texture downsampled_close_depth_tex;
 texture downsampled_normals; // from pixels with downsampled_close_depth_tex
 
+float mip_bias = 0;
+
 macro USE_SCREENPOS_TO_TC()
   BEGIN_ONCE(use_screenpos_to_tc)
     (ps) { screen_pos_to_texcoord@f4 = screen_pos_to_texcoord; }
@@ -124,6 +127,14 @@ macro USE_SCREENPOS_TO_LOWRES_TC_BASE(code)
     hlsl(code) {
       float2 screen_pos_to_lowres_tc(float2 screen_pos) {return screen_pos * screen_pos_to_lowres_texcoord;}
     }
+  END_ONCE()
+endmacro
+
+macro USE_LOWRES_TEX_SIZE(code)
+  BEGIN_ONCE(lowres_tex_size_defined)
+  (code) {
+    lowres_tex_size@f4 = lowres_tex_size;
+  }
   END_ONCE()
 endmacro
 
@@ -391,7 +402,7 @@ float4 pow32_vec4(float4 a)
 }
 
 #if SHADER_COMPILER_FP16_ENABLED
-  half clampedPow(half X, half Y) { return pow(max(abs(X),0.000001h),Y); }
+  half clampedPow(half X, half Y) { return half(pow(max(abs(X),0.000001h),Y)); }
 
   half pow2(half a){return a*a;}
   half pow3(half a) {return a*a*a;}
@@ -547,6 +558,7 @@ macro USE_COMPAT_HDR_WRITE_BASE(code, exposure_name)
       half get_exposure_mul() {return exposure_name;}
 
       half3 pack_hdr(half3 a) {return a * get_exposure_mul();}
+      half3 unpack_hdr(half3 a) {return a / get_exposure_mul();}
     #endif
   }
 endmacro
@@ -672,7 +684,7 @@ hlsl {
   #if SHADER_COMPILER_FP16_ENABLED
     half linearSmoothnessToLinearRoughness(half linearSmoothness)
     {
-      return saturate(1.h-linearSmoothness);
+      return half(saturate(1.h-linearSmoothness));
     }
   #endif
 }
@@ -680,17 +692,28 @@ hlsl {
 hlsl {
   float softwareFilteringRed(float2 tc, float2 dim, Texture2D tex, SamplerState tex_samplerstate)
   {
-    float2 bilW = frac(tc * dim - 0.5f); 
+    float2 bilW = frac(tc * dim - 0.5f);
     float4 v = tex.GatherRed(tex_samplerstate, tc);//(-,+),(+,+),(+,-),(-,-),
     return lerp(lerp(v.w, v.z, bilW.x), lerp(v.x, v.y, bilW.x), bilW.y);
   }
 }
 
 hlsl {
-  #define DETAIL_TEX_MULTIPLIER 4.59479341998814
-  #define DETAIL_TEX_MULTIPLIER_RCP (1.0 / DETAIL_TEX_MULTIPLIER)
+  #define COLOR_CORRECTION_MULTIPLIER 4.59479341998814 // it's 2^2.2
+  #define COLOR_CORRECTION_MULTIPLIER_RCP (1.0 / COLOR_CORRECTION_MULTIPLIER)
   #define DISABLE_RAY_LIGHT_INTERSECTION 1
   #define ALLOW_CLOUD_HOLE 1
 }
 
-bool use_hw_raytracing = (hardware.dx12 && hardware.pc) || (hardware.vulkan && hardware.bindless) || (hardware.metal && hardware.bindless);
+// WARNING: this is used for branches with assumes to work. Until boolean vars are reworked, the way to alias
+//          'constexpr' expressions so that you can put assumes in them is macros, boolean vars will make the
+//          compiler ignore the branch.
+macro USE_HW_RAYTRACING()
+  ((hardware.dx12 && hardware.pc) || (hardware.vulkan && hardware.bindless) || (hardware.metal && hardware.bindless))
+endmacro
+
+bool use_hw_raytracing = USE_HW_RAYTRACING();
+
+hlsl {
+  #define handle_if_two_sided(gbuffer)
+}

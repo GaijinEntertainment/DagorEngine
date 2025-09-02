@@ -11,18 +11,18 @@ G_STATIC_ASSERT(!ecs::ComponentTypeInfo<net::Object>::can_be_tracked);
 namespace net
 {
 
-void server_replication_cb(ecs::EntityId eid, ecs::component_index_t cidx)
+void server_replication_cb(ecs::EntityManager &mgr, ecs::EntityId eid, ecs::component_index_t cidx)
 {
-  auto repl = ECS_GET_NULLABLE_RW(net::Object, eid, replication);
+  auto repl = ECS_GET_NULLABLE_RW_MGR(mgr, net::Object, eid, replication);
   G_ASSERT_RETURN(repl, );
   repl->onCompChanged(cidx);
 }
 
-void client_validate_replication_cb(ecs::EntityId eid, ecs::component_index_t cidx)
+void client_validate_replication_cb(ecs::EntityManager &mgr, ecs::EntityId eid, ecs::component_index_t cidx)
 {
-  auto repl = ECS_GET_NULLABLE(net::Object, eid, replication);
+  auto repl = ECS_GET_NULLABLE_MGR(mgr, net::Object, eid, replication);
   G_ASSERT_RETURN(repl, );
-  net::replicated_component_on_client_change(eid, cidx);
+  net::replicated_component_on_client_change(mgr, eid, cidx);
 }
 
 ECS_TAG(server, net)
@@ -89,17 +89,20 @@ inline void replication_destruction_es_event_handler(const ecs::EventEntityManag
 ECS_TAG(netClient)
 ECS_REQUIRE_NOT(ecs::Tag client__canDestroyServerEntity)
 inline void replication_destruction_logerr_es_event_handler(const ecs::EventEntityDestroyed &, ecs::EntityId eid,
-  const net::Object &replication)
+  const net::Object &replication, ecs::EntityManager &manager)
 {
   if (DAGOR_UNLIKELY(!replication.meantToBeDestroyed()))
   {
     if (!net::Object::remove_from_pending_destroys(eid))
       logerr("Only server has the authority to destroy network entities, destroying %d(%s).", ecs::entity_id_t(eid),
-        g_entity_mgr->getEntityTemplateName(eid));
+        manager.getEntityTemplateName(eid));
   }
 }
 
 /*static*/
-net::Object *Object::getByEid(ecs::EntityId eid_) { return ECS_GET_NULLABLE_RW(net::Object, eid_, replication); }
+net::Object *Object::getByEid(ecs::EntityManager &mgr, ecs::EntityId eid_)
+{
+  return ECS_GET_NULLABLE_RW_MGR(mgr, net::Object, eid_, replication);
+}
 
 }; // namespace net

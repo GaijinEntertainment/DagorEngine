@@ -23,22 +23,24 @@ struct BillboardDecalTexProps;
 class BillboardDecals
 {
 public:
-  BillboardDecals();
+  explicit BillboardDecals();
   void close();
-  bool init(float hard_distance, float softness_distance, unsigned max_holes, const char *generator_shader_name,
-    const char *clear_sphere_shader_name, const char *decal_shader_name);
+  bool init(float hard_distance, float softness_distance, unsigned max_holes, const char *holes_buffer_name,
+    const char *generator_shader_name, const char *clear_sphere_shader_name, const char *decal_shader_name);
+  void init_textures(SharedTexHolder &&diffuse, SharedTexHolder &&normal);
   bool init_textures(dag::ConstSpan<const char *> diffuse, dag::ConstSpan<const char *> normal,
     const char *texture_name = "bullet_holes");
   ~BillboardDecals();
 
   static BillboardDecals *create(float hard_distance, float softness_distance, unsigned max_holes,
-    const char *generator_shader_name = "billboard_decals_generator",
+    const char *holes_buffer_name = "holesInstances", const char *generator_shader_name = "billboard_decals_generator",
     const char *clear_sphere_shader_name = "billboard_decals_clear_sphere",
     const char *decal_shader_name = "billboard_decals"); // calls init
 
   void prepareRender(const Frustum &frustum, const Point3 &origin); // generate holes and frustum culling. Call it earlier, to hide
                                                                     // latency
-  void render();
+  void renderHoleMask();
+  void renderBillboards();
   int32_t addHole(const Point3 &pos, const Point3 &norm, const Point3 &up, float size, uint32_t texture_id, uint32_t matrix_id);
   bool updateHole(const Point3 &pos, const Point3 &norm, const Point3 &up, float size, uint32_t id, uint32_t texture_id,
     uint32_t matrix_id, bool allow_rapid_update);
@@ -50,14 +52,12 @@ public:
   unsigned int getHolesTypesCount() const { return holesTypes; }
   void afterReset();
 
-  DecalsMatrices &getMatrixManager() { return matrixManager; }
-
 protected:
-  DecalsMatrices matrixManager;
   unsigned int numHolesInTextureH, numHolesInTextureW;
   float radius;
 
   DynamicShaderHelper holesRenderer;
+  DynamicShaderHelper holesMaskRenderer;
   Ptr<ComputeShaderElement> holesGenerator;
   Ptr<ComputeShaderElement> clearSphereShader;
   UniqueBuf holesInstances;
@@ -75,4 +75,11 @@ protected:
   int w, h;
   unsigned int numFreeDecals = 0;
   eastl::vector<uint32_t> freeDecalIds;
+
+  // to avoid reused a deleted hole in the same frame as it freed up
+  // We collect freed ids during frame, and the put it inside freeDecalsIds before render a new frame
+  eastl::vector<uint32_t> recentlyFreedIds;
+
+private:
+  void render();
 };

@@ -1,0 +1,127 @@
+Root    ?= ../../../.. ;
+StrictCompile = yes ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/gameLibs/render/daFrameGraph ;
+
+TargetType  = lib ;
+Target      = gameLibs/render/daFrameGraph.lib ;
+
+
+if $(PlatformSpec) = clang
+{
+  # These warnings are enabled by default on some systems and are
+  # caught by BS but not while developing. Manually enabling them saves
+  # BS' and my time.
+  CPPopt +=
+    -Wc++11-narrowing
+    -Wswitch
+    -Wbitfield-constant-conversion
+    -Wunused
+    -Wno-unused-local-typedef # this one is bugged in our version of clang
+    -Wno-unused-but-set-variable # this one is violated by external deps >:(
+  ;
+}
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/$(Location)
+  $(Root)/prog/3rdPartyLibs/imgui
+;
+
+Sources =
+  api/cpp/detail/virtualResourceHandleBase.cpp
+  api/cpp/detail/virtualResourceRequestBase.cpp
+  api/cpp/detail/dispatchRequestBase.cpp
+  api/cpp/detail/drawRequestBase.cpp
+  api/cpp/daFG.cpp
+  api/cpp/registry.cpp
+  api/cpp/stateRequest.cpp
+  api/cpp/virtualPassRequest.cpp
+  api/cpp/autoResolutionRequest.cpp
+  api/cpp/nameSpace.cpp
+  api/cpp/nameSpaceRequest.cpp
+
+  common/resourceUsage.cpp
+
+  frontend/dependencyDataCalculator.cpp
+  frontend/nodeTracker.cpp
+  frontend/irGraphBuilder.cpp
+  frontend/nameResolver.cpp
+  frontend/multiplexingInternal.cpp
+  frontend/dumpInternalRegistry.cpp
+  frontend/registryValidator.cpp
+  frontend/dynamicResolution.cpp
+
+  backend/intermediateRepresentation.cpp
+  backend/nodeStateDeltas.cpp
+  backend/passColoring.cpp
+  backend/nodeScheduler.cpp
+  backend/resourceScheduling/barrierScheduler.cpp
+  backend/resourceScheduling/resourceScheduler.cpp
+  backend/resourceScheduling/nativeResourceScheduler.cpp
+  backend/resourceScheduling/poolResourceScheduler.cpp
+  backend/blobBindingHelpers.cpp
+  backend/badResolutionTracker.cpp
+
+  runtime/nodeExecutor.cpp
+  runtime/typeDb.cpp
+  runtime/runtime.cpp
+;
+
+if $(DAFG_ENABLE_DAS_INTEGRATION) = yes {
+  Target = $(Target:S=~das.lib) ;
+  AddIncludes +=
+    $(Root)/prog/1stPartyLibs/daScript/include
+  ;
+  Sources +=
+    api/das/enumerations.cpp
+    api/das/frameGraphModule.cpp
+    api/das/nodeDataAnnotation.cpp
+    api/das/structureAnnotations.cpp
+    api/das/blobBindings.cpp
+    api/das/blobInterop.cpp
+  ;
+  UseProgLibs += 1stPartyLibs/daScript ;
+}
+if $(DAFG_ENABLE_DAECS_INTEGRATION) = yes {
+  Target = $(Target:S=~ecs.lib) ;
+  SourceES =
+    api/ecs/frameGraphNodeES.cpp.inl
+  ;
+  for s in $(SourceES) { GenESSourceFile $(s) ; }
+}
+AllSrcFolder_CPP =
+  backend/resourceScheduling/packers
+;
+
+
+if $(Config) in dbg dev {
+  Sources +=
+    debug/resourceValidation.cpp
+    debug/globalStatesValidation.cpp
+    debug/textureVisualization.cpp
+
+    debug/backendDebug.cpp
+    debug/dafgVisualizer.cpp
+    debug/userGraphVisualizer.cpp
+    debug/irGraphVisualizer.cpp
+    debug/resourceVisualizer.cpp
+    debug/textureVisualizer.cpp
+  ;
+  UseProgLibs +=
+    3rdPartyLibs/imgui
+    3rdPartyLibs/imgui-node-editor
+    engine/imgui
+    engine/imgui/util
+    gameLibs/graphLayouter
+    gameLibs/render/texDebug
+  ;
+} else {
+  Sources +=
+    debug/backendDebugStub.cpp
+  ;
+}
+
+AutoscanBuildLists $(AllSrcFolder_CPP) : *.cpp       : Sources ;
+include $(Root)/prog/_jBuild/build.jam ;

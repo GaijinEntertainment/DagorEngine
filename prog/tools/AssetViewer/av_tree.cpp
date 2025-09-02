@@ -10,10 +10,10 @@
 #include <util/dag_string.h>
 #include <propPanel/propPanel.h>
 
-static TEXTUREID folder_textureId = BAD_TEXTUREID;
-static TEXTUREID folder_packed_textureId = BAD_TEXTUREID;
-static TEXTUREID folder_changed_textureId = BAD_TEXTUREID;
-static Tab<TEXTUREID> asset_changed_textureId(inimem);
+static PropPanel::IconId folder_textureId = PropPanel::IconId::Invalid;
+static PropPanel::IconId folder_packed_textureId = PropPanel::IconId::Invalid;
+static PropPanel::IconId folder_changed_textureId = PropPanel::IconId::Invalid;
+static Tab<PropPanel::IconId> asset_changed_textureId(inimem);
 
 
 void AvTree::loadIcons(DagorAssetMgr &asset_mgr)
@@ -70,7 +70,7 @@ bool AvTree::markExportedTree(AllAssetsTree &tree, PropPanel::TLeafHandle parent
 
     if (const DagorAssetFolder *g = get_dagor_asset_folder(childTreeNode->userData))
     {
-      TEXTUREID imidx = (g->flags & g->FLG_EXPORT_ASSETS) ? folder_packed_textureId : folder_textureId;
+      PropPanel::IconId imidx = (g->flags & g->FLG_EXPORT_ASSETS) ? folder_packed_textureId : folder_textureId;
 
       if (markExportedTree(tree, child, flags))
         imidx = folder_changed_textureId;
@@ -80,7 +80,7 @@ bool AvTree::markExportedTree(AllAssetsTree &tree, PropPanel::TLeafHandle parent
     }
     else if (DagorAsset *a = (DagorAsset *)childTreeNode->userData)
     {
-      TEXTUREID imidx;
+      PropPanel::IconId imidx;
 
       if (::is_asset_exportable(a) && (a->testUserFlags(flags) != flags))
       {

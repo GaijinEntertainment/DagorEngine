@@ -4,8 +4,6 @@
 //
 #pragma once
 
-#include <EASTL/functional.h>
-#include <EASTL/string.h>
 #include <generic/dag_tabFwd.h>
 
 class DagorAsset;
@@ -15,6 +13,10 @@ class DataBlock;
 namespace mkbindump
 {
 class BinDumpSaveCB;
+}
+namespace ddsx
+{
+struct Header;
 }
 
 
@@ -43,18 +45,8 @@ public:
   //! builds resource data and writes to output stream
   virtual bool __stdcall exportAsset(DagorAsset &a, mkbindump::BinDumpSaveCB &cwr, ILogWriter &log) = 0;
 
-  //! builds resource fast (used by assetBuildCache), usually uncompressed (not production quality build!)
-  virtual bool __stdcall buildAssetFast(DagorAsset &a, mkbindump::BinDumpSaveCB &cwr, ILogWriter &log)
-  {
-    return exportAsset(a, cwr, log); //< default implementation is identical to production build
-  }
-
-  virtual int __stdcall getBqTexResolution(DagorAsset &, unsigned /*target*/, const char * /*profile*/, ILogWriter & /*log*/)
-  {
-    return 0;
-  }
-
-  virtual void __stdcall setTexSizeCallback(const eastl::function<int(const eastl::string &)> & /*texSizesGetter*/) {}
+  //! fills ddsx::Header for texture with TQ/BQ/HQ/UHQ levels (expected to be superfast, avoids building tex)
+  virtual bool __stdcall makeTexDDSxHeader(DagorAsset &, ddsx::Header & /*dest_hdr*/, unsigned & /*dest_lev_desc*/) { return false; }
 
   //! computes (using cache shared data) and returns hash of source data (to be used for pack naming)
   virtual bool getAssetSourceHash(SimpleString & /*dest_hash*/, DagorAsset &, void * /*cache_shared_data_ptr*/, unsigned /*tc*/)

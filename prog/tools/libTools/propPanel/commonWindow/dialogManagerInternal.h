@@ -8,6 +8,7 @@ namespace PropPanel
 {
 
 class DialogWindow;
+class IModalDialogEventHandler;
 
 class DialogManager
 {
@@ -30,5 +31,6 @@ private:
 };
 
 extern DialogManager dialog_manager;
+extern IModalDialogEventHandler *modal_dialog_event_handler;
 
 } // namespace PropPanel

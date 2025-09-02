@@ -34,25 +34,25 @@ isPs4 = False
 isPs5 = False
 clang_defines = ['-Dstricmp=strcasecmp', '-Di_strlen=(int)strlen',
                  '-D__forceinline=inline',
-                 '-DSEH_DISABLED=1', '-D_WINSOCK_DEPRECATED_NO_WARNINGS=1',
-                 '-D_HAS_CHAR16_T_LANGUAGE_SUPPORT=1', '-D_CRT_SECURE_NO_WARNINGS=1', '-D_CRTRESTRICT=1', '-D_CRTNOALIAS=1',
-                 '-DNOMINMAX', '-D_MSC_EXTENSIONS=1']
+                 '-DSEH_DISABLED', '-D_WINSOCK_DEPRECATED_NO_WARNINGS',
+                 '-D_HAS_CHAR16_T_LANGUAGE_SUPPORT', '-D_CRT_SECURE_NO_WARNINGS', '-D_CRTRESTRICT', '-D_CRTNOALIAS',
+                 '-DNOMINMAX', '-D_MSC_EXTENSIONS']
 # '-D__int64="long long"', '-D"_int64=long long"',
 # '-DWINAPI_FAMILY=100',
 # '-D__forceinline=inline',
-# '-D__clang__=1', '-D__GNUC__=1', '-D__GXX_EXPERIMENTAL_CXX0X__=1',
+# '-D__clang__', '-D__GNUC__', '-D__GXX_EXPERIMENTAL_CXX0X__',
 
 for argI in range(4, len(sys.argv)):
     arg = sys.argv[argI]
     if arg.startswith("-D") or arg.startswith("/D"):
-        define = "-D" + arg[len("/D"):]
+        define = "-D" + arg[len("-D"):]
         if (define not in clang_defines):
             clang_args = clang_args + [define]
-        if define[len("/D"):].startswith("_TARGET_64BIT=1"):
+        if define[len("-D"):] == "_TARGET_64BIT":
             is64bit = True
-        if define[len("/D"):].startswith("_TARGET_PS4=1"):
+        if define[len("/D"):] == "_TARGET_PS4":
             isPs4 = True
-        if define[len("/D"):].startswith("_TARGET_PS5=1"):
+        if define[len("/D"):] == "_TARGET_PS5":
             isPs5 = True
     elif arg.startswith("-FI") or arg.startswith("/FI"):
         clang_args = clang_args + ["-include", arg[len("-FI"):]]
@@ -65,18 +65,18 @@ for argI in range(4, len(sys.argv)):
     elif arg in ['-isystem', '-include', '-imsvc']:
         clang_args = clang_args + [{'-imsvc': '-isystem'}.get(arg, arg), sys.argv[argI + 1]]
         argI = argI + 1
-clang_args = clang_args + ['-w', '-std=c++17']
+clang_args = clang_args + ['-w', '-std=c++20']
 clang_args = clang_args + clang_defines
 if (isPs4):
-    clang_args = clang_args + ['-D__ORBIS__=1']
+    clang_args = clang_args + ['-D__ORBIS__']
 if (isPs5):
-    clang_args = clang_args + ['-D__PROSPERO__=1']
+    clang_args = clang_args + ['-D__PROSPERO__']
 clang_options = ['-ferror-limit=0', '-msse4', ('-m64' if is64bit else '-m32')]
 if platform.system() == 'Windows':
     clang_options += ['-fms-compatibility', '-fms-extensions', '-fmsc-version=1900']
 
 clang_args = clang_args + clang_options
-clang_args = clang_args + ['-D_ECS_CODEGEN=1']
+clang_args = clang_args + ['-D_ECS_CODEGEN']
 # print clang_args
 all_gets = []
 allParsedFunctions = parse_ecs_functions(input_file_name, os.path.basename(input_file_name), clang_args, is_es_name, False, compiler_errors, all_gets)
@@ -101,13 +101,16 @@ for some_get, some_get_type in all_gets:
   gets_type_code += get_component_type_fun + '''{{return ecs::ComponentTypeInfo<{get_type}>::type; }}\n'''.format(**locals())
   gets_code += '''static ecs::LTComponentList {some_get}_component(ECS_HASH("{some_get_name}"), {some_get}_get_type(), "{file}", "{fun}", {line});\n'''.format(**locals())
 
-include_preamble = '#include "' + rel_path_for_include + '"\n'
+include_preamble = """// Built with ECS codegen version %s
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
+""" % version
+include_preamble += '#include "' + rel_path_for_include + '"\n'
 if rel_path_for_include.endswith('ES.cpp.inl'):
   include_preamble += 'ECS_DEF_PULL_VAR(' + rel_path_for_include[0:len(rel_path_for_include)-10].rsplit('/',1)[0] + ');\n'
 elif rel_path_for_include.endswith('.cpp.inl'):
   include_preamble += 'ECS_DEF_PULL_VAR(' + rel_path_for_include[0:len(rel_path_for_include)-8].rsplit('/',1)[0] + ');\n'
 
-include_preamble += '//built with ECS codegen version ' + version + "\n"
 resultCode = include_preamble + resultCode
 if len(gets_code) > 0:
   resultCode = "#include <daECS/core/internal/ltComponentList.h>\n" + gets_code + resultCode + gets_type_code

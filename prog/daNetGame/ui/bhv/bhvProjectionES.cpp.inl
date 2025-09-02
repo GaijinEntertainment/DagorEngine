@@ -10,6 +10,7 @@
 
 #include <gui/dag_stdGuiRender.h>
 #include <3d/dag_render.h>
+#include <drv/3d/dag_decl.h>
 #include <math/dag_mathUtils.h>
 #include <math/dag_math3d.h>
 

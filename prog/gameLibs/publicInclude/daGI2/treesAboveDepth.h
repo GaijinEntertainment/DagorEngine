@@ -13,6 +13,7 @@
 #include <3d/dag_textureIDHolder.h>
 #include <shaders/dag_postFxRenderer.h>
 #include <EASTL/fixed_function.h>
+#include <generic/dag_tab.h>
 
 class TreesAboveDepth
 {

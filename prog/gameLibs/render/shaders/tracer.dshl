@@ -1,6 +1,9 @@
 include "shader_global.dshl"
 include "cloud_mask.dshl"
 
+int tracer_tails_batched_render = 0;
+interval tracer_tails_batched_render: off < 1, on;
+
 int fx_create_cmd = 0;
 interval fx_create_cmd: fx_create_tracer < 1, fx_create_segment;
 
@@ -37,6 +40,8 @@ float4 front_sprite_params = float4(0.25, 1.25, 0.9999, 0.0);
 float tracer_start_color_fade_time_inv = 4.0;
 //x = 0..n - inv fade time for start tracer color
 
+float tracer_znear_offset = 0.0;
+
 int tracer_prim_type = 0;
 interval tracer_prim_type: tracer_prim_type_dir < 1, tracer_prim_type_caps;
 
@@ -68,6 +73,8 @@ block(scene) tracer_frame
       sky_color.g,
       sky_color.b,
       tail_lighting_directional_scale);
+
+    znear_offset@f1 = tracer_znear_offset;
   }
   (ps) {
     head_noise_params@f4 = head_noise_params;
@@ -233,7 +240,7 @@ shader tracer_head2
 
       res.rgb = pack_hdr(apply_fog(res.rgb * head_shape_params.w, input.pointToEye.xyz)).rgb;
       ##if special_vision == thermal_vision
-      res.g = dot(float3(0.33, 0.33, 0.33), res.rgb) * 1000.0f / 2550.0f;
+      res.g = dot(float3(0.33, 0.33, 0.33), res.rgb) * 100.0f / 2550.0f;
       res.rb = 0;
       ##endif
       return float4(res.rgb * res.a, 1);
@@ -346,6 +353,9 @@ shader tracer_head2
       distAlpha *= lerp(pow2(saturate((localTc.x * 0.5 + 0.5) * tail_extension_fade_htlen.z)), 1, head.beam);
       ##endif
 
+      // Fade out tracers inside cockpit
+      distAlpha *= saturate(eyeDist - znear_offset);
+
       output.pos = projPos;
 
 ##if fx_instancing_type == fx_instancing_sbuf
@@ -434,6 +444,17 @@ shader tracer_tail
   }
   compile("target_ps", "tracer_tail_ps");
 
+  if (fx_instancing_type != fx_instancing_sbuf && tracer_tails_batched_render == on)
+  {
+    dont_render;
+  }
+
+  if (tracer_tails_batched_render == on)
+  {
+    (vs) { immediate_dword_count = 1; }
+    hlsl(vs) { StructuredBuffer<uint2> tailInstancesBuffer : register(t5); }
+  }
+
   hlsl(vs) {
 ##if fx_instancing_type == fx_instancing_sbuf
     StructuredBuffer<TailParticle> tailParticles : register(t0);
@@ -471,6 +492,7 @@ shader tracer_tail
       GPUFxTracer tracer;
       GPUFxTracerDynamic tracerDynamic;
       GPUFxSegmentProcessed segment;
+##if tracer_tails_batched_render == off
       int partId = input.pos.x / FX_VERTICES_PER_PARTICLE;
       int divisor = input.pos.y;
 
@@ -493,6 +515,27 @@ shader tracer_tail
 ##endif
 
       int vPosId = input.pos.x % FX_VERTICES_PER_PARTICLE;
+##else
+      uint2 data = tailInstancesBuffer[input.instance_id.x + get_immediate_dword_0()];
+      int lodNo = (data.x >> 10) & 7;
+      int instanceId = data.y;
+      int divisor = 1u << lodNo;
+      int partId = (input.pos.x / FX_VERTICES_PER_PARTICLE + (data.x & 1023)) * divisor;
+      int vPosId = input.pos.x % FX_VERTICES_PER_PARTICLE;
+      int vertexCount = data.x >> 13;
+  ##if fx_instancing_type == fx_instancing_sbuf
+      GET_FX_TRACER(instanceId, hk_btime_tlen_tnum.z, hk_btime_tlen_tnum.w, tracerBuffer, tracerDynamicBuffer, segmentBuffer, tracer, tracerDynamic, segment);
+      int localPartId = input.vertexId / FX_VERTICES_PER_PARTICLE * divisor;
+      if (input.pos.x >= vertexCount)
+      {
+        output.pos = float4(2,2,1,1);
+        return output;
+      }
+      int tnum = hk_btime_tlen_tnum.w;
+      TailParticle particle = structuredBufferAt(tailParticles, (partId + instanceId) % tnum);
+  ##endif
+##endif
+
       float2 vPos = float2(vPosId == 0 || vPosId == 1 ? -1.0 : 1.0, vPosId == 0 || vPosId == 3 ? -1.0 : 1.0);
       float segmLen = localPartId / hk_btime_tlen_tnum.w;
 

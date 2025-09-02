@@ -55,6 +55,8 @@ EventHandle init_event(const FMODGUID &event_id, const Point3 *position = nullpt
 bool has_event(const FMODGUID &event_id);
 
 bool get_event_id(const char *name, const char *path, bool is_snapshot, FMODGUID &event_id, bool debug_trace = true);
+bool get_event_id_and_length(const char *name, const char *path, int &out_length, bool is_snapshot, FMODGUID &event_id,
+  bool debug_trace = true);
 bool preload(const FMODGUID &event_id);
 bool unload(const FMODGUID &event_id, bool is_strict = true);
 void release_immediate(EventHandle &event_handle, bool is_stop = true);
@@ -63,22 +65,22 @@ void release(EventHandle &event_handle, float delay = 0.f, bool is_stop = true);
 
 void release_all_instances(const char *path);
 
-bool play_one_shot(const char *name, const char *path, const Point3 *position, ieff_t flags, float delay);
+bool play_oneshot(const char *name, const char *path, const Point3 *position, ieff_t flags, float delay);
 
-__forceinline bool play_one_shot(const char *name, const char *path, const Point3 *position)
+__forceinline bool play_oneshot(const char *name, const char *path, const Point3 *position)
 {
-  return play_one_shot(name, path, position, IEF_ONESHOT, 0.f);
+  return play_oneshot(name, path, position, IEF_ONESHOT, 0.f);
 }
 
-__forceinline bool play_one_shot(const char *name) { return play_one_shot(name, nullptr, nullptr); }
+__forceinline bool play_oneshot(const char *name) { return play_oneshot(name, nullptr, nullptr); }
 
-__forceinline bool play_one_shot(const char *name, const char *path) { return play_one_shot(name, path, nullptr); }
+__forceinline bool play_oneshot(const char *name, const char *path) { return play_oneshot(name, path, nullptr); }
 
-__forceinline bool play_one_shot(const char *name, const Point3 &position) { return play_one_shot(name, nullptr, &position); }
+__forceinline bool play_oneshot(const char *name, const Point3 &position) { return play_oneshot(name, nullptr, &position); }
 
-__forceinline bool play_one_shot(const char *name, const Point3 &position, bool allow_far_oneshots)
+__forceinline bool play_oneshot_far(const char *name, const Point3 &position)
 {
-  return play_one_shot(name, nullptr, &position, IEF_ONESHOT & ~(allow_far_oneshots ? sndsys::IEF_EXCLUDE_FAR_ONESHOT : 0), 0.f);
+  return play_oneshot(name, nullptr, &position, IEF_ONESHOT & ~sndsys::IEF_EXCLUDE_FAR_ONESHOT, 0.f);
 }
 
 static const float def_dist_threshold = 40.f;
@@ -126,11 +128,11 @@ const char *debug_event_state(EventHandle event_handle);
 bool is_valid_handle(EventHandle event_handle);
 bool is_valid_event_instance(EventHandle event_handle);
 
-bool is_one_shot(EventHandle event_handle);
+bool is_oneshot(EventHandle event_handle);
 bool is_delayable(EventHandle event_handle);
 bool has_occlusion(EventHandle event_handle);
 
-bool is_one_shot(const FMODGUID &event_id);
+bool is_oneshot(const FMODGUID &event_id);
 bool is_snapshot(const FMODGUID &event_id);
 
 void set_volume(EventHandle event_handle, float volume);
@@ -192,17 +194,9 @@ __forceinline EventHandle play(const char *name, const char *path, const Point3 
   return handle;
 }
 
-__forceinline EventHandle play(const char *name, const char *path, const Point3 &pos, bool allow_far_oneshots)
+__forceinline EventHandle play_far(const char *name, const char *path, const Point3 &pos)
 {
-  const ieff_t flags = IEF_DEFAULT & ~(allow_far_oneshots ? IEF_EXCLUDE_FAR_ONESHOT : 0);
-  EventHandle handle = init_event(name, path, flags, &pos);
-  start(handle, pos);
-  return handle;
-}
-__forceinline EventHandle play(const char *name, const char *path, const Point3 &pos, float volume)
-{
-  EventHandle handle = init_event(name, path, pos);
-  set_volume(handle, volume);
+  EventHandle handle = init_event(name, path, IEF_DEFAULT & ~IEF_EXCLUDE_FAR_ONESHOT, &pos);
   start(handle, pos);
   return handle;
 }
@@ -215,11 +209,13 @@ __forceinline EventHandle delayed_play(const char *name, const char *path, const
 
 __forceinline void delayed_oneshot(const char *name, const char *path, const Point3 &pos, float delay)
 {
-  play_one_shot(name, path, &pos, IEF_ONESHOT, delay);
+  play_oneshot(name, path, &pos, IEF_ONESHOT, delay);
 }
 __forceinline void delayed_oneshot(const char *name, const char *path, float delay)
 {
-  play_one_shot(name, path, nullptr, IEF_ONESHOT, delay);
+  play_oneshot(name, path, nullptr, IEF_ONESHOT, delay);
 }
 
+typedef void (*debug_init_event_failed_cb_t)(const char *event_path, const char *fmod_error_message, bool as_oneshot);
+void set_debug_init_event_failed_cb(debug_init_event_failed_cb_t cb);
 } // namespace sndsys

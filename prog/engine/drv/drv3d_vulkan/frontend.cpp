@@ -11,6 +11,8 @@
 #include "frontend_pod_state.h"
 #include "temp_buffers.h"
 #include "execution_sync_capture.h"
+#include "resource_readbacks.h"
+#include "swapchain.h"
 
 using namespace drv3d_vulkan;
 
@@ -22,6 +24,8 @@ FrontExecutionTimings Frontend::timings;
 TempBufferManager Frontend::tempBuffers;
 FramememBufferManager Frontend::frameMemBuffers;
 ExecutionSyncCapture Frontend::syncCapture;
+ResourceReadbacks Frontend::readbacks;
+Swapchain Frontend::swapchain;
 
 PipelineState Frontend::State::pipe;
 FrontendPODState Frontend::State::pod;

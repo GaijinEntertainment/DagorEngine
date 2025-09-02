@@ -100,9 +100,9 @@ void GlobalVertexData::initGvdMem(int vNum, int vStride, int idxSize, unsigned f
     if (auto _ib = getIB())
       d3d_err(_ib->updateDataWithLock(0, getIbSize(), ib_data, VBLOCK_WRITEONLY)); // load index buffer data
 
-  if (need_set_rld && vb && (d3d::get_driver_code().is(d3d::dx11) || d3d::get_driver_code().is(d3d::dx12)))
+  if (need_set_rld && vb && (d3d::get_driver_code().is(d3d::dx11 || d3d::dx12 || d3d::vulkan)))
   {
-#if _TARGET_PC_WIN
+#if _TARGET_PC_WIN | _TARGET_PC_LINUX | _TARGET_ANDROID
     G_ASSERT(!(flags & VDATA_NO_IBVB));
     G_ASSERT(vb_data || !getVbSize());
     G_ASSERT(ib_data || !getIbSize());
@@ -411,7 +411,8 @@ void ShaderMesh::patchData(void *base, ShaderMatVdata &smvd)
       mat_idx = 0;
     }
     re.mat.init(smvd.getMaterial(mat_idx));
-    re.e = re.mat->make_elem(false, NULL);
+    if (re.mat)
+      re.e = re.mat->make_elem(false, NULL);
     re.vertexData = smvd.getGlobVData((int)(intptr_t)re.vertexData);
   }
 }
@@ -487,35 +488,6 @@ bool ShaderMesh::getVbInfo(RElem &relem, int usage, int usage_index, unsigned in
 
   return offset != 0xFFFFFFFF;
 }
-
-// render items
-void ShaderMesh::render(dag::Span<RElem> elem_array) const
-{
-  //  debug("render %d items", elem_array.size());
-  GlobalVertexData *vertexData = NULL;
-  for (const RElem &re : elem_array)
-  {
-    if (!re.e)
-      continue;
-
-    if (re.vertexData->isEmpty())
-      continue;
-
-    if (re.vertexData != vertexData)
-    {
-      vertexData = re.vertexData;
-      //        debug("set VData: %X", vertexData);
-
-      vertexData->setToDriver();
-    }
-    //      debug("sv=%d numv=%d si=%d numf=%d (ib=%X vb=%X)",
-    //        re.sv, re.numv, re.si, re.numf,
-    //        vertexData->getIB(), vertexData->getVB());
-
-    re.render();
-  }
-}
-
 
 // rendering
 void ShaderMesh::renderRawImmediate(bool trans) const

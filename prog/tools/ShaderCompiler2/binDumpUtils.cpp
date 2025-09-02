@@ -14,6 +14,7 @@
 #include <shaders/shOpcode.h>
 #include <shaders/shFunc.h>
 #include <libTools/util/makeBindump.h>
+#include <generic/dag_enumerate.h>
 
 #include "shLog.h"
 
@@ -26,7 +27,7 @@ struct TabInd
   int index;
 
   TabInd(dag::ConstSpan<T> s, int Index) : index(Index), slice(s, tmpmem) {}
-  TabInd() : slice(tmpmem){};
+  TabInd() : slice(tmpmem) {}
 };
 
 template <class T>
@@ -54,29 +55,30 @@ static int cmpTabInd(const TabInd<T> *a, const TabInd<T> *b)
 //************************************************************
 //  OpCodes operations
 //************************************************************
-static void addRefsFromVariants(Tab<int> &refsTable, dag::ConstSpan<ShaderClass *> shaderClasses, mkbindump::GatherNameMap &varMap)
+static void addRefsFromVariants(Tab<int> &refsTable, dag::ConstSpan<ShaderClass *> shaderClasses, mkbindump::GatherNameMap &varMap,
+  const shc::TargetContext &ctx)
 {
+  const Tab<ShaderGlobal::Var> &globvars = ctx.globVars().getVariableList();
+
   auto mark_used_var = [&](const char *name) {
     int id = varMap.getNameId(name);
     if (id == -1)
       return;
-    for (int v_ind = 0; v_ind < ShaderGlobal::get_var_count(); v_ind++)
+    for (auto [varId, var] : enumerate(globvars))
     {
-      ShaderGlobal::Var &var = ShaderGlobal::get_var(v_ind);
       if (var.nameId == id)
       {
-        G_ASSERT(v_ind >= 0 && v_ind < refsTable.size());
-        refsTable[v_ind]++;
+        G_ASSERT(varId >= 0 && varId < refsTable.size());
+        refsTable[varId]++;
         break;
       }
     }
   };
 
-  for (int i = 0; i < shaderClasses.size(); i++)
+  for (ShaderClass *sclass : shaderClasses)
   {
-    for (int codeNo = 0; codeNo < shaderClasses[i]->code.size(); codeNo++)
+    for (ShaderCode *code : sclass->code)
     {
-      ShaderCode *code = shaderClasses[i]->code[codeNo];
       if (code)
       {
         const ShaderVariant::TypeTable &dyn_types = code->dynVariants.getTypes();
@@ -94,13 +96,10 @@ static void addRefsFromVariants(Tab<int> &refsTable, dag::ConstSpan<ShaderClass 
   }
 }
 
-static void addRefsFromStCode(Tab<int> &refsTable)
+static void addRefsFromStCode(Tab<int> &refsTable, const shc::TargetContext &ctx)
 {
-  using loadedshaders::stCode;
-  for (int codeInd = 0; codeInd < stCode.size(); codeInd++)
+  for (const auto &code : ctx.storage().shadersStcode)
   {
-    Tab<int> &code = stCode[codeInd];
-    // ShUtils::shcod_dump(code);
     for (int i = 0; i < code.size(); i++)
     {
       int op = shaderopcode::getOp(code[i]);
@@ -137,13 +136,15 @@ static void addRefsFromStCode(Tab<int> &refsTable)
         case SHCOD_GET_VEC:
         case SHCOD_GET_INT_TOREAL:
         case SHCOD_GET_IVEC_TOREAL:
-        case SHCOD_BLK_ICODE_LEN:
         case SHCOD_IMM_REAL1:
         case SHCOD_IMM_SVEC1:
+        case SHCOD_INT_TOREAL:
+        case SHCOD_IVEC_TOREAL:
         case SHCOD_COPY_REAL:
-        case SHCOD_COPY_VEC:
-        case SHCOD_PACK_MATERIALS: break;
+        case SHCOD_COPY_VEC: break;
 
+        case SHCOD_STATIC_BLOCK:
+        case SHCOD_STATIC_MULTIDRAW_BLOCK:
         case SHCOD_IMM_REAL:
         case SHCOD_MAKE_VEC: i++; break;
 
@@ -170,7 +171,7 @@ static void addRefsFromStCode(Tab<int> &refsTable)
         }
         break;
 
-        default: DAG_FATAL("code not processed: %s at %d!", ShUtils::shcod_tokname(op), i); G_ASSERT(0);
+        default: G_ASSERTF(0, "code not processed: %s at %d!", ShUtils::shcod_tokname(op), i); G_ASSERT(0);
       }
     }
   }
@@ -189,7 +190,7 @@ static void getRemapTable(Tab<int> &remapTable, Tab<int> &refTable)
   }
 }
 
-void bindumphlp::patchStCode(dag::Span<int> code, dag::ConstSpan<int> remapTable, dag::ConstSpan<int> smpTable)
+void bindumphlp::patchStCode(dag::Span<int32_t> code, dag::ConstSpan<int> remapTable, dag::ConstSpan<int> smpTable)
 {
   for (int i = 0; i < code.size(); i++)
   {
@@ -227,13 +228,15 @@ void bindumphlp::patchStCode(dag::Span<int> code, dag::ConstSpan<int> remapTable
       case SHCOD_GET_VEC:
       case SHCOD_GET_INT_TOREAL:
       case SHCOD_GET_IVEC_TOREAL:
-      case SHCOD_BLK_ICODE_LEN:
       case SHCOD_IMM_REAL1:
       case SHCOD_IMM_SVEC1:
+      case SHCOD_INT_TOREAL:
+      case SHCOD_IVEC_TOREAL:
       case SHCOD_COPY_REAL:
-      case SHCOD_COPY_VEC:
-      case SHCOD_PACK_MATERIALS: break;
+      case SHCOD_COPY_VEC: break;
 
+      case SHCOD_STATIC_BLOCK:
+      case SHCOD_STATIC_MULTIDRAW_BLOCK:
       case SHCOD_IMM_REAL:
       case SHCOD_MAKE_VEC: i++; break;
 
@@ -277,61 +280,63 @@ void bindumphlp::patchStCode(dag::Span<int> code, dag::ConstSpan<int> remapTable
       }
       break;
 
-      default: DAG_FATAL("code not processed: %s at %d!", ShUtils::shcod_tokname(op), i); G_ASSERT(0);
+      default: G_ASSERTF(0, "code not processed: %s at %d!", ShUtils::shcod_tokname(op), i);
     }
   }
 }
 
-static void patchStCode(dag::ConstSpan<int> remapTable)
+static void patchStCode(dag::ConstSpan<int> remapTable, shc::TargetContext &ctx)
 {
-  using loadedshaders::stCode;
-  for (int codeInd = 0; codeInd < stCode.size(); codeInd++)
-  {
-    Tab<int> &code = stCode[codeInd];
+  for (auto &code : ctx.storage().shadersStcode)
     bindumphlp::patchStCode(make_span(code), remapTable, {});
-  }
 }
 
-void bindumphlp::sortShaders(dag::ConstSpan<ShaderStateBlock *> blocks, StcodeInterface *stcode_interface)
+void bindumphlp::sortShaders(dag::ConstSpan<ShaderStateBlock *> blocks, shc::TargetContext &ctx)
 {
-  using loadedshaders::fsh;
-  using loadedshaders::shClass;
-  using loadedshaders::stCode;
-  using loadedshaders::vpr;
+  ShaderTargetStorage &stor = ctx.storage();
 
-  Tab<TabInd<unsigned>> fshIndexes(tmpmem);
-  Tab<TabInd<unsigned>> vprIndexes(tmpmem);
-  Tab<TabInd<int>> stIndexes(tmpmem);
+  Tab<TabInd<uint32_t>> fshIndexes(tmpmem);
+  Tab<TabInd<uint32_t>> vprIndexes(tmpmem);
+  Tab<TabInd<int32_t>> stIndexes(tmpmem);
 
-  for (int i = 0; i < fsh.size(); i++)
-    fshIndexes.push_back(TabInd<unsigned>(fsh[i], i));
+  for (int i = 0; i < stor.ldShFsh.size(); i++)
+    fshIndexes.push_back(TabInd<uint32_t>(stor.ldShFsh[i], i));
   sort(fshIndexes, &cmpTabInd);
   for (int i = 0; i < fshIndexes.size(); i++)
-    fsh[i] = fshIndexes[i].slice;
+    stor.ldShFsh[i] = fshIndexes[i].slice;
 
-  for (int i = 0; i < vpr.size(); i++)
-    vprIndexes.push_back(TabInd<unsigned>(vpr[i], i));
+  for (int i = 0; i < stor.ldShVpr.size(); i++)
+    vprIndexes.push_back(TabInd<uint32_t>(stor.ldShVpr[i], i));
   sort(vprIndexes, &cmpTabInd);
   for (int i = 0; i < vprIndexes.size(); i++)
-    vpr[i] = vprIndexes[i].slice;
+    stor.ldShVpr[i] = vprIndexes[i].slice;
 
-  for (int i = 0; i < stCode.size(); i++)
-    stIndexes.push_back(TabInd<int>(stCode[i], i));
+  for (int i = 0; i < stor.shadersStcode.size(); i++)
+    stIndexes.push_back(TabInd<int32_t>(stor.shadersStcode[i], i));
 
   sort(stIndexes, &cmpTabInd);
 
   for (int i = 0; i < stIndexes.size(); i++)
-    stCode[i] = stIndexes[i].slice;
+    stor.shadersStcode[i] = stIndexes[i].slice;
 
-  for (int i = 0; i < shClass.size(); i++)
+  if (shc::config().generateCppStcodeValidationData)
   {
-    ShaderClass &sc = *shClass[i];
-    for (int j = 0; j < sc.code.size(); j++)
+    Tab<shader_layout::StcodeConstValidationMask *> masks{};
+    G_ASSERT(stor.stcodeConstValidationMasks.size() == stIndexes.size());
+    masks.resize(stor.stcodeConstValidationMasks.size());
+    for (int i = 0; i < stIndexes.size(); i++)
+      masks[i] = stor.stcodeConstValidationMasks[stIndexes[i].index];
+    stor.stcodeConstValidationMasks = eastl::move(masks);
+  }
+
+  for (ShaderClass *sc : stor.shaderClass)
+  {
+    for (int j = 0; j < sc->code.size(); j++)
     {
-      if (sc.code[j])
-        for (int k = 0; k < sc.code[j]->allPasses.size(); k++)
+      if (sc->code[j])
+        for (int k = 0; k < sc->code[j]->allPasses.size(); k++)
         {
-          ShaderCode::Pass &p = sc.code[j]->allPasses[k];
+          ShaderCode::Pass &p = sc->code[j]->allPasses[k];
           for (int vpr_ind = 0; vpr_ind < vprIndexes.size(); vpr_ind++)
           {
             if (p.vprog == vprIndexes[vpr_ind].index)
@@ -378,30 +383,26 @@ void bindumphlp::sortShaders(dag::ConstSpan<ShaderStateBlock *> blocks, StcodeIn
         break;
       }
   }
-
-  if (stcode_interface)
-  {
-    for (int i = 0; i < stIndexes.size(); i++)
-      stcode_interface->patchRoutineGlobalId(stIndexes[i].index, i);
-  }
 }
 
 void bindumphlp::countRefAndRemapGlobalVars(Tab<int> &remapTable, dag::ConstSpan<ShaderClass *> shaderClasses,
-  mkbindump::GatherNameMap &varMap)
+  mkbindump::GatherNameMap &varMap, shc::TargetContext &ctx)
 {
+  const auto &globvars = ctx.globVars();
+
   Tab<int> refsTable(tmpmem);
-  refsTable.resize(ShaderGlobal::get_var_count());
+  refsTable.resize(globvars.getVarCount());
   mem_set_0(refsTable);
-  addRefsFromVariants(refsTable, shaderClasses, varMap);
-  addRefsFromStCode(refsTable);
-  for (int i = 0; i < refsTable.size(); i++)
-    if (!refsTable[i] && (ShaderGlobal::get_var(i).isAlwaysReferenced || ShaderGlobal::get_var(i).isImplicitlyReferenced ||
-                           shc::isGlobVarRequired(ShaderGlobal::get_var(i).getName())))
+  addRefsFromVariants(refsTable, shaderClasses, varMap, ctx);
+  addRefsFromStCode(refsTable, ctx);
+  for (auto [varId, var] : enumerate(globvars.getVariableList()))
+    if (
+      !refsTable[varId] && (var.isAlwaysReferenced || var.isImplicitlyReferenced || shc::isGlobVarRequired(globvars.getVarName(var))))
     {
-      debug("explicitly referenced <%s>", ShaderGlobal::get_var(i).getName());
-      refsTable[i]++;
+      debug("explicitly referenced <%s>", ShaderGlobal::get_var_name(var, ctx));
+      refsTable[varId]++;
     }
 
   getRemapTable(remapTable, refsTable);
-  ::patchStCode(remapTable);
+  ::patchStCode(remapTable, ctx);
 }

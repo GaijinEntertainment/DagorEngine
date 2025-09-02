@@ -34,8 +34,7 @@ struct WebCacheFixture // python -m SimpleHTTPServer
   {
     gzFile findex = gzopen(INAME, "wb");
     uint8_t hash[SHA_DIGEST_LENGTH] = {0}, strHash[SHA_DIGEST_LENGTH * 2 + 1];
-    alefind_t fnd = {0};
-    for (int found = dd_find_first("*", DA_FILE, &fnd); found; found = dd_find_next(&fnd))
+    for (const alefind_t &fnd : dd_find_iterator("*", DA_FILE))
     {
       if (strcmp(fnd.name, INAME) == 0)
         continue;
@@ -51,7 +50,6 @@ struct WebCacheFixture // python -m SimpleHTTPServer
       free(mem);
       gzprintf(findex, "%s %d %d %s\n", fnd.name, (int)st.st_size, (int)st.st_mtime, datacache::hashstr(hash, (char *)strHash));
     }
-    dd_find_close(&fnd);
     gzclose(findex);
   }
   WebCacheFixture(bool stale = true, bool index = true) : done(false)

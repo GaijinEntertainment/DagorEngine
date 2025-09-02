@@ -24,6 +24,10 @@ endmacro
 macro USE_HEAT_HAZE_OFFSET()
   hlsl(ps)
   {
+      #ifndef SAMPLE_HAZE_SCENE_DEPTH
+      #define SAMPLE_HAZE_SCENE_DEPTH(tc) h4tex2Dlod(haze_scene_depth_tex, half4((tc),0,0)).x;
+      #endif
+
       static const half distortionBlurScale     = 0.0025;
       static const half distortionBlurThreshold = 0.000026;
 
@@ -47,8 +51,9 @@ macro USE_HEAT_HAZE_OFFSET()
             offset.xy *= haze_params.w * hazeNoise;
             offset.xy = max(min(offset.xy, half2(0.5, 0.5)), half2(-0.5, -0.5));
 
-            float depthSceneAtOffset = h4tex2Dlod(haze_scene_depth_tex, half4(tc + offset.xy,0,0)).x;
-            distortionOffset = depthHaze > depthSceneAtOffset ? offset.xy : half2(0, 0);
+            float depthScene = SAMPLE_HAZE_SCENE_DEPTH(tc);
+            float depthSceneAtOffset = SAMPLE_HAZE_SCENE_DEPTH(tc + offset.xy);
+            distortionOffset = depthHaze > max(depthSceneAtOffset, depthScene) ? offset.xy : half2(0, 0);
             distortionBlur   = saturate(offset.a) * distortionBlurScale;
 
             ##if (haze_color_tex != NULL)

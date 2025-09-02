@@ -7,6 +7,7 @@
 #include <util/dag_globDef.h>
 #include <osApiWrappers/basePath.h>
 #include <stdio.h>
+#include <ctype.h>
 
 namespace vromfsinternal
 {
@@ -22,6 +23,35 @@ static const char *vromfsMp[MAX_VROMFS_NUM] = {NULL, NULL, NULL, NULL, NULL, NUL
   NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
 static int vromfsMpLen[MAX_VROMFS_NUM] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+
+// storage for different null-terminated strip-prefixes (append only, no remove)
+static constexpr int MAX_STRIP_PREFIX_STORAGE = 1024;
+static char vromfsSpStorage[MAX_STRIP_PREFIX_STORAGE] = {0};
+static inline unsigned add_strip_prefix(const char *sp, unsigned sp_len)
+{
+  unsigned ofs = 0, len = strlen(vromfsSpStorage + ofs);
+  while (len)
+    if (len == sp_len && strncmp(vromfsSpStorage + ofs, sp, sp_len) == 0)
+      return ofs;
+    else
+    {
+      ofs += len + 1;
+      len = strlen(vromfsSpStorage + ofs);
+    }
+  if (ofs + sp_len >= MAX_STRIP_PREFIX_STORAGE)
+    return MAX_STRIP_PREFIX_STORAGE - 1; // not enough room for storing new strip-prefix
+  memcpy(vromfsSpStorage + ofs, sp, sp_len);
+  *(vromfsSpStorage + ofs + sp_len) = '\0';
+  return ofs;
+}
+static inline const char *get_strip_prefix_by_ofs(unsigned ofs) { return ofs < MAX_STRIP_PREFIX_STORAGE ? vromfsSpStorage + ofs : ""; }
+// strip-prefix (submounts) as array of pairs (len,ofs) for each vromfs; 'ofs' is starting index in vromfsSpStorage
+struct VromfsSpRec
+{
+  static constexpr int MAX_STRIP_PREFIX = 16;
+  unsigned short lenOfs[2 * MAX_STRIP_PREFIX];
+};
+static VromfsSpRec vromfsSp[MAX_VROMFS_NUM] = {0};
 
 VirtualRomFsPack *(*VirtualRomFsPack::resolve_backed_entry)(VirtualRomFsData *fs, int &inout_entry, bool sync_wait_ready,
   bool dont_load, const char *mnt) = NULL;
@@ -47,10 +77,12 @@ void add_vromfs(VirtualRomFsData *fs, bool insert_first, char *mount_path)
         memmove(&vromfs[1], &vromfs[0], sizeof(vromfs[0]) * (MAX_VROMFS_NUM - 1));
         memmove(&vromfsMp[1], &vromfsMp[0], sizeof(vromfsMp[0]) * (MAX_VROMFS_NUM - 1));
         memmove(&vromfsMpLen[1], &vromfsMpLen[0], sizeof(vromfsMpLen[0]) * (MAX_VROMFS_NUM - 1));
+        memmove(&vromfsSp[1], &vromfsSp[0], sizeof(vromfsSp[0]) * (MAX_VROMFS_NUM - 1));
         i = 0;
       }
       vromfs[i] = fs;
       vromfsMp[i] = mount_path;
+      memset(&vromfsSp[i], 0, sizeof(vromfsSp[i]));
       if (mount_path)
       {
         dd_simplify_fname_c(mount_path);
@@ -84,6 +116,7 @@ char *remove_vromfs(VirtualRomFsData *fs)
         memmove(&vromfs[i], &vromfs[i + 1], sizeof(vromfs[0]) * (MAX_VROMFS_NUM - i - 1));
         memmove(&vromfsMp[i], &vromfsMp[i + 1], sizeof(vromfsMp[0]) * (MAX_VROMFS_NUM - i - 1));
         memmove(&vromfsMpLen[i], &vromfsMpLen[i + 1], sizeof(vromfsMpLen[0]) * (MAX_VROMFS_NUM - i - 1));
+        memmove(&vromfsSp[i], &vromfsSp[i + 1], sizeof(vromfsSp[0]) * (MAX_VROMFS_NUM - i - 1));
       }
       rebuild_basepath_vrom_mounted();
       if (vromfsinternal::on_vromfs_unmounted)
@@ -140,6 +173,66 @@ char *set_vromfs_mount_path(VirtualRomFsData *fs, char *mount_path)
   return NULL;
 }
 
+bool set_vromfs_strip_prefixes_str(VirtualRomFsData *fs, const char *strip_prefixes_str)
+{
+  LockForRead lock(VromReadHandle::lock);
+  G_STATIC_ASSERT(sizeof(vromfsSp[0]) == sizeof(VromfsSpRec));
+  for (unsigned i = 0; i < MAX_VROMFS_NUM; i++)
+    if (vromfs[i] == fs)
+    {
+      if (strchr(strip_prefixes_str, '\\'))
+      {
+        G_ASSERT_LOG(0, "strip_prefixes_str=\"%s\" shall not contain '\\'", strip_prefixes_str);
+        return false;
+      }
+      for (const char *p = strip_prefixes_str; *p; p++)
+        if (isupper(*p) || *p == ' ')
+        {
+          G_ASSERT_LOG(0, "strip_prefixes_str=\"%s\" shall not contain uppercase letters and spaces", strip_prefixes_str);
+          return false;
+        }
+
+      unsigned sp_idx = 0;
+      memset(&vromfsSp[i], 0, sizeof(vromfsSp[i]));
+      if (!*strip_prefixes_str)
+        return true;
+      for (const char *sp = strip_prefixes_str, *spn = strchr(sp, ';');;)
+      {
+        unsigned sp_len = spn ? spn - sp : strlen(sp);
+        if (!sp_len)
+        {
+          logwarn("empty strip-prefix in \"%s\"", strip_prefixes_str);
+          if (!spn)
+            break;
+          sp = spn + 1;
+          spn = strchr(sp, ';');
+          continue;
+        }
+        if (sp_idx >= VromfsSpRec::MAX_STRIP_PREFIX)
+        {
+          G_ASSERT_LOG(0, "too many items in strip_prefixes_str=\"%s\", max %d allowed", strip_prefixes_str,
+            VromfsSpRec::MAX_STRIP_PREFIX);
+          return false;
+        }
+        unsigned ofs = add_strip_prefix(sp, sp_len);
+        if (ofs == MAX_STRIP_PREFIX_STORAGE - 1)
+        {
+          G_ASSERT_LOG(0, "not enough room to set strip_prefixes_str=\"%s\"", strip_prefixes_str);
+          return false;
+        }
+        vromfsSp[i].lenOfs[sp_idx * 2 + 0] = sp_len;
+        vromfsSp[i].lenOfs[sp_idx * 2 + 1] = ofs;
+        sp_idx++;
+        if (!spn)
+          break;
+        sp = spn + 1;
+        spn = strchr(sp, ';');
+      }
+      return true;
+    }
+  return false;
+}
+
 VromReadHandle vromfs_get_file_data_one(const char *fname, VirtualRomFsData **out_vrom)
 {
 #if _TARGET_PC_WIN
@@ -172,6 +265,17 @@ VromReadHandle vromfs_get_file_data_one(const char *fname, VirtualRomFsData **ou
           else
             continue;
         }
+        for (unsigned j = 0; j < VromfsSpRec::MAX_STRIP_PREFIX * 2; j += 2)
+          if (unsigned sp_len = vromfsSp[i].lenOfs[j])
+          {
+            if (strncmp(name, get_strip_prefix_by_ofs(vromfsSp[i].lenOfs[j + 1]), sp_len) == 0)
+            {
+              name += sp_len;
+              break;
+            }
+          }
+          else
+            break;
 
         int idx = fs->files.getNameId(name);
         if (idx >= 0)

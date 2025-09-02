@@ -1,0 +1,318 @@
+//sun cinematic lens flare preset
+lens_flare_sun_settings {
+  _use:t="lens_flare_config"
+  _tags:t="render"
+  _track:b=yes
+
+  lens_flare_config__name:t="lens_flares_sun_cinematic"
+  lens_flare_config__smooth_screen_fadeout_distance:r=0.3
+  lens_flare_config__scale:p2=0.05, 0.05
+  lens_flare_config__intensity:r=8
+  lens_flare_config__use_occlusion:b=yes
+  lens_flare_config__depth_bias:r=0
+  "lens_flare_config__elements:array"{
+    "lens_flare_config__elements:object"{
+      flare_component__intensity:r=0.5
+      flare_component__side_count:i=9
+      flare_component__scale:p2=21.33, 21.33
+      flare_component__tint:p3=1, 0.2, 0
+      flare_component__gradient__gradient:r=0.973
+      flare_component__gradient__falloff:r=0.04
+      flare_component__enabled:b=yes
+      flare_component__roundness:r=0.19
+    }
+    "lens_flare_config__elements:object"{
+      flare_component__intensity:r=0.002
+      flare_component__side_count:i=4
+      flare_component__scale:p2=40, 40
+      flare_component__tint:p3=1, 1, 1
+      flare_component__gradient__gradient:r=1
+      flare_component__gradient__falloff:r=0.2
+      flare_component__enabled:b=yes
+      flare_component__roundness:r=1
+    }
+    "lens_flare_config__elements:object"{
+      flare_component__intensity:r=0.015
+      flare_component__side_count:i=4
+      flare_component__scale:p2=55, 1.9
+      flare_component__tint:p3=0.65, 0.25, 0.2
+      flare_component__gradient__gradient:r=0.9938
+      flare_component__gradient__falloff:r=0.1
+      flare_component__enabled:b=yes
+      flare_component__rotation_offset:r=0
+      flare_component__roundness:r=1
+    }
+    "lens_flare_config__elements:object"{
+      flare_component__axis_offset:r=0.015
+      flare_component__intensity:r=0.02
+      flare_component__side_count:i=4
+      flare_component__scale:p2=35, 1
+      flare_component__tint:p3=0.65, 0.25, 0.3
+      flare_component__gradient__gradient:r=0.9938
+      flare_component__gradient__falloff:r=0.1
+      flare_component__enabled:b=yes
+      flare_component__rotation_offset:r=0
+      flare_component__roundness:r=1
+    }
+    "lens_flare_config__elements:object"{
+      flare_component__intensity:r=0.015
+      flare_component__side_count:i=4
+      flare_component__scale:p2=15, 0.6
+      flare_component__tint:p3=1, 1, 0.5
+      flare_component__gradient__gradient:r=0.938
+      flare_component__gradient__falloff:r=0.1
+      flare_component__enabled:b=yes
+      flare_component__rotation_offset:r=90
+      flare_component__roundness:r=1
+    }
+    "lens_flare_config__elements:object"{
+      flare_component__intensity:r=0.015
+      flare_component__side_count:i=4
+      flare_component__scale:p2=15, 0.4
+      flare_component__tint:p3=1, 1, 0.5
+      flare_component__gradient__gradient:r=0.938
+      flare_component__gradient__falloff:r=0.1
+      flare_component__enabled:b=yes
+      flare_component__rotation_offset:r=30
+      flare_component__roundness:r=1
+    }
+    "lens_flare_config__elements:object"{
+      flare_component__intensity:r=0.015
+      flare_component__side_count:i=4
+      flare_component__scale:p2=15, 0.4
+      flare_component__tint:p3=1, 1, 0.5
+      flare_component__gradient__gradient:r=0.938
+      flare_component__gradient__falloff:r=0.1
+      flare_component__enabled:b=yes
+      flare_component__rotation_offset:r=-30
+      flare_component__roundness:r=1
+    }
+    "lens_flare_config__elements:object"{
+      flare_component__axis_offset:r=0.2
+      flare_component__intensity:r=0.0015
+      flare_component__side_count:i=4
+      flare_component__gradient__inverted:b=yes
+      flare_component__scale:p2=3, 3
+      flare_component__tint:p3=0, 0, 1
+      flare_component__gradient__gradient:r=0.1
+      flare_component__gradient__falloff:r=1
+      flare_component__enabled:b=yes
+      flare_component__roundness:r=1
+    }
+    "lens_flare_config__elements:object"{
+      flare_component__axis_offset:r=0.24
+      flare_component__intensity:r=0.0005
+      flare_component__side_count:i=8
+      flare_component__scale:p2=1, 1
+      flare_component__tint:p3=0, 0.5, 0.9
+      flare_component__gradient__gradient:r=0.1
+      flare_component__auto_rotation:b=yes
+      flare_component__gradient__falloff:r=1
+      flare_component__enabled:b=yes
+      flare_component__roundness:r=0.114
+    }
+    "lens_flare_config__elements:object"{
+      flare_component__axis_offset:r=0.3
+      flare_component__intensity:r=0.003
+      flare_component__side_count:i=4
+      flare_component__gradient__inverted:b=yes
+      flare_component__scale:p2=1.3, 1.3
+      flare_component__tint:p3=0, 0, 1
+      flare_component__gradient__gradient:r=0.5
+      flare_component__gradient__falloff:r=2
+      flare_component__enabled:b=yes
+      flare_component__roundness:r=1
+    }
+    "lens_flare_config__elements:object"{
+      flare_component__axis_offset:r=0.7
+      flare_component__intensity:r=0.001
+      flare_component__side_count:i=4
+      flare_component__gradient__inverted:b=yes
+      flare_component__scale:p2=0.2, 0.2
+      flare_component__tint:p3=0, 0, 1
+      flare_component__gradient__gradient:r=1.3
+      flare_component__gradient__falloff:r=1
+      flare_component__enabled:b=yes
+      flare_component__roundness:r=1
+    }
+    "lens_flare_config__elements:object"{
+      flare_component__axis_offset:r=0.67
+      flare_component__intensity:r=0.002
+      flare_component__side_count:i=4
+      flare_component__gradient__inverted:b=yes
+      flare_component__scale:p2=0.25, 0.25
+      flare_component__tint:p3=0.05, 0, 1
+      flare_component__gradient__gradient:r=1.3
+      flare_component__gradient__falloff:r=1
+      flare_component__enabled:b=yes
+      flare_component__roundness:r=1
+    }
+    "lens_flare_config__elements:object"{
+      flare_component__axis_offset:r=0.48
+      flare_component__intensity:r=0.0005
+      flare_component__side_count:i=4
+      flare_component__gradient__inverted:b=yes
+      flare_component__scale:p2=0.3, 0.3
+      flare_component__tint:p3=0.4, 0, 0.2
+      flare_component__gradient__gradient:r=1.9
+      flare_component__gradient__falloff:r=1
+      flare_component__enabled:b=yes
+      flare_component__roundness:r=1
+    }
+    "lens_flare_config__elements:object"{
+      flare_component__axis_offset:r=0.52
+      flare_component__intensity:r=0.0015
+      flare_component__side_count:i=4
+      flare_component__gradient__inverted:b=yes
+      flare_component__scale:p2=0.15, 0.15
+      flare_component__tint:p3=0.05, 0.3, 1
+      flare_component__gradient__gradient:r=1.9
+      flare_component__gradient__falloff:r=1
+      flare_component__enabled:b=yes
+      flare_component__roundness:r=1
+    }
+    "lens_flare_config__elements:object"{
+      flare_component__axis_offset:r=0.35
+      flare_component__intensity:r=0.001
+      flare_component__side_count:i=8
+      flare_component__scale:p2=1.5, 1.5
+      flare_component__tint:p3=0.3, 0.5, 1
+      flare_component__gradient__gradient:r=0.1
+      flare_component__gradient__falloff:r=1
+      flare_component__enabled:b=yes
+      flare_component__roundness:r=0.1
+    }
+    "lens_flare_config__elements:object"{
+      flare_component__axis_offset:r=0.4
+      flare_component__intensity:r=0.0015
+      flare_component__side_count:i=4
+      flare_component__scale:p2=2.75, 2.75
+      flare_component__tint:p3=0.3, 0.3, 1
+      flare_component__gradient__gradient:r=0.25
+      flare_component__gradient__falloff:r=1
+      flare_component__enabled:b=yes
+      flare_component__roundness:r=1
+    }
+    "lens_flare_config__elements:object"{
+      flare_component__axis_offset:r=0.58
+      flare_component__intensity:r=0.00035
+      flare_component__side_count:i=8
+      flare_component__scale:p2=3.5, 3.5
+      flare_component__tint:p3=1, 0.3, 0
+      flare_component__gradient__gradient:r=0.1
+      flare_component__auto_rotation:b=yes
+      flare_component__gradient__falloff:r=1
+      flare_component__enabled:b=yes
+      flare_component__roundness:r=0.114
+    }
+    "lens_flare_config__elements:object"{
+      flare_component__axis_offset:r=0.63
+      flare_component__intensity:r=0.0015
+      flare_component__side_count:i=8
+      flare_component__scale:p2=1.5, 1.5
+      flare_component__tint:p3=0.4, 0.3, 1
+      flare_component__gradient__gradient:r=0.1
+      flare_component__gradient__falloff:r=1
+      flare_component__enabled:b=yes
+      flare_component__roundness:r=0.1
+    }
+    "lens_flare_config__elements:object"{
+      flare_component__axis_offset:r=0.79
+      flare_component__intensity:r=0.0015
+      flare_component__side_count:i=4
+      flare_component__scale:p2=15, 2.8
+      flare_component__tint:p3=0.03, 0, 0.5
+      flare_component__gradient__gradient:r=0.938
+      flare_component__auto_rotation:b=yes
+      flare_component__gradient__falloff:r=0.3
+      flare_component__enabled:b=yes
+      flare_component__rotation_offset:r=90
+      flare_component__roundness:r=1
+    }
+    "lens_flare_config__elements:object"{
+      flare_component__axis_offset:r=0.87
+      flare_component__intensity:r=0.003
+      flare_component__side_count:i=4
+      flare_component__scale:p2=30, 30
+      flare_component__tint:p3=0.5, 0.5, 0.9
+      flare_component__gradient__gradient:r=1
+      flare_component__gradient__falloff:r=0.2
+      flare_component__enabled:b=yes
+      flare_component__roundness:r=1
+    }
+    "lens_flare_config__elements:object"{
+      flare_component__axis_offset:r=0.9
+      flare_component__intensity:r=0.001
+      flare_component__side_count:i=8
+      flare_component__scale:p2=1.5, 0.1
+      flare_component__tint:p3=1, 0, 0
+      flare_component__gradient__gradient:r=0.2
+      flare_component__radial_distortion__enabled:b=yes
+      flare_component__auto_rotation:b=no
+      flare_component__gradient__falloff:r=1
+      flare_component__enabled:b=yes
+      flare_component__radial_distortion__distortion_curve_pow:r=1
+      flare_component__radial_distortion__relative_to_center:b=yes
+      flare_component__roundness:r=0.114
+      flare_component__radial_distortion__radial_edge_size:p2=1.5, 2.5
+    }
+    "lens_flare_config__elements:object"{
+      flare_component__axis_offset:r=0.905
+      flare_component__intensity:r=0.001
+      flare_component__side_count:i=8
+      flare_component__scale:p2=1.5, 0.1
+      flare_component__tint:p3=0, 1, 0
+      flare_component__gradient__gradient:r=0.2
+      flare_component__radial_distortion__enabled:b=yes
+      flare_component__auto_rotation:b=no
+      flare_component__gradient__falloff:r=1
+      flare_component__enabled:b=yes
+      flare_component__radial_distortion__distortion_curve_pow:r=1
+      flare_component__radial_distortion__relative_to_center:b=yes
+      flare_component__roundness:r=0.114
+      flare_component__radial_distortion__radial_edge_size:p2=1.5, 2.5
+    }
+    "lens_flare_config__elements:object"{
+      flare_component__axis_offset:r=0.91
+      flare_component__intensity:r=0.003
+      flare_component__side_count:i=8
+      flare_component__scale:p2=1.5, 0.1
+      flare_component__tint:p3=0, 0, 1
+      flare_component__gradient__gradient:r=0.2
+      flare_component__radial_distortion__enabled:b=yes
+      flare_component__auto_rotation:b=no
+      flare_component__gradient__falloff:r=1
+      flare_component__enabled:b=yes
+      flare_component__radial_distortion__distortion_curve_pow:r=1
+      flare_component__radial_distortion__relative_to_center:b=yes
+      flare_component__roundness:r=0.114
+      flare_component__radial_distortion__radial_edge_size:p2=1.5, 2.5
+    }
+    /* huge cicles
+    "lens_flare_config__elements:object"{
+      flare_component__axis_offset:r=0.2
+      flare_component__intensity:r=0.0001
+      flare_component__side_count:i=4
+      flare_component__gradient__inverted:b=yes
+      flare_component__scale:p2=43, 43
+      flare_component__tint:p3=0.1, 0.1, 1
+      flare_component__gradient__gradient:r=0.1
+      flare_component__gradient__falloff:r=1
+      flare_component__enabled:b=yes
+      flare_component__roundness:r=1
+    }
+    "lens_flare_config__elements:object"{
+      flare_component__axis_offset:r=0.2045
+      flare_component__intensity:r=5e-05
+      flare_component__side_count:i=4
+      flare_component__gradient__inverted:b=yes
+      flare_component__scale:p2=43, 43
+      flare_component__tint:p3=1, 0.5, 0.1
+      flare_component__gradient__gradient:r=0.1
+      flare_component__gradient__falloff:r=1
+      flare_component__enabled:b=yes
+      flare_component__roundness:r=1
+    }
+    */
+  }
+}

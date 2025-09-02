@@ -1,5 +1,4 @@
 require ecs
-require app
 require danetlibs.retinal_damage.render.retinal_damage_common
 
 [event(unicast)] //to be moved to separate module

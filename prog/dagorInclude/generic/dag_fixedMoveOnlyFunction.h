@@ -8,6 +8,13 @@
 #include <EASTL/internal/function_detail.h>
 #include <debug/dag_assert.h>
 
+#ifndef GCC_USED
+#if defined(__GNUC__) && !defined(__clang__)
+#define GCC_USED __attribute__((used))
+#else
+#define GCC_USED
+#endif
+#endif
 
 namespace dag
 {
@@ -17,19 +24,30 @@ namespace dag
  * It works a tiny bit faster than eastl::fixed_function, does not
  * violate const-correctness and does not require the function object
  * to be copyable.
- * \details Use FixedMoveOnlyFunction<void() const, 16> for a const
+ * \details Use FixedMoveOnlyFunction<16, void() const> for a const
  * callable function object and FixedMoveOnlyFunction<void(), 16> for
  * a non-const callable one.
  *
- * \tparam Signature The type-erased signature of the function.
  * \tparam size The size of the in-place storage in bytes.
+ * \tparam Signature The type-erased signature of the function.
  */
 template <size_t size, typename Signature>
 class FixedMoveOnlyFunction;
 
+template <typename Signature>
+class FunctionRef;
 
 namespace detail
 {
+
+template <typename F>
+static void GCC_USED relocateImpl(void *from, void *to)
+{
+  if (to != nullptr)
+    new (to, _NEW_INPLACE) F{(F &&)*static_cast<F *>(from)};
+
+  static_cast<F *>(from)->~F();
+}
 
 template <size_t size, typename CallSignature>
 struct FixedMoveOnlyFunctionBase
@@ -37,15 +55,6 @@ struct FixedMoveOnlyFunctionBase
   using ManagerSignature = void(void *, void *);
 
   static constexpr size_t align = 16;
-
-  template <typename F>
-  static void relocateImpl(void *from, void *to)
-  {
-    if (to != nullptr)
-      new (to, _NEW_INPLACE) F{(F &&) * static_cast<F *>(from)};
-
-    static_cast<F *>(from)->~F();
-  }
 
   // Note that we intentionally leave fields uninitialized.
   FixedMoveOnlyFunctionBase() : call{nullptr} {}; //-V730
@@ -59,7 +68,7 @@ struct FixedMoveOnlyFunctionBase
     static_assert(alignof(UnqualF) <= align, "Function object over-aligned!");
 
     relocate = &relocateImpl<UnqualF>;
-    new (storage) UnqualF{(F &&) func_object};
+    new (storage) UnqualF{(F &&)func_object};
   }
 
   FixedMoveOnlyFunctionBase(const FixedMoveOnlyFunctionBase &) = delete;
@@ -136,10 +145,12 @@ class FixedMoveOnlyFunction<size, Ret(Args...)> : private detail::FixedMoveOnlyF
 {
   using Base = detail::FixedMoveOnlyFunctionBase<size, Ret(void *, Args...)>;
 
+  friend class FunctionRef<Ret(Args...)>;
+
   template <typename F>
   static Ret callImpl(void *func_object, Args... args)
   {
-    return (*static_cast<F *>(func_object))(args...);
+    return eastl::invoke(*static_cast<F *>(func_object), ((Args &&)args)...);
   }
 
   using Base::call;
@@ -150,7 +161,7 @@ public:
 
   template <typename F, typename = EASTL_INTERNAL_FUNCTION_VALID_FUNCTION_ARGS(F, Ret, Args..., Base, FixedMoveOnlyFunction),
     typename = eastl::disable_if_t<detail::is_fixed_move_only_function_v<eastl::decay_t<F>>>>
-  FixedMoveOnlyFunction(F &&func_object) : Base((F &&) func_object)
+  FixedMoveOnlyFunction(F &&func_object) : Base((F &&)func_object)
   {
     call = &callImpl<eastl::decay_t<F>>;
   }
@@ -162,7 +173,11 @@ public:
   }
   using Base::operator bool;
 
-  Ret operator()(Args... args) { return call(storage, ((Args &&) args)...); }
+  Ret operator()(Args... args)
+  {
+    G_ASSERTF(call != nullptr, "Attempt to call an empty FixedMoveOnlyFunction!");
+    return call(storage, ((Args &&)args)...);
+  }
 };
 
 template <size_t size, typename Ret, typename... Args>
@@ -170,11 +185,13 @@ class FixedMoveOnlyFunction<size, Ret(Args...) const> : private detail::FixedMov
 {
   using Base = detail::FixedMoveOnlyFunctionBase<size, Ret(void const *, Args...)>;
 
+  friend class FunctionRef<Ret(Args...) const>;
+
   template <typename F>
   static Ret callImpl(void const *func_object, Args... args)
   {
     // The "const" word on the next line is central to preserving const-correctness.
-    return (*static_cast<F const *>(func_object))(args...);
+    return eastl::invoke(*static_cast<F const *>(func_object), ((Args &&)args)...);
   }
 
   using Base::call;
@@ -185,7 +202,7 @@ public:
 
   template <typename F, typename = EASTL_INTERNAL_FUNCTION_VALID_FUNCTION_ARGS(F, Ret, Args..., Base, FixedMoveOnlyFunction),
     typename = eastl::disable_if_t<detail::is_fixed_move_only_function_v<eastl::decay_t<F>>>>
-  FixedMoveOnlyFunction(F &&func_object) : Base((F &&) func_object)
+  FixedMoveOnlyFunction(F &&func_object) : Base((F &&)func_object)
   {
     call = &callImpl<eastl::decay_t<F>>;
   }
@@ -200,8 +217,10 @@ public:
   Ret operator()(Args... args) const
   {
     G_ASSERTF(call != nullptr, "Attempt to call an empty FixedMoveOnlyFunction!");
-    return call(storage, ((Args &&) args)...);
+    return call(storage, ((Args &&)args)...);
   }
 };
 
 } // namespace dag
+
+#undef GCC_USED

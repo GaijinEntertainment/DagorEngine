@@ -1,6 +1,8 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "shCompiler.h"
+#include "shCompContext.h"
+#include "sh_stat.h"
 #include "globalConfig.h"
 #include "codeBlocks.h"
 #include <shaders/dag_shaders.h>
@@ -35,8 +37,7 @@
 #include "dx12/asmShaderDXIL.h"
 #endif
 
-extern void parse_shader_script(const char *fn, const ShHardwareOptions &opt, Tab<SimpleString> *out_filenames);
-extern void limitMaxFSHVersion(d3d::shadermodel::Version f);
+extern void parse_shader_script(const char *fn, Tab<SimpleString> *out_filenames, shc::TargetContext &ctx);
 
 #ifdef PROFILE_OPCODE_USAGE
 int opcode_usage[2][256];
@@ -44,7 +45,7 @@ int opcode_usage[2][256];
 
 namespace shc
 {
-static DataBlock *assumedVarsBlock = NULL;
+
 static DataBlock *reqShadersBlock = NULL;
 static bool defShaderReq = false;
 static bool defTreatInvalidAsNull = false;
@@ -53,11 +54,12 @@ bool relinkOnly = false;
 static SCFastNameMap explicitGlobVarRef;
 
 static unsigned worker_cnt = 0;
+static unsigned max_proc_count_for_worker_count = 0;
 
 static constexpr size_t WORKER_STACK_SIZE = 1 << 20;
 
 // Cpujobs bakcend data
-static std::atomic_uint32_t jobs_in_flight_count = 0;
+static dag::AtomicInteger<uint32_t> jobs_in_flight_count = 0;
 static unsigned cpujobs_job_mgr_base = 0;
 
 // Threadpool backend data
@@ -74,7 +76,7 @@ enum class ShutdownState : uint32_t
   SHUTDOWN_LOCKED
 };
 
-static std::atomic<ShutdownState> shutdown_state = ShutdownState::RUNNING;
+static dag::AtomicPod<ShutdownState> shutdown_state = ShutdownState::RUNNING;
 
 bool try_enter_shutdown()
 {
@@ -83,8 +85,8 @@ bool try_enter_shutdown()
   // If failer to enter, acquire-sync with the previous successful try_enter or try_lock
 
   ShutdownState expected = ShutdownState::RUNNING;
-  return shutdown_state.compare_exchange_strong(expected, ShutdownState::SHUTTING_DOWN, std::memory_order_acq_rel,
-    std::memory_order_acquire);
+  return shutdown_state.compare_exchange_strong(expected, ShutdownState::SHUTTING_DOWN, dag::memory_order_acq_rel,
+    dag::memory_order_acquire);
 }
 
 bool try_lock_shutdown()
@@ -92,14 +94,14 @@ bool try_lock_shutdown()
   // Same MO reasoning as in try_enter_shutdown
 
   ShutdownState expected = ShutdownState::RUNNING;
-  return shutdown_state.compare_exchange_strong(expected, ShutdownState::SHUTDOWN_LOCKED, std::memory_order_acq_rel,
-    std::memory_order_acquire);
+  return shutdown_state.compare_exchange_strong(expected, ShutdownState::SHUTDOWN_LOCKED, dag::memory_order_acq_rel,
+    dag::memory_order_acquire);
 }
 
 void unlock_shutdown()
 {
   // Release-sync with later enters/locks
-  shutdown_state.store(ShutdownState::RUNNING, std::memory_order_release);
+  shutdown_state.store(ShutdownState::RUNNING, dag::memory_order_release);
 }
 
 static void init_job_execution()
@@ -123,7 +125,7 @@ Job::Job()
   if (!shc::config().useThreadpool)
   {
     // Must always seq-before (in program order) the respective notifyJobRelease
-    jobs_in_flight_count.fetch_add(1, std::memory_order_relaxed);
+    jobs_in_flight_count.fetch_add(1, dag::memory_order_relaxed);
   }
 }
 
@@ -144,20 +146,50 @@ void Job::releaseJob()
     // @HACK: allowed from jobs to enable termination from error processing (that can happen in jobs)
 
     // Sync is needed when releasing in worker and detecting it in syncpoint
-    jobs_in_flight_count.fetch_sub(1, std::memory_order_release);
+    jobs_in_flight_count.fetch_sub(1, dag::memory_order_release);
   }
+}
+
+static eastl::pair<unsigned, unsigned> calculate_jobs_x_processes_caps(unsigned requested_num_workers)
+{
+  // @NOTE: having this much stuff is bizarre. However, in the current model we would get worse parallelism if we drop either job count
+  // on proc count.
+
+  // very small benefit from 24+ processes, but noticeable memory consumption
+  constexpr unsigned PROC_CAP = 24;
+
+#if _CROSS_TARGET_C2
+
+
+#else
+  constexpr unsigned PROC_X_JOBS_CAP = 1024;
+#endif
+
+  const unsigned reqWorkerCnt = requested_num_workers ? requested_num_workers : cpujobs::get_physical_core_count();
+
+  const unsigned cappedWorkerCnt = min<unsigned>(reqWorkerCnt, MAX_WORKERS_FOR_AFFINITY_MASK);
+  const unsigned procCapForJobCount = min<unsigned>(PROC_CAP, PROC_X_JOBS_CAP / cappedWorkerCnt);
+
+  const unsigned procCap = min<int>(cpujobs::get_physical_core_count(), procCapForJobCount);
+
+  sh_debug(SHLOG_INFO, "Processes x threads caps: max procs = %u, threads = %u", procCap, cappedWorkerCnt);
+
+  return {cappedWorkerCnt, procCap};
 }
 
 void init_jobs(unsigned num_workers)
 {
   G_ASSERT(is_main_thread());
 
-  worker_cnt = num_workers;
-
   if (shc::config().useThreadpool)
     cpujobs::init(-1, false);
   else
     cpujobs::init();
+
+  auto [workers, processesCap] = calculate_jobs_x_processes_caps(num_workers);
+
+  worker_cnt = workers;
+  max_proc_count_for_worker_count = processesCap;
 
   if (!worker_cnt)
     worker_cnt = cpujobs::get_physical_core_count();
@@ -234,6 +266,7 @@ void deinit_jobs()
 }
 
 unsigned worker_count() { return worker_cnt; }
+unsigned max_allowed_process_count() { return max_proc_count_for_worker_count; }
 bool is_multithreaded() { return worker_cnt > 1; }
 
 bool is_in_worker() { return shc::config().useThreadpool ? threadpool::get_current_worker_id() != -1 : cpujobs::is_in_job(); }
@@ -265,7 +298,7 @@ void await_all_jobs(void (*on_released_cb)())
       (*on_released_cb)();
 
     // Sync is needed when reading result of notifyJobRelease called from worker
-    while (jobs_in_flight_count.load(std::memory_order_acquire) > 0)
+    while (jobs_in_flight_count.load(dag::memory_order_acquire) > 0)
     {
       sleep_msec(1);
       cpujobs::release_done_jobs();
@@ -348,73 +381,59 @@ void startup()
 {
   resetCompiler();
   enable_sh_debug_con(true);
-  ShaderMacroManager::init();
 }
 
 // close compiler
-void shutdown()
-{
-  enable_sh_debug_con(false);
-  ShaderMacroManager::realize();
-}
+void shutdown() { enable_sh_debug_con(false); }
 
 // reset shader compiler internal structures (before next compilation)
 void resetCompiler()
 {
   reset_source_file();
-
-  assumedVarsBlock = NULL;
   reqShadersBlock = NULL;
 }
 
 void reset_source_file()
 {
-  reportUnusedAssumes();
   close_shader_class();
-
-  ShaderMacroManager::clearMacros();
 
   ErrorCounter::curShader().reset();
   ErrorCounter::allShaders().reset();
-
-  ShaderParser::reset();
-
-  init_shader_class();
 }
 
-String get_obj_file_name_from_source(const String &source_file_name, const ShVariantName &variant_name)
+String get_obj_file_name_from_source(const String &source_file_name, const ShCompilationInfo &comp)
 {
   char intermediateDir[260];
-  strcpy(intermediateDir, (const char *)variant_name.intermediateDir);
+  strcpy(intermediateDir, comp.intermDir().c_str());
   dd_append_slash_c(intermediateDir);
 
   String objFileName = String(intermediateDir) + dd_get_fname(source_file_name);
-  variant_name.opt.appendOpts(objFileName);
+  comp.hwopts().appendOptsTo(objFileName);
   objFileName += ".obj";
 
   return objFileName;
 }
 
 // check shader file cache & return true, if cache needs recompilation
-bool should_recompile_sh(const ShVariantName &variant_name, const String &sourceFileName)
+bool should_recompile_sh(const ShCompilationInfo &comp, const String &sourceFileName)
 {
-  String objFileName = get_obj_file_name_from_source(sourceFileName, variant_name);
-  return check_scripted_shader(objFileName, {}) != CompilerAction::NOTHING;
+  String objFileName = get_obj_file_name_from_source(sourceFileName, comp);
+  return check_scripted_shader(objFileName, {}, comp, shc::config().compileCppStcode()) != CompilerAction::NOTHING;
 }
-CompilerAction should_recompile(const ShVariantName &variant_name)
+CompilerAction should_recompile(const ShCompilationInfo &comp)
 {
-  CompilerAction dumpCheckResult = check_scripted_shader(variant_name.dest, variant_name.sourceFilesList);
+  CompilerAction dumpCheckResult = check_scripted_shader(comp.dest().c_str(), comp.sources(), comp, false);
   if (dumpCheckResult == CompilerAction::COMPILE_AND_LINK)
     return dumpCheckResult;
 
   int64_t destFileTime;
-  if (!get_file_time64(variant_name.dest, destFileTime))
+  if (!get_file_time64(comp.dest().c_str(), destFileTime))
     return CompilerAction::COMPILE_AND_LINK;
 
-  for (unsigned int sourceFileNo = 0; sourceFileNo < variant_name.sourceFilesList.size(); sourceFileNo++)
+  for (unsigned int sourceFileNo = 0; sourceFileNo < comp.sources().size(); sourceFileNo++)
   {
-    const String &sourceFileName = variant_name.sourceFilesList[sourceFileNo];
-    String objFileName = get_obj_file_name_from_source(sourceFileName, variant_name);
+    const String &sourceFileName = comp.sources()[sourceFileNo];
+    String objFileName = get_obj_file_name_from_source(sourceFileName, comp);
 
     int64_t objFileTime;
     if (!get_file_time64(objFileName, objFileTime))
@@ -423,15 +442,14 @@ CompilerAction should_recompile(const ShVariantName &variant_name)
     if (objFileTime > destFileTime)
       return CompilerAction::COMPILE_AND_LINK;
 
-    if (should_recompile_sh(variant_name, sourceFileName))
+    if (should_recompile_sh(comp, sourceFileName))
       return CompilerAction::COMPILE_AND_LINK;
   }
   return dumpCheckResult;
 }
 
 // compile shader files & generate variants to disk. return false, if error occurs
-void compileShader(const ShVariantName &variant_name, eastl::optional<StcodeInterface> &stcode_interface, bool no_save,
-  bool should_rebuild, CompilerAction compiler_action)
+void compileShader(CompilerAction compiler_action, bool no_save, bool should_rebuild, const shc::CompilationContext &comp)
 {
   // Sanity check, args should be validated before calling the function
   G_ASSERT(!should_rebuild || (compiler_action != CompilerAction::NOTHING && compiler_action != CompilerAction::LINK_ONLY));
@@ -439,11 +457,11 @@ void compileShader(const ShVariantName &variant_name, eastl::optional<StcodeInte
   if (compiler_action == CompilerAction::NOTHING)
     return;
 
-  sh_debug(SHLOG_INFO, "Compile shaders to '%s'", variant_name.dest.str());
+  sh_debug(SHLOG_INFO, "Compile shaders to '%s'", comp.compInfo().dest().str());
 
-  variant_name.opt.dumpInfo();
+  const ShCompilationInfo &compInfo = comp.compInfo();
 
-  limitMaxFSHVersion(variant_name.opt.fshVersion);
+  compInfo.hwopts().dumpInfo();
 
   // Compile.
 #ifdef PROFILE_OPCODE_USAGE
@@ -452,12 +470,12 @@ void compileShader(const ShVariantName &variant_name, eastl::optional<StcodeInte
 
   if (compiler_action != CompilerAction::LINK_ONLY)
   {
-    for (unsigned int sourceFileNo = 0; sourceFileNo < variant_name.sourceFilesList.size(); sourceFileNo++)
+    for (unsigned int sourceFileNo = 0; sourceFileNo < compInfo.sources().size(); sourceFileNo++)
     {
-      const String &sourceFileName = variant_name.sourceFilesList[sourceFileNo];
-      String objFileName = get_obj_file_name_from_source(sourceFileName, variant_name);
+      const String &sourceFileName = compInfo.sources()[sourceFileNo];
+      String objFileName = get_obj_file_name_from_source(sourceFileName, compInfo);
 
-      bool need_recompile = should_rebuild || should_recompile_sh(variant_name, sourceFileName);
+      bool need_recompile = should_rebuild || should_recompile_sh(compInfo, sourceFileName);
       if (!need_recompile)
       {
         sh_debug(SHLOG_INFO, "No changes in '%s', skipping", sourceFileName.str());
@@ -473,23 +491,27 @@ void compileShader(const ShVariantName &variant_name, eastl::optional<StcodeInte
         fflush(stdout);
         Tab<SimpleString> dependenciesList(tmpmem_ptr());
 
+        TargetContext targetCtx = comp.makeTargetContext(sourceFileName.c_str());
+
         reset_source_file();
 
         CodeSourceBlocks::incFiles.reset();
-        parse_shader_script(sourceFileName, variant_name.opt, &dependenciesList);
+        parse_shader_script(sourceFileName, &dependenciesList, targetCtx);
 
 #if _CROSS_TARGET_DX12
-        if (use_two_phase_compilation(shc::config().targetPlatform) && !shc::config().autotestMode)
-          recompile_shaders();
+        if (use_two_phase_compilation(shc::config().targetPlatform))
+          recompile_shaders(targetCtx);
 #endif
 
         dependenciesList.reserve(dependenciesList.size() + CodeSourceBlocks::incFiles.nameCount());
         for (int i = 0, e = CodeSourceBlocks::incFiles.nameCount(); i < e; i++)
           dependenciesList.push_back() = CodeSourceBlocks::incFiles.getName(i);
 
-        update_shaders_timestamps(dependenciesList);
+        update_shaders_timestamps(dependenciesList, targetCtx);
         if (!no_save)
-          save_scripted_shaders(objFileName, dependenciesList);
+          save_scripted_shaders(objFileName, dependenciesList, targetCtx);
+
+        ShaderCompilerStat::collectTargetStats(targetCtx);
       }
     }
   }
@@ -521,19 +543,20 @@ void compileShader(const ShVariantName &variant_name, eastl::optional<StcodeInte
   if (!no_save)
   {
     int64_t reft = ref_time_ticks();
-    stcode_interface.emplace();
 
-    for (unsigned int sourceFileNo = 0; sourceFileNo < variant_name.sourceFilesList.size(); sourceFileNo++)
+    TargetContext targetCtx = comp.makeTargetContext(compInfo.dest().c_str());
+
+    for (unsigned int sourceFileNo = 0; sourceFileNo < compInfo.sources().size(); sourceFileNo++)
     {
-      const String &sourceFileName = variant_name.sourceFilesList[sourceFileNo];
-      String objFileName = get_obj_file_name_from_source(sourceFileName, variant_name);
+      const String &sourceFileName = compInfo.sources()[sourceFileNo];
+      String objFileName = get_obj_file_name_from_source(sourceFileName, compInfo);
 
       file_ptr_t objFile = df_open(objFileName, DF_READ);
       G_ASSERT(objFile);
 
       int mmaped_len = 0;
       const void *mmaped = df_mmap(objFile, &mmaped_len);
-      bool res = link_scripted_shaders((const uint8_t *)mmaped, mmaped_len, objFileName, sourceFileName, stcode_interface.value());
+      bool res = link_scripted_shaders((const uint8_t *)mmaped, mmaped_len, objFileName, sourceFileName, targetCtx);
       df_unmap(mmaped, mmaped_len);
       G_ASSERT(res);
 #if SHOW_MEM_STAT
@@ -546,16 +569,22 @@ void compileShader(const ShVariantName &variant_name, eastl::optional<StcodeInte
 
     reft = ref_time_ticks();
     sh_debug(SHLOG_NORMAL, "[INFO] Saving...");
+
     Tab<SimpleString> dependenciesList(tmpmem_ptr());
-    for (const String &source : variant_name.sourceFilesList)
+    for (const String &source : compInfo.sources())
       dependenciesList.push_back(SimpleString(source.c_str()));
-    save_scripted_shaders(variant_name.dest, dependenciesList);
+
+    // Don't save cppstcode for the lib, it would be gibberish
+    save_scripted_shaders(compInfo.dest().c_str(), dependenciesList, targetCtx, false);
+
     sh_debug(SHLOG_NORMAL, "[INFO] saved in %gms", get_time_usec(reft) / 1000.);
+
+    ShaderCompilerStat::collectTargetStats(targetCtx);
   }
 }
 
 bool buildShaderBinDump(const char *bindump_fn, const char *sh_fn, bool forceRebuild, bool minidump, BindumpPackingFlags packing_flags,
-  StcodeInterface *stcode_interface)
+  const shc::CompilationContext &comp)
 {
   if (!forceRebuild)
   {
@@ -568,6 +597,16 @@ bool buildShaderBinDump(const char *bindump_fn, const char *sh_fn, bool forceReb
     }
 
     if (get_file_time64(bindump_fn, dump_time))
+    {
+      if (shc::config().compileCppStcode() && !minidump)
+      {
+        auto statMaybe = get_main_cpp_files_stat(comp.compInfo());
+        if (!statMaybe || statMaybe->savedBlkHash != comp.compInfo().targetBlkHash())
+          dump_time = -1; // @HACK to force recompilation
+        else
+          dump_time = min(dump_time, statMaybe->mtime);
+      }
+
       if (dump_time >= sh_time)
       {
         FullFileLoadCB crd(bindump_fn);
@@ -581,10 +620,12 @@ bool buildShaderBinDump(const char *bindump_fn, const char *sh_fn, bool forceReb
           }
         }
       }
+    }
   }
   String tempbindump_fn(bindump_fn);
   tempbindump_fn += ".tmp.bin";
-  if (!make_scripted_shaders_dump(tempbindump_fn, sh_fn, minidump, packing_flags, stcode_interface))
+
+  if (!make_scripted_shaders_dump(tempbindump_fn, sh_fn, minidump, packing_flags, comp))
   {
     sh_debug(SHLOG_ERROR, "Can't build binary %sdump from: '%s'\n", minidump ? "mini" : "", sh_fn);
     dd_erase(bindump_fn);
@@ -603,11 +644,9 @@ bool buildShaderBinDump(const char *bindump_fn, const char *sh_fn, bool forceReb
   return true;
 }
 
-void setAssumedVarsBlock(DataBlock *block) { assumedVarsBlock = block; }
 void setRequiredShadersBlock(DataBlock *block) { reqShadersBlock = block; }
 void setRequiredShadersDef(bool on) { defShaderReq = on; }
 
-DataBlock *getAssumedVarsBlock() { return assumedVarsBlock; }
 bool isShaderRequired(const char *shader_name)
 {
   return reqShadersBlock ? reqShadersBlock->getBool(shader_name, defShaderReq) : defShaderReq;
@@ -866,20 +905,4 @@ bool isValidVariant(const ShaderVariant::VariantSrc *sv, const ShaderVariant::Va
 bool shouldMarkInvalidAsNull() { return curSvvl ? curSvvl->invalidAsNull : true; }
 void setOutputUpdbPath(const char *path) { updbPath = path; }
 const char *getOutputUpdbPath() { return updbPath; }
-
-static SCFastNameMap allAssumedVars, knownAssumedVars;
-void registerAssumedVar(const char *name, bool known)
-{
-  allAssumedVars.addNameId(name);
-  if (known)
-    knownAssumedVars.addNameId(name);
-}
-void reportUnusedAssumes()
-{
-  for (int i = 0, e = allAssumedVars.nameCount(); i < e; i++)
-    if (knownAssumedVars.getNameId(allAssumedVars.getName(i)) == -1)
-      sh_debug(SHLOG_SILENT_WARNING, "Assume variables: variable \"%s\" not declared", allAssumedVars.getName(i));
-  allAssumedVars.reset();
-  knownAssumedVars.reset();
-}
 } // namespace shc

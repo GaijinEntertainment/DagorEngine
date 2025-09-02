@@ -19,10 +19,11 @@
 #include "game/dasEvents.h"
 #include "game/gameEvents.h"
 #include "game/player.h"
-#include "game/team.h"
+#include "ecs/game/generic/team.h"
 #include <statsd/statsd.h>
 #include <stdlib.h>
 #include <stddef.h> // offsetof
+#include <supp/dag_alloca.h>
 #include <daECS/net/netbase.h>
 #include <ecs/core/utility/ecsRecreate.h>
 #include <daECS/net/msgDecl.h>

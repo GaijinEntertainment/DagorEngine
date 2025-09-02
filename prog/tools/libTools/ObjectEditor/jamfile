@@ -1,5 +1,5 @@
 Root    ?= ../../../.. ;
-Location = prog/tools/libTools/objectEditor ;
+Location = prog/tools/libTools/ObjectEditor ;
 
 TargetType  = lib ;
 Target      = tools/libTools/objectEditor.lib ;

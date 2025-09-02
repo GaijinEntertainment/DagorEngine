@@ -8,89 +8,89 @@ class EcRender : public IDagorRender
 {
 public:
   // driver
-  virtual void fillD3dInterfaceTable(D3dInterfaceTable &d3dit) const;
+  void fillD3dInterfaceTable(D3dInterfaceTable &d3dit) const override;
 
   // driver objects
-  virtual DagorCurView &curView() const;
+  DagorCurView &curView() const override;
 
   // wire render
-  virtual void startLinesRender(bool test_z, bool write_z, bool z_func_less = false) const;
-  virtual void setLinesTm(const TMatrix &tm) const;
-  virtual void endLinesRender() const;
+  void startLinesRender(bool test_z, bool write_z, bool z_func_less = false) const override;
+  void setLinesTm(const TMatrix &tm) const override;
+  void endLinesRender() const override;
 
-  virtual void renderLine(const Point3 &p0, const Point3 &p1, E3DCOLOR color) const;
-  virtual void renderLine(const Point3 *points, int count, E3DCOLOR color) const;
-  virtual void renderBox(const BBox3 &box, E3DCOLOR color) const;
-  virtual void renderBox(const Point3 &p, const Point3 &ax, const Point3 &ay, const Point3 &az, E3DCOLOR color) const;
-  virtual void renderSphere(const Point3 &center, real rad, E3DCOLOR col, int segs) const;
-  virtual void renderCircle(const Point3 &center, const Point3 &ax1, const Point3 &ax2, real radius, E3DCOLOR col, int segs) const;
-  virtual void renderXZCircle(const Point3 &center, real radius, E3DCOLOR col, int segs) const;
-  virtual void renderCapsuleW(const Capsule &cap, E3DCOLOR c) const;
-  virtual void renderCylinder(const TMatrix &tm, float rad, float height, E3DCOLOR c) const override;
+  void renderLine(const Point3 &p0, const Point3 &p1, E3DCOLOR color) const override;
+  void renderLine(const Point3 *points, int count, E3DCOLOR color) const override;
+  void renderBox(const BBox3 &box, E3DCOLOR color) const override;
+  void renderBox(const Point3 &p, const Point3 &ax, const Point3 &ay, const Point3 &az, E3DCOLOR color) const override;
+  void renderSphere(const Point3 &center, real rad, E3DCOLOR col, int segs) const override;
+  void renderCircle(const Point3 &center, const Point3 &ax1, const Point3 &ax2, real radius, E3DCOLOR col, int segs) const override;
+  void renderXZCircle(const Point3 &center, real radius, E3DCOLOR col, int segs) const override;
+  void renderCapsuleW(const Capsule &cap, E3DCOLOR c) const override;
+  void renderCylinder(const TMatrix &tm, float rad, float height, E3DCOLOR c) const override;
 
-  virtual DebugPrimitivesVbuffer *newDebugPrimitivesVbuffer(const char *name, IMemAlloc *alloc = NULL) const;
-  virtual void deleteDebugPrimitivesVbuffer(DebugPrimitivesVbuffer *&vbuf) const;
-  virtual void beginDebugLinesCacheToVbuffer(DebugPrimitivesVbuffer &vbuf) const;
-  virtual void endDebugLinesCacheToVbuffer(DebugPrimitivesVbuffer &vbuf) const;
-  virtual void invalidateDebugPrimitivesVbuffer(DebugPrimitivesVbuffer &vbuf) const;
-  virtual void renderLinesFromVbuffer(DebugPrimitivesVbuffer &vbuf) const;
-  virtual void renderLinesFromVbuffer(DebugPrimitivesVbuffer &vbuf, E3DCOLOR c) const;
-  virtual void renderLinesFromVbuffer(DebugPrimitivesVbuffer &vbuf, bool z_test, bool z_write, bool z_func_less,
-    Color4 color_multiplier) const;
-  virtual void addLineToVbuffer(DebugPrimitivesVbuffer &vbuf, const Point3 &p0, const Point3 &p1, E3DCOLOR c) const;
-  virtual void addHatchedBoxToVbuffer(DebugPrimitivesVbuffer &vbuf, const TMatrix &box_tm, float hatching_step, E3DCOLOR color) const;
-  virtual void addBoxToVbuffer(DebugPrimitivesVbuffer &vbuf, const Point3 &p, const Point3 &ax, const Point3 &ay, const Point3 &az,
-    E3DCOLOR color) const;
-  virtual void addSolidBoxToVbuffer(DebugPrimitivesVbuffer &vbuf, const Point3 &p, const Point3 &ax, const Point3 &ay,
-    const Point3 &az, E3DCOLOR color) const;
-  virtual void addBoxToVbuffer(DebugPrimitivesVbuffer &vbuf, const BBox3 &box, E3DCOLOR color) const;
-  virtual void addTriangleToVbuffer(DebugPrimitivesVbuffer &vbuf, const Point3 p[3], E3DCOLOR color) const;
-  virtual bool isLinesVbufferValid(DebugPrimitivesVbuffer &vbuf) const;
-  virtual void setVbufferTm(DebugPrimitivesVbuffer &vbuf, const TMatrix &tm) const;
+  DebugPrimitivesVbuffer *newDebugPrimitivesVbuffer(const char *name, IMemAlloc *alloc = NULL) const override;
+  void deleteDebugPrimitivesVbuffer(DebugPrimitivesVbuffer *&vbuf) const override;
+  void beginDebugLinesCacheToVbuffer(DebugPrimitivesVbuffer &vbuf) const override;
+  void endDebugLinesCacheToVbuffer(DebugPrimitivesVbuffer &vbuf) const override;
+  void invalidateDebugPrimitivesVbuffer(DebugPrimitivesVbuffer &vbuf) const override;
+  void renderLinesFromVbuffer(DebugPrimitivesVbuffer &vbuf) const override;
+  void renderLinesFromVbuffer(DebugPrimitivesVbuffer &vbuf, E3DCOLOR c) const override;
+  void renderLinesFromVbuffer(DebugPrimitivesVbuffer &vbuf, bool z_test, bool z_write, bool z_func_less,
+    Color4 color_multiplier) const override;
+  void addLineToVbuffer(DebugPrimitivesVbuffer &vbuf, const Point3 &p0, const Point3 &p1, E3DCOLOR c) const override;
+  void addHatchedBoxToVbuffer(DebugPrimitivesVbuffer &vbuf, const TMatrix &box_tm, float hatching_step, E3DCOLOR color) const override;
+  void addBoxToVbuffer(DebugPrimitivesVbuffer &vbuf, const Point3 &p, const Point3 &ax, const Point3 &ay, const Point3 &az,
+    E3DCOLOR color) const override;
+  void addSolidBoxToVbuffer(DebugPrimitivesVbuffer &vbuf, const Point3 &p, const Point3 &ax, const Point3 &ay, const Point3 &az,
+    E3DCOLOR color) const override;
+  void addBoxToVbuffer(DebugPrimitivesVbuffer &vbuf, const BBox3 &box, E3DCOLOR color) const override;
+  void addTriangleToVbuffer(DebugPrimitivesVbuffer &vbuf, const Point3 p[3], E3DCOLOR color) const override;
+  bool isLinesVbufferValid(DebugPrimitivesVbuffer &vbuf) const override;
+  void setVbufferTm(DebugPrimitivesVbuffer &vbuf, const TMatrix &tm) const override;
 
   // DynamicShadersBuffer
-  virtual DynamicShadersBuffer *newDynamicShadersBuffer(IMemAlloc *alloc) const;
-  virtual DynamicShadersBuffer *newDynamicShadersBuffer(CompiledShaderChannelId *channels, int channel_count, int max_verts,
-    int max_faces, IMemAlloc *alloc) const;
-  virtual void deleteDynamicShadersBuffer(DynamicShadersBuffer *&buf) const;
+  DynamicShadersBuffer *newDynamicShadersBuffer(IMemAlloc *alloc) const override;
+  DynamicShadersBuffer *newDynamicShadersBuffer(CompiledShaderChannelId *channels, int channel_count, int max_verts, int max_faces,
+    IMemAlloc *alloc) const override;
+  void deleteDynamicShadersBuffer(DynamicShadersBuffer *&buf) const override;
 
-  virtual void dynShaderBufferSetCurrentShader(DynamicShadersBuffer &buf, ShaderElement *shader) const;
-  virtual void dynShaderBufferAddFaces(DynamicShadersBuffer &buf, const void *vertex_data, int num_verts, const int *indices,
-    int num_faces) const;
-  virtual void dynShaderBufferFlush(DynamicShadersBuffer &buf) const;
+  void dynShaderBufferSetCurrentShader(DynamicShadersBuffer &buf, ShaderElement *shader) const override;
+  void dynShaderBufferAddFaces(DynamicShadersBuffer &buf, const void *vertex_data, int num_verts, const int *indices,
+    int num_faces) const override;
+  void dynShaderBufferFlush(DynamicShadersBuffer &buf) const override;
 
   // DynRenderBuffer
-  virtual DynRenderBuffer *newDynRenderBuffer(const char *class_name, IMemAlloc *alloc) const;
-  virtual void deleteDynRenderBuffer(DynRenderBuffer *&buf) const;
+  DynRenderBuffer *newDynRenderBuffer(const char *class_name, IMemAlloc *alloc) const override;
+  void deleteDynRenderBuffer(DynRenderBuffer *&buf) const override;
 
-  virtual void dynRenderBufferClearBuf(DynRenderBuffer &buf) const;
-  virtual void dynRenderBufferFlush(DynRenderBuffer &buf) const;
-  virtual void dynRenderBufferFlushToBuffer(DynRenderBuffer &buf, TEXTUREID tid) const;
+  void dynRenderBufferClearBuf(DynRenderBuffer &buf) const override;
+  void dynRenderBufferFlush(DynRenderBuffer &buf) const override;
+  void dynRenderBufferFlushToBuffer(DynRenderBuffer &buf, TEXTUREID tid) const override;
 
-  virtual void dynRenderBufferDrawQuad(DynRenderBuffer &buf, const Point3 &p0, const Point3 &p1, const Point3 &p2, const Point3 &p3,
-    E3DCOLOR color, float u, float v) const;
-  virtual void dynRenderBufferDrawLine(DynRenderBuffer &buf, const Point3 &from, const Point3 &to, real width, E3DCOLOR color) const;
-  virtual void dynRenderBufferDrawSquare(DynRenderBuffer &buf, const Point3 &p, real radius, E3DCOLOR color) const;
-  virtual void dynRenderBufferDrawBox(DynRenderBuffer &buf, const TMatrix &tm, E3DCOLOR color) const;
-  virtual void *dynRenderBufferDrawNetSurface(DynRenderBuffer &buf, int w, int h) const;
+  void dynRenderBufferDrawQuad(DynRenderBuffer &buf, const Point3 &p0, const Point3 &p1, const Point3 &p2, const Point3 &p3,
+    E3DCOLOR color, float u, float v) const override;
+  void dynRenderBufferDrawLine(DynRenderBuffer &buf, const Point3 &from, const Point3 &to, real width, E3DCOLOR color) const override;
+  void dynRenderBufferDrawSquare(DynRenderBuffer &buf, const Point3 &p, real radius, E3DCOLOR color) const override;
+  void dynRenderBufferDrawBox(DynRenderBuffer &buf, const TMatrix &tm, E3DCOLOR color) const override;
+  void *dynRenderBufferDrawNetSurface(DynRenderBuffer &buf, int w, int h) const override;
 
   // textures
-  virtual TEXTUREID addManagedTexture(const char *name) const;
-  virtual TEXTUREID registerManagedTex(const char *name, BaseTexture *basetex) const;
-  virtual BaseTexture *acquireManagedTex(TEXTUREID id) const;
-  virtual void releaseManagedTex(TEXTUREID id) const;
-  virtual void releaseManagedResVerified(TEXTUREID &id, D3dResource *cmp) const;
+  TEXTUREID addManagedTexture(const char *name) const override;
+  TEXTUREID registerManagedTex(const char *name, BaseTexture *basetex) const override;
+  BaseTexture *acquireManagedTex(TEXTUREID id) const override;
+  void releaseManagedTex(TEXTUREID id) const override;
+  void releaseManagedResVerified(TEXTUREID &id, D3dResource *cmp) const override;
 
   // misc
-  virtual E3DCOLOR normalizeColor4(const Color4 &color, real &bright) const;
-  virtual int getHdrMode() const;
+  E3DCOLOR normalizeColor4(const Color4 &color, real &bright) const override;
+  int getHdrMode() const override;
 
   // stdGuiRender
-  virtual void renderTextFmt(real x, real y, E3DCOLOR color, const char *format, const DagorSafeArg *arg, int anum) const;
-  virtual BBox2 getTextBBox(const char *str, int len = -1) const;
-  virtual int setTextFont(int font_id, int font_kern = 0) const;
-  virtual void getFontAscentAndDescent(int &ascent, int &descent) const override;
-  virtual void drawSolidRectangle(real left, real top, real right, real bottom, E3DCOLOR color) const override;
+  void renderTextFmt(real x, real y, E3DCOLOR color, const char *format, const DagorSafeArg *arg, int anum) const override;
+  BBox2 getTextBBox(const char *str, int len = -1) const override;
+  int setTextFont(int font_id, int font_kern = 0) const override;
+  void getFontAscentAndDescent(int &ascent, int &descent) const override;
+  void drawSolidRectangle(real left, real top, real right, real bottom, E3DCOLOR color) const override;
 };
 
 
@@ -98,210 +98,227 @@ class EcGeom : public IDagorGeom
 {
 public:
   // StaticGeometryContainer
-  virtual StaticGeometryContainer *newStaticGeometryContainer(IMemAlloc *alloc);
-  virtual void deleteStaticGeometryContainer(StaticGeometryContainer *&cont);
-  virtual void staticGeometryContainerClear(StaticGeometryContainer &cont);
-  virtual bool staticGeometryContainerLoadFromDag(StaticGeometryContainer &cont, const char *path, ILogWriter *log,
-    bool use_not_found_tex, int load_flags);
-  virtual bool staticGeometryContainerImportDag(StaticGeometryContainer &cont, const char *src, const char *dest) const;
-  virtual void staticGeometryContainerExportDag(StaticGeometryContainer &cont, const char *path, bool make_tex_path_local) const;
+  StaticGeometryContainer *newStaticGeometryContainer(IMemAlloc *alloc) override;
+  void deleteStaticGeometryContainer(StaticGeometryContainer *&cont) override;
+  void staticGeometryContainerClear(StaticGeometryContainer &cont) override;
+  bool staticGeometryContainerLoadFromDag(StaticGeometryContainer &cont, const char *path, ILogWriter *log, bool use_not_found_tex,
+    int load_flags) override;
+  bool staticGeometryContainerImportDag(StaticGeometryContainer &cont, const char *src, const char *dest) const override;
+  void staticGeometryContainerExportDag(StaticGeometryContainer &cont, const char *path, bool make_tex_path_local) const override;
 
   // GeomObject
-  virtual GeomObject *newGeomObject(IMemAlloc *alloc);
-  virtual void deleteGeomObject(GeomObject *&geom);
+  GeomObject *newGeomObject(IMemAlloc *alloc) override;
+  void deleteGeomObject(GeomObject *&geom) override;
 
-  virtual void geomObjectSaveToDag(GeomObject &go, const char *path) const;
-  virtual bool geomObjectLoadFromDag(GeomObject &go, const char *path, ILogWriter *log, ITextureNameResolver *resolv_cb) const;
-  virtual void geomObjectClear(GeomObject &go) const;
-  virtual void geomObjectEraseNode(GeomObject &go, int idx) const;
+  void geomObjectSaveToDag(GeomObject &go, const char *path) const override;
+  bool geomObjectLoadFromDag(GeomObject &go, const char *path, ILogWriter *log, ITextureNameResolver *resolv_cb) const override;
+  void geomObjectClear(GeomObject &go) const override;
+  void geomObjectEraseNode(GeomObject &go, int idx) const override;
 
-  virtual StaticGeometryContainer &geomObjectGetGeometryContainer(GeomObject &go) const;
-  virtual const StaticGeometryContainer &geomObjectGetGeometryContainer(const GeomObject &go) const;
+  StaticGeometryContainer &geomObjectGetGeometryContainer(GeomObject &go) const override;
+  const StaticGeometryContainer &geomObjectGetGeometryContainer(const GeomObject &go) const override;
 
-  virtual void geomObjectSetDefNodeVis(GeomObject &go);
-  virtual void geomObjectRecompile(GeomObject &go, const Bitarray *node_vis);
-  virtual void geomObjectCreateFromGeomContainer(GeomObject &go, const StaticGeometryContainer &cont, bool do_recompile);
+  void geomObjectSetDefNodeVis(GeomObject &go) override;
+  void geomObjectRecompile(GeomObject &go, const Bitarray *node_vis) override;
+  void geomObjectCreateFromGeomContainer(GeomObject &go, const StaticGeometryContainer &cont, bool do_recompile) override;
 
-  virtual void geomObjectRender(GeomObject &go);
-  virtual void geomObjectRenderColor(GeomObject &go, DynRenderBuffer *buffer, E3DCOLOR c, bool renderable_only) const;
-  virtual void geomObjectRenderNodeColor(GeomObject &go, int idx, DynRenderBuffer *buffer, E3DCOLOR c, bool renderable_only) const;
-  virtual void geomObjectRenderTrans(GeomObject &go);
-  virtual void geomObjectRenderEdges(GeomObject &go, bool is_visible, E3DCOLOR color);
+  void geomObjectRender(GeomObject &go) override;
+  void geomObjectRenderColor(GeomObject &go, DynRenderBuffer *buffer, E3DCOLOR c, bool renderable_only) const override;
+  void geomObjectRenderNodeColor(GeomObject &go, int idx, DynRenderBuffer *buffer, E3DCOLOR c, bool renderable_only) const override;
+  void geomObjectRenderTrans(GeomObject &go) override;
+  void geomObjectRenderEdges(GeomObject &go, bool is_visible, E3DCOLOR color) override;
 
-  virtual BBox3 geomObjectGetBoundBox(GeomObject &go, bool local_coord) const;
-  virtual BBox3 geomObjectGetNodeBoundBox(const GeomObject &go, int idx, bool local_coord) const;
+  BBox3 geomObjectGetBoundBox(GeomObject &go, bool local_coord) const override;
+  BBox3 geomObjectGetNodeBoundBox(const GeomObject &go, int idx, bool local_coord) const override;
 
-  virtual const char *geomObjectGetShaderName(const GeomObject &go, int idx) const;
-  virtual ShaderMesh *geomObjectGetShaderMesh(const GeomObject &go, int idx) const;
+  const char *geomObjectGetShaderName(const GeomObject &go, int idx) const override;
+  ShaderMesh *geomObjectGetShaderMesh(const GeomObject &go, int idx) const override;
 
-  virtual bool geomObjectShadowRayHitTest(GeomObject &go, const Point3 &p, const Point3 &dir, real maxt, int trace_flags) const;
-  virtual bool geomObjectTraceRay(GeomObject &go, const Point3 &p, const Point3 &dir, real &maxt, Point3 *norm) const;
-  virtual bool geomObjectReloadRayTracer(GeomObject &go) const;
-  virtual StaticSceneRayTracer *geomObjectGetRayTracer(GeomObject &go) const;
+  bool geomObjectShadowRayHitTest(GeomObject &go, const Point3 &p, const Point3 &dir, real maxt, int trace_flags) const override;
+  bool geomObjectTraceRay(GeomObject &go, const Point3 &p, const Point3 &dir, real &maxt, Point3 *norm) const override;
+  bool geomObjectReloadRayTracer(GeomObject &go) const override;
+  StaticSceneRayTracer *geomObjectGetRayTracer(GeomObject &go) const override;
 
   // StaticGeometryNode
-  virtual StaticGeometryNode *newStaticGeometryNode(IMemAlloc *alloc);
-  virtual StaticGeometryNode *newStaticGeometryNode(const StaticGeometryNode &from, IMemAlloc *alloc);
-  virtual void deleteStaticGeometryNode(StaticGeometryNode *&node);
-  virtual bool staticGeometryNodeHaveBillboardMat(const StaticGeometryNode &node) const;
-  virtual void staticGeometryNodeCalcBoundBox(StaticGeometryNode &node) const;
-  virtual void staticGeometryNodeCalcBoundSphere(StaticGeometryNode &node) const;
-  virtual void staticGeometryNodeSetMaterialLighting(const StaticGeometryNode &node, StaticGeometryMaterial &mat) const;
+  StaticGeometryNode *newStaticGeometryNode(IMemAlloc *alloc) override;
+  StaticGeometryNode *newStaticGeometryNode(const StaticGeometryNode &from, IMemAlloc *alloc) override;
+  void deleteStaticGeometryNode(StaticGeometryNode *&node) override;
+  bool staticGeometryNodeHaveBillboardMat(const StaticGeometryNode &node) const override;
+  void staticGeometryNodeCalcBoundBox(StaticGeometryNode &node) const override;
+  void staticGeometryNodeCalcBoundSphere(StaticGeometryNode &node) const override;
+  void staticGeometryNodeSetMaterialLighting(const StaticGeometryNode &node, StaticGeometryMaterial &mat) const override;
 
-  virtual const char *staticGeometryNodeLightingToStr(StaticGeometryNode::Lighting light) const;
-  virtual StaticGeometryNode::Lighting staticGeometryNodeStrToLighting(const char *light) const;
+  const char *staticGeometryNodeLightingToStr(StaticGeometryNode::Lighting light) const override;
+  StaticGeometryNode::Lighting staticGeometryNodeStrToLighting(const char *light) const override;
 
-  virtual shaders::OverrideStateId create(const shaders::OverrideState &os) const { return shaders::overrides::create(os); }
-  virtual bool destroy(shaders::OverrideStateId &override_id) const { return shaders::overrides::destroy(override_id); }
-  virtual bool set(shaders::OverrideStateId override_id) const { return shaders::overrides::set(override_id); }
-  virtual bool reset_override() const { return shaders::overrides::reset(); }
+  shaders::OverrideStateId create(const shaders::OverrideState &os) const override { return shaders::overrides::create(os); }
+  bool destroy(shaders::OverrideStateId &override_id) const override { return shaders::overrides::destroy(override_id); }
+  bool set(shaders::OverrideStateId override_id) const override { return shaders::overrides::set(override_id); }
+  bool reset_override() const override { return shaders::overrides::reset(); }
 
   // StaticGeometryMesh
-  virtual StaticGeometryMesh *newStaticGeometryMesh(IMemAlloc *alloc) const;
-  virtual void deleteStaticGeometryMesh(StaticGeometryMesh *&mesh) const;
+  StaticGeometryMesh *newStaticGeometryMesh(IMemAlloc *alloc) const override;
+  void deleteStaticGeometryMesh(StaticGeometryMesh *&mesh) const override;
 
   // GeomResourcesHelper
-  virtual GeomResourcesHelper *newGeomResourcesHelper(IStaticGeomResourcesService *svc, IMemAlloc *alloc) const;
-  virtual void deleteGeomResourcesHelper(GeomResourcesHelper *&helper) const;
+  GeomResourcesHelper *newGeomResourcesHelper(IStaticGeomResourcesService *svc, IMemAlloc *alloc) const override;
+  void deleteGeomResourcesHelper(GeomResourcesHelper *&helper) const override;
 
-  virtual void geomResourcesHelperSetResourcesService(GeomResourcesHelper &helper, IStaticGeomResourcesService *svc) const;
-  virtual void geomResourcesHelperCreateResources(GeomResourcesHelper &helper, const void *obj_id, const TMatrix &tm,
-    const StaticGeometryContainer &cont, ILogWriter *log) const;
-  virtual void geomResourcesHelperFreeResources(GeomResourcesHelper &helper, const void *obj_id) const;
-  virtual void geomResourcesHelperSetResourcesTm(GeomResourcesHelper &helper, const void *obj_id, const TMatrix &tm) const;
-  virtual void geomResourcesHelperRemapResources(GeomResourcesHelper &helper, const void *obj_id_old, const void *obj_id_new) const;
-  virtual int geomResourcesHelperCompact(GeomResourcesHelper &helper) const;
+  void geomResourcesHelperSetResourcesService(GeomResourcesHelper &helper, IStaticGeomResourcesService *svc) const override;
+  void geomResourcesHelperCreateResources(GeomResourcesHelper &helper, const void *obj_id, const TMatrix &tm,
+    const StaticGeometryContainer &cont, ILogWriter *log) const override;
+  void geomResourcesHelperFreeResources(GeomResourcesHelper &helper, const void *obj_id) const override;
+  void geomResourcesHelperSetResourcesTm(GeomResourcesHelper &helper, const void *obj_id, const TMatrix &tm) const override;
+  void geomResourcesHelperRemapResources(GeomResourcesHelper &helper, const void *obj_id_old, const void *obj_id_new) const override;
+  int geomResourcesHelperCompact(GeomResourcesHelper &helper) const override;
 
   // Shaders
-  virtual ShaderMaterial *newShaderMaterial(MaterialData &m) const;
+  ShaderMaterial *newShaderMaterial(MaterialData &m) const override;
 
-  virtual int getShaderVariableId(const char *name) const;
-  virtual const char *getShaderVariableName(int id) const;
+  int getShaderVariableId(const char *name) const override;
+  const char *getShaderVariableName(int id) const override;
 
-  virtual bool shaderGlobalSetInt(int id, int val) const;
-  virtual bool shaderGlobalSetReal(int id, real val) const;
-  virtual bool shaderGlobalSetColor4(int id, const Color4 &val) const;
-  virtual bool shaderGlobalSetTexture(int id, TEXTUREID val) const;
+  bool shaderGlobalSetInt(int id, int val) const override;
+  bool shaderGlobalSetReal(int id, real val) const override;
+  bool shaderGlobalSetColor4(int id, const Color4 &val) const override;
+  bool shaderGlobalSetTexture(int id, TEXTUREID val) const override;
+  bool shaderGlobalSetSampler(int id, d3d::SamplerHandle val) const override;
+  d3d::SamplerHandle getSeparateSampler(TEXTUREID val) const override;
 
-  virtual int shaderGlobalGetInt(int id) const;
-  virtual real shaderGlobalGetReal(int id) const;
-  virtual Color4 shaderGlobalGetColor4(int id) const;
-  virtual TEXTUREID shaderGlobalGetTexture(int id) const;
+  int shaderGlobalGetInt(int id) const override;
+  real shaderGlobalGetReal(int id) const override;
+  Color4 shaderGlobalGetColor4(int id) const override;
+  TEXTUREID shaderGlobalGetTexture(int id) const override;
 
-  virtual void shaderGlobalSetVarsFromBlk(const DataBlock &blk) const;
+  void shaderGlobalSetVarsFromBlk(const DataBlock &blk) const override;
 
-  virtual int shaderGlobalGetBlockId(const char *name) const;
-  virtual void shaderGlobalSetBlock(int id, int layer = -1) const;
+  int shaderGlobalGetBlockId(const char *name) const override;
+  void shaderGlobalSetBlock(int id, int layer = -1) const override;
 
-  virtual void shaderElemInvalidateCachedStateBlock() const;
+  void shaderElemInvalidateCachedStateBlock() const override;
 
   // Mesh
-  virtual Mesh *newMesh(IMemAlloc *alloc) const;
-  virtual void deleteMesh(Mesh *&mesh) const;
+  Mesh *newMesh(IMemAlloc *alloc) const override;
+  void deleteMesh(Mesh *&mesh) const override;
 
-  virtual int meshOptimizeTverts(Mesh &mesh) const;
-  virtual int meshCalcNgr(Mesh &mesh) const;
-  virtual int meshCalcVertnorms(Mesh &mesh) const;
-  virtual void meshFlipNormals(Mesh &mesh, int f0, int nf) const;
+  int meshOptimizeTverts(Mesh &mesh) const override;
+  int meshCalcNgr(Mesh &mesh) const override;
+  int meshCalcVertnorms(Mesh &mesh) const override;
+  void meshFlipNormals(Mesh &mesh, int f0, int nf) const override;
 
-  virtual PostFxRenderer *newPostFxRenderer() const;
-  virtual void deletePostFxRenderer(PostFxRenderer *&) const;
-  virtual void postFxRendererInit(PostFxRenderer &p, const char *shader_name) const;
-  virtual void postFxRendererRender(PostFxRenderer &p) const;
+  PostFxRenderer *newPostFxRenderer() const override;
+  void deletePostFxRenderer(PostFxRenderer *&) const override;
+  void postFxRendererInit(PostFxRenderer &p, const char *shader_name) const override;
+  void postFxRendererRender(PostFxRenderer &p) const override;
 
   // ObjCreator3d
-  virtual bool generatePlane(const Point2 &cell_size, StaticGeometryContainer &geom) const;
-  virtual bool generatePlane(const Point2 &cell_size, StaticGeometryContainer &geom, StaticGeometryMaterial *material) const;
+  bool generatePlane(const Point2 &cell_size, StaticGeometryContainer &geom) const override;
+  bool generatePlane(const Point2 &cell_size, StaticGeometryContainer &geom, StaticGeometryMaterial *material) const override;
 
-  virtual bool generateBox(const IPoint3 &segments, StaticGeometryContainer &geom) const;
+  bool generateBox(const IPoint3 &segments, StaticGeometryContainer &geom) const override;
 
-  virtual bool generateCylinder(int sides, int height_segments, int cap_segments, StaticGeometryContainer &geom) const;
+  bool generateCylinder(int sides, int height_segments, int cap_segments, StaticGeometryContainer &geom) const override;
 
-  virtual bool generatePolyMesh(const Tab<Point2> &points, int height_segments, StaticGeometryContainer &geom) const;
+  bool generatePolyMesh(const Tab<Point2> &points, int height_segments, StaticGeometryContainer &geom) const override;
 
-  virtual bool generateBoxSpiralStair(int steps, real w, real arc, StaticGeometryContainer &geom) const;
-  virtual bool generateClosedSpiralStair(int steps, real w, real arc, StaticGeometryContainer &geom) const;
-  virtual bool generateOpenSpiralStair(int steps, real w, real h, real arc, StaticGeometryContainer &geom) const;
+  bool generateBoxSpiralStair(int steps, real w, real arc, StaticGeometryContainer &geom) const override;
+  bool generateClosedSpiralStair(int steps, real w, real arc, StaticGeometryContainer &geom) const override;
+  bool generateOpenSpiralStair(int steps, real w, real h, real arc, StaticGeometryContainer &geom) const override;
 
-  virtual bool generateBoxStair(int steps, StaticGeometryContainer &geom) const;
-  virtual bool generateClosedStair(int steps, StaticGeometryContainer &geom) const;
-  virtual bool generateOpenStair(int steps, real h, StaticGeometryContainer &geom) const;
+  bool generateBoxStair(int steps, StaticGeometryContainer &geom) const override;
+  bool generateClosedStair(int steps, StaticGeometryContainer &geom) const override;
+  bool generateOpenStair(int steps, real h, StaticGeometryContainer &geom) const override;
 
-  virtual bool objCreator3dAddNode(const char *name, Mesh *mesh, MaterialDataList *material, StaticGeometryContainer &geom) const;
+  bool objCreator3dAddNode(const char *name, Mesh *mesh, MaterialDataList *material, StaticGeometryContainer &geom) const override;
 
   // Creators
-  virtual BoxCreator *newBoxCreator(IMemAlloc *alloc) const;
-  virtual void deleteBoxCreator(BoxCreator *&creator) const;
+  BoxCreator *newBoxCreator(IMemAlloc *alloc) const override;
+  void deleteBoxCreator(BoxCreator *&creator) const override;
 
-  virtual SphereCreator *newSphereCreator(IMemAlloc *alloc) const;
-  virtual void deleteSphereCreator(SphereCreator *&creator) const;
+  SphereCreator *newSphereCreator(IMemAlloc *alloc) const override;
+  void deleteSphereCreator(SphereCreator *&creator) const override;
 
-  virtual PlaneCreator *newPlaneCreator(IMemAlloc *alloc) const;
-  virtual void deletePlaneCreator(PlaneCreator *&creator) const;
+  PlaneCreator *newPlaneCreator(IMemAlloc *alloc) const override;
+  void deletePlaneCreator(PlaneCreator *&creator) const override;
 
-  virtual PointCreator *newPointCreator(IMemAlloc *alloc = NULL) const;
-  virtual void deletePointCreator(PointCreator *&creator) const;
+  PointCreator *newPointCreator(IMemAlloc *alloc = NULL) const override;
+  void deletePointCreator(PointCreator *&creator) const override;
 
-  virtual CylinderCreator *newCylinderCreator(IMemAlloc *alloc) const;
-  virtual void deleteCylinderCreator(CylinderCreator *&creator) const;
+  CylinderCreator *newCylinderCreator(IMemAlloc *alloc) const override;
+  void deleteCylinderCreator(CylinderCreator *&creator) const override;
 
-  virtual PolyMeshCreator *newPolyMeshCreator(IMemAlloc *alloc) const;
-  virtual void deletePolyMeshCreator(PolyMeshCreator *&creator) const;
+  PolyMeshCreator *newPolyMeshCreator(IMemAlloc *alloc) const override;
+  void deletePolyMeshCreator(PolyMeshCreator *&creator) const override;
 
-  virtual StairCreator *newStairCreator(IMemAlloc *alloc) const;
-  virtual void deleteStairCreator(StairCreator *&creator) const;
+  StairCreator *newStairCreator(IMemAlloc *alloc) const override;
+  void deleteStairCreator(StairCreator *&creator) const override;
 
-  virtual SpiralStairCreator *newSpiralStairCreator(IMemAlloc *alloc) const;
-  virtual void deleteSpiralStairCreator(SpiralStairCreator *&creator) const;
+  SpiralStairCreator *newSpiralStairCreator(IMemAlloc *alloc) const override;
+  void deleteSpiralStairCreator(SpiralStairCreator *&creator) const override;
 
-  virtual SplineCreator *newSplineCreator(IMemAlloc *alloc) const;
-  virtual void deleteSplineCreator(SplineCreator *&creator) const;
+  SplineCreator *newSplineCreator(IMemAlloc *alloc) const override;
+  void deleteSplineCreator(SplineCreator *&creator) const override;
 
-  virtual TargetCreator *newTargetCreator(IMemAlloc *alloc) const;
-  virtual void deleteTargetCreator(TargetCreator *&creator) const;
+  TargetCreator *newTargetCreator(IMemAlloc *alloc) const override;
+  void deleteTargetCreator(TargetCreator *&creator) const override;
 
-  virtual void deleteIObjectCreator(IObjectCreator *&creator) const;
+  PolygoneZoneCreator *newPolygonZoneCreator(IMemAlloc *alloc) const override;
+  void deletePolyZoneCreator(PolygoneZoneCreator *&creator) const override;
+
+  void deleteIObjectCreator(IObjectCreator *&creator) const override;
 
   // DagSaver
-  virtual DagSaver *newDagSaver(IMemAlloc *alloc) const;
-  virtual void deleteDagSaver(DagSaver *&saver) const;
+  DagSaver *newDagSaver(IMemAlloc *alloc) const override;
+  void deleteDagSaver(DagSaver *&saver) const override;
 
-  virtual bool dagSaverStartSaveDag(DagSaver &saver, const char *path) const;
-  virtual bool dagSaverEndSaveDag(DagSaver &saver) const;
+  bool dagSaverStartSaveDag(DagSaver &saver, const char *path) const override;
+  bool dagSaverEndSaveDag(DagSaver &saver) const override;
 
-  virtual bool dagSaverStartSaveNodes(DagSaver &saver) const;
-  virtual bool dagSaverEndSaveNodes(DagSaver &saver) const;
+  bool dagSaverStartSaveNodes(DagSaver &saver) const override;
+  bool dagSaverEndSaveNodes(DagSaver &saver) const override;
 
-  virtual bool dagSaverStartSaveNode(DagSaver &saver, const char *name, const TMatrix &wtm, int flg, int children) const;
-  virtual bool dagSaverEndSaveNode(DagSaver &saver) const;
+  bool dagSaverStartSaveNode(DagSaver &saver, const char *name, const TMatrix &wtm, int flg, int children) const override;
+  bool dagSaverEndSaveNode(DagSaver &saver) const override;
 
-  virtual bool dagSaverSaveDagSpline(DagSaver &saver, DagSpline **spline, int cnt) const;
+  bool dagSaverSaveDagSpline(DagSaver &saver, DagSpline **spline, int cnt) const override;
 
   // AScene
-  virtual AScene *newAScene(IMemAlloc *alloc) const;
-  virtual void deleteAScene(AScene *&scene) const;
+  AScene *newAScene(IMemAlloc *alloc) const override;
+  void deleteAScene(AScene *&scene) const override;
 
-  virtual int loadAscene(const char *fn, AScene &sc, int flg, bool fatal_on_error) const;
+  int loadAscene(const char *fn, AScene &sc, int flg, bool fatal_on_error) const override;
 
   // Node
-  virtual void nodeCalcWtm(Node &node) const;
-  virtual bool nodeEnumNodes(Node &node, Node::NodeEnumCB &cb, Node **res) const;
+  void nodeCalcWtm(Node &node) const override;
+  bool nodeEnumNodes(Node &node, Node::NodeEnumCB &cb, Node **res) const override;
 };
 
 
 class EcConsole : public IDagorConsole
 {
 public:
-  virtual void startProgress(CoolConsole &con) const;
-  virtual void endProgress(CoolConsole &con) const;
+  void startProgress(CoolConsole &con) const override;
+  void endProgress(CoolConsole &con) const override;
 
-  virtual void addMessageFmt(CoolConsole &con, ILogWriter::MessageType type, const char *msg, const DagorSafeArg *arg, int anum) const;
+  void addMessageFmt(CoolConsole &con, ILogWriter::MessageType type, const char *msg, const DagorSafeArg *arg,
+    int anum) const override;
 
-  virtual void showConsole(CoolConsole &con, bool activate) const;
-  virtual void hideConsole(const CoolConsole &con) const;
+  void showConsole(CoolConsole &con, bool activate) const override;
+  void hideConsole(const CoolConsole &con) const override;
 
-  virtual bool registerCommand(CoolConsole &con, const char *cmd, IConsoleCmd *handler) const;
-  virtual bool unregisterCommand(CoolConsole &con, const char *cmd, IConsoleCmd *handler) const;
+  bool registerCommand(CoolConsole &con, const char *cmd, IConsoleCmd *handler) const override;
+  bool unregisterCommand(CoolConsole &con, const char *cmd, IConsoleCmd *handler) const override;
+};
+
+
+class EcInput : public IDagorInput
+{
+public:
+  // input functions to use from DLLs (see ec_input.h for non-DLL usage)
+  bool isKeyDown(ImGuiKey key) const override;
+  bool isAltKeyDown() const override;
+  bool isCtrlKeyDown() const override;
+  bool isShiftKeyDown() const override;
 };
 
 
@@ -309,34 +326,34 @@ class EcTools : public IDagorTools
 {
 public:
   // ddstexture::Converter
-  virtual bool ddsConvertImage(ddstexture::Converter &converter, IGenSave &cb, TexPixel32 *pixels, int width, int height,
-    int stride) const;
+  bool ddsConvertImage(ddstexture::Converter &converter, IGenSave &cb, TexPixel32 *pixels, int width, int height,
+    int stride) const override;
 
   // loadmask::
-  virtual bool loadmaskloadMaskFromFile(const char *filename, SmallTab<float, TmpmemAlloc> &hmap, int &w, int &h) const;
+  bool loadmaskloadMaskFromFile(const char *filename, SmallTab<float, TmpmemAlloc> &hmap, int &w, int &h) const override;
 
   // AnimV20::AnimData
-  virtual AnimV20::AnimData *newAnimData(IMemAlloc *alloc) const;
-  virtual bool animDataLoad(AnimV20::AnimData &anim, IGenLoad &cb, IMemAlloc *alloc) const;
+  AnimV20::AnimData *newAnimData(IMemAlloc *alloc) const override;
+  bool animDataLoad(AnimV20::AnimData &anim, IGenLoad &cb, IMemAlloc *alloc) const override;
 
   // other
-  virtual unsigned getSimpleHash(const char *s, unsigned int init_val) const;
+  unsigned getSimpleHash(const char *s, unsigned int init_val) const override;
 
-  virtual void *win32GetMainWnd() const;
+  void *win32GetMainWnd() const override;
 
   // time functions
-  virtual int getTimeMsec() const;
-  virtual __int64 refTimeUsec() const;
+  int getTimeMsec() const override;
+  __int64 refTimeUsec() const override;
 
   // ddsx functions
-  virtual void ddsxShutdownPlugins();
-  virtual bool ddsxConvertDds(unsigned targ_code, ddsx::Buffer &dest, void *dds_data, int dds_len, const ddsx::ConvertParams &p);
-  virtual const char *ddsxGetLastErrorText();
-  virtual void ddsxFreeBuffer(ddsx::Buffer &b);
+  void ddsxShutdownPlugins() override;
+  bool ddsxConvertDds(unsigned targ_code, ddsx::Buffer &dest, void *dds_data, int dds_len, const ddsx::ConvertParams &p) override;
+  const char *ddsxGetLastErrorText() override;
+  void ddsxFreeBuffer(ddsx::Buffer &b) override;
 
   // files
-  virtual bool copyFile(const char *src, const char *dest, bool overwrite) const;
-  virtual bool compareFile(const char *path1, const char *path2) const;
+  bool copyFile(const char *src, const char *dest, bool overwrite) const override;
+  bool compareFile(const char *path1, const char *path2) const override;
 };
 
 
@@ -344,31 +361,31 @@ class EcScene : public IDagorScene
 {
 public:
   // StaticSceneRayTracer
-  virtual int staticSceneRayTracerTraceRay(StaticSceneRayTracer &rt, const Point3 &p, const Point3 &wdir2, real &mint2,
-    int from_face) const;
+  int staticSceneRayTracerTraceRay(StaticSceneRayTracer &rt, const Point3 &p, const Point3 &wdir2, real &mint2,
+    int from_face) const override;
 
   // FastRtDump
-  virtual int fastRtDumpTraceRay(FastRtDump &frt, int custom, const Point3 &p, const Point3 &dir, real &t, int &out_pmid) const;
+  int fastRtDumpTraceRay(FastRtDump &frt, int custom, const Point3 &p, const Point3 &dir, real &t, int &out_pmid) const override;
 
   // BuildableStaticSceneRayTracer
-  virtual BuildableStaticSceneRayTracer *createBuildableStaticmeshsceneRaytracer(const Point3 &lsz, int lev) const;
-  virtual bool buildableStaticSceneRayTracerAddmesh(BuildableStaticSceneRayTracer &rt, const Point3 *vert, int vcount,
-    const unsigned *face, unsigned stride, int fn, const unsigned *face_flags, bool rebuild) const;
-  virtual bool buildableStaticSceneRayTracerReserve(BuildableStaticSceneRayTracer &rt, int face_count, int vert_count) const;
-  virtual bool buildableStaticSceneRayTracerRebuild(BuildableStaticSceneRayTracer &rt) const;
+  BuildableStaticSceneRayTracer *createBuildableStaticmeshsceneRaytracer(const Point3 &lsz, int lev) const override;
+  bool buildableStaticSceneRayTracerAddmesh(BuildableStaticSceneRayTracer &rt, const Point3 *vert, int vcount, const unsigned *face,
+    unsigned stride, int fn, const unsigned *face_flags, bool rebuild) const override;
+  bool buildableStaticSceneRayTracerReserve(BuildableStaticSceneRayTracer &rt, int face_count, int vert_count) const override;
+  bool buildableStaticSceneRayTracerRebuild(BuildableStaticSceneRayTracer &rt) const override;
 
   // StaticSceneBuilder::StdTonemapper
-  virtual StaticSceneBuilder::StdTonemapper *newStdTonemapper(IMemAlloc *alloc) const;
-  virtual StaticSceneBuilder::StdTonemapper *newStdTonemapper(const StaticSceneBuilder::StdTonemapper &from, IMemAlloc *alloc) const;
-  virtual void deleteStdTonemapper(StaticSceneBuilder::StdTonemapper *&mapper) const;
+  StaticSceneBuilder::StdTonemapper *newStdTonemapper(IMemAlloc *alloc) const override;
+  StaticSceneBuilder::StdTonemapper *newStdTonemapper(const StaticSceneBuilder::StdTonemapper &from, IMemAlloc *alloc) const override;
+  void deleteStdTonemapper(StaticSceneBuilder::StdTonemapper *&mapper) const override;
 
-  virtual void stdTonemapperRecalc(StaticSceneBuilder::StdTonemapper &mapper) const;
-  virtual void stdTonemapperSave(StaticSceneBuilder::StdTonemapper &mapper, DataBlock &blk) const;
-  virtual void stdTonemapperLoad(StaticSceneBuilder::StdTonemapper &mapper, const DataBlock &blk) const;
+  void stdTonemapperRecalc(StaticSceneBuilder::StdTonemapper &mapper) const override;
+  void stdTonemapperSave(StaticSceneBuilder::StdTonemapper &mapper, DataBlock &blk) const override;
+  void stdTonemapperLoad(StaticSceneBuilder::StdTonemapper &mapper, const DataBlock &blk) const override;
 
   // resources
-  virtual GameResource *getGameResource(GameResHandle handle, bool no_factory_fatal = true) const;
-  virtual void releaseGameResource(GameResource *resource) const;
+  GameResource *getGameResource(GameResHandle handle, bool no_factory_fatal = true) const override;
+  void releaseGameResource(GameResource *resource) const override;
 };
 
 
@@ -378,6 +395,7 @@ public:
   IDagorRender *getRender() override { return &render; }
   IDagorGeom *getGeom() override { return &geom; }
   IDagorConsole *getConsole() override { return &console; }
+  IDagorInput *getInput() override { return &input; }
   IDagorTools *getTools() override { return &tools; }
   IDagorScene *getScene() override { return &scene; }
   const char *getExePath() override;
@@ -386,6 +404,7 @@ private:
   EcRender render;
   EcGeom geom;
   EcConsole console;
+  EcInput input;
   EcTools tools;
   EcScene scene;
 };

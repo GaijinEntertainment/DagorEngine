@@ -33,6 +33,7 @@ if $(Platform) in windows {
 
 UseProgLibs =
   1stPartyLibs/daScript
+  gameLibs/gameMath
 ;
 
 include $(Root)/prog/3rdPartyLibs/phys/setup-phys.jam ;

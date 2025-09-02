@@ -16,7 +16,6 @@
 #include <drv_utils.h>
 #include <driver.h>
 #include "globals.h"
-#include "swapchain.h"
 
 using namespace drv3d_vulkan;
 
@@ -50,13 +49,22 @@ void android_d3d_reinit(void *w)
 
   int32_t maxWaitMs = 1000;
   int32_t waitStep = 100;
-  while (((window_width == 1) || (window_height == 1)) && (maxWaitMs > 0))
+  while (((window_width <= 1) || (window_height <= 1)) && (maxWaitMs > 0))
   {
-    debug("vulkan: window size is 1x1, waiting for correct one");
+    debug("vulkan: window size is %ux%u, waiting for correct one", window_width, window_height);
     sleep_msec(waitStep);
     maxWaitMs -= waitStep;
     window_width = ANativeWindow_getWidth(nativeWindow);
     window_height = ANativeWindow_getHeight(nativeWindow);
+  }
+  if ((window_width <= 1) || (window_height <= 1))
+  {
+    window_width = 1280;
+    window_height = 720;
+    const char *msg = "vulkan: using fallback window size 1280x720 as system did not provide window size";
+    // duplicate msg to make sure it lands either in client logs or/and crashlytics
+    logwarn(msg);
+    D3D_ERROR(msg);
   }
 
   const DataBlock *settings = dgs_get_settings();
@@ -75,7 +83,7 @@ void android_d3d_reinit(void *w)
     target_resolution = IPoint2(1920, 1080);
   else if (resStr == "SD")
     target_resolution = IPoint2(960, 540);
-  // keep underfined
+  // keep undefined
   // else if (resStr == "Native")
 
   if (target_resolution == undefined_resolution)
@@ -132,7 +140,6 @@ void android_d3d_reinit(void *w)
   // if this re-init is not first, reset device to setup proper surface
   if (d3d::is_inited())
   {
-    Globals::swapchain.forceRecreate();
     d3d::reset_device();
   }
 }
@@ -156,7 +163,7 @@ void drv3d_vulkan::os_restore_display_mode() {}
 void drv3d_vulkan::os_set_display_mode(int, int) {}
 
 eastl::string drv3d_vulkan::os_get_additional_ext_requirements(VulkanPhysicalDeviceHandle dev,
-  const eastl::vector<VkExtensionProperties> &extensions)
+  const dag::Vector<VkExtensionProperties> &extensions)
 {
   G_UNUSED(dev);
   G_UNUSED(extensions);

@@ -110,9 +110,25 @@ to reloadModule(entry_point_fn) will reload the module and all it depends on whi
 
 Registers a Quirrel object 'exports' under the provided 'module_name', so that it can be require()-d in script.
 
-.. cpp:function:: void SqModules::registerBaseLibs()
+.. cpp:function:: void SqModules::registerMathLib()
 
-Registers standard math, string and blob libraries as native modules ("math", "string" and "blob" respectively)
+Registers standard "math" native library
+
+.. cpp:function:: void SqModules::registerStringLib()
+
+Registers standard "string" native library
+
+.. cpp:function:: void SqModules::registerIoStreamLib()
+
+Registers standard "iostream" native library module (blob and stream classes)
+
+.. cpp:function:: void SqModules::registerDateTimeLib()
+
+Registers standard "datetime" native library
+
+.. cpp:function:: void SqModules::registerDebugLib()
+
+Registers "debug" native library
 
 .. cpp:function:: void SqModules::registerSystemLib()
 

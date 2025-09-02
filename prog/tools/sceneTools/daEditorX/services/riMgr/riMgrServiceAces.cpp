@@ -17,6 +17,7 @@
 #include <de3_randomSeed.h>
 #include <de3_entityGetSceneLodsRes.h>
 #include <de3_genObjHierMask.h>
+#include <de3_dynRenderService.h>
 #include <libTools/util/binDumpHierBitmap.h>
 #include <rendInst/rendInstGenRender.h>
 #include <riGen/genObjUtil.h>
@@ -68,9 +69,7 @@
 #undef MIN
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
-#define GRID_ALIGNMENT 2048
-
-#include <oldEditor/de_clipping.h>
+#include <oldEditor/de_collision.h>
 #include <libTools/staticGeom/geomObject.h>
 #include <libTools/staticGeom/staticGeometryContainer.h>
 #include <assets/assetChangeNotify.h>
@@ -86,6 +85,7 @@
 #endif
 #include <EditorCore/ec_camera_elem.h>
 #include <de3_hmapService.h>
+#include <de3_landmesh.h>
 
 extern const char *daeditor3_get_appblk_fname();
 namespace rendinst
@@ -116,7 +116,7 @@ static void(__stdcall *custom_reinit_cb)(void *arg) = NULL;
 static void *custom_reinit_arg = NULL;
 static uint8_t perInstDataDwords = 0;
 static bool perInstDataUseSeed = false;
-static bool perInstDataUseAutoSeed = false;
+static bool instSeedStoreZeroForRandom = false;
 static bool delayRiResInit = true; // stays true until first HUID_BeforeMainLoop event
 
 class AcesRendInstEntity;
@@ -222,13 +222,24 @@ public:
     if (!gameBlk)
       return;
 
-    String navmesh_layers(gameBlk->getStr("navmesh_layers", nullptr));
+    const bool isNavmeshKindEmpty = nav_mesh_kind == nullptr || *nav_mesh_kind == '\0';
+
+    String navmesh_layers;
+    if (!isNavmeshKindEmpty)
+    {
+      const DataBlock *navmeshLayersWithKind = gameBlk->getBlockByName("navmesh_layers_with_kind");
+      if (navmeshLayersWithKind != nullptr)
+        navmesh_layers = navmeshLayersWithKind->getStr(nav_mesh_kind, nullptr);
+    }
+    if (navmesh_layers.empty())
+      navmesh_layers = makeFilePathForNavMeshKind(gameBlk->getStr("navmesh_layers", nullptr), nav_mesh_kind);
     if (navmesh_layers.empty())
       return;
-    navmesh_layers = makeFilePathForNavMeshKind(navmesh_layers, nav_mesh_kind);
 
     pools.resize(getBiggestLevelSize());
     pools.reset();
+
+    transparentPools.clear();
 
     obstaclePools.clear();
 
@@ -238,9 +249,17 @@ public:
     applyRegExp(navmblk.getBlock(navmblk.findBlock("filter_exclude")), [&](int pool) { pools.reset(pool); });
     applyRegExp(navmblk.getBlock(navmblk.findBlock("filter_include")), [&](int pool) { pools.set(pool); });
 
+    const int blkSkipNameId1 = navmblk.getNameId("filter");
+    const int blkSkipNameId2 = navmblk.getNameId("filter_exclude");
+    const int blkSkipNameId3 = navmblk.getNameId("filter_include");
+
     for (int blkIt = 0; blkIt < navmblk.blockCount(); blkIt++)
     {
       const DataBlock *blk = navmblk.getBlock(blkIt);
+      const int blkNameId = blk->getBlockNameId();
+      if (blkNameId == blkSkipNameId1 || blkNameId == blkSkipNameId2 || blkNameId == blkSkipNameId3)
+        continue;
+
       if (blk->getBool("ignoreCollision", false))
       {
         for (int i = 0; i < blk->blockCount(); i++)
@@ -250,7 +269,8 @@ public:
             pools.set(pool);
         }
       }
-      else
+
+      if (blk->getBool("returnCollision", false))
       {
         for (int i = 0; i < blk->blockCount(); i++)
         {
@@ -271,14 +291,21 @@ public:
       }
     }
 
-    String rendinstDmgBlk(gameBlk->getStr("rendinst_dmg", ""));
+    String rendinstDmgBlk;
+    if (!isNavmeshKindEmpty)
+    {
+      const DataBlock *rendinstDmgWithKind = gameBlk->getBlockByName("rendinst_dmg_with_kind");
+      if (rendinstDmgWithKind != nullptr)
+        rendinstDmgBlk = rendinstDmgWithKind->getStr(nav_mesh_kind, nullptr);
+    }
+    if (rendinstDmgBlk.empty())
+      rendinstDmgBlk = makeFilePathForNavMeshKind(gameBlk->getStr("rendinst_dmg", ""), nav_mesh_kind);
     rendinstDmgBlk.replaceAll("<gameName>", gameName.c_str());
     if (rendinstDmgBlk.empty())
     {
       logdbg("rendinst_dmg is not specified, tilecached navmesh will be built without obstacles");
       return;
     }
-    rendinstDmgBlk = makeFilePathForNavMeshKind(rendinstDmgBlk, nav_mesh_kind);
     DataBlock dmgblk(String(260, "%s/%s", DAGORED2->getWorkspace().getAppDir(), rendinstDmgBlk.c_str()));
     const DataBlock *riExtraBlk = dmgblk.getBlockByName("riExtra");
     if (!riExtraBlk)
@@ -335,10 +362,17 @@ public:
         }
     }
 
-    String navmesh_obstacles(gameBlk->getStr("navmesh_obstacles", nullptr));
+    String navmesh_obstacles;
+    if (!isNavmeshKindEmpty)
+    {
+      const DataBlock *navmeshObstaclesWithKind = gameBlk->getBlockByName("navmesh_obstacles_with_kind");
+      if (navmeshObstaclesWithKind != nullptr)
+        navmesh_obstacles = navmeshObstaclesWithKind->getStr(nav_mesh_kind, nullptr);
+    }
+    if (navmesh_obstacles.empty())
+      navmesh_obstacles = makeFilePathForNavMeshKind(gameBlk->getStr("navmesh_obstacles", nullptr), nav_mesh_kind);
     if (navmesh_obstacles.empty())
       return;
-    navmesh_obstacles = makeFilePathForNavMeshKind(navmesh_obstacles, nav_mesh_kind);
 
     String navObstaclesPath(260, "%s/%s", DAGORED2->getWorkspace().getAppDir(), navmesh_obstacles);
     rendinst::load_obstacle_settings(navObstaclesPath.c_str(), obstaclesSettings);
@@ -359,7 +393,7 @@ struct RendinstVertexDataCbEditor : public rendinst::RendinstVertexDataCbBase
   {}
   ~RendinstVertexDataCbEditor() { clear_all_ptr_items(riCache); }
 
-  virtual void processCollision(const rendinst::CollisionInfo &coll_info) override
+  void processCollision(const rendinst::CollisionInfo &coll_info) override
   {
     if (!coll_info.collRes)
       return;
@@ -455,7 +489,9 @@ public:
     inExcludeBoxes(in_exclude_boxes)
   {}
 
-  virtual void doJob()
+  const char *getJobName(bool &) const override { return "RendinstGatherCollJob"; }
+
+  void doJob() override
   {
     int64_t refproc = ref_time_ticks_qpc();
     Tab<NavMeshObstacle> obstacles;
@@ -465,7 +501,7 @@ public:
 
     RendinstVertexDataCbEditor cb(vertices, indices, transparent, navmeshLayers.pools, navmeshLayers.obstaclePools,
       navmeshLayers.materialPools, navmeshLayers.obstaclesSettings, obstacles);
-    rendinst::testObjToRIGenIntersection(box, cb, rendinst::GatherRiTypeFlag::RiGenAndExtra);
+    rendinst::testObjToRendInstIntersection(box, cb, rendinst::GatherRiTypeFlag::RiGenAndExtra);
     transparent.reserve(cb.transparent.size());
     vertices.reserve(cb.vertNum);
     indices.reserve(cb.indNum);
@@ -516,7 +552,7 @@ public:
     }
     debug("RendinstGatherCollJob push done in %.2f sec", get_time_usec_qpc(refpush) / 1000000.0);
   }
-  virtual void releaseJob() { delete this; }
+  void releaseJob() override { delete this; }
 };
 
 
@@ -554,15 +590,20 @@ public:
     instSeed = 0;
     autoInstSeed = true;
     dataBlockId = IDataBlockIdHolder::invalid_id;
+    initTm();
+  }
+
+  inline void initTm()
+  {
     tm.identity();
     tm.m[3][0] = tm.m[3][2] = 1e6;
   }
 
-  virtual void setTm(const TMatrix &_tm);
-  virtual void getTm(TMatrix &_tm) const { _tm = tm; }
-  virtual void destroy();
+  void setTm(const TMatrix &_tm) override;
+  void getTm(TMatrix &_tm) const override { _tm = tm; }
+  void destroy() override;
 
-  virtual void *queryInterfacePtr(unsigned huid)
+  void *queryInterfacePtr(unsigned huid) override
   {
     RETURN_INTERFACE(huid, ILodController);
     RETURN_INTERFACE(huid, IColor);
@@ -574,55 +615,51 @@ public:
     return NULL;
   }
 
-  virtual void setColor(unsigned int in_color)
+  void setEditLayerIdx(int t) override;
+
+  void setColor(unsigned int in_color) override
   {
     colorIdx = in_color;
     G_ASSERTF(colorIdx == in_color, "in_color=0x%X", in_color);
   }
-  virtual unsigned int getColor() { return colorIdx; }
+  unsigned int getColor() override { return colorIdx; }
 
   // ILodController
-  virtual int getLodCount();
-  virtual void setCurLod(int n);
-  virtual real getLodRange(int lod_n);
-
-  // no texture quality level support
-  virtual int getTexQLCount() const { return 1; }
-  virtual void setTexQL(int ql) {}
-  virtual int getTexQL() const { return 0; }
+  int getLodCount() override;
+  void setCurLod(int n) override;
+  real getLodRange(int lod_n) override;
 
   // no named nodes support
-  virtual int getNamedNodeCount() { return 0; }
-  virtual const char *getNamedNode(int idx) { return NULL; }
-  virtual int getNamedNodeIdx(const char *nm) { return -1; }
-  virtual bool getNamedNodeVisibility(int idx) { return true; }
-  virtual void setNamedNodeVisibility(int idx, bool vis) {}
+  int getNamedNodeCount() override { return 0; }
+  const char *getNamedNode(int idx) override { return NULL; }
+  int getNamedNodeIdx(const char *nm) override { return -1; }
+  bool getNamedNodeVisibility(int idx) override { return true; }
+  void setNamedNodeVisibility(int idx, bool vis) override {}
 
-  virtual DagorAsset *getAsset() override;
-  virtual int getAssetNameId() override;
-  virtual const char *getResourceName();
-  virtual int getPoolIndex() { return poolIdx; }
-  virtual bool getRendInstQuantizedTm(TMatrix &out_tm) const override;
+  DagorAsset *getAsset() override;
+  int getAssetNameId() override;
+  const char *getResourceName() override;
+  int getRIIndex() const override;
+  int getPoolIndex() override { return poolIdx; }
+  bool getRendInstQuantizedTm(TMatrix &out_tm) const override;
 
-  virtual void setSeed(int new_seed) {}
-  virtual int getSeed() { return instSeed; }
-  virtual void setPerInstanceSeed(int seed);
-  virtual int getPerInstanceSeed() { return autoInstSeed ? 0 : instSeed; }
-  virtual bool isSeedSetSupported() { return false; }
+  void setSeed(int new_seed) override {}
+  int getSeed() override { return instSeed; }
+  void setPerInstanceSeed(int seed) override;
+  int getPerInstanceSeed() override { return autoInstSeed ? 0 : instSeed; }
+  bool isSeedSetSupported() override { return false; }
 
   // IEntityGatherTex interface
-  virtual int gatherTextures(TextureIdSet &out_tex_id, int for_lod);
+  int gatherTextures(TextureIdSet &out_tex_id, int for_lod) override;
 
   // IDataBlockIdHolder
-  virtual void setDataBlockId(unsigned id) { dataBlockId = id; }
-  virtual unsigned getDataBlockId() { return dataBlockId; }
+  void setDataBlockId(unsigned id) override { dataBlockId = id; }
+  unsigned getDataBlockId() override { return dataBlockId; }
 
-  virtual RenderableInstanceLodsResource *getSceneLodsRes();
-  virtual const RenderableInstanceLodsResource *getSceneLodsRes() const;
+  RenderableInstanceLodsResource *getSceneLodsRes() override;
+  const RenderableInstanceLodsResource *getSceneLodsRes() const override;
 
 public:
-  static const int STEP = 2048;
-
   TMatrix tm;
   unsigned short colorIdx;
   unsigned short autoInstSeed : 1;
@@ -695,11 +732,7 @@ public:
   }
   void init1(bool on_asset_changed = false)
   {
-    if (res)
-    {
-      ::release_game_resource((GameResource *)res.get());
-      res = NULL;
-    }
+    res = nullptr;
 
     if (!delayRiResInit)
     {
@@ -717,6 +750,7 @@ public:
       DAEDITOR3.conError("resource is not rendInst: %s", (char *)riResName);
       return;
     }
+    ::release_game_resource((GameResource *)res.get());
 
     if (on_asset_changed)
       rendinst::update_rt_pregen_ri(pregenId, *res);
@@ -743,7 +777,7 @@ public:
       aMgr->unsubscribeUpdateNotify(this);
     del_it(visualGeom);
     del_it(geom);
-    res = NULL;
+    res = nullptr;
     riResName = NULL;
     if (aMgr)
       aMgr = NULL;
@@ -914,7 +948,7 @@ public:
   inline real getLodRange(int lod_n) { return res ? res->lods[lod_n].range : 0.0; }
 
   // IEntityGatherTex interface
-  virtual int gatherTextures(TextureIdSet &out_tex_id, int for_lod)
+  inline int gatherTextures(TextureIdSet &out_tex_id, int for_lod)
   {
     if (!res)
       return 0;
@@ -927,8 +961,11 @@ public:
   }
 
   // IDagorAssetChangeNotify interface
-  virtual void onAssetRemoved(int asset_name_id, int asset_type)
+  void onAssetRemoved(int asset_name_id, int asset_type) override
   {
+    if (asset_name_id == assetNameId && asset_type == rendInstEntityClassId)
+      cachedAsset = nullptr;
+
     if (!custom_reinit_cb)
     {
       DAEDITOR3.conWarning("ignoring removed rendinst");
@@ -936,14 +973,16 @@ public:
     }
     del_it(geom);
     del_it(visualGeom);
-    ::release_game_resource((GameResource *)res.get());
-    res = NULL;
+    res = nullptr;
     pregenId = -1;
     custom_reinit_cb(custom_reinit_arg);
     EDITORCORE->invalidateViewportCache();
   }
-  virtual void onAssetChanged(const DagorAsset &asset, int asset_name_id, int asset_type)
+  void onAssetChanged(const DagorAsset &asset, int asset_name_id, int asset_type) override
   {
+    if (asset_name_id == assetNameId && asset_type == rendInstEntityClassId)
+      cachedAsset = nullptr;
+
     if (!custom_reinit_cb)
     {
       DAEDITOR3.conWarning("ignoring changed rendinst %s", asset.getName());
@@ -1072,12 +1111,20 @@ public:
 
   DagorAsset *getAsset() const
   {
+    if (cachedAsset)
+      return cachedAsset;
+
     if (!aMgr)
       return nullptr;
     dag::ConstSpan<DagorAsset *> assets = aMgr->getAssets();
     for (int i = 0; i < assets.size(); ++i)
+    {
       if (assets[i]->getNameId() == assetNameId && assets[i]->getType() == rendInstEntityClassId)
-        return assets[i];
+      {
+        cachedAsset = assets[i];
+        return cachedAsset;
+      }
+    }
     return nullptr;
   }
 
@@ -1090,7 +1137,7 @@ public:
     buf.printf(0, "%s:rendInst", assetName());
     return buf;
   }
-  virtual bool dumpUsedEntitesCount(int idx) override
+  bool dumpUsedEntitesCount(int idx) override
   {
     if (int cnt = ent.size() - entUuIdx.size())
     {
@@ -1136,6 +1183,7 @@ protected:
   DagorAssetMgr *aMgr;
   int assetNameId;
   String dagFile;
+  mutable DagorAsset *cachedAsset = nullptr;
 
   collisionpreview::Collision collision;
   VirtualAcesRendInstEntity virtualEntity;
@@ -1203,10 +1251,10 @@ public:
     G_ASSERTF(perInstDataDwords <= 1,
       "rendInstGenExtraRender.inc.cpp fills out the 2nd and 3rd members at runtime (check addData[ADDITIONAL_DATA_IDX] = ...)");
     perInstDataUseSeed = appBlk.getBlockByNameEx("projectDefaults")->getBlockByNameEx("riMgr")->getBool("perInstDataUseSeed", false);
-    perInstDataUseAutoSeed =
-      appBlk.getBlockByNameEx("projectDefaults")->getBlockByNameEx("riMgr")->getBool("perInstDataUseAutoSeed", perInstDataUseSeed);
+    instSeedStoreZeroForRandom =
+      appBlk.getBlockByNameEx("projectDefaults")->getBlockByNameEx("riMgr")->getBool("instSeedStoreZeroForRandom", perInstDataUseSeed);
     debug("using perInstDataDwords=%d %s %s", perInstDataDwords, perInstDataUseSeed ? "[posSeed]" : "",
-      perInstDataUseAutoSeed ? "[autoSeed]" : "");
+      instSeedStoreZeroForRandom ? "[storeZeroForRandom]" : "");
 
     rendinst::initRIGen(/*render*/ !d3d::is_stub_driver(), 80, 8000.0f, NULL, NULL, -1, 256.0f);
     frameBlkId = ShaderGlobal::getBlockId("global_frame");
@@ -1228,10 +1276,11 @@ public:
     rendinst::forceRiExtra =
       appBlk.getBlockByNameEx("assets")->getBlockByNameEx("build")->getBlockByNameEx("rendInst")->getBool("forceRiExtra", false);
   }
-  ~AcesRendInstEntityManagementService()
+  ~AcesRendInstEntityManagementService() override
   {
     if (DAGORED2)
       DAGORED2->unregisterCustomCollider(this);
+    resetLandClassCache();
     if (rigenSrv)
     {
       rendinst::release_rt_rigen_data();
@@ -1243,15 +1292,15 @@ public:
   }
 
   // IEditorService interface
-  virtual const char *getServiceName() const { return "_riEntMgr"; }
-  virtual const char *getServiceFriendlyName() const { return "(srv) Render instance entities"; }
+  const char *getServiceName() const override { return "_riEntMgr"; }
+  const char *getServiceFriendlyName() const override { return "(srv) Render instance entities"; }
 
-  virtual void setServiceVisible(bool vis) { visible = vis; }
-  virtual bool getServiceVisible() const { return visible; }
+  void setServiceVisible(bool vis) override { visible = vis; }
+  bool getServiceVisible() const override { return visible; }
 
-  virtual void actService(float dt) {}
-  virtual void beforeRenderService() {}
-  virtual void renderService()
+  void actService(float dt) override {}
+  void beforeRenderService() override {}
+  void renderService() override
   {
     setGlobalTexturesToShaders();
 
@@ -1280,16 +1329,46 @@ public:
       end_draw_cached_debug_lines();
     }
   }
-  virtual void renderTransService() {}
+  void renderTransService() override {}
 
-  virtual void onBeforeReset3dDevice() {}
-  virtual bool catchEvent(unsigned event_huid, void *userData)
+  void onBeforeReset3dDevice() override {}
+  bool catchEvent(unsigned event_huid, void *userData) override
   {
     if (event_huid == HUID_DumpEntityStat)
     {
       DAEDITOR3.conNote("RendInstMgr: %d entities (using %u different models, while %u models have no instances)",
         riPool.getUsedEntityCount(), riPool.getUsedPoolsCount(), riPool.getEmptyPoolsCount());
       riPool.dumpUsedPools();
+    }
+    else if (event_huid == HUID_DumpRiEntityStat)
+    {
+      DataBlock ri_stats;
+      unsigned total_ri_count = rendinst::precompute_ri_cells_for_stats(ri_stats);
+      unsigned vbsize_thres = (unsigned)(uintptr_t)userData;
+
+      DAEDITOR3.conNote("RI stats: total %d instances in %d layers", total_ri_count, ri_stats.blockCount());
+      dblk::iterate_child_blocks_by_name(ri_stats, "rgl", [vbsize_thres](const DataBlock &b) {
+        const IPoint2 cells = b.getIPoint2("cells");
+        const float half_cell = b.getInt("cellSz") * b.getReal("grid2world") * 0.5f;
+        unsigned cz = 0;
+
+        DAEDITOR3.conNote("RIgen layer: total %d instances in %dx%d cells (dumping all cells with VBsize > %d)", b.getInt("totalRI"),
+          cells.x, cells.y, vbsize_thres);
+        dblk::iterate_child_blocks_by_name(b, "cellsRow", [&cz, half_cell, vbsize_thres](const DataBlock &b) {
+          unsigned cx = 0;
+          dblk::iterate_params_by_name_and_type(b, "riCntInCell", DataBlock::TYPE_POINT4,
+            [&b, &cx, &cz, half_cell, vbsize_thres](int idx) {
+              Point4 riCntInCell = b.getPoint4(idx);
+              if (int(riCntInCell.y) > vbsize_thres)
+                DAEDITOR3.getCon().addMessage(riCntInCell.y > 65536 * 8 ? ILogWriter::WARNING : ILogWriter::NOTE,
+                  "  %6d instances (VB size: %6d*8=%4dK) in cell %4d,%-4d at (%6g,%6g)", int(riCntInCell.x), int(riCntInCell.y) / 8,
+                  int(riCntInCell.y) >> 10, cx, cz, floorf(riCntInCell.z + half_cell), floorf(riCntInCell.w + half_cell));
+              cx++;
+            });
+          cz++;
+        });
+      });
+      // ri_stats.saveToTextFile("ri_stats.blk");
     }
     else if (event_huid == HUID_BeforeMainLoop && delayRiResInit)
     {
@@ -1320,7 +1399,7 @@ public:
     return false;
   }
 
-  virtual void *queryInterfacePtr(unsigned huid)
+  void *queryInterfacePtr(unsigned huid) override
   {
     RETURN_INTERFACE(huid, IObjEntityMgr);
     RETURN_INTERFACE(huid, IRenderingService);
@@ -1337,8 +1416,8 @@ public:
   }
 
   // ILightingChangeClient
-  virtual void onLightingChanged() {}
-  virtual void onLightingSettingsChanged()
+  void onLightingChanged() override {}
+  void onLightingSettingsChanged() override
   {
     static int fromSunDirectionVarId = ::get_shader_glob_var_id("from_sun_direction");
     Color4 new_sun_dir = ShaderGlobal::get_color4_fast(fromSunDirectionVarId);
@@ -1346,11 +1425,16 @@ public:
   }
 
   // IRenderingService interface
-  virtual void renderGeometry(Stage stage)
+  void renderGeometry(Stage stage) override
   {
     int st_mask = IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_RENDER);
     if ((st_mask & rendEntGeomMask) != rendEntGeomMask)
       return;
+
+    if (stage != STG_BEFORE_RENDER)
+      if (IDynRenderService *rs = EDITORCORE->queryEditorInterface<IDynRenderService>())
+        if (rs->getRenderType() == rs->RTYPE_DNG_BASED)
+          return; // DNG-based render already renders current global RI scene in world renderer
 
     uint64_t lh_mask = IObjEntityFilter::getLayerHiddenMask();
     rendinst::LayerFlags forceLodBits = {};
@@ -1364,6 +1448,10 @@ public:
     d3d::settm(TM_WORLD, ident);
     mat44f globtm;
     d3d::getglobtm(globtm);
+    TexStreamingContext texStrmCtx = {0};
+    if (stage != STG_BEFORE_RENDER)
+      if (auto *drSrv = EDITORCORE->queryEditorInterface<IDynRenderService>())
+        texStrmCtx = drSrv->getMainViewStreamingContext();
     switch (stage)
     {
       case STG_BEFORE_RENDER:
@@ -1387,11 +1475,13 @@ public:
         frame_block = ShaderGlobal::getBlock(ShaderGlobal::LAYER_FRAME);
         ShaderGlobal::setBlock(frameBlkId, ShaderGlobal::LAYER_FRAME);
         IHmapService *hmlService = EDITORCORE->queryEditorInterface<IHmapService>();
-        if (hmlService)
+        ILandmesh *landmesh = EDITORCORE->getInterfaceEx<ILandmesh>();
+        bool feedback = landmesh ? landmesh->isLandmeshRenderingMode() : false;
+        if (hmlService && feedback)
           hmlService->startUAVFeedback();
         rendinst::render::renderRIGen(rendinst::RenderPass::Normal, globtm, ::grs_cur_view.pos, ::grs_cur_view.itm,
-          rendinst::LayerFlag::Opaque | rendinst::LayerFlag::NotExtra | forceLodBits);
-        if (hmlService)
+          rendinst::LayerFlag::Opaque | rendinst::LayerFlag::NotExtra | forceLodBits, false, texStrmCtx);
+        if (hmlService && feedback)
           hmlService->endUAVFeedback();
         ShaderGlobal::setBlock(frame_block, ShaderGlobal::LAYER_FRAME);
       }
@@ -1401,7 +1491,7 @@ public:
         frame_block = ShaderGlobal::getBlock(ShaderGlobal::LAYER_FRAME);
         ShaderGlobal::setBlock(frameBlkId, ShaderGlobal::LAYER_FRAME);
         rendinst::render::renderRIGen(rendinst::RenderPass::Normal, globtm, ::grs_cur_view.pos, ::grs_cur_view.itm,
-          rendinst::LayerFlag::Decals | forceLodBits);
+          rendinst::LayerFlag::Decals | forceLodBits, false, texStrmCtx);
         ShaderGlobal::setBlock(frame_block, ShaderGlobal::LAYER_FRAME);
         break;
 
@@ -1409,7 +1499,7 @@ public:
         frame_block = ShaderGlobal::getBlock(ShaderGlobal::LAYER_FRAME);
         ShaderGlobal::setBlock(frameBlkId, ShaderGlobal::LAYER_FRAME);
         rendinst::render::renderRIGen(rendinst::RenderPass::Normal, globtm, ::grs_cur_view.pos, ::grs_cur_view.itm,
-          rendinst::LayerFlag::Transparent | forceLodBits);
+          rendinst::LayerFlag::Transparent | forceLodBits, false, texStrmCtx);
         ShaderGlobal::setBlock(frame_block, ShaderGlobal::LAYER_FRAME);
         break;
 
@@ -1417,7 +1507,7 @@ public:
         frame_block = ShaderGlobal::getBlock(ShaderGlobal::LAYER_FRAME);
         ShaderGlobal::setBlock(frameBlkId, ShaderGlobal::LAYER_FRAME);
         rendinst::render::renderRIGen(rendinst::RenderPass::Normal, globtm, ::grs_cur_view.pos, ::grs_cur_view.itm,
-          rendinst::LayerFlag::Distortion | forceLodBits);
+          rendinst::LayerFlag::Distortion | forceLodBits, false, texStrmCtx);
         ShaderGlobal::setBlock(frame_block, ShaderGlobal::LAYER_FRAME);
         break;
 
@@ -1425,19 +1515,21 @@ public:
         frame_block = ShaderGlobal::getBlock(ShaderGlobal::LAYER_FRAME);
         ShaderGlobal::setBlock(frameBlkId, ShaderGlobal::LAYER_FRAME);
         rendinst::render::renderRIGen(rendinst::RenderPass::ToShadow, globtm, ::grs_cur_view.pos, ::grs_cur_view.itm,
-          rendinst::LayerFlag::Opaque | rendinst::LayerFlag::NotExtra | forceLodBits);
+          rendinst::LayerFlag::Opaque | rendinst::LayerFlag::NotExtra | forceLodBits, false, texStrmCtx);
         ShaderGlobal::setBlock(frame_block, ShaderGlobal::LAYER_FRAME);
         break;
+
+      default: break;
     }
   }
 
   // IObjEntityMgr interface
-  virtual bool canSupportEntityClass(int entity_class) const
+  bool canSupportEntityClass(int entity_class) const override
   {
     return rendInstEntityClassId >= 0 && rendInstEntityClassId == entity_class;
   }
 
-  virtual IObjEntity *createEntity(const DagorAsset &asset, bool virtual_ent)
+  IObjEntity *createEntity(const DagorAsset &asset, bool virtual_ent) override
   {
     int pool_idx = riPool.findPool(asset);
     if (pool_idx < 0)
@@ -1450,7 +1542,9 @@ public:
       return NULL;
 
     AcesRendInstEntity *ent = riPool.allocEntity();
-    if (!ent)
+    if (ent)
+      ent->initTm(); // Ensure getting notify_ri_moved from AcesRendInstEntity::setTm.
+    else
       ent = new AcesRendInstEntity;
     ent->setColor(riPool.getPools()[pool_idx]->defColorIdx);
 
@@ -1459,14 +1553,16 @@ public:
     return ent;
   }
 
-  virtual IObjEntity *cloneEntity(IObjEntity *origin)
+  IObjEntity *cloneEntity(IObjEntity *origin) override
   {
     AcesRendInstEntity *o = reinterpret_cast<AcesRendInstEntity *>(origin);
     if (!riPool.canAddEntity(o->poolIdx))
       return NULL;
 
     AcesRendInstEntity *ent = riPool.allocEntity();
-    if (!ent)
+    if (ent)
+      ent->initTm(); // Ensure getting notify_ri_moved from AcesRendInstEntity::setTm.
+    else
       ent = new AcesRendInstEntity;
     ent->setColor(riPool.getPools()[o->poolIdx]->defColorIdx);
 
@@ -1476,7 +1572,7 @@ public:
   }
 
   // IRendInstGen interface
-  virtual rendinst::gen::land::AssetData *getLandClassGameRes(const char *name)
+  rendinst::gen::land::AssetData *getLandClassGameRes(const char *name) override
   {
     FastNameMap landcls_nm;
     landcls_nm.addNameId(name);
@@ -1485,29 +1581,29 @@ public:
     ::reset_required_res_list_restriction();
     return (rendinst::gen::land::AssetData *)res;
   }
-  virtual void releaseLandClassGameRes(rendinst::gen::land::AssetData *res)
+  void releaseLandClassGameRes(rendinst::gen::land::AssetData *res) override
   {
     if (res)
       release_game_resource((GameResource *)res);
   }
 
-  virtual void setCustomGetHeight(bool(__stdcall *c_get_height)(Point3 &pos, Point3 *out_norm))
+  void setCustomGetHeight(bool(__stdcall *c_get_height)(Point3 &pos, Point3 *out_norm)) override
   {
     ri_get_height = c_get_height;
     ri_update_pregen_pos_y = c_get_height ? &update_pregen_pos_y : NULL;
   }
-  virtual void setSweepMask(EditableHugeBitmask *bm, float ox, float oz, float scale)
+  void setSweepMask(EditableHugeBitmask *bm, float ox, float oz, float scale) override
   {
     rendinst::set_rigen_sweep_mask(bm, ox, oz, scale);
   }
 
-  virtual void clearRtRIGenData()
+  void clearRtRIGenData() override
   {
     rendinst::release_rt_rigen_data();
     rigenLandBox.setempty();
   }
-  virtual bool createRtRIGenData(float ofs_x, float ofs_z, float grid2world, int cell_sz, int cell_num_x, int cell_num_z,
-    dag::ConstSpan<rendinst::gen::land::AssetData *> land_cls, float dens_map_px, float dens_map_pz)
+  bool createRtRIGenData(float ofs_x, float ofs_z, float grid2world, int cell_sz, int cell_num_x, int cell_num_z,
+    dag::ConstSpan<rendinst::gen::land::AssetData *> land_cls, float dens_map_px, float dens_map_pz) override
   {
     if (g_debug_is_in_fatal)
       return false;
@@ -1528,24 +1624,24 @@ public:
         colRangeSrv->getColorTo(p[i]->defColorIdx), p[i]->riResName);
     return true;
   }
-  virtual void releaseRtRIGenData() { rendinst::release_rt_rigen_data(); }
-  virtual EditableHugeBitMap2d *getRIGenBitMask(rendinst::gen::land::AssetData *land_cls)
+  void releaseRtRIGenData() override { rendinst::release_rt_rigen_data(); }
+  EditableHugeBitMap2d *getRIGenBitMask(rendinst::gen::land::AssetData *land_cls) override
   {
     return rendinst::get_rigen_bit_mask(land_cls);
   }
-  virtual void discardRIGenRect(int gx0, int gz0, int gx1, int gz1) { rendinst::discard_rigen_rect(gx0, gz0, gx1, gz1); }
+  void discardRIGenRect(int gx0, int gz0, int gx1, int gz1) override { rendinst::discard_rigen_rect(gx0, gz0, gx1, gz1); }
 
-  virtual int getRIGenLayers() const { return rendinst::get_rigen_data_layers(); }
-  virtual int getRIGenLayerCellSizeDivisor(int layer_idx) const { return rendinst::get_rigen_layers_cell_div(layer_idx); }
+  int getRIGenLayers() const override { return rendinst::get_rigen_data_layers(); }
+  int getRIGenLayerCellSizeDivisor(int layer_idx) const override { return rendinst::get_rigen_layers_cell_div(layer_idx); }
 
-  virtual void setReinitCallback(void(__stdcall *reinit_cb)(void *arg), void *arg)
+  void setReinitCallback(void(__stdcall *reinit_cb)(void *arg), void *arg) override
   {
     custom_reinit_cb = reinit_cb;
     custom_reinit_arg = arg;
   }
-  virtual void resetLandClassCache() { rendinst::rt_rigen_free_unused_land_classes(); }
+  void resetLandClassCache() override { rendinst::rt_rigen_free_unused_land_classes(); }
 
-  virtual void onLevelBlkLoaded(const DataBlock &blk) { navmeshLayers.setGameName(blk.getStr("gameName", DEFAULT_LEVEL_GAMENAME)); }
+  void onLevelBlkLoaded(const DataBlock &blk) override { navmeshLayers.setGameName(blk.getStr("gameName", DEFAULT_LEVEL_GAMENAME)); }
 
   static void prepare_pools(bool prepare)
   {
@@ -1596,14 +1692,14 @@ public:
   }
 
   // IBinaryDataBuilder interface
-  virtual bool validateBuild(int target, ILogWriter &log, PropPanel::ContainerPropertyControl *params)
+  bool validateBuild(int target, ILogWriter &log, PropPanel::ContainerPropertyControl *params) override
   {
     if (!calcPerPoolEntities({}, IObjEntityFilter::STMASK_TYPE_EXPORT))
       log.addMessage(log.WARNING, "No rendInst entities for export");
     return true;
   }
 
-  virtual bool addUsedTextures(ITextureNumerator &tn) { return true; }
+  bool addUsedTextures(ITextureNumerator &tn) override { return true; }
 
   struct TmpEntityTm
   {
@@ -1677,8 +1773,8 @@ public:
     }
   };
 
-  virtual void gatherCollision(const BBox3 &box, Tab<Point3> &vertices, Tab<int> &indices, Tab<IPoint2> &transparent,
-    Tab<NavMeshObstacle> &obstacles, const Tab<BBox3> &exclude_boxes, const char *nav_mesh_kind)
+  void gatherCollision(const BBox3 &box, Tab<Point3> &vertices, Tab<int> &indices, Tab<IPoint2> &transparent,
+    Tab<NavMeshObstacle> &obstacles, const Tab<BBox3> &exclude_boxes, const char *nav_mesh_kind) override
   {
     navmeshLayers.load(nav_mesh_kind);
 
@@ -1726,7 +1822,7 @@ public:
     {
       RendinstVertexDataCbEditor cb(vertices, indices, transparent, navmeshLayers.pools, navmeshLayers.obstaclePools,
         navmeshLayers.materialPools, navmeshLayers.obstaclesSettings, obstacles);
-      rendinst::testObjToRIGenIntersection(box, cb, rendinst::GatherRiTypeFlag::RiGenAndExtra);
+      rendinst::testObjToRendInstIntersection(box, cb, rendinst::GatherRiTypeFlag::RiGenAndExtra);
       cb.procFilteredCollision([&exclude_boxes](const rendinst::CollisionInfo &ci) {
         if (ci.collRes == nullptr)
           return false;
@@ -1743,12 +1839,12 @@ public:
       navmeshLayers.load();
   }
 
-  virtual void getObstaclesFlags(const ska::flat_hash_map<uint32_t, uint32_t> *&obstacle_flags_by_res_name_hash)
+  void getObstaclesFlags(const ska::flat_hash_map<uint32_t, uint32_t> *&obstacle_flags_by_res_name_hash) override
   {
     obstacle_flags_by_res_name_hash = &navmeshLayers.obstacleFlags;
   }
 
-  virtual bool buildAndWrite(BinDumpSaveCB &main_cwr, const ITextureNumerator &tn, PropPanel::ContainerPropertyControl *)
+  bool buildAndWrite(BinDumpSaveCB &main_cwr, const ITextureNumerator &tn, PropPanel::ContainerPropertyControl *) override
   {
     G_ASSERT(DAGORED2);
     G_ASSERT(colRangeSrv);
@@ -1835,7 +1931,11 @@ public:
           {
             append_items(poolsList[poolNo].entitiesTmList, 1);
 
-            poolsList[poolNo].entitiesTmList.back().tm = riPool.getPools()[poolNo]->getEntities()[entityNo]->tm;
+            mat44f tm;
+            v_mat44_make_from_43cu_unsafe(tm, riPool.getPools()[poolNo]->getEntities()[entityNo]->tm.array);
+            if (v_extract_x(v_mat44_det43(tm)) < 0.f)
+              tm.col0 = v_neg(tm.col0);
+            v_mat_43cu_from_mat44(poolsList[poolNo].entitiesTmList.back().tm.array, tm);
 
             poolsList[poolNo].entitiesTmList.back().color =
               ((AcesRendInstEntity *)riPool.getPools()[poolNo]->getEntities()[entityNo])->colorIdx;
@@ -1880,7 +1980,7 @@ public:
     return true;
   }
 
-  virtual bool checkMetrics(const DataBlock &metrics_blk)
+  bool checkMetrics(const DataBlock &metrics_blk) override
   {
     int cnt = calcPerPoolEntities({}, IObjEntityFilter::STMASK_TYPE_EXPORT);
     int maxCount = metrics_blk.getInt("max_entities", 0);
@@ -1894,7 +1994,7 @@ public:
   }
 
   // IWriteAddLtinputData interface
-  virtual void writeAddLtinputData(IGenSave &cwr)
+  void writeAddLtinputData(IGenSave &cwr) override
   {
     dag::ConstSpan<AcesRendInstEntityPool *> p = riPool.getPools();
     if (!p.size())
@@ -1949,11 +2049,9 @@ public:
   }
 
   // ILevelResListBuilder
-  virtual void addUsedResNames(OAHashNameMap<true> &res_list)
+  void addUsedResNames(OAHashNameMap<true> &res_list) override
   {
     dag::ConstSpan<AcesRendInstEntityPool *> p = riPool.getPools();
-    if (!p.size())
-      return;
 
     for (int i = 0; i < p.size(); i++)
       if (p[i]->getUsedEntityCount())
@@ -1972,22 +2070,24 @@ public:
         if (layerBlk.getBlock(i)->getBlockNameId() == nid_mask)
           res_list.addNameId(layerBlk.getBlock(i)->getStr("land"));
     }
+    dblk::iterate_params_by_name_and_type(fileBlk, "detOnlyLand", DataBlock::TYPE_STRING,
+      [&res_list, &fileBlk](int pidx) { res_list.addNameId(fileBlk.getStr(pidx)); });
   }
 
   // IGatherStaticGeometry
-  virtual void gatherStaticVisualGeometry(StaticGeometryContainer &container) {}
-  virtual void gatherStaticEnviGeometry(StaticGeometryContainer & /*container*/) {}
+  void gatherStaticVisualGeometry(StaticGeometryContainer &container) override {}
+  void gatherStaticEnviGeometry(StaticGeometryContainer & /*container*/) override {}
 
-  virtual void gatherStaticCollisionGeomGame(StaticGeometryContainer &container)
+  void gatherStaticCollisionGeomGame(StaticGeometryContainer &container) override
   {
     addGeometry(container, IObjEntityFilter::STMASK_TYPE_COLLISION);
   }
-  virtual void gatherStaticCollisionGeomEditor(StaticGeometryContainer &container)
+  void gatherStaticCollisionGeomEditor(StaticGeometryContainer &container) override
   {
     addGeometry(container, IObjEntityFilter::STMASK_TYPE_COLLISION);
   }
 
-  virtual void gatherExportToDagGeometry(StaticGeometryContainer &container)
+  void gatherExportToDagGeometry(StaticGeometryContainer &container) override
   {
     dag::ConstSpan<AcesRendInstEntityPool *> p = riPool.getPools();
     const int pCnt = p.size();
@@ -1997,7 +2097,7 @@ public:
 
 
   // IDagorEdCustomCollider
-  virtual bool traceRay(const Point3 &p, const Point3 &dir, real &maxt, Point3 *norm)
+  bool traceRay(const Point3 &p, const Point3 &dir, real &maxt, Point3 *norm) override
   {
     if (traceMode == 1)
     {
@@ -2012,7 +2112,7 @@ public:
         v_bbox3_add_pt(box, v_add(vFrom, rayBoxExt.bmin));
         v_bbox3_add_pt(box, v_add(vFrom, rayBoxExt.bmax));
         if (rendinst::traceDownMultiRay(make_span(&trace, 1), box, make_span(&ri_desc, 1), NULL, -1, rendinst::TraceFlag::Destructible,
-              navmeshLayers.pools.size() ? &navmeshLayers.pools : nullptr))
+              {}, (navmeshLayers.pools.size() ? &navmeshLayers.pools : nullptr)))
           if (trace.pos.outT > 0)
           {
             maxt = trace.pos.outT;
@@ -2041,15 +2141,15 @@ public:
     return ret;
   }
 
-  virtual void clipCapsule(const Capsule &c, Point3 &cp1, Point3 &cp2, real &md, const Point3 &movedirNormalized)
+  void clipCapsule(const Capsule &c, Point3 &cp1, Point3 &cp2, real &md, const Point3 &movedirNormalized) override
   {
     rendinst::clipCapsuleRI(c, cp1, cp2, md, movedirNormalized, &cachedTraceMeshFaces);
   }
 
-  virtual bool shadowRayHitTest(const Point3 &p, const Point3 &dir, real maxt) { return false; }
-  virtual const char *getColliderName() const { return getServiceFriendlyName(); }
-  virtual bool isColliderVisible() const { return visible; }
-  virtual bool setupColliderParams(int mode, const BBox3 &area)
+  bool shadowRayHitTest(const Point3 &p, const Point3 &dir, real maxt) override { return false; }
+  const char *getColliderName() const override { return getServiceFriendlyName(); }
+  bool isColliderVisible() const override { return visible; }
+  bool setupColliderParams(int mode, const BBox3 &area) override
   {
     v_bbox3_init(rayBoxExt, v_zero());
     if (mode == 1)
@@ -2087,13 +2187,13 @@ public:
   void prepareCollider() override { navmeshLayers.load(); }
 
   // IOccluderGeomProvider
-  virtual void gatherOccluders(Tab<TMatrix> &occl_boxes, Tab<Quad> &occl_quads)
+  void gatherOccluders(Tab<TMatrix> &occl_boxes, Tab<Quad> &occl_quads) override
   {
     dag::ConstSpan<AcesRendInstEntityPool *> p = riPool.getPools();
     for (int i = 0; i < p.size(); i++)
       p[i]->gatherOccluders(occl_boxes, occl_quads);
   }
-  virtual void renderOccluders(const Point3 &camPos, float max_dist)
+  void renderOccluders(const Point3 &camPos, float max_dist) override
   {
     dag::ConstSpan<AcesRendInstEntityPool *> p = riPool.getPools();
     for (int i = 0; i < p.size(); i++)
@@ -2141,7 +2241,9 @@ protected:
     if (landBlendNoiseTexId == BAD_TEXTUREID)
       landBlendNoiseTexId = get_tex_gameres("perlin_noise");
     static int perlinTexVarId = get_shader_variable_id("perlin_tex", true);
+    static int perlinTexSamplerstateVarId = get_shader_variable_id("perlin_tex_samplerstate", true);
     ShaderGlobal::set_texture(perlinTexVarId, landBlendNoiseTexId);
+    ShaderGlobal::set_sampler(perlinTexSamplerstateVarId, get_texture_separate_sampler(landBlendNoiseTexId));
 
     float rendinstLandBlendSharpness = rendinstLandBlendBlk->getReal("blendSharpness", 8.f);
     float rendinstLandBlendAngleMin = sinf(rendinstLandBlendBlk->getReal("appearanceMinAngle", 12.f) / DEG_TO_RAD);
@@ -2230,6 +2332,125 @@ protected:
     return cnt;
   }
 
+  struct RiPerCellEntities
+  {
+    typedef SmallTab<int, TmpmemAlloc> tabint_t;
+    SmallTab<tabint_t, TmpmemAlloc> entPerCell;
+    SmallTab<unsigned> cellRemap;
+    IBBox2 usedBox;
+    objgenerator::HugeBitmask usedCellBM;
+    unsigned usedCellCnt = 0;
+
+    void init(unsigned w, unsigned h)
+    {
+      G_ASSERTF(w < (1u << 16) && h < (1u << 16), "w=%d h=%d", w, h);
+      usedCellBM.resize(w, h);
+      usedCellCnt = 0;
+      entPerCell.clear();
+      usedBox.setEmpty();
+    }
+    void markCellUsed(unsigned ix, unsigned iy)
+    {
+      if (!usedCellBM.get(ix, iy))
+      {
+        usedCellCnt++;
+        usedCellBM.set(ix, iy);
+        usedBox += IPoint2(ix, iy);
+      }
+    }
+    void prepareStorage()
+    {
+      if (!usedCellCnt)
+        return;
+      usedBox[1].x++, usedBox[1].y++; // make right-botom non-inclusive to simplify further calculations
+      unsigned reg_grid_size = usedBox.size().x * usedBox.size().y;
+      if (reg_grid_size <= (16 << 10) || usedCellCnt * 10 > reg_grid_size)
+        entPerCell.resize(reg_grid_size);
+      else
+      {
+        entPerCell.resize(usedCellCnt);
+        cellRemap.reserve(usedCellCnt);
+        for (unsigned iy = 0, xmax = usedCellBM.getW(), ymax = usedCellBM.getH(); iy < ymax; iy++)
+          for (unsigned ix = 0; ix < xmax; ix++)
+            if (usedCellBM.get(ix, iy))
+            {
+              cellRemap.push_back((iy << 16) | ix);
+              if (cellRemap.size() == usedCellCnt)
+              {
+                iy = ymax;
+                break;
+              }
+            }
+      }
+      // debug("%p.prepareStorage: %dx%d: usedBox=[%d,%d]-(%d,%d) usedCellCnt=%d reg_grid_size=%d -> entPerCell=%d cellRemap=%d", this,
+      //   usedCellBM.getW(), usedCellBM.getH(), usedBox[0].x, usedBox[0].y, usedBox[1].x, usedBox[1].y, usedCellCnt, reg_grid_size,
+      //   entPerCell.size(), cellRemap.size());
+      usedCellBM.resize(0, 0); // effectively releases memory
+    }
+    void addEntity(unsigned ix, unsigned iy, int e_idx)
+    {
+      if (cellRemap.size())
+      {
+        int idx = bfind_idx(cellRemap, (iy << 16) | ix);
+        G_ASSERTF_RETURN(idx >= 0, , "ix=%d iy=%d", ix, iy);
+        entPerCell[idx].push_back(e_idx);
+      }
+      else if (usedCellCnt && ix >= usedBox[0].x && iy >= usedBox[0].y && ix < usedBox[1].x && iy < usedBox[1].y)
+        entPerCell[(iy - usedBox[0].y) * usedBox.size().x + (ix - usedBox[0].x)].push_back(e_idx);
+      else
+        G_ASSERTF(0, "ix=%d iy=%d usedCellCnt=%d usedBox=[%d,%d]-(%d,%d)", ix, iy, usedCellCnt, usedBox[0].x, usedBox[0].y,
+          usedBox[1].x, usedBox[1].y);
+    }
+    tabint_t takeCell(unsigned ix, unsigned iy)
+    {
+      if (cellRemap.size())
+      {
+        int idx = bfind_idx(cellRemap, (iy << 16) | ix);
+        return idx < 0 ? tabint_t{} : eastl::move(entPerCell[idx]);
+      }
+      if (usedCellCnt && ix >= usedBox[0].x && iy >= usedBox[0].y && ix < usedBox[1].x && iy < usedBox[1].y)
+        return eastl::move(entPerCell[(iy - usedBox[0].y) * usedBox.size().x + (ix - usedBox[0].x)]);
+      return {};
+    }
+
+  protected:
+    static inline int bfind_idx(dag::ConstSpan<unsigned> table, unsigned key)
+    {
+      const unsigned *__restrict e = table.data();
+      unsigned lo = 0, hi = table.size() - 1, m = 0;
+
+      // check boundaries
+      if (key < *e)
+        return -1;
+      if (key == *e)
+        return 0;
+
+      e = &table[hi];
+      if (key == *e)
+        return hi;
+      if (key > *e)
+        return -1;
+
+      // binary search
+      while (lo < hi)
+      {
+        m = (lo + hi) >> 1;
+        e = &table[m];
+
+        if (key == *e)
+          return m;
+        if (m == lo)
+          return -1;
+
+        if (key < *e)
+          hi = m;
+        else
+          lo = m;
+      }
+      return -1;
+    }
+  };
+
   void exportGenEntities(BinDumpSaveCB &cwr, BinDumpSaveCB &cdata_cwr, const DataBlock &blk, dag::ConstSpan<TmpPool> poolsList,
     dag::ConstSpan<bool> isDynamicImpostorList, int layer_idx)
   {
@@ -2259,7 +2480,7 @@ protected:
       riPoolReMap[i] = (riPool.getPools()[i] && riPool.getPools()[i]->layerIdx == layer_idx) ? usedRiPoolCnt++ : -1;
     }
 
-    Tab<Tab<Tabint>> riLdCnt(tmpmem);
+    SmallTab<RiPerCellEntities, TmpmemAlloc> riLdCnt;
     riLdCnt.resize(usedRiPoolCnt);
 
     Point3 gridOfs(blk.getReal("gridOfsX"), 0, blk.getReal("gridOfsZ"));
@@ -2304,7 +2525,8 @@ protected:
       layer_idx + 1, ri_cw, ri_ch, ri_cell_sz, ri_cell_sz, subCellSz * SUBCELL_DIV / ri_cell_sz, gridOfs.x, gridOfs.z,
       gridOfs.x + ri_cw * cellSz, gridOfs.z + ri_ch * cellSz, gridOfs.x + used_cells_bbox[0].x * cellSz,
       gridOfs.z + used_cells_bbox[0].y * cellSz, gridOfs.x + used_cells_bbox[1].x * cellSz, gridOfs.z + used_cells_bbox[1].y * cellSz,
-      usedRiPoolCnt, poolsList.size(), usedRiPoolCnt, size_t(ri_cw * ri_ch) * SUBCELL_DIV * SUBCELL_DIV * sizeof(Tabint)); //-V1028
+      usedRiPoolCnt, poolsList.size(), usedRiPoolCnt,
+      size_t(ri_cw * ri_ch) * SUBCELL_DIV * SUBCELL_DIV * sizeof(SmallTab<int>)); //-V1028
     if (crop_area)
     {
       gridOfs.x += used_cells_bbox[0].x * cellSz;
@@ -2322,19 +2544,29 @@ protected:
       int idx = riPoolReMap[i];
       if (idx < 0)
         continue;
-      Tab<Tabint> &cur_cnt = riLdCnt[idx];
-      cur_cnt.resize(ri_cw * ri_ch * SUBCELL_DIV * SUBCELL_DIV);
+
+      riLdCnt[idx].init(ri_cw * SUBCELL_DIV, ri_ch * SUBCELL_DIV);
       bool isPos = poolsList[i].isPos;
       for (int j = 0, je = isPos ? poolsList[i].entitiesPosList.size() : poolsList[i].entitiesTmList.size(); j < je; j++)
       {
         Point3 p = (isPos ? poolsList[i].entitiesPosList[j].pos : poolsList[i].entitiesTmList[j].tm.getcol(3));
         int ix = clamp(int((p.x - gridOfs.x) / subCellSz), 0, ri_cw * SUBCELL_DIV - 1);
         int iy = clamp(int((p.z - gridOfs.z) / subCellSz), 0, ri_ch * SUBCELL_DIV - 1);
-        cur_cnt[SUBCELL_DIV * SUBCELL_DIV * ((iy / SUBCELL_DIV) * ri_cw + (ix / SUBCELL_DIV)) + (iy % SUBCELL_DIV) * SUBCELL_DIV +
-                (ix % SUBCELL_DIV)]
-          .push_back(j);
+        riLdCnt[idx].markCellUsed(ix, iy);
+      }
+
+      riLdCnt[idx].prepareStorage();
+      for (int j = 0, je = isPos ? poolsList[i].entitiesPosList.size() : poolsList[i].entitiesTmList.size(); j < je; j++)
+      {
+        Point3 p = (isPos ? poolsList[i].entitiesPosList[j].pos : poolsList[i].entitiesTmList[j].tm.getcol(3));
+        int ix = clamp(int((p.x - gridOfs.x) / subCellSz), 0, ri_cw * SUBCELL_DIV - 1);
+        int iy = clamp(int((p.z - gridOfs.z) / subCellSz), 0, ri_ch * SUBCELL_DIV - 1);
+        riLdCnt[idx].addEntity(ix, iy, j);
       }
     }
+    static char buf[2048];
+    get_memory_stats(buf, 2048);
+    debug("RiPerCellEntities prepared: %s", buf);
 
     Tab<Point2> cellHtLim(tmpmem);
     cellHtLim.resize(ri_cw * ri_ch);
@@ -2350,7 +2582,7 @@ protected:
             used_cells_bbox[0].y + (i / ri_cw), cellHtLim[i].x, cellHtLim[i].y))
         cellHtLim[i].x = 0, cellHtLim[i].y = 8192;
 
-      BinDumpSaveCB cell_cwr(64 << 10, cwr.getTarget(), cwr.WRITE_BE);
+      BinDumpSaveCB cell_cwr(64 << 10, cwr);
       float cell_xz_sz = SUBCELL_DIV * subCellSz;
       float cell_y_sz = cellHtLim[i].y;
       float ox = gridOfs.x + (i % ri_cw) * cell_xz_sz;
@@ -2362,12 +2594,14 @@ protected:
       for (int j = 0; j < SUBCELL_DIV * SUBCELL_DIV; j++)
       {
         entCntRef[i * (SUBCELL_DIV * SUBCELL_DIV + 1) + j] = entCntStor.size();
+        unsigned ix = (i % ri_cw) * SUBCELL_DIV + (j % SUBCELL_DIV), iy = (i / ri_cw) * SUBCELL_DIV + (j / SUBCELL_DIV);
         for (int k = 0; k < usedRiPoolCnt; k++)
-          if (int cnt = riLdCnt[k][i * SUBCELL_DIV * SUBCELL_DIV + j].size())
+          if (auto ent = riLdCnt[k].takeCell(ix, iy); ent.size() > 0)
           {
+            const unsigned cnt = ent.size();
             entCntStor.push_back().set(k, cnt);
 
-            const int *ent_idx = riLdCnt[k][i * SUBCELL_DIV * SUBCELL_DIV + j].data();
+            const int *ent_idx = ent.data();
             int poolId = find_value_idx(riPoolReMap, k);
             const TmpPool &pool = poolsList[poolId];
             // TODO use a better writing method and try to move the writing code out of the if blocks
@@ -2417,8 +2651,6 @@ protected:
                   cell_cwr.writeInt32e(data[i]);
                 addPerInstData(cell_cwr, !pool.hasZeroInstSeeds, pool.entitiesTmList[ent_idx[m]].seed);
               }
-
-            clear_and_shrink(riLdCnt[k][i * SUBCELL_DIV * SUBCELL_DIV + j]);
           }
       }
       entCntRef[i * (SUBCELL_DIV * SUBCELL_DIV + 1) + SUBCELL_DIV * SUBCELL_DIV] = entCntStor.size();
@@ -2630,8 +2862,8 @@ protected:
     debug("rgLayers export mask=%04X", rigen_layers_mask);
     for (int layer = 0; layer < rendinst::get_rigen_data_layers() && rigen_layers_mask; layer++, rigen_layers_mask >>= 1)
     {
-      BinDumpSaveCB cwr(16 << 20, main_cwr.getTarget(), main_cwr.WRITE_BE);
-      BinDumpSaveCB cdata_cwr(4 << 20, main_cwr.getTarget(), main_cwr.WRITE_BE);
+      BinDumpSaveCB cwr(16 << 20, main_cwr);
+      BinDumpSaveCB cdata_cwr(4 << 20, main_cwr);
       exportGenEntities(cwr, cdata_cwr, get_layer_blk(blk, layer), poolsList, isDynamicImpostorList, layer);
 
       int main_pos = main_cwr.tell();
@@ -2731,6 +2963,15 @@ const char *AcesRendInstEntity::getResourceName()
   return pool->getPools()[poolIdx]->riResName;
 }
 
+int AcesRendInstEntity::getRIIndex() const
+{
+  G_ASSERT(pool);
+  G_ASSERT(poolIdx < pool->getPools().size());
+  int layerIdx, riIdx;
+  rendinst::get_layer_idx_and_ri_idx_from_pregen_id(pool->getPools()[poolIdx]->pregenId, layerIdx, riIdx);
+  return riIdx;
+}
+
 bool AcesRendInstEntity::getRendInstQuantizedTm(TMatrix &out_tm) const
 {
   G_ASSERT(pool);
@@ -2760,18 +3001,23 @@ void AcesRendInstEntity::setTm(const TMatrix &_tm)
   if (memcmp(&tm, &_tm, sizeof(tm)) != 0)
     rendinst::notify_ri_moved(pool->getPools()[poolIdx]->pregenId, tm[3][0], tm[3][2], _tm[3][0], _tm[3][2]);
   tm = _tm;
-  if (autoInstSeed && perInstDataUseAutoSeed)
-    instSeed = mem_hash_fnv1((const char *)&tm.m[3][0], 12);
+  if (autoInstSeed)
+  {
+    instSeed = instSeedStoreZeroForRandom ? 0 : mem_hash_fnv1((const char *)&tm.m[3][0], 12);
+  }
 }
 void AcesRendInstEntity::setPerInstanceSeed(int seed)
 {
   if (instSeed != seed)
     rendinst::notify_ri_moved(pool->getPools()[poolIdx]->pregenId, tm[3][0], tm[3][2], tm[3][0], tm[3][2]);
 
-  if (seed || !perInstDataUseAutoSeed)
+  if (seed)
     instSeed = seed, autoInstSeed = false;
   else
-    instSeed = mem_hash_fnv1((const char *)&tm.m[3][0], 12), autoInstSeed = true;
+  {
+    instSeed = instSeedStoreZeroForRandom ? 0 : mem_hash_fnv1((const char *)&tm.m[3][0], 12);
+    autoInstSeed = true;
+  }
 }
 void AcesRendInstEntity::destroy()
 {
@@ -2779,6 +3025,19 @@ void AcesRendInstEntity::destroy()
   pool->delEntity(this);
   instSeed = 0;
   autoInstSeed = true;
+}
+
+void AcesRendInstEntity::setEditLayerIdx(int t)
+{
+  const uint64_t lhMask = IObjEntityFilter::getLayerHiddenMask();
+  const unsigned oldHidden = (lhMask >> editLayerIdx) & 1;
+
+  VirtualAcesRendInstEntity::setEditLayerIdx(t);
+
+  // Update the entity if it has been moved from a visible to an invisible layer (or vice versa).
+  const unsigned newHidden = (lhMask >> editLayerIdx) & 1;
+  if (newHidden != oldHidden)
+    rendinst::notify_ri_moved(pool->getPools()[poolIdx]->pregenId, tm[3][0], tm[3][2], tm[3][0], tm[3][2]);
 }
 
 RenderableInstanceLodsResource *AcesRendInstEntity::getSceneLodsRes() { return pool->getPools()[poolIdx]->res; }

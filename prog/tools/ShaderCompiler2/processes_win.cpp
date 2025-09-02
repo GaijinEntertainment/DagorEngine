@@ -4,6 +4,7 @@
 #include <debug/dag_assert.h>
 #include <dag/dag_vector.h>
 #include <EASTL/algorithm.h>
+#include <perfMon/dag_cpuFreq.h>
 #include <osApiWrappers/basePath.h>
 
 #include <cstring>
@@ -16,24 +17,37 @@
 
 namespace proc::internal
 {
+
+struct Pipe
+{
+  HANDLE read, write;
+
+  operator bool() const { return read && write; }
+};
+
 struct ProcessData : PROCESS_INFORMATION
 {
-  ProcessData(const PROCESS_INFORMATION &pi) : PROCESS_INFORMATION(pi) {}
+  Pipe outputPipe;
+
+  ProcessData(const PROCESS_INFORMATION &pi, Pipe output_pipe) : PROCESS_INFORMATION(pi), outputPipe{output_pipe} {}
 };
 
 struct ExtraStateData
 {
   HANDLE cancellationEventHnd{};
+  dag::Vector<Pipe> outputPipePool{};
 };
 
-void init_state(ExecutionState &state)
-{
-  state.extraData = new ExtraStateData{CreateEventEx(nullptr, nullptr, 0, SYNCHRONIZE | DELETE)};
-}
+void init_state(ExecutionState &state) { state.extraData = new ExtraStateData{CreateEvent(nullptr, FALSE, FALSE, nullptr)}; }
 
 void deinit_state(ExecutionState &state)
 {
   CloseHandle(state.extraData->cancellationEventHnd);
+  for (auto &pipe : state.extraData->outputPipePool)
+  {
+    CloseHandle(pipe.read);
+    CloseHandle(pipe.write);
+  }
   delete state.extraData;
 }
 
@@ -62,9 +76,9 @@ AwaitResult await_processes(ExecutionState &state, bool listen_to_cancellation_e
 
   G_VERIFY(waitRes >= WAIT_OBJECT_0 && waitRes < WAIT_OBJECT_0 + winHandles.size());
 
-  if (listen_to_cancellation_event && waitRes == winHandles.size() - 1) // Hit event
+  if (listen_to_cancellation_event && waitRes == winHandles.size() - 1) // Woken by event
   {
-    G_ASSERT(state.cancelled.load(std::memory_order_relaxed));
+    G_ASSERT(state.cancelled.load(dag::memory_order_relaxed));
     return AwaitResult::CANCELLED_BY_USER;
   }
 
@@ -75,25 +89,65 @@ AwaitResult await_processes(ExecutionState &state, bool listen_to_cancellation_e
   G_VERIFY(exitCodeSuccess);
   G_VERIFY(exitCode != STILL_ACTIVE);
 
-  CloseHandle(state.processes[handleId].processData->hThread);
-  CloseHandle(state.processes[handleId].processData->hProcess);
-  delete state.processes[handleId].processData;
+  auto &proc = state.processes[handleId];
+  serve_process_output(state, proc);
 
-  if (exitCode != 0)
-    state.processes[handleId].task.cleanupOnFail();
+  state.sinkPool[eastl::to_underlying(proc.sink)].free = true;
+  state.extraData->outputPipePool.push_back(eastl::exchange(proc.processData->outputPipe, Pipe{}));
+
+  CloseHandle(proc.processData->hThread);
+  CloseHandle(proc.processData->hProcess);
+  delete proc.processData;
+
+  if (exitCode == 0)
+    proc.task.onSuccess();
+  else
+    proc.task.onFail();
 
   state.processes.erase(state.processes.cbegin() + handleId);
 
-  return exitCode == 0 ? AwaitResult::ALL_SUCCEEDED : AwaitResult::SOME_FAILED;
+  if (listen_to_cancellation_event && state.cancelled.load()) // Recheck 'cancelled' after collecting proc in case event was also fired
+    return AwaitResult::CANCELLED_BY_USER;
+  else
+    return exitCode == 0 ? AwaitResult::ALL_SUCCEEDED : AwaitResult::SOME_FAILED;
 }
 
-eastl::optional<ProcessHandle> spawn_process(ProcessTask &&task)
+static Pipe get_output_pipe(ExecutionState &state)
 {
+  if (!state.extraData->outputPipePool.empty())
+  {
+    Pipe pipe = state.extraData->outputPipePool.back();
+    state.extraData->outputPipePool.pop_back();
+    return pipe;
+  }
+
+  Pipe pipe{};
+
+  SECURITY_ATTRIBUTES saAttr{};
+  saAttr.nLength = sizeof(SECURITY_ATTRIBUTES);
+  saAttr.bInheritHandle = true;
+  saAttr.lpSecurityDescriptor = nullptr;
+
+  if (!CreatePipe(&pipe.read, &pipe.write, &saAttr, 0) || !SetHandleInformation(pipe.read, HANDLE_FLAG_INHERIT, 0))
+    return {};
+
+  return pipe;
+}
+
+eastl::optional<ProcessHandle> spawn_process(ExecutionState &state, ProcessTask &&task)
+{
+  Pipe pipe = get_output_pipe(state);
+  if (!pipe)
+    return eastl::nullopt;
+
   PROCESS_INFORMATION pi;
   STARTUPINFO si;
   ZeroMemory(&si, sizeof(STARTUPINFO));
   si.cb = sizeof(STARTUPINFO);
-  si.dwFlags = STARTF_USESHOWWINDOW;
+  si.hStdOutput = pipe.write;
+  si.hStdError = pipe.write;
+  si.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
+  si.dwFlags = STARTF_USESHOWWINDOW | STARTF_USESTDHANDLES;
   si.wShowWindow = SW_HIDE;
 
   G_ASSERT(!task.argv.empty());
@@ -131,9 +185,28 @@ eastl::optional<ProcessHandle> spawn_process(ProcessTask &&task)
     return eastl::nullopt;
 
   ProcessHandle hnd;
-  hnd.processData = new ProcessData{pi};
+  hnd.processData = new ProcessData{pi, pipe};
   hnd.task = eastl::move(task);
+
   return hnd;
+}
+
+void serve_process_output(ExecutionState &state, ProcessHandle &hnd)
+{
+  DWORD bytesAvail = 0;
+  G_VERIFY(PeekNamedPipe(hnd.processData->outputPipe.read, nullptr, 0, nullptr, &bytesAvail, nullptr));
+  if (bytesAvail == 0)
+    return;
+
+  auto &sink = state.sinkPool[eastl::to_underlying(hnd.sink)];
+  sink.buffer.resize(sink.buffer.size() + bytesAvail);
+
+  DWORD bytesRead = 0;
+  G_VERIFY(ReadFile(hnd.processData->outputPipe.read, sink.buffer.end() - bytesAvail, bytesAvail, &bytesRead, nullptr));
+  G_VERIFY(bytesRead == bytesAvail);
+
+  sink.lastTs = get_time_msec();
+  hnd.hasCommunicated = true;
 }
 
 void send_interrupt_signal_to_process(const ProcessHandle &process)

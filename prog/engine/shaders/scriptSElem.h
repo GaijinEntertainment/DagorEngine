@@ -13,7 +13,7 @@
 #include <shaders/dag_shaderState.h>
 #include <generic/dag_smallTab.h>
 #include <osApiWrappers/dag_spinlock.h>
-#include <atomic>
+#include <osApiWrappers/dag_atomic_types.h>
 #include "shStateBlock.h"
 
 
@@ -51,7 +51,7 @@ public:
     mutable struct Id
     {
       // NOTE: might also contain the special value of DELETED_STATE_BLOCK_ID, be careful
-      std::atomic<ShaderStateBlockId> v;
+      dag::AtomicPod<ShaderStateBlockId> v;
       int pr;
     } id; // we cache it inside stateBlocksSpinLock
     PackedPassId() = default;
@@ -109,8 +109,8 @@ public:
 
   void update_stvar(ScriptedShaderMaterial &m, int stvarid);
 
-  GCC_HOT void execute_chosen_stcode(uint16_t stcodeId, const shaderbindump::ShaderCode::Pass *cPass, const uint8_t *vars,
-    bool is_compute) const;
+  GCC_HOT void execute_chosen_stcode(uint16_t stcodeId, uint16_t extStcodeId, const shaderbindump::ShaderCode::Pass *cPass,
+    const uint8_t *vars) const;
 
   SNC_LIKELY_TARGET bool setStates() const override;
   SNC_LIKELY_TARGET void render(int minv, int numv, int sind, int numf, int base_vertex, int prim = PRIM_TRILIST) const override;
@@ -121,6 +121,12 @@ public:
   uint32_t getWaveSize() const;
   bool dispatchComputeThreads(int threads_x, int threads_y, int threads_z, GpuPipeline gpu_pipeline, bool set_states) const;
   bool dispatchComputeIndirect(Sbuffer *args, int ofs, GpuPipeline gpu_pipeline = GpuPipeline::GRAPHICS, bool set_states = true) const;
+
+  bool dispatchMesh(uint32_t groups_x, uint32_t groups_y, uint32_t groups_z, bool set_states = true) const;
+  bool dispatchMeshThreads(uint32_t threads_x, uint32_t threads_y, uint32_t threads_z, bool set_states = true) const;
+  bool dispatchMeshIndirect(Sbuffer *args, uint32_t count, uint32_t stride, uint32_t offset, bool set_states = true) const;
+  bool dispatchMeshIndirectCount(Sbuffer *args, uint32_t args_offset, uint32_t args_stride, Sbuffer *count, uint32_t count_offset,
+    uint32_t max_count, bool set_states = true) const;
 
   SNC_LIKELY_TARGET int getTextureCount() const override;
   SNC_LIKELY_TARGET TEXTUREID getTexture(int index) const override;
@@ -167,7 +173,7 @@ private:
 
   const shaderbindump::ShaderCode::ShRef *getPassCode() const;
 
-  ShaderStateBlockId recordStateBlock(const shaderbindump::ShaderCode::ShRef &p) const;
+  ShaderStateBlockId recordStateBlock(const shaderbindump::ShaderCode::ShRef &p, const shaderbindump::ShaderCode &sc) const;
   VDECL initVdecl() const;
 
   ScriptedShaderElement(const ScriptedShaderElement &);

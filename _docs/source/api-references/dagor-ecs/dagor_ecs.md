@@ -1,6 +1,6 @@
 # Dagor ECS
 
-## Basic concepts
+## Basic Concepts
 
 **Entity:** An entity is a set of components created based on a template using
 an initializer (a data set) for each component. It is important to note that an
@@ -27,7 +27,7 @@ override these default values within the entity.
 **Archetype:** A specific list of components defines an archetype. All
 components of entities sharing the same archetype are stored optimally in memory
 (Structs of Arrays, SoA). Multiple templates can correspond to the same
-archetype. Direct interaction with archetypes is not possiblle, as they are
+archetype. Direct interaction with archetypes is not possible, as they are
 framework entities, but it is useful to understand which archetype your template
 corresponds to.
 
@@ -162,7 +162,7 @@ relevant components have been changed.
   a single system is possible but extremely dangerous and undesirable unless you
   fully understand what you are doing.
 
-  In *daNetGame-based* games this is specified in a query during declaration as
+  In daNetGame-based games this is specified in a query during declaration as
 
   ```
   `template<typename Callable> void animchar_update_ecs_query(Callable ECS_CAN_PARALLEL_FOR(c, 4));
@@ -360,7 +360,6 @@ As you can see, both approaches are possible, but:
 
 - **DagorECS - Data-Oriented and Fast:** Dagor ECS is designed with a
   data-oriented approach, it features high speed and excellent cache locality.
-
 
 ### Entity Creation
 
@@ -597,12 +596,4 @@ ball
     color:c=25,255,255,255
 }
 ```
-
-## Video Lecture
-
-Anton Yudintsev's video lecture on ECS:
-
-- [Gameplay-Architecture-and-Design.mp4,
-3.65 GB](https://drive.google.com/drive/folders/14Uj5yKAjt6ZgpOOr1q-cG417G_YE-MHg?usp=sharing)
-
 

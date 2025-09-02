@@ -29,7 +29,6 @@ Sources =
 UseProgLibs =
   engine/phys/physCommon
   3rdPartyLibs/phys/bullet-$(BulletSdkVer)
-  gameLibs/render/dynmodelRenderer # FIXME_BROKEN_DEP
 ;
 
 

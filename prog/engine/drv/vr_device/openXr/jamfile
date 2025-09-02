@@ -22,7 +22,7 @@ Sources =
 ;
 
 if $(VRDeviceOptional) = yes {
-  CPPopt += -DSILENT_VRDEVICE_FAIL=1 ;
+  CPPopt += -DSILENT_VRDEVICE_FAIL ;
 }
 
 if $(Platform) = android {

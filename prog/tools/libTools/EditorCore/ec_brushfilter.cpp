@@ -11,11 +11,13 @@ BrushEventFilter::BrushEventFilter() : active(false), curBrush(NULL) {}
 
 
 //==============================================================================
+/*
 void BrushEventFilter::handleTimer()
 {
   if (active && curBrush && curBrush->isRepeat())
     curBrush->repeat();
 }
+*/
 
 
 //==============================================================================

@@ -1,5 +1,5 @@
 require ecs
-require app
+require app // get_sync_time
 require PhysObj
 require RendInst
 require math.base
@@ -8,6 +8,7 @@ require DngNet
 require DngPhysObj
 require Dacoll
 require PhysDecl
+require CollRes
 
 [cpp_event(unicast)]
 struct CmdRendinstDamage
@@ -75,17 +76,31 @@ def find_index(eid_list : EidList; eid : EntityId) : int
   return -1
 
 def process_riextra(ri_name, template_name : string;
+                    ri_pool : int;
                     eid : EntityId;
                     var phys_moved_rendinst__riList : EidList;
                     riHandles : array<riex_handle_t>;
-                    box : bbox3f)
-  let resIdx = get_rigen_extra_res_idx(ri_name)
-  if resIdx < 0
+                    sphere : BSphere3)
+  if ri_pool < 0
     return
 
   // add new
-  getRiGenExtraInstances(resIdx, box) <| $(handles : array<riex_handle_t>#)
-    for handle in handles
+  getRiGenExtraInstances(ri_pool, sphere) <| $(handles : array<riex_handle_t>#)
+    let collres = get_rigen_extra_coll_res(ri_pool)
+    let riBox = BBox3(collres.vFullBBox)
+    var tms : array<float3x4>
+    tms |> reserve(length(handles))
+    var boxes = array<BBox3>()
+    boxes |> reserve(length(handles))
+
+    for i in range(length(handles))
+      var tm : float3x4
+      get_rigen_extra_matrix(handles[i], tm)
+      tms |> push(tm)
+      boxes |> push(tms[i] * riBox)
+
+    for i in range(length(handles))
+      let handle = handles[i]
       let idx = riHandles |> find_index(handle)
       if idx >= 0 // we already have phys_moved_rendinst in our list
         continue
@@ -100,6 +115,19 @@ def process_riextra(ri_name, template_name : string;
       if isAlreadyActive
         continue
 
+      // don't activate lower stucked elements
+      var haveStuck = false
+      var extBox = boxes[i]
+      extBox.boxMax.y *= 1.1
+      for j in range(length(handles))
+        if i == j
+          continue
+        if boxes[i].boxMax.y < boxes[j].boxMax.y && extBox & boxes[j]
+          haveStuck = true
+          break
+      if haveStuck
+        continue
+
       let desc = RendInstDesc(handle)
       enable_disable_ri_instance(desc, false)
 
@@ -108,15 +136,14 @@ def process_riextra(ri_name, template_name : string;
         destroyEntity(riEid)
 
       // otherwise create a new one
-      var tm : float3x4
-      get_rigen_extra_matrix(handle, tm)
       let newRiEid = createEntity(template_name) <| $(var init)
         using() <| $(var heroList : EidList)
           push(heroList, eid)
           set(init, "rendinst_phys_move__heroList", heroList)
-        init |> set("transform", tm)
-        init |> set("initialTransform", tm)
+        init |> set("transform", tms[i])
+        init |> set("initialTransform", tms[i])
         init |> set("ri_extra__handle", handle)
+        init |> set("collres__res", "{ri_name}_collision")
       push(phys_moved_rendinst__riList, newRiEid)
 
 
@@ -204,24 +231,19 @@ def rendinst_phys_template_update(act : UpdateStageInfoAct;
   let riHandles : array<riex_handle_t> <- gather_and_update_ri_handles(eid, phys_moved_rendinst_hero__checkRad,
                                                                        phys_moved_rendinst_hero__lastCheckPos,
                                                                        phys_moved_rendinst__riList)
-  find_query() <| $ [es] (phys_moved_rendinst_list : Object; client_phys_moved_rendinst_list : Object)
+  find_query() <| $ [es] (phys_moved_rendinst_list : Object; phys_moved_rendinst_pools, client_phys_moved_rendinst_pools : IntList)
     // prepare box for the query
-    let bb3 = BBox3(heroPos, phys_moved_rendinst_hero__checkRad)
-    var box : bbox3f
-    bbox3f_init(box, bb3.boxMin)
-    bbox3f_add_pt(box, bb3.boxMax)
-
-    for item in phys_moved_rendinst_list
+    let sphere = BSphere3(heroPos, phys_moved_rendinst_hero__checkRad)
+    for item, pool in phys_moved_rendinst_list, phys_moved_rendinst_pools
       let templName = get_ecs_string(item.value)
       if templName != null
-        process_riextra(item.key, string(*templName), eid, phys_moved_rendinst__riList, riHandles, box)
-    for item in client_phys_moved_rendinst_list
-      let resIdx = get_rigen_extra_res_idx(item.key)
-      if resIdx < 0
+        process_riextra(item.key, string(*templName), pool, eid, phys_moved_rendinst__riList, riHandles, sphere)
+    for pool in client_phys_moved_rendinst_pools
+      if pool < 0
         continue
 
       // disable client ri
-      getRiGenExtraInstances(resIdx, box) <| $(handles : array<riex_handle_t>#)
+      getRiGenExtraInstances(pool, sphere) <| $(handles : array<riex_handle_t>#)
         for handle in handles
           let desc = RendInstDesc(handle)
           enable_disable_ri_instance(desc, false)
@@ -269,17 +291,12 @@ def rendinst_client_phys_template_update(act : UpdateStageInfoAct;
   let riHandles : array<riex_handle_t> <- gather_and_update_ri_handles(eid, client_phys_moved_rendinst_hero__checkRad,
                                                                        client_phys_moved_rendinst_hero__lastCheckPos,
                                                                        client_phys_moved_rendinst__riList)
-  find_query() <| $ [es] (client_phys_moved_rendinst_list : Object)
-    // prepare box for the query
-    let bb3 = BBox3(heroPos, client_phys_moved_rendinst_hero__checkRad)
-    var box : bbox3f
-    bbox3f_init(box, bb3.boxMin)
-    bbox3f_add_pt(box, bb3.boxMax)
-
-    for item in client_phys_moved_rendinst_list
+  find_query() <| $ [es] (client_phys_moved_rendinst_list : Object; client_phys_moved_rendinst_pools : IntList)
+    let sphere = BSphere3(heroPos, client_phys_moved_rendinst_hero__checkRad)
+    for item, pool in client_phys_moved_rendinst_list, client_phys_moved_rendinst_pools
       let templName = get_ecs_string(item.value)
       if templName != null
-        process_riextra(item.key, string(*templName), eid, client_phys_moved_rendinst__riList, riHandles, box)
+        process_riextra(item.key, string(*templName), pool, eid, client_phys_moved_rendinst__riList, riHandles, sphere)
     return true
 
 
@@ -290,3 +307,16 @@ def client_phys_moved_rendinst_hero_died_or_disappeared(evt : Event;
                                                         var client_phys_moved_rendinst__riList : EidList)
   client_phys_moved_rendinst_hero__lastCheckPos = float3(VERY_BIG_NUMBER)
   clear_phys_moved_rendinst_hero_ri_list(hero_eid, client_phys_moved_rendinst__riList)
+
+
+[es(on_appear)]
+def phys_moved_rendinst_lists_init(evt : Event; phys_moved_rendinst_list, client_phys_moved_rendinst_list : Object; var phys_moved_rendinst_pools, client_phys_moved_rendinst_pools : IntList)
+  phys_moved_rendinst_pools |> reserve(length(phys_moved_rendinst_list))
+  for item in phys_moved_rendinst_list
+    let resIdx = get_rigen_extra_res_idx(item.key)
+    phys_moved_rendinst_pools |> push(resIdx)
+  client_phys_moved_rendinst_pools |> reserve(length(client_phys_moved_rendinst_list))
+  for item in client_phys_moved_rendinst_list
+    let resIdx = get_rigen_extra_res_idx(item.key)
+    client_phys_moved_rendinst_pools |> push(resIdx)
+

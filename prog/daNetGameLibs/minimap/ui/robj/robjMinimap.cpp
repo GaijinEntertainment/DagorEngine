@@ -18,7 +18,7 @@
 #include <workCycle/dag_workCycle.h>
 #include <perfMon/dag_cpuFreq.h>
 #include "game/player.h"
-#include "game/team.h"
+#include "ecs/game/generic/team.h"
 
 #include <ecs/game/zones/levelRegions.h>
 

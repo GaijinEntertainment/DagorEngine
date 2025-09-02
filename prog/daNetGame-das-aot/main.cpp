@@ -11,6 +11,7 @@
 #include <windows.h> //set_debug_console_handle
 #endif
 
+int indenting = 2;
 bool verboseLogs = false;
 bool strict = false;
 int strictExit = 0;
@@ -72,6 +73,10 @@ int DagorWinMain(bool debugmode)
 
   String dasRoot;
 
+  // dng default
+  version2syntax = false;
+  gen2MakeSyntax = true;
+
   DataBlock config;
   for (int ai = 0; ai != dgs_argc; ++ai)
   {
@@ -93,6 +98,9 @@ int DagorWinMain(bool debugmode)
           const int basePathId = config.getNameId("base_path");
           const int projectId = config.getNameId("project");
           const int dasRootId = config.getNameId("dasRoot");
+          const int version2syntaxId = config.getNameId("version2syntax");
+          const int gen2MakeSyntaxId = config.getNameId("gen2MakeSyntax");
+          const int indentingId = config.getNameId("indenting");
           for (int i = 0; i < config.paramCount(); ++i)
           {
             const int paramNameId = config.getParamNameId(i);
@@ -106,6 +114,12 @@ int DagorWinMain(bool debugmode)
               modulePath = String(config.getStr(i));
             else if (paramNameId == dasRootId)
               dasRoot = String(config.getStr(i));
+            else if (paramNameId == version2syntaxId)
+              version2syntax = config.getBool(i);
+            else if (paramNameId == gen2MakeSyntaxId)
+              gen2MakeSyntax = config.getBool(i);
+            else if (paramNameId == indentingId)
+              indenting = config.getInt(i);
           }
           const int mountPointsId = config.getNameId("mountPoints");
           for (int i = 0; i < config.blockCount(); ++i)
@@ -141,6 +155,10 @@ int DagorWinMain(bool debugmode)
     {
       modulePath = String(dgs_argv[ai + 1 < dgs_argc ? ai + 1 : ai]);
     }
+    else if (strcmp(dgs_argv[ai], "--indenting") == 0)
+    {
+      indenting = std::stoi(dgs_argv[ai + 1 < dgs_argc ? ai + 1 : ai]);
+    }
     else if (strcmp(dgs_argv[ai], "--strict") == 0)
     {
       strict = true;
@@ -153,8 +171,13 @@ int DagorWinMain(bool debugmode)
 
   if (!dasRoot.empty())
     bind_dascript::set_das_root(dasRoot.c_str());
+  auto syntax = version2syntax   ? bind_dascript::DasSyntax::V2_0
+                : gen2MakeSyntax ? bind_dascript::DasSyntax::V1_5
+                                 : bind_dascript::DasSyntax::V1_0;
   bind_dascript::init_systems(bind_dascript::AotMode::NO_AOT, bind_dascript::HotReload::DISABLED, bind_dascript::LoadDebugCode::YES,
-    bind_dascript::LogAotErrors::NO, !modulePath.empty() ? modulePath.c_str() : nullptr);
+    bind_dascript::LogAotErrors::NO, syntax, !modulePath.empty() ? modulePath.c_str() : nullptr);
+
+  (*das::daScriptEnvironment::bound)->das_def_tab_size = indenting;
 
   const int res = aot_main(dgs_argc, (char **)dgs_argv);
   return res != 0 || !strict ? res : strictExit;

@@ -1,0 +1,5 @@
+SDF_SHAPE(CIRCLE, circle, 0)
+SDF_SHAPE(RING, ring, 1)
+SDF_SHAPE(LINE, line, 2)
+SDF_SHAPE(TRIANGLE, triangle, 3)
+SDF_SHAPE(ARC, arc, 4)

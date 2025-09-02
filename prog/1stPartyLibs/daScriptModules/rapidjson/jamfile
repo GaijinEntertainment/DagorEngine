@@ -14,7 +14,7 @@ Sources =
 ;
 
 if $(DasRapidjsonEnableExceptions) = yes {
-  CPPopt += -DDAS_RAPIDJSON_ENABLE_EXCEPTIONS=1 ;
+  CPPopt += -DDAS_RAPIDJSON_ENABLE_EXCEPTIONS ;
   Target = 1stPartyLibs/daScriptModules/rapidjson-exc.lib ;
 }
 

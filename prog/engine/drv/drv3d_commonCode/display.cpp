@@ -84,7 +84,7 @@ void d3d::update_window_mode()
     }
     if (strcmp(modeStr, "fullscreen") != 0)
     {
-      D3D_ERROR("%s is invalid arg for config:video/mode:t", modeStr);
+      D3D_CONTRACT_ERROR("%s is invalid arg for config:video/mode:t", modeStr);
     }
   }
 

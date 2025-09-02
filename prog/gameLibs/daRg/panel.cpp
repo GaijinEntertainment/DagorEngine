@@ -32,7 +32,7 @@ void PanelRenderInfo::resetPointer()
 }
 
 
-Panel::Panel(GuiScene *scene_) : scene(scene_), etree(scene_, nullptr), renderList() {}
+Panel::Panel(GuiScene *scene_) : scene(scene_) {}
 
 
 Panel::~Panel() { clear(); }
@@ -40,26 +40,30 @@ Panel::~Panel() { clear(); }
 
 void Panel::clear()
 {
-  renderList.clear();
-  inputStack.clear();
-  cursorStack.clear();
-  etree.clear();
+  scene->destroyGuiScreen(screen);
+  screen = nullptr;
+  spatialInfo.lastTransform.forEach([](auto &opt) { opt.reset(); });
 }
 
 
-void Panel::init(const Sqrat::Object &markup)
+void Panel::init(int screen_id, const Sqrat::Object &markup)
 {
-  G_ASSERTF(!etree.root, "Repeated call to init()");
+  G_ASSERTF(!screen, "Repeated call to init()");
+  screen = scene->createGuiScreen(screen_id);
+  G_ASSERTF_RETURN(screen, , "Failed to create gui screen #%d", screen_id);
+  screen->isMainScreen = false;
+  screen->panel = this;
 
   Component rootComp;
   Component::build_component(rootComp, markup, scene->getStringKeys(), markup);
 
   int rebuildResult = 0;
-  etree.root = etree.rebuild(scene->getScriptVM(), etree.root, rootComp, nullptr, rootComp.scriptBuilder, 0, rebuildResult);
-  if (etree.root)
+  screen->etree.root =
+    screen->etree.rebuild(scene->getScriptVM(), screen->etree.root, rootComp, nullptr, rootComp.scriptBuilder, 0, rebuildResult);
+  if (screen->etree.root)
   {
-    etree.root->recalcLayout();
-    etree.root->callScriptAttach(scene);
+    screen->etree.root->recalcLayout();
+    screen->etree.root->callScriptAttach(scene);
   }
 
   rebuildStacks();
@@ -68,28 +72,13 @@ void Panel::init(const Sqrat::Object &markup)
 
 void Panel::rebuildStacks()
 {
-  renderList.clear();
-  inputStack.clear();
-  cursorStack.clear();
-  if (etree.root)
-  {
-    ElemStacks stacks;
-    ElemStackCounters counters;
-    stacks.rlist = &renderList;
-    stacks.input = &inputStack;
-    stacks.cursors = &cursorStack;
-    etree.root->putToSortedStacks(stacks, counters, 0, false);
-  }
-  renderList.afterRebuild();
+  if (screen)
+    screen->rebuildStacks();
 }
 
 
 void Panel::update(float dt)
 {
-  int updRes = etree.update(dt);
-  if (updRes & ElementTree::RESULT_ELEMS_ADDED_OR_REMOVED)
-    rebuildStacks();
-
   for (PanelPointer &ptr : pointers)
     if (ptr.cursor)
       ptr.cursor->update(dt);
@@ -100,14 +89,17 @@ void Panel::updateHover()
 {
   SQInteger stickScrollFlags[MAX_POINTERS] = {0};
   Point2 pos[MAX_POINTERS];
-  for (int hand = 0; hand < MAX_POINTERS; ++hand)
-    pos[hand] = pointers[hand].isPresent ? pointers[hand].pos : Point2(-100, -100);
-  etree.updateHover(inputStack, 2, pos, stickScrollFlags);
+  for (int i = 0; i < MAX_POINTERS; ++i)
+    pos[i] = pointers[i].isPresent ? pointers[i].pos : Point2(-100, -100);
+  if (screen)
+    screen->etree.updateHover(screen->inputStack, MAX_POINTERS, pos, stickScrollFlags);
 }
 
 
 void Panel::updateActiveCursors()
 {
+  if (!screen)
+    return;
   for (PanelPointer &ptr : pointers)
   {
     Cursor *prevCursor = ptr.cursor;
@@ -115,7 +107,7 @@ void Panel::updateActiveCursors()
 
     if (ptr.isPresent)
     {
-      for (const InputEntry &ie : cursorStack.stack)
+      for (const InputEntry &ie : screen->cursorStack.stack)
       {
         if (ie.elem->hitTest(ptr.pos))
         {
@@ -141,9 +133,9 @@ void Panel::onRemoveCursor(Cursor *cursor)
 
 void Panel::updateSpatialInfoFromScript()
 {
-  G_ASSERT_RETURN(etree.root, );
+  G_ASSERT_RETURN(screen && screen->etree.root, );
 
-  const Sqrat::Table &scriptDesc = etree.root->props.scriptDesc;
+  const Sqrat::Table &scriptDesc = screen->etree.root->props.scriptDesc;
 
   spatialInfo.anchor = PanelAnchor(scriptDesc.RawGetSlotValue("worldAnchor", PanelAnchor::None));
   spatialInfo.constraint =
@@ -154,6 +146,7 @@ void Panel::updateSpatialInfoFromScript()
 
   spatialInfo.position = scriptDesc.RawGetSlotValue("worldOffset", Point3(0, 0, 0));
   spatialInfo.angles = scriptDesc.RawGetSlotValue("worldAngles", Point3(0, 0, 0));
+  spatialInfo.headDirOffset = scriptDesc.RawGetSlotValue("headDirOffset", 0.f);
 
   Point2 size2 = scriptDesc.RawGetSlotValue("worldSize", Point2(0, 0));
   spatialInfo.size.set(size2.x, size2.y, 1);
@@ -166,7 +159,8 @@ void Panel::updateSpatialInfoFromScript()
 
 void Panel::updateRenderInfoParamsFromScript()
 {
-  Sqrat::Table &desc = etree.root->props.scriptDesc;
+  G_ASSERT_RETURN(screen && screen->etree.root, );
+  Sqrat::Table &desc = screen->etree.root->props.scriptDesc;
   renderInfo.brightness = desc.RawGetSlotValue("worldBrightness", PanelRenderInfo::def_brightness);
   renderInfo.smoothness = desc.RawGetSlotValue("worldSmoothness", PanelRenderInfo::def_smoothness);
   renderInfo.reflectance = desc.RawGetSlotValue("worldReflectance", PanelRenderInfo::def_reflectance);
@@ -181,7 +175,7 @@ void Panel::updateRenderInfoParamsFromScript()
 PanelData::PanelData(GuiScene &scene, const Sqrat::Object &object, int panelIndex)
 {
   panel.reset(new Panel(&scene));
-  panel->init(object);
+  panel->init(panelIndex, object);
 
   index = panelIndex;
 
@@ -193,31 +187,44 @@ PanelData::PanelData(GuiScene &scene, const Sqrat::Object &object, int panelInde
 
 bool PanelData::getCanvasSize(IPoint2 &size) const
 {
-  if (!panel->etree.root)
+  if (!panel->screen || !panel->screen->etree.root)
     return false;
-  size = panel->etree.root->props.scriptDesc.RawGetSlotValue("canvasSize", IPoint2(-1, -1));
+  size = panel->screen->etree.root->props.scriptDesc.RawGetSlotValue("canvasSize", IPoint2(-1, -1));
   return size.x > 0 && size.y > 0;
 }
 
 
 eastl::string PanelData::getPointerPath() const
 {
-  return panel->etree.root->props.scriptDesc.GetSlotValue("worldPointerTexture", eastl::string());
+  if (!panel->screen || !panel->screen->etree.root)
+    return eastl::string();
+  return panel->screen->etree.root->props.scriptDesc.GetSlotValue("worldPointerTexture", eastl::string());
 }
 
 
 Point2 PanelData::getPointerSize() const
 {
-  return panel->etree.root->props.scriptDesc.RawGetSlotValue("worldPointerSize", Point2(64, 64));
+  const auto defaultValue = Point2(64, 64);
+  if (!panel->screen || !panel->screen->etree.root)
+    return defaultValue;
+  return panel->screen->etree.root->props.scriptDesc.RawGetSlotValue("worldPointerSize", defaultValue);
 }
 
 
-bool PanelData::isAutoUpdated() const { return panel->etree.root->props.scriptDesc.RawGetSlotValue("isAutoUpdated", true); }
+bool PanelData::isAutoUpdated() const
+{
+  if (!panel->screen || !panel->screen->etree.root)
+    return true;
+  return panel->screen->etree.root->props.scriptDesc.RawGetSlotValue("isAutoUpdated", true);
+}
 
 
 E3DCOLOR PanelData::getPointerColor() const
 {
-  return panel->etree.root->props.scriptDesc.RawGetSlotValue("worldPointerColor", E3DCOLOR(255, 0, 0));
+  auto defaultValue = E3DCOLOR(255, 0, 0);
+  if (!panel->screen || !panel->screen->etree.root)
+    return defaultValue;
+  return panel->screen->etree.root->props.scriptDesc.RawGetSlotValue("worldPointerColor", defaultValue);
 }
 
 
@@ -251,6 +258,7 @@ void PanelData::setCursorStatus(int hand, bool enabled)
       G_ASSERTF(0, "Invalid hand %d", hand);
     else
     {
+      debug("[DARG][CTRL] %s(hand=%d, en=%d)", __FUNCTION__, hand, enabled);
       PanelPointer &ptr = panel->pointers[hand];
       if (ptr.isPresent != enabled)
       {

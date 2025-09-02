@@ -1,18 +1,20 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "waterDropletsNodeES.cpp.inl"
 ECS_DEF_PULL_VAR(waterDropletsNode);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc update_water_droplets_node_es_comps[] =
 {
 //start of 2 rw components at [0]
-  {ECS_HASH("water_droplets_node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()},
+  {ECS_HASH("water_droplets_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
   {ECS_HASH("screen_droplets__visible"), ecs::ComponentTypeInfo<bool>()}
 };
 static void update_water_droplets_node_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     update_water_droplets_node_es(evt
-        , ECS_RW_COMP(update_water_droplets_node_es_comps, "water_droplets_node", dabfg::NodeHandle)
+        , ECS_RW_COMP(update_water_droplets_node_es_comps, "water_droplets_node", dafg::NodeHandle)
     , ECS_RW_COMP(update_water_droplets_node_es_comps, "screen_droplets__visible", bool)
     );
   while (++comp != compE);
@@ -69,7 +71,7 @@ template<typename Callable>
 inline ecs::QueryCbResult find_water_droplets_needs_ecs_query(Callable function)
 {
   return perform_query(g_entity_mgr, find_water_droplets_needs_ecs_query_desc.getHandle(),
-    [&function](const ecs::QueryView& __restrict components)
+    ecs::stoppable_query_cb_t([&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
         {
@@ -79,6 +81,6 @@ inline ecs::QueryCbResult find_water_droplets_needs_ecs_query(Callable function)
             return ecs::QueryCbResult::Stop;
         }while (++comp != compE);
           return ecs::QueryCbResult::Continue;
-    }
+    })
   );
 }

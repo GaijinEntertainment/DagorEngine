@@ -1,4 +1,4 @@
-# Shader: rendinst_layered_lightmap
+# `rendinst_layered_lightmap`
 
 ## Overview
 

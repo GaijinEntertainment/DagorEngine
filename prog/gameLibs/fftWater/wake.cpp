@@ -15,10 +15,15 @@ namespace fft_water
 {
 
 static int wake_vd_texVarId = -1, wake_pht_texVarId = -1, wake_ht_texVarId = -1, wake_cht_texVarId = -1;
+static int wake_vd_tex_samplerstateVarId = -1;
+static int wake_ht_tex_samplerstateVarId = -1;
+static int wake_pht_tex_samplerstateVarId = -1;
+static int wake_cht_tex_samplerstateVarId = -1;
 static int wake_dtVarId = -1, wake_alphaVarId = -1;
 static int wake_resolutionVarId = -1;
 static int wake_move_ofsVarId = -1;
 static int wake_gradients_texVarId = -1;
+static int wake_gradients_tex_samplerstateVarId = -1;
 static int next_wake_ofsVarId = -1;
 static int world_to_wakeVarId = -1;
 static int wake_impulses_const_no = -1;
@@ -61,14 +66,19 @@ Wake::Wake()
   wake_main_dirVarId = get_shader_variable_id("wake_main_dir", true);
 
   wake_vd_texVarId = get_shader_variable_id("wake_vd_tex", false);
+  wake_vd_tex_samplerstateVarId = get_shader_variable_id("wake_vd_tex_samplerstate", false);
   wake_pht_texVarId = get_shader_variable_id("wake_pht_tex", false);
+  wake_pht_tex_samplerstateVarId = get_shader_variable_id("wake_pht_tex_samplerstate", false);
   wake_ht_texVarId = get_shader_variable_id("wake_ht_tex", false);
+  wake_ht_tex_samplerstateVarId = get_shader_variable_id("wake_ht_tex_samplerstate", false);
   wake_cht_texVarId = get_shader_variable_id("wake_cht_tex", false);
+  wake_cht_tex_samplerstateVarId = get_shader_variable_id("wake_cht_tex_samplerstate", false);
   wake_dtVarId = get_shader_variable_id("wake_dt", false);
   wake_alphaVarId = get_shader_variable_id("wake_alpha", false);
   wake_resolutionVarId = get_shader_variable_id("wake_resolution", false);
   wake_move_ofsVarId = get_shader_variable_id("wake_move_ofs", false);
   wake_gradients_texVarId = get_shader_variable_id("wake_gradients_tex", false);
+  wake_gradients_tex_samplerstateVarId = get_shader_variable_id("wake_gradients_tex_samplerstate", false);
   next_wake_ofsVarId = get_shader_variable_id("next_wake_ofs", false);
   world_to_wakeVarId = get_shader_variable_id("world_to_wake", false);
   regionSize = 48.0f;
@@ -104,14 +114,10 @@ bool Wake::init(int res)
   {
     String texName(128, "%s_height%d", name, i);
     height[i] = dag::create_tex(NULL, resolution, resolution, TEXCF_RTARGET | fmt, 1, texName.str());
-    height[i].getTex2D()->texaddr(TEXADDR_BORDER);
-    height[i].getTex2D()->texbordercolor(0);
   }
 
   String texName(128, "%s_gradients", name);
   wakeGradients = dag::create_array_tex(resolution, resolution, 2, TEXCF_RTARGET | gradFmt, 1, texName.str());
-  wakeGradients.getTex2D()->texaddr(TEXADDR_BORDER);
-  wakeGradients.getTex2D()->texbordercolor(0);
 
   ShaderGlobal::set_int(wake_resolutionVarId, resolution);
   cleared_flag = false;
@@ -123,12 +129,26 @@ bool Wake::init(int res)
   verticalDerivative = dag::create_tex(NULL, resolution, resolution, TEXCF_RTARGET | vdfmt, 1, "wakeVdTex"); // todo: if there are many
                                                                                                              // wakes, we still need
                                                                                                              // only one vdTex
-  // vdTex->texaddr(TEXADDR_CLAMP);
-  verticalDerivative.getTex2D()->texfilter(TEXFILTER_POINT);
   makeDerivatives.init("make_derivatives");
   makeHeightmap.init("make_wake_heightmap");
   copyHeightmap.init("copy_wake_heightmap");
   calculateGradients.init("calc_wake_gradients");
+  {
+    d3d::SamplerInfo smpInfo;
+    smpInfo.address_mode_u = smpInfo.address_mode_v = d3d::AddressMode::Border;
+    smpInfo.border_color = d3d::BorderColor::Color::TransparentBlack;
+    d3d::SamplerHandle smp = d3d::request_sampler(smpInfo);
+    ShaderGlobal::set_sampler(wake_ht_tex_samplerstateVarId, smp);
+    ShaderGlobal::set_sampler(wake_pht_tex_samplerstateVarId, smp);
+    ShaderGlobal::set_sampler(wake_cht_tex_samplerstateVarId, smp);
+    ShaderGlobal::set_sampler(wake_gradients_tex_samplerstateVarId, smp);
+  }
+  {
+    d3d::SamplerInfo smpInfo;
+    smpInfo.filter_mode = d3d::FilterMode::Point;
+    d3d::SamplerHandle smp = d3d::request_sampler(smpInfo);
+    ShaderGlobal::set_sampler(wake_vd_tex_samplerstateVarId, smp);
+  }
   return true;
 }
 

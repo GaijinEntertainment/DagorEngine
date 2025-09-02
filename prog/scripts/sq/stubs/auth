@@ -13,6 +13,7 @@ return {
   get_distr = @() ""
   set_auth_token_renew_fail_cb =  @(cb) assert(type(cb)=="function")
   get_user_info = @() null
+  convert_external_jwt_to_auth_jwt = @(...) null
   get_authenticated_url = function(base_url, host, evt_name) {
     assert(type(host)=="string")
     assert(type(base_url)=="string")

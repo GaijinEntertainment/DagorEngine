@@ -1,4 +1,4 @@
-Root    ?= ../../.. ;
+Root    ?= ../../../.. ;
 StrictCompile = yes ;
 include $(Root)/prog/_jBuild/defaults.jam ;
 
@@ -7,25 +7,29 @@ Location = prog/gameLibs/render/denoiser ;
 TargetType  = lib ;
 Target      = gameLibs/render/denoiser.lib ;
 
-BVHSupport ?= no ;
+local code_used = $(BVHSupport) ;
+code_used ?= no ;
 
-# The NRD library, we are not using it for production purposes, this should never be committed with "yes".
-NRDLibrarySupport ?= no ;
+if $(code_used) = yes {
+  if ( $(Platform) = windows && $(PlatformSpec) != clang ) || ($(Platform) != macOS && ($(PlatformArch) in arm64 arm64e x86)) {
+    Echo warning: cannot build $(Target) for
+      Platform=$(Platform) PlatformArch=$(PlatformArch) PlatformSpec=$(PlatformSpec), using stub ;
+    code_used = no ;
+  }
+}
 
 AddIncludes =
   $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/3rdPartyLibs/math/sse2neon
+  $(Root)/prog/3rdPartyLibs/math/MathLib
 ;
 
-if $(NRDLibrarySupport) = yes {
-  AddLibs +=
-    $(Root)/prog/gameLibs/render/denoiser/NRI/Lib/NRI.lib
-    $(Root)/prog/gameLibs/render/denoiser/NRD/Lib/NRD.lib
-  ;
-}
-
 # depend on BVHSupport as it is part of BVH stack
-if $(BVHSupport) = yes {
+if $(code_used) = yes {
   Sources = denoiser.cpp ;
+
+  # to avoid multiple binaries for linux clients, always compile this lib with SSE4
+  if $(Platform) = linux && $(SSEVersion) < 4 { CPPopt += -msse4 ; }
 } else {
   Sources = denoiser_stub.cpp ;
   Target = $(Target:S=-stub.lib) ;

@@ -7,6 +7,8 @@
 #include <math/dag_e3dColor.h>
 #include <util/dag_string.h>
 
+#include <imgui/imgui.h>
+
 namespace PropPanel
 {
 
@@ -107,7 +109,7 @@ protected:
 
   void drawAxisMarks(uint32_t color);
   void drawPlotLine(const Point2 &p1, const Point2 &p2, uint32_t color);
-  void drawMarkText(const Point2 &pos, double _value, unsigned align);
+  void drawMarkText(const Point2 &pos, double _value);
   void drawHelp();
   void drawInternal();
   void draw();
@@ -143,7 +145,7 @@ protected:
 
   void showEditDialog(int idx);
 
-  virtual void onImguiDelayedCallback(void *user_data) override;
+  void onImguiDelayedCallback(void *user_data) override;
 
   E3DCOLOR mColor;
   int mMinPtCount, mMaxPtCount;
@@ -155,6 +157,7 @@ protected:
   String tooltipText;
   bool showHelp = false;
   int delayedEditDialogPointIndex = -1;
+  ImGuiMouseCursor mouseCursor = ImGuiMouseCursor_Arrow;
 };
 
 } // namespace PropPanel

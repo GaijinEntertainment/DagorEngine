@@ -17,13 +17,13 @@ struct Color3;
 struct CfgVar
 {
   char *id, *val;
-  int ln;
+  int ln; // line number, 1-based
 };
 
 struct CfgComm
 {
-  char *text;
-  int ln;
+  char *text; // includes the comment prefix too (e.g.: text = "// comment")
+  int ln;     // line number, 1-based
 };
 
 #include <supp/dag_define_KRNLIMP.h>
@@ -35,7 +35,7 @@ struct CfgDiv
   char *id;
   Tab<CfgVar> var;
   Tab<CfgComm> comm;
-  int ord, lines;
+  int ln; // line number, 1-based
 
   KRNLIMP CfgDiv(char *idname = NULL);
 #if (__cplusplus >= 201703L) || (defined(_MSVC_LANG) && _MSVC_LANG >= 201703L)
@@ -74,8 +74,8 @@ public:
   KRNLIMP void resolve_includes();
 
   KRNLIMP void clear();
-  KRNLIMP int readfile(const char *fn, bool clr = true);
-  KRNLIMP int readtext(char *text, bool clr = true);
+  KRNLIMP int readfile(const char *fn, bool clr = true, bool read_comments = false);
+  KRNLIMP int readtext(char *text, bool clr = true, bool read_comments = false);
   KRNLIMP int getdiv(const char *fn, const char *div);
   KRNLIMP int getdiv(const char *div);
   KRNLIMP int getdiv_text(char *text, const char *div);

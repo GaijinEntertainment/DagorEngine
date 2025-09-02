@@ -1,5 +1,5 @@
-let DataBlock = require("DataBlock")
-let { isFunction, isDataBlock } = require("underscore.nut")
+import "DataBlock" as DataBlock
+from "underscore.nut" import isFunction, isDataBlock
 // Recursive translator to DataBlock data.
 // sometimes more conviniet to store, search and use data in DataBlock.
 // It saves order of items in tables as an array,
@@ -97,7 +97,7 @@ function blk2SquirrelObj(blk){
     let blockName = block.getBlockName()
     if (blockName not in res)
       res[blockName] <- []
-   res[blockName].append(blk2SquirrelObj(block))
+    res[blockName].append(blk2SquirrelObj(block))
   }
   for (local i=0; i<blk.paramCount(); i++){
     let paramName = blk.getParamName(i)
@@ -109,12 +109,19 @@ function blk2SquirrelObj(blk){
   return res
 }
 
-function normalizeConvertedBlk(obj){
+local normalizeConvertedBlk
+normalizeConvertedBlk = function(obj){
   let t = type(obj)
   if (t == "array" && obj.len()==1) {
     return normalizeConvertedBlk(obj[0])
   }
-  else if (t == "table" || t=="array") {
+  else if (t == "table") {
+    let r = {}
+    foreach(k, v in obj)
+      r[k] <- normalizeConvertedBlk(v)
+    return r
+  }
+  else if (t=="array") {
     return obj.map(normalizeConvertedBlk)
   }
   return obj
@@ -134,7 +141,13 @@ function normalizeAndFlattenConvertedBlk(obj){
     else
       return normalizeAndFlattenConvertedBlk(el)
   }
-  else if (t == "table" || t=="array") {
+  else if (t == "table") {
+    let r = {}
+    foreach(k, v in obj)
+      r[k] <- normalizeConvertedBlk(v)
+    return r
+  }
+  else if (t=="array") {
     return obj.map(normalizeAndFlattenConvertedBlk)
   }
   return obj
@@ -198,7 +211,7 @@ function blkOptFromPath(path) {
   return blk
 }
 
-return {
+return freeze({
   isDataBlock
   blkFromPath
   blkOptFromPath
@@ -230,4 +243,4 @@ return {
   convertBlkFlat //Convert Blk 2b) way  - each more-than-one-element-of-the-name object is an array and if object has one element that is an array - use its value, others are not
 
   getParamsListByName//get all params from block by name
-}
+})

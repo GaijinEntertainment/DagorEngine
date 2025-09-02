@@ -2,12 +2,8 @@
 
 #include <image/dag_dds.h>
 #include <ioSys/dag_fileIo.h>
-#include <debug/dag_log.h>
 #include <debug/dag_debug.h>
 #include <3d/ddsFormat.h>
-#include <drv/3d/dag_texture.h>
-#include <drv/3d/dag_driver.h>
-#include <drv/3d/dag_info.h>
 #include <osApiWrappers/dag_files.h>
 
 struct BitMaskFormat
@@ -20,7 +16,7 @@ struct BitMaskFormat
   D3DFORMAT format;
 };
 
-BitMaskFormat bitMaskFormat[] = {
+static BitMaskFormat bitMaskFormat[] = {
   {24, 0x00000000, 0xff0000, 0xff00, 0xff, D3DFMT_R8G8B8},
   {32, 0xff000000, 0xff0000, 0xff00, 0xff, D3DFMT_A8R8G8B8},
   {32, 0x00000000, 0xff0000, 0xff00, 0xff, D3DFMT_X8R8G8B8},
@@ -42,7 +38,7 @@ BitMaskFormat bitMaskFormat[] = {
 
 #define UNKNOWN_DDS_FORMAT (0xFFFFFFFFU)
 
-uint32_t get_texformat(D3DFORMAT f)
+static uint32_t get_texformat(D3DFORMAT f)
 {
   switch ((int)f)
   {
@@ -59,13 +55,17 @@ uint32_t get_texformat(D3DFORMAT f)
     case D3DFMT_R16F: return TEXFMT_R16F;
     case FOURCC_ATI1N: return TEXFMT_ATI1N;
     case FOURCC_ATI2N: return TEXFMT_ATI2N;
+    case D3DFMT_L8: return TEXFMT_R8;
+    case D3DFMT_A8: return TEXFMT_A8;
+    case D3DFMT_A8L8: return TEXFMT_R8G8;
+    case D3DFMT_A4R4G4B4: return TEXFMT_A4R4G4B4;
     default: return UNKNOWN_DDS_FORMAT;
   }
 
   return UNKNOWN_DDS_FORMAT;
 }
 
-uint32_t get_texformat_bits(D3DFORMAT f)
+static uint32_t get_texformat_bits(D3DFORMAT f)
 {
   switch ((int)f)
   {
@@ -88,20 +88,6 @@ uint32_t get_texformat_bits(D3DFORMAT f)
   return 0;
 }
 
-uint32_t get_dagor_texformat_image_size_alignment(uint32_t f)
-{
-  switch (f)
-  {
-    case TEXFMT_DXT1:
-    case TEXFMT_DXT5:
-    case TEXFMT_ATI1N:
-    case TEXFMT_ATI2N:
-    case TEXFMT_BC7:
-    case TEXFMT_BC6H: return 4; break;
-    default: return 0;
-  }
-}
-
 bool load_dds(void *ptr, int len, int levels, int topmipmap, ImageInfoDDS &image_info)
 {
   if (!ptr)
@@ -110,9 +96,10 @@ bool load_dds(void *ptr, int len, int levels, int topmipmap, ImageInfoDDS &image
     return false;
   }
 
-  if (len < sizeof(DDSURFACEDESC2) + 4)
+  unsigned dds_hdr_sz = sizeof(DDSURFACEDESC2) + 4;
+  if (len < dds_hdr_sz)
   {
-    logerr("invalid DDS format");
+    logerr("invalid DDS format: len=%d < dds_hdr_sz=%d", len, dds_hdr_sz);
     return false;
   }
 
@@ -122,28 +109,84 @@ bool load_dds(void *ptr, int len, int levels, int topmipmap, ImageInfoDDS &image
     return false;
   }
 
+  bool dds_hdr_only = (len == dds_hdr_sz);
   DDSURFACEDESC2 &dsc = *(DDSURFACEDESC2 *)((uint32_t *)ptr + 1);
-
-  if (dsc.ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP)
+  if ((dsc.ddpfPixelFormat.dwFlags & DDPF_FOURCC) && dsc.ddpfPixelFormat.dwFourCC == FOURCC_DX10)
   {
-    image_info.cube_map = true;
+    dds_hdr_sz += sizeof(DDSHDR_DXT10);
+    if (len < dds_hdr_sz)
+    {
+      logerr("invalid DDS format: len=%d < dds_hdr_sz=%d", len, dds_hdr_sz);
+      return false;
+    }
+    dds_hdr_only = (len == dds_hdr_sz);
+    DDSHDR_DXT10 &dx10hdr = *(DDSHDR_DXT10 *)(void *)(&dsc + 1);
+    if (dx10hdr.arraySize > 1)
+    {
+      logerr("invalid DDS format: DX10 with arraySize=%d", dx10hdr.arraySize);
+      return false;
+    }
+    switch (dx10hdr.resourceDimension)
+    {
+      case DDSHDR_DXT10::RESOURCE_DIMENSION_TEXTURE2D: dsc.ddsCaps.dwCaps2 &= (DDSCAPS2_CUBEMAP | DDSCAPS2_VOLUME); break;
+      case DDSHDR_DXT10::RESOURCE_DIMENSION_TEXTURE3D:
+        dsc.ddsCaps.dwCaps2 = (dsc.ddsCaps.dwCaps2 & ~DDSCAPS2_CUBEMAP) | DDSCAPS2_VOLUME;
+        break;
+      default: logerr("invalid DDS format: DX10 with resourceDimension=%d", dx10hdr.resourceDimension); return false;
+    }
+    unsigned out_fmt = 0;
+    switch (dx10hdr.dxgiFormat)
+    {
+      case DXGI_FORMAT_R32G32B32A32_UINT: out_fmt = TEXFMT_A32B32G32R32UI; break;
+      case DXGI_FORMAT_R16G16B16A16_SNORM: out_fmt = TEXFMT_A16B16G16R16S; break;
+      case DXGI_FORMAT_R16G16B16A16_UINT: out_fmt = TEXFMT_A16B16G16R16UI; break;
+      case DXGI_FORMAT_R16G16B16A16_FLOAT: out_fmt = D3DFMT_A16B16G16R16F; break;
+      case DXGI_FORMAT_R32_UINT: out_fmt = TEXFMT_R32UI; break;
+      case DXGI_FORMAT_R11G11B10_FLOAT: out_fmt = TEXFMT_R11G11B10F; break;
+      case DXGI_FORMAT_R10G10B10A2_UNORM: out_fmt = D3DFMT_A2B10G10R10; break;
+      case DXGI_FORMAT_R16G16_FLOAT: out_fmt = D3DFMT_G16R16F; break;
+      case DXGI_FORMAT_R16G16_UNORM: out_fmt = D3DFMT_G16R16; break;
+      case DXGI_FORMAT_R16_FLOAT: out_fmt = D3DFMT_R16F; break;
+      case DXGI_FORMAT_R8G8_UNORM: out_fmt = TEXFMT_R8G8; break;
+
+      case DXGI_FORMAT_BC1_UNORM_SRGB:
+      case DXGI_FORMAT_BC1_UNORM: out_fmt = D3DFMT_DXT1; break;
+
+      case DXGI_FORMAT_BC2_UNORM_SRGB:
+      case DXGI_FORMAT_BC2_UNORM: out_fmt = D3DFMT_DXT3; break;
+
+      case DXGI_FORMAT_BC3_UNORM_SRGB:
+      case DXGI_FORMAT_BC3_UNORM: out_fmt = D3DFMT_DXT5; break;
+
+      case DXGI_FORMAT_BC4_UNORM: out_fmt = _MAKE4C('ATI1'); break;
+      case DXGI_FORMAT_BC5_UNORM: out_fmt = _MAKE4C('ATI2'); break;
+      case DXGI_FORMAT_BC6H_UF16: out_fmt = _MAKE4C('BC6H'); break;
+
+      case DXGI_FORMAT_BC7_UNORM_SRGB:
+      case DXGI_FORMAT_BC7_UNORM: out_fmt = _MAKE4C('BC7 '); break;
+
+      default: logerr("invalid DDS format: DX10 with dxgiFormat=%d (0x%x)", dx10hdr.dxgiFormat, dx10hdr.dxgiFormat); return false;
+    }
+    dsc.ddpfPixelFormat.dwFourCC = out_fmt;
+    dsc.ddpfPixelFormat.dwFlags &= ~(DDPF_RGB | DDPF_ALPHA);
+  }
+
+  image_info.cube_map = (dsc.ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP) ? true : false;
+  image_info.volume_tex = (dsc.ddsCaps.dwCaps2 & DDSCAPS2_VOLUME) ? true : false;
+  if (!dds_hdr_only && image_info.cube_map)
+  {
     logerr("cubemap in DDS not supported");
     return false;
   }
-  else
-    image_info.cube_map = false;
-
-  if (dsc.ddsCaps.dwCaps2 & DDSCAPS2_VOLUME)
+  if (!dds_hdr_only && image_info.volume_tex)
   {
-    image_info.volume_tex = true;
     logerr("voltex in DDS not supported");
     return false;
   }
-  else
-    image_info.volume_tex = false;
 
   int w = dsc.dwWidth;
   int h = dsc.dwHeight;
+  int d = dsc.dwDepth;
   int imglev = 1;
   bool dxt = (dsc.ddpfPixelFormat.dwFlags & DDPF_FOURCC) &&
              ((dsc.ddpfPixelFormat.dwFourCC & 0xFFFFFF) == (FOURCC_DXT1 & 0xFFFFFF) || (dsc.ddpfPixelFormat.dwFourCC & FOURCC_ATI1N) ||
@@ -178,6 +221,8 @@ bool load_dds(void *ptr, int len, int levels, int topmipmap, ImageInfoDDS &image
     h >>= 1;
     if (h < 1)
       h = 1;
+    if (image_info.volume_tex)
+      d = max(d >> 1, 1);
   }
 
   if (levels == 0)
@@ -192,13 +237,15 @@ bool load_dds(void *ptr, int len, int levels, int topmipmap, ImageInfoDDS &image
   if (dsc.ddpfPixelFormat.dwFlags & DDPF_FOURCC)
   {
     fmt = (D3DFORMAT)dsc.ddpfPixelFormat.dwFourCC;
+    if (fmt == (D3DFORMAT)_MAKE4C('BC4U'))
+      fmt = (D3DFORMAT)FOURCC_ATI1N;
     bitCount = get_texformat_bits(fmt);
     if (!bitCount)
       bitCount = dsc.ddpfPixelFormat.dwRGBBitCount;
 
     if (!bitCount)
     {
-      logerr("Unknown DDPF_FOURCC format");
+      logerr("Unknown DDPF_FOURCC format: %c%c%c%c", _DUMP4C(dsc.ddpfPixelFormat.dwFourCC));
       return false;
     }
 
@@ -241,22 +288,25 @@ bool load_dds(void *ptr, int len, int levels, int topmipmap, ImageInfoDDS &image
 
   image_info.nlevels = levels;
   image_info.format = get_texformat(fmt);
+  image_info.d3dFormat = fmt;
   image_info.width = w;
   image_info.height = h;
+  image_info.depth = d ? d : 1;
   image_info.dxt = dxt;
   image_info.shift = shift;
 
   if (image_info.format == UNKNOWN_DDS_FORMAT)
   {
-    logerr("Unknown dds texture format");
+    logerr("Unknown dds texture format: d3dFormat=0x%x", fmt);
     return false;
   }
 
   w = dsc.dwWidth;
   h = dsc.dwHeight;
+  d = dsc.dwDepth;
 
-  uint8_t *sp = (uint8_t *)ptr + sizeof(DDSURFACEDESC2) + 4;
-  len -= sizeof(DDSURFACEDESC2) + 4;
+  uint8_t *sp = (uint8_t *)ptr + dds_hdr_sz;
+  len -= dds_hdr_sz;
   int lev;
 
   for (lev = 0; lev < topmipmap; ++lev)
@@ -283,11 +333,10 @@ bool load_dds(void *ptr, int len, int levels, int topmipmap, ImageInfoDDS &image
     return 0;
   }
 
-  if (len <= 0)
+  if (dds_hdr_only) // only header is passed, so clear pointers and return success
   {
-    DEBUG_CTX("invalid DDS data");
-    logerr("invalid DDS data");
-    return 0;
+    memset(image_info.pixels, 0, sizeof(image_info.pixels));
+    return true;
   }
 
   for (lev = 0; lev < levels; ++lev)
@@ -357,54 +406,25 @@ void *load_dds_file(const char *fn, int levels, int quality, IMemAlloc *mem, Ima
   return p;
 }
 
-Texture *create_dds_texture(bool srgb, const ImageInfoDDS &image_info, const char *tex_name, int flags)
+bool read_dds_info(const char *fn, ImageInfoDDS &out_image_info)
 {
-  // We don't support loading in compressed dds textures that are not aligned
-  int image_size_alignment = max<uint32_t>(1, get_dagor_texformat_image_size_alignment(image_info.format));
-  if ((image_info.width % image_size_alignment != 0) || (image_info.height % image_size_alignment != 0))
+  FullFileLoadCB crd(fn, DF_READ | DF_IGNORE_MISSING);
+  if (!crd.fileHandle)
+    return false;
+  static const unsigned DDS_HDR_SZ = sizeof(DDSURFACEDESC2) + 4;
+  static const unsigned DX10_HDR_SZ = sizeof(DDSHDR_DXT10);
+  char hdr[DDS_HDR_SZ + DX10_HDR_SZ];
+
+  unsigned hdr_sz = DDS_HDR_SZ;
+  if (crd.tryRead(hdr, DDS_HDR_SZ) < DDS_HDR_SZ)
+    return false;
+
+  DDSURFACEDESC2 &dsc = *(DDSURFACEDESC2 *)(void *)(&hdr[4]);
+  if ((dsc.ddpfPixelFormat.dwFlags & DDPF_FOURCC) && dsc.ddpfPixelFormat.dwFourCC == FOURCC_DX10)
   {
-    logerr("invalid dds image size (f:%#X, w:%d, h:%d)", image_info.format, image_info.width, image_info.height);
-    return NULL;
+    if (crd.tryRead(hdr + DDS_HDR_SZ, DX10_HDR_SZ) < DX10_HDR_SZ)
+      return false;
+    hdr_sz += DX10_HDR_SZ;
   }
-
-  Texture *tex = d3d::create_tex(NULL, image_info.width, image_info.height,
-    (srgb ? TEXCF_SRGBREAD : 0) | image_info.format | TEXCF_LOADONCE | flags, image_info.nlevels, tex_name ? tex_name : "dds_texture");
-  if (!tex)
-    return NULL;
-
-  for (unsigned int mipNo = 0; mipNo < image_info.nlevels; mipNo++)
-  {
-    char *dxtData;
-    int dxtPitch;
-    if (!tex->lockimg((void **)&dxtData, dxtPitch, mipNo,
-          TEXLOCK_WRITE | ((mipNo != image_info.nlevels - 1) ? TEXLOCK_DONOTUPDATEON9EXBYDEFAULT : TEXLOCK_DELSYSMEMCOPY)))
-    {
-      logerr("%s lockimg failed '%s'", __FUNCTION__, d3d::get_last_error());
-      continue;
-    }
-
-
-    unsigned mipH = image_info.height;
-    unsigned pitch = image_info.pitch;
-
-    if (image_info.dxt)
-    {
-      mipH >>= 2;
-      if (mipH < 1)
-        mipH = 1;
-    }
-
-    mipH >>= mipNo;
-    pitch >>= mipNo;
-
-    if (dxtPitch == pitch)
-      memcpy(dxtData, image_info.pixels[mipNo], mipH * pitch);
-    else
-      for (int i = 0; i < mipH; ++i)
-        memcpy(dxtData + i * dxtPitch, (char *)image_info.pixels[mipNo] + i * pitch, pitch);
-
-    tex->unlockimg();
-  }
-
-  return tex;
+  return load_dds(&hdr, hdr_sz, 0, 0, out_image_info);
 }

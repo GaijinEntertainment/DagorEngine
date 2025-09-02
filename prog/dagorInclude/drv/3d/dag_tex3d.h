@@ -29,12 +29,12 @@ struct TextureChannelFormatDesc
 {
   int8_t bits;
   int8_t offset; // in bits
-  bool isFloatPoint;
-  bool isSigned;
-  bool isNormalized;
+  bool isFloatPoint : 1;
+  bool isSigned : 1;
+  bool isNormalized : 1;
 };
 
-enum class ChannelDType
+enum class ChannelDType : uint8_t
 {
   NONE,
   UNORM,  // fixed point real \in [0, 1]
@@ -99,19 +99,14 @@ bool __forceinline is_bc_texformat(unsigned flags)
 enum
 {
   TEXLOCK_DISCARD = 0x00002000L,
-  TEXLOCK_RAWDATA = 0x00004000L,         // PS4. Do not convert data
-  TEXLOCK_NO_DIRTY_UPDATE = 0x00008000L, //?
-  TEXLOCK_NOSYSLOCK = 0x00000800L,
+  TEXLOCK_RAWDATA = 0x00004000L,   // PS4. Do not convert data
+  TEXLOCK_NOSYSLOCK = 0x00000800L, // if lock considered blocking one (GPU wait), do early exit instead of blocking
   TEXLOCK_READ = 0x01,
   TEXLOCK_WRITE = 0x02,
   TEXLOCK_READWRITE = TEXLOCK_READ | TEXLOCK_WRITE,
   TEXLOCK_RWMASK = TEXLOCK_READWRITE,
-  TEXLOCK_NOOVERWRITE = 0x08,               // TEXLOCK_WRITE only
-  TEXLOCK_DELSYSMEMCOPY = 0x10,             // delete sysmemcopy on unlock
-  TEXLOCK_SYSTEXLOCK = 0x20,                // locks tex copy in sysTex (system memory texture)
-  TEXLOCK_UPDATEFROMSYSTEX = 0x40,          // makes copy from system memory to video on unlock
-  TEXLOCK_DONOTUPDATEON9EXBYDEFAULT = 0x80, // compatibility! not makes copy from system memory to video on unlock by default, if 9ex
-  TEXLOCK_COPY_STAGING = 0x100,
+  TEXLOCK_DELSYSMEMCOPY = 0x10, // delete sysmemcopy on unlock
+  TEXLOCK_DONOTUPDATE = 0x80,   // do not update video memory at unlock, use to batch updates for multiple subresources
   TEXLOCK_DEFAULT = TEXLOCK_READWRITE,
 };
 
@@ -135,10 +130,16 @@ enum
 
 struct TextureInfo
 {
-  //! width, height, depth (for VOLTEX), array slices (slice count for ARRTEX or 6 for CUBETEX)
-  unsigned short w = 1, h = 1, d = 1, a = 1;
-  //! all mips and res type
-  unsigned short mipLevels = 0, resType = 0;
+  //! width, height, depth (for VOLTEX)
+  uint16_t w = 1, h = 1, d = 1;
+  //! array slices (slice count for ARRTEX, 6 for CUBETEX, or 6 * <array size> for CUBEARRTEX)
+  uint16_t a = 1;
+  //! all mips
+  uint16_t mipLevels = 0;
+  //! resource type (D3DResourceType::TEX, ...)
+  D3DResourceType type = {};
+  // committed resource flag, we can't alias it (can be used for other flags also)
+  uint8_t isCommitted = 0;
   //! texture creation flags
   unsigned cflg = 0;
 };
@@ -176,62 +177,14 @@ public:
   {
     return updateSubRegion(src, src_subres_idx, src_x, src_y, src_z, src_w, src_h, src_d, dest_subres_idx, dest_x, dest_y, dest_z);
   }
-  virtual int level_count() const = 0; // number of mipmap levels
-  int texaddr(int addrmode)
-  {
-    G_ASSERT(samplerEnabled);
-    return texaddrImpl(addrmode);
-  } // set texaddru,texaddrv,...
-  int texaddru(int addrmode)
-  {
-    G_ASSERT(samplerEnabled);
-    return texaddruImpl(addrmode);
-  } // default is TEXADDR_WRAP
-  int texaddrv(int addrmode)
-  {
-    G_ASSERT(samplerEnabled);
-    return texaddrvImpl(addrmode);
-  } // default is TEXADDR_WRAP
-  int texaddrw(int addrmode)
-  {
-    G_ASSERT(samplerEnabled);
-    return texaddrwImpl(addrmode);
-  } // default is TEXADDR_WRAP
-  int texbordercolor(E3DCOLOR color)
-  {
-    G_ASSERT(samplerEnabled);
-    return texbordercolorImpl(color);
-  }
-  int texfilter(int filtermode)
-  {
-    G_ASSERT(samplerEnabled);
-    return texfilterImpl(filtermode);
-  } // default is TEXFILTER_DEFAULT
-  int texmipmap(int mipmapmode)
-  {
-    G_ASSERT(samplerEnabled);
-    return texmipmapImpl(mipmapmode);
-  } // default is TEXMIPMAP_DEFAULT
-  int texlod(float mipmaplod)
-  {
-    G_ASSERT(samplerEnabled);
-    return texlodImpl(mipmaplod);
-  } // default is zero. Sets texture lod bias
-  int setAnisotropy(int level)
-  {
-    G_ASSERT(samplerEnabled);
-    return setAnisotropyImpl(level);
-  } // default is 1.
-  void disableSampler() { samplerEnabled = false; }
-  bool isSamplerEnabled() { return samplerEnabled; }
+  virtual int level_count() const = 0;                     // number of mipmap levels
   virtual int texmiplevel(int minlevel, int maxlevel) = 0; // default is 0, 0
   virtual bool isCubeArray() const { return false; }
 
   virtual void setReadStencil(bool) {} // for depth stencil textures, if on will read stencil, not depth. Currently either of two
   virtual void setTID(TEXTUREID /*tid*/) {}
   virtual TEXTUREID getTID() const { return BAD_TEXTUREID; }
-  const char *getTexName() const { return getResName(); }
-  void setResApiName(const char * /*name*/) const override {}
+  const char *getTexName() const { return getName(); }
 
   // lock image data - no conversion is performed
   // render target image is read-only by default
@@ -260,9 +213,10 @@ public:
     return 1;
   }
 
-  //! created temporary BaseTexture with texture res object with given dimensions (texture format and texture subtype is used from
-  //! original)
-  virtual BaseTexture *makeTmpTexResCopy(int /*w*/, int /*h*/, int /*d*/, int /*l*/, bool /*staging_tex*/ = false) { return nullptr; }
+  //! changes texture format (if possible and supported by driver) to specified 'd3d_format' (ddsx::Header::d3dFormat)
+  virtual bool updateTexResFormat(unsigned /*d3d_format*/) { return false; }
+  //! created temporary BaseTexture with texture res object with given dimensions (texture subtype and format are used from original)
+  virtual BaseTexture *makeTmpTexResCopy(int /*w*/, int /*h*/, int /*d*/, int /*l*/) { return nullptr; }
   //! replaces texture res object with new one of new_tex and then destroys new_tex (destruction may be delayed by driver)
   virtual void replaceTexResObject(BaseTexture *&new_tex) { del_d3dres(new_tex); }
 
@@ -271,11 +225,6 @@ public:
   //! discards texture and returns it to STUB state
   virtual void discardTex() {}
 
-#if DAGOR_DBGLEVEL > 0
-  // Not implemented for all platforms, only for shared implementation BaseTextureImpl which is not used everywhere yet
-  // And a need is questionable by now
-  virtual int getTexfilter() const { return 0; }
-#endif
   // Replaces the texture with a smaller one defined by info, overlapping mip levels are automatically
   // migrated to the new texture. This does not need TEXCF_UPDATE_DESTINATION to work, even if the default
   // implementation would do so. Drivers that can not executed updateSubRegion correctly without the
@@ -286,7 +235,7 @@ public:
   [[nodiscard]] virtual BaseTexture *downSize(int width, int height, int depth, int mips, unsigned start_src_level,
     unsigned level_offset)
   {
-    auto rep = makeTmpTexResCopy(width, height, depth, mips, false);
+    auto rep = makeTmpTexResCopy(width, height, depth, mips);
     if (!rep)
       return nullptr;
 
@@ -317,7 +266,7 @@ public:
   [[nodiscard]] virtual BaseTexture *upSize(int width, int height, int depth, int mips, unsigned start_src_level,
     unsigned level_offset)
   {
-    auto rep = makeTmpTexResCopy(width, height, depth, mips, false);
+    auto rep = makeTmpTexResCopy(width, height, depth, mips);
     if (!rep)
       return nullptr;
 
@@ -345,21 +294,17 @@ public:
   BaseTexture &operator=(BaseTexture &&) = default;
 
 protected:
-  ~BaseTexture() override {}
-  bool samplerEnabled = true;
-  virtual int texaddrImpl(int addrmode) = 0;
-  virtual int texaddruImpl(int addrmode) = 0;
-  virtual int texaddrvImpl(int addrmode) = 0;
-  virtual int texaddrwImpl(int) { return 0; };
-  virtual int texbordercolorImpl(E3DCOLOR) = 0;
-  virtual int texfilterImpl(int filtermode) = 0;
-  virtual int texmipmapImpl(int mipmapmode) = 0;
-  virtual int texlodImpl(float mipmaplod) = 0;
-  virtual int setAnisotropyImpl(int level) = 0;
+  ~BaseTexture() = default;
 
   // Flag is used to mark the read back status for textures to prepare for cpu access,
   // It's either copy to staging memory or direct access in case of consoles.
   static constexpr int TEX_COPIED = 1 << 30;
+
+#if _TARGET_C1
+
+
+
+#endif
 };
 
 typedef BaseTexture Texture;
@@ -370,8 +315,6 @@ typedef BaseTexture ArrayTexture;
 uint32_t auto_mip_levels_count(uint32_t w, uint32_t min_size);
 uint32_t auto_mip_levels_count(uint32_t w, uint32_t h, uint32_t min_size);
 uint32_t auto_mip_levels_count(uint32_t w, uint32_t h, uint32_t d, uint32_t min_size);
-
-void apply_gen_tex_props(BaseTexture *t, const struct TextureMetaData &tmd, bool force_addr_from_tmd = true);
 
 uint32_t parse_tex_format(const char *name, uint32_t default_fmt);
 const TextureFormatDesc &get_tex_format_desc(uint32_t fmt);
@@ -437,7 +380,7 @@ extern TexLoadRes (*d3d_load_ddsx_to_slice)(BaseTexture *tex, int slice, const d
   int start_lev, unsigned tex_ld_lev);
 
 bool convert_image_line(const void *__restrict input, int width, int in_channels, int in_bits_per_channel, bool in_float,
-  void *__restrict output, int out_channels, int out_bits_per_channel, bool out_float, bool swap_rb);
+  void *__restrict output, int out_channels, int out_bits_per_channel, bool out_float, bool swap_rb, bool invert);
 
 //--- include defines specific to target 3d -------
 #include <drv/3d/dag_consts_base.h>

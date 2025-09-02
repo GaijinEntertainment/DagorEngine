@@ -59,22 +59,16 @@ bool ScreenshotMetaInfoLoader::getExportPathFromProjectFile(const char *project_
 
 bool ScreenshotMetaInfoLoader::getProjectFilePathFromDirectory(const char *directory_path, FilePathName &project_file_path)
 {
-  bool found = false;
-
-  alefind_t ff;
-  for (bool ok = dd_find_first(FilePathName(directory_path, "*.level.blk"), 0, &ff); ok; ok = dd_find_next(&ff))
+  for (const alefind_t &ff : dd_find_iterator(FilePathName(directory_path, "*.level.blk"), DA_FILE))
   {
     // Ignore previous file versions made by CVS (".#file.revision").
     if (ff.name[0] == '.' && ff.name[1] == '#')
       continue;
 
     project_file_path = FilePathName(directory_path, ff.name);
-    found = true;
-    break;
+    return true;
   }
-
-  dd_find_close(&ff);
-  return found;
+  return false;
 }
 
 bool ScreenshotMetaInfoLoader::findProjectByExportPath(const char *directory_path, const char *searched_export_path,
@@ -93,9 +87,7 @@ bool ScreenshotMetaInfoLoader::findProjectByExportPath(const char *directory_pat
     return false;
   }
 
-  alefind_t ff;
-
-  for (bool ok = dd_find_first(FilePathName(directory_path, "*"), DA_SUBDIR, &ff); ok; ok = dd_find_next(&ff))
+  for (const alefind_t &ff : dd_find_iterator(FilePathName(directory_path, "*"), DA_SUBDIR))
   {
     if ((ff.attr & DA_SUBDIR) == 0 || stricmp(ff.name, "cvs") == 0)
       continue;
@@ -103,12 +95,9 @@ bool ScreenshotMetaInfoLoader::findProjectByExportPath(const char *directory_pat
     FilePathName childPath(directory_path, ff.name);
     if (findProjectByExportPath(childPath, searched_export_path, project_file_path))
     {
-      dd_find_close(&ff);
       return true;
     }
   }
-
-  dd_find_close(&ff);
 
   return false;
 }

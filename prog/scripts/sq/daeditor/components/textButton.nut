@@ -1,7 +1,6 @@
+from "%sqstd/underscore.nut" import deep_merge
 from "%darg/ui_imports.nut" import *
-let {deep_merge} = require("%sqstd/underscore.nut")
-
-let style = {
+let style = static {
   text = {
     normal = {
       color = Color(200,200,200)
@@ -34,7 +33,7 @@ let style = {
   }
 }
 
-let offStyle = {
+let offStyle = static {
   textStyle = {
     normal = {
       color = Color(64,64,64)
@@ -66,22 +65,22 @@ function textButton(text, handler, params = {}){
   let textNormal = textStyle.normal
   let boxNormal = boxStyle.normal
   return function(){
-    let s = stateFlags.value
+    let s = stateFlags.get()
     local state = "normal"
-    if (disabled?.value)
+    if (disabled?.get())
       state = "disabled"
     else if (s & S_ACTIVE)
       state = "active"
     else if (s & S_HOVER)
       state = "hover"
 
-    let textS = textStyle?[state] ?? {}
-    let boxS = boxStyle?[state] ?? {}
+    let textS = textStyle?[state] ?? static {}
+    let boxS = boxStyle?[state] ?? static {}
     return {
       rendObj = ROBJ_BOX
     }.__update(boxNormal, boxS, {
       watch = [stateFlags, disabled]
-      onElemState = @(sf) stateFlags(sf)
+      onElemState = @(sf) stateFlags.set(sf)
       behavior = Behaviors.Button
       hotkeys = params?.hotkeys
       onClick = handler

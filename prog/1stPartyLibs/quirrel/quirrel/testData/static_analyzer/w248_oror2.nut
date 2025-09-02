@@ -8,4 +8,4 @@ function onDoubleClick(itemDesc, event, isLocked, isInteractive, onDoubleClickCb
   }
 
 
-  onDoubleClick(1, 2, 3, 4, 5)
+onDoubleClick(1, 2, 3, 4, 5)

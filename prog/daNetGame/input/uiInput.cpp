@@ -26,10 +26,7 @@ namespace uiinput
 {
 
 
-#define ADD_KEY(KEY)                  \
-  {                                   \
-    dainput::DEV_kbd, HumanInput::KEY \
-  }
+#define ADD_KEY(KEY) {dainput::DEV_kbd, HumanInput::KEY}
 static dainput::SingleButtonId keys_disable_by_console[] = {
   ADD_KEY(DKEY_1),
   ADD_KEY(DKEY_2),

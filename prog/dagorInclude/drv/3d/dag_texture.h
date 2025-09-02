@@ -28,11 +28,11 @@ int get_max_sample_count(int cflg);
 /**
  * @brief Get the texture format usage for the given texture format.
  * @param cflg The texture format.
- * @param restype The resource type (default value is RES3D_TEX).
+ * @param type The resource type (default value is D3DResourceType::TEX).
  * @return The texture format usage. One of the USAGE_XXX flags.
  * @todo Use enum class as a returned type.
  */
-unsigned get_texformat_usage(int cflg, int restype = RES3D_TEX);
+unsigned get_texformat_usage(int cflg, D3DResourceType type = D3DResourceType::TEX);
 
 /**
  * @brief Check whether two texture creation flags result in the same format.
@@ -151,7 +151,20 @@ BaseTexture *create_array_tex(int w, int h, int d, int flg, int levels, const ch
 BaseTexture *create_cube_array_tex(int side, int d, int flg, int levels, const char *stat_name);
 
 /**
- * @brief Create a texture alias, a texture using the same memory as another texture but with a different format.
+ * @brief Create a texture alias, a texture using the same memory as another texture but with different properties.
+ * The alias may use a different resolution, format or mip level, subject to restrictions below.
+ * @warning You also must dispatch a RB_ALIAS_FROM/RB_ALIAS_TO barrier after you stop using one of the aliases
+ * and before you start using a different alias, where all textures occupying the same memory are considered
+ * to be aliases of each other.
+ * @warning After switching to a new alias, it will contain garbage and will need to be initialized.
+ * This API does NOT guarantee data inheritance whatsoever. It is to be used for memory reuse only.
+ * @warning It is not guaranteed that an intuitively smaller alias can be created from a bigger texture.
+ * Decreasing the resolution by several pixels causes the amount of memory needed to store the texture
+ * to INCREASE on some platforms for some formats and some concrete resolutions. Hence, this function
+ * CAN fail and will return nullptr and logerr in such a case. Use `d3d::get_resource_allocation_properties`
+ * to check whether the alias will not take up more memory than the original texture before calling this API.
+ * @deprecated Always prefer higher-level APIs for saving memory (e.g. frame graph, ResizableTex).
+ * Avoid using this as much as possible, it will be removed in favor of using heaps via a frame graph system.
  * @param baseTexture The base texture to alias.
  * @param img 32-bit image data.
  * @param w The width of the texture.
@@ -224,7 +237,7 @@ BaseTexture *alias_cube_array_tex(BaseTexture *baseTexture, int side, int d, int
  * @param rdst The destination rectangle (optional).
  * @return Returns true if the stretch operation was successful, otherwise returns false.
  */
-bool stretch_rect(BaseTexture *src, BaseTexture *dst, RectInt *rsrc = nullptr, RectInt *rdst = nullptr);
+bool stretch_rect(BaseTexture *src, BaseTexture *dst, const RectInt *rsrc = nullptr, const RectInt *rdst = nullptr);
 
 /**
  * @brief Get the texture statistics.
@@ -239,10 +252,9 @@ void get_texture_statistics(uint32_t *num_textures, uint64_t *total_mem, String 
  * @param shader_stage The shader stage. One of the STAGE_XXX flags.
  * @param slot The slot.
  * @param tex The texture to set.
- * @param use_sampler Whether to use the sampler (default value is true).
  * @return Returns true if the texture was successfully set, otherwise returns false.
  */
-bool set_tex(unsigned shader_stage, unsigned slot, BaseTexture *tex, bool use_sampler = true);
+bool set_tex(unsigned shader_stage, unsigned slot, BaseTexture *tex);
 
 /**
  * @brief Set a texture for a pixel shader slot.
@@ -260,6 +272,13 @@ inline bool settex(int slot, BaseTexture *tex) { return set_tex(STAGE_PS, slot, 
  */
 inline bool settex_vs(int slot, BaseTexture *tex) { return set_tex(STAGE_VS, slot, tex); }
 
+/**
+ * @brief Discard the texture. It initializes the texture leaving the texels in an undefined state.
+ * @param tex Texture to discard. Now usage is limited to UA and RT textures only.
+ * @return true if the operation was successful, false otherwise.
+ */
+bool discard_tex(BaseTexture *tex);
+
 } // namespace d3d
 
 
@@ -269,7 +288,7 @@ namespace d3d
 {
 inline bool check_texformat(int cflg) { return d3di.check_texformat(cflg); }
 inline int get_max_sample_count(int cflg) { return d3di.get_max_sample_count(cflg); }
-inline unsigned get_texformat_usage(int cflg, int restype) { return d3di.get_texformat_usage(cflg, restype); }
+inline unsigned get_texformat_usage(int cflg, D3DResourceType type) { return d3di.get_texformat_usage(cflg, type); }
 inline bool issame_texformat(int cflg1, int cflg2) { return d3di.issame_texformat(cflg1, cflg2); }
 inline bool check_cubetexformat(int cflg) { return d3di.check_cubetexformat(cflg); }
 inline bool check_voltexformat(int cflg) { return d3di.check_voltexformat(cflg); }
@@ -331,7 +350,7 @@ inline BaseTexture *alias_cube_array_tex(BaseTexture *baseTexture, int side, int
   return d3di.alias_cube_array_tex(baseTexture, side, d, flg, levels, stat_name);
 }
 
-inline bool stretch_rect(BaseTexture *src, BaseTexture *dst, RectInt *rsrc, RectInt *rdst)
+inline bool stretch_rect(BaseTexture *src, BaseTexture *dst, const RectInt *rsrc, const RectInt *rdst)
 {
   return d3di.stretch_rect(src, dst, rsrc, rdst);
 }
@@ -341,9 +360,8 @@ inline void get_texture_statistics(uint32_t *num_textures, uint64_t *total_mem, 
   d3di.get_texture_statistics(num_textures, total_mem, out_dump);
 }
 
-inline bool set_tex(unsigned shader_stage, unsigned slot, BaseTexture *tex, bool use_sampler)
-{
-  return d3di.set_tex(shader_stage, slot, tex, use_sampler);
-}
+inline bool set_tex(unsigned shader_stage, unsigned slot, BaseTexture *tex) { return d3di.set_tex(shader_stage, slot, tex); }
+
+inline bool discard_tex(BaseTexture *tex) { return d3di.discard_tex(tex); }
 } // namespace d3d
 #endif

@@ -88,8 +88,7 @@ static int isempty(char *s) {
 CfgDiv::CfgDiv(char *a) : var(tmpmem), comm(tmpmem)
 {
   id = a;
-  ord = -1;
-  lines = 2;
+  ln = 0;
 }
 
 CfgDiv::~CfgDiv()
@@ -373,7 +372,7 @@ void CfgReader::resolve_includes()
 }
 // static bool _debug=false;
 
-int CfgReader::readfile(const char *fn, bool clr)
+int CfgReader::readfile(const char *fn, bool clr, bool read_comments)
 {
   if (dd_stricmp(fname, fn) == 0)
   {
@@ -397,7 +396,7 @@ int CfgReader::readfile(const char *fn, bool clr)
   df_close(fh);
   // debug("!!! <%s>",fn);
   // if(dd_stricmp(fn,"deathdrive.cfg")==0) _debug=true;
-  int res = readtext(&text[0], clr);
+  int res = readtext(&text[0], clr, read_comments);
   //_debug=false;
   fname = fn;
   return res;
@@ -431,7 +430,7 @@ int CfgReader::getdiv(const char *dn)
   return 0;
 }
 
-int CfgReader::readtext(char *text, bool clr)
+int CfgReader::readtext(char *text, bool clr, bool read_comments)
 {
   if (clr)
     clear();
@@ -440,8 +439,11 @@ int CfgReader::readtext(char *text, bool clr)
   // if(_debug) debug("--------------------------------------------");
   char s[512];
   int cd = -1;
+  int lineNumber = 0;
   while (read_line(text, s, 512))
   {
+    ++lineNumber;
+
     // if(_debug) debug("$ <%s>",s);
     char *p = s;
     for (; *p; ++p)
@@ -450,7 +452,18 @@ int CfgReader::readtext(char *text, bool clr)
     if (!*p)
       continue;
     if (*p == '#' || *p == '\'' || *p == ';' || *p == '/')
+    {
+      if (read_comments && cd >= 0)
+      {
+        CfgDiv &d = div[cd];
+
+        CfgComm &comm = d.comm.push_back();
+        comm.text = str_dup(p, strmem);
+        comm.ln = lineNumber;
+      }
+
       continue;
+    }
     if (*p == '[')
     {
       cd = -1;
@@ -477,6 +490,7 @@ int CfgReader::readtext(char *text, bool clr)
         if (i < 0)
           continue;
         div[i].id = str_dup(id, strmem);
+        div[i].ln = lineNumber;
       }
       cd = i;
     }
@@ -556,6 +570,7 @@ int CfgReader::readtext(char *text, bool clr)
           memfree(z.id, strmem);
           continue;
         }
+        z.ln = lineNumber;
         d.var.push_back(z);
       }
       //      debug("%s=<%s>",id,val);

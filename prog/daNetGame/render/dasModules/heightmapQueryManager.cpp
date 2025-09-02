@@ -6,14 +6,15 @@
 namespace bind_dascript
 {
 
-struct HeightmapQueryResultAnnotation : das::ManagedStructureAnnotation<HeightmapQueryResult, false>
+struct HeightmapQueryResultAnnotation : das::ManagedStructureAnnotation<HeightmapQueryResultWrapper, false>
 {
-  HeightmapQueryResultAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("HeightmapQueryResult", ml)
+  HeightmapQueryResultAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("HeightmapQueryResultWrapper", ml)
   {
-    cppName = " ::HeightmapQueryResult";
-    addField<DAS_BIND_MANAGED_FIELD(heightNoOffset)>("heightNoOffset");
-    addField<DAS_BIND_MANAGED_FIELD(heightWithOffset)>("heightWithOffset");
-    addField<DAS_BIND_MANAGED_FIELD(heightWithOffsetDeform)>("heightWithOffsetDeform");
+    cppName = " ::HeightmapQueryResultWrapper";
+    addField<DAS_BIND_MANAGED_FIELD(hitDistNoOffset)>("hitDistNoOffset");
+    addField<DAS_BIND_MANAGED_FIELD(hitDistWithOffset)>("hitDistWithOffset");
+    addField<DAS_BIND_MANAGED_FIELD(hitDistWithOffsetDeform)>("hitDistWithOffsetDeform");
+    addField<DAS_BIND_MANAGED_FIELD(normal)>("normal");
   }
 };
 
@@ -35,7 +36,7 @@ public:
     das::addExtern<DAS_BIND_FUN(heightmap_query_value)>(*this, lib, "heightmap_query_value",
       das::SideEffects::modifyArgumentAndExternal, "bind_dascript::heightmap_query_value");
 
-    das::addCtorAndUsing<HeightmapQueryResult>(*this, lib, "HeightmapQueryResult", "::HeightmapQueryResult");
+    das::addCtorAndUsing<HeightmapQueryResultWrapper>(*this, lib, "HeightmapQueryResultWrapper", "::HeightmapQueryResultWrapper");
 
     verifyAotReady();
   }

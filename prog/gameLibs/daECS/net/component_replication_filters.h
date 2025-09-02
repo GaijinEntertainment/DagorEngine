@@ -10,7 +10,7 @@ extern SmallTab<replicate_component_filter_index_t> replicate_component_filter_i
 extern SmallTab<component_replication_filter> replicate_component_filters;
 
 extern uint32_t dirty_component_filter_mask;
-void register_pending_component_filters();
+void register_pending_component_filters(const ecs::EntityManager &mgr);
 inline replicate_component_filter_index_t get_replicate_component_filter_index(ecs::component_index_t cidx)
 {
   return cidx < replicate_component_filter_index.size() ? replicate_component_filter_index[cidx] : replicate_everywhere_filter_id;

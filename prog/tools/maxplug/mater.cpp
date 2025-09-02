@@ -37,7 +37,7 @@ public:
   ICustButton *tbut[NUMTEXMAPS];
 
   MaterDlg(HWND hwMtlEdit, IMtlParams *imp, DagorMat *m);
-  ~MaterDlg();
+  ~MaterDlg() override;
 
   BOOL WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
   void Invalidate();
@@ -45,15 +45,15 @@ public:
   void UpdateTexDisplay(int i);
 
   // methods inherited from ParamDlg:
-  int FindSubTexFromHWND(HWND hw);
-  void ReloadDialog();
-  Class_ID ClassID() { return DagorMat_CID; }
+  int FindSubTexFromHWND(HWND hw) override;
+  void ReloadDialog() override;
+  Class_ID ClassID() override { return DagorMat_CID; }
   BOOL KeyAtCurTime(int id);
-  void SetThing(ReferenceTarget *m);
-  ReferenceTarget *GetThing() { return (ReferenceTarget *)theMtl; }
-  void DeleteThis() { delete this; }
-  void SetTime(TimeValue t) { Invalidate(); }
-  void ActivateDlg(BOOL onOff)
+  void SetThing(ReferenceTarget *m) override;
+  ReferenceTarget *GetThing() override { return (ReferenceTarget *)theMtl; }
+  void DeleteThis() override { delete this; }
+  void SetTime(TimeValue t) override { Invalidate(); }
+  void ActivateDlg(BOOL onOff) override
   {
     csa->Activate(onOff);
     csd->Activate(onOff);
@@ -78,96 +78,97 @@ public:
   float shin;
   float power;
   Color cola, cold, cols, cole;
-  BOOL twosided;
+  Sides twosided;
   TSTR classname, script;
 
   DagorMat(BOOL loading);
-  ~DagorMat();
+  ~DagorMat() override;
   void NotifyChanged();
 
-  void *GetInterface(ULONG);
-  void ReleaseInterface(ULONG, void *);
+  void *GetInterface(ULONG) override;
+  void ReleaseInterface(ULONG, void *) override;
 
   // From IDagorMat
-  Color get_amb();
-  Color get_diff();
-  Color get_spec();
-  Color get_emis();
-  float get_power();
-  BOOL get_2sided();
-  const TCHAR *get_classname();
-  const TCHAR *get_script();
-  const TCHAR *get_texname(int);
-  float get_param(int);
+  Color get_amb() override;
+  Color get_diff() override;
+  Color get_spec() override;
+  Color get_emis() override;
+  float get_power() override;
+  IDagorMat::Sides get_2sided() override;
+  const TCHAR *get_classname() override;
+  const TCHAR *get_script() override;
+  const TCHAR *get_texname(int) override;
+  float get_param(int) override;
 
-  void set_amb(Color);
-  void set_diff(Color);
-  void set_spec(Color);
-  void set_emis(Color);
-  void set_power(float);
-  void set_2sided(BOOL);
-  void set_classname(const TCHAR *);
-  void set_script(const TCHAR *);
-  void set_texname(int, const TCHAR *);
-  void set_param(int, float);
+  void set_amb(Color) override;
+  void set_diff(Color) override;
+  void set_spec(Color) override;
+  void set_emis(Color) override;
+  void set_power(float) override;
+  void set_2sided(Sides) override;
+  void set_classname(const TCHAR *) override;
+  void set_script(const TCHAR *) override;
+  void set_texname(int, const TCHAR *) override;
+  void set_param(int, float) override;
 
   // From MtlBase and Mtl
-  int NumSubTexmaps();
-  Texmap *GetSubTexmap(int);
-  void SetSubTexmap(int i, Texmap *m);
+  int NumSubTexmaps() override;
+  Texmap *GetSubTexmap(int) override;
+  void SetSubTexmap(int i, Texmap *m) override;
 
-  void SetAmbient(Color c, TimeValue t);
-  void SetDiffuse(Color c, TimeValue t);
-  void SetSpecular(Color c, TimeValue t);
-  void SetShininess(float v, TimeValue t);
+  void SetAmbient(Color c, TimeValue t) override;
+  void SetDiffuse(Color c, TimeValue t) override;
+  void SetSpecular(Color c, TimeValue t) override;
+  void SetShininess(float v, TimeValue t) override;
 
-  Color GetAmbient(int mtlNum = 0, BOOL backFace = FALSE);
-  Color GetDiffuse(int mtlNum = 0, BOOL backFace = FALSE);
-  Color GetSpecular(int mtlNum = 0, BOOL backFace = FALSE);
-  float GetXParency(int mtlNum = 0, BOOL backFace = FALSE);
-  float GetShininess(int mtlNum = 0, BOOL backFace = FALSE);
-  float GetShinStr(int mtlNum = 0, BOOL backFace = FALSE);
+  Color GetAmbient(int mtlNum = 0, BOOL backFace = FALSE) override;
+  Color GetDiffuse(int mtlNum = 0, BOOL backFace = FALSE) override;
+  Color GetSpecular(int mtlNum = 0, BOOL backFace = FALSE) override;
+  float GetXParency(int mtlNum = 0, BOOL backFace = FALSE) override;
+  float GetShininess(int mtlNum = 0, BOOL backFace = FALSE) override;
+  float GetShinStr(int mtlNum = 0, BOOL backFace = FALSE) override;
 
-  ParamDlg *CreateParamDlg(HWND hwMtlEdit, IMtlParams *imp);
+  ParamDlg *CreateParamDlg(HWND hwMtlEdit, IMtlParams *imp) override;
 
-  void Shade(ShadeContext &sc);
-  void Update(TimeValue t, Interval &valid);
-  void Reset();
-  Interval Validity(TimeValue t);
+  void Shade(ShadeContext &sc) override;
+  void Update(TimeValue t, Interval &valid) override;
+  void Reset() override;
+  Interval Validity(TimeValue t) override;
 
-  Class_ID ClassID();
-  SClass_ID SuperClassID();
+  Class_ID ClassID() override;
+  SClass_ID SuperClassID() override;
 #if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
   void GetClassName(TSTR &s, bool localized) { s = GetString(IDS_DAGORMAT); }
 #else
   void GetClassName(TSTR &s) { s = GetString(IDS_DAGORMAT); }
 #endif
 
-  void DeleteThis();
+  void DeleteThis() override;
 
-  ULONG Requirements(int subMtlNum);
-  int NumSubs();
-  Animatable *SubAnim(int i);
+  ULONG Requirements(int subMtlNum) override;
+  int NumSubs() override;
+  Animatable *SubAnim(int i) override;
 #if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
-  MSTR SubAnimName(int i, bool localized);
+  MSTR SubAnimName(int i, bool localized) override;
 #else
   TSTR SubAnimName(int i);
 #endif
-  int SubNumToRefNum(int subNum);
+  int SubNumToRefNum(int subNum) override;
 
   // From ref
-  int NumRefs();
-  RefTargetHandle GetReference(int i);
-  void SetReference(int i, RefTargetHandle rtarg);
+  int NumRefs() override;
+  RefTargetHandle GetReference(int i) override;
+  void SetReference(int i, RefTargetHandle rtarg) override;
 
-  IOResult Save(ISave *isave);
-  IOResult Load(ILoad *iload);
+  IOResult Save(ISave *isave) override;
+  IOResult Load(ILoad *iload) override;
 
-  RefTargetHandle Clone(RemapDir &remap = NoRemap());
+  RefTargetHandle Clone(RemapDir &remap) override;
 #if defined(MAX_RELEASE_R17) && MAX_RELEASE >= MAX_RELEASE_R17
-  RefResult NotifyRefChanged(const Interval &changeInt, RefTargetHandle hTarget, PartID &partID, RefMessage message, BOOL propagate);
+  RefResult NotifyRefChanged(const Interval &changeInt, RefTargetHandle hTarget, PartID &partID, RefMessage message,
+    BOOL propagate) override;
 #else
-  RefResult NotifyRefChanged(Interval changeInt, RefTargetHandle hTarget, PartID &partID, RefMessage message);
+  RefResult NotifyRefChanged(Interval changeInt, RefTargetHandle hTarget, PartID &partID, RefMessage message) override;
 #endif
   void SetupGfxMultiMaps(TimeValue t, Material *mtl, MtlMakerCallback &cb) override;
   void ActivateTexDisplay(BOOL onoff) override;
@@ -189,13 +190,17 @@ enum
 class MaterClassDesc : public ClassDesc
 {
 public:
-  int IsPublic() { return 1; }
-  void *Create(BOOL loading) { return new DagorMat(loading); }
-  const TCHAR *ClassName() { return GetString(IDS_DAGORMAT_LONG); }
+  int IsPublic() override { return 1; }
+  void *Create(BOOL loading) override { return new DagorMat(loading); }
+  const TCHAR *ClassName() override { return GetString(IDS_DAGORMAT_LONG); }
+#if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
+  const MCHAR *NonLocalizedClassName() override { return ClassName(); }
+#else
   const MCHAR *NonLocalizedClassName() { return ClassName(); }
-  SClass_ID SuperClassID() { return MATERIAL_CLASS_ID; }
-  Class_ID ClassID() { return DagorMat_CID; }
-  const TCHAR *Category() { return _T(""); }
+#endif
+  SClass_ID SuperClassID() override { return MATERIAL_CLASS_ID; }
+  Class_ID ClassID() override { return DagorMat_CID; }
+  const TCHAR *Category() override { return _T(""); }
 };
 static MaterClassDesc materCD;
 ClassDesc *GetMaterCD() { return &materCD; }
@@ -203,13 +208,17 @@ ClassDesc *GetMaterCD() { return &materCD; }
 class TexmapsClassDesc : public ClassDesc
 {
 public:
-  int IsPublic() { return 0; }
-  void *Create(BOOL loading) { return new Texmaps; }
-  const TCHAR *ClassName() { return _T("DagorTexmaps"); }
+  int IsPublic() override { return 0; }
+  void *Create(BOOL loading) override { return new Texmaps; }
+  const TCHAR *ClassName() override { return _T("DagorTexmaps"); }
+#if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
+  const MCHAR *NonLocalizedClassName() override { return ClassName(); }
+#else
   const MCHAR *NonLocalizedClassName() { return ClassName(); }
-  SClass_ID SuperClassID() { return TEXMAP_CONTAINER_CLASS_ID; }
-  Class_ID ClassID() { return Texmaps_CID; }
-  const TCHAR *Category() { return _T(""); }
+#endif
+  SClass_ID SuperClassID() override { return TEXMAP_CONTAINER_CLASS_ID; }
+  Class_ID ClassID() override { return Texmaps_CID; }
+  const TCHAR *Category() override { return _T(""); }
 };
 static TexmapsClassDesc texmapsCD;
 ClassDesc *GetTexmapsCD() { return &texmapsCD; }
@@ -314,7 +323,9 @@ BOOL MaterDlg::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
       assert(css);
       cse = GetIColorSwatch(GetDlgItem(hWnd, IDC_EMIS), theMtl->cole, GetString(IDS_EMIS_COLOR));
       assert(cse);
-      CheckDlgButton(hWnd, IDC_2SIDED, theMtl->twosided);
+
+      SendMessage(GetDlgItem(hWnd, IDC_ENUM_2SIDED), CB_SETCURSEL, WPARAM(theMtl->twosided), NULL);
+
       eclassname = GetICustEdit(GetDlgItem(hWnd, IDC_CLASSNAME));
       assert(eclassname);
       eclassname->SetText(theMtl->classname);
@@ -344,12 +355,16 @@ BOOL MaterDlg::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
         }
       switch (LOWORD(wParam))
       {
-        case IDC_2SIDED:
-          if (creating)
-            break;
-          theMtl->twosided = IsDlgButtonChecked(hWnd, IDC_2SIDED);
-          theMtl->NotifyChanged();
-          UpdateMtlDisplay();
+        case IDC_ENUM_2SIDED:
+          if (HIWORD(wParam) == CBN_SELCHANGE)
+          {
+            if (creating)
+              break;
+
+            theMtl->twosided = IDagorMat::Sides(SendMessage(GetDlgItem(hWnd, IDC_ENUM_2SIDED), CB_GETCURSEL, 0, 0));
+            theMtl->NotifyChanged();
+            UpdateMtlDisplay();
+          }
           break;
         case IDC_CLASSNAME:
           if (creating)
@@ -514,7 +529,9 @@ void MaterDlg::ReloadDialog()
   css->SetKeyBrackets(KeyAtCurTime(PB_SPEC));
   cse->SetColor(theMtl->cole);
   cse->SetKeyBrackets(KeyAtCurTime(PB_EMIS));
-  CheckDlgButton(hPanel, IDC_2SIDED, theMtl->twosided);
+
+  SendMessage(GetDlgItem(hPanel, IDC_ENUM_2SIDED), CB_SETCURSEL, WPARAM(theMtl->twosided), NULL);
+
   eclassname->SetText(theMtl->classname);
   SetDlgItemText(hPanel, IDC_SCRIPT, theMtl->script);
   for (int i = 0; i < NUMTEXMAPS; ++i)
@@ -554,7 +571,7 @@ void DagorMat::Reset()
   pblock->SetValue(PB_SPEC, 0, cols = Color(1, 1, 1));
   pblock->SetValue(PB_EMIS, 0, cole = Color(0, 0, 0));
   pblock->SetValue(PB_SHIN, 0, shin = 30.0f);
-  twosided = 0;
+  twosided = Sides::OneSided;
   classname = _T("");
   script = _T("");
   updateViewportTexturesState();
@@ -621,7 +638,7 @@ void DagorMat::Shade(ShadeContext &sc)
 ULONG DagorMat::Requirements(int subm)
 {
   ULONG r = MTLREQ_PHONG;
-  if (twosided)
+  if (twosided == IDagorMat::Sides::DoubleSided)
     r |= MTLREQ_2SIDE;
   for (int i = 0; i < NUMTEXMAPS; ++i)
     if (texmaps->texmap[i])
@@ -822,7 +839,7 @@ IOResult DagorMat::Save(ISave *isave)
   if (res != IO_OK)
     return res;
   isave->EndChunk();
-  if (twosided)
+  if (twosided == IDagorMat::Sides::DoubleSided)
   {
     isave->BeginChunk(CH_2SIDED);
     isave->EndChunk();
@@ -846,7 +863,7 @@ IOResult DagorMat::Load(ILoad *iload)
   int id;
   IOResult res;
 
-  twosided = 0;
+  twosided = Sides::OneSided;
   while (IO_OK == (res = iload->OpenChunk()))
   {
     switch (id = iload->CurChunkID())
@@ -856,7 +873,7 @@ IOResult DagorMat::Load(ILoad *iload)
         ivalid.SetEmpty();
         break;
       case CH_2SIDED:
-        twosided = 1;
+        twosided = Sides::DoubleSided;
         ivalid.SetEmpty();
         break;
       case CH_CLASSNAME:
@@ -1047,39 +1064,39 @@ void DagorMat::DeleteThis() { delete this; }
 Color DagorMat::get_amb()
 {
   Color c;
-  pblock->GetValue(PB_AMB, 0, c, FOREVER);
+  pb_get_value(*pblock, PB_AMB, 0, c);
   return c;
 }
 
 Color DagorMat::get_diff()
 {
   Color c;
-  pblock->GetValue(PB_DIFF, 0, c, FOREVER);
+  pb_get_value(*pblock, PB_DIFF, 0, c);
   return c;
 }
 
 Color DagorMat::get_spec()
 {
   Color c;
-  pblock->GetValue(PB_SPEC, 0, c, FOREVER);
+  pb_get_value(*pblock, PB_SPEC, 0, c);
   return c;
 }
 
 Color DagorMat::get_emis()
 {
   Color c;
-  pblock->GetValue(PB_EMIS, 0, c, FOREVER);
+  pb_get_value(*pblock, PB_EMIS, 0, c);
   return c;
 }
 
 float DagorMat::get_power()
 {
   float f = 0;
-  pblock->GetValue(PB_SHIN, 0, f, FOREVER);
+  pb_get_value(*pblock, PB_SHIN, 0, f);
   return powf(2.0f, f / 10.0f) * 4.0f;
 }
 
-BOOL DagorMat::get_2sided() { return twosided; }
+IDagorMat::Sides DagorMat::get_2sided() { return twosided; }
 
 const TCHAR *DagorMat::get_classname() { return classname; }
 
@@ -1150,7 +1167,7 @@ void DagorMat::set_power(float p)
   pblock->SetValue(PB_SHIN, 0, shin);
 }
 
-void DagorMat::set_2sided(BOOL b)
+void DagorMat::set_2sided(Sides b)
 {
   twosided = b;
   NotifyChanged();

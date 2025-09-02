@@ -13,9 +13,8 @@ inline constexpr uint32_t GPU_TIMELINE_HISTORY_SIZE = 2;
 // max replay items that may be in process by worker thread when submitting new one
 inline constexpr uint32_t MAX_PENDING_REPLAY_ITEMS = 0;
 // replay timeline history size, we can read some "old" replay data on dev builds
-inline constexpr uint32_t REPLAY_TIMELINE_HISTORY_SIZE = 6;
+inline constexpr uint32_t REPLAY_TIMELINE_HISTORY_SIZE = 4;
 inline constexpr int64_t MEMORY_STATISTICS_PERIOD = 60;
-inline constexpr uint32_t PRESENT_ENGINE_LOCKED_IMAGES = 1;
 
 inline constexpr uint32_t MIN_LISTED_MODE_WIDTH = 800;
 inline constexpr uint32_t MIN_LISTED_MODE_HEIGHT = 600;
@@ -89,15 +88,16 @@ inline constexpr size_t MAX_REPLAY_WAIT_CYCLES = 1000000;
 // on some devices present includes completion of previously queued work, use threshold to detect that
 inline constexpr int64_t LONG_PRESENT_DURATION_THRESHOLD_US = 3 * 1000;
 inline constexpr int64_t ASYNC_PIPELINE_PARENT_MAX_WAIT_US = 3 * 1000000;
+inline constexpr int64_t FRAME_GPU_BOUND_THRESHOLD_US = 2 * 1000;
 
 
-#define VULKAN_ENABLE_DEBUG_FLUSHING_SUPPORT   (DAGOR_DBGLEVEL > 0)
 #define VULKAN_DO_SIGN_CHECK                   0
 // allow debug names on PC in release, as we can allow memory overhead there
 // and keeping names in log is better for fixing user feedback based bugs
 #define VULKAN_RESOURCE_DEBUG_NAMES            (DAGOR_DBGLEVEL > 0) || _TARGET_PC
 #define VULKAN_LOAD_SHADER_EXTENDED_DEBUG_DATA (DAGOR_DBGLEVEL > 0)
 #define VULKAN_TRACK_DEAD_RESOURCE_USAGE       0
+#define VULKAN_ENABLE_DEBUG_FLUSHING_SUPPORT   VULKAN_LOAD_SHADER_EXTENDED_DEBUG_DATA && (DAGOR_DBGLEVEL > 0)
 
 // print page memory map in memory stat printouts
 #define VULKAN_LOG_DEVICE_MEMORY_PAGES_MAP (DAGOR_DBGLEVEL > 0)
@@ -136,5 +136,17 @@ inline constexpr int64_t ASYNC_PIPELINE_PARENT_MAX_WAIT_US = 3 * 1000000;
 
 // enable to delay resource upload buffer based uploads
 #define VULKAN_DELAY_RUB_OPERATIONS 0
+
+#define VULKAN_TEXCOPY_SUPPORT 1
+
+#if _TARGET_PC || _TARGET_ANDROID
+#define VULKAN_HAS_RAYTRACING 1
+#endif
+
+#if _TARGET_PC_WIN && _TARGET_64BIT && HAS_STREAMLINE
+#define USE_STREAMLINE_FOR_DLSS 1
+#else
+#define USE_STREAMLINE_FOR_DLSS 0
+#endif
 
 } // namespace drv3d_vulkan

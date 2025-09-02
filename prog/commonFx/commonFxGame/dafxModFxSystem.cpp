@@ -3,6 +3,7 @@
 #include <math/dag_Point2.h>
 #include <math/dag_Point3.h>
 #include <math/dag_hlsl_floatx.h>
+#include <gameRes/dag_gameResSystem.h>
 #include <daFx/dafx.h>
 #include <daFx/dafx_def.hlsli>
 #include <dafx_globals.hlsli>
@@ -14,11 +15,12 @@
 #include "dafxModFx_decl.h"
 #include "dafxSystemDesc.h"
 #include "dafxQuality.h"
-#include "modfx/modfx_decl.hlsl"
+#include "modfx/modfx_decl.hlsli"
 #include "modfx/modfx_curve.hlsli"
 #include <math/integer/dag_IBBox2.h>
 #include <dafxEmitterDebug.h>
 #include <daFx/dafx_gravity_zone.hlsli>
+#include <math/dag_TMatrix4.h>
 
 
 namespace dafx
@@ -56,8 +58,9 @@ enum
   RGROUP_LOWRES = 0,
   RGROUP_HIGHRES = 1,
   RGROUP_DISTORTION = 2,
-  RGROUP_WATER_PROJ = 3,
-  RGROUP_UNDERWATER = 4,
+  RGROUP_WATER_PROJ_ADVANCED = 3,
+  RGROUP_WATER_PROJ = 4,
+  RGROUP_UNDERWATER = 5,
 };
 
 enum
@@ -68,7 +71,8 @@ enum
   RSHADER_BBOARD_VOLSHAPE = 3,
   RSHADER_BBOARD_RAIN = 4,
   RSHADER_BBOARD_RAIN_DISTORTION = 5,
-  RSHADER_BBOARD_VOLFOG_INJECTION = 6,
+  RSHADER_BBOARD_XRAY = 6,
+  RSHADER_BBOARD_WATER_FX = 7,
 };
 
 enum
@@ -76,6 +80,7 @@ enum
   RBLEND_ABLEND = 0,
   RBLEND_PREMULT = 1,
   RBLEND_ADD = 2,
+  RBLEND_INVALID = 255, // has no mapped value
 };
 
 enum
@@ -92,6 +97,13 @@ enum
   VELSTART_POINT = 0,
   VELSTART_VEC = 1,
   VELSTART_START_SHAPE = 2,
+};
+
+enum
+{
+  MOTION_VECTOR_MIN_QUALITY_LOW = 0,
+  MOTION_VECTOR_MIN_QUALITY_MEDIUM = 1,
+  MOTION_VECTOR_MIN_QUALITY_HIGH = 2,
 };
 
 enum
@@ -116,6 +128,7 @@ enum
   RSHAPE_BBOARD_ADAPTIVE_ALIGNED = 4,
   RSHAPE_BBOARD_VELOCITY_MOTION = 5,
   RSHAPE_BBOARD_START_VELOCITY = 6,
+  RSHAPE_BBOARD_STATIC_VELOCITY = 7,
 };
 
 enum
@@ -270,70 +283,48 @@ int push_prebake_grad(eastl::vector<unsigned char> &out, const GradientBoxSample
 bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *load_cb, dafx::ContextId ctx, dafx::SystemDesc &sdesc,
   dafx_ex::SystemInfo &sinfo, dafx_ex::EmitterDebug *&emitter_debug)
 {
-  CHECK_FX_VERSION(ptr, len, 13);
+  CHECK_FX_VERSION_OPT(ptr, len, 15);
 
-  FxSpawn parSpawn;
-  parSpawn.load(ptr, len, load_cb);
+  FxTexture parTex; // If load fails we should release acquired textures at parTex load.
+  parTex.tex_0 = nullptr;
+  parTex.tex_1 = nullptr;
 
-  FxLife parLife;
-  parLife.load(ptr, len, load_cb);
+#define V_load(b)                                             \
+  if (!b.load(ptr, len, load_cb))                             \
+  {                                                           \
+    if (parTex.tex_0)                                         \
+      release_managed_tex((TEXTUREID)(intptr_t)parTex.tex_0); \
+    if (parTex.tex_1)                                         \
+      release_managed_tex((TEXTUREID)(intptr_t)parTex.tex_1); \
+    return false;                                             \
+  }
+#define V(a, b) \
+  a b;          \
+  V_load(b)
 
-  FxPos parPos;
-  parPos.load(ptr, len, load_cb);
+  V(FxSpawn, parSpawn);
+  V(FxLife, parLife);
+  V(FxPos, parPos);
+  V(FxRadius, parRadius);
+  V(FxColor, parColor);
+  V(FxRotation, parRotation);
+  V(FxVelocity, parVelocity);
+  V(FxPlacement, parPlacement);
+  V_load(/*FxTexture*/ parTex);
+  V(FxEmission, parColorEmission);
+  V(FxThermalEmission, parThermalEmission);
+  V(FxLighting, parLighting);
+  V(FxRenderShape, parRenderShape);
+  V(FxBlending, parBlending);
+  V(FxDepthMask, parDepthMask);
+  V(FxRenderGroup, parRenderGroup);
+  V(FxRenderShader, parRenderShader);
+  V(FxRenderVolfogInjection, parVolfogInjection);
+  V(FxPartTrimming, parPartTrimming);
+  V(FxGlobalParams, parGlobals);
+  V(FxQuality, parQuality);
 
-  FxRadius parRadius;
-  parRadius.load(ptr, len, load_cb);
-
-  FxColor parColor;
-  parColor.load(ptr, len, load_cb);
-
-  FxRotation parRotation;
-  parRotation.load(ptr, len, load_cb);
-
-  FxVelocity parVelocity;
-  parVelocity.load(ptr, len, load_cb);
-
-  FxPlacement parPlacement;
-  parPlacement.load(ptr, len, load_cb);
-
-  FxTexture parTex;
-  parTex.load(ptr, len, load_cb);
-
-  FxEmission parColorEmission;
-  parColorEmission.load(ptr, len, load_cb);
-
-  FxThermalEmission parThermalEmission;
-  parThermalEmission.load(ptr, len, load_cb);
-
-  FxLighting parLighting;
-  parLighting.load(ptr, len, load_cb);
-
-  FxRenderShape parRenderShape;
-  parRenderShape.load(ptr, len, load_cb);
-
-  FxBlending parBlending;
-  parBlending.load(ptr, len, load_cb);
-
-  FxDepthMask parDepthMask;
-  parDepthMask.load(ptr, len, load_cb);
-
-  FxRenderGroup parRenderGroup;
-  parRenderGroup.load(ptr, len, load_cb);
-
-  FxRenderShader parRenderShader;
-  parRenderShader.load(ptr, len, load_cb);
-
-  FxRenderVolfogInjection parVolfogInjection;
-  parVolfogInjection.load(ptr, len, load_cb);
-
-  FxPartTrimming parPartTrimming;
-  parPartTrimming.load(ptr, len, load_cb);
-
-  FxGlobalParams parGlobals;
-  parGlobals.load(ptr, len, load_cb);
-
-  FxQuality parQuality;
-  parQuality.load(ptr, len, load_cb);
+#undef V
 
   dafx::SystemDesc ddesc;
 
@@ -348,6 +339,7 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
   GDATA(view_dir_y);
   GDATA(view_dir_z);
   GDATA(world_view_pos);
+  GDATA(flags);
   GDATA(gravity_zone_count);
   GDATA(target_size);
   GDATA(target_size_rcp);
@@ -423,11 +415,77 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
     return false;
   }
 
+  sdesc.qualityFlags = fx_apply_quality_bits(parQuality, 0xffffffff);
+  const bool qualityAllowed = cfg.qualityMask & sdesc.qualityFlags;
+
   ddesc.emitterData.delay = max(parLife.inst_life_delay, 0.f);
 
   // param validation
   parPos.gpu_placement.enabled &= (parPos.gpu_placement.use_hmap || parPos.gpu_placement.use_depth_above ||
                                    parPos.gpu_placement.use_water || parPos.gpu_placement.use_water_flowmap);
+
+  bool isMotionVectorsEnabled = false;
+  if (parTex.enabled && parTex.animation.enabled && parTex.animation.animated_flipbook && parRenderShape.type == RSHAPE_TYPE_BBOARD)
+  {
+    if (parTex.animation.motion_vectors && parLighting.type == LIGHT_NORMALMAP)
+    {
+      logerr("fx: modfx: motion_vectors is not compatible with normalmap");
+      parTex.animation.motion_vectors = false;
+    }
+
+    if (parTex.animation.motion_vectors && parRenderShader.shader == RSHADER_BBOARD_WATER_FX &&
+        parRenderShader.modfx_bboard_water_fx.use_height_tex_1)
+    {
+      logerr("fx: modfx: motion_vectors are not compatible with water fx shader with use_height_tex_1 enabled.");
+      parTex.animation.motion_vectors = false;
+    }
+
+    {
+      FxQuality motionVectorQuality;
+      motionVectorQuality.low_quality = parTex.animation.motion_vectors_min_quality <= MOTION_VECTOR_MIN_QUALITY_LOW;
+      motionVectorQuality.medium_quality = parTex.animation.motion_vectors_min_quality <= MOTION_VECTOR_MIN_QUALITY_MEDIUM;
+      motionVectorQuality.high_quality = parTex.animation.motion_vectors_min_quality <= MOTION_VECTOR_MIN_QUALITY_HIGH;
+      const bool motionVectorQualityAllowed = cfg.qualityMask & fx_apply_quality_bits(motionVectorQuality, 0xffffffff);
+      if (!motionVectorQualityAllowed)
+        parTex.animation.motion_vectors = false;
+    }
+
+    if (parTex.animation.motion_vectors && !qualityAllowed) // TODO: do not load textures from effects that are disabled
+    {
+      // so we can implicitly disable secondary texture as well, in loading time
+      parTex.animation.motion_vectors = false;
+    }
+    isMotionVectorsEnabled = parTex.animation.motion_vectors;
+  }
+
+  const bool canLoadSecondaryTexture = [&parTex, &parRenderShape, &parLighting, &parRenderShader]() -> bool {
+    if (!parTex.enabled)
+      return false;
+    if (parRenderShape.type == RSHAPE_TYPE_RIBBON)
+      return true;
+    if (parRenderShape.type == RSHAPE_TYPE_BBOARD)
+    {
+      if (parRenderShader.shader == RSHADER_BBOARD_WATER_FX && parRenderShader.modfx_bboard_water_fx.use_height_tex_1)
+        return true;
+      if (parLighting.type == LIGHT_NORMALMAP)
+        return true;
+      if (parTex.animation.enabled && parTex.animation.animated_flipbook && parTex.animation.motion_vectors)
+        return true;
+    }
+    return false;
+  }();
+
+  if (parRenderShader.shader == RSHADER_BBOARD_ATEST)
+  {
+    parBlending.type = RBLEND_INVALID;
+  }
+  else if (parRenderShader.shader == RSHADER_DISTORTION && parBlending.type != RBLEND_PREMULT)
+  {
+    String resName;
+    get_game_resource_name(sdesc.gameResId, resName);
+    logerr("fx: modfx: distortion shaders are only compatible with premult blending! (effect: %s)", resName.c_str());
+    parBlending.type = RBLEND_PREMULT;
+  }
 
   // validate gpu-only features and quality
   if (parPos.enabled && parPos.gpu_placement.enabled)
@@ -444,6 +502,12 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
       logerr("fx: modfx: gpu_placement requires world_space transform_type");
       parPos.gpu_placement.enabled = false;
     }
+  }
+
+  if (parLighting.type != LIGHT_NONE && parBlending.type == RBLEND_ADD && parLighting.translucency.advanced_translucency.enabled)
+  {
+    logerr("fx: modfx: advanced translucency is not supported with additive blending");
+    parLighting.translucency.advanced_translucency.enabled = false;
   }
 
   // shaders
@@ -471,6 +535,8 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
     rtag = dafx_ex::RTAG_HIGHRES;
   else if (parRenderGroup.type == RGROUP_DISTORTION)
     rtag = dafx_ex::RTAG_DISTORTION;
+  else if (parRenderGroup.type == RGROUP_WATER_PROJ_ADVANCED)
+    rtag = dafx_ex::RTAG_WATER_PROJ_ADVANCED;
   else if (parRenderGroup.type == RGROUP_WATER_PROJ)
     rtag = dafx_ex::RTAG_WATER_PROJ;
   else if (parRenderGroup.type == RGROUP_UNDERWATER)
@@ -478,6 +544,8 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
 
   if (g_modfx_convert_rtag_cb)
     rtag = g_modfx_convert_rtag_cb(rtag);
+
+  const bool isWaterProj = parRenderGroup.type == RGROUP_WATER_PROJ || parRenderGroup.type == RGROUP_WATER_PROJ_ADVANCED;
 
   auto logerr_if_ribbon = [&](const char *name) {
     if (parRenderShape.type == RSHAPE_TYPE_RIBBON)
@@ -488,8 +556,8 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
     return true;
   };
 
-  // TODO The shader only exist with DX12 for now
-  bool useBVH = d3d::get_driver_code().is(d3d::dx12) && (rtag == dafx_ex::RTAG_LOWRES || rtag == dafx_ex::RTAG_HIGHRES);
+  bool useBVH = cfg.has_bvh_shader;
+  useBVH &= (rtag == dafx_ex::RTAG_LOWRES || rtag == dafx_ex::RTAG_HIGHRES);
 
   if (parRenderShader.shader == RSHADER_DEFAULT)
   {
@@ -531,6 +599,16 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
     ddesc.renderDescs.push_back({dafx_ex::renderTags[dafx_ex::RTAG_VOL_WBOIT], "dafx_modfx_volshape_wboit_render"});
     if (useBVH)
       ddesc.renderDescs.push_back({dafx_ex::renderTags[dafx_ex::RTAG_BVH], "dafx_modfx_bvh"});
+  }
+  else if (parRenderShader.shader == RSHADER_BBOARD_XRAY)
+  {
+    if (logerr_if_ribbon("dafx_modfx_bboard_render_xray"))
+      ddesc.renderDescs.push_back({dafx_ex::renderTags[dafx_ex::RTAG_XRAY], "dafx_modfx_bboard_render_xray"});
+  }
+  else if (parRenderShader.shader == RSHADER_BBOARD_WATER_FX)
+  {
+    if (logerr_if_ribbon("dafx_modfx_bboard_water_fx"))
+      ddesc.renderDescs.push_back({dafx_ex::renderTags[dafx_ex::RTAG_WATER_PROJ_ADVANCED], "dafx_modfx_bboard_water_fx"});
   }
   else
     logerr("fx: modfx: Could not find proper render shader.");
@@ -736,6 +814,14 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
       if (parPos.gpu_placement.use_water_flowmap)
         ENABLE_FLAG(sflags, MODFX_SFLAG_WATER_FLOWMAP);
     }
+
+    if (parPos.height_limit.enabled)
+    {
+      ModfxDeclParticleHeightLimit pp;
+      pp.height_limit = parPos.height_limit.height_limit;
+      simOffsets[MODFX_SMOD_HEIGHT_LIMIT] = push_system_data(simulationData, pp);
+      ENABLE_MOD(smods, MODFX_SMOD_HEIGHT_LIMIT);
+    }
   }
 
   // radius
@@ -842,6 +928,23 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
 
       push_prebake_curve(simulationData, parColor.curve_over_part_idx.curve);
       ENABLE_MOD(smods, MODFX_SMOD_COLOR_OVER_PART_IDX_CURVE);
+    }
+
+    if (parColor.fake_brightness.enabled)
+    {
+      ModfxDeclFakeBrightness pp;
+      pp.brightness_values.x = parColor.fake_brightness.looking_from_dark_to_dark;
+      pp.brightness_values.y = parColor.fake_brightness.looking_from_dark_to_light;
+      pp.brightness_values.z = parColor.fake_brightness.looking_from_light_to_dark;
+      pp.brightness_values.w = parColor.fake_brightness.looking_from_light_to_light;
+      renOffsets[MODFX_RMOD_FAKE_BRIGHTNESS] = push_system_data(renderData, pp);
+      ENABLE_MOD(rmods, MODFX_RMOD_FAKE_BRIGHTNESS);
+
+      Point3 bg_point(0, 0, 0);
+      int ofs = push_system_data(renderData, bg_point);
+      renOffsets[MODFX_RMOD_FAKE_BRIGHTNESS_POS] = ofs;
+      ENABLE_MOD(rmods, MODFX_RMOD_FAKE_BRIGHTNESS_POS);
+      ENABLE_ROFS(VAL_FAKE_BRIGHTNESS_BACKGROUND_POS, ofs);
     }
 
     if (parColor.alpha_by_velocity.enabled)
@@ -1051,6 +1154,16 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
       ENABLE_SOFS(VAL_VELOCITY_START_ADD, ofs);
     }
 
+    if (parVelocity.force_apply_gravity_zone)
+    {
+      ENABLE_FLAG(sflags, MODFX_SFLAG_FORCE_APPLY_GRAVITY_ZONE);
+    }
+
+    if (parVelocity.apply_parent_velocity_locally)
+    {
+      ENABLE_FLAG(sflags, MODFX_SFLAG_APPLY_PARENT_VELOCITY_LOCALLY);
+    }
+
     if (parVelocity.start.enabled && (parVelocity.start.vel_min > 0 || parVelocity.start.vel_max > 0))
     {
       ENABLE_DECL(sdecl, MODFX_SDECL_VELOCITY);
@@ -1227,6 +1340,13 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
     {
       ENABLE_DECL(sdecl, MODFX_SDECL_VELOCITY);
 
+      if (parVelocity.collision.collide_with_depth && isWaterProj)
+      {
+        String resName;
+        get_game_resource_name(sdesc.gameResId, resName);
+        logerr("fx: modfx: '%s' - water_proj fx does not support FxVelocity->collision->collide_with_depth", resName.c_str());
+      }
+
       ModfxDeclCollision pp;
       pp.radius_k = max(parVelocity.collision.radius_mod, 0.f);
       pp.reflect_energy = 1.f - saturate(parVelocity.collision.energy_loss);
@@ -1319,27 +1439,23 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
       {
         TEXTUREID tex0 = (TEXTUREID)(uintptr_t)parTex.tex_0;
         boundaryOffset = dafx::acquire_frame_boundary(ctx, tex0, IPoint2(parTex.frames_x, parTex.frames_y));
-        texture->texfilter(TEXFILTER_LINEAR);
-        if (parTex.enable_aniso)
-        {
-          texture->setAnisotropy(::dgs_tex_anisotropy);
-        }
         ddesc.texturesPs.push_back({tex0, parTex.enable_aniso});
         release_managed_tex(tex0);
       }
     }
 
-    if (parTex.tex_1 && !ddesc.texturesPs.empty())
+    if (parTex.tex_1 && canLoadSecondaryTexture && !ddesc.texturesPs.empty())
     {
       Texture *texture = acquire_managed_tex((TEXTUREID)(intptr_t)parTex.tex_1);
       if (texture)
       {
         TEXTUREID tex1 = (TEXTUREID)(uintptr_t)parTex.tex_1;
-        texture->texfilter(TEXFILTER_LINEAR);
         ddesc.texturesPs.push_back({tex1, false});
         release_managed_tex(tex1);
       }
     }
+    else if (parTex.tex_1) // must release it since we don't add them to texturesPs to release later in ~DafxModFx()
+      release_managed_tex((TEXTUREID)(intptr_t)parTex.tex_1);
 
     ModfxDeclFrameInfo finfo;
     finfo.frames_x = clamp(parTex.frames_x, 1, DAFX_FLIPBOOK_MAX_KEYFRAME_DIM);
@@ -1371,15 +1487,19 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
     if (parTex.disable_loop)
       finit.flags |= MODFX_FRAME_FLAGS_DISABLE_LOOP;
 
-    simOffsets[MODFX_SMOD_FRAME_INIT] = push_system_data(simulationData, finit);
-    ENABLE_MOD(smods, MODFX_SMOD_FRAME_INIT);
+    if (finit.flags != 0 || finit.start_frame_min > 0 || finit.start_frame_max > 0)
+    {
+      simOffsets[MODFX_SMOD_FRAME_INIT] = push_system_data(simulationData, finit);
+      ENABLE_MOD(smods, MODFX_SMOD_FRAME_INIT);
+
+      if (finit.start_frame_min > 0 || finit.start_frame_max > 0)
+        ENABLE_DECL(rdecl, MODFX_RDECL_FRAME_IDX);
+
+      if (finit.flags)
+        ENABLE_DECL(rdecl, MODFX_RDECL_FRAME_FLAGS);
+    }
 
     ENABLE_DECL(sdecl, MODFX_SDECL_RND_SEED);
-    if (finit.start_frame_min > 0 || finit.start_frame_max > 0)
-      ENABLE_DECL(rdecl, MODFX_RDECL_FRAME_IDX);
-
-    if (finit.flags)
-      ENABLE_DECL(rdecl, MODFX_RDECL_FRAME_FLAGS);
 
     order_swap(parTex.animation.speed_min, parTex.animation.speed_max, 0.f);
     if (parTex.animation.enabled && (parTex.animation.speed_min > 0 || parTex.animation.speed_max > 0) &&
@@ -1399,6 +1519,14 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
       {
         ENABLE_DECL(rdecl, MODFX_RDECL_FRAME_BLEND);
         ENABLE_FLAG(rflags, MODFX_RFLAG_FRAME_ANIMATED_FLIPBOOK);
+
+        if (isMotionVectorsEnabled)
+        {
+          ModfxDeclMotionVectors motionVecParams;
+          motionVecParams.motion_vectors_strength = parTex.animation.motion_vectors_strength;
+          renOffsets[MODFX_RMOD_MOTION_VECTORS] = push_system_data(renderData, motionVecParams);
+          ENABLE_MOD(rmods, MODFX_RMOD_MOTION_VECTORS);
+        }
       }
 
       if (parTex.animation.over_part_life.enabled)
@@ -1446,6 +1574,8 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
   }
   else
   {
+    // acquire_managed_tex() was called in createGameResource() (engine/gameRes/effectGameRes.cpp) and
+    // we must release them here since we don't add them to texturesPs to release later in ~DafxModFx()
     if (parTex.tex_0)
       release_managed_tex((TEXTUREID)(intptr_t)parTex.tex_0);
     if (parTex.tex_1)
@@ -1560,13 +1690,48 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
       ENABLE_MOD(rmods, MODFX_RMOD_SHAPE_VELOCITY_MOTION);
       ENABLE_MOD(rmods, MODFX_RMOD_SHAPE_ADAPTIVE_ALIGNED);
     }
+    else if (parRenderShape.billboard.orientation == RSHAPE_BBOARD_STATIC_VELOCITY && MODFX_SDECL_VELOCITY_ENABLED(sdecl))
+    {
+      ModfxDeclShapeStaticVelocityAlignedInit pp;
+      pp.orientation_vec = parRenderShape.billboard.static_velocity_orientation_vec;
+      normalizeDef(pp.orientation_vec, Point3(0, 1, 0));
+      pp.right_vec = parRenderShape.billboard.static_aligned_right_vec;
+      normalizeDef(pp.right_vec, Point3(0, 0, 1));
+
+      simOffsets[MODFX_SMOD_SHAPE_STATIC_VELOCITY_ALIGNED_INIT] = push_system_data(simulationData, pp);
+
+      ENABLE_DECL(rdecl, MODFX_RDECL_ORIENTATION_VEC);
+      ENABLE_DECL(rdecl, MODFX_RDECL_UP_VEC);
+      ENABLE_DECL(rdecl, MODFX_RDECL_RIGHT_VEC);
+      ENABLE_DECL(rdecl, MODFX_RDECL_VELOCITY_LENGTH);
+      ENABLE_FLAG(sflags, MODFX_SFLAG_PASS_VELOCITY_TO_RDECL);
+      ENABLE_MOD(smods, MODFX_SMOD_SHAPE_STATIC_VELOCITY_ALIGNED_INIT);
+      ENABLE_MOD(rmods, MODFX_RMOD_SHAPE_STATIC_VELOCITY_ALIGNED);
+    }
     else if (parRenderShape.billboard.orientation == RSHAPE_BBOARD_VIEW_POS)
     {
       ENABLE_MOD(rmods, MODFX_RMOD_SHAPE_VIEW_POS);
     }
-    else //  parRenderShape.billboard.orientation == RSHAPE_BBOARD_SCREEN
+    else //  default, parRenderShape.billboard.orientation == RSHAPE_BBOARD_SCREEN
     {
       ENABLE_MOD(rmods, MODFX_RMOD_SHAPE_SCREEN);
+
+      // Validation
+      if (!MODFX_SDECL_VELOCITY_ENABLED(sdecl) && (parRenderShape.billboard.orientation == RSHAPE_BBOARD_VELOCITY ||
+                                                    parRenderShape.billboard.orientation == RSHAPE_BBOARD_START_VELOCITY ||
+                                                    parRenderShape.billboard.orientation == RSHAPE_BBOARD_VELOCITY_MOTION ||
+                                                    parRenderShape.billboard.orientation == RSHAPE_BBOARD_STATIC_VELOCITY))
+      {
+        String resName;
+        get_game_resource_name(sdesc.gameResId, resName);
+        logerr("fx: modfx: velocity is required for the selected billboard orientation, defaulting to 'screen' orientation! (Effect "
+               "name: %s)",
+          resName.c_str());
+      }
+
+      const auto &parDistanceScale = parRenderShape.billboard.distance_scale;
+      sinfo.distanceScale = {
+        parDistanceScale.enabled, parDistanceScale.begin_distance, parDistanceScale.end_distance, parDistanceScale.curve};
     }
   }
   else if (parRenderShape.type == RSHAPE_TYPE_RIBBON)
@@ -1590,6 +1755,12 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
     }
   }
 
+  if (parLighting.type != LIGHT_NONE && parRenderShader.shader == RSHADER_BBOARD_WATER_FX)
+  {
+    logerr("fx: modfx: lighting: When using water_fx shader lighting is resolved during water shading. Use hmap and shader's "
+           "properties instead.");
+    parLighting.type = LIGHT_NONE;
+  }
   if (parLighting.type != LIGHT_NONE)
   {
     // external light
@@ -1611,7 +1782,7 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
     if (parBlending.type != RBLEND_ADD)
     {
       ModfxDeclLighting pp;
-      pp.translucency = saturate(parLighting.translucency) * 255;
+      pp.translucency = saturate(parLighting.translucency.translucency_val) * 255;
       pp.normal_softness = saturate(parLighting.normal_softness) * 255;
 
       pp.specular_power = clamp<int>(parLighting.specular_power, 0, 255);
@@ -1638,12 +1809,52 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
         ENABLE_FLAG(rflags, MODFX_RFLAG_LIGHTING_AMBIENT_ENABLED);
       if (parLighting.external_lights_enabled)
         ENABLE_FLAG(rflags, MODFX_RFLAG_EXTERNAL_LIGHTS_ENABLED);
+
+      if (parLighting.translucency.advanced_translucency.enabled)
+      {
+        auto &advanced_translucency = parLighting.translucency.advanced_translucency;
+
+        ModfxDeclAdvancedTranslucency pp;
+        pp.advanced_translucency_flags = 0;
+        pp.translucency_color_mul = advanced_translucency.tranclucency_color_mul;
+
+        pp.min_radian = advanced_translucency.from_degree * DEG_TO_RAD;
+        pp.max_radian = advanced_translucency.to_degree * DEG_TO_RAD;
+        float max_degree_diff = abs(advanced_translucency.to_degree - advanced_translucency.from_degree) * 0.5f * DEG_TO_RAD;
+        pp.inv_max_radian_diff = 1.0f / max(max_degree_diff, 0.01f);
+
+        pp.alpha_min = advanced_translucency.alpha_for_translucent_min;
+        pp.alpha_max = advanced_translucency.alpha_for_translucent_max;
+        pp.trans_min = advanced_translucency.min_translucency_value;
+        pp.trans_max = advanced_translucency.max_translucency_value;
+        pp.alpha_diff_inv = 1.0f / max(abs(pp.alpha_max - pp.alpha_min), 0.01f);
+
+        if (advanced_translucency.weigh_translucency_by_view_light_degree)
+          ENABLE_FLAG(pp.advanced_translucency_flags, MODFX_TRANSLUCENCY_WEIGH_BY_VOL);
+        if (advanced_translucency.use_normal_as_translucency)
+          ENABLE_FLAG(pp.advanced_translucency_flags, MODFX_TRANSLUCENCY_USE_NORMAL_BASED_TRANSLUCENCY);
+        if (advanced_translucency.invert_accepted_degrees)
+          ENABLE_FLAG(pp.advanced_translucency_flags, MODFX_TRANSLUCENCY_INVERT_ACCEPTED_DEGREES);
+        if (advanced_translucency.use_viewvector_for_normal_based_translucency)
+          ENABLE_FLAG(pp.advanced_translucency_flags, MODFX_TRANSLUCENCY_USE_VIEW_VEC_TRANSLUCENCY);
+        if (advanced_translucency.use_alpha_as_translucency)
+          ENABLE_FLAG(pp.advanced_translucency_flags, MODFX_TRANSLUCENCY_USE_ALPHA_BASED_TRANSLUCENCY);
+
+        renOffsets[MODFX_RMOD_ADVANCED_TRANSLUCENCY] = push_system_data(renderData, pp);
+        ENABLE_MOD(rmods, MODFX_RMOD_ADVANCED_TRANSLUCENCY);
+      }
     }
   }
 
   // depth mask
   if (parDepthMask.enabled)
   {
+    if (isWaterProj)
+    {
+      String resName;
+      get_game_resource_name(sdesc.gameResId, resName);
+      logerr("fx: modfx: '%s' - water_proj fx does not support FxDepthMask", resName.c_str());
+    }
     ModfxDepthMask pp;
     pp.znear_clip_offset = max(parDepthMask.znear_clip, 0.f);
     pp.depth_softness_rcp = 1.f / max(parDepthMask.depth_softness, 0.01f);
@@ -1653,6 +1864,26 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
 
     if (parDepthMask.use_part_radius)
       ENABLE_FLAG(rflags, MODFX_RFLAG_DEPTH_MASK_USE_PART_RADIUS);
+
+    if (parDepthMask.zfar_fadeout.enabled)
+    {
+      float minDist = parDepthMask.zfar_fadeout.zfar_start_to_clip;
+      float maxDist = parGlobals.spawn_range_limit;
+      if (maxDist < minDist)
+      {
+        String resName;
+        get_game_resource_name(sdesc.gameResId, resName);
+        logerr("fx: modfx: '%s' - depth mask: zfar fade out min distance is greater than spawn range limit", resName.c_str());
+      }
+      else if (maxDist != minDist)
+      {
+        ModfxDeclZfarFadeout pp;
+        pp.negative_inv_dist_diff = -safeinv(max(maxDist - minDist, 0.01f));
+        pp.one_plus_min_dist_div_by_diff = 1.0f - minDist * pp.negative_inv_dist_diff;
+        renOffsets[MODFX_RMOD_ZFAR_FADEOUT] = push_system_data(renderData, pp);
+        ENABLE_MOD(rmods, MODFX_RMOD_ZFAR_FADEOUT);
+      }
+    }
   }
 
   // blending
@@ -1664,7 +1895,7 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
   {
     ENABLE_FLAG(rflags, MODFX_RFLAG_BLEND_ABLEND);
   }
-  else
+  else if (parBlending.type == RBLEND_PREMULT)
   {
     ENABLE_FLAG(rflags, MODFX_RFLAG_BLEND_PREMULT);
   }
@@ -1707,6 +1938,30 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
     ENABLE_MOD(rmods, MODFX_RMOD_VOLSHAPE_PARAMS);
   }
 
+  if (parRenderShader.shader == RSHADER_BBOARD_XRAY)
+  {
+    ModfxDeclXrayParams pp;
+    pp.blend_color1 = parRenderShader.modfx_bbboard_render_xray.blend_color1.u;
+    pp.blend_color2 = parRenderShader.modfx_bbboard_render_xray.blend_color2.u;
+    pp.inv_max_distance_times_power = safeinv(max(parRenderShader.modfx_bbboard_render_xray.blend_distance, 1.0f)) *
+                                      parRenderShader.modfx_bbboard_render_xray.blend_power;
+
+    renOffsets[MODFX_RMOD_XRAY_PARAMS] = push_system_data(renderData, pp);
+    ENABLE_MOD(rmods, MODFX_RMOD_XRAY_PARAMS);
+  }
+
+  if (parRenderShader.shader == RSHADER_BBOARD_WATER_FX)
+  {
+    ModfxDeclWaterFxParams pp;
+    pp.use_height_tex_1 = (int)parRenderShader.modfx_bboard_water_fx.use_height_tex_1;
+    pp.height_scale = parRenderShader.modfx_bboard_water_fx.height_scale;
+    pp.detail_params = Point3(parRenderShader.modfx_bboard_water_fx.smoothness, parRenderShader.modfx_bboard_water_fx.reflectance,
+      parRenderShader.modfx_bboard_water_fx.ao);
+
+    renOffsets[MODFX_RMOD_WATER_FX_PARAMS] = push_system_data(renderData, pp);
+    ENABLE_MOD(rmods, MODFX_RMOD_WATER_FX_PARAMS);
+  }
+
   parPlacement.enabled &= parPlacement.use_hmap || parPlacement.use_depth_above;
 
   if (parPlacement.enabled)
@@ -1741,7 +1996,7 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
     ENABLE_FLAG(rflags, MODFX_RFLAG_USE_ETM_AS_WTM);
 
   // service data (shared data)
-  if (parSpawn.type == SPAWN_DISTANCE_BASED)
+  if (parSpawn.type == SPAWN_DISTANCE_BASED || (parSpawn.type == SPAWN_LINEAR && parSpawn.linear.subframe_emittion))
   {
     ModfxDeclServiceTrail par;
     par.last_emitter_pos = Point3(0, 0, 0);
@@ -1787,6 +2042,9 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
   if (MODFX_RDECL_RIGHT_VEC_ENABLED(rdecl))
     ddesc.renderElemSize += MODFX_RDECL_RIGHT_VEC_SIZE;
 
+  if (MODFX_RDECL_ORIENTATION_VEC_ENABLED(rdecl))
+    ddesc.renderElemSize += MODFX_RDECL_ORIENTATION_VEC_SIZE;
+
   if (MODFX_RDECL_VELOCITY_LENGTH_ENABLED(rdecl))
     ddesc.renderElemSize += MODFX_RDECL_VELOCITY_LENGTH_SIZE;
 
@@ -1814,8 +2072,8 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
     ddesc.renderElemSize = (ddesc.renderElemSize + 1) * DAFX_ELEM_STRIDE;
   }
 
-  if (MODFX_SDECL_LIFE_ENABLED(sdecl))
-    ddesc.simulationElemSize += MODFX_SDECL_LIFE_SIZE;
+  // life (life_norm) is always loaded/stored (can be disabled to make it fixed 0, instead)
+  ddesc.simulationElemSize += MODFX_SDECL_LIFE_SIZE;
 
   if (MODFX_SDECL_RND_SEED_ENABLED(sdecl))
     ddesc.simulationElemSize += MODFX_SDECL_RND_SEED_SIZE;
@@ -1916,17 +2174,15 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
 
   sdesc.emitterData.type = dafx::EmitterType::FIXED;
   sdesc.emitterData.fixedData.count = 1;
+  sdesc.emitterData.spawnRangeLimit = parGlobals.spawn_range_limit;
   sdesc.emissionData.type = dafx::EmissionType::REF_DATA;
   sdesc.simulationData.type = dafx::SimulationType::NONE;
-
-  sdesc.qualityFlags = fx_apply_quality_bits(parQuality, 0xffffffff);
 
   // done
   sdesc.subsystems.emplace_back(ddesc);
 
   sinfo.rflags = rflags;
   sinfo.sflags = sflags;
-  sinfo.spawnRangeLimit = parGlobals.spawn_range_limit;
   sinfo.maxInstances = parGlobals.max_instances;
   sinfo.playerReserved = parGlobals.player_reserved;
   sinfo.onePointNumber = parGlobals.one_point_number;

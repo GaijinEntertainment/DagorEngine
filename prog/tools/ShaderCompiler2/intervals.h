@@ -15,37 +15,31 @@
 
 typedef Range<real> RealValueRange;
 
+namespace shc
+{
+class TargetContext;
+}
+
 class IntervalValue
 {
 public:
   static const real VALUE_NEG_INFINITY;
   static const real VALUE_INFINITY;
 
-  IntervalValue() : bounds(VALUE_NEG_INFINITY, VALUE_INFINITY){};
+  IntervalValue() : bounds(VALUE_NEG_INFINITY, VALUE_INFINITY) {}
 
-  explicit inline IntervalValue(const char *init_name, const RealValueRange &init_bounds) : bounds(init_bounds)
-  {
-    nameId = IntervalValue::addIntervalNameId(init_name);
-    G_ASSERT(nameId >= 0 && nameId < INTERVAL_NOT_INIT);
-  }
   explicit inline IntervalValue(int init_name_id, const RealValueRange &init_bounds) : bounds(init_bounds) { nameId = init_name_id; }
 
   inline bool valueIsEqual(real other_value) const { return other_value >= bounds.getMin() && other_value < bounds.getMax(); }
 
   inline int getNameId() const { return nameId; }
-  inline const char *getNameStr() const { return IntervalValue::getIntervalName(nameId); }
 
   inline const RealValueRange &getBounds() const { return bounds; };
 
-  static int addIntervalNameId(const char *name);
-  static int getIntervalNameId(const char *name);
-  static const char *getIntervalName(int id);
-  static void resetIntervalNames();
-
   struct Adapter
   {
-    static const char *getName(int id) { return IntervalValue::getIntervalName(id); }
-    static int addName(const char *name) { return IntervalValue::addIntervalNameId(name); }
+    static const char *getName(int id);
+    static int addName(const char *name);
   };
 
 private:
@@ -70,8 +64,12 @@ public:
     EXPR_NOT_EQ,     // !=
   };
 
-  explicit Interval(const char *init_name, ShaderVariant::VarType interval_type, bool optional = false, eastl::string file_name = "");
-  Interval() : valueList(midmem), optional(false) {}
+  Interval(int name_id, ShaderVariant::VarType interval_type, eastl::string file_name = "") :
+    intervalType{interval_type}, fileName{file_name}
+  {
+    nameId = name_id;
+  }
+  Interval() : valueList(midmem) {}
   ~Interval() { clear(); }
 
   inline void clear() { clear_and_shrink(valueList); }
@@ -81,22 +79,25 @@ public:
 
   // return interval's name
   inline int getNameId() const { return nameId; }
-  inline const char *getNameStr() const { return IntervalValue::getIntervalName(nameId); }
 
   // add interval value to a list  (return false, if value already exists)
-  bool addValue(const char *value_name, const real smaller_than);
+  bool addValue(int name_id, const real smaller_than);
 
   // return true, if interval value already exists
-  bool valueExists(int value_name_id) const { return getValue(value_name_id) != NULL; }
+  bool valueExists(int value_name_id) const { return getValueByNameId(value_name_id) != NULL; }
 
-  IntervalValue *getValue(int value_name_id);
-  const IntervalValue *getValue(int value_name_id) const { return const_cast<Interval *>(this)->getValue(value_name_id); }
+  IntervalValue *getValueByNameId(int value_name_id);
+  const IntervalValue *getValueByNameId(int value_name_id) const
+  {
+    return const_cast<Interval *>(this)->getValueByNameId(value_name_id);
+  }
 
   // return the number of values.
   int getValueCount() const { return valueList.size(); }
 
+  const IntervalValue &getValue(int index) const { return valueList[index]; }
+
   // return value name by index.
-  const char *getValueName(int index) const { return valueList[index].getNameStr(); }
   RealValueRange getValueRange(int index) const { return valueList[index].getBounds(); }
 
   // normalize value for this interval - retrun internal value index
@@ -111,7 +112,7 @@ public:
 
   // check boolean expression
   bool checkExpression(ShaderVariant::ValueType left_op_normalized, const Interval::BooleanExpr expr, const char *right_op,
-    String &error_msg) const;
+    String &error_msg, shc::TargetContext &ctx) const;
 
   // return true, if intervals are identical
   inline bool operator==(const Interval &other) const
@@ -130,11 +131,8 @@ public:
   inline ShaderVariant::VarType getVarType() const { return intervalType; }
   const eastl::string &getFileName() const { return fileName; }
 
-  bool isOptional() const { return optional; }
-
 private:
   NameId<IntervalValue::Adapter> nameId;
-  bool optional;
   ShaderVariant::VarType intervalType;
   SerializableTab<IntervalValue> valueList;
   bindump::string fileName;
@@ -149,7 +147,7 @@ public:
   bool addInterval(const Interval &interval);
 
   // return true, if interval exists
-  bool intervalExists(const char *name) const;
+  bool intervalExists(int name_id) const;
 
   // return number of intervals in the list
   inline int getCount() const { return intervals.size(); };
@@ -161,12 +159,16 @@ public:
   }
 
   ShaderVariant::ExtType getIntervalIndex(int name_id) const;
-  String getStringInfo() const;
+  String getStringInfo(const shc::TargetContext &ctx) const;
 
 private:
   SerializableTab<bindump::Ptr<Interval>> intervals;
 
   const Interval *getIntervalByNameId(int name_id) const;
 };
+
+const char *get_interval_value_name(const IntervalValue &value, const shc::TargetContext &ctx);
+const char *get_interval_value_name(const Interval &ival, int value_idx, const shc::TargetContext &ctx);
+const char *get_interval_name(const Interval &ival, const shc::TargetContext &ctx);
 
 #endif //__INTERVALS_H

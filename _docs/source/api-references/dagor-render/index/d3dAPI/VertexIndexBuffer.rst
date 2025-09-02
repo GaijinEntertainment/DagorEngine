@@ -1,5 +1,5 @@
-Vertex and Index buffer API
+Vertex and Index Buffer API
 =================================================
 
-.. autodoxygenfile:: dag_vertexIndexBuffer.h
+.. doxygenfile:: dag_vertexIndexBuffer.h
   :project: d3dAPI

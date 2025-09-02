@@ -25,6 +25,8 @@ class GlobalSharedMemStorage;
 class Occlusion;
 struct Frustum;
 
+struct HeightmapFrustumCullingInfo;
+
 class HeightmapHandler : public HeightmapPhysHandler
 {
   friend HMapTesselationData;
@@ -34,7 +36,7 @@ protected:
   {
     uint32_t texFMT = 0;
     UniqueTex heightmap;
-    bool diamondSubDiv = true;
+    d3d::SamplerHandle heightmapSampler = d3d::SamplerHandle::Invalid;
   };
 
 public:
@@ -52,7 +54,7 @@ public:
     hmapTData(*this)
   {}
 
-  bool init();
+  bool init(int dim_bits = 0);
   void afterDeviceReset();
   void close();
   bool loadDump(IGenLoad &loadCb, bool load_render_data, GlobalSharedMemStorage *sharedMem);
@@ -66,10 +68,7 @@ public:
   bool prepare(const Point3 &world_pos, float camera_height, float water_level = HeightmapHeightCulling::NO_WATER_ON_LEVEL);
   void prepareHmapModificaton(); // called from prepare, unless pushHmapModificationOnPrepare is off
   void render(int min_tank_lod); // Uses parameters from prepare call.
-
-  void frustumCulling( // Independent from prepare for multithreading.
-    LodGridCullData &data, const Point3 &world_pos, float camera_height, float water_level, const Frustum &frustum, int min_tank_lod,
-    const Occlusion *occlusion, int lod0subdiv = 0, float lod0scale = 1.0f);
+  void frustumCulling(LodGridCullData &data, const HeightmapFrustumCullingInfo &fi); // Independent from prepare for multithreading.
   void renderCulled(const LodGridCullData &);
 
   void renderOnePatch(); // no tesselation, render whole area
@@ -109,6 +108,13 @@ public:
 
   eastl::unique_ptr<HeightmapHeightCulling> heightmapHeightCulling;
   bool pushHmapModificationOnPrepare = true;
+  void initRender(bool clamp = true);
+  const UniqueTex *getTexture() const { return renderData ? &renderData->heightmap : nullptr; }
+  void setTexture(UniqueTex &&);
+  void setSampler(d3d::SamplerHandle &&);
+  void setVars();
+  void makeBookKeeping();
+  const HeightmapRenderer &getRenderer() const { return renderer; }
 
 protected:
   int calcLod(int min_lod, const Point3 &origin_pos, float camera_height) const;

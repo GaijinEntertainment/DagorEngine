@@ -18,6 +18,11 @@ public:
   Compression() {}
   virtual ~Compression() {}
 
+  Compression(const Compression &) = default;
+  Compression(Compression &&) = default;
+  Compression &operator=(const Compression &) = default;
+  Compression &operator=(Compression &&) = default;
+
   static const Compression &getInstanceByName(const char *name);
   static const Compression &getInstanceById(int id);
   static const Compression &getBestCompression();

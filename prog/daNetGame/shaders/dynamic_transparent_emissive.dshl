@@ -57,6 +57,7 @@ shader dynamic_transparent_emissive
   }
 
   OPTIONAL_SKINNING_SHADER()
+  USE_UNPACK_UNIT_VECTOR_VS()
   hlsl(vs) {
     VsOutput transp_emissive_vs(VsInput input)
     {
@@ -66,7 +67,7 @@ shader dynamic_transparent_emissive
       float3 worldDu;
       float3 worldDv;
       float3 worldNormal;
-      float3 localNormal = input.normal.xyz;
+      float3 localNormal = unpack_unit_vector(input.normal.xyz);
 
       float3 localDu = float3(1,0,0), localDv = float3(1,0,0);
       instance_skinning(

@@ -27,10 +27,7 @@
   class ClassName                                           \
   {                                                         \
   public:                                                   \
-    ~ClassName()                                            \
-    {                                                       \
-      func;                                                 \
-    }                                                       \
+    ~ClassName() { func; }                                  \
   } objName;
 
 #define CALL_AT_END_OF_SCOPE(func) \
@@ -99,6 +96,9 @@ public:
 
   // Removes all impostor textures that do not belong to any of the assets
   void clean(dag::ConstSpan<DagorAsset *> assets, const ImpostorOptions &options);
+
+  // renders last exported image to current render-target
+  void drawLastExportedImage() const;
 
   static constexpr uint32_t GBUF_DIFFUSE_FMT = TEXFMT_A8R8G8B8;
   static constexpr uint32_t GBUF_NORMAL_FMT = TEXFMT_A8R8G8B8;
@@ -184,7 +184,7 @@ private:
 
   void exportAssetBlk(DagorAsset *asset, RenderableInstanceLodsResource *res, const ImpostorExportData &export_data, DataBlock &blk,
     const AOData &ao_data) const;
-  void prepareTextures(const ImpostorTextureManager::GenerationData &gen_data) noexcept;
+  void prepareTextures(IPoint2 resolution) noexcept;
   ImpostorTextureData prepareRt(IPoint2 extent, String asset_name, int mips) noexcept;
   static IPoint2 get_extent(const ImpostorTextureManager::GenerationData &gen_data);
   static IPoint2 get_rt_extent(const ImpostorTextureManager::GenerationData &gen_data);
@@ -193,6 +193,7 @@ private:
   float compareImages(TexImage32 *img1, TexImage32 *img2, int num_channels);
 
   bool displayExportedImages = false;
+  UniqueTex lastExportedAlbedoAlpha;
   // TODO set default quality options after one of the games is configured properly
   eastl::vector<ImpostorTextureQualityLevel> defaultTextureQualityLevels = {{0.f, 256}, {8.f, 512}};
   eastl::vector<ImpostorPackNamePattern> defaultPackNamePatterns = {};

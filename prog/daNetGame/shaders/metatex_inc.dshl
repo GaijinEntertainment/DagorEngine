@@ -292,7 +292,6 @@ hlsl(ps)
     unpack_metatex(global_param_offset,texCoord,diffuseColor,normalMap,smoothness,property,metalness,material_coef);
   }
 }
-ENABLE_ASSERT(ps)
 endmacro
 
 macro USE_METATEX_PS(is_writing_gbuffer)

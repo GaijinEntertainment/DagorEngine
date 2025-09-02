@@ -4,6 +4,8 @@ import "samples_prog/_cursors.nut" as cursors
 
 let dasScript = load_das("samples_prog/_basic/render/das_canvas_demo.das")
 
+let testFunc = DasFunction(dasScript, "interop_test")
+
 let testContent = {
   size = SIZE_TO_CONTENT
   rendObj = ROBJ_SOLID
@@ -11,10 +13,18 @@ let testContent = {
   padding = sh(5)
   gap = sh(5)
   flow = FLOW_HORIZONTAL
+  behavior = Behaviors.Button
+
+  dasInteropExtraMul = 10
+
+  function onClick(event) {
+    let r = testFunc(2, 3.0, event.target)
+    vlog($"Interop call result = {r}")
+  }
 
   children = [
     {
-      size = [sh(40), sh(40)]
+      size = sh(40)
       rendObj = ROBJ_DAS_CANVAS
       script = dasScript
       drawFunc = "draw_with_params"
@@ -23,7 +33,7 @@ let testContent = {
     }
 
     {
-      size = [sh(40), sh(40)]
+      size = sh(40)
       rendObj = ROBJ_DAS_CANVAS
       script = dasScript
       drawFunc = "draw_without_params"

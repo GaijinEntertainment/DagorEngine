@@ -16,6 +16,9 @@ namespace p2util
 const char *get_icon_path();
 void set_icon_path(const char *value);
 
+const char *get_icon_fallback_path();
+void set_icon_fallback_path(const char *value);
+
 void *get_main_parent_handle();
 void set_main_parent_handle(void *phandle);
 

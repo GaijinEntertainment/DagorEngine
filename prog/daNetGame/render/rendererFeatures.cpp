@@ -25,9 +25,15 @@ static eastl::pair<FeatureRenderFlags, const char *> feature_render_flags_str_ta
   {POSTFX, "postFx"}, {CONTACT_SHADOWS, "contactShadows"}, {STATIC_SHADOWS, "staticShadows"}, {CLUSTERED_LIGHTS, "clusteredLights"},
   {LEVEL_LAND_TEXEL_SIZE, "levelLandTexelSize"}, {DYNAMIC_LIGHTS_SHADOWS, "dynamicLightsShadows"}, {SSR, "SSR"},
   {VOLUME_LIGHTS_PER_PIXEL_FX_APPLY, "volumeLightsPerPixelFxApply"}, {MOBILE_DEFERRED, "mobileDeferred"},
-  {MOBILE_SIMPLIFIED_MATERIALS, "mobileSimplifiedMaterials"}, {HIGHRES_PUDDLES, "highresPuddles"}};
+  {MOBILE_SIMPLIFIED_MATERIALS, "mobileSimplifiedMaterials"}, {HIGHRES_PUDDLES, "highresPuddles"},
+  {CAMERA_IN_CAMERA, "cameraInCamera"}};
 
 bool forceDefaultRenderingPath;
+
+namespace
+{
+static FeatureRenderFlagMask current_render_features;
+}
 
 void rendering_path::set_force_default(bool v) { forceDefaultRenderingPath = v; }
 
@@ -153,12 +159,7 @@ FeatureRenderFlagMask parse_render_features(const char *str)
   return featuresMask;
 }
 
-bool renderer_has_feature(FeatureRenderFlags feature)
-{
-  if (get_world_renderer())
-    return ((WorldRenderer *)get_world_renderer())->hasFeature(feature);
-  return false;
-}
+bool renderer_has_feature(FeatureRenderFlags feature) { return current_render_features.test(feature); }
 
 const eastl::pair<FeatureRenderFlags, const char *> *get_feature_render_flags_str_table(size_t &cnt)
 {
@@ -166,12 +167,9 @@ const eastl::pair<FeatureRenderFlags, const char *> *get_feature_render_flags_st
   return cnt ? &feature_render_flags_str_table[0] : nullptr;
 }
 
-FeatureRenderFlagMask get_current_render_features()
-{
-  if (auto wr = (const WorldRenderer *)get_world_renderer())
-    return wr->getFeatures();
-  return FeatureRenderFlagMask();
-}
+FeatureRenderFlagMask get_current_render_features() { return current_render_features; }
+
+void set_current_render_features(FeatureRenderFlagMask val) { current_render_features = val; }
 
 String get_corrected_rendering_path()
 {

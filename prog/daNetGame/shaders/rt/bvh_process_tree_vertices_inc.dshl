@@ -1,19 +1,33 @@
 include "wind/wind_simulation_inc.dshl"
+include "wind/apply_tree_wind_inc.dshl"
+
+macro INIT_BVH_TREE_ANIMATION()
+  INIT_FLUID_WIND(cs)
+  INIT_AMBIENT_WIND(cs)
+  (cs)
+  {
+    time_param@f1 = time_phase(1000, 0) * 1000;
+  }
+endmacro
 
 macro BVH_TREE_ANIMATION()
-  INIT_COMBINED_WIND(cs)
   USE_COMBINED_WIND(cs)
   USE_PIVOT_PAINTER_BASE(cs)
+  USE_APPLY_TREE_WIND_BASE(cs)
   hlsl(cs) {
     void bvh_tree_animation(float2 indirect_texcoord,
                             float4 input_color,
                             float4x4 wtm,
                             float3 input_pos,
+                            float3 input_normal,
                             float4 tree_wind_params,
                             uint per_instance_render_data_offset,
+                            uint per_instance_render_data_flags,
                             out float4 world_pos,
                             inout float3 world_normal)
     {
+      tree_wind_params.x = time_param;
+
       float3 worldLocalX = wtm[0].xyz;
       float3 worldLocalY = wtm[1].xyz;
       float3 worldLocalZ = wtm[2].xyz;
@@ -21,6 +35,7 @@ macro BVH_TREE_ANIMATION()
 
       world_pos.xyz = input_pos.x * worldLocalX + input_pos.y * worldLocalY + input_pos.z * worldLocalZ + worldLocalPos;
       world_pos.w = 1.0;
+      world_normal = normalize(mul(input_normal, (float3x3)wtm));
       // TODO Figure this out!!!!!
       // ##if instancing_type == pos_vb || instancing_type == pos_cb
       //   float4 pos_and_scale = float4(world_local_pos,length(worldLocalX));
@@ -28,11 +43,17 @@ macro BVH_TREE_ANIMATION()
       // ##endif
 
       ##if (bvh_process_tree_vertices_is_pivoted == yes)
-        static const float AnimWindScale = 0.25;
         HierarchyData Data = fetchHierarchyData(indirect_texcoord, worldLocalX, worldLocalY, worldLocalZ, worldLocalPos);
         float3 prevWorldPos;
-        applyWindAnimationOffset(world_pos.xyz, world_normal, Data, tree_wind_params.x, AnimWindScale, world_pos.xyz, prevWorldPos);
+        applyWindAnimationOffset(world_pos.xyz, world_normal, Data, tree_wind_params.x, params.AnimWindScale, world_pos.xyz, prevWorldPos);
       ##endif
+
+      if (params.apply_tree_wind) // shader != rendinst_tree_perlin_layered && atest == atestOn
+      {
+        float dissolveVal = 1;
+        float3 windVcol = BGRA_SWIZZLE(input_color).xyz * get_wind_channel_strength();
+        world_pos.xyz += ApplyTreeWind(windVcol, tree_wind_params, worldLocalPos, world_pos.xyz, input_pos, world_normal, dissolveVal, 1);
+      }
     }
   }
 endmacro

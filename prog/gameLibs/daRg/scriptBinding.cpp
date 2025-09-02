@@ -12,7 +12,7 @@
 
 
 #include "animation.h"
-#include "behaviors/bhvButton.h"
+#include <daRg/behaviors/bhvButton.h>
 #include "behaviors/bhvComboPopup.h"
 #include "behaviors/bhvTextArea.h"
 #include "behaviors/bhvTextInput.h"
@@ -59,6 +59,7 @@
 #include "editableText.h"
 
 #include "dasScripts.h"
+#include "dasInterop.h"
 
 #include <videoPlayer/dag_videoPlayer.h>
 #include <sound/dag_genAudio.h>
@@ -186,7 +187,7 @@ static void register_constants(HSQUIRRELVM vm)
     /// Easing function for prebuilt animations functions.
     .EASING(InQuad)
     ///@const OutQuad
-    /// Easing function for prebuilt animations functions.
+    /// Easing function for prebuilt animations functions.  See https://easings.net/
     .EASING(OutQuad)
     ///@const InOutQuad
     /// Easing function for prebuilt animations functions.
@@ -371,7 +372,7 @@ static void register_constants(HSQUIRRELVM vm)
 
     ///@const KEEP_ASPECT_NONE
     .CONST(KEEP_ASPECT_NONE)
-    /** @const KEEP_ASPECT_FIT
+    /* qdox @const KEEP_ASPECT_FIT
 For Picture.
 
 Keeps Aspect ratio and fit component size (so there can be fields around picture,
@@ -379,7 +380,7 @@ but only in one direction, like on top and bottom or right and left.
 
     */
     .CONST(KEEP_ASPECT_FIT)
-    /** @const KEEP_ASPECT_FILL
+    /* qdox @const KEEP_ASPECT_FILL
 For Picture.
 
 Keeps Aspect ratio and cover all component size. So image can be outside component box.
@@ -453,7 +454,10 @@ static void register_fonts(Sqrat::Table &exports)
 
   Sqrat::Var<Sqrat::Object> fonts(vm, -1);
   exports.SetValue("Fonts", fonts.value);
-
+  /* qdox @class Fonts
+    has values of each fonts that are registered in dagor.
+    unfortunately no way for list of fonts, see fonts.blk
+  */
   sq_pop(vm, 2); // instance and class
 }
 
@@ -480,11 +484,21 @@ static void register_anim_props(HSQUIRRELVM vm)
   Sqrat::Table(Sqrat::ConstTable(vm)).SetValue("AnimProp", tblAnimProp);
 }
 
-static float calc_screen_w_percent(float percent) { return floor(StdGuiRender::screen_width() * percent * 0.01f + 0.5f); }
+static SQInteger calc_screen_w_percent(HSQUIRRELVM vm)
+{
+  float percent = 0.0f;
+  sq_getfloat(vm, 2, &percent);
+  sq_pushfloat(vm, floor(StdGuiRender::screen_width() * percent * 0.01f + 0.5f));
+  return 1;
+}
 
-
-float calc_screen_h_percent(float percent) { return floor(StdGuiRender::screen_height() * percent * 0.01f + 0.5f); }
-
+static SQInteger calc_screen_h_percent(HSQUIRRELVM vm)
+{
+  float percent = 0.0f;
+  sq_getfloat(vm, 2, &percent);
+  sq_pushfloat(vm, floor(StdGuiRender::screen_height() * percent * 0.01f + 0.5f));
+  return 1;
+}
 
 template <SizeSpec::Mode mode>
 static SQInteger make_size(HSQUIRRELVM vm)
@@ -534,10 +548,50 @@ static void register_std_behaviors(SqModules *module_mgr)
   Sqrat::Table tblBhv(vm);
 
 #define BHV(name, obj) tblBhv.SetValue(#name, (darg::Behavior *)&obj);
-  ///@table daRg/Behaviors
-  ///@const Button
+  ///@module daRg.behaviors
+  /*qdox @const Button
+  @module daRg.behaviors
+  @const Button
+    uses following Properties:
+    @code
+      onClick: function([elem])
+      onDoubleClick: function([elem])
+      rumble: bool //do rumble on gamepad
+    code@
+
+
+"onClick" and "onDoubleClick" callbacks for "Button" behavior is called with optional pseudotable 'elem'
+
+
+  @code elem
+    {
+      button: integer //mouse button
+      screenX: integer
+      screenY: integer
+      target: ElemRef
+      devId: integer
+      shiftKey: bool
+      ctrlKey: bool
+      altKey: bool
+      targetRect: {l:integer, t:integer, r:integer, b:integer} //left, top, right, bottom in pixels
+    }
+  code@
+  */
   BHV(Button, bhv_button)
-  ///@const TextArea
+  /* qdox @const TextArea
+  @note
+    works only with `rendObj = ROBJ_TEXTAREA`
+  note@
+
+
+  @code Properties for behavior and rendObj:
+    text: string
+    textOverflowY = TOVERFLOW_LINE // TOVERFLOW_CLIP, TOVERFLOW_CHAR, TOVERFLOW_WORD
+    textOverflowX = TOVERFLOW_CHAR // TOVERFLOW_CLIP, TOVERFLOW_CHAR, TOVERFLOW_WORD
+    ellipsis = true
+    ellipsisSepLine = true
+  code@
+  */
   BHV(TextArea, bhv_text_area)
   ///@const TextInput
   BHV(TextInput, bhv_text_input)
@@ -555,11 +609,32 @@ static void register_std_behaviors(SqModules *module_mgr)
   BHV(ComboPopup, bhv_combo_popup)
   ///@const SmoothScrollStack
   BHV(SmoothScrollStack, bhv_smooth_scroll_stack)
-  ///@const Marquee
+  /* qdox @const Marquee
+
+    @code Properties:
+      loop: bool
+      threshold: float
+      orientation: O_HORIZONTAL or O_VERTICAL
+      scrollOnHover: bool
+      speed: float or [speed x:float, speed y: float], should be > 0
+      delay : float or [initial delay: float, fadeout delay: float]
+    code@
+  */
   BHV(Marquee, bhv_marquee)
-  ///@const WheelScroll
+  /* qdox @const WheelScroll
+
+    @code Properties:
+      wheelStep:integer | float
+      onWheelScroll: function(scrollAmount)
+    code@
+  */
   BHV(WheelScroll, bhv_wheel_scroll)
-  ///@const ScrollEvent
+  /* qdox @const ScrollEvent
+
+    @code Properties:
+      onScroll: function(elementRef) or function(scrollOffs.x, scrollOffs.y, contentSize.x, contentSize.y, size.x, size.y)
+    code@
+  */
   BHV(ScrollEvent, bhv_scroll_event)
   ///@const InspectPicker
   BHV(InspectPicker, bhv_inspect_picker)
@@ -575,15 +650,15 @@ static void register_std_behaviors(SqModules *module_mgr)
   BHV(LatencyBar, bhv_latency_bar)
   ///@const OverlayTransparency
   BHV(OverlayTransparency, bhv_overlay_transparency)
-  /** @const BoundToArea
-    place object inside an area (like placing tooltip under cursor BUT inside screen)
+  /* qdox @const BoundToArea
+    Place object inside an area (like placing tooltip under cursor BUT inside screen)
   */
   BHV(BoundToArea, bhv_bound_to_area)
-  /** @const Movie
+  /* qdox @const Movie
 
     fields in component description:
 
-    @code:
+    @code fields
       movie:string = <path to movie file in .ivf file format>
       loop:boolean = default true. Should video be looped
       sound:string = path to .mp3 sound file. By default movie file with .mp3 added (like "<video_file_name_with_ext>.mp3".).
@@ -595,7 +670,6 @@ static void register_std_behaviors(SqModules *module_mgr)
 
     @note
       Note: sound is played only for one-shot video.
-    note@
   */
   BHV(Movie, bhv_movie)
   ///@const Parallax
@@ -797,6 +871,7 @@ static SQInteger scrollhandler_ctor(HSQUIRRELVM vm)
 }
 
 
+///@module daRg
 void bind_script_classes(SqModules *module_mgr, Sqrat::Table &exports)
 {
   HSQUIRRELVM sqvm = module_mgr->getVM();
@@ -816,6 +891,7 @@ void bind_script_classes(SqModules *module_mgr, Sqrat::Table &exports)
   ///@class daRg/JoystickAxisObservable
   Sqrat::DerivedClass<JoystickAxisObservable, BaseObservable> joyAxisObservable(sqvm, "JoystickAxisObservable");
   joyAxisObservable //
+    .Func("get", &JoystickAxisObservable::getValue)
     .Prop("value", &JoystickAxisObservable::getValue)
     .Var("resolution", &JoystickAxisObservable::resolution)
     .Var("deadzone", &JoystickAxisObservable::deadzone)
@@ -829,12 +905,18 @@ void bind_script_classes(SqModules *module_mgr, Sqrat::Table &exports)
 
   ///@class daRg/Picture
   Sqrat::Class<Picture, Sqrat::NoCopy<Picture>> pictureClass(sqvm, "Picture");
-  pictureClass.SquirrelCtor(picture_script_ctor<Picture>, 0, ".o|s");
+  pictureClass //
+    .SquirrelCtor(picture_script_ctor<Picture>, 0, ".o|s")
+    .Func("getLoadedPicSize", &Picture::getLoadedPicSize)
+    /**/;
 
-  ///@class daRg/Immediate
+  ///@class daRg/PictureImmediate
   ///@extends Picture
   Sqrat::DerivedClass<PictureImmediate, Picture, Sqrat::NoCopy<PictureImmediate>> immediatePictureClass(sqvm, "PictureImmediate");
-  immediatePictureClass.SquirrelCtor(picture_script_ctor<PictureImmediate>, 0, ".o|s");
+  immediatePictureClass //
+    .SquirrelCtor(picture_script_ctor<PictureImmediate>, 0, ".o|s")
+    .Func("getLoadedPicSize", &PictureImmediate::getLoadedPicSize)
+    /**/;
 
   ///@class daRg/FormattedText
   Sqrat::Class<textlayout::FormattedText, Sqrat::NoConstructor<textlayout::FormattedText>> formattedTextClass(sqvm, "FormattedText");
@@ -879,6 +961,7 @@ void bind_script_classes(SqModules *module_mgr, Sqrat::Table &exports)
   Sqrat::Class<HoverEventData, Sqrat::DefaultAllocator<HoverEventData>> sqHoverEventData(sqvm, "HoverEventData");
   sqHoverEventData.Prop("targetRect", &HoverEventData::getTargetRect);
 
+  ///@class daRg/TransitAll
   Sqrat::Class<AllTransitionsConfig> sqTransitAll(sqvm, "TransitAll");
   sqTransitAll.Ctor<const Sqrat::Object &>();
 
@@ -899,20 +982,20 @@ void bind_script_classes(SqModules *module_mgr, Sqrat::Table &exports)
   exports.Bind("MoveToAreaTarget", sqBhvMoveToAreaTarget);
   ///@module daRg
   exports //
-    .SquirrelFunc("Color", encode_e3dcolor, -4, ".nnnn")
-    .Func("sw", calc_screen_w_percent)
-    .Func("sh", calc_screen_h_percent)
-    .SquirrelFunc("flex", make_size<SizeSpec::FLEX>, -1, ".n")
+    .SquirrelFuncDeclString(encode_e3dcolor, "pure Color(r: number, g: number, b: number, [alpha: number]): int")
+    .SquirrelFuncDeclString(calc_screen_w_percent, "pure sw(percent: number): number")
+    .SquirrelFuncDeclString(calc_screen_h_percent, "pure sh(percent: number): number")
+    .SquirrelFuncDeclString(make_size<SizeSpec::FLEX>, "pure flex([weight: number]): userdata")
     .SquirrelFunc("fontH", make_size<SizeSpec::FONT_H>, 2, ".n")
-    .SquirrelFunc("pw", make_size<SizeSpec::PARENT_W>, 2, ".n")
-    .SquirrelFunc("ph", make_size<SizeSpec::PARENT_H>, 2, ".n")
-    .SquirrelFunc("elemw", make_size<SizeSpec::ELEM_SELF_W>, 2, ".n")
-    .SquirrelFunc("elemh", make_size<SizeSpec::ELEM_SELF_H>, 2, ".n")
+    .SquirrelFuncDeclString(make_size<SizeSpec::PARENT_W>, "pure pw(percent: number): userdata")
+    .SquirrelFuncDeclString(make_size<SizeSpec::PARENT_H>, "pure ph(percent: number): userdata")
+    .SquirrelFuncDeclString(make_size<SizeSpec::ELEM_SELF_W>, "pure elemw(percent: number): userdata")
+    .SquirrelFuncDeclString(make_size<SizeSpec::ELEM_SELF_H>, "pure elemh(percent: number): userdata")
     .SquirrelFunc("locate_element_source", locate_element_source, 2, ".x")
     .SquirrelFunc("get_element_info", get_element_info, 2, ".x")
-    .SquirrelFunc("get_font_metrics", get_font_metrics, -2, ".i")
     .SquirrelFunc("resolve_button", resolve_button, 2, ".s")
-    /**
+    .SquirrelFuncDeclString(get_font_metrics, "pure get_font_metrics(fontId: int, [fontHt: number]): table")
+    /* qdox
     @param fontId i
     @param fontHt f : optional, default is _def_fontHt font height set in font
     @return t : font_params
@@ -926,17 +1009,17 @@ void bind_script_classes(SqModules *module_mgr, Sqrat::Table &exports)
         descent
         lowercaseHeight : height of x
       }
-    @code
     */
     .Func("setFontDefHt", sq_set_def_font_ht)
     .Func("getFontDefHt", sq_get_def_font_ht)
     .Func("getFontInitialHt", sq_get_initial_font_ht)
     .SquirrelFunc("calc_str_box", calc_str_box, -2, ". s|t|c t|c|o")
-    /**
+    /* qdox
       @param element_or_text s|c|t : should be string of text or darg component description with 'text' in it
       @param element_or_style t|c|o : optional, if first element is text, it should be provided with font properties
       @return a : return array of two objects with width and height of text
     */
+    // `pure` only when just text provided
     /**/;
 
   register_constants(sqvm);
@@ -952,6 +1035,7 @@ void bind_script_classes(SqModules *module_mgr, Sqrat::Table &exports)
   Sqrat::Class<Element, Sqrat::NoConstructor<Element>> sqElement(sqvm, "@Element");
 
   bind_das(exports);
+  DasFunction::register_script_class(exports);
 
   Sqrat::Table dargDebug(sqvm);
   ///@module daRg.debug

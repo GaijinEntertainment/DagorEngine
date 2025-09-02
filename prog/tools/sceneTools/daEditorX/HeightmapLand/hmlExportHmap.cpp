@@ -31,8 +31,8 @@ class Raw32fHeightmapExporter : public HeightmapExporter
 
 public:
   Raw32fHeightmapExporter(bool write_header) : writeHeader(write_header) {}
-  virtual bool exportHeightmap(const char *filename, HeightMapStorage &heightmap, real, real, CoolConsole &con, int x0, int y0, int x1,
-    int y1)
+  bool exportHeightmap(const char *filename, HeightMapStorage &heightmap, real, real, CoolConsole &con, int x0, int y0, int x1,
+    int y1) override
   {
     file_ptr_t handle = ::df_open(filename, DF_WRITE | DF_CREATE);
 
@@ -91,8 +91,8 @@ public:
 class Raw16HeightmapExporter : public HeightmapExporter
 {
 public:
-  virtual bool exportHeightmap(const char *filename, HeightMapStorage &heightmap, real min_height, real height_range, CoolConsole &con,
-    int x0, int y0, int x1, int y1)
+  bool exportHeightmap(const char *filename, HeightMapStorage &heightmap, real min_height, real height_range, CoolConsole &con, int x0,
+    int y0, int x1, int y1) override
   {
     file_ptr_t handle = ::df_open(filename, DF_WRITE | DF_CREATE);
 
@@ -156,8 +156,8 @@ public:
 class TgaHeightmapExporter : public HeightmapExporter
 {
 public:
-  virtual bool exportHeightmap(const char *filename, HeightMapStorage &heightmap, real min_height, real height_range, CoolConsole &con,
-    int x0, int y0, int x1, int y1)
+  bool exportHeightmap(const char *filename, HeightMapStorage &heightmap, real min_height, real height_range, CoolConsole &con, int x0,
+    int y0, int x1, int y1) override
   {
     file_ptr_t handle = ::df_open(filename, DF_WRITE | DF_CREATE);
 
@@ -231,8 +231,8 @@ public:
 class TiffHeightmapExporter : public HeightmapExporter
 {
 public:
-  virtual bool exportHeightmap(const char *filename, HeightMapStorage &heightmap, real min_height, real height_range, CoolConsole &con,
-    int x0, int y0, int x1, int y1)
+  bool exportHeightmap(const char *filename, HeightMapStorage &heightmap, real min_height, real height_range, CoolConsole &con, int x0,
+    int y0, int x1, int y1) override
   {
     int mapSizeX = x1 - x0;
     int mapSizeY = y1 - y0;

@@ -15,21 +15,25 @@ namespace das {
         bool enumAsInt = false;
         bool unescape = false;
         bool embed = false;
-        bool optional = false;
-        bool skipName = false;
+        bool optional = false; // if true, we do not write zero values, only non-zero ones
+        vector<bool> ignoreNextFields;
+        vector<bool> anyStructFields;
     // data structures
         virtual void beforeStructure ( char *, StructInfo * ) override {
             ss << "{";
+            anyStructFields.push_back(false);
         }
         virtual void afterStructure ( char *, StructInfo * ) override {
             ss << "}";
+            if (!anyStructFields.empty()) {
+                anyStructFields.pop_back();
+            }
         }
-        virtual void beforeStructureField ( char * ps, StructInfo *, char * pf, VarInfo * vi, bool ) override {
+        virtual void beforeStructureField ( char * ps, StructInfo *si, char * pf, VarInfo * vi, bool ) override {
             enumAsInt = false;
             unescape = false;
             embed = false;
             optional = false;
-            skipName = false;
             string name = vi->name ? vi->name : "";
             if ( vi->annotation_arguments ) {
                 auto aa = (AnnotationArguments *) vi->annotation_arguments;
@@ -47,40 +51,69 @@ namespace das {
                     }
                 }
             }
-            if ( optional ) {
-                if ( vi->type==Type::tString && vi->dimSize==0 ) {
-                    auto st = *((char **) pf);
-                    skipName =st==nullptr || strlen(st)==0;
-                } else if ( vi->type==Type::tArray && vi->dimSize==0 ) {
-                    auto arr = (Array *) pf;
-                    skipName = arr->size==0;
-                } else if ( vi->type==Type::tTable && vi->dimSize==0 ) {
-                    auto tab = (Table *) pf;
-                    skipName = tab->size==0;
+            bool ignoreNextField = false;
+            if ( si->flags & StructInfo::flag_class ) {
+                if (name == "__rtti" || name == "__finalize") {
+                    ignoreNextField = true;
                 }
             }
-            if ( !skipName ) {
-                if ( ps!=pf ) ss << ",";
-                ss << "\"" << name << "\":";
+            if ( optional && !ignoreNextField ) {
+                if ( vi->type==Type::tInt || vi->type==Type::tUInt ) {
+                    auto val = *((uint32_t *)pf);
+                    ignoreNextField = val == 0;
+                } else if ( vi->type==Type::tInt8 || vi->type==Type::tUInt8 ) {
+                    auto val = *((uint8_t *)pf);
+                    ignoreNextField = val == 0;
+                } else if ( vi->type==Type::tInt16 || vi->type==Type::tUInt16 ) {
+                    auto val = *((uint16_t *)pf);
+                    ignoreNextField = val == 0;
+                } else if ( vi->type==Type::tInt64 || vi->type==Type::tUInt64 ) {
+                    auto val = *((uint64_t *)pf);
+                    ignoreNextField = val == 0;
+                } else if ( vi->type==Type::tFloat ) {
+                    auto val = *((float *)pf);
+                    ignoreNextField = val == 0.f;
+                } else if ( vi->type==Type::tDouble ) {
+                    auto val = *((double *)pf);
+                    ignoreNextField = val == 0.0;
+                } else if ( vi->type==Type::tBool ) {
+                    auto val = *((bool *)pf);
+                    ignoreNextField = !val;
+                } else if ( vi->type==Type::tString && vi->dimSize==0 ) {
+                    auto st = *((char **) pf);
+                    ignoreNextField = st==nullptr || strlen(st)==0;
+                } else if ( vi->type==Type::tPointer ) {
+                    auto ptr = *((void **) pf);
+                    ignoreNextField = ptr==nullptr;
+                } else if ( vi->type==Type::tArray && vi->dimSize==0 ) {
+                    auto arr = (Array *) pf;
+                    ignoreNextField = arr->size==0;
+                } else if ( vi->type==Type::tTable && vi->dimSize==0 ) {
+                    auto tab = (Table *) pf;
+                    ignoreNextField = tab->size==0;
+                }
             }
+            if ( !ignoreNextField ) {
+                if ( anyStructFields.back() ) ss << ",";
+                ss << "\"" << name << "\":";
+                anyStructFields.back() = true;
+            }
+            ignoreNextFields.push_back(ignoreNextField);
         }
         virtual bool canVisitArray ( Array * ar, TypeInfo * ) override {
-            if ( optional && ar->size==0 ) return false;
-            return true;
+            return ignoreNextFields.empty() || !ignoreNextFields.back();
         }
         virtual bool canVisitTable ( char * ps, TypeInfo * ) override {
-            if ( optional ) {
-                Table * tab = (Table *)ps;
-                if ( tab->size==0 ) return false;
-            }
-            return true;
+            return ignoreNextFields.empty() || !ignoreNextFields.back();
         }
         virtual void afterStructureField ( char *, StructInfo *, char *, VarInfo *, bool ) override {
             enumAsInt = false;
             unescape = false;
             embed = false;
             optional = false;
-            skipName = true;
+            if ( !ignoreNextFields.empty() ) {
+                ignoreNextFields.pop_back();
+            }
         }
         virtual void beforeTuple ( char *, TypeInfo * ) override {
             ss << "{";
@@ -88,18 +121,10 @@ namespace das {
         virtual void afterTuple ( char *, TypeInfo * ) override {
             ss << "}";
         }
-        virtual void beforeTupleEntry ( char *, TypeInfo * ti, char *, TypeInfo * vi, bool ) override {
-            // TODO: we can actuallyss this, right?
-            int32_t idx = -1u;
-            for ( int32_t i=0, is=ti->argCount; i!=is; ++i ) {
-                if ( ti->argTypes[i]==vi ) {
-                    idx = i;
-                    break;
-                }
-            }
+        virtual void beforeTupleEntry ( char *, TypeInfo * ti, char *, int idx, bool ) override {
             ss << "\"_" << idx << "\":";
         }
-        virtual void afterTupleEntry ( char *, TypeInfo *, char *, TypeInfo *, bool last ) override {
+        virtual void afterTupleEntry ( char *, TypeInfo *, char *, int, bool last ) override {
             if ( !last ) ss << ",";
         }
         virtual void beforeVariant ( char * ps, TypeInfo * ti ) override {
@@ -135,31 +160,39 @@ namespace das {
         }
     // types
         virtual void Null ( TypeInfo * ) override {
+            if ( !ignoreNextFields.empty() && ignoreNextFields.back() ) return;
             ss << "null";
         }
         virtual void Bool ( bool & value ) override {
+            if ( !ignoreNextFields.empty() && ignoreNextFields.back() ) return;
             ss << (value ? "true" : "false");
         }
         virtual void Int8 ( int8_t & value ) override {
+            if ( !ignoreNextFields.empty() && ignoreNextFields.back() ) return;
             ss << value;
         }
         virtual void UInt8 ( uint8_t & value ) override {
+            if ( !ignoreNextFields.empty() && ignoreNextFields.back() ) return;
             ss << int32_t(value);
         }
         virtual void Int16 ( int16_t & value ) override {
+            if ( !ignoreNextFields.empty() && ignoreNextFields.back() ) return;
             ss << value;
         }
         virtual void UInt16 ( uint16_t & value ) override {
+            if ( !ignoreNextFields.empty() && ignoreNextFields.back() ) return;
             ss << int32_t(value);
         }
         virtual void Int64 ( int64_t & value ) override {
+            if ( !ignoreNextFields.empty() && ignoreNextFields.back() ) return;
             ss << value;
         }
         virtual void UInt64 ( uint64_t & value ) override {
+            if ( !ignoreNextFields.empty() && ignoreNextFields.back() ) return;
             ss << int64_t(value);
         }
         virtual void String ( char * & value ) override {
-            if ( optional && (value==nullptr || strlen(value)==0) ) return;
+            if ( !ignoreNextFields.empty() && ignoreNextFields.back() ) return;
             if ( unescape ) {
                 ss << "\"" << value << "\"";
             } else if ( embed ) {
@@ -169,15 +202,19 @@ namespace das {
             }
         }
         virtual void Double ( double & value ) override {
+            if ( !ignoreNextFields.empty() && ignoreNextFields.back() ) return;
             ss << value;
         }
         virtual void Float ( float & value ) override {
+            if ( !ignoreNextFields.empty() && ignoreNextFields.back() ) return;
             ss << value;
         }
         virtual void Int ( int32_t & value ) override {
+            if ( !ignoreNextFields.empty() && ignoreNextFields.back() ) return;
             ss << value;
         }
         virtual void UInt ( uint32_t & value ) override {
+            if ( !ignoreNextFields.empty() && ignoreNextFields.back() ) return;
             ss << int64_t(value);
         }
         virtual void Bitfield ( uint32_t & value, TypeInfo * ) override {
@@ -223,6 +260,7 @@ namespace das {
             ss << "[" << int64_t(value.x) << "," << int64_t(value.y) << "]";
         }
         virtual void VoidPtr ( void * & ) override {
+            if ( !ignoreNextFields.empty() && ignoreNextFields.back() ) return;
             ss << "null";
         }
         void Enum ( int64_t value, EnumInfo * info ) {
@@ -252,6 +290,15 @@ namespace das {
         }
         virtual void WalkEnumeration64 ( int64_t & value, EnumInfo * info ) override {
             Enum(value,info);
+        }
+
+        virtual bool revisitStructure ( char * ps, StructInfo * si ) override {
+            ss << "null";
+            return false;
+        }
+        virtual bool revisitHandle ( char * ps, TypeInfo * ti ) override {
+            ss << "null";
+            return false;
         }
     };
 

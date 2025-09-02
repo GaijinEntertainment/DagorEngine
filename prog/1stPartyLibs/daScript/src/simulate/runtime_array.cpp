@@ -136,7 +136,7 @@ namespace das
                     uint32_t oldSize = pArray->capacity*stride;
                     context.free(pArray->data, oldSize, &debugInfo);
                 } else {
-                    context.throw_error_at(debugInfo, "deleting locked array");
+                    context.throw_error_at(debugInfo, "deleting locked array%s", errorMessage);
                     return v_zero();
                 }
             }

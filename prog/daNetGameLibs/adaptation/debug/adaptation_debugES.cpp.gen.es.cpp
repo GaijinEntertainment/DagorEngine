@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "adaptation_debugES.cpp.inl"
 ECS_DEF_PULL_VAR(adaptation_debug);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc get_adaptation_manager_ecs_query_comps[] =
 {

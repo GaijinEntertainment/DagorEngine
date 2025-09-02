@@ -95,14 +95,6 @@ void StaticFxObjects::update(real dt)
   }
 }
 
-
-void StaticFxObjects::set_raytracer(IEffectRayTracer *rt)
-{
-  for (int i = 0; i < objects.size(); i++)
-    objects[i].fx->setParam(HUID_RAYTRACER, rt);
-}
-
-
 void StaticFxObjects::on_device_reset()
 {
   for (int i = 0; i < objects.size(); i++)
@@ -141,19 +133,7 @@ static void createOneStaticFxObject(const RoDataBlock *b, BaseEffectObject *base
   memcpy(e.name, name, len);
   e.name[len] = '\0';
 #endif
-  BSphere3 sphere;
-  fx->getParam(HUID_STATICVISSPHERE, &sphere);
-  if (!sphere.isempty())
-  {
-    float maxScaleSq = max(lengthSq(tm.getcol(0)), max(lengthSq(tm.getcol(1)), lengthSq(tm.getcol(2))));
-    float scale = sqrt(maxScaleSq);
-    e.sph = BSphere3(sphere.c * tm, sphere.r * scale);
-
-    if (is_equal_float(sphere.r, 10))
-      logwarn("StaticFxObjects: default visSphere radius: %s", name);
-  }
-  else
-    e.sph = BSphere3(tm.getcol(3), b->getReal("maxRadius", 10.0f));
+  e.sph = BSphere3(tm.getcol(3), b->getReal("maxRadius", 10.0f));
 
   e.visible = true;
   e.updateWhenInvisible = b->getBool("updateWhenInvisible", false);

@@ -65,9 +65,7 @@ endmacro
 macro INIT_VOLUMETRIC_LIGHT_BLOCK(code)
 if (volumetric_light_assumed_off == no)
 {
-  (code) {
-    lowres_tex_size@f4 = lowres_tex_size;
-  }
+  USE_LOWRES_TEX_SIZE(code)
 }
 endmacro
 
@@ -154,6 +152,10 @@ macro USE_VOLUMETRIC_LIGHT_ONLY_INC(code)
 
       half4 sample_froxel_fog_raw(float3 volume_pos)
       {
+      #if USE_CAMERA_IN_CAMERA
+        volume_pos.xy = remap_to_main_view_uv(volume_pos.xy);
+      #endif
+
         half4 scatteringInvTransmittance = half4(tex3Dlod(view_result_inscatter, float4(volume_pos, 0.0f)));
         scatteringInvTransmittance *= half(volume_fog_use_params.x);
         scatteringInvTransmittance.a += half(volume_fog_use_params.y);

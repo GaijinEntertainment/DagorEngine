@@ -9,20 +9,18 @@
 namespace ecs
 {
 
-using DesriptionMap = eastl::vector_map<eastl::string, EnumLoaderDesc>;
-using string_c_str_comparator = eastl::less_2<eastl::string, const char *>;
+using DescriptionMap = eastl::vector_map<eastl::string, EnumLoaderDesc>;
 
-static DesriptionMap &get_descriptions()
+static DescriptionMap &get_descriptions()
 {
-  static DesriptionMap descriptionMap;
+  static DescriptionMap descriptionMap;
   return descriptionMap;
 }
 
 void ecs_enum_registration(const char *enum_name, enum_parse_t parse, enum_names_t get_names, update_enum_t update_value,
   find_enum_idx_t find_enum, component_type_t component)
 {
-  auto it = get_descriptions().find_as(enum_name, string_c_str_comparator());
-  if (it != get_descriptions().end())
+  if (auto it = get_descriptions().find_as(enum_name, eastl::less<>()); it != get_descriptions().end())
   {
     logerr("you try to register more than one enum type %s", enum_name);
     return;
@@ -32,7 +30,7 @@ void ecs_enum_registration(const char *enum_name, enum_parse_t parse, enum_names
 
 const EnumLoaderDesc *find_enum_description(eastl::string_view tp_name)
 {
-  auto it = get_descriptions().find_as(tp_name.data(), string_c_str_comparator());
+  auto it = get_descriptions().find_as(tp_name.data(), eastl::less<>());
   return it == get_descriptions().end() ? nullptr : &it->second;
 }
 

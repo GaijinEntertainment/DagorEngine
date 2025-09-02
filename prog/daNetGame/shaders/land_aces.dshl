@@ -49,7 +49,7 @@ shader land_mesh//, land_mesh_combined
         half3 combinedNormal = unpack_ag_normal(combinedNormalMap);
         half3 newNormal = perturb_normal(combinedNormal, vertexNormal, point2Eye, detailTC);
         half amount = combinedDiffuse.a * opacity;
-        diffuseColor = lerp(diffuseColor, combinedDiffuse.rgb*combinedDetailDiffuse.rgb*4.59479341998814, amount);
+        diffuseColor = lerp(diffuseColor, combinedDiffuse.rgb*combinedDetailDiffuse.rgb*COLOR_CORRECTION_MULTIPLIER, amount);
         normal = normalize(lerp(normal, newNormal, amount));
         smoothness = lerp(smoothness, combinedNormalMap.r, amount);
         translucency = lerp(translucency, 1, amount);
@@ -86,6 +86,7 @@ shader land_mesh//, land_mesh_combined
     }
   }
   INIT_HARDCODED_WORLD_POS()
+  ENABLE_ASSERT(ps)
 
   if (lmesh_rendering_mode == grass_color || lmesh_rendering_mode == grass_mask || lmesh_rendering_mode == rendering_clipmap)
   {
@@ -235,6 +236,8 @@ shader land_mesh//, land_mesh_combined
       #include "wetness_functions.hlsl"
 
       GLOBAL_UAV_FEEDBACK
+
+      FORCE_EARLY_DEPTH_STENCIL
       GBUFFER_OUTPUT landmesh_ps(VsOutput input HW_USE_SCREEN_POS)
       {
         float4 screenpos = GET_SCREEN_POS(input.pos);
@@ -278,8 +281,8 @@ shader land_mesh//, land_mesh_combined
           half porosity = (1-smoothness)*porosityMul;
 
           half normalWetness = 1-pow4(saturate(1-max(wetness, shoreWavesMultiplier)));
-          wetness_normal_ts(normalWetness, clipNormalXY);
-          wetness_normal_ws(wetness, worldNormal);
+          wetness_normal_ts(wetness, clipNormalXY);
+          wetness_normal_ws(normalWetness, worldNormal);
 
           worldNormal.xzy = RNM_ndetail_normalized(worldNormal.xzy, restore_normal(clipNormalXY));
           wetness_diffuse(max(directWetness, wetness), porosity, diffuseColor.rgb);

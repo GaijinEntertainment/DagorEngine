@@ -17,7 +17,7 @@
 
 
 #if 0
-#define VERBOSE_DEBUG debug
+#define VERBOSE_DEBUG logdbg
 #else
 #define VERBOSE_DEBUG(...)
 #endif
@@ -39,21 +39,29 @@ bool needs_subresource_tracking(uint32_t cflags)
   return 0 != (cflags & (TEXCF_RTARGET | TEXCF_UNORDERED | TEXCF_UPDATE_DESTINATION | TEXCF_DYNAMIC));
 }
 
-void clear_full_rt_resource_with_default_value(const ImageInfo &desc, Image *image)
+void clear_full_rt_resource_with_default_value(BaseTex &tex, const ImageInfo &desc)
 {
+  auto &ctx = get_device().getContext();
+  auto image = tex.image;
+
   // render target always clear to zero on create.
-  ImageSubresourceRange area;
-  area.mipMapRange = desc.mips;
-  area.arrayLayerRange = desc.arrays;
+  ImageSubresourceRange area = {
+    .mipMapRange = desc.mips,
+    .arrayLayerRange = desc.arrays,
+  };
+
+  if (!desc.format.isColor() || !desc.format.isSampledAsFloat())
+  {
+    ctx.discardTexture(&tex);
+  }
+
   if (desc.format.isColor())
   {
-    ClearColorValue cv = {};
-    get_device().getContext().clearColorImage(image, area, cv, {});
+    ctx.clearColorImage(image, area, {}, {});
   }
   else
   {
-    ClearDepthStencilValue cv = {};
-    get_device().getContext().clearDepthStencilImage(image, area, cv, {});
+    ctx.clearDepthStencilImage(image, area, {}, {});
   }
 }
 
@@ -130,7 +138,7 @@ bool upload_initial_data_texture2d(BaseTex &tex, ImageInfo &desc, BaseTex::Image
       auto srcPtr = reinterpret_cast<const uint8_t *>(src.ptr);
       for (uint32_t r = 0; r < subResInfo.rowCount; ++r)
       {
-        memcpy(&stage.pointer[offset], srcPtr, src.rowPitch);
+        memcpy(stage.cpuPointer() + offset, srcPtr, src.rowPitch);
         offset += subResInfo.footprint.RowPitch;
         srcPtr += src.rowPitch;
       }
@@ -187,7 +195,7 @@ bool upload_initial_data_texture3d(BaseTex &tex, ImageInfo &desc, BaseTex::Image
       auto slicePtr = srcPtr;
       for (uint32_t r = 0; r < subResInfo.rowCount; ++r)
       {
-        memcpy(&stage.pointer[offset], slicePtr, initSource.rowPitch);
+        memcpy(stage.cpuPointer() + offset, slicePtr, initSource.rowPitch);
         offset += subResInfo.footprint.RowPitch;
         slicePtr += initSource.rowPitch;
       }
@@ -205,24 +213,35 @@ bool upload_initial_data_texture3d(BaseTex &tex, ImageInfo &desc, BaseTex::Image
   return true;
 }
 
+Image *create_image_from_desc(Device &device, BaseTex *base_texture, const ImageInfo &desc, const char *res_name)
+{
+  const bool wasBaseTracked = base_texture && !base_texture->image->isAliased();
+  if (wasBaseTracked)
+    TEXQL_ON_RELEASE(base_texture); // we must re-register the base texture as aliasing may make it untracked
+  auto image = device.createImage(desc, base_texture ? base_texture->image : nullptr, res_name);
+  if (wasBaseTracked)
+    TEXQL_ON_ALLOC(base_texture);
+  return image;
+}
+
 bool create_tex2d(BaseTex &tex, uint32_t w, uint32_t h, uint32_t levels, bool cube, BaseTex::ImageMem *initial_data,
   int array_size = 1, BaseTex *baseTexture = nullptr)
 {
   auto &device = get_device();
 
   uint32_t &flg = tex.cflg;
-  G_ASSERT(!((flg & TEXCF_SAMPLECOUNT_MASK) && initial_data != nullptr));
-  G_ASSERT(!((flg & TEXCF_LOADONCE) && (flg & (TEXCF_DYNAMIC | TEXCF_RTARGET))));
+  D3D_CONTRACT_ASSERT(!((flg & TEXCF_SAMPLECOUNT_MASK) && initial_data != nullptr));
+  D3D_CONTRACT_ASSERT(!((flg & TEXCF_LOADONCE) && (flg & (TEXCF_DYNAMIC | TEXCF_RTARGET))));
 
   if (flg & TEXCF_VARIABLE_RATE)
   {
     // Check rules for VRS textures
-    G_ASSERTF_RETURN(TEXFMT_R8UI == (flg & TEXFMT_MASK), false, "Variable Rate Textures can only use R8 UINT format");
-    G_ASSERTF_RETURN(0 == (flg & TEXCF_RTARGET), false, "Variable Rate Textures can not be used as render target");
-    G_ASSERTF_RETURN(0 == (flg & TEXCF_SAMPLECOUNT_MASK), false, "Variable Rate Textures can not be multisampled");
-    G_ASSERTF_RETURN(1 == array_size, false, "Variable Rate Textures can not be a arrayed texture");
-    G_ASSERTF_RETURN(false == cube, false, "Variable Rate Texture can not be a cube map");
-    G_ASSERTF_RETURN(1 == levels, false, "Variable Rate Texture can only have one mip level");
+    D3D_CONTRACT_ASSERTF_RETURN(TEXFMT_R8UI == (flg & TEXFMT_MASK), false, "Variable Rate Textures can only use R8 UINT format");
+    D3D_CONTRACT_ASSERTF_RETURN(0 == (flg & TEXCF_RTARGET), false, "Variable Rate Textures can not be used as render target");
+    D3D_CONTRACT_ASSERTF_RETURN(0 == (flg & TEXCF_SAMPLECOUNT_MASK), false, "Variable Rate Textures can not be multisampled");
+    D3D_CONTRACT_ASSERTF_RETURN(1 == array_size, false, "Variable Rate Textures can not be a arrayed texture");
+    D3D_CONTRACT_ASSERTF_RETURN(false == cube, false, "Variable Rate Texture can not be a cube map");
+    D3D_CONTRACT_ASSERTF_RETURN(1 == levels, false, "Variable Rate Texture can only have one mip level");
   }
 
   ImageInfo desc;
@@ -248,17 +267,12 @@ bool create_tex2d(BaseTex &tex, uint32_t w, uint32_t h, uint32_t levels, bool cu
 
   tex.realMipLevels = levels;
 
-  if (flg & TEXCF_SIMULTANEOUS_MULTI_QUEUE_USE)
-  {
-    G_ASSERTF_RETURN(0 != ((TEXCF_RTARGET | TEXCF_UNORDERED) & flg), false,
-      "Resource with TEXCF_SIMULTANIOUS_MULTI_QUEUE_USE can only be render targets "
-      "and/or uav textures");
-    G_ASSERTF_RETURN(!desc.format.isDepth() && !desc.format.isStencil(), false,
-      "Resource with TEXCF_SIMULTANIOUS_MULTI_QUEUE_USE can only be used with color "
-      "texture formats");
-
-    desc.usage |= D3D12_RESOURCE_FLAG_ALLOW_SIMULTANEOUS_ACCESS;
-  }
+#if _TARGET_SCARLETT
+  if (flg & TEXCF_TC_COMPATIBLE)
+    desc.usage |= RESOURCE_FLAG_FORCE_DCC_TEXTURE_COMPATIBILITY;
+  if (flg & TEXCF_RT_COMPRESSED)
+    desc.usage |= RESOURCE_FLAG_ALLOW_DCC;
+#endif
 
 #if _TARGET_XBOXONE
   if (flg & TEXCF_RTARGET) // Fast clear doesn't work, clears only a top half of a thick textures with incorrect values, or clears
@@ -276,40 +290,29 @@ bool create_tex2d(BaseTex &tex, uint32_t w, uint32_t h, uint32_t levels, bool cu
   }
   reinterpret_cast<uint32_t &>(desc.usage) |= (flg & TEXCF_UNORDERED) ? D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS : 0;
 
-  G_ASSERT(!(isDepth && (flg & TEXCF_READABLE)));
+  D3D_CONTRACT_ASSERT(!(isDepth && (flg & TEXCF_READABLE)));
 
 #if DX12_USE_ESRAM
   if (baseTexture)
   {
-    auto baseEsram = baseTexture->cflg & (TEXCF_ESRAM_ONLY | TEXCF_MOVABLE_ESRAM);
-    auto selfEsram = flg & (TEXCF_ESRAM_ONLY | TEXCF_MOVABLE_ESRAM);
+    auto baseEsram = baseTexture->cflg & TEXCF_ESRAM_ONLY;
+    auto selfEsram = flg & TEXCF_ESRAM_ONLY;
     if (baseEsram != (selfEsram & baseEsram))
     {
       logwarn("DX12: Alias texture has not matching ESRam flags to its base %08X != %08X", baseEsram, selfEsram);
     }
-    if (baseEsram & TEXCF_MOVABLE_ESRAM)
-    {
-      logwarn("DX12: Aliased ESRam texture uses TEXCF_MOVABLE_ESRAM which has issues");
-    }
     // when base texture is esram, than alias has to be also esram
-    flg = (flg & ~(TEXCF_ESRAM_ONLY | TEXCF_MOVABLE_ESRAM)) | baseEsram;
+    flg = (flg & ~TEXCF_ESRAM_ONLY) | baseEsram;
   }
-  if (flg & (TEXCF_ESRAM_ONLY | TEXCF_MOVABLE_ESRAM))
+  if (flg & TEXCF_ESRAM_ONLY)
   {
-    tex.image = device.createEsramBackedImage(desc, baseTexture ? baseTexture->image : nullptr, tex.getResName());
+    tex.image = device.createEsramBackedImage(desc, baseTexture ? baseTexture->image : nullptr, tex.getName());
   }
   if (!tex.image)
   {
 #endif
-    tex.image = device.createImage(desc, baseTexture ? baseTexture->image : nullptr, tex.getResName());
+    tex.image = create_image_from_desc(device, baseTexture, desc, tex.getName());
 #if DX12_USE_ESRAM
-  }
-  else if ((flg & TEXCF_MOVABLE_ESRAM) && tex.image->isEsramTexture())
-  {
-    EsramResource &resource = tex.image->getEsramResource();
-    // no support for aliasing, this causes lots of problems
-    resource.dramStorage = device.createImage(desc, nullptr, tex.getResName());
-    device.registerMovableESRAMTexture(tex.image);
   }
 #endif
   if (!tex.image)
@@ -323,7 +326,7 @@ bool create_tex2d(BaseTex &tex, uint32_t w, uint32_t h, uint32_t levels, bool cu
   if (flg & TEXCF_SYSMEM)
   {
     tex.stagingMemory = BaseTex::allocate_read_write_staging_memory(tex.image, tex.image->getSubresourceRange());
-    G_ASSERT(!isRT && !isDepth);
+    D3D_CONTRACT_ASSERT(!isRT && !isDepth);
   }
 
   if ((flg & (TEXCF_READABLE | TEXCF_SYSMEM)) == TEXCF_READABLE && !tex.stagingMemory)
@@ -335,7 +338,7 @@ bool create_tex2d(BaseTex &tex, uint32_t w, uint32_t h, uint32_t levels, bool cu
       return false;
   }
   else if (isRT)
-    clear_full_rt_resource_with_default_value(desc, tex.image);
+    clear_full_rt_resource_with_default_value(tex, desc);
   else if (flg & TEXCF_CLEAR_ON_CREATE)
   {
     if (isUav)
@@ -369,7 +372,7 @@ bool create_tex2d(BaseTex &tex, uint32_t w, uint32_t h, uint32_t levels, bool cu
         }
 
         BufferImageCopy copies[MAX_MIPMAPS];
-        memset(stage.pointer, 0, stage.range.size());
+        memset(stage.cpuPointer(), 0, stage.range.size());
         stage.flush();
         for (auto i : desc.arrays)
         {
@@ -385,7 +388,7 @@ bool create_tex2d(BaseTex &tex, uint32_t w, uint32_t h, uint32_t levels, bool cu
     }
   }
 
-  tex.memSize = tex.ressize();
+  tex.memSize = tex.getSize();
   tex.updateTexName();
   TEXQL_ON_ALLOC(&tex);
   return true;
@@ -397,9 +400,9 @@ bool create_tex3d(BaseTex &tex, uint32_t w, uint32_t h, uint32_t d, uint32_t flg
   auto &device = get_device();
   auto &ctx = device.getContext();
 
-  G_ASSERT((flg & TEXCF_SAMPLECOUNT_MASK) == 0);
-  G_ASSERT(!((flg & TEXCF_LOADONCE) && (flg & TEXCF_DYNAMIC)));
-  G_ASSERTF_RETURN(0 == (flg & TEXCF_VARIABLE_RATE), false, "Variable Rate Texture can not be a volumetric texture");
+  D3D_CONTRACT_ASSERT((flg & TEXCF_SAMPLECOUNT_MASK) == 0);
+  D3D_CONTRACT_ASSERT(!((flg & TEXCF_LOADONCE) && (flg & TEXCF_DYNAMIC)));
+  D3D_CONTRACT_ASSERTF_RETURN(0 == (flg & TEXCF_VARIABLE_RATE), false, "Variable Rate Texture can not be a volumetric texture");
 
   ImageInfo desc;
   desc.type = D3D12_RESOURCE_DIMENSION_TEXTURE3D;
@@ -423,18 +426,6 @@ bool create_tex3d(BaseTex &tex, uint32_t w, uint32_t h, uint32_t d, uint32_t flg
 
   tex.realMipLevels = levels;
 
-  if (flg & TEXCF_SIMULTANEOUS_MULTI_QUEUE_USE)
-  {
-    G_ASSERTF_RETURN(0 != ((TEXCF_RTARGET | TEXCF_UNORDERED) & flg), false,
-      "Resource with TEXCF_SIMULTANIOUS_MULTI_QUEUE_USE can only be render targets "
-      "and/or uav textures");
-    G_ASSERTF_RETURN(!desc.format.isDepth() && !desc.format.isStencil(), false,
-      "Resource with TEXCF_SIMULTANIOUS_MULTI_QUEUE_USE can only be used with color "
-      "texture formats");
-
-    desc.usage |= D3D12_RESOURCE_FLAG_ALLOW_SIMULTANEOUS_ACCESS;
-  }
-
   const bool isRT = flg & TEXCF_RTARGET;
   const bool isUav = flg & TEXCF_UNORDERED;
   if (flg & TEXCF_UNORDERED)
@@ -449,35 +440,24 @@ bool create_tex3d(BaseTex &tex, uint32_t w, uint32_t h, uint32_t d, uint32_t flg
 #if DX12_USE_ESRAM
   if (baseTexture)
   {
-    auto baseEsram = baseTexture->cflg & (TEXCF_ESRAM_ONLY | TEXCF_MOVABLE_ESRAM);
-    auto selfEsram = flg & (TEXCF_ESRAM_ONLY | TEXCF_MOVABLE_ESRAM);
+    auto baseEsram = baseTexture->cflg & TEXCF_ESRAM_ONLY;
+    auto selfEsram = flg & TEXCF_ESRAM_ONLY;
     if (baseEsram != (selfEsram & baseEsram))
     {
       logwarn("DX12: Alias texture has not matching ESRam flags to its base %08X != %08X", baseEsram, selfEsram);
     }
-    if (baseEsram & TEXCF_MOVABLE_ESRAM)
-    {
-      logwarn("DX12: Aliased ESRam texture uses TEXCF_MOVABLE_ESRAM which has issues");
-    }
     // when base texture is esram, than alias has to be also esram
-    flg = (flg & ~(TEXCF_ESRAM_ONLY | TEXCF_MOVABLE_ESRAM)) | baseEsram;
+    flg = (flg & ~TEXCF_ESRAM_ONLY) | baseEsram;
   }
-  if (flg & (TEXCF_ESRAM_ONLY | TEXCF_MOVABLE_ESRAM))
+  if (flg & TEXCF_ESRAM_ONLY)
   {
-    tex.image = device.createEsramBackedImage(desc, baseTexture ? baseTexture->image : nullptr, tex.getResName());
+    tex.image = device.createEsramBackedImage(desc, baseTexture ? baseTexture->image : nullptr, tex.getName());
   }
   if (!tex.image)
   {
 #endif
-    tex.image = device.createImage(desc, baseTexture ? baseTexture->image : nullptr, tex.getResName());
+    tex.image = create_image_from_desc(device, baseTexture, desc, tex.getName());
 #if DX12_USE_ESRAM
-  }
-  else if ((flg & TEXCF_MOVABLE_ESRAM) && tex.image->isEsramTexture())
-  {
-    EsramResource &resource = tex.image->getEsramResource();
-    // no support for aliasing, this causes lots of problems
-    resource.dramStorage = device.createImage(desc, nullptr, tex.getResName());
-    device.registerMovableESRAMTexture(tex.image);
   }
 #endif
   if (!tex.image)
@@ -492,7 +472,7 @@ bool create_tex3d(BaseTex &tex, uint32_t w, uint32_t h, uint32_t d, uint32_t flg
   else if (isRT)
   {
     // init render target to a known state
-    clear_full_rt_resource_with_default_value(desc, tex.image);
+    clear_full_rt_resource_with_default_value(tex, desc);
   }
   else if (flg & TEXCF_CLEAR_ON_CREATE)
   {
@@ -515,7 +495,7 @@ bool create_tex3d(BaseTex &tex, uint32_t w, uint32_t h, uint32_t d, uint32_t flg
         auto stage = device.allocateTemporaryUploadMemory(size, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
         if (stage)
         {
-          memset(stage.pointer, 0, size);
+          memset(stage.cpuPointer(), 0, size);
           stage.flush();
 
           BufferImageCopy copies[MAX_MIPMAPS];
@@ -534,7 +514,7 @@ bool create_tex3d(BaseTex &tex, uint32_t w, uint32_t h, uint32_t d, uint32_t flg
     }
   }
 
-  tex.memSize = tex.ressize();
+  tex.memSize = tex.getSize();
   tex.updateTexName();
   TEXQL_ON_ALLOC(&tex);
   return true;
@@ -544,41 +524,44 @@ bool create_tex3d(BaseTex &tex, uint32_t w, uint32_t h, uint32_t d, uint32_t flg
 ImageViewState BaseTex::getViewInfoUav(MipMapIndex mip, ArrayLayerIndex layer, bool as_uint) const
 {
   ImageViewState result;
-  if (resType == RES3D_TEX)
+  if (type == D3DResourceType::TEX)
   {
     result.isCubemap = 0;
     result.isArray = 0;
     result.setSingleArrayRange(ArrayLayerIndex::make(0));
-    G_ASSERTF(layer.index() == 0, "UAV view for layer/face %u requested, but texture was 2d and has no layers/faces", layer);
+    D3D_CONTRACT_ASSERTF(layer.index() == 0, "UAV view for layer/face %u requested, but texture was 2d and has no layers/faces",
+      layer);
   }
-  else if (resType == RES3D_CUBETEX)
+  else if (type == D3DResourceType::CUBETEX)
   {
     result.isCubemap = 1;
     result.isArray = 0;
     result.setArrayRange(getArrayCount().front(layer));
-    G_ASSERTF(layer < getArrayCount(),
+    D3D_CONTRACT_ASSERTF(layer < getArrayCount(),
       "UAV view for layer/face %u requested, but texture was cubemap and has only 6 "
       "faces",
       layer);
   }
-  else if (resType == RES3D_ARRTEX)
+  else if (type == D3DResourceType::ARRTEX)
   {
     result.isArray = 1;
     result.isCubemap = isArrayCube();
     result.setArrayRange(getArrayCount().front(layer));
-    G_ASSERTF(layer < getArrayCount(), "UAV view for layer/face %u requested, but texture has only %u layers", layer, getArrayCount());
+    D3D_CONTRACT_ASSERTF(layer < getArrayCount(), "UAV view for layer/face %u requested, but texture has only %u layers", layer,
+      getArrayCount());
   }
-  else if (resType == RES3D_VOLTEX)
+  else if (type == D3DResourceType::VOLTEX)
   {
     result.isArray = 0;
     result.isCubemap = 0;
     result.setDepthLayerRange(0, max<uint16_t>(1, depth >> mip.index()));
-    G_ASSERTF(layer.index() == 0, "UAV view for layer/face %u requested, but texture was 3d and has no layers/faces", layer);
+    D3D_CONTRACT_ASSERTF(layer.index() == 0, "UAV view for layer/face %u requested, but texture was 3d and has no layers/faces",
+      layer);
   }
   if (as_uint)
   {
-    G_ASSERT(getFormat().getBytesPerPixelBlock() == 4 ||
-             (getFormat().getBytesPerPixelBlock() == 8 && d3d::get_driver_desc().caps.hasShader64BitIntegerResources));
+    D3D_CONTRACT_ASSERT(getFormat().getBytesPerPixelBlock() == 4 ||
+                        (getFormat().getBytesPerPixelBlock() == 8 && d3d::get_driver_desc().caps.hasShader64BitIntegerResources));
     if (getFormat().getBytesPerPixelBlock() == 4)
       result.setFormat(FormatStore::fromCreateFlags(TEXFMT_R32UI));
     else if (getFormat().getBytesPerPixelBlock() == 8)
@@ -597,8 +580,8 @@ ImageViewState BaseTex::getViewInfoRenderTarget(MipMapIndex mip, ArrayLayerIndex
 {
   FormatStore format = isSrgbWriteAllowed() ? getFormat() : getFormat().getLinearVariant();
   ImageViewState result;
-  result.isArray = resType == RES3D_ARRTEX;
-  result.isCubemap = resType == RES3D_CUBETEX;
+  result.isArray = type == D3DResourceType::ARRTEX;
+  result.isCubemap = type == D3DResourceType::CUBETEX;
   result.setFormat(format);
   result.setSingleMipMapRange(mip);
 
@@ -608,7 +591,7 @@ ImageViewState BaseTex::getViewInfoRenderTarget(MipMapIndex mip, ArrayLayerIndex
   }
   else
   {
-    if (RES3D_VOLTEX == resType)
+    if (D3DResourceType::VOLTEX == type)
     {
       result.setDepthLayerRange(0, max<uint16_t>(1, depth >> mip.index()));
     }
@@ -634,8 +617,8 @@ ImageViewState BaseTex::getViewInfo() const
 {
   ImageViewState result;
   result.setFormat(isSrgbReadAllowed() ? getFormat() : getFormat().getLinearVariant());
-  result.isArray = resType == RES3D_ARRTEX ? 1 : 0;
-  result.isCubemap = resType == RES3D_CUBETEX ? 1 : (resType == RES3D_ARRTEX ? int(isArrayCube()) : 0);
+  result.isArray = type == D3DResourceType::ARRTEX ? 1 : 0;
+  result.isCubemap = type == D3DResourceType::CUBETEX ? 1 : (type == D3DResourceType::ARRTEX ? int(isArrayCube()) : 0);
   int32_t baseMip = clamp<int32_t>(maxMipLevel, 0, max(0, (int32_t)realMipLevels - 1));
   int32_t mipCount = (minMipLevel - maxMipLevel) + 1;
   if (mipCount <= 0 || baseMip + mipCount > realMipLevels)
@@ -678,7 +661,7 @@ Extent3D BaseTex::getMipmapExtent(uint32_t level) const
   Extent3D result;
   result.width = max(width >> level, 1);
   result.height = max(height >> level, 1);
-  result.depth = resType == RES3D_VOLTEX ? max(depth >> level, 1) : 1;
+  result.depth = type == D3DResourceType::VOLTEX ? max(depth >> level, 1) : 1;
   return result;
 }
 
@@ -689,17 +672,17 @@ void BaseTex::updateTexName()
     return;
   if (image)
   {
-    get_device().setTexName(image, getResName());
+    get_device().setTexName(image, getName());
   }
 }
 
 void BaseTex::setTexName(const char *name)
 {
-  setResName(name);
+  setName(name);
   updateTexName();
 }
 
-bool BaseTex::copyAllSubresourcesToStaging(void **pointer, uint32_t flags, uint32_t prev_flags)
+bool BaseTex::copyAllSubresourcesToStaging(void **pointer, uint32_t, uint32_t prev_flags)
 {
   if (!image)
     return false;
@@ -710,24 +693,11 @@ bool BaseTex::copyAllSubresourcesToStaging(void **pointer, uint32_t flags, uint3
 
   auto copies = calculate_texture_mips_copy_info(*image, mipLevels);
 
-  const DeviceQueueType readBackQueue =
-    (0 != (flags & TEXLOCK_NOSYSLOCK)) || is_swapchain_color_image(image) ? DeviceQueueType::GRAPHICS : DeviceQueueType::READ_BACK;
   auto &ctx = get_device().getContext();
 
-  // - It is required to copy full resource in case of TEXLOCK_COPY_STAGING
-  //   (because with TEXLOCK_COPY_STAGING we will upload full resource later)
-  // - It is also required with lockimg(nullptr, ...)
-  //   (in this case we mark resource with TEX_COPIED flag and we can rely on these copies)
-  // - Otherwise -- we can copy only locked mip
-  if (flags & TEXLOCK_COPY_STAGING)
-  {
-    waitProgress = ctx.readBackFromImage(stagingMemory, copies.data(), mipLevels, image, readBackQueue);
-    lockFlags = TEXLOCK_COPY_STAGING;
-    return true;
-  }
   if (prev_flags != TEX_COPIED)
   {
-    waitProgress = ctx.readBackFromImage(stagingMemory, copies.data(), mipLevels, image, readBackQueue);
+    waitProgress = ctx.readBackFromImage(stagingMemory, copies.data(), mipLevels, image);
   }
   else if (!pointer)
   {
@@ -735,7 +705,7 @@ bool BaseTex::copyAllSubresourcesToStaging(void **pointer, uint32_t flags, uint3
     if (waitProgress > get_device().getContext().getCompletedFenceProgress())
       logwarn("DX12: trying to resubmit readback, which has not yet finished, tex=%s", getTexName());
 #endif
-    waitProgress = ctx.readBackFromImage(stagingMemory, copies.data(), mipLevels, image, readBackQueue);
+    waitProgress = ctx.readBackFromImage(stagingMemory, copies.data(), mipLevels, image);
   }
   lockFlags = TEX_COPIED;
   return pointer == nullptr;
@@ -758,7 +728,7 @@ void BaseTex::fillLockedLevelInfo(int level, uint64_t offset)
   lockMsr.rowPitch = subResInfo.footprint.RowPitch;
   lockMsr.slicePitch = subResInfo.footprint.RowPitch * subResInfo.rowCount;
   lockMsr.memSize = lockMsr.slicePitch;
-  lockMsr.ptr = &stagingMemory.pointer[offset];
+  lockMsr.ptr = stagingMemory.cpuPointer() + offset;
 }
 
 HostDeviceSharedMemoryRegion BaseTex::allocate_read_write_staging_memory(const Image *image, const SubresourceRange &subresource_range)
@@ -785,6 +755,17 @@ void BaseTex::notifySrvChange()
     if (srvBindingStages[s].any())
     {
       dirty_srv(this, s, srvBindingStages[s]);
+    }
+  }
+}
+
+void BaseTex::dirtyBoundSamplersNoLock()
+{
+  for (uint32_t s = 0; s < STAGE_MAX_EXT; ++s)
+  {
+    if (srvBindingStages[s].any())
+    {
+      dirty_sampler_no_lock(this, s, srvBindingStages[s]);
     }
   }
 }
@@ -825,7 +806,7 @@ void BaseTex::setSrvBinding(uint32_t stage, uint32_t index, bool s)
 
 void BaseTex::setRtvBinding(uint32_t index, bool s)
 {
-  G_ASSERT(index < Driver3dRenderTarget::MAX_SIMRT);
+  D3D_CONTRACT_ASSERT(index < Driver3dRenderTarget::MAX_SIMRT);
   stateBitSet.set(active_binding_rtv_offset + index, s);
   stateBitSet.set(active_binding_was_used_offset);
 }
@@ -845,7 +826,9 @@ Bitset<Driver3dRenderTarget::MAX_SIMRT> BaseTex::getRtvBinding() const
 
 void BaseTex::setParams(int w, int h, int d, int levels, const char *stat_name)
 {
-  G_ASSERT(levels > 0);
+  D3D_CONTRACT_ASSERT(levels > 0);
+  D3D_CONTRACT_ASSERTF((1 << (levels - 1)) <= max(w, h),
+    "DX12: Mip levels are too high for texture size. Levels: %d, Size: %dx%d. Texture %s", levels, w, h, stat_name);
   fmt = FormatStore::fromCreateFlags(cflg);
   mipLevels = levels;
   width = w;
@@ -858,27 +841,26 @@ void BaseTex::setParams(int w, int h, int d, int levels, const char *stat_name)
 
 ArrayLayerCount BaseTex::getArrayCount() const
 {
-  if (resType == RES3D_CUBETEX)
+  if (type == D3DResourceType::CUBETEX)
   {
     return ArrayLayerCount::make(6);
   }
-  else if (resType == RES3D_ARRTEX)
+  else if (type == D3DResourceType::ARRTEX)
   {
     return ArrayLayerCount::make((isArrayCube() ? 6 : 1) * depth);
   }
   return ArrayLayerCount::make(1);
 }
 
-void BaseTex::setResApiName(const char *name) const
+void BaseTex::setApiName(const char *name) const
 {
-  G_UNUSED(name);
-#if DX12_DOES_SET_DEBUG_NAMES
-  wchar_t stringBuf[MAX_OBJECT_NAME_LENGTH];
-  DX12_SET_DEBUG_OBJ_NAME(image->getHandle(), lazyToWchar(name, stringBuf, MAX_OBJECT_NAME_LENGTH));
-#endif
+  if (image && image->getHandle())
+  {
+    get_device().nameResource(image->getHandle(), name);
+  }
 }
 
-BaseTex::BaseTex(int res_type, uint32_t cflg_) : cflg{cflg_}, resType{res_type}, depth{1}, minMipLevel{20}
+BaseTex::BaseTex(D3DResourceType type, uint32_t cflg) : cflg{cflg}, type{type}, depth{1}, minMipLevel{20}
 {
   creationFenceProgress = get_device().getContext().getRecordingFenceProgress();
 
@@ -890,7 +872,7 @@ BaseTex::BaseTex(int res_type, uint32_t cflg_) : cflg{cflg_}, resType{res_type},
   samplerState.setMip(D3D12_FILTER_TYPE_LINEAR);
   samplerState.setFilter(D3D12_FILTER_TYPE_LINEAR);
 
-  if (RES3D_CUBETEX == resType)
+  if (D3DResourceType::CUBETEX == type)
   {
     samplerState.setV(D3D12_TEXTURE_ADDRESS_MODE_CLAMP);
     samplerState.setU(D3D12_TEXTURE_ADDRESS_MODE_CLAMP);
@@ -899,15 +881,22 @@ BaseTex::BaseTex(int res_type, uint32_t cflg_) : cflg{cflg_}, resType{res_type},
 
 void BaseTex::resolve(Image *dst) { get_device().getContext().resolveMultiSampleImage(image, dst); }
 
-BaseTexture *BaseTex::makeTmpTexResCopy(int w, int h, int d, int l, bool staging_tex)
+bool BaseTex::updateTexResFormat(unsigned d3d_format)
+{
+  if (!isStub())
+    return cflg == implant_d3dformat(cflg, d3d_format);
+  cflg = implant_d3dformat(cflg, d3d_format);
+  fmt = FormatStore::fromCreateFlags(cflg);
+  return true;
+}
+BaseTexture *BaseTex::makeTmpTexResCopy(int w, int h, int d, int l)
 {
   STORE_RETURN_ADDRESS();
-  if (resType != RES3D_ARRTEX && resType != RES3D_VOLTEX && resType != RES3D_CUBEARRTEX)
+  if (type != D3DResourceType::ARRTEX && type != D3DResourceType::VOLTEX && type != D3DResourceType::CUBEARRTEX)
     d = 1;
-  BaseTex *clonedTex = get_device().newTextureObject(resType, cflg | (staging_tex ? TEXCF_SYSMEM : 0));
-  if (!staging_tex)
-    clonedTex->tidXored = tidXored, clonedTex->stubTexIdx = stubTexIdx;
-  clonedTex->setParams(w, h, d, l, String::mk_str_cat(staging_tex ? "stg:" : "tmp:", getTexName()));
+  BaseTex *clonedTex = get_device().newTextureObject(type, cflg);
+  clonedTex->tidXored = tidXored, clonedTex->stubTexIdx = stubTexIdx;
+  clonedTex->setParams(w, h, d, l, String::mk_str_cat("tmp:", getTexName()));
   clonedTex->setIsPreallocBeforeLoad(true);
   if (!clonedTex->allocateTex())
     del_d3dres(clonedTex);
@@ -924,7 +913,6 @@ void BaseTex::replaceTexResObject(BaseTexture *&other_tex)
     OSSpinlockScopedLock resourceBindingLock(get_resource_binding_guard());
 
     BaseTex *other = getbasetex(other_tex);
-    const bool isStubUsed = isStub() || other->isStub();
 
     G_ASSERT_RETURN(other, );
 
@@ -941,12 +929,16 @@ void BaseTex::replaceTexResObject(BaseTexture *&other_tex)
     eastl::swap(mipLevels, other->mipLevels);
     eastl::swap(minMipLevel, other->minMipLevel);
     eastl::swap(maxMipLevel, other->maxMipLevel);
+    eastl::swap(samplerState, other->samplerState);
+    dirtyBoundSamplersNoLock();
+    dirtyBoundSrvsNoLock();
 
 #if DAGOR_DBGLEVEL > 0
     other->setWasUsed();
 #endif
+    STORE_RETURN_ADDRESS();
 
-    get_device().updateTextureBindlessReferencesNoLock(this, other->image, isStubUsed);
+    get_device().updateTextureBindlessReferencesNoLock(this, other->image);
   }
   del_d3dres(other_tex);
 }
@@ -954,10 +946,10 @@ void BaseTex::replaceTexResObject(BaseTexture *&other_tex)
 BaseTexture *BaseTex::downSize(int new_width, int new_height, int new_depth, int new_mips, unsigned start_src_level,
   unsigned level_offset)
 {
-  auto rep = makeTmpTexResCopy(new_width, new_height, new_depth, new_mips, false);
+  auto rep = makeTmpTexResCopy(new_width, new_height, new_depth, new_mips);
   if (!rep)
   {
-    D3D_ERROR("DX12: Failed to create temporary texture for downSize for texture %p <%s>", this, getResName());
+    D3D_ERROR("DX12: Failed to create temporary texture for downSize for texture %p <%s>", this, getName());
     return nullptr;
   }
 
@@ -982,10 +974,10 @@ BaseTexture *BaseTex::downSize(int new_width, int new_height, int new_depth, int
 BaseTexture *BaseTex::upSize(int new_width, int new_height, int new_depth, int new_mips, unsigned start_src_level,
   unsigned level_offset)
 {
-  auto rep = makeTmpTexResCopy(new_width, new_height, new_depth, new_mips, false);
+  auto rep = makeTmpTexResCopy(new_width, new_height, new_depth, new_mips);
   if (!rep)
   {
-    D3D_ERROR("DX12: Failed to create temporary texture for upSize for texture %p <%s>", this, getResName());
+    D3D_ERROR("DX12: Failed to create temporary texture for upSize for texture %p <%s>", this, getName());
     return nullptr;
   }
 
@@ -1012,13 +1004,17 @@ bool BaseTex::allocateTex()
   if (image)
     return true;
   STORE_RETURN_ADDRESS();
-  switch (resType)
+  switch (type)
   {
-    case RES3D_VOLTEX: return create_tex3d(*this, width, height, depth, cflg, mipLevels, nullptr);
-    case RES3D_TEX:
-    case RES3D_CUBETEX: return create_tex2d(*this, width, height, mipLevels, resType == RES3D_CUBETEX, nullptr, 1);
-    case RES3D_CUBEARRTEX:
-    case RES3D_ARRTEX: return create_tex2d(*this, width, height, mipLevels, resType == RES3D_CUBEARRTEX, nullptr, depth);
+    case D3DResourceType::TEX:
+    case D3DResourceType::CUBETEX: return create_tex2d(*this, width, height, mipLevels, type == D3DResourceType::CUBETEX, nullptr, 1);
+
+    case D3DResourceType::VOLTEX: return create_tex3d(*this, width, height, depth, cflg, mipLevels, nullptr);
+
+    case D3DResourceType::ARRTEX:
+    case D3DResourceType::CUBEARRTEX:
+      return create_tex2d(*this, width, height, mipLevels, type == D3DResourceType::CUBEARRTEX, nullptr, depth);
+    case D3DResourceType::SBUF: return false;
   }
   return false;
 }
@@ -1037,34 +1033,42 @@ bool BaseTex::swapTextureNoLock(Image *expected, Image *replacement)
 
 void BaseTex::discardTex()
 {
-  G_ASSERTF(!isLockedNoCopy(), "DX12: discard for locked texture %p <%s>, lockFlags=%" PRIu32, this, getResName(), lockFlags);
+  STORE_RETURN_ADDRESS();
+  D3D_CONTRACT_ASSERTF(!isLockedNoCopy(), "DX12: discard for locked texture %p <%s>, lockFlags=%" PRIu32, this, getName(), lockFlags);
   if (stubTexIdx >= 0)
   {
-    get_device().getContext().resetBindlessReferences(this);
+    const auto oldImage = image;
     release();
     recreate();
+    if (usedInBindless.test(dag::mo::relaxed) && image != oldImage)
+    {
+      ScopedCommitLock ctxLock{get_device().getContext()};
+      OSSpinlockScopedLock resourceBindingLock(get_resource_binding_guard());
+      STORE_RETURN_ADDRESS();
+      get_device().updateTextureBindlessReferencesNoLock(this, oldImage);
+    }
   }
 }
 
 bool BaseTex::recreate()
 {
   STORE_RETURN_ADDRESS();
-  G_ASSERTF(!isLockedNoCopy(), "DX12: recreate for locked texture %p <%s>, lockFlags=%" PRIu32, this, getResName(), lockFlags);
-  if (RES3D_TEX == resType)
+  G_ASSERTF(!isLockedNoCopy(), "DX12: recreate for locked texture %p <%s>, lockFlags=%" PRIu32, this, getName(), lockFlags);
+  if (D3DResourceType::TEX == type)
   {
     if (cflg & (TEXCF_RTARGET | TEXCF_DYNAMIC))
     {
-      VERBOSE_DEBUG("<%s> recreate %dx%d (%s)", getResName(), width, height, "rt|dyn");
+      VERBOSE_DEBUG("<%s> recreate %dx%d (%s)", getName(), width, height, "rt|dyn");
       return create_tex2d(*this, width, height, mipLevels, false, NULL, 1);
     }
 
     if (!isPreallocBeforeLoad())
     {
-      VERBOSE_DEBUG("<%s> recreate %dx%d (%s)", getResName(), width, height, "empty");
+      VERBOSE_DEBUG("<%s> recreate %dx%d (%s)", getName(), width, height, "empty");
       return create_tex2d(*this, width, height, mipLevels, false, NULL, 1);
     }
 
-    VERBOSE_DEBUG("<%s> recreate %dx%d (%s)", getResName(), 4, 4, "placeholder");
+    VERBOSE_DEBUG("<%s> recreate %dx%d (%s)", getName(), 4, 4, "placeholder");
     if (stubTexIdx >= 0)
     {
       auto stubTex = getStubTex();
@@ -1075,21 +1079,21 @@ bool BaseTex::recreate()
     return create_tex2d(*this, 4, 4, 1, false, NULL, 1);
   }
 
-  if (RES3D_CUBETEX == resType)
+  if (D3DResourceType::CUBETEX == type)
   {
     if (cflg & (TEXCF_RTARGET | TEXCF_DYNAMIC))
     {
-      VERBOSE_DEBUG("<%s> recreate %dx%d (%s)", getResName(), width, height, "rt|dyn");
+      VERBOSE_DEBUG("<%s> recreate %dx%d (%s)", getName(), width, height, "rt|dyn");
       return create_tex2d(*this, width, height, mipLevels, true, NULL, 1);
     }
 
     if (!isPreallocBeforeLoad())
     {
-      VERBOSE_DEBUG("<%s> recreate %dx%d (%s)", getResName(), width, height, "empty");
+      VERBOSE_DEBUG("<%s> recreate %dx%d (%s)", getName(), width, height, "empty");
       return create_tex2d(*this, width, height, mipLevels, true, NULL, 1);
     }
 
-    VERBOSE_DEBUG("<%s> recreate %dx%d (%s)", getResName(), 4, 4, "placeholder");
+    VERBOSE_DEBUG("<%s> recreate %dx%d (%s)", getName(), 4, 4, "placeholder");
     if (stubTexIdx >= 0)
     {
       auto stubTex = getStubTex();
@@ -1100,21 +1104,21 @@ bool BaseTex::recreate()
     return create_tex2d(*this, 4, 4, 1, true, NULL, 1);
   }
 
-  if (RES3D_VOLTEX == resType)
+  if (D3DResourceType::VOLTEX == type)
   {
     if (cflg & (TEXCF_RTARGET | TEXCF_DYNAMIC))
     {
-      VERBOSE_DEBUG("<%s> recreate %dx%dx%d (%s)", getResName(), width, height, depth, "rt|dyn");
+      VERBOSE_DEBUG("<%s> recreate %dx%dx%d (%s)", getName(), width, height, depth, "rt|dyn");
       return create_tex3d(*this, width, height, depth, cflg, mipLevels, NULL);
     }
 
     if (!isPreallocBeforeLoad())
     {
-      VERBOSE_DEBUG("<%s> recreate %dx%dx%d (%s)", getResName(), width, height, depth, "empty");
+      VERBOSE_DEBUG("<%s> recreate %dx%dx%d (%s)", getName(), width, height, depth, "empty");
       return create_tex3d(*this, width, height, depth, cflg, mipLevels, NULL);
     }
 
-    VERBOSE_DEBUG("<%s> recreate %dx%d (%s)", getResName(), 4, 4, "placeholder");
+    VERBOSE_DEBUG("<%s> recreate %dx%d (%s)", getName(), 4, 4, "placeholder");
     if (stubTexIdx >= 0)
     {
       auto stubTex = getStubTex();
@@ -1125,9 +1129,9 @@ bool BaseTex::recreate()
     return create_tex3d(*this, 4, 4, 1, cflg, 1, NULL);
   }
 
-  if (RES3D_ARRTEX == resType)
+  if (D3DResourceType::ARRTEX == type)
   {
-    VERBOSE_DEBUG("<%s> recreate %dx%dx%d (%s)", getResName(), width, height, depth, "rt|dyn");
+    VERBOSE_DEBUG("<%s> recreate %dx%dx%d (%s)", getName(), width, height, depth, "rt|dyn");
     return create_tex2d(*this, width, height, mipLevels, isArrayCube(), NULL, depth);
   }
 
@@ -1206,35 +1210,36 @@ int BaseTex::update(BaseTexture *src)
 {
   if (!can_be_copy_updated(cflg))
   {
-    D3D_ERROR("DX12: used update method on texture <%s> that does not support it, the texture needs either TEXCF_UPDATE_DESTINATION, "
-              "TEXCF_RTARGET or TEXCF_UNORDERED create flags specified",
-      getResName());
+    D3D_CONTRACT_ERROR(
+      "DX12: used update method on texture <%s> that does not support it, the texture needs either TEXCF_UPDATE_DESTINATION, "
+      "TEXCF_RTARGET or TEXCF_UNORDERED create flags specified",
+      getName());
     return 0;
   }
   BaseTex *sTex = getbasetex(src);
   if (!sTex)
   {
-    D3D_ERROR("DX12: BaseTex::update for <%s> called with null as source", getTexName());
-    G_ASSERTF_RETURN(false, 0, "DX12: Error in BaseTex::update, see error log for details");
+    D3D_CONTRACT_ERROR("DX12: BaseTex::update for <%s> called with null as source", getTexName());
+    D3D_CONTRACT_ASSERT_FAIL_RETURN(0, "DX12: Error in BaseTex::update, see error log for details");
   }
 
   if (isStub())
   {
-    D3D_ERROR("DX12: BaseTex::update for <%s> is in stub state: stubTexIdx=%d", getTexName(), stubTexIdx);
-    G_ASSERTF_RETURN(false, 0, "DX12: Error in BaseTex::update, see error log for details");
+    D3D_CONTRACT_ERROR("DX12: BaseTex::update for <%s> is in stub state: stubTexIdx=%d", getTexName(), stubTexIdx);
+    D3D_CONTRACT_ASSERT_FAIL_RETURN(0, "DX12: Error in BaseTex::update, see error log for details");
   }
 
   if (sTex->isStub())
   {
-    D3D_ERROR("DX12: BaseTex::update for <%s>, source <%s> is in stub state: stubTexIdx=%d", getTexName(), sTex->getTexName(),
+    D3D_CONTRACT_ERROR("DX12: BaseTex::update for <%s>, source <%s> is in stub state: stubTexIdx=%d", getTexName(), sTex->getTexName(),
       sTex->stubTexIdx);
-    G_ASSERTF_RETURN(false, 0, "DX12: Error in BaseTex::update, see error log for details");
+    D3D_CONTRACT_ASSERT_FAIL_RETURN(0, "DX12: Error in BaseTex::update, see error log for details");
   }
 
-  if ((RES3D_TEX != resType) && (RES3D_CUBETEX != resType) && (RES3D_VOLTEX != resType))
+  if ((D3DResourceType::TEX != type) && (D3DResourceType::CUBETEX != type) && (D3DResourceType::VOLTEX != type))
   {
-    D3D_ERROR("DX12: BaseTex::update for <%s> with invalid resType %u", getTexName(), resType);
-    G_ASSERTF_RETURN(false, 0, "DX12: Error in BaseTex::update, see error log for details");
+    D3D_CONTRACT_ERROR("DX12: BaseTex::update for <%s> with invalid resource type %u", getTexName(), eastl::to_underlying(type));
+    D3D_CONTRACT_ASSERT_FAIL_RETURN(0, "DX12: Error in BaseTex::update, see error log for details");
   }
 
   auto srcImage = sTex->image;
@@ -1242,25 +1247,24 @@ int BaseTex::update(BaseTexture *src)
 
   if (!srcImage || !dstImage)
   {
-    D3D_ERROR("DX12: BaseTex::update for <%s> and <%s> at least one of the image objects (%p, %p) was "
-              "null",
-      getTexName(), sTex->getTexName(), dstImage, srcImage);
-    G_ASSERTF_RETURN(false, 0, "DX12: Error in BaseTex::update, see error log for details");
+    D3D_CONTRACT_ERROR("DX12: BaseTex::update for <%s> and <%s> at least one of the image objects (%p, %p) was null", getTexName(),
+      sTex->getTexName(), dstImage, srcImage);
+    D3D_CONTRACT_ASSERT_FAIL_RETURN(0, "DX12: Error in BaseTex::update, see error log for details");
   }
 
   if (srcImage->getMipLevelRange() != dstImage->getMipLevelRange())
   {
-    D3D_ERROR("DX12: BaseTex::update source <%s> mipmaps %u does not match dest <%s> mipmaps %u", sTex->getTexName(),
+    D3D_CONTRACT_ERROR("DX12: BaseTex::update source <%s> mipmaps %u does not match dest <%s> mipmaps %u", sTex->getTexName(),
       srcImage->getMipLevelRange(), getTexName(), dstImage->getMipLevelRange());
-    G_ASSERTF_RETURN(false, 0, "DX12: Error in BaseTex::update, see error log for details");
+    D3D_CONTRACT_ASSERT_FAIL_RETURN(0, "DX12: Error in BaseTex::update, see error log for details");
   }
 
   if (srcImage->getArrayLayers() != dstImage->getArrayLayers())
   {
-    D3D_ERROR("DX12: BaseTex::update source <%s> array layers %u does not match dst <%s> "
-              "array layers %u",
+    D3D_CONTRACT_ERROR("DX12: BaseTex::update source <%s> array layers %u does not match dst <%s> "
+                       "array layers %u",
       sTex->getTexName(), srcImage->getArrayLayers(), getTexName(), dstImage->getArrayLayers());
-    G_ASSERTF_RETURN(false, 0, "DX12: Error in BaseTex::update, see error log for details");
+    D3D_CONTRACT_ASSERT_FAIL_RETURN(0, "DX12: Error in BaseTex::update, see error log for details");
   }
 
   const auto srcFmt = srcImage->getFormat();
@@ -1285,10 +1289,10 @@ int BaseTex::update(BaseTexture *src)
 
   if (sExt != dExt)
   {
-    D3D_ERROR("DX12: BaseTex::update source <%s> extent %u %u %u does not match dest <%s> extent %u "
-              "%u %u",
+    D3D_CONTRACT_ERROR("DX12: BaseTex::update source <%s> extent %u %u %u does not match dest <%s> extent %u "
+                       "%u %u",
       sTex->getTexName(), sExt.width, sExt.height, sExt.depth, getTexName(), dExt.width, dExt.height, dExt.depth);
-    G_ASSERTF_RETURN(false, 0, "DX12: Error in BaseTex::update, see error log for details");
+    D3D_CONTRACT_ASSERT_FAIL_RETURN(0, "DX12: Error in BaseTex::update, see error log for details");
   }
 
 #if DAGOR_DBGLEVEL > 0
@@ -1313,15 +1317,15 @@ int BaseTex::updateSubRegion(BaseTexture *src, int src_subres_idx, int src_x, in
 {
   if (!can_be_copy_updated(cflg))
   {
-    D3D_ERROR("DX12: used updateSubRegion method on texture <%s> that does not support it, the texture needs either "
-              "TEXCF_UPDATE_DESTINATION, TEXCF_RTARGET or TEXCF_UNORDERED create flags specified",
-      getResName());
+    D3D_CONTRACT_ERROR("DX12: used updateSubRegion method on texture <%s> that does not support it, the texture needs either "
+                       "TEXCF_UPDATE_DESTINATION, TEXCF_RTARGET or TEXCF_UNORDERED create flags specified",
+      getName());
     return 0;
   }
   STORE_RETURN_ADDRESS();
   if (isStub())
   {
-    D3D_ERROR("updateSubRegion() called for tex=<%s> in stub state: stubTexIdx=%d", getTexName(), stubTexIdx);
+    D3D_CONTRACT_ERROR("updateSubRegion() called for tex=<%s> in stub state: stubTexIdx=%d", getTexName(), stubTexIdx);
     return 0;
   }
 
@@ -1332,12 +1336,13 @@ int BaseTex::updateSubRegion(BaseTexture *src, int src_subres_idx, int src_x, in
 
   if (stex->isStub())
   {
-
-    D3D_ERROR("DX12: updateSubRegion() called with src tex=<%s> in stub state: stubTexIdx=%d", src->getTexName(), stex->stubTexIdx);
+    D3D_CONTRACT_ERROR("DX12: updateSubRegion() called with src tex=<%s> in stub state: stubTexIdx=%d", src->getTexName(),
+      stex->stubTexIdx);
     return 0;
   }
 
-  if ((RES3D_TEX != resType) && (RES3D_CUBETEX != resType) && (RES3D_VOLTEX != resType) && (RES3D_ARRTEX != resType))
+  if ((D3DResourceType::TEX != type) && (D3DResourceType::CUBETEX != type) && (D3DResourceType::VOLTEX != type) &&
+      (D3DResourceType::ARRTEX != type))
     return 0;
 
   if (stex->image == nullptr || image == nullptr)
@@ -1405,17 +1410,18 @@ int BaseTex::updateSubRegion(BaseTexture *src, int src_subres_idx, int src_x, in
 
 void BaseTex::destroy()
 {
-  G_ASSERTF(!isLockedNoCopy(), "DX12: destroy called on locked texture %p <%s>, lockFlags=%" PRIu32, this, getResName(), lockFlags);
+  D3D_CONTRACT_ASSERTF(!isLockedNoCopy(), "DX12: destroy called on locked texture %p <%s>, lockFlags=%" PRIu32, this, getName(),
+    lockFlags);
 #if DAGOR_DBGLEVEL > 1
   if (!wasUsed())
     logwarn("texture %p, of size %dx%dx%d total=%dbytes, name=%s was destroyed but was never used "
             "in rendering",
-      this, width, height, depth, memSize, getResName());
+      this, width, height, depth, memSize, getName());
 #elif DAGOR_DBGLEVEL > 0
   if (!wasUsed())
     logdbg("texture %p, of size %dx%dx%d total=%dbytes, name=%s was destroyed but was never used in "
            "rendering",
-      this, width, height, depth, memSize, getResName());
+      this, width, height, depth, memSize, getName());
 #endif
   destroyObject();
 }
@@ -1440,7 +1446,8 @@ bool BaseTex::setReloadCallback(IReloadData *_rld)
 
 void BaseTex::reset()
 {
-  G_ASSERTF(!isLockedNoCopy(), "DX12: reset called on locked texture %p <%s>, lockFlags=%" PRIu32, this, getResName(), lockFlags);
+  D3D_CONTRACT_ASSERTF(!isLockedNoCopy(), "DX12: reset called on locked texture %p <%s>, lockFlags=%" PRIu32, this, getName(),
+    lockFlags);
   sampler.ptr = 0;
   if (!isStub() && image)
     TEXQL_ON_RELEASE(this);
@@ -1451,7 +1458,8 @@ void BaseTex::reset()
 
 void BaseTex::release()
 {
-  G_ASSERTF(!isLockedNoCopy(), "DX12: release called on locked texture %p <%s>, lockFlags=%" PRIu32, this, getResName(), lockFlags);
+  D3D_CONTRACT_ASSERTF(!isLockedNoCopy(), "DX12: release called on locked texture %p <%s>, lockFlags=%" PRIu32, this, getName(),
+    lockFlags);
   STORE_RETURN_ADDRESS();
   notify_delete(this, srvBindingStages, uavBindingStages, getRtvBinding(), getDsvBinding());
   sampler.ptr = 0;
@@ -1481,7 +1489,7 @@ void BaseTex::releaseMemory(uint64_t progress)
 
   if (image)
   {
-    ctx.destroyImage(image);
+    ctx.destroyImage(image, isRenderTarget());
     image = nullptr;
   }
 }
@@ -1530,9 +1538,16 @@ void BaseTex::lockimgXboxLinearLayout(void **pointer, int &stride, int level, in
 int BaseTex::lockimg(void **pointer, int &stride, int level, unsigned flags)
 {
   STORE_RETURN_ADDRESS();
-  G_ASSERT_RETURN_AND_LOG(RES3D_TEX == resType, 0, "DX12: lockimg called on non 2D texture %p <%s>", this, getResName());
+  G_ASSERT_RETURN_AND_LOG(D3DResourceType::TEX == type, 0, "DX12: lockimg called on non 2D texture %p <%s>", this, getName());
   G_ASSERT_RETURN_AND_LOG(!((cflg & TEXCF_RTARGET) && (flags & TEXLOCK_WRITE)), 0, "DX12: can't lock RT texture %p <%s> for write",
-    this, getResName());
+    this, getName());
+  if (get_device().isInErrorState())
+  {
+    D3D_ERROR("DX12: failed to lockimg %p <%s>, because device is in error state", this, getName());
+    if (pointer != nullptr)
+      *pointer = nullptr;
+    return 0;
+  }
 
 #if _TARGET_XBOX
   if (cflg & TEXCF_LINEAR_LAYOUT)
@@ -1544,22 +1559,22 @@ int BaseTex::lockimg(void **pointer, int &stride, int level, unsigned flags)
 
   if (!image && (flags & TEXLOCK_WRITE) && !(flags & TEXLOCK_READ) && !create_tex2d(*this, width, height, mipLevels, false, nullptr))
   {
-    D3D_ERROR("DX12: failed to auto-create tex2D on lockImg for texture %p <%s>", this, getResName());
+    D3D_ERROR("DX12: failed to auto-create tex2D on lockImg for texture %p <%s>", this, getName());
     return 0;
   }
 
   stride = 0;
 
   uint32_t prevFlags = lockFlags;
-  if (cflg & (TEXCF_RTARGET | TEXCF_UNORDERED) || (flags & TEXLOCK_COPY_STAGING))
+  if (cflg & (TEXCF_RTARGET | TEXCF_UNORDERED))
   {
 #if DAGOR_DBGLEVEL > 0
     setWasUsed();
 #endif
     lockFlags = 0;
-    if ((getFormat().isDepth()) && !(flags & TEXLOCK_COPY_STAGING))
+    if (getFormat().isDepth())
     {
-      D3D_ERROR("DX12: can't lock depth format for texture %p <%s>", this, getResName());
+      D3D_CONTRACT_ERROR("DX12: can't lock depth format for texture %p <%s>", this, getName());
       return 0;
     }
 
@@ -1575,21 +1590,21 @@ int BaseTex::lockimg(void **pointer, int &stride, int level, unsigned flags)
       *pointer = nullptr;
     else if (flags & TEXLOCK_RWMASK)
     {
-      D3D_ERROR("DX12: nullptr in lockimg for texture %p <%s>", this, getResName());
+      D3D_CONTRACT_ERROR("DX12: nullptr in lockimg for texture %p <%s>", this, getName());
       return 0;
     }
   }
 
   if (flags & TEXLOCK_RWMASK)
   {
-    G_ASSERT_RETURN(image, 0);
+    D3D_CONTRACT_ASSERT_RETURN(image, 0);
     lockedSubRes = calculate_subresource_index(level, 0, 0, mipLevels, 1);
 
     const uint64_t offset = prepareReadWriteStagingMemoryAndGetOffset(flags);
 
     if (!stagingMemory)
     {
-      D3D_ERROR("DX12: failed to allocate staging memory on lockimg for texture %p <%s>", this, getResName());
+      D3D_ERROR("DX12: failed to allocate staging memory on lockimg for texture %p <%s>", this, getName());
       return 0;
     }
 
@@ -1613,6 +1628,7 @@ int BaseTex::lockimg(void **pointer, int &stride, int level, unsigned flags)
       {
         waitAndResetProgress();
       }
+      stagingMemory.invalidate();
     }
 
     *pointer = lockMsr.ptr;
@@ -1629,7 +1645,7 @@ uint64_t BaseTex::prepareReadWriteStagingMemoryAndGetOffset(uint32_t flags)
 {
   if (flags & TEXLOCK_DISCARD)
   {
-    G_ASSERT(image);
+    D3D_CONTRACT_ASSERT(image);
     if (stagingMemory)
       free_and_reset_staging_memory(stagingMemory);
     auto size = calculate_texture_staging_buffer_size(*image, SubresourceRange::make(lockedSubRes, 1)); // -V522 12 line above image
@@ -1648,9 +1664,10 @@ uint64_t BaseTex::prepareReadWriteStagingMemoryAndGetOffset(uint32_t flags)
 int BaseTex::unlockimg()
 {
   STORE_RETURN_ADDRESS();
-  G_ASSERT_RETURN_AND_LOG(RES3D_TEX == resType || RES3D_CUBETEX == resType, 0,
-    "DX12: unlockimg called on non 2D or cube texture  %p <%s>", this, getResName());
-  G_ASSERT_RETURN_AND_LOG(isLocked(), 0, "DX12: unlockimg called without lockimg for texture %p <%s>", this, getResName());
+  G_ASSERT_RETURN_AND_LOG(D3DResourceType::TEX == type || D3DResourceType::CUBETEX == type || D3DResourceType::ARRTEX == type ||
+                            D3DResourceType::CUBEARRTEX == type,
+    0, "DX12: unlockimg called on non 2D, cube or arr texture %p <%s>", this, getName());
+  G_ASSERT_RETURN_AND_LOG(isLocked(), 0, "DX12: unlockimg called without lockimg for texture %p <%s>", this, getName());
   auto &ctx = get_device().getContext();
 #if _TARGET_XBOX
   if (cflg & TEXCF_LINEAR_LAYOUT)
@@ -1661,7 +1678,7 @@ int BaseTex::unlockimg()
   }
 #endif
 
-  if (RES3D_TEX == resType)
+  if (D3DResourceType::TEX == type)
   {
     unlockimgRes3d();
     return 1;
@@ -1690,16 +1707,6 @@ void BaseTex::unlockimgRes3d()
 {
   auto &ctx = get_device().getContext();
 
-  // only ever used when texture is RTV or UAV and staging is assumed to be fully written
-  if (lockFlags == TEXLOCK_COPY_STAGING && image != nullptr)
-  {
-    stagingMemory.flush();
-    TextureMipsCopyInfo copies = calculate_texture_mips_copy_info(*image, mipLevels);
-    DX12_UPLOAD_TO_IMAGE_AND_CHECK_DEST(get_device().getContext(), "BaseTex::unlockimgRes3d, TEXLOCK_COPY_STAGING", *this,
-      copies.data(), mipLevels, stagingMemory, DeviceQueueType::UPLOAD, false);
-    return;
-  }
-
   if ((cflg & (TEXCF_RTARGET | TEXCF_UNORDERED)) && (lockFlags == TEX_COPIED))
     return;
 
@@ -1719,7 +1726,7 @@ void BaseTex::unlockimgRes3d()
       lockedSubRes);
     for (int y = 0; y < h; y++, dest += rpitch)
       memcpy(dest, src + y * lockMsr.rowPitch, rpitch);
-    VERBOSE_DEBUG("%s %dx%d updated DDSx for TEXCF_SYSTEXCOPY", getResName(), hdr->w, hdr->h, data_size(texCopy));
+    VERBOSE_DEBUG("%s %dx%d updated DDSx for TEXCF_SYSTEXCOPY", getName(), hdr->w, hdr->h, data_size(texCopy));
   }
 
   if (stagingMemory && image)
@@ -1735,11 +1742,11 @@ void BaseTex::unlockimgRes3d()
 
       free_and_reset_staging_memory(stagingMemory);
     }
-    else if ((lockFlags & TEXLOCK_DONOTUPDATEON9EXBYDEFAULT) != 0)
+    else if ((lockFlags & TEXLOCK_DONOTUPDATE) != 0)
       stateBitSet.set(unlock_image_is_upload_skipped, true);
-    else if ((lockFlags & (TEXLOCK_RWMASK | TEXLOCK_UPDATEFROMSYSTEX)) != 0 && !(cflg & TEXCF_RTARGET))
+    else if ((lockFlags & TEXLOCK_RWMASK) != 0 && !(cflg & TEXCF_RTARGET))
     {
-      // Sometimes we use TEXLOCK_DONOTUPDATEON9EXBYDEFAULT flag and don't copy locked subresource on unlock.
+      // Sometimes we use TEXLOCK_DONOTUPDATE flag and don't copy locked subresource on unlock.
       // Copy all mips is required after that action.
       stagingMemory.flush();
       auto copies = calculate_texture_mips_copy_info(*image, mipLevels);
@@ -1765,11 +1772,12 @@ void BaseTex::unlockimgRes3d()
 int BaseTex::lockimg(void **pointer, int &stride, int face, int level, unsigned flags)
 {
   STORE_RETURN_ADDRESS();
-  G_ASSERT_RETURN_AND_LOG(RES3D_CUBETEX == resType, 0, "DX12: cube lockimg called on non cube texture %p <%s>", this, getResName());
-  G_ASSERT_RETURN_AND_LOG(!(cflg & TEXCF_SYSTEXCOPY), 0, "DX12: cube texture with system copy not implemented yet");
-  G_ASSERT_RETURN_AND_LOG(!(flags & TEXLOCK_DISCARD), 0, "DX12: discard for cube texture is not implemented yet");
+  G_ASSERT_RETURN_AND_LOG(D3DResourceType::CUBETEX == type || D3DResourceType::ARRTEX == type || D3DResourceType::CUBEARRTEX == type,
+    0, "DX12: lockimg called on non cube or arr texture %p <%s>", this, getName());
+  G_ASSERT_RETURN_AND_LOG(!(cflg & TEXCF_SYSTEXCOPY), 0, "DX12: texture with system copy not implemented yet");
+  G_ASSERT_RETURN_AND_LOG(!(flags & TEXLOCK_DISCARD), 0, "DX12: discard for texture is not implemented yet");
   G_ASSERT_RETURN_AND_LOG(!((cflg & TEXCF_RTARGET) && (flags & TEXLOCK_WRITE)), 0, "DX12: can't lock RT texture %p <%s> for write",
-    this, getResName());
+    this, getName());
 
 #if _TARGET_XBOX
   if (cflg & TEXCF_LINEAR_LAYOUT)
@@ -1781,20 +1789,20 @@ int BaseTex::lockimg(void **pointer, int &stride, int face, int level, unsigned 
 
   if ((flags & TEXLOCK_RWMASK) == 0)
     return 0;
-  G_ASSERT_RETURN(image, 0);
+  D3D_CONTRACT_ASSERT_RETURN(image, 0);
 
   lockFlags = flags;
 
   if (stagingMemory)
     return 1;
 
-  lockedSubRes = calculate_subresource_index(level, face, 0, mipLevels, 6);
+  lockedSubRes = calculate_subresource_index(level, face, 0, mipLevels, getArrayCount().count());
   auto subResInfo = calculate_texture_mip_info(*image, MipMapIndex::make(level));
 
   stagingMemory = get_device().allocatePersistentBidirectionalMemory(subResInfo.totalByteSize, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
   if (!stagingMemory)
   {
-    D3D_ERROR("DX12: failed to allocate staging memory on lockimg for texture %p <%s>", this, getResName());
+    D3D_ERROR("DX12: failed to allocate staging memory on lockimg for texture %p <%s>", this, getName());
     return 0;
   }
 
@@ -1805,7 +1813,7 @@ int BaseTex::lockimg(void **pointer, int &stride, int face, int level, unsigned 
     BufferImageCopy copy{};
     copy.layout.Footprint = subResInfo.footprint;
     copy.subresourceIndex = lockedSubRes;
-    waitProgress = ctx.readBackFromImage(stagingMemory, &copy, 1, image, DeviceQueueType::READ_BACK);
+    waitProgress = ctx.readBackFromImage(stagingMemory, &copy, 1, image);
     if (pointer)
       logwarn("DX12: blocking texture readback issued");
   }
@@ -1814,7 +1822,7 @@ int BaseTex::lockimg(void **pointer, int &stride, int face, int level, unsigned 
   {
     waitAndResetProgress();
     stagingMemory.invalidate();
-    *pointer = stagingMemory.pointer;
+    *pointer = stagingMemory.cpuPointer();
     stride = subResInfo.footprint.RowPitch;
   }
 
@@ -1824,11 +1832,11 @@ int BaseTex::lockimg(void **pointer, int &stride, int face, int level, unsigned 
 int BaseTex::lockbox(void **data, int &row_pitch, int &slice_pitch, int level, unsigned flags)
 {
   STORE_RETURN_ADDRESS();
-  G_ASSERT_RETURN_AND_LOG(RES3D_VOLTEX == resType, 0, "DX12: lockbox called on non volume texture %p <%s>", this, getResName());
+  G_ASSERT_RETURN_AND_LOG(D3DResourceType::VOLTEX == type, 0, "DX12: lockbox called on non volume texture %p <%s>", this, getName());
   G_ASSERT_RETURN_AND_LOG(!(flags & TEXLOCK_DISCARD), 0, "DX12: discard for volume texture is not implemented yet");
   G_ASSERT_RETURN_AND_LOG(data != nullptr, 0, "DX12: for lockbox you need to provide an output pointer");
   G_ASSERT_RETURN_AND_LOG(!((cflg & TEXCF_RTARGET) && (flags & TEXLOCK_WRITE)), 0, "DX12: can't lock RT texture %p <%s> for write",
-    this, getResName());
+    this, getName());
 
   auto &device = get_device();
   auto &ctx = device.getContext();
@@ -1881,8 +1889,8 @@ int BaseTex::lockbox(void **data, int &row_pitch, int &slice_pitch, int level, u
     lockedSubRes = level;
     lockFlags = flags;
 
-    G_ASSERT(!stagingMemory);
-    G_ASSERT_RETURN(image, 0);
+    D3D_CONTRACT_ASSERT(!stagingMemory);
+    D3D_CONTRACT_ASSERT_RETURN(image, 0);
 
     auto subResInfo = calculate_texture_subresource_info(*image, SubresourceIndex::make(lockedSubRes));
     // only get a buffer large enough to hold the locked level
@@ -1897,10 +1905,10 @@ int BaseTex::lockbox(void **data, int &row_pitch, int &slice_pitch, int level, u
       copy.layout.Footprint = subResInfo.footprint;
       copy.subresourceIndex = lockedSubRes;
       logwarn("DX12: blocking texture readback issued");
-      ctx.waitForProgress(ctx.readBackFromImage(stagingMemory, &copy, 1, image, DeviceQueueType::READ_BACK));
+      ctx.waitForProgress(ctx.readBackFromImage(stagingMemory, &copy, 1, image));
       stagingMemory.invalidate();
     }
-    *data = lockMsr.ptr = stagingMemory.pointer;
+    *data = lockMsr.ptr = stagingMemory.cpuPointer();
     row_pitch = lockMsr.rowPitch = subResInfo.footprint.RowPitch;
     slice_pitch = lockMsr.slicePitch = subResInfo.footprint.RowPitch * subResInfo.rowCount;
     lockMsr.memSize = static_cast<uint32_t>(subResInfo.totalByteSize);
@@ -1917,8 +1925,8 @@ int BaseTex::lockbox(void **data, int &row_pitch, int &slice_pitch, int level, u
 int BaseTex::unlockbox()
 {
   STORE_RETURN_ADDRESS();
-  G_ASSERT_RETURN_AND_LOG(RES3D_VOLTEX == resType, 0, "DX12: unlockbox called on non volume texture %p <%s>", this, getResName());
-  G_ASSERT_RETURN_AND_LOG(isLocked(), 0, "DX12: unlockbox called without lockbox for texture %p <%s>", this, getResName());
+  G_ASSERT_RETURN_AND_LOG(D3DResourceType::VOLTEX == type, 0, "DX12: unlockbox called on non volume texture %p <%s>", this, getName());
+  G_ASSERT_RETURN_AND_LOG(isLocked(), 0, "DX12: unlockbox called without lockbox for texture %p <%s>", this, getName());
 
   auto &device = get_device();
   auto &ctx = device.getContext();
@@ -1952,7 +1960,7 @@ int BaseTex::unlockbox()
     for (int di = 0; di < d; di++, src += lockMsr.slicePitch)
       for (int y = 0; y < h; y++, dest += rpitch)
         memcpy(dest, src + y * lockMsr.rowPitch, rpitch);
-    VERBOSE_DEBUG("%s %dx%dx%d updated DDSx for TEXCF_SYSTEXCOPY", getResName(), hdr.w, hdr.h, hdr.depth, data_size(texCopy));
+    VERBOSE_DEBUG("%s %dx%dx%d updated DDSx for TEXCF_SYSTEXCOPY", getName(), hdr.w, hdr.h, hdr.depth, data_size(texCopy));
   }
   lockMsr.ptr = nullptr;
 
@@ -1975,7 +1983,7 @@ int BaseTex::unlockbox()
   return 1;
 }
 
-int BaseTex::ressize() const
+uint32_t BaseTex::getSize() const
 {
   if ((cflg & TEXCF_TILED_RESOURCE) != 0)
     return 0;
@@ -1984,7 +1992,7 @@ int BaseTex::ressize() const
   if (isStub())
     return 0;
 
-  Extent3D ext{width, height, resType == RES3D_VOLTEX ? depth : 1u};
+  Extent3D ext{width, height, type == D3DResourceType::VOLTEX ? depth : 1u};
   return static_cast<int>(
     calculate_texture_staging_buffer_size(ext, MipMapCount::make(mipLevels), fmt, SubresourceRange::make(0, mipLevels)) *
     getArrayCount().count());
@@ -1996,18 +2004,18 @@ int BaseTex::getinfo(TextureInfo &ti, int level) const
 
   ti.w = max<uint32_t>(1u, width >> level);
   ti.h = max<uint32_t>(1u, height >> level);
-  switch (resType)
+  switch (type)
   {
-    case RES3D_CUBETEX:
+    case D3DResourceType::CUBETEX:
       ti.d = 1;
       ti.a = 6;
       break;
-    case RES3D_CUBEARRTEX:
-    case RES3D_ARRTEX:
+    case D3DResourceType::CUBEARRTEX:
+    case D3DResourceType::ARRTEX:
       ti.d = 1;
       ti.a = getArrayCount().count();
       break;
-    case RES3D_VOLTEX:
+    case D3DResourceType::VOLTEX:
       ti.d = max<uint32_t>(1u, depth >> level);
       ti.a = 1;
       break;
@@ -2018,101 +2026,42 @@ int BaseTex::getinfo(TextureInfo &ti, int level) const
   }
 
   ti.mipLevels = mipLevels;
-  ti.resType = resType;
+  ti.type = type;
   ti.cflg = cflg;
-  return 1;
-}
-
-int BaseTex::texaddrImpl(int a)
-{
-  samplerState.setW(translate_texture_address_mode_to_dx12(a));
-  samplerState.setV(translate_texture_address_mode_to_dx12(a));
-  samplerState.setU(translate_texture_address_mode_to_dx12(a));
-  notifySamplerChange();
-  return 1;
-}
-
-int BaseTex::texaddruImpl(int a)
-{
-  samplerState.setU(translate_texture_address_mode_to_dx12(a));
-  notifySamplerChange();
-  return 1;
-}
-
-int BaseTex::texaddrvImpl(int a)
-{
-  samplerState.setV(translate_texture_address_mode_to_dx12(a));
-  notifySamplerChange();
-  return 1;
-}
-
-int BaseTex::texaddrwImpl(int a)
-{
-  if (RES3D_VOLTEX == resType)
-  {
-    samplerState.setW(translate_texture_address_mode_to_dx12(a));
-    notifySamplerChange();
-    return 1;
-  }
-  return 0;
-}
-
-int BaseTex::texbordercolorImpl(E3DCOLOR c)
-{
-  samplerState.setBorder(c);
-  notifySamplerChange();
-  return 1;
-}
-
-int BaseTex::texfilterImpl(int m)
-{
-  samplerState.isCompare = m == TEXFILTER_COMPARE;
-  samplerState.setFilter(translate_filter_type_to_dx12(m));
-  notifySamplerChange();
-  return 1;
-}
-
-int BaseTex::texmipmapImpl(int m)
-{
-  samplerState.setMip(translate_mip_filter_type_to_dx12(m));
-  notifySamplerChange();
-  return 1;
-}
-
-int BaseTex::texlodImpl(float mipmaplod)
-{
-  samplerState.setBias(mipmaplod);
-  notifySamplerChange();
+  ti.isCommitted = image != nullptr && !image->isHeapAllocated();
   return 1;
 }
 
 int BaseTex::texmiplevel(int minlevel, int maxlevel)
 {
-  maxMipLevel = (minlevel >= 0) ? minlevel : 0;
-  minMipLevel = (maxlevel >= 0) ? maxlevel : (mipLevels - 1);
+  D3D_CONTRACT_ASSERTF(maxlevel < mipLevels && minlevel < mipLevels,
+    "DX12: texmiplevel for %s called with invalid mip levels %d, %d. Total mip levels %d", getName(), minlevel, maxlevel, mipLevels);
+  int oldMaxMipLevel = eastl::exchange(maxMipLevel, (minlevel >= 0) ? minlevel : 0);
+  int oldMinMipLevel = eastl::exchange(minMipLevel, (maxlevel >= 0) ? maxlevel : (mipLevels - 1));
   notifySrvChange();
-  return 1;
-}
 
-int BaseTex::setAnisotropyImpl(int level)
-{
-  samplerState.setAniso(clamp<int>(level, 1, 16));
-  notifySamplerChange();
+  if (usedInBindless.test(dag::mo::relaxed) && (oldMinMipLevel != minMipLevel || oldMaxMipLevel != maxMipLevel))
+  {
+    ScopedCommitLock ctxLock{get_device().getContext()};
+    OSSpinlockScopedLock resourceBindingLock(get_resource_binding_guard());
+    STORE_RETURN_ADDRESS();
+    get_device().updateTextureBindlessReferencesNoLock(this, image);
+  }
   return 1;
 }
 
 static constexpr int IMAGE_BYTES_PER_PIXEL = 4;
 static Texture *create_tex_internal(TexImage32 *img, int w, int h, int flg, int levels, const char *stat_name, Texture *baseTexture)
 {
-  if (!d3d::check_texformat(flg))
+  if (!d3d::check_texformat(flg) && get_device().isHealthy())
   {
-    G_ASSERT_LOG(!get_device().isHealthy(), "DX12: check_texformat failed (but device is in healthy state)");
+    D3D_CONTRACT_ERROR("DX12: check_texformat failed (but device is in healthy state)");
     return nullptr;
   }
 
   if ((flg & (TEXCF_RTARGET | TEXCF_DYNAMIC)) == (TEXCF_RTARGET | TEXCF_DYNAMIC))
   {
-    D3D_ERROR("DX12: create_tex: can not create dynamic render target");
+    D3D_CONTRACT_ERROR("DX12: create_tex: can not create dynamic render target");
     return nullptr;
   }
   if (img)
@@ -2139,20 +2088,20 @@ static Texture *create_tex_internal(TexImage32 *img, int w, int h, int flg, int 
 
     if ((w != img->w) || (h != img->h))
     {
-      D3D_ERROR("DX12: create_tex: image size differs from texture size (%dx%d != %dx%d)", img->w, img->h, w, h);
+      D3D_CONTRACT_ERROR("DX12: create_tex: image size differs from texture size (%dx%d != %dx%d)", img->w, img->h, w, h);
       img = nullptr; // abort copying
     }
 
     if (FormatStore::fromCreateFlags(flg).getBytesPerPixelBlock() != IMAGE_BYTES_PER_PIXEL)
     {
-      D3D_ERROR("DX12: create_tex: image format is not 32 bit per pixel block");
+      D3D_CONTRACT_ERROR("DX12: create_tex: image format is not 32 bit per pixel block");
       img = nullptr;
     }
   }
 
   // TODO: check for preallocated RT (with requested, not adjusted tex dimensions)
 
-  auto tex = get_device().newTextureObject(RES3D_TEX, flg);
+  auto tex = get_device().newTextureObject(D3DResourceType::TEX, flg);
 
   G_ASSERT_RETURN(tex, nullptr);
   G_ASSERT_RETURN(w > 0 && h > 0, nullptr);
@@ -2182,7 +2131,7 @@ static Texture *create_tex_internal(TexImage32 *img, int w, int h, int flg, int 
     }
     else if (tex->cflg & TEXCF_LOADONCE)
     {
-      uint32_t memSz = tex->ressize();
+      uint32_t memSz = tex->getSize();
       clear_and_resize(tex->texCopy, sizeof(ddsx::Header) + memSz);
       mem_set_0(tex->texCopy);
 
@@ -2225,7 +2174,7 @@ static Texture *create_tex_internal(TexImage32 *img, int w, int h, int flg, int 
     return nullptr;
   }
 
-  tex->memSize = tex->ressize();
+  tex->memSize = tex->getSize();
 
   return tex;
 }
@@ -2239,11 +2188,15 @@ Texture *d3d::create_tex(TexImage32 *img, int w, int h, int flg, int levels, con
 
 static CubeTexture *create_cubetex_internal(int size, int flg, int levels, const char *stat_name, CubeTexture *baseTexture)
 {
-  G_ASSERT_RETURN(d3d::check_cubetexformat(flg), nullptr);
+  if (!d3d::check_cubetexformat(flg) && get_device().isHealthy())
+  {
+    D3D_CONTRACT_ERROR("DX12: check_cubetexformat failed (but device is in healthy state)");
+    return nullptr;
+  }
 
   if ((flg & (TEXCF_RTARGET | TEXCF_DYNAMIC)) == (TEXCF_RTARGET | TEXCF_DYNAMIC))
   {
-    D3D_ERROR("DX12: create_cubtex: can not create dynamic render target");
+    D3D_CONTRACT_ERROR("DX12: create_cubtex: can not create dynamic render target");
     return nullptr;
   }
 
@@ -2252,7 +2205,7 @@ static CubeTexture *create_cubetex_internal(int size, int flg, int levels, const
 
   levels = count_mips_if_needed(size, size, flg, levels);
 
-  auto tex = get_device().newTextureObject(RES3D_CUBETEX, flg);
+  auto tex = get_device().newTextureObject(D3DResourceType::CUBETEX, flg);
 
   G_ASSERT_RETURN(tex, nullptr);
   G_ASSERT_RETURN(size > 0, nullptr);
@@ -2265,7 +2218,7 @@ static CubeTexture *create_cubetex_internal(int size, int flg, int levels, const
     return nullptr;
   }
 
-  tex->memSize = tex->ressize();
+  tex->memSize = tex->getSize();
 
   return tex;
 }
@@ -2278,17 +2231,21 @@ CubeTexture *d3d::create_cubetex(int size, int flg, int levels, const char *stat
 
 static VolTexture *create_voltex_internal(int w, int h, int d, int flg, int levels, const char *stat_name, VolTexture *baseTexture)
 {
-  G_ASSERT_RETURN(d3d::check_voltexformat(flg), nullptr);
+  if (!d3d::check_voltexformat(flg) && get_device().isHealthy())
+  {
+    D3D_CONTRACT_ERROR("DX12: check_voltexformat failed (but device is in healthy state)");
+    return nullptr;
+  }
 
   if ((flg & (TEXCF_RTARGET | TEXCF_DYNAMIC)) == (TEXCF_RTARGET | TEXCF_DYNAMIC))
   {
-    D3D_ERROR("DX12: create_voltex: can not create dynamic render target");
+    D3D_CONTRACT_ERROR("DX12: create_voltex: can not create dynamic render target");
     return nullptr;
   }
 
   levels = count_mips_if_needed(w, h, flg, levels);
 
-  auto tex = get_device().newTextureObject(RES3D_VOLTEX, flg);
+  auto tex = get_device().newTextureObject(D3DResourceType::VOLTEX, flg);
 
   G_ASSERT_RETURN(tex, nullptr);
   G_ASSERT_RETURN(w > 0 && h > 0 && d > 0, nullptr);
@@ -2301,7 +2258,7 @@ static VolTexture *create_voltex_internal(int w, int h, int d, int flg, int leve
     return nullptr;
   }
 
-  tex->memSize = tex->ressize();
+  tex->memSize = tex->getSize();
   if (tex->cflg & TEXCF_SYSTEXCOPY)
   {
     clear_and_resize(tex->texCopy, sizeof(ddsx::Header) + tex->memSize);
@@ -2341,15 +2298,15 @@ VolTexture *d3d::create_voltex(int w, int h, int d, int flg, int levels, const c
 static ArrayTexture *create_array_tex_internal(int w, int h, int d, int flg, int levels, const char *stat_name,
   ArrayTexture *baseTexture)
 {
-  if (!d3d::check_texformat(flg))
+  if (!d3d::check_texformat(flg) && get_device().isHealthy())
   {
-    G_ASSERT_LOG(!get_device().isHealthy(), "DX12: check_texformat failed (but device is in healthy state)");
+    D3D_CONTRACT_ERROR("DX12: check_texformat failed (but device is in healthy state)");
     return nullptr;
   }
 
   levels = count_mips_if_needed(w, h, flg, levels);
 
-  auto tex = get_device().newTextureObject(RES3D_ARRTEX, flg);
+  auto tex = get_device().newTextureObject(D3DResourceType::ARRTEX, flg);
 
   G_ASSERT_RETURN(tex, nullptr);
   G_ASSERT_RETURN(w > 0 && h > 0 && d > 0, nullptr);
@@ -2362,7 +2319,7 @@ static ArrayTexture *create_array_tex_internal(int w, int h, int d, int flg, int
     return nullptr;
   }
 
-  tex->memSize = tex->ressize();
+  tex->memSize = tex->getSize();
 
   return tex;
 }
@@ -2376,11 +2333,15 @@ ArrayTexture *d3d::create_array_tex(int w, int h, int d, int flg, int levels, co
 static ArrayTexture *create_cube_array_tex_internal(int side, int d, int flg, int levels, const char *stat_name,
   ArrayTexture *baseTexture)
 {
-  G_ASSERT_RETURN(d3d::check_cubetexformat(flg), nullptr);
+  if (!d3d::check_cubetexformat(flg) && get_device().isHealthy())
+  {
+    D3D_CONTRACT_ERROR("DX12: check_cubetexformat failed (but device is in healthy state)");
+    return nullptr;
+  }
 
   levels = count_mips_if_needed(side, side, flg, levels);
 
-  auto tex = get_device().newTextureObject(RES3D_ARRTEX, flg);
+  auto tex = get_device().newTextureObject(D3DResourceType::ARRTEX, flg);
 
   G_ASSERT_RETURN(tex, nullptr);
   G_ASSERT_RETURN(side > 0 && d > 0, nullptr);
@@ -2394,7 +2355,7 @@ static ArrayTexture *create_cube_array_tex_internal(int side, int d, int flg, in
     return nullptr;
   }
 
-  tex->memSize = tex->ressize();
+  tex->memSize = tex->getSize();
 
   return tex;
 }
@@ -2476,23 +2437,23 @@ BaseTexture *d3d::alloc_ddsx_tex(const ddsx::Header &hdr, int flg, int q_id, int
   flg = implant_d3dformat(flg, hdr.d3dFormat);
   if (hdr.d3dFormat == D3DFMT_A4R4G4B4 || hdr.d3dFormat == D3DFMT_X4R4G4B4 || hdr.d3dFormat == D3DFMT_R5G6B5)
     flg = implant_d3dformat(flg, D3DFMT_A8R8G8B8);
-  G_ASSERT((flg & TEXCF_RTARGET) == 0);
+  D3D_CONTRACT_ASSERT((flg & TEXCF_RTARGET) == 0);
   flg |= (hdr.flags & hdr.FLG_GAMMA_EQ_1) ? 0 : TEXCF_SRGBREAD;
 
   if (levels <= 0)
     levels = hdr.levels;
 
-  int resType;
+  D3DResourceType type;
   if (hdr.flags & ddsx::Header::FLG_CUBTEX)
-    resType = RES3D_CUBETEX;
+    type = D3DResourceType::CUBETEX;
   else if (hdr.flags & ddsx::Header::FLG_VOLTEX)
-    resType = RES3D_VOLTEX;
+    type = D3DResourceType::VOLTEX;
   else if (hdr.flags & ddsx::Header::FLG_ARRTEX)
-    resType = RES3D_ARRTEX;
+    type = D3DResourceType::ARRTEX;
   else
-    resType = RES3D_TEX;
+    type = D3DResourceType::TEX;
 
-  auto bt = drv3d_dx12::get_device().newTextureObject(resType, flg);
+  auto bt = drv3d_dx12::get_device().newTextureObject(type, flg);
 
   int skip_levels = hdr.getSkipLevels(hdr.getSkipLevelsFromQ(q_id), levels);
   int w = max(hdr.w >> skip_levels, 1), h = max(hdr.h >> skip_levels, 1), d = max(hdr.depth >> skip_levels, 1);
@@ -2518,21 +2479,21 @@ BaseTexture *d3d::alloc_ddsx_tex(const ddsx::Header &hdr, int flg, int q_id, int
 }
 
 #if _TARGET_PC_WIN
-unsigned d3d::pcwin32::get_texture_format(BaseTexture *tex)
+unsigned d3d::pcwin::get_texture_format(const BaseTexture *tex)
 {
   auto bt = getbasetex(tex);
   if (!bt)
     return 0;
   return bt->getFormat();
 }
-const char *d3d::pcwin32::get_texture_format_str(BaseTexture *tex)
+const char *d3d::pcwin::get_texture_format_str(const BaseTexture *tex)
 {
   auto bt = getbasetex(tex);
   if (!bt)
     return nullptr;
   return bt->getFormat().getNameString();
 }
-void *d3d::pcwin32::get_native_surface(BaseTexture *)
+void *d3d::pcwin::get_native_surface(BaseTexture *)
 {
   return nullptr; // TODO:: ((BaseTex*)tex)->tex2D;
 }

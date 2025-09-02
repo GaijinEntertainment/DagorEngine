@@ -49,6 +49,7 @@ static void push_param_to_sq(HSQUIRRELVM vm, const DataBlock *blk, int index)
     case DataBlock::TYPE_POINT3: PushVar(vm, b->getPoint3(index)); break;
     case DataBlock::TYPE_POINT2: PushVar(vm, b->getPoint2(index)); break;
     case DataBlock::TYPE_IPOINT3: PushVar(vm, b->getIPoint3(index)); break;
+    case DataBlock::TYPE_IPOINT4: PushVar(vm, b->getIPoint4(index)); break;
     case DataBlock::TYPE_IPOINT2: PushVar(vm, b->getIPoint2(index)); break;
     case DataBlock::TYPE_MATRIX: PushVar(vm, b->getTm(index)); break;
     case DataBlock::TYPE_E3DCOLOR: PushVar(vm, Color4(b->getE3dcolor(index))); break;
@@ -70,8 +71,9 @@ static void push_param_type_annotation_to_sq(HSQUIRRELVM vm, const DataBlock *bl
     case DataBlock::TYPE_POINT3: sq_pushstring(vm, "p3", -1); break;
     case DataBlock::TYPE_POINT2: sq_pushstring(vm, "p2", -1); break;
     case DataBlock::TYPE_IPOINT3: sq_pushstring(vm, "ip3", -1); break;
+    case DataBlock::TYPE_IPOINT4: sq_pushstring(vm, "ip4", -1); break;
     case DataBlock::TYPE_IPOINT2: sq_pushstring(vm, "ip2", -1); break;
-    case DataBlock::TYPE_MATRIX: sq_pushstring(vm, "tm", -1); break;
+    case DataBlock::TYPE_MATRIX: sq_pushstring(vm, "m", -1); break;
     case DataBlock::TYPE_E3DCOLOR: sq_pushstring(vm, "c", -1); break;
     default: sq_pushnull(vm); break;
   }
@@ -245,6 +247,15 @@ static SQInteger blk_set(HSQUIRRELVM v)
   }
 
   return 0;
+}
+
+static SQInteger blk_len(HSQUIRRELVM v)
+{
+  if (!Sqrat::check_signature<DataBlock *>(v))
+    return SQ_ERROR;
+  Sqrat::Var<DataBlock *> selfSq(v, 1);
+  DataBlock *self = selfSq.value;
+  return self->blockCount() + self->paramCount();
 }
 
 static SQInteger blk_modulo(HSQUIRRELVM v)
@@ -472,7 +483,11 @@ static int find_param(const DataBlock *blk, const char *param) { return blk->fin
 
 static bool param_exists(const DataBlock *blk, const char *param) { return blk->paramExists(param); }
 
+static bool block_exists(const DataBlock *blk, const char *name) { return blk->blockExists(name); }
+
 static const DataBlock *get_block_by_name(const DataBlock *blk, const char *param) { return blk->getBlockByName(param); }
+
+static const DataBlock *get_block_by_name_ex(const DataBlock *blk, const char *param) { return blk->getBlockByNameEx(param); }
 
 static void set_param_from(DataBlock *dst, const char *dst_name, const DataBlock *src, int src_index)
 {
@@ -524,6 +539,12 @@ static IPoint3 get_IPoint3(const DataBlock *blk, const char *name, const IPoint3
 static int set_IPoint3(DataBlock *blk, const char *name, const IPoint3 &val) { return blk->setIPoint3(name, val); }
 
 static int add_IPoint3(DataBlock *blk, const char *name, const IPoint3 &val) { return blk->addIPoint3(name, val); }
+
+static IPoint4 get_IPoint4(const DataBlock *blk, const char *name, const IPoint4 &defval) { return blk->getIPoint4(name, defval); }
+
+static int set_IPoint4(DataBlock *blk, const char *name, const IPoint4 &val) { return blk->setIPoint4(name, val); }
+
+static int add_IPoint4(DataBlock *blk, const char *name, const IPoint4 &val) { return blk->addIPoint4(name, val); }
 
 static inline SQInteger blk_load_impl(HSQUIRRELVM v, bool ignore_missing)
 {
@@ -704,7 +725,9 @@ void sqrat_bind_datablock(SqModules *module_mgr, bool allow_file_access)
 
     .GlobalFunc("findParam", find_param)
     .GlobalFunc("paramExists", param_exists)
+    .GlobalFunc("blockExists", block_exists)
     .GlobalFunc("getBlockByName", get_block_by_name)
+    .GlobalFunc("getBlockByNameEx", get_block_by_name_ex)
     .GlobalFunc("setParamFrom", set_param_from)
     .GlobalFunc("setParamsFrom", set_params_from)
     .GlobalFunc("setFrom", set_from)
@@ -714,15 +737,25 @@ void sqrat_bind_datablock(SqModules *module_mgr, bool allow_file_access)
     .GlobalFunc("getIPoint3", get_IPoint3)
     .GlobalFunc("setIPoint3", set_IPoint3)
     .GlobalFunc("addIPoint3", add_IPoint3)
-
+    .GlobalFunc("getIPoint4", get_IPoint4)
+    .GlobalFunc("setIPoint4", set_IPoint4)
+    .GlobalFunc("addIPoint4", add_IPoint4)
+    /// @function clearData
     .FUNC(clearData)
+    /// @function reset
     .FUNC(reset)
+    /// @function getBlockName
     .FUNC(getBlockName)
+    /// @function changeBlockName
     .FUNC(changeBlockName)
+    /// @function blockCount
     .FUNC(blockCount)
+    /// @function paramCount
     .FUNC(paramCount)
+    /// @function getParamName
     .FUNC(getParamName)
 
+    .SquirrelFunc("len", blk_len, 1, "x")
     .SquirrelFunc("getParamTypeAnnotation", blk_get_param_type_annotation, 2, "xi")
     .SquirrelFunc("getParamValue", blk_get_param_value, 2, "xi")
     .SquirrelFunc("getInt", blk_get_int, -2, "xs")

@@ -1,3 +1,4 @@
+options indenting = 2
 module color shared
 require DagorRandom
 require DagorMath

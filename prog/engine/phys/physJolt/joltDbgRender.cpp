@@ -75,9 +75,9 @@ public:
       (inModelMatrix * JPH::Vec3(b.vert[b.indx[fi + 0]].mPosition)).StoreFloat3(&v0);
       (inModelMatrix * JPH::Vec3(b.vert[b.indx[fi + 1]].mPosition)).StoreFloat3(&v1);
       (inModelMatrix * JPH::Vec3(b.vert[b.indx[fi + 2]].mPosition)).StoreFloat3(&v2);
-      JPH::Color c0 = b.vert[b.indx[fi + 0]].mColor;
-      JPH::Color c1 = b.vert[b.indx[fi + 1]].mColor;
-      JPH::Color c2 = b.vert[b.indx[fi + 2]].mColor;
+      JPH::Color c0 = b.vert[b.indx[fi + 0]].mColor * inModelColor;
+      JPH::Color c1 = b.vert[b.indx[fi + 1]].mColor * inModelColor;
+      JPH::Color c2 = b.vert[b.indx[fi + 2]].mColor * inModelColor;
       if (forcedBufferedDebugDrawMode)
       {
         draw_debug_line_buffered(Point3::xyz(v0), Point3::xyz(v1), E3DCOLOR(c0.r, c0.g, c0.b, c0.a), 1);
@@ -155,7 +155,7 @@ void physdbg::renderOneBody(PhysWorld *pw, const PhysBody *pb, const TMatrix &tm
   forcedBufferedDebugDrawMode = true;
 
   pb->lockRO([&](const JPH::Body &body) {
-    JPH::Color color((col >> 16) & 0xFF, (col >> 8) & 0xFF, (col)&0xFF);
+    JPH::Color color((col >> 16) & 0xFF, (col >> 8) & 0xFF, (col) & 0xFF);
 
     if (rflg & RenderFlag::BODY_BBOX)
       dbgRend->DrawWireBox(body.GetWorldSpaceBounds(), color);

@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "animCharDbgRenderES.cpp.inl"
 ECS_DEF_PULL_VAR(animCharDbgRender);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 //static constexpr ecs::ComponentDesc animchar_render_debug_es_comps[] ={};
 static void animchar_render_debug_es_all(const ecs::UpdateStageInfo &__restrict info, const ecs::QueryView & __restrict components)
@@ -28,7 +30,7 @@ static constexpr ecs::ComponentDesc animchar_bounds_debug_render_ecs_query_comps
   {ECS_HASH("animchar_node_wtm"), ecs::ComponentTypeInfo<AnimcharNodesMat44>()},
   {ECS_HASH("animchar_bsph"), ecs::ComponentTypeInfo<vec4f>()},
   {ECS_HASH("animchar_bbox"), ecs::ComponentTypeInfo<bbox3f>()},
-  {ECS_HASH("animchar_visbits"), ecs::ComponentTypeInfo<uint8_t>()},
+  {ECS_HASH("animchar_visbits"), ecs::ComponentTypeInfo<animchar_visbits_t>()},
   {ECS_HASH("animchar_render__enabled"), ecs::ComponentTypeInfo<bool>()}
 };
 static ecs::CompileTimeQueryDesc animchar_bounds_debug_render_ecs_query_desc
@@ -54,7 +56,7 @@ inline void animchar_bounds_debug_render_ecs_query(Callable function)
             , ECS_RO_COMP(animchar_bounds_debug_render_ecs_query_comps, "animchar_node_wtm", AnimcharNodesMat44)
             , ECS_RO_COMP(animchar_bounds_debug_render_ecs_query_comps, "animchar_bsph", vec4f)
             , ECS_RO_COMP(animchar_bounds_debug_render_ecs_query_comps, "animchar_bbox", bbox3f)
-            , ECS_RO_COMP(animchar_bounds_debug_render_ecs_query_comps, "animchar_visbits", uint8_t)
+            , ECS_RO_COMP(animchar_bounds_debug_render_ecs_query_comps, "animchar_visbits", animchar_visbits_t)
             );
 
         }while (++comp != compE);

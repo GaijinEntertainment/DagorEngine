@@ -248,7 +248,9 @@ shader dagi_irradiance_grid_toroidal_movement_interpolate_cs
 
       half3 ambient; half4 directional;
       dagi_irrad_trilinear_sampling_unsafe(clip + 1, absCoord*0.5+0.25, ambient, directional);
-
+      ##assert(all(isfinite(ambient)) || all(isfinite(directional)), "[%s:%.f] 'trilinear irradiance is not finite' (%.f %.f %.f) clip (%.f)", _FILE_, __LINE__, absCoord.x, absCoord.y, absCoord.z, clip);
+      if (any(!isfinite(ambient)) || any(!isfinite(directional)))
+        return 0;
       uint3 targetProbeCoord = dagi_irrad_grid_wrapped_coord_from_abs_coord(absCoord);
       texture3DAt(dagi_irradiance_grid_sph0, targetProbeCoord + uint3(0,0,1+clip*dagi_irrad_grid_get_clip_size_with_border())) = ambient;
       texture3DAt(dagi_irradiance_grid_sph1, targetProbeCoord + uint3(0,0,1+clip*dagi_irrad_grid_get_clip_size_with_border())) = directional;
@@ -413,12 +415,15 @@ shader dagi_irradiance_grid_spatial_filter_cs
         a *= (1./totalW);
         d *= (1./totalW);
       }
-      texture3DAt(dagi_irradiance_grid_sph0, atlasCoord) = a;
-      texture3DAt(dagi_irradiance_grid_sph1, atlasCoord) = d;
-      if (targetCoord.z == 0 || targetCoord.z == dagi_irrad_grid_get_clip_size().y - 1)//write border
+      if (all(isfinite(a)) && all(isfinite(d)))
       {
-        texture3DAt(dagi_irradiance_grid_sph0, uint3(atlasCoord.xy, targetCoord.z ? 0 : dagi_irrad_grid_get_clip_size().y+1)+uint3(0,0,clip*dagi_irrad_grid_get_clip_size_with_border())) = a;
-        texture3DAt(dagi_irradiance_grid_sph1, uint3(atlasCoord.xy, targetCoord.z ? 0 : dagi_irrad_grid_get_clip_size().y+1)+uint3(0,0,clip*dagi_irrad_grid_get_clip_size_with_border())) = d;
+        texture3DAt(dagi_irradiance_grid_sph0, atlasCoord) = a;
+        texture3DAt(dagi_irradiance_grid_sph1, atlasCoord) = d;
+        if (targetCoord.z == 0 || targetCoord.z == dagi_irrad_grid_get_clip_size().y - 1)//write border
+        {
+          texture3DAt(dagi_irradiance_grid_sph0, uint3(atlasCoord.xy, targetCoord.z ? 0 : dagi_irrad_grid_get_clip_size().y+1)+uint3(0,0,clip*dagi_irrad_grid_get_clip_size_with_border())) = a;
+          texture3DAt(dagi_irradiance_grid_sph1, uint3(atlasCoord.xy, targetCoord.z ? 0 : dagi_irrad_grid_get_clip_size().y+1)+uint3(0,0,clip*dagi_irrad_grid_get_clip_size_with_border())) = d;
+        }
       }
     }
   }
@@ -545,7 +550,14 @@ shader dagi_irradiance_grid_select_temporal_cs
       addSH1(ambient, direction, centerC, ofs.yxy, clip);
       ambient*=1./8;
       direction*=1./8;
-
+      ##assert(all(isfinite(ambient)) || all(isfinite(direction)), "[%s:%.f] 'old irradiance is not finite' (%.f %.f %.f) clip (%.f)", _FILE_, __LINE__, centerC.x, centerC.y, centerC.z, clip);
+      age = min(age + 1, RAD_GRID_TEMPORAL_MAX_AGE);
+      if (any(!isfinite(ambient)) || any(!isfinite(direction)))
+      {
+        age = 0;
+        ambient = 0;
+        direction = 0;
+      }
 
       uint3 encodedSh1 = (f32tof16(direction.xyz)<<16) | f32tof16(ambient.xyz);
 
@@ -619,7 +631,7 @@ shader dagi_irradiance_grid_calc_temporal_cs
 
       half3 ambient; half4 directional;
       encode_sh1_luminance(shLighting, ambient, directional);//ambient and directional can be negative
-      float newW = clamp(1.f/(2 + probeAge), 0.05, 0.1);
+      float newW = probeAge == 0 ? 1 : clamp(1.f/(1 + probeAge), 0.05, 0.1);
       ambient = lerp(oldAmbient, ambient, newW);
       directional = lerp(oldDirectional, directional, newW);
 
@@ -627,7 +639,7 @@ shader dagi_irradiance_grid_calc_temporal_cs
       if (tid == 0)
       {
         uint3 atlasAgeCoord = targetProbeCoord + uint3(0,0,clip*dagi_rad_grid_get_clip_size().y);
-        texture3DAt(dagi_irradiance_grid_probes_age, atlasAgeCoord) = (min(probeAge + 1, RAD_GRID_TEMPORAL_MAX_AGE)+0.5)/255.;//limit age
+        texture3DAt(dagi_irradiance_grid_probes_age, atlasAgeCoord) = (probeAge+0.5)/255.;//limit age
         texture3DAt(dagi_irradiance_grid_sph0, targetProbeCoord + uint3(0,0,1+clip*dagi_irrad_grid_get_clip_size_with_border())) = ambient;
         texture3DAt(dagi_irradiance_grid_sph1, targetProbeCoord + uint3(0,0,1+clip*dagi_irrad_grid_get_clip_size_with_border())) = directional;
         if (targetProbeCoord.z == 0 || targetProbeCoord.z == dagi_irrad_grid_get_clip_size().y - 1)//write border

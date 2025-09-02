@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "bhvProjectionES.cpp.inl"
 ECS_DEF_PULL_VAR(bhvProjection);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc visibility_ecs_query_comps[] =
 {

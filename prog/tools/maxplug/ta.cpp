@@ -13,13 +13,17 @@ M_STD_STRING strToWide(const char *sz);
 class TAClassDesc : public ClassDesc
 {
 public:
-  int IsPublic() { return 1; }
-  void *Create(BOOL loading = FALSE) { return new BitmapIO_TA; }
-  const TCHAR *ClassName() { return _T("Dagor TexAnim"); }
+  int IsPublic() override { return 1; }
+  void *Create(BOOL loading = FALSE) override { return new BitmapIO_TA; }
+  const TCHAR *ClassName() override { return _T("Dagor TexAnim"); }
+#if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
+  const MCHAR *NonLocalizedClassName() override { return ClassName(); }
+#else
   const MCHAR *NonLocalizedClassName() { return ClassName(); }
-  SClass_ID SuperClassID() { return BMM_IO_CLASS_ID; }
-  Class_ID ClassID() { return TexAnimIO_CID; }
-  const TCHAR *Category() { return _T("Bitmap I/O"); }
+#endif
+  SClass_ID SuperClassID() override { return BMM_IO_CLASS_ID; }
+  Class_ID ClassID() override { return TexAnimIO_CID; }
+  const TCHAR *Category() override { return _T("Bitmap I/O"); }
 };
 
 static TAClassDesc TADesc;

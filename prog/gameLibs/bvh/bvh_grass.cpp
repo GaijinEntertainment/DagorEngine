@@ -15,11 +15,11 @@
 #include "bvh_tools.h"
 #include "bvh_generic_connection.h"
 #include <drv/3d/dag_bindless.h>
+#include <drv/3d/dag_lock.h>
 
 namespace bvh
 {
 
-void add_mesh(ContextId context_id, uint64_t mesh_id, const MeshInfo &info);
 Sbuffer *alloc_scratch_buffer(uint32_t size, uint32_t &offset);
 
 namespace grass
@@ -70,8 +70,9 @@ struct LOD
   TEXTUREID alphaTexId;
   UniqueBuf vertices;
   UniqueBuf indices;
+  UniqueBVHBufferWithOffset ahsVertices;
   UniqueBLAS blas;
-  MeshMetaAllocator::AllocId metaAllocId = -1;
+  MeshMetaAllocator::AllocId metaAllocId = MeshMetaAllocator::INVALID_ALLOC_ID;
 
   void teardown(ContextId context_id)
   {
@@ -79,6 +80,7 @@ struct LOD
     context_id->releaseTexure(alphaTexId);
     context_id->releaseBuffer(vertices.getBuf());
     context_id->releaseBuffer(indices.getBuf());
+    context_id->releaseBuffer(ahsVertices.get());
     context_id->freeMetaRegion(metaAllocId);
     diffuseTexId = BAD_TEXTUREID;
     alphaTexId = BAD_TEXTUREID;
@@ -160,6 +162,8 @@ void reload_grass(ContextId context_id, RandomGrass *grass)
   if (metaCount == 0)
     return;
 
+  d3d::GpuAutoLock gpuLock;
+
   bvhConnection.metainfoMappings =
     dag::buffers::create_persistent_sr_structured(sizeof(RandomGrassBvhMapping), metaCount, "bvh_grass_mapping");
 
@@ -173,7 +177,7 @@ void reload_grass(ContextId context_id, RandomGrass *grass)
     auto &layer = *grass->getGrassLayerAt(layerIx);
 
     G_ASSERT(layerIx < countof(layer_id_map));
-    layer_id_map[layerIx] = ++bvh_id_gen;
+    layer_id_map[layerIx] = bvh_id_gen.fetch_add(1);
 
     auto &bvhLayer = layers.emplace_back();
     for (auto [lodIx, lod] : enumerate(layer.lods))
@@ -239,15 +243,15 @@ void reload_grass(ContextId context_id, RandomGrass *grass)
       bvhLod.blas = create_grass_blas(bvhLod.vertices.getBuf(), bvhLod.indices.getBuf(), elem.numv, elem.numf * 3);
       HANDLE_LOST_DEVICE_STATE(bvhLod.blas, );
 
-      bvhLod.metaAllocId = context_id->allocateMetaRegion();
-      auto &meta = context_id->meshMetaAllocator.get(bvhLod.metaAllocId);
+      bvhLod.metaAllocId = context_id->allocateMetaRegion(1);
+      auto &meta = context_id->meshMetaAllocator.get(bvhLod.metaAllocId)[0];
 
       meta.markInitialized();
 
       uint32_t bindlessIndicesIndex, bindlessVerticesIndex;
 
-      context_id->holdTexture(lod.alphaTexId, meta.alphaTextureAndSamplerIndex);
-      context_id->holdTexture(lod.diffuseTexId, meta.albedoTextureAndSamplerIndex);
+      meta.holdAlphaTex(context_id, lod.alphaTexId);
+      meta.holdAlbedoTex(context_id, lod.diffuseTexId);
       context_id->holdBuffer(bvhLod.indices.getBuf(), bindlessIndicesIndex);
       context_id->holdBuffer(bvhLod.vertices.getBuf(), bindlessVerticesIndex);
 
@@ -256,9 +260,12 @@ void reload_grass(ContextId context_id, RandomGrass *grass)
 
       meta.materialType = MeshMeta::bvhMaterialRendinst | MeshMeta::bvhMaterialGrass;
       meta.setIndexBitAndTexcoordFormat(2, VSDT_FLOAT2);
-      meta.texcoordNormalColorOffsetAndVertexStride =
-        (offsetof(BVHVertex, texcoord) << 24) | (offsetof(BVHVertex, normal) << 16) | 0xFF00U | sizeof(BVHVertex);
-      meta.indexAndVertexBufferIndex = (bindlessIndicesIndex << 16) | bindlessVerticesIndex;
+      meta.texcoordOffset = offsetof(BVHVertex, texcoord);
+      meta.normalOffset = offsetof(BVHVertex, normal);
+      meta.colorOffset = 0xFFU;
+      meta.vertexStride = sizeof(BVHVertex);
+      meta.setIndexBufferIndex(bindlessIndicesIndex);
+      meta.setVertexBufferIndex(bindlessVerticesIndex);
       meta.startIndex = 0;
       meta.startVertex = 0;
 
@@ -282,7 +289,7 @@ void reload_grass(ContextId context_id, RandomGrass *grass)
 
       pack(&meta.materialData1, layer.info.colors[CHANNEL_RED]);
       pack(&meta.materialData2, layer.info.colors[CHANNEL_GREEN]);
-      pack(meta.layerData, layer.info.colors[CHANNEL_BLUE]);
+      pack(&meta.layerData, layer.info.colors[CHANNEL_BLUE]);
 
       auto metaIx = grass->getGrassLayerCount() * lodIx + layerIx;
       auto blasHandle = d3d::get_raytrace_acceleration_structure_gpu_handle(bvhLod.blas.get()).handle;
@@ -290,10 +297,27 @@ void reload_grass(ContextId context_id, RandomGrass *grass)
 
       mapping.blas.x = blasHandle & 0xFFFFFFFFLLU;
       mapping.blas.y = blasHandle >> 32;
-      mapping.metaIndex = bvhLod.metaAllocId;
+      mapping.metaIndex = MeshMetaAllocator::decode(bvhLod.metaAllocId);
 
       // Need to fit in 15 bits so there is enough space for the alpha value
-      G_ASSERT(bvhLod.metaAllocId < (1 << 15));
+      G_ASSERT(MeshMetaAllocator::decode(bvhLod.metaAllocId) < (1 << 15));
+
+      ProcessorInstances::getAHSProcessor().process(bvhLod.indices.getBuf(), bvhLod.vertices.getBuf(), bvhLod.ahsVertices, 2,
+        elem.numf * 3, offsetof(BVHVertex, texcoord), VSDT_FLOAT2, sizeof(BVHVertex), -1);
+
+      uint32_t bindlessIndex;
+      context_id->holdBuffer(bvhLod.ahsVertices.get(), bindlessIndex);
+
+      uint32_t indexCount = elem.numf * 3;
+
+      meta.indexCount = indexCount;
+      meta.setAhsVertexBufferIndex(bindlessIndex);
+      if (bindlessIndex > BVH_BINDLESS_BUFFER_MAX)
+        logerr("BVH Grass vertex buffer bindless index out of range: %u", bindlessIndex);
+      if (indexCount > 0xFFFFU)
+        logerr("BVH Grass vertex buffer index count out of range: %u", indexCount);
+
+      meta.materialType |= MeshMeta::bvhMaterialAlphaInRed;
     }
   }
 
@@ -315,16 +339,6 @@ void get_instances(ContextId context_id, Sbuffer *&instances, Sbuffer *&instance
   }
 }
 
-void blas_compacted(int layer_ix, int lod_ix, uint64_t new_gpu_address)
-{
-  auto &mapping = bvhConnection.metainfoMappingsCpu[layers.size() * lod_ix + layer_ix];
-  mapping.blas.x = new_gpu_address & 0xFFFFFFFFLLU;
-  mapping.blas.y = new_gpu_address >> 32;
-
-  bvhConnection.metainfoMappings->updateData(0, bvhConnection.metainfoMappingsCpu.size() * sizeof(RandomGrassBvhMapping),
-    bvhConnection.metainfoMappingsCpu.data(), 0);
-}
-
 UniqueBLAS *get_blas(int layer_ix, int lod_ix)
 {
   if (layer_ix < 0 || layer_ix >= layers.size())
@@ -337,7 +351,7 @@ UniqueBLAS *get_blas(int layer_ix, int lod_ix)
   return &layer.lods[lod_ix].blas;
 }
 
-void get_memory_statistics(int &vb, int &ib, int &blas, int &meta, int &queries)
+void get_memory_statistics(int64_t &vb, int64_t &ib, int64_t &blas, int64_t &meta, int64_t &queries)
 {
   vb = ib = blas = meta = queries = 0;
   for (auto &layer : layers)

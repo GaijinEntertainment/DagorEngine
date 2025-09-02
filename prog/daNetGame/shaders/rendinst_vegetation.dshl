@@ -13,14 +13,11 @@ include "rendinst_inc.dshl"
 include "taa_inc.dshl"
 include "vertex_density_overlay_inc.dshl"
 include "tree_ellipsoid_normal.dshl"
+include "fast_grass_inc.dshl"
 
 // trees above only requires albedo and ao for gbuffer
 int gbuffer_for_treesabove = 0;
 interval gbuffer_for_treesabove : off < 1, on;
-
-texture noise_64_tex;
-
-float4x4 jitteredCamPosToUnjitteredHistoryClip;
 
 int has_discard_without_prepass = 0;
 interval has_discard_without_prepass: discardOff <1, discardOn;
@@ -32,7 +29,7 @@ macro DEFINE_PIVOT_POINT_WIND_SCALE()
   hlsl(vs) { static const float AnimWindScale = 0.25; }
 endmacro
 
-shader rendinst_tree_colored, rendinst_tree_colored_alpha_split
+shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_alpha_split
 {
   ENABLE_ASSERT(ps)
 
@@ -72,9 +69,6 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split
     if (has_motion_vectors == yes && in_editor_assume == no && rendinst_render_pass != rendinst_render_pass_impostor_color &&
         rendinst_render_pass != rendinst_render_pass_depth && rendinst_render_pass != rendinst_render_pass_to_shadow)
     {
-      (vs) {
-        jitteredCamPosToUnjitteredHistoryClip@f44 = jitteredCamPosToUnjitteredHistoryClip;
-      }
 
       USE_MOTION_VEC_ENCODE(ps)
       hlsl {
@@ -123,8 +117,12 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split
   {
    INIT_VEGETATION_INTERACTIONS()
   }
-  static int is_colored = 1;
-  interval is_colored : no < 1, yes;
+
+  if (shader != rendinst_grass_alpha_split)
+  {
+    static int is_colored = 1;
+    interval is_colored : no < 1, yes;
+  }
 
   (ps){
     angle_dissolve@f1 = (angle_dissolve);
@@ -165,6 +163,13 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split
           #if COLOR_NEEDED
           nointerpolation float3 colorMul : TEXCOORD3;
           #endif
+          #if GRASS_COLORING
+          nointerpolation float3 landColor : TEXCOORD3;
+          nointerpolation float3 maskR : TEXCOORD8;
+          nointerpolation float3 maskB : TEXCOORD9;
+          nointerpolation float3 maskG0 : TEXCOORD10;
+          nointerpolation float3 maskG1 : TEXCOORD11;
+          #endif
         ##endif
         float4 pointToEye             : TEXCOORD1;
         ##if (atest == atestOn || rendinst_render_pass != rendinst_render_pass_depth)
@@ -186,14 +191,71 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split
       };
     }
 
+    hlsl(vs) {
+      INSTANCING_BUFFERS
+    }
+
+    if (shader == rendinst_grass_alpha_split && rendinst_render_pass != rendinst_render_pass_depth
+      && rendinst_render_pass != rendinst_render_pass_impostor_color)
+    {
+      (vs) {
+        grass_ao_max@f1 = fast_grass_ao_max;
+        grass_ao_curve@f1 = fast_grass_ao_curve;
+        smoothnessfadeParams@f2 = (fast_grass_smoothness_fade_start, 1.0 / max(fast_grass_smoothness_fade_end - fast_grass_smoothness_fade_start, 0.001) );
+        VSGrassTypes@cbuf = fast_grass_types_buf hlsl {
+          #include <grassInstance.hlsli>
+          cbuffer VSGrassTypes@cbuf
+          {
+            FastGrassType fast_grass_types[GRASS_MAX_CHANNELS];
+          };
+        };
+      }
+
+      hlsl(vs)
+      {
+        #include "noise/uint_noise1D.hlsl"
+        float stableRand(uint pos, uint seed)
+        {
+          uint n = uint_noise1D(pos, seed);
+          return 2.0 * asfloat((n & 0x7FFFFFu) | 0x3F000000u) - 1.0; // Convert to float in 0-1 range.
+        }
+
+        void get_grass_colors(out float3 landColor, out float3 maskR, out float3 maskB, out float3 maskG0, out float3 maskG1,
+          out float grassHeight, float3 worldPos, uint vbInd)
+        {
+          uint3 pdata = asuint(per_instance_data[vbInd+3].yzw);
+          landColor = float3(uint3(pdata.x, pdata.x >> 8, pdata.x >> 16) & 0xff) / 255.0;
+          uint channel = min(pdata.x >> 24, GRASS_MAX_CHANNELS);
+          const uint seed = 0x3C4CC0D7u;
+          float rnd1 = stableRand(pdata.y, seed);
+          float rnd2 = stableRand(pdata.z, seed);
+          maskR = lerp(fast_grass_types[channel].mask_r_color0.rgb, fast_grass_types[channel].mask_r_color1.rgb, rnd1);
+          maskB = lerp(fast_grass_types[channel].mask_b_color0.rgb, fast_grass_types[channel].mask_b_color1.rgb, rnd2);
+          maskG0 = fast_grass_types[channel].mask_g_color0.rgb;
+          maskG1 = fast_grass_types[channel].mask_g_color1.rgb;
+          grassHeight = fast_grass_types[channel].height;
+        }
+      }
+
+      hlsl(ps)
+      {
+        void apply_grass_coloring(inout half3 albedo, VsOutput input)
+        {
+          half3 color = lerp(input.landColor, input.maskR, albedo.r);
+          color = lerp(color, input.maskB, albedo.b);
+          half3 mask_g = lerp(input.maskG0, input.maskG1, albedo.g);
+          color *= mask_g * COLOR_CORRECTION_MULTIPLIER; // no idea about the number, it's from billboard grass
+          albedo = color;
+        }
+      }
+    }
+
     if (rendinst_render_pass != rendinst_render_pass_voxelize_albedo)
     {
       INIT_APPLY_TREE_WIND()
       USE_APPLY_TREE_WIND()
     }
     hlsl(vs) {
-
-      INSTANCING_BUFFERS
 
       struct VsInput
       {
@@ -230,7 +292,7 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split
         VB_PERFORM_INSTANCING
         APPLY_ROTATION_PALETTE
 
-        ##if (is_pivoted == yes)
+        ##if (is_pivoted == yes && rendinst_render_pass != rendinst_render_pass_impostor_color)
           HierarchyData Data = fetchHierarchyData(input.indirectTexcoord, worldLocalX, worldLocalY, worldLocalZ, worldLocalPos);
           float3 currWorldPos, prevWorldPos;
           applyWindAnimationOffset(worldPos, worldNormal, Data, tree_wind_params.x, AnimWindScale, currWorldPos, prevWorldPos, movementAmount);
@@ -258,12 +320,24 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split
         #endif
         ##if rendinst_render_pass != rendinst_render_pass_depth
           #if COLOR_NEEDED
-            output.colorMul = get_random_color(worldLocalPos).xyz;
+            output.colorMul = get_random_color(worldLocalPos, 0).xyz;
+          #endif
+          #if GRASS_COLORING
+            float grassHeight;
+            get_grass_colors(output.landColor, output.maskR, output.maskB, output.maskG0, output.maskG1, grassHeight, worldPos, vbInd);
           #endif
           float3 localEllipsoidNormal = getEllipsoidNormal(localPos, bounding_sphere);
           output.ellipsoidNormal.xyz = normalize(localEllipsoidNormal.x * worldLocalX + localEllipsoidNormal.y * worldLocalY + localEllipsoidNormal.z * worldLocalZ);
           output.localPos.w = movementAmount;
           output.normal = float4(worldNormal.xyz, input.vcol.a);
+          #if GRASS_COLORING
+            float v = saturate((worldPos.y - worldLocalPos.y) / max(grassHeight, 0.01) + 0.1);
+            float ao = lerp(pow(v, grass_ao_curve), 1, grass_ao_max);
+            float dist = distance(worldPos, world_view_pos);
+            float smoothnessfade = 1.0 - saturate((dist - smoothnessfadeParams.x) * smoothnessfadeParams.y);
+            ao = lerp(1, ao, smoothnessfade);
+            output.normal.a *= ao;
+          #endif
         ##endif
         output.pointToEye = pointToEye.xyzz;
 
@@ -279,7 +353,9 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split
 ##if atest == atestOn && rendinst_render_pass != rendinst_render_pass_impostor_color
           float eyeDist = length(pointToEye);
 
-          ##if use_cross_dissolve == on
+          ##if shader == rendinst_grass_alpha_split
+            opacity = saturate(eyeDist * grass_opacity.x + grass_opacity.y);
+          ##elif use_cross_dissolve == on
             opacity = 1 - get_transition_lod_cross_dissolve_opacity(distToInstance, lods_shift_dist_mul);
           ##else
             opacity = saturate(eyeDist * rendinst_opacity.x + rendinst_opacity.y);
@@ -496,7 +572,13 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split
   {
     if (rendinst_render_pass != rendinst_render_pass_depth)
     {
-      if (is_colored == yes && atest == atestOn)
+      if (shader == rendinst_grass_alpha_split)
+      {
+        hlsl {
+          #define GRASS_COLORING 1
+        }
+      }
+      else if (is_colored == yes && atest == atestOn)
       {
         hlsl {
           #define  COLOR_NEEDED 1
@@ -549,7 +631,8 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split
         ##endif
       }
 
-      bool alpha_clip_sep = shader != rendinst_tree_colored && atest == atestOn && (rendinst_render_pass == rendinst_render_pass_depth || in_editor_assume == yes || has_discard_without_prepass == discardOn);
+      bool alpha_clip_sep = shader != rendinst_tree_colored && atest == atestOn
+        && (rendinst_render_pass == rendinst_render_pass_depth || in_editor_assume == yes || has_discard_without_prepass == discardOn);
       VEGETATION_PS(rendinst_render_pass == rendinst_render_pass_depth, atest == atestOn, alpha_clip_sep)
     } else
     {

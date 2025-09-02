@@ -1,7 +1,6 @@
+import "math" as math
+import "string" as string
 from "%darg/ui_imports.nut" import *
-
-let math = require("math")
-let string = require("string")
 const componentsNum = 2000 //amount of components
 const rt_update = true //use realtimeUpdate behaviour
 const rtRecalcLayout = true
@@ -20,7 +19,7 @@ let showChild = []
 
 gui_scene.setUpdateHandler(function(dt) {
   timerFloat += dt
-  timer.update(math.floor(timerFloat).tointeger())
+  timer.set(math.floor(timerFloat).tointeger())
 })
 
 
@@ -31,12 +30,12 @@ function simpleComponent(val){
   function frc() {return (math.rand()*255/math.RAND_MAX).tointeger()}
   let children = []
 
-  if (borders && showChild[val].value) {
+  if (borders && showChild[val].get()) {
     children.append(@() {
-                 //color = Color(rc+timer.value*57,rc+state.timer.value*31,rc+state.timer.value*89)
+                 //color = Color(rc+timer.get()*57,rc+state.timer.get()*31,rc+state.timer.get()*89)
                  //color = Color(frc(),frc(),frc())
-                 borderWidth = [1,1,1,1]
-                 rendObj=ROBJ_FRAME size=[flex(),flex()]
+                 borderWidth = 1
+                 rendObj=ROBJ_FRAME size=flex()
                  behavior = rt_update ? [Behaviors.RtPropUpdate] : null
                  update = @() {
                    color=Color(frc(),frc(),frc())
@@ -44,12 +43,12 @@ function simpleComponent(val){
                  rtRecalcLayout = false
                })
   }
-  if (texts && showChild[val].value) {
+  if (texts && showChild[val].get()) {
     children.append( @() {
                  rendObj=ROBJ_TEXT
-                 //text = string.format("%02d", timer.value%60)
+                 //text = string.format("%02d", timer.get()%60)
                  behavior = rt_update ? [Behaviors.RtPropUpdate] : null
-                 update = @() {text = string.format("%02d", timer.value%60)}
+                 update = @() {text = string.format("%02d", timer.get()%60)}
                  rtRecalcLayout = rtRecalcLayout
                })
    }
@@ -59,13 +58,13 @@ function simpleComponent(val){
     pos = pos
     valign = ALIGN_CENTER
     halign = ALIGN_CENTER
-    color = showChild[val].value ? color : Color(0,0,0)
+    color = showChild[val].get() ? color : Color(0,0,0)
 
     onClick = function() {
-      showChild[val].update(!showChild[val].value)
+      showChild[val].set(!showChild[val].get())
     }
     watch = showChild[val]
-    children = showChild[val].value ? children : null
+    children = showChild[val].get() ? children : null
     rtRecalcLayout = rtRecalcLayout
     behavior =  rt_update ? [Behaviors.RtPropUpdate, Behaviors.Button] : [Behaviors.Button]
     update = @() {
@@ -93,7 +92,7 @@ function benchmark() {
   }
 
   let desc = {
-    size = [flex(),flex()]
+    size = flex()
     flow = flow
     children = children
     cursor = cursors.active

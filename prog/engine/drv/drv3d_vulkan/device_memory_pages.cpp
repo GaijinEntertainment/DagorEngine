@@ -6,6 +6,7 @@
 #include "device_memory_pages.h"
 #include "buffer_resource.h"
 #include "resource_manager.h"
+#include "vulkan_allocation_callbacks.h"
 
 using namespace drv3d_vulkan;
 
@@ -91,21 +92,21 @@ bool DeviceMemoryPage::init(AbstractAllocator *allocator, SubAllocationMethod su
     bci.pNext = NULL;
     bci.flags = 0;
     bci.size = in_size;
-    bci.usage = Buffer::getUsage(vkDev, Globals::Mem::pool.isDeviceLocalMemoryType(allocator->getMemType())
-                                          ? DeviceMemoryClass::DEVICE_RESIDENT_BUFFER
-                                          : DeviceMemoryClass::HOST_RESIDENT_HOST_READ_WRITE_BUFFER);
+    bci.usage = Buffer::getUsage(Globals::Mem::pool.isDeviceLocalMemoryType(allocator->getMemType())
+                                   ? DeviceMemoryClass::DEVICE_RESIDENT_BUFFER
+                                   : DeviceMemoryClass::HOST_RESIDENT_HOST_READ_WRITE_BUFFER);
     bci.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     bci.queueFamilyIndexCount = 0;
     bci.pQueueFamilyIndices = NULL;
-    const VkResult resCode = VULKAN_CHECK_RESULT(vkDev.vkCreateBuffer(vkDev.get(), &bci, NULL, ptr(buffer)));
+    const VkResult resCode = VULKAN_CHECK_RESULT(vkDev.vkCreateBuffer(vkDev.get(), &bci, VKALLOC(buffer), ptr(buffer)));
     if (resCode != VK_SUCCESS)
       return false;
 
-    MemoryRequirementInfo ret = get_memory_requirements(vkDev, buffer);
+    MemoryRequirementInfo ret = get_memory_requirements(buffer);
     correctedSize = ret.requirements.size;
     if (!correctedSize)
     {
-      vkDev.vkDestroyBuffer(vkDev.get(), buffer, nullptr);
+      vkDev.vkDestroyBuffer(vkDev.get(), buffer, VKALLOC(buffer));
       return false;
     }
   }
@@ -123,7 +124,7 @@ bool DeviceMemoryPage::init(AbstractAllocator *allocator, SubAllocationMethod su
     const VkResult resCode = VULKAN_CHECK_RESULT(vkDev.vkBindBufferMemory(vkDev.get(), buffer, mem.memory, 0));
     if (resCode != VK_SUCCESS)
     {
-      vkDev.vkDestroyBuffer(vkDev.get(), buffer, nullptr);
+      vkDev.vkDestroyBuffer(vkDev.get(), buffer, VKALLOC(buffer));
       return false;
     }
   }
@@ -136,7 +137,7 @@ void DeviceMemoryPage::shutdown()
   if (buffer)
   {
     VulkanDevice &vkDev = Globals::VK::dev;
-    vkDev.vkDestroyBuffer(vkDev.get(), buffer, nullptr);
+    vkDev.vkDestroyBuffer(vkDev.get(), buffer, VKALLOC(buffer));
     buffer = VulkanNullHandle();
   }
   Globals::Mem::pool.free(mem);

@@ -11,7 +11,7 @@
 #include <assets/asset.h>
 #include <assets/assetMgr.h>
 
-#include <sepGui/wndPublic.h>
+#include <EditorCore/ec_wndPublic.h>
 #include <propPanel/control/container.h>
 
 #include <3d/dag_materialData.h>
@@ -94,6 +94,8 @@ void MaterialsPlugin::fillShaderParams(PropPanel::ContainerPropertyControl *pane
           break;
 
         case MaterialParamDescr::PT_CUSTOM: addCustom(panel, descr->getName(), _id); break;
+
+        default: break;
       }
     }
   }
@@ -265,6 +267,8 @@ void MaterialsPlugin::onShaderParamChange(int pid, PropPanel::ContainerPropertyC
     case MaterialParamDescr::PT_COMBO: onComboChange(panel, paramIdx, (MatCombo &)param); break;
 
     case MaterialParamDescr::PT_CUSTOM: onCustomChange(panel, paramIdx, (MatCustom &)param); break;
+
+    case MaterialParamDescr::PT_UNKNOWN: break; // to prevent the unhandled switch case error
   }
 
   param.setScript(*curMat);
@@ -329,9 +333,10 @@ void MaterialsPlugin::onTextureChange(PropPanel::ContainerPropertyControl *panel
   SelectAssetDlg dlg(0, &curAsset->getMgr(), "Select texture", "Select texture", "Reset texture", make_span_const(&type, 1));
   dlg.selectObj(curMat->getTexRef(param.getSlot()));
   dlg.setManualModalSizingEnabled();
-  dlg.positionLeftToWindow("Properties", true);
-  int ret = dlg.showDialog();
+  if (!dlg.hasEverBeenShown())
+    dlg.positionLeftToWindow("Properties", true);
 
+  int ret = dlg.showDialog();
   if (ret == PropPanel::DIALOG_ID_CLOSE)
     return;
 

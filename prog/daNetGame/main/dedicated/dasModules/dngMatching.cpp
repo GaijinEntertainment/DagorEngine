@@ -13,6 +13,8 @@ public:
     das::ModuleLibrary lib(this);
     addBuiltinDependency(lib, require("rapidjson"));
 
+    das::addExtern<DAS_BIND_FUN(das_get_session_players)>(*this, lib, "get_session_players", das::SideEffects::accessExternal,
+      "::bind_dascript::das_get_session_players");
     das::addExtern<DAS_BIND_FUN(das_get_mode_info)>(*this, lib, "get_mode_info", das::SideEffects::accessExternal,
       "::bind_dascript::das_get_mode_info");
     das::addExtern<DAS_BIND_FUN(das_get_mode_info_max_player_mult)>(*this, lib, "get_mode_info_max_player_mult",

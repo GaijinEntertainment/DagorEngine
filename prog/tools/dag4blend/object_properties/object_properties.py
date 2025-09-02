@@ -18,6 +18,10 @@ def clear_props(obj):
     for key in props:
         del obj.dagorprops[key]
 
+def update_uniform_scale(self, context):
+    self.scale = [self.uniform_scale]*3
+    return
+
 #func/text
 def text_to_props(obj):
     clear_props(obj)
@@ -356,11 +360,11 @@ classes=[dagorprops,
 def register():
     for cl in classes:
         register_class(cl)
-    bpy.types.Object.dagorprops=PointerProperty(type=dagorprops)
-    bpy.types.Object.dag_sets=PointerProperty(type=dagorprops)
+    bpy.types.Object.dagorprops = PointerProperty(type=dagorprops)
+    bpy.types.Object.uniform_scale = FloatProperty(update = update_uniform_scale)
 
 def unregister():
     for cl in classes:
         unregister_class(cl)
     del bpy.types.Object.dagorprops
-    del bpy.types.Object.dag_sets
+    del bpy.types.Object.uniform_scale

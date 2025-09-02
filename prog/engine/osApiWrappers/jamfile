@@ -66,6 +66,7 @@ if $(Platform) in windows {
   if $(UseGDK) != no {
     Sources +=
       gdk/app.cpp
+      gdk/plm.cpp
       gdk/network.cpp
       gdk/queues.cpp
       gdk/storage.cpp

@@ -18,7 +18,7 @@ MAKE_TYPE_FACTORY(GridHolder, GridHolder);
 namespace bind_dascript
 {
 inline void _builtin_gather_entities_in_grid_box(uint32_t grid_name_hash, const BBox3 &bbox, GridEntCheck check_type,
-  const das::TBlock<void, das::TTemporary<das::TArray<ecs::EntityId>>> &block, das::Context *context, das::LineInfoArg *at)
+  const das::TBlock<void, const das::TTemporary<das::TArray<ecs::EntityId>>> &block, das::Context *context, das::LineInfoArg *at)
 {
   TempGridEntities entities;
   gather_entities_in_grid(grid_name_hash, bbox, check_type, entities);
@@ -34,7 +34,7 @@ inline void _builtin_gather_entities_in_grid_box(uint32_t grid_name_hash, const 
 }
 
 inline void _builtin_gather_entities_in_grid_sphere(uint32_t grid_name_hash, const BSphere3 &bsphere, GridEntCheck check_type,
-  const das::TBlock<void, das::TTemporary<das::TArray<ecs::EntityId>>> &block, das::Context *context, das::LineInfoArg *at)
+  const das::TBlock<void, const das::TTemporary<das::TArray<ecs::EntityId>>> &block, das::Context *context, das::LineInfoArg *at)
 {
   TempGridEntities entities;
   gather_entities_in_grid(grid_name_hash, bsphere, check_type, entities);
@@ -50,7 +50,7 @@ inline void _builtin_gather_entities_in_grid_sphere(uint32_t grid_name_hash, con
 }
 
 inline void _builtin_gather_entities_in_grid_capsule(uint32_t grid_name_hash, const Point3 &from, const Point3 &dir, float len,
-  float radius, GridEntCheck check_type, const das::TBlock<void, das::TTemporary<das::TArray<ecs::EntityId>>> &block,
+  float radius, GridEntCheck check_type, const das::TBlock<void, const das::TTemporary<das::TArray<ecs::EntityId>>> &block,
   das::Context *context, das::LineInfoArg *at)
 {
   TempGridEntities entities;
@@ -67,7 +67,7 @@ inline void _builtin_gather_entities_in_grid_capsule(uint32_t grid_name_hash, co
 }
 
 inline void _builtin_gather_entities_in_grid_tm_box(uint32_t grid_name_hash, const TMatrix &transform, const BBox3 &bbox,
-  GridEntCheck check_type, const das::TBlock<void, das::TTemporary<das::TArray<ecs::EntityId>>> &block, das::Context *context,
+  GridEntCheck check_type, const das::TBlock<void, const das::TTemporary<das::TArray<ecs::EntityId>>> &block, das::Context *context,
   das::LineInfoArg *at)
 {
   TempGridEntities entities;

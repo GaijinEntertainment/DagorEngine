@@ -175,6 +175,7 @@ default_values = {
   'Point2'   : '0.f, 0.f',  
   'Point3'   : '0.f, 0.f, 0.f',  
   'Point4'   : '0.f, 0.f, 0.f, 0.f',  
+  'danet::BitStream' : 'a', # alloc
 }
 
 class MpiMessage:

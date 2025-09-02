@@ -1,7 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <render/daBfg/nodeHandle.h>
+#include <render/daFrameGraph/nodeHandle.h>
 #include <math/dag_math3d.h>
 
 
@@ -24,5 +24,5 @@ private:
   TMatrix fomView;
   Point3 fomViewPos;
 
-  dabfg::NodeHandle fomRenderingNode;
+  dafg::NodeHandle fomRenderingNode;
 };

@@ -3,6 +3,7 @@
 #include <osApiWrappers/dag_atomic.h>
 #include <stdint.h>
 #include <EASTL/unique_ptr.h>
+#include <math/dag_lsbVisitor.h>
 #include "asserts.h"
 
 namespace ecs
@@ -125,8 +126,9 @@ inline void iterate_linked_list(LinkedListNode *head, Cb cb)
   }
 }
 
-template <class Data>
-struct MTLinkedList
+// Has to be created/destructed from main thread (otherwise freeIdsMask needs protection).
+template <class Data, int max_instances = 4>
+class MTLinkedList
 {
   struct Node
   {
@@ -134,23 +136,37 @@ struct MTLinkedList
     Node **pThreadData = nullptr; // pointer to thread_local data
     Node *next = nullptr;
   };
-  Node *next = nullptr;
   Node *head = nullptr; // head
-  static inline thread_local Node *thread_data = nullptr;
+  int instanceId = -1;
+
+  static inline uint32_t freeIdsMask = ~0u;
+
+  // Fixed array, so we don't need a lock for possible reallocations.
+  static inline thread_local Node *threadData[max_instances] = {};
+
+public:
+  MTLinkedList()
+  {
+    instanceId = *LsbVisitor{freeIdsMask}.begin();
+    freeIdsMask &= ~(1u << instanceId);
+    G_ASSERT(instanceId < max_instances);
+  }
+
+  ~MTLinkedList() { freeIdsMask |= 1u << instanceId; }
 
   Data &getData()
   {
-    if (DAGOR_LIKELY(thread_data != nullptr))
-      return thread_data->data;
+    if (DAGOR_LIKELY(threadData[instanceId] != nullptr))
+      return threadData[instanceId]->data;
     return newNode().data;
   }
   DAGOR_NOINLINE
   Node &newNode()
   {
     Node *node = new Node;
-    node->pThreadData = &thread_data;
+    node->pThreadData = &threadData[instanceId];
     mt_add_to_list_no_lock(node, head);
-    thread_data = node;
+    threadData[instanceId] = node;
     return *node;
   }
   void collapseAll()

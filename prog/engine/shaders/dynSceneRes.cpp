@@ -1024,7 +1024,9 @@ void DynamicRenderableSceneLodsResource::loadSkins(IGenLoad &crd, int flags, con
 
 void DynamicRenderableSceneLodsResource::addInstanceRef()
 {
-  if (interlocked_increment(instanceRefCount) > 0)
+  int newRefCount = interlocked_increment(instanceRefCount);
+  G_ASSERT(newRefCount > 0);
+  if (newRefCount == 1)
     acquireTexRefs();
 }
 void DynamicRenderableSceneLodsResource::delInstanceRef()
@@ -1035,9 +1037,8 @@ void DynamicRenderableSceneLodsResource::delInstanceRef()
     releaseTexRefs();
 }
 
-void DynamicRenderableSceneLodsResource::addToCloneLost(const DynamicRenderableSceneLodsResource &from)
+void DynamicRenderableSceneLodsResource::addToCloneList(const DynamicRenderableSceneLodsResource &from)
 {
-  OSSpinlockScopedLock lock(dynres_clones_list_spinlock);
   originalRes = const_cast<DynamicRenderableSceneLodsResource &>(from).getFirstOriginal();
   nextClonedRes = from.nextClonedRes;
   from.nextClonedRes = this;
@@ -1045,6 +1046,8 @@ void DynamicRenderableSceneLodsResource::addToCloneLost(const DynamicRenderableS
 
 DynamicRenderableSceneLodsResource::DynamicRenderableSceneLodsResource(const DynamicRenderableSceneLodsResource &from) //-V730
 {
+  OSSpinlockScopedLock lock(dynres_clones_list_spinlock);
+
   instanceRefCount = 0;
   uint32_t srcPackedFields =
     interlocked_relaxed_load(from.packedFields) & ~((RESERVED_MASK << RESERVED_SHIFT) | (RES_LD_FLG_MASK << RES_LD_FLG_SHIFT));
@@ -1070,7 +1073,7 @@ DynamicRenderableSceneLodsResource::DynamicRenderableSceneLodsResource(const Dyn
       lods[i].scene->addRef();
     }
 
-  addToCloneLost(from);
+  addToCloneList(from);
 }
 
 DynamicRenderableSceneLodsResource *DynamicRenderableSceneLodsResource::clone() const
@@ -1083,6 +1086,8 @@ DynamicRenderableSceneLodsResource *DynamicRenderableSceneLodsResource::clone() 
 
 void DynamicRenderableSceneLodsResource::clearData()
 {
+  OSSpinlockScopedLock lock(dynres_clones_list_spinlock);
+
   for (int i = 0; i < lods.size(); i++)
     lods[i].scene->delRef();
   lods.init(NULL, 0);
@@ -1092,7 +1097,6 @@ void DynamicRenderableSceneLodsResource::clearData()
   {
     Ptr<DynamicRenderableSceneLodsResource> tmp_holder = originalRes;
 
-    dynres_clones_list_spinlock.lock();
     for (DynamicRenderableSceneLodsResource *r = originalRes; r; r = r->nextClonedRes)
       if (r->nextClonedRes == this)
       {
@@ -1101,17 +1105,14 @@ void DynamicRenderableSceneLodsResource::clearData()
       }
     originalRes = nullptr;
     nextClonedRes = nullptr;
-    dynres_clones_list_spinlock.unlock();
   }
   else if (getRefCount() > 0) // expect nextClonedRes == nullptr when refCount is suitable for destruction, so code under branch shall
                               // not be called
   {
     Ptr<DynamicRenderableSceneLodsResource> tmp_holder = this;
 
-    dynres_clones_list_spinlock.lock();
     for (DynamicRenderableSceneLodsResource *r = nextClonedRes; r; r = r->nextClonedRes)
       r->originalRes = nextClonedRes;
-    dynres_clones_list_spinlock.unlock();
   }
   G_ASSERT(!originalRes && !nextClonedRes);
 }
@@ -1200,7 +1201,6 @@ DynamicRenderableSceneInstance::DynamicRenderableSceneInstance(DynamicRenderable
   originPrev(0, 0, 0),
   uniqueId(interlocked_increment(dynres_unique_id_gen))
 {
-
   G_ASSERT(lods);
   if (activate_instance)
     activateInstance();
@@ -1268,19 +1268,15 @@ void DynamicRenderableSceneInstance::activateInstance(bool a)
   dynres_activate_instance_spinlock.unlock();
 }
 
-DynamicRenderableSceneLodsResource *DynamicRenderableSceneInstance::cloneLodsResource()
+void DynamicRenderableSceneInstance::changeLodsResource(DynamicRenderableSceneLodsResource *new_lods)
 {
-  if (lods)
+  if (instanceActive)
   {
-    DynamicRenderableSceneLodsResource *newLods = lods->clone();
-    if (instanceActive)
-    {
-      lods->delInstanceRef();
-      newLods->addInstanceRef();
-    }
-    lods = newLods;
+    G_ASSERTF_RETURN(lods && new_lods, , "lods=%p -> new_lods=%p while instance active!", lods, new_lods);
+    new_lods->addInstanceRef();
+    lods->delInstanceRef();
   }
-  return lods;
+  lods = new_lods;
 }
 
 int DynamicRenderableSceneInstance::getNodeId(const char *name) const

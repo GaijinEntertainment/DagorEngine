@@ -34,6 +34,9 @@ extern const int MAX_STRING_LENGTH;
 
 namespace net
 {
+
+ecs::EntityManager *get_network_manager() { return g_entity_mgr.get(); }
+
 #if DAGOR_DBGLEVEL > 0
 #define DAS_EVENT_STAT_ENABLED 1
 struct DasEventStat
@@ -77,7 +80,7 @@ void dump_das_event_stat(DasEventStats &dasEventStats, const char *prefix)
   {
     totalBytes += rec.bytes;
     totalPackets += rec.packets;
-    const auto name = g_entity_mgr->getEventsDb().findEventName(rec.type);
+    const auto name = get_network_manager()->getEventsDb().findEventName(rec.type);
     maxNameLen = eastl::max(strlen(name), maxNameLen);
   }
   eastl::sort(dasEventStats.begin(), dasEventStats.end(),
@@ -90,9 +93,9 @@ void dump_das_event_stat(DasEventStats &dasEventStats, const char *prefix)
   {
     const DasEventStat &r = dasEventStats[i];
     const size_t ebytes = r.bytes;
-    debug("  #%2d %*s %4u %4u %5u %7u(%5.2f%%) %7u(%5.2f%%)", i + 1, maxNameLen, g_entity_mgr->getEventsDb().findEventName(r.type),
-      ebytes / r.packets, r.minBytes, r.maxBytes, ebytes >> 10, double(ebytes) / totalBytes * 100., r.packets,
-      double(r.packets) / totalPackets * 100.);
+    debug("  #%2d %*s %4u %4u %5u %7u(%5.2f%%) %7u(%5.2f%%)", i + 1, maxNameLen,
+      get_network_manager()->getEventsDb().findEventName(r.type), ebytes / r.packets, r.minBytes, r.maxBytes, ebytes >> 10,
+      double(ebytes) / totalBytes * 100., r.packets, double(r.packets) / totalPackets * 100.);
   }
 }
 
@@ -168,7 +171,7 @@ static bind_dascript::DasEvent *deserialize_das_event(const danet::BitStream &bs
   if (remoteEventErrors != remoteEventWithError.end() && remoteEventErrors->second.test(connectionId))
     return nullptr; // error was already shown, just ignore this event
 
-  const ecs::EventsDB::event_id_t eventId = g_entity_mgr->getEventsDb().findEvent(eventType);
+  const ecs::EventsDB::event_id_t eventId = get_network_manager()->getEventsDb().findEvent(eventType);
   if (DAGOR_UNLIKELY(eventId == ecs::EventsDB::invalid_event_id))
   {
     remoteEventWithError[eventType].set(connectionId);
@@ -177,23 +180,23 @@ static bind_dascript::DasEvent *deserialize_das_event(const danet::BitStream &bs
     return nullptr;
   }
 
-  const ecs::EventsDB::event_scheme_hash_t schemeHash = g_entity_mgr->getEventsDb().getEventSchemeHash(eventId);
+  const ecs::EventsDB::event_scheme_hash_t schemeHash = get_network_manager()->getEventsDb().getEventSchemeHash(eventId);
   if (DAGOR_UNLIKELY(schemeHash == ecs::EventsDB::invalid_event_scheme_hash))
   {
     remoteEventWithError[eventType].set(connectionId);
     logmessage(get_dasevent_error_level(eventType), "das_net: no scheme to deserialize event '%s' <0x%X>",
-      g_entity_mgr->getEventsDb().getEventName(eventId), eventType);
+      get_network_manager()->getEventsDb().getEventName(eventId), eventType);
     return nullptr;
   }
 
-  const ecs::event_scheme_t &scheme = g_entity_mgr->getEventsDb().getEventScheme(eventId);
-  const ecs::event_size_t eventSize = g_entity_mgr->getEventsDb().getEventSize(eventId);
+  const ecs::event_scheme_t &scheme = get_network_manager()->getEventsDb().getEventScheme(eventId);
+  const ecs::event_size_t eventSize = get_network_manager()->getEventsDb().getEventSize(eventId);
 
   char *data = eventSize <= buf_size ? buf : (char *)framemem_ptr()->alloc(eventSize);
   const uint8_t *offsets = scheme.get<uint8_t>();
   const ecs::component_type_t *types = scheme.get<ecs::component_type_t>();
 
-  net::BitstreamDeserializer deserializer(*g_entity_mgr, bs);
+  net::BitstreamDeserializer deserializer(*get_network_manager(), bs);
   for (int i = 0, n = (int)scheme.size(); i < n; ++i)
   {
     if (types[i] == ecs::ComponentTypeInfo<ecs::string>::type)
@@ -206,7 +209,7 @@ static bind_dascript::DasEvent *deserialize_das_event(const danet::BitStream &bs
     else if (types[i] == ecs::ComponentTypeInfo<ecs::Object>::type)
     {
       ecs::Object *obj = new ecs::Object();
-      ecs::deserialize_component_typeless(obj, types[i], deserializer, *g_entity_mgr);
+      ecs::deserialize_component_typeless(obj, types[i], deserializer, *get_network_manager());
       obj->addMember("fromconnid", connectionId);
       *(ecs::Object **)(data + offsets[i]) = obj;
     }
@@ -217,23 +220,23 @@ static bind_dascript::DasEvent *deserialize_das_event(const danet::BitStream &bs
       *(danet::BitStream **)(data + offsets[i]) = stream;
     }
 
-#define DECL_LIST_TYPE(t, tn)                                                        \
-  else if (types[i] == ecs::ComponentTypeInfo<t>::type)                              \
-  {                                                                                  \
-    t *obj = new t();                                                                \
-    ecs::deserialize_component_typeless(obj, types[i], deserializer, *g_entity_mgr); \
-    *(t **)(data + offsets[i]) = obj;                                                \
+#define DECL_LIST_TYPE(t, tn)                                                                 \
+  else if (types[i] == ecs::ComponentTypeInfo<t>::type)                                       \
+  {                                                                                           \
+    t *obj = new t();                                                                         \
+    ecs::deserialize_component_typeless(obj, types[i], deserializer, *get_network_manager()); \
+    *(t **)(data + offsets[i]) = obj;                                                         \
   }
 
     DAS_EVENT_ECS_CONT_LIST_TYPES
 #undef DECL_LIST_TYPE
     else
     {
-      ecs::deserialize_component_typeless(data + offsets[i], types[i], deserializer, *g_entity_mgr);
+      ecs::deserialize_component_typeless(data + offsets[i], types[i], deserializer, *get_network_manager());
     }
   }
   bind_dascript::DasEvent *res = (bind_dascript::DasEvent *)data;
-  const ecs::event_flags_t flags = g_entity_mgr->getEventsDb().getEventFlags(eventId);
+  const ecs::event_flags_t flags = get_network_manager()->getEventsDb().getEventFlags(eventId);
   res->set(eventType, eventSize, flags);
   return res;
 }
@@ -241,26 +244,26 @@ static bind_dascript::DasEvent *deserialize_das_event(const danet::BitStream &bs
 static bool serialize_das_event(ecs::Event &evt, danet::BitStream &bs)
 {
   const ecs::event_type_t eventType = evt.getType();
-  const auto eventId = g_entity_mgr->getEventsDb().findEvent(eventType);
+  const auto eventId = get_network_manager()->getEventsDb().findEvent(eventType);
   if (DAGOR_UNLIKELY(eventId == ecs::EventsDB::invalid_event_id))
   {
     logwarn("das_net: unknown event type <0x%X>", eventType);
     return false;
   }
-  const ecs::EventsDB::event_scheme_hash_t schemeHash = g_entity_mgr->getEventsDb().getEventSchemeHash(eventId);
+  const ecs::EventsDB::event_scheme_hash_t schemeHash = get_network_manager()->getEventsDb().getEventSchemeHash(eventId);
   if (DAGOR_UNLIKELY(schemeHash == ecs::EventsDB::invalid_event_scheme_hash))
   {
     logwarn("das_net: no event <0x%X> scheme to serialize event", eventType);
     return false;
   }
-  const ecs::event_scheme_t &scheme = g_entity_mgr->getEventsDb().getEventScheme(eventId);
+  const ecs::event_scheme_t &scheme = get_network_manager()->getEventsDb().getEventScheme(eventId);
 
   bs.Write(eventType);
 
   const uint8_t *offsets = scheme.get<uint8_t>();
   const ecs::component_type_t *types = scheme.get<ecs::component_type_t>();
 
-  net::BitstreamSerializer serializer(*g_entity_mgr, bs);
+  net::BitstreamSerializer serializer(*get_network_manager(), bs);
   char *data = (char *)&evt;
   for (int i = 0, n = (int)scheme.size(); i < n; ++i)
   {
@@ -280,18 +283,18 @@ static bool serialize_das_event(ecs::Event &evt, danet::BitStream &bs)
       continue;
     }
 
-#define DECL_LIST_TYPE(t, tn)                                                               \
-  if (types[i] == ecs::ComponentTypeInfo<t>::type)                                          \
-  {                                                                                         \
-    t *obj = *(t **)(data + offsets[i]);                                                    \
-    ecs::serialize_entity_component_ref_typeless(obj, types[i], serializer, *g_entity_mgr); \
-    continue;                                                                               \
+#define DECL_LIST_TYPE(t, tn)                                                                        \
+  if (types[i] == ecs::ComponentTypeInfo<t>::type)                                                   \
+  {                                                                                                  \
+    t *obj = *(t **)(data + offsets[i]);                                                             \
+    ecs::serialize_entity_component_ref_typeless(obj, types[i], serializer, *get_network_manager()); \
+    continue;                                                                                        \
   }
 
     DAS_EVENT_ECS_CONT_TYPES
 #undef DECL_LIST_TYPE
 
-    ecs::serialize_entity_component_ref_typeless(data + offsets[i], types[i], serializer, *g_entity_mgr);
+    ecs::serialize_entity_component_ref_typeless(data + offsets[i], types[i], serializer, *get_network_manager());
   }
   return true;
 }
@@ -311,7 +314,7 @@ void send_dasevent(ecs::EntityManager *mgr, bool broadcast, const ecs::EntityId 
   if (has_network())
   {
     const ecs::event_type_t eventType = evt->getType();
-    const ecs::EventsDB::event_id_t eventId = g_entity_mgr->getEventsDb().findEvent(eventType);
+    const ecs::EventsDB::event_id_t eventId = get_network_manager()->getEventsDb().findEvent(eventType);
     if (DAGOR_UNLIKELY(eventId == ecs::EventsDB::invalid_event_id))
     {
       logerr("das_net: unregistered event '%s' <0x%X>", evt->getName(), eventType);
@@ -388,7 +391,7 @@ void send_dasevent(ecs::EntityManager *mgr, bool broadcast, const ecs::EntityId 
       }
       else // if (eventDesc->second.routing == net::ROUTING_CLIENT_CONTROLLED_ENTITY_TO_SERVER)
       {
-        auto robj = g_entity_mgr->getNullable<net::Object>(eid, ECS_HASH("replication"));
+        auto robj = get_network_manager()->getNullable<net::Object>(eid, ECS_HASH("replication"));
         if (!robj || robj->getControlledBy() == SERVER_CONN_ID)
         {
           if (serialize_das_event(*evt, bs))
@@ -430,7 +433,7 @@ static void base_das_event_msg_handler(const EventName *msg, CB send_event)
     TRACE_RX_DAS_EVENT_STAT(evt->getType(), bs);
     send_event((ecs::Event &)*evt);
     if (DAGOR_UNLIKELY(evt->getFlags() & ecs::EVFLG_DESTROY)) // we have to do it, as it can be that there is immediate strategy.
-      g_entity_mgr->getEventsDb().destroy(*evt);
+      get_network_manager()->getEventsDb().destroy(*get_network_manager(), *evt);
     if ((char *)evt != buf)
       framemem_ptr()->free(evt);
   }
@@ -439,13 +442,13 @@ static void base_das_event_msg_handler(const EventName *msg, CB send_event)
 template <class EventName>
 static void broadcast_das_event_msg_handler(const net::IMessage *msg_)
 {
-  base_das_event_msg_handler(msg_->cast<EventName>(), [](ecs::Event &evt) { g_entity_mgr->broadcastEvent(evt); });
+  base_das_event_msg_handler(msg_->cast<EventName>(), [](ecs::Event &evt) { get_network_manager()->broadcastEvent(evt); });
 }
 
 template <class EventName>
 static void unicast_das_event_msg_handler(const ecs::EntityId &eid, const EventName *msg_)
 {
-  base_das_event_msg_handler(msg_, [&](ecs::Event &evt) { g_entity_mgr->sendEvent(eid, evt); });
+  base_das_event_msg_handler(msg_, [&](ecs::Event &evt) { get_network_manager()->sendEvent(eid, evt); });
 }
 
 
@@ -461,7 +464,7 @@ static void base_client_das_event_msg_handler(const EventName *msg, CB send_even
     TRACE_RX_DAS_EVENT_STAT(evt->getType(), bs);
     send_event((ecs::Event &)*evt);
     if (DAGOR_UNLIKELY(evt->getFlags() & ecs::EVFLG_DESTROY)) // we have to do it, as it can be that there is immediate strategy.
-      g_entity_mgr->getEventsDb().destroy(*evt);
+      get_network_manager()->getEventsDb().destroy(*get_network_manager(), *evt);
     if ((char *)evt != buf)
       framemem_ptr()->free(evt);
   }
@@ -470,13 +473,13 @@ static void base_client_das_event_msg_handler(const EventName *msg, CB send_even
 template <class EventName>
 static void broadcast_client_das_event_msg_handler(const net::IMessage *msg_)
 {
-  base_client_das_event_msg_handler(msg_->cast<EventName>(), [](ecs::Event &evt) { g_entity_mgr->broadcastEvent(evt); });
+  base_client_das_event_msg_handler(msg_->cast<EventName>(), [](ecs::Event &evt) { get_network_manager()->broadcastEvent(evt); });
 }
 
 template <class EventName>
 static void unicast_client_das_event_msg_handler(const ecs::EntityId &eid, const EventName *msg_)
 {
-  base_client_das_event_msg_handler(msg_, [&](ecs::Event &evt) { g_entity_mgr->sendEvent(eid, evt); });
+  base_client_das_event_msg_handler(msg_, [&](ecs::Event &evt) { get_network_manager()->sendEvent(eid, evt); });
 }
 
 template <class EventName, typename CB>
@@ -491,7 +494,7 @@ static void base_client_controlled_das_event_msg_handler(const EventName *msg, C
     TRACE_RX_DAS_EVENT_STAT(evt->getType(), bs);
     send_event((ecs::Event &)*evt);
     if (DAGOR_UNLIKELY(evt->getFlags() & ecs::EVFLG_DESTROY)) // we have to do it, as it can be that there is immediate strategy.
-      g_entity_mgr->getEventsDb().destroy(*evt);
+      get_network_manager()->getEventsDb().destroy(*get_network_manager(), *evt);
     if ((char *)evt != buf)
       framemem_ptr()->free(evt);
   }
@@ -500,13 +503,14 @@ static void base_client_controlled_das_event_msg_handler(const EventName *msg, C
 template <class EventName>
 static void broadcast_client_controlled_das_event_msg_handler(const net::IMessage *msg_)
 {
-  base_client_controlled_das_event_msg_handler(msg_->cast<EventName>(), [](ecs::Event &evt) { g_entity_mgr->broadcastEvent(evt); });
+  base_client_controlled_das_event_msg_handler(msg_->cast<EventName>(),
+    [](ecs::Event &evt) { get_network_manager()->broadcastEvent(evt); });
 }
 
 template <class EventName>
 static void unicast_client_controlled_das_event_msg_handler(const ecs::EntityId &eid, const EventName *msg_)
 {
-  base_client_controlled_das_event_msg_handler(msg_, [&](ecs::Event &evt) { g_entity_mgr->sendEvent(eid, evt); });
+  base_client_controlled_das_event_msg_handler(msg_, [&](ecs::Event &evt) { get_network_manager()->sendEvent(eid, evt); });
 }
 
 static void das_event_handshake_msg_handler(const net::IMessage *msg_)
@@ -514,7 +518,7 @@ static void das_event_handshake_msg_handler(const net::IMessage *msg_)
   auto msg = msg_->cast<DasEventHandshakeMsg>();
   G_ASSERT(msg);
   const uint32_t clientVersion = msg->get<0>();
-  const uint32_t serverVersion = bind_dascript::lock_dasevent_net_version();
+  const uint32_t serverVersion = bind_dascript::lock_dasevent_net_version(*get_network_manager()); // ecs network manager
   if (clientVersion == serverVersion)
   {
     debug("das_net: client #%d has correct dasevents version protocol 0x%x", (int)msg_->connection->getId(), serverVersion);
@@ -572,17 +576,21 @@ static void global_unicast_dasevent_es_event_handler(const ecs::EventNetMessage 
 }
 
 ECS_TAG(netClient)
-static void invalidate_dasevents_cache_on_connect_to_server_es_event_handler(const EventOnConnectedToServer &)
+static void invalidate_dasevents_cache_on_connect_to_server_es_event_handler(const EventOnConnectedToServer &,
+  ecs::EntityManager &manager)
 {
-  const uint32_t netVersion = bind_dascript::lock_dasevent_net_version();
+  G_ASSERT(net::get_network_manager() == &manager);
+  const uint32_t netVersion = bind_dascript::lock_dasevent_net_version(manager);
   debug("das_net: we just connected to server. Lock dasevents registration. Send net version 0x%X", netVersion);
   net::invalidate_das_events_gen("connected gen");
   DasEventHandshakeMsg evMsg(netVersion);
   send_net_msg(net::get_msg_sink(), eastl::move(evMsg));
 }
 
-static void invalidate_dasevents_on_network_destroyed_es_event_handler(const EventOnNetworkDestroyed &)
+static void invalidate_dasevents_on_network_destroyed_es_event_handler(const EventOnNetworkDestroyed &, ecs::EntityManager &manager)
 {
+  G_UNUSED(manager);
+  G_ASSERT(net::get_network_manager() == &manager);
   debug("das_net: we just destroyed network. Invalidate cache, unlock dasevents registration");
   bind_dascript::unlock_dasevent_net_version();
   net::invalidate_das_events_now("network destroy");
@@ -590,8 +598,11 @@ static void invalidate_dasevents_on_network_destroyed_es_event_handler(const Eve
 }
 
 ECS_TAG(server)
-static void invalidate_dasevents_cache_on_client_change_es_event_handler(const EventOnClientConnected &evt)
+static void invalidate_dasevents_cache_on_client_change_es_event_handler(const EventOnClientConnected &evt,
+  ecs::EntityManager &manager)
 {
+  G_UNUSED(manager);
+  G_ASSERT(net::get_network_manager() == &manager);
   const int connId = evt.get<0>();
   if (connId != net::INVALID_CONNECTION_ID)
   {

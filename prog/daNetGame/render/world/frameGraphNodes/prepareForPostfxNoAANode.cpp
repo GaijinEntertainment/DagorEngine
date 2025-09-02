@@ -4,8 +4,8 @@
 
 #include "frameGraphNodes.h"
 
-dabfg::NodeHandle makePrepareForPostfxNoAANode()
+dafg::NodeHandle makePrepareForPostfxNoAANode()
 {
-  return dabfg::register_node("prepare_for_postfx", DABFG_PP_NODE_SRC,
-    [](dabfg::Registry registry) { registry.renameTexture("final_target_with_motion_blur", "frame_after_aa", dabfg::History::No); });
+  return dafg::register_node("prepare_for_postfx", DAFG_PP_NODE_SRC,
+    [](dafg::Registry registry) { registry.renameTexture("final_target_with_motion_blur", "frame_after_aa", dafg::History::No); });
 }

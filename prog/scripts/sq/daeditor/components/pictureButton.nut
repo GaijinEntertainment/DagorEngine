@@ -1,7 +1,7 @@
+from "string" import endswith
 from "%darg/ui_imports.nut" import *
-let {colors} = require("style.nut")
+let { colors } = require("style.nut")
 let cursors = require("cursors.nut")
-let {endswith} = require("string")
 
 let defSize = [hdpx(21), hdpx(21)]
 
@@ -39,9 +39,9 @@ function pictureButton(params) {
   let stateFlags = Watched(0)
 
   return function() {
-    let color = (params?.checked || (stateFlags.value & S_ACTIVE))
+    let color = (params?.checked || (stateFlags.get() & S_ACTIVE))
                   ? colors.Active
-                  : (stateFlags.value & S_HOVER)
+                  : (stateFlags.get() & S_HOVER)
                       ? colors.Hover
                       : params?.styles?.defColor ?? Color(130,130,130,250)
 
@@ -57,7 +57,7 @@ function pictureButton(params) {
 
       children = picCmp(params)
       onClick = params?.action
-      onElemState = @(sf) stateFlags.update(sf)
+      onElemState = @(sf) stateFlags.set(sf)
     }
   }
 }

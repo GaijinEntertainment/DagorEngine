@@ -8,7 +8,7 @@ namespace resource_slot
 {
 /** Perform all registered access and set NodeHandles.
  *
- * MUST be executed in every frame before dabfg::run_nodes()
+ * MUST be executed in every frame before dafg::run_nodes()
  *
  * \param storage_id RESERVED for future use
  */

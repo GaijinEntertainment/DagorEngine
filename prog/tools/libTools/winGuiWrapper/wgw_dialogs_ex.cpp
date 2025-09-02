@@ -19,7 +19,8 @@ void init()
   if (_is_init)
     return;
 
-  G_ASSERT((CoInitialize(NULL) != S_OK) && "p2dlg ERROR: COM not initialized!");
+  const HRESULT result = CoInitialize(nullptr);
+  G_ASSERT_LOG(result == S_OK || result == S_FALSE, "wingw::init ERROR: COM not initialized!");
 
   _is_init = true;
 }

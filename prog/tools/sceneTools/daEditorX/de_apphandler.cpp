@@ -3,13 +3,15 @@
 #include "de_apphandler.h"
 #include "de_plugindata.h"
 #include <oldEditor/de_cm.h>
-#include <sepGui/wndGlobal.h>
+#include <EditorCore/ec_wndGlobal.h>
 #include <libTools/util/strUtil.h>
+#include <assets/texAssetBuilderTextureFactory.h>
 
 #include <gui/dag_stdGuiRenderEx.h>
 #include <3d/dag_render.h>
 #include <render/dag_cur_view.h>
 #include <math/dag_mathAng.h>
+#include <perfMon/dag_perfTimer.h>
 
 #include <debug/dag_debug.h>
 
@@ -42,6 +44,38 @@ DagorEdAppEventHandler::~DagorEdAppEventHandler()
 void DagorEdAppEventHandler::handleViewportPaint(IGenViewportWnd *wnd)
 {
   using hdpi::_pxS;
+
+  AsyncTextureLoadingState ld_state;
+  static int64_t ld_reft = 0;
+  if (texconvcache::get_tex_factory_current_loading_state(ld_state) && //
+      (ld_state.pendingLdTotal > 0 || (ld_reft && get_time_usec(ld_reft) < 3000000)))
+  {
+    using hdpi::_px;
+    hdpi::Px rx, ry;
+    static_cast<ViewportWindow *>(wnd)->getMenuAreaSize(rx, ry);
+
+    String text;
+    if (ld_state.pendingLdTotal > 0)
+    {
+      const unsigned *c = ld_state.pendingLdCount;
+      text.printf(0, "Loading textures: %d pending [%d %s], %d tex loaded, %d tex updated", //
+        ld_state.pendingLdTotal, c[0] ? c[0] : (c[1] ? c[1] : (c[2] ? c[2] : c[3])),
+        c[0] ? "TQ" : (c[1] ? "BQ" : (c[2] ? "HQ" : "UHQ")), ld_state.totalLoadedCount, ld_state.totalCacheUpdated);
+      ld_reft = ref_time_ticks();
+    }
+    else
+      text.printf(0, "All textures loaded: %d tex (%dK read), updated %d tex", //
+        ld_state.totalLoadedCount, ld_state.totalLoadedSizeKb, ld_state.totalCacheUpdated);
+
+    StdGuiRender::set_font(0);
+    Point2 ts = StdGuiRender::get_str_bbox(text).size();
+
+    StdGuiRender::set_color(ld_state.pendingLdTotal > 0 ? COLOR_RED : COLOR_GREEN);
+    StdGuiRender::render_box(_px(rx), 0, _px(rx) + ts.x + _pxS(6), _px(ry));
+
+    StdGuiRender::set_color(COLOR_WHITE);
+    StdGuiRender::draw_strf_to(_px(rx) + _pxS(3), _pxS(17), text);
+  }
 
   if (compass_tid == BAD_TEXTUREID)
   {

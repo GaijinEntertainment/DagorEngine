@@ -22,6 +22,12 @@
 #define MEMEXP3 extern "C"
 #endif
 
+#ifdef _CRT_NOEXCEPT
+#define MEMEXP_NOEXCEPT _CRT_NOEXCEPT
+#else
+#define MEMEXP_NOEXCEPT
+#endif
+
 MEMEXP void *__cdecl malloc(size_t sz)
 {
   real_init_memory();
@@ -56,7 +62,7 @@ MEMEXP2 void __cdecl free(void *ptr)
   mt_dlfree_crt(ptr);
 }
 MEMEXP3 size_t __cdecl _msize(void *ptr) { return dlmalloc_usable_size(ptr); }
-MEMEXP3 size_t __cdecl _msize_base(void *ptr) { return _msize(ptr); }
+MEMEXP3 size_t __cdecl _msize_base(void *ptr) MEMEXP_NOEXCEPT { return _msize(ptr); }
 
 #if MEM_DEBUGALLOC <= 0
 MEMEXP void *__cdecl _aligned_malloc(size_t sz, size_t al) { return mt_dlmemalign(sz, al); }

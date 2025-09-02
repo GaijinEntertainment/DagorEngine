@@ -1,0 +1,89 @@
+include "gbuffer.dshl"
+include "paint_details_inc.dshl"
+
+////// intervals
+
+int rendinst_use_cell_sbuffer = 0 always_referenced;
+interval rendinst_use_cell_sbuffer: off < 1, on;
+
+int rendinst_render_type = 0;
+interval rendinst_render_type : mixed < 1, ri_ex_only;
+
+////// variables block
+
+buffer perDrawInstanceData;
+buffer impostor_data_buffer;
+buffer ri_gen_multidraw_perDrawArgsBuffer;
+
+int rendinst_perinst_buff_no = 6 always_referenced;  // perinst
+int rendinst_instance_buff_no = 5 always_referenced; // instance_cb
+int per_instance_data_no = 14 always_referenced;
+
+float4 impostor_shadow_x = (0,0,0,0);
+float4 impostor_shadow_y = (0,0,0,0);
+float4 impostor_shadow_z = (0,0,0,0);
+texture impostor_shadow;
+
+float tree_wind_branch_amp = 0.5;
+float tree_wind_detail_amp = 0.5;
+float tree_wind_speed = 0.1;
+
+float tess_quality = 75;
+
+float lods_shift_dist_mul = 1.0;
+
+float4 camera_base_offset = (0, 0, 0, 0);
+float4 prev_camera_base_offset = (0, 0, 0, 0);
+
+////// macro
+
+macro INIT_RENDINST_IMPOSTOR_SHADOW()
+  (ps) {
+    impostor_shadow_x@f4 = impostor_shadow_x;
+    impostor_shadow_y@f4 = impostor_shadow_y;
+    impostor_shadow_z@f4 = impostor_shadow_z;
+  }
+endmacro
+
+macro USE_TRANSITION_CROSS_DISSOLVE()
+  static int use_cross_dissolve = 0;
+  interval use_cross_dissolve : off < 1, on;
+
+  if (use_cross_dissolve == on)
+  {
+    static float cross_dissolve_mul = 0;
+    static float cross_dissolve_add = 0;
+    (vs) { cross_dissolve_mul_add@f2 = (cross_dissolve_mul, cross_dissolve_add, 0, 0); }
+
+    hlsl(vs)
+    {
+      float get_transition_lod_cross_dissolve_opacity(float distance, float dist_shift)
+      {
+        float2 mul_add = get_cross_dissolve_mul_add();
+        return saturate(distance * dist_shift * mul_add.x + mul_add.y);
+      }
+      #define CROSS_DISSOLVE_VS
+    }
+    hlsl(ps)
+    {
+      #define CROSS_DISSOLVE_PS
+    }
+  }
+endmacro
+
+////// compile
+
+macro COMPILE_RI_VS_TARGET_WITH_TESSELLATION(entry, use_tessellation)
+  if (use_tessellation)
+  {
+    compile("target_vs_for_tess", entry);
+  }
+  else
+  {
+    compile("target_vs", entry);
+  }
+endmacro
+
+macro COMPILE_RI_VS_TARGET(entry)
+  COMPILE_RI_VS_TARGET_WITH_TESSELLATION(entry, false)
+endmacro

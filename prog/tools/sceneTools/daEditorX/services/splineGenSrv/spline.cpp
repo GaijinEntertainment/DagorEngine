@@ -342,7 +342,7 @@ public:
     //   debug("%p.genPart %p: %d,%d (%s)", e, gp.e, gp.startIdx, gp.endIdx, sd->ptAttr[gp.startIdx].splineClass->getName());
     return e;
   }
-  virtual bool saveSplineTo(DataBlock &out_blk) const
+  bool saveSplineTo(DataBlock &out_blk) const override
   {
     if (!sd)
       return false;

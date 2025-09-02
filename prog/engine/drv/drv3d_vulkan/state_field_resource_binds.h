@@ -3,14 +3,12 @@
 
 // fields that define resource bindings
 
-#include <drv/3d/rayTrace/dag_drvRayTrace.h> // for D3D_HAS_RAY_TRACING
-
 #include "util/tracked_state.h"
 #include "driver.h"
 #include "sampler_resource.h"
 #include "image_view_state.h"
 #include "buffer_ref.h"
-#include "util/tracked_state.h"
+#include "immediate_const_buffer.h"
 
 class BaseTexture;
 class Sbuffer;
@@ -23,7 +21,7 @@ struct BaseTex;
 class SBuffer;
 class Image;
 class Buffer;
-#if D3D_HAS_RAY_TRACING
+#if VULKAN_HAS_RAYTRACING
 class RaytraceAccelerationStructure;
 #endif
 
@@ -45,7 +43,7 @@ struct TRegister
   {
     ImgBind img;
     BufferRef buf;
-#if D3D_HAS_RAY_TRACING
+#if VULKAN_HAS_RAYTRACING
     RaytraceAccelerationStructure *rtas;
 #endif
   };
@@ -64,11 +62,11 @@ struct TRegister
 
   TRegister(Sbuffer *sb);
   TRegister(BaseTex *in_texture);
-#if D3D_HAS_RAY_TRACING
+#if VULKAN_HAS_RAYTRACING
   TRegister(RaytraceAccelerationStructure *in_as);
 #endif
 
-  TRegister() : type(TYPE_NULL){};
+  TRegister() : type(TYPE_NULL) {}
 };
 
 #ifdef _MSC_VER
@@ -85,7 +83,7 @@ inline bool operator!=(const TRegister &l, const TRegister &r)
   {
     case TRegister::TYPE_IMG: return (l.img.ptr != r.img.ptr) || (l.img.view != r.img.view);
     case TRegister::TYPE_BUF: return (l.buf != r.buf);
-#if D3D_HAS_RAY_TRACING
+#if VULKAN_HAS_RAYTRACING
     case TRegister::TYPE_AS: return (l.rtas != r.rtas);
 #endif
     default: return false;
@@ -123,23 +121,10 @@ inline bool operator!=(const URegister &l, const URegister &r)
 
 struct SRegister
 {
-  union
-  {
-    SamplerState state;
-    const SamplerResource *resPtr;
-  };
+  const SamplerResource *resPtr;
 
-  enum
-  {
-    TYPE_NULL = 0,
-    TYPE_RES = 1,
-    TYPE_STATE = 2
-  };
-  uint8_t type : 2;
-
-  SRegister() : type(TYPE_NULL) {}
-  SRegister(const SamplerResource *val) : type(TYPE_RES) { resPtr = val; }
-  SRegister(SamplerState val) : type(TYPE_STATE) { state = val; }
+  SRegister() : resPtr(nullptr) {}
+  SRegister(const SamplerResource *val) : resPtr(val) {}
 };
 
 #ifdef _MSC_VER
@@ -147,21 +132,7 @@ struct SRegister
 #pragma warning(pop)
 #endif
 
-inline bool operator!=(const SRegister &l, const SRegister &r)
-{
-  if (l.type != r.type)
-    return true;
-
-  if (l.type == SRegister::TYPE_NULL)
-    return false;
-  else if (l.type == SRegister::TYPE_RES)
-    return l.resPtr != r.resPtr;
-  else if (l.type == SRegister::TYPE_STATE)
-    return !(l.state == r.state);
-
-  G_ASSERTF(0, "vulkan: uknown sreg type %u", l.type);
-  return false;
-}
+inline bool operator!=(const SRegister &l, const SRegister &r) { return l.resPtr != r.resPtr; }
 
 struct StateFieldBRegister : TrackedStateFieldGenericPOD<BufferRef>
 {
@@ -206,51 +177,6 @@ struct StateFieldURegisterSet : TrackedStateFieldArray<StateFieldURegister, spir
 struct StateFieldSRegisterSet : TrackedStateFieldArray<StateFieldSRegister, spirv::S_REGISTER_INDEX_MAX, true, true>
 {};
 
-class ImmediateConstBuffer
-{
-  static constexpr int ring_size = GPU_TIMELINE_HISTORY_SIZE;
-  static constexpr int initial_blocks = 16384;
-  static constexpr int element_size = MAX_IMMEDIATE_CONST_WORDS * sizeof(uint32_t);
-
-  Buffer *ring[ring_size] = {};
-  uint32_t ringIdx = 0;
-  uint32_t offset = 0;
-  uint32_t alignedElementSize = 0;
-
-  void flushWrites();
-
-public:
-  BufferRef push(const uint32_t *data);
-  void onFlush();
-  void init();
-  void shutdown();
-};
-
-struct ImmediateConstBuffers
-{
-  ImmediateConstBuffer arr[STAGE_MAX_EXT];
-
-  ImmediateConstBuffer &operator[](size_t idx) { return arr[idx]; }
-
-  void shutdown()
-  {
-    for (ImmediateConstBuffer &i : arr)
-      i.shutdown();
-  }
-
-  void flush()
-  {
-    for (ImmediateConstBuffer &icb : arr)
-      icb.onFlush();
-  }
-
-  void init()
-  {
-    for (ImmediateConstBuffer &icb : arr)
-      icb.init();
-  }
-};
-
 // use fast no diff path for now
 struct StateFieldImmediateConst : TrackedStateFieldBase<false, false>
 {
@@ -261,7 +187,7 @@ struct StateFieldImmediateConst : TrackedStateFieldBase<false, false>
   };
 
   bool enabled;
-  uint32_t data[4];
+  uint32_t data[MAX_IMMEDIATE_CONST_WORDS];
 
   template <typename StorageType>
   void reset(StorageType &)
@@ -316,6 +242,9 @@ public:
 
   template <typename T, typename B>
   bool replaceResource(T old_obj, const B &new_obj, uint32_t flags);
+
+  template <typename T, typename B>
+  bool replaceResource(const T *old_obj, B *new_obj);
 
   VULKAN_TRACKED_STATE_DEFAULT_NESTED_FIELD_CB_NO_RESET();
 };

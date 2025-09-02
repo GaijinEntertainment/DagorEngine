@@ -120,19 +120,6 @@ void imgui_use_hybrid_input_mode(bool value)
     imgui_input_handler->hybridInput = value;
 }
 
-void imgui_set_viewport_offset(int offsetX, int offsetY)
-{
-  if (imgui_input_handler)
-  {
-    imgui_input_handler->viewPortOffsetX = offsetX;
-    imgui_input_handler->viewPortOffsetY = offsetY;
-  }
-  else
-  {
-    logerr("imgui_input_handler == null, call imgui initialization");
-  }
-}
-
 void imgui_draw_mouse_cursor(bool draw_mouse_cursor)
 {
   if (imgui_input_handler)

@@ -6,6 +6,7 @@
 #include <rendInst/rendInstGen.h>
 #include <rendInst/rendInstAccess.h>
 #include <rendInst/rendInstExtraAccess.h>
+#include <rendInst/rendInstExtraRender.h>
 #include <rendInst/rendInstDebug.h>
 #include <ecs/core/attributeEx.h>
 #include <daECS/core/coreEvents.h>
@@ -15,7 +16,6 @@
 #include <EASTL/intrusive_list.h>
 #include <gameRes/dag_gameResSystem.h>
 #include <gameRes/dag_stdGameRes.h>
-#include <gameRes/dag_collisionResourceClassId.h>
 #include <util/dag_delayedAction.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
 #include <EASTL/fixed_vector.h>
@@ -37,6 +37,7 @@ ECS_REGISTER_EVENT(CmdDestroyRendinst);
 ECS_REGISTER_EVENT(EventOnRendinstDestruction);
 ECS_REGISTER_EVENT(EventRendinstImpulse);
 ECS_REGISTER_EVENT(EventOnRendinstDamage);
+ECS_REGISTER_EVENT(EventRiExtraHandleReplaced);
 
 static CONSOLE_BOOL_VAL("rendinst", debug_movement, false);
 static CONSOLE_BOOL_VAL("rendinst", ruler, false);
@@ -120,6 +121,8 @@ static bool on_restorable_rendinst_cb(const rendinst::RendInstDesc &desc, rendin
         break;
       // Save it for later.
       restorables2eid[RestorableId(desc)] = it->second;
+      // Set this flag, in case it exist, it can be used to prevent restoring this RI
+      ECS_SET_OPTIONAL(it->second, ri_extra__restorablePending, true);
       break;
     }
     case rendinstdestr::RRS_RESTORED:
@@ -130,11 +133,27 @@ static bool on_restorable_rendinst_cb(const rendinst::RendInstDesc &desc, rendin
         break;
       rendinst::riex_handle_t handle = desc.getRiExtraHandle();
       bool found = false;
-      restore_ri_ecs_query(it->second, [&](ecs::EntityId eid, RiExtraComponent &ri_extra) {
+      restore_ri_ecs_query(it->second, [&](ecs::EntityId eid, RiExtraComponent &ri_extra, rendinst::RendInstDesc *ri_extra__riSyncDesc,
+                                         bool *ri_extra__restorablePending) {
+        // Check restoring was prevented
+        if (ri_extra__restorablePending && !*ri_extra__restorablePending)
+          return;
         // Restore the link between entity and rendinst.
-        G_ASSERT(ri_extra.handle == rendinst::RIEX_HANDLE_NULL);
+        if (ri_extra.handle != rendinst::RIEX_HANDLE_NULL)
+          handles2eid.erase(ri_extra.handle);
+        const auto prevHandle = ri_extra.handle;
         ri_extra.handle = handle;
         handles2eid[handle] = eid;
+        // update ri desc & send event
+        if (ri_extra__riSyncDesc)
+        {
+          *ri_extra__riSyncDesc = rendinst::get_restorable_desc(desc);
+          G_ASSERT(ri_extra__riSyncDesc->isValid());
+          ri_extra__riSyncDesc->idx = desc.idx;
+          g_entity_mgr->sendEventImmediate(eid, EventRiExtraHandleReplaced(prevHandle, handle, true));
+        }
+        if (ri_extra__restorablePending)
+          *ri_extra__restorablePending = false;
         found = true;
       });
       if (!found)
@@ -148,9 +167,15 @@ static bool on_restorable_rendinst_cb(const rendinst::RendInstDesc &desc, rendin
       break;
     }
     case rendinstdestr::RRS_DESTROYED:
+    {
       // Restorable is not going to be restored, forget it.
-      restorables2eid.erase(RestorableId(desc));
+      auto it = restorables2eid.find(RestorableId(desc));
+      if (it == restorables2eid.end())
+        break;
+      ECS_SET_OPTIONAL(it->second, ri_extra__restorablePending, false);
+      restorables2eid.erase(it);
       break;
+    }
     default: G_ASSERT(false); break;
   }
   return res;
@@ -158,7 +183,7 @@ static bool on_restorable_rendinst_cb(const rendinst::RendInstDesc &desc, rendin
 
 template <typename Callable>
 ECS_REQUIRE(ecs::Tag riExtraAuthority)
-void check_extra_authority_ecs_query(ecs::EntityId, Callable);
+ECS_REQUIRE_NOT(ecs::Tag riExtraCustomDestroy) void check_extra_destroy_authority_ecs_query(ecs::EntityId, Callable);
 
 static void on_riex_destruction_cb(rendinst::riex_handle_t handle, bool is_dynamic, bool /*create_destr_effects*/, int32_t user_data,
   const Point3 & /*impulse*/, const Point3 & /*impulse_pos*/)
@@ -168,9 +193,10 @@ static void on_riex_destruction_cb(rendinst::riex_handle_t handle, bool is_dynam
                                           // for non-dynamic ones.
   if (it != handles2eid.end())
   {
-    check_extra_authority_ecs_query(it->second,
+    g_entity_mgr->sendEventImmediate(it->second, EventOnRendinstDestruction(user_data));
+
+    check_extra_destroy_authority_ecs_query(it->second,
       [&](bool &ri_extra__destroyed, ecs::EntityManager &manager, bool ri_extra__isBeingReplaced = false) {
-        manager.sendEventImmediate(it->second, EventOnRendinstDestruction(user_data));
         if (!ri_extra__isBeingReplaced)
         {
           manager.sendEventImmediate(it->second, CmdDestroyRendinst(user_data, destroysEntity));
@@ -199,18 +225,43 @@ void RiExtraComponent::requestResources(const char *, const ecs::resource_reques
   request_ri_resources(res_cb, (riResName && !riResName->empty()) ? riResName->c_str() : "<missing_ri_res>");
 }
 
-RiExtraComponent::RiExtraComponent(const ecs::EntityManager &mgr, ecs::EntityId eid)
+RiExtraComponent::RiExtraComponent(ecs::EntityManager &mgr, ecs::EntityId eid)
 {
-  handle = mgr.getOr<rendinst::riex_handle_t>(eid, ECS_HASH("ri_extra__handle"), rendinst::RIEX_HANDLE_NULL);
+  rendinst::riex_handle_t *handlePtr = ECS_GET_NULLABLE_RW_MGR(mgr, rendinst::riex_handle_t, eid, ri_extra__handle);
+  if (handlePtr)
+    handle = *handlePtr;
+  rendinst::RendInstDesc syncDesc = ECS_GET_OR_MGR(mgr, eid, ri_extra__riSyncDesc, rendinst::RendInstDesc());
+  if (syncDesc.pool >= 0 && syncDesc.idx >= 0 && syncDesc.cellIdx < 0)
+    handle = syncDesc.getRiExtraHandle();
+  if (handlePtr)
+    *handlePtr = handle;
   if (handle != rendinst::RIEX_HANDLE_NULL)
     handles2eid.insert(HandlesMap::value_type(handle, eid)).first->second = eid;
 }
 
-static rendinst::riex_handle_t spawn_ri_extra(const ecs::EntityManager &mgr, ecs::EntityId eid, int resIdx, const char *name,
+void RiExtraComponent::replaceRiHandle(rendinst::riex_handle_t new_handle)
+{
+  if (handle == new_handle)
+    return;
+  if (const auto it = handles2eid.find(handle); it != handles2eid.end())
+  {
+    const ecs::EntityId eid = it->second;
+    handles2eid.erase(it);
+    if (new_handle != rendinst::RIEX_HANDLE_NULL)
+      handles2eid[new_handle] = eid;
+    handle = new_handle;
+  }
+  else
+    logerr("replaceRiHandle: handle was not registered %@", handle);
+}
+
+static rendinst::riex_handle_t spawn_ri_extra(ecs::EntityManager &mgr, ecs::EntityId eid, int resIdx, const char *name,
   bool preloaded = true) // Expected to be preloaded `RiExtraComponent::requestResources`
 {
-  const int riCellIdx = mgr.getOr(eid, ECS_HASH("ri_extra__riCellIdx"), -1);
-  const int riOffset = mgr.getOr(eid, ECS_HASH("ri_extra__riOffset"), -1);
+  rendinst::RendInstDesc *riSyncDesc = ECS_GET_NULLABLE_RW_MGR(mgr, rendinst::RendInstDesc, eid, ri_extra__riSyncDesc);
+  const bool hasCellAndOffset = riSyncDesc && riSyncDesc->cellIdx < 0;
+  const int riCellIdx = hasCellAndOffset ? -(riSyncDesc->cellIdx + 1) : -1;
+  const int riOffset = hasCellAndOffset ? int(riSyncDesc->offs) : -1;
   auto riAddFail = [&]() {
     logerr("Failed to add ri_extra.name=<%s>(%d) while creating entity %d<%s>", name, resIdx, (ecs::entity_id_t)eid,
       mgr.getEntityTemplateName(eid));
@@ -219,12 +270,17 @@ static rendinst::riex_handle_t spawn_ri_extra(const ecs::EntityManager &mgr, ecs
   if (resIdx < 0)
   {
     using namespace rendinst;
-    auto riaddf = AddRIFlag::UseShadow | (riCellIdx == -1 || riOffset == -1 ? AddRIFlag::Dynamic : AddRIFlag::None) |
+    auto riaddf = AddRIFlag::UseShadow | (!hasCellAndOffset ? AddRIFlag::Dynamic : AddRIFlag::None) |
                   (preloaded ? AddRIFlag::GameresPreLoaded : AddRIFlag::None);
     resIdx = addRIGenExtraResIdx(name, -1, -1, riaddf);
     if (DAGOR_UNLIKELY(resIdx < 0))
       return riAddFail();
     addRiGenExtraDebris(resIdx, 0);
+  }
+  if (riSyncDesc)
+  {
+    riSyncDesc->pool = resIdx;
+    riSyncDesc->idx = -1;
   }
   const TMatrix &transform = mgr.get<TMatrix>(eid, ECS_HASH("transform"));
   mat44f tm;
@@ -236,9 +292,14 @@ static rendinst::riex_handle_t spawn_ri_extra(const ecs::EntityManager &mgr, ecs
     return rendinst::RIEX_HANDLE_NULL;
   }
   const bool hasCollision = mgr.getOr(eid, ECS_HASH("ri_extra__hasCollision"), true);
-  rendinst::riex_handle_t handle = rendinst::addRIGenExtra44(resIdx, true, tm, hasCollision, riCellIdx, riOffset);
+  rendinst::riex_handle_t handle = rendinst::addRIGenExtra44(resIdx, tm, hasCollision, riCellIdx, riOffset);
   if (handle != rendinst::RIEX_HANDLE_NULL)
   {
+    if (riSyncDesc)
+    {
+      G_ASSERT(riSyncDesc->pool == rendinst::handle_to_ri_type(handle));
+      riSyncDesc->idx = int(rendinst::handle_to_ri_inst(handle));
+    }
     handles2eid.insert(HandlesMap::value_type(handle, eid)).first->second = eid;
     if (mgr.has(eid, ECS_HASH("ri_extra__dynamic")))
       rendinst::setRIGenExtraResDynamic(name);
@@ -297,12 +358,13 @@ static void riextra_spawn_ri_es(const ecs::Event &, ecs::EntityManager &manager,
 }
 
 static void delete_riextra(rendinst::riex_handle_t handle, int cell_idx, int offset, bool destroy = false, bool add_restorable = false,
-  bool create_destr_and_fx = true, int destroy_neighbour_recursive_depth = 1)
+  bool create_destr_and_fx = true, int destroy_neighbour_recursive_depth = 1, const Point3 &impulse_on_destruction = Point3(),
+  const Point3 &impulse_pos_on_destruction = Point3())
 {
   rendinst::RendInstDesc desc(handle);
   if (destroy)
   {
-    rendinstdestr::destroyRendinst(desc, add_restorable, Point3(0.f, 0.f, 0.f), Point3(0.f, 0.f, 0.f), 0.f, nullptr,
+    rendinstdestr::destroyRendinst(desc, add_restorable, impulse_pos_on_destruction, impulse_on_destruction, 0.f, nullptr,
       create_destr_and_fx, nullptr, destroy_neighbour_recursive_depth);
   }
 
@@ -314,18 +376,21 @@ static void delete_riextra(rendinst::riex_handle_t handle, int cell_idx, int off
 
 ECS_ON_EVENT(on_disappear)
 void riextra_destroyed_es_event_handler(const ecs::Event &, const RiExtraComponent &ri_extra, bool ri_extra__destroyed,
-  int ri_extra__riCellIdx = -1, int ri_extra__riOffset = -1)
+  const rendinst::RendInstDesc *ri_extra__riSyncDesc, const Point3 &ri_extra__impulseOnDestruction = Point3(),
+  const Point3 &ri_extra__impulsePosOnDestruction = Point3())
 {
+  const int riCellIdx = ri_extra__riSyncDesc && ri_extra__riSyncDesc->cellIdx < 0 ? -(ri_extra__riSyncDesc->cellIdx + 1) : -1;
+  const int riOffset = ri_extra__riSyncDesc && ri_extra__riSyncDesc->cellIdx < 0 ? int(ri_extra__riSyncDesc->offs) : -1;
   bool isRiHandleValid = rendinst::isRiGenExtraValid(ri_extra.handle);
   if (isRiHandleValid)
-    delete_riextra(ri_extra.handle, ri_extra__riCellIdx, ri_extra__riOffset, !ri_extra__destroyed, false /*add_restorable*/,
-      true /*destr_effects*/, 1);
+    delete_riextra(ri_extra.handle, riCellIdx, riOffset, !ri_extra__destroyed, false /*add_restorable*/, true /*destr_effects*/, 1,
+      ri_extra__impulseOnDestruction, ri_extra__impulsePosOnDestruction);
 
   handles2eid.erase(ri_extra.handle);
 }
 
-typedef eastl::type_select<ecs::ComponentTypeInfo<RiExtraComponent>::is_boxed, ecs::BoxedCreator<RiExtraComponent>,
-  ecs::InplaceCreator<RiExtraComponent>>::type RiExtraComponentCtm;
+using RiExtraComponentCtm = eastl::conditional_t<ecs::ComponentTypeInfo<RiExtraComponent>::is_boxed,
+  ecs::BoxedCreator<RiExtraComponent>, ecs::InplaceCreator<RiExtraComponent>>;
 class RendInstCTM final : public RiExtraComponentCtm
 {
 public:
@@ -356,7 +421,18 @@ public:
 };
 
 ECS_REGISTER_MANAGED_TYPE(RiExtraComponent, nullptr, RendInstCTM);
-ECS_AUTO_REGISTER_COMPONENT(RiExtraComponent, "ri_extra", nullptr, 0);
+ECS_AUTO_REGISTER_COMPONENT_DEPS(RiExtraComponent, "ri_extra", nullptr, 0, "?ri_extra__riSyncDesc");
+
+struct RendInstDescSerializer : ecs::ComponentSerializer
+{
+  void serialize(ecs::SerializerCb &, const void *, size_t, ecs::component_type_t) override { G_ASSERTF(0, "not implemented!"); }
+  bool deserialize(const ecs::DeserializerCb &, void *, size_t, ecs::component_type_t) override
+  {
+    G_ASSERTF(0, "not implemented!");
+    return false;
+  }
+} rend_inst_desc_serializer;
+ECS_REGISTER_RELOCATABLE_TYPE(rendinst::RendInstDesc, &rend_inst_desc_serializer);
 
 static struct RendInstSerializer final : public ecs::ComponentSerializer
 {
@@ -424,6 +500,7 @@ static struct RendInstSerializer final : public ecs::ComponentSerializer
 ECS_AUTO_REGISTER_COMPONENT(rendinst::riex_handle_t, "ri_extra__handle", &rendinst_serializer, 0);
 
 ECS_TRACK(transform)
+ECS_REQUIRE(eastl::true_type ri_motion__enabled = true)
 static __forceinline void rendinst_track_move_es_event_handler(const ecs::Event &, ecs::EntityId eid, RiExtraComponent &ri_extra,
   const TMatrix &transform, Point3 ri_extra__velocity = Point3(0, 0, 0), Point3 ri_extra__omega = Point3(0, 0, 0),
   const ecs::UInt64List *door_ri_extra__handles = nullptr)
@@ -444,7 +521,7 @@ static __forceinline void rendinst_track_move_es_event_handler(const ecs::Event 
 #endif
 }
 
-ECS_ON_EVENT(on_appear, EventRendinstsLoaded)
+ECS_ON_EVENT(on_appear, EventRendinstsLoaded, EventRendinstSpawned)
 ECS_AFTER(riextra_spawn_ri_es)
 static __forceinline void rendinst_move_es_event_handler(const ecs::Event &, RiExtraComponent &ri_extra, const TMatrix &transform,
   Point3 *ri_extra__bboxMin, Point3 *ri_extra__bboxMax)
@@ -494,9 +571,9 @@ int get_or_add_ri_extra_res_id(const char *res_name, rendinst::AddRIFlags ri_fla
   return rendinst::getOrAddMissingRIGenExtraResIdx(res_name, ri_flags);
 }
 
-void update_per_draw_gathered_data(uint32_t id) { rendinst::updatePerDrawGatheredData(id); }
+void update_per_draw_gathered_data(uint32_t id) { rendinst::render::updatePerDrawGatheredData(id); }
 
-const UniqueBuf &get_per_draw_gathered_data() { return rendinst::getPerDrawGatheredData(); }
+const UniqueBuf &get_per_draw_gathered_data() { return rendinst::render::getPerDrawGatheredData(); }
 
 bool replace_ri_extra_res(ecs::EntityId eid, const char *res_name, bool destroy, bool add_restorable, bool create_destr_and_fx)
 {
@@ -537,8 +614,11 @@ bool replace_ri_extra_res(ecs::EntityId eid, const char *res_name, bool destroy,
       bool *isReplaced = mgr.getNullableRW<bool>(eid, ECS_HASH("ri_extra__isBeingReplaced"));
       if (isReplaced)
         *isReplaced = true;
-      delete_riextra(riExtra->handle, mgr.getOr<int>(eid, ECS_HASH("ri_extra__riCellIdx"), -1),
-        mgr.getOr<int>(eid, ECS_HASH("ri_extra__riOffset"), -1), destroy, add_restorable, create_destr_and_fx, 0);
+      const rendinst::RendInstDesc riSyncDesc = ECS_GET_OR_MGR(mgr, eid, ri_extra__riSyncDesc, rendinst::RendInstDesc());
+      const int riCellIdx = riSyncDesc.cellIdx < 0 ? -(riSyncDesc.cellIdx + 1) : -1;
+      const int riOffset = riSyncDesc.cellIdx < 0 ? int(riSyncDesc.offs) : -1;
+      delete_riextra(riExtra->handle, riCellIdx, riOffset, destroy, add_restorable, create_destr_and_fx, 0, Point3(0.0f, 0.0f, 0.0f),
+        Point3(0.0f, 0.0f, 0.0f));
       dacoll::invalidate_ri_instance(rendinst::RendInstDesc(riExtra->handle));
       if (isReplaced)
         *isReplaced = false;
@@ -548,7 +628,10 @@ bool replace_ri_extra_res(ecs::EntityId eid, const char *res_name, bool destroy,
     riExtra->handle = rendinst::RIEX_HANDLE_NULL;
   }
 
+  const rendinst::riex_handle_t prevHandle = riExtra->handle;
   riExtra->handle = spawn_ri_extra(mgr, eid, resIdx, res_name, /*preloaded*/ false);
+  if (prevHandle != rendinst::RIEX_HANDLE_NULL)
+    g_entity_mgr->sendEventImmediate(eid, EventRiExtraHandleReplaced(prevHandle, riExtra->handle, false));
   return riExtra->handle != rendinst::RIEX_HANDLE_NULL;
 }
 

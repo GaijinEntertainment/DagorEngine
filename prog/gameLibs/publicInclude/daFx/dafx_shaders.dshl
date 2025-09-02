@@ -146,6 +146,7 @@ macro DAFX_RENDER_USE()
   {
     struct DafxRenderData
     {
+      uint start_source;
       uint start;
       uint count;
       uint limit;
@@ -165,10 +166,12 @@ macro DAFX_RENDER_USE()
 
       RenderDispatchDesc desc = dafx_render_calls[call_id];
 
-      r.start = desc.startAndLimit & 0xffff;
+      uint start_source = desc.startAndLimit & 0xffff;
+      r.start = ((desc.dataRenStrideAndInstanceCount >> 15) & 1) ? 0 : start_source;
+      r.start_source = start_source;
       r.limit = desc.startAndLimit >> 16;
 
-      r.data_stride = desc.dataRenStrideAndInstanceCount & 0xffff;
+      r.data_stride = desc.dataRenStrideAndInstanceCount & 0x7fff;
       r.count = desc.dataRenStrideAndInstanceCount >> 16;
 
       r.data_ofs = desc.dataRenOffset;
@@ -203,16 +206,6 @@ macro DAFX_RENDER_USE()
 
     // deprecated
     void dafx_gen_render_data( inout uint instance_id, inout uint vertex_id, uint draw_call_id, out uint gid, out uint data_ofs, out uint parent_ofs )
-    {
-      DafxRenderData r;
-      dafx_get_render_info(instance_id, vertex_id, draw_call_id, r);
-      gid = ( r.start + r.instance_id ) % r.limit;
-      data_ofs = ( r.data_ofs + gid * r.data_stride );
-      parent_ofs = r.parent_ofs;
-    }
-
-    // deprecated (flowps2, spirv for android is very unhappy there with inout instance_id)
-    void dafx_gen_render_data_flowp2s(uint instance_id, uint vertex_id, uint draw_call_id, out uint gid, out uint data_ofs, out uint parent_ofs )
     {
       DafxRenderData r;
       dafx_get_render_info(instance_id, vertex_id, draw_call_id, r);

@@ -136,6 +136,7 @@ private:
   void updateBuffers(int type_no);
 
   int maxDelayedRegionsCount = 0;
+  int rndSeed = 1000;
   float delayedRegionSizeFactor = 5;
   bool useDelayedRegions = false;
   Point3 cameraPosition;

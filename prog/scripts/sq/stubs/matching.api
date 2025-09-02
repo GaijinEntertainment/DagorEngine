@@ -6,4 +6,5 @@ return {
   matching_call = @(...) null
   matching_notify = @(...) null
   matching_send_response = @(...) null
+  get_mgates_count = @(...) 0
 }

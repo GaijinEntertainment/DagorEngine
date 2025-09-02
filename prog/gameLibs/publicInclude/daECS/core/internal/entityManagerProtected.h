@@ -23,7 +23,6 @@ static bool is_son_of(const Template &t, const int p, const TemplateDB &db, int 
 TemplateDB &getMutableTemplateDB(); // not sure if we have to expose non-const version..
 void updateEntitiesWithTemplate(template_t oldT, template_t newTemp, bool update_templ_values);
 void removeTemplateInternal(const uint32_t *to_remove, const uint32_t cnt);
-template_t createTemplate(ComponentsMap &&initializer, const char *debug_name = "(unknown)", const ComponentsFlags *flags = nullptr);
 void initCompileTimeQueries();
 bool validateInitializer(template_t templ, ComponentsInitializer &comp_init) const;
 void createEntityInternal(EntityId eid, template_t templId, ComponentsInitializer &&initializer, ComponentsMap &&map,
@@ -336,7 +335,7 @@ static inline T &get_scratch_value_impl(void *mem, eastl::false_type)
 template <typename T>
 DAGOR_NOINLINE T &getScratchValue() const
 {
-  typedef typename eastl::type_select<eastl::is_default_constructible<T>::value && !eastl::is_scalar<T>::value, eastl::true_type,
+  typedef typename eastl::conditional<eastl::is_default_constructible<T>::value && !eastl::is_scalar<T>::value, eastl::true_type,
     eastl::false_type>::type TP;
   return get_scratch_value_impl<T>(zeroMem.get(), TP());
 }
@@ -706,6 +705,7 @@ bool isDeferredCreationPossible() const { return nestedQuery == 0 && !isConstrai
 uint32_t maxNumJobs = 0, maxNumJobsSet = 0;
 void updateCurrentUpdateMaxJobs();
 
+void destroyEntityImmediate(EntityId e, decltype(freeIndices) *findices);
 void destroyEntityImmediate(EntityId e);
 
 DeferredEventsStorage<> eventsStorage;
@@ -773,7 +773,10 @@ mutable WinCritSec creationMutex;
 template <typename T>
 struct ScopedMTMutexT
 {
-  ScopedMTMutexT(bool is_mt, int64_t owner_thread, T &mutex_) : mutex(is_mt ? &mutex_ : nullptr)
+  // NOTE: owner_thread MUST be passed by reference to avoid a data race
+  // on ownerThreadId in MT mode, in which case it would be loaded with a race
+  // but then not used because of mutex being present.
+  ScopedMTMutexT(bool is_mt, const int64_t &owner_thread, T &mutex_) : mutex(is_mt ? &mutex_ : nullptr)
   {
     G_UNUSED(owner_thread);
     if (mutex)
@@ -956,12 +959,12 @@ inline bool createQueuedEntities()
 TemplateDB templateDB;
 
 template <class T, bool optional>
-void setComponentInternal(EntityId eid, const HashedConstString name, const T &v);
+bool setComponentInternal(EntityId eid, const HashedConstString name, const T &v);
 template <typename T, bool optional>
-typename eastl::enable_if<eastl::is_rvalue_reference<T &&>::value>::type setComponentInternal(EntityId eid,
+typename eastl::enable_if<eastl::is_rvalue_reference<T &&>::value, bool>::type setComponentInternal(EntityId eid,
   const HashedConstString name, T &&v);
 template <bool optional>
-void setComponentInternal(EntityId eid, const HashedConstString name, ChildComponent &&); // not checked for non-pod types. Won't
+bool setComponentInternal(EntityId eid, const HashedConstString name, ChildComponent &&); // not checked for non-pod types. Won't
                                                                                           // assert if missing. named for ecs20
                                                                                           // compatibility
 

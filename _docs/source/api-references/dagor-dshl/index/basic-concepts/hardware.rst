@@ -31,20 +31,20 @@ Usage example:
 
 .. code-block:: c
 
-  shader example_shader
-  {
-    if (hardware.metal) {
-      dont_render;
-      // this shader will not be compiled for metal platform
-    }
+    shader example_shader
+    {
+      if (hardware.metal) {
+        dont_render;
+        // this shader will not be compiled for metal platform
+      }
 
-    hlsl {
-      int var = 0;
-  ##if hardware.dx12
-      var = 12;
-  ##elif hardware.dx11
-      var = 11;
-  ##endif
-      // value of var will be different for dx11 and dx12 platforms
+      hlsl {
+        int var = 0;
+    ##if hardware.dx12
+        var = 12;
+    ##elif hardware.dx11
+        var = 11;
+    ##endif
+        // value of var will be different for dx11 and dx12 platforms
+      }
     }
-  }

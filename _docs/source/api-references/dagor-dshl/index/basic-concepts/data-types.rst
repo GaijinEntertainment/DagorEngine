@@ -25,17 +25,17 @@ Global variables
 Global variables in DSHL are most often set from C++ code during runtime.
 They are declared with the following syntax:
 
-.. code-block:: c
+.. code-block:: text
 
-  (type) name [ = initializer ]  [always_referenced];
+    (type) name [ = initializer ]  [always_referenced];
 
 Example:
 
-.. code-block:: c
+.. code-block:: text
 
-  float4 f4 = (1.0, 1.0, 1.0, 1.0);
-  int a;
-  texture tex;
+    float4 f4 = (1.0, 1.0, 1.0, 1.0);
+    int a;
+    texture tex;
 
 .. warning::
   Global variables cannot have ``float2`` and ``float3`` types.
@@ -53,9 +53,9 @@ Local variables
 
 Local variables are declared inside a ``shader{...}`` construction in a similar way:
 
-.. code-block:: c
+.. code-block:: text
 
-  [specifier] (type) name [ = initializer ] [no_warnings];
+    [specifier] (type) name [ = initializer ] [no_warnings];
 
 Local variables can have the following *specifiers*.
 
@@ -79,34 +79,34 @@ Textures and Buffers
 
 Textures and buffers are declared as global variables
 
-.. code-block:: c
+.. code-block:: text
 
-  texture some_tex;
-  buffer some_buf;
-  const_buffer some_constant_buf;
+    texture some_tex;
+    buffer some_buf;
+    const_buffer some_constant_buf;
 
 and then piped from C++ code to DSHL via the DSHL preshader, e.g.
 
-.. code-block:: c
+.. code-block:: text
 
-  (ps) {
-    my_tex@smp2d = some_tex;
+    (ps) {
+      my_tex@smp2d = some_tex;
 
-    my_buf@buf = some_buf hlsl {
-      #include <some_buffer_inc.hlsli>
-      // assuming some_buffer_inc.hlsli has SomeBuffer struct defined
-      StructuredBuffer<SomeBuffer> my_buf@buf;
+      my_buf@buf = some_buf hlsl {
+        #include <some_buffer_inc.hlsli>
+        // assuming some_buffer_inc.hlsli has SomeBuffer struct defined
+        StructuredBuffer<SomeBuffer> my_buf@buf;
+      }
+
+      my_cbuf@cbuf = some_constant_buf hlsl {
+        cbuffer my_cbuf@cbuf {
+          #include <some_constant_buffer_inc.hlsli>
+          // assuming some_constant_buffer_inc.hlsli has SomeConstantBuffer struct defined
+          SomeConstantBuffer my_constant_buf;
+        };
+      }
+
+      // my_tex, my_buf, my_constant_buf names are now accessible in HLSL
     }
-
-    my_cbuf@cbuf = some_constant_buf hlsl {
-      cbuffer my_cbuf@cbuf {
-        #include <some_constant_buffer_inc.hlsli>
-        // assuming some_constant_buffer_inc.hlsli has SomeConstantBuffer struct defined
-        SomeConstantBuffer my_constant_buf;
-      };
-    }
-
-    // my_tex, my_buf, my_constant_buf names are now accessible in HLSL
-  }
 
 Refer to :ref:`preshader` for more information.

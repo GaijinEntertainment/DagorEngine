@@ -42,8 +42,8 @@ void ClipmapShadow::init(int shadowSize)
   clipmapShadowSize = shadowSize;
   clipmap_shadowsBlockId = ShaderGlobal::getBlockId("clipmap_shadows");
 
-  unsigned clipmapShadowFlags = TEXFMT_L8;
-  if (!(d3d::get_texformat_usage(TEXFMT_L8, RES3D_TEX) & d3d::USAGE_RTARGET))
+  unsigned clipmapShadowFlags = TEXFMT_R8;
+  if (!(d3d::get_texformat_usage(TEXFMT_R8, D3DResourceType::TEX) & d3d::USAGE_RTARGET))
   {
     debug("l8  format not supported - reduce clipmapshadow by half");
     clipmapShadowSize /= 2;
@@ -55,7 +55,6 @@ void ClipmapShadow::init(int shadowSize)
 
   d3d_err(clipmapShadowTex.getTex2D());
 
-  clipmapShadowTex->disableSampler();
   setUpSampler();
 
   clipmapShadowTexVarId = get_shader_variable_id("clipmap_shadow_tex");
@@ -117,7 +116,6 @@ void ClipmapShadow::switchOff()
   img[0].w = img[0].h = 1;
   img[1].w = img[1].h = -1;
   clipmapShadowTex = dag::create_tex(img, 1, 1, TEXFMT_A8R8G8B8, 1, "clipmapShadowWhiteTex");
-  clipmapShadowTex->disableSampler();
   clipmapShadowSize = 0;
   d3d_err(clipmapShadowTex.getTex2D());
   setUpSampler();

@@ -76,7 +76,7 @@ shader globe_model
 
   PACK_UNPACK_GBUFFER()
   USE_PIXEL_TANGENT_SPACE()
-  _INIT_SUN_STCODE()
+  supports global_const_block;
   GLOBE_MODEL_GAME_SPECIFICS()
 
   POSTFX_VS_VIEWVEC(0, dir)

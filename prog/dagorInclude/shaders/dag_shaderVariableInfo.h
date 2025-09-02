@@ -4,11 +4,14 @@
 //
 #pragma once
 
-#include <3d/dag_texMgr.h>
+#include <shaders/dag_bindumpReloadListener.h>
 #include <shaders/dag_shaderVarType.h>
+
+#include <3d/dag_texMgr.h>
 #include <stdint.h>
 #include <math/dag_check_nan.h>
 #include <vecmath/dag_vecMathDecl.h>
+
 class IPoint4;
 class TMatrix4;
 struct Color4;
@@ -18,7 +21,7 @@ class Point4;
 
 struct RaytraceTopAccelerationStructure;
 
-struct ShaderVariableInfo
+struct ShaderVariableInfo : public IShaderBindumpReloadListener
 {
 #define CHECK_SET_VAR_TYPE(tp)    \
   if (varType != tp)              \
@@ -205,22 +208,10 @@ struct ShaderVariableInfo
   bool operator>=(int i) const { return var_id >= i; }
   bool operator<(int i) const { return var_id < i; }
   bool operator<=(int i) const { return var_id <= i; }
-  ~ShaderVariableInfo()
+  ShaderVariableInfo(int v_id = -1) : var_id(v_id) { resolve(); }
+  explicit ShaderVariableInfo(const char *name, bool optional_ = false, const char *tag_ = nullptr) :
+    IShaderBindumpReloadListener(tag_), var_id(-1), optional(optional_), data(const_cast<char *>(name))
   {
-    if (head == this) // if we are already in head, which is likely if destructor is called in reversed order
-      head = next;
-    else
-      deleteFromLinkedList();
-  }
-  ShaderVariableInfo(int v_id = -1) : next(head), var_id(v_id)
-  {
-    head = this;
-    resolve();
-  }
-  explicit ShaderVariableInfo(const char *name, bool optional_ = false) :
-    next(head), var_id(-1), optional(optional_), data(const_cast<char *>(name))
-  {
-    head = this;
     resolve();
   }
   ShaderVariableInfo &operator=(int var_id);
@@ -235,17 +226,16 @@ protected:
   void set_int_var_interval(int v) const;
   void set_float_var_interval(float v) const;
 
-  static void resolveAll();
-  void resolve();
-  void deleteFromLinkedList();
+  void resolve() override;
+  void setEnabled(bool enabled_) override;
+
   int var_id = -1;
   int16_t iid = -1;
   int8_t varType = -1;
   bool optional = true;
+  bool enabled = true;
   char *data = nullptr;
   static char zero[64];
-  ShaderVariableInfo *next = nullptr;
-  static ShaderVariableInfo *head;
   friend struct ScriptedShadersBinDumpOwner;
 };
 

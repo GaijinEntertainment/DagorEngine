@@ -1,4 +1,5 @@
 require math
+options indenting = 2
 
 [generic]
 def beaufort_to_meter_per_second(beaufort : float)

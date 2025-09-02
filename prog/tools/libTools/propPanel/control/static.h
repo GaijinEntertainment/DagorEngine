@@ -16,23 +16,23 @@ public:
     PropertyControlBase(id, event_handler, parent, x, y, w, h), controlCaption(caption)
   {}
 
-  virtual unsigned getTypeMaskForSet() const override { return CONTROL_CAPTION | CONTROL_DATA_TYPE_STRING; }
-  virtual unsigned getTypeMaskForGet() const override { return CONTROL_DATA_TYPE_STRING; }
+  unsigned getTypeMaskForSet() const override { return CONTROL_CAPTION | CONTROL_DATA_TYPE_STRING; }
+  unsigned getTypeMaskForGet() const override { return CONTROL_DATA_TYPE_STRING; }
 
-  virtual void setEnabled(bool enabled) override { controlEnabled = enabled; }
+  void setEnabled(bool enabled) override { controlEnabled = enabled; }
 
-  virtual void setCaptionValue(const char value[]) override { controlCaption = value; }
+  void setCaptionValue(const char value[]) override { controlCaption = value; }
 
-  virtual void setTextValue(const char value[]) override { controlCaption = value; }
+  void setTextValue(const char value[]) override { controlCaption = value; }
 
-  virtual int getTextValue(char *buffer, int buflen) const override
+  int getTextValue(char *buffer, int buflen) const override
   {
     return ImguiHelper::getTextValueForString(controlCaption, buffer, buflen);
   }
 
-  virtual void setBoolValue(bool value) override { bold = value; }
+  void setBoolValue(bool value) override { bold = value; }
 
-  virtual void updateImgui() override
+  void updateImgui() override
   {
     ScopedImguiBeginDisabled scopedDisabled(!controlEnabled);
 

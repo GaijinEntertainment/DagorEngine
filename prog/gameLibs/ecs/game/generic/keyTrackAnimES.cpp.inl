@@ -28,6 +28,7 @@ template <class T, class DecodedKey = T, typename Decoder = NoDecodingDecoder<T,
 class KeyTrack
 {
 public:
+  KeyTrack() {} //-V730
   float getLastTime() const
   {
     if (!keys.size())
@@ -267,9 +268,10 @@ template <class KeyTrack, class Type>
 struct AttrKeyTrack
 {
   typedef Type key_type;
-  ecs::component_t compName;
+  ecs::component_t compName = 0;
   ecs::HashedConstString getCompName() const { return ecs::HashedConstString{nullptr, compName}; }
   KeyTrack track;
+  AttrKeyTrack() {} //-V730
   bool isAnimated = false;
   void setName(const ecs::component_t n) { compName = n; }
   inline void animate(const ecs::UpdateStageInfoAct &info, ecs::EntityId eid)

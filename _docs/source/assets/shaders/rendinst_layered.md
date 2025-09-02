@@ -1,4 +1,4 @@
-# Shader: rendinst_layered
+# `rendinst_layered`
 
 ## Overview
 
@@ -24,7 +24,7 @@ The shader uses the following types of textures:
 
 Let's take a closer look.
 
-## Textures Used
+## Textures
 
 ### Texture Assignment
 
@@ -405,8 +405,16 @@ To summarize in simpler terms:
 Here's how it looks in practice:
 
 ```{eval-rst}
-.. video:: _images/rendinst_layered_31.webm
-   :width: 80%
+
+.. only:: html
+
+   .. video:: _images/rendinst_layered_31.webm
+      :width: 80%
+
+.. only:: latex
+
+   `Download video (WEBM) <https://github.com/GaijinEntertainment/DagorEngine/blob/main/_docs/source/assets/shaders/_images/rendinst_layered_31.webm>`_
+
 ```
 
 Each movement triggers a reassembly of the global blending mask via multiplying
@@ -516,8 +524,16 @@ Remember that these masks will be multiplied, and the final appearance will
 continue to evolve:
 
 ```{eval-rst}
-.. video:: _images/rendinst_layered_38.webm
-   :width: 80%
+
+.. only:: html
+
+   .. video:: _images/rendinst_layered_38.webm
+      :width: 80%
+
+.. only:: latex
+
+   `Download video (WEBM) <https://github.com/GaijinEntertainment/DagorEngine/blob/main/_docs/source/assets/shaders/_images/rendinst_layered_38.webm>`_
+
 ```
 
 ### Conclusion
@@ -646,8 +662,16 @@ For example, if the walls and exterior parts of the house are mapped to **cell
 The shader will automatically shift the mapping to **cell 9**:
 
 ```{eval-rst}
-.. video:: _images/rendinst_layered_43.webm
-   :width: 80%
+
+.. only:: html
+
+   .. video:: _images/rendinst_layered_43.webm
+      :width: 80%
+
+.. only:: latex
+
+   `Download video (WEBM) <https://github.com/GaijinEntertainment/DagorEngine/blob/main/_docs/source/assets/shaders/_images/rendinst_layered_43.webm>`_
+
 ```
 
 However, this automatic shifting requires specific parameters to be set. The
@@ -686,8 +710,16 @@ using the **Add** button and set their values as follows:
 If these parameters are not set, the overlay will not shift correctly:
 
 ```{eval-rst}
-.. video:: _images/rendinst_layered_45.webm
-   :width: 80%
+
+.. only:: html
+
+   .. video:: _images/rendinst_layered_45.webm
+      :width: 80%
+
+.. only:: latex
+
+   `Download video (WEBM) <https://github.com/GaijinEntertainment/DagorEngine/blob/main/_docs/source/assets/shaders/_images/rendinst_layered_45.webm>`_
+
 ```
 
 In some cases, you may want to limit the use of certain cells. For example,
@@ -701,8 +733,16 @@ In such cases, set `atlas_last_tile = 10` to limit the jump to **cells 8-10**,
 which are more neutral:
 
 ```{eval-rst}
-.. video:: _images/rendinst_layered_47.webm
-   :width: 80%
+
+.. only:: html
+
+   .. video:: _images/rendinst_layered_47.webm
+      :width: 80%
+
+.. only:: latex
+
+   `Download video (WEBM) <https://github.com/GaijinEntertainment/DagorEngine/blob/main/_docs/source/assets/shaders/_images/rendinst_layered_47.webm>`_
+
 ```
 
 #### Detail Tiling Settings
@@ -965,16 +1005,32 @@ each time the object's position in space changes. Let's revisit how this looks
 with the overlay removed:
 
 ```{eval-rst}
-.. video:: _images/rendinst_layered_73.webm
-   :width: 80%
+
+.. only:: html
+
+   .. video:: _images/rendinst_layered_73.webm
+      :width: 80%
+
+.. only:: latex
+
+   `Download video (WEBM) <https://github.com/GaijinEntertainment/DagorEngine/blob/main/_docs/source/assets/shaders/_images/rendinst_layered_73.webm>`_
+
 ```
 
 These parameters increase the offset value, allowing for more varied blending of
 detail layers. Let's set these values to `0.5`.
 
 ```{eval-rst}
-.. video:: _images/rendinst_layered_74.webm
-   :width: 80%
+
+.. only:: html
+
+   .. video:: _images/rendinst_layered_74.webm
+      :width: 80%
+
+.. only:: latex
+
+   `Download video (WEBM) <https://github.com/GaijinEntertainment/DagorEngine/blob/main/_docs/source/assets/shaders/_images/rendinst_layered_74.webm>`_
+
 ```
 
 As you can see, the changes between blends became
@@ -1051,13 +1107,21 @@ This is a procedural function – rotate the object as you like, and the Detail2
 layer will cover it according to the specified rules, from the appropriate side.
 
 ```{eval-rst}
-.. video:: _images/rendinst_layered_75.webm
-   :width: 80%
+
+.. only:: html
+
+   .. video:: _images/rendinst_layered_75.webm
+      :width: 80%
+
+.. only:: latex
+
+   `Download video (WEBM) <https://github.com/GaijinEntertainment/DagorEngine/blob/main/_docs/source/assets/shaders/_images/rendinst_layered_75.webm>`_
+
 ```
 
 Let's examine how these parameters work.
 
-### top_projection
+#### top_projection
 
 This parameter has values `0` and `1` (off/on).
 
@@ -1258,8 +1322,16 @@ map, each step will randomly shift the pixel within the selected coloring row.
 If multiple colors are specified, the object will be procedurally recolored.
 
 ```{eval-rst}
-.. video:: _images/rendinst_layered_87.webm
-   :width: 80%
+
+.. only:: html
+
+   .. video:: _images/rendinst_layered_87.webm
+      :width: 80%
+
+.. only:: latex
+
+   `Download video (WEBM) <https://github.com/GaijinEntertainment/DagorEngine/blob/main/_docs/source/assets/shaders/_images/rendinst_layered_87.webm>`_
+
 ```
 
 The coloring is applied based on the diffuse alpha (either the heightmap of the
@@ -1349,7 +1421,7 @@ the settings. Sometimes, for instance, values like `detail2_tile_u=2.3` and
 `detail2_tile_v=2.4` are set, which only becomes noticeable upon careful
 examination.
 
-#### Sloped Roof
+### Sloped Roof
 
 Let's recall what a sloped roof tile looks like and how it reflects details:
 
@@ -1386,15 +1458,23 @@ The materials blend across the entire surface as if they were on walls, not a
 roof. Now, let's see how the overlay appears on the roof.
 
 ```{eval-rst}
-.. video:: _images/rendinst_layered_97.webm
-   :width: 80%
+
+.. only:: html
+
+   .. video:: _images/rendinst_layered_97.webm
+      :width: 80%
+
+.. only:: latex
+
+   `Download video (WEBM) <https://github.com/GaijinEntertainment/DagorEngine/blob/main/_docs/source/assets/shaders/_images/rendinst_layered_97.webm>`_
+
 ```
 
 The result is completely abstract decorations, which have nothing to do with the
 intended metal sheets of the roof. This is precisely why the roof cell was
 designed to be universal and neutral.
 
-#### Flat Roof
+### Flat Roof
 
 Let's recall how the flat roof cell looks and what it represents:
 
@@ -1411,7 +1491,7 @@ Here's its exclusion mask:
 In this case, there's no need to show examples of incorrect atlas usage because
 there simply aren't any other cells that can fulfill the same function.
 
-#### Wooden Roof Trim
+### Wooden Roof Trim
 
 Recall that the wooden trim has its own designated - **cell 2**:
 

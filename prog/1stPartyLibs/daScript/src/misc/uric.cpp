@@ -33,10 +33,11 @@ namespace das {
 
     Uri::Uri(Uri && uriA) {
         memset(&uri, 0, sizeof(UriUriA));
+        lastOp = uriA.lastOp;
+        isEmpty = uriA.isEmpty;
         if ( !uriA.isEmpty ) {
             memcpy(&uri,&uriA.uri,sizeof(UriUriA));
             uriA.isEmpty = true;
-            lastOp = uriA.lastOp;
             errorPos = uriA.errorPos;
             isEmpty = false;
         }
@@ -116,6 +117,9 @@ namespace das {
     }
 
     bool Uri::normalize() {
+        if ( status() != URI_SUCCESS ) {
+            return false;
+        }
         const unsigned int dirtyParts = uriNormalizeSyntaxMaskRequiredA(&uri);
         lastOp = uriNormalizeSyntaxExA(&uri, dirtyParts);
         return lastOp == URI_SUCCESS;
@@ -143,7 +147,10 @@ namespace das {
 
     void Uri::clone ( const Uri & uriS ) {
         reset();
-        if ( !uriS.isEmpty ) parse(uriS.str().c_str());
+        lastOp = uriS.lastOp;
+        if ( !uriS.isEmpty ) {
+            parse(uriS.str().c_str());
+        }
     }
 
     int Uri::size() const {

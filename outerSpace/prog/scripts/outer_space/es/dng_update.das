@@ -18,12 +18,12 @@ struct UpdateActionsEvent
 
 [es(after=before_net_phys_sync, before=after_net_phys_sync)]
 def update_phys_es(info : UpdateStageInfoAct)
-  broadcastEventImmediate([[UpdatePhysEvent curTime=info.curTime, dt=info.dt]]);
+  broadcastEventImmediate(UpdatePhysEvent(curTime = info.curTime, dt = info.dt))
 
 [es(after=before_animchar_update_sync, before=after_animchar_update_sync)]
 def animchar_es(info : UpdateStageInfoAct) // same name for save order of es
-  broadcastEventImmediate([[UpdateAnimcharEvent curTime=info.curTime, dt=info.dt]]);
+  broadcastEventImmediate(UpdateAnimcharEvent(curTime = info.curTime, dt = info.dt))
 
 [es]
 def actions_es(info : UpdateStageInfoAct) // same name for save order of es (it was actions_es in Cpp)
-  broadcastEventImmediate([[UpdateActionsEvent dt=info.dt]]);
+  broadcastEventImmediate(UpdateActionsEvent(dt = info.dt))

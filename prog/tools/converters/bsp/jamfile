@@ -1,6 +1,5 @@
 Root    ?= ../../../.. ;
 Location = prog/tools/converters/bsp ;
-UsingStaticCore = yes ;
 ConsoleExe      = yes ;
 
 TargetType  = exe ;

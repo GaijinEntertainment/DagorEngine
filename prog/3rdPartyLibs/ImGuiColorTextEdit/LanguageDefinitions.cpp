@@ -579,6 +579,16 @@ static const char * find_pair_brace(const char * p, char open, char close)
 }
 
 
+bool TextEditor::AllowNewLineIndentationInBraces()
+{
+	if (mLanguageDefinition == &LanguageDefinition::Cpp() ||
+	    mLanguageDefinition == &LanguageDefinition::Daslang())
+		return true;
+
+	return false;
+}
+
+
 char TextEditor::RequiredCloseChar(char charBefore, char openChar, char charAfter)
 {
  	if (mLanguageDefinition == &LanguageDefinition::Cpp() ||
@@ -609,11 +619,14 @@ char TextEditor::RequiredCloseChar(char charBefore, char openChar, char charAfte
 }
 
 
-bool TextEditor::RequireIndentationAfterNewLine(const eastl::string &line) const
+bool TextEditor::RequireIndentationAfterNewLine(const eastl::string &line, char charAfter) const
 {
 	int braceCounter[3] = { 0 }; // (), [], {}
 	bool inString = false;
 	char stringChar = 0;
+
+	if (charAfter == '}')
+		return false;
 
 	for (int i = 0; i < line.size(); i++)
 	{

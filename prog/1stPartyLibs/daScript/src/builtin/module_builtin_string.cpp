@@ -182,9 +182,10 @@ namespace das
         const uint32_t strLen = stringLengthSafe ( *context, str );
         if (!strLen)
             return nullptr;
-        char * ret = context->allocateString(str, strLen, at);
+        char * ret = context->allocateString(nullptr, strLen, at);
         for (char *d = ret, *end = ret + strLen; d != end; ++str, ++d)
           *d = (char)to_lower(*str);
+        context->stringHeap->intern(ret, strLen);
         return ret;
     }
 
@@ -208,9 +209,10 @@ namespace das
         const uint32_t strLen = stringLengthSafe ( *context, str );
         if (!strLen)
             return nullptr;
-        char * ret = context->allocateString(str, strLen, at);
+        char * ret = context->allocateString(nullptr, strLen, at);
         for (char *d = ret, *end = ret + strLen; d != end; ++str, ++d)
           *d = (char)to_upper(*str);
+        context->stringHeap->intern(ret, strLen);
         return ret;
     }
 
@@ -348,6 +350,10 @@ namespace das
 
     uint64_t fast_to_uint64 ( const char *str, bool hex ) {
         return fast_to_int_TT<uint64_t>(str, hex);
+    }
+
+    const char * das_to_cpp_float ( float val, Context * context, LineInfoArg * at ) {
+        return context->allocateString(to_cpp_float(val), at);
     }
 
     char * builtin_build_string ( const TBlock<void,StringBuilderWriter> & block, Context * context, LineInfoArg * at ) {
@@ -584,11 +590,14 @@ namespace das
         return context->allocateString(bytes.data, bytes.size, at);
     }
 
-    void delete_string ( char * & str, Context * context, LineInfoArg * at ) {
-        if ( !str ) return;
+    bool delete_string ( char * & str, Context * context, LineInfoArg * at ) {
+        if ( !str ) return false;
         uint32_t len = stringLengthSafe(*context, str);
-        context->freeString(str, len, at);
-        str = nullptr;
+        if ( context->freeString(str, len, at) ) {
+            str = nullptr;
+            return true;
+        }
+        return false;
     }
 
     void builtin_append_char_to_string(string & str, int32_t Ch) {
@@ -964,6 +973,8 @@ namespace das
                 SideEffects::none, "fast_to_int64")->args({"value","hex"})->arg_init(1,make_smart<ExprConstBool>(false));
             addExtern<DAS_BIND_FUN(fast_to_uint64)>(*this, lib, "to_uint64",
                 SideEffects::none, "fast_to_uint64")->args({"value","hex"})->arg_init(1,make_smart<ExprConstBool>(false));
+            addExtern<DAS_BIND_FUN(das_to_cpp_float)>(*this, lib, "to_cpp_float",
+                SideEffects::modifyExternal, "das_to_cpp_float")->args({"value","context", "at"});
             addExtern<DAS_BIND_FUN(fast_to_float)>(*this, lib, "to_float",
                 SideEffects::none, "fast_to_float")->arg("value");
             addExtern<DAS_BIND_FUN(fast_to_double)>(*this, lib, "to_double",
@@ -1043,6 +1054,12 @@ namespace das
             // queries
             addExtern<DAS_BIND_FUN(is_alpha)> (*this, lib, "is_alpha",
                 SideEffects::none, "is_alpha")->arg("Character");
+            addExtern<DAS_BIND_FUN(is_alnum)> (*this, lib, "is_alnum",
+                SideEffects::none, "is_alnum")->arg("Character");
+            addExtern<DAS_BIND_FUN(is_hex)>(*this, lib, "is_hex",
+                SideEffects::none, "is_hex")->args({"Character"});
+            addExtern<DAS_BIND_FUN(is_tab_or_space)>(*this, lib, "is_tab_or_space",
+                SideEffects::none, "is_tab_or_space")->args({"Character"});
             addExtern<DAS_BIND_FUN(is_new_line)> (*this, lib, "is_new_line",
                 SideEffects::none, "is_new_line")->arg("Character");
             addExtern<DAS_BIND_FUN(is_white_space)> (*this, lib, "is_white_space",

@@ -315,6 +315,7 @@ namespace das {
         makeT->structs.push_back(make_smart<MakeStruct>());
         auto returnDecl = make_smart<ExprReturn>(str->at,makeT);
         returnDecl->moveSemantics = true;
+        returnDecl->skipLockCheck = true;
         block->list.push_back(returnDecl);
         fn->body = block;
         verifyGenerated(fn->body);
@@ -721,7 +722,7 @@ namespace das {
     ExpressionPtr generateLambdaMakeStruct ( const StructurePtr & ls, const FunctionPtr & lf, const FunctionPtr & lff,
                                             const safe_var_set & capt, const vector<CaptureEntry> & capture, const LineInfo & at,
                                             Program * thisProgram ) {
-        auto asc = new ExprAscend();
+        auto asc = make_smart<ExprAscend>();
         asc->at = at;
         asc->needTypeInfo = true;
         auto makeS = make_smart<ExprMakeStruct>();
@@ -780,9 +781,8 @@ namespace das {
         asc->ascType->argTypes.erase(asc->ascType->argTypes.begin());
         asc->ascType->argNames.erase(asc->ascType->argNames.begin());
         asc->ascType->baseType = Type::tLambda;
-        auto res = ExpressionPtr(asc);
-        verifyGenerated(res);
-        return res;
+        verifyGenerated(asc);
+        return asc;
     }
 
     // rename variable to unique name variable
@@ -802,7 +802,7 @@ namespace das {
         virtual void preVisit ( ExprFor * expr ) override {
             Visitor::preVisit(expr);
             if ( scopes.size()==0 ) {   // only top level for loop
-                for ( int i=0; i!=expr->iterators.size(); ++i ) {
+                for ( size_t i=0; i!=expr->iterators.size(); ++i ) {
                     auto & varName = expr->iterators[i];
                     auto & var = expr->iteratorVariables[i];
                     if ( varName[0]!='_' || varName[1]!='_' ) {
@@ -1153,6 +1153,11 @@ namespace das {
         return blk;
     }
 
+    bool srcNeedTempVar ( Expression * src, TypeDecl * type ) {
+        if ( !type->isRef() ) return false;
+        return src->rtti_isCallLikeExpr() || src->rtti_isMakeLocal();
+    }
+
     ExpressionPtr replaceGeneratorFor ( ExprFor * expr, const FunctionPtr & func ) {
         auto begin_loop_label = func->totalGenLabel ++;
         auto mid_loop_label = func->totalGenLabel ++;
@@ -1199,6 +1204,23 @@ namespace das {
             const string & srcVarName = expr->iterators[si];
             const auto & src = expr->sources[si];
             const auto & iterv = expr->iteratorVariables[si];
+            // if its a temp ref type, we need to create a temp variable
+            smart_ptr<ExprLet> tempLet;
+            if ( srcNeedTempVar(src.get(), src->type.get()) ) {
+                tempLet = make_smart<ExprLet>();
+                tempLet->at = expr->at;
+                tempLet->atInit = expr->at;
+                tempLet->visibility = expr->visibility;
+                auto svar = make_smart<Variable>();
+                svar->generated = true;
+                svar->at = expr->at;
+                svar->name = srcName + "_temp_var";
+                svar->type = make_smart<TypeDecl>(Type::autoinfer);
+                svar->init_via_move = true;
+                svar->init = src->clone();
+                tempLet->variables.push_back(svar);
+                blk->list.push_back(tempLet);
+            }
             // let src0 = each(blah) or let src0 = blah if its iterator
             auto seqt = make_smart<ExprLet>();
             seqt->at = expr->at;
@@ -1216,7 +1238,11 @@ namespace das {
                 auto ceach = make_smart<ExprCall>(expr->at, "each");
                 ceach->generated = true;
                 ceach->alwaysSafe = true;
-                ceach->arguments.push_back(src->clone());
+                if ( tempLet ) {
+                    ceach->arguments.push_back(make_smart<ExprVar>(expr->at, srcName + "_temp_var"));
+                } else {
+                    ceach->arguments.push_back(src->clone());
+                }
                 svar->init = ceach;
             }
             seqt->variables.push_back(svar);
@@ -1342,6 +1368,7 @@ namespace das {
         arg0->name = "dest";
         arg0->type = make_smart<TypeDecl>(*tupleType);
         arg0->type->constant = false;
+        arg0->type->explicitConst = false;
         arg0->type->ref = false;
         fn->arguments.push_back(arg0);
         auto arg1 = make_smart<Variable>();
@@ -1349,6 +1376,7 @@ namespace das {
         arg1->name = "src";
         arg1->type = make_smart<TypeDecl>(*tupleType);
         arg1->type->constant = true;
+        arg1->type->explicitConst = false;
         arg1->type->ref = false;
         arg1->type->implicit = true;
         fn->arguments.push_back(arg1);
@@ -1427,6 +1455,7 @@ namespace das {
         arg0->name = "dest";
         arg0->type = make_smart<TypeDecl>(*variantType);
         arg0->type->constant = false;
+        arg0->type->explicitConst = false;
         arg0->type->ref = false;
         fn->arguments.push_back(arg0);
         auto arg1 = make_smart<Variable>();
@@ -1434,6 +1463,7 @@ namespace das {
         arg1->name = "src";
         arg1->type = make_smart<TypeDecl>(*variantType);
         arg1->type->constant = true;
+        arg1->type->explicitConst = false;
         arg1->type->ref = false;
         arg1->type->implicit = true;
         fn->arguments.push_back(arg1);
@@ -1552,6 +1582,7 @@ namespace das {
         arg0->name = "dest";
         arg0->type = make_smart<TypeDecl>(*left);
         arg0->type->constant = false;
+        arg0->type->explicitConst = false;
         arg0->type->ref = true;
         fn->arguments.push_back(arg0);
         auto arg1 = make_smart<Variable>();
@@ -1561,6 +1592,7 @@ namespace das {
         arg1->type->constant = true;
         arg1->type->ref = false;
         arg1->type->implicit = true;
+        arg1->type->explicitConst = false;
         fn->arguments.push_back(arg1);
         auto block = make_smart<ExprBlock>();
         block->at = at;
@@ -1769,6 +1801,7 @@ namespace das {
         auto returnDecl = make_smart<ExprReturn>(baseClass->at,selfV);
         returnDecl->at = func->at;
         returnDecl->moveSemantics = true;
+        returnDecl->skipLockCheck = true; // this is a constructor, there is no need lock-check
         block->list.push_back(returnDecl);
         // and done
         func->body = block;
@@ -1851,7 +1884,7 @@ namespace das {
         return func;
     }
 
-    ExpressionPtr convertToCloneExpr ( ExprMakeStruct * expr, int index, MakeFieldDecl * decl ) {
+    ExpressionPtr convertToCloneExpr ( ExprMakeStruct * expr, int index, MakeFieldDecl * decl, bool ignoreCaptureConst ) {
         bool needIndex = expr->structs.size()>1;
         DAS_ASSERT(expr->block->rtti_isMakeBlock());
         auto mkb = static_pointer_cast<ExprMakeBlock>(expr->block);
@@ -1862,6 +1895,7 @@ namespace das {
         if ( !needIndex ) {
             auto vself = make_smart<ExprVar>(decl->at, selfName);
             auto fdecl = make_smart<ExprField>(decl->at, vself, decl->name);
+            fdecl->ignoreCaptureConst = ignoreCaptureConst;
             auto op2c = make_smart<ExprClone>(decl->at, fdecl, decl->value->clone());
             return op2c;
         } else {
@@ -1888,6 +1922,7 @@ namespace das {
         }
         auto argV = make_smart<Variable>();
         argV->name = "__self__" + to_string(mks->at.line) + "_" + to_string(mks->at.column);
+        argV->can_shadow = mks->canShadowBlock;
         argV->type = argT;
         argV->at = mks->at;
         argV->generated = true;

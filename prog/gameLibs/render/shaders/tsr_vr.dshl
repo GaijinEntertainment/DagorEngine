@@ -460,7 +460,7 @@ macro TSR_INCLUDES(code)
 
     float3 fetchMotionVector(float raw_depth, float2 uv)
     {
-      float3 uvz = fetch_motion_vector(uv * uv_transform.xy + uv_transform.zw, raw_depth);
+      float3 uvz = fetch_motion_vector_unjittered(uv * uv_transform.xy + uv_transform.zw, raw_depth);
       float prevLinearZ = linearize_z(raw_depth, zn_zfar.zw) + uvz.z;  // TODO: switch to rejection by linear Z
       float prevDepth = inv_linearizeZ(prevLinearZ, zn_zfar);
       return float3(uvz.xy, prevDepth - raw_depth);

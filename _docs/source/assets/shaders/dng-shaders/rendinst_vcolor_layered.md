@@ -1,4 +1,4 @@
-# Shader: rendinst_vcolor_layered
+# `rendinst_vcolor_layered`
 
 ## Overview
 
@@ -377,7 +377,7 @@ Most of the stages were painted in separate layers:
 - Overlay for individual spots.
 - Overlay for the burnt corner.
 
-## Shader Usage
+## Usage
 
 This shader is well-suited for:
 

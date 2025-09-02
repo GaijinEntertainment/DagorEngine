@@ -116,7 +116,7 @@ static SQInteger evt_nexti(HSQUIRRELVM vm)
 template <typename T, bool val = ECS_MAYBE_VALUE(T)>
 struct MaybeAddRef
 {
-  typedef typename eastl::type_select<val, T, const T &>::type type;
+  typedef typename eastl::conditional<val, T, const T &>::type type;
 };
 
 template <typename E, size_t I>

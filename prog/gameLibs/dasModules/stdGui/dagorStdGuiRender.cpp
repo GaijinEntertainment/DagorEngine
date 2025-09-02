@@ -64,6 +64,10 @@ struct GuiVertexTransformAnnotation : das::ManagedStructureAnnotation<GuiVertexT
 namespace bind_dascript
 {
 
+::BlendMode get_alpha_blend(::StdGuiRender::GuiContext &ctx) { return ctx.get_alpha_blend(); }
+
+void set_alpha_blend(::StdGuiRender::GuiContext &ctx, ::BlendMode mode) { ctx.set_alpha_blend(mode); }
+
 void render_line_aa(::StdGuiRender::GuiContext &ctx, const das::TArray<Point2> &points, bool is_closed, float line_width,
   const Point2 line_indent, E3DCOLOR color)
 {
@@ -198,8 +202,13 @@ struct DagorStdGuiRender final : public das::Module
 
     BIND_MEMBER(::StdGuiRender::GuiContext, hdpx, "hdpx", das::SideEffects::modifyArgument);
 
+    das::addExtern<DAS_BIND_FUN(get_alpha_blend)>(*this, lib, "get_alpha_blend", das::SideEffects::accessExternal,
+      "bind_dascript::get_alpha_blend");
+    das::addExtern<DAS_BIND_FUN(set_alpha_blend)>(*this, lib, "set_alpha_blend", das::SideEffects::modifyArgument,
+      "bind_dascript::set_alpha_blend");
     das::addExtern<DAS_BIND_FUN(render_line_aa)>(*this, lib, "render_line_aa", das::SideEffects::modifyArgument,
       "bind_dascript::render_line_aa");
+    DAS_ADD_METHOD_BIND("render_line_gradient_out", worstDefault, StdGuiRender::GuiContext::render_line_gradient_out);
     das::addExtern<DAS_BIND_FUN(render_poly)>(*this, lib, "render_poly", das::SideEffects::modifyArgument,
       "bind_dascript::render_poly");
     das::addExtern<DAS_BIND_FUN(render_inverse_poly)>(*this, lib, "render_inverse_poly", das::SideEffects::modifyArgument,

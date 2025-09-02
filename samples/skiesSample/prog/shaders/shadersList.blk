@@ -12,3 +12,4 @@
   file:t = "aurora_borealis.dshl"
   file:t = "./source/blur.dshl"
   file:t = "../../../engine/imgui/imgui.dshl"
+  file:t = "../../../gameLibs/render/texDebug/texDebug.dshl"

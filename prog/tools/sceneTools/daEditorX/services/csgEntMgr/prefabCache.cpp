@@ -2,6 +2,7 @@
 
 #include "prefabCache.h"
 #include <de3_interface.h>
+#include <util/dag_string.h>
 #include <libTools/dagFileRW/dagFileNode.h>
 
 Tab<PrefabGeomCacheRec *> PrefabGeomCacheRec::prefab_geom_cache;

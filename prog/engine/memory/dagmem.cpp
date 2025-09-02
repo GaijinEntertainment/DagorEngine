@@ -22,9 +22,7 @@
 #include "macMemInit.h"
 
 #include <supp/_platform.h>
-#if _TARGET_C1 | _TARGET_C2
-
-#elif _TARGET_PC_WIN
+#if _TARGET_PC_WIN
 #include <windows.h>
 #include <malloc.h>
 #endif
@@ -123,13 +121,14 @@ static unsigned get_sysmem_ptrs_in_use() { return 0; }
 #define MIN4K(x) min<unsigned>(x, 4096u)
 #endif
 
-#define FILL_MEM_WITH_PATTERN(ptr, pattern, sz)                                                                                    \
-  do                                                                                                                               \
-  {                                                                                                                                \
-    size_t blockSize = sz;                                                                                                         \
-    G_FAST_ASSERT(blockSize < (size_t)-0x10000); /*_msize returns -1 for a bad block, but _aligned_msize subtracts the alignment*/ \
-    for (int *i = (int *)(ptr), *e = i + MIN4K(blockSize / sizeof(int)); i < e;)                                                   \
-      *i++ = pattern;                                                                                                              \
+#define FILL_MEM_WITH_PATTERN(ptr, pattern, sz)                                       \
+  do                                                                                  \
+  {                                                                                   \
+    size_t blockSize = sz;                                                            \
+    /*_msize returns -1 for a bad block, but _aligned_msize subtracts the alignment*/ \
+    G_FAST_ASSERT(blockSize < (size_t) - 0x10000);                                    \
+    for (int *i = (int *)(ptr), *e = i + MIN4K(blockSize / sizeof(int)); i < e;)      \
+      *i++ = pattern;                                                                 \
   } while (0)
 #define FILL_PTR_WITH_PATTERN(p, pattern) FILL_MEM_WITH_PATTERN(p, pattern, GET_MEM_SIZE(p))
 
@@ -392,7 +391,11 @@ size_t dagor_memory_stat::get_memory_allocated(bool _crt)
 
 struct MemUsageStats0
 {
+#if _TARGET_64BIT
+  volatile int64_t total_alloc_x16, ptr_in_use;
+#else
   volatile int total_alloc_x16, ptr_in_use;
+#endif
 
   void on_alloc(void *ptr, bool aligned = false)
   {
@@ -602,18 +605,9 @@ inline void *mt_dlmemalign(size_t bytes, size_t alignment)
 inline void mt_dlfree(void *mem)
 {
   FILL_FREED_MEMORY(mem);
-
-#if DAGOR_DBGLEVEL < 1 && (_TARGET_C1 | _TARGET_C2)
-  if (cpujobs::abortJobsRequested)
-    return;
-#endif
-
   enter_memory_critical_section();
-
   MUC_ON_MEM_FREE(muc, mem);
-
   dlfree(mem);
-
   leave_memory_critical_section();
 }
 
@@ -946,9 +940,10 @@ void get_memory_stats(char *buf, int buflen)
   lbw.aprintf("  pointers(max/now):           %9d/%9d\n", interlocked_acquire_load(_muc.max_ptr_in_use),
     interlocked_acquire_load(_muc.ptr_in_use));
 
-#if !(_TARGET_C1 | _TARGET_C2)
+#if !(defined(_STD_RTL_MEMORY) || _TARGET_C1 || _TARGET_C2)
   lbw.aprintf("  commited(max/now):           %6d/%6d K\n", get_memory_committed_max() >> 10, get_memory_committed() >> 10);
 #endif
+  lbw.aprintf("  sysmem:                      %7d K\n", get_sysmem_in_use() >> 10);
 
   if (d3d_dump_memory_stat)
     d3d_dump_memory_stat(lbw);
@@ -1056,7 +1051,7 @@ bool check_memory(bool /*only_cur_gen*/) { return true; }
 void dump_all_used_ptrs(bool /*only_cur_gen*/) {}
 void dump_leaks(bool /*only_cur_gen*/) {}
 void enable_thorough_checks(bool /*enable*/) {}
-bool enable_stack_fill(bool /*enable*/) { return true; }
+bool enable_stack_fill(bool /*enable*/) { return false; }
 void dump_raw_heap(const char *) {}
 } // namespace DagDbgMem
 
@@ -1166,12 +1161,13 @@ void *operator new[](std::size_t s) DAG_THROW_BAD_ALLOC { return FINAL_ALLOC(def
 void *operator new[](std::size_t s, const std::nothrow_t &) DAG_NOEXCEPT { return FINAL_ALLOC(defaultmem)->tryAlloc(s); }
 void operator delete(void *p) DAG_NOEXCEPT { memfree_anywhere(p); }
 void operator delete[](void *p) DAG_NOEXCEPT { memfree_anywhere(p); }
+void operator delete(void *p, size_t) DAG_NOEXCEPT { memfree_anywhere(p); }
+void operator delete[](void *p, size_t) DAG_NOEXCEPT { memfree_anywhere(p); }
 #if (__cplusplus >= 201703 || (defined(_MSVC_LANG) && _MSVC_LANG >= 201703)) && !__has_feature(address_sanitizer)
 void *operator new(std::size_t sz, std::align_val_t al) { return FINAL_ALLOC(defaultmem)->allocAligned(sz, (size_t)al); }
 void *operator new[](std::size_t sz, std::align_val_t al) { return FINAL_ALLOC(defaultmem)->allocAligned(sz, (size_t)al); }
-void operator delete(void *ptr, std::align_val_t) noexcept { return FINAL_ALLOC(defaultmem)->freeAligned(ptr); }
-void operator delete[](void *ptr, std::align_val_t) noexcept { return FINAL_ALLOC(defaultmem)->freeAligned(ptr); }
-// TODO: aligned nothrow?
+void operator delete(void *p, std::align_val_t) noexcept { FINAL_ALLOC(defaultmem)->freeAligned(p); }
+void operator delete[](void *p, std::align_val_t) noexcept { FINAL_ALLOC(defaultmem)->freeAligned(p); }
 #endif
 #endif
 

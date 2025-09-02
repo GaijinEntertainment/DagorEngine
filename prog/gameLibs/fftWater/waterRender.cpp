@@ -63,6 +63,8 @@ static int water_cascadesVarId = -1;
 static int water_levelVarId = -1;
 static int shoreDistanceFieldTexVarId = -1;
 static int wakeHtTexVarId = -1;
+
+static int water3dBlockId = -1;
 // fft
 static int current_water_timeVarId = -1;
 static int choppy_scaleVarId = -1;
@@ -158,7 +160,6 @@ void WaterNVRender::initFoam()
   const uint32_t texUsage = computeGradientsEnabled ? TEXCF_UNORDERED : TEXCF_RTARGET;
   foamGradient =
     dag::create_array_tex(N, N, numCascades > 4 ? 2 : 1, texUsage | texFmt | TEXCF_CLEAR_ON_CREATE, 1, "water3d_foam_temp");
-  foamGradient->disableSampler();
   gradientFoamRenderer.init("water_foam_blur");
 }
 
@@ -205,7 +206,6 @@ void WaterNVRender::initDisplacementCPU()
     const int N = 1 << fft[0].getParams().fft_resolution_bits;
     String texName(128, "water3d_disp%d", cascadeNo);
     dispCPU[cascadeNo] = dag::create_tex(NULL, N, N, TEXCF_DYNAMIC | TEXFMT_A16B16G16R16F, 1, texName.str());
-    dispCPU[cascadeNo]->disableSampler();
   }
 }
 
@@ -286,6 +286,9 @@ void WaterNVRender::setCascades(const NVWaveWorks_FFT_CPU_Simulation::Params &p)
   }
 
   calcWaveHeight(maxWaveHeight, significantWaveHeight);
+  minWaterLevel -= significantWaveHeight;
+  maxWaterLevel += significantWaveHeight;
+
   applyShoreEnabled();
 
   applyWaterCell();
@@ -327,7 +330,7 @@ void WaterNVRender::setCascades(const NVWaveWorks_FFT_CPU_Simulation::Params &p)
 
 WaterNVRender::WaterNVRender(const NVWaveWorks_FFT_CPU_Simulation::Params &p, const fft_water::SimulationParams &simulation, int q,
   int geom_quality, bool depth_renderer, bool ssr_renderer, bool one_to_four_cascades, int num_cascades, float cascade_window_length,
-  float cascade_facet_size, const fft_water::WaterHeightmap *water_heightmap) :
+  float cascade_facet_size, const fft_water::WaterHeightmap *water_heightmap, bool water_heightmap_draw_patches) :
   fft(NULL),
   cascadeWindowLength(cascade_window_length),
   cascadeFacetSize(cascade_facet_size),
@@ -345,27 +348,29 @@ WaterNVRender::WaterNVRender(const NVWaveWorks_FFT_CPU_Simulation::Params &p, co
   detailsWeightDist(100.0f, 300.0f),
   detailsWeightMin(300.0f, 500.0f, 5000.0f, 6000.0f),
   detailsWeightMax(300.0f, 500.0f, 300.0f, 1300.0f),
-  shoreDamp(3.0f, 6.0f),
+  shoreDamp(0.0f, 6.0f),
   shoreWavesDist(600.0f, 1000.0f),
-  lastLodExtension(40000.0f),
+  lastLodExtension(80000.0f),
   shoreEnabled(false),
-  renderPass(fft_water::WATER_RENDER_PASS_NORMAL),
   computeGradientsEnabled(false),
   forceTessellation(false),
   oneToFourCascades(one_to_four_cascades),
-  waterHeightmap(water_heightmap)
+  waterHeightmap(water_heightmap),
+  waterHeightmapDrawPatches(water_heightmap_draw_patches),
+  maxWaveHeight(0.0f),
+  significantWaveHeight(0.0f),
+  waveDisplacementDist(Point2(0.0f, 0.0f)),
+  renderQuad(NULL),
+  anisotropy(0),
+  mipBias(0.0f)
 {
-  anisotropy = 0;
-  mipBias = 0.f;
-  waveDisplacementDist = Point2(0.0f, 0.0f);
-  renderQuad = NULL;
   // num_cascades = min(d3d::get_driver_desc().maxvertexsamplers-1, num_cascades);
-  water_levelVarId = get_shader_variable_id("water_level", true);
   renderQuality = q;
   geomQuality = max(geom_quality, waterHeightmap ? fft_water::RENDER_LOW : 0);
   autoVsamplersAdjust = true;
   memset(maxWaveSize, 0, sizeof(maxWaveSize));
-  waterLevel = 0;
+  water_levelVarId = get_shader_variable_id("water_level", true);
+  setLevel(0);
   G_ASSERT(num_cascades >= 0);
   numCascades = num_cascades;
   numFftCascades = oneToFourCascades ? 1 : num_cascades;
@@ -390,8 +395,11 @@ WaterNVRender::WaterNVRender(const NVWaveWorks_FFT_CPU_Simulation::Params &p, co
   {
     heightmapPagesTex = dag::create_tex(NULL, waterHeightmap->pagesX * waterHeightmap->PAGE_SIZE_PADDED,
       waterHeightmap->pagesY * waterHeightmap->PAGE_SIZE_PADDED, TEXFMT_L16, 1, "water_heightmap_pages");
-    heightmapPagesTex->texaddr(TEXADDR_CLAMP);
-    heightmapPagesTex->texfilter(TEXFILTER_LINEAR);
+    d3d::SamplerInfo smpInfo;
+    smpInfo.address_mode_u = smpInfo.address_mode_v = d3d::AddressMode::Clamp;
+    smpInfo.filter_mode = d3d::FilterMode::Linear;
+    d3d::SamplerHandle smp = d3d::request_sampler(smpInfo);
+    ShaderGlobal::set_sampler(::get_shader_variable_id("water_heightmap_pages_samplerstate", true), smp);
 
     if (auto data = lock_texture(heightmapPagesTex.getTex2D(), 0, TEXLOCK_WRITE | TEXLOCK_DISCARD))
       if (waterHeightmap->pages.size())
@@ -399,19 +407,17 @@ WaterNVRender::WaterNVRender(const NVWaveWorks_FFT_CPU_Simulation::Params &p, co
 
     heightmapGridTex =
       dag::create_tex(NULL, waterHeightmap->gridSize, waterHeightmap->gridSize, TEXFMT_L16, 1, "water_heightmap_grid");
-    heightmapGridTex->texaddr(TEXADDR_CLAMP);
-    heightmapGridTex->texfilter(TEXFILTER_LINEAR);
+    ShaderGlobal::set_sampler(::get_shader_variable_id("water_heightmap_grid_samplerstate", true), smp);
     if (auto data = lock_texture(heightmapGridTex.getTex2D(), 0, TEXLOCK_WRITE | TEXLOCK_DISCARD))
       if (waterHeightmap->grid.size())
         data.writeRows(make_span_const(waterHeightmap->grid));
 
-    ShaderGlobal::set_color4(::get_shader_variable_id("water_height_offset_scale"),
-      Color4(waterHeightmap->heightOffset, waterHeightmap->heightScale, 0, 0));
-    ShaderGlobal::set_color4(::get_shader_variable_id("water_heightmap_page_count"), 1.0f / waterHeightmap->pagesX,
-      1.0f / waterHeightmap->pagesY);
+    float pageSize = waterHeightmap->HEIGHTMAP_PAGE_SIZE;
+    ShaderGlobal::set_color4(::get_shader_variable_id("water_height_offset_scale__page_padding"),
+      Color4(waterHeightmap->heightOffset, waterHeightmap->heightScale, pageSize / (pageSize + 2.0f), 1 / (pageSize + 2.0f)));
+    ShaderGlobal::set_color4(::get_shader_variable_id("water_heightmap_page_count__det_scale"), 1.0f / waterHeightmap->pagesX,
+      1.0f / waterHeightmap->pagesY, waterHeightmap->scale);
     ShaderGlobal::set_color4(::get_shader_variable_id("world_to_water_heightmap"), waterHeightmap->tcOffsetScale);
-    ShaderGlobal::set_real(::get_shader_variable_id("water_heightmap_det_scale"), waterHeightmap->scale);
-    ShaderGlobal::set_real(::get_shader_variable_id("water_heightmap_page_size"), waterHeightmap->HEIGHTMAP_PAGE_SIZE);
 
     waterHeightmapPatchesGridScale = 1;
     waterHeightmapUseTessellation = d3d::get_driver_desc().caps.hasQuadTessellation;
@@ -438,19 +444,24 @@ WaterNVRender::WaterNVRender(const NVWaveWorks_FFT_CPU_Simulation::Params &p, co
       }
 
     waterHeightmapPatchesCount = waterHeightmapPatchPositions.size();
-    if (waterHeightmapPatchesCount > 0 && waterHeightmapUseTessellation)
+    waterHeightmapDrawPatches &= waterHeightmapPatchesCount > 0;
+    if (waterHeightmapDrawPatches)
     {
-      heightmapBuf = dag::buffers::create_ua_sr_structured(sizeof(Point4), waterHeightmapPatchesCount, "water_positions");
-      heightmapBuf->updateData(0, sizeof(Point4) * waterHeightmapPatchesCount, waterHeightmapPatchPositions.data(), VBLOCK_WRITEONLY);
-    }
-    else
-      heightmapBuf.close();
+      if (waterHeightmapUseTessellation)
+      {
+        heightmapBuf = dag::buffers::create_ua_sr_structured(sizeof(Point4), waterHeightmapPatchesCount, "water_positions");
+        heightmapBuf->updateData(0, sizeof(Point4) * waterHeightmapPatchesCount, waterHeightmapPatchPositions.data(),
+          VBLOCK_WRITEONLY);
+      }
+      else
+        heightmapBuf.close();
 
-    for (int i = 0; i < fft_water::RenderMode::MAX; i++)
-    {
-      heightmapShmat[i].reset(new_shader_material_by_name(water_heightmap_shader_name[i], nullptr));
-      if (heightmapShmat[i])
-        heightmapShElem[i] = heightmapShmat[i]->make_elem();
+      for (int i = 0; i < fft_water::RenderMode::MAX; i++)
+      {
+        heightmapShmat[i].reset(new_shader_material_by_name(water_heightmap_shader_name[i], nullptr));
+        if (heightmapShmat[i])
+          heightmapShElem[i] = heightmapShmat[i]->make_elem();
+      }
     }
   }
   else
@@ -458,6 +469,7 @@ WaterNVRender::WaterNVRender(const NVWaveWorks_FFT_CPU_Simulation::Params &p, co
     heightmapPagesTex.close();
     heightmapGridTex.close();
     heightmapBuf.close();
+    waterHeightmapDrawPatches = false;
   }
 
   // render
@@ -489,7 +501,7 @@ WaterNVRender::WaterNVRender(const NVWaveWorks_FFT_CPU_Simulation::Params &p, co
       }
     }
   }
-  else
+  else if (!d3d::device_lost(nullptr))
   {
     DAG_FATAL("fft_water: no vfetch!");
   }
@@ -524,6 +536,8 @@ WaterNVRender::WaterNVRender(const NVWaveWorks_FFT_CPU_Simulation::Params &p, co
   wind_speedVarId = get_shader_variable_id("wind_speed");
   shore_waves_onVarId = get_shader_variable_id("shore_waves_on", true);
 
+  water3dBlockId = ShaderGlobal::getBlockId("water3d_block");
+
   if (!initGPU())
   {
     logerr("can not initialize GPU fft");
@@ -547,7 +561,6 @@ WaterNVRender::WaterNVRender(const NVWaveWorks_FFT_CPU_Simulation::Params &p, co
   if (use_texture_array)
   {
     gradientArray = dag::create_array_tex(fft_resolution, fft_resolution, numFftCascades, gradientTexFlags, 0, "water3d_grad_array");
-    gradientArray->disableSampler();
   }
   else
   {
@@ -561,7 +574,6 @@ WaterNVRender::WaterNVRender(const NVWaveWorks_FFT_CPU_Simulation::Params &p, co
     {
       String texName(128, "water3d_gradient%d", cascadeNo);
       gradient[cascadeNo] = dag::create_tex(NULL, fft_resolution, fft_resolution, gradientTexFlags, 0, texName.str());
-      gradient[cascadeNo]->disableSampler();
     }
   }
 
@@ -591,7 +603,23 @@ WaterNVRender::WaterNVRender(const NVWaveWorks_FFT_CPU_Simulation::Params &p, co
 void WaterNVRender::setLevel(float water_level)
 {
   waterLevel = water_level;
+  minWaterLevel = waterLevel;
+  maxWaterLevel = waterLevel;
+  if (waterHeightmap)
+  {
+    minWaterLevel = min(minWaterLevel, waterHeightmap->heightOffset);
+    maxWaterLevel = max(maxWaterLevel, waterHeightmap->heightMax);
+  }
+  minWaterLevel -= significantWaveHeight;
+  maxWaterLevel += significantWaveHeight;
+
   ShaderGlobal::set_real(water_levelVarId, water_level);
+}
+
+void WaterNVRender::setMinMaxLevel(float min_water_level, float max_water_level)
+{
+  minWaterLevel = min_water_level - significantWaveHeight;
+  maxWaterLevel = max_water_level + significantWaveHeight;
 }
 
 void WaterNVRender::setWaveDisplacementDistance(const Point2 &value) { waveDisplacementDist = value; }
@@ -614,7 +642,9 @@ void WaterNVRender::initRefraction(int w, int h)
                                                                                   // of was it inited or not
     return;
   refraction = dag::create_tex(NULL, w, h, TEXFMT_A8R8G8B8 | TEXCF_RTARGET, 1, "refractionTarget");
-  refraction.getTex2D()->texaddr(TEXADDR_CLAMP);
+  d3d::SamplerInfo smpInfo;
+  smpInfo.address_mode_u = smpInfo.address_mode_v = d3d::AddressMode::Clamp;
+  ShaderGlobal::set_sampler(get_shader_variable_id("water_refraction_tex_samplerstate", true), d3d::request_sampler(smpInfo));
 }
 
 void WaterNVRender::closeRefraction()
@@ -1105,6 +1135,8 @@ void WaterNVRender::calculateCascadesRoughness()
   Point4 roughVec4567(0, 0, 0, 0);
 
   SCOPE_RENDER_TARGET;
+  FRAME_LAYER_GUARD(-1);
+
   d3d::set_render_target(normals.getTex2D(), 0);
   d3d::clearview(CLEAR_DISCARD_TARGET, 0, 0, 0);
 
@@ -1291,17 +1323,9 @@ void WaterNVRender::render(const Point3 &origin, TEXTUREID distanceTex, int geom
   else
     logerr("Non-existent water rendering mode %d", render_mode);
 
-  float minWaterLevel = waterLevel;
-  float maxWaterLevel = waterLevel;
   float waterHeight = waterLevel;
   if (waterHeightmap)
-  {
-    minWaterLevel = min(minWaterLevel, waterHeightmap->heightOffset);
-    maxWaterLevel = max(maxWaterLevel, waterHeightmap->heightMax);
     waterHeightmap->getHeightmapDataBilinear(origin.x, origin.z, waterHeight);
-  }
-  minWaterLevel -= significantWaveHeight;
-  maxWaterLevel += significantWaveHeight;
   float originAlt = origin.y - waterHeight;
   const int fftResBits = fft[0].getParams().fft_resolution_bits;
 
@@ -1357,6 +1381,8 @@ void WaterNVRender::render(const Point3 &origin, TEXTUREID distanceTex, int geom
     nextLod = min(nextLod, maxLodWithHeightmap);
   if (geom_lod_quality == fft_water::GEOM_INVISIBLE && !renderQuad)
     nextLod = lodCount;
+  else if (geom_lod_quality == fft_water::GEOM_HIGH)
+    nextLod = 0;
   int lod = (int)floorf(max(nextLod, 0.f));
   if (lodCount <= lod)
   {
@@ -1441,8 +1467,7 @@ void WaterNVRender::render(const Point3 &origin, TEXTUREID distanceTex, int geom
 
   const SavedStates states = setStates(distanceTex, vs_samplers);
   int prevGlobalBlockId = ShaderGlobal::getBlock(ShaderGlobal::LAYER_FRAME);
-  static int mWater3dBlockId = ShaderGlobal::getBlockId("water3d_block");
-  ShaderGlobal::setBlock(mWater3dBlockId, ShaderGlobal::LAYER_FRAME);
+  ShaderGlobal::setBlock(water3dBlockId, ShaderGlobal::LAYER_FRAME);
   if (origin.y <= maxWaterLevel)
   {
     shaders::OverrideStateId prevStateId = shaders::overrides::get_current();
@@ -1458,7 +1483,7 @@ void WaterNVRender::render(const Point3 &origin, TEXTUREID distanceTex, int geom
 
   if (renderer)
     renderer->render(lodGrid, defaultCullData);
-  if (waterHeightmapPatchesCount > 0)
+  if (waterHeightmapDrawPatches)
   {
     if (waterHeightmapUseTessellation)
     {
@@ -1562,11 +1587,4 @@ void WaterNVRender::shoreEnable(bool enable)
 {
   shoreEnabled = enable;
   applyShoreEnabled();
-}
-
-void WaterNVRender::setRenderPass(int pass)
-{
-  renderPass = pass;
-  static int waterRenderPassVarId = get_shader_variable_id("water_render_pass", true);
-  ShaderGlobal::set_int(waterRenderPassVarId, pass);
 }

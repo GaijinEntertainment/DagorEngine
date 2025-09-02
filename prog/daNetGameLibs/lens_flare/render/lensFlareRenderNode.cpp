@@ -1,14 +1,14 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "lensFlareNodes.h"
-#include "lensFlareRenderer.h"
 
-#include <render/daBfg/bfg.h>
+#include <render/lensFlare/render/lensFlareRenderer.h>
+#include <render/daFrameGraph/daFG.h>
 #include <EASTL/shared_ptr.h>
 
-dabfg::NodeHandle create_lens_flare_render_node(const LensFlareRenderer *renderer, const LensFlareQualityParameters &quality)
+dafg::NodeHandle create_lens_flare_render_node(const LensFlareRenderer *renderer, const LensFlareQualityParameters &quality)
 {
-  return get_lens_flare_namespace().registerNode("render", DABFG_PP_NODE_SRC, [renderer, quality](dabfg::Registry registry) {
+  return get_lens_flare_namespace().registerNode("render", DAFG_PP_NODE_SRC, [renderer, quality](dafg::Registry registry) {
     auto hasLensFlaresHndl = registry.readBlob<int>("has_lens_flares").handle();
 
     const auto resolution = registry.getResolution<2>("post_fx", quality.resolutionScaling);
@@ -16,8 +16,9 @@ dabfg::NodeHandle create_lens_flare_render_node(const LensFlareRenderer *rendere
     if (!(d3d::get_texformat_usage(rtFmt) & d3d::USAGE_RTARGET))
       rtFmt = TEXFMT_A16B16G16R16F;
     const uint32_t texFmt = rtFmt | TEXCF_RTARGET;
-    auto lensFlareTexture = registry.createTexture2d("lens_flares", dabfg::History::No, {texFmt, resolution});
-    registry.requestRenderPass().color({lensFlareTexture}).clear(lensFlareTexture, make_clear_value(0.f, 0.f, 0.f, 0.f));
+    auto lensFlareTexture =
+      registry.createTexture2d("lens_flares", dafg::History::No, {texFmt, resolution}).clear(make_clear_value(0.f, 0.f, 0.f, 0.f));
+    registry.requestRenderPass().color({lensFlareTexture});
 
     registry.requestState().setFrameBlock("global_frame");
 

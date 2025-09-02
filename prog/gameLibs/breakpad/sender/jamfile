@@ -5,7 +5,6 @@ TargetType = exe ;
 Target = bpreport ;
 StrictCompile = yes ;
 
-PlatformSpec_windows ?= vc16 ;
 include $(Root)/prog/_jBuild/defPlatform.jam ;
 
 # workaround broken FL/x.H which will try to include Xlib.H on win64

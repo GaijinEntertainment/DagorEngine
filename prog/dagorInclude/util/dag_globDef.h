@@ -15,6 +15,7 @@ typedef TCHR *PTCHR;
 #include <debug/dag_assert.h>
 #include <supp/dag_define_KRNLIMP.h>
 
+void shutdown_game_instance(int c = 0);
 
 // general quit routine (to be used instead of exit() or abort())
 #if _TARGET_PC && (DAGOR_DBGLEVEL > 0)

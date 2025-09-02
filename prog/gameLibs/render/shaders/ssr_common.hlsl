@@ -46,7 +46,7 @@ float ssr_linearize_z(float rawDepth)
 // hierarchical raymarch function
 // TODO - reduce first step length to find close reflections
 float4 hierarchRayMarch(float2 rayStart_uv, float3 R, float linear_roughness, float linearDepth, float3 cameraToPoint,
-                        float stepOfs, float4x4 viewProjTmNoOfs, float waterLevel)
+                        float stepOfs, float4x4 viewProjTmNoOfs, float waterLevel, out float4 backSurfaceBeginPos, out float3 backSurfaceEndPos)
 {
   float dist = linearDepth*0.97;
   float4 rayStartClip = mul(float4(cameraToPoint, 1), viewProjTmNoOfs);
@@ -87,8 +87,19 @@ float4 hierarchRayMarch(float2 rayStart_uv, float3 R, float linear_roughness, fl
     uint max_traversal_intersections = NUM_STEPS;
     bool valid_hit = false;
 
-    result.xyz = FFX_SSSR_HierarchicalRaymarch(origin, direction, screen_size, most_detailed_mip,
-                                               max_traversal_intersections, valid_hit);
+    #if WAVE_INTRINSICS
+    bool isMirror = IsMirrorReflection(WaveAllMin_F32(linear_roughness));
+    #else
+    bool isMirror = true;
+    #endif
+    FFX_RaymarchResult raymachResult =
+      FFX_Raymarch(origin, direction, isMirror, screen_size, most_detailed_mip, max_traversal_intersections);
+
+    backSurfaceBeginPos = raymachResult.backSurfaceBeginUVZw;
+    backSurfaceEndPos = raymachResult.backSurfaceEndUVZ;
+
+    valid_hit = raymachResult.hitUVZw.w;
+    result.xyz = raymachResult.hitUVZw.xyz;
 
     bool hitSky = result.z == 0;
     if (!valid_hit && !hitSky)
@@ -101,6 +112,9 @@ float4 hierarchRayMarch(float2 rayStart_uv, float3 R, float linear_roughness, fl
     float4 sampleNormDistT = (stepOfs + float4(1, 2, 3, 4)) * traceStep;
 
     float stepFactor = saturate(3*(length(rayStepUVz.xy) - 0.02*NUM_STEPS));
+
+    backSurfaceBeginPos = 0;
+    backSurfaceEndPos = 0;
 
     LOOP
     for (int i = 0; i < numSteps; i += 4)
@@ -233,10 +247,9 @@ bool get_prev_frame_disocclusion_weight_sample(float2 historyUV, float prev_line
 }
 
 half4 sample_vignetted_color(float3 hit_uv_z, float linear_roughness, float hitDist,
-                             float3 cameraToPoint, float3 R, float3 worldPos)
+                             float3 cameraToPoint, float3 R, float3 worldPos, float3 cameraToHitPoint)
 {
   half4 result;
-  float3 cameraToHitPoint = getViewVecOptimized(hit_uv_z.xy)* hit_uv_z.z;
   #ifdef REPROJECT_TO_PREV_SCREEN
 
     float4 prevClipHitPos = mul(float4(cameraToHitPoint, 1), prev_globtm_no_ofs_psf);
@@ -313,7 +326,11 @@ half4 performSSR(uint2 pixelPos, float2 UV, float linear_roughness, float3 N,
   // Sample set dithered over 4x4 pixels
   float3 R = reflect(originToPoint, N);
 
-  float4 hit_uv_z_fade = hierarchRayMarch(UV, R, linear_roughness, linearDepth, cameraToPoint, stepOfs, viewProjNoOfsTm, waterLevel);
+  float4 backSurfaceBeginPos;
+  float3 backSurfaceEndPos;
+
+  float4 hit_uv_z_fade = hierarchRayMarch(UV, R, linear_roughness, linearDepth, cameraToPoint, stepOfs, viewProjNoOfsTm, waterLevel,
+    backSurfaceBeginPos, backSurfaceEndPos);
   bool wasHitNotZfar = hit_uv_z_fade.z != 0;// hit_uv_z_fade.w was a hit, hit_uv_z_fade.z > 0 - actual hit with something, not with zfar
 
   bool hitSky = hit_uv_z_fade.z == 0 && hit_uv_z_fade.w != 0;
@@ -321,8 +338,9 @@ half4 performSSR(uint2 pixelPos, float2 UV, float linear_roughness, float3 N,
   BRANCH if (wasHitNotZfar)
   {
     const float linearZHit = ssr_linearize_z(hit_uv_z_fade.z);
-    reflectionDistance = length(cameraToPoint - getViewVecOptimized(hit_uv_z_fade.xy) * linearZHit);
-    result = sample_vignetted_color(float3(hit_uv_z_fade.xy, linearZHit), linear_roughness, linearZHit, cameraToPoint, R, worldPos);
+    float3 cameraToHitPoint = getViewVecOptimized(hit_uv_z_fade.xy) * linearZHit;
+    reflectionDistance = length(cameraToPoint - cameraToHitPoint);
+    result = sample_vignetted_color(float3(hit_uv_z_fade.xy, linearZHit), linear_roughness, linearZHit, cameraToPoint, R, worldPos, cameraToHitPoint);
   } else
     reflectionDistance = 1e6;
 

@@ -10,7 +10,7 @@ float4 gpu_objects_scale_radius;
 float4 gpu_objects_up_vector;
 int gpu_objects_buffer_offset;
 int gpu_objects_distance_emitter_buffer_offset;
-int gpu_objects_distance_emitter_decal_buffer_offset;
+int gpu_objects_decal_buffer_offset;
 int gpu_objects_matrices_count;
 int gpu_objects_on_rendinst_geometry_matrices_count;
 int gpu_objects_on_terrain_geometry_matrices_count;
@@ -27,8 +27,10 @@ float gpu_objects_distance_to_max_rotation;
 float4 gpu_objects_distance_to_scale_pow;
 float gpu_objects_distance_to_rotation_pow;
 int gpu_objects_distance_out_of_range;
-float4 gpu_objects_remove_box_min;
-float4 gpu_objects_remove_box_max;
+float4 gpu_objects_remove_box_center;
+float4x4 gpu_objects_remove_box_mtx;
+float4 gpu_objects_remove_box_size;
+float4 gpu_objects_spoofed_decal_size;
 
 int gpu_objects_distance_affect_decal = 0;
 interval gpu_objects_distance_affect_decal: no<1, yes;
@@ -46,6 +48,147 @@ float4 gpu_objects_distance_emitter__position;
 
 float gpu_objects_cutoff_ratio = -1.0;
 interval gpu_objects_cutoff_ratio: dont_use_cutoff_ratio<1, use_cutoff_ratio;
+
+// TODO Everything in here should be optimized more
+macro ADJUST_TRANSFORMATION()
+(cs)
+{
+  spoofed_decal_half_size@f2 = gpu_objects_spoofed_decal_size.xy * 0.5;
+}
+
+hlsl(cs)
+{
+  float3 clampBBoxTranslation(float3 domainBboxMin, float3 domainBboxMax, float3 clampedBboxMin, float3 clampedBboxMax)
+  {
+    float3 translation = 0;
+
+    float3 minTranslation = max(float3(0,0,0), domainBboxMin - clampedBboxMin);
+    float3 maxTranslation = min(float3(0,0,0), domainBboxMax - clampedBboxMax);
+
+    return minTranslation + maxTranslation;
+  }
+
+  float4x4 calculateBoundingBox(float4x4 tm)
+  {
+    float3 decalBottomLeft = mulPointTm(float3(-spoofed_decal_half_size.x, 0, -spoofed_decal_half_size.y), tm).xyz;
+    float3 decalBottomRight = mulPointTm(float3(spoofed_decal_half_size.x, 0, -spoofed_decal_half_size.y), tm).xyz;
+    float3 decalTopLeft = mulPointTm(float3(-spoofed_decal_half_size.x, 0, spoofed_decal_half_size.y), tm).xyz;
+    float3 decalTopRight = mulPointTm(float3(spoofed_decal_half_size.x, 0, spoofed_decal_half_size.y), tm).xyz;
+
+    float3 right = decalBottomRight - decalBottomLeft;
+    float3 forward = decalTopLeft - decalBottomLeft;
+    float3 up = cross(right, forward);
+
+    float r_len = length(right);
+    float f_len = length(forward);
+    float u_len = length(up);
+
+    float3 center = (decalBottomLeft + decalTopRight) * 0.5;
+
+    // Since this is a decal, it doesn't truly have a size / length
+    // in the up direction. As such, a value close to 0 is sufficient.
+    // (The calculated u_len is not the actual size of the decal in the
+    // up direction, but the length of the up vector)
+    const float modified_u_len = 0.1;
+
+    return float4x4(
+      right / r_len, r_len,
+      up / u_len, modified_u_len,
+      forward / f_len, f_len,
+      center, 1.0
+    );
+  }
+
+  void getAABB(float3 x, float3 y, float3 z, float3 sizes, float3 center_pos, out float3 boxmin, out float3 boxmax)
+  {
+    float3 pos = center_pos - x * sizes.x * 0.5 - y * sizes.y * 0.5 - z * sizes.z * 0.5;
+
+    float3 corners[8];
+    corners[0] = pos;
+    corners[1] = pos + x * sizes.x;
+    corners[2] = pos + y * sizes.y;
+    corners[3] = pos + z * sizes.z;
+    corners[4] = pos + x * sizes.x + y * sizes.y;
+    corners[5] = pos + x * sizes.x + z * sizes.z;
+    corners[6] = pos + y * sizes.y + z * sizes.z;
+    corners[7] = pos + x * sizes.x + y * sizes.y + z * sizes.z;
+
+    boxmin = corners[0];
+    boxmax = corners[0];
+
+    UNROLL
+    for (int i = 1; i < 8; i++)
+    {
+      boxmin = min(boxmin, corners[i]);
+      boxmax = max(boxmax, corners[i]);
+    }
+  }
+
+  void adjustTransformationImpl(float4x4 tm, float4x4 placer_tm, out float3 translation, out float scale)
+  {
+    float3 placer_bbox_size = float3(length(placer_tm[0].xyz), length(placer_tm[1].xyz), length(placer_tm[2].xyz));
+    float3 placer_bbox_x = placer_tm[0].xyz / placer_bbox_size.x;
+    float3 placer_bbox_y = placer_tm[1].xyz / placer_bbox_size.y;
+    float3 placer_bbox_z = placer_tm[2].xyz / placer_bbox_size.z;
+    float3 worldPos = placer_tm[3].xyz;
+    float3 placer_bbox_min = - placer_bbox_size * 0.5;
+    float3 placer_bbox_max = placer_bbox_size * 0.5;
+
+    float4x4 calculated_decal_bbox = calculateBoundingBox(tm);
+    float3 decal_x = calculated_decal_bbox[0].xyz;
+    float3 decal_y = calculated_decal_bbox[1].xyz;
+    float3 decal_z = calculated_decal_bbox[2].xyz;
+    float3 decal_axis_sizes = float3(calculated_decal_bbox[0].w, calculated_decal_bbox[1].w, calculated_decal_bbox[2].w);
+
+    float3x3 toWorld = float3x3(placer_bbox_x, placer_bbox_y, placer_bbox_z);
+    float3x3 toLocal = transpose(toWorld);
+
+    float3 decal_local_pos_center = mul(calculated_decal_bbox[3].xyz - worldPos, toLocal);
+
+    float3 decal_local_x = mul(decal_x, toLocal);
+    float3 decal_local_y = mul(decal_y, toLocal);
+    float3 decal_local_z = mul(decal_z, toLocal);
+
+    float3 decal_local_pos_max;
+    float3 decal_local_pos_min;
+    getAABB(decal_local_x, decal_local_y, decal_local_z, decal_axis_sizes, decal_local_pos_center, decal_local_pos_min, decal_local_pos_max);
+    float3 decal_local_min_dir = decal_local_pos_min - decal_local_pos_center;
+    float3 decal_local_max_dir = decal_local_pos_max - decal_local_pos_center;
+
+    float3 decal_size = decal_local_pos_max - decal_local_pos_min;
+    float3 scales = placer_bbox_size / decal_size;
+    scale = min3(scales.x, scales.y, scales.z);
+    scale = min(scale, 1);
+
+    decal_local_min_dir *= scale;
+    decal_local_max_dir *= scale;
+
+    decal_local_pos_min = decal_local_pos_center + decal_local_min_dir;
+    decal_local_pos_max = decal_local_pos_center + decal_local_max_dir;
+
+    float3 clampedTranslation = clampBBoxTranslation(placer_bbox_min, placer_bbox_max,
+                                                     decal_local_pos_min, decal_local_pos_max);
+
+    translation = mul(clampedTranslation, toWorld);
+  }
+
+  void adjustTransformation(inout float3 pos, inout float3x3 orientation, float4x4 placer_tm)
+  {
+    float4x4 tm = float4x4(orientation[0], 0.0, orientation[1], 0.0, orientation[2], 0.0, pos, 1.0);
+    float3 translation;
+    float scale;
+    adjustTransformationImpl(tm, placer_tm, translation, scale);
+
+    // Removing normal comp so the decal is only translated along the XZ plane
+    orientation *= scale;
+    float3 normal = normalize(orientation[1]);
+    float normalComponent = dot(translation, normal);
+    translation -= normalComponent * normal;
+
+    pos += translation;
+  }
+}
+endmacro
 
 macro ADD_INSTANCE()
 (cs)
@@ -72,7 +215,6 @@ hlsl(cs)
 
   void addInstance(float3 pos, float3 direction, float rotate, float scale, int at)
   {
-
     float3 front;
     if (abs(direction.x) < 0.5)
       front = normalize(float3(0, direction.z, -direction.y)); //cross(direction, (1,0,0))
@@ -151,7 +293,7 @@ shader gpu_objects_update_matrices_cs
   {
     buf_offset@i1 = gpu_objects_buffer_offset;
     distance_emitter_buf_offset@i1 = gpu_objects_distance_emitter_buffer_offset;
-    distance_emitter_decal_buf_offset@i1 = gpu_objects_distance_emitter_decal_buffer_offset;
+    distance_emitter_decal_buf_offset@i1 = gpu_objects_decal_buffer_offset;
     count@i1 = gpu_objects_matrices_count;
     scale_from@f3 = gpu_objects_distance_to_scale_from;
     scale_to@f3 = gpu_objects_distance_to_scale_to;
@@ -710,14 +852,64 @@ shader gpu_objects_clear_terrain_objects_cs
   compile("cs_5_0", "clear_objects");
 }
 
+shader gpu_objects_move_decals_into_placer_bbox_cs
+{
+  (cs)
+  {
+    buf_offset@i1 = (gpu_objects_buffer_offset);
+    buf_decal_offset@i1 = (gpu_objects_decal_buffer_offset);
+    count@i1 = (gpu_objects_matrices_count);
+    placer_tm@f44 = gpu_objects_placer_tm;
+  }
+  ADJUST_TRANSFORMATION()
+  ADD_INSTANCE()
+  hlsl (cs) {
+    #include "gpuObjects/gpu_objects_const.hlsli"
+    float4x4 getMatrix(int index)
+    {
+      return float4x4(
+        gpuObjectsMatrices[index + 0],
+        gpuObjectsMatrices[index + 1],
+        gpuObjectsMatrices[index + 2],
+        gpuObjectsMatrices[index + 3]
+      );
+    }
+
+    [numthreads(DISPATCH_WARP_SIZE, 1, 1)]
+    void move_decals(uint thread_id : SV_DispatchThreadID)
+    {
+      if (thread_id >= count)
+        return;
+
+      int instanceIdx = (buf_offset + thread_id) * ROWS_IN_MATRIX;
+      int decalIdx = (buf_decal_offset + thread_id) * ROWS_IN_MATRIX;
+
+      float4x4 instanceMat = getMatrix(instanceIdx);
+      float3 pos = float3(instanceMat[0].w, instanceMat[1].w, instanceMat[2].w);
+      float3x3 orientation = float3x3(instanceMat[0].xyz, instanceMat[1].xyz, instanceMat[2].xyz);
+
+      // Transposing because it is stored as column-major in the buffer, but we need row-major for calculations
+      orientation = transpose(orientation);
+
+      adjustTransformation(pos, orientation, placer_tm);
+
+      // No need to transpose back as addInstance does that for us
+      addInstance(pos, orientation, 1.0f, decalIdx);
+    }
+  }
+  compile("cs_5_0", "move_decals");
+}
+
 shader gpu_objects_remove_objects_cs
 {
   (cs) {
     buf_offset@i1 = (gpu_objects_buffer_offset);
-    count@i1 = (gpu_objects_on_terrain_geometry_matrices_count);
+    terrain_count@i1 = (gpu_objects_on_terrain_geometry_matrices_count);
     rendinst_count@i1 = (gpu_objects_on_rendinst_geometry_matrices_count);
-    box_min@f3 = gpu_objects_remove_box_min.xyz;
-    box_max@f3 = gpu_objects_remove_box_max.xyz;
+
+    box_center@f3 = gpu_objects_remove_box_center.xyz;
+    box_size@f3 = gpu_objects_remove_box_size.xyz;
+    remove_mtx@f44 = gpu_objects_remove_box_mtx;
   }
   ADD_INSTANCE()
   hlsl(cs) {
@@ -732,25 +924,29 @@ shader gpu_objects_remove_objects_cs
       );
     }
 
-    bool testBbox(float3 v, float3 bottomLeft, float3 topRight)
+    bool isInsideRemoveBox(float3 pos)
     {
-      const float EPS = 0.00001;
-      float3 s = clamp(v, bottomLeft, topRight);
-      return all(s-v < EPS);
+      float3 pos_diff = pos - box_center;
+      float3 local_pos = mul(float4(pos_diff, 1), remove_mtx).xyz;
+      float3 distance_vector = abs(local_pos) - box_size * 0.5;
+      float signed_distance = max3(distance_vector);
+      return signed_distance < 0.0f;
     }
 
     [numthreads(DISPATCH_WARP_SIZE, 1, 1)]
     void remove_objects(uint thread_id : SV_DispatchThreadID)
     {
-      if (thread_id >= uint(count+rendinst_count))
+      if (thread_id >= uint(terrain_count + rendinst_count))
         return;
-
-      const float3 extreme_pos = float3(-666666, -666666, -666666);
 
       int offset = (buf_offset + thread_id) * ROWS_IN_MATRIX;
       float3 position = getPosition(offset);
-      if (testBbox(position, box_min, box_max))
-        addInstance(extreme_pos, (float3x3)NaN, NaN, offset);
+
+      BRANCH
+      if (!isInsideRemoveBox(position))
+        return;
+
+      addInstance((float3)NaN, (float3x3)NaN, NaN, offset);
     }
   }
   compile("cs_5_0", "remove_objects");

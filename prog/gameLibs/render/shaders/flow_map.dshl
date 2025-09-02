@@ -29,13 +29,13 @@ float4 water_flowmap_foam_detail = float4(0.025, 0.01, 10, 10);
 int water_flowmap_cascades = 0;
 texture water_flowmap_tex_add_0;
 float4 world_to_flowmap_add_0 = (1,1,0,0);
-float4 water_flowmap_fluid_params = (5, 10, 0.2, 0.0001); // x: viscosity, y: gravity, z: flow velocity, w: water quantity
+float4 water_flowmap_fluid_params = (5, 10, 0.2, 0.0005); // x: viscosity, y: gravity, z: flow velocity, w: water quantity
 
 int flowmap_height = 0;
 interval flowmap_height : depth_above < 1, heightmap;
 
 texture shore_distance_field_tex;
-float4 water_heightmap_min_max = (0, 0, 0, 0);
+float4 shore_heightmap_min_max = (0, 0, 0, 0);
 float4 world_to_heightmap = (1/32, 1/32, 0.5, 0.5);
 
 hlsl {
@@ -129,7 +129,7 @@ shader water_flowmap
   {
     (ps) {
       shore_distance_field_tex@smp2d = shore_distance_field_tex;
-      water_heightmap_min_max@f4 = water_heightmap_min_max;
+      shore_heightmap_min_max@f4 = shore_heightmap_min_max;
       world_to_heightmap@f4 = world_to_heightmap;
     }
 
@@ -177,16 +177,15 @@ shader water_flowmap
 
       ##if flowmap_height == depth_above
         float depthVignette = 0;
-        float h = getWorldBlurredDepth(float3(worldPos.x, 0, worldPos.y), depthVignette);
+        float h = get_depth_above_fast(float3(worldPos.x, 0, worldPos.y), depthVignette);
         if (h > bridgeHeight)
           h = tex2Dlod(flowmap_heightmap_tex, float4(htc,0,0)).r * flowmap_heightmap_min_max.z + flowmap_heightmap_min_max.w;
       ##else
         float h;
         #ifdef USE_FLOWMAP_SDF
           float2 stc = worldPos*world_to_heightmap.xy+world_to_heightmap.zw;
-          stc = floor(stc*flowmap_texture_size.y)*flowmap_texture_size.x;
           if ((stc.x >= 0) && (stc.y >= 0) && (stc.x <= 1) && (stc.y <= 1))
-            h = tex2Dlod(shore_distance_field_tex, float4(stc,0,0)).r * water_heightmap_min_max.z + water_heightmap_min_max.w;
+            h = tex2Dlod(shore_distance_field_tex, float4(stc,0,0)).r * shore_heightmap_min_max.z + shore_heightmap_min_max.w;
           else
         #endif
             h = tex2Dlod(flowmap_heightmap_tex, float4(htc,0,0)).r * flowmap_heightmap_min_max.z + flowmap_heightmap_min_max.w;
@@ -209,10 +208,10 @@ shader water_flowmap
       {
         ##if flowmap_height == depth_above
           float4 depthNeighbours = h;
-          depthNeighbours.x = getWorldBlurredDepth(float3(worldPos.x - 1, 0, worldPos.y), depthVignette);
-          depthNeighbours.y = getWorldBlurredDepth(float3(worldPos.x + 1, 0, worldPos.y), depthVignette);
-          depthNeighbours.z = getWorldBlurredDepth(float3(worldPos.x, 0, worldPos.y - 1), depthVignette);
-          depthNeighbours.w = getWorldBlurredDepth(float3(worldPos.x, 0, worldPos.y + 1), depthVignette);
+          depthNeighbours.x = get_depth_above_fast(float3(worldPos.x - 1, 0, worldPos.y), depthVignette);
+          depthNeighbours.y = get_depth_above_fast(float3(worldPos.x + 1, 0, worldPos.y), depthVignette);
+          depthNeighbours.z = get_depth_above_fast(float3(worldPos.x, 0, worldPos.y - 1), depthVignette);
+          depthNeighbours.w = get_depth_above_fast(float3(worldPos.x, 0, worldPos.y + 1), depthVignette);
           if (depthNeighbours.x > bridgeHeight)
              depthNeighbours.x = h;
           if (depthNeighbours.y > bridgeHeight)
@@ -239,10 +238,10 @@ shader water_flowmap
               #ifdef USE_FLOWMAP_SDF
                 if ((stc.x >= 0) && (stc.y >= 0) && (stc.x <= 1) && (stc.y <= 1))
                 {
-                  heightNeighbours.x = tex2Dlod(shore_distance_field_tex, float4(stc.x - flowmap_texture_size.x, stc.y, 0, 0)).r * water_heightmap_min_max.z + water_heightmap_min_max.w;
-                  heightNeighbours.y = tex2Dlod(shore_distance_field_tex, float4(stc.x + flowmap_texture_size.x, stc.y, 0, 0)).r * water_heightmap_min_max.z + water_heightmap_min_max.w;
-                  heightNeighbours.z = tex2Dlod(shore_distance_field_tex, float4(stc.x, stc.y - flowmap_texture_size.x, 0, 0)).r * water_heightmap_min_max.z + water_heightmap_min_max.w;
-                  heightNeighbours.w = tex2Dlod(shore_distance_field_tex, float4(stc.x, stc.y + flowmap_texture_size.x, 0, 0)).r * water_heightmap_min_max.z + water_heightmap_min_max.w;
+                  heightNeighbours.x = tex2Dlod(shore_distance_field_tex, float4(stc.x - flowmap_texture_size.x, stc.y, 0, 0)).r * shore_heightmap_min_max.z + shore_heightmap_min_max.w;
+                  heightNeighbours.y = tex2Dlod(shore_distance_field_tex, float4(stc.x + flowmap_texture_size.x, stc.y, 0, 0)).r * shore_heightmap_min_max.z + shore_heightmap_min_max.w;
+                  heightNeighbours.z = tex2Dlod(shore_distance_field_tex, float4(stc.x, stc.y - flowmap_texture_size.x, 0, 0)).r * shore_heightmap_min_max.z + shore_heightmap_min_max.w;
+                  heightNeighbours.w = tex2Dlod(shore_distance_field_tex, float4(stc.x, stc.y + flowmap_texture_size.x, 0, 0)).r * shore_heightmap_min_max.z + shore_heightmap_min_max.w;
                 }
                 else
                 {
@@ -533,7 +532,6 @@ shader water_flowmap_fluid
   }
 
   hlsl(ps) {
-
     #define viscosity water_flowmap_fluid_params.x
     #define gravity water_flowmap_fluid_params.y
     #define flow_velocity water_flowmap_fluid_params.z
@@ -548,7 +546,7 @@ shader water_flowmap_fluid
   {
     (ps) {
       shore_distance_field_tex@smp2d = shore_distance_field_tex;
-      water_heightmap_min_max@f4 = water_heightmap_min_max;
+      shore_heightmap_min_max@f4 = shore_heightmap_min_max;
       world_to_heightmap@f4 = world_to_heightmap;
     }
 
@@ -635,7 +633,10 @@ shader water_flowmap_fluid
       // velocity limitation
       float velocity = length(f.xy);
       if (velocity > max_velocity)
+      {
         f.xy *= max_velocity / velocity;
+        velocity = max_velocity;
+      }
 
       // water and bridge heights
       float waterHeight = waterLevel;
@@ -645,7 +646,7 @@ shader water_flowmap_fluid
       // ground height
       ##if flowmap_height == depth_above
         float depthVignette = 0;
-        float groundHeight = getWorldBlurredDepth(float3(worldPos.x, 0, worldPos.y), depthVignette);
+        float groundHeight = get_depth_above_fast(float3(worldPos.x, 0, worldPos.y), depthVignette);
         if (groundHeight > bridgeHeight)
           groundHeight = tex2Dlod(flowmap_heightmap_tex, float4(heightTc,0,0)).r * flowmap_heightmap_min_max.z + flowmap_heightmap_min_max.w;
       ##else
@@ -653,7 +654,7 @@ shader water_flowmap_fluid
         #ifdef USE_FLOWMAP_SDF
           float2 sdfTc = worldPos * world_to_heightmap.xy + world_to_heightmap.zw;
           if ((sdfTc.x >= 0) && (sdfTc.y >= 0) && (sdfTc.x <= 1) && (sdfTc.y <= 1))
-            groundHeight = tex2Dlod(shore_distance_field_tex, float4(sdfTc,0,0)).r * water_heightmap_min_max.z + water_heightmap_min_max.w;
+            groundHeight = tex2Dlod(shore_distance_field_tex, float4(sdfTc,0,0)).r * shore_heightmap_min_max.z + shore_heightmap_min_max.w;
           else
         #endif
             groundHeight = tex2Dlod(flowmap_heightmap_tex, float4(heightTc,0,0)).r * flowmap_heightmap_min_max.z + flowmap_heightmap_min_max.w;
@@ -661,10 +662,12 @@ shader water_flowmap_fluid
 
       // fluid addition
       if (groundHeight < waterHeight)
-        f.z += water_quantity;
+        f.z += water_quantity * velocity;
       f.z = saturate(f.z);
 
       f.w = 0;
+
+      f *= saturate(10 - 10 * length(tc * 2 - 1));
 
       return f;
     }

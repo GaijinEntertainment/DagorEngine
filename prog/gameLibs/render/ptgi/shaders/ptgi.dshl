@@ -1,0 +1,413 @@
+include "shader_global.dshl"
+include "gbuffer.dshl"
+include "viewVecVS.dshl"
+include "bvh.dshl"
+include "ThreadGroupTilingX.dshl"
+include "rt/rt_lighting.dshl"
+include "use_prefiltered_gf.dshl"
+include "postfx_inc.dshl"
+include "wetness_inc.dshl"
+include "tonemapHelpers/use_full_tonemap_lut_inc.dshl"
+include "bvh_common_includes.dshl"
+
+float4x4 inv_proj_tm;
+
+texture ptgi_target;
+texture rt_nr;
+
+float4 ptgi_hit_dist_params;
+
+int4 ptgi_resolutionI = (1,1,1,1);
+int ptgi_res_mul = 1;
+int ptgi_use_rr = 1;
+
+int ptgi_checkerboard = 0;
+
+float ptgi_history_weight = 1;
+
+float impostor_shadow_offset = -10;
+
+int ptgi_max_bounces = 3;
+
+int blue_noise_frame_index;
+
+float ptgi_boost = 0;
+float ptgi_boost_range = 0;
+
+shader rt_gi
+{
+  if (compatibility_mode == compatibility_mode_on || !use_hw_raytracing)
+  {
+    dont_render;
+  }
+
+  supports global_const_block;
+
+  ENABLE_ASSERT(cs)
+  USE_EMISSION_DECODE_COLOR_MAP_STUB(cs)
+
+  (cs) {
+    inv_proj_tm@f44 = inv_proj_tm;
+    world_view_pos@f3 = world_view_pos;
+    resolution@u2 = ptgi_resolutionI.xy;
+    inv_aligned_resolution@f2 = (ptgi_res_mul * screen_pos_to_texcoord.xy);
+    output@uav = ptgi_target hlsl { RWTexture2D<float4> output@uav; };
+    impostor_shadow_offset@f1 = impostor_shadow_offset;
+    ptgi_res_mul@i1 = ptgi_res_mul;
+    ptgi_use_rr@u1 = ptgi_use_rr;
+    ptgi_checkerboard@u1 = ptgi_checkerboard;
+    nr_texture@tex2d = rt_nr;
+    history_weight@f1 = ptgi_history_weight;
+    max_bounces@u1 = ptgi_max_bounces;
+    hit_dist_params@f4 = ptgi_hit_dist_params;
+    frame_index@i1 = blue_noise_frame_index;
+    boost@f1 = ptgi_boost;
+    boost_range@f1 = ptgi_boost_range;
+  }
+
+  hlsl(cs) {
+    #define DISABLE_TOONSHADING 1
+
+    #include <Include/NRDEncoding.hlsli>
+    #include <Include/NRD.hlsli>
+
+    #define depth_gbuf_load depth_gbuf_read
+  }
+
+  USE_AND_INIT_VIEW_VEC_CS()
+  INIT_ZNZFAR_STAGE(cs)
+  INIT_READ_DEPTH_GBUFFER_BASE(cs)
+
+  INIT_HALF_RES_DEPTH_TEX(cs)
+  INIT_LOAD_BVH_FLAGS_BASE(cs)
+  INIT_LOAD_GBUFFER_BASE(cs)
+  USE_LOAD_GBUFFER_BASE(cs, true)
+
+  USE_LOAD_DEPTH_GBUFFER_BASE(cs)
+  INIT_MAIN_BVH(cs, 0, false)
+  USE_BVH_FOR_GI(cs)
+
+  USE_CALC_GEOMETRY_NORMAL(cs)
+  USE_ADAPTIVE_RAY_OFFSET(cs)
+
+  INIT_RT_LIGHTING(cs, false, true, false, false, true, false)
+  USE_RT_LIGHTING(cs, 0, true)
+
+  INIT_BVH_WATER_FADE_BASE(cs)
+  USE_BVH_WATER_FADE_BASE(cs)
+
+  hlsl(cs)
+  {
+    // We collide with SH1 otherwise
+    namespace ml
+    {
+      #include <ml.hlsli>
+    }
+
+    float EstimateDiffuseProbability(SurfaceParams surface)
+    {
+      const float maxFireflyRelativeIntensity = 20;
+      const float evilTwinLobeTolerance       = 0.005;
+
+      float3 surfaceSpecularColor = decodeSpecularColor(surface.reflectance, surface.metalness, surface.albedo);
+      float lumSpec = ml::Color::Luminance(surfaceSpecularColor);
+      float lumDiff = ml::Color::Luminance(surface.albedo);
+
+      float diffProb = lumDiff / max(lumDiff + lumSpec, 1e-6);
+      float diffProbClamped = clamp(diffProb, 1.0 / maxFireflyRelativeIntensity, 1.0 - 1.0 / maxFireflyRelativeIntensity);
+
+      [flatten]
+      if (diffProb < evilTwinLobeTolerance)
+        return 0.0;
+      else if (diffProb > 1.0 - evilTwinLobeTolerance)
+        return 1.0;
+      else
+        return diffProbClamped;
+    }
+
+    float3 calc_throughput_mod(SurfaceParams surface, bool isDiffuse, float3 sampleDir, uint bounce)
+    {
+      float3 H = normalize(surface.surfaceToCamera + sampleDir);
+      float VoH = abs(dot(surface.surfaceToCamera, H));
+      float NoL = saturate(dot(surface.normal, sampleDir));
+      float NoV = abs(dot(surface.normal, surface.surfaceToCamera));
+
+      // For the first bounce, the surface.albedo is not OK, as it is half resolution. It will be multiplied
+      // in deferred shadow. It is not correct entirely, but close enough.
+      float3 albedo = bounce == 0 ? 1 : surface.albedo;
+
+      if (isDiffuse)
+        return saturate(albedo * ml::Math::Pi(1.0) * ml::BRDF::DiffuseTerm_Burley(1 - surface.smoothness, NoL, NoV, VoH));
+      else
+      {
+        float3 surfaceSpecularColor = decodeSpecularColor(surface.reflectance, surface.metalness, albedo);
+        return ml::BRDF::FresnelTerm_Schlick(surfaceSpecularColor, VoH) * ml::BRDF::GeometryTerm_Smith(1 - surface.smoothness, NoL);
+      }
+    }
+
+    void write_output(uint2 output_index, float3 color, float d, float w, float roughness)
+    {
+      if (ptgi_use_rr)
+      {
+        texture2DAt(output, output_index) = float4(color, 1);
+      }
+      else
+      {
+        float hitDist = REBLUR_FrontEnd_GetNormHitDist(d, w, hit_dist_params, roughness);
+        texture2DAt(output, output_index) = REBLUR_FrontEnd_PackRadianceAndNormHitDist(color, hitDist, false);
+      }
+    }
+
+    RT_GROUP_SIZE
+    void rt_gi_cs(uint2 dtid : SV_DispatchThreadID)
+    {
+      uint2 rayIndex    = dtid;
+      uint2 outputIndex = rayIndex;
+
+      if (ptgi_checkerboard)
+      {
+        rayIndex.x *= 2;
+
+        bool evenFrame = (frame_index & 1) == 0;
+        bool evenLine  = (rayIndex.y & 1) == 0;
+
+        if (evenFrame == evenLine)
+          ++rayIndex.x;
+      }
+
+      if (any(rayIndex >= resolution))
+        return;
+
+      float rawDepth;
+      if (ptgi_res_mul == 1)
+      {
+        rawDepth = loadGbufferDepth(rayIndex);
+      }
+      else
+      {
+        rawDepth = texture2DAt(half_res_depth_tex, rayIndex).r;
+      }
+
+      BRANCH
+      if (rawDepth <= 0 || !bvhMainValid)
+      {
+        write_output(outputIndex, 0, NRD_FP16_MAX, NRD_FP16_MAX, 0);
+        return;
+      }
+
+      float w = linearize_z(rawDepth, zn_zfar.zw);
+      float underwaterFade = calc_underwater_fade(w, rayIndex, inv_aligned_resolution, world_view_pos);
+
+      PackedGbuffer packedGbuffer = loadPackedGbuffer(rayIndex * ptgi_res_mul);
+      UnpackedGbuffer unpackedGbuffer = unpackGbuffer(packedGbuffer);
+      ProcessedGbuffer processedGbuffer = processGbuffer(unpackedGbuffer);
+
+      float3 normal;
+      float roughness;
+
+      if (ptgi_res_mul == 1)
+      {
+        normal = processedGbuffer.normal;
+        roughness = processedGbuffer.linearRoughness;
+      }
+      else
+      {
+        float4 surfaceNormal_roughness = NRD_FrontEnd_UnpackNormalAndRoughness(texture2DAt(nr_texture, rayIndex));
+        normal = normalize(surfaceNormal_roughness.xyz);
+        roughness = surfaceNormal_roughness.w;
+      }
+
+      float3 relPos = calc_camera_relative_pos(rayIndex, w, inv_aligned_resolution);
+      float3 toCamera = -normalize(relPos);
+
+      half3 dagiColor = 0;
+
+      BRANCH
+      if (underwaterFade < 1)
+      {
+        half ggx_alpha = max(1e-4, roughness * roughness);
+        half  NdotV = half(dot(normal, toCamera));
+        half3 enviLightingNormal = normalize(getDiffuseDominantDir(half3(normal), toCamera, saturate(NdotV), ggx_alpha));
+        half3 enviLight = GetSkySHDiffuse(enviLightingNormal);
+        dagiColor = get_gi_ambient(relPos + bvh_origin, enviLightingNormal, normal, enviLight, w, toCamera);
+      }
+
+      BRANCH
+      if (underwaterFade == 0)
+      {
+        write_output(outputIndex, dagiColor, NRD_FP16_MAX, w, roughness);
+        return;
+      }
+
+      const float giDistance = hit_dist_params.x;
+      const float throughputTreshold = 0.001;
+
+      HitInfo hitInfo;
+
+      float3 throughput = 1;
+      float3 giColor = 0;
+      float rayLength = w;
+      float traceLength = 0;
+      float firstDistance = NRD_FP16_MAX;
+
+      SurfaceParams surface = (SurfaceParams)0;
+      surface.position        = relPos;
+      surface.surfaceToCamera = toCamera;
+      surface.albedo          = unpackedGbuffer.albedo;
+      surface.normal          = normal;
+      surface.smoothness      = 1 - roughness;
+      surface.metalness       = processedGbuffer.metalness;
+      surface.reflectance     = processedGbuffer.reflectance;
+      surface.isWater         = false; // Not used for the primary surface
+      surface.isImpostor      = false; // Not used for the primary surface
+      surface.isTwoSided      = processedGbuffer.isTwoSided;
+      surface.isUnstable      = processedGbuffer.isUnstable;
+      surface.isFoliage       = processedGbuffer.material == SHADING_FOLIAGE;
+
+      ml::Rng::Hash::Initialize(rayIndex, frame_index);
+
+      [loop]
+      for (uint bounce = 0; bounce < max_bounces && any(throughput > throughputTreshold); ++bounce)
+      {
+        float diffuseProbability = EstimateDiffuseProbability(surface);
+
+        float rnd = ml::Rng::Hash::GetFloat();
+
+        bool isDiffuse = rnd < diffuseProbability;
+        throughput /= abs(float(!isDiffuse) - diffuseProbability);
+
+        float3x3 localBasis = ml::Geometry::GetBasis(surface.normal);
+        float2 rayRnd = ml::Rng::Hash::GetFloat2();
+        float3 sampleDir;
+        if (isDiffuse)
+        {
+          sampleDir = ml::ImportanceSampling::Cosine::GetRay(rayRnd);
+        }
+        else
+        {
+          const float specLobeEnergy = 0.95;
+          float3 Vlocal = ml::Geometry::RotateVector(localBasis, surface.surfaceToCamera);
+          float3 Hlocal = ml::ImportanceSampling::VNDF::GetRay(rayRnd, 1 - surface.smoothness, Vlocal, specLobeEnergy);
+          sampleDir = reflect(-Vlocal, Hlocal);
+        }
+
+        sampleDir = ml::Geometry::RotateVectorInverse(localBasis, sampleDir);
+
+        throughput *= calc_throughput_mod(surface, isDiffuse, sampleDir, bounce);
+
+        if (boost_range > 0)
+        {
+          float localBoost = 1.0f - pow16(saturate(length(surface.position) / boost_range));
+          throughput *= (1 + boost * localBoost);
+        }
+
+        surface.position = applyAdaptiveRayOffset(surface.position, surface.normal);
+
+        uint traceFlags = 0;
+        // From the second bounce, don't bother with alpha testing, as it only has a meaningless contribution for a higher performance cost.
+        // Except if it is two sided, like trees. There the rays are mostly hitting the foliage up close, which need to be more preceise.
+        if (bounce > 0 && !processedGbuffer.isTwoSided)
+          traceFlags |= RAY_FLAG_FORCE_OPAQUE;
+        float minT = surface.isFoliage ? bvh_foliage_bias : 0;
+        bool isHit = trace_ray(bvhMain, surface.position, sampleDir, minT, giDistance, rayLength, bvhGroupGI, hitInfo, 1, traceFlags);
+
+        if (isHit)
+        {
+          SurfaceParams hitSurface = calc_surface_params(hitInfo, -sampleDir, -6); // Use fix texture LOD
+          rayLength += hitInfo.t;
+          traceLength += hitInfo.t;
+
+          half3 diffuseLighting = light_hit_surface(hitSurface, -sampleDir, rayLength, 10000, RAY_FLAG_FORCE_OPAQUE);
+          half3 combinedLighting = diffuseLighting;
+
+          giColor += combinedLighting * throughput;
+
+          firstDistance = bounce == 0 ? hitInfo.t : firstDistance;
+
+          surface = hitSurface;
+        }
+        else
+        {
+          giColor += GetSkySHDiffuse(sampleDir).rgb * throughput;
+          firstDistance = bounce == 0 ? NRD_FP16_MAX : firstDistance;
+          bounce = max_bounces;
+        }
+      }
+
+      giColor = lerp(dagiColor, giColor, underwaterFade);
+
+      write_output(outputIndex, giColor, firstDistance, w, roughness);
+    }
+  }
+
+  compile("cs_6_5", "rt_gi_cs");
+}
+
+texture ptgi_decode_src;
+texture ptgi_decode_dst;
+
+int ptgi_decode_albedo_mul;
+interval ptgi_decode_albedo_mul: no < 1, yes;
+
+int ptgi_decode_tonemap;
+interval ptgi_decode_tonemap: no < 1, yes;
+
+shader rt_gi_decode
+{
+  ENABLE_ASSERT(cs)
+
+  if (compatibility_mode == compatibility_mode_on || !use_hw_raytracing) {
+    dont_render;
+  }
+  (cs) {
+    input@tex2d = ptgi_decode_src;
+    output@uav = ptgi_decode_dst hlsl {
+      RWTexture2D<float4> output@uav;
+    };
+    resolution@f2 = get_dimensions(ptgi_decode_dst, 0).xy;
+    ptgi_res_mul@i1 = ptgi_res_mul;
+    ptgi_use_rr@u1 = ptgi_use_rr;
+  }
+
+  hlsl(cs) {
+    #define DISABLE_TOONSHADING 1
+  }
+
+  USE_EMISSION_DECODE_COLOR_MAP_STUB(cs)
+  INIT_READ_GBUFFER_BASE(cs)
+  USE_READ_GBUFFER_BASE(cs)
+
+  INIT_FULL_TONEMAP_LUT(cs)
+  USE_FULL_TONEMAP_LUT(cs)
+
+  hlsl (cs) {
+    #include <Include/NRDEncoding.hlsli>
+    #include <Include/NRD.hlsli>
+
+    [numthreads(8, 8, 1)]
+    void rt_gi_decode_cs(uint2 dtid : SV_DispatchThreadID)
+    {
+      BRANCH
+      if (any(dtid >= resolution))
+        return;
+
+      float3 value;
+      if (!ptgi_use_rr)
+        value = REBLUR_BackEnd_UnpackRadianceAndNormHitDist(texture2DAt(input, dtid * ptgi_res_mul)).rgb;
+      else
+        value = texture2DAt(input, dtid * ptgi_res_mul).rgb;
+
+      ##if (ptgi_decode_albedo_mul == yes)
+        value *= readPackedGbuffer((dtid + 0.5f) / resolution).albedo_ao.rgb;
+      ##endif
+
+      ##if (ptgi_decode_tonemap == yes)
+        value = performLUTTonemap(value);
+      ##endif
+
+      texture2DAt(output, dtid) = float4(value, 1);
+    }
+  }
+
+  compile("cs_6_5", "rt_gi_decode_cs");
+}

@@ -15,7 +15,7 @@
 //  ReferenceType has to be GenerationRefId or has GENERATION_BITS, static make, .generation(), .index(), and default constructor
 
 template <class ReferenceType, class DataType,
-  class GenerationType = typename eastl::type_select<ReferenceType::GENERATION_BITS <= 8, uint8_t, uint16_t>::type,
+  class GenerationType = typename eastl::conditional_t<ReferenceType::GENERATION_BITS <= 8, uint8_t, uint16_t>,
   int MinimumFreeIndices = 16>
 class GenerationReferencedData
 {
@@ -141,20 +141,29 @@ public:
   }
 
 protected:
-  void growCapacity(unsigned old_size, unsigned new_capacity)
+  void growCapacity([[maybe_unused]] unsigned old_size, unsigned new_capacity)
   {
-    DataType *newData = (DataType *)allocator_type::alloc(size_t(new_capacity) * sizeof(DataType));
-    for (unsigned i = 0; i < old_size; ++i)
+    if constexpr (dag::is_type_relocatable<DataType>::value)
     {
-      if (aliveList.test(i, false))
-      {
-        new (newData + i, _NEW_INPLACE) DataType(eastl::move(dataList[i]));
-        dataList[i].~DataType(); //-V595
-      }
+      G_ASSERT(!dataList == !old_size);
+      if (!dataList)
+        dataList = (DataType *)allocator_type::alloc(size_t(new_capacity) * sizeof(DataType));
+      else // To consider: try expand first if big enough?
+        dataList = (DataType *)allocator_type::realloc(dataList, size_t(new_capacity) * sizeof(DataType));
     }
-    if (dataList)
-      allocator_type::free(dataList);
-    dataList = newData;
+    else
+    {
+      DataType *newData = (DataType *)allocator_type::alloc(size_t(new_capacity) * sizeof(DataType));
+      for (unsigned i = 0; i < old_size; ++i)
+        if (aliveList.test(i, false))
+        {
+          new (newData + i, _NEW_INPLACE) DataType(eastl::move(dataList[i]));
+          dataList[i].~DataType(); //-V595
+        }
+      if (dataList)
+        allocator_type::free(dataList);
+      dataList = newData;
+    }
   }
   __forceinline bool doesReferenceExist(ReferenceType e, unsigned &idx) const
   {

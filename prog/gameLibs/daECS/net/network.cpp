@@ -16,7 +16,7 @@
 #include <perfMon/dag_cpuFreq.h>
 #include <daNet/daNetPeerInterface.h>
 #include <memory/dag_framemem.h>
-#include "utils.h"
+#include <daECS/net/urlUtils.h>
 #include <daECS/net/netEvent.h>
 #include <daECS/net/netEvents.h>
 #include "compression.h"
@@ -57,7 +57,8 @@ static inline eastl::pair<int, int> get_creation_bw_limits() // returns (bandwid
   return eastl::make_pair(cachedCreationBandwith, cachedCreationMaxDeltaTime);
 }
 
-#define ID_MSG_BASE ID_FILE_LIST_TRANSFER_HEADER // To consider: make this random in runtime (to increase reverse-engineering efforts)
+// To consider: make this random in runtime (to increase reverse-engineering efforts)
+#define ID_MSG_BASE int(ID_FILE_LIST_TRANSFER_HEADER)
 enum
 {
   ID_ENTITY_MSG = ID_MSG_BASE,
@@ -116,14 +117,14 @@ static void dump_net_stat(eastl::vector_set<NetStatRecord> &netstat, const char 
     [](const NetStatRecord &a, const NetStatRecord &b) { return a.effectiveBytes() > b.effectiveBytes(); });
   debug("Dumping %s %d netstat records (message types) of total %d records, %d KBytes, %d packets:", trans_type, performNetStat,
     netstat.size(), totalBytes >> 10, totalPackets);
-  debug("  #N compressed_flag name msg_size_bytes(avg/min/max) kilobytes(%%) packets(%%) compression_ratio"); // legend
+  debug("  #N compressed_flag name msg_size_bytes(avg/min/max) kilobytes(%%) packets(%%) compression(%%)"); // legend
   for (int i = 0; i < performNetStat && i < netstat.size(); ++i)
   {
     const NetStatRecord &r = netstat[i];
     size_t ebytes = r.effectiveBytes();
-    debug("  #%2d %c %*s %4u %4u %5u %7u(%5.2f%%) %7u(%5.2f%%) %.3f", i + 1, r.isCompressed() ? 'C' : ' ', maxNameLen, r.name(),
+    debug("  #%2d %c %*s %5u %5u %5u %7u(%5.2f%%) %7u(%5.2f%%) %02.2f", i + 1, r.isCompressed() ? 'C' : ' ', maxNameLen, r.name(),
       ebytes / r.packets, r.minMsgSize, r.maxMsgSize, ebytes >> 10, double(ebytes) / totalBytes * 100., r.packets,
-      double(r.packets) / totalPackets * 100., r.isCompressed() ? (double(r.bytes) / r.cbytes) : 0.);
+      double(r.packets) / totalPackets * 100., r.isCompressed() ? (r.cbytes / double(r.bytes) * 100.f) : 0.);
   }
 }
 
@@ -150,9 +151,9 @@ static inline bool check_routing(const IMessage &msg, const CNetwork &cnet, ecs:
       if (send ? cnet.isClient() : cnet.isServer())
       {
         if (!robj)
-          robj = g_entity_mgr->getNullable<net::Object>(toEid, ECS_HASH("replication"));
+          robj = cnet.getEntityManager().getNullable<net::Object>(toEid, ECS_HASH("replication"));
 #if DAECS_EXTENSIVE_CHECKS
-        G_ASSERTF(robj || (send && !g_entity_mgr->doesEntityExist(toEid)), "%d", (ecs::entity_id_t)toEid);
+        G_ASSERTF(robj || (send && !cnet.getEntityManager().doesEntityExist(toEid)), "%d", (ecs::entity_id_t)toEid);
 #endif
         return robj && receiver == robj->getControlledBy();
       }
@@ -165,9 +166,9 @@ static inline bool check_routing(const IMessage &msg, const CNetwork &cnet, ecs:
 
 void CNetwork::ObjMsg::apply(const net::Object &robj, net::Connection &from, CNetwork &cnet, const danet::BitStream &data) const
 {
-  ecs::EntityManager &mgr = *g_entity_mgr;
+  ecs::EntityManager &manager = cnet.getEntityManager();
   ecs::EntityId toEid = robj.getEid();
-  G_ASSERT(!mgr.isLoadingEntity(toEid));
+  G_ASSERT(!manager.isLoadingEntity(toEid));
   alignas(16) char tmpBuf[256];
   void *dataPtr = tmpBuf;
   if (DAGOR_UNLIKELY(msgCls->memSize > sizeof(tmpBuf)))
@@ -180,21 +181,21 @@ void CNetwork::ObjMsg::apply(const net::Object &robj, net::Connection &from, CNe
       if (msgCls->flags & MF_TIMED)
         static_cast<IMessageTimed *>(msg.get())->rcvTime = rcvTime;
       msg->connection = &from;
-      if (net::event::try_receive(*msg, mgr, toEid))
+      if (net::event::try_receive(*msg, manager, toEid))
         ;
       else
       {
         // Send event immediately because we need this message to be processed before futher state syncs messages
-        mgr.sendEventImmediate(toEid, ecs::EventNetMessage(eastl::move(msg)));
+        manager.sendEventImmediate(toEid, ecs::EventNetMessage(eastl::move(msg)));
       }
     }
     else
       logerr("network message #%d/%s/%x to %d<%s> from conn #%d is failed to unpack", msgCls->classId, msgCls->debugClassName,
-        msgCls->classHash, (ecs::entity_id_t)toEid, mgr.getEntityTemplateName(toEid), (int)from.getId());
+        msgCls->classHash, (ecs::entity_id_t)toEid, manager.getEntityTemplateName(toEid), (int)from.getId());
   }
   else
     logwarn("network message #%d/%s/%x to %d<%s> from conn #%d is dropped due to failed routing (%d) check", msgCls->classId,
-      msgCls->debugClassName, msgCls->classHash, (ecs::entity_id_t)toEid, mgr.getEntityTemplateName(toEid), (int)from.getId(),
+      msgCls->debugClassName, msgCls->classHash, (ecs::entity_id_t)toEid, manager.getEntityTemplateName(toEid), (int)from.getId(),
       msgCls->routing);
   if (dataPtr != tmpBuf)
     framemem_ptr()->free(dataPtr);
@@ -221,18 +222,15 @@ struct RTTStat
 };
 
 
-CNetwork::CNetwork(INetDriver *drv_, INetworkObserver *obsrv, uint16_t protov, uint64_t session_rand,
+CNetwork::CNetwork(ecs::EntityManager &mgr_, INetDriver *drv_, INetworkObserver *obsrv, uint16_t protov, uint64_t session_rand,
   scope_query_cb_t &&scope_query_) :
-  drv(drv_), observer(obsrv), scope_query(eastl::move(scope_query_)), protocolVersion(protov)
+  mgr(mgr_), drv(drv_), observer(obsrv), scope_query(eastl::move(scope_query_)), protocolVersion(protov)
 {
   G_ASSERT(observer);
   G_ASSERT(drv_);
   bServer = drv->isServer();
+  // this will also call net::events::init_client/_server
   uint32_t numMessageClasses = MessageClass::init(bServer);
-  if (bServer)
-    net::event::init_server();
-  else
-    net::event::init_client();
 
   if (protocolVersion != PROTO_VERSION_UNKNOWN)
     protocolVersion |= numMessageClasses << 16;
@@ -246,12 +244,12 @@ CNetwork::CNetwork(INetDriver *drv_, INetworkObserver *obsrv, uint16_t protov, u
 #endif
 }
 
-extern void dump_initial_construction_stats();
+extern void dump_initial_construction_stats(ecs::EntityManager &mgr);
 
 void CNetwork::dumpStats()
 {
   dump_and_clear_components_profiler_stats();
-  dump_initial_construction_stats();
+  dump_initial_construction_stats(mgr);
 #if NET_STAT_ENABLED
   dump_net_stat(txNetStat, "tx (outgoing)");
   dump_net_stat(rxNetStat, "rx (incoming)");
@@ -278,7 +276,7 @@ void CNetwork::receivePackets(int cur_time_ms, uint8_t replication_channel)
   }
 
   while (eastl::optional<danet::EchoResponse> echo = drv->receiveEchoResponse())
-    g_entity_mgr->broadcastEvent(NetEchoReponse{echo->routeId, static_cast<int>(echo->result), echo->rttOrTimeout});
+    mgr.broadcastEvent(NetEchoReponse{echo->routeId, static_cast<int>(echo->result), echo->rttOrTimeout});
 }
 
 void CNetwork::updateConnections(int cur_time)
@@ -312,7 +310,7 @@ void CNetwork::syncStateUpdates(int cur_time, uint8_t replication_channel)
 {
   if (!isServer())
     return;
-  Connection::collapseDirtyObjects();
+  Connection::collapseDirtyObjects(mgr);
   danet::BitStream bs(2 << 10, framemem_ptr()), bsCompressed(framemem_ptr()), tmpBs(framemem_ptr());
   for (auto &conn : clientConnections)
   {
@@ -427,8 +425,10 @@ bool CNetwork::sendto(int cur_time, ecs::EntityId to_eid, const IMessage &msg, I
     return false;
   if (!check_routing(msg, *this, to_eid, nullptr, conn->getId(), /*send*/ true))
     return false;
-
   const MessageClass &mcls = msg.getMsgClass();
+  if (MessageClass::shouldIgnoreOutgoingMessage(mcls.classId))
+    return false;
+
   int numClassIdBits = MessageClass::getNumClassIdBits();
 #if DAECS_EXTENSIVE_CHECKS
   G_ASSERTF(numClassIdBits >= 0, "MessageClass::init() wasn't called?");
@@ -521,6 +521,9 @@ void CNetwork::onPacket(const Packet *pkt, int cur_time_ms, uint8_t replication_
         }
       }
 
+      // if incoming connection comes from relay peer we do not create normal connection, since its for players/server
+      if (ctrlIface->IsRelayConnection(pkt->systemIndex))
+        break;
       addConnection(create_net_connection(drv.get(), pkt->systemIndex, scope_query_cb_t(scope_query)), pkt->systemIndex);
     }
     break;
@@ -529,7 +532,12 @@ void CNetwork::onPacket(const Packet *pkt, int cur_time_ms, uint8_t replication_
       if (isServer())
         onUnknownPacket(pkt);
       else if (auto ctrlIface = static_cast<DaNetPeerInterface *>(drv->getControlIface()))
+      {
+        // if incoming connection comes from relay peer we do not create normal connection, since its for players/server
+        if (ctrlIface->IsRelayConnection(pkt->systemIndex))
+          break;
         addConnection(create_net_connection(drv.get(), pkt->systemIndex, scope_query_cb_t(scope_query)), pkt->systemIndex);
+      }
     }
     break;
     case ID_DISCONNECT: destroyConnection(pkt->systemIndex, (DisconnectionCause)pkt->data[1]); break;
@@ -555,12 +563,11 @@ void CNetwork::onPacket(const Packet *pkt, int cur_time_ms, uint8_t replication_
         else if (parityBit != calc_parity_bit(msgId))
           msgId = -2;
       }
+      if (!MessageClass::validateIncomingMessage(msgId, int(conn->getId())))
+        break;
       const MessageClass *msgCls = MessageClass::getById(msgId);
       if (!msgCls)
-      {
-        logerr("Failed to resolve net message with id %d from conn #%d, incompatible network protocol?", msgId, (int)conn->getId());
         break;
-      }
       bs.AlignReadToByteBoundary();
       const danet::BitStream *bsToRead = readCompressedIfPacketType(ID_ENTITY_MSG_COMPRESSED);
       if (!bsToRead)
@@ -570,7 +577,7 @@ void CNetwork::onPacket(const Packet *pkt, int cur_time_ms, uint8_t replication_
       omsg.msgCls = msgCls;
       if (msgCls->flags & MF_TIMED)
         omsg.rcvTime = pkt->receiveTime;
-      if (const Object *robj = Object::getByEid(ecs::EntityId(serverEid)))
+      if (const Object *robj = Object::getByEid(mgr, ecs::EntityId(serverEid)))
         omsg.apply(*robj, *conn, *this, *bsToRead);
       else if (isClient())
       {
@@ -650,7 +657,7 @@ void CNetwork::onPacket(const Packet *pkt, int cur_time_ms, uint8_t replication_
         // Make sure that entities actually destroyed before creating new ones (in order to free potentially colliding eid slots)
         if (DAGOR_UNLIKELY(numEntitiesDestroyed != 0))
         {
-          g_entity_mgr->performDelayedCreation(/*flush_all*/ false);
+          mgr.performDelayedCreation(/*flush_all*/ false);
           numEntitiesDestroyed = 0;
         }
         TRACE_NET_STAT(rx, str_msg_ids[ID_ENTITY_CREATION - ID_MSG_BASE], *bsToRead, bs, conn);
@@ -702,7 +709,7 @@ void CNetwork::flushClientWaitMsgs(ecs::entity_id_t serverEid)
   auto it = clientWaitMsgs.find(ClientWaitMsg{serverEid});
   if (it == clientWaitMsgs.end())
     return;
-  if (const Object *robj = Object::getByEid(ecs::EntityId(serverEid)))
+  if (const Object *robj = Object::getByEid(mgr, ecs::EntityId(serverEid)))
   {
     G_ASSERT(!it->msgs.empty());
     for (auto &msg : it->msgs)
@@ -776,13 +783,13 @@ void CNetwork::destroyConnection(unsigned idx, DisconnectionCause cause)
   {
     if (!conn)
       return;
-    observer->onDisconnect(conn, cause);
+    observer->onDisconnect(conn, cause, mgr);
     clientConnections[idx].reset(); // TODO: do actual daNet/enet disconnect here
     rttstat[idx].clear();
   }
   else
   {
-    observer->onDisconnect(conn, cause);
+    observer->onDisconnect(conn, cause, mgr);
     clientWaitMsgs.clear();
     serverConnection.reset();
   }

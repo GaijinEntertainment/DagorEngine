@@ -47,6 +47,7 @@
 
 static int darkThresholdVarId = -1, darkThreshold0VarId = -1, darkThreshold1VarId = -1;
 static int texVarId = -1, texSzVarId = -1, texUvTransformVarId = -1;
+static int tex_samplerstateVarId = -1;
 static int glowTexVarId = -1, glowTexSzVarId = -1, glowScaleVarId = -1, hasPostFxGlowVarId = -1;
 static int volfogTexVarId = -1, volfogScaleVarId = -1;
 static int volFogOnVarId = -1;
@@ -60,11 +61,16 @@ static int ldr_vignette_multiplierVarId = -1;
 static int ldr_vignette_widthVarId = -1;
 static int ldr_vignette_aspectVarId = -1;
 
+static int has_mobile_glowVarId = -1;
+static int has_mobile_flaresVarId = -1;
+
 // DoF variables
 static int max_hdr_overbrightGVarId = -1;
 
 static int colorMatrixRVarId = -1, colorMatrixGVarId = -1, colorMatrixBVarId = -1;
 static int renderCombinePassGVarId = -1;
+
+static ShaderVariableInfo film_grain_params("film_grain_params", true);
 
 #define BLUR_SAMPLES 8
 static int weight0VarId, weight1VarId;
@@ -85,7 +91,8 @@ DemonPostFx::DemonPostFx(const DataBlock &main_blk, const DataBlock &adaptation_
   skyMaskPrepared(false),
   volFogCallback(NULL),
   eventFinished(false),
-  externalSkyMaskTexId(0)
+  externalSkyMaskTexId(0),
+  usePrevFrameTex(false)
 {
   const unsigned int workingFlags = d3d::USAGE_FILTER | d3d::USAGE_BLEND | d3d::USAGE_RTARGET;
   unsigned sky_fmt = TEXFMT_DEFAULT;
@@ -125,6 +132,7 @@ DemonPostFx::DemonPostFx(const DataBlock &main_blk, const DataBlock &adaptation_
   }
 
   texVarId = get_shader_variable_id("tex");
+  tex_samplerstateVarId = get_shader_variable_id("tex_samplerstate");
   texSzVarId = get_shader_variable_id("texsz_consts");
   texUvTransformVarId = get_shader_variable_id("texUvTransform");
 
@@ -139,7 +147,12 @@ DemonPostFx::DemonPostFx(const DataBlock &main_blk, const DataBlock &adaptation_
   ldr_vignette_widthVarId = get_shader_variable_id("ldr_vignette_width", true);
   ldr_vignette_aspectVarId = get_shader_variable_id("ldr_vignette_aspect", true);
 
+  has_mobile_glowVarId = get_shader_variable_id("has_mobile_glow", true);
+  has_mobile_flaresVarId = get_shader_variable_id("has_mobile_flares", true);
 
+  d3d::SamplerInfo smpInfo;
+  smpInfo.address_mode_u = smpInfo.address_mode_v = d3d::AddressMode::Clamp;
+  d3d::SamplerHandle clampSampler = d3d::request_sampler(smpInfo);
   if (!useSimpleMode)
   {
     if (useCompute)
@@ -152,36 +165,29 @@ DemonPostFx::DemonPostFx(const DataBlock &main_blk, const DataBlock &adaptation_
       if (!glowBlurXFxCS)
         useCompute = false;
     }
-
-    if (initSunVolfog)
+    if (useCompute)
     {
-      lowResLumTexA = dag::create_tex(NULL, lowResSize.x, lowResSize.y, sky_fmt | TEXCF_RTARGET, 1, "postfx_lowresLumA");
-      d3d_err(lowResLumTexA.getTex2D());
-      lowResLumTexA->texaddr(TEXADDR_MIRROR);
-
-      lowResLumTexB = dag::create_tex(NULL, lowResSize.x, lowResSize.y, sky_fmt | TEXCF_RTARGET, 1, "postfx_lowresLumB");
-      d3d_err(lowResLumTexB.getTex2D());
-      lowResLumTexB->texaddr(TEXADDR_MIRROR);
+      glowBlurXFxCS->set_sampler_param(::get_shader_variable_id("tex_samplerstate"), clampSampler);
+      glowBlurYFxCS->set_sampler_param(::get_shader_variable_id("tex_samplerstate"), clampSampler);
+      glowBlur2XFxCS->set_sampler_param(::get_shader_variable_id("tex_samplerstate"), clampSampler);
+      glowBlur2YFxCS->set_sampler_param(::get_shader_variable_id("tex_samplerstate"), clampSampler);
     }
+
+    lowResDefRTPool = RTargetPool::get(lowResSize.x, lowResSize.y, rtarget_flags | TEXCF_RTARGET, 1);
+    lowResSkyRTPool = RTargetPool::get(lowResSize.x, lowResSize.y, sky_fmt | TEXCF_RTARGET, 1);
 
     if (initUIBlur)
     {
       uiBlurTex = dag::create_tex(NULL, lowResSize.x, lowResSize.y, sky_fmt | TEXCF_RTARGET, 1, "postfx_uiBlur");
       d3d_err(uiBlurTex.getTex2D());
-      uiBlurTex->texaddr(TEXADDR_CLAMP);
     }
 
-    uint32_t usageFlag = useCompute ? TEXCF_UNORDERED : TEXCF_RTARGET;
 
     if (initPostfxGlow)
     {
-      tmpTex = dag::create_tex(NULL, lowResSize.x, lowResSize.y, sky_fmt | usageFlag, 1, "postfx_tmp");
-      d3d_err(tmpTex.getTex2D());
-      tmpTex->texaddr(TEXADDR_CLAMP);
-
-      glowTex = dag::create_tex(NULL, lowResSize.x, lowResSize.y, rtarget_flags | usageFlag, 1, "postfx_glow");
-      d3d_err(glowTex.getTex2D());
-      glowTex->texaddr(TEXADDR_CLAMP);
+      uint32_t usageFlag = useCompute ? TEXCF_UNORDERED : TEXCF_RTARGET;
+      lowResDefGlowRTPool = RTargetPool::get(lowResSize.x, lowResSize.y, rtarget_flags | usageFlag, 1);
+      lowResSkyGlowRTPool = RTargetPool::get(lowResSize.x, lowResSize.y, sky_fmt | usageFlag, 1);
     }
 
     const bool useAdaptation = adaptation_blk.getBool("useAdaptation", true);
@@ -189,10 +195,7 @@ DemonPostFx::DemonPostFx(const DataBlock &main_blk, const DataBlock &adaptation_
     if (initSunVolfog || initPostfxGlow || lenseFlareEnabled || useAdaptation)
     {
       // low-res previous frame texture
-      prevFrameLowResTex =
-        dag::create_tex(NULL, lowResSize.x, lowResSize.y, rtarget_flags | TEXCF_RTARGET, 1, "postfx_prevFrameLowRes");
-      d3d_err(prevFrameLowResTex.getTex2D());
-      prevFrameLowResTex->texaddr(TEXADDR_CLAMP);
+      usePrevFrameTex = true;
     }
 
     glowBlurXFx.init("demon_postfx_blur");
@@ -200,8 +203,19 @@ DemonPostFx::DemonPostFx(const DataBlock &main_blk, const DataBlock &adaptation_
     glowBlur2XFx.init("demon_postfx_blur");
     glowBlur2YFx.init("demon_postfx_blur");
     radialBlur1Fx.init("demon_postfx_blur");
+    {
+      d3d::SamplerInfo smpInfo;
+      smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Border;
+      smpInfo.border_color = d3d::BorderColor::Color::TransparentBlack;
+      radialBlur1Fx.getMat()->set_sampler_param(::get_shader_variable_id("tex_samplerstate"), d3d::request_sampler(smpInfo));
+    }
     radialBlur2Fx.init("demon_postfx_blur");
     downsample4x.init("downsample4x");
+    {
+      d3d::SamplerInfo smpInfo;
+      smpInfo.filter_mode = d3d::FilterMode::Point;
+      downsample4x.getMat()->set_sampler_param(::get_shader_variable_id("srcTex_samplerstate"), d3d::request_sampler(smpInfo));
+    }
 
     glowTexSzVarId = get_shader_variable_id("glow_texsz_consts");
     targetTextureSizeVarId = get_shader_variable_id("targetTextureSize", true);
@@ -230,9 +244,13 @@ DemonPostFx::DemonPostFx(const DataBlock &main_blk, const DataBlock &adaptation_
 
     // init glow blur
     glowBlurXFx.getMat()->set_color4_param(texSzVarId, quad_coefs);
+    glowBlurXFx.getMat()->set_sampler_param(tex_samplerstateVarId, clampSampler);
     glowBlurYFx.getMat()->set_color4_param(texSzVarId, quad_coefs);
+    glowBlurYFx.getMat()->set_sampler_param(tex_samplerstateVarId, clampSampler);
     glowBlur2XFx.getMat()->set_color4_param(texSzVarId, quad_coefs);
+    glowBlur2XFx.getMat()->set_sampler_param(tex_samplerstateVarId, clampSampler);
     glowBlur2YFx.getMat()->set_color4_param(texSzVarId, quad_coefs);
+    glowBlur2YFx.getMat()->set_sampler_param(tex_samplerstateVarId, clampSampler);
 
     // init radial blur
     radialBlur1Fx.getMat()->set_color4_param(texSzVarId, quad_coefs);
@@ -244,7 +262,17 @@ DemonPostFx::DemonPostFx(const DataBlock &main_blk, const DataBlock &adaptation_
     G_ASSERT(0 && "updateSettings() must return true in ctor!");
   }
 
-  combineFx.init(useSimpleMode ? "demon_postfx_combine_simple" : "demon_postfx_combine");
+  if (::dgs_get_settings()->getBlockByName("graphics")->getBool("mobile_demonpostfx", false))
+    combineFx.init("demon_postfx_combine_mobile");
+  else
+    combineFx.init(useSimpleMode ? "demon_postfx_combine_simple" : "demon_postfx_combine");
+  combineFx.getMat()->set_sampler_param(::get_shader_variable_id("glowTex_samplerstate"), clampSampler);
+  combineFx.getMat()->set_sampler_param(tex_samplerstateVarId, clampSampler);
+  {
+    d3d::SamplerInfo smpInfo;
+    smpInfo.address_mode_u = smpInfo.address_mode_v = d3d::AddressMode::Mirror;
+    combineFx.getMat()->set_sampler_param(::get_shader_variable_id("volfogTex_samplerstate"), d3d::request_sampler(smpInfo));
+  }
 
   postFx = this;
   max_hdr_overbrightGVarId = ::get_shader_glob_var_id("max_hdr_overbright", true);
@@ -290,6 +318,8 @@ bool DemonPostFx::updateSettings(const DataBlock &main_blk)
 
   current.setSunDir(dir_from_polar(DegToRad(90 - main_blk.getReal("sunAzimuth", 0)), DegToRad(main_blk.getReal("sunZenith", 45))));
 
+  current.filmGrainParams = main_blk.getPoint3("filmGrainParams", Point3(0.2f, 1.f, 0.75f));
+
   // init color matrix
   const DataBlock &cmBlk = *main_blk.getBlockByNameEx("colorMatrix");
 
@@ -333,111 +363,138 @@ DemonPostFx::~DemonPostFx()
   downsample4x.clear();
   combineCallback = NULL;
 
-  prevFrameLowResTex.close();
-  glowTex.close();
-  tmpTex.close();
+  prevFrameLowResTex = nullptr;
+  glowTex = nullptr;
   uiBlurTex.close();
-  lowResLumTexB.close();
-  lowResLumTexA.close();
+  lowResLumTexPrepared = nullptr;
+  usePrevFrameTex = false;
 
   // FLARE
   closeLenseFlare();
 }
 
 #include <perfMon/dag_statDrv.h>
-void DemonPostFx::applyLenseFlare(const UniqueTex &src_tex)
+void DemonPostFx::applyLenseFlare(BaseTexture *srcTex, TEXTUREID srcId)
 {
   if (!lenseFlareEnabled)
     return;
-  lensFlare.apply(src_tex.getTex2D(), src_tex.getTexId());
+  lensFlare.apply(srcTex, srcId);
 }
 
 void DemonPostFx::calcGlowGraphics()
 {
+  RTarget::Ptr tmpTex = lowResSkyGlowRTPool->acquire();
+
   {
     TIME_D3D_PROFILE(glowBlurXFx);
-    d3d::resource_barrier({prevFrameLowResTex.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+    G_ASSERT(prevFrameLowResTex != nullptr);
+    d3d::resource_barrier({prevFrameLowResTex->getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
     // glow
-    d3d::set_render_target(tmpTex.getTex2D(), 0);
+    d3d::set_render_target(tmpTex->getTex2D(), 0);
     d3d::clearview(CLEAR_DISCARD_TARGET, 0, 0.f, 0);
     glowBlurXFx.getMat()->set_color4_param(weight0VarId, current.hdrGlowMul * glowWeights0X);
     glowBlurXFx.getMat()->set_color4_param(weight1VarId, current.hdrGlowMul * glowWeights1X);
     glowBlurXFx.getMat()->set_color4_param(darkThreshold0VarId, -(current.hdrGlowMul * current.hdrDarkThreshold) * glowWeights0X);
     glowBlurXFx.getMat()->set_color4_param(darkThreshold1VarId, -(current.hdrGlowMul * current.hdrDarkThreshold) * glowWeights1X);
-    glowBlurXFx.getMat()->set_texture_param(texVarId, prevFrameLowResTex.getTexId());
+    glowBlurXFx.getMat()->set_texture_param(texVarId, prevFrameLowResTex->getTexId());
     glowBlurXFx.render();
-    d3d::resource_barrier({tmpTex.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+    glowBlurXFx.getMat()->set_texture_param(texVarId, BAD_TEXTUREID);
+    d3d::resource_barrier({tmpTex->getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+  }
+
+  prevFrameLowResTex = nullptr;
+
+  if (glowTex == nullptr)
+  {
+    glowTex = lowResDefGlowRTPool->acquire();
   }
 
   {
     TIME_D3D_PROFILE(glowBlurYFx);
-    d3d::set_render_target(glowTex.getTex2D(), 0);
+    d3d::set_render_target(glowTex->getTex2D(), 0);
     d3d::clearview(CLEAR_DISCARD_TARGET, 0, 0.f, 0);
-    glowBlurYFx.getMat()->set_texture_param(texVarId, tmpTex.getTexId());
+    glowBlurYFx.getMat()->set_texture_param(texVarId, tmpTex->getTexId());
     glowBlurYFx.render();
-    d3d::resource_barrier({glowTex.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+    glowBlurYFx.getMat()->set_texture_param(texVarId, BAD_TEXTUREID);
+    d3d::resource_barrier({glowTex->getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
   }
 
   {
     TIME_D3D_PROFILE(glowBlur2XFx);
-    d3d::set_render_target(tmpTex.getTex2D(), 0);
+    d3d::set_render_target(tmpTex->getTex2D(), 0);
     d3d::clearview(CLEAR_DISCARD_TARGET, 0, 0.f, 0);
-    glowBlur2XFx.getMat()->set_texture_param(texVarId, glowTex.getTexId());
+    glowBlur2XFx.getMat()->set_texture_param(texVarId, glowTex->getTexId());
     glowBlur2XFx.render();
-    d3d::resource_barrier({tmpTex.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+    glowBlur2XFx.getMat()->set_texture_param(texVarId, BAD_TEXTUREID);
+    d3d::resource_barrier({tmpTex->getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
   }
 
   {
     TIME_D3D_PROFILE(glowBlur2YFx);
-    d3d::set_render_target(glowTex.getTex2D(), 0);
+    d3d::set_render_target(glowTex->getTex2D(), 0);
     d3d::clearview(CLEAR_DISCARD_TARGET, 0, 0.f, 0);
-    glowBlur2YFx.getMat()->set_texture_param(texVarId, tmpTex.getTexId());
+    glowBlur2YFx.getMat()->set_texture_param(texVarId, tmpTex->getTexId());
     glowBlur2YFx.render();
+    glowBlur2YFx.getMat()->set_texture_param(texVarId, BAD_TEXTUREID);
   }
 }
 
 void DemonPostFx::calcGlowCompute()
 {
+  RTarget::Ptr tmpTex = lowResSkyGlowRTPool->acquire();
+
   {
     TIME_D3D_PROFILE(glowBlurXFx_cs);
-    d3d::resource_barrier({prevFrameLowResTex.getTex2D(), RB_RO_SRV | RB_STAGE_COMPUTE, 0, 0});
+    G_ASSERT(prevFrameLowResTex != nullptr);
+    d3d::resource_barrier({prevFrameLowResTex->getTex2D(), RB_RO_SRV | RB_STAGE_COMPUTE, 0, 0});
     // glow
-    d3d::set_rwtex(STAGE_CS, 0, tmpTex.getTex2D(), 0, 0);
+    d3d::set_rwtex(STAGE_CS, 0, tmpTex->getTex2D(), 0, 0);
     glowBlurXFxCS->set_color4_param(weight0VarId, current.hdrGlowMul * glowWeights0X);
     glowBlurXFxCS->set_color4_param(weight1VarId, current.hdrGlowMul * glowWeights1X);
     glowBlurXFxCS->set_color4_param(darkThreshold0VarId, -(current.hdrGlowMul * current.hdrDarkThreshold) * glowWeights0X);
     glowBlurXFxCS->set_color4_param(darkThreshold1VarId, -(current.hdrGlowMul * current.hdrDarkThreshold) * glowWeights1X);
-    glowBlurXFxCS->set_texture_param(texVarId, prevFrameLowResTex.getTexId());
+    glowBlurXFxCS->set_texture_param(texVarId, prevFrameLowResTex->getTexId());
     glowBlurXFxCS->set_color4_param(targetTextureSizeVarId, Color4(lowResSize.x, lowResSize.y, 0, 0));
     glowBlurXFxCS->dispatchThreads(lowResSize.x, lowResSize.y, 1);
-    d3d::resource_barrier({tmpTex.getTex2D(), RB_RO_SRV | RB_STAGE_COMPUTE, 0, 0});
+    glowBlurXFxCS->set_texture_param(texVarId, BAD_TEXTUREID);
+    d3d::resource_barrier({tmpTex->getTex2D(), RB_RO_SRV | RB_STAGE_COMPUTE, 0, 0});
+  }
+
+  prevFrameLowResTex = nullptr;
+
+  if (glowTex == nullptr)
+  {
+    glowTex = lowResDefGlowRTPool->acquire();
   }
 
   {
     TIME_D3D_PROFILE(glowBlurYFx_cs);
-    d3d::set_rwtex(STAGE_CS, 0, glowTex.getTex2D(), 0, 0);
-    glowBlurYFxCS->set_texture_param(texVarId, tmpTex.getTexId());
+    d3d::set_rwtex(STAGE_CS, 0, glowTex->getTex2D(), 0, 0);
+    glowBlurYFxCS->set_texture_param(texVarId, tmpTex->getTexId());
     glowBlurYFxCS->set_color4_param(targetTextureSizeVarId, Color4(lowResSize.x, lowResSize.y, 0, 0));
     glowBlurYFxCS->dispatchThreads(lowResSize.x, lowResSize.y, 1);
-    d3d::resource_barrier({glowTex.getTex2D(), RB_RO_SRV | RB_STAGE_COMPUTE, 0, 0});
+    glowBlurYFxCS->set_texture_param(texVarId, BAD_TEXTUREID);
+    d3d::resource_barrier({glowTex->getTex2D(), RB_RO_SRV | RB_STAGE_COMPUTE, 0, 0});
   }
 
   {
     TIME_D3D_PROFILE(glowBlur2XFx_cs);
-    d3d::set_rwtex(STAGE_CS, 0, tmpTex.getTex2D(), 0, 0);
-    glowBlur2XFxCS->set_texture_param(texVarId, glowTex.getTexId());
+    d3d::set_rwtex(STAGE_CS, 0, tmpTex->getTex2D(), 0, 0);
+    glowBlur2XFxCS->set_texture_param(texVarId, glowTex->getTexId());
     glowBlur2XFxCS->set_color4_param(targetTextureSizeVarId, Color4(lowResSize.x, lowResSize.y, 0, 0));
     glowBlur2XFxCS->dispatchThreads(lowResSize.x, lowResSize.y, 1);
-    d3d::resource_barrier({tmpTex.getTex2D(), RB_RO_SRV | RB_STAGE_COMPUTE, 0, 0});
+    glowBlur2XFxCS->set_texture_param(texVarId, BAD_TEXTUREID);
+    d3d::resource_barrier({tmpTex->getTex2D(), RB_RO_SRV | RB_STAGE_COMPUTE, 0, 0});
   }
 
   {
     TIME_D3D_PROFILE(glowBlur2YFx_cs);
-    d3d::set_rwtex(STAGE_CS, 0, glowTex.getTex2D(), 0, 0);
-    glowBlur2YFxCS->set_texture_param(texVarId, tmpTex.getTexId());
+    d3d::set_rwtex(STAGE_CS, 0, glowTex->getTex2D(), 0, 0);
+    glowBlur2YFxCS->set_texture_param(texVarId, tmpTex->getTexId());
     glowBlur2YFxCS->set_color4_param(targetTextureSizeVarId, Color4(lowResSize.x, lowResSize.y, 0, 0));
     glowBlur2YFxCS->dispatchThreads(lowResSize.x, lowResSize.y, 1);
-    d3d::resource_barrier({glowTex.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+    d3d::resource_barrier({glowTex->getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+    glowBlur2YFxCS->set_texture_param(texVarId, BAD_TEXTUREID);
   }
 
   d3d::set_rwtex(STAGE_CS, 0, nullptr, 0, 0);
@@ -567,6 +624,8 @@ void DemonPostFx::setLenseFlareEnabled(bool enabled)
   lensFlare.toggleEnabled(enabled);
 }
 
+void DemonPostFx::setFilmGrainEnabled(bool enabled) { filmGrainEnabled = enabled; }
+
 #include <debug/dag_debug3d.h>
 
 // downsample 4x4->1
@@ -681,10 +740,19 @@ void DemonPostFx::prepareSkyMask(const TMatrix &view_tm)
   G_ASSERT(volFogCallback);
   if (sunLightK >= minCos && volFogCallback)
   {
-    d3d::set_render_target(lowResLumTexB.getTex2D(), 0);
+    G_ASSERT(lowResLumTexPrepared == nullptr);
+    lowResLumTexPrepared = lowResSkyRTPool->acquire();
+
+    d3d::set_render_target(lowResLumTexPrepared->getTex2D(), 0);
     volFogCallback->process(lowResSize.x, lowResSize.y, quadCoeffs);
     skyMaskPrepared = true;
   }
+}
+
+void DemonPostFx::finishSkyMask()
+{
+  skyMaskPrepared = false;
+  lowResLumTexPrepared = nullptr;
 }
 
 TextureIDPair DemonPostFx::downsample(Texture *input_tex, TEXTUREID input_id, const Point4 &input_uv_transform)
@@ -693,13 +761,16 @@ TextureIDPair DemonPostFx::downsample(Texture *input_tex, TEXTUREID input_id, co
   input_tex->getinfo(info);
   int targtexW = info.w;
   int targtexH = info.h;
-  input_tex->texfilter(TEXFILTER_LINEAR);
 
   d3d::resource_barrier({input_tex, RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
-  if (prevFrameLowResTex.getTex2D())
+  if (usePrevFrameTex)
   {
-    downsample(prevFrameLowResTex.getTex2D(), input_id, targtexW, targtexH, input_uv_transform);
-    return {prevFrameLowResTex.getTex2D(), prevFrameLowResTex.getTexId()};
+    if (prevFrameLowResTex == nullptr)
+    {
+      prevFrameLowResTex = lowResDefRTPool->acquire();
+    }
+    downsample(prevFrameLowResTex->getTex2D(), input_id, targtexW, targtexH, input_uv_transform);
+    return {prevFrameLowResTex->getTex2D(), prevFrameLowResTex->getTexId()};
   }
   return {};
 }
@@ -707,30 +778,45 @@ TextureIDPair DemonPostFx::downsample(Texture *input_tex, TEXTUREID input_id, co
 // eye -1 for mono, 0,1 for stereo
 void DemonPostFx::apply(bool vr_mode, Texture *target_tex, TEXTUREID target_id, Texture *output_tex, TEXTUREID output_id,
   const TMatrix &view_tm, const TMatrix4 &proj_tm, Texture *depth_tex, int eye, int target_layer, const Point4 &target_uv_transform,
-  const RectInt *output_viewport, PreCombineFxProc pre_combine_fx_proc)
+  const RectInt *output_viewport, PreCombineFxProc pre_combine_fx_proc, TextureIDPair downsampled_color)
 {
   G_UNREFERENCED(output_id);
 #if DAGOR_DBGLEVEL == 0
   current.debugFlags = 0;
 #endif
-  if (::grs_draw_wire)
-    d3d::setwire(0);
-
-  SCOPE_RENDER_TARGET;
 
   TextureInfo info;
   target_tex->getinfo(info);
   int targtexW = info.w;
   int targtexH = info.h;
-  target_tex->texfilter(TEXFILTER_LINEAR);
 
   real sunLightK = 0;
+
+  RTarget::Ptr lowResLumTex;
 
   if (!useSimpleMode)
   {
     // read from already downsampled tex
     if (eye < 0)
-      applyLenseFlare(prevFrameLowResTex);
+    {
+      if (usePrevFrameTex)
+      {
+        if (downsampled_color.getTex2D())
+        {
+          applyLenseFlare(downsampled_color.getTex2D(), downsampled_color.getId());
+        }
+        else
+        {
+          if (prevFrameLowResTex == nullptr)
+          {
+            prevFrameLowResTex = lowResDefRTPool->acquire();
+          }
+          applyLenseFlare(prevFrameLowResTex->getTex2D(), prevFrameLowResTex->getTexId());
+        }
+      }
+      else
+        applyLenseFlare(nullptr, BAD_TEXTUREID);
+    }
 
     // apply glow color curve
     bool hasGlow = !(current.debugFlags & current.NO_GLOW);
@@ -742,6 +828,7 @@ void DemonPostFx::apply(bool vr_mode, Texture *target_tex, TEXTUREID target_id, 
       hasGlow = false;
     }
 
+    ShaderGlobal::set_int(has_mobile_glowVarId, hasGlow);
     ShaderGlobal::set_real_fast(hasPostFxGlowVarId, hasGlow ? 1 : 0);
     if (current.hdrGlowMul * current.hdrGlowPower > 0 && hasGlow)
     {
@@ -750,17 +837,21 @@ void DemonPostFx::apply(bool vr_mode, Texture *target_tex, TEXTUREID target_id, 
       else
         calcGlowGraphics();
     }
-    else if (glowTex.getTex2D())
+    else if (lowResDefGlowRTPool)
     {
       TIME_D3D_PROFILE(clearGlow);
+      if (glowTex == nullptr)
+      {
+        glowTex = lowResDefGlowRTPool->acquire();
+      }
       if (useCompute)
       {
         const float zero[4] = {0, 0, 0, 0};
-        d3d::clear_rwtexf(glowTex.getTex2D(), zero, 0, 0);
+        d3d::clear_rwtexf(glowTex->getTex2D(), zero, 0, 0);
       }
       else
       {
-        d3d::set_render_target(glowTex.getTex2D(), 0);
+        d3d::set_render_target(glowTex->getTex2D(), 0);
         d3d::clearview(CLEAR_TARGET, 0, 0, 0);
       }
     }
@@ -795,11 +886,9 @@ void DemonPostFx::apply(bool vr_mode, Texture *target_tex, TEXTUREID target_id, 
       real sunY = 0.5f - 0.5f * sunDir.y * hk / sunDir.z;
 
       // perform radial blur
-      lowResLumTexA->texaddr(TEXADDR_BORDER);
-      lowResLumTexA->texbordercolor(0);
-      lowResLumTexB->texaddr(TEXADDR_BORDER);
-      lowResLumTexB->texbordercolor(0);
-      d3d::set_render_target(lowResLumTexA.getTex2D(), 0);
+      lowResLumTex = lowResSkyRTPool->acquire();
+
+      d3d::set_render_target(lowResLumTex->getTex2D(), 0);
 
       for (int i = 0; i < BLUR_SAMPLES; ++i)
       {
@@ -808,13 +897,14 @@ void DemonPostFx::apply(bool vr_mode, Texture *target_tex, TEXTUREID target_id, 
         radialBlur1Fx.getMat()->set_color4_param(texTmVarId[i], Color4(s, s, sunX - sunX * s, sunY - sunY * s));
       }
 
-      radialBlur1Fx.getMat()->set_texture_param(texVarId, lowResLumTexB.getTexId());
+      G_ASSERT(lowResLumTexPrepared != nullptr);
+      radialBlur1Fx.getMat()->set_texture_param(texVarId, lowResLumTexPrepared->getTexId());
       {
         TIME_D3D_PROFILE(radialBlur1Fx);
         radialBlur1Fx.render();
       }
 
-      d3d::set_render_target(lowResLumTexB.getTex2D(), 0);
+      d3d::set_render_target(lowResLumTexPrepared->getTex2D(), 0);
 
       for (int i = 0; i < BLUR_SAMPLES; ++i)
       {
@@ -823,13 +913,13 @@ void DemonPostFx::apply(bool vr_mode, Texture *target_tex, TEXTUREID target_id, 
         radialBlur1Fx.getMat()->set_color4_param(texTmVarId[i], Color4(s, s, sunX - sunX * s, sunY - sunY * s));
       }
 
-      radialBlur1Fx.getMat()->set_texture_param(texVarId, lowResLumTexA.getTexId());
+      radialBlur1Fx.getMat()->set_texture_param(texVarId, lowResLumTex->getTexId());
       {
         TIME_D3D_PROFILE(radialBlur1Fx);
         radialBlur1Fx.render();
       }
 
-      d3d::set_render_target(lowResLumTexA.getTex2D(), 0);
+      d3d::set_render_target(lowResLumTex->getTex2D(), 0);
 
       for (int i = 0; i < BLUR_SAMPLES; ++i)
       {
@@ -838,14 +928,13 @@ void DemonPostFx::apply(bool vr_mode, Texture *target_tex, TEXTUREID target_id, 
         radialBlur1Fx.getMat()->set_color4_param(texTmVarId[i], Color4(s, s, sunX - sunX * s, sunY - sunY * s));
       }
 
-      radialBlur1Fx.getMat()->set_texture_param(texVarId, lowResLumTexB.getTexId());
+      radialBlur1Fx.getMat()->set_texture_param(texVarId, lowResLumTexPrepared->getTexId());
       {
         TIME_D3D_PROFILE(radialBlur1Fx);
         radialBlur1Fx.render();
       }
-      lowResLumTexA->texaddr(TEXADDR_CLAMP);
-      lowResLumTexB->texaddr(TEXADDR_CLAMP);
-      skyMaskPrepared = false;
+
+      finishSkyMask();
     }
     else
       sunLightK = 0;
@@ -856,8 +945,8 @@ void DemonPostFx::apply(bool vr_mode, Texture *target_tex, TEXTUREID target_id, 
   // set up combine params
   if (!useSimpleMode)
   {
-    combineFx.getMat()->set_texture_param(glowTexVarId, glowTex.getTexId());
-    combineFx.getMat()->set_texture_param(volfogTexVarId, lowResLumTexA.getTexId());
+    combineFx.getMat()->set_texture_param(glowTexVarId, glowTex ? glowTex->getTexId() : BAD_TEXTUREID);
+    combineFx.getMat()->set_texture_param(volfogTexVarId, lowResLumTex ? lowResLumTex->getTexId() : BAD_TEXTUREID);
     combineFx.getMat()->set_color4_param(glowTexSzVarId, quad_coefs);
 
     float glowPower = current.hdrGlowPower;
@@ -893,16 +982,16 @@ void DemonPostFx::apply(bool vr_mode, Texture *target_tex, TEXTUREID target_id, 
 
   if (!useSimpleMode)
   {
-    if (glowTex.getTex2D())
-      d3d::resource_barrier({glowTex.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
-    if (lowResLumTexA.getTex2D())
-      d3d::resource_barrier({lowResLumTexA.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+    if (glowTex)
+      d3d::resource_barrier({glowTex->getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+    if (lowResLumTex)
+      d3d::resource_barrier({lowResLumTex->getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
   }
 
   if (output_tex)
   {
     d3d::set_render_target({depth_tex, 0}, depth_tex ? DepthAccess::SampledRO : DepthAccess::RW,
-      {{output_tex, 0u, output_tex->restype() == RES3D_ARRTEX ? unsigned(target_layer) : 0u}});
+      {{output_tex, 0u, output_tex->getType() == D3DResourceType::ARRTEX ? unsigned(target_layer) : 0u}});
   }
   else
   {
@@ -935,6 +1024,11 @@ void DemonPostFx::apply(bool vr_mode, Texture *target_tex, TEXTUREID target_id, 
   ShaderGlobal::set_real(ldr_vignette_widthVarId, ldrVignetteWidth);
   ShaderGlobal::set_real(ldr_vignette_aspectVarId, float(targtexW) / targtexH);
 
+  ShaderGlobal::set_int(has_mobile_flaresVarId, lenseFlareEnabled && lensFlare.flareBlur ? 1 : 0);
+
+  film_grain_params.set_color4(
+    Color4(current.filmGrainParams.x * filmGrainEnabled, current.filmGrainParams.y, current.filmGrainParams.z, 0.f));
+
   {
     if (pre_combine_fx_proc)
       pre_combine_fx_proc();
@@ -943,10 +1037,14 @@ void DemonPostFx::apply(bool vr_mode, Texture *target_tex, TEXTUREID target_id, 
     combineFx.render();
   }
 
-  combineFx.getMat()->set_texture_param(texVarId, BAD_TEXTUREID);
+  glowTex = nullptr;
+  combineFx.getMat()->set_texture_param(glowTexVarId, BAD_TEXTUREID);
 
-  if (::grs_draw_wire)
-    d3d::setwire(::grs_draw_wire);
+  lensFlare.releaseRTs();
+
+  combineFx.getMat()->set_texture_param(texVarId, BAD_TEXTUREID);
+  combineFx.getMat()->set_texture_param(volfogTexVarId, BAD_TEXTUREID);
+  radialBlur1Fx.getMat()->set_texture_param(texVarId, BAD_TEXTUREID);
 }
 
 void DemonPostFx::delayedCombineFx(TEXTUREID textureId)

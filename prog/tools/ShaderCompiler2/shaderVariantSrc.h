@@ -6,10 +6,9 @@
 /************************************************************************/
 
 #include "shaderVariant.h"
+#include "shTargetContext.h"
 #include <shaders/dag_shaderCommon.h>
 #include "shLog.h"
-
-struct ShHardwareOptions;
 
 
 namespace ShaderVariant
@@ -41,7 +40,7 @@ public:
   inline VariantSrc(const TypeTable &t) : SearchInfo(t, true), codeId(-1) {}
   inline VariantSrc() : SearchInfo(*defCtorTypeTable, true), codeId(-1) {}
 
-  virtual ~VariantSrc(){};
+  ~VariantSrc() override {}
 
   inline void fillVariant(Variant &v) const
   {
@@ -78,7 +77,7 @@ public:
   }
 
   // return string info about variant
-  virtual String getVarStringInfo() const;
+  String getVarStringInfo() const override;
 
 public:
   static TypeTable *defCtorTypeTable;
@@ -109,22 +108,14 @@ struct VariantInfo
  *********************************/
 class VariantTableSrc
 {
-protected:
-  VariantTableSrc(const VariantTableSrc &from) : variants(midmem) { G_ASSERT(false); }
-  inline VariantTableSrc &operator=(const VariantTableSrc &v)
-  {
-    G_ASSERT(false);
-    return *this;
-  };
-
-  // DISABLE_EQUALITY(VariantTableSrc);
-
 public:
-  VariantTableSrc() : variants(tmpmem) {}
+  explicit VariantTableSrc(shc::TargetContext &a_ctx);
   ~VariantTableSrc() {}
 
+  NON_COPYABLE_TYPE(VariantTableSrc)
+
   // generate all variants from avalible types
-  void generateFromTypes(const TypeTable &type_list, const IntervalList &i_list, ShHardwareOptions *opt, bool enable_empty);
+  void generateFromTypes(const TypeTable &type_list, const IntervalList &i_list, bool enable_empty);
 
   // get types
   inline const TypeTable &getTypes() const { return types; };
@@ -146,6 +137,7 @@ private:
   TypeTable types;
   IntervalList intervals;
   Tab<VariantSrc> variants;
+  shc::TargetContext &ctx;
 
   // process flag recurse
   void processVariant(int index, VariantSrc &result, ValueType *assumed);

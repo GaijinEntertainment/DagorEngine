@@ -1,10 +1,9 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <3d/dag_resourcePool.h>
+#include <resourcePool/resourcePool.h>
 #include <math/integer/dag_IPoint2.h>
 #include <math/dag_Point2.h>
-#include <render/world/cameraParams.h>
 
 struct Driver3dPerspective;
 class TextureIDPair;
@@ -24,6 +23,10 @@ public:
     Texture *motion;
     Texture *exposure;
     Texture *reactive;
+    Texture *albedo;
+    Texture *specularAlbedo;
+    Texture *normalRoughness;
+    Texture *hitDist;
     Driver3dPerspective perspective;
   };
 

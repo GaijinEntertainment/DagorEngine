@@ -64,6 +64,11 @@ namespace das {
         if (result) {
             set(result, node);
             result->subexpr = static_cast<SimNode_SourceBase *>(node_x)->subexpr;
+            if ( node->rtti_node_isErrorMessage() ) {
+                result->errorMessage = static_cast<SimNode_WithErrorMessage *>(node)->errorMessage;
+            } else if ( node_x->rtti_node_isErrorMessage() ) {
+                result->errorMessage = static_cast<SimNode_WithErrorMessage *>(node_x)->errorMessage;
+            }
             return result;
         } else {
             return node;
@@ -84,6 +89,11 @@ namespace das {
                 result->r = static_cast<SimNode_SourceBase *>(node_r)->subexpr;
             } else {
                 result->r.setSimNode(node_r);
+            }
+            if ( node_l && node_l->rtti_node_isErrorMessage() ) {
+                result->errorMessage = static_cast<SimNode_WithErrorMessage *>(node_l)->errorMessage;
+            } else if ( node_r && node_r->rtti_node_isErrorMessage() ) {
+                result->errorMessage = static_cast<SimNode_WithErrorMessage *>(node_r)->errorMessage;
             }
             return result;
         } else {
@@ -116,16 +126,13 @@ namespace das {
         return typeName.empty() ? name : (name + "<" + typeName + ">");
     }
 
-    // TODO: at some point we should share fusion engine
-    DAS_THREAD_LOCAL unique_ptr<FusionEngine> g_fusionEngine;
-
     void resetFusionEngine() {
-        g_fusionEngine.reset();
+        g_fusionEngine->reset();
     }
 
     void createFusionEngine() {
-        if ( !g_fusionEngine ) {
-            g_fusionEngine = make_unique<FusionEngine>();
+        if ( !*g_fusionEngine ) {
+            *g_fusionEngine = make_unique<FusionEngine>();
 #if DAS_FUSION
             // misc (note, misc before everything)
             createFusionEngine_misc_copy_reference();
@@ -183,8 +190,8 @@ namespace das {
         }
         virtual SimNode * visit ( SimNode * node ) override {
             auto & ni = info[node];
-            auto it = g_fusionEngine->find(fuseName(ni.name, ni.typeName));
-            if ( it != g_fusionEngine->end() ) {
+            auto it = (*g_fusionEngine)->find(fuseName(ni.name, ni.typeName));
+            if ( it != (*g_fusionEngine)->end() ) {
                 auto & nv = it->second;
                 for ( const auto & fe : nv ) {
                     auto newNode = fe->fuse(info, node, context);
@@ -231,7 +238,7 @@ namespace das {
     }
 
     void registerFusion ( const char * OpName, const char * CTypeName, FusionPoint * node ) {
-        (*g_fusionEngine)[fuseName(OpName,CTypeName)].emplace_back(node);
+        (**g_fusionEngine)[fuseName(OpName,CTypeName)].emplace_back(node);
     }
 }
 

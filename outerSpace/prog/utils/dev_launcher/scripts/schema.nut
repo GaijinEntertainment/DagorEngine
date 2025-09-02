@@ -20,7 +20,7 @@ let useVroms = @(vromsMode) vromsMode == "vroms"
       ? "-config:debug/useAddonVromSrc:b=yes"
       : ""
 
-let is_windows_host = (["win32", "win64", "win-arm64"].contains(require("platform").get_platform_string_id()))
+let is_windows_host = require("platform").get_host_platform() == "windows"
 let defExePath = get_arg_value_by_name("exePath") ?? (is_windows_host ? "..\\..\\outerSpace\\game" : "../../outerSpace/game")
 
 let {pixelsHeight} = psi
@@ -57,26 +57,26 @@ let scheme = {
     connect  =  @(sessionId=defSId) $"-session_id:{sessionId} --connect"
     common = @() $"<<dasDebugStr>> <<noSoundStr>> {mkWebui()} --das-no-linter"
     gameExe = function(platform, exePath=defExePath) {
-      if (["win32", "win64", "win-arm64"].contains(platform))
+      if (platform.startswith("windows-"))
         return $"@start {exePath}\\{platform}\\outer_space-dev.exe"
-      if (platform == "linux64")
+      if (platform.startswith("linux-"))
         return $"{exePath}/{platform}/outer_space-dev"
-      if (platform == "macOS")
+      if (platform == "macOS-x86_64")
         return $"open {exePath}/OuterSpace.app --args"
+      if (platform == "macOS-arm64")
+        return $"open {exePath}/OuterSpaceArm64.app --args"
       return ""
     }
     exePath = @(exePath = defExePath) exePath
-    dedicatedExe = function(platform, exePath = defExePath, dedicatedPlatform = "win32") {
-      if (["win32", "win64", "win-arm64"].contains(platform))
-        return $"@start {exePath}\\{dedicatedPlatform}\\outer_space-ded-dev.exe"
-      if (platform == "linux64")
+    dedicatedExe = function(platform, exePath = defExePath) {
+      if (platform.startswith("windows-"))
+        return $"@start {exePath}\\{platform}\\outer_space-ded-dev.exe"
+      if (platform.startswith("macOS-") || platform.startswith("linux-"))
         return $"{exePath}/{platform}/outer_space-ded-dev"
-      if (platform == "macOS")
-        return $"{exePath}/macosx/outer_space-ded-dev"
       return ""
     }
-    runDetachedSuffix = @(platform) ["win32", "win64", "win-arm64"].contains(platform) ? "" : "&"
-    platform = @(platform = "win32") platform
+    runDetachedSuffix = @(platform) platform.startswith("windows-") ? "" : "&"
+    platform = @(platform = "windows-x86_64") platform
     scene       = @(scene) $"-scene:gamedata/scenes/{scene}"
     videoDriver = @(videoDriver="dx12") ["game defined","auto"].contains(videoDriver) ? "" : $"-config:video/driver:t={videoDriver}"
     quality = @(_quality="high") ""//$"-config:graphics/preset:t=\"{quality}\"" //not working if requires restart

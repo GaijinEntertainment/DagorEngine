@@ -2,6 +2,7 @@
 #pragma once
 
 #include <drv/3d/dag_resId.h>
+#include <drv/3d/dag_d3dResource.h>
 #include <3d/ddsxTex.h>
 #include <generic/dag_tab.h>
 #include <math/dag_mathBase.h>
@@ -33,10 +34,28 @@ extern TexQL (*get_tex_cur_ql)(TEXTUREID texId);
 extern bool (*check_texture_id_valid)(TEXTUREID texId);
 extern const char *(*get_tex_info)(TEXTUREID texId, bool verbose, String &tmp_stor);
 extern void (*dump_tex_state)(TEXTUREID idx);
+extern void (*reset_texture_from_shader_vars)(TEXTUREID tid);
 
 extern void get_tex_streaming_stats(int &_mem_used_discardable_kb, int &_mem_used_persistent_kb, int &_mem_used_discardable_kb_max,
   int &_mem_used_persistent_kb_max, int &_mem_used_sum_kb_max, int &_tex_used_discardable_cnt, int &_tex_used_persistent_cnt,
   int &_max_mem_used_overdraft_kb);
+
+extern void schedule_trim_discardable_tex_mem();
+extern void trim_discardable_tex_mem();
+
+#if _TARGET_C1
+
+
+
+
+
+
+
+
+
+
+
+#endif
 } // namespace tql
 
 namespace tql
@@ -75,11 +94,12 @@ inline bool updateSkipLev(const ddsx::Header &hdr, int &levels, int &skip_levels
   return levels > 0;
 }
 
-inline int getEffStubIdx(int stub_idx, unsigned tex_type)
+inline int getEffStubIdx(int stub_idx, D3DResourceType tex_type)
 {
   if (stub_idx > 0 && stub_idx + IMPLICIT_STUBS - 1 < texStub.size())
     return stub_idx + IMPLICIT_STUBS - 1;
-  return stub_idx >= 0 && tex_type < IMPLICIT_STUBS && tex_type < texStub.size() ? tex_type : -1;
+  auto texType = eastl::to_underlying(tex_type);
+  return stub_idx >= 0 && texType < IMPLICIT_STUBS && texType < texStub.size() ? texType : -1;
 }
 
 inline int sizeInKb(int sz) { return 4 * ((sz + 4095) / 4096); }
@@ -87,25 +107,13 @@ inline int sizeInKb(int sz) { return 4 * ((sz + 4095) / 4096); }
 inline bool isTexStub(BaseTexture *t) { return find_value_idx(texStub, t) >= 0; }
 } // namespace tql
 
-#define DECLARE_TQL_TID_AND_STUB()                                                            \
-  uint32_t tidXored = D3DRESID::INVALID_ID ^ 0xBAADF00Du;                                     \
-  int32_t stubTexIdx = -1;                                                                    \
-  void setTID(TEXTUREID tid) override final                                                   \
-  {                                                                                           \
-    tidXored = uint32_t(tid) ^ 0xBAADF00Du;                                                   \
-  }                                                                                           \
-  TEXTUREID getTID() const override final                                                     \
-  {                                                                                           \
-    return TEXTUREID(tidXored ^ 0xBAADF00Du);                                                 \
-  }                                                                                           \
-  bool isStub() const                                                                         \
-  {                                                                                           \
-    return stubTexIdx >= 0 && isTexResEqual(tql::texStub[stubTexIdx]);                        \
-  }                                                                                           \
-  inline auto getStubTex()                                                                    \
-  {                                                                                           \
-    return stubTexIdx >= 0 ? static_cast<decltype(this)>(tql::texStub[stubTexIdx]) : nullptr; \
-  }
+#define DECLARE_TQL_TID_AND_STUB()                                                           \
+  uint32_t tidXored = D3DRESID::INVALID_ID ^ 0xBAADF00Du;                                    \
+  int32_t stubTexIdx = -1;                                                                   \
+  void setTID(TEXTUREID tid) override final { tidXored = uint32_t(tid) ^ 0xBAADF00Du; }      \
+  TEXTUREID getTID() const override final { return TEXTUREID(tidXored ^ 0xBAADF00Du); }      \
+  bool isStub() const { return stubTexIdx >= 0 && isTexResEqual(tql::texStub[stubTexIdx]); } \
+  inline auto getStubTex() { return stubTexIdx >= 0 ? static_cast<decltype(this)>(tql::texStub[stubTexIdx]) : nullptr; }
 
 #define TEXQL_ON_ALLOC(BT)   tql::on_tex_created(BT)
 #define TEXQL_ON_RELEASE(BT) tql::on_tex_released(BT)
@@ -113,9 +121,9 @@ inline bool isTexStub(BaseTexture *t) { return find_value_idx(texStub, t) >= 0; 
 #define TEXQL_ON_BUF_ALLOC(B)                               \
   do                                                        \
   {                                                         \
-    tql::on_buf_changed(true, tql::sizeInKb(B->ressize())); \
+    tql::on_buf_changed(true, tql::sizeInKb(B->getSize())); \
   } while (0)
-#define TEXQL_ON_BUF_RELEASE(B) tql::on_buf_changed(false, -tql::sizeInKb(B->ressize()))
+#define TEXQL_ON_BUF_RELEASE(B) tql::on_buf_changed(false, -tql::sizeInKb(B->getSize()))
 
 #define TEXQL_ON_BUF_ALLOC_SZ(sz)                 \
   do                                              \

@@ -13,11 +13,11 @@ let playPause = mkWatched(persist, "playPause", true)
 let cachedPictures = mkWatched(persist, "cachedPictures", {})
 
 function getPicture(source) {
-  local pic = cachedPictures.value?[source]
+  local pic = cachedPictures.get()?[source]
   if (pic)
     return pic
   pic = LottieAnimation(source)
-  cachedPictures.value[source] <- pic
+  cachedPictures.get()[source] <- pic
   return pic
 }
 
@@ -26,17 +26,17 @@ function button() {
     return{
       watch = playPause
       rendObj = ROBJ_BOX
-      size = [sh(20),SIZE_TO_CONTENT]
+      size = static [sh(20),SIZE_TO_CONTENT]
       padding = sh(2)
       fillColor = (sf & S_ACTIVE) ? Color(0,0,0) : Color(200,200,200)
       borderWidth = (sf & S_HOVER) ? 2 : 0
       behavior = [Behaviors.Button]
       halign = ALIGN_CENTER
-      onClick = @() playPause.update(!playPause.value)
-      hotkeys = [["^Space", @() playPause.update(!playPause.value)]]
+      onClick = @() playPause.set(!playPause.get())
+      hotkeys = [["^Space", @() playPause.set(!playPause.get())]]
       children = {
         rendObj = ROBJ_TEXT
-        text = playPause.value ? "Play" : "Paused"
+        text = playPause.get() ? "Play" : "Paused"
         color = (sf & S_ACTIVE) ? Color(255,255,255): Color(0,0,0)
         pos = (sf & S_ACTIVE) ? [0,2] : [0,0] }
     }
@@ -82,7 +82,7 @@ function lottieWidget(item, params=iconWidgetDef) {
     children = children
     size = [width,height]
     keepAspect = true
-    play = playPause.value
+    play = playPause.get()
   }.__update(params)
 }
 

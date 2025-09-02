@@ -28,7 +28,7 @@ def render_circle(x, y, r : float; var a : array<float>; size : int)
 
 [console_cmd(name="debug.create_test_volfog_mask")]
 def create_test_volfog_mask2()
-  find_query() <| $ [es, unused_argument(volfog_mask__do_update)] (eid : EntityId; volfog_mask__do_update : bool&)
+  find_query() <| $ [es(REQUIRE=volfog_mask__do_update)] (eid : EntityId)
     destroyEntity(eid)
     return false
 

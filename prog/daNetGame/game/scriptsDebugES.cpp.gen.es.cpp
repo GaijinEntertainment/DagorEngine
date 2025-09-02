@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "scriptsDebugES.cpp.inl"
 ECS_DEF_PULL_VAR(scriptsDebug);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 //static constexpr ecs::ComponentDesc display_das_errors_es_comps[] ={};
 static void display_das_errors_es_all(const ecs::UpdateStageInfo &__restrict info, const ecs::QueryView & __restrict components)

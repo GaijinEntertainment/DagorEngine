@@ -75,7 +75,8 @@ public:
     uint32_t forcedSampleCountShift : 3;
     uint32_t enableConservativeRaster : 1;
     uint32_t viewInstanceCount : 2;
-    uint32_t cullMode : 16; // 2 bit used, 14 free
+    uint32_t cullMode : 15; // 2 bit used, 13 free
+    uint32_t enableDualSourceBlending : 1;
 
     // second 32 bits
     uint32_t stencilReadMask : 8;
@@ -101,6 +102,7 @@ public:
       enableConservativeRaster{0},
       viewInstanceCount{0},
       cullMode{0},
+      enableDualSourceBlending{0},
       stencilReadMask{0},
       stencilWriteMask{0},
       stencilFunction{0},
@@ -127,6 +129,11 @@ public:
       uint8_t Source : 4;
       uint8_t Destination : 4;
     };
+    struct ExtendedBlendFactors
+    {
+      uint8_t Source;
+      uint8_t Destination;
+    };
     struct BlendParams
     {
       BlendFactors blendFactors;
@@ -135,12 +142,30 @@ public:
       uint8_t blendAlphaFunction : 3;
       uint8_t enableBlending : 2; // 1 bit used, 1 free
     };
+    struct ExtendedBlendParams
+    {
+      ExtendedBlendFactors blendFactors;
+      ExtendedBlendFactors blendAlphaFactors;
+      uint8_t blendFunction : 3;
+      uint8_t blendAlphaFunction : 3;
+      uint8_t enableBlending : 2;
+    };
 
     // 3 * 32 bits (4 * 3 * 8 bits)
-    BlendParams blendParams[shaders::RenderState::NumIndependentBlendParameters]{};
+    union
+    {
+      BlendParams blendParams[shaders::RenderState::NumIndependentBlendParameters]{};
+      struct
+      {
+        ExtendedBlendParams params;
+        uint8_t pad_[sizeof(blendParams) - sizeof(params)];
+      } dualSourceBlend;
+    };
 
     static_assert(sizeof(BlendParams) == 3);
+    static_assert(sizeof(ExtendedBlendParams) == 5);
     static_assert(sizeof(blendParams) == shaders::RenderState::NumIndependentBlendParameters * sizeof(BlendParams));
+    static_assert(sizeof(dualSourceBlend) == sizeof(blendParams));
 
     String toString() const
     {
@@ -153,6 +178,7 @@ public:
       result.aprintf(64, " enableStencil %u", enableStencil);
       result.aprintf(64, " enableIndependentBlend %u", enableIndependentBlend);
       result.aprintf(64, " enableAlphaToCoverage %u", enableAlphaToCoverage);
+      result.aprintf(64, " enableDualSourceBlending %u", enableDualSourceBlending);
 
       result.aprintf(64, " depthFunc %u", depthFunc);
       result.aprintf(64, " stencilReadMask %u", stencilReadMask);
@@ -170,15 +196,24 @@ public:
       result.aprintf(64, " depthBias %x", *reinterpret_cast<const uint32_t *>(&depthBias));
       result.aprintf(64, " depthBiasSloped %x", *reinterpret_cast<const uint32_t *>(&depthBiasSloped));
 
-      for (uint32_t i = 0; i < shaders::RenderState::NumIndependentBlendParameters; i++)
+      auto appendParams = [&result](const auto &param, int i) {
+        result.aprintf(64, " blendParams[%d].enableBlending %u", i, param.enableBlending);
+        result.aprintf(64, " blendParams[%d].blendFactors.Source %u", i, param.blendFactors.Source);
+        result.aprintf(64, " blendParams[%d].blendFactors.Destination %u", i, param.blendFactors.Destination);
+        result.aprintf(64, " blendParams[%d].blendAlphaFactors.Source %u", i, param.blendAlphaFactors.Source);
+        result.aprintf(64, " blendParams[%d].blendAlphaFactors.Destination %u", i, param.blendAlphaFactors.Destination);
+        result.aprintf(64, " blendParams[%d].blendFunction %u", i, param.blendFunction);
+        result.aprintf(64, " blendParams[%d].blendAlphaFunction %u", i, param.blendAlphaFunction);
+      };
+
+      if (enableDualSourceBlending)
       {
-        result.aprintf(64, " blendParams[%d].enableBlending %u", i, blendParams[i].enableBlending);
-        result.aprintf(64, " blendParams[%d].blendFactors.Source %u", i, blendParams[i].blendFactors.Source);
-        result.aprintf(64, " blendParams[%d].blendFactors.Destination %u", i, blendParams[i].blendFactors.Destination);
-        result.aprintf(64, " blendParams[%d].blendAlphaFactors.Source %u", i, blendParams[i].blendAlphaFactors.Source);
-        result.aprintf(64, " blendParams[%d].blendAlphaFactors.Destination %u", i, blendParams[i].blendAlphaFactors.Destination);
-        result.aprintf(64, " blendParams[%d].blendFunction %u", i, blendParams[i].blendFunction);
-        result.aprintf(64, " blendParams[%d].blendAlphaFunction %u", i, blendParams[i].blendAlphaFunction);
+        appendParams(dualSourceBlend.params, 0);
+      }
+      else
+      {
+        for (uint32_t i = 0; i < shaders::RenderState::NumIndependentBlendParameters; i++)
+          appendParams(blendParams[i], i);
       }
 
       char buf[sizeof(*this) * 2 + 1] = {};
@@ -204,6 +239,7 @@ public:
       result.append_sprintf("enableStencil=%u,", enableStencil);
       result.append_sprintf("enableIndependentBlend=%u,", enableIndependentBlend);
       result.append_sprintf("enableAlphaToCoverage=%u,", enableAlphaToCoverage);
+      result.append_sprintf("enableDualSourceBlending=%u,", enableDualSourceBlending);
 
       result.append_sprintf("depthFunc=%u,", depthFunc);
       result.append_sprintf("stencilReadMask=%u,", stencilReadMask);
@@ -222,9 +258,8 @@ public:
       result.append_sprintf("depthBiasSloped=%08x,", *reinterpret_cast<const uint32_t *>(&depthBiasSloped));
 
       result += "blendParams";
-      for (uint32_t i = 0; i < shaders::RenderState::NumIndependentBlendParameters; i++)
-      {
-        auto &param = blendParams[i];
+
+      auto appendParams = [&result](const auto &param, int i) {
         result.append_sprintf("[%d][", i);
         result.append_sprintf("enableBlending=%u,", param.enableBlending);
         result.append_sprintf("blendFactors.Source=%u,", param.blendFactors.Source);
@@ -234,6 +269,14 @@ public:
         result.append_sprintf("blendFunction=%u,", param.blendFunction);
         result.append_sprintf("blendAlphaFunction=%u", param.blendAlphaFunction);
         result += "]";
+      };
+
+      if (enableDualSourceBlending)
+        appendParams(dualSourceBlend.params, 0);
+      else
+      {
+        for (uint32_t i = 0; i < shaders::RenderState::NumIndependentBlendParameters; i++)
+          appendParams(blendParams[i], i);
       }
 
       result += "]";
@@ -266,6 +309,7 @@ public:
       CMP(enableStencil);
       CMP(enableIndependentBlend);
       CMP(enableAlphaToCoverage);
+      CMP(enableDualSourceBlending);
 
       CMP(depthFunc);
       CMP(forcedSampleCountShift);
@@ -285,16 +329,26 @@ public:
       CMP(depthBias);
       CMP(depthBiasSloped);
 
-      for (uint32_t i = 0; i < countof(blendParams); ++i)
+#define CMP_BLEND_PARAMS(params_)               \
+  do                                            \
+  {                                             \
+    CMP(params_.blendFactors.Source);           \
+    CMP(params_.blendFactors.Destination);      \
+    CMP(params_.blendAlphaFactors.Source);      \
+    CMP(params_.blendAlphaFactors.Destination); \
+    CMP(params_.blendFunction);                 \
+    CMP(params_.blendAlphaFunction);            \
+    CMP(params_.enableBlending);                \
+  } while (0)
+
+      if (enableDualSourceBlending)
+        CMP_BLEND_PARAMS(dualSourceBlend.params);
+      else
       {
-        CMP(blendParams[i].blendFactors.Source);
-        CMP(blendParams[i].blendFactors.Destination);
-        CMP(blendParams[i].blendAlphaFactors.Source);
-        CMP(blendParams[i].blendAlphaFactors.Destination);
-        CMP(blendParams[i].blendFunction);
-        CMP(blendParams[i].blendAlphaFunction);
-        CMP(blendParams[i].enableBlending);
+        for (uint32_t i = 0; i < countof(blendParams); ++i)
+          CMP_BLEND_PARAMS(blendParams[i]);
       }
+#undef CMP_BLEND_PARAMS
 #undef CMP
       return d;
     }
@@ -347,19 +401,20 @@ public:
       }
 
       result.enableIndependentBlend = def.independentBlendEnabled;
-      for (uint32_t i = 0; i < shaders::RenderState::NumIndependentBlendParameters; i++)
-      {
-        if (def.blendParams[i].ablend)
+      result.enableDualSourceBlending = def.dualSourceBlendEnabled;
+
+      auto fillBlendState = [](auto &dst, const auto &src) {
+        if (src.ablend)
         {
-          result.blendParams[i].enableBlending = 1;
-          result.blendParams[i].blendFunction = def.blendParams[i].blendOp - D3D12_BLEND_OP_ADD;
-          result.blendParams[i].blendFactors.Source = def.blendParams[i].ablendFactors.src - D3D12_BLEND_ZERO;
-          result.blendParams[i].blendFactors.Destination = def.blendParams[i].ablendFactors.dst - D3D12_BLEND_ZERO;
-          if (def.blendParams[i].sepablend)
+          dst.enableBlending = 1;
+          dst.blendFunction = src.blendOp - D3D12_BLEND_OP_ADD;
+          dst.blendFactors.Source = src.ablendFactors.src - D3D12_BLEND_ZERO;
+          dst.blendFactors.Destination = src.ablendFactors.dst - D3D12_BLEND_ZERO;
+          if (src.sepablend)
           {
-            result.blendParams[i].blendAlphaFunction = def.blendParams[i].sepablendOp - D3D12_BLEND_OP_ADD;
-            result.blendParams[i].blendAlphaFactors.Source = def.blendParams[i].sepablendFactors.src - D3D12_BLEND_ZERO;
-            result.blendParams[i].blendAlphaFactors.Destination = def.blendParams[i].sepablendFactors.dst - D3D12_BLEND_ZERO;
+            dst.blendAlphaFunction = src.sepablendOp - D3D12_BLEND_OP_ADD;
+            dst.blendAlphaFactors.Source = src.sepablendFactors.src - D3D12_BLEND_ZERO;
+            dst.blendAlphaFactors.Destination = src.sepablendFactors.dst - D3D12_BLEND_ZERO;
           }
           else
           {
@@ -375,29 +430,34 @@ public:
                 D3D12_BLEND_DEST_ALPHA,     // D3D11_BLEND_DEST_COLOR  = 9,
                 D3D12_BLEND_INV_DEST_ALPHA, // D3D11_BLEND_INV_DEST_COLOR  = 10,
                 D3D12_BLEND_SRC_ALPHA_SAT, D3D12_BLEND_ZERO, D3D12_BLEND_ZERO, D3D12_BLEND_BLEND_FACTOR, D3D12_BLEND_INV_BLEND_FACTOR,
-                // Those blend modes are unreachable, because shaders::RenderState::ablendSrc has only 4 bits and caps out at 15
-                // D3D12_BLEND_SRC1_ALPHA,     // D3D11_BLEND_SRC1_COLOR,
-                // D3D12_BLEND_INV_SRC1_ALPHA, // D3D11_BLEND_INV_SRC1_COLOR ,
-                // D3D12_BLEND_SRC1_ALPHA,
-                // D3D12_BLEND_INV_SRC1_ALPHA // 19
+                D3D12_BLEND_SRC1_ALPHA,     // D3D11_BLEND_SRC1_COLOR,
+                D3D12_BLEND_INV_SRC1_ALPHA, // D3D11_BLEND_INV_SRC1_COLOR ,
+                D3D12_BLEND_SRC1_ALPHA,
+                D3D12_BLEND_INV_SRC1_ALPHA // 19
               };
-            result.blendParams[i].blendAlphaFunction = result.blendParams[i].blendFunction;
-            result.blendParams[i].blendAlphaFactors.Source =
-              colorToAlphaChannelMap[result.blendParams[i].blendFactors.Source] - D3D12_BLEND_ZERO;
-            result.blendParams[i].blendAlphaFactors.Destination =
-              colorToAlphaChannelMap[result.blendParams[i].blendFactors.Destination] - D3D12_BLEND_ZERO;
+            dst.blendAlphaFunction = dst.blendFunction;
+            dst.blendAlphaFactors.Source = colorToAlphaChannelMap[dst.blendFactors.Source] - D3D12_BLEND_ZERO;
+            dst.blendAlphaFactors.Destination = colorToAlphaChannelMap[dst.blendFactors.Destination] - D3D12_BLEND_ZERO;
           }
         }
         else
         {
-          result.blendParams[i].enableBlending = 0;
-          result.blendParams[i].blendFunction = D3D12_BLEND_OP_ADD - D3D12_BLEND_OP_ADD;
-          result.blendParams[i].blendFactors.Source = D3D12_BLEND_ONE - D3D12_BLEND_ZERO;
-          result.blendParams[i].blendFactors.Destination = D3D12_BLEND_ZERO - D3D12_BLEND_ZERO;
-          result.blendParams[i].blendAlphaFunction = D3D12_BLEND_OP_ADD - D3D12_BLEND_OP_ADD;
-          result.blendParams[i].blendAlphaFactors.Source = D3D12_BLEND_ONE - D3D12_BLEND_ZERO;
-          result.blendParams[i].blendAlphaFactors.Destination = D3D12_BLEND_ZERO - D3D12_BLEND_ZERO;
+          dst.enableBlending = 0;
+          dst.blendFunction = D3D12_BLEND_OP_ADD - D3D12_BLEND_OP_ADD;
+          dst.blendFactors.Source = D3D12_BLEND_ONE - D3D12_BLEND_ZERO;
+          dst.blendFactors.Destination = D3D12_BLEND_ZERO - D3D12_BLEND_ZERO;
+          dst.blendAlphaFunction = D3D12_BLEND_OP_ADD - D3D12_BLEND_OP_ADD;
+          dst.blendAlphaFactors.Source = D3D12_BLEND_ONE - D3D12_BLEND_ZERO;
+          dst.blendAlphaFactors.Destination = D3D12_BLEND_ZERO - D3D12_BLEND_ZERO;
         }
+      };
+
+      if (def.dualSourceBlendEnabled)
+        fillBlendState(result.dualSourceBlend.params, def.dualSourceBlend.params);
+      else
+      {
+        for (uint32_t i = 0; i < shaders::RenderState::NumIndependentBlendParameters; ++i)
+          fillBlendState(result.blendParams[i], def.blendParams[i]);
       }
 
       result.viewInstanceCount = def.viewInstanceCount;
@@ -456,24 +516,31 @@ public:
 
       result.AlphaToCoverageEnable = enableAlphaToCoverage;
 
-      result.IndependentBlendEnable = !has_uniform_color_mask(finalColorTargetMask) || enableIndependentBlend;
+      result.IndependentBlendEnable =
+        (!has_uniform_color_mask(finalColorTargetMask) && !enableDualSourceBlending) || enableIndependentBlend;
       const auto RTCount = result.IndependentBlendEnable ? Driver3dRenderTarget::MAX_SIMRT : 1;
+
+      auto fillRtBlendDesc = [&finalColorTargetMask](D3D12_RENDER_TARGET_BLEND_DESC &dst, const auto &src) {
+        dst.RenderTargetWriteMask = finalColorTargetMask & 15;
+        dst.BlendEnable = src.enableBlending;
+        dst.LogicOpEnable = FALSE;
+        dst.SrcBlend = static_cast<D3D12_BLEND>(D3D12_BLEND_ZERO + src.blendFactors.Source);
+        dst.DestBlend = static_cast<D3D12_BLEND>(D3D12_BLEND_ZERO + src.blendFactors.Destination);
+        dst.BlendOp = static_cast<D3D12_BLEND_OP>(D3D12_BLEND_OP_ADD + src.blendFunction);
+        dst.SrcBlendAlpha = static_cast<D3D12_BLEND>(D3D12_BLEND_ZERO + src.blendAlphaFactors.Source);
+        dst.DestBlendAlpha = static_cast<D3D12_BLEND>(D3D12_BLEND_ZERO + src.blendAlphaFactors.Destination);
+        dst.BlendOpAlpha = static_cast<D3D12_BLEND_OP>(D3D12_BLEND_OP_ADD + src.blendAlphaFunction);
+        dst.LogicOp = D3D12_LOGIC_OP_NOOP;
+      };
+
       for (uint32_t i = 0; i < RTCount; ++i)
       {
         const auto blendParamsId = i < shaders::RenderState::NumIndependentBlendParameters && enableIndependentBlend ? i : 0;
-        const auto &blendParameters = blendParams[blendParamsId];
 
-        result.RenderTarget[i].RenderTargetWriteMask = finalColorTargetMask & 15;
-        result.RenderTarget[i].BlendEnable = blendParameters.enableBlending;
-        result.RenderTarget[i].LogicOpEnable = FALSE;
-        result.RenderTarget[i].SrcBlend = static_cast<D3D12_BLEND>(D3D12_BLEND_ZERO + blendParameters.blendFactors.Source);
-        result.RenderTarget[i].DestBlend = static_cast<D3D12_BLEND>(D3D12_BLEND_ZERO + blendParameters.blendFactors.Destination);
-        result.RenderTarget[i].BlendOp = static_cast<D3D12_BLEND_OP>(D3D12_BLEND_OP_ADD + blendParameters.blendFunction);
-        result.RenderTarget[i].SrcBlendAlpha = static_cast<D3D12_BLEND>(D3D12_BLEND_ZERO + blendParameters.blendAlphaFactors.Source);
-        result.RenderTarget[i].DestBlendAlpha =
-          static_cast<D3D12_BLEND>(D3D12_BLEND_ZERO + blendParameters.blendAlphaFactors.Destination);
-        result.RenderTarget[i].BlendOpAlpha = static_cast<D3D12_BLEND_OP>(D3D12_BLEND_OP_ADD + blendParameters.blendAlphaFunction);
-        result.RenderTarget[i].LogicOp = D3D12_LOGIC_OP_NOOP;
+        if (enableDualSourceBlending)
+          fillRtBlendDesc(result.RenderTarget[i], dualSourceBlend.params);
+        else
+          fillRtBlendDesc(result.RenderTarget[i], blendParams[blendParamsId]);
 
         finalColorTargetMask >>= 4;
       }
@@ -671,12 +738,9 @@ private:
     MEMBER_COMPARE(depthBoundsEnable);
     MEMBER_COMPARE(stencil.func);
     MEMBER_COMPARE(independentBlendEnabled);
-    const auto numBlendParamsToCompare = l.independentBlendEnabled ? shaders::RenderState::NumIndependentBlendParameters : 1;
-    for (uint32_t i = 0; i < numBlendParamsToCompare; i++)
-    {
-      MEMBER_COMPARE(blendParams[i].ablend);
-      MEMBER_COMPARE(blendParams[i].sepablend);
-    }
+    MEMBER_COMPARE(dualSourceBlendEnabled);
+    const auto numBlendParamsToCompare =
+      (l.independentBlendEnabled && !l.dualSourceBlendEnabled) ? shaders::RenderState::NumIndependentBlendParameters : 1;
     MEMBER_COMPARE(conservativeRaster);
     MEMBER_COMPARE(alphaToCoverage);
     MEMBER_COMPARE(cull);
@@ -703,22 +767,34 @@ private:
       MEMBER_COMPARE(stencil.writeMask);
     }
 
+#define BLEND_PARAMS_COMPARE(field_)                 \
+  do                                                 \
+  {                                                  \
+    MEMBER_COMPARE(field_.ablend);                   \
+    MEMBER_COMPARE(field_.sepablend);                \
+    if (l.field_.ablend)                             \
+    {                                                \
+      MEMBER_COMPARE(field_.blendOp);                \
+      MEMBER_COMPARE(field_.ablendFactors.src);      \
+      MEMBER_COMPARE(field_.ablendFactors.dst);      \
+      if (l.field_.sepablend)                        \
+      {                                              \
+        MEMBER_COMPARE(field_.sepablendOp);          \
+        MEMBER_COMPARE(field_.sepablendFactors.src); \
+        MEMBER_COMPARE(field_.sepablendFactors.dst); \
+      }                                              \
+    }                                                \
+  } while (0)
+
     for (uint32_t i = 0; i < numBlendParamsToCompare; i++)
     {
-      if (l.blendParams[i].ablend)
-      {
-        MEMBER_COMPARE(blendParams[i].blendOp);
-        MEMBER_COMPARE(blendParams[i].ablendFactors.src);
-        MEMBER_COMPARE(blendParams[i].ablendFactors.dst);
-        if (l.blendParams[i].sepablend)
-        {
-          MEMBER_COMPARE(blendParams[i].sepablendOp);
-          MEMBER_COMPARE(blendParams[i].sepablendFactors.src);
-          MEMBER_COMPARE(blendParams[i].sepablendFactors.dst);
-        }
-      }
+      if (l.dualSourceBlendEnabled)
+        BLEND_PARAMS_COMPARE(dualSourceBlend.params);
+      else
+        BLEND_PARAMS_COMPARE(blendParams[i]);
     }
 
+#undef BLEND_PARAMS_COMPARE
 #undef MEMBER_COMPARE
     return true;
   }

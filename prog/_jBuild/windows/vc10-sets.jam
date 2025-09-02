@@ -16,8 +16,8 @@ include $(Root)/prog/_jBuild/_vc/win_sdk.jam ;
 
 local _DEF_C_CMDLINE = -X /c /nologo /Zc:wchar_t /Zp8 /J ;
 switch $(PlatformArch) {
-  case x86 :    _DEF_C_CMDLINE += /DWIN32 ;
-  case x86_64 : _DEF_C_CMDLINE += /DWIN64 ;
+  case x86 :    _DEF_C_CMDLINE += -DWIN32 ;
+  case x86_64 : _DEF_C_CMDLINE += -DWIN64 ;
 }
 if $(BuildDagorEngineIndependentCode) != yes {
   _DEF_C_CMDLINE +=
@@ -26,8 +26,8 @@ if $(BuildDagorEngineIndependentCode) != yes {
     /Zc:forScope /bigobj
   ;
   switch $(PlatformArch) {
-    case x86 :    _DEF_C_CMDLINE += -D__IA32__=1 -D_TARGET_CPU_IA32=1 -Di_strlen=strlen ;
-    case x86_64 : _DEF_C_CMDLINE += -D_TARGET_64BIT=1 -Di_strlen=(int)strlen ;
+    case x86 :    _DEF_C_CMDLINE += -D__IA32__ -Di_strlen=strlen ;
+    case x86_64 : _DEF_C_CMDLINE += -D_TARGET_64BIT -Di_strlen=(int)strlen ;
   }
 }
 if $(Analyze) = yes { _DEF_C_CMDLINE += -analyze -WX ; }
@@ -37,7 +37,7 @@ _LIB          = $(_VC_DIR_BIN)/lib.exe ;
 _CPP_COMPILER = $(_VC_DIR_BIN)/cl.exe $(_DEF_C_CMDLINE) ;
 _C_COMPILER   = $(_VC_DIR_BIN)/cl.exe $(_DEF_C_CMDLINE) ;
 
-_DEP_COMPILER = $(Root)/prog/_jBuild/fastdep-g.exe --cVC80 /D_TARGET_PC=1 -D_TARGET_PC_WIN=1 ;
+_DEP_COMPILER = $(Root)/prog/_jBuild/fastdep-g.exe --cVC80 -D_TARGET_PC=1 -D_TARGET_PC_WIN=1 ;
 
 _RC_COMPILER    = $(_WIN_SDK_BIN)/rc.exe /x /i$(_WIN_SDK_INC) /i$(_VC_DIR)/Include ;
 _MT_UTIL        = $(_WIN_SDK_BIN)/mt.exe ;
@@ -49,7 +49,7 @@ switch $(PlatformArch) {
     _LIB  += /machine:x86 ;
     _ASM_COMPILER  = $(_DEVTOOL)/nasm/nasm.exe -f win32 --prefix _ ;
     _MASM_COMPILER = $(_VC_DIR)/bin/Hostx64/x86/ml.exe -c -nologo ;
-    _DEP_COMPILER += /DWIN32 /D__IA32__=1 ;
+    _DEP_COMPILER += -DWIN32 -D__IA32__ ;
     _CVTRES_EXE   += /MACHINE:x86 ;
 
   case x86_64 :
@@ -57,7 +57,7 @@ switch $(PlatformArch) {
     _LIB  += /machine:x64 ;
     _ASM_COMPILER  = $(_DEVTOOL)/nasm/nasm.exe -f win64 --prefix _ ;
     _MASM_COMPILER = $(_VC_DIR)/bin/Hostx64/x64/ml64.exe -c -nologo ;
-    _DEP_COMPILER += /DWIN64 ;
+    _DEP_COMPILER += -DWIN64 ;
     _CVTRES_EXE   += /MACHINE:x64 ;
 
   case arm64 : exit Platform=$(Platform) PlatformArch=$(PlatformArch) is not supported by PlatformSpec=$(PlatformSpec) ;

@@ -1,0 +1,11 @@
+return {
+    get_last_used_device_mask = function() {
+        return 0
+    }
+
+    DEV_MOUSE = 0
+    DEV_KBD = 0
+    DEV_GAMEPAD = 0
+    DEV_TOUCH = 0
+    INPUT_DEVICE_USED_EVENT = "event"
+}

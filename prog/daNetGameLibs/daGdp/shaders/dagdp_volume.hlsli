@@ -7,13 +7,21 @@ struct VolumeVariantGpuData
 {
   float density;
   float minTriangleArea2;
+  float2 distBasedScale;
+
+  float3 distBasedCenter;
+  float distBasedInvRange;
+
+  uint flags;
+  float sampleRange;
   uint _padding[2];
 };
 
 #define VOLUME_TYPE_BOX 0
 #define VOLUME_TYPE_CYLINDER 1
 #define VOLUME_TYPE_ELLIPSOID 2
-#define VOLUME_TYPE_COUNT 3
+#define VOLUME_TYPE_FULL 3
+#define VOLUME_TYPE_COUNT 4
 
 struct VolumeGpuData
 {
@@ -21,10 +29,16 @@ struct VolumeGpuData
   float4 itmRow1;
   float4 itmRow2;
 
+  float3 axis;
   uint volumeType;
+
   uint variantIndex;
-  uint _padding[2];
+  uint _padding[3];
 };
+
+#define MAX_VB_INDICES 16
+#define MAX_DISPATCH_MESHES 512
+#define MESH_PLACE_GROUP_SIZE 64
 
 // Reference: gpu_objects_const.hlsli
 struct MeshIntersection

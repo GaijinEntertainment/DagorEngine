@@ -59,10 +59,10 @@ public:
 
   inline T allocate(int index, T size, T alignment)
   {
-    VkDeviceSize offset = (sections[index].offset + alignment - 1) & ~(alignment - 1);
-    VkDeviceSize frontSize = offset - sections[index].offset;
-    VkDeviceSize backOffset = offset + size;
-    VkDeviceSize backSize = (sections[index].offset + sections[index].size) - backOffset;
+    T offset = (sections[index].offset + alignment - 1) & ~(alignment - 1);
+    T frontSize = offset - sections[index].offset;
+    T backOffset = offset + size;
+    T backSize = (sections[index].offset + sections[index].size) - backOffset;
     if (frontSize)
     {
       sections[index].size = frontSize;

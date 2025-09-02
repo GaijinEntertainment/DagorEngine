@@ -15,7 +15,7 @@ function place_by_circle(params) {
       pos
       halign = ALIGN_CENTER
       valign=ALIGN_CENTER
-      size=[0,0]
+      size=0
       rendObj=ROBJ_TEXT
       text=",".concat(pos[0],pos[1])
       children = o
@@ -33,7 +33,7 @@ function mDefCtor(text) {
       return {
         rendObj = ROBJ_TEXT
         text = text
-        color = (curIdx.value==idx || (S_HOVER & sf)) ? Color(250,250,250) : Color(120,120,120)
+        color = (curIdx.get()==idx || (S_HOVER & sf)) ? Color(250,250,250) : Color(120,120,120)
       }
     })
   }
@@ -109,11 +109,11 @@ function mkPieMenu(params=defParams){
       color = Color(0,0,0,180)
       transform = {
         pivot = [0.5,0.5]
-        rotate = (curAngle.value ?? 0.0)*180.0/PI
+        rotate = (curAngle.get() ?? 0.0)*180.0/PI
       }
       size
       watch = curAngle
-      commands = curAngle.value!=null
+      commands = curAngle.get()!=null
       ? [
           [VECTOR_FILL_COLOR, Color(0, 0, 0, 0)],
           [VECTOR_WIDTH, hdpx(6)],
@@ -140,11 +140,11 @@ function mkPieMenu(params=defParams){
       watch = [curIdx]
       size
       children = [
-        objs?[curIdx.value] != null ? sector : null,
-        curIdx.value != null ? nullSector : null,
+        objs?[curIdx.get()] != null ? sector : null,
+        curIdx.get() != null ? nullSector : null,
       ]
       transform = {
-        rotate = (curIdx.value ?? 0) * 2*sangle
+        rotate = (curIdx.get() ?? 0) * 2*sangle
         pivot = [0.5,0.5]
       }
     }
@@ -178,13 +178,13 @@ function mkPieMenuActivator(params = defParams){
   let pieMenu = mkPieMenu(params)
   let eventHandlers = params?.eventHandlers
   if (type(hotkeys)=="string")
-    hotkeys = [[hotkeys, @() showPieMenu(!showPieMenu.value)]]
+    hotkeys = [[hotkeys, @() showPieMenu(!showPieMenu.get())]]
 
   return function() {
     return {
       hotkeys
       eventHandlers
-      children = showPieMenu.value ? pieMenu : null
+      children = showPieMenu.get() ? pieMenu : null
       watch = showPieMenu
     }
   }

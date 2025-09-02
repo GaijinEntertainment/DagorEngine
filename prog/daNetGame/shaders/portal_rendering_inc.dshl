@@ -1,0 +1,49 @@
+
+int use_portal_rendering;
+interval use_portal_rendering: no<1, yes;
+
+float4 portal_fog_color = float4(0.1, 0.1, 0.1, 1);
+float portal_fog_start_distance = 10.0;
+int portal_use_dense_fog = 0;
+
+
+macro INIT_PORTAL_RENDERING(stage)
+  local float portal_fade_dist_range = zn_zfar.y - portal_fog_start_distance;
+  (stage)
+  {
+    portal_fog_color@f3 = portal_fog_color;
+    portal_fog_color_srgb@f3 = (sqrt(portal_fog_color.r), sqrt(portal_fog_color.g), sqrt(portal_fog_color.b), 1.0);
+    portal_use_dense_fog@f1 = portal_use_dense_fog;
+    portal_fade_dist_mul@f1 = 1.0 / portal_fade_dist_range;
+    portal_fade_dist_add@f1 = -portal_fog_start_distance / portal_fade_dist_range;
+  }
+endmacro
+
+macro USE_PORTAL_RENDERING(stage)
+  hlsl (stage)
+  {
+     void get_portal_rendering_fog(float dist, out float3 fog_mul, out float3 fog_add, out float3 fog_add_srgb)
+      {
+        float fog = saturate(dist * portal_fade_dist_mul + portal_fade_dist_add);
+        fog_mul = portal_use_dense_fog ? (1 - fog) : 1;
+        fog_add = portal_use_dense_fog ? (portal_fog_color * fog) : 0;
+        fog_add_srgb = portal_use_dense_fog ? (portal_fog_color_srgb * fog) : 0;
+      }
+
+      void apply_portal_rendering_fog(float dist, inout float3 color)
+      {
+        color = sqrt(color); // an srgb curve is applied to make dark fog more visible
+
+        float3 fogMul, fogAdd, fogAddSrgb;
+        get_portal_rendering_fog(dist, fogMul, fogAdd, fogAddSrgb);
+        color = color * fogMul + fogAddSrgb;
+
+        color = pow2(color);
+      }
+  }
+endmacro
+
+macro INIT_AND_USE_PORTAL_RENDERING(stage)
+  INIT_PORTAL_RENDERING(stage)
+  USE_PORTAL_RENDERING(stage)
+endmacro

@@ -4,12 +4,17 @@
 //
 #pragma once
 
-class IMenuEventHandler;
-
 namespace PropPanel
 {
 
 static constexpr unsigned ROOT_MENU_ITEM = (unsigned)-1;
+
+class IMenuEventHandler
+{
+public:
+  /// Should return 1 if menu was processed
+  virtual int onMenuItemClick(unsigned id) = 0;
+};
 
 // Use ROOT_MENU_ITEM for menu_id to add to the root menu.
 class IMenu

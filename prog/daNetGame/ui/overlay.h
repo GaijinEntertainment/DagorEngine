@@ -14,6 +14,7 @@ struct SQVM;
 namespace overlay_ui
 {
 void init_network_services();
+void init_network_voicechat_only();
 void init_ui();
 void shutdown_ui(bool quit);
 void shutdown_network_services();
@@ -35,6 +36,7 @@ updater::Version get_overlay_ui_version();
 } // namespace overlay_ui
 
 ECS_BROADCAST_EVENT_TYPE(EventScriptUiInitNetworkServices);
+ECS_BROADCAST_EVENT_TYPE(EventScriptUiInitNetworkVoicechatOnly);
 ECS_BROADCAST_EVENT_TYPE(EventScriptUiTermNetworkServices);
 ECS_BROADCAST_EVENT_TYPE(EventScriptUiUpdate)
 ECS_BROADCAST_EVENT_TYPE(EventScriptUiBeforeEventbusShutdown, bool /*quit*/)

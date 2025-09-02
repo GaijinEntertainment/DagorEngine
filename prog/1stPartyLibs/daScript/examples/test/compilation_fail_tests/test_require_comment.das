@@ -1,3 +1,4 @@
+options gen2
 expect 30304
 
 /*
@@ -11,6 +12,7 @@ require _test2_require_comment
 */
 
 [export]
-def test
-    print("{function_from_module_test2()}\n")   // 30304: no matching functions or generics function_from_module_test2 (  )
+def test {
+    print("{function_from_module_test2()}\n")       // 30304: no matching functions or generics function_from_module_test2 (  )
+}
 

@@ -1,6 +1,5 @@
+from "string" import format
 from "%darg/ui_imports.nut" import *
-let { format } =  require("string")
-
 //BUG: picture with ! mark has incorrect color when use opacity
 
 let size = hdpxi(100)
@@ -20,7 +19,7 @@ let mkRow = @(headerTexts, ctor) {
   children = [{
     vplace = ALIGN_CENTER
     flow = FLOW_VERTICAL
-    padding = [0, hdpx(20), 0, 0]
+    padding = static [0, hdpx(20), 0, 0]
     children = headerTexts.map(@(text) { rendObj = ROBJ_TEXT, text, color = 0xFFFFFFFF , fontScale = 0.8 })
   }]
     .extend(ovrList.map(ctor))
@@ -79,9 +78,9 @@ let mkPngAlphaBlend = @(ovr) {
 return @() {
   watch = bgColorIdx
   rendObj = ROBJ_SOLID
-  color = bgColors[bgColorIdx.value % bgColors.len()]
+  color = bgColors[bgColorIdx.get() % bgColors.len()]
   behavior = Behaviors.Button
-  onClick = @() bgColorIdx(bgColorIdx.value + 1)
+  onClick = @() bgColorIdx.set(bgColorIdx.get() + 1)
 
   vplace = ALIGN_CENTER
   hplace = ALIGN_CENTER

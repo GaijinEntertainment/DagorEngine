@@ -1,0 +1,45 @@
+function_name([arg2_name: float, arg3_name: float])
+function_name([arg2_name: float, arg3_name: float], ...)
+function_name(arg1_name: string, [arg2_name: int, arg3_name: table], ...: string): any
+FunctionName(arg1_Name: bool|null)
+function_name(arg1_name: int, arg2_name: string, arg3_name): float|null
+function_name(arg1_name: table, arg2_name: array, arg3_name: class): function|null
+function_name(arg1_name, [arg2_name, arg3_name])
+function_name([arg1_name: instance, arg2_name: class, arg3_name: int]): table
+instance.function_name()
+(userpointer|instance).function_name()
+(table|class).function_name()
+function_name(...)
+function_name(arg1_name: int, ...)
+function_name(arg1_name: number, [arg2_name: float, arg3_name: float], ...)
+string.function_name(int: float, [string: number, string: generator])
+function_name(arg1_name: bool, [arg2_name: string, arg3_name: float])
+function_name(arg1_name: int, [arg2_name: int, arg3_name: int])
+function_name()
+function_name(): int
+function_name(arg1_name)
+FunctionName(arg1_Name: int|null)
+FunctionName(arg1_Name: table|array)
+function_name([arg2_name: float, arg3_name: float])
+function_name([arg2_name: float, arg3_name: float], ...)
+function_name(arg1_name: string, [arg2_name: int, arg3_name: table, ...: string]) : any
+FunctionName(arg1_Name: ( null | bool ) )
+function_name(arg1_name: int, arg2_name: string, arg3_name: any): float | null
+function_name(arg1_name: table, arg2_name: array, arg3_name: class): (function | null)
+function_name(arg1_name: any, [arg2_name: any, arg3_name: any])
+function_name([arg1_name: instance, arg2_name: class, arg3_name: int]): table
+instance.function_name()
+(instance|userpointer).function_name()
+ ( table | class ) . function_name ( )
+function_name(...: any)
+function_name(...)
+function_name(arg1_name: int, ...)
+function_name(arg1_name: number, [arg2_name: float, arg3_name: float], ...)
+string.function_name(int: float, [string: number, string: generator])
+function_name(arg1_name:bool,[arg2_name:string,arg3_name:float])
+   function_name ( arg1_name :int ,[ arg2_name: int,   arg3_name : int ] )
+function_name()
+function_name(): int
+function_name(arg1_name: any)
+FunctionName(arg1_Name: int|null)
+FunctionName(arg1_Name: (table|array))

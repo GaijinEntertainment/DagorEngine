@@ -2,12 +2,12 @@
 
 #include "compositeEditorGizmoClient.h"
 #include "compositeEditorCopyDlg.h"
-#include "CompositeEditorViewport.h"
+#include "compositeEditorViewport.h"
 #include "entityViewPluginInterface.h"
 #include "../av_appwnd.h"
 #include <de3_objEntity.h>
+#include <EditorCore/ec_input.h>
 #include <math/dag_mathAng.h>
-#include <winGuiWrapper/wgw_input.h>
 
 void CompositeEditorGizmoClient::setEntity(IObjEntity *in_entity) { entity = in_entity; }
 
@@ -109,7 +109,7 @@ void CompositeEditorGizmoClient::gizmoStarted()
     "gizmoEnded has not been called. (Non-fatal error.)");
   get_app().getCompositeEditor().setPreventUiUpdatesWhileUsingGizmo(true);
 
-  if (wingw::is_key_pressed(wingw::V_SHIFT) && IEditorCoreEngine::get()->getGizmoModeType() == IEditorCoreEngine::MODE_Move)
+  if (ec_is_shift_key_down() && IEditorCoreEngine::get()->getGizmoModeType() == IEditorCoreEngine::MODE_Move)
   {
     cloning = true;
     cloneStartPosition = getPt();
@@ -160,6 +160,11 @@ void CompositeEditorGizmoClient::gizmoEnded(bool apply)
 void CompositeEditorGizmoClient::release() {}
 
 bool CompositeEditorGizmoClient::canStartChangeAt(IGenViewportWnd *wnd, int x, int y, int gizmo_sel)
+{
+  return get_app().getCompositeEditor().getEntityViewPluginInterface().isMouseOverSelectedCompositeSubEntity(wnd, x, y, entity);
+}
+
+bool CompositeEditorGizmoClient::isMouseOver(IGenViewportWnd *wnd, int x, int y)
 {
   return get_app().getCompositeEditor().getEntityViewPluginInterface().isMouseOverSelectedCompositeSubEntity(wnd, x, y, entity);
 }

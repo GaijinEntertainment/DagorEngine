@@ -34,10 +34,10 @@ class SendRequestFn : AstFunctionAnnotation
             var fn <- compiling_module() |> find_unique_function(newName)
             if fn == null
               compiling_program() |> macro_error(newCall.at, "can't find <{newName}> function, annotate function\n[rpc_handler]\ndef {exprAddr.target}...")
-              return [[ExpressionPtr]]
+              return default<ExpressionPtr>
             else
               exprAddr.target := newName
               success = true
     if success
       return <- newCall
-    return <- [[ExpressionPtr]]
+    return <- default<ExpressionPtr>

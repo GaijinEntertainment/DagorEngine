@@ -101,9 +101,8 @@ struct LandMeshCullingState
   void cullCell(LandMeshManager &provider, int borderX, int borderY, int x0, int y0, int x1, int y1, const Frustum &frustum,
     const Occlusion *occlusion, LandMeshCullingData &data);
 
-  void frustumCulling(LandMeshManager &provider, const Frustum &frustum, const Occlusion *occlusion, LandMeshCullingData &data,
-    const IBBox2 *regions, int regions_count, const Point3 &hmap_origin, float hmap_camera_height, float hmap_water_level,
-    int hmapTankDetail, int hmap_sub_div = 0, float hmap_lod0_scale = 1.0f);
+  void frustumCulling(LandMeshManager &provider, LandMeshCullingData &data, const IBBox2 *regions, int regions_count,
+    const HeightmapFrustumCullingInfo &fi);
 
 
   void copyLandmeshState(LandMeshManager &provider, LandMeshRenderer &renderer);

@@ -577,7 +577,7 @@ rule ProcessTargetVariables
     $(Target)__UsePCH = $(UsePCH) ;
     $(Target)__PrecompiledName  = $(PrecompiledName) ;
     $(Target)__PrecompiledName ?= stdafx ;
-    echo \ .\ using PCH='$($(Target)__PrecompiledName)' for $(Target) ;
+    if $(DumpBuildCmds) != yes { echo \ .\ using PCH='$($(Target)__PrecompiledName)' for $(Target) ; }
   }
   UsePCH = ;
   PrecompiledName = ;
@@ -916,6 +916,15 @@ rule StripUnusedPch use_pch : target : opt
   return [ StripStrings $(opt) : /Yu$($(target)__PrecompiledName).h /Fp$($(target)__PrecompiledFile) %DISABLE_PCH% ] ;
 }
 
+rule MakeJson target : src : args
+{
+  local file = $(Root)/$(src) ;
+  echo \{ \"directory\" \: \"$(JAM_CWD)\",
+    \"arguments\" \: \[ \"$(args)\", \"\" \],
+    \"output\" \: \"$(target)\",
+    \"file\" \: \"$(file)\" \}, ;
+}
+
 # rule how to compile C++ target
 #   params: ( target_pathname : sources : target )
 rule CompileCPP
@@ -935,6 +944,7 @@ rule CompileCPP
   outfile   on $(1) = [ MakePathAbsolute $(JAM_CWD) : $(1) ] ;
 
   if $(GLOBAL_CacheDryRun) { return ; }
+  if $(DumpBuildCmds) = yes { on $(1) MakeJson $(1) : $(2) : $(_CPP_COMPILER) $(pre_opt) $(_CPP_BASE_INCLUDES) $(cpp_opt) ; return ; }
 
   compile_cpp $(1) : $(2) ;
 }
@@ -958,6 +968,7 @@ rule CompileC
   outfile   on $(1) = [ MakePathAbsolute $(JAM_CWD) : $(1) ] ;
 
   if $(GLOBAL_CacheDryRun) { return ; }
+  if $(DumpBuildCmds) = yes { on $(1) MakeJson $(1) : $(2) : $(_C_COMPILER) $(pre_opt) $(_C_BASE_INCLUDES) $(c_opt) ; return ; }
 
   compile_c $(1) : $(2) ;
 }
@@ -1003,6 +1014,59 @@ rule CompileObjCPP
   if $(GLOBAL_CacheDryRun) { return ; }
   compile_obj_cpp $(1) : $(2) ;
 }
+
+actions together quietly generate_swift_h
+{
+#async
+  echo generate $(1:G=:D=)
+  del $(1)
+  call $(_SWIFTC_COMPILER) $(swift_opt) -parse $(2) -emit-objc-header-path $(1)
+  if errorlevel 1 goto failed
+  if not exist $(1) goto failed
+  goto end
+  :failed
+  set ERRORLEVEL=13
+  :end
+}
+
+actions together quietly compile_obj_swift
+{
+#async
+  echo $(2:G=:D=)
+  del $(1)
+  call $(_SWIFTC_COMPILER) $(swift_opt) -c $(2) -emit-dependencies -o $(1)
+  if errorlevel 1 goto failed
+  if not exist $(1) goto failed
+  if not exist $(1:S=.d) goto failed
+  goto end
+  :failed
+  set ERRORLEVEL=13
+  :end
+}
+
+rule CompileSwift
+{
+  if ! $(_SWIFTC_COMPILER) { Exit _SWIFTC_COMPILER not set, cannot compile $(2) ; }
+  local swift_h = $(Root)/$(2:S=-swift.h) ;
+  Depends $(swift_h) : $(2) ;
+  Depends all : $(swift_h) ;
+  generate_swift_h  $(swift_h) : $(2) ;
+
+  Depends $(1) : $(2) ;
+  MakeDirectory $(1) : $(1:D) ;
+  if $(GLOBAL_CacheDryRun) {
+    CheckHeadersDry $(1) : $(2) : $($(3)__SWIFT_OPT) ;
+  } else {
+    CheckHeaders $(<) : $(<:S=.d) ;
+  }
+
+  LOCATE    on $(2) = $(Root) ;
+  swift_opt on $(1) = $($(3)__SWIFT_OPT) $(opt) ;
+
+  if $(GLOBAL_CacheDryRun) { return ; }
+  compile_obj_swift $(1) : $(2) ;
+}
+
 
 # rule how to compile ASM target
 #   params: ( target_pathname : sources : target )
@@ -1142,6 +1206,8 @@ rule CompilePssl
 #   params: ( target_pathname : var_name : target )
 rule CompileJamVarCpp
 {
+  if $(DumpBuildCmds) = yes { NOCARE $(1) ; return ; }
+
   local dest_cpp = $(1:S=.cpp) ;
   local dest_jam_cmp = $(dest_cpp:S=.jam) ;
 
@@ -1197,8 +1263,10 @@ rule CompileJamVarCpp
 
 # rule how to compile .das to .cpp
 #   params: ( target_filename : sources : target : tmp_output_dir )
+#   returns: ( target_filename )
 rule AotCompileDAS
 {
+  if $(DumpBuildCmds) = yes { return ; }
   if ! $(DAS_AOT_COMPILER) {
     echo DAS_AOT_COMPILER not set, skip compiling $(2) ;
     return ;
@@ -1215,7 +1283,7 @@ rule AotCompileDAS
   Depends $(dest_cpp) : $(Root)/$(2) $(DAS_AOT_COMPILER) ;
   MakeDirectory $(dest_cpp) : $(dest_cpp:D) ;
   aot_compile_das $(dest_cpp) : $(Root)/$(2) ;
-  return $(dest_cpp) ;
+  return $(1) ;
 }
 
 # makes action commands to write jamfile with list of strings
@@ -1256,8 +1324,16 @@ actions quietly exec_scripted_command
 #   params: ( _das_AOT_files : target : tmp_output_dir : batch_size )
 rule AotCompileBatchedGeneratedDAS
 {
+  if $(DumpBuildCmds) = yes { return ; }
   local base32_alphabet = a b c d e f g h i j k l m n o p q r s t u v w x y z 2 3 4 5 6 7 ;
-  local list = v1 $(1) ;
+  # 'list' is list of paths to *_AOT.cpp from jam directory
+  # 'list_of_includes' is list of relative paths from directory of .cpp batch to *_AOT.cpp, they actually locates in neighbours folders
+  local list = v1 ;
+  local list_of_includes = v1 ;
+  for i in $(1) {
+    list += $(3)/$(i) ;
+    list_of_includes += ../$(i) ;
+  }
   local list_rel = [ ReplaceRootPrefix $(list) ] ;
   local obj_list = ;
   local base_dest_cpp = $(3)/_das/das_batch_$(2:B)_ ;
@@ -1281,14 +1357,16 @@ rule AotCompileBatchedGeneratedDAS
     exec_scripted_command $(das_list_jamfile) ;
   }
   list = $(list[2-]) ;
+  list_of_includes = $(list_of_includes[2-]) ;
   while $(list) {
     local dest_cpp = $(base_dest_cpp)$(digits0[1])$(digits1[1]).cpp ;
     local batch_list = $(list[1-$(das_batch_size)]) ;
+    local batch_of_includes = $(list_of_includes[1-$(das_batch_size)]) ;
     local dest_obj = $(dest_cpp:S=$(_OBJ_SUFFIX)) ;
 
     Depends $(dest_cpp) : $(batch_list) ;
     if $(das_list_changed) = yes { ALWAYS $(dest_cpp) ; }
-    exec_cmd on $(dest_cpp) = [ MakeBatchCpp $(dest_cpp) : $(batch_list) ] ;
+    exec_cmd on $(dest_cpp) = [ MakeBatchCpp $(dest_cpp) : $(batch_of_includes) ] ;
     cmd_caption on $(dest_cpp) = echo generated DAS batch: $(dest_cpp:B) ;
     exec_scripted_command $(dest_cpp) ;
 
@@ -1310,6 +1388,8 @@ rule AotCompileBatchedGeneratedDAS
     # next two rows work like ($(das_batch_size) + 1)-
     list = $(list[$(das_batch_size)-]) ;
     list = $(list[2-]) ;
+    list_of_includes = $(list_of_includes[$(das_batch_size)-]) ;
+    list_of_includes = $(list_of_includes[2-]) ;
     if $(digits1[2-]) {
       digits1 = $(digits1[2-]) ;
     } else {
@@ -1575,6 +1655,7 @@ if $(TargetType) = util || $(TargetType) = copy {
 
 # save root target
 SkipLicenseProcessing ?= no ;
+if $(DumpBuildCmds) = yes { SkipLicenseProcessing = yes ; }
 if $(Config) != rel { SkipLicenseBuild ?= yes ; }
 
 _TARGETS0 = $(Target) ;
@@ -1594,7 +1675,7 @@ for t_lev in 1 2 3 4 5 6 7 8 {
     }
 
     for a in $($(cur_target)__Artifacts) {
-      echo Processing artifact: $(a) for $(cur_target) ;
+      if $(DumpBuildCmds) != yes { echo Processing artifact: $(a) for $(cur_target) ; }
       BuildArtifactForTarget $(cur_target) : $(a) : $(cur_target_pathname) ;
     }
 
@@ -1789,13 +1870,15 @@ rule GatherUsedLibs
 
 rule MarkSourcesChanged # sources : tmp_dir : recompile_list_varname : suffixes
 {
+  local ret = ;
   for src in $(1) {
     if ! $(src:S) in $(4) { continue ; }
     local obj_path = $(2)/$(src:S=$(_OBJ_SUFFIX)) ;
     if $(src:S) = .rc { obj_path = $(obj_path:S=.res$(_OBJ_SUFFIX)) ; }
-    ALWAYS $(obj_path) ;
+    ret += $(obj_path) ;
     if ! $(src) in $($(3)) { $(3) += $(src) ; }
   }
+  return $(ret) ;
 }
 rule SplitStringsOnSpace # list
 {
@@ -1894,9 +1977,24 @@ rule DebugDigestDiff field : old : new : file
   }
 }
 
+rule ProcessDigestObjsToRebuild digest : objs_to_rebuild
+{
+  local unique_list = ;
+  if $(objs_to_rebuild) { clean_cmd on $(digest) = echo ... cleaning modules for $(digest:S=) ; }
+  for o in $(objs_to_rebuild) {
+    if ! $(o) in $(unique_list) {
+      unique_list += $(o) ;
+      ALWAYS $(o) ;
+      Depends $(o) : $(digest) ;
+      clean_cmd on $(digest) += "
+" del $(o) ;
+    }
+  }
+}
 
 rule ProcessTargetDigest # target : das_src
 {
+  if $(DumpBuildCmds) = yes { return ; }
   local target_file = $($(1)__OutDir)/$(1) ;
   local tmp_dir = $($(1)__TmpDir) ;
   local loc = $($(1)__Location) ;
@@ -1942,6 +2040,7 @@ rule ProcessTargetDigest # target : das_src
   # load prev digest (if exists)
   NOCARE $(digest) ;
   include $(digest) ;
+  local objs_to_rebuild = ;
 
   if ! $(digest_src) && ! $(digest_optCpp) && ! $(digest_optAsm) && ! $(digest_optC) &&
      ! $(digest_optLink) && ! $(digest_gopt) && ! $(digest_lopt) {
@@ -1951,8 +2050,9 @@ rule ProcessTargetDigest # target : das_src
     }
     ALWAYS $(target_file) ;
     ALWAYS $(digest) ;
-    for s in $(new_src) { ALWAYS $(tmp_dir)/$(s:S=$(_OBJ_SUFFIX)) ; }
-    for s in $(2) { ALWAYS $(s:S=$(_OBJ_SUFFIX)) ; }
+    for s in $(new_src) { objs_to_rebuild += $(tmp_dir)/$(s:S=$(_OBJ_SUFFIX)) ; }
+    for s in $(2) { objs_to_rebuild += $(s:S=$(_OBJ_SUFFIX)) ; }
+    ProcessDigestObjsToRebuild $(digest) : $(objs_to_rebuild) ;
     return ;
   }
 
@@ -1968,26 +2068,26 @@ rule ProcessTargetDigest # target : das_src
   if $(digest_gopt) != $(new_gopt) {
     DebugDigestDiff GlobalCPPopt : $(digest_gopt) : $(new_gopt) : $(digest) ;
     recompile_reasons += GlobalCPPopt ;
-    MarkSourcesChanged $(new_src) : $(tmp_dir) : recompile_list : .cpp .cxx .cc .mm .c .m .jamvar .rc ;
-    MarkSourcesChanged $(2) : . : recompile_list : .cpp ;
+    objs_to_rebuild += [ MarkSourcesChanged $(new_src) : $(tmp_dir) : recompile_list : .cpp .cxx .cc .mm .c .m .jamvar .rc ] ;
+    objs_to_rebuild += [ MarkSourcesChanged $(2) : . : recompile_list : .cpp ] ;
   }
   if $(digest_optCpp) != $(new_optCpp) || $(digest_CPP) != $(new_CPP) {
     DebugDigestDiff CPPopt : $(digest_optCpp) : $(new_optCpp) : $(digest) ;
     DebugDigestDiff CPP : $(digest_CPP) : $(new_CPP) : $(digest) ;
     recompile_reasons += CPPopt ;
-    MarkSourcesChanged $(new_src) : $(tmp_dir) : recompile_list : .cpp .cxx .cc .mm .jamvar .rc ;
-    MarkSourcesChanged $(2) : . : recompile_list : .cpp ;
+    objs_to_rebuild += [ MarkSourcesChanged $(new_src) : $(tmp_dir) : recompile_list : .cpp .cxx .cc .mm .jamvar .rc ] ;
+    objs_to_rebuild += [ MarkSourcesChanged $(2) : . : recompile_list : .cpp ] ;
   }
   if $(digest_optC) != $(new_optC) || $(digest_C) != $(new_C) {
     DebugDigestDiff Copt : $(digest_optC) : $(new_optC) : $(digest) ;
     DebugDigestDiff C : $(digest_C) : $(new_C) : $(digest) ;
     recompile_reasons += Copt ;
-    MarkSourcesChanged $(new_src) : $(tmp_dir) : recompile_list : .c .m ;
+    objs_to_rebuild += [ MarkSourcesChanged $(new_src) : $(tmp_dir) : recompile_list : .c .m ] ;
   }
   if $(digest_optAsm) != $(new_optAsm) {
     DebugDigestDiff ASMopt : $(digest_optAsm) : $(new_optAsm) : $(digest) ;
     recompile_reasons += ASMopt ;
-    MarkSourcesChanged $(new_src) : $(tmp_dir) : recompile_list : .asm .s .S .nas .s@nasm .nasm .masm ;
+    objs_to_rebuild += [ MarkSourcesChanged $(new_src) : $(tmp_dir) : recompile_list : .asm .s .S .nas .s@nasm .nasm .masm ] ;
   }
   if $(digest_lopt) != $(new_lopt) {
     DebugDigestDiff "opt|pre_opt" : $(digest_lopt) : $(new_lopt) : $(digest) ;
@@ -1997,7 +2097,7 @@ rule ProcessTargetDigest # target : das_src
       local src_name = [ MATCH ([^?]+)?.+ : $(l) ] ;
       local obj_path = $(tmp_dir)/$(src_name:S=$(_OBJ_SUFFIX)) ;
       if $(src_name:S) = .rc { obj_path = $(obj_path:S=.res$(_OBJ_SUFFIX)) ; }
-      ALWAYS $(obj_path) ;
+      objs_to_rebuild += $(obj_path) ;
       if ! $(src_name) in $(recompile_list) { recompile_list += $(src_name) ; }
     }
     for l in $(digest_lopt) {
@@ -2009,21 +2109,26 @@ rule ProcessTargetDigest # target : das_src
       }
       local obj_path = $(tmp_dir)/$(src_name:S=$(_OBJ_SUFFIX)) ;
       if $(src_name:S) = .rc { obj_path = $(obj_path:S=.res$(_OBJ_SUFFIX)) ; }
-      ALWAYS $(obj_path) ;
+      objs_to_rebuild += $(obj_path) ;
       if ! $(src_name) in $(recompile_list) { recompile_list += $(src_name) ; }
     }
   }
   if $(DbgDigest) = once_fired { DbgDigest = ; }
+  ProcessDigestObjsToRebuild $(digest) : $(objs_to_rebuild) ;
 
   # mark targets changed if changes in digest require that (and report this for clarity)
   if $(recompile_list) {
-    echo note: $(1) will rebuild modules due to $(recompile_reasons:J=", ") changed\:
+    if $(DbgDigestVerbose) != yes {
+      echo note: $(1) will rebuild modules due to $(recompile_reasons:J=", ") changed ;
+    } else {
+      echo note: $(1) will rebuild modules due to $(recompile_reasons:J=", ") changed\:
 "
       "$(recompile_list) ;
+    }
   }
   if $(relink_reasons) { echo note: relink $(1) due to $(relink_reasons:J=", ") changed ; Always $(target_file) ; }
 
-  if $(recompile_list) || $(relink_reasons) { ALWAYS $(digest) ; }
+  if $(recompile_list) || $(relink_reasons) || $(recompile_reasons) { ALWAYS $(digest) ; }
   # clean up all used vars
   digest_src = ;
   digest_optCpp = ;
@@ -2040,6 +2145,9 @@ rule ProcessTargetDigest # target : das_src
 }
 actions together quietly make_digest
 {
+ $(clean_cmd)
+  copyfile $(1) $(1).prev
+  set ERRORLEVEL=0
   echo digest_src = $(src) ; >$(1)
   echo digest_optCpp = $(optCpp) ; >>$(1)
   echo digest_optAsm = $(optAsm) ; >>$(1)
@@ -2052,6 +2160,8 @@ actions together quietly make_digest
   echo digest_LIB = $(LIB) ; >>$(1)
   echo digest_LINK = $(LINK) ; >>$(1)
 }
+
+if $(DumpBuildCmds) = yes { echo \[ ; }
 
 # process all targets and bind rules how to make them
 # gather full list of targets in __targets
@@ -2194,6 +2304,8 @@ for t_lev in 0 1 2 3 4 5 6 7 8 {
           CompileObjC $(obj_path) : $(location)/$(src) : $(target) ;
         case .mm :
           CompileObjCPP $(obj_path) : $(location)/$(src) : $(target) ;
+        case .swift :
+          CompileSwift $(obj_path) : $(location)/$(src) : $(target) ;
         case .ispc :
           CompileISPC $(obj_path) : $(location)/$(src) : $(target) ;
         case .asm :
@@ -2236,6 +2348,9 @@ for t_lev in 0 1 2 3 4 5 6 7 8 {
     }
   }
 }
+# dump an valid compile_command json entry with empty values as the last element to fix the last comma.
+if $(DumpBuildCmds) = yes { echo \{ \"directory\" \: \"\", \"arguments\" \: [\], \"output\" \: \"\", \"file\" \: \"\" \} \] ; }
+
 if $(Platform) = android && clean-android-output in $(JAMTARGETS) { __targets = ; __targets_to_clean = ; }
 if $(Platform) = iOS && clean-ios-output in $(JAMTARGETS) { __targets = ; __targets_to_clean = ; }
 

@@ -105,7 +105,6 @@ void ProfilerData::stackSamplingFunction(const function<bool()> &is_terminating)
   const uint64_t freq = cpu_frequency();
   uint64_t lastSamplingHappenedTick = 0;
 
-  std::lock_guard<std::mutex> lock(samplingStateLock);
   for (uint32_t iteration = 0; !is_terminating() && interlocked_acquire_load(samplingThreadRun);)
   {
     const uint32_t threadSampling = interlocked_relaxed_load(threadsSamplingRate);
@@ -136,11 +135,11 @@ void ProfilerData::stackSamplingFunction(const function<bool()> &is_terminating)
       for (auto ti = threads.begin(); ti != threads.end();)
       {
         if (ti->gen != ourThreadsGeneration)
-          threads.erase_unsorted(ti);
+          ti = threads.erase_unsorted(ti);
         else
         {
-          ++ti;
           ti->ii = ii++;
+          ++ti;
         }
       }
     }
@@ -308,7 +307,12 @@ bool ProfilerData::startStackSampling(uint32_t sample) // should be called from 
   if (sample)
   {
     interlocked_release_store(samplingThreadRun, 1);
-    execute_in_new_thread([&](function<bool()> &&is_terminating) { stackSamplingFunction(is_terminating); }, "profiler_stack_thread");
+    execute_in_new_thread(
+      [&](function<bool()> &&is_terminating) {
+        std::lock_guard<std::mutex> lock(samplingStateLock); // Used for shutdown
+        stackSamplingFunction(is_terminating);
+      },
+      "profiler_stack_thread");
   }
   return true;
 }

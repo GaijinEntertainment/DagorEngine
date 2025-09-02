@@ -4,6 +4,7 @@
 #include "rayCar.h"
 #include <gameRes/dag_gameResSystem.h>
 #include <gameRes/dag_stdGameResId.h>
+#include <math/dag_geomTree.h>
 
 #ifndef NO_3D_GFX
 #include <vehiclePhys/tireTracks.h>

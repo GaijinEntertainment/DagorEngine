@@ -1,3 +1,4 @@
+DasAotCompilerBuild = yes ;
 UseQuirrel = sq3r ;
 PhysName  ?= Jolt ;
 UseD3DMulti       ?= yes ;
@@ -65,6 +66,7 @@ Sources +=
   prog/daNetGame/dasModules/phys.cpp
   prog/daNetGame/dasModules/player.cpp
   prog/daNetGame/dasModules/replay.cpp
+  prog/daNetGame/dasModules/scene.cpp
   prog/daNetGame/dasModules/smokeOccluder.cpp
   prog/daNetGame/dasModules/sound/aotSoundProps.cpp
   prog/daNetGame/dasModules/sound_net/aotSoundNetProps.cpp
@@ -72,7 +74,6 @@ Sources +=
   prog/daNetGame/dasModules/ui.cpp
   prog/daNetGame/dasModules/dacoll.cpp
   prog/daNetGame/dasModules/matchingTypes.cpp
-  prog/daNetGame/input/dasModules/inputControls.cpp
   prog/daNetGame/input/dasModules/touchInput.cpp
   prog/daNetGame/net/reCreateEntityES.cpp.gen.es.cpp
   prog/daNetGame/render/dasModules/clipmapDecals.cpp
@@ -82,14 +83,18 @@ Sources +=
   prog/daNetGame/render/dasModules/dagorMaterials.cpp
   prog/daNetGame/render/dasModules/worldRenderer.cpp
   prog/daNetGame/render/dasModules/heightmapQueryManager.cpp
+  prog/daNetGame/render/dasModules/portalRenderer.cpp
+  prog/daNetGame/render/dasModules/renderLibsAllowed.cpp
+  prog/daNetGame/render/renderLibsAllowed.cpp
 
   prog/daNetGame/main/dedicated/dasModules/dngMatching.cpp
 
   prog/daNetGame-das-aot/stub.cpp
   prog/gameLibs/daRg/dasBinding.cpp
 ;
-include $(Root)/prog/gameLibs/render/daBfg/_aot.jam ;
+include $(Root)/prog/gameLibs/render/daFrameGraph/_aot.jam ;
 include $(Root)/prog/gameLibs/render/resourceSlot/_aot.jam ;
+include $(Root)/prog/gameLibs/render/outline/_aot.jam ;
 include $(Root)/prog/gameLibs/ecs/deferToAct/_aot.jam ;
 include $(Root)/prog/gameLibs/rendInst/_aot.jam ;
 include $(Root)/prog/gameLibs/daEditorE/_aot.jam ;
@@ -131,9 +136,12 @@ UseProgLibs +=
   engine/coreUtil
   engine/sceneRay
   engine/scene
+  engine/imgui/stub
+  engine/animChar/stub
   3rdPartyLibs/eastl
   1stPartyLibs/rapidJsonUtils
   1stPartyLibs/daScript
+  1stPartyLibs/daScript/utils/dasFormatter
   1stPartyLibs/daScriptModules/rapidjson
   1stPartyLibs/daScript/modules/dasImgui
   1stPartyLibs/daScript/modules/dasQuirrel
@@ -170,6 +178,7 @@ UseProgLibs +=
   gameLibs/dasModules/gpuReadbackQuery
   gameLibs/dasModules/landMesh
   gameLibs/dasModules/systemInfo
+  gameLibs/dasModules/compressionUtils
   gameLibs/daGame/timers
   gameLibs/daECS/net
   gameLibs/grid
@@ -187,13 +196,20 @@ UseProgLibs +=
   gameLibs/daEditorE
   gameLibs/dasModules/daEditor
   gameLibs/propsRegistry
+  gameLibs/statsd
+  gameLibs/compressionUtils
+  gameLibs/landMesh/stub
+  gameLibs/gamePhys/collision/stub
+  gameLibs/gamePhys/phys/stub
+  gameLibs/gamePhys/props/stub
+  gameLibs/render/debug3dSolid/stub
 ;
 if [ GLOB $(Root)/prog/gameLibs/gamePhys/ballistics : * ] {
   Sources += prog/daNetGame-das-aot/stub_ballistics.cpp ;
   UseProgLibs += gameLibs/dasModules/ballistics ;
 }
 
-CPPopt = ;
+CPPopt += -DDAS_AOT_COMPILER ;
 
 AddIncludes +=
   $(Root)/prog/daNetGame

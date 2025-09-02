@@ -1,4 +1,4 @@
-# Shader: rendinst_tree_perlin_layered
+# `rendinst_tree_perlin_layered`
 
 ## Overview
 
@@ -16,7 +16,7 @@ tessellation, as well as `rendinst_clipmap` objects with default settings, will
 be tessellated. In the future, this feature will be incorporated into the
 graphics settings.
 
-## Enabling Tessellation in an Asset
+## Enabling Tessellation
 
 1. **Default Setting:** Tessellation is disabled by default. To enable it, set
    `material_pn_triangulation` to `1` or `2`.

@@ -166,6 +166,7 @@ namespace das
     void table_clear ( Context & context, Table & arr, LineInfo * at );
     void table_lock ( Context & context, Table & arr, LineInfo * at );
     void table_unlock ( Context & context, Table & arr, LineInfo * at );
+    void table_reserve_impl ( Context & context, Table & arr, int32_t baseType, uint32_t newCapacity, uint32_t valueTypeSize, LineInfo * at );
 
     struct Sequence;
     void builtin_table_keys ( Sequence & result, const Table & tab, int32_t stride, Context * __context__, LineInfoArg * at );
@@ -216,7 +217,7 @@ namespace das
 
 namespace std {
     template <> struct hash<das::Bitfield> {
-        std::size_t operator() ( das::Bitfield b ) const {
+        size_t operator() ( das::Bitfield b ) const {
             return hash<uint32_t>()(b.value);
         }
     };

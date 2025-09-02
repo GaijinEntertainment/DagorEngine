@@ -191,7 +191,7 @@ struct TextureMetaData
 
   //! decodes metadata and returns file path for given file string [uses highly temporary buffer when storage==NULL]
   //! returns NULL when decoded invalid metadata
-  KRNLIMP const char *decode(const char *fstring, String *storage = NULL);
+  [[nodiscard("Use decodeData method instead.")]] KRNLIMP const char *decode(const char *fstring, String *storage = NULL);
 
   //! decodes metadata from given file string; returns false when decoded invalid metadata
   //! allows to avoid String allocations for file path and baseTexName when they are not needed

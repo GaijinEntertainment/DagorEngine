@@ -11,6 +11,7 @@
 #include <math/dag_mathUtils.h>
 #include <math/dag_traceRayTriangle.h>
 #include <debug/dag_log.h>
+#include <EASTL/sort.h>
 
 #define MAX_SCENE_LEAF_FACES 48
 
@@ -49,7 +50,7 @@ __forceinline bool BuildableStaticSceneRayTracerT<FI>::__add_face(const RTface &
   vec3f sc = v_triangle_bounding_sphere_center(v0, v1, v2);
 
   // ensure that sc is valid via NaN check
-  bool valid = (v_signmask(v_cmp_eq(v_remove_nan(sc), sc)) & 0x7) == 0x7;
+  bool valid = !v_test_xyz_nan(sc);
   v_stu_p3(&faceboundsTab[ri].sc.x, valid ? sc : v0);
   return valid;
 }
@@ -296,7 +297,7 @@ uintptr_t BuildableStaticSceneRayTracerT<FI>::build_node(FaceIndex *fc, int numf
         ms = wd[md = i];
 
     AxisSeparator<FI> axis((Point3 *)&faceboundsTab[0].sc[md]);
-    stlsort::nth_element(fc, fc + df, fc + numf, axis);
+    eastl::nth_element(fc, fc + df, fc + numf, axis);
 
     const uintptr_t left = build_node(fc, df, ctx);
     const uintptr_t right = build_node(fc + df, numf - df, ctx);

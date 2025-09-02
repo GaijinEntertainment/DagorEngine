@@ -1,5 +1,6 @@
 require ecs
 require DngNet
+options indenting = 2
 
 [generic]
 def remote_recreate_entity_from(eid : EntityId const; templ : string) : EntityId

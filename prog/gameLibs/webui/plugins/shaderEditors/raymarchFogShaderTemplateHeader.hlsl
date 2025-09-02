@@ -25,7 +25,10 @@ RWTexture2D<float4>  OutputDebug : register(u2); // volfog_df_raymarch_debug_tex
 #define distant_fog_half_res_depth_tex_far_prev prev_downsampled_far_depth_tex
 #define distant_fog_half_res_depth_tex_close downsampled_close_depth_tex
 
-
+#define distant_fog_half_res_depth_tex_samplerstate           downsampled_checkerboard_depth_tex_samplerstate
+#define distant_fog_half_res_depth_tex_far_samplerstate       downsampled_far_depth_tex_samplerstate
+#define distant_fog_half_res_depth_tex_far_prev_samplerstate  prev_downsampled_far_depth_tex_samplerstate
+#define distant_fog_half_res_depth_tex_close_samplerstate     downsampled_close_depth_tex_samplerstate
 
 #undef IS_DISTANT_FOG
 #define IS_DISTANT_FOG 1

@@ -36,10 +36,9 @@ macro INIT_INITIAL_GI_AMBIENT_LIGHTING_MODEL_WORLD_AO(code)
 endmacro
 
 macro SSGI_CLEAR_INITIAL_VOLMAP()
-  INIT_BLURRED_DEPTH_ABOVE_CONSTS(cs)
-  USE_DEPTH_ABOVE_TC(cs)
+  INIT_DEPTH_ABOVE(cs, blurred_depth)
+  USE_DEPTH_ABOVE(cs, blurred_depth)
   USE_HEIGHTMAP_COMMON(cs)
-  (cs) { blurred_depth_above@smpArray = blurred_depth; }
 
   hlsl(cs) {
 
@@ -52,8 +51,7 @@ macro SSGI_CLEAR_INITIAL_VOLMAP()
       float darken = exp2(min(0, 4*invVoxelY*(worldPos.y+0.5*lightVoxelSize.y-htHeight)));
       {
         float vignette_effect;
-        float3 tc = getWorldBlurredDepthTC(worldPos, vignette_effect);
-        float htBlurred = decode_depth_above(tex3Dlod(blurred_depth_above, float4(tc, 0)).x);
+        float htBlurred = get_depth_above_fast(worldPos, vignette_effect);
         float ao = lerp(0, 1, saturate(1+0.5*invVoxelY*(worldPos.y-htBlurred)));
         darken = min(darken, lerp(ao, 1, vignette_effect));
       }

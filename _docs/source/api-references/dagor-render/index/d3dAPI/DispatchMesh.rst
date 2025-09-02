@@ -1,5 +1,5 @@
-Mesh shader dispatch API
+Mesh Shader Dispatch API
 =================================================
 
-.. autodoxygenfile:: dag_dispatchMesh.h
+.. doxygenfile:: dag_dispatchMesh.h
   :project: d3dAPI

@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "undergroundTeleporterES.cpp.inl"
 ECS_DEF_PULL_VAR(undergroundTeleporter);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc lanmesh_holes_search_ecs_query_comps[] =
 {
@@ -20,7 +22,7 @@ template<typename Callable>
 inline void lanmesh_holes_search_ecs_query(Callable function)
 {
   perform_query(g_entity_mgr, lanmesh_holes_search_ecs_query_desc.getHandle(),
-    [&function](const ecs::QueryView& __restrict components)
+    ecs::stoppable_query_cb_t([&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
         {
@@ -30,6 +32,6 @@ inline void lanmesh_holes_search_ecs_query(Callable function)
             return ecs::QueryCbResult::Stop;
         }while (++comp != compE);
           return ecs::QueryCbResult::Continue;
-    }
+    })
   );
 }

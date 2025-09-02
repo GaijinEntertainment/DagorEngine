@@ -30,7 +30,10 @@ namespace AnimV20Math
 {
 
 
-inline int seconds_to_ticks(float seconds) { return seconds < VERY_BIG_NUMBER ? roundf(seconds * AnimV20::TIME_TicksPerSec) : 0; }
+inline int seconds_to_ticks(float seconds)
+{
+  return seconds < VERY_BIG_NUMBER ? roundf(seconds * float(AnimV20::TIME_TicksPerSec)) : 0.f;
+}
 inline float ticks_to_seconds(int ticks) { return ticks / float(AnimV20::TIME_TicksPerSec); }
 
 

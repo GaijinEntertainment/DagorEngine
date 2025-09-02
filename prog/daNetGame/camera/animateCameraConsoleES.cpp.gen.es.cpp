@@ -9,9 +9,11 @@ static constexpr ecs::component_t camera_path_animator__distance_get_type();
 static ecs::LTComponentList camera_path_animator__distance_component(ECS_HASH("camera_path_animator__distance"), camera_path_animator__distance_get_type(), "prog/daNetGame/camera/animateCameraConsoleES.cpp.inl", "", 0);
 static constexpr ecs::component_t camera_path_animator__transforms_get_type();
 static ecs::LTComponentList camera_path_animator__transforms_component(ECS_HASH("camera_path_animator__transforms"), camera_path_animator__transforms_get_type(), "prog/daNetGame/camera/animateCameraConsoleES.cpp.inl", "", 0);
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "animateCameraConsoleES.cpp.inl"
 ECS_DEF_PULL_VAR(animateCameraConsole);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc camera_animator_update_es_comps[] =
 {

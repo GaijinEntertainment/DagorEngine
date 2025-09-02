@@ -1,15 +1,13 @@
+import "math" as math
+from "dagor.math" import IPoint2, Point2, Point3
 from "%darg/ui_imports.nut" import *
-
-let {IPoint2, Point2, Point3} = require("dagor.math")
-
 let mkPieMenu = require("samples_prog/advanced/mkPieMenu.nut")
-let math = require("math")
 
 
 
 let panelCursor = Cursor({
   rendObj = ROBJ_VECTOR_CANVAS
-  size = [24, 24]
+  size = 24
   hotspot = [12, 12]
 
   commands = [
@@ -28,36 +26,36 @@ function isCurrent(curIdx,i) {
 
 let m = @(curIdx, idx, sf) (sf & S_HOVER) || isCurrent(curIdx, idx) ? 2:1
 
-function s(idx){
+function s(i){
   let c = Color(math.rand(),math.rand(),math.rand(),255)
-  let onSelect = @() dlog($"{idx} selected")
+  let onSelect = @() dlog($"{i} selected")
   return {
-    ctor=function(curIdx, idx){
+    ctor = function(curIdx, idx) {
       let stateFlags = Watched(0)
       return function(){
-        let sf = stateFlags.value
+        let sf = stateFlags.get()
         return {
           watch=[curIdx, stateFlags],
           rendObj=ROBJ_SOLID
-          size = [hdpx(120)*m(curIdx.value, idx, sf),hdpx(120)*m(curIdx.value, idx, sf)]
+          size = [hdpx(120)*m(curIdx.get(), idx, sf),hdpx(120)*m(curIdx.get(), idx, sf)]
           color = c
           children = {
             rendObj = ROBJ_TEXT
             fontSize = 60
             text = idx
-            color = (sf & S_HOVER) || isCurrent(curIdx.value, idx) ? Color(250,250,50) : Color(200,200,200)
+            color = (sf & S_HOVER) || isCurrent(curIdx.get(), idx) ? Color(250,250,50) : Color(200,200,200)
             hplace = ALIGN_CENTER
             vplace = ALIGN_CENTER
           }
           behavior = Behaviors.Button
           onHover = @(on) on ? vlog($"on {idx}") : null
-          onElemState = @(sf) stateFlags(sf)
+          onElemState = @(f) stateFlags.set(f)
           onClick = onSelect
         }
       }
     }
-    onSelect=onSelect
-    text = $"action number {idx}"
+    onSelect
+    text = $"action number {i}"
   }
 }
 
@@ -66,7 +64,7 @@ let sectorWidth = 1.0/2
 let sangle = 15
 //local showPieMenu = Watched(false)
 let pieMenu = mkPieMenu({
-//  hotkeys = [["J:D.Up", @() showPieMenu(!showPieMenu.value)]]
+//  hotkeys = [["J:D.Up", @() showPieMenu(!showPieMenu.get())]]
   hotkeyToSelect = "J:D.Down"
 //  hotkeys = "J:D.Up"
 //  showPieMenu = showPieMenu,
@@ -109,7 +107,7 @@ let freePanelLayout = {
   //worldPointerTexture = "panel_cursor"
   cursor         = panelCursor
 
-  size           = [1024, 1024]
+  size           = 1024
 
   flow           = FLOW_VERTICAL
 
@@ -132,10 +130,10 @@ function root() {
   return {
     size = flex()
     function onAttach() {
-      gui_scene.addPanel(14, freePanelLayout)
+      gui_scene.addPanel(13, freePanelLayout)
     }
     function onDetach() {
-      gui_scene.removePanel(14)
+      gui_scene.removePanel(13)
     }
   }
 }

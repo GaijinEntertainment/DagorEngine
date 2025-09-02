@@ -117,13 +117,13 @@ namespace eastl
 		template <typename Functor>
 		Functor* target() EA_NOEXCEPT
 		{
-			return Base::target();
+			return Base::template target<Functor>();
 		}
 
 		template <typename Functor>
 		const Functor* target() const EA_NOEXCEPT
 		{
-			return Base::target();
+			return Base::template target<Functor>();
 		}
 	#endif // EASTL_RTTI_ENABLED
 	};
@@ -133,7 +133,7 @@ namespace eastl
 	{
 		return !f;
 	}
-
+#if !defined(EA_COMPILER_HAS_THREE_WAY_COMPARISON)
 	template <typename R, typename... Args>
 	bool operator==(std::nullptr_t, const function<R(Args...)>& f) EA_NOEXCEPT
 	{
@@ -151,12 +151,20 @@ namespace eastl
 	{
 		return !!f;
 	}
-
+#endif
 	template <typename R, typename... Args>
 	void swap(function<R(Args...)>& lhs, function<R(Args...)>& rhs)
 	{
 		lhs.swap(rhs);
 	}
+
+#ifdef __cpp_deduction_guides
+	template<typename ReturnType, typename... Args>
+	function(ReturnType(*)(Args...)) -> function<ReturnType(Args...)>;
+
+	template<typename Callable>
+	function(Callable) -> function<internal::extract_signature_from_callable_t<decltype(&Callable::operator())>>;
+#endif
 
 } // namespace eastl
 

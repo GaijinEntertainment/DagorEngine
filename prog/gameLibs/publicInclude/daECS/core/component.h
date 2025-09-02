@@ -7,9 +7,15 @@
 #include <memory.h>
 #include <util/dag_stdint.h>
 #include <debug/dag_assert.h>
-#include <EASTL/functional.h>
-#include <EASTL/optional.h>
+#include <EASTL/type_traits.h>
+#include <EASTL/utility.h>
 #include "componentType.h"
+
+namespace eastl
+{
+template <typename T>
+class optional;
+}
 
 namespace ecs
 {
@@ -24,7 +30,7 @@ class ChildComponent
 public:
   ChildComponent() = default;
   ChildComponent(std::nullptr_t) : ChildComponent() {}
-  explicit ChildComponent(const EntityComponentRef &);
+  explicit ChildComponent(ecs::EntityManager &mgr, const EntityComponentRef &);
   const EntityComponentRef getEntityComponentRef() const; // this is const reference! you should write to it!
 
   bool operator==(const ChildComponent &a) const;
@@ -194,15 +200,20 @@ public:
     Deep,
     Shallow
   };
-  ChildComponent(component_type_t t, const void *raw_data, CopyType cpt = CopyType::Deep) { setRaw(t, raw_data, cpt); }
+  ChildComponent(ecs::EntityManager &mgr, component_type_t t, const void *raw_data, CopyType cpt = CopyType::Deep)
+  {
+    setRaw(mgr, t, raw_data, cpt);
+  }
   uint16_t getSize() const { return componentTypeSize; }
   static bool is_child_comp_boxed_by_size(size_t size) { return size > value_size; }
   ChildComponent(size_t size, type_index_t ti, component_type_t t, const void *raw_data); // raw_data is either pointer to allocated or
                                                                                           // stack memory, depedning on
                                                                                           // is_child_comp_boxed_by_size
 protected:
-  void setRaw(component_type_t t, const void *raw_data, CopyType cpt = CopyType::Deep); // temporary, for deserialization. To be
-                                                                                        // replaced with typemanager
+  void setRaw(ecs::EntityManager &mgr, component_type_t t, const void *raw_data, CopyType cpt = CopyType::Deep); // temporary, for
+                                                                                                                 // deserialization. To
+                                                                                                                 // be replaced with
+                                                                                                                 // typemanager
   void free();
   friend EntityManager;
   friend InstantiatedTemplate;

@@ -35,7 +35,10 @@
 #include "../../shaders/dagdp_riex.hlsli"
 #include "shaders/rendinst.hlsli"
 #include "riex.h"
+#include <render/world/renderPrecise.h>
+#include <render/externalResourceWrapper/externalResourceWrapper.h>
 
+extern ShaderBlockIdHolder rendinstDepthSceneBlockId;
 namespace var
 {
 static ShaderVariableInfo num_patches("dagdp_riex__num_patches");
@@ -86,11 +89,6 @@ static constexpr SubPassRange VIEW_KIND_SUBPASSES[VIEW_KIND_COUNT] = {
 
 static constexpr size_t SUBPASS_COUNT = eastl::to_underlying(SubPass::COUNT);
 
-// There are now separate counters for static regions, and dynamic regions.
-static constexpr uint32_t COUNTER_KINDS_NUM = 2;
-static constexpr uint32_t COUNTER_KIND_STATIC = 0;
-static constexpr uint32_t COUNTER_KIND_DYNAMIC = 1;
-
 struct StageRange
 {
   int first;
@@ -133,7 +131,6 @@ static bool uses_extended_multi_draw_struct() { return d3d::get_driver_code().is
 // Each of these corresponds to V actual draw calls, where V is the number of viewports.
 struct ProtoDrawCall
 {
-  InstanceRegion staticInstanceRegion;
   const ShaderMesh::RElem *rElem;
   RenderableId rId;
 
@@ -211,7 +208,6 @@ struct RiexConstants
   uint32_t instanceBufferElementsCount;
 
   ViewInfo viewInfo;
-  uint32_t maxStaticInstancesPerViewport;
   uint32_t maxDrawCallsPerViewport;
   uint32_t numRenderables;
 
@@ -235,14 +231,13 @@ struct RiexRenderableViewInfo
 {
   RenderableId rId;
   RiexRenderableInfo info;
-  InstanceRegion instanceRegion;
 };
 
 // Used to keep everything potentially used by nodes alive.
 struct RiexPersistentData
 {
-  UniqueBuf counterPatchesBuffer;
-  UniqueBuf drawArgsBuffer;
+  FGExternalUniqueBuf counterPatchesBuffer;
+  FGExternalUniqueBuf drawArgsBuffer;
   dag::Vector<RiexResource> resources;
   CallbackToken rElemsUpdatedToken;
   shaders::UniqueOverrideStateId afterPrePassOverride;
@@ -287,49 +282,29 @@ void update_draw_calls(LockedBuffer<Args> &locked_buffer,
   const RiexConstants &constants,
   const dag::Vector<ProtoDrawCall, framemem_allocator> &proto_draw_calls)
 {
-  for (uint32_t counterKind = 0; counterKind < COUNTER_KINDS_NUM; ++counterKind)
-    for (uint32_t viewportIndex = 0; viewportIndex < constants.viewInfo.maxViewports; ++viewportIndex)
+  for (uint32_t viewportIndex = 0; viewportIndex < constants.viewInfo.maxViewports; ++viewportIndex)
+  {
+    uint32_t baseIndex = viewportIndex * proto_draw_calls.size();
+    int j = 0;
+    for (auto &call : proto_draw_calls)
     {
-      uint32_t baseIndex = (viewportIndex + counterKind * constants.viewInfo.maxViewports) * proto_draw_calls.size();
-      int j = 0;
-      for (auto &call : proto_draw_calls)
-      {
-        const int i = j++;
-        DrawIndexedIndirectArgs *args;
-        if constexpr (eastl::is_same_v<Args, ExtendedDrawIndexedIndirectArgs>)
-          args = &locked_buffer[baseIndex + i].args;
-        else
-          args = &locked_buffer[baseIndex + i];
+      const int i = j++;
+      DrawIndexedIndirectArgs *args;
+      if constexpr (eastl::is_same_v<Args, ExtendedDrawIndexedIndirectArgs>)
+        args = &locked_buffer[baseIndex + i].args;
+      else
+        args = &locked_buffer[baseIndex + i];
 
-        args->indexCountPerInstance = 0; // Will be patched by CS.
-        args->instanceCount = 0;         // Will be patched by CS.
-        args->startIndexLocation = call.rElem->si;
-        args->baseVertexLocation = call.rElem->baseVertex;
+      args->indexCountPerInstance = 0; // Will be patched by CS.
+      args->instanceCount = 0;         // Will be patched by CS.
+      args->startIndexLocation = call.rElem->si;
+      args->baseVertexLocation = call.rElem->baseVertex;
+      args->startInstanceLocation = 0;
 
-        const bool isPacked = is_packed_material(call.dvState.const_state);
-        const uint32_t instanceBaseIndex =
-          constants.maxStaticInstancesPerViewport * viewportIndex + call.staticInstanceRegion.baseIndex;
-
-        uint32_t drawCallId = 0;
-        if (isPacked)
-        {
-          // Note: taken from riExtraRendererT.h
-          const uint32_t materialOffset = get_material_offset(call.dvState.const_state);
-
-          // For dynamic counters, drawCallId needs to be patched on the GPU.
-          if (counterKind == COUNTER_KIND_STATIC)
-            drawCallId = (instanceBaseIndex << MATRICES_OFFSET_SHIFT) | materialOffset;
-        }
-
-        if constexpr (eastl::is_same_v<Args, ExtendedDrawIndexedIndirectArgs>)
-        {
-          locked_buffer[baseIndex + i].drawCallId = drawCallId;
-          args->startInstanceLocation = isPacked ? 0 : instanceBaseIndex;
-        }
-        else
-          args->startInstanceLocation = isPacked ? drawCallId : instanceBaseIndex;
-      }
+      if constexpr (eastl::is_same_v<Args, ExtendedDrawIndexedIndirectArgs>)
+        locked_buffer[baseIndex + i].drawCallId = 0;
     }
+  }
 }
 
 [[nodiscard]] static bool update_buffers(RiexPersistentData &persistent_data,
@@ -337,7 +312,7 @@ void update_draw_calls(LockedBuffer<Args> &locked_buffer,
 {
   RiexConstants &constants = persistent_data.constants;
 
-  const uint32_t drawCallsActualCount = COUNTER_KINDS_NUM * proto_draw_calls.size() * constants.viewInfo.maxViewports;
+  const uint32_t drawCallsActualCount = proto_draw_calls.size() * constants.viewInfo.maxViewports;
   const uint32_t drawCallsActualByteSize = drawCallsActualCount * constants.argsStride;
   UniqueBuf stagingForDrawCalls;
   {
@@ -382,12 +357,9 @@ void update_draw_calls(LockedBuffer<Args> &locked_buffer,
       return false;
     }
 
-    G_STATIC_ASSERT(COUNTER_KINDS_NUM == 2);
     for (uint32_t viewportIndex = 0; viewportIndex < constants.viewInfo.maxViewports; ++viewportIndex)
     {
       const uint32_t baseIndex = viewportIndex * proto_draw_calls.size();
-      const uint32_t baseIndexDynamic =
-        (viewportIndex + COUNTER_KIND_DYNAMIC * constants.viewInfo.maxViewports) * proto_draw_calls.size();
       int j = 0;
       for (auto &call : proto_draw_calls)
       {
@@ -395,9 +367,7 @@ void update_draw_calls(LockedBuffer<Args> &locked_buffer,
         const bool isPacked = is_packed_material(call.dvState.const_state);
 
         RiexPatch &patch = lockedBuffer[baseIndex + i];
-        patch.argsByteOffsetStatic = (baseIndex + i) * constants.argsStride + (constants.isExtendedArgs ? sizeof(uint32_t) : 0);
-        patch.argsByteOffsetDynamic =
-          (baseIndexDynamic + i) * constants.argsStride + (constants.isExtendedArgs ? sizeof(uint32_t) : 0);
+        patch.argsByteOffsetDynamic = (baseIndex + i) * constants.argsStride + (constants.isExtendedArgs ? sizeof(uint32_t) : 0);
         patch.localCounterIndex = viewportIndex * constants.numRenderables + call.rId;
         patch.indexCount = call.rElem->numf * 3;
         patch.materialOffset = isPacked ? get_material_offset(call.dvState.const_state) : 0;
@@ -469,7 +439,6 @@ static void rebuild_cache(RiexPersistentData &persistent_data)
 
           auto &call = protoDrawCallsFmem.push_back();
           call.rElem = &rElem;
-          call.staticInstanceRegion = renderable.instanceRegion;
           call.rId = renderable.rId;
 
           call.stage = stage;
@@ -502,7 +471,6 @@ static void rebuild_cache(RiexPersistentData &persistent_data)
 
         // Non-packed materials cannot use multidraw.
         multiCall.isForcedSingle = !is_packed_material(call.dvState.const_state);
-        multiCall.staticInstanceRegion = call.staticInstanceRegion;
 
         multiCall.stage = call.stage;
         multiCall.isTree = call.isTree;
@@ -604,9 +572,6 @@ static void render(SubPass sub_pass,
   // static ShaderVariableInfo perDrawDataVarId("perDrawInstanceData");
   // ShaderGlobal::set_buffer(perDrawDataVarId, get_per_draw_gathered_data());
 
-  // Hack: BFG does not allow to specify two read-only usages.
-  d3d::resource_barrier({draw_args_buf, RB_RO_SRV | RB_RO_INDIRECT_BUFFER | RB_STAGE_VERTEX});
-
   if (persistent_data.riAdditionalInstanceOffsetRegNo != -1)
     d3d::set_buffer(STAGE_VS, persistent_data.riAdditionalInstanceOffsetRegNo, draw_args_buf);
 
@@ -672,43 +637,32 @@ static void render(SubPass sub_pass,
     // When draw call ID is present, but not used, we have to skip it in the extended indirect args.
     uint32_t additionalByteOffset = call.isForcedSingle && constants.isExtendedArgs ? sizeof(uint32_t) : 0;
 
-    for (uint32_t counterKind = 0; counterKind < COUNTER_KINDS_NUM; ++counterKind)
+    const uint32_t viewportByteOffset = persistent_data.cache.numCallsPerViewport * constants.argsStride * viewport_index;
+    const uint32_t totalByteOffset = call.byteOffset + viewportByteOffset + additionalByteOffset;
+
+    uint32_t vsImmediate = 0u;
+    if (call.isForcedSingle && constants.isNonMultidrawIndirectionNeeded)
     {
-      if (counterKind == COUNTER_KIND_STATIC && constants.maxStaticInstancesPerViewport == 0)
-        continue;
-
-      if (counterKind == COUNTER_KIND_DYNAMIC && !constants.haveDynamicRegions)
-        continue;
-
-      const uint32_t kindByteOffset =
-        persistent_data.cache.numCallsPerViewport * constants.argsStride * constants.viewInfo.maxViewports * counterKind;
-      const uint32_t viewportByteOffset = persistent_data.cache.numCallsPerViewport * constants.argsStride * viewport_index;
-      const uint32_t totalByteOffset = call.byteOffset + kindByteOffset + viewportByteOffset + additionalByteOffset;
-
-      uint32_t vsImmediate = 0u;
-      if (call.isForcedSingle && constants.isNonMultidrawIndirectionNeeded)
-      {
-        const uint32_t offset = (totalByteOffset + offsetof(DrawIndexedIndirectArgs, startInstanceLocation));
-        G_ASSERT(offset <= INST_OFFSET_MASK_VALUE);
-        vsImmediate |= INST_OFFSET_FLAG_USE_INDIRECTION | offset;
-      }
-
-      if (vsImmediate != lastVsImmediate)
-      {
-        d3d::set_immediate_const(STAGE_VS, &vsImmediate, 1);
-        lastVsImmediate = vsImmediate;
-      }
-
-      if (call.isTree != lastIsTree)
-      {
-        if (call.isTree)
-          d3d::set_immediate_const(STAGE_PS, treeImmediateConsts, countof(treeImmediateConsts));
-        else
-          d3d::set_immediate_const(STAGE_PS, nullptr, 0);
-      }
-
-      d3d::multi_draw_indexed_indirect(PRIM_TRILIST, draw_args_buf, call.count, constants.argsStride, totalByteOffset);
+      const uint32_t offset = (totalByteOffset + offsetof(DrawIndexedIndirectArgs, startInstanceLocation));
+      G_ASSERT(offset <= INST_OFFSET_MASK_VALUE);
+      vsImmediate |= INST_OFFSET_FLAG_USE_INDIRECTION | offset;
     }
+
+    if (vsImmediate != lastVsImmediate)
+    {
+      d3d::set_immediate_const(STAGE_VS, &vsImmediate, 1);
+      lastVsImmediate = vsImmediate;
+    }
+
+    if (call.isTree != lastIsTree)
+    {
+      if (call.isTree)
+        d3d::set_immediate_const(STAGE_PS, treeImmediateConsts, countof(treeImmediateConsts));
+      else
+        d3d::set_immediate_const(STAGE_PS, nullptr, 0);
+    }
+
+    d3d::multi_draw_indexed_indirect(PRIM_TRILIST, draw_args_buf, call.count, constants.argsStride, totalByteOffset);
   }
 
   // Needed as part RiShaderConstBuffers' contract.
@@ -719,38 +673,37 @@ static void render(SubPass sub_pass,
   shaders::overrides::reset();
 }
 
-static auto get_draw_args_handle(dabfg::Registry registry, const RiexConstants &constants)
+static auto get_draw_args_handle(dafg::Registry registry, const RiexConstants &constants)
 {
   return (registry.root() / "dagdp" / constants.viewInfo.uniqueName.c_str() / "riex")
     .read("draw_args")
     .buffer()
-    .atStage(dabfg::Stage::PRE_RASTER)
-    .useAs(dabfg::Usage::INDIRECTION_BUFFER)
+    .atStage(dafg::Stage::PRE_RASTER)
+    .useAs(dafg::Usage::INDIRECTION_BUFFER | dafg::Usage::SHADER_RESOURCE)
     .handle();
 }
 
-static auto get_instance_data_handle(dabfg::Registry registry, const RiexConstants &constants)
+static auto get_instance_data_handle(dafg::Registry registry, const RiexConstants &constants)
 {
   return (registry.root() / "dagdp" / constants.viewInfo.uniqueName.c_str())
     .read("instance_data")
     .buffer()
-    .atStage(dabfg::Stage::VS)
-    .useAs(dabfg::Usage::SHADER_RESOURCE)
+    .atStage(dafg::Stage::VS)
+    .useAs(dafg::Usage::SHADER_RESOURCE)
     .handle();
 }
 
-static dabfg::NodeHandle create_main_camera_subpass_node(SubPass sub_pass,
-  const eastl::shared_ptr<RiexPersistentData> &persistent_data)
+static dafg::NodeHandle create_main_camera_subpass_node(SubPass sub_pass, const eastl::shared_ptr<RiexPersistentData> &persistent_data)
 {
   // Use a special namespace in order for nodes to draw into GBuffer at the correct time.
-  const dabfg::NameSpace ns = dabfg::root() / "opaque" / (sub_pass == SubPass::NORMAL_PASS_DECALS ? "decorations" : "statics");
+  const dafg::NameSpace ns = dafg::root() / "opaque" / (sub_pass == SubPass::NORMAL_PASS_DECALS ? "decorations" : "statics");
   const char *nodeName = MAIN_CAMERA_SUBPASS_NODE_NAMES[eastl::to_underlying(sub_pass)];
   G_ASSERT(nodeName);
 
-  return ns.registerNode(nodeName, DABFG_PP_NODE_SRC, [sub_pass, persistent_data](dabfg::Registry registry) {
+  return ns.registerNode(nodeName, DAFG_PP_NODE_SRC, [sub_pass, persistent_data](dafg::Registry registry) {
     const RiexConstants &constants = persistent_data->constants;
 
-    eastl::optional<dabfg::VirtualPassRequest> pass;
+    eastl::optional<dafg::VirtualPassRequest> pass;
     if (sub_pass == SubPass::PRE_PASS_ALL)
       pass = render_to_gbuffer_prepass(registry);
     else if (sub_pass == SubPass::NORMAL_PASS_DECALS)
@@ -764,18 +717,20 @@ static dabfg::NodeHandle create_main_camera_subpass_node(SubPass sub_pass,
     (registry.root() / "dagdp" / constants.viewInfo.uniqueName.c_str())
       .read("per_draw_gathered_data")
       .buffer()
-      .atStage(dabfg::Stage::VS)
+      .atStage(dafg::Stage::VS)
       .bindToShaderVar("perDrawInstanceData");
 
     // Note: set up like opaqueStaticNodes.cpp
-    auto state = registry.requestState()
-                   .setFrameBlock("global_frame")
-                   .setSceneBlock(sub_pass == SubPass::PRE_PASS_ALL ? "rendinst_depth_scene" : "rendinst_scene")
-                   .allowWireframe();
+    auto [cameraHndl, state] = request_common_opaque_state(registry);
 
-    use_default_vrs(*pass, state);
+    eastl::move(state).setSceneBlock(sub_pass == SubPass::PRE_PASS_ALL ? "rendinst_depth_scene" : "rendinst_scene");
+    eastl::move(*pass).vrsRate(VRS_RATE_TEXTURE_NAME);
 
-    return [sub_pass, persistent_data, instanceDataHandle, drawArgsHandle] {
+    return [sub_pass, persistent_data, instanceDataHandle, drawArgsHandle, cameraHndl = cameraHndl](
+             const dafg::multiplexing::Index &multiplexing_index) {
+      const camera_in_camera::ApplyMasterState camcam{multiplexing_index};
+
+      RenderPrecise renderPrecise(cameraHndl.ref().viewTm, cameraHndl.ref().cameraWorldPos);
       const uint32_t viewportIndex = 0; // Main camera only has one viewport.
       render(sub_pass, viewportIndex, *persistent_data, instanceDataHandle.view().getBuf(), drawArgsHandle.view().getBuf());
     };
@@ -789,7 +744,7 @@ void riex_finalize_view(const ViewInfo &view_info, const ViewBuilder &view_build
   if (builder.renderablesInfo.empty())
     return;
 
-  const dabfg::NameSpace ns = dabfg::root() / "dagdp" / view_info.uniqueName.c_str() / "riex";
+  const dafg::NameSpace ns = dafg::root() / "dagdp" / view_info.uniqueName.c_str() / "riex";
   auto persistentData = eastl::make_shared<RiexPersistentData>();
   RiexConstants &constants = persistentData->constants;
 
@@ -800,7 +755,7 @@ void riex_finalize_view(const ViewInfo &view_info, const ViewBuilder &view_build
   ShaderGlobal::get_int_by_name("ri_additional_instance_offsets_data_no", persistentData->riAdditionalInstanceOffsetRegNo);
 
   persistentData->rElemsUpdatedToken = unitedvdata::riUnitedVdata.on_mesh_relems_updated.subscribe(
-    [self = persistentData.get()](const RenderableInstanceLodsResource *ri, bool) {
+    [self = persistentData.get()](const RenderableInstanceLodsResource *ri, bool, int) {
       if (self->isCacheValid && self->usedRI.find(ri) != self->usedRI.end())
         self->isCacheValid = false;
     });
@@ -824,7 +779,6 @@ void riex_finalize_view(const ViewInfo &view_info, const ViewBuilder &view_build
   for (auto value : maxDrawCallsPerViewport)
     constants.maxDrawCallsPerViewport += value;
 
-  constants.maxStaticInstancesPerViewport = view_builder.maxStaticInstancesPerViewport;
   constants.haveDynamicRegions = view_builder.dynamicInstanceRegion.maxCount > 0;
   constants.viewInfo = view_info;
   constants.isExtendedArgs = uses_extended_multi_draw_struct();
@@ -863,36 +817,32 @@ void riex_finalize_view(const ViewInfo &view_info, const ViewBuilder &view_build
   }
 
   persistentData->renderablesInfo.reserve(builder.renderablesInfo.size());
-  for (size_t i = 0; i < builder.renderablesInfo.size(); ++i)
-  {
-    const auto &[rId, info] = builder.renderablesInfo.at(i);
-    auto &dst = persistentData->renderablesInfo.push_back();
-    dst.rId = rId;
-    dst.info = info;
-    dst.instanceRegion = view_builder.renderablesInstanceRegions[rId];
-  }
+  for (auto &[rId, info] : builder.renderablesInfo)
+    persistentData->renderablesInfo.emplace_back(RiexRenderableViewInfo{rId, info});
+
+  const dafg::multiplexing::Mode multiplexingMode = calc_view_multiplex(persistentData->constants.viewInfo.kind);
 
   {
     TmpName bufferName(TmpName::CtorSprintf(), "dagdp_riex_%s_counter_patches", constants.viewInfo.uniqueName.c_str());
-    persistentData->counterPatchesBuffer = dag::buffers::create_persistent_sr_structured(sizeof(RiexPatch),
-      constants.maxDrawCallsPerViewport * constants.viewInfo.maxViewports, bufferName.c_str());
+    persistentData->counterPatchesBuffer = {dag::buffers::create_persistent_sr_structured(sizeof(RiexPatch),
+                                              constants.maxDrawCallsPerViewport * constants.viewInfo.maxViewports, bufferName.c_str()),
+      "patches", ns, multiplexingMode};
   }
 
   {
     TmpName bufferName(TmpName::CtorSprintf(), "dagdp_riex_%s_draw_args", constants.viewInfo.uniqueName.c_str());
     // For simplicity, draw call args count and indexing are always the same, regardless of whether we have dynamic
     // or static instances. This buffer is small anyway.
-    persistentData->drawArgsBuffer = dag::create_sbuffer(sizeof(uint32_t),
-      constants.argsDwords * constants.maxDrawCallsPerViewport * constants.viewInfo.maxViewports * COUNTER_KINDS_NUM,
-      SBCF_BIND_UNORDERED | SBCF_MISC_ALLOW_RAW | SBCF_MISC_DRAWINDIRECT | SBCF_BIND_SHADER_RES, 0, bufferName.c_str());
+    persistentData->drawArgsBuffer = {
+      dag::create_sbuffer(sizeof(uint32_t), constants.argsDwords * constants.maxDrawCallsPerViewport * constants.viewInfo.maxViewports,
+        SBCF_BIND_UNORDERED | SBCF_MISC_ALLOW_RAW | SBCF_MISC_DRAWINDIRECT | SBCF_BIND_SHADER_RES, 0, bufferName.c_str()),
+      "draw_args", ns, multiplexingMode};
   }
 
-  dabfg::NodeHandle updateNode = ns.registerNode("update", DABFG_PP_NODE_SRC, [persistentData](dabfg::Registry registry) {
+  dafg::NodeHandle updateNode = ns.registerNode("update", DAFG_PP_NODE_SRC, [persistentData](dafg::Registry registry) {
     view_multiplex(registry, persistentData->constants.viewInfo.kind);
-    registry.registerBuffer("draw_args", [persistentData](auto) { return ManagedBufView(persistentData->drawArgsBuffer); })
-      .atStage(dabfg::Stage::TRANSFER);
-    registry.registerBuffer("patches", [persistentData](auto) { return ManagedBufView(persistentData->counterPatchesBuffer); })
-      .atStage(dabfg::Stage::TRANSFER);
+    registry.modify("draw_args").buffer().atStage(dafg::Stage::TRANSFER);
+    registry.modify("patches").buffer().atStage(dafg::Stage::TRANSFER);
 
     return [persistentData] {
       // Rebuilding the cache will update the draw_args, patch buffers.
@@ -917,50 +867,29 @@ void riex_finalize_view(const ViewInfo &view_info, const ViewBuilder &view_build
       for (const auto sElem : persistentData->cache.usedSElems)
       {
         // This mirrors riExtraRendererT.h
-        sElem->setReqTexLevel(TexStreamingContext::maxLevel);
+        sElem->setReqTexLevel(TexStreamingContext::MAX_TEX_LEVEL);
       }
 
       for (const auto cState : persistentData->cache.packedConstStates)
       {
         // Technically this modifies global rendering state, but there is no direct dependency on this state from
         // the drawing node. We just need to make sure, that this is called before the draw calls are made.
-        update_bindless_state(cState, TexStreamingContext::maxLevel);
+        update_bindless_state(cState, TexStreamingContext::MAX_TEX_LEVEL);
       }
     };
   });
 
-  dabfg::NodeHandle patchStaticNode = ns.registerNode("patch_static", DABFG_PP_NODE_SRC, [persistentData](dabfg::Registry registry) {
-    view_multiplex(registry, persistentData->constants.viewInfo.kind);
-    (registry.root() / "dagdp" / persistentData->constants.viewInfo.uniqueName.c_str())
-      .read("counters")
-      .buffer()
-      .atStage(dabfg::Stage::COMPUTE)
-      .bindToShaderVar("dagdp__counters");
-    registry.read("patches").buffer().atStage(dabfg::Stage::COMPUTE).bindToShaderVar("dagdp_riex__patches");
-    registry.modify("draw_args").buffer().atStage(dabfg::Stage::COMPUTE).bindToShaderVar("dagdp_riex__draw_args");
-
-    return [persistentData, shader = ComputeShader("dagdp_riex_patch_static")] {
-      if (!persistentData->areBuffersValid)
-        return;
-
-      ShaderGlobal::set_int(var::num_patches, persistentData->cache.numCounterPatches);
-      bool res = shader.dispatchThreads(persistentData->cache.numCounterPatches, 1, 1);
-      G_ASSERT(res);
-      G_UNUSED(res);
-    };
-  });
-
-  dabfg::NodeHandle patchDynamicNode = ns.registerNode("patch_dynamic", DABFG_PP_NODE_SRC, [persistentData](dabfg::Registry registry) {
+  dafg::NodeHandle patchDynamicNode = ns.registerNode("patch_dynamic", DAFG_PP_NODE_SRC, [persistentData](dafg::Registry registry) {
     view_multiplex(registry, persistentData->constants.viewInfo.kind);
 
     const auto ns = registry.root() / "dagdp" / persistentData->constants.viewInfo.uniqueName.c_str();
 
-    ns.read("dyn_allocs_stage1").buffer().atStage(dabfg::Stage::COMPUTE).bindToShaderVar("dagdp__dyn_allocs");
+    ns.read("dyn_allocs_stage1").buffer().atStage(dafg::Stage::COMPUTE).bindToShaderVar("dagdp__dyn_allocs");
 
-    ns.read("dyn_counters_stage1").buffer().atStage(dabfg::Stage::COMPUTE).bindToShaderVar("dagdp__dyn_counters");
+    ns.read("dyn_counters_stage1").buffer().atStage(dafg::Stage::COMPUTE).bindToShaderVar("dagdp__dyn_counters");
 
-    registry.read("patches").buffer().atStage(dabfg::Stage::COMPUTE).bindToShaderVar("dagdp_riex__patches");
-    registry.modify("draw_args").buffer().atStage(dabfg::Stage::COMPUTE).bindToShaderVar("dagdp_riex__draw_args");
+    registry.read("patches").buffer().atStage(dafg::Stage::COMPUTE).bindToShaderVar("dagdp_riex__patches");
+    registry.modify("draw_args").buffer().atStage(dafg::Stage::COMPUTE).bindToShaderVar("dagdp_riex__draw_args");
 
     return [persistentData, shader = ComputeShader("dagdp_riex_patch_dynamic")] {
       if (!persistentData->areBuffersValid)
@@ -974,9 +903,6 @@ void riex_finalize_view(const ViewInfo &view_info, const ViewBuilder &view_build
   });
 
   node_inserter(eastl::move(updateNode));
-
-  if (constants.maxStaticInstancesPerViewport > 0)
-    node_inserter(eastl::move(patchStaticNode));
 
   if (constants.haveDynamicRegions)
     node_inserter(eastl::move(patchDynamicNode));
@@ -1002,9 +928,9 @@ void riex_finalize_view(const ViewInfo &view_info, const ViewBuilder &view_build
 
 struct ExtensionData
 {
-  eastl::optional<dabfg::VirtualResourceHandle<const dynamic_shadow_render::FrameVector<int>, false, false>> mappingHandle;
-  dag::Vector<dabfg::VirtualResourceHandle<const Sbuffer, true, false>> drawArgsHandles;
-  dag::Vector<dabfg::VirtualResourceHandle<const Sbuffer, true, false>> instanceDataHandles;
+  eastl::optional<dafg::VirtualResourceHandle<const dynamic_shadow_render::FrameVector<int>, false, false>> mappingHandle;
+  dag::Vector<dafg::VirtualResourceHandle<const Sbuffer, true, false>> drawArgsHandles;
+  dag::Vector<dafg::VirtualResourceHandle<const Sbuffer, true, false>> instanceDataHandles;
   dag::Vector<eastl::shared_ptr<RiexPersistentData>> views;
 };
 
@@ -1015,7 +941,7 @@ void riex_finalize(RiexManager &manager)
     auto extensionData = eastl::make_shared<ExtensionData>();
     extensionData->views = eastl::move(manager.currentDynShadowViews);
 
-    const auto declare = [extensionData](dabfg::Registry registry) {
+    const auto declare = [extensionData](dafg::Registry registry) {
       extensionData->drawArgsHandles.clear();
       extensionData->instanceDataHandles.clear();
 
@@ -1036,7 +962,6 @@ void riex_finalize(RiexManager &manager)
       if (viewIndex == -1)
         return;
 
-      static const int rendinstDepthSceneBlockId = ShaderGlobal::getBlockId("rendinst_depth_scene");
       TIME_D3D_PROFILE(dagdpRiexDynShadow);
       SCENE_LAYER_GUARD(rendinstDepthSceneBlockId);
 

@@ -8,7 +8,6 @@
 #include "net/userid.h"
 #include "main/appProfile.h"
 #include "main/main.h"
-#include <util/dag_base64.h>
 #include <ecs/core/entityManager.h>
 
 namespace dedicated_matching
@@ -70,22 +69,21 @@ Commandline arguments:
     "-nomatching" - disable Gaijin mathcing
     "-nonetenc" - switch off traffic encryption
     "-nopeerauth" - swithc off client authentification and traffic enryption
-    "-customPublicMatchingCfg:" - undocumented
 
   client (debug options):
 
     -force_player_group:int - debug option to for client squad(group)
 */
 
-static void apply_custom_matching_public_config(const char *encoded_config)
+namespace state_data
 {
-  debug("applying custom matching public config");
-
-  String config;
-  Base64(encoded_config).decode(config);
-
-  Json::Reader().parse(config.begin(), config.end(), room_info["public"], false);
-}
+static Json::Value room_info;
+static matching::RoomId current_room_id = matching::INVALID_ROOM_ID;
+static eastl::string room_secret;
+static eastl::unordered_map<matching::UserId, Json::Value> room_members;
+static int group_size = 0; // 0 = unlimited
+bool (*generate_peer_auth)(matching::UserId, void const *, size_t, matching::AuthKey &) = nullptr;
+} // namespace state_data
 
 static void merge_json(Json::Value const &what, Json::Value &where)
 {
@@ -146,22 +144,7 @@ void apply_room_invite(Json::Value const &params, Json::Value &resp)
     return;
   }
 
-  const Json::Value &inviteData = params["invite_data"];
-  const Json::Value &modeInfo = inviteData["mode_info"];
-
-  const char *requestedGame = modeInfo["gameName"].asCString();
-  if (strcmp(requestedGame, get_game_name()) != 0)
-  {
-    debug("Room invite rejected due to game name mismatch. Current game is '%s'. Requested "
-          "game is '%s'",
-      get_game_name(), requestedGame);
-    resp["accept"] = false;
-    resp["reason"] = "game mismatch";
-    return;
-  }
-
   resp["accept"] = true;
-
   current_room_id = params["roomId"].asUInt64();
   g_entity_mgr->broadcastEventImmediate(NetMatchingEventOnJoinRoom{current_room_id});
 }
@@ -226,8 +209,6 @@ void init()
   if (dgs_get_argv("nomatching") || app_profile::get().disableRemoteNetServices)
   {
     debug("matching client disabled");
-    if (const char *encodedConfig = dgs_get_argv("customPublicMatchingCfg"))
-      apply_custom_matching_public_config(encodedConfig);
     return;
   }
   g_entity_mgr->broadcastEventImmediate(NetMatchingEventOnInit{});
@@ -332,15 +313,10 @@ const char *get_player_custom_info(matching::UserId uid)
   return member["public"]["custom"].asCString();
 }
 
+const eastl::unordered_map<matching::UserId, Json::Value> &get_session_players() { return room_members; }
+
 } // namespace dedicated_matching
 
 #define NET_MATCHING_ECS_EVENT ECS_REGISTER_EVENT
 NET_MATCHING_ECS_EVENTS
 #undef NET_MATCHING_ECS_EVENT
-
-Json::Value dedicated_matching::state_data::room_info;
-matching::RoomId dedicated_matching::state_data::current_room_id = matching::INVALID_ROOM_ID;
-eastl::string dedicated_matching::state_data::room_secret;
-eastl::unordered_map<matching::UserId, Json::Value> dedicated_matching::state_data::room_members;
-int dedicated_matching::state_data::group_size = 0; // 0 = unlimited
-bool (*dedicated_matching::state_data::generate_peer_auth)(matching::UserId, void const *, size_t, matching::AuthKey &) = nullptr;

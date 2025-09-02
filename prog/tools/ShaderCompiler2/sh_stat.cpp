@@ -11,7 +11,9 @@ int ShaderCompilerStat::totalVariants = 0;
 ShaderCompilerStat::DroppedVariants ShaderCompilerStat::droppedVariants = {0};
 Tab<ShaderCompilerStat::ShaderStatistics> ShaderCompilerStat::shaderStatisticsList(stdmem_ptr());
 int ShaderCompilerStat::hlslCompileCount = 0, ShaderCompilerStat::hlslCacheHitCount = 0, ShaderCompilerStat::hlslEqResultCount = 0;
-std::atomic_int ShaderCompilerStat::hlslExternalCacheHitCount = 0;
+dag::AtomicInteger<int> ShaderCompilerStat::hlslExternalCacheHitCount = 0;
+unsigned lastFshSize, lastFshCount, lastVprSize, lastVprCount, lastStcodeSize; // @TODO: this shall be moved too, but for now we need
+                                                                               // to cache stats
 
 void ShaderCompilerStat::reset()
 {
@@ -33,18 +35,14 @@ void ShaderCompilerStat::printReport(const char *dir)
       hlslCompileCount, hlslCacheHitCount, (float)hlslCacheHitCount / (float)hlslCompileCount, hlslEqResultCount,
       hlslExternalCacheHitCount.load(), getUniqueCompilationCount());
 
-
-  unsigned fshSize, fshCount, vprSize, vprCount, stcodeSize;
-  count_shader_stats(fshSize, fshCount, vprSize, vprCount, stcodeSize);
-
-  if (fshSize + vprSize > 0)
+  if (lastFshSize + lastVprSize > 0)
   {
     sh_debug(SHLOG_INFO,
       "Total shader bytes: %d,\n"
       "FSH: %7d bytes in %4d shaders\n"
       "VPR: %7d bytes in %4d shaders\n"
       "stcode bytes: %d",
-      fshSize + vprSize, fshSize, fshCount, vprSize, vprCount, stcodeSize);
+      lastFshSize + lastVprSize, lastFshSize, lastFshCount, lastVprSize, lastVprCount, lastStcodeSize);
 
     if (!dir)
       return;
@@ -66,4 +64,9 @@ void ShaderCompilerStat::printReport(const char *dir)
     }
     fclose(file);
   }
+}
+
+void ShaderCompilerStat::collectTargetStats(const shc::TargetContext &ctx)
+{
+  count_shader_stats(lastFshSize, lastFshCount, lastVprSize, lastVprCount, lastStcodeSize, ctx);
 }

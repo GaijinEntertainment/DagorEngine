@@ -13,6 +13,7 @@ class IStaticShadowsCB
 {
 public:
   virtual void startRenderStaticShadow(const TMatrix &view, const Point2 &zn_zf, float minHt, float maxHt) = 0;
+  virtual bool readyToRenderRegionWithFinalQuality(const ViewTransformData & /*curTransform*/, int /*region*/) { return true; }
   // toroidal: culling_view_proj has twice the zfar size, then globtm
   // scrolled: zNear plane may be extended to reduce shadow popping
   virtual void renderStaticShadowDepth(const mat44f &culling_view_proj, const ViewTransformData &curTransform, int region) = 0;

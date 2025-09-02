@@ -17,6 +17,37 @@ METHODDEF(void) dagor_jpeg_error_exit(j_common_ptr cinfo)
 }
 
 
+bool read_jpeg32_dimensions(const char *fn, int &out_w, int &out_h)
+{
+  FullFileLoadCB crd(fn);
+  if (!crd.fileHandle)
+    return false;
+  struct jpeg_decompress_struct cinfo;
+  struct dagor_jpeg_error_mgr jerr;
+
+  cinfo.err = jpeg_std_error(&jerr.pub);
+  jerr.pub.error_exit = dagor_jpeg_error_exit;
+
+  if (setjmp(jerr.setjmp_buffer))
+  {
+    jpeg_destroy_decompress(&cinfo);
+    return false;
+  }
+
+  jpeg_create_decompress(&cinfo);
+  jpeg_stream_src(&cinfo, crd);
+
+  jpeg_read_header(&cinfo, TRUE);
+  jpeg_start_decompress(&cinfo);
+
+  out_w = cinfo.output_width;
+  out_h = cinfo.output_height;
+
+  jpeg_abort_decompress(&cinfo);
+  jpeg_destroy_decompress(&cinfo);
+  return true;
+}
+
 TexImage32 *load_jpeg32(IGenLoad &crd, IMemAlloc *mem, eastl::string *comments)
 {
   TexImage32Alloc a(mem);

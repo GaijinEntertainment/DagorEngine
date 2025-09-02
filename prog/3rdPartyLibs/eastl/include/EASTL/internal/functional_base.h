@@ -118,7 +118,8 @@ namespace eastl
 
 	template <typename R, typename F, typename... Args>
 	struct is_invocable_r_impl<R, F, void_t<typename invoke_result<F, Args...>::type>, Args...>
-		: public is_convertible<typename invoke_result<F, Args...>::type, R> {};
+		: public disjunction<is_convertible<typename invoke_result<F, Args...>::type, R>,
+							 is_same<typename remove_cv<R>::type, void>> {};
 
 	template <typename R, typename F, typename... Args>
 	struct is_invocable_r : public is_invocable_r_impl<R, F, void, Args...> {};
@@ -180,25 +181,25 @@ namespace eastl
 
 
 	template <typename Argument, typename Result>
-	struct unary_function
+	struct EASTL_REMOVE_AT_2024_APRIL unary_function
 	{
-		typedef Argument argument_type;
-		typedef Result   result_type;
+		EASTL_REMOVE_AT_2024_APRIL typedef Argument argument_type;
+		EASTL_REMOVE_AT_2024_APRIL typedef Result   result_type;
 	};
 
 
 	template <typename Argument1, typename Argument2, typename Result>
-	struct binary_function
+	struct EASTL_REMOVE_AT_2024_APRIL binary_function
 	{
-		typedef Argument1 first_argument_type;
-		typedef Argument2 second_argument_type;
-		typedef Result    result_type;
+		EASTL_REMOVE_AT_2024_APRIL typedef Argument1 first_argument_type;
+		EASTL_REMOVE_AT_2024_APRIL typedef Argument2 second_argument_type;
+		EASTL_REMOVE_AT_2024_APRIL typedef Result    result_type;
 	};
 
 
 	/// less<T>
 	template <typename T = void>
-	struct less : public binary_function<T, T, bool>
+	struct less
 	{
 		EA_CPP14_CONSTEXPR bool operator()(const T& a, const T& b) const
 			{ return a < b; }
@@ -232,7 +233,7 @@ namespace eastl
 		T& get() const EA_NOEXCEPT;
 
 		template <typename... ArgTypes>
-		typename eastl::result_of<T&(ArgTypes&&...)>::type operator() (ArgTypes&&...) const;
+		typename eastl::invoke_result<T&, ArgTypes...>::type operator() (ArgTypes&&...) const;
 
 	private:
 		T* val;
@@ -269,7 +270,7 @@ namespace eastl
 
 	template <typename T>
 	template <typename... ArgTypes>
-	typename eastl::result_of<T&(ArgTypes&&...)>::type reference_wrapper<T>::operator() (ArgTypes&&... args) const
+	typename eastl::invoke_result<T&, ArgTypes...>::type reference_wrapper<T>::operator() (ArgTypes&&... args) const
 	{
 		return eastl::invoke(*val, eastl::forward<ArgTypes>(args)...);
 	}
@@ -359,8 +360,9 @@ namespace eastl
 
 	/// bind1st
 	///
+	EASTL_INTERNAL_DISABLE_DEPRECATED() // unariy_function is deprecated
 	template <typename Operation>
-	class binder1st : public unary_function<typename Operation::second_argument_type, typename Operation::result_type>
+	class EASTL_REMOVE_AT_2024_APRIL binder1st : public unary_function<typename Operation::second_argument_type, typename Operation::result_type>
 	{
 		protected:
 			typename Operation::first_argument_type value;
@@ -376,20 +378,23 @@ namespace eastl
 			typename Operation::result_type operator()(typename Operation::second_argument_type& x) const
 				{ return op(value, x); }
 	};
+	EASTL_INTERNAL_RESTORE_DEPRECATED()
 
 
+	EASTL_INTERNAL_DISABLE_DEPRECATED() // 'eastl::binder1st<Operation>': was declared deprecated
 	template <typename Operation, typename T>
-	inline binder1st<Operation> bind1st(const Operation& op, const T& x)
+	EASTL_REMOVE_AT_2024_APRIL inline binder1st<Operation> bind1st(const Operation& op, const T& x)
 	{
 		typedef typename Operation::first_argument_type value;
 		return binder1st<Operation>(op, value(x));
 	}
-
+	EASTL_INTERNAL_RESTORE_DEPRECATED()
 
 	/// bind2nd
 	///
+	EASTL_INTERNAL_DISABLE_DEPRECATED() // unariy_function is deprecated
 	template <typename Operation>
-	class binder2nd : public unary_function<typename Operation::first_argument_type, typename Operation::result_type>
+	class EASTL_REMOVE_AT_2024_APRIL binder2nd : public unary_function<typename Operation::first_argument_type, typename Operation::result_type>
 	{
 		protected:
 			Operation op;
@@ -405,14 +410,17 @@ namespace eastl
 			typename Operation::result_type operator()(typename Operation::first_argument_type& x) const
 				{ return op(x, value); }
 	};
+	EASTL_INTERNAL_RESTORE_DEPRECATED()
 
 
+	EASTL_INTERNAL_DISABLE_DEPRECATED() // 'eastl::binder2nd<Operation>': was declared deprecated
 	template <typename Operation, typename T>
-	inline binder2nd<Operation> bind2nd(const Operation& op, const T& x)
+	EASTL_REMOVE_AT_2024_APRIL inline binder2nd<Operation> bind2nd(const Operation& op, const T& x)
 	{
 		typedef typename Operation::second_argument_type value;
 		return binder2nd<Operation>(op, value(x));
 	}
+	EASTL_INTERNAL_RESTORE_DEPRECATED()
 
 } // namespace eastl
 

@@ -1,0 +1,18 @@
+Root    ?= ../../../../.. ;
+Location = prog/gameLibs/gamePhys/collision/stub ;
+StrictCompile = yes ;
+TargetType  = lib ;
+Target      = gameLibs/gamePhys/collision/collisionStub.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+Sources =
+  collisionStub.cpp
+;
+
+include $(Root)/prog/3rdPartyLibs/phys/setup-phys.jam ;
+include $(Root)/prog/_jBuild/build.jam ;

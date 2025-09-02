@@ -1,6 +1,8 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include "commonUtils.h"
+#include "shaderTab.h"
 #include <debug/dag_assert.h>
 #include <dag/dag_vector.h>
 #include <EASTL/string.h>
@@ -13,9 +15,7 @@ public:
   StcodeBuilder(StcodeBuilder &&other) = default;
   StcodeBuilder &operator=(StcodeBuilder &&other) = default;
 
-  // Non-copyable
-  StcodeBuilder(const StcodeBuilder &other) = delete;
-  StcodeBuilder &operator=(const StcodeBuilder &other) = delete;
+  NON_COPYABLE_TYPE(StcodeBuilder)
 
   void pushBack(eastl::string &&str) { m_fragments.push_back(eastl::move(str)); }
 
@@ -28,7 +28,7 @@ public:
   template <class... Args>
   void emplaceBackFmt(const char *fmt, Args &&...args)
   {
-    m_fragments.push_back(eastl::string(eastl::string::CtorSprintf{}, fmt, eastl::forward<Args>(args)...));
+    m_fragments.push_back(string_f(fmt, eastl::forward<Args>(args)...));
   }
 
   void pushFront(eastl::string &&str) { m_fragments.insert(m_fragments.cbegin(), eastl::move(str)); }
@@ -53,6 +53,7 @@ public:
   void clear() { m_fragments.clear(); }
 
   bool empty() const { return m_fragments.empty(); }
+  size_t fragCount() const { return m_fragments.size(); }
 
   void merge(StcodeBuilder &&other)
   {
@@ -61,6 +62,13 @@ public:
     other.m_fragments.clear();
   }
 
+  template <class TClb>
+  void iterateFragments(TClb &&cb)
+  {
+    for (const auto &frag : m_fragments)
+      cb(frag);
+  }
+
 private:
-  dag::Vector<eastl::string> m_fragments{};
+  Tab<eastl::string> m_fragments{};
 };

@@ -75,6 +75,7 @@ public:
   // no need for its implementation
 
   int getTextureIdx(const char *name);
+  void gatherAndReloadTextures();
   void reloadTextures();
   void addTexture(const char *textureName);
   void close();

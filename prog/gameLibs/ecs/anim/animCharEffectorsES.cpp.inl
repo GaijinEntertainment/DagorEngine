@@ -3,7 +3,6 @@
 #include <ecs/core/entityManager.h>
 #include <daECS/core/coreEvents.h>
 #include <ecs/anim/anim.h>
-#include <ecs/anim/animchar_visbits.h>
 #include <anim/dag_animStateHolder.h>
 #include <anim/dag_animPostBlendCtrl.h>
 #include <ecs/anim/animCharEffectors.h>

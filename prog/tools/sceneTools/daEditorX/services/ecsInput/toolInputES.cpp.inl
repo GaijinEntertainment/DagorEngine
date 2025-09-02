@@ -2,8 +2,10 @@
 
 #include <ecs/core/entitySystem.h>
 #include <ecs/inputEvents.h>
+#include <EditorCore/ec_input.h>
 #include <math/dag_mathBase.h>
-#include <winGuiWrapper/wgw_input.h>
+
+#include <imgui/imgui.h>
 
 ECS_TAG(tools)
 ECS_NO_ORDER
@@ -13,20 +15,19 @@ static __forceinline void key_board_input_es(const ecs::UpdateStageInfoAct &stag
   bool &input__mouseMiddleButtonPressed, bool &input__keyAccelerationPressed, ecs::EntityManager &manager)
 {
   input__deltaTime = stage.dt;
-  input__verticalAxis = approach(input__verticalAxis, (float)(wingw::is_key_pressed('W') - wingw::is_key_pressed('S')), stage.dt,
+  input__verticalAxis = approach(input__verticalAxis, (float)(ec_is_key_down(ImGuiKey_W) - ec_is_key_down(ImGuiKey_S)), stage.dt,
     input__keyboardSmoothFactor);
-  input__horizontalAxis = approach(input__horizontalAxis, (float)(wingw::is_key_pressed('D') - wingw::is_key_pressed('A')), stage.dt,
+  input__horizontalAxis = approach(input__horizontalAxis, (float)(ec_is_key_down(ImGuiKey_D) - ec_is_key_down(ImGuiKey_A)), stage.dt,
     input__keyboardSmoothFactor);
 
-  input__keyAccelerationPressed = wingw::is_key_pressed(wingw::V_SHIFT);
-  IPoint2 newMousePos;
-  wingw::get_mouse_pos(newMousePos.x, newMousePos.y);
+  input__keyAccelerationPressed = ec_is_shift_key_down();
+  IPoint2 newMousePos = ec_get_cursor_pos();
   input__mouseDelta = newMousePos - input__mousePosition;
   input__mousePosition = newMousePos;
 
-  bool leftButtonPressed = wingw::is_key_pressed(wingw::V_LBUTTON);
-  bool rightButtonPressed = wingw::is_key_pressed(wingw::V_RBUTTON);
-  bool middleButtonPressed = wingw::is_key_pressed(wingw::V_MBUTTON);
+  bool leftButtonPressed = ec_is_key_down(ImGuiKey_MouseLeft);
+  bool rightButtonPressed = ec_is_key_down(ImGuiKey_MouseRight);
+  bool middleButtonPressed = ec_is_key_down(ImGuiKey_MouseMiddle);
 
   bool anyButtonDown = false;
   bool anyButtonUp = false;

@@ -4,9 +4,7 @@ include "globtm.dshl"
 hlsl {
   #include <beamTracers.hlsli>
 }
-//  updateCommands_cs = new_compute_shader("update_tracer_commands_cs");
-//  createCommands_cs = new_compute_shader("create_tracer_commands_cs");
-//  cullTracers_cs = new_compute_shader("cull_tracers_cs");
+
 shader create_beam_tracer_commands_cs
 {
   ENABLE_ASSERT(cs)
@@ -31,16 +29,16 @@ shader create_beam_tracer_commands_cs
       structuredBufferAt(tracers, cmd.id).startTime = currentTime;
       structuredBufferAt(tracers, cmd.id).ttl = cmd.ttl;
       structuredBufferAt(tracers, cmd.id).smoke_color_density = float4(1, 1, 1, 1); // isn't used anyway
-      structuredBufferAt(tracers, cmd.id).head_color = cmd.head_color__burnTime.rgb;
-      structuredBufferAt(tracers, cmd.id).burnTime = cmd.head_color__burnTime.a;
+      structuredBufferAt(tracers, cmd.id).headColor = cmd.headColor;
+      structuredBufferAt(tracers, cmd.id).burnTime = cmd.burnTime;
       structuredBufferAt(tracers, cmd.id).radiusStart = len;
       structuredBufferAt(tracers, cmd.id).dir = ndir;//actually it will be always constant for tracer
       structuredBufferAt(tracers, cmd.id).p0 = cmd.pos0;
-      structuredBufferAt(tracers, cmd.id).begin_fade_time = abs(cmd.begin_fade_time);
-      structuredBufferAt(tracers, cmd.id).end_fade_time = cmd.end_fade_time;
-      structuredBufferAt(tracers, cmd.id).scroll_speed = cmd.scroll_speed;
-      structuredBufferAt(tracers, cmd.id).fadeDist = cmd.fade_dist;
-      structuredBufferAt(tracers, cmd.id).isRay = (cmd.begin_fade_time < 0.0) ? 1 : 0;
+      structuredBufferAt(tracers, cmd.id).beamBeginFadeTime = abs(cmd.beamBeginFadeTime);
+      structuredBufferAt(tracers, cmd.id).beamEndFadeTime = cmd.beamEndFadeTime;
+      structuredBufferAt(tracers, cmd.id).beamScrollSpeed = cmd.beamScrollSpeed;
+      structuredBufferAt(tracers, cmd.id).beamFadeDist = cmd.beamFadeDist;
+      structuredBufferAt(tracers, cmd.id).isRay = (cmd.beamBeginFadeTime < 0.0) ? 1 : 0;
 
       structuredBufferAt(tracersDynamic, cmd.id).movingDir = ndir;
       structuredBufferAt(tracersDynamic, cmd.id).firstVert_totalVerts = 1;
@@ -76,9 +74,6 @@ shader update_beam_tracer_commands_cs
       vertCnt &= 0xFFFF;
 
       uint cpoint = vertCnt%TRACER_SEGMENTS_COUNT;
-      //==
-      //cpoint = min(verts, TRACER_SEGMENTS_COUNT-1);
-      //==
       uint startVertId = cmd.id*TRACER_SEGMENTS_COUNT;
       uint lastFixedVertexId = (cpoint+(TRACER_SEGMENTS_COUNT-2))%TRACER_SEGMENTS_COUNT;
       uint prevVertexId = (cpoint+TRACER_SEGMENTS_COUNT-1)%TRACER_SEGMENTS_COUNT;
@@ -91,10 +86,6 @@ shader update_beam_tracer_commands_cs
           return;
       float3 travelDir = travelVec/travelDist;
       const float angleThreshold = 0.9986295347545738;//cos(3 deg);
-      //const float movingDistanceConstMinThreshold = 1.0;
-      //const float movingDistanceConstThreshold = 4.0;
-      //const float movingDistanceTimeScaledThreshold = 64.f;
-      //const float movingDistanceMaxThreshold = 256.f;
       
       float tracerTime = max(0, currentTime-structuredBufferAt(tracers, cmd.id).startTime);
 
@@ -110,7 +101,6 @@ shader update_beam_tracer_commands_cs
         structuredBufferAt(tracersDynamic, cmd.id).radius = structuredBufferAt(tracers, cmd.id).radiusStart;
         return;
       }
-      //const float movingDistanceThreshold = min(movingDistanceConstThreshold+tracerTime*movingDistanceTimeScaledThreshold, movingDistanceMaxThreshold);
       const float movingDistanceThreshold = 64;
 
       float newTravelDist = travelDist;
@@ -202,7 +192,6 @@ shader cull_beam_tracers_cs
         firstVert = firstVert+1;
         firstVert_totalVerts = vertCnt | ((firstVert)<<16);
         tracersDynamic[id].firstVert_totalVerts = firstVert_totalVerts;
-        //todo: softly
       }
 
       uint vertId2 = (vertCnt-1)%TRACER_SEGMENTS_COUNT + startVertId;
@@ -262,15 +251,12 @@ shader cull_beam_tracers_cs
 
       float exposure_time = beam_trace_current_time.z;//+1./120;
       float burnEffect = tracers[id].isRay == 0 ? saturate((tracers[id].burnTime - tracerTime)*(20)) : 1.f;
-      // if (decayTime<exposure_time && burnEffect>0)
       {
         GPUBeamTracerHeadRender renderBox=(GPUBeamTracerHeadRender)0;
-        // float3 p0 = tracerVerts[vertId1].pos_dist.xyz;
         float3 p0 = tracers[id].isRay == 0 ? tracers[id].p0 : tracerVerts[vertId1].pos_dist.xyz;
         float3 p1 = tracerVerts[vertId2].pos_dist.xyz;
         float3 dir = (p1-p0);
         float time_to_exposure = exposure_time-decayTime;//+1./120.; //(120hz)
-        // float prev_head_time = (tracerVerts[vertId1].time+tracers[id].startTime);
         float prev_head_time = tracers[id].startTime;
         float3 vel = (p1.xyz-p0.xyz)/(head_time-prev_head_time);
         float start_p1_length = length(p1 - tracers[id].p0);
@@ -278,15 +264,14 @@ shader cull_beam_tracers_cs
         float vel_multiplier = min(time_to_exposure, tracerTime-decayTime);
         if (vel_length > 0.0)
           vel_multiplier = clamp(vel_multiplier, 0.0, start_p1_length / vel_length);
-//        renderBox.p0.xyz = p1.xyz - vel*vel_multiplier;
         renderBox.p0 = p0;
         renderBox.p1 = p1;
-        renderBox.fadeDist = tracers[id].fadeDist;
+        renderBox.beamFadeDist = tracers[id].beamFadeDist;
 
-        renderBox.scrollSpeed = tracers[id].scroll_speed;
+        renderBox.beamScrollSpeed = tracers[id].beamScrollSpeed;
 
-        renderBox.fadeTimeRatio = tracers[id].isRay == 0 ? min(1, min(tracerTime / tracers[id].begin_fade_time,
-                                            (tracers[id].ttl - tracerTime) / tracers[id].end_fade_time)) : 1;
+        renderBox.fadeTimeRatio = tracers[id].isRay == 0 ? min(1, min(tracerTime / tracers[id].beamBeginFadeTime,
+                                            (tracers[id].ttl - tracerTime) / tracers[id].beamEndFadeTime)) : 1;
 
         float tracerRadius = radiusStart*0.0125;
         float viewDist0 = distance(world_view_pos, p0);
@@ -299,11 +284,10 @@ shader cull_beam_tracers_cs
         float fade = sqrt(tracerRadius / cRadius);
         float boxRadius = cRadius;
         renderBox.radius1 = boxRadius;
-        //float time_opacity = 1-saturate((tracerTime-tracerVerts[vertId2].time)/tracers[id].ttl);
-        float time_opacity = 1;//-saturate(decayTime/exposure_time);
+        float time_opacity = 1;
         time_opacity *= burnEffect;
         float density = time_opacity*fade;
-        float3 tracer_color = 8*tracers[id].head_color.xyz;//==
+        float3 tracer_color = 8*tracers[id].headColor;
         renderBox.color = float4(tracer_color/**burnEffect*/, density);
         float3 boxMin = min(renderBox.p0.xyz, renderBox.p1.xyz), boxMax = max(renderBox.p0.xyz, renderBox.p1.xyz);
         boxMin -= boxRadius; boxMax += boxRadius;

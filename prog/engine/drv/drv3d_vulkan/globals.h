@@ -7,6 +7,8 @@
 class WinCritSec;
 struct Driver3dDesc;
 
+class StreamlineAdapter;
+
 namespace drv3d_vulkan
 {
 
@@ -18,10 +20,9 @@ class PipelineManager;
 class RenderPassManager;
 class FenceManager;
 class TimelineManager;
-class Swapchain;
 class ExecutionMarkers;
 class SurveyQueryManager;
-class TimestampQueryManager;
+class QueryManager;
 class BindlessManager;
 class DeviceMemoryReport;
 class RenderStateSystem;
@@ -45,10 +46,10 @@ struct BufferPool;
 class RenderDocCaptureModule;
 class DebugCallbacks;
 struct GlobalDriverLock;
+class DLSSSuperResolutionDirect;
 
 struct Globals
 {
-  static RaytraceScratchBuffer rtScratchBuffer;
   static RaytraceBLASCompactionSizeQueryPool rtSizeQueryPool;
   static DummyResources dummyResources;
 
@@ -77,10 +78,10 @@ struct Globals
   static RenderPassManager passes;
   static FenceManager fences;
   static TimelineManager timelines;
-  static Swapchain swapchain;
   static ExecutionMarkers gpuExecMarkers;
   static SurveyQueryManager surveys;
-  static TimestampQueryManager timestamps;
+  static QueryManager timestamps;
+  static QueryManager occlusionQueries;
   static BindlessManager bindless;
   static RenderStateSystem renderStates;
   static PipelineCache pipeCache;
@@ -91,6 +92,9 @@ struct Globals
   static Driver3dDesc desc;
   static WindowState window;
   static GlobalDriverLock lock;
+#if !USE_STREAMLINE_FOR_DLSS
+  static DLSSSuperResolutionDirect dlss;
+#endif
 
   struct VK
   {

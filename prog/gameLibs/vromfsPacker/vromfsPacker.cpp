@@ -59,11 +59,11 @@ void save_to_bbf3(const DataBlock &blk, IGenSave &cwr);
 static const int C_SHA1_RECSZ = VirtualRomFsPack::BackedData::C_SHA1_RECSZ;
 static const int ZSTD_BLK_CLEVEL = 11;
 
-static const char *targetString = NULL;
 using RegExpPtr = eastl::unique_ptr<RegExp>;
 static Tab<RegExpPtr> reExcludeFile(tmpmem);
 static Tab<RegExpPtr> reIncludeBlk(tmpmem), reExcludeBlk(tmpmem);
 static Tab<RegExpPtr> reIncludeKeepLines(tmpmem);
+static Tab<RegExpPtr> reStripCppComments(tmpmem);
 static bool blkCheckOnly = false;
 static size_t z1_blk_sz = 1 << 20;
 static bool force_legacy_format = true;
@@ -150,7 +150,6 @@ String make_fname(const char *sname, const char *src_folder, const char *dst_fol
 void scan_files(const char *root_path, const char *src_folder, const char *dst_folder, Tab<SimpleString> &wclist,
   dag::ConstSpan<RegExpPtr> exclist, bool scan_files, bool scan_subfolders, FastNameMapEx &files, Tab<String> &dst_files)
 {
-  alefind_t ff;
   String tmpPath;
   String srcDir(0, "%s/%s", root_path, src_folder);
 
@@ -159,27 +158,23 @@ void scan_files(const char *root_path, const char *src_folder, const char *dst_f
     for (int i = 0; i < wclist.size(); i++)
     {
       tmpPath.printf(260, "%s/%s", srcDir, wclist[i].str());
-      if (::dd_find_first(tmpPath, 0, &ff))
+      for (const alefind_t &ff : dd_find_iterator(tmpPath, DA_FILE))
       {
-        do
+        tmpPath.printf(260, "%s/%s", srcDir, ff.name);
+        char *sname = simplify_name(tmpPath);
+        if (write_version && force_legacy_format && strcmp(dd_get_fname(sname), version_legacy_fn) == 0)
+          continue;
+        if (checkPattern(sname, reExcludeFile) || checkPattern(sname, exclist))
         {
-          tmpPath.printf(260, "%s/%s", srcDir, ff.name);
-          char *sname = simplify_name(tmpPath);
-          if (write_version && force_legacy_format && strcmp(dd_get_fname(sname), version_legacy_fn) == 0)
-            continue;
-          if (checkPattern(sname, reExcludeFile) || checkPattern(sname, exclist))
-          {
-            if (!::dgs_execute_quiet)
-              printf("EXCLUDE: %s\n", sname);
-            continue;
-          }
+          if (!::dgs_execute_quiet)
+            printf("EXCLUDE: %s\n", sname);
+          continue;
+        }
 
-          int id = files.addNameId(sname);
-          if (dst_files.size() <= id)
-            dst_files.resize(id + 1);
-          dst_files[id] = make_fname(sname, srcDir, dst_folder);
-        } while (dd_find_next(&ff));
-        dd_find_close(&ff);
+        int id = files.addNameId(sname);
+        if (dst_files.size() <= id)
+          dst_files.resize(id + 1);
+        dst_files[id] = make_fname(sname, srcDir, dst_folder);
       }
     }
 
@@ -187,19 +182,16 @@ void scan_files(const char *root_path, const char *src_folder, const char *dst_f
   if (scan_subfolders)
   {
     tmpPath.printf(260, "%s/%s/*", root_path, src_folder);
-    if (::dd_find_first(tmpPath, DA_SUBDIR, &ff))
+    for (const alefind_t &ff : dd_find_iterator(tmpPath, DA_SUBDIR))
     {
-      do
-        if (ff.attr & DA_SUBDIR)
-        {
-          if (dd_stricmp(ff.name, "cvs") == 0 || dd_stricmp(ff.name, ".svn") == 0)
-            continue;
+      if (ff.attr & DA_SUBDIR)
+      {
+        if (dd_stricmp(ff.name, "cvs") == 0 || dd_stricmp(ff.name, ".svn") == 0)
+          continue;
 
-          ::scan_files(root_path, String(260, "%s/%s", src_folder, ff.name).str(), String(260, "%s/%s", dst_folder, ff.name).str(),
-            wclist, exclist, true, scan_subfolders, files, dst_files);
-        }
-      while (dd_find_next(&ff));
-      dd_find_close(&ff);
+        ::scan_files(root_path, String(260, "%s/%s", src_folder, ff.name).str(), String(260, "%s/%s", dst_folder, ff.name).str(),
+          wclist, exclist, true, scan_subfolders, files, dst_files);
+      }
     }
   }
 }
@@ -305,7 +297,9 @@ done:
 
 void gatherFilesList(const DataBlock &blk, FastNameMapEx &files, Tab<String> &dst_files, unsigned targetCode, const char *output)
 {
-  String out_pname(32, "output_%s", mkbindump::get_target_str(targetCode));
+  uint64_t tc_storage = 0;
+  const char *tc_str = mkbindump::get_target_str(targetCode, tc_storage);
+  String out_pname(32, "output_%s", tc_str);
   const char *def_outdir = blk.getStr(out_pname, blk.getStr("output", ""));
 
   Tab<SimpleString> wclist(tmpmem);
@@ -313,7 +307,7 @@ void gatherFilesList(const DataBlock &blk, FastNameMapEx &files, Tab<String> &ds
   int folder_nid = blk.getNameId("folder");
   int wildcard_nid = blk.getNameId("wildcard");
   int file_nid = blk.getNameId("file");
-  const char *root_path = blk.getStr(String(0, "rootFolder_%s", mkbindump::get_target_str(targetCode)), blk.getStr("rootFolder", "."));
+  const char *root_path = blk.getStr(String::mk_str_cat("rootFolder_", tc_str), blk.getStr("rootFolder", "."));
   int platform_nid = blk.getNameId("platform");
 
   for (int i = 0; i < blk.blockCount(); i++)
@@ -376,7 +370,7 @@ void gatherFilesList(const DataBlock &blk, FastNameMapEx &files, Tab<String> &ds
     }
 }
 
-void process_and_copy_file_to_stream(const char *fname, IGenSave &cwr, const char *targetString, bool keepLines);
+void process_and_copy_file_to_stream(const char *fname, IGenSave &cwr, const char *targetString, bool keepLines, bool strip_comments);
 
 namespace dblk
 {
@@ -430,6 +424,8 @@ bool buildVromfsDump(const char *fname, unsigned targetCode, FastNameMapEx &file
     printf("ERR: output file not defined!");
     return false;
   }
+  uint64_t tc_storage = 0;
+  const char *targetString = mkbindump::get_target_str(targetCode, tc_storage);
   const DataBlock &vfs_props = *inp.getBlockByNameEx("per_output_setup")->getBlockByNameEx(dd_get_fname(fname));
 #define READ_PROP(TYPE, NAME, DEF) vfs_props.get##TYPE(NAME, inp.get##TYPE(NAME, DEF))
 
@@ -545,7 +541,6 @@ bool buildVromfsDump(const char *fname, unsigned targetCode, FastNameMapEx &file
 
   pt_names.reserveData(cwr, files.nameCount(), cwr.PTR_SZ);
   cwr.align16();
-  int names_data_ofs = cwr.tell();
   name_ofs.resize(files.nameCount());
   int i = 0;
   iterate_names_in_order(sorted_fnlist, sorted_fnlist_ids, [&](int, const char *name) {
@@ -555,7 +550,6 @@ bool buildVromfsDump(const char *fname, unsigned targetCode, FastNameMapEx &file
       printf("DST: %s\n", name);
     i++;
   });
-  int names_data_size = cwr.tell() - names_data_ofs;
 
   cwr.align16();
   pt_data.reserveData(cwr, files.nameCount(), cwr.TAB_SZ);
@@ -581,6 +575,9 @@ bool buildVromfsDump(const char *fname, unsigned targetCode, FastNameMapEx &file
 
     virtual void onFileLoaded(const char *fname)
     {
+      String fname_resolved;
+      if (dd_resolve_named_mount(fname_resolved, fname))
+        fname = fname_resolved;
       if (!dd_file_exists(fname))
       {
         printf("ERR: failed to load include file %s\n", fname);
@@ -590,7 +587,7 @@ bool buildVromfsDump(const char *fname, unsigned targetCode, FastNameMapEx &file
       memCwr.setsize(0);
       if (!::dgs_execute_quiet)
         debug("preprocessing included file: %s", fname);
-      process_and_copy_file_to_stream(fname, memCwr, targetString, false);
+      process_and_copy_file_to_stream(fname, memCwr, targetString, false, false);
       vrom = VirtualRomFsSingleFile::make_mem_data(tmpmem, memCwr.data(), memCwr.size(), fname, true);
       add_vromfs(vrom, true);
     }
@@ -636,16 +633,18 @@ bool buildVromfsDump(const char *fname, unsigned targetCode, FastNameMapEx &file
 
       bool preprocess = false;
       bool keep_lines = false;
+      bool strip_comments = false;
       if (const char *ext = dd_get_fname_ext(orig_fn))
       {
         ext++;
         preprocess = (parse_ext.getNameId(ext) != -1);
         keep_lines = checkPattern(orig_fn, reIncludeKeepLines);
+        strip_comments = checkPattern(orig_fn, reStripCppComments);
       }
 
       DynamicMemGeneralSaveCB memCwr(tmpmem);
       if (preprocess)
-        process_and_copy_file_to_stream(orig_fn, memCwr, targetString, keep_lines);
+        process_and_copy_file_to_stream(orig_fn, memCwr, targetString, keep_lines, strip_comments);
       else
         copy_file_to_stream(orig_fn, memCwr);
 
@@ -723,6 +722,7 @@ bool buildVromfsDump(const char *fname, unsigned targetCode, FastNameMapEx &file
 
     bool preprocess = false;
     bool keep_lines = false;
+    bool strip_comments = false;
 
     const char *ext = dd_get_fname_ext(orig_fn);
     if (ext)
@@ -730,6 +730,7 @@ bool buildVromfsDump(const char *fname, unsigned targetCode, FastNameMapEx &file
       ext++;
       preprocess = (parse_ext.getNameId(ext) != -1);
       keep_lines = checkPattern(orig_fn, reIncludeKeepLines);
+      strip_comments = checkPattern(orig_fn, reStripCppComments);
     }
 
     bool convert_blk = !checkPattern(orig_fn, reExcludeBlk);
@@ -827,7 +828,7 @@ bool buildVromfsDump(const char *fname, unsigned targetCode, FastNameMapEx &file
       {
         DynamicMemGeneralSaveCB memCwr(tmpmem);
         if (preprocess)
-          process_and_copy_file_to_stream(orig_fn, memCwr, targetString, keep_lines);
+          process_and_copy_file_to_stream(orig_fn, memCwr, targetString, keep_lines, strip_comments);
         else
           copy_file_to_stream(orig_fn, memCwr);
 
@@ -863,7 +864,7 @@ bool buildVromfsDump(const char *fname, unsigned targetCode, FastNameMapEx &file
     {
       if (enable_file_attributes)
         file_attributes[mi] |= EVFSFA_TYPE_PLAIN;
-      process_and_copy_file_to_stream(orig_fn, mos_cwr, targetString, keep_lines);
+      process_and_copy_file_to_stream(orig_fn, mos_cwr, targetString, keep_lines, strip_comments);
     }
     else
     {
@@ -1054,17 +1055,13 @@ bool buildVromfsDump(const char *fname, unsigned targetCode, FastNameMapEx &file
     {
       // things that must be signed:
       // - file data (already in plain_cwr)
-      // - file name pointer table
       // - file name data
       // - file attributes
-      int name_ptrs_size = files.nameCount() * cwr.PTR_SZ;
+      iterate_names_in_order(sorted_fnlist, sorted_fnlist_ids,
+        [&](int, const char *name) { plain_cwr.write(name, strlen(name) + 1); });
       int file_attributes_size = enable_file_attributes ? (1 + data_size(file_attributes)) : 0;
       MemorySaveCB &raw_cwr = cwr.getRawWriter();
       MemoryLoadCB raw_crd(raw_cwr.getMem(), false);
-      raw_crd.seekto(pt_names.resvDataPos);
-      copy_stream_to_stream(raw_crd, plain_cwr, name_ptrs_size);
-      raw_crd.seekto(names_data_ofs);
-      copy_stream_to_stream(raw_crd, plain_cwr, names_data_size);
       if (file_attributes_size)
       {
         raw_crd.seekto(file_attributes_pos);
@@ -1862,7 +1859,7 @@ int buildVromfs(DataBlock *explicit_build_rules, dag::ConstSpan<const char *> ar
     else
     {
       DynamicMemGeneralSaveCB cwr(tmpmem, 8 << 10, 4 << 10);
-      process_and_copy_file_to_stream(argv[1], cwr, cmd_target_str, true);
+      process_and_copy_file_to_stream(argv[1], cwr, cmd_target_str, true, false);
 
       InPlaceMemLoadCB crd(cwr.data(), cwr.size());
       if (!inp.loadFromStream(crd, argv[1]))
@@ -1895,6 +1892,8 @@ int buildVromfs(DataBlock *explicit_build_rules, dag::ConstSpan<const char *> ar
           parse_ext.addNameId(blk->getStr(j));
       if (!loadPatterns(*blk->getBlockByNameEx("keepLines"), "include", reIncludeKeepLines))
         return 13;
+      if (!loadPatterns(*blk->getBlockByNameEx("stripCppComments"), "include", reIncludeKeepLines))
+        return 13;
     }
     blk = inp.getBlockByName("defines");
     if (blk)
@@ -1908,9 +1907,10 @@ int buildVromfs(DataBlock *explicit_build_rules, dag::ConstSpan<const char *> ar
     FastIntList targetCodes;
     FastNameMap buildFnList;
     Tab<FastNameMapEx> outputFnames(midmem);
-    String targetStrStor;
     const char *force_root_folder = NULL;
     const char *last_code = NULL;
+    uint64_t tc_storage = 0;
+
     for (int i = 2; i < argc; i++)
       if (strnicmp("-D:", argv[i], 3) == 0)
         preproc_defines.addNameId(argv[i] + 3);
@@ -2010,15 +2010,16 @@ int buildVromfs(DataBlock *explicit_build_rules, dag::ConstSpan<const char *> ar
     {
       inp.setStr("rootFolder", force_root_folder);
       if (targetCodes.size())
-        inp.setStr(String(0, "rootFolder_%s", mkbindump::get_target_str(targetCodes[0])), force_root_folder);
+        inp.setStr(String::mk_str_cat("rootFolder_", mkbindump::get_target_str(targetCodes[0], tc_storage)), force_root_folder);
     }
 
     outputFnames.resize(targetCodes.size());
     nid = inp.getNameId("folder");
     for (int i = 0; i < targetCodes.size(); i++)
     {
-      String out_root_pname(0, "outputRoot_%s", mkbindump::get_target_str(targetCodes.getList()[i]));
-      String out_pname(0, "output_%s", mkbindump::get_target_str(targetCodes.getList()[i]));
+      const char *tc_str = mkbindump::get_target_str(targetCodes.getList()[i], tc_storage);
+      String out_root_pname(0, "outputRoot_%s", tc_str);
+      String out_pname(0, "output_%s", tc_str);
       const char *outroot = inp.getStr(out_root_pname, inp.getStr("outputRoot", ""));
       const char *outdir = inp.getStr(out_pname, inp.getStr("output", ""));
       inp.removeParam(out_root_pname);
@@ -2059,8 +2060,7 @@ int buildVromfs(DataBlock *explicit_build_rules, dag::ConstSpan<const char *> ar
       {
         unsigned targetCode = targetCodes.getList()[t];
         const char *output = outputFnames[t].getName(o);
-        targetStrStor = mkbindump::get_target_str(targetCode);
-        targetString = targetStrStor;
+        const char *targetString = mkbindump::get_target_str(targetCode, tc_storage);
 
         if (buildFnList.nameCount() && buildFnList.getNameId(output) == -1)
         {
@@ -2093,8 +2093,7 @@ int buildVromfs(DataBlock *explicit_build_rules, dag::ConstSpan<const char *> ar
         if (!files.nameCount())
           continue;
 
-        String blk_root(260, "%s/%s/",
-          inp.getStr(String(0, "rootFolder_%s", mkbindump::get_target_str(targetCode)), inp.getStr("rootFolder", ".")),
+        String blk_root(260, "%s/%s/", inp.getStr(String::mk_str_cat("rootFolder_", targetString), inp.getStr("rootFolder", ".")),
           inp.getStr("blkRelRoot", "."));
         dd_simplify_fname_c(blk_root);
         blk_root.resize(strlen(blk_root) + 1);

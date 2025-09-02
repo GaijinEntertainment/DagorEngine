@@ -10,7 +10,7 @@ let testContent = {
 
   children = [
     {
-      size = [sh(40), sh(40)]
+      size = sh(40)
       pos = [sh(10), sh(10)]
       rendObj = ROBJ_DAS_CANVAS
       script = dasScript
@@ -22,7 +22,7 @@ let testContent = {
     {
       hplace = ALIGN_RIGHT
       vplace = ALIGN_BOTTOM
-      size = [sh(40), sh(22)]
+      size = static [sh(40), sh(22)]
       rendObj = ROBJ_DAS_CANVAS
       script = dasScript
       drawFunc = "draw_radar_b_scope"

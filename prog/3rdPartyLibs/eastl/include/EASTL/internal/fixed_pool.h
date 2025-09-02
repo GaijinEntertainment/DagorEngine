@@ -606,7 +606,7 @@ namespace eastl
 	class fixed_node_allocator
 	{
 	public:
-		typedef typename type_select<bEnableOverflow, fixed_pool_with_overflow<OverflowAllocator>, fixed_pool>::type  pool_type;
+		typedef typename conditional<bEnableOverflow, fixed_pool_with_overflow<OverflowAllocator>, fixed_pool>::type  pool_type;
 		typedef fixed_node_allocator<nodeSize, nodeCount, nodeAlignment, nodeAlignmentOffset, bEnableOverflow, OverflowAllocator>   this_type;
 		typedef OverflowAllocator overflow_allocator_type;
 
@@ -938,7 +938,7 @@ namespace eastl
 	class fixed_hashtable_allocator
 	{
 	public:
-		typedef typename type_select<bEnableOverflow, fixed_pool_with_overflow<OverflowAllocator>, fixed_pool>::type                                 pool_type;
+		typedef typename conditional<bEnableOverflow, fixed_pool_with_overflow<OverflowAllocator>, fixed_pool>::type                                 pool_type;
 		typedef fixed_hashtable_allocator<bucketCount, nodeSize, nodeCount, nodeAlignment, nodeAlignmentOffset, bEnableOverflow, OverflowAllocator>  this_type;
 		typedef OverflowAllocator overflow_allocator_type;
 
@@ -1363,9 +1363,8 @@ namespace eastl
 		}
 
 		fixed_vector_allocator(const fixed_vector_allocator& x)
+			: mOverflowAllocator(x.mOverflowAllocator), mpPoolBegin(x.mpPoolBegin)
 		{
-		   mpPoolBegin        = x.mpPoolBegin;
-		   mOverflowAllocator = x.mOverflowAllocator;
 		}
 
 		fixed_vector_allocator& operator=(const fixed_vector_allocator& x)
@@ -1480,12 +1479,14 @@ namespace eastl
 		void* allocate(size_t /*n*/, int /*flags*/ = 0)
 		{
 			EASTL_ASSERT(false); // A fixed_vector should not reallocate, else the user has exhausted its space.
+			EASTL_CRASH();		 // We choose to crash here since the owning vector can't handle an allocator returning null. Better to crash earlier.
 			return NULL;
 		}
 
 		void* allocate(size_t /*n*/, size_t /*alignment*/, size_t /*offset*/, int /*flags*/ = 0)
 		{
-			EASTL_ASSERT(false);
+			EASTL_ASSERT(false); // A fixed_vector should not reallocate, else the user has exhausted its space.
+			EASTL_CRASH();		 // We choose to crash here since the owning vector can't handle an allocator returning null. Better to crash earlier.
 			return NULL;
 		}
 

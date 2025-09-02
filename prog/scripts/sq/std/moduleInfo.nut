@@ -1,5 +1,6 @@
+import "math" as math
+
 let log = require("%sqstd/log.nut")().log
-let math = require("math")
 
 let typesByTypechecks ={
   [0x00000001] = "null",
@@ -158,7 +159,7 @@ function mkStubStr(val, name=null, indent=0, verbose = false, manualModInfo=null
 let mkModuleStub = @(nm) mkStubStr(require(nm), nm)
 
 
-return {
+return freeze({
   mkModuleStub
   mkStubStr
-}
+})

@@ -221,7 +221,7 @@ namespace bind_dascript
     return false;
   }
 
-  inline void json_stringify(const rapidjson::Value &json, const das::TBlock<void, das::TTemporary<const char*>> &block,
+  inline void json_stringify(const rapidjson::Value &json, const das::TBlock<void, const das::TTemporary<const char*>> &block,
                              das::Context *context, das::LineInfoArg *at)
   {
     rapidjson::StringBuffer str = jsonutils::stringify<false>(json);
@@ -229,7 +229,7 @@ namespace bind_dascript
     context->invoke(block, &args, nullptr, at);
   }
 
-  inline void json_stringify_pretty(const rapidjson::Value &json, const das::TBlock<void, das::TTemporary<const char*>> &block,
+  inline void json_stringify_pretty(const rapidjson::Value &json, const das::TBlock<void, const das::TTemporary<const char*>> &block,
                                     das::Context *context, das::LineInfoArg *at)
   {
     rapidjson::StringBuffer str = jsonutils::stringify<true>(json);

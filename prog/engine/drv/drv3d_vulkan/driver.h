@@ -1,11 +1,9 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <EASTL/vector.h>
 #include <drv/3d/dag_consts.h>
 #include <util/dag_stdint.h>
 #include <util/dag_hash.h>
-#include <drv/3d/rayTrace/dag_drvRayTrace.h> // for D3D_HAS_RAY_TRACING
 
 #include "vulkan_api.h"
 
@@ -47,7 +45,7 @@ enum class ActiveExecutionStage
   GRAPHICS,
   COMPUTE,
   CUSTOM,
-#if D3D_HAS_RAY_TRACING
+#if VULKAN_HAS_RAYTRACING
   RAYTRACE,
 #endif
 };
@@ -56,8 +54,10 @@ enum class DeviceQueueType
 {
   GRAPHICS,
   COMPUTE,
-  TRANSFER,
+  TRANSFER_UPLOAD,
+  TRANSFER_READBACK,
   ASYNC_GRAPHICS,
+  SPARSE_BINDING,
 
   COUNT,
   INVALID = COUNT,
@@ -103,12 +103,8 @@ typedef TaggedHandle<size_t, ~size_t(0), StringIndexRefTag> StringIndexRef;
 
 struct SamplerInfo
 {
-  // 0 normal sampler, 1 sampler with depth compare enabled
-  VulkanSamplerHandle sampler[2];
+  VulkanSamplerHandle handle;
   SamplerState state;
-
-  inline VulkanSamplerHandle compareSampler() const { return sampler[1]; }
-  inline VulkanSamplerHandle colorSampler() const { return sampler[0]; }
 };
 
 class Image;
@@ -210,51 +206,6 @@ VkApplicationInfo create_app_info(const DataBlock *cfg);
 void set_app_info(const char *name, uint32_t ver);
 uint32_t get_app_ver();
 VkPresentModeKHR get_requested_present_mode(bool use_vsync, bool use_adaptive_vsync);
-
-#if VULKAN_LOAD_SHADER_EXTENDED_DEBUG_DATA
-struct ShaderDebugInfo
-{
-  String name;
-  String spirvDisAsm;
-  String dxbcDisAsm;
-  String sourceGLSL;
-  String reconstructedHLSL;
-  String reconstructedHLSLAndSourceHLSLXDif;
-  String sourceHLSL;
-  // name from engine with additional usefull info
-  String debugName;
-};
-#endif
-
-struct ShaderModuleBlob
-{
-  eastl::vector<uint32_t> blob;
-  spirv::HashValue hash;
-#if VULKAN_LOAD_SHADER_EXTENDED_DEBUG_DATA
-  String name;
-#endif
-  size_t getBlobSize() const { return blob.size() * sizeof(uint32_t); }
-
-  uint32_t getHash32() const { return mem_hash_fnv1<32>((const char *)&hash, sizeof(hash)); }
-};
-
-struct ShaderModuleHeader
-{
-  spirv::ShaderHeader header;
-  spirv::HashValue hash;
-  VkShaderStageFlags stage;
-
-  uint32_t getHash32() const { return mem_hash_fnv1<32>((const char *)&hash, sizeof(hash)); }
-};
-
-struct ShaderModuleUse
-{
-  ShaderModuleHeader header;
-#if VULKAN_LOAD_SHADER_EXTENDED_DEBUG_DATA
-  ShaderDebugInfo dbg;
-#endif
-  uint32_t blobId;
-};
 
 VkBufferImageCopy make_copy_info(FormatStore format, uint32_t mip, uint32_t base_layer, uint32_t layers, VkExtent3D original_size,
   VkDeviceSize src_offset);

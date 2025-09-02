@@ -156,7 +156,16 @@ enum BLEND_FACTOR
   BLEND_SRCALPHASAT = 11,
   BLEND_BOTHINVSRCALPHA = 13,
   BLEND_BLENDFACTOR = 14,
-  BLEND_INVBLENDFACTOR = 15
+  BLEND_INVBLENDFACTOR = 15,
+};
+
+// Used only where blend factor is 5 or more bits wide
+enum EXT_BLEND_FACTOR
+{
+  EXT_BLEND_SRC1COLOR = 16,
+  EXT_BLEND_INVSRC1COLOR = 17,
+  EXT_BLEND_SRC1ALPHA = 18,
+  EXT_BLEND_INVSRC1ALPHA = 19
 };
 
 enum BLENDOP
@@ -210,8 +219,6 @@ enum
 
 enum
 {
-  TEXFILTER_DEFAULT = 0, // driver default
-
   TEXFILTER_POINT = 1,
   TEXFILTER_LINEAR = 2,  // bilinear
   TEXFILTER_BEST = 3,    // anisotropic and similar, if available

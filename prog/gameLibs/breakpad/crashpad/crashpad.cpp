@@ -152,6 +152,13 @@ void init(Product &&prod, Configuration &&cfg_)
   vector<base::FilePath> attachments = {base::FilePath(wstring(utf8_to_wcs(cfg.logFile.c_str(), wtmp, countof(wtmp))))};
   for (auto &fn : cfg.files)
     attachments.emplace_back(wstring(utf8_to_wcs(fn.c_str(), wtmp, countof(wtmp))));
+#if _TARGET_PC_WIN
+  // Ideally we wan't to call `if (d3d::get_driver_code().is(d3d::dx12))` here but it's too early for that (not inited yet)
+  snprintf(tmp, sizeof(tmp), "%sgpuCrashDump.nv-gpudmp", get_log_directory());
+  attachments.emplace_back(wstring(utf8_to_wcs(tmp, wtmp, countof(wtmp))));
+  snprintf(tmp, sizeof(tmp), "%sshader.nvdbg", get_log_directory());
+  attachments.emplace_back(wstring(utf8_to_wcs(tmp, wtmp, countof(wtmp))));
+#endif
   // Note: don't append ?guid=... to submit request as we use systemId instead (besides it could be zero if written by launcher)
   vector<string> aargs = {"--no-identify-client-via-url", "--no-periodic-tasks"};
   if (dgs_get_argv("crashpad-no-upload-gzip"))

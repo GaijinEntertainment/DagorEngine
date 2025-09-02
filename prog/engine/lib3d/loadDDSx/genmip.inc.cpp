@@ -538,16 +538,6 @@ struct AutoAcquireMem
 };
 #endif
 
-#if _TARGET_PC | _TARGET_XBOX
-#define GEN_DELSYSMEMCOPY      TEXLOCK_DELSYSMEMCOPY
-#define GEN_DONOTUPDATE        TEXLOCK_DONOTUPDATEON9EXBYDEFAULT
-#define GEN_DONT_DELSYSMEMCOPY TEXLOCK_UPDATEFROMSYSTEX
-#else
-#define GEN_DELSYSMEMCOPY      0
-#define GEN_DONOTUPDATE        0
-#define GEN_DONT_DELSYSMEMCOPY 0
-#endif
-
 template <class Filter, bool force_gamma_space = true>
 TexLoadRes create_dxt_mip_chain(Texture *tex, TEXTUREID tid, unsigned char *base_tex, int base_tex_fmt, const ddsx::Header &hdr,
   IGenLoad &crd, unsigned fmt, int start_level, int levels, int skip_levels, int dest_slice, Filter &f, int dxt_alg)

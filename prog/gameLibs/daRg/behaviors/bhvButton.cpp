@@ -1,6 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include "bhvButton.h"
+#include <daRg/behaviors/bhvButton.h>
 
 #include <daRg/dag_element.h>
 #include <daRg/dag_properties.h>
@@ -34,72 +34,56 @@ namespace darg
 CONSOLE_FLOAT_VAL("darg", touch_hold_time, 1.0f);
 CONSOLE_BOOL_VAL("darg", button_margin_debug, false);
 
-
-struct BhvButtonData
+void BhvButtonData::press(InputDevice device, int pointer_id, int btn_id, const Point2 &pos, const BBox2 &clipped_elem_box,
+  const BBox2 &full_elem_box)
 {
-  InputDevice pressedByDevice = DEVID_NONE;
-  int pressedByPointerId = -1;
-  int pressedByBtnId = -1;
-  Point2 pointerStartPos = Point2(-9999, -9999);
-  BBox2 clickStartClippedBBox;
-  BBox2 clickStartFullBBox;
+  pressedByDevice = device;
+  pressedByPointerId = pointer_id;
+  pressedByBtnId = btn_id;
+  pointerStartPos = pos;
+  clickStartClippedBBox = clipped_elem_box;
+  clickStartFullBBox = full_elem_box;
+}
 
-  float touchHoldCallTime = 0;
+void BhvButtonData::release()
+{
+  pressedByDevice = DEVID_NONE;
+  pressedByPointerId = -1;
+  pressedByBtnId = -1;
+  pointerStartPos.set(-9999, -9999);
+  clickStartClippedBBox.setempty();
+  clickStartFullBBox.setempty();
+  touchHoldCallTime = 0;
+}
 
-  // double click handling
-  bool wasClicked = false;
-  int lastClickTime = 0;
-  Point2 lastClickPos = Point2(0, 0);
+bool BhvButtonData::isPressed() { return pressedByDevice != DEVID_NONE; }
 
-  void press(InputDevice device, int pointer_id, int btn_id, const Point2 &pos, const BBox2 &clipped_elem_box,
-    const BBox2 &full_elem_box)
+bool BhvButtonData::isPressedBy(InputDevice device, int pointer_id)
+{
+  return pressedByDevice == device && pressedByPointerId == pointer_id;
+}
+
+bool BhvButtonData::isPressedBy(InputDevice device, int pointer_id, int btn_id)
+{
+  return pressedByDevice == device && pressedByPointerId == pointer_id && pressedByBtnId == btn_id;
+}
+
+void BhvButtonData::saveClick(int cur_time, const Point2 &pos)
+{
+  lastClickTime = cur_time;
+  lastClickPos = pos;
+  wasClicked = true;
+}
+
+bool BhvButtonData::isDoubleClick(int cur_time, const Point2 &pos, float pos_thresh)
+{
+  if (wasClicked && (cur_time - lastClickTime <= double_click_interval_ms))
   {
-    pressedByDevice = device;
-    pressedByPointerId = pointer_id;
-    pressedByBtnId = btn_id;
-    pointerStartPos = pos;
-    clickStartClippedBBox = clipped_elem_box;
-    clickStartFullBBox = full_elem_box;
+    if (fabsf(lastClickPos.x - pos.x) <= pos_thresh && fabsf(lastClickPos.y - pos.y) <= pos_thresh)
+      return true;
   }
-
-  void release()
-  {
-    pressedByDevice = DEVID_NONE;
-    pressedByPointerId = -1;
-    pressedByBtnId = -1;
-    pointerStartPos.set(-9999, -9999);
-    clickStartClippedBBox.setempty();
-    clickStartFullBBox.setempty();
-    touchHoldCallTime = 0;
-  }
-
-  bool isPressed() { return pressedByDevice != DEVID_NONE; }
-
-  bool isPressedBy(InputDevice device, int pointer_id) { return pressedByDevice == device && pressedByPointerId == pointer_id; }
-
-  bool isPressedBy(InputDevice device, int pointer_id, int btn_id)
-  {
-    return pressedByDevice == device && pressedByPointerId == pointer_id && pressedByBtnId == btn_id;
-  }
-
-  void saveClick(int cur_time, const Point2 &pos)
-  {
-    lastClickTime = cur_time;
-    lastClickPos = pos;
-    wasClicked = true;
-  }
-
-  bool isDoubleClick(int cur_time, const Point2 &pos, float pos_thresh)
-  {
-    if (wasClicked && (cur_time - lastClickTime <= double_click_interval_ms))
-    {
-      if (fabsf(lastClickPos.x - pos.x) <= pos_thresh && fabsf(lastClickPos.y - pos.y) <= pos_thresh)
-        return true;
-    }
-    return false;
-  }
-};
-
+  return false;
+}
 
 BhvButton bhv_button;
 
@@ -121,7 +105,7 @@ void BhvButton::onAttach(Element *elem)
 
 void BhvButton::onDetach(Element *elem, DetachMode)
 {
-  BhvButtonData *btnData = elem->props.storage.RawGetSlotValue<BhvButtonData *>(dataSlotName, nullptr);
+  BhvButtonData *btnData = BhvButton::getData(elem);
   if (btnData)
   {
     elem->props.storage.DeleteSlot(dataSlotName);
@@ -150,7 +134,7 @@ int BhvButton::mouseEvent(ElementTree *etree, Element *elem, InputDevice device,
 int BhvButton::pointerEvent(ElementTree *etree, Element *elem, InputDevice device, InputEvent event, int pointer_id, int button_id,
   const Point2 &pointer_pos, int accum_res)
 {
-  BhvButtonData *btnData = elem->props.storage.RawGetSlotValue<BhvButtonData *>(dataSlotName, nullptr);
+  BhvButtonData *btnData = BhvButton::getData(elem);
   if (!btnData)
     return 0;
 
@@ -267,7 +251,7 @@ int BhvButton::touchEvent(ElementTree *etree, Element *elem, InputEvent event, H
 
 int BhvButton::update(UpdateStage /*stage*/, Element *elem, float /*dt*/)
 {
-  BhvButtonData *btnData = elem->props.storage.RawGetSlotValue<BhvButtonData *>(dataSlotName, nullptr);
+  BhvButtonData *btnData = getData(elem);
   if (!btnData)
     return 0;
 
@@ -334,7 +318,7 @@ int BhvButton::update(UpdateStage /*stage*/, Element *elem, float /*dt*/)
 
 int BhvButton::onDeactivateInput(Element *elem, InputDevice device, int pointer_id)
 {
-  BhvButtonData *btnData = elem->props.storage.RawGetSlotValue<BhvButtonData *>(dataSlotName, nullptr);
+  BhvButtonData *btnData = BhvButton::getData(elem);
   G_ASSERT_RETURN(btnData, 0);
   if (btnData->isPressedBy(device, pointer_id))
   {
@@ -351,7 +335,7 @@ int BhvButton::simulateClick(ElementTree *etree, Element *elem, InputEvent event
     return 0;
 
   Point2 mpos = etree->guiScene->getMousePos();
-  if (event == INP_EV_PRESS && elem != etree->guiScene->getInputStack().hitTest(mpos, Behavior::F_HANDLE_MOUSE, Element::F_STOP_MOUSE))
+  if (event == INP_EV_PRESS && elem != etree->screen->getInputStack().hitTest(mpos, Behavior::F_HANDLE_MOUSE, Element::F_STOP_MOUSE))
     return 0;
 
   return pointerEvent(etree, elem, dev_id, event, 0, btn_idx, mpos, accum_res);
@@ -404,6 +388,11 @@ int BhvButton::kbdEvent(ElementTree *etree, Element *elem, InputEvent event, int
   }
 
   return 0;
+}
+
+BhvButtonData *BhvButton::getData(Element *elem)
+{
+  return elem->props.storage.RawGetSlotValue<BhvButtonData *>(dataSlotName, nullptr);
 }
 
 } // namespace darg

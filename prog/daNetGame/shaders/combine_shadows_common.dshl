@@ -11,6 +11,7 @@ include "contact_shadows.dshl"
 include "ssss/ssss_csm.dshl"
 include "heightmap_common.dshl"
 include "rtsm_use.dshl"
+include "vsm.dshl"
 
 float csm_distance = 1000;
 
@@ -25,6 +26,8 @@ float foliage_height_above_ground = 0.5;
 float foliage_shadow_radius_scale = 2;
 int4 temporal_shadow_frame;
 
+int offset_foliage_shadows = 0;
+
 macro SHADOWS_QUALITY_DEFINE(code)
   hlsl(code) {
     ##if shadows_quality == high
@@ -35,6 +38,7 @@ endmacro
 
 float4 hero_cockpit_vec = (0, 0, 0, 0);
 float4 hero_cockpit_camera_to_point = (0, 0, 0, 0);
+int bvh_usable = 0;
 
 macro INIT_COMBINE_SHADOWS()
   supports global_const_block;
@@ -51,6 +55,7 @@ macro INIT_COMBINE_SHADOWS()
     foliage_offset_distance@f1 = foliage_offset_distance;
     foliage_height_above_ground@f1 = foliage_height_above_ground;
     foliage_shadow_radius_scale@f1 = foliage_shadow_radius_scale;
+    bvh_usable@i1 = bvh_usable;
   }
 
   INIT_ZNZFAR()
@@ -59,6 +64,7 @@ macro INIT_COMBINE_SHADOWS()
   SQ_INIT_CLOUDS_SHADOW(ps)
   INIT_STATIC_SHADOW()
   USING_RTSM(ps)
+  if (vsm_shadowmap!=NULL){INIT_VSM()}
   INIT_CSM_SHADOW(ps)
   INIT_CSM_SSSS_TRANSMITTANCE_FACTOR(ps)
   if (shadows_quality == high)
@@ -87,6 +93,7 @@ macro USE_COMBINE_SHADOWS()
   USE_READ_GBUFFER()
   SQ_CLOUDS_SHADOW(ps)
   USE_STATIC_SHADOW()
+  USE_VSM()
   USE_CSM_SHADOW_DEF_NUM()
   USE_CSM_SSSS_TRANSMITTANCE_FACTOR(ps)
   USE_SSSS_TRANSMITTANCE_ENCODE(ps)
@@ -97,6 +104,7 @@ macro USE_COMBINE_SHADOWS()
     hlsl(ps) {
       #define OFFSET_FOLIAGE_SHADOWS 1
     }
+    (ps) {offset_foliage_shadows@i1 = offset_foliage_shadows;}
     USE_CSM_OFFSET_TO_CULLING_NEAR_PLANE(ps)
   }
   CONTACT_SHADOWS()
@@ -192,6 +200,7 @@ macro USE_COMBINE_SHADOWS()
       uint staticCascadeId;
       float ssssTransmittance;
       float ssssDepthMask;
+      float vsm;
     };
 
     PackedShadows getWhiteShadows()
@@ -206,10 +215,11 @@ macro USE_COMBINE_SHADOWS()
       shadows.staticCascadeId = 2;
       shadows.ssssTransmittance = 0;
       shadows.ssssDepthMask = 0;
+      shadows.vsm = 1.f;
       return shadows;
     }
 
-    void getShadowsImpl(inout PackedShadows shadows, float2 tc, float4 screenpos, float3 viewVect, float w, float3 cameraToPoint, half fade)
+    void getShadowsImpl(inout PackedShadows shadows, float2 tc, float4 screenpos, float3 viewVect, float w, float3 cameraToPoint, half fade, half use_rtsm)
     {
       // Now that we are writing SV_Depth in when ssss_quality != off, D3DCompile complains about potentially
       // non-initialized value in shadows.ssssDepthMask in case of compiling shaders for Vulkan, despite explicitly and
@@ -217,34 +227,54 @@ macro USE_COMBINE_SHADOWS()
       // branches to compile successfully with Vulkan :(
 
       {
-        float dither = interleavedGradientNoiseFramed(screenpos.xy, shadow_frame);
+        half dither = half(interleavedGradientNoiseFramed(screenpos.xy, shadow_frame));
         float shadowRadiusScale = 1;
 
         float3 worldPos = world_view_pos.xyz + cameraToPoint;
         #if OFFSET_FOLIAGE_SHADOWS
-        uint material = readUnpackedGbufferMaterial(tc);
-        //we sample ONLY material first, and only then translucency, if it is foliage.
-        //this would save one read for most of pixels
-        BRANCH if (material == SHADING_FOLIAGE)
+        float shadowEffect = 1;
+        if (offset_foliage_shadows)
         {
-          float distStepToSun = min(foliage_offset_distance, w);
-          UnpackedGbuffer gbuffer = (UnpackedGbuffer)0;
-          gbuffer.material = material;
-          readPackedGbufferTranslucencyChannel(tc, gbuffer);
-          float effect = gbuffer.translucency;
-
           ##if tex_hmap_low != NULL
           //this is to prevent our hack happening near the ground (i.e. where grass start to grow)
           //would not be always needed if grass would have separate profile in gbuffer
           // (and we can have that! SSSprofile is not used in foliage (at least we can use as isLandscape == 1 as it is use it for grass only, probably is faster. but has to be measured)
           // fixme:
           float groundHeight = decode_height(getHeightLowLod(calcTcLow(worldPos.xz), 0));
-          effect *= saturate(worldPos.y - foliage_height_above_ground - groundHeight);//limit effect of stepping out if close to ground
+          shadowEffect = saturate(worldPos.y - foliage_height_above_ground - groundHeight);//limit effect of stepping out if close to ground
           ##endif
-          //dithered move towards sun, but depending on effect
-          cameraToPoint -= from_sun_direction*(lerp(0.5, 1, dither)*effect*distStepToSun);
-          shadowRadiusScale += gbuffer.translucency*foliage_shadow_radius_scale;
-          worldPos = world_view_pos.xyz + cameraToPoint;
+        }
+        else
+        {
+          shadowEffect = 0;
+        }
+
+        ##if ssss_quality != off
+        uint material = readUnpackedGbufferMaterial(tc);
+        ##endif
+
+        BRANCH
+        if (shadowEffect > 0)
+        {
+          ##if ssss_quality == off
+          uint material = readUnpackedGbufferMaterial(tc);
+          ##endif
+
+          //we sample ONLY material first, and only then translucency, if it is foliage.
+          //this would save one read for most of pixels
+          BRANCH if (material == SHADING_FOLIAGE)
+          {
+            float distStepToSun = min(foliage_offset_distance, w);
+            UnpackedGbuffer gbuffer = (UnpackedGbuffer)0;
+            gbuffer.material = material;
+            readPackedGbufferTranslucencyChannel(tc, gbuffer);
+            float effect = shadowEffect * gbuffer.translucency;
+
+            //dithered move towards sun, but depending on effect
+            cameraToPoint -= from_sun_direction*(lerp(0.5, 1, dither)*effect*distStepToSun);
+            shadowRadiusScale += gbuffer.translucency*foliage_shadow_radius_scale;
+            worldPos = world_view_pos.xyz + cameraToPoint;
+          }
         }
         #endif
         float csmDitherRadius = 4;
@@ -261,13 +291,15 @@ macro USE_COMBINE_SHADOWS()
           return;
         ##endif
         half shadow = 1;
-        float cloudsShadow = saturate(pow(clouds_shadow(worldPos), clouds_shadow_influence));
-        float staticShadow = 1;
+        half cloudsShadow = half(saturate(pow(clouds_shadow(worldPos), clouds_shadow_influence)));
+        half staticShadow = 1;
         #if HAS_RTSM
-          if (isRTSMEnabled())
+          if (isRTSMEnabled() && use_rtsm)
           {
             half3 rtShadow = getRTSM(screenpos.xy);
-            shadow = rtShadow.r * cloudsShadow;
+            half vsm = half(def_vsm_shadow(float4(worldPos,1)));
+            shadow = rtShadow.r * cloudsShadow * vsm;
+            shadows.vsm = vsm;
             ##if ssss_quality == transmittance_and_reflectance_blur
               staticShadow = getStaticShadow(worldPos, 0, shadows.staticCascadeId, shadowRadiusScale);
             ##endif
@@ -358,8 +390,8 @@ macro USE_COMBINE_SHADOWS()
           {
             float2 hitUV;
             //ideally we need read gbuffer.normal and stop casting from back shadows, to prevent self-occlusion. it is partially offsetted by hit uv translucency check
-            half shadow_strength = pow2(saturate(dot(loadGbufferNormal(screenpos.xy), from_sun_direction.xyz)*-2 + sqrt(0.5)));
-            half contactShadow;
+            float shadow_strength = pow2(saturate(dot(loadGbufferNormal(screenpos.xy), from_sun_direction.xyz)*-2 + sqrt(0.5)));
+            float contactShadow;
             BRANCH
             if (shadow_strength > 0)
             {
@@ -369,7 +401,7 @@ macro USE_COMBINE_SHADOWS()
                 #else
                   downsampled_far_depth_tex, downsampled_far_depth_tex_samplerstate,// we can't do otherwise, will result in shadow acne
                 #endif
-                cameraToPoint, -from_sun_direction, max(w * contact_shadow_len*0.5, min(0.1, w)), 12, dither-0.5, projectionMatrix, w, viewProjectionMatrixNoOfs, hitUV);
+                cameraToPoint, -from_sun_direction, max(w * contact_shadow_len*0.25, min(0.1, w)), 12, dither-0.5, projectionMatrix, w, viewProjectionMatrixNoOfs, hitUV);
               contactShadow = lerp(1, contactShadow, shadow_strength);
             } else
               contactShadow = 1;
@@ -401,16 +433,16 @@ macro USE_COMBINE_SHADOWS()
       ##endif
       {
         float w = linearize_z(rawDepth, zn_zfar.zw);
-        half fade = saturate(dot(float4(world_view_pos + viewVect * w, 1), hero_cockpit_vec));
+        half fade = half(saturate(dot(float4(world_view_pos + viewVect * w, 1), hero_cockpit_vec)));
         float3 cameraToPoint = viewVect * w;
 
-        getShadowsImpl(shadows, tc, screenpos, viewVect, w, cameraToPoint, fade);
+        getShadowsImpl(shadows, tc, screenpos, viewVect, w, cameraToPoint, fade, bvh_usable);
 
         BRANCH
         if (is_hero_cockpit && fade > 0.001)
         {
           PackedShadows cockpitShadows = getWhiteShadows();
-          getShadowsImpl(cockpitShadows, tc, screenpos, viewVect, w, hero_cockpit_camera_to_point.xyz, fade);
+          getShadowsImpl(cockpitShadows, tc, screenpos, viewVect, w, hero_cockpit_camera_to_point.xyz, fade, false);
           shadows.combinedShadow = lerp(shadows.combinedShadow, cockpitShadows.combinedShadow, fade);
         }
       }

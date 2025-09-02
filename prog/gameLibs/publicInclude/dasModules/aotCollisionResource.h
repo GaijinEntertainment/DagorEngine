@@ -14,7 +14,7 @@
 #include <ecs/phys/collRes.h>
 
 DAS_BIND_ENUM_CAST_98_IN_NAMESPACE(CollisionNode::BehaviorFlag, BehaviorFlag);
-DAS_BIND_ENUM_CAST_98_IN_NAMESPACE(CollisionNode::TransformType, CollisionNodeFlag);
+DAS_BIND_ENUM_CAST_98_IN_NAMESPACE(CollisionNode::NodeFlag, CollisionNodeFlag);
 DAS_BIND_ENUM_CAST_98_IN_NAMESPACE(CollisionResourceNodeType, CollisionResourceNodeType);
 
 MAKE_TYPE_FACTORY(CollisionNode, CollisionNode);

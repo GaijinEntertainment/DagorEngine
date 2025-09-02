@@ -35,7 +35,7 @@ selecting the crow asset {bdg-dark-line}`1` will result in error-free loading.
 Click {bdg-dark-line}`2` to review error logs. The highlighted section indicates
 successful loading.
 
-<img src="_images/dng_non_human_char_01.jpg" alt="" align="center" width="60em">
+<img src="_images/dng_non_human_char_01.jpg" align="center" width="60em">
 
 ```{note}
 Scenes are compatible with 3ds Max 2024 or later.
@@ -46,7 +46,7 @@ Scenes are compatible with 3ds Max 2024 or later.
 Let's analyze the crow scene. Open the file {bdg-dark-line}`0`
 `crow_detailed_tpose.max`.
 
-<img src="_images/dng_non_human_char_02.jpg" alt="" align="center" width="60em">
+<img src="_images/dng_non_human_char_02.jpg" align="center" width="60em">
 
 Make sure to specify in the file name that it is the character's T-pose. The
 model must include a root bone {bdg-dark-line}`3`. The naming is flexible, but
@@ -56,7 +56,7 @@ if you plan to use existing `.blk` files as templates, it is better to name it
 
 ```{seealso}
 For more information, see
-[.blk File Format](../../dagor-tools/blk/blk.md).
+[BLK File Format](../../dagor-tools/blk/blk.md).
 ```
 
 For complex models with separate upper and lower animations, different
@@ -119,7 +119,7 @@ cast_shadows:b=no    // Excluded from shadow generation
 To initialize the scene properly in Dagor, assign physical properties to at
 least one bone using **Custom Properties** {bdg-dark-line}`2`.
 
-<img src="_images/dng_non_human_char_03.jpg" alt="" align="center" width="60em">
+<img src="_images/dng_non_human_char_03.jpg" align="center" width="60em">
 
 Without physics, the engine cannot generate a valid skeleton. Below is an
 example configuration for the `head` bone {bdg-dark-line}`1`:
@@ -170,7 +170,7 @@ dynModel{
 The primary rule for creating LODs is ensuring consistent naming for all LOD
 levels. Using the crow as an example:
 
-<img src="_images/dng_non_human_char_04.jpg" alt="" align="center">
+<img src="_images/dng_non_human_char_04.jpg" align="center">
 
 As shown, LODs share the same base name but are placed in separate layers. Each
 LOD may contain multiple skinned objects. This approach is useful, especially
@@ -189,13 +189,13 @@ massType:t="none"    // Indicates no physical mass for this object
 Ensure all skinned objects {bdg-dark-line}`1` have the specified properties
 {bdg-dark-line}`2`:
 
-<img src="_images/dng_non_human_char_05.jpg" alt="" align="center" width="60em">
+<img src="_images/dng_non_human_char_05.jpg" align="center" width="60em">
 
 For efficient management of **Custom Properties**, use an editor or viewer tool.
 
 ```{seealso}
 For more information, see
-[*Dagor 2 Fast Editor User Properties*](../../dagor-tools/addons/3ds-max/dagor2-3ds-max-tools/fast_editor_user_properties.md).
+[Dagor Fast Editor User Properties](../../dagor-tools/addons/3ds-max/dagor-maxscript-toolbox/fast_editor_user_properties.md).
 ```
 
 ## Materials for Dynamic Models
@@ -224,10 +224,22 @@ transparency, add the **atest** property {bdg-dark-line}`4` and set its value
 mid-level brightness determines transparency. Also, enable two-sided rendering
 {bdg-dark-line}`6`, as crow feathers must be rendered on both sides.
 
-:::{grid} 2
-<img src="_images/dng_non_human_char_06.jpg" alt="" align="right" width="20em">
-<img src="_images/dng_non_human_char_07.jpg" alt="" align="left" width="25em">
-:::
+```{eval-rst}
+.. grid:: 1
+   :class-container: center-grid
+
+   .. grid-item::
+      :class: center-cell
+      :child-direction: row
+      :child-align: center
+
+      .. image:: _images/dng_non_human_char_06.jpg
+         :height: 35em
+         :class: image-gap
+
+      .. image:: _images/dng_non_human_char_07.jpg
+         :height: 30em
+```
 
 Verify that this material is applied to all skinned objects before proceeding
 with export.
@@ -239,9 +251,9 @@ exporting is straightforward. In the crow scene, select the set named `lod00`
 {bdg-dark-line}`2`. This action highlights the `LOD00` layer and all associated
 bones.
 
-<img src="_images/dng_non_human_char_08.jpg" alt="" align="center">
+<img src="_images/dng_non_human_char_08.jpg" align="center">
 
-<img src="_images/dng_non_human_char_09.jpg" alt="" align="center" width="60em">
+<img src="_images/dng_non_human_char_09.jpg" align="center" width="60em">
 
 Next, navigate to **Utilities**, and choose **Dagor Scene Export**. If this
 option is unavailable, add it using the **Sets** button. Within the **Dagor
@@ -271,7 +283,7 @@ color="red">_dynmodel.lod00.dag</font></b>.
 
 ```{note}
 Post-export, you may encounter errors like:
-<img src="_images/dng_non_human_char_10.jpg" alt="" align="center">
+<img src="_images/dng_non_human_char_10.jpg" align="center">
 
 These errors occur because bones lack assigned **Dagor** materials. Assigning
 materials does not resolve this issue; it can be safely ignored.
@@ -285,7 +297,7 @@ Once the export is complete, verify the model in the [Asset
 Viewer](../../dagor-tools/asset-viewer/asset-viewer/asset_viewer.md) by
 selecting `crow_lo_a_dynmodel` {bdg-dark-line}`1`:
 
-<img src="_images/dng_non_human_char_11.jpg" alt="" align="center" width="60em">
+<img src="_images/dng_non_human_char_11.jpg" align="center" width="60em">
 
 If everything was done correctly, the model should load without errors.
 
@@ -310,7 +322,7 @@ In the **Dagor Export** panel, ensure the following:
 2. Explicitly set the animation key range for export {bdg-dark-line}`2`, from
    **frame 0 to 150**.
 
-<img src="_images/dng_non_human_char_12.jpg" alt="" align="center" width="60em">
+<img src="_images/dng_non_human_char_12.jpg" align="center" width="60em">
 
 ```{note}
 The animation range displayed on the timeline **is irrelevant** for export. You
@@ -372,7 +384,7 @@ Viewer](../../dagor-tools/asset-viewer/asset-viewer/asset_viewer.md). If you
 select the exported animation (`crow_detailed_idle_b`), you might initially see
 nothing:
 
-<img src="_images/dng_non_human_char_13.jpg" alt="" align="center" width="60em">
+<img src="_images/dng_non_human_char_13.jpg" align="center" width="60em">
 
 **Steps to Display the Animation:**
 1. Assign the dynamic model {bdg-dark-line}`1` associated with the animation.
@@ -387,7 +399,7 @@ first frame of the animation instead of the default T-pose.
   {bdg-dark-line}`5` to reduce playback speed (e.g., set it to `0.5x` for
   smoother observation).
 
-<img src="_images/dng_non_human_char_14.jpg" alt="" align="center" width="60em">
+<img src="_images/dng_non_human_char_14.jpg" align="center" width="60em">
 
 At this stage, all necessary data has been exported from 3ds Max:
 - Animation
@@ -557,13 +569,13 @@ For example:
 
 - **Skeleton:** Visible because it was explicitly processed in the script.
 
-  <img src="_images/dng_non_human_char_16.jpg" alt="" align="center" width="60em">
+  <img src="_images/dng_non_human_char_16.jpg" align="center" width="60em">
 
 
 - **Physics & Collisions:** Empty because the script did not define these
   components.
 
-  <img src="_images/dng_non_human_char_15.jpg" alt="" align="center" width="40em">
+  <img src="_images/dng_non_human_char_15.jpg" align="center" width="40em">
 
 ## Configuring `*_char.animchar.blk`
 
@@ -790,7 +802,7 @@ following elements should appear based on this configuration:
 4. **States:** List of all defined animation states, such as
    `crow_a_fly_turn_right`.
 
-<img src="_images/dng_non_human_char_17.jpg" alt="" align="center" width="60em">
+<img src="_images/dng_non_human_char_17.jpg" align="center" width="60em">
 
 ## Testing the Character in Asset Viewer
 
@@ -803,7 +815,7 @@ following elements should appear based on this configuration:
    **Goal:** Ensure no errors appear in the console {bdg-dark-line}`2`. A
    successful result looks like this:
 
-   <img src="_images/dng_non_human_char_18.jpg" alt="" align="center" width="60em">
+   <img src="_images/dng_non_human_char_18.jpg" align="center" width="60em">
 
 2. **Common Checkpoints:**
    - Inspect every file linked to the character (e.g., animations, blend
@@ -819,7 +831,7 @@ following elements should appear based on this configuration:
    - Right-click the folder and select the **Export All (PC)** option
      {bdg-dark-line}`2`.
 
-     <img src="_images/dng_non_human_char_19.jpg" alt="" align="center" width="40em">
+     <img src="_images/dng_non_human_char_19.jpg" align="center" width="40em">
 
 2. **Monitor Build Progress:**
    - The building process starts and may take a significant amount of time
@@ -827,7 +839,7 @@ following elements should appear based on this configuration:
    - Build progress is displayed in the console. A successful build ends with an
      output similar to this {bdg-dark-line}`1`:
 
-     <img src="_images/dng_non_human_char_20.jpg" alt="" align="center" width="50em">
+     <img src="_images/dng_non_human_char_20.jpg" align="center" width="50em">
 
 3. **Integration:**
    Once built, the character is ready for inclusion in the game.
@@ -849,7 +861,7 @@ BLK error 'D:/dagor2/enlisted/develop/assets/dev/gameRes/creatures/characters/cr
 - **Solution:** Carefully check the script for bracket pairs, especially in
   deeply nested blocks.
 
-<img src="_images/dng_non_human_char_21.jpg" alt="" align="center" width="50em">
+<img src="_images/dng_non_human_char_21.jpg" align="center" width="50em">
 
 ### Error: Incorrect Data Types
 
@@ -865,7 +877,7 @@ DataBlockParser: invalid value 'sdfsd' at line 209 of file '.../crow_detailed_a_
 - **Solution:** Review and correct the value. Ensure all numeric parameters
   are defined as valid numbers (e.g., `time:r=2.0`).
 
-<img src="_images/dng_non_human_char_22.jpg" alt="" align="center" width="50em">
+<img src="_images/dng_non_human_char_22.jpg" align="center" width="50em">
 
 ### Debugging Tips
 

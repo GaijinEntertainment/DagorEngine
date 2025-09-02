@@ -626,9 +626,7 @@ void VRDevice::prepareVrsMask(FrameData &frameData)
     d3d::clearview(CLEAR_TARGET, 0, 0, 0);
 
     auto &persp = frameData.views[ix].projection;
-    TMatrix4 projTm = matrix_perspective_reverse(persp.wk, persp.hk, persp.zn, persp.zf);
-    projTm(2, 0) += persp.ox;
-    projTm(2, 1) += persp.oy;
+    TMatrix4 projTm = matrix_perspective_reverse(persp.wk, persp.hk, persp.zn, persp.zf, persp.ox, persp.oy);
 
     renderScreenMask(projTm, ix, current_vrs_inner_factor, 2);
     if (hasAdditionalShadingRates)

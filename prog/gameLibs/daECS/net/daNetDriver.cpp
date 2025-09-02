@@ -5,7 +5,7 @@
 #include <daECS/core/entityManager.h>
 #include <EASTL/unique_ptr.h>
 #include <daNet/daNetPeerInterface.h>
-#include "utils.h"
+#include <daECS/net/urlUtils.h>
 
 #define DANET_SLEEP_TIME_MS 10
 #define DEFAULT_PORT        20010
@@ -70,11 +70,11 @@ public:
     return connect(connecturl, ext_protov);
   }
 
-  virtual bool connect(const char *connecturl, uint16_t ext_protov)
+  virtual bool connect(const char *connecturl, uint16_t ext_protov, bool is_relay_connection = false)
   {
     PARSEURL(connecturl, "127.0.0.1", DEFAULT_PORT);
     uint32_t protov = (MessageClass::calcNumMessageClasses() << 16) | ext_protov;
-    return getPeerIface().Connect(host, port, protov);
+    return getPeerIface().Connect(host, port, protov, is_relay_connection);
   }
 
   virtual void *getControlIface() const override { return (void *)&getPeerIface(); }

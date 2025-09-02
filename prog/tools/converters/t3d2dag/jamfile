@@ -1,6 +1,5 @@
 Root    ?= ../../../.. ;
 Location = prog/tools/converters/t3d2dag ;
-UsingStaticCore = yes ;
 ConsoleExe      = yes ;
 
 TargetType  = exe ;

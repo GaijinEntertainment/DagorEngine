@@ -101,6 +101,14 @@ static SQRESULT launch_session(HSQUIRRELVM vm)
   Sqrat::Object sceneObj = params.GetSlot("scene");
   auto scene = (sceneObj.GetType() == OT_STRING) ? sceneObj.GetVar<eastl::string_view>().value : eastl::string_view{};
 
+  // Session ID is optional for offline play
+  Sqrat::Object sessIdObj = params.GetSlot("sessionId");
+  if (sessIdObj.GetType() == OT_STRING)
+    app_profile::getRW().serverSessionId = sessIdObj.Cast<eastl::string>();
+  else
+    app_profile::getRW().serverSessionId =
+      eastl::to_string(sessIdObj.IsNull() ? matching::INVALID_SESSION_ID : sessIdObj.Cast<uint64_t>());
+
   net::clear_cached_ids();
   g_entity_mgr->broadcastEvent(EventGameSessionStarted());
   sceneload::switch_scene(scene, {}, eastl::move(ugmCtx));

@@ -41,6 +41,7 @@ UseProgLibs =
   engine/workCycle
   3rdPartyLibs/eastl
   1stPartyLibs/daScript
+  1stPartyLibs/daScript/utils/dasFormatter
   1stPartyLibs/daScriptModules/rapidjson
   gameLibs/daECS/core
   gameLibs/daECS/gameResStub

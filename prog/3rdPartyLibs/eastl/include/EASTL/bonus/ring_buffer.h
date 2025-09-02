@@ -299,10 +299,10 @@ namespace eastl
 
 		/* To do:
 			template <class... Args>
-			void emplace_front(Args&&... args);
+			reference emplace_front(Args&&... args);
 
 			template <class... Args>
-			void emplace_back(Args&&... args);
+			reference emplace_back(Args&&... args);
 
 			template <class... Args>
 			iterator emplace(const_iterator position, Args&&... args);
@@ -1505,19 +1505,14 @@ namespace eastl
 	template <typename T, typename Container, typename Allocator>
 	inline bool operator==(const ring_buffer<T, Container, Allocator>& a, const ring_buffer<T, Container, Allocator>& b)
 	{
-		return (a.size() == b.size()) && (a.c == b.c);
+		return (a.size() == b.size()) && eastl::equal(a.begin(), a.end(), b.begin());
 	}
 
 
 	template <typename T, typename Container, typename Allocator>
 	inline bool operator<(const ring_buffer<T, Container, Allocator>& a, const ring_buffer<T, Container, Allocator>& b)
 	{
-		const typename ring_buffer<T, Container, Allocator>::size_type sizeA = a.size();
-		const typename ring_buffer<T, Container, Allocator>::size_type sizeB = b.size();
-
-		if(sizeA == sizeB)
-			return (a.c < b.c);
-		return sizeA < sizeB;
+		return eastl::lexicographical_compare(a.begin(), a.end(), b.begin(), b.end());
 	}
 
 

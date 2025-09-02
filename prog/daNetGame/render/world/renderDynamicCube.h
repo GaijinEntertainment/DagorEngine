@@ -15,6 +15,7 @@ class RenderDynamicCube
   eastl::unique_ptr<DeferredRenderTarget> target;
   UniqueTex shadedTarget;
   PostFxRenderer copy;
+  int cubeSize = -1;
 
 public:
   enum class RenderMode
@@ -30,4 +31,6 @@ public:
   void init(int cube_size);
   TMatrix4_vec4 getGlobTmForFace(int face_num, const Point3 &pos);
   void update(const ManagedTex *cubeTarget, const Point3 &pos, int face_num, RenderMode mode);
+
+  bool isInit() const { return target.get() != nullptr; }
 };

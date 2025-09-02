@@ -12,8 +12,8 @@ class GenFileTrackerService : public IFileChangeTracker
 public:
   GenFileTrackerService() : ftime(midmem), links(midmem), hlist(midmem), hlistLocal(midmem), curLink(0), curHofs(0) {}
 
-  virtual const char *getFileName(int file_name_id) { return (file_name_id < 0) ? NULL : fnames.getName(file_name_id); }
-  virtual int addFileChangeTracking(const char *fname)
+  const char *getFileName(int file_name_id) override { return (file_name_id < 0) ? NULL : fnames.getName(file_name_id); }
+  int addFileChangeTracking(const char *fname) override
   {
     if (!fname)
       return -1;
@@ -24,7 +24,7 @@ public:
       ftime.push_back(getFileTime(fname));
     return id;
   }
-  virtual void subscribeUpdateNotify(int file_name_id, IFileChangedNotify *notify)
+  void subscribeUpdateNotify(int file_name_id, IFileChangedNotify *notify) override
   {
     if (file_name_id < 0)
       return;
@@ -54,7 +54,7 @@ public:
     r.hCount = 1;
     hlist.push_back(notify);
   }
-  virtual void unsubscribeUpdateNotify(int file_name_id, IFileChangedNotify *notify)
+  void unsubscribeUpdateNotify(int file_name_id, IFileChangedNotify *notify) override
   {
     if (file_name_id < 0)
       return;
@@ -90,7 +90,7 @@ public:
     // file not found, no unregister needed
   }
 
-  virtual void lazyCheckOnAct()
+  void lazyCheckOnAct() override
   {
     checkOneFile();
     if (curLink >= links.size())
@@ -99,7 +99,7 @@ public:
       curHofs = 0;
     }
   }
-  virtual void immediateCheck()
+  void immediateCheck() override
   {
     curLink = 0;
     curHofs = 0;

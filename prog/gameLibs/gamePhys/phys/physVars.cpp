@@ -5,11 +5,30 @@
 
 int PhysVars::registerVarImpl(const char *name, float val, bool pull)
 {
-  int nid = names.getNameId(name);
-  if (nid < 0)
+  int nid;
+  bool add;
+  if (globalNameMapPtr)
   {
-    nid = names.addNameId(name);
-    vars.resize(names.nameCount());
+    globalNameMapPtr->mutex.lockWrite();
+    nid = globalNameMapPtr->names.getNameId(name);
+    if (nid < 0)
+      nid = globalNameMapPtr->names.addNameId(name);
+    globalNameMapPtr->mutex.unlockWrite();
+    add = !globalRemap.usedVars.test(nid, false);
+    if (add)
+      globalRemap.usedVars.set(nid, true);
+  }
+  else
+  {
+    nid = localNamesMap.getNameId(name);
+    add = nid < 0;
+    if (add)
+      nid = localNamesMap.addNameId(name);
+  }
+  if (add)
+  {
+    if (vars.size() <= nid)
+      vars.resize(nid + 1);
     vars[nid] = val;
     if (pull)
       varsPullable.set(nid, true);

@@ -1,0 +1,31 @@
+deep_compare test1: true
+deep_compare test2: false
+test null: true
+test bool1: true
+test bool2: true
+test int0: true
+test int1: true
+test int2: true
+test int3: true
+test int4: true
+test int5: true
+test float0: true
+test float1: true
+test float2: true
+test float3: true
+test str0: true
+test str1: true
+test str2: true
+test str3: true
+test array0: true
+test array1: true
+test array2: true
+test array_str: true
+test table0: true
+test table1: true
+test table2: true
+test recursion: true
+Unsupported object type for serialization
+Unsupported object type for serialization
+Unexpected end of data during deserialization
+111

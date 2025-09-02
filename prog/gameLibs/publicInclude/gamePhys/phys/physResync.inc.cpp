@@ -108,10 +108,8 @@ void apply_authority_state(PhysActor *unit, PhysImpl &phys, float current_time, 
       }
       else
       {
-        gamephys::Loc curError;
-        phys.calculateCurrentVisualLocationError(current_time, curError);
-        gamephys::Loc previousVisualLocation;
-        previousVisualLocation.add(phys.currentState.location, curError);
+        Tab<gamephys::Loc> previousVisualLocations(framemem_ptr());
+        phys.calcVisualLocFromLocation(current_time, phys.currentState.location, previousVisualLocations);
 
         dag::Vector<typename PhysImpl::PhysStateBase, framemem_allocator> alternativeHistoryStates;
         if (int numStatesToErase = phys.historyStates.size() - oldHistoryStatesCount; numStatesToErase > 0) // Erase alt history (tail)
@@ -183,7 +181,7 @@ void apply_authority_state(PhysActor *unit, PhysImpl &phys, float current_time, 
         for (int32_t tick = phys.currentState.atTick; controlsTick < updateControlsUpToTick; ++tick, ++controlsTick)
         {
           int newStateIndex = phys.applyUnapprovedCTAsAt(controlsTick, false, currentStateIndex, unit->getAuthorityUnitVersion());
-          phys.saveCurrentStateTo(phys.previousState, tick);
+          phys.saveCurrentToPreviousState(tick);
 
           if (dump_phys_update_info)
             debug("REacting cur=%d, ctl=%d, pos=(%f,%f,%f)", tick, phys.appliedCT.producedAtTick,
@@ -196,6 +194,8 @@ void apply_authority_state(PhysActor *unit, PhysImpl &phys, float current_time, 
           }
           if (currentAlternativeHistoryStateIndex < alternativeHistoryStates.size())
             phys.currentState.applyAlternativeHistoryState(alternativeHistoryStates[currentAlternativeHistoryStateIndex]);
+
+          unit->prePhysUpdate(tick, phys.timeStep, false);
           phys.updatePhys(float(tick) * phys.timeStep, phys.timeStep, false);
           unit->postPhysUpdate(tick, phys.timeStep, false);
           phys.currentState.lastAppliedControlsForTick = controlsTick;
@@ -214,27 +214,8 @@ void apply_authority_state(PhysActor *unit, PhysImpl &phys, float current_time, 
 
         phys.interpolateVisualPosition(current_time);
         unit->postPhysInterpolate(current_time, phys.timeStep);
+        phys.updateVisualError(client_smoothing, current_time, previousVisualLocations);
 
-        if (client_smoothing)
-        {
-          const float visualLocationErrorLowThresholdSq = sqr(20.f);
-          float visualLocationErrorThresholdSq = max(visualLocationErrorLowThresholdSq, (float)phys.currentState.velocity.lengthSq());
-          phys.visualLocationError.substract(previousVisualLocation, phys.currentState.location);
-          if (phys.visualLocationError.P.lengthSq() < visualLocationErrorThresholdSq)
-          {
-            phys.visualLocationErrorProductionTime = current_time;
-          }
-          else
-          {
-            phys.visualLocationError.resetLoc();
-            phys.visualLocationErrorProductionTime = 0.f;
-          }
-        }
-        else
-        {
-          phys.visualLocationError.resetLoc();
-          phys.visualLocationErrorProductionTime = 0.f;
-        }
 
         phys.desyncStats.lastPosDifference.substract(desyncedState.location, phys.currentState.location);
 
@@ -300,10 +281,8 @@ void apply_authority_state(PhysActor *unit, PhysImpl &phys, float current_time, 
 
       if (oldHistoryStatesCount >= 0) // No match found
       {
-        gamephys::Loc curError;
-        phys.calculateCurrentVisualLocationError(current_time, curError);
-        gamephys::Loc previousVisualLocation;
-        previousVisualLocation.add(phys.currentState.location, curError);
+        Tab<gamephys::Loc> previousVisualLocations(framemem_ptr());
+        phys.calcVisualLocFromLocation(current_time, phys.currentState.location, previousVisualLocations);
 
         // Clear the 'alternative future' part of the history
         dag::Vector<typename PhysImpl::PhysStateBase, framemem_allocator> alternativeHistoryStates;
@@ -341,6 +320,7 @@ void apply_authority_state(PhysActor *unit, PhysImpl &phys, float current_time, 
         // Move aircraft to the approved position
         phys.setCurrentState(augmentedState);
         unit->teleportToPos(true, Point3::xyz(augmentedState.location.P));
+        phys.forEachCustomStateSyncer([&](auto ss) { return ss->applyPartialAuthStateState(augmentedState.atTick); });
 
         // We should not dump fmsync data
         if (sync_dump_output_stream)
@@ -352,7 +332,7 @@ void apply_authority_state(PhysActor *unit, PhysImpl &phys, float current_time, 
         for (int32_t tick = phys.currentState.atTick; controlsTick < updateControlsUpToTick; ++tick, ++controlsTick)
         {
           int newStateIndex = phys.applyUnapprovedCTAsAt(controlsTick, false, currentStateIndex, unit->getAuthorityUnitVersion());
-          phys.saveCurrentStateTo(phys.previousState, tick);
+          phys.saveCurrentToPreviousState(tick);
 
           if (dump_phys_update_info)
             debug("REacting partial cur=%f, ctl=%f, pos=(%f,%f,%f)", float(tick), float(phys.appliedCT.producedAtTick),
@@ -365,6 +345,7 @@ void apply_authority_state(PhysActor *unit, PhysImpl &phys, float current_time, 
           }
           if (currentAlternativeHistoryStateIndex < alternativeHistoryStates.size())
             phys.currentState.applyAlternativeHistoryState(alternativeHistoryStates[currentAlternativeHistoryStateIndex]);
+          unit->prePhysUpdate(tick, phys.timeStep, false);
           phys.updatePhys(float(tick) * phys.timeStep, phys.timeStep, false);
           unit->postPhysUpdate(tick, phys.timeStep, false);
           phys.currentState.lastAppliedControlsForTick = controlsTick;
@@ -377,27 +358,9 @@ void apply_authority_state(PhysActor *unit, PhysImpl &phys, float current_time, 
         // atTime of the flight model is now forceUpdateUpToTick, not forceUpdateUpToTick-1 !!!
 
         phys.interpolateVisualPosition(current_time);
+        unit->postPhysInterpolate(current_time, phys.timeStep);
+        phys.updateVisualError(client_smoothing, current_time, previousVisualLocations);
 
-        if (client_smoothing)
-        {
-          const float visualLocationErrorLowThresholdSq = sqr(20.f);
-          float visualLocationErrorThresholdSq = max(visualLocationErrorLowThresholdSq, (float)phys.currentState.velocity.lengthSq());
-          phys.visualLocationError.substract(previousVisualLocation, phys.currentState.location);
-          if (phys.visualLocationError.P.lengthSq() < visualLocationErrorThresholdSq)
-          {
-            phys.visualLocationErrorProductionTime = current_time;
-          }
-          else
-          {
-            phys.visualLocationError.resetLoc();
-            phys.visualLocationErrorProductionTime = 0.f;
-          }
-        }
-        else
-        {
-          phys.visualLocationError.resetLoc();
-          phys.visualLocationErrorProductionTime = 0.f;
-        }
 
         phys.partialStateDesyncStats.lastPosDifference.substract(desyncedState.location, phys.currentState.location);
 
@@ -428,7 +391,7 @@ void send_authority_state(IPhysActor *unit, PhysImpl &phys, float state_send_per
   if (phys.physicsTimeToSendState < 0.f)
   {
     {
-      danet::BitStream stateData(sizeof(typename PhysImpl::PhysStateBase));
+      danet::BitStream stateData(phys.sizeOfAuthorityState());
       phys.authorityApprovedState->serialize(stateData);
       phys.forEachCustomStateSyncer([&](auto ss) { ss->serializeAuthState(stateData, phys.authorityApprovedState->atTick); });
 
@@ -476,8 +439,12 @@ void send_authority_state(IPhysActor *unit, PhysImpl &phys, float state_send_per
     typename PhysImpl::PhysPartialState savedState;
     phys.savePartialStateTo(savedState, unit->getAuthorityUnitVersion());
 
-    danet::BitStream stateData(sizeof(typename PhysImpl::PhysPartialState));
+    danet::BitStream stateData(phys.sizeOfPartialState());
     savedState.serialize(stateData);
+    phys.forEachCustomStateSyncer([&](auto ss) {
+      ss->savePartialAuthState(phys.authorityApprovedState->atTick);
+      ss->serializePartialAuthState(stateData, phys.authorityApprovedState->atTick);
+    });
     send_part_auth_state_cb(unit, eastl::move(stateData), savedState.atTick);
 
     phys.physicsTimeToSendPartialState = state_send_period * 0.25f;
@@ -559,7 +526,7 @@ void tick_phys_for_multiplayer(IPhysActor *unit, PhysImpl &phys, int32_t tick, i
     phys.applyProducedState();
 
   // We are about to get the next state, so it's last chance so save it as the previousState
-  phys.saveCurrentStateTo(phys.previousState, tick);
+  phys.saveCurrentToPreviousState(tick);
 
   if (dump_phys_update_info)
     debug("acting cur=%d, ctl=%d, pos=(%f,%f,%f)", tick, phys.appliedCT.producedAtTick, (float)phys.currentState.location.P.x,
@@ -581,6 +548,7 @@ void tick_phys_for_multiplayer(IPhysActor *unit, PhysImpl &phys, int32_t tick, i
   float curTime = tick * phys.timeStep;
 
   // Act physics, updating currentState up to updatedUpToTime
+  unit->prePhysUpdate(tick, phys.timeStep, true);
   phys.updatePhys(curTime, phys.timeStep, true);
   unit->postPhysUpdate(tick, phys.timeStep, true);
   if (sync_dump_output_stream)
@@ -630,18 +598,12 @@ void finish_update_phys_for_multiplayer(IPhysActor *unit, PhysImpl &phys, Resync
   // This will result in some sort of lag-compensation.
   if (unit->getRole() == IPhysActor::ROLE_REMOTELY_CONTROLLED_AUTHORITY)
   {
-    gamephys::Loc zeroLoc;
-    zeroLoc.P.zero();
-    zeroLoc.O.fromTM(TMatrix::IDENT);
-
     if (resync_state.isNewCorrrectionRequired)
     {
       // Obtain visual location as it were back then
       // We have old extrapolatedState and new correctedExtrapolatedState, for two versions of the same time.
-      gamephys::Loc oldSmoothingDisplacement;
-      phys.calculateCurrentVisualLocationError(phys.extrapolatedState.atTime, oldSmoothingDisplacement);
-      gamephys::Loc oldSmoothenedLocation;
-      oldSmoothenedLocation.add(phys.extrapolatedState.location, oldSmoothingDisplacement);
+      Tab<gamephys::Loc> oldSmoothenedLocations(framemem_ptr());
+      phys.calcVisualLocFromLocation(phys.extrapolatedState.atTime, phys.extrapolatedState.location, oldSmoothenedLocations);
 
       // If we haven't obtained a corrected state yet, obtain the best we can.
       // Extrapolate to the previous extrapolatedState time,
@@ -649,11 +611,14 @@ void finish_update_phys_for_multiplayer(IPhysActor *unit, PhysImpl &phys, Resync
       if (!resync_state.isCorrectedStateObtained)
       {
         phys.extrapolateMinimalState(phys.currentState, phys.extrapolatedState.atTime, resync_state.correctedExtrapolatedState);
+        // it changes visual location for SubVehicles of unit, but don't need to return them back: it will be done below, after
+        // inerpolation/extrapolation of phys
+        phys.postPhysExtrapolation(phys.extrapolatedState.atTime, resync_state.correctedExtrapolatedState);
       }
 
       // Obtain visual location error.
-      phys.visualLocationError.substract(oldSmoothenedLocation, resync_state.correctedExtrapolatedState.location);
-      phys.visualLocationErrorProductionTime = phys.extrapolatedState.atTime;
+      phys.updateVisualErrorForNewCorrection(phys.extrapolatedState.atTime, oldSmoothenedLocations,
+        resync_state.correctedExtrapolatedState.location);
     }
   }
 
@@ -661,10 +626,12 @@ void finish_update_phys_for_multiplayer(IPhysActor *unit, PhysImpl &phys, Resync
   // We want to have extrapolatedState that contains extra/interpolated position of all the aircrafts at currentTime
   // For locally controlled aircrafts we need to interpolate visual position between pervious and current states
   // every time updateInThreads is called, so the aircrafts move smoothly.
-  if (current_time > float(phys.currentState.atTick) * phys.timeStep)
+  const bool isExtrapolation = current_time > float(phys.currentState.atTick) * phys.timeStep;
+  if (isExtrapolation)
   {
     // Extrapolate to currentTime
     phys.extrapolateMinimalState(phys.currentState, current_time, phys.extrapolatedState);
+    phys.postPhysExtrapolation(current_time, phys.extrapolatedState);
   }
   else
   {
@@ -678,9 +645,7 @@ void finish_update_phys_for_multiplayer(IPhysActor *unit, PhysImpl &phys, Resync
 
   // Obtain visual location.
   // Apply current extrapolation error, getting visual location
-  gamephys::Loc curError;
-  phys.calculateCurrentVisualLocationError(current_time, curError);
-  phys.visualLocation.add(phys.extrapolatedState.location, curError);
+  phys.fixVisualErrors(current_time);
 }
 
 template <typename PhysImpl>

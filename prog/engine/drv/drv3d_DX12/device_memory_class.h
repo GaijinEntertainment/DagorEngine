@@ -38,10 +38,6 @@ enum class DeviceMemoryClass
   ESRAM_RESOURCE,
 #endif
 
-#if D3D_HAS_RAY_TRACING
-  DEVICE_RESIDENT_ACCELERATION_STRUCTURE,
-#endif
-
   COUNT,
   INVALID = COUNT
 };

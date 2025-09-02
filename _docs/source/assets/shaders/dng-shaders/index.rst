@@ -1,5 +1,5 @@
 
-daNetGame-Based Shaders
+daNetGame-based Shaders
 =========================================
 
 .. toctree::
@@ -25,10 +25,5 @@ daNetGame-Based Shaders
    rendinst_tree_colored.md
    rendinst_tree_perlin_layered.md
    rendinst_vcolor_layered.md
-
-
-
-
-
 
 

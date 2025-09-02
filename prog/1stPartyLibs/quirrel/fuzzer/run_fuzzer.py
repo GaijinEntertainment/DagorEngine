@@ -11,6 +11,7 @@ import signal
 error_detected = False
 process_timeout = 4
 batchSize = 80
+csqArgs = "--check-stack"
 csq = "csq"
 csq2 = ""
 cwd = os.getcwd().replace("\\", "/")
@@ -84,7 +85,7 @@ def fuzzer_thread_func(begin, end, step):
                 seed_set += f"{seed_list[x + j]}"
 
         # generate scripts for tests
-        run_cmd(f"{csq} {cwd}/sqfuzzer.nut -- seedset={seed_set} fileprefix=sqf{my_process_id}-")
+        run_cmd(f"{csq} {csqArgs} {cwd}/sqfuzzer.nut -- seedset={seed_set} fileprefix=sqf{my_process_id}-")
 
         # run all scripts at once
         cmd_opt = ""
@@ -93,11 +94,11 @@ def fuzzer_thread_func(begin, end, step):
             cmd_opt += f" sqf{my_process_id}-{i}.opt.nut"
             cmd_no_opt += f" sqf{my_process_id}-{i}.no-opt.nut"
 
-        accum_output_no_opt = normalize_output(run_cmd(f"{csq}{cmd_no_opt}"))
-        accum_output_opt = normalize_output(run_cmd(f"{csq}{cmd_opt}"))
+        accum_output_no_opt = normalize_output(run_cmd(f"{csq} {csqArgs} {cmd_no_opt}"))
+        accum_output_opt = normalize_output(run_cmd(f"{csq} {csqArgs} {cmd_opt}"))
         accum_output_csq2 = ""
         if csq2 != "":
-            accum_output_csq2 = normalize_output(run_cmd(f"{csq2}{cmd_opt}"))
+            accum_output_csq2 = normalize_output(run_cmd(f"{csq2} {csqArgs} {cmd_opt}"))
 
         # if any of the scripts crashed or produced different output, then run scripts one by one
         if ("Fatal" in accum_output_opt or "Fatal" in accum_output_no_opt or "Fatal" in accum_output_csq2 or
@@ -105,11 +106,11 @@ def fuzzer_thread_func(begin, end, step):
             print("Error detected in batch run, running scripts one by one...")
             error_detected = True
             for i in seed_list[x : x + batchSize]:
-                output_disabled_opt = normalize_output(run_cmd(f"{csq} sqf{my_process_id}-{i}.no-opt.nut"))
-                output_enabled_opt = normalize_output(run_cmd(f"{csq} sqf{my_process_id}-{i}.opt.nut"))
+                output_disabled_opt = normalize_output(run_cmd(f"{csq} {csqArgs} sqf{my_process_id}-{i}.no-opt.nut"))
+                output_enabled_opt = normalize_output(run_cmd(f"{csq} {csqArgs} sqf{my_process_id}-{i}.opt.nut"))
                 output_csq2 = ""
                 if csq2 != "":
-                    output_csq2 = normalize_output(run_cmd(f"{csq2} sqf{my_process_id}-{i}.opt.nut"))
+                    output_csq2 = normalize_output(run_cmd(f"{csq2} {csqArgs} sqf{my_process_id}-{i}.opt.nut"))
 
                 crash_version = ""
                 if "Fatal" in output_disabled_opt:
@@ -155,8 +156,8 @@ def print_usage():
 def check_csq_version(exe_path, var_name):
     try:
         csqVersion = run_cmd(f'{exe_path} --version').replace('\n', '').replace('\r', '').split('.')
-        if int(csqVersion[0]) * 1e6 + int(csqVersion[1]) * 1e3 + int(csqVersion[2]) < 1e6 + 0 * 1e3 + 23:
-            print(f"\nERROR: {exe_path} version must be 1.0.23 or higher, current version: {csqVersion[0]}.{csqVersion[1]}.{csqVersion[2]}")
+        if int(csqVersion[0]) * 1e6 + int(csqVersion[1]) * 1e3 + int(csqVersion[2]) < 1e6 + 0 * 1e3 + 29:
+            print(f"\nERROR: {exe_path} version must be 1.0.29 or higher, current version: {csqVersion[0]}.{csqVersion[1]}.{csqVersion[2]}")
             exit(1)
     except Exception as e:
         print(f"\nERROR: {exe_path} not found, please specify the path to csq.exe using --{var_name}=<path_to_csq.exe>")

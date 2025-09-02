@@ -1,16 +1,15 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include <propPanel/control/menu.h>
 #include <propPanel/messageQueue.h>
-#include <sepGui/wndEmbeddedWindow.h>
-#include <sepGui/wndMenuInterface.h>
 #include <EditorCore/ec_decl.h>
 #include <EditorCore/ec_interface.h>
 #include <EditorCore/ec_rect.h>
 #include <EditorCore/ec_viewportAxisId.h>
-#include <EditorCore/ec_window.h>
 #include <EditorCore/ec_camera_elem.h>
 
+#include <EASTL/optional.h>
 #include <3d/dag_textureIDHolder.h>
 #include <util/dag_simpleString.h>
 #include <util/dag_stdint.h>
@@ -29,6 +28,9 @@ class RenderViewport;
 class IMenu;
 class IWndManager;
 class ViewportWindowStatSettingsDialog;
+class GizmoSettingsDialog;
+
+typedef unsigned int ImGuiID;
 
 struct ViewportParams
 {
@@ -40,18 +42,13 @@ struct ViewportParams
 /// @ingroup EditorCore
 /// @ingroup EditorBaseClasses
 /// @ingroup ViewPort
-class ViewportWindow : public IGenViewportWnd, public IMenuEventHandler, public PropPanel::IDelayedCallbackHandler
+class ViewportWindow : public IGenViewportWnd, public PropPanel::IMenuEventHandler, public PropPanel::IDelayedCallbackHandler
 {
 public:
   static bool showDagorUiCursor;
   static void (*render_viewport_frame)(ViewportWindow *vpw);
 
-  /// Constructor.
-  /// @param p - pointer to parent window
-  /// @param left, top, w, h - coordinates of left and top borders of the window,
-  ///                          window's width and height
-  /// @param id - window id
-  ViewportWindow(TEcHandle parent, int left, int top, int w, int h);
+  ViewportWindow();
 
   /// Destructor.
   ~ViewportWindow();
@@ -59,20 +56,15 @@ public:
   /// Initialize viewport
   virtual void init(IGenEventHandler *eh);
 
-  /// Event handler of CTL window of viewport.
-  /// @param[in] id - message id
-  /// @param[in] p1,p2,p3 - message parameters
-  virtual int windowProc(TEcHandle h_wnd, unsigned msg, TEcWParam w_param, TEcLParam l_param);
-  virtual int handleCommand(int p1 = 0, int p2 = 0, int p3 = 0);
+  int handleCommand(int p1 = 0, int p2 = 0, int p3 = 0) override;
 
   // IMenuEventHandler
-  virtual int onMenuItemClick(unsigned id);
+  int onMenuItemClick(unsigned id) override;
 
   /// Set event handler of viewport.
   /// Viewport will send messages about its events to this event handler.
   /// @param[in] eh - pointer to event handler
-  virtual void setEventHandler(IGenEventHandler *eh);
-
+  void setEventHandler(IGenEventHandler *eh) override;
 
   //*******************************************************
   ///@name Methods to set / get viewport parameters.
@@ -85,58 +77,58 @@ public:
   ///          of scene (all parts more close to camera will be invisible)
   /// @param[in] far_plane - z-far, a distance to  the farthest visible parts
   ///          of scene (all parts more distant from camera will be invisible)
-  virtual void setProjection(bool orthogonal, real fov, real near_plane, real far_plane);
+  void setProjection(bool orthogonal, real fov, real near_plane, real far_plane) override;
 
   /// Set camera's FOV (<b>F</b>ield <b>O</b>f <b>V</b>iew).
   /// @param[in] fov - camera's angle of view (in radians)
-  virtual void setFov(real fov);
+  void setFov(real fov) override;
 
   /// Get camera's FOV (<b>F</b>ield <b>O</b>f <b>V</b>iew).
   /// @return fov (in radians)
-  virtual real getFov();
+  real getFov() override;
 
   /// Set camera's direction.
   /// @param[in] forward - direction of camera's view
   /// @param[in] up - direction of camera's top
-  virtual void setCameraDirection(const Point3 &forward, const Point3 &up);
+  void setCameraDirection(const Point3 &forward, const Point3 &up) override;
 
   /// Set camera's position.
   /// @param[in] pos - position
-  virtual void setCameraPos(const Point3 &pos);
+  void setCameraPos(const Point3 &pos) override;
 
   /// Set view matrix of the camera.
   /// @param[in] tm - view matrix
-  virtual void setCameraTransform(const TMatrix &tm);
+  void setCameraTransform(const TMatrix &tm) override;
 
   /// Set zoom property for camera in orthogonal mode.
   /// @param[in] zoom - zoom value
-  virtual void setOrthogonalZoom(real zoom);
+  void setOrthogonalZoom(real zoom) override;
 
   /// Get view matrix of the camera.
   /// @param[out] m - view matrix
-  virtual void getCameraTransform(TMatrix &m) const;
+  void getCameraTransform(TMatrix &m) const override;
 
   /// Get zoom property for camera in orthogonal mode.
   /// @return zoom value
-  virtual real getOrthogonalZoom() const;
+  real getOrthogonalZoom() const override;
 
   /// Tests whether camera is in orthogonal mode
   /// @return @b true if viewport is in orthogonal mode, @b false in other case
-  virtual bool isOrthogonal() const;
+  bool isOrthogonal() const override;
 
   /// Tests whether viewport is in "fly" mode
   /// @return @b true if viewport is in "fly" mode, @b false in other case
-  virtual bool isFlyMode() const;
+  bool isFlyMode() const override;
 
   /// Set camera's mode (orthogonal/perspective).
   /// @param[in] camera_mode - if @b true the view will be orthogonal,
   ///                          if @b false - perspective
-  virtual void setCameraMode(bool camera_mode);
+  void setCameraMode(bool camera_mode) override;
 
   /// Set camera's projection.
   /// @param[in] view - view matrix
   /// @param[in] fov - camera's <b>F</b>ield <b>O</b>f <b>V</b>iew
-  virtual void setCameraViewProjection(const TMatrix &view, real fov);
+  void setCameraViewProjection(const TMatrix &view, real fov) override;
   //@}
 
 
@@ -155,7 +147,12 @@ public:
   /// @param[in] screen - screen coordinates
   /// @param[out] world - world coordinates (on camera's (lens's) surface)
   /// @param[out] world_dir - camera's direction
-  virtual void clientToWorld(const Point2 &screen, Point3 &world, Point3 &world_dir);
+  void clientToWorld(const Point2 &screen, Point3 &world, Point3 &world_dir) override;
+
+  /// Convert viewport world coordinates to normal device coordinates.
+  /// @param[in] world - world coordinates
+  /// @param[out] ndc - normal device coordinates
+  void worldToNDC(const Point3 &world, Point3 &ndc) const override;
 
   /// Convert viewport world coordinates to screen coordinates.
   /// @param[in] world - world coordinates
@@ -163,21 +160,21 @@ public:
   /// @param[out] screen_z - the distance between camera and the world point,
   ///                        may be <0 if the world point is placed behind camera
   /// @return @b true if convertion successful, @b false in other case
-  virtual bool worldToClient(const Point3 &world, Point2 &screen, real *screen_z = NULL);
+  bool worldToClient(const Point3 &world, Point2 &screen, real *screen_z = NULL) override;
 
   /// Convert viewport screen coordinates to application window screen
   /// coordinates.
   /// @param[in,out] x,y - <b>x, y</b> screen coordinates
-  virtual void clientToScreen(int &x, int &y);
+  void clientToScreen(int &x, int &y) override;
 
   /// Convert application window screen coordinates to viewport screen
   /// coordinates.
   /// @param[in,out] x,y - <b>x, y</b> screen coordinates
-  virtual void screenToClient(int &x, int &y);
+  void screenToClient(int &x, int &y) override;
 
   /// Get dimensions of viewport in pixels
   /// @param[out] x,y - <b>x, y</b> dimensions of viewport
-  virtual void getViewportSize(int &x, int &y);
+  void getViewportSize(int &x, int &y) override;
   //@}
 
 
@@ -185,7 +182,7 @@ public:
   /// For example, switch camera from "Left" view to "Top" view
   /// @param[in] from - "from" view
   /// @param[in] to - "to" view
-  virtual void switchCamera(unsigned int from, unsigned int to);
+  void switchCamera(unsigned int from, unsigned int to) override;
 
   /// Get top-left menu area size
   void getMenuAreaSize(hdpi::Px &w, hdpi::Px &h);
@@ -197,18 +194,18 @@ public:
   int getH() const;
   void getClientRect(EcRect &clientRect) const;
 
-  virtual void captureMouse() override;
-  virtual void releaseMouse() override;
+  void captureMouse() override;
+  void releaseMouse() override;
 
   //*******************************************************
   ///@name Viewport activity.
   //@{
   /// Activate viewport.
-  virtual void activate() override;
+  void activate() override;
 
   /// Tests whether viewport is active.
   /// @return @b true if viewport is active, @b false in other case
-  virtual bool isActive() override;
+  bool isActive() override;
   //@}
 
 
@@ -217,21 +214,21 @@ public:
   /// @param[in] world_rad - radius of a circle
   /// @param[in] xy - 0-horizontal radius, 1-vertical radius (of ellipse)
   /// @return @b square of visible radius of a circle (ellipse)
-  virtual real getLinearSizeSq(const Point3 &pos, real world_rad, int xy);
+  real getLinearSizeSq(const Point3 &pos, real world_rad, int xy) override;
 
 
   //*******************************************************
   ///@name Viewport redraw methods.
   //@{
   /// Redraw viewport as Dagor Engine object and CTL object
-  virtual void redrawClientRect();
+  void redrawClientRect() override;
 
   /// Redraw viewport.
-  virtual void invalidateCache();
+  void invalidateCache() override;
 
   /// Enable / disable viewport cache.
   /// @param[in] en - @b true to enable cache, @b false to disable
-  virtual void enableCache(bool en);
+  void enableCache(bool en) override;
   //@}
 
 
@@ -242,26 +239,26 @@ public:
   /// Start drawing rectangular selection box.
   /// @param[in] mx,my - starting point of selection box
   /// @param[in] type - type of selection box
-  virtual void startRectangularSelection(int mx, int my, int type);
+  void startRectangularSelection(int mx, int my, int type) override;
 
   /// End drawing rectangular selection box.
   /// @param[out] result - pointer to CtlRect with coordinates of a selected area
   ///              (upper left and lower bottom corners of area). May be @b NULL
   /// @param[out] type - type of selection box
   /// @return @b true if selection successful, @b false if selection aborted
-  virtual bool endRectangularSelection(EcRect *result, int *type);
+  bool endRectangularSelection(EcRect *result, int *type) override;
   //@}
 
 
   /// Set parameters (projection matrix, etc) of a videocard driver camera
   /// equal to parameters of viewport camera
-  virtual void setViewProj();
+  void setViewProj() override;
 
 
   /// Zoom and center bounding box.
   /// Function centers and zooms bounding box to max visible size in viewport.
   /// @param[in] box - bounding box (see #BBox3)
-  virtual void zoomAndCenter(BBox3 &box);
+  void zoomAndCenter(BBox3 &box) override;
 
 
   //*******************************************************
@@ -288,7 +285,7 @@ public:
   /// Get z-near / z-far values of viewport.
   /// @param[in] zn - z-near, a distance to nearest visible parts of scene in viewport
   /// @param[in] zf - z-far, a distance to  the farthest visible parts of scene in viewport
-  void getZnearZfar(real &zn, real &zf) const;
+  void getZnearZfar(real &zn, real &zf) const override;
 
   //*******************************************************
   ///@name Process custom cameras (if they exist).
@@ -302,8 +299,6 @@ public:
   void setCustomCameras(ICustomCameras *in_customCameras) { customCameras = in_customCameras; }
   //@}
 
-  int processCameraControl(TEcHandle h_wnd, unsigned msg, TEcWParam w_param, TEcLParam l_param);
-
   //*******************************************************
   ///@name Stat3D routine
   //@{
@@ -314,15 +309,15 @@ public:
   //@}
 
   /// Draw statistics/debug texts in the viewport area.
-  virtual void drawText(int x, int y, const String &text);
+  void drawText(int x, int y, const String &text) override;
 
   bool wireframeOverlayEnabled() const { return wireframeOverlay; }
 
   /// Set secondary menu event handler of viewport.
-  virtual void setMenuEventHandler(IMenuEventHandler *meh);
+  void setMenuEventHandler(PropPanel::IMenuEventHandler *meh) override;
 
   /// Retrieves the custom context menu of the viewport if it's active/open.
-  virtual PropPanel::IMenu *getContextMenu() { return selectionMenu; }
+  PropPanel::IMenu *getContextMenu() override { return selectionMenu; }
 
   /// Render viewport gui
   virtual void paint(int w, int h);
@@ -333,6 +328,7 @@ public:
 
   void showGridSettingsDialog();
   void showStatSettingsDialog();
+  void showGizmoSettingsDialog();
 
   /// ViewportWindowStatSettingsDialog uses this to forward its onChange notification.
   virtual void handleStatSettingsDialogChange(int pcb_id, bool value);
@@ -361,16 +357,15 @@ public:
   bool isViewportTextureReady() const;
   void copyTextureToViewportTexture(BaseTexture &source_texture, int source_width, int source_height);
 
-  void updateImgui(const Point2 &size, float item_spacing, bool vr_mode = false);
+  void updateImgui(ImGuiID canvas_id, const Point2 &size, float item_spacing, bool vr_mode = false);
+
+  void setScreenshotMode(Point2 size) override { screenshotSize = size; }
+  void resetScreenshotMode() override { screenshotSize.reset(); }
 
 protected:
-  // IWndEmbeddedWindow
-  virtual void onWmEmbeddedResize(int width, int height);
-  virtual bool onWmEmbeddedMakingMovable(int &w, int &h) { return true; }
-
   virtual void fillStatSettingsDialog(ViewportWindowStatSettingsDialog &dialog);
 
-  virtual void onImguiDelayedCallback(void *user_data) override;
+  void onImguiDelayedCallback(void *user_data) override;
 
   class ViewportClippingDlg;
 
@@ -423,9 +418,9 @@ protected:
   bool showCameraSpeed;
   bool showCameraTurboSpeed;
   ViewportWindowStatSettingsDialog *statSettingsDialog;
+  static GizmoSettingsDialog *gizmoSettingsDialog;
 
-  int restoreCursorAtX;
-  int restoreCursorAtY;
+  IPoint2 restoreCursorAt = IPoint2(0, 0);
 
   Input input;
 
@@ -434,8 +429,8 @@ protected:
   void paintRect();
   void paintSelectionRect();
 
-  int processRectSelection(TEcHandle h_wnd, unsigned msg, TEcWParam w_param, TEcLParam l_param);
-  void processMouseMoveInfluence(real &deltaX, real &deltaY, int id, int32_t p1, int32_t p2, int32_t p3);
+  void processRectangularSelectionMouseMove(int mouse_x, int mouse_y);
+  void processMouseMoveInfluence(real &deltaX, real &deltaY, int mouse_x, int mouse_y);
 
   void OnChangePosition();
   void OnDestroy();
@@ -452,19 +447,37 @@ protected:
   void handleStat3dStatSettingsDialogChange(int pcb_id, bool value);
 
   virtual bool canStartInteractionWithViewport();
+  bool canRouteMessagesToExternalEventHandler() const;
 
   void handleViewportAxisMouseLButtonDown();
   void handleViewportAxisMouseLButtonUp();
-  void processViewportAxisCameraRotation(TEcLParam l_param);
+  void processViewportAxisCameraRotation(int mouse_x, int mouse_y);
   void setViewportAxisTransitionEndDirection(const Point3 &forward, const Point3 &up);
 
-  void processCameraEvents(CCameraElem *camera_elem, unsigned msg, TEcWParam w_param, TEcLParam l_param);
+  void processCameraMouseMove(CCameraElem *camera_elem, int mouse_x, int mouse_y);
+  void processCameraMouseWheel(CCameraElem *camera_elem, int delta);
 
-  void processHotKeys(unsigned key_code);
+  void processMaxCameraMouseMButtonDown(int mouse_x, int mouse_y);
+  void processMaxCameraMouseMButtonUp();
+  void processMaxCameraMouseMove(int mouse_x, int mouse_y, bool m_button_down);
+  void processMaxCameraMouseWheel(int multiplied_delta);
+
+  void processMouseLButtonPress(int mouse_x, int mouse_y);
+  void processMouseLButtonRelease(int mouse_x, int mouse_y);
+  void processMouseLButtonDoubleClick(int mouse_x, int mouse_y);
+  void processMouseMButtonPress(int mouse_x, int mouse_y);
+  void processMouseMButtonRelease(int mouse_x, int mouse_y);
+  void processMouseRButtonPress(int mouse_x, int mouse_y);
+  void processMouseRButtonRelease(int mouse_x, int mouse_y);
+  void processMouseMove(int mouse_x, int mouse_y);
+  void processMouseWheel(int mouse_x, int mouse_y, int multiplied_delta);
 
   void *getMainHwnd();
 
   void resizeViewportTexture();
+
+  Point3 getCameraPanAnchorPoint();
+  virtual BaseTexture *getDepthBuffer() { return nullptr; }
 
   struct DelayedMouseEvent
   {
@@ -482,9 +495,6 @@ protected:
   IPoint2 viewportTextureSize = IPoint2(0, 0);
   IPoint2 requestedViewportTextureSize = IPoint2(0, 0);
 
-  static const int keysDownArraySize = 154;
-  bool keysDown[keysDownArraySize];
-
   static const int mouseButtonDownArraySize = 5;
   bool mouseButtonDown[mouseButtonDownArraySize];
 
@@ -494,6 +504,11 @@ protected:
   static GridEditDialog *gridSettingsDialog;
 
   dag::Vector<DelayedMouseEvent *> delayedMouseEvents;
+
+  eastl::optional<Point3> lastValidCamPanAnchorPoint;
+  eastl::optional<Point3> cameraPanAnchorPoint;
+
+  eastl::optional<Point2> screenshotSize;
 };
 
 
@@ -506,7 +521,13 @@ void save_camera_objects(DataBlock &blk);
 /// @param[in] blk - Data Block that contains data to load (see #DataBlock)
 void load_camera_objects(const DataBlock &blk);
 
-/// Show settings dialog for all cameras.
+/// Toggles the display of the Camera settings dialog for all cameras.
 /// @param[in] parent - pointer to parent window
 void show_camera_objects_config_dialog(void *parent);
+
+/// Closes and deallocates the Camera settings dialog.
+void close_camera_objects_config_dialog();
+
+/// Act (tick/update) camera settings dialog.
+void act_camera_objects_config_dialog();
 //@}

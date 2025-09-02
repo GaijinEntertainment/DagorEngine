@@ -55,7 +55,6 @@ void WrapperRendInstCollisionImplCB::addCollisionCheck(const rendinst::Collision
     CachedCollisionObjectInfo *objInfo = rendinstdestr::get_or_add_cached_collision_object(coll_info.desc, atTime, coll_info);
     if (restoreImpulse)
       objInfo->thresImpulse = objInfo->originalThreshold;
-    objInfo->atTime = atTime;
     userInfo.objInfoData = objInfo;
   }
 
@@ -76,20 +75,22 @@ void WrapperRendInstCollisionImplCB::addCollisionCheck(const rendinst::Collision
 
 void WrapperRendInstCollisionImplCB::addTreeCheck(const rendinst::CollisionInfo &coll_info)
 {
+  using namespace rendinstdestr;
+
   float ht = coll_info.localBBox[1].y;
   float rad = fabsf(coll_info.localBBox[0].x);
-  if (!rendinstdestr::get_tree_collision())
+  if (!get_tree_collision())
   {
-    CollisionObject &treeColl = rendinstdestr::get_tree_collision();
+    CollisionObject &treeColl = get_tree_collision();
     treeColl = dacoll::create_coll_obj_from_shape(PhysCapsuleCollision(rad, ht + rad * 2, 1 /*Y*/), NULL, /*kinematic*/ false,
       /* add to world */ false, /* auto mask */ true);
   }
 
-  if (!rendinstdestr::get_tree_collision())
+  if (!get_tree_collision())
     return;
 
   TMatrix normalizedTm = coll_info.tm;
-  CollisionObject obj = processCollisionInstance(coll_info, rendinstdestr::get_tree_collision(), normalizedTm);
+  CollisionObject obj = processCollisionInstance(coll_info, get_tree_collision(), normalizedTm);
   if (!obj) // PhysBody alloc failed?
     return;
 
@@ -102,7 +103,7 @@ void WrapperRendInstCollisionImplCB::addTreeCheck(const rendinst::CollisionInfo 
   userInfo.treeBehaviour = coll_info.treeBehaviour;
   if (shouldProvideCollisionInfo)
   {
-    const rendinstdestr::TreeDestr &treeDestr = rendinstdestr::get_tree_destr();
+    const TreeDestr &treeDestr = get_tree_destr();
 
     const float height = coll_info.localBBox.width().y * coll_info.tm.getcol(1).y;
     float destrImpulse = treeDestr.impulseThresholdMult * sqr(max(height - treeDestr.heightThreshold, 1.f));
@@ -112,17 +113,10 @@ void WrapperRendInstCollisionImplCB::addTreeCheck(const rendinst::CollisionInfo 
       destrImpulse = coll_info.destrImpulse * widthScale;
     }
     destrImpulse *= treeDestr.getRadiusToImpulse(coll_info.localBBox.width().x * 0.5f);
-    CachedCollisionObjectInfo *objInfo = rendinstdestr::get_cached_collision_object(coll_info.desc);
-    if (!objInfo)
-    {
-      objInfo = new RendinstCollisionUserInfo::TreeRendinstImpulseThresholdData(destrImpulse, coll_info.desc, atTime, coll_info);
-      rendinstdestr::add_cached_collision_object(objInfo);
-    }
+    CachedCollisionObjectInfo *objInfo = get_or_add_cached_tree_collision_object(coll_info.desc, destrImpulse, atTime, coll_info);
     if (restoreImpulse)
       objInfo->thresImpulse = objInfo->originalThreshold;
-    objInfo->atTime = atTime;
     userInfo.objInfoData = objInfo;
-    userInfo.objInfoData->collisionHardness = 0.3f;
   }
   void *prevUserPtr = obj.body->getUserData();
   obj.body->setUserData((void *)&userInfo);

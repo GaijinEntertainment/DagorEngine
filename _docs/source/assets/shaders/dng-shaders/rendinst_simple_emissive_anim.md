@@ -1,4 +1,4 @@
-# Shader: rendinst_simple_emissive_anim / dynamic_illum_anim
+# `rendinst_simple_emissive_anim`/`dynamic_illum_anim`
 
 ## Overview
 
@@ -58,11 +58,9 @@ the lights and two textures:
 - `tex3:t="emis_anim_shader_program.tif"` – The program texture defines when the
   lamp emits light (independent of UV mapping).
 
-<img src="_images/rendinst_simple_emissive_anim_01.jpg" width="80%" align="center" class="bg-primary">
+<img src="_images/rendinst_simple_emissive_anim_01.jpg" width="55em" class="image-center">
 
-<br>
-
-### tex0:t="emis_anim_shader_tex_d.tif"
+### `tex0:t="emis_anim_shader_tex_d.tif"`
 
 Defines the lamp's color and emission level:
 
@@ -71,7 +69,7 @@ Defines the lamp's color and emission level:
 - A channel: Emission intensity, where white is the maximum emission and black
   means no emission.
 
-### tex3:t="emis_anim_shader_program.tif"
+### `tex3:t="emis_anim_shader_program.tif"`
 
 The emission program texture defines:
 
@@ -90,12 +88,40 @@ mapping for each lamp is not required.
 the diffuse and program textures, the lamps in the diffuse texture are painted
 white.
 
-<img src="_images/rendinst_simple_emissive_anim_02.gif" width="49%" class="bg-primary">
-<img src="_images/rendinst_simple_emissive_anim_03.gif" width="49%" class="bg-primary">
+```{eval-rst}
+.. grid:: 2
+   :class-container: center-grid
+   :gutter: 2
 
-<br>
+   .. grid-item::
+      :class: center-cell
 
-### tex4:t="emis_anim_shader_shift.tif"
+      .. only:: html
+
+         .. image:: _images/rendinst_simple_emissive_anim_02.gif
+            :height: 300px
+            :align: center
+
+      .. only:: latex
+
+         `Download animation (GIF) <https://github.com/GaijinEntertainment/DagorEngine/blob/main/_docs/source/assets/shaders/dng-shaders/_images/rendinst_simple_emissive_anim_02.gif>`_
+
+   .. grid-item::
+      :class: center-cell
+
+      .. only:: html
+
+         .. image:: _images/rendinst_simple_emissive_anim_03.gif
+            :height: 300px
+            :align: center
+
+      .. only:: latex
+
+         `Download animation (GIF) <https://github.com/GaijinEntertainment/DagorEngine/blob/main/_docs/source/assets/shaders/dng-shaders/_images/rendinst_simple_emissive_anim_03.gif>`_
+
+```
+
+### `tex4:t="emis_anim_shader_shift.tif"`
 
 - R channel: Controls horizontal displacement on the program texture:
   - White: No displacement.
@@ -119,43 +145,98 @@ shell of the lamps. This causes visible artifacts at the seams. It is better to
 paint the area as with the red/blue lamps.
 
 ```{eval-rst}
-.. video:: _images/rendinst_simple_emissive_anim_04.webm
-   :width: 60%
+
+.. only:: html
+
+   .. video:: _images/rendinst_simple_emissive_anim_04.webm
+      :width: 60%
+
+.. only:: latex
+
+   `Download video (WEBM) <https://github.com/GaijinEntertainment/DagorEngine/blob/main/_docs/source/assets/shaders/dng-shaders/_images/rendinst_simple_emissive_anim_04.webm>`_
+
 ```
 
 **Example:** For scrolling text, you'll need a `.dag` file for the banner and
 three textures.
 
 ```{eval-rst}
-.. video:: _images/rendinst_simple_emissive_anim_05.webm
-   :width: 60%
+
+.. only:: html
+
+   .. video:: _images/rendinst_simple_emissive_anim_05.webm
+      :width: 60%
+
+.. only:: latex
+
+   `Download video (WEBM) <https://github.com/GaijinEntertainment/DagorEngine/blob/main/_docs/source/assets/shaders/dng-shaders/_images/rendinst_simple_emissive_anim_05.webm>`_
+
 ```
 
-<table style="text-align:center; width:98%"><tr>
-  <th style="text-align:center; width:32%"><p>tex0:t="text_anim_tex_d"</p></th>
-  <th style="text-align:center; width:32%"><p>tex3:t="text_anim_program"</p></th>
-  <th style="text-align:center; width:32%"><p>tex4:t="text_anim_shift"</p></th></tr>
-</table>
+```{eval-rst}
+.. grid:: 3
+   :class-container: center-grid
+   :gutter: 1
 
-<img src="_images/rendinst_simple_emissive_anim_06.jpg" width="32%" class="bg-primary">
-<img src="_images/rendinst_simple_emissive_anim_07.jpg" width="32%" class="bg-primary">
-<img src="_images/rendinst_simple_emissive_anim_08.jpg" width="32%" class="bg-primary">
+   .. grid-item::
+      :child-direction: row
+      :child-align: center
+
+      ``tex0:t="text_anim_tex_d"``
+
+   .. grid-item::
+      :child-direction: row
+      :child-align: center
+
+      ``tex3:t="text_anim_program"``
+
+   .. grid-item::
+      :child-direction: row
+      :child-align: center
+
+      ``tex4:t="text_anim_shift"``
+
+   .. grid-item::
+      :class: center-cell
+
+      .. image:: _images/rendinst_simple_emissive_anim_06.jpg
+         :height: 150px
+         :align: center
+
+   .. grid-item::
+      :class: center-cell
+
+      .. image:: _images/rendinst_simple_emissive_anim_07.jpg
+         :height: 150px
+         :align: center
+
+   .. grid-item::
+      :class: center-cell
+
+      .. image:: _images/rendinst_simple_emissive_anim_08.jpg
+         :height: 150px
+         :align: center
+```
 
 For the scrolling text effect, both the gradient (which should be linear) and
 the gamma value (`gamma:r=1`) of the textures are critical.
 
-<img src="_images/rendinst_simple_emissive_anim_09.jpg" width="50%" align="center" class="bg-primary">
-
-<br>
+<img src="_images/rendinst_simple_emissive_anim_09.jpg" width="45em" class="image-center">
 
 Failing to meet these conditions will result in poor animation quality. For
-example, using a *Photoshop* gradient with a gamma of `2.2` will produce subpar
+example, using a Photoshop gradient with a gamma of `2.2` will produce subpar
 results:
 
 ```{eval-rst}
-.. video:: _images/rendinst_simple_emissive_anim_10.webm
-   :width: 60%
+
+.. only:: html
+
+   .. video:: _images/rendinst_simple_emissive_anim_10.webm
+      :width: 60%
+
+.. only:: latex
+
+   `Download video (WEBM) <https://github.com/GaijinEntertainment/DagorEngine/blob/main/_docs/source/assets/shaders/dng-shaders/_images/rendinst_simple_emissive_anim_10.webm>`_
+
 ```
-
-
 

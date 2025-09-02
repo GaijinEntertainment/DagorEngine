@@ -26,3 +26,8 @@ das::Context* get_context(int stack_size)
 {
     return new das::Context(stack_size);
 }
+
+namespace das
+{
+vector<void *> force_aot_stub() { return {}; }
+} // namespace das

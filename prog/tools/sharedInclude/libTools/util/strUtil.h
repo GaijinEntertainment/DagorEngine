@@ -18,6 +18,9 @@ bool is_full_path(const char *path);
 // splits path to base path and filename
 void split_path(const char *path, String &location, String &filename);
 
+// makes path "path" absolute
+[[nodiscard]] String make_path_absolute(const char *path);
+
 // makes path "path" relative to "base" path
 // returns relative "path" or full "path" if unable to make "path" relative
 String make_path_relative(const char *path, const char *base);

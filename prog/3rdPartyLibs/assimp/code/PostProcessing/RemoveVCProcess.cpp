@@ -135,6 +135,17 @@ bool UpdateNodeGraph(aiNode* node,eastl::list<aiNode*>& childsOfParent,bool root
 }
 #endif
 
+static void RemoveMeshesFromNodes(aiNode *node)
+{
+    delete[] node->mMeshes;
+    node->mNumMeshes = 0;
+    node->mMeshes = nullptr;
+
+    for (unsigned int i = 0; i < node->mNumChildren; ++i)
+    {
+        RemoveMeshesFromNodes(node->mChildren[i]);
+    }
+}
 // ------------------------------------------------------------------------------------------------
 // Executes the post processing step on the given imported data.
 void RemoveVCProcess::Execute(aiScene *pScene) {
@@ -196,6 +207,7 @@ void RemoveVCProcess::Execute(aiScene *pScene) {
     if (configDeleteFlags & aiComponent_MESHES) {
         bHas = true;
         ArrayDelete(pScene->mMeshes, pScene->mNumMeshes);
+        RemoveMeshesFromNodes(pScene->mRootNode);
     } else {
         for (unsigned int a = 0; a < pScene->mNumMeshes; a++) {
             if (ProcessMesh(pScene->mMeshes[a]))

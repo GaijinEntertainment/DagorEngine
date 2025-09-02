@@ -1,6 +1,10 @@
 include "heightmap_common.dshl"
 
 macro PROJECT_BASE_HEIGHTMAP(code)
+  hlsl(code)
+  {
+    #define NO_GRADIENTS_IN_SHADER 1
+  }
   INIT_WORLD_HEIGHTMAP_BASE(code)
   USE_HEIGHTMAP_COMMON_BASE(code)
   INIT_HMAP_HOLES(code)

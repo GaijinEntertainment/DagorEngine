@@ -17,7 +17,6 @@
 #include <rendInst/rendInstDesc.h>
 #include <rendInst/constants.h>
 #include <debug/dag_debug3d.h>
-#include <EASTL/sort.h>
 
 struct Trace
 {
@@ -103,19 +102,14 @@ struct TraceMeshFaces
       cachedData.emplace_back(CacheEntry{type, desc});
     }
     void clear() { cachedData.clear(); }
-    void sort()
-    {
-      auto cmp = [](const CacheEntry &lhs, const CacheEntry &rhs) {
-        return lhs.desc.getRiExtraHandle() < rhs.desc.getRiExtraHandle();
-      };
-      eastl::sort(cachedData.begin(), cachedData.end(), cmp);
-    }
+    void sort();
 
   private:
     struct CacheEntry
     {
       rendinst::GatherRiTypeFlags type;
       rendinst::RendInstDesc desc;
+      bool operator<(const CacheEntry &rhs) const { return desc.getRiExtraHandle() < rhs.desc.getRiExtraHandle(); }
     };
     StaticTab<CacheEntry, MAX_ENTRIES> cachedData;
   } rendinstCache;

@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "smokeOccluderES.cpp.inl"
 ECS_DEF_PULL_VAR(smokeOccluder);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc smoke_occluders_ecs_query_comps[] =
 {
@@ -18,7 +20,7 @@ template<typename Callable>
 inline ecs::QueryCbResult smoke_occluders_ecs_query(Callable function)
 {
   return perform_query(g_entity_mgr, smoke_occluders_ecs_query_desc.getHandle(),
-    [&function](const ecs::QueryView& __restrict components)
+    ecs::stoppable_query_cb_t([&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
         {
@@ -28,6 +30,6 @@ inline ecs::QueryCbResult smoke_occluders_ecs_query(Callable function)
             return ecs::QueryCbResult::Stop;
         }while (++comp != compE);
           return ecs::QueryCbResult::Continue;
-    }
+    })
   );
 }

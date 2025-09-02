@@ -27,13 +27,14 @@ public:
   bool isActive() const;
   bool isRendered() const;
   void updateInstancingData(const eastl::vector<SplineGenSpline, framemem_allocator> &spline_vec,
-    const Point3 &radius,
+    float max_radius,
     float displacement_strength,
     uint32_t tiles_around,
     float tile_size_meters,
     float obj_size_mul,
-    float meter_between_objs);
-  void updateInactive();
+    float meter_between_objs,
+    const Point4 &emissive_color);
+  void updateAttachmentBatchIds();
 
 private:
   SplineGenGeometryManager *managerPtr = nullptr;

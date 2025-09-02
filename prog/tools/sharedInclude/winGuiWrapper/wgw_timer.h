@@ -22,16 +22,18 @@ public:
 
   void start();
   void stop();
-  bool isActive() { return mTimerHandle != NULL; }
+  bool isActive() const { return mTimerHandle != nullptr; }
 
-  unsigned getHandle() { return mTimerHandle; }
-  static WinTimer *getTimerByHandle(unsigned timer_handle);
+  void *getHandle() const { return mTimerHandle; }
+  int getStartId() const { return mStartId; }
 
   void update();
 
 private:
+  static constexpr int START_ID_STOPPED = -1;
+
   ITimerCallBack *mCallBack;
+  void *mTimerHandle;
   unsigned mIntervalMs;
-  unsigned mTimerHandle;
-  static Tab<WinTimer *> mTimers;
+  int mStartId = START_ID_STOPPED;
 };

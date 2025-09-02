@@ -6,16 +6,6 @@ int pass_type = 0;
 
 int editorEnableZ = 1;
 interval editorEnableZ : no<1, yes;
-
-block(scene) static_scene
-{
-}
-
-block(scene) static_scene_depth
-{
-}
-
-
 shader editor_helper, editor_helper_no_tex, editor_helper_no_tex_blend
 {
   supports global_frame;
@@ -121,7 +111,7 @@ shader editor_opaque_geom_helper, editor_opaque_geom_helper_no_tex
 
   WRITE_GBUFFER()
   hlsl(ps) {
-    GBUFFER_OUTPUT editor_helper_ps(VSOutput input HW_USE_SCREEN_POS) : SV_Target
+    GBUFFER_OUTPUT editor_helper_ps(VSOutput input HW_USE_SCREEN_POS)
     {
       UnpackedGbuffer gbuffer;
       float3 albedo = input.color.rgb;
@@ -152,7 +142,7 @@ shader editor_opaque_geom_helper, editor_opaque_geom_helper_no_tex
     {
       VSOutput output;
       output.pos = mul(pos, globtm);
-      output.pointToEye = world_view_pos - pos;
+      output.pointToEye = world_view_pos.xyz - pos.xyz;
       output.normal = float3(0,1,0);
       output.color = color;
     ##if shader == editor_opaque_geom_helper

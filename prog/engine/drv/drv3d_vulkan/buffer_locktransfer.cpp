@@ -10,7 +10,7 @@ using namespace drv3d_vulkan;
 
 int GenericBufferInterface::unlock()
 {
-  G_ASSERT(lastLockFlags != 0);
+  D3D_CONTRACT_ASSERT(lastLockFlags != 0);
 
   if (bufferLockedForWrite())
   {
@@ -22,7 +22,7 @@ int GenericBufferInterface::unlock()
       unlockWriteDMA();
     else
       // we did locked buffer for write, but pair for unlock is not found somehow
-      G_ASSERTF(0, "vulkan: incorrect write unlock for buffer %p:%s", this, getResName());
+      D3D_CONTRACT_ASSERT_FAIL("vulkan: incorrect write unlock for buffer %p:%s", this, getName());
   }
 
   if (!bufferLockedForRead())
@@ -36,12 +36,13 @@ int GenericBufferInterface::lock(unsigned ofs_bytes, unsigned size_bytes, void *
 {
   checkLockParams(ofs_bytes, size_bytes, flags, bufFlags);
 
-  G_ASSERTF(lastLockFlags == 0, "it seems lock was called on %p(%s) without unlocking the last lock", this, getResName());
-  G_ASSERTF(ofs_bytes < bufSize, "locking of %p(%s) was out of range, buffer size is %u but offset was %u", this, getResName(),
+  D3D_CONTRACT_ASSERTF(lastLockFlags == 0, "it seems lock was called on %p(%s) without unlocking the last lock", this, getName());
+  D3D_CONTRACT_ASSERTF(ofs_bytes < bufSize, "locking of %p(%s) was out of range, buffer size is %u but offset was %u", this, getName(),
     bufSize, ofs_bytes);
-  G_ASSERTF(ofs_bytes + size_bytes <= bufSize, "locking of %p(%s) was out of range, buffer size is %u but locking range end was %u",
-    this, getResName(), bufSize, ofs_bytes + size_bytes);
-  G_ASSERTF((flags != 0), "buffer %p(%s) was locked without any locking flags", this, getResName());
+  D3D_CONTRACT_ASSERTF(ofs_bytes + size_bytes <= bufSize,
+    "locking of %p(%s) was out of range, buffer size is %u but locking range end was %u", this, getName(), bufSize,
+    ofs_bytes + size_bytes);
+  D3D_CONTRACT_ASSERTF((flags != 0), "buffer %p(%s) was locked without any locking flags", this, getName());
 
   // save lock data
   lastLockFlags = static_cast<uint16_t>(flags);
@@ -51,18 +52,18 @@ int GenericBufferInterface::lock(unsigned ofs_bytes, unsigned size_bytes, void *
   if (0 == ((VBLOCK_WRITEONLY | VBLOCK_READONLY) & lastLockFlags))
   {
     // this is just awful
-    G_ASSERT(((VBLOCK_DISCARD | VBLOCK_NOOVERWRITE) & lastLockFlags));
+    D3D_CONTRACT_ASSERT(((VBLOCK_DISCARD | VBLOCK_NOOVERWRITE) & lastLockFlags));
     lastLockFlags |= VBLOCK_WRITEONLY;
   }
 
   // manage discard blocks if needed
   processDiscardFlag();
 
-  G_ASSERTF(
+  D3D_CONTRACT_ASSERTF(
     lockRange.back() <= ref.buffer->getBlockSize() || ((bufFlags & SBCF_FRAMEMEM) && lockRange.back() <= ref.buffer->getTotalSize()),
     "locked range (%d) is larger, than actual allocated buffer memory (%d)", lockRange.back(), ref.buffer->getBlockSize());
 
-  G_ASSERTF(!stagingBuffer || (lockRange.back() <= stagingBuffer->getBlockSize()),
+  D3D_CONTRACT_ASSERTF(!stagingBuffer || (lockRange.back() <= stagingBuffer->getBlockSize()),
     "locked range (%d) is larger, than actual allocated buffer staging memory (%d)", lockRange.back(),
     lockRange.back() <= ref.buffer->getBlockSize());
 
@@ -84,7 +85,7 @@ int GenericBufferInterface::lock(unsigned ofs_bytes, unsigned size_bytes, void *
 
 bool GenericBufferInterface::updateData(uint32_t ofs_bytes, uint32_t size_bytes, const void *__restrict src, uint32_t lockFlags)
 {
-  G_ASSERT_RETURN(size_bytes != 0, false);
+  D3D_CONTRACT_ASSERT_RETURN(size_bytes != 0, false);
   // discard can be processed only via lock
   // nooverwrite tells that caller are sure that there will be no conflicts
   if (lockFlags & (VBLOCK_DISCARD | VBLOCK_NOOVERWRITE))

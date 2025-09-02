@@ -239,7 +239,9 @@ void *sq_vm_realloc(SQAllocContext ctx, void *p, SQUnsignedInteger oldsize, SQUn
     void * n = (size <= MAX_FIXED_SIZE) ?
       ctx->allocators[ALLOCATOR_INDEX(size)].allocateOneBlock() : scriptmem->alloc(size);
 
-    memcpy(n, p, min(oldsize, size));
+    if (p)
+      memcpy(n, p, min(oldsize, size));
+
     if (oldsize <= MAX_FIXED_SIZE)
       ctx->allocators[ALLOCATOR_INDEX(oldsize)].freeOneBlock(p);
     else
@@ -261,7 +263,10 @@ void *sq_vm_realloc(SQAllocContext ctx, void *p, SQUnsignedInteger oldsize, SQUn
     if (binNew < ctx->MAX_BINS && ctx->allocatedBinsCount[binNew])
     {
       void *ret = ctx->allocatedBins[binNew][--ctx->allocatedBinsCount[binNew]];
-      memcpy(ret, p, min(oldsize, size));
+
+      if (p)
+        memcpy(ret, p, min(oldsize, size));
+
       if (binOld < ctx->MAX_BINS && ctx->allocatedBinsCount[binOld] < ctx->MAX_ALLOCATIONS_PER_BIN)
         ctx->allocatedBins[binOld][ctx->allocatedBinsCount[binOld]++] = p;
       else

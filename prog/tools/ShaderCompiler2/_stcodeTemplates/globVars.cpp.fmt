@@ -1,4 +1,5 @@
-R"(/* global shadervars */
+R"(%s
+/* global shadervars */
 #include <shaders/stcode/callbacks.stcode.h>
 
 namespace stcode::cpp
@@ -11,12 +12,15 @@ namespace stcode::cpp
 
 using namespace stcode::cpp;
 
-
 // Single fetcher that accesses the bindump
 static void init_shadervar_ptrs()
 {
 // All the fetch statements
+  ShadervarPtrInitInfo all_vars[] = {
 %s
+  };
+
+  get_shadervar_ptrs_from_dump(all_vars, sizeof(all_vars) / sizeof(*all_vars));
 }
 
 )"

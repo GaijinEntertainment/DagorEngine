@@ -2,7 +2,7 @@ from "%darg/ui_imports.nut" import *
 
 return {
   rendObj = ROBJ_FRAME
-  size = [sh(80), SIZE_TO_CONTENT]
+  size = static [sh(80), SIZE_TO_CONTENT]
   borderWidth = 2
   color = 0xFFCC00CC
   hplace = ALIGN_CENTER
@@ -12,7 +12,7 @@ return {
   children = [
     {
       rendObj = ROBJ_TEXTAREA
-      size = [sh(50), SIZE_TO_CONTENT]
+      size = static [sh(50), SIZE_TO_CONTENT]
       behavior = Behaviors.TextArea
       text = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer vel suscipit justo. Nullam eleifend eget metus accumsan pharetra. Donec ac imperdiet enim, vel vehicula quam."
     }
@@ -30,7 +30,7 @@ return {
       children = [
         {
           rendObj = ROBJ_IMAGE
-          size = [sh(3), sh(3)]
+          size = sh(3)
           image = Picture("!ui/atlas#ca_cup1")
         }
         {

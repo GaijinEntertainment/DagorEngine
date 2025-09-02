@@ -4,6 +4,7 @@
 #include "main.h"
 #include "level.h"
 #include "vromfs.h"
+#include "gameLoad.h"
 #include "render/renderer.h"
 #include "ui/uiShared.h"
 #include <startup/dag_globalSettings.h>
@@ -41,6 +42,8 @@
 #include "crashFallbackHelper.h"
 #include <main/settingsOverride.h>
 #include <drv/hid/dag_hiGlobals.h>
+#include "gameProjConfig.h"
+#include <drv/3d/dag_info.h>
 
 #if _TARGET_C1 | _TARGET_C2
 
@@ -60,18 +63,6 @@ static eastl::unique_ptr<DataBlock> settings_override_blk;
 static String settings_override_filename;
 
 
-namespace
-{
-static struct GameSettingsLoadCtx
-{
-  VirtualRomFsData *vrom = NULL;
-  String vromMnt;
-  String basePath;
-
-  String vromSrcPath;
-} gs_ctx;
-} // namespace
-
 static void split_blk_path(String &path_buf, Tab<const char *> &parts)
 {
   char *p = path_buf.data();
@@ -88,21 +79,21 @@ static void split_blk_path(String &path_buf, Tab<const char *> &parts)
   }
 }
 
-String get_config_filename(const char *game_name)
+String get_config_filename()
 {
 #if _TARGET_PC
-  String settings_path(0, "%s.config.blk", game_name);
+  String settings_path(0, "%s.blk", gameproj::config_name_prefix());
 #else
-  String settings_path(0, "%s.config.%s.blk", game_name, get_platform_string_id());
+  String settings_path(0, "%s.%s.blk", gameproj::config_name_prefix(), get_platform_string_id());
 #endif
   return settings_path;
 }
 
 
-const char *get_allowed_addon_src_files_prefix(const char *game_name)
+static bool get_allowed_src_files_usage(String &stg_fn)
 {
 #if DAGOR_DBGLEVEL > 0 && (_TARGET_PC || _TARGET_C3)
-  String config_blk_fn = get_config_filename(game_name);
+  String config_blk_fn = get_config_filename();
   DataBlock cfg;
   if (config_blk_fn && dd_file_exist(config_blk_fn))
     dblk::load(cfg, config_blk_fn, dblk::ReadFlag::ROBUST);
@@ -111,63 +102,40 @@ const char *get_allowed_addon_src_files_prefix(const char *game_name)
 
   if (cfg.getBlockByNameEx("debug")->getBool("useAddonVromSrc", false))
   {
-    gs_ctx.vromSrcPath = cfg.getBlockByNameEx("debug")->getStr("vromSrcPath", "../prog/gameBase/");
-    return gs_ctx.vromSrcPath;
+    stg_fn.setStrCat(cfg.getBlockByNameEx("debug")->getStr("vromSrcPath", "../prog/gameBase/"), gameproj::settings_fpath());
+    return true;
   }
 #endif
-  G_UNUSED(game_name);
-  return NULL;
+  stg_fn = gameproj::settings_fpath();
+  return false;
 }
 
-void prepare_before_loading_game_settings_blk(const char *game_name)
+static void prepare_before_loading_game_settings_blk(String &stg_fn)
 {
-  if (const char *path = get_allowed_addon_src_files_prefix(game_name))
+  sceneload::GamePackage gameInfo;
+  if (get_allowed_src_files_usage(stg_fn))
   {
-    if (dd_add_base_path(path, false))
-      gs_ctx.basePath = path;
+    if (dblk::load(gameInfo.gameSettings, stg_fn, dblk::ReadFlag::ROBUST))
+      sceneload::parse_addons(gameInfo, *gameInfo.gameSettings.getBlockByNameEx("addonBasePath"), true);
+    else
+      DAG_FATAL("failed to load settings: %s", stg_fn);
   }
   else
   {
-    String vrom_fn(0, "content/%s/%s-game.vromfs.bin", game_name, game_name);
-    if (!dd_file_exists(vrom_fn))
-      vrom_fn.printf(0, "content/%s/%s.vromfs.bin", game_name, game_name);
-    if (dd_file_exists(vrom_fn))
-    {
-      String eff_path(get_eff_vrom_fpath(vrom_fn));
-      gs_ctx.vrom = ::load_vromfs_dump(eff_path, inimem);
-      if (!gs_ctx.vrom && strcmp(eff_path, vrom_fn) != 0)
-      {
-        gs_ctx.vrom = load_vromfs_dump(vrom_fn, tmpmem);
-        logwarn("removing broken %s", eff_path);
-        dd_erase(eff_path);
-      }
-      gs_ctx.vromMnt.printf(0, "content/%s/", game_name);
-      if (gs_ctx.vrom)
-        add_vromfs(gs_ctx.vrom, true, gs_ctx.vromMnt);
-    }
-    if (!gs_ctx.vrom)
-      DAG_FATAL("failed to load vromfs: %s", vrom_fn);
+    VromLoadInfo mainVrom = {gameproj::main_vromfs_fpath(), gameproj::main_vromfs_mount_dir(), "", false, false, ReqVromSign::Yes};
+    apply_vrom_list_difference(DataBlock::emptyBlock, make_span_const(&mainVrom, 1));
+    if (vromfs_check_file_exists(stg_fn) && dblk::load(gameInfo.gameSettings, stg_fn, dblk::ReadFlag::ROBUST))
+      sceneload::parse_addons(gameInfo, *gameInfo.gameSettings.getBlockByNameEx("addonBasePath"), false,
+        gameproj::main_vromfs_fpath());
+    else
+      DAG_FATAL("failed to find %s using signed vromfs %s (mounted to %s)", stg_fn, mainVrom.path, mainVrom.mount);
+  }
 
-    String stg_fn(0, "content/%s/gamedata/%s.settings.blk", game_name, game_name);
-    if (!vromfs_check_file_exists(stg_fn))
-      DAG_FATAL("failed to find %s using signed vromfs %s (mounted to %s)", stg_fn, vrom_fn, gs_ctx.vromMnt);
-  }
-}
-void restore_after_loading_game_settings_blk()
-{
-  if (gs_ctx.vrom)
-  {
-    remove_vromfs(gs_ctx.vrom);
-    memfree(gs_ctx.vrom, inimem);
-    clear_and_shrink(gs_ctx.vromMnt);
-    gs_ctx.vrom = NULL;
-  }
-  else if (!gs_ctx.basePath.empty())
-  {
-    dd_remove_base_path(gs_ctx.basePath);
-    clear_and_shrink(gs_ctx.basePath);
-  }
-  clear_and_shrink(gs_ctx.vromSrcPath);
+  // load operator vromfs
+  sceneload::add_operator_vromfs(gameInfo);
+
+  // load vromfs and set base paths
+  sceneload::load_package_files(gameInfo, /*load_game_res*/ false);
 }
 
 DataBlock *get_settings_override_blk() { return settings_override_blk.get(); }
@@ -215,15 +183,15 @@ static void update_settings_from_reload_changes()
   settings_override_blk->removeBlock("onReloadChanges");
 }
 
-void load_settings(const char *game_name, bool resolve_tex_streaming, bool use_on_reload_backup)
+void initial_load_settings()
 {
-  debug("load settings for %s", game_name);
+  debug("load settings");
   if (!settings_override_blk)
   {
-    settings_override_filename = get_config_filename(game_name);
+    settings_override_filename = get_config_filename();
     debug("Loading %s", settings_override_filename);
     settings_override_blk.reset(new DataBlock);
-#if _TARGET_PC
+#if _TARGET_PC && !_TARGET_C4
     dblk::load(*settings_override_blk, settings_override_filename, dblk::ReadFlag::ROBUST);
 #else
 #if _TARGET_C1 | _TARGET_C2
@@ -233,9 +201,9 @@ void load_settings(const char *game_name, bool resolve_tex_streaming, bool use_o
 
 
 #elif _TARGET_ANDROID
-    settings_override_filename.printf(0, "%s/%s.config.blk", folders::get_game_dir(), game_name);
+    settings_override_filename.printf(0, "%s/%s.blk", folders::get_game_dir(), gameproj::config_name_prefix());
 #else
-    settings_override_filename.printf(0, "%s/%s.config.blk", folders::get_gamedata_dir(), game_name);
+    settings_override_filename.printf(0, "%s/%s.blk", folders::get_gamedata_dir(), gameproj::config_name_prefix());
 #endif
 
     DataBlock user_blk;
@@ -246,36 +214,33 @@ void load_settings(const char *game_name, bool resolve_tex_streaming, bool use_o
     }
 #endif
 
-    if (use_on_reload_backup)
-      update_settings_from_reload_changes();
+    update_settings_from_reload_changes();
   }
 
-  prepare_before_loading_game_settings_blk(game_name);
+  String stg_fn;
+  prepare_before_loading_game_settings_blk(stg_fn);
+
   {
-    String stg_fn(0, "content/%s/gamedata/%s.settings.blk", game_name, game_name);
-    G_ASSERTF(dd_file_exists(stg_fn), "file %s", stg_fn);
+    G_ASSERTF(dd_file_exists(stg_fn), "settings file %s missing", stg_fn);
 
 #if _TARGET_XBOX
-    String settings_path(0, "G:\\%s", game_name, get_config_filename(game_name).c_str());
+    String settings_path(0, "G:\\%s", get_config_filename().c_str());
 #else
-    String settings_path = get_config_filename(game_name);
+    String settings_path = get_config_filename();
 #endif
-#if _TARGET_PC
-    dgs_load_settings_blk_ex(true, stg_fn, *settings_override_blk, false, true, resolve_tex_streaming);
+#if _TARGET_PC && !_TARGET_C4
+    dgs_load_settings_blk_ex(true, stg_fn, *settings_override_blk, false, true);
+    dgs_apply_essential_pc_preset_params_to_config_from_cmd();
 #else
-    dgs_load_settings_blk(true, stg_fn, settings_path, false, true, resolve_tex_streaming);
-    dgs_apply_changes_to_config(*settings_override_blk, /*need_merge_cmd*/ true);
+    dgs_load_settings_blk(true, stg_fn, settings_path, false, true);
+    dgs_apply_changes_to_config(*settings_override_blk, /*need_merge_cmd*/ false);
     dgs_apply_config_blk(*settings_override_blk, false, false);
 #endif
-
-    const_cast<DataBlock *>(::dgs_get_settings())->setStr("gameName", game_name);
-
-    restore_after_loading_game_settings_blk();
   }
   apply_global_config();
   apply_ime_to_video_mode();
 
-  load_gameparams(game_name);
+  load_gameparams();
   app_profile::apply_settings_blk(*dgs_get_settings());
 
 #if CRASH_FALLBACK_ENABLED
@@ -288,9 +253,9 @@ namespace rendinst
 {
 extern int maxRiGenPerCell, maxRiExPerCell;
 }
-void load_gameparams(const char *game_name)
+void load_gameparams()
 {
-  dgs_load_game_params_blk(String(0, "content/%s/gamedata/%s.gameparams.blk", game_name, game_name));
+  dgs_load_game_params_blk(gameproj::params_fpath());
   const_cast<DataBlock *>(::dgs_get_game_params())->setInt("rendinstExtraSubstFaceThres", 0);
   rendinst::maxRiGenPerCell = ::dgs_get_game_params()->getInt("maxRiGenPerCell", 0x10000);
   rendinst::maxRiExPerCell = ::dgs_get_game_params()->getInt("maxRiExPerCell", 0x10000);
@@ -469,6 +434,7 @@ struct SaveConfigBlkJob final : public cpujobs::IJob
     cfg = *settings_override_blk;
     gen = interlocked_acquire_load(settings_changed_generation);
   }
+  const char *getJobName(bool &) const override { return "SaveConfigBlkJob"; }
   void doJob() override
   {
     for (;;) // eternal loop with explicit break
@@ -519,7 +485,7 @@ void start_settings_async_saver_jobmgr()
   save_stg_last_reft = profile_ref_ticks();
   using namespace cpujobs;
   if (!dedicated::is_dedicated())
-    save_stg_jobmgr = create_virtual_job_manager(256 << 10, WORKER_THREADS_AFFINITY_MASK, "SaveSettingsJobMgr",
+    save_stg_jobmgr = create_virtual_job_manager(192 << 10, WORKER_THREADS_AFFINITY_MASK, "SaveSettingsJobMgr",
       DEFAULT_THREAD_PRIORITY, DEFAULT_IDLE_TIME_SEC / 2);
   else // Dedicated is expected to be single-threaded
     save_stg_jobmgr = COREID_IMMEDIATE;
@@ -576,7 +542,7 @@ void save_settings(const SettingsHashMap *changed_settings, bool apply_settings)
 #if _TARGET_PC
     dgs_load_settings_blk_ex(true, NULL, *settings_override_blk, false, true, true, changed_settings);
 #else
-    dgs_load_settings_blk(true, NULL, get_config_filename(get_game_name()), false, true);
+    dgs_load_settings_blk(true, NULL, get_config_filename(), false, true);
     dgs_apply_config_blk(*settings_override_blk, false, false);
 #endif
     apply_global_config(changed_settings);
@@ -609,12 +575,15 @@ bool do_settings_changes_need_videomode_change(const FastNameMap &changed_fields
       || changed_fields.getNameId("video/staticResolutionScale") >= 0
       || changed_fields.getNameId("video/temporalUpsamplingRatio") >= 0
       || changed_fields.getNameId("video/vsync") >= 0
-      || (changed_fields.getNameId("video/latency") >= 0
-        && dgs_get_settings()->getBlockByNameEx("video")->getBool("vsync", false))
+      || ( dgs_get_settings()->getBlockByNameEx("video")->getBool("vsync", false) &&
+          (changed_fields.getNameId("video/nvidia_latency") >= 0 ||
+           changed_fields.getNameId("video/amd_latency") >= 0 ||
+           changed_fields.getNameId("video/intel_latency") >= 0))
       || changed_fields.getNameId("video/dlssQuality") >= 0
-      || changed_fields.getNameId("video/dlssFrameGeneration") >= 0
+      || changed_fields.getNameId("video/dlssFrameGenerationCount") >= 0
+      || changed_fields.getNameId("video/rayReconstruction") >= 0
       || changed_fields.getNameId("video/xessQuality") >= 0
-      || changed_fields.getNameId("video/amdfsr") >= 0
+      || changed_fields.getNameId("video/fsr2Quality") >= 0
       || changed_fields.getNameId("video/monitor") >= 0
       || changed_fields.getNameId("video/enableHdr") >= 0
       || changed_fields.getNameId("video/ssaa") >= 0
@@ -641,7 +610,7 @@ void apply_settings_changes(const FastNameMap &changed_fields)
 #elif _TARGET_SCARLETT
   if (changed_fields.getNameId("video/freqLevel") >= 0)
   {
-    int freqLevel = ::dgs_get_settings()->getBlockByNameEx("video")->getInt("freqLevel", 1);
+    int freqLevel = ::dgs_get_settings()->getBlockByNameEx("video")->getInt("freqLevel", 2);
     d3d::driver_command(Drv3dCommand::SET_FREQ_LEVEL, &freqLevel);
   }
 #endif
@@ -677,7 +646,13 @@ int get_platformed_value(const DataBlock &blk, const char *key, int def)
   const char *pstring = get_platform_string();
   if (!pstring)
     return blk.getInt(key, def);
-  String pkey(strlen(key) + 16, "%s_%s", pstring, key);
+  size_t keyLen = strlen(key);
+#if _TARGET_C4 && _TARGET_PC_WIN
+
+
+
+#endif
+  String pkey(keyLen + 16, "%s_%s", pstring, key);
   return blk.getInt(pkey, def);
 }
 
@@ -686,7 +661,13 @@ const char *get_platformed_value(const DataBlock &blk, const char *key, const ch
   const char *pstring = get_platform_string();
   if (!pstring)
     return blk.getStr(key, def);
-  String pkey(strlen(key) + 16, "%s_%s", pstring, key);
+  size_t keyLen = strlen(key);
+#if _TARGET_C4 && _TARGET_PC_WIN
+
+
+
+#endif
+  String pkey(keyLen + 16, "%s_%s", pstring, key);
   return blk.getStr(pkey, def);
 }
 ///@module settings
@@ -815,13 +796,11 @@ REGISTER_IMGUI_WINDOW_EX("Settings", "GameParams explorer", nullptr, 100, ImGuiW
 void dgs_apply_changes_to_config(DataBlock &config_blk, bool need_merge_cmd, const OverrideFilter *override_filter)
 {
   DataBlock cmdBlk;
-  if (need_merge_cmd)
-    dgs_apply_command_line_to_config(&cmdBlk, override_filter);
+  dgs_apply_command_line_to_config(&cmdBlk, override_filter);
 
   // check cmd block first
   const char *presetName = nullptr;
-  if (need_merge_cmd)
-    presetName = cmdBlk.getBlockByNameEx("graphics")->getStr("consolePreset", nullptr);
+  presetName = cmdBlk.getBlockByNameEx("graphics")->getStr("consolePreset", nullptr);
 
   if (presetName == nullptr) // From saved data
     presetName = config_blk.getBlockByNameEx("graphics")->getStr("consolePreset", nullptr);
@@ -834,27 +813,238 @@ void dgs_apply_changes_to_config(DataBlock &config_blk, bool need_merge_cmd, con
     dgs_apply_console_preset_params(config_blk, presetName);
 
   // second apply cmd changes, overwrite all graphic preset settings if they are exist
+  if (!cmdBlk.isEmpty())
+    dgs_apply_config_blk(cmdBlk, false, false);
   if (need_merge_cmd)
     merge_data_block(config_blk, cmdBlk);
 }
 
-void dgs_apply_console_preset_params(DataBlock &config_blk, const char *preset_name)
+void dgs_apply_preset_params_impl(
+  DataBlock &config_blk, const char *preset_name, const char *presets_list_block_name, const char *preset_type)
 {
-  const char *presetsListBlockName = "consoleGraphicalPresets";
-  const DataBlock *presetsBlk = ::dgs_get_settings()->getBlockByName(presetsListBlockName);
+  const DataBlock *presetsBlk = ::dgs_get_settings()->getBlockByName(presets_list_block_name);
   if (!presetsBlk)
   {
-    debug("Not exist block '%s' in settings.blk. Cannot read '%s' console preset name.", presetsListBlockName, preset_name);
+    debug("Not exist block '%s' in settings.blk. Cannot read '%s' %s preset name.", presets_list_block_name, preset_name, preset_type);
     return;
   }
 
   const DataBlock *presetParamsBlk = presetsBlk->getBlockByName(preset_name);
   if (!presetParamsBlk)
   {
-    debug("ERROR: Not found console preset '%s' in '%s' block.", preset_name, presetsListBlockName);
+    debug("ERROR: Not found %s preset '%s' in '%s' block.", preset_type, preset_name, presets_list_block_name);
     return;
   }
 
-  debug("Apply console preset '%s'.", preset_name);
+  debug("Apply %s preset '%s'.", preset_type, preset_name);
   merge_data_block(config_blk, *presetParamsBlk);
+}
+
+void dgs_apply_console_preset_params(DataBlock &config_blk, const char *preset_name)
+{
+  dgs_apply_preset_params_impl(config_blk, preset_name, "consoleGraphicalPresets", "console");
+}
+
+void dgs_apply_essential_pc_preset_params(DataBlock &config_blk, const char *preset_name)
+{
+  dgs_apply_preset_params_impl(config_blk, preset_name, "pcGraphicalPresets", "pc (essential)");
+}
+
+void dgs_apply_essential_pc_preset_params_to_config_from_cmd()
+{
+  DataBlock cmdBlk;
+  dgs_apply_command_line_to_config(&cmdBlk, nullptr);
+  const char *presetName = cmdBlk.getBlockByNameEx("graphics")->getStr("preset", nullptr);
+  if (presetName)
+  {
+    DataBlock config_blk;
+    dgs_apply_essential_pc_preset_params(config_blk, presetName);
+    dgs_apply_config_blk(config_blk, false, false);
+  }
+}
+
+static bool get_gpu_score(int &gpu_score)
+{
+  DataBlock gpuDatabase;
+  if (!gpuDatabase.load("config/gpu_database.blk"))
+  {
+    logerr("can't load gpu_database.blk, auto graphical settings will not be applied");
+    return false;
+  }
+
+  const String rawDeviceName{d3d::get_device_name()};
+  // skip:
+  // - series of spaces
+  // - info in parantheses (copyright, driver name, revision, chip name and other useless info)
+  // and replace space with underscore
+  String deviceName;
+  int parenthesesCounter = 0; // there was no detected device names with nested parentheses, but use int for safety
+  for (auto c : rawDeviceName)
+  {
+    if (c == ' ')
+    {
+      if (!deviceName.empty() && deviceName.back() != '_')
+        deviceName.push_back('_');
+    }
+    else if (c == '(')
+      ++parenthesesCounter;
+    else if (c == ')')
+      --parenthesesCounter;
+    else if (parenthesesCounter == 0)
+    {
+      if (c == '-')
+        c = '_';
+      deviceName.push_back(c);
+    }
+  }
+
+  // complete c-string, delete trailing underscore
+  // AMD Radeon RX 570 (POLARIS10) -> AMD_Radeon_RX_570
+  if (!deviceName.empty() && deviceName.back() == '_')
+    deviceName.back() = '\0';
+  else
+    deviceName.push_back('\0');
+  deviceName.updateSz();
+
+  // NVIDIA_RTX_2080 -> nvidia_rtx_2080
+  deviceName.toLower();
+
+  if (auto underscoreBeforeGB = deviceName.find("_gb"); underscoreBeforeGB != nullptr)
+    deviceName.erase(underscoreBeforeGB); // nvidia_rtx_3050_8_gb -> nvidia_rtx_3050_8gb
+
+  // filter laptop GPUs:
+  // mobile_something -> laptop_gpu_something
+  // mobile_gpu_something -> laptop_gpu_something
+  // laptop_something -> laptop_gpu_somethings
+  if (deviceName.find("mobile") != nullptr)
+    deviceName.replace("mobile", "laptop");
+  const char LAPTOP_SUBSTR[] = "laptop";
+  const size_t LAPTOP_SUBSTR_OFFSET = sizeof(LAPTOP_SUBSTR) - 1;
+  if (auto laptopSubsstr = deviceName.find(LAPTOP_SUBSTR);
+      laptopSubsstr && !deviceName.find("gpu", laptopSubsstr + LAPTOP_SUBSTR_OFFSET))
+    deviceName.replace(LAPTOP_SUBSTR, "laptop_gpu");
+
+  // replace ^radeon to ^amd_radeon
+  if (deviceName.find("radeon") == deviceName.begin())
+    deviceName.replace("radeon", "amd_radeon");
+
+  // remove amd specific naming
+  deviceName.replace("_series", "");
+
+  // some intel and amd GPUs have "_graphics" suffix, remove it
+  deviceName.replace("_graphics", "");
+
+  gpu_score = gpuDatabase.getInt(deviceName.c_str(), 0);
+  if (gpu_score == 0)
+  {
+    bool foundAlias = false;
+    // try to find by memory size
+    if (gpuDatabase.blockExists(deviceName.c_str()))
+    {
+      String gb;
+      gb.aprintf(16, "_%dgb", d3d::get_dedicated_gpu_memory_size_kb() >> 20);
+      deviceName += gb;
+
+      gpu_score = gpuDatabase.getInt(deviceName.c_str(), 0);
+      foundAlias = gpu_score != 0;
+    }
+
+    if (!foundAlias)
+    {
+      logwarn("can't find device '%s' in gpu_database.blk, auto graphical settings will not be applied", deviceName.c_str());
+      return false;
+    }
+  }
+
+  return true;
+}
+
+static const char *get_auto_preset(int gpu_score)
+{
+  auto lowerBoundCollections = ::dgs_get_settings()->getBlockByName("auto_preset_gpu_score_lower_bound");
+  if (!lowerBoundCollections)
+  {
+    logerr("can't find 'auto_preset_gpu_score_lower_bound' block in settings.blk, auto graphical settings will not be applied");
+    return nullptr;
+  }
+
+  int w, h;
+  d3d::get_screen_size(w, h);
+  const float scale = max(d3d::get_display_scale(), 1.f);
+  float renderArea = static_cast<float>(w * h);
+  // downgrade render area for high DPI displays (most likely laptops)
+  if (renderArea > 1920 * 1080)
+    renderArea /= scale;
+
+  IPoint2 targetResoulution = {0, 0};
+  int colletionId = -1;
+  for (int i = 0; i < lowerBoundCollections->blockCount(); ++i)
+  {
+    const IPoint2 forResoultuion = lowerBoundCollections->getBlock(i)->getIPoint2("forResolution", IPoint2(0, 0));
+    const float area = static_cast<float>(forResoultuion.x * forResoultuion.y);
+    if (area == 0)
+    {
+      logerr("incorrect 'forResolution' value in 'auto_preset_gpu_score_lower_bound' block, area is zero");
+      continue;
+    }
+
+    if (renderArea >= area && (targetResoulution.x < forResoultuion.x && targetResoulution.y < forResoultuion.y))
+    {
+      targetResoulution = forResoultuion;
+      colletionId = i;
+    }
+  }
+
+  if (colletionId < 0)
+  {
+    colletionId = 0;
+    const IPoint2 forResoultuion = lowerBoundCollections->getBlock(colletionId)->getIPoint2("forResolution", IPoint2(0, 0));
+    logwarn(
+      "can't find suitable resolution in 'auto_preset_gpu_score_lower_bound' block, use first collection (for resolution = %dx%d)",
+      forResoultuion.x, forResoultuion.y);
+  }
+
+  const DataBlock *lowerBounds = lowerBoundCollections->getBlock(colletionId);
+  const char *presets[] = {"bareMinimum", "minimum", "low", "medium", "high", "ultra"};
+  const char *appliedPreset = presets[0];
+  for (auto preset : presets)
+  {
+    int lowerBound = lowerBounds->getInt(preset, 0);
+    if (gpu_score >= lowerBound)
+      appliedPreset = preset;
+    else
+      break;
+  }
+
+  debug("select %s as auto preset for resolution %dx%d (display resoultion %dx%d, scale %f)", appliedPreset, targetResoulution.x,
+    targetResoulution.y, w, h, scale);
+  return appliedPreset;
+}
+
+void try_apply_auto_graphical_settings()
+{
+#if _TARGET_PC
+  G_ASSERT(d3d::is_inited());
+  if (!::dgs_get_settings()->getBlockByNameEx("graphics")->getBool("auto_preset", false))
+  {
+    debug("skipping auto graphical settings");
+    return;
+  }
+
+  int gpuScore = 0;
+  if (!get_gpu_score(gpuScore))
+  {
+    logwarn("failed to get GPU score (see reason above), auto graphical settings will not be applied");
+    return;
+  }
+
+  if (auto preset = get_auto_preset(gpuScore); preset)
+  {
+    auto graphicsOverride = get_settings_override_blk()->addBlock("graphics");
+    graphicsOverride->setStr("preset", preset);
+    graphicsOverride->setBool("auto_preset", false);
+    dgs_apply_essential_pc_preset_params(*get_settings_override_blk(), preset);
+    save_settings(nullptr);
+  }
+#endif
 }

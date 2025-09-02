@@ -15,13 +15,14 @@
 #include <debug/dag_debug3d.h>
 #include <3d/dag_quadIndexBuffer.h>
 #include <math/random/dag_random.h>
-#include <daFx/dafx_render_dispatch_desc.hlsli>
 #include "frameBoundaryBufferManager.h"
 
 namespace convar
 {
 CONSOLE_BOOL_VAL("dafx", enable_multidraw, true);
 CONSOLE_BOOL_VAL("dafx", allow_small_multidraw, false);
+CONSOLE_BOOL_VAL("dafx", cache_draw_queue, true);
+CONSOLE_BOOL_VAL("dafx", force_vrs_2x, false);
 } // namespace convar
 
 namespace dafx
@@ -236,40 +237,6 @@ enum
   STATE_FLUSH_SHADER = 1 << 7,
 };
 
-struct DrawState
-{
-  const eastl::vector<TextureDesc> *resources;
-  ShaderElement *shader;
-  D3DRESID dataSource;
-  int dispatchBufferIdx;
-  int primPerElem;
-  int vrs;
-  uint32_t changes;
-};
-
-struct DrawCall
-{
-  int stateId;
-  int instanceCount;
-};
-
-struct MultiDrawCall
-{
-  int stateId;
-  int bufId;
-  int bufOffset;
-  int drawCallCount;
-  int totalPrimCount;
-};
-
-struct DrawQueue
-{
-  dag::Vector<DrawState, framemem_allocator> states;
-  dag::Vector<DrawCall, framemem_allocator> drawCalls;
-  dag::Vector<MultiDrawCall, framemem_allocator> multidrawCalls;
-  dag::Vector<RenderDispatchDesc, framemem_allocator> dispatches; // 1 dispatch desc for each instance
-};
-
 bool prepare_render_queue(Context &ctx, CullingState *cull, uint32_t tag, DrawQueue &queue)
 {
   TIME_PROFILE(prepare_render_queue);
@@ -280,7 +247,7 @@ bool prepare_render_queue(Context &ctx, CullingState *cull, uint32_t tag, DrawQu
 
   InstanceGroups &stream = ctx.instances.groups;
   const uint32_t validationFlags = SYS_ENABLED | SYS_VALID | SYS_VISIBLE | SYS_RENDERABLE | SYS_RENDER_REQ;
-  const bool vrsEnabled = ctx.cfg.vrs_enabled && cull->shadingRates[tag] > 0;
+  const bool vrsEnabled = (ctx.cfg.vrs_enabled && cull->shadingRates[tag] > 0) || convar::force_vrs_2x;
   // if cull was remapped and merged with another tag, we need to get 'original' render shader from 'original' tag
   // and since we can have multiple remaps, we keep all them here as fallback render tags
   dag::Vector<int, framemem_allocator> renderShadersRemap;
@@ -404,6 +371,10 @@ bool prepare_render_queue(Context &ctx, CullingState *cull, uint32_t tag, DrawQu
         }
       }
     }
+#if DAGOR_DBGLEVEL > 0
+    if (convar::force_vrs_2x)
+      vrs = 2;
+#endif
     bool vrsChange = lastVrs != vrs;
     lastVrs = vrs;
 
@@ -417,14 +388,15 @@ bool prepare_render_queue(Context &ctx, CullingState *cull, uint32_t tag, DrawQu
     bool dispatchBufferIdChange = lastDispatchBufferId != dispatchBufferId;
     lastDispatchBufferId = dispatchBufferId;
 
-    int start = (flags & SYS_CPU_RENDER_REQ) ? 0 : state.aliveStart;
     int dataRenStride = stream.get<INST_RENDER_ELEM_STRIDE>(sid) / DAFX_ELEM_STRIDE;
 
     RenderDispatchDesc &desc = queue.dispatches.push_back_noinit();
     desc.dataRenOffset = stream.get<INST_TARGET_RENDER_DATA_OFFSET>(sid) / DAFX_ELEM_STRIDE;
     desc.parentRenOffset = stream.get<INST_TARGET_RENDER_PARENT_OFFSET>(sid) / DAFX_ELEM_STRIDE;
-    desc.startAndLimit = start | (state.aliveLimit << 16);
-    desc.dataRenStrideAndInstanceCount = dataRenStride | (state.aliveCount << 16);
+    desc.startAndLimit = state.aliveStart | (state.aliveLimit << 16);
+
+    desc.dataRenStrideAndInstanceCount = (dataRenStride & 0x7fff) | (state.aliveCount << 16);
+    desc.dataRenStrideAndInstanceCount |= (flags & SYS_CPU_RENDER_REQ ? 1 : 0) << 15;
 
     // state
     // we are not adding duplicated states (map search is quite heavy, so we check only sequential states)
@@ -495,15 +467,16 @@ bool update_multidraw_buffer(Context &ctx, dag::ConstSpan<DrawIndexedIndirectArg
   int firstBufIdx = ctx.currentMutltidrawBuffer;
   uint32_t flags = VBLOCK_WRITEONLY;
   flags |= d3d::get_driver_code().is(d3d::vulkan) ? VBLOCK_DISCARD : 0;
+  eastl::vector<UniqueBuf> &multidrawBufRing = ctx.multidrawBufers[ctx.currentMutltidrawBufferRingId];
   for (int i = 0, ie = (data.size() - 1) / ctx.cfg.multidraw_buffer_size + 1; i < ie; ++i)
   {
     int bufIdx = firstBufIdx + i;
-    UniqueBuf *buf = bufIdx < ctx.multidrawBufers.size() ? &ctx.multidrawBufers[bufIdx] : nullptr;
+    UniqueBuf *buf = bufIdx < multidrawBufRing.size() ? &multidrawBufRing[bufIdx] : nullptr;
     if (!buf)
     {
       eastl::string name;
-      name.append_sprintf("dafx_multidraw_buffer_%d", bufIdx);
-      buf = &ctx.multidrawBufers.push_back();
+      name.append_sprintf("dafx_multidraw_buffer_%d_%d", ctx.currentMutltidrawBufferRingId, bufIdx);
+      buf = &multidrawBufRing.push_back();
       *buf = dag::create_sbuffer(INDIRECT_BUFFER_ELEMENT_SIZE, ctx.cfg.multidraw_buffer_size * DRAW_INDEXED_INDIRECT_NUM_ARGS,
         SBCF_INDIRECT, 0, name.c_str());
       if (!(*buf))
@@ -635,7 +608,7 @@ inline void apply_drawcall_states(Context &ctx, const DrawQueue &queue, int stat
       const TextureDesc &t = state.resources->at(s);
       BaseTexture *tex = D3dResManagerData::getBaseTex(t.texId);
       G_FAST_ASSERT(tex);
-      d3d::set_tex(STAGE_PS, ctx.cfg.texture_start_slot + s, tex, false);
+      d3d::set_tex(STAGE_PS, ctx.cfg.texture_start_slot + s, tex);
       stat_inc(ctx.stats.renderSwitchTextures);
     }
 
@@ -676,15 +649,19 @@ bool render(ContextId cid, CullingId cull_id, const eastl::string &tag_name, flo
 
   const bool multidraw = ctx.cfg.multidraw_enabled && convar::enable_multidraw;
 
-  DrawQueue queue;
-  if (!prepare_render_queue(ctx, cull, tag, queue))
-    return 0;
+  DrawQueue localDrawQueue;
+  DrawQueue &queue = (ctx.cfg.cache_draw_queue && convar::cache_draw_queue) ? cull->drawQueue[tag] : localDrawQueue;
+  bool queueIsEmpty = queue.drawCalls.empty(); // non cached version, or first call on this frame/view
+  if (queueIsEmpty)
+    if (!prepare_render_queue(ctx, cull, tag, queue))
+      return 0;
 
   if (!update_dispatch_buffer(ctx, queue))
     return 0;
 
-  if (multidraw && !prepare_multidraw(ctx, queue))
-    return 0;
+  if (queueIsEmpty)
+    if (multidraw && !prepare_multidraw(ctx, queue))
+      return 0;
 
   ctx.globalData.gpuBuf.setVar();
 
@@ -739,8 +716,8 @@ bool render(ContextId cid, CullingId cull_id, const eastl::string &tag_name, flo
       int drawCallCount = call.drawCallCount;
       if (drawCallCount > 1) // no multridraw on 1 draw call instances
       {
-        d3d::multi_draw_indexed_indirect(PRIM_TRILIST, ctx.multidrawBufers[call.bufId].getBuf(), drawCallCount,
-          sizeof(DrawIndexedIndirectArgs), call.bufOffset);
+        d3d::multi_draw_indexed_indirect(PRIM_TRILIST, ctx.multidrawBufers[ctx.currentMutltidrawBufferRingId][call.bufId].getBuf(),
+          drawCallCount, sizeof(DrawIndexedIndirectArgs), call.bufOffset);
         dispatchId += drawCallCount;
       }
       else
@@ -790,8 +767,9 @@ bool render(ContextId cid, CullingId cull_id, const eastl::string &tag_name, flo
 #if DAGOR_DBGLEVEL > 0
   ctx.stats.drawCallsByRenderTags[tag] += totalDrawCalls;
 #endif
+  DA_PROFILE_TAG(dafx_render, "draw calls: %d, instances: %d, prims: %d", totalDrawCalls, queue.drawCalls.size(), totalPrims);
 
-  if (ctx.cfg.vrs_enabled)
+  if (ctx.cfg.vrs_enabled || convar::force_vrs_2x)
     d3d::set_variable_rate_shading(1, 1);
 
   return totalDrawCalls > 0;

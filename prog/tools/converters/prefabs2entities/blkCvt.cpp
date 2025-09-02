@@ -145,27 +145,22 @@ int convertFile(const char *in_filename, DataBlock &blk)
 
 int convertDir(const char *in_dir, DataBlock &blk)
 {
-  alefind_t ff;
   String mask(in_dir);
   append_slash(mask);
   mask += "*";
-  if (::dd_find_first(mask, DA_SUBDIR, &ff))
+  for (const alefind_t &ff : dd_find_iterator(mask, DA_SUBDIR))
   {
-    do
-    {
-      String filename(in_dir);
-      append_slash(filename);
-      filename += ff.name;
+    String filename(in_dir);
+    append_slash(filename);
+    filename += ff.name;
 
-      if (ff.attr & DA_SUBDIR)
-        convertDir(filename, blk);
-      else
-      {
-        if (stricmp(ff.name, PREFABS_FILE) == 0 || stricmp(ff.name, RESOBJ_FILE) == 0)
-          convertFile(filename, blk);
-      }
-    } while (::dd_find_next(&ff));
-    ::dd_find_close(&ff);
+    if (ff.attr & DA_SUBDIR)
+      convertDir(filename, blk);
+    else
+    {
+      if (stricmp(ff.name, PREFABS_FILE) == 0 || stricmp(ff.name, RESOBJ_FILE) == 0)
+        convertFile(filename, blk);
+    }
   }
 
   return 0;

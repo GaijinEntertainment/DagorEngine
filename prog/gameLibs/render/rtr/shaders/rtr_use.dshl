@@ -1,13 +1,17 @@
 int rtr_bindless_slot = -1;
+int rtr_bindless_sampler_slot = -1;
 int rtr_output_type = 0;
 int rtr_res_mul = 1;
 int4 rtr_resolutionI = (1,1,1,1);
+
+int rtr_use_rr;
 
 macro CHECKING_RTR(stage)
   if (use_hw_raytracing)
   {
     (stage) {
       rtr_bindless_slot@i1 = rtr_bindless_slot;
+      rtr_bindless_sampler_slot@u1 = rtr_bindless_sampler_slot;
     }
 
     hlsl (stage) {
@@ -38,6 +42,7 @@ macro USING_RTR(stage)
       inv_output_resolution_rt@f2 = (1.0 / (rtr_resolutionI.x * rtr_res_mul), 1.0 / (rtr_resolutionI.y * rtr_res_mul));
       resolutionF_rt@f2 = rtr_resolutionI.xy;
       resolutionI_rt@u2 = rtr_resolutionI.xy;
+      use_rr@u1 = rtr_use_rr;
     }
 
     hlsl (stage) {
@@ -53,33 +58,62 @@ macro USING_RTR(stage)
 
       float3 getRTR(uint2 tci)
       {
-        float2 uv = (tci.xy + 0.5) * inv_output_resolution_rt;
-        float2 unnormalizedUv = uv * resolutionF_rt;
-        float2 unnormalizedUvOfs = unnormalizedUv - 0.5;
-        float2 texelPos = frac(unnormalizedUvOfs);
-        uint2 crd = uint2(unnormalizedUvOfs);
-
-        float3 tl, tr, bl, br;
         BRANCH
-        if (rtr_output_type == RTR_REBLUR)
+        if (use_rr)
         {
-          tl = REBLUR_BackEnd_UnpackRadianceAndNormHitDist(texture2DAt(rt_texture_outputs[rtr_bindless_slot], min(crd, resolutionI_rt - 1))).rgb; // TODO: Remove "min" when we ceil resolution scaling (only this line).
-          tr = REBLUR_BackEnd_UnpackRadianceAndNormHitDist(texture2DAt(rt_texture_outputs[rtr_bindless_slot], min(crd + uint2(1, 0), resolutionI_rt - 1))).rgb;
-          bl = REBLUR_BackEnd_UnpackRadianceAndNormHitDist(texture2DAt(rt_texture_outputs[rtr_bindless_slot], min(crd + uint2(0, 1), resolutionI_rt - 1))).rgb;
-          br = REBLUR_BackEnd_UnpackRadianceAndNormHitDist(texture2DAt(rt_texture_outputs[rtr_bindless_slot], min(crd + uint2(1, 1), resolutionI_rt - 1))).rgb;
+          return texture2DAt(rt_texture_outputs[rtr_bindless_slot], tci).gba;
         }
         else
         {
-          tl = RELAX_BackEnd_UnpackRadiance(texture2DAt(rt_texture_outputs[rtr_bindless_slot], min(crd, resolutionI_rt - 1))).rgb; // TODO: Remove "min" when we ceil resolution scaling (only this line).
-          tr = RELAX_BackEnd_UnpackRadiance(texture2DAt(rt_texture_outputs[rtr_bindless_slot], min(crd + uint2(1, 0), resolutionI_rt - 1))).rgb;
-          bl = RELAX_BackEnd_UnpackRadiance(texture2DAt(rt_texture_outputs[rtr_bindless_slot], min(crd + uint2(0, 1), resolutionI_rt - 1))).rgb;
-          br = RELAX_BackEnd_UnpackRadiance(texture2DAt(rt_texture_outputs[rtr_bindless_slot], min(crd + uint2(1, 1), resolutionI_rt - 1))).rgb;
+          float2 uv = (tci.xy + 0.5) * inv_output_resolution_rt;
+          float4 color = rt_texture_outputs[rtr_bindless_slot].SampleLevel(global_samplers_array[rtr_bindless_sampler_slot], uv, 0);
+
+          return rtr_output_type == RTR_REBLUR
+               ? REBLUR_BackEnd_UnpackRadianceAndNormHitDist(color).rgb
+               : RELAX_BackEnd_UnpackRadiance(color).rgb;
         }
+      }
+      float3 getRTRFiltered(uint2 tci)
+      {
+        BRANCH
+        if (use_rr)
+        {
+          return getRTR(tci);
+        }
+        else
+        {
+          float2 uv = (tci.xy + 0.5) * inv_output_resolution_rt;
+          float4 red = rt_texture_outputs[rtr_bindless_slot].GatherRed(global_samplers_array[rtr_bindless_sampler_slot], uv);
 
-        float3 top = lerp(tl, tr, texelPos.x);
-        float3 bottom = lerp(bl, br, texelPos.x);
+          bool4 isColorFinite = isfinite(red);
+          if (all(isColorFinite))
+            return getRTR(tci);
+          if (!any(isColorFinite))
+            return 0;
 
-        return lerp(top, bottom, texelPos.y);
+          float4 green = rt_texture_outputs[rtr_bindless_slot].GatherGreen(global_samplers_array[rtr_bindless_sampler_slot], uv);
+          float4 blue = rt_texture_outputs[rtr_bindless_slot].GatherBlue(global_samplers_array[rtr_bindless_sampler_slot], uv);
+
+          float4 weight = float4(isColorFinite);
+          float weightTotal = dot(weight, weight);
+
+          float4 color = 0;
+          UNROLL
+          for(int i = 0; i < 4; i++)
+          {
+            if (isColorFinite[i])
+            {
+              float4 colorSample = float4(red[i], green[i], blue[i], 0);
+              float4 colorDecoded = rtr_output_type == RTR_REBLUR
+                ? REBLUR_BackEnd_UnpackRadianceAndNormHitDist(colorSample)
+                : RELAX_BackEnd_UnpackRadiance(colorSample);
+              color += colorDecoded;
+            }
+          }
+          color /= weightTotal;
+
+          return color.rgb;
+        }
       }
     }
   }
@@ -87,6 +121,10 @@ macro USING_RTR(stage)
   {
     hlsl (stage) {
       float3 getRTR(uint2 tci)
+      {
+        return 0;
+      }
+      float3 getRTRFiltered(uint2 tci)
       {
         return 0;
       }

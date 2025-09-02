@@ -1,8 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <sepGui/wndCommon.h>
-
 class IWndManager;
 
 

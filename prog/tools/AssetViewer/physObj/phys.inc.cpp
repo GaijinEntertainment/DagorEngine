@@ -1,10 +1,13 @@
+#include <phys/dag_physics.h>
+#include <phys/dag_physObject.h>
+#include <phys/dag_physRagdoll.h>
 #include "phys.h"
 #include <de3_lightService.h>
 #include <3d/dag_render.h>
 #include <shaders/dag_dynSceneRes.h>
 #include <render/dag_cur_view.h>
 #include <EditorCore/ec_interface.h>
-#include <phys/physRagdoll.inc.cpp>
+#include <de3_dynRenderService.h>
 #include <phys/dag_physDebug.h>
 
 static PhysWorld *pw = NULL;
@@ -75,7 +78,7 @@ static __forceinline void phys_create_phys_world(DynamicPhysObjectData *base_obj
   if (pw)
     return;
 
-  pw = new PhysWorld(0.9f, 0.7f, 0.4f, 1.0f);
+  pw = new PhysWorld();
 
   TMatrix nullPlaneTm(TMatrix::IDENT);
   nullPlaneTm.setcol(3, 0, min(base_plane_ht0, base_plane_ht1) - 0.7, 0);
@@ -123,6 +126,13 @@ static __forceinline void phys_init()
 {
   if (inited)
     return;
+#ifdef PHYSICS_SKIP_INIT_TERM
+  if (PHYSICS_SKIP_INIT_TERM)
+  {
+    inited = false;
+    return;
+  }
+#endif
 
   ::init_physics_engine();
   physdbg::init<PhysWorld>();
@@ -133,6 +143,13 @@ static __forceinline void phys_close()
 {
   if (!inited)
     return;
+#ifdef PHYSICS_SKIP_INIT_TERM
+  if (PHYSICS_SKIP_INIT_TERM)
+  {
+    inited = true;
+    return;
+  }
+#endif
 
   phys_clear_phys_world();
 
@@ -146,15 +163,12 @@ static __forceinline void phys_before_render()
   for (auto *o : simObj)
     o->beforeRender(::grs_cur_view.pos);
 }
-static __forceinline void phys_render_trans()
+static __forceinline void phys_render(IDynRenderService::Stage stage)
 {
-  for (auto *o : simObj)
-    o->renderTrans();
-}
-static __forceinline void phys_render()
-{
-  for (auto *o : simObj)
-    o->render();
+  if (auto *rs = EDITORCORE->queryEditorInterface<IDynRenderService>())
+    for (auto *o : simObj)
+      for (int i = 0, ie = o->getModelCount(); i < ie; ++i)
+        rs->renderOneDynModelInstance(o->getModel(i), stage);
 }
 static __forceinline void phys_render_debug(bool bodies, bool body_center, bool constraints, bool constraints_refsys)
 {
@@ -216,72 +230,40 @@ static __forceinline void *phys_start_ragdoll(AnimV20::IAnimCharacter2 *animChar
   return ragdoll;
 }
 
-#define IMPLEMENT_PHYS_API(PHYS)                                                                                            \
-  void phys_##PHYS##_simulate(real dt)                                                                                      \
-  {                                                                                                                         \
-    phys_simulate(dt);                                                                                                      \
-  }                                                                                                                         \
-  void phys_##PHYS##_clear_phys_world()                                                                                     \
-  {                                                                                                                         \
-    phys_clear_phys_world();                                                                                                \
-  }                                                                                                                         \
-  void phys_##PHYS##_create_phys_world(DynamicPhysObjectData *base_obj, float h0, float h1, int inst_count, int scene_type, \
-    float interval)                                                                                                         \
-  {                                                                                                                         \
-    phys_create_phys_world(base_obj, h0, h1, inst_count, scene_type, interval);                                             \
-  }                                                                                                                         \
-  void *phys_##PHYS##_get_phys_world()                                                                                      \
-  {                                                                                                                         \
-    return pw;                                                                                                              \
-  }                                                                                                                         \
-  void phys_##PHYS##_set_phys_body(void *phbody)                                                                            \
-  {                                                                                                                         \
-    phys_set_phys_body(phbody);                                                                                             \
-  }                                                                                                                         \
-  void phys_##PHYS##_init()                                                                                                 \
-  {                                                                                                                         \
-    phys_init();                                                                                                            \
-  }                                                                                                                         \
-  void phys_##PHYS##_close()                                                                                                \
-  {                                                                                                                         \
-    phys_close();                                                                                                           \
-  }                                                                                                                         \
-  void phys_##PHYS##_before_render()                                                                                        \
-  {                                                                                                                         \
-    phys_before_render();                                                                                                   \
-  }                                                                                                                         \
-  void phys_##PHYS##_render_trans()                                                                                         \
-  {                                                                                                                         \
-    phys_render_trans();                                                                                                    \
-  }                                                                                                                         \
-  void phys_##PHYS##_render()                                                                                               \
-  {                                                                                                                         \
-    phys_render();                                                                                                          \
-  }                                                                                                                         \
-  void phys_##PHYS##_render_debug(bool b, bool bc, bool c, bool cr)                                                         \
-  {                                                                                                                         \
-    phys_render_debug(b, bc, c, cr);                                                                                        \
-  }                                                                                                                         \
-  bool phys_##PHYS##_get_phys_tm(int obj_idx, int sub_body_idx, TMatrix &phys_tm, bool &obj_active)                         \
-  {                                                                                                                         \
-    return phys_get_phys_tm(obj_idx, sub_body_idx, phys_tm, obj_active);                                                    \
-  }                                                                                                                         \
-  void phys_##PHYS##_add_impulse(int obj_idx, int sub_body_idx, const Point3 &pos, const Point3 &delta, real spring_factor, \
-    real damper_factor, real dt)                                                                                            \
-  {                                                                                                                         \
-    add_impulse(obj_idx, sub_body_idx, pos, delta, spring_factor, damper_factor, dt);                                       \
-  }                                                                                                                         \
-  void *phys_##PHYS##_start_ragdoll(AnimV20::IAnimCharacter2 *ac, const Point3 &vel0)                                       \
-  {                                                                                                                         \
-    return phys_start_ragdoll(ac, vel0);                                                                                    \
-  }                                                                                                                         \
-  void phys_##PHYS##_delete_ragdoll(void *&ragdoll)                                                                         \
-  {                                                                                                                         \
-    if (!ragdoll)                                                                                                           \
-      return;                                                                                                               \
-    auto rd = (PhysRagdoll *)ragdoll;                                                                                       \
-    erase_item_by_value(physsimulator::simObjRes, rd->getPhysRes());                                                        \
-    erase_item_by_value(simPhysSys, rd->getPhysSys());                                                                      \
-    delete rd;                                                                                                              \
-    ragdoll = NULL;                                                                                                         \
+#define IMPLEMENT_PHYS_API(PHYS)                                                                                               \
+  void phys_##PHYS##_simulate(real dt) { phys_simulate(dt); }                                                                  \
+  void phys_##PHYS##_clear_phys_world() { phys_clear_phys_world(); }                                                           \
+  void phys_##PHYS##_create_phys_world(DynamicPhysObjectData *base_obj, float h0, float h1, int inst_count, int scene_type,    \
+    float interval)                                                                                                            \
+  {                                                                                                                            \
+    phys_create_phys_world(base_obj, h0, h1, inst_count, scene_type, interval);                                                \
+  }                                                                                                                            \
+  void *phys_##PHYS##_get_phys_world() { return pw; }                                                                          \
+  void phys_##PHYS##_set_phys_body(void *phbody) { phys_set_phys_body(phbody); }                                               \
+  void phys_##PHYS##_init() { phys_init(); }                                                                                   \
+  void phys_##PHYS##_close() { phys_close(); }                                                                                 \
+  void phys_##PHYS##_before_render() { phys_before_render(); }                                                                 \
+  void phys_##PHYS##_render() { phys_render(IDynRenderService::Stage::STG_RENDER_DYNAMIC_OPAQUE); }                            \
+  void phys_##PHYS##_render_decals() { phys_render(IDynRenderService::Stage::STG_RENDER_DYNAMIC_DECALS); }                     \
+  void phys_##PHYS##_render_trans() { phys_render(IDynRenderService::Stage::STG_RENDER_DYNAMIC_TRANS); }                       \
+  void phys_##PHYS##_render_debug(bool b, bool bc, bool c, bool cr) { phys_render_debug(b, bc, c, cr); }                       \
+  bool phys_##PHYS##_get_phys_tm(int obj_idx, int sub_body_idx, TMatrix &phys_tm, bool &obj_active)                            \
+  {                                                                                                                            \
+    return phys_get_phys_tm(obj_idx, sub_body_idx, phys_tm, obj_active);                                                       \
+  }                                                                                                                            \
+  void phys_##PHYS##_add_impulse(int obj_idx, int sub_body_idx, const Point3 &pos, const Point3 &delta, real spring_factor,    \
+    real damper_factor, real dt)                                                                                               \
+  {                                                                                                                            \
+    add_impulse(obj_idx, sub_body_idx, pos, delta, spring_factor, damper_factor, dt);                                          \
+  }                                                                                                                            \
+  void *phys_##PHYS##_start_ragdoll(AnimV20::IAnimCharacter2 *ac, const Point3 &vel0) { return phys_start_ragdoll(ac, vel0); } \
+  void phys_##PHYS##_delete_ragdoll(void *&ragdoll)                                                                            \
+  {                                                                                                                            \
+    if (!ragdoll)                                                                                                              \
+      return;                                                                                                                  \
+    auto rd = (PhysRagdoll *)ragdoll;                                                                                          \
+    erase_item_by_value(physsimulator::simObjRes, rd->getPhysRes());                                                           \
+    erase_item_by_value(simPhysSys, rd->getPhysSys());                                                                         \
+    delete rd;                                                                                                                 \
+    ragdoll = NULL;                                                                                                            \
   }

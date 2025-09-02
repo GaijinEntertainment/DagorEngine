@@ -1,0 +1,3 @@
+file:t = "../rendinst_vegetation.dshl"
+file:t = "../rendinst_tree_perlin_layered.dshl"
+file:t = "../rendinst_impostor.dshl"

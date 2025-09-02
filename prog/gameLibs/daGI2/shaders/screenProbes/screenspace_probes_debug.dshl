@@ -6,6 +6,7 @@ include "screenspace_probes_reprojection.dshl"
 int debug_screenspace_probes_type;
 
 buffer screenspace_tile_classificator;
+float exposure = 1;
 
 texture current_radiance_distance;
 shader screenspace_probes_draw_debug
@@ -27,6 +28,7 @@ shader screenspace_probes_draw_debug
       ByteAddressBuffer screenspace_tile_classificator@buf;
     }
     screenspace_probes_temporal@i2 = screenspace_probes_temporal;
+    exposure@f1 = exposure;
   }
   ENABLE_ASSERT(ps)
   SCREENSPACE_PROBES_POSITIONS(vs)
@@ -124,7 +126,6 @@ shader screenspace_probes_draw_debug
   (ps) {
     screenspace_irradiance@smp2d = screenspace_irradiance;
     screenprobes_current_radiance@smp2d = screenprobes_current_radiance;
-    screenprobes_current_radiance_distance@smp2d = screenprobes_current_radiance_distance;
     debug_screenspace_probes_type@i1 = debug_screenspace_probes_type;
     sp_irradiance_res@i4 = sp_irradiance_res;
   }
@@ -156,7 +157,7 @@ shader screenspace_probes_draw_debug
           return pack_hdr(float3(1,0,0));
       }
       if (debug_screenspace_probes_type == DEBUG_DISTANCE)
-        return pack_hdr(tex2Dlod(screenprobes_current_radiance_distance, float4(sampleTC,0,0)).x);
+        return pack_hdr(tex2Dlod(screenprobes_current_radiance, float4(sampleTC,0,0)).w > 10);
       if (debug_screenspace_probes_type == DEBUG_IRRADIANCE)
         return pack_hdr(tex2Dlod(screenspace_irradiance, float4(sampleTC,0,0)).xyz);
       if (debug_screenspace_probes_type == DEBUG_COORD)
@@ -176,11 +177,12 @@ shader screenspace_probes_draw_debug
       if (debug_screenspace_probes_type == DEBUG_NORMAL)
       {
         float3 probeNormal = decodeProbeNormal(input.encodedProbeNormal);//fixme: should be without tonemapping!
-        return pack_hdr(probeNormal*0.5 + 0.5);
+        return pack_hdr((probeNormal*0.5 + 0.5)/exposure);
       }
       //if (debug_screenspace_probes_type == DEBUG_RADIANCE)
         float currentExposure = 1;
-        return pack_hdr(currentExposure*sp_decode_texture_radiance(tex2Dlod(screenprobes_current_radiance, float4(sampleTC,0,0)).xyz));
+        return pack_hdr(currentExposure*(screenprobes_current_radiance[sampleTC*screenspace_probe_atlas_size.xy*screenspace_probe_res.w].xyz));
+        return pack_hdr(currentExposure*(tex2Dlod(screenprobes_current_radiance, float4(sampleTC,0,0)).xyz));
       //return tex2Dlod(screenspace_iadiance, float4(sampleTC,0,0)).xyz;
     }
   }
@@ -206,6 +208,7 @@ shader screenspace_probes_draw_debug_classificator
     //}
     //screenspace_probe_res@i4 = screenspace_probe_res;
   }
+  ENABLE_ASSERT(ps)
   SCREENSPACE_PROBES_POSITIONS(ps)
   //SCREENSPACE_PROBES_POSITIONS_COMMON_MATH(ps)
   z_test = false;
@@ -248,7 +251,7 @@ shader screenspace_probes_draw_debug_classificator
     {
       float4 screenpos = GET_SCREEN_POS(input.pos);
       uint2 tci = screenpos.xy;
-      uint2 tileCoord = tci/uint(screenspace_probe_res.z);
+      uint2 tileCoord = input.texcoord*screenspace_probe_res.xy + 0.5;
       uint tileIndex = tileCoord.x + tileCoord.y*screenspace_probe_res.x;
 
       uint numScreenProbes = sp_getNumScreenProbes();

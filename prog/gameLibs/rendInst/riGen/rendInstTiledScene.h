@@ -25,20 +25,23 @@ public:
     VISIBLE_2 = 1 << 7,
     IS_RENDINST_CLIPMAP = 1 << 8,
     VISIBLE_IN_SHADOWS = 1 << 9,
-    CHECKED_IN_SHADOWS = 1 << 10,
+    NEEDS_CHECK_IN_SHADOW = 1 << 10,
     VISIBLE_IN_VSM = 1 << 11,
     DRAFT_DEPTH = 1 << 12,
     VISIBLE_IN_LANDMASK = 1 << 13,
-    NEEDS_CHECK_IN_SHADOW = 1 << 14,
-    HAS_PER_INSTANCE_RENDER_DATA = 1 << 15,
+    // EMPTY = 1 << 14,
+    HAS_PER_INSTANCE_RENDER_ADDITIONAL_DATA = 1 << 15,
   };
   using SimpleScene::calcNodeBox;
   using SimpleScene::calcNodeBoxFromSphere;
+  using SimpleScene::getAliveNode;
   using SimpleScene::getNode;
   using SimpleScene::getNodeFlags;
   using SimpleScene::getNodePool;
   using SimpleScene::getPoolSphereRad;
   using SimpleScene::isAliveNode;
+  using SimpleScene::isAliveNodeFast;
+  using SimpleScene::prefetchNode;
   using TiledScene::allocate;
   using TiledScene::boxCull;
   using TiledScene::destroy;
@@ -65,6 +68,7 @@ public:
   using TiledScene::term;
   using TiledScene::unlockAfterRead;
   using TiledScene::unsetFlags;
+  using TiledScene::unsetFlagsUnordered;
 
   using SimpleScene::begin;
   using SimpleScene::end;
@@ -82,7 +86,7 @@ public:
     COMPARE_AND_SWAP_UDATA,
     INVALIDATE_SHADOW_DIST,
     SET_FLAGS_IN_BOX,
-    SET_PER_INSTANCE_OFFSET,
+    SET_PER_INSTANCE_ADDITIONAL_DATA,
   };
   enum
   {
@@ -223,38 +227,30 @@ public:
     userDataWordCount = new_word_cnt;
   }
 
-  uint32_t getPerInstanceRenderDataOffset(scene::node_index ni) const
+  uint32_t getPerInstanceRenderAdditionalData(scene::node_index ni) const
   {
-    eastl::vector_map<scene::node_index, uint32_t>::const_iterator it = perInstanceRenderDataOffset.find(ni);
-    if (it != perInstanceRenderDataOffset.end())
+    eastl::vector_map<scene::node_index, uint32_t>::const_iterator it = perInstanceRenderAdditionalData.find(ni);
+    if (it != perInstanceRenderAdditionalData.end())
       return it->second;
     return 0;
   }
 
-  void setPerInstanceRenderDataOffsetImm(scene::node_index ni, uint32_t offset)
+  void setPerInstanceRenderAdditionalDataImm(scene::node_index ni, uint32_t encoded_data)
   {
     G_ASSERT_RETURN(isInWritingThread(), );
-    if (offset)
+    if (encoded_data)
     {
-      setFlagsImm(ni, HAS_PER_INSTANCE_RENDER_DATA);
-      perInstanceRenderDataOffset[ni] = offset;
+      setFlagsImm(ni, HAS_PER_INSTANCE_RENDER_ADDITIONAL_DATA);
+      perInstanceRenderAdditionalData[ni] = encoded_data;
     }
     else
     {
-      if (getNodeFlags(ni) & HAS_PER_INSTANCE_RENDER_DATA)
+      if (getNodeFlags(ni) & HAS_PER_INSTANCE_RENDER_ADDITIONAL_DATA)
       {
-        unsetFlagsImm(ni, HAS_PER_INSTANCE_RENDER_DATA);
-        perInstanceRenderDataOffset.erase(ni);
+        unsetFlagsImm(ni, HAS_PER_INSTANCE_RENDER_ADDITIONAL_DATA);
+        perInstanceRenderAdditionalData.erase(ni);
       }
     }
-  }
-
-  void clearPerInstanceRenderDataOffsets()
-  {
-    G_ASSERT_RETURN(isInWritingThread(), );
-    for (auto &it : perInstanceRenderDataOffset)
-      unsetFlagsImm(it.first, HAS_PER_INSTANCE_RENDER_DATA);
-    perInstanceRenderDataOffset.clear();
   }
 
   void onDirFromSunChanged(const Point3 &nd);
@@ -271,7 +267,7 @@ protected:
   friend class TiledScenesGroup;
   mutable eastl::vector<uint8_t> distance;
   eastl::vector<int32_t> nodeUserData;
-  eastl::vector_map<scene::node_index, uint32_t> perInstanceRenderDataOffset;
+  eastl::vector_map<scene::node_index, uint32_t> perInstanceRenderAdditionalData;
   int userDataWordCount = 0;
   Point3 dirFromSunOnPrevDistInvalidation = {0, 0, 0};
 };
@@ -334,6 +330,9 @@ public:
   void reinit(int sz)
   {
     G_ASSERT_RETURN(sz <= N, );
+    if (mCount == sz && sz == 0)
+      return;
+
     for (auto &s : scenes())
     {
       if (s.isInWritingThread())

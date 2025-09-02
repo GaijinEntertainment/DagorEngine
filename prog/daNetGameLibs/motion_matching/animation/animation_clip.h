@@ -46,6 +46,7 @@ struct AnimationClip
   float duration;
   int tickDuration;
   int featuresNormalizationGroup;
+  float featuresCostBias;
 
   dag::Vector<AnimationInterval> intervals;
 
@@ -53,6 +54,7 @@ struct AnimationClip
   int nextClip;
   bool looped;
   bool inPlaceAnimation;
+  bool immediateAnimTreeTimerSync;
   const AnimV20::AnimData *animation;
   using Point3Channel = eastl::pair</*animation node id*/ dag::Index16, /*node index*/ dag::Index16>;
   using QuaternionChannel = eastl::pair</*animation node id*/ dag::Index16, /*node index*/ dag::Index16>;

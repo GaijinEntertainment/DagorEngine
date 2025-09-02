@@ -8,6 +8,7 @@
 #define __SHLOG_H
 
 #include <util/dag_string.h>
+#include <cstdio>
 
 /************************************************************************/
 /* forwards
@@ -30,7 +31,6 @@ enum ShLogMode
   SHLOG_NORMAL,
   SHLOG_INFO,
   SHLOG_WARNING,
-  SHLOG_SILENT_WARNING,
   SHLOG_ERROR,
   SHLOG_FATAL,
   __SHLOG_MODE_COUNT,
@@ -54,6 +54,18 @@ private:
   const char *prefix;
 };
 
+// Function for correct output
+#define DSA_OVERLOADS_PARAM_DECL
+#define DSA_OVERLOADS_PARAM_PASS
+DECLARE_DSA_OVERLOADS_FAMILY(static inline void sh_printf, void sh_printf, sh_printf);
+#undef DSA_OVERLOADS_PARAM_DECL
+#undef DSA_OVERLOADS_PARAM_PASS
+
+#define DSA_OVERLOADS_PARAM_DECL FILE *file,
+#define DSA_OVERLOADS_PARAM_PASS file,
+DECLARE_DSA_OVERLOADS_FAMILY(static inline void sh_fprintf, void sh_fprintf, sh_fprintf);
+#undef DSA_OVERLOADS_PARAM_DECL
+#undef DSA_OVERLOADS_PARAM_PASS
 
 // output to shader log
 #define DSA_OVERLOADS_PARAM_DECL ShLogMode mode,
@@ -70,8 +82,8 @@ void sh_process_errors();
 
 // set current variant to output
 void sh_set_current_shader(const char *shader);
-void sh_set_current_variant(IVariantInfoProvider *var);
-void sh_set_current_dyn_variant(IVariantInfoProvider *var);
+void sh_set_current_variant(const IVariantInfoProvider *var);
+void sh_set_current_dyn_variant(const IVariantInfoProvider *var);
 String sh_get_compile_context();
 
 // enable output to console

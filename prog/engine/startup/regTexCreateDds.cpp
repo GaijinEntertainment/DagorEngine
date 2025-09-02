@@ -10,6 +10,7 @@
 #include <ioSys/dag_fileIo.h>
 #include <ioSys/dag_fastSeqRead.h>
 #include <ioSys/dag_memIo.h>
+#include <ioSys/dag_dataBlock.h>
 #include <osApiWrappers/dag_localConv.h>
 #include <osApiWrappers/dag_vromfs.h>
 #include <osApiWrappers/dag_files.h>
@@ -107,7 +108,6 @@ static BaseTexture *load_ddsx(const char *fn, int flg, int levels, const Texture
   TEXTUREID tid = get_managed_texture_id(fn);
   if (t)
   {
-    apply_gen_tex_props(t, tmd, false);
     set_texture_separate_sampler(tid, get_sampler_info(tmd, false));
   }
   set_ddsx_reloadable_callback(t, tid, fn, 0, bt_id);
@@ -143,7 +143,6 @@ public:
       TEXTUREID tid = get_managed_texture_id(fn);
       if (t)
       {
-        apply_gen_tex_props(t, tmd, false);
         set_texture_separate_sampler(tid, get_sampler_info(tmd, false));
       }
       set_ddsx_reloadable_callback(t, tid, fn, ofs, BAD_TEXTUREID);
@@ -156,7 +155,10 @@ static DdsxCreateTexFactory ddsx_create_tex_factory;
 
 void register_dds_tex_create_factory()
 {
-  ddsx::init_ddsx_load_queue(64);
+  int queue_sz = 256;
+  if (::dgs_get_settings())
+    queue_sz = ::dgs_get_settings()->getInt("ddsxLoadQueueSize", queue_sz);
+  ddsx::init_ddsx_load_queue(queue_sz);
   add_create_tex_factory(&ddsx_create_tex_factory);
 }
 

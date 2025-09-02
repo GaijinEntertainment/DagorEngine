@@ -18,9 +18,13 @@
 #include "stacked_profile_events.h"
 #include "predicted_latency_waiter.h"
 #include "texture.h"
+#include "dlss.h"
+#include "streamline_adapter.h"
 #include <EASTL/sort.h>
 #include "wrapped_command_buffer.h"
 #include "execution_sync_capture.h"
+#include "vulkan_allocation_callbacks.h"
+#include "swapchain.h"
 
 using namespace drv3d_vulkan;
 
@@ -30,7 +34,7 @@ thread_local ExecutionContext *ExecutionContext::tlsDbgActiveInstance = nullptr;
 
 ExecutionScratch ExecutionContext::scratch;
 
-ExecutionContext::ExecutionContext(RenderWork &work_item) : data(work_item), swapchain(Globals::swapchain), vkDev(Globals::VK::dev)
+ExecutionContext::ExecutionContext(RenderWork &work_item) : data(work_item), vkDev(Globals::VK::dev)
 {
   Backend::State::exec.setExecutionContext(this);
 #if VULKAN_VALIDATION_COLLECT_CALLER > 0
@@ -80,7 +84,11 @@ void ExecutionContext::invalidateActiveGraphicsPipeline()
 
 void ExecutionContext::writeExectionChekpointNonCommandStream(VkPipelineStageFlagBits stage, uint32_t key)
 {
-  Backend::gpuJob.get().execTracker.addMarker(&key, sizeof(key));
+  if (ncmdLoopKey != key)
+  {
+    Backend::gpuJob.get().execTracker.addMarker(&key, sizeof(key));
+    ncmdLoopKey = key;
+  }
 
   if (!Globals::cfg.bits.commandMarkers)
     return;
@@ -103,23 +111,31 @@ void ExecutionContext::writeExectionChekpoint(VkPipelineStageFlagBits stage)
 // and in general user slection of this RB bits are quite error prone (at least from vulkan POV)
 // so do precise barriers handling for now
 
-bool d3d_resource_barrier_to_layout(VkImageLayout &layout, ResourceBarrier barrier)
+// ignore flags that don't make any sense for now
+struct FilteredResourceBarrier
 {
-  switch ((int)barrier)
+  uint64_t v;
+  FilteredResourceBarrier(ResourceBarrier in) { v = in & ~(RB_FLAG_SPLIT_BARRIER_END); }
+};
+
+bool d3d_resource_barrier_to_layout(VkImageLayout &layout, FilteredResourceBarrier barrier)
+{
+  switch (barrier.v)
   {
     case RB_STAGE_ALL_SHADERS | RB_RO_SRV: layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL; break;
     case RB_STAGE_PIXEL | RB_RO_SRV: layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL; break;
     case RB_STAGE_VERTEX | RB_RO_SRV: layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL; break;
     case RB_STAGE_COMPUTE | RB_RO_SRV: layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL; break;
     case RB_STAGE_PIXEL | RB_STAGE_COMPUTE | RB_RO_SRV: layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL; break;
+    case RB_RW_UAV | RB_STAGE_COMPUTE: layout = VK_IMAGE_LAYOUT_GENERAL; break;
     default: return false;
   }
   return true;
 }
 
-bool d3d_resource_barrier_to_laddr(LogicAddress &laddr, ResourceBarrier barrier)
+bool d3d_resource_barrier_to_laddr(LogicAddress &laddr, FilteredResourceBarrier barrier)
 {
-  switch ((int)barrier)
+  switch (barrier.v)
   {
     case RB_STAGE_ALL_SHADERS | RB_RO_SRV:
       laddr.access = VK_ACCESS_SHADER_READ_BIT;
@@ -149,6 +165,10 @@ bool d3d_resource_barrier_to_laddr(LogicAddress &laddr, ResourceBarrier barrier)
                     VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT |
                     VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT | VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT;
       break;
+    case RB_RW_UAV | RB_STAGE_COMPUTE:
+      laddr.access = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
+      laddr.stage = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+      break;
     default: return false;
   }
   return true;
@@ -162,13 +182,14 @@ void ExecutionContext::bufferBarrier(const BufferRef &b_ref, ResourceBarrier d3d
   beginCustomStage("bufferBarrier");
 
   LogicAddress laddr;
-  if (!d3d_resource_barrier_to_laddr(laddr, d3d_barrier))
+  if (!d3d_resource_barrier_to_laddr(laddr, FilteredResourceBarrier(d3d_barrier)))
   {
-    D3D_ERROR("vulkan: unhandled barrier %u for buf %p:%s caller %s", d3d_barrier, b_ref.buffer, b_ref.buffer->getDebugName(),
+    D3D_ERROR("vulkan: unhandled barrier %llX for buf %p:%s caller %s", d3d_barrier, b_ref.buffer, b_ref.buffer->getDebugName(),
       getCurrentCmdCaller());
     return;
   }
 
+  verifyResident(b_ref.buffer);
   Backend::sync.addBufferAccess(laddr, b_ref.buffer, {b_ref.bufOffset(0), b_ref.visibleDataSize});
 }
 
@@ -181,10 +202,11 @@ void ExecutionContext::imageBarrier(Image *img, ResourceBarrier d3d_barrier, uin
 
   LogicAddress laddr;
   VkImageLayout layout;
+  FilteredResourceBarrier filteredBarrier = FilteredResourceBarrier(d3d_barrier);
 
-  if (!(d3d_resource_barrier_to_layout(layout, d3d_barrier) && d3d_resource_barrier_to_laddr(laddr, d3d_barrier)))
+  if (!(d3d_resource_barrier_to_layout(layout, filteredBarrier) && d3d_resource_barrier_to_laddr(laddr, filteredBarrier)))
   {
-    D3D_ERROR("vulkan: unhandled barrier %u for img %p:%s, range %u-%u caller %s", d3d_barrier, img, img->getDebugName(), res_index,
+    D3D_ERROR("vulkan: unhandled barrier %llX for img %p:%s, range %u-%u caller %s", d3d_barrier, img, img->getDebugName(), res_index,
       res_range, getCurrentCmdCaller());
     return;
   }
@@ -318,19 +340,12 @@ void ExecutionContext::flushUnorderedImageCopies()
 
 void ExecutionContext::cleanupMemory()
 {
-
-  bool needMemoryCleanup = false;
   bool cleanupAllPossibleMemory = false;
-  needMemoryCleanup |= RenderWork::cleanUpMemoryEveryWorkItem;
   if (Globals::Mem::res.isOutOfMemorySignalReceived())
   {
-    needMemoryCleanup |= true;
     cleanupAllPossibleMemory |= true;
     debug("vulkan: processing OOM signal");
   }
-
-  if (!needMemoryCleanup)
-    return;
 
   const VkDeviceSize evictBlockSize = 10 << 20; // 10Mb
 
@@ -371,10 +386,6 @@ void ExecutionContext::cleanupMemory()
     Globals::Mem::res.processPendingEvictions();
     Globals::Mem::res.consumeOutOfMemorySignal();
   }
-
-  // proceed to normal workload execution
-  flushProcessed = false;
-  frameCore = VulkanNullHandle();
 }
 
 void ExecutionContext::completeSyncForQueueChange()
@@ -387,6 +398,8 @@ void ExecutionContext::completeSyncForQueueChange()
 
 void ExecutionContext::prepareFrameCore()
 {
+  verifyResourcesResidencyRestoration();
+
   if (size_t multiQueueOverride = Backend::interop.toggleMultiQueueSubmit.load(std::memory_order_relaxed))
     Globals::cfg.bits.allowMultiQueue = (multiQueueOverride % 2) == 0;
 
@@ -395,38 +408,118 @@ void ExecutionContext::prepareFrameCore()
   // not tied to command buffer
   Backend::bindless.advance();
 
-  bool needGraphicsUpload = data.unorderedImageColorClears.size() || data.unorderedImageDepthStencilClears.size() ||
-                            data.imageUploads.size() || data.unorderedImageCopies.size();
-  bool needTransferUpload = data.bufferUploads.size() || data.orderedBufferUploads.size();
-
-  if (needGraphicsUpload)
+  if (data.sparseImageOpaqueBinds.size() || data.sparseImageBinds.size())
   {
-    // can't live on transfer queue (or can't always live) and followup queue should be graphics after prepare
-    switchFrameCoreForQueueChange(DeviceQueueType::GRAPHICS);
-    writeExectionChekpointNonCommandStream(VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_START);
-    flushUnorderedImageColorClears();
-    flushUnorderedImageDepthStencilClears();
-    flushImageUploads();
-    flushUnorderedImageCopies();
+    TIME_PROFILE(vulkan_bind_sparse);
+    // restore pointers from offsets
+    for (VkSparseImageOpaqueMemoryBindInfo &i : data.sparseImageOpaqueBinds)
+      i.pBinds = data.sparseMemoryBinds.data() + (intptr_t)i.pBinds;
+    for (VkSparseImageMemoryBindInfo &i : data.sparseImageBinds)
+      i.pBinds = data.sparseImageMemoryBinds.data() + (intptr_t)i.pBinds;
 
-    graphicsUploadBuffer = scratch.cmdListsToSubmit.size();
+    // wait graphics on sparse
+    DeviceQueue::TimelineInfo tl = Globals::VK::queue[DeviceQueueType::GRAPHICS].getTimeline();
+    Globals::VK::queue[DeviceQueueType::SPARSE_BINDING].waitTimeline(tl, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+
+    Globals::VK::queue[DeviceQueueType::SPARSE_BINDING].bindSparse(Backend::gpuJob.get(), data.sparseImageOpaqueBinds.size(),
+      data.sparseImageOpaqueBinds.data(), data.sparseImageBinds.size(), data.sparseImageBinds.data());
+
+    // wait sparse on graphics
+    tl = Globals::VK::queue[DeviceQueueType::SPARSE_BINDING].getTimeline();
+    Globals::VK::queue[DeviceQueueType::GRAPHICS].waitTimeline(tl, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
   }
 
-  if (needTransferUpload)
+  bool needImageUpload = data.unorderedImageColorClears.size() || data.unorderedImageDepthStencilClears.size() ||
+                         data.imageUploads.size() || data.unorderedImageCopies.size();
+  bool needBufferUpload = data.bufferUploads.size() || data.orderedBufferUploads.size();
+
+  if (needBufferUpload)
   {
-    switchFrameCoreForQueueChange(DeviceQueueType::TRANSFER);
+    switchFrameCoreForQueueChange(DeviceQueueType::TRANSFER_UPLOAD);
+    pushEventRaw("prepareFrameCoreTR", 0x0);
     writeExectionChekpointNonCommandStream(VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_START_TRANSFER_UPLOAD);
-    flushBufferUploads();
-    flushOrderedBufferUploads();
+    flushBufferUploads(true);
+    flushOrderedBufferUploads(true);
+    popEventRaw();
 
     transferUploadBuffer = scratch.cmdListsToSubmit.size();
   }
 
-  uploadQueueWaitMask = 0;
+  uploadQueueWaitMask = 1 << (uint32_t)DeviceQueueType::TRANSFER_READBACK;
+
+  // we can mask multi queue submits in runtime, so check both bits
+  if (Globals::cfg.bits.allowMultiQueue && Globals::cfg.bits.allowAsyncReadback && !data.readbacks->empty())
+  {
+    // frame end join will always join to most oldest submission, while we need earliest
+    // so add dependency here instead
+    DeviceQueue::TimelineInfo tl = Globals::VK::queue[DeviceQueueType::GRAPHICS].getTimeline();
+    Globals::VK::queue[DeviceQueueType::TRANSFER_READBACK].waitTimeline(tl, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+
+    switchFrameCoreForQueueChange(DeviceQueueType::TRANSFER_READBACK);
+    pushEventTracked("asyncReadback", 0x0);
+    data.readbacks->transferOwnership(DeviceQueueType::GRAPHICS, DeviceQueueType::TRANSFER_READBACK);
+    processReadbacks();
+    data.readbacks->transferOwnership(DeviceQueueType::TRANSFER_READBACK, DeviceQueueType::GRAPHICS);
+
+    // forbid accesses to readback involved resources on this work id
+    // because if there is access - async readback can't be used without extra sync
+    // and when extra sync is used we get less performance that usuall readback
+    // if error triggers - need to check user logic!
+    for (BufferCopyInfo &i : data.readbacks->buffers.info)
+    {
+      i.src->disallowAccessesOnGpuWorkId(data.id);
+      i.dst->disallowAccessesOnGpuWorkId(data.id);
+    }
+
+    for (ImageCopyInfo &i : data.readbacks->images.info)
+    {
+      i.image->disallowAccessesOnGpuWorkId(data.id);
+      i.buffer->disallowAccessesOnGpuWorkId(data.id);
+    }
+
+    for (BufferFlushInfo &i : data.readbacks->bufferFlushes)
+      i.buffer->disallowAccessesOnGpuWorkId(data.id);
+
+    data.readbacks->clear();
+    popEventTracked();
+  }
+
   switchFrameCoreForQueueChange(DeviceQueueType::GRAPHICS);
 
+  if (needImageUpload || needBufferUpload)
+  {
+    // can't live on transfer queue (or can't always live) and followup queue should be graphics after prepare
+    pushEventRaw("prepareFrameCoreGR", 0x0);
+    writeExectionChekpointNonCommandStream(VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_START);
+    if (needImageUpload)
+    {
+      flushUnorderedImageColorClears();
+      flushUnorderedImageDepthStencilClears();
+      flushImageUploads();
+      flushUnorderedImageCopies();
+    }
+
+    if (needBufferUpload)
+    {
+      flushBufferUploads(false);
+      flushOrderedBufferUploads(false);
+    }
+    popEventRaw();
+  }
+
   writeExectionChekpointNonCommandStream(VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_TIMESTAMPS_RESET_QUEUE_READBACKS);
-  data.timestampQueryBlock->ensureSizesAndResetStatus();
+  data.timestampQueryBlock->ensureSizesAndResetStatus(VK_QUERY_TYPE_TIMESTAMP);
+  Backend::gpuJob.get().pendingTimestamps = data.timestampQueryBlock;
+  data.occlusionQueryBlock->ensureSizesAndResetStatus(VK_QUERY_TYPE_OCCLUSION);
+  Backend::gpuJob.get().pendingOcclusionQueries = data.occlusionQueryBlock;
+
+  if (Globals::cfg.bits.allowMultiQueue && Globals::cfg.bits.allowAsyncReadback && data.prevReadbacks && !data.prevReadbacks->empty())
+  {
+    // note: valid lifetime of prev readback is guarantied by fact that before destruction objects wait readback completion
+    // if this logic is voided - we will access dead objects here
+    writeExectionChekpointNonCommandStream(VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_ASYNC_READBACK_ACQUIRE);
+    data.prevReadbacks->transferOwnership(DeviceQueueType::TRANSFER_READBACK, DeviceQueueType::GRAPHICS);
+  }
 
   // pre frame completion marker
   writeExectionChekpointNonCommandStream(VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_END);
@@ -442,10 +535,59 @@ void ExecutionContext::processBindlessUpdates()
     TIME_PROFILE(vulkan_bindless_tex_update);
     for (const BindlessTexUpdateInfo &i : data.bindlessTexUpdates)
     {
-      if (i.img)
-        trackBindlessRead(i.img);
-      for (int j = 0; j < i.count; ++j)
-        Backend::bindless.updateBindlessTexture(i.index + j, i.img, i.viewState);
+      if (i.type == BindlessUpdateType::RES)
+      {
+        if (i.variant.res.img)
+          verifyResident(i.variant.res.img);
+        bool anyUpdated = false;
+        for (int j = 0; j < i.count; ++j)
+          anyUpdated |=
+            Backend::bindless.updateBindlessTexture(i.index + j, i.variant.res.img, i.variant.res.viewState, i.stub, i.stubSwap);
+        if (i.variant.res.img && anyUpdated)
+        {
+          ImageViewState ivs = i.variant.res.viewState;
+          trackBindlessRead(i.variant.res.img, {ivs.getMipBase(), ivs.getMipCount(), ivs.getArrayBase(), ivs.getArrayCount()});
+        }
+      }
+      else
+        Backend::bindless.copyBindlessDescriptors(D3DResourceType::TEX, i.variant.copy.src, i.index, i.count);
+    }
+  }
+
+  if (data.bindlessTexSwaps.size())
+  {
+    TIME_PROFILE(vulkan_bindless_tex_swaps);
+    for (const BindlessTexSwap &i : data.bindlessTexSwaps)
+    {
+      verifyResident(i.dst);
+
+      bool diffImg = i.src != i.dst;
+      i.src->iterateBindlessSlots([diffImg, i](uint32_t slot) {
+        Backend::bindless.setBindlessTexture(slot, i.dst, i.viewState, false /*stub*/);
+        if (diffImg)
+          i.dst->addBindlessSlot(slot);
+      });
+      if (diffImg)
+        i.src->clearSlots();
+
+      trackBindlessRead(i.dst,
+        {i.viewState.getMipBase(), i.viewState.getMipCount(), i.viewState.getArrayBase(), i.viewState.getArrayCount()});
+    }
+  }
+
+  // process assumed reads on bindless after updates, because isUsedInBindless valid after updates
+  for (auto &&upload : data.imageUploads)
+  {
+    // we can't know is it readed or not, so assume readed
+    if (upload.image->isUsedInBindless())
+    {
+      for (auto iter = begin(data.imageUploadCopies) + upload.copyIndex,
+                ed = begin(data.imageUploadCopies) + upload.copyIndex + upload.copyCount;
+           iter != ed; ++iter)
+      {
+        trackBindlessRead(upload.image,
+          {iter->imageSubresource.mipLevel, 1, iter->imageSubresource.baseArrayLayer, iter->imageSubresource.layerCount});
+      }
     }
   }
 
@@ -454,8 +596,13 @@ void ExecutionContext::processBindlessUpdates()
     TIME_PROFILE(vulkan_bindless_buf_update);
     for (const BindlessBufUpdateInfo &i : data.bindlessBufUpdates)
     {
-      for (int j = 0; j < i.count; ++j)
-        Backend::bindless.updateBindlessBuffer(i.index + j, i.bref);
+      if (i.type == BindlessUpdateType::RES)
+      {
+        for (int j = 0; j < i.count; ++j)
+          Backend::bindless.updateBindlessBuffer(i.index + j, i.variant.res.bref);
+      }
+      else
+        Backend::bindless.copyBindlessDescriptors(D3DResourceType::SBUF, i.variant.copy.src, i.index, i.count);
     }
   }
 
@@ -463,15 +610,31 @@ void ExecutionContext::processBindlessUpdates()
   {
     TIME_PROFILE(vulkan_bindless_smp_update);
     for (const BindlessSamplerUpdateInfo &i : data.bindlessSamplerUpdates)
-      Backend::bindless.updateBindlessSampler(i.index, Globals::samplers.get(i.sampler));
+      Backend::bindless.updateBindlessSampler(i.index, &i.sampler->samplerInfo);
   }
 }
 
-void ExecutionContext::restoreImageResidencies()
+void ExecutionContext::verifyResourcesResidencyRestoration()
+{
+  G_ASSERTF(scratch.imageResidenceRestores.size() == 0, "vulkan: some images residency was not restored");
+  G_ASSERTF(scratch.bufferResidenceRestores.size() == 0, "vulkan: some buffers residency was not restored");
+}
+
+void ExecutionContext::restoreResourcesResidency()
 {
   for (Image *img : scratch.imageResidenceRestores)
     img->delayedRestoreFromSysCopy();
+  for (Buffer *buf : scratch.bufferResidenceRestores)
+    buf->delayedRestoreFromSysCopy();
   scratch.imageResidenceRestores.clear();
+  scratch.bufferResidenceRestores.clear();
+
+  const VkPipelineStageFlags syncStages = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+  const VkMemoryBarrier syncMem = {VK_STRUCTURE_TYPE_MEMORY_BARRIER, nullptr, VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT,
+    VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT};
+
+  // FMB
+  Backend::cb.wCmdPipelineBarrier(syncStages, syncStages, 0, 1, &syncMem, 0, nullptr, 0, nullptr);
 }
 
 VulkanCommandBufferHandle ExecutionContext::allocAndBeginCommandBuffer(DeviceQueueType queue)
@@ -489,16 +652,16 @@ VulkanCommandBufferHandle ExecutionContext::allocAndBeginCommandBuffer(DeviceQue
 
 void ExecutionContext::flushImageDownloads()
 {
-  if (data.imageDownloads.empty())
+  ImageReadbacks &rb = data.readbacks->images;
+  if (rb.info.empty())
     return;
 
-  for (auto &&download : data.imageDownloads)
+  for (auto &&download : rb.info)
   {
     verifyResident(download.image);
     verifyResident(download.buffer);
 
-    for (auto iter = begin(data.imageDownloadCopies) + download.copyIndex,
-              ed = begin(data.imageDownloadCopies) + download.copyIndex + download.copyCount;
+    for (auto iter = begin(rb.copies) + download.copyIndex, ed = begin(rb.copies) + download.copyIndex + download.copyCount;
          iter != ed; ++iter)
     {
       uint32_t sz =
@@ -511,32 +674,45 @@ void ExecutionContext::flushImageDownloads()
         {iter->imageSubresource.mipLevel, 1, iter->imageSubresource.baseArrayLayer, iter->imageSubresource.layerCount});
     }
   }
-
   Backend::sync.completeNeeded();
 
-  for (auto &&download : data.imageDownloads)
+  for (auto &&download : rb.info)
   {
     // do the copy
     VULKAN_LOG_CALL(Backend::cb.wCmdCopyImageToBuffer(download.image->getHandle(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-      download.buffer->getHandle(), download.copyCount, data.imageDownloadCopies.data() + download.copyIndex));
+      download.buffer->getHandle(), download.copyCount, rb.copies.data() + download.copyIndex));
   }
+
+  // device to host visibility barriers
+  for (auto &&download : rb.info)
+  {
+    for (auto iter = begin(rb.copies) + download.copyIndex, ed = begin(rb.copies) + download.copyIndex + download.copyCount;
+         iter != ed; ++iter)
+    {
+      uint32_t sz =
+        download.image->getFormat().calculateImageSize(iter->imageExtent.width, iter->imageExtent.height, iter->imageExtent.depth, 1) *
+        iter->imageSubresource.layerCount;
+      Backend::sync.addBufferAccess({VK_PIPELINE_STAGE_HOST_BIT, VK_ACCESS_HOST_READ_BIT}, download.buffer, {iter->bufferOffset, sz});
+    }
+  }
+  Backend::sync.completeNeeded();
 }
 
 void ExecutionContext::flushBufferDownloads()
 {
-  if (data.bufferDownloads.empty())
+  BufferReadbacks &rb = data.readbacks->buffers;
+  if (rb.info.empty())
     return;
 
   if (Globals::cfg.bits.optimizeBufferUploads)
-    BufferCopyInfo::optimizeBufferCopies(data.bufferDownloads, data.bufferDownloadCopies);
+    BufferCopyInfo::optimizeBufferCopies(rb.info, rb.copies);
 
-  for (auto &&download : data.bufferDownloads)
+  for (auto &&download : rb.info)
   {
     verifyResident(download.src);
     verifyResident(download.dst);
 
-    for (auto iter = begin(data.bufferDownloadCopies) + download.copyIndex,
-              ed = begin(data.bufferDownloadCopies) + download.copyIndex + download.copyCount;
+    for (auto iter = begin(rb.copies) + download.copyIndex, ed = begin(rb.copies) + download.copyIndex + download.copyCount;
          iter != ed; ++iter)
     {
       Backend::sync.addBufferAccess({VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT}, download.src,
@@ -545,14 +721,24 @@ void ExecutionContext::flushBufferDownloads()
         {iter->dstOffset, iter->size});
     }
   }
-
   Backend::sync.completeNeeded();
 
-  for (auto &&download : data.bufferDownloads)
+  for (auto &&download : rb.info)
   {
     VULKAN_LOG_CALL(Backend::cb.wCmdCopyBuffer(download.src->getHandle(), download.dst->getHandle(), download.copyCount,
-      data.bufferDownloadCopies.data() + download.copyIndex));
+      rb.copies.data() + download.copyIndex));
   }
+
+  for (auto &&download : rb.info)
+  {
+    for (auto iter = begin(rb.copies) + download.copyIndex, ed = begin(rb.copies) + download.copyIndex + download.copyCount;
+         iter != ed; ++iter)
+    {
+      Backend::sync.addBufferAccess({VK_PIPELINE_STAGE_HOST_BIT, VK_ACCESS_HOST_READ_BIT}, download.dst,
+        {iter->dstOffset, iter->size});
+    }
+  }
+  Backend::sync.completeNeeded();
 }
 
 void ExecutionContext::flushImageUploadsIter(uint32_t start, uint32_t end)
@@ -615,32 +801,21 @@ void ExecutionContext::flushImageUploads()
     }
   }
   flushImageUploadsIter(mergedRangeStart, data.imageUploads.size());
-
-  bool anyBindless = false;
-  for (auto &&upload : data.imageUploads)
-  {
-    if (upload.image->isSampledSRV())
-      upload.image->layout.roSealTargetLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    // we can't know is it readed or not, so assume readed
-    if (upload.image->isUsedInBindless())
-    {
-      trackBindlessRead(upload.image);
-      anyBindless = true;
-    }
-  }
-  if (anyBindless)
-    Backend::sync.completeNeeded();
 }
 
-void ExecutionContext::flushOrderedBufferUploads()
+void ExecutionContext::flushOrderedBufferUploads(bool overlapped)
 {
   if (data.orderedBufferUploads.empty())
     return;
 
   TIME_PROFILE(vulkan_flush_ordered_buffer_uploads);
+  pushEventRaw("bufferUploadsOrdered", 0x0);
 
   for (auto &&upload : data.orderedBufferUploads)
   {
+    if (upload.dst->isFrameMem() != overlapped)
+      continue;
+
     verifyResident(upload.src);
     verifyResident(upload.dst);
 
@@ -661,11 +836,16 @@ void ExecutionContext::flushOrderedBufferUploads()
       data.orderedBufferUploadCopies.data() + upload.copyIndex));
     writeExectionChekpointNonCommandStream(VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_BUFFER_UPLOAD_ORDERED);
   }
+
+  popEventRaw();
 }
-void ExecutionContext::flushBufferUploads()
+
+void ExecutionContext::flushBufferUploads(bool overlapped)
 {
   if (data.bufferUploads.empty())
     return;
+
+  pushEventRaw("bufferUploadsUnordered", 0x0);
 
   TIME_PROFILE(vulkan_flush_buffer_uploads);
 
@@ -674,6 +854,9 @@ void ExecutionContext::flushBufferUploads()
 
   for (auto &&upload : data.bufferUploads)
   {
+    if (upload.dst->isFrameMem() != overlapped)
+      continue;
+
     upload.src->optionallyActivateRoSeal(data.id);
     verifyResident(upload.src);
     verifyResident(upload.dst);
@@ -693,19 +876,24 @@ void ExecutionContext::flushBufferUploads()
 
   for (auto &&upload : data.bufferUploads)
   {
+    if (upload.dst->isFrameMem() != overlapped)
+      continue;
+
     // sadly no way to batch those together...
     VULKAN_LOG_CALL(Backend::cb.wCmdCopyBuffer(upload.src->getHandle(), upload.dst->getHandle(), upload.copyCount,
       data.bufferUploadCopies.data() + upload.copyIndex));
     writeExectionChekpointNonCommandStream(VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_BUFFER_UPLOAD);
   }
+
+  popEventRaw();
 }
 
 void ExecutionContext::flushBufferToHostFlushes()
 {
-  if (data.bufferToHostFlushes.empty())
+  if (data.readbacks->bufferFlushes.empty())
     return;
 
-  for (auto &&flush : data.bufferToHostFlushes)
+  for (auto &&flush : data.readbacks->bufferFlushes)
   {
     verifyResident(flush.buffer);
     Backend::sync.addBufferAccess({VK_PIPELINE_STAGE_HOST_BIT, VK_ACCESS_HOST_READ_BIT}, flush.buffer, {flush.offset, flush.range});
@@ -713,7 +901,7 @@ void ExecutionContext::flushBufferToHostFlushes()
   Backend::sync.completeNeeded();
 }
 
-void ExecutionContext::flushPostFrameCommands()
+void ExecutionContext::processReadbacks()
 {
   flushBufferDownloads();
   writeExectionChekpointNonCommandStream(VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_DOWNLOAD_BUFFERS);
@@ -721,10 +909,112 @@ void ExecutionContext::flushPostFrameCommands()
   writeExectionChekpointNonCommandStream(VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_DOWNLOAD_IMAGES);
   flushBufferToHostFlushes();
   writeExectionChekpointNonCommandStream(VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_BUFFER_HOST_FLUSHES);
+}
+
+void ExecutionContext::flushPostFrameCommands()
+{
+  // ensure we are running on gpaphics queue at frame end, makes tracking of sync a bit easier
+  switchFrameCore(DeviceQueueType::GRAPHICS);
+
+  pushEventTracked("postFrameCommands", 0x0);
+
+  if (!data.readbacks->empty())
+  {
+    processReadbacks();
+    data.readbacks->clear();
+  }
+
+  if (Globals::cfg.bits.allowMultiQueue && Globals::cfg.bits.allowAsyncReadback && !data.nextReadbacks->empty())
+  {
+    writeExectionChekpointNonCommandStream(VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_ASYNC_READBACK_RELEASE);
+    data.nextReadbacks->transferOwnership(DeviceQueueType::GRAPHICS, DeviceQueueType::TRANSFER_READBACK);
+  }
 
   Backend::sync.completeAll(data.id);
   writeExectionChekpointNonCommandStream(VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_FRAME_END_SYNC);
+  popEventTracked();
 }
+
+// NOTE: this controls start time of submissions (right from fence on timeline)
+// next gpu job should start after prev gpu job last work item
+// track and put semaphores for all active queues on this frame to guarantie that, with exceptions
+// otherwise gpu jobs can overlap
+struct FrameEndQueueJoin
+{
+  static constexpr DeviceQueueType fencedQueue = DeviceQueueType::GRAPHICS;
+  eastl::bitset<(uint32_t)DeviceQueueType::COUNT> activeQueueList;
+  DeviceQueueType frameEndQueue = DeviceQueueType::GRAPHICS;
+  uint32_t frameJoinPoints = 0;
+  DeviceQueueType fenceWaitQueue = DeviceQueueType::INVALID;
+
+  void markActiveQueue(DeviceQueueType queue) { activeQueueList.set(static_cast<uint32_t>(queue)); }
+
+  void addSignals(ExecutionScratch::QueueSubmitItem &target, DeviceQueueType final_queue)
+  {
+    G_ASSERTF(final_queue == fencedQueue, "vulkan: final queue is assumed to be %u, got %u", (uint32_t)fencedQueue,
+      (uint32_t)final_queue);
+    G_ASSERTF(frameJoinPoints == 0, "vulkan: frame join points already populated, should not happen twice");
+    FrameInfo &frame = Backend::gpuJob.get();
+    frameJoinPoints = activeQueueList.count();
+    if (Globals::VK::phy.hasTimelineSemaphore)
+      frameEndQueue = final_queue;
+    else
+    {
+      for (uint32_t i = 0; i < frameJoinPoints; ++i)
+        target.signals.push_back(frame.allocSemaphore());
+    }
+    fenceWaitQueue = target.queue;
+  }
+
+  void addWaits(ExecutionScratch::QueueSubmitItem &target)
+  {
+    if (frameJoinPoints)
+    {
+      if (Globals::VK::phy.hasTimelineSemaphore)
+      {
+        for (uint32_t i : LsbVisitor{activeQueueList.to_uint32()})
+        {
+          DeviceQueueType itr = static_cast<DeviceQueueType>(i);
+          // allow transfer queue to be executed in parallel to old final submit
+          if (Globals::VK::queue.isOverlapToPrevGPUWorkAllowed(itr))
+          {
+            DeviceQueue::TimelineInfo tl = Globals::VK::queue[frameEndQueue].getPrevLastFencedTimeline();
+            if (tl.value > 0)
+              Globals::VK::queue[itr].waitTimeline(tl, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+          }
+          else if (Globals::VK::queue.isAsyncReadback(itr))
+          {
+            // specify wait to avoid overlapping submits inside queue itself
+            // because there is no waits for this queue from other queues by design
+            DeviceQueue::TimelineInfo tl = Globals::VK::queue[itr].getTimeline();
+            Globals::VK::queue[itr].waitTimeline(tl, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+          }
+          else
+          {
+            DeviceQueue::TimelineInfo tl = Globals::VK::queue[frameEndQueue].getTimeline();
+            Globals::VK::queue[itr].waitTimeline(tl, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+          }
+        }
+      }
+      else
+      {
+        // check for double wait or mismatch somewhere
+        G_ASSERTF(frameJoinPoints == target.signals.size(),
+          "vulkan: mismatched signals size %u vs %u, should be equal to added one in add signals", frameJoinPoints,
+          target.signals.size());
+        for (uint32_t i : LsbVisitor{activeQueueList.to_uint32()})
+        {
+          G_ASSERTF(!target.signals.empty(), "vulkan: frame queue join signaled more than it supposed to");
+          Globals::VK::queue[static_cast<DeviceQueueType>(i)].waitSemaphore(target.signals.back(), VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+          target.signals.pop_back();
+        }
+      }
+    }
+    // there can be work after fence, that is executed in overlap to next GPU work item
+    // so we should "consume" frame end waits after processing them
+    frameJoinPoints = 0;
+  }
+};
 
 void ExecutionContext::stackUpCommandBuffers()
 {
@@ -754,7 +1044,7 @@ void ExecutionContext::stackUpCommandBuffers()
       {
         submitIdx = scratch.submitGraph.size();
         lastSubmitsOnQueues[(uint32_t)i.queue] = submitIdx;
-        scratch.submitGraph.push_back({{}, {}, {}, 0, i.queue, (uint32_t)(&i - scratch.cmdListsToSubmit.begin()),
+        scratch.submitGraph.push_back({{}, {}, {}, {}, 0, i.queue, (uint32_t)(&i - scratch.cmdListsToSubmit.begin()),
           (uint32_t)(&i - scratch.cmdListsToSubmit.begin()), false});
       }
     }
@@ -773,14 +1063,21 @@ void ExecutionContext::stackUpCommandBuffers()
     }
   }
 
-  // last submit should happen with fence, due to overall restrictions of driver
-  // completed fence = completed anything for user perspective
-  scratch.submitGraph.back().fenceWait = true;
+  // last non overlapped to next gpu work submit, should be the one we put fence on
+  // we assume that it should be submit to predefined queue type, so search back to it
+  ExecutionScratch::QueueSubmitItem *lastGrSubmit = &scratch.submitGraph.back();
+  while (lastGrSubmit > scratch.submitGraph.data())
+    if (lastGrSubmit->queue != FrameEndQueueJoin::fencedQueue)
+      --lastGrSubmit;
+    else
+      break;
+  lastGrSubmit->fenceWait = true;
 
-  // fill signals buffer ahead of time
-  for (ExecutionScratch::QueueSubmitItem &i : scratch.submitGraph)
-    for (int j = 0; j < i.signalsCount; ++j)
-      i.signals.push_back(frame.allocSemaphore(Globals::VK::dev));
+  if (!Globals::VK::phy.hasTimelineSemaphore)
+    // fill signals buffer ahead of time
+    for (ExecutionScratch::QueueSubmitItem &i : scratch.submitGraph)
+      for (int j = 0; j < i.signalsCount; ++j)
+        i.signals.push_back(frame.allocSemaphore());
 }
 
 void ExecutionContext::sortAndCountDependencies()
@@ -795,46 +1092,6 @@ void ExecutionContext::sortAndCountDependencies()
     ++scratch.cmdListsToSubmit[i.to].waits;
   }
 }
-
-// next gpu job should start after prev gpu job last work item
-// track and put semaphores for all active queues on this frame to guarantie that
-// otherwise gpu jobs can overlap
-struct FrameEndQueueJoin
-{
-  eastl::bitset<(uint32_t)DeviceQueueType::COUNT> activeQueueList;
-  uint32_t frameJoinPoints = 0;
-  DeviceQueueType fenceWaitQueue = DeviceQueueType::INVALID;
-
-  void markActiveQueue(DeviceQueueType queue) { activeQueueList.set(static_cast<uint32_t>(queue)); }
-
-  void addSignals(ExecutionScratch::QueueSubmitItem &target)
-  {
-    G_ASSERTF(frameJoinPoints == 0, "vulkan: frame joint points already populated, should not happen twice");
-    FrameInfo &frame = Backend::gpuJob.get();
-    frameJoinPoints = activeQueueList.count();
-    for (uint32_t i = 0; i < frameJoinPoints; ++i)
-      target.signals.push_back(frame.allocSemaphore(Globals::VK::dev));
-    fenceWaitQueue = target.queue;
-  }
-
-  void addWaits(ExecutionScratch::QueueSubmitItem &target)
-  {
-    if (frameJoinPoints)
-    {
-      // check for double wait or mismatch somewhere
-      G_ASSERTF(frameJoinPoints == target.signals.size(),
-        "vulkan: mismatched signals size %u vs %u, should be equal to added one in add signals", frameJoinPoints,
-        target.signals.size());
-      for (uint32_t i : LsbVisitor{activeQueueList.to_uint32()})
-      {
-        G_ASSERTF(!target.signals.empty(), "vulkan: frame queue join signaled more than it supposed to");
-        Globals::VK::queue[static_cast<DeviceQueueType>(i)].addSubmitSemaphore(target.signals.back(),
-          VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
-        target.signals.pop_back();
-      }
-    }
-  }
-};
 
 void ExecutionContext::enqueueCommandListsToMultipleQueues(ThreadedFence *fence)
 {
@@ -862,9 +1119,9 @@ void ExecutionContext::enqueueCommandListsToMultipleQueues(ThreadedFence *fence)
     queueJoin.markActiveQueue(i.queue);
     if (fence && i.fenceWait)
     {
-      queueJoin.addSignals(i);
-      if (!is_null(presentSignal))
-        i.signals.push_back(presentSignal);
+      queueJoin.addSignals(i, i.queue);
+      if (!is_null(frameReadySemaphoreForPresent))
+        i.signals.push_back(frameReadySemaphoreForPresent);
     }
 
     DeviceQueue::TrimmedSubmitInfo si = {};
@@ -874,18 +1131,36 @@ void ExecutionContext::enqueueCommandListsToMultipleQueues(ThreadedFence *fence)
     si.signalSemaphoreCount = i.signals.size();
 
     // add submit semaphores from buffer because wait can happen after other submits on same queue
-    for (VulkanSemaphoreHandle j : i.submitSemaphores)
-      Globals::VK::queue[i.queue].addSubmitSemaphore(j, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+    for (VulkanSemaphoreHandle j : i.waitSemaphores)
+      Globals::VK::queue[i.queue].waitSemaphore(j, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+
+    for (DeviceQueue::TimelineInfo j : i.waitTimelines)
+      Globals::VK::queue[i.queue].waitTimeline(j, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
 
     if (fence && i.fenceWait)
     {
-      Globals::VK::queue[i.queue].submit(vkDev, frame, si, fence->get());
-      if (!is_null(presentSignal))
+      Globals::VK::queue[i.queue].submit(frame, si, fence->get());
+      if (!is_null(frameReadySemaphoreForPresent))
         i.signals.pop_back();
       fence->setAsSubmited();
     }
+    // we must fence wait a submit if noone waits for its completion on another fence (case with async readback)
+    // otherwise buffers are "never" completed
+    // there is no generic fence for that, so use special one,
+    // improve if there is more async queues with such logic!
+    else if (Globals::VK::queue.isAsyncReadback(i.queue) &&
+             i.cbs.back() == scratch.cmdListsToSubmit[lastBufferIdxOnQueue[(size_t)i.queue]].handle)
+    {
+      frame.readbackDone->reset();
+      Globals::VK::queue[i.queue].submit(frame, si, frame.readbackDone->get());
+      frame.readbackDone->setAsSubmited();
+    }
     else
-      Globals::VK::queue[i.queue].submit(vkDev, frame, si);
+      Globals::VK::queue[i.queue].submit(frame, si);
+
+    DeviceQueue::TimelineInfo timeline;
+    if (Globals::VK::phy.hasTimelineSemaphore)
+      timeline = Globals::VK::queue[i.queue].getTimeline();
 
     ExecutionScratch::CommandBufferSubmitDeps *depRangeRestart = nullptr;
     // add submit semaphores for related dst deps, using dynamic loop ranges
@@ -907,9 +1182,16 @@ void ExecutionContext::enqueueCommandListsToMultipleQueues(ThreadedFence *fence)
           ++k;
           continue;
         }
-        k->submitSemaphores.push_back(i.signals.back());
-        i.signals.pop_back();
-        if (i.signals.empty())
+        if (Globals::VK::phy.hasTimelineSemaphore)
+          // probably need deduplication, but right now no wait for same queue is possible
+          k->waitTimelines.push_back(timeline);
+        else
+        {
+          k->waitSemaphores.push_back(i.signals.back());
+          i.signals.pop_back();
+        }
+        --i.signalsCount;
+        if (!i.signalsCount)
           break;
         ++k;
       }
@@ -943,16 +1225,21 @@ void ExecutionContext::addQueueDep(uint32_t src_submit, uint32_t dst_submit)
 
 void ExecutionContext::joinQueuesToSubmitFence()
 {
-  // all buffers that we used on gpu job, must be completed after fence wait
+  // NOTE: this controls completion time of submissions (left from fence on timeline)
+  // all buffers that we used on gpu job, must be completed after fence wait, except ones that allowed to overlap
   // to make sure of this
   // add dependency for each final command buffer on every unique queue where we never "joined" workloads
-  for (uint32_t i : lastBufferIdxOnQueue)
+  size_t fencedBuffer = lastBufferIdxOnQueue[(size_t)FrameEndQueueJoin::fencedQueue];
+  for (size_t &i : lastBufferIdxOnQueue)
   {
     // queue was fully inactive
     if (!i)
       continue;
+    // queue does not need to complete at this work "global" fence when overlap is allowed
+    if (Globals::VK::queue.isAsyncReadback(static_cast<DeviceQueueType>(&i - lastBufferIdxOnQueue)))
+      continue;
     // last queues buffer is one we will wait with fence
-    if (i == (scratch.cmdListsToSubmit.size() - 1))
+    if (i == fencedBuffer)
       continue;
     // last buffer signals semaphore that is waited for someone
     bool signaling = false;
@@ -960,7 +1247,7 @@ void ExecutionContext::joinQueuesToSubmitFence()
       signaling |= j.from == i;
     if (signaling)
       continue;
-    addQueueDep(i, scratch.cmdListsToSubmit.size() - 1);
+    addQueueDep(i, fencedBuffer);
   }
 }
 
@@ -972,22 +1259,19 @@ void ExecutionContext::flush(ThreadedFence *fence)
 
   Backend::immediateConstBuffers.flush();
 
-  if (scratch.imageResidenceRestores.size())
+  flushPostFrameCommands();
+
+  if (scratch.imageResidenceRestores.size() || scratch.bufferResidenceRestores.size())
   {
     scratch.cmdListsToSubmit[0].queue = DeviceQueueType::GRAPHICS;
     scratch.cmdListsToSubmit[0].handle = allocAndBeginCommandBuffer(scratch.cmdListsToSubmit[0].queue);
     Backend::cb.set(scratch.cmdListsToSubmit[0].handle);
 
-    restoreImageResidencies();
+    restoreResourcesResidency();
     writeExectionChekpointNonCommandStream(VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_IMAGE_RESIDENCY_RESTORE);
     Backend::cb.set(frameCore);
   }
 
-  // transfer queue is very limited, not fitting for all post frame commands
-  // splitting it into different submits is also non effective
-  // so live on graphics, but with "split" for possible end frame overlapping
-  switchFrameCore(DeviceQueueType::GRAPHICS);
-  flushPostFrameCommands();
   // no more command buffers after this point! so push last active one in list to submit
   scratch.cmdListsToSubmit.push_back({frameCoreQueue, frameCore});
 
@@ -1003,7 +1287,6 @@ void ExecutionContext::flush(ThreadedFence *fence)
   enqueueCommandListsToMultipleQueues(fence);
 
   onFrameCoreReset();
-  Backend::gpuJob.get().pendingTimestamps = data.timestampQueryBlock;
   Backend::gpuJob.get().replayId = data.id;
 
   Backend::pipelineCompiler.processQueued();
@@ -1034,7 +1317,7 @@ void ExecutionContext::insertEvent(const char *marker, uint32_t color /*=0xFFFFF
 #endif
 
 #if VK_EXT_debug_utils
-  if (vkDev.getInstance().hasExtension<DebugUtilsEXT>())
+  if (Globals::VK::inst.hasExtension<DebugUtilsEXT>())
   {
     VkDebugUtilsLabelEXT info = {VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT};
     info.pLabelName = marker;
@@ -1067,8 +1350,7 @@ void ExecutionContext::pushEventRaw(const char *marker, uint32_t color)
   }
 #endif
 #if VK_EXT_debug_utils
-  auto &instance = vkDev.getInstance();
-  if (instance.hasExtension<DebugUtilsEXT>())
+  if (Globals::VK::inst.hasExtension<DebugUtilsEXT>())
   {
     VkDebugUtilsLabelEXT info{VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT};
     info.pNext = nullptr;
@@ -1093,8 +1375,7 @@ void ExecutionContext::popEventRaw()
   }
 #endif
 #if VK_EXT_debug_utils
-  auto &instance = vkDev.getInstance();
-  if (instance.hasExtension<DebugUtilsEXT>())
+  if (Globals::VK::inst.hasExtension<DebugUtilsEXT>())
   {
     VULKAN_LOG_CALL(Backend::cb.wCmdEndDebugUtilsLabelEXT());
   }
@@ -1157,9 +1438,9 @@ void ExecutionContext::endQuery(VulkanQueryPoolHandle pool, uint32_t index)
   VULKAN_LOG_CALL(Backend::cb.wCmdEndQuery(pool, index));
 }
 
-void ExecutionContext::wait(ThreadedFence *fence) { fence->wait(vkDev); }
+void ExecutionContext::wait(ThreadedFence *fence) { fence->wait(); }
 
-#if D3D_HAS_RAY_TRACING
+#if VULKAN_HAS_RAYTRACING
 
 #if VK_KHR_ray_tracing_pipeline || VK_KHR_ray_query
 
@@ -1283,6 +1564,7 @@ void ExecutionContext::buildAccelerationStructure(const RaytraceStructureBuildDa
         {VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR, VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR}, build_data.dst);
 
       constexpr VkDeviceSize querySize = sizeof(uint64_t);
+      verifyResident(build_data.blas.compactionSizeBuffer.buffer);
       Backend::sync.addBufferAccess({VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT},
         build_data.blas.compactionSizeBuffer.buffer, {build_data.blas.compactionSizeBuffer.bufOffset(0), querySize});
     }
@@ -1297,6 +1579,9 @@ void ExecutionContext::queryAccelerationStructureCompationSizes(const RaytraceSt
   if (!compactSizeBuf)
     return;
 
+  // checked in previous build step
+  //  verifyResident(compactSizeBuf.buffer);
+
   VkAccelerationStructureKHR dstAc = build_data.dst->getHandle();
 
   // do blocking-like size query for now, if not efficient - redo with per frame query pool copy
@@ -1306,10 +1591,14 @@ void ExecutionContext::queryAccelerationStructureCompationSizes(const RaytraceSt
     VK_QUERY_TYPE_ACCELERATION_STRUCTURE_COMPACTED_SIZE_KHR, Globals::rtSizeQueryPool.getPool(), 0));
   VULKAN_LOG_CALL(Backend::cb.wCmdCopyQueryPoolResults(Globals::rtSizeQueryPool.getPool(), 0, 1, compactSizeBuf.getHandle(),
     compactSizeBuf.bufOffset(0), querySize, VK_QUERY_RESULT_WAIT_BIT | VK_QUERY_RESULT_64_BIT));
+
+  Backend::sync.addBufferAccess({VK_PIPELINE_STAGE_HOST_BIT, VK_ACCESS_HOST_READ_BIT}, compactSizeBuf.buffer,
+    {compactSizeBuf.bufOffset(0), querySize});
 }
 
 void ExecutionContext::buildAccelerationStructures(RaytraceStructureBuildData *build_data, uint32_t count)
 {
+  DA_PROFILE_TAG(count, "%u", count);
   auto dataRange = make_span(build_data, count);
   for (RaytraceStructureBuildData &itr : dataRange)
     accumulateRaytraceBuildAccesses(itr);
@@ -1319,6 +1608,7 @@ void ExecutionContext::buildAccelerationStructures(RaytraceStructureBuildData *b
   Backend::sync.completeNeeded();
   for (RaytraceStructureBuildData &itr : dataRange)
     queryAccelerationStructureCompationSizes(itr);
+  Backend::sync.completeNeeded();
   for (RaytraceStructureBuildData &itr : dataRange)
     accumulateAssumedRaytraceStructureReads(itr);
 }
@@ -1369,6 +1659,8 @@ void ExecutionContext::reportMissingPipelineComponent(const char *component)
 void ExecutionContext::flushAndWait(ThreadedFence *user_fence)
 {
   FrameInfo &frame = Backend::gpuJob.get();
+  // avoid slowdown when we can't treat 2 screen updates as proper frame
+  Backend::latencyWaiter.reset();
   flush(frame.frameDone);
   Backend::gpuJob.end();
   while (Globals::timelines.get<TimelineManager::GpuExecute>().advance())
@@ -1403,20 +1695,119 @@ void ExecutionContext::doFrameEndCallbacks()
     if (ref_time_delta_to_usec(currentTimeRef - Backend::timings.lastMemoryStatTime) > Globals::cfg.memoryStatisticsPeriodUs)
     {
       printMemoryStatistics();
+      printAllocationCallbacksStatistics();
       Backend::timings.lastMemoryStatTime = currentTimeRef;
     }
   }
 }
 
-void ExecutionContext::present()
+bool ExecutionContext::acquireSwapchainImage(const CmdPresent &params, uint32_t &out_index, VulkanSemaphoreHandle &out_sem)
+{
+  TIME_PROFILE(vulkan_swapchain_backend_acquire);
+  FrameInfo &frame = Backend::gpuJob.get();
+  out_index = ~0;
+  out_sem = frame.allocSemaphore();
+
+  volatile uint32_t prevImageIdx;
+  {
+    WinAutoLock lock(*params.mutex);
+    *params.backendAcquireResult = Globals::VK::dev.vkAcquireNextImageKHR(Globals::VK::dev.get(), params.swapchain,
+      params.imageIndex == ~0 ? UINT64_MAX : 0, out_sem, VulkanFenceHandle{}, &out_index);
+    prevImageIdx = interlocked_exchange(*params.backendAcquireImageIndex, out_index + 1);
+  }
+  if (prevImageIdx != ~0)
+    G_ASSERTF(params.imageIndex == ~0, "vulkan: backend swapchain image acquire desync! acquired image was not consumed");
+  // nothing was acquired, put semaphore back to frame
+  if (out_index == ~0)
+  {
+    frame.recycleSemaphore(out_sem);
+    out_sem = VulkanSemaphoreHandle{};
+    return false;
+  }
+  return true;
+}
+
+void ExecutionContext::makeImageReadyForPresent(Image *img)
+{
+  if (!img)
+    return;
+
+  // present barrier is very special, as vkQueuePresent does all visibility ops
+  // ref: vkQueuePresentKHR spec notes, quote
+  //
+  //  When transitioning the image to VK_IMAGE_LAYOUT_SHARED_PRESENT_KHR or VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+  //  there is no need to delay subsequent processing, or perform any visibility operations
+  //  (as vkQueuePresentKHR performs automatic visibility operations).
+  //  To achieve this, the dstAccessMask member of the VkImageMemoryBarrier should be set to 0,
+  //  and the dstStageMask parameter should be set to VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT.
+  //
+  Backend::sync.addImageAccess({VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT}, img,
+    VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, {0, 1, 0, 1});
+  Backend::sync.completeNeeded();
+}
+
+void ExecutionContext::baseMipBlit(Image *from, Image *to)
+{
+  Backend::sync.addImageAccess({VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT}, from,
+    VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, {0, 1, 0, 1});
+  Backend::sync.addImageWriteDiscard({VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT}, to,
+    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, {0, 1, 0, 1});
+  Backend::sync.completeNeeded();
+
+  VkImageBlit blit;
+  blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  blit.srcSubresource.mipLevel = 0;
+  blit.srcSubresource.baseArrayLayer = 0;
+  blit.srcSubresource.layerCount = 1;
+  blit.srcOffsets[0].x = 0;
+  blit.srcOffsets[0].y = 0;
+  blit.srcOffsets[0].z = 0;
+  const auto &srcExtent = from->getBaseExtent();
+  blit.srcOffsets[1].x = srcExtent.width;
+  blit.srcOffsets[1].y = srcExtent.height;
+  blit.srcOffsets[1].z = 1;
+  blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  blit.dstSubresource.mipLevel = 0;
+  blit.dstSubresource.baseArrayLayer = 0;
+  blit.dstSubresource.layerCount = 1;
+  blit.dstOffsets[0].x = 0;
+  blit.dstOffsets[0].y = 0;
+  blit.dstOffsets[0].z = 0;
+  const auto &dstExtent = to->getBaseExtent();
+  blit.dstOffsets[1].x = dstExtent.width;
+  blit.dstOffsets[1].y = dstExtent.height;
+  blit.dstOffsets[1].z = 1;
+  VULKAN_LOG_CALL(Backend::cb.wCmdBlitImage(from->getHandle(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, to->getHandle(),
+    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit, VK_FILTER_LINEAR));
+}
+
+void ExecutionContext::present(const CmdPresent &params)
 {
   FrameInfo &frame = Backend::gpuJob.get();
+  uint32_t acquiredImgIndex{};
 
   beginCustomStage("present");
 
-  swapchain.prePresent();
+  bool fullBackendAcquire = params.imageIndex == ~0 && !is_null(params.swapchain);
+  Image *targetSwapchainImage = params.img;
+  if (fullBackendAcquire)
+  {
+    VulkanSemaphoreHandle acquireSem;
+    if (acquireSwapchainImage(params, acquiredImgIndex, acquireSem))
+    {
+      targetSwapchainImage = params.images[acquiredImgIndex].img;
+      Globals::VK::queue[DeviceQueueType::GRAPHICS].waitSemaphore(acquireSem, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+      baseMipBlit(params.img, targetSwapchainImage);
+      frameReadySemaphoreForPresent = params.images[acquiredImgIndex].frame;
+    }
+    else
+      targetSwapchainImage = nullptr;
+  }
+  else
+    frameReadySemaphoreForPresent = params.frameSem;
+  makeImageReadyForPresent(targetSwapchainImage);
+
   writeExectionChekpointNonCommandStream(VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_PRE_PRESENT);
-  presentSignal = frame.allocSemaphore(Globals::VK::dev);
   flush(frame.frameDone);
 
   int64_t frameCallbacksDurationTicks = 0;
@@ -1425,19 +1816,44 @@ void ExecutionContext::present()
     doFrameEndCallbacks();
   }
 
+  VulkanSemaphoreHandle backendAcquireSemaphore{};
+  if (targetSwapchainImage)
   {
+    TIME_PROFILE(vulkan_swapchain_present);
     ScopedTimerTicks watch(Backend::timings.presentWaitDuration);
-    swapchain.present(presentSignal);
-    presentSignal = VulkanNullHandle();
+    DeviceQueue::TrimmedPresentInfo pi;
+    pi.swapchainCount = 1;
+    pi.pSwapchains = ptr(params.swapchain);
+    pi.frameReady = frameReadySemaphoreForPresent;
+    pi.pImageIndices = fullBackendAcquire ? &acquiredImgIndex : &params.imageIndex;
+
+    // we ignore result of present operation here
+    // - device lost will be handled at submit,
+    //   and in some cases it may give device lost when it is not pure device lost (fail wihout guarantie on sync)
+    // - suboptimals/outdated/etc will be handled at acquire
+    if (fullBackendAcquire)
+    {
+      Globals::VK::queue[DeviceQueueType::GRAPHICS].present(pi);
+    }
+    else
+    {
+      WinAutoLock lock(*params.mutex);
+      // next frame acquire not happened before we took lock for present
+      // do acquire here to avoid waiting for variable timed present call
+      if (params.currentAcquireId && params.submitAcquireId == *params.currentAcquireId)
+        acquireSwapchainImage(params, acquiredImgIndex, backendAcquireSemaphore);
+      Globals::VK::queue[DeviceQueueType::GRAPHICS].present(pi);
+    }
   }
+  frameReadySemaphoreForPresent = VulkanSemaphoreHandle{};
 
   Globals::timelines.get<TimelineManager::GpuExecute>().advance();
   Backend::gpuJob.restart();
 
-  {
-    ScopedTimerTicks watch(Backend::timings.acquireBackBufferDuration);
-    swapchain.onFrameBegin(*this);
-  }
+  // if we acquired for frontend instead of moving semaphore to frontend, wait it right away
+  // queue selection is a bit opportunistic here, beware!
+  if (!is_null(backendAcquireSemaphore))
+    Globals::VK::queue[DeviceQueueType::GRAPHICS].waitSemaphore(backendAcquireSemaphore, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
 
   if (data.generateFaultReport)
     generateFaultReport();
@@ -1466,7 +1882,7 @@ void ExecutionContext::applyQueuedDiscards()
       if (wasReplaced)
         Backend::State::pendingCleanups.getArray<Buffer *>().push_back(i.oldBuf.buffer);
       else
-        Backend::gpuJob.get().cleanups.enqueueFromBackend<Buffer::CLEANUP_DESTROY>(*i.oldBuf.buffer);
+        Backend::gpuJob.get().cleanups.enqueue(*i.oldBuf.buffer);
     }
   }
   scratch.delayedDiscards.clear();
@@ -1633,7 +2049,7 @@ void ExecutionContext::copyImage(Image *src, Image *dst, uint32_t src_mip, uint3
   // we can't know is it readed or not, so assume readed
   if (dst->isUsedInBindless())
   {
-    trackBindlessRead(dst);
+    trackBindlessRead(dst, {dst_mip, mip_count, 0, dst->getArrayLayers()});
     Backend::sync.completeNeeded();
   }
 }
@@ -1657,6 +2073,9 @@ void ExecutionContext::copyQueryResult(VulkanQueryPoolHandle pool, uint32_t inde
   Backend::sync.completeNeeded();
 
   VULKAN_LOG_CALL(Backend::cb.wCmdCopyQueryPoolResults(pool, index, count, dst->getHandle(), ofs, sz, VK_QUERY_RESULT_WAIT_BIT));
+
+  Backend::sync.addBufferAccess({VK_PIPELINE_STAGE_HOST_BIT, VK_ACCESS_HOST_READ_BIT}, dst, {ofs, sz});
+  Backend::sync.completeNeeded();
 }
 
 void ExecutionContext::bindVertexUserData(const BufferRef &ref)
@@ -1828,7 +2247,7 @@ void ExecutionContext::trackTResAccesses(uint32_t slot, PipelineStageStateBase &
       Backend::sync.addBufferAccess(LogicAddress::forBufferOnExecStage(stage, RegisterType::T), reg.buf.buffer,
         {reg.buf.bufOffset(0), reg.buf.visibleDataSize});
       break;
-#if D3D_HAS_RAY_TRACING
+#if VULKAN_HAS_RAYTRACING
     case TRegister::TYPE_AS:
       Backend::sync.addAccelerationStructureAccess(LogicAddress::forAccelerationStructureOnExecStage(stage, RegisterType::T),
         reg.rtas);
@@ -1895,15 +2314,13 @@ void ExecutionContext::trackIndirectArgAccesses(BufferRef buffer, uint32_t offse
     {buffer.bufOffset(offset), stride * count});
 }
 
-void ExecutionContext::trackBindlessRead(Image *img)
+void ExecutionContext::trackBindlessRead(Image *img, ImageArea area)
 {
   VkImageLayout srvLayout = img->getUsage() & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT
                               ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL
                               : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-  verifyResident(img);
-  Backend::sync.addImageAccess(LogicAddress::forImageBindlessRead(), img, srvLayout,
-    {0, img->getMipLevels(), 0, img->getArrayLayers()});
+  Backend::sync.addImageAccess(LogicAddress::forImageBindlessRead(), img, srvLayout, area);
 }
 
 void ExecutionContext::executeFSR(amd::FSR *fsr, const FSRUpscalingArgs &params)
@@ -1953,6 +2370,188 @@ void ExecutionContext::executeFSR(amd::FSR *fsr, const FSRUpscalingArgs &params)
   fsr->doApplyUpscaling(args, frameCore);
 }
 
+void ExecutionContext::executeDLSS(const nv::DlssParams<Image> &params)
+{
+  G_UNUSED(params);
+
+#if !USE_STREAMLINE_FOR_DLSS
+  auto prepareImage = [&](Image *src, bool out = false) {
+    if (src)
+    {
+      verifyResident(src);
+      Backend::sync.addImageAccess(LogicAddress::forImageOnExecStage(ExtendedShaderStage::CS, out ? RegisterType::U : RegisterType::T),
+        src, out ? VK_IMAGE_LAYOUT_GENERAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, {0, 1, 0, 1});
+    }
+  };
+
+  auto toTuple = [&](Image *src, bool out = false) -> eastl::tuple<VkImage, VkImageCreateInfo, VkImageView> {
+    if (!src)
+      return eastl::make_tuple(VkImage(0), VkImageCreateInfo{}, VkImageView(0));
+
+    ImageViewState ivs;
+    ivs.setMipBase(0);
+    ivs.setMipCount(1);
+    ivs.setArrayBase(0);
+    ivs.setArrayCount(1);
+    ivs.isArray = 0;
+    ivs.isCubemap = 0;
+    ivs.isUAV = out ? 1 : 0;
+    ivs.setFormat(src->getFormat());
+    auto ici = src->getDescription().ici.toVk();
+    ici.format = src->getDescription().format.asVkFormat();
+    return eastl::make_tuple(src->getHandle(), ici, src->getImageView(ivs));
+  };
+
+  prepareImage(params.inColor);
+  prepareImage(params.inDepth);
+  prepareImage(params.inMotionVectors);
+  prepareImage(params.inExposure);
+  prepareImage(params.inAlbedo);
+  prepareImage(params.inSpecularAlbedo);
+  prepareImage(params.inNormalRoughness);
+  prepareImage(params.inHitDist);
+  prepareImage(params.outColor, true);
+
+  auto tColor = toTuple(params.inColor);
+  auto tDepth = toTuple(params.inDepth);
+  auto tMotionVectors = toTuple(params.inMotionVectors);
+  auto tExposure = toTuple(params.inExposure);
+  auto tAlbedo = toTuple(params.inAlbedo);
+  auto tSpecularAlbedo = toTuple(params.inSpecularAlbedo);
+  auto tNormalRoughness = toTuple(params.inNormalRoughness);
+  auto tHitDist = toTuple(params.inHitDist);
+  auto tOutColor = toTuple(params.outColor, true);
+
+  auto args = nv::convertDlssParams(params, [](Image *src) -> void * { return src; });
+  args.inColor = &tColor;
+  args.inDepth = &tDepth;
+  args.inMotionVectors = &tMotionVectors;
+  args.inExposure = &tExposure;
+  args.inAlbedo = &tAlbedo;
+  args.inSpecularAlbedo = &tSpecularAlbedo;
+  args.inNormalRoughness = &tNormalRoughness;
+  args.inHitDist = &tHitDist;
+  args.outColor = &tOutColor;
+
+  Backend::sync.completeNeeded();
+
+  Globals::dlss.evaluate((nv::DlssParams<void> &)args, frameCore);
+
+  // DLSS modifies state in command buffer, so we must setup it back,
+  // same way as if command buffer was interrupted
+  onFrameCoreReset();
+#endif
+}
+
+void ExecutionContext::initializeDLSS(int mode, int width, int height)
+{
+  G_UNUSED(mode);
+  G_UNUSED(width);
+  G_UNUSED(height);
+
+#if !USE_STREAMLINE_FOR_DLSS
+  Globals::dlss.setOptionsBackend(frameCore, nv::DLSS::Mode(mode), IPoint2(width, height));
+#endif
+}
+
+void ExecutionContext::initializeStreamlineDlss(int width, int height)
+{
+  G_UNUSED(width);
+  G_UNUSED(height);
+
+#if USE_STREAMLINE_FOR_DLSS
+  if (Globals::VK::loader.streamlineAdapter->isDlssSupported() == nv::SupportState::Supported)
+    Globals::VK::loader.streamlineAdapter->createDlssFeature(0, {width, height}, frameCore);
+
+  if (Globals::VK::loader.streamlineAdapter->isDlssGSupported() == nv::SupportState::Supported)
+    Globals::VK::loader.streamlineAdapter->createDlssGFeature(0, frameCore);
+#endif
+}
+
+void ExecutionContext::executeStreamlineDlss(const nv::DlssParams<Image> &params, int view_index)
+{
+  G_UNUSED(params);
+  G_UNUSED(view_index);
+
+#if USE_STREAMLINE_FOR_DLSS
+  auto prepareImage = [&](Image *src, bool out = false) {
+    if (src)
+    {
+      verifyResident(src);
+      Backend::sync.addImageAccess(LogicAddress::forImageOnExecStage(ExtendedShaderStage::CS, out ? RegisterType::U : RegisterType::T),
+        src, out ? VK_IMAGE_LAYOUT_GENERAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, {0, 1, 0, 1});
+    }
+  };
+
+  auto toTuple = [&](Image *src, bool out = false) -> eastl::tuple<VkImage, VkImageCreateInfo, VkImageView> {
+    if (!src)
+      return eastl::make_tuple(VkImage(0), VkImageCreateInfo{}, VkImageView(0));
+
+    ImageViewState ivs;
+    ivs.setMipBase(0);
+    ivs.setMipCount(1);
+    ivs.setArrayBase(0);
+    ivs.setArrayCount(1);
+    ivs.isArray = 0;
+    ivs.isCubemap = 0;
+    ivs.isUAV = out ? 1 : 0;
+    ivs.setFormat(src->getFormat());
+    auto ici = src->getDescription().ici.toVk();
+    ici.format = src->getDescription().format.asVkFormat();
+    return eastl::make_tuple(src->getHandle(), ici, src->getImageView(ivs));
+  };
+
+  prepareImage(params.inColor);
+  prepareImage(params.inDepth);
+  prepareImage(params.inMotionVectors);
+  prepareImage(params.inExposure);
+  prepareImage(params.inAlbedo);
+  prepareImage(params.inSpecularAlbedo);
+  prepareImage(params.inNormalRoughness);
+  prepareImage(params.inHitDist);
+  prepareImage(params.outColor, true);
+
+  auto tColor = toTuple(params.inColor);
+  auto tDepth = toTuple(params.inDepth);
+  auto tMotionVectors = toTuple(params.inMotionVectors);
+  auto tExposure = toTuple(params.inExposure);
+  auto tAlbedo = toTuple(params.inAlbedo);
+  auto tSpecularAlbedo = toTuple(params.inSpecularAlbedo);
+  auto tNormalRoughness = toTuple(params.inNormalRoughness);
+  auto tHitDist = toTuple(params.inHitDist);
+  auto tOutColor = toTuple(params.outColor, true);
+
+  auto args = nv::convertDlssParams(params, [](Image *src) -> void * { return src; });
+  args.inColor = &tColor;
+  args.inColorState = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+  args.inDepth = &tDepth;
+  args.inDepthState = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+  args.inMotionVectors = &tMotionVectors;
+  args.inMotionVectorsState = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+  args.inExposure = &tExposure;
+  args.inExposureState = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+  args.inAlbedo = &tAlbedo;
+  args.inAlbedoState = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+  args.inSpecularAlbedo = &tSpecularAlbedo;
+  args.inSpecularAlbedoState = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+  args.inNormalRoughness = &tNormalRoughness;
+  args.inNormalRoughnessState = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+  args.inHitDist = &tHitDist;
+  args.inHitDistState = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+  args.outColor = &tOutColor;
+  args.outColorState = VK_IMAGE_LAYOUT_GENERAL;
+
+  Backend::sync.completeNeeded();
+
+  Globals::VK::loader.streamlineAdapter->getDlssFeature(view_index)->evaluate(args, frameCore);
+
+  // DLSS modifies state in command buffer, so we must setup it back,
+  // same way as if command buffer was interrupted
+  onFrameCoreReset();
+#endif
+}
+
+
 template <typename ResType>
 void ExecutionContext::verifyResident(ResType *obj)
 {
@@ -1970,6 +2569,7 @@ void ExecutionContext::verifyResident(ResType *obj)
 }
 
 template void ExecutionContext::verifyResident<Image>(Image *);
+template void ExecutionContext::verifyResident<Buffer>(Buffer *);
 
 void ExecutionContext::finishAllGPUWorkItems()
 {
@@ -1978,3 +2578,4 @@ void ExecutionContext::finishAllGPUWorkItems()
 }
 
 void ExecutionContext::queueImageResidencyRestore(Image *img) { scratch.imageResidenceRestores.push_back(img); }
+void ExecutionContext::queueBufferResidencyRestore(Buffer *buf) { scratch.bufferResidenceRestores.push_back(buf); }

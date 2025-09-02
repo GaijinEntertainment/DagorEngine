@@ -24,6 +24,7 @@ UseProgLibs +=
 ;
 
 SourceES =
+  animCharFastPhysDebug.cpp.inl
   particlePhysSys.cpp
   animPhysES.cpp.inl
   animCharFastPhysES.cpp.inl

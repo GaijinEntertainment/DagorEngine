@@ -1,5 +1,5 @@
+from "math" import abs
 from "%darg/ui_imports.nut" import *
-let { abs } = require("math")
 let { mkLensFlareCutRadiusLeft } = require("lens_flare.nut")
 let textInput = require("samples_prog/_basic/components/textInput.nut")
 
@@ -10,16 +10,16 @@ let cutRadius = mkWatched(persist, "cutRadius", 75)
 let cutWidth = mkWatched(persist, "cutWidth", 12)
 let cutOffset = mkWatched(persist, "cutOffset", 15)
 
-let lensImage = Computed(@() mkLensFlareCutRadiusLeft(radius.value, outherWidth.value,
-  innerWidth.value, cutRadius.value, cutWidth.value, cutOffset.value))
+let lensImage = Computed(@() mkLensFlareCutRadiusLeft(radius.get(), outherWidth.get(),
+  innerWidth.get(), cutRadius.get(), cutWidth.get(), cutOffset.get()))
 
 let optionsCfg = [
   { watch = radius, text = "radius" }
   { watch = outherWidth, text = "outherWidth" }
   { watch = innerWidth, text = "innerWidth" }
-  { watch = cutRadius, text = "cutRadius (can be negative)", hasNegative = true }
+  { watch = cutRadius, text = "cutRadius.set(can be negative)", hasNegative = true }
   { watch = cutWidth, text = "cutWidth" }
-  { watch = cutOffset, text = "cutOffset  (can be negative)", hasNegative = true }
+  { watch = cutOffset, text = "cutOffset.set(can be negative)", hasNegative = true }
 ]
 
 let exampleWidth = hdpx(100)
@@ -59,13 +59,13 @@ let withText = @(text, component, size = SIZE_TO_CONTENT, textOvr = {}) {
   ]
 }
 
-let lensImageWidth = Computed(@() radius.value + outherWidth.value + 1)
+let lensImageWidth = Computed(@() radius.get() + outherWidth.get() + 1)
 let pxLens = @() {
   watch = [lensImageWidth, lensImage]
-  size = [lensImageWidth.value, lensImageWidth.value * 2]
+  size = [lensImageWidth.get(), lensImageWidth.get() * 2]
   rendObj = ROBJ_IMAGE
   color = 0xFFFFFFFF
-  image = lensImage.value
+  image = lensImage.get()
 }
 
 let bigLens = @() {
@@ -73,7 +73,7 @@ let bigLens = @() {
   size = flex()
   rendObj = ROBJ_IMAGE
   color = 0xFFFFFFFF
-  image = lensImage.value
+  image = lensImage.get()
   keepAspect = true
   imageHalign = ALIGN_CENTER
   imageValign = ALIGN_CENTER
@@ -83,13 +83,13 @@ function sqBtn(text, onClick) {
   let stateFlags = Watched(0)
   return @() {
     watch = stateFlags
-    size = [ph(100), ph(100)]
+    size = ph(100)
     rendObj = ROBJ_BOX
-    fillColor = stateFlags.value & S_HOVER ? 0xFF404060 : 0xFF404040
-    borderColor = stateFlags.value & S_ACTIVE ? 0xFFFFFFFF : 0xFFA0A0A0
+    fillColor = stateFlags.get() & S_HOVER ? 0xFF404060 : 0xFF404040
+    borderColor = stateFlags.get() & S_ACTIVE ? 0xFFFFFFFF : 0xFFA0A0A0
     borderWidth = hdpx(1)
     behavior = Behaviors.Button
-    onElemState = @(sf) stateFlags(sf)
+    onElemState = @(sf) stateFlags.set(sf)
     onClick
     halign = ALIGN_CENTER
     valign = ALIGN_CENTER
@@ -98,9 +98,9 @@ function sqBtn(text, onClick) {
 }
 
 function mkControl(watch, hasNegative) {
-  let setValue = @(v) watch(hasNegative ? v : abs(v))
+  let setValue = @(v) watch.set(hasNegative ? v : abs(v))
   return {
-    size = [flex(), SIZE_TO_CONTENT]
+    size = FLEX_H
     flow = FLOW_HORIZONTAL
     gap = hdpx(5)
     children = [
@@ -109,20 +109,20 @@ function mkControl(watch, hasNegative) {
         charMask = "-0123456789"
         setValue = @(v) v == "" ? null :  setValue(v.tointeger())
       })
-      sqBtn("-", @() setValue(watch.value - 1))
-      sqBtn("+", @() setValue(watch.value + 1))
+      sqBtn("-", @() setValue(watch.get() - 1))
+      sqBtn("+", @() setValue(watch.get() + 1))
     ]
   }
 }
 
 let textStyle = { hplace = ALIGN_LEFT, color = 0xFFA0A0A0 }
 let options = {
-  size = [hdpx(250), flex()]
+  size = static [hdpx(250), flex()]
   flow = FLOW_VERTICAL
   gap = hdpx(20)
   children = optionsCfg.map(function(o) {
     let { watch, text, hasNegative = false } = o
-    return withText(text, mkControl(watch, hasNegative), [flex(), SIZE_TO_CONTENT], textStyle)
+    return withText(text, mkControl(watch, hasNegative), FLEX_H, textStyle)
   })
 }
 

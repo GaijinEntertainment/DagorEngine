@@ -110,9 +110,9 @@ rule ProcessCompileTarget
       _CONFIG_OPT = /GF /Gy /Gw /Oi /Ot /Oy- -DDAGOR_DBGLEVEL=1 ;           # /Ob0 - internal compiler error workaround.
       if $(CheckOnly) = yes { _CONFIG_OPT += /Od ; } else { _CONFIG_OPT += /Ox ; }
     case rel :
-      _CONFIG_OPT = /Ox /GF /Gy /Gw /Oi /Ot /Oy- -DDAGOR_DBGLEVEL=0 -DNDEBUG=1 -D_SECURE_SCL=0 ;
+      _CONFIG_OPT = /Ox /GF /Gy /Gw /Oi /Ot /Oy- -DDAGOR_DBGLEVEL=0 -DNDEBUG -D_SECURE_SCL=0 ;
     case irel :
-      _CONFIG_OPT = /Ox /GF /Gy /Gw /Oi /Ot /Oy- -DDAGOR_DBGLEVEL=-1 -DNDEBUG=1 -D_SECURE_SCL=0 ;
+      _CONFIG_OPT = /Ox /GF /Gy /Gw /Oi /Ot /Oy- -DDAGOR_DBGLEVEL=-1 -DNDEBUG -D_SECURE_SCL=0 ;
     case dbg :
       _CONFIG_OPT = /Od /RTC1 -DDAGOR_DBGLEVEL=2 ;
     case * :
@@ -124,7 +124,7 @@ rule ProcessCompileTarget
   }
   if $(BuildDagorEngineIndependentCode) = yes {
     _CONFIG_OPT = $(_GlobCopt_Optimize) ;
-    if $(Config) in rel irel { _CONFIG_OPT += -DNDEBUG=1 -D_SECURE_SCL=0 ; }
+    if $(Config) in rel irel { _CONFIG_OPT += -DNDEBUG -D_SECURE_SCL=0 ; }
   }
 
   if $(BuildDagorEngineIndependentCode) != yes && $(CheckOnly) != yes { _CONFIG_OPT += /Zi ; }
@@ -134,12 +134,12 @@ rule ProcessCompileTarget
   if $(CheckOnly) = yes && $(ParallelCompilation) != no { _CONFIG_OPT += /MP2 ; }
 
   if $(Exceptions) != yes {
-    _CONFIG_OPT += -D_HAS_EXCEPTIONS=0 -DEA_COMPILER_NO_NOEXCEPT ;
+    _CONFIG_OPT += -D_HAS_EXCEPTIONS=0 ;
   } else {
     if $(CatchSEH) != yes {
-      _CONFIG_OPT += /EHsc -DDAGOR_EXCEPTIONS_ENABLED=1 ;
+      _CONFIG_OPT += /EHsc -DDAGOR_EXCEPTIONS_ENABLED ;
     } else {
-      _CONFIG_OPT += /EHac -DDAGOR_EXCEPTIONS_ENABLED=1 ;
+      _CONFIG_OPT += /EHac -DDAGOR_EXCEPTIONS_ENABLED ;
     }
   }
 
@@ -153,7 +153,7 @@ rule ProcessCompileTarget
     _CONFIG_OPT += $(_VC_CRT_TYPE)d ;
   }
 
-  if $(BuildDagorEngineIndependentCode) != yes && $(KernelLinkage) = static { _CONFIG_OPT += -D_TARGET_STATIC_LIB=1 ; }
+  if $(BuildDagorEngineIndependentCode) != yes && $(KernelLinkage) = static { _CONFIG_OPT += -D_TARGET_STATIC_LIB ; }
   if $(UseWholeOpt) = yes      { _CONFIG_OPT += /GL ; }
 
   _CONFIG_OPT += /FS ;         # Force Synchronous PDB Writes.

@@ -43,4 +43,5 @@ ECS_REGISTER_MANAGED_TYPE(SharedTexHolder, nullptr,
 // UniqueTexHolder hasn't specific constructor
 ECS_REGISTER_RELOCATABLE_TYPE(UniqueTex, nullptr);
 ECS_REGISTER_RELOCATABLE_TYPE(UniqueTexHolder, nullptr);
+ECS_REGISTER_RELOCATABLE_TYPE(UniqueBuf, nullptr);
 ECS_REGISTER_RELOCATABLE_TYPE(UniqueBufHolder, nullptr);

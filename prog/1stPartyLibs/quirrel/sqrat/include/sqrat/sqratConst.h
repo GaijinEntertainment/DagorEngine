@@ -52,12 +52,12 @@ public:
                                      SQRAT_STD::is_floating_point_v<T> ||
                                      SQRAT_STD::is_enum_v<T>, int> = 0>
     Enumeration& Const(const SQChar* name, T val) {
-        BindValue<T>(name, val, false);
+        BindValue<T>(name, strlen(name), val, false);
         return *this;
     }
 
     Enumeration& Const(const SQChar* name, const SQChar* val) {
-        BindValue<const SQChar*>(name, val, false);
+        BindValue<const SQChar*>(name, strlen(name), val, false);
         return *this;
     }
 };

@@ -8,6 +8,4 @@ Sources =
   d3d_wrap.cpp
 ;
 
-CPPopt = -D__B_DRVDX ;
-
 include $(Root)/prog/_jBuild/build.jam ;

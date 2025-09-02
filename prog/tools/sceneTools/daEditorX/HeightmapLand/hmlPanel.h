@@ -24,9 +24,9 @@ public:
 
   // ControlEventHandler
 
-  virtual void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel);
-  virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel);
-  virtual void onPostEvent(int pcb_id, PropPanel::ContainerPropertyControl *panel);
+  void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
+  void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
+  void onPostEvent(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
 
 private:
   HmapLandPlugin &plugin;

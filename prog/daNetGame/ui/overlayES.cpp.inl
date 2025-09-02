@@ -30,6 +30,7 @@
 #include <ecs/scripts/netBindSq.h>
 #include <ecs/scripts/dasEs.h>
 #include <ecs/scripts/netsqevent.h>
+#include "uiRender.h"
 #include <gui/dag_stdGuiRender.h>
 #include <ioSys/dag_dataBlock.h>
 #include <quirrel/sqConsole/sqConsole.h>
@@ -56,12 +57,13 @@
 #include <quirrel/sqWebBrowser/sqWebBrowser.h>
 #include <quirrel/nestdb/nestdb.h>
 #include <ui/uiVideoMode.h>
+#include <ui/xrayUiOrder.h>
 #include <eventLog/errorLog.h>
 #if _TARGET_C1 | _TARGET_C2
 
 
-#elif _TARGET_GDK
-#include <quirrel/gdk/main.h>
+#elif _TARGET_C4
+
 #endif
 #include <quirrel/sqDataCache/datacache.h>
 #if _TARGET_C3
@@ -80,9 +82,12 @@
 
 #include <daEditorE/editorCommon/inGameEditor.h>
 
-SQInteger get_thread_id_func();
+#if DAGOR_DBGLEVEL > 0
+static SQInteger get_thread_id_func() { return SQInteger(get_current_thread_id()); }
+#endif
 
 ECS_REGISTER_EVENT(EventScriptUiInitNetworkServices);
+ECS_REGISTER_EVENT(EventScriptUiInitNetworkVoicechatOnly);
 ECS_REGISTER_EVENT(EventScriptUiTermNetworkServices);
 ECS_REGISTER_EVENT(EventScriptUiUpdate)
 ECS_REGISTER_EVENT(EventScriptUiBeforeEventbusShutdown, bool /*quit*/)
@@ -201,8 +206,8 @@ static void bind_overlay_ui_script_apis(SqModules *moduleMgr, HSQUIRRELVM vm)
 
   watchdog::bind_sq(moduleMgr);
 
-#if _TARGET_GDK
-  bindquirrel::gdk::bind_sq(moduleMgr);
+#if _TARGET_C4
+
 #elif _TARGET_C1 | _TARGET_C2
 
 #elif _TARGET_C3
@@ -240,6 +245,7 @@ static void bind_overlay_ui_script_apis(SqModules *moduleMgr, HSQUIRRELVM vm)
   bind_dascript::bind_das(moduleMgr);
   darg::bind_browser_behavior(moduleMgr);
   ui::videomode::bind_script(moduleMgr);
+  ui::xray_ui_order::bind_script(moduleMgr);
   ui::bind_ui_behaviors(moduleMgr);
   bindquirrel::bind_base64_utils(moduleMgr);
 
@@ -268,10 +274,20 @@ void init_network_services()
 {
   fps_profile::initPerfProfile();
 
-#if _TARGET_GDK
-  bindquirrel::gdk::init();
+#if _TARGET_C4
+
 #endif
   g_entity_mgr->broadcastEventImmediate(EventScriptUiInitNetworkServices());
+}
+
+void init_network_voicechat_only()
+{
+  fps_profile::initPerfProfile();
+
+#if _TARGET_C4
+
+#endif
+  g_entity_mgr->broadcastEventImmediate(EventScriptUiInitNetworkVoicechatOnly());
 }
 
 void init_ui()
@@ -281,6 +297,8 @@ void init_ui()
   const char *script_fn = get_overlay_ui_script_fn();
   if (!script_fn)
     return;
+
+  uirender::wait_ui_render_job_done();
 
   dargScene.reset(darg::create_gui_scene());
   dargScene->setCallback(&gui_scene_cb);
@@ -315,7 +333,6 @@ void init_ui()
   g_entity_mgr->broadcastEvent(EventScriptReloaded());
 }
 
-ECS_AFTER(on_gameapp_started_es)
 static inline void overlay_ui_init_on_appstart_es_event_handler(const EventOnGameAppStarted &)
 {
   delayed_call([]() // DA to execute this after actual scene load
@@ -327,6 +344,8 @@ static inline void overlay_ui_init_on_appstart_es_event_handler(const EventOnGam
 #endif
       if (!(app_profile::get().disableRemoteNetServices || app_profile::get().devMode || doconnect))
         overlay_ui::init_network_services();
+      else if (doconnect) //-V547
+        overlay_ui::init_network_voicechat_only();
       overlay_ui::init_ui();
     });
 }
@@ -335,6 +354,11 @@ void shutdown_ui(bool quit)
 {
   if (!dargScene)
     return;
+
+  uirender::wait_ui_render_job_done();
+
+  if (!quit)
+    dargScene->forceFrpUpdateDeferred(); // Call subscribers of nested watches (for correctly save in nestDb)
 
   g_entity_mgr->broadcastEventImmediate(EventScriptUiBeforeEventbusShutdown{quit});
 
@@ -380,8 +404,8 @@ void shutdown_network_services()
   if (app_profile::get().disableRemoteNetServices)
     return;
   g_entity_mgr->broadcastEventImmediate(EventScriptUiTermNetworkServices());
-#if _TARGET_GDK
-  bindquirrel::gdk::shutdown();
+#if _TARGET_C4
+
 #endif
 }
 

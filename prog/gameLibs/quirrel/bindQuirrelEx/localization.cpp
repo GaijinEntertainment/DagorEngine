@@ -16,9 +16,10 @@ static void handle_plural_form(String &string_to_handle, int64_t num, const char
   while (true)
   {
     tokenStart = string_to_handle.find(tmpKey, tokenStart);
-    tokenEnd = string_to_handle.find("}", tokenStart) + 1;
+    tokenEnd = string_to_handle.find("}", tokenStart);
     if (!tokenStart || !tokenEnd)
       return;
+    tokenEnd += 1;
 
     String pluralStr;
     pluralStr.setSubStr(tokenStart, tokenEnd);
@@ -268,14 +269,15 @@ void register_dagor_localization_module(SqModules *module_mgr)
   Sqrat::Table exports(vm);
   ///@module dagor.localize
   exports //
-    .SquirrelFunc("loc", &localize, -2, ".s|o")
-    .SquirrelFunc("getLocTextForLang", &localize_for_lang, -3, ".ss|o")
-    .SquirrelFunc("processHypenationsCN", process_chinese_string_with_tab, 2, ".s")
-    .SquirrelFunc("processHypenationsJP", process_japanese_string_with_tab, 2, ".s")
-    .SquirrelFunc("doesLocTextExist", script_does_localized_text_exist, 2, ".s")
+    .SquirrelFunc("loc", &localize, -2, ".s|o", nullptr, 0, nullptr, Sqrat::FunctionPurity::Pure)
+    .SquirrelFunc("getLocTextForLang", &localize_for_lang, -3, ".ss|o", nullptr, 0, nullptr, Sqrat::FunctionPurity::Pure)
+    .SquirrelFunc("processHypenationsCN", process_chinese_string_with_tab, 2, ".s", nullptr, 0, nullptr, Sqrat::FunctionPurity::Pure)
+    .SquirrelFunc("processHypenationsJP", process_japanese_string_with_tab, 2, ".s", nullptr, 0, nullptr, Sqrat::FunctionPurity::Pure)
+    .SquirrelFunc("doesLocTextExist", script_does_localized_text_exist, 2, ".s", nullptr, 0, nullptr, Sqrat::FunctionPurity::Pure)
     .Func("getCurrentLanguage", get_current_language)
     .Func("getForceLanguage", get_force_language)
     .Func("setLanguageToSettings", set_language_to_settings)
+    .Func("getLangId", getLangId)
     .SquirrelFunc("initLocalization", init_localization, -2, ".xs")
     /**/;
   module_mgr->addNativeModule("dagor.localize", exports);

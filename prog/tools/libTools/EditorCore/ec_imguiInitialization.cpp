@@ -1,13 +1,20 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #define IMGUI_DEFINE_MATH_OPERATORS
-#include <EditorCore/ec_imGuiInitialization.h>
+#include <EditorCore/ec_imguiInitialization.h>
+#include <EditorCore/ec_input.h>
 #include <EditorCore/ec_interface.h>
+#include <EditorCore/ec_wndGlobal.h>
 #include <gui/dag_imgui.h>
 #include <ioSys/dag_dataBlock.h>
+#include <libTools/util/strUtil.h>
+#include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_progGlobals.h>
+#include <propPanel/commonWindow/dialogManager.h>
+#include <propPanel/c_util.h>
+#include <propPanel/colors.h>
 #include <propPanel/constants.h>
-#include <sepGui/wndGlobal.h>
+#include <propPanel/propPanel.h>
 #include <util/dag_string.h>
 #include <winGuiWrapper/wgw_dialogs.h>
 #include <winGuiWrapper/wgw_input.h>
@@ -15,28 +22,53 @@
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 
-// Workaround for stuck keys after displaying a native modal dialog or message box in reaction to a key press.
-// This is needed because in case of modal dialogs and message boxes the focus loss and focus gain happen in
-// the same ImGui frame, so as far as ImGui is concerned nothing happened, and it would report the key pressed
-// forever.
-// https://github.com/ocornut/imgui/issues/7264
+static void start_non_busy();
+static void end_non_busy();
+
+class EditorCoreModalDialogEventHandler : public PropPanel::IModalDialogEventHandler
+{
+public:
+  void beforeModalDialogShown() override { start_non_busy(); }
+  void afterModalDialogShown() override { end_non_busy(); }
+};
+
 class ImguiNativeModalDialogEventHandler : public wingw::INativeModalDialogEventHandler
 {
 public:
-  virtual void beforeModalDialogShown() override {}
+  void beforeModalDialogShown() override { start_non_busy(); }
 
-  virtual void afterModalDialogShown() override
+  void afterModalDialogShown() override
   {
-    if (!ImGui::GetCurrentContext())
-      return;
+    end_non_busy();
 
-    ImGui::GetIO().ClearInputKeys();
-    ImGui::GetIO().ClearEventsQueue();
+    // Workaround for stuck keys after displaying a native modal dialog or message box in reaction to a key press.
+    // This is needed because in case of modal dialogs and message boxes the focus loss and focus gain happen in
+    // the same ImGui frame, so as far as ImGui is concerned nothing happened, and it would report the key pressed
+    // forever.
+    // https://github.com/ocornut/imgui/issues/7264
+    if (ImGui::GetCurrentContext())
+    {
+      ImGui::GetIO().ClearInputKeys();
+      ImGui::GetIO().ClearInputMouse();
+      ImGui::GetIO().ClearEventsQueue();
+    }
   }
 };
 
+static EditorCoreModalDialogEventHandler modal_dialog_event_handler;
 static ImguiNativeModalDialogEventHandler imgui_native_modal_dialog_event_handler;
+static dag::Vector<bool> busy_stack;
 static String imgui_ini_file_path;
+static int imgui_dock_settings_version = 0;
+
+static void start_non_busy() { busy_stack.push_back(ec_set_busy(false)); }
+
+static void end_non_busy()
+{
+  G_ASSERT(!busy_stack.empty());
+  ec_set_busy(busy_stack.back());
+  busy_stack.pop_back();
+}
 
 // daEditorClassic style
 static void apply_imgui_style()
@@ -130,6 +162,52 @@ static void apply_imgui_style()
   colors[ImGuiCol_NavWindowingHighlight] = ImVec4(0.000f, 0.000f, 0.000f, 1.000f);
   colors[ImGuiCol_NavWindowingDimBg] = ImVec4(0.000f, 0.000f, 0.000f, 1.000f);
   colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.941f, 0.941f, 0.941f, 0.376f);
+
+  PropPanel::applyClassicOverrides();
+}
+
+static const char *get_imgui_style_var_name(ImGuiStyleVar idx)
+{
+  G_STATIC_ASSERT(ImGuiStyleVar_COUNT == 34);
+  switch (idx)
+  {
+    case ImGuiStyleVar_Alpha: return "Alpha";
+    case ImGuiStyleVar_DisabledAlpha: return "DisabledAlpha";
+    case ImGuiStyleVar_WindowPadding: return "WindowPadding";
+    case ImGuiStyleVar_WindowRounding: return "WindowRounding";
+    case ImGuiStyleVar_WindowBorderSize: return "WindowBorderSize";
+    case ImGuiStyleVar_WindowMinSize: return "WindowMinSize";
+    case ImGuiStyleVar_WindowTitleAlign: return "WindowTitleAlign";
+    case ImGuiStyleVar_ChildRounding: return "ChildRounding";
+    case ImGuiStyleVar_ChildBorderSize: return "ChildBorderSize";
+    case ImGuiStyleVar_PopupRounding: return "PopupRounding";
+    case ImGuiStyleVar_PopupBorderSize: return "PopupBorderSize";
+    case ImGuiStyleVar_FramePadding: return "FramePadding";
+    case ImGuiStyleVar_FrameRounding: return "FrameRounding";
+    case ImGuiStyleVar_FrameBorderSize: return "FrameBorderSize";
+    case ImGuiStyleVar_ItemSpacing: return "ItemSpacing";
+    case ImGuiStyleVar_ItemInnerSpacing: return "ItemInnerSpacing";
+    case ImGuiStyleVar_IndentSpacing: return "IndentSpacing";
+    case ImGuiStyleVar_CellPadding: return "CellPadding";
+    case ImGuiStyleVar_ScrollbarSize: return "ScrollbarSize";
+    case ImGuiStyleVar_ScrollbarRounding: return "ScrollbarRounding";
+    case ImGuiStyleVar_GrabMinSize: return "GrabMinSize";
+    case ImGuiStyleVar_GrabRounding: return "GrabRounding";
+    case ImGuiStyleVar_TabRounding: return "TabRounding";
+    case ImGuiStyleVar_TabBorderSize: return "TabBorderSize";
+    case ImGuiStyleVar_TabBarBorderSize: return "TabBarBorderSize";
+    case ImGuiStyleVar_TabBarOverlineSize: return "TabBarOverlineSize";
+    case ImGuiStyleVar_TableAngledHeadersAngle: return "TableAngledHeadersAngle";
+    case ImGuiStyleVar_TableAngledHeadersTextAlign: return "TableAngledHeadersTextAlign";
+    case ImGuiStyleVar_ButtonTextAlign: return "ButtonTextAlign";
+    case ImGuiStyleVar_SelectableTextAlign: return "SelectableTextAlign";
+    case ImGuiStyleVar_SeparatorTextBorderSize: return "SeparatorTextBorderSize";
+    case ImGuiStyleVar_SeparatorTextAlign: return "SeparatorTextAlign";
+    case ImGuiStyleVar_SeparatorTextPadding: return "SeparatorTextPadding";
+    case ImGuiStyleVar_DockingSeparatorSize: return "DockingSeparatorSize";
+  }
+  G_ASSERT(0);
+  return "Unknown";
 }
 
 static String get_style_blk_path()
@@ -153,7 +231,8 @@ static bool save_imgui_style()
       continue;
     }
 
-    String varName(32, "Style_%d", i);
+    const char *styleVarName = get_imgui_style_var_name(i);
+    String varName = String::mk_str_cat("Style_", styleVarName);
 
     if (varInfo->Count == 1)
     {
@@ -174,8 +253,17 @@ static bool save_imgui_style()
   G_STATIC_ASSERT(sizeof(Point4) == sizeof(ImVec4));
   for (int i = 0; i < ImGuiCol_COUNT; ++i)
   {
-    String varName(32, "Color_%d", i);
+    const char *styleColorName = ImGui::GetStyleColorName(i);
+    String varName = String::mk_str_cat("Color_", styleColorName);
     const Point4 *value = reinterpret_cast<const Point4 *>(&ImGui::GetCurrentContext()->Style.Colors[i]);
+    block.addPoint4(varName, *value);
+  }
+
+  for (int i = 0; i < PropPanel::ColorOverride::COUNT; ++i)
+  {
+    PropPanel::ColorOverride &c = PropPanel::getColorOverride(i);
+    String varName = String::mk_str_cat("ColorOverride_", c.name);
+    const Point4 *value = reinterpret_cast<Point4 *>(&c.color);
     block.addPoint4(varName, *value);
   }
 
@@ -185,13 +273,13 @@ static bool save_imgui_style()
   return succeeded;
 }
 
-static bool load_imgui_style()
+static bool load_imgui_style_from(const char *path)
 {
   DataBlock block;
-  const bool succeeded = block.load(get_style_blk_path());
+  const bool succeeded = block.load(path);
   if (!succeeded)
   {
-    logerr("ImGui: failed to load style file '%s'.", get_style_blk_path().c_str());
+    logerr("ImGui: failed to load style file '%s'.", path);
     return succeeded;
   }
 
@@ -205,12 +293,18 @@ static bool load_imgui_style()
       continue;
     }
 
-    String varName(32, "Style_%d", i);
-    const int paramIndex = block.findParam(varName);
+    const char *styleVarName = get_imgui_style_var_name(i);
+    String varName = String::mk_str_cat("Style_", styleVarName);
+    int paramIndex = block.findParam(varName);
     if (paramIndex < 0)
     {
-      logerr("ImGui: style variable %s is not in the blk.", i);
-      continue;
+      varName = String(32, "Style_%d", i);
+      paramIndex = block.findParam(varName);
+      if (paramIndex < 0)
+      {
+        logerr("ImGui: style variable 'Style_%s' (nor 'Style_%d') is not in the blk.", styleVarName, i);
+        continue;
+      }
     }
 
     if (varInfo->Count == 1 && block.getParamType(paramIndex) == DataBlock::TYPE_REAL)
@@ -232,17 +326,23 @@ static bool load_imgui_style()
   G_STATIC_ASSERT(sizeof(Point4) == sizeof(ImVec4));
   for (int i = 0; i < ImGuiCol_COUNT; ++i)
   {
-    String varName(32, "Color_%d", i);
-    const int paramIndex = block.findParam(varName);
+    const char *styleColorName = ImGui::GetStyleColorName(i);
+    String varName = String::mk_str_cat("Color_", styleColorName);
+    int paramIndex = block.findParam(varName);
     if (paramIndex < 0)
     {
-      logerr("ImGui: color variable %s is not in the blk.", i);
-      continue;
+      varName = String(32, "Color_%d", i);
+      paramIndex = block.findParam(varName);
+      if (paramIndex < 0)
+      {
+        logerr("ImGui: color variable 'Color_%s' (nor 'Color_%d') is not in the blk.", styleColorName, i);
+        continue;
+      }
     }
 
     if (block.getParamType(paramIndex) != DataBlock::TYPE_POINT4)
     {
-      logerr("ImGui: expected point4 type for %s! Variable will not be loaded.", i);
+      logerr("ImGui: expected point4 type for '%s'! Variable will not be loaded.", varName.c_str());
       continue;
     }
 
@@ -250,15 +350,65 @@ static bool load_imgui_style()
     *value = block.getPoint4(varName);
   }
 
+  for (int i = 0; i < PropPanel::ColorOverride::COUNT; ++i)
+  {
+    PropPanel::ColorOverride &c = PropPanel::getColorOverride(i);
+    String varName = String::mk_str_cat("ColorOverride_", c.name);
+    int paramIndex = block.findParam(varName);
+    if (paramIndex < 0)
+    {
+      logerr("ImGui: color override variable 'ColorOverride_%s' is not in the blk.", c.name);
+      continue;
+    }
+
+    Point4 *value = reinterpret_cast<Point4 *>(&c.color);
+    *value = block.getPoint4(varName);
+  }
+
   return succeeded;
 }
 
-void editor_core_initialize_imgui(const char *imgui_ini_path)
+static bool load_imgui_style() { return load_imgui_style_from(get_style_blk_path()); }
+
+static float get_imgui_scale() { return clamp(win32_system_dpi / 96.0f, 1.0f, 5.0f); }
+
+static void *custom_dock_read_open(ImGuiContext *ctx, ImGuiSettingsHandler *handler, const char *name)
+{
+  return strcmp(name, "Data") == 0 ? (void *)1 : 0;
+}
+
+static void custom_dock_read_line(ImGuiContext *ctx, ImGuiSettingsHandler *handler, void *entry, const char *line)
+{
+  line = ImStrSkipBlank(line);
+  sscanf(line, "DockSettingsVersion=%d", &imgui_dock_settings_version);
+}
+
+static void custom_dock_write_all(ImGuiContext *ctx, ImGuiSettingsHandler *handler, ImGuiTextBuffer *buf)
+{
+  if (imgui_dock_settings_version <= 0)
+    return;
+
+  buf->appendf("[CustomDock][Data]\n");
+  buf->appendf("DockSettingsVersion=%d\n", imgui_dock_settings_version);
+}
+
+static void register_custom_dock_settings_handler()
+{
+  ImGuiSettingsHandler settingsHandler;
+  settingsHandler.TypeName = "CustomDock";
+  settingsHandler.TypeHash = ImHashStr(settingsHandler.TypeName);
+  settingsHandler.ReadOpenFn = custom_dock_read_open;
+  settingsHandler.ReadLineFn = custom_dock_read_line;
+  settingsHandler.WriteAllFn = custom_dock_write_all;
+  ImGui::AddSettingsHandler(&settingsHandler);
+}
+
+void editor_core_initialize_imgui(const char *imgui_ini_path, int *dock_settings_version)
 {
   DataBlock overrideBlk;
   overrideBlk.setReal("active_window_bg_alpha", 1.0f);
 
-  const float scale = clamp(win32_system_dpi / 96.0f, 1.0f, 5.0f);
+  const float scale = get_imgui_scale();
   overrideBlk.setReal("imgui_scale", scale);
   overrideBlk.setReal("imgui_font_size", 16.0f);      // This gets scaled with imgui_scale in imgui_apply_style_from_blk.
   overrideBlk.setReal("imgui_bold_font_size", 16.0f); // This gets scaled with imgui_scale in imgui_apply_style_from_blk.
@@ -273,9 +423,17 @@ void editor_core_initialize_imgui(const char *imgui_ini_path)
 
   overrideBlk.setBool("imgui_font_light_hinting", true);
 
+#if !_TARGET_PC_WIN
+  overrideBlk.setBool("imgui_multiview", false);
+#endif
+
   imgui_set_override_blk(overrideBlk);
 
   imgui_set_blk_path(nullptr); // Disable imgui.blk load/save.
+
+  // In tools the main window is different from win32_get_main_wnd().
+  imgui_set_main_window_override(PropPanel::p2util::get_main_parent_handle());
+
   imgui_init_on_demand();
 
   ImGuiIO &imguiIo = ImGui::GetIO();
@@ -294,24 +452,122 @@ void editor_core_initialize_imgui(const char *imgui_ini_path)
   G_ASSERT(!ImGui::GetCurrentContext()->SettingsLoaded);
   imguiIo.IniFilename = nullptr;
   imgui_ini_file_path = imgui_ini_path;
+  imgui_dock_settings_version = 0;
   if (!imgui_ini_file_path.empty())
   {
     logdbg("Loading ImGui settings from '%s'.", imgui_ini_file_path);
+    register_custom_dock_settings_handler();
     ImGui::LoadIniSettingsFromDisk(imgui_ini_file_path);
   }
 
   if (imgui_get_state() != ImGuiState::ACTIVE)
     imgui_request_state_change(ImGuiState::ACTIVE);
 
+  PropPanel::set_modal_dialog_events(&modal_dialog_event_handler);
   wingw::set_native_modal_dialog_events(&imgui_native_modal_dialog_event_handler);
+
+  if (dock_settings_version)
+    *dock_settings_version = imgui_dock_settings_version;
 }
 
-void editor_core_save_imgui_settings()
+void editor_core_save_imgui_settings(int dock_settings_version)
 {
-  if (imgui_ini_file_path.empty() || !ImGui::GetIO().WantSaveIniSettings)
+  if (imgui_ini_file_path.empty())
     return;
 
+  imgui_dock_settings_version = dock_settings_version;
   ImGui::SaveIniSettingsToDisk(imgui_ini_file_path);
+}
+
+void editor_core_save_dag_imgui_blk_settings(DataBlock &dst_blk)
+{
+  const DataBlock *imguiBlk = imgui_get_blk();
+  if (!imguiBlk)
+    return;
+
+  DataBlock *dstDagImguiBlk = dst_blk.addBlock("dagImgui");
+  for (int i = 0; i < imguiBlk->blockCount(); ++i)
+  {
+    const DataBlock *imguiBlkChild = imguiBlk->getBlock(i);
+    const char *blkName = imguiBlkChild->getBlockName();
+    if (strcmp(blkName, "ConsoleWindow") == 0)
+      dstDagImguiBlk->setBlock(imguiBlkChild);
+    else if (strcmp(blkName, "animgraph_viewer_bookmarked_states") == 0)
+      dstDagImguiBlk->setBlock(imguiBlkChild);
+    else if (strcmp(blkName, "animgraph_viewer_bookmarked_params") == 0)
+      dstDagImguiBlk->setBlock(imguiBlkChild);
+  }
+}
+
+void editor_core_load_dag_imgui_blk_settings(const DataBlock &src_blk)
+{
+  const DataBlock *srcDagImguiBlk = src_blk.getBlockByName("dagImgui");
+  DataBlock *imguiBlk = imgui_get_blk();
+  if (srcDagImguiBlk && imguiBlk)
+    for (int i = 0; i < srcDagImguiBlk->blockCount(); ++i)
+      imguiBlk->setBlock(srcDagImguiBlk->getBlock(i));
+}
+
+void editor_core_load_imgui_theme(const char *fname)
+{
+  String path(256, "%s%s%s", sgg::get_exe_path_full(), "../commonData/themes/", fname);
+  simplify_fname(path);
+
+  ImGui::GetStyle() = ImGuiStyle();
+  apply_imgui_style();
+  if (!load_imgui_style_from(path))
+  {
+    logerr("ImGui: Error loading theme \"%s\", falling back to classic style!", path.c_str());
+
+    ImGui::GetStyle() = ImGuiStyle();
+    apply_imgui_style();
+  }
+
+  ImGui::GetStyle().ScaleAllSizes(get_imgui_scale());
+
+  String iconDirPath(512, "%s../commonData/icons", sgg::get_exe_path_full());
+  simplify_fname(iconDirPath);
+  append_slash(iconDirPath);
+
+  const String themeName = get_file_name_wo_ext(fname);
+  String iconThemeDirPath(512, "%s../commonData/icons/%s", sgg::get_exe_path_full(), themeName.c_str());
+  simplify_fname(iconThemeDirPath);
+  append_slash(iconThemeDirPath);
+
+  if (dd_dir_exists(iconThemeDirPath))
+  {
+    PropPanel::p2util::set_icon_path(iconThemeDirPath.c_str());
+    PropPanel::p2util::set_icon_fallback_path(iconDirPath.c_str());
+  }
+  else
+  {
+    PropPanel::p2util::set_icon_path(iconDirPath.c_str());
+    PropPanel::p2util::set_icon_fallback_path(nullptr);
+  }
+
+  PropPanel::reload_all_icons();
+}
+
+E3DCOLOR editor_core_load_window_background_color(const char *theme_filename)
+{
+  const String themePath = make_full_path(sgg::get_exe_path_full(), String::mk_str_cat("../commonData/themes/", theme_filename));
+  DataBlock themeBlock;
+  dblk::load(themeBlock, themePath, dblk::ReadFlag::ROBUST);
+  const Point4 bgColor = themeBlock.getPoint4("Color_ChildBg", Point4(0.9f, 0.9f, 0.9f, 1.0f));
+  return E3DCOLOR(real2uchar(bgColor.x), real2uchar(bgColor.y), real2uchar(bgColor.z));
+}
+
+// Helper to display a little (?) mark which shows a tooltip when hovered.
+static void editor_core_imgui_help_marker(const char *desc)
+{
+  ImGui::TextDisabled("(?)");
+  if (ImGui::BeginItemTooltip())
+  {
+    ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+    ImGui::TextUnformatted(desc);
+    ImGui::PopTextWrapPos();
+    ImGui::EndTooltip();
+  }
 }
 
 // NOTE: ImGui porting: style editor will not be needed once we have a final theme. At least the load-save
@@ -323,6 +579,8 @@ void editor_core_update_imgui_style_editor()
     imguiStyleEditorWindowsVisible = !imguiStyleEditorWindowsVisible;
   if (!imguiStyleEditorWindowsVisible)
     return;
+
+  PropPanel::updateDebugToolFlashColorOverride();
 
   ImGui::Begin("Dear ImGui Style Editor", &imguiStyleEditorWindowsVisible);
 
@@ -365,23 +623,116 @@ void editor_core_update_imgui_style_editor()
   }
 
   ImGui::Separator();
-  ImGui::ShowStyleEditor();
+
+  if (ImGui::BeginTabBar("##tabs", ImGuiTabBarFlags_None))
+  {
+    if (ImGui::BeginTabItem("Built-in"))
+    {
+      ImGui::ShowStyleEditor();
+
+      ImGui::EndTabItem();
+    }
+
+    if (ImGui::BeginTabItem("Overrides"))
+    {
+      ImGuiStyle &style = ImGui::GetStyle();
+
+      static ImVec4 ref[PropPanel::ColorOverride::COUNT];
+      static bool init = false;
+      if (!init)
+      {
+        for (int i = 0; i < PropPanel::ColorOverride::COUNT; ++i)
+          ref[i] = PropPanel::getColorOverride(i).color;
+        init = true;
+      }
+
+      static ImGuiTextFilter filter;
+      filter.Draw("Filter colors", ImGui::GetFontSize() * 16);
+
+      static ImGuiColorEditFlags alpha_flags = 0;
+      if (ImGui::RadioButton("Opaque", alpha_flags == ImGuiColorEditFlags_None))
+      {
+        alpha_flags = ImGuiColorEditFlags_None;
+      }
+      ImGui::SameLine();
+      if (ImGui::RadioButton("Alpha", alpha_flags == ImGuiColorEditFlags_AlphaPreview))
+      {
+        alpha_flags = ImGuiColorEditFlags_AlphaPreview;
+      }
+      ImGui::SameLine();
+      if (ImGui::RadioButton("Both", alpha_flags == ImGuiColorEditFlags_AlphaPreviewHalf))
+      {
+        alpha_flags = ImGuiColorEditFlags_AlphaPreviewHalf;
+      }
+      ImGui::SameLine();
+
+      editor_core_imgui_help_marker("In the color list:\n"
+                                    "Left-click on color square to open color picker,\n"
+                                    "Right-click to open edit options menu.");
+
+      ImGui::SetNextWindowSizeConstraints(ImVec2(0.0f, ImGui::GetTextLineHeightWithSpacing() * 10), ImVec2(FLT_MAX, FLT_MAX));
+      ImGui::BeginChild("##colors", ImVec2(0, 0), ImGuiChildFlags_Border | ImGuiChildFlags_NavFlattened,
+        ImGuiWindowFlags_AlwaysVerticalScrollbar | ImGuiWindowFlags_AlwaysHorizontalScrollbar);
+      ImGui::PushItemWidth(ImGui::GetFontSize() * -16);
+      for (int i = 0; i < PropPanel::ColorOverride::COUNT; i++)
+      {
+        PropPanel::ColorOverride &colorOverride = PropPanel::getColorOverride(i);
+        if (!filter.PassFilter(colorOverride.name))
+          continue;
+        ImGui::PushID(i);
+
+        if (ImGui::Button("?"))
+          PropPanel::debugFlashColorOverride(i);
+        ImGui::SetItemTooltip("Flash given color to identify places where it is used.");
+        ImGui::SameLine();
+
+        ImGui::ColorEdit4("##color", (float *)&colorOverride.color, ImGuiColorEditFlags_AlphaBar | alpha_flags);
+        if (colorOverride.color != ref[i])
+        {
+          ImGui::SameLine(0.0f, style.ItemInnerSpacing.x);
+          if (ImGui::Button("Save"))
+          {
+            ref[i] = colorOverride.color;
+          }
+          ImGui::SameLine(0.0f, style.ItemInnerSpacing.x);
+          if (ImGui::Button("Revert"))
+          {
+            colorOverride.color = ref[i];
+          }
+        }
+        ImGui::SameLine(0.0f, style.ItemInnerSpacing.x);
+        ImGui::TextUnformatted(colorOverride.name);
+        const int idx = colorOverride.defaultIdx;
+        if (0 <= idx && idx < ImGuiCol_COUNT)
+        {
+          ImGui::SameLine(0.0f, style.ItemInnerSpacing.x);
+          String overriddenName = String::mk_str_cat(" - ", ImGui::GetStyleColorName(idx));
+          ImGui::TextUnformatted(overriddenName);
+        }
+        ImGui::PopID();
+      }
+      ImGui::PopItemWidth();
+      ImGui::EndChild();
+
+      ImGui::EndTabItem();
+    }
+
+    ImGui::EndTabBar();
+  }
 
   ImGui::End();
 }
 
 bool editor_core_imgui_begin(const char *name, bool *open, unsigned window_flags)
 {
-  const ImVec2 minSize(200.0f, 200.0f);
-  const ImVec2 maxSize(ImGui::GetIO().DisplaySize * 0.9f);
-  ImGui::SetNextWindowSizeConstraints(minSize, ImVec2(max(minSize.x, maxSize.x), max(minSize.y, maxSize.y)));
+  ImGui::SetNextWindowSizeConstraints(ImVec2(200.0f, 200.0f), ImVec2(FLT_MAX, FLT_MAX));
 
   // Change the tab title color for the daEditorX Classic style.
-  ImGui::PushStyleColor(ImGuiCol_Text, PropPanel::Constants::DIALOG_TITLE_COLOR);
+  PropPanel::pushDialogTitleBarColorOverrides();
 
   const bool result = ImGui::Begin(name, open, window_flags | ImGuiWindowFlags_NoFocusOnAppearing);
 
-  ImGui::PopStyleColor();
+  PropPanel::popDialogTitleBarColorOverrides();
 
   // Auto focus the window.
   if (!ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows) && ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows) &&

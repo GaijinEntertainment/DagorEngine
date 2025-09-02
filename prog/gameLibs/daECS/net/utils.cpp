@@ -1,6 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include "utils.h"
+#include <daECS/net/urlUtils.h>
 #include <string.h>
 #include <limits.h>
 #include <stdlib.h>

@@ -15,6 +15,7 @@
 #include "sampler_resource.h"
 #include "bindless_common.h"
 #include "shader/module.h"
+#include "cleanup_queue_tags.h"
 
 namespace drv3d_vulkan
 {
@@ -71,7 +72,7 @@ typedef BasePipelineLayout<GraphicsPipelineShaderSet, GraphicsPipelineShaderConf
 class GraphicsPipelineLayout : public GraphicsPipelineLayoutBase
 {
 public:
-  GraphicsPipelineLayout(VulkanDevice &device, const CreationInfo &headers) : GraphicsPipelineLayoutBase(device, headers) {}
+  GraphicsPipelineLayout(const CreationInfo &headers) : GraphicsPipelineLayoutBase(headers) {}
 
   bool hasGS() { return shaderStages & VK_SHADER_STAGE_GEOMETRY_BIT; }
   bool hasTC() { return shaderStages & VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT; }
@@ -83,9 +84,9 @@ class CreationFeedbackBase
 {
 #if VK_EXT_pipeline_creation_feedback
 public:
-  void chainWith(VkGraphicsPipelineCreateInfo &gpci, const VulkanDevice &device) { chainWithInternal(gpci.stageCount, gpci, device); }
+  void chainWith(VkGraphicsPipelineCreateInfo &gpci) { chainWithInternal(gpci.stageCount, gpci); }
 
-  void chainWith(VkComputePipelineCreateInfo &cpci, const VulkanDevice &device) { chainWithInternal(1, cpci, device); }
+  void chainWith(VkComputePipelineCreateInfo &cpci) { chainWithInternal(1, cpci); }
 
   void logFeedback() const
   {
@@ -119,11 +120,11 @@ public:
 
 private:
   template <class VkPipelineCreateInfo>
-  void chainWithInternal(const size_t stgsCount, VkPipelineCreateInfo &pipelineCi, const VulkanDevice &device)
+  void chainWithInternal(const size_t stgsCount, VkPipelineCreateInfo &pipelineCi)
   {
     stagesCount = stgsCount;
 
-    if (device.hasExtension<PipelineCreationFeedbackReportEXT>())
+    if (Globals::VK::dev.hasExtension<PipelineCreationFeedbackReportEXT>())
     {
       fillCreateInfo(stagesCount);
       chain_structs(pipelineCi, createInfo);
@@ -146,8 +147,8 @@ private:
     VK_STRUCTURE_TYPE_PIPELINE_CREATION_FEEDBACK_CREATE_INFO_EXT, NULL, NULL, 0, NULL};
 
 #else
-  void chainWith(VkGraphicsPipelineCreateInfo &, const VulkanDevice &) {}
-  void chainWith(VkComputePipelineCreateInfo &, const VulkanDevice &) {}
+  void chainWith(VkGraphicsPipelineCreateInfo &) {}
+  void chainWith(VkComputePipelineCreateInfo &) {}
   void logFeedback() const {}
 #endif
 };
@@ -162,27 +163,18 @@ public:
     const ShaderModuleBlob *sci;
     const LayoutType::CreationInfo &layout;
     const bool allowAsyncCompile;
-
-    CreationInfo() = delete;
   };
 
-  // generic cleanup queue support
-  static constexpr int CLEANUP_DESTROY = 0;
-
-  template <int Tag>
+  template <CleanupTag Tag>
   void onDelayedCleanupBackend()
   {}
 
-  template <int Tag>
-  void onDelayedCleanupFrontend()
-  {}
-
-  template <int Tag>
+  template <CleanupTag Tag>
   void onDelayedCleanupFinish();
 
   const char *resTypeString() { return "ComputePipeline"; }
 
-  ComputePipeline(VulkanDevice &dev, ProgramID prog, VulkanPipelineCacheHandle cache, LayoutType *l, const CreationInfo &info);
+  ComputePipeline(ProgramID prog, VulkanPipelineCacheHandle cache, LayoutType *l, const CreationInfo &info);
   VulkanPipelineHandle getHandleForUse();
 
   void compile();
@@ -323,11 +315,9 @@ public:
     GraphicsPipeline *parentPipeline;
     RenderPassResource *nativeRP;
     GraphicsPipelineCompileScratchData *scratch;
-
-    CreationInfo() = delete;
   };
 
-  GraphicsPipeline(VulkanDevice &dev, VulkanPipelineCacheHandle cache, LayoutType *l, const CreationInfo &info);
+  GraphicsPipeline(VulkanPipelineCacheHandle cache, LayoutType *l, const CreationInfo &info);
   void bind() const;
 
   const GraphicsPipelineDynamicStateMask &getDynamicStateMask() { return dynStateMask; }

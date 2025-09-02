@@ -5,10 +5,12 @@
 #include <EASTL/bitset.h>
 #include <drv/3d/dag_info.h>
 
+#include "globals.h"
 #include "driver.h"
 #include "vulkan_loader.h"
 #include "vk_entry_points.h"
 #include "extension_utils.h"
+#include "vulkan_allocation_callbacks.h"
 
 namespace drv3d_vulkan
 {
@@ -257,7 +259,6 @@ class VulkanInstanceCore : public Extensions...
   typedef TypePack<Extensions...> ExtensionTypePack;
   typedef eastl::bitset<sizeof...(Extensions)> ExtensionBitSetType;
 
-  VulkanLoader *loader = nullptr;
   VulkanInstanceHandle instance;
   ExtensionBitSetType extensionEnabled;
 
@@ -287,7 +288,7 @@ private:
     {
       loaded = true;
       this->T::enumerateFunctions([this, &loaded](const char *f_name, PFN_vkVoidFunction &function) {
-        function = VULKAN_LOG_CALL_R(loader->vkGetInstanceProcAddr(instance, f_name));
+        function = VULKAN_LOG_CALL_R(Globals::VK::loader.vkGetInstanceProcAddr(instance, f_name));
         if (!function)
           loaded = false;
       });
@@ -313,12 +314,11 @@ private:
 public:
   int getAPIVersion() { return activeApiVersion; }
 
-  bool init(VulkanLoader &vk_loader, const VkInstanceCreateInfo &ici)
+  bool init(const VkInstanceCreateInfo &ici)
   {
     activeApiVersion = ici.pApplicationInfo->apiVersion;
-    loader = &vk_loader;
 
-    VkResult rc = vk_loader.vkCreateInstance(&ici, nullptr, ptr(instance));
+    VkResult rc = Globals::VK::loader.vkCreateInstance(&ici, VKALLOC(instance), ptr(instance));
     if (VULKAN_CHECK_FAIL(rc))
     {
       logwarn("vulkan: instance create failed with error %08lX:%s", rc, vulkan_error_string(rc));
@@ -326,13 +326,13 @@ public:
     }
 
 #if !_TARGET_C3
-#define VK_DEFINE_ENTRY_POINT(name)                                                                                     \
-  *reinterpret_cast<PFN_vkVoidFunction *>(&name) = VULKAN_LOG_CALL_R(vk_loader.vkGetInstanceProcAddr(instance, #name)); \
-  if (!name)                                                                                                            \
-  {                                                                                                                     \
-    logwarn("vulkan: no instance entrypoint for %s", #name);                                                            \
-    shutdown();                                                                                                         \
-    return false;                                                                                                       \
+#define VK_DEFINE_ENTRY_POINT(name)                                                                                               \
+  *reinterpret_cast<PFN_vkVoidFunction *>(&name) = VULKAN_LOG_CALL_R(Globals::VK::loader.vkGetInstanceProcAddr(instance, #name)); \
+  if (!name)                                                                                                                      \
+  {                                                                                                                               \
+    logwarn("vulkan: no instance entrypoint for %s", #name);                                                                      \
+    shutdown();                                                                                                                   \
+    return false;                                                                                                                 \
   }
     VK_INSTANCE_ENTRY_POINT_LIST
 #undef VK_DEFINE_ENTRY_POINT
@@ -345,9 +345,8 @@ public:
   {
     extensionShutdown<Extensions...>();
 
-    VULKAN_LOG_CALL(vkDestroyInstance(instance, nullptr));
+    VULKAN_LOG_CALL(vkDestroyInstance(instance, VKALLOC(instance)));
     instance = VulkanNullHandle();
-    loader = nullptr;
 
 #if !_TARGET_C3
 #define VK_DEFINE_ENTRY_POINT(name) *reinterpret_cast<PFN_vkVoidFunction *>(&name) = nullptr;
@@ -357,7 +356,6 @@ public:
   }
   inline VulkanInstanceHandle get() const { return instance; }
   inline bool isValid() const { return !is_null(instance); }
-  inline VulkanLoader &getLoader() { return *loader; }
 
   Tab<VulkanPhysicalDeviceHandle> getAllDevices()
   {
@@ -487,7 +485,7 @@ int filter_instance_extension(dag::Span<const char *> ext_list, const char *filt
 bool instance_has_all_required_extensions(VulkanInstance &instance, void (*clb)(const char *name));
 Tab<const char *> build_instance_extension_list(VulkanLoader &loader, const DataBlock *extension_list_names, int debug_level,
   Driver3dInitCallback *cb);
-eastl::vector<VkLayerProperties> build_instance_layer_list(VulkanLoader &loader, const DataBlock *layer_list, int debug_level,
+dag::Vector<VkLayerProperties> build_instance_layer_list(VulkanLoader &loader, const DataBlock *layer_list, int debug_level,
   bool enable_render_doc_layer);
 #if VK_EXT_debug_report
 VulkanDebugReportCallbackEXTHandle create_debug_sink(VulkanInstance &instance, int debug_level, PFN_vkDebugReportCallbackEXT clb,

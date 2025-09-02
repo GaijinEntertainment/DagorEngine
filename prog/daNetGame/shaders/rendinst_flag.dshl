@@ -30,7 +30,7 @@ shader rendinst_flag_colored, rendinst_flag_layered
 
   if(shader == rendinst_flag_layered)
   {
-    INIT_VCOLOR_LAYERED()
+    INIT_VCOLOR_LAYERED(true)
     INIT_PAINT_DETAILS_STATIC()
   }
   else

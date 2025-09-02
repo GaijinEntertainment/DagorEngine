@@ -26,4 +26,5 @@ if $(Platform) in windows {
 
 UseProgLibs = 1stPartyLibs/daScript ;
 
+include $(Root)/prog/gameLibs/dasModules/module_common.jam ;
 include $(Root)/prog/_jBuild/build.jam ;

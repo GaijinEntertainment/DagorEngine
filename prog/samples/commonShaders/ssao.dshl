@@ -79,7 +79,7 @@ endmacro
 macro SS_BENT_CONES()
   (ps) {
     sampleRadius__invMaxDistance@f2 = (sampleRadius, 1.0 / (2.0*sampleRadius), 0, 0);
-    random_pattern_tex@smp2d = random_pattern_tex;
+    random_pattern_tex@tex2d = random_pattern_tex;
     bent_cones_frame_no@f2 = ssao_frame_no;
     SSAO_params@f4 = (SSAO_effect, SSAOOFS, SSAOZ, SSAOW);//???
   }
@@ -483,13 +483,14 @@ hlsl(ps) {
   }
   float3 getPosition(float2 curViewTc, float depth)
   {
-    return depth*lerp(lerp(view_vecLT, view_vecRT, curViewTc.x), lerp(view_vecLB, view_vecRB, curViewTc.x), curViewTc.y);
+    return depth*getViewVecOptimized(curViewTc);
   }
 
   float3 getOffsetPosition(float2 tc, float2 unitOffset, float ssR)
   {
     float2 curTc = tc+unitOffset*ssR*ssao_pixel_size.xy;
-    return getPosition(curTc, RetrieveDepth(curTc, 0));
+    float2 tcClamped = clamp(curTc, min_max_depth_tc.xy, min_max_depth_tc.zw);
+    return getPosition(tcClamped, RetrieveDepth(tcClamped, 0));
   }
 
 
@@ -641,14 +642,12 @@ macro USE_AWESOME_SSAO()
     ##if (ssao_quality == ssao_normals)
     float3 getPosition(float2 curViewTc, float depth)
     {
-      return depth * lerp(
-        lerp(view_vecLT, view_vecRT, curViewTc.x),
-        lerp(view_vecLB, view_vecRB, curViewTc.x),
-        curViewTc.y);
+      return depth * getViewVecOptimized(curViewTc);
     }
     half getSSDO(float2 tc, float lod, float invPos, float3 wsPos, float3 wsNormal)
     {
-      float3 diff = getPosition(tc, RetrieveDepth(tc, lod)) - wsPos;
+      float2 tcClamped = clamp(tc, min_max_depth_tc.xy, min_max_depth_tc.zw);
+      float3 diff = getPosition(tcClamped, RetrieveDepth(tcClamped, lod)) - wsPos;
       float diffLen2 = dot(diff,diff);
       float invDiffLen = rsqrt(diffLen2);
       float3 v = diff*invDiffLen;
@@ -787,6 +786,7 @@ shader ssao
     shadow_frame@f1 = shadow_frame;
     contact_shadow_len@f1 = contact_shadow_len;
     contact_shadow_min_len@f1 = (contact_shadow_min_len);
+    min_max_depth_tc@f4 = (0.5/lowres_rt_params.x, 0.5/lowres_rt_params.y, 1-0.5/lowres_rt_params.x, 1-0.5/lowres_rt_params.y);
   }
   INIT_ZNZFAR()
   INIT_HALF_RES_CLOSE_DEPTH(ps)
@@ -796,25 +796,14 @@ shader ssao
       return linearize_z(tex2Dlod(half_res_close_depth, float4(tc,0,lod)).x, zn_zfar.zw);
     }
   }
+  assume_if_not_assumed use_contact_shadows = use_shadows;
 
+  VIEW_VEC_OPTIMIZED(ps)
   if (ssao_quality == bnao)
   {
     SS_BENT_CONES()
-    USE_AND_INIT_VIEW_VEC_PS()
   } else
   {
-    if (ssao_quality == ssao_normals)
-    {
-      (ps) {
-        view_vecLT@f3=view_vecLT;
-        view_vecRT@f3=view_vecRT;
-        view_vecLB@f3=view_vecLB;
-        view_vecRB@f3=view_vecRB;
-      }
-    } else
-    {
-      USE_AND_INIT_VIEW_VEC_PS()
-    }
     INIT_AWESOME_SSAO_PARAMS()
     USE_AWESOME_SSAO()//0.45 of bent cones AO
     //INIT_ALCHEMY_AO()
@@ -914,7 +903,7 @@ shader ssao
         ##endif
         ssao.y = contactShadowRayCast(half_res_close_depth, half_res_close_depth_samplerstate, cameraToPoint, -from_sun_direction, max(w*contact_shadow_len, min(w, contact_shadow_min_len)), 20, dither-0.5, projectionMatrix, w, viewProjectionMatrixNoOfs, hitUV);
         ssao.x *= lerp(ssao.y*0.2+0.8, 1, saturate(sunNdotL*2));//assume that sky is brighter towards the sun
-        ssao.y = getAdditionalShadow(ssao.y, cameraToPoint, wsNormal);
+        ssao.y = getAdditionalShadow(ssao.y, cameraToPoint, screenTC, w);
       }
       #endif
 

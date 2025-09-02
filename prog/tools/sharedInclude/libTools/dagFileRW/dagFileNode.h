@@ -53,11 +53,11 @@ public:
 
   MeshHolderObj(Mesh *m = NULL);
   MeshHolderObj(const MeshHolderObj &) = delete;
-  ~MeshHolderObj();
+  ~MeshHolderObj() override;
   void setmesh(Mesh *);
   void setbones(MeshBones *);
-  int classid();
-  bool isSubOf(unsigned);
+  int classid() override;
+  bool isSubOf(unsigned) override;
 };
 
 

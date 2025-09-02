@@ -1,144 +1,26 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <3d/dag_nvLowLatency.h>
-
 #include <3d/dag_nvFeatures.h>
-#include <drv/3d/dag_resetDevice.h>
 #include <drv/3d/dag_commands.h>
-#include <ioSys/dag_dataBlock.h>
 #include <perfMon/dag_statDrv.h>
-#include "nvLowLatency.h"
-
 #include <debug/dag_debug.h>
-
-#include <d3d11.h>
 #include <nvapi.h>
+#include <3d/gpuLatency.h>
+#include <dag/dag_vector.h>
 
-static IUnknown *dx_device = nullptr;
-static bool deferred_submission = false;
-static bool latency_indicator_enabled = false;
-static bool initialized = false;
-
-
-bool nvlowlatency::feed_latency_input(uint32_t frame_id, unsigned int msg)
+template <int id, typename... Args>
+static bool CheckOnce(bool cond, const char *msg, const Args &...args)
 {
-  G_UNUSED(frame_id);
-  G_UNUSED(msg);
+  if (cond)
+    return true;
+
+  static bool firstError = true;
+  if (firstError)
+  {
+    logerr(msg, args...);
+    firstError = false;
+  }
   return false;
-}
-
-void nvlowlatency::init()
-{
-  nv::Reflex *reflex{};
-  d3d::driver_command(Drv3dCommand::GET_REFLEX, &reflex);
-  if (reflex && reflex->isReflexSupported() == nv::SupportState::Supported)
-  {
-    initialized = true;
-    reflex->initializeReflexState();
-  }
-  latency_indicator_enabled = false;
-}
-
-void nvlowlatency::close()
-{
-  set_latency_mode(lowlatency::LatencyMode::LATENCY_MODE_OFF, 0.f);
-  initialized = false;
-}
-
-void nvlowlatency::start_frame(uint32_t frame_id)
-{
-  nv::Reflex *reflex{};
-  d3d::driver_command(Drv3dCommand::GET_REFLEX, &reflex);
-  if (reflex)
-    reflex->startFrame(frame_id);
-}
-
-bool nvlowlatency::is_available()
-{
-  if (!initialized)
-    return false;
-
-  nv::Reflex *reflex{};
-  d3d::driver_command(Drv3dCommand::GET_REFLEX, &reflex);
-  if (!reflex)
-    return false;
-  auto state = reflex->getReflexState();
-  if (!state)
-    return false;
-  return state->lowLatencyAvailable;
-}
-
-void nvlowlatency::set_latency_mode(lowlatency::LatencyMode mode, float min_interval_ms)
-{
-  if (!initialized)
-    return;
-
-  nv::Reflex *reflex{};
-  d3d::driver_command(Drv3dCommand::GET_REFLEX, &reflex);
-  if (reflex)
-  {
-    nv::Reflex::ReflexMode reflexMode = nv::Reflex::ReflexMode::Off;
-    switch (mode)
-    {
-      case lowlatency::LATENCY_MODE_OFF: reflexMode = nv::Reflex::ReflexMode::Off; break;
-      case lowlatency::LATENCY_MODE_NV_ON: reflexMode = nv::Reflex::ReflexMode::On; break;
-      case lowlatency::LATENCY_MODE_NV_BOOST:
-      case lowlatency::LATENCY_MODE_EXPERIMENTAL: reflexMode = nv::Reflex::ReflexMode::OnPlusBoost; break;
-    }
-    auto minimumIntervalUs = static_cast<uint32_t>(min_interval_ms * 1000.f);
-    debug("[Reflex] Set latency mode: latency mode: %d, interval: %dus", eastl::to_underlying(reflexMode), minimumIntervalUs);
-    bool success = reflex->setReflexOptions(reflexMode, minimumIntervalUs);
-    static bool firstError = true;
-    if (!success && firstError)
-    {
-      logerr("Reflex: setReflexOptions has failed");
-      firstError = false;
-    }
-  }
-}
-
-void nvlowlatency::sleep()
-{
-  if (!initialized)
-    return;
-
-  nv::Reflex *reflex{};
-  d3d::driver_command(Drv3dCommand::GET_REFLEX, &reflex);
-  if (reflex)
-  {
-    TIME_D3D_PROFILE(nv_low_latency_sleep);
-    bool success = reflex->sleep();
-    G_ASSERT(success);
-
-    static bool firstError = true;
-    if (!success && firstError)
-    {
-      logerr("Reflex: sleep has failed");
-      firstError = false;
-    }
-  }
-}
-
-void nvlowlatency::set_marker(uint32_t frame_id, lowlatency::LatencyMarkerType marker_type)
-{
-  if (!initialized)
-    return;
-
-  if (marker_type == lowlatency::LatencyMarkerType::TRIGGER_FLASH && !latency_indicator_enabled)
-    return;
-
-  nv::Reflex *reflex{};
-  d3d::driver_command(Drv3dCommand::GET_REFLEX, &reflex);
-  if (reflex)
-  {
-    bool success = reflex->setMarker(frame_id, marker_type);
-    static bool firstError = true;
-    if (!success && firstError)
-    {
-      logerr("Reflex: setMarker has failed with frame_id: %d, and marker: %d", frame_id, static_cast<uint32_t>(marker_type));
-      firstError = false;
-    }
-  }
 }
 
 static bool is_report_valid(const nv::Reflex::ReflexStats &report)
@@ -166,19 +48,98 @@ static bool is_report_valid(const nv::Reflex::ReflexStats &report)
   return true;
 }
 
-lowlatency::LatencyData nvlowlatency::get_statistics_since(uint32_t frame_id, uint32_t max_count)
+class StreamlineGpuLatency : public GpuLatency
 {
-  lowlatency::LatencyData ret;
-  if (!initialized)
-    return ret;
-
-  nv::Reflex *reflex{};
-  d3d::driver_command(Drv3dCommand::GET_REFLEX, &reflex);
-  if (reflex)
+public:
+  StreamlineGpuLatency()
   {
-    auto state = reflex->getReflexState();
+    if (auto sl = getStreamline())
+    {
+      modes = {Mode::Off};
+      if (sl->isReflexSupported() == nv::SupportState::Supported)
+        reflex = sl->createReflexFeature();
+
+      if (reflex)
+        if (auto state = reflex->getState(); state.has_value() && state->lowLatencyAvailable)
+          modes = {Mode::Off, Mode::On, Mode::OnPlusBoost};
+
+      latencyIndicatorEnabled = false;
+    }
+  }
+
+  ~StreamlineGpuLatency()
+  {
+    if (reflex)
+    {
+      setOptions(Mode::Off, 0);
+
+      if (auto sl = getStreamline())
+      {
+        reflex = nullptr;
+        sl->releaseReflexFeature();
+        modes = {Mode::Off};
+      }
+    }
+  }
+
+  dag::ConstSpan<Mode> getAvailableModes() const override { return make_span_const(modes); }
+
+  void startFrame(uint32_t frame_id) override
+  {
+    if (reflex)
+      reflex->startFrame(frame_id);
+  }
+
+  void setMarker(uint32_t frame_id, lowlatency::LatencyMarkerType marker_type) override
+  {
+    if (!reflex)
+      return;
+
+    if (marker_type == lowlatency::LatencyMarkerType::TRIGGER_FLASH && !latencyIndicatorEnabled)
+      return;
+
+    CheckOnce<__LINE__>(reflex->setMarker(frame_id, marker_type), "Reflex: setMarker has failed with frame_id: %d, and marker: %d",
+      frame_id, uint32_t(marker_type));
+  }
+
+  void setOptions(Mode mode, uint32_t frame_limit_us) override
+  {
+    if (reflex)
+    {
+      debug("[Reflex] Set latency mode: latency mode: %d, interval: %dus", eastl::to_underlying(mode), frame_limit_us);
+
+      bool success = false;
+      switch (mode)
+      {
+        case Mode::Off: success = reflex->setOptions(nv::Reflex::ReflexMode::Off, frame_limit_us); break;
+        case Mode::On: success = reflex->setOptions(nv::Reflex::ReflexMode::On, frame_limit_us); break;
+        case Mode::OnPlusBoost: success = reflex->setOptions(nv::Reflex::ReflexMode::OnPlusBoost, frame_limit_us); break;
+      }
+
+      CheckOnce<__LINE__>(success, "[Reflex] setReflexOptions has failed");
+    }
+  }
+
+  void sleep(uint32_t frame_id) override
+  {
+    if (!reflex)
+      return;
+
+    TIME_PROFILE(nv_low_latency_sleep);
+    CheckOnce<__LINE__>(reflex->sleep(frame_id), "[Reflex] sleep has failed");
+  }
+
+  lowlatency::LatencyData getStatisticsSince(uint32_t frame_id, uint32_t max_count = 0) override
+  {
+    lowlatency::LatencyData ret;
+
+    if (!reflex)
+      return ret;
+
+    auto state = reflex->getState();
     if (!state)
       return ret; // frameCount = 0
+
     if (max_count == 0 || max_count > nv::Reflex::ReflexState::FRAME_COUNT)
       max_count = nv::Reflex::ReflexState::FRAME_COUNT;
 
@@ -192,6 +153,8 @@ lowlatency::LatencyData nvlowlatency::get_statistics_since(uint32_t frame_id, ui
       const float gpuRenderEndTime = (report.gpuRenderEndTime - startTime) / 1000.f;
       const float renderSubmitEndTime = (report.renderSubmitEndTime - startTime) / 1000.f;
       const float osRenderQueueStartTime = (report.osRenderQueueStartTime - startTime) / 1000.f;
+
+      ret.latestFrameId = eastl::max(ret.latestFrameId, static_cast<uint32_t>(report.frameID));
 
       ret.gameToRenderLatency.apply(gpuRenderEndTime);
       ret.gameLatency.apply(renderSubmitEndTime);
@@ -226,7 +189,34 @@ lowlatency::LatencyData nvlowlatency::get_statistics_since(uint32_t frame_id, ui
     ret.osRenderQueueEndTime.finalize(ret.frameCount);
     ret.gpuRenderStartTime.finalize(ret.frameCount);
     ret.gpuRenderEndTime.finalize(ret.frameCount);
+
+    return ret;
   }
 
-  return ret;
-}
+  void *getHandle() const override { return nullptr; }
+
+  bool isEnabled() const override
+  {
+    if (!reflex)
+      return false;
+    return reflex->getCurrentMode() != nv::Reflex::ReflexMode::Off;
+  }
+
+  GpuVendor getVendor() const override { return GpuVendor::NVIDIA; }
+
+  bool isVsyncAllowed() const override { return !reflex || reflex->getCurrentMode() == nv::Reflex::ReflexMode::Off; }
+
+private:
+  static nv::Streamline *getStreamline()
+  {
+    nv::Streamline *sl = nullptr;
+    d3d::driver_command(Drv3dCommand::GET_STREAMLINE, &sl);
+    return sl;
+  }
+
+  nv::Reflex *reflex = nullptr;
+  dag::Vector<Mode> modes = {Mode::Off};
+  bool latencyIndicatorEnabled = false;
+};
+
+GpuLatency *create_gpu_latency_nvidia() { return new StreamlineGpuLatency(); }

@@ -222,7 +222,7 @@ void append_arg(String &target, BufferReference const &arg, const char *)
   target.aprintf(128, "BufferReference{buffer: 0x%p, offset: %d, size: %d, resourceId: ", arg.buffer, arg.offset, arg.size);
   append_arg(target, arg.resourceId, nullptr);
   target.aprintf(128, ", srv: 0x%p, uav: 0x%p, clearview: 0x%p, gpuPointer: 0x%p, cpuPointer: 0x%p}", arg.srv.ptr, arg.uav.ptr,
-    arg.clearView.ptr, arg.gpuPointer, arg.cpuPointer);
+    arg.clearView.ptr, arg.gpuPointer(), arg.cpuPointer());
 }
 
 void append_arg(String &target, BufferResourceReference const &arg, const char *)
@@ -574,8 +574,8 @@ void append_arg(String &target, T const &, const char *type)
 }
 
 #define DX12_STORE_CONTEXT_COMMAND_NAME_AND_PRIMACY(Name) \
-  result = "Cmd" #Name;                                   \
-  result.aprintf(128, " (%s)", cmd.is_primary() ? "primary" : "secondary");
+  result += "Cmd" #Name;                                  \
+  result.aprintf(128, " (%s)", cmd.is_primary ? "primary" : "secondary");
 
 #define DX12_BEGIN_CONTEXT_COMMAND(IsPrimary, Name)                                                            \
   const char *cmdToStr(String &result, debug::call_stack::Reporter &call_stack_reporter, const Cmd##Name &cmd) \
@@ -598,6 +598,13 @@ void append_arg(String &target, T const &, const char *type)
     auto &cmd = param.cmd;                                                                                \
     G_UNUSED(cmd);                                                                                        \
     DX12_STORE_CONTEXT_COMMAND_NAME_AND_PRIMACY(Name)
+
+const char *cmdToStr(String &result, debug::call_stack::Reporter &call_stack_reporter, const drv3d_dx12::debug::GPUBreadcrumb &bcrumb)
+{
+  G_UNUSED(call_stack_reporter);
+  G_UNUSED(bcrumb);
+  return result;
+}
 
 #define DX12_CONTEXT_COMMAND_PARAM(type, name) \
   {                                            \
@@ -622,26 +629,111 @@ void append_arg(String &target, T const &, const char *type)
 
 #include <device_context_cmd.inc.h>
 
-#undef DX12_BEGIN_CONTEXT_COMMAND
-#undef DX12_BEGIN_CONTEXT_COMMAND_EXT_1
-#undef DX12_BEGIN_CONTEXT_COMMAND_EXT_2
-#undef DX12_END_CONTEXT_COMMAND
-#undef DX12_CONTEXT_COMMAND_PARAM
-#undef DX12_CONTEXT_COMMAND_PARAM_ARRAY
-#undef DX12_CONTEXT_COMMAND_IMPLEMENTATION
-#undef HANDLE_RETURN_ADDRESS
 #undef DX12_STORE_CONTEXT_COMMAND_NAME_AND_PRIMACY
 
 }
 
 namespace drv3d_dx12::debug::core
 {
-void FrameCommandLogger::dumpFrameCommandLog(FrameCommandLog &frame_log, call_stack::Reporter &call_stack_reporter)
+void FrameCommandLogger::dumpFrameCommandLog(FrameCommandLog &frame_log, debug::DeviceState &device_state,
+  CheckpointValiationMode mode)
 {
+  if (frame_log.lastCheckpoint.isInitial())
+  {
+    logdbg("DX12: Frame %d worker did not execute any commands (was likely disable because of detected device reset)!",
+      frame_log.frameId);
+    return;
+  }
+
+  logdbg("DX12: Frame %d log begin", frame_log.frameId);
   String buffer;
-  logdbg("Frame %d log begin", frame_log.frameId);
+
+  // when the last checkpoint that was recorded was invalid, then all where invalid and no checkpoints are supports
+  const bool hasCheckpointData = CheckpointValiationMode::Validate == mode && frame_log.lastCheckpoint.isValid();
+  const TraceRunStatus traceRunStatus =
+    hasCheckpointData ? device_state.getTraceRunStatusFor(frame_log.lastCheckpoint) : TraceRunStatus::NoTraceData;
+
+  if (TraceRunStatus::CompletedExecution == traceRunStatus)
+  {
+    logdbg("DX12: !!!! GPU has executed all associated commands successfully !!!!");
+  }
+  else if (TraceRunStatus::ErrorDuringExecution == traceRunStatus)
+  {
+    logdbg("DX12: !!!! Some commands where not executed by the GPU !!!!");
+#if _TARGET_PC_WIN
+    CommandListTraceBase::printLegend();
+#endif
+  }
+  else if (TraceRunStatus::NotLaunched == traceRunStatus)
+  {
+    logdbg("DX12: !!!! None of the commands where executed by the GPU !!!!");
+  }
+  else
+  {
+    if (CheckpointValiationMode::Validate == mode)
+    {
+      logdbg("DX12: !!!! No GPU checkpoint data available, can't tell if any command was the cause for the error !!!!");
+    }
+    else
+    {
+      logdbg("DX12: !!!! There was an error during command recording, none of those commands where ever submitted to the GPU !!!!");
+    }
+  }
   logdbg("--------------------");
-  frame_log.log.visitAll([&buffer, &call_stack_reporter](const auto &value) { logdbg(cmdToStr(buffer, call_stack_reporter, value)); });
-  logdbg("Frame %d log end", frame_log.frameId);
+  // complex per entry handling only needed when there was an error during execution, all other modes have the same state for each
+  // command
+  if (TraceRunStatus::ErrorDuringExecution == traceRunStatus)
+  {
+    auto lastPos = frame_log.log.begin();
+    auto checkpointPos = lastPos;
+    TraceCheckpoint lastCheckpoint;
+    do
+    {
+      TraceCheckpoint checkpoint;
+      checkpointPos = frame_log.log.skipUntil(frame_log.log.next(checkpointPos), [&checkpoint](const auto &value) {
+        if constexpr (eastl::is_same<eastl::decay_t<decltype(value)>, drv3d_dx12::debug::GPUBreadcrumb>::value)
+        {
+          checkpoint = value.checkpoint;
+          return true;
+        }
+        else
+        {
+          return false;
+        }
+      });
+
+      auto status = device_state.getTraceStatusFor(checkpoint);
+      auto pfix = prefix(status);
+
+      frame_log.log.visitRange(lastPos, checkpointPos, [pfix, &buffer, &device_state](const auto &value) {
+        buffer = pfix;
+        auto s = cmdToStr(buffer, device_state, value);
+        if (buffer.length() > 5)
+        {
+          logdbg(s);
+        }
+      });
+      // NOTE: this reports entries after lastCheckpoint and including with checkpoint
+      device_state.reportTraceDataForRange(lastCheckpoint, checkpoint);
+
+      // skip over the checkpoint entry
+      lastPos = frame_log.log.next(checkpointPos);
+      lastCheckpoint = checkpoint;
+    } while (checkpointPos);
+  }
+  else
+  {
+    auto pfix = prefix((TraceRunStatus::CompletedExecution == traceRunStatus) ? TraceStatus::Completed : TraceStatus::NotLaunched);
+    // simply mode, just report all the commands without any extra data
+    frame_log.log.visit([pfix, &buffer, &device_state](const auto &value) {
+      buffer = pfix;
+      auto s = cmdToStr(buffer, device_state, value);
+      if (buffer.length() > 5)
+      {
+        logdbg(s);
+      }
+    });
+  }
+  logdbg("DX12: Frame %d log end", frame_log.frameId);
 }
 }

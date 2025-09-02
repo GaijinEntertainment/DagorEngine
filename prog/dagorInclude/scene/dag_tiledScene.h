@@ -11,8 +11,8 @@
 #include <dag/dag_vector.h>
 #include <osApiWrappers/dag_rwLock.h>
 #include <osApiWrappers/dag_atomic.h>
+#include <osApiWrappers/dag_atomic_types.h>
 #include <memory/dag_framemem.h>
-#include <atomic>
 #include <mutex>
 
 namespace scene
@@ -32,6 +32,8 @@ public:
   void term();
   void shrink();
 
+  using SimpleScene::calcNodeBox;
+  using SimpleScene::getAliveNode;
   using SimpleScene::getNode;
   using SimpleScene::getNodeBSphere;
   using SimpleScene::getNodeFlags;
@@ -46,6 +48,8 @@ public:
   using SimpleScene::getPoolSphereRad;
   using SimpleScene::getPoolSphereVerticalCenter;
   using SimpleScene::isAliveNode;
+  using SimpleScene::isAliveNodeFast;
+  using SimpleScene::prefetchNode;
 
   using SimpleScene::checkConsistency;
   using SimpleScene::isInWritingThread;
@@ -76,6 +80,7 @@ public:
                                                                                        // valid
   void setFlags(node_index node, uint16_t flags);
   void unsetFlags(node_index node, uint16_t flags);
+  void unsetFlagsUnordered(dag::ConstSpan<node_index> nodes, uint16_t flags);
   void setPoolBBox(pool_index pool, bbox3f_cref box); // will create pool if missing. Requires 'pool' to be less than 65535
   void setPoolDistanceSqScale(pool_index pool, float dist_scale_sq); // will create pool if missing. Requires 'pool' to be less than
                                                                      // 65535
@@ -195,8 +200,9 @@ protected:
       int32_t nodesCount = 0;
     }; // may be even better to split it from nodes. If kdtree is there, we don't touch nodes until kdtree vis
 #if !KD_LEAVES_ONLY
-    int32_t kdTreeRightNode = 0; // can be even uint16_t if offset, but that doesn't saves us any memory
+    int32_t kdTreeRightNode = 0; // can be even uint16_t if offset
 #endif
+    int16_t maintenanceFlags = 0;
 
     __forceinline bool isDead() const { return nodes == 0; }
     void clear();
@@ -457,7 +463,8 @@ __forceinline void scene::TiledScene::internalFrustumCull(bbox3f_cref bbox, cons
   VisibleNodesF visible_nodes) const
 {
   const uint32_t flags_and_kdtreenodes_count = getKdTreeCountFlags(bbox);
-  if (use_flags && ((flags_and_kdtreenodes_count & equal_flags) != equal_flags))
+  const bool isTileFlagsValid = !(tile.maintenanceFlags & TileData::MFLG_RECALC_FLAGS);
+  if (use_flags && isTileFlagsValid && ((flags_and_kdtreenodes_count & equal_flags) != equal_flags))
     return;
   G_UNUSED(pos_distscale);
   G_FAST_ASSERT(!tile.isDead());
@@ -512,7 +519,7 @@ __forceinline void scene::TiledScene::internalFrustumCull(bbox3f_cref bbox, cons
 #endif
 
       if constexpr (use_flags)
-        if (((flags_nodes_count & equal_flags) != equal_flags)) //-V1051
+        if (isTileFlagsValid && ((flags_nodes_count & equal_flags) != equal_flags)) //-V1051
           continue;
       if constexpr (use_dist)
       {
@@ -860,17 +867,17 @@ struct scene::TiledSceneCullContext
   vec3f plane47X, plane47Y, plane47Z, plane47W;
   uint32_t test_flags;
   uint32_t equal_flags;
-  std::atomic<uint32_t> tilesPassDone{0u}; // flag, set to 1 when code finishes pushing to tiles
+  dag::AtomicInteger<uint32_t> tilesPassDone{0u}; // flag, set to 1 when code finishes pushing to tiles
   int *tilesPtr = nullptr;
   uint32_t &totalTilesCount;
-  std::atomic<uint32_t> tilesCount{0u};
+  dag::AtomicInteger<uint32_t> tilesCount{0u};
   uint32_t tilesMax = 0;
   bool use_dist = false;
   bool needToUnlock = false;
   uint16_t wakeUpOnNTiles = USHRT_MAX;
   void *wake_up_ctx = nullptr;
   void (*wake_up_cb)(void *) = [](void *) {};
-  mutable std::atomic<uint32_t> nextIdxToProcess{0u}; // index in tiles to be processed
+  mutable dag::AtomicInteger<uint32_t> nextIdxToProcess{0u}; // index in tiles to be processed
 
   TiledSceneCullContext(uint32_t &ttc) : totalTilesCount(ttc) {} //-V730
   ~TiledSceneCullContext()
@@ -881,7 +888,7 @@ struct scene::TiledSceneCullContext
 
   void done()
   {
-    G_ASSERTF(tilesCount <= tilesMax, "max=%d count=%d", tilesMax, tilesCount.load());
+    G_ASSERTF(tilesCount.load() <= tilesMax, "max=%d count=%d", tilesMax, tilesCount.load());
     tilesPassDone.store(1);
   }
 };
@@ -904,8 +911,12 @@ void scene::TiledScene::frustumCullTilesPass(mat44f_cref globtm, vec4f pos_dists
   const auto wakeOn = octx.wakeUpOnNTiles;
   uint32_t &totalTilesCount = octx.totalTilesCount;
   auto addTile = [&](int ti) {
-    octx.tilesPtr[octx.tilesCount.load(std::memory_order_relaxed)] = ti;
-    octx.tilesCount++;
+    octx.tilesPtr[octx.tilesCount.load(dag::memory_order_relaxed)] = ti;
+    // TODO: fetch_add(1, seq_cst) was previously done via an implicit operator overload,
+    // might be indicative of a bug in synchronization here. Maybe we shouldn't be doing a
+    // relaxed load beforehand and use fetch_add's result directly, or was this an optimization
+    // that got lost somewhere in refactoring?
+    octx.tilesCount.fetch_add(1);
     if (DAGOR_UNLIKELY(++totalTilesCount == wakeOn))
       octx.wake_up_cb(octx.wake_up_ctx);
   };
@@ -918,7 +929,7 @@ void scene::TiledScene::frustumCullTilesPass(mat44f_cref globtm, vec4f pos_dists
     return;
   }
 
-  octx.tilesCount = 0;
+  octx.tilesCount.store(0);
   octx.tilesPtr = (int *)framemem_ptr()->alloc(sizeof(int) * usedTilesCount);
   octx.tilesMax = usedTilesCount;
 
@@ -996,7 +1007,8 @@ __forceinline void scene::TiledScene::internalBoxCull(bbox3f_cref bbox, const Ti
   uint32_t test_flags, uint32_t equal_flags, VisibleNodesFunctor visible_nodes) const
 {
   const uint32_t flags_and_kdtreenodes_count = getKdTreeCountFlags(bbox);
-  if (use_flags && ((flags_and_kdtreenodes_count & equal_flags) != equal_flags))
+  const bool isTileFlagsValid = !(tile.maintenanceFlags & TileData::MFLG_RECALC_FLAGS);
+  if (use_flags && isTileFlagsValid && ((flags_and_kdtreenodes_count & equal_flags) != equal_flags))
     return;
   G_FAST_ASSERT(!tile.isDead());
   G_UNUSED(equal_flags);
@@ -1030,7 +1042,7 @@ __forceinline void scene::TiledScene::internalBoxCull(bbox3f_cref bbox, const Ti
           start + count, tileData[&tile - tileCull.data()].nodes.size(), kdTreeLeftNode, kdTreeNodeCount);
 #endif
 
-        if (use_flags && ((flags_nodes_count & equal_flags) != equal_flags)) //-V1051
+        if (use_flags && isTileFlagsValid && ((flags_nodes_count & equal_flags) != equal_flags)) //-V1051
           continue;
 
         bbox3f kdBox = kdNode.getBox();
@@ -1064,7 +1076,7 @@ __forceinline void scene::TiledScene::internalBoxCull(bbox3f_cref bbox, const Ti
           start + count, tileData[&tile - tileCull.data()].nodes.size(), kdTreeLeftNode, kdTreeNodeCount);
 #endif
 
-        if (use_flags && ((flags_nodes_count & equal_flags) != equal_flags)) //-V1051
+        if (use_flags && isTileFlagsValid && ((flags_nodes_count & equal_flags) != equal_flags)) //-V1051
           continue;
 
         if (visible.size()) // optimize reallocation by collapsing node

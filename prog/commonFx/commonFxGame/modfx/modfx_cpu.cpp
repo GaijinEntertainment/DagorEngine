@@ -3,7 +3,6 @@
 #include <daFx/dafx.h>
 #include <math/dag_hlsl_floatx.h>
 #include <math/dag_mathUtils.h>
-#include <math/dag_TMatrix4.h>
 #include <daFx/dafx_def.hlsli>
 #include <daFx/dafx_hlsl_funcs.hlsli>
 #include <daFx/dafx_random.hlsli>
@@ -24,8 +23,8 @@ namespace dafx_modfx
 {
 extern void *g_cluster_wind_ctx;
 
-#include "modfx_decl.hlsl"
-#include "modfx.hlsl"
+#include "modfx_decl.hlsli"
+#include "modfx.hlsli"
 
 #include <daFx/dafx_shaders.hlsli>
 } // namespace dafx_modfx

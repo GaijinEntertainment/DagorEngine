@@ -88,7 +88,7 @@ void GenNoise::init()
     genCloudShape.init("gen_cloud_shape_cs", "gen_cloud_shape_ps");
     genCloudDetail.init("gen_cloud_detail_cs", "gen_cloud_detail_ps");
     genMips3d.init("clouds_gen_mips_3d_cs", "clouds_gen_mips_3d_ps");
-    uint32_t fmt = TEXFMT_L8;
+    uint32_t fmt = TEXFMT_R8;
     const int shapeMips = min<int>(MAX_CLOUD_SHAPE_MIPS, get_log2w(shapeRes / 4));
     genCloudShape.initVoltex(cloud1, shapeRes, shapeRes, shapeRes / 4, fmt, shapeMips, "gen_cloud_shape");
     const int detailMips = min<int>(MAX_CLOUD_DETAIL_MIPS, get_log2w(detailRes / 2));
@@ -109,7 +109,8 @@ void GenNoise::init()
     cloudsCurl2d.close();
     cloudsCurl2d = dag::create_tex(0, CLOUD_CURL_RES, CLOUD_CURL_RES, TEXFMT_R8G8S | (genCurl2d ? TEXCF_UNORDERED : TEXCF_RTARGET), 1,
       "clouds_curl_2d");
-    cloudsCurl2d->disableSampler();
+    if (!cloudsCurl2d)
+      return;
     ShaderGlobal::set_sampler(::get_shader_variable_id("clouds_curl_2d_samplerstate"), d3d::request_sampler({}));
   }
 }
@@ -195,6 +196,12 @@ bool GenNoise::renderCurl()
 {
   if (curlRendered)
     return false;
+
+  if (!cloudsCurl2d)
+  {
+    LOGERR_ONCE("cloudsCurl2d texture was not created");
+    return false;
+  }
 
   {
     TIME_D3D_PROFILE(cloud_curl2d);

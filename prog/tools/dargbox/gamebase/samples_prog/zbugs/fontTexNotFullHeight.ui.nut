@@ -50,7 +50,7 @@ let mkGradRow = @(fontSize) {
   valign = ALIGN_CENTER
   gap = 0.1* fontSize
   children = bovVariants.map(@(_calcBov) {
-    size = [SIZE_TO_CONTENT, flex()]
+    size = FLEX_V
     valign = ALIGN_CENTER
     children = [
       {

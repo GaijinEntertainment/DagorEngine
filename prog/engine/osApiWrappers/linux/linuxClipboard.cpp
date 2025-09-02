@@ -22,6 +22,7 @@ namespace clipboard_private
 static bool selection_ready = false;
 
 void set_selection_ready() { selection_ready = true; }
+static Window getWindowFromPtrHandle(void *w) { return (intptr_t)w; }
 
 } // namespace clipboard_private
 
@@ -40,7 +41,7 @@ bool get_clipboard_utf8_text(char *dest, int buf_size)
   if (XA_CLIPBOARD == None)
     return false;
 
-  Window window = *(Window *)win32_get_main_wnd();
+  Window window = getWindowFromPtrHandle(win32_get_main_wnd());
   Atom format = XInternAtom(display, "UTF8_STRING", False);
   Window owner = XGetSelectionOwner(display, XA_CLIPBOARD);
   Atom selection;
@@ -101,7 +102,7 @@ bool set_clipboard_utf8_text(const char *text)
 {
   Display *display = workcycle_internal::get_root_display();
   Atom XA_CLIPBOARD = XInternAtom(display, "CLIPBOARD", 0);
-  Window window = *(Window *)win32_get_main_wnd();
+  Window window = getWindowFromPtrHandle(win32_get_main_wnd());
   Atom format = XInternAtom(display, "UTF8_STRING", False);
   XChangeProperty(display, DefaultRootWindow(display), XA_CUT_BUFFER0, format, 8, PropModeReplace, (const unsigned char *)text,
     strlen(text));
@@ -118,6 +119,12 @@ bool set_clipboard_bmp_image(TexPixel32 * /*im*/, int /*wd*/, int /*ht*/, int /*
   return false;
 }
 
+bool set_clipboard_file(const char * /*filename*/)
+{
+  // no implementation yet
+  return false;
+}
+
 
 } // namespace clipboard
 
@@ -129,6 +136,8 @@ bool set_clipboard_ansi_text(const char *) { return false; }
 bool get_clipboard_utf8_text(char *, int) { return false; }
 bool set_clipboard_utf8_text(const char *) { return false; }
 bool set_clipboard_bmp_image(TexPixel32 * /*im*/, int /*wd*/, int /*ht*/, int /*stride*/) { return false; }
+bool set_clipboard_file(const char * /*filename*/) { return false; }
+
 } // namespace clipboard
 namespace clipboard_private
 {

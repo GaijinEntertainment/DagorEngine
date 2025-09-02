@@ -13,8 +13,8 @@ public:
   SplineShape *shp;
 
   ShapeHolderObj(SplineShape *s = NULL);
-  ~ShapeHolderObj();
+  ~ShapeHolderObj() override;
   void setshape(SplineShape *);
-  int classid();
-  bool isSubOf(unsigned);
+  int classid() override;
+  bool isSubOf(unsigned) override;
 };

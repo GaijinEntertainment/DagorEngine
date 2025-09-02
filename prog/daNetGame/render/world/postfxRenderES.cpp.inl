@@ -13,7 +13,7 @@
 #include <render/resolution.h>
 #include <util/dag_console.h>
 #include "postfxRender.h"
-#include <render/daBfg/ecs/frameGraphNode.h>
+#include <render/daFrameGraph/ecs/frameGraphNode.h>
 #include "render/world/frameGraphNodes/frameGraphNodes.h"
 #include <drv/3d/dag_texture.h>
 
@@ -47,13 +47,13 @@ static IPoint2 get_dof_resolution(const IPoint2 &postfx_resolution, const IPoint
 {
   if (rendering_resolution == postfx_resolution || rendering_resolution == postfx_resolution / 2)
     return postfx_resolution;
-  if (rendering_resolution.y < postfx_resolution.y / 2)
+  if (rendering_resolution.x <= postfx_resolution.x / 2 && rendering_resolution.y <= postfx_resolution.y / 2)
     return rendering_resolution * 2;
-  if (rendering_resolution.y < postfx_resolution.y)
+  if (rendering_resolution.x <= postfx_resolution.x && rendering_resolution.y <= postfx_resolution.y)
     return rendering_resolution;
   if (REPORT_DEBUG)
-    logerr("Unexpected resolutions in get_dof_resolution. DoF only supports rendering resolutions lower than postfx "
-           "resolution. postfx_resolution: %dx%d, rendering_resolution: %dx%d.",
+    logerr("Unexpected resolutions in get_dof_resolution. DoF only supports rendering resolutions lower than "
+           "or equal to postfx resolution. postfx_resolution: %dx%d, rendering_resolution: %dx%d.",
       postfx_resolution.x, postfx_resolution.y, rendering_resolution.x, rendering_resolution.y);
   return postfx_resolution;
 }
@@ -119,8 +119,8 @@ static void init_dof_params_es(const ecs::Event &,
   float dof__bokehShape_kernelSize,
   float dof__bokehShape_bladesCount,
   float dof__minCheckDistance,
-  dabfg::NodeHandle *dof__depth_for_transparency_node_handle = nullptr,
-  dabfg::NodeHandle *dof__downsample_depth_for_transparency_node_handle = nullptr)
+  dafg::NodeHandle *dof__depth_for_transparency_node_handle = nullptr,
+  dafg::NodeHandle *dof__downsample_depth_for_transparency_node_handle = nullptr)
 {
   if (dof__on)
   {
@@ -278,30 +278,30 @@ REGISTER_CONSOLE_HANDLER(dof_console_handler);
 
 template <typename Callable>
 static void postfx_bind_additional_textures_from_registry_ecs_query(Callable c);
-void postfx_bind_additional_textures_from_registry(dabfg::Registry &registry)
+void postfx_bind_additional_textures_from_registry(dafg::Registry &registry)
 {
   postfx_bind_additional_textures_from_registry_ecs_query([&registry](const ecs::StringList &postfx__additional_bind_textures) {
     for (const ecs::string texName : postfx__additional_bind_textures)
-      registry.readTexture(texName.c_str()).atStage(dabfg::Stage::PS).bindToShaderVar(texName.c_str()).optional();
+      registry.readTexture(texName.c_str()).atStage(dafg::Stage::PS).bindToShaderVar(texName.c_str()).optional();
   });
 }
 
 template <typename Callable>
 static void postfx_bind_additional_textures_from_namespace_ecs_query(Callable c);
-void postfx_bind_additional_textures_from_namespace(dabfg::NameSpaceRequest &ns)
+void postfx_bind_additional_textures_from_namespace(dafg::NameSpaceRequest &ns)
 {
   postfx_bind_additional_textures_from_namespace_ecs_query([&ns](const ecs::StringList &postfx__additional_bind_textures) {
     for (const ecs::string texName : postfx__additional_bind_textures)
-      ns.readTexture(texName.c_str()).atStage(dabfg::Stage::POST_RASTER).bindToShaderVar(texName.c_str()).optional();
+      ns.readTexture(texName.c_str()).atStage(dafg::Stage::POST_RASTER).bindToShaderVar(texName.c_str()).optional();
   });
 }
 
 template <typename Callable>
 static void postfx_read_additional_textures_from_registry_ecs_query(Callable c);
-void postfx_read_additional_textures_from_registry(dabfg::Registry &registry)
+void postfx_read_additional_textures_from_registry(dafg::Registry &registry)
 {
   postfx_read_additional_textures_from_registry_ecs_query([&registry](const ecs::StringList &postfx__additional_read_textures) {
     for (const ecs::string texName : postfx__additional_read_textures)
-      registry.readTexture(texName.c_str()).atStage(dabfg::Stage::POST_RASTER).useAs(dabfg::Usage::SHADER_RESOURCE).optional();
+      registry.readTexture(texName.c_str()).atStage(dafg::Stage::POST_RASTER).useAs(dafg::Usage::SHADER_RESOURCE).optional();
   });
 }

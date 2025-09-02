@@ -1,0 +1,187 @@
+import{
+  scene:t="gamedata/scenes/_session_limits.blk"
+}
+
+entity{
+  _template:t="static_cam"
+  camera__active:b=yes
+  transform:m=[[0, 0, -1] [0, 1, 0] [1, 0, 0] [0, 0, 0]]
+}
+
+entity{
+  _template:t="level"
+  level__blk:t="content/outer_space/levels/sample_gaija_planet.blk"
+  level__timeRange:p2=18, 18
+
+  "level__weatherChoice:object"{
+    "gamedata/weather/weather_almost_clear.blk":r=1
+  }
+}
+
+entity{
+  _template:t="shaderVars"
+
+  "shader_vars__vars:object"{
+    ocean1:c=90, 100, 150, 0
+    ocean0:c=100, 110, 150, 0
+    ocean_density:r=1
+    river1:c=41, 104, 83, 0
+    river0:c=30, 81, 63, 0
+    cliff_color_overlay_map_left_top_right_bottom:p4=-2048, 2048, 2048, -2048
+    paint_details_tex:t="sample_colors_tex_palette*"
+    water_color_noise_size:r=71
+    rendinst_landscape_area_left_top_right_bottom:p4=-3072, 2048, -2048, 1024
+    cliff_color_overlay_map_tex:t="sample_level_dalniy_det_cliff_color_tex_d*"
+    river_density:r=2
+  }
+}
+
+import{
+  scene:t="gamedata/scenes/_sample_gaija_planet_gpu_objects.blk"
+}
+
+entity{
+  _template:t="water"
+  water__strength:r=1
+  water__level:r=0
+  water__flowmap:b=yes
+  water__has_slopes:b=no
+  water__flowmap_tex:t="sample_level_dalniy_det_water_tex_f"
+  water__flowmap_area:p4=-2048, 2048, 2048, -2048
+  water__flowmap_foam_power:r=0.5
+  water__flowmap_foam_scale:r=1
+  water__flowmap_foam_threshold:r=1
+  water__flowmap_foam_smoothness:r=0.0
+  water__flowmap_prebaked_speed:r=6
+  water__flowmap_prebaked_foam_scale:r=1
+  water__flowmap_prebaked_foam_power:r=1
+  water__flowmap_prebaked_foamfx:r=1
+  water__flowmap_min_distance:r=0.5
+  water__flowmap_max_distance:r=1
+  water__flowmap_simulated_speed:r=1
+  water__flowmap_simulated_foam_scale:r=1
+  water__flowmap_speed_depth_scale:r=0.4
+  water__flowmap_foam_speed_scale:r=1
+  water__flowmap_speed_depth_max:r=0.2
+  water__flowmap_foam_depth_max:r=0.8
+  water__flowmap_slope:r=2
+  water__flowmap_fading:r=1.5
+  foamfx__tile_uv_scale:r=0.271
+  foamfx__distortion_scale:r=0.5
+  foamfx__normal_scale:r=0.04
+  foamfx__pattern_gamma:r=1
+  foamfx__mask_gamma:r=1
+  foamfx__gradient_gamma:r=0.5
+  foamfx__underfoam_threshold:r=0.2
+  foamfx__overfoam_threshold:r=0.5
+  foamfx__underfoam_weight:r=0.3
+  foamfx__overfoam_weight:r=1
+  foamfx__tile_tex:t="foam_generator_a_tile_tex_n"
+  foamfx__gradient_tex:t="foam_generator_a_gradient_tex_n"
+  foamfx__underfoam_color:p3=0.3, 0.8, 0.5
+  foamfx__overfoam_color:p3=1, 1, 1
+  //water__colormap_tex:t="sample_level_dalniy_det_water_tex_f"
+  //water__colormap_area:p4=-2048, 2048, 2048, -2048
+}
+
+entity{
+  _template:t="wind"
+  wind__noiseScale:r=100
+  wind__noiseSpeed:r=4
+  wind__strength:r=2
+}
+
+entity{
+  _template:t="teamRespawnBase"
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [-253.441, 20.1, -79.1536]]
+}
+
+entity{
+  _template:t="teamRespawnBase"
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [-253.441, 20.1, -89.1536]]
+}
+
+entity{
+  _template:t="teamRespawnBase"
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [-243.441, 20.1, -79.1536]]
+}
+
+entity{
+  _template:t="teamRespawnBase"
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [-243.441, 20.1, -89.1536]]
+}
+
+entity{
+  _template:t="phys_gravity_controller"
+}
+
+entity{
+  _template:t="bloom"
+}
+
+entity{
+  _template:t="humans_grid"
+}
+
+entity{
+  _template:t="vehicles_grid"
+}
+
+entity{
+  _template:t="race_music"
+}
+
+entity{
+  _template:t="beacon_fx"
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [-78.5422, 87.6473, 395.784]]
+}
+
+entity{
+  _template:t="orb_fx"
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [-74.2022, 97.1815, -14.3062]]
+}
+
+entity{
+  _template:t="small_orb_fx"
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [-168.419, 42.9585, -58.0397]]
+}
+
+entity{
+  _template:t="orb_fx"
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [-8.54076, 84.4435, 48.3909]]
+}
+
+entity{
+  _template:t="orb_fx"
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [-84.9033, 82.5864, 212.406]]
+}
+
+entity{
+  _template:t="orb_fx"
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [-155.999, 77.7597, 447.951]]
+}
+
+entity{
+  _template:t="orb_fx"
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [-272.469, 77.7597, 440.976]]
+}
+
+entity{
+  _template:t="orb_fx"
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [-369.534, 66.8369, 352.042]]
+}
+
+entity{
+  _template:t="orb_fx"
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [-294.475, 72.7267, 253.819]]
+}
+
+entity{
+  _template:t="orb_fx"
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [68.7552, 103.277, 115.002]]
+}
+
+entity{
+  _template:t="small_orb_fx"
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [-246.56, 47.7931, 105.479]]
+}

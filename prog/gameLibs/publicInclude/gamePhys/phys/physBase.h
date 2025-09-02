@@ -4,6 +4,9 @@
 //
 #pragma once
 
+class Point3;
+class DPoint3;
+class Quat;
 namespace gamephys
 {
 struct Loc;
@@ -47,7 +50,6 @@ public:
   virtual dag::ConstSpan<CollisionObject> getCollisionObjects() const = 0;
   virtual uint64_t getActiveCollisionObjectsBitMask() const = 0;
   virtual TMatrix getCollisionObjectsMatrix() const = 0;
-  virtual dag::Span<CollisionObject> getMutableCollisionObjects() const = 0;
   virtual void prepareCollisions(daphys::SolverBodyInfo &body1, daphys::SolverBodyInfo &body2, bool first_body, float friction,
     dag::Span<gamephys::CollisionContactData> contacts, dag::Span<gamephys::SeqImpulseInfo> collisions) const = 0;
   virtual const gamephys::Loc &getVisualStateLoc() const = 0;

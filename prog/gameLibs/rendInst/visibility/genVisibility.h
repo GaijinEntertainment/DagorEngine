@@ -53,13 +53,13 @@ struct RiGenVisibility
   struct CellRange
   {
     int startVbOfs;
-    // if ever assert appeared - change to bitfield!
-    uint16_t startSubCell;    // in subCells array. Since subCells are not more than 64*MAX_VISIBLE_CELLS, 64*256 < 64k, in each render
-                              // range. However, it really depends on render ranges count.
-    uint16_t startSubCellCnt; // in subCells array, always <=64
-    // change to it if assert!
-    // uint32_t startSubCell:25;//
-    // uint32_t startSubCellCnt:7;// in subCells array, always <=64.
+    static const uint32_t MAX_SUBCELL_SIZE = (1 << 25) - 1;
+    // In subCells array. Technically subCells are not more than 64*MAX_VISIBLE_CELLS, 64*256 < 64k, in
+    // each render range. However, it really depends on render ranges count. Limit exceeded once already!
+    // Probably won't occur again, but in case, startSubCell has to be enlarged somehow...
+    uint32_t startSubCell : 25;
+    // in subCells array, always <=64.
+    uint32_t startSubCellCnt : 7;
     uint16_t x, z;
     // NOTE: it seems that uninitialized fields are intended here, but
     // the code can probably be rewritten in a less confusing way.
@@ -156,7 +156,7 @@ struct RiGenVisibility
     int lastSubCell = endSubCell - 1;
     if (cell.startSubCellCnt && subCells[lastSubCell].ofs + subCells[lastSubCell].cnt == ofs)
     {
-      G_ASSERT(subCells[lastSubCell].cnt + sz <= 0xFFFF);
+      G_ASSERT(subCells[lastSubCell].cnt + sz <= CellRange::MAX_SUBCELL_SIZE);
       subCells[lastSubCell].cnt += sz;
       return;
     }
@@ -215,7 +215,7 @@ struct RiGenVisibility
     int rangeCount = RendInstGenData::SUBCELL_DIV * RendInstGenData::SUBCELL_DIV / 2 + 1)
   {
     int startSubCell = append_items(subCells, rangeCount);
-    G_ASSERT(subCells.size() <= 0xFFFF); // if ever appeared, change startSubCell, startSubCellCnt to bitfield (see above)
+    G_ASSERT(subCells.size() <= CellRange::MAX_SUBCELL_SIZE); // if ever appeared, size of CellRange has to be increased (check above)
     int idx = cellsLod[lodI].size();
     cellsLod[lodI].push_back(CellRange(x, z, startVbOfs, startSubCell));
     return idx;

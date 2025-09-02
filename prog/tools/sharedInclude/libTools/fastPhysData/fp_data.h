@@ -74,17 +74,17 @@ public:
   bool exportFastPhys(mkbindump::BinDumpSaveCB &cwr);
 
   // IFpdExport implementation
-  virtual void getPointGroup(int grp_id, int &first_pt, int &num_pts);
-  virtual void countAction() { actionCounter++; }
-  virtual FpdBone *getBoneByName(const char *name);
-  virtual FpdPoint *getPointByName(const char *name);
-  virtual int getPointIndex(FpdObject *po);
-  virtual const char *getNodeName(dag::Index16 node) const { return nodeTree.getNodeName(node); }
+  void getPointGroup(int grp_id, int &first_pt, int &num_pts) override;
+  void countAction() override { actionCounter++; }
+  FpdBone *getBoneByName(const char *name) override;
+  FpdPoint *getPointByName(const char *name) override;
+  int getPointIndex(FpdObject *po) override;
+  const char *getNodeName(dag::Index16 node) const override { return nodeTree.getNodeName(node); }
 
   // IFpdLoad implementation
-  virtual FpdAction *loadAction(const DataBlock &blk) { return load_action(blk, *this); }
+  FpdAction *loadAction(const DataBlock &blk) override { return load_action(blk, *this); }
   GeomNodeTree &getGeomTree() override { return nodeTree; }
-  virtual FpdObject *getEdObjectByName(const char *name);
+  FpdObject *getEdObjectByName(const char *name) override;
 
 protected:
   void exportAction(mkbindump::BinDumpSaveCB &cwr, FpdAction *action);
@@ -117,10 +117,10 @@ public:
 public:
   FpdContainerAction(const char *name) : subActions(midmem) { actionName = name; }
 
-  virtual FpdObject *getObject() { return NULL; }
-  virtual void save(DataBlock &blk, const GeomNodeTree &tree);
-  virtual bool load(const DataBlock &blk, IFpdLoad &loader);
-  virtual void exportAction(mkbindump::BinDumpSaveCB &cwr, IFpdExport &exp);
+  FpdObject *getObject() override { return NULL; }
+  void save(DataBlock &blk, const GeomNodeTree &tree) override;
+  bool load(const DataBlock &blk, IFpdLoad &loader) override;
+  void exportAction(mkbindump::BinDumpSaveCB &cwr, IFpdExport &exp) override;
 
   void insertAction(FpdAction *action, int at = -1);
   const PtrTab<FpdAction> &getSubActions() const { return subActions; }
@@ -138,7 +138,7 @@ public:
 
   FpdContainerAction *getContainerByName(const char *name) { return rtti_cast<FpdContainerAction>(getActionByName(name)); }
 
-  virtual bool isSubOf(DClassID id) { return id == FpdContainerAction::HUID || FpdAction::isSubOf(id); }
+  bool isSubOf(DClassID id) override { return id == FpdContainerAction::HUID || FpdAction::isSubOf(id); }
 
 protected:
   PtrTab<FpdAction> subActions;
@@ -151,10 +151,10 @@ class FpdIntegratorAction : public FpdAction
 public:
   FpdIntegratorAction() { actionName = "integrate"; }
 
-  virtual FpdObject *getObject() { return NULL; }
-  virtual void save(DataBlock &blk, const GeomNodeTree &tree);
-  virtual bool load(const DataBlock &blk, IFpdLoad &loader);
-  virtual void exportAction(mkbindump::BinDumpSaveCB &cwr, IFpdExport &exp);
+  FpdObject *getObject() override { return NULL; }
+  void save(DataBlock &blk, const GeomNodeTree &tree) override;
+  bool load(const DataBlock &blk, IFpdLoad &loader) override;
+  void exportAction(mkbindump::BinDumpSaveCB &cwr, IFpdExport &exp) override;
 };
 
 
@@ -185,7 +185,7 @@ public:
   virtual void initActions(FpdContainerAction *init_a, FpdContainerAction *upd_a, IFpdLoad &ld) = 0;
   virtual void getActions(Tab<FpdAction *> &actions) = 0;
 
-  virtual bool isSubOf(DClassID id) { return id == FpdObject::HUID || DObject::isSubOf(id); }
+  bool isSubOf(DClassID id) override { return id == FpdObject::HUID || DObject::isSubOf(id); }
 
 protected:
   SimpleString name;

@@ -12,26 +12,26 @@ var
 
 [es(tag=(dev, gameClient), on_event=EventOnGameAppStarted)]
 def client_broadcast_systems_validation(evt : Event)
-  broadcastEvent([[VerifyEcsSystems]])
+  broadcastEvent(VerifyEcsSystems())
 
 
 [es(tag=(dev, netClient), on_event=EventOnConnectedToServer)]
 def net_client_broadcast_systems_validation(evt : Event)
-  broadcastEvent([[VerifyEcsSystems]])
+  broadcastEvent(VerifyEcsSystems())
 
 [es(tag=(dev, server), on_event=EventLevelLoaded)]
 def server_broadcast_systems_validation(evt : Event)
-  broadcastEvent([[VerifyEcsSystems]])
+  broadcastEvent(VerifyEcsSystems())
 
 [es(tag=(dev, playingReplay), on_event=EventLevelLoaded)]
 def replay_broadcast_systems_validation(evt : Event)
-  broadcastEvent([[VerifyEcsSystems]])
+  broadcastEvent(VerifyEcsSystems())
 
 
 [es(tag=dev, on_event=EventLevelLoaded)]
 def broadcast_templates_validation(evt : Event)
   levelWasLoaded = true
-  broadcastEvent([[VerifyEcsTemplates]])
+  broadcastEvent(VerifyEcsTemplates())
 
 
 [es(tag=dev)]

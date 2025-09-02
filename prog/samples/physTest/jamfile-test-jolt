@@ -1,6 +1,5 @@
 Root    ?= ../../.. ;               # directory where 'prog' located
 PhysEngine = JOLT ;
-PlatformArch_windows = x86_64 ;
 
 include $(Root)/prog/samples/physTest/jamfile-phys-test ;
 include $(Root)/prog/_jBuild/build.jam ;

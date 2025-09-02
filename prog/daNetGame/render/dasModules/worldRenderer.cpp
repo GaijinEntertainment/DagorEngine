@@ -7,10 +7,11 @@
 #include <dasModules/aotDagorMath.h>
 #include <dasModules/dasModulesCommon.h>
 #include <dasModules/aotDagorDriver3d.h>
+#include <dasModules/scene.h>
 #include <render/fx/uiPostFxManager.h>
 #include <dasModules/dagorTexture3d.h>
 #include <rendInst/gpuObjects.h>
-#include <render/daBfg/das/registerBlobType.h>
+#include <render/daFrameGraph/das/registerBlobType.h>
 
 
 DAS_BASE_BIND_ENUM(FeatureRenderFlags,
@@ -81,6 +82,13 @@ struct CameraParamsAnnotation : das::ManagedStructureAnnotation<CameraParams, fa
   }
 };
 
+struct VisibilityMgrAnnotation : das::ManagedStructureAnnotation<CameraViewVisibilityMgr, false>
+{
+  VisibilityMgrAnnotation(das::ModuleLibrary &ml) :
+    ManagedStructureAnnotation("CameraViewVisibilityMgr", ml, "::CameraViewVisibilityMgr")
+  {}
+};
+
 class WorldRendererModule final : public das::Module
 {
 public:
@@ -89,9 +97,12 @@ public:
     das::ModuleLibrary lib(this);
     addBuiltinDependency(lib, require("DagorMath"));
     addBuiltinDependency(lib, require("DagorTexture3D"));
+    addBuiltinDependency(lib, require("Scene"));
 
     addAnnotation(das::make_smart<CameraParamsAnnotation>(lib));
-    dabfg::das::register_external_interop_type<CameraParams>(lib);
+    addAnnotation(das::make_smart<VisibilityMgrAnnotation>(lib));
+    dafg::das::register_interop_type<CameraViewVisibilityMgr *>(lib);
+    dafg::das::register_interop_type<CameraParams>(lib);
 
     addEnumeration(das::make_smart<EnumerationRenderPass>());
     das::addEnumFlagOps<UpdateStageInfoRender::RenderPass>(*this, lib, "UpdateStageInfoRender::RenderPass");
@@ -113,11 +124,11 @@ public:
       das::SideEffects::modifyExternal, "bind_dascript::worldRenderer_shadowsInvalidate");
     das::addExtern<DAS_BIND_FUN(bind_dascript::worldRenderer_invalidateAllShadows)>(*this, lib, "worldRenderer_invalidateAllShadows",
       das::SideEffects::modifyExternal, "bind_dascript::worldRenderer_invalidateAllShadows");
-    das::addExtern<DAS_BIND_FUN(bind_dascript::worldRenderer_renderDebug)>(*this, lib, "worldRenderer_renderDebug",
-      das::SideEffects::modifyExternal, "bind_dascript::worldRenderer_renderDebug");
     das::addExtern<DAS_BIND_FUN(bind_dascript::worldRenderer_getDynamicResolutionTargetFps)>(*this, lib,
       "worldRenderer_getDynamicResolutionTargetFps", das::SideEffects::accessExternal,
       "bind_dascript::worldRenderer_getDynamicResolutionTargetFps");
+    das::addExtern<DAS_BIND_FUN(bind_dascript::worldRenderer_setDaGdpRangeScale)>(*this, lib, "worldRenderer_setDaGdpRangeScale",
+      das::SideEffects::modifyExternal, "bind_dascript::worldRenderer_setDaGdpRangeScale");
     das::addExtern<DAS_BIND_FUN(bind_dascript::does_world_renderer_exist)>(*this, lib, "does_world_renderer_exist",
       das::SideEffects::accessExternal, "bind_dascript::does_world_renderer_exist");
 
@@ -127,6 +138,8 @@ public:
       das::SideEffects::modifyArgument, "::get_rendering_resolution");
     das::addExtern<void (*)(int &, int &), &::get_postfx_resolution>(*this, lib, "get_postfx_resolution",
       das::SideEffects::modifyArgument, "::get_postfx_resolution");
+    das::addExtern<DAS_BIND_FUN(::invalidate_ssr_history)>(*this, lib, "invalidate_ssr_history", das::SideEffects::modifyExternal,
+      "::invalidate_ssr_history");
 
     G_UNUSED(pf);
 

@@ -50,6 +50,22 @@
 #include <unordered_set>
 #include <vector>
 
+namespace carve {
+
+// Same as std::iterator but without the deprecated attribute.
+template<typename _Category, typename _Tp, typename _Distance = ptrdiff_t,
+          typename _Pointer = _Tp*, typename _Reference = _Tp&>
+struct StdIterator
+{
+  typedef _Category  iterator_category;
+  typedef _Tp        value_type;
+  typedef _Distance  difference_type;
+  typedef _Pointer   pointer;
+  typedef _Reference reference;
+};
+
+} // namespace carve
+
 #include <carve/collection.hpp>
 
 #include <carve/util.hpp>

@@ -20,7 +20,7 @@ real square_rec(int iter_no, real val, real *hashed_iter)
 int get_cos_power_from_ang(real alfa, real part, real &real_part)
 {
   const int maxDegree = 100000;
-  real alfaIters[(maxDegree - 1) / 2], oneIters[(maxDegree - 1) / 2], zeroIters[(maxDegree - 1) / 2];
+  static real alfaIters[(maxDegree - 1) / 2], oneIters[(maxDegree - 1) / 2], zeroIters[(maxDegree - 1) / 2];
   int d = 0;
   int k = 0;
   for (d = 1; d < maxDegree; d += 2)

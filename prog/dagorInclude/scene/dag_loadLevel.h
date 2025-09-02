@@ -4,13 +4,14 @@
 //
 #pragma once
 
-#include <generic/dag_span.h>
-#include <3d/dag_texMgr.h>
-#include <math/dag_mathBase.h>
+#include <generic/dag_tabFwd.h>
 
 // extern classes forward declaration
+class BBox3;
 class RenderScene;
 class IGenLoad;
+class D3DRESID;
+typedef D3DRESID TEXTUREID;
 
 //
 // Dagor Binary Level Data loader client interface

@@ -75,6 +75,7 @@
 #include <webui/sqDebuggerPlugin.h>
 #include <quirrel/sqDebugger/sqDebugger.h>
 #include <quirrel/sqDebugger/scriptProfiler.h>
+#include <quirrel/lastInputMonitor/lastInputMonitor.h>
 #if HAS_MATCHING_MODULE
 #include <quirrel/matchingModule/matchingModule.h>
 #endif
@@ -101,6 +102,7 @@
 #include <drv/hid/dag_hiJoystick.h>
 
 #include <folders/folders.h>
+#include <util/dag_delayedAction.h>
 
 // Error log:
 //  0 - disabled
@@ -110,13 +112,13 @@
 //  4 - fatal + error + warning + note messages
 #define LOG_LEVEL 3
 
-bool scripts_used = true;
-int requested_exit_code = -1;
-int cur_update = 0;
-int limit_updates = 0;
-bool benchmark = false;
-bool do_render = true;
-bool use_system_cursor = false;
+static bool scripts_used = true;
+static int requested_exit_code_by_script = -1;
+static int cur_update = 0;
+static int limit_updates = 0;
+static bool do_render = true;
+static bool use_system_cursor = false;
+static bool had_darg_error = false;
 
 static int globalFrameBlockId = -1;
 
@@ -128,6 +130,15 @@ static eastl::unique_ptr<ioevents::IOEventsPoll> io_events_poll;
 
 static darg::IGuiScene *darg_scene = NULL;
 static darg::JoystickHandler *joystick_handler = NULL;
+
+int dargbox_get_exit_code()
+{
+  if (had_darg_error)
+    return 1;
+  if (requested_exit_code_by_script >= 0)
+    return requested_exit_code_by_script;
+  return 0;
+}
 
 darg::IGuiScene *get_ui_scene() { return darg_scene; }
 
@@ -158,7 +169,7 @@ PULL_CONSOLE_PROC(darg_console_handler)
 
 static struct GuiSceneCb : public darg::IGuiSceneCallback
 {
-  void onScriptError(darg::IGuiScene * /*scene*/, const char * /*err_msg*/) override {}
+  void onScriptError(darg::IGuiScene * /*scene*/, const char * /*err_msg*/) override { had_darg_error = true; }
   void onDismissError() override {}
   void onShutdownScript(HSQUIRRELVM vm) override
   {
@@ -263,7 +274,6 @@ class UiGameScene : public DagorGameScene,
                     public HumanInput::IGenJoystickClient
 {
   IPoint2 lastCursorPos;
-  UniqueTex panelCursor;
 
 public:
   UiGameScene()
@@ -298,7 +308,7 @@ public:
     HumanInput::stg_pnt.allowEmulatedLMB = false; // disable xbox gamepad click emulation
   }
 
-  virtual ~UiGameScene()
+  ~UiGameScene() override
   {
     closeDargScene();
 
@@ -329,7 +339,6 @@ public:
 
   void closeDargScene()
   {
-    panelCursor.close();
     del_it(joystick_handler);
     del_it(darg_scene);
   }
@@ -362,9 +371,6 @@ public:
         else
           texels->u = 0xFFFFFFFFU;
       }
-    panelCursor = dag::create_tex(img.get(), cursorSize, cursorSize, TEXFMT_DEFAULT, 1, "panel_cursor");
-    panelCursor.getTex2D()->texaddr(TEXADDR_BORDER);
-    panelCursor.getTex2D()->texbordercolor(E3DCOLOR(0, 0, 0, 0));
 
     vr::apply_all_user_preferences();
   }
@@ -428,8 +434,8 @@ public:
 
 
 #if _TARGET_PC || _TARGET_ANDROID || _TARGET_C3
-  virtual void attached(HumanInput::IGenPointing * /*pnt*/) {}
-  virtual void detached(HumanInput::IGenPointing * /*pnt*/) {}
+  void attached(HumanInput::IGenPointing * /*pnt*/) override {}
+  void detached(HumanInput::IGenPointing * /*pnt*/) override {}
 
   void gmcMouseMove(HumanInput::IGenPointing *mouse, float /*dx*/, float /*dy*/) override
   {
@@ -471,40 +477,40 @@ public:
     }
   }
 
-  virtual void gmcTouchBegan(HumanInput::IGenPointing *pnt, int touch_idx, const HumanInput::PointingRawState::Touch &touch) override
+  void gmcTouchBegan(HumanInput::IGenPointing *pnt, int touch_idx, const HumanInput::PointingRawState::Touch &touch) override
   {
     if (darg_scene)
       darg_scene->onTouchEvent(darg::INP_EV_PRESS, pnt, touch_idx, touch);
   }
 
-  virtual void gmcTouchMoved(HumanInput::IGenPointing *pnt, int touch_idx, const HumanInput::PointingRawState::Touch &touch) override
+  void gmcTouchMoved(HumanInput::IGenPointing *pnt, int touch_idx, const HumanInput::PointingRawState::Touch &touch) override
   {
     if (darg_scene)
       darg_scene->onTouchEvent(darg::INP_EV_POINTER_MOVE, pnt, touch_idx, touch);
   }
 
-  virtual void gmcTouchEnded(HumanInput::IGenPointing *pnt, int touch_idx, const HumanInput::PointingRawState::Touch &touch) override
+  void gmcTouchEnded(HumanInput::IGenPointing *pnt, int touch_idx, const HumanInput::PointingRawState::Touch &touch) override
   {
     if (darg_scene)
       darg_scene->onTouchEvent(darg::INP_EV_RELEASE, pnt, touch_idx, touch);
   }
 
-  virtual void attached(HumanInput::IGenKeyboard * /*kbd*/) {}
-  virtual void detached(HumanInput::IGenKeyboard * /*kbd*/) {}
+  void attached(HumanInput::IGenKeyboard * /*kbd*/) override {}
+  void detached(HumanInput::IGenKeyboard * /*kbd*/) override {}
 
-  virtual void gkcLayoutChanged(HumanInput::IGenKeyboard *, const char *layout) override
+  void gkcLayoutChanged(HumanInput::IGenKeyboard *, const char *layout) override
   {
     if (darg_scene)
       darg_scene->onKeyboardLayoutChanged(layout);
   }
 
-  virtual void gkcLocksChanged(HumanInput::IGenKeyboard *, unsigned locks) override
+  void gkcLocksChanged(HumanInput::IGenKeyboard *, unsigned locks) override
   {
     if (darg_scene)
       darg_scene->onKeyboardLocksChanged(locks);
   }
 
-  virtual void gkcButtonDown(HumanInput::IGenKeyboard *kbd, int btn_idx, bool repeat, wchar_t wc)
+  void gkcButtonDown(HumanInput::IGenKeyboard *kbd, int btn_idx, bool repeat, wchar_t wc) override
   {
     if (console::get_visual_driver())
     {
@@ -540,7 +546,7 @@ public:
     }
   }
 
-  virtual void gkcButtonUp(HumanInput::IGenKeyboard *kbd, int btn_idx)
+  void gkcButtonUp(HumanInput::IGenKeyboard *kbd, int btn_idx) override
   {
     if (darg_scene)
     {
@@ -552,14 +558,14 @@ public:
   }
 
 
-  virtual void gkcMagicCtrlAltEnd() {}
-  virtual void gkcMagicCtrlAltF() {}
+  void gkcMagicCtrlAltEnd() override {}
+  void gkcMagicCtrlAltF() override {}
 #endif
 
-  virtual void attached(HumanInput::IGenJoystick * /*joy*/) {}
-  virtual void detached(HumanInput::IGenJoystick * /*joy*/) {}
+  void attached(HumanInput::IGenJoystick * /*joy*/) override {}
+  void detached(HumanInput::IGenJoystick * /*joy*/) override {}
 
-  virtual void stateChanged(HumanInput::IGenJoystick *joy, int joy_ord_id)
+  void stateChanged(HumanInput::IGenJoystick *joy, int joy_ord_id) override
   {
     if (global_cls_drv_joy->getDefaultJoystick() != joy)
       global_cls_drv_joy->setDefaultJoystick(joy);
@@ -598,7 +604,7 @@ public:
     reattachDevices(false);
   }
 
-  virtual void actScene()
+  void actScene() override
   {
     if (io_events_poll)
       io_events_poll->poll();
@@ -631,38 +637,52 @@ public:
       mat44f globtm;
       d3d::getglobtm(globtm);
 
-      darg::IGuiScene::VrSceneData vrScene;
-      vrScene.vrSpaceOrigin = TMatrix::IDENT;
-      vrScene.camera = ::grs_cur_view.itm;
-      vrScene.cameraFrustum = Frustum(globtm);
-      vrScene.hands[0] = vr::get_grip_pose(0);
-      vrScene.hands[1] = vr::get_grip_pose(1);
-      vrScene.aims[0] = vr::get_aim_pose(0);
-      vrScene.aims[1] = vr::get_aim_pose(1);
-      vrScene.entityTmResolver = [](uint32_t, const char *) { return TMatrix::IDENT; };
-      vrScene.vrSurfaceIntersector = vr_surface_intersect;
-      darg_scene->updateSpatialElements(vrScene);
+      using SpatialScene = darg::IGuiScene::SpatialSceneData;
+      auto getAim = [](int idx) -> SpatialScene::Aim {
+        static constexpr SpatialScene::AimOrigin origins[2] = {SpatialScene::AimOrigin::LeftHand, SpatialScene::AimOrigin::RightHand};
+        G_ASSERT(idx < countof(origins));
+        TMatrix tm = vr::get_aim_pose(idx);
+        return {
+          .origin = origins[idx],
+          .pos = tm.getcol(3),
+          .dir = tm.getcol(2),
+        };
+      };
+
+      SpatialScene spatialScene;
+      spatialScene.vrSpaceOrigin = TMatrix::IDENT;
+      spatialScene.camera = ::grs_cur_view.itm;
+      spatialScene.cameraFrustum = Frustum(globtm);
+      spatialScene.hands[0] = vr::get_grip_pose(0);
+      spatialScene.hands[1] = vr::get_grip_pose(1);
+      spatialScene.aims[0] = getAim(0);
+      spatialScene.aims[1] = getAim(1);
+      spatialScene.entityTmResolver = [](uint32_t, const char *) { return TMatrix::IDENT; };
+      spatialScene.vrSurfaceIntersector = vr_surface_intersect;
+      darg_scene->updateSpatialElements(spatialScene);
       darg_scene->refreshVrCursorProjections();
 
       joystick_handler->processPendingBtnStack(darg_scene);
       darg_scene->update(::dagor_game_act_time);
     }
 
+    bool requestExit = false;
+
 #if _TARGET_PC
     // Exit
     if (HumanInput::raw_state_kbd.isKeyDown(HumanInput::DKEY_F10))
-      requested_exit_code = 0;
+      requestExit = true;
 #if _TARGET_PC_MACOSX
     if (HumanInput::raw_state_kbd.isKeyDown(HumanInput::DKEY_LWIN) && HumanInput::raw_state_kbd.isKeyDown(HumanInput::DKEY_Q))
     {
       debug("request to close (Cmd+Q)");
-      requested_exit_code = 0;
+      requestExit = true;
     }
 #endif
 #else
     // Exit
     if (HumanInput::raw_state_joy.buttons.get(5))
-      requested_exit_code = 0;
+      requestExit = true;
 #endif
 
     // updateWebcache();
@@ -670,15 +690,16 @@ public:
     StdGuiRender::update_internals_per_act();
 
     // Quit Game
-    if (requested_exit_code >= 0)
-      quit_game(requested_exit_code);
+    if (requestExit)
+      quit_game(dargbox_get_exit_code());
+    // !!! Alt+F4 or closing with X button will still exit with 0 code
   }
 
-  virtual void drawScene()
+  void drawScene() override
   {
     cur_update++;
-    if (benchmark && cur_update == limit_updates)
-      quit_game(0);
+    if (limit_updates > 0 && cur_update == limit_updates)
+      quit_game(dargbox_get_exit_code());
 
     if (do_render)
     {
@@ -691,9 +712,10 @@ public:
     debugTexOverlay.render();
   }
 
-  virtual void beforeDrawScene(int /*realtime_elapsed_usec*/, float /*gametime_elapsed_sec*/)
+  void beforeDrawScene(int /*realtime_elapsed_usec*/, float /*gametime_elapsed_sec*/) override
   {
     PictureManager::per_frame_update();
+    inputmonitor::notify_input_devices_used();
 
     if (darg_scene)
       darg_scene->mainThreadBeforeRender();
@@ -740,7 +762,7 @@ public:
   //  }
   //  static void updateWebcache() { cpujobs::release_done_jobs(); }
 
-  virtual void sceneSelected(DagorGameScene * /*prev_scene*/)
+  void sceneSelected(DagorGameScene * /*prev_scene*/) override
   {
     reattachDevices(true);
 
@@ -751,12 +773,11 @@ public:
     loadScene();
   }
 
-  virtual void sceneDeselected(DagorGameScene * /*new_scene*/) {}
+  void sceneDeselected(DagorGameScene * /*new_scene*/) override {}
 
-  // IRenderWorld interface
-  virtual void render() {}
+  void render() {}
 
-  virtual void renderTrans()
+  void renderTrans()
   {
     StdGuiRender::reset_per_frame_dynamic_buffer_pos();
 
@@ -790,10 +811,10 @@ public:
     {
       TMatrix view;
       d3d::gettm(TM_VIEW, view);
-      view = orthonormalized_inverse(view);
+      TMatrix invView = orthonormalized_inverse(view);
 
       ShaderGlobal::setBlock(globalFrameBlockId, ShaderGlobal::LAYER_FRAME);
-      darg_panel_renderer::render_panels_in_world(*darg_scene, view.getcol(3), darg_panel_renderer::RenderPass::Translucent);
+      darg_panel_renderer::render_panels_in_world(*darg_scene, darg_panel_renderer::RenderPass::Translucent, invView.getcol(3), view);
       ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
 
       renderUi();
@@ -802,11 +823,6 @@ public:
 
     sleep_msec(dgs_get_settings()->getInt("perFrameSleep", 0));
   }
-
-  virtual void renderIslDecals() {}
-  virtual void renderToShadowMap() {}
-  virtual void renderWaterReflection() {}
-  virtual void renderWaterRefraction() {}
 
   DebugTexOverlay debugTexOverlay;
 
@@ -866,27 +882,27 @@ protected:
 class DagorDummyAudio : public IGenAudioSystem
 {
 public:
-  virtual IGenSound *createSound(const char *) { return (IGenSound *)0x0BAD0000; }
-  virtual void playSound(IGenSound *, int, float) {}
-  virtual void releaseSound(IGenSound *) {}
+  IGenSound *createSound(const char *) override { return (IGenSound *)0x0BAD0000; }
+  void playSound(IGenSound *, int, float) override {}
+  void releaseSound(IGenSound *) override {}
 
-  virtual IGenMusic *createMusic(const char *, bool) { return (IGenMusic *)0x0BAD0000; }
-  virtual void setMusicVolume(IGenMusic *, float) {}
-  virtual void playMusic(IGenMusic *, int, float) {}
-  virtual void stopMusic(IGenMusic *) {}
-  virtual void releaseMusic(IGenMusic *) {}
+  IGenMusic *createMusic(const char *, bool) override { return (IGenMusic *)0x0BAD0000; }
+  void setMusicVolume(IGenMusic *, float) override {}
+  void playMusic(IGenMusic *, int, float) override {}
+  void stopMusic(IGenMusic *) override {}
+  void releaseMusic(IGenMusic *) override {}
 };
 static DagorDummyAudio dummy_audio_default;
 
 class UiSoundPlayer : public darg::IUiSoundPlayer
 {
-  virtual void play(const char *name, const Sqrat::Object &params, float volume, const Point2 *pos)
+  void play(const char *name, const Sqrat::Object &params, float volume, const Point2 *pos) override
   {
     String msg;
     msg.printf(32, "Sound: %s", name);
     visuallog::logmsg(msg);
   }
-  virtual IGenAudioSystem *getAudioSystem() { return &dummy_audio_default; }
+  IGenAudioSystem *getAudioSystem() override { return &dummy_audio_default; }
 };
 
 static UiSoundPlayer dummy_ui_sound_player;
@@ -895,7 +911,7 @@ static UiGameScene *game_scene = NULL;
 
 static class ShowTexConsole : public console::ICommandProcessor
 {
-  virtual bool processCommand(const char *argv[], int argc) override
+  bool processCommand(const char *argv[], int argc) override
   {
     if (argc < 1)
       return false;
@@ -912,18 +928,22 @@ static class ShowTexConsole : public console::ICommandProcessor
     return found;
   }
 
-  void destroy() {}
+  void destroy() override {}
 } show_tex_console;
 
+void reload_scripts(bool full_reinit);
+static auto delayed_reload_scripts = make_delayed_func(reload_scripts);
 
 static class ScriptConsole : public console::ICommandProcessor
 {
-  virtual bool processCommand(const char *argv[], int argc) override
+  bool processCommand(const char *argv[], int argc) override
   {
     if (argc < 1)
       return false;
     int found = 0;
 
+    CONSOLE_CHECK_NAME("scripts", "hard_reload", 1, 1) { delayed_reload_scripts(true); }
+    CONSOLE_CHECK_NAME("scripts", "soft_reload", 1, 1) { delayed_reload_scripts(false); }
     CONSOLE_CHECK_NAME("sq_memtrace", "reset_all", 1, 1) { sqmemtrace::reset_all(); }
     CONSOLE_CHECK_NAME("sq_memtrace", "dump_all", 1, 2)
     {
@@ -934,7 +954,7 @@ static class ScriptConsole : public console::ICommandProcessor
     return found;
   }
 
-  void destroy() {}
+  void destroy() override {}
 } script_console;
 
 
@@ -958,16 +978,17 @@ static void shutdown_sound() { gamelib::sound::finalize(); }
 static void das_init()
 {
   das::daScriptEnvironment::ensure();
-  das::daScriptEnvironment::bound->das_def_tab_size = 2; // our coding style requires indenting of 2
+  (*das::daScriptEnvironment::bound)->das_def_tab_size = 2; // our coding style requires indenting of 2
 
   NEED_MODULE(Module_BuiltIn);
   NEED_MODULE(Module_Math);
   NEED_MODULE(Module_Strings);
   NEED_MODULE(DagorMath);
+  NEED_MODULE(DagorDataBlock);
   NEED_MODULE(DagorTexture3DModule);
   NEED_MODULE(DagorResPtr);
-  NEED_MODULE(DagorShaders);
   NEED_MODULE(DagorDriver3DModule);
+  NEED_MODULE(DagorShaders);
   NEED_MODULE(DagorStdGuiRender);
   NEED_MODULE(ModuleDarg);
   das::Module::Initialize();
@@ -981,7 +1002,7 @@ void reload_scripts(bool full_reinit)
     game_scene->reloadScripts(full_reinit);
 }
 
-static void sq_exit_func(int code) { requested_exit_code = code; }
+static void sq_exit_func(int code) { requested_exit_code_by_script = code; }
 
 void dargbox_app_init()
 {
@@ -1005,7 +1026,6 @@ void dargbox_app_init()
   blkFx = *dgs_get_settings()->getBlockByNameEx("effects");
   da_profiler::set_profiling_settings(*dgs_get_settings()->getBlockByNameEx("debug"));
   limit_updates = dgs_get_settings()->getBlockByNameEx("debug")->getInt("limit_updates", 0);
-  benchmark = limit_updates > 0;
   do_render = dgs_get_settings()->getBlockByNameEx("debug")->getBool("do_render", true);
   use_system_cursor = dgs_get_settings()->getBool("use_system_cursor", false);
 

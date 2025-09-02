@@ -43,13 +43,13 @@ struct Settings
   float underwaterFoamAlphaMult;
 };
 
-void init(const Settings &s);
-void reset();
+void init();
+void on_unload_scene();
 bool available();
 bool hasUnderwaterTrail();
-void release();
+void close();
 void enable_render(bool v);
-void update_settings(const Settings &s);
+void update_render_settings(const Settings &s);
 
 int create_emitter(float width, float gen_mul, float alpha_mul, float foam_mul, float inscat_mul);
 void destroy_emitter(int em);

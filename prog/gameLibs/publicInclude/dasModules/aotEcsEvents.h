@@ -50,9 +50,10 @@ uint64_t get_dasevents_generation();
 uint8_t get_dasevent_routing(ecs::event_type_t type);
 ecs::event_flags_t get_dasevent_cast_flags(ecs::event_type_t type);
 eastl::tuple<uint8_t, PacketReliability> get_dasevent_routing_reliability(ecs::event_type_t type);
-uint32_t lock_dasevent_net_version();
-uint32_t get_dasevent_net_version();
+uint32_t lock_dasevent_net_version(const ecs::EntityManager &mgr);
+uint32_t get_dasevent_net_version(const ecs::EntityManager &mgr);
 void unlock_dasevent_net_version();
+
 
 struct DascriptEventDesc
 {
@@ -80,6 +81,33 @@ struct DascriptEventDesc
 };
 
 DascriptEventDesc::NetLiable get_dasevent_net_liable(ecs::event_type_t type);
+
+using EventOffsets = eastl::tuple_vector<ecs::component_type_t, uint16_t>;
+
+struct CppEventData
+{
+  eastl::string eventName;
+  ecs::event_type_t eventType;
+  ecs::event_flags_t castFlag;
+  size_t size;
+  bool withScheme;
+  uint16_t version;
+  ecs::EventsDB::event_scheme_hash_t structHash;
+  ecs::event_scheme_t eventScheme;
+};
+
+struct DasEventData : CppEventData
+{
+  EventOffsets offsets;
+  uint8_t routing;
+  PacketReliability reliability;
+  DascriptEventDesc::NetLiable netLiable;
+  bool isRawPod;
+};
+
+void register_pending_events(ecs::EntityManager *mgr, eastl::vector_map<uint64_t, DasEventData> &das_events,
+  eastl::vector_map<uint64_t, CppEventData> &cpp_events);
+
 
 extern vec4f _builtin_event_dup(das::Context &, das::SimNode_CallBase *call, vec4f *args);
 
@@ -110,7 +138,7 @@ __forceinline void _builtin_send_blobevent2_impl(ecs::EntityManager *mgr, char *
   G_UNUSED(evt_type_name);
   fn(*evt);
   if (DAGOR_UNLIKELY(evt->getFlags() & ecs::EVFLG_DESTROY)) // we have to do it, as it can be that there is immediate strategy.
-    mgr->getEventsDb().destroy(*evt);
+    mgr->getEventsDb().destroy(*mgr, *evt);
 }
 
 __forceinline void _builtin_send_blobevent2(ecs::EntityManager *mgr, ecs::EntityId eid, char *evt_data, const char *evt_type_name)

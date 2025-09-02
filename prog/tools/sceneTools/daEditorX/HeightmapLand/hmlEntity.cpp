@@ -64,6 +64,7 @@ enum
   PID_ENTITY_FILTER_FIRST,
   PID_ENTITY_FILTER_LAST = PID_ENTITY_FILTER_FIRST + 200,
   PID_DEF_PLACE_TYPE,
+  PID_DEF_PLACE_TYPE_RADIO,
 
   PID_TRACEOFFSET,
 
@@ -383,12 +384,9 @@ void LandscapeEntityObject::fillProps(PropPanel::ContainerPropertyControl &panel
     PropPanel::ContainerPropertyControl &placeContainer = *transformGrp->createContainer(PID_PLACE_TYPE);
     placeContainer.setHorizontalSpaceBetweenControls(hdpi::Px(0));
     placeContainer.createStatic(0, "Place on collision:");
-    const bool placeTypeRadio = ::defaultHMLEntity.placeTypeTab == PID_PLACE_TYPE_BTN_RADIO;
-    placeContainer.createButton(PID_PLACE_TYPE_BTN_RADIO, "Radiobuttons", !placeTypeRadio);
-    placeContainer.createButton(PID_PLACE_TYPE_BTN_DROPDOWN, "Dropdown", placeTypeRadio, false);
-
     PropPanel::ContainerPropertyControl &placeTabs = *transformGrp->createContainer(PID_PLACE_TYPE_TABS);
     int placeTypeValue = plColl < 0 ? Props::PT_count : plColl;
+    const bool placeTypeRadio = ObjectEditor::getPlaceTypeRadio();
     if (placeTypeRadio)
     {
       PropPanel::ContainerPropertyControl &placeGrp = *placeTabs.createRadioGroup(PID_PLACE_TYPE_RADIO, "");
@@ -441,10 +439,22 @@ void LandscapeEntityObject::fillProps(PropPanel::ContainerPropertyControl &panel
 
     PropPanel::ContainerPropertyControl *casterGrp = panel.createGroup(PID_ENTITY_CASTER_GRP, "Entity casters");
 
-    Tab<String> def_place_type_nm(tmpmem);
-    def_place_type_nm.insert(def_place_type_nm.end(), eastl::begin(place_types_full),
-      eastl::begin(place_types_full) + Props::PT_count);
-    casterGrp->createCombo(PID_DEF_PLACE_TYPE, "Def. place type:", def_place_type_nm, default_place_type, true);
+    const char *captionDefPlaceType = "Def. place type:";
+    if (placeTypeRadio)
+    {
+      casterGrp->createStatic(-1, captionDefPlaceType);
+      PropPanel::ContainerPropertyControl &defPlaceGrp = *casterGrp->createRadioGroup(PID_DEF_PLACE_TYPE_RADIO, "");
+      for (int i = props.PT_none; i < props.PT_count; ++i)
+        defPlaceGrp.createRadio(i, place_types_full[i]);
+      defPlaceGrp.setIntValue(default_place_type);
+    }
+    else
+    {
+      Tab<String> def_place_type_nm(tmpmem);
+      def_place_type_nm.insert(def_place_type_nm.end(), eastl::begin(place_types_full),
+        eastl::begin(place_types_full) + Props::PT_count);
+      casterGrp->createCombo(PID_DEF_PLACE_TYPE, captionDefPlaceType, def_place_type_nm, default_place_type, true);
+    }
 
     casterGrp->createEditFloat(PID_TRACEOFFSET, "Tracert up offset", colliders.tracertUpOffset);
     casterGrp->createIndent();
@@ -570,15 +580,41 @@ void LandscapeEntityObject::rePlaceAllEntitiesOnCollision(HmapLandObjectEditor &
   if (!need_work)
     return;
 
-  DAGORED2->setColliders(colliders.col, colliders.getFilter());
+
+  Tab<LandscapeEntityObject *> standard_collision_entities(tmpmem);
+  Tab<LandscapeEntityObject *> ri_collision_entities(tmpmem);
   for (int i = objEd.objectCount() - 1; i >= 0; i--)
   {
     LandscapeEntityObject *o = RTTI_cast<LandscapeEntityObject>(objEd.getObject(i));
     if (o && o->props.placeType && o->entity && (o->matrix * o->entity->getBsph() & changed_region))
-      o->updateEntityPosition();
+    {
+      if (o->props.placeType == Props::PT_riColl)
+        ri_collision_entities.push_back(o);
+      else
+        standard_collision_entities.push_back(o);
+    }
   }
 
-  DAGORED2->restoreEditorColliders();
+  if (!standard_collision_entities.empty())
+  {
+    DAGORED2->setColliders(colliders.col, colliders.getFilter());
+    for (auto *o : standard_collision_entities)
+      o->updateEntityPosition();
+    DAGORED2->restoreEditorColliders();
+  }
+
+  if (!ri_collision_entities.empty())
+  {
+    EDITORCORE->setupColliderParams(1, changed_region);
+    for (auto *o : ri_collision_entities)
+    {
+      o->setCollisionIgnored();
+      o->updateEntityPosition(false, false);
+      o->resetCollisionIgnored();
+    }
+    EDITORCORE->setupColliderParams(0, BBox3());
+  }
+
   DAGORED2->invalidateViewportCache();
 }
 
@@ -590,13 +626,13 @@ void LandscapeEntityObject::changeAssset(ObjectEditor &object_editor, dag::Const
   public:
     explicit UndoEntityNamePropsChange(LandscapeEntityObject *o) : UndoPropsChange(o) {}
 
-    virtual void restore(bool save_redo)
+    void restore(bool save_redo) override
     {
       UndoPropsChange::restore(save_redo);
       on_object_entity_name_changed(*getObj());
     }
 
-    virtual void redo()
+    void redo() override
     {
       UndoPropsChange::redo();
       on_object_entity_name_changed(*getObj());
@@ -623,12 +659,12 @@ void LandscapeEntityObject::changeAssset(ObjectEditor &object_editor, dag::Const
   DAGORED2->repaint();
 }
 
-void LandscapeEntityObject::updateEntityPosition(bool apply_collision)
+void LandscapeEntityObject::updateEntityPosition(bool apply_collision, bool setup_ri_collision)
 {
   if (!entity)
     return;
 
-  if (props.placeType == props.PT_riColl)
+  if (setup_ri_collision && props.placeType == props.PT_riColl)
   {
     apply_collision = false;
     DAGORED2->restoreEditorColliders();
@@ -639,7 +675,7 @@ void LandscapeEntityObject::updateEntityPosition(bool apply_collision)
   if (!props.placeType)
     entity->setTm(matrix);
   else
-    setPosOnCollision(matrix.getcol(3));
+    setPosOnCollision(matrix.getcol(3), setup_ri_collision);
   if (apply_collision)
     DAGORED2->restoreEditorColliders();
 }
@@ -718,7 +754,7 @@ void LandscapeEntityObject::onPPChange(int pid, bool edit_finished, PropPanel::C
     if (invalidate)
       getObjEditor()->invalidateObjectProps();
   }
-  else if (pid == PID_DEF_PLACE_TYPE)
+  else if (pid == PID_DEF_PLACE_TYPE || pid == PID_DEF_PLACE_TYPE_RADIO)
     default_place_type = panel.getInt(pid);
   else if (pid == PID_ENTITY_COLLISION)
   {
@@ -1084,7 +1120,7 @@ void LandscapeEntityObject::onAdd(ObjectEditor *objEditor)
   }
 }
 
-void LandscapeEntityObject::setPosOnCollision(Point3 pos)
+void LandscapeEntityObject::setPosOnCollision(Point3 pos, bool setup_ri_collision)
 {
   int stype = entity->getSubtype();
   entity->setSubtype(entity->ST_NOT_COLLIDABLE);
@@ -1138,11 +1174,18 @@ void LandscapeEntityObject::setPosOnCollision(Point3 pos)
   }
   else if (props.placeType == props.PT_riColl && entity)
   {
-    setCollisionIgnored();
-    EDITORCORE->setupColliderParams(1, BBox3());
-    objgenerator::place_on_plane(pos, savedPlacementNormal, colliders.tracertUpOffset);
-    EDITORCORE->setupColliderParams(0, BBox3());
-    resetCollisionIgnored();
+    if (setup_ri_collision)
+    {
+      setCollisionIgnored();
+      EDITORCORE->setupColliderParams(1, BBox3());
+      objgenerator::place_on_plane(pos, savedPlacementNormal, colliders.tracertUpOffset);
+      EDITORCORE->setupColliderParams(0, BBox3());
+      resetCollisionIgnored();
+    }
+    else
+    {
+      objgenerator::place_on_plane(pos, savedPlacementNormal, colliders.tracertUpOffset);
+    }
   }
 
   etm.setcol(3, pos);
@@ -1297,12 +1340,20 @@ bool HmapLandObjectEditor::splitComposits(const PtrTab<RenderableEditableObject>
           continue;
         String nm(e->getObjAssetName());
         int seed = 0;
+        int perInstanceSeed = 0;
         if (IRandomSeedHolder *irsh = e->queryInterface<IRandomSeedHolder>())
+        {
           seed = irsh->getSeed();
+          perInstanceSeed = irsh->getPerInstanceSeed();
+        }
         else if (IRandomSeedHolder *irsh = compObj[i]->getEntity()->queryInterface<IRandomSeedHolder>())
+        {
           seed = irsh->getSeed();
+          perInstanceSeed = irsh->getPerInstanceSeed();
+        }
 
         LandscapeEntityObject *obj = new LandscapeEntityObject(nm, seed);
+        obj->setPerInstSeed(perInstanceSeed);
         obj->setEditLayerIdx(EditLayerProps::activeLayerIdx[obj->lpIndex()]);
         const ICompositObj::Props &p = co->getCompositSubEntityProps(j);
 

@@ -6,9 +6,7 @@
 
 using namespace das;
 
-#if !DAS_NO_FILEIO
 static GetFileAccessFunc specificGetFileAccess = nullptr;
-#endif
 
 static GetNewContextFunc specificGetNewContext = nullptr;
 static GetCloneContextFunc specificGetCloneContext = nullptr;
@@ -52,7 +50,7 @@ smart_ptr<das::FileAccess> get_file_access( char * pak ) {
 #endif
 }
 
-Context * get_context( int stackSize = 0 ) {
+Context * get_context( int stackSize ) {
     if (specificGetNewContext)
         return specificGetNewContext(stackSize);
     return new Context(stackSize);

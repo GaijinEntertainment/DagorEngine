@@ -3,39 +3,36 @@
 #include "input/inputControls.h"
 #include "input/globInput.h"
 #include "input/uiInput.h"
-#include "phys/netPhys.h"
+#include "input/touchInput.h"
 #include <ecs/core/entitySystem.h>
-#include <ecs/input/debugInputEvents.h>
 
 ECS_DEF_PULL_VAR(input);
 size_t framework_input_pulls = 0;
+TouchInput touch_input;
 
 void init_glob_input() {}
 void destroy_glob_input() {}
 void pull_input_das() {}
 bool have_glob_input() { return false; }
+bool glob_input_process_top_level_key(bool, int, unsigned) { return false; }
 
-namespace controls
-{
-void init_drivers() {}
-void init_control(const char *, const char *) {}
-void process_input(double) {}
-void dump() {}
-bool is_visual_dump_shown() { return false; }
-void show_visual_dump(bool) {}
-void destroy() {}
-void global_init() {}
-void global_destroy() {}
-} // namespace controls
+void controls::bind_script_api(SqModules *) {}
+void controls::init_drivers() {}
+void controls::init_control(const char *) {}
+void controls::process_input(double) {}
+void controls::destroy() {}
+void controls::global_init() {}
+void controls::global_destroy() {}
 
-namespace debuginputevents
-{
-void init() {}
-void close() {}
-} // namespace debuginputevents
+void uiinput::mask_dainput_buttons(dag::ConstSpan<darg::HotkeyButton>, bool, int) {}
+void uiinput::mask_dainput_pointers(int, int) {}
+void uiinput::update_joystick_input() {}
 
-#include <daInput/input_api.h>
-namespace dainput
-{
-unsigned get_last_used_device_mask(unsigned) { G_ASSERT_RETURN(false, 0); }
-} // namespace dainput
+void TouchInput::setStickValue(dainput::action_handle_t, const Point2 &) {}
+void TouchInput::releaseButton(dainput::action_handle_t) {}
+void TouchInput::setAxisValue(dainput::action_handle_t, float const &) {}
+void TouchInput::pressButton(dainput::action_handle_t) {}
+bool TouchInput::isButtonPressed(dainput::action_handle_t) { return false; }
+
+void register_hid_event_handler(ecs::IGenHidEventHandler *, unsigned) {}
+void unregister_hid_event_handler(ecs::IGenHidEventHandler *) {}

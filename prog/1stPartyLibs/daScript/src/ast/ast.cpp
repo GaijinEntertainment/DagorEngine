@@ -26,6 +26,10 @@ namespace das {
             if ( sw->value ) {
                 return isLocalOrGlobal(sw->value);
             }
+        } else if ( expr->rtti_isCallLikeExpr() ) {
+            if ( expr->type && expr->type->ref ) {
+                return true;
+            }
         }
         return false;
     }
@@ -50,18 +54,18 @@ namespace das {
 
     // aot library
 
-    DAS_THREAD_LOCAL unique_ptr<AotLibrary> g_AOT_lib;
+    DAS_THREAD_LOCAL(unique_ptr<AotLibrary>) g_AOT_lib;
 
     AotLibrary & getGlobalAotLibrary() {
-        if ( !g_AOT_lib ) {
-            g_AOT_lib = make_unique<AotLibrary>();
-            AotListBase::registerAot(*g_AOT_lib);
+        if ( !*g_AOT_lib ) {
+            *g_AOT_lib = make_unique<AotLibrary>();
+            AotListBase::registerAot(**g_AOT_lib);
         }
-        return *g_AOT_lib;
+        return **g_AOT_lib;
     }
 
     void clearGlobalAotLibrary() {
-        g_AOT_lib.reset();
+        g_AOT_lib->reset();
     }
 
     // annotations
@@ -231,7 +235,7 @@ namespace das {
         auto cs = make_smart<Structure>(name);
         cs->fields.reserve(fields.size());
         for ( auto & fd : fields ) {
-            cs->fields.emplace_back(fd.name, fd.type, fd.init, fd.annotation, fd.moveSemantics, fd.at);
+            cs->fields.emplace_back(fd.name, make_smart<TypeDecl>(*fd.type), fd.init, fd.annotation, fd.moveSemantics, fd.at);
             cs->fields.back().flags = fd.flags;
         }
         cs->at = at;
@@ -401,6 +405,7 @@ namespace das {
 
     bool Structure::unsafeInit ( das_set<Structure *> & dep ) const {
         if ( safeWhenUninitialized ) return false;
+        if ( hasDefaultInitializer ) return true;
         for ( const auto & fd : fields ) {
             if ( fd.init ) return true;
             if ( fd.type && fd.type->unsafeInit(dep) ) return true;
@@ -543,6 +548,10 @@ namespace das {
 
     uint64_t Variable::getMangledNameHash() const {
         auto mangledName = getMangledName();
+        return getMNHash(mangledName);
+    }
+
+    uint64_t Variable::getMNHash(const string &mangledName) {
         return hash_blockz64((uint8_t *)mangledName.c_str());
     }
 
@@ -662,12 +671,12 @@ namespace das {
     }
 
     string Function::getMangledName() const {
-        FixedBufferTextWriter ss;
+        TextWriter ss;
         getMangledName(ss);
         return ss.str();
     }
 
-    void Function::getMangledName(FixedBufferTextWriter & ss) const {
+    void Function::getMangledName(TextWriter & ss) const {
         if ( module && !module->name.empty() ) {
             ss << "@" << module->name << "::";
         }
@@ -976,6 +985,12 @@ namespace das {
 
     // expression
 
+    string Expression::describe() const {
+        TextWriter ss;
+        ss << *this;
+        return ss.str();
+    }
+
     ExpressionPtr Expression::clone( const ExpressionPtr & expr ) const {
         if ( !expr ) {
             DAS_ASSERTF(0,
@@ -1068,6 +1083,10 @@ namespace das {
         return cexpr;
     }
 
+    void ExprRef2Value::markNoDiscard() {
+        subexpr->markNoDiscard();
+    }
+
     // ExprRef2Ptr
 
     ExpressionPtr ExprRef2Ptr::visit(Visitor & vis) {
@@ -1081,6 +1100,10 @@ namespace das {
         Expression::clone(cexpr);
         cexpr->subexpr = subexpr->clone();
         return cexpr;
+    }
+
+    void ExprRef2Ptr::markNoDiscard() {
+        subexpr->markNoDiscard();
     }
 
     // ExprPtr2Ref
@@ -1135,6 +1158,11 @@ namespace das {
         ExprPtr2Ref::clone(cexpr);
         cexpr->defaultValue = defaultValue->clone();
         return cexpr;
+    }
+
+    void ExprNullCoalescing::markNoDiscard() {
+        subexpr->markNoDiscard();
+        defaultValue->markNoDiscard();
     }
 
     // ConstBitfield
@@ -1408,7 +1436,7 @@ namespace das {
     ExpressionPtr ExprTypeDecl::clone( const ExpressionPtr & expr ) const {
         auto cexpr = clonePtr<ExprTypeDecl>(expr);
         Expression::clone(cexpr);
-        cexpr->typeexpr = typeexpr;
+        cexpr->typeexpr = make_smart<TypeDecl>(*typeexpr);
         return cexpr;
     }
 
@@ -1438,7 +1466,7 @@ namespace das {
         if ( subexpr )
             cexpr->subexpr = subexpr->clone();
         if ( typeexpr )
-            cexpr->typeexpr = typeexpr;
+            cexpr->typeexpr = make_smart<TypeDecl>(*typeexpr);
         return cexpr;
     }
 
@@ -1524,7 +1552,7 @@ namespace das {
     ExpressionPtr ExprNew::clone( const ExpressionPtr & expr ) const {
         auto cexpr = clonePtr<ExprNew>(expr);
         ExprLooksLikeCall::clone(cexpr);
-        cexpr->typeexpr = typeexpr;
+        cexpr->typeexpr = make_smart<TypeDecl>(*typeexpr);
         cexpr->initializer = initializer;
         return cexpr;
     }
@@ -1546,6 +1574,10 @@ namespace das {
         cexpr->index = index->clone();
         cexpr->no_promotion = no_promotion;
         return cexpr;
+    }
+
+    void ExprAt::markNoDiscard() {
+        subexpr->markNoDiscard();
     }
 
     // ExprSafeAt
@@ -1775,9 +1807,14 @@ namespace das {
         cexpr->field = field;
         cexpr->fieldIndex = fieldIndex;
         cexpr->unsafeDeref = unsafeDeref;
+        cexpr->ignoreCaptureConst = ignoreCaptureConst;
         cexpr->no_promotion = no_promotion;
         cexpr->atField = atField;
         return cexpr;
+    }
+
+    void ExprField::markNoDiscard() {
+        value->markNoDiscard();
     }
 
     // ExprIs
@@ -1954,6 +1991,10 @@ namespace das {
         return stream.str();
     }
 
+    void ExprOp1::markNoDiscard() {
+        subexpr->markNoDiscard();
+    }
+
     // ExprOp2
 
     bool ExprOp2::swap_tail ( Expression * expr, Expression * swapExpr ) {
@@ -1997,6 +2038,11 @@ namespace das {
         }
         stream << " )";
         return stream.str();
+    }
+
+    void ExprOp2::markNoDiscard() {
+        left->markNoDiscard();
+        right->markNoDiscard();
     }
 
     // ExprOp3
@@ -2053,6 +2099,11 @@ namespace das {
         return stream.str();
     }
 
+    void ExprOp3::markNoDiscard() {
+        subexpr->markNoDiscard();
+        left->markNoDiscard();
+        right->markNoDiscard();
+    }
 
     // ExprMove
 
@@ -2327,6 +2378,7 @@ namespace das {
         cexpr->iterators = iterators;
         cexpr->iteratorsAka = iteratorsAka;
         cexpr->iteratorsAt = iteratorsAt;
+        cexpr->iteratorsTupleExpansion = iteratorsTupleExpansion;
         for ( auto tag : iteratorsTags )
             cexpr->iteratorsTags.push_back(tag ? tag->clone() : nullptr);
         cexpr->visibility = visibility;
@@ -2485,6 +2537,10 @@ namespace das {
         }
     }
 
+    void ExprCall::markNoDiscard() {
+        notDiscarded = true;
+    }
+
     ExpressionPtr ExprCall::clone( const ExpressionPtr & expr ) const {
         auto cexpr = clonePtr<ExprCall>(expr);
         ExprLooksLikeCall::clone(cexpr);
@@ -2522,6 +2578,7 @@ namespace das {
         for ( auto & arg : arguments ) {
             cexpr->arguments.push_back(arg->clone());
         }
+        cexpr->methodCall = methodCall;
         return cexpr;
     }
 
@@ -2549,7 +2606,9 @@ namespace das {
             }
             cexpr->structs.push_back(mfd);
         }
-        cexpr->makeType = make_smart<TypeDecl>(*makeType);
+        if ( makeType ) {
+            cexpr->makeType = make_smart<TypeDecl>(*makeType);
+        }
         cexpr->makeStructFlags = makeStructFlags;
         if ( block ) {
             cexpr->block = block->clone();
@@ -2588,6 +2647,14 @@ namespace das {
         return vis.visit(this);
     }
 
+    void ExprMakeStruct::markNoDiscard() {
+        for ( auto & fields : structs ) {
+            for ( auto & field : *fields ) {
+                field->value->markNoDiscard();
+            }
+        }
+    }
+
     // make variant
 
     ExpressionPtr ExprMakeVariant::clone( const ExpressionPtr & expr ) const {
@@ -2621,6 +2688,12 @@ namespace das {
         return vis.visit(this);
     }
 
+    void ExprMakeVariant::markNoDiscard() {
+        for ( auto & field : variants ) {
+            field->value->markNoDiscard();
+        }
+    }
+
     // make array
 
     ExpressionPtr ExprMakeArray::clone( const ExpressionPtr & expr ) const {
@@ -2631,6 +2704,9 @@ namespace das {
             cexpr->values.push_back(val->clone());
         }
         cexpr->makeType = make_smart<TypeDecl>(*makeType);
+        if (recordType) {
+            cexpr->recordType = make_smart<TypeDecl>(*recordType);
+        }
         cexpr->gen2 = gen2;
         return cexpr;
     }
@@ -2656,6 +2732,12 @@ namespace das {
         return vis.visit(this);
     }
 
+    void ExprMakeArray::markNoDiscard() {
+        for ( auto & val : values ) {
+            val->markNoDiscard();
+        }
+    }
+
     // make tuple
 
     ExpressionPtr ExprMakeTuple::clone( const ExpressionPtr & expr ) const {
@@ -2665,8 +2747,12 @@ namespace das {
         for ( auto & val : values ) {
             cexpr->values.push_back(val->clone());
         }
+        cexpr->recordNames = recordNames;
         if ( makeType ) {
             cexpr->makeType = make_smart<TypeDecl>(*makeType);
+        }
+        if (recordType) {
+            cexpr->recordType = make_smart<TypeDecl>(*recordType);
         }
         cexpr->isKeyValue = isKeyValue;
         return cexpr;
@@ -2841,7 +2927,6 @@ namespace das {
     }
 
     TypeDecl * Program::makeTypeDeclaration(const LineInfo &at, const string &name) {
-
         das::vector<das::StructurePtr> structs;
         das::vector<das::AnnotationPtr> handles;
         das::vector<das::EnumerationPtr> enums;
@@ -2925,12 +3010,14 @@ namespace das {
         vector<ExprCallFactory *> ptr;
         string moduleName, funcName;
         splitTypeName(name, moduleName, funcName);
-        library.foreach([&](Module * pm) -> bool {
-            if ( auto pp = pm->findCall(funcName) ) {
-                ptr.push_back(pp);
-            }
-            return true;
-        }, moduleName);
+        if ( moduleName != "_" && moduleName != "__" ) {    // those are never found. in reality we may want to support this one day with "*" and "thisModuleName" accordingly
+            library.foreach([&](Module * pm) -> bool {
+                if ( auto pp = pm->findCall(funcName) ) {
+                    ptr.push_back(pp);
+                }
+                return true;
+            }, moduleName);
+        }
         if ( ptr.size()==1 ) {
             return (*ptr.back())(at);
         } else if ( ptr.size()==0 ) {

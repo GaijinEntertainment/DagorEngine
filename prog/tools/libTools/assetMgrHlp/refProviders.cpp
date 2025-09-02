@@ -84,19 +84,16 @@ static bool loadSingleExporterPlugin(const DataBlock &appblk, DagorAssetMgr &mgr
 
 static bool load_plugins_from_dir(DataBlock &appblk, DagorAssetMgr &mgr, const char *dirpath)
 {
-  alefind_t ff;
   const String mask(260, "%s/*" DAGOR_OS_DLL_SUFFIX, dirpath);
   String fname;
 
-  if (::dd_find_first(mask, DA_FILE, &ff))
-    do
-    {
-      fname.printf(260, "%s/%s", dirpath, ff.name);
-      dd_simplify_fname_c(fname);
-      loadSingleExporterPlugin(appblk, mgr, fname);
-    } while (::dd_find_next(&ff));
+  for (const alefind_t &ff : dd_find_iterator(mask, DA_FILE))
+  {
+    fname.printf(260, "%s/%s", dirpath, ff.name);
+    dd_simplify_fname_c(fname);
+    loadSingleExporterPlugin(appblk, mgr, fname);
+  }
 
-  dd_find_close(&ff);
   return true;
 }
 

@@ -9,6 +9,8 @@
 
 #if defined(USE_BULLET_PHYSICS)
 IPhysCar *create_bullet_raywheel_car(const char *res_name, const TMatrix &tm, void *phys_world, bool simple_phys, bool allow_deform)
+#elif defined(USE_JOLT_PHYSICS)
+IPhysCar *create_jolt_raywheel_car(const char *res_name, const TMatrix &tm, void *phys_world, bool simple_phys, bool allow_deform)
 #else
 !error !unsupported physics
 #endif
@@ -92,6 +94,9 @@ IPhysCar *create_bullet_raywheel_car(const char *res_name, const TMatrix &tm, vo
 
 #if defined(USE_BULLET_PHYSICS)
 IPhysCar *create_bullet_raywheel_car(const char *car_name, PhysBody *car_body, const BBox3 &bbox, const BSphere3 &bsphere,
+  const TMatrix &tm, bool simple_phys)
+#elif defined(USE_JOLT_PHYSICS)
+IPhysCar *create_jolt_raywheel_car(const char *car_name, PhysBody *car_body, const BBox3 &bbox, const BSphere3 &bsphere,
   const TMatrix &tm, bool simple_phys)
 #else
 !error !unsupported physics

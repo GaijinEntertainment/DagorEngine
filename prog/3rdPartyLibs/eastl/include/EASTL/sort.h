@@ -288,27 +288,47 @@ namespace eastl
 
 		if(first != last)
 		{
-			RandomAccessIterator iCurrent, iBack, iSorted, iInsertFirst;
-			difference_type      nSize  = last - first;
-			difference_type      nSpace = 1; // nSpace is the 'h' value of the ShellSort algorithm.
+			const difference_type   nSize  = last - first;
+			difference_type         nSpace = 1; // nSpace is the 'h' value of the ShellSort algorithm.
 
 			while(nSpace < nSize)
 				nSpace = (nSpace * 3) + 1; // This is the Knuth 'h' sequence: 1, 4, 13, 40, 121, 364, 1093, 3280, 9841, 29524, 88573, 265720, 797161, 2391484, 7174453, 21523360, 64570081, 193710244, 
 
+			// nSpace will iterate from the largest Knuth 'h' element smaller than the size of the range down to 1 (inclusive).
 			for(nSpace = (nSpace - 1) / 3; nSpace >= 1; nSpace = (nSpace - 1) / 3)  // Integer division is less than ideal.
 			{
 				for(difference_type i = 0; i < nSpace; i++)
 				{
-					iInsertFirst = first + i;
+					const RandomAccessIterator iInsertFirst = first + i; // range: [first, first + nSpace)
 
-					for(iSorted = iInsertFirst + nSpace; iSorted < last; iSorted += nSpace)
+					// After completion of this next loop the elements
+					//   iInsertFirst + K * nSpace
+					// for K = [0, 1, 2, ...) form a sorted range.
+					// This loop is essentially an insertion sort.
+
+					// Note: we can only move the iterator forward if we know we won't overrun the
+					// end(), otherwise we can invoke undefined behaviour. So we need to check we
+					// have enough space before moving the iterator.
+					RandomAccessIterator iSorted = iInsertFirst;
+					while(distance(iSorted, last) > nSpace)
 					{
-						iBack = iCurrent = iSorted;
-						
-						for(; (iCurrent != iInsertFirst) && compare(*iCurrent, *(iBack -= nSpace)); iCurrent = iBack)
+						RandomAccessIterator iLeft = iSorted;
+						iSorted += nSpace;
+						RandomAccessIterator iRight = iSorted;
+
+						// the elements (with distance nSpace) prior to iRight are sorted.
+						// move iRight into its sorted position.
+						while(compare(*iRight, *iLeft))
 						{
-							EASTL_VALIDATE_COMPARE(!compare(*iBack, *iCurrent)); // Validate that the compare function is sane.
-							eastl::iter_swap(iCurrent, iBack);
+							EASTL_VALIDATE_COMPARE(!compare(*iLeft, *iRight)); // Validate that the compare function is sane.
+
+							eastl::iter_swap(iRight, iLeft);
+
+							if (iLeft == iInsertFirst) // don't iterate iLeft past the valid range.
+								break;
+
+							iRight = iLeft;
+							iLeft -= nSpace;
 						}
 					}
 				}
@@ -1540,9 +1560,17 @@ namespace eastl
 
 		// To consider: Convert the implementation to use first/last instead of first/size.
 		const intptr_t size = (intptr_t)(last - first);
-
-		if(size < 64)
+		if (size == 0)
+		{
+			// This branch is necessary because the expression `first + 1` below is undefined
+			// behaviour when first is nullptr (for example when it is the begin() iterator of an
+			// empty vector).
+			return;
+		}
+		else if (size < 64)
+		{
 			insertion_sort_already_started(first, first + size, first + 1, compare);
+		}
 		else
 		{
 			tim_sort_run   run_stack[kTimSortStackSize];
@@ -1662,10 +1690,10 @@ namespace eastl
 
 			RandomAccessIterator temp;
 			uint32_t i;
-
 			bool doSeparateHistogramCalculation = true;
-			uint32_t j;
-			for (j = 0; j < (8 * sizeof(IntegerType)); j += DigitBits)
+
+			constexpr uint32_t kMaxDigitBits = 8 * sizeof(IntegerType);
+			for (uint32_t j = 0; j < kMaxDigitBits; j += DigitBits)
 			{
 				if (doSeparateHistogramCalculation)
 				{
@@ -1688,7 +1716,8 @@ namespace eastl
 					doSeparateHistogramCalculation = false;
 
 					// If this is the last digit position, then don't calculate a histogram
-					if (j == (8 * sizeof(IntegerType) - DigitBits))
+					const uint32_t jNext = j + DigitBits;
+					if (jNext >= kMaxDigitBits)
 					{
 						bucketPosition[0] = 0;
 						for (i = 0; i < numBuckets - 1; i++)
@@ -1712,16 +1741,16 @@ namespace eastl
 							bucketPosition[i + 1] = bucketPosition[i] + bucketSize[i];
 							bucketSize[i] = 0;	// Clear the bucket for the next pass
 						}
+						bucketSize[numBuckets - 1] = 0; 
 
-						uint32_t jNext = j + DigitBits;
 						for (temp = srcFirst; temp != last; ++temp)
 						{
-							IntegerType key = extractKey(*temp);
+							const IntegerType key = extractKey(*temp);
 							const size_t digit = (key >> j) & bucketMask;
 							buffer[bucketPosition[digit]++] = *temp;
 
 							// Update histogram for the next scatter operation
-							++bucketSize[(extractKey(*temp) >> jNext) & bucketMask];
+							++bucketSize[(key >> jNext) & bucketMask];
 						}
 					}
 

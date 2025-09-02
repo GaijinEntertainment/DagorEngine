@@ -3,6 +3,9 @@ include "deferred_shadow_common.dshl"
 int depth_bounds_support = 0;
 interval depth_bounds_support: no<1, yes;
 
+int envi_cover_use_in_resolve = 1;
+interval envi_cover_use_in_resolve : no < 1, yes;
+
 shader deferred_shadow_to_buffer
 {
   if (compatibility_mode == compatibility_mode_on)
@@ -13,6 +16,7 @@ shader deferred_shadow_to_buffer
   supports global_const_block;
   z_write = false;
   z_test = false;
+  ENABLE_ASSERT(ps)
   COMMON_RESOLVE_EXTENDED(ps) //should be BEFORE READ_GBUFFER!
 
   USE_AND_INIT_VIEW_VEC(vs)
@@ -21,6 +25,14 @@ shader deferred_shadow_to_buffer
   INIT_LOAD_GBUFFER()
   USE_LOAD_DEPTH_GBUFFER()
   USE_LOAD_GBUFFER()
+
+  if (envi_cover_use_in_resolve == yes)
+  {
+    INIT_BLURRED_DEPTH_ABOVE(ps)
+    USE_BLURRED_DEPTH_ABOVE(ps)
+    INIT_ENVI_COVER(ps, true, false, 0, true)
+    USE_ENVI_COVER(ps, false)
+  }
 
   cull_mode = none;
 
@@ -68,7 +80,15 @@ shader deferred_shadow_to_buffer
       ##endif
       float w = linearize_z(rawDepth, zn_zfar.zw);
 
-      return deferred_shadow_per_sample(screenpos.xy, input.viewVect, input.texcoord, w, loadProcessedGbuffer(screenpos.xy), rawDepth);
+      float3 pointToEye = -input.viewVect * w;
+      float4 worldPos = float4(world_view_pos.xyz - pointToEye, 1);
+      UnpackedGbuffer gbuffer = unpackGbuffer(loadPackedGbuffer(screenpos.xy));
+
+      ##if envi_cover_use_in_resolve == yes
+        apply_envi_cover(worldPos.xyz, skylight_progress, fillEnviSnowParams(), gbuffer);
+      ##endif
+
+      return deferred_shadow_per_sample(screenpos.xy, input.viewVect, input.texcoord, pointToEye, worldPos, w, processGbuffer(gbuffer), rawDepth);
     }
   }
 

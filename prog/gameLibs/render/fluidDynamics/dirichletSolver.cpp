@@ -10,18 +10,19 @@ namespace cfd
 
 // Single solver
 
-#define DIRICHLET_VARS_LIST      \
-  VAR(cfd_tex_size)              \
-  VAR(cfd_simulation_dt)         \
-  VAR(cfd_simulation_dx)         \
-  VAR(cfd_simulation_time)       \
-  VAR(cfd_potential_tex)         \
-  VAR(cfd_initial_potential_tex) \
-  VAR(dirichlet_cascade_no)      \
-  VAR(dirichlet_implicit_mode)   \
-  VAR(cfd_cascade_no)            \
-  VAR(cfd_calc_offset)           \
-  VAR(dirichlet_partial_solve)   \
+#define DIRICHLET_VARS_LIST                   \
+  VAR(cfd_tex_size)                           \
+  VAR(cfd_simulation_dt)                      \
+  VAR(cfd_simulation_dx)                      \
+  VAR(cfd_simulation_time)                    \
+  VAR(cfd_potential_tex)                      \
+  VAR(cfd_initial_potential_tex)              \
+  VAR(cfd_initial_potential_tex_samplerstate) \
+  VAR(dirichlet_cascade_no)                   \
+  VAR(dirichlet_implicit_mode)                \
+  VAR(cfd_cascade_no)                         \
+  VAR(cfd_calc_offset)                        \
+  VAR(dirichlet_partial_solve)                \
   VAR(cfd_toroidal_offset)
 
 #define VAR(a) static int a##VarId = -1;
@@ -40,9 +41,14 @@ DirichletSolver::DirichletSolver(const char *solver_shader_name, IPoint3 tex_siz
     potentialTex[i] = dag::create_voltex(tex_size.x, tex_size.y, tex_size.z, TEXFMT_G32R32F | TEXCF_UNORDERED, 1,
       String(0, "cfd_potential_tex_%d", i));
     d3d::resource_barrier({potentialTex[i].getBaseTex(), RB_STAGE_COMPUTE | RB_RW_UAV, 0, 0});
-    potentialTex[i].getVolTex()->texfilter(TEXFILTER_POINT);
-    potentialTex[i].getVolTex()->texaddr(TEXADDR_MIRROR);
   }
+
+  d3d::SamplerInfo smpInfo;
+  smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Mirror;
+  smpInfo.filter_mode = d3d::FilterMode::Point;
+  d3d::SamplerHandle smp = d3d::request_sampler(smpInfo);
+  ShaderGlobal::set_sampler(::get_shader_variable_id("cfd_potential_tex_samplerstate", true), smp);
+  ShaderGlobal::set_sampler(cfd_initial_potential_tex_samplerstateVarId, smp);
 
   ShaderGlobal::set_int4(cfd_tex_sizeVarId, IPoint4(tex_size.x, tex_size.y, tex_size.z, 0));
   initialConditionsCs.reset(new_compute_shader("dirichlet_initial_conditions"));
@@ -132,11 +138,17 @@ DirichletCascadeSolver::DirichletCascadeSolver(IPoint3 tex_size, float spatial_s
       cascades[cascade_no].potentialTex[j] = dag::create_voltex(cascades[cascade_no].texSize.x, cascades[cascade_no].texSize.y,
         textureDepth, TEXFMT_G32R32F | TEXCF_UNORDERED, 1, String(0, "cfd_potential_tex_cascade_%d_%d", cascade_no, j));
       d3d::resource_barrier({cascades[cascade_no].potentialTex[j].getBaseTex(), RB_STAGE_COMPUTE | RB_RW_UAV, 0, 0});
-      cascades[cascade_no].potentialTex[j].getVolTex()->texfilter(TEXFILTER_POINT);
-      // Mirror for ghost cells on boundaries
-      cascades[cascade_no].potentialTex[j].getVolTex()->texaddr(TEXADDR_MIRROR);
     }
   }
+
+  d3d::SamplerInfo smpInfo;
+  smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Mirror;
+  smpInfo.filter_mode = d3d::FilterMode::Point;
+  pointSampler = d3d::request_sampler(smpInfo);
+  ShaderGlobal::set_sampler(::get_shader_variable_id("cfd_potential_tex_samplerstate", true), pointSampler);
+  ShaderGlobal::set_sampler(cfd_initial_potential_tex_samplerstateVarId, pointSampler);
+  smpInfo.filter_mode = d3d::FilterMode::Linear;
+  linearSampler = d3d::request_sampler(smpInfo);
 }
 
 void DirichletCascadeSolver::fillInitialConditions()
@@ -311,10 +323,10 @@ void DirichletCascadeSolver::switchToCascade(int cascade)
   if (cascade != NUM_CASCADES - 1)
   {
     ShaderGlobal::set_texture(cfd_initial_potential_texVarId, cascades[currentCascade].potentialTex[0]);
-    cascades[currentCascade].potentialTex[0].getVolTex()->texfilter(TEXFILTER_LINEAR);
+    ShaderGlobal::set_sampler(cfd_initial_potential_tex_samplerstateVarId, linearSampler);
     initialConditionsFromTexCs->dispatchThreads(cascades[cascade].texSize.x, cascades[cascade].texSize.y, textureDepth);
     d3d::resource_barrier({cascades[cascade].potentialTex[0].getBaseTex(), RB_STAGE_COMPUTE | RB_RO_SRV, 0, 0});
-    cascades[currentCascade].potentialTex[0].getVolTex()->texfilter(TEXFILTER_POINT);
+    ShaderGlobal::set_sampler(cfd_initial_potential_tex_samplerstateVarId, pointSampler);
   }
 
   curNumDispatches = 0;

@@ -31,7 +31,7 @@ void init_web_browser()
   cfg.resourcesBaseDir = exeDir.str();
   cfg.purgeCookiesOnStartup = dgs_get_settings()->getBool("wipeEmbeddedBrowserCookies", false);
 
-  String cacheDir = folders::get_temp_dir() + ::get_game_name();
+  String cacheDir = folders::get_temp_dir();
   cacheDir += "-ebrwsr";
   cfg.cachePath = cacheDir.str();
 

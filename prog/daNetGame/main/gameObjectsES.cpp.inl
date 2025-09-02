@@ -15,6 +15,7 @@
 #include "phys/gridCollision.h"
 #include <ecs/game/generic/grid.h>
 #include <ecs/render/updateStageRender.h>
+#include <ioSys/dag_chainedMemIo.h>
 
 #define ENTITIES_BBOXES_VISIBILITY_RADIUS 50.f
 bool should_hide_debug();
@@ -31,7 +32,7 @@ scene::TiledScene *create_ladders_scene(GameObjects &game_objects)
   auto insertPair = game_objects.objects.emplace("ladders", nullptr);
   if (insertPair.second) // if inserted
   {
-    auto scn = new scene::TiledScene();
+    auto scn = new GameObjectsTiledScene();
     insertPair.first->second.reset(scn);
     scn->setPoolBBox(0, bbox3f{v_neg(V_C_HALF), V_C_HALF});
     game_objects.ladders = scn;
@@ -56,7 +57,7 @@ void create_game_objects(Tab<ObjectsToPlace *> &&objectsToPlace)
           for (auto &obj : objMap->objs)
           {
             const RoDataBlock &blk = *obj.addData.getBlockByNameEx("__asset");
-            scene::TiledScene *scn = nullptr;
+            GameObjectsTiledScene *scn = nullptr;
             const int numLadderSteps = blk.getInt("ladderStepsCount", 0);
             const bool isLadders = numLadderSteps != 0 && blk.getBool("isLadder", false);
             const char *soundType = blk.getStr("soundType", nullptr);
@@ -67,7 +68,7 @@ void create_game_objects(Tab<ObjectsToPlace *> &&objectsToPlace)
 
             if (insertPair.second) // if inserted
             {
-              scn = new scene::TiledScene();
+              scn = new GameObjectsTiledScene();
               insertPair.first->second.reset(scn);
               scn->setPoolBBox(0, bbox3f{v_neg(V_C_HALF), V_C_HALF});
               if (isLadders)
@@ -108,11 +109,37 @@ void create_game_objects(Tab<ObjectsToPlace *> &&objectsToPlace)
             }
             else
             {
+              G_ASSERTF(obj.tm.size() <= 0x10000, "obj.tm.size()=%d", obj.tm.size());
+              bool need_add_data = false;
               for (const TMatrix &tm : obj.tm)
               {
                 mat44f m;
                 v_mat44_make_from_43cu_unsafe(m, tm[0]);
-                scn->allocate(m, /*pool*/ 0, /*flags*/ 0);
+                unsigned idx = &tm - obj.tm.data();
+                scn->allocate(m, /*pool*/ 0, /*flags*/ idx);
+                if (obj.addData.getBlock(idx)->paramCount() || obj.addData.getBlock(idx)->blockCount())
+                  need_add_data = true;
+              }
+
+              if (need_add_data)
+              {
+                DataBlock addData;
+                addData.setFrom(obj.addData);
+                MemorySaveCB cwr(64 << 10);
+                if (addData.saveToStream(cwr))
+                {
+                  addData.reset();
+                  scn->addData.reset(new DataBlock);
+                  MemoryLoadCB crd(cwr.takeMem(), true);
+                  if (scn->addData->loadFromStream(crd, scn_name))
+                    debug("GmO(%s): optimized to ROM BLK format, size=%dK, %d instances", scn_name, crd.getTargetDataSize() >> 10,
+                      scn->addData->blockCount());
+                  else
+                    logerr("%s: failed to reload GmO(%s) addData BLK from memory stream (sz=%d)", __FUNCTION__, scn_name,
+                      crd.getTargetDataSize());
+                }
+                else
+                  logerr("%s: failed to save GmO(%s) addData BLK to memory stream", __FUNCTION__, scn_name);
               }
             }
           }
@@ -125,7 +152,7 @@ void create_game_objects(Tab<ObjectsToPlace *> &&objectsToPlace)
             auto insertPair = game_objects->objects.emplace("indoors", nullptr);
             if (insertPair.second) // if inserted
             {
-              scene::TiledScene *indoors = new scene::TiledScene();
+              GameObjectsTiledScene *indoors = new GameObjectsTiledScene();
               insertPair.first->second.reset(indoors);
               indoors->setPoolBBox(0, bbox3f{v_neg(V_C_HALF), V_C_HALF});
               indoors->reserve(indoor_walls->getNodesCount());
@@ -220,10 +247,17 @@ static void game_objects_events_es_event_handler(const EventGameObjectsCreated &
       logwarn("missing template <%s> for game_object", instances.first);
       continue;
     }
-    const scene::TiledScene &scene = *instances.second;
+    const GameObjectsTiledScene &scene = *instances.second;
     eastl::string templName = add_sub_template_name<eastl::string>(instances.first.c_str(), "game_object");
     const ecs::HashedConstString instanceHash = ECS_HASH_SLOW(instances.first.c_str());
     float chance = game_objects__createChance.getMemberOr(instanceHash, 1.f);
+    int nid_id = -1, nid_pid = -1, nid_tm = -1;
+    if (scene.addData)
+    {
+      nid_id = scene.addData->getNameId("hierarchy_unresolved_id");
+      nid_pid = scene.addData->getNameId("hierarchy_unresolved_parent_id");
+      nid_tm = scene.addData->getNameId("hierarchy_transform");
+    }
     for (scene::node_index ni : scene)
     {
       if (_frnd(seed) > chance)
@@ -232,6 +266,21 @@ static void game_objects_events_es_event_handler(const EventGameObjectsCreated &
       v_mat_43ca_from_mat44(tm.m[0], scene.getNode(ni));
       ecs::ComponentsInitializer attrs;
       ECS_INIT(attrs, transform, tm);
+      ECS_INIT(attrs, initialTransform, tm);
+      if (nid_id >= 0 || nid_pid >= 0)
+      {
+        static constexpr int ID_OFFSET = 100000;
+        unsigned idx = scene::get_node_flags(scene.getNode(ni));
+        const DataBlock &b = *scene.addData->getBlock(idx);
+        if (int c_id = b.getIntByNameId(nid_id, -1); c_id != -1)
+          ECS_INIT(attrs, hierarchy_unresolved_id, c_id + ID_OFFSET);
+        if (int p_id = b.getIntByNameId(nid_pid, -1); p_id != -1)
+        {
+          ECS_INIT(attrs, hierarchy_unresolved_parent_id, p_id + ID_OFFSET);
+          ECS_INIT(attrs, hierarchy_transform, b.getTmByNameId(nid_tm, TMatrix::IDENT));
+        }
+      }
+
       if (!(game_objects__syncCreation && game_objects__syncCreation->getMemberOr(instanceHash, false)))
         g_entity_mgr->createEntityAsync(templName.c_str(), eastl::move(attrs));
       else

@@ -74,6 +74,7 @@ struct BBox3Annotation final : das::ManagedStructureAnnotation<BBox3, false>
     addPropertyExtConst<Point3 &(BBox3::*)(), &BBox3::boxMax, const Point3 &(BBox3::*)() const, &BBox3::boxMax>("boxMax", "boxMax");
   }
   bool isLocal() const override { return true; } // force isLocal, because ctor is non trivial
+  bool canBePlacedInContainer() const override { return true; }
 };
 
 struct BBox3fAnnotation final : das::ManagedStructureAnnotation<bbox3f, false>
@@ -96,6 +97,8 @@ struct BBox2Annotation final : das::ManagedStructureAnnotation<BBox2, false>
     addProperty<DAS_BIND_MANAGED_PROP(center)>("center");
     addProperty<DAS_BIND_MANAGED_PROP(width)>("width");
     addProperty<DAS_BIND_MANAGED_PROP(isempty)>("isempty");
+    addProperty<DAS_BIND_MANAGED_PROP(leftTop)>("leftTop");
+    addProperty<DAS_BIND_MANAGED_PROP(rightBottom)>("rightBottom");
   }
   bool isLocal() const override { return true; } // force isLocal, because ctor is non trivial
 };
@@ -230,6 +233,8 @@ public:
       "bind_dascript::bbox3_intersect_bbox3");
     das::addExtern<DAS_BIND_FUN(bbox3_intersect_bsphere)>(*this, lib, "&", das::SideEffects::none,
       "bind_dascript::bbox3_intersect_bsphere");
+    das::addExtern<DAS_BIND_FUN(bsphere_intersect_point)>(*this, lib, "&", das::SideEffects::none,
+      "bind_dascript::bsphere_intersect_point");
     das::addExtern<DAS_BIND_FUN(bsphere_intersect_bsphere)>(*this, lib, "&", das::SideEffects::none,
       "bind_dascript::bsphere_intersect_bsphere");
     das::addExtern<DAS_BIND_FUN(bbox3_transform), das::SimNode_ExtFuncCallAndCopyOrMove>(*this, lib, "*", das::SideEffects::none,
@@ -248,6 +253,8 @@ public:
       "bind_dascript::make_empty_bbox2");
     das::addExtern<DAS_BIND_FUN(make_bbox2), das::SimNode_ExtFuncCallAndCopyOrMove>(*this, lib, "BBox2", das::SideEffects::none,
       "bind_dascript::make_bbox2");
+    das::addExtern<DAS_BIND_FUN(bbox2_intersect_point)>(*this, lib, "&", das::SideEffects::none,
+      "bind_dascript::bbox2_intersect_point");
     das::addExtern<DAS_BIND_FUN(make_bbox_from_bsphere), das::SimNode_ExtFuncCallAndCopyOrMove>(*this, lib, "BBox3",
       das::SideEffects::none, "bind_dascript::make_bbox_from_bsphere");
     das::addExtern<DAS_BIND_FUN(v_stu_bbox3)>(*this, lib, "bbox3f_to_scalar_bbox3", das::SideEffects::modifyArgument, "v_stu_bbox3");
@@ -268,6 +275,7 @@ public:
 
     das::addExtern<DAS_BIND_FUN(cvt)>(*this, lib, "cvt", das::SideEffects::none, "cvt");
     das::addExtern<DAS_BIND_FUN(cvt_double)>(*this, lib, "cvt", das::SideEffects::none, "cvt_double");
+    das::addExtern<DAS_BIND_FUN(cvt_ex)>(*this, lib, "cvt_ex", das::SideEffects::none, "cvt_ex");
 
     das::addExtern<DAS_BIND_FUN(length_dpoint3)>(*this, lib, "length", das::SideEffects::none, "bind_dascript::length_dpoint3");
     das::addExtern<DAS_BIND_FUN(length_sq_dpoint3)>(*this, lib, "length_sq", das::SideEffects::none,

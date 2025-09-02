@@ -1,4 +1,6 @@
 int lmesh_vs_const__mul_offset_base     = 50; // 4 mul + 4 offset parameters: 228-235, 236 maptexcoord
+int lmesh_vs_weight_params = 59 always_referenced;
+int lmesh_ps_weight_params = 64 always_referenced;
 
 // detail textures take samplers from 7
 //float4 details_size_ofs = (16, 16, 0, 0);
@@ -65,10 +67,16 @@ macro INIT_HARDCODED_TEX_INFO_ONE_LC()
     SamplerState land_detail_map_n0_samplerstate : register(s6);
     SamplerState land_detail_map_n1_samplerstate : register(s7);
     SamplerState colormapTex_samplerstate : register(s8);
+    ##if shader == landmesh_indexed_landclass_weightmap
+      float4 land_weightmap_noise_scale : register(c64); //Only the first float is used the rest are empty
+    ##endif
   }
   hlsl(vs) {
     float4 land_detail_map_tc : register(c58);
     float4 land_detail_mul_offset : register(c50);
+    ##if shader == landmesh_indexed_landclass_weightmap
+      float4 land_weightmap_mul_offset : register(c59);
+    ##endif
   }
 endmacro
 

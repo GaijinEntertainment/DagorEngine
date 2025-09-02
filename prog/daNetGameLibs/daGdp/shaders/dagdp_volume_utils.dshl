@@ -2,17 +2,39 @@ include "dagdp_common_placer.dshl"
 
 macro USE_DAGDP_VOLUME_UTILS()
   hlsl(cs) {
-    bool isInsideVolume(uint volumeIndex, float3 instancePos, const VolumeGpuData volume)
+    float3 localVolumePos(float3 worldPos, const VolumeGpuData volume)
     {
-      const float4 ip4 = float4(instancePos, 1.0);
-      const float3 internalVolumePos = float3(dot(ip4, volume.itmRow0), dot(ip4, volume.itmRow1), dot(ip4, volume.itmRow2));
+      const float4 ip4 = float4(worldPos, 1.0);
+      return float3(dot(ip4, volume.itmRow0), dot(ip4, volume.itmRow1), dot(ip4, volume.itmRow2));
+    }
+
+    bool isInsideVolumeLocal(float3 localPos, uint volumeType)
+    {
       const bool isVolumeTypeOk[VOLUME_TYPE_COUNT] = {
-        all(abs(internalVolumePos) <= 1.0),
-        length(internalVolumePos.xz) <= 1.0 && abs(internalVolumePos.y) <= 1.0,
-        length(internalVolumePos) <= 1.0,
+        all(abs(localPos) <= 1.0),
+        length(localPos.xz) <= 1.0 && abs(localPos.y) <= 1.0,
+        length(localPos) <= 1.0,
+        true,
       };
-      ##assert(mesh.volumeType < VOLUME_TYPE_COUNT, "Invalid volume type: %d", _.volumeType);
-      return isVolumeTypeOk[volume.volumeType];
+      ##assert(volumeType < VOLUME_TYPE_COUNT, "Invalid volume type: %d", volumeType);
+      return isVolumeTypeOk[volumeType];
+    }
+
+    bool isInsideVolumeWorld(float3 worldPos, const VolumeGpuData volume)
+    {
+      return isInsideVolumeLocal(localVolumePos(worldPos, volume), volume.volumeType);
+    }
+
+    float localVolumeDistance(float3 localPos, uint volumeType)
+    {
+      const float dist[VOLUME_TYPE_COUNT] = {
+        max(max(abs(localPos.x), abs(localPos.y)), abs(localPos.z)),
+        max(length(localPos.xz), abs(localPos.y)),
+        length(localPos),
+        0.0,
+      };
+      ##assert(volumeType < VOLUME_TYPE_COUNT, "Invalid volume type: %d", volumeType);
+      return dist[volumeType];
     }
   }
 endmacro

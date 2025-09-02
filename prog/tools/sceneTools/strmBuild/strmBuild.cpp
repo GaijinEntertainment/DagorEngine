@@ -93,16 +93,16 @@ int DagorWinMain(bool debugmode)
 
         ScnExtractor() : scn(tmpmem) {}
 
-        virtual bool bdlGetPhysicalWorldBbox(BBox3 &bbox) { return false; }
-        virtual bool bdlConfirmLoading(unsigned, int tag) { return tag == _MAKE4C('SCN') || tag == _MAKE4C('DxP2'); }
-        virtual void bdlTextureMap(unsigned, dag::ConstSpan<TEXTUREID> texId) {}
-        virtual void bdlEnviLoaded(unsigned, RenderScene *envi) {}
-        virtual void bdlSceneLoaded(unsigned, RenderScene *scene) { scn.push_back(scene); }
-        virtual void bdlBinDumpLoaded(unsigned bindump_id) {}
+        bool bdlGetPhysicalWorldBbox(BBox3 &bbox) override { return false; }
+        bool bdlConfirmLoading(unsigned, int tag) override { return tag == _MAKE4C('SCN') || tag == _MAKE4C('DxP2'); }
+        void bdlTextureMap(unsigned, dag::ConstSpan<TEXTUREID> texId) override {}
+        void bdlEnviLoaded(unsigned, RenderScene *envi) override {}
+        void bdlSceneLoaded(unsigned, RenderScene *scene) override { scn.push_back(scene); }
+        void bdlBinDumpLoaded(unsigned bindump_id) override {}
 
-        virtual bool bdlCustomLoad(unsigned, int, IGenLoad &, dag::ConstSpan<TEXTUREID>) { return true; }
+        bool bdlCustomLoad(unsigned, int, IGenLoad &, dag::ConstSpan<TEXTUREID>) override { return true; }
 
-        virtual const char *bdlGetBasePath() { return NULL; }
+        const char *bdlGetBasePath() override { return NULL; }
       };
 
       BBox3 box;

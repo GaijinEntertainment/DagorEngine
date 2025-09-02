@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 // clang-format off  // generated text, do not modify!
 #include <generic/dag_tab.h>
 #include <scriptHelpers/tunedParams.h>
@@ -28,7 +30,7 @@ ScriptHelpers::TunedElement *FxValueCurveOpt::createTunedElement(const char *nam
   elems.push_back(ScriptHelpers::create_tuned_bool_param("enabled", false));
   elems.push_back(ScriptHelpers::create_tuned_cubic_curve("curve", E3DCOLOR(255, 255, 0)));
 
-  return ScriptHelpers::create_tuned_struct(name, 2, elems);
+  return ScriptHelpers::create_tuned_struct(name, 3, elems);
 }
 
 
@@ -46,12 +48,13 @@ ScriptHelpers::TunedElement *FxSpawnFixed::createTunedElement(const char *name)
 ScriptHelpers::TunedElement *FxSpawnLinear::createTunedElement(const char *name)
 {
   Tab<ScriptHelpers::TunedElement *> elems(tmpmem);
-  elems.reserve(2);
+  elems.reserve(3);
 
   elems.push_back(ScriptHelpers::create_tuned_int_param("count_min", 1));
   elems.push_back(ScriptHelpers::create_tuned_int_param("count_max", 1));
+  elems.push_back(ScriptHelpers::create_tuned_bool_param("subframe_emittion", false));
 
-  return ScriptHelpers::create_tuned_struct(name, 2, elems);
+  return ScriptHelpers::create_tuned_struct(name, 3, elems);
 }
 
 
@@ -209,10 +212,22 @@ ScriptHelpers::TunedElement *FxInitGpuPlacement::createTunedElement(const char *
 }
 
 
+ScriptHelpers::TunedElement *FxPosHeightLimit::createTunedElement(const char *name)
+{
+  Tab<ScriptHelpers::TunedElement *> elems(tmpmem);
+  elems.reserve(2);
+
+  elems.push_back(ScriptHelpers::create_tuned_bool_param("enabled", false));
+  elems.push_back(ScriptHelpers::create_tuned_real_param("height_limit", 0));
+
+  return ScriptHelpers::create_tuned_struct(name, 2, elems);
+}
+
+
 ScriptHelpers::TunedElement *FxPos::createTunedElement(const char *name)
 {
   Tab<ScriptHelpers::TunedElement *> elems(tmpmem);
-  elems.reserve(11);
+  elems.reserve(12);
 
   elems.push_back(ScriptHelpers::create_tuned_bool_param("enabled", true));
   elems.push_back(ScriptHelpers::create_tuned_bool_param("attach_last_part_to_emitter", false));
@@ -241,8 +256,9 @@ ScriptHelpers::TunedElement *FxPos::createTunedElement(const char *name)
   elems.push_back(FxInitPosBox::createTunedElement("box"));
   elems.push_back(FxInitPosSphereSector::createTunedElement("sphere_sector"));
   elems.push_back(FxInitGpuPlacement::createTunedElement("gpu_placement"));
+  elems.push_back(FxPosHeightLimit::createTunedElement("height_limit"));
 
-  return ScriptHelpers::create_tuned_struct(name, 6, elems);
+  return ScriptHelpers::create_tuned_struct(name, 7, elems);
 }
 
 
@@ -261,6 +277,20 @@ ScriptHelpers::TunedElement *FxRadius::createTunedElement(const char *name)
 }
 
 
+ScriptHelpers::TunedElement *FxDistanceScale::createTunedElement(const char *name)
+{
+  Tab<ScriptHelpers::TunedElement *> elems(tmpmem);
+  elems.reserve(4);
+
+  elems.push_back(ScriptHelpers::create_tuned_bool_param("enabled", false));
+  elems.push_back(ScriptHelpers::create_tuned_real_param("begin_distance", 0));
+  elems.push_back(ScriptHelpers::create_tuned_real_param("end_distance", 100));
+  elems.push_back(ScriptHelpers::create_tuned_cubic_curve("curve", E3DCOLOR(255, 255, 0)));
+
+  return ScriptHelpers::create_tuned_struct(name, 2, elems);
+}
+
+
 ScriptHelpers::TunedElement *FxColorCurveOpt::createTunedElement(const char *name)
 {
   Tab<ScriptHelpers::TunedElement *> elems(tmpmem);
@@ -272,7 +302,7 @@ ScriptHelpers::TunedElement *FxColorCurveOpt::createTunedElement(const char *nam
   elems.push_back(ScriptHelpers::create_tuned_bool_param("use_threshold", false));
   elems.push_back(ScriptHelpers::create_tuned_cubic_curve("curve", E3DCOLOR(255, 255, 0)));
 
-  return ScriptHelpers::create_tuned_struct(name, 4, elems);
+  return ScriptHelpers::create_tuned_struct(name, 5, elems);
 }
 
 
@@ -285,7 +315,7 @@ ScriptHelpers::TunedElement *FxMaskedCurveOpt::createTunedElement(const char *na
   elems.push_back(ScriptHelpers::create_tuned_E3DCOLOR_param("mask", E3DCOLOR(255, 255, 255)));
   elems.push_back(ScriptHelpers::create_tuned_cubic_curve("curve", E3DCOLOR(255, 255, 0)));
 
-  return ScriptHelpers::create_tuned_struct(name, 1, elems);
+  return ScriptHelpers::create_tuned_struct(name, 2, elems);
 }
 
 
@@ -304,10 +334,25 @@ ScriptHelpers::TunedElement *FxAlphaByVelocity::createTunedElement(const char *n
 }
 
 
+ScriptHelpers::TunedElement *FxFakeAdaptation::createTunedElement(const char *name)
+{
+  Tab<ScriptHelpers::TunedElement *> elems(tmpmem);
+  elems.reserve(5);
+
+  elems.push_back(ScriptHelpers::create_tuned_bool_param("enabled", false));
+  elems.push_back(ScriptHelpers::create_tuned_real_param("looking_from_dark_to_dark", 1));
+  elems.push_back(ScriptHelpers::create_tuned_real_param("looking_from_dark_to_light", 1));
+  elems.push_back(ScriptHelpers::create_tuned_real_param("looking_from_light_to_dark", 1));
+  elems.push_back(ScriptHelpers::create_tuned_real_param("looking_from_light_to_light", 1));
+
+  return ScriptHelpers::create_tuned_struct(name, 1, elems);
+}
+
+
 ScriptHelpers::TunedElement *FxColor::createTunedElement(const char *name)
 {
   Tab<ScriptHelpers::TunedElement *> elems(tmpmem);
-  elems.reserve(9);
+  elems.reserve(10);
 
   elems.push_back(ScriptHelpers::create_tuned_bool_param("enabled", false));
   elems.push_back(ScriptHelpers::create_tuned_bool_param("allow_game_override", false));
@@ -318,8 +363,9 @@ ScriptHelpers::TunedElement *FxColor::createTunedElement(const char *name)
   elems.push_back(FxColorCurveOpt::createTunedElement("curve_over_part_life"));
   elems.push_back(FxMaskedCurveOpt::createTunedElement("curve_over_part_idx"));
   elems.push_back(FxAlphaByVelocity::createTunedElement("alpha_by_velocity"));
+  elems.push_back(FxFakeAdaptation::createTunedElement("fake_brightness"));
 
-  return ScriptHelpers::create_tuned_struct(name, 5, elems);
+  return ScriptHelpers::create_tuned_struct(name, 6, elems);
 }
 
 
@@ -574,7 +620,7 @@ ScriptHelpers::TunedElement *FxCameraVelocity::createTunedElement(const char *na
 ScriptHelpers::TunedElement *FxVelocity::createTunedElement(const char *name)
 {
   Tab<ScriptHelpers::TunedElement *> elems(tmpmem);
-  elems.reserve(17);
+  elems.reserve(19);
 
   elems.push_back(ScriptHelpers::create_tuned_bool_param("enabled", false));
   elems.push_back(ScriptHelpers::create_tuned_real_param("mass", 1));
@@ -583,6 +629,8 @@ ScriptHelpers::TunedElement *FxVelocity::createTunedElement(const char *name)
   elems.push_back(ScriptHelpers::create_tuned_bool_param("apply_gravity", true));
   elems.push_back(ScriptHelpers::create_tuned_bool_param("gravity_transform", false));
   elems.push_back(ScriptHelpers::create_tuned_bool_param("apply_parent_velocity", false));
+  elems.push_back(ScriptHelpers::create_tuned_bool_param("force_apply_gravity_zone", false));
+  elems.push_back(ScriptHelpers::create_tuned_bool_param("apply_parent_velocity_locally", false));
   elems.push_back(FxVelocityStart::createTunedElement("start"));
   elems.push_back(FxVelocityAdd::createTunedElement("add"));
   elems.push_back(FxForceField::createTunedElement("force_field"));
@@ -608,7 +656,7 @@ ScriptHelpers::TunedElement *FxVelocity::createTunedElement(const char *name)
     elems.push_back(ScriptHelpers::create_tuned_enum_param("gravity_zone", enumEntries));
   }
 
-  return ScriptHelpers::create_tuned_struct(name, 14, elems);
+  return ScriptHelpers::create_tuned_struct(name, 16, elems);
 }
 
 
@@ -631,15 +679,30 @@ ScriptHelpers::TunedElement *FxPlacement::createTunedElement(const char *name)
 ScriptHelpers::TunedElement *FxTextureAnim::createTunedElement(const char *name)
 {
   Tab<ScriptHelpers::TunedElement *> elems(tmpmem);
-  elems.reserve(5);
+  elems.reserve(8);
 
   elems.push_back(ScriptHelpers::create_tuned_bool_param("enabled", false));
   elems.push_back(ScriptHelpers::create_tuned_bool_param("animated_flipbook", false));
   elems.push_back(ScriptHelpers::create_tuned_real_param("speed_min", 1));
   elems.push_back(ScriptHelpers::create_tuned_real_param("speed_max", 1));
+  elems.push_back(ScriptHelpers::create_tuned_bool_param("motion_vectors", false));
+  {
+    Tab<ScriptHelpers::EnumEntry> enumEntries(tmpmem);
+    enumEntries.resize(3);
+
+    enumEntries[0].name = "low";
+    enumEntries[0].value = 0;
+    enumEntries[1].name = "medium";
+    enumEntries[1].value = 1;
+    enumEntries[2].name = "high";
+    enumEntries[2].value = 2;
+
+    elems.push_back(ScriptHelpers::create_tuned_enum_param("motion_vectors_min_quality", enumEntries));
+  }
+  elems.push_back(ScriptHelpers::create_tuned_real_param("motion_vectors_strength", 0.01));
   elems.push_back(FxValueCurveOpt::createTunedElement("over_part_life"));
 
-  return ScriptHelpers::create_tuned_struct(name, 1, elems);
+  return ScriptHelpers::create_tuned_struct(name, 3, elems);
 }
 
 
@@ -740,6 +803,41 @@ ScriptHelpers::TunedElement *FxThermalEmission::createTunedElement(const char *n
 }
 
 
+ScriptHelpers::TunedElement *FxAdvancedTranslucency::createTunedElement(const char *name)
+{
+  Tab<ScriptHelpers::TunedElement *> elems(tmpmem);
+  elems.reserve(13);
+
+  elems.push_back(ScriptHelpers::create_tuned_bool_param("enabled", false));
+  elems.push_back(ScriptHelpers::create_tuned_Point3_param("tranclucency_color_mul", Point3(2.5, 2, 1)));
+  elems.push_back(ScriptHelpers::create_tuned_bool_param("weigh_translucency_by_view_light_degree", false));
+  elems.push_back(ScriptHelpers::create_tuned_bool_param("use_alpha_as_translucency", false));
+  elems.push_back(ScriptHelpers::create_tuned_real_param("alpha_for_translucent_min", 0));
+  elems.push_back(ScriptHelpers::create_tuned_real_param("alpha_for_translucent_max", 1));
+  elems.push_back(ScriptHelpers::create_tuned_real_param("min_translucency_value", 0));
+  elems.push_back(ScriptHelpers::create_tuned_real_param("max_translucency_value", 1));
+  elems.push_back(ScriptHelpers::create_tuned_bool_param("use_normal_as_translucency", false));
+  elems.push_back(ScriptHelpers::create_tuned_bool_param("use_viewvector_for_normal_based_translucency", false));
+  elems.push_back(ScriptHelpers::create_tuned_bool_param("invert_accepted_degrees", false));
+  elems.push_back(ScriptHelpers::create_tuned_real_param("from_degree", 0));
+  elems.push_back(ScriptHelpers::create_tuned_real_param("to_degree", 90));
+
+  return ScriptHelpers::create_tuned_struct(name, 1, elems);
+}
+
+
+ScriptHelpers::TunedElement *FxTranslucency::createTunedElement(const char *name)
+{
+  Tab<ScriptHelpers::TunedElement *> elems(tmpmem);
+  elems.reserve(2);
+
+  elems.push_back(ScriptHelpers::create_tuned_real_param("translucency_val", 0));
+  elems.push_back(FxAdvancedTranslucency::createTunedElement("advanced_translucency"));
+
+  return ScriptHelpers::create_tuned_struct(name, 1, elems);
+}
+
+
 ScriptHelpers::TunedElement *FxLighting::createTunedElement(const char *name)
 {
   Tab<ScriptHelpers::TunedElement *> elems(tmpmem);
@@ -762,7 +860,6 @@ ScriptHelpers::TunedElement *FxLighting::createTunedElement(const char *name)
 
     elems.push_back(ScriptHelpers::create_tuned_enum_param("type", enumEntries));
   }
-  elems.push_back(ScriptHelpers::create_tuned_real_param("translucency", 0));
   elems.push_back(ScriptHelpers::create_tuned_real_param("sphere_normal_radius", 1));
   elems.push_back(ScriptHelpers::create_tuned_real_param("sphere_normal_power", 1));
   elems.push_back(ScriptHelpers::create_tuned_real_param("normal_softness", 0));
@@ -771,19 +868,20 @@ ScriptHelpers::TunedElement *FxLighting::createTunedElement(const char *name)
   elems.push_back(ScriptHelpers::create_tuned_real_param("specular_strength", 1));
   elems.push_back(ScriptHelpers::create_tuned_bool_param("ambient_enabled", false));
   elems.push_back(ScriptHelpers::create_tuned_bool_param("external_lights_enabled", false));
+  elems.push_back(FxTranslucency::createTunedElement("translucency"));
 
-  return ScriptHelpers::create_tuned_struct(name, 5, elems);
+  return ScriptHelpers::create_tuned_struct(name, 6, elems);
 }
 
 
 ScriptHelpers::TunedElement *FxRenderShapeBillboard::createTunedElement(const char *name)
 {
   Tab<ScriptHelpers::TunedElement *> elems(tmpmem);
-  elems.reserve(10);
+  elems.reserve(12);
 
   {
     Tab<ScriptHelpers::EnumEntry> enumEntries(tmpmem);
-    enumEntries.resize(7);
+    enumEntries.resize(8);
 
     enumEntries[0].name = "screen";
     enumEntries[0].value = 0;
@@ -799,11 +897,14 @@ ScriptHelpers::TunedElement *FxRenderShapeBillboard::createTunedElement(const ch
     enumEntries[5].value = 5;
     enumEntries[6].name = "start_velocity";
     enumEntries[6].value = 6;
+    enumEntries[7].name = "static_velocity";
+    enumEntries[7].value = 7;
 
     elems.push_back(ScriptHelpers::create_tuned_enum_param("orientation", enumEntries));
   }
   elems.push_back(ScriptHelpers::create_tuned_Point3_param("static_aligned_up_vec", Point3(0, 1, 0)));
   elems.push_back(ScriptHelpers::create_tuned_Point3_param("static_aligned_right_vec", Point3(1, 0, 0)));
+  elems.push_back(ScriptHelpers::create_tuned_Point3_param("static_velocity_orientation_vec", Point3(0, 1, 0)));
   elems.push_back(ScriptHelpers::create_tuned_real_param("cross_fade_mul", 0));
   elems.push_back(ScriptHelpers::create_tuned_int_param("cross_fade_pow", 1));
   elems.push_back(ScriptHelpers::create_tuned_real_param("cross_fade_threshold", 0));
@@ -811,8 +912,9 @@ ScriptHelpers::TunedElement *FxRenderShapeBillboard::createTunedElement(const ch
   elems.push_back(ScriptHelpers::create_tuned_real_param("velocity_to_length", 1));
   elems.push_back(ScriptHelpers::create_tuned_Point2_param("velocity_to_length_clamp", Point2(1, 1)));
   elems.push_back(ScriptHelpers::create_tuned_Point2_param("screen_view_clamp", Point2(0, 0)));
+  elems.push_back(FxDistanceScale::createTunedElement("distance_scale"));
 
-  return ScriptHelpers::create_tuned_struct(name, 9, elems);
+  return ScriptHelpers::create_tuned_struct(name, 11, elems);
 }
 
 
@@ -908,7 +1010,7 @@ ScriptHelpers::TunedElement *FxRenderGroup::createTunedElement(const char *name)
 
   {
     Tab<ScriptHelpers::EnumEntry> enumEntries(tmpmem);
-    enumEntries.resize(5);
+    enumEntries.resize(6);
 
     enumEntries[0].name = "lowres";
     enumEntries[0].value = 0;
@@ -916,15 +1018,17 @@ ScriptHelpers::TunedElement *FxRenderGroup::createTunedElement(const char *name)
     enumEntries[1].value = 1;
     enumEntries[2].name = "distortion";
     enumEntries[2].value = 2;
-    enumEntries[3].name = "water_proj";
+    enumEntries[3].name = "water_proj_advanced";
     enumEntries[3].value = 3;
-    enumEntries[4].name = "underwater";
+    enumEntries[4].name = "water_proj";
     enumEntries[4].value = 4;
+    enumEntries[5].name = "underwater";
+    enumEntries[5].value = 5;
 
     elems.push_back(ScriptHelpers::create_tuned_enum_param("type", enumEntries));
   }
 
-  return ScriptHelpers::create_tuned_struct(name, 4, elems);
+  return ScriptHelpers::create_tuned_struct(name, 5, elems);
 }
 
 
@@ -979,17 +1083,46 @@ ScriptHelpers::TunedElement *FxRenderVolfogInjection::createTunedElement(const c
 }
 
 
+ScriptHelpers::TunedElement *FxRenderShaderXray::createTunedElement(const char *name)
+{
+  Tab<ScriptHelpers::TunedElement *> elems(tmpmem);
+  elems.reserve(4);
+
+  elems.push_back(ScriptHelpers::create_tuned_E3DCOLOR_param("blend_color1", E3DCOLOR(255, 255, 255)));
+  elems.push_back(ScriptHelpers::create_tuned_E3DCOLOR_param("blend_color2", E3DCOLOR(255, 255, 255)));
+  elems.push_back(ScriptHelpers::create_tuned_real_param("blend_distance", 15));
+  elems.push_back(ScriptHelpers::create_tuned_real_param("blend_power", 1));
+
+  return ScriptHelpers::create_tuned_struct(name, 1, elems);
+}
+
+
+ScriptHelpers::TunedElement *FxRenderShaderWater::createTunedElement(const char *name)
+{
+  Tab<ScriptHelpers::TunedElement *> elems(tmpmem);
+  elems.reserve(5);
+
+  elems.push_back(ScriptHelpers::create_tuned_bool_param("use_height_tex_1", false));
+  elems.push_back(ScriptHelpers::create_tuned_real_param("height_scale", 0));
+  elems.push_back(ScriptHelpers::create_tuned_real_param("smoothness", 0));
+  elems.push_back(ScriptHelpers::create_tuned_real_param("reflectance", 0));
+  elems.push_back(ScriptHelpers::create_tuned_real_param("ao", 0));
+
+  return ScriptHelpers::create_tuned_struct(name, 1, elems);
+}
+
+
 ScriptHelpers::TunedElement *FxRenderShader::createTunedElement(const char *name)
 {
   Tab<ScriptHelpers::TunedElement *> elems(tmpmem);
-  elems.reserve(10);
+  elems.reserve(12);
 
   elems.push_back(ScriptHelpers::create_tuned_bool_param("reverse_part_order", false));
   elems.push_back(ScriptHelpers::create_tuned_bool_param("shadow_caster", false));
   elems.push_back(ScriptHelpers::create_tuned_bool_param("allow_screen_proj_discard", true));
   {
     Tab<ScriptHelpers::EnumEntry> enumEntries(tmpmem);
-    enumEntries.resize(6);
+    enumEntries.resize(8);
 
     enumEntries[0].name = "modfx_default";
     enumEntries[0].value = 0;
@@ -1003,6 +1136,10 @@ ScriptHelpers::TunedElement *FxRenderShader::createTunedElement(const char *name
     enumEntries[4].value = 4;
     enumEntries[5].name = "modfx_bboard_rain_distortion";
     enumEntries[5].value = 5;
+    enumEntries[6].name = "modfx_bboard_xray";
+    enumEntries[6].value = 6;
+    enumEntries[7].name = "modfx_bboard_water_fx";
+    enumEntries[7].value = 7;
 
     elems.push_back(ScriptHelpers::create_tuned_enum_param("shader", enumEntries));
   }
@@ -1012,21 +1149,36 @@ ScriptHelpers::TunedElement *FxRenderShader::createTunedElement(const char *name
   elems.push_back(FxRenderShaderVolShape::createTunedElement("modfx_bboard_vol_shape"));
   elems.push_back(FxRenderShaderDummy::createTunedElement("modfx_bboard_rain"));
   elems.push_back(FxRenderShaderDistortion::createTunedElement("modfx_bboard_rain_distortion"));
+  elems.push_back(FxRenderShaderXray::createTunedElement("modfx_bbboard_render_xray"));
+  elems.push_back(FxRenderShaderWater::createTunedElement("modfx_bboard_water_fx"));
 
-  return ScriptHelpers::create_tuned_struct(name, 11, elems);
+  return ScriptHelpers::create_tuned_struct(name, 14, elems);
+}
+
+
+ScriptHelpers::TunedElement *FxFadeByDist::createTunedElement(const char *name)
+{
+  Tab<ScriptHelpers::TunedElement *> elems(tmpmem);
+  elems.reserve(2);
+
+  elems.push_back(ScriptHelpers::create_tuned_bool_param("enabled", false));
+  elems.push_back(ScriptHelpers::create_tuned_real_param("zfar_start_to_clip", 0));
+
+  return ScriptHelpers::create_tuned_struct(name, 1, elems);
 }
 
 
 ScriptHelpers::TunedElement *FxDepthMask::createTunedElement(const char *name)
 {
   Tab<ScriptHelpers::TunedElement *> elems(tmpmem);
-  elems.reserve(5);
+  elems.reserve(6);
 
   elems.push_back(ScriptHelpers::create_tuned_bool_param("enabled", true));
   elems.push_back(ScriptHelpers::create_tuned_bool_param("use_part_radius", true));
   elems.push_back(ScriptHelpers::create_tuned_real_param("depth_softness", 0.5));
   elems.push_back(ScriptHelpers::create_tuned_real_param("znear_softness", 1));
   elems.push_back(ScriptHelpers::create_tuned_real_param("znear_clip", 0.1));
+  elems.push_back(FxFadeByDist::createTunedElement("zfar_fadeout"));
 
   return ScriptHelpers::create_tuned_struct(name, 3, elems);
 }
@@ -1072,7 +1224,7 @@ ScriptHelpers::TunedElement *FxGlobalParams::createTunedElement(const char *name
   elems.push_back(ScriptHelpers::create_tuned_real_param("one_point_number", 3));
   elems.push_back(ScriptHelpers::create_tuned_real_param("one_point_radius", 5));
 
-  return ScriptHelpers::create_tuned_struct(name, 4, elems);
+  return ScriptHelpers::create_tuned_struct(name, 3, elems);
 }
 
 
@@ -1121,7 +1273,7 @@ public:
     elems.push_back(FxGlobalParams::createTunedElement("FxGlobalParams_data"));
     elems.push_back(FxQuality::createTunedElement("FxQuality_data"));
 
-    return ScriptHelpers::create_tuned_group("params", 13, elems);
+    return ScriptHelpers::create_tuned_group("params", 15, elems);
   }
 };
 

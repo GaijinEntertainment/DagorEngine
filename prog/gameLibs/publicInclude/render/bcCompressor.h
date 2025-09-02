@@ -42,6 +42,7 @@ public:
     COMPRESSION_BC6H,
     COMPRESSION_ETC2_RG,
     COMPRESSION_ETC2_RGBA,
+    COMPRESSION_ASTC4,
     COMPRESSION_ERR, // unknown
   };
 
@@ -73,9 +74,9 @@ public:
 
   bool resetBuffer(unsigned int mips, unsigned int width, unsigned int height, int htiles); // uncompressed dimensions. recreate buffer
                                                                                             // texture
-  void update(TEXTUREID src_id, int htiles = -1);                                           // draw src to bc-target
-  void updateFromMip(TEXTUREID src_id, int src_mip, int dst_mip, int htiles = -1);
-  void updateFromFaceMip(TEXTUREID src_id, int src_face, int src_mip, int dst_mip, int htiles = -1);
+  void update(TEXTUREID src_id, d3d::SamplerHandle sampler, int htiles = -1);               // draw src to bc-target
+  void updateFromMip(TEXTUREID src_id, d3d::SamplerHandle sampler, int src_mip, int dst_mip, int htiles = -1);
+  void updateFromFaceMip(TEXTUREID src_id, d3d::SamplerHandle sampler, int src_face, int src_mip, int dst_mip, int htiles = -1);
 
   ErrorStats getErrorStats(TEXTUREID src_id, int src_face, int src_mip, int dst_mip, int tiles); // We calculate MSE/PSNR in linear
                                                                                                  // space.
@@ -99,13 +100,6 @@ private:
   unsigned int bufferHeight;
   unsigned int totalTiles = 0;
 
-  static int srcTexVarId;
-  static int srcTexSamplerVarId;
-  static int srcMipVarId;
-  static int dstMipVarId;
-  static int etc2RGBAVarId;
-  static int dbgSampleTexVarId;
-  static int dbgSrcTexelSizeUvOffsetVarId;
   struct Vertex
   {
     float x, y, z, w;

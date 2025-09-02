@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "soundGroupES.cpp.inl"
 ECS_DEF_PULL_VAR(soundGroup);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 //static constexpr ecs::ComponentDesc update_sound_group_using_animchar_es_comps[] ={};
 static void update_sound_group_using_animchar_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)

@@ -71,6 +71,6 @@ if $(PlatformSpec) in gcc {
 }
 
 
-UseProgLibs = 3rdPartyLibs/pcre gameLibs/iso8601Time ;
+UseProgLibs = 3rdPartyLibs/pcre gameLibs/iso8601Time 3rdPartyLibs/uuidv7 ;
 
 include $(Root)/prog/_jBuild/build.jam ;

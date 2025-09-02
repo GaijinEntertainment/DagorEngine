@@ -50,9 +50,9 @@ macro COMMON_POSTFX()
   USE_BLOOM(ps)
 
   hlsl(ps) {
-    half3 common_postfx(float3 frame, float2 tc, float exposure)
+    half3 common_postfx_with_precalculated_bloom(float3 frame, float2 tc, float exposure, float3 bloom)
     {
-      apply_bloom(tc, frame);
+      apply_precalculated_bloom(bloom, frame);
 
       ##if (in_editor_assume == yes)
         frame *= getPrevExposureRatio();
@@ -61,6 +61,12 @@ macro COMMON_POSTFX()
       ##endif
 
       return frame;
+    }
+
+    half3 common_postfx(float3 frame, float2 tc, float exposure)
+    {
+      float3 bloom = getBloom(tc);
+      return common_postfx_with_precalculated_bloom(frame, tc, exposure, bloom);
     }
   }
 endmacro

@@ -5,6 +5,7 @@
 #include <supp/dag_comPtr.h>
 
 #include <util/dag_string.h>
+#include <math/dag_bits.h>
 
 #include <windows.h>
 #include <unknwn.h>
@@ -320,10 +321,30 @@ eastl::string get_function_name(const D3D12_FUNCTION_DESC &func)
   }
   return {mangledName + start, stop - start};
 }
+
+enum class ExtensionOpCheckResult
+{
+  NotExtension,
+  ValidExtension,
+  InvalidExtension,
+};
+
+ExtensionOpCheckResult check_nvidia_extension_meta_slot(const D3D12_SHADER_INPUT_BIND_DESC &info)
+{
+  return (extension::nvidia::register_space_index != info.Space) ? ExtensionOpCheckResult::NotExtension
+         : (extension::nvidia::register_index != info.BindPoint) ? ExtensionOpCheckResult::InvalidExtension
+                                                                 : ExtensionOpCheckResult::ValidExtension;
+}
+ExtensionOpCheckResult check_amd_extension_meta_slot(const D3D12_SHADER_INPUT_BIND_DESC &info)
+{
+  return (extension::amd::register_space_index != info.Space) ? ExtensionOpCheckResult::NotExtension
+         : (extension::amd::register_index != info.BindPoint) ? ExtensionOpCheckResult::InvalidExtension
+                                                              : ExtensionOpCheckResult::ValidExtension;
+}
 } // namespace
 
 ShaderHeaderCompileResult dxil::compileHeaderFromReflectionData(ShaderStage stage, const eastl::vector<uint8_t> &reflection,
-  uint32_t max_const_count, void *dxc_lib)
+  uint32_t max_const_count, dag::ConstSpan<dxil::StreamOutputComponentInfo> stream_output_components, void *dxc_lib)
 {
   ShaderHeaderCompileResult result = {};
 #if _TARGET_PC_WIN
@@ -353,6 +374,8 @@ ShaderHeaderCompileResult dxil::compileHeaderFromReflectionData(ShaderStage stag
   result.header.deviceRequirement.shaderModel = static_cast<uint8_t>(desc.Version);
   result.header.deviceRequirement.shaderFeatureFlagsLow = static_cast<uint32_t>(reqFlags);
   result.header.deviceRequirement.shaderFeatureFlagsHigh = static_cast<uint32_t>(reqFlags >> 32);
+  result.header.deviceRequirement.extensionVendor = ::dxil::ExtensionVendor::NoExtensionsUsed;
+  result.header.deviceRequirement.vendorExtensionMask = 0;
 
   result.header.inputPrimitive = desc.InputPrimitive;
 
@@ -360,6 +383,39 @@ ShaderHeaderCompileResult dxil::compileHeaderFromReflectionData(ShaderStage stag
   {
     D3D12_SHADER_INPUT_BIND_DESC boundResourceInfo = {};
     shaderInfo->GetResourceBindingDesc(bri, &boundResourceInfo);
+
+    // Both NVidia and AMD use a special UAV buffer to "record" extension commands to.
+    // The device driver will then decode this recordings to this special buffer into
+    // vendor specific commands.
+    auto nvExtensionUse = check_nvidia_extension_meta_slot(boundResourceInfo);
+    if (ExtensionOpCheckResult::ValidExtension == nvExtensionUse)
+    {
+      result.header.resourceUsageTable.specialConstantsMask |= SC_NVIDIA_EXTENSION;
+      result.header.deviceRequirement.extensionVendor = ::dxil::ExtensionVendor::NVIDIA;
+      result.logMessage += "dxil::compileHeaderFromShader: NVidia extension detected\n";
+      continue;
+    }
+    if (ExtensionOpCheckResult::InvalidExtension == nvExtensionUse)
+    {
+      result.isOk = false;
+      result.logMessage += "dxil::compileHeaderFromShader: Invalid use of NVidia extension\n";
+      continue;
+    }
+
+    auto amdExtensionUse = check_amd_extension_meta_slot(boundResourceInfo);
+    if (ExtensionOpCheckResult::ValidExtension == amdExtensionUse)
+    {
+      result.header.resourceUsageTable.specialConstantsMask |= SC_AMD_EXTENSION;
+      result.header.deviceRequirement.extensionVendor = ::dxil::ExtensionVendor::AMD;
+      result.logMessage += "dxil::compileHeaderFromShader: AMD extension detected\n";
+      continue;
+    }
+    if (ExtensionOpCheckResult::InvalidExtension == amdExtensionUse)
+    {
+      result.isOk = false;
+      result.logMessage += "dxil::compileHeaderFromShader: Invalid use of AMD extension\n";
+      continue;
+    }
 
     if (0 == boundResourceInfo.BindCount)
     {
@@ -388,7 +444,8 @@ ShaderHeaderCompileResult dxil::compileHeaderFromReflectionData(ShaderStage stag
             String msg(256,
               "dxil::compileHeaderFromShader: Bindless sampler used on space%u, which is "
               "not in range of space%u to space%u\n",
-              boundResourceInfo.Space, BINDLESS_SAMPLERS_SPACE_OFFSET, BINDLESS_SAMPLERS_SPACE_OFFSET + BINDLESS_SAMPLERS_SPACE_COUNT);
+              boundResourceInfo.Space, BINDLESS_SAMPLERS_SPACE_OFFSET,
+              BINDLESS_SAMPLERS_SPACE_OFFSET + BINDLESS_SAMPLERS_SPACE_COUNT - 1);
             result.logMessage += msg;
           }
 
@@ -578,6 +635,71 @@ ShaderHeaderCompileResult dxil::compileHeaderFromReflectionData(ShaderStage stag
         }
       }
     }
+  }
+
+  if (!stream_output_components.empty())
+  {
+    if (ShaderStage::PIXEL == stage || ShaderStage::DOMAIN == stage || ShaderStage::AMPLIFICATION == stage)
+    {
+      result.isOk = false;
+      result.logMessage += "dxil::compileHeaderFromShader: Stream output is not supported from PIXEL, DOMAIN, AMPLIFICATION stages\n";
+    }
+    for (const auto comp : stream_output_components)
+    {
+      bool hasSemantic = false;
+      for (UINT opi = 0; opi < desc.OutputParameters; ++opi)
+      {
+        D3D12_SIGNATURE_PARAMETER_DESC outputInfo = {};
+        shaderInfo->GetOutputParameterDesc(opi, &outputInfo);
+        if (strcmp(outputInfo.SemanticName, comp.semanticName) != 0 || outputInfo.SemanticIndex != comp.semanticIndex)
+          continue;
+        hasSemantic = true;
+        if (outputInfo.Stream != 0)
+        {
+          result.isOk = false;
+          String msg(256,
+            "dxil::compileHeaderFromShader: Stream out is supported with stream 0 only now, semantic %s%d (stream: %d)\n",
+            outputInfo.SemanticName, outputInfo.SemanticIndex, outputInfo.Stream);
+          result.logMessage += msg;
+          break;
+        }
+      }
+      if (!hasSemantic)
+      {
+        result.isOk = false;
+        String msg(256, "dxil::compileHeaderFromShader: Stream out semantic %s%d not found in the shader\n", comp.semanticName,
+          comp.semanticIndex);
+        result.logMessage += msg;
+        break;
+      }
+      uint32_t numEntries = eastl::count_if(stream_output_components.begin(), stream_output_components.end(),
+        [&comp](const dxil::StreamOutputComponentInfo &otherComp) {
+          return strcmp(otherComp.semanticName, comp.semanticName) == 0 && otherComp.semanticIndex == comp.semanticIndex;
+        });
+      if (numEntries > 1)
+      {
+        result.isOk = false;
+        String msg(256,
+          "dxil::compileHeaderFromShader: Stream out semantic %s%d (slot: %d, mask: 0x%x) is used more than once, but only one SO "
+          "entry is allowed per semantic (due to Xbox limitations)\n",
+          comp.semanticName, comp.semanticIndex, comp.slot, comp.mask);
+        result.logMessage += msg;
+        break;
+      }
+      const uint8_t startComponent = __bsf(comp.mask);
+      const uint8_t componentCount = __popcount(comp.mask);
+      if (comp.mask != (((1 << componentCount) - 1) << startComponent))
+      {
+        result.isOk = false;
+        String msg(256,
+          "dxil::compileHeaderFromShader: Stream out semantic %s%d (slot: %d, mask: 0x%x): only consecutive components are supported "
+          "for streamout (due to Xbox limitations)\n",
+          comp.semanticName, comp.semanticIndex, comp.slot, comp.mask);
+        result.logMessage += msg;
+        break;
+      }
+    }
+    result.streamOutputComponents = stream_output_components;
   }
 
   if (ShaderStage::PIXEL == stage)

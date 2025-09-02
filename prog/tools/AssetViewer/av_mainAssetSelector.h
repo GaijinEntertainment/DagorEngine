@@ -54,8 +54,8 @@ public:
   ~MainAssetSelector();
 
   // IAssetSelectorFavoritesRecentlyUsedHost
-  virtual void addAssetToFavorites(const DagorAsset &asset) override;
-  virtual void goToAsset(const DagorAsset &asset) override;
+  void addAssetToFavorites(const DagorAsset &asset) override;
+  void goToAsset(const DagorAsset &asset) override;
 
   void setAssetMgr(DagorAssetMgr &asset_mgr);
 
@@ -77,15 +77,15 @@ private:
   };
 
   // IAssetBaseViewClient
-  virtual void onAvClose() override;
-  virtual void onAvAssetDblClick(DagorAsset *asset, const char *asset_name) override;
-  virtual void onAvSelectAsset(DagorAsset *asset, const char *asset_name) override;
-  virtual void onAvSelectFolder(DagorAssetFolder *asset_folder, const char *asset_folder_name) override;
+  void onAvClose() override;
+  void onAvAssetDblClick(DagorAsset *asset, const char *asset_name) override;
+  void onAvSelectAsset(DagorAsset *asset, const char *asset_name) override;
+  void onAvSelectFolder(DagorAssetFolder *asset_folder, const char *asset_folder_name) override;
 
   // IAssetSelectorFavoritesRecentlyUsedHost
-  virtual dag::ConstSpan<int> getAllowedTypes() const override;
-  virtual void onSelectionChanged(const DagorAsset *asset) override;
-  virtual void onSelectionDoubleClicked(const DagorAsset *asset) override;
+  dag::ConstSpan<int> getAllowedTypes() const override;
+  void onSelectionChanged(const DagorAsset *asset) override;
+  void onSelectionDoubleClicked(const DagorAsset *asset) override;
 
   void setActiveTab(ActiveTab tab);
 
@@ -99,6 +99,7 @@ private:
   eastl::unique_ptr<RecentlyUsedTab> recentlyUsedTab;
   DagorAssetMgr *assetMgr = nullptr;
   ActiveTab activeTab = ActiveTab::All;
+  const DagorAsset *lastSelectedAsset = nullptr;
   int favoritesFilledGenerationId = -1;
   int recentlyUsedFilledGenerationId = -1;
   bool allowChangingRecentlyUsedList = true;

@@ -59,7 +59,7 @@ namespace das {
         TypeDeclPtr visit ( Visitor & vis );
         friend StringWriter& operator<< (StringWriter& stream, const TypeDecl & decl);
         string getMangledName ( bool fullName=false ) const;
-        void getMangledName ( FixedBufferTextWriter & tw, bool fullName=false ) const;
+        void getMangledName ( TextWriter & tw, bool fullName=false ) const;
         bool canAot() const;
         bool canAot( das_set<Structure *> & recAot ) const;
         bool isSameType ( const TypeDecl & decl, RefMatters refMatters, ConstMatters constMatters,
@@ -91,6 +91,10 @@ namespace das {
         __forceinline bool isTempType(bool refMatters = true) const;
         bool isFullyInferred(das_set<Structure*> & dep) const;
         bool isFullyInferred() const;
+        // WARNING: this is really really slow, use faster tests when u can isAutoOrAlias for one
+        // type chain is fully resolved, and not aliased \ auto
+        bool isFullySealed(das_set<const Structure *> & all ) const;
+        bool isFullySealed() const;
         bool isShareable(das_set<Structure*> & dep) const;
         bool isShareable() const;
         bool isIndex() const;
@@ -224,9 +228,13 @@ namespace das {
         void serialize ( AstSerializer & ser );
         string typeMacroName() const;
         uint64_t getOwnSemanticHash() const;
+        uint64_t getMangledNameHash() const;
         uint64_t getOwnSemanticHash(HashBuilder & hb, das_set<Structure *> & dep, das_set<Annotation *> & adep) const;
         uint64_t getSemanticHash() const;
         uint64_t getSemanticHash(HashBuilder & hb) const;
+        void getLookupHash(uint64_t & hash) const;
+        static void clone ( TypeDeclPtr & dest, const TypeDeclPtr & src );
+        Type getR2VType() const;
     public:
         Type                    baseType = Type::tVoid;
         Structure *             structType = nullptr;
@@ -662,12 +670,14 @@ namespace das {
     enum class CpptSkipRef { no, yes };
     enum class CpptSkipConst { no, yes };
     enum class CpptRedundantConst { no, yes };
+    enum class ChooseSmartPtr { no, yes };
 
-    string describeCppType(const TypeDeclPtr & type,
+    string describeCppType(const smart_ptr_raw<TypeDecl> & type,
                            CpptSubstitureRef substituteRef = CpptSubstitureRef::no,
                            CpptSkipRef skipRef = CpptSkipRef::no,
                            CpptSkipConst skipConst = CpptSkipConst::no,
-                           CpptRedundantConst redundantConst = CpptRedundantConst::yes );
+                           CpptRedundantConst redundantConst = CpptRedundantConst::yes,
+                           ChooseSmartPtr chooseSmartPtr = ChooseSmartPtr::no);
 
     class MangledNameParser {
     protected:

@@ -31,7 +31,7 @@ public:
   const String &getPickedName() const { return pickedName; }
 
 private:
-  virtual bool onOk() override
+  bool onOk() override
   {
     String name(getPanel()->getText(NAME_CONTROL_ID).c_str());
     trim(name);

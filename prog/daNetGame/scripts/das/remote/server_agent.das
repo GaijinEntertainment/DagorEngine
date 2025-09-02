@@ -17,6 +17,7 @@ require remote.server
 let
   AGENT_NAME = "web_agent"
   initialStrLimit = uint64(2 * 1024 * 1024)
+  CALL_GC = false
 
 var
   serverDebugLogs = false
@@ -24,8 +25,8 @@ var
   strLimit = initialStrLimit
 
 // TODO: rewrite using invoke_debug_agent_function
-var private [[ignore_heap_usage]] server : WebServer?
-var private [[ignore_heap_usage]] jsonRpc : JsonRpcHandler?
+var private @ignore_heap_usage server : WebServer?
+var private @ignore_heap_usage jsonRpc : JsonRpcHandler?
 
 
 def private bytes_hr(value : uint64)
@@ -120,23 +121,24 @@ class WebDebugAgent : DapiDebugAgent
     if server != null
       server->tick()
 
-    var alloc = string_heap_bytes_allocated()
-    if alloc > strLimit
-      let strReport = "STRING HEAP COLLECT: {bytes_hr(alloc)} -> "
-      let heapReport = "HEAP COLLECT: {bytes_hr(heap_bytes_allocated())} -> "
-      unsafe
-        heap_collect(true)
-      alloc = string_heap_bytes_allocated()
-      if verbose
-        print("{strReport}{bytes_hr(alloc)} limit : {bytes_hr(strLimit)}\n{heapReport}{bytes_hr(heap_bytes_allocated())}")
+    if CALL_GC
+      var alloc = string_heap_bytes_allocated()
       if alloc > strLimit
-        strLimit *= uint64(2)
+        let strReport = "STRING HEAP COLLECT: {bytes_hr(alloc)} -> "
+        let heapReport = "HEAP COLLECT: {bytes_hr(heap_bytes_allocated())} -> "
+        unsafe
+          heap_collect(true)
+        alloc = string_heap_bytes_allocated()
         if verbose
-          print("UP string heap limit: {bytes_hr(strLimit)}\n")
-      elif strLimit > initialStrLimit && alloc < strLimit / uint64(2)
-        strLimit = strLimit / uint64(2)
-        if verbose
-          print("DOWN string heap limit: {bytes_hr(strLimit)}\n")
+          print("{strReport}{bytes_hr(alloc)} limit : {bytes_hr(strLimit)}\n{heapReport}{bytes_hr(heap_bytes_allocated())}")
+        if alloc > strLimit
+          strLimit *= uint64(2)
+          if verbose
+            print("UP string heap limit: {bytes_hr(strLimit)}\n")
+        elif strLimit > initialStrLimit && alloc < strLimit / uint64(2)
+          strLimit = strLimit / uint64(2)
+          if verbose
+            print("DOWN string heap limit: {bytes_hr(strLimit)}\n")
 
 
 def not_in_web_context()
@@ -221,7 +223,7 @@ def private start_debug_agent(ctx : Context)
 def start_agent() : bool
   unsafe
     lock_debug_agent() <| $()
-      if app::get_game_name() != "aot" && !has_web_agent() && !is_in_aot() && !is_in_debug_agent_creation()
+      if !is_in_aot() && !has_web_agent() && !is_in_aot() && !is_in_debug_agent_creation()
         fork_debug_agent_context(@@start_debug_agent)
       elif verbose
         print("debug agent already exists\n")

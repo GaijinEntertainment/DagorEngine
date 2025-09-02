@@ -32,6 +32,11 @@ struct SavedVar
     type = SHVT_COLOR4;
     colorVal = val;
   }
+  SavedVar(const IPoint4 &val)
+  {
+    type = SHVT_INT4;
+    ip4val = val;
+  }
 
   int type;
   union
@@ -39,6 +44,7 @@ struct SavedVar
     int intVal;
     float floatVal;
     Color4 colorVal;
+    IPoint4 ip4val;
   };
 };
 
@@ -84,6 +90,11 @@ void ShaderGlobal::set_vars_from_blk(const DataBlock &blk, bool loadTexures, boo
       case DataBlock::TYPE_POINT4:
         saved_vars.emplace(name, ShaderGlobal::get_color4(id));
         ShaderGlobal::set_color4(id, Color4::xyzw(blk.getPoint4(i)));
+        break;
+
+      case DataBlock::TYPE_IPOINT4:
+        saved_vars.emplace(name, ShaderGlobal::get_int4(id));
+        ShaderGlobal::set_int4(id, blk.getIPoint4(i));
         break;
 
       case DataBlock::TYPE_E3DCOLOR:

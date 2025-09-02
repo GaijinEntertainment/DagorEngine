@@ -47,6 +47,10 @@ def datablock_getIPoint3(blk : DataBlock const? | #; param_name : string; defaul
   return blk != null ? datablock_getIPoint3(*blk, param_name, default_value) : default_value
 
 [generic]
+def datablock_getIPoint4(blk : DataBlock const? | #; param_name : string; default_value : int4)
+  return blk != null ? datablock_getIPoint4(*blk, param_name, default_value) : default_value
+
+[generic]
 def datablock_getE3dcolor(blk : DataBlock const? | #; param_name : string; default_value : E3DCOLOR)
   return blk != null ? datablock_getE3dcolor(*blk, param_name, default_value) : default_value
 

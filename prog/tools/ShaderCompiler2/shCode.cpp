@@ -24,7 +24,7 @@ ShaderCode::PassTab *ShaderCode::createPasses(int variant)
 
 ShaderCode::ShaderCode(IMemAlloc *mem) : channel(mem), initcode(mem), stvarmap(mem), passes(mem), flags(0) {}
 
-void ShaderCode::link()
+void ShaderCode::link(shc::TargetContext &ctx)
 {
   for (auto &pass : passes)
     if (pass)
@@ -32,7 +32,7 @@ void ShaderCode::link()
       for (auto &blk : pass->suppBlk)
       {
         const char *bname = blk->name.c_str();
-        ShaderStateBlock *sb = !blk->name.empty() ? ShaderStateBlock::findBlock(bname) : ShaderStateBlock::emptyBlock();
+        ShaderStateBlock *sb = !blk->name.empty() ? ctx.blocks().findBlock(bname) : ctx.blocks().emptyBlock();
         if (sb)
           blk = sb;
         else
@@ -64,7 +64,7 @@ unsigned int ShaderCode::getVertexStride() const
       case SCTYPE_USHORT4N: vertexStride += 8; break;
       case SCTYPE_UDEC3: vertexStride += 4; break;
       case SCTYPE_DEC3N: vertexStride += 4; break;
-      default: DAG_FATAL("Unknown channel #%d type: 0x%p", channelNo, channel[channelNo].t);
+      default: G_ASSERTF(0, "Unknown channel #%d type: 0x%p", channelNo, channel[channelNo].t);
     }
   }
   return vertexStride;
@@ -78,7 +78,7 @@ void ShaderClass::sortStaticVarsByMode()
   eastl::transform(stvar.cbegin(), stvar.cend(), argvars.begin(), [&i](const Var &var) { return eastl::make_pair(var, i++); });
 
   // First statics, then dynamics, with as little reordering as possible
-  eastl::stable_partition(argvars.begin(), argvars.end(), [this](const auto &p) { return !stvarsAreDynamic[p.second]; });
+  eastl::stable_partition(argvars.begin(), argvars.end(), [this](const auto &p) { return !stvarsAreDynamic.test(p.second, false); });
 
   // We don't need this data anymore, and no need to remap it
   stvarsAreDynamic.clear();
@@ -95,13 +95,13 @@ void ShaderClass::sortStaticVarsByMode()
   {
     if (shcode)
     {
-      for (ShaderCode::StVarMap &mapping : shcode->stvarmap)
+      for (ShaderCode::StVarMapping &mapping : shcode->stvarmap)
         mapping.sv = remapping[mapping.sv];
     }
   }
 }
 
-int ShaderClass::find_static_var(const int variable_name_id)
+int ShaderClass::find_static_var(const int variable_name_id) const
 {
   for (int i = 0; i < stvar.size(); ++i)
     if (stvar[i].nameId == variable_name_id)

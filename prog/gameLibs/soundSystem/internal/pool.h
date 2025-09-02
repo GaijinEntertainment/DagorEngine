@@ -209,7 +209,8 @@ private:
     {
       if (size_t(parts.index) >= total)
       {
-        logerr("sndsys: Handle value %lld contains garbage(parts.index %d is out of range)", int64_t(value), size_t(parts.index));
+        logerr("sndsys: Handle value %lld contains garbage(parts.index %d is out of range, %d nodes total)", int64_t(value),
+          size_t(parts.index), total);
         return nullptr;
       }
       Node &node = get_node_from_index(parts.index);
@@ -298,7 +299,7 @@ public:
     {
       Node &node = get_node_from_index(idx);
       if (is_used_generation(node.generation))
-        c(get_event(node));
+        c(get_event(node), ValueParts(index_type(idx), node.generation).value);
     }
   }
 
@@ -310,7 +311,7 @@ public:
 
   void close()
   {
-    enumerate([&](event_type &evt) { destroy(evt); });
+    enumerate([&](event_type &evt, value_type) { destroy(evt); });
     arrays.clear();
     firstFree = lastFree = nullptr;
     total = 0;

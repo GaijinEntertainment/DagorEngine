@@ -4,12 +4,11 @@
 #include <EditorCore/ec_interface.h>
 #include <EditorCore/ec_interface_ex.h>
 #include <EditorCore/ec_rendEdObject.h>
+#include <EditorCore/ec_wndPublic.h>
 
 #include <propPanel/control/container.h>
 #include <propPanel/control/panelWindow.h>
 #include <propPanel/control/menu.h>
-#include <sepGui/wndPublic.h>
-#include <sepGui/wndMenuInterface.h>
 
 #include <util/dag_globDef.h>
 
@@ -37,7 +36,7 @@ class ObjectEditor : public IGizmoClient,
                      public IGenEventHandler,
                      public IObjectsList,
                      public IWndManagerWindowHandler,
-                     public IMenuEventHandler,
+                     public PropPanel::IMenuEventHandler,
                      public PropPanel::ControlEventHandler
 {
   friend class ObjectEditorWrap;
@@ -48,14 +47,14 @@ public:
   /// Constructor.
   ObjectEditor();
   /// Destructor.
-  virtual ~ObjectEditor();
+  ~ObjectEditor() override;
 
   //*****************************************************************
   /// @name Implementation of IObjectsList methods for selecting objects by name
   //@{
-  virtual void getObjNames(Tab<String> &names, Tab<String> &sel_names, const Tab<int> &types);
-  virtual void getTypeNames(Tab<String> &names) {}
-  virtual void onSelectedNames(const Tab<String> &names);
+  void getObjNames(Tab<String> &names, Tab<String> &sel_names, const Tab<int> &types) override;
+  void getTypeNames(Tab<String> &names) override {}
+  void onSelectedNames(const Tab<String> &names) override;
   //@}
 
 
@@ -148,7 +147,7 @@ public:
   static IEditorCoreEngine::ModeType editModeToModeType(int editMode);
 
   /// Update Gizmo state.
-  virtual void updateGizmo(int basis = IEditorCoreEngine::BASIS_None);
+  virtual void updateGizmo(int basis = IEditorCoreEngine::BASIS_None, int *modeOverride = nullptr);
 
   /// Get/set the flag indicating viewport state invalidation of gizmo on state update
   virtual bool getUpdateViewportGizmo() const { return updateViewportGizmo; }
@@ -341,38 +340,36 @@ public:
   //*****************************************************************
   /// @name Methods inherited from IGizmoClient
   //@{
-  virtual void release() {}
-  virtual Point3 getPt();
-  virtual bool getRot(Point3 &p);
-  virtual bool getScl(Point3 &p);
-  virtual bool getAxes(Point3 &ax, Point3 &ay, Point3 &az);
-  virtual void changed(const Point3 &delta);
-  virtual bool canStartChangeAt(IGenViewportWnd *wnd, int x, int y, int gizmo_sel);
-  virtual void gizmoStarted();
-  virtual void gizmoEnded(bool apply);
+  void release() override {}
+  Point3 getPt() override;
+  bool getRot(Point3 &p) override;
+  bool getScl(Point3 &p) override;
+  bool getAxes(Point3 &ax, Point3 &ay, Point3 &az) override;
+  void changed(const Point3 &delta) override;
+  bool canStartChangeAt(IGenViewportWnd *wnd, int x, int y, int gizmo_sel) override;
+  bool isMouseOver(IGenViewportWnd *wnd, int x, int y) override;
+  void gizmoStarted() override;
+  void gizmoEnded(bool apply) override;
 
-  virtual int getAvailableTypes();
+  int getAvailableTypes() override;
   //@}
 
 
   //*****************************************************************
   /// @name Methods inherited from IGenEventHandler
   //@{
-  virtual void handleKeyPress(IGenViewportWnd *wnd, int vk, int modif);
-  virtual void handleKeyRelease(IGenViewportWnd *wnd, int vk, int modif) {}
+  bool handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
+  bool handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
+  bool handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
+  bool handleMouseRBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
+  bool handleMouseRBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
+  bool handleMouseCBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override { return false; }
+  bool handleMouseCBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override { return false; }
+  bool handleMouseWheel(IGenViewportWnd *wnd, int wheel_d, int x, int y, int key_modif) override { return false; }
+  bool handleMouseDoubleClick(IGenViewportWnd *wnd, int x, int y, int key_modif) override { return false; }
 
-  virtual bool handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
-  virtual bool handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
-  virtual bool handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
-  virtual bool handleMouseRBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
-  virtual bool handleMouseRBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
-  virtual bool handleMouseCBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) { return false; }
-  virtual bool handleMouseCBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) { return false; }
-  virtual bool handleMouseWheel(IGenViewportWnd *wnd, int wheel_d, int x, int y, int key_modif) { return false; }
-  virtual bool handleMouseDoubleClick(IGenViewportWnd *wnd, int x, int y, int key_modif) { return false; }
-
-  virtual void handleViewportPaint(IGenViewportWnd *wnd) {}
-  virtual void handleViewChange(IGenViewportWnd *wnd) {}
+  void handleViewportPaint(IGenViewportWnd *wnd) override {}
+  void handleViewChange(IGenViewportWnd *wnd) override {}
   //@}
 
   //*****************************************************************
@@ -400,7 +397,10 @@ public:
   virtual void registerViewportAccelerators(IWndManager &wndManager);
 
   // IMenuEventHandler
-  virtual int onMenuItemClick(unsigned id) { return 0; }
+  int onMenuItemClick(unsigned id) override { return 0; }
+
+  static bool getPlaceTypeRadio() { return placeTypeRadio; }
+  static void setPlaceTypeRadio(bool is_radio) { placeTypeRadio = is_radio; }
 
 protected:
   String objListOwnerName;
@@ -438,12 +438,12 @@ protected:
   virtual void saveEditorPropBarSettings();
 
   // IWndManagerWindowHandler
-  virtual void *onWmCreateWindow(int type) override;
-  virtual bool onWmDestroyWindow(void *window) override;
+  void *onWmCreateWindow(int type) override;
+  bool onWmDestroyWindow(void *window) override;
 
   // ControlEventHandler
-  virtual void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel);
-  virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel);
+  void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
+  void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
 
   virtual void moveObjects(PtrTab<RenderableEditableObject> &obj, const Point3 &delta, IEditorCoreEngine::BasisType basis);
 
@@ -457,13 +457,13 @@ protected:
 
     UndoAddObjects(ObjectEditor *oe, int num) : objEd(oe), objects(midmem) { objects.reserve(num); }
 
-    virtual void restore(bool save_redo) { objEd->_removeObjects((RenderableEditableObject **)&objects[0], objects.size(), false); }
+    void restore(bool save_redo) override { objEd->_removeObjects((RenderableEditableObject **)&objects[0], objects.size(), false); }
 
-    virtual void redo() { objEd->_addObjects((RenderableEditableObject **)&objects[0], objects.size(), false); }
+    void redo() override { objEd->_addObjects((RenderableEditableObject **)&objects[0], objects.size(), false); }
 
-    virtual size_t size() { return sizeof(*this) + data_size(objects) + objects.size() * sizeof(RenderableEditableObject); }
-    virtual void accepted() {}
-    virtual void get_description(String &s) { s = "UndoAddObjects"; }
+    size_t size() override { return sizeof(*this) + data_size(objects) + objects.size() * sizeof(RenderableEditableObject); }
+    void accepted() override {}
+    void get_description(String &s) override { s = "UndoAddObjects"; }
   };
 
   class UndoRemoveObjects : public UndoRedoObject
@@ -474,14 +474,14 @@ protected:
 
     UndoRemoveObjects(ObjectEditor *oe, int num) : objEd(oe), objects(midmem) { objects.reserve(num); }
 
-    virtual void restore(bool save_redo) { objEd->_addObjects((RenderableEditableObject **)&objects[0], objects.size(), false); }
+    void restore(bool save_redo) override { objEd->_addObjects((RenderableEditableObject **)&objects[0], objects.size(), false); }
 
-    virtual void redo() { objEd->_removeObjects((RenderableEditableObject **)&objects[0], objects.size(), false); }
+    void redo() override { objEd->_removeObjects((RenderableEditableObject **)&objects[0], objects.size(), false); }
 
-    virtual size_t size() { return sizeof(*this) + data_size(objects) + objects.size() * sizeof(RenderableEditableObject); }
+    size_t size() override { return sizeof(*this) + data_size(objects) + objects.size() * sizeof(RenderableEditableObject); }
 
-    virtual void accepted() {}
-    virtual void get_description(String &s) { s = "UndoRemoveObjects"; }
+    void accepted() override {}
+    void get_description(String &s) override { s = "UndoRemoveObjects"; }
   };
 
   class UndoObjectEditorRename : public UndoRedoObject
@@ -498,18 +498,18 @@ protected:
       redoName = object->getName();
     }
 
-    virtual void restore(bool save_redo)
+    void restore(bool save_redo) override
     {
       if (save_redo)
         redoName = object->getName();
       objEd->renameObject(object, undoName, false);
     }
 
-    virtual void redo() { objEd->renameObject(object, redoName, false); }
+    void redo() override { objEd->renameObject(object, redoName, false); }
 
-    virtual size_t size() { return sizeof(*this) + data_size(undoName) + data_size(redoName); }
-    virtual void accepted() {}
-    virtual void get_description(String &s) { s = "UndoObjectEditorRename"; }
+    size_t size() override { return sizeof(*this) + data_size(undoName) + data_size(redoName); }
+    void accepted() override {}
+    void get_description(String &s) override { s = "UndoObjectEditorRename"; }
   };
 
 private:
@@ -523,12 +523,15 @@ private:
   real createScale;
   bool canTransformOnCreate;
   bool justCreated;
+  bool pressedRightMouseButtonWhileCreating = false;
   bool updateViewportGizmo = true;
 
   int suffixDigitsCount;
   String filterString;
   Tab<SimpleString> filterStrings;
   bool invFilter = false;
+
+  static bool placeTypeRadio;
 };
 
 
@@ -538,12 +541,12 @@ class ObjectEditorPropPanelBar : public PropPanel::ControlEventHandler
 {
 public:
   ObjectEditorPropPanelBar(ObjectEditor *obj_ed, void *hwnd, const char *caption);
-  ~ObjectEditorPropPanelBar();
+  ~ObjectEditorPropPanelBar() override;
 
   // ControlEventHandler
-  virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel);
-  virtual void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel);
-  virtual void onPostEvent(int pcb_id, PropPanel::ContainerPropertyControl *panel);
+  void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
+  void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
+  void onPostEvent(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
 
   virtual void fillPanel();
   virtual void refillPanel();

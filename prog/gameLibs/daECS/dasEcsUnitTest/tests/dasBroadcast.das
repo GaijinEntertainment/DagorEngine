@@ -10,7 +10,7 @@ var
 
 [es]
 def send_das_broadcast_event(info : UpdateStageInfoAct)
-  broadcastEvent([[DasBroadcastEvent val = sent]])
+  broadcastEvent(DasBroadcastEvent(val = sent))
   sent++
 
 [es]

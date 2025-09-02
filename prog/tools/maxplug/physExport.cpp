@@ -21,9 +21,9 @@ M_STD_STRING strToWide(const char *sz);
 // #define COLL_ID_CYLINDER  MAKE4C('C', 'c', 'y', 'l')
 
 
-void explog(TCHAR *s, ...);
-void explogWarning(TCHAR *s, ...);
-void explogError(TCHAR *s, ...);
+void explog(const TCHAR *s, ...);
+void explogWarning(const TCHAR *s, ...);
+void explogError(const TCHAR *s, ...);
 
 
 static const int CID_DagorPhysicsResource = 0xABEFB687; // DagorPhysicsResource
@@ -324,7 +324,7 @@ public:
   }
 
 
-  virtual int proc(INode *node)
+  int proc(INode *node) override
   {
     if (!node)
       return ECB_CONT;
@@ -404,13 +404,13 @@ public:
       pt0 = Point3(0, 0, 0);
       radius = 0;
 
-      pblock->GetValue(0, curTime, radius, FOREVER);
+      pb_get_value(*pblock, 0, curTime, radius);
 
       if (radius < 0)
         radius = 0;
 
       int recenter = 0;
-      pblock->GetValue(5, curTime, recenter, FOREVER);
+      pb_get_value(*pblock, 5, curTime, recenter);
 
       if (recenter)
         pt0.z += radius;
@@ -420,9 +420,9 @@ public:
       // box
       type = COLL_ID_BOX;
 
-      pblock->GetValue(0, curTime, size.y, FOREVER);
-      pblock->GetValue(1, curTime, size.x, FOREVER);
-      pblock->GetValue(2, curTime, size.z, FOREVER);
+      pb_get_value(*pblock, 0, curTime, size.y);
+      pb_get_value(*pblock, 1, curTime, size.x);
+      pb_get_value(*pblock, 2, curTime, size.z);
 
       pt0.z = size.z / 2;
     }
@@ -438,13 +438,13 @@ public:
       float ht = 0;
       int centers = 0;
 
-      pblock->GetValue(0, curTime, radius, FOREVER);
+      pb_get_value(*pblock, 0, curTime, radius);
 
       if (radius < 0)
         radius = 0;
 
-      pblock->GetValue(1, curTime, ht, FOREVER);
-      pblock->GetValue(2, curTime, centers, FOREVER);
+      pb_get_value(*pblock, 1, curTime, ht);
+      pb_get_value(*pblock, 2, curTime, centers);
 
       if (centers)
         ht += (ht < 0 ? -radius : +radius) * 2;
@@ -463,8 +463,8 @@ public:
       pt0=Point3(0, 0, 0);
       pt1=Point3(0, 0, 0);
       radius=0;
-      pblock->GetValue(0, curTime, radius, FOREVER);
-      pblock->GetValue(1, curTime, pt1.z, FOREVER);
+      pb_get_value(*pblock, 0, curTime, radius);
+      pb_get_value(*pblock, 1, curTime, pt1.z);
 
       if (radius<0) radius=0;
     }
@@ -655,13 +655,13 @@ public:
       pt0 = Point3(0, 0, 0);
       radius = 0;
 
-      pblock->GetValue(0, curTime, radius, FOREVER);
+      pb_get_value(*pblock, 0, curTime, radius);
 
       if (radius < 0)
         radius = 0;
 
       int recenter = 0;
-      pblock->GetValue(5, curTime, recenter, FOREVER);
+      pb_get_value(*pblock, 5, curTime, recenter);
 
       if (recenter)
         pt0.z += radius;
@@ -678,9 +678,9 @@ public:
     else if (cid == Class_ID(BOXOBJ_CLASS_ID, 0))
     {
       // box
-      pblock->GetValue(0, curTime, size.y, FOREVER);
-      pblock->GetValue(1, curTime, size.x, FOREVER);
-      pblock->GetValue(2, curTime, size.z, FOREVER);
+      pb_get_value(*pblock, 0, curTime, size.y);
+      pb_get_value(*pblock, 1, curTime, size.x);
+      pb_get_value(*pblock, 2, curTime, size.z);
 
       pt0.z = size.z / 2;
 
@@ -734,13 +734,13 @@ public:
       float ht = 0;
       int centers = 0;
 
-      pblock->GetValue(0, curTime, radius, FOREVER);
+      pb_get_value(*pblock, 0, curTime, radius);
 
       if (radius < 0)
         radius = 0;
 
-      pblock->GetValue(1, curTime, ht, FOREVER);
-      pblock->GetValue(2, curTime, centers, FOREVER);
+      pb_get_value(*pblock, 1, curTime, ht);
+      pb_get_value(*pblock, 2, curTime, centers);
 
       if (centers)
         ht += (ht < 0 ? -radius : +radius) * 2;
@@ -782,8 +782,8 @@ public:
       pt0=Point3(0, 0, 0);
       pt1=Point3(0, 0, 0);
       radius=0;
-      pblock->GetValue(0, curTime, radius, FOREVER);
-      pblock->GetValue(1, curTime, pt1.z, FOREVER);
+      pb_get_value(*pblock, 0, curTime, radius);
+      pb_get_value(*pblock, 1, curTime, pt1.z);
 
       if (radius<0) radius=0;
     }

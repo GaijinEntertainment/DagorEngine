@@ -9,4 +9,3 @@
 void add_entity_in_net_scope(ecs::EntityId eid, int connid);
 
 ECS_BROADCAST_EVENT_TYPE(CmdAddInitialEntitiesInNetScope, int)
-ECS_BROADCAST_EVENT_TYPE(CmdAddDefaultEntitiesInNetScope, /*connid*/ int, /*viewPos*/ Point3, /*viewFwd*/ Point3)

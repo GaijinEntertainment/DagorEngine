@@ -682,7 +682,11 @@ class DAGOR_PT_dagormat(Panel):
 
     @classmethod
     def poll(self, context):
-        return context.active_object.active_material is not None
+        if context.active_object.active_material is None:
+            return False
+        if context.active_object.active_material.is_grease_pencil:
+            return False
+        return True
 
     def draw_sides_switcher(self,context, layout):
         DM = bpy.context.object.active_material.dagormat

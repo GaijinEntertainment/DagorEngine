@@ -1,5 +1,6 @@
 from "%darg/ui_imports.nut" import *
 let comboStyle = require("combobox.style.nut")
+let {setTooltip} = require("cursors.nut")
 
 local ComboPopupLayer = 1
 if ("Layers" in getconsttable()) {
@@ -25,9 +26,9 @@ function itemToOption(item, wdata){
   if (tp == "array") {
     value = item[0]
     text  = item[1]
-    isCurrent = wdata.value==value
+    isCurrent = wdata.get()==value
   } else if (tp == "instance") {
-    value = item.value()
+    value = item.get()
     text  = item.tostring()
     isCurrent = item.isCurrent()
   } else if (item == null) {
@@ -37,7 +38,7 @@ function itemToOption(item, wdata){
   } else {
     value = item
     text = value.tostring()
-    isCurrent = wdata.value==value
+    isCurrent = wdata.get()==value
   }
   return {
     value
@@ -52,7 +53,7 @@ function findCurOption(opts, wdata){
   foreach (item in opts) {
     let f = itemToOption(item, wdata)
     let {value, isCurrent} = f
-    if (wdata.value == value || isCurrent) {
+    if (wdata.get() == value || isCurrent) {
       found = f
       break
     }
@@ -100,42 +101,42 @@ function dropdownBgOverlay(onClick) {
 }
 
 
-function combobox(watches, options, combo_style=comboStyle) {
+function combobox(watches, options, tooltip=null, combo_style=comboStyle) {
   if (type(options)!="instance")
     options = Watched(options)
 
   let comboOpen = Watched(false)
   let group = ElemGroup()
   let stateFlags = Watched(0)
-  let doClose = @() comboOpen.update(false)
+  let doClose = @() comboOpen.set(false)
   local wdata, wdisable, wupdate
   let dropDirDown = combo_style?.dropDir != "up"
-  let itemHeight = options.value.len() > 0 ? calc_comp_size(combo_style.listItem(options.value[0], @() null, false))[1] : sh(5)
+  let itemHeight = options.get().len() > 0 ? calc_comp_size(combo_style.listItem(options.get()[0], @() null, false))[1] : sh(5)
   let itemGapHt = calc_comp_size(combo_style?.itemGap)[1]
   local changeVarOnListUpdate = true
   let xmbNode = combo_style?.xmbNode ?? XmbNode()
 
   if (type(watches) == "table") {
     wdata = watches.value
-    wdisable = watches?.disable ?? {value=false}
-    wupdate = watches?.update ?? @(v) wdata(v)
+    wdisable = watches?.disable ?? Watched(false)
+    wupdate = watches?.update ?? @(v) wdata.set(v)
     changeVarOnListUpdate = watches?.changeVarOnListUpdate ?? changeVarOnListUpdate
   } else {
     wdata = watches
-    wdisable = {value=false}
-    wupdate = @(v) wdata(v)
+    wdisable = Watched(false)
+    wupdate = @(v) wdata.set(v)
   }
 
 
   local onAttachRoot, onDetachRoot
   if (changeVarOnListUpdate) {
     function inputWatchesChangeListener(_) {
-      setValueByOptions(options.value, wdata, wupdate)
+      setValueByOptions(options.get(), wdata, wupdate)
     }
 
     onAttachRoot = function onAttachRootImpl() {
-      options.subscribe(inputWatchesChangeListener)
-      wdata.subscribe(inputWatchesChangeListener)
+      options.subscribe_with_nasty_disregard_of_frp_update(inputWatchesChangeListener)
+      wdata.subscribe_with_nasty_disregard_of_frp_update(inputWatchesChangeListener)
     }
 
     onDetachRoot = function onDetachRootImpl() {
@@ -146,16 +147,16 @@ function combobox(watches, options, combo_style=comboStyle) {
 
 
   function dropdownList() {
-    let xmbNodes = options.value.map(@(_) XmbNode())
+    let xmbNodes = options.get().map(@(_) XmbNode())
     local curXmbNode = xmbNodes?[0]
-    let children = options.value.map(function(item, idx) {
+    let children = options.get().map(function(item, idx) {
       let {value, text, isCurrent} = itemToOption(item, wdata)
       if (isCurrent)
         curXmbNode = xmbNodes[idx]
 
       function handler() {
         wupdate(value)
-        comboOpen.update(false)
+        comboOpen.set(false)
       }
       return combo_style.listItem(text, handler, isCurrent, { xmbNode = xmbNodes[idx] })
     })
@@ -168,7 +169,7 @@ function combobox(watches, options, combo_style=comboStyle) {
       onDetachPopup = @() combo_style.onCloseDropDown(xmbNode)
 
     let popupContent = {
-      size = [flex(), SIZE_TO_CONTENT]
+      size = FLEX_H
       rendObj = ROBJ_BOX
       fillColor = combo_style?.popupBgColor ?? Color(10,10,10)
       borderColor = combo_style?.popupBdColor ?? Color(80,80,80)
@@ -183,7 +184,7 @@ function combobox(watches, options, combo_style=comboStyle) {
         flow = FLOW_VERTICAL
         children
         gap = combo_style?.itemGap
-        size = [flex(), SIZE_TO_CONTENT]
+        size = FLEX_H
         maxHeight = itemHeight*10.5 + itemGapHt*9 //this is ugly workaround with overflow of combobox size
         //we need something much more clever - we need understand how close we to the bottom\top of the screen and set limit to make all elements visible
       }
@@ -213,22 +214,22 @@ function combobox(watches, options, combo_style=comboStyle) {
 
 
   return function combo() {
-    let labelText = findCurOption(options.value, wdata).text
-    let showDropdown = comboOpen.value && !wdisable.value
+    let labelText = findCurOption(options.get(), wdata).text
+    let showDropdown = comboOpen.get() && !wdisable.get()
     let children = [
-      combo_style.boxCtor({group, stateFlags, disabled=wdisable.value, comboOpen, text=labelText}),
+      combo_style.boxCtor({group, stateFlags, disabled=wdisable.get(), comboOpen, text=labelText}),
       showDropdown ? dropdownList : null
     ]
 
-    let onClick = wdisable.value ? null : @() comboOpen.update(!comboOpen.value)
+    let onClick = wdisable.get() ? null : @() comboOpen.set(!comboOpen.get())
 
     return (combo_style?.rootBaseStyle ?? {}).__merge({
       size = flex()
-      //behavior = wdisable.value ? null : Behaviors.Button
+      //behavior = wdisable.get() ? null : Behaviors.Button
       behavior = Behaviors.Button
       watch = [comboOpen, watches?.disable, wdata, options]
       group
-      onElemState = @(sf) stateFlags(sf)
+      onElemState = @(sf) stateFlags.set(sf)
 
       children
       onClick
@@ -236,6 +237,7 @@ function combobox(watches, options, combo_style=comboStyle) {
 
       onAttach = onAttachRoot
       onDetach = onDetachRoot
+      onHover = tooltip != null ? @(on) setTooltip(on ? tooltip : null) : null
     })
   }
 }

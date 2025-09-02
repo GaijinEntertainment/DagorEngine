@@ -2,22 +2,21 @@ from "%darg/ui_imports.nut" import *
 
 let cursors = require("samples_prog/_cursors.nut")
 
-//gui_scene.config.kbCursorControl = true
-require("daRg").gui_scene.config.kbCursorControl = true
+require("daRg").gui_scene.setConfigProps({kbCursorControl= true})
 
 
 function item(...) {
   let expanded = Watched(false)
 
   let button = watchElemState(@(sf) {
-    size = [flex(), sh(10)]
+    size = static [flex(), sh(10)]
     rendObj = ROBJ_FRAME
     borderWidth = 2
     borderColor = Color(200,50,50)
     fillColor = (sf & S_ACTIVE) ? Color(200,200,50)
               : (sf & S_HOVER) ? Color(150, 200, 50)
               : Color(50,80,30)
-    onHover = @(on) expanded(on)
+    onHover = @(on) expanded.set(on)
     behavior = Behaviors.Button
   })
 
@@ -25,12 +24,12 @@ function item(...) {
     rendObj = ROBJ_TEXT
     hplace = ALIGN_CENTER
     text = "Extra object"
-    margin = [sh(3), 0]
+    margin = static [sh(3), 0]
   }
 
 
   return @() {
-    size = [flex(), SIZE_TO_CONTENT]
+    size = FLEX_H
     behavior = Behaviors.TransitionSize
     speed = sh(50)
     orientation = O_VERTICAL
@@ -39,7 +38,7 @@ function item(...) {
 
     children = [
       button
-      expanded.value ? extra : null
+      expanded.get() ? extra : null
     ]
   }
 }
@@ -48,7 +47,7 @@ function item(...) {
 let items = array(5).apply(item)
 
 let container = {
-  size = [sh(40), sh(80)]
+  size = static [sh(40), sh(80)]
   rendObj = ROBJ_FRAME
   borderWidth = sh(1)
   fillColor = Color(80, 80, 80)

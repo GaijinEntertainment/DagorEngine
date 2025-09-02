@@ -8,75 +8,26 @@ class IMemAlloc;
 
 /// macro for defining member operators new and delete
 #if DAGOR_DBGLEVEL > 0 || defined(DAGOR_EXCEPTIONS_ENABLED)
-#define DAG_DECLARE_NEW(mem)                                           \
-  inline void *operator new(size_t s)                                  \
-  {                                                                    \
-    return memalloc(s, mem);                                           \
-  }                                                                    \
-  inline void *operator new[](size_t s)                                \
-  {                                                                    \
-    return memalloc(s, mem);                                           \
-  }                                                                    \
-  inline void *operator new(size_t s, IMemAlloc *a)                    \
-  {                                                                    \
-    return memalloc(s, a);                                             \
-  }                                                                    \
-  inline void *operator new[](size_t s, IMemAlloc *a)                  \
-  {                                                                    \
-    return memalloc(s, a);                                             \
-  }                                                                    \
-  inline void *__cdecl operator new(size_t /*s*/, void *p, int)        \
-  {                                                                    \
-    return (p);                                                        \
-  }                                                                    \
-  inline void operator delete(void *p)                                 \
-  {                                                                    \
-    memfree_anywhere(p);                                               \
-  }                                                                    \
-  inline void operator delete[](void *p)                               \
-  {                                                                    \
-    memfree_anywhere(p);                                               \
-  }                                                                    \
-  inline void operator delete(void *p, IMemAlloc * /*a*/)              \
-  {                                                                    \
-    memfree_anywhere(p);                                               \
-  }                                                                    \
-  inline void operator delete[](void *p, IMemAlloc * /*a*/)            \
-  {                                                                    \
-    memfree_anywhere(p);                                               \
-  }                                                                    \
-  inline void __cdecl operator delete(void * /*d*/, void * /*p*/, int) \
-  {}
+#define DAG_DECLARE_NEW(mem)                                                         \
+  inline void *operator new(size_t s) { return memalloc(s, mem); }                   \
+  inline void *operator new[](size_t s) { return memalloc(s, mem); }                 \
+  inline void *operator new(size_t s, IMemAlloc *a) { return memalloc(s, a); }       \
+  inline void *operator new[](size_t s, IMemAlloc *a) { return memalloc(s, a); }     \
+  inline void *__cdecl operator new(size_t /*s*/, void *p, int) { return (p); }      \
+  inline void operator delete(void *p) { memfree_anywhere(p); }                      \
+  inline void operator delete[](void *p) { memfree_anywhere(p); }                    \
+  inline void operator delete(void *p, IMemAlloc * /*a*/) { memfree_anywhere(p); }   \
+  inline void operator delete[](void *p, IMemAlloc * /*a*/) { memfree_anywhere(p); } \
+  inline void __cdecl operator delete(void * /*d*/, void * /*p*/, int) {}
 #else
-#define DAG_DECLARE_NEW(mem)                                    \
-  inline void *operator new(size_t s)                           \
-  {                                                             \
-    return memalloc(s, mem);                                    \
-  }                                                             \
-  inline void *operator new[](size_t s)                         \
-  {                                                             \
-    return memalloc(s, mem);                                    \
-  }                                                             \
-  inline void *operator new(size_t s, IMemAlloc *a)             \
-  {                                                             \
-    return memalloc(s, a);                                      \
-  }                                                             \
-  inline void *operator new[](size_t s, IMemAlloc *a)           \
-  {                                                             \
-    return memalloc(s, a);                                      \
-  }                                                             \
-  inline void *__cdecl operator new(size_t /*s*/, void *p, int) \
-  {                                                             \
-    return (p);                                                 \
-  }                                                             \
-  inline void operator delete(void *p)                          \
-  {                                                             \
-    memfree_anywhere(p);                                        \
-  }                                                             \
-  inline void operator delete[](void *p)                        \
-  {                                                             \
-    memfree_anywhere(p);                                        \
-  }
+#define DAG_DECLARE_NEW(mem)                                                     \
+  inline void *operator new(size_t s) { return memalloc(s, mem); }               \
+  inline void *operator new[](size_t s) { return memalloc(s, mem); }             \
+  inline void *operator new(size_t s, IMemAlloc *a) { return memalloc(s, a); }   \
+  inline void *operator new[](size_t s, IMemAlloc *a) { return memalloc(s, a); } \
+  inline void *__cdecl operator new(size_t /*s*/, void *p, int) { return (p); }  \
+  inline void operator delete(void *p) { memfree_anywhere(p); }                  \
+  inline void operator delete[](void *p) { memfree_anywhere(p); }
 #endif
 
 

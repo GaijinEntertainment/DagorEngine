@@ -150,6 +150,53 @@ bool is_depth_texture(NodePointer<NodeOpVariable> var, const eastl::vector<NodeP
   return end(set) != eastl::find(begin(set), end(set), var);
 }
 
+uint8_t find_push_constant_count(ModuleBuilder &builder, ErrorHandler &e_handler)
+{
+  NodePointer<NodeOpConstant> result;
+  bool anyPushConstant = false;
+  builder.enumerateAllTypes([&](auto type) //
+    {
+      // try detect push constant type pointer to struct + array, i.e. this pattern
+      //%_arr_uint_uint_4 = OpTypeArray %uint %uint_4
+      //%type_PushConstant_ImmDwords = OpTypeStruct %_arr_uint_uint_4
+      //%_ptr_PushConstant_type_PushConstant_ImmDwords = OpTypePointer PushConstant %type_PushConstant_ImmDwords
+      if (!is<NodeOpTypePointer>(type))
+        return;
+
+      auto typePtr = as<NodeOpTypePointer>(type);
+      if (typePtr->storageClass != StorageClass::PushConstant)
+        return;
+
+      anyPushConstant |= true;
+      if (!is<NodeOpTypeStruct>(typePtr->type))
+        return;
+
+      auto structPtr = as<NodeOpTypeStruct>(typePtr->type);
+      if (structPtr->param1.size() != 1 || !is<NodeOpTypeArray>(structPtr->param1[0]))
+        return;
+
+      auto arrayPtr = as<NodeOpTypeArray>(structPtr->param1[0]);
+      if (!is<NodeOpTypeInt>(arrayPtr->elementType) || !is<NodeOpConstant>(arrayPtr->length))
+        return;
+
+      auto lengthPtr = as<NodeOpConstant>(arrayPtr->length);
+      if (!is<NodeOpTypeInt>(lengthPtr->resultType))
+        return;
+
+      if (lengthPtr->value.value > 255)
+        return;
+
+      if (result)
+        e_handler.onFatalError("compileHeader: Multiple TypePointers with PushConstant and related requirements found, not supported");
+      result = lengthPtr;
+    });
+
+  if (anyPushConstant && !result)
+    e_handler.onFatalError("compileHeader: PushConstant usage detected, but size analysis failed");
+
+  return result ? result->value.value : 0;
+}
+
 struct VariableToCompileInfo
 {
   NodePointer<NodeOpVariable> var;
@@ -157,7 +204,7 @@ struct VariableToCompileInfo
   PropertyDescriptorSet *set = nullptr;
   PropertyInputAttachmentIndex *inputAttachment = nullptr;
   SourceRegisterType registerType = SourceRegisterType::Err;
-  bool usedInSampling = false;
+  NodePointer<NodeOpVariable> combinedSampler;
 };
 
 struct CounterInfo
@@ -211,6 +258,7 @@ ResourceCompileResult compile_resource_image(const VariableToCompileInfo &info,
     result.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
     result.registerBase = T_ACCELERATION_STRUCTURE_OFFSET;
     result.checkType = CheckType::AccelerationStructure;
+    result.missingIndex = MISSING_TLAS_INDEX;
     return result;
   }
 
@@ -258,7 +306,7 @@ ResourceCompileResult compile_resource_image(const VariableToCompileInfo &info,
       }
       else
       {
-        result.registerBase = T_SAMPLED_IMAGE_WITH_COMPARE_OFFSET;
+        result.registerBase = T_SAMPLED_IMAGE_OFFSET;
         if (imageType->dim == Dim::Dim2D)
         {
           if (!isArrayed)
@@ -404,6 +452,51 @@ ResourceCompileResult compile_resource_buffer(const VariableToCompileInfo &info,
   return result;
 }
 
+void compile_separate_samplers(eastl::vector<TaggedSamplerBind> &samplers, ShaderHeader &header, CounterInfo &counter_info,
+  unsigned d_set, ErrorHandler &e_handler)
+{
+  for (TaggedSamplerBind &i : samplers)
+  {
+    if (i.pairFound)
+      continue;
+    PropertyBinding *binding = find_property<PropertyBinding>(i.node);
+    if (PropertyDescriptorSet *set = find_property<PropertyDescriptorSet>(i.node))
+      set->descriptorSet.value = d_set;
+    auto sourceBindingIndex = binding->bindingPoint.value % REGISTER_ENTRIES;
+    bool fitsRegLimits = true;
+    const int maxTbinding = REGISTER_ENTRIES * 3;
+    fitsRegLimits &= sourceBindingIndex < T_REGISTER_INDEX_MAX;
+    fitsRegLimits &= binding->bindingPoint.value < maxTbinding;
+    header.sRegisterUseMask |= 1u << sourceBindingIndex;
+    if (!fitsRegLimits)
+    {
+      eastl::string err;
+      PropertyName *name = find_property<PropertyName>(i.node);
+      err.sprintf("compileHeader: Separate sampler binding %u (raw %u) for var %u, name: %s is out of limits", sourceBindingIndex,
+        binding->bindingPoint.value, i.node->resultId, name ? name->name.c_str() : "<unknown>");
+      e_handler.onFatalError(err.c_str());
+      return;
+    }
+    header.inputAttachmentIndex[header.registerCount] = INVALID_INPUT_ATTACHMENT_INDEX;
+    header.descriptorTypes[header.registerCount] = VK_DESCRIPTOR_TYPE_SAMPLER;
+    header.imageViewTypes[header.registerCount] = VK_IMAGE_VIEW_TYPE_MAX_ENUM;
+    header.registerIndex[header.registerCount] = S_SAMPLER_OFFSET + sourceBindingIndex;
+    header.missingTableIndex[header.registerCount] = MISSING_IS_FATAL_INDEX;
+    uint32_t descTypeIndex = spirv::descrior_type_to_index(VK_DESCRIPTOR_TYPE_SAMPLER);
+    if (descTypeIndex < (sizeof(counter_info.descriptorCounts) / sizeof(counter_info.descriptorCounts[0])))
+      ++counter_info.descriptorCounts[descTypeIndex];
+    binding->bindingPoint.value = header.registerCount;
+    ++header.registerCount;
+    if (header.registerCount >= REGISTER_ENTRIES)
+    {
+      e_handler.onFatalError("compileHeader: Too many resources in use, software limit reached. "
+                             "REGISTER_ENTRIES needs to be adjusted!");
+      return;
+    }
+  }
+  samplers.clear();
+}
+
 void compile_resource(const VariableToCompileInfo &info, const eastl::vector<NodePointer<NodeOpVariable>> &depth_tex_list,
   eastl::vector<TaggedSamplerBind> &samplers, unsigned d_set, ShaderHeader &header, CounterInfo &counter_info, CompileFlags flags,
   ErrorHandler &e_handler)
@@ -509,7 +602,7 @@ void compile_resource(const VariableToCompileInfo &info, const eastl::vector<Nod
     case CheckType::Buffer: header.bufferCheckIndices[header.bufferCount++] = header.registerCount; break;
     case CheckType::ConstBuffer: header.constBufferCheckIndices[header.constBufferCount++] = header.registerCount; break;
     case CheckType::AccelerationStructure:
-      header.accelerationStructureCheckIndices[header.accelerationStructursCount++] = header.registerCount;
+      header.accelerationStructureCheckIndices[header.accelerationStructureCount++] = header.registerCount;
       break;
     default: break;
   }
@@ -521,39 +614,29 @@ void compile_resource(const VariableToCompileInfo &info, const eastl::vector<Nod
   // this is perfectly valid
   if (VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER == resourceCompileInfo.descriptorType)
   {
-    auto ref = eastl::find_if(begin(samplers), end(samplers),
-      [=](auto var) //
-      {
-        auto binding = find_property<PropertyBinding>(var.node);
-        return (binding && (binding->bindingPoint.value % REGISTER_ENTRIES) == sourceBindingIndex);
-      });
-    if (ref != end(samplers))
+    if (info.combinedSampler.isValid())
     {
-      if (!ref->pairFound)
+      auto combinedSamplerSet = find_property<PropertyDescriptorSet>(info.combinedSampler);
+      auto combinedSamplerBinding = find_property<PropertyBinding>(info.combinedSampler);
+      if (combinedSamplerBinding)
       {
-        auto binding = find_property<PropertyBinding>(ref->node);
-        binding->bindingPoint.value = header.registerCount;
-
-        auto set = find_property<PropertyDescriptorSet>(ref->node);
-        if (set)
-        {
-          set->descriptorSet.value = d_set;
-        }
+        combinedSamplerBinding->bindingPoint.value = header.registerCount;
       }
-      ref->pairFound |= true;
+      else
+      {
+        eastl::string err;
+        PropertyName *name = find_property<PropertyName>(info.combinedSampler);
+        err.sprintf("compileHeader: could not resolve binding data for sampler %s", name ? name->name.c_str() : "<unknown>");
+        e_handler.onFatalError(err.c_str());
+      }
+
+      if (combinedSamplerSet)
+      {
+        combinedSamplerSet->descriptorSet.value = d_set;
+      }
     }
     else
-    {
-      // This is ok, if a sampled image is used for image fetch only then no sampler
-      // is needed but image is still considered as sampled image
-      //
-      // to avoid issues with misconfigured sampler for this binding (at runtime and validation),
-      // drop descriptor type to non combined one
-      //
-      // also include case when another sampler is used (with different binding point)
-      if (!info.usedInSampling)
-        resourceCompileInfo.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-    }
+      resourceCompileInfo.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
   }
 
   uint32_t descTypeIndex = spirv::descrior_type_to_index(resourceCompileInfo.descriptorType);
@@ -577,110 +660,67 @@ void compile_descriptor_count_table(const CounterInfo &counter_info, ShaderHeade
   }
 }
 
-bool is_resource_used_as_sampled(ModuleBuilder &builder, NodePointer<NodeOpVariable> &resource, ErrorHandler &e_handler)
+void find_all_combined_samplers(ModuleBuilder &builder, eastl::vector<VariableToCompileInfo> &uniforms,
+  eastl::vector<TaggedSamplerBind> &samplers, ErrorHandler &e_handler)
 {
-  auto ptrType = as<NodeOpTypePointer>(resource->resultType);
-  auto valueType = ptrType->type;
-  if (!is<NodeOpTypeImage>(valueType))
-    return false;
-
-  eastl::vector<NodePointer<NodeOpLoad>> loads;
-
-  builder.enumerateConsumersOf(resource, [&](auto node, auto &) {
-    if (is<NodeOpLoad>(node))
-      loads.push_back(as<NodeOpLoad>(node));
-  });
-
-  bool foundSampledLookup = false;
-  for (NodePointer<NodeOpLoad> &itr : loads)
-    builder.enumerateConsumersOf(itr, [&](auto node, auto &src_ref) {
-      if (!foundSampledLookup)
-        foundSampledLookup |= is<NodeOpSampledImage>(node);
-    });
-  return foundSampledLookup;
-}
-
-bool find_sampler_binding_by_references(ModuleBuilder &builder, NodePointer<NodeOpVariable> &sampler, ErrorHandler &e_handler,
-  unsigned d_set)
-{
-  enum
+  struct SampledImageCombination
   {
-    PASS_LOAD_SAMPLER = 0,
-    PASS_SAMPLED_IMG = 1,
-    PASS_LOAD_IMAGE = 2
+    NodePointer<NodeOpVariable> image;
+    NodePointer<NodeOpVariable> sampler;
+    bool paired = false;
   };
-  int resolvePass = PASS_LOAD_SAMPLER;
+  eastl::vector<SampledImageCombination> uniqueSampledImageCombinations;
 
-  NodePointer<NodeOpLoad> loadSampler;
-  NodePointer<NodeOpSampledImage> sampledImage;
-  NodePointer<NodeOpLoad> loadImage;
-
-  eastl::string log;
-
-  log.sprintf("Search OpLoad consumer of sampler %u", sampler->resultId);
-  e_handler.onMessage(log);
-
-  builder.enumerateConsumersOf(sampler, [&](auto node, auto &) {
-    if (resolvePass > PASS_LOAD_SAMPLER)
+  builder.enumerateAllNodes([&](auto node) {
+    // filter only unique OpSampledImage for image and sampler loads from variables
+    if (!is<NodeOpSampledImage>(node))
       return;
-    if (is<NodeOpLoad>(node))
-    {
-      loadSampler = as<NodeOpLoad>(node);
-      resolvePass = PASS_SAMPLED_IMG;
-    }
-  });
-  if (resolvePass != PASS_SAMPLED_IMG)
-    return false;
-
-  log.sprintf("Search OpSampledImage consumer of loaded sampler %u", loadSampler->resultId);
-  e_handler.onMessage(log);
-
-  builder.enumerateConsumersOf(loadSampler, [&](auto node, auto &) {
-    if (resolvePass > PASS_SAMPLED_IMG)
+    auto sampledImage = as<NodeOpSampledImage>(node);
+    if (!is<NodeOpLoad>(sampledImage->image) || !is<NodeOpLoad>(sampledImage->sampler))
       return;
-    if (is<NodeOpSampledImage>(node))
-    {
-      sampledImage = as<NodeOpSampledImage>(node);
-      resolvePass = PASS_LOAD_IMAGE;
-    }
+    auto imageLoad = as<NodeOpLoad>(sampledImage->image);
+    auto samplerLoad = as<NodeOpLoad>(sampledImage->sampler);
+    if (!is<NodeOpVariable>(imageLoad->pointer) || !is<NodeOpVariable>(samplerLoad->pointer))
+      return;
+    auto image = as<NodeOpVariable>(imageLoad->pointer);
+    auto sampler = as<NodeOpVariable>(samplerLoad->pointer);
+
+    auto registeredUniqueCombination = eastl::find_if(uniqueSampledImageCombinations.begin(), uniqueSampledImageCombinations.end(),
+      [&](const SampledImageCombination &combination) {
+        const bool sameImage = image->resultId == combination.image->resultId;
+        const bool sameSampler = sampler->resultId == combination.sampler->resultId;
+        // if currently processed pair was processed before or it's image or sampler are already combined, then such pair is invalid
+        return (sameImage && sameSampler) || ((sameImage || sameSampler) && combination.paired);
+      });
+    if (registeredUniqueCombination != uniqueSampledImageCombinations.end())
+      return;
+    uniqueSampledImageCombinations.emplace_back(image, sampler, false);
+
+    // check that image and sampler are assigned to the same slot (descriptor set and binding)
+    auto imageSet = find_property<PropertyDescriptorSet>(image);
+    auto imageBinding = find_property<PropertyBinding>(image);
+    auto samplerSet = find_property<PropertyDescriptorSet>(sampler);
+    auto samplerBinding = find_property<PropertyBinding>(sampler);
+    if (!imageSet || !imageBinding || !samplerSet || !samplerBinding)
+      return;
+    if (imageSet->descriptorSet.value != samplerSet->descriptorSet.value ||
+        (imageBinding->bindingPoint.value % REGISTER_ENTRIES) != (samplerBinding->bindingPoint.value % REGISTER_ENTRIES))
+      return;
+
+    // check that image and sampler are uniforms that were not already paired with something else in previous iterations
+    // this may happen when the same sampler is used for several images or vice versa
+    auto imageUniform = eastl::find_if(uniforms.begin(), uniforms.end(),
+      [&](const VariableToCompileInfo &imageInfo) { return imageInfo.var->resultId == image->resultId; });
+    auto samplerUniform = eastl::find_if(samplers.begin(), samplers.end(),
+      [&](const TaggedSamplerBind &samplerBind) { return samplerBind.node->resultId == sampler->resultId; });
+    if (imageUniform == uniforms.end() || samplerUniform == samplers.end())
+      return;
+    if (imageUniform->combinedSampler.isValid() || samplerUniform->pairFound)
+      return;
+    imageUniform->combinedSampler = sampler;
+    samplerUniform->pairFound = true;
+    uniqueSampledImageCombinations.back().paired = true;
   });
-
-  if (resolvePass != PASS_LOAD_IMAGE)
-    return false;
-
-  log.sprintf("Search OpLoad for image %u", sampledImage->image->resultId);
-  e_handler.onMessage(log);
-
-  NodePointer<NodeId> imageNode = builder.getNode(sampledImage->image->resultId);
-  if (!is<NodeOpLoad>(imageNode))
-    return false;
-  NodePointer<NodeOpLoad> loadImageNode = as<NodeOpLoad>(imageNode);
-
-  log.sprintf("Search binding for image var %u", loadImageNode->pointer->resultId);
-  e_handler.onMessage(log);
-
-  NodePointer<NodeId> varNode = builder.getNode(loadImageNode->pointer->resultId);
-  if (!is<NodeVariable>(varNode))
-    return false;
-  NodePointer<NodeVariable> var = as<NodeVariable>(varNode);
-
-  PropertyBinding *splBinding = find_property<PropertyBinding>(sampler);
-  PropertyBinding *varBinding = find_property<PropertyBinding>(var);
-
-  log.sprintf("Remap sampler binding %i to var binding %i", !splBinding ? -1 : splBinding->bindingPoint.value,
-    !varBinding ? -1 : varBinding->bindingPoint.value);
-  e_handler.onMessage(log);
-
-  if (!splBinding || !varBinding)
-    return false;
-
-  splBinding->bindingPoint = varBinding->bindingPoint;
-
-  auto set = find_property<PropertyDescriptorSet>(sampler);
-  if (set)
-    set->descriptorSet.value = d_set;
-
-  return true;
 }
 
 } // namespace
@@ -754,7 +794,7 @@ ShaderHeader spirv::compileHeader(ModuleBuilder &builder, CompileFlags flags, Er
         else
         {
           VariableToCompileInfo info;
-          info.usedInSampling = false;
+          info.combinedSampler.reset();
           info.var = var;
           info.binding = find_property<PropertyBinding>(var);
           info.set = find_property<PropertyDescriptorSet>(var);
@@ -786,11 +826,7 @@ ShaderHeader spirv::compileHeader(ModuleBuilder &builder, CompileFlags flags, Er
         return lb < rb;
     });
 
-  for (VariableToCompileInfo &iter : uniforms)
-  {
-    if (iter.registerType == SourceRegisterType::T)
-      iter.usedInSampling = is_resource_used_as_sampled(builder, iter.var, e_handler);
-  }
+  find_all_combined_samplers(builder, uniforms, samplers, e_handler);
 
   auto texturesWithCompare = find_all_depth_textures(builder, e_handler);
 
@@ -799,31 +835,13 @@ ShaderHeader spirv::compileHeader(ModuleBuilder &builder, CompileFlags flags, Er
   for (auto &&uniform : uniforms)
     compile_resource(uniform, texturesWithCompare, samplers, descriptorSetIndex, result, counterInfo, flags, e_handler);
 
+  if (!samplers.empty())
+    // patch shader T use bits + add registers with plain sampler descriptors based on samplers array
+    compile_separate_samplers(samplers, result, counterInfo, descriptorSetIndex, e_handler);
+
   compile_descriptor_count_table(counterInfo, result);
 
-  if (!samplers.empty())
-  {
-    // e_handler.onWarning("compileHeader: Some samplers are not bound directly!");
-    // e_handler.onWarning("Restoring sampler binding by OpLoad->OpSampledImage<-OpLoad<-OpVariable chain");
-    for (TaggedSamplerBind &i : samplers)
-    {
-      if (i.pairFound)
-        continue;
-
-      PropertyName *name = find_property<PropertyName>(i.node);
-      PropertyBinding *binding = find_property<PropertyBinding>(i.node);
-      eastl::string log;
-      log.sprintf("Sampler ID: %u, Binding: %i, Name: %s is not used directly, searching deeper", i.node->resultId,
-        binding ? binding->bindingPoint.value : -1, name ? name->name.c_str() : "<unknown>");
-      e_handler.onWarning(log.c_str());
-
-      if (!find_sampler_binding_by_references(builder, i.node, e_handler, descriptorSetIndex))
-      {
-        e_handler.onFatalError("compileHeader: failed to resolve sampler binding!");
-        break;
-      }
-    }
-  }
+  result.pushConstantsCount = find_push_constant_count(builder, e_handler);
 
   return result;
 }

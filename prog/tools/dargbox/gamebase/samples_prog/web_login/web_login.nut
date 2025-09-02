@@ -1,9 +1,8 @@
+from "dagor.http" import HTTP_ABORTED, HTTP_FAILED, HTTP_SUCCESS, httpRequest
+from "json" import parse_json
 from "%darg/ui_imports.nut" import *
 from "system" import system
-let {HTTP_ABORTED, HTTP_FAILED, HTTP_SUCCESS, httpRequest} = require("dagor.http")
-let {parse_json} = require("json")
-
-//See information here https://info.gaijin.lan/pages/viewpage.action?pageId=72075038
+//See information here https://gap.rtd.gaijin.lan/en/latest/basic-concepts/authentication/web_auth_server_browser.html
 //NOTE: better implement digital signature
 let statusText = {
   [HTTP_SUCCESS] = "SUCCESS",
@@ -53,16 +52,16 @@ let { loginData, gsidData } = function mkLogin(){
   local getResults
   getResults = @() httpPostJson(get_session_resut_url, function onSuccess(v){
       if (v.status == "OK")
-        loginResult({token = v.token, started=v.started, user_id=v.user_id, tags=v.tags, token_exp =v.token_exp, jwt=v.jwt, country=v.country, reg_time=v.reg_time, nick=v.token, ts=v.ts, lang=v.lang})
+        loginResult.set({token = v.token, started=v.started, user_id=v.user_id, tags=v.tags, token_exp =v.token_exp, jwt=v.jwt, country=v.country, reg_time=v.reg_time, nick=v.token, ts=v.ts, lang=v.lang})
       if (v.status == "RETRY") {
         time_wating += timeToNextReq
         timeToNextReq = v?.delay ?? 5
         if (time_wating < maxWaitingTime)
           gui_scene.resetTimeout(timeToNextReq, getResults)
         else
-          gsid(null)
+          gsid.set(null)
       }
-    }, null, {gsid=gsid.value})
+    }, null, {gsid=gsid.get()})
 
   function stopReqResults(){
       gui_scene.clearTimer(getResults)
@@ -76,7 +75,7 @@ let { loginData, gsidData } = function mkLogin(){
     }
     //shell_execute({cmd=$"rundll32 url.dll,FileProtocolHandler https://login.gaijin.net/?gsid={v}" params=$"https://login.gaijin.net/?gsid={v}" dir="."})
     system($"rundll32 url.dll,FileProtocolHandler https://login.gaijin.net/?gsid={v}" )
-    if (loginResult.value==null)
+    if (loginResult.get()==null)
       gui_scene.resetTimeout(timeToNextReq, getResults)
   })
 
@@ -90,7 +89,7 @@ let { loginData, gsidData } = function mkLogin(){
 function requestLogin(onSuccess = null, onFail=null){
   httpPostJson(open_session_url, function(v) {
     if (v.status!="OK") {
-      log("failed to login, {v.status}")
+      log($"failed to login, {v.status}")
       onFail?(v)
     }
     else {

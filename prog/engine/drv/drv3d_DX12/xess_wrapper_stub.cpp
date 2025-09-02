@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "xess_wrapper.h"
+#include <3d/gpuLatency.h>
 
 using namespace drv3d_dx12;
 
@@ -35,3 +36,17 @@ dag::Expected<eastl::string, XessWrapper::ErrorKind> XessWrapper::getVersion() c
 XessWrapper::XessWrapper() = default;
 
 XessWrapper::~XessWrapper() = default;
+
+bool XessWrapper::isFrameGenerationSupported() const { return false; }
+
+bool XessWrapper::isFrameGenerationEnabled() const { return false; }
+
+void XessWrapper::enableFrameGeneration(bool) {}
+
+void XessWrapper::suppressFrameGeneration(bool) {}
+
+void XessWrapper::doScheduleGeneratedFrames(const void *, void *) {}
+
+int XessWrapper::getPresentedFrameCount() { return 1; }
+
+GpuLatency *create_gpu_latency_intel() { return nullptr; }

@@ -1,0 +1,32 @@
+macro DEFERRED_DECAL_DEPTH()
+  USE_DECODE_DEPTH()
+  if (mobile_render == deferred) {
+    USE_SUBPASS_LOADS()
+    INIT_SUBPASS_LOAD_DEPTH_GBUFFER(SP_DECALS_REG_DEPTH, SP_DECALS_IA_DEPTH)
+    USE_SUBPASS_LOAD_DEPTH_GBUFFER()
+  } else {
+    INIT_LOAD_DEPTH_GBUFFER() //this is still stcode. We'd better have explicit stage/shader block and avoid dynamic stcode
+    USE_LOAD_DEPTH_GBUFFER()
+  }
+
+  hlsl(ps) {
+    half read_depth_mask(int2 tci, float w, float depth_start, float depth_end)
+    {
+      float depth = loadGbufferDepth(tci);
+      float sceneDepth = linearize_z(depth, zn_zfar.zw);
+      float delta = sceneDepth - w;
+      ##if mobile_render == deferred
+        //on mobile deferred decals subpass can't use depth test
+        clip(delta);
+      ##endif
+      float depth_mask_scale = 1/(depth_start-depth_end);
+      float depth_mask_bias = -depth_end*depth_mask_scale;
+      float depthMask = saturate(depth_mask_bias + depth_mask_scale * abs(delta));
+      return depthMask;
+    }
+    half read_depth_mask(int2 tci, float w)
+    {
+      return read_depth_mask(tci, w, 0.08, 0.1);
+    }
+  }
+endmacro

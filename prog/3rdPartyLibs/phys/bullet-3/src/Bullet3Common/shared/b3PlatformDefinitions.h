@@ -9,7 +9,12 @@ struct MyTest
 #ifdef __cplusplus
 //#define b3ConstArray(a) const b3AlignedObjectArray<a>&
 #define b3ConstArray(a) const a *
-#define b3AtomicInc(a) ((*a)++)
+#if defined(_MSC_VER) && !defined(__clang__)
+#include <intrin.h>
+#define b3AtomicInc(v) (_InterlockedIncrement((volatile long *)(v)) - 1)
+#else
+#define b3AtomicInc(v) __atomic_fetch_add((v), 1, __ATOMIC_SEQ_CST)
+#endif
 
 inline int b3AtomicAdd(volatile int *p, int val)
 {

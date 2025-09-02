@@ -12,9 +12,9 @@
 #include <shaders/dag_shaders.h>
 #include <shaders/dag_shaderMesh.h>
 #include <shaders/dag_shaderBlock.h>
-#include <sepGui/wndGlobal.h>
 #include <oldEditor/de_util.h>
 #include <EditorCore/ec_IEditorCore.h>
+#include <EditorCore/ec_wndGlobal.h>
 #include <drv/3d/dag_renderTarget.h>
 #include <drv/3d/dag_matricesAndPerspective.h>
 #include <drv/3d/dag_texture.h>
@@ -40,19 +40,14 @@ const int heightmap_w = 2048, shore_w = 1024;
 class WaterService : public IWaterService
 {
 public:
-  FFTWater *water;
+  FFTWater *water = nullptr;
   UniqueTexHolder distTex;
   TextureIDHolder heightmap;
-  TEXTUREID perlinTexId, waterFoamTexId;
-  float waterLevel;
-  double totalTime;
-  bool srvDisabled;
-  bool noDistanceField;
-
-  WaterService::WaterService() : water(NULL), waterLevel(0), totalTime(0), perlinTexId(BAD_TEXTUREID), waterFoamTexId(BAD_TEXTUREID)
-  {
-    srvDisabled = noDistanceField = false;
-  }
+  TextureIDHolder wfx_normals, wfx_details;
+  float waterLevel = 0.f;
+  double totalTime = 0.0;
+  bool srvDisabled = false;
+  bool noDistanceField = false;
 
   bool initSrv()
   {
@@ -85,26 +80,27 @@ public:
     return true;
   }
 
-  virtual void loadSettings(const DataBlock &w3dSettings)
+  void loadSettings(const DataBlock &w3dSettings) override
   {
     const char *foamTexName = w3dSettings.getStr("water_foam", "water_surface_foam_tex");
-    waterFoamTexId = ::get_tex_gameres(foamTexName);
+    TEXTUREID waterFoamTexId = ::get_tex_gameres(foamTexName);
     // G_ASSERTF(waterFoamTexId != BAD_TEXTUREID, "water foam texture '%s' not found.", foamTexName);
     ShaderGlobal::set_texture(get_shader_variable_id("foam_tex", true), waterFoamTexId);
+    ShaderGlobal::set_sampler(get_shader_variable_id("foam_tex_samplerstate", true), get_texture_separate_sampler(waterFoamTexId));
 
     const char *perlinName = w3dSettings.getStr("perlin_noise", "water_perlin");
-    perlinTexId = ::get_tex_gameres(perlinName);
+    TEXTUREID perlinTexId = ::get_tex_gameres(perlinName);
     // G_ASSERTF(perlinTexId != BAD_TEXTUREID, "water perlin noise texture '%s' not found.", perlinName);
     ShaderGlobal::set_texture(get_shader_variable_id("perlin_noise"), perlinTexId);
-  }
-  WaterService::~WaterService()
-  {
-    term();
-    fft_water::close();
-  }
+    ShaderGlobal::set_sampler(get_shader_variable_id("perlin_noise_samplerstate"), get_texture_separate_sampler(perlinTexId));
 
-  virtual void act(float dt) { totalTime += dt; }
-  virtual void init()
+    release_managed_tex(waterFoamTexId);
+    release_managed_tex(perlinTexId);
+  }
+  ~WaterService() { termSrv(); }
+
+  void act(float dt) override { totalTime += dt; }
+  void init() override
   {
     fft_water::init();
     water_refraction_texVarId = get_shader_variable_id("water_refraction_tex", true);
@@ -114,11 +110,21 @@ public:
     {
       heightmap.set(d3d::create_tex(NULL, heightmap_w, heightmap_w, TEXCF_RTARGET | TEXFMT_R16F, 1, "water_heightmap_tex"),
         "water_heightmap_tex");
-      heightmap.getTex2D()->texbordercolor(0);
-      heightmap.getTex2D()->texaddr(TEXADDR_BORDER);
+    }
+    if (!wfx_normals.getTex())
+    {
+      wfx_normals.set(d3d::create_tex(NULL, 1, 1, TEXCF_RTARGET | TEXFMT_A8R8G8B8, 1, "wfx_normals"), "wfx_normals");
+      d3d::clear_rt({wfx_normals.getTex2D()}, make_clear_value(0.5f, 0.5f, 0.0f, 0.0f));
+      ShaderGlobal::set_texture(get_shader_variable_id("wfx_normals", true), wfx_normals.getId());
+    }
+    if (!wfx_details.getTex())
+    {
+      wfx_details.set(d3d::create_tex(NULL, 1, 1, TEXCF_RTARGET | TEXFMT_A8R8G8B8, 1, "wfx_details"), "wfx_details");
+      d3d::clear_rt({wfx_details.getTex2D()}, make_clear_value(0.0f, 1.0f, 1.0f, 0.0f));
+      ShaderGlobal::set_texture(get_shader_variable_id("wfx_details", true), wfx_details.getId());
     }
   }
-  virtual void term()
+  void term() override
   {
     if (water)
     {
@@ -127,7 +133,17 @@ public:
     }
   }
 
-  virtual void beforeRender(Stage stage)
+  void termSrv()
+  {
+    term();
+    fft_water::close();
+    distTex.close();
+    heightmap.close();
+    wfx_details.close();
+    wfx_normals.close();
+  }
+
+  void beforeRender(Stage stage) override
   {
     if (!water)
       return;
@@ -137,12 +153,14 @@ public:
     static int foam_time_id = get_shader_glob_var_id("foam_time", true);
     ShaderGlobal::set_real(foam_time_id, max(0.f, (float)get_time_msec() / 1000.0f));
   }
-  virtual void renderGeometry(Stage stage)
+  void renderGeometry(Stage stage) override
   {
     if (!water)
       return;
     TEXTUREID prev = ShaderGlobal::get_tex_fast(prev_frame_texVarId);
     ShaderGlobal::set_texture(water_refraction_texVarId, prev);
+    ShaderGlobal::set_sampler(get_shader_variable_id("water_refraction_tex_samplerstate", true),
+      ShaderGlobal::get_sampler(get_shader_variable_id("prev_frame_tex_samplerstate", true)));
     TMatrix4 globtm;
     d3d::getglobtm(globtm);
     Driver3dPerspective persp;
@@ -150,28 +168,28 @@ public:
       persp.wk = persp.hk = 1;
     fft_water::render(water, ::grs_cur_view.pos, distTex.getTexId(), globtm, persp);
   }
-  virtual void set_level(float level)
+  void set_level(float level) override
   {
     if (water)
       fft_water::set_level(water, waterLevel = level);
   }
-  virtual float get_level() const { return waterLevel; }
-  virtual void hide_water()
+  float get_level() const override { return waterLevel; }
+  void hide_water() override
   {
     if (water)
       fft_water::set_level(water, -3000);
   }
-  virtual void set_wind(float b_scale, const Point2 &wind_dir)
+  void set_wind(float b_scale, const Point2 &wind_dir) override
   {
     if (water)
       fft_water::set_wind(water, b_scale, wind_dir);
   }
-  virtual void set_render_quad(const BBox2 &quad)
+  void set_render_quad(const BBox2 &quad) override
   {
     if (water)
       fft_water::set_render_quad(water, quad);
   }
-  virtual void buildDistanceField(const Point2 &hmap_center, float hmap_rad, float rivers_size)
+  void buildDistanceField(const Point2 &hmap_center, float hmap_rad, float rivers_size) override
   {
     if (noDistanceField)
       return;
@@ -183,17 +201,15 @@ public:
     float dimensions = 30;
 
     const fft_water::WaterHeightmap *whm = fft_water::get_heightmap(water);
-    Color4 waterHeightmapVar;
+    Color4 shoreHeightmapVar;
     if (whm)
-      waterHeightmapVar = Color4(1.0 / whm->heightScale, -whm->heightOffset / whm->heightScale, whm->heightScale, whm->heightOffset);
+      shoreHeightmapVar = Color4(1.0 / whm->heightScale, -whm->heightOffset / whm->heightScale, whm->heightScale, whm->heightOffset);
     else
-      waterHeightmapVar =
+      shoreHeightmapVar =
         Color4(1.f / dimensions, -(waterLevel - 0.5 * dimensions) / dimensions, dimensions, waterLevel - 0.5 * dimensions);
-    ShaderGlobal::set_color4(get_shader_variable_id("heightmap_min_max", true), waterHeightmapVar);
+    ShaderGlobal::set_color4(get_shader_variable_id("heightmap_min_max", true), shoreHeightmapVar);
 
-    ShaderGlobal::set_color4(get_shader_variable_id("water_heightmap_min_max", true), waterHeightmapVar);
-
-    ShaderGlobal::set_color4(get_shader_variable_id("heightmap_min_max"), waterHeightmapVar);
+    ShaderGlobal::set_color4(get_shader_variable_id("shore_heightmap_min_max", true), shoreHeightmapVar);
 
     static int shore_waves_on_gvid = get_shader_variable_id("shore_waves_on", true);
     ShaderGlobal::set_int(shore_waves_on_gvid, 0);
@@ -215,6 +231,10 @@ public:
     renderHeightmap(hmap_rad, hmap_center);
     // save_tex_as_ddsx(heightmap.getTex2D(), String(0, "d:/hmap-%04d.ddsx", get_time_msec()));
 
+    d3d::SamplerInfo smpInfo;
+    smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Border;
+    smpInfo.border_color = d3d::BorderColor::Color::TransparentBlack;
+    ShaderGlobal::set_sampler(get_shader_variable_id("heightmap_tex_samplerstate", true), d3d::request_sampler(smpInfo));
     ShaderGlobal::set_texture(get_shader_variable_id("heightmap_tex", true), heightmap.getId());
     fft_water::build_distance_field(distTex, shore_w, heightmap_w, rivers_size, NULL);
     // save_tex_as_ddsx(distTex.getTex2D(), String(0, "d:/distTex-%04d.ddsx", get_time_msec()));
@@ -231,7 +251,7 @@ public:
     distTex.setVar();
     ShaderGlobal::set_int(shore_waves_on_gvid, 1);
   }
-  virtual void afterD3DReset(bool full_reset)
+  void afterD3DReset(bool full_reset) override
   {
     if (!srvDisabled && water)
       fft_water::reset_render(water);
@@ -291,7 +311,7 @@ public:
     ShaderGlobal::set_color4_fast(znZfarVarId, Color4(zn, zf, 0, 0));
   }
   void setHeightmap(HeightMapStorage &waterHmapDet, HeightMapStorage &waterHmapMain, const Point2 &waterHeightOfsScaleDet,
-    const Point2 &waterHeightOfsScaleMain, BBox2 hmapDetRect, BBox2 hmapRectMain)
+    const Point2 &waterHeightOfsScaleMain, BBox2 hmapDetRect, BBox2 hmapRectMain) override
   {
     const int MAX_PAGES_TEX_WIDTH = 4096;
     const int HEIGHTMAP_PAGE_SIZE = fft_water::WaterHeightmap::HEIGHTMAP_PAGE_SIZE;
@@ -472,7 +492,7 @@ public:
     fft_water::reset_render(water);
     fft_water::reset_physics(water);
   }
-  void exportHeightmap(BinDumpSaveCB &cwr, bool preferZstdPacking, bool allowOodlePacking)
+  void exportHeightmap(BinDumpSaveCB &cwr, bool preferZstdPacking, bool allowOodlePacking) override
   {
     const fft_water::WaterHeightmap *waterHeightmap = fft_water::get_heightmap(water);
     if (!waterHeightmap)
@@ -490,7 +510,7 @@ public:
     cwr.writeFloat32e(waterHeightmap->tcOffsetScale.y);
     cwr.writeFloat32e(waterHeightmap->tcOffsetScale.z);
     cwr.writeFloat32e(waterHeightmap->tcOffsetScale.w);
-    mkbindump::BinDumpSaveCB cwr_hm(2 << 10, cwr.getTarget(), cwr.WRITE_BE);
+    mkbindump::BinDumpSaveCB cwr_hm(2 << 10, cwr);
     int h = waterHeightmap->pagesY * waterHeightmap->PAGE_SIZE_PADDED;
     int w = waterHeightmap->pagesX * waterHeightmap->PAGE_SIZE_PADDED;
     for (int y = 0; y < h; ++y)
@@ -526,6 +546,7 @@ public:
 
 
 static WaterService srv;
+static bool is_inited = false;
 
 void setup_water_service(const DataBlock &app_blk)
 {
@@ -536,7 +557,6 @@ void *get_generic_water_service()
   if (srv.srvDisabled)
     return NULL;
 
-  static bool is_inited = false;
   if (!is_inited)
   {
     is_inited = true;
@@ -547,4 +567,12 @@ void *get_generic_water_service()
     }
   }
   return &srv;
+}
+void release_generic_water_service()
+{
+  if (is_inited)
+  {
+    is_inited = false;
+    srv.termSrv();
+  }
 }

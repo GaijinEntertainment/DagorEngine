@@ -191,26 +191,22 @@ eastl::pair<bool, intptr_t> default_wnd_proc(void *hwnd, unsigned message, uintp
       return {true, TRUE};
     }
 
+    case WM_ENTERSIZEMOVE:
+    {
+      set_window_resizing_by_mouse(true);
+      return {true, 0};
+    }
+
     case WM_EXITSIZEMOVE:
     {
-      const eastl::pair<bool, intptr_t> handledResult = {true, 0};
-      if (!d3d::is_inited() || !is_window_resizing_by_mouse())
-        return handledResult;
-      // when device is being reset, we want to reset it again with final resolution
-      set_driver_reset_pending_on_exit_sizing();
-      return handledResult;
+      set_window_resizing_by_mouse(false);
+      return {true, 0};
     }
 
     case WM_SIZE:
     {
       const eastl::pair<bool, intptr_t> handledResult = {true, 0};
-      // We assume that noone send WM_SIZE with this params from code
-      if (wParam == SIZE_MAXIMIZED || wParam == SIZE_MINIMIZED)
-        set_window_size_has_been_changed_programmatically(false);
-      const bool isSizeChangedProgrammatically = is_window_size_has_been_changed_programmatically();
-      set_window_size_has_been_changed_programmatically(false);
-      if (!d3d::is_inited() || is_window_resizing_by_mouse() || isSizeChangedProgrammatically)
-        return handledResult;
+
       static bool isMinimized = false;
       if (wParam == SIZE_MINIMIZED)
       {
@@ -230,7 +226,7 @@ eastl::pair<bool, intptr_t> default_wnd_proc(void *hwnd, unsigned message, uintp
         isMinimized = false;
         return handledResult;
       }
-      on_window_resized_change_reset_request();
+      notify_window_resized(LOWORD(lParam), HIWORD(lParam));
       return handledResult;
     }
 

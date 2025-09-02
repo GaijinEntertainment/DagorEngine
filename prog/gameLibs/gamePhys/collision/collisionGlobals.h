@@ -12,7 +12,7 @@ namespace dacoll
 {
 LandMeshManager *get_lmesh();
 PhysMat::MatID get_lmesh_mat_id();
-DeserializedStaticSceneRayTracer *get_frt();
+const StaticSceneRayTracer *get_frt();
 BuildableStaticSceneRayTracer *get_water_tracer();
 dag::ConstSpan<unsigned char> get_pmid();
 bool has_only_water2d();

@@ -42,8 +42,8 @@ struct InvertedSqrt2Scale
 };
 
 #define FVAL_BITS_MASK(PackType, Bits)        (PackType((PackType(1) << (Bits)) - 1))
-#define FVAL_BITS_MASK_SIGNED(PackType, Bits) ((PackType(1) << ((Bits)-1)) - 1)
-#define FVAL_SIGN_BIT(PackType, Bits)         (PackType(1) << ((Bits)-1))
+#define FVAL_BITS_MASK_SIGNED(PackType, Bits) ((PackType(1) << ((Bits) - 1)) - 1)
+#define FVAL_SIGN_BIT(PackType, Bits)         (PackType(1) << ((Bits) - 1))
 
 template <typename RT, typename F = float>
 inline RT pack_scalar_signed(F val, const size_t bits, F scale = 1.0f, bool *out_clamped = nullptr)
@@ -97,7 +97,7 @@ inline F unpack_scalar_unsigned(RT val, const size_t bits, F scale = 1.0f)
 template <size_t Bits, typename ScaleWrapper, typename F = float>
 struct FValQuantizer
 {
-  using RT = typename eastl::type_select<(Bits >= 32), uint64_t, uint32_t>::type;
+  using RT = typename eastl::conditional<(Bits >= 32), uint64_t, uint32_t>::type;
 
   static inline RT packSigned(F val, bool *out_clamped = nullptr)
   {
@@ -229,7 +229,7 @@ template <size_t XBits, size_t YBits, size_t ZBits, class XScale, class YScale, 
 struct QuantizedPos
 {
   static constexpr size_t XYZBits = XBits + YBits + ZBits;
-  typedef typename eastl::type_select<(XYZBits > 32), uint64_t, uint32_t>::type PosType;
+  typedef typename eastl::conditional<(XYZBits > 32), uint64_t, uint32_t>::type PosType;
   PosType qpos = 0;
   G_STATIC_ASSERT(XYZBits <= sizeof(PosType) * CHAR_BIT);
 
@@ -270,7 +270,7 @@ template <size_t Bits> // Bits per component (totally used 3xBits+2, e.g. 32 for
 struct QuantizedQuat
 {
   static constexpr int TotalQuatBits = 3 * Bits + 2;
-  typedef typename eastl::type_select<(TotalQuatBits > 32), uint64_t, uint32_t>::type IntType;
+  typedef typename eastl::conditional<(TotalQuatBits > 32), uint64_t, uint32_t>::type IntType;
   static constexpr int FreeQuatBits = sizeof(IntType) * CHAR_BIT - TotalQuatBits;
 
   IntType qquat = 0;

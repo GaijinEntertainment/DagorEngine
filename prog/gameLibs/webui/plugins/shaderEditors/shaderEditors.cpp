@@ -24,11 +24,14 @@
 
 
 ShaderGraphRecompiler *create_fog_shader_recompiler();
+ShaderGraphRecompiler *create_envi_cover_shader_recompiler();
 
 ShaderGraphRecompiler *ShaderGraphRecompiler::activeInstance = nullptr;
 ShaderGraphRecompiler *ShaderGraphRecompiler::fogInstance = nullptr;
+ShaderGraphRecompiler *ShaderGraphRecompiler::enviCoverInstance = nullptr;
 
 String get_template_text_src_fog(uint32_t variant_id);
+String get_template_text_src_envi_cover(uint32_t variant_id);
 
 String find_shader_editors_path()
 {
@@ -102,7 +105,7 @@ static String get_template_text_src(NodeBasedShaderType shader, uint32_t variant
   switch (shader)
   {
     case NodeBasedShaderType::Fog: return get_template_text_src_fog(variant_id);
-
+    case NodeBasedShaderType::EnviCover: return get_template_text_src_envi_cover(variant_id);
     default: G_ASSERTF(false, "Implement this shader type here!"); return String("");
   }
 }
@@ -175,7 +178,8 @@ static String join_strings(const eastl::vector<String> &strings)
 static String get_default_user_script()
 {
   String userScript;
-  userScript += "GE_setExternalNames('sample spheres density', " + join_strings(nodebasedshaderutils::getAvailableBuffers()) + ");\n";
+  userScript +=
+    "GE_setExternalNames('sample spheres density', " + join_strings(nodebasedshaderutils::getAvailableVolumeChannels()) + ");\n";
   userScript += "GE_setExternalNames('external texture', " + join_strings(nodebasedshaderutils::getAvailableTextures()) + ");\n";
   userScript += "GE_setExternalNames('external int', " + join_strings(nodebasedshaderutils::getAvailableInt()) + ");\n";
   userScript += "GE_setExternalNames('external float', " + join_strings(nodebasedshaderutils::getAvailableFloat()) + ");\n";
@@ -202,6 +206,11 @@ void ShaderGraphRecompiler::initialize(NodeBasedShaderType shader, ShaderCompile
       instance = fogInstance = create_fog_shader_recompiler();
       break;
 
+    case NodeBasedShaderType::EnviCover:
+      del_it(enviCoverInstance);
+      instance = enviCoverInstance = create_envi_cover_shader_recompiler();
+      break;
+
     default: G_ASSERTF(false, "This shader recompiler is not yet implemented!"); break;
   }
 
@@ -212,6 +221,7 @@ void ShaderGraphRecompiler::initialize(NodeBasedShaderType shader, ShaderCompile
 ShaderGraphRecompiler *ShaderGraphRecompiler::getInstance() { return activeInstance; }
 
 void init_fog_shader_graph_plugin();
+void init_envi_cover_graph_plugin();
 
 void ShaderGraphRecompiler::onShaderGraphEditor(webui::RequestInfo *params)
 {
@@ -225,6 +235,16 @@ void ShaderGraphRecompiler::onShaderGraphEditor(webui::RequestInfo *params)
     else
       webui::html_response_raw(params->conn, "Error: ShaderGraphRecompiler::shader_editor == null<br>"
                                              "Maybe 'rootFogGraph:t' was not found in block 'volFog' in level blk");
+  }
+  else if (strcmp(params->plugin->name, ENVI_COVER_SHADER_EDITOR_PLUGIN_NAME) == 0)
+  {
+    if (!ShaderGraphRecompiler::enviCoverInstance)
+      init_envi_cover_graph_plugin();
+
+    if (ShaderGraphRecompiler::enviCoverInstance && ShaderGraphRecompiler::enviCoverInstance->shader_editor)
+      ShaderGraphRecompiler::enviCoverInstance->shader_editor->processRequest(params);
+    else
+      webui::html_response_raw(params->conn, "Error: ShaderGraphRecompiler::shader_editor == null<br>");
   }
   else
   {
@@ -285,8 +305,21 @@ void ShaderGraphRecompiler::init(NodeBasedShaderType shader, const char *subgrap
   };
   shader_editor->onNeedReloadGraphsCallback = refreshShaders;
 
-  String fname = webui::GraphEditor::findFileInParentDir("tools/dagor_cdk/commonData/graphEditor/builder/shaderNodes.js");
-  String inlinedShaderNodes = webui::GraphEditor::readFileToString(fname);
+  String addonFName;
+  switch (shader)
+  {
+    case NodeBasedShaderType::Fog:
+      addonFName = webui::GraphEditor::findFileInParentDir("prog/gameLibs/webui/plugins/shaderEditors/shaderNodes/shaderNodesFog.js");
+      break;
+    case NodeBasedShaderType::EnviCover:
+      addonFName =
+        webui::GraphEditor::findFileInParentDir("prog/gameLibs/webui/plugins/shaderEditors/shaderNodes/shaderNodesEnviCover.js");
+      break;
+  }
+  String inlinedShaderNodes = webui::GraphEditor::readFileToString(addonFName);
+  String commonFName =
+    webui::GraphEditor::findFileInParentDir("prog/gameLibs/webui/plugins/shaderEditors/shaderNodes/shaderNodesCommon.js");
+  inlinedShaderNodes += webui::GraphEditor::readFileToString(commonFName);
 
   shader_editor->setNodesSettingsText(inlinedShaderNodes);
 

@@ -5,6 +5,7 @@ include "raytracing.blk"
 "@override:source"
 {
   file:t = "depth_hierarchy.dshl"
+  file:t = "motion_vrs.dshl"
 }
 
 "@override:outDumpName":t="../../game/compiledShaders/gameDX12"
@@ -14,6 +15,8 @@ include "raytracing.blk"
      //gi_voxelize_use_multidraw:i=1
     "@delete:dagi_sp_calc_exposure":i=1
     "@delete:hdr_ps_output_mode":i=0
+    "@delete:can_use_half_precision":i=0
+    combined_shadows_allow_half_precision:i=1
   }
 }
 
@@ -24,4 +27,4 @@ include "raytracing.blk"
 }
 
 // Warning: There is an issue with those assumes. They might cause bugs with shaders_compat12_xboxOne.blk.
-// See https://youtrack.gaijin.team/issue/RE-1530 for details.
+

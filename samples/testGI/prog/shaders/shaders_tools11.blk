@@ -28,6 +28,7 @@ Compile
 {
   fsh:t = 5.0
   assume_static {
+    use_hw_rt_gi:i=0
     supports_sh_6_1:i = 0
     in_editor_assume:i=1
     dynamic_lights_count:i=0
@@ -51,6 +52,7 @@ Compile
     ssr_denoiser_type:i=0
     has_motion_vectors:i=0
     ds_motion_vectors_with_z:i=0
+    swrt_use_hw_rt:i = 0
   }
 }
 

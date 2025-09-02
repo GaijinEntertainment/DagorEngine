@@ -1,11 +1,14 @@
-# .config.blk and .settings.blk
+# `.config.blk` and `.settings.blk`
 
 Dagor-based games use a primary configuration file named `.settings.blk`
-(referred to as `dgs_settings` in the game code) for fundamental settings. For a
-detailed description of the file format, see
-[.blk File Format](../../dagor-tools/blk/blk.md#blk-file-format) section.
+(referred to as `dgs_settings` in the game code) for fundamental settings.
 
-## Purpose of .settings.blk
+```{seealso}
+For more information, see
+[BLK File Format](../../dagor-tools/blk/blk.md#blk-file-format).
+```
+
+## Purpose of `.settings.blk`
 
 `.settings.blk` stores essential settings such as:
 
@@ -28,9 +31,13 @@ here.
    all settings are allowed to be overridden.
 
 3. **Command Line Modifications**: Any property that can be overridden may also
-   be modified via the command line. For example, running `game.exe
-   -config:debug/watchdog:b=no` is equivalent to adding `debug{watchdog:b=no}`
-   to `.config.blk`.
+   be modified via the command line. For example, running
+
+   ```
+   game.exe -config:debug/watchdog:b=no
+   ```
+
+   is equivalent to adding `debug{watchdog:b=no}` to `.config.blk`.
 
 ## Game-Specific Adjustments
 
@@ -39,6 +46,7 @@ In certain games, the `.settings.blk` and `.config.blk` files are named
 `<game_name>` is provided via the `-game:<game_name>` command line argument or
 specified in the code.
 
-These mechanisms ensure a flexible and robust configuration management system
-to meet different game requirements and development stages.
+These mechanisms provide a flexible and robust configuration management system,
+adapting to various game requirements and development stages.
+
 

@@ -10,7 +10,7 @@ DecalsBuffer::DecalsBuffer(uint32_t size, const char *decal_buffer_name, const c
 
 void DecalsBuffer::resize_buffers(unsigned int size)
 {
-  auto tmpBuf = dag::buffers::create_ua_sr_structured(sizeof(ProjectiveDecalInstance), size, decalBufferName.c_str());
+  BufPtr tmpBuf = dag::buffers::create_ua_sr_structured(sizeof(ProjectiveDecalInstance), size, decalBufferName.c_str());
 
   if (decalInstances)
   {

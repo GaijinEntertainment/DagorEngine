@@ -25,4 +25,8 @@
 
 #define WORLD_SDF_RASTERIZE_VOXELS_DIST 1
 
+#define CBUFF_STRUCTURE_world_sdf_params \
+float4 world_sdf_lt[MAX_WORLD_SDF_CLIPS + 1]; \
+float4 world_sdf_to_tc_add[MAX_WORLD_SDF_CLIPS + 1]; // One extra for invalid elem
+
 #endif

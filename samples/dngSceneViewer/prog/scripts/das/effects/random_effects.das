@@ -6,7 +6,7 @@ require math.random
 [es(tag=render, REQUIRE_NOT=deadEntity, no_order)]
 def periodic_random_effect_spawner(info : ParallelUpdateFrameDelayed;
                                    transform : float3x4;
-                                   [[shared_comp]] periodic_random_effects__templates : StringList;
+                                   @shared_comp periodic_random_effects__templates : StringList;
                                    periodic_random_effects__spawnOffsetsX : float2;
                                    periodic_random_effects__spawnOffsetsY : float2;
                                    periodic_random_effects__spawnOffsetsZ : float2;

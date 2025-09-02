@@ -20,7 +20,7 @@ class Component;
 class Animation;
 class StringKeys;
 class GuiScene;
-class Panel;
+class Screen;
 class InputStack;
 struct XmbData;
 
@@ -40,7 +40,7 @@ public:
   static constexpr int F_DRAG_ACTIVE = 0x0001;
 
 public:
-  ElementTree(GuiScene *gui_scene, Panel *panel);
+  ElementTree(GuiScene *gui_scene, Screen *screen);
   ~ElementTree();
 
   Element *rebuild(HSQUIRRELVM vm, Element *elem, const Component &comp, Element *parent, const Sqrat::Object &parent_builder,
@@ -130,7 +130,8 @@ public:
   bool nextKbFocusNeedCapture = false;
 
   GuiScene *guiScene = nullptr;
-  Panel *panel = nullptr;
+  Screen *screen = nullptr;
+  // Panel *panel = nullptr;
 
   int rebuildFlagsAccum = 0;
   int sceneStateFlags = 0;

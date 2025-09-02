@@ -5,7 +5,6 @@
 #include <generic/dag_staticTab.h>
 #include <EASTL/type_traits.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
-#include <drv/3d/rayTrace/dag_drvRayTrace.h> // for D3D_HAS_RAY_TRACING
 
 #include "descriptor_set.h"
 #include "render_pass.h"
@@ -26,7 +25,7 @@ class PipelineManagerStorage
   Tab<LayoutType *> layouts;
   Tab<PipelineType *> pipelines;
 
-  LayoutType *findOrAddLayout(VulkanDevice &device, const typename LayoutType::CreationInfo &layoutInfo)
+  LayoutType *findOrAddLayout(const typename LayoutType::CreationInfo &layoutInfo)
   {
     for (auto layout : layouts)
     {
@@ -34,7 +33,7 @@ class PipelineManagerStorage
         return layout;
     }
 
-    auto ret = new LayoutType(device, layoutInfo);
+    auto ret = new LayoutType(layoutInfo);
     layouts.push_back(ret);
     return ret;
   }
@@ -50,11 +49,11 @@ class PipelineManagerStorage
   }
 
   template <bool tightlyPacked, typename ArrayType>
-  void shutdownArray(VulkanDevice &device, ArrayType &arr)
+  void shutdownArray(ArrayType &arr)
   {
     for (auto i : arr)
       if (i || tightlyPacked)
-        i->shutdown(device);
+        i->shutdown();
   }
 
 public:
@@ -76,17 +75,17 @@ public:
       clb(*l);
   }
 
-  void add(VulkanDevice &device, ProgramID program, VulkanPipelineCacheHandle cache, const typename PipelineType::CreationInfo &info)
+  void add(ProgramID program, VulkanPipelineCacheHandle cache, const typename PipelineType::CreationInfo &info)
   {
     G_ASSERT(ProgramType::checkID(program));
 
-    LayoutType *layout = findOrAddLayout(device, info.layout);
+    LayoutType *layout = findOrAddLayout(info.layout);
 
     LinearStorageIndex index = ProgramType::getIndexFromID(program);
     ensureSpaceForIndex(index);
 
     G_ASSERT(!pipelines[index]);
-    pipelines[index] = new PipelineType(device, program, cache, layout, info);
+    pipelines[index] = new PipelineType(program, cache, layout, info);
   }
 
   // take object from storage and replace with nullptr
@@ -99,12 +98,12 @@ public:
     return ret;
   }
 
-  void unload(VulkanDevice &device)
+  void unload()
   {
-    shutdownArray<false>(device, pipelines);
+    shutdownArray<false>(pipelines);
     clear_all_ptr_items_and_shrink(pipelines);
 
-    shutdownArray<true>(device, layouts);
+    shutdownArray<true>(layouts);
     clear_all_ptr_items_and_shrink(layouts);
   }
 
@@ -132,16 +131,13 @@ class PipelineManager
     return get_storage(eastl::type_identity<T>{});
   }
 
-#define PIPE_STORAGE_ENTRY(PipelineType, name)                                          \
-  PipelineManagerStorage<PipelineType> name;                                            \
-  PipelineManagerStorage<PipelineType> &get_storage(eastl::type_identity<PipelineType>) \
-  {                                                                                     \
-    return name;                                                                        \
-  }
+#define PIPE_STORAGE_ENTRY(PipelineType, name) \
+  PipelineManagerStorage<PipelineType> name;   \
+  PipelineManagerStorage<PipelineType> &get_storage(eastl::type_identity<PipelineType>) { return name; }
 
   PIPE_STORAGE_ENTRY(VariatedGraphicsPipeline, graphics);
   PIPE_STORAGE_ENTRY(ComputePipeline, compute);
-#if D3D_HAS_RAY_TRACING
+#if VULKAN_HAS_RAYTRACING
   PIPE_STORAGE_ENTRY(RaytracePipeline, raytrace);
 #endif
 
@@ -209,13 +205,12 @@ public:
     return false;
   }
 
-  void addCompute(VulkanDevice &device, VulkanPipelineCacheHandle cache, ProgramID program, const ShaderModuleBlob &sci,
-    const ShaderModuleHeader &header);
-  void addGraphics(VulkanDevice &device, ProgramID program, const ShaderModule &vs_module, const ShaderModuleHeader &vs_header,
+  void addCompute(VulkanPipelineCacheHandle cache, ProgramID program, const ShaderModuleBlob &sci, const ShaderModuleHeader &header);
+  void addGraphics(ProgramID program, const ShaderModule &vs_module, const ShaderModuleHeader &vs_header,
     const ShaderModule &fs_module, const ShaderModuleHeader &fs_header, const ShaderModule *gs_module,
     const ShaderModuleHeader *gs_header, const ShaderModule *tc_module, const ShaderModuleHeader *tc_header,
     const ShaderModule *te_module, const ShaderModuleHeader *te_header);
-  void unloadAll(VulkanDevice &device);
+  void unloadAll();
   void prepareRemoval(ProgramID program);
   void setAsyncCompile(AsyncMask allowed) { asyncCompileAllowed = allowed; }
   bool asyncCompileEnabledGR() { return (asyncCompileAllowed & ASYNC_MASK_RENDER) > 0; }

@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "screenDropletsES.cpp.inl"
 ECS_DEF_PULL_VAR(screenDroplets);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc on_vehicle_change_es_event_handler_comps[] =
 {
@@ -29,6 +31,32 @@ static ecs::EntitySystemDesc on_vehicle_change_es_event_handler_es_desc
   ecs::EventSetBuilder<>::build(),
   0
 ,nullptr,"bindedCamera,isInVehicle");
+static constexpr ecs::ComponentDesc on_camera_changed_es_comps[] =
+{
+//start of 1 ro components at [0]
+  {ECS_HASH("camera__active"), ecs::ComponentTypeInfo<bool>()}
+};
+static void on_camera_changed_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
+    on_camera_changed_es(evt
+        , ECS_RO_COMP(on_camera_changed_es_comps, "camera__active", bool)
+    );
+  while (++comp != compE);
+}
+static ecs::EntitySystemDesc on_camera_changed_es_es_desc
+(
+  "on_camera_changed_es",
+  "prog/daNetGameLibs/screen_droplets/render/screenDropletsES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, on_camera_changed_es_all_events),
+  empty_span(),
+  make_span(on_camera_changed_es_comps+0, 1)/*ro*/,
+  empty_span(),
+  empty_span(),
+  ecs::EventSetBuilder<ecs::EventEntityCreated,
+                       ecs::EventComponentsAppear>::build(),
+  0
+,nullptr,"camera__active");
 static constexpr ecs::ComponentDesc screen_droplets_settings_es_event_handler_comps[] =
 {
 //start of 8 ro components at [0]
@@ -72,14 +100,16 @@ static ecs::EntitySystemDesc screen_droplets_settings_es_event_handler_es_desc
 ,"render","screen_droplets__grid_x,screen_droplets__has_leaks,screen_droplets__intensity_change_rate,screen_droplets__intensity_direct_control,screen_droplets__on_rain_fadeout_radius,screen_droplets__rain_cone_max,screen_droplets__rain_cone_off,screen_droplets__screen_time");
 static constexpr ecs::ComponentDesc reset_screen_droplets_es_comps[] =
 {
-//start of 1 ro components at [0]
-  {ECS_HASH("render_settings__screenSpaceWeatherEffects"), ecs::ComponentTypeInfo<bool>()}
+//start of 2 ro components at [0]
+  {ECS_HASH("render_settings__screenSpaceWeatherEffects"), ecs::ComponentTypeInfo<bool>()},
+  {ECS_HASH("render_settings__bare_minimum"), ecs::ComponentTypeInfo<bool>()}
 };
 static void reset_screen_droplets_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     reset_screen_droplets_es(evt
         , ECS_RO_COMP(reset_screen_droplets_es_comps, "render_settings__screenSpaceWeatherEffects", bool)
+    , ECS_RO_COMP(reset_screen_droplets_es_comps, "render_settings__bare_minimum", bool)
     );
   while (++comp != compE);
 }
@@ -89,14 +119,14 @@ static ecs::EntitySystemDesc reset_screen_droplets_es_es_desc
   "prog/daNetGameLibs/screen_droplets/render/screenDropletsES.cpp.inl",
   ecs::EntitySystemOps(nullptr, reset_screen_droplets_es_all_events),
   empty_span(),
-  make_span(reset_screen_droplets_es_comps+0, 1)/*ro*/,
+  make_span(reset_screen_droplets_es_comps+0, 2)/*ro*/,
   empty_span(),
   empty_span(),
   ecs::EventSetBuilder<ChangeRenderFeatures,
                        OnRenderSettingsReady,
                        SetResolutionEvent>::build(),
   0
-,"render","render_settings__screenSpaceWeatherEffects");
+,"render","render_settings__bare_minimum,render_settings__screenSpaceWeatherEffects");
 //static constexpr ecs::ComponentDesc disable_screen_droplets_es_comps[] ={};
 static void disable_screen_droplets_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
@@ -138,7 +168,7 @@ static ecs::EntitySystemDesc reset_screen_droplets_for_new_level_es_es_desc
 static constexpr ecs::ComponentDesc destroy_screen_droplets_es_comps[] =
 {
 //start of 1 rq components at [0]
-  {ECS_HASH("water_droplets_node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()}
+  {ECS_HASH("water_droplets_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()}
 };
 static void destroy_screen_droplets_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
@@ -162,7 +192,7 @@ static ecs::EntitySystemDesc destroy_screen_droplets_es_es_desc
 static constexpr ecs::ComponentDesc update_screen_droplets_es_comps[] =
 {
 //start of 1 rq components at [0]
-  {ECS_HASH("water_droplets_node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()}
+  {ECS_HASH("water_droplets_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()}
 };
 static void update_screen_droplets_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
@@ -234,3 +264,33 @@ static ecs::EntitySystemDesc update_rain_density_for_screen_droplets_es_es_desc
                        ecs::EventComponentsAppear>::build(),
   0
 ,"render","*");
+static constexpr ecs::ComponentDesc is_in_vehicle_on_screen_droplets_reset_ecs_query_comps[] =
+{
+//start of 1 ro components at [0]
+  {ECS_HASH("isInVehicle"), ecs::ComponentTypeInfo<bool>()},
+//start of 1 rq components at [1]
+  {ECS_HASH("bindedCamera"), ecs::ComponentTypeInfo<ecs::EntityId>()}
+};
+static ecs::CompileTimeQueryDesc is_in_vehicle_on_screen_droplets_reset_ecs_query_desc
+(
+  "is_in_vehicle_on_screen_droplets_reset_ecs_query",
+  empty_span(),
+  make_span(is_in_vehicle_on_screen_droplets_reset_ecs_query_comps+0, 1)/*ro*/,
+  make_span(is_in_vehicle_on_screen_droplets_reset_ecs_query_comps+1, 1)/*rq*/,
+  empty_span());
+template<typename Callable>
+inline void is_in_vehicle_on_screen_droplets_reset_ecs_query(Callable function)
+{
+  perform_query(g_entity_mgr, is_in_vehicle_on_screen_droplets_reset_ecs_query_desc.getHandle(),
+    [&function](const ecs::QueryView& __restrict components)
+    {
+        auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
+        {
+          function(
+              ECS_RO_COMP(is_in_vehicle_on_screen_droplets_reset_ecs_query_comps, "isInVehicle", bool)
+            );
+
+        }while (++comp != compE);
+    }
+  );
+}

@@ -136,6 +136,13 @@ inline void addToPrint(String &output, int param)
   output.append(";");
 }
 
+inline void addToPrint(String &output, uint32_t param)
+{
+  if (param != -1)
+    output.aprintf(12, "%u", param);
+  output.append(";");
+}
+
 inline void addToPrint(String &output, bool param) { output.aprintf(2, "%d;", (int)param); }
 
 inline void addToPrint(String &output, uint64_t param)
@@ -187,10 +194,8 @@ inline void writeObject(file_ptr_t file, const ResourceDumpTexture &tex)
   addToPrint(texLine, 0 < (cflag & TEXCF_READABLE));           // TEXCF_READABLE
   addToPrint(texLine, 0 < (cflag & TEXCF_WRITEONLY));          // TEXCF_WRITEONLY
   addToPrint(texLine, 0 < (cflag & TEXCF_LOADONCE));           // TEXCF_LOADONCE
-  addToPrint(texLine, 0 < (cflag & TEXCF_MAYBELOST));          // TEXCF_MAYBELOST
   addToPrint(texLine, sample);                                 // SAMPLECOUNT
 #if _TARGET_C1 | _TARGET_C2
-
 
 
 
@@ -200,23 +205,20 @@ inline void writeObject(file_ptr_t file, const ResourceDumpTexture &tex)
   addToPrint(texLine, 0 < (cflag & TEXCF_CPU_CACHED_MEMORY)); // TEXCF_CPU_CACHED_MEMORY
   addToPrint(texLine, 0 < (cflag & TEXCF_LINEAR_LAYOUT));     // TEXCF_LINEAR_LAYOUT
   addToPrint(texLine, 0 < (cflag & TEXCF_ESRAM_ONLY));        // TEXCF_ESRAM_ONLY
-  addToPrint(texLine, 0 < (cflag & TEXCF_MOVABLE_ESRAM));     // TEXCF_MOVABLE_ESRAM
   texLine.append(";");                                        // TEXCF_TC_COMPATIBLE
   texLine.append(";");                                        // TEXCF_RT_COMPRESSED
 #else
   texLine.append(";"); // TEXCF_CPU_CACHED_MEMORY
   texLine.append(";"); // TEXCF_LINEAR_LAYOUT,
   texLine.append(";"); // TEXCF_ESRAM_ONLY,
-  texLine.append(";"); // TEXCF_MOVABLE_ESRAM,
   texLine.append(";"); // TEXCF_TC_COMPATIBLE,
   texLine.append(";"); // TEXCF_RT_COMPRESSED,
 #endif
-  addToPrint(texLine, 0 < (cflag & TEXCF_SIMULTANEOUS_MULTI_QUEUE_USE)); // TEXCF_SIMULTANEOUS_MULTI_QUEUE_USE
-  addToPrint(texLine, 0 < (cflag & TEXCF_SRGBWRITE));                    // TEXCF_SRGBWRITE
-  addToPrint(texLine, 0 < (cflag & TEXCF_GENERATEMIPS));                 // TEXCF_GENERATEMIPS
-  addToPrint(texLine, 0 < (cflag & TEXCF_CLEAR_ON_CREATE));              // TEXCF_CLEAR_ON_CREATE
-  addToPrint(texLine, 0 < (cflag & TEXCF_TILED_RESOURCE));               // TEXCF_TILED_RESOURCE
-  addToPrint(texLine, 0 < (cflag & TEXCF_TRANSIENT));                    // TEXCF_TRANSIENT
+  addToPrint(texLine, 0 < (cflag & TEXCF_SRGBWRITE));       // TEXCF_SRGBWRITE
+  addToPrint(texLine, 0 < (cflag & TEXCF_GENERATEMIPS));    // TEXCF_GENERATEMIPS
+  addToPrint(texLine, 0 < (cflag & TEXCF_CLEAR_ON_CREATE)); // TEXCF_CLEAR_ON_CREATE
+  addToPrint(texLine, 0 < (cflag & TEXCF_TILED_RESOURCE));  // TEXCF_TILED_RESOURCE
+  addToPrint(texLine, 0 < (cflag & TEXCF_TRANSIENT));       // TEXCF_TRANSIENT
 
   texLine.erase(texLine.end() - 1);
   texLine.append("\n");
@@ -304,9 +306,9 @@ void saveDump(const char *dir_name)
     "Name;Size;Kind;X;Y;Depth;Layers;MipLevels;Format;Color;Gpu_Address;Heap_ID;Heap_Offset;Heap_Name;TEXCF_RTTARGET;TEXCF_UNORDERED;"
     "TEXCF_"
     "VARIABLE_RATE;TEXCF_UPDATE_DESTINATION;TEXCF_SYSTEXCOPY;TEXCF_DYNAMIC;TEXCF_READABLE;TEXCF_READONLY;TEXCF_WRITEONLY;TEXCF_"
-    "LOADONCE;TEXCF_MAYBELOST;TEXCF_SYSMEM;TEXCF_SAMPLECOUNT;TEXCF_CPU_CACHED_MEMORY;TEXCF_LINEAR_LAYOUT;TEXCF_ESRAM_ONLY;TEXCF_"
-    "MOVABLE_ESRAM;TEXCF_TC_COMPATIBLE;TEXCF_RT_COMPRESSED;TEXCF_SIMULTANEOUS_MULTI_QUEUE_USE;TEXCF_SRGBWRITE;TEXCF_SRGBREAD;TEXCF_"
-    "GENERATEMIPS;TEXCF_CLEAR_ON_CREATE;TEXCF_TILED_RESOURCE;TEXCF_TRANSIENT\n";
+    "LOADONCE;TEXCF_SYSMEM;TEXCF_SAMPLECOUNT;TEXCF_CPU_CACHED_MEMORY;TEXCF_LINEAR_LAYOUT;TEXCF_ESRAM_ONLY;"
+    "TEXCF_TC_COMPATIBLE;TEXCF_RT_COMPRESSED;TEXCF_SRGBWRITE;TEXCF_SRGBREAD;TEXCF_GENERATEMIPS;"
+    "TEXCF_CLEAR_ON_CREATE;TEXCF_TILED_RESOURCE;TEXCF_TRANSIENT\n";
   const char *buffHeader =
     "Name;Size;SystemCopySize;CurrentDiscardIdx;CurrentDiscardOffset;TotalDiscards;ID;GPU_Address;Offset;CPU_Address;Heap_ID;Heap_"
     "offset;Heap_Name;SBCF_USAGE_SHADER_BINDING_TABLE;SBCF_USAGE_ACCELLERATION_STRUCTURE_BUILD_SCRATCH_SPACE;SBCF_DYNAMIC;SBCF_"

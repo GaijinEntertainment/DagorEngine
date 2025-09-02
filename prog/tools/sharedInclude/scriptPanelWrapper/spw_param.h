@@ -87,21 +87,21 @@ class ScriptPanelContainer : public ScriptPanelParam
 {
 public:
   ScriptPanelContainer(CSQPanelWrapper *wrapper, ScriptPanelContainer *parent, const char *name, const char *caption);
-  virtual ~ScriptPanelContainer();
+  ~ScriptPanelContainer() override;
 
   virtual void fillParams(PropPanel::ContainerPropertyControl *panel, int &pid, SquirrelObject param);
-  virtual void callChangeScript(bool script_update_flag);
-  virtual void updateParams();
-  virtual void validate();
-  virtual void getTargetList(Tab<SimpleString> &list);
+  void callChangeScript(bool script_update_flag) override;
+  void updateParams() override;
+  void validate() override;
+  void getTargetList(Tab<SimpleString> &list) override;
 
-  virtual long onChanging(int pid, PropPanel::ContainerPropertyControl &panel);
-  virtual void onChange(int pid, PropPanel::ContainerPropertyControl &panel);
-  virtual void onClick(int pid, PropPanel::ContainerPropertyControl &panel);
-  virtual void onPostEvent(int pid, PropPanel::ContainerPropertyControl &panel);
+  long onChanging(int pid, PropPanel::ContainerPropertyControl &panel) override;
+  void onChange(int pid, PropPanel::ContainerPropertyControl &panel) override;
+  void onClick(int pid, PropPanel::ContainerPropertyControl &panel) override;
+  void onPostEvent(int pid, PropPanel::ContainerPropertyControl &panel) override;
 
-  virtual void save(DataBlock &blk);
-  virtual void load(const DataBlock &blk);
+  void save(DataBlock &blk) override;
+  void load(const DataBlock &blk) override;
 
   virtual void clear();
   int getNextVisiblePid(int pid);
@@ -111,7 +111,7 @@ public:
   virtual bool getParamVisible(SquirrelObject param);
 
   int findPidByName(const char *name);
-  virtual void sendMessage(int pid, int message, void *arg);
+  void sendMessage(int pid, int message, void *arg) override;
 
 protected:
   void scriptControlFactory(PropPanel::ContainerPropertyControl *panel, int &pid, SquirrelObject param);
@@ -122,7 +122,7 @@ protected:
   const char *getTooltipLocalizationKey(SquirrelObject param);
   const char *getDefaultTooltip(SquirrelObject param);
 
-  virtual void removeControl();
+  void removeControl() override;
 
   Tab<ScriptPanelParam *> mItems;
   CSQPanelWrapper *mPanelWrapper;

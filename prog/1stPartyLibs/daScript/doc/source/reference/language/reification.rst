@@ -17,14 +17,16 @@ Simple example
 Let's review the following example::
 
     var foo = "foo"
-    var fun <- qmacro_function("madd") <| $ ( a, b )
+    var fun <- qmacro_function("madd") <| $ ( a, b ) {
         return $i(foo) * a + b
+    }
     print(describe(fun))
 
 The output would be::
 
-    def public madd (  a:auto const;  b:auto const ) : auto
+    def public madd (  a:auto const;  b:auto const ) : auto {
         return (foo * a) + b
+    }
 
 What happens here is that call to macro ``qmacro_function`` generates a new function named `madd`.
 The arguments and body of that function are taken from the block, which is passed to the function.
@@ -76,8 +78,9 @@ qmacro_expr
 Certain expressions like `return` and such can't be an argument to a call, so they can't be passed to ``qmacro`` directly.
 The work around is to pass them as first line of a block::
 
-    var expr <- qmacro_block <|
+    var expr <- qmacro_block() {
         return 13
+    }
     print(describe(expr))
 
 prints::
@@ -91,7 +94,7 @@ qmacro_type
 ``qmacro_type`` takes a type expression (type<...>) as an input and returns the subtype as a TypeDeclPtr, after resolving the escape sequences.
 Consider the following example::
 
-    var foo <- typeinfo(ast_typedecl type<int>)
+    var foo <- typeinfo ast_typedecl(type<int>)
     var typ <- qmacro_type <| type<$t(foo)?>
     print(describe(typ))
 
@@ -135,9 +138,10 @@ $i(ident)
 An identifier can be substituted for the variable name in both the variable declaration and use::
 
     var bus = "bus"
-    var qb <- qmacro_block <|
+    var qb <- qmacro_block() {
         let $i(bus) = "busbus"
         let t = $i(bus)
+    }
     print(describe(qb))
 
 prints::
@@ -152,8 +156,9 @@ $f(field-name)
 ``$f`` takes a ``string`` or ``das_string`` as an argument and substitutes it with a field name::
 
     var bar = "fieldname"
-    var blk <- qmacro_block <|
+    var blk <- qmacro_block() {
         foo.$f(bar) = 13
+    }
     print(describe(blk))
 
 prints::
@@ -168,13 +173,13 @@ $v(value)
 The value does not have to be a constant expression, but the expression will be evaluated before its substituted.
 Appropriate `make` infrastructure will be generated::
 
-    var t = [[auto 1,2.,"3"]]
+    var t = (1,2.,"3")
     var expr <- qmacro($v(t))
     print(describe(expr))
 
 prints::
 
-    [[1,2f,"3"]]
+    (1,2f,"3")
 
 In the example above, a tuple is substituted with the expression that generates this tuple.
 
@@ -185,8 +190,9 @@ $e(expression)
 ``$e`` takes any expression as an argument in form of an ``ExpressionPtr``. The expression will be substituted as-is::
 
     var expr <- quote(2+2)
-    var qb <- qmacro_block <|
+    var qb <- qmacro_block() {
         let foo = $e(expr)
+    }
     print(describe(qb))
 
 prints::
@@ -201,10 +207,12 @@ $b(array-of-expr)
 and is replaced with each expression from the input array in sequential order::
 
     var qqblk : array<ExpressionPtr>
-    for i in range(3)
+    for ( i in range(3) ) {
         qqblk |> emplace_new <| qmacro(print("{$v(i)}\n"))
-    var blk <- qmacro_block <|
+    }
+    var blk <- qmacro_block() {
         $b(qqblk)
+    }
     print(describe(blk))
 
 prints::
@@ -220,7 +228,7 @@ $a(arguments)
 ``$a`` takes an ``array<ExpressionPtr>`` or ``das::vector<ExpressionPtr>`` aka ``dasvector`smart_ptr`Expression`` as an argument
 and replaces call arguments with each expression from the input array in sequential order::
 
-    var arguments <- [{ExpressionPtr quote(1+2); quote("foo")}]
+    var arguments <- [quote(1+2); quote("foo")]
     var blk <- qmacro <| somefunnycall(1,$a(arguments),2)
     print(describe(blk))
 
@@ -232,18 +240,20 @@ Note how the other arguments of the function are preserved, and multiple argumen
 
 Arguments can be substituted in the function declaration itself. In that case $a expects ``array<VariablePtr>``::
 
-    var foo <- [{VariablePtr
-        new [[Variable() name:="v1", _type<-qmacro_type(type<int>)]];
-        new [[Variable() name:="v2", _type<-qmacro_type(type<float>), init<-qmacro(1.2)]]
-    }]
-    var fun <- qmacro_function("show") <| $ ( a: int; $a(foo); b : int )
+    var foo <- [
+        new Variable(name:="v1", _type<-qmacro_type(type<int>)),
+        new Variable(name:="v2", _type<-qmacro_type(type<float>), init<-qmacro(1.2))
+    ]
+    var fun <- qmacro_function("show") <| $ ( a: int; $a(foo); b : int ) {
         return a + b
+    }
     print(describe(fun))
 
 prints::
 
-    def public add ( a:int const; var v1:int; var v2:float = 1.2f; b:int const ) : int
+    def public add ( a:int const; var v1:int; var v2:float = 1.2f; b:int const ) : int {
         return a + b
+    }
 
 ********
 $t(type)
@@ -252,9 +262,10 @@ $t(type)
 ``$t`` takes a ``TypeDeclPtr`` as an input and substitutes it with the type expression.
 In the following example::
 
-    var subtype <- typeinfo(ast_typedecl type<int>)
-    var blk <- qmacro_block <|
+    var subtype <- typeinfo ast_typedecl(type<int>)
+    var blk <- qmacro_block() {
         var a : $t(subtype)?
+    }
     print(describe(blk))
 
 we create pointer to a subtype::

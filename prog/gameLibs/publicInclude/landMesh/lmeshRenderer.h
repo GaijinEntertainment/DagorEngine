@@ -83,10 +83,32 @@ public:
 };
 #endif
 
+enum class LMeshRenderingMode : int
+{
+  RENDERING_WITH_SPLATTING = -1,
+  RENDERING_LANDMESH = 0,
+  RENDERING_CLIPMAP = 1,
+  OBSOLETE_RENDERING_SPOT = 2,
+  GRASS_COLOR = 3,
+  GRASS_MASK = 4,
+  OBSOLETE_SPOT_TO_GRASS_MASK = 5,
+  RENDERING_HEIGHTMAP = 6,
+  RENDERING_DEPTH = 7,
+  RENDERING_VSM = 8,
+  RENDERING_REFLECTION = 9,
+  RENDERING_FEEDBACK = 10,
+  LMESH_MAX
+};
 
 class LandMeshRenderer
 {
 public:
+  struct TidSamplerWithoutMipbiasPair
+  {
+    TEXTUREID tid = BAD_TEXTUREID;
+    d3d::SamplerHandle sampler = {};
+  };
+
   enum
   {
     RENDER_DECALS = 1,
@@ -124,9 +146,10 @@ public:
 
 public:
   PhysMap *physMap = nullptr;
-  LandMeshRenderer(LandMeshManager &provider, dag::ConstSpan<LandClassDetailTextures> land_classes, TEXTUREID vert_tex_id,
-    d3d::SamplerHandle vert_tex_smp, TEXTUREID vert_tex_nm_id, d3d::SamplerHandle vert_nm_tex_smp, TEXTUREID vert_det_tex_id,
-    d3d::SamplerHandle vert_det_tex_smp, TEXTUREID tile_tex, d3d::SamplerHandle tile_smp, real tile_x, real tile_y);
+  LandMeshRenderer(LandMeshManager &provider, dag::ConstSpan<LandClassDetailTextures> land_classes, int biome_land_class_idx,
+    TEXTUREID vert_tex_id, d3d::SamplerHandle vert_tex_smp, TEXTUREID vert_tex_nm_id, d3d::SamplerHandle vert_nm_tex_smp,
+    TEXTUREID vert_det_tex_id, d3d::SamplerHandle vert_det_tex_smp, TEXTUREID tile_tex, d3d::SamplerHandle tile_smp, real tile_x,
+    real tile_y);
   ~LandMeshRenderer();
 
   bool checkVerLabel() { return verLabel == VER_LABEL; }
@@ -167,7 +190,6 @@ public:
     float mirror_shrink_z_neg);
 
   void setCellsDebug(int dbg) { debugCells = dbg; }
-  int getCustomLcCount();
 
 #if _TARGET_PC
   static void afterLostDevice();
@@ -177,14 +199,17 @@ public:
     const TMatrix4 &realGlobtm, const char *marker, const LandMeshCullingData &data, bool do_fatal);
 #endif
 
+  LMeshRenderingMode setLMeshRenderingMode(LMeshRenderingMode mode);
+  LMeshRenderingMode getLMeshRenderingMode() const { return lmeshRenderingMode; }
+
   void renderCulled(LandMeshManager &provider, RenderType rtype, const LandMeshCullingData &culledData, const TMatrix *realView,
     const TMatrix4 *realProj, const Driver3dPerspective *persp, const TMatrix4 *realGlobtm, const Point3 &view_pos,
     bool check_matrices = true, RenderPurpose rpurpose = DEFAULT_RENDERING_PURPOSE);
   void renderCulled(LandMeshManager &provider, RenderType rtype, const LandMeshCullingData &culledData, const Point3 &view_pos,
     RenderPurpose rpurpose = DEFAULT_RENDERING_PURPOSE);
 
-  void render(mat44f_cref globtm, const Frustum &frustum, LandMeshManager &provider, RenderType rtype, const Point3 &view_pos,
-    RenderPurpose rpurpose = DEFAULT_RENDERING_PURPOSE);
+  void render(mat44f_cref globtm, const TMatrix4 &proj, const Frustum &frustum, LandMeshManager &provider, RenderType rtype,
+    const Point3 &view_pos, RenderPurpose rpurpose = DEFAULT_RENDERING_PURPOSE);
   void render(LandMeshManager &provider, RenderType rtype, const Point3 &view_pos, RenderPurpose rpurpose = DEFAULT_RENDERING_PURPOSE);
 
   bool renderDecals(LandMeshManager &provider, RenderType rtype, const TMatrix4 &globtm, bool compatibility_mode);
@@ -199,16 +224,19 @@ public:
   TEXTUREID getDetailTileTex() { return tileTexId; }
   d3d::SamplerHandle getDetailTileSmp() const { return tileTexSmp; }
   bool reloadGrassMaskTex(int land_class_id, TEXTUREID newGrassMaskTexId);
-  const char *getTextureName(TEXTUREID tex_id);
+  static d3d::SamplerInfo getTextureSamplerInfo(TEXTUREID tid);
+  static d3d::SamplerInfo getTextureSamplerInfo(TEXTUREID tid, float anisotropic_max);
 
   Tab<LandClassDetailTextures> &getLandClasses() { return landClasses; }
+  void updateCustomSamplers(LandMeshManager &provider);
 
 protected:
   __forceinline ShaderMesh *prepareGeomCellsLM(LandMeshManager &provider, int cellNo, int lodNo);
   __forceinline ShaderMesh *prepareGeomCellsCM(LandMeshManager &provider, int cellNo, bool **isBig);
-  void renderGeomCellsLM(LandMeshManager &provider, dag::ConstSpan<uint16_t> cells, int lodNo, RenderType rtype,
-    uint8_t use_exclusion);
-  void renderGeomCellsCM(LandMeshManager &provider, dag::ConstSpan<uint16_t> cells, RenderType rtype, bool skip_not_big);
+  void renderGeomCellsLM(LandMeshManager &provider, dag::ConstSpan<uint16_t> cells, int lodNo, RenderType rtype, uint8_t use_exclusion,
+    bool force_set_states);
+  void renderGeomCellsCM(LandMeshManager &provider, dag::ConstSpan<uint16_t> cells, RenderType rtype, bool skip_not_big,
+    bool force_set_states);
 
   void renderLandclasses(CellState &curState, bool useFilter = false, LandClassType lcFilter = LC_SIMPLE);
   struct MirroredCellState;
@@ -237,6 +265,7 @@ protected:
     ONEQUAD_HMAP
   };
   HmapRenderType renderHeightmapType;
+  LMeshRenderingMode lmeshRenderingMode = LMeshRenderingMode::RENDERING_LANDMESH;
   uint8_t useHmapTankDetail;
   CellState *cellStates;
   BBox3 renderInBBox;
@@ -244,12 +273,12 @@ protected:
 
   float detMapTcScale, detMapTcOfs;
 
-  int customLcCount;
   void prepareLandClasses(LandMeshManager &provider);
   Tab<LandClassDetailTextures> landClasses;
   Tab<LCTexturesLoaded> landClassesLoaded;
-  carray<SmallTab<TEXTUREID, MidmemAlloc>, NUM_TEXTURES_STACK> megaDetails;
-  carray<ArrayTexture *, NUM_TEXTURES_STACK> megaDetailsArray;
+  carray<SmallTab<TidSamplerWithoutMipbiasPair, MidmemAlloc>, NUM_TEXTURES_STACK> megaDetails;
+  carray<eastl::pair<TidSamplerWithoutMipbiasPair, ArrayTexture *>, NUM_TEXTURES_STACK> megaDetailsArray;
+  int biomeLandClassIdx = -1;
   // SmallTab<TEXTUREID, MidmemAlloc> grassMaskTexIds;
   TEXTUREID vertTexId;
   TEXTUREID vertNmTexId;
@@ -285,7 +314,7 @@ protected:
     void setPosConsts(bool render_at_0 = false) const;
     void setDetMapTc() const;
     void setPsMirror() const;
-    void setFlipCull(LandMeshRenderer *renderer) const;
+    bool setFlipCull(LandMeshRenderer *renderer) const;
     static void startRender();
   };
   SmallTab<MirroredCellState, MidmemAlloc> mirroredCells;

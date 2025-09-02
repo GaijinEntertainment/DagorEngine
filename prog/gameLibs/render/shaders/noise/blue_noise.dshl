@@ -1,0 +1,47 @@
+include "shader_global.dshl"
+
+int blue_noise_frame_index;
+texture scrambling_ranking_texture;
+texture sobol_texture;
+
+macro INIT_BLUE_NOISE(code)
+  (code) {
+    frame_index@i1 = blue_noise_frame_index;
+    scrambling_ranking_texture@tex = scrambling_ranking_texture hlsl { Texture2D< float3 > scrambling_ranking_texture@tex; };
+    sobol_texture@tex = sobol_texture hlsl { Texture2D< float4 > sobol_texture@tex; };
+  }
+endmacro
+
+macro USE_BLUE_NOISE(code)
+  hlsl(code)
+  {
+    #define BLUE_NOISE_TEMPORAL_DIM 256
+    #define BLUE_NOISE_SPATIAL_DIM 128
+
+    // We collide with SH1 otherwise
+    namespace ml
+    {
+      #include <ml.hlsli>
+    }
+
+    float2 GetBlueNoise( uint2 pixelPos, bool isCheckerboard, uint seed)
+    {
+      // Sample index
+      uint frameIndex = isCheckerboard ? ( frame_index >> 1 ) : frame_index;
+      uint sampleIndex = ( frameIndex + seed ) & (BLUE_NOISE_TEMPORAL_DIM - 1);
+
+      // The algorithm
+      uint3 A = texture2DAt(scrambling_ranking_texture, pixelPos & (BLUE_NOISE_SPATIAL_DIM - 1)) * 255;
+      uint rankedSampleIndex = sampleIndex ^ A.z;
+      uint4 B = texture2DAt(sobol_texture, uint2( rankedSampleIndex & 255, 0 )) * 255;
+      float4 blue = ( float4( B ^ A.xyxy ) + 0.5 ) * ( 1.0 / 256.0 );
+
+      // Randomize in [ 0; 1 / 256 ] area to get rid of possible banding
+      uint d = ml::Sequence::Bayer4x4ui( pixelPos, frame_index );
+      float2 dither = ( float2( d & 3, d >> 2 ) + 0.5 ) * ( 1.0 / 4.0 );
+      blue += ( dither.xyxy - 0.5 ) * ( 1.0 / 256.0 );
+
+      return saturate( blue.xy );
+    }
+  }
+endmacro

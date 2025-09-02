@@ -18,6 +18,7 @@ shader screenspace_probes_create_dispatch_indirect_cs
   }
   INIT_SCREENSPACE_PROBES_RES(cs)
   hlsl(cs) {
+    #pragma wave32
     #include "screenprobes_indirect.hlsli"
     RWByteAddressBuffer dispatchIndirectBuffer: register(u0);
     [numthreads(SP_INDIRECT_BUFFER_SIZE, 1, 1)]
@@ -37,11 +38,11 @@ shader screenspace_probes_create_dispatch_indirect_cs
       uint write = 1;
       FLATTEN
       if (tid == SP_TRACE_INDIRECT_OFFSET)
-        write = (activeCount*sp_radiance_area + SP_TRACE_WARP_SIZE-1)/SP_TRACE_WARP_SIZE;
+        write = uint(activeCount*sp_radiance_area + SP_TRACE_WARP_SIZE-1)/uint(SP_TRACE_WARP_SIZE);
 
       FLATTEN
       if (tid == SP_FILTER_INDIRECT_OFFSET)
-        write = (activeCount*sp_radiance_area + SP_FILTER_WARP_SIZE-1)/SP_FILTER_WARP_SIZE;
+        write = uint(activeCount*sp_radiance_area + SP_FILTER_WARP_SIZE-1)/uint(SP_FILTER_WARP_SIZE);
 
       FLATTEN
       if (tid == SP_IRRADIANCE_INDIRECT_OFFSET)
@@ -53,19 +54,23 @@ shader screenspace_probes_create_dispatch_indirect_cs
       uint2 selectedAndHistoryCount = loadBuffer2(screenspace_probes_list, 0);
       FLATTEN
       if (tid == SP_TRACE_SELECTED_OFS)
-        write = (selectedAndHistoryCount.x*sp_radiance_area + SP_TRACE_WARP_SIZE-1)/SP_TRACE_WARP_SIZE;
+        write = uint(selectedAndHistoryCount.x*sp_radiance_area + SP_TRACE_WARP_SIZE-1)/uint(SP_TRACE_WARP_SIZE);
 
       FLATTEN
       if (tid == SP_TRACE_ONLY_HISTORY_OFS)
-        write = (selectedAndHistoryCount.y*sp_radiance_area + SP_TRACE_WARP_SIZE-1)/SP_TRACE_WARP_SIZE;
+        write = uint(selectedAndHistoryCount.y*sp_radiance_area + SP_TRACE_WARP_SIZE-1)/uint(SP_TRACE_WARP_SIZE);
 
       FLATTEN
       if (tid == SP_TEMPORAL_SELECTED_OFS)
-        write = (selectedAndHistoryCount.x*sp_radiance_area + SP_FILTER_WARP_SIZE-1)/SP_FILTER_WARP_SIZE;
+        write = uint(selectedAndHistoryCount.x*sp_radiance_area + SP_FILTER_WARP_SIZE-1)/uint(SP_FILTER_WARP_SIZE);
 
       FLATTEN
       if (tid == SP_TEMPORAL_HISTORY_OFS)
-        write = (selectedAndHistoryCount.y*sp_radiance_area + SP_FILTER_WARP_SIZE-1)/SP_FILTER_WARP_SIZE;
+        write = uint(selectedAndHistoryCount.y*sp_radiance_area + SP_FILTER_WARP_SIZE-1)/uint(SP_FILTER_WARP_SIZE);
+
+      FLATTEN
+      if (tid == SP_BACK_COLOR_OFS)
+        write = uint(selectedAndHistoryCount.x + SP_BACK_COLOR_WARP-1)/uint(SP_BACK_COLOR_WARP);
 
       if (tid < SP_INDIRECT_BUFFER_SIZE)
         storeBuffer(dispatchIndirectBuffer, tid * 4, write);

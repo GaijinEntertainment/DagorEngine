@@ -3,7 +3,7 @@ from "%darg/ui_imports.nut" import *
 function mkCursor(fillColor, borderColor){
   return {
     rendObj = ROBJ_VECTOR_CANVAS
-    size = [sh(3), sh(3)]
+    size = sh(3)
 
     commands = [
       [VECTOR_WIDTH, hdpx(1.4)],
@@ -18,7 +18,7 @@ function mkResizeCursor(rotate=0){
   return {
     transform = {pivot = [0.5,0.5], rotate=rotate}
     rendObj = ROBJ_VECTOR_CANVAS
-    size = [sh(3), sh(3)]
+    size = sh(3)
     hotspot = [sh(1.5), sh(1.5)]
 
     commands = [

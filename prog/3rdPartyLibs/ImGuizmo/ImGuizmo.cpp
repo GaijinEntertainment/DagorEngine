@@ -2939,10 +2939,18 @@ namespace IMGUIZMO_NAMESPACE
          interpolationFrames--;
          vec_t newDir = viewInverse.v.dir;
          newDir.Lerp(interpolationDir, 0.2f);
+         if (interpolationFrames == 0)
+         {
+            newDir = interpolationDir;
+         }
          newDir.Normalize();
 
          vec_t newUp = viewInverse.v.up;
          newUp.Lerp(interpolationUp, 0.3f);
+         if (interpolationFrames == 0)
+         {
+            newUp = interpolationUp;
+         }
          newUp.Normalize();
          newUp = interpolationUp;
          vec_t newEye = camTarget + newDir * length;
@@ -3023,6 +3031,6 @@ namespace IMGUIZMO_NAMESPACE
 
       // restore view/projection because it was used to compute ray
       ComputeContext(svgView.m16, svgProjection.m16, gContext.mModelSource.m16, gContext.mMode);
-      return isDraging;
+      return isDraging || interpolationFrames;
    }
 };

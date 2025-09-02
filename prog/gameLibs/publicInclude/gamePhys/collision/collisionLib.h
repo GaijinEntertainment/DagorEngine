@@ -8,6 +8,7 @@
 
 #include <phys/dag_physDecl.h>
 #include <gamePhys/collision/collisionObject.h>
+#include <gamePhys/collision/collisionType.h>
 #include <gamePhys/collision/physLayers.h>
 #include <scene/dag_physMat.h>
 #include <sceneRay/dag_sceneRayDecl.h>
@@ -45,22 +46,6 @@ namespace dacoll
 typedef ::PhysShapeQueryResult ShapeQueryOutput;
 typedef eastl::fixed_function<64, bool(const rendinst::RendInstDesc &, float)> RIFilterCB;
 
-enum CollType : uint32_t
-{
-  ETF_LMESH = 1 << 0,
-  ETF_FRT = 1 << 1,
-  ETF_RI = 1 << 2,
-  ETF_RESTORABLES = 1 << 3,
-  ETF_OBJECTS_GROUP = 1 << 4,
-  ETF_STRUCTURES = 1 << 5,
-  ETF_HEIGHTMAP = 1 << 6,
-  ETF_STATIC = 1 << 7,
-  ETF_RI_TREES = 1 << 8,
-  ETF_RI_PHYS = 1 << 9, // Trace against PHYS_COLLIDABLE instead of TRACEABLE
-  ETF_DEFAULT = ETF_LMESH | ETF_HEIGHTMAP | ETF_FRT | ETF_RI | ETF_RESTORABLES | ETF_OBJECTS_GROUP | ETF_STRUCTURES,
-  ETF_ALL = -1 & ~ETF_RI_PHYS // Always specify use of phys collision explicitly
-};
-
 enum class InitFlags
 {
   None = 0,
@@ -87,7 +72,9 @@ void clear_collision_world();
 void set_add_instances_to_world(bool flag);
 void set_ttl_for_collision_instances(float value);
 
-void add_static_collision_frt(DeserializedStaticSceneRayTracer *frt, const char *name, dag::ConstSpan<unsigned char> *pmid = NULL);
+void init_phys_materials();
+
+void add_static_collision_frt(const StaticSceneRayTracer *frt, const char *name, dag::ConstSpan<unsigned char> *pmid = NULL);
 void set_water_tracer(BuildableStaticSceneRayTracer *tracer);
 bool load_static_collision_frt(IGenLoad *crd);
 void add_collision_hmap(LandMeshManager *land, float restitution, float margin);
@@ -166,7 +153,8 @@ void set_enable_apex(bool flag);
 bool is_apex_enabled();
 
 CollisionObject create_coll_obj_from_shape(const PhysCollision &shape, void *userPtr, bool kinematic, bool add_to_world,
-  bool auto_mask, int group_filter = EPL_KINEMATIC, int mask = DEFAULT_DYN_COLLISION_MASK, const TMatrix *wtm = nullptr);
+  bool auto_mask, int group_filter = EPL_KINEMATIC, int mask = DEFAULT_DYN_COLLISION_MASK, const TMatrix *wtm = nullptr,
+  int physMatId = -1);
 
 CollisionObject add_dynamic_cylinder_collision(const TMatrix &tm, float rad, float ht, void *user_ptr = nullptr,
   bool add_to_world = true);
@@ -194,7 +182,8 @@ enum AddDynCOFromCollResFlags
 };
 CollisionObject add_dynamic_collision_from_coll_resource(const DataBlock *props, const CollisionResource *coll_resource,
   void *user_ptr = nullptr, /*AddDynCOFromCollResFlags */ int flags = ACO_NONE, int phys_layer = EPL_KINEMATIC,
-  int mask = DEFAULT_DYN_COLLISION_MASK, const TMatrix *wtm = nullptr);
+  int mask = DEFAULT_DYN_COLLISION_MASK, const TMatrix *wtm = nullptr, const char *debug_name = nullptr,
+  const TMatrix *ptr_inv_parent_tm = nullptr);
 CollisionObject add_simple_dynamic_collision_from_coll_resource(const DataBlock &props, const CollisionResource *resource,
   GeomNodeTree *tree, float margin, float scale, Point3 &out_center, TMatrix &out_tm, TMatrix &out_tm_in_model, bool add_to_world);
 CollisionObject add_dynamic_collision_convex_from_coll_resource(dag::ConstSpan<const CollisionNode *> coll_nodes, const Point3 &offset,
@@ -226,11 +215,15 @@ void set_collision_object_tm(const CollisionObject &co, const TMatrix &tm);
 void set_vert_capsule_shape_size(const CollisionObject &co, float cap_rad, float cap_cyl_ht);
 void set_collision_sphere_rad(const CollisionObject &co, float rad);
 
+DAGOR_NOINLINE TMatrix make_precise_tm(const TMatrix &tm);
+
 bool test_collision_frt(const CollisionObject &co, Tab<gamephys::CollisionContactData> &out_contacts, int mat_id = -1);
 bool test_collision_lmesh(const CollisionObject &co, const TMatrix &tm, float max_rad, int def_mat_id,
   Tab<gamephys::CollisionContactData> &out_contacts, int mat_id = -1);
 bool test_collision_ri(const CollisionObject &co, const BBox3 &box, Tab<gamephys::CollisionContactData> &out_contacts,
   const TraceMeshFaces *trace_cache = NULL, int mat_id = -1);
+bool test_collision_ri(const CollisionObject &co, const BSphere3 &sphere, Tab<gamephys::CollisionContactData> &out_contacts,
+  const TraceMeshFaces *trace_cache, int mat_id);
 bool test_collision_ri(const CollisionObject &co, const BBox3 &box, Tab<gamephys::CollisionContactData> &out_contacts,
   bool provide_coll_info, float at_time, const TraceMeshFaces *trace_cache = NULL, int mat_id = -1,
   bool process_tree_behaviour = true);
@@ -245,6 +238,8 @@ bool test_sphere_collision_world(const Point3 &pos, float radius, int mat_id, Ta
   dacoll::PhysLayer group = EPL_DEFAULT, int mask = EPL_ALL);
 bool test_box_collision_world(const TMatrix &tm, int mat_id, Tab<gamephys::CollisionContactData> &out_contacts,
   dacoll::PhysLayer group = EPL_DEFAULT, int mask = EPL_ALL);
+bool test_capsule_collision_world(const TMatrix &tm, float radius, float height, int mat_id,
+  Tab<gamephys::CollisionContactData> &out_contacts, dacoll::PhysLayer group = EPL_DEFAULT, int mask = EPL_ALL);
 
 bool test_pair_collision(dag::ConstSpan<CollisionObject> co_a, uint64_t cof_a, dag::ConstSpan<CollisionObject> co_b, uint64_t cof_b,
   Tab<gamephys::CollisionContactData> &out_contacts, TestPairFlags flags = TestPairFlags::Default);
@@ -278,7 +273,7 @@ bool sphere_cast_ex(const Point3 &from, const Point3 &to, float rad, ShapeQueryO
 bool box_cast_ex(const TMatrix &from, const TMatrix &to, Point3 rad, ShapeQueryOutput &out, int cast_mat_id,
   dag::ConstSpan<CollisionObject> ignore_objs, const TraceMeshFaces *handle, int mask, int hmap_step);
 
-void draw_phys_body(const PhysBody *body);
+void draw_phys_body(const PhysBody *body, unsigned col = 0xFFFFFF);
 void draw_collision_object(const CollisionObject &co);
 void draw_collision_object(const CollisionObject &co, const TMatrix &tm);
 void force_debug_draw(bool flag);

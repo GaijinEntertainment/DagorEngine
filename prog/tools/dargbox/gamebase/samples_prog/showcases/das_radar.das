@@ -3,6 +3,8 @@ require DagorStdGuiRender
 require math
 require DagorMath
 
+options no_unused_function_arguments = false
+
 let start_time = ref_time_ticks()
 
 let darkColor = float4(0.1, 0.5, 0.05, 0.8)

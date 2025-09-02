@@ -21,7 +21,11 @@ LandMeshHolesCell::HoleData::HoleData(const TMatrix &tm, bool is_round, bool sha
   }
 }
 
-void LandMeshHolesCell::addHole(const HoleData &hole) { holes.push_back(hole); }
+void LandMeshHolesCell::addHole(const HoleData &hole, const BBox2 &hole_bbox)
+{
+  holes.push_back(hole);
+  accumulatedHoleBbox += hole_bbox;
+}
 
 void LandMeshHolesCell::clear() { holes.clear(); }
 
@@ -114,7 +118,7 @@ void LandMeshHolesManager::clearAndAddHoles(const Tab<HoleArgs> &holes)
         if (holeBBox & BBox2(lb, lb + cellSize))
         {
           int k = i * holeCellsCount + j;
-          cells[k].addHole(holeData);
+          cells[k].addHole(holeData, holeBBox);
           if (holeData.shapeIntersection)
             cellsNeedValidHeight.set(k, true);
         }

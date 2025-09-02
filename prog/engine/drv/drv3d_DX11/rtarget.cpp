@@ -71,7 +71,8 @@ ID3D11DepthStencilView *getDepthStencilView(const Driver3dRenderTarget &rtState)
 
   G_ASSERT(tex != NULL);
   bool depthReadOnly = featureLevelsSupported >= D3D_FEATURE_LEVEL_11_0 && rtState.isDepthReadOnly();
-  int slice = (tex && (tex->restype() == RES3D_ARRTEX || tex->restype() == RES3D_CUBETEX)) ? rtState.depth.face : 0;
+  int slice =
+    (tex && (tex->getType() == D3DResourceType::ARRTEX || tex->getType() == D3DResourceType::CUBETEX)) ? rtState.depth.face : 0;
   return tex ? (ID3D11DepthStencilView *)tex->getRtView(slice, 0, 1, depthReadOnly) : NULL;
 }
 
@@ -106,7 +107,7 @@ void flush_rendertargets(RenderState &rs)
 
     if ((rt.used & Driver3dRenderTarget::TOTAL_MASK) == 0 && !rs.texFetchState.uavState[STAGE_PS].uavsUsed)
     {
-      D3D_ERROR("no render target set!");
+      D3D_CONTRACT_ERROR("no render target set!");
       // TODO correct error
       return;
     }
@@ -120,6 +121,7 @@ void flush_rendertargets(RenderState &rs)
 #if DAGOR_DBGLEVEL > 0
     int testWidth = 0;
     int testHeight = 0;
+    const char *prevTexName = nullptr;
 #endif
     for (int i = 0; i < countof(color); i++)
     {
@@ -131,11 +133,14 @@ void flush_rendertargets(RenderState &rs)
 
 #if DAGOR_DBGLEVEL > 0
         int w, h;
+        const char *texName = rt.color[i].tex ? rt.color[i].tex->getName() : "NULL";
         d3d::get_render_target_size(w, h, rt.color[i].tex, rt.color[i].level);
-        G_ASSERTF((testWidth == 0 && testHeight == 0) || (w == testWidth && h == testHeight), "%dx%d != %dx%d", testWidth, testHeight,
-          w, h);
+        if (!(testWidth == 0 && testHeight == 0))
+          D3D_CONTRACT_ASSERTF((w == testWidth && h == testHeight), "Render target resolution mismatch: %dx%d(%s) != %dx%d(%s)",
+            testWidth, testHeight, prevTexName, w, h, texName);
         testWidth = w;
         testHeight = h;
+        prevTexName = texName;
 #endif
       }
       else
@@ -180,7 +185,6 @@ void flush_rendertargets(RenderState &rs)
 
         // On conflict, RTs are prioritized over UAVs. So, the actual UAV slots that we will set should not intersect with RT slots.
         // This is expected to be a normal situation because of UAVs set from stcode, so no logs.
-        // See https://youtrack.gaijin.team/issue/RE-2419
         first_uav = max(first_uav, maxTarget + 1);
         last_uav = max(last_uav, maxTarget + 1);
       }
@@ -251,10 +255,10 @@ void remove_texture_from_samplers(BaseTexture *tex)
 {
   ResAutoLock resLock;
   const auto &resources = g_render_state.texFetchState.resources;
-  for (const TextureFetchState::Samplers &samplers : resources)
-    for (const SamplerState &ss : samplers.resources)
+  for (const TextureFetchState::Resources &res : resources)
+    for (const ResourceSlotState &ss : res.resources)
       if (ss.texture == tex)
-        d3d::set_tex(&samplers - resources.data(), &ss - samplers.resources.data(), NULL);
+        d3d::set_tex(&res - resources.data(), &ss - res.resources.data(), nullptr);
 }
 
 void remove_view_from_uav(ID3D11UnorderedAccessView *view)
@@ -288,10 +292,10 @@ void remove_buffer_from_slot(Sbuffer *buf)
 {
   ResAutoLock resLock;
   const auto &resources = g_render_state.texFetchState.resources;
-  for (const TextureFetchState::Samplers &samplers : resources)
-    for (const SamplerState &ss : samplers.resources)
+  for (const TextureFetchState::Resources &res : resources)
+    for (const ResourceSlotState &ss : res.resources)
       if (ss.buffer == buf)
-        d3d::set_buffer(&samplers - resources.data(), &ss - samplers.resources.data(), nullptr);
+        d3d::set_buffer(&res - resources.data(), &ss - res.resources.data(), nullptr);
 }
 }; // namespace drv3d_dx11
 
@@ -351,7 +355,7 @@ bool d3d::set_depth(BaseTexture *tex, DepthAccess access)
 #if DAGOR_DBGLEVEL > 0
     if (!is_depth_format_flg(((BaseTex *)tex)->cflg))
     {
-      D3D_ERROR("can't set_depth with non depth texture <%s>", ((BaseTex *)tex)->getResName());
+      D3D_CONTRACT_ERROR("can't set_depth with non depth texture <%s>", ((BaseTex *)tex)->getName());
       return false;
     }
 #endif
@@ -378,7 +382,7 @@ bool d3d::set_depth(BaseTexture *tex, int face, DepthAccess access)
 #if DAGOR_DBGLEVEL > 0
     if (!is_depth_format_flg(bt->cflg))
     {
-      D3D_ERROR("can't set_depth with non depth texture");
+      D3D_CONTRACT_ERROR("can't set_depth with non depth texture");
       return false;
     }
 #endif
@@ -400,7 +404,7 @@ bool d3d::set_render_target(int rt_index, BaseTexture *tex, uint8_t level)
   rs.modified = rs.rtModified = true;
   resolve_msaa_and_gen_mips(rs.nextRtState);
 
-  G_ASSERT(rt_index >= 0 && rt_index < Driver3dRenderTarget::MAX_SIMRT);
+  D3D_CONTRACT_ASSERT(rt_index >= 0 && rt_index < Driver3dRenderTarget::MAX_SIMRT);
 
   if (tex == NULL)
   {
@@ -416,12 +420,12 @@ bool d3d::set_render_target(int rt_index, BaseTexture *tex, uint8_t level)
   uint32_t cflg = bt->cflg;
   if (!(cflg & TEXCF_RTARGET))
   {
-    D3D_ERROR("can't set_render_target with non rtarget texture %s", tex->getTexName());
+    D3D_CONTRACT_ERROR("can't set_render_target with non rtarget texture %s", tex->getTexName());
     return false;
   }
   if (is_depth_format_flg(cflg))
   {
-    D3D_ERROR("can't set_render_target with depth texture %s, use set_depth instead", tex->getTexName());
+    D3D_CONTRACT_ERROR("can't set_render_target with depth texture %s, use set_depth instead", tex->getTexName());
     return false;
   }
 
@@ -446,7 +450,7 @@ bool d3d::set_render_target(int rt_index, BaseTexture *tex, int fc, uint8_t leve
   rs.modified = rs.rtModified = true;
   resolve_msaa_and_gen_mips(rs.nextRtState);
 
-  G_ASSERT(rt_index >= 0 && rt_index < Driver3dRenderTarget::MAX_SIMRT);
+  D3D_CONTRACT_ASSERT(rt_index >= 0 && rt_index < Driver3dRenderTarget::MAX_SIMRT);
 
   if (tex == NULL)
   {
@@ -462,17 +466,23 @@ bool d3d::set_render_target(int rt_index, BaseTexture *tex, int fc, uint8_t leve
     bt->clear();
   if (!(cflg & TEXCF_RTARGET))
   {
-    D3D_ERROR("can't set_render_target with non rtarget texture %s", tex->getTexName());
+    D3D_CONTRACT_ERROR("can't set_render_target with non rtarget texture %s", tex->getTexName());
     return false;
   }
   if (is_depth_format_flg(cflg))
   {
-    D3D_ERROR("can't set_render_target with depth texture %s, use set_depth instead", tex->getTexName());
+    D3D_CONTRACT_ERROR("can't set_render_target with depth texture %s, use set_depth instead", tex->getTexName());
     return false;
   }
 
   if (bt->maxMipLevel <= level && level <= bt->minMipLevel)
+  {
     remove_texture_from_samplers(tex);
+    if (bt->cflg & TEXCF_UNORDERED)
+      for (uint32_t mip = bt->maxMipLevel; mip <= bt->minMipLevel; ++mip)
+        for (bool asUint : {false, true})
+          remove_view_from_uav(bt->getExistingUaView(0, mip, asUint));
+  }
 
   rs.nextRtState.setColor(rt_index, tex, level, fc);
 
@@ -513,7 +523,7 @@ bool d3d::get_render_target_size(int &w, int &h, BaseTexture *rt_tex, uint8_t le
     return false;
   }
 
-  G_ASSERT(level < bt->mipLevels);
+  D3D_CONTRACT_ASSERT(level < bt->mipLevels);
   w = max(1, bt->width >> level);
   h = max(1, bt->height >> level);
 
@@ -530,7 +540,8 @@ bool d3d::clearview(int write_mask, E3DCOLOR c, float z_value, uint32_t stencil_
   bool rasterizerModified = rs.rasterizerModified;
   bool depthStencilModified = rs.depthStencilModified;
   rs.rasterizerModified = rs.depthStencilModified = false;
-  flush_all(false);
+  if (!flush_all(false))
+    return false;
   rs.rasterizerModified = rasterizerModified;
   rs.depthStencilModified = depthStencilModified;
   rs.modified = rasterizerModified || depthStencilModified;
@@ -538,7 +549,7 @@ bool d3d::clearview(int write_mask, E3DCOLOR c, float z_value, uint32_t stencil_
   int targetW = 1, targetH = 1;
 
   get_render_state_target_size(targetW, targetH);
-  G_ASSERT(rs.nextRtState.isColorUsed() || rs.nextRtState.isDepthUsed());
+  D3D_CONTRACT_ASSERT(rs.nextRtState.isColorUsed() || rs.nextRtState.isDepthUsed());
 
   RasterizerState &rz = rs.nextRasterizerState;
 
@@ -597,6 +608,9 @@ bool d3d::clearview(int write_mask, E3DCOLOR c, float z_value, uint32_t stencil_
 
 void d3d::clear_render_pass(const RenderPassTarget &target, const RenderPassArea &area, const RenderPassBind &bind)
 {
+  if (!(bind.action & RP_TA_LOAD_CLEAR))
+    return;
+
   TextureInfo info;
   target.resource.tex->getinfo(info, target.resource.mip_level);
 
@@ -609,6 +623,8 @@ void d3d::clear_render_pass(const RenderPassTarget &target, const RenderPassArea
   const bool fastClear = area.top == 0 && area.left == 0 && area.height == info.h && area.width == info.w;
   if (fastClear)
   {
+    flush_states(FlushStages::RTs, false);
+
     const bool isDepth = bind.slot == RenderPassExtraIndexes::RP_SLOT_DEPTH_STENCIL;
     BaseTex *texture = (BaseTex *)target.resource.tex;
     ID3D11View *view =
@@ -656,13 +672,14 @@ static void stretch_prepare(BaseTexture *from)
   d3d::set_vertex_shader(g_default_copy_vs);
   d3d::setvdecl(g_default_pos_vdecl);
 
-  d3d::set_tex(STAGE_PS, 0, from, false);
+  d3d::set_tex(STAGE_PS, 0, from);
   G_ASSERT(g_default_clamp_sampler != d3d::INVALID_SAMPLER_HANDLE);
   d3d::set_sampler(STAGE_PS, 0, g_default_clamp_sampler);
   if (!stretch_prepare_render_state)
   {
     shaders::RenderState state;
     state.independentBlendEnabled = 0;
+    state.dualSourceBlendEnabled = 0;
     for (auto &blendParam : state.blendParams)
     {
       blendParam.ablend = 0;
@@ -679,7 +696,7 @@ static void stretch_prepare(BaseTexture *from)
   d3d::set_render_state(stretch_prepare_render_state);
 }
 
-static bool try_copy_tex(BaseTexture *from, BaseTexture *to, RectInt *from_rect, RectInt *to_rect)
+static bool try_copy_tex(BaseTexture *from, BaseTexture *to, const RectInt *from_rect, const RectInt *to_rect)
 {
   if ((from_rect && !check_rect(*from_rect)) || (to_rect && !check_rect(*to_rect)))
     return false;
@@ -749,7 +766,7 @@ static bool try_copy_tex(BaseTexture *from, BaseTexture *to, RectInt *from_rect,
   return false;
 }
 
-bool d3d::stretch_rect(BaseTexture *from, BaseTexture *to, RectInt *from_rect, RectInt *to_rect)
+bool d3d::stretch_rect(BaseTexture *from, BaseTexture *to, const RectInt *from_rect, const RectInt *to_rect)
 {
   CHECK_THREAD;
 
@@ -786,7 +803,7 @@ bool d3d::stretch_rect(BaseTexture *from, BaseTexture *to, RectInt *from_rect, R
 
   if (!from_rect && !to_rect && from && to)
   {
-    if (from->restype() != RES3D_TEX || to->restype() != RES3D_TEX)
+    if (from->getType() != D3DResourceType::TEX || to->getType() != D3DResourceType::TEX)
     {
       DEBUG_CTX("wrong tex formats");
       rs.restore();
@@ -804,7 +821,7 @@ bool d3d::stretch_rect(BaseTexture *from, BaseTexture *to, RectInt *from_rect, R
   else if (!from_rect && !to_rect && from)
   {
 
-    if (from->restype() != RES3D_TEX)
+    if (from->getType() != D3DResourceType::TEX)
     {
       DEBUG_CTX("n/a");
       rs.restore();
@@ -818,7 +835,7 @@ bool d3d::stretch_rect(BaseTexture *from, BaseTexture *to, RectInt *from_rect, R
   }
   else if (from)
   {
-    if (from->restype() != RES3D_TEX)
+    if (from->getType() != D3DResourceType::TEX)
     {
       DEBUG_CTX("n/a");
       rs.restore();

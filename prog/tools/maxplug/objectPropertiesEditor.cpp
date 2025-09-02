@@ -14,14 +14,18 @@
 class ObjectPropertiesEditorDesc : public ClassDesc
 {
 public:
-  int IsPublic() { return 1; }
-  void *Create(BOOL loading = FALSE);
-  const TCHAR *ClassName() { return GetString(IDS_OBJECT_PROPERTIES_EDITOR_NAME); }
+  int IsPublic() override { return 1; }
+  void *Create(BOOL loading = FALSE) override;
+  const TCHAR *ClassName() override { return GetString(IDS_OBJECT_PROPERTIES_EDITOR_NAME); }
+#if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
+  const MCHAR *NonLocalizedClassName() override { return ClassName(); }
+#else
   const MCHAR *NonLocalizedClassName() { return ClassName(); }
-  SClass_ID SuperClassID() { return UTILITY_CLASS_ID; }
-  Class_ID ClassID() { return OBJECT_PROPERTIES_EDITOR_CID; }
-  const TCHAR *Category() { return GetString(IDS_UTIL_CAT); }
-  void ResetClassParams(BOOL fileReset){};
+#endif
+  SClass_ID SuperClassID() override { return UTILITY_CLASS_ID; }
+  Class_ID ClassID() override { return OBJECT_PROPERTIES_EDITOR_CID; }
+  const TCHAR *Category() override { return GetString(IDS_UTIL_CAT); }
+  void ResetClassParams(BOOL fileReset) override {}
 };
 
 
@@ -32,9 +36,9 @@ public:
   void Init();
   void Destroy();
 
-  virtual void BeginEditParams(Interface *, IUtil *);
-  virtual void EndEditParams(Interface *, IUtil *);
-  virtual void DeleteThis();
+  void BeginEditParams(Interface *, IUtil *) override;
+  void EndEditParams(Interface *, IUtil *) override;
+  void DeleteThis() override;
   void UpdateControls(Interface *interface_pointer);
 
   static INT_PTR CALLBACK DialogProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -52,7 +56,7 @@ protected:
 class ObjectPropertiesEditorRedrawViewsCallback : public RedrawViewsCallback
 {
 public:
-  virtual void proc(Interface *interface_pointer);
+  void proc(Interface *interface_pointer) override;
 };
 
 
@@ -168,7 +172,7 @@ class SelectionChanged : public ENodeCB
 {
 public:
   SelectionChanged(Tab<bool> &selected_nodes) : selectedNodes(selected_nodes), i(0), needUpdate(false) {}
-  virtual ~SelectionChanged() {}
+  ~SelectionChanged() override {}
   bool need() { return needUpdate; }
   void resize()
   {
@@ -178,7 +182,7 @@ public:
       needUpdate = true;
     }
   }
-  virtual int proc(INode *n)
+  int proc(INode *n) override
   {
     if (i < selectedNodes.Count() && selectedNodes[i] != (n->Selected() != 0))
     {

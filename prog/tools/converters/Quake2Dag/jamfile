@@ -1,6 +1,5 @@
 Root    ?= ../../../.. ;
 Location = prog/tools/converters/Quake2Dag ;
-UsingStaticCore = yes ;
 ConsoleExe      = yes ;
 
 TargetType  = exe ;

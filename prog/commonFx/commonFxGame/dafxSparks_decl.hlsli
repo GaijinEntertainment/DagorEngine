@@ -1,0 +1,33 @@
+#ifndef DAFX_SPARKS_PS_DECL_HLSL
+#define DAFX_SPARKS_PS_DECL_HLSL
+
+#define SIM_MODULE_LIFE 1
+#define SIM_MODULE_GRAVITY 1
+#define SIM_MODULE_LIFT 1
+#define SIM_MODULE_DEPTH_COLLISION 1
+#define SIM_MODULE_DIRECTIONAL_WIND 1
+#define SIM_MODULE_TURBULENT_WIND 1
+#define SIM_MODULE_RESOLVE_FORCES 1
+#define SIM_MODULE_COLOR 1
+#define SIM_MODULE_WIDTH_MODIFIER 1
+#define SIM_MODULE_GRAVITY_ZONE 1
+
+#define SPAWN_MODULE_SEED 1
+#define SPAWN_MODULE_LINEAR_LIFE 1
+#define SPAWN_MODULE_SPHERE_VELOCITY 1
+#define SPAWN_MODULE_NOISE_VELOCITY 1
+#define SPAWN_MODULE_NOISE_POS 1
+#define SPAWN_MODULE_WIDTH 1
+#define SPAWN_MODULE_CUBE_POS 1
+#define SPAWN_MODULE_VELOCITY_BIAS_POS 1
+
+#define DAFX_PARENT_REN_DATA \
+  DAFX_MODULE_DATA_DECL(1 * REN_MODULE, REN_MODULE_DECL(uint blending;), REN_MODULE_DECL(o.blending = dafx_load_1ui(buf, ofs);), 0) \
+  DAFX_MODULE_DATA_DECL(1 * REN_MODULE, REN_MODULE_DECL(float motionScale;), REN_MODULE_DECL(o.motionScale = dafx_load_1f(buf, ofs);), 0) \
+  DAFX_MODULE_DATA_DECL(1 * REN_MODULE, REN_MODULE_DECL(float motionScaleMax;), REN_MODULE_DECL(o.motionScaleMax = dafx_load_1f(buf, ofs);), 0) \
+  DAFX_MODULE_DATA_DECL(1 * SIM_MODULE_COLOR, SIM_MODULE_COLOR_DECL(float hdrScale;), SIM_MODULE_COLOR_DECL(o.hdrScale = dafx_load_1f(buf, ofs);), 0) \
+  DAFX_MODULE_DATA_DECL(1 * REN_MODULE, REN_MODULE_DECL(float arrowShape;), REN_MODULE_DECL(o.arrowShape = dafx_load_1f(buf, ofs);), 0)
+
+#include "dafxSparkModules/dafx_modules_decl.hlsli"
+
+#endif

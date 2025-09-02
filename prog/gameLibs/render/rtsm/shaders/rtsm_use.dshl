@@ -2,6 +2,8 @@ int rtsm_bindless_slot = -1;
 int rtsm_is_translucent = 0;
 int csm_bindless_slot = -1;
 int csm_sampler_bindless_slot = -1;
+int vsm_bindless_slot = -1;
+int vsm_sampler_bindless_slot = -1;
 
 macro CHECKING_RTSM(stage)
   if (use_hw_raytracing)
@@ -11,6 +13,8 @@ macro CHECKING_RTSM(stage)
       rtsm_is_translucent@i1 = rtsm_is_translucent;
       csm_bindless_slot@i1 = csm_bindless_slot;
       csm_sampler_bindless_slot@i1 = csm_sampler_bindless_slot;
+      vsm_bindless_slot@i1 = vsm_bindless_slot;
+      vsm_sampler_bindless_slot@i1 = vsm_sampler_bindless_slot;
     }
 
     hlsl (stage) {
@@ -46,13 +50,13 @@ macro USING_RTSM(stage)
 
       half3 getRTSM(uint2 tci)
       {
-        half4 shadowTexel = texture2DAt(rt_texture_outputs[rtsm_bindless_slot], tci);
-        half4 shadowData = SIGMA_BackEnd_UnpackShadow(shadowTexel);
+        half4 shadowTexel = half4(texture2DAt(rt_texture_outputs[rtsm_bindless_slot], tci));
+        half4 shadowData = half4(SIGMA_BackEnd_UnpackShadow(shadowTexel));
 
         if (!rtsm_is_translucent)
-          return shadowTexel.xxx;
+          return shadowData.xxx;
         else
-          return lerp(shadowData.yzw, 1.0, shadowData.x);
+          return half3(lerp(shadowData.yzw, 1.0, shadowData.x));
       }
     }
   }

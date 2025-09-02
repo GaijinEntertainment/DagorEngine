@@ -15,7 +15,6 @@ Sources =
   display.cpp
   d3dToTexFmt.cpp
   basetexture.cpp
-  d3d_initialSettings.cpp
   drv_utils.cpp
   drv_resourceChecker.cpp
   dxgi_utils.cpp
@@ -26,6 +25,7 @@ Sources =
   resUpdateBufferGeneric.cpp
   resourceActivationGeneric.cpp
   destroyEvent.cpp
+  gpuLatency.cpp
 ;
 
 if $(Platform) in windows {
@@ -66,17 +66,24 @@ else {
   ;
 }
 
-if $(Platform)-$(PlatformArch) = windows-x86_64 && -DHAS_STREAMLINE in $(CPPopt) {
+if $(Platform) in windows && $(PlatformArch) in x86_64 && $(UseD3DMultiList) != stub {
+  Sources += amdLowLatency.cpp ;
+  AddIncludes += $(Root)/prog/3rdPartyLibs/AntiLag2 ;
+}
+else {
+  Sources += amdLowLatencyStub.cpp ;
+}
+
+if $(Platform) = windows && -DHAS_STREAMLINE in $(CPPopt) {
   Sources +=
     streamline_adapter.cpp
   ;
-  AddIncludes += $(Root)/prog/3rdPartyLibs/streamline/include
+  AddIncludes +=
+    $(Root)/prog/3rdPartyLibs/streamline/include
+    $(Root)/prog/3rdPartyLibs/vulkan/include
   ;
-}
-else {
-  Sources +=
-    streamline_adapter_stub.cpp
-  ;
+} else {
+  Sources += streamline_adapter_stub.cpp ;
 }
 
 if $(Platform) in windows xboxOne scarlett ps5 && $(PlatformArch) in x86_64 arm64 && $(UseD3DMultiList) != stub {
@@ -88,6 +95,8 @@ if $(Platform) in windows xboxOne scarlett ps5 && $(PlatformArch) in x86_64 arm6
   if $(Platform) in xboxOne scarlett || ( $(Platform)-$(PlatformArch) = windows-x86_64 && DX12 in $(UseD3DMultiList) ) {
     opt on amdFsr.cpp += -DAMDFSR_HAS_DX12 ;
   }
+  if ! DX12 in $(UseD3DMultiList) { Target = $(Target:S=~nDX12.lib) ; }
+  if ! vulkan in $(UseD3DMultiList) { Target = $(Target:S=~nSpirV.lib) ; }
 }
 else {
   Sources += amdFsr_stub.cpp ;
@@ -97,10 +106,10 @@ if ! $(Platform) in xboxOne scarlett {
   AddIncludes +=
     $(Root)/prog/3rdPartyLibs/nvapi
     $(Root)/prog/3rdPartyLibs/adl_sdk
+    $(Root)/prog/3rdPartyLibs/adl_sdk/include
     $(Root)/prog/3rdPartyLibs/ags_sdk/include
   ;
 }
-if [ GLOB $(Root)/prog/3rdPartyLibs/reflexStats : * ] { AddIncludes += $(Root)/prog/3rdPartyLibs/reflexStats ; }
 
 if $(Platform) in ps4 ps5 {
   Sources +=
@@ -114,6 +123,7 @@ if $(Platform) in ps4 ps5 {
     sony/driver_common.cpp
     sony/sampler.cpp
     sony/res_heaps.cpp
+    sony/memory_block_ptr.cpp
   ;
 }
 

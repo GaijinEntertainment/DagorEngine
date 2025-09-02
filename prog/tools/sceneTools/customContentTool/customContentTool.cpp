@@ -51,6 +51,17 @@ static void print_title()
          "Copyright (C) Gaijin Games KFT, 2023\n\n");
 }
 
+static unsigned get_target_code(const char *targetStr)
+{
+  unsigned targetCode = 0;
+  while (*targetStr)
+  {
+    targetCode = (targetCode >> 8) | (*targetStr << 24);
+    targetStr++;
+  }
+  return targetCode;
+}
+
 namespace texconvcache
 {
 extern bool force_ddsx(DagorAsset &a, ddsx::Buffer &dest, unsigned t, const char *p, ILogWriter *log, const char *built_fn);
@@ -275,21 +286,21 @@ bool write_index_hash(const char *out_dir, const char *idx_fn, const DataBlock &
   return false;
 }
 
-static const char *convert_texture(DagorAsset *a, const char *out_dir, int64_t f_time, const char *ref_result_to_recreate_cache)
+static const char *convert_texture(DagorAsset *a, const char *out_dir, int64_t f_time, const char *ref_result_to_recreate_cache,
+  unsigned target)
 {
   if (!a)
     return NULL;
-  unsigned four_cc = _MAKE4C('PC');
   ddsx::Buffer buf;
   if (ref_result_to_recreate_cache)
   {
-    if (!texconvcache::force_ddsx(*a, buf, four_cc, "ddsx", &conlog, ref_result_to_recreate_cache))
+    if (!texconvcache::force_ddsx(*a, buf, target, "ddsx", &conlog, ref_result_to_recreate_cache))
     {
       conlog.addMessage(conlog.ERROR, "Can't export image: %s, err=%s", a->getTargetFilePath(), ddsx::get_last_error_text());
       return NULL;
     }
   }
-  else if (!texconvcache::get_tex_asset_built_ddsx(*a, buf, four_cc, "ddsx", &conlog))
+  else if (!texconvcache::get_tex_asset_built_ddsx(*a, buf, target, "ddsx", &conlog))
   {
     conlog.addMessage(conlog.ERROR, "Can't export image: %s, err=%s", a->getTargetFilePath(), ddsx::get_last_error_text());
     return NULL;
@@ -638,6 +649,8 @@ int DagorWinMain(bool debugmode)
   const char *out_list_fn = NULL;
   String cmd_blk;
 
+  unsigned targetCode = _MAKE4C('PC');
+
   for (int i = 1; i < dgs_argc; i++)
   {
     if (dgs_argv[i][0] != '-')
@@ -658,6 +671,8 @@ int DagorWinMain(bool debugmode)
       cmd_blk.aprintf(0, "%s\n", &dgs_argv[i][5]);
     else if (stricmp(&dgs_argv[i][1], "noidx") == 0)
       skip_update_idx = true;
+    else if (strnicmp(&dgs_argv[i][1], "platform:", 9) == 0)
+      targetCode = get_target_code(&dgs_argv[i][10]);
     else
     {
       print_title();
@@ -676,7 +691,8 @@ int DagorWinMain(bool debugmode)
            "  -q       run in quiet mode\n"
            "  -sweep   rebuilds content index BLK from existing *.<type>.blk and removes unreferenced DDSx\n"
            "  -noidx   skips index update (builds only DDSx and *.<type>.blk)\n"
-           "  -outlist:<file.txt>  outputs changes list to <file.txt>\n");
+           "  -outlist:<file.txt>  outputs changes list to <file.txt>\n"
+           "  -platform:<PC,iOS,and>  target plaform. Default: PC\n");
     return -1;
   }
   if (sweep_pass && skip_update_idx)
@@ -892,7 +908,8 @@ int DagorWinMain(bool debugmode)
           }
           if (!quiet)
             conlog.addMessage(conlog.NOTE, "Converting: %s for %s%s", tex_fn, lod_nm, lod_suffix);
-          hash_nm = convert_texture(assets[ai], out_dir, f_time, !tmp_ref_ddsx_fn.empty() ? tmp_ref_ddsx_fn.str() : nullptr);
+          hash_nm =
+            convert_texture(assets[ai], out_dir, f_time, !tmp_ref_ddsx_fn.empty() ? tmp_ref_ddsx_fn.str() : nullptr, targetCode);
           if (hash_nm.empty())
           {
             conlog.addMessage(conlog.ERROR, "failed to convert \"%s\" for in block #%d", tex_fn, i + 1);
@@ -912,7 +929,7 @@ int DagorWinMain(bool debugmode)
                     tmp_ref_ddsx_fn.clear();
                 }
                 b->setStr(lod_nm + "_b",
-                  convert_texture(assets[j], out_dir, f_time, !tmp_ref_ddsx_fn.empty() ? tmp_ref_ddsx_fn.str() : nullptr));
+                  convert_texture(assets[j], out_dir, f_time, !tmp_ref_ddsx_fn.empty() ? tmp_ref_ddsx_fn.str() : nullptr, targetCode));
                 break;
               }
         }
@@ -962,7 +979,7 @@ int DagorWinMain(bool debugmode)
       if (!quiet)
         conlog.addMessage(conlog.NOTE, "Converting: %s for %s", tex_fn, lod_nm);
       hash_nm = convert_texture(make_texture_asset(String(0, "%s/%s", tex_dir, tex_fn), *cfgBlk.getBlockByNameEx(lod_nm), lod),
-        out_dir, f_time, recreate_cache ? tmp_ref_ddsx_fn.str() : nullptr);
+        out_dir, f_time, recreate_cache ? tmp_ref_ddsx_fn.str() : nullptr, targetCode);
       if (hash_nm.empty())
       {
         conlog.addMessage(conlog.ERROR, "failed to convert \"%s\"", tex_fn);

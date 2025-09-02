@@ -28,24 +28,14 @@ struct HostDeviceSharedMemoryRegion
   };
   // buffer object that supplies the memory
   ID3D12Resource *buffer = nullptr;
-#if _TARGET_XBOX
-  // on xbox gpu and cpu pointer are the same
-  union
-  {
-    D3D12_GPU_VIRTUAL_ADDRESS gpuPointer = 0;
-    uint8_t *pointer;
-  };
-#else
-  // offset into gpu virtual memory, including offset!
-  D3D12_GPU_VIRTUAL_ADDRESS gpuPointer = 0;
-  // pointer into cpu visible memory, offset is already applied (pointer - offset yields address
-  // base of the buffer)
-  uint8_t *pointer = nullptr;
-#endif
+  ResourceMemoryLocationWithGPUAndCPUAddress memoryLocation;
   // offset range of this allocation
   // gpuPointer and pointer already have the start of the range added to it
   ValueRange<uint64_t> range;
   Source source = Source::TEMPORARY;
+
+  auto gpuPointer() const { return memoryLocation.gpuAddress; }
+  auto cpuPointer() const { return memoryLocation.cpuAddress; }
 
   explicit constexpr operator bool() const { return nullptr != buffer; }
   constexpr bool isTemporary() const { return Source::TEMPORARY == source; }
@@ -54,7 +44,7 @@ struct HostDeviceSharedMemoryRegion
     D3D12_RANGE r = {};
     uint8_t *ptr = nullptr;
     buffer->Map(0, &r, reinterpret_cast<void **>(&ptr));
-    G_ASSERT(ptr + range.front() == pointer);
+    G_ASSERT(ptr + range.front() == memoryLocation.cpuAddress);
     r = asDx12Range(sub_range.shiftBy(range.front()));
     buffer->Unmap(0, &r);
   }
@@ -63,7 +53,7 @@ struct HostDeviceSharedMemoryRegion
     D3D12_RANGE r = asDx12Range(sub_range.shiftBy(range.front()));
     uint8_t *ptr = nullptr;
     buffer->Map(0, &r, reinterpret_cast<void **>(&ptr));
-    G_ASSERT(pointer + sub_range.front() == ptr + range.front());
+    G_ASSERT(memoryLocation.cpuAddress + sub_range.front() == ptr + range.front());
     r.Begin = r.End = 0;
     buffer->Unmap(0, &r);
   }
@@ -72,7 +62,7 @@ struct HostDeviceSharedMemoryRegion
     D3D12_RANGE r = {};
     uint8_t *ptr = nullptr;
     buffer->Map(0, &r, reinterpret_cast<void **>(&ptr));
-    G_ASSERT(ptr + range.front() == pointer);
+    G_ASSERT(ptr + range.front() == memoryLocation.cpuAddress);
     r = asDx12Range(range);
     buffer->Unmap(0, &r);
   }
@@ -81,14 +71,14 @@ struct HostDeviceSharedMemoryRegion
     D3D12_RANGE r = asDx12Range(range);
     uint8_t *ptr = nullptr;
     buffer->Map(0, &r, reinterpret_cast<void **>(&ptr));
-    G_ASSERT(ptr + range.front() == pointer);
+    G_ASSERT(ptr + range.front() == memoryLocation.cpuAddress);
     r.Begin = r.End = 0;
     buffer->Unmap(0, &r);
   }
   template <typename T>
   T *as() const
   {
-    return reinterpret_cast<T *>(pointer);
+    return reinterpret_cast<T *>(memoryLocation.cpuAddress);
   }
 };
 

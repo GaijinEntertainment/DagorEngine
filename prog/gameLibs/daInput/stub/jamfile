@@ -13,6 +13,7 @@ AddIncludes =
 
 Sources =
   actionStub.cpp
+  dargSqBindStub.cpp
 ;
 
 include $(Root)/prog/_jBuild/build.jam ;

@@ -22,7 +22,7 @@ struct GlobalData
   int size;
   CpuResourcePtr cpuRes;
   SbufferIDHolderWithVar gpuBuf;
-  static inline OSSpinlock bindSpinLock;
+  static inline OSSpinlock bindSpinLock = {};
 };
 
 bool init_global_values(GlobalData &dst);

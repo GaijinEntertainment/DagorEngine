@@ -354,23 +354,27 @@ static bool writePrecookedFmt = false;
 class CollisionExporter : public IDagorAssetExporter
 {
 public:
-  virtual const char *__stdcall getExporterIdStr() const { return "collision exp"; }
+  const char *__stdcall getExporterIdStr() const override { return "collision exp"; }
 
-  virtual const char *__stdcall getAssetType() const { return "collision"; }
-  virtual unsigned __stdcall getGameResClassId() const { return 0xACE50000; }
-  virtual unsigned __stdcall getGameResVersion() const
+  const char *__stdcall getAssetType() const override { return "collision"; }
+  unsigned __stdcall getGameResClassId() const override { return 0xACE50000; }
+  unsigned __stdcall getGameResVersion() const override
   {
     static constexpr const int base_ver = 2;
     return base_ver * 12 + 5 + (def_collidable ? 1 : 0) + 2 * (!preferZstdPacking ? 0 : (allowOodlePacking ? 2 : 1 + 6)) +
            (writePrecookedFmt ? 6 : 0);
   }
 
-  virtual void __stdcall onRegister() {}
-  virtual void __stdcall onUnregister() {}
+  void __stdcall onRegister() override {}
+  void __stdcall onUnregister() override {}
 
-  void __stdcall gatherSrcDataFiles(const DagorAsset &a, Tab<SimpleString> &files) override { files.clear(); }
+  void __stdcall gatherSrcDataFiles(const DagorAsset &a, Tab<SimpleString> &files) override
+  {
+    files.clear();
+    files.push_back() = a.getTargetFilePath();
+  }
 
-  virtual bool __stdcall isExportableAsset(DagorAsset &a) { return true; }
+  bool __stdcall isExportableAsset(DagorAsset &a) override { return true; }
 
   void readDataFromBlk(Tab<GeomMeshHelperDagObject> &dagObjectsList, const DataBlock &blk) { read_data_from_blk(dagObjectsList, blk); }
   bool writeLegacyDump(DagorAsset &a, mkbindump::BinDumpSaveCB &final_cwr, ILogWriter &log, bool do_pack)
@@ -448,7 +452,7 @@ public:
       nameId = a.props.getNameId("part");
     }
 
-    mkbindump::BinDumpSaveCB mcwr(128 << 10, final_cwr.getTarget(), final_cwr.WRITE_BE);
+    mkbindump::BinDumpSaveCB mcwr(128 << 10, final_cwr);
     mkbindump::BinDumpSaveCB &cwr = do_pack ? mcwr : final_cwr;
 
     unsigned int numCollisionNodes = 0;
@@ -884,7 +888,7 @@ public:
     }
     else
     {
-      mkbindump::BinDumpSaveCB mcwr(cwr.getSize(), final_cwr.getTarget(), final_cwr.WRITE_BE);
+      mkbindump::BinDumpSaveCB mcwr(cwr.getSize(), final_cwr);
       MemoryLoadCB mcrd(cwr.getRawWriter().getMem(), false);
 
       if (allowOodlePacking)
@@ -917,7 +921,7 @@ public:
     return true;
   }
 
-  virtual bool __stdcall exportAsset(DagorAsset &a, mkbindump::BinDumpSaveCB &cwr, ILogWriter &log)
+  bool __stdcall exportAsset(DagorAsset &a, mkbindump::BinDumpSaveCB &cwr, ILogWriter &log) override
   {
     bool collapse_and_optimize = a.props.getBool("collapseAndOptimize", false);
     if (!writePrecookedFmt && !collapse_and_optimize) // legacy format
@@ -926,7 +930,7 @@ public:
     // modern (pre-cooked) format
 
     // first we write legacy format and read it back to CollisionResource object
-    mkbindump::BinDumpSaveCB mcwr(128 << 10, cwr.getTarget(), cwr.WRITE_BE);
+    mkbindump::BinDumpSaveCB mcwr(128 << 10, cwr);
     if (!writeLegacyDump(a, mcwr, log, false))
       return false;
     MemoryLoadCB mcrd(mcwr.getRawWriter().getMem(), false);
@@ -988,7 +992,7 @@ public:
                   a.getName(), label, n.name, n.vertices.size(), m.vert.size(), n.indices.size() / 3, m.face.size(),
                   n.cachedMaxTmScale, weld_eps, n.modelBBox);
               else
-                logerr("%s: %sdegenerate mesh node \"%s\": vert=%d->%d face=%d->%d maxTmScale=%g eps=%g bbox=%@", a.getName(), label,
+                logwarn("%s: %sdegenerate mesh node \"%s\": vert=%d->%d face=%d->%d maxTmScale=%g eps=%g bbox=%@", a.getName(), label,
                   n.name, n.vertices.size(), m.vert.size(), n.indices.size() / 3, m.face.size(), n.cachedMaxTmScale, weld_eps,
                   n.modelBBox);
               for (unsigned i = 0; i < n.vertices.size(); i++)
@@ -1060,13 +1064,13 @@ public:
     // optimize collision data and build FRT if requested
     if (collapse_and_optimize)
     {
-      coll.collapseAndOptimize(/* build_frt */ false, /* fast= */ false);
+      coll.collapseAndOptimize(a.getName(), /* build_frt */ false, /* fast= */ false);
       if (!remove_degenerate_faces("[post-collapse-pass] "))
         return false;
       if (bool build_frt = a.props.getBool("buildFRT", true))
       {
         coll.collisionFlags &= ~COLLISION_RES_FLAG_OPTIMIZED;
-        coll.collapseAndOptimize(build_frt, /* fast= */ false);
+        coll.collapseAndOptimize(a.getName(), build_frt, /* fast= */ false);
       }
     }
 
@@ -1084,7 +1088,7 @@ public:
     }
     else
     {
-      mkbindump::BinDumpSaveCB zcwr(mcwr.getSize(), cwr.getTarget(), cwr.WRITE_BE);
+      mkbindump::BinDumpSaveCB zcwr(mcwr.getSize(), cwr);
       mcrd.setMem(mcwr.getRawWriter().getMem(), false);
 
       if (allowOodlePacking)
@@ -1195,7 +1199,7 @@ FastNameMapTS<false> CollisionExporter::phmatNames;
 class CollisionExporterPlugin : public IDaBuildPlugin
 {
 public:
-  virtual bool __stdcall init(const DataBlock &appblk)
+  bool __stdcall init(const DataBlock &appblk) override
   {
     const DataBlock *collisionBlk = appblk.getBlockByNameEx("assets")->getBlockByNameEx("build")->getBlockByNameEx("collision");
 
@@ -1225,10 +1229,10 @@ public:
     report_inverted_mesh_tm = collisionBlk->getBool("errorOnInvertedMesh", false);
     return true;
   }
-  virtual void __stdcall destroy() { delete this; }
+  void __stdcall destroy() override { delete this; }
 
-  virtual int __stdcall getExpCount() { return 1; }
-  virtual const char *__stdcall getExpType(int idx)
+  int __stdcall getExpCount() override { return 1; }
+  const char *__stdcall getExpType(int idx) override
   {
     switch (idx)
     {
@@ -1236,7 +1240,7 @@ public:
       default: return NULL;
     }
   }
-  virtual IDagorAssetExporter *__stdcall getExp(int idx)
+  IDagorAssetExporter *__stdcall getExp(int idx) override
   {
     switch (idx)
     {
@@ -1245,9 +1249,9 @@ public:
     }
   }
 
-  virtual int __stdcall getRefProvCount() { return 0; }
-  virtual const char *__stdcall getRefProvType(int idx) { return NULL; }
-  virtual IDagorAssetRefProvider *__stdcall getRefProv(int idx) { return NULL; }
+  int __stdcall getRefProvCount() override { return 0; }
+  const char *__stdcall getRefProvType(int idx) override { return NULL; }
+  IDagorAssetRefProvider *__stdcall getRefProv(int idx) override { return NULL; }
 
 protected:
   CollisionExporter expCollision;

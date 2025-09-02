@@ -20,7 +20,7 @@ CompositeEditorTree::CompositeEditorTree(PropPanel::ITreeViewEventHandler *event
   rendinstImageId = addImage("res_rendInst");
 }
 
-TEXTUREID CompositeEditorTree::getImageId(CompositeEditorTreeDataNode &treeDataNode) const
+PropPanel::IconId CompositeEditorTree::getImageId(CompositeEditorTreeDataNode &treeDataNode) const
 {
   if (treeDataNode.hasEntBlock())
     return gameObjImageId;
@@ -57,7 +57,7 @@ void CompositeEditorTree::fillInternal(CompositeEditorTreeDataNode &treeDataNode
     CompositeEditorTreeDataNode &treeDataSubNode = *treeDataNode.nodes[nodeIndex];
 
     const char *name = treeDataSubNode.getName();
-    const TEXTUREID imageId = getImageId(treeDataSubNode);
+    const PropPanel::IconId imageId = getImageId(treeDataSubNode);
     PropPanel::TLeafHandle subBlockTreeNode = addItem(name, imageId, parent, &treeDataSubNode);
 
     if (treeDataSubNode.isEntBlock())

@@ -1,1 +1,0 @@
-include %daslib/quirrel_boost.das

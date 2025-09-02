@@ -20,6 +20,7 @@ struct event_t
 int registerHapticPattern(const char *patternName, const event_t *events, int eventsCount);
 //! play pattern registered earlier
 void playHapticPattern(int patternId, float intensityMultiplier = 1.0f);
+void stopHapticEffects();
 //! set global intensity multiplier in [0, 1] range
 void setGlobalIntensity(float multiplier);
 float getGlobalIntensity();

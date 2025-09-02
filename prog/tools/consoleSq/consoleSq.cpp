@@ -57,6 +57,7 @@
 #include <squirrel/sqstate.h>
 #include <squirrel/sqfuncproto.h>
 #include <squirrel/sqclosure.h>
+#include <squirrel/sqtypeparser.h>
 
 
 #define MODULE_PARSE_STL eastl
@@ -72,7 +73,7 @@
 using namespace sqimportparser;
 
 
-#define APP_VERSION "1.0.25"
+#define APP_VERSION "1.0.30"
 
 // Stubs
 
@@ -97,9 +98,9 @@ static bool csq_show_native_modules_content = false;
 static bool use_debug_file = false;
 static bool check_fname_case = false;
 static bool do_static_analysis = false;
-static bool flip_diagnostic_state = false;
 static bool dump_bytecode = false;
 static bool dump_ast = false;
+static bool check_stack_mode = false;
 static String sqconfig_dir;
 
 static HSQUIRRELVM sqvm = nullptr;
@@ -193,6 +194,44 @@ static void sq_error_handler(const Sqrat::string &e)
 }
 
 static bool is_path_absolute(const String &path);
+
+static int fill_stack(HSQUIRRELVM v)
+{
+  if (!check_stack_mode)
+    return 0;
+
+  for (int i = 0; i < 8; i++)
+    sq_pushinteger(v, i + 1000000);
+
+  return sq_gettop(v);
+}
+
+static bool check_stack(HSQUIRRELVM v, int expected_top)
+{
+  if (!check_stack_mode)
+    return true;
+
+  int top = sq_gettop(v);
+  if (top != expected_top)
+  {
+    report_error(String(0, "Stack top is %d, expected %d", top, expected_top).c_str());
+    has_errors = true;
+    return false;
+  }
+
+  for (int i = 0; i < 8; i++)
+  {
+    SQInteger val = -1;
+    if (SQ_FAILED(sq_getinteger(v, -8 + i, &val)) || val != i + 1000000)
+    {
+      report_error(String(0, "Stack value at %d is %d, expected %d", -8 + i, int(val), i + 1000000).c_str());
+      has_errors = true;
+      return false;
+    }
+  }
+
+  return true;
+}
 
 
 static bool run_sq_code(const char *name, const char *code)
@@ -430,7 +469,7 @@ static void compiler_diag_cb(HSQUIRRELVM, const SQCompilerMessage *msg)
 static void compiler_error_cb(HSQUIRRELVM v, SQMessageSeverity severity, const SQChar *sErr, const SQChar *sSource, SQInteger line,
   SQInteger column, const SQChar *extra)
 {
-  if (severity > SEV_HINT)
+  if (severity > SEV_HINT && !::dgs_get_argv("suppress-hints-errors"))
     has_errors = true;
   script_print_function(v, _SC("%s\n"), sErr);
   script_print_function(v, _SC("%s:%d:%d\n"), sSource, (int)line, (int)column);
@@ -495,13 +534,6 @@ static bool process_file(const char *filename, const char *code, const KeyValueF
   }
 
   int iterator = 0;
-  while (const char *diagNum = ::dgs_get_argv("W", iterator))
-  {
-    int id = atoi(diagNum);
-    sq_setdiagnosticstatebyid(id, false);
-  }
-
-  iterator = 0;
   while (const char *diagName = ::dgs_get_argv("D", iterator))
   {
     sq_setdiagnosticstatebyname(diagName, false);
@@ -665,6 +697,7 @@ static bool process_file(const char *filename, const char *code, const KeyValueF
     }
   }
 
+  int top = fill_stack(sqvm);
 
   int t0 = get_time_msec();
 
@@ -686,7 +719,7 @@ static bool process_file(const char *filename, const char *code, const KeyValueF
       diag_json_file = fopen(diagOutFn, "wb");
       if (!diag_json_file)
       {
-        String errMsg(0, "Error: cannot open file '%s' for writing", diagOutFn);
+        String errMsg(0, "cannot open file '%s' for writing", diagOutFn);
         report_error(errMsg);
         quit_game(1, false);
       }
@@ -706,10 +739,20 @@ static bool process_file(const char *filename, const char *code, const KeyValueF
     }
   }
 
+  if (!check_stack(sqvm, top))
+  {
+    report_error(String(0, "Stack check failed after execution of '%s'", filename).c_str());
+    has_errors = true;
+  }
+
   if (do_static_analysis)
   {
     sq_checkglobalnames(sqvm);
   }
+
+  int t1 = get_time_msec();
+  if (csq_time)
+    printf("Execution time: %d ms\n", t1 - t0);
 
   if (diag_json_file)
   {
@@ -742,9 +785,6 @@ static bool process_file(const char *filename, const char *code, const KeyValueF
     }
   }
 
-  int t1 = get_time_msec();
-  if (csq_time)
-    printf("Execution time: %d ms\n", t1 - t0);
 
   if (frp_graph)
     frp_graph->shutdown(true);
@@ -799,17 +839,18 @@ static void print_usage()
   printf("  --static-analysis - perform static analysis of compiling .nut files\n");
   printf("  --message-output-file:<file-name> - print compiler messages to file (JSON)\n");
   printf("  --warnings-list - print all warnings and exit\n");
+  printf("  --suppress-hints-errors - do not treat hints as errors\n");
   printf("  --absolute-path - use absolute path in diagnsotic render\n");
   printf("  --visited-files-list:<file_name> - dump all visited scripts file names into specified file (appends if existed)\n");
-  printf("  --W:<id> - disable diagnostic by numeric id\n");
   printf("  --D:<diagnostic_id> - disable diagnostic by text id\n");
-  printf("  --inverse-warnings - flip warning diagnostic state (enabled -> disabled and vice versa)\n");
   printf("  --dump-bytecode - dump bytecode and line infos of compiled script\n");
   printf("  --dump-ast - dump AST of compiled script\n");
+  printf("  --parse-types - just parse function types in given files, one type per line\n");
+  printf("  --stack-check - check stack state after script execution\n");
   printf("  --sqversion - print version of quirrel\n");
   printf("  --version - print version of csq\n");
-  printf("  --ignore-unknown-args - ignore unknown command line arguments\n");
   printf("  -- - ignore arguments after '--', but these arguments are still available in '__argv' array\n");
+  printf("  *.nut - arguments after the script name will not be checked for correctness\n");
   printf("\n");
 }
 
@@ -885,6 +926,65 @@ static void sq_exit_func(int exit_code)
 }
 
 
+static bool parse_types_from_file(const char *filename)
+{
+  String code = read_file_ignoring_utf8bom(filename);
+  if (code.empty())
+    return false;
+
+  const char *c = code.str();
+  String line;
+  int lineNum = 1;
+
+  while (*c)
+  {
+    if (*c == '\n' || c[1] == 0)
+    {
+      if (c[1] == 0)
+        line += *c;
+
+      if (!line.empty())
+      {
+        printf("%s\n", line.str());
+
+        SQFunctionType t(_ss(sqvm));
+        SQInteger errorPos;
+        SQObjectPtr errorString;
+        if (sq_parse_function_type_string(sqvm, line.str(), t, errorPos, errorString))
+        {
+          SQObjectPtr s = sq_stringify_function_type(sqvm, t);
+          printf("%s\n", _stringval(s));
+          printf("  functionName: %s\n", _stringval(t.functionName));
+          printf("  returnTypeMask: 0x%x\n", unsigned(t.returnTypeMask));
+          printf("  objectTypeMask: 0x%x\n", unsigned(t.objectTypeMask));
+          printf("  ellipsisArgTypeMask: 0x%x\n", unsigned(t.ellipsisArgTypeMask));
+          printf("  requiredArgs: %d\n", int(t.requiredArgs));
+          printf("  argCount: %d\n", int(t.argTypeMask.size()));
+          printf("\n");
+        }
+        else
+        {
+          printf("ERROR: %s\n", _stringval(errorString));
+          printf("at %s:%d:%d\n\n", filename, lineNum, int(errorPos));
+        }
+
+        line.clear();
+      }
+      lineNum++;
+    }
+    else
+    {
+      if (*c != '\r')
+        line += *c;
+    }
+
+    c++;
+  }
+
+  return true;
+}
+
+
 static void on_file_open(const char *fname, void * /*file_handle*/, int flags)
 {
   if (!check_fname_case)
@@ -902,9 +1002,6 @@ static void on_file_open(const char *fname, void * /*file_handle*/, int flags)
 
 static int check_unused_args()
 {
-  if (::dgs_get_argv("ignore-unknown-args"))
-    return has_errors;
-
   for (int i = 1; i < argc_limit; i++)
     if (!dgs_is_arg_used(i))
     {
@@ -963,6 +1060,9 @@ int DagorWinMain(bool debugmode)
     }
     else
     {
+      if (argc_limit > i && ends_with(eastl::string_view(s), ".nut"))
+        argc_limit = i;
+
       dgs_set_arg_used(i);
       inputFiles.push_back(String(s));
     }
@@ -1057,6 +1157,20 @@ int DagorWinMain(bool debugmode)
     return check_unused_args();
   }
 
+  if (::dgs_get_argv("parse-types"))
+  {
+    SquirrelVM::Init(SquirrelVM::SF_IGNORE_DEFAULT_LIBRARIES);
+    sqvm = SquirrelVM::GetVMPtr();
+
+    for (int i = 0; i < inputFiles.size(); i++)
+      if (!parse_types_from_file(inputFiles[i].str()))
+        return 1;
+
+    sqvm = nullptr;
+    SquirrelVM::Shutdown(false);
+    return check_unused_args();
+  }
+
   if (::dgs_get_argv("warnings-list"))
   {
     sq_printwarningslist(stdout);
@@ -1066,11 +1180,6 @@ int DagorWinMain(bool debugmode)
   if (::dgs_get_argv("static-analysis"))
   {
     do_static_analysis = true;
-  }
-
-  if (::dgs_get_argv("inverse-warnings"))
-  {
-    flip_diagnostic_state = true;
   }
 
   if (::dgs_get_argv("check-fname-case"))
@@ -1086,6 +1195,11 @@ int DagorWinMain(bool debugmode)
   if (::dgs_get_argv("dump-ast"))
   {
     dump_ast = true;
+  }
+
+  if (::dgs_get_argv("check-stack"))
+  {
+    check_stack_mode = true;
   }
 
   if (const char *dir = ::dgs_get_argv("set-blk-root"))
@@ -1213,12 +1327,7 @@ int DagorWinMain(bool debugmode)
   if (inputFiles.size() == 0)
   {
     print_usage();
-    return 1;
-  }
-
-  if (flip_diagnostic_state)
-  {
-    sq_invertwarningsstate();
+    return check_unused_args();
   }
 
   d3d::init_driver();

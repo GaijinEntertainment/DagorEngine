@@ -28,7 +28,7 @@ static const TextureFormatDesc format_descs[] = {
   {TEXFMT_R32G32UI, 8, false, 1, 1, ChannelDType::UINT, {}, {32, 0, 0, 0, 0}, {32, 32, 0, 0, 0}, {}, {}, {}, {}},
   {TEXFMT_L16, 2, false, 1, 1, ChannelDType::UNORM, {}, {16, 0, 0, 0, 1}, {}, {}, {}, {}, {}},
   {TEXFMT_A8, 1, false, 1, 1, ChannelDType::UNORM, {}, {}, {}, {}, {8, 0, 0, 0, 1}, {}, {}},
-  {TEXFMT_L8, 1, false, 1, 1, ChannelDType::UNORM, {}, {8, 0, 0, 0, 1}, {}, {}, {}, {}, {}},
+  {TEXFMT_R8, 1, false, 1, 1, ChannelDType::UNORM, {}, {8, 0, 0, 0, 1}, {}, {}, {}, {}, {}},
   {TEXFMT_A1R5G5B5, 2, false, 1, 1, ChannelDType::UNORM, {}, {5, 10, 0, 0, 1}, {5, 5, 0, 0, 1}, {5, 0, 0, 0, 1}, {1, 15, 0, 0, 1}, {},
     {}},
   {TEXFMT_A4R4G4B4, 2, false, 1, 1, ChannelDType::UNORM, {}, {4, 8, 0, 0, 1}, {4, 4, 0, 0, 1}, {4, 0, 0, 0, 1}, {4, 12, 0, 0, 1}, {},
@@ -67,7 +67,7 @@ static const TextureFormatDesc format_descs[] = {
   {TEXFMT_ASTC12, 16, true, 12, 12, ChannelDType::UNORM, {}, {8, 0}, {8, 0}, {8, 0}, {}, {}, {}},
 };
 
-static const TextureFormatDesc unknown_format_desc = {TEXFMT_L8, 1, false, 1, 1, {}, {}, {}, {}, {}, {}, {}, {}};
+static const TextureFormatDesc unknown_format_desc = {TEXFMT_R8, 1, false, 1, 1, {}, {}, {}, {}, {}, {}, {}, {}};
 
 struct TextureFormatName
 {
@@ -94,7 +94,7 @@ static const TextureFormatName format_names[] = {
   {TEXFMT_R32G32UI, "R32G32UI", nullptr},
   {TEXFMT_L16, "L16", "R16"},
   {TEXFMT_A8, "A8", nullptr},
-  {TEXFMT_L8, "L8", "R8"},
+  {TEXFMT_R8, "L8", "R8"},
   {TEXFMT_A1R5G5B5, "A1R5G5B5", nullptr},
   {TEXFMT_A4R4G4B4, "A4R4G4B4", nullptr},
   {TEXFMT_R5G6B5, "R5G6B5", nullptr},
@@ -430,6 +430,11 @@ uint32_t float_to_channel_bits(float value, ChannelDType type, const TextureChan
           return compose_float(sign, exponent, mantissa, exponentBits, mantissaBits);
         };
 
+        if (sign && !channel.isSigned)
+        {
+          // Case 0: negative floats are truncated to 0 when stored to UFLOAT
+          return composeFloat(0, 0, 0);
+        }
         if (exponent32 < 127 + minReprPower)
         {
           // Case 1: exponent too small, representation is zero

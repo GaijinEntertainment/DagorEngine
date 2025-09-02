@@ -48,7 +48,7 @@ public:
   IPluginObject(const IPluginObject *fo) : RenderableEditableObject(fo) {}
 
   virtual PluginType getPluginType() const = 0;
-  virtual void renderColor(Tab<DynRenderBuffer *> &render_buf, const E3DCOLOR &c){};
+  virtual void renderColor([[maybe_unused]] Tab<DynRenderBuffer *> &render_buf, [[maybe_unused]] const E3DCOLOR &c) {}
 
   virtual IPluginObject *virtualNew() = 0;
 };

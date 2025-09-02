@@ -10,6 +10,7 @@
 #include <memory/dag_framemem.h>
 #include "game/player.h"
 #include "main/main.h"
+#include "main/gameProjConfig.h"
 
 namespace dedicated
 {
@@ -28,11 +29,7 @@ bool init_statsd(const char *circuit_name)
 
   const char *metricsFormat = ::dgs_get_argv("statsd", MetricFormat::influx);
 
-  static const char *statsdProject = ::dgs_get_settings()->getStr("statsdGameName", nullptr);
-  if (!statsdProject)
-    statsdProject = ::dgs_get_settings()->getStr("matchingGameName", nullptr);
-  if (!statsdProject)
-    statsdProject = ::dgs_get_settings()->getStr("contactsGameId", get_game_name());
+  static const char *statsdProject = ::dgs_get_settings()->getStr("statsdGameName", gameproj::game_telemetry_name());
 
   if (!strcmp(metricsFormat, MetricFormat::influx))
   {

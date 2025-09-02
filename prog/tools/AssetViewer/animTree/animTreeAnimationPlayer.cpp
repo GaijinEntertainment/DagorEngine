@@ -19,8 +19,9 @@
 
 extern String a2d_last_ref_model;
 
-AnimTreeAnimationPlayer::AnimTreeAnimationPlayer(int dyn_model_id) :
+AnimTreeAnimationPlayer::AnimTreeAnimationPlayer(int dyn_model_id, const DagorAssetMgr &mgr) :
   dynModelId{dyn_model_id},
+  assetMgr{mgr},
   animProgress{0.f},
   type{BlendNodeType::UNSET},
   addk{0.f},
@@ -191,7 +192,7 @@ void AnimTreeAnimationPlayer::setValuesFormParametricNode(PropPanel::ContainerPr
 }
 
 void AnimTreeAnimationPlayer::loadA2dResource(PropPanel::ContainerPropertyControl *panel, const dag::Vector<AnimParamData> &params,
-  PropPanel::TLeafHandle leaf)
+  PropPanel::TLeafHandle leaf, bool validate_without_error)
 {
   if (selectedA2dName.empty() || !entity || !ctrl || !origGeomTree)
     return;
@@ -201,9 +202,14 @@ void AnimTreeAnimationPlayer::loadA2dResource(PropPanel::ContainerPropertyContro
     ::release_game_resource((GameResource *)selectedA2d);
     selectedA2d = nullptr;
   }
-  selectedA2d = (AnimV20::AnimData *)::get_game_resource_ex(GAMERES_HANDLE_FROM_STRING(selectedA2dName), Anim2DataGameResClassId);
   animNodes.clear();
   animProgress = 0.f;
+
+  // Validate for avoid error message if we change a2d field
+  if (validate_without_error && assetMgr.getAssetNameId(selectedA2dName) == -1)
+    return;
+
+  selectedA2d = (AnimV20::AnimData *)::get_game_resource_ex(GAMERES_HANDLE_FROM_STRING(selectedA2dName), Anim2DataGameResClassId);
   if (!selectedA2d)
     return;
 
@@ -289,28 +295,40 @@ void AnimTreeAnimationPlayer::animNodesFieldChanged(PropPanel::ContainerProperty
     animTime = panel->getFloat(param.pid);
   else if (param.name == "addk")
     addk = panel->getFloat(param.pid);
+  else if (param.name == "mulk")
+    mulk = panel->getFloat(param.pid);
   else if (param.name == "p_start")
     pStart = panel->getFloat(param.pid);
   else if (param.name == "p_end")
     pEnd = panel->getFloat(param.pid);
   else if (selectedA2d && param.name == "key_start")
   {
-    // If start:i > 0 we need ignore change this field
+    // If start:i >= 0 we need ignore change this field
     int startValue = get_int_param_by_name_optional(params, panel, "start", /*default_value*/ -1);
     if (startValue < 0)
       firstKey = get_key_by_text(selectedA2d, panel->getText(param.pid));
   }
   else if (selectedA2d && param.name == "key_end")
   {
-    // If end:i > 0 we need ignore change this field
+    // If end:i >= 0 we need ignore change this field
     int endValue = get_int_param_by_name_optional(params, panel, "end", /*default_value*/ -1);
     if (endValue < 0)
       lastKey = get_key_by_text(selectedA2d, panel->getText(param.pid));
+  }
+  else if (selectedA2d && type == BlendNodeType::STILL && param.name == "key")
+  {
+    // If start:i >= 0 we need ignore change this field
+    int startValue = get_int_param_by_name_optional(params, panel, "start", /*default_value*/ -1);
+    if (startValue < 0)
+      firstKey = get_key_by_text(selectedA2d, panel->getText(param.pid));
+    animate(firstKey);
   }
   else if (selectedA2d && param.name == "start")
   {
     int startValue = panel->getInt(param.pid);
     firstKey = startValue > 0 ? startValue : get_key_by_text(selectedA2d, get_str_param_by_name_optional(params, panel, "key_start"));
+    if (type == BlendNodeType::STILL)
+      animate(firstKey);
   }
   else if (selectedA2d && param.name == "end")
   {
@@ -319,6 +337,13 @@ void AnimTreeAnimationPlayer::animNodesFieldChanged(PropPanel::ContainerProperty
   }
   else if (param.name == "looping")
     loop = panel->getBool(param.pid);
+  else if (param.name == "a2d")
+  {
+    setSelectedA2dName(panel->getText(param.pid));
+    PropPanel::ContainerPropertyControl *tree = panel->getById(PID_ANIM_BLEND_NODES_TREE)->getContainer();
+    PropPanel::TLeafHandle leaf = tree->getSelLeaf();
+    loadA2dResource(panel, params, leaf, /*validate_without_error*/ true);
+  }
 }
 
 void AnimTreeAnimationPlayer::changePlayingAnimation()

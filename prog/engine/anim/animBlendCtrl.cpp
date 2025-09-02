@@ -15,7 +15,8 @@
 #include <math/random/dag_random.h>
 #include <stdlib.h>
 #include <ctype.h>
-#include <EASTL/hash_map.h>
+#include <memory/dag_framemem.h>
+#include <EASTL/vector_set.h>
 #include <EASTL/fixed_vector.h>
 
 using namespace AnimV20;
@@ -100,7 +101,7 @@ void IrqPos::setupIrqs(Tab<IrqPos> &irqs, AnimData *anim, int t0, int dt, const 
     }
     else if (irqBlk.paramExists("keyFloat"))
     {
-      ts = t0 + irqBlk.getReal("keyFloat") * TIME_TicksPerSec;
+      ts = t0 + irqBlk.getReal("keyFloat") * float(TIME_TicksPerSec);
       if (ts < t0 || ts > t0 + dt)
       {
         logerr("%s: bad irq <%s> %d ticks  is out of range (%d..%d) ticks", blk.getStr("name"), irqBlk.getStr("name"), ts, t0,
@@ -391,21 +392,17 @@ void AnimBlendNodeContinuousLeaf::setRange(int tStart, int tEnd, real anim_time,
 
   timeRatio = rate;
 }
-void AnimBlendNodeContinuousLeaf::setRange(const char *keyStart, const char *keyEnd, real anim_time, float move_dist, const char *name)
+int AnimBlendNodeContinuousLeaf::getKeyTime(const char *key)
 {
   if (!anim)
   {
-    DEBUG_CTX("setRange ( %s, %s, %.3f ) while anim=NULL", keyStart, keyEnd, anim_time);
-    return;
+    DEBUG_CTX("getKeyTime ( %s ) while anim=NULL", key);
+    return -1.0f;
   }
-  int ts = anim->getLabelTime(keyStart, !isdigit(keyStart[0]));
-  int te = anim->getLabelTime(keyEnd, !isdigit(keyEnd[0]));
-  if (ts < 0)
-    ts = atoi(keyStart) * TIME_TicksPerSec / 30;
-  if (te < 0)
-    te = atoi(keyEnd) * TIME_TicksPerSec / 30;
-
-  setRange(ts, te, anim_time, move_dist, name);
+  int t = anim->getLabelTime(key, !isdigit(key[0]));
+  if (t < 0)
+    t0 = atoi(key) * TIME_TicksPerSec / 30;
+  return t;
 }
 void AnimBlendNodeContinuousLeaf::setSyncTime(const char *syncKey)
 {
@@ -716,16 +713,13 @@ bool AnimBlendCtrl_1axis::validateNodeNotUsed(AnimationGraph &g, IAnimBlendNode 
       valid = false;
   return valid;
 }
-void AnimBlendCtrl_1axis::collectUsedBlendNodes(AnimationGraph &g, eastl::hash_map<IAnimBlendNode *, bool> &node_map)
+void AnimBlendCtrl_1axis::collectUsedBlendNodes(AnimationGraph &g, used_blend_nodes_t &nodes_set)
 {
   for (int i = 0; i < slice.size(); i++)
   {
     IAnimBlendNode *n = slice[i].node;
-    if (node_map.find(n) == node_map.end())
-    {
-      node_map.emplace(n, true);
-      n->collectUsedBlendNodes(g, node_map);
-    }
+    if (nodes_set.insert(n).second)
+      n->collectUsedBlendNodes(g, nodes_set);
   }
 }
 void AnimBlendCtrl_1axis::buildBlendingList(BlendCtx &bctx, real w)
@@ -834,16 +828,13 @@ bool AnimBlendCtrl_LinearPoly::validateNodeNotUsed(AnimationGraph &g, IAnimBlend
       valid = false;
   return valid;
 }
-void AnimBlendCtrl_LinearPoly::collectUsedBlendNodes(AnimationGraph &g, eastl::hash_map<IAnimBlendNode *, bool> &node_map)
+void AnimBlendCtrl_LinearPoly::collectUsedBlendNodes(AnimationGraph &g, used_blend_nodes_t &nodes_set)
 {
   for (int i = 0; i < poly.size(); i++)
   {
     IAnimBlendNode *n = poly[i].node;
-    if (node_map.find(n) == node_map.end())
-    {
-      node_map.emplace(n, true);
-      n->collectUsedBlendNodes(g, node_map);
-    }
+    if (nodes_set.insert(n).second)
+      n->collectUsedBlendNodes(g, nodes_set);
   }
 }
 bool AnimBlendCtrl_LinearPoly::isAliasOf(IPureAnimStateHolder & /*st*/, IAnimBlendNode *n)
@@ -940,7 +931,7 @@ void AnimBlendCtrl_LinearPoly::buildBlendingList(BlendCtx &bctx, real w)
       real w;
     };
 
-    eastl::fixed_vector<NodeWeight, 3> nonActiveMorphedNodes;
+    eastl::fixed_vector<NodeWeight, 2> nonActiveMorphedNodes;
 
     for (int i = 0; i < poly.size(); ++i)
     {
@@ -1092,16 +1083,13 @@ bool AnimBlendCtrl_RandomSwitcher::validateNodeNotUsed(AnimationGraph &g, IAnimB
   return valid;
 }
 
-void AnimBlendCtrl_RandomSwitcher::collectUsedBlendNodes(AnimationGraph &g, eastl::hash_map<IAnimBlendNode *, bool> &node_map)
+void AnimBlendCtrl_RandomSwitcher::collectUsedBlendNodes(AnimationGraph &g, used_blend_nodes_t &nodes_set)
 {
   for (int i = 0; i < list.size(); i++)
   {
     IAnimBlendNode *n = list[i].node;
-    if (node_map.find(n) == node_map.end())
-    {
-      node_map.emplace(n, true);
-      n->collectUsedBlendNodes(g, node_map);
-    }
+    if (nodes_set.insert(n).second)
+      n->collectUsedBlendNodes(g, nodes_set);
   }
 }
 
@@ -1322,16 +1310,13 @@ bool AnimBlendCtrl_Hub::validateNodeNotUsed(AnimationGraph &g, IAnimBlendNode *t
       valid = false;
   return valid;
 }
-void AnimBlendCtrl_Hub::collectUsedBlendNodes(AnimationGraph &g, eastl::hash_map<IAnimBlendNode *, bool> &node_map)
+void AnimBlendCtrl_Hub::collectUsedBlendNodes(AnimationGraph &g, used_blend_nodes_t &nodes_set)
 {
   for (int i = 0; i < nodes.size(); i++)
   {
     IAnimBlendNode *n = nodes[i];
-    if (node_map.find(n) == node_map.end())
-    {
-      node_map.emplace(n, true);
-      n->collectUsedBlendNodes(g, node_map);
-    }
+    if (nodes_set.insert(n).second)
+      n->collectUsedBlendNodes(g, nodes_set);
   }
 }
 bool AnimBlendCtrl_Hub::isAliasOf(IPureAnimStateHolder &st, IAnimBlendNode *n)
@@ -1459,16 +1444,13 @@ bool AnimBlendCtrl_Blender::validateNodeNotUsed(AnimationGraph &g, IAnimBlendNod
       valid = false;
   return valid;
 }
-void AnimBlendCtrl_Blender::collectUsedBlendNodes(AnimationGraph &g, eastl::hash_map<IAnimBlendNode *, bool> &node_map)
+void AnimBlendCtrl_Blender::collectUsedBlendNodes(AnimationGraph &g, used_blend_nodes_t &nodes_set)
 {
   for (int i = 0; i < 2; i++)
   {
     IAnimBlendNode *n = node[i];
-    if (node_map.find(n) == node_map.end())
-    {
-      node_map.emplace(n, true);
-      n->collectUsedBlendNodes(g, node_map);
-    }
+    if (nodes_set.insert(n).second)
+      n->collectUsedBlendNodes(g, nodes_set);
   }
 }
 bool AnimBlendCtrl_Blender::isAliasOf(IPureAnimStateHolder & /*st*/, IAnimBlendNode *n)
@@ -1559,16 +1541,13 @@ bool AnimBlendCtrl_BinaryIndirectSwitch::validateNodeNotUsed(AnimationGraph &g, 
   return valid;
 }
 
-void AnimBlendCtrl_BinaryIndirectSwitch::collectUsedBlendNodes(AnimationGraph &g, eastl::hash_map<IAnimBlendNode *, bool> &node_map)
+void AnimBlendCtrl_BinaryIndirectSwitch::collectUsedBlendNodes(AnimationGraph &g, used_blend_nodes_t &nodes_set)
 {
   for (int i = 0; i < 2; i++)
   {
     IAnimBlendNode *n = node[i];
-    if (node_map.find(n) == node_map.end())
-    {
-      node_map.emplace(n, true);
-      n->collectUsedBlendNodes(g, node_map);
-    }
+    if (nodes_set.insert(n).second)
+      n->collectUsedBlendNodes(g, nodes_set);
   }
 }
 void AnimBlendCtrl_BinaryIndirectSwitch::setBlendNodes(IAnimBlendNode *n1, real n1_mtime, IAnimBlendNode *n2, real n2_mtime)
@@ -1661,16 +1640,13 @@ bool AnimBlendCtrl_ParametricSwitcher::validateNodeNotUsed(AnimationGraph &g, IA
       valid = false;
   return valid;
 }
-void AnimBlendCtrl_ParametricSwitcher::collectUsedBlendNodes(AnimationGraph &g, eastl::hash_map<IAnimBlendNode *, bool> &node_map)
+void AnimBlendCtrl_ParametricSwitcher::collectUsedBlendNodes(AnimationGraph &g, used_blend_nodes_t &nodes_set)
 {
   for (int i = 0; i < list.size(); i++)
   {
     IAnimBlendNode *n = list[i].node;
-    if (node_map.find(n) == node_map.end())
-    {
-      node_map.emplace(n, true);
-      n->collectUsedBlendNodes(g, node_map);
-    }
+    if (nodes_set.insert(n).second)
+      n->collectUsedBlendNodes(g, nodes_set);
   }
 }
 bool AnimBlendCtrl_ParametricSwitcher::isAliasOf(IPureAnimStateHolder &st, IAnimBlendNode *n)
@@ -1711,8 +1687,10 @@ int AnimBlendCtrl_ParametricSwitcher::getAnimForRange(real range)
 
 void AnimBlendCtrl_SetMotionMatchingTag::buildBlendingList(BlendCtx &bctx, real w)
 {
+  BUILD_BLENDING_LIST_PROLOGUE(bctx, st);
+
   if (w < 0.0001f || tagIdx < 0)
     return;
-  uint32_t *activeNodesMask = static_cast<uint32_t *>(bctx.st->getInlinePtr(tagsMaskParamId));
+  uint32_t *activeNodesMask = static_cast<uint32_t *>(st.getInlinePtr(tagsMaskParamId));
   activeNodesMask[tagIdx >> 5] |= 1 << (tagIdx & 31);
 }

@@ -5,11 +5,12 @@
 #pragma once
 
 #include <3d/dag_texMgr.h>
-#include <drv/3d/dag_sampler.h>
+#include <drv/3d/dag_samplerHandle.h>
 #include <shaders/dag_shaderVariableInfo.h>
 #include <math/integer/dag_IPoint4.h>
 #include <math/dag_Point2.h>
 #include <math/dag_dxmath_forward.h>
+#include <util/dag_string.h>
 
 struct Color4;
 class DataBlock;
@@ -30,43 +31,45 @@ namespace VariableMap
 {
 static constexpr int BAD_ID = -1;
 
-// get variable name by ID - return NULL when var_id is out of range
+/// @brief Get variable name by ID.
+/// @return NULL when var_id is out of range.
 const char *getVariableName(int var_id, bool sec_dump_for_exp = false);
 
-//! get varID by for name; returns BAD_ID if fail (but generally will always return valid ID, so isVariablePresent() should also be
-//! used)
+/// @brief Get varID by for nam.
+/// @return BAD_ID if fail (but generally will always return valid ID, so isVariablePresent() should also be used).
 int getVariableId(const char *variable_name, bool sec_dump_for_exp = false);
 
-// returns the size of an array for a variable name
+/// @return The size of an array for a variable name.
 int getVariableArraySize(const char *name);
 
-// returns total number of variable identifiers (var_id will be valid from 0 to count-1)
+/// @return Total number of variable identifiers (var_id will be valid from 0 to count-1).
 int getVariablesCount(bool sec_dump_for_exp = false);
 
-// returns total number of global variables
+/// @return Total number of global variables.
 int getGlobalVariablesCount();
 
-// returns name of global variable specified by ordinal index
+/// @return Name of global variable specified by ordinal index.
 const char *getGlobalVariableName(int globvar_idx);
 
-//! returns true when variable for specified var_id is present in shaders dump
+/// @return true when variable for specified var_id is present in shaders dump.
 bool isVariablePresent(int var_id);
-//! returns true when variable for specified var_id is present in shaders dump
+/// @return true when variable for specified var_id is present in shaders dump.
 bool isVariablePresent(const ShaderVariableInfo &var_id);
-//! returns true when global variable for specified var_id is present in shaders dump
+/// @return true when global variable for specified var_id is present in shaders dump.
 bool isGlobVariablePresent(int var_id);
-//! returns true when global variable for specified var_id is present in shaders dump
+/// @return true when global variable for specified var_id is present in shaders dump.
 bool isGlobVariablePresent(const ShaderVariableInfo &var_id);
 
-// Return list of all global shader variables names which are presented in current shaders dump.
-// Consider that some shadervars are present in dump but never used by ShaderGlobal:: or VariableMap::
-// public API. To iterate over all used variables you can use raw IDs from 0 to getGlobalVariablesCount()
+/**
+ * @return List of all global shader variables names which are presented in current shaders dump.
+ * @note Consider that some shadervars are present in dump but never used by ShaderGlobal:: or VariableMap::
+ * public API. To iterate over all used variables you can use raw IDs from 0 to getGlobalVariablesCount()
+ */
 dag::Vector<String> getPresentedGlobalVariableNames();
 
-//! returns generation (i.e. is shader dump was reloaded)
+/// @return generation (i.e. is shader dump was reloaded).
 uint32_t generation();
 }; // namespace VariableMap
-
 
 namespace ShaderGlobal
 {
@@ -103,7 +106,7 @@ Subinterval get_variant(Interval interv);
 bool is_glob_interval_presented(Interval interv);
 dag::Vector<String> get_subinterval_names(Interval interv);
 
-// returns SHVT_INT, SHVT_REAL, SHVT_COLOR4 or SHVT_TEXTURE
+/// @return SHVT_INT, SHVT_REAL, SHVT_COLOR4 or SHVT_TEXTURE.
 int get_var_type(int variable_id);
 bool is_var_assumed(int variable_id);
 int get_interval_assumed_value(int variable_id);
@@ -141,14 +144,14 @@ bool set_texture(const ShaderVariableInfo &, const ManagedTex &texture);
 bool set_buffer(const ShaderVariableInfo &, const ManagedBuf &buffer);
 bool set_tlas(int variable_id, RaytraceTopAccelerationStructure *ptr);
 
-// sets all texture global vars to BAD_TEXTUREID and issue release_managed_tex() on them
+/// @brief Set all texture global vars to BAD_TEXTUREID and issue release_managed_tex() on them.
 void reset_textures(bool removed_tex_only = false);
-// Reset all var types, that are not valid after reset.
+/// @brief Reset all var types, that are not valid after reset.
 void reset_stale_vars();
 
-// resets references to texture from all global shader vars
+/// @brief Reset references to texture from all global shader vars.
 void reset_from_vars(TEXTUREID id);
-// resets references to texture from all global shader vars and than calls release_managed_tex(id) and clears id
+/// @brief Reset references to texture from all global shader vars and than calls release_managed_tex(id) and clears id.
 inline void reset_from_vars_and_release_managed_tex(TEXTUREID &id)
 {
   if (id == BAD_TEXTUREID)
@@ -166,8 +169,10 @@ inline void reset_from_vars_and_release_managed_tex_verified(TEXTUREID &id, T &c
   release_managed_tex_verified<T>(id, check_tex);
 }
 
-// returns global shader variables using glob_var_id; tolerant to glob_var_id=-1 (return 0);
-// with DAGOR_DBGLEVEL>0 uses G_ASSERT to check that glob_var_id is in range and to check type
+/**
+ * @return Global shader variables using glob_var_id; tolerant to glob_var_id=-1 (return 0);
+ * with DAGOR_DBGLEVEL>0 uses G_ASSERT to check that glob_var_id is in range and to check type.
+ */
 int get_int_fast(int glob_var_id);
 float get_real_fast(int glob_var_id);
 Color4 get_color4_fast(int glob_var_id);
@@ -205,15 +210,15 @@ inline bool get_real_by_name(const char *name, float &val)
 
 bool get_color4_by_name(const char *name, Color4 &val);
 
-// reads list of global var values from DataBlock and sets them to shadr global variables
+/// @brief Read list of global var values from DataBlock and sets them to shadr global variables.
 void set_vars_from_blk(const DataBlock &blk, bool loadTexures = false, bool allowAddTextures = false);
 void set_vars_from_blk(const RoDataBlock &blk);
 
-// reset variables set by the set_vars_from_blk to their initial value (before setting any block, except textures).
+/// @brief Reset variables set by the set_vars_from_blk to their initial value (before setting any block, except textures).
 void reset_vars_from_blk();
 
 
-// obsolete functions (compatibility)
+// Obsolete functions (compatibility)
 
 inline int get_glob_var_id(int var_id) { return var_id; }
 inline void set_int_fast(int glob_var_id, int v) { set_int(glob_var_id, v); }

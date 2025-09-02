@@ -15,7 +15,7 @@ Sources = $(AllSources:D=) ;
 
 #if $(Platform) in xboxOne scarlett windows { # Warning: Windows supports Bcrypt API since Vista
 if $(Platform) in xboxOne scarlett {
-  CPPopt += -DUSE_BCRYPT=1 ;
+  CPPopt += -DUSE_BCRYPT ;
   AddLibs += bcrypt.lib ;
 }
 

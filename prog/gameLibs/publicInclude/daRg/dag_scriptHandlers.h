@@ -5,6 +5,7 @@
 #pragma once
 
 #include <perfMon/dag_statDrv.h>
+#include <util/dag_string.h>
 #include <EASTL/tuple.h>
 #include <sqrat.h>
 #include <sqext.h>

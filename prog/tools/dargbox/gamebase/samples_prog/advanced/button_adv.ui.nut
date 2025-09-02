@@ -6,13 +6,13 @@ let cursors = require("samples_prog/_cursors.nut")
 
 
 function __update_r(target, source, deepLevel = -1) {
-  function sub_update_r(target, source, deepLevel = -1) {
-    let res = {}.__update(target)
-    foreach (key,value in source) {
-      if (type(value) =="table" && deepLevel != 0 && key in target) {
-        res[key] = sub_update_r({}.__update(target[key]), {}.__update(value), deepLevel - 1)
+  function sub_update_r(tgt, src, dplLvl = -1) {
+    let res = {}.__update(tgt)
+    foreach (key,value in src) {
+      if (type(value) =="table" && dplLvl != 0 && key in tgt) {
+        res[key] = sub_update_r({}.__update(tgt[key]), {}.__update(value), dplLvl - 1)
       } else {
-        res[key] <- source[key]
+        res[key] <- src[key]
       }
     }
     return res
@@ -28,7 +28,7 @@ function copy_component(comp) {
   return comp
 }
 
-function __update_darg_r(target, source, deepLevel = -1) {
+function __update_darg_r(tgt, src, deep_level = -1) {
 
   function isUpdatable(component) {
     if (type(component) == "class" || type(component) == "table")
@@ -67,14 +67,14 @@ function __update_darg_r(target, source, deepLevel = -1) {
     }
     return res
   }
-  return sub_update_r(target, source, deepLevel)
+  return sub_update_r(tgt, src, deep_level)
 }
 
 let button = watchElemState(
   function(sf) {
     let normalBtn = {
       rendObj = ROBJ_BOX
-      size = [sh(20),SIZE_TO_CONTENT]
+      size = static [sh(20),SIZE_TO_CONTENT]
       padding = sh(2)
       fillColor = Color(0,128,0)
       borderWidth = 0

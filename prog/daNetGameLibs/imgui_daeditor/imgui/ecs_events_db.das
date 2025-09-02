@@ -54,7 +54,7 @@ def imgui_click_to_copy(val)
     imgui::TextUnformatted("RMB click to copy value")
     imgui::PopTextWrapPos()
     imgui::EndTooltip()
-    if imgui::IsMouseClicked(ImGuiMouseButton Right)
+    if imgui::IsMouseClicked(ImGuiMouseButton.Right)
       SetClipboardText("{val}")
 
 
@@ -78,11 +78,11 @@ def event_db_window()
 
   imgui::BeginChild("sub", float2(0, 0))
 
-  if BeginTable("split", 4, ImGuiTableFlags BordersOuter | ImGuiTableFlags RowBg)
-    TableSetupColumn("Name", ImGuiTableColumnFlags WidthFixed)
-    TableSetupColumn("Type", ImGuiTableColumnFlags WidthFixed)
-    TableSetupColumn("Size", ImGuiTableColumnFlags WidthFixed)
-    TableSetupColumn("Description", ImGuiTableColumnFlags WidthFixed)
+  if BeginTable("split", 4, ImGuiTableFlags.BordersOuter | ImGuiTableFlags.RowBg)
+    TableSetupColumn("Name", ImGuiTableColumnFlags.WidthFixed)
+    TableSetupColumn("Type", ImGuiTableColumnFlags.WidthFixed)
+    TableSetupColumn("Size", ImGuiTableColumnFlags.WidthFixed)
+    TableSetupColumn("Description", ImGuiTableColumnFlags.WidthFixed)
     TableHeadersRow()
     for i in range(eventsNum)
       let id = uint(i)
@@ -120,7 +120,7 @@ def event_db_window()
         imgui::TableNextColumn()
 
         let fieldsCount = eventsDb |> events_db_getFieldsCount(id)
-        let treeFlags = fieldsCount == 0u ? ImGuiTreeNodeFlags Leaf | ImGuiTreeNodeFlags NoTreePushOnOpen | ImGuiTreeNodeFlags Bullet : ImGuiTreeNodeFlags DefaultOpen
+        let treeFlags = fieldsCount == 0u ? ImGuiTreeNodeFlags.Leaf | ImGuiTreeNodeFlags.NoTreePushOnOpen | ImGuiTreeNodeFlags.Bullet : ImGuiTreeNodeFlags.DefaultOpen
         let open = TreeNodeEx("Event structure##{id}", treeFlags)
 
         imgui::TableNextColumn()

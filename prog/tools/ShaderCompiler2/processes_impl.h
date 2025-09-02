@@ -5,7 +5,8 @@
 #include <EASTL/unique_ptr.h>
 #include <EASTL/optional.h>
 #include <EASTL/deque.h>
-#include <atomic>
+#include <generic/dag_tab.h>
+#include <osApiWrappers/dag_atomic_types.h>
 
 namespace proc
 {
@@ -15,10 +16,26 @@ namespace internal
 struct ProcessData;
 struct ExtraStateData;
 
+struct OutputSink
+{
+  Tab<char> buffer{};
+  int lastTs = -1;
+  char messageSep = MANAGED_MESSAGE_SEPARATOR;
+  bool free = false;
+};
+
+enum class SinkHandle : uint32_t
+{
+  INVALID = uint32_t(-1)
+};
+
 struct ProcessHandle
 {
-  ProcessTask task;
+  ProcessTask task{};
   ProcessData *processData = nullptr;
+  SinkHandle sink = SinkHandle::INVALID;
+  bool hasCommunicated = false;
+  bool hasBeenSignalled = false;
 };
 
 struct ExecutionState
@@ -29,7 +46,9 @@ struct ExecutionState
   eastl::deque<ProcessTask> tasks{};
   eastl::deque<ProcessHandle> processes{};
 
-  std::atomic_bool cancelled{false};
+  dag::Vector<OutputSink> sinkPool{};
+
+  dag::AtomicInteger<bool> cancelled{false};
 
   ExtraStateData *extraData = nullptr;
 };
@@ -51,7 +70,8 @@ void start_execution(ExecutionState &state);
 void end_execution(ExecutionState &state);
 
 AwaitResult await_processes(ExecutionState &state, bool listen_to_cancellation_event, int timeout_ms = NO_TIMEOUT);
-eastl::optional<ProcessHandle> spawn_process(ProcessTask &&task);
+eastl::optional<ProcessHandle> spawn_process(ExecutionState &state, ProcessTask &&task);
+void serve_process_output(ExecutionState &state, ProcessHandle &hnd);
 void send_interrupt_signal_to_process(const ProcessHandle &process);
 void kill_process(const ProcessHandle &process);
 

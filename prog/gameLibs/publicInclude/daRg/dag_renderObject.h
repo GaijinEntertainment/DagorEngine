@@ -50,7 +50,7 @@ public:
 class RendObjParams
 {
 public:
-  virtual ~RendObjParams(){};
+  virtual ~RendObjParams() {}
   virtual bool load(const Element *elem) = 0;
 
   virtual bool getAnimFloat(AnimProp, float **) { return false; }
@@ -95,18 +95,12 @@ static constexpr int ROBJ_NONE = -1;
 
 #define ROBJ_FACTORY_PTR(ro_class) &robj_factory__##ro_class
 
-#define ROBJ_FACTORY_IMPL(ro_class, params_class)                                                \
-  static_assert(sizeof(ro_class) == sizeof(void *), "darg::RenderObject shouldn't have state!"); \
-  static class RobjFactory_##ro_class final : public darg::RendObjFactory                        \
-  {                                                                                              \
-    virtual darg::RenderObject *createRenderObject(void *stor) const override                    \
-    {                                                                                            \
-      return new (stor, _NEW_INPLACE) ro_class();                                                \
-    }                                                                                            \
-    virtual darg::RendObjParams *createRendObjParams() const override                            \
-    {                                                                                            \
-      return new params_class();                                                                 \
-    }                                                                                            \
+#define ROBJ_FACTORY_IMPL(ro_class, params_class)                                                                             \
+  static_assert(sizeof(ro_class) == sizeof(void *), "darg::RenderObject shouldn't have state!");                              \
+  static class RobjFactory_##ro_class final : public darg::RendObjFactory                                                     \
+  {                                                                                                                           \
+    virtual darg::RenderObject *createRenderObject(void *stor) const override { return new (stor, _NEW_INPLACE) ro_class(); } \
+    virtual darg::RendObjParams *createRendObjParams() const override { return new params_class(); }                          \
   } robj_factory__##ro_class;
 
 

@@ -3,7 +3,6 @@
 
 #include <drv/3d/dag_driver.h>
 #include <generic/dag_staticTab.h>
-#include <EASTL/vector.h>
 #include <EASTL/unique_ptr.h>
 
 #include "driver.h"
@@ -113,6 +112,8 @@ public:
         set.push_back(functor(depthStencilAttachment));
       return set;
     }
+
+    uint64_t getHash() const;
   };
   struct FramebufferDescription
   {
@@ -206,12 +207,12 @@ public:
   };
 
   const Identifier &getIdentifier() const { return identifier; }
-  VulkanRenderPassHandle getPass(VulkanDevice &device, int clear_mask);
-  VulkanFramebufferHandle getFrameBuffer(VulkanDevice &device, const FramebufferDescription &info);
+  VulkanRenderPassHandle getPass(int clear_mask);
+  VulkanFramebufferHandle getFrameBuffer(const FramebufferDescription &info);
   uint32_t getAttachmentsLoadMask(int clear_mask) const;
   RenderPassClass(const Identifier &id);
-  void unloadAll(VulkanDevice &device);
-  void unloadWith(VulkanDevice &device, VulkanImageViewHandle view);
+  void unloadAll();
+  void unloadWith(VulkanImageViewHandle view);
   // no clear mask needed here, as its per attachment index, so for every one or no one (so don't
   // call this if no clear value is need)
   StaticTab<VkClearValue, Driver3dRenderTarget::MAX_SIMRT + 1> constructClearValueSet(const VkClearColorValue *ccv,
@@ -233,18 +234,18 @@ private:
   };
   Identifier identifier = {};
   VulkanRenderPassHandle variants[NUM_PASS_VARIANTS] = {};
-  eastl::vector<FrameBuffer> frameBuffers;
+  dag::Vector<FrameBuffer> frameBuffers;
 
-  VulkanRenderPassHandle compileVariant(VulkanDevice &device, int clear_mask);
-  VulkanFramebufferHandle compileFrameBuffer(VulkanDevice &device, const FramebufferDescription &info);
+  VulkanRenderPassHandle compileVariant(int clear_mask);
+  VulkanFramebufferHandle compileFrameBuffer(const FramebufferDescription &info);
 };
 class RenderPassManager
 {
-  eastl::vector<eastl::unique_ptr<RenderPassClass>> passClasses;
+  dag::Vector<eastl::unique_ptr<RenderPassClass>> passClasses;
 
 public:
   RenderPassClass *getPassClass(const RenderPassClass::Identifier &id);
-  void unloadWith(VulkanDevice &device, VulkanImageViewHandle view);
-  void unloadAll(VulkanDevice &device);
+  void unloadWith(VulkanImageViewHandle view);
+  void unloadAll();
 };
 } // namespace drv3d_vulkan

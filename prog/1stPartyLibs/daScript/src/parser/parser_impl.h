@@ -20,26 +20,34 @@ namespace das {
         string          aka;
         LineInfo        at;
         ExpressionPtr   tag;
+        bool            isTupleExpansion = false;
+        VariableNameAndPosition ( const string & n, const string & a, const LineInfo & At, Expression * t = nullptr )
+            : name(n), aka(a), at(At), tag(t) {}
+        VariableNameAndPosition ( vector<string> * n, const LineInfo & At ) {
+            isTupleExpansion = true;
+            TextWriter ss;
+            bool first = true;
+            for ( auto & na : *n ) {
+                if ( first ) first = false; else ss << "`";
+                ss << na;
+            }
+            name = ss.str();
+            at = At;
+            delete n;
+        }
     };
 
     struct VariableDeclaration {
         VariableDeclaration ( vector<string> * n, const LineInfo & at, TypeDecl * t, Expression * i )
             : pNameList(nullptr), pTypeDecl(t), pInit(i) {
-            pNameList = new vector<VariableNameAndPosition>;
-            TextWriter ss;
-            bool first = true;
-            for ( auto & name : *n ) {
-                if ( first ) first = false; else ss << "`";
-                ss << name;
-            }
-            pNameList->push_back({ss.str(), "", at, nullptr});
-            delete n;
+            pNameList = new vector<VariableNameAndPosition>();
+            pNameList->push_back(VariableNameAndPosition(n, at));
         }
         VariableDeclaration ( vector<VariableNameAndPosition> * n, TypeDecl * t, Expression * i )
             : pNameList(n), pTypeDecl(t), pInit(i) {}
         virtual ~VariableDeclaration () {
             if ( pNameList ) delete pNameList;
-            delete pTypeDecl;
+            if ( pTypeDecl ) delete pTypeDecl;
             if ( pInit ) delete pInit;
             if ( annotation ) delete annotation;
         }

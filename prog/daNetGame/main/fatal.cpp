@@ -35,11 +35,16 @@
 #include <statsd/statsd.h>
 #include <drv/3d/dag_info.h>
 #include <3d/dag_gpuConfig.h>
+#include "main/gameProjConfig.h"
 
 #if _TARGET_ANDROID || _TARGET_IOS
 #include <crashlytics/firebase_crashlytics.h>
 #endif
 
+#if _TARGET_XBOX
+extern "C" void __ud2(void);
+#pragma intrinsic(__ud2)
+#endif
 
 static void notify_user(const breakpad::CrashInfo &ci)
 {
@@ -80,8 +85,7 @@ static inline const char *classify_fatal_type(const char *msg, const char *file)
   // Note: OOMs also might be due to corrupted content (attempt to allocate huge nonsensical values)
   static const char *OOMSignatures[] = {
     "ot enough memory", // Both "Not enough memory to alloc..." & "zstd error -64 (Allocation error : not enough memory)"
-    "OUTOFMEMORY",
-    "8007000E",
+    "OUTOFMEMORY", "8007000E",
 #if _TARGET_C1 | _TARGET_C1
 
 #endif
@@ -111,11 +115,11 @@ static void enable_breakpad()
 {
   breakpad::Product p;
   clear_and_shrink(p.commandLine); // forbid restarting as it doesn't work with some anti-cheat libs
-  p.name = get_game_name();
+  p.name = gameproj::game_telemetry_name();
   p.version = get_exe_version_str();
 
   breakpad::Configuration cfg;
-  cfg.userAgent = get_game_name();
+  cfg.userAgent = gameproj::game_telemetry_name();
   cfg.notify = notify_user;
   cfg.preprocess = [](breakpad::CrashInfo &ci) { ci.name = !ci.isManual ? "Exception" : classify_fatal_type(ci.expression, ci.file); };
   // This is called right after spawn of bpreport process (which is stalled in user message box asking about submission)
@@ -164,6 +168,28 @@ static void breakpad_dump(const char *expr, const char *call_stack, const char *
   breakpad::dump(info);
 }
 
+void fatal::force_immediate_dump(bool freeze)
+{
+  if (auto cfg = breakpad::get_configuration())
+  {
+    // Note: don't call any hooks/cbs
+    cfg->preprocess = nullptr;
+    cfg->hook = nullptr;
+    breakpad::CrashInfo cinfo;
+    if (freeze)
+      cinfo.type = breakpad::CrashInfo::BPAD_CRASHTYPE_FREEZE;
+    breakpad::dump(cinfo);
+  }
+  else
+  {
+#if defined(_MSC_VER) && !defined(__clang__)
+    __debugbreak();
+#else
+    __builtin_trap();
+#endif
+  }
+}
+
 inline void dump_sqvm_callstacks(const char *call_stack)
 {
 #if DAGOR_DBGLEVEL > 0 // This code obviously won't work if exe symbols not loaded
@@ -193,12 +219,12 @@ inline void dump_sqvm_callstacks(const char *call_stack)
 #define PROCESS_FATAL_ON_INIT_VIDEO _TARGET_PC_WIN
 
 #if PROCESS_FATAL_ON_INIT_VIDEO
-void send_gpu_net_event(const char *event_name, int video_vendor, const uint32_t *drv_ver);
+void send_gpu_net_event(const char *event_name, GpuVendor video_vendor, const uint32_t *drv_ver);
 static void on_video_error_fatal_action()
 {
   if (dgs_execute_quiet)
     return;
-  send_gpu_net_event("Unsupported_driver", 0, nullptr);
+  send_gpu_net_event("Unsupported_driver", GpuVendor::UNKNOWN, nullptr);
   const char *addressPrefix = get_localized_text("url/knowledgebase", "https://support.gaijin.net/hc/search?&query=");
   String address(1024, "%s%X", addressPrefix, 0x8111000B);
   String text(1024, "Visit <a href=\"%s\">%s</a>", address.str(), address.str());
@@ -278,11 +304,8 @@ static void __cdecl fatal_on_pure_virtual_call() { DAG_FATAL("Pure virtual funct
 #if EASTL_ASSERT_ENABLED
 static void handle_eastl_assertion_failure(const char *expr, void * /*ctx*/)
 {
-  stackhelp::CallStackCaptureStore<64> stack;
-  stackhelp::ext::CallStackCaptureStore extStack;
-  stack.capture();
-  extStack.capture();
-  fatal_handler(expr, get_call_stack_str(stack, extStack), "", 0);
+  if (dgs_assertion_handler(false, "", 0, "", expr, nullptr, nullptr, 0))
+    G_DEBUG_BREAK;
 }
 #endif
 

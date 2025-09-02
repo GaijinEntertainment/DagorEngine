@@ -2,25 +2,38 @@
 buffer spot_lights_flags;
 buffer omni_lights_flags;
 
-hlsl {
-  #define check_byte_buffer_by_mask(flag_buffer, index, mask) (flag_buffer[index/4] & (mask << ((index&3)<<3)))
-}
+macro USE_LIGHT_MASK_COMMON(code)
+  BEGIN_ONCE(light_mask_common_included)
+  hlsl (code)
+  {
+    #include "light_mask_inc.hlsli"
+
+    bool check_byte_buffer_by_mask(ByteAddressBuffer flag_buffer, uint index, uint mask)
+    {
+      uint rawAlignedData = loadBuffer(flag_buffer, index & ~3);
+      uint flagByte = (rawAlignedData >> ((index & 3) << 3));
+      return flagByte & mask;
+    }
+  }
+  END_ONCE()
+endmacro
 
 macro USE_SPOT_LIGHT_MASK(code)
-  (code) {spot_lights_flags@buf = spot_lights_flags hlsl {StructuredBuffer<uint> spot_lights_flags@buf;}; }
+  // TODO: we can use byte address buffer
+  USE_LIGHT_MASK_COMMON(code)
+  (code) {spot_lights_flags@buf = spot_lights_flags hlsl {ByteAddressBuffer spot_lights_flags@buf;}; }
   hlsl(code) {
-    #define CHECK_SPOT_LIGHT_MASK 1U
-    #define SPOT_LIGHT_MASK_LENS_FLARE 2U
+    #define ENABLE_SPOT_LIGHT_MASK 1
 
     bool check_spot_light(uint light_index, uint mask){ return check_byte_buffer_by_mask(spot_lights_flags, light_index, mask); }
   }
 endmacro
 
 macro USE_OMNI_LIGHT_MASK(code)
-  (code) {omni_lights_flags@buf = omni_lights_flags hlsl {StructuredBuffer<uint> omni_lights_flags@buf;}; }
+  USE_LIGHT_MASK_COMMON(code)
+  (code) {omni_lights_flags@buf = omni_lights_flags hlsl {ByteAddressBuffer omni_lights_flags@buf;}; }
   hlsl(code) {
-    #define CHECK_OMNI_LIGHT_MASK 1U
-    #define OMNI_LIGHT_MASK_LENS_FLARE 2U
+    #define ENABLE_OMNI_LIGHT_MASK 1
 
     bool check_omni_light(uint light_index, uint mask){ return check_byte_buffer_by_mask(omni_lights_flags, light_index, mask); }
   }

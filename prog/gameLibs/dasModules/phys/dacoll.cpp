@@ -236,6 +236,9 @@ public:
     das::addExtern<DAS_BIND_FUN(dacoll_test_collision_ri)>(*this, lib, "test_collision_ri", das::SideEffects::modifyExternal,
       "bind_dascript::dacoll_test_collision_ri");
 
+    das::addExtern<DAS_BIND_FUN(dacoll_test_collision_ri_sph)>(*this, lib, "test_collision_ri", das::SideEffects::modifyExternal,
+      "bind_dascript::dacoll_test_collision_ri_sph");
+
     das::addExtern<DAS_BIND_FUN(dacoll_test_collision_frt)>(*this, lib, "test_collision_frt", das::SideEffects::modifyExternal,
       "bind_dascript::dacoll_test_collision_frt");
 
@@ -244,6 +247,9 @@ public:
 
     das::addExtern<DAS_BIND_FUN(dacoll_test_box_collision_world)>(*this, lib, "test_box_collision_world",
       das::SideEffects::accessExternal, "bind_dascript::dacoll_test_box_collision_world");
+
+    das::addExtern<DAS_BIND_FUN(dacoll_test_capsule_collision_world)>(*this, lib, "test_capsule_collision_world",
+      das::SideEffects::accessExternal, "bind_dascript::dacoll_test_capsule_collision_world");
 
     das::addExtern<DAS_BIND_FUN(dacoll_fetch_sim_res)>(*this, lib, "dacoll_fetch_sim_res", das::SideEffects::accessExternal,
       "bind_dascript::dacoll_fetch_sim_res");

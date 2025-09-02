@@ -38,6 +38,7 @@ ClipmapDecals::ClipmapDecals()
 {
   mem_set_0(instData);
   cameraPosition = Point3(0, 0, 0);
+  rndSeed = static_cast<int>(reinterpret_cast<uintptr_t>(this)); // explicit cast to avoid warning
 }
 
 ClipmapDecals::~ClipmapDecals()
@@ -408,7 +409,7 @@ void ClipmapDecals::createDecal(int decalType, const Point2 &pos, float rot, con
   Point4 baseTc = type.subtypes[subtype].tc;
   // choose random seed of decal
   {
-    float start = (float)rnd_int(0, type.subtypes[subtype].variants - 1);
+    float start = (float)_rnd_int(rndSeed, 0, type.subtypes[subtype].variants - 1);
     float imgScale = 1.0f / ((float)type.subtypes[subtype].variants);
     processedTc.x = baseTc.x + start * imgScale * (baseTc.z - baseTc.x);
     processedTc.z = baseTc.x + (start + 1.0f) * imgScale * (baseTc.z - baseTc.x);

@@ -4,6 +4,7 @@
 #include <debug/dag_assert.h>
 #include <debug/dag_fatal.h>
 #include <value_range.h>
+#include <drv_assert_defs.h>
 
 #include "util/bits.h"
 #include "format_store.h"
@@ -57,23 +58,23 @@ BEGIN_BITFIELD_TYPE(ImageViewState, uint64_t)
     switch (type)
     {
       case VK_IMAGE_TYPE_1D:
-        G_ASSERT(isCubemap == 0);
-        G_ASSERT(isRenderTarget == 0);
+        D3D_CONTRACT_ASSERT(isCubemap == 0);
+        D3D_CONTRACT_ASSERT(isRenderTarget == 0);
         if (isArray)
           return VK_IMAGE_VIEW_TYPE_1D_ARRAY;
-        G_ASSERT(getArrayCount() == 1);
+        D3D_CONTRACT_ASSERT(getArrayCount() == 1);
         return VK_IMAGE_VIEW_TYPE_1D;
       case VK_IMAGE_TYPE_2D:
         if (isCubemap)
         {
           if (isArray)
           {
-            G_ASSERT((getArrayCount() % 6) == 0);
+            D3D_CONTRACT_ASSERT((getArrayCount() % 6) == 0);
             return VK_IMAGE_VIEW_TYPE_CUBE_ARRAY;
           }
           else
           {
-            G_ASSERT(getArrayCount() == 6);
+            D3D_CONTRACT_ASSERT(getArrayCount() == 6);
             return VK_IMAGE_VIEW_TYPE_CUBE;
           }
         }
@@ -81,25 +82,25 @@ BEGIN_BITFIELD_TYPE(ImageViewState, uint64_t)
         {
           return VK_IMAGE_VIEW_TYPE_2D_ARRAY;
         }
-        G_ASSERT(getArrayCount() == 1);
+        D3D_CONTRACT_ASSERT(getArrayCount() == 1);
         return VK_IMAGE_VIEW_TYPE_2D;
       case VK_IMAGE_TYPE_3D:
-        G_ASSERT(isCubemap == 0);
-        G_ASSERT(isRenderTarget || getArrayBase() == 0);
+        D3D_CONTRACT_ASSERT(isCubemap == 0);
+        D3D_CONTRACT_ASSERT(isRenderTarget || getArrayBase() == 0);
         if (isRenderTarget)
         {
           if (isArray)
             return VK_IMAGE_VIEW_TYPE_2D_ARRAY;
           else
           {
-            G_ASSERT(getArrayCount() == 1);
+            D3D_CONTRACT_ASSERT(getArrayCount() == 1);
             return VK_IMAGE_VIEW_TYPE_2D;
           }
         }
         else
         {
-          G_ASSERT(getArrayCount() == 1);
-          G_ASSERT(isArray == 0);
+          D3D_CONTRACT_ASSERT(getArrayCount() == 1);
+          D3D_CONTRACT_ASSERT(isArray == 0);
           return VK_IMAGE_VIEW_TYPE_3D;
         }
       default:

@@ -6,6 +6,7 @@
 
 dag::Vector<String> AssetSelectorGlobalState::favorites;
 dag::Vector<String> AssetSelectorGlobalState::recentlyUsed;
+bool AssetSelectorGlobalState::moveCopyToSubmenu = true;
 bool AssetSelectorGlobalState::showHierarchyInFavorites = true;
 int AssetSelectorGlobalState::favoritesGenerationId = 0;
 int AssetSelectorGlobalState::recentlyUsedGenerationId = 0;
@@ -32,6 +33,7 @@ void AssetSelectorGlobalState::load(const DataBlock &block)
           strcmp(recentlyUsedBlock->getParamName(i), "RecentlyUsed") == 0)
         recentlyUsed.emplace_back(String(recentlyUsedBlock->getStr(i)));
 
+  moveCopyToSubmenu = selectorBlock->getBool("MoveCopyToSubmenu", moveCopyToSubmenu);
   showHierarchyInFavorites = selectorBlock->getBool("ShowHierarchyInFavorites", showHierarchyInFavorites);
 }
 
@@ -57,6 +59,7 @@ void AssetSelectorGlobalState::save(DataBlock &block)
     for (const String &name : recentlyUsed)
       recentlyUsedBlock->addStr("RecentlyUsed", name);
 
+  selectorBlock->setBool("MoveCopyToSubmenu", moveCopyToSubmenu);
   selectorBlock->setBool("ShowHierarchyInFavorites", showHierarchyInFavorites);
 }
 

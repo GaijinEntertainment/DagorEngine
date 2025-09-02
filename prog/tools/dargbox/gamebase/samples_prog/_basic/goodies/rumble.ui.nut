@@ -13,20 +13,20 @@ function slider(rumble_field) {
   let minVal = 0.0
   let maxVal = 1.0
 
-  let knob = {
-    size  = [10, flex()]
+  let knob = static {
+    size  = [hdpx(10), flex()]
     rendObj = ROBJ_SOLID
-    pos = [-10,0]
+    pos = [-hdpx(10),0]
   }
 
-   function onChange(val) {
-     vlog($"rumble_field ->{val}")
-     rumbleVals[rumble_field](val)
-//     get_rumble()[rumble_field] = val
-   }
+  function onChange(val) {
+    vlog($"rumble_field ->{val}")
+    rumbleVals[rumble_field].set(val)
+//    get_rumble()[rumble_field] = val
+  }
 
   return function() {
-    let fValue = rumbleVals[rumble_field].value
+    let fValue = rumbleVals[rumble_field].get()
 
     return {
       rendObj = ROBJ_SOLID
@@ -41,7 +41,7 @@ function slider(rumble_field) {
       max = maxVal
       unit = 0.02
       orientation = O_HORIZONTAL
-      size = [flex(), sh(5)]
+      size = static [flex(), sh(5)]
       color = Color(0, 10, 20)
       flow = FLOW_HORIZONTAL
 
@@ -51,7 +51,7 @@ function slider(rumble_field) {
         {size=[flex(maxVal-fValue), flex()]}
       ]
 
-      onChange = onChange
+      onChange
     }
   }
 }

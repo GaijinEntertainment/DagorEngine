@@ -7,10 +7,10 @@ hlsl(code)
 
   uint2 concatenate_func_variant(addition_data_type_id) ()
   {
-    float4 offset8 = 0, count8;
-    get_per_instance_data(count8, 1);
+    float4 offset8 = 0;
+    float4 count8 = GET_PER_INSTANCE_DATA(1);
     if (any(asuint(count8) != 0))
-      get_per_instance_data(offset8, 2);
+      offset8 = GET_PER_INSTANCE_DATA(2);
 
     float offset2F = offset8[addition_data_type_id / 2];
     float count2F = count8[addition_data_type_id / 2];
@@ -36,34 +36,35 @@ macro USE_ANIMCHAR_ADDITIONAL_DATA(code)
   GET_OFFSET_COUNT_ADDITIONAL_DATA(code, 7)
   hlsl(code)
   {
-    #define get_offset_count_additional_data(addition_data_type_id) get_offset_count_additional_data_impl ## addition_data_type_id ()
+    #include <animchar_additional_data_types.hlsli>
 
-    float4 get_additional_data_unsafe(uint global_offset)
+    #define get_offset_count_additional_data(addition_data_type_id) PPCAT(get_offset_count_additional_data_impl, addition_data_type_id())
+
+    #define get_additional_data_unsafe_raw(global_offset) GET_PER_INSTANCE_DATA(global_offset)
+
+    float4 get_additional_data_unsafe_impl(uint2 offset_count, uint index, int file, int ln)
     {
-      float4 data;
-      get_per_instance_data(data, global_offset);
-      return data;
-    }
-    float4 get_additional_data_unsafe(uint2 offset_count, uint index)
-    {
-      return get_additional_data_unsafe(offset_count.x + index);
+      ##assert(index < offset_count.y, "[%s:%.d] Out of bounds: additional data type has size %d, but access to %d.", file, ln, offset_count.y, index);
+      return get_additional_data_unsafe_raw(offset_count.x + index);
     }
 
-    float4 get_additional_data(uint2 offset_count, uint index)
+    float4 get_additional_data_impl(uint2 offset_count, uint index, int file, int ln)
     {
       if (index < offset_count.y)
-        return get_additional_data_unsafe(offset_count, index);
+        return get_additional_data_unsafe_impl(offset_count, index, file, ln);
       else
       {
-        ##assert(false, "Attempting to access additional data at index %d, but the index is out of bounds. The additional data size is %d.", index, offset_count.y);
+        ##assert(false, "[%s:%.d] Out of bounds: additional data type has size %d, but access to %d.", file, ln, offset_count.y, index);
         return NaN; //if we try to read garbage data it is better return nans
       }
     }
-  }
-endmacro
 
-macro USE_ANIMCHAR_ADDITIONAL_DATA_VS_ONCE()
-  BEGIN_ONCE(use_animchar_additional_data_vs)
-  USE_ANIMCHAR_ADDITIONAL_DATA(vs)
-  END_ONCE()
+    float4 get_optional_additional_data(uint2 offset_count, uint index, float4 default_result)
+    {
+      return get_optional_per_instance_data(offset_count.x + index, offset_count.y > index, default_result);
+    }
+
+    #define get_additional_data_unsafe(offset_count, index) get_additional_data_unsafe_impl(offset_count, index, _FILE_, __LINE__)
+    #define get_additional_data(offset_count, index) get_additional_data_impl(offset_count, index, _FILE_, __LINE__)
+  }
 endmacro

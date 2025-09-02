@@ -15,8 +15,8 @@ public:
     das::ModuleLibrary lib(this);
     addBuiltinDependency(lib, require("Dacoll"));
 
-    das::addExtern<DAS_BIND_FUN(get_collres_body_tm)>(*this, lib, "get_collres_body_tm", das::SideEffects::accessExternal,
-      "get_collres_body_tm");
+    das::addExtern<DAS_BIND_FUN(get_collres_body_tm)>(*this, lib, "get_collres_body_tm",
+      das::SideEffects::modifyArgumentAndAccessExternal, "get_collres_body_tm");
 
     verifyAotReady();
   }

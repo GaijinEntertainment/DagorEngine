@@ -24,7 +24,7 @@ UseProgLibs =
 ;
 
 if $(WalkerUseVersion) = yes {
-  CPPopt += -DHUMAN_USE_UNIT_VERSION=1 ;
+  CPPopt += -DHUMAN_USE_UNIT_VERSION ;
 }
 
 if $(UseSyncDebugLib) = no || ! [ GLOB $(Root)/prog/gameLibs/syncDebug : * ] {

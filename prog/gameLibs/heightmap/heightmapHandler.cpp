@@ -28,8 +28,16 @@ CONSOLE_BOOL_VAL("hmap", nvidia_551_workaround, true);
 #define ENABLE_RENDER_HMAP_MODIFICATION    1
 #define ENABLE_RENDER_HMAP_SUB_TESSELATION 1
 
-static int heightmapTexVarId = -1, world_to_hmap_lowVarId = -1, tex_hmap_inv_sizesVarId = -1;
-static int heightmap_scaleVarId = -1;
+#define GLOBAL_VARS_LIST         \
+  VAR(tex_hmap_low_samplerstate) \
+  VAR(tex_hmap_low)              \
+  VAR(world_to_hmap_low)         \
+  VAR(heightmap_scale)           \
+  VAR(tex_hmap_inv_sizes)
+
+#define VAR(a) static ShaderVariableInfo a##VarId(#a, true);
+GLOBAL_VARS_LIST
+#undef VAR
 
 static uint32_t select_hmap_tex_fmt()
 {
@@ -46,6 +54,49 @@ static uint32_t select_hmap_tex_fmt()
 
 static int get_mip_levels(const IPoint2 &hmapWidth) { return min(get_log2i(hmapWidth.x), get_log2i(hmapWidth.y)) + 1; }
 
+void HeightmapHandler::setVars()
+{
+  if (!renderData)
+    return;
+  ShaderGlobal::set_color4(world_to_hmap_lowVarId,
+    Color4(1.0f / worldSize.x, 1.0f / worldSize.y, -worldPosOfs.x / worldSize.x, -worldPosOfs.y / worldSize.y));
+
+  ShaderGlobal::set_color4(tex_hmap_inv_sizesVarId,
+    Color4(1.0f / hmapWidth.x, 1.0f / hmapWidth.y, 1.0f / hmapWidth.x, 1.0f / hmapWidth.y));
+
+  ShaderGlobal::set_color4(heightmap_scaleVarId, Color4(hScale, hMin, hScale, hMin));
+  ShaderGlobal::set_texture(tex_hmap_lowVarId, renderData->heightmap);
+  ShaderGlobal::set_sampler(tex_hmap_low_samplerstateVarId, renderData->heightmapSampler);
+}
+
+void HeightmapHandler::initRender(bool clamp)
+{
+  renderData.reset(new HeightmapRenderData);
+
+  const int levelCount = get_mip_levels(hmapWidth) - 1; // Last mip is 2x2.
+  renderData->texFMT = select_hmap_tex_fmt();
+  renderData->heightmap =
+    UniqueTex(dag::create_tex(NULL, hmapWidth.x, hmapWidth.y, renderData->texFMT | TEXCF_UPDATE_DESTINATION, levelCount, "hmapMain"),
+      "land_heightmap_tex");
+  {
+    d3d::SamplerInfo smpInfo;
+    smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w =
+      clamp ? d3d::AddressMode::Clamp : d3d::AddressMode::Mirror;
+    renderData->heightmapSampler = d3d::request_sampler(smpInfo);
+  }
+  d3d_err(renderData->heightmap.getTex2D());
+
+  fillHmapTexturesNeeded = true;
+
+  hmapUploadTex = dag::create_tex(NULL, enabledMipsUpdating ? 3 * HMAP_BSIZE / 2 : HMAP_BSIZE, HMAP_BSIZE,
+    renderData->texFMT | TEXCF_WRITEONLY, 1, "hmap_upload_tex_region");
+  lastRegionUpdated_NVworkaround = -1;
+  renderer.setRenderClip(&worldBox2);
+  setVars();
+
+  debug("hmap: initialized");
+}
+
 bool HeightmapHandler::loadDump(IGenLoad &loadCb, bool load_render_data, GlobalSharedMemStorage *sharedMem)
 {
   const int skip_mips = clamp(::dgs_get_settings()->getBlockByNameEx("debug")->getInt("skip_hmap_levels", 0), 0, 3);
@@ -57,47 +108,7 @@ bool HeightmapHandler::loadDump(IGenLoad &loadCb, bool load_render_data, GlobalS
     ::dgs_get_settings()->getBlockByNameEx("graphics")->getReal("hmapTessCellSize", hmapCellSize));
 
   if (load_render_data)
-  {
-    heightmapTexVarId = get_shader_variable_id("tex_hmap_low");
-    world_to_hmap_lowVarId = get_shader_variable_id("world_to_hmap_low");
-    tex_hmap_inv_sizesVarId = get_shader_variable_id("tex_hmap_inv_sizes", true);
-    ShaderGlobal::set_color4(world_to_hmap_lowVarId,
-      Color4(1.0f / worldSize.x, 1.0f / worldSize.y, -worldPosOfs.x / worldSize.x, -worldPosOfs.y / worldSize.y));
-
-    ShaderGlobal::set_color4(tex_hmap_inv_sizesVarId,
-      Color4(1.0f / hmapWidth.x, 1.0f / hmapWidth.y, 1.0f / hmapWidth.x, 1.0f / hmapWidth.y));
-
-    heightmap_scaleVarId = get_shader_variable_id("heightmap_scale");
-    ShaderGlobal::set_color4(heightmap_scaleVarId, Color4(hScale, hMin, hScale, hMin));
-
-    renderData.reset(new HeightmapRenderData);
-
-    const int levelCount = get_mip_levels(hmapWidth) - 1; // Last mip is 2x2.
-    renderData->texFMT = select_hmap_tex_fmt();
-    renderData->heightmap = UniqueTex(dag::create_tex(NULL, hmapWidth.x, hmapWidth.y,
-                                        renderData->texFMT | TEXCF_UPDATE_DESTINATION | TEXCF_MAYBELOST, levelCount, "hmapMain"),
-      "land_heightmap_tex");
-    renderData->heightmap->disableSampler();
-    {
-      d3d::SamplerInfo smpInfo;
-      smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
-      ShaderGlobal::set_sampler(get_shader_variable_id("tex_hmap_low_samplerstate"), d3d::request_sampler(smpInfo));
-    }
-    d3d_err(renderData->heightmap.getTex2D());
-
-    renderData->diamondSubDiv =
-      (renderData->texFMT == TEXFMT_L16 && (d3d::get_texformat_usage(renderData->texFMT) & d3d::USAGE_FILTER));
-    debug("hmap: use diamond sub div = %d", renderData->diamondSubDiv);
-
-    fillHmapTexturesNeeded = true;
-
-    hmapUploadTex = dag::create_tex(NULL, enabledMipsUpdating ? 3 * HMAP_BSIZE / 2 : HMAP_BSIZE, HMAP_BSIZE,
-      renderData->texFMT | TEXCF_WRITEONLY | TEXCF_MAYBELOST, 1, "hmap_upload_tex_region");
-    lastRegionUpdated_NVworkaround = -1;
-    renderer.setRenderClip(&worldBox2);
-
-    debug("hmap: initialized");
-  }
+    initRender();
   return true;
 }
 
@@ -160,8 +171,13 @@ void HeightmapHandler::fillHmapTextures()
   for (int i = 0; i < 4; ++i)
   {
     String uploadTempName(128, "hmap_upload_tex_quad_%d", i);
-    UniqueTex uploadTemp = dag::create_tex(NULL, 3 * quadWidth.x / 2, quadWidth.y,
-      renderData->texFMT | TEXCF_WRITEONLY | TEXCF_MAYBELOST, 1, uploadTempName);
+    UniqueTex uploadTemp =
+      dag::create_tex(NULL, 3 * quadWidth.x / 2, quadWidth.y, renderData->texFMT | TEXCF_WRITEONLY, 1, uploadTempName);
+    if (!uploadTemp)
+    {
+      logerr("failed to create uploadTemp during fillHmapTextures, skipping");
+      continue;
+    }
 
     IPoint2 quadPivot = IPoint2::ZERO;
     if (i % 2 != 0)
@@ -273,7 +289,7 @@ void HeightmapHandler::fillHmapRegionDetailed(IPoint2 region_pivot, IPoint2 regi
 void HeightmapHandler::close()
 {
   hmapUploadTex.close();
-  ShaderGlobal::set_texture(heightmapTexVarId, BAD_TEXTUREID);
+  ShaderGlobal::set_texture(tex_hmap_lowVarId, BAD_TEXTUREID);
   ShaderGlobal::set_color4(world_to_hmap_lowVarId, Color4(10e+3, 10e+3, 10e+10, 10e+10)); // 1mm^2 at (-10000Km, -10000Km)
   renderData.reset();
   renderer.close();
@@ -287,9 +303,10 @@ void HeightmapHandler::afterDeviceReset()
   renderer.init("heightmap", "", "hmap_tess_factor", false, hmapDimBits);
 }
 
-bool HeightmapHandler::init()
+bool HeightmapHandler::init(int dim_bits)
 {
-  hmapDimBits = ::dgs_get_settings()->getBlockByNameEx("graphics")->getInt("heightmapDimBits", default_patch_bits);
+  hmapDimBits =
+    dim_bits <= 1 ? ::dgs_get_settings()->getBlockByNameEx("graphics")->getInt("heightmapDimBits", default_patch_bits) : dim_bits;
 
   if (!renderer.init("heightmap", "", "hmap_tess_factor", false, hmapDimBits))
     return false;
@@ -333,7 +350,7 @@ void HeightmapHandler::invalidateCulling(const IBBox2 &ib)
     heightmapHeightCulling->updateMinMaxHeights(this, ib);
 }
 
-bool HeightmapHandler::prepare(const Point3 &world_pos, float camera_height, float water_level)
+void HeightmapHandler::makeBookKeeping()
 {
   if (!heightmapHeightCulling)
     invalidateCulling(IBBox2{{0, 0}, {hmapWidth.x - 1, hmapWidth.y - 1}});
@@ -343,16 +360,20 @@ bool HeightmapHandler::prepare(const Point3 &world_pos, float camera_height, flo
     heightChangesIndex.clear();
     fillHmapTexturesNeeded = false;
   }
+  if (pushHmapModificationOnPrepare)
+    prepareHmapModificaton();
+}
+
+bool HeightmapHandler::prepare(const Point3 &world_pos, float camera_height, float water_level)
+{
+  makeBookKeeping();
   preparedOriginPos = world_pos;
   preparedCameraHeight = camera_height;
   preparedWaterLevel = water_level;
-  ShaderGlobal::set_texture(heightmapTexVarId, renderData->heightmap);
+  setVars();
   float distanceToSwitch = hmapDistanceMul * max(worldSize.x, worldSize.y);
   if (lengthSq(getClippedOrigin(world_pos) - world_pos) > distanceToSwitch * distanceToSwitch)
     return false;
-
-  if (pushHmapModificationOnPrepare)
-    prepareHmapModificaton();
 
   return true;
 }
@@ -383,16 +404,22 @@ void HeightmapHandler::render(int min_tank_lod)
   mat44f globtm;
   d3d::getglobtm(globtm);
   LodGridCullData defaultCullData(framemem_ptr());
-  frustumCulling(defaultCullData, preparedOriginPos, preparedCameraHeight, preparedWaterLevel, Frustum(globtm), min_tank_lod, NULL, 0);
+  TMatrix4 proj;
+  d3d::gettm(TM_PROJ, &proj);
+  frustumCulling(defaultCullData, HeightmapFrustumCullingInfo{preparedOriginPos, preparedCameraHeight, preparedWaterLevel,
+                                    Frustum(globtm), nullptr, min_tank_lod, 0, 1, proj});
   renderCulled(defaultCullData);
 }
 
 // float hm_scale = 1.0f;
 
-void HeightmapHandler::frustumCulling(LodGridCullData &cull_data, const Point3 &world_pos, float camera_height, float water_level,
-  const Frustum &frustum, int min_tank_lod, const Occlusion *occlusion, int lod0subdiv, float lod0scale)
+void HeightmapHandler::frustumCulling(LodGridCullData &cull_data, const HeightmapFrustumCullingInfo &fi)
 {
-  if (!frustum.testBoxB(vecbox.bmin, vecbox.bmax))
+  if (fi.proj == TMatrix4::IDENT)
+  {
+    debug_dump_stack();
+  }
+  if (!fi.frustum.testBoxB(vecbox.bmin, vecbox.bmax))
   {
     cull_data.eraseAll();
     return;
@@ -404,29 +431,29 @@ void HeightmapHandler::frustumCulling(LodGridCullData &cull_data, const Point3 &
 #else
   TIME_PROFILE(htmap_frustum_cull);
 #endif
-    int lastLodRepeat =
-      max(1, (int)(1 + safediv(max(worldSize.x, worldSize.y), renderer.getDim() * hmapCellSize * lod0scale * (1 << (lodCount - 1)))));
+    int lastLodRepeat = max(1,
+      (int)(1 + safediv(max(worldSize.x, worldSize.y), renderer.getDim() * hmapCellSize * fi.lod0scale * (1 << (lodCount - 1)))));
 
-    cull_data.lodGrid.init(lodCount, lodDistance, lod0subdiv, lodDistance * lastLodRepeat); // changing 1,lod0subdiv, 1 to
-                                                                                            // 3,lod0subdiv,3 will get much longer
-                                                                                            // distance of high quality tesselation
-                                                                                            // (helpful  in zoom)
-    int lod = calcLod(min_tank_lod, world_pos, camera_height);
+    cull_data.lodGrid.init(lodCount, lodDistance, fi.lod0subdiv, lodDistance * lastLodRepeat); // changing 1,lod0subdiv, 1 to
+                                                                                               // 3,lod0subdiv,3 will get much longer
+                                                                                               // distance of high quality tesselation
+                                                                                               // (helpful  in zoom)
+    int lod = calcLod(fi.min_tank_lod, fi.world_pos, fi.camera_height);
     if (lod > 0)
       cull_data.lodGrid.lod0SubDiv = 0;
 
     // unfortunately, although if we use (1<<(lodGrid.lodsCount-1)) snapping all verices stays, but triangulation pops (because we use
     // diamond subdivision) can be fix, if we will swap subdivision as well.
-    float scale = hmapCellSize * (1 << lod) * lod0scale;
+    float scale = hmapCellSize * (1 << lod) * fi.lod0scale;
     float align = renderer.getDim() * scale;
 
     // float align = (1<<(lodGrid.lodsCount-1))*hmapCellSize;
     float lod0AreaSize = 0.f;
-    Point3 clippedOrigin = getClippedOrigin(world_pos);
-    cull_lod_grid(cull_data.lodGrid, cull_data.lodGrid.lodsCount - min_tank_lod, clippedOrigin.x, clippedOrigin.z, scale, scale, align,
-      align, worldBox[0].y, worldBox[1].y, &frustum, &worldBox2, cull_data, occlusion, lod0AreaSize,
-      renderer.get_hmap_tess_factorVarId(), renderer.getDim(), true, heightmapHeightCulling.get(), hmtd, nullptr, water_level,
-      &world_pos);
+    Point3 clippedOrigin = getClippedOrigin(fi.world_pos);
+    cull_lod_grid(cull_data.lodGrid, cull_data.lodGrid.lodsCount - fi.min_tank_lod, clippedOrigin.x, clippedOrigin.z, scale, scale,
+      align, align, worldBox[0].y, worldBox[1].y, &fi.frustum, &worldBox2, cull_data, fi.occlusion, lod0AreaSize,
+      renderer.get_hmap_tess_factorVarId(), renderer.getDim(), true, heightmapHeightCulling.get(), hmtd, nullptr, fi.water_level,
+      &fi.world_pos);
 #if DAGOR_DBGLEVEL > 0 && TIME_PROFILER_ENABLED
   };
   if (!hmtd)
@@ -444,7 +471,7 @@ void HeightmapHandler::frustumCulling(LodGridCullData &cull_data, const Point3 &
 
 void HeightmapHandler::renderCulled(const LodGridCullData &cullData)
 {
-  if (!cullData.patches.size())
+  if (!cullData.hasPatches())
     return;
   renderer.render(cullData.lodGrid, cullData);
 }
@@ -456,4 +483,23 @@ void HeightmapHandler::renderOnePatch()
   if (!Frustum(globtm).testBoxB(vecbox.bmin, vecbox.bmax))
     return;
   renderer.renderOnePatch(Point2::xz(worldBox[0]), Point2::xz(worldBox[1]));
+}
+
+void HeightmapHandler::setSampler(d3d::SamplerHandle &&s)
+{
+  if (renderData)
+    renderData->heightmapSampler = (d3d::SamplerHandle &&)s;
+}
+
+void HeightmapHandler::setTexture(UniqueTex &&u)
+{
+  if (!renderData)
+    return;
+  renderData->heightmap = (UniqueTex &&)u;
+  if (renderData->heightmap.getTex2D())
+  {
+    TextureInfo ti;
+    renderData->heightmap->getinfo(ti, 0);
+    renderData->texFMT = ti.cflg & TEXFMT_MASK;
+  }
 }

@@ -48,6 +48,8 @@ enum
 
   SYS_SKIP_SIMULATION_ON_THIS_FRAME = 1 << 20,
   SYS_ALLOW_SIMULATION_LODS = 1 << 21,
+
+  SYS_DUMMY_SYSTEM = 1 << 31,
 };
 
 struct SystemTemplate
@@ -57,6 +59,7 @@ struct SystemTemplate
   uint32_t qualityFlags;
   eastl::string name;
   int gameResId;
+  float spawnRangeLimit;
 
   EmitterState emitterState;
   EmitterRandomizer emitterRandomizer;
@@ -96,6 +99,7 @@ struct SystemTemplate
 
 struct Systems
 {
+  SystemId dummySystemId;
   SystemNameMap nameMap;
   GenerationReferencedData<SystemId, SystemTemplate> list;
 };

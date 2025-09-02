@@ -13,6 +13,7 @@
 
 class IMemAlloc;
 class String;
+class IGenSave;
 
 struct VirtualRomFsData;
 struct VirtualRomFsPack;
@@ -148,6 +149,17 @@ KRNLIMP bool dissect_vromfs_dump_body(const VromfsDumpSections &sections, Vromfs
 
 KRNLIMP bool init_vromfs_file_attr(VirtualRomFsFileAttributes &fsAttr, const VromfsDumpBodySections &bodySections);
 
+enum EVromfsEntryPlainRepresentationResult
+{
+  EVEPRR_OK,
+  EVEPRR_UNKNOWN_TYPE,
+  EVEPRR_NEEDS_DDICT,
+  EVEPRR_INVALID_SHARED_NM_CONTENTS
+};
+
+KRNLIMP EVromfsEntryPlainRepresentationResult get_vromfs_entry_plain_representation(EVirtualRomFsFileAttributes attributes,
+  dag::ConstSpan<char> fileData, void *ddict, IGenSave &receiver, Tab<char> *plainBuf = nullptr);
+
 //! callback interface that is used for signature verification (both if signature exist or not),
 //! if its check() method returns false load is considered to be failed
 //! data is fed into checker by calling append() method one or multiple times
@@ -188,7 +200,7 @@ KRNLIMP VirtualRomFsData *load_vromfs_dump_from_mem(dag::ConstSpan<char> data, I
 //! returns vromfs object to access dump or nullptr on error;
 //! optionally returns size of header part of dump and offset of signature (if any) in dump
 KRNLIMP VirtualRomFsData *make_non_intrusive_vromfs(dag::ConstSpan<char> dump, IMemAlloc *mem, unsigned *out_hdr_sz = nullptr,
-  int *out_signature_ofs = nullptr);
+  int *out_md5_hash_ofs = nullptr, int *out_signature_ofs = nullptr);
 KRNLIMP VirtualRomFsData *make_non_intrusive_vromfs(const VromfsDumpSections &sections, const VromfsDumpBodySections &body_sections,
   IMemAlloc *mem, unsigned *out_hdr_sz = nullptr);
 
@@ -226,9 +238,15 @@ KRNLIMP VirtualRomFsData *replace_vromfs(int idx, VirtualRomFsData *fs);
 
 //! returns pointer to mount path for given vromfs
 KRNLIMP char *get_vromfs_mount_path(VirtualRomFsData *fs);
-//! sets mount path for gived vromfs; mount_path must be persistent string, it will be simplified and strlwr'ed; returns previous mount
-//! point
+//! sets mount path for given vromfs; mount_path must be persistent string, it will be simplified and strlwr'ed;
+//! returns previous mount point
 KRNLIMP char *set_vromfs_mount_path(VirtualRomFsData *fs, char *mount_path);
+
+//! sets strip prefixes (in "prefix1;some/prefix2;any/valid_prefix3" form, only lowercase and only / slashes) for given vromfs;
+//! when searching for filepath in vromfs, code tries to strip each prefix from filepath and then find resulting name;
+//! by default vromfs are mounted without strip prefixes;
+//! returns true when all prefixes successfuly set
+KRNLIMP bool set_vromfs_strip_prefixes_str(VirtualRomFsData *fs, const char *strip_prefixes_str);
 
 //! delete all vromfs in file systems list, file system list is made empty after that
 KRNLIMP void delete_all_vromfs();

@@ -243,9 +243,9 @@ bool useBaseVertexPatch(const char *source)
   return true;
 }
 
-CompileResult compileShaderSpirV(const char *source, const char *profile, const char *entry, bool need_disasm, bool enable_fp16,
-  bool skipValidation, bool optimize, int max_constants_no, const char *shader_name, CompilerMode mode, uint64_t shader_variant_hash,
-  bool enable_bindless, bool embed_debug_data)
+CompileResult compileShaderSpirV(const spirv::DXCContext *dxc_ctx, const char *source, const char *profile, const char *entry,
+  bool need_disasm, bool hlsl2021, bool enable_fp16, bool skipValidation, bool optimize, int max_constants_no, const char *shader_name,
+  CompilerMode mode, uint64_t shader_variant_hash, bool enable_bindless, bool embed_debug_data, bool dump_spirv_only)
 {
   CompileResult result;
 
@@ -284,6 +284,12 @@ CompileResult compileShaderSpirV(const char *source, const char *profile, const 
   if (enable_fp16 && mode != CompilerMode::DXC)
   {
     result.errors.sprintf("Profiles with half specialization are currently suppored only by DXC path.\n"
+                          "For switching to DXC please use #pragma spir-v compiler dxc\n");
+    return result;
+  }
+  if (hlsl2021 && mode != CompilerMode::DXC)
+  {
+    result.errors.sprintf("HLSL21 is currently suppored only by DXC path.\n"
                           "For switching to DXC please use #pragma spir-v compiler dxc\n");
     return result;
   }
@@ -477,8 +483,9 @@ CompileResult compileShaderSpirV(const char *source, const char *profile, const 
 
     auto flags = enable_bindless ? spirv::CompileFlags::ENABLE_BINDLESS_SUPPORT : spirv::CompileFlags::NONE;
     flags |= enable_fp16 ? spirv::CompileFlags::ENABLE_HALFS : spirv::CompileFlags::NONE;
+    flags |= hlsl2021 ? spirv::CompileFlags::ENABLE_HLSL21 : spirv::CompileFlags::NONE;
 
-    auto finalSpirV = spirv::compileHLSL_DXC(sourceRange, entry, profile, flags, disabledSpirvOptims);
+    auto finalSpirV = spirv::compileHLSL_DXC(dxc_ctx, sourceRange, entry, profile, flags, disabledSpirvOptims);
     spirv = eastl::move(finalSpirV.byteCode);
     header = finalSpirV.header;
 
@@ -592,10 +599,10 @@ CompileResult compileShaderSpirV(const char *source, const char *profile, const 
     string spirvDisas;
     tools.Disassemble(spirv, &spirvDisas, SPV_BINARY_TO_TEXT_OPTION_FRIENDLY_NAMES);
 
-    spitfile(shader_name, entry, (mode == CompilerMode::HLSLCC) ? "spirv_hlslcc" : "spirv_dxc", shader_variant_hash,
-      (void *)spirvDisas.data(), (int)data_size(spirvDisas));
-    spitfile(shader_name, entry, (mode == CompilerMode::HLSLCC) ? "spirv_hlslcc_raw" : "spirv_dxc_raw", shader_variant_hash,
-      (void *)spirv.data(), (int)data_size(spirv));
+    const String name = String(-1, "%s_%.2s", (mode == CompilerMode::HLSLCC) ? "spirv_hlslcc" : "spirv_dxc", profile);
+    if (!dump_spirv_only)
+      spitfile(shader_name, entry, name, shader_variant_hash, (void *)spirvDisas.data(), (int)data_size(spirvDisas));
+    spitfile(shader_name, entry, name + "_raw", shader_variant_hash, (void *)spirv.data(), (int)data_size(spirv));
   }
 
   header.verMagic = spirv::HEADER_MAGIC_VER;

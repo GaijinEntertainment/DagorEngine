@@ -6,6 +6,8 @@ include "postfx_inc.dshl"
 include "viewVecVS.dshl"
 include "globtm.dshl"
 
+float4 world_sdf_inv_size;
+
 shader dagi_lit_scene_voxels_debug
 {
   supports global_const_block;
@@ -28,7 +30,13 @@ shader dagi_lit_scene_voxels_debug
   USE_HDR(ps)
   (ps) {
      world_sdf_inv_size@f4 = world_sdf_inv_size;
-     world_sdf_coord_lt@i4[] = {world_sdf_coord_lt_0, world_sdf_coord_lt_1, world_sdf_coord_lt_2, world_sdf_coord_lt_3, world_sdf_coord_lt_4, world_sdf_coord_lt_5, world_sdf_coord_lt_6, world_sdf_coord_lt_7};
+     world_sdf_coord_lt_buf@cbuf = world_sdf_coord_lt_buf hlsl {
+       #include <world_sdf.hlsli>
+       cbuffer world_sdf_coord_lt_buf@cbuf
+       {
+         int4 world_sdf_coord_lt[MAX_WORLD_SDF_CLIPS];
+       };
+     };
   }
 
   hlsl(ps)

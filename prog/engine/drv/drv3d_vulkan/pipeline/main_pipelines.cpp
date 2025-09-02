@@ -9,6 +9,7 @@
 #include "physical_device_set.h"
 #include "backend.h"
 #include "wrapped_command_buffer.h"
+#include "vulkan_allocation_callbacks.h"
 
 using namespace drv3d_vulkan;
 
@@ -43,18 +44,17 @@ namespace drv3d_vulkan
 {
 
 template <>
-void ComputePipeline::onDelayedCleanupFinish<ComputePipeline::CLEANUP_DESTROY>()
+void ComputePipeline::onDelayedCleanupFinish<CleanupTag::DESTROY>()
 {
-  if (!checkCompiled())
+  if (checkCompiled() == PipelineCompileStatus::PENDING)
     Backend::pipelineCompiler.waitFor(this);
-  shutdown(Globals::VK::dev);
+  shutdown();
   delete this;
 }
 
 } // namespace drv3d_vulkan
 
-ComputePipeline::ComputePipeline(VulkanDevice &, ProgramID prog, VulkanPipelineCacheHandle cache, LayoutType *l,
-  const CreationInfo &info) :
+ComputePipeline::ComputePipeline(ProgramID prog, VulkanPipelineCacheHandle cache, LayoutType *l, const CreationInfo &info) :
   DebugAttachedPipeline(l)
 {
   ComputePipelineCompileScratchData localScratch;
@@ -77,7 +77,7 @@ ComputePipeline::ComputePipeline(VulkanDevice &, ProgramID prog, VulkanPipelineC
 
 VulkanPipelineHandle ComputePipeline::getHandleForUse()
 {
-  if (!checkCompiled())
+  if (checkCompiled() == PipelineCompileStatus::PENDING)
     Backend::pipelineCompiler.waitFor(this);
 #if VULKAN_LOG_PIPELINE_ACTIVITY > 1
   debug("vulkan: bind compute cs %s", debugInfo.cs().name);
@@ -103,7 +103,7 @@ void ComputePipeline::compile()
   cpci.basePipelineIndex = -1;
 
   CreationFeedback crFeedback;
-  crFeedback.chainWith(cpci, device);
+  crFeedback.chainWith(cpci);
 
   int64_t compilationTime = 0;
   VkResult compileResult = VK_ERROR_UNKNOWN;
@@ -116,7 +116,8 @@ void ComputePipeline::compile()
     TIME_PROFILE(vulkan_cs_pipeline_compile)
 #endif
     ScopedTimer compilationTimer(compilationTime);
-    compileResult = device.vkCreateComputePipelines(device.get(), compileScratch->vkCache, 1, &cpci, NULL, ptr(retHandle));
+    compileResult =
+      device.vkCreateComputePipelines(device.get(), compileScratch->vkCache, 1, &cpci, VKALLOC(pipeline), ptr(retHandle));
   }
 
   if (is_null(retHandle) && VULKAN_OK(compileResult))
@@ -127,7 +128,8 @@ void ComputePipeline::compile()
 
 #if VULKAN_LOAD_SHADER_EXTENDED_DEBUG_DATA
   if (VULKAN_FAIL(compileResult))
-    D3D_ERROR("vulkan: pipeline [compute:%u] cs: %s failed to compile", compileScratch->progIdx, compileScratch->name);
+    D3D_ERROR("vulkan: pipeline [compute:%u] cs: %s failed to compile with error %u:%s", compileScratch->progIdx, compileScratch->name,
+      compileResult, vulkan_error_string(compileResult));
   Globals::Dbg::naming.setPipelineName(retHandle, compileScratch->name);
   Globals::Dbg::naming.setPipelineLayoutName(getLayout()->handle, compileScratch->name);
   totalCompilationTime = compilationTime;
@@ -144,10 +146,11 @@ void ComputePipeline::compile()
 #if VULKAN_LOAD_SHADER_EXTENDED_DEBUG_DATA
     debug("vulkan: with cs %s , handle %p", compileScratch->name, generalize(retHandle));
 #endif
+    dumpExecutablesInfo(retHandle);
   }
 
   // no need to keep the shader module, delete it to save memory
-  VULKAN_LOG_CALL(device.vkDestroyShaderModule(device.get(), compileScratch->vkModule, NULL));
+  VULKAN_LOG_CALL(device.vkDestroyShaderModule(device.get(), compileScratch->vkModule, VKALLOC(shader_module)));
 
   if (compileScratch->allocated)
   {
@@ -162,7 +165,7 @@ void ComputePipeline::compile()
   }
 }
 
-bool ComputePipeline::pendingCompilation() { return !checkCompiled(); }
+bool ComputePipeline::pendingCompilation() { return checkCompiled() == PipelineCompileStatus::PENDING; }
 
 static VkSampleCountFlagBits checkSampleCount(unsigned int count, uint8_t colorMask, uint8_t hasDepth)
 {
@@ -186,9 +189,9 @@ static VkSampleCountFlagBits checkSampleCount(unsigned int count, uint8_t colorM
   }
   const VkPhysicalDeviceProperties &properties = Globals::VK::phy.properties;
   G_UNUSED(properties);
-  G_ASSERTF(properties.limits.framebufferNoAttachmentsSampleCounts & ret,
+  D3D_CONTRACT_ASSERTF(properties.limits.framebufferNoAttachmentsSampleCounts & ret,
     "Selected sample count is not supported on the current platform");
-  G_ASSERTF(!hasDepth && !colorMask, "Forced multisampling is only supported when there is no color and depth attachment");
+  D3D_CONTRACT_ASSERTF(!hasDepth && !colorMask, "Forced multisampling is only supported when there is no color and depth attachment");
   return ret;
 }
 
@@ -203,7 +206,7 @@ static const VkViewport grPipeStaticViewport = {0.f, 0.f, 1.f, 1.f, 0.f, 1.f};
 static const VkPipelineViewportStateCreateInfo grPipeViewportStates = //
   {VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO, NULL, 0, 1, &grPipeStaticViewport, 1, &grPipeStaticRect};
 
-GraphicsPipeline::GraphicsPipeline(VulkanDevice &device, VulkanPipelineCacheHandle cache, LayoutType *l, const CreationInfo &info) :
+GraphicsPipeline::GraphicsPipeline(VulkanPipelineCacheHandle cache, LayoutType *l, const CreationInfo &info) :
   BasePipeline(l), dynStateMask(info.dynStateMask), ignore(false)
 {
   GraphicsPipelineCompileScratchData &csd = *info.scratch;
@@ -230,7 +233,7 @@ GraphicsPipeline::GraphicsPipeline(VulkanDevice &device, VulkanPipelineCacheHand
   else
   {
     RenderPassClass *passClassRef = Globals::passes.getPassClass(info.varDsc.rpClass);
-    renderPassHandle = passClassRef->getPass(device, 0);
+    renderPassHandle = passClassRef->getPass(0);
     hasDepth = info.varDsc.rpClass.depthState != RenderPassClass::Identifier::NO_DEPTH;
     forceNoZWrite = info.varDsc.rpClass.depthState == RenderPassClass::Identifier::RO_DEPTH;
     rpColorTargetMask = info.varDsc.rpClass.colorTargetMask;
@@ -324,11 +327,10 @@ GraphicsPipeline::GraphicsPipeline(VulkanDevice &device, VulkanPipelineCacheHand
   csd.raster.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
   csd.raster.pNext = NULL;
   csd.raster.flags = 0;
-#if !_TARGET_ANDROID
-  csd.raster.depthClampEnable = staticState.depthClipEnable ? VK_FALSE : VK_TRUE;
-#else
-  csd.raster.depthClampEnable = VK_FALSE;
-#endif
+  if (!Globals::cfg.bits.disableDepthClamp)
+    csd.raster.depthClampEnable = staticState.depthClipEnable ? VK_FALSE : VK_TRUE;
+  else
+    csd.raster.depthClampEnable = VK_FALSE;
   csd.raster.rasterizerDiscardEnable = VK_FALSE;
   csd.raster.polygonMode = static_cast<VkPolygonMode>((uint32_t)info.varDsc.state.polygonLine);
   uint32_t cull_mode = staticState.cullMode;
@@ -352,7 +354,7 @@ GraphicsPipeline::GraphicsPipeline(VulkanDevice &device, VulkanPipelineCacheHand
   csd.raster.depthBiasSlopeFactor = 0.f;
   csd.raster.lineWidth = 1.f;
 #if VK_EXT_conservative_rasterization
-  if (staticState.conservativeRasterEnable && device.hasExtension<ConservativeRasterizationEXT>())
+  if (staticState.conservativeRasterEnable && Globals::VK::dev.hasExtension<ConservativeRasterizationEXT>())
   {
     csd.conservativeRasterStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_CONSERVATIVE_STATE_CREATE_INFO_EXT;
     csd.conservativeRasterStateCI.conservativeRasterizationMode = VK_CONSERVATIVE_RASTERIZATION_MODE_OVERESTIMATE_EXT;
@@ -373,8 +375,9 @@ GraphicsPipeline::GraphicsPipeline(VulkanDevice &device, VulkanPipelineCacheHand
   csd.multisample.alphaToCoverageEnable = staticState.alphaToCoverage ? VK_TRUE : VK_FALSE;
   csd.multisample.alphaToOneEnable = VK_FALSE;
 
-  G_ASSERTF((csd.multisample.alphaToCoverageEnable == VK_FALSE) ||
-              ((csd.multisample.alphaToCoverageEnable == VK_TRUE) && !(csd.multisample.rasterizationSamples & VK_SAMPLE_COUNT_1_BIT)),
+  D3D_CONTRACT_ASSERTF(
+    (csd.multisample.alphaToCoverageEnable == VK_FALSE) ||
+      ((csd.multisample.alphaToCoverageEnable == VK_TRUE) && !(csd.multisample.rasterizationSamples & VK_SAMPLE_COUNT_1_BIT)),
     "vulkan: alpha to coverage must be used with MSAA");
 
   csd.depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
@@ -480,9 +483,6 @@ GraphicsPipeline::GraphicsPipeline(VulkanDevice &device, VulkanPipelineCacheHand
     csd.depthStencil.depthWriteEnable = VK_FALSE;
     csd.depthStencil.depthBoundsTestEnable = VK_FALSE;
     csd.depthStencil.stencilTestEnable = VK_FALSE;
-
-    csd.raster.depthBiasEnable = VK_FALSE;
-    csd.raster.depthClampEnable = VK_FALSE;
   }
 
   csd.dynamicStates.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
@@ -562,10 +562,11 @@ void GraphicsPipeline::compile()
     {
       if (!compileScratch->failIfNotCached)
       {
-        D3D_ERROR("vulkan: pipeline [gfx:%u:%u(%u)] not compiled", compileScratch->progIdx, compileScratch->varIdx,
-          compileScratch->varTotal);
+        D3D_ERROR("vulkan: pipeline [gfx:%u:%u(%u)] not compiled with error code %u:%s ", compileScratch->progIdx,
+          compileScratch->varIdx, compileScratch->varTotal, compileScratch->compileResult,
+          vulkan_error_string(compileScratch->compileResult));
 #if VULKAN_LOAD_SHADER_EXTENDED_DEBUG_DATA
-        D3D_ERROR("vulkan: with\n %s", compileScratch->fullDebugName);
+        D3D_ERROR("vulkan: shaders \n %s", compileScratch->fullDebugName);
 #endif
       }
       ignore = true;
@@ -589,6 +590,7 @@ void GraphicsPipeline::compile()
 #if VULKAN_LOAD_SHADER_EXTENDED_DEBUG_DATA
       debug("vulkan: with\n %s handle: %p", compileScratch->fullDebugName, generalize(retHandle));
 #endif
+      dumpExecutablesInfo(retHandle);
     }
   }
 
@@ -646,17 +648,13 @@ VulkanPipelineHandle GraphicsPipeline::createPipelineObject(CreationFeedback &cr
   if (compileScratch->failIfNotCached)
     compileScratch->gpci.flags |= VK_PIPELINE_CREATE_FAIL_ON_PIPELINE_COMPILE_REQUIRED_BIT_EXT;
 
-  cr_feedback.chainWith(compileScratch->gpci, device);
+  cr_feedback.chainWith(compileScratch->gpci);
   VulkanPipelineHandle ret;
   WinAutoLockOpt pipeCacheLock(Globals::pipeCache.getMutex());
-  VkResult res = device.vkCreateGraphicsPipelines(device.get(), compileScratch->vkCache, 1, &compileScratch->gpci, NULL, ptr(ret));
-  if (VULKAN_FAIL(res))
-  {
-#if VULKAN_LOAD_SHADER_EXTENDED_DEBUG_DATA
-    debug("vkCreateGraphicsPipelines failed with '%s'", compileScratch->fullDebugName);
-#endif
+  compileScratch->compileResult =
+    device.vkCreateGraphicsPipelines(device.get(), compileScratch->vkCache, 1, &compileScratch->gpci, VKALLOC(pipeline), ptr(ret));
+  if (VULKAN_FAIL(compileScratch->compileResult))
     ret = VulkanNullHandle();
-  }
   return ret;
 }
 

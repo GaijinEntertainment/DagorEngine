@@ -79,8 +79,6 @@ static TEXTUREID load_tex(BinaryDump &bin_dump, IGenLoad &crd)
     return BAD_TEXTUREID;
   }
 
-  tex->setAnisotropy(::dgs_tex_anisotropy);
-
   TEXTUREID tex_id = register_managed_tex(name, tex);
 
   bin_dump.texture.push_back(tex);
@@ -102,6 +100,7 @@ static bool load_binary_dump(BinaryDump &bin_dump, String originalName, IGenLoad
   PerformanceTimer2 totalTimer(true);
   PerformanceTimer2 tagTimer;
 
+  debug("[BIN] load_binary_dump originalName='%s' bindump_id=%d", originalName.c_str(), bindump_id);
   for (;;)
   {
     tag = crd.beginTaggedBlock();

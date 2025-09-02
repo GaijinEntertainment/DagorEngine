@@ -32,11 +32,6 @@ struct typeFactory<vec4f>
 {
   static ___noinline das::TypeDeclPtr make(const das::ModuleLibrary &) { return make_vec4(); }
 };
-template <>
-struct typeName<vec4f>
-{
-  constexpr static const char *name() { return "vec4f"; }
-};
 }; // namespace das
 
 // not working correctly in AOT, as AOT name is not possible

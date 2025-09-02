@@ -5,7 +5,6 @@
 #pragma once
 
 #include <util/dag_stdint.h>
-#include <EASTL/unique_ptr.h>
 #include <generic/dag_span.h>
 #include <generic/dag_carray.h>
 #include <dag/dag_relocatable.h>
@@ -23,6 +22,7 @@ class Point3;
 class Point4;
 class IPoint2;
 class IPoint3;
+class IPoint4;
 class TMatrix;
 struct E3DCOLOR;
 
@@ -170,6 +170,7 @@ public:
     TYPE_E3DCOLOR, ///< E3DCOLOR.
     TYPE_MATRIX,   ///< TMatrix.
     TYPE_INT64,    ///< int64_t
+    TYPE_IPOINT4,  ///< IPoint4.
     TYPE_COUNT
   };
 
@@ -523,6 +524,7 @@ public:
   TYPE_FUNCTION_CR(Point4, Point4)
   TYPE_FUNCTION_CR(IPoint2, IPoint2)
   TYPE_FUNCTION_CR(IPoint3, IPoint3)
+  TYPE_FUNCTION_CR(IPoint4, IPoint4)
   TYPE_FUNCTION_CR(TMatrix, Tm)
 #undef TYPE_FUNCTION
 #undef TYPE_FUNCTION_CR
@@ -805,8 +807,8 @@ KRNLIMP void clr_flag(DataBlock &blk, ReadFlags flg_to_clr);
 
 static inline const char *resolve_type(uint32_t type)
 {
-  static const char *types[DataBlock::TYPE_COUNT + 1] = {
-    "none", "string", "int", "real", "point2", "point3", "point4", "ipoint2", "ipoint3", "bool", "e3dcolor", "tm", "int64", "unknown"};
+  static const char *types[DataBlock::TYPE_COUNT + 1] = {"none", "string", "int", "real", "point2", "point3", "point4", "ipoint2",
+    "ipoint3", "bool", "e3dcolor", "tm", "int64", "ipoint4", "unknown"};
   type = type < DataBlock::TYPE_COUNT ? type : DataBlock::TYPE_COUNT;
   return types[type];
 }
@@ -814,14 +816,14 @@ static inline const char *resolve_type(uint32_t type)
 static inline const char *resolve_short_type(uint32_t type)
 {
   static const char *types[DataBlock::TYPE_COUNT + 1] = {
-    "none", "t", "i", "r", "p2", "p3", "p4", "ip2", "ip3", "b", "c", "m", "i64", "err"};
+    "none", "t", "i", "r", "p2", "p3", "p4", "ip2", "ip3", "b", "c", "m", "i64", "ip4", "err"};
   type = type < DataBlock::TYPE_COUNT ? type : DataBlock::TYPE_COUNT;
   return types[type];
 }
 
 static inline uint32_t get_type_size(uint32_t type)
 {
-  static const uint8_t sizes[DataBlock::TYPE_COUNT + 1] = {0, 8, 4, 4, 8, 12, 16, 8, 12, 1, 4, 12 * 4, 8, 0};
+  static const uint8_t sizes[DataBlock::TYPE_COUNT + 1] = {0, 8, 4, 4, 8, 12, 16, 8, 12, 1, 4, 12 * 4, 8, 16, 0};
   type = type < DataBlock::TYPE_COUNT ? type : DataBlock::TYPE_COUNT;
   return sizes[type];
 }
@@ -931,6 +933,11 @@ template <>
 struct DataBlock::TypeOf<IPoint3>
 {
   static constexpr int type = DataBlock::TYPE_IPOINT3;
+};
+template <>
+struct DataBlock::TypeOf<IPoint4>
+{
+  static constexpr int type = DataBlock::TYPE_IPOINT4;
 };
 template <>
 struct DataBlock::TypeOf<Point2>
@@ -1062,8 +1069,13 @@ static inline void dblk::iterate_blocks_by_name(const DataBlock &db, const char 
 template <typename Cb>
 static inline void dblk::iterate_blocks_by_name_id_list(const DataBlock &blk, dag::ConstSpan<int> name_ids, Cb &&cb)
 {
-  if (eastl::find(name_ids.begin(), name_ids.end(), blk.getBlockNameId()) != name_ids.end())
-    cb(blk);
+  int bnid = blk.getBlockNameId();
+  for (int nid : name_ids)
+    if (nid == bnid)
+    {
+      cb(blk);
+      break;
+    }
   dblk::iterate_child_blocks(blk, [&](const DataBlock &b) { iterate_blocks_by_name_id_list(b, name_ids, cb); });
 }
 
@@ -1080,7 +1092,7 @@ static inline void dblk::iterate_blocks_by_name_list(const DataBlock &blk, const
   }
   if (cnt == 0)
     return;
-  iterate_blocks_by_name_id_list(blk, make_span_const(nameIds.data(), cnt), eastl::forward<Cb>(cb));
+  iterate_blocks_by_name_id_list(blk, make_span_const(nameIds.data(), cnt), /* move*/ static_cast<Cb &&>(cb));
 }
 
 template <typename Cb>

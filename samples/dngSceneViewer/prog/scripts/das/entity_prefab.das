@@ -4,7 +4,7 @@ require ecs
 [es(tag=server, on_appear)]
 def entity_prefab_create_entities_on_appear(evt : Event;
                                             eid : EntityId;
-                                            [[shared_comp]] entity_prefab__templatesToCreate : Object;
+                                            @shared_comp entity_prefab__templatesToCreate : Object;
                                             var entity_prefab__createdEntities : EidList)
   for maybeObject in entity_prefab__templatesToCreate
     let object : ecs::Object const? = maybeObject.value |> get_ecs_object()

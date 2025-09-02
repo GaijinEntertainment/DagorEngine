@@ -1,6 +1,12 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "shCompiler.h"
+#include "shTargetContext.h"
+#include "shShaderContext.h"
+#include "shVariantContext.h"
+#include "shaderSemantic.h"
+#include "variantAssembly.h"
+#include "cppStcodePasses.h"
 #include "globalConfig.h"
 #include "shsem.h"
 #include "shLog.h"
@@ -21,30 +27,27 @@
 #include <util/dag_fastIntList.h>
 #include <debug/dag_debug.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
-#include <atomic>
+#include <shaders/slotTexturesRange.h>
 
 using namespace ShaderParser;
 
 // if defined, partial boolean expressions evaluation used
 #define FAST_BOOLEAN_EVAL
 
-static String hlsl_glob_vs, hlsl_glob_hs, hlsl_glob_ds, hlsl_glob_gs, hlsl_glob_ps, hlsl_glob_cs, hlsl_glob_ms, hlsl_glob_as;
-
-SCFastNameMap glob_string_table;
-
-void ShaderParser::addSourceCode(String &text, Symbol *term, const char *src, ShaderSyntaxParser &p, bool need_file_idx)
+void ShaderParser::addSourceCode(String &text, Symbol *term, const char *src, Parser &p, SCFastNameMap &messages_table,
+  bool need_file_idx)
 {
   if (!*src)
     return;
-  const char *filename = p.get_lex_parser().get_input_stream()->get_filename(term->file_start);
+  const char *filename = p.get_lexer().get_input_stream()->get_filename(term->file_start);
   if (need_file_idx)
-    text.aprintf(32, "#line 1 \"precompiled\"\n#undef _FILE_\n#define _FILE_ %d\n", glob_string_table.addNameId(filename));
+    text.aprintf(32, "#line 1 \"precompiled\"\n#undef _FILE_\n#define _FILE_ %d\n", messages_table.addNameId(filename));
   text.aprintf(32, "#line %d \"%s\"\n%s", term->line_start, filename, src);
 }
 
-void ShaderParser::addSourceCode(String &text, SHTOK_hlsl_text *src, ShaderSyntaxParser &p, bool need_file_idx)
+void ShaderParser::addSourceCode(String &text, SHTOK_hlsl_text *src, Parser &p, SCFastNameMap &messages_table, bool need_file_idx)
 {
-  addSourceCode(text, src, src->text, p, need_file_idx);
+  addSourceCode(text, src, src->text, p, messages_table, need_file_idx);
 }
 
 
@@ -63,7 +66,7 @@ void ShaderSemCode::dump()
   for (int i = 0; i < vars.size(); ++i)
   {
     Var &v = vars[i];
-    debug("  %s (%s)", v.getName(), ShUtils::shader_var_type_name(v.type));
+    debug("  %s (%s)", get_semcode_var_name(v, ctx), ShUtils::shader_var_type_name(v.type));
   }
 
   debug("init code: %d tokens", initcode.size());
@@ -73,10 +76,10 @@ void ShaderSemCode::dump()
     int c = initcode[i + 1];
     if (shaderopcode::getOp(c) == SHCOD_TEXTURE)
     {
-      debug("  %s <- texture.%d", vars[vi].getName(), shaderopcode::getOp1p1(c));
+      debug("  %s <- texture.%d", get_semcode_var_name(vars[vi], ctx), shaderopcode::getOp1p1(c));
     }
     else
-      debug("  %s <- %s", vars[vi].getName(), ShUtils::shcod_tokname(shaderopcode::getOp(c)));
+      debug("  %s <- %s", get_semcode_var_name(vars[vi], ctx), ShUtils::shcod_tokname(shaderopcode::getOp(c)));
   }
 
   for (int i = 0; i < passes.size(); ++i)
@@ -92,7 +95,7 @@ void ShaderSemCode::dump()
   }
 }
 
-void ShaderSemCode::Pass::dump(ShaderSemCode &code)
+void SemanticShaderPass::dump(ShaderSemCode &code)
 {
   debug("  state code: %d tokens", stcode.size());
   for (int i = 0; i < stcode.size(); ++i)
@@ -114,7 +117,7 @@ int ShaderSemCode::find_var(const int variable_id)
 }
 
 
-bool ShaderSemCode::Pass::equal(Pass &p)
+bool SemanticShaderPass::equal(SemanticShaderPass &p)
 {
   if (fsh.size() != p.fsh.size())
     return false;
@@ -158,6 +161,7 @@ bool ShaderSemCode::Pass::equal(Pass &p)
   COMPARE_V(blend_dst);
   COMPARE_V(blend_asrc);
   COMPARE_V(blend_adst);
+  COMPARE_V(blend_factor);
   COMPARE_V(cull_mode);
   COMPARE_V(alpha_to_coverage);
   COMPARE_V(z_write);
@@ -231,8 +235,8 @@ const char *ShaderSemCode::equal(ShaderSemCode &c, bool compare_passes_and_vars)
 
   for (int di = 0; di < passes.size(); ++di)
   {
-    ShaderSemCode::PassTab *thisTab = tabutils::getPtrVal(passes, di);
-    ShaderSemCode::PassTab *otherTab = tabutils::getPtrVal(c.passes, di);
+    ShaderSemCode::PassTab *thisTab = passes[di].get();
+    ShaderSemCode::PassTab *otherTab = c.passes[di].get();
 
     if (!thisTab && !otherTab)
       continue;
@@ -255,10 +259,7 @@ const char *ShaderSemCode::equal(ShaderSemCode &c, bool compare_passes_and_vars)
 
 namespace ShaderParser
 {
-CodeSourceBlocks *curVsCode = NULL, *curHsCode = NULL, *curDsCode = NULL, *curGsCode = NULL, *curPsCode = NULL;
-CodeSourceBlocks *curCsCode = NULL;
-CodeSourceBlocks *curMsCode = nullptr;
-CodeSourceBlocks *curAsCode = nullptr;
+PerHlslStage<CodeSourceBlocks *> curHlslBlks{};
 SCFastNameMap renderStageToIdxMap;
 
 static void eval_shader_stat(shader_stat &s, ShaderEvalCB &cb);
@@ -301,6 +302,8 @@ static void eval_shader_stat(shader_stat &s, ShaderEvalCB &cb)
     cb.eval_render_stage(*s.render_stage);
   else if (s.assume)
     cb.eval_assume_stat(*s.assume);
+  else if (s.assume_if_not_assumed)
+    cb.eval_assume_if_not_assumed_stat(*s.assume_if_not_assumed);
   else if (s.dir)
     cb.eval_command(*s.dir);
   else if (s.if_stat)
@@ -334,45 +337,6 @@ static void eval_shader_stat(shader_stat *s, ShaderEvalCB &cb)
     eval_shader_stat(*s, cb);
 }
 
-static void eval_optional_intervals_const(ShaderEvalCB &cb, bool compute)
-{
-  external_state_block external_block;
-  external_block.scope = new SHTOK_ident;
-  const IntervalList &intervals = ShaderGlobal::getIntervalList();
-  for (uint32_t i = 0; i < intervals.getCount(); ++i)
-  {
-    const Interval *interval = intervals.getInterval(i);
-    if (!interval->isOptional())
-      continue;
-    external_block.stblock_stat.emplace_back(new state_block_stat);
-    auto &block = *external_block.stblock_stat.back();
-    block.var = new external_variable;
-    block.var->var = new external_var_name;
-    block.var->var->name = new Terminal;
-    block.var->var->name->text = str_dup(interval->getNameStr(), BaseParNamespace::symbolsmem);
-    block.var->var->nameSpace = new SHTOK_type_ident;
-    block.var->var->nameSpace->text = "@f1";
-    block.var->val = new external_var_value_single;
-    block.var->val->expr = new arithmetic_expr;
-    block.var->val->expr->lhs = new arithmetic_expr_md;
-    block.var->val->expr->lhs->lhs = new arithmetic_operand;
-    block.var->val->expr->lhs->lhs->var_name = new SHTOK_ident;
-    block.var->val->expr->lhs->lhs->var_name->text = str_dup(interval->getNameStr(), BaseParNamespace::symbolsmem);
-  }
-  if (compute)
-  {
-    external_block.scope->text = "cs";
-    cb.eval_external_block(external_block);
-  }
-  else
-  {
-    external_block.scope->text = "vs";
-    cb.eval_external_block(external_block);
-    external_block.scope->text = "ps";
-    cb.eval_external_block(external_block);
-  }
-}
-
 static bool is_compute(hlsl_compile_class &hlsl_compile)
 {
   return dd_strnicmp(hlsl_compile.profile->text, "target_cs", 9) == 0 || dd_strnicmp(hlsl_compile.profile->text, "cs_", 3) == 0;
@@ -380,32 +344,20 @@ static bool is_compute(hlsl_compile_class &hlsl_compile)
 
 void eval_shader(shader_decl &sh, ShaderEvalCB &cb)
 {
-  BoolVar::clear(true);
-  if (shc::config().optionalIntervalsAsBranches)
-  {
-    bool isCompute = false;
-    for (int i = 0; i < sh.stat.size(); ++i)
-    {
-      if (sh.stat[i]->hlsl_compile_var)
-        isCompute = is_compute(*sh.stat[i]->hlsl_compile_var);
-    }
-
-    eval_optional_intervals_const(cb, isCompute);
-  }
-
   for (int i = 0; i < sh.stat.size(); ++i)
     eval_shader_stat(sh.stat[i], cb);
 }
 
 // ³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³//
 
+template <bool USE_CB_FOR_NESTED_EXPRESSIONS>
 static ShVarBool eval_shader_bool_not(not_expr &e, ShaderBoolEvalCB &cb)
 {
   G_ASSERT(&e);
   G_ASSERT(e.value);
   ShVarBool v;
   if (e.value->expr)
-    v = eval_shader_bool(*e.value->expr, cb);
+    v = USE_CB_FOR_NESTED_EXPRESSIONS ? cb.eval_expr(*e.value->expr) : eval_shader_bool(*e.value->expr, cb);
   else
     v = cb.eval_bool_value(*e.value);
   if (e.is_not)
@@ -413,15 +365,16 @@ static ShVarBool eval_shader_bool_not(not_expr &e, ShaderBoolEvalCB &cb)
   return v;
 }
 
+template <bool USE_CB_FOR_NESTED_EXPRESSIONS>
 static ShVarBool eval_shader_bool_and(and_expr &e, ShaderBoolEvalCB &cb)
 {
   if (e.value)
   {
-    ShVarBool v = eval_shader_bool_not(*e.value, cb);
+    ShVarBool v = eval_shader_bool_not<USE_CB_FOR_NESTED_EXPRESSIONS>(*e.value, cb);
     return v;
   }
 
-  ShVarBool a = eval_shader_bool_and(*e.a, cb);
+  ShVarBool a = eval_shader_bool_and<USE_CB_FOR_NESTED_EXPRESSIONS>(*e.a, cb);
 #if defined(FAST_BOOLEAN_EVAL)
   if (a.isConst && !a.value)
   {
@@ -429,20 +382,21 @@ static ShVarBool eval_shader_bool_and(and_expr &e, ShaderBoolEvalCB &cb)
   }
 #endif
 
-  ShVarBool b = eval_shader_bool_not(*e.b, cb);
+  ShVarBool b = eval_shader_bool_not<USE_CB_FOR_NESTED_EXPRESSIONS>(*e.b, cb);
   return a && b;
 }
 
+template <bool USE_CB_FOR_NESTED_EXPRESSIONS>
 ShVarBool eval_shader_bool(bool_expr &e, ShaderBoolEvalCB &cb)
 {
   G_ASSERT(&e);
   if (e.value)
   {
-    ShVarBool v = eval_shader_bool_and(*e.value, cb);
+    ShVarBool v = eval_shader_bool_and<USE_CB_FOR_NESTED_EXPRESSIONS>(*e.value, cb);
     return v;
   }
 
-  ShVarBool a = eval_shader_bool(*e.a, cb);
+  ShVarBool a = USE_CB_FOR_NESTED_EXPRESSIONS ? cb.eval_expr(*e.a) : eval_shader_bool(*e.a, cb);
 #if defined(FAST_BOOLEAN_EVAL)
   if (a.isConst && a.value)
   {
@@ -450,23 +404,34 @@ ShVarBool eval_shader_bool(bool_expr &e, ShaderBoolEvalCB &cb)
   }
 #endif
 
-  ShVarBool b = eval_shader_bool_and(*e.b, cb);
+  ShVarBool b = eval_shader_bool_and<USE_CB_FOR_NESTED_EXPRESSIONS>(*e.b, cb);
   return a || b;
 }
 
+template ShVarBool eval_shader_bool<true>(bool_expr &e, ShaderBoolEvalCB &cb);
+template ShVarBool eval_shader_bool<false>(bool_expr &e, ShaderBoolEvalCB &cb);
+
 // ³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³³//
 
-extern ShHardwareOptions currentShaderOptions;
+struct EvaluatedShaderVariant
+{
+  ShaderSemCode semcode;
+  eastl::unique_ptr<ShaderSemCode::PassTab> pass;
+
+  explicit EvaluatedShaderVariant(shc::TargetContext &ctx) : semcode{ctx}, pass{new ShaderSemCode::PassTab{}} { pass->pass.emplace(); }
+};
 
 // return true, if need render
-static bool evalShaderVariant(shader_decl *sh, int dyn_index, ShaderSemCode *ssc, ShaderClass *sclass, ShaderSyntaxParser &parser,
-  Terminal *shname, const ShaderVariant::VariantInfo &variant, const ShaderVariant::TypeTable &allRefStaticVars)
+static eastl::optional<EvaluatedShaderVariant> evalShaderVariant(shader_decl *sh, Parser &parser,
+  const ShaderVariant::VariantInfo &variant, shc::ShaderContext &ctx)
 {
-  G_VERIFY(ssc->createPasses(dyn_index));
+  EvaluatedShaderVariant res{ctx.tgtCtx()};
+
+  shc::VariantContext variantCtx = ctx.makeVariantContext(variant, res.semcode, res.pass.get());
 
   // evaluate shader
-  parser.get_lex_parser().begin_shader();
-  AssembleShaderEvalCB cb(*ssc, parser, *sclass, shname, variant, currentShaderOptions, allRefStaticVars);
+  parser.get_lexer().begin_shader();
+  AssembleShaderEvalCB cb{variantCtx};
   try
   {
     eval_shader(*sh, cb);
@@ -474,33 +439,32 @@ static bool evalShaderVariant(shader_decl *sh, int dyn_index, ShaderSemCode *ssc
   }
   catch (ShaderEvalCB::GsclStopProcessingException e)
   {}
-  parser.get_lex_parser().end_shader();
+  parser.get_lexer().end_shader();
 
   if (cb.dont_render)
   {
-    ssc->deletePasses(dyn_index);
-    //  render not needed - skip shader code selection
-    return false;
+    // render not needed - skip shader code selection
+    return eastl::nullopt;
   }
 
-  return true;
+  return res;
 }
 
-static void shaderError(ShaderSyntaxParser &parser, const char *msg, Terminal *t)
+static void shaderError(Parser &parser, const char *msg, Terminal *t)
 {
   if (t)
-    parser.get_lex_parser().set_error(t->file_start, t->line_start, t->col_start, msg);
+    parser.get_lexer().set_error(t->file_start, t->line_start, t->col_start, msg);
   else
-    parser.get_lex_parser().set_error(msg);
+    parser.get_lexer().set_error(msg);
 }
 
-static void shaderWarn(ShaderSyntaxParser &parser, const char *msg, Terminal *t)
+static void shaderWarn(Parser &parser, const char *msg, Terminal *t)
 {
   G_ASSERT(t);
-  parser.get_lex_parser().set_warning(t->file_start, t->line_start, t->col_start, msg);
+  parser.get_lexer().set_warning(t->file_start, t->line_start, t->col_start, msg);
 }
 
-static bool validate_cs(ShaderClass *sclass, ShaderSemCode *ssc, int staticVariantCount)
+static bool validate_cs(const ShaderClass &sclass, ShaderSemCode *ssc, int staticVariantCount)
 {
   bool has_cs = false, has_non_cs = false, has_void = false;
   for (int m = 0; m < ssc->passes.size(); m++)
@@ -529,12 +493,12 @@ static bool validate_cs(ShaderClass *sclass, ShaderSemCode *ssc, int staticVaria
       stvar_cnt++;
 
   if (stvar_cnt)
-    sh_debug(SHLOG_ERROR, "shader(%s): Compute shaders shall not have static variables (%d found)", sclass->name.c_str(), stvar_cnt);
+    sh_debug(SHLOG_ERROR, "shader(%s): Compute shaders shall not have static variables (%d found)", sclass.name.c_str(), stvar_cnt);
   if (staticVariantCount > 1)
-    sh_debug(SHLOG_ERROR, "shader(%s): Compute shaders shall not have static variants (%d found)", sclass->name.c_str(),
+    sh_debug(SHLOG_ERROR, "shader(%s): Compute shaders shall not have static variants (%d found)", sclass.name.c_str(),
       staticVariantCount);
   if (has_non_cs)
-    sh_debug(SHLOG_ERROR, "shader(%s): Compute shaders shall not mixed with other shaders", sclass->name.c_str());
+    sh_debug(SHLOG_ERROR, "shader(%s): Compute shaders shall not mixed with other shaders", sclass.name.c_str());
 
   // strip stblk code
   if (ErrorCounter::curShader().err)
@@ -560,7 +524,7 @@ static bool validate_cs(ShaderClass *sclass, ShaderSemCode *ssc, int staticVaria
 
     if (unexp_stcod >= 0)
     {
-      sh_debug(SHLOG_ERROR, "shader(%s): Compute shaders contains unexpected STBLK at %d (code dumped to log)", sclass->name.c_str(),
+      sh_debug(SHLOG_ERROR, "shader(%s): Compute shaders contains unexpected STBLK at %d (code dumped to log)", sclass.name.c_str(),
         unexp_stcod);
       ShUtils::shcod_dump(dag::ConstSpan<int>(cod, cod_e - cod));
       break;
@@ -571,10 +535,17 @@ static bool validate_cs(ShaderClass *sclass, ShaderSemCode *ssc, int staticVaria
   return ErrorCounter::curShader().err == 0;
 }
 
-static void add_shader(shader_decl *sh, ShaderSyntaxParser &parser, Terminal *shname, bool &out_shaderDebugModeEnabled)
+static void add_shader(shader_decl *sh, Parser &parser, Terminal *shname, shc::TargetContext &ctx)
 {
   if (!shc::isShaderRequired(shname->text))
     return;
+
+  sh_set_current_shader(shname->text);
+  DEFER([] { sh_set_current_shader(nullptr); });
+
+  shc::ShaderContext shContext = ctx.makeShaderContext(shname->text, ShaderBlockLevel::SHADER, shname);
+  ShaderClass &sclass = shContext.compiledShader();
+
   if (ErrorCounter::curShader().err > 0)
   {
     sh_dump_warn_info();
@@ -584,15 +555,14 @@ static void add_shader(shader_decl *sh, ShaderSyntaxParser &parser, Terminal *sh
 
   sh_debug(SHLOG_INFO, "shader(%s): process semantics", shname->text);
 
-  // gather static variant vars
-  parser.get_lex_parser().begin_shader();
-  GatherVarShaderEvalCB stVarCB(parser, currentShaderOptions, shname, hlsl_glob_vs, hlsl_glob_hs, hlsl_glob_ds, hlsl_glob_gs,
-    hlsl_glob_ps, hlsl_glob_cs, hlsl_glob_ms, hlsl_glob_as, out_shaderDebugModeEnabled);
+  semantic::initialize_debug_mode(shContext);
 
-  ShaderClass *sclass = new ShaderClass(shname->text);
+  // gather static variant vars
+  parser.get_lexer().begin_shader();
+  GatherVarShaderEvalCB stVarCB{shContext};
 
   eval_shader(*sh, stVarCB);
-  parser.get_lex_parser().end_shader();
+  parser.get_lexer().end_shader();
 
   // set globals ShaderParser::curVsCode etc. for lifetime of this function
   class LocalSourceBlocks
@@ -600,39 +570,32 @@ static void add_shader(shader_decl *sh, ShaderSyntaxParser &parser, Terminal *sh
   public:
     LocalSourceBlocks()
     {
-      curVsCode = &vsBlk;
-      curHsCode = &hsBlk;
-      curDsCode = &dsBlk;
-      curGsCode = &gsBlk;
-      curPsCode = &psBlk;
-      curCsCode = &csBlk;
-      curMsCode = &msBlk;
-      curAsCode = &asBlk;
+      for (HlslCompilationStage stage : HLSL_ALL_LIST)
+        curHlslBlks.all[stage] = &blks.all[stage];
     }
     ~LocalSourceBlocks()
     {
       shc::await_all_jobs();
-      curVsCode = curHsCode = curDsCode = curGsCode = curPsCode = curCsCode = curMsCode = curAsCode = NULL;
+      curHlslBlks = {};
     }
 
-    CodeSourceBlocks vsBlk, hsBlk, dsBlk, gsBlk, psBlk, csBlk, msBlk, asBlk;
+    PerHlslStage<CodeSourceBlocks> blks{};
   };
   LocalSourceBlocks lsb;
 
   // parse code blocks
-  if (!stVarCB.end_eval(lsb.vsBlk, lsb.hsBlk, lsb.dsBlk, lsb.gsBlk, lsb.psBlk, lsb.csBlk, lsb.msBlk, lsb.asBlk))
+  if (!semantic::parse_hlsl_source_to_blocks(curHlslBlks, stVarCB, shContext))
   {
     sh_debug(SHLOG_ERROR, "cannot parse shader code in <%s>", shname->text);
     return;
   }
-  sh_set_current_shader(shname->text);
 
-  Tab<eastl::unique_ptr<ShaderSemCode>> semcode(tmpmem_ptr());
-  const IntervalList &intervals = stVarCB.intervals;
+  const shc::TypeTables &types = shContext.typeTables();
+  const IntervalList &intervals = shContext.intervals();
 
   // fill static variants table
-  ShaderVariant::VariantTableSrc staticVariants;
-  staticVariants.generateFromTypes(stVarCB.varTypes, intervals, &currentShaderOptions, true);
+  ShaderVariant::VariantTableSrc staticVariants{ctx};
+  staticVariants.generateFromTypes(types.allStaticTypes, intervals, true);
 
   int staticVariantCount = staticVariants.getVarCount();
   G_ASSERT(staticVariantCount);
@@ -661,25 +624,27 @@ static void add_shader(shader_decl *sh, ShaderSyntaxParser &parser, Terminal *sh
 
   // const char * is ok cause we use ids from VarMap inside it's lifetime
   ska::flat_hash_map<const char *, VarUsageInfo> usageInfo{};
-  auto addVarUsage = [&usageInfo](const ShaderSemCode::Var &var) {
-    auto [it, wasNew] = usageInfo.insert({var.getName(), VarUsageInfo{}});
+  auto addVarUsage = [&usageInfo, &ctx](const ShaderSemCode::Var &var) {
+    auto [it, wasNew] = usageInfo.insert({get_semcode_var_name(var, ctx), VarUsageInfo{}});
     G_ASSERT(wasNew);
     it->second.fromVar(var);
   };
 
-  Tab<int> shInitCodeLast(tmpmem);
-
-  if (stVarCB.shaderDebugModeEnabled)
+  if (shContext.isDebugModeEnabled())
   {
-    for (int i = 0; i < stVarCB.get_messages().nameCount(); i++)
+    const ShaderMessages &messages = shContext.messages();
+    const auto &table = messages.strings;
+    for (int i = 0; i < table.nameCount(); i++)
     {
-      if (stVarCB.is_filename_message(i))
-        sclass->messages.emplace_back(stVarCB.get_messages().getName(i));
+      if (messages.isFilenameMessage(i))
+        sclass.messages.emplace_back(table.getName(i));
       else
-        sclass->messages.emplace_back(
-          eastl::string{eastl::string::CtorSprintf{}, "%s: %s", shname->text, stVarCB.get_messages().getName(i)});
+        sclass.messages.emplace_back(string_f("%s: %s", shname->text, table.getName(i)));
     }
   }
+
+  Tab<eastl::unique_ptr<ShaderSemCode>> semcode{};
+  Tab<int> shInitCodeLast{};
 
   // for each static variant:
   int i;
@@ -688,7 +653,7 @@ static void add_shader(shader_decl *sh, ShaderSyntaxParser &parser, Terminal *sh
   shc::prepareTestVariant(&staticVariants.getTypes(), NULL);
   for (i = 0; i < staticVariantCount; ++i)
   {
-    sclass->shInitCode.clear();
+    sclass.shInitCode.clear();
 
     ShaderVariant::VariantSrc *staticVariant = staticVariants.getVariant(i);
     if (!shc::isValidVariant(staticVariant, NULL))
@@ -700,17 +665,80 @@ static void add_shader(shader_decl *sh, ShaderSyntaxParser &parser, Terminal *sh
     sh_set_current_variant(staticVariant);
 
     // empty class for storage
-    eastl::unique_ptr<ShaderSemCode> ssc;
-
-    bool needRender = false;
+    eastl::unique_ptr<ShaderSemCode> ssc{};
     int render_stage_idx = -1;
+    int passCount = 0;
+    SemanticShaderPass *lastParsedPass = nullptr;
 
     usageInfo.clear();
 
-    ShaderVariant::VariantTableSrc dynamicVariants;
-    dynamicVariants.generateFromTypes(stVarCB.dynVarTypes, intervals, NULL, false);
+    auto addVariantEvaluationResult = [&](EvaluatedShaderVariant &&evaluated_variant, int variant_id, int variant_cnt) {
+      G_ASSERT(variant_id >= 0 && variant_id < variant_cnt);
 
-    if (stVarCB.dynVarTypes.getCount())
+      auto &[parsedSsc, parsedPass] = evaluated_variant;
+
+      if (render_stage_idx < 0)
+        render_stage_idx = (parsedSsc.flags & SC_STAGE_IDX_MASK);
+      else if ((parsedSsc.flags & SC_STAGE_IDX_MASK) != render_stage_idx)
+        sh_debug(SHLOG_WARNING, "shader(%s): different renderStageIdx used in dynvariants: %d and %d", shname->text, render_stage_idx,
+          (parsedSsc.flags & SC_STAGE_IDX_MASK));
+
+      if (!passCount)
+      {
+        for (const ShaderSemCode::Var &var : parsedSsc.vars)
+          addVarUsage(var);
+        ssc = eastl::make_unique<ShaderSemCode>(eastl::move(parsedSsc));
+        ssc->passes.resize(variant_cnt);
+      }
+      else
+      {
+        // check for variable usage
+        for (const ShaderSemCode::Var &var : parsedSsc.vars)
+        {
+          if (auto it = usageInfo.find(get_semcode_var_name(var, ctx)); it != usageInfo.end())
+          {
+            if (!it->second.used)
+              it->second.used = var.used;
+          }
+          else
+            addVarUsage(var);
+        }
+
+        // correct register count
+        if (ssc->regsize != parsedSsc.regsize)
+        {
+          ssc->regsize = parsedSsc.regsize = (ssc->regsize > parsedSsc.regsize) ? ssc->regsize : parsedSsc.regsize;
+        }
+
+        if (ssc->passes[variant_id])
+        {
+          sh_debug(SHLOG_ERROR, "shader(%s): dynamic variant already exists", shname->text);
+          return;
+        }
+
+        // check for equal static variants if this is not the first added ssc
+        const char *eqDesc = ssc->equal(parsedSsc, false);
+        if (passCount && eqDesc != nullptr)
+        {
+          sh_debug(SHLOG_ERROR, "shader(%s): illegal dynamic variants: different %s", shname->text, eqDesc);
+          return;
+        }
+      }
+
+      ssc->passes[variant_id] = eastl::move(parsedPass);
+      lastParsedPass = &ssc->passes[variant_id]->pass.value();
+      if (!passCount)
+        ssc->initPassMap(variant_id);
+      else
+        ssc->mergeVars(eastl::move(parsedSsc.vars), eastl::move(parsedSsc.stvarmap), variant_id);
+
+      ++passCount;
+    };
+
+    ShaderVariant::VariantTableSrc dynamicVariants{ctx};
+    dynamicVariants.generateFromTypes(types.allDynamicTypes, intervals, false);
+
+    if (types.allDynamicTypes.getCount())
     {
       // dynamic variants present
 
@@ -728,117 +756,40 @@ static void add_shader(shader_decl *sh, ShaderSyntaxParser &parser, Terminal *sh
           continue;
         }
 
-        eastl::unique_ptr<ShaderSemCode> parsedSsc = eastl::make_unique<ShaderSemCode>();
-        tabutils::safeResize(parsedSsc->passes, dynamicVariantCount);
-
         ShaderVariant::VariantSrc *dynamicVariant = dynamicVariants.getVariant(d);
         sh_set_current_dyn_variant(dynamicVariant);
 
-        if (evalShaderVariant(sh, d, parsedSsc.get(), sclass, parser, shname,
-              ShaderVariant::VariantInfo(*staticVariant, dynamicVariant), stVarCB.allRefStaticVars))
+        auto evaluatedVariantMaybe =
+          evalShaderVariant(sh, parser, ShaderVariant::VariantInfo(*staticVariant, dynamicVariant), shContext);
+
+        if (evaluatedVariantMaybe)
         {
-          needRender = true;
           dynamicVariant->codeId = d;
-          if (render_stage_idx < 0)
-            render_stage_idx = (parsedSsc->flags & SC_STAGE_IDX_MASK);
-          else if ((parsedSsc->flags & SC_STAGE_IDX_MASK) != render_stage_idx)
-            sh_debug(SHLOG_WARNING, "shader(%s): different renderStageIdx used in dynvariants: %d and %d", shname->text,
-              render_stage_idx, (parsedSsc->flags & SC_STAGE_IDX_MASK));
-        }
-        else
-        {
-          sh_set_current_dyn_variant(NULL);
-          continue;
+          addVariantEvaluationResult(eastl::move(*evaluatedVariantMaybe), d, dynamicVariantCount);
         }
 
-        if (!ssc)
-        {
-          // first dynamic variant - store it
-          ssc = eastl::move(parsedSsc);
-
-          for (int v = 0; v < ssc->vars.size(); v++)
-            addVarUsage(ssc->vars[v]);
-
-          ssc->initPassMap(d);
-        }
-        else
-        {
-          // check for variable usage
-          for (const ShaderSemCode::Var &var : parsedSsc->vars)
-          {
-            if (auto it = usageInfo.find(var.getName()); it != usageInfo.end())
-            {
-              if (!it->second.used)
-                it->second.used = var.used;
-            }
-            else
-              addVarUsage(var);
-          }
-
-          // correct register count
-          if (ssc->regsize != parsedSsc->regsize)
-          {
-            ssc->regsize = parsedSsc->regsize = (ssc->regsize > parsedSsc->regsize) ? ssc->regsize : parsedSsc->regsize;
-          }
-
-          if (ssc->passes[d])
-          {
-            sh_debug(SHLOG_ERROR, "shader(%s): dynamic variant already exists", shname->text);
-            sh_set_current_dyn_variant(NULL);
-            continue;
-          }
-
-          ssc->passes[d] = parsedSsc->passes[d];
-          ssc->mergeVars(eastl::move(parsedSsc->vars), eastl::move(parsedSsc->stvarmap), d);
-
-          // check for equal static variants
-          const char *eqDesc = ssc->equal(*parsedSsc, false);
-          if (eqDesc != NULL)
-          {
-            sh_debug(SHLOG_ERROR, "shader(%s): illegal dynamic variants: different %s", shname->text, eqDesc);
-            sh_set_current_dyn_variant(NULL);
-            continue;
-          }
-
-          parsedSsc->passes[d] = NULL;
-
-          parsedSsc.reset();
-        }
-        sh_set_current_dyn_variant(NULL);
+        sh_set_current_dyn_variant(nullptr);
       }
 
       if (invalidVariants.getList().size() == dynamicVariantCount)
         staticVariant->codeId = shc::shouldMarkInvalidAsNull() ? -1 : -2;
       else if (invalidVariants.getList().size())
       {
-        if (!ssc)
-        {
-          ssc = eastl::make_unique<ShaderSemCode>();
-          tabutils::safeResize(ssc->passes, dynamicVariantCount);
-        }
         for (int i = 0; i < invalidVariants.getList().size(); i++)
-          dynamicVariants.getVariant(invalidVariants.getList()[i])->codeId = -2;
+          dynamicVariants.getVariant(invalidVariants.getList()[i])->codeId = -2; // @TODO: use markInvalidAsNull here too?
       }
     }
     else
     {
       // no dynamic variants present
-      ssc = eastl::make_unique<ShaderSemCode>();
-      tabutils::safeResize(ssc->passes, 1);
-      needRender = evalShaderVariant(sh, 0, ssc.get(), sclass, parser, shname, ShaderVariant::VariantInfo(*staticVariant, NULL),
-        stVarCB.allRefStaticVars);
-      render_stage_idx = (ssc->flags & SC_STAGE_IDX_MASK);
-
-      ssc->initPassMap(0);
-
-      if (!needRender)
+      auto parsedSscMaybe = evalShaderVariant(sh, parser, ShaderVariant::VariantInfo{*staticVariant, nullptr}, shContext);
+      if (parsedSscMaybe)
+        addVariantEvaluationResult(eastl::move(*parsedSscMaybe), 0, 1);
+      else
         staticVariant->codeId = -1;
-
-      for (int v = 0; v < ssc->vars.size(); v++)
-        addVarUsage(ssc->vars[v]);
     }
 
-    if (needRender)
+    if (passCount)
     {
       // check for variable usage
       eastl::for_each(usageInfo.cbegin(), usageInfo.cend(), [&](const auto &pair) {
@@ -852,13 +803,13 @@ static void add_shader(shader_decl *sh, ShaderSyntaxParser &parser, Terminal *sh
       });
 
       if ((ssc->flags & SC_STAGE_IDX_MASK) != render_stage_idx)
-        sh_debug(SHLOG_WARNING, "shader(%s): staticvariant uses renderStageIdx=%d, while dynvariants uses %d", sclass->name.c_str(),
+        sh_debug(SHLOG_WARNING, "shader(%s): staticvariant uses renderStageIdx=%d, while dynvariants uses %d", shContext.name(),
           (ssc->flags & SC_STAGE_IDX_MASK), render_stage_idx);
 
       // syncpoint for issued compile jobs
       shc::await_all_jobs(&sh_process_errors);
       sh_process_errors();
-      resolve_pending_shaders_from_cache();
+      ctx.bytecodeCache().resolvePendingPasses();
 
       if (!validate_cs(sclass, ssc.get(), staticVariantCount))
         break;
@@ -872,25 +823,73 @@ static void add_shader(shader_decl *sh, ShaderSyntaxParser &parser, Terminal *sh
       if (j >= semcode.size())
       {
         j = semcode.size();
-        ShaderCode *sc = ssc->generateShaderCode(dynamicVariants, g_cppstcode);
-        semcode.push_back(eastl::move(ssc));
-        sclass->code.push_back(sc);
-        sclass->assumedIntervals.reserve(stVarCB.assumedIntervals.size());
-        for (auto &[name, value] : stVarCB.assumedIntervals)
+        ShaderCode *sc = ssc->generateShaderCode(dynamicVariants);
+
+        if (shc::config().cppStcodeMode == shader_layout::ExternalStcodeMode::BRANCHED_CPP)
         {
-          auto &inter = sclass->assumedIntervals.emplace_back();
-          inter.name = name;
-          inter.value = value;
+          if (passCount > 1)
+          {
+            shc::VariantContext variantCtx =
+              shContext.makeVariantContext(ShaderVariant::VariantInfo{*staticVariant, nullptr}, *ssc, nullptr, true);
+
+            auto &cppcode = variantCtx.cppStcode();
+
+            StcodeBranchedBuildEvalCB cb{variantCtx};
+
+            parser.get_lexer().begin_shader();
+            eval_shader(*sh, cb);
+            parser.get_lexer().end_shader();
+
+            assembly::build_cpp_declarations_for_used_bool_vars(variantCtx);
+            assembly::build_cpp_declarations_for_used_local_vars(variantCtx);
+
+            // If the code is flat, just use base variant without dynamic elements
+            if (!cppcode.cppStcode.hasCodeUnderConditions)
+            {
+              sc->branchedCppStcodeId = ctx.cppStcode().addCode(eastl::move(lastParsedPass->cppstcode.cppStcode),
+                lastParsedPass->psOrCsConstRange, lastParsedPass->vsConstRange);
+            }
+
+            if (sc->branchedCppStcodeId == -1)
+            {
+              auto passRegsTable = build_pass_stcode_reg_table(*ssc);
+              auto data = build_pass_reg_tables_for_branched_dynstcode(passRegsTable, cppcode.cppStcode);
+
+              for (auto &&[pass, table] : data.passRegisterTables)
+              {
+                if (sc->branchedCppStcodeId == -1)
+                  pass->target->branchedCppStcodeTableOffset = ctx.cppStcode().addRegisterTableWithIndex(eastl::move(table));
+              }
+
+              if (sc->branchedCppStcodeId == -1)
+              {
+                sc->branchedCppStcodeId =
+                  ctx.cppStcode().addCode(eastl::move(cppcode.cppStcode), data.commonPsOrCsConstRange, data.commonVsConstRange);
+              }
+            }
+          }
+          else
+          {
+            sc->branchedCppStcodeId = ctx.cppStcode().addCode(eastl::move(lastParsedPass->cppstcode.cppStcode),
+              lastParsedPass->psOrCsConstRange, lastParsedPass->vsConstRange);
+          }
         }
+
+        for (auto &pt : ssc->passes)
+          if (pt && pt->pass)
+            pt->pass->clearCppStcodeData();
+
+        semcode.push_back(eastl::move(ssc));
+        sclass.code.push_back(sc);
       }
 
       staticVariant->codeId = j;
       if (has_first_static_variant)
-        if (shInitCodeLast.size() != sclass->shInitCode.size() || !mem_eq(shInitCodeLast, sclass->shInitCode.data()))
+        if (shInitCodeLast.size() != sclass.shInitCode.size() || !mem_eq(shInitCodeLast, sclass.shInitCode.data()))
         {
-          debug("shInitCode(%d):", sclass->shInitCode.size() / 2);
-          for (int k = 0; k < sclass->shInitCode.size(); k += 2)
-            debug("  %d <- %d", sclass->shInitCode[k], sclass->shInitCode[k + 1]);
+          debug("shInitCode(%d):", sclass.shInitCode.size() / 2);
+          for (int k = 0; k < sclass.shInitCode.size(); k += 2)
+            debug("  %d <- %d", sclass.shInitCode[k], sclass.shInitCode[k + 1]);
 
           debug("shInitCodeLast(%d):", shInitCodeLast.size() / 2);
           for (int k = 0; k < shInitCodeLast.size(); k += 2)
@@ -899,205 +898,183 @@ static void add_shader(shader_decl *sh, ShaderSyntaxParser &parser, Terminal *sh
           sh_debug(SHLOG_ERROR,
             "shader(%s): init code for textures used in static branching"
             " differs between static variants",
-            sclass->name.c_str());
+            shContext.name());
         }
-      shInitCodeLast = sclass->shInitCode;
+      shInitCodeLast = sclass.shInitCode;
       has_first_static_variant = true;
     }
   }
 
-  if (stVarCB.shaderDebugModeEnabled)
-    for (int i = 0; i < sclass->uniqueStrings.nameCount(); i++)
-      sclass->messages.emplace_back(sclass->uniqueStrings.getName(i));
+  if (shContext.isDebugModeEnabled())
+    for (int i = 0; i < sclass.uniqueStrings.nameCount(); i++)
+      sclass.messages.emplace_back(sclass.uniqueStrings.getName(i));
 
   shc::prepareTestVariantShader(NULL);
   if (has_first_static_variant)
-    sclass->shInitCode = shInitCodeLast;
+    sclass.shInitCode = shInitCodeLast;
+  else
+    clear_and_shrink(sclass.assumedIntervals);
 
-  sclass->sortStaticVarsByMode();
+  sclass.sortStaticVarsByMode();
 
-  staticVariants.fillVariantTable(sclass->staticVariants);
+  staticVariants.fillVariantTable(sclass.staticVariants);
 
   sh_set_current_variant(NULL);
   sh_set_current_dyn_variant(NULL);
 
-  sh_debug(SHLOG_INFO, "%d code variants", sclass->code.size());
+  sh_debug(SHLOG_INFO, "%d code variants", sclass.code.size());
 
   if (ErrorCounter::curShader().isEmpty())
   {
-    sh_debug(SHLOG_INFO, "%d static/dynamic vars\n", sclass->stvar.size());
+    sh_debug(SHLOG_INFO, "%d static/dynamic vars\n", sclass.stvar.size());
   }
   else
   {
-    sh_debug(SHLOG_INFO, "%d static/dynamic vars", sclass->stvar.size());
+    sh_debug(SHLOG_INFO, "%d static/dynamic vars", sclass.stvar.size());
     ErrorCounter::curShader().dumpInfo();
   }
 
-
-  // add to global shader classes list
-  add_shader_class(sclass);
+  // If compiled successfully, move to heap and add to global shader classes list
+  add_shader_class(shContext.releaseCompiledShader(), ctx);
 
   ErrorCounter::curShader().reset();
-  sh_set_current_shader(NULL);
 }
 
 
-void add_shader(shader_decl *sh, ShaderSyntaxParser &parser, bool &out_shaderDebugModeEnabled)
+void add_shader(shader_decl *sh, Parser &parser, shc::TargetContext &ctx)
 {
   if (!sh)
     return;
 
   for (int i = 0; i < sh->name.size(); ++i)
-    add_shader(sh, parser, sh->name[i], out_shaderDebugModeEnabled);
-  out_shaderDebugModeEnabled = true;
+    add_shader(sh, parser, sh->name[i], ctx);
 }
 
-static Tab<block_stat *> curBlockStat;
-static bool cacheBlockStat = false;
-static void eval_block_stat(block_stat *s, AssembleShaderEvalCB &cb);
+static void eval_block_stat(block_stat *s, auto &cb, Parser &parser);
 
-static void eval_block_if(block_if &s, AssembleShaderEvalCB &cb)
+static void eval_block_if(block_if &s, auto &cb, Parser &parser)
 {
   G_ASSERT(s.expr);
-  ShVarBool eTrue = ShaderParser::eval_shader_bool(*s.expr, cb);
+  ShVarBool eTrue = cb.eval_expr(*s.expr);
   bool isTrue = eTrue.value, isFalse = !eTrue.value;
   if (!eTrue.isConst)
   {
-    cb.parser.get_lex_parser().set_error(s.expr->file_start, s.expr->line_start, s.expr->col_start,
+    parser.get_lexer().set_error(s.expr->file_start, s.expr->line_start, s.expr->col_start,
       "not constant expression for if's in shader block");
-    isTrue = isFalse = true;
+    isTrue = isFalse = false;
   }
   if (isTrue)
   {
     for (int i = 0; i < s.true_stat.size(); ++i)
-      eval_block_stat(s.true_stat[i], cb);
+      eval_block_stat(s.true_stat[i], cb, parser);
   }
   if (isFalse)
   {
     if (s.false_stat.size() || s.else_if)
     {
       for (int i = 0; i < s.false_stat.size(); ++i)
-        eval_block_stat(s.false_stat[i], cb);
+        eval_block_stat(s.false_stat[i], cb, parser);
       if (s.else_if)
-        eval_block_if(*s.else_if, cb);
+        eval_block_if(*s.else_if, cb, parser);
     }
   }
 }
 
-static void eval_block_stat(block_stat &s, AssembleShaderEvalCB &cb)
+static void eval_block_stat(block_stat &s, auto &cb, Parser &parser)
 {
-  if (s.state)
-    cacheBlockStat ? (void)curBlockStat.push_back(&s) : cb.eval_state(*s.state);
-  else if (s.external_block)
-    cacheBlockStat ? (void)curBlockStat.push_back(&s) : cb.eval_external_block(*s.external_block);
+  if (s.external_block)
+    cb.eval_external_block(*s.external_block);
   else if (s.imm_const_block)
-    cacheBlockStat ? (void)curBlockStat.push_back(&s) : cb.eval(*s.imm_const_block);
+    cb.eval(*s.imm_const_block);
   else if (s.if_stat)
-    eval_block_if(*s.if_stat, cb);
+    eval_block_if(*s.if_stat, cb, parser);
   else if (s.supports)
     cb.eval_supports(*s.supports);
   else if (s.local_decl)
-    cacheBlockStat ? (void)curBlockStat.push_back(&s) : cb.eval_shader_locdecl(*s.local_decl);
+    cb.eval_shader_locdecl(*s.local_decl);
+  else if (s.boolean_decl)
+    cb.eval_bool_decl(*s.boolean_decl);
   else
   {
     G_ASSERT(0 && "not implemented");
   }
 }
 
-static void eval_block_stat(block_stat *s, AssembleShaderEvalCB &cb)
+static void eval_block_stat(block_stat *s, auto &cb, Parser &parser)
 {
   if (s)
-    eval_block_stat(*s, cb);
+    eval_block_stat(*s, cb, parser);
 }
 
-void eval_block(block_decl &bl, AssembleShaderEvalCB &cb)
+static void eval_block(block_decl &bl, auto &cb, Parser &parser)
 {
   for (int i = 0; i < bl.stat.size(); ++i)
-    eval_block_stat(bl.stat[i], cb);
+    eval_block_stat(bl.stat[i], cb, parser);
 }
 
-void add_block(block_decl *bl, ShaderSyntaxParser &parser)
+void add_block(block_decl *bl, Parser &parser, shc::TargetContext &ctx)
 {
-#define REPORT_ERR(msg, t) parser.get_lex_parser().set_error(t->file_start, t->line_start, t->col_start, msg)
+#define REPORT_ERR(msg, t) parser.get_lexer().set_error(t->file_start, t->line_start, t->col_start, msg)
 
   if (!bl)
     return;
 
-  int level = -1;
+  ShaderBlockLevel level = ShaderBlockLevel::UNDEFINED;
   if (strcmp(bl->block_scope->text, "global_const") == 0)
-    level = ShaderStateBlock::LEV_GLOBAL_CONST;
+    level = ShaderBlockLevel::GLOBAL_CONST;
   else if (strcmp(bl->block_scope->text, "frame") == 0)
-    level = ShaderStateBlock::LEV_FRAME;
+    level = ShaderBlockLevel::FRAME;
   else if (strcmp(bl->block_scope->text, "scene") == 0)
-    level = ShaderStateBlock::LEV_SCENE;
+    level = ShaderBlockLevel::SCENE;
   else if (strcmp(bl->block_scope->text, "object") == 0)
-    level = ShaderStateBlock::LEV_OBJECT;
+    level = ShaderBlockLevel::OBJECT;
   else
   {
     REPORT_ERR("invalid block scope", bl->block_scope);
     return;
   }
 
-  if (ShaderStateBlock::findBlock(bl->name->text))
+  if (ctx.blocks().findBlock(bl->name->text))
   {
     REPORT_ERR("invalid redeclaration of block", bl->name);
     return;
   }
 
   IntervalList intervals;
-  ShaderVariant::TypeTable nullType;
+  ShaderVariant::TypeTable nullType{ctx};
   nullType.setIntervalList(&intervals);
   ShaderVariant::VariantSrc stVariant(nullType);
   ShaderVariant::VariantInfo variant(stVariant, NULL);
-  ShaderClass sclass("not-shader");
 
-  ShaderSemCode ssc;
-  ssc.passes.push_back(NULL);
+  ShaderSemCode targetSsc{ctx};
 
-  G_VERIFY(ssc.createPasses(0));
+  shc::ShaderContext shaderBlockCtx = ctx.makeShaderContext(bl->name->text, level, bl->name);
+  shc::VariantContext variantCtx = shaderBlockCtx.makeVariantContext(variant, targetSsc);
 
   // evaluate shader
-  AssembleShaderEvalCB cb(ssc, parser, sclass, bl->name, variant, currentShaderOptions, nullType);
-  cb.shBlockLev = level;
+  AssembleShaderEvalCB cb{variantCtx};
 
-  curBlockStat.clear();
-  cacheBlockStat = true;
-  eval_block(*bl, cb);
+  parser.get_lexer().begin_block();
+  eval_block(*bl, cb, parser);
+  parser.get_lexer().end_block();
 
-  static Tab<int> stcode(tmpmem);
+  cb.compilePreshader();
 
-  stcode.clear();
-  cacheBlockStat = false;
-  int cnt0 = cb.curpass->get_alt_curstcode(false).size(), cnt1 = cb.curpass->get_alt_curstcode(true).size();
-  int max_reg = 0;
-  if (cnt0 + cnt1)
-  {
-    stcode.resize(1 + cnt0 + cnt1);
-    stcode[0] = shaderopcode::makeOp1(SHCOD_BLK_ICODE_LEN, cnt0 + cnt1);
-    mem_copy_to(cb.curpass->get_alt_curstcode(false), &stcode[1]);
-    mem_copy_to(cb.curpass->get_alt_curstcode(true), &stcode[1 + cnt0]);
-  }
-  cb.curpass->reset_code();
-  ssc.locVars.clear();
+  const auto &bytecode = variantCtx.stBytecode();
 
-  for (int i = 0; i < curBlockStat.size(); ++i)
-    eval_block_stat(curBlockStat[i], cb);
+  Tab<int> stcode{};
+  append_items(stcode, bytecode.stblkcode.size(), bytecode.stblkcode.data());
+  append_items(stcode, bytecode.stcode.size(), bytecode.stcode.data());
 
-  cb.varMerger.mergeAllVars(&cb);
+  assembly::build_cpp_declarations_for_used_local_vars(variantCtx);
 
-  int st_idx = stcode.size();
-  append_items(stcode, cb.curpass->get_alt_curstcode(false).size(), cb.curpass->get_alt_curstcode(false).data());
-  append_items(stcode, cb.curpass->get_alt_curstcode(true).size(), cb.curpass->get_alt_curstcode(true).data());
+  DynamicStcodeRoutine collectedScript = eastl::move(variantCtx.cppStcode().cppStcode);
+  collectedScript.merge(eastl::move((StcodeRoutine &)variantCtx.cppStcode().cppStblkcode));
 
-  StcodeRoutine collectedScript = eastl::move(cb.curpass->get_alt_curcppcode(true));
-  collectedScript.merge(eastl::move(cb.curpass->get_alt_curcppcode(false)));
+  ShaderStateBlock *blk = new ShaderStateBlock(bl->name->text, level, eastl::move(variantCtx.namedConstTable()), make_span(stcode),
+    &collectedScript, bytecode.regAllocator->requiredRegCount(), ctx);
 
-  cb.curpass->reset_code();
-
-  ShaderStateBlock *blk =
-    new ShaderStateBlock(bl->name->text, level, cb.shConst, make_span(stcode), &collectedScript, cb.maxregsize, cb.supportsStaticCbuf);
-
-  if (!ShaderStateBlock::registerBlock(blk))
+  if (!ctx.blocks().registerBlock(blk))
   {
     REPORT_ERR("cannot add block", bl->name);
     delete blk;
@@ -1105,86 +1082,37 @@ void add_block(block_decl *bl, ShaderSyntaxParser &parser)
   }
 }
 
-void add_hlsl(hlsl_global_decl_class &sh, ShaderSyntaxParser &parser, bool need_file_idx)
+void add_hlsl(hlsl_global_decl_class &sh, Parser &parser, shc::TargetContext &ctx)
 {
-  if (!validate_hardcoded_regs_in_hlsl_block(sh.text))
+  if (!semantic::validate_hardcoded_regs_in_hlsl_block(sh.text))
     return;
 
-  uint32_t hlsl_types = HLSL_ALL;
+  hlsl_mask_t hlsl_types = HLSL_FLAGS_ALL;
   if (sh.ident)
   {
-    hlsl_types = 0;
-    if (strstr(sh.ident->text, "ps") != 0)
-      hlsl_types |= HLSL_PS;
-    else if (strstr(sh.ident->text, "vs") != 0)
-      hlsl_types |= HLSL_VS;
-    else if (strstr(sh.ident->text, "cs") != 0)
-      hlsl_types |= HLSL_CS;
-    else if (strstr(sh.ident->text, "ds") != 0)
-      hlsl_types |= HLSL_DS;
-    else if (strstr(sh.ident->text, "hs") != 0)
-      hlsl_types |= HLSL_HS;
-    else if (strstr(sh.ident->text, "gs") != 0)
-      hlsl_types |= HLSL_GS;
-    else if (strstr(sh.ident->text, "ms") != 0)
-      hlsl_types |= HLSL_MS;
-    else if (strstr(sh.ident->text, "as") != 0)
-      hlsl_types |= HLSL_AS;
-    else
+    HlslCompilationStage stage = profile_to_hlsl_stage(sh.ident->text);
+    if (stage == HLSL_INVALID)
       REPORT_ERR(String(0, "Unexpected scope %s", sh.ident->text).c_str(), sh.ident);
+
+    hlsl_types = HLSL_ALL_FLAGS_LIST[stage];
   }
 
-  if (hlsl_types & HLSL_VS)
-    hlsl_types |= HLSL_DS | HLSL_GS | HLSL_HS;
+  if (hlsl_types & HLSL_FLAGS_VS)
+    hlsl_types |= HLSL_FLAGS_DS | HLSL_FLAGS_GS | HLSL_FLAGS_HS;
 
-  if (hlsl_types & HLSL_AS)
-    hlsl_types |= HLSL_MS;
+  if (hlsl_types & HLSL_FLAGS_AS)
+    hlsl_types |= HLSL_FLAGS_MS;
 
-  if (hlsl_types & HLSL_PS)
-    addSourceCode(hlsl_glob_ps, sh.text, parser, need_file_idx);
-  if (hlsl_types & HLSL_CS)
-    addSourceCode(hlsl_glob_cs, sh.text, parser, need_file_idx);
-  if (hlsl_types & HLSL_VS)
-    addSourceCode(hlsl_glob_vs, sh.text, parser, need_file_idx);
-  if (hlsl_types & HLSL_GS)
-    addSourceCode(hlsl_glob_gs, sh.text, parser, need_file_idx);
-  if (hlsl_types & HLSL_DS)
-    addSourceCode(hlsl_glob_ds, sh.text, parser, need_file_idx);
-  if (hlsl_types & HLSL_HS)
-    addSourceCode(hlsl_glob_hs, sh.text, parser, need_file_idx);
-  if (hlsl_types & HLSL_MS)
-    addSourceCode(hlsl_glob_ms, sh.text, parser, need_file_idx);
-  if (hlsl_types & HLSL_AS)
-    addSourceCode(hlsl_glob_as, sh.text, parser, need_file_idx);
+  ctx.globHlslSrc().forEach(hlsl_types, [&](String &src) { addSourceCode(src, sh.text, parser, ctx.globMessages(), true); });
 }
 #undef REPORT_ERR
 
-void add_global_bool(ShaderTerminal::bool_decl &bool_var, ShaderTerminal::ShaderSyntaxParser &parser)
+void add_global_bool(ShaderTerminal::bool_decl &bool_var, Parser &parser, shc::TargetContext &ctx)
 {
-  BoolVar::add(false, bool_var, parser);
+  ctx.globBoolVars().add(bool_var, parser);
 
   String hlsl_bool_var(0, "##bool %s\n", bool_var.name->text);
-  hlsl_glob_ps.append(hlsl_bool_var);
-  hlsl_glob_cs.append(hlsl_bool_var);
-  hlsl_glob_vs.append(hlsl_bool_var);
-  hlsl_glob_gs.append(hlsl_bool_var);
-  hlsl_glob_ds.append(hlsl_bool_var);
-  hlsl_glob_hs.append(hlsl_bool_var);
-  hlsl_glob_ms.append(hlsl_bool_var);
-  hlsl_glob_as.append(hlsl_bool_var);
-}
-
-void reset()
-{
-  glob_string_table.clear();
-  clear_and_shrink(hlsl_glob_vs);
-  clear_and_shrink(hlsl_glob_hs);
-  clear_and_shrink(hlsl_glob_ds);
-  clear_and_shrink(hlsl_glob_gs);
-  clear_and_shrink(hlsl_glob_ps);
-  clear_and_shrink(hlsl_glob_cs);
-  clear_and_shrink(hlsl_glob_ms);
-  clear_and_shrink(hlsl_glob_as);
+  ctx.globHlslSrc().forEach([&](String &src) { src.append(hlsl_bool_var); });
 }
 }; // namespace ShaderParser
 
@@ -1319,12 +1247,12 @@ void ShaderParser::build_bool_expr_string(bool_expr &e, String &out, bool clr_st
   build_condition_string(e, out);
 }
 
-// report error
-void sh_report_error(ShaderTerminal::shader_stat *s, ShaderTerminal::ShaderSyntaxParser &parser)
+// report error, for plugging into generated code
+void sh_report_error_cb(ShaderTerminal::shader_stat *s, GeneratedParser &parser)
 {
   if (!s || !s->error_val)
     return;
 
-  parser.get_lex_parser().set_error(s->error_val->file_start, s->error_val->line_start, s->error_val->col_start,
+  parser.get_lexer().set_error(s->error_val->file_start, s->error_val->line_start, s->error_val->col_start,
     "shader_stat is not valid!");
 }

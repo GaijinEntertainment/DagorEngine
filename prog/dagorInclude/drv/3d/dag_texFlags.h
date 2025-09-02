@@ -55,8 +55,6 @@ enum
   TEXCF_READONLY = 0,
   TEXCF_WRITEONLY = 0x00000008U,     // cpu can write (TEXLOCK_WRITE)
   TEXCF_LOADONCE = 0x00000400U,      // texture will be loaded only once - don't use with dynamic
-  TEXCF_MAYBELOST = 0x00000800U,     // contents of the texture may be safely lost - they will be regenerated before using it
-  TEXCF_STREAMING = 0x00000000U,     // should be deleted shortly, obsolete
   TEXCF_SYSMEM = 0x00010000U,        // texture is allocated in system memory and used only as staging texture
                                      // TEXCF_SYSMEM|TEXCF_WRITEONLY is allocated in WC memory on PS4
   TEXCF_SAMPLECOUNT_2 = 0x00020000U, //  =
@@ -73,30 +71,28 @@ enum
 
 
 
+
+
+
+
 #elif _TARGET_XBOX
   TEXCF_CPU_CACHED_MEMORY = 0x00008000U, // todo: implement allocation in onion instead of garlic mem
   TEXCF_LINEAR_LAYOUT = 0x00100000U,     // todo: implement without tiling
   TEXCF_ESRAM_ONLY = 0x00000020U,        // always reside in ESRAM
-  TEXCF_MOVABLE_ESRAM = 0x00000040U,     // Create copy in DDR
+#if _TARGET_SCARLETT
+  TEXCF_TC_COMPATIBLE = 0x00080000U, // texture cache compatible, readable as compressed in shader
+  TEXCF_RT_COMPRESSED = 0x00000040U, // RT with DCC compression, can reduce memory bandwidth
+#else
   TEXCF_TC_COMPATIBLE = 0,
   TEXCF_RT_COMPRESSED = 0,
+#endif
 #else
   TEXCF_CPU_CACHED_MEMORY = 0,
   TEXCF_LINEAR_LAYOUT = 0,
   TEXCF_ESRAM_ONLY = 0, // make copy in system memory
-  TEXCF_MOVABLE_ESRAM = 0,
   TEXCF_TC_COMPATIBLE = 0,
   TEXCF_RT_COMPRESSED = 0,
 #endif
-
-  // Indicates that a color render target or uav texture may be used by the 3d and async compute queue at the same time.
-  // This directly maps to DX12's D3D12_RESOURCE_FLAG_ALLOW_SIMULTANEOUS_ACCESS flag and on Vulkan this maps directly
-  // to VK_SHARING_MODE_CONCURRENT for all device queues used.
-  // This flag removes the need to transfer ownership of the resources between execution queues
-  // (eg. RB_FLAG_MOVE_PIPELINE_OWNERSHIP between different GpuPipeline).
-  // Required to be paired with TEXCF_RTARGET and/or TEXCF_UNORDERED.
-  // It is invalid to apply this flag to resources with depth/stencil formats.
-  TEXCF_SIMULTANEOUS_MULTI_QUEUE_USE = 0x00080000U,
 
   TEXCF_SRGBWRITE = 0x00200000U,    // perform srgb conversion when render to this texture. Works only on 8 bit 4 components textures
   TEXCF_SRGBREAD = 0x00400000U,     // perform srgb conversion when sample from texture
@@ -129,7 +125,6 @@ enum
   TEXFMT_L16 = 0x10000000U,
   TEXFMT_A8 = 0x11000000U,
   TEXFMT_R8 = 0x12000000U,
-  TEXFMT_L8 = TEXFMT_R8, // legacy, to be removed
   TEXFMT_A1R5G5B5 = 0x13000000U,
   TEXFMT_A4R4G4B4 = 0x14000000U,
   TEXFMT_R5G6B5 = 0x15000000U,

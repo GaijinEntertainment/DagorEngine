@@ -5,8 +5,7 @@
 #include <oldEditor/de_common_interface.h>
 
 #include <EditorCore/ec_IGizmoObject.h>
-
-#include <sepGui/wndPublic.h>
+#include <EditorCore/ec_wndPublic.h>
 
 #include <libTools/staticGeom/geomObject.h>
 #include <coolConsole/iConsoleCmd.h>
@@ -51,12 +50,6 @@ struct EnvironmentAces
 };
 
 
-enum EnviType
-{
-  ENVI_TYPE_CAPSULE_FOG,
-};
-
-
 class EnvironmentPlugin : public IGenEditorPlugin,
                           public IGenEventHandler,
                           public IBinaryDataBuilder,
@@ -69,95 +62,92 @@ class EnvironmentPlugin : public IGenEditorPlugin,
 {
 public:
   EnvironmentPlugin();
-  ~EnvironmentPlugin();
+  ~EnvironmentPlugin() override;
 
-  virtual const char *getInternalName() const { return "environment"; }
-  virtual const char *getMenuCommandName() const { return "Environment"; }
-  virtual const char *getHelpUrl() const { return "/html/Plugins/Environment/index.htm"; }
+  const char *getInternalName() const override { return "environment"; }
+  const char *getMenuCommandName() const override { return "Environment"; }
+  const char *getHelpUrl() const override { return "/html/Plugins/Environment/index.htm"; }
 
-  virtual int getRenderOrder() const { return -200; }
-  virtual int getBuildOrder() const { return 0; }
-  virtual bool showInTabs() const { return true; }
+  int getRenderOrder() const override { return -200; }
+  int getBuildOrder() const override { return 0; }
+  bool showInTabs() const override { return true; }
 
-  virtual void registered();
-  virtual void unregistered();
-  virtual void beforeMainLoop() { needSkiesUpdate = true; }
+  void registered() override;
+  void unregistered() override;
+  void beforeMainLoop() override { needSkiesUpdate = true; }
 
-  virtual void registerMenuAccelerators() override;
-  virtual bool begin(int toolbar_id, unsigned menu_id);
-  virtual bool end();
-  virtual IGenEventHandler *getEventHandler() { return this; }
+  void registerMenuAccelerators() override;
+  bool begin(int toolbar_id, unsigned menu_id) override;
+  bool end() override;
+  IGenEventHandler *getEventHandler() override { return this; }
 
-  virtual void setVisible(bool vis) { isVisible = vis; }
-  virtual bool getVisible() const { return isVisible; }
+  void setVisible(bool vis) override { isVisible = vis; }
+  bool getVisible() const override { return isVisible; }
 
-  virtual bool getSelectionBox(BBox3 &) const { return false; }
-  virtual bool getStatusBarPos(Point3 &pos) const { return false; }
+  bool getSelectionBox(BBox3 &) const override { return false; }
+  bool getStatusBarPos(Point3 &pos) const override { return false; }
 
-  virtual void clearObjects();
-  virtual void onNewProject() {}
-  virtual void autoSaveObjects(DataBlock &local_data);
-  virtual void saveObjects(DataBlock &blk, DataBlock &local_data, const char *base_path);
-  virtual void loadObjects(const DataBlock &blk, const DataBlock &local_data, const char *base_path);
-  virtual bool acceptSaveLoad() const { return true; }
+  void clearObjects() override;
+  void onNewProject() override {}
+  void autoSaveObjects(DataBlock &local_data) override;
+  void saveObjects(DataBlock &blk, DataBlock &local_data, const char *base_path) override;
+  void loadObjects(const DataBlock &blk, const DataBlock &local_data, const char *base_path) override;
+  bool acceptSaveLoad() const override { return true; }
   void loadBlk(bool ps3, const char *selectedName);
 
-  virtual void selectAll() {}
-  virtual void deselectAll() {}
+  void selectAll() override {}
+  void deselectAll() override {}
 
-  virtual void actObjects(float dt);
-  virtual void beforeRenderObjects(IGenViewportWnd *vp);
-  virtual void renderObjects() {}
-  virtual void renderTransObjects();
-  virtual void updateImgui() override;
+  void actObjects(float dt) override;
+  void beforeRenderObjects(IGenViewportWnd *vp) override;
+  void renderObjects() override {}
+  void renderTransObjects() override;
+  void updateImgui() override;
   void renderObjectsToViewport(IGenViewportWnd *vp);
 
-  virtual void *queryInterfacePtr(unsigned huid);
+  void *queryInterfacePtr(unsigned huid) override;
 
-  virtual bool catchEvent(unsigned ev_huid, void *userData);
+  bool catchEvent(unsigned ev_huid, void *userData) override;
 
   // command handlers
-  virtual void handleKeyPress(IGenViewportWnd *wnd, int vk, int modif) {}
-  virtual void handleKeyRelease(IGenViewportWnd *wnd, int vk, int modif) {}
-
-  virtual bool handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
-  virtual bool handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
-  virtual bool handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
-  virtual bool handleMouseRBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
-  virtual bool handleMouseRBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) { return false; }
-  virtual bool handleMouseCBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) { return false; }
-  virtual bool handleMouseCBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) { return false; }
-  virtual bool handleMouseWheel(IGenViewportWnd *wnd, int wheel_d, int x, int y, int key_modif) { return false; }
-  virtual bool handleMouseDoubleClick(IGenViewportWnd *wnd, int x, int y, int key_modif) { return false; }
-  virtual void handleViewportPaint(IGenViewportWnd *wnd);
-  virtual void handleViewChange(IGenViewportWnd *wnd) {}
+  bool handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
+  bool handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
+  bool handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
+  bool handleMouseRBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
+  bool handleMouseRBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override { return false; }
+  bool handleMouseCBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override { return false; }
+  bool handleMouseCBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override { return false; }
+  bool handleMouseWheel(IGenViewportWnd *wnd, int wheel_d, int x, int y, int key_modif) override { return false; }
+  bool handleMouseDoubleClick(IGenViewportWnd *wnd, int x, int y, int key_modif) override { return false; }
+  void handleViewportPaint(IGenViewportWnd *wnd) override;
+  void handleViewChange(IGenViewportWnd *wnd) override {}
 
   bool buildLmEnviScene(ILogWriter &rep, PropPanel::ContainerPropertyControl *panel, unsigned target);
 
-  virtual bool onPluginMenuClick(unsigned id);
-  virtual void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel);
-  virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel);
+  bool onPluginMenuClick(unsigned id) override;
+  void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
+  void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
 
   // IWndManagerWindowHandler
-  virtual void *onWmCreateWindow(int type) override;
-  virtual bool onWmDestroyWindow(void *window) override;
+  void *onWmCreateWindow(int type) override;
+  bool onWmDestroyWindow(void *window) override;
 
   // IBinaryDataBuilder implemenatation
-  virtual bool validateBuild(int target, ILogWriter &rep, PropPanel::ContainerPropertyControl *params);
-  virtual bool addUsedTextures(ITextureNumerator &tn);
-  virtual bool buildAndWrite(BinDumpSaveCB &cwr, const ITextureNumerator &tn, PropPanel::ContainerPropertyControl *pp);
-  virtual bool useExportParameters() const { return false; }
-  virtual void fillExportPanel(PropPanel::ContainerPropertyControl &params);
-  virtual bool checkMetrics(const DataBlock &metrics_blk);
+  bool validateBuild(int target, ILogWriter &rep, PropPanel::ContainerPropertyControl *params) override;
+  bool addUsedTextures(ITextureNumerator &tn) override;
+  bool buildAndWrite(BinDumpSaveCB &cwr, const ITextureNumerator &tn, PropPanel::ContainerPropertyControl *pp) override;
+  bool useExportParameters() const override { return false; }
+  void fillExportPanel(PropPanel::ContainerPropertyControl &params) override;
+  bool checkMetrics(const DataBlock &metrics_blk) override;
 
   // IRenderingService interface
-  virtual void renderGeometry(Stage stage);
+  void renderGeometry(Stage stage) override;
 
-  virtual void prepareCubeTex(bool renderEnvi, bool renderLit, bool renderStreamLit);
+  void prepareCubeTex(bool renderEnvi, bool renderLit, bool renderStreamLit) override;
 
   // IConsoleCmd
-  virtual bool onConsoleCommand(const char *cmd, dag::ConstSpan<const char *> params);
-  virtual const char *onConsoleCommandHelp(const char *cmd);
+  bool onConsoleCommand(const char *cmd, dag::ConstSpan<const char *> params) override;
+  const char *onConsoleCommandHelp(const char *cmd) override;
 
 public:
   static ISceneLightService *ltService;
@@ -213,10 +203,8 @@ private:
   bool isPPVisible;
 
   bool previewFog;
-  bool previewZNearZFar;
 
   String lastImportedEnvi;
-  Tab<EnviType> lastTypeList;
   int skyScaleVarId;
   int skyWorldXVarId;
   int skyWorldYVarId;
@@ -298,4 +286,6 @@ private:
   void updateSunSkyEnvi();
 
   bool onPluginMenuClickInternal(unsigned id, PropPanel::ContainerPropertyControl *panel);
+
+  static bool recreatePlugin;
 };

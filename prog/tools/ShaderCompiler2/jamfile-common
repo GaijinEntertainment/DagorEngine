@@ -6,7 +6,6 @@ if ! $(Location) { Exit Location must be defined before including jamfile-common
 
 SkipLicenseBuild = no ;
 WinSdkVer  = win.sdk.100 ;
-CPPStd = 20 ;
 MimDebug ?= 0 ;
 CopyDxcLib ?= no ;
 include $(Root)/prog/tools/tools_setup.jam ;
@@ -30,7 +29,6 @@ Sources =
   assemblyShader.cpp
   variablesMerger.cpp
   gatherVar.cpp
-  semChecker.cpp
   semUtils.cpp
   shExpr.cpp
   shExprParser.cpp
@@ -44,20 +42,31 @@ Sources =
   shCompiler.cpp
   debugSpitfile.cpp
   globalConfig.cpp
+  hwSemantic.cpp
+  hwAssembly.cpp
+  shaderSemantic.cpp
+  variantSemantic.cpp
+  variantAssembly.cpp
 
   shCode.cpp
+  shTargetStorage.cpp
+  shAssumes.cpp
+  shaderBytecodeCache.cpp
+  stcodeBytecode.cpp
   cppStcode.cpp
   cppStcodeAssembly.cpp
+  cppStcodePasses.cpp
+  hlslRegisters.cpp
   globvar.cpp
   intervals.cpp
   samplers.cpp
   boolVar.cpp
   shaderVariant.cpp
-  varMap.cpp
+  shaderSave.cpp
   shLog.cpp
   shUtils.cpp
   shFunc.cpp
-  shVerMgr.cpp
+  shCompilationInfo.cpp
   loadShaders.cpp
   binDumpUtils.cpp
   makeShBinDump.cpp
@@ -67,9 +76,9 @@ Sources =
   condParser.cpp
   ver_obj_spirv.cpp
   ver_obj_dxc.cpp
+  deSerializationContext.cpp
 
   linkShaders.cpp
-  shadervarGenerator.cpp
   parser/bparser.cpp
   gitRunner.cpp
 

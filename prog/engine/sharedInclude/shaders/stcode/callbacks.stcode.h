@@ -14,13 +14,13 @@ namespace stcode::cpp
 
 extern CallbackTable internalCbTable;
 
-__forceinline void set_tex(int stage, uint reg, unsigned id) { internalCbTable.setTex(stage, reg, id); }
-__forceinline void set_buf(int stage, uint reg, unsigned id) { internalCbTable.setBuf(stage, reg, id); }
-__forceinline void set_const_buf(int stage, uint reg, unsigned id) { internalCbTable.setConstBuf(stage, reg, id); }
-__forceinline void set_sampler(int stage, uint reg, void *handle_ptr) { internalCbTable.setSampler(stage, reg, handle_ptr); }
-__forceinline void set_rwtex(int stage, uint reg, unsigned id) { internalCbTable.setRwtex(stage, reg, id); }
-__forceinline void set_rwbuf(int stage, uint reg, unsigned id) { internalCbTable.setRwbuf(stage, reg, id); }
-__forceinline void set_tlas(int stage, uint reg, void *ptr) { internalCbTable.setTlas(stage, reg, ptr); }
+__forceinline void set_tex(int stage, uint reg, const void *texptr) { internalCbTable.setTex(stage, reg, texptr); }
+__forceinline void set_buf(int stage, uint reg, const void *bufptr) { internalCbTable.setBuf(stage, reg, bufptr); }
+__forceinline void set_const_buf(int stage, uint reg, const void *bufptr) { internalCbTable.setConstBuf(stage, reg, bufptr); }
+__forceinline void set_sampler(int stage, uint reg, const void *handle_ptr) { internalCbTable.setSampler(stage, reg, handle_ptr); }
+__forceinline void set_rwtex(int stage, uint reg, const void *texptr) { internalCbTable.setRwtex(stage, reg, texptr); }
+__forceinline void set_rwbuf(int stage, uint reg, const void *bufptr) { internalCbTable.setRwbuf(stage, reg, bufptr); }
+__forceinline void set_tlas(int stage, uint reg, const void *ptr) { internalCbTable.setTlas(stage, reg, ptr); }
 __forceinline void get_globtm(float4x4 *out) { internalCbTable.getGlobTm(out); }
 __forceinline void get_projtm(float4x4 *out) { internalCbTable.getProjTm(out); }
 __forceinline void get_viewprojtm(float4x4 *out) { internalCbTable.getViewProjTm(out); }
@@ -30,17 +30,30 @@ __forceinline real get_shader_global_time_phase(float period, float offset)
 {
   return internalCbTable.getShaderGlobalTimePhase(period, offset);
 }
-__forceinline float4 get_tex_dim(unsigned int id, int mip) { return internalCbTable.getTexDim(id, mip); }
-__forceinline int get_buf_size(unsigned int id) { return internalCbTable.getBufSize(id); }
+__forceinline float4 get_tex_dim(const void *texptr, int mip) { return internalCbTable.getTexDim(texptr, mip); }
+__forceinline int get_buf_size(const void *bufptr) { return internalCbTable.getBufSize(bufptr); }
 __forceinline float4 get_viewport() { return internalCbTable.getViewport(); }
-__forceinline int exists_tex(unsigned int id) { return internalCbTable.texExists(id); }
-__forceinline int exists_buf(unsigned int id) { return internalCbTable.bufExists(id); }
+__forceinline int exists_tex(const void *texptr) { return internalCbTable.texExists(texptr); }
+__forceinline int exists_buf(const void *bufptr) { return internalCbTable.bufExists(bufptr); }
 __forceinline uint64_t request_sampler(int smp_id, float4 border_color, int anisotropic_max, int mipmap_bias)
 {
   return internalCbTable.requestSampler(smp_id, border_color, anisotropic_max, mipmap_bias);
 }
 __forceinline void set_const(int stage, unsigned int id, float4 *val, int cnt) { internalCbTable.setConst(stage, id, val, cnt); }
 
-__forceinline void *get_shadervar_ptr_from_dump(int var_id) { return internalCbTable.getShadervarPtrFromDump(var_id); }
+__forceinline void get_shadervar_ptrs_from_dump(const ShadervarPtrInitInfo *out_data_infos, uint32_t ptr_count)
+{
+  return internalCbTable.getShadervarPtrsFromDump(out_data_infos, ptr_count);
+}
+
+__forceinline void reg_bindless(void *texptr, int reg, void *ctx) { internalCbTable.regBindless(texptr, reg, ctx); }
+
+__forceinline void create_state(const uint *vs_tex, uint16_t vs_tex_range_packed, const uint *ps_tex, uint16_t ps_tex_range_packed,
+  const void *consts, int const_cnt, bool multidraw_cbuf, void *ctx)
+{
+  internalCbTable.createState(vs_tex, vs_tex_range_packed, ps_tex, ps_tex_range_packed, consts, const_cnt, multidraw_cbuf, ctx);
+}
+
+__forceinline uint acquire_tex(void *texptr) { return internalCbTable.acquireTex(texptr); }
 
 } // namespace stcode::cpp

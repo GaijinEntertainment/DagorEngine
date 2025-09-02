@@ -50,7 +50,6 @@ static inline TexPtr create_tex_from_raw_hmap_file(const char *name, int &width)
   if (!tex)
     return {};
 
-  tex->texaddr(TEXADDR_CLAMP);
   char *data;
   int stride;
   if (!tex->lockimg((void **)&data, stride, 0, TEXLOCK_WRITE))
@@ -198,7 +197,6 @@ static inline TexPtr create_tex_from_mtw(const char *name, float *out_cell_sz = 
   if (!tex)
     return {};
 
-  tex->texaddr(TEXADDR_CLAMP);
   char *data;
   int stride;
   if (!tex->lockimg((void **)&data, stride, 0, TEXLOCK_WRITE))

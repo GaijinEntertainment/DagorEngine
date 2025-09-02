@@ -16,7 +16,6 @@ struct GameObjectSoundAttributes
     hash_t soundTypeHash;
     hash_t soundShapeHash;
     Point3 extents;
-    Attributes() = delete;
   };
 
   GameObjectSoundAttributes() = default;

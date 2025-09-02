@@ -15,6 +15,7 @@
 #include <coolConsole/coolConsole.h>
 
 #include <oldEditor/pluginService/de_IDagorPhys.h>
+#include <oldEditor/de_workspace.h>
 #include <de3_hmapService.h>
 #include <de3_interface.h>
 #include <assets/asset.h>
@@ -298,6 +299,7 @@ void buildColorTexture(TexPixel32 *image, MapStorage<E3DCOLOR> &colormap, int te
 }
 
 
+#if 0
 void buildLightTexture(TexPixel32 *image, MapStorage<uint32_t> &lightmap, int tex_data_sizex, int tex_data_sizey, int stride,
   int map_x, int map_y, bool use_normal_map)
 {
@@ -340,7 +342,6 @@ static void expandImageBorder(TexPixel32 *image, int size, int data_size)
 }
 
 
-#if 0
 static void exportColorAndLightMaps(mkbindump::BinDumpSaveCB &cb, MapStorage<E3DCOLOR> &colormap, MapStorage<uint32_t> &lightmap,
   int elem_size, int num_lods, int lightmapScaleFactor, int base_ofs, bool use_normal_map)
 {
@@ -599,7 +600,6 @@ bool aces_export_detail_maps(mkbindump::BinDumpSaveCB &cb, int mapSizeX, int map
 
   int numDetTex = HmapLandPlugin::self->getNumDetailTextures();
   SmallTab<int, TmpmemAlloc> detTexRemap;
-  if (true)
   {
     SmallTab<bool, TmpmemAlloc> usedDetTex;
     clear_and_resize(usedDetTex, numDetTex);
@@ -634,12 +634,6 @@ bool aces_export_detail_maps(mkbindump::BinDumpSaveCB &cb, int mapSizeX, int map
     debug("used %d detTex of %d", ord, numDetTex);
     numDetTex = ord;
   }
-  else
-  {
-    clear_and_resize(detTexRemap, numDetTex);
-    for (int i = 0; i < numDetTex; ++i)
-      detTexRemap[i] = i;
-  }
 
   int time0 = dagTools->getTimeMsec();
 
@@ -651,13 +645,30 @@ bool aces_export_detail_maps(mkbindump::BinDumpSaveCB &cb, int mapSizeX, int map
 
   cb.writeInt32e(numDetTex);
 
+  int customLandClassesCount = 0; // with LandClassType::LC_CUSTOM type
+  DataBlock app_blk;
+  if (!app_blk.load(DAGORED2->getWorkspace().getAppPath()))
+    DAEDITOR3.conError("cannot read <%s>", DAGORED2->getWorkspace().getAppPath());
+  int customLandClassesLimit = app_blk.getBlockByNameEx("heightMap")->getInt("customLandClassesLimit", -1);
+
   for (int i = 0, ie = HmapLandPlugin::self->getNumDetailTextures(); i < ie; ++i)
   {
     if (detTexRemap[i] < 0)
       continue;
-    ::hmap_export_land(cb, i < land_class_names.size() ? land_class_names[i].str() : NULL, i);
+    const char *landClassName = i < land_class_names.size() ? land_class_names[i].str() : NULL;
+    ::hmap_export_land(cb, landClassName, i);
+    if (DagorAsset *a = DAEDITOR3.getAssetByName(landClassName, DAEDITOR3.getAssetTypeId("land")))
+    {
+      if (a->props.getBlockByNameEx("detail")->getStr("shader", nullptr))
+        customLandClassesCount++;
+    }
     con.incDone();
   }
+  if (customLandClassesLimit >= 0 && customLandClassesCount > customLandClassesLimit)
+  {
+    DAEDITOR3.conError("Map has more than %d landclasses with custom shader", customLandClassesLimit);
+  }
+
   debug("exported %d detail tex", numDetTex);
 
   con.endProgress();

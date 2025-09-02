@@ -71,7 +71,7 @@ struct BufferInterfaceConfigCommon
   static void onDestroyRequest(GenericBufferInterface *self);
   static HostDeviceSharedMemoryRegion allocateTemporaryUploadMemory(uint32_t size);
   static bool isValidMemory(HostDeviceSharedMemoryRegion mem) { return static_cast<bool>(mem); }
-  static uint8_t *getMemoryPointer(HostDeviceSharedMemoryRegion mem, uint32_t offset) { return mem.pointer + offset; }
+  static uint8_t *getMemoryPointer(HostDeviceSharedMemoryRegion mem, uint32_t offset) { return mem.cpuPointer() + offset; }
   static void updateBuffer(HostDeviceSharedMemoryRegion mem, GenericBufferInterface *self, uint32_t buf_flags,
     BufferReferenceType buffer, uint32_t dst_offset);
   static void copyBuffer(GenericBufferInterface *src_buf, uint32_t src_flags, BufferReferenceType src, TemporaryMemoryType src_stream,

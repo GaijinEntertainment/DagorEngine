@@ -9,7 +9,7 @@ Channels must be defined within a ``shader{...}`` block via the following syntax
 
 .. code-block:: c
 
-  channel (type) (usage_dst) = (usage_src) [ modifier ];
+    channel (type) (usage_dst) = (usage_src) [ modifier ];
 
 **Data types**
 
@@ -72,37 +72,37 @@ Here is a simple usage example:
 
 .. code-block:: c
 
-  shader some_shader
-  {
-    /*
-    Here we declare channels for the vertex shader, which
-    will be used by the shader compiler to generate appropriate
-    vertex shader declaration for this particular shader.
-    */
-    channel float3 pos=pos;       // vertex position
-    channel color8 vcol=vcol;     // vertex color
-    channel float3 tc[0] = tc[0]; // vertex texture coordinate
-    channel float3 tc[1] = tc[1]; // another vertex texture coordinate
-
-    hlsl(vs) {
+    shader some_shader
+    {
       /*
-      This VsInput struct declares vertex information in HLSL-style.
-      Note that for each DSHL channel declared above, there should be a corresponding
-      HLSL semantic matching the declared channel.
+      Here we declare channels for the vertex shader, which
+      will be used by the shader compiler to generate appropriate
+      vertex shader declaration for this particular shader.
       */
-      struct VsInput
-      {
-        float4 pos : POSITION;               // vertex position
-        float4 color : COLOR0;               // vertex color
-        float3 texcoord : TEXCOORD0;         // vertex texture coordinate
-        float3 another_texcoord : TEXCOORD1; // another vertex texture coordinate
-      };
-    }
+      channel float3 pos=pos;       // vertex position
+      channel color8 vcol=vcol;     // vertex color
+      channel float3 tc[0] = tc[0]; // vertex texture coordinate
+      channel float3 tc[1] = tc[1]; // another vertex texture coordinate
 
-    hlsl(vs) {
-      VsOutput some_vs(VsInput input)
-      {
-        // ...
+      hlsl(vs) {
+        /*
+        This VsInput struct declares vertex information in HLSL-style.
+        Note that for each DSHL channel declared above, there should be a corresponding
+        HLSL semantic matching the declared channel.
+        */
+        struct VsInput
+        {
+          float4 pos : POSITION;               // vertex position
+          float4 color : COLOR0;               // vertex color
+          float3 texcoord : TEXCOORD0;         // vertex texture coordinate
+          float3 another_texcoord : TEXCOORD1; // another vertex texture coordinate
+        };
+      }
+
+      hlsl(vs) {
+        VsOutput some_vs(VsInput input)
+        {
+          // ...
+        }
       }
     }
-  }

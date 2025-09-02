@@ -12,17 +12,14 @@
 #include "shaders/atmosphere/atmosphere_params.hlsli"
 
 #define TRANSMITTANCE_TEXTURE_SIZE_DEFINED 1
-static const int TRANSMITTANCE_TEXTURE_WIDTH = 128;
-static const int TRANSMITTANCE_TEXTURE_HEIGHT = 32;
+static constexpr int TRANSMITTANCE_TEXTURE_WIDTH = 128;
+static constexpr int TRANSMITTANCE_TEXTURE_HEIGHT = 32;
 #include "shaders/atmosphere/texture_sizes.hlsli"
 
 struct TransmittanceTexture
 {
-  enum
-  {
-    Width = TRANSMITTANCE_TEXTURE_WIDTH,
-    Height = TRANSMITTANCE_TEXTURE_HEIGHT
-  };
+  static constexpr int Width = TRANSMITTANCE_TEXTURE_WIDTH;
+  static constexpr int Height = TRANSMITTANCE_TEXTURE_HEIGHT;
   typedef float3 Data;
   mutable Data data[Width * Height];
   void invalidate()
@@ -37,11 +34,8 @@ struct TransmittanceTexture
 
 struct IrradianceTexture
 {
-  enum
-  {
-    Width = IRRADIANCE_TEXTURE_WIDTH,
-    Height = IRRADIANCE_TEXTURE_HEIGHT
-  };
+  static constexpr int Width = IRRADIANCE_TEXTURE_WIDTH;
+  static constexpr int Height = IRRADIANCE_TEXTURE_HEIGHT;
   typedef float3 Data;
   mutable Data data[Width * Height];
   inline Data eval(int x, int y) const;

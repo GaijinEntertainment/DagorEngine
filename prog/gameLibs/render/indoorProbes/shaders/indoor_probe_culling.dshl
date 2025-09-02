@@ -1,0 +1,170 @@
+include "shader_global.dshl"
+include "indoor_light_probes.dshl"
+include "postfx_inc.dshl"
+
+buffer indoor_probe_visible_pixels_count;
+int indoor_probe_visible_pixels_count_const_no = 2 always_referenced;
+int depth_bounds_support = 0;
+interval depth_bounds_support: no<1, yes;
+
+int has_uav_in_vs_capability = 0;
+interval has_uav_in_vs_capability : no < 1, yes;
+
+shader indoor_probes_gpu_culling
+{
+  ENABLE_ASSERT(ps)
+  if (compatibility_mode == compatibility_mode_on)
+  {
+    dont_render;
+  }
+  z_test = true;
+  z_write = false;
+  cull_mode = cw;
+  supports global_frame;
+
+  hlsl
+  {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      nointerpolation uint boxId : TEXCOORD1;
+      nointerpolation uint increment : TEXCOORD2;
+      float3 pointToEye : TEXCOORD3;
+    };
+  }
+
+  local float4 viewport = get_viewport();
+  (vs)
+  {
+    globtm@f44 = globtm;
+    indoor_probe_boxes@buf = all_indoor_probe_boxes hlsl {
+      StructuredBuffer<float4> indoor_probe_boxes@buf;
+    }
+    indoor_probe_pos_and_cubes@buf = all_indoor_probe_pos_and_cubes hlsl {
+      StructuredBuffer<float4> indoor_probe_pos_and_cubes@buf;
+    }
+    camera_inside_probe_pixel_count@f1 = (viewport.z * viewport.w,0,0,0);
+    inv_viewport@f2 = (1.0 / viewport.zw, 0,0);
+    if (has_uav_in_vs_capability == yes)
+    {
+      indoor_probe_visible_pixels_count@uav : register(indoor_probe_visible_pixels_count_const_no) hlsl {
+        RWStructuredBuffer<uint> indoor_probe_visible_pixels_count@uav;
+      }
+    }
+  }
+
+  hlsl(vs)
+  {
+    float3 get_local_dir(float3 world_dir, float3 xAxis, float3 yAxis, float3 zAxis)
+    {
+      return float3
+      (
+        dot(xAxis, world_dir),
+        dot(yAxis, world_dir),
+        dot(zAxis, world_dir)
+      );
+    }
+
+    VsOutput indoor_probes_gpu_culling_vs(uint vertexId : SV_VertexID)
+    {
+      uint boxId = vertexId / 36;
+      uint instanceVertexId = vertexId % 36;
+
+      uint indices[36] =
+      {
+        0, 1, 2, 0, 2, 3,
+        1, 5, 6, 1, 6, 2,
+        5, 4, 7, 5, 7, 6,
+        4, 0, 3, 4, 3, 7,
+        1, 0, 5, 5, 0, 4,
+        3, 2, 6, 3, 6, 7
+      };
+
+      float3 vertices[8] =
+      {
+        float3(0, 0, 0),
+        float3(1, 0, 0),
+        float3(1, 1, 0),
+        float3(0, 1, 0),
+        float3(0, 0, 1),
+        float3(1, 0, 1),
+        float3(1, 1, 1),
+        float3(0, 1, 1),
+      };
+
+      float3 boxSize = float3(structuredBufferAt(indoor_probe_boxes, boxId * 3 + 0).w,
+                              structuredBufferAt(indoor_probe_boxes, boxId * 3 + 1).w,
+                              structuredBufferAt(indoor_probe_boxes, boxId * 3 + 2).w);
+      float3 boxX = structuredBufferAt(indoor_probe_boxes, boxId * 3 + 0).xyz;
+      float3 boxY = structuredBufferAt(indoor_probe_boxes, boxId * 3 + 1).xyz;
+      float3 boxZ = structuredBufferAt(indoor_probe_boxes, boxId * 3 + 2).xyz;
+
+      half3 probePos = structuredBufferAt(indoor_probe_pos_and_cubes, boxId).xyz;
+      half3 eyeLocalPos = get_local_dir(world_view_pos - probePos, boxX, boxY, boxZ);
+      half3 distanceVector = abs(eyeLocalPos) - boxSize * 0.5;
+
+      VsOutput result;
+      result.boxId = boxId;
+      result.increment = 1;
+
+      float3 localPos = vertices[indices[instanceVertexId]] - 0.5f;
+      localPos *= boxSize;
+      float3 worldPos = localPos.x * boxX + localPos.y * boxY + localPos.z * boxZ + probePos;
+      result.pointToEye = world_view_pos - worldPos;
+      result.pos = mul(float4(worldPos, 1), globtm);
+
+      if (all(distanceVector <= 0))
+      {
+        ##if has_uav_in_vs_capability == yes
+          // If camera is inside indoor probe, then treat it like it covers the entire screen.
+          // They are volumes, but since we render them as triangles, they only look correct from outside.
+          // It doesn't account for VRS, but it doesn't matter, the probe we are in should be highest priority.
+          if (instanceVertexId == 0)
+            InterlockedAdd(structuredBufferAt(indoor_probe_visible_pixels_count, boxId), camera_inside_probe_pixel_count);
+
+          //draw nothing
+          result.pos = 0;
+          return result;
+        ##else
+          // If camera is inside indoor probe, then omit a small triangle, with high increment, to count it as covering full screen.
+          result.pos = instanceVertexId < 3 ? float4(get_fullscreen_inpos(instanceVertexId) * inv_viewport, 1, 1) : 0;
+          result.increment = camera_inside_probe_pixel_count;
+          return result;
+        ##endif
+      }
+      return result;
+    }
+  }
+  compile("target_vs", "indoor_probes_gpu_culling_vs");
+
+  USE_INDOOR_PROBE_CELL(ps)
+
+  (ps) {
+    indoor_probe_visible_pixels_count@uav : register(indoor_probe_visible_pixels_count_const_no) hlsl {
+      RWStructuredBuffer<uint> indoor_probe_visible_pixels_count@uav;
+    }
+  }
+  hlsl(ps)
+  {
+    [earlydepthstencil]
+    void indoor_probes_gpu_culling_ps(VsOutput input)
+    {
+      ##if depth_bounds_support == no
+        if (input.pos.w > indoor_probes_max_distance_or_disabled)
+          return;
+      ##endif
+
+      float3 worldPos = world_view_pos.xyz - input.pointToEye;
+      float3 gridPos;
+      int3 gridSize;
+      float fadeWeight;
+      get_grid_params(worldPos, length(input.pointToEye), gridPos, gridSize, fadeWeight);
+      BRANCH
+      if (fadeWeight == 0 && input.increment == 1)
+        return;
+
+      InterlockedAdd(structuredBufferAt(indoor_probe_visible_pixels_count, input.boxId), input.increment);
+    }
+  }
+  compile("target_ps", "indoor_probes_gpu_culling_ps");
+}

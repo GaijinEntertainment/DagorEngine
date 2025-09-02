@@ -7,6 +7,7 @@
 #include <util/dag_simpleString.h>
 #include <util/dag_string.h>
 #include <math/dag_e3dColor.h>
+#include <math/integer/dag_IPoint4.h>
 
 bool blk_util::copyBlkParam(const DataBlock &source, const int s_ind, DataBlock &dest, const char *new_name)
 {
@@ -30,6 +31,8 @@ bool blk_util::copyBlkParam(const DataBlock &source, const int s_ind, DataBlock 
     case DataBlock::TYPE_IPOINT2: dest.addIPoint2(name, source.getIPoint2(s_ind)); return true;
 
     case DataBlock::TYPE_IPOINT3: dest.addIPoint3(name, source.getIPoint3(s_ind)); return true;
+
+    case DataBlock::TYPE_IPOINT4: dest.addIPoint4(name, source.getIPoint4(s_ind)); return true;
 
     case DataBlock::TYPE_E3DCOLOR: dest.addE3dcolor(name, source.getE3dcolor(s_ind)); return true;
 
@@ -64,6 +67,8 @@ bool blk_util::cmpBlkParam(const DataBlock &source, const int s_ind, DataBlock &
     case DataBlock::TYPE_IPOINT2: return (source.getIPoint2(s_ind) == dest.getIPoint2(d_ind));
 
     case DataBlock::TYPE_IPOINT3: return (source.getIPoint3(s_ind) == dest.getIPoint3(d_ind));
+
+    case DataBlock::TYPE_IPOINT4: return (source.getIPoint4(s_ind) == dest.getIPoint4(d_ind));
 
     case DataBlock::TYPE_E3DCOLOR: return (source.getE3dcolor(s_ind) == dest.getE3dcolor(d_ind));
 
@@ -118,6 +123,13 @@ SimpleString blk_util::paramStrValue(const DataBlock &source, const int s_ind, c
     {
       IPoint3 pt = source.getIPoint3(s_ind);
       result = String(256, "(%d, %d, %d)", pt.x, pt.y, pt.z);
+    }
+    break;
+
+    case DataBlock::TYPE_IPOINT4:
+    {
+      IPoint4 pt = source.getIPoint4(s_ind);
+      result = String(256, "(%d, %d, %d, %d)", pt.x, pt.y, pt.z, pt.w);
     }
     break;
 

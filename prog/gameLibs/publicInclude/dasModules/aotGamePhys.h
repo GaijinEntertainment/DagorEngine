@@ -11,6 +11,7 @@
 #include <gamePhys/common/mass.h>
 #include <gamePhys/props/atmosphere.h>
 #include <gamePhys/phys/commonPhysBase.h>
+#include <gamePhys/phys/floatingVolume.h>
 #include <gamePhys/collision/volumetricDamageData.h>
 
 class ECSCustomPhysStateSyncer;
@@ -20,12 +21,17 @@ MAKE_TYPE_FACTORY(Loc, gamephys::Loc);
 MAKE_TYPE_FACTORY(LocalOrient, gamephys::SimpleLoc::LocalOrient);
 MAKE_TYPE_FACTORY(SimpleLoc, gamephys::SimpleLoc);
 MAKE_TYPE_FACTORY(CommonPhysPartialState, CommonPhysPartialState);
+MAKE_TYPE_FACTORY(MassProps, gamephys::MassProps);
+MAKE_TYPE_FACTORY(MassState, gamephys::MassState);
 MAKE_TYPE_FACTORY(Mass, gamephys::Mass);
+MAKE_TYPE_FACTORY(FloatingVolume, gamephys::floating_volumes::FloatingVolume);
 MAKE_TYPE_FACTORY(VolumetricDamageData, gamephys::VolumetricDamageData);
 MAKE_TYPE_FACTORY(ECSCustomPhysStateSyncer, ECSCustomPhysStateSyncer);
 
-using VolumetricDamageDatas = Tab<gamephys::VolumetricDamageData>;
+using SpheresTab = Tab<BSphere3>;
+DAS_BIND_VECTOR(SpheresTab, SpheresTab, BSphere3, "SpheresTab"); // Used in FloatingVolume, PhysObj:ccdSpheres, ...
 
+using VolumetricDamageDatas = Tab<gamephys::VolumetricDamageData>;
 DAS_BIND_VECTOR(VolumetricDamageDatas, VolumetricDamageDatas, gamephys::VolumetricDamageData, " ::VolumetricDamageDatas");
 
 DAS_BIND_ENUM_CAST_98_IN_NAMESPACE(::gamephys::DamageReason, DamageReason);

@@ -12,16 +12,19 @@
 
 #include <propPanel/control/container.h>
 #include <winGuiWrapper/wgw_dialogs.h>
+
+#if _TARGET_PC_WIN
 #include <direct.h>
+#else
+#include <unistd.h>
+#endif
 
 using hdpi::_pxScaled;
 
 //==================================================================================================
 EditorStartDialog::EditorStartDialog(const char *caption, EditorWorkspace &worksp, const char *wsp_blk, const char *select_wsp) :
-  DialogWindow(nullptr, _pxScaled(500), _pxScaled(160), caption), wsp(worksp), blkName(wsp_blk), wspInited(false), startWsp(select_wsp)
+  DialogWindow(nullptr, _pxScaled(500), _pxScaled(180), caption), wsp(worksp), blkName(wsp_blk), wspInited(false), startWsp(select_wsp)
 {
-  setModalBackgroundDimmingEnabled(true);
-
   ::dd_mkpath(wsp_blk);
   PropPanel::ContainerPropertyControl *_panel = getPanel();
   G_ASSERT(_panel && "No panel in EditorStartDialog");
@@ -56,22 +59,39 @@ void EditorStartDialog::editWorkspace()
 //==================================================================================================
 void EditorStartDialog::onChangeWorkspace(const char *name)
 {
+  selectedWorkspaceValid = false;
+
   if (!name || !*name)
     return;
 
   bool appDirSet = false;
   if (wsp.load(name, &appDirSet))
   {
+    selectedWorkspaceValid = true;
     if (appDirSet)
       wsp.save();
   }
   else
   {
     debug("Errors while loading workspace \"%s\"", name);
-    wingw::message_box(0, "Workspace error",
-      "Errors while loading workspace \n"
-      "Some workspace settings may be wrong.");
   }
+}
+
+
+//==================================================================================================
+int EditorStartDialog::getWorkspaceIndex(const char *name) const
+{
+  if (name == nullptr || *name == 0)
+    return -1;
+
+  Tab<String> wspNames(tmpmem);
+  wsp.getWspNames(wspNames);
+
+  for (int i = 0; i < wspNames.size(); ++i)
+    if (::stricmp(name, wspNames[i]) == 0)
+      return i;
+
+  return -1;
 }
 
 
@@ -87,7 +107,6 @@ void EditorStartDialog::initWsp(bool init_combo)
   PropPanel::ContainerPropertyControl *_panel = getPanel();
   G_ASSERT(_panel && "No panel in EditorStartDialog");
 
-  int i;
   if (init_combo)
   {
     _panel->setStrings(ID_START_DIALOG_COMBO, wspNames);
@@ -95,25 +114,17 @@ void EditorStartDialog::initWsp(bool init_combo)
 
   if (startWsp.length())
   {
-    bool wsp_found = false;
-    for (i = 0; i < wspNames.size(); ++i)
-      if (!::stricmp(startWsp, wspNames[i]))
-      {
-        onChangeWorkspace(startWsp);
-
-        if (init_combo)
-          _panel->setInt(ID_START_DIALOG_COMBO, i);
-        wsp_found = true;
-        break;
-      }
-    if (!wsp_found)
+    const int wspIndex = getWorkspaceIndex(startWsp);
+    if (wspIndex >= 0)
     {
-      wingw::message_box(0, "Workspace not found",
-        String(0,
-          "Workspace \"%s\" not found in local settings\n"
-          "You have to init it with proper application.blk",
-          startWsp));
-      onAddWorkspace();
+      onChangeWorkspace(startWsp);
+
+      if (init_combo)
+        _panel->setInt(ID_START_DIALOG_COMBO, wspIndex);
+    }
+    else
+    {
+      showAddWorkspaceDialog = true;
     }
   }
 
@@ -125,6 +136,8 @@ void EditorStartDialog::initWsp(bool init_combo)
       _panel->setInt(ID_START_DIALOG_COMBO, 0);
     }
   }
+
+  updateOkButtonState();
 }
 
 
@@ -153,6 +166,43 @@ void EditorStartDialog::reloadWsp()
 
       _panel->setInt(ID_START_DIALOG_COMBO, i);
       break;
+    }
+  }
+
+  updateOkButtonState();
+}
+
+//==================================================================================================
+void EditorStartDialog::updateOkButtonState()
+{
+  PropPanel::ContainerPropertyControl *buttonsContainer = buttonsPanel->getContainer();
+  buttonsContainer->setEnabledById(PropPanel::DIALOG_ID_OK, selectedWorkspaceValid);
+
+  PropPanel::ContainerPropertyControl *panel = getPanel();
+
+  if (selectedWorkspaceValid)
+  {
+    if (panel->getById(ID_START_DIALOG_ERROR_MESSAGE))
+      panel->removeById(ID_START_DIALOG_ERROR_MESSAGE);
+  }
+  else
+  {
+    if (!panel->getById(ID_START_DIALOG_ERROR_MESSAGE))
+    {
+      Tab<String> wspNames(tmpmem);
+      wsp.getWspNames(wspNames);
+
+      String message;
+      if (wspNames.empty())
+        message = "Please add a workspace.";
+      else if (::dd_file_exist(wsp.getAppPath()))
+        message = "Some workspace settings are invalid.";
+      else
+        message.printf(0, "\"%s\" cannot be found.", wsp.getAppPath());
+
+      panel->createStatic(ID_START_DIALOG_ERROR_MESSAGE, message);
+      panel->setBool(ID_START_DIALOG_ERROR_MESSAGE, true); // Make it bold.
+      panel->moveById(ID_START_DIALOG_ERROR_MESSAGE, ID_START_DIALOG_COMBO, true);
     }
   }
 }
@@ -191,6 +241,7 @@ void EditorStartDialog::onChange(int pcb_id, PropPanel::ContainerPropertyControl
       int _sel = panel->getInt(ID_START_DIALOG_COMBO);
       if (_sel > -1)
         onChangeWorkspace(panel->getText(ID_START_DIALOG_COMBO).str());
+      updateOkButtonState();
       break;
     }
   }
@@ -207,6 +258,30 @@ void EditorStartDialog::onClick(int pcb_id, PropPanel::ContainerPropertyControl 
   }
 }
 
+
+void EditorStartDialog::onImguiDelayedCallback(void *user_data)
+{
+  wingw::message_box(0, "Workspace not found",
+    String(0,
+      "Workspace \"%s\" not found in local settings\n"
+      "You have to init it with proper application.blk",
+      startWsp));
+
+  onAddWorkspace();
+}
+
+
+void EditorStartDialog::updateImguiDialog()
+{
+  DialogWindow::updateImguiDialog();
+
+  if (!showAddWorkspaceDialog)
+    return;
+
+  showAddWorkspaceDialog = false;
+  PropPanel::request_delayed_callback(*this);
+}
+
 //==================================================================================================
 
 bool EditorStartDialog::onOk()
@@ -220,8 +295,9 @@ bool EditorStartDialog::onOk()
     return false;
 
   onChangeWorkspace(wspName.str());
+  updateOkButtonState();
 
-  return true;
+  return selectedWorkspaceValid;
 }
 
 
@@ -262,7 +338,7 @@ WorkspaceDialog::WorkspaceDialog(EditorStartDialog *esd, const char *caption, Ed
     _grp->createButton(PID_NEW_APPLICATION, "Create new application", false);
 
     char app_fname[DAGOR_MAX_PATH] = "";
-    getcwd(app_fname, sizeof(app_fname));
+    G_VERIFY(getcwd(app_fname, sizeof(app_fname)));
     strcat(app_fname, "/../application.blk");
     dd_simplify_fname_c(app_fname);
     if (dd_file_exist(app_fname))

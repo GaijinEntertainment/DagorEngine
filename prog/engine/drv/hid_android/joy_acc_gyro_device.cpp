@@ -156,20 +156,6 @@ bool HumanInput::JoyAccelGyroInpDevice::updateState()
     state.buttons.clr(3);
   }
 
-  state.buttons.clr(26);
-  state.buttons.clr(27);
-  if (state.buttons.get(6) && (state.buttonsPrev.get(26) || (!(state.buttons.getWord0() & (0xF << 18)) && !state.buttonsPrev.get(6))))
-  {
-    state.buttons.clr(6);
-    state.buttons.set(26);
-  }
-
-  if (state.buttons.get(7) && (state.buttonsPrev.get(27) || (!(state.buttons.getWord0() & (0xF << 22)) && !state.buttonsPrev.get(7))))
-  {
-    state.buttons.clr(7);
-    state.buttons.set(27);
-  }
-
   state.sensorX = acc_x;
   state.sensorY = acc_y;
   state.sensorZ = acc_z;
@@ -204,16 +190,6 @@ bool HumanInput::JoyAccelGyroInpDevice::updateState()
     client->stateChanged(this, 0);
 
   nextState = state;
-  if (!state.buttons.get(6) && state.buttons.get(26))
-  {
-    nextState.buttons.set(6);
-    state.buttons.set(6);
-  }
-  if (!state.buttons.get(7) && state.buttons.get(27))
-  {
-    nextState.buttons.set(7);
-    state.buttons.set(7);
-  }
 
   return !state.buttons.cmpEq(state.buttonsPrev);
 }

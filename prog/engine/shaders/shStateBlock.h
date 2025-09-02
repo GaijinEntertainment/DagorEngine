@@ -11,6 +11,7 @@
 #include <math/integer/dag_IPoint4.h>
 #include <generic/dag_patchTab.h>
 #include <shaders/dag_renderStateId.h>
+#include <shaders/slotTexturesRange.h>
 #include <osApiWrappers/dag_spinlock.h>
 #include <util/dag_stdint.h>
 #include <util/dag_globDef.h>
@@ -183,5 +184,5 @@ public:
 ShaderStateBlock create_bindless_state(const BindlessConstParams *bindless_data, uint8_t bindless_count, const Point4 *consts_data,
   uint8_t consts_count, dag::ConstSpan<uint32_t> added_bindless_textures, bool static_block, int stcode_id);
 
-ShaderStateBlock create_slot_textures_state(const TEXTUREID *ps, uint8_t ps_base, uint8_t ps_cnt, const TEXTUREID *vs, uint8_t vs_base,
-  uint8_t vs_cnt, const Point4 *consts_data, uint8_t consts_count, bool static_block);
+ShaderStateBlock create_slot_textures_state(const TEXTUREID *ps, SlotTexturesRangeInfo ps_range, const TEXTUREID *vs,
+  SlotTexturesRangeInfo vs_range, const Point4 *consts_data, uint8_t consts_count, bool static_block);

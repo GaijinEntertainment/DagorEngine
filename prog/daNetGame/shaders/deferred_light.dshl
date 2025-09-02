@@ -16,6 +16,7 @@ shader deferredLight
   //z_test = false should be true ONLY for cascade other than [0, something]
   cull_mode = none;
 
+  ENABLE_ASSERT(ps)
   INIT_READ_DEPTH_GBUFFER()
   USE_READ_DEPTH_GBUFFER()
   USE_DECODE_DEPTH()
@@ -41,7 +42,7 @@ shader deferredLight
     {
       GI_ENCODED_TYPE specular:SV_Target0;
       GI_ENCODED_TYPE ambient:SV_Target1;
-      uint age:SV_Target2;
+      float age:SV_Target2;
     };
 
     ##if hardware.ps4 || hardware.ps5
@@ -76,7 +77,7 @@ shader deferredLight
       float3 worldPos = world_view_pos.xyz - pointToEyeOfs;
 
       float3 computedSpecular, computedAmbient;
-      uint age;
+      float age;
       ComputeDeferredLight(gbuffer, worldPos, rawDepth, input.texcoord.xy, screenpos.xy, pointToEye, computedSpecular, computedAmbient, age);
 
       ##if gi_quality == screen_probes

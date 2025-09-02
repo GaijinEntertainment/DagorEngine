@@ -8,6 +8,9 @@
 #include <any_descriptor.h>
 #include "image_resource.h"
 #include "buffer_resource.h"
+#if VULKAN_HAS_RAYTRACING
+#include "raytrace_as_resource.h"
+#endif
 #include "drv/3d/dag_texFlags.h"
 
 namespace drv3d_vulkan
@@ -19,7 +22,7 @@ struct ResourceDummyRef
   void *resource;
 };
 
-typedef ResourceDummyRef ResourceDummySet[spirv::MISSING_IS_FATAL_INDEX + 1];
+typedef ResourceDummyRef ResourceDummySet[spirv::MISSING_INDEX_COUNT];
 
 class DeviceContext;
 
@@ -45,13 +48,18 @@ class DummyResources
     Buffer *srv = nullptr;
     Buffer *uav = nullptr;
   } buf;
-  SamplerInfo *sampler = nullptr;
+#if VULKAN_HAS_RAYTRACING
+  RaytraceAccelerationStructure *tlas = nullptr;
+#endif
+  const SamplerInfo *sampler = nullptr;
+  const SamplerInfo *cmpSampler = nullptr;
   VkDeviceSize dummySize = 0;
 
   DummyResources(const DummyResources &) = delete;
   DummyResources &operator=(const DummyResources &) = delete;
   Image *createImage(const Image::Description::TrimmedCreateInfo &ii, bool needCompare);
 
+  void createTLAS();
   void createImages();
   void createBuffers();
   void calcDummySize();

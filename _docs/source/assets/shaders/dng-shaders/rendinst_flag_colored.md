@@ -1,4 +1,4 @@
-# Shader: rendinst_flag_colored
+# `rendinst_flag_colored`
 
 ## Overview
 
@@ -39,16 +39,63 @@ as using it otherwise may cause errors in the game.
 The area of the mesh to be animated is defined by the R-channel of the vertex
 color. G and B channels are not used.
 
-<table style="text-align:center; width:98%"><tr>
-  <th style="text-align:center; width:48%"><p>Vertex Color</p></th>
-  <th style="text-align:center; width:50%"><p>Result</p></th></tr>
-</table>
+```{eval-rst}
+.. grid:: 2
+   :class-container: center-grid
+   :gutter: 2
 
-<img src="_images/rendinst_flag_colored_01.jpg" width="48%" class="bg-primary">
-<img src="_images/rendinst_flag_colored_02.gif" width="50%" class="bg-primary">
+   .. grid-item::
+      :child-direction: row
+      :child-align: center
 
-<img src="_images/rendinst_flag_colored_03.jpg" width="48%" class="bg-primary">
-<img src="_images/rendinst_flag_colored_04.gif" width="50%" class="bg-primary">
+      **Vertex Color**
+
+   .. grid-item::
+      :child-direction: row
+      :child-align: center
+
+      **Result**
+
+   .. grid-item::
+      :class: center-cell
+
+      .. image:: _images/rendinst_flag_colored_01.jpg
+         :height: 300px
+         :align: center
+
+   .. grid-item::
+      :class: center-cell
+
+      .. only:: html
+
+         .. image:: _images/rendinst_flag_colored_02.gif
+            :height: 300px
+            :align: center
+
+      .. only:: latex
+
+         `Download animation (GIF) <https://github.com/GaijinEntertainment/DagorEngine/blob/main/_docs/source/assets/shaders/dng-shaders/_images/rendinst_flag_colored_02.gif>`_
+
+   .. grid-item::
+      :class: center-cell
+
+      .. image:: _images/rendinst_flag_colored_03.jpg
+         :height: 300px
+         :align: center
+
+   .. grid-item::
+      :class: center-cell
+
+      .. only:: html
+
+         .. image:: _images/rendinst_flag_colored_04.gif
+            :height: 300px
+            :align: center
+
+      .. only:: latex
+
+         `Download animation (GIF) <https://github.com/GaijinEntertainment/DagorEngine/blob/main/_docs/source/assets/shaders/dng-shaders/_images/rendinst_flag_colored_04.gif>`_
+```
 
 ```{note}
 Always reset unused vertex color channels to black, since they default to white
@@ -67,21 +114,87 @@ At the start of the mission, random values are selected from these intervals,
 and remain static throughout the game. Different assets across the location will
 animate with varying values.
 
-<table style="text-align:center; width:98%"><tr>
-  <th style="text-align:center; width:49%"><p>Frequency = 1</p></th>
-  <th style="text-align:center; width:49%"><p>Amplitude = 1</p></th></tr>
-</table>
+```{eval-rst}
+.. grid:: 2
+   :class-container: center-grid
+   :gutter: 2
 
-<img src="_images/rendinst_flag_colored_05.gif" width="49%" class="bg-primary">
-<img src="_images/rendinst_flag_colored_06.gif" width="49%" class="bg-primary">
+   .. grid-item::
+      :child-direction: row
+      :child-align: center
 
-<table style="text-align:center; width:98%"><tr>
-  <th style="text-align:center; width:50%"><p>Frequency = 3</p></th>
-  <th style="text-align:center; width:48%"><p>Amplitude = 3</p></th></tr>
-</table>
+      **Frequency = 1**
 
-<img src="_images/rendinst_flag_colored_07.gif" width="50%" class="bg-primary">
-<img src="_images/rendinst_flag_colored_08.gif" width="48%" class="bg-primary">
+   .. grid-item::
+      :child-direction: row
+      :child-align: center
+
+      **Amplitude = 1**
+
+   .. grid-item::
+      :class: center-cell
+
+      .. only:: html
+
+         .. image:: _images/rendinst_flag_colored_05.gif
+            :height: 300px
+            :align: center
+
+      .. only:: latex
+
+         `Download animation (GIF) <https://github.com/GaijinEntertainment/DagorEngine/blob/main/_docs/source/assets/shaders/dng-shaders/_images/rendinst_flag_colored_05.gif>`_
+
+   .. grid-item::
+      :class: center-cell
+
+      .. only:: html
+
+         .. image:: _images/rendinst_flag_colored_06.gif
+            :height: 300px
+            :align: center
+
+      .. only:: latex
+
+         `Download animation (GIF) <https://github.com/GaijinEntertainment/DagorEngine/blob/main/_docs/source/assets/shaders/dng-shaders/_images/rendinst_flag_colored_06.gif>`_
+
+   .. grid-item::
+      :child-direction: row
+      :child-align: center
+
+      **Frequency = 3**
+
+   .. grid-item::
+      :child-direction: row
+      :child-align: center
+
+      **Amplitude = 3**
+
+   .. grid-item::
+      :class: center-cell
+
+      .. only:: html
+
+         .. image:: _images/rendinst_flag_colored_07.gif
+            :height: 300px
+            :align: center
+
+      .. only:: latex
+
+         `Download animation (GIF) <https://github.com/GaijinEntertainment/DagorEngine/blob/main/_docs/source/assets/shaders/dng-shaders/_images/rendinst_flag_colored_07.gif>`_
+
+   .. grid-item::
+      :class: center-cell
+
+      .. only:: html
+
+         .. image:: _images/rendinst_flag_colored_08.gif
+            :height: 300px
+            :align: center
+
+      .. only:: latex
+
+         `Download animation (GIF) <https://github.com/GaijinEntertainment/DagorEngine/blob/main/_docs/source/assets/shaders/dng-shaders/_images/rendinst_flag_colored_08.gif>`_
+```
 
 Random values are not visible in the *Asset Viewer*, so first verify the maximum
 values in components 1 and 3 (as these are displayed in the *Asset Viewer*).
@@ -93,15 +206,69 @@ in components 1 and 3.
 A longer wavelength reduces oscillation detail, as the sinusoidal wave stretches
 and the model only captures a small portion of it.
 
-<table style="text-align:center; width:96%"><tr>
-  <th style="text-align:center; width:32.5%"><p>Wavelength = 1</p></th>
-  <th style="text-align:center; width:31.5%"><p>Wavelength = 0.5</p></th>
-  <th style="text-align:center; width:32%"><p>Wavelength = 5</p></th></tr>
-</table>
+```{eval-rst}
+.. grid:: 3
+   :class-container: center-grid
+   :gutter: 2
 
-<img src="_images/rendinst_flag_colored_07.gif" width="32.5%" class="bg–primary">
-<img src="_images/rendinst_flag_colored_08.gif" width="31.5%" class="bg–primary">
-<img src="_images/rendinst_flag_colored_09.gif" width="32%" class="bg–primary">
+   .. grid-item::
+      :child-direction: row
+      :child-align: center
+
+      **Wavelength = 1**
+
+   .. grid-item::
+      :child-direction: row
+      :child-align: center
+
+      **Wavelength = 0.5**
+
+   .. grid-item::
+      :child-direction: row
+      :child-align: center
+
+      **Wavelength = 5**
+
+   .. grid-item::
+      :class: center-cell
+
+      .. only:: html
+
+         .. image:: _images/rendinst_flag_colored_07.gif
+            :height: 300px
+            :align: center
+
+      .. only:: latex
+
+         `Download animation (GIF) <https://github.com/GaijinEntertainment/DagorEngine/blob/main/_docs/source/assets/shaders/dng-shaders/_images/rendinst_flag_colored_07.gif>`_
+
+   .. grid-item::
+      :class: center-cell
+
+      .. only:: html
+
+         .. image:: _images/rendinst_flag_colored_08.gif
+            :height: 300px
+            :align: center
+
+      .. only:: latex
+
+         `Download animation (GIF) <https://github.com/GaijinEntertainment/DagorEngine/blob/main/_docs/source/assets/shaders/dng-shaders/_images/rendinst_flag_colored_08.gif>`_
+
+   .. grid-item::
+      :class: center-cell
+
+      .. only:: html
+
+         .. image:: _images/rendinst_flag_colored_09.gif
+            :height: 300px
+            :align: center
+
+      .. only:: latex
+
+         `Download animation (GIF) <https://github.com/GaijinEntertainment/DagorEngine/blob/main/_docs/source/assets/shaders/dng-shaders/_images/rendinst_flag_colored_09.gif>`_
+
+```
 
 - `script:t="wind_direction=0,0,1,0"` (temporary parameter) – Wind direction is
   defined by a temporary parameter, as a global wind system is planned. In the
@@ -111,13 +278,50 @@ and the model only captures a small portion of it.
   - 2nd component controls oscillations along the Z–axis (vertical);
   - 3rd component controls oscillations along the Y–axis.
 
-<table style="text-align:center; width:98%"><tr>
-  <th style="text-align:center; width:48%"><p>wind_direction=1,0,0,0</p></th>
-  <th style="text-align:center; width:50%"><p>wind_direction=0,0,1,0</p></th></tr>
-</table>
+```{eval-rst}
+.. grid:: 2
+   :class-container: center-grid
+   :gutter: 2
 
-<img src="_images/rendinst_flag_colored_10.gif" width="48%" class="bg–primary">
-<img src="_images/rendinst_flag_colored_11.gif" width="50%" class="bg–primary">
+   .. grid-item::
+      :child-direction: row
+      :child-align: center
+
+      **wind_direction=1,0,0,0**
+
+   .. grid-item::
+      :child-direction: row
+      :child-align: center
+
+      **wind_direction=0,0,1,0**
+
+   .. grid-item::
+      :class: center-cell
+
+      .. only:: html
+
+         .. image:: _images/rendinst_flag_colored_10.gif
+            :height: 300px
+            :align: center
+
+      .. only:: latex
+
+         `Download animation (GIF) <https://github.com/GaijinEntertainment/DagorEngine/blob/main/_docs/source/assets/shaders/dng-shaders/_images/rendinst_flag_colored_10.gif>`_
+
+   .. grid-item::
+      :class: center-cell
+
+      .. only:: html
+
+         .. image:: _images/rendinst_flag_colored_11.gif
+            :height: 300px
+            :align: center
+
+      .. only:: latex
+
+         `Download animation (GIF) <https://github.com/GaijinEntertainment/DagorEngine/blob/main/_docs/source/assets/shaders/dng-shaders/_images/rendinst_flag_colored_11.gif>`_
+
+```
 
 - `script:t="use_painting=1"` – The painting parameters for the
   *daNetGame*–based projects work similarly to
@@ -127,7 +331,7 @@ and the model only captures a small portion of it.
   - `1` – enable painting;
   - `0` – disable painting (optional).
 
-## Working with Global Wind in daNetGame-based projects
+## Global Wind in daNetGame-based projects
 
 This shader also supports wind animation using a global wind map and an
 additional set of parameters. The previous algorithm remains available, with

@@ -36,7 +36,7 @@ public:
   }
 
 
-  virtual int getRefSlotId(const char *name, bool make_unique)
+  int getRefSlotId(const char *name, bool make_unique) override
   {
     String slotName(name);
 

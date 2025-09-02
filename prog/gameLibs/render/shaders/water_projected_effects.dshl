@@ -1,0 +1,19 @@
+float4 water_effects_proj_tm_line_0 = (1, 0, 0, 0);
+float4 water_effects_proj_tm_line_1 = (0, 1, 0, 0);
+float4 water_effects_proj_tm_line_2 = (0, 0, 1, 0);
+float4 water_effects_proj_tm_line_3 = (0, 0, 0, 1);
+
+macro INIT_WATER_PROJECTED_EFFECTS(stage)
+  (stage) { water_effects_proj_tm@f44 = { water_effects_proj_tm_line_0, water_effects_proj_tm_line_1, water_effects_proj_tm_line_2, water_effects_proj_tm_line_3 }; }
+endmacro
+
+macro USE_WATER_PROJECTED_EFFECTS(stage)
+  hlsl(stage) {
+    float3 normalize_wfx_tc(float4 tc)
+    {
+      float2 wtc = tc.xy / tc.w * float2(0.5, HALF_RT_TC_YSCALE);
+      wtc = tc.z > 0 && tc.z < tc.w ? wtc + 0.5 : float2(-1, -1);
+      return float3(wtc, wtc.x < 0 || wtc.y < 0 || wtc.x > 1 || wtc.y > 1 ? 0 : 1);
+    }
+  }
+endmacro

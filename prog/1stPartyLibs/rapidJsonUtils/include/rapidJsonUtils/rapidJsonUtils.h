@@ -71,11 +71,11 @@ namespace jsonutils
     return buffer;
   }
 
-  template<typename MemberType>
-  inline void set(
+  template<typename KeyType, typename ValueType>
+  inline void set_impl(
     rapidjson::Document &doc,
-    rapidjson::Value::StringRefType key,
-    MemberType &&value,
+    KeyType &&key,
+    ValueType &&value,
     eastl::string /*out*/ *err_str = nullptr)
   {
     if (!doc.IsObject())
@@ -90,7 +90,36 @@ namespace jsonutils
     if (it != doc.MemberEnd())
       it->value = eastl::move(value);
     else
-      doc.AddMember(key, rapidjson::Value(eastl::move(value)), doc.GetAllocator());
+      doc.AddMember(eastl::forward<KeyType>(key), eastl::forward<ValueType>(value), doc.GetAllocator());
+  }
+
+  template <typename MemberType>
+  inline void set(rapidjson::Document &doc, rapidjson::Value &&key, MemberType &&value, eastl::string /*out*/ *err_str = nullptr)
+  {
+    set_impl(doc, eastl::move(key), rapidjson::Value(eastl::forward<MemberType>(value)), err_str);
+  }
+
+  inline void set(rapidjson::Document &doc, rapidjson::Value &&key, const char *value, eastl::string /*out*/ *err_str = nullptr)
+  {
+    set_impl(doc, eastl::move(key), rapidjson::Value(value, doc.GetAllocator()), err_str);
+  }
+
+  template <typename MemberType>
+  inline void set(rapidjson::Document &doc, rapidjson::Value::StringRefType key, MemberType &&value,
+    eastl::string /*out*/ *err_str = nullptr)
+  {
+    set_impl(doc, key, rapidjson::Value(eastl::forward<MemberType>(value)), err_str);
+  }
+
+  inline void set(rapidjson::Document &doc, rapidjson::Value::StringRefType key, const char *value, eastl::string /*out*/ *err_str = nullptr)
+  {
+    set_impl(doc, key, rapidjson::Value(value, doc.GetAllocator()), err_str);
+  }
+
+  template <typename KeyType, typename ValueType>
+  inline void set_key_copy(rapidjson::Document &doc, KeyType &&key, ValueType &&value, eastl::string /*out*/ *err_str = nullptr)
+  {
+    set(doc, rapidjson::Value(eastl::forward<KeyType>(key), doc.GetAllocator()), eastl::forward<ValueType>(value), err_str);
   }
 
   void set_copy(

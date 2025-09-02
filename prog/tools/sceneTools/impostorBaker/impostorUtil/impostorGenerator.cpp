@@ -19,7 +19,7 @@
 #include <de3_interface.h>
 #include <de3_objEntity.h>
 #include <rendInst/rendInstGen.h>
-#include <sepGui/wndGlobal.h>
+#include <EditorCore/ec_wndGlobal.h>
 #include <osApiWrappers/dag_files.h>
 
 #include <libTools/shaderResBuilder/processMat.h>
@@ -352,10 +352,10 @@ bool ImpostorGenerator::run(const ImpostorOptions &options)
       case GenerateResponse::PROCESS: break;
     }
     DataBlock *impostorBlk = impostorDataBlk.addBlock(asset->getName());
-    DataBlock *assetImpostorBlock = asset->props.getBlockByName("impostor");
     int impostorNormalMipNumber = 0;
-    if (assetImpostorBlock->paramExists("impostorNormalMip"))
-      impostorNormalMipNumber = assetImpostorBlock->getInt("impostorNormalMip");
+    if (DataBlock *assetImpostorBlock = asset->props.getBlockByName("impostor"))
+      if (assetImpostorBlock->paramExists("impostorNormalMip"))
+        impostorNormalMipNumber = assetImpostorBlock->getInt("impostorNormalMip");
     ShaderGlobal::set_int(impostor_normal_mipVarId, impostorNormalMipNumber);
     TexturePackingProfilingInfo quality = impostorBaker.exportImpostor(asset, options, impostorBlk->addBlock("content"));
     if (!quality)

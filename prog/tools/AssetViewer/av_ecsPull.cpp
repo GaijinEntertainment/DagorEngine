@@ -3,10 +3,9 @@
 #include <ecs/core/entitySystem.h>
 
 // asset viewer only pull vars
-#define REG_SYS    \
-  RS(animchar)     \
-  RS(toolAnimchar) \
-  RS(toolInput)    \
+#define REG_SYS \
+  RS(animchar)  \
+  RS(toolInput) \
   RS(input)
 
 #define RS(x) ECS_DECL_PULL_VAR(x);

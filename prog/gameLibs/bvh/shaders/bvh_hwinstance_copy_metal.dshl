@@ -1,0 +1,128 @@
+include "shader_global.dshl"
+
+int bvh_hwinstance_copy_start_instance;
+int bvh_hwinstance_copy_instance_slots;
+
+int bvh_hwinstance_copy_mode;
+interval bvh_hwinstance_copy_mode: copy < 1, clear;
+
+int bvh_hwinstance_copy_source_const_no = 0;
+int bvh_hwinstance_copy_instance_count_const_no = 1;
+int bvh_hwinstance_copy_output_uav_no = 0;
+
+shader bvh_hwinstance_copy
+{
+  if (compatibility_mode == compatibility_mode_on)
+  {
+    dont_render;
+  }
+  ENABLE_ASSERT(cs)
+
+  (cs) {
+    start_instance@i1 = bvh_hwinstance_copy_start_instance;
+    instance_slots@i1 = bvh_hwinstance_copy_instance_slots;
+    world_view_pos@f3 = world_view_pos;
+    output@uav : register(bvh_hwinstance_copy_output_uav_no) hlsl {
+
+      #include <RTHWInstance.hlsli>
+
+      struct RTHWInstanceMetal
+      {
+        float4 transform0; // rows of transform matrix
+        float4 transform1;
+        float4 transform2;
+        uint options;
+        uint instance_mask; // instance mask
+        uint intersection_function_index_not_used;
+        uint blas_index;
+        uint user_id;
+      };
+
+      // can't use structured buffer cause validator wants it to be aligned to 16b
+      // RWStructuredBuffer<RTHWInstanceMetal> output@uav;
+      RWByteAddressBuffer output@uav;
+    };
+    if (bvh_hwinstance_copy_mode == copy)
+    {
+      source@buf : register(bvh_hwinstance_copy_source_const_no) hlsl { StructuredBuffer<RTHWInstance> source@buf; };
+      instance_count@buf : register(bvh_hwinstance_copy_instance_count_const_no) hlsl { ByteAddressBuffer instance_count@buf; };
+    }
+  }
+
+  hlsl (cs) {
+
+    enum MTLAccelerationStructureInstanceOptions
+    {
+      MTLAccelerationStructureInstanceOptionNone = 0,
+      MTLAccelerationStructureInstanceOptionDisableTriangleCulling = (1 << 0),
+      MTLAccelerationStructureInstanceOptionTriangleFrontFacingWindingCounterClockwise = (1 << 1),
+      MTLAccelerationStructureInstanceOptionOpaque = (1 << 2),
+      MTLAccelerationStructureInstanceOptionNonOpaque = (1 << 3),
+    };
+
+    [numthreads(64, 1, 1)]
+    void bvh_process_dynrend_indices(uint3 dtId : SV_DispatchThreadID)
+    {
+      if (dtId.x >= instance_slots)
+        return;
+
+    ##if bvh_hwinstance_copy_mode == copy
+      RTHWInstance instance = structuredBufferAt(source, dtId.x);
+      if (dtId.x < loadBuffer(instance_count, 0))
+      {
+        instance.transform0.w -= world_view_pos.x;
+        instance.transform1.w -= world_view_pos.y;
+        instance.transform2.w -= world_view_pos.z;
+      }
+
+    ##else
+      RTHWInstance instance;
+      instance.transform0 = 0;
+      instance.transform1 = 0;
+      instance.transform2 = 0;
+      instance.blas = 0;
+      instance.instanceId_mask = 0;
+      instance.instanceOffset_flags = 0;
+    ##endif
+
+      RTHWInstanceMetal outInstance;
+
+      outInstance.transform0 = float4(instance.transform0.x, instance.transform1.x, instance.transform2.x, instance.transform0.y);
+      outInstance.transform1 = float4(instance.transform1.y, instance.transform2.y, instance.transform0.z, instance.transform1.z);
+      outInstance.transform2 = float4(instance.transform2.z, instance.transform0.w, instance.transform1.w, instance.transform2.w);
+
+    ##if bvh_hwinstance_copy_mode == copy // init clears m_bvh to zero
+      outInstance.blas_index = instance.blas.x;
+    ##endif
+
+      outInstance.options = 0;
+
+      uint flags = instance.instanceOffset_flags & 0xff;
+      if (flags & RT_INSTANCE_FLAG_TRIANGLE_CULL_DISABLE)
+        outInstance.options |= MTLAccelerationStructureInstanceOptionDisableTriangleCulling;
+      if (flags & RT_INSTANCE_FLAG_TRIANGLE_CULL_FLIP_WINDING)
+        outInstance.options |= MTLAccelerationStructureInstanceOptionTriangleFrontFacingWindingCounterClockwise;
+      if (flags & RT_INSTANCE_FLAG_FORCE_OPAQUE)
+        outInstance.options |= MTLAccelerationStructureInstanceOptionOpaque;
+      if (flags & RT_INSTANCE_FLAG_FORCE_NO_OPAQUE)
+        outInstance.options |= MTLAccelerationStructureInstanceOptionNonOpaque;
+
+      outInstance.user_id = instance.instanceId_mask & 0xffffff;
+      outInstance.instance_mask = instance.instanceId_mask >> 24;
+      outInstance.intersection_function_index_not_used = 0; // instance.instanceContributionToHitGroupIndex;
+
+      // structuredBufferAt(output, start_instance + dtId.x) = outInstance;
+      uint base_offset_bytes = (start_instance + dtId.x)*sizeof(RTHWInstanceMetal);
+      storeBuffer4(output, base_offset_bytes + 0, asuint(outInstance.transform0));
+      storeBuffer4(output, base_offset_bytes + 16, asuint(outInstance.transform1));
+      storeBuffer4(output, base_offset_bytes + 32, asuint(outInstance.transform2));
+      storeBuffer(output, base_offset_bytes + 48, outInstance.options);
+      storeBuffer(output, base_offset_bytes + 52, outInstance.instance_mask);
+      storeBuffer(output, base_offset_bytes + 56, outInstance.intersection_function_index_not_used);
+      storeBuffer(output, base_offset_bytes + 60, outInstance.blas_index);
+      storeBuffer(output, base_offset_bytes + 64, outInstance.user_id);
+    }
+  }
+
+  compile("target_cs", "bvh_process_dynrend_indices");
+}

@@ -12,11 +12,13 @@
 #include <ecs/scripts/dasEcsEntity.h>
 #include <ecs/anim/anim.h>
 #include <ecs/anim/animState.h>
+#include <ecs/anim/animchar_visbits.h>
 #include <dasModules/aotGeomNodeTree.h>
 #include <animChar/dag_animCharacter2.h>
 #include <shaders/dag_dynSceneRes.h>
 #include <animChar/dag_animate2ndPass.h>
 #include <anim/dag_animBlendCtrl.h>
+#include <anim/dag_animPostBlendCtrl.h>
 #include <ecs/phys/ragdoll.h>
 #include <phys/dag_physDecl.h>
 #include <memory/dag_framemem.h>
@@ -34,6 +36,10 @@ struct NameIdPair
 };
 } // namespace das
 typedef Ptr<AnimV20::IAnimBlendNode> IAnimBlendNodePtr;
+typedef Ptr<AnimV20::AnimBlendNodeLeaf> AnimBlendNodeLeafPtr;
+typedef Ptr<AnimV20::AnimPostBlendCtrl> AnimPostBlendCtrlPtr;
+MAKE_TYPE_FACTORY(AnimBlendNodeLeafPtr, AnimBlendNodeLeafPtr);
+MAKE_TYPE_FACTORY(AnimPostBlendCtrlPtr, AnimPostBlendCtrlPtr);
 
 using RoNameMapExIdPatchableTab = PatchableTab<uint16_t>;
 DAS_BIND_SPAN(RoNameMapExIdPatchableTab, RoNameMapExIdPatchableTab, uint16_t);
@@ -55,6 +61,7 @@ MAKE_TYPE_FACTORY(AnimBlendCtrl_RandomSwitcher, AnimV20::AnimBlendCtrl_RandomSwi
 MAKE_TYPE_FACTORY(AnimBlendCtrl_Hub, AnimV20::AnimBlendCtrl_Hub);
 MAKE_TYPE_FACTORY(AnimBlendCtrl_Blender, AnimV20::AnimBlendCtrl_Blender);
 MAKE_TYPE_FACTORY(AnimBlendCtrl_BinaryIndirectSwitch, AnimV20::AnimBlendCtrl_BinaryIndirectSwitch);
+MAKE_TYPE_FACTORY(AnimBlendCtrl_SetMotionMatchingTag, AnimV20::AnimBlendCtrl_SetMotionMatchingTag);
 MAKE_TYPE_FACTORY(AnimBlendCtrl_LinearPoly, AnimV20::AnimBlendCtrl_LinearPoly);
 MAKE_TYPE_FACTORY(AnimBlendCtrl_ParametricSwitcher, AnimV20::AnimBlendCtrl_ParametricSwitcher);
 
@@ -71,6 +78,16 @@ MAKE_TYPE_FACTORY(AnimBlendCtrl_RandomSwitcherRandomAnim, AnimV20::AnimBlendCtrl
 MAKE_TYPE_FACTORY(AnimBlendCtrl_LinearPolyAnimPoint, AnimV20::AnimBlendCtrl_LinearPoly::AnimPoint);
 MAKE_TYPE_FACTORY(AnimationGraphStateRec, AnimV20::AnimationGraph::StateRec);
 
+MAKE_TYPE_FACTORY(AnimPostBlendParamFromNodeLocalData, AnimV20::AnimPostBlendParamFromNode::LocalData);
+MAKE_TYPE_FACTORY(AnimPostBlendParamFromNode, AnimV20::AnimPostBlendParamFromNode);
+
+MAKE_TYPE_FACTORY(AttachGeomNodeCtrlVarId, AnimV20::AttachGeomNodeCtrl::VarId);
+using AttachGeomNodeCtrlVarIdTab = Tab<AnimV20::AttachGeomNodeCtrl::VarId>;
+DAS_BIND_VECTOR(AttachGeomNodeCtrlVarIdTab, AttachGeomNodeCtrlVarIdTab, AnimV20::AttachGeomNodeCtrl::VarId,
+  " ::Tab<AnimV20::AttachGeomNodeCtrl::VarId>");
+MAKE_TYPE_FACTORY(AttachGeomNodeCtrlAttachDesc, AnimV20::AttachGeomNodeCtrl::AttachDesc);
+MAKE_TYPE_FACTORY(AttachGeomNodeCtrl, AnimV20::AttachGeomNodeCtrl);
+
 MAKE_TYPE_FACTORY(AnimcharNodesMat44, AnimcharNodesMat44);
 MAKE_TYPE_FACTORY(RoNameMapEx, RoNameMapEx);
 MAKE_TYPE_FACTORY(DynSceneResNameMapResource, DynSceneResNameMapResource);
@@ -81,10 +98,23 @@ MAKE_TYPE_FACTORY(DynamicRenderableSceneInstance, DynamicRenderableSceneInstance
 
 MAKE_TYPE_FACTORY(Animate2ndPassCtx, Animate2ndPassCtx);
 
+using BnlPtrTab = PtrTab<AnimV20::AnimBlendNodeLeaf>;
+using PbCtrlPtrTab = PtrTab<AnimV20::AnimPostBlendCtrl>;
+
+DAS_BIND_VECTOR(BnlPtrTab, BnlPtrTab, AnimBlendNodeLeafPtr, " ::PtrTab<AnimV20::AnimBlendNodeLeaf>");
+DAS_BIND_VECTOR(PbCtrlPtrTab, PbCtrlPtrTab, AnimPostBlendCtrlPtr, " ::PtrTab<AnimV20::AnimPostBlendCtrl>");
+
+MAKE_TYPE_FACTORY(AnimBlender, AnimV20::AnimBlender);
+
+DAS_BIND_ENUM_CAST_98(AnimcharVisbits);
+
 template <>
 struct das::isCloneable<AnimV20::AnimationGraph> : false_type
 {};
 
+template <>
+struct das::isCloneable<AnimV20::AnimBlender> : false_type
+{};
 
 namespace bind_dascript
 {
@@ -341,6 +371,19 @@ inline void AnimBlendCtrl_LinearPoly_getChildren(const ::AnimV20::AnimBlendCtrl_
   context->invoke(block, &arg, nullptr, at);
 }
 
+inline void AttachGeomNodeCtrl_getNodeNames(const ::AnimV20::AttachGeomNodeCtrl &pbc,
+  const das::TBlock<void, das::TTemporary<das::TArray<const char *>>> &block, das::Context *context, das::LineInfoArg *at)
+{
+  das::Array arr;
+  arr.data = (char *)pbc.nodeNames.data();
+  arr.size = uint32_t(pbc.nodeNames.size());
+  arr.capacity = arr.size;
+  arr.lock = 1;
+  arr.flags = 0;
+  vec4f arg = das::cast<das::Array *>::from(&arr);
+  context->invoke(block, &arg, nullptr, at);
+}
+
 inline bool anim_blend_node_isSubOf(::AnimV20::IAnimBlendNode &blend_node, uint32_t id)
 {
   return blend_node.isSubOf(DClassID(id)); // TODO: isSubOf() const
@@ -358,6 +401,10 @@ inline ::AnimV20::AnimData *AnimData_get_source_anim_data(const ::AnimV20::AnimD
 }
 
 inline ::AnimV20::IAnimBlendNode *IAnimBlendNodePtr_get(IAnimBlendNodePtr &node_ptr) { return node_ptr.get(); }
+
+inline ::AnimV20::AnimBlendNodeLeaf *AnimBlendNodeLeafPtr_get(AnimBlendNodeLeafPtr &node_ptr) { return node_ptr.get(); }
+
+inline ::AnimV20::AnimPostBlendCtrl *AnimPostBlendCtrlPtr_get(AnimPostBlendCtrlPtr &node_ptr) { return node_ptr.get(); }
 
 inline void send_change_anim_state_event(ecs::EntityId eid, const char *name, ecs::hash_str_t name_hash, int state_id)
 {

@@ -43,7 +43,7 @@ public:
 
   virtual bool isStreamConnAsync() = 0;
 
-  virtual char *getUserFriendlyName() = 0;
+  virtual const char *getUserFriendlyName() = 0;
 
   virtual void processorWorkThread() = 0;
 

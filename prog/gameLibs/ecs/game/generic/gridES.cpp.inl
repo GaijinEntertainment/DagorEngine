@@ -37,10 +37,6 @@ ECS_AUTO_REGISTER_COMPONENT(GridHolder, "grid_holder", nullptr, 0);
 CONSOLE_BOOL_VAL("grid", draw_bsph, false);
 
 template <typename Callable>
-static void find_grid_holder_by_type_ecs_query(Callable c);
-template <typename Callable>
-static void get_grid_holder_from_eid_ecs_query(ecs::EntityId eid, Callable c);
-template <typename Callable>
 static void all_grid_holders_ecs_query(Callable fn);
 template <typename Callable>
 static void all_grid_holders_with_type_ecs_query(Callable fn);
@@ -76,24 +72,18 @@ DAGOR_NOINLINE static void grid_logerr(const char *fmt, ...)
   va_end(args);
 }
 
+static_assert(ecs::ComponentTypeInfo<GridHolder>::is_boxed);
+static eastl::vector_map<uint32_t, GridHolder *> grid_holder_by_hash_map;
+
 static GridHolder *find_grid_holder_by_hash_impl(uint32_t grid_name_hash)
 {
-  GridHolder *res = nullptr;
-  find_grid_holder_by_type_ecs_query([&res, grid_name_hash](GridHolder &grid_holder, int grid_holder__typeHash) {
-    if (grid_name_hash == grid_holder__typeHash)
-    {
-      res = &grid_holder;
-      return ecs::QueryCbResult::Stop;
-    }
-    return ecs::QueryCbResult::Continue;
-  });
-  return res;
+  const auto it = grid_holder_by_hash_map.find(grid_name_hash);
+  return it != grid_holder_by_hash_map.end() ? it->second : nullptr;
 }
 
 GridHolder *find_grid_holder(ecs::EntityId gridh_ent)
 {
-  GridHolder *res = nullptr;
-  get_grid_holder_from_eid_ecs_query(gridh_ent, [&](GridHolder &grid_holder) { res = &grid_holder; });
+  GridHolder *res = ECS_GET_NULLABLE_RW(GridHolder, gridh_ent, grid_holder);
   if (DAGOR_UNLIKELY(!res))
     grid_logerr("Invalid grid holder eid %u passed to grid query", ecs::entity_id_t(gridh_ent));
   return res;
@@ -131,7 +121,7 @@ void for_each_grid_holder(const eastl::function<void(const GridHolder &)> &cb)
 }
 
 ECS_ON_EVENT(on_disappear)
-void grid_holder_destroyed_es_event_handler(const ecs::Event &, const GridHolder &grid_holder)
+void grid_holder_destroyed_es_event_handler(const ecs::Event &, const GridHolder &grid_holder, int grid_holder__typeHash)
 {
   all_grid_objects_ecs_query([&](GridObjComponent &grid_obj) {
     if (grid_obj.ownerGrid == &grid_holder)
@@ -140,6 +130,7 @@ void grid_holder_destroyed_es_event_handler(const ecs::Event &, const GridHolder
       grid_obj.ownerGrid = nullptr;
     }
   });
+  G_VERIFY(grid_holder_by_hash_map.erase(grid_holder__typeHash));
 }
 
 GridObjComponent::GridObjComponent(const ecs::EntityManager &mgr, ecs::EntityId eid_)
@@ -255,7 +246,6 @@ ECS_ON_EVENT(on_appear)
 ECS_ON_EVENT(EventOnEntityTeleported)
 ECS_ON_EVENT(CmdUpdateGrid)
 ECS_REQUIRE_NOT(ecs::Tag grid_obj__updateAlways) // TODO: remove
-ECS_AFTER(riextra_create_es)
 ECS_AFTER(animchar_act_on_phys_teleport_es)
 void grid_obj_update_es_event_handler(const ecs::Event &, GridObjComponent &grid_obj, const TMatrix &transform,
   const CollisionResource *collres = nullptr, const RiExtraComponent *ri_extra = nullptr, float grid_obj__fixedTmScale = -1.f,
@@ -334,9 +324,19 @@ void grid_obj_update_with_animchar(GridObjComponent &grid_obj, const TMatrix &tr
   }
 }
 
-ECS_AFTER(animchar_es)
+ECS_AFTER(after_animchar_update_sync)
 ECS_REQUIRE(const ecs::Tag grid_obj__updateAlways)
+ECS_REQUIRE_NOT(const ecs::Tag grid_obj__updateInMainThread)
 void grid_obj_update_with_animchar_es(const ParallelUpdateFrameDelayed &, GridObjComponent &grid_obj, const TMatrix &transform,
+  const AnimV20::AnimcharBaseComponent *animchar, const CollisionResource &collres, float grid_obj__fixedTmScale = -1.f)
+{
+  grid_obj_update_with_animchar(grid_obj, transform, animchar ? &animchar->getNodeTree() : nullptr, collres, grid_obj__fixedTmScale);
+}
+
+ECS_AFTER(after_animchar_update_sync)
+ECS_REQUIRE(const ecs::Tag grid_obj__updateAlways)
+ECS_REQUIRE(const ecs::Tag grid_obj__updateInMainThread)
+void grid_obj_update_main_with_animchar_es(const ecs::UpdateStageInfoAct &, GridObjComponent &grid_obj, const TMatrix &transform,
   const AnimV20::AnimcharBaseComponent *animchar, const CollisionResource &collres, float grid_obj__fixedTmScale = -1.f)
 {
   grid_obj_update_with_animchar(grid_obj, transform, animchar ? &animchar->getNodeTree() : nullptr, collres, grid_obj__fixedTmScale);
@@ -381,6 +381,7 @@ static void grid_holder_created_es(const ecs::Event &, GridHolder &grid_holder, 
 {
   grid_holder__typeHash = mem_hash_fnv1(grid_holder__type.c_str(), grid_holder__type.length());
   grid_holder.setCellSizeWithoutObjectsReposition(grid_holder__cellSize);
+  G_VERIFY(grid_holder_by_hash_map.emplace(grid_holder__typeHash, &grid_holder).second);
 }
 
 template <typename Callable>

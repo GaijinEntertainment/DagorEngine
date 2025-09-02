@@ -1,0 +1,3 @@
+PASS: Invalid available classes test - parameter 2 has an invalid type 'string' ; expected: 'table'
+PASS: Class not found test - Class not found in available classes during deserialization
+PASS: Invalid constructor test - Instance found during deserialization, but available classes not set or not a table

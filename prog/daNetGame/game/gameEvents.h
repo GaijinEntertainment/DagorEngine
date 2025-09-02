@@ -42,6 +42,7 @@ class IGenLoad;
   DECL_GAME_EVENT(EventUserMMQueueJoined)                                                                                      \
   DECL_GAME_EVENT(EventRendinstDestroyed, rendinst::riex_handle_t /* riex_handle*/, TMatrix /*ri_tm*/, BBox3 /*ri_bbox*/)      \
   DECL_GAME_EVENT(EventLadderUpdate, TMatrix /* ladder_tm */)                                                                  \
+  DECL_GAME_EVENT(EventOnGameUpdateAfterGameLogic, float /*dt*/, float /*curTime*/)                                            \
   DECL_GAME_EVENT(EventOnGameUpdateAfterRenderer, float /*dt*/, float /*curTime*/)                                             \
   DECL_GAME_EVENT(EventOnGameScriptsShutdown)
 

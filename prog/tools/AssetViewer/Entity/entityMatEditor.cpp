@@ -17,6 +17,7 @@
 #include <libTools/dagFileRW/dagFileNode.h>
 #include <memory/dag_framemem.h>
 #include <de3_interface.h>
+#include <de3_lodController.h>
 #include <propPanel/commonWindow/dialogWindow.h>
 #include <propPanel/commonWindow/listDialog.h>
 #include <propPanel/commonWindow/multiListDialog.h>
@@ -364,13 +365,18 @@ void EntityMaterialEditor::begin(DagorAsset *asset, IObjEntity *asset_entity)
 
   matDataPerLod.clear();
 
-  int lodCount = 0;
-  for (int lod = 0;; ++lod)
+  ILodController *lodController = entity ? entity->queryInterface<ILodController>() : nullptr;
+  if (lodController && dd_stricmp(asset->getTypeStr(), "rendInst") != 0 && dd_stricmp(asset->getTypeStr(), "dynModel") != 0)
+    lodController = nullptr;
+  const int transition_lods = asset->props.getBlockByName("transition_lod") && asset->props.getBlockByName("impostor") ? 1 : 0;
+  const int lodCount = lodController ? lodController->getLodCount() - transition_lods : 0;
+
+  for (int lod = 0; lod < lodCount; ++lod)
   {
     const String dagFileName = get_asset_dag_file_path(*asset, lod);
     if (!dd_file_exists(dagFileName.c_str()))
     {
-      lodCount = lod;
+      logwarn("Expected %d LODs but '%s' cannot be found.", lodCount, dagFileName.c_str());
       break;
     }
 
@@ -420,13 +426,13 @@ bool EntityMaterialEditor::end()
       "You have changed material properties. Do you want to save the changes to the physical resources?");
     switch (dialogResult)
     {
-      case PropPanel::DIALOG_ID_CANCEL: return false;
-      case PropPanel::DIALOG_ID_NO:
+      case wingw::MB_ID_CANCEL: return false;
+      case wingw::MB_ID_NO:
         for (int lod = 0; lod < matDataPerLod.size(); ++lod)
           clearMaterialOverrides(lod);
         notifyCurrentAssetNeedsReload();
         break;
-      case PropPanel::DIALOG_ID_YES: saveAllChanges(); break;
+      case wingw::MB_ID_YES: saveAllChanges(); break;
     }
   }
 
@@ -501,6 +507,7 @@ void EntityMaterialEditor::addShaderProps(int mat_gui_elements_baseid, PropPanel
       case MAT_VAR_TYPE_INT: mat_panel.createEditInt(propId, var.name.c_str(), var.value.i); break;
       case MAT_VAR_TYPE_REAL: mat_panel.createEditFloat(propId, var.name.c_str(), var.value.r); break;
       case MAT_VAR_TYPE_COLOR4: mat_panel.createPoint4(propId, var.name.c_str(), Point4(var.value.c, Point4::CTOR_FROM_PTR)); break;
+      default: break;
     }
   }
 }
@@ -677,6 +684,7 @@ void EntityMaterialEditor::updateAssetShaderMaterialInternal(int lod, int mat_id
       case MAT_VAR_TYPE_INT: curMatShader->set_int_param(shaderVarId, curVar.value.i); break;
       case MAT_VAR_TYPE_REAL: curMatShader->set_real_param(shaderVarId, curVar.value.r); break;
       case MAT_VAR_TYPE_COLOR4: curMatShader->set_color4_param(shaderVarId, curVar.value.c4()); break;
+      default: break;
     }
   }
   bool realTwoSided = matProps.vars[MAT_VAR_REAL_TWO_SIDED].usedInMaterial && matProps.vars[MAT_VAR_REAL_TWO_SIDED].value.i;
@@ -883,7 +891,7 @@ void EntityMaterialEditor::pasteMatProperties(int lod, int mat_id)
   {
     if (wingw::message_box(wingw::MBS_YESNO, "Shaders difference",
           "The copied shader '%s' is different from the current one. Do you want to paste it?",
-          propertiesCopyBuffer.shClassName.c_str()) == PropPanel::DIALOG_ID_YES)
+          propertiesCopyBuffer.shClassName.c_str()) == wingw::MB_ID_YES)
     {
       if (find_value_idx(getAvailableShaderClasses(), String(propertiesCopyBuffer.shClassName.c_str())) >= 0)
       {
@@ -1088,6 +1096,7 @@ void EntityMaterialEditor::onChange(int pcb_id, PropPanel::ContainerPropertyCont
         var.value.c4() = Color4(val.x, val.y, val.z, val.w);
         break;
       }
+      case MAT_VAR_TYPE_NONE: break; // to prevent the unhandled switch case error
     }
     updateAssetShaderMaterial(lod, matId);
   }
@@ -1172,7 +1181,7 @@ void EntityMaterialEditor::onClick(int pcb_id, PropPanel::ContainerPropertyContr
               lodMatData.fileRes->getCurProxyMatName(matProps.dagMatId).empty()
                 ? "This will overwrite current LOD's DAG"
                 : "This will overwrite proxymat used by the material. All assets using this proxymat will be affected.") ==
-              PropPanel::DIALOG_ID_OK)
+              wingw::MB_ID_OK)
         {
           clearMaterialOverrides(lod);
           lodMatData.save({matId});
@@ -1189,7 +1198,7 @@ void EntityMaterialEditor::onClick(int pcb_id, PropPanel::ContainerPropertyContr
         break;
       case LPID_RESET_PARAMS_TO_DAG_BUTTON:
         if (lodMatData.isMatChanged(matId) &&
-            wingw::message_box(wingw::MBS_OKCANCEL, "Reset parameters", "This will discard your changes!") == PropPanel::DIALOG_ID_OK)
+            wingw::message_box(wingw::MBS_OKCANCEL, "Reset parameters", "This will discard your changes!") == wingw::MB_ID_OK)
         {
           DagorAsset *curAsset = DAEDITOR3.getAssetByName(assetName.c_str());
           if (!curAsset)

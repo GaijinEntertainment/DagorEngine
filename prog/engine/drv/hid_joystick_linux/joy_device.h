@@ -7,20 +7,101 @@
 #include <generic/dag_smallTab.h>
 
 #include "hid_udev.h"
+#include "evdev_helpers.h"
+
+#define JOY_LOG(fmt, ...) debug("[INPUT@%s] " fmt, __FUNCTION__ __VA_OPT__(, ) __VA_ARGS__)
+
+#if defined(DAG_JOY_ENABLE_TRACE)
+#define JOY_TRACE JOY_LOG
+#else
+#define JOY_TRACE(...) \
+  {}
+#endif
 
 namespace HumanInput
 {
-class HidJoystickDevice : public IGenJoystick
+
+struct AxisData
+{
+  int sysAxisId;
+  int remapIdx;
+  input_absinfo sysAbsInfo;
+  float minVal, maxVal;
+  bool inverted = false;
+  SimpleString name;
+  int prevVal;
+};
+
+struct PovHatData : AxisData
+{
+  int padX;
+  int padY;
+  SimpleString axisName[2];
+};
+
+struct ButtonData
+{
+  int sysBtnId;
+  SimpleString name;
+};
+
+inline int povhat_pads_to_angle(int pad_x, int pad_y)
+{
+  int angle = 0;
+  if (pad_x == 0)
+  {
+    if (pad_y == 0)
+      angle = -1;
+    else if (pad_y > 0)
+      angle = 0;
+    else if (pad_y < 0)
+      angle = 180 * 100;
+  }
+  else if (pad_x > 0)
+  {
+    if (pad_y == 0)
+      angle = 90 * 100;
+    else if (pad_y > 0)
+      angle = 45 * 100;
+    else if (pad_y < 0)
+      angle = 135 * 100;
+  }
+  else if (pad_x < 0)
+  {
+    if (pad_y == 0)
+      angle = 270 * 100;
+    else if (pad_y > 0)
+      angle = 315 * 100;
+    else if (pad_y < -0)
+      angle = 225 * 100;
+  }
+  return angle;
+}
+
+class UDevJoystick : public IGenJoystick
 {
 public:
-  HidJoystickDevice(UDev::Device const &dev, bool remap_360);
-  ~HidJoystickDevice();
+  virtual ~UDevJoystick() = default;
 
-  void updateDevice(UDev::Device const &dev);
-  const char *getModel() const { return device.model; }
-  const char *getNode() const { return device.devnode; }
+  virtual void updateDevice(UDev::Device const &dev) = 0;
+  virtual const char *getModel() const = 0;
+  virtual const char *getNode() const = 0;
 
-  bool updateState(int dt_msec, bool def);
+  virtual bool updateState(int dt_msec, bool def) = 0;
+  virtual void setConnected(bool con) = 0;
+};
+
+class HidJoystickDevice : public UDevJoystick
+{
+public:
+  HidJoystickDevice(UDev::Device const &dev);
+  virtual ~HidJoystickDevice();
+
+  void updateDevice(UDev::Device const &dev) override;
+  const char *getModel() const override { return device.model; }
+  const char *getNode() const override { return device.devnode; }
+
+  bool updateState(int dt_msec, bool def) override;
 
   // IGenJoystick interface implementation
   virtual const char *getName() const { return device.name; }
@@ -51,45 +132,35 @@ public:
 
   virtual bool isConnected() { return connected; }
 
-  void setConnected(bool con);
-  bool isRemappedAsX360() const;
+  void setConnected(bool con) override;
+
+  dag::ConstSpan<AxisData> getAxesInfo() const { return axes; }
+  dag::ConstSpan<ButtonData> getButtonsInfo() const { return buttons; }
+  dag::ConstSpan<PovHatData> getPovHatsInfo() const { return povHats; }
+
+  bool isBtnPressed(int sys_btn_id) const { return sys_btn_id < KEY_MAX && sysKeys.test(sys_btn_id); }
+
+  input_id getInputId() const { return id; }
 
 protected:
   UDev::Device device;
-  IGenJoystickClient *client;
+  IGenJoystickClient *client = nullptr;
   JoystickRawState state;
   bool connected;
-  bool remapAsX360;
 
-  struct AxisData
-  {
-    int axis;
-    input_absinfo axis_info;
-    float min_val, max_val;
-    SimpleString name;
-    bool attached;
-  };
-
-  struct PovHatData : AxisData
-  {
-    SimpleString axisName[2];
-  };
-
-  struct ButtonData
-  {
-    int btn;
-    SimpleString name;
-    bool attached;
-  };
-
-  Tab<ButtonData> buttons;
-  Tab<AxisData> axes;
-  Tab<PovHatData> povHats;
+  KeysBitArray sysKeys;
+  dag::Vector<ButtonData> buttons;
+  dag::Vector<AxisData> axes;
+  dag::Vector<PovHatData> povHats;
 
   int jfd;
   char devID[10];
+  int lastKeyPressedTime = 0;
+
+  input_id id;
 
 private:
   int getVirtualPOVAxis(int hat_id, int axis_id) const;
 };
+
 } // namespace HumanInput

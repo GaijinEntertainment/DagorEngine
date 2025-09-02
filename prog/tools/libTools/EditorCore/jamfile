@@ -13,33 +13,56 @@ AddIncludes =
 Sources =
   ec_genappwnd.cpp
   ec_genapp_ehfilter.cpp
+  ec_init3d.cpp
   ec_viewportAxis.cpp
-  ec_viewportwindow.cpp
+  ec_ViewportWindow.cpp
   ec_ViewportWindowStatSettingsDialog.cpp
+  ec_GizmoSettingsDialog.cpp
   ec_camera_elem.cpp
   ec_camera_dlg.cpp
   ec_geneditordata.cpp
   ec_imguiInitialization.cpp
-  ec_mainWindow.cpp
+  ec_imguiInputHandler.cpp
+  ec_input.cpp
+  ec_mainWindow_common.cpp
   ec_outliner.cpp
   ec_outlinerModel.cpp
+  ec_screenshot.cpp
+  ec_screenshotSettingsDialog.cpp
   ec_workspace.cpp
   ec_startDlg.cpp
   ec_gridobject.cpp
   ec_world_elem.cpp
-  ec_window.cpp
   ec_application_creator.cpp
   ec_stat3d.cpp
+  ec_wndGlobal.cpp
   captureCursor.cpp
-  
+
   ec_brushfilter.cpp
   ec_gizmofilter.cpp
+  ec_gizmoRenderer.cpp
+  ec_gizmoSettings.cpp
   ec_newProjDlg.cpp
   ec_ObjectCreator.cpp
   ec_selwindow.cpp
   ec_status_bar.cpp
   ec_car_camera_elem_stub.cpp
 ;
+
+if $(Platform) = windows {
+  Sources +=
+    ec_input_windows.cpp
+    ec_mainWindow_windows.cpp
+  ;
+}
+else if $(Platform) = linux {
+  Sources +=
+    ec_input_linux.cpp
+    ec_mainWindow_linux.cpp
+  ;
+
+  AddLibs += -lXcursor ;
+}
 
 UseProgLibs =
   tools/libTools/coolConsole

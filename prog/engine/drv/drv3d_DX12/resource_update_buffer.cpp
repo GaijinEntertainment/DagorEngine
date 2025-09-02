@@ -23,35 +23,38 @@ namespace
 d3d::ResUpdateBuffer *allocate_update_buffer(BaseTex *texture, Image *image, MipMapIndex mip, ArrayLayerIndex array, Offset3D offset,
   Extent3D extent)
 {
-  G_ASSERTF_RETURN(mip < image->getMipLevelRange(), nullptr, "DX12: mip: %u < image->getMipLevelRange(): %u", mip.index(),
+  D3D_CONTRACT_ASSERTF_RETURN(mip < image->getMipLevelRange(), nullptr, "DX12: mip: %u < image->getMipLevelRange(): %u", mip.index(),
     image->getMipLevelRange().count());
-  G_ASSERTF_RETURN(array < image->getArrayLayerRange(), nullptr, "DX12: array: %u < image->getArrayLayerRange(): %u", array.index(),
-    image->getArrayLayerRange().count());
+  D3D_CONTRACT_ASSERTF_RETURN(array < image->getArrayLayerRange(), nullptr, "DX12: array: %u < image->getArrayLayerRange(): %u",
+    array.index(), image->getArrayLayerRange().count());
 
   Extent3D blockExtent{1, 1, 1};
   image->getFormat().getBytesPerPixelBlock(&blockExtent.width, &blockExtent.height);
 
   auto mipExtents = align_value(image->getMipExtents(mip), blockExtent);
   auto outline = extent + offset;
-  G_ASSERTF_RETURN(0 == offset.x % blockExtent.width, nullptr, "DX12: 0 == offset.x: %u % blockExtent.width: %u", offset.x,
+  D3D_CONTRACT_ASSERTF_RETURN(0 == offset.x % blockExtent.width, nullptr, "DX12: 0 == offset.x: %u % blockExtent.width: %u", offset.x,
     blockExtent.width);
-  G_ASSERTF_RETURN(0 == offset.y % blockExtent.height, nullptr, "DX12: 0 == offset.y: %u % blockExtent.height: %u", offset.y,
-    blockExtent.height);
-  G_ASSERTF_RETURN(0 == extent.width % blockExtent.width, nullptr, "DX12: 0 == extent.width: %u % blockExtent.width: %u", extent.width,
-    blockExtent.width);
-  G_ASSERTF_RETURN(0 == extent.height % blockExtent.height, nullptr, "DX12: 0 == extent.height: %u % blockExtent.height: %u",
-    extent.height, blockExtent.height);
-  G_ASSERTF_RETURN(offset.x < mipExtents.width, nullptr, "DX12: offset.x: %u < mipExtents.width: %u", offset.x, mipExtents.width);
-  G_ASSERTF_RETURN(offset.y < mipExtents.height, nullptr, "DX12: offset.y: %u < mipExtents.height: %u", offset.y, mipExtents.height);
-  G_ASSERTF_RETURN(offset.z < mipExtents.depth, nullptr, "DX12: offset.z: %u < mipExtents.width: %u", offset.z, mipExtents.depth);
-  G_ASSERTF_RETURN(outline.width <= mipExtents.width, nullptr, "DX12: outline.depth: %u <= mipExtents.depth: %u", outline.width,
+  D3D_CONTRACT_ASSERTF_RETURN(0 == offset.y % blockExtent.height, nullptr, "DX12: 0 == offset.y: %u % blockExtent.height: %u",
+    offset.y, blockExtent.height);
+  D3D_CONTRACT_ASSERTF_RETURN(0 == extent.width % blockExtent.width, nullptr, "DX12: 0 == extent.width: %u % blockExtent.width: %u",
+    extent.width, blockExtent.width);
+  D3D_CONTRACT_ASSERTF_RETURN(0 == extent.height % blockExtent.height, nullptr,
+    "DX12: 0 == extent.height: %u % blockExtent.height: %u", extent.height, blockExtent.height);
+  D3D_CONTRACT_ASSERTF_RETURN(offset.x < mipExtents.width, nullptr, "DX12: offset.x: %u < mipExtents.width: %u", offset.x,
     mipExtents.width);
-  G_ASSERTF_RETURN(outline.height <= mipExtents.height, nullptr, "DX12: outline.depth: %u <= mipExtents.depth: %u", outline.height,
+  D3D_CONTRACT_ASSERTF_RETURN(offset.y < mipExtents.height, nullptr, "DX12: offset.y: %u < mipExtents.height: %u", offset.y,
     mipExtents.height);
-  G_ASSERTF_RETURN(outline.depth <= mipExtents.depth, nullptr, "DX12: outline.depth: %u <= mipExtents.depth: %u", outline.depth,
+  D3D_CONTRACT_ASSERTF_RETURN(offset.z < mipExtents.depth, nullptr, "DX12: offset.z: %u < mipExtents.width: %u", offset.z,
     mipExtents.depth);
+  D3D_CONTRACT_ASSERTF_RETURN(outline.width <= mipExtents.width, nullptr, "DX12: outline.depth: %u <= mipExtents.depth: %u",
+    outline.width, mipExtents.width);
+  D3D_CONTRACT_ASSERTF_RETURN(outline.height <= mipExtents.height, nullptr, "DX12: outline.depth: %u <= mipExtents.depth: %u",
+    outline.height, mipExtents.height);
+  D3D_CONTRACT_ASSERTF_RETURN(outline.depth <= mipExtents.depth, nullptr, "DX12: outline.depth: %u <= mipExtents.depth: %u",
+    outline.depth, mipExtents.depth);
 
-  auto subResInfo = calculate_texture_region_info(extent, ArrayLayerCount::make(1), image->getFormat());
+  auto subResInfo = calculate_texture_region_info(extent, image->getFormat());
   auto memory = drv3d_dx12::get_device().allocateTemporaryUploadMemoryForUploadBuffer(subResInfo.totalByteSize,
     D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
   if (!memory)
@@ -75,13 +78,14 @@ d3d::ResUpdateBuffer *allocate_update_buffer(BaseTex *texture, Image *image, Mip
 d3d::ResUpdateBuffer *d3d::allocate_update_buffer_for_tex_region(BaseTexture *dest_base_texture, unsigned dest_mip,
   unsigned dest_slice, unsigned offset_x, unsigned offset_y, unsigned offset_z, unsigned width, unsigned height, unsigned depth)
 {
-  G_ASSERT_RETURN(dest_base_texture, nullptr);
+  D3D_CONTRACT_ASSERT_RETURN(dest_base_texture, nullptr);
+  STORE_RETURN_ADDRESS();
 
   BaseTex *texture = cast_to_texture_base(dest_base_texture);
   Image *image = texture->getDeviceImage();
   if (!image)
   {
-    D3D_ERROR("DX12: Texture %p <%s> doesn't have device image", texture, texture->getResName());
+    D3D_ERROR("DX12: Texture %p <%s> doesn't have device image", texture, texture->getName());
     return nullptr;
   }
 
@@ -91,13 +95,14 @@ d3d::ResUpdateBuffer *d3d::allocate_update_buffer_for_tex_region(BaseTexture *de
 
 d3d::ResUpdateBuffer *d3d::allocate_update_buffer_for_tex(BaseTexture *dest_base_texture, int dest_mip, int dest_slice)
 {
-  G_ASSERT_RETURN(dest_base_texture, nullptr);
+  D3D_CONTRACT_ASSERT_RETURN(dest_base_texture, nullptr);
+  STORE_RETURN_ADDRESS();
 
   BaseTex *texture = cast_to_texture_base(dest_base_texture);
   Image *image = texture->getDeviceImage();
   if (!image)
   {
-    D3D_ERROR("DX12: Texture %p <%s> doesn't have device image", texture, texture->getResName());
+    D3D_ERROR("DX12: Texture %p <%s> doesn't have device image", texture, texture->getName());
     return nullptr;
   }
   auto mipIndex = MipMapIndex::make(dest_mip);

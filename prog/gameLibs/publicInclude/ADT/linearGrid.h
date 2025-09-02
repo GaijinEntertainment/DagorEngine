@@ -192,10 +192,13 @@ public:
   bool eraseAt(LinearGrid<ObjectType> *parent_grid, ObjectType object, vec4i v_sub_cell_ids, int change_weight = +1)
   {
     LinearGridSubCell<ObjectType> &cell = getCellByIds(v_sub_cell_ids);
-    if (cell.rootLeaf != EMPTY_LEAF && leaf_erase_object(parent_grid, cell.rootLeaf, object))
+    bool needRebuild = false;
+    if (cell.rootLeaf != EMPTY_LEAF && leaf_erase_object(parent_grid, cell.rootLeaf, object, needRebuild))
     {
       cell.empty = parent_grid->isEmptyLeaf(cell.rootLeaf) ? 1 : 0;
       cell.changes += change_weight;
+      if (needRebuild)
+        cell.changes = parent_grid->configChangesBeforeRebuild;
       checkForRebuild(parent_grid, cell);
       LG_VERIFY(cell.rootLeaf == EMPTY_LEAF || !leaf_contain_object(parent_grid, cell.rootLeaf, object));
       LG_VERIFY(!leaf_find_recursion(parent_grid, cell.rootLeaf, cell.rootLeaf));
@@ -361,6 +364,9 @@ __forceinline eastl::pair<bool, ObjectType> find_object_intersection(const dag::
   for (ObjectType object : objects)
   {
     vec4f wbsph = object.getWBSph();
+    LG_VERIFY(v_extract_wi(wbsph) > VERY_SMALL_NUMBER); // check for very small, and also for negative radiuses
+    if (!objects_iterator.filterFunc(object, wbsph))
+      continue;
     if (fast_pos_check)
     {
       vec4f pos2d = v_perm_xzxz(wbsph);
@@ -381,6 +387,9 @@ __forceinline eastl::pair<bool, ObjectType> find_object_intersection(const dag::
   for (ObjectType object : objects)
   {
     vec4f wbsph = object.getWBSph();
+    LG_VERIFY(v_extract_wi(wbsph) > VERY_SMALL_NUMBER); // check for very small, and also for negative radiuses
+    if (!objects_iterator.filterFunc(object, wbsph))
+      continue;
     if (fast_pos_check)
     {
       vec4f pos2d = v_perm_xzxz(wbsph);
@@ -469,6 +478,36 @@ DAGOR_NOINLINE static ObjectType leaf_iterate_all(const LinearGrid<ObjectType> *
     }
   }
   return ObjectType::null();
+}
+
+template <typename ObjectType>
+DAGOR_NOINLINE static bool leaf_verify(const LinearGrid<ObjectType> *__restrict grid, leaf_id_t leaf_idx,
+  dag::Vector<leaf_id_t> &visited_leafs, dag::Vector<ObjectType> &visited_objects)
+{
+  LG_VERIFY(leaf_idx != EMPTY_LEAF);
+  visited_leafs.push_back(leaf_idx);
+  const LinearGridLeaf<ObjectType> &leaf = grid->getLeaf(leaf_idx);
+  if (grid->isBranch(leaf_idx))
+  {
+    UnpackedBranch branch = grid->unpackBranch(leaf_idx);
+    if (eastl::find(visited_leafs.begin(), visited_leafs.end(), branch.leftIdx) != visited_leafs.end())
+      return false;
+    if (!leaf_verify(grid, branch.leftIdx, visited_leafs, visited_objects) ||
+        !leaf_verify(grid, branch.rightIdx, visited_leafs, visited_objects))
+      return false;
+  }
+  else // lnode
+  {
+    LG_VERIFY(!leaf.objects.empty());
+    for (ObjectType object : leaf.objects)
+    {
+      if (eastl::find(visited_objects.begin(), visited_objects.end(), object))
+        return false;
+      else
+        visited_objects.push_back();
+    }
+  }
+  return true;
 }
 
 template <typename ObjectType>
@@ -567,9 +606,19 @@ VECTORCALL DAGOR_NOINLINE static leaf_id_t leaf_insert_object(LinearGrid<ObjectT
 #endif
       // debug("riGrid: creating branch on leaf %i", leaf_idx);
       leaf_idx = grid->createBranchOnLeaf(leaf_idx, eastl::move(objects), bboxesSum);
+#if VERIFY_ALL
+      dag::Vector<leaf_id_t> visited_leafs;
+      dag::Vector<ObjectType> visited_objects;
+      leaf_verify(grid, leaf_idx, visited_leafs, visited_objects);
+#endif
+
       bbox3f prevBox = v_bbox3_sum(old_parent_leaf_box, wbb);
       v_bbox3_extend(prevBox, v_splats(0.0001f));
+#if DAGOR_DBGLEVEL > 0
+      G_ASSERT(!leaf_find_recursion(grid, leaf_idx, leaf_idx));
+#else
       LG_VERIFY(!leaf_find_recursion(grid, leaf_idx, leaf_idx));
+#endif
       LG_VERIFYF(v_bbox3_test_box_inside(prevBox, bboxesSum), "leaf_insert_object prevBox " FMT_B3 " bboxesSum " FMT_B3 " wbb " FMT_B3,
         VB3D(prevBox), VB3D(bboxesSum), VB3D(wbb));
 #if VERIFY_ALL
@@ -596,13 +645,15 @@ DAGOR_NOINLINE static bool leaf_contain_object(const LinearGrid<ObjectType> *__r
 }
 
 template <typename ObjectType>
-DAGOR_NOINLINE static bool leaf_erase_object(LinearGrid<ObjectType> *__restrict grid, leaf_id_t leaf_idx, ObjectType object)
+DAGOR_NOINLINE static bool leaf_erase_object(LinearGrid<ObjectType> *__restrict grid, leaf_id_t leaf_idx, ObjectType object,
+  bool &need_rebuild)
 {
   LG_VERIFY(leaf_idx != EMPTY_LEAF);
   if (grid->isBranch(leaf_idx))
   {
     UnpackedBranch branch = grid->unpackBranch(leaf_idx);
-    return leaf_erase_object(grid, branch.leftIdx, object) || leaf_erase_object(grid, branch.rightIdx, object);
+    return leaf_erase_object(grid, branch.leftIdx, object, need_rebuild) ||
+           leaf_erase_object(grid, branch.rightIdx, object, need_rebuild);
   }
 
   LinearGridLeaf<ObjectType> &leaf = grid->getLeaf(leaf_idx);
@@ -610,6 +661,7 @@ DAGOR_NOINLINE static bool leaf_erase_object(LinearGrid<ObjectType> *__restrict 
   if (it != leaf.objects.end())
   {
     leaf.objects.erase(it);
+    need_rebuild = leaf.objects.empty();
     return true;
   }
   return false;
@@ -1213,7 +1265,7 @@ public:
   }
   leaf_id_t createLeaf(bool is_branch)
   {
-    auto reuse = eastl::find_if(freeLeafs.begin(), freeLeafs.end(), [=](leaf_id_t leaf) {
+    auto reuse = eastl::find_if(freeLeafs.begin(), freeLeafs.end(), [this, is_branch](leaf_id_t leaf) {
 #if EXTRA_SMALL_BRANCHES_AND_64K_LEAFS_LIMIT
       setBranch(leaf, is_branch);
       return true;
@@ -1413,7 +1465,7 @@ public:
       }
     }
     int result = get_time_usec(ref);
-    if (cellsOptimized > 0)
+    if (cellsOptimized > 0 && result > 50000)
       debug("Grid optimizing finished in %.2f msec for %i cells", result / 1000.f, cellsOptimized);
     if (!optimized)
     {
@@ -1647,7 +1699,7 @@ private:
     {
       vec4f wbsph = object.getWBSph();
       maxOversizeRad = max(maxOversizeRad, v_extract_w(wbsph));
-      G_ASSERT(maxOversizeRad < 10000.f);
+      G_ASSERT(maxOversizeRad < 32000.f);
       oversizeObjects.emplace_back(LinearGridPosObject<ObjectType>{wbsph, object});
       return;
     }
@@ -1709,9 +1761,12 @@ private:
     G_ASSERTF_RETURN(isInGrid(v_main_cell_ids), , "CellIds %i %i GridSize %i %i %i %i", v_extract_xi(v_main_cell_ids),
       v_extract_yi(v_main_cell_ids), gridSize.lim[0].x, gridSize.lim[0].y, gridSize.lim[1].x, gridSize.lim[1].y);
     LinearGridMainCell<ObjectType> &cell = getCellByIds(v_main_cell_ids);
-    if (cell.rootLeaf != EMPTY_LEAF && leaf_erase_object(this, cell.rootLeaf, object))
+    bool needRebuild = false;
+    if (cell.rootLeaf != EMPTY_LEAF && leaf_erase_object(this, cell.rootLeaf, object, needRebuild))
     {
       cell.changes += change_weight;
+      if (needRebuild)
+        cell.changes = configChangesBeforeRebuild;
       checkForRebuild(cell);
       LG_VERIFY(cell.rootLeaf == EMPTY_LEAF || !leaf_contain_object(this, cell.rootLeaf, object));
       LG_VERIFY(!leaf_find_recursion(this, cell.rootLeaf, cell.rootLeaf));
@@ -1943,6 +1998,11 @@ private:
     G_ASSERT(leaf_idx == EMPTY_LEAF || !isBranch(leaf_idx));
     if (DAGOR_UNLIKELY(objects.empty()))
       return leaf_idx;
+    if (leaf_idx != EMPTY_LEAF)
+    {
+      G_ASSERT(uintptr_t(&getLeaf(leaf_idx).objects) != uintptr_t(&objects));
+      memset(&getLeaf(leaf_idx), 0, sizeof(LinearGridLeaf<ObjectType>));
+    }
 
     if (objects.size() <= configMaxLeafObjects)
     {

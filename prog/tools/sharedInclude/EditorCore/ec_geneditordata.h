@@ -3,7 +3,6 @@
 
 #include <EditorCore/ec_ViewportWindow.h>
 #include <EditorCore/ec_status_bar.h>
-#include <sepGui/wndCommon.h>
 
 #include <generic/dag_tab.h>
 

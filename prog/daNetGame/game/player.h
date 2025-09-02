@@ -12,7 +12,7 @@
 #include <daECS/core/event.h>
 #include <math/dag_TMatrix.h> // for event
 #include "net/plosscalc.h"
-#include "game/team.h"
+#include "ecs/game/generic/team.h"
 #include "phys/physConsts.h"
 
 namespace net
@@ -90,6 +90,7 @@ Player *find_player_that_possess(ecs::EntityId eid);
 ecs::EntityId find_player_eid_that_possess(ecs::EntityId eid);
 Player *find_player_by_userid(matching::UserId uid);
 Player *find_player_by_platform_uid(const eastl::string &platform_uid);
+Player *find_player_by_name(const eastl::string &name);
 ecs::EntityId get_controlled_hero(); // shortcut for get_local_player()->getPossessedEntity()
 ecs::EntityId get_watched_hero();
 // Note: if 'conn' is NULL then local player will be created

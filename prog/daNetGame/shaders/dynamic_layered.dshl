@@ -30,7 +30,7 @@ shader dynamic_layered
     }
   }
 
-  INIT_LAYERED_FULL()
+  INIT_LAYERED_FULL(true)
   if (dyn_model_render_pass == render_pass_normal)
   {
     USE_MICRODETAIL_BASED_WETNESS()
@@ -84,12 +84,14 @@ shader dynamic_layered
     };
   }
   OPTIONAL_SKINNING_SHADER()
+  USE_INITIAL_TM_HASHVAL(vs)
   LAYERED_VS_FUNCTIONS()
   if (dyn_model_render_pass == render_pass_normal)
   {
     USE_MOTION_VECTORS()
     USE_MOTION_VEC_ENCODE(ps)
   }
+  USE_UNPACK_UNIT_VECTOR_VS()
   hlsl(vs) {
     VsOutput simple_vs(VsInput input HW_USE_INSTANCE_ID)
     {
@@ -104,7 +106,7 @@ shader dynamic_layered
       float3 worldDv;
       float3 worldNormal;
       ##if dyn_model_render_pass == render_pass_normal
-        float3 localNormal = BGR_SWIZZLE(input.normal.rgb)*2-1;
+        float3 localNormal = unpack_unit_vector(input.normal.rgb);
       ##else
         float3 localNormal = 1;
       ##endif
@@ -148,18 +150,8 @@ shader dynamic_layered
 
         output.pointToEye.xyz = -eyeToPoint;
         output.pointToEye.w = 0.0;
-        float4 initialTm0;
-        float4 initialTm1;
-        float4 initialTm2;
-        ##if in_editor_assume == yes
-          initialTm0 = float4(1, 0, 0, 0);
-          initialTm1 = float4(0, 1, 0, 0);
-          initialTm2 = float4(0, 0, 1, 0);
-        ##else
-          get_per_instance_data(initialTm2, 2);
-          get_per_instance_data(initialTm1, 3);
-          get_per_instance_data(initialTm0, 4);
-        ##endif
+        float4 initialTm0, initialTm1, initialTm2;
+        get_initial_tm(initialTm0, initialTm1, initialTm2);
         float3 initInstancePos = float3(initialTm0.w, initialTm1.w, initialTm2.w);
         layered_transform_uvs_with_random_offset(output, initInstancePos, output.uv0mask.zw, output.uv_detail, output.pointToEye.w);
         apply_atlas_transform(initInstancePos, output.uv12.xy);
@@ -168,7 +160,7 @@ shader dynamic_layered
 
         ##if (dyn_model_render_pass == render_pass_normal)
           #if COLOR_NEEDED
-            output.colorMul = getColorMul(get_per_instance_hashval());
+            output.colorMul = getColorMul(GET_PER_INSTANCE_HASHVAL);
           #endif
         ##endif
       ##endif
@@ -185,10 +177,10 @@ shader dynamic_layered
     WRITE_GBUFFER()
     USE_CHARACTER_TWO_MICRODETAILS()
 
-    USE_LAYERED_PS()
+    USE_LAYERED_PS(true)
     (ps) {
       mask_tex@static = mask_tex;
-      paint_details@f4 = paint_details;
+      paint_details@f3 = paint_details;
     }
     USE_NORMAL_DETAIL()
     LAYERED_PS(dyn_model_render_pass == render_pass_normal)

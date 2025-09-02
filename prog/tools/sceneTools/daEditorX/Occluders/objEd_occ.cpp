@@ -22,6 +22,7 @@
 
 using editorcore_extapi::dagConsole;
 using editorcore_extapi::dagGeom;
+using editorcore_extapi::dagInput;
 using editorcore_extapi::dagRender;
 
 enum
@@ -33,6 +34,10 @@ enum
   CM_SHOW_ALL_OCCLUDERS,
   CM_GATHER_OCCLUDERS,
 };
+
+static int last_mx = 0, last_my = 0, last_inside = 0;
+static IGenViewportWnd *last_wnd = nullptr;
+static bool last_ctrl_key_down = false;
 
 
 occplugin::ObjEd::ObjEd() : cloneMode(false), objCreator(NULL)
@@ -47,6 +52,16 @@ occplugin::ObjEd::ObjEd() : cloneMode(false), objCreator(NULL)
 
 occplugin::ObjEd::~ObjEd() { dagRender->deleteDynRenderBuffer(ptDynBuf); }
 
+void occplugin::ObjEd::registerViewportAccelerators(IWndManager &wndManager)
+{
+  ObjectEditor::registerViewportAccelerators(wndManager);
+
+  wndManager.addViewportAccelerator(CM_CREATE_OCCLUDER_BOX, ImGuiKey_1);
+  wndManager.addViewportAccelerator(CM_CREATE_OCCLUDER_QUAD, ImGuiKey_2);
+  wndManager.addViewportAccelerator(CM_SHOW_LOCAL_OCCLUDERS, ImGuiMod_Ctrl | ImGuiKey_1);
+  wndManager.addViewportAccelerator(CM_SHOW_ALL_OCCLUDERS, ImGuiMod_Ctrl | ImGuiKey_2);
+  wndManager.addViewportAccelerator(CM_GATHER_OCCLUDERS, ImGuiKey_F1);
+}
 
 void occplugin::ObjEd::fillToolBar(PropPanel::ContainerPropertyControl *toolbar)
 {
@@ -228,7 +243,7 @@ void occplugin::ObjEd::gizmoStarted()
       return;
 
   // const int keyModif = dagGui->ctlInpDevGetModifiers();
-  bool shift_pressed = wingw::is_key_pressed(wingw::V_SHIFT);
+  bool shift_pressed = dagInput->isShiftKeyDown();
 
   // if ((keyModif & SHIFT_PRESSED) && getEditMode() == CM_OBJED_MODE_MOVE)
   if (shift_pressed && getEditMode() == CM_OBJED_MODE_MOVE)
@@ -396,10 +411,18 @@ void occplugin::ObjEd::update(real dt)
     else
       onClick(CM_OBJED_MODE_SELECT, NULL);
   }
+  else if (getEditMode() == CM_CREATE_OCCLUDER_QUAD)
+  {
+    const bool newCtrlKeyDown = dagInput->isCtrlKeyDown();
+    if (newCtrlKeyDown != last_ctrl_key_down)
+    {
+      last_ctrl_key_down = newCtrlKeyDown;
+      if (last_inside && last_wnd == DAGORED2->getCurrentViewport())
+        handleMouseMove(last_wnd, last_mx, last_my, last_inside, 0, last_ctrl_key_down ? wingw::M_CTRL : 0);
+    }
+  }
 }
 
-static int last_mx = 0, last_my = 0, last_inside = 0;
-static IGenViewportWnd *last_wnd = NULL;
 
 bool occplugin::ObjEd::handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif)
 {
@@ -409,8 +432,8 @@ bool occplugin::ObjEd::handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool 
     last_my = y;
     last_inside = inside;
     last_wnd = wnd;
-    // return objCreator->handleMouseMove(wnd, x, y, inside, buttons, key_modif^CTRL_PRESSED, true);
-    return objCreator->handleMouseMove(wnd, x, y, inside, buttons, !wingw::is_key_pressed(wingw::V_CONTROL), true);
+    last_ctrl_key_down = dagInput->isCtrlKeyDown();
+    return objCreator->handleMouseMove(wnd, x, y, inside, buttons, key_modif ^ wingw::M_CTRL, true);
   }
   return ObjectEditor::handleMouseMove(wnd, x, y, inside, buttons, key_modif);
 }
@@ -437,52 +460,6 @@ bool occplugin::ObjEd::handleMouseRBPress(IGenViewportWnd *wnd, int x, int y, bo
   if (objCreator)
     return objCreator->handleMouseRBPress(wnd, x, y, inside, buttons, key_modif);
   return ObjectEditor::handleMouseRBPress(wnd, x, y, inside, buttons, key_modif);
-}
-
-
-void occplugin::ObjEd::handleKeyPress(IGenViewportWnd *wnd, int vk, int modif)
-{
-  if (getEditMode() == CM_CREATE_OCCLUDER_QUAD && wingw::is_key_pressed(wingw::V_CONTROL))
-  {
-    if (last_wnd == wnd && last_inside)
-      // objCreator->handleMouseMove(wnd, last_mx, last_my, true, 0, modif^CTRL_PRESSED, true);
-      objCreator->handleMouseMove(wnd, last_mx, last_my, true, 0, !wingw::is_key_pressed(wingw::V_CONTROL), true);
-    return;
-  }
-
-  if (!wingw::is_special_pressed())
-  {
-    if (wingw::is_key_pressed('1'))
-      onClick(CM_CREATE_OCCLUDER_BOX, NULL);
-    if (wingw::is_key_pressed('2'))
-      onClick(CM_CREATE_OCCLUDER_QUAD, NULL);
-    if (wingw::is_key_pressed(wingw::V_F1))
-      onClick(CM_GATHER_OCCLUDERS, NULL);
-    if (wingw::is_key_pressed(wingw::V_ESC) && objCreator)
-      onClick(CM_OBJED_MODE_SELECT, NULL);
-  }
-
-  if (modif & wingw::M_CTRL)
-  {
-    if (wingw::is_key_pressed('1'))
-      onClick(CM_SHOW_LOCAL_OCCLUDERS, NULL);
-    if (wingw::is_key_pressed('2'))
-      onClick(CM_SHOW_ALL_OCCLUDERS, NULL);
-  }
-
-  ObjectEditor::handleKeyPress(wnd, vk, modif);
-}
-
-void occplugin::ObjEd::handleKeyRelease(IGenViewportWnd *wnd, int vk, int modif)
-{
-  // if (getEditMode() == CM_CREATE_OCCLUDER_QUAD && !(modif & CTRL_PRESSED))
-  if (getEditMode() == CM_CREATE_OCCLUDER_QUAD && !wingw::is_key_pressed(wingw::V_CONTROL))
-  {
-    if (last_wnd == wnd && last_inside)
-      objCreator->handleMouseMove(wnd, last_mx, last_my, true, 0, !wingw::is_key_pressed(wingw::V_CONTROL), true);
-    return;
-  }
-  ObjectEditor::handleKeyRelease(wnd, vk, modif);
 }
 
 
@@ -515,12 +492,12 @@ void occplugin::ObjEd::onClick(int pcb_id, PropPanel::ContainerPropertyControl *
       break;
 
     case CM_SHOW_LOCAL_OCCLUDERS:
-      showLocalOccluders = panel->getBool(pcb_id);
+      showLocalOccluders = !showLocalOccluders;
       IEditorCoreEngine::get()->invalidateViewportCache();
       break;
 
     case CM_SHOW_ALL_OCCLUDERS:
-      showGlobalOccluders = panel->getBool(pcb_id);
+      showGlobalOccluders = !showGlobalOccluders;
       IEditorCoreEngine::get()->invalidateViewportCache();
       break;
 
@@ -540,6 +517,16 @@ void occplugin::ObjEd::onClick(int pcb_id, PropPanel::ContainerPropertyControl *
       DAGORED2->deleteDialog(myDlg);
     }
     break;
+
+    case CM_OBJED_CANCEL_GIZMO_TRANSFORM:
+      // When the Escape key is pressed cancel the ongoing object creation or allow ObjectEditor::onClick() to cancel
+      // the gizmo operation.
+      if (objCreator)
+      {
+        onClick(CM_OBJED_MODE_SELECT, panel);
+        return;
+      }
+      break;
   }
 
   updateGizmo();

@@ -9,6 +9,7 @@ local _DEF_COM_CMDLINE =
   -MD -Wno-trigraphs -Wno-multichar -Wno-dangling-else -Wno-dynamic-class-memaccess
   -Wno-switch -Wno-constant-logical-operand -Wno-string-plus-int -Wno-c++11-narrowing
   -Wno-unknown-warning-option -Wno-deprecated-register -Wno-inconsistent-missing-override
+  -Wno-nan-infinity-disabled
   -fembed-bitcode
   -ffast-math -ffinite-math-only -mrecip=none
   "\"-D__forceinline=inline __attribute__((always_inline))\"" -D__cdecl= -D__stdcall= -D__fastcall
@@ -16,9 +17,9 @@ local _DEF_COM_CMDLINE =
   -D_vsnprintf=vsnprintf
   -Dstricmp=strcasecmp
   -Dstrnicmp=strncasecmp
-  -D_TARGET_APPLE=3 -D_TARGET_TVOS=1
-  -D_TARGET_STATIC_LIB=1
-  -D__APPLE_TVOS__=1 -DARM_NEON_GCC_COMPATIBILITY=1
+  -D_TARGET_APPLE=3 -D_TARGET_TVOS
+  -D_TARGET_STATIC_LIB
+  -D__APPLE_TVOS__ -DARM_NEON_GCC_COMPATIBILITY
   -Di_strlen=strlen
 ;
 
@@ -27,8 +28,10 @@ if $(ClangThreadSafety) = yes {
 }
 
 _CLANG_BIN = $(_DEVTOOL)/mac/Toolchain/usr/bin ;
+_TVOS_SWIFT_TARGET = arm64-apple-tvos$(tvOSMinVer) ;
 if $(PlatformArch) = i386 {
   _TVOS_SDK_ROOT = $(_DEVTOOL)/mac/SDKs/AppleTVSimulator.platform/AppleTVSimulator$(tvOSVer).sdk ;
+  _TVOS_SWIFT_TARGET = x86_64-apple-tvos$(tvOSMinVer) ;
   _DEF_COM_CMDLINE +=
     -msse4.1
     -D_TARGET_SIMD_SSE=$(SSEVersion)
@@ -36,10 +39,10 @@ if $(PlatformArch) = i386 {
 } else {
   _TVOS_SDK_ROOT = $(_DEVTOOL)/mac/SDKs/AppleTVOS.platform/AppleTVOS$(tvOSVer).sdk ;
   _DEF_COM_CMDLINE +=
-    -D_TARGET_SIMD_NEON=1
+    -D_TARGET_SIMD_NEON
   ;
 }
-if $(PlatformArch) = arm64 { _DEF_COM_CMDLINE += -D_TARGET_64BIT=1 ; }
+if $(PlatformArch) = arm64 { _DEF_COM_CMDLINE += -D_TARGET_64BIT -D_TARGET_ARCH_ARM64 ; }
 
 local _DEF_C_CMDLINE = -std=c99 ;
 local _DEF_CPP_CMDLINE = -std=c++$(CPPStd) -Wno-invalid-offsetof ;
@@ -47,7 +50,7 @@ local _DEF_CPP_CMDLINE = -std=c++$(CPPStd) -Wno-invalid-offsetof ;
 if $(Exceptions) != yes {
   _DEF_CPP_CMDLINE += -fno-exceptions ;
 } else {
-  _DEF_CPP_CMDLINE += -fexceptions -DDAGOR_EXCEPTIONS_ENABLED=1 ;
+  _DEF_CPP_CMDLINE += -fexceptions -DDAGOR_EXCEPTIONS_ENABLED ;
 }
 
 if $(Rtti) != yes {
@@ -81,6 +84,7 @@ _CPP_COMPILER = $(_CLANG_BIN)/clang++ -x c++ $(_DEF_COM_CMDLINE) $(_DEF_CPP_CMDL
 _OBJC_COMPILER   = $(_CLANG_BIN)/clang -x objective-c -std=c99 $(_DEF_COM_CMDLINE) -fno-objc-exceptions -fobjc-abi-version=2 -fobjc-legacy-dispatch ;
 _OBJCPP_COMPILER = $(_CLANG_BIN)/clang++ -x objective-c++ -std=c++$(CPPStd) $(_DEF_COM_CMDLINE) -fno-objc-exceptions -fobjc-abi-version=2 -fobjc-legacy-dispatch ;
 _GAS_COMPILER = $(_CLANG_BIN)/clang -g -c -arch $(PlatformArch) ;
+_SWIFTC_COMPILER = $(_CLANG_BIN)/swiftc -sdk $(_TVOS_SDK_ROOT) -target $(_TVOS_SWIFT_TARGET) -parse-as-library ;
 
 _INCLUDE      = $(Root)/prog/dagorInclude $(Root)/prog/1stPartyLibs $(Root)/prog/3rdPartyLibs ;
 

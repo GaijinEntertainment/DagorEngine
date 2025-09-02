@@ -2,6 +2,10 @@ float puddle_hardness = 10;
 float puddle_increase = 0;
 float4 world_to_puddles_ofs;
 float4 world_to_puddles_tex_ofs;
+float ri_puddle_min_normal_similarity = 0.995;
+float ri_puddle_depth_above_inaccuracy_threshold = -2;
+float puddle_waternormal_lerp_param = 0.5;
+float ri_puddle_porosity = 0.2;
 texture puddles;
 
 macro USE_PUDDLE_TEXTURE_ENCODER(stage)
@@ -9,7 +13,8 @@ macro USE_PUDDLE_TEXTURE_ENCODER(stage)
     #define MAX_PUDDLE_HEIGHT 3
     #define INV_MAX_PUDDLE_HEIGHT (1.0/MAX_PUDDLE_HEIGHT)
     #define PUDDLE_START_BELOW_GROUND_HEIGHT 2
-    #define ENCODED_NO_PUDDLE_VALUE ((-1 + PUDDLE_START_BELOW_GROUND_HEIGHT) * INV_MAX_PUDDLE_HEIGHT)
+    #define NO_PUDDLE_VALUE -1
+    #define ENCODED_NO_PUDDLE_VALUE ((NO_PUDDLE_VALUE + PUDDLE_START_BELOW_GROUND_HEIGHT) * INV_MAX_PUDDLE_HEIGHT)
 
     float encodePuddleHeight(float hmapHeight, float puddleHeight)
     {
@@ -22,33 +27,39 @@ macro USE_PUDDLE_TEXTURE_ENCODER(stage)
   }
 endmacro
 
-macro INIT_PUDDLE(stage)
+macro INIT_PUDDLE_WITHOUT_TEX(stage)
   (stage) {
     world_to_puddles_ofs @f4 = world_to_puddles_ofs;
     world_to_puddles_tex_ofs @f4 = (world_to_puddles_tex_ofs.x, world_to_puddles_tex_ofs.y, puddle_hardness, water_level);
     puddle_increase @f1 = (puddle_increase, 0,0,0);
+    puddle_waternormal_lerp_param @f1 = puddle_waternormal_lerp_param;
+    ri_puddle_min_normal_similarity @f1 = ri_puddle_min_normal_similarity;
+    ri_puddle_depth_above_inaccuracy_threshold @f1 = ri_puddle_depth_above_inaccuracy_threshold;
+    ri_puddle_porosity @f1 = ri_puddle_porosity;
+  }
+endmacro
+
+macro INIT_PUDDLE(stage)
+  INIT_PUDDLE_WITHOUT_TEX(stage)
+  (stage) {
     puddles @smp2d = puddles;
   }
 endmacro
 
-macro USE_PUDDLE(stage)
-  USE_PUDDLE_TEXTURE_ENCODER(stage)
-  hlsl(stage) {
+macro INIT_PUDDLE_WITHOUT_SAMPLER(stage, samplerstate)
+  INIT_PUDDLE_WITHOUT_TEX(stage)
+  (stage) {
+    puddles @tex2d = puddles hlsl {
+      #define puddles_samplerstate samplerstate
+    }
+  }
+endmacro
+
+macro USE_COMMON_PUDDLE_DEFINES(stage)
+  hlsl (stage) {
     ##if in_editor_assume != yes
-
-      float getHmapLowHeight(float2 tc)
-      {
-        float lod = world_to_puddles_ofs.y;
-        return decode_height(tex2Dlod(tex_hmap_low, float4(tc, 0, lod)).x);
-      }
-
       #define puddle_hardness (world_to_puddles_tex_ofs.z)
       #define puddle_water_level (world_to_puddles_tex_ofs.w)
-      float getPuddleHeight(float hmapHeight, float2 puddleTc)
-      {
-        float encodedPuddleHeight = tex2Dlod(puddles, float4(puddleTc, 0,0)).x;
-        return decodePuddleHeight(hmapHeight, encodedPuddleHeight) + puddle_increase;
-      }
 
       ##if mobile_render == deferred
         #define PUDDLE_VIGNETTE_MUL 2
@@ -58,10 +69,48 @@ macro USE_PUDDLE(stage)
         #define PUDDLE_VIGNETTE_OFS 9
       ##endif
     ##endif
+  }
+endmacro
+
+macro USE_COMMON_PUDDLE_CODE(stage)
+  USE_PUDDLE_TEXTURE_ENCODER(stage)
+  USE_COMMON_PUDDLE_DEFINES(stage)
+  hlsl(stage) {
+    ##if in_editor_assume != yes
+      float2 getPuddleTC(float3 worldPos, out float vignetteEffect)
+      {
+        float2 puddleBaseTc = world_to_puddles_ofs.x*(worldPos.xz) + world_to_puddles_ofs.zw;
+        float2 vignette = saturate( abs(puddleBaseTc*2-1) * PUDDLE_VIGNETTE_MUL - PUDDLE_VIGNETTE_OFS );
+        vignetteEffect = saturate( 1.0 - dot( vignette, vignette ) );
+        return puddleBaseTc-world_to_puddles_tex_ofs.xy;
+      }
+    ##endif
+  }
+endmacro
+
+macro USE_PUDDLE(stage)
+  USE_COMMON_PUDDLE_CODE(stage)
+  hlsl(stage) {
+    ##if in_editor_assume != yes
+      float getHmapLowHeight(float2 tc)
+      {
+        float lod = world_to_puddles_ofs.y;
+        return decode_height(tex2Dlod(tex_hmap_low, float4(tc, 0, lod)).x);
+      }
+
+      float getPuddleHeight(float hmapHeight, float2 puddleTc)
+      {
+        float encodedPuddleHeight = tex2Dlod(puddles, float4(puddleTc, 0,0)).x;
+        return decodePuddleHeight(hmapHeight, encodedPuddleHeight);
+      }
+    ##endif
+
+      // With a big enough value, there is no real max puddle height, and 1000 is big enough
+      #define DEFAULT_MAX_PUDDLE_HEIGHT 1000
 
       void getPuddleData_impl(
         float tc_world_pos_w, float3 worldPos, float hmapH, out float puddle, out float worldPosYPuddleOffset, inout float puddleHeight,
-        bool calculatePuddleHeight /*compile time const*/)
+        float maxPuddleHeight, bool calculatePuddleHeight /*compile time const*/, bool applyUnderwaterEffect /*compile time const*/)
       {
         puddle = 0;
         worldPosYPuddleOffset = 0;
@@ -71,15 +120,17 @@ macro USE_PUDDLE(stage)
         BRANCH
         if (world_to_puddles_ofs.x > 0)
         {
-          float2 puddleBaseTc = world_to_puddles_ofs.x*(worldPos.xz) + world_to_puddles_ofs.zw;
-          float2 vignette = saturate( abs(puddleBaseTc*2-1) * PUDDLE_VIGNETTE_MUL - PUDDLE_VIGNETTE_OFS );
-          float vignetteEffect = saturate( 1.0 - dot( vignette, vignette ) );
-          float2 puddleTc = puddleBaseTc-world_to_puddles_tex_ofs.xy;
+          float vignetteEffect;
+          float2 puddleTc = getPuddleTC(worldPos, vignetteEffect);
           if (calculatePuddleHeight)
             puddleHeight = getPuddleHeight(hmapH, puddleTc);
+          puddleHeight += puddle_increase;
+          puddleHeight = min(puddleHeight, maxPuddleHeight);
           puddle = saturate(1-(tc_world_pos_w-puddleHeight)*puddle_hardness);
           float waterLevel = puddle_water_level;
-          float underWaterEffect = saturate((tc_world_pos_w-waterLevel)*10);
+          float underWaterEffect = 1;
+          if (applyUnderwaterEffect)
+            underWaterEffect = saturate((tc_world_pos_w-waterLevel)*10);
           puddle *= vignetteEffect*underWaterEffect;
           worldPosYPuddleOffset = vignetteEffect*underWaterEffect*max(0, puddleHeight-worldPos.y);
         }
@@ -87,7 +138,7 @@ macro USE_PUDDLE(stage)
       }
       void getPuddleData(float tc_world_pos_w, float3 worldPos, float hmapH, out float puddle, out float worldPosYPuddleOffset, inout float puddleHeight)
       {
-        getPuddleData_impl(tc_world_pos_w, worldPos, hmapH, puddle, worldPosYPuddleOffset, puddleHeight, true);
+        getPuddleData_impl(tc_world_pos_w, worldPos, hmapH, puddle, worldPosYPuddleOffset, puddleHeight, DEFAULT_MAX_PUDDLE_HEIGHT, true, true);
       }
       void getPuddleData(float tc_world_pos_w, float3 worldPos, out float puddle, out float worldPosYPuddleOffset, inout float puddleHeight)
       {
@@ -117,15 +168,10 @@ macro USE_PUDDLE(stage)
   }
 endmacro
 
-macro USE_AND_CALCULATE_PUDDLES()
-  INIT_PUDDLE(ps)
-  USE_PUDDLE(ps)
-  hlsl (ps) {
-    half addPuddles_impl(inout UnpackedGbuffer result, float3 worldPos, half tc_world_pos_w, float2 htTc, half porosity, float heightForPuddle, float puddleHeight, bool calcPuddleData)
+macro APPLY_PUDDLE(stage)
+  hlsl (stage) {
+    half applyPuddle(inout UnpackedGbuffer result, float3 worldPos, float3 waterNormal, half porosity, float onlyPuddleHeight, float puddle)
     {
-      float puddle, worldPosYPuddleOffset;
-      getPuddleData_impl(tc_world_pos_w, worldPos, heightForPuddle, puddle, worldPosYPuddleOffset, puddleHeight, calcPuddleData);
-
       //todo: combine wetness from puddles with wetness from water
       float waterBorder;
       float above_puddle_wetness = max(puddle, get_base_wetness(worldPos, result.normal, waterBorder));
@@ -135,13 +181,11 @@ macro USE_AND_CALCULATE_PUDDLES()
       {
         wetness_smoothness(wetMaterial, result.smoothness);
         wetness_ao(above_puddle_wetness, result.ao);
-        float3 waterNormal = getNormalLod(htTc, 3).xyz;
-        waterNormal = lerp(waterNormal, float3(0,1,0), 0.5);
         result.normal = normalize(lerp(result.normal.xyz, waterNormal,
                                 clamp_range(above_puddle_wetness, 0.45, 0.95)));
         wetness_diffuse(above_puddle_wetness, porosity, result.albedo.rgb);
         const float puddleDensity = 20;
-        float puddleOpacity = lerp(1, exp2(min(0, puddleDensity*(tc_world_pos_w-puddleHeight))),
+        float puddleOpacity = lerp(1, exp2(min(0, puddleDensity*(-onlyPuddleHeight))),
                                   saturate(above_puddle_wetness*2-1));
         result.albedo.rgb = lerp(pow(float3(30,33,0)/255, 2.2), result.albedo.rgb, puddleOpacity);
         //diffuse.rgb = puddleOpacity;
@@ -150,16 +194,106 @@ macro USE_AND_CALCULATE_PUDDLES()
       }
       return puddle;
     }
+  }
+endmacro
+
+macro USE_AND_CALCULATE_PUDDLES()
+  USE_PUDDLE(ps)
+  APPLY_PUDDLE(ps)
+  hlsl (ps) {
+
+    half addPuddles_impl(inout UnpackedGbuffer result, float3 worldPos, half tc_world_pos_w, float2 htTc,
+      half porosity, float heightForPuddle, float puddleHeight, float maxPuddleHeight, float3 waterNormal,
+      bool calcPuddleData /*compile time const*/, bool applyUnderwaterEffect /*compile time const*/)
+    {
+      float puddle, worldPosYPuddleOffset;
+      getPuddleData_impl(tc_world_pos_w, worldPos, heightForPuddle, puddle, worldPosYPuddleOffset,
+        puddleHeight, maxPuddleHeight, calcPuddleData, applyUnderwaterEffect);
+      return applyPuddle(result, worldPos, waterNormal, porosity, puddleHeight - tc_world_pos_w, puddle);
+    }
 
     half addPuddles(inout UnpackedGbuffer result, float3 worldPos, half tc_world_pos_w, float2 htTc, half porosity, float heightForPuddle)
     {
       float puddleHeight = 0;
-      return addPuddles_impl(result, worldPos, tc_world_pos_w, htTc, porosity, heightForPuddle, puddleHeight, true);
+      const float waterHmapLodLevel = 3;
+      float3 waterNormal = getNormalLod(htTc, waterHmapLodLevel).xyz;
+      waterNormal = normalize(lerp(waterNormal, float3(0,1,0), puddle_waternormal_lerp_param));
+
+      return addPuddles_impl(result, worldPos, tc_world_pos_w, htTc, porosity,
+        heightForPuddle, puddleHeight, DEFAULT_MAX_PUDDLE_HEIGHT, waterNormal, true, true);
     }
 
-    half addPuddlesWithConstHeight(inout UnpackedGbuffer result, float3 worldPos, half tc_world_pos_w, float2 htTc, half porosity, float puddleHeight)
+    half addPuddlesWithConstHeight(inout UnpackedGbuffer result, float3 worldPos, half tc_world_pos_w, float2 htTc,
+      half porosity, float puddleHeight, float maxPuddleHeight, float3 waterNormal)
     {
-      return addPuddles_impl(result, worldPos, tc_world_pos_w, htTc, porosity, tc_world_pos_w, puddleHeight, false);
+      return addPuddles_impl(result, worldPos, tc_world_pos_w, htTc, porosity,
+        tc_world_pos_w, puddleHeight, maxPuddleHeight, waterNormal, false, false);
+    }
+  }
+endmacro
+
+macro INIT_AND_USE_AND_CALCULATE_PUDDLES()
+  INIT_PUDDLE(ps)
+  USE_AND_CALCULATE_PUDDLES()
+endmacro
+
+macro USE_RI_PUDDLES()
+  USE_COMMON_PUDDLE_CODE(ps)
+  APPLY_PUDDLE(ps)
+  hlsl(ps) {
+    #define RI_PUDDLES_ENABLED 1
+
+    // USE_DEPTH_ABOVE_SAMPLING's value is irrelevant, but it's
+    // always defined if a variant of `USE_DEPTH_ABOVE` is used.
+    // (Which includes get_depth_above_fast)
+    #ifdef USE_DEPTH_ABOVE_SAMPLING
+    bool cull_away_puddles(float3 wpos, float delta)
+    {
+      float depthVignette = 0;
+      return wpos.y < get_depth_above_precise(wpos, depthVignette) + delta;
+    }
+    #endif
+
+    ##if in_editor_assume != yes
+      float getPuddleHeightRi(float hmapHeight, float2 puddleTc, out float onlyPuddleHeight)
+      {
+        float encodedPuddleHeight = tex2Dlod(puddles, float4(puddleTc, 0,0)).x;
+        float read_puddle_val = decodePuddleHeight(0, encodedPuddleHeight);
+
+        onlyPuddleHeight = read_puddle_val + puddle_increase;
+        return hmapHeight + onlyPuddleHeight;
+      }
+    ##endif
+
+    void getPuddleDataRi(float3 worldPos, out float puddle, out float onlyPuddleHeight)
+    {
+      puddle = 0;
+      onlyPuddleHeight = 0;
+    ##if in_editor_assume != yes
+      float vignetteEffect;
+      float2 puddleTc = getPuddleTC(worldPos, vignetteEffect);
+      float puddleHeight = getPuddleHeightRi(0, puddleTc, onlyPuddleHeight);
+      puddle = saturate(1+puddleHeight*puddle_hardness);
+    ##endif
+    }
+
+    half addPuddlesRi(inout UnpackedGbuffer result, float3 worldPos, float3 worldNormal)
+    {
+      const float3 puddle_normal = float3(0, 1, 0);
+      bool apply_puddles = worldNormal.y > ri_puddle_min_normal_similarity;
+    #ifdef USE_DEPTH_ABOVE_SAMPLING
+      apply_puddles = apply_puddles && !cull_away_puddles(worldPos, ri_puddle_depth_above_inaccuracy_threshold);
+    #endif
+
+      BRANCH
+      if (!apply_puddles)
+        return 0;
+
+      float onlyPuddleHeight;
+      float puddle;
+      getPuddleDataRi(worldPos, puddle, onlyPuddleHeight);
+
+      return applyPuddle(result, worldPos, puddle_normal, ri_puddle_porosity, onlyPuddleHeight, puddle);
     }
   }
 endmacro

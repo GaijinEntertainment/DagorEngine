@@ -62,6 +62,7 @@ bool register_subsystem(Context &ctx, SystemTemplate &sys, const SystemDesc &des
   if (!(desc.specialFlags & SystemDesc::FLAG_DISABLE_SIM_LODS))
     sys.refFlags |= SYS_ALLOW_SIMULATION_LODS;
   sys.qualityFlags = desc.qualityFlags;
+  sys.spawnRangeLimit = desc.emitterData.spawnRangeLimit;
 
   create_emitter_state(sys.emitterState, desc.emitterData, emLimit, ctx.cfg.emission_factor);
   create_emitter_randomizer(sys.emitterRandomizer, desc.emitterData, max(ctx.cfg.emission_factor, desc.emitterData.minEmissionFactor));
@@ -297,6 +298,12 @@ SystemId get_system_by_name(ContextId cid, const eastl::string &name)
   return sysNameIt != ctx.systems.nameMap.end() ? sysNameIt->second : SystemId();
 }
 
+SystemId get_dummy_system_id(ContextId cid)
+{
+  GET_CTX_RET(SystemId());
+  G_ASSERT(ctx.systems.dummySystemId);
+  return ctx.systems.dummySystemId;
+}
 
 SystemId register_system(ContextId cid, const SystemDesc &desc, const eastl::string &name)
 {
@@ -336,9 +343,10 @@ SystemId register_system(ContextId cid, const SystemDesc &desc, const eastl::str
 
 void release_subsystem(Context &ctx, SystemTemplate &sys)
 {
-  G_ASSERT(sys.refFlags & SYS_VALID);
+  G_ASSERT(sys.refFlags & (SYS_VALID | SYS_DUMMY_SYSTEM));
 
-  release_local_value_binds(ctx.binds, sys.valueBindId);
+  if (sys.valueBindId)
+    release_local_value_binds(ctx.binds, sys.valueBindId);
 
   if (sys.renderRefDataId)
     ctx.refDatas.destroyReference(sys.renderRefDataId);

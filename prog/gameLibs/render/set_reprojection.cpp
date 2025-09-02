@@ -85,15 +85,6 @@ void set_reprojection(const TMatrix4 &proj_tm, const TMatrix4 &glob_tm, const TM
     prev_view_vec_rt, prev_view_vec_lb, prev_view_vec_rb);
 }
 
-void set_reprojection(const TMatrix4 &proj_tm, const TMatrix4 &glob_tm, const TMatrix4 &prev_glob_tm, const Point4 &view_vec_lt,
-  const Point4 &view_vec_rt, const Point4 &view_vec_lb, const Point4 &view_vec_rb, const Point4 &prev_view_vec_lt,
-  const Point4 &prev_view_vec_rt, const Point4 &prev_view_vec_lb, const Point4 &prev_view_vec_rb, const DPoint3 &world_pos,
-  const DPoint3 &prev_world_pos)
-{
-  set_reprojection(proj_tm, glob_tm, proj_tm, prev_glob_tm, view_vec_lt, view_vec_rt, view_vec_lb, view_vec_rb, prev_view_vec_lt,
-    prev_view_vec_rt, prev_view_vec_lb, prev_view_vec_rb, world_pos, prev_world_pos);
-}
-
 void set_reprojection(const TMatrix4 &proj_tm, const TMatrix4 &glob_tm, const Point2 &prev_zn_zfar, const TMatrix4 &prev_glob_tm,
   const Point4 &view_vec_lt, const Point4 &view_vec_rt, const Point4 &view_vec_lb, const Point4 &view_vec_rb,
   const Point4 &prev_view_vec_lt, const Point4 &prev_view_vec_rt, const Point4 &prev_view_vec_lb, const Point4 &prev_view_vec_rb,
@@ -159,16 +150,10 @@ void set_reprojection(const TMatrix &view_tm, const TMatrix4 &proj_tm, const Poi
   ShaderGlobal::set_color4(prev_zn_zfarVarId, prev_zn_zfar.x, prev_zn_zfar.y, 0, 0);
 }
 
-ScopeReprojection::ScopeReprojection()
-{
 #define VAR(a) a = ShaderGlobal::get_color4(a##VarId);
-  SET_REPROJECTION_VARS_LIST
+ScopeReprojection::ScopeReprojection() { SET_REPROJECTION_VARS_LIST; }
 #undef VAR
-}
 
-ScopeReprojection::~ScopeReprojection()
-{
 #define VAR(a) ShaderGlobal::set_color4(a##VarId, a);
-  SET_REPROJECTION_VARS_LIST
+ScopeReprojection::~ScopeReprojection() { SET_REPROJECTION_VARS_LIST; }
 #undef VAR
-}

@@ -43,6 +43,7 @@ private:
 
   UniqueTex ht0;
   UniqueTex gauss, omega;
+  d3d::SamplerHandle defaultSampler = d3d::INVALID_SAMPLER_HANDLE;
   PostFxRenderer displacementsRenderer, htRenderer; // gpGPU
   ShaderMaterial *h0Mat;
   ShaderElement *h0Element;

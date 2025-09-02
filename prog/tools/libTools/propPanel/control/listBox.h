@@ -20,12 +20,12 @@ public:
     listBox.setEventHandler(this);
   }
 
-  virtual unsigned getTypeMaskForSet() const override { return CONTROL_DATA_TYPE_INT | CONTROL_CAPTION | CONTROL_DATA_STRINGS; }
-  virtual unsigned getTypeMaskForGet() const override { return CONTROL_DATA_TYPE_INT | CONTROL_DATA_TYPE_STRING; }
+  unsigned getTypeMaskForSet() const override { return CONTROL_DATA_TYPE_INT | CONTROL_CAPTION | CONTROL_DATA_STRINGS; }
+  unsigned getTypeMaskForGet() const override { return CONTROL_DATA_TYPE_INT | CONTROL_DATA_TYPE_STRING; }
 
-  virtual int getIntValue() const override { return listBox.getSelectedIndex(); }
+  int getIntValue() const override { return listBox.getSelectedIndex(); }
 
-  virtual int getTextValue(char *buffer, int buflen) const override
+  int getTextValue(char *buffer, int buflen) const override
   {
     const String *selectedText = listBox.getSelectedText();
     if (!selectedText)
@@ -34,24 +34,27 @@ public:
     return ImguiHelper::getTextValueForString(*selectedText, buffer, buflen);
   }
 
-  virtual void setIntValue(int index) override { listBox.setSelectedIndex(index); }
-  virtual void setStringsValue(const Tab<String> &vals) override { listBox.setValues(vals); }
-  virtual void setCaptionValue(const char value[]) override { controlCaption = value; }
-  virtual void setTextValue(const char value[]) override { listBox.setSelectedValue(value); }
+  dag::ConstSpan<String> getStringsValue() override { return listBox.getValues(); }
 
-  virtual int addStringValue(const char *value) override { return listBox.addValue(value); }
-  virtual void removeStringValue(int idx) override { listBox.removeValueByIndex(idx); }
+  void setIntValue(int index) override { listBox.setSelectedIndex(index); }
+  void setStringsValue(const Tab<String> &vals) override { listBox.setValues(vals); }
+  void setCaptionValue(const char value[]) override { controlCaption = value; }
+  void setTextValue(const char value[]) override { listBox.setSelectedValue(value); }
+  void setListBoxEventHandlerValue(IListBoxControlEventHandler *handler) override { listBoxEventHandler = handler; }
 
-  virtual void reset() override
+  int addStringValue(const char *value) override { return listBox.addValue(value); }
+  void removeStringValue(int idx) override { listBox.removeValueByIndex(idx); }
+
+  void reset() override
   {
     listBox.setSelectedIndex(-1);
 
     PropertyControlBase::reset();
   }
 
-  virtual void setEnabled(bool enabled) override { listBox.setEnabled(enabled); }
+  void setEnabled(bool enabled) override { listBox.setEnabled(enabled); }
 
-  virtual void updateImgui() override
+  void updateImgui() override
   {
     ScopedImguiBeginDisabled scopedDisabled(!listBox.isEnabled());
 
@@ -62,8 +65,15 @@ public:
   }
 
 private:
+  void onWcRightClick(WindowBase *source) override
+  {
+    if (listBoxEventHandler)
+      listBoxEventHandler->onListBoxContextMenu(getID(), listBox);
+  }
+
   String controlCaption;
   ListBoxControlStandalone listBox;
+  IListBoxControlEventHandler *listBoxEventHandler = nullptr;
 };
 
 } // namespace PropPanel

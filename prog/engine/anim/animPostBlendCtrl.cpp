@@ -1347,19 +1347,19 @@ void ApbAnimateCtrl::createNode(AnimationGraph &graph, const DataBlock &blk)
 
       if (!nm || !*nm)
       {
-        DAG_FATAL("bad param in ApbAnimateCtrl '%s', block %d", nm, name, j);
+        G_ASSERT_LOG(0, "bad param in ApbAnimateCtrl '%s', block %d", nm, name, j);
         continue;
       }
       IAnimBlendNode *n = bnl_nm ? graph.getBlendNodePtr(bnl_nm) : NULL;
       if (!bnl_nm || !*bnl_nm)
       {
-        DAG_FATAL("bad BNL ref in ApbAnimateCtrl '%s', block %d", bnl_nm, name, j);
+        G_ASSERT_LOG(0, "bad BNL ref in ApbAnimateCtrl '%s', block %d", bnl_nm, name, j);
         continue;
       }
       if (!n || !n->isSubOf(AnimBlendNodeLeafCID))
       {
         if (!is_ignoring_unavailable_resources())
-          DAG_FATAL("bad BNL ref in ApbAnimateCtrl '%s', block %d", bnl_nm, name, j);
+          G_ASSERT_LOG(0, "bad BNL ref in ApbAnimateCtrl '%s', block %d", bnl_nm, name, j);
         continue;
       }
 
@@ -3049,7 +3049,8 @@ void AnimPostBlendNodeEffectorFromChildIK::process(IPureAnimStateHolder &st, rea
 void AnimPostBlendMatVarFromNode::init(IPureAnimStateHolder &st, const GeomNodeTree &tree)
 {
   LocalData &ldata = *(LocalData *)st.getInlinePtr(varId);
-  ldata.lastRefDestUid = ldata.lastRefSrcUid = INVALID_ATTACHMENT_UID;
+  ldata.lastDestGraph = nullptr;
+  ldata.lastSourceNodeTree = nullptr;
   ldata.destVarId = destSlotId < 0 ? graph.getParamId(destVarName, IPureAnimStateHolder::PT_InlinePtr) : -1;
   ldata.srcNodeId = srcSlotId < 0 ? tree.findINodeIndex(srcNodeName) : dag::Index16();
   if (destSlotId < 0 && ldata.destVarId < 0)
@@ -3062,23 +3063,28 @@ void AnimPostBlendMatVarFromNode::process(IPureAnimStateHolder &st, real wt, Geo
   LocalData &ldata = *(LocalData *)st.getInlinePtr(varId);
   auto d_ac = destSlotId < 0 ? ctx.ac : ctx.ac->getAttachedChar(destSlotId);
   GeomNodeTree *s_tree = srcSlotId < 0 ? &tree : ctx.ac->getAttachedSkeleton(srcSlotId);
-  unsigned dst_att_uid = destSlotId < 0 ? 0xFFFFFFFF : ctx.ac->getAttachmentUid(destSlotId);
-  unsigned src_att_uid = srcSlotId < 0 ? 0xFFFFFFFF : ctx.ac->getAttachmentUid(srcSlotId);
 
-  if (destSlotId >= 0 && dst_att_uid != ldata.lastRefDestUid)
+  if (destSlotId >= 0)
   {
-    ldata.destVarId = -1;
-    if (d_ac && d_ac->getAnimGraph())
-      ldata.destVarId = d_ac->getAnimGraph()->getParamId(destVarName, IPureAnimStateHolder::PT_InlinePtr);
-    ldata.lastRefDestUid = dst_att_uid;
-    if (ldata.destVarId < 0 && d_ac && d_ac->getAnimGraph())
-      logerr("%s: anim.matFromNode: var \"%s\" not resolved, slot %d (in %s)", ctx.ac->getCreateInfo()->resName, destVarName,
-        destSlotId, d_ac->getCreateInfo()->resName);
+    if (!d_ac || !d_ac->getAnimGraph())
+    {
+      ldata.destVarId = -1;
+      ldata.lastDestGraph = nullptr;
+    }
+    else if (d_ac->getAnimGraph() != ldata.lastDestGraph)
+    {
+      AnimationGraph *slot_grph = d_ac->getAnimGraph();
+      ldata.lastDestGraph = slot_grph;
+      ldata.destVarId = slot_grph->getParamId(destVarName, IPureAnimStateHolder::PT_InlinePtr);
+      if (ldata.destVarId < 0)
+        logerr("%s: anim.matFromNode: var \"%s\" not resolved, slot %d (in %s)", ctx.ac->getCreateInfo()->resName, destVarName,
+          destSlotId, d_ac->getCreateInfo()->resName);
+    }
   }
-  if (srcSlotId >= 0 && src_att_uid != ldata.lastRefSrcUid)
+  if (srcSlotId >= 0 && s_tree != ldata.lastSourceNodeTree)
   {
     ldata.srcNodeId = s_tree ? s_tree->findINodeIndex(srcNodeName) : dag::Index16();
-    ldata.lastRefSrcUid = src_att_uid;
+    ldata.lastSourceNodeTree = s_tree;
     if (!ldata.srcNodeId && s_tree)
       logerr("%s: anim.matFromNode: node \"%s\" not resolved, slot %d (in %s), tree=%p", ctx.ac->getCreateInfo()->resName, srcNodeName,
         srcSlotId, s_tree, d_ac ? d_ac->getCreateInfo()->resName.str() : "?");
@@ -3410,36 +3416,40 @@ void AnimPostBlendTwistCtrl::createNode(AnimationGraph &graph, const DataBlock &
   graph.registerBlendNode(node, name);
 }
 
-void AnimPostBlendEyeCtrl::init(IPureAnimStateHolder &, const GeomNodeTree &tree)
+void AnimPostBlendEyeCtrl::init(IPureAnimStateHolder &st, const GeomNodeTree &tree)
 {
-  eyeDirectionNodeId = tree.findINodeIndex(eyeDirectionNodeName);
-  eyelidStartTopNodeId = tree.findINodeIndex(eyelidStartTopNodeName);
-  eyelidStartBottomNodeId = tree.findINodeIndex(eyelidStartBottomNodeName);
-  eyelidHorizontalReactionNodeId = tree.findINodeIndex(eyelidHorizontalReactionNodeName);
-  eyelidVerticalTopReactionNodeId = tree.findINodeIndex(eyelidVerticalTopReactionNodeName);
-  eyelidVerticalBottomReactionNodeId = tree.findINodeIndex(eyelidVerticalBottomReactionNodeName);
-  eyelidBlinkSourceNodeId = tree.findINodeIndex(eyelidBlinkSourceNodeName);
-  eyelidBlinkTopNodeId = tree.findINodeIndex(eyelidBlinkTopNodeName);
-  eyelidBlinkBottomNodeId = tree.findINodeIndex(eyelidBlinkBottomNodeName);
+  LocalData &ldata = *(LocalData *)st.getInlinePtr(varId);
 
-  G_ASSERTF(eyeDirectionNodeId, "Node %s not found", eyeDirectionNodeName);
-  G_ASSERTF(eyelidStartTopNodeId, "Node %s not found", eyelidStartTopNodeName);
-  G_ASSERTF(eyelidStartBottomNodeId, "Node %s not found", eyelidStartBottomNodeName);
-  G_ASSERTF(eyelidHorizontalReactionNodeId, "Node %s not found", eyelidHorizontalReactionNodeName);
-  G_ASSERTF(eyelidVerticalTopReactionNodeId, "Node %s not found", eyelidVerticalTopReactionNodeName);
-  G_ASSERTF(eyelidVerticalBottomReactionNodeId, "Node %s not found", eyelidVerticalBottomReactionNodeName);
-  G_ASSERTF(eyelidBlinkSourceNodeId, "Node %s not found", eyelidBlinkSourceNodeName);
-  G_ASSERTF(eyelidBlinkTopNodeId, "Node %s not found", eyelidBlinkTopNodeName);
-  G_ASSERTF(eyelidBlinkBottomNodeId, "Node %s not found", eyelidBlinkBottomNodeName);
+  ldata.eyeDirectionNodeId = tree.findINodeIndex(eyeDirectionNodeName);
+  ldata.eyelidStartTopNodeId = tree.findINodeIndex(eyelidStartTopNodeName);
+  ldata.eyelidStartBottomNodeId = tree.findINodeIndex(eyelidStartBottomNodeName);
+  ldata.eyelidHorizontalReactionNodeId = tree.findINodeIndex(eyelidHorizontalReactionNodeName);
+  ldata.eyelidVerticalTopReactionNodeId = tree.findINodeIndex(eyelidVerticalTopReactionNodeName);
+  ldata.eyelidVerticalBottomReactionNodeId = tree.findINodeIndex(eyelidVerticalBottomReactionNodeName);
+  ldata.eyelidBlinkSourceNodeId = tree.findINodeIndex(eyelidBlinkSourceNodeName);
+  ldata.eyelidBlinkTopNodeId = tree.findINodeIndex(eyelidBlinkTopNodeName);
+  ldata.eyelidBlinkBottomNodeId = tree.findINodeIndex(eyelidBlinkBottomNodeName);
+
+  G_ASSERTF(ldata.eyeDirectionNodeId, "Node %s not found", eyeDirectionNodeName);
+  G_ASSERTF(ldata.eyelidStartTopNodeId, "Node %s not found", eyelidStartTopNodeName);
+  G_ASSERTF(ldata.eyelidStartBottomNodeId, "Node %s not found", eyelidStartBottomNodeName);
+  G_ASSERTF(ldata.eyelidHorizontalReactionNodeId, "Node %s not found", eyelidHorizontalReactionNodeName);
+  G_ASSERTF(ldata.eyelidVerticalTopReactionNodeId, "Node %s not found", eyelidVerticalTopReactionNodeName);
+  G_ASSERTF(ldata.eyelidVerticalBottomReactionNodeId, "Node %s not found", eyelidVerticalBottomReactionNodeName);
+  G_ASSERTF(ldata.eyelidBlinkSourceNodeId, "Node %s not found", eyelidBlinkSourceNodeName);
+  G_ASSERTF(ldata.eyelidBlinkTopNodeId, "Node %s not found", eyelidBlinkTopNodeName);
+  G_ASSERTF(ldata.eyelidBlinkBottomNodeId, "Node %s not found", eyelidBlinkBottomNodeName);
 }
 
-void AnimPostBlendEyeCtrl::process(IPureAnimStateHolder &, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &)
+void AnimPostBlendEyeCtrl::process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &)
 {
   if (wt <= 0.001f)
     return;
 
-  tree.partialCalcWtm(eyeDirectionNodeId);
-  mat44f &eyeDirWtm = tree.getNodeWtmRel(eyeDirectionNodeId);
+  LocalData &ldata = *(LocalData *)st.getInlinePtr(varId);
+  tree.calcWtm();
+
+  mat44f &eyeDirWtm = tree.getNodeWtmRel(ldata.eyeDirectionNodeId);
   quat4f eyeQuaternion = v_quat_from_mat(eyeDirWtm.col0, eyeDirWtm.col2, eyeDirWtm.col1);
   vec3f eyeRotation = v_euler_from_quat(eyeQuaternion);
 
@@ -3447,47 +3457,38 @@ void AnimPostBlendEyeCtrl::process(IPureAnimStateHolder &, real wt, GeomNodeTree
   mat33f m33;
   v_mat33_make_rot_cw_y(m33, v_mul(v_splat_x(eyeRotation), v_splats(horizontalReactionFactor)));
 
-  tree.partialCalcWtm(eyelidHorizontalReactionNodeId);
-  mat44f &horizontalWtm = tree.getNodeWtmRel(eyelidHorizontalReactionNodeId);
+  mat44f &horizontalWtm = tree.getNodeWtmRel(ldata.eyelidHorizontalReactionNodeId);
   horizontalWtm.col0 = m33.col0;
   horizontalWtm.col1 = m33.col2;
   horizontalWtm.col2 = m33.col1;
-  tree.recalcTm(eyelidHorizontalReactionNodeId);
-  tree.invalidateWtm(eyelidHorizontalReactionNodeId);
+  tree.recalcTm(ldata.eyelidHorizontalReactionNodeId);
+  tree.invalidateWtm(ldata.eyelidHorizontalReactionNodeId);
 
   // Top eyelid eaction on vertical motion of the eye
-  tree.partialCalcWtm(eyelidStartTopNodeId);
-  tree.partialCalcWtm(eyelidVerticalTopReactionNodeId);
-  mat44f &startTopWtm = tree.getNodeWtmRel(eyelidStartTopNodeId);
-  mat44f &verticalTopWtm = tree.getNodeWtmRel(eyelidVerticalTopReactionNodeId);
+  mat44f &startTopWtm = tree.getNodeWtmRel(ldata.eyelidStartTopNodeId);
+  mat44f &verticalTopWtm = tree.getNodeWtmRel(ldata.eyelidVerticalTopReactionNodeId);
   verticalTopWtm.col3 =
     v_perm_xbzw(startTopWtm.col3, v_sub(startTopWtm.col3, v_mul(v_splat_z(eyeRotation), v_splats(-verticalReactionFactor.x))));
-  tree.recalcTm(eyelidVerticalTopReactionNodeId);
-  tree.invalidateWtm(eyelidVerticalTopReactionNodeId);
+  tree.recalcTm(ldata.eyelidVerticalTopReactionNodeId);
+  tree.invalidateWtm(ldata.eyelidVerticalTopReactionNodeId);
 
   // Bottom eyelid reaction on vertical motion of the eye
-  tree.partialCalcWtm(eyelidStartBottomNodeId);
-  tree.partialCalcWtm(eyelidVerticalBottomReactionNodeId);
-  mat44f &startBottomWtm = tree.getNodeWtmRel(eyelidStartBottomNodeId);
-  mat44f &verticalBottomWtm = tree.getNodeWtmRel(eyelidVerticalBottomReactionNodeId);
+  mat44f &startBottomWtm = tree.getNodeWtmRel(ldata.eyelidStartBottomNodeId);
+  mat44f &verticalBottomWtm = tree.getNodeWtmRel(ldata.eyelidVerticalBottomReactionNodeId);
   verticalBottomWtm.col3 =
     v_perm_xbzw(startBottomWtm.col3, v_sub(startBottomWtm.col3, v_mul(v_splat_z(eyeRotation), v_splats(-verticalReactionFactor.y))));
-  tree.recalcTm(eyelidVerticalBottomReactionNodeId);
-  tree.invalidateWtm(eyelidVerticalBottomReactionNodeId);
+  tree.recalcTm(ldata.eyelidVerticalBottomReactionNodeId);
+  tree.invalidateWtm(ldata.eyelidVerticalBottomReactionNodeId);
 
   // Blinking
   float eyelidsDistance = v_extract_y(v_sub(verticalTopWtm.col3, verticalBottomWtm.col3));
   float eyelidsHalfDistance = eyelidsDistance * 0.5f;
 
-  tree.partialCalcWtm(eyelidBlinkSourceNodeId);
-  vec4f blinkSource = tree.getNodeWposRel(eyelidBlinkSourceNodeId);
+  vec4f blinkSource = tree.getNodeWposRel(ldata.eyelidBlinkSourceNodeId);
   float blinkValue = v_extract_y(blinkSource);
 
-  tree.partialCalcWtm(eyelidBlinkTopNodeId);
-  mat44f &blinkTopWtm = tree.getNodeWtmRel(eyelidBlinkTopNodeId);
-
-  tree.partialCalcWtm(eyelidBlinkBottomNodeId);
-  mat44f &blinkBottomWtm = tree.getNodeWtmRel(eyelidBlinkBottomNodeId);
+  mat44f &blinkTopWtm = tree.getNodeWtmRel(ldata.eyelidBlinkTopNodeId);
+  mat44f &blinkBottomWtm = tree.getNodeWtmRel(ldata.eyelidBlinkBottomNodeId);
 
   if (blinkValue < eyelidsHalfDistance)
   {
@@ -3504,11 +3505,11 @@ void AnimPostBlendEyeCtrl::process(IPureAnimStateHolder &, real wt, GeomNodeTree
       v_perm_xbzw(verticalBottomWtm.col3, v_add(verticalBottomWtm.col3, v_splats(eyelidsHalfDistance * blinkingReactionFactor)));
   }
 
-  tree.recalcTm(eyelidBlinkTopNodeId);
-  tree.invalidateWtm(eyelidBlinkTopNodeId);
+  tree.recalcTm(ldata.eyelidBlinkTopNodeId);
+  tree.invalidateWtm(ldata.eyelidBlinkTopNodeId);
 
-  tree.recalcTm(eyelidBlinkBottomNodeId);
-  tree.invalidateWtm(eyelidBlinkBottomNodeId);
+  tree.recalcTm(ldata.eyelidBlinkBottomNodeId);
+  tree.invalidateWtm(ldata.eyelidBlinkBottomNodeId);
 }
 
 void AnimPostBlendEyeCtrl::createNode(AnimationGraph &graph, const DataBlock &blk)
@@ -3530,6 +3531,9 @@ void AnimPostBlendEyeCtrl::createNode(AnimationGraph &graph, const DataBlock &bl
   node->eyelidBlinkSourceNodeName = blk.getStr("blink_source", "");
   node->eyelidBlinkTopNodeName = blk.getStr("eyelid_blink_top", "");
   node->eyelidBlinkBottomNodeName = blk.getStr("eyelid_blink_bottom", "");
+
+  // allocate state variable
+  node->varId = graph.addInlinePtrParamId(String("var") + name, sizeof(LocalData), IPureAnimStateHolder::PT_InlinePtr);
 
   graph.registerBlendNode(node, name);
 }

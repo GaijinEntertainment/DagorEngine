@@ -7,9 +7,10 @@
 #ifndef __SH_STAT_H
 #define __SH_STAT_H
 
+#include "shTargetContext.h"
 #include <util/dag_string.h>
 #include <generic/dag_tab.h>
-#include <atomic>
+#include <osApiWrappers/dag_atomic_types.h>
 
 namespace ShaderCompilerStat
 {
@@ -20,7 +21,7 @@ struct DroppedVariants
 };
 extern DroppedVariants droppedVariants;
 extern int hlslCompileCount, hlslCacheHitCount, hlslEqResultCount;
-extern std::atomic_int hlslExternalCacheHitCount;
+extern dag::AtomicInteger<int> hlslExternalCacheHitCount;
 
 struct ShaderStatistics
 {
@@ -63,6 +64,7 @@ extern Tab<ShaderStatistics> shaderStatisticsList;
 
 void reset();
 void printReport(const char *dir);
+void collectTargetStats(const shc::TargetContext &ctx);
 inline int getUniqueCompilationCount() { return hlslCompileCount - hlslCacheHitCount - hlslExternalCacheHitCount.load(); }
 } // namespace ShaderCompilerStat
 

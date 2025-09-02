@@ -1,5 +1,5 @@
 from "%scripts/ui/ui_library.nut" import *
-from "style.nut" import *
+from "%scripts/ui/widgets/style.nut" import *
 import "math" as math
 let {sound_play} = require("%dngscripts/sound_system.nut")
 
@@ -51,11 +51,11 @@ function slider(orient, var, options={}) {
   function knob() {
     return {
       rendObj = ROBJ_SOLID
-      size  = [fsh(1), fsh(2)]
+      size  = static [fsh(1), fsh(2)]
       group = group
-      color = calcKnobColor(knobStateFlags.value)
+      color = calcKnobColor(knobStateFlags.get())
       watch = knobStateFlags
-      onElemState = @(sf) knobStateFlags.update(sf)
+      onElemState = @(sf) knobStateFlags.set(sf)
       children = knobContent
     }
   }
@@ -63,9 +63,9 @@ function slider(orient, var, options={}) {
   let setValue = options?.setValue ?? @(v) var.set(v)
   function onChange(factor){
     let value = orient == O_HORIZONTAL ? scaling.from(factor, minval, maxval) : scaling.from(factor, maxval, minval)
-    let oldValue = var.value
+    let oldValue = var.get()
     setValue(value)
-    if (oldValue != var.value)
+    if (oldValue != var.get())
       sound_play("ui/timer_tick")
   }
 
@@ -74,11 +74,11 @@ function slider(orient, var, options={}) {
     hotkeys = [
       ["Left | J:D.Left", sliderLeftLoc, function() {
         let delta = maxval > minval ? -pageScroll : pageScroll
-        onChange(clamp(scaling.to(var.value + delta, minval, maxval), 0, 1))
+        onChange(clamp(scaling.to(var.get() + delta, minval, maxval), 0, 1))
       }],
       ["Right | J:D.Right", sliderRightLoc, function() {
         let delta = maxval > minval ? pageScroll : -pageScroll
-        onChange(clamp(scaling.to(var.value + delta, minval, maxval), 0, 1))
+        onChange(clamp(scaling.to(var.get() + delta, minval, maxval), 0, 1))
       }],
     ]
   }
@@ -102,7 +102,7 @@ function slider(orient, var, options={}) {
       knob
 
       onChange = onChange
-      onElemState = @(sf) sliderStateFlags.update(sf)
+      onElemState = @(sf) sliderStateFlags.set(sf)
 
       valign = ALIGN_CENTER
       flow = orient == O_HORIZONTAL ? FLOW_HORIZONTAL : FLOW_VERTICAL
@@ -113,13 +113,13 @@ function slider(orient, var, options={}) {
         {
           group = group
           rendObj = ROBJ_SOLID
-          color = orient == O_HORIZONTAL ? (sliderStateFlags.value & S_HOVER) ? BtnBdHover : TextNormal
+          color = orient == O_HORIZONTAL ? (sliderStateFlags.get() & S_HOVER) ? BtnBdHover : TextNormal
             : bgColor
           size = orient == O_HORIZONTAL ? [flex(factor), fsh(1)] : [fsh(1), flex(1.0 - factor)]
 
           children = {
             rendObj = ROBJ_FRAME
-            color = calcFrameColor(sliderStateFlags.value)
+            color = calcFrameColor(sliderStateFlags.get())
             borderWidth = orient == O_HORIZONTAL ? [hdpx(1),0,hdpx(1),hdpx(1)] : 0
             size = flex()
           }
@@ -133,12 +133,12 @@ function slider(orient, var, options={}) {
 
           children = {
             rendObj = ROBJ_FRAME
-            color = calcFrameColor(sliderStateFlags.value)
+            color = calcFrameColor(sliderStateFlags.get())
             borderWidth = orient == O_HORIZONTAL ? [1,1,1,0] : 0
             size = flex()
           }
         }
-        sliderStateFlags.value & S_HOVER ? hotkeysElem  : null
+        sliderStateFlags.get() & S_HOVER ? hotkeysElem  : null
       ]
     }
   }

@@ -18,4 +18,10 @@ public:
   virtual IMenu &createContextMenu() = 0;
 };
 
+class IListBoxControlEventHandler
+{
+public:
+  virtual bool onListBoxContextMenu(int pcb_id, IListBoxInterface &list_box_interface) = 0;
+};
+
 } // namespace PropPanel

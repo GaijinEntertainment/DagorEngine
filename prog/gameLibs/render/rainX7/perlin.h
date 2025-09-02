@@ -5,8 +5,8 @@ template <int prime0, int prime1, int prime2>
 class PerlinNoise
 {
 public:
-  PerlinNoise(){};
-  ~PerlinNoise(){};
+  PerlinNoise() {}
+  ~PerlinNoise() {}
 
   float SoftNoise1D(int x);
 

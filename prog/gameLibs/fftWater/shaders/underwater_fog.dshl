@@ -5,12 +5,12 @@ float4 ocean1 = (0.57,0.91,0.84,0);
 
 float4 river0 = (0.30,0.25,0.02,0);
 float4 river1 = (0.56,0.54,0.28,0);
-macro INIT_UNDERWATER_FOG()
+macro INIT_UNDERWATER_FOG(stage)
   local float4 ocean0_srgb = (sRGBRead(ocean0));
   local float4 ocean1_srgb = (sRGBRead(ocean1));
   local float4 river0_srgb = (sRGBRead(river0));
   local float4 river1_srgb = (sRGBRead(river1));
-  (ps) {
+  (stage) {
     ocean0@f4 = (ocean0_srgb.r,ocean0_srgb.g,ocean0_srgb.b, -ocean_density);
     ocean1@f4 = (ocean1_srgb.r,ocean1_srgb.g,ocean1_srgb.b, 1./(0.01+(height_tiling+1)*water_color_noise_size));
     river0@f4 = (river0_srgb.r, river0_srgb.g, river0_srgb.b, -river_density);
@@ -23,17 +23,17 @@ interval water_colormap_assume : off < 1, on;
 texture water_colormap;
 float4 water_colormap_area = (-512,-512,512,512);
 
-macro GET_UNDERWATER_FOG_PERLIN()
+macro GET_UNDERWATER_FOG_PERLIN(stage)
 
   if (water_colormap_assume == on) {
-    (ps) {
+    (stage) {
       water_colormap@smp2d = water_colormap;
       world_to_water_colormap@f4 = (1/(water_colormap_area.z-water_colormap_area.x), 1/(water_colormap_area.w-water_colormap_area.y),
         -water_colormap_area.x/(water_colormap_area.z-water_colormap_area.x), -water_colormap_area.y/(water_colormap_area.w-water_colormap_area.y));
     }
   }
 
-hlsl(ps) {
+hlsl(stage) {
   half4 get_ocean_color_perlin(float2 waterPos, float ocean_part, float perlin_noise_water_color)
   {
     ##if water_colormap_assume == off || water_colormap == NULL
@@ -71,7 +71,7 @@ float height_tiling = 1;
 float water_color_noise_size = 737;
 
 macro GET_UNDERWATER_FOG()
-  GET_UNDERWATER_FOG_PERLIN()
+  GET_UNDERWATER_FOG_PERLIN(ps)
 
   if (compatibility_mode == compatibility_mode_off)
   {

@@ -176,8 +176,8 @@
   </Type>
 
   <Type Name="drv3d_dx11::BaseTex" ExcludeView="nonrecursive">
-    <DisplayString Condition="type == RES3D_TEX">{{{statName,sb}, ({width}x{height})}}</DisplayString>
-    <DisplayString Condition="type != RES3D_TEX">{{{statName,sb}}}</DisplayString>
+    <DisplayString Condition="type == D3DResourceType::TEX">{{{statName,sb}, ({width}x{height})}}</DisplayString>
+    <DisplayString Condition="type != D3DResourceType::TEX">{{{statName,sb}}}</DisplayString>
     <StringView>statName</StringView>
     <Expand HideRawView="true">
       <ExpandedItem>this,view(nonrecursive)</ExpandedItem>
@@ -185,8 +185,8 @@
   </Type>
 
   <Type Name="drv3d_dx12::BaseTex" ExcludeView="nonrecursive">
-    <DisplayString Condition="resType == RES3D_TEX">{{{statName,sb}, ({width}x{height})}}</DisplayString>
-    <DisplayString Condition="resType != RES3D_TEX">{{{statName,sb}}}</DisplayString>
+    <DisplayString Condition="type == D3DResourceType::TEX">{{{statName,sb}, ({width}x{height})}}</DisplayString>
+    <DisplayString Condition="type != D3DResourceType::TEX">{{{statName,sb}}}</DisplayString>
     <StringView>statName</StringView>
     <Expand HideRawView="true">
       <ExpandedItem>this,view(nonrecursive)</ExpandedItem>
@@ -207,6 +207,13 @@
     <DisplayString>{*this,view(nonrecursive)}</DisplayString>
     <Expand HideRawView="true">
       <ExpandedItem>this,view(nonrecursive)</ExpandedItem>
+    </Expand>
+  </Type>
+
+  <Type Name="GenericSbufferImplementation&lt;drv3d_dx12::PlatformBufferInterfaceConfig&gt;" ExcludeView="nonrecursive">
+    <DisplayString>{statName}</DisplayString>
+    <Expand HideRawView="true">
+      <ExpandedItem>(GenericSbufferImplementation&lt;drv3d_dx12::PlatformBufferInterfaceConfig&gt;*)this,view(nonrecursive)</ExpandedItem>
     </Expand>
   </Type>
 

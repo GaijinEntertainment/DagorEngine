@@ -41,6 +41,7 @@
 #include "matching_state_data.h"
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
+#include <main/gameProjConfig.h>
 
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
 #define EVP_MD_CTX_new  EVP_MD_CTX_create
@@ -116,7 +117,10 @@ net::INetDriver *create_listen_net_driver()
       SocketDescriptor sdss;
       sdss.type = SocketDescriptor::SOCKET;
       sdss.socket = sockfp;
-      drv = net::create_net_driver_listen(sdss, NET_MAX_PLAYERS);
+      int max_connections = NET_MAX_PLAYERS;
+      if (gameproj::is_hosted_server_instance())
+        max_connections += 1; // reserve one connection for possible relay control connections
+      drv = net::create_net_driver_listen(sdss, max_connections);
     }
     else
       DAG_FATAL("failed to parse udp sock '%s'", udp_sock);
@@ -263,7 +267,7 @@ static bool check_client_vroms_and_send_diffs(const ClientInfo *msg)
   statsd::counter("syncvroms.diffs_sent", diffsCount);
 
   applyDiffsMsg.connection = msg->connection;
-  send_net_msg(net::get_msg_sink(), eastl::move(applyDiffsMsg));
+  send_net_msg(*g_entity_mgr, net::get_msg_sink(), eastl::move(applyDiffsMsg));
 
   return false;
 }
@@ -391,7 +395,7 @@ struct DedicatedNetObserver final : public net::INetworkObserver
       g_entity_mgr->broadcastEventImmediate(
         OnNetDedicatedPrepareServerInfo(srvInfoMsg, serverFlags, connFlags, clientFlags, userId, userName, pltf, conn));
       srvInfoMsg.connection = &conn;
-      send_net_msg(net::get_msg_sink(), eastl::move(srvInfoMsg));
+      send_net_msg(*g_entity_mgr, net::get_msg_sink(), eastl::move(srvInfoMsg));
     }
 
     int app_id = dedicated_matching::get_player_app_id(userId);
@@ -427,15 +431,15 @@ struct DedicatedNetObserver final : public net::INetworkObserver
     }
   }
 
-  void onDisconnect(net::Connection *conn, DisconnectionCause cause) override
+  void onDisconnect(net::Connection *conn, DisconnectionCause cause, ecs::EntityManager &mgr) override
   {
     G_FAST_ASSERT(conn != nullptr); // on server conn can't be null here
     debug("Client #%d disconnected with %s", (int)conn->getId(), describe_disconnection_cause(cause));
     if (cause == DC_CONNECTION_LOST)
       statsd::counter("users_lost", 1);
-    g_entity_mgr->broadcastEventImmediate(OnNetDedicatedServerDisconnect(*conn));
+    mgr.broadcastEventImmediate(OnNetDedicatedServerDisconnect(*conn));
     // send immediately because connection might get destroyed after this
-    g_entity_mgr->broadcastEventImmediate(EventOnClientDisconnected(conn->getId(), cause));
+    mgr.broadcastEventImmediate(EventOnClientDisconnected(conn->getId(), cause));
   }
 };
 

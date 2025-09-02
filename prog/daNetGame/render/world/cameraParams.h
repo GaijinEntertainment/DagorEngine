@@ -9,6 +9,7 @@
 #include <drv/3d/dag_decl.h>
 
 
+class CameraViewVisibilityMgr;
 struct CameraParams
 {
   TMatrix4 viewRotJitterProjTm = TMatrix4::IDENT;
@@ -28,6 +29,7 @@ struct CameraParams
   TMatrix4_vec4 jitterProjTm = TMatrix4::IDENT;
   TMatrix4_vec4 jitterGlobtm = TMatrix4::IDENT;
 
+  TMatrix4 jitteredCamPosToUnjitteredHistoryClip = TMatrix4::IDENT;
   Point2 jitterOffsetUv;
 
   Frustum noJitterFrustum;
@@ -35,6 +37,8 @@ struct CameraParams
   float znear = 0.01, zfar = 1000;
   uint16_t subSampleIndex = 0, subSamples = 1;
   uint16_t superSampleIndex = 0, superSamples = 1;
+
+  CameraViewVisibilityMgr *jobsMgr = nullptr;
 };
 
 // This is supposed to be used for culling, and possibly other usages that
@@ -44,4 +48,5 @@ struct CameraParamsUnified
 {
   DPoint3 cameraWorldPos = DPoint3();
   Frustum unionFrustum;
+  float rangeScale = 1;
 };

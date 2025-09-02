@@ -30,7 +30,8 @@ inline uint64_t profile_ref_ticks()
 }
 #elif _TARGET_SIMD_SSE
 #ifdef _MSC_VER
-#include <intrin.h>
+extern "C" unsigned __int64 __rdtsc(void);
+#pragma intrinsic(__rdtsc)
 #else
 #include <x86intrin.h>
 #endif

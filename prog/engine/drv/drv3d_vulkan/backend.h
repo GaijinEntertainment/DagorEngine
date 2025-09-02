@@ -7,7 +7,7 @@
 namespace drv3d_vulkan
 {
 
-struct ExecutionPODState;
+struct ExecutionAsyncCompileState;
 class BindlessManagerBackend;
 class RenderStateSystemBackend;
 class PipelineCompiler;
@@ -45,7 +45,7 @@ struct Backend
 
   struct State
   {
-    static ExecutionPODState pod;
+    static ExecutionAsyncCompileState asyncCompileState;
     static ExecutionState exec;
     static PipelineState pipe;
     static PipelineStatePendingReferenceList pendingCleanups;

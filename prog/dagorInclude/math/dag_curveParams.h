@@ -15,11 +15,14 @@
 class CubicCurveSampler
 {
 public:
+  // max number of control points of hermite spline
+  static constexpr int MAX_POINTS = 10;
+
   int type;
-  carray<real, 4> coef;
+  carray<real, MAX_POINTS - 1> coef;
   real *splineCoef;
-  static void *(*mem_allocator)(size_t);
-  static void (*mem_free)(void *);
+  static inline void *(*mem_allocator)(size_t) = nullptr;
+  static inline void (*mem_free)(void *) = nullptr;
 
   CubicCurveSampler()
   {
@@ -66,7 +69,7 @@ public:
     return *this;
   }
 
-  void load(const char *&ptr, int &len)
+  bool load(const char *&ptr, int &len)
   {
     const real *rp = (const real *)ptr;
     const int *ip = (const int *)ptr;
@@ -102,12 +105,13 @@ public:
       len -= sizeof(real) * 4;
     }
 #if DAGOR_DBGLEVEL > 0
-    for (int i = 0; i < coef.size(); ++i)
+    for (int i = 0; i < type - 1; ++i)
       G_ASSERT(!check_nan(coef[i]));
     if (splineCoef)
       for (int i = 0; i < type * 4; ++i)
         G_ASSERT(!check_nan(splineCoef[i]));
 #endif
+    return true;
   }
 
 
@@ -140,7 +144,7 @@ public:
     if (x <= coef[0])
       goto compute;
 
-    for (int i = 1, ie = type < 5 ? type : 4; i < ie; i++)
+    for (int i = 1; i < type; i++)
       if (x < coef[i])
       {
         x -= coef[i - 1];

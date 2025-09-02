@@ -14,7 +14,7 @@
 #include <daNet/bitStream.h>
 #include <math/random/dag_random.h>
 #include <memory/dag_framemem.h>
-#include "utils.h"
+#include <daECS/net/urlUtils.h>
 #include "encryption.h"
 #include <daECS/core/template.h>
 
@@ -112,8 +112,8 @@ bool read_value(const danet::BitStream &, ConnectionId &cid, const IConnection &
 }
 } // namespace detail
 
-#define MAKE_REPLICA_HANDLE(repl) ((unsigned((repl)->gen) << 16) | unsigned((repl)-replicaRefs.data()))
-#define GET_REPLICA_BY_HANDLE(h)  ((replicaRefs[(h)&USHRT_MAX].gen == ((h) >> 16)) ? &replicaRefs[(h)&USHRT_MAX] : NULL)
+#define MAKE_REPLICA_HANDLE(repl) ((unsigned((repl)->gen) << 16) | unsigned((repl) - replicaRefs.data()))
+#define GET_REPLICA_BY_HANDLE(h)  ((replicaRefs[(h) & USHRT_MAX].gen == ((h) >> 16)) ? &replicaRefs[(h) & USHRT_MAX] : NULL)
 
 struct PendingReplicationPacketInfo
 {
@@ -137,9 +137,8 @@ Connection::~Connection()
 {
   if (isReplicatingFrom()) // remove references to this connection's replicas from object's linked list
     for (int i = 0; i < numReplicas; ++i)
-      if (net::Object *obj = replicas[i]->isToKill() ? nullptr : Object::getByEid(replicas[i]->getEid())) // if object marked for kill
-                                                                                                          // then it's already detached
-                                                                                                          // (see killObjectReplica)
+      // if object marked for kill then it's already detached (see killObjectReplica)
+      if (net::Object *obj = replicas[i]->isToKill() ? nullptr : Object::getByEid(mgr, replicas[i]->getEid()))
         replicas[i]->detachFromObj(*obj);
 }
 
@@ -250,7 +249,7 @@ void Connection::freeObjectReplica(ObjectReplica *repl)
 
 bool Connection::setEntityInScopeAlways(ecs::EntityId eid)
 {
-  net::Object *robj = net::Object::getByEid(eid);
+  net::Object *robj = net::Object::getByEid(mgr, eid);
   return robj != nullptr && setObjectInScopeAlways(*robj) != ecs::ECS_INVALID_ENTITY_ID_VAL;
 }
 
@@ -315,16 +314,19 @@ void Connection::setReplicatingTo()
 }
 
 /* static */
-void Connection::collapseDirtyObjects()
+void Connection::collapseDirtyObjects(ecs::EntityManager &mgr)
 {
   update_dirty_component_filter_mask();
   for (ecs::EntityId dirtyEid : Object::dirtyList)
   {
-    Object *obj = Object::getByEid(dirtyEid);
+    Object *obj = Object::getByEid(mgr, dirtyEid);
     for (ObjectReplica *repl = obj->replicasLinkList; repl; repl = repl->nextRepl)
       repl->conn->pushToDirty(repl);
   }
-  Object::dirtyList.getContainer().clear(/*freeOverflow*/ true);
+  if (Object::dirtyList.capacity() <= Object::DIRTY_LIST_INLINE_SIZE)
+    Object::dirtyList.clear();
+  else
+    Object::dirtyList = decltype(Object::dirtyList)(); // Free mem overflow
 }
 
 int Connection::prepareWritePackets()
@@ -348,7 +350,7 @@ int Connection::prepareWritePackets()
 
     // mark for kill replicas that wasn't added in scope
     if (!(repl->flags & ObjectReplica::InScope))
-      killObjectReplica(replicas[i], net::Object::getByEid(replicas[i]->getEid()));
+      killObjectReplica(replicas[i], net::Object::getByEid(mgr, replicas[i]->getEid()));
 
     // free replicas that already marked for kill but not yet replicated
     if ((repl->flags & (ObjectReplica::ToKill | ObjectReplica::NotYetReplicated)) ==
@@ -468,7 +470,7 @@ void Connection::writeReplayKeyFrame(danet::BitStream &bs, danet::BitStream &tmp
       continue;
 
     ecs::EntityId eid = repl->getEid();
-    if (g_entity_mgr->isLoadingEntity(eid))
+    if (mgr.isLoadingEntity(eid))
       continue;
 
     ++serializeBlockCount;
@@ -542,7 +544,7 @@ void Connection::writeClientReplayKeyFrame(danet::BitStream &bs, danet::BitStrea
   bs.Write(serializeBlockCount);
   for (ecs::EntityId eid : eids)
   {
-    if (g_entity_mgr->isLoadingEntity(eid))
+    if (mgr.isLoadingEntity(eid))
       continue;
     ++serializeBlockCount;
     bs.Write(uint8_t(0));
@@ -665,7 +667,7 @@ bool Connection::writeConstructionPacket(danet::BitStream &bs, danet::BitStream 
       break;
     }
     ecs::EntityId eid = repl->getEid();
-    DAECS_EXT_ASSERTF(!g_entity_mgr->isLoadingEntity(eid), "%d", (ecs::entity_id_t)eid);
+    DAECS_EXT_ASSERTF(!mgr.isLoadingEntity(eid), "%d", (ecs::entity_id_t)eid);
     net::write_server_eid((ecs::entity_id_t)eid, bs);
 
     uint32_t blockSizeBytes = write_block(bs, tmpbs, [this, eid](danet::BitStream &bs2) { serializeConstruction(eid, bs2); });
@@ -674,7 +676,7 @@ bool Connection::writeConstructionPacket(danet::BitStream &bs, danet::BitStream 
     G_UNUSED(blockSizeBytes);
 #if DAECS_EXTENSIVE_CHECKS
     if (blockSizeBytes >= (1 << 14))
-      logwarn("Construction packet of entity %d(%s) is %dK!", (ecs::entity_id_t)eid, g_entity_mgr->getEntityTemplateName(eid),
+      logwarn("Construction packet of entity %d(%s) is %dK!", (ecs::entity_id_t)eid, mgr.getEntityTemplateName(eid),
         blockSizeBytes >> 10);
 #endif
 
@@ -721,14 +723,14 @@ bool Connection::writeReplicationPacket(danet::BitStream &bs, danet::BitStream &
       continue;
     // Don't try to replicate entity until it's loading is done (as it might be consequence of re-creation with resources,
     // and re-creation might add or remove replication components)
-    if (g_entity_mgr->isLoadingEntity(repl->getEid()))
+    if (mgr.isLoadingEntity(repl->getEid()))
       continue;
 
     BitSize_t startPos = bs.GetWriteOffset();
     bs.Write(exist);
     net::write_server_eid(repl->eidStorage, bs);
 
-    const net::Object *robj = Object::getByEid(repl->getEid());
+    const net::Object *robj = Object::getByEid(mgr, repl->getEid());
     uint32_t blockSizeBytes = write_block(bs, tmpbs, [this, robj, &pendingPacketRepl, repl](danet::BitStream &bs2) {
       robj->serializeComps(this, bs2, *repl, pendingPacketRepl.compRevisions);
     });
@@ -794,7 +796,7 @@ void Connection::applyDelayedAttrsUpdate(ecs::entity_id_t server_eid)
   auto it = delayedAttrsUpdate.find(DelayedAttrsUpdateRec{server_eid});
   if (it != delayedAttrsUpdate.end())
   {
-    net::Object *nobj = Object::getByEid(ecs::EntityId(server_eid));
+    net::Object *nobj = Object::getByEid(mgr, ecs::EntityId(server_eid));
     G_FAST_ASSERT(nobj);
     G_FAST_ASSERT(!it->data.empty());
     for (auto &data : it->data)
@@ -821,22 +823,22 @@ bool Connection::readDestructionPacket(const danet::BitStream &bs, const on_obje
     REPL_VER(read_server_eid(serverEid, bs));
     const ecs::EntityId resolvedEid(serverEid);
 #if DAECS_EXTENSIVE_CHECKS
-    if (DAGOR_LIKELY(g_entity_mgr->doesEntityExist(resolvedEid)))
+    if (DAGOR_LIKELY(mgr.doesEntityExist(resolvedEid)))
 #else
-    if (DAGOR_LIKELY(g_entity_mgr->destroyEntity(resolvedEid)))
+    if (DAGOR_LIKELY(mgr.destroyEntity(resolvedEid)))
 #endif
     {
-      if (Object *obj = Object::getByEid(resolvedEid)) // entity destruction is always deferred, so this get after destroy is fine
+      if (Object *obj = Object::getByEid(mgr, resolvedEid)) // entity destruction is always deferred, so this get after destroy is fine
         obj->isMeantToBeDestroyed = true;
       else
 #if DAECS_EXTENSIVE_CHECKS // Note: don't do this check/logerr in release since in theory this might due to tampered server -> client
                            // network packet
       {
-        if (!g_entity_mgr->getEntityFutureTemplateName(resolvedEid))
+        if (!mgr.getEntityFutureTemplateName(resolvedEid))
           logerr("Attempt to destroy unknown networking entity %d", (ecs::entity_id_t)resolvedEid);
         Object::add_to_pending_destroys(resolvedEid);
       }
-      g_entity_mgr->destroyEntity(resolvedEid);
+      mgr.destroyEntity(resolvedEid);
 #else
       {
         Object::add_to_pending_destroys(resolvedEid);
@@ -873,7 +875,7 @@ bool Connection::readConstructionPacket(const danet::BitStream &bs, float compre
     REPL_VER(bs.ReadCompressed(blockSizeBytes));
     G_ASSERT(blockSizeBytes > 0);
     BitSize_t startPos = bs.GetReadOffset();
-    if (DAGOR_LIKELY(g_entity_mgr->getEntityTemplateId(resolvedEid) == ecs::INVALID_TEMPLATE_INDEX))
+    if (DAGOR_LIKELY(mgr.getEntityTemplateId(resolvedEid) == ecs::INVALID_TEMPLATE_INDEX))
     {
       ecs::EntityId eid = deserializeConstruction(bs, serverEid, blockSizeBytes, compression_ratio,
         [this, obj_constructed_cb, serverEid](ecs::EntityId) { obj_constructed_cb(*this, serverEid); });
@@ -881,7 +883,7 @@ bool Connection::readConstructionPacket(const danet::BitStream &bs, float compre
         logerr("Construction of entity of eid %d failed", serverEid);
     }
     else
-      logerr("Attempt to create already existing network entity %d<%s>", serverEid, g_entity_mgr->getEntityTemplateName(resolvedEid));
+      logerr("Attempt to create already existing network entity %d<%s>", serverEid, mgr.getEntityTemplateName(resolvedEid));
     bs.SetReadOffset(startPos + BYTES_TO_BITS(blockSizeBytes)); // rewind to next block
   }
 
@@ -913,7 +915,7 @@ bool Connection::readReplicationPacket(const danet::BitStream &bs)
     G_ASSERT(blockSizeBytes > 0);
     BitSize_t startPos = bs.GetReadOffset();
 
-    Object *nobj = Object::getByEid(ecs::EntityId(serverEid));
+    Object *nobj = Object::getByEid(mgr, ecs::EntityId(serverEid));
     if (nobj && !delayedAttrsUpdate.count(DelayedAttrsUpdateRec{serverEid}))
     {
       REPL_VER(nobj->deserializeComps(bs, this));

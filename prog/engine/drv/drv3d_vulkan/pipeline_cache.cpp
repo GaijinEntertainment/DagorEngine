@@ -5,6 +5,7 @@
 #include "globals.h"
 #include "physical_device_set.h"
 #include "device_context.h"
+#include "vulkan_allocation_callbacks.h"
 
 using namespace drv3d_vulkan;
 
@@ -16,7 +17,14 @@ void PipelineCache::shutdown()
     store(pipelineCacheFile);
   }
 
-  VULKAN_LOG_CALL(Globals::VK::dev.vkDestroyPipelineCache(Globals::VK::dev.get(), handle, NULL));
+  VULKAN_LOG_CALL(Globals::VK::dev.vkDestroyPipelineCache(Globals::VK::dev.get(), handle, VKALLOC(pipeline_cache)));
+  handle = VulkanNullHandle();
+}
+
+void PipelineCache::onDeviceReset()
+{
+  // destroy without saving, because on reset it may be corrupted
+  VULKAN_LOG_CALL(Globals::VK::dev.vkDestroyPipelineCache(Globals::VK::dev.get(), handle, VKALLOC(pipeline_cache)));
   handle = VulkanNullHandle();
 }
 
@@ -40,7 +48,8 @@ void PipelineCache::load(PipelineCacheFile &src)
 
   VulkanPipelineCacheHandle loadedCache;
 
-  if (VULKAN_CHECK_OK(Globals::VK::dev.vkCreatePipelineCache(Globals::VK::dev.get(), &pcci, NULL, ptr(loadedCache))))
+  if (
+    VULKAN_CHECK_OK(Globals::VK::dev.vkCreatePipelineCache(Globals::VK::dev.get(), &pcci, VKALLOC(pipeline_cache), ptr(loadedCache))))
   {
     debug("vulkan: loaded pipeline cache with size %uKb", pcci.initialDataSize >> 10);
 
@@ -54,7 +63,7 @@ void PipelineCache::load(PipelineCacheFile &src)
     pcci.initialDataSize = 0;
     pcci.pInitialData = NULL;
 
-    VULKAN_CHECK_OK(Globals::VK::dev.vkCreatePipelineCache(Globals::VK::dev.get(), &pcci, NULL, ptr(handle)));
+    VULKAN_CHECK_OK(Globals::VK::dev.vkCreatePipelineCache(Globals::VK::dev.get(), &pcci, VKALLOC(pipeline_cache), ptr(handle)));
     debug("vulkan: failed to load pipeline cache, empty created");
   }
 }

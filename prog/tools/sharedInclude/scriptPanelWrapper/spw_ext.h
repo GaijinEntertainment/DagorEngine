@@ -13,29 +13,29 @@ class ScriptExtContainer : public ScriptPanelContainer
 public:
   ScriptExtContainer(CSQPanelWrapper *wrapper, ScriptPanelContainer *parent, const char *name, const char *caption);
 
-  virtual void updateParams();
+  void updateParams() override;
 
-  virtual void onChange(int pid, PropPanel::ContainerPropertyControl &panel);
-  virtual void onClick(int pid, PropPanel::ContainerPropertyControl &panel);
-  virtual void onPostEvent(int pid, PropPanel::ContainerPropertyControl &panel);
+  void onChange(int pid, PropPanel::ContainerPropertyControl &panel) override;
+  void onClick(int pid, PropPanel::ContainerPropertyControl &panel) override;
+  void onPostEvent(int pid, PropPanel::ContainerPropertyControl &panel) override;
 
-  virtual void save(DataBlock &blk);
-  virtual void load(const DataBlock &blk);
+  void save(DataBlock &blk) override;
+  void load(const DataBlock &blk) override;
 
-  virtual void clear();
-  virtual int getFirstPid();
-  virtual bool getParamVisible(SquirrelObject param);
+  void clear() override;
+  int getFirstPid() override;
+  bool getParamVisible(SquirrelObject param) override;
 
-  virtual bool onMessage(int pid, int msg, void *arg);
+  bool onMessage(int pid, int msg, void *arg) override;
 
 protected:
-  virtual void createControl();
-  virtual void getValueFromScript(SquirrelObject param);
-  virtual void setVisible(bool visible);
-  virtual void setEnabled(bool enabled);
+  void createControl() override;
+  void getValueFromScript(SquirrelObject param) override;
+  void setVisible(bool visible) override;
+  void setEnabled(bool enabled) override;
   void saveExt(DataBlock &blk);
 
-  bool scriptExtFactory(PropPanel::ContainerPropertyControl *panel, int &pid, SquirrelObject param);
+  bool scriptExtFactory(PropPanel::ContainerPropertyControl *panel, int &pid, SquirrelObject param) override;
   int searchPidIndex(int pid);
   void setDefValues(SquirrelObject so);
 
@@ -61,8 +61,8 @@ public:
   ScriptExtGroup(CSQPanelWrapper *wrapper, ScriptPanelContainer *parent, const char *name, const char *caption);
 
 protected:
-  virtual void getValueFromScript(SquirrelObject param);
-  virtual void appendExBlock();
-  virtual bool insertExBlock(int pid, int ind = -1);
-  virtual int getItemPid(int pid) { return pid; }
+  void getValueFromScript(SquirrelObject param) override;
+  void appendExBlock() override;
+  bool insertExBlock(int pid, int ind = -1) override;
+  int getItemPid(int pid) override { return pid; }
 };

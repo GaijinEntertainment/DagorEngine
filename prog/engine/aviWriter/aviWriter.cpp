@@ -286,6 +286,8 @@ public:
   AviWriter::ErrorCallback onErrorCb;
   AviAsyncJob() : current(NULL), data(0), aviStream(0), frameBuffer(0), result(true) {}
 
+  const char *getJobName(bool &) const override { return "AviAsyncJob"; }
+
   void doJob()
   {
     int dstStride = POW2_ALIGN(screenWidth * 3, 16);

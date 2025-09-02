@@ -128,6 +128,9 @@ public:
   bool getDrawMajorLines() { return isDrawMajorLines; }
   void setDrawMajorLines(bool draw) { isDrawMajorLines = draw; }
 
+  bool getDrawAxisLines() { return isDrawAxisLines; }
+  void setDrawAxisLines(bool draw) { isDrawAxisLines = draw; }
+
   real getGridHeight() { return gridHeight; }
   void setGridHeight(real new_height) { gridHeight = new_height; }
 
@@ -164,6 +167,7 @@ protected:
   bool isRotateSnap;
   bool isScaleSnap;
   bool isDrawMajorLines;
+  bool isDrawAxisLines;
 
   bool infiniteGridInitialized;
   Ptr<ShaderMaterial> infiniteGridShaderMaterial;
@@ -171,6 +175,8 @@ protected:
   bool isUseInfiniteGrid;
   E3DCOLOR infiniteGridMajorLineColor;
   E3DCOLOR infiniteGridMinorLineColor;
+  E3DCOLOR infiniteGridXAxisColor;
+  E3DCOLOR infiniteGridZAxisColor;
   real infiniteGridMajorLineWidth;
   real infiniteGridMinorLineWidth;
   int infiniteGridMajorSubdivisions;
@@ -188,12 +194,11 @@ public:
   void onGridVisibilityChanged(int viewport_index);
 
 private:
-  virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
+  void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
 
   void fillPanel();
   void updateShowGridDialogControl();
 
   GridObject &mGrid;
   int index = -1;
-  bool autoCenter = true;
 };

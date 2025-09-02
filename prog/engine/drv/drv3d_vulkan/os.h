@@ -29,7 +29,6 @@ VulkanSurfaceKHRHandle init_window_surface(VulkanInstance &instance);
 
 void os_restore_display_mode();
 void os_set_display_mode(int res_x, int res_y);
-eastl::string os_get_additional_ext_requirements(VulkanPhysicalDeviceHandle dev,
-  const eastl::vector<VkExtensionProperties> &extensions);
+eastl::string os_get_additional_ext_requirements(VulkanPhysicalDeviceHandle dev, const dag::Vector<VkExtensionProperties> &extensions);
 
 } // namespace drv3d_vulkan

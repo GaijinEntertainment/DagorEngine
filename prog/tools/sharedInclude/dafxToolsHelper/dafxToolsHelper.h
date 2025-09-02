@@ -2,9 +2,21 @@
 #pragma once
 
 #include <daFx/dafx.h>
+#include <fx/dag_baseFxClasses.h>
 #include <de3_dynRenderService.h>
 #include <drv/3d/dag_renderTarget.h>
 #include <drv/3d/dag_matricesAndPerspective.h>
+#include <render/dag_cur_view.h>
+
+namespace dafx_helper_globals
+{
+extern dafx::ContextId ctx;
+extern dafx::CullingId cull_id;
+extern dafx::CullingId cull_fom_id;
+extern dafx::Stats stats;
+extern float dt_mul;
+extern int particles_resolution_preview;
+} // namespace dafx_helper_globals
 
 extern void dafx_sparksfx_set_context(dafx::ContextId ctx);
 extern void dafx_modfx_set_context(dafx::ContextId ctx);
@@ -31,6 +43,8 @@ inline void set_up_dafx_context(dafx::ContextId &dafx_ctx, dafx::CullingId &dafx
     descs.push_back(dafx::CullingDesc("lowres", dafx::SortingType::BACK_TO_FRONT));
     descs.push_back(dafx::CullingDesc("underwater", dafx::SortingType::BACK_TO_FRONT));
     descs.push_back(dafx::CullingDesc("distortion", dafx::SortingType::BY_SHADER));
+    descs.push_back(dafx::CullingDesc("xray", dafx::SortingType::NONE, 0, 0, true));
+    descs.push_back(dafx::CullingDesc("water_proj", dafx::SortingType::BACK_TO_FRONT));
     dafx_cull = dafx::create_culling_state(dafx_ctx, descs);
     descs.clear();
     descs.push_back(dafx::CullingDesc("fom", dafx::SortingType::NONE));
@@ -45,13 +59,11 @@ inline void set_up_dafx_context(dafx::ContextId &dafx_ctx, dafx::CullingId &dafx
 inline void set_up_dafx_effect(dafx::ContextId dafx_ctx, BaseEffectObject *fx, bool force_recreate, bool enabled, const TMatrix *tm,
   bool is_emitter_tm)
 {
-  if (!fx || !dafx_ctx)
-    return;
-
   TMatrix ident = TMatrix::IDENT;
   dafx::flush_command_queue(dafx_ctx);
   fx->setParam(_MAKE4C('PFXR'), &force_recreate);
-  fx->setParam(_MAKE4C('PFXE'), &enabled);
+  BaseEffectEnabled dafxe = {enabled, length(::grs_cur_view.pos)};
+  fx->setParam(_MAKE4C('PFXE'), &dafxe);
   fx->setParam(HUID_EMITTER_TM, &ident);
 
   if (tm)
@@ -64,23 +76,20 @@ inline void set_up_dafx_effect(dafx::ContextId dafx_ctx, BaseEffectObject *fx, b
   dafx::flush_command_queue(dafx_ctx);
 }
 
-inline void set_dafx_wind_params(dafx::ContextId dafx_ctx, Point2 &wind_dir, float wind_power, float wind_scroll)
+inline void set_dafx_wind_params(dafx::ContextId dafx_ctx, const Point2 &wind_dir, float wind_power, float wind_scroll)
 {
   dafx::set_global_value(dafx_ctx, "wind_dir", &wind_dir, 8);
   dafx::set_global_value(dafx_ctx, "wind_power", &wind_power, 4);
   dafx::set_global_value(dafx_ctx, "wind_scroll", &wind_scroll, 4);
 }
 
-inline void set_dafx_camera_velocity(dafx::ContextId dafx_ctx, Point3 &cam_vel)
+inline void set_dafx_camera_velocity(dafx::ContextId dafx_ctx, const Point3 &cam_vel)
 {
   dafx::set_global_value(dafx_ctx, "camera_velocity", &cam_vel, 12);
 }
 
 inline void act_dafx(dafx::ContextId dafx_ctx, float dt)
 {
-  if (!dafx_ctx)
-    return;
-
   dafx::set_global_value(dafx_ctx, "dt", &dt, 4);
   dafx::start_update(dafx_ctx, dt);
   dafx::finish_update(dafx_ctx);
@@ -88,9 +97,6 @@ inline void act_dafx(dafx::ContextId dafx_ctx, float dt)
 
 inline void before_render_dafx(dafx::ContextId dafx_ctx, dafx::CullingId dafx_cull, dafx::Stats &dafx_stats, TMatrix4 &prevGlobTm)
 {
-  if (!dafx_ctx)
-    return;
-
   TMatrix4 globtm;
   d3d::getglobtm(globtm);
 
@@ -175,7 +181,7 @@ inline void before_render_dafx(dafx::ContextId dafx_ctx, dafx::CullingId dafx_cu
   memset(&dafx_stats, 0, sizeof(dafx::Stats));
 
   dafx::update_culling_state(dafx_ctx, dafx_cull, Frustum(globtm), Point3::xyz(itm.getcol(3)));
-  dafx::before_render(dafx_ctx, {"highres", "lowres", "underwater", "distortion"});
+  dafx::before_render(dafx_ctx, {"highres", "lowres", "underwater", "distortion", "xray", "water_proj"});
 
   prevGlobTm = globtm;
 }

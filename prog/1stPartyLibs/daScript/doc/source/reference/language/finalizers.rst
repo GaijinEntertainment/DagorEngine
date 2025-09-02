@@ -8,18 +8,21 @@ Finalizers are special functions which are called in exactly two cases:
 
 ``delete`` is called explicitly on a data type::
 
-    var f <- [{int 1;2;3;4}]
+    var f <- [1,2,3,4]
     delete f
 
 Lambda based iterator or generator is sequenced out::
 
-    var src <- [{int 1;2;3;4}]
-    var gen <- generator<int&> [[<-src]] () <| $ ()
-        for w in src
+    var src <- [1,2,3,4]
+    var gen <- generator<int&> capture (move(src)) ( $ {
+        for ( w in src ) {
             yield w
+        }
         return false
-    for t in gen
+    })
+    for ( t in gen ) {
         print("t = {t}\n")
+    }
     // finalizer is called on captured version of src
 
 By default finalizers are called recursively on subtypes.
@@ -28,19 +31,19 @@ If memory models allows deallocation, standard finalizers also free the memory::
 
     options persistent_heap = true
 
-    var src <- [{int 1;2;3;4}]
+    var src <- [1,2,3,4]
     delete src                      // memory of src will be freed here
 
 Custom finalizers can be defined for any type by overriding the ``finalize`` function.
 Generic custom finalizers are also allowed::
 
-    struct Foo
+    struct Foo {
         a : int
-
-    def finalize ( var foo : Foo )
+    }
+    def finalize ( var foo : Foo ) {
         print("we kill foo\n")
-
-    var f = [[Foo a = 5]]
+    }
+    var f = Foo(a = 5)
     delete f                    // prints 'we kill foo' here
 
 --------------------------------
@@ -55,16 +58,19 @@ Pointer finalizers expand to calling ``finalize`` on the dereferenced pointer,
 and then calling the native memory finalizer on the result::
 
     var pf = new Foo
-    unsafe
+    unsafe {
         delete pf
+    }
 
 This expands to::
 
-    def finalize ( var __this:Foo?& explicit -const )
-        if __this != null
+    def finalize ( var __this:Foo?& explicit -const ) {
+        if ( __this != null ) {
             _::finalize(deref(__this))
             delete /*native*/ __this
             __this = null
+        }
+    }
 
 Static arrays call ``finalize_dim`` generically, which finalizes all its values::
 
@@ -73,9 +79,11 @@ Static arrays call ``finalize_dim`` generically, which finalizes all its values:
 
 This expands to::
 
-    def builtin`finalize_dim ( var a:Foo aka TT[5] explicit )
-        for aV in a
+    def builtin`finalize_dim ( var a:Foo aka TT[5] explicit ) {
+        for ( aV in a ) {
             _::finalize(aV)
+        }
+    }
 
 Dynamic arrays call ``finalize`` generically, which finalizes all its values::
 
@@ -84,10 +92,12 @@ Dynamic arrays call ``finalize`` generically, which finalizes all its values::
 
 This expands to::
 
-    def builtin`finalize ( var a:array<Foo aka TT> explicit )
-        for aV in a
+    def builtin`finalize ( var a:array<Foo aka TT> explicit ) {
+        for ( aV in a ) {
             _::finalize(aV)
+        }
         __builtin_array_free(a,4,__context__)
+    }
 
 Tables call ``finalize`` generically, which finalizes all its values, but not its keys::
 
@@ -96,27 +106,31 @@ Tables call ``finalize`` generically, which finalizes all its values, but not it
 
 This expands to::
 
-    def builtin`finalize ( var a:table<string aka TK;Foo aka TV> explicit )
-        for aV in values(a)
+    def builtin`finalize ( var a:table<string aka TK;Foo aka TV> explicit ) {
+        for ( aV in values(a) ) {
             _::finalize(aV)
+        }
         __builtin_table_free(a,8,4,__context__)
+    }
 
-Custom finalizers are generated for structures. Fields annotated as [[do_not_delete]] are ignored.
+Custom finalizers are generated for structures. Fields annotated as @do_not_delete are ignored.
 ``memzero`` clears structure memory at the end::
 
-    struct Goo
+    struct Goo {
         a : Foo
-        [[do_not_delete]] b : array<int>
+        @do_not_delete b : array<int>
+    }
 
-    var g <- [[Goo]]
+    var g <- default<Goo>
     delete g
 
 This expands to::
 
-    def finalize ( var __this:Goo explicit )
+    def finalize ( var __this:Goo explicit ) {
         _::finalize(__this.a)
         __::builtin`finalize(__this.b)
         memzero(__this)
+    }
 
 Tuples behave similar to structures. There is no way to ignore individual fields::
 
@@ -125,9 +139,10 @@ Tuples behave similar to structures. There is no way to ignore individual fields
 
 This expands to::
 
-    def finalize ( var __this:tuple<Foo;int> explicit -const )
+    def finalize ( var __this:tuple<Foo;int> explicit -const ) {
         _::finalize(__this._0)
         memzero(__this)
+    }
 
 Variants behave similarly to tuples. Only the currently active variant is finalized::
 
@@ -136,12 +151,14 @@ Variants behave similarly to tuples. Only the currently active variant is finali
 
 This expands to::
 
-    def finalize ( var __this:variant<f:Foo;i:int;ai:array<int>> explicit -const )
-        if __this is f
+    def finalize ( var __this:variant<f:Foo;i:int;ai:array<int>> explicit -const ) {
+        if ( __this is f ) {
             _::finalize(__this.f)
-        else if __this is ai
+        } else if (__this is ai) {
             __::builtin`finalize(__this.ai)
+        }
         memzero(__this)
+    }
 
 Lambdas and generators have their capture structure finalized.
 Lambdas can have custom finalizers defined as well (see :ref:`Lambdas <lambdas_finalizer>`).

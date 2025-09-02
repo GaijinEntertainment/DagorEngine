@@ -133,17 +133,16 @@ static void dumpVariantTable(const shaderbindump::VariantTable &vt, int indent, 
   }
 }
 
-void shaderbindump::dumpVar(const shaderbindump::VarList &vars, int i)
+template <class T>
+static void dumpVarImpl(const shaderbindump::VarList &vars, const T &states, int i)
 {
-  int nameId = vars.getNameId(i);
-  debug_("  %d: %s%s[%d]= ", i, vars.isPublic(i) ? "public " : "", (const char *)shBinDump().varMap[nameId], nameId);
   switch (vars.getType(i))
   {
-    case SHVT_INT: debug_("int(%d)\n", vars.get<int>(i)); break;
-    case SHVT_REAL: debug_("real(%.3f)\n", vars.get<real>(i)); break;
+    case SHVT_INT: debug_("int(%d)\n", states.template get<int>(i)); break;
+    case SHVT_REAL: debug_("real(%.3f)\n", states.template get<real>(i)); break;
     case SHVT_COLOR4:
     {
-      Color4 c = vars.get<Color4>(i);
+      Color4 c = states.template get<Color4>(i);
       debug_("color4(" FMT_P4 ")\n", c.r, c.g, c.b, c.a);
       break;
     }
@@ -152,12 +151,12 @@ void shaderbindump::dumpVar(const shaderbindump::VarList &vars, int i)
       debug_("float4x4()\n");
       break;
     }
-    case SHVT_TEXTURE: debug_("tex(%d)\n", vars.getTex(i).texId); break;
-    case SHVT_BUFFER: debug_("buf(%d)\n", vars.getBuf(i).bufId); break;
-    case SHVT_TLAS: debug_("tlas(%d)\n", vars.getBuf(i).bufId); break;
+    case SHVT_TEXTURE: debug_("tex(%d)\n", states.template get<shaders_internal::Tex>(i).texId); break;
+    case SHVT_BUFFER: debug_("buf(%d)\n", states.template get<shaders_internal::Buf>(i).bufId); break;
+    case SHVT_TLAS: debug_("tlas(%d)\n", states.template get<RaytraceTopAccelerationStructure *>(i)); break;
     case SHVT_INT4:
     {
-      const IPoint4 &i4 = vars.get<IPoint4>(i);
+      const IPoint4 &i4 = states.template get<IPoint4>(i);
       debug_("int4(%d,%d,%d,%d)\n", i4.x, i4.y, i4.z, i4.w);
       break;
     }
@@ -166,10 +165,20 @@ void shaderbindump::dumpVar(const shaderbindump::VarList &vars, int i)
   }
 }
 
-void shaderbindump::dumpVars(const shaderbindump::VarList &vars)
+void shaderbindump::dumpVar(const shaderbindump::VarList &vars, const ShaderVarsState *state, int i)
+{
+  int nameId = vars.getNameId(i);
+  debug_("  %d: %s%s[%d]= ", i, vars.isPublic(i) ? "public " : "", (const char *)shBinDump().varMap[nameId], nameId);
+  if (state)
+    dumpVarImpl(vars, *state, i);
+  else
+    dumpVarImpl(vars, vars, i);
+}
+
+void shaderbindump::dumpVars(const shaderbindump::VarList &vars, const ShaderVarsState *state)
 {
   for (int i = 0; i < vars.size(); i++)
-    dumpVar(vars, i);
+    dumpVar(vars, state, i);
 }
 
 void shaderbindump::dumpShaderInfo(const shaderbindump::ShaderClass &cls, bool dump_variants)
@@ -191,7 +200,7 @@ void shaderbindump::dumpShaderInfo(const shaderbindump::ShaderClass &cls, bool d
         " timestamp(%lld)\n"
         " local vars(%d):",
     cls.nameId, (const char *)cls.name, total_passes, total_unique_shaders, cls.getTimestamp(), cls.localVars.v.size());
-  shaderbindump::dumpVars(cls.localVars);
+  shaderbindump::dumpVars(cls.localVars, nullptr);
 
   debug_("\n static init(%d):\n", cls.initCode.size() / 2);
   for (int i = 0; i < cls.initCode.size(); i += 2)

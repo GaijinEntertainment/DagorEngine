@@ -1,6 +1,7 @@
 require ecs
 require Dacoll
 require math
+options indenting = 2
 
 [generic]
 def traceray_normalized(pos, dir : float3; var t : float&; var out_norm : float3&) : bool

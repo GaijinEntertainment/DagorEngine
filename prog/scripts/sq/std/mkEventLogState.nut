@@ -1,8 +1,8 @@
-let { Watched } = require("%sqstd/frp.nut")
-let { setTimeout, clearTimer } = require("dagor.workcycle")
-let { kwarg } = require("%sqstd/functools.nut")
-let { get_time_msec } = require("dagor.time")
-let math = require("math")
+import "math" as math
+from "dagor.workcycle" import setTimeout, clearTimer
+from "%sqstd/functools.nut" import kwarg
+from "dagor.time" import get_time_msec
+from "%sqstd/frp.nut" import Watched
 
 //when event have parameter ttl it will be automatically removed on time finish
 //isEventsEqual = @(event1, event2) bool - used only to remove events not only by uid.
@@ -12,13 +12,13 @@ function mkEventLogState(persistId, maxActiveEvents = 10, defTtl = 0, isEventsEq
   let savedEvents = persist(persistId, @() { v = [] })
   let curEvents = Watched(savedEvents.v)
   curEvents.subscribe(@(v) savedEvents.v = v)
-  local lastEventUid = curEvents.value?[curEvents.value.len() - 1].uid ?? 0
+  local lastEventUid = curEvents.get()?[curEvents.get().len() - 1].uid ?? 0
 
   let getEqualIndex = @(event) isEventsEqual == null ? null
-    : curEvents.value.findindex(@(e) isEventsEqual(event, e))
+    : curEvents.get().findindex(@(e) isEventsEqual(event, e))
 
   function removeEvent(uidOrEvent) {
-    let idx = type(uidOrEvent) == "integer" ? curEvents.value.findindex(@(e) e.uid == uidOrEvent)
+    let idx = type(uidOrEvent) == "integer" ? curEvents.get().findindex(@(e) e.uid == uidOrEvent)
       : getEqualIndex(uidOrEvent)
     if (idx != null)
       curEvents.mutate(@(list) list.remove(idx))
@@ -43,12 +43,12 @@ function mkEventLogState(persistId, maxActiveEvents = 10, defTtl = 0, isEventsEq
     }
     setTimeout(math.max(0.001 * (removeMsec - get_time_msec()), 0.01), timersCb[uid])
   }
-  curEvents.value.each(startRemoveTimer)
+  curEvents.get().each(startRemoveTimer)
 
   function findFirstRemoveHint() {
     local time = null
     local resIdx = null
-    foreach(idx, evt in curEvents.value) {
+    foreach(idx, evt in curEvents.get()) {
       let { removeMsec = null } = evt
       if (resIdx != null
           && (removeMsec == null || (time != null && time < removeMsec)))
@@ -64,7 +64,7 @@ function mkEventLogState(persistId, maxActiveEvents = 10, defTtl = 0, isEventsEq
     let event = eventExt.__merge({ uid })
 
     let idxToRemove = getEqualIndex(event)
-      ?? (curEvents.value.len() >= maxActiveEvents ? findFirstRemoveHint() : null)
+      ?? (curEvents.get().len() >= maxActiveEvents ? findFirstRemoveHint() : null)
 
     curEvents.mutate(function(list) {
       if (idxToRemove != null)
@@ -75,7 +75,7 @@ function mkEventLogState(persistId, maxActiveEvents = 10, defTtl = 0, isEventsEq
   }
 
   function modifyOrAddEvent(eventExt, isEventToModify) {
-    let idx = curEvents.value.findindex(isEventToModify)
+    let idx = curEvents.get().findindex(isEventToModify)
     if (idx == null) {
       addEvent(eventExt)
       return
@@ -84,10 +84,10 @@ function mkEventLogState(persistId, maxActiveEvents = 10, defTtl = 0, isEventsEq
     curEvents.mutate(function(list) {
       list[idx] = eventExt.__merge({ uid = list[idx].uid })
     })
-    startRemoveTimer(curEvents.value[idx])
+    startRemoveTimer(curEvents.get()[idx])
   }
 
-  let clearEvents = @() curEvents([])
+  let clearEvents = @() curEvents.set([])
 
   foreach(func in [addEvent, modifyOrAddEvent, removeEvent, clearEvents])
     curEvents.whiteListMutatorClosure(func)

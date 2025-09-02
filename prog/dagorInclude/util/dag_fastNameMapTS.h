@@ -113,10 +113,10 @@ public:
   uint32_t nameCountRelaxed() const { return interlocked_relaxed_load(namesCount); }
   uint32_t nameCountAcquire() const { return interlocked_acquire_load(namesCount); }
   uint32_t nameCount() const { return nameCountAcquire(); }
-  const char *getName(int name_id) const
+  const char *getName(int name_id, uint32_t *plen = nullptr) const
   {
     lockRd();
-    const char *s = BaseNameMap::getName(name_id);
+    const char *s = BaseNameMap::getName(name_id, plen);
     unlockRd();
     return s;
   }

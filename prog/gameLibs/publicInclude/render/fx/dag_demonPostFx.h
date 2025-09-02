@@ -8,6 +8,7 @@
 #include <3d/dag_texMgr.h>
 #include <3d/dag_textureIDHolder.h>
 #include <3d/dag_eventQueryHolder.h>
+#include <resourcePool/resourcePool.h>
 #include <math/dag_e3dColor.h>
 #include <math/dag_color.h>
 #include <shaders/dag_shaderCommon.h>
@@ -20,62 +21,13 @@
 #include <shaders/dag_postFxRenderer.h>
 #include <EASTL/unique_ptr.h>
 #include <render/fx/flare.h>
+#include "dag_demonPostFxSettings.h"
 
 
 class DataBlock;
 class Sbuffer;
 class TextureIDPair;
 class ComputeShaderElement;
-
-struct DemonPostFxSettings
-{
-  // Color matrix
-  DemonPostFxSettings()
-  {
-    memset(this, 0, sizeof(DemonPostFxSettings));
-    debugFlags = 0;
-  }
-  uint32_t debugFlags;
-  enum
-  {
-    NO_SCENE = 1 << 0,
-    NO_VFOG = 1 << 1,
-    NO_GLOW = 1 << 2,
-    NO_STARS = 1 << 3
-  };
-  real hueShift;
-  Color3 saturationColor;
-  real saturation;
-  Color3 grayColor;
-  Color3 contrastColor;
-  real contrast;
-  Color3 contrastPivotColor;
-  real contrastPivot;
-  Color3 brightnessColor;
-  real brightness;
-
-  real lum_min, lum_max, lum_avg;
-  real lowBrightScale; // effect of low level threshold. should be as close to 1 as possible. 0.9 - default
-
-  // Glow
-  real glowRadius;
-
-  real hdrDarkThreshold;
-  real hdrGlowPower;
-  real hdrGlowMul;
-
-  // Fog
-  real volfogRange;
-  real volfogMul;
-  Color3 volfogColor;
-  Point3 sunDir; // must be normalized
-  // bool useRawSkyMask;
-
-  real volfogFade;
-  real volfogMaxAngle;
-
-  void setSunDir(const Point3 &dir2sun) { sunDir = dir2sun; }
-};
 
 static inline Point3 dir_from_polar(float azimuth, float zenith)
 {
@@ -112,7 +64,7 @@ public:
   void apply(bool vr_mode, Texture *input_tex, TEXTUREID input_id, Texture *output_tex, TEXTUREID output_id, const TMatrix &view_tm,
     const TMatrix4 &proj_tm, Texture *depth_tex = nullptr, int eye = -1, int target_layer = 0,
     const Point4 &target_uv_transform = Point4(1, 1, 0, 0), const RectInt *output_viewport = nullptr,
-    PreCombineFxProc pre_combine_fx_proc = nullptr);
+    PreCombineFxProc pre_combine_fx_proc = nullptr, TextureIDPair downsampled_color = TextureIDPair());
 
   void prepareSkyMask(const TMatrix &view_tm); // if we want, we can call it before apply
 
@@ -153,10 +105,15 @@ public:
 
   void setSunDir(const Point3 &dir2sun) { current.setSunDir(dir2sun); }
 
-  const UniqueTex &getPrevFrameLowResTex() const { return prevFrameLowResTex; }
+  const ManagedTex &getPrevFrameLowResTex() const
+  {
+    G_ASSERT(prevFrameLowResTex);
+    return *prevFrameLowResTex.get();
+  }
   TextureIDPair getUIBlurTex() const { return TextureIDPair(uiBlurTex.getTex2D(), uiBlurTex.getTexId()); }
 
   void setLenseFlareEnabled(bool enabled);
+  void setFilmGrainEnabled(bool enabled);
 
   void delayedCombineFx(TEXTUREID textureId);
 
@@ -176,7 +133,7 @@ public:
 
 protected:
   bool skyMaskPrepared;
-  void applyLenseFlare(const UniqueTex &src_tex);
+  void applyLenseFlare(BaseTexture *srcTex, TEXTUREID srcId);
 
   void calcGlowGraphics();
   void calcGlowCompute();
@@ -187,9 +144,14 @@ protected:
 
   TMatrix paramColorMatrix;
 
-  UniqueTex lowResLumTexA, lowResLumTexB;
-
-  UniqueTex glowTex, glowTmpTex, tmpTex, uiBlurTex, prevFrameLowResTex;
+  bool usePrevFrameTex;
+  RTargetPool::Ptr lowResDefRTPool;
+  RTargetPool::Ptr lowResSkyRTPool;
+  RTargetPool::Ptr lowResDefGlowRTPool;
+  RTargetPool::Ptr lowResSkyGlowRTPool;
+  RTarget::Ptr lowResLumTexPrepared;
+  RTarget::Ptr prevFrameLowResTex, glowTex;
+  UniqueTex glowTmpTex, uiBlurTex;
   UniqueTex ldrTempTex;
   TEXTUREID externalSkyMaskTexId; // for external sky mask, for deferred shading for example
 
@@ -211,6 +173,8 @@ protected:
 
   bool lenseFlareEnabled;
 
+  bool filmGrainEnabled;
+
   bool useSimpleMode;
   PostFxRenderer downsample4x;
 
@@ -222,6 +186,7 @@ protected:
   void recalcColorMatrix();
   void recalcGlow();
   void downsample(Texture *to, TEXTUREID src, int srcW, int srcH, const Point4 &uv_transform = Point4(1, 1, 0, 0));
+  void finishSkyMask();
 
   Color4 glowWeights0X, glowWeights1X;
 

@@ -465,11 +465,13 @@ void PostFx::apply(Texture *source, TEXTUREID sourceId, Texture *target, TEXTURE
   if (genPostFx)
   {
     static int varId = get_shader_variable_id("frame_tex", true);
+    static int samplerVarId = get_shader_variable_id("frame_tex_samplerstate", true);
     Driver3dRenderTarget rt;
     d3d::get_render_target(rt);
 
     d3d::set_render_target(target, 0);
     ShaderGlobal::set_texture(varId, sourceId);
+    ShaderGlobal::set_sampler(samplerVarId, d3d::request_sampler({}));
     genPostFx->render();
 
     d3d::set_render_target(rt);
@@ -500,6 +502,5 @@ void PostFx::createTempTex()
 
   tempTex = d3d::create_tex(NULL, targetW, targetH, ::hdr_render_format | TEXCF_RTARGET, 1);
   d3d_err(tempTex);
-  tempTex->texaddr(TEXADDR_CLAMP);
   tempTexId = register_managed_tex("postfx@temp", tempTex);
 }

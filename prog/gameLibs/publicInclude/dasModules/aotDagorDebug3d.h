@@ -62,9 +62,9 @@ inline void draw_debug_tube_buffered(const Point3 &p0, const Point3 &p1, float r
   return ::draw_debug_tube_buffered(p0, p1, radius, col, segs, circle_density, (size_t)frames);
 }
 
-inline void draw_debug_cone_buffered(const Point3 &p0, const Point3 &p1, float radius, E3DCOLOR col, int segs, int frames)
+inline void draw_debug_cone_buffered(const Point3 &p0, const Point3 &p1, float angle, E3DCOLOR col, int segs, int frames)
 {
-  return ::draw_debug_cone_buffered(p0, p1, radius, col, segs, (size_t)frames);
+  return ::draw_debug_cone_buffered(p0, p1, angle, col, segs, (size_t)frames);
 }
 
 inline void draw_debug_capsule_buffered(const Point3 &p0, const Point3 &p1, real rad, E3DCOLOR color, int segs, int frames)

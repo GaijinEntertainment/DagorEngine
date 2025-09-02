@@ -10,7 +10,7 @@ projectors_manager{
   projectors_manager{
     _tags:t="render"
   }
-  "projectors_node:dabfg::NodeHandle"{
+  "projectors_node:dafg::NodeHandle"{
     _tags:t="render"
   }
 }

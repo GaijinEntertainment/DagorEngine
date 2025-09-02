@@ -12,6 +12,7 @@
 #include <util/dag_globDef.h>
 #include <vecmath/dag_vecMathDecl.h>
 #include <EASTL/initializer_list.h>
+#include <EASTL/functional.h>
 #include <drv/3d/dag_hangHandler.h>
 
 // forward declarations for external classes
@@ -109,9 +110,10 @@ bool reset_device();
 // Rendering
 
 /// flip video pages or copy to screen
+/// frame_id is used to track the frame number for low latency sleep calculation
 /// app_active==false is hint to the driver
 /// returns false on error
-bool update_screen(bool app_active = true);
+bool update_screen(uint32_t frame_id = 0, bool app_active = true);
 
 /**
  * @brief If the update_screen(bool) works asynchronously then under certain conditions it will block the execution
@@ -121,10 +123,27 @@ bool update_screen(bool app_active = true);
 void wait_for_async_present(bool force = false);
 
 /**
- * @brief It blocks the execution until the GPU finishes on going render task for delaying the input sampling and using the most recent
- * user inputs for rendering the next frame.
+ * @brief Marks the start of a new frame. Additionally it blocks the execution until the GPU finishes on going render task for delaying
+ * the input sampling and using the most recent user inputs for rendering the next frame.
+ * @param frame_id The ID of the frame to be started. It is expected to be a monotonically increasing value.
+ * @param allow_wait If true, the function will block the execution until the GPU finishes the ongoing render task.
+ * If false, the function will not block the execution and will return immediately.
  */
-void gpu_latency_wait();
+void begin_frame(uint32_t frame_id, bool allow_wait);
+
+/// marks the start of simulation for the frame
+/// This is used to track the time spent in simulation for low latency sleep calculation
+void mark_simulation_start(uint32_t frame_id);
+
+/// marks the end of simulation for the frame
+void mark_simulation_end(uint32_t frame_id);
+
+/// marks the start of render submission for the frame
+/// This is used to track the time spent in render submission for low latency sleep calculation
+void mark_render_start(uint32_t frame_id);
+
+/// marks the end of render submission for the frame
+void mark_render_end(uint32_t frame_id);
 
 GPUFENCEHANDLE insert_fence(GpuPipeline gpu_pipeline);
 void insert_wait_on_fence(GPUFENCEHANDLE &fence, GpuPipeline gpu_pipeline);
@@ -177,8 +196,9 @@ bool enable_vsync(bool enable);
 
 #include "rayTrace/rayTracedrv3d.inl.h"
 
-// See ResourceBarrierDesc and https://info.gaijin.lan/display/DE4/Resource+and+Execution+Barriers
-void resource_barrier(ResourceBarrierDesc desc, GpuPipeline gpu_pipeline = GpuPipeline::GRAPHICS);
+// See ResourceBarrierDesc and
+// https://dagor.rtd.gaijin.lan/en/latest/api-references/dagor-render/index/resource_and_execution_barriers.html
+void resource_barrier(const ResourceBarrierDesc &desc, GpuPipeline gpu_pipeline = GpuPipeline::GRAPHICS);
 
 #endif
 
@@ -192,14 +212,10 @@ inline void resummarize_htile(BaseTexture *) {}
 void set_esram_layout(const wchar_t *);
 void unset_esram_layout();
 void reset_esram_layout();
-void prefetch_movable_textures();
-void writeback_movable_textures();
 #else
 inline void set_esram_layout(const wchar_t *) {}
 inline void unset_esram_layout() {}
 inline void reset_esram_layout() {}
-inline void prefetch_movable_textures() {}
-inline void writeback_movable_textures() {}
 #endif
 
 #if _TARGET_C1 || _TARGET_XBOX
@@ -214,7 +230,7 @@ extern void
 #if _MSC_VER >= 1300
   __declspec(noinline)
 #endif
-    d3derr_in_device_reset(const char *msg);
+  d3derr_in_device_reset(const char *msg);
 extern bool dagor_d3d_force_driver_reset;
 
 #define d3derr(c, m)                                                   \

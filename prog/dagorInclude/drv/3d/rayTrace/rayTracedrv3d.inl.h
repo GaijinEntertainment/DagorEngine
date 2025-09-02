@@ -2,12 +2,17 @@
 
 // raytrace interface ->
 #if D3D_HAS_RAY_TRACING
+// deprecated use raytrace::create_acceleration_structure instead
 RaytraceBottomAccelerationStructure *create_raytrace_bottom_acceleration_structure(RaytraceGeometryDescription *desc, uint32_t count,
   RaytraceBuildFlags flags, uint32_t &build_scratch_size_in_bytes, uint32_t *update_scratch_size_in_bytes);
+// deprecated use raytrace::create_acceleration_structure instead
 RaytraceBottomAccelerationStructure *create_raytrace_bottom_acceleration_structure(uint32_t size);
+// deprecated use raytrace::destroy_acceleration_structure instead
 void delete_raytrace_bottom_acceleration_structure(RaytraceBottomAccelerationStructure *as);
+// deprecated use raytrace::create_acceleration_structure instead
 RaytraceTopAccelerationStructure *create_raytrace_top_acceleration_structure(uint32_t elements, RaytraceBuildFlags flags,
   uint32_t &build_scratch_size_in_bytes, uint32_t *update_scratch_size_in_bytes);
+// deprecated use raytrace::destroy_acceleration_structure instead
 void delete_raytrace_top_acceleration_structure(RaytraceTopAccelerationStructure *as);
 void set_top_acceleration_structure(ShaderStage stage, uint32_t index, RaytraceTopAccelerationStructure *as);
 void build_bottom_acceleration_structure(RaytraceBottomAccelerationStructure *as,
@@ -25,6 +30,16 @@ void copy_raytrace_acceleration_structure(RaytraceAnyAccelerationStructure dst, 
 namespace raytrace
 {
 bool check_vertex_format_support_for_acceleration_structure_build(uint32_t format);
+::raytrace::AccelerationStructurePool create_acceleration_structure_pool(const ::raytrace::AccelerationStructurePoolCreateInfo &info);
+void destroy_acceleration_structure_pool(::raytrace::AccelerationStructurePool pool);
+RaytraceAccelerationStructureGpuHandle get_pool_base_address(::raytrace::AccelerationStructurePool pool);
+::raytrace::AccelerationStructureSizes calculate_acceleration_structure_sizes(
+  const ::raytrace::AccelerationStructureSizeCalculcationInfo &info);
+::raytrace::AnyAccelerationStructure create_acceleration_structure(::raytrace::AccelerationStructurePool pool,
+  const ::raytrace::AccelerationStructurePlacementInfo &placement_info);
+void destroy_acceleration_structure(::raytrace::AccelerationStructurePool pool, ::raytrace::AnyAccelerationStructure structure);
+void build_acceleration_structure(::raytrace::AccelerationStructureBuildParameters build_params,
+  ::raytrace::AccelerationStructureBuildMode build_mode = ::raytrace::AccelerationStructureBuildMode::Synchronous);
 ::raytrace::Pipeline create_pipeline(const ::raytrace::PipelineCreateInfo &pci);
 ::raytrace::Pipeline expand_pipeline(const ::raytrace::Pipeline &pipeline, const ::raytrace::PipelineExpandInfo &pei);
 void destroy_pipeline(::raytrace::Pipeline &p);

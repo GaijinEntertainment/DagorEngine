@@ -11,11 +11,11 @@ from "%darg/ui_imports.nut" import *
 
 let size = Watched("")
 let elem = @() {
-  onAttach = function(elem){
-    size.set($"x:{elem.getScreenPosX()}, y:{elem.getScreenPosY()}")
+  onAttach = function(el){
+    size.set($"x:{el.getScreenPosX()}, y:{el.getScreenPosY()}")
   }
   onDetach = @() size.set(null)
-  size = [50,50]
+  size = 50
   rendObj = ROBJ_SOLID
   color = Color(100,100,100)
   children = @() {watch = size, rendObj = ROBJ_TEXT text=size.get()}
@@ -27,10 +27,10 @@ return {
   color = Color(10,10,100)
   flow = FLOW_HORIZONTAL
   children = [
-    {size = [sh(20), 0]}
+    {size = static [sh(20), 0]}
     {
       flow = FLOW_VERTICAL
-      children = array(10, {size = [hdpx(100), hdpx(10)]}).append(elem)
+      children = array(10, {size = static [hdpx(100), hdpx(10)]}).append(elem)
     }
   ]
 }

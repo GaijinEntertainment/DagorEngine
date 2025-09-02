@@ -212,19 +212,19 @@ String dumpCmdParam(VulkanImageViewHandle value, CmdDumpContext) { return String
 String dumpCmdParam(RenderPassResource *value, CmdDumpContext ctx)
 {
   ctx.addRef(FaultReportDump::GlobalTag::TAG_OBJECT, (uint64_t)value);
-  return String(32, "0x%p{0x" PTR_LIKE_HEX_FMT "}", value, value ? value->getHandle().value : 0);
+  return String(32, "0x%p", value);
 }
 
 String dumpCmdParam(Buffer *value, CmdDumpContext ctx)
 {
   ctx.addRef(FaultReportDump::GlobalTag::TAG_OBJECT, (uint64_t)value);
-  return String(32, "0x%p{0x" PTR_LIKE_HEX_FMT "}", value, value ? value->getHandle().value : 0);
+  return String(32, "0x%p", value);
 }
 
 String dumpCmdParam(Image *value, CmdDumpContext ctx)
 {
   ctx.addRef(FaultReportDump::GlobalTag::TAG_OBJECT, (uint64_t)value);
-  return String(32, "0x%p{0x" PTR_LIKE_HEX_FMT "}", value, value ? value->getHandle().value : 0);
+  return String(32, "0x%p", value);
 }
 
 String dumpCmdParam(InputLayout *value, CmdDumpContext) { return String(32, "0x%p", value); }
@@ -235,7 +235,7 @@ String dumpCmdParam(GraphicsProgram *value, CmdDumpContext) { return String(32, 
 
 String dumpCmdParam(ThreadedFence *value, CmdDumpContext) { return String(32, "0x%p", value); }
 
-#if D3D_HAS_RAY_TRACING
+#if VULKAN_HAS_RAYTRACING
 
 String dumpCmdParam(RaytraceAccelerationStructure *value, CmdDumpContext ctx)
 {
@@ -332,6 +332,18 @@ String dumpCmdParam(const FSRUpscalingArgs &args, CmdDumpContext)
     args.transparencyAndCompositionTexture, args.outputTexture);
 }
 
+String dumpCmdParam(const nv::DlssParams<Image> &args, CmdDumpContext)
+{
+  return String(0,
+    "nv::DlssParams\n"
+    ">>colorTexture: 0x%p\n"
+    ">>depthTexture: 0x%p\n"
+    ">>motionVectors: 0x%p\n"
+    ">>exposureTexture: 0x%p\n"
+    ">>outputTexture: 0x%p\n",
+    args.inColor, args.inDepth, args.inMotionVectors, args.inExposure, args.outColor);
+}
+
 String dumpCmdParam(const VkBufferImageCopy &val, CmdDumpContext)
 {
   return String(128,
@@ -373,7 +385,7 @@ String dumpCmdParam(const TRegister &tReg, CmdDumpContext ctx)
     case TRegister::TYPE_BUF:
       ctx.addRef(FaultReportDump::GlobalTag::TAG_OBJECT, (uint64_t)tReg.buf.buffer);
       return String(64, "buf %p\n", tReg.buf.buffer);
-#if D3D_HAS_RAY_TRACING
+#if VULKAN_HAS_RAYTRACING
     case TRegister::TYPE_AS:
       ctx.addRef(FaultReportDump::GlobalTag::TAG_OBJECT, (uint64_t)tReg.rtas);
       return String(64, "as %p", tReg.rtas);
@@ -384,17 +396,8 @@ String dumpCmdParam(const TRegister &tReg, CmdDumpContext ctx)
 
 String dumpCmdParam(const SRegister &sReg, CmdDumpContext ctx)
 {
-  if (sReg.type == SRegister::TYPE_NULL)
-    return String(32, "spl empty");
-  else if (sReg.type == SRegister::TYPE_RES)
-  {
-    ctx.addRef(FaultReportDump::GlobalTag::TAG_OBJECT, (uint64_t)sReg.resPtr);
-    return String(32, "spl res %p", sReg.resPtr);
-  }
-  else if (sReg.type == SRegister::TYPE_STATE)
-    return String(32, "spl state %016llX", sReg.state);
-  else
-    return String(32, "spl unknown type %u", sReg.type);
+  ctx.addRef(FaultReportDump::GlobalTag::TAG_OBJECT, (uint64_t)sReg.resPtr);
+  return String(32, "spl res %p", sReg.resPtr);
 }
 
 String dumpCmdParam(const RenderPassArea &area, CmdDumpContext)

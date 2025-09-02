@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "componentFiltersES.cpp.inl"
 ECS_DEF_PULL_VAR(componentFilters);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc mark_all_dirty_ecs_query_comps[] =
 {

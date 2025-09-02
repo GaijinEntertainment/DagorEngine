@@ -4,6 +4,8 @@
 //
 #pragma once
 
+#include <shaders/dag_bindumpReloadListener.h>
+
 namespace ShaderGlobal
 {
 enum
@@ -93,6 +95,22 @@ protected:
   int prevFrameBlockId;
   int prevSceneBlockId;
   int prevObjectBlockId;
+};
+
+class ShaderBlockIdHolder : public IShaderBindumpReloadListener
+{
+  int id = -1;
+  const char *name;
+  int layer;
+
+public:
+  explicit ShaderBlockIdHolder(const char *name, int layer = -1) : name{name}, layer{layer} { resolve(); }
+
+  int get() const { return id; }
+  operator int() const { return id; }
+
+protected:
+  void resolve() override;
 };
 
 #define SCOPE_RESET_SHADER_BLOCKS ScopeResetShaderBlocks scopeResetShaderBlocks##__LINE__

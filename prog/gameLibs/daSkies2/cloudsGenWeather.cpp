@@ -14,7 +14,6 @@ void GenWeather::init()
 {
   clouds_weather_texture.close();
   clouds_weather_texture = dag::create_tex(NULL, size, size, TEXCF_RTARGET | CLOUDS_ESRAM_ONLY, 1, "clouds_weather_texture");
-  clouds_weather_texture->disableSampler();
   ShaderGlobal::set_sampler(::get_shader_variable_id("clouds_weather_texture_samplerstate"), d3d::request_sampler({}));
   gen_weather.init("gen_weather");
   invalidate();
@@ -48,6 +47,7 @@ bool GenWeather::setExternalWeatherTexture(TEXTUREID tid)
   if (externalWeatherTexture != tid)
   {
     externalWeatherTexture = tid;
+    invalidate();
     ShaderGlobal::set_texture(clouds_weather_texture.getVarId(), tid == BAD_TEXTUREID ? clouds_weather_texture.getTexId() : tid);
     return true;
   }

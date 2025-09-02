@@ -216,6 +216,7 @@ void SelectionNodesProcessing::fillInfoTree(PropPanel::ContainerPropertyControl 
         case COLLISION_NODE_TYPE_SPHERE: iconName = "contour_sphere"; break;
         case COLLISION_NODE_TYPE_CAPSULE: iconName = "contour_capsule"; break;
         case COLLISION_NODE_TYPE_CONVEX: iconName = "convex_hull"; break;
+        case NUM_COLLISION_NODE_TYPES: break; // to prevent the unhandled switch case error
       }
       TLeafHandle leaf = tree->createTreeLeaf(0, nodeName, iconName);
       tree->setCheckboxValue(leaf, true);
@@ -637,10 +638,10 @@ void SelectionNodesProcessing::findSelectedNodeSettings(const String &name)
 
 static void remove_ch_postfix(String &node_name)
 {
-  const int lenWitoutPostfix = strlen(node_name) - 5;
-  if (lenWitoutPostfix > 0 && !strncmp(node_name + lenWitoutPostfix, "_ch", 3))
+  const int lenWithoutPostfix = strlen(node_name) - 5;
+  if (lenWithoutPostfix > 0 && !strncmp(node_name + lenWithoutPostfix, "_ch", 3))
   {
-    node_name.setStr(node_name, lenWitoutPostfix);
+    node_name.setStr(node_name, lenWithoutPostfix);
   }
 }
 

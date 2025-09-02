@@ -23,22 +23,22 @@ For instance, if you choose your shader in Asset Viewer material editor, these s
 
 Usage example:
 
-.. code-block:: c
+.. code-block:: text
 
-  shader materials_example
-  {
-    texture diffuse = material.texture.diffuse;
-    texture normal = material.texture[1];
-    // that's it, material texture channels are now defined
-    // and can be seen in asset viewer
-
-    (ps)
+    shader materials_example
     {
-      diffuse_tex@static = diffuse;
-      normal_tex@static = normal;
+      texture diffuse = material.texture.diffuse;
+      texture normal = material.texture[1];
+      // that's it, material texture channels are now defined
+      // and can be seen in asset viewer
+
+      (ps)
+      {
+        diffuse_tex@static = diffuse;
+        normal_tex@static = normal;
+      }
+      // now these textures are accessible in hlsl{} blocks
     }
-    // now these textures are accessible in hlsl{} blocks
-  }
 
 .. note::
   ``material.texture.diffuse`` is equivalent to ``material.texture[0]``
@@ -55,16 +55,16 @@ It is good practice to initialize them with some meaningful default value.
 
 Similar to textures, these parameters will be saved to the shader bindump and will be available for editing in Asset Viewer once you recompile the shader.
 
-.. code-block:: c
+.. code-block:: text
 
-  static float some_parameter = 1.5;
-  dynamic float4 another_parameter = (1, 2, 3, 4);
+    static float some_parameter = 1.5;
+    dynamic float4 another_parameter = (1, 2, 3, 4);
 
-  (ps)
-  {
-    some_parameter@f1 = some_parameter;
-    another_parameter@f4 = another_parameter;
-  }
+    (ps)
+    {
+      some_parameter@f1 = some_parameter;
+      another_parameter@f4 = another_parameter;
+    }
 
 .. warning::
   Do not use ``dynamic`` parameters without the need as it introduces more overhead. See :ref:`local-variables` for more info.
@@ -79,12 +79,12 @@ present in **every** material by default and can be set in Asset Viewer.
 These parameters act as booleans in DSHL:
 you can do conditional statements :ref:`conditionals` on them (which will result in creation of shader variants).
 
-.. code-block:: c
+.. code-block:: text
 
-  if (two_sided)
-  {
-    cull_mode = none;
-  }
+    if (two_sided)
+    {
+      cull_mode = none;
+    }
 
 ``two_sided`` is a hint that each triangle of this material should be rendered from both sides,
 so culling should be disabled for this shader (which is done in the example).
@@ -99,13 +99,13 @@ render_stage directive
 
 Render stage can be specified for a shader using ``render_stage <stage_name>``.
 
-.. code-block:: c
+.. code-block:: text
 
-  shader materials_example
-  {
-    render_stage opaque;
-    // ...
-  }
+    shader materials_example
+    {
+      render_stage opaque;
+      // ...
+    }
 
 It is used to distinguish between different materials in the ``ShaderMesh`` class
 (which can contain many materials and meshes), based on the render stage.
@@ -129,15 +129,15 @@ There is also a ``render_trans`` legacy alias for ``render_stage trans``.
 It is possible to use ``static int`` material parameter for a color mask :ref:`color-write-mask`.
 Notice that you are specifiyng the mask for **all** render targets at once.
 
-.. code-block:: c
+.. code-block:: text
 
-  static int writemask = 1904; // = (0b0111 << 4) | (0b0111 << 8)
-  // where 0b0111 is a bitmask for RGB
-  color_write = static writemask;
+    static int writemask = 1904; // = (0b0111 << 4) | (0b0111 << 8)
+    // where 0b0111 is a bitmask for RGB
+    color_write = static writemask;
 
-  // writemask of 1904 is equivalent to
-  // color_write[0] = rgb;
-  // color_write[1] = rgb;
+    // writemask of 1904 is equivalent to
+    // color_write[0] = rgb;
+    // color_write[1] = rgb;
 
 This example sets the color write mask of render targets 1 and 2 to ``rgb`` (if you are using the default value of ``writemask`` material parameter).
 Other render targets will have a mask of ``0b0000``, meaning nothing will be drawn to them.

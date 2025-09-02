@@ -43,6 +43,7 @@ struct Driver3dRenderTarget;
 struct mat44f;
 struct ScissorRect;
 struct Viewport;
+struct StreamOutputBufferSetup;
 struct TexPixel32;
 struct RenderPassDesc;
 struct RenderPassArea;
@@ -58,6 +59,7 @@ struct TextureTilingInfo;
 
 enum class DepthAccess;
 enum class Drv3dCommand;
+enum class D3DResourceType : uint8_t;
 enum class ResourceActivationAction : unsigned;
 using ResourceHeapCreateFlags = uint32_t;
 
@@ -88,7 +90,7 @@ struct D3dInterfaceTable
   bool (*should_use_compute_for_image_processing)(std::initializer_list<unsigned> formats);
 
 
-  unsigned (*get_texformat_usage)(int cflg, int restype);
+  unsigned (*get_texformat_usage)(int cflg, D3DResourceType type);
   bool (*check_texformat)(int cflg);
   int (*get_max_sample_count)(int cflg);
   bool (*issame_texformat)(int cflg1, int cflg2);
@@ -109,7 +111,7 @@ struct D3dInterfaceTable
   BaseTexture *(*alias_array_tex_0)(BaseTexture *baseTexture, int w, int h, int d, int flg, int levels, const char *stat_name);
   BaseTexture *(*alias_cube_array_tex_0)(BaseTexture *baseTexture, int side, int d, int flg, int levels, const char *stat_name);
 
-  bool (*stretch_rect_0)(BaseTexture *src, BaseTexture *dst, RectInt *rsrc, RectInt *rdst);
+  bool (*stretch_rect_0)(BaseTexture *src, BaseTexture *dst, const RectInt *rsrc, const RectInt *rdst);
   bool (*copy_from_current_render_target)(BaseTexture *to_tex);
 
   void (*get_texture_statistics)(uint32_t *num_textures, uint64_t *total_mem, String *out_dump);
@@ -149,26 +151,23 @@ struct D3dInterfaceTable
   int (*set_cs_constbuffer_size)(int required_size);
   bool (*set_const_buffer)(unsigned stage, unsigned slot, Sbuffer *buffer, uint32_t consts_offset, uint32_t consts_size);
 
-  uint32_t (*register_bindless_sampler_0)(BaseTexture *texture);
-  uint32_t (*register_bindless_sampler_1)(d3d::SamplerHandle sampler);
+  uint32_t (*register_bindless_sampler)(d3d::SamplerHandle sampler);
 
-  inline uint32_t register_bindless_sampler(BaseTexture *texture) { return register_bindless_sampler_0(texture); }
-  inline uint32_t register_bindless_sampler(d3d::SamplerHandle sampler) { return register_bindless_sampler_1(sampler); }
+  uint32_t (*allocate_bindless_resource_range)(D3DResourceType type, uint32_t count);
+  uint32_t (*resize_bindless_resource_range)(D3DResourceType type, uint32_t index, uint32_t current_count, uint32_t new_count);
+  void (*free_bindless_resource_range)(D3DResourceType type, uint32_t index, uint32_t count);
+  bool (*update_bindless_resource)(D3DResourceType type, uint32_t index, D3dResource *res);
+  void (*update_bindless_resources_to_null)(D3DResourceType type, uint32_t index, uint32_t count);
 
-  uint32_t (*allocate_bindless_resource_range)(uint32_t resource_type, uint32_t count);
-  uint32_t (*resize_bindless_resource_range)(uint32_t resource_type, uint32_t index, uint32_t current_count, uint32_t new_count);
-  void (*free_bindless_resource_range)(uint32_t resource_type, uint32_t index, uint32_t count);
-  void (*update_bindless_resource)(uint32_t index, D3dResource *res);
-  void (*update_bindless_resources_to_null)(uint32_t resource_type, uint32_t index, uint32_t count);
-
-  bool (*set_tex)(unsigned shader_stage, unsigned slot, BaseTexture *tex, bool use_sampler);
+  bool (*set_tex)(unsigned shader_stage, unsigned slot, BaseTexture *tex);
   bool (*set_rwtex)(unsigned shader_stage, unsigned slot, BaseTexture *tex, uint32_t, uint32_t, bool);
   bool (*clear_rwtexi)(BaseTexture *tex, const unsigned val[4], uint32_t, uint32_t);
   bool (*clear_rwtexf)(BaseTexture *tex, const float val[4], uint32_t, uint32_t);
-  bool (*clear_rwbufi)(Sbuffer *tex, const unsigned val[4]);
-  bool (*clear_rwbuff)(Sbuffer *tex, const float val[4]);
+  bool (*zero_rwbufi)(Sbuffer *buffer);
 
   bool (*clear_rt)(const RenderTarget &rt, const ResourceClearValue &clear_val);
+
+  bool (*discard_tex)(BaseTexture *tex);
 
   bool (*set_buffer)(unsigned shader_stage, unsigned slot, Sbuffer *buffer);
   bool (*set_rwbuffer)(unsigned shader_stage, unsigned slot, Sbuffer *buffer);
@@ -189,6 +188,7 @@ struct D3dInterfaceTable
   void (*set_variable_rate_shading)(unsigned rate_x, unsigned rate_y, VariableRateShadingCombiner vertex_combiner,
     VariableRateShadingCombiner pixel_combiner);
   void (*set_variable_rate_shading_texture)(BaseTexture *rate_texture);
+  void (*set_stream_output_buffer)(int slot, const StreamOutputBufferSetup &buffer);
 
   bool (*settm_0)(int which, const Matrix44 *tm);
   bool (*settm_1)(int which, const TMatrix &tm);
@@ -221,9 +221,13 @@ struct D3dInterfaceTable
   bool (*getview)(int &x, int &y, int &w, int &h, float &minz, float &maxz);
   bool (*clearview)(int what, E3DCOLOR, float z, uint32_t stencil);
 
-  bool (*update_screen)(bool app_active);
+  bool (*update_screen)(uint32_t frame_id, bool app_active);
   void (*wait_for_async_present)(bool force);
-  void (*gpu_latency_wait)();
+  void (*begin_frame)(uint32_t frame_id, bool allow_wait);
+  void (*mark_simulation_start)(uint32_t frame_id);
+  void (*mark_simulation_end)(uint32_t frame_id);
+  void (*mark_render_start)(uint32_t frame_id);
+  void (*mark_render_end)(uint32_t frame_id);
 
   bool (*setvsrc_ex)(int stream, Sbuffer *vb, int ofs, int stride_bytes);
   bool (*setind)(Sbuffer *ib);
@@ -299,9 +303,13 @@ struct D3dInterfaceTable
 
   void (*set_present_wnd)(void *hwnd);
 
+  bool (*can_render_to_window)();
+  BaseTexture *(*get_swapchain_for_window)(void *hwnd);
+  void (*present_to_window)(void *hwnd);
+
   bool (*set_capture_full_frame_buffer)(bool ison);
-  unsigned (*get_texture_format)(BaseTexture *tex);
-  const char *(*get_texture_format_str)(BaseTexture *tex);
+  unsigned (*get_texture_format)(const BaseTexture *tex);
+  const char *(*get_texture_format_str)(const BaseTexture *tex);
   void (*get_video_modes_list)(Tab<String> &list);
   PROGRAM (*get_debug_program)();
   void (*beginEvent)(const char *s);
@@ -312,7 +320,7 @@ struct D3dInterfaceTable
 
 #include "rayTrace/rayTrace3di.inl.h"
 
-  void (*resource_barrier)(ResourceBarrierDesc desc, GpuPipeline gpu_pipeline /* = GpuPipeline::GRAPHICS*/);
+  void (*resource_barrier)(const ResourceBarrierDesc &desc, GpuPipeline gpu_pipeline /* = GpuPipeline::GRAPHICS*/);
 
   d3d::RenderPass *(*create_render_pass)(const RenderPassDesc &rp_desc);
   void (*delete_render_pass)(d3d::RenderPass *rp);
@@ -336,8 +344,7 @@ struct D3dInterfaceTable
 
   TextureTilingInfo (*get_texture_tiling_info)(BaseTexture *tex, size_t subresource);
 
-  void (*activate_buffer)(Sbuffer *buf, ResourceActivationAction action, const ResourceClearValue &value,
-    GpuPipeline gpu_pipeline /*= GpuPipeline::GRAPHICS*/);
+  void (*activate_buffer)(Sbuffer *buf, ResourceActivationAction action, GpuPipeline gpu_pipeline /*= GpuPipeline::GRAPHICS*/);
   void (*activate_texture)(BaseTexture *tex, ResourceActivationAction action, const ResourceClearValue &value,
     GpuPipeline gpu_pipeline /*= GpuPipeline::GRAPHICS*/);
   void (*deactivate_buffer)(Sbuffer *buf, GpuPipeline gpu_pipeline /*= GpuPipeline::GRAPHICS*/);
@@ -364,7 +371,7 @@ struct D3dInterfaceTable
   {
     return create_tex_0(img, w, h, flg, levels, stat_name);
   }
-  bool stretch_rect(BaseTexture *src, BaseTexture *dst, RectInt *rsrc = NULL, RectInt *rdst = NULL)
+  bool stretch_rect(BaseTexture *src, BaseTexture *dst, const RectInt *rsrc = NULL, const RectInt *rdst = NULL)
   {
     return stretch_rect_0(src, dst, rsrc, rdst);
   }

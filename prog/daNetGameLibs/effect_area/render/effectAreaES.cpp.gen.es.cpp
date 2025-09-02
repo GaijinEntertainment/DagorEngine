@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "effectAreaES.cpp.inl"
 ECS_DEF_PULL_VAR(effectArea);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc update_effect_area_on_pause_es_comps[] =
 {

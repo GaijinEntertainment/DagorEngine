@@ -1,0 +1,24 @@
+local Symbols =
+  _Unwind_RaiseException
+  _Unwind_ForcedUnwind
+  _Unwind_Resume
+  _Unwind_DeleteException
+  _Unwind_GetGR
+  _Unwind_SetGR
+  _Unwind_GetIP
+  _Unwind_GetIPInfo
+  _Unwind_SetIP
+  _Unwind_GetLanguageSpecificData
+  _Unwind_GetRegionStart
+  _Unwind_GetBSP
+  _Unwind_GetCFA
+  _Unwind_GetDataRelBase
+  _Unwind_GetTextRelBase
+;
+
+ForceUnwindSymbols = ;
+for s in $(Symbols) {
+  ForceUnwindSymbols += extern \"C\" void $(s)()\; void* forceLink_$(s) \= (void*)&$(s)\; ;
+}
+
+Sources += ForceUnwindSymbols.jamvar ;

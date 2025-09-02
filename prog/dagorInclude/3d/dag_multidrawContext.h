@@ -12,10 +12,9 @@
 #include <3d/dag_resPtr.h>
 #include <3d/dag_ringDynBuf.h>
 #include <drv/3d/dag_draw.h>
-#include <3d/dag_multidrawInfo.h>
 
 
-// This is workaround for OOM on xbox https://youtrack.gaijin.team/issue/EEX-4827
+// This is workaround for OOM on xbox
 #define USE_STAGING_MULTIDRAW_BUF _TARGET_XBOXONE
 
 /** Multidraw Context
@@ -58,6 +57,42 @@ class MultidrawContext
    * @brief Offset in buffer for next draw call.
    */
   uint32_t actualStart = 0;
+
+  /**
+   * @brief Extended draw call arguments structure.
+   *
+   * This structure is used for platforms that pass draw call id/per draw parameters using per draw root constants.
+   * Currently it is used only for DX12.
+   */
+  struct ExtendedDrawIndexedIndirectArgs
+  {
+    uint32_t drawcallId;
+    DrawIndexedIndirectArgs args;
+  };
+
+  /**
+   * @brief Checks if extended draw call arguments structure is used.
+   */
+#if _TARGET_PC_WIN
+#define CONSTEXPR_EXT_MULTIDRAW
+  static inline uint8_t bytesCountPerDrawcall = 0;
+  static bool usesExtendedMultiDrawStruct()
+  {
+    if (DAGOR_UNLIKELY(!bytesCountPerDrawcall))
+      bytesCountPerDrawcall =
+        d3d::get_driver_code().is(d3d::dx12) ? sizeof(ExtendedDrawIndexedIndirectArgs) : sizeof(DrawIndexedIndirectArgs);
+    static_assert(sizeof(ExtendedDrawIndexedIndirectArgs) != sizeof(DrawIndexedIndirectArgs));
+    return bytesCountPerDrawcall == sizeof(ExtendedDrawIndexedIndirectArgs);
+  }
+#elif _TARGET_XBOX
+#define CONSTEXPR_EXT_MULTIDRAW constexpr
+  static constexpr uint8_t bytesCountPerDrawcall = sizeof(ExtendedDrawIndexedIndirectArgs);
+  static constexpr bool usesExtendedMultiDrawStruct() { return true; } // DX12
+#else
+#define CONSTEXPR_EXT_MULTIDRAW constexpr
+  static constexpr uint8_t bytesCountPerDrawcall = sizeof(DrawIndexedIndirectArgs);
+  static constexpr bool usesExtendedMultiDrawStruct() { return false; }
+#endif
 
   /**
    * @brief Returns name for per draw parameters buffer.
@@ -141,10 +176,10 @@ public:
         return;
 #if USE_STAGING_MULTIDRAW_BUF
       d3d::multi_draw_indexed_indirect(primitive_type, context->multidrawArguments.getBuf(), drawcalls_count,
-        MultiDrawInfo::bytesCountPerDrawcall, first_drawcall * MultiDrawInfo::bytesCountPerDrawcall);
+        context->bytesCountPerDrawcall, first_drawcall * context->bytesCountPerDrawcall);
 #else
       d3d::multi_draw_indexed_indirect(primitive_type, context->multidrawArguments.getRenderBuf(), drawcalls_count,
-        MultiDrawInfo::bytesCountPerDrawcall, (first_drawcall + context->actualStart) * MultiDrawInfo::bytesCountPerDrawcall);
+        context->bytesCountPerDrawcall, (first_drawcall + context->actualStart) * context->bytesCountPerDrawcall);
 #endif
     }
   };
@@ -161,7 +196,7 @@ public:
   template <typename T>
   MultidrawRenderExecutor fillBuffers(uint32_t drawcalls_count, const T &set_cb)
   {
-    CONSTEXPR_EXT_MULTIDRAW bool extMultiDraw = MultiDrawInfo::usesExtendedMultiDrawStruct();
+    CONSTEXPR_EXT_MULTIDRAW bool extMultiDraw = usesExtendedMultiDrawStruct();
 
 #if USE_STAGING_MULTIDRAW_BUF
     RingDynamicSB &multidrawArgsBuf = multidrawArgsStagingBuffer;
@@ -174,15 +209,15 @@ public:
       allocatedDrawcallsInBuffer = (drawcalls_count + CHUNK_SIZE - 1) / CHUNK_SIZE * CHUNK_SIZE;
 #if USE_STAGING_MULTIDRAW_BUF
       multidrawArguments.close();
-      multidrawArguments = dag::create_sbuffer(sizeof(uint32_t),
-        MultiDrawInfo::bytesCountPerDrawcall * allocatedDrawcallsInBuffer / sizeof(uint32_t), SBCF_INDIRECT, 0, name.c_str());
+      multidrawArguments = dag::create_sbuffer(sizeof(uint32_t), bytesCountPerDrawcall * allocatedDrawcallsInBuffer / sizeof(uint32_t),
+        SBCF_INDIRECT, 0, name.c_str());
       multidrawArgsStagingBuffer.close();
-      multidrawArgsStagingBuffer.init(allocatedDrawcallsInBuffer, MultiDrawInfo::bytesCountPerDrawcall, sizeof(uint32_t), SBCF_DYNAMIC,
-        0, getMultidrawStagingBufferName().c_str());
+      multidrawArgsStagingBuffer.init(allocatedDrawcallsInBuffer, bytesCountPerDrawcall, sizeof(uint32_t), SBCF_DYNAMIC, 0,
+        getMultidrawStagingBufferName().c_str());
 #else
       multidrawArguments.close();
-      multidrawArguments.init(allocatedDrawcallsInBuffer, MultiDrawInfo::bytesCountPerDrawcall, sizeof(uint32_t),
-        SBCF_INDIRECT | SBCF_DYNAMIC, 0, name.c_str());
+      multidrawArguments.init(allocatedDrawcallsInBuffer, bytesCountPerDrawcall, sizeof(uint32_t), SBCF_INDIRECT | SBCF_DYNAMIC, 0,
+        name.c_str());
 #endif
       if (needPerDrawParamsBuffer())
       {
@@ -214,7 +249,7 @@ public:
     eastl::optional<LockedBuffer<PerDrawDataT>> perDrawArgs;
     if constexpr (needPerDrawParamsBuffer())
     {
-      perDrawArgs.emplace(lock_sbuffer<PerDrawDataT>(perDrawArgsBuffer.getBuf(), 0, drawcalls_count, VBLOCK_DISCARD));
+      perDrawArgs.emplace(perDrawArgsBuffer.getBuf(), 0, drawcalls_count, VBLOCK_DISCARD);
       if (!perDrawArgs)
       {
         logerr("Buffer %s data wasn't updated.", perDrawArgsBuffer.getBuf()->getBufName());
@@ -234,8 +269,8 @@ public:
 
 #if USE_STAGING_MULTIDRAW_BUF
     extMultiDraw ? eastl::get<2>(multidrawArgs).close() : eastl::get<1>(multidrawArgs).close();
-    multidrawArgsStagingBuffer.getRenderBuf()->copyTo(multidrawArguments.getBuf(), 0,
-      actualStart * MultiDrawInfo::bytesCountPerDrawcall, drawcalls_count * MultiDrawInfo::bytesCountPerDrawcall);
+    multidrawArgsStagingBuffer.getRenderBuf()->copyTo(multidrawArguments.getBuf(), 0, actualStart * bytesCountPerDrawcall,
+      drawcalls_count * bytesCountPerDrawcall);
 #endif
 
     return MultidrawRenderExecutor(this);

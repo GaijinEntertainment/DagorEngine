@@ -162,6 +162,14 @@ int message_box(int flags, const char *caption, const char *text, const DagorSaf
 
   wingw::set_busy(_busy);
 
+  G_STATIC_ASSERT(MB_ID_YES == IDYES);
+  G_STATIC_ASSERT(MB_ID_OK == IDOK);
+  G_STATIC_ASSERT(MB_ID_CANCEL == IDCANCEL);
+  G_STATIC_ASSERT(MB_ID_ABORT == IDABORT);
+  G_STATIC_ASSERT(MB_ID_RETRY == IDRETRY);
+  G_STATIC_ASSERT(MB_ID_IGNORE == IDIGNORE);
+  G_STATIC_ASSERT(MB_ID_YES == IDYES);
+  G_STATIC_ASSERT(MB_ID_NO == IDNO);
   return ret;
 }
 

@@ -1,22 +1,19 @@
+import "DataBlock" as DataBlock
+import "math" as math
+from "string" import startswith, regexp
 from "%darg/ui_imports.nut" import *
 from "%darg/laconic.nut" import *
-from "string" import regexp
 from "%sqstd/ecs.nut" import *
-
-let DataBlock = require("DataBlock")
-
 let nameFilter = require("components/nameFilter.nut")
 let textButton = require("%daeditor/components/textButton.nut")
 let combobox = require("%daeditor/components/combobox.nut")
 
-let {showMsgbox} = require("editor_msgbox.nut")
+let { showMsgbox } = require("%daeditor/components/msgbox.nut")
 
 let entity_editor = require_optional("entity_editor")
-let {propPanelVisible, selectedEntity, editorUnpause} = require("state.nut")
-let {registerPerCompPropEdit} = require("%daeditor/propPanelControls.nut")
+let { propPanelVisible, selectedEntity, editorUnpause } = require("state.nut")
+let { registerPerCompPropEdit } = require("%daeditor/propPanelControls.nut")
 
-let math = require("math")
-let {startswith} = require("string")
 
 
 let riSelectShown = Watched(false)
@@ -351,11 +348,11 @@ function riFillPredefinedGroups() {
 function riInits() {
   if (riNames.len() > 0)
     return
-  if (riFile.value == null)
+  if (riFile.get() == null)
     return
 
   local blk = DataBlock()
-  blk.load(riFile.value)
+  blk.load(riFile.get())
   let cnt = blk.paramCount()
   riNames.resize(cnt)
   for (local i = 0; i < cnt; i++)
@@ -376,7 +373,7 @@ let riEditGroupNameMode = Watched(0)
 let riEditGroupNameElem = nameFilter(riEditGroupName, {
   placeholder = "Group name"
   function onChange(text) {
-    riEditGroupName(text)
+    riEditGroupName.set(text)
   }
   function onEscape() {
     set_kb_focus(null)
@@ -387,22 +384,22 @@ let riEditGroupNameElem = nameFilter(riEditGroupName, {
 })
 
 function riGroupRename() {
-  let groupID = riGroupGetID(riGroup.value)
+  let groupID = riGroupGetID(riGroup.get())
   if (groupID == null || groupID < 0 || groupID >= riGroupsData.len())
     return
   if (riGroupsData[groupID].mode != GRPMODE_USER)
     return
-  riEditGroupName(riGroupsData[groupID].name)
-  riEditGroupNameMode(1)
+  riEditGroupName.set(riGroupsData[groupID].name)
+  riEditGroupNameMode.set(1)
 }
 
 function riGroupNew() {
-  riEditGroupName("")
-  riEditGroupNameMode(2)
+  riEditGroupName.set("")
+  riEditGroupNameMode.set(2)
 }
 
 function riGroupRenameOrNewCancel() {
-  riEditGroupNameMode(0)
+  riEditGroupNameMode.set(0)
 }
 
 let validRIGroupNameRegExp = regexp(@"[a-z,A-Z,0-9,!,@,#,$,%,^,&,(,),_,+,-,:,',., ]*")
@@ -433,22 +430,22 @@ function riDeleteGroup(name) {
   riRebuildGroupsList()
   riBuildNamesGroups()
 
-  riGroup("")
-  riPage(0)
+  riGroup.set("")
+  riPage.set(0)
   riGroupsChanged.trigger()
 }
 
 function riGroupRenameFinish() {
-  riEditGroupNameMode(0)
+  riEditGroupNameMode.set(0)
 
-  let groupID = riGroupGetID(riGroup.value)
+  let groupID = riGroupGetID(riGroup.get())
   if (groupID == null || groupID < 0 || groupID >= riGroupsData.len())
     return
   if (riGroupsData[groupID].mode != GRPMODE_USER)
     return
 
   let oldName = riGroupsData[groupID].name
-  let newName = riEditGroupName.value
+  let newName = riEditGroupName.get()
 
   if (newName == "") {
     showMsgbox({text = $"Do you really want to delete group '{oldName}'?", buttons = [
@@ -460,12 +457,12 @@ function riGroupRenameFinish() {
   if (newName == oldName)
     return
   if (!riIsValidGroupName(newName)) {
-    riEditGroupNameMode(1)
+    riEditGroupNameMode.set(1)
     showMsgbox({text = $"Cannot rename to bad name '{newName}'"})
     return
   }
   if (riGroupNameUsed(newName)) {
-    riEditGroupNameMode(1)
+    riEditGroupNameMode.set(1)
     showMsgbox({text = $"Group name '{newName}' already used"})
     return
   }
@@ -477,20 +474,20 @@ function riGroupRenameFinish() {
   riSaveUserGroups()
   riRebuildGroupsList()
 
-  riGroup(riGroupListName(newName, wasCount))
+  riGroup.set(riGroupListName(newName, wasCount))
   riGroupsChanged.trigger()
 }
 
 function riGroupNewFinish() {
-  riEditGroupNameMode(0)
-  let newName = riEditGroupName.value
+  riEditGroupNameMode.set(0)
+  let newName = riEditGroupName.get()
   if (!riIsValidGroupName(newName)) {
-    riEditGroupNameMode(2)
+    riEditGroupNameMode.set(2)
     showMsgbox({text = $"Cannot create new group with bad name: {newName}"})
     return
   }
   if (riGroupNameUsed(newName)) {
-    riEditGroupNameMode(2)
+    riEditGroupNameMode.set(2)
     showMsgbox({text = $"Group name '{newName}' already used"})
     return
   }
@@ -506,7 +503,7 @@ function riGroupNewFinish() {
   riSaveUserGroups()
   riRebuildGroupsList()
 
-  riGroup(riGroupListName(newName, 0))
+  riGroup.set(riGroupListName(newName, 0))
   riGroupsChanged.trigger()
 }
 
@@ -556,16 +553,16 @@ function riFilterNames(out_filtered, names, by_filter) {
 let riFilter = Watched("")
 let riFiltered = Computed(function() {
   let filtered = []
-  let groupID = riGroupGetID(riGroup.value)
+  let groupID = riGroupGetID(riGroup.get())
   if (groupID < 0 || riGroupsData[groupID].mode == GRPMODE_ALL)
-    riFilterNames(filtered, riNames, riFilter.value)
+    riFilterNames(filtered, riNames, riFilter.get())
   else
-    riFilterNames(filtered, riGroupsData[groupID].list, riFilter.value)
+    riFilterNames(filtered, riGroupsData[groupID].list, riFilter.get())
   return filtered
 })
 
 let riPages = Computed(function() {
-  let filtered = riFiltered.value
+  let filtered = riFiltered.get()
   local pages = math.floor(filtered.len() / riPageCount)
   if (filtered.len() > pages * riPageCount)
     ++pages
@@ -575,17 +572,17 @@ let riPages = Computed(function() {
 })
 
 let riPageClamped = Computed(function() {
-  local page = riPage.value
+  local page = riPage.get()
   if (page < 0)
     page = 0
-  if (page >= riPages.value)
-    page = riPages.value-1
+  if (page >= riPages.get())
+    page = riPages.get()-1
   return page
 })
 
 let riDisplayed = Computed(function() {
-  let filtered = riFiltered.value
-  local start = riPageCount * riPageClamped.value
+  let filtered = riFiltered.get()
+  local start = riPageCount * riPageClamped.get()
   local count = riPageCount
   if (start < 0)
     start = 0
@@ -604,33 +601,33 @@ function riGotoPage(page) {
   set_kb_focus(null)
   if (page < 0)
     page = 0
-  if (page >= riPages.value)
-    page = riPages.value-1
-  riPage(page)
+  if (page >= riPages.get())
+    page = riPages.get()-1
+  riPage.set(page)
 }
 
 function riGotoPageByValue(v) {
-  let filtered = riFiltered.value
+  let filtered = riFiltered.get()
   let fcount = filtered.len()
   for (local i = 0; i < fcount; i++) {
     if (filtered[i] == v) {
       local page = math.floor(i / riPageCount)
       if (page < 0)
         page = 0
-      if (page >= riPages.value)
-        page = riPages.value-1
-      riPage(page)
+      if (page >= riPages.get())
+        page = riPages.get()-1
+      riPage.set(page)
       return
     }
   }
-  riPage(0)
+  riPage.set(0)
 }
 
 let riNameFilter = nameFilter(riFilter, {
   placeholder = "Filter by name"
   function onChange(text) {
-    riFilter(text)
-    riGotoPageByValue(riSelectValue.value)
+    riFilter.set(text)
+    riGotoPageByValue(riSelectValue.get())
   }
   function onEscape() {
     set_kb_focus(null)
@@ -639,7 +636,7 @@ let riNameFilter = nameFilter(riFilter, {
     set_kb_focus(null)
   }
   function onClear() {
-    riFilter.update("")
+    riFilter.set("")
     set_kb_focus(null)
   }
 })
@@ -647,21 +644,21 @@ let riNameFilter = nameFilter(riFilter, {
 
 function riSelectChange(v) {
   set_kb_focus(null)
-  if (riSelectValue.value != v) {
-    riSelectValue(v)
+  if (riSelectValue.get() != v) {
+    riSelectValue.set(v)
     riSelectCB?(v)
   }
 }
 function riSelectChangeAndClose(v) {
-  riTagsShown(false)
+  riTagsShown.set(false)
   riSelectChange(v)
-  riSelectShown(false)
+  riSelectShown.set(false)
 }
 
 
 let riTagsDisplayed = Computed(function() {
   let filtered = riTags
-  local start = riTagsOffset.value
+  local start = riTagsOffset.get()
   local count = riTagsPageCount
   if (start < 0)
     start = 0
@@ -682,19 +679,19 @@ function riTagScroll(offs) {
     offs = last
   if (offs < 0)
     offs = 0
-  riTagsOffset(offs)
+  riTagsOffset.set(offs)
 }
 
 function riTagApply(tag) {
-  riGroup("")
+  riGroup.set("")
   riGotoPage(0)
-  riSelectTag(tag)
-  riTagsShown(false)
-  riFilter($"#{tag}")
+  riSelectTag.set(tag)
+  riTagsShown.set(false)
+  riFilter.set($"#{tag}")
 }
 
 riFilter.subscribe(function(v) {
-  if (!riTagsShown.value)
+  if (!riTagsShown.get())
     return
   foreach (idx, tag in riTags) {
     if (startswith(tag.word, v)) {
@@ -706,53 +703,53 @@ riFilter.subscribe(function(v) {
 
 
 function riNavFirst() {
-  if (!riTagsShown.value)
+  if (!riTagsShown.get())
     riGotoPage(0)
   else
     riTagScroll(0)
 }
 
 function riNavPrev() {
-  if (!riTagsShown.value)
-    riGotoPage(riPageClamped.value-1)
+  if (!riTagsShown.get())
+    riGotoPage(riPageClamped.get()-1)
   else
-    riTagScroll(riTagsOffset.value - riTagsPageCount)
+    riTagScroll(riTagsOffset.get() - riTagsPageCount)
 }
 
 function riNavNext() {
-  if (!riTagsShown.value)
-    riGotoPage(riPageClamped.value+1)
+  if (!riTagsShown.get())
+    riGotoPage(riPageClamped.get()+1)
   else
-    riTagScroll(riTagsOffset.value + riTagsPageCount)
+    riTagScroll(riTagsOffset.get() + riTagsPageCount)
 }
 
 function riNavLast() {
-  if (!riTagsShown.value)
-    riGotoPage(riPages.value-1)
+  if (!riTagsShown.get())
+    riGotoPage(riPages.get()-1)
   else
     riTagScroll(riTags.len())
 }
 
 function riNavBy() {
-  if (riTagsShown.value)
+  if (riTagsShown.get())
     return "Tags"
   return "Page"
 }
 
 function riNavAt() {
-  if (riTagsShown.value)
-    return (riTagsOffset.value + riTagsPageCount)
-  return 1+riPageClamped.value
+  if (riTagsShown.get())
+    return (riTagsOffset.get() + riTagsPageCount)
+  return 1+riPageClamped.get()
 }
 
 function riNavOf() {
-  if (riTagsShown.value)
+  if (riTagsShown.get())
     return riTags.len()
-  return riPages.value
+  return riPages.get()
 }
 
-riGroup.subscribe(function(_v) {
-  riTagsShown(false)
+riGroup.subscribe_with_nasty_disregard_of_frp_update(function(_v) {
+  riTagsShown.set(false)
 })
 
 
@@ -776,7 +773,7 @@ function riAddToGroup(name, group_idx) {
   let group = riGroupsData[group_idx]
   if (group.list == null)
     return
-  let groupSeen = riGroupListName(group.name, group.count) == riGroup.value
+  let groupSeen = riGroupListName(group.name, group.count) == riGroup.get()
   foreach (item in group.list)
     if (item == name)
       return
@@ -795,7 +792,7 @@ function riAddToGroup(name, group_idx) {
   riNamesGroups[name] <- math.max(isFavorites ? 1 : 2, riNamesGroups?[name] ?? 0)
   riRebuildGroupsList()
   if (groupSeen)
-    riGroup(riGroupListName(group.name, group.count))
+    riGroup.set(riGroupListName(group.name, group.count))
 }
 
 function riDelFromGroup(name, group_idx) {
@@ -804,7 +801,7 @@ function riDelFromGroup(name, group_idx) {
   let group = riGroupsData[group_idx]
   if (group.list == null)
     return
-  let groupSeen = riGroupListName(group.name, group.count) == riGroup.value
+  let groupSeen = riGroupListName(group.name, group.count) == riGroup.get()
   local nameIdx = -1
   foreach (idx, item in group.list)
     if (item == name)
@@ -817,7 +814,7 @@ function riDelFromGroup(name, group_idx) {
   riNamesGroups[name] <- result > 0 ? result : null
   riRebuildGroupsList()
   if (groupSeen)
-    riGroup(riGroupListName(group.name, group.count))
+    riGroup.set(riGroupListName(group.name, group.count))
 }
 
 
@@ -832,12 +829,12 @@ function riOpenEditGroups(name, already) {
     riGroupsChanged.trigger()
     return
   }
-  riEditGroupsData.value.name = name
-  riEditGroupsData.value.groups.clear()
+  riEditGroupsData.get().name = name
+  riEditGroupsData.get().groups.clear()
   foreach (group in riGroupsData) {
     let result = riCalcNameInGroup(name, group)
     if (result >= 0) {
-      riEditGroupsData.value.groups.append({
+      riEditGroupsData.get().groups.append({
         name = group.name
         fave = group.mode == GRPMODE_FAVORITES
         now = result > 0
@@ -849,21 +846,21 @@ function riOpenEditGroups(name, already) {
 }
 
 function riEditGroupsToggle(name) {
-  foreach (group in riEditGroupsData.value.groups)
+  foreach (group in riEditGroupsData.get().groups)
     if (group.name == name)
       group.now = !group.now
   riEditGroupsData.trigger()
 }
 
 function riCloseEditGroups() {
-  riEditGroupsData.value.name = null
-  riEditGroupsData.value.groups.clear()
+  riEditGroupsData.get().name = null
+  riEditGroupsData.get().groups.clear()
   riEditGroupsData.trigger()
 }
 
 function riApplyEditGroups() {
-  let name = riEditGroupsData.value.name
-  foreach (group in riEditGroupsData.value.groups) {
+  let name = riEditGroupsData.get().name
+  foreach (group in riEditGroupsData.get().groups) {
     let groupIdx = group.fave ? riGetFavGroupID() : riGetUserGroupID(group.name)
     if (group.now && !group.was)
       riAddToGroup(name, groupIdx)
@@ -884,44 +881,44 @@ riGroupsChanged.subscribe(function(_v) {
 function mouseWheelCb(mouseEvent) {
   let ctrl = mouseEvent?.ctrlKey ?? false
   let step = -(mouseEvent?.button ?? 0) * (ctrl ? 10 : 1)
-  if (!riTagsShown.value)
-    riGotoPage(riPageClamped.value + step)
+  if (!riTagsShown.get())
+    riGotoPage(riPageClamped.get() + step)
   else
-    riTagScroll(riTagsOffset.value + step * riTagsPageCount)
+    riTagScroll(riTagsOffset.get() + step * riTagsPageCount)
 }
 
 let riTagTextCtor = @(v) $"{v.word} ({v.count})"
 
 function mkTag(opt, i) {
-  let tagWord = riTags?[riTagsOffset.value + i].word ?? "<invalid>"
-  let isSelected = Computed(@() riSelectTag.value == tagWord)
+  let tagWord = riTags?[riTagsOffset.get() + i].word ?? "<invalid>"
+  let isSelected = Computed(@() riSelectTag.get() == tagWord)
   let onClick = @() riTagApply(tagWord)
   return watchElemState(@(sf) {
-    size = [flex(), SIZE_TO_CONTENT]
+    size = FLEX_H
     padding = [hdpx(3), hdpx(10)]
     behavior = [Behaviors.Button, Behaviors.TrackMouse]
     onMouseWheel = mouseWheelCb
     eventPassThrough = false
     watch = isSelected
     onClick
-    children = txt(riTagTextCtor(opt), {color = isSelected.value ? null : Color(190,190,190)})
+    children = txt(riTagTextCtor(opt), {color = isSelected.get() ? null : Color(190,190,190)})
     rendObj = ROBJ_BOX
     fillColor = sf & S_TOP_HOVER  ? Color(120,120,160) : (i%2) ? Color(0,0,0,120) : 0
-    borderWidth = isSelected.value ? hdpx(2) : 0
+    borderWidth = isSelected.get() ? hdpx(2) : 0
   })
 }
 
 let mkSelectLine = kwarg(function(selected, textCtor = null, onSelect=null, onDClick=null){
   textCtor = textCtor ?? @(opt) opt
   return function(opt, i){
-    let isSelected = Computed(@() selected.value == opt)
-    let onClick = onSelect != null ? @() onSelect?(opt) : @() (!isSelected.value ? selected(opt) : selected(null))
+    let isSelected = Computed(@() selected.get() == opt)
+    let onClick = onSelect != null ? @() onSelect?(opt) : @() (!isSelected.get() ? selected.set(opt) : selected.set(null))
     let onDoubleClick = onDClick != null ? @() onDClick?(opt) : null
     let group = riNamesGroups?[opt]
     let opTxt = group ? "  §  " : "  +  "
     let grp = ElemGroup()
     return watchElemState(@(sf) {
-      size = [flex(), SIZE_TO_CONTENT]
+      size = FLEX_H
       padding = [hdpx(3), hdpx(10)]
       behavior = [Behaviors.Button, Behaviors.TrackMouse, Behaviors.DragAndDrop]
       onMouseWheel = mouseWheelCb
@@ -931,8 +928,8 @@ let mkSelectLine = kwarg(function(selected, textCtor = null, onSelect=null, onDC
       onDoubleClick
       group = grp
       children = [
-        txt(textCtor(opt), {color = isSelected.value ? null : Color(190,190,190)})
-        isSelected.value || group || (sf & S_TOP_HOVER) ?
+        txt(textCtor(opt), {color = isSelected.get() ? null : Color(190,190,190)})
+        isSelected.get() || group || (sf & S_TOP_HOVER) ?
         {
           color = group || (sf & S_TOP_HOVER) ? Color(240,240,240) : Color(150,150,150)
           group = grp
@@ -943,11 +940,11 @@ let mkSelectLine = kwarg(function(selected, textCtor = null, onSelect=null, onDC
           pos = [hdpx(10), 0]
           onClick = @() riOpenEditGroups(opt, group != null)
           onDoubleClick = function() {
-            let groupID = riGroupGetID(riGroup.value)
+            let groupID = riGroupGetID(riGroup.get())
             if (groupID != null && groupID >= 0 && groupID < riGroupsData.len()) {
               let mode = riGroupsData[groupID].mode
               if (mode == GRPMODE_USER || mode == GRPMODE_FAVORITES) {
-                riDelFromGroup(opt, riGroupGetID(riGroup.value))
+                riDelFromGroup(opt, riGroupGetID(riGroup.get()))
               }
               else {
                 riDelFromGroup(opt, riGetFavGroupID())
@@ -965,7 +962,7 @@ let mkSelectLine = kwarg(function(selected, textCtor = null, onSelect=null, onDC
       ]
       rendObj = ROBJ_BOX
       fillColor = sf & S_TOP_HOVER ? Color(120,120,160) : (i%2) ? Color(0,0,0,120) : 0
-      borderWidth = isSelected.value ? hdpx(2) : 0
+      borderWidth = isSelected.get() ? hdpx(2) : 0
     })
   }
 })
@@ -987,8 +984,8 @@ function mkEditGroup(group) {
 }
 
 function riGroupUpdate(v) {
-  riGroup(v)
-  riGotoPageByValue(riSelectValue.value)
+  riGroup.set(v)
+  riGotoPageByValue(riSelectValue.get())
 }
 let riGroupCombo = combobox({value=riGroup, changeVarOnListUpdate=false, update=riGroupUpdate}, riGroups)
 
@@ -1020,7 +1017,7 @@ let riSelectWindow = function() {
           @() {
             watch = [riGroup, riEditGroupName, riEditGroupNameMode]
             flow = FLOW_HORIZONTAL
-            size = [flex(), SIZE_TO_CONTENT]
+            size = FLEX_H
             padding = 0
             children = [
               txt(" SELECT RENDINST", {hplace = ALIGN_LEFT, vplace = ALIGN_BOTTOM})
@@ -1031,31 +1028,31 @@ let riSelectWindow = function() {
                 size = [sw(9), sh(2.7)]
                 rendObj = ROBJ_SOLID
                 color = Color(30,30,30, 150)
-                children = !riFillPGDone ? txt("Grouping...", {hplace = ALIGN_CENTER, vplace = ALIGN_CENTER}) : (riEditGroupNameMode.value == 0) ? riGroupCombo : riEditGroupNameElem
+                children = !riFillPGDone ? txt("Grouping...", {hplace = ALIGN_CENTER, vplace = ALIGN_CENTER}) : (riEditGroupNameMode.get() == 0) ? riGroupCombo : riEditGroupNameElem
               }
-              riEditGroupNameMode.value == 0 ? textButton(riIsUserGroup(riGroup.value) ? "Edit" : "New", @() riIsUserGroup(riGroup.value) ? riGroupRename() : riGroupNew(), {vplace = ALIGN_BOTTOM}) : null
-              riEditGroupNameMode.value >  0 ? textButton(riEditGroupNameMode.value == 1 ? (riEditGroupName.value.len() ? "Rename" : "Delete!") : "Create", @() riEditGroupNameMode.value == 1 ? riGroupRenameFinish() : riGroupNewFinish(), {vplace = ALIGN_BOTTOM}) : null
-              riEditGroupNameMode.value >  0 ? textButton("Back", @() riGroupRenameOrNewCancel(), {vplace = ALIGN_BOTTOM}) : null
+              riEditGroupNameMode.get() == 0 ? textButton(riIsUserGroup(riGroup.get()) ? "Edit" : "New", @() riIsUserGroup(riGroup.get()) ? riGroupRename() : riGroupNew(), {vplace = ALIGN_BOTTOM}) : null
+              riEditGroupNameMode.get() >  0 ? textButton(riEditGroupNameMode.get() == 1 ? (riEditGroupName.get().len() ? "Rename" : "Delete!") : "Create", @() riEditGroupNameMode.get() == 1 ? riGroupRenameFinish() : riGroupNewFinish(), {vplace = ALIGN_BOTTOM}) : null
+              riEditGroupNameMode.get() >  0 ? textButton("Back", @() riGroupRenameOrNewCancel(), {vplace = ALIGN_BOTTOM}) : null
             ]
           }
           @() {
             watch = [riTagsShown]
             flow = FLOW_HORIZONTAL
-            size = [flex(), SIZE_TO_CONTENT]
+            size = FLEX_H
             padding = 0
             children = [
               riNameFilter
-              textButton("Tags", @() riTagsShown(!riTagsShown.value), {vplace = ALIGN_BOTTOM}.__merge(riTagsShown.value ? buttonStyleOn : buttonStyle))
+              textButton("Tags", @() riTagsShown.set(!riTagsShown.get()), {vplace = ALIGN_BOTTOM}.__merge(riTagsShown.get() ? buttonStyleOn : buttonStyle))
             ]
           }
-          riTagsShown.value ? vflow(Size(flex(), flex()), riTagsDisplayed.value.map(mkTag)) : null
-          !riTagsShown.value && riDisplayed.value.len() > 0 ? vflow(Size(flex(), flex()), riDisplayed.value.map(mkRI)) : null
-          !riTagsShown.value && riDisplayed.value.len() == 0 ? vflow(
+          riTagsShown.get() ? vflow(Size(flex(), flex()), riTagsDisplayed.get().map(mkTag)) : null
+          !riTagsShown.get() && riDisplayed.get().len() > 0 ? vflow(Size(flex(), flex()), riDisplayed.get().map(mkRI)) : null
+          !riTagsShown.get() && riDisplayed.get().len() == 0 ? vflow(
             Size(flex(), flex()),
             { size = [0, sh(25)] },
-            riIsEmptyGroup(riGroup.value) ? txt("No render instances in this group", {hplace = ALIGN_CENTER}) : null,
+            riIsEmptyGroup(riGroup.get()) ? txt("No render instances in this group", {hplace = ALIGN_CENTER}) : null,
             { size = [0, sh(2)] },
-            riIsEmptyGroup(riGroup.value) ? txt("Use + and § at right side of selected RI in other groups", {hplace = ALIGN_CENTER}) : null,
+            riIsEmptyGroup(riGroup.get()) ? txt("Use + and § at right side of selected RI in other groups", {hplace = ALIGN_CENTER}) : null,
           ) : null
           hflow(
             HCenter,
@@ -1067,8 +1064,8 @@ let riSelectWindow = function() {
           )
           hflow(
             HCenter,
-            textButton("Cancel", @() riSelectChangeAndClose(riSelectSaved.value), {vplace = ALIGN_BOTTOM}),
-            textButton("Accept", @() riSelectShown(false), {hotkeys = [["Esc"]], vplace = ALIGN_BOTTOM})
+            textButton("Cancel", @() riSelectChangeAndClose(riSelectSaved.get()), {vplace = ALIGN_BOTTOM}),
+            textButton("Accept", @() riSelectShown.set(false), {hotkeys = [["Esc"]], vplace = ALIGN_BOTTOM})
           )
         )
       }
@@ -1076,7 +1073,7 @@ let riSelectWindow = function() {
         watch = [riEditGroupsData]
         hplace = ALIGN_CENTER
         vplace = ALIGN_CENTER
-        children = riEditGroupsData.value.name ? {
+        children = riEditGroupsData.get().name ? {
           behavior = Behaviors.Button
           eventPassThrough = false
           pos = [sw(0.4), sh(-5)]
@@ -1088,9 +1085,9 @@ let riSelectWindow = function() {
           padding = hdpx(10)
           flow = FLOW_VERTICAL
           children = [
-            txt(riEditGroupsData.value.name)
+            txt(riEditGroupsData.get().name)
             { size = [0, sh(0.8)] }
-            vflow(Size(flex(), SIZE_TO_CONTENT), riEditGroupsData.value.groups.map(mkEditGroup))
+            vflow(Size(flex(), SIZE_TO_CONTENT), riEditGroupsData.get().groups.map(mkEditGroup))
             { size = [0, sh(1)] }
             {
               hplace = ALIGN_CENTER
@@ -1110,43 +1107,43 @@ let riSelectWindow = function() {
 function openSelectRI(selectedRI, onSelect=null) {
   riInits()
   riSelectCB = onSelect
-  riSelectSaved(selectedRI.value)
-  riSelectValue(selectedRI.value)
-  riSelectShown(true)
-  riGotoPageByValue(riSelectValue.value)
+  riSelectSaved.set(selectedRI.get())
+  riSelectValue.set(selectedRI.get())
+  riSelectShown.set(true)
+  riGotoPageByValue(riSelectValue.get())
 }
 
 let riSelectEid = Watched(INVALID_ENTITY_ID)
-propPanelVisible.subscribe(function(v) {
-  if (v && selectedEntity.value != riSelectEid.value && riSelectShown.value)
-    riSelectShown(false)
+propPanelVisible.subscribe_with_nasty_disregard_of_frp_update(function(v) {
+  if (v && selectedEntity.get() != riSelectEid.get() && riSelectShown.get())
+    riSelectShown.set(false)
 })
 
 function onSelectRI(v){
-  let eid = riSelectEid.value
+  let eid = riSelectEid.get()
   if ((eid ?? INVALID_ENTITY_ID) != INVALID_ENTITY_ID){
     obsolete_dbg_set_comp_val(eid, "ri_extra__name", v)
     entity_editor?.save_component(eid, "ri_extra__name")
     let newEid = entity_editor?.get_instance().reCreateEditorEntity(eid)
     if (newEid != INVALID_ENTITY_ID) {
-      riSelectEid(newEid)
+      riSelectEid.set(newEid)
       editorUnpause(2.5)
     }
   }
 }
 
 function initRISelect(file, groups) {
-  riFile(file)
+  riFile.set(file)
   foreach (group in groups)
     riAddPredefinedGroup(group.name, group.tags)
   riAddFavoritesGroup()
   registerPerCompPropEdit("ri_extra__name", function(params) {
     let selectedRI = Watched(params?.obj)
-    riSelectEid(params.eid)
+    riSelectEid.set(params.eid)
     return @() {
       watch = selectedRI
       halign = ALIGN_LEFT
-      children = textButton(selectedRI.value, @() openSelectRI(selectedRI, onSelectRI))
+      children = textButton(selectedRI.get(), @() openSelectRI(selectedRI, onSelectRI))
     }
   })
 }
@@ -1156,17 +1153,17 @@ function openRISelectForEntity(eid) {
   let riName = obsolete_dbg_get_comp_val(eid, "ri_extra__name")
   if (riName == null)
     return
-  riSelectEid(eid)
+  riSelectEid.set(eid)
   riSelectCB = onSelectRI
-  riSelectSaved(riName)
-  riSelectValue(riName)
-  riSelectShown(true)
-  riGotoPageByValue(riSelectValue.value)
+  riSelectSaved.set(riName)
+  riSelectValue.set(riName)
+  riSelectShown.set(true)
+  riGotoPageByValue(riSelectValue.get())
 }
 
-riSelectShown.subscribe(function(v) {
+riSelectShown.subscribe_with_nasty_disregard_of_frp_update(function(v) {
   if (!v) {
-    riTagsShown(false)
+    riTagsShown.set(false)
     riCloseEditGroups()
   }
 })

@@ -11,7 +11,7 @@
 #include "getDisplacement.h"
 #include "waterCommon.h"
 #include <fftWater/fftWater.h>
-#include <atomic>
+#include <osApiWrappers/dag_atomic_types.h>
 
 class WaterNVPhysics : public cpujobs::IJob
 {
@@ -28,7 +28,7 @@ protected:
   Cascade *cascades;
   const fft_water::WaterHeightmap *waterHeightmap;
   carray<float, MAX_FIFO> fifoMaxZ = {0};
-  std::atomic<float> allFifoMaxZ = 0.f;
+  dag::AtomicFloat<float> allFifoMaxZ = 0.f;
   fft_water::SimulationParams fftSimulationParams;
   int numCascades;
   float cascadeWindowLength;
@@ -58,6 +58,7 @@ protected:
   void setCascades(const NVWaveWorks_FFT_CPU_Simulation::Params &p);
 
 public:
+  const char *getJobName(bool &) const override { return "water_phys"; }
   virtual void doJob(); // from IJob
 
   void setSmallWaveFraction(float smallWaveFraction)

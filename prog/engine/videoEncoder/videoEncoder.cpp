@@ -4,6 +4,7 @@
 #include "videoEncoder/videoEncoder.h"
 #include <debug/dag_log.h>
 #include <util/dag_console.h>
+#include <EASTL/type_traits.h>
 #include <windows.h>
 #include <objbase.h>
 #include <mfapi.h>
@@ -30,6 +31,7 @@
 #include <Audioclient.h>
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_unicode.h>
+#include <perfMon/dag_statDrv.h>
 
 #pragma comment(lib, "Avrt.lib")
 #define CHECK_HR(x)                    \
@@ -44,6 +46,8 @@
     }                                  \
   } while (0)
 
+static HINSTANCE hMFPlat = nullptr;
+static HINSTANCE hMFReadWrite = nullptr;
 static ComPtr<IMFDXGIDeviceManager> deviceManager;
 static ComPtr<IMFSinkWriter> sinkWriter;
 static ID3D11Device *device;
@@ -52,12 +56,25 @@ static ComPtr<IAudioClient> pAudioClient;
 static ComPtr<IAudioCaptureClient> pAudioCaptureClient;
 static WAVEFORMATEX *pwfx = nullptr;
 static HANDLE hCaptureStart = nullptr, hCaptureEnd = nullptr;
-static HANDLE hThread = nullptr;
+static HANDLE hProcessStart = nullptr;
+static HANDLE hThread = nullptr, hProcessThread = nullptr;
 static bool done = false;
 static eastl::vector<BYTE> audioBuf;
-HRESULT(__stdcall *pMFCreateDXGIDeviceManager)(UINT *resetToken, IMFDXGIDeviceManager **ppDeviceManager) = nullptr;
-HRESULT(__stdcall *pMFCreateDXGISurfaceBuffer)
-(REFIID riid, IUnknown *punkSurface, UINT uSubresourceIndex, BOOL fBottomUpWhenLinear, IMFMediaBuffer **ppBuffer) = nullptr;
+
+#define DECL_MFA_APIS            \
+  MFA(MFCreateDXGIDeviceManager) \
+  MFA(MFCreateDXGISurfaceBuffer) \
+  MFA(MFCreateAttributes)        \
+  MFA(MFCreateMediaType)         \
+  MFA(MFCreateMemoryBuffer)      \
+  MFA(MFCreateSample)            \
+  MFA(MFShutdown)                \
+  MFA(MFStartup)
+
+#define MFA(n) static eastl::add_pointer_t<decltype(::n)> p##n = nullptr;
+DECL_MFA_APIS
+#undef MFA
+static eastl::add_pointer_t<decltype(MFCreateSinkWriterFromURL)> pMFCreateSinkWriterFromURL = nullptr;
 
 // Audio loopback recording based on:
 // https://github.com/mvaneerde/blog/blob/3589cd79a3db17e2a5111ff1d47c916307dde9e0/loopback-capture/loopback-capture/loopback-capture.cpp
@@ -322,28 +339,54 @@ static bool LoopbackCapture()
   return true;
 }
 
+static DWORD WINAPI ProcessThreadFunction(LPVOID data)
+{
+  VideoEncoder *video_encoder = (VideoEncoder *)data;
+  while (video_encoder->isRecording())
+  {
+    ::WaitForSingleObject(hProcessStart, INFINITE);
+    video_encoder->process();
+  }
+  return 0;
+}
+
 bool VideoEncoder::init(void *pUnkDevice)
 {
-  HINSTANCE hMFPlat = ::LoadLibrary("MFPlat.DLL");
-  G_ASSERT(hMFPlat);
-  pMFCreateDXGIDeviceManager = (decltype(pMFCreateDXGIDeviceManager))::GetProcAddress(hMFPlat, "MFCreateDXGIDeviceManager");
-  pMFCreateDXGISurfaceBuffer = (decltype(pMFCreateDXGISurfaceBuffer))::GetProcAddress(hMFPlat, "MFCreateDXGISurfaceBuffer");
-  if (!pMFCreateDXGIDeviceManager)
+  hMFPlat = ::LoadLibrary("MFPlat.DLL");
+  if (!hMFPlat)
     return false;
+  auto initFail = []() {
+    pMFCreateDXGIDeviceManager = nullptr;
+    FreeLibrary(eastl::exchange(hMFPlat, nullptr));
+    return false;
+  };
+#define MFA(n)                                          \
+  p##n = (decltype(p##n))::GetProcAddress(hMFPlat, #n); \
+  if (!p##n)                                            \
+    return initFail();
+  DECL_MFA_APIS
+#undef MFA
+  hMFReadWrite = ::LoadLibrary("MFReadWrite.dll");
+  pMFCreateSinkWriterFromURL =
+    hMFReadWrite ? (decltype(pMFCreateSinkWriterFromURL))::GetProcAddress(hMFReadWrite, "MFCreateSinkWriterFromURL") : nullptr;
+  if (!pMFCreateSinkWriterFromURL)
+  {
+    hMFReadWrite ? (void)FreeLibrary(eastl::exchange(hMFReadWrite, nullptr)) : (void)0;
+    return initFail();
+  }
+
   device = (ID3D11Device *)pUnkDevice;
   ComPtr<ID3D10Multithread> pMultithread;
   device->QueryInterface<ID3D10Multithread>(&pMultithread);
   pMultithread->SetMultithreadProtected(true);
 
   CHECK_HR(::CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED));
-  ::MFStartup(MF_VERSION);
+  pMFStartup(MF_VERSION, MFSTARTUP_FULL);
   UINT resetToken;
   CHECK_HR(pMFCreateDXGIDeviceManager(&resetToken, &deviceManager));
   CHECK_HR(deviceManager->ResetDevice((IUnknown *)pUnkDevice, resetToken));
 
-  bool ret = audioRecorder.init();
-
-  return ret;
+  return audioRecorder.init();
 }
 
 void VideoEncoder::shutdown()
@@ -352,8 +395,11 @@ void VideoEncoder::shutdown()
   if (!pMFCreateDXGIDeviceManager)
     return;
   deviceManager.Reset();
-  ::MFShutdown();
+  pMFShutdown();
   ::CoUninitialize();
+  FreeLibrary(eastl::exchange(hMFReadWrite, nullptr));
+  FreeLibrary(eastl::exchange(hMFPlat, nullptr));
+  pMFCreateDXGIDeviceManager = nullptr;
 }
 
 bool VideoEncoder::start(const VideoSettings &settings)
@@ -385,18 +431,19 @@ bool VideoEncoder::start(const VideoSettings &settings)
     w = (w + 3) / 4 * 4;
   }
 
+  stretchedTex = dag::create_tex(nullptr, w, h, TEXCF_RTARGET, 1, "stretchedVideoTex");
   duration = 10 * 1000 * 1000 / settings.fps;
   ComPtr<IMFAttributes> attribs;
-  ::MFCreateAttributes(&attribs, 1);
+  pMFCreateAttributes(&attribs, 1);
   CHECK_HR(attribs->SetUnknown(MF_SINK_WRITER_D3D_MANAGER, deviceManager.Get()));
 
   wchar_t wfname[_MAX_PATH] = {L'\0'};
   utf8_to_wcs(fname, wfname, _MAX_PATH);
-  CHECK_HR(::MFCreateSinkWriterFromURL(wfname, nullptr, attribs.Get(), &sinkWriter));
+  CHECK_HR(pMFCreateSinkWriterFromURL(wfname, nullptr, attribs.Get(), &sinkWriter));
 
   HRESULT hr;
   ComPtr<IMFMediaType> pMediaTypeOut;
-  CHECK_HR(::MFCreateMediaType(&pMediaTypeOut));
+  CHECK_HR(pMFCreateMediaType(&pMediaTypeOut));
   CHECK_HR(pMediaTypeOut->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Video));
   CHECK_HR(pMediaTypeOut->SetGUID(MF_MT_SUBTYPE, MFVideoFormat_H264));
   CHECK_HR(pMediaTypeOut->SetUINT32(MF_MT_AVG_BITRATE, settings.bitrate));
@@ -407,7 +454,7 @@ bool VideoEncoder::start(const VideoSettings &settings)
   CHECK_HR(sinkWriter->AddStream(pMediaTypeOut.Get(), &videoStreamIndex));
 
   ComPtr<IMFMediaType> pMediaTypeIn;
-  CHECK_HR(::MFCreateMediaType(&pMediaTypeIn));
+  CHECK_HR(pMFCreateMediaType(&pMediaTypeIn));
   CHECK_HR(pMediaTypeIn->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Video));
   CHECK_HR(pMediaTypeIn->SetGUID(MF_MT_SUBTYPE, MFVideoFormat_RGB32));
   CHECK_HR(pMediaTypeIn->SetUINT32(MF_MT_INTERLACE_MODE, MFVideoInterlace_Progressive));
@@ -417,7 +464,7 @@ bool VideoEncoder::start(const VideoSettings &settings)
   CHECK_HR(sinkWriter->SetInputMediaType(videoStreamIndex, pMediaTypeIn.Get(), nullptr));
 
   ComPtr<IMFMediaType> pAudioMediaTypeOut;
-  CHECK_HR(::MFCreateMediaType(&pAudioMediaTypeOut));
+  CHECK_HR(pMFCreateMediaType(&pAudioMediaTypeOut));
   CHECK_HR(pAudioMediaTypeOut->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Audio));
   CHECK_HR(pAudioMediaTypeOut->SetGUID(MF_MT_SUBTYPE, MFAudioFormat_AAC));
   CHECK_HR(pAudioMediaTypeOut->SetUINT32(MF_MT_AUDIO_BITS_PER_SAMPLE, 16));
@@ -429,7 +476,7 @@ bool VideoEncoder::start(const VideoSettings &settings)
   CHECK_HR(sinkWriter->AddStream(pAudioMediaTypeOut.Get(), &audioStreamIndex));
 
   ComPtr<IMFMediaType> pAudioMediaTypeIn;
-  CHECK_HR(::MFCreateMediaType(&pAudioMediaTypeIn));
+  CHECK_HR(pMFCreateMediaType(&pAudioMediaTypeIn));
   CHECK_HR(pAudioMediaTypeIn->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Audio));
   CHECK_HR(pAudioMediaTypeIn->SetGUID(MF_MT_SUBTYPE, MFAudioFormat_PCM));
   CHECK_HR(pAudioMediaTypeIn->SetUINT32(MF_MT_AUDIO_NUM_CHANNELS, 2));
@@ -448,34 +495,32 @@ bool VideoEncoder::start(const VideoSettings &settings)
   currentAudioSample = 0;
 
   bool ret = audioRecorder.start();
+  hProcessThread = ::CreateThread(nullptr, 0, ProcessThreadFunction, this, 0, nullptr); //-V513
+  if (nullptr == hProcessThread)
+  {
+    logerr("CreateThread failed: last error is %u", GetLastError());
+    return false;
+  }
+  hProcessStart = ::CreateEvent(nullptr, FALSE, FALSE, nullptr);
   return ret;
 }
 
-bool VideoEncoder::process(BaseTexture *tex)
+bool VideoEncoder::process()
 {
-  if (!recording)
-  {
-    if (audioRecorder.isRecording())
-      return audioRecorder.process();
-    return true;
-  }
-  if (!pMFCreateDXGIDeviceManager)
-    return false;
   ComPtr<IMFSample> pVideoSample;
 
-  HRESULT hr;
-  UniqueTex stretchedTex = dag::create_tex(nullptr, w, h, TEXCF_RTARGET, 1, "stretchedVideoTex");
-  d3d::stretch_rect(tex, stretchedTex.getTex2D());
-  ID3D11Texture2D *surface = (ID3D11Texture2D *)d3d::pcwin32::get_native_surface(stretchedTex.getTex2D());
+  ID3D11Texture2D *surface = (ID3D11Texture2D *)d3d::pcwin::get_native_surface(stretchedTex.getTex2D());
   ComPtr<IMFMediaBuffer> inputBuffer;
   CHECK_HR(pMFCreateDXGISurfaceBuffer(__uuidof(ID3D11Texture2D), surface, 0, FALSE, &inputBuffer));
   CHECK_HR(inputBuffer->SetCurrentLength(cbBuffer));
-  CHECK_HR(::MFCreateSample(&pVideoSample));
+  CHECK_HR(pMFCreateSample(&pVideoSample));
   CHECK_HR(pVideoSample->AddBuffer(inputBuffer.Get()));
   CHECK_HR(pVideoSample->SetSampleTime(rtStart));
   CHECK_HR(pVideoSample->SetSampleDuration(duration));
-  CHECK_HR(sinkWriter->WriteSample(videoStreamIndex, pVideoSample.Get()));
-
+  {
+    TIME_D3D_PROFILE(videoEncoder_process_write);
+    CHECK_HR(sinkWriter->WriteSample(videoStreamIndex, pVideoSample.Get()));
+  }
   if (!externalAudioBuffersPerSample.empty())
   {
     if (currentAudioSample < externalAudioBuffersPerSample.size())
@@ -494,6 +539,21 @@ bool VideoEncoder::process(BaseTexture *tex)
   return true;
 }
 
+bool VideoEncoder::process(BaseTexture *tex)
+{
+  if (!recording)
+  {
+    if (audioRecorder.isRecording())
+      return audioRecorder.process();
+    return true;
+  }
+  if (!pMFCreateDXGIDeviceManager)
+    return false;
+  d3d::stretch_rect(tex, stretchedTex.getTex2D());
+  ::SetEvent(hProcessStart);
+  return true;
+}
+
 bool VideoEncoder::stop()
 {
   // Intentionally clear the possibly leftover audiobuffer contents, by moving out
@@ -505,6 +565,11 @@ bool VideoEncoder::stop()
   if (!pMFCreateDXGIDeviceManager)
     return false;
   recording = false;
+  ::CloseHandle(hProcessThread);
+  hProcessThread = nullptr;
+  ::CloseHandle(hProcessStart);
+  hProcessStart = nullptr;
+  stretchedTex.close();
   return true;
 }
 
@@ -516,13 +581,13 @@ bool VideoEncoder::setAudioSample(const eastl::vector<uint8_t> &audioBuf)
   {
     ComPtr<IMFSample> pAudioSample;
     ComPtr<IMFMediaBuffer> pBuffer;
-    HRESULT hr = ::MFCreateMemoryBuffer(audioBuf.size(), &pBuffer);
+    HRESULT hr = pMFCreateMemoryBuffer(audioBuf.size(), &pBuffer);
     BYTE *pOut;
     CHECK_HR(pBuffer->Lock(&pOut, nullptr, nullptr));
     memcpy(pOut, audioBuf.data(), audioBuf.size());
     pBuffer->Unlock();
     CHECK_HR(pBuffer->SetCurrentLength(audioBuf.size()));
-    CHECK_HR(::MFCreateSample(&pAudioSample));
+    CHECK_HR(pMFCreateSample(&pAudioSample));
     CHECK_HR(pAudioSample->AddBuffer(pBuffer.Get()));
     CHECK_HR(pAudioSample->SetSampleDuration(duration));
     CHECK_HR(pAudioSample->SetSampleTime(rtStart));
@@ -597,7 +662,6 @@ bool AudioRecorder::start()
     logerr("CreateThread failed: last error is %u", GetLastError());
     return false;
   }
-
   recording = true;
   return true;
 }

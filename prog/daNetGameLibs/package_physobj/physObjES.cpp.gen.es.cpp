@@ -7,9 +7,11 @@ static constexpr ecs::component_t phys__disableSnapshots_get_type();
 static ecs::LTComponentList phys__disableSnapshots_component(ECS_HASH("phys__disableSnapshots"), phys__disableSnapshots_get_type(), "prog/daNetGameLibs/package_physobj/./physObjES.cpp.inl", "", 0);
 static constexpr ecs::component_t turret_state_remote_get_type();
 static ecs::LTComponentList turret_state_remote_component(ECS_HASH("turret_state_remote"), turret_state_remote_get_type(), "prog/daNetGameLibs/package_physobj/./physObjES.cpp.inl", "", 0);
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "physObjES.cpp.inl"
 ECS_DEF_PULL_VAR(physObj);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc underground_physobj_teleporter_es_comps[] =
 {
@@ -109,7 +111,7 @@ static ecs::EntitySystemDesc phys_obj_phys_es_es_desc
   make_span(phys_obj_phys_es_comps+4, 1)/*no*/,
   ecs::EventSetBuilder<UpdatePhysEvent>::build(),
   0
-,nullptr,nullptr,"after_net_phys_sync,human_phys_es","before_net_phys_sync");
+,nullptr,nullptr,"after_net_phys_sync","before_net_phys_sync");
 static constexpr ecs::ComponentDesc phys_obj_phys_events_es_event_handler_comps[] =
 {
 //start of 1 rw components at [0]
@@ -207,7 +209,10 @@ static constexpr ecs::ComponentDesc phys_obj_net_phys_apply_authority_state_es_c
 {
 //start of 1 rw components at [0]
   {ECS_HASH("phys_obj_net_phys"), ecs::ComponentTypeInfo<PhysObjActor>()},
-//start of 1 no components at [1]
+//start of 2 ro components at [1]
+  {ECS_HASH("net_phys__disableAuthorityStateApplication"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("net_phys__smoothAuthorityApplication"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
+//start of 1 no components at [3]
   {ECS_HASH("disableUpdate"), ecs::ComponentTypeInfo<ecs::Tag>()}
 };
 static void phys_obj_net_phys_apply_authority_state_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
@@ -216,6 +221,8 @@ static void phys_obj_net_phys_apply_authority_state_es_all_events(const ecs::Eve
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     phys_obj_net_phys_apply_authority_state_es(static_cast<const UpdatePhysEvent&>(evt)
         , ECS_RW_COMP(phys_obj_net_phys_apply_authority_state_es_comps, "phys_obj_net_phys", PhysObjActor)
+    , ECS_RO_COMP_PTR(phys_obj_net_phys_apply_authority_state_es_comps, "net_phys__disableAuthorityStateApplication", bool)
+    , ECS_RO_COMP_PTR(phys_obj_net_phys_apply_authority_state_es_comps, "net_phys__smoothAuthorityApplication", bool)
     );
   while (++comp != compE);
 }
@@ -225,9 +232,9 @@ static ecs::EntitySystemDesc phys_obj_net_phys_apply_authority_state_es_es_desc
   "prog/daNetGameLibs/package_physobj/./physObjES.cpp.inl",
   ecs::EntitySystemOps(nullptr, phys_obj_net_phys_apply_authority_state_es_all_events),
   make_span(phys_obj_net_phys_apply_authority_state_es_comps+0, 1)/*rw*/,
+  make_span(phys_obj_net_phys_apply_authority_state_es_comps+1, 2)/*ro*/,
   empty_span(),
-  empty_span(),
-  make_span(phys_obj_net_phys_apply_authority_state_es_comps+1, 1)/*no*/,
+  make_span(phys_obj_net_phys_apply_authority_state_es_comps+3, 1)/*no*/,
   ecs::EventSetBuilder<UpdatePhysEvent>::build(),
   0
 ,nullptr,nullptr,"after_net_phys_sync,phys_obj_phys_es","before_net_phys_sync");

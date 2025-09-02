@@ -2,7 +2,6 @@
 #pragma once
 
 #include <drv/3d/dag_commands.h>
-#include <drv/3d/rayTrace/dag_drvRayTrace.h> // for D3D_HAS_RAY_TRACING
 
 #include "render_state_system.h"
 #include "util/scoped_timer.h"
@@ -23,7 +22,8 @@ namespace drv3d_vulkan
 {
 struct TimestampQuery;
 struct SwapchainMode;
-#if D3D_HAS_RAY_TRACING
+struct ImageArea;
+#if VULKAN_HAS_RAYTRACING
 class RaytraceAccelerationStructure;
 #endif
 
@@ -39,7 +39,6 @@ class ExecutionContext
 {
 
 public:
-  Swapchain &swapchain;
   VulkanDevice &vkDev;
 
   // work set that is worked on
@@ -63,6 +62,8 @@ public:
   uint32_t lastTimestampActionIdx = -1;
   // consume offset for NRP reordered buffer copies
   uint32_t reorderedBufferCopyOffset = 0;
+  // non command stream saved loop key, to trigger device execution tracker once per ncmd loop
+  uint32_t ncmdLoopKey = 0;
 
   VulkanCommandBufferHandle frameCore = VulkanHandle();
   DeviceQueueType frameCoreQueue = DeviceQueueType::INVALID;
@@ -77,6 +78,7 @@ public:
   uint64_t getCurrentCmdCallerHash();
   void reportMissingPipelineComponent(const char *component);
   void queueImageResidencyRestore(Image *img);
+  void queueBufferResidencyRestore(Buffer *buf);
   void writeExectionChekpoint(VkPipelineStageFlagBits stage);
   void recordUserQueueSignal(int idx, DeviceQueueType target_queue);
   void waitUserQueueSignal(int idx, DeviceQueueType target_queue);
@@ -90,7 +92,7 @@ private:
   size_t graphicsUploadBuffer = 0;
   size_t uploadQueueWaitMask = ~0;
   void waitForUploadOnCurrentBuffer();
-  VulkanSemaphoreHandle presentSignal = VulkanHandle();
+  VulkanSemaphoreHandle frameReadySemaphoreForPresent = VulkanHandle();
 
   void finishAllGPUWorkItems();
   enum
@@ -112,16 +114,19 @@ private:
     MARKER_NCMD_DOWNLOAD_IMAGES,
     MARKER_NCMD_BUFFER_HOST_FLUSHES,
     MARKER_NCMD_FRAME_END_SYNC,
-    MARKER_NCMD_END
+    MARKER_NCMD_END,
+    MARKER_NCMD_ASYNC_READBACK_ACQUIRE,
+    MARKER_NCMD_ASYNC_READBACK_RELEASE,
   };
   void writeExectionChekpointNonCommandStream(VkPipelineStageFlagBits stage, uint32_t key);
 
-  void restoreImageResidencies();
+  void verifyResourcesResidencyRestoration();
+  void restoreResourcesResidency();
   VulkanCommandBufferHandle allocAndBeginCommandBuffer(DeviceQueueType queue);
   void flushImageDownloads();
   void flushBufferDownloads();
-  void flushBufferUploads();
-  void flushOrderedBufferUploads();
+  void flushBufferUploads(bool overlapped);
+  void flushOrderedBufferUploads(bool overlapped);
   void flushBufferToHostFlushes();
   void flushImageUploads();
   void flushImageUploadsIter(uint32_t start, uint32_t end);
@@ -130,6 +135,8 @@ private:
   void flushUnorderedImageCopies();
   void flushUploads();
   void flushPostFrameCommands();
+
+  void processReadbacks();
 
   void stackUpCommandBuffers();
   void sortAndCountDependencies();
@@ -192,7 +199,7 @@ public:
   void beginQuery(VulkanQueryPoolHandle pool, uint32_t index, VkQueryControlFlags flags);
   void endQuery(VulkanQueryPoolHandle pool, uint32_t index);
   void wait(ThreadedFence *fence);
-#if D3D_HAS_RAY_TRACING
+#if VULKAN_HAS_RAYTRACING
 #if VK_KHR_ray_tracing_pipeline || VK_KHR_ray_query
   void accumulateRaytraceBuildAccesses(const RaytraceStructureBuildData &build_data);
   void accumulateAssumedRaytraceStructureReads(const RaytraceStructureBuildData &build_data);
@@ -201,7 +208,10 @@ public:
   void buildAccelerationStructures(RaytraceStructureBuildData *build_data, uint32_t count);
 #endif
 #endif
-  void present();
+  void baseMipBlit(Image *from, Image *to);
+  void makeImageReadyForPresent(Image *img);
+  bool acquireSwapchainImage(const CmdPresent &params, uint32_t &out_index, VulkanSemaphoreHandle &out_sem);
+  void present(const CmdPresent &params);
   void doFrameEndCallbacks();
   void flushAndWait(ThreadedFence *user_fence);
   void dispatch(uint32_t x, uint32_t y, uint32_t z);
@@ -257,12 +267,16 @@ public:
   void trackStageResAccessesNonParallel(const spirv::ShaderHeader &header, ExtendedShaderStage stage);
 
   void trackIndirectArgAccesses(BufferRef buffer, uint32_t offset, uint32_t count, uint32_t stride);
-  void trackBindlessRead(Image *img);
+  void trackBindlessRead(Image *img, ImageArea area);
 
   template <typename ResType>
   void verifyResident(ResType *obj);
 
   void executeFSR(amd::FSR *fsr, const FSRUpscalingArgs &params);
+  void executeDLSS(const nv::DlssParams<Image> &params);
+  void initializeDLSS(int mode, int width, int height);
+  void initializeStreamlineDlss(int width, int height);
+  void executeStreamlineDlss(const nv::DlssParams<Image> &params, int view_index);
 };
 
 } // namespace drv3d_vulkan

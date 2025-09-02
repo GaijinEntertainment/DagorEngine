@@ -139,7 +139,7 @@ let headerTxt = @(text) freeze({rendObj = ROBJ_TEXT text fontSize = hdpx(70) col
 let itemGap = freeze({rendObj=ROBJ_FRAME size=[flex(),hdpx(1)] color=Color(90,90,90)})
 function itemToOption(value){
   let t = type(value)
-  let val = t!="table" ? value : value.value
+  let val = t!="table" ? value : value.get()
   return {
     value = val
     text = t=="bool"
@@ -185,7 +185,7 @@ function mkCombo(opt, _group=null, _xmbNode=null) {
     let {value, text} = itemToOption(val)
     let cur = curVal()
     let curt = type(cur)
-    let isCurrent = curt=="table" ? value == cur.value : value == cur
+    let isCurrent = curt=="table" ? value == cur.get() : value == cur
     function handler() {
       setValue(val)
       close()

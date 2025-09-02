@@ -8,6 +8,7 @@
 #include <drv/3d/dag_buffers.h>
 #include <drv/3d/dag_query.h>
 #include <EASTL/type_traits.h>
+#include <EASTL/algorithm.h>
 
 template <typename T>
 class LockedBuffer
@@ -22,8 +23,8 @@ public:
   {
     G_ASSERT(locked_object);
     // TODO: It is necessary to prohibit having count == 0
-    G_ASSERT(!count || ofs_bytes + sizeof(T) * count <= locked_object->ressize());
-    uint32_t size_bytes = count ? sizeof(T) * count : mLockedObject->ressize() - ofs_bytes;
+    G_ASSERT(!count || ofs_bytes + sizeof(T) * count <= locked_object->getSize());
+    uint32_t size_bytes = count ? sizeof(T) * count : mLockedObject->getSize() - ofs_bytes;
     G_ASSERT(size_bytes % sizeof(T) == 0);
     mCount = size_bytes / sizeof(T);
     if (!mLockedObject->lock(ofs_bytes, size_bytes, (void **)&mData, flags) || !mData)

@@ -25,7 +25,7 @@ public:
 
   SimpleProgressCB() : mustStop(false) {}
 
-  virtual void onCancel() { mustStop = true; }
+  void onCancel() override { mustStop = true; }
 };
 
 
@@ -66,19 +66,19 @@ public:
 class QuietProgressIndicator : public IGenericProgressIndicator
 {
 public:
-  virtual void setActionDescFmt(const char *desc, const DagorSafeArg *arg, int anum)
+  void setActionDescFmt(const char *desc, const DagorSafeArg *arg, int anum) override
   {
     G_UNUSED(desc);
     G_UNUSED(arg);
     G_UNUSED(anum);
   }
-  virtual void setTotal(int total_cnt) { G_UNUSED(total_cnt); }
-  virtual void setDone(int done_cnt) { G_UNUSED(done_cnt); }
-  virtual void incDone(int inc = 1) { G_UNUSED(inc); }
-  virtual void redrawScreen() {}
-  virtual void destroy() {}
-  virtual void startProgress(IProgressCB *progress_cb = NULL) { G_UNUSED(progress_cb); }
-  virtual void endProgress() {}
+  void setTotal(int total_cnt) override { G_UNUSED(total_cnt); }
+  void setDone(int done_cnt) override { G_UNUSED(done_cnt); }
+  void incDone(int inc = 1) override { G_UNUSED(inc); }
+  void redrawScreen() override {}
+  void destroy() override {}
+  void startProgress(IProgressCB *progress_cb = NULL) override { G_UNUSED(progress_cb); }
+  void endProgress() override {}
 };
 
 
@@ -92,30 +92,30 @@ public:
   ConsoleProgressIndicator(bool show_pct) { showPct = show_pct; }
   ~ConsoleProgressIndicator();
 
-  virtual void setActionDescFmt(const char *fmt, const DagorSafeArg *arg, int anum);
-  virtual void setTotal(int total_cnt)
+  void setActionDescFmt(const char *fmt, const DagorSafeArg *arg, int anum) override;
+  void setTotal(int total_cnt) override
   {
     total = total_cnt < 1 ? 1 : total_cnt;
     updatePct();
   }
-  virtual void setDone(int done_cnt)
+  void setDone(int done_cnt) override
   {
     done = done_cnt;
     updatePct();
   }
-  virtual void incDone(int inc = 1)
+  void incDone(int inc = 1) override
   {
     done += inc;
     updatePct();
   }
-  virtual void redrawScreen()
+  void redrawScreen() override
   {
     lastPct = -1;
     updatePct();
   }
-  virtual void destroy() { delete this; }
-  virtual void startProgress(IProgressCB *) {}
-  virtual void endProgress() {}
+  void destroy() override { delete this; }
+  void startProgress(IProgressCB *) override {}
+  void endProgress() override {}
 
 protected:
   virtual void outputPct(int pct);

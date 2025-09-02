@@ -47,7 +47,7 @@ void BloomPS::init(int w, int h)
   mipsCount = clamp((int)get_log2i(min(w / 4, h / 4) / gaussHalfKernel), 1, (int)MAX_MIPS);
   debug("bloom inited with %d mips", mipsCount);
   bloomMips = dag::create_tex(NULL, width / 4, height / 4, fmtflags, mipsCount, "bloom_tex");
-  bloomMips.getTex2D()->texaddr(TEXADDR_BORDER);
+  // bloomMips.getTex2D()->texaddr(TEXADDR_BORDER);
 
   downsample_13.init("bloom_downsample_hq");
   downsample_4.init("bloom_downsample_lq");
@@ -99,7 +99,7 @@ static void ensure_mip(int mip, UniqueTex &bloom_last_mip, int &bloom_last_mip_s
   bloom_last_mip.close();
   bloom_last_mip =
     dag::create_tex(NULL, w, h, TEXCF_RTARGET | TEXFMT_R11G11B10F, mips_count - bloom_last_mip_start_mip, "gauss_bloom_mip");
-  bloom_last_mip.getTex2D()->texaddr(TEXADDR_BORDER);
+  // bloom_last_mip.getTex2D()->texaddr(TEXADDR_BORDER);
 }
 
 void BloomPS::perform(ManagedTexView downsampled_frame)
@@ -117,7 +117,7 @@ void BloomPS::perform(ManagedTexView downsampled_frame)
 
   TIME_D3D_PROFILE(downsample_mips);
   {
-    downsampled_frame.getTex2D()->texaddr(TEXADDR_CLAMP);
+    // downsampled_frame.getTex2D()->texaddr(TEXADDR_CLAMP);
     d3d::set_render_target(bloomMips.getTex2D(), 0);
     downsampled_frame.getTex2D()->texmiplevel(0, 0);
     TIME_D3D_PROFILE(firstDownsample);
@@ -145,7 +145,7 @@ void BloomPS::perform(ManagedTexView downsampled_frame)
         bloomMips.getTex2D()->texmiplevel(i, i);
         d3d::resource_barrier({bloomMips.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, unsigned(i), 1});
         ensure_mip(i, bloomLastMip, bloomLastMipStartMip, mipsCount, width, height);
-        bloomLastMip.getTex2D()->texaddr(TEXADDR_BORDER);
+        // bloomLastMip.getTex2D()->texaddr(TEXADDR_BORDER);
         blur_bloom_mip(i, bloomMips, bloomLastMip, i - bloomLastMipStartMip, blur_4);
       }
     }

@@ -21,15 +21,15 @@ namespace debug::null
 class DeviceContextState : public break_point::Controller
 {
 public:
-  constexpr void debugBeginCommandBuffer(DeviceState &, D3DDevice *, ID3D12GraphicsCommandList *) {}
+  constexpr void debugBeginCommandBuffer(DeviceState &, D3DDevice *, D3DGraphicsCommandList *) {}
 
-  constexpr void debugEndCommandBuffer(DeviceState &, ID3D12GraphicsCommandList *) {}
+  constexpr void debugEndCommandBuffer(DeviceState &, D3DGraphicsCommandList *) {}
 
   constexpr void debugFramePresent(DeviceState &) {}
 
-  constexpr void debugEventBegin(DeviceState &, ID3D12GraphicsCommandList *, eastl::string_view) {}
-  constexpr void debugEventEnd(DeviceState &, ID3D12GraphicsCommandList *) {}
-  constexpr void debugMarkerSet(DeviceState &, ID3D12GraphicsCommandList *, eastl::string_view) {}
+  constexpr void debugEventBegin(DeviceState &, D3DGraphicsCommandList *, eastl::string_view) {}
+  constexpr void debugEventEnd(DeviceState &, D3DGraphicsCommandList *) {}
+  constexpr void debugMarkerSet(DeviceState &, D3DGraphicsCommandList *, eastl::string_view) {}
 
   constexpr void debugFrameCaptureBegin(DeviceState &, ID3D12CommandQueue *, uint32_t, eastl::span<const wchar_t>) {}
 
@@ -84,6 +84,9 @@ public:
 #endif
 
   constexpr void debugOnDeviceRemoved(DeviceState &, D3DDevice *, HRESULT) {}
+
+  constexpr void nameResource(DeviceState &, ID3D12Resource *, eastl::string_view) {}
+  constexpr void nameResource(DeviceState &, ID3D12Resource *, eastl::wstring_view) {}
 };
 } // namespace debug::null
 } // namespace drv3d_dx12

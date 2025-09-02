@@ -1,12 +1,14 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <EditorCore/ec_genappwnd.h>
-#include <EditorCore/ec_gizmofilter.h>
+#include "ec_screenshotSettingsDialog.h"
+#include "ec_gizmoRenderer.h"
 #include <EditorCore/ec_cm.h>
 #include <EditorCore/ec_brushfilter.h>
 #include <EditorCore/ec_startDlg.h>
 #include <EditorCore/ec_startup.h>
 #include <EditorCore/ec_interface_ex.h>
+#include <EditorCore/ec_wndGlobal.h>
 
 #include <libTools/util/undo.h>
 #include <libTools/util/strUtil.h>
@@ -32,6 +34,8 @@
 
 #include <image/dag_tga.h>
 #include <image/dag_jpeg.h>
+#include <image/dag_png.h>
+#include <image/dag_tiff.h>
 #include <image/dag_texPixel.h>
 #include <shaders/dag_shaderBlock.h>
 #include <math/dag_cube_matrix.h>
@@ -43,24 +47,19 @@
 #include <drv/3d/dag_lock.h>
 #include <drv/3d/dag_info.h>
 #include <3d/dag_render.h>
+#include <3d/ddsxTex.h>
+#include <3d/dag_lockTexture.h>
 #include <propPanel/commonWindow/dialogWindow.h>
 #include <propPanel/control/container.h>
 #include <propPanel/control/menu.h>
+#include <propPanel/colors.h>
 #include <render/dag_cur_view.h>
 #include <winGuiWrapper/wgw_dialogs.h>
-#include <sepGui/wndGlobal.h>
-// #include <3d/ddsFormat.h>
-#include <3d/ddsxTex.h>
 
 #include <debug/dag_debug3d.h>
 #include <startup/dag_globalSettings.h>
-#include <windows.h>
-#undef ERROR
 
 extern void update_visibility_finder(VisibilityFinder &vf);
-
-#define MIN_CUBE_2_POWER 5
-#define MAX_CUBE_2_POWER 11
 
 #define ORTHOGONAL_SCREENSHOT_HEIGHT 1000.f
 
@@ -75,6 +74,7 @@ static const int TEX_SIZES_CNT = 8;
 static int tex_sizes[TEX_SIZES_CNT] = {8192, 4096, 2048, 1024, 512, 256, 128, 64};
 static const int TEX_QUALITY_TYPE_CNT = 4;
 static const char *tex_qt[TEX_QUALITY_TYPE_CNT] = {"tga", "jpeg 100%", "jpeg 90%", "jpeg 40%"};
+static eastl::unique_ptr<ScreenshotSettingsDialog> screenshot_settings_dialog;
 
 enum
 {
@@ -109,7 +109,7 @@ public:
     shotSz = tex_sizes[startTsInd];
   }
 
-  virtual int showDialog() override
+  int showDialog() override
   {
     PropPanel::ContainerPropertyControl *_panel = getPanel();
     G_ASSERT(_panel && "No panel in GenericEditorAppWindow::OrthogonalScreenshotDlg");
@@ -134,7 +134,7 @@ public:
     return DialogWindow::showDialog();
   }
 
-  virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel)
+  void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override
   {
     switch (pcb_id)
     {
@@ -210,7 +210,7 @@ public:
     }
   }
 
-  virtual bool onOk()
+  bool onOk() override
   {
     PropPanel::ContainerPropertyControl *_panel = getPanel();
     G_ASSERT(_panel && "No panel in GenericEditorAppWindow::OrthogonalScreenshotDlg");
@@ -320,7 +320,7 @@ struct BaseEditorCoreConsoleCmdHandler : public IConsoleCmd
   CoolConsole *console;
   BaseEditorCoreConsoleCmdHandler() : console(NULL) {}
 
-  virtual bool onConsoleCommand(const char *cmd, dag::ConstSpan<const char *> params)
+  bool onConsoleCommand(const char *cmd, dag::ConstSpan<const char *> params) override
   {
     if (!console)
       return false;
@@ -350,7 +350,7 @@ struct BaseEditorCoreConsoleCmdHandler : public IConsoleCmd
     return false;
   }
 
-  virtual const char *onConsoleCommandHelp(const char *cmd)
+  const char *onConsoleCommandHelp(const char *cmd) override
   {
     if (!console)
       return NULL;
@@ -371,19 +371,140 @@ struct BaseEditorCoreConsoleCmdHandler : public IConsoleCmd
 };
 static BaseEditorCoreConsoleCmdHandler ec_concmd;
 
+namespace
+{
+bool saveDDSX(const char *fname, TexPixel32 *tex, int size, int line, bool save_alpha)
+{
+  ddsx::Header hdr;
+  memset(&hdr, 0, sizeof(hdr));
+  hdr.label = _MAKE4C('DDSx');
+  hdr.bitsPerPixel = 32;
+  hdr.d3dFormat = 0x15; // D3DFMT_A8R8G8B8
+  hdr.w = size;
+  hdr.h = size;
+  hdr.levels = 1;
+  hdr.flags |= hdr.FLG_ZLIB | hdr.FLG_CUBTEX | (TEXADDR_CLAMP) | (TEXADDR_CLAMP << 4);
+  hdr.memSz = size * size * 6 * sizeof(TexPixel32);
+
+  FullFileSaveCB cwr(fname);
+  if (cwr.fileHandle)
+  {
+    const auto write = [&cwr, &size, &line, &hdr](TexPixel32 *tex) {
+      cwr.write(&hdr, sizeof(hdr));
+      ZlibSaveCB z_cwr(cwr, ZlibSaveCB::CL_BestSpeed + 5); // ~25Mb/sec
+      for (int face = 0; face < 6; ++face)
+        for (int y = 0, ofs = size * face; y < size; y++, ofs += line)
+          z_cwr.write(tex + ofs, size * sizeof(TexPixel32));
+      z_cwr.finish();
+    };
+
+    if (!save_alpha)
+    {
+      eastl::unique_ptr<TexPixel32> noAlphaImg(new TexPixel32[size * line]);
+      for (int i = 0; i < size * line; ++i)
+      {
+        auto *noAlphaPix = noAlphaImg.get() + i;
+        noAlphaPix->r = (tex + i)->r;
+        noAlphaPix->g = (tex + i)->g;
+        noAlphaPix->b = (tex + i)->b;
+        noAlphaPix->a = 1.f;
+      }
+
+      write(noAlphaImg.get());
+    }
+    else
+    {
+      write(tex);
+    }
+
+    hdr.packedSz = cwr.tell() - sizeof(hdr);
+    cwr.seekto(0);
+    cwr.write(&hdr, sizeof(hdr));
+    cwr.close();
+    return true;
+  }
+  else
+  {
+    return false;
+  }
+}
+
+
+//==================================================================================================
+bool saveScreenshot(ScreenshotFormat fmt, TexPixel32 *tex, int w, int h, int stride, const String &fname, int jpeg_q, bool save_alpha)
+{
+  switch (fmt)
+  {
+    case ScreenshotFormat::JPEG:
+    {
+      return ::save_jpeg32(tex, w, h, stride, jpeg_q, fname);
+    }
+    case ScreenshotFormat::TGA:
+    {
+      if (save_alpha)
+      {
+        return ::save_tga32(fname, tex, w, h, stride);
+      }
+      else
+      {
+        eastl::unique_ptr<std::byte> imageData(new std::byte[w * h * 3]);
+        std::byte *image32 = reinterpret_cast<std::byte *>(tex);
+        for (int i = 0; i < h; ++i)
+          for (int j = 0; j < w; ++j)
+            for (int h = 0; h < 3; ++h)
+              imageData.get()[h + 3 * (j + w * i)] = image32[h + 4 * j + stride * i];
+        return ::save_tga24(fname, reinterpret_cast<char *>(imageData.get()), w, h, w * 3);
+      }
+    }
+    case ScreenshotFormat::PNG:
+    {
+      return ::save_png32(fname, tex, w, h, stride, nullptr, 0, save_alpha);
+    }
+    case ScreenshotFormat::TIFF:
+    {
+      return save_alpha ? ::save_tiff32(fname, tex, w, h, stride) : ::save_tiff24(fname, tex, w, h, stride);
+    }
+    case ScreenshotFormat::DDSX:
+    {
+      return saveDDSX(fname, tex, h, w, save_alpha);
+    }
+    default:
+    {
+      logerr("Unexpected screenshot format");
+      return false;
+    }
+  }
+}
+
+
+//==================================================================================================
+bool saveScreenshot(ScreenshotFormat fmt, Texture &tex, const String &fname, int jpeg_q, bool save_alpha)
+{
+  if (auto lockedTex = lock_texture<real>(&tex, 0, TEXLOCK_DEFAULT))
+  {
+    return saveScreenshot(fmt, reinterpret_cast<TexPixel32 *>(lockedTex.get()), lockedTex.getWidthInElems(),
+      lockedTex.getHeightInElems(), lockedTex.getByteStride(), fname, jpeg_q, save_alpha);
+  }
+
+  return false;
+}
+} // namespace
 
 GenericEditorAppWindow::GenericEditorAppWindow(const char *open_fname, IWndManager *manager) :
-  ged(), quietMode(false), screenshotSize(1024, 768), cubeSize(512), isRenderingOrtScreenshot_(false), mManager(manager)
+  ged(),
+  quietMode(false),
+  isRenderingOrtScreenshot_(false),
+  mManager(manager),
+  screenshotCfg(ScreenshotConfig::getDefaultCfg()),
+  cubeScreenshotCfg(ScreenshotConfig::getDefaultCubeCfg())
 {
   G_ASSERT(mManager && "GenericEditorAppWindow::ctor(): layout manager == NULL!");
 
-  SimpleString exe_dir(__argv[0]);
-  ::dd_get_fname_location(exe_dir.str(), __argv[0]);
+  SimpleString exe_dir(dgs_argv[0]);
+  ::dd_get_fname_location(exe_dir.str(), dgs_argv[0]);
   sgg::set_exe_path(exe_dir);
 
-  screenshotObjOnTranspBkg = false;
-  screenshotSaveJpeg = true;
-  screenshotJpegQ = 80;
+  themeName = defaultThemeName;
 
   memset(sceneFname, 0, sizeof(sceneFname));
   memset(&cursor, 0, sizeof(cursor));
@@ -398,7 +519,6 @@ GenericEditorAppWindow::GenericEditorAppWindow(const char *open_fname, IWndManag
   gizmoEH = new (uimem) GizmoEventFilter(ged, grid);
   brushEH = new (midmem) BrushEventFilter;
   appEH = NULL;
-
 
   // at the end of init we load or create new scene
   if (!open_fname)
@@ -415,10 +535,7 @@ GenericEditorAppWindow::GenericEditorAppWindow(const char *open_fname, IWndManag
   mainMenu.reset(PropPanel::create_menu());
   getMainMenu()->setEventHandler(this);
 
-  console = new CoolConsole("console", (HWND)mManager->getMainWindow());
-  console->initConsole();
-
-  ec_concmd.registerSelf(console);
+  console = new CoolConsole();
 }
 
 GenericEditorAppWindow::~GenericEditorAppWindow()
@@ -429,6 +546,8 @@ GenericEditorAppWindow::~GenericEditorAppWindow()
   del_it(undoSystem);
   del_it(gizmoEH);
   del_it(brushEH);
+
+  closeScreenshotSettingsDialog();
 }
 
 
@@ -441,30 +560,30 @@ PropPanel::IMenu *GenericEditorAppWindow::getMainMenu()
 
 void GenericEditorAppWindow::fillMenu(PropPanel::IMenu *menu) { addExitCommand(menu); }
 
-void GenericEditorAppWindow::addExitCommand(PropPanel::IMenu *menu) { menu->addItem(ROOT_MENU_ITEM, CM_EXIT, "Exit"); }
+void GenericEditorAppWindow::addExitCommand(PropPanel::IMenu *menu) { menu->addItem(PropPanel::ROOT_MENU_ITEM, CM_EXIT, "Exit"); }
 
 
-void GenericEditorAppWindow::init()
+void GenericEditorAppWindow::init(const char *select_workspace)
 {
   // ged.setViewportCacheMode(ged.vcmode);
+
+  console->initConsole();
+  ec_concmd.registerSelf(console);
 
   fillMenu(getMainMenu());
   setDocTitle();
 
   mManager->show();
 
-  startWith();
+  startWith(select_workspace);
 
   updateMenu(getMainMenu());
 }
 
 
-void GenericEditorAppWindow::startWith()
+void GenericEditorAppWindow::startWith(const char *select_workspace)
 {
-  // load last workspace
-
-  const char *last = NULL;
-  bool startupSceneSet = false;
+  startup_editor_core_select_startup_scene();
 
   // process start dialog
 
@@ -495,14 +614,8 @@ void GenericEditorAppWindow::startWith()
     {
       int variant = -1;
 
-      if (!startupSceneSet)
-      {
-        startupSceneSet = true;
-        startup_editor_core_select_startup_scene();
-      }
-
       EditorStartDialog esd("Select workspace", getWorkspace(), ::make_full_path(sgg::get_exe_path(), "../.local/workspace.blk"),
-        last);
+        select_workspace);
 
       variant = esd.showDialog();
 
@@ -955,132 +1068,23 @@ void GenericEditorAppWindow::onShowConsole()
 
 //==================================================================================================
 
-void GenericEditorAppWindow::setScreenshotOptions()
+void GenericEditorAppWindow::setScreenshotOptions(ScreenshotDlgMode mode)
 {
-  class ScreenshotOptionsClient : public PropPanel::DialogWindow
+  if (!screenshot_settings_dialog)
   {
-  public:
-    int scrnW;
-    int scrnH;
-    int cubeSize;
-    bool jpeg;
-    int jpegQ;
-    bool objOnly = false;
+    screenshot_settings_dialog.reset(
+      new ScreenshotSettingsDialog(screenshotCfg, cubeScreenshotCfg, mode, [this](const ScreenshotSettingsDialog &dialog) {
+        screenshotCfg = dialog.getScreenshotCfg();
+        cubeScreenshotCfg = dialog.getCubeScreenshotCfg();
+      }));
 
-    enum
-    {
-      PID_SCRN_GROUP,
-      PID_SCRN_W,
-      PID_SCRN_H,
-      PID_JPEG,
-      PID_JPEG_Q,
-      PID_OBJONLY,
-
-      PID_CUBE_GROUP,
-      PID_CUBE_SIZE,
-    };
-
-
-    ScreenshotOptionsClient() : DialogWindow(0, _pxScaled(305), _pxScaled(370), "Screenshot settings") {}
-
-    void fill()
-    {
-      PropPanel::ContainerPropertyControl *_panel = getPanel();
-      G_ASSERT(_panel && "No panel in ScreenshotOptionsClient");
-
-      PropPanel::ContainerPropertyControl *_grp = _panel->createGroupBox(PID_SCRN_GROUP, "Screenshot");
-      {
-        _grp->createEditInt(PID_SCRN_W, "Screenshot width:", scrnW);
-        _grp->createEditInt(PID_SCRN_H, "Screenshot height:", scrnH);
-        _grp->createCheckBox(PID_OBJONLY, "Only object on transparent back (TGA)", objOnly);
-        _grp->createIndent();
-
-        _grp->createCheckBox(PID_JPEG, "Save as JPEG", jpeg);
-        _grp->createTrackInt(PID_JPEG_Q, "JPEG quality", jpegQ, 1, 100, 1);
-      }
-
-      _grp = _panel->createGroupBox(PID_CUBE_GROUP, "Cube screenshot");
-      {
-        Tab<String> vals(tmpmem);
-        int sel = -1;
-
-        for (int i = MIN_CUBE_2_POWER; i <= MAX_CUBE_2_POWER; ++i)
-        {
-          unsigned _sz = 1 << i;
-          if (cubeSize == _sz)
-            sel = i - MIN_CUBE_2_POWER;
-
-          String val(32, "%i x %i", _sz, _sz);
-          vals.push_back(val);
-        }
-
-        _grp->createCombo(PID_CUBE_SIZE, "Cube screenshot size:", vals, sel);
-      }
-    }
-
-    bool onOk()
-    {
-      PropPanel::ContainerPropertyControl *_panel = getPanel();
-      G_ASSERT(_panel && "No panel in ScreenshotOptionsClient");
-
-      scrnW = _panel->getInt(PID_SCRN_W);
-      scrnH = _panel->getInt(PID_SCRN_H);
-      objOnly = _panel->getBool(PID_OBJONLY);
-      jpeg = _panel->getBool(PID_JPEG) && !objOnly;
-      jpegQ = _panel->getInt(PID_JPEG_Q);
-
-
-      int pwr = _panel->getInt(PID_CUBE_SIZE);
-      if (pwr > -1)
-        cubeSize = 1 << (pwr + MIN_CUBE_2_POWER);
-
-      return true;
-    }
-
-    void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel)
-    {
-      if (pcb_id == PID_SCRN_W || pcb_id == PID_SCRN_H)
-      {
-        int val = panel->getInt(pcb_id);
-        if (val < 1)
-        {
-          val = 1;
-          panel->setInt(pcb_id, val);
-        }
-      }
-      else if (pcb_id == PID_OBJONLY)
-      {
-        if (panel->getBool(pcb_id))
-          panel->setBool(PID_JPEG, false);
-      }
-      else if (pcb_id == PID_JPEG)
-      {
-        if (panel->getBool(pcb_id))
-          panel->setBool(PID_OBJONLY, false);
-      }
-    }
-  };
-
-
-  ScreenshotOptionsClient client;
-
-  client.scrnW = screenshotSize.x;
-  client.scrnH = screenshotSize.y;
-  client.objOnly = screenshotObjOnTranspBkg;
-  client.jpeg = screenshotSaveJpeg;
-  client.jpegQ = screenshotJpegQ;
-  client.cubeSize = cubeSize;
-  client.fill();
-
-  if (client.showDialog() == PropPanel::DIALOG_ID_OK)
-  {
-    screenshotSize.x = client.scrnW;
-    screenshotSize.y = client.scrnH;
-    screenshotObjOnTranspBkg = client.objOnly;
-    screenshotSaveJpeg = client.jpeg;
-    screenshotJpegQ = client.jpegQ;
-    cubeSize = client.cubeSize;
+    screenshot_settings_dialog->fill();
   }
+
+  if (screenshot_settings_dialog->isVisible())
+    screenshot_settings_dialog->hide();
+  else
+    screenshot_settings_dialog->show();
 }
 
 
@@ -1101,20 +1105,11 @@ String GenericEditorAppWindow::getScreenshotName(bool cube) const
   return fname;
 }
 
-//==================================================================================================
-
-void GenericEditorAppWindow::screenshotRender()
-{
-  d3d::clearview(CLEAR_TARGET | CLEAR_ZBUFFER | CLEAR_STENCIL, E3DCOLOR(64, 64, 64, 0), 0, 0);
-
-  IEditorCoreEngine::get()->renderObjects();
-}
-
 
 //==================================================================================================
 
-Texture *GenericEditorAppWindow::renderInTex(int w, int h, const TMatrix *tm, bool should_make_orthogonal_screenshot,
-  bool should_use_z_buffer, float world_x0, float world_x1, float world_z0, float world_z1)
+Texture *GenericEditorAppWindow::renderInTex(int w, int h, const TMatrix *tm, bool skip_debug_objects,
+  bool should_make_orthogonal_screenshot, bool should_use_z_buffer, float world_x0, float world_x1, float world_z0, float world_z1)
 {
   if (!ec_cached_viewports)
     return NULL;
@@ -1150,6 +1145,11 @@ Texture *GenericEditorAppWindow::renderInTex(int w, int h, const TMatrix *tm, bo
 
   if (::ec_cached_viewports->startRender(curVpIdx))
   {
+    int origW = w, origH = h;
+    viewport->getViewportSize(origW, origH);
+
+    viewport->setScreenshotMode(Point2(w, h));
+
     d3d::setview(0, 0, w, h, 0, 1);
 
     if (tm)
@@ -1196,16 +1196,36 @@ Texture *GenericEditorAppWindow::renderInTex(int w, int h, const TMatrix *tm, bo
     }
     else
     {
-      real verticalFov = 2.f * atanf(tanf(0.5f * viewport->getFov()) * ((real)h / (real)w));
+      const float aspect = static_cast<float>(w) / h;
+      const float origAspect = static_cast<float>(origW) / origH;
+      float top = 0.f, bottom = 0.f, right = 0.f, left = 0.f;
 
-      d3d::setpersp(
-        Driver3dPerspective(1.f / tanf(0.5f * (tm ? HALFPI : viewport->getFov())), 1.f / tanf(0.5f * verticalFov), zNear, zFar, 0, 0));
+      const float hFov = tm ? HALFPI : fov;
+      if (origAspect < aspect)
+      {
+        top = tanf(0.5f * hFov) * (static_cast<float>(origH) / origW) * zNear;
+        bottom = -top;
+        right = top * aspect;
+        left = -right;
+      }
+      else
+      {
+        right = tanf(hFov * 0.5f) * zNear;
+        left = -right;
+        top = right / aspect;
+        bottom = -top;
+      }
+
+      const TMatrix4 perspective = matrix_perspective_off_center_reverse(left, right, bottom, top, zNear, zFar);
+      d3d::settm(TM_PROJ, &perspective);
     }
 
-    screenshotRender();
+    screenshotRender(skip_debug_objects);
 
     update_visibility_finder(EDITORCORE->queryEditorInterface<IVisibilityFinderProvider>()->getVisibilityFinder());
     ::ec_cached_viewports->endRender();
+
+    viewport->resetScreenshotMode();
   }
 
   ::ec_cached_viewports->enableViewportCache(curVpIdx, cacheUsed);
@@ -1220,38 +1240,15 @@ Texture *GenericEditorAppWindow::renderInTex(int w, int h, const TMatrix *tm, bo
 
 void GenericEditorAppWindow::createScreenshot()
 {
-  IPoint2 sz = screenshotSize;
-  ViewportWindow *vpw = ged.getRenderViewport();
-  if (!vpw)
-    vpw = ged.getCurrentViewport();
-  if (vpw)
-  {
-    int vx = sz.x, vy = sz.y;
-    vpw->getViewportSize(vx, vy);
-    sz.x = vx * sz.y / vy;
-  }
   String fname = getScreenshotName(false);
-  Texture *tex = renderInTex(sz.x, sz.y, NULL);
-
-  if (tex)
+  Texture *tex = renderInTex(screenshotCfg.width, screenshotCfg.height, NULL, !screenshotCfg.enableDebugGeometry);
+  if (tex && saveScreenshot(screenshotCfg.format, *tex, fname, screenshotCfg.jpegQuality, screenshotCfg.enableTransparentBackground))
   {
-    TexPixel32 *img = NULL;
-    int stride = 0;
-    tex->lockimg((void **)&img, stride, 0, TEXLOCK_DEFAULT);
-
-    if (img)
-    {
-      bool ret = screenshotSaveJpeg && !screenshotObjOnTranspBkg ? ::save_jpeg32(img, sz.x, sz.y, stride, screenshotJpegQ, fname)
-                                                                 : ::save_tga32(fname, img, sz.x, sz.y, stride);
-
-      if (ret)
-        IEditorCoreEngine::get()->getConsole().addMessage(ILogWriter::NOTE, "Screenshot saved to \"%s\"", fname.str());
-      else
-        IEditorCoreEngine::get()->getConsole().addMessage(ILogWriter::WARNING, "Cannot save screenshot \"%s\"", fname.str());
-    }
-
-    tex->unlockimg();
-    del_d3dres(tex);
+    wingw::message_box(wingw::MBS_INFO, "Screenshot saved", "Screenshot saved to\n\"%s\"", fname);
+  }
+  else
+  {
+    wingw::message_box(wingw::MBS_EXCL, "Screenshot error", "Failed to save screenshot to\n\"%s\"", fname);
   }
 }
 
@@ -1260,12 +1257,11 @@ void GenericEditorAppWindow::createScreenshot()
 void GenericEditorAppWindow::createCubeScreenshot()
 {
   String fname = getScreenshotName(true);
-  const int lineLen = cubeSize * 6;
-  const int strideLen = cubeSize * sizeof(TexPixel32);
-  const int lineLenBytes = lineLen * sizeof(TexPixel32);
+  const int lineLen = cubeScreenshotCfg.size * 6;
+  const int strideLen = cubeScreenshotCfg.size * sizeof(TexPixel32);
 
-  TexPixel32 *cubeImg = new (tmpmem) TexPixel32[cubeSize * lineLen];
-  memset(cubeImg, 0, cubeSize * lineLen * sizeof(TexPixel32));
+  TexPixel32 *cubeImg = new (tmpmem) TexPixel32[cubeScreenshotCfg.size * lineLen];
+  memset(cubeImg, 0, cubeScreenshotCfg.size * lineLen * sizeof(TexPixel32));
 
   bool canSave = true;
 
@@ -1277,8 +1273,7 @@ void GenericEditorAppWindow::createCubeScreenshot()
     tm.setcol(3, pos);
     tm = cube_matrix(tm, face);
 
-    Texture *tex = renderInTex(cubeSize, cubeSize, &tm);
-
+    Texture *tex = renderInTex(cubeScreenshotCfg.size, cubeScreenshotCfg.size, &tm, !cubeScreenshotCfg.enableDebugGeometry);
 
     if (tex)
     {
@@ -1288,8 +1283,9 @@ void GenericEditorAppWindow::createCubeScreenshot()
       tex->lockimg((void **)&img, stride, 0, TEXLOCK_DEFAULT);
 
       if (img)
-        for (int line = 0; line < cubeSize; ++line)
-          memcpy(&cubeImg[line * cubeSize * 6 + face * cubeSize], &img[line * cubeSize], strideLen);
+        for (int line = 0; line < cubeScreenshotCfg.size; ++line)
+          memcpy(&cubeImg[line * cubeScreenshotCfg.size * 6 + face * cubeScreenshotCfg.size], &img[line * cubeScreenshotCfg.size],
+            strideLen);
 
       tex->unlockimg();
       del_d3dres(tex);
@@ -1301,83 +1297,18 @@ void GenericEditorAppWindow::createCubeScreenshot()
     }
   }
 
-  if (canSave)
+  if (canSave && saveScreenshot(cubeScreenshotCfg.format, cubeImg, lineLen, cubeScreenshotCfg.size, lineLen * 4, fname,
+                   cubeScreenshotCfg.jpegQuality, cubeScreenshotCfg.enableTransparentBackground))
   {
-    String tga_fn(fname);
-    save_tga32(fname, cubeImg, lineLen, cubeSize, lineLen * 4);
-
-    /*
-    // we save DDS without mips!
-    DDSURFACEDESC2 targetHeader;
-    memset (&targetHeader, 0, sizeof(DDSURFACEDESC2));
-    targetHeader.dwSize   = sizeof(DDSURFACEDESC2);
-    targetHeader.dwFlags  = DDSD_CAPS|DDSD_PIXELFORMAT|DDSD_WIDTH|DDSD_HEIGHT|DDSD_MIPMAPCOUNT;
-    targetHeader.dwHeight = cubeSize;
-    targetHeader.dwWidth  = cubeSize;
-    targetHeader.dwDepth  = 1;
-    targetHeader.dwMipMapCount = 1;
-    targetHeader.ddsCaps.dwCaps  = 0;
-    targetHeader.ddsCaps.dwCaps2 = DDSCAPS2_CUBEMAP|DDSCAPS2_CUBEMAP_ALLFACES;
-
-    DDPIXELFORMAT &pf = targetHeader.ddpfPixelFormat;
-    pf.dwSize = sizeof(DDPIXELFORMAT);
-    pf.dwFlags            = DDPF_RGB|DDPF_ALPHAPIXELS;
-    pf.dwRGBBitCount      = 32;
-    pf.dwRBitMask         = 0x00ff0000;
-    pf.dwGBitMask         = 0x0000ff00;
-    pf.dwBBitMask         = 0x000000ff;
-    pf.dwRGBAlphaBitMask  = 0xff000000;
-
-    // dds output
-    fname.replace(".tga", ".dds");
-    FullFileSaveCB cwr(fname);
-    uint32_t FourCC = MAKEFOURCC('D','D','S',' ');
-    cwr.write(&FourCC, sizeof(FourCC));
-    cwr.write(&targetHeader, sizeof(targetHeader));
-
-    for (int face = 0; face < 6; ++face)
-      for (int y = 0, ofs = cubeSize*face; y < cubeSize; y++, ofs += lineLen)
-        cwr.write(cubeImg+ofs, strideLen);
-    cwr.close();
-    */
-
-    // we save DDSx without mips!
-    ddsx::Header hdr;
-    memset(&hdr, 0, sizeof(hdr));
-    hdr.label = _MAKE4C('DDSx');
-    hdr.bitsPerPixel = 32;
-    hdr.d3dFormat = 0x15; // D3DFMT_A8R8G8B8
-    hdr.w = cubeSize;
-    hdr.h = cubeSize;
-    hdr.levels = 1;
-    hdr.flags |= hdr.FLG_ZLIB | hdr.FLG_CUBTEX | hdr.FLG_GAMMA_EQ_1 | (TEXADDR_CLAMP) | (TEXADDR_CLAMP << 4);
-    hdr.memSz = cubeSize * cubeSize * 6 * 4;
-
-    // DDSx output
-    fname.replace(".tga", ".ddsx");
-    FullFileSaveCB cwr(fname);
-    if (cwr.fileHandle)
-    {
-      cwr.write(&hdr, sizeof(hdr));
-      ZlibSaveCB z_cwr(cwr, ZlibSaveCB::CL_BestSpeed + 5); // ~25Mb/sec
-      for (int face = 0; face < 6; ++face)
-        for (int y = 0, ofs = cubeSize * face; y < cubeSize; y++, ofs += lineLen)
-          z_cwr.write(cubeImg + ofs, strideLen);
-      z_cwr.finish();
-
-      hdr.packedSz = cwr.tell() - sizeof(hdr);
-      cwr.seekto(0);
-      cwr.write(&hdr, sizeof(hdr));
-      cwr.close();
-    }
-    else
-      clear_and_shrink(fname);
-
-    wingw::message_box(wingw::MBS_INFO, "Screenshot saved", "Screenshot saved to\n\"%s\" and \"%s\"", tga_fn, fname);
+    wingw::message_box(wingw::MBS_INFO, "Cube Screenshot saved", "Screenshot saved to\n\"%s\"", fname);
   }
+  else
+  {
+    wingw::message_box(wingw::MBS_EXCL, "Cube screenshot error", "Failed to save screenshot to\n\"%s\"", fname);
+  }
+
   delete[] cubeImg;
 }
-
 
 void GenericEditorAppWindow::createOrthogonalScreenshot(const char *dest_folder, const float *x0z0x1z1)
 {
@@ -1439,7 +1370,7 @@ void GenericEditorAppWindow::createOrthogonalScreenshot(const char *dest_folder,
         break;
     }
 
-    Texture *tex = renderInTex(sz, sz, NULL, true, false, minX, maxX, minZ, maxZ);
+    Texture *tex = renderInTex(sz, sz, NULL, false, true, false, minX, maxX, minZ, maxZ);
 
     if (tex)
     {
@@ -1533,7 +1464,7 @@ void GenericEditorAppWindow::createOrthogonalScreenshot(const char *dest_folder,
 void GenericEditorAppWindow::saveOrthogonalScreenshot(const char *cur_fn, int mip_level, float _x, float _z, float tile_in_meters)
 {
   int tile_size = mScrData.tileSize;
-  Texture *tex = renderInTex(tile_size, tile_size, NULL, true, false, _x, _x + tile_in_meters, _z, _z + tile_in_meters);
+  Texture *tex = renderInTex(tile_size, tile_size, NULL, false, true, false, _x, _x + tile_in_meters, _z, _z + tile_in_meters);
 
   if (tex)
   {
@@ -1643,16 +1574,41 @@ int GenericEditorAppWindow::getMaxRTSize()
 
 //==================================================================================================
 
+String GenericEditorAppWindow::getThemeFileName() const { return String::mk_str_cat(themeName, ".blk"); }
+
+
+//==================================================================================================
+
+void GenericEditorAppWindow::saveThemeSettings(DataBlock &blk) const
+{
+  DataBlock *themeBlk = blk.addBlock("theme");
+  if (themeBlk)
+  {
+    themeBlk->setStr("name", themeName);
+  }
+}
+
+//==================================================================================================
+
+void GenericEditorAppWindow::loadThemeSettings(const DataBlock &blk)
+{
+  const DataBlock *themeBlk = blk.getBlockByName("theme");
+  if (themeBlk)
+  {
+    themeName = themeBlk->getStr("name", defaultThemeName);
+  }
+}
+
+
+//==================================================================================================
+
 void GenericEditorAppWindow::saveScreenshotSettings(DataBlock &blk) const
 {
   DataBlock *screenshotBlk = blk.addBlock("screenshot");
   if (screenshotBlk)
   {
-    screenshotBlk->addIPoint2("screenshot_size", screenshotSize);
-    screenshotBlk->addInt("cube_size", cubeSize);
-    screenshotBlk->setBool("objOnly", screenshotObjOnTranspBkg);
-    screenshotBlk->setBool("jpeg", screenshotSaveJpeg);
-    screenshotBlk->setInt("jpegQ", screenshotJpegQ);
+    saveScreenshotConfig(*screenshotBlk, screenshotCfg);
+    saveCubeScreenshotConfig(*screenshotBlk, cubeScreenshotCfg);
 
     DataBlock *ortMultiScrBlk = screenshotBlk->addBlock("ort_multi_screenshot");
     if (ortMultiScrBlk)
@@ -1677,11 +1633,8 @@ void GenericEditorAppWindow::loadScreenshotSettings(const DataBlock &blk)
   const DataBlock *screenshotBlk = blk.getBlockByName("screenshot");
   if (screenshotBlk)
   {
-    screenshotSize = screenshotBlk->getIPoint2("screenshot_size", screenshotSize);
-    cubeSize = screenshotBlk->getInt("cube_size", cubeSize);
-    screenshotObjOnTranspBkg = screenshotBlk->getBool("objOnly", screenshotObjOnTranspBkg);
-    screenshotSaveJpeg = screenshotBlk->getBool("jpeg", screenshotSaveJpeg);
-    screenshotJpegQ = screenshotBlk->getInt("jpegQ", screenshotJpegQ);
+    loadScreenshotConfig(*screenshotBlk, screenshotCfg);
+    loadCubeScreenshotConfig(*screenshotBlk, cubeScreenshotCfg);
 
     const DataBlock *ortMultiScrBlk = screenshotBlk->getBlockByName("ort_multi_screenshot");
     if (ortMultiScrBlk)
@@ -1696,26 +1649,9 @@ void GenericEditorAppWindow::loadScreenshotSettings(const DataBlock &blk)
       mScrData.mipLevels = ortMultiScrBlk->getInt("mip_levels");
     }
   }
-
-  const int minSize = 1 << MIN_CUBE_2_POWER;
-  const int maxSize = 1 << MAX_CUBE_2_POWER;
-
-  if (cubeSize < minSize)
-    cubeSize = minSize;
-  else if (cubeSize > maxSize)
-    cubeSize = maxSize;
-  else
-  {
-    bool equal2pow = false;
-
-    for (int i = (1 << MIN_CUBE_2_POWER); i <= (1 << MAX_CUBE_2_POWER); i <<= 1)
-      if (cubeSize == i)
-      {
-        equal2pow = true;
-        break;
-      }
-
-    if (!equal2pow)
-      cubeSize = minSize;
-  }
 }
+
+
+//==================================================================================================
+
+void GenericEditorAppWindow::closeScreenshotSettingsDialog() { screenshot_settings_dialog.reset(); }

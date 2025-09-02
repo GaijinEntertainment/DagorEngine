@@ -14,6 +14,7 @@ local _DEF_COM_CMDLINE =
   -Wno-undefined-var-template -Wno-constant-conversion
   -Wno-inconsistent-missing-override
   -Wno-deprecated-builtins -Wno-unused-command-line-argument
+  -Wno-nan-infinity-disabled
   -ffunction-sections -fdata-sections
   -ffast-math -ffinite-math-only -mrecip=none
   "\"-D__forceinline=inline __attribute__((always_inline))\"" -D__cdecl= -D__stdcall= -D__fastcall
@@ -21,8 +22,8 @@ local _DEF_COM_CMDLINE =
   -D_vsnprintf=vsnprintf
   -Dstricmp=strcasecmp
   -Dstrnicmp=strncasecmp
-  -D_TARGET_PC=2 -D_TARGET_PC_MACOSX=2 -D_TARGET_APPLE=1 -D_TARGET_64BIT=1
-  -D__MACOSX__=1
+  -D_TARGET_PC=2 -D_TARGET_PC_MACOSX=2 -D_TARGET_APPLE=1 -D_TARGET_64BIT
+  -D__MACOSX__
   -Di_strlen=strlen
 ;
 
@@ -30,11 +31,11 @@ if $(ClangThreadSafety) = yes {
   _DEF_COM_CMDLINE += -Wthread-safety ;
 }
 
-if $(KernelLinkage) = static { _DEF_COM_CMDLINE += -D_TARGET_STATIC_LIB=1 ; }
+if $(KernelLinkage) = static { _DEF_COM_CMDLINE += -D_TARGET_STATIC_LIB ; }
 
 switch $(PlatformArch) {
-  case x86_64 : _DEF_COM_CMDLINE += -msse4.1 -D_TARGET_SIMD_SSE=$(SSEVersion) ;
-  case arm64  : _DEF_COM_CMDLINE += -D_TARGET_SIMD_NEON=1 -DARM_NEON_GCC_COMPATIBILITY=1 ;
+  case x86_64 : _DEF_COM_CMDLINE += -D_TARGET_ARCH_X86_64 -msse4.1 -D_TARGET_SIMD_SSE=$(SSEVersion) ;
+  case arm64  : _DEF_COM_CMDLINE += -D_TARGET_ARCH_ARM64 -D_TARGET_SIMD_NEON -DARM_NEON_GCC_COMPATIBILITY ;
   case * : Exit unsupportd PlatformArch=$(PlatformArch) ;
 }
 
@@ -44,7 +45,7 @@ local _DEF_CPP_CMDLINE = -Werror -std=c++$(CPPStd) -Wno-invalid-offsetof ;
 if $(Exceptions) != yes {
   _DEF_CPP_CMDLINE += -fno-exceptions ;
 } else {
-  _DEF_CPP_CMDLINE += -fexceptions -DDAGOR_EXCEPTIONS_ENABLED=1 ;
+  _DEF_CPP_CMDLINE += -fexceptions -DDAGOR_EXCEPTIONS_ENABLED ;
 }
 
 if $(Rtti) != yes {
@@ -85,6 +86,8 @@ _OBJC_COMPILER   = $(_CLANG_BIN)/clang -x objective-c -std=c99 $(_DEF_COM_CMDLIN
 _OBJCPP_COMPILER = $(_CLANG_BIN)/clang++ -x objective-c++ -std=c++$(CPPStd) $(_DEF_COM_CMDLINE) -fno-objc-exceptions ;
 _GAS_COMPILER = $(_CLANG_BIN)/clang -g -c -m64 -arch $(PlatformArch) ;
 if $(PlatformArch) = x86_64 { _ASM_COMPILER = nasm -f macho64 ; }
+_SWIFTC_COMPILER = $(_CLANG_BIN)/swiftc -sdk $(_DEVTOOL)/mac/SDKs/MacOSX.platform/MacOSX$(MacOSXVer).sdk
+  -target $(PlatformArch)-apple-macos$(MacOSXMinVer) -parse-as-library ;
 
 _INCLUDE      = $(Root)/prog/dagorInclude $(Root)/prog/1stPartyLibs $(Root)/prog/3rdPartyLibs ;
 

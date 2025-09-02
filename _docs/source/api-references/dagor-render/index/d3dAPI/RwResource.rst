@@ -1,5 +1,5 @@
-Read/Write (UAV) resources
+Read/Write (UAV) Resources
 =================================================
 
-.. autodoxygenfile:: dag_rwResource.h
+.. doxygenfile:: dag_rwResource.h
   :project: d3dAPI

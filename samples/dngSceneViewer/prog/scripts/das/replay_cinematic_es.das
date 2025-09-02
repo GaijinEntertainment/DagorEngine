@@ -11,7 +11,7 @@ def replay_create_cinematic_mode_settings_entity(evt : Event)
 def set_all_camera_fov_by_hero(evt : Event; isTpsView : bool; isInVehicle : bool)
   find_query() <| $ [es] (replay__vehicleFov : float; replay__humanFov : float)
     let fov = isInVehicle && !isTpsView ? replay__vehicleFov : replay__humanFov
-    broadcastEvent([[CmdSetCameraFov fov=fov]])
+    broadcastEvent(CmdSetCameraFov(fov=fov))
     return true
 
 [es(tag=render)]

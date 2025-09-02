@@ -7,3 +7,12 @@ testData/static_analyzer/w205.nut:5:4
 }
 
 
+WARNING: w315 (invalid-indentation) Invalid indentation. Pay attention to lines 4 and 5.
+testData/static_analyzer/w205.nut:5:4
+
+  return
+    callback()
+    ^---------
+}
+
+

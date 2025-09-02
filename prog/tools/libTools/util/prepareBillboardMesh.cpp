@@ -7,11 +7,13 @@
 #include <math/dag_TMatrix.h>
 #include <math/dag_bounds3.h>
 #include <generic/dag_sort.h>
-#include <math/random/dag_random.h>
+#include <gameMath/objgenPrng.h>
 #include <shaders/dag_shaderCommon.h>
 #include <fx/dag_leavesWind.h>
 #include <util/dag_bitArray.h>
 #include <util/dag_globDef.h>
+
+using namespace objgenerator; // prng
 
 bool ignore_mapping_in_prepare_billboard_mesh = false;
 bool generate_extra_in_prepare_billboard_mesh = false;
@@ -97,7 +99,7 @@ static void prepare_billboard_mesh_extra(MeshData &mesh, const TMatrix &wtm, dag
       for (int vi = 0; vi < 3; ++vi)
       {
         Point3 vrt = (org_verts[mesh.face[fi].v[vi]] - localCenter) * scale;
-        deltas[mesh.face[fi].v[vi]] = Point4(vrt.x, vrt.y, vrt.z, (_rnd(seed) % LeavesWindEffect::WIND_GRP_NUM) * 3);
+        deltas[mesh.face[fi].v[vi]] = Point4(vrt.x, vrt.y, vrt.z, (rnd(seed) % LeavesWindEffect::WIND_GRP_NUM) * 3);
       }
 
       ch.fc[fi].t[0] = mesh.face[fi].v[0];
@@ -257,7 +259,7 @@ void prepare_billboard_mesh(Mesh &mesh1, const TMatrix &wtm, dag::ConstSpan<Poin
     // replace indices
     int ci = centers.size();
     centers.push_back(wtm * localCenter);
-    int cwindgroup = (_rnd(seed) % LeavesWindEffect::WIND_GRP_NUM) * 3;
+    int cwindgroup = (rnd(seed) % LeavesWindEffect::WIND_GRP_NUM) * 3;
     int wi = windgroup.size();
     windgroup.push_back(cwindgroup);
     G_ASSERT(ci == wi);

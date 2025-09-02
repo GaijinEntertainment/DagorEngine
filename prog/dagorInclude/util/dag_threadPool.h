@@ -17,6 +17,16 @@ class IJob;
 
 namespace threadpool
 {
+#if _TARGET_C1 | _TARGET_XBOXONE
+static constexpr int MAX_WORKER_COUNT = 6;
+#elif _TARGET_ANDROID
+static constexpr int MAX_WORKER_COUNT = 4;
+#elif _TARGET_C3
+
+#else
+static constexpr int MAX_WORKER_COUNT = 8;
+#endif
+
 enum JobPriority
 {
   PRIO_HIGH,
@@ -45,12 +55,12 @@ public:
   volatile int jobCount = 1; // atomically decremented by workers
 
   IJobNode() {}
-  virtual ~IJobNode() {}
-  virtual void doJob() /*final*/ {}  // block this, incompatible (PVS false positive V762)
-  virtual void releaseJob() final {} // not called
+  ~IJobNode() override {}
+  void doJob() override final {}      // block this, incompatible
+  void releaseJob() override final {} // not called
 
   //! called by job manager to perform task; executed in context of worker thread
-  virtual void doJob(JobEnvironment *job_env, void *job_data_ptr, unsigned job_index) = 0; //-V762
+  virtual void doNodeJob(JobEnvironment *job_env, void *job_data_ptr, unsigned job_index) = 0;
 
   void setJobData(void *ptr, size_t data_size_per_job)
   {

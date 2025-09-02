@@ -11,6 +11,7 @@
 
 //! signals to the processor that the thread is doing nothing. Not relevant to OS thread scheduling.
 #if _TARGET_SIMD_SSE
+#include <emmintrin.h> // _mm_pause
 #define cpu_yield _mm_pause
 #elif defined(__arm__) || defined(__aarch64__)
 #define cpu_yield() __asm__ __volatile__("yield")

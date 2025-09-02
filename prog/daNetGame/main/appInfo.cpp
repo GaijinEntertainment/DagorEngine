@@ -11,7 +11,7 @@
 #include <memory/dag_framemem.h>
 #include <math/dag_TMatrix.h>
 #include "render/screencap.h"
-#include "skies.h"
+#include "render/skies.h"
 #include "version.h"
 #include "main/gameLoad.h"
 #include "main/appProfile.h"

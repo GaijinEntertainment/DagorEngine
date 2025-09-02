@@ -1,7 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <daFx/dafx.h>
-#include <fx/dag_fxInterface.h>
 #include <fx/dag_baseFxClasses.h>
 #include <gameRes/dag_gameResSystem.h>
 #include <gameRes/dag_gameResources.h>
@@ -14,6 +13,7 @@
 #include "dafxCompound_decl.h"
 #include "dafxSystemDesc.h"
 #include "dafxQuality.h"
+#include <math/dag_TMatrix4.h>
 
 static const int g_last_ref_slot = 16;
 static dafx::ContextId g_dafx_ctx;
@@ -22,10 +22,6 @@ enum
 {
   HUID_ACES_RESET = 0xA781BF24u
 };
-enum
-{
-  HUID_ACES_IS_ACTIVE = 0xD6872FCEu
-};
 
 enum
 {
@@ -33,12 +29,29 @@ enum
   RGROUP_LOWRES = 1,
   RGROUP_HIGHRES = 2,
   RGROUP_DISTORTION = 3,
-  RGROUP_WATER_PROJ = 4,
-  RGROUP_UNDERWATER = 5,
+  RGROUP_WATER_PROJ_ADVANCED = 4,
+  RGROUP_WATER_PROJ = 5,
+  RGROUP_UNDERWATER = 6,
 };
 
-#define MODFX_RFLAG_USE_ETM_AS_WTM     0
-#define MODFX_RFLAG_OMNI_LIGHT_ENABLED 7
+enum
+{
+  PLACEMENT_DEFAULT = 0,
+  PLACEMENT_SPHERE = 1,
+  PLACEMENT_SPHERE_SECTOR = 2,
+  PLACEMENT_CYLINDER = 3,
+};
+
+// TODO: These are copy-pasted from modfx_decl.hlsli. It should be refactored later.
+#define MODFX_RFLAG_USE_ETM_AS_WTM        0
+#define MODFX_RFLAG_OMNI_LIGHT_ENABLED    7
+#define MODFX_RFLAG_BACKGROUND_POS_INITED 15
+
+#define DAFX_SPARK_DECL_LOCAL_SPACE             0
+#define DAFX_SPARK_DECL_COLLISION_DISABLED_FLAG 1
+#define DAFX_SPARK_DECL_COLLISION_RELAXED_FLAG  2
+
+extern void dafx_report_broken_res(int game_res_id, const char *fx_type);
 
 void gather_sub_textures(const dafx::SystemDesc &desc, eastl::vector<TEXTUREID> &out)
 {
@@ -56,13 +69,66 @@ void gather_sub_textures(const dafx::SystemDesc &desc, eastl::vector<TEXTUREID> 
     gather_sub_textures(sub, out);
 }
 
-struct DafxCompound : BaseParticleEffect
+__forceinline void _rnd_fvec4(int &seed, float &x, float &y, float &z, float &w)
+{
+  x = _frnd(seed), y = _frnd(seed), z = _frnd(seed), w = _frnd(seed);
+}
+
+static void sphere_placement(int &seed, CompositePlacement &placement, Point3 &pos, Point3 &dir)
+{
+  float latVal, longVal, xVol, yVol, zVol;
+  _rnd_fvec4(seed, longVal, xVol, yVol, zVol);
+  int seed2 = _rnd(seed);
+  latVal = _frnd(seed2);
+
+  float latitude = acos(2.0 * latVal - 1.0) - M_PI / 2.0;
+  float longitude = 2.0 * M_PI * longVal;
+
+  pos.x = placement.placement_radius * (placement.place_in_volume ? xVol : 1.0f) * cos(latitude) * cos(longitude);
+  pos.y = placement.placement_radius * (placement.place_in_volume ? yVol : 1.0f) * cos(latitude) * sin(longitude);
+  pos.z = placement.placement_radius * (placement.place_in_volume ? zVol : 1.0f) * sin(latitude);
+
+  dir = pos;
+  dir.normalize();
+}
+
+static void cylinder_placement(int &seed, CompositePlacement &placement, Point3 &pos, Point3 &dir)
+{
+  float randDegree, xVol, yVol, zVol;
+  _rnd_fvec4(seed, randDegree, xVol, yVol, zVol);
+
+  float theta = 2.0 * M_PI * randDegree;
+
+  pos.x = placement.placement_radius * (placement.cylinder.use_whole_surface ? xVol : 1.0f) * cos(theta);
+  pos.y = placement.cylinder.placement_height * (placement.place_in_volume ? yVol : 1.0f);
+  pos.z = placement.placement_radius * (placement.cylinder.use_whole_surface ? zVol : 1.0f) * sin(theta);
+
+  dir = Point3(0, 1, 0);
+}
+
+static void sphere_sector_placement(int &seed, CompositePlacement &placement, Point3 &pos, Point3 &dir)
+{
+  float randDegree1, randDegree2, xVol, yVol, zVol;
+  _rnd_fvec4(seed, randDegree1, xVol, yVol, zVol);
+  int seed2 = _rnd(seed);
+  randDegree2 = _frnd(seed2);
+
+  float sectorAngle = placement.sphere_sector.sector_angle * M_PI / 180.0f;
+  float phi = M_PI / 2 - sectorAngle * (randDegree1 - 0.5f);
+  float theta = randDegree2 * M_PI * 2;
+
+  pos.x = placement.placement_radius * (placement.place_in_volume ? xVol : 1.0f) * cos(theta) * cos(phi);
+  pos.y = placement.placement_radius * (placement.place_in_volume ? yVol : 1.0f) * sin(phi);
+  pos.z = placement.placement_radius * (placement.place_in_volume ? zVol : 1.0f) * sin(theta) * cos(phi);
+
+  dir = normalize(pos);
+}
+
+struct SubEffect
 {
   struct ValueOffset
   {
     int fxTm;
-    int emitterWtm;
-    int emitterNtm;
     int parentVelocity;
     int localGravity;
     int gravityTm;
@@ -76,8 +142,20 @@ struct DafxCompound : BaseParticleEffect
     int radiusMin;
     int radiusMax;
     int windCoeff;
+    int fakeBrightnessBackgroundPos;
   };
 
+  ValueOffset offsets;
+  Point2 fxRadiusRange;
+  TMatrix subTransform;
+  dafx_ex::TransformType transformType;
+  dafx_ex::SystemInfo::DistanceScale distanceScale;
+  uint32_t rflags;
+  uint32_t sflags;
+};
+
+struct DafxCompound : BaseParticleEffect
+{
   struct DistanceLag
   {
     constexpr static int historySize = 10;
@@ -90,32 +168,36 @@ struct DafxCompound : BaseParticleEffect
     eastl::array<Point3, historySize> history;
   };
 
+  struct PlacementData
+  {
+    Point3 offset = Point3::ZERO;
+    Point3 scale = Point3::ONE;
+    Point3 rotation = Point3::ZERO;
+  };
+
   dafx::ContextId ctx;
   dafx::SystemId sid;
   dafx::InstanceId iid;
   eastl::unique_ptr<dafx::SystemDesc> pdesc;
-  eastl::fixed_vector<Point2, 8, true> fxRadiusRanges;
-  eastl::fixed_vector<TMatrix, 8, true> subTransforms;
-  eastl::fixed_vector<ValueOffset, 8, true> valueOffsets;
-  eastl::fixed_vector<dafx_ex::TransformType, 8, true> transformTypes;
-  eastl::fixed_vector<uint32_t, 8, true> rflags;
-  eastl::fixed_vector<uint32_t, 8, true> sflags;
+  eastl::fixed_vector<SubEffect, 8, true> subEffects;
   eastl::vector<TEXTUREID> textures;
   eastl::vector<DistanceLag> distanceLagData; // optional for fx, so no fixed_vector
+  eastl::vector<PlacementData> placementData; // optional for fx, so no fixed_vector
 
   float fxScale = 1.f;
+  float distanceToCamOnSpawn = 0;
   Point2 fxScaleRange = Point2(1.f, 1.f);
   BaseEffectObject *lightFx = nullptr;
   TMatrix lightTm = TMatrix::IDENT;
-  LightfxShadowParams lightShadowParams = LightfxShadowParams();
   bool resLoaded = false;
 
   int maxInstances = 0;
   int playerReserved = 0;
-  float spawnRangeLimit = 0;
   float onePointNumber = 0;
   float onePointRadius = 0;
   int gameResId = 0;
+  CompositePlacement compositePlacement = {};
+  int rndSeed = 0; // It will get its value during loadParamsDataInternal
 
   DafxCompound() {}
 
@@ -123,28 +205,27 @@ struct DafxCompound : BaseParticleEffect
     sid(r.sid),
     iid(r.iid),
     ctx(r.ctx),
-    subTransforms(r.subTransforms),
-    valueOffsets(r.valueOffsets),
-    transformTypes(r.transformTypes),
-    rflags(r.rflags),
-    sflags(r.sflags),
+    subEffects(r.subEffects),
     lightFx(r.lightFx ? (BaseEffectObject *)r.lightFx->clone() : nullptr),
     lightTm(r.lightTm),
-    lightShadowParams(r.lightShadowParams),
     textures(r.textures),
     distanceLagData(r.distanceLagData),
     resLoaded(r.resLoaded),
     pdesc(r.pdesc ? new dafx::SystemDesc(*r.pdesc) : nullptr),
     fxScale(r.fxScale),
     fxScaleRange(r.fxScaleRange),
-    fxRadiusRanges(r.fxRadiusRanges),
     maxInstances(r.maxInstances),
     playerReserved(r.playerReserved),
-    spawnRangeLimit(r.spawnRangeLimit),
     onePointNumber(r.onePointNumber),
     onePointRadius(r.onePointRadius),
+    compositePlacement(r.compositePlacement),
+    placementData(r.placementData),
     gameResId(r.gameResId)
   {
+    rndSeed = generate_seed(uintptr_t(this->pdesc.get()), gameResId);
+    if (compositePlacement.enabled && compositePlacement.copies_number > 0)
+      regeneratePosAndOrientation();
+
     for (TEXTUREID tid : textures)
       acquire_managed_tex(tid);
   }
@@ -161,27 +242,35 @@ struct DafxCompound : BaseParticleEffect
       release_managed_tex(tid);
   }
 
+  int generate_seed(uint32_t val1, uint32_t val2)
+  {
+    int combined_val = val1 ^ val2;
+    return _rnd(combined_val) ^ rndSeed;
+  }
+
   void loadParamsData(const char *ptr, int len, BaseParamScriptLoadCB *load_cb) override
   {
-    CHECK_FX_VERSION(ptr, len, 3);
+    gameResId = load_cb->getSelfGameResId();
+    resLoaded = false;
+    if (loadParamsDataInternal(ptr, len, load_cb))
+      resLoaded = true;
+    else
+      dafx_report_broken_res(gameResId, "dafx_compound");
+  }
+
+  bool loadParamsDataInternal(const char *ptr, int len, BaseParamScriptLoadCB *load_cb)
+  {
+    CHECK_FX_VERSION_OPT(ptr, len, 3);
 
     if (!g_dafx_ctx)
     {
       logwarn("fx: compound: failed to load params data, context was not initialized");
-      return;
+      return false;
     }
-
-    resLoaded = false;
-    gameResId = load_cb->getSelfGameResId();
 
     pdesc.reset(new dafx::SystemDesc());
     pdesc->gameResId = gameResId;
-    subTransforms.clear();
-    valueOffsets.clear();
-    transformTypes.clear();
-    fxRadiusRanges.clear();
-    rflags.clear();
-    sflags.clear();
+    subEffects.clear();
     distanceLagData.clear();
 
     for (TEXTUREID tid : textures)
@@ -189,20 +278,22 @@ struct DafxCompound : BaseParticleEffect
     textures.clear();
 
     CompModfx modfxList;
-    modfxList.load(ptr, len, load_cb);
+    if (!modfxList.load(ptr, len, load_cb))
+      return false;
 
     LightfxParams parLight;
-    parLight.load(ptr, len, load_cb);
+    if (!parLight.load(ptr, len, load_cb))
+      return false;
 
     CFxGlobalParams parGlobals;
-    parGlobals.load(ptr, len, load_cb);
+    if (!parGlobals.load(ptr, len, load_cb))
+      return false;
 
     maxInstances = parGlobals.max_instances;
     playerReserved = parGlobals.player_reserved;
-    spawnRangeLimit = parGlobals.spawn_range_limit;
+    pdesc->emitterData.spawnRangeLimit = -1;
     onePointNumber = parGlobals.one_point_number;
     onePointRadius = parGlobals.one_point_radius;
-    lightShadowParams.enabled = false;
 
     if (modfxList.instance_life_time_min > 0 || modfxList.instance_life_time_max > 0)
     {
@@ -241,7 +332,8 @@ struct DafxCompound : BaseParticleEffect
         lightFx->setParam(_MAKE4C('LFXL'), &parLight.life_time);
         lightFx->setParam(_MAKE4C('LFXF'), &parLight.fade_time);
         lightFx->setParam(_MAKE4C('LFXO'), &parLight.allow_game_override);
-        lightShadowParams = parLight.shadow;
+        if (parLight.override_shadow)
+          lightFx->setParam(_MAKE4C('FXSH'), &parLight.shadow);
         lightTm = TMatrix::IDENT;
         lightTm.setcol(3, parLight.offset);
       }
@@ -252,11 +344,33 @@ struct DafxCompound : BaseParticleEffect
     fxScaleRange.x = modfxList.fx_scale_min;
     fxScaleRange.y = modfxList.fx_scale_max;
 
+    auto placement_func = sphere_placement;
+    switch (parGlobals.procedural_placement.placement_type)
+    {
+      default:
+      case PLACEMENT_SPHERE: placement_func = sphere_placement; break;
+      case PLACEMENT_SPHERE_SECTOR: placement_func = sphere_sector_placement; break;
+      case PLACEMENT_CYLINDER: placement_func = cylinder_placement; break;
+    }
+
+    dag::Vector<dafx::SystemDesc *> loaded_subsystems;
+
+    Point3 pos = Point3::ZERO;
+    Point3 dir = Point3(0, 1, 0);
+    rndSeed = generate_seed(uintptr_t(this), gameResId);
+    placement_func(rndSeed, parGlobals.procedural_placement, pos, dir);
+
+    // Load all subeffects for the compound fx
     for (int i = 0; i < modfxList.array.size(); ++i)
     {
       const ModfxParams &par = modfxList.array[i];
       if (par.ref_slot < 1 || par.ref_slot > g_last_ref_slot)
         continue;
+
+      auto pData = placementData.push_back();
+      pData.offset = par.offset;
+      pData.scale = par.scale;
+      pData.rotation = par.rotation;
 
       void *ref = refFirst[par.ref_slot - 1];
       if (!ref)
@@ -267,306 +381,29 @@ struct DafxCompound : BaseParticleEffect
 
       BaseEffectObject *fx = static_cast<BaseEffectObject *>(ref);
 
-      dafx::SystemDesc *sdesc = nullptr;
+      dafx::SystemDesc *sdesc = nullptr; // will be null on failed subfx load
       if (!fx->getParam(_MAKE4C('PFXQ'), &sdesc) || !sdesc)
         continue;
 
-      ValueOffset &offsets = valueOffsets.push_back();
+      loadSubEffect(subIdx, par, fx, sdesc, pos, dir, parGlobals.procedural_placement.enabled, parGlobals.spawn_range_limit);
+      loaded_subsystems.push_back(sdesc);
+    }
 
-      pdesc->subsystems.push_back(*sdesc);
-      sdesc = &pdesc->subsystems.back();
-      sdesc->qualityFlags = fx_apply_quality_bits(par.quality, sdesc->qualityFlags);
+    compositePlacement = parGlobals.procedural_placement;
+    if (pdesc->emitterData.spawnRangeLimit < 0)
+      pdesc->emitterData.spawnRangeLimit = 0;
 
-      dafx::SystemDesc *ddesc = sdesc->subsystems.empty() ? nullptr : &sdesc->subsystems[0];
-      G_ASSERT_CONTINUE(ddesc);
-
-      ddesc->renderSortDepth = subIdx++;
-      ddesc->emitterData.delay += par.delay;
-
-      if (par.mod_part_count != 1 && par.mod_part_count > 0)
+    // Apply procedural placement
+    if (compositePlacement.enabled)
+    {
+      // Less than copies_number because the first one is already loaded
+      G_ASSERT(compositePlacement.copies_number > 0);
+      for (int i = 0; i < compositePlacement.copies_number - 1; i++)
       {
-        if (ddesc->emitterData.type == dafx::EmitterType::LINEAR)
-        {
-          ddesc->emitterData.linearData.countMin =
-            ddesc->emitterData.linearData.countMin > 0 ? max(ddesc->emitterData.linearData.countMin * par.mod_part_count, 1.f) : 0;
-          ddesc->emitterData.linearData.countMax = max(ddesc->emitterData.linearData.countMax * par.mod_part_count, 1.f);
-        }
-        else if (ddesc->emitterData.type == dafx::EmitterType::BURST)
-        {
-          ddesc->emitterData.burstData.countMin =
-            ddesc->emitterData.burstData.countMin > 0 ? max(ddesc->emitterData.burstData.countMin * par.mod_part_count, 1.f) : 0;
-          ddesc->emitterData.burstData.countMax = max(ddesc->emitterData.burstData.countMax * par.mod_part_count, 1.f);
-        }
-        else if (ddesc->emitterData.type == dafx::EmitterType::FIXED)
-        {
-          ddesc->emitterData.fixedData.count = max(ddesc->emitterData.fixedData.count * par.mod_part_count, 1.f);
-        }
+        placement_func(rndSeed, compositePlacement, pos, dir);
 
-        const dafx::Config &cfg = dafx::get_config(g_dafx_ctx);
-        unsigned int lim = dafx::get_emitter_limit(ddesc->emitterData, true);
-        if (lim == 0 || lim >= cfg.emission_limit)
-        {
-          logerr("dafx::emitter, over emitter limit");
-          continue;
-        }
+        addSubEffects(subIdx, loaded_subsystems, modfxList.array, pos, dir);
       }
-
-      if (par.render_group != RGROUP_DEFAULT)
-      {
-        for (auto &i : ddesc->renderDescs)
-        {
-          if (strcmp(i.tag.c_str(), dafx_ex::renderTags[dafx_ex::RTAG_LOWRES]) != 0 &&
-              strcmp(i.tag.c_str(), dafx_ex::renderTags[dafx_ex::RTAG_HIGHRES]) != 0 &&
-              // strcmp(i.tag.c_str(), dafx_ex::renderTags[dafx_ex::RTAG_DISTORTION]) != 0 &&
-              // strcmp(i.tag.c_str(), dafx_ex::renderTags[dafx_ex::RTAG_WATER_PROJ]) != 0 &&
-              strcmp(i.tag.c_str(), dafx_ex::renderTags[dafx_ex::RTAG_UNDERWATER]) != 0)
-            continue;
-
-          int t = dafx_ex::RTAG_LOWRES;
-          switch (par.render_group)
-          {
-            case RGROUP_LOWRES: t = dafx_ex::RTAG_LOWRES; break;
-            case RGROUP_HIGHRES: t = dafx_ex::RTAG_HIGHRES; break;
-            case RGROUP_DISTORTION: t = dafx_ex::RTAG_DISTORTION; break;
-            case RGROUP_WATER_PROJ: t = dafx_ex::RTAG_WATER_PROJ; break;
-            case RGROUP_UNDERWATER: t = dafx_ex::RTAG_UNDERWATER; break;
-            default: G_ASSERT(false);
-          }
-          i.tag = dafx_ex::renderTags[t];
-        }
-      }
-
-      ddesc->emitterData.globalLifeLimitMin = ddesc->emitterData.globalLifeLimitMax = par.global_life_time_min;
-      if (par.global_life_time_min > 0 || par.global_life_time_max > 0)
-      {
-        if (par.global_life_time_min > 0 && par.global_life_time_max > 0)
-          ddesc->emitterData.globalLifeLimitMax = par.global_life_time_max;
-        else
-          logerr("dafx: global_life_time_min/max should either be 0 or both be > 0");
-      }
-
-      if (par.mod_life != 1 && par.mod_life > 0)
-      {
-        // min/max ratio still be the same
-        ddesc->emitterData.linearData.lifeLimit *= par.mod_life;
-        ddesc->emitterData.burstData.lifeLimit *= par.mod_life;
-        ddesc->emitterData.distanceBasedData.lifeLimit *= par.mod_life;
-      }
-
-      if (par.distance_lag > 0)
-      {
-        distanceLagData.resize(subIdx);
-        DistanceLag &v = distanceLagData.back();
-        v.enabled = true;
-        v.distance = par.distance_lag;
-        v.distanceSq = v.distance * v.distance;
-        v.stepSq = (par.distance_lag / DistanceLag::historySize);
-        v.stepSq *= v.stepSq;
-      }
-
-      int renderRefDataSize = sdesc->emissionData.renderRefData.size();
-      unsigned char *simulationRefData = sdesc->emissionData.simulationRefData.data();
-
-      TMatrix scl = TMatrix::IDENT;
-      scl.m[0][0] = par.scale.x;
-      scl.m[1][1] = par.scale.y;
-      scl.m[2][2] = par.scale.z;
-
-      TMatrix wtm;
-      wtm = rotxTM(par.rotation.x * DEG_TO_RAD) * rotyTM(par.rotation.y * DEG_TO_RAD) * rotzTM(par.rotation.z * DEG_TO_RAD) * scl;
-
-      wtm.setcol(3, par.offset);
-      subTransforms.push_back(wtm);
-
-      dafx_ex::TransformType trtype = (dafx_ex::TransformType)par.transform_type;
-      G_ASSERT(trtype <= dafx_ex::TRANSFORM_LOCAL_SPACE);
-
-      offsets.lightPos = -1;
-      offsets.lightRadius = -1;
-      offsets.lightColor = -1;
-      offsets.parentVelocity = -1;
-      offsets.localGravity = -1;
-      offsets.gravityTm = -1;
-      offsets.emitterNtm = -1;
-      offsets.colorMult = -1;
-      offsets.flags = -1;
-      offsets.velocityScaleMin = -1;
-      offsets.velocityScaleMax = -1;
-      offsets.radiusMin = -1;
-      offsets.radiusMax = -1;
-      offsets.windCoeff = -1;
-
-      dafx_ex::SystemInfo *sinfo = nullptr;
-      if (fx->getParam(_MAKE4C('PFVR'), &sinfo) && sinfo)
-      {
-        auto patch_mul_f_v = [=](int n, eastl::vector_map<int, int> &table, unsigned char *dst, float v) {
-          eastl::vector_map<int, int>::iterator it = table.find(n);
-          if (it != table.end())
-          {
-            int ofs = it->second;
-            if (ofs >= renderRefDataSize)
-              ofs -= renderRefDataSize;
-            *(float *)(dst + ofs) *= v;
-          }
-        };
-
-        auto patch_mul_v3_v = [=](int n, eastl::vector_map<int, int> &table, unsigned char *dst, float v) {
-          eastl::vector_map<int, int>::iterator it = table.find(n);
-          if (it != table.end())
-          {
-            int ofs = it->second;
-            if (ofs >= renderRefDataSize)
-              ofs -= renderRefDataSize;
-            *(float *)(dst + ofs) *= v;
-            *(float *)(dst + ofs + 1 * sizeof(float)) *= v;
-            *(float *)(dst + ofs + 2 * sizeof(float)) *= v;
-          }
-        };
-
-        auto patch_mul_color_v = [=](int n, eastl::vector_map<int, int> &table, unsigned char *dst, E3DCOLOR v) {
-          eastl::vector_map<int, int>::iterator it = table.find(n);
-          if (it != table.end())
-          {
-            int ofs = it->second;
-            if (ofs >= renderRefDataSize)
-              ofs -= renderRefDataSize;
-
-            *(E3DCOLOR *)(dst + ofs) = e3dcolor_mul(*(E3DCOLOR *)(dst + ofs), v);
-          }
-        };
-
-        float mod_rad = par.mod_radius;
-        if (mod_rad != 1 && mod_rad > 0)
-        {
-          patch_mul_f_v(dafx_ex::SystemInfo::VAL_RADIUS_MIN, sinfo->valueOffsets, simulationRefData, mod_rad);
-          patch_mul_f_v(dafx_ex::SystemInfo::VAL_RADIUS_MAX, sinfo->valueOffsets, simulationRefData, mod_rad);
-        }
-
-        if (par.mod_rotation_speed != 1)
-        {
-          patch_mul_f_v(dafx_ex::SystemInfo::VAL_ROTATION_MIN, sinfo->valueOffsets, simulationRefData, par.mod_rotation_speed);
-          patch_mul_f_v(dafx_ex::SystemInfo::VAL_ROTATION_MAX, sinfo->valueOffsets, simulationRefData, par.mod_rotation_speed);
-        }
-
-        if (par.mod_velocity_start != 1)
-        {
-          patch_mul_f_v(dafx_ex::SystemInfo::VAL_VELOCITY_START_MIN, sinfo->valueOffsets, simulationRefData, par.mod_velocity_start);
-          patch_mul_f_v(dafx_ex::SystemInfo::VAL_VELOCITY_START_MAX, sinfo->valueOffsets, simulationRefData, par.mod_velocity_start);
-          patch_mul_v3_v(dafx_ex::SystemInfo::VAL_VELOCITY_START_VEC3, sinfo->valueOffsets, simulationRefData, par.mod_velocity_start);
-        }
-
-        if (par.mod_velocity_add != 1)
-        {
-          patch_mul_f_v(dafx_ex::SystemInfo::VAL_VELOCITY_ADD_MIN, sinfo->valueOffsets, simulationRefData, par.mod_velocity_add);
-          patch_mul_f_v(dafx_ex::SystemInfo::VAL_VELOCITY_ADD_MAX, sinfo->valueOffsets, simulationRefData, par.mod_velocity_add);
-          patch_mul_v3_v(dafx_ex::SystemInfo::VAL_VELOCITY_ADD_VEC3, sinfo->valueOffsets, simulationRefData, par.mod_velocity_add);
-        }
-
-        if (par.mod_velocity_wind_scale != 1)
-        {
-          patch_mul_f_v(dafx_ex::SystemInfo::VAL_VELOCITY_WIND_COEFF, sinfo->valueOffsets, simulationRefData,
-            par.mod_velocity_wind_scale);
-        }
-
-        if (par.mod_velocity_mass != 1)
-        {
-          patch_mul_f_v(dafx_ex::SystemInfo::VAL_MASS, sinfo->valueOffsets, simulationRefData, par.mod_velocity_mass);
-        }
-
-        if (par.mod_velocity_drag != 1)
-        {
-          patch_mul_f_v(dafx_ex::SystemInfo::VAL_DRAG_COEFF, sinfo->valueOffsets, simulationRefData, par.mod_velocity_drag);
-        }
-
-        if (par.mod_velocity_drag_to_rad != 1)
-        {
-          patch_mul_f_v(dafx_ex::SystemInfo::VAL_DRAG_TO_RAD, sinfo->valueOffsets, simulationRefData, par.mod_velocity_drag_to_rad);
-        }
-
-        patch_mul_color_v(dafx_ex::SystemInfo::VAL_COLOR_MIN, sinfo->valueOffsets, simulationRefData, par.mod_color);
-        patch_mul_color_v(dafx_ex::SystemInfo::VAL_COLOR_MAX, sinfo->valueOffsets, simulationRefData, par.mod_color);
-
-        auto it = sinfo->valueOffsets.find(dafx_ex::SystemInfo::VAL_GRAVITY_ZONE_TM);
-        if (it != sinfo->valueOffsets.end())
-          offsets.gravityTm = it->second;
-      }
-
-      int isModfx = 0;
-      if (fx->getParam(_MAKE4C('PFXM'), &isModfx) && isModfx)
-      {
-        G_ASSERT_CONTINUE(sinfo);
-
-        offsets.flags = sinfo->valueOffsets[dafx_ex::SystemInfo::VAL_FLAGS];
-        offsets.fxTm = sinfo->valueOffsets[dafx_ex::SystemInfo::VAL_TM];
-        offsets.emitterWtm = sinfo->valueOffsets[dafx_ex::SystemInfo::VAL_TM];
-
-        auto it = sinfo->valueOffsets.find(dafx_ex::SystemInfo::VAL_LIGHT_POS);
-
-        if (it != sinfo->valueOffsets.end())
-        {
-          offsets.lightPos = sinfo->valueOffsets[dafx_ex::SystemInfo::VAL_LIGHT_POS];
-          offsets.lightColor = sinfo->valueOffsets[dafx_ex::SystemInfo::VAL_LIGHT_COLOR];
-          offsets.lightRadius = sinfo->valueOffsets[dafx_ex::SystemInfo::VAL_LIGHT_RADIUS];
-          G_ASSERT(offsets.lightRadius == offsets.lightColor + sizeof(float) * 3); // to allow batch set
-        }
-
-        it = sinfo->valueOffsets.find(dafx_ex::SystemInfo::VAL_VELOCITY_START_MIN);
-        if (it != sinfo->valueOffsets.end())
-          offsets.velocityScaleMin = it->second;
-
-        it = sinfo->valueOffsets.find(dafx_ex::SystemInfo::VAL_VELOCITY_START_MAX);
-        if (it != sinfo->valueOffsets.end())
-          offsets.velocityScaleMax = it->second;
-
-        it = sinfo->valueOffsets.find(dafx_ex::SystemInfo::VAL_VELOCITY_START_ADD);
-        if (it != sinfo->valueOffsets.end())
-          offsets.parentVelocity = it->second;
-
-        it = sinfo->valueOffsets.find(dafx_ex::SystemInfo::VAL_VELOCITY_WIND_COEFF);
-        if (it != sinfo->valueOffsets.end())
-          offsets.windCoeff = it->second;
-
-        it = sinfo->valueOffsets.find(dafx_ex::SystemInfo::VAL_LOCAL_GRAVITY_VEC);
-        if (it != sinfo->valueOffsets.end())
-          offsets.localGravity = it->second;
-
-        it = sinfo->valueOffsets.find(dafx_ex::SystemInfo::VAL_COLOR_MUL);
-        if (it != sinfo->valueOffsets.end())
-          offsets.colorMult = it->second;
-
-        G_ASSERT(sinfo->valueOffsets.find(dafx_ex::SystemInfo::VAL_RADIUS_MIN) != sinfo->valueOffsets.end());
-        G_ASSERT(sinfo->valueOffsets.find(dafx_ex::SystemInfo::VAL_RADIUS_MAX) != sinfo->valueOffsets.end());
-        offsets.radiusMin = sinfo->valueOffsets[dafx_ex::SystemInfo::VAL_RADIUS_MIN];
-        offsets.radiusMax = sinfo->valueOffsets[dafx_ex::SystemInfo::VAL_RADIUS_MAX];
-
-        Point2 fxRadiusRange = Point2(1, 1);
-        fxRadiusRange.x = *(float *)(simulationRefData + offsets.radiusMin - renderRefDataSize);
-        fxRadiusRange.y = *(float *)(simulationRefData + offsets.radiusMax - renderRefDataSize);
-
-        fxRadiusRanges.push_back(fxRadiusRange);
-
-        uint32_t flg = sinfo->rflags;
-        if (lightFx)
-          flg |= 1 << MODFX_RFLAG_OMNI_LIGHT_ENABLED;
-
-        *(uint32_t *)(sdesc->emissionData.renderRefData.data() + offsets.flags) = flg;
-        rflags.push_back(flg);
-        sflags.push_back(sinfo->sflags);
-      }
-      else // sparks
-      {
-        offsets.fxTm = 0;
-        offsets.emitterWtm = 0;
-        offsets.emitterNtm = sdesc->emissionData.renderRefData.size();
-        offsets.parentVelocity = sdesc->emissionData.renderRefData.size() + 64;
-        rflags.push_back(0);
-        sflags.push_back(0);
-        fxRadiusRanges.push_back(Point2(1.f, 1.f));
-      }
-
-      if (sinfo && trtype == dafx_ex::TRANSFORM_DEFAULT)
-        trtype = sinfo->transformType;
-      transformTypes.push_back(trtype);
     }
 
     if (pdesc->subsystems.empty())
@@ -588,8 +425,6 @@ struct DafxCompound : BaseParticleEffect
       pdesc->simulationData.type = dafx::SimulationType::NONE;
     }
 
-    resLoaded = true;
-
     release_game_resource((GameResource *)modfxList.fx1);
     release_game_resource((GameResource *)modfxList.fx2);
     release_game_resource((GameResource *)modfxList.fx3);
@@ -606,6 +441,416 @@ struct DafxCompound : BaseParticleEffect
     release_game_resource((GameResource *)modfxList.fx14);
     release_game_resource((GameResource *)modfxList.fx15);
     release_game_resource((GameResource *)modfxList.fx16);
+
+    return true;
+  }
+
+  void regeneratePosAndOrientation()
+  {
+    G_ASSERT_RETURN((subEffects.size() % placementData.size() == 0) &&
+                      (subEffects.size() / placementData.size() == compositePlacement.copies_number), );
+
+    auto placement_func = sphere_placement;
+    switch (compositePlacement.placement_type)
+    {
+      default:
+      case PLACEMENT_SPHERE: placement_func = sphere_placement; break;
+      case PLACEMENT_SPHERE_SECTOR: placement_func = sphere_sector_placement; break;
+      case PLACEMENT_CYLINDER: placement_func = cylinder_placement; break;
+    }
+
+    int uniqueSubEffectsNr = subEffects.size() / compositePlacement.copies_number;
+
+    for (int i = 0; i < compositePlacement.copies_number; i++)
+    {
+      Point3 pos = Point3::ZERO;
+      Point3 dir = Point3(0, 1, 0);
+      placement_func(rndSeed, compositePlacement, pos, dir);
+      for (int j = 0; j < uniqueSubEffectsNr; j++)
+      {
+        int idx = i * uniqueSubEffectsNr + j;
+        SubEffect &subEffect = subEffects[idx];
+        auto &pData = placementData[j];
+        subEffect.subTransform = calculateSubEffectTransform(pData.offset, pData.scale, pData.rotation, pos, dir, true);
+      }
+    }
+  }
+
+  TMatrix calculateSubEffectTransform(const Point3 &offset, const Point3 &scale, const Point3 &rotation, const Point3 &pos,
+    const Point3 &dir, bool usePosDir = true)
+  {
+    TMatrix scl = TMatrix::IDENT;
+    scl.m[0][0] = scale.x;
+    scl.m[1][1] = scale.y;
+    scl.m[2][2] = scale.z;
+
+    TMatrix wtm;
+    TMatrix placementTm = TMatrix::IDENT;
+    Point3 localOffset = offset;
+
+    if (usePosDir)
+    {
+      Point3 up = dir;
+      Point3 right = abs(up.y) > 0.99f ? normalize(cross(up, Point3(1, 0, 0))) : normalize(cross(up, Point3(0, 1, 0)));
+      Point3 forward = normalize(cross(right, up));
+      placementTm.setcol(0, right);
+      placementTm.setcol(1, up);
+      placementTm.setcol(2, forward);
+
+      localOffset = localOffset.x * right + localOffset.y * up + localOffset.z * forward + pos;
+    }
+
+    wtm = placementTm * rotxTM(rotation.x * DEG_TO_RAD) * rotyTM(rotation.y * DEG_TO_RAD) * rotzTM(rotation.z * DEG_TO_RAD) * scl;
+    wtm.setcol(3, localOffset);
+
+    return wtm;
+  }
+
+  void addSubEffects(int &subIdx, dag::Vector<dafx::SystemDesc *> &subsystems, const SmallTab<ModfxParams> &parArray,
+    const Point3 &pos, const Point3 &dir)
+  {
+    for (int i = 0; i < subsystems.size(); i++)
+    {
+      SubEffect &subEffect = subEffects.push_back();
+      subEffect = subEffects[i];
+
+      pdesc->subsystems.push_back(*subsystems[i]);
+      const ModfxParams &par = parArray[i];
+
+      auto sdesc = &pdesc->subsystems.back();
+      dafx::SystemDesc *ddesc = sdesc->subsystems.empty() ? nullptr : &sdesc->subsystems[0];
+      G_ASSERT_CONTINUE(ddesc);
+
+      ddesc->renderSortDepth = subIdx++;
+
+      if (par.distance_lag > 0)
+      {
+        distanceLagData.resize(subIdx);
+        DistanceLag &v = distanceLagData.back();
+        v.enabled = true;
+        v.distance = par.distance_lag;
+        v.distanceSq = v.distance * v.distance;
+        v.stepSq = (par.distance_lag / DistanceLag::historySize);
+        v.stepSq *= v.stepSq;
+      }
+
+      TMatrix wtm = calculateSubEffectTransform(par.offset, par.scale, par.rotation, pos, dir);
+      subEffect.subTransform = wtm;
+    }
+  }
+
+  void loadSubEffect(int &subIdx, const ModfxParams &par, BaseEffectObject *fx, dafx::SystemDesc *sdesc, const Point3 &pos,
+    const Point3 &dir, bool usePosDir, float spawn_range_limit)
+  {
+    SubEffect &subEffect = subEffects.push_back();
+    SubEffect::ValueOffset &offsets = subEffect.offsets;
+
+    pdesc->subsystems.push_back(*sdesc);
+    sdesc = &pdesc->subsystems.back();
+    sdesc->qualityFlags = fx_apply_quality_bits(par.quality, sdesc->qualityFlags);
+
+    dafx::SystemDesc *ddesc = sdesc->subsystems.empty() ? nullptr : &sdesc->subsystems[0];
+    G_ASSERT_RETURN(ddesc, );
+
+    ddesc->renderSortDepth = subIdx++;
+    ddesc->emitterData.delay += par.delay;
+
+    if (spawn_range_limit > 0 && ddesc->emitterData.spawnRangeLimit <= 0)
+      ddesc->emitterData.spawnRangeLimit = spawn_range_limit;
+
+    if (ddesc->emitterData.spawnRangeLimit == 0)
+      pdesc->emitterData.spawnRangeLimit = 0;
+    else if (pdesc->emitterData.spawnRangeLimit != 0)
+      pdesc->emitterData.spawnRangeLimit = max(pdesc->emitterData.spawnRangeLimit, ddesc->emitterData.spawnRangeLimit);
+
+    if (par.mod_part_count != 1 && par.mod_part_count > 0)
+    {
+      if (ddesc->emitterData.type == dafx::EmitterType::LINEAR)
+      {
+        ddesc->emitterData.linearData.countMin =
+          ddesc->emitterData.linearData.countMin > 0 ? max(ddesc->emitterData.linearData.countMin * par.mod_part_count, 1.f) : 0;
+        ddesc->emitterData.linearData.countMax = max(ddesc->emitterData.linearData.countMax * par.mod_part_count, 1.f);
+      }
+      else if (ddesc->emitterData.type == dafx::EmitterType::BURST)
+      {
+        ddesc->emitterData.burstData.countMin =
+          ddesc->emitterData.burstData.countMin > 0 ? max(ddesc->emitterData.burstData.countMin * par.mod_part_count, 1.f) : 0;
+        ddesc->emitterData.burstData.countMax = max(ddesc->emitterData.burstData.countMax * par.mod_part_count, 1.f);
+      }
+      else if (ddesc->emitterData.type == dafx::EmitterType::FIXED)
+      {
+        ddesc->emitterData.fixedData.count = max(ddesc->emitterData.fixedData.count * par.mod_part_count, 1.f);
+      }
+
+      const dafx::Config &cfg = dafx::get_config(g_dafx_ctx);
+      unsigned int lim = dafx::get_emitter_limit(ddesc->emitterData, true);
+      if (lim == 0 || lim >= cfg.emission_limit)
+      {
+        logerr("dafx::emitter, over emitter limit");
+        return;
+      }
+    }
+
+    if (par.render_group != RGROUP_DEFAULT)
+    {
+      for (auto &i : ddesc->renderDescs)
+      {
+        if (strcmp(i.tag.c_str(), dafx_ex::renderTags[dafx_ex::RTAG_LOWRES]) != 0 &&
+            strcmp(i.tag.c_str(), dafx_ex::renderTags[dafx_ex::RTAG_HIGHRES]) != 0 &&
+            // strcmp(i.tag.c_str(), dafx_ex::renderTags[dafx_ex::RTAG_DISTORTION]) != 0 &&
+            // strcmp(i.tag.c_str(), dafx_ex::renderTags[dafx_ex::RTAG_WATER_PROJ]) != 0 &&
+            strcmp(i.tag.c_str(), dafx_ex::renderTags[dafx_ex::RTAG_UNDERWATER]) != 0)
+          continue;
+
+        int t = dafx_ex::RTAG_LOWRES;
+        switch (par.render_group)
+        {
+          case RGROUP_LOWRES: t = dafx_ex::RTAG_LOWRES; break;
+          case RGROUP_HIGHRES: t = dafx_ex::RTAG_HIGHRES; break;
+          case RGROUP_DISTORTION: t = dafx_ex::RTAG_DISTORTION; break;
+          case RGROUP_WATER_PROJ_ADVANCED: t = dafx_ex::RTAG_WATER_PROJ_ADVANCED; break;
+          case RGROUP_WATER_PROJ: t = dafx_ex::RTAG_WATER_PROJ; break;
+          case RGROUP_UNDERWATER: t = dafx_ex::RTAG_UNDERWATER; break;
+          default: G_ASSERT(false);
+        }
+        i.tag = dafx_ex::renderTags[t];
+      }
+    }
+
+    ddesc->emitterData.globalLifeLimitMin = ddesc->emitterData.globalLifeLimitMax = par.global_life_time_min;
+    if (par.global_life_time_min > 0 || par.global_life_time_max > 0)
+    {
+      if (par.global_life_time_min > 0 && par.global_life_time_max > 0)
+        ddesc->emitterData.globalLifeLimitMax = par.global_life_time_max;
+      else
+        logerr("dafx: global_life_time_min/max should either be 0 or both be > 0");
+    }
+
+    if (par.mod_life != 1 && par.mod_life > 0)
+    {
+      // min/max ratio still be the same
+      ddesc->emitterData.linearData.lifeLimit *= par.mod_life;
+      ddesc->emitterData.burstData.lifeLimit *= par.mod_life;
+      ddesc->emitterData.distanceBasedData.lifeLimit *= par.mod_life;
+    }
+
+    if (par.distance_lag > 0)
+    {
+      distanceLagData.resize(subIdx);
+      DistanceLag &v = distanceLagData.back();
+      v.enabled = true;
+      v.distance = par.distance_lag;
+      v.distanceSq = v.distance * v.distance;
+      v.stepSq = (par.distance_lag / DistanceLag::historySize);
+      v.stepSq *= v.stepSq;
+    }
+
+    int renderRefDataSize = sdesc->emissionData.renderRefData.size();
+    unsigned char *simulationRefData = sdesc->emissionData.simulationRefData.data();
+
+    if (!(float_nonzero(par.scale.x) && float_nonzero(par.scale.y) && float_nonzero(par.scale.z)))
+    {
+      String resName;
+      get_game_resource_name(gameResId, resName);
+      logerr("dafx: scale must be non-zero! ('%s' sub-fx slot: %d)", resName.c_str(), subIdx);
+    }
+
+    TMatrix wtm = calculateSubEffectTransform(par.offset, par.scale, par.rotation, pos, dir, usePosDir);
+    subEffect.subTransform = wtm;
+
+    dafx_ex::TransformType trtype = (dafx_ex::TransformType)par.transform_type;
+    G_ASSERT(trtype <= dafx_ex::TRANSFORM_LOCAL_SPACE);
+
+    offsets.lightPos = -1;
+    offsets.lightRadius = -1;
+    offsets.lightColor = -1;
+    offsets.parentVelocity = -1;
+    offsets.localGravity = -1;
+    offsets.gravityTm = -1;
+    offsets.fxTm = -1;
+    offsets.colorMult = -1;
+    offsets.flags = -1;
+    offsets.velocityScaleMin = -1;
+    offsets.velocityScaleMax = -1;
+    offsets.radiusMin = -1;
+    offsets.radiusMax = -1;
+    offsets.windCoeff = -1;
+    offsets.fakeBrightnessBackgroundPos = -1;
+
+    dafx_ex::SystemInfo *sinfo = nullptr;
+    if (fx->getParam(_MAKE4C('PFVR'), &sinfo) && sinfo)
+    {
+      auto patch_mul_f_v = [=](int n, eastl::vector_map<int, int> &table, unsigned char *dst, float v) {
+        eastl::vector_map<int, int>::iterator it = table.find(n);
+        if (it != table.end())
+        {
+          int ofs = it->second;
+          if (ofs >= renderRefDataSize)
+            ofs -= renderRefDataSize;
+          *(float *)(dst + ofs) *= v;
+        }
+      };
+
+      auto patch_mul_v3_v = [=](int n, eastl::vector_map<int, int> &table, unsigned char *dst, float v) {
+        eastl::vector_map<int, int>::iterator it = table.find(n);
+        if (it != table.end())
+        {
+          int ofs = it->second;
+          if (ofs >= renderRefDataSize)
+            ofs -= renderRefDataSize;
+          *(float *)(dst + ofs) *= v;
+          *(float *)(dst + ofs + 1 * sizeof(float)) *= v;
+          *(float *)(dst + ofs + 2 * sizeof(float)) *= v;
+        }
+      };
+
+      auto patch_mul_color_v = [=](int n, eastl::vector_map<int, int> &table, unsigned char *dst, E3DCOLOR v) {
+        eastl::vector_map<int, int>::iterator it = table.find(n);
+        if (it != table.end())
+        {
+          int ofs = it->second;
+          if (ofs >= renderRefDataSize)
+            ofs -= renderRefDataSize;
+
+          *(E3DCOLOR *)(dst + ofs) = e3dcolor_mul(*(E3DCOLOR *)(dst + ofs), v);
+        }
+      };
+
+      float mod_rad = par.mod_radius;
+      if (mod_rad != 1 && mod_rad > 0)
+      {
+        patch_mul_f_v(dafx_ex::SystemInfo::VAL_RADIUS_MIN, sinfo->valueOffsets, simulationRefData, mod_rad);
+        patch_mul_f_v(dafx_ex::SystemInfo::VAL_RADIUS_MAX, sinfo->valueOffsets, simulationRefData, mod_rad);
+      }
+
+      if (par.mod_rotation_speed != 1)
+      {
+        patch_mul_f_v(dafx_ex::SystemInfo::VAL_ROTATION_MIN, sinfo->valueOffsets, simulationRefData, par.mod_rotation_speed);
+        patch_mul_f_v(dafx_ex::SystemInfo::VAL_ROTATION_MAX, sinfo->valueOffsets, simulationRefData, par.mod_rotation_speed);
+      }
+
+      if (par.mod_velocity_start != 1)
+      {
+        patch_mul_f_v(dafx_ex::SystemInfo::VAL_VELOCITY_START_MIN, sinfo->valueOffsets, simulationRefData, par.mod_velocity_start);
+        patch_mul_f_v(dafx_ex::SystemInfo::VAL_VELOCITY_START_MAX, sinfo->valueOffsets, simulationRefData, par.mod_velocity_start);
+        patch_mul_v3_v(dafx_ex::SystemInfo::VAL_VELOCITY_START_VEC3, sinfo->valueOffsets, simulationRefData, par.mod_velocity_start);
+      }
+
+      if (par.mod_velocity_add != 1)
+      {
+        patch_mul_f_v(dafx_ex::SystemInfo::VAL_VELOCITY_ADD_MIN, sinfo->valueOffsets, simulationRefData, par.mod_velocity_add);
+        patch_mul_f_v(dafx_ex::SystemInfo::VAL_VELOCITY_ADD_MAX, sinfo->valueOffsets, simulationRefData, par.mod_velocity_add);
+        patch_mul_v3_v(dafx_ex::SystemInfo::VAL_VELOCITY_ADD_VEC3, sinfo->valueOffsets, simulationRefData, par.mod_velocity_add);
+      }
+
+      if (par.mod_velocity_wind_scale != 1)
+      {
+        patch_mul_f_v(dafx_ex::SystemInfo::VAL_VELOCITY_WIND_COEFF, sinfo->valueOffsets, simulationRefData,
+          par.mod_velocity_wind_scale);
+      }
+
+      if (par.mod_velocity_mass != 1)
+      {
+        patch_mul_f_v(dafx_ex::SystemInfo::VAL_MASS, sinfo->valueOffsets, simulationRefData, par.mod_velocity_mass);
+      }
+
+      if (par.mod_velocity_drag != 1)
+      {
+        patch_mul_f_v(dafx_ex::SystemInfo::VAL_DRAG_COEFF, sinfo->valueOffsets, simulationRefData, par.mod_velocity_drag);
+      }
+
+      if (par.mod_velocity_drag_to_rad != 1)
+      {
+        patch_mul_f_v(dafx_ex::SystemInfo::VAL_DRAG_TO_RAD, sinfo->valueOffsets, simulationRefData, par.mod_velocity_drag_to_rad);
+      }
+
+      patch_mul_color_v(dafx_ex::SystemInfo::VAL_COLOR_MIN, sinfo->valueOffsets, simulationRefData, par.mod_color);
+      patch_mul_color_v(dafx_ex::SystemInfo::VAL_COLOR_MAX, sinfo->valueOffsets, simulationRefData, par.mod_color);
+
+      auto it = sinfo->valueOffsets.find(dafx_ex::SystemInfo::VAL_GRAVITY_ZONE_TM);
+      if (it != sinfo->valueOffsets.end())
+        offsets.gravityTm = it->second;
+    }
+
+    // Default values
+    subEffect.fxRadiusRange = Point2(1.f, 1.f);
+    if (sinfo && trtype == dafx_ex::TRANSFORM_DEFAULT)
+      trtype = sinfo->transformType;
+    subEffect.transformType = trtype;
+    if (sinfo)
+      subEffect.distanceScale = sinfo->distanceScale;
+
+    int isModfx = 0;
+    if (fx->getParam(_MAKE4C('PFXM'), &isModfx) && isModfx)
+    {
+      G_ASSERT_RETURN(sinfo, );
+
+      offsets.flags = sinfo->valueOffsets[dafx_ex::SystemInfo::VAL_FLAGS];
+      offsets.fxTm = sinfo->valueOffsets[dafx_ex::SystemInfo::VAL_TM];
+
+      auto it = sinfo->valueOffsets.find(dafx_ex::SystemInfo::VAL_LIGHT_POS);
+
+      if (it != sinfo->valueOffsets.end())
+      {
+        offsets.lightPos = sinfo->valueOffsets[dafx_ex::SystemInfo::VAL_LIGHT_POS];
+        offsets.lightColor = sinfo->valueOffsets[dafx_ex::SystemInfo::VAL_LIGHT_COLOR];
+        offsets.lightRadius = sinfo->valueOffsets[dafx_ex::SystemInfo::VAL_LIGHT_RADIUS];
+        G_ASSERT(offsets.lightRadius == offsets.lightColor + sizeof(float) * 3); // to allow batch set
+      }
+
+      it = sinfo->valueOffsets.find(dafx_ex::SystemInfo::VAL_VELOCITY_START_MIN);
+      if (it != sinfo->valueOffsets.end())
+        offsets.velocityScaleMin = it->second;
+
+      it = sinfo->valueOffsets.find(dafx_ex::SystemInfo::VAL_VELOCITY_START_MAX);
+      if (it != sinfo->valueOffsets.end())
+        offsets.velocityScaleMax = it->second;
+
+      it = sinfo->valueOffsets.find(dafx_ex::SystemInfo::VAL_VELOCITY_START_ADD);
+      if (it != sinfo->valueOffsets.end())
+        offsets.parentVelocity = it->second;
+
+      it = sinfo->valueOffsets.find(dafx_ex::SystemInfo::VAL_VELOCITY_WIND_COEFF);
+      if (it != sinfo->valueOffsets.end())
+        offsets.windCoeff = it->second;
+
+      it = sinfo->valueOffsets.find(dafx_ex::SystemInfo::VAL_LOCAL_GRAVITY_VEC);
+      if (it != sinfo->valueOffsets.end())
+        offsets.localGravity = it->second;
+
+      it = sinfo->valueOffsets.find(dafx_ex::SystemInfo::VAL_COLOR_MUL);
+      if (it != sinfo->valueOffsets.end())
+        offsets.colorMult = it->second;
+
+      it = sinfo->valueOffsets.find(dafx_ex::SystemInfo::VAL_FAKE_BRIGHTNESS_BACKGROUND_POS);
+      if (it != sinfo->valueOffsets.end())
+        offsets.fakeBrightnessBackgroundPos = it->second;
+
+      G_ASSERT(sinfo->valueOffsets.find(dafx_ex::SystemInfo::VAL_RADIUS_MIN) != sinfo->valueOffsets.end());
+      G_ASSERT(sinfo->valueOffsets.find(dafx_ex::SystemInfo::VAL_RADIUS_MAX) != sinfo->valueOffsets.end());
+      offsets.radiusMin = sinfo->valueOffsets[dafx_ex::SystemInfo::VAL_RADIUS_MIN];
+      offsets.radiusMax = sinfo->valueOffsets[dafx_ex::SystemInfo::VAL_RADIUS_MAX];
+
+      subEffect.fxRadiusRange.x = *(float *)(simulationRefData + offsets.radiusMin - renderRefDataSize);
+      subEffect.fxRadiusRange.y = *(float *)(simulationRefData + offsets.radiusMax - renderRefDataSize);
+
+      uint32_t flg = sinfo->rflags;
+      if (lightFx)
+        flg |= 1 << MODFX_RFLAG_OMNI_LIGHT_ENABLED;
+
+      *(uint32_t *)(sdesc->emissionData.renderRefData.data() + offsets.flags) = flg;
+      subEffect.rflags = flg;
+      subEffect.sflags = sinfo->sflags;
+    }
+    else // sparks
+    {
+      G_ASSERT_RETURN(sinfo, );
+
+      offsets.fxTm = 0;
+      offsets.parentVelocity = sdesc->emissionData.renderRefData.size();
+      subEffect.rflags = sinfo->rflags;
+      subEffect.sflags = 0;
+    }
   }
 
   void setParam(unsigned id, void *value) override
@@ -619,9 +864,11 @@ struct DafxCompound : BaseParticleEffect
         sid = dafx::SystemId();
         iid = dafx::InstanceId();
         ctx = g_dafx_ctx;
+
+        rndSeed = generate_seed(uintptr_t(this), uint32_t(iid));
       }
 
-      if (!pdesc)
+      if (resLoaded && !pdesc)
         return;
 
       if (iid)
@@ -643,7 +890,7 @@ struct DafxCompound : BaseParticleEffect
 
       if (!sid)
       {
-        sid = dafx::register_system(g_dafx_ctx, *pdesc, name);
+        sid = resLoaded ? dafx::register_system(g_dafx_ctx, *pdesc, name) : dafx::get_dummy_system_id(g_dafx_ctx);
         if (!sid)
           logerr("fx: modfx: failed to register system");
       }
@@ -652,6 +899,7 @@ struct DafxCompound : BaseParticleEffect
       {
         iid = dafx::create_instance(g_dafx_ctx, sid);
         G_ASSERT_RETURN(iid, );
+        rndSeed = generate_seed(uintptr_t(this), uint32_t(iid));
         dafx::set_instance_status(g_dafx_ctx, iid, false);
         recalcFxScale();
       }
@@ -668,8 +916,13 @@ struct DafxCompound : BaseParticleEffect
     if (!iid)
       return;
 
-    if (id == _MAKE4C('PFXE') || id == _MAKE4C('PFXF'))
-      dafx::set_instance_status(g_dafx_ctx, iid, value ? *(bool *)value : false);
+    if (id == _MAKE4C('PFXE'))
+    {
+      G_ASSERT(value);
+      BaseEffectEnabled *dafxe = static_cast<BaseEffectEnabled *>(value);
+      dafx::set_instance_status(g_dafx_ctx, iid, dafxe->enabled, dafxe->distanceToCam);
+      distanceToCamOnSpawn = dafxe->distanceToCam;
+    }
     else if (id == _MAKE4C('PFXP'))
     {
       Point4 pos = *(Point4 *)value;
@@ -718,18 +971,13 @@ struct DafxCompound : BaseParticleEffect
     {
       *(int *)value = playerReserved;
     }
-    else if (id == _MAKE4C('FXLR'))
+    else if (id == _MAKE4C('FXLR') && pdesc)
     {
-      *(float *)value = spawnRangeLimit;
+      *(float *)value = pdesc->emitterData.spawnRangeLimit;
     }
     else if (id == _MAKE4C('FXLX'))
     {
       *(Point2 *)value = Point2(onePointNumber, onePointRadius);
-      return value;
-    }
-    else if (id == _MAKE4C('FXSH'))
-    {
-      *(LightfxShadowParams *)value = lightShadowParams;
       return value;
     }
     else if (id == _MAKE4C('PFXX') && pdesc)
@@ -795,10 +1043,10 @@ struct DafxCompound : BaseParticleEffect
       params = (Color4 *)lightFx->getParam(HUID_LIGHT_PARAMS, params);
       G_ASSERT_RETURN(params, );
 
-      for (int i = 0; i < subTransforms.size(); ++i)
+      for (int i = 0; i < subEffects.size(); ++i)
       {
-        if (valueOffsets[i].lightPos >= 0)
-          dafx::set_subinstance_value(g_dafx_ctx, iid, i, valueOffsets[i].lightColor, params, sizeof(Point4));
+        if (subEffects[i].offsets.lightPos >= 0)
+          dafx::set_subinstance_value(g_dafx_ctx, iid, i, subEffects[i].offsets.lightColor, params, sizeof(Point4));
       }
     }
   }
@@ -822,9 +1070,9 @@ struct DafxCompound : BaseParticleEffect
       return;
 
     E3DCOLOR c = e3dcolor(*value);
-    for (int i = 0; i < valueOffsets.size(); ++i)
+    for (int i = 0; i < subEffects.size(); ++i)
     {
-      int ofs = valueOffsets[i].colorMult;
+      int ofs = subEffects[i].offsets.colorMult;
       if (ofs >= 0)
         dafx::set_subinstance_value(g_dafx_ctx, iid, i, ofs, &c, 4);
     }
@@ -838,9 +1086,9 @@ struct DafxCompound : BaseParticleEffect
     if (!iid)
       return;
 
-    for (int i = 0; i < valueOffsets.size(); ++i)
+    for (int i = 0; i < subEffects.size(); ++i)
     {
-      int ofs = valueOffsets[i].gravityTm;
+      int ofs = subEffects[i].offsets.gravityTm;
       if (ofs >= 0)
         dafx::set_subinstance_value(g_dafx_ctx, iid, i, ofs, &tm, sizeof(tm));
     }
@@ -848,32 +1096,32 @@ struct DafxCompound : BaseParticleEffect
 
   void recalcFxScale()
   {
-    int seed = uintptr_t(this) | uint32_t(iid);
-    fxScale = lerp(fxScaleRange.x, fxScaleRange.y, _frnd(seed));
+    rndSeed = generate_seed(uintptr_t(this), uint32_t(iid));
+    fxScale = lerp(fxScaleRange.x, fxScaleRange.y, _frnd(rndSeed));
 
-    G_ASSERT(subTransforms.size() == fxRadiusRanges.size());
-    for (int i = 0; i < subTransforms.size(); ++i)
+    for (int i = 0; i < subEffects.size(); ++i)
     {
-      Point2 radius = fxRadiusRanges[i] * fxScale;
-      if (valueOffsets[i].radiusMin >= 0)
-        dafx::set_subinstance_value(g_dafx_ctx, iid, i, valueOffsets[i].radiusMin, &radius.x, sizeof(float));
-      if (valueOffsets[i].radiusMax >= 0)
-        dafx::set_subinstance_value(g_dafx_ctx, iid, i, valueOffsets[i].radiusMax, &radius.y, sizeof(float));
+      Point2 radius = subEffects[i].fxRadiusRange * fxScale;
+      if (subEffects[i].offsets.radiusMin >= 0)
+        dafx::set_subinstance_value(g_dafx_ctx, iid, i, subEffects[i].offsets.radiusMin, &radius.x, sizeof(float));
+      if (subEffects[i].offsets.radiusMax >= 0)
+        dafx::set_subinstance_value(g_dafx_ctx, iid, i, subEffects[i].offsets.radiusMax, &radius.y, sizeof(float));
     }
   }
 
   void setTransform(const TMatrix &value, dafx_ex::TransformType tr_type)
   {
-    for (int i = 0; i < subTransforms.size(); ++i)
+    for (int i = 0; i < subEffects.size(); ++i)
     {
-      dafx_ex::TransformType type = transformTypes[i];
+      dafx_ex::TransformType type = subEffects[i].transformType;
       if (type == dafx_ex::TRANSFORM_DEFAULT)
         type = tr_type;
 
-      TMatrix stm = value * subTransforms[i];
+      TMatrix stm = value * subEffects[i].subTransform;
       stm.col[0] *= fxScale;
       stm.col[1] *= fxScale;
       stm.col[2] *= fxScale;
+      subEffects[i].distanceScale.apply(stm, distanceToCamOnSpawn);
 
       if (i < distanceLagData.size() && distanceLagData[i].enabled)
       {
@@ -921,72 +1169,64 @@ struct DafxCompound : BaseParticleEffect
       }
 
       // uniform matrix with usage flag
-      if (valueOffsets[i].flags >= 0) // modFx
+      if (subEffects[i].offsets.flags >= 0) // modFx
       {
         if (type == dafx_ex::TRANSFORM_LOCAL_SPACE)
         {
-          if (!(rflags[i] & (1 << MODFX_RFLAG_USE_ETM_AS_WTM)))
+          if (!(subEffects[i].rflags & (1 << MODFX_RFLAG_USE_ETM_AS_WTM)))
           {
-            rflags[i] |= 1 << MODFX_RFLAG_USE_ETM_AS_WTM;
-            dafx::set_subinstance_value(g_dafx_ctx, iid, i, valueOffsets[i].flags, &rflags[i], sizeof(uint32_t));
+            subEffects[i].rflags |= 1 << MODFX_RFLAG_USE_ETM_AS_WTM;
+            dafx::set_subinstance_value(g_dafx_ctx, iid, i, subEffects[i].offsets.flags, &subEffects[i].rflags, sizeof(uint32_t));
           }
 
-          if (valueOffsets[i].localGravity >= 0)
+          if (subEffects[i].offsets.localGravity >= 0)
           {
             TMatrix itm = orthonormalized_inverse(stm);
             Point3 vec = itm.getcol(1); // inv-up
-            dafx::set_subinstance_value(g_dafx_ctx, iid, i, valueOffsets[i].localGravity, &vec, sizeof(Point3));
+            dafx::set_subinstance_value(g_dafx_ctx, iid, i, subEffects[i].offsets.localGravity, &vec, sizeof(Point3));
           }
         }
         else if (type == dafx_ex::TRANSFORM_WORLD_SPACE)
         {
-          if (rflags[i] & (1 << MODFX_RFLAG_USE_ETM_AS_WTM))
+          if (subEffects[i].rflags & (1 << MODFX_RFLAG_USE_ETM_AS_WTM))
           {
-            rflags[i] &= ~(1 << MODFX_RFLAG_USE_ETM_AS_WTM);
-            dafx::set_subinstance_value(g_dafx_ctx, iid, i, valueOffsets[i].flags, &rflags[i], sizeof(uint32_t));
+            subEffects[i].rflags &= ~(1 << MODFX_RFLAG_USE_ETM_AS_WTM);
+            dafx::set_subinstance_value(g_dafx_ctx, iid, i, subEffects[i].offsets.flags, &subEffects[i].rflags, sizeof(uint32_t));
           }
         }
 
         TMatrix4 stm4 = stm;
-        dafx::set_subinstance_value(g_dafx_ctx, iid, i, valueOffsets[i].fxTm, &stm4, sizeof(TMatrix4));
+        stm4[3][3] = stm.getScalingFactor(); // scale is stored in the last component
+        dafx::set_subinstance_value(g_dafx_ctx, iid, i, subEffects[i].offsets.fxTm, &stm4, sizeof(TMatrix4));
       }
       else // sparks
       {
+        bool isLocalSpace = type == dafx_ex::TRANSFORM_LOCAL_SPACE;
+        subEffects[i].rflags &= ~(1 << DAFX_SPARK_DECL_LOCAL_SPACE);
+        subEffects[i].rflags |= isLocalSpace << DAFX_SPARK_DECL_LOCAL_SPACE;
+
         struct
         {
           TMatrix4 stm4;
-          uint32_t isLocalSpace;
+          uint32_t flags;
         } pushData;
 
         pushData.stm4 = stm;
-        pushData.isLocalSpace = type == dafx_ex::TRANSFORM_LOCAL_SPACE;
-        if (pushData.isLocalSpace) // using it like an inverse matrix to get forces in local space.
-          pushData.stm4 = pushData.stm4.transpose();
+        pushData.flags = subEffects[i].rflags;
 
-        dafx::set_subinstance_value(g_dafx_ctx, iid, i, valueOffsets[i].fxTm, &pushData, sizeof(pushData));
-
-        if (type == dafx_ex::TRANSFORM_WORLD_SPACE)
-        {
-          TMatrix emitterNormalTm;
-          emitterNormalTm.setcol(0, normalize(stm.getcol(0)));
-          emitterNormalTm.setcol(1, normalize(stm.getcol(1)));
-          emitterNormalTm.setcol(2, normalize(stm.getcol(2)));
-          emitterNormalTm.setcol(3, Point3(0, 0, 0));
-
-          TMatrix4 ntm4 = emitterNormalTm;
-          dafx::set_subinstance_value(g_dafx_ctx, iid, i, valueOffsets[i].emitterNtm, &ntm4, sizeof(TMatrix4));
-        }
+        dafx::set_subinstance_value(g_dafx_ctx, iid, i, subEffects[i].offsets.fxTm, &pushData, sizeof(pushData));
       }
     }
 
     if (lightFx)
     {
       TMatrix tm = value * lightTm;
+      lightFx->setTm(&tm);
       Point3 lightPos = tm.getcol(3);
-      for (int i = 0; i < subTransforms.size(); ++i)
+      for (int i = 0; i < subEffects.size(); ++i)
       {
-        if (valueOffsets[i].lightPos >= 0)
-          dafx::set_subinstance_value(g_dafx_ctx, iid, i, valueOffsets[i].lightPos, &lightPos, sizeof(Point3));
+        if (subEffects[i].offsets.lightPos >= 0)
+          dafx::set_subinstance_value(g_dafx_ctx, iid, i, subEffects[i].offsets.lightPos, &lightPos, sizeof(Point3));
       }
     }
   }
@@ -1003,14 +1243,30 @@ struct DafxCompound : BaseParticleEffect
       setTransform(*value, dafx_ex::TRANSFORM_WORLD_SPACE);
   }
 
+  void setFakeBrightnessBackgroundPos(const Point3 *v) override
+  {
+    if (!iid || !v)
+      return;
+
+    for (int i = 0; i < subEffects.size(); ++i)
+    {
+      int ofs = subEffects[i].offsets.fakeBrightnessBackgroundPos;
+      if (ofs >= 0 && !(subEffects[i].rflags & (1 << MODFX_RFLAG_BACKGROUND_POS_INITED)))
+      {
+        subEffects[i].rflags |= (1 << MODFX_RFLAG_BACKGROUND_POS_INITED);
+        dafx::set_subinstance_value(g_dafx_ctx, iid, i, ofs, v, sizeof(Point3));
+      }
+    }
+  }
+
   void setVelocity(const Point3 *v) override
   {
     if (!iid || !v)
       return;
 
-    for (int i = 0; i < valueOffsets.size(); ++i)
+    for (int i = 0; i < subEffects.size(); ++i)
     {
-      int ofs = valueOffsets[i].parentVelocity;
+      int ofs = subEffects[i].offsets.parentVelocity;
       if (ofs >= 0)
         dafx::set_subinstance_value(g_dafx_ctx, iid, i, ofs, v, 12);
     }
@@ -1021,12 +1277,12 @@ struct DafxCompound : BaseParticleEffect
     if (!iid || !scale)
       return;
 
-    for (int i = 0; i < valueOffsets.size(); ++i)
+    for (int i = 0; i < subEffects.size(); ++i)
     {
-      int ofs = valueOffsets[i].velocityScaleMin;
+      int ofs = subEffects[i].offsets.velocityScaleMin;
       if (ofs >= 0)
         dafx::set_subinstance_value(g_dafx_ctx, iid, i, ofs, scale, sizeof(*scale));
-      ofs = valueOffsets[i].velocityScaleMax;
+      ofs = subEffects[i].offsets.velocityScaleMax;
       if (ofs >= 0)
         dafx::set_subinstance_value(g_dafx_ctx, iid, i, ofs, scale, sizeof(*scale));
     }
@@ -1037,12 +1293,12 @@ struct DafxCompound : BaseParticleEffect
     if (!iid || !scale)
       return;
 
-    for (int i = 0; i < valueOffsets.size(); ++i)
+    for (int i = 0; i < subEffects.size(); ++i)
     {
-      int ofs = valueOffsets[i].velocityScaleMin;
+      int ofs = subEffects[i].offsets.velocityScaleMin;
       if (ofs >= 0)
         dafx::set_subinstance_value(g_dafx_ctx, iid, i, ofs, &scale->x, sizeof(float));
-      ofs = valueOffsets[i].velocityScaleMax;
+      ofs = subEffects[i].offsets.velocityScaleMax;
       if (ofs >= 0)
         dafx::set_subinstance_value(g_dafx_ctx, iid, i, ofs, &scale->y, sizeof(float));
     }
@@ -1053,9 +1309,9 @@ struct DafxCompound : BaseParticleEffect
     if (!iid || !scale)
       return;
 
-    for (int i = 0; i < valueOffsets.size(); ++i)
+    for (int i = 0; i < subEffects.size(); ++i)
     {
-      int ofs = valueOffsets[i].windCoeff;
+      int ofs = subEffects[i].offsets.windCoeff;
       if (ofs >= 0)
         dafx::set_subinstance_value_from_system(g_dafx_ctx, iid, i, sid, ofs, sizeof(float), {scale, 1});
     }
@@ -1086,9 +1342,6 @@ struct DafxCompound : BaseParticleEffect
 
   BaseParamScript *clone() override
   {
-    if (!resLoaded)
-      return nullptr;
-
     DafxCompound *v = new DafxCompound(*this);
     if (sid)
     {

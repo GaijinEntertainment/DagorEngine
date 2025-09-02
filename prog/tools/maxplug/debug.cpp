@@ -54,8 +54,8 @@ void debug(const wchar_t *s, ...)
 
   if (!debugfile)
   {
-    TCHAR temp_path[MAX_PATH];
-    TCHAR temp_path2[MAX_PATH];
+    static TCHAR temp_path[MAX_PATH];
+    static TCHAR temp_path2[MAX_PATH];
     _stprintf(temp_path2, _T("d:\\dagor2_plugin_max%d.%d.%d"), MAX_PRODUCT_VERSION_MAJOR, MAX_PRODUCT_VERSION_MINOR,
       MAX_PRODUCT_VERSION_POINT);
 #ifdef DAG_3DSMAX_IMPORTER
@@ -71,7 +71,7 @@ void debug(const wchar_t *s, ...)
     debugfile = _tfopen(temp_path, _T("wt"));
     if (!debugfile)
     {
-      TCHAR tmpw[MAX_STR_DEBUG];
+      static TCHAR tmpw[MAX_STR_DEBUG];
       debug_not_possible = true;
       _stprintf(tmpw, _T("failed to create debug file: %s\n"), temp_path);
       OutputDebugString(tmpw);

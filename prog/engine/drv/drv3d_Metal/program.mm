@@ -10,7 +10,15 @@ namespace drv3d_metal
 
   Program::Program(Shader* vshdr, Shader* pshdr , VDecl* decl)
   {
-    vshader = vshdr;
+    G_ASSERT(vshdr);
+    if (vshdr->mesh_shader)
+    {
+      vshader = nullptr;
+      mshader = vshdr->mesh_shader;
+      ashader = vshdr->amplification_shader;
+    }
+    else
+      vshader = vshdr;
     pshader = pshdr;
     cshader = NULL;
 

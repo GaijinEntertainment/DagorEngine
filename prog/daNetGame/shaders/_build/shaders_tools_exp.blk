@@ -1,6 +1,6 @@
-include shaders_tools11.blk
+include shaders_dx12_fast.blk
 
-"@override:outDumpName":t="../../tools/common/compiledShaders/tools.exp"
+"@override:outDumpName":t="*"
 outMiniDumpName:t="../../tools/common/compiledShaders/tools.exp"
 
 "@delete:source" {}
@@ -17,9 +17,6 @@ source
   file:t = "../rendinst_cliff.dshl"
   file:t = "../rendinst_decal.dshl"
 
-  file:t = "../rendinst_vegetation.dshl"
-  file:t = "../rendinst_tree_perlin_layered.dshl"
-  file:t = "../rendinst_impostor.dshl"
   file:t = "../dynamic_simple.dshl"
   file:t = "../dynamic_transparent.dshl"
   file:t = "../dynamic_simple_painted.dshl"
@@ -28,6 +25,9 @@ source
   file:t = "../heightmap.dshl"
   file:t = "../rendinst_clipmap.dshl"
   file:t = "../heightmap_patches.dshl"
+  file:t = "spline_solid.dshl"
+
+  include rendinstImpostorbakeableShadersList.blk
 }
 
 "@delete:explicit_var_ref" {}

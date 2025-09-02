@@ -48,3 +48,5 @@ void debug_render_gbuffer_with_vectors(const class DynamicShaderHelper &debugVec
   int mode = USE_DEBUG_GBUFFER_MODE, int vec_count = -1, float vec_scale = 0.f);
 void debug_render_gbuffer_with_vectors(const class DynamicShaderHelper &debugVecShader, Texture *depth,
   int mode = USE_DEBUG_GBUFFER_MODE, int vec_count = -1, float vec_scale = 0.f);
+
+DebugGbufferMode get_debug_gbuffer_mode();

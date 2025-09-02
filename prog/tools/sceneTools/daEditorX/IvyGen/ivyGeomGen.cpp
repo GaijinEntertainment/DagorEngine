@@ -12,6 +12,7 @@
 #include <3d/dag_render.h>
 #include <render/dag_cur_view.h>
 
+using namespace objgenerator; // prng
 using editorcore_extapi::dagGeom;
 using editorcore_extapi::dagRender;
 
@@ -23,7 +24,7 @@ class GenProgressCB : public IProgressCB
 public:
   GenProgressCB(IvyObject *o) { obj = o; }
 
-  virtual void onCancel() { obj->markFinishGeneration(); }
+  void onCancel() override { obj->markFinishGeneration(); }
 
   IvyObject *obj;
 };
@@ -474,7 +475,7 @@ void IvyObject::generateGeom(CoolConsole &con)
           weight += groundIvy * ttv * ttv;
 
           // random influence
-          float probability = _frnd(currentSeed);
+          float probability = frnd(currentSeed);
 
           if (probability * weight > leafDensity)
           {

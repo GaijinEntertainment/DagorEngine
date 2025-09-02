@@ -13,6 +13,44 @@ static void __cdecl crd_read(png_struct *png_ptr, png_byte *buf, png_size_t sz)
       png_error(png_ptr, "Read Error");
 }
 
+bool read_png32_dimensions(const char *fn, int &out_w, int &out_h, bool &out_may_have_alpha)
+{
+  FullFileLoadCB crd(fn);
+  if (!crd.fileHandle)
+    return false;
+
+  png_structp png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
+  if (!png_ptr)
+    return false;
+
+  png_infop info_ptr = png_create_info_struct(png_ptr);
+  if (!info_ptr)
+  {
+    png_destroy_read_struct(&png_ptr, nullptr, nullptr);
+    return false;
+  }
+
+  bool ret = false;
+  if (setjmp(png_jmpbuf(png_ptr)))
+  {
+    png_destroy_read_struct(&png_ptr, &info_ptr, nullptr);
+    return false;
+  }
+
+  png_set_read_fn(png_ptr, &crd, &crd_read);
+  png_read_info(png_ptr, info_ptr);
+
+  out_w = png_get_image_width(png_ptr, info_ptr);
+  out_h = png_get_image_height(png_ptr, info_ptr);
+  out_may_have_alpha = false;
+  if (png_get_bit_depth(png_ptr, info_ptr) == 8 && png_get_channels(png_ptr, info_ptr) == 4)
+    out_may_have_alpha = true;
+  ret = true;
+
+  png_destroy_read_struct(&png_ptr, &info_ptr, nullptr);
+  return ret;
+}
+
 TexImage32 *load_png32(const char *fn, IMemAlloc *mem, bool *out_used_alpha, eastl::string *comments)
 {
   FullFileLoadCB crd(fn);

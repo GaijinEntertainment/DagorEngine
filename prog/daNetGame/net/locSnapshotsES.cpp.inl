@@ -90,18 +90,19 @@ inline bool verify_snapshot_quat(const Quat &q)
 }
 
 template <typename Callable>
-static void gather_transform_snapshot_entities_ecs_query(Callable c);
+static void gather_transform_snapshot_entities_ecs_query(ecs::EntityManager &, Callable c);
 
 template <typename Callable>
-static void apply_transform_snapshot_ecs_query(ecs::EntityId eid, Callable c);
+static void apply_transform_snapshot_ecs_query(ecs::EntityManager &, ecs::EntityId eid, Callable c);
 
-static void gather_snapshot_data(float at_time, eastl::vector<SnapshotEntityData, framemem_allocator> &buffer)
+static void gather_snapshot_data(
+  ecs::EntityManager &manager, float at_time, eastl::vector<SnapshotEntityData, framemem_allocator> &buffer)
 {
   // simplest implementation, which does not know anything about network LODs and just sends quantized
   // snapshots with a fixed framerate. we don't anticipate to have more than 10 entities with these snapshots
   // right now, but it must change if we'll start to have more entities with snapshots of this type
   // TODO: implement support for network LODs and thus reduce traffic
-  gather_transform_snapshot_entities_ecs_query(
+  gather_transform_snapshot_entities_ecs_query(manager,
     [&](ECS_REQUIRE_NOT(ecs::Tag deadEntity) ECS_REQUIRE_NOT(ecs::Tag loc_snaphots__disabled) ecs::EntityId eid,
       const TMatrix &transform, float &loc_snapshots__sendAtTime, float loc_snapshots__sendPeriod,
       const ecs::Tag *loc_snapshots__scaledTransform, bool *loc_snapshots__blink) {
@@ -125,7 +126,7 @@ static void gather_snapshot_data(float at_time, eastl::vector<SnapshotEntityData
         {
           logerr(
             "%@: <%@> snapshot rotation is invalid: rotation='%f,%f,%f,%f' transform='%@' (loc_snapshots__scaledTransform missed?)",
-            eid, g_entity_mgr->getEntityTemplateName(eid), rotation.x, rotation.y, rotation.z, rotation.w, transform);
+            eid, manager.getEntityTemplateName(eid), rotation.x, rotation.y, rotation.z, rotation.w, transform);
           rotation.identity();
         }
 #endif
@@ -140,7 +141,8 @@ static void gather_snapshot_data(float at_time, eastl::vector<SnapshotEntityData
     });
 }
 
-static void send_snapshots(const eastl::vector<SnapshotEntityData, framemem_allocator> &snap_data, float at_time)
+static void send_snapshots(
+  ecs::EntityManager &manager, const eastl::vector<SnapshotEntityData, framemem_allocator> &snap_data, float at_time)
 {
   danet::BitStream tmpBs(framemem_ptr());
   const size_t num = snap_data.size();
@@ -165,24 +167,24 @@ static void send_snapshots(const eastl::vector<SnapshotEntityData, framemem_allo
       tmpBs.Write(entityData.blink);
       // Note: the interval is not written. Because this loc snapshot implementation does not use it.
     }
-    g_entity_mgr->broadcastEvent(TransformSnapshots(tmpBs));
+    manager.broadcastEvent(TransformSnapshots(tmpBs));
   }
 }
 
 ECS_NO_ORDER
 ECS_TAG(server, net)
-static void send_transform_snapshots_es(const ecs::UpdateStageInfoAct &info)
+static void send_transform_snapshots_es(const ecs::UpdateStageInfoAct &info, ecs::EntityManager &manager)
 {
   // Gather data
   eastl::vector<SnapshotEntityData, framemem_allocator> snapEntityData;
-  gather_snapshot_data(info.curTime, snapEntityData);
+  gather_snapshot_data(manager, info.curTime, snapEntityData);
   // Send data
   if (snapEntityData.size() > 0)
-    send_snapshots(snapEntityData, info.curTime);
+    send_snapshots(manager, snapEntityData, info.curTime);
 }
 
 ECS_TAG(gameClient)
-static void rcv_loc_snapshots_es_event_handler(const TransformSnapshots &evt)
+static void rcv_loc_snapshots_es_event_handler(const TransformSnapshots &evt, ecs::EntityManager &manager)
 {
   // decode snapshot
   const danet::BitStream &bs = evt.get<0>();
@@ -213,13 +215,13 @@ static void rcv_loc_snapshots_es_event_handler(const TransformSnapshots &evt)
 #if DAGOR_DBGLEVEL > 0
       logerr("%@: <%@> snapshot stream reading completed with errors (%d/%d). "
              "snap.pos='%@' snap.quat='%f,%f,%f,%f' inMotion='%@' atTime='%f'",
-        eid, g_entity_mgr->getEntityTemplateName(eid), i, int(num) - 1, snap.pos, snap.quat.x, snap.quat.y, snap.quat.z, snap.quat.w,
+        eid, manager.getEntityTemplateName(eid), i, int(num) - 1, snap.pos, snap.quat.x, snap.quat.y, snap.quat.z, snap.quat.w,
         inMotion, atTime);
 #endif
       break;
     }
 
-    apply_transform_snapshot_ecs_query(eid, [&](LocSnapshotsList &loc_snapshots__snapshotData) {
+    apply_transform_snapshot_ecs_query(manager, eid, [&](LocSnapshotsList &loc_snapshots__snapshotData) {
       if (!loc_snapshots__snapshotData.empty() && loc_snapshots__snapshotData.back().atTime > snap.atTime)
         return; // we have a newer snapshot already, this one arrived out-of order
       loc_snapshots__snapshotData.emplace_back(eastl::move(snap));
@@ -249,6 +251,7 @@ ECS_BEFORE(before_animchar_update_sync)
 ECS_TAG(gameClient)
 ECS_REQUIRE_NOT(ecs::Tag loc_snapshots__dontUpdate, ecs::Tag loc_snapshots__dynamicInterpTime)
 static void interp_loc_snapshots_es(const ecs::UpdateStageInfoAct &info,
+  ecs::EntityManager &manager,
   TMatrix &transform,
   const LocSnapshotsList &loc_snapshots__snapshotData,
   ecs::EntityId eid,
@@ -283,7 +286,7 @@ static void interp_loc_snapshots_es(const ecs::UpdateStageInfoAct &info,
     {
       TMatrix prevTransform = makeTM(curSnap.quat);
       prevTransform.setcol(3, curSnap.pos);
-      g_entity_mgr->sendEvent(eid, EventSnapshotBlink(prevTransform, transform, nextSnap.atTime - curSnap.atTime));
+      manager.sendEvent(eid, EventSnapshotBlink(prevTransform, transform, nextSnap.atTime - curSnap.atTime));
     }
     break;
   }

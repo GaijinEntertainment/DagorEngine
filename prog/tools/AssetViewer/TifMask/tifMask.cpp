@@ -18,14 +18,14 @@ class TifMaskViewPlugin : public IGenEditorPlugin, public PropPanel::ControlEven
 {
 public:
   TifMaskViewPlugin() : tex(NULL) { texId = register_managed_tex(":av_tif", NULL); }
-  ~TifMaskViewPlugin() { release_managed_tex_verified(texId, tex); }
+  ~TifMaskViewPlugin() override { release_managed_tex_verified(texId, tex); }
 
-  virtual const char *getInternalName() const { return "tifViewer"; }
+  const char *getInternalName() const override { return "tifViewer"; }
 
-  virtual void registered() {}
-  virtual void unregistered() {}
+  void registered() override {}
+  void unregistered() override {}
 
-  virtual bool begin(DagorAsset *asset)
+  bool begin(DagorAsset *asset) override
   {
     IBitMaskImageMgr *bmImgMgr = EDITORCORE->queryEditorInterface<IBitMaskImageMgr>();
     if (!bmImgMgr)
@@ -79,7 +79,7 @@ public:
     }
     return true;
   }
-  virtual bool end()
+  bool end() override
   {
     rbuf.addFaces(BAD_TEXTUREID);
     rbuf.clearBuf();
@@ -91,25 +91,25 @@ public:
     }
     return true;
   }
-  virtual IGenEventHandler *getEventHandler() { return NULL; }
+  IGenEventHandler *getEventHandler() override { return NULL; }
 
-  virtual void clearObjects() {}
-  virtual void onSaveLibrary() {}
-  virtual void onLoadLibrary() {}
+  void clearObjects() override {}
+  void onSaveLibrary() override {}
+  void onLoadLibrary() override {}
 
-  virtual bool getSelectionBox(BBox3 &box) const
+  bool getSelectionBox(BBox3 &box) const override
   {
     box.lim[0] = Point3(-halfSz.x, 0, -halfSz.y);
     box.lim[1] = Point3(halfSz.x, 4, halfSz.y);
     return true;
   }
 
-  virtual void actObjects(float dt) {}
-  virtual void beforeRenderObjects() {}
-  virtual void renderObjects() {}
-  virtual void renderTransObjects() {}
+  void actObjects(float dt) override {}
+  void beforeRenderObjects() override {}
+  void renderObjects() override {}
+  void renderTransObjects() override {}
 
-  virtual void renderGeometry(Stage stage)
+  void renderGeometry(Stage stage) override
   {
     if (!tex || !getVisible())
       return;
@@ -123,13 +123,15 @@ public:
         rbuf.flush();
         rbuf.clearBuf();
         break;
+
+      default: break;
     }
   }
 
-  virtual bool supportAssetType(const DagorAsset &asset) const { return strcmp(asset.getTypeStr(), "tifMask") == 0; }
+  bool supportAssetType(const DagorAsset &asset) const override { return strcmp(asset.getTypeStr(), "tifMask") == 0; }
 
-  virtual void fillPropPanel(PropPanel::ContainerPropertyControl &panel) { panel.setEventHandler(this); }
-  virtual void postFillPropPanel() {}
+  void fillPropPanel(PropPanel::ContainerPropertyControl &panel) override { panel.setEventHandler(this); }
+  void postFillPropPanel() override {}
 
 private:
   Texture *tex;

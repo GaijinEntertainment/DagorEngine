@@ -20,16 +20,12 @@ void ExecutionSyncCapture::addSyncStep()
     currentVisPin++, currentVisPin++, 0, 0, 0});
   currentSyncStep++;
 }
-void ExecutionSyncCapture::addOp(ExecutionSyncTracker::OpUid uid, LogicAddress laddr, Resource *res,
-  ExecutionSyncTracker::OpCaller caller)
+void ExecutionSyncCapture::addOp(SyncOpUid uid, LogicAddress laddr, Resource *res, SyncOpCaller caller)
 {
   ops.push_back({currentVisNode++, currentVisPin++, currentVisPin++, currentVisPin++, uid.v, currentSyncStep,
     currentLocalSyncStepOpIdx++, laddr, res, caller, String(res->getDebugName()), 0});
 }
-void ExecutionSyncCapture::addLink(ExecutionSyncTracker::OpUid src_op_uid, ExecutionSyncTracker::OpUid dst_op_uid)
-{
-  links.push_back({src_op_uid.v, dst_op_uid.v});
-}
+void ExecutionSyncCapture::addLink(SyncOpUid src_op_uid, SyncOpUid dst_op_uid) { links.push_back({src_op_uid.v, dst_op_uid.v}); }
 void ExecutionSyncCapture::reset()
 {
   if (Backend::interop.syncCaptureRequest.load(std::memory_order_acquire))

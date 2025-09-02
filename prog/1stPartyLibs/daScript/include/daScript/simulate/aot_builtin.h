@@ -2,8 +2,12 @@
 
 namespace das {
     bool is_in_aot();
+    void set_aot();
+    void reset_aot();
     bool is_in_completion();
     bool is_folding();
+    const char * compiling_file_name ( );
+    const char * compiling_module_name ( );
     void setCommandLineArguments ( int argc, char * argv[] );
     void getCommandLineArguments( Array & arr );
     bool is_compiling ( );
@@ -13,7 +17,7 @@ namespace das {
     void builtin_error ( char * text, Context * context, LineInfoArg * at );
     vec4f builtin_sprint ( Context & context, SimNode_CallBase * call, vec4f * args );
     vec4f builtin_json_sprint ( Context & context, SimNode_CallBase * call, vec4f * args );
-    char * builtin_print_data ( void * data, const TypeInfo * typeInfo, Bitfield flags, Context * context, LineInfoArg * at );
+    char * builtin_print_data ( const void * data, const TypeInfo * typeInfo, Bitfield flags, Context * context, LineInfoArg * at );
     char * builtin_print_data_v ( float4 data, const TypeInfo * typeInfo, Bitfield flags, Context * context, LineInfoArg * at );
     char * builtin_debug_type ( const TypeInfo * typeInfo, Context * context, LineInfoArg * at );
     char * builtin_debug_line ( const LineInfo & at, bool fully, Context * context, LineInfoArg * lineInfo );
@@ -26,6 +30,7 @@ namespace das {
     int builtin_table_size ( const Table & arr );
     int builtin_table_capacity ( const Table & arr );
     void builtin_table_clear ( Table & arr, Context * context, LineInfoArg * at );
+    vec4f builtin_table_reserve ( Context & context, SimNode_CallBase * call, vec4f * args );
     void heap_stats ( Context & context, uint64_t * bytes );
     urange64 heap_allocation_stats ( Context * context );
     uint64_t heap_allocation_count ( Context * context );
@@ -68,11 +73,11 @@ namespace das {
     bool builtin_set_verify_table_locks ( Table & tab, bool value );
     bool builtin_set_verify_context ( bool slc, Context * context );
 
-    bool builtin_iterator_first ( const Sequence & it, void * data, Context * context, LineInfoArg * at );
-    bool builtin_iterator_next  ( const Sequence & it, void * data, Context * context, LineInfoArg * at );
-    void builtin_iterator_close ( const Sequence & it, void * data, Context * context );
-    bool builtin_iterator_iterate ( const Sequence & it, void * data, Context * context );
-    void builtin_iterator_delete ( const Sequence & it, Context * context );
+    bool builtin_iterator_first ( Sequence & it, void * data, Context * context, LineInfoArg * at );
+    bool builtin_iterator_next  ( Sequence & it, void * data, Context * context, LineInfoArg * at );
+    void builtin_iterator_close ( Sequence & it, void * data, Context * context );
+    bool builtin_iterator_iterate ( Sequence & it, void * data, Context * context );
+    void builtin_iterator_delete ( Sequence & it, Context * context );
     __forceinline bool builtin_iterator_empty ( const Sequence & seq ) { return seq.iter==nullptr; }
 
     void builtin_make_good_array_iterator ( Sequence & result, const Array & arr, int stride, Context * context, LineInfoArg * at );
@@ -169,16 +174,4 @@ namespace das {
     void builtin_main_loop ( const TBlock<bool> & block, Context * context, LineInfoArg * at );
 
     vec4f _builtin_hash ( Context & context, SimNode_CallBase * call, vec4f * args );
-    inline uint64_t _builtin_hash_int8 ( int8_t value ) { return hash_uint32(uint32_t(value)); }
-    inline uint64_t _builtin_hash_uint8 ( uint8_t value ) { return hash_uint32(uint32_t(value)); }
-    inline uint64_t _builtin_hash_int16 ( int16_t value ) { return hash_uint32(uint32_t(value)); }
-    inline uint64_t _builtin_hash_uint16 ( uint16_t value ) { return hash_uint32(uint32_t(value)); }
-    inline uint64_t _builtin_hash_int32 ( int32_t value ) { return hash_uint32(value); }
-    inline uint64_t _builtin_hash_uint32 ( uint32_t value ) { return hash_uint32(value); }
-    inline uint64_t _builtin_hash_int64 ( int64_t value ) { return hash_uint64(value); }
-    inline uint64_t _builtin_hash_uint64 ( uint64_t value ) { return hash_uint64(value); }
-    inline uint64_t _builtin_hash_ptr ( void * value ) { return hash_uint64(uint64_t(value)); }
-    inline uint64_t _builtin_hash_float ( float value ) { return hash_uint32(*((uint32_t *)&value)); }
-    inline uint64_t _builtin_hash_double ( double value ) { return hash_uint64(*((uint64_t *)&value)); }
-    inline uint64_t _builtin_hash_das_string ( const string & str ) { return hash_blockz64((uint8_t *)str.c_str()); }
 }

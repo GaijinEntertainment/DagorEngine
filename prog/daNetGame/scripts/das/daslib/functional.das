@@ -1,1 +1,0 @@
-include %daslib/functional.das

@@ -29,15 +29,15 @@ struct ResUpdateBufferImp
 d3d::ResUpdateBuffer *d3d::allocate_update_buffer_for_tex_region(BaseTexture *dest_base_texture, unsigned dest_mip,
   unsigned dest_slice, unsigned offset_x, unsigned offset_y, unsigned offset_z, unsigned width, unsigned height, unsigned depth)
 {
-  G_ASSERT_RETURN(dest_base_texture, nullptr);
+  D3D_CONTRACT_ASSERT_RETURN(dest_base_texture, nullptr);
 
   BaseTex *dest_tex = cast_to_texture_base(dest_base_texture);
 
   TextureInfo base_ti;
   dest_tex->getinfo(base_ti, 0);
 
-  G_ASSERT_RETURN(dest_mip < base_ti.mipLevels, nullptr);
-  G_ASSERT_RETURN(dest_slice < base_ti.a, nullptr);
+  D3D_CONTRACT_ASSERT_RETURN(dest_mip < base_ti.mipLevels, nullptr);
+  D3D_CONTRACT_ASSERT_RETURN(dest_slice < base_ti.a, nullptr);
 
   FormatStore fmt = FormatStore::fromCreateFlags(base_ti.cflg & TEXFMT_MASK);
 
@@ -52,11 +52,11 @@ d3d::ResUpdateBuffer *d3d::allocate_update_buffer_for_tex_region(BaseTexture *de
   if ((offset_x % bx) || (offset_y % by) || (width % bx) || (height % by) || (offset_x >= mipW) || (offset_y >= mipH) ||
       (offset_z >= mipD) || (offset_x + width > mipW) || (offset_y + height > mipH) || (offset_z + depth > mipD) || (size == 0))
   {
-    D3D_ERROR(
+    D3D_CONTRACT_ERROR(
       "vulkan: RUB region is out of bounds: asked (%u, %u, %u)-(%u, %u, %u) for tex mip %u size (%u, %u, %u) block (%u, %u) sz "
       "%u name %s",
       offset_x, offset_y, offset_z, offset_x + width, offset_y + height, offset_z + depth, dest_mip, mipW, mipH, mipD, bx, by, size,
-      dest_tex->getDeviceImage()->getDebugName());
+      dest_tex->image->getDebugName());
     return nullptr;
   }
 
@@ -65,12 +65,12 @@ d3d::ResUpdateBuffer *d3d::allocate_update_buffer_for_tex_region(BaseTexture *de
 
   Buffer *stagingBuffer = Buffer::create(size, DeviceMemoryClass::HOST_RESIDENT_HOST_READ_WRITE_BUFFER, 1, BufferMemoryFlags::NONE);
   if (Globals::cfg.debugLevel)
-    stagingBuffer->setDebugName(String(64, "RUB for %s", dest_tex->getDeviceImage()->getDebugName()));
+    stagingBuffer->setDebugName(String(64, "RUB for %s", dest_tex->image->getDebugName()));
 
   ResUpdateBufferImp *rub = (ResUpdateBufferImp *)memalloc(sizeof(ResUpdateBufferImp), tmpmem);
 
   rub->destTex = dest_tex;
-  rub->originalImg = dest_tex->getDeviceImage();
+  rub->originalImg = dest_tex->image;
   rub->stagingBuffer = stagingBuffer;
   rub->pitch = fmt.calculateRowPitch(width);
   rub->slicePitch = slicePitch;
@@ -85,7 +85,7 @@ d3d::ResUpdateBuffer *d3d::allocate_update_buffer_for_tex_region(BaseTexture *de
 
 d3d::ResUpdateBuffer *d3d::allocate_update_buffer_for_tex(BaseTexture *dest_base_texture, int dest_mip, int dest_slice)
 {
-  G_ASSERT(dest_base_texture);
+  D3D_CONTRACT_ASSERT(dest_base_texture);
   BaseTex *dest_tex = cast_to_texture_base(dest_base_texture);
 
   TextureInfo base_ti;
@@ -97,26 +97,32 @@ d3d::ResUpdateBuffer *d3d::allocate_update_buffer_for_tex(BaseTexture *dest_base
   FormatStore fmt = FormatStore::fromCreateFlags(base_ti.cflg & TEXFMT_MASK);
 
   uint32_t size = fmt.calculateSlicePich(level_w, level_h);
-  G_ASSERT(size != 0);
+  D3D_CONTRACT_ASSERT(size != 0);
 
   if (!Frontend::resUploadLimit.consume(size, dest_base_texture))
     return nullptr;
 
   Buffer *stagingBuffer = Buffer::create(size, DeviceMemoryClass::HOST_RESIDENT_HOST_READ_WRITE_BUFFER, 1, BufferMemoryFlags::TEMP);
   if (Globals::cfg.debugLevel)
-    stagingBuffer->setDebugName(String(64, "RUB for %s", dest_tex->getDeviceImage()->getDebugName()));
+    stagingBuffer->setDebugName(String(64, "RUB for %s", dest_tex->image->getDebugName()));
+
+  if (Globals::cfg.bits.memsetOnRub)
+  {
+    G_ASSERT(stagingBuffer->hasMappedMemory());
+    memset(stagingBuffer->ptrOffsetLoc(0), 0, size);
+  }
 
   ResUpdateBufferImp *rub = (ResUpdateBufferImp *)memalloc(sizeof(ResUpdateBufferImp), tmpmem);
 
   rub->destTex = dest_tex;
-  rub->originalImg = dest_tex->getDeviceImage();
+  rub->originalImg = dest_tex->image;
   rub->stagingBuffer = stagingBuffer;
   rub->pitch = fmt.calculateRowPitch(level_w);
   rub->slicePitch = size;
 
-  switch (dest_tex->restype())
+  switch (dest_tex->getType())
   {
-    case RES3D_VOLTEX:
+    case D3DResourceType::VOLTEX:
     {
       rub->uploadInfo = make_copy_info(fmt, dest_mip, 0, 1, {base_ti.w, base_ti.h, 1}, stagingBuffer->bufOffsetLoc(0));
       rub->uploadInfo.imageOffset.z = dest_slice;
@@ -173,12 +179,12 @@ bool d3d::update_texture_and_release_update_buffer(d3d::ResUpdateBuffer *&rub)
 
   rub_imp->stagingBuffer->markNonCoherentRangeLoc(0, rub_imp->stagingBuffer->getBlockSize(), true);
 
-  if (rub_imp->destTex->tex.image != rub_imp->originalImg)
-    D3D_ERROR("vulkan: image changed between RUB allocation and update. original %p:%s current %p:%s", rub_imp->originalImg,
-      rub_imp->originalImg ? rub_imp->originalImg->getDebugName() : "<null>", rub_imp->destTex->tex.image,
-      rub_imp->destTex->tex.image ? rub_imp->destTex->tex.image->getDebugName() : "<null>");
+  if (rub_imp->destTex->image != rub_imp->originalImg)
+    D3D_CONTRACT_ERROR("vulkan: image changed between RUB allocation and update. original %p:%s current %p:%s", rub_imp->originalImg,
+      rub_imp->originalImg ? rub_imp->originalImg->getDebugName() : "<null>", rub_imp->destTex->image,
+      rub_imp->destTex->image ? rub_imp->destTex->image->getDebugName() : "<null>");
 
-  drv3d_vulkan::Globals::ctx.copyBufferToImage(rub_imp->stagingBuffer, rub_imp->destTex->tex.image, 1, &rub_imp->uploadInfo, true);
+  drv3d_vulkan::Globals::ctx.copyBufferToImage(rub_imp->stagingBuffer, rub_imp->destTex->image, 1, &rub_imp->uploadInfo);
 
   d3d::release_update_buffer(rub);
   return true;

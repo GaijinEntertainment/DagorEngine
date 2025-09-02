@@ -10,16 +10,16 @@
 class DrawFpsGuiMgr : public IGeneralGuiManager
 {
 public:
-  virtual void beforeRender(int /*ticks_usec*/) {}
+  void beforeRender(int /*ticks_usec*/) override {}
 
-  virtual bool canCloseNow()
+  bool canCloseNow() override
   {
     DEBUG_CTX("closing window");
     debug_flush(false);
     return true;
   }
 
-  virtual void drawFps(float minfps, float maxfps, float lastfps)
+  void drawFps(float minfps, float maxfps, float lastfps) override
   {
     StdGuiRender::start_render();
     StdGuiRender::set_font(0);

@@ -4,7 +4,7 @@
 //
 #pragma once
 
-#include <EASTL/type_traits.h>
+#include <EASTL/functional.h>
 #include <util/dag_preprocessor.h>
 
 template <typename T>
@@ -32,8 +32,5 @@ private:
   bool should_exit = true;
 };
 
-#define FINALLY(...)                       \
-  Finally DAG_CONCAT(__finally_, __LINE__) \
-  {                                        \
-    __VA_ARGS__                            \
-  }
+#define FINALLY(...) \
+  Finally DAG_CONCAT(__finally_, __LINE__) { __VA_ARGS__ }

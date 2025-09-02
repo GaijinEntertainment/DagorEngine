@@ -11,7 +11,7 @@
 
 
 static Vbuffer *serial_ints = nullptr;
-static volatile int serial_ints_counter = 0;
+static int serial_ints_counter = 0;
 static uint32_t max_count = 0;
 
 static os_spinlock_t serial_ints_lock;
@@ -74,7 +74,7 @@ static Vbuffer *try_to_init(uint32_t count)
 
 static void reset()
 {
-  if (!serial_ints_counter)
+  if (!interlocked_relaxed_load(serial_ints_counter))
     return;
   SerialBufferLock lock;
   if (!serial_ints) // When buffer wasn't created because of device reset.
@@ -91,8 +91,7 @@ void term_serial()
   SerialBufferLock lock;
   if (interlocked_acquire_load(usage_count))
     logerr("can't term serial buffer while using it");
-  --serial_ints_counter;
-  if (serial_ints_counter == 0)
+  if (--serial_ints_counter == 0)
     del_d3dres(serial_ints);
   if (serial_ints_counter < 0)
   {

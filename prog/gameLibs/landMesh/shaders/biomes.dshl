@@ -16,7 +16,6 @@ macro INIT_BIOMES(stage)
 endmacro
 
 macro USE_BIOMES(stage)
-  ENABLE_ASSERT(stage)
   hlsl(stage) {
     #include "noise/Perlin2D.hlsl"
     #include "noise/Value2D.hlsl"
@@ -37,13 +36,27 @@ macro USE_BIOMES(stage)
     float getBiomeInfluence(float3 world_pos, int index)
     {
       float2 tc = world_pos.xz * land_detail_mul_offset.xy + land_detail_mul_offset.zw;
+      tc += float2(-1, 1)*biome_indices_tex_size.zw * 0.5;
       float2 tcCorner = tc * biome_indices_tex_size.xy - 0.5f;
-      float2 useDetailTC = (floor(tcCorner) + 0.5f) * biome_indices_tex_size.zw;
       float4 bilWeights;
       bilWeights.xy = frac(tcCorner);
       bilWeights.zw = saturate(1 - bilWeights.xy);
       float4 baseWeights = (bilWeights.zxxz*bilWeights.yyww);
-      float4 indexComp = floor(biomeIndicesTex.GatherRed(biomeIndicesTex_samplerstate, useDetailTC) * 255 + 0.1f) == index;
+      float4 indexComp = floor(biomeIndicesTex.GatherRed(biomeIndicesTex_samplerstate, tc) * 255 + 0.1f) == index;
+      return dot(indexComp, baseWeights);
+    }
+
+    float getBiomesInfluence(float3 world_pos, int4 index)
+    {
+      float2 tc = world_pos.xz * land_detail_mul_offset.xy + land_detail_mul_offset.zw;
+      tc += float2(-1, 1)*biome_indices_tex_size.zw * 0.5;
+      float2 tcCorner = tc * biome_indices_tex_size.xy - 0.5f;
+      float4 bilWeights;
+      bilWeights.xy = frac(tcCorner);
+      bilWeights.zw = saturate(1 - bilWeights.xy);
+      float4 baseWeights = (bilWeights.zxxz*bilWeights.yyww);
+      int4 indices = floor(biomeIndicesTex.GatherRed(biomeIndicesTex_samplerstate, tc) * 255 + 0.1f);
+      float4 indexComp = (indices == index.xxxx) || (indices == index.yyyy) || (indices == index.zzzz) || (indices == index.wwww);
       return dot(indexComp, baseWeights);
     }
   }

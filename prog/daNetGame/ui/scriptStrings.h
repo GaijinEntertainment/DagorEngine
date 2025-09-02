@@ -73,16 +73,10 @@ void preregister_strings(HSQUIRRELVM vm, Sqrat::Object *strings, unsigned string
       *strings = {};                                                   \
   }
 
-#define SQ_PRECACHED_STRINGS_REGISTER(BHV_NM, PREFIX, NM)                 \
-  static void strings_reg_vm_##BHV_NM(SqModules *m)                       \
-  {                                                                       \
-    PREFIX NM##_reg_vm(m);                                                \
-  }                                                                       \
-  SQ_DEF_AUTO_BINDING_REGFUNC_EX(strings_reg_vm_##BHV_NM, sq::VM_UI_ALL); \
-  static void strings_unreg_vm_##BHV_NM(HSQUIRRELVM vm)                   \
-  {                                                                       \
-    PREFIX NM##_unreg_vm(vm);                                             \
-  }                                                                       \
+#define SQ_PRECACHED_STRINGS_REGISTER(BHV_NM, PREFIX, NM)                             \
+  static void strings_reg_vm_##BHV_NM(SqModules *m) { PREFIX NM##_reg_vm(m); }        \
+  SQ_DEF_AUTO_BINDING_REGFUNC_EX(strings_reg_vm_##BHV_NM, sq::VM_UI_ALL);             \
+  static void strings_unreg_vm_##BHV_NM(HSQUIRRELVM vm) { PREFIX NM##_unreg_vm(vm); } \
   SQ_DEF_AUTO_CLEANUP_UNREGFUNC(strings_unreg_vm_##BHV_NM)
 
 

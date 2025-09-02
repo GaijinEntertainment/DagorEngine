@@ -15,7 +15,7 @@ public:
   // set by the user through the UI. This behaviour can be controlled with selection_change_events_by_code.
   explicit FilteredTreeControlStandalone(bool selection_change_events_by_code, bool has_checkboxes = false,
     bool multi_select = false) :
-    tree(selection_change_events_by_code, has_checkboxes, multi_select), rootNode(nullptr, BAD_TEXTUREID, nullptr, nullptr)
+    tree(selection_change_events_by_code, has_checkboxes, multi_select), rootNode(nullptr, IconId::Invalid, nullptr, nullptr)
   {}
 
   void setEventHandler(WindowControlEventHandler *event_handler) { tree.setEventHandler(event_handler); }
@@ -30,27 +30,27 @@ public:
 
   void setFocus() { tree.setFocus(); }
 
-  void setCheckboxIcons(TEXTUREID checked, TEXTUREID unchecked) { tree.setCheckboxIcons(checked, unchecked); }
+  void setCheckboxIcons(IconId checked, IconId unchecked) { tree.setCheckboxIcons(checked, unchecked); }
 
-  TLeafHandle addItem(const char *name, TEXTUREID icon = BAD_TEXTUREID, TLeafHandle parent = nullptr, void *user_data = nullptr)
+  TLeafHandle addItem(const char *name, IconId icon = IconId::Invalid, TLeafHandle parent = nullptr, void *user_data = nullptr)
   {
     return addItemInternal(name, icon, parent, user_data, false);
   }
 
   TLeafHandle addItem(const char *name, const char *icon_name, TLeafHandle parent = nullptr, void *user_data = nullptr)
   {
-    TEXTUREID icon = tree.getTexture(icon_name);
+    IconId icon = tree.getTexture(icon_name);
     return addItemInternal(name, icon, parent, user_data, false);
   }
 
-  TLeafHandle addItemAsFirst(const char *name, TEXTUREID icon = BAD_TEXTUREID, TLeafHandle parent = nullptr, void *user_data = nullptr)
+  TLeafHandle addItemAsFirst(const char *name, IconId icon = IconId::Invalid, TLeafHandle parent = nullptr, void *user_data = nullptr)
   {
     return addItemInternal(name, icon, parent, user_data, true);
   }
 
   TLeafHandle addItemAsFirst(const char *name, const char *icon_name, TLeafHandle parent = nullptr, void *user_data = nullptr)
   {
-    TEXTUREID icon = tree.getTexture(icon_name);
+    IconId icon = tree.getTexture(icon_name);
     return addItemInternal(name, icon, parent, user_data, true);
   }
 
@@ -90,6 +90,11 @@ public:
 
   void setButtonPictures(TLeafHandle leaf, const char *fname = NULL) { tree.setButtonPictures(getViewLeafFromHandle(leaf), fname); }
 
+  void copyButtonPictures(TLeafHandle from, TLeafHandle to)
+  {
+    tree.copyButtonPictures(getViewLeafFromHandle(from), getViewLeafFromHandle(to));
+  }
+
   void setColor(TLeafHandle leaf, E3DCOLOR value) { tree.setColor(getViewLeafFromHandle(leaf), value); }
 
   bool isExpanded(TLeafHandle leaf) const { return tree.isExpanded(getViewLeafFromHandle(leaf)); }
@@ -114,7 +119,7 @@ public:
     tree.setCheckboxState(getViewLeafFromHandle(leaf), state);
   }
 
-  void setIcon(TLeafHandle leaf, TEXTUREID icon)
+  void setIcon(TLeafHandle leaf, IconId icon)
   {
     if (TTreeNode *node = leafHandleAsNode(leaf))
     {
@@ -123,11 +128,11 @@ public:
     }
   }
 
-  void setStateIcon(TLeafHandle leaf, TEXTUREID icon) { tree.setStateIcon(getViewLeafFromHandle(leaf), icon); }
+  void setStateIcon(TLeafHandle leaf, IconId icon) { tree.setStateIcon(getViewLeafFromHandle(leaf), icon); }
 
   int getChildCount(TLeafHandle leaf) const { return tree.getChildCount(getViewLeafFromHandle(leaf)); }
 
-  TEXTUREID getTexture(const char *name) { return tree.getTexture(name); }
+  IconId getTexture(const char *name) { return tree.getTexture(name); }
 
   TLeafHandle getChildLeaf(TLeafHandle leaf, unsigned idx) const
   {
@@ -153,6 +158,8 @@ public:
   TLeafHandle getNextNode(TLeafHandle item, bool forward) const { return forward ? getNextLeaf(item) : getPrevLeaf(item); }
 
   TLeafHandle getRootLeaf() const { return nodeAsLeafHandle(rootNode.getFirstChild()); }
+
+  const TTreeNode &getUnfilteredRootNode() const { return rootNode; }
 
   const String *getItemTitle(TLeafHandle leaf) const { return leaf ? &leafHandleAsNode(leaf)->name : nullptr; }
 
@@ -209,11 +216,8 @@ public:
     return Tab<String>();
   }
 
-  void filter(void *param, TTreeNodeFilterFunc filter_func)
+  void updateUnfilteredExpansionStateFromFilteredTree()
   {
-    TTreeNode *originalSelection = getItemNode(getSelectedLeaf());
-
-    // Get expansion state. It is needed for filterRoutine.
     TLeafHandle root = getRootLeaf();
     TLeafHandle leaf = root;
     while (true)
@@ -226,7 +230,12 @@ public:
       if (!leaf || leaf == root)
         break;
     }
+  }
 
+  void filter(void *param, TTreeNodeFilterFunc filter_func)
+  {
+    TTreeNode *originalSelection = getItemNode(getSelectedLeaf());
+    updateUnfilteredExpansionStateFromFilteredTree(); // Expansion state is needed for filterRoutine.
     tree.clear();
     filterRoutine(&rootNode, 0, param, filter_func, originalSelection);
 
@@ -267,7 +276,7 @@ public:
     }
   }
 
-  virtual IMenu &createContextMenu() override { return tree.createContextMenu(); }
+  IMenu &createContextMenu() override { return tree.createContextMenu(); }
 
   void setMessage(const char *in_message) { tree.setMessage(in_message); }
 
@@ -281,7 +290,7 @@ private:
 
   static TLeafHandle getViewLeafFromHandle(TLeafHandle handle) { return handle ? leafHandleAsNode(handle)->item : nullptr; }
 
-  TLeafHandle addItemInternal(const char *name, TEXTUREID icon, TLeafHandle parent, void *user_data, bool as_first)
+  TLeafHandle addItemInternal(const char *name, IconId icon, TLeafHandle parent, void *user_data, bool as_first)
   {
     TTreeNode *parentNode = nullptr;
     TLeafHandle item = nullptr;

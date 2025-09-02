@@ -8,6 +8,7 @@
 
 #include <EditorCore/ec_ObjectCreator.h>
 #include <EditorCore/ec_colors.h>
+#include <EditorCore/ec_wndPublic.h>
 
 #include <libTools/dagFileRW/dagUtil.h>
 #include <libTools/util/makeBindump.h>
@@ -30,7 +31,6 @@
 
 #include <propPanel/commonWindow/dialogWindow.h>
 #include <propPanel/control/menu.h>
-#include <sepGui/wndPublic.h>
 #include <winGuiWrapper/wgw_dialogs.h>
 
 #include <debug/dag_debug.h>
@@ -313,8 +313,8 @@ bool ScnExportPlugin::exportLms(const char *fname, CoolConsole &con, Tab<int> &p
     class RemoverNotificationCBConsole : public RemoverNotificationCB
     {
     public:
-      virtual void note(const char *s) { DAEDITOR3.conNote(s); }
-      virtual void warning(const char *s) { DAEDITOR3.conWarning(s); }
+      void note(const char *s) override { DAEDITOR3.conNote(s); }
+      void warning(const char *s) override { DAEDITOR3.conWarning(s); }
     };
     int time0 = dagTools->getTimeMsec();
     RemoverNotificationCBConsole notifyCb;
@@ -373,6 +373,7 @@ void ScnExportPlugin::clearObjects()
     DAEDITOR3.conError("cannot read <%s>", DAGORED2->getWorkspace().getAppPath());
   const DataBlock &scn_def = *app_blk.getBlockByNameEx("projectDefaults")->getBlockByNameEx("scnExport");
 
+  disabledGamePlugins.reset();
   splitter.defaults();
   loadObjects(scn_def, DataBlock::emptyBlock, NULL);
 }

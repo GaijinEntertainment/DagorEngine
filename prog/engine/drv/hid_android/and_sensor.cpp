@@ -9,11 +9,13 @@
 #include <startup/dag_globalSettings.h>
 #include <supp/dag_android_native_app_glue.h>
 #include <util/dag_simpleString.h>
+#include <util/dag_string.h>
 
 #include <EASTL/algorithm.h>
 
 #include <android/looper.h>
 #include <android/sensor.h>
+#include <sys/system_properties.h>
 
 #include <mutex>
 
@@ -249,6 +251,16 @@ static int get_gravity_events(int fd, int events, void *data)
   return 1;
 }
 
+static void get_device_name(String &name)
+{
+  char manufacturer[PROP_VALUE_MAX] = {0};
+  __system_property_get("ro.product.manufacturer", manufacturer);
+  char model[PROP_VALUE_MAX] = {0};
+  __system_property_get("ro.product.model", model);
+
+  name = String(0, "%s %s", manufacturer, model);
+}
+
 
 void AndroidSensor::registerSensor()
 {
@@ -293,7 +305,14 @@ void AndroidSensor::registerSensor()
 
   if (!android_resources.gyroEventQueue || !android_resources.gravityEventQueue)
   {
-    logerr("android:sensors: failed to initialize gyroscope or gravity sensor");
+    String deviceName;
+    get_device_name(deviceName);
+    logdbg("android:sensors: failed - sensormanager (%d), gyroscope (%d), gyrosensor (%d), gravity (%d), gravity sensor (%d), thread "
+           "looper (%d) for device '%s'",
+      android_resources.sensorManager ? 1 : 0, android_resources.gyroEventQueue ? 1 : 0, android_resources.gyroSensor ? 1 : 0,
+      android_resources.gravityEventQueue ? 1 : 0, android_resources.gravitySensor ? 1 : 0, android_resources.looper ? 1 : 0,
+      deviceName.c_str());
+    logdbg("android:sensors: failed to initialize gyroscope or gravity sensor");
     failState = true;
   }
   else

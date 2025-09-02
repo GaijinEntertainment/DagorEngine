@@ -73,8 +73,8 @@ ShaderID ShaderProgramDatabase::newShader(DeviceContext &ctx, VkShaderStageFlagB
   return newShaderId;
 }
 
-ShaderID ShaderProgramDatabase::newShader(DeviceContext &ctx, eastl::vector<VkShaderStageFlagBits> stage,
-  eastl::vector<Tab<spirv::ChunkHeader>> chunks, eastl::vector<Tab<uint8_t>> chunk_data)
+ShaderID ShaderProgramDatabase::newShader(DeviceContext &ctx, dag::Vector<VkShaderStageFlagBits> stage,
+  dag::Vector<Tab<spirv::ChunkHeader>> chunks, dag::Vector<Tab<uint8_t>> chunk_data)
 {
   // find and setup vertex shader stuff
   int vsIndex = -1;
@@ -239,6 +239,7 @@ void ShaderProgramDatabase::init(bool has_bindless, DeviceContext &ctx)
 {
   initShaders(ctx);
   initDebugProg(has_bindless, ctx);
+  initRotateProg(has_bindless, ctx);
   // set debug prog to states, unset shader is an error
   Frontend::State::pipe.set<StateFieldGraphicsProgram, ProgramID, FrontGraphicsState>(debugProgId);
 }

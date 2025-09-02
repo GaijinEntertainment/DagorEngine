@@ -10,25 +10,29 @@ def df_open(name : string | #; flags : int; blk : block<(f : DagFile const?) : v
 
 [generic]
 def df_read(f : DagFile const? const; buf : auto(BufType) -const)
-  concept_assert(typeinfo(is_ref_type type<BufType>), "can only read ref type")
-  concept_assert(typeinfo(is_raw type<BufType>), "can only read raw pod type")
-  return _builtin_df_read(f, buf, typeinfo(sizeof type<BufType>))
+  concept_assert(typeinfo is_ref_type(type<BufType>), "can only read ref type")
+  concept_assert(typeinfo is_raw(type<BufType>), "can only read raw pod type")
+  return _builtin_df_read(f, buf, typeinfo sizeof(type<BufType>))
 
 [generic]
 def df_write(f : DagFile const? const; buf : auto(BufType) const)
-  concept_assert(typeinfo(is_ref_type type<BufType>), "can only write ref type")
-  concept_assert(typeinfo(is_raw type<BufType>), "can only write raw pod type")
-  return _builtin_df_write(f, buf, typeinfo(sizeof type<BufType>))
+  concept_assert(typeinfo is_ref_type(type<BufType>), "can only write ref type")
+  concept_assert(typeinfo is_raw(type<BufType>), "can only write raw pod type")
+  return _builtin_df_write(f, unsafe(addr(buf)), typeinfo sizeof(type<BufType>))
 
 [generic]
-def df_write(f : DagFile const? const; buf : array<uint8> const)
-  return _builtin_df_write_raw(f, unsafe(addr(buf[0])), length(buf))
+def df_write(f : DagFile const? const; buf : array<uint8>) : int
+  return _builtin_df_write(f, unsafe(addr(buf[0])), length(buf))
 
 [generic]
-def df_write(f : DagFile const? const; str : string const)
+def df_puts(f : DagFile const? const; str : string implicit) : int
+  return df_write(f, str)
+
+[generic]
+def df_write(f : DagFile const? const; str : string implicit) : int
   var cnt : int
   peek_data(str) <| $(buf : array<uint8> const#)
-    cnt = _builtin_df_write_raw(f, unsafe(addr(buf[0])), length(buf))
+    cnt = _builtin_df_write(f, unsafe(addr(buf[0])), length(buf))
   return cnt
 
 let
@@ -40,13 +44,13 @@ struct df_header
 
 def df_load(f : DagFile const?; buf : auto(BufType) -const)
   var dfh : df_header
-  let r1 = _builtin_df_read(f, dfh, typeinfo(sizeof type<df_header>))
+  let r1 = _builtin_df_read(f, dfh, typeinfo sizeof(type<df_header>))
   if r1 < 0
     return false
   if dfh.magic != df_magic
     return false
   var loaded = false
-  _builtin_df_load(f, dfh.size) <| $(data : array<uint8>)
+  df_read(f, dfh.size) <| $(data : array<uint8>#)
     if length(data) != 0
       binary_load(buf, data)
       loaded = true
@@ -54,11 +58,11 @@ def df_load(f : DagFile const?; buf : auto(BufType) -const)
 
 def df_save(f : DagFile const?; buf : auto(BufType) const)
   var r1, r2 : int
-  binary_save(buf) <| $(data)
+  binary_save(buf) <| $(data : array<uint8>#)
     let len = length(data)
-    let dfh = [[df_header magic=df_magic, size=len]]
-    r1 = _builtin_df_write(f, dfh, typeinfo(sizeof type<df_header>))
-    r2 = _builtin_df_write(f, data, len)
+    let dfh = df_header(magic = df_magic, size = len)
+    r1 = _builtin_df_write(f, unsafe(addr(dfh)), typeinfo sizeof(type<df_header>))
+    r2 = _builtin_df_write(f, unsafe(addr(data[0])), len)
   if r1 < 0
     return r1
   if r2 < 0

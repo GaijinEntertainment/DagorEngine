@@ -15,7 +15,7 @@ public:
 
   UndoRedoHolder() : obj(midmem), name(strmem) {}
 
-  ~UndoRedoHolder()
+  ~UndoRedoHolder() override
   {
     for (int i = 0; i < obj.size(); ++i)
       delete (obj[i]);
@@ -42,14 +42,14 @@ public:
   // called to undo changes to database
   // if save_redo_data is true, save data necessary to restore
   //   database to its current state in redo operation
-  void restore(bool save)
+  void restore(bool save) override
   {
     for (int i = obj.size() - 1; i >= 0; --i)
       obj[i]->restore(save);
   }
 
   // redo undone changes
-  void redo()
+  void redo() override
   {
     for (int i = 0; i < obj.size(); ++i)
       obj[i]->redo();
@@ -57,7 +57,7 @@ public:
 
   // get approximate size of this object (bytes)
   // used to keep undo data size under reasonable limit
-  size_t size()
+  size_t size() override
   {
     size_t sz = 0;
     for (int i = 0; i < obj.size(); ++i)
@@ -67,14 +67,14 @@ public:
 
   // called when this object is accepted in UndoSystem
   //   as a result of accept() or cancel()
-  void accepted()
+  void accepted() override
   {
     for (int i = 0; i < obj.size(); ++i)
       obj[i]->accepted();
   }
 
   // for debugging
-  void get_description(String &s) { s = name; }
+  void get_description(String &s) override { s = name; }
 };
 
 
@@ -103,13 +103,13 @@ public:
     stack.push_back(h);
   }
 
-  ~UndoSystemImpl()
+  ~UndoSystemImpl() override
   {
     for (int i = stack.size() - 1; i >= 0; --i)
       delete (stack[i]);
   }
 
-  void clear()
+  void clear() override
   {
     for (int i = stack.size() - 1; i > 0; --i)
       delete (stack[i]);
@@ -120,9 +120,9 @@ public:
       wnd->updateUndoRedoMenu();
   }
 
-  void set_max_size(int sz) { max_size = sz; }
+  void set_max_size(int sz) override { max_size = sz; }
 
-  int get_max_size() { return max_size; }
+  int get_max_size() override { return max_size; }
 
   void check_size()
   {
@@ -152,7 +152,7 @@ public:
   // call this method to start operation,
   //   then call accept() or cancel() to end it.
   // NOTE: operations can be nested
-  void begin()
+  void begin() override
   {
     UndoRedoHolder *h = new UndoRedoHolder;
     stack.push_back(h);
@@ -163,7 +163,7 @@ public:
   // put object into current operation.
   // if no operation was started (is_holding() is false),
   //   the passed object will be canceled and destroyed.
-  void put(UndoRedoObject *o)
+  void put(UndoRedoObject *o) override
   {
     if (!o)
       return;
@@ -179,7 +179,7 @@ public:
 
   // accept current operation and leave database in its modified state
   // NOTE: operations can be nested
-  void accept(const char *nm)
+  void accept(const char *nm) override
   {
     if (!nm)
       nm = "(operation)";
@@ -217,7 +217,7 @@ public:
   // cancel current operation and restore database
   //   to its state before last begin(), destroy UndoRedoObjects
   // NOTE: operations can be nested
-  void cancel()
+  void cancel() override
   {
     if (stack.size() <= 1)
       DAG_FATAL("cancel without begin in '%s'", name);
@@ -232,10 +232,10 @@ public:
 
   // returns true if system is saving undo data
   // (begin() was called without matching accept() or cancel())
-  bool is_holding() { return stack.size() > 1; }
+  bool is_holding() override { return stack.size() > 1; }
 
 
-  bool can_undo()
+  bool can_undo() override
   {
     if (is_holding())
       return false;
@@ -248,7 +248,7 @@ public:
   }
 
   // undo last operation
-  void undo()
+  void undo() override
   {
     if (!can_undo())
       return;
@@ -257,7 +257,7 @@ public:
     h->obj[--curop]->restore(true);
   }
 
-  bool can_redo()
+  bool can_redo() override
   {
     if (is_holding())
       return false;
@@ -270,7 +270,7 @@ public:
   }
 
   // redo last undone operation
-  void redo()
+  void redo() override
   {
     if (!can_redo())
       return;
@@ -280,7 +280,7 @@ public:
   }
 
   // returns number of (top-level) operations that can be undone
-  int undo_level()
+  int undo_level() override
   {
     if (is_holding())
       return 0;
@@ -289,7 +289,7 @@ public:
 
   // returns i-th undo operation name (0 is last operation,
   //    1 is operation before it, etc...), or NULL if no such operation
-  const char *get_undo_name(int i)
+  const char *get_undo_name(int i) override
   {
     if (is_holding())
       return NULL;
@@ -302,7 +302,7 @@ public:
   }
 
   // returns number of (top-level) operations that can be redone
-  int redo_level()
+  int redo_level() override
   {
     if (is_holding())
       return 0;
@@ -312,7 +312,7 @@ public:
 
   // returns i-th redo operation name (0 is current operation,
   //    1 is operation after it, etc...), or NULL if no such operation
-  const char *get_redo_name(int i)
+  const char *get_redo_name(int i) override
   {
     if (is_holding())
       return NULL;
@@ -325,9 +325,9 @@ public:
   }
 
 
-  virtual bool isDirty() const { return dirtyFlag; }
+  bool isDirty() const override { return dirtyFlag; }
 
-  virtual void setDirty(bool dirty) { dirtyFlag = dirty; }
+  void setDirty(bool dirty) override { dirtyFlag = dirty; }
 };
 
 

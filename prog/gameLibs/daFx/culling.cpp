@@ -21,7 +21,7 @@ CONSOLE_BOOL_VAL("dafx", allow_screen_area_discard, true);
 
 namespace dafx
 {
-CullingId create_culling_state(ContextId cid, const eastl::vector<CullingDesc> &descs)
+CullingId create_culling_state(ContextId cid, const eastl::vector<CullingDesc> &descs, uint32_t visibilityMask)
 {
   GET_CTX_RET(CullingId());
   G_ASSERT_RETURN(!descs.empty(), CullingId());
@@ -44,7 +44,7 @@ CullingId create_culling_state(ContextId cid, const eastl::vector<CullingDesc> &
     cull.sortings[tag] = i.sortingType;
     cull.shadingRates[tag] = i.vrsRate;
     cull.discardThreshold[tag] = i.screenAreaDiscardThreshold;
-    cull.visibilityMask = i.visibilityMask;
+    cull.disableOcclusion |= i.disableOcclusion ? (1 << tag) : 0;
     G_ASSERT(i.vrsRate <= 2); // basic VRS supports only 1xN - 2xN rates
     DBG_OPT("  render_tag: %s, sorting: %d", i.tag, (int)i.sortingType);
   }
@@ -70,6 +70,8 @@ CullingId create_culling_state(ContextId cid, const eastl::vector<CullingDesc> &
     cull.vrsRemapTags[i] = vrsFirstTag;
   }
 
+  cull.visibilityMask = visibilityMask;
+
   G_ASSERT_RETURN(cull.renderTagsMask, CullingId());
 
   return ctx.cullingStates.emplaceOne(eastl::move(cull));
@@ -84,10 +86,11 @@ CullingId create_proxy_culling_state(ContextId cid)
   return ctx.cullingStates.emplaceOne(eastl::move(cull));
 }
 
-void destroy_culling_state(ContextId cid, CullingId cull_id)
+void destroy_culling_state(ContextId cid, CullingId &cull_id)
 {
   GET_CTX();
   ctx.cullingStates.destroyReference(cull_id);
+  cull_id.reset();
 }
 
 void clear_culling_state(ContextId cid, CullingId cull_id)
@@ -99,16 +102,6 @@ void clear_culling_state(ContextId cid, CullingId cull_id)
 
   for (int i = 0; i < cull->workers.size(); ++i)
     cull->workers[i].clear();
-}
-
-uint32_t get_culling_state_visiblity_mask(ContextId cid, CullingId cullid)
-{
-  GET_CTX_RET(0);
-
-  CullingState *cull = ctx.cullingStates.get(cullid);
-  G_ASSERT_RETURN(cull, 0);
-
-  return cull->visibilityMask;
 }
 
 void remap_culling_state_tag(ContextId cid, CullingId cullid, const eastl::string &from, const eastl::string &to)
@@ -182,6 +175,14 @@ void reset_culling(Context &ctx, bool clear_cpu)
 
   if (clear_cpu)
     ctx.culling.cpuWorkers.clear();
+
+  for (int i = 0; i < ctx.cullingStates.totalSize(); ++i)
+  {
+    CullingState *cull = ctx.cullingStates.getByIdx(i);
+    if (cull)
+      for (int i = 0; i < cull->workers.size(); ++i)
+        cull->workers[i].clear();
+  }
 }
 
 void prepare_cpu_culling(Context &ctx, bool exec_clear)
@@ -466,7 +467,8 @@ void sort_culling_states(Context &ctx, CullingState &cull, const Point3 &view_po
   for (auto &worker : cull.workers)
   {
     SortingType sortingType = *sortingIt++;
-    if (sortingType == SortingType::BACK_TO_FRONT || sortingType == SortingType::FRONT_TO_BACK)
+    // view dist is required for auto generated sim lods based on distance
+    if (sortingType == SortingType::BACK_TO_FRONT || sortingType == SortingType::FRONT_TO_BACK || ctx.simLodGenParams.enabled)
     {
       for (auto sid : worker)
       {
@@ -474,8 +476,10 @@ void sort_culling_states(Context &ctx, CullingState &cull, const Point3 &view_po
           continue;
 
         vec4f v = v_ldu(&ctx.instances.groups.get<INST_POSITION>(sid).x);
-        reinterpret_cast<int &>(ctx.instances.groups.get<INST_VIEW_DIST>(sid)) =
-          v_extract_xi(v_cast_vec4i(v_add_x(v_length3_sq_x(v_sub(v, viewPos)), v_splat_w(v))));
+        int vi = v_extract_xi(v_cast_vec4i(v_add_x(v_length3_sq_x(v_sub(v, viewPos)), v_splat_w(v))));
+        reinterpret_cast<int &>(ctx.instances.groups.get<INST_VIEW_DIST>(sid)) = vi;
+        int &minDist = reinterpret_cast<int &>(ctx.instances.groups.get<INST_VIEW_DIST_MIN>(sid));
+        minDist = min(minDist, vi);
       }
     }
 
@@ -517,7 +521,7 @@ inline void populate_cull_workers(int sid, CullingState *cull, uint32_t &flags, 
 }
 
 void update_culling_state(Context &ctx, CullingState *cull, const Frustum &frustum, const mat44f *glob_tm, const Point3 &view_pos,
-  Occlusion *(*occlusion_sync_wait_f)())
+  OcclusionSyncWaitFunc occlusion_sync_wait_f)
 {
   TIME_D3D_PROFILE(dafx_update_culling_state);
 
@@ -535,7 +539,7 @@ void update_culling_state(Context &ctx, CullingState *cull, const Frustum &frust
 
   dag::Vector<int, framemem_allocator> visibleWorkers;
   bool doTest = !(ctx.debugFlags & DEBUG_DISABLE_CULLING);
-  bool useOcclusion = (occlusion_sync_wait_f != nullptr) && doTest && !(ctx.debugFlags & DEBUG_DISABLE_OCCLUSION);
+  bool useOcclusion = occlusion_sync_wait_f && doTest && !(ctx.debugFlags & DEBUG_DISABLE_OCCLUSION);
 
   mat44f globTm;
   vec4f minW = v_splat_x(v_set_x(1e-7));
@@ -554,6 +558,7 @@ void update_culling_state(Context &ctx, CullingState *cull, const Frustum &frust
       minR[i] = v_make_vec4f(v, 0, 0, 0);
     }
   }
+  bool shouldCalcProjRad = maxDiscardThreshold > 0 || ctx.simLodGenParams.enabled;
 
   InstanceGroups &stream = ctx.instances.groups;
   for (int sid : ctx.allRenderWorkers)
@@ -579,7 +584,7 @@ void update_culling_state(Context &ctx, CullingState *cull, const Frustum &frust
     if (test && (v_bbox3_is_empty(box) || !frustum.testBoxB(box.bmin, box.bmax)))
       continue;
 
-    if (test && maxDiscardThreshold > 0 && !(flags & SYS_SKIP_SCREEN_PROJ_CULL_DISCARD))
+    if (test && shouldCalcProjRad)
     {
       vec4f bmin = v_mat44_mul_vec3p(globTm, box.bmin);
       vec4f bmax = v_mat44_mul_vec3p(globTm, box.bmax);
@@ -591,27 +596,35 @@ void update_culling_state(Context &ctx, CullingState *cull, const Frustum &frust
       bmax = v_div(bmax, bmaxW);
 
       vec4f rad = v_hmax3(v_abs(v_sub(bmax, bmin)));
-      vec4f r = maxR;
-      for (int t = __bsf_unsafe(activeTags), te = __bsr_unsafe(activeTags); t <= te; ++t)
-      {
-        uint32_t tag = 1 << t;
-        if (tag & activeTags) // we dont want to include non-active tags, since they minR will be 0
-          r = v_min(r, minR[t]);
-      }
+      DECLSPEC_ALIGN(16) Point4 rad4;
+      v_st(&rad4.x, rad);
+      float &maxRad = stream.get<INST_PROJ_SIZE_MAX>(sid);
+      maxRad = max(maxRad, rad4.x);
 
-      vec4f vcmp = v_splat_x(v_cmp_gt(rad, r));
+      if (maxDiscardThreshold > 0 && !(flags & SYS_SKIP_SCREEN_PROJ_CULL_DISCARD)) // -V1051
+      {
+        vec4f r = maxR;
+        for (int t = __bsf_unsafe(activeTags), te = __bsr_unsafe(activeTags); t <= te; ++t)
+        {
+          uint32_t tag = 1 << t;
+          if (tag & activeTags) // we dont want to include non-active tags, since they minR will be 0
+            r = v_min(r, minR[t]);
+        }
+
+        vec4f vcmp = v_splat_x(v_cmp_gt(rad, r));
 #if _TARGET_SIMD_SSE >= 4
-      if (v_test_all_bits_zeros(vcmp))
-        continue;
+        if (v_test_all_bits_zeros(vcmp))
+          continue;
 #else
-      // SSE2 is producing false negative results in WT, problem is probably with ether _mm_cmpneq_ps or _mm_movemask_ps
-      // so we fallback to compare results directly
-      const uint32_t nullMask = 0;
-      DECLSPEC_ALIGN(16) Point4 p4;
-      v_st(&p4.x, vcmp);
-      if (memcmp(&p4.x, &nullMask, sizeof(float)) == 0)
-        continue;
+        // SSE2 is producing false negative results in WT, problem is probably with ether _mm_cmpneq_ps or _mm_movemask_ps
+        // so we fallback to compare results directly
+        const uint32_t nullMask = 0;
+        DECLSPEC_ALIGN(16) Point4 p4;
+        v_st(&p4.x, vcmp);
+        if (memcmp(&p4.x, &nullMask, sizeof(float)) == 0)
+          continue;
 #endif
+      }
     }
 
     visibleWorkers.push_back(sid);
@@ -623,9 +636,10 @@ void update_culling_state(Context &ctx, CullingState *cull, const Frustum &frust
   {
     for (int sid : visibleWorkers)
     {
-      const bbox3f &box = stream.get<INST_BBOX>(sid);
+      const bbox3f &box = stream.cget<INST_BBOX>(sid);
       uint32_t &flags = stream.get<INST_FLAGS>(sid);
-      if (!(flags & SYS_CULL_FETCHED) || occlusion->isVisibleBox(box.bmin, box.bmax))
+      if (!(flags & SYS_CULL_FETCHED) || (cull->disableOcclusion & stream.cget<INST_RENDER_TAGS>(sid)) ||
+          occlusion->isVisibleBox(box.bmin, box.bmax))
         populate_cull_workers(sid, cull, flags, stream.cget<INST_RENDER_TAGS>(sid));
     }
   }
@@ -656,7 +670,7 @@ void update_culling_state(Context &ctx, CullingState *cull, const Frustum &frust
 }
 
 void update_culling_state(ContextId cid, CullingId cull_id, const Frustum &frustum, const mat44f &glob_tm, const Point3 &view_pos,
-  Occlusion *(*occlusion_sync_wait_f)())
+  OcclusionSyncWaitFunc occlusion_sync_wait_f)
 {
   GET_CTX();
   CullingState *cull = ctx.cullingStates.get(cull_id);
@@ -665,7 +679,7 @@ void update_culling_state(ContextId cid, CullingId cull_id, const Frustum &frust
 
 
 void update_culling_state(ContextId cid, CullingId cull_id, const Frustum &frustum, const Point3 &view_pos,
-  Occlusion *(*occlusion_sync_wait_f)())
+  OcclusionSyncWaitFunc occlusion_sync_wait_f)
 {
   GET_CTX();
   CullingState *cull = ctx.cullingStates.get(cull_id);
@@ -764,4 +778,16 @@ void partition_workers_if_inside_sphere(ContextId cid, CullingId cull_id_from, C
   partition_workers_if_x_sphere<true>(cid, cull_id_from, cull_id_to, tags, sphere);
 }
 
+void clear_draw_cache(ContextId cid)
+{
+  GET_CTX();
+
+  for (int i = 0; i < ctx.cullingStates.totalSize(); ++i)
+  {
+    CullingState *cull = ctx.cullingStates.getByIdx(i);
+    if (cull)
+      for (int i = 0; i < cull->drawQueue.size(); ++i)
+        cull->drawQueue[i] = eastl::move(DrawQueue());
+  }
+}
 } // namespace dafx

@@ -81,7 +81,8 @@ namespace das {
         auto ft = make_smart<TypeDecl>(Type::tBitfield);
         ft->alias = "ExprMakeStructFlags";
         ft->argNames = { "useInitializer", "isNewHandle", "usedInitializer", "nativeClassInitializer",
-            "isNewClass", "forceClass", "forceStruct", "forceVariant", "forceTuple", "alwaysUseInitializer" };
+            "isNewClass", "forceClass", "forceStruct", "forceVariant", "forceTuple", "alwaysUseInitializer",
+            "ignoreVisCheck", "canShadowBlock" };
         return ft;
     }
 
@@ -176,7 +177,7 @@ namespace das {
             "generated", "persistent", "isLambda", "privateStructure",
             "macroInterface", "_sealed", "skipLockCheck", "circular",
             "_generator", "hasStaticMembers", "hasStaticFunctions",
-            "hasInitFields", "safeWhenUninitialized" };
+            "hasInitFields", "safeWhenUninitialized", "isTemplate", "hasDefaultInitializer" };
         return ft;
     }
 
@@ -200,7 +201,7 @@ namespace das {
             "unsafeOutsideOfFor", "skipLockCheck", "safeImplicit", "deprecated", "aliasCMRES", "neverAliasCMRES",
             "addressTaken", "propertyFunction", "pinvoke", "jitOnly", "isStaticClassMethod", "requestNoJit",
             "jitContextAndLineInfo", "nodiscard", "captureString", "callCaptureString", "hasStringBuilder",
-            "recursive"
+            "recursive", "isTemplate"
         };
         return ft;
     }

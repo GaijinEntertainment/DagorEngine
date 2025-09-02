@@ -9,18 +9,116 @@ macro INIT_RIEXTRA_PER_INSTANCE_RENDER_DATA(stage)
   }
 endmacro
 
-macro USE_RIEXTRA_PER_INSTANCE_RENDER_DATA(stage)
+macro USE_RIEXTRA_PER_INSTANCE_RENDER_DATA_BASE(stage, is_ri_extra)
   hlsl(stage)
   {
     #if RIEXTRA_PER_INSTANCE_RENDER_DATA_INITED
-      ##if instancing_type == tm_vb
-        #define LOAD_RIEXTRA_PID(idx, def) (perInstanceRenderDataOffset ? structuredBufferAt(per_instance_render_data, perInstanceRenderDataOffset - 1 + idx) : (def))
+      ##if is_ri_extra
+        #include "render/riextra_per_instance.hlsli"
+
+        float4 LOAD_RIEXTRA_PID_impl(uint idx, uint data_flag, float4 def, uint perInstanceRenderDataFlags, uint perInstanceRenderDataOffset)
+        {
+          BRANCH if (data_flag & perInstanceRenderDataFlags)
+            return structuredBufferAt(per_instance_render_data, perInstanceRenderDataOffset + idx);
+          else
+            return def;
+        }
+        #define LOAD_RIEXTRA_PID(idx, data_flag, def) LOAD_RIEXTRA_PID_impl(idx, data_flag, def, perInstanceRenderDataFlags, perInstanceRenderDataOffset)
         #define RIEXTRA_PER_INSTANCE_RENDER_DATA_ENABLED 1
       ##endif
     #endif
 
     #if !RIEXTRA_PER_INSTANCE_RENDER_DATA_ENABLED
-      #define LOAD_RIEXTRA_PID(idx, def) (def)
+      float4 LOAD_RIEXTRA_PID(uint idx, uint data_flag, float4 def) { return def; }
+    #endif
+  }
+endmacro
+
+macro USE_RIEXTRA_PER_INSTANCE_RENDER_DATA(stage)
+  USE_RIEXTRA_PER_INSTANCE_RENDER_DATA_BASE(stage, instancing_type == tm_vb)
+endmacro
+
+macro INIT_AND_USE_RIEXTRA_ORIGINAL_TM(stage)
+  hlsl(stage)
+  {
+    #if !RIEXTRA_PER_INSTANCE_RENDER_DATA_ENABLED
+      #error "INIT_AND_USE_RIEXTRA_ORIGINAL_TM: RiExtra per instance render data is not initialized, but original tm is requested"
+    #endif
+    #define LOAD_ORIGINAL_WORLD_POS(currentWorldPos, outOriginalWorldPos) \
+      if((perInstanceRenderDataFlags & RIEXTRA_PER_INSTANCE_RENDER_DATA__INITIAL_TM_POS__FLAG))\
+      {\
+        uint initialDataOffset = RIEXTRA_PER_INSTANCE_RENDER_DATA__INITIAL_TM_POS__OFFSET(perInstanceRenderDataFlags);\
+        outOriginalWorldPos = LOAD_RIEXTRA_PID(initialDataOffset, RIEXTRA_PER_INSTANCE_RENDER_DATA__INITIAL_TM_POS__FLAG, float4(currentWorldPos, 1)).xyz;\
+      }\
+      else{\
+        outOriginalWorldPos = currentWorldPos;\
+      }
+    #define LOAD_ORIGINAL_WORLD_TM_3X3(currentWorldTmX, currentWorldTmY, currentWorldTmZ, outOriginalWorldTmX, outOriginalWorldTmY, outOriginalWorldTmZ) \
+      if((perInstanceRenderDataFlags & RIEXTRA_PER_INSTANCE_RENDER_DATA__INITIAL_TM_3X3__FLAG))\
+      {\
+        uint initialDataOffset = RIEXTRA_PER_INSTANCE_RENDER_DATA__INITIAL_TM_3X3__OFFSET(perInstanceRenderDataFlags);\
+        outOriginalWorldTmX = LOAD_RIEXTRA_PID(initialDataOffset+0, RIEXTRA_PER_INSTANCE_RENDER_DATA__INITIAL_TM_3X3__FLAG, float4(currentWorldTmX, 1)).xyz;\
+        outOriginalWorldTmY = LOAD_RIEXTRA_PID(initialDataOffset+1, RIEXTRA_PER_INSTANCE_RENDER_DATA__INITIAL_TM_3X3__FLAG, float4(currentWorldTmY, 1)).xyz;\
+        outOriginalWorldTmZ = LOAD_RIEXTRA_PID(initialDataOffset+2, RIEXTRA_PER_INSTANCE_RENDER_DATA__INITIAL_TM_3X3__FLAG, float4(currentWorldTmZ, 1)).xyz;\
+      }\
+      else {\
+        outOriginalWorldTmX = currentWorldTmX;\
+        outOriginalWorldTmY = currentWorldTmY;\
+        outOriginalWorldTmZ = currentWorldTmZ;\
+      }
+    #define RIEXTRA_ORIGINAL_TM_ENABLED 1
+  }
+endmacro
+
+macro TRY_USE_RIEXTRA_ORIGINAL_TM(stage)
+  hlsl(stage)
+  {
+    #if RIEXTRA_ORIGINAL_TM_ENABLED
+    #else
+      #define LOAD_ORIGINAL_WORLD_POS(currentWorldPos, outOriginalWorldPos) outOriginalWorldPos = currentWorldPos;
+      #define LOAD_ORIGINAL_WORLD_TM_3X3(currentWorldTmX, currentWorldTmY, currentWorldTmZ, outOriginalWorldTmX, outOriginalWorldTmY, outOriginalWorldTmZ) \
+        outOriginalWorldTmX = currentWorldTmX; \
+        outOriginalWorldTmY = currentWorldTmY; \
+        outOriginalWorldTmZ = currentWorldTmZ;
+    #endif
+  }
+endmacro
+
+macro INIT_AND_USE_RIEXTRA_PREV_TM(stage)
+  hlsl(stage)
+  {
+    #if !RIEXTRA_PER_INSTANCE_RENDER_DATA_ENABLED
+      #error "INIT_AND_USE_RIEXTRA_PREV_TM: RiExtra per instance render data is not initialized, but prev tm is requested"
+    #endif
+    #define LOAD_PREV_WORLD_TM(currentWorldTmX, currentWorldTmY, currentWorldTmZ, currentWorldPos, outPrevWorldTmX, outPrevWorldTmY, outPrevWorldTmZ, outPrevWorldPos) \
+      if((perInstanceRenderDataFlags & RIEXTRA_PER_INSTANCE_RENDER_DATA__PREV_TRANSFORM__FLAG))\
+      {\
+        uint initialDataOffset = RIEXTRA_PER_INSTANCE_RENDER_DATA__PREV_TRANSFORM__OFFSET(perInstanceRenderDataFlags);\
+        outPrevWorldTmX = LOAD_RIEXTRA_PID(initialDataOffset+0, RIEXTRA_PER_INSTANCE_RENDER_DATA__PREV_TRANSFORM__FLAG, float4(currentWorldTmX, 1)).xyz;\
+        outPrevWorldTmY = LOAD_RIEXTRA_PID(initialDataOffset+1, RIEXTRA_PER_INSTANCE_RENDER_DATA__PREV_TRANSFORM__FLAG, float4(currentWorldTmY, 1)).xyz;\
+        outPrevWorldTmZ = LOAD_RIEXTRA_PID(initialDataOffset+2, RIEXTRA_PER_INSTANCE_RENDER_DATA__PREV_TRANSFORM__FLAG, float4(currentWorldTmZ, 1)).xyz;\
+        outPrevWorldPos = LOAD_RIEXTRA_PID(initialDataOffset+3, RIEXTRA_PER_INSTANCE_RENDER_DATA__PREV_TRANSFORM__FLAG, float4(currentWorldPos, 1)).xyz;\
+      }\
+      else {\
+        outPrevWorldTmX = currentWorldTmX;\
+        outPrevWorldTmY = currentWorldTmY;\
+        outPrevWorldTmZ = currentWorldTmZ;\
+        outPrevWorldPos = currentWorldPos;\
+      }
+    #define RIEXTRA_PREV_TM_ENABLED 1
+  }
+endmacro
+
+macro TRY_USE_RIEXTRA_PREV_TM(stage)
+  hlsl(stage)
+  {
+    #if RIEXTRA_PREV_TM_ENABLED
+    #else
+      #define LOAD_PREV_WORLD_TM(currentWorldTmX, currentWorldTmY, currentWorldTmZ, currentWorldPos, outPrevWorldTmX, outPrevWorldTmY, outPrevWorldTmZ, outPrevWorldPos) \
+        outPrevWorldTmX = currentWorldTmX; \
+        outPrevWorldTmY = currentWorldTmY; \
+        outPrevWorldTmZ = currentWorldTmZ; \
+        outPrevWorldPos = currentWorldPos;
     #endif
   }
 endmacro

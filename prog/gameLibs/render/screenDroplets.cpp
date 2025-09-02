@@ -8,7 +8,7 @@
 #include <drv/3d/dag_driver.h>
 #include <perfMon/dag_statDrv.h>
 #include <math/integer/dag_IPoint2.h>
-#include <3d/dag_resourcePool.h>
+#include <resourcePool/resourcePool.h>
 #include <util/dag_convar.h>
 
 #define SCREEN_DROPLETS_VARS     \
@@ -210,7 +210,8 @@ void ScreenDroplets::update(bool is_underwater, const TMatrix &itm, float dt)
     }
   }
 
-  if (isUnderwaterLast && !is_underwater)
+  // Do not start droplets effect when time is paused, as it will not disappear.
+  if (isUnderwaterLast && !is_underwater && dt > 0.0001f)
   {
     intensity = 1;
     splashStarted = get_shader_global_time_phase(0, 0);
@@ -277,8 +278,6 @@ void ScreenDroplets::render(ManagedTexView rtarget, TEXTUREID frame_tex)
 
 void ScreenDroplets::render(BaseTexture *rtarget)
 {
-  rtarget->texfilter(TEXFILTER_LINEAR);
-  rtarget->texaddr(TEXADDR_CLAMP);
   TIME_D3D_PROFILE(screen_droplets);
   {
     SCOPE_RENDER_TARGET;

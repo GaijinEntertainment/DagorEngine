@@ -16,6 +16,9 @@ namespace pathfinder
 RiexHashMap<RiObstacle> riHandle2obstacle;
 static Point2 riPadding;
 static float riCellSize;
+static float riWalkableClimb;
+static tile_check_cb_t riTileCheckCb;
+static ska::flat_hash_set<uint32_t, eastl::hash<uint32_t>, eastl::equal_to<uint32_t>> riResourceIds;
 
 static rendinst::obstacle_settings_t riObstacleSettings;
 
@@ -65,6 +68,22 @@ static void tilecache_ri_start_try_add_obstacle(rendinst::riex_handle_t handle, 
   //          fully rebuild navmesh tile. Instead make level designers to re-export level.
 }
 
+static float calc_obstacle_hor_padding(uint32_t res_idx)
+{
+  const auto setup = riObstacleSettings.find(res_idx);
+  return setup && setup->overridePadding ? setup->overridePaddingValue : riPadding.x;
+}
+
+static void on_ri_extra_added_from_gen_data(rendinst::riex_handle_t handle)
+{
+  const uint32_t resIdx = rendinst::handle_to_ri_type(handle);
+  if (riResourceIds.count(resIdx) == 0 || riHandle2obstacle.count(handle) > 0)
+    return;
+  const float horPadding = calc_obstacle_hor_padding(resIdx);
+
+  tilecache_ri_start_try_add_obstacle(handle, riWalkableClimb, horPadding, riTileCheckCb);
+}
+
 void tilecache_ri_start(const ska::flat_hash_set<uint32_t> &res_name_hashes, float cell_size, float walkable_climb,
   const rendinst::obstacle_settings_t &obstacle_settings, const Point2 &padding, tile_check_cb_t tile_check_cb)
 {
@@ -72,30 +91,28 @@ void tilecache_ri_start(const ska::flat_hash_set<uint32_t> &res_name_hashes, flo
 
   riPadding = padding;
   riCellSize = cell_size;
+  riWalkableClimb = walkable_climb;
+  riTileCheckCb = tile_check_cb;
 
-  ska::flat_hash_set<uint32_t, eastl::hash<uint32_t>, eastl::equal_to<uint32_t>, framemem_allocator> resIds;
-  rendinst::walkRIGenResourceNames([&resIds, &res_name_hashes](const char *res_name) {
+  rendinst::walkRIGenResourceNames([&res_name_hashes](const char *res_name) {
     if (res_name_hashes.count(str_hash_fnv1(res_name)) > 0)
     {
       int resId = rendinst::getRIGenExtraResIdx(res_name);
       if (resId < 0)
         logerr("%s: res_idx is not registered for riExtra <%s>", __FUNCTION__, res_name);
       else
-        resIds.insert(resId);
+        riResourceIds.insert(resId);
     }
   });
 
   Tab<rendinst::riex_handle_t> handles(framemem_ptr());
 
-  for (uint32_t resIdx : resIds)
+  for (uint32_t resIdx : riResourceIds)
   {
     clear_and_shrink(handles);
     rendinst::getRiGenExtraInstances(handles, resIdx);
 
-    float horPadding = riPadding.x;
-    const auto setup = riObstacleSettings.find(resIdx);
-    if (setup && setup->overridePadding)
-      horPadding = setup->overridePaddingValue;
+    const float horPadding = calc_obstacle_hor_padding(resIdx);
 
     for (rendinst::riex_handle_t handle : handles)
     {
@@ -105,6 +122,7 @@ void tilecache_ri_start(const ska::flat_hash_set<uint32_t> &res_name_hashes, flo
 
   debug("tile cache: %d stationary obstacles registered", (int)riHandle2obstacle.size());
 
+  rendinst::registerRiExtraAddedFromGenDataCb(on_ri_extra_added_from_gen_data);
   rendinst::registerRIGenExtraInvalidateHandleCb(on_ri_invalidate_cb);
 
   timeSinceStarted = 0.f;
@@ -122,10 +140,7 @@ void tilecache_ri_start_add(const ska::flat_hash_set<uint32_t> &res_name_hashes,
   if (!resName || res_name_hashes.count(str_hash_fnv1(resName)) <= 0)
     return;
 
-  float horPadding = riPadding.x;
-  const auto setup = riObstacleSettings.find(resIdx);
-  if (setup && setup->overridePadding)
-    horPadding = setup->overridePaddingValue;
+  const float horPadding = calc_obstacle_hor_padding(resIdx);
 
   const auto wasCount = riHandle2obstacle.size();
 
@@ -156,7 +171,9 @@ void tilecache_ri_update(float dt)
 void tilecache_ri_stop()
 {
   G_VERIFY(rendinst::unregisterRIGenExtraInvalidateHandleCb(on_ri_invalidate_cb));
+  G_VERIFY(rendinst::unregisterRiExtraAddedFromGenDataCb(on_ri_extra_added_from_gen_data));
   riHandle2obstacle.clear();
+  riResourceIds.clear();
 
   timeSinceStarted = 0.f;
   startAddedExtraCount = 0;

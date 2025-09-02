@@ -1,0 +1,3 @@
+hlsl {
+  #define DECAL_TO_CAMERA_OFFSET 0.005f
+}

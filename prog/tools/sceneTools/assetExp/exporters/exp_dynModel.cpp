@@ -35,11 +35,11 @@ BEGIN_DABUILD_PLUGIN_NAMESPACE(dynModel)
 class DynModelExporter : public IDagorAssetExporter
 {
 public:
-  virtual const char *__stdcall getExporterIdStr() const { return "dynModel exp"; }
+  const char *__stdcall getExporterIdStr() const override { return "dynModel exp"; }
 
-  virtual const char *__stdcall getAssetType() const { return TYPE; }
-  virtual unsigned __stdcall getGameResClassId() const { return DynModelGameResClassId; }
-  virtual unsigned __stdcall getGameResVersion() const
+  const char *__stdcall getAssetType() const override { return TYPE; }
+  unsigned __stdcall getGameResClassId() const override { return DynModelGameResClassId; }
+  unsigned __stdcall getGameResVersion() const override
   {
     const int ord_ver = 1;
     const int base_ver = 55 + ord_ver * 10 + (splitMatToDescBin && !shadermeshbuilder_strip_d3dres ? 5 : 0);
@@ -48,10 +48,10 @@ public:
     return base_ver + (shadermeshbuilder_strip_d3dres ? 1 : 0);
   }
 
-  virtual void __stdcall onRegister() { buildResultsBlk = NULL; }
-  virtual void __stdcall onUnregister() { buildResultsBlk = NULL; }
+  void __stdcall onRegister() override { buildResultsBlk = NULL; }
+  void __stdcall onUnregister() override { buildResultsBlk = NULL; }
 
-  virtual void __stdcall setBuildResultsBlk(DataBlock *b) { buildResultsBlk = b; }
+  void __stdcall setBuildResultsBlk(DataBlock *b) override { buildResultsBlk = b; }
 
   void __stdcall gatherSrcDataFiles(const DagorAsset &a, Tab<SimpleString> &files) override
   {
@@ -89,21 +89,15 @@ public:
     add_shdump_deps(files);
   }
 
-  virtual bool __stdcall isExportableAsset(DagorAsset &a) { return true; }
+  bool __stdcall isExportableAsset(DagorAsset &a) override { return true; }
 
-  virtual bool __stdcall buildAssetFast(DagorAsset &a, mkbindump::BinDumpSaveCB &cwr, ILogWriter &log)
-  {
-    ShaderMeshData::fastNoPacking = true;
-    bool ret = exportAsset(a, cwr, log);
-    ShaderMeshData::fastNoPacking = false;
-    return ret;
-  }
-
-  virtual bool __stdcall exportAsset(DagorAsset &a, mkbindump::BinDumpSaveCB &cwr, ILogWriter &log)
+  bool __stdcall exportAsset(DagorAsset &a, mkbindump::BinDumpSaveCB &cwr, ILogWriter &log) override
   {
     ShaderMeshData::reset_channel_cvt_errors();
     AutoContext auto_ctx(a, log);
     String sn;
+    uint64_t tc_storage = 0;
+    const char *tc_str = mkbindump::get_target_str(cwr.getTarget(), tc_storage);
 
     DataBlock lodsBlk;
     const DataBlock &a_props = a.getProfileTargetProps(cwr.getTarget(), cwr.getProfile());
@@ -141,8 +135,7 @@ public:
     bool prevEmptyBoneNamesAllowed = ::dynmodel_exp_empty_bone_names_allowed;
     ::dynmodel_exp_empty_bone_names_allowed = dm_blk->getBool("emptyBoneNamesAllowed", false);
 
-#define READ_BUILD_PROP(VAR, NM, TYPE) \
-  ::VAR = dm_blk->getBlockByNameEx(mkbindump::get_target_str(cwr.getTarget()))->get##TYPE(NM, dm_blk->get##TYPE(NM, ::def_##VAR))
+#define READ_BUILD_PROP(VAR, NM, TYPE) ::VAR = dm_blk->getBlockByNameEx(tc_str)->get##TYPE(NM, dm_blk->get##TYPE(NM, ::def_##VAR))
 
     READ_BUILD_PROP(dynmodel_max_bones_count, "maxBonesCount", Int);
     READ_BUILD_PROP(dynmodel_max_vpr_const_count, "maxVPRConst", Int);
@@ -161,7 +154,7 @@ public:
 
     if (const DataBlock *lodsToKeepBlk = dm_blk->getBlockByName("lodsToKeep"))
     {
-      const char *pkname = a.getCustomPackageName(mkbindump::get_target_str(cwr.getTarget()), cwr.getProfile());
+      const char *pkname = a.getCustomPackageName(tc_str, cwr.getProfile());
       int lodsToKeep = lodsToKeepBlk->getInt(pkname ? String(0, "package.%s", pkname).c_str() : "package.*", -1);
       lodsToKeep = lodsToKeep >= 0
                      ? lodsToKeep
@@ -178,10 +171,14 @@ public:
 
     if (buildResultsBlk)
     {
-      const char *pkname = a.getCustomPackageName(mkbindump::get_target_str(cwr.getTarget()), cwr.getProfile());
+      const char *pkname = a.getCustomPackageName(tc_str, cwr.getProfile());
       DynamicRenderableSceneLodsResSrc::buildResultsBlk = buildResultsBlk->addBlock(pkname ? pkname : ".")->addBlock(a.getName());
-      DynamicRenderableSceneLodsResSrc::sepMatToBuildResultsBlk = splitMatToDescBin && !ShaderMeshData::fastNoPacking;
+      DynamicRenderableSceneLodsResSrc::sepMatToBuildResultsBlk = splitMatToDescBin && !cwr.isFastBuild();
     }
+    DynamicRenderableSceneLodsResSrc::warnTwoSided = appBlkCopy.getBlockByNameEx("assets")
+                                                       ->getBlockByNameEx("build")
+                                                       ->getBlockByNameEx("dynModel")
+                                                       ->getBlockByNameEx("warnTwoSided", nullptr);
 
     install_fatal_handler();
     ShaderMeshData::buildForTargetCode = cwr.getTarget();
@@ -203,6 +200,7 @@ public:
     ShaderMeshData::buildForTargetCode = _MAKE4C('PC');
     DynamicRenderableSceneLodsResSrc::buildResultsBlk = nullptr;
     DynamicRenderableSceneLodsResSrc::sepMatToBuildResultsBlk = false;
+    DynamicRenderableSceneLodsResSrc::warnTwoSided = nullptr;
 
     ::ignore_mapping_in_prepare_billboard_mesh = prevIgnoreMappingInPrepareBillboardMesh;
     ::dynmodel_exp_empty_bone_names_allowed = prevEmptyBoneNamesAllowed;
@@ -248,20 +246,20 @@ public:
 class DynModelRefs : public IDagorAssetRefProvider
 {
 public:
-  virtual const char *__stdcall getRefProviderIdStr() const { return "dynModel refs"; }
+  const char *__stdcall getRefProviderIdStr() const override { return "dynModel refs"; }
 
-  virtual const char *__stdcall getAssetType() const { return TYPE; }
+  const char *__stdcall getAssetType() const override { return TYPE; }
 
-  virtual void __stdcall onRegister() {}
-  virtual void __stdcall onUnregister() {}
+  void __stdcall onRegister() override {}
+  void __stdcall onUnregister() override {}
 
-  dag::ConstSpan<Ref> __stdcall getAssetRefs(DagorAsset &a) override
+  void __stdcall getAssetRefs(DagorAsset &a, Tab<Ref> &refs) override
   {
     int nid = a.props.getNameId("lod"), id = 0;
     const char *basePath = a.getFolderPath();
     String fn, sn;
 
-    tmp_refs.clear();
+    refs.clear();
 
     setup_tex_subst(a.props);
     GenericTexSubstProcessMaterialData pm(a.getName(), get_process_mat_blk(a.props, TYPE),
@@ -271,10 +269,9 @@ public:
       {
         sn.printf(260, "%s.lod%02d.dag", a.props.getStr("lod_fn_prefix", a.getName()), id++);
         fn.printf(260, "%s/%s", basePath, blk->getStr("fname", sn));
-        add_dag_texture_and_proxymat_refs(fn, tmp_refs, a, pm.mayProcess() ? &pm : nullptr);
+        add_dag_texture_and_proxymat_refs(fn, refs, a, pm.mayProcess() ? &pm : nullptr);
       }
     reset_tex_subst();
-    return tmp_refs;
   }
 };
 

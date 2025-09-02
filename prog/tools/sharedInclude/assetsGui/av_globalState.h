@@ -21,6 +21,9 @@ public:
   // Returns with true if the recently used list has been modified.
   static bool addRecentlyUsed(const char *asset);
 
+  static bool getMoveCopyToSubmenu() { return moveCopyToSubmenu; }
+  static void setMoveCopyToSubmenu(bool move) { moveCopyToSubmenu = move; }
+
   static bool getShowHierarchyInFavorites() { return showHierarchyInFavorites; }
   static void setShowHierarchyInFavorites(bool show) { showHierarchyInFavorites = show; }
 
@@ -30,6 +33,7 @@ public:
 private:
   static dag::Vector<String> favorites;
   static dag::Vector<String> recentlyUsed;
+  static bool moveCopyToSubmenu;
   static int favoritesGenerationId;
   static int recentlyUsedGenerationId;
   static bool showHierarchyInFavorites;

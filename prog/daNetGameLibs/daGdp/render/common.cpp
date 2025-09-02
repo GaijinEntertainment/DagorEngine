@@ -62,7 +62,41 @@ static bool set_params(const ecs::Object &object, const L &get_desc, PlaceablePa
       return false;
     }
 
-    result.slopeFactor = *ptr;
+    float sf = *ptr;
+    if (sf <= 0.0f)
+      result.slopeMin = 99.0f;
+    else if (sf <= 0.5f)
+      result.slopeMin = -89.0f - 0.5f / sf;
+    else
+      result.slopeMin = RadToDeg(asinf(1.0f - 1.0f / sf));
+    result.slopeMax = 90.0f;
+    logwarn("slope_factor=%f parameter is deprecated, use slope_start=%f instead", sf, result.slopeMin);
+  }
+
+  if (const auto iter = object.find_as("slope_start"); iter != object.end())
+  {
+    const float *ptr = iter->second.getNullable<float>();
+    if (!ptr)
+    {
+      const auto desc = get_desc();
+      logerr("daGdp: %.*s must have float slope_start", desc.size(), desc.data());
+      return false;
+    }
+
+    result.slopeMin = *ptr;
+  }
+
+  if (const auto iter = object.find_as("slope_end"); iter != object.end())
+  {
+    const float *ptr = iter->second.getNullable<float>();
+    if (!ptr)
+    {
+      const auto desc = get_desc();
+      logerr("daGdp: %.*s must have float slope_end", desc.size(), desc.data());
+      return false;
+    }
+
+    result.slopeMax = *ptr;
   }
 
   if (const auto iter = object.find_as("slope_invert"); iter != object.end())
@@ -78,6 +112,45 @@ static bool set_params(const ecs::Object &object, const L &get_desc, PlaceablePa
     result.flags &= ~SLOPE_PLACEMENT_IS_INVERTED_BIT;
     if (*ptr)
       result.flags |= SLOPE_PLACEMENT_IS_INVERTED_BIT;
+  }
+
+  if (const auto iter = object.find_as("occlusion_start"); iter != object.end())
+  {
+    const float *ptr = iter->second.getNullable<float>();
+    if (!ptr)
+    {
+      const auto desc = get_desc();
+      logerr("daGdp: %.*s must have float occlusion_start", desc.size(), desc.data());
+      return false;
+    }
+
+    result.occlusionMin = *ptr;
+  }
+
+  if (const auto iter = object.find_as("occlusion_end"); iter != object.end())
+  {
+    const float *ptr = iter->second.getNullable<float>();
+    if (!ptr)
+    {
+      const auto desc = get_desc();
+      logerr("daGdp: %.*s must have float occlusion_end", desc.size(), desc.data());
+      return false;
+    }
+
+    result.occlusionMax = *ptr;
+  }
+
+  if (const auto iter = object.find_as("occlusion_range"); iter != object.end())
+  {
+    const float *ptr = iter->second.getNullable<float>();
+    if (!ptr)
+    {
+      const auto desc = get_desc();
+      logerr("daGdp: %.*s must have float occlusion_range", desc.size(), desc.data());
+      return false;
+    }
+
+    result.occlusionRange = *ptr;
   }
 
   if (!getP2Field("scale", result.scaleMidDev))
@@ -194,44 +267,6 @@ static bool set_params(const ecs::Object &object, const L &get_desc, PlaceablePa
     result.flags &= ~PERSIST_ON_HEIGHTMAP_DEFORM_BIT;
     if (!(*ptr))
       result.flags |= PERSIST_ON_HEIGHTMAP_DEFORM_BIT;
-  }
-
-  if (const auto iter = object.find_as("density_mask_channel"); iter != object.end())
-  {
-    // Clearing all density mask related flag bits
-    result.flags &= ~(DENSITY_MASK_CHANNEL_ALL_BITS);
-
-    const ecs::string *ptr = iter->second.getNullable<ecs::string>();
-
-    if (ptr)
-    {
-      // Invalid density flag value is 0 by default so that doesn't have to be set explicitly
-      if (*ptr == "red")
-      {
-        result.flags |= DENSITY_MASK_CHANNEL_RED;
-      }
-      else if (*ptr == "green")
-      {
-        result.flags |= DENSITY_MASK_CHANNEL_GREEN;
-      }
-      else if (*ptr == "blue")
-      {
-        result.flags |= DENSITY_MASK_CHANNEL_BLUE;
-      }
-      else if (*ptr == "alpha")
-      {
-        result.flags |= DENSITY_MASK_CHANNEL_ALPHA;
-      }
-      else
-        ptr = nullptr; // Not one of the allowed values.
-    }
-
-    if (!ptr)
-    {
-      const auto desc = get_desc();
-      logerr("daGdp: %.*s must have density_mask_channel as one of: invalid, red, green, blue, alpha.", desc.size(), desc.data());
-      return false;
-    }
   }
 
   if (!getP2Field("rot_y", result.yawRadiansMidDev, true))

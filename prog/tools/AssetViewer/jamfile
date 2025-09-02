@@ -2,10 +2,32 @@ Root    ?= ../../.. ;
 Location = prog/tools/AssetViewer ;
 KernelLinkage = dynamic ;
 BuildingTools = yes ;
+PhysName = Jolt ;
 include $(Root)/prog/tools/tools_setup.jam ;
 
+if $(Platform) = windows {
+  PlatformSpec = vc17 ;
+}
+
+Exceptions = yes ;
+CheckedContainers = no ;
+UseMemoryDebugLevel = def ;
+UseLLDLink = no ;
+HaveOverlayUI = no ;
+HaveDngInput = no ;
+HaveEditor = no ;
+HaveConsole = no ;
+HaveSound = no ;
+HaveSoundNet = no ;
+include $(Root)/prog/daNetGame/setup.jam ;
+
 UseD3DMulti = yes ;
-UseD3DMultiList = DX11 stub ;
+
+switch $(Platform) {
+  case windows : UseD3DMultiList = DX11 stub ;
+  case linux :   UseD3DMultiList = vulkan stub ;
+}
+
 UseQuirrel = sq3r+ ;
 
 VRDeviceSupport = yes ;
@@ -30,11 +52,9 @@ include $(Root)/prog/_jBuild/defaults.jam ;
 
 if $(Platform)-$(PlatformArch) = windows-arm64 { VRDeviceSupport = no ; }
 
-AddIncludes =
+AddIncludes +=
   $(Root)/prog/tools/sharedInclude
   $(Root)/prog/tools/sceneTools/daEditorX/include
-  $(Root)/prog/gameLibs/publicInclude/squirrel
-  $(Root)/prog/gameLibs/publicInclude
   $(Root)/prog/engine/sharedInclude
   $(Root)/prog/tools/sceneTools/impostorBaker
   $(Root)/prog/tools/sceneTools/pointCloudGen/generator
@@ -58,14 +78,21 @@ Sources =
 
   assetBuildCache.cpp
 
-  assetViewerRes.rc
   av_util.cpp
   av_script_panel.cpp
   av_ecsPull.cpp
+  av_das_manager.cpp
 
   badRefFinder.cpp
   compositeAssetCreator.cpp
 ;
+
+if $(Platform) = windows {
+  Sources += assetViewerRes.rc ;
+} else if $(Platform) = linux {
+  dasStdDlg_UserProvidedPlatform = yes ;
+  Sources += av_dasStdDlg_linux.cpp ;
+}
 
 UseProgLibs =
   engine/startup
@@ -78,9 +105,6 @@ UseProgLibs =
   engine/image
   engine/guiBase
 
-  engine/drv/hid_dinput
-  engine/drv/hid_gamepad_xinput
-  engine/drv/hid_joystick
   engine/drv/hid_mouse
   engine/drv/hid_keyboard
   engine/drv/drv3d_pc_multi
@@ -104,20 +128,22 @@ UseProgLibs =
   tools/libTools/renderUtil
   tools/libTools/shaderResBuilder
   tools/libTools/EditorCore
+  tools/libTools/EditorCore/IEditorCore
   tools/libTools/fastPhysData
-  tools/libTools/objectEditor
+  tools/libTools/ObjectEditor
   tools/libTools/renderViewports
   tools/libTools/staticGeom
   tools/libTools/sceneBuilder
   tools/libTools/scriptHelpers
   tools/libTools/dtx
-  tools/libTools/objCreator3d
+  tools/libTools/ObjCreator3d
   tools/libTools/winGuiWrapper
   tools/libTools/staticGeomUi
   tools/libTools/scriptPanelWrapper
   tools/libTools/math
   tools/libTools/grsCurView
 
+  tools/sceneTools/daEditorX/services/dngBasedRenderSrv
   tools/sceneTools/daEditorX/services/dynRenderSrv
   tools/sceneTools/daEditorX/services/wind
   tools/sceneTools/daEditorX/services/riMgr
@@ -132,7 +158,6 @@ UseProgLibs =
   tools/sceneTools/daEditorX/services/dynModelMgr
   tools/sceneTools/daEditorX/services/animCharMgr
   tools/sceneTools/daEditorX/services/assetSrv
-  tools/sceneTools/daEditorX/services/dxpFactory
   tools/sceneTools/daEditorX/services/lightSrv
   tools/sceneTools/daEditorX/services/dynModelMgr
   tools/sceneTools/daEditorX/services/physobjMgr
@@ -145,7 +170,6 @@ UseProgLibs =
   tools/sceneTools/daEditorX/services/ecsMgr
   tools/sceneTools/daEditorX/services/webui
   tools/sceneTools/daEditorX/services/ecsInput
-  tools/sceneTools/daEditorX/services/dasMgr
   tools/sceneTools/daEditorX/services/visibilityFinderSrv
 
   tools/sceneTools/impostorBaker/impostorUtil
@@ -153,25 +177,23 @@ UseProgLibs =
   tools/sceneTools/pointCloudGen/generator
 
   tools/libTools/propPanel
-  tools/libTools/sepGui
   tools/libTools/dagFileRW
 
   engine/phys/physCommon
   engine/phys/physBullet
   engine/phys/physJolt
+  gameLibs/vehiclePhys/vehiclePhys-JOLT
   gameLibs/vehiclePhys/vehiclePhys-BULLET
+  gameLibs/consoleWindow
+  gameLibs/resourcePool
   gameLibs/render
-  gameLibs/rendInst/riFx/stub
   gameLibs/landMesh
   gameLibs/textureUtil
   gameLibs/render/dof
   gameLibs/render/wind
   gameLibs/render/volumetricLights/stub
-  gameLibs/render/nodeBasedShader/stub
-  gameLibs/nodeBasedShaderManager/stub
   gameLibs/ecs/rendInst/stub
   gameLibs/ecs/delayedAct
-  gameLibs/ecs/input
 
   gameLibs/quirrel/bindQuirrelEx
   commonFx/commonFxGame
@@ -187,7 +209,7 @@ UseProgLibs =
   tools/AssetViewer/Entity
   tools/AssetViewer/Grass
   tools/AssetViewer/TifMask
-  tools/AssetViewer/PhysObj
+  tools/AssetViewer/physObj
   tools/AssetViewer/fxEdit
   tools/AssetViewer/FastPhys
   tools/AssetViewer/Custom
@@ -195,27 +217,45 @@ UseProgLibs =
   tools/AssetViewer/csgEntity
   tools/AssetViewer/A2d
   tools/AssetViewer/animTree
+  tools/AssetViewer/dasModules
+  tools/AssetViewer/ecsTemplate
 
   3rdPartyLibs/image/libpng-1.4.22
   3rdPartyLibs/arc/zlib-$(UseZlibVer)
   3rdPartyLibs/image/psdRead
   3rdPartyLibs/hash
 
-  gameLibs/imguiInput
+  daNetGame
+  1stPartyLibs/daScript/modules/dasStdDlg
 ;
+
+if $(Platform) = windows {
+  UseProgLibs +=
+    engine/drv/hid_dinput
+    engine/drv/hid_gamepad_xinput
+    engine/drv/hid_joystick
+  ;
+}
+else if $(Platform) = linux {
+  UseProgLibs +=
+    engine/drv/hid_joystick_linux
+  ;
+}
+else {
+  Exit unsupported Platform\=$(Platform) for Target\=$(Target) ;
+}
+
 gamePulls =
   daECS/core/componentType.h # first line is used for include!
   game_pulls                 #second line is name of var
 ;
 
-if $(VRDeviceSupport) = yes {
+if $(VRDeviceSupport) = yes && $(Platform) = windows {
   BundleCopy +=
     @$(OpenXrSdkPath)/$(LegacyPlatformSuffix)/bin/openxr_loader.dll openxr_loader.dll
     @$(OpenXrSdkPath)/$(LegacyPlatformSuffix)/bin/openxr_loader.pdb openxr_loader.pdb
   ;
 }
-
-if [ GLOB $(Root)/prog/gameLibs/damageModel : * ] { UseProgLibs += gameLibs/damageModel/stub ; }
 
 if [ GLOB $(Root)/skyquake/prog/tools : * ] { # FIXME_BROKEN_DEP
   UseRootLibs =
@@ -223,18 +263,47 @@ if [ GLOB $(Root)/skyquake/prog/tools : * ] { # FIXME_BROKEN_DEP
   ;
   CPPopt += -DHAS_PLUGIN_WT_UNIT ;
 }
+if [ GLOB $(Root)/prog/gameLibs/ecs/phys : * ] {
+  opt on av_das_manager.cpp = -DHAS_PHYS ;
+}
 
 gamePulls +=
   actInThread_pull
 ;
+
+include $(Root)/$(Location)/_dng_libs.jam ;
 
 gamePulls_action = make_module_pull_cpp ;
 Sources += gamePulls.jamvar ;
 
 ImportProgLibs = tools/libTools/daKernel ;
 
-if ! $(DagoredRel) {
+if $(Platform) = windows && ! $(DagoredRel) {
   LINKopt = -opt:noref ;
 }
+else if $(Platform) = linux {
+  LINKopt += -L$(Root)/tools/dagor_cdk/$(Platform)-$(PlatformArch) ; # to be able to find daKernel-dev.so
+}
+
+Game = asset_viewer_dng ;
+GameMainVromFilePath = * ;
+GameMainVromMountDir = * ;
+include $(Root)/prog/daNetGame/game.jam ;
+gameMain =
+  void set_window_title(const char *){}
+  void set_fps_limit(int){}
+  int get_fps_limit(){return 0;}
+  void set_corrected_fps_limit(int){}
+  void exit_game(const char *){}
+  void (*get_memcollect_cur_thread_cb())(){ return nullptr;}
+  void update_float_exceptions(){}
+;
+gameVersion =
+  unsigned get_exe_version32(){return 0;}
+  char const *get_exe_version_str(){return \"0.0.0.0\";}
+  int get_build_number(){ return -1;}
+;
+Sources += dng_pulls.cpp ;
+opt on dng_pulls.cpp = -I$(Root)/prog/daNetGameLibs ;
 
 include $(Root)/prog/_jBuild/build.jam ;

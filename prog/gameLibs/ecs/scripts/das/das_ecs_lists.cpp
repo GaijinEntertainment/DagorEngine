@@ -25,18 +25,9 @@ namespace bind_dascript
       cppName = " ::ecs::" #T;                                                                                                   \
       parentType = das::makeType<das::vector<OT>>(ml);                                                                           \
     }                                                                                                                            \
-    virtual das::string getSmartAnnotationCloneFunction() const override                                                         \
-    {                                                                                                                            \
-      return "smart_ptr_clone";                                                                                                  \
-    }                                                                                                                            \
-    virtual bool canBeSubstituted(TypeAnnotation *passType) const override                                                       \
-    {                                                                                                                            \
-      return parentType->annotation == passType;                                                                                 \
-    }                                                                                                                            \
-    virtual bool canClone() const override                                                                                       \
-    {                                                                                                                            \
-      return true;                                                                                                               \
-    }                                                                                                                            \
+    virtual das::string getSmartAnnotationCloneFunction() const override { return "smart_ptr_clone"; }                           \
+    virtual bool canBeSubstituted(TypeAnnotation *passType) const override { return parentType->annotation == passType; }        \
+    virtual bool canClone() const override { return true; }                                                                      \
     das::SimNode *simulateClone(das::Context &context, const das::LineInfo &at, das::SimNode *l, das::SimNode *r) const override \
     {                                                                                                                            \
       return context.code->makeNode<das::SimNode_CloneRefValueT<ecs::T>>(at, l, r);                                              \

@@ -30,7 +30,7 @@ struct KeyMap
     Entry(KeyType &k, T &v) : key(k), val(v) {}
   };
 
-  typename eastl::type_select<N == 0, eastl::vector<Entry>, eastl::fixed_vector<Entry, N>>::type table;
+  typename eastl::conditional<N == 0, eastl::vector<Entry>, eastl::fixed_vector<Entry, N>>::type table;
 
   KeyMap() = default;
 

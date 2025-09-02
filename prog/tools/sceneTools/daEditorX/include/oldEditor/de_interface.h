@@ -35,7 +35,7 @@ public:
     CURRENT_VERSION = VERSION_1_1,
   };
 
-  virtual ~IGenEditorPlugin() {}
+  ~IGenEditorPlugin() override {}
 
   // internal name (C idenitifier name restrictons); used save/load data and logging
   virtual const char *getInternalName() const = 0;
@@ -62,11 +62,17 @@ public:
   virtual void registered() = 0;
   virtual void unregistered() = 0;
 
-  // Plugins can save and load their settings with these functions. Each plugin has its own block within the global
-  // application settings (tools/dagor_cdk/.local/de3_settings.blk), so any name can be used freely in the provided
-  // DataBlock. The settings are global, they apply to all projects and all levels.
-  virtual void loadSettings(const DataBlock &global_settings) {}
-  virtual void saveSettings(DataBlock &global_settings) {}
+  // Plugins can save and load their settings by overriding these functions. Each plugin has its own block within the
+  // global application settings (tools/dagor_cdk/.local/de3_settings.blk) and also in the per application settings
+  // (tools/dagor_cdk/.local/de3_settings_APPLICATION_NAME.blk), so any name can be used freely in the provided
+  // DataBlocks.
+  // global_settings: these settings are global, they apply to all applications and all levels.
+  // per_app_settings: these are per application settings, they apply to the given application and all levels.
+  virtual void loadSettings([[maybe_unused]] const DataBlock &global_settings, [[maybe_unused]] const DataBlock &per_app_settings) {}
+  virtual void saveSettings([[maybe_unused]] DataBlock &global_settings, [[maybe_unused]] DataBlock &per_app_settings) {}
+
+  // called right after loading the settings of a plugin the first time during plugin initialization
+  virtual void registerMenuSettings(unsigned /*menu_id*/, int /*base_id*/) {}
 
   // called before enter in main loop when all plugins loaded and initialized
   virtual void beforeMainLoop() = 0;
@@ -82,7 +88,7 @@ public:
 
   // used by editor to set/get visibility flag
   virtual void setVisible(bool vis) = 0;
-  virtual bool getVisible() const = 0;
+  bool getVisible() const override = 0;
 
   virtual bool getSelectionBox(BBox3 &box) const = 0;
   virtual bool getStatusBarPos(Point3 &pos) const = 0;
@@ -119,7 +125,7 @@ public:
   virtual void onBeforeReset3dDevice() {}
 
   // COM-like facilities
-  virtual void *queryInterfacePtr(unsigned huid) = 0;
+  void *queryInterfacePtr(unsigned huid) override = 0;
   template <class T>
   inline T *queryInterface()
   {
@@ -127,8 +133,9 @@ public:
   }
 
   // return true if stop catching
-  virtual bool catchEvent(unsigned event_huid, void *userData) { return false; }
+  virtual bool catchEvent([[maybe_unused]] unsigned event_huid, [[maybe_unused]] void *userData) { return false; }
   virtual bool onPluginMenuClick(unsigned id) = 0;
+  virtual bool onSettingsMenuClick(unsigned /*id*/) { return false; }
   virtual void handleViewportAcceleratorCommand(unsigned id) { onPluginMenuClick(id); }
 };
 
@@ -147,13 +154,11 @@ public:
   // workspace usage functions
   virtual const char *getSdkDir() const = 0;
   virtual const char *getGameDir() const = 0;
-  virtual const char *getLibDir() const = 0;
+  const char *getLibDir() const override = 0;
   virtual const char *getSceneFileName() const = 0;
-  virtual const char *getSoundFileName() const = 0;
-  virtual const char *getSoundFxFileName() const = 0;
   virtual const char *getScriptLibrary() const = 0;
   virtual const char *getExportPath(int platf_id) const = 0;
-  virtual float getMaxTraceDistance() const = 0;
+  float getMaxTraceDistance() const override = 0;
   virtual dag::ConstSpan<unsigned> getAdditionalPlatforms() const = 0;
 
   virtual void addExportPath(int platf_id) = 0;
@@ -174,8 +179,8 @@ public:
   virtual IGenEditorPlugin *getPluginByName(const char *name) const = 0;
   virtual IGenEditorPlugin *getPluginByMenuName(const char *name) const = 0;
 
-  virtual IGenEditorPluginBase *getPluginBase(int idx) { return getPlugin(idx); }
-  virtual IGenEditorPluginBase *curPluginBase() { return curPlugin(); }
+  IGenEditorPluginBase *getPluginBase(int idx) override { return getPlugin(idx); }
+  IGenEditorPluginBase *curPluginBase() override { return curPlugin(); }
 
   // project files management
   virtual void getPluginProjectPath(const IGenEditorPlugin *plugin, String &base_path) const = 0;
@@ -221,8 +226,8 @@ public:
   virtual dag::ConstSpan<IDagorEdCustomCollider *> loadColliders(const DataBlock &blk, unsigned &out_filter_mask,
     const char *blk_name = "colliders") const = 0;
 
-  virtual void setColliders(dag::ConstSpan<IDagorEdCustomCollider *> c, unsigned filter_mask) const = 0;
-  virtual void restoreEditorColliders() const = 0;
+  void setColliders(dag::ConstSpan<IDagorEdCustomCollider *> c, unsigned filter_mask) const override = 0;
+  void restoreEditorColliders() const override = 0;
 
   //! returns highly temporary slice of colliders (allocated in static array), to be copied immediately on receive
   virtual dag::ConstSpan<IDagorEdCustomCollider *> getCurColliders(unsigned &out_filter_mask) const = 0;
@@ -254,13 +259,11 @@ public:
 
   virtual bool spawnEvent(unsigned event_huid, void *userData) = 0;
 
-  virtual unsigned getLeftDockNodeId() const = 0;
-
 protected:
   int dagorEdInterfaceVer;
 
-  virtual class LibCache *getLibCachePtr() { return NULL; }
-  virtual Tab<struct WspLibData> *getLibData() { return NULL; }
+  class LibCache *getLibCachePtr() override { return NULL; }
+  Tab<struct WspLibData> *getLibData() override { return NULL; }
 
 private:
   static IDagorEd2Engine *__dagored_global_instance;

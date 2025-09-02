@@ -76,8 +76,7 @@ struct ScreenSpaceRayHit
 
 ScreenSpaceRayHit cast_screenspace_hzb_ray(
     Texture2D hyper_z, SamplerState hyper_z_samplerstate,
-    float startMip,
-    float endMip,
+    float mip,
     SSRTRay ray,
     uint numSteps4, float backStepOffset,
     // hzb_uv_scale.xy = 2*hzb_size / source_size == 1 if even, hzb_uv_scale.zw = 1./hzb_uv_scale.xy
@@ -95,8 +94,6 @@ ScreenSpaceRayHit cast_screenspace_hzb_ray(
   float compareTolerance = ray.compareTolerance * invSamples;
 
   float lastDepthDiff = 0;
-  float mip = startMip;
-  float mipStep = (endMip - endMip) * invSamples;
 
   //backStepOffset = View.GeneralPurposeTweak;
 
@@ -116,11 +113,9 @@ ScreenSpaceRayHit cast_screenspace_hzb_ray(
     {
       samplesDepthDiff.x = tex2Dlod(hyper_z, float4(rayUVz.xy + (float(i + 1)) * rayStepUVz.xy, 0, mip)).r;
       samplesDepthDiff.y = tex2Dlod(hyper_z, float4(rayUVz.xy + (float(i + 2)) * rayStepUVz.xy, 0, mip)).r;
-      mip += mipStep;
 
       samplesDepthDiff.z = tex2Dlod(hyper_z, float4(rayUVz.xy + (float(i + 3)) * rayStepUVz.xy, 0, mip)).r;
       samplesDepthDiff.w = tex2Dlod(hyper_z, float4(rayUVz.xy + (float(i + 4)) * rayStepUVz.xy, 0, mip)).r;
-      mip += mipStep;
 
       samplesDepthDiff = rayUVz.zzzz + float4(i + 1, i + 2, i + 3, i + 4) * rayStepUVz.z - samplesDepthDiff;
 
@@ -189,7 +184,6 @@ ScreenSpaceRayHit cast_screenspace_hzb_ray(
     for (i = 0; i < totalSamples; i ++)
     {
       samplesDepthDiff = tex2Dlod(hyper_z, float4(rayUVz.xy, 0, mip)).r;
-      mip += mipStep;
 
       samplesDepthDiff = rayUVz.z - samplesDepthDiff;
 

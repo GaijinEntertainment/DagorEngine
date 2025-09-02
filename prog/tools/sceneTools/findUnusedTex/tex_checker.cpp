@@ -98,7 +98,8 @@ void TexChecker::readAssetTextures(DagorAsset *asset)
   if (!refProvider)
     return;
 
-  Tab<IDagorAssetRefProvider::Ref> refs(refProvider->getAssetRefs(*asset), tmpmem);
+  Tab<IDagorAssetRefProvider::Ref> refs(tmpmem);
+  refProvider->getAssetRefs(*asset, refs);
 
   for (int i = 0; i < refs.size(); ++i)
   {

@@ -71,17 +71,18 @@ void net_disconnect(net::IConnection &conn, DisconnectionCause cause = DC_CONNEC
 #define NET_SEND_NET_MSG_DECLARED
 // Dst connection is deduced automatically (based of routing & recipient filter of message)
 // Return number of successfull sends
+int send_net_msg(ecs::EntityManager &mgr, ecs::EntityId eid, net::IMessage &&msg, const net::MessageNetDesc *msg_net_desc = nullptr);
 int send_net_msg(ecs::EntityId eid, net::IMessage &&msg, const net::MessageNetDesc *msg_net_desc = nullptr);
 #endif
 
 int get_no_packets_time_ms(); // time, in milliseconds, since last packet from server was received
 
-bool net_init_early();
-bool net_init_late_client(net::ConnectParams &&connect_params);
-void net_init_late_server();
+bool net_init_early(ecs::EntityManager &mgr);
+bool net_init_late_client(net::ConnectParams &&connect_params, ecs::EntityManager &mgr);
+void net_init_late_server(ecs::EntityManager &mgr);
 void net_create_time_if_not_exist();
 void net_update();
 void net_sleep_server();
-void net_destroy(bool final = false);
+void net_destroy(ecs::EntityManager &mgr, bool final = false);
 void net_on_before_emgr_clear();
 void net_stop();

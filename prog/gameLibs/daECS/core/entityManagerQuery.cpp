@@ -3,7 +3,7 @@
 #include <EASTL/utility.h>
 #include <daECS/core/entityManager.h>
 #include <daECS/core/componentTypes.h>
-#include <atomic>
+#include <osApiWrappers/dag_atomic_types.h>
 #include <util/dag_threadPool.h>
 #include <perfMon/dag_cpuFreq.h>
 #include <perfMon/dag_statDrv.h>
@@ -25,7 +25,7 @@ static constexpr int max_query_components_count = 256;
 namespace ecs
 {
 G_STATIC_ASSERT(sizeof(ArchetypesQuery) <= 64);
-static constexpr int MAX_ES_JOBS = MAX_POSSIBLE_WORKERS_COUNT;
+static constexpr int MAX_ES_JOBS = threadpool::MAX_WORKER_COUNT;
 
 void QueryStackData::collapse()
 {
@@ -36,7 +36,7 @@ void QueryStackData::collapse()
 // all JobInfo fits in one cache line, if there is only one chunk
 struct JobInfo //-V730
 {
-  std::atomic<int> work_started = {0};
+  dag::AtomicInteger<int> work_started = {0};
   uint32_t totalSize = 0;
   EntityManager &mgr;
   const Query &__restrict query;
@@ -68,7 +68,7 @@ public:
   {
     // debug("start job %d us", get_time_usec(baset));
     const uint32_t totalSize = info->totalSize;
-    if (info->work_started.load(std::memory_order_relaxed) >= totalSize)
+    if (info->work_started.load(dag::memory_order_relaxed) >= totalSize)
       return;
     TIME_PROFILE_DEV(perform_fun);
     // QueryView jobView = query.getView(user_data, chunk);//still can happen that query is already dead, if all work is done!!
@@ -130,6 +130,8 @@ public:
     G_UNUSED(nsteps);
   }
   static uint32_t getChunkSize(const Query &q, int ci) { return q.chunkEntitiesCnt[ci]; }
+
+  const char *getJobName(bool &) const override { return "ESJob"; }
 
   virtual void doJob() override { perform_fun(parent, parent->starts.data(), workerId); }
 };

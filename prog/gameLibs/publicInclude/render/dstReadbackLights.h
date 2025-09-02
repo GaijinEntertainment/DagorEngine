@@ -25,7 +25,7 @@ class DistanceReadbackLights
   int lastNonOptId;
   bool processing;
 
-  using RenderStaticCallback = void(mat44f_cref globTm, const TMatrix &viewItm, int updateIndex, int frustumIndex,
+  using RenderStaticCallback = void(mat44f_cref globTm, mat44f_cref projTm, const TMatrix &viewItm, int updateIndex, int frustumIndex,
     DynamicShadowRenderGPUObjects render_gpu_objects);
   void dispatchQuery(eastl::fixed_function<sizeof(void *) * 2, RenderStaticCallback> render_static);
   void completeQuery();

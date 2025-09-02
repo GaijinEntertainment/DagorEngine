@@ -13,7 +13,7 @@ namespace drv3d_vulkan
 {
 
 template <>
-void MemoryHeapResource::onDelayedCleanupFinish<MemoryHeapResource::CLEANUP_DESTROY>()
+void MemoryHeapResource::onDelayedCleanupFinish<CleanupTag::DESTROY>()
 {
   // delay destruction if some resources are not yet freed
   if (hasPlacedResources())
@@ -29,19 +29,69 @@ void MemoryHeapResource::onDelayedCleanupFinish<MemoryHeapResource::CLEANUP_DEST
   rm.free(this);
 }
 
+template void MemoryHeapResource::place<Image>(Image *res, VkDeviceSize offset, VkDeviceSize size);
+template void MemoryHeapResource::place<Buffer>(Buffer *res, VkDeviceSize offset, VkDeviceSize size);
+
 } // namespace drv3d_vulkan
+
+void MemoryHeapResource::onDeviceReset()
+{
+  const ResourceMemory &heapMem = getMemory();
+  Globals::Mem::res.iterateAllocated<Image>([&heapMem, this](Image *i) { onDeviceResetInHeapCb(heapMem, i); });
+  Globals::Mem::res.iterateAllocated<Buffer>([&heapMem, this](Buffer *i) { onDeviceResetInHeapCb(heapMem, i); });
+}
+
+void MemoryHeapResource::afterDeviceReset()
+{
+  for (ResourceRecreateInfo &i : recreations)
+  {
+    switch (i.res->getResType())
+    {
+      case ResourceType::IMAGE: afterDeviceResetInHeapCb((Image *)i.res, i.offset, i.size); break;
+      case ResourceType::BUFFER: afterDeviceResetInHeapCb((Buffer *)i.res, i.offset, i.size); break;
+      default:
+        G_ASSERTF(0, "vulkan: heap trying to recreate unknown res %p:%s with type %u", i.res, i.res->getDebugName(),
+          (int)i.res->getResType());
+        break;
+    }
+  }
+  recreations.clear();
+}
 
 void MemoryHeapResourceDescription::fillAllocationDesc(AllocationDesc &alloc_desc) const
 {
   alloc_desc.reqs = {};
   alloc_desc.canUseSharedHandle = 0;
   alloc_desc.forceDedicated = useDedicated ? 1 : 0;
-  alloc_desc.memClass = memClass;
+  alloc_desc.memClass = memType._class;
   alloc_desc.temporary = 0;
   alloc_desc.objectBaked = 0;
   alloc_desc.reqs.requirements.size = size;
   alloc_desc.reqs.requirements.alignment = Globals::VK::phy.properties.limits.bufferImageGranularity;
-  alloc_desc.reqs.requirements.memoryTypeBits = Globals::Mem::pool.getMemoryTypeMaskForClass(memClass);
+  alloc_desc.reqs.requirements.memoryTypeBits = memType.mask;
+}
+
+template <typename ResType>
+void MemoryHeapResource::onDeviceResetInHeapCb(const ResourceMemory &heap_mem, ResType *res)
+{
+  if (!(res->getMemoryId() != -1 && res->getMemory().intersects(heap_mem)))
+    return;
+
+  recreations.push_back({res, res->getMemory().offset, res->getMemory().size});
+  res->markDeviceReset();
+  res->onDeviceReset();
+  res->destroyVulkanObject();
+  res->freeMemory();
+  res->releaseHeap();
+}
+
+template <typename ResType>
+void MemoryHeapResource::afterDeviceResetInHeapCb(ResType *res, VkDeviceSize offset, VkDeviceSize size)
+{
+  place(res, offset, size);
+  // short cut to backend here, as everything is in locked&paused state
+  Backend::aliasedMemory.update(res->getMemoryId(), AliasedResourceMemory(res->getMemory()));
+  res->afterDeviceReset();
 }
 
 void MemoryHeapResource::createVulkanObject()
@@ -113,4 +163,12 @@ bool MemoryHeapResource::hasPlacedResources()
   Globals::Mem::res.iterateAllocatedBreakable<Buffer>(iterCb);
   return ret;
 #endif
+}
+
+template <typename ResType>
+void MemoryHeapResource::place(ResType *res, VkDeviceSize offset, VkDeviceSize size)
+{
+  res->createVulkanObject();
+  ResourceMemoryId memId = Globals::Mem::res.allocAliasedMemory(getMemoryId(), size, offset);
+  res->bindMemoryFromHeap(this, memId);
 }

@@ -15,9 +15,6 @@ void node_based_volumetric_fog_cs(uint3 dtId : SV_DispatchThreadID)
   float4 inv_resolution = float4(inv_volfog_froxel_volume_res.xyz, volfog_froxel_range_params.x);
   float3 screenTcJittered = computeScreenTc(dtId, inv_resolution);
   float3 world_pos = computeworld_pos(screenTcJittered, inv_resolution);
-  float3 depthAboveTcAndVignette = getDepthAboveTcAndVignette(world_pos);
-  float2 depthAboveTc = depthAboveTcAndVignette.xy;
-  float depthAboveVignette = depthAboveTcAndVignette.z;
 
   //[[shader_code]]
 

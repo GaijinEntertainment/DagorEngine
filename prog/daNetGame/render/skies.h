@@ -26,13 +26,13 @@ struct DngSkies : public DaSkies
     SkiesData *data,
     const TMatrix &view_tm,
     const TMatrix4 &proj_tm,
-    bool update_sky = true,
+    UpdateSky update_sky = UpdateSky::On,
     float altitude_tolerance = SKY_PREPARE_THRESHOLD);
   void useFogNoScattering(const Point3 &origin,
     SkiesData *data,
     const TMatrix &view_tm,
     const TMatrix4 &proj_tm,
-    bool update_sky = true,
+    UpdateSky update_sky = UpdateSky::On,
     float altitude_tolerance = SKY_PREPARE_THRESHOLD);
   void prepare(const Point3 &dir_to_sun, bool force_update_cpu, float dt);
 
@@ -78,9 +78,8 @@ void load_daskies(const DataBlock &blk,
   int month = 6,
   int day = 21,
   float lat = 55,
-  float lon = 37);
-void load_server_skies(
-  const DataBlock &blk, float time_of_day = -1.f, int year = 1941, int month = 6, int day = 21, float lat = 55, float lon = 37);
+  float lon = 37,
+  int seed = -1);
 void save_daskies(DataBlock &blk);
 void update_delayed_weather_selection();
 void before_render_daskies();
@@ -89,6 +88,10 @@ void set_daskies_time(float time_of_day);
 void move_cumulus_clouds(const Point2 &amount);
 void move_strata_clouds(const Point2 &amount);
 void move_skies(const Point2 &amount);
-int get_skies_seed();
-void set_skies_seed(int seed);
+int get_daskies_seed();
+void set_daskies_seed(int seed);
 Point3 calculate_server_sun_dir();
+DPoint2 get_strata_clouds_origin();
+DPoint2 get_clouds_origin();
+void set_strata_clouds_origin(DPoint2 pos);
+void set_clouds_origin(DPoint2 pos);

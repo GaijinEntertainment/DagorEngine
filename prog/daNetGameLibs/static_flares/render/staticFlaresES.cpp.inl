@@ -17,7 +17,7 @@
 #include <ecs/render/shaderVar.h>
 #include <ecs/render/resPtr.h>
 
-#include <render/daBfg/ecs/frameGraphNode.h>
+#include <render/daFrameGraph/ecs/frameGraphNode.h>
 #include <math/dag_hlsl_floatx.h>
 #include <static_flares/shaders/staticFlares.hlsli>
 
@@ -30,12 +30,12 @@ ECS_DECLARE_RELOCATABLE_TYPE(StaticFlareInstances);
 ECS_REGISTER_RELOCATABLE_TYPE(StaticFlareInstances, nullptr);
 
 
-template <typename C>
+template <typename Callable>
 ECS_REQUIRE(eastl::true_type static_flares__visible)
-static void get_static_flares_ecs_query(C);
+static void get_static_flares_ecs_query(Callable);
 
-template <typename C>
-static void add_static_flare_ecs_query(C);
+template <typename Callable>
+static void add_static_flare_ecs_query(Callable);
 
 
 ECS_ON_EVENT(on_appear)
@@ -43,19 +43,19 @@ static void init_static_flares_es(const ecs::Event &,
   int static_flares__maxCount,
   UniqueBufHolder &static_flares__instancesBuf,
   StaticFlareInstances &static_flares__instances,
-  dabfg::NodeHandle &static_flares__node)
+  dafg::NodeHandle &static_flares__node)
 {
   static_flares__instances.resize(static_flares__maxCount);
   static_flares__instancesBuf = dag::create_sbuffer(sizeof(StaticFlareInstance), static_flares__maxCount,
     SBCF_MISC_STRUCTURED | SBCF_BIND_SHADER_RES, 0, "static_flares_buf");
 
-  static_flares__node = dabfg::register_node("static_flares_node", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
+  static_flares__node = dafg::register_node("static_flares_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     registry.read("downsampled_depth_with_early_after_envi_water")
       .texture()
-      .atStage(dabfg::Stage::PS)
+      .atStage(dafg::Stage::PS)
       .bindToShaderVar("downsampled_depth");
 
-    render_transparency_published(registry);
+    request_common_published_transparent_state(registry);
 
     auto cameraHndl = registry.readBlob<CameraParams>("current_camera").handle();
 

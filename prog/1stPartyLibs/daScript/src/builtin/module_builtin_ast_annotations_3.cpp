@@ -85,7 +85,9 @@ namespace das {
             :  AstExprLikeCallAnnotation<ExprInvoke> ("ExprInvoke", ml) {
             addField<DAS_BIND_MANAGED_FIELD(stackTop)>("stackTop");
             addField<DAS_BIND_MANAGED_FIELD(doesNotNeedSp)>("doesNotNeedSp");
+            addField<DAS_BIND_MANAGED_FIELD(cmresAlias)>("cmresAlias");
             addField<DAS_BIND_MANAGED_FIELD(isInvokeMethod)>("isInvokeMethod");
+            addProperty<DAS_BIND_MANAGED_PROP(isCopyOrMove)>("isCopyOrMove");
         }
     };
 
@@ -206,7 +208,8 @@ namespace das {
             addField<DAS_BIND_MANAGED_FIELD(subexpr)>("subexpr");
             addField<DAS_BIND_MANAGED_FIELD(stackTop)>("stackTop");
             addField<DAS_BIND_MANAGED_FIELD(refStackTop)>("refStackTop");
-            addField<DAS_BIND_MANAGED_FIELD(block)>("block");
+            addField<DAS_BIND_MANAGED_FIELD(returnFunc)>("returnFunc");
+            addField<DAS_BIND_MANAGED_FIELD(block)>("_block","block");
             addFieldEx ( "returnFlags", "returnFlags", offsetof(ExprReturn, returnFlags), makeExprReturnFlags() );
         }
     };
@@ -225,6 +228,7 @@ namespace das {
             addField<DAS_BIND_MANAGED_FIELD(block)>("_block","block");
             addField<DAS_BIND_MANAGED_FIELD(stackTop)>("stackTop");
             addField<DAS_BIND_MANAGED_FIELD(capture)>("_capture", "capture");
+            addField<DAS_BIND_MANAGED_FIELD(aotFunctorName)>("aotFunctorName");
             addFieldEx ( "mmFlags", "mmFlags", offsetof(ExprMakeBlock, mmFlags), makeExprMakeBlockFlags() );
         }
     };
@@ -242,6 +246,16 @@ namespace das {
             :  AstExprConstAnnotation<ExprConstEnumeration> ("ExprConstEnumeration", ml) {
             addField<DAS_BIND_MANAGED_FIELD(enumType)>("enumType");
             addField<DAS_BIND_MANAGED_FIELD(text)>("value","text");
+        }
+    };
+
+    template <typename EXPR, typename TT>
+    struct AstExprConstTAnnotation : AstExprConstAnnotation<EXPR> {
+        AstExprConstTAnnotation(const string & na, ModuleLibrary & ml)
+            :  AstExprConstAnnotation<EXPR> (na, ml) {
+            using ManagedType = EXPR;
+            this->template init<TT>(ml);
+            this->template addProperty<DAS_BIND_MANAGED_PROP(getValue)>("getValue");
         }
     };
 

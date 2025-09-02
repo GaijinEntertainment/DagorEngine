@@ -1,0 +1,459 @@
+include "paint_details_inc.dshl"
+include "layered_inc.dshl"
+include "const_color_inc.dshl"
+include_optional "hmap_blend_use_inc.dshl"
+
+define_macro_if_not_defined USE_HMAP_BLEND()
+endmacro
+
+macro INIT_PERLIN_LAYERED_TEX()
+  texture tex = material.texture.diffuse;
+  texture normal = material.texture[2];
+  texture tex1 = material.texture[3];
+  texture tex2 = material.texture[5];
+
+  if (tex1 == NULL)
+  {
+    texture normal2 = material.texture[6];
+  }
+  else if (tex2 == NULL)
+  {
+    texture normal1 = material.texture[4];
+  }
+  else
+  {
+    texture normal1 = material.texture[4];
+    texture normal2 = material.texture[6];
+  }
+
+  (ps) {
+    diffuse_tex@static = tex;
+    normal_tex@static = normal;
+  }
+  if (tex1 == NULL)
+  {
+    (ps) {
+      diffuse_tex2@static = tex2;
+      normal_tex2@static = normal2;
+    }
+    hlsl {
+      #define MISSING_TEXTURE_ID 1
+    }
+  }
+  else if (tex2 == NULL)
+  {
+    (ps) {
+      diffuse_tex1@static = tex1;
+      normal_tex1@static = normal1;
+    }
+    hlsl {
+      #define MISSING_TEXTURE_ID 2
+    }
+  }
+  else
+  {
+    (ps) {
+      diffuse_tex1@static = tex1;
+      normal_tex1@static = normal1;
+      diffuse_tex2@static = tex2;
+      normal_tex2@static = normal2;
+    }
+    hlsl {
+      #define MISSING_TEXTURE_ID -1
+    }
+  }
+endmacro
+
+macro INIT_PERLIN_LAYERED_VAR()
+  static float4 invert_heights = (0,0,0,0);
+  static float4 paint_details = (0, 0, 0, 0);
+  static float4 paint_points_black = (0,0,0,0); // .w is unused
+  static float4 paint_points_white = (0.00001, 0.00001, 0.00001, 0.00001); // .w is unused
+  static int palette_index = 1;
+  static float4 mask_gamma = (1,1,1,0.25);
+  static float4 mask_by_normal = (0, 1, 0, 0);
+  static float4 emission_color = (0, 0, 0, -1);
+  static float emission_albedo_mult = 1;
+  static float4 blend_normals = (0, 0, 0, -1);
+  static float4 details_tile = (1, 1, 1, 0);
+  static int use_local_transform_for_details = 0;
+
+  static float4 bumpmap_scale_contrast = (0.0, 0.5, 1.0, 0.0); // (xyz: 0,1,2 layers scale, w: transition contrast)
+  static float4 bumpmap_additional_params = (4, 1, 1, 1); // (slope scaling, sharpness, bumpmap weight, normalmap weight)
+
+  (vs) {
+    paint_palette_row_index@f2 = (paint_details.w,palette_index,0,0);
+  }
+  (ps) {
+    invert_heights@f4 = invert_heights;
+    mask_gamma@f4 = mask_gamma;
+    mask_by_normal@f4 = mask_by_normal;
+    emission_color@f4 = emission_color;
+    emission_albedo_mult@f1 = (emission_albedo_mult,0,0,0);
+    blend_normals@f4 = blend_normals;
+    paint_details@f3 = paint_details;
+    paint_points_tr_mul@f3 = (
+      1 / (paint_points_white.x - paint_points_black.x),
+      1 / (paint_points_white.y - paint_points_black.y),
+      1 / (paint_points_white.z - paint_points_black.z),
+      0);
+    paint_points_tr_add@f3 = (
+      -paint_points_black.x / (paint_points_white.x - paint_points_black.x),
+      -paint_points_black.y / (paint_points_white.y - paint_points_black.y),
+      -paint_points_black.z / (paint_points_white.z - paint_points_black.z),
+      0);
+    details_tile@f4 = details_tile;
+    use_local_transform_for_details@i1 = use_local_transform_for_details;
+    bumpmap_scale_contrast@f4 = bumpmap_scale_contrast;
+    bumpmap_additional_params@f4 = bumpmap_additional_params;
+  }
+  INIT_CONST_COLOR_OVERRIDES(detail0_const_color)
+  INIT_CONST_COLOR_OVERRIDES(detail1_const_color)
+  INIT_CONST_COLOR_OVERRIDES(detail2_const_color)
+endmacro
+
+macro INIT_PERLIN_LAYERED()
+  INIT_PERLIN_LAYERED_TEX()
+  INIT_PERLIN_LAYERED_VAR()
+endmacro
+
+macro USE_PERLIN_LAYERED(stage) //use this macro after RENDINST_BLOCK(), because there declared perlin_noise3d
+  hlsl(stage) {
+    float2 get_world_noise3d_2(float3 v)
+    {
+      return tex3Dlod(perlin_noise3d, float4(v*(1. / 4), 0)).rg;
+    }
+    half3 init_blend_weights(float3 worldPos, float4 mask_gamma, float4 invert_heights, float moss, float2 by_normal_params)
+    {
+      float2 p0_p1;
+      float3 noiseTc = worldPos * mask_gamma.w;
+      p0_p1 = get_world_noise3d_2(noiseTc);
+      moss = saturate(saturate(moss * 0.5) + invert_heights.w);
+      p0_p1 *= moss;
+      half weightsDot = p0_p1.x + p0_p1.y;
+      half3 weights;
+      weights.xy = weightsDot > 1 ? p0_p1 * rcp(weightsDot) : p0_p1;
+      weights.z = saturate(1 - weightsDot);
+      weights.y = lerp(weights.y, by_normal_params.x, by_normal_params.y);
+      return pow(weights, mask_gamma.xyz);
+    }
+  }
+  WEIGHT_BLENDING(stage)
+endmacro
+
+
+macro PERLIN_LAYERED_PS(is_writing_gbuffer, is_blending_hmap) //not for depth or shadow
+  USE_PIXEL_TANGENT_SPACE()
+  if (is_writing_gbuffer)
+  {
+    WRITE_GBUFFER()
+  }
+  USE_CHARACTER_MICRODETAIL()
+  USE_CONST_COLOR_OVERRIDES()
+  if (is_writing_gbuffer && is_blending_hmap)
+  {
+    USE_HMAP_BLEND()
+  }
+  if (mobile_render != off)
+  {
+    USE_SPECULAR_FROM_COLOR()
+  }
+  hlsl(ps) {
+    #define THIRD_DETAIL_GLOBAL_TRANSFORM 0
+
+    #ifndef SAMPLE_TEX
+      #define SAMPLE_TEX(tex, tex_coord) tex2DBindless(tex, tex_coord)
+    #endif
+
+    float transform_third_detail(float local_y, float global_y)
+    {
+      return get_use_local_transform_for_details() != THIRD_DETAIL_GLOBAL_TRANSFORM ? local_y : global_y;
+    }
+
+    float2 get_tex_dimensions(TextureSampler tex_sampler)
+    {
+      Texture2D tex = tex_sampler.tex;
+      half2 texDim;
+      tex.GetDimensions(texDim.x, texDim.y);
+      return texDim;
+    }
+
+    // TODO: replace it with preshader calc (not supported yet)
+    half2 get_diffuse_texel_size()
+    {
+      half2 texDim = get_tex_dimensions(get_diffuse_tex());
+      #if MISSING_TEXTURE_ID != 1
+        texDim = max(texDim, get_tex_dimensions(get_diffuse_tex1()));
+      #endif
+      #if MISSING_TEXTURE_ID != 2
+        texDim = max(texDim, get_tex_dimensions(get_diffuse_tex2()));
+      #endif
+      return 1.0 / texDim;
+    }
+
+    void sample_diffuse_textures(float2 tc, float2 ofs, out half4 diffuse_0, out half4 diffuse_1, out half4 diffuse_2)
+    {
+      diffuse_0 = SAMPLE_TEX(get_diffuse_tex(), tc * get_details_tile().x + ofs);
+      diffuse_1 = 0;
+      diffuse_2 = 0;
+      #if MISSING_TEXTURE_ID != 1
+        diffuse_1 = SAMPLE_TEX(get_diffuse_tex1(), tc * get_details_tile().y + ofs);
+      #endif
+      #if MISSING_TEXTURE_ID != 2
+        diffuse_2 = SAMPLE_TEX(get_diffuse_tex2(), tc * get_details_tile().z + ofs);
+      #endif
+    }
+
+    #if !VOXELIZE_ALBEDO_PASS
+    half calc_layered_bump_height(half3 heights, half3 start_weights)
+    {
+      half4 bumpmap_scale_contrast = get_bumpmap_scale_contrast();
+
+      // we use the same weight calc for bump heights as a base
+      half3 weights = get_blending_weights_for_height(start_weights, heights);
+
+      // 3 component version of f(a) = max(a,b) - b, for filtering (we only care about the top layer, and the next one behind it for a smooth transition)
+      half3 comparePairs = half3(
+        max(weights.y, weights.z),
+        max(weights.x, weights.z),
+        max(weights.x, weights.y)
+      );
+      weights = saturate((max3(weights.x, weights.y, weights.z) - comparePairs) * bumpmap_scale_contrast.w);
+
+      // finally, we pair each filtered layers with a "constant", to detect slopes and edges for bumpmapping
+      return dot(weights, bumpmap_scale_contrast.xyz);
+    }
+
+    half sample_layered_bump_height(float2 tc, float2 ofs, half3 start_weights, half3 invert_heights)
+    {
+      half4 diffuseColor0, diffuseColor1, diffuseColor2;
+      sample_diffuse_textures(tc, ofs, diffuseColor0, diffuseColor1, diffuseColor2);
+      half3 initialHeight = half3(diffuseColor0.a, diffuseColor1.a, diffuseColor2.a);
+      initialHeight = lerp(initialHeight, 1 - initialHeight, invert_heights);
+      return calc_layered_bump_height(initialHeight, start_weights);
+    }
+
+    // TODO: optimize it!!
+    half3 calc_bumpmap_normal(float2 tc, half heights_center, half3 start_weights, half3 invert_heights)
+    {
+      half4 bumpmapAdditionalParams = get_bumpmap_additional_params();
+      float2 minTexelSize = get_diffuse_texel_size();
+      minTexelSize *= bumpmapAdditionalParams.y;
+
+      half heightRight = sample_layered_bump_height(tc, float2(minTexelSize.x, 0), start_weights, invert_heights);
+      half heightUp = sample_layered_bump_height(tc, float2(0, minTexelSize.y), start_weights, invert_heights);
+      half2 dxy = float2(heightRight, heightUp) - heights_center;
+      dxy *= bumpmapAdditionalParams.x;
+      return normalize(half3(dxy, 1.0));
+    }
+    #endif
+
+    #ifdef FORCE_EARLY_DEPTH_STENCIL
+      FORCE_EARLY_DEPTH_STENCIL
+    #endif
+
+    #if VOXELIZE_ALBEDO_PASS
+      void perlin_layered_ps(VsOutput input INPUT_VFACE HW_USE_SCREEN_POS)
+    #else
+      GBUFFER_OUTPUT perlin_layered_ps(VsOutput input INPUT_VFACE HW_USE_SCREEN_POS)
+    #endif
+    {
+      #if SET_UP_MULTIDRAW
+        SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET(input));
+      #endif
+      #ifdef VOXELIZE_DISCARD_PRIM
+        VOXELIZE_DISCARD_PRIM
+      #endif
+      #ifndef IS_DYNAMIC
+        #define IS_DYNAMIC 0
+      #endif
+      #ifndef FORCE_AUTO_MOTION_VECTOR
+        #define FORCE_AUTO_MOTION_VECTOR 0
+      #endif
+
+      input.normal.xyz = MUL_VFACE(input.normal.xyz);
+      float2 texCoord = input.diffuseTexcoord.xy;
+      float3 worldPos = world_view_pos.xyz - input.pointToEye.xyz;
+
+      half4 diffuseColor0, diffuseColor1, diffuseColor2;
+      sample_diffuse_textures(texCoord, 0, diffuseColor0, diffuseColor1, diffuseColor2);
+
+      half4 invertHeights = get_invert_heights();
+
+      #if MISSING_TEXTURE_ID == 2
+        invertHeights.z = 0;
+      #elif MISSING_TEXTURE_ID == 1
+        invertHeights.y = 0;
+      #endif
+      float moss = transform_third_detail(input.localPosY, input.pointToEye.w);
+      float3 initPos = worldPos;
+      #ifdef USE_INITIAL_POS
+        initPos = input.initPos;
+      #endif
+
+      half3 startWeights = init_blend_weights(initPos, get_mask_gamma(), invertHeights, moss, float2(max(dot(get_mask_by_normal().xyz, input.normal), 0), get_mask_by_normal().w));
+
+      half3 initialHeight = half3(diffuseColor0.a, diffuseColor1.a, diffuseColor2.a);
+      initialHeight = lerp(initialHeight, 1 - initialHeight, invertHeights.xyz);
+
+      half3 weights = get_blending_weights(startWeights, initialHeight);
+
+      half3 paint_details_col = get_color_mul(input, get_detail0_const_color());
+      half3 paint_details_col1 = get_color_mul(input, get_detail1_const_color());
+      half3 paint_details_col2 = get_color_mul(input, get_detail2_const_color());
+
+      half3 lumins = half3(luminance(diffuseColor0.rgb), luminance(diffuseColor1.rgb), luminance(diffuseColor2.rgb));
+      half3 details = get_paint_details().xyz * saturate(lumins * get_paint_points_tr_mul().xyz + get_paint_points_tr_add().xyz);
+      diffuseColor0.rgb = lerp(diffuseColor0.rgb, diffuseColor0.rgb * paint_details_col, details.x);
+      diffuseColor1.rgb = lerp(diffuseColor1.rgb, diffuseColor1.rgb * paint_details_col1, details.y);
+      diffuseColor2.rgb = lerp(diffuseColor2.rgb, diffuseColor2.rgb * paint_details_col2, details.z);
+
+      half4 diffuseColor = diffuseColor0*weights.x + diffuseColor1*weights.y + diffuseColor2*weights.z;
+
+      half4 emissionColor = get_emission_color();
+      half3 difference = diffuseColor.rgb - emissionColor.xyz;
+      half sqDiff = dot(difference, difference);
+      float emissionStrength = 0;
+      BRANCH
+      if(emissionColor.w > 0)
+      {
+        if (sqDiff < emissionColor.w) // => emissionColor.w > 0
+        {
+          half normDiff = max(0, (emissionColor.w - sqDiff) / emissionColor.w);
+          emissionStrength = normDiff * MAX_EMISSION;
+        }
+      }
+      #if VOXELIZE_ALBEDO_PASS
+        WRITE_SCENE25D_VOXEL_DATA(worldPos, diffuseColor.rgb, emissionStrength, half4(1,1,1,get_emission_albedo_mult()));
+      #else
+        ##if mobile_render == off
+          half4 packedNormalMap0 = SAMPLE_TEX(get_normal_tex(), texCoord * get_details_tile().x);
+          half4 packedNormalMap1 = half4(0, 0, 0, 0);
+          half4 packedNormalMap2 = half4(0, 0, 0, 0);
+          #if MISSING_TEXTURE_ID != 1
+            packedNormalMap1 = SAMPLE_TEX(get_normal_tex1(), texCoord * get_details_tile().y);
+          #endif
+          #if MISSING_TEXTURE_ID != 2
+            packedNormalMap2 = SAMPLE_TEX(get_normal_tex2(), texCoord * get_details_tile().z);
+          #endif
+
+          half3 normalMap;
+          half4 packedNormalMap;
+          float normalWeights[4] =
+          {
+            0.0f,
+            get_blend_normals().x * weights.x,
+            get_blend_normals().y * weights.y,
+            get_blend_normals().z * weights.z,
+          };
+          int baseNormalIdx = max(int(get_blend_normals().w)+1, 0);
+          BRANCH
+          if (baseNormalIdx >= 1 && normalWeights[baseNormalIdx] > 0.3)
+          {
+            --baseNormalIdx;
+            half3 unpackedNormals[3] =
+            {
+              unpack_ag_normal(packedNormalMap0) * get_blend_normals().x,
+              unpack_ag_normal(packedNormalMap1) * get_blend_normals().y,
+              unpack_ag_normal(packedNormalMap2) * get_blend_normals().z,
+            };
+            normalMap = unpackedNormals[baseNormalIdx];
+            normalMap = UDN_ndetail(normalMap, unpackedNormals[(uint(baseNormalIdx) + 1) % 3]);
+            normalMap = UDN_ndetail(normalMap, unpackedNormals[(uint(baseNormalIdx) + 2) % 3]);
+            packedNormalMap = packedNormalMap0 * weights.x + packedNormalMap1 * weights.y + packedNormalMap2 * weights.z;
+          }
+          else
+          {
+            packedNormalMap = packedNormalMap0 * weights.x + packedNormalMap1 * weights.y + packedNormalMap2 * weights.z;
+            normalMap = unpack_ag_normal(packedNormalMap);
+          }
+          half smoothness = packedNormalMap.r;
+          half metalness = packedNormalMap.b;
+
+        ##else
+          half smoothness = get_specular_intensity_from_color(diffuseColor.rgb);
+          half metalness = 0;
+        ##endif
+
+        ##if mobile_render == off && compatibility_mode == compatibility_mode_off
+          const half EPS = 0.001;
+          half4 bumpmapAdditionalParams = get_bumpmap_additional_params();
+          BRANCH
+          if (layered_material_detail_quality > 0 && get_bumpmap_scale_contrast().w > EPS && bumpmapAdditionalParams.x > EPS && bumpmapAdditionalParams.y > EPS)
+          {
+            half heightCenter = calc_layered_bump_height(initialHeight, startWeights);
+            half3 bumpmapNormal = half3(0, 0, 1);
+            BRANCH if (any(abs(float2(ddx(heightCenter), ddy(heightCenter))) > EPS))
+            {
+              bumpmapNormal = calc_bumpmap_normal(texCoord, heightCenter, startWeights, invertHeights.xyz);
+            }
+            normalMap = normalize(normalMap*bumpmapAdditionalParams.w + bumpmapNormal*bumpmapAdditionalParams.z);
+          }
+        ##endif
+
+        #ifdef PLOD_PS_GEN
+          PLOD_PS_GEN(input, diffuseColor0, diffuseColor1, diffuseColor2, packedNormalMap0, packedNormalMap1, packedNormalMap2);
+        #endif
+
+        UnpackedGbuffer gbuffer;
+        init_gbuffer(gbuffer);
+
+        half reflectance = 0.5;
+        half ao = 1;
+##if mobile_render == off && compatibility_mode == compatibility_mode_off
+        BRANCH
+        if (character_micro_detail_layer>=0)
+        {
+          apply_character_micro_detail(sample_character_micro_detail(input.diffuseTexcoord.xy*get_character_micro_detail_scale().xy, character_micro_detail_layer),
+                                  diffuseColor.rgb, normalMap, reflectance, smoothness);
+        }
+
+        half3 worldNormal = perturb_normal_precise(normalMap, normalize(input.normal.xyz), input.pointToEye.xyz, input.diffuseTexcoord.xy);
+        apply_wetness_by_microdetail(character_micro_detail_layer, worldPos, diffuseColor.rgb, worldNormal, reflectance, smoothness, ao);
+##else
+        half3 worldNormal = input.normal.xyz;
+##endif
+
+        init_metalness(gbuffer, metalness);
+        init_ao(gbuffer, ao);
+        init_material(gbuffer, SHADING_NORMAL);
+        BRANCH
+        if (emissionStrength > 0)
+        {
+          init_material(gbuffer, SHADING_SELFILLUM);
+          init_emission(gbuffer, emissionStrength);
+          init_emission_color(gbuffer, half4(1,1,1,get_emission_albedo_mult()));
+        }
+        init_smoothness(gbuffer, smoothness);
+        init_reflectance(gbuffer, reflectance);
+        init_normal(gbuffer, worldNormal);
+        init_albedo(gbuffer, diffuseColor.rgb);
+        init_dynamic(gbuffer,IS_DYNAMIC);
+        init_order(gbuffer, IS_DYNAMIC ? GBUFFER_ORDER_DYNAMIC : GBUFFER_ORDER_STATIC);
+        init_auto_motion_vector(gbuffer, FORCE_AUTO_MOTION_VECTOR);
+
+        float4 screenpos = GET_SCREEN_POS(input.pos);
+
+        #ifdef MOTION_VECTORS_ENABLED
+          float3 motion = encode_motion_vector( input.out_pos, input.out_pos_prev );
+          init_motion_vector(gbuffer, motion);
+        #endif
+
+        ##if is_blending_hmap
+        blend_with_landscape(gbuffer, screenpos, worldPos, normalize(input.normal.xyz), input.pointToEye.xyz, input.riHmapBlend);
+        ##endif
+
+        #if DEBUG_DOMINANT_UV
+          init_albedo(gbuffer, get_dominant_uv_debug_color(input.diffuseTexcoord.xy));
+        #endif
+
+        #if RI_PUDDLES_ENABLED && !VOXELIZE_ALBEDO_PASS
+          addPuddlesRi(gbuffer, worldPos, worldNormal);
+        #endif
+
+        return encode_gbuffer(gbuffer, input.pointToEye.xyz, screenpos);
+      #endif
+    }
+  }
+  compile("target_ps", "perlin_layered_ps");
+endmacro

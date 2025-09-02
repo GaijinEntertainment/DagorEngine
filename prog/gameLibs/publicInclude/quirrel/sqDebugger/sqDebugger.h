@@ -82,7 +82,7 @@ public:
   volatile bool executingImmediate = false;
   volatile bool breakOnEvent = false;
   bool runtimeErrorState = false;
-  volatile int stackDepth = 0;
+  int stackDepth = 0;
   String lastRuntimeError = String("");
   DagSqBreakCb breakCallback = nullptr;
   Tab<DagSqBreakpoint> breakpoints;

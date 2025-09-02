@@ -38,7 +38,7 @@ public:
   }
 
   template <typename C>
-  const T &beginListWithCallback(ID3D12GraphicsCommandList *cmd, C clb)
+  T &beginListWithCallback(ID3D12GraphicsCommandList *cmd, C clb)
   {
     auto ref = table.find(cmd);
     if (end(table) == ref)
@@ -51,6 +51,11 @@ public:
   void endList(ID3D12GraphicsCommandList *) {}
 
   T &getList(ID3D12GraphicsCommandList *cmd) { return table[cmd]; }
+  const T *getOptionalList(ID3D12GraphicsCommandList *cmd) const
+  {
+    auto ref = table.find(cmd);
+    return table.end() != ref ? &ref->second : nullptr;
+  }
 
   template <typename C>
   void visitAll(C clb)

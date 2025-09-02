@@ -237,7 +237,7 @@ let Preferences = kwarg(function(
           children = presets.get().map(@(v) {
             children = hflow(dtext(v.name), dtext(timeToText(v.ctime), {fontSize= hdpx(12), color = Color(128,128,128)}))
             behavior = Behaviors.Button
-            onClick = @() name(v.name)
+            onClick = @() name.set(v.name)
           })
         }
       ]
@@ -283,7 +283,7 @@ let Preferences = kwarg(function(
             children = vflow(dtext(v.name), textarea(v.description, {fontSize= hdpx(12), color = Color(128,128,128)}))
             size = [flex(), SIZE_TO_CONTENT]
             behavior = Behaviors.Button
-            onClick = @() name(v.name)
+            onClick = @() name.set(v.name)
           })
         }
       ]

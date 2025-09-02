@@ -50,12 +50,12 @@ var
 
 [es(on_appear, REQUIRE=int_variable)]
 def creation_verifier(evt : Event)
-  total_created++;
+  total_created++
 
 [es(on_disappear)]
 def destroyer_verifier(evt : Event; eid : EntityId; int_variable : int)
   verify(get_test_value("create_{eid}") == int_variable)
-  total_destroyed++;
+  total_destroyed++
 
 [es(on_event=EventEnd)]
 def count_creation_verifier(evt : Event)

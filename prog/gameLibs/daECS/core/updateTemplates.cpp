@@ -107,7 +107,7 @@ void EntityManager::updateEntitiesWithTemplate(template_t oldT, template_t newTe
                 continue;
               // not same!
               const component_index_t cIndex = changedComponents[ai].getComponentId();
-              init[HashedConstString{NULL, dataComponents.getComponentTpById(cIndex)}] = ChildComponent(changedComponents[ai]);
+              init[HashedConstString{NULL, dataComponents.getComponentTpById(cIndex)}] = ChildComponent(*this, changedComponents[ai]);
               init.back().cIndex = cIndex; // to remove useless validateInitializer
             }
             // validateInitializer(newTemp, init);

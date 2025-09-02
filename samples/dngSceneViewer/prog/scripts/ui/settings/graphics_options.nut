@@ -6,7 +6,7 @@ let ecs = require("%dngscripts/ecs.nut")
 let { get_setting_by_blk_path, set_setting_by_blk_path_and_save, save_changed_settings } = require("settings")
 let { apply_video_settings } = require("videomode")
 let { mkCombo } = require("%scripts/ui/widgets/simpleComponents.nut")
-let { mkSettingsOption } = require("options_lib.nut")
+let { mkSettingsOption } = require("%scripts/ui/settings/options_lib.nut")
 
 let presets = []
 foreach (block in (dgs_get_settings()?["consoleGraphicalPresets"] ?? {}))
@@ -42,7 +42,7 @@ let postfxOpts = [
     name = "Motion Blur"
     blkPath = "graphics/motionBlur"
     widgetCtor = mkCombo
-    values = [true, false]
+    values = [0.0, 1.0, 10.0, 50.0, 100.0]
   },
   {
     name = "Sharpening"

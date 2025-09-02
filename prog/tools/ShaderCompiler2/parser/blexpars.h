@@ -9,9 +9,10 @@
 
 #include "base_lex.h"
 
-class ParserInputStream
+class InputStream
 {
 public:
+  virtual ~InputStream() {}
   virtual bool eof() = 0;
   virtual char get() = 0;
   virtual void stream_set(BaseLexicalAnalyzer &) = 0;

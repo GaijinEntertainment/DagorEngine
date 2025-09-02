@@ -34,7 +34,7 @@ function button(text, handler) {
     behavior = Behaviors.Button
     rendObj = ROBJ_SOLID
     color = Color(120, 120, 180)
-    size = [sh(40), SIZE_TO_CONTENT]
+    size = static [sh(40), SIZE_TO_CONTENT]
     halign = ALIGN_CENTER
     children = {
       rendObj = ROBJ_TEXT
@@ -50,20 +50,20 @@ let axisX = Watched(null)
 let axisY = Watched(null)
 let axisText = Computed(function() {
   const NA = "N/A"
-  return $"Joystick axes: {axisX.value ?? NA} x {axisY.value ?? NA}"
+  return $"Joystick axes: {axisX.get() ?? NA} x {axisY.get() ?? NA}"
 })
 
 function axisState() {
   return {
     watch = axisText
     rendObj = ROBJ_TEXT
-    text = axisText.value
+    text = axisText.get()
   }
 }
 
 gui_scene.setInterval(0.05, function() {
-  axisX(input.get_joystick_axis(0))
-  axisY(input.get_joystick_axis(1))
+  axisX.set(input.get_joystick_axis(0))
+  axisY.set(input.get_joystick_axis(1))
 })
 
 

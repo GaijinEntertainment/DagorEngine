@@ -3,7 +3,7 @@ import os
 import re
 from qdoc_parse import parse
 from qdoc_render_rst import renderModuleToRst, sectionTitle2
-from log import log
+from log import logerror, erorrscounter
 import traceback
 import json
 import argparse
@@ -30,8 +30,8 @@ class pushd:
     def __exit__(self, type, value, traceback):
         os.chdir(self.olddir)
 
-autodoc = re.compile("(\/\/\/\s*@[\S]+\s)|(\/\*\*[\b\s])")
-to_mulitline = re.compile(r"\.(SquirrelFunc|Func|Bind|Var|SetValue|Const)\(")
+autodoc = re.compile(r"(\/\/\/\s*@[\S]+\s)|(\/\*\sqdox[\b\s])")
+to_mulitline = re.compile(r"\.(SquirrelFunc|Func|StaticFunc|GlobalFunc|SquirrelCtor|Ctor|Bind|Var|SetValue|Const|SquirrelFuncDeclString)\(")
 
 def splitByKeywords(line):
   if len(to_mulitline.findall(line)) > 1:
@@ -51,12 +51,12 @@ def splitlines(data):
       res.extend(splitByKeywords(l))
   return res
 
-def scan_in_paths(paths, print_parsed=False, parsed_result=None):
+def scan_in_paths(paths, print_parsed=False, parsed_result=None, should_exist=False):
   res = parsed_result or {}
 
   for file_path in paths:
     if not os.path.exists(file_path):
-      log.error(f"no'{file_path}' found in {os.getcwd()}")
+      logerror(f"no'{file_path}' found in {os.getcwd()}")
       continue
     try:
       with open(file_path, "rt", encoding="utf-8") as f:
@@ -68,7 +68,11 @@ def scan_in_paths(paths, print_parsed=False, parsed_result=None):
       except UnicodeDecodeError:
         data = ""
     if not autodoc.search(data):
-      print(f"skipping {file_path} - no qdox comments (/// or /** */)")
+      msg = f"skipping {file_path} - no qdox comments (/// or /* qdox */)"
+      if should_exist:
+        logerror(msg)
+      else:
+        print(msg)
       continue
     else:
       print(f"parsing {file_path}")
@@ -76,7 +80,7 @@ def scan_in_paths(paths, print_parsed=False, parsed_result=None):
       res.update(parse(file_path, splitlines(data), parsed_result = res, print_res=print_parsed))
     except Exception as e:
       traceback.print_exc()
-      log.error(f"error parsing file {file_path}")
+      logerror(f"error parsing file {file_path}")
 #  json.dumps(res, indent=2)
   return res
 
@@ -95,7 +99,7 @@ def build_docs(data, destination="source/quirrel_modules"):
       files.update([fpath])
     except Exception as e:
       traceback.print_exc()
-      log.error(f"error rendering file to rst {fpath}")
+      logerror(f"error rendering file to rst {fpath}")
       print(json.dumps(module, indent=2))
   return files
 
@@ -103,11 +107,9 @@ main_rst_tmpl = """
 {title}
 =========================================
 
-
-Contents:
-
 .. toctree::
-   :maxdepth: 4
+   :maxdepth: 2
+   :caption: Contents:
    :glob:
 
    {indexes}
@@ -119,11 +121,9 @@ module_rst_tmpl = """
 
 {chapter_desc}
 
-
-Contents:
-
 .. toctree::
    :maxdepth: 2
+   :caption: Contents:
    :glob:
 
    *
@@ -135,6 +135,8 @@ if __name__ == "__main__":
   p.add_argument('-pr', '--print_parsed_result', action='store_true', default=False,
                  help='Print parsed result in output')
   p.add_argument('-s', '--stubs_out_dir', type=str, default='',
+                 help='Print stubs result in specified directory')
+  p.add_argument('-q', '--quiet', action="store_true", default=False,
                  help='Print stubs result in specified directory')
   p.add_argument('-n', '--no_rst_output', action='store_true', default=False,
                  help='Skip saving rst files')
@@ -151,6 +153,7 @@ if __name__ == "__main__":
                   '"  doc_chapter": "my_docs", //internal folder path, required'
                   '"  chapter_title": "My Docs", //displayed title, optional'
                   '"  chapter_desc": "This is my docs documentations", //chapter description'
+                  '"  chapter_desc_files": "This is my docs documentations files", //chapter description'
                   '"  extensions": [".cpp"], //list of extensions of files, optional. In cpp we support some bindings automatically'
                   '"  exclude_dirs_re": [], //optional, list of regexps that should full match to exclude dirs in recursive search'
                   '"  exclude_files_re": [], //optional, list of full match regexp to skip files'
@@ -168,15 +171,23 @@ if __name__ == "__main__":
   chapters_indexes = []
 
   files_generated = set()
+  if not os.path.exists(args.config):
+    print(f"No config file {args.config} found. Stop working.")
+    if args.quiet:
+      sys.exit(0)
+    else:
+      sys.exit(1)
   config = validated_qdox_cfg(read_commented_json(args.config))
   config_dir = os.path.dirname(args.config)
   for e in config:
     result = {}
     paths = e["paths"]
+    start_path = e.get("start_path", "")
     chapter = e["doc_chapter"]
     recursive = e["recursive"]
     chapter_title = e["chapter_title"]
     chapter_desc = e["chapter_desc"]
+    chapter_desc_files = e["chapter_desc_files"]
     extensions = e["extensions"]
     exclude_dirs_re = re.compile("|".join(e["exclude_dirs_re"]))
     exclude_files_re = re.compile("|".join(e["exclude_files_re"]))
@@ -190,14 +201,15 @@ if __name__ == "__main__":
       return False
 
     for path_ in paths:
-      with pushd(config_dir):
-        path = os.path.join(config_dir, path_).replace("\\","/")
+      print(os.getcwd(), start_path)
+      with pushd(os.path.abspath(os.path.join(config_dir, start_path))):
+        path = path_.replace("\\","/")
         print(f"scanning path {os.getcwd()}/{path}...")
         if not os.path.exists(path):
-          log.error(f"UNEXISTING PATH: {os.getcwd()}/{path}")
+          logerror(f"UNEXISTING PATH: {os.getcwd()}/{path}")
           continue
         if os.path.isfile(path):
-          result.update(scan_in_paths([path], print_parsed=print_parsed_result, parsed_result=result))
+          result.update(scan_in_paths([path], print_parsed=print_parsed_result, parsed_result=result, should_exist=True))
         else:
           for root, dirs, files in os.walk(path):
             if not recursive:
@@ -207,7 +219,7 @@ if __name__ == "__main__":
             files = [os.path.join(root,f) for f in files if isFileToBeUsed(f)]
             result.update(scan_in_paths(files, print_parsed=print_parsed_result, parsed_result=result))
     if len(result)==0:
-      log.error(f"no result produced for path:\n  {path}")
+      logerror(f"no result produced for path:\n  {path}")
       continue
     if stubs_dir != "":
       for moduleName, info in result.items():
@@ -220,15 +232,32 @@ if __name__ == "__main__":
         if mi := mkModuleStub(info):
           with open(stubPath, "wt") as f:
             f.write(mi)
+    emptyModules = []
+    for name, obj in result.items():
+      if obj.get("type")=="module" and not (obj.get("members") or obj.get("brief") or obj.get('members') or obj.get('extras') or obj.get('exports')):
+        emptyModules.append(f"Empty module {obj}")
+    if emptyModules:
+      for i in emptyModules:
+        print(i)
+      raise Exception("There are empty modules!")
     if not args.no_rst_output:
       files_generated.update(build_docs(result, destination=f"{outdir}/{chapter}"))
       with open(os.path.join(outdir, chapter, "index.rst"), "wt", encoding = "utf-8") as f:
-        f.write(module_rst_tmpl.format(chapter_title = sectionTitle2(chapter_title), chapter_desc=chapter_desc))
+        res_chapter_desc = [chapter_desc]
+        for desc_file in chapter_desc_files:
+          try:
+            with open(os.path.join(os.path.abspath(os.path.join(config_dir, start_path)), desc_file), "rt", encoding = "utf-8") as doc_file:
+              res_chapter_desc.append(doc_file.read())
+          except:
+            print(f"Couldn't open {desc_file}")
+            logerror("Incorrect chapter desc files")
+            raise
+        f.write(module_rst_tmpl.format(chapter_title = sectionTitle2(chapter_title), chapter_desc="\n\n".join(res_chapter_desc)))
       chapters_indexes.append(chapter)
       chapters.append(chapter)
   if not args.no_rst_output:
     if len(chapters)==0:
-      log.error("no result produced!")
+      logerror("no result produced!")
     else:
       with open(os.path.join(outdir, "index.rst"), "wt", encoding = "utf-8") as f:
         f.write(main_rst_tmpl.format(indexes = "\n   ".join([c +"/index.rst" for c in chapters]), title = args.title))
@@ -249,3 +278,6 @@ if __name__ == "__main__":
     for f in files_to_delete:
       print(f"removing obsolete {f}")
       os.remove(f)
+  if erorrscounter.errors > 0:
+    print("Errors during build!")
+    sys.exit(1)

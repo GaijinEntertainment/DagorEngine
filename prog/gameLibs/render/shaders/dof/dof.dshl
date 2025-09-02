@@ -712,6 +712,11 @@ shader downsample_depth_for_far_dof
   POSTFX_VS(1)
   hlsl(ps)
   {
+    ##if hardware.ps4 || hardware.ps5
+    #pragma PSSL_target_output_format (target 0 FMT_32_AR)
+    #pragma PSSL_target_output_format (target 1 FMT_32_AR)
+    ##endif
+
     void depth_ps(float4 screenpos : VPOS, out float farDepth : SV_Target0, out float closeDepth : SV_Target1)
     {
       int2 tc = int2(floor(screenpos.xy))*2;

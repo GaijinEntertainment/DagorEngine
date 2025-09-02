@@ -30,6 +30,7 @@ force_dome{
 }
 
 force_dome_sound{
+  _use:t="sound_preset"
   _use:t="replicating"
   _singleton:b=yes
   _group{

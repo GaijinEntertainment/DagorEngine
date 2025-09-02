@@ -3,18 +3,25 @@ include "bvh.dshl"
 include "clipmap.dshl"
 include "rt/rt_lighting.dshl"
 include "tonemapHelpers/use_full_tonemap_lut_inc.dshl"
+include "viewVecVS.dshl"
+include "bvh_common_includes.dshl"
 
 texture bvh_debug_target;
-
-float4 view_vecLT;
-float4 view_vecRT;
-float4 view_vecLB;
-float4 view_vecRB;
+texture bvh_postfx_source;
 
 int bvh_debug_mode = 0;
+int bvh_debug_use_atmosphere = 1;
+int bvh_detect_identical_geometry = 0;
+float rtsm_sun_angle_multiplier = 0.5;
 
-define_macro_if_not_defined USE_EMISSION_DECODE_COLOR_MAP(code)
-endmacro
+int rt_debug_rt_shadow = 1;
+interval rt_debug_rt_shadow: off < 1, on;
+int rt_debug_use_csm = 0;
+interval rt_debug_use_csm: no < 1, yes;
+
+float bvh_debug_intersection_count_threshold = 16.0;
+
+float bvh_debug_min_t = 0;
 
 shader bvh_debug
 {
@@ -27,12 +34,13 @@ shader bvh_debug
   (cs)
   {
     debug_target@uav = bvh_debug_target hlsl { RWTexture2D<float4> debug_target@uav; }
-    view_vecLT@f3 = view_vecLT;
-    view_vecRT@f3 = view_vecRT;
-    view_vecLB@f3 = view_vecLB;
-    view_vecRB@f3 = view_vecRB;
     world_view_pos@f3 = world_view_pos;
     bvh_debug_mode@i1 = bvh_debug_mode;
+    bvh_debug_use_atmosphere@i1 = bvh_debug_use_atmosphere;
+    bvh_detect_identical_geometry@i1 = bvh_detect_identical_geometry;
+    sun_angle_multiplier@f1 = rtsm_sun_angle_multiplier;
+    bvh_debug_intersection_count_threshold@f1 = bvh_debug_intersection_count_threshold;
+    bvh_debug_min_t@f1 = bvh_debug_min_t;
   }
 
   hlsl (cs) {
@@ -49,32 +57,39 @@ shader bvh_debug
     #define BVH_DEBUG_MODE_GI 7
     #define BVH_DEBUG_MODE_TWOSIDED 8
     #define BVH_DEBUG_MODE_PAINT 9
+    #define BVH_DEBUG_MODE_INTERSECTION_COUNT 10
+    #define BVH_DEBUG_MODE_INSTANCES 11
   }
 
   INIT_BVH(cs, 0, true)
   USE_BVH_FOR_RENDER(cs)
   USE_BVH_FX_RENDER(cs)
 
-  USE_EMISSION_DECODE_COLOR_MAP(cs)
+  USE_EMISSION_DECODE_COLOR_MAP_STUB(cs)
   PACK_UNPACK_GBUFFER_BASE(cs)
 
-  INIT_RT_LIGHTING(cs, false, true)
-  USE_RT_LIGHTING(cs, 0)
+  USE_ADAPTIVE_RAY_OFFSET(cs)
 
-  INIT_EXPOSURE(cs)
-  USE_EXPOSURE(cs)
-
-  INIT_FULL_TONEMAP_LUT(cs)
-  USE_FULL_TONEMAP_LUT(cs)
+  INIT_RT_LIGHTING(cs, false, true, true, rt_debug_rt_shadow == on, rt_debug_use_csm == yes, false)
+  USE_RT_LIGHTING(cs, 0, false)
+  INIT_BVH_ATMOSPHERE(cs)
+  USE_BVH_ATMOPHERE(cs)
 
   ENABLE_ASSERT(cs)
 
   INIT_LOAD_BVH_FLAGS_BASE(cs)
   USE_LOAD_BVH_FLAGS_BASE(cs)
 
+  INIT_VIEW_VEC_STAGE(cs)
+  USE_VIEW_VEC_STAGE(cs)
+  INIT_ZNZFAR_STAGE(cs)
+  INIT_LOAD_DEPTH_GBUFFER_BASE(cs)
+  USE_LOAD_DEPTH_GBUFFER_BASE(cs)
+  USE_CALC_GEOMETRY_NORMAL(cs)
+
   hlsl(cs)
   {
-    [numthreads(8, 8, 1)]
+    RT_GROUP_SIZE
     void main(uint2 thread : SV_DispatchThreadID)
     {
       float2 resolution;
@@ -85,46 +100,54 @@ shader bvh_debug
       float3 botT = lerp(view_vecLB, view_vecRB, rate.x);
       float3 direction = normalize(lerp(topT, botT, rate.y));
 
-      float3 result;
+      float3 result = 0;
+      bool isHit = false;
 
       HitInfo hitInfo;
-      if (trace_ray(bvhMain, 0, direction, 0, 100000, 0, bvhGroupRender, hitInfo))
+      if (trace_ray(bvhMain, 0, direction, bvh_debug_min_t, 100000, 0, bvhGroupRender, hitInfo))
       {
+        isHit = true;
+        SurfaceParams hitSurface = calc_surface_params(hitInfo, -direction, 0);
         if (bvh_debug_mode == BVH_DEBUG_MODE_LIT)
         {
-          result = light_hit_surface(hitInfo, -direction, 0, 100000);
+          result = light_hit_surface(hitSurface, -direction, 0, 100000);
+          if (bvh_detect_identical_geometry)
+          {
+#ifdef BVH_TWO_SIDED
+            float2 bvhResolution;
+            bvh_gbuf_load.GetDimensions(bvhResolution.x, bvhResolution.y);
+            float2 invRes = rcp(bvhResolution);
+            float3 geometryNormal = calc_geometry_normal(thread, invRes, bvhResolution);
+            float rawDepth = loadGbufferDepth(thread);
+            float w = linearize_z(rawDepth, zn_zfar.zw);
+            float3 relPos = calc_camera_relative_pos(thread, w, invRes);
+
+            uint bvhFlags = loadBvhFlags(rate * bvhResolution);
+
+            relPos = applyAdaptiveRayOffset(relPos, geometryNormal);
+
+            half3 rayColor;
+            float translucentT;
+            HitInfo shadowHitInfo;
+            bool isHit = trace_ray(bvhMain, relPos.xyz, -direction, 0, 100000, w, bvhGroupRender, shadowHitInfo, rayColor, translucentT, 1, 0);
+
+            const float solViewRadialAngle = 0.0093f / 2;
+            const float solViewTanRadialAngle = tan(solViewRadialAngle);
+            float solRadialAngle = solViewTanRadialAngle * sun_angle_multiplier;
+
+            float shadow = SIGMA_FrontEnd_PackPenumbra(isHit ? shadowHitInfo.t : 65504.0, solRadialAngle) ;
+            if (shadow < 1e-3)
+              result += float3(1, 0, 1);
+#endif
+          }
         }
         else if (bvh_debug_mode == BVH_DEBUG_MODE_TEXTURE_COLOR)
         {
-          if (get_material_type(hitInfo.material) == bvhMaterialTerrain)
-          {
-            Vtex textures = sample_clipmaps(hitInfo.position + bvh_origin, 0, 0);
-            result = textures.diffuse.rgb;
-          }
-          else if (get_material_type(hitInfo.material) == bvhMaterialRendinst)
-          {
-            if (hitInfo.isLayered)
-            {
-              result = calc_layers(hitInfo, 0);
-            }
-            else if (hitInfo.albedoTextureIndex != 0xFFFF)
-            {
-              SamplerState bvh_sampler = bvh_samplers[hitInfo.albedoSamplerIndex];
-              float4 texel = bvh_textures[bvh_textures_range_start + hitInfo.albedoTextureIndex].SampleLevel(bvh_sampler, hitInfo.texcoord, 0);
-              result = texel.rgb;
-            }
-            else
-              result = float3(1, 1, 0);
-          }
-          else
-            result = float3(1, 0, 0);
+          result = hitSurface.albedo;
         }
         else if (bvh_debug_mode == BVH_DEBUG_MODE_WORLD_NORMAL)
         {
-          if (get_material_type(hitInfo.material) == bvhMaterialTerrain)
-            result = get_land_normal_from_normalmap(hitInfo.position + bvh_origin) * 0.5 + 0.5;
-          else
-            result = hitInfo.normal * 0.5 + 0.5;
+          result = hitSurface.normal * 0.5 + 0.5;
         }
         else if (bvh_debug_mode == BVH_DEBUG_MODE_TEXCOORD)
         {
@@ -136,26 +159,19 @@ shader bvh_debug
         }
         else if (bvh_debug_mode == BVH_DEBUG_MODE_CAMO_TEXCOORD)
         {
-          uint camoArgsPacked = asuint(hitInfo.perInstanceData.z);
-          float2 unpack;
-          unpack.x = f16tof32(camoArgsPacked);
-          unpack.y = f16tof32(camoArgsPacked >> 16);
-          float3 camoSinCos = float3(unpack.x, -unpack.x, unpack.y);
-          float2 camoTexcoord = 4096 * hitInfo.secTexcoord - float2(0.5, 0.5) * 4096;
-          camoTexcoord.x = dot(camoTexcoord, camoSinCos.zx);
-          camoTexcoord.y = dot(camoTexcoord, camoSinCos.yz);
-          camoTexcoord.xy += 0.5;
-          result = float3(camoTexcoord, 0);
+          if (hitInfo.isCamo)
+            result = float3(get_camo_params(hitInfo).rg, 0);
         }
         else if (bvh_debug_mode == BVH_DEBUG_MODE_VERTEX_COLOR)
         {
-          result = hitInfo.color;
+          result = hitInfo.vertexColor;
         }
         else if (bvh_debug_mode == BVH_DEBUG_MODE_GI)
         {
           if (get_material_type(hitInfo.material) == bvhMaterialTerrain)
           {
-            Vtex textures = sample_clipmaps(hitInfo.position + bvh_origin, 0, 0);
+            DetailDesc microdetailDesc;
+            Vtex textures = sample_clipmaps(hitInfo.position + bvh_origin, 0, 0, microdetailDesc);
             result = textures.diffuse.rgb;
           }
           else if (get_material_type(hitInfo.material) == bvhMaterialInterior)
@@ -163,7 +179,7 @@ shader bvh_debug
             result = 0.5.xxx;
           }
           else
-            result = hitInfo.color;
+            result = hitInfo.vertexColor;
         }
         else if (bvh_debug_mode == BVH_DEBUG_MODE_TWOSIDED)
         {
@@ -178,14 +194,64 @@ shader bvh_debug
         }
         else if (bvh_debug_mode == BVH_DEBUG_MODE_PAINT)
         {
-          if (get_material_type(hitInfo.material) == bvhMaterialRendinst && !hitInfo.isLayered && hitInfo.albedoTextureIndex != 0xFFFF)
-          {
-            SamplerState bvh_sampler = bvh_samplers[hitInfo.albedoSamplerIndex];
-            half4 texel = (half4)bvh_textures[bvh_textures_range_start + hitInfo.albedoTextureIndex].SampleLevel(bvh_sampler, hitInfo.texcoord, 0);
-            apply_painting(hitInfo, texel.a, texel.rgb);
-            result = texel.rgb;
-          }
+          if (get_material_type(hitInfo.material) == bvhMaterialRendinst && !hitInfo.isLayered && hitInfo.albedoTextureIndex != 0xFFFF && has_material_painted(hitInfo.material))
+            result = hitSurface.albedo;
         }
+        ##if hardware.pc
+        else if (bvh_debug_mode == BVH_DEBUG_MODE_INTERSECTION_COUNT)
+        {
+          const uint flags = RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES;
+
+          GenericRayQuery(flags, TraceRayAHSLambda) query;
+
+          RayDesc ray;
+          ray.Origin    = 0;
+          ray.Direction = direction;
+          ray.TMin      = 0;
+          ray.TMax      = 100000;
+
+          query.TraceRayInline(bvhMain, flags, bvhGroupRender, ray);
+
+          int counter = 0;
+          while (query.Proceed())
+            counter++;
+
+          float heat = saturate(counter/bvh_debug_intersection_count_threshold);
+          result = float3(sin(heat*(PI/2)), sin(heat*PI), cos(heat*(PI/2))) * luminance(hitSurface.albedo);
+        }
+        else if (bvh_debug_mode == BVH_DEBUG_MODE_INSTANCES)
+        {
+          const uint flags = RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES;
+
+          GenericRayQuery(flags, TraceRayAHSLambda) query;
+
+          RayDesc ray;
+          ray.Origin    = 0;
+          ray.Direction = direction;
+          ray.TMin      = 0;
+          ray.TMax      = 100000;
+
+          query.TraceRayInline(bvhMain, flags, bvhGroupRender, ray);
+
+          while (query.Proceed())
+          {
+            query.CommitNonOpaqueTriangleHit();
+          }
+
+          bool isHit = query.CommittedStatus() == COMMITTED_TRIANGLE_HIT;
+          float translucency;
+          uint instanceIdx;
+          decode_instance_id(query.CommittedInstanceID(), translucency, instanceIdx);
+
+          // bit of hashing so that instanceID that are close do not take almost the same color
+          instanceIdx = ((instanceIdx >> 16) ^ instanceIdx) * 0x45d9f3b;
+          instanceIdx = ((instanceIdx >> 16) ^ instanceIdx) * 0x45d9f3b;
+          instanceIdx = (instanceIdx >> 16) ^ instanceIdx;
+
+          // just encode the first 24 bits as color
+          result = isHit ? float3((instanceIdx >> 16) & 0xff, (instanceIdx >> 8) & 0xff, instanceIdx & 0xff) / 255.0 : float3(0,0,0);
+        }
+        ##endif
       }
       else
       {
@@ -199,15 +265,60 @@ shader bvh_debug
         }
       }
 
-      float translucentT;
-      trace_ray_fx_translucent(0, direction, 0, hitInfo.t, 0, result, translucentT);
-
       if (bvh_debug_mode == BVH_DEBUG_MODE_LIT)
       {
-        result = performLUTTonemap(result);
+        BRANCH
+        if (isHit && bvh_debug_use_atmosphere)
+          calc_atmosphere(result, hitInfo.position, hitInfo.t);
+
+        float translucentT;
+        trace_ray_fx_translucent(0, direction, 0, hitInfo.t, 0, result, translucentT, 1.0);
       }
+      else
+        result = pow(result, 1/2.2);
 
       debug_target[thread] = float4(result, 1);
+    }
+  }
+
+  compile("cs_6_5", "main");
+}
+
+shader bvh_debug_postfx
+{
+  if (compatibility_mode == compatibility_mode_on || !use_hw_raytracing)
+  {
+    dont_render;
+  }
+  supports global_const_block;
+
+  INIT_HDR(cs)
+  USE_HDR(cs)
+  INIT_FULL_TONEMAP_LUT(cs)
+  USE_FULL_TONEMAP_LUT(cs)
+
+  (cs)
+  {
+    debug_target@uav = bvh_debug_target hlsl { RWTexture2D<float4> debug_target@uav; }
+    postfx_source@tex2d = bvh_postfx_source;
+  }
+
+  hlsl(cs)
+  {
+    [numthreads(16, 16, 1)]
+    void main(uint2 dtId : SV_DispatchThreadID)
+    {
+      float2 resolution;
+      debug_target.GetDimensions(resolution.x, resolution.y);
+
+      BRANCH
+      if (all(dtId < resolution))
+      {
+        float3 linearSample = postfx_source[dtId].rgb;
+        float3 exposureApplied = pack_hdr(linearSample);
+        float3 toneMapped = performLUTTonemap(exposureApplied);
+        debug_target[dtId] = float4(toneMapped, 1);
+      }
     }
   }
 

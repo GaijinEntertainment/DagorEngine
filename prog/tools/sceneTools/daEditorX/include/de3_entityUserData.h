@@ -12,4 +12,8 @@ public:
   virtual DataBlock *getUserDataBlock(bool create_if_not_exist) = 0;
   virtual void resetUserDataBlock() = 0;
   virtual void setSuperEntityRef(const char *ref) {}
+
+  virtual bool canBeParentForAttach() { return false; }
+  virtual bool canBeAttached() { return false; }
+  virtual void attachTo(IObjEntity * /*e*/, const TMatrix & /*local_tm*/) {}
 };

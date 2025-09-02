@@ -105,6 +105,7 @@ extern FastNameMapEx actionSetNameIdx;
 extern FastNameMap tagNames;
 extern DataBlock customPropsScheme;
 extern unsigned colActiveMask;
+extern unsigned devReportMask;
 
 extern Tab<action_set_handle_t> actionSetStack;
 extern action_set_handle_t breaking_set_handle;

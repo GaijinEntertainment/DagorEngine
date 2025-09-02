@@ -4,6 +4,7 @@
 #include "driver.h"
 #include "vk_entry_points.h"
 #include "extension_utils.h"
+#include "streamline_adapter.h"
 
 namespace drv3d_vulkan
 {
@@ -31,15 +32,18 @@ public:
 #if _TARGET_C3
 
 #else
-  bool isValid() const
-  { /*can only be not null if load did not fail*/
-    return libHandle != nullptr;
-  }
+  bool isValid() const { /*can only be not null if load did not fail*/ return libHandle != nullptr; }
 #endif
-  eastl::vector<VkLayerProperties> getLayers();
-  eastl::vector<VkExtensionProperties> getExtensions();
+  dag::Vector<VkLayerProperties> getLayers();
+  dag::Vector<VkExtensionProperties> getExtensions();
 
   bool load(const char *name, bool validate);
   void unload();
+
+#if USE_STREAMLINE_FOR_DLSS
+  bool initStreamlineAdapter();
+  StreamlineAdapter::InterposerHandleType streamlineInterposer = {nullptr, nullptr};
+  eastl::optional<StreamlineAdapter> streamlineAdapter;
+#endif
 };
 } // namespace drv3d_vulkan

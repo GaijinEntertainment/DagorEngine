@@ -7,6 +7,7 @@
 #include <drv/3d/dag_renderTarget.h>
 #include <drv/3d/dag_matricesAndPerspective.h>
 #include <drv/3d/dag_driver.h>
+#include <scene/dag_visibility.h>
 #include <math/dag_frustum.h>
 #include <math/dag_bounds2.h>
 #include <perfMon/dag_perfTimer2.h>
@@ -40,7 +41,7 @@ GLOBAL_VARS_LIST
 static int is_rendinst_clipmapVarId = -1; // not global shader var
 static int is_prefab_clipmapVarId = -1;   // not global shader var
 
-extern int rendinstDepthSceneBlockId;
+extern ShaderBlockIdHolder rendinstDepthSceneBlockId;
 
 static const float MIN_UPDATE_THRESHOLD = 30.f;
 
@@ -81,7 +82,6 @@ RendInstHeightmap::RendInstHeightmap(int tex_size, float rect_size, float land_h
 {
   const char *texName = "rendinst_clipmap_depth_tex";
   depthTexture = dag::create_tex(nullptr, texSize, texSize, TEXCF_RTARGET | TEXFMT_DEPTH16, 1, texName);
-  depthTexture->disableSampler();
 
   invalidate();
   helper.texSize = texSize;
@@ -118,6 +118,7 @@ RendInstHeightmap::RendInstHeightmap(int tex_size, float rect_size, float land_h
 static struct RendinstHeightmapVisibilityJob final : public cpujobs::IJob
 {
   RendInstHeightmap *riHmap;
+  const char *getJobName(bool &) const override { return "rendinst_heightmap_visibility"; }
   void doJob() override { riHmap->prepareRiVisibilityAsync(); };
 } visibility_job;
 
@@ -162,8 +163,6 @@ void RendInstHeightmap::updatePos(const Point3 &cam_pos)
 
 void RendInstHeightmap::prepareRiVisibilityAsync()
 {
-  TIME_PROFILE_DEV(rendinst_heightmap_visibility);
-
   float zn = landHeightMin;
   float zf = maxHt;
   for (int i = 0; i < regionsToUpdate.size(); ++i)

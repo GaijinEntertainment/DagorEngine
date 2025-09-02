@@ -14,19 +14,10 @@
 
 class ObjectEditor;
 
-#define EO_IMPLEMENT_RTTI(id, BASE)           \
-  static DClassID getStaticClassId()          \
-  {                                           \
-    return id;                                \
-  }                                           \
-  virtual bool isSubOf(DClassID cid)          \
-  {                                           \
-    return cid == (id) || BASE::isSubOf(cid); \
-  }                                           \
-  virtual DClassID getClassId()               \
-  {                                           \
-    return id;                                \
-  }
+#define EO_IMPLEMENT_RTTI(id, BASE)                                                \
+  static DClassID getStaticClassId() { return id; }                                \
+  virtual bool isSubOf(DClassID cid) { return cid == (id) || BASE::isSubOf(cid); } \
+  virtual DClassID getClassId() { return id; }
 
 
 // EditableObject class ID

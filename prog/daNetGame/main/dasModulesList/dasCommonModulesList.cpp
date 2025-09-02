@@ -76,7 +76,6 @@ void pull_das()
   NEED_MODULE(AnimatedPhysModule)
   NEED_MODULE(RiDestrModule)
   NEED_MODULE(RendInstPhysModule)
-  NEED_MODULE(DasPhysObjModule)
   NEED_MODULE(PhysMatModule)
   NEED_MODULE(SmokeOccluderModule)
   NEED_MODULE(CapsuleApproximationModule)
@@ -90,6 +89,7 @@ void pull_das()
   NEED_MODULE(ReplayModule)
   NEED_MODULE(DngDacollModule)
   NEED_MODULE(DeferToActModule)
+  NEED_MODULE(CompressionModule)
 
   pull_render_das();
   pull_input_das();

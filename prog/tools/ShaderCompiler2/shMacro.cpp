@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "shMacro.h"
+#include "shlexterm.h"
 #include <generic/dag_tabUtils.h>
 #include "shlex.h"
 #include "shsyntok.h"
@@ -19,123 +20,22 @@
 
 /*********************************
  *
- * class ShaderMacro
+ * struct ShaderMacro
  *
  *********************************/
 // ctor/dtor
 ShaderMacro::ShaderMacro() : textParts(midmem), variables(midmem), name(""), expandStr("") {}
 
-ShaderMacro::~ShaderMacro() {}
-
-
-// parse macro declaration (return false if failed)
-bool in_macro_definition = false;
-
-bool ShaderMacro::parseDefinition(ShaderLexParser *parser)
-{
-  // DBGLOG("'%s' %d", parser->get_lexeme(), parser->get_token());
-  if (parser->get_token() != SHADER_TOKENS::SHTOK_ident)
-  {
-    parser->error("expected macro name");
-    return false;
-  }
-
-  name = parser->get_lexeme();
-  DBGLOG("parse definition '%s'", name.str());
-
-  expandStr.printf(512, "expanding macro '%s' at file(%%s)line(%%d)pos(%%d),\n(declared at file(%s)line(%d)pos(%d))", name.str(),
-    parser->__input_stream()->get_filename(parser->get_cur_file()), parser->get_cur_line(), parser->get_cur_column());
-
-  // gather parameters
-  // Tab<String> varList(tmpmem);
-  if (!processParams(parser, variables))
-    return false;
-  int varCount = variables.size();
-
-  // get macro body & find all macro variable places
-  String str;
-  in_macro_definition = true;
-  while (true)
-  {
-    int token = parser->get_token();
-    if (token == SHADER_TOKENS::SHTOK_ident)
-    {
-      if (strcmp(name, parser->get_lexeme()) == 0)
-      {
-        parser->error("macro recursion not allowed!");
-        return false;
-      }
-    }
-
-    if (token == SHADER_TOKENS::SHTOK_include || token == SHADER_TOKENS::SHTOK_include_optional)
-    {
-      parser->error("include in macros not allowed!");
-      return false;
-    }
-
-    switch (token)
-    {
-      case SHADER_TOKENS::SHTOK_endmacro:
-      {
-        // end macro - all ok, return
-        // processToken("", str, varList);
-        in_macro_definition = false;
-        return true;
-      }
-      break;
-      case SHADER_TOKENS::TerminalEOF:
-      {
-        // EOF occuried while macro definition is parsed - error!
-
-        // DBGLOG("!!!eof");
-        if (!parser->__input_stream()->is_real_eof())
-        {
-          // DBGLOG("!!!eof not real");
-          parser->clear_eof();
-        }
-        else
-        {
-          parser->error("expected 'endmacro' but EOF found!");
-          in_macro_definition = false;
-          return false;
-        }
-      }
-      break;
-      default:
-      {
-        // all ok - check for parameter
-        // processToken(parser->get_lexeme(), str, varList);
-        String varName(parser->get_lexeme());
-
-        int varIndex = tabutils::getIndex(variables, varName);
-
-        textParts.push_back(TokenData((varIndex >= 0) ? varIndex : -1));
-        TokenData &newData = textParts.back();
-
-        // store position data
-        newData.info.lexeme = parser->get_lexeme();
-        newData.info.token = token;
-        newData.info.file = parser->get_cur_file();
-        newData.info.line = parser->get_cur_line();
-        newData.info.column = parser->get_cur_column();
-      }
-    }
-  }
-
-  return true;
-}
-
-
 // parse macro parameters. in = ([v1][, v2]..[, vn])
-bool ShaderMacro::processParams(ShaderLexParser *parser, Tab<String> &var_list)
+static bool process_macro_params(Lexer &lexer, Tab<String> &var_list)
 {
   DBGLOG("ShaderMacro::processParams");
 
   clear_and_shrink(var_list);
 
-  if (parser->get_token() != SHADER_TOKENS::SHTOK_lpar)
+  if (lexer.get_token() != SHADER_TOKENS::SHTOK_lpar)
   {
-    parser->error("expected '('");
+    lexer.error("expected '('");
     return false;
   }
 
@@ -145,20 +45,20 @@ bool ShaderMacro::processParams(ShaderLexParser *parser, Tab<String> &var_list)
 
   while (true)
   {
-    int token = parser->get_token();
-    DBGLOG("token=%d %s", token, parser->get_lexeme());
+    int token = lexer.get_token();
+    DBGLOG("token=%d %s", token, parser.get_lexeme());
     switch (token)
     {
       case SHADER_TOKENS::SHTOK_comma: needVarName = true; break;
       case SHADER_TOKENS::SHTOK_rpar: needBreak = true; break;
       case SHADER_TOKENS::SHTOK_ident:
       {
-        varName = parser->get_lexeme();
+        varName = lexer.get_lexeme();
 
         // check variable
         if (tabutils::getIndex(var_list, varName) >= 0)
         {
-          parser->error(String(128, "duplicate macro parameter '%s'", varName.str()));
+          lexer.error(String(128, "duplicate macro parameter '%s'", varName.str()));
           return false;
         }
 
@@ -170,7 +70,7 @@ bool ShaderMacro::processParams(ShaderLexParser *parser, Tab<String> &var_list)
       break;
       default:
       {
-        parser->error(String(128, "illegal symbol '%s' in macro definition", parser->get_lexeme()));
+        lexer.error(String(128, "illegal symbol '%s' in macro definition", lexer.get_lexeme()));
         return false;
       }
     }
@@ -181,23 +81,111 @@ bool ShaderMacro::processParams(ShaderLexParser *parser, Tab<String> &var_list)
 
   if (needVarName)
   {
-    parser->error("expected macro parameter");
+    lexer.error("expected macro parameter");
     return false;
   }
 
   return true;
 }
 
-extern int get_token(ShaderParser::TokenInfo &tok, ShaderLexParser *__this);
+// parse macro declaration (return false if failed)
+// in = macro <macro_id>([v1][, v2]..[, vn]) <macro_body> endmacro
+bool ShaderMacroManager::parseMacroDefinition(Lexer &lexer, ShaderMacro &macro)
+{
+  if (lexer.get_token() != SHADER_TOKENS::SHTOK_ident)
+  {
+    lexer.error("expected macro name");
+    return false;
+  }
+
+  macro.name = lexer.get_lexeme();
+  DBGLOG("parse definition '%s'", name.str());
+
+  macro.expandStr.printf(512, "expanding macro '%s' at file(%%s)line(%%d)pos(%%d),\n(declared at file(%s)line(%d)pos(%d))",
+    macro.name.str(), lexer.__input_stream()->get_filename(lexer.get_cur_file()), lexer.get_cur_line(), lexer.get_cur_column());
+
+  // gather parameters
+  if (!process_macro_params(lexer, macro.variables))
+    return false;
+  int varCount = macro.variables.size();
+
+  // get macro body & find all macro variable places
+  String str;
+  inMacroDefinition = true;
+  while (true)
+  {
+    int token = lexer.get_token();
+    if (token == SHADER_TOKENS::SHTOK_ident)
+    {
+      if (strcmp(macro.name, lexer.get_lexeme()) == 0)
+      {
+        lexer.error("macro recursion not allowed!");
+        return false;
+      }
+    }
+
+    if (token == SHADER_TOKENS::SHTOK_include || token == SHADER_TOKENS::SHTOK_include_optional)
+    {
+      lexer.error("include in macros not allowed!");
+      return false;
+    }
+
+    switch (token)
+    {
+      case SHADER_TOKENS::SHTOK_endmacro:
+      {
+        // end macro - all ok, return
+        inMacroDefinition = false;
+        return true;
+      }
+      break;
+      case SHADER_TOKENS::TerminalEOF:
+      {
+        // EOF occuried while macro definition is parsed - error!
+        if (!lexer.__input_stream()->is_real_eof())
+          lexer.clear_eof();
+        else
+        {
+          lexer.error("expected 'endmacro' but EOF found!");
+          inMacroDefinition = false;
+          return false;
+        }
+      }
+      break;
+      default:
+      {
+        // all ok - check for parameter
+        String varName(lexer.get_lexeme());
+
+        int varIndex = tabutils::getIndex(macro.variables, varName);
+
+        macro.textParts.push_back(ShaderMacro::TokenData((varIndex >= 0) ? varIndex : -1));
+        ShaderMacro::TokenData &newData = macro.textParts.back();
+
+        // store position data
+        newData.info.lexeme = lexer.get_lexeme();
+        newData.info.token = token;
+        newData.info.file = lexer.get_cur_file();
+        newData.info.line = lexer.get_cur_line();
+        newData.info.column = lexer.get_cur_column();
+      }
+    }
+  }
+
+  return true;
+}
+
+extern int get_token(ShaderParser::TokenInfo &tok, Lexer &__this);
+
 // parse macro parameters (real). in = ([v1][, v2]..[, vn])
-bool ShaderMacro::processVariables(ShaderLexParser *parser, Tab<TokenList> &var_list, int req_count)
+static bool process_macro_variables(Lexer &lexer, Tab<ShaderMacro::TokenList> &var_list, int req_count, ShaderMacroManager &context)
 {
   DBGLOG("ShaderMacro::processVariables '%s'", name.str());
   ShaderParser::TokenInfo tok;
 
-  if (::get_token(tok, parser) != SHADER_TOKENS::SHTOK_lpar)
+  if (::get_token(tok, lexer) != SHADER_TOKENS::SHTOK_lpar)
   {
-    parser->error("expected '('");
+    lexer.error("expected '('");
     return false;
   }
 
@@ -207,12 +195,12 @@ bool ShaderMacro::processVariables(ShaderLexParser *parser, Tab<TokenList> &var_
   bool isProcessed = false;
   int pairBalance = 1;
 
-  TokenList newVar;
+  ShaderMacro::TokenList newVar;
   while (true)
   {
-    int token = ::get_token(tok, parser);
+    int token = ::get_token(tok, lexer);
     isProcessed = false;
-    DBGLOG("token=%d %s", token, parser->get_lexeme());
+    DBGLOG("token=%d %s", token, lexer->get_lexeme());
 
     switch (token)
     {
@@ -241,7 +229,7 @@ bool ShaderMacro::processVariables(ShaderLexParser *parser, Tab<TokenList> &var_
         }
         else if (pairBalance < 0)
         {
-          parser->error("'(' and ')' mismatch while parsing macro actial params");
+          lexer.error("'(' and ')' mismatch while parsing macro actial params");
           return false;
         }
         break;
@@ -252,22 +240,16 @@ bool ShaderMacro::processVariables(ShaderLexParser *parser, Tab<TokenList> &var_
 
     if (!isProcessed)
     {
-      newVar.push_back(TokenData(-1));
-      TokenData &newData = newVar.back();
+      newVar.push_back(ShaderMacro::TokenData(-1));
+      ShaderMacro::TokenData &newData = newVar.back();
       newData.info = tok;
-      /*newData.info.lexeme = parser->get_lexeme();
-      newData.info.token = token;
-      newData.info.file = parser->get_cur_file();
-      newData.info.line = parser->get_cur_line();
-      newData.info.column = parser->get_cur_column();*/
-
       needVarName = false;
     }
   }
 
   if (needVarName)
   {
-    parser->error("expected macro parameter");
+    lexer.error("expected macro parameter");
     return false;
   }
 
@@ -275,7 +257,7 @@ bool ShaderMacro::processVariables(ShaderLexParser *parser, Tab<TokenList> &var_
   {
     if (req_count != var_list.size())
     {
-      parser->error(String(128, "mismatch macro params - required %d but found %d", req_count, var_list.size()));
+      lexer.error(String(128, "mismatch macro params - required %d but found %d", req_count, var_list.size()));
       return false;
     }
   }
@@ -285,87 +267,132 @@ bool ShaderMacro::processVariables(ShaderLexParser *parser, Tab<TokenList> &var_
 
 
 // parse params, make full code text & include code in input file - return false if failed
-bool ShaderMacro::expandMacro(ShaderLexParser *parser, TokenList &code)
+static bool expand_macro(Lexer &lexer, ShaderMacro::TokenList &code, ShaderMacro &macro, ShaderMacroManager &context)
 {
   DBGLOG("ShaderMacro::expandMacro '%s'", name.str());
 
   // gather parameters
-  Tab<TokenList> varList;
-  if (!processVariables(parser, varList, variables.size()))
+  Tab<ShaderMacro::TokenList> varList;
+  if (!process_macro_variables(lexer, varList, macro.variables.size(), context))
     return false;
 
   // if macro is empty, do nothing
-  if (!textParts.size())
+  if (!macro.textParts.size())
     return true;
-  code.reserve(textParts.size() + varList.size() + 4 * variables.size());
+  code.reserve(macro.textParts.size() + varList.size() + 4 * macro.variables.size());
   int code_start = code.size();
   Tab<String> varStrings(tmpmem);
-  varStrings.resize(variables.size());
-  for (int i = 0; i < variables.size(); i++)
+  varStrings.resize(macro.variables.size());
+  for (int i = 0; i < macro.variables.size(); i++)
   {
-    const TokenList &varTokens = varList[i];
+    const ShaderMacro::TokenList &varTokens = varList[i];
     for (int j = 0; j < varTokens.size(); j++)
       varStrings[i].aprintf(256, "%s", varTokens[j].info.lexeme.str());
-    /*if (varTokens.size() != 1)
-      continue;
-    TokenData token[2];
-    token[0].info = varTokens[0].info;
-    token[1].info = varTokens[0].info;
-    token[0].info.token = SHADER_TOKENS::SHTOK_hlsl;
-    token[1].info.token = SHADER_TOKENS::SHTOK_hlsl_text;
-    token[1].info.lexeme.printf(128, "\n#define param_%s %s\n", variables[i].str(), varTokens[0].info.lexeme.str());
-    code.append(2, token);*/
   }
   // replace parameters with it's values
-  for (int i = 0; i < textParts.size(); i++)
+  const int partsCount = macro.textParts.size();
+  for (int i = 0; i < partsCount; i++)
   {
-    if (textParts[i].paramIndex != -1)
+    const bool nextTokenIsMacroConcatOp = i + 1 < partsCount && macro.textParts[i + 1].info.token == SHADER_TOKENS::SHTOK_macro_concat;
+    if (nextTokenIsMacroConcatOp)
     {
-      TokenList &varTokens = varList[textParts[i].paramIndex];
+      if (i + 2 >= partsCount)
+      {
+        lexer.error("Invalid macro concatenation expression. Right arg is missing.");
+        return false;
+      }
+
+      const ShaderMacro::TokenData &leftToken = macro.textParts[i];
+      const ShaderMacro::TokenData &rightToken = macro.textParts[i + 2];
+
+      const char *invalidArgError =
+        "Invalid macro concatenation expression. Arguments must be macro params with only single text value";
+
+      if (leftToken.paramIndex < 0 || rightToken.paramIndex < 0)
+      {
+        lexer.error(invalidArgError);
+        return false;
+      }
+
+      const auto getTokenReplacement = [&](const int text_idx) {
+        const std::initializer_list<int> invalidTokensForConcat = {SHADER_TOKENS::SHTOK_hlsl_text, SHADER_TOKENS::SHTOK_beg,
+          SHADER_TOKENS::SHTOK_end, SHADER_TOKENS::SHTOK_lpar, SHADER_TOKENS::SHTOK_rpar, SHADER_TOKENS::SHTOK_lbrk,
+          SHADER_TOKENS::SHTOK_rbrk, SHADER_TOKENS::SHTOK_comma, SHADER_TOKENS::SHTOK_dot, SHADER_TOKENS::SHTOK_semi,
+          SHADER_TOKENS::SHTOK_colon, SHADER_TOKENS::SHTOK_assign, SHADER_TOKENS::SHTOK_eq, SHADER_TOKENS::SHTOK_noteq,
+          SHADER_TOKENS::SHTOK_not, SHADER_TOKENS::SHTOK_or, SHADER_TOKENS::SHTOK_and, SHADER_TOKENS::SHTOK_plus,
+          SHADER_TOKENS::SHTOK_minus, SHADER_TOKENS::SHTOK_mul, SHADER_TOKENS::SHTOK_div, SHADER_TOKENS::SHTOK_smaller,
+          SHADER_TOKENS::SHTOK_greater, SHADER_TOKENS::SHTOK_smallereq, SHADER_TOKENS::SHTOK_greatereq};
+
+        const ShaderMacro::TokenList &replacementTokens = varList[macro.textParts[text_idx].paramIndex];
+        const bool concatArgIsValid =
+          replacementTokens.size() == 1 && !item_is_in(replacementTokens[0].info.token, invalidTokensForConcat);
+        return concatArgIsValid ? &replacementTokens[0] : nullptr;
+      };
+
+      const ShaderMacro::TokenData *leftReplacement = getTokenReplacement(i);
+      const ShaderMacro::TokenData *rightReplacement = getTokenReplacement(i + 2);
+      if (!leftReplacement || !rightReplacement)
+      {
+        lexer.error(invalidArgError);
+        return false;
+      }
+
+      ShaderMacro::TokenData newToken = leftToken;
+      newToken.info.token = SHADER_TOKENS::SHTOK_ident;
+      newToken.info.lexeme.printf(256, "%s%s", leftReplacement->info.lexeme.c_str(), rightReplacement->info.lexeme.c_str());
+
+      code.push_back(eastl::move(newToken));
+      i = i + 2;
+      continue;
+    }
+
+    if (macro.textParts[i].paramIndex != -1)
+    {
+      ShaderMacro::TokenList &varTokens = varList[macro.textParts[i].paramIndex];
       for (int j = 0; j < varTokens.size(); j++)
       {
         // override place info
-        varTokens[j].info.file = textParts[i].info.file;
-        varTokens[j].info.line = textParts[i].info.line;
-        varTokens[j].info.column = textParts[i].info.column;
+        varTokens[j].info.file = macro.textParts[i].info.file;
+        varTokens[j].info.line = macro.textParts[i].info.line;
+        varTokens[j].info.column = macro.textParts[i].info.column;
 
         code.push_back(varTokens[j]);
       }
     }
     else
     {
-      if (textParts[i].info.token == SHADER_TOKENS::SHTOK_hlsl_text)
+      if (macro.textParts[i].info.token == SHADER_TOKENS::SHTOK_hlsl_text)
       {
         // replace macro parameters within hlsl
-        TokenData token;
+        ShaderMacro::TokenData token;
         bool replaced = false;
-        for (int vi = 0; vi < variables.size(); vi++)
+        for (int vi = 0; vi < macro.variables.size(); vi++)
         {
-          char *start = replaced ? token.info.lexeme.str() : textParts[i].info.lexeme.str();
+          char *start = replaced ? token.info.lexeme.str() : macro.textParts[i].info.lexeme.str();
           char *gofrom = start;
 
           String newtext;
           for (bool found = false;;)
           {
-            char *replaceAt = strstr(gofrom, variables[vi].str());
+            char *replaceAt = strstr(gofrom, macro.variables[vi].str());
             if (!replaceAt)
             {
               if (found)
               {
                 newtext.aprintf(256, "%s", start);
-                token.info.file = textParts[i].info.file;
-                token.info.line = textParts[i].info.line;
-                token.info.column = textParts[i].info.column;
+                token.info.file = macro.textParts[i].info.file;
+                token.info.line = macro.textParts[i].info.line;
+                token.info.column = macro.textParts[i].info.column;
                 token.info.lexeme = newtext;
-                token.info.token = textParts[i].info.token;
-                token.info.isMacro = textParts[i].info.isMacro;
+                token.info.token = macro.textParts[i].info.token;
+                token.info.isMacro = macro.textParts[i].info.isMacro;
                 replaced = true;
               }
               break;
             }
             else
             {
-              int varLength = variables[vi].length();
+              int varLength = macro.variables[vi].length();
               if (replaceAt > start)
                 if (isalpha(replaceAt[-1]) || replaceAt[-1] == '#' || replaceAt[-1] == '_')
                 {
@@ -381,7 +408,7 @@ bool ShaderMacro::expandMacro(ShaderLexParser *parser, TokenList &code)
               replaceAt[0] = 0;
               newtext.aprintf(256, "%s", start);
               newtext.insert(newtext.size() - 1, varStrings[vi].str(), varStrings[vi].length());
-              replaceAt[0] = variables[vi].str()[0];
+              replaceAt[0] = macro.variables[vi].str()[0];
               gofrom = start = replaceAt + varLength;
             }
           }
@@ -391,23 +418,12 @@ bool ShaderMacro::expandMacro(ShaderLexParser *parser, TokenList &code)
           code.push_back(token);
         }
         else
-          code.push_back(textParts[i]);
+          code.push_back(macro.textParts[i]);
       }
       else
-        code.push_back(textParts[i]);
+        code.push_back(macro.textParts[i]);
     }
   }
-  /*for (int i = 0, cnt = 0; i < variables.size(); i++,cnt++)
-  {
-    const TokenList& varTokens = varList[i];
-    if (varTokens.size() != 1)
-      continue;
-    TokenData token[2];
-    token[0] = code[code_start+cnt*2];
-    token[1] = code[code_start+cnt*2+1];
-    token[1].info.lexeme.printf(128, "\n#undef param_%s\n", variables[i].str());
-    code.append(2, token);
-  }*/
 
 #if defined(DEBUG_SHADER_MACROS)
   String outs("");
@@ -423,126 +439,76 @@ bool ShaderMacro::expandMacro(ShaderLexParser *parser, TokenList &code)
   return true;
 }
 
-// class ShaderMacro
-//
-
-
-/*********************************
- *
- * namespase ShaderMacroManager
- *
- *********************************/
-namespace ShaderMacroManager
-{
-struct MacroCode
-{
-  ShaderMacro *macro;
-  ShaderMacro::TokenList code;
-  int curToken;
-  int caller_file = 0;
-  int caller_line = 0;
-
-  MacroCode(ShaderMacro *m, ShaderMacro::TokenList &init_code);
-
-  // return next token or false, if finished
-  bool getToken(ShaderParser::TokenInfo &out_info);
-};
-
-static Tab<eastl::unique_ptr<ShaderMacro>> objList(midmem_ptr());
-static Tab<MacroCode *> codeStack(midmem);
-
-// find macro by it's name
-int findMacro(const char *name);
-
-// init compiler. shaders must be inited before.
-void init() { clearMacros(); }
-
-// clear all macro table
-void clearMacros()
-{
-  objList.clear();
-  tabutils::deleteAll(codeStack);
-}
-
-
 // parse new macro definition & add new macros; return false if failed
-bool parseDefinition(ShaderLexParser *parser, bool optional)
+bool ShaderMacroManager::parseDefinition(Lexer &lexer, bool optional)
 {
   eastl::unique_ptr<ShaderMacro> macro = eastl::make_unique<ShaderMacro>();
 
-  if (!macro->parseDefinition(parser))
+  if (!parseMacroDefinition(lexer, *macro))
     return false;
 
-  int oldMacroIndex = findMacro(macro->getName());
-  if (oldMacroIndex >= 0)
+  int macroNid = objNameMap.addNameId(macro->getName());
+  if (macroNid < objList.size())
   {
     if (optional)
       return true;
 
     eastl::string message(eastl::string::CtorSprintf{}, "macro '%s' already declared in ", macro->getName().str());
-    message += parser->get_symbol_location(oldMacroIndex, SymbolType::MACRO);
-    parser->error(message.c_str());
+    message += lexer.get_symbol_location(macroNid, SymbolType::MACRO);
+    lexer.error(message.c_str());
     return false;
   }
 
-  int newMacroIndex = (int)objList.size();
+  G_ASSERT(macroNid == int(objList.size()));
   objList.push_back(eastl::move(macro));
-  BaseParNamespace::Terminal curSymbol(parser->get_cur_file(), parser->get_cur_line(), parser->get_cur_column(),
-    parser->get_cur_file(), parser->get_cur_line(), parser->get_cur_column());
+  BaseParNamespace::Terminal curSymbol(lexer.get_cur_file(), lexer.get_cur_line(), lexer.get_cur_column(), lexer.get_cur_file(),
+    lexer.get_cur_line(), lexer.get_cur_column());
   curSymbol.text = objList.back()->getName();
-  parser->register_symbol(newMacroIndex, SymbolType::MACRO, &curSymbol);
+  lexer.register_symbol(macroNid, SymbolType::MACRO, &curSymbol);
 
   return true;
 }
 
-
 // check for macros & parse it if nessesary; return false if failed
-bool expandMacro(ShaderLexParser *parser, ShaderParser::TokenInfo &tok)
+void ShaderMacroManager::tryExpandMacro(Lexer &lexer, ShaderParser::TokenInfo &tok)
 {
+  if (inMacroDefinition)
+    return;
+
   // check for identifier
   if (tok.token != SHADER_TOKENS::SHTOK_ident)
-    return true;
+    return;
   int index = findMacro(tok.lexeme);
   if (index < 0)
   {
-    return true;
+    return;
   }
-
 
   tok.token = -1;
   ShaderMacro *macro = objList[index].get();
 
   ShaderMacro::TokenList code(tmpmem);
-  if (!macro->expandMacro(parser, code))
-    return false;
+  if (!expand_macro(lexer, code, *macro, *this))
+    return;
+
 
   codeStack.push_back(new MacroCode(macro, code));
   codeStack.back()->caller_file = tok.file;
   codeStack.back()->caller_line = tok.line;
-
-  return true;
 }
 
 
 // find macro by it's name
-int findMacro(const char *name)
+int ShaderMacroManager::findMacro(const char *name) const
 {
-  if (!name || !*name)
+  if (DAGOR_UNLIKELY(!name || !*name))
     return -1;
 
-  for (int i = 0; i < objList.size(); i++)
-  {
-    if (objList[i] && strcmp(objList[i]->getName(), name) == 0)
-    {
-      return i;
-    }
-  }
-
-  return -1;
+  return objNameMap.getNameId(name);
 }
 
 // return macro description (name, file, line, column)
-const String &getMacroDesc(const char *name)
+const String &ShaderMacroManager::getMacroDesc(const char *name) const
 {
   int index = findMacro(name);
   if (!tabutils::isCorrectIndex(objList, index))
@@ -555,7 +521,7 @@ const String &getMacroDesc(const char *name)
 }
 
 // return next token or false, if finished
-bool getToken(ShaderParser::TokenInfo &out_info)
+bool ShaderMacroManager::getToken(ShaderParser::TokenInfo &out_info)
 {
   if (codeStack.size())
   {
@@ -584,8 +550,7 @@ bool getToken(ShaderParser::TokenInfo &out_info)
   return false;
 }
 
-
-const String &getCurrentMacroDesc(ShaderLexParser *parser)
+const String &ShaderMacroManager::getCurrentMacroDesc(Lexer &lexer) const
 {
   if (!codeStack.size())
   {
@@ -607,23 +572,23 @@ const String &getCurrentMacroDesc(ShaderLexParser *parser)
   }
   else
   {
-    // macro from normal file
-    file = parser->get_cur_file();
-    line = parser->get_cur_line();
-    col = parser->get_cur_column();
+    // macrlexom normal file
+    file = lexer.get_cur_file();
+    line = lexer.get_cur_line();
+    col = lexer.get_cur_column();
   }
 
   static String fmtStr;
-  fmtStr.printf(512, (codeStack.back())->macro->getDesc(), parser->__input_stream()->get_filename(file), line, col);
+  fmtStr.printf(512, (codeStack.back())->macro->getDesc(), lexer.__input_stream()->get_filename(file), line, col);
   return fmtStr;
 }
 
 
-MacroCode::MacroCode(ShaderMacro *m, ShaderMacro::TokenList &init_code) : macro(m), code(init_code), curToken(-1) {}
-
+ShaderMacroManager::MacroCode::MacroCode(ShaderMacro *m, ShaderMacro::TokenList &init_code) : macro(m), code(init_code), curToken(-1)
+{}
 
 // return next token or false, if finished
-bool MacroCode::getToken(ShaderParser::TokenInfo &out_info)
+bool ShaderMacroManager::MacroCode::getToken(ShaderParser::TokenInfo &out_info)
 {
   curToken++;
 
@@ -632,10 +597,3 @@ bool MacroCode::getToken(ShaderParser::TokenInfo &out_info)
   out_info = code[curToken].info;
   return true;
 }
-void realize() { clearMacros(); }
-
-} // namespace ShaderMacroManager
-
-
-// class ShaderMacroManager
-//

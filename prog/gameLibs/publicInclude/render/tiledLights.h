@@ -13,7 +13,6 @@
 
 class TiledLights
 {
-  ResizableTextureIDHolder tilesRT;
   UniqueBufHolder lightsListBuf;
   UniqueBufHolder zbinningLUT;
   float maxLightsDist = 500;
@@ -36,11 +35,12 @@ class TiledLights
 public:
   TiledLights(float max_lights_dist);
   ~TiledLights();
+  void resizeTilesGrid(uint32_t width, uint32_t height);
   void setResolution(uint32_t width, uint32_t height);
   void changeResolution(uint32_t width, uint32_t height);
   void prepare(const Tab<vec4f> &omni_ligth_bounds, const Tab<vec4f> &spot_light_bounds, const vec4f &cur_view_pos,
     const vec4f &cur_view_dir);
   void fillBuffers();
-  void computeTiledLigths();
+  void computeTiledLigths(const bool clear_lights = true);
   void setMaxLightsDist(const float max_lights_dist);
 };

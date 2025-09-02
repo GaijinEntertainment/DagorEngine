@@ -27,9 +27,6 @@ namespace das {
     class RefFolding : public PassVisitor {
     protected:
         virtual ExpressionPtr visit ( ExprRef2Value * expr ) override {
-            if (expr->type->baseType == Type::tHandle) {
-                return Visitor::visit(expr);
-            }
             if ( expr->subexpr->rtti_isCast() ) {
                 reportFolding();
                 auto ecast = static_pointer_cast<ExprCast>(expr->subexpr);
@@ -42,15 +39,11 @@ namespace das {
                 ecast->type->ref = false;
                 return ecast;
             } else if ( expr->subexpr->rtti_isVar() ) {
-                if ( expr->subexpr->type->isHandle() ) {
-                    return Visitor::visit(expr);
-                } else {
-                    reportFolding();
-                    auto evar = static_pointer_cast<ExprVar>(expr->subexpr);
-                    evar->r2v = true;
-                    evar->type->ref = false;
-                    return evar;
-                }
+                reportFolding();
+                auto evar = static_pointer_cast<ExprVar>(expr->subexpr);
+                evar->r2v = true;
+                evar->type->ref = false;
+                return evar;
             } else if ( expr->subexpr->rtti_isField() ) {
                 reportFolding();
                 auto efield = static_pointer_cast<ExprField>(expr->subexpr);

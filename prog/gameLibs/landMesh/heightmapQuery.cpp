@@ -1,7 +1,5 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include "landMesh/heightmapQuery.h"
-
 #include <EASTL/unique_ptr.h>
 #include <EASTL/vector.h>
 
@@ -21,6 +19,8 @@
 #include "landMesh/heightmap_query.hlsli"
 #include <osApiWrappers/dag_critSec.h>
 
+#include "landMesh/heightmapQuery.h"
+
 
 static WinCritSec heightmap_query_mutex;
 #define HEIGHTMAP_QUERY_BLOCK WinAutoLock heightmapQueryLock(heightmap_query_mutex);
@@ -28,13 +28,17 @@ static WinCritSec heightmap_query_mutex;
 
 class HeightmapQueryCtx
 {
+  LandclassQueryData data;
+
 public:
   bool init();
   void update();
   void beforeDeviceReset();
   void afterDeviceReset();
 
-  int query(const Point2 &world_pos_2d);
+  void set_landclass_data(LandclassQueryData &data) { this->data = data; }
+
+  int query(const Point3 &world_pos, const Point3 &grav_dir);
   GpuReadbackResultState getQueryResult(int query_id, HeightmapQueryResult &result);
 
 private:
@@ -95,10 +99,45 @@ void HeightmapQueryCtx::beforeDeviceReset() { grqSystem->beforeDeviceReset(); }
 
 void HeightmapQueryCtx::afterDeviceReset() { grqSystem->afterDeviceReset(); }
 
-int HeightmapQueryCtx::query(const Point2 &world_pos_2d)
+static int landclass_check(const Point3 &world_pos, const Point3 &grav_dir, const LandclassQueryData &data)
 {
+  float max_dot = -1.0f;
+  int max_index = -1;
+
+  Point3 grav_dir_normalized = normalize(grav_dir);
+
+  for (int i = 0; i < data.landclass_gravs.size(); i++)
+  {
+    Point3 landclass_grav = data.landclass_gravs[i];
+    Point3 diff = world_pos - Point3(data.pos_radiusSqr[i].x, data.pos_radiusSqr[i].y, data.pos_radiusSqr[i].z);
+    float distSqr = diff * diff;
+
+    float dot = grav_dir_normalized * landclass_grav;
+    if (dot > max_dot && dot > 0.9f && distSqr < data.pos_radiusSqr[i].w)
+    {
+      max_dot = dot;
+      max_index = i;
+    }
+  }
+
+  Point3 default_grav_dir = Point3(0, -1, 0);
+  float dot = grav_dir_normalized * default_grav_dir;
+  if (dot > max_dot && dot > 0.9f)
+  {
+    max_dot = dot;
+    max_index = -1;
+  }
+
+  return max_index < 0 ? -1 : data.indices[max_index];
+}
+
+int HeightmapQueryCtx::query(const Point3 &world_pos, const Point3 &grav_dir)
+{
+  int landclass_index = landclass_check(world_pos, grav_dir, data);
+
   HeightmapQueryInput input;
-  input.worldPos2d = world_pos_2d;
+  input.worldPos = world_pos;
+  input.riLandclassIndex = landclass_index;
   return grqSystem->query(input);
 }
 
@@ -133,11 +172,34 @@ void heightmap_query::update()
   heightmap_query_ctx->update();
 }
 
-
-int heightmap_query::query(const Point2 &world_pos_2d)
+void heightmap_query::update_landclass_data(LandclassQueryData &data)
 {
   HEIGHTMAP_QUERY_BLOCK;
-  return heightmap_query_ctx ? heightmap_query_ctx->query(world_pos_2d) : -1;
+  if (!heightmap_query_ctx)
+    return;
+
+  heightmap_query_ctx->set_landclass_data(data);
+}
+
+int heightmap_query::query(const Point3 &world_pos, const Point3 &grav_dir = Point3(0, -1, 0))
+{
+  HEIGHTMAP_QUERY_BLOCK;
+  return heightmap_query_ctx ? heightmap_query_ctx->query(world_pos, grav_dir) : -1;
+}
+
+GpuReadbackResultState heightmap_query::get_query_result(int query_id, HeightmapQueryResultWrapper &wrapped_result)
+{
+  HEIGHTMAP_QUERY_BLOCK;
+  HeightmapQueryResult result = {
+    .normal = Point3(0.0f, 0.0f, 0.0f), .hitDistNoOffset = 0.0f, .hitDistWithOffset = 0.0f, .hitDistWithOffsetDeform = 0.0f};
+  auto ret_val =
+    heightmap_query_ctx ? heightmap_query_ctx->getQueryResult(query_id, result) : GpuReadbackResultState::SYSTEM_NOT_INITIALIZED;
+
+  wrapped_result.hitDistNoOffset = result.hitDistNoOffset;
+  wrapped_result.hitDistWithOffset = result.hitDistWithOffset;
+  wrapped_result.hitDistWithOffsetDeform = result.hitDistWithOffsetDeform;
+  wrapped_result.normal = result.normal;
+  return ret_val;
 }
 
 GpuReadbackResultState heightmap_query::get_query_result(int query_id, HeightmapQueryResult &result)

@@ -6,6 +6,7 @@
 #include <streaming/dag_streamingBase.h>
 #include <scene/dag_visibility.h>
 #include <ioSys/dag_roDataBlock.h>
+#include <ioSys/dag_genIo.h>
 #include "decl.h"
 #include <debug/dag_debug.h>
 
@@ -17,7 +18,7 @@ public:
 
   SceneHolder() : skipEnviData(false) {}
 
-  virtual bool bdlCustomLoad(unsigned bindump_id, int tag, IGenLoad &crd, dag::ConstSpan<TEXTUREID> tex)
+  bool bdlCustomLoad(unsigned bindump_id, int tag, IGenLoad &crd, dag::ConstSpan<TEXTUREID> tex) override
   {
     if (bindump_id != 0xFFFFFFFF || skipEnviData)
       return BaseStreamingSceneHolder::bdlCustomLoad(bindump_id, tag, crd, tex);

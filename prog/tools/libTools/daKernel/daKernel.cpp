@@ -27,6 +27,7 @@ int pull_dll_sum =
   dll_pull_osapiwrappers_findFile + dll_pull_osapiwrappers_getRealFname + dll_pull_osapiwrappers_localCmp +
   dll_pull_osapiwrappers_cpuJobs + dll_pull_osapiwrappers_miscApi + dll_pull_osapiwrappers_simplifyFname +
   dll_pull_osapiwrappers_progGlobals + dll_pull_osapiwrappers_setThreadName + dll_pull_osapiwrappers_setTitle +
+  dll_pull_osapiwrappers_ip2str +
 #if _TARGET_PC_WIN
   dll_pull_osapiwrappers_winXSaveFeatures +
 #endif
@@ -38,7 +39,7 @@ int pull_dll_sum =
 
   dll_pull_kernel_cpuFreq + dll_pull_kernel_dagorHwExcept + dll_pull_kernel_debug + dll_pull_kernel_fatalerr +
   dll_pull_kernel_kernelGlobalSetting + dll_pull_kernel_log + dll_pull_kernel_debugDumpStack + dll_pull_kernel_cpu_control +
-  dll_pull_kernel_perfTimer +
+  dll_pull_kernel_perfTimer + dll_pull_perfMon_daProfilerLogDump +
 
   dll_pull_memory_dagmem + dll_pull_memory_mspaceAlloc + dll_pull_memory_framemem + dll_pull_memory_physmem +
 
@@ -55,7 +56,7 @@ int pull_dll_sum =
   dll_pull_baseutil_hierBitMem + dll_pull_baseutil_strImpl + dll_pull_baseutil_syncExecScheduler + dll_pull_baseutil_tabMem +
   dll_pull_baseutil_tabSorted + dll_pull_baseutil_restart + dll_pull_baseutil_texMetaData + dll_pull_baseutil_unicodeHlp +
   dll_pull_baseutil_threadPool + dll_pull_baseutil_watchdog + dll_pull_baseutil_delayedActions + dll_pull_baseutil_treeBitmap +
-  dll_pull_baseutil_lag + dll_pull_baseutil_fnameMap + dll_pull_baseutil_fileMd5Validate +
+  dll_pull_baseutil_lag + dll_pull_baseutil_fnameMap + dll_pull_baseutil_fileMd5Validate + dll_pull_baseutil_parallel_for +
 
   (int)hdr_render_mode + (int)hdr_render_format + (int)(intptr_t)occlusion_map +
 

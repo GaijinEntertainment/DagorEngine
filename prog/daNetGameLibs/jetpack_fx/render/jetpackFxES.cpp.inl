@@ -7,7 +7,7 @@
 
 #include "jetpackFx.h"
 #include "render/fx/fx.h"
-#include "render/fx/effectManager.h"
+#include <effectManager/effectManager.h>
 
 
 ECS_REGISTER_RELOCATABLE_TYPE(JetpackExhaust, nullptr);
@@ -52,13 +52,7 @@ static void jetpack_fx_es(const ecs::UpdateStageInfoAct &,
       nodeWtm = nodeWtm * makeTM(modQuat);
     }
     if (jetpack__active && !node.fx)
-    {
-      if (AcesEffect *fx = acesfx::start_effect(node.fxId, TMatrix::IDENT, nodeWtm, false))
-      {
-        node.fx = fx;
-        fx->lock();
-      }
-    }
+      acesfx::start_effect(node.fxId, TMatrix::IDENT, nodeWtm, false, -1.0f, &node.fx);
     if (node.fx)
     {
       if (!jetpack__active)

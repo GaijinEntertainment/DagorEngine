@@ -96,7 +96,8 @@ struct PkgDepMap
   bool validateAssetDeps(DagorAssetMgr &mgr, const DataBlock &expblk, const FastNameMap &pkg_list, unsigned targetCode,
     const char *profile, ILogWriter &log, bool strict)
   {
-    String ts(mkbindump::get_target_str(targetCode));
+    uint64_t tc_storage = 0;
+    const char *ts = mkbindump::get_target_str(targetCode, tc_storage);
     dag::ConstSpan<DagorAsset *> assets = mgr.getAssets();
     Tab<bool> expTypesMask(tmpmem);
     Tab<AssetPack *> tex_pack, res_pack;
@@ -124,6 +125,7 @@ struct PkgDepMap
 
     // clear marks for exported assets
     Tab<DagorAsset *> tmp_list(tmpmem);
+    Tab<IDagorAssetRefProvider::Ref> refs;
     for (int i = 0; i < tex_pack.size(); i++)
     {
       if (!tex_pack[i]->exported)
@@ -162,34 +164,35 @@ struct PkgDepMap
 
       if (IDagorAssetRefProvider *refProvider = mgr.getAssetRefProvider(assets[i]->getType()))
       {
-        dag::ConstSpan<IDagorAssetRefProvider::Ref> refs = refProvider->getAssetRefsEx(*assets[i], targetCode, profile);
-        for (int j = 0; j < refs.size(); j++)
+        refProvider->getAssetRefsEx(*assets[i], refs, targetCode, profile);
+        for (const auto &r : refs)
         {
           ILogWriter::MessageType l = log.NOTE;
-          bool opt_ref = (refs[j].flags & refProvider->RFLG_OPTIONAL);
-          bool ext_ref = (refs[j].flags & refProvider->RFLG_EXTERNAL) ||
-                         (exportable && refs[j].getAsset() && refs[j].getAsset()->getType() == mgr.getTexAssetTypeId());
+          unsigned j = &r - refs.data();
+          bool opt_ref = (r.flags & refProvider->RFLG_OPTIONAL);
+          bool ext_ref = (r.flags & refProvider->RFLG_EXTERNAL) ||
+                         (exportable && r.getAsset() && r.getAsset()->getType() == mgr.getTexAssetTypeId());
 
-          if (refs[j].flags & refProvider->RFLG_BROKEN)
+          if (r.flags & refProvider->RFLG_BROKEN)
             log.addMessage(l = ((opt_ref && !strict) ? log.WARNING : log.ERROR), "asset %s:%s has %s broken ref[%d]=<%s>",
-              assets[i]->getName(), assets[i]->getTypeStr(), opt_ref ? "optional" : "mandatory", j, refs[j].getBrokenRef());
-          else if (!refs[j].getAsset())
+              assets[i]->getName(), assets[i]->getTypeStr(), opt_ref ? "optional" : "mandatory", j, r.getBrokenRef());
+          else if (DagorAsset *a = r.getAsset())
           {
-            if (!opt_ref)
-              log.addMessage(l = log.ERROR, "asset %s:%s missing mandatory ref[%d]", assets[i]->getName(), assets[i]->getTypeStr(), j);
-          }
-          else
-          {
-            int ref = refs[j].getAsset()->testUserFlags(PACK_IDX_MASK);
+            int ref = a->testUserFlags(PACK_IDX_MASK);
             if (ref == PACK_IDX_MASK)
               continue;
             if (!dep.get(pkg * stride + ref))
               log.addMessage(l = (ext_ref ? log.ERROR : log.WARNING),
                 "asset %s:%s pkg=\"%s\" doesn't depend on \"%s\" for ref[%d]=<%s:%s>", assets[i]->getName(), assets[i]->getTypeStr(),
-                nm.getName(pkg), nm.getName(ref), j, refs[j].getAsset()->getName(), refs[j].getAsset()->getTypeStr());
-            else if (refs[j].getAsset()->testUserFlags(NON_EXPORT_BIT) && (ext_ref || expTypesMask[refs[j].getAsset()->getType()]))
+                nm.getName(pkg), nm.getName(ref), j, a->getName(), a->getTypeStr());
+            else if (a->testUserFlags(NON_EXPORT_BIT) && (ext_ref || expTypesMask[a->getType()]))
               log.addMessage(l = (ext_ref ? log.ERROR : log.WARNING), "asset %s:%s ref[%d]=<%s:%s> is not exported",
-                assets[i]->getName(), assets[i]->getTypeStr(), j, refs[j].getAsset()->getName(), refs[j].getAsset()->getTypeStr());
+                assets[i]->getName(), assets[i]->getTypeStr(), j, a->getName(), a->getTypeStr());
+          }
+          else
+          {
+            if (!opt_ref)
+              log.addMessage(l = log.ERROR, "asset %s:%s missing mandatory ref[%d]", assets[i]->getName(), assets[i]->getTypeStr(), j);
           }
           if (l == log.ERROR)
             err_cnt++;

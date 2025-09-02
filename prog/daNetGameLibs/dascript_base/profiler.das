@@ -1,7 +1,6 @@
 module profiler
 
 require ecs
-require app
 require daProfiler
 require debugapi
 
@@ -35,5 +34,5 @@ def profiler_agent(ctx : Context)
 
 [init, export]
 def init()
-  if app::get_game_name() != "aot" && !has_debug_agent_context(PROFILER_AGENT_NAME) && !is_in_aot() && !is_in_debug_agent_creation()
+  if !is_in_aot() && !has_debug_agent_context(PROFILER_AGENT_NAME) && !is_in_aot() && !is_in_debug_agent_creation()
     fork_debug_agent_context(@@profiler_agent)

@@ -23,22 +23,22 @@ public:
     G_ASSERT(mH > 0);
   }
 
-  virtual unsigned getTypeMaskForSet() const override
+  unsigned getTypeMaskForSet() const override
   {
     return CONTROL_CAPTION | CONTROL_DATA_TYPE_CONTROL_POINTS | CONTROL_DATA_TYPE_COLOR | CONTROL_DATA_TYPE_BOOL;
   }
 
-  virtual unsigned getTypeMaskForGet() const override { return CONTROL_DATA_TYPE_SPLINE_COEF; };
+  unsigned getTypeMaskForGet() const override { return CONTROL_DATA_TYPE_SPLINE_COEF; };
 
-  virtual void setCaptionValue(const char value[]) override { controlCaption = value; }
+  void setCaptionValue(const char value[]) override { controlCaption = value; }
 
-  virtual void setColorValue(E3DCOLOR value) override { curveControl.setColor(value); }
+  void setColorValue(E3DCOLOR value) override { curveControl.setColor(value); }
 
   // lock ends
-  virtual void setBoolValue(bool value) override { curveControl.setFixed(value); }
+  void setBoolValue(bool value) override { curveControl.setFixed(value); }
 
   // set approximation method
-  virtual void setIntValue(int value) override
+  void setIntValue(int value) override
   {
     // approximation
 
@@ -67,7 +67,7 @@ public:
   }
 
   // set Y borders
-  virtual void setMinMaxStepValue(float min, float max, float step) override
+  void setMinMaxStepValue(float min, float max, float step) override
   {
     switch ((int)floor(step))
     {
@@ -80,13 +80,13 @@ public:
   }
 
   // current X value line
-  virtual void setFloatValue(float value) override { curveControl.setCurValue(value); }
+  void setFloatValue(float value) override { curveControl.setCurValue(value); }
 
-  virtual void setEnabled(bool enabled) override { controlEnabled = enabled; }
+  void setEnabled(bool enabled) override { controlEnabled = enabled; }
 
-  virtual void getCurveCoefsValue(Tab<Point2> &points) const override { curveControl.getValue(points); }
+  void getCurveCoefsValue(Tab<Point2> &points) const override { curveControl.getValue(points); }
 
-  virtual bool getCurveCubicCoefsValue(Tab<Point2> &xy_4c_per_seg) const override
+  bool getCurveCubicCoefsValue(Tab<Point2> &xy_4c_per_seg) const override
   {
     const ICurveControlCallback *cb = curveControl.getCB();
     xy_4c_per_seg.clear();
@@ -95,9 +95,9 @@ public:
     return cb->getCoefs(xy_4c_per_seg);
   }
 
-  virtual void setControlPointsValue(Tab<Point2> &points) override { curveControl.setValue(points); }
+  void setControlPointsValue(Tab<Point2> &points) override { curveControl.setValue(points); }
 
-  virtual long onWcClipboardCopy(WindowBase *source, DataBlock &blk) override
+  long onWcClipboardCopy(WindowBase *source, DataBlock &blk) override
   {
     blk.reset();
     blk.setStr("DataType", "Curve");
@@ -108,7 +108,7 @@ public:
     return 1;
   }
 
-  virtual long onWcClipboardPaste(WindowBase *source, const DataBlock &blk) override
+  long onWcClipboardPaste(WindowBase *source, const DataBlock &blk) override
   {
     if (strcmp(blk.getStr("DataType", ""), "Curve") != 0)
       return 0;
@@ -133,7 +133,7 @@ public:
     return result;
   }
 
-  virtual void updateImgui() override
+  void updateImgui() override
   {
     ScopedImguiBeginDisabled scopedDisabled(!controlEnabled);
 

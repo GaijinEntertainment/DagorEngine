@@ -96,7 +96,7 @@ function scrollbar(scroll_handler, options={}) {
         ? scroll_handler.scrollToX(val)
         : scroll_handler.scrollToY(val)
 
-      onElemState = @(sf) stateFlags.update(sf)
+      onElemState = @(sf) stateFlags.set(sf)
     })
   }
 }

@@ -5,7 +5,7 @@
 #pragma once
 
 #include <osApiWrappers/dag_cpuJobs.h>
-#include <atomic>
+#include <osApiWrappers/dag_atomic_types.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <debug/dag_assert.h>
 #include <debug/dag_debug.h>
@@ -25,11 +25,11 @@ struct JobQueue
 #ifndef CACHE_LINE_SIZE
   static constexpr int CACHE_LINE_SIZE = 128; // std::hardware_destructive_interference_size is c++17!
 #endif
-  std::atomic<uint32_t> writeIndex = {0}; // LSB - partial write in progress. we can't read from it
-  uint32_t queueSizeMinusOne = ~0u;       // pow2
+  dag::AtomicInteger<uint32_t> writeIndex = {0}; // LSB - partial write in progress. we can't read from it
+  uint32_t queueSizeMinusOne = ~0u;              // pow2
   T *queue = nullptr;
-  char paddingToAvoidFalseSharing[CACHE_LINE_SIZE - sizeof(void *) - sizeof(uint32_t) * 2]; //-V730
-  std::atomic<uint32_t> readIndex = {0};                                                    // LSB is always 0
+  char paddingToAvoidFalseSharing[CACHE_LINE_SIZE - sizeof(void *) - sizeof(uint32_t) * 2] = {0};
+  dag::AtomicInteger<uint32_t> readIndex = {0}; // LSB is always 0
 
   void initQueue(T *mem, unsigned sz)
   {
@@ -97,7 +97,11 @@ struct JobQueue
         // interlocked_increment((volatile int&)writeIndex);
         //  No need to increment write index atomically. It is a
         //  a requierement of this queue that only one thred can push stuff in
-        writeIndex++;
+
+        // TODO: the comment above became untrue sometime around 2018, the increment implicitly became atomic
+        // due to std::atomic's operator overloading. Someone needs to take a good look at this code and decide
+        // what to do with it.
+        writeIndex.fetch_add(1);
         return currentWriteIndex;
       }
     }

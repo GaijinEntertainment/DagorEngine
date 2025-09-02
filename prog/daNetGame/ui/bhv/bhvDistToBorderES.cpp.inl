@@ -125,9 +125,9 @@ int BhvDistToBorder::update(UpdateStage /*stage*/, darg::Element *elem, float /*
     float minDistance = scriptDesc.RawGetSlotValue(strings->minDistance, -100);
     if (dist > minDistance)
     {
-      if (fabsf(float(atof(elem->props.text)) - floorf(dist + 0.5f)) > 1e-3)
+      if (fabsf(float(atof(elem->props.text.c_str())) - floorf(dist + 0.5f)) > 1e-3f)
         discard_text_cache(elem->robjParams);
-      elem->props.text.printf(8, "%.f", dist);
+      elem->props.text.sprintf("%.f", dist);
       elem->setHidden(false);
     }
     else

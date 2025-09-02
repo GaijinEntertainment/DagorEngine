@@ -6,6 +6,7 @@ dagdp_manager {
   "dagdp__dyn_shadows_manager:dagdp::DynShadowsManager"{ _tags:t="render" }
   "dagdp__riex_manager:dagdp::RiexManager"{ _tags:t="render" }
   "dagdp__heightmap_manager:dagdp::HeightmapManager"{ _tags:t="render" }
+  "dagdp__grass_manager:dagdp::GrassManager"{ _tags:t="render" }
   "dagdp__volume_manager:dagdp::VolumeManager"{ _tags:t="render" }
 }
 
@@ -19,9 +20,29 @@ dagdp_level_settings {
       value:i=0
       _info { desc:t="Maximum number of objects that can be placed." }
     }
-    "dagdp__use_heightmap_dynamic_objects:b"{
-      value:b=no
-      _info { desc:t="Use dynamic memory allocations for heightmap placement with respect to dagdp__max_objects. Allows to reduce memory consumption but memory budget must be controlled manually." }
+    "dagdp__max_triangles:i"{
+      value:i=1048576
+      _info { desc:t="Maximum number of triangles to place on." }
+    }
+    "dagdp__max_meshes:i"{
+      value:i=1024
+      _info { desc:t="Maximum number of meshes to place on." }
+    }
+    "dagdp__max_tiles:i"{
+      value:i=1024
+      _info { desc:t="Maximum number of ground tiles to place on." }
+    }
+    "dagdp__max_volumes:i"{
+      value:i=64
+      _info { desc:t="Maximum number of volumes." }
+    }
+    "dagdp__default_target_mesh_lod:i"{
+      value:i=2
+      _info { desc:t="Lod for meshes to place on." }
+    }
+    "dagdp__grass_max_range:r" {
+      value:r=10
+      _hide:b=yes
     }
   }
 }
@@ -49,7 +70,7 @@ dagdp_object_group {
   "dagdp_object_group:tag"{}
   _track:b=yes
   "dagdp__params:object"{
-    _info { desc:t="An object with the following (optional) fields:\n- weight:r=1\n- scale:p2=1,0 // Scale: base value and deviation.\n- rot_y:p2=0,180 // Yaw (first rotation, around object axis Y): base value and deviation. Unit: degrees.\n- rot_x:p2=0,0 // Pitch (second rotation, around object axis X): base value and deviation. Unit: degrees.\n- rot_z:p2=0,0 // Roll (third rotation, around object axis Z): base value and deviation. Unit: degrees.\n- orientation:t='world' // One of: 'world', 'world_xz', 'normal', 'normal_xz'. Selects initial orientation: object axis Y will be either world Y, or surface normal. Object axis X will be either world X, or looking toward the surface downward slope.\n- heightmap_imitators:t='allow' // One of: 'allow' (no restriction), 'require' (placement only on imitator), 'reject' (placement only on the original heightmap).\n- water_placement:b=no // Placement on water instead of terrain. Terrain related params like 'slope_factor' or 'heightmap_imitators' will be ignored.\n- slope_factor:r=0 // Control the strength of slope effect: skip objects for more vertical (or horizontal, when inverted) surfaces.\n- slope_invert:b=no // Invert the slope effect.\n- delete_on_deform:b=yes // Delete the object when ridden over by a vehicle. \n- density_mask_channel:t='red' // If the density mask is set, which channel to use for this object. ('invalid' -> do not use mask, 'red', 'green', 'blue', 'alpha')" }
+    _info { desc:t="An object with the following (optional) fields:\n- weight:r=1\n- scale:p2=1,0 // Scale: base value and deviation.\n- rot_y:p2=0,180 // Yaw (first rotation, around object axis Y): base value and deviation. Unit: degrees.\n- rot_x:p2=0,0 // Pitch (second rotation, around object axis X): base value and deviation. Unit: degrees.\n- rot_z:p2=0,0 // Roll (third rotation, around object axis Z): base value and deviation. Unit: degrees.\n- orientation:t='world' // One of: 'world', 'world_xz', 'normal', 'normal_xz'. Selects initial orientation: object axis Y will be either world Y, or surface normal. Object axis X will be either world X, or looking toward the surface downward slope.\n- heightmap_imitators:t='allow' // One of: 'allow' (no restriction), 'require' (placement only on imitator), 'reject' (placement only on the original heightmap).\n- water_placement:b=no // Placement on water instead of terrain. Terrain related params like 'slope_factor' or 'heightmap_imitators' will be ignored.\n- slope_factor:r=0 // Control the strength of slope effect: skip objects for more vertical (or horizontal, when inverted) surfaces.\n- slope_invert:b=no // Invert the slope effect.\n- delete_on_deform:b=yes // Delete the object when ridden over by a vehicle." }
   }
 }
 
@@ -94,6 +115,22 @@ dagdp_has_jitter {
   }
 }
 
+dagdp_has_sample_range {
+  _track:b=yes
+  "dagdp__sample_range:r"{
+    value:r=-1
+    _info { desc:t="If greater than 0, will sample 3 points in that range to get position and normal, instead of usual 1." }
+  }
+}
+
+dagdp_has_placement_map {
+  _track:b=yes
+  "dagdp__placement_noise_scale:r"{
+    value:r=0.101
+    _info { desc:t="World space scale of the noise used to select objects by weight. Make sure this is different from grid cell size!" }
+  }
+}
+
 dagdp_has_seed {
   _track:b=yes
   "dagdp__seed:i"{
@@ -107,6 +144,8 @@ dagdp_placer_heightmap {
   _use:t="dagdp_has_biomes"
   _use:t="dagdp_has_density"
   _use:t="dagdp_has_jitter"
+  _use:t="dagdp_has_sample_range"
+  _use:t="dagdp_has_placement_map"
   _use:t="dagdp_has_seed"
   "dagdp_placer_heightmap:tag"{}
   _group {
@@ -123,6 +162,26 @@ dagdp_placer_heightmap {
       value:r=1
       _info { desc:t="Changes the reference area (see dagdp__density) by adjusting the reference cell's side length. World-space units (normally meters). Useful for cases when precise control over the grid is needed. Intended to be used with dagdp__density = 1, but both can also be used simultaneously." }
     }
+    "dagdp__density_mask_channel_weights:p4"{
+      value:p4=0, 0, 0, 0
+      _info { desc:t="Weights for each channel of the density mask.\nIf the weight is 0, then that channel of the mask is not used.\nThe densities from each channel are multiplied together to arrive at the combined density read from the mask.\n(And for each channel the weight is used as: `lerp(1, maskval, weight)`, in other words the value is interpolated between 1 and the maskval based on the weight)" }
+    }
+    "dagdp__heightmap_use_decals:b"{
+      value:b=no
+      _info { desc:t="Whether to overwrite biome with one from decals." }
+    }
+    "dagdp__discard_on_grass_erasure:b"{
+      value:b=yes
+      _info { desc:t="Whether to discard objects when erasing grass in their area. This happens, for example, when digging or after a bomb explosion" }
+    }
+    "dagdp__displacement_strength:r"{
+      value:r=0
+      _info { desc:t="How much placed objects are moved horizontally by the displacement noise, in addition to jitter." }
+    }
+    "dagdp__displacement_noise_scale:r"{
+      value:r=1
+      _info { desc:t="World space scale of the displacement noise." }
+    }
   }
   _info { desc:t="Will place objects on the heightmap." }
 }
@@ -135,17 +194,68 @@ dagdp_object_group_riex {
   _info { desc:t="Will render one of the specified RendInst Extra assets, when used in a rule." }
 }
 
-dagdp_placer_volume {
+dagdp_has_min_triangle_area {
+  _track:b=yes
+  "dagdp__volume_min_triangle_area:r"{
+    value:r=0
+    _info { desc:t="Minimum area of the mesh triangles used for placement." }
+  }
+}
+
+dagdp_has_axis {
+  _track:b=yes
+  "dagdp__volume_axis:p3"{
+    value:p3=0, 1, 0
+    _info { desc:t="Axis that the normal is compared to." }
+  }
+  "dagdp__volume_axis_local:b"{
+    value:b=no
+    _info { desc:t="Whether the axis is in local volume coordinates instead of world space." }
+  }
+  "dagdp__volume_axis_abs:b"{
+    value:b=no
+    _info { desc:t="If enabled, the direction of the axis doesn't matter." }
+  }
+}
+
+dagdp_has_distance_based_scale {
+  _track:b=yes
+  "dagdp__distance_based_scale:p2"{
+    value:p2=1, 1
+    _info { desc:t="Starting and ending scale factors." }
+  }
+  "dagdp__distance_based_range:r"{
+    value:r=1
+    _info { desc:t="Range in local volume space." }
+  }
+  "dagdp__distance_based_center:p3"{
+    value:p3=0, 0, 0
+    _info { desc:t="Center of distance-based scaling in local volume space." }
+  }
+}
+
+dagdp_has_target_mesh_lod {
+  _track:b=yes
+  "dagdp__target_mesh_lod:i"{
+    value:i=-1
+    _info { desc:t="Optional Lod for meshes placed on by the placer." }
+  }
+}
+
+dagdp_placer_on_meshes {
   _use:t="dagdp_placer"
   _use:t="dagdp_has_density"
+  _use:t="dagdp_has_min_triangle_area"
+  _use:t="dagdp_has_axis"
+  _use:t="dagdp_has_distance_based_scale"
+  _use:t="dagdp_has_target_mesh_lod"
+  "dagdp_placer_on_meshes:tag"{}
+}
+
+dagdp_placer_volume {
+  _use:t="dagdp_placer_on_meshes"
   "dagdp_placer_volume:tag"{}
-  _group {
-    _track:b=yes
-    "dagdp__volume_min_triangle_area:r"{
-      value:r=0
-      _info { desc:t="Minimum area of the mesh triangles used for placement." }
-    }
-  }
+  _use:t="dagdp_has_sample_range"
   _info { desc:t="Will place objects on geometry inside volumes that reference this placer." }
 }
 
@@ -184,4 +294,69 @@ dagdp_volume_cylinder {
   "dagdp_volume_cylinder:tag"{}
   "box_zone:tag"{} // For daEditorE's visualization as a box (cylinder is approximated by a box).
   _info { desc:t="A cylindrical volume, inside which a referenced placer will place objects." }
+}
+
+dagdp_has_resource_names {
+  _track:b=yes
+  "dagdp__resource_names:list<t>"{
+    _info { desc:t="List of RendInst resource names to place on." }
+  }
+  "dagdp__resource_ids:list<i>"{
+    _hide:b=yes
+  }
+}
+
+dagdp_placer_on_ri {
+  _use:t="dagdp_placer_on_meshes"
+  _use:t="dagdp_has_resource_names"
+  "dagdp_placer_on_ri:tag"{}
+  _info { desc:t="Will place objects on specified RendInst assets." }
+}
+
+dagdp_placer_around_ri {
+  _use:t="dagdp_placer_on_meshes"
+  _use:t="dagdp_has_resource_names"
+  _use:t="dagdp_has_sample_range"
+  "dagdp_placer_around_ri:tag"{}
+  "dagdp__volume_box_eids:list<eid>"{
+    _hide:b=yes
+  }
+  "dagdp__volume_sphere_eids:list<eid>"{
+    _hide:b=yes
+  }
+  "dagdp__volume_cylinder_eids:list<eid>"{
+    _hide:b=yes
+  }
+  _info { desc:t="Will place objects around specified RendInst assets, using local volumes that reference this placer." }
+}
+
+dagdp_local_volume_box {
+  _use:t="dagdp_volume"
+  "dagdp_local_volume_box:tag"{}
+  "box_zone:tag"{} // For daEditorE's visualization as a box.
+  _info { desc:t="A box volume, inside which a referenced placer will place objects." }
+}
+
+dagdp_local_volume_sphere {
+  _use:t="dagdp_volume"
+  "dagdp_local_volume_sphere:tag"{}
+  _track:b=yes
+  sphere_zone__radius:r=0.5 // For daEditorE's visualization as a sphere.
+  _info { desc:t="A spherical (more precisely, an ellipsoid) volume, inside which a referenced placer will place objects." }
+}
+
+dagdp_local_volume_cylinder {
+  _use:t="dagdp_volume"
+  "dagdp_local_volume_cylinder:tag"{}
+  "box_zone:tag"{} // For daEditorE's visualization as a box (cylinder is approximated by a box).
+  _info { desc:t="A cylindrical volume, inside which a referenced placer will place objects." }
+}
+
+
+dagdp_placer_grass {
+  _use:t="dagdp_placer"
+  _use:t="dagdp_has_density"
+  _use:t="dagdp_has_biomes"
+  "dagdp_placer_grass:tag"{}
+  _info { desc:t="Will place grass on the heightmap." }
 }

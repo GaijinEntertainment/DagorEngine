@@ -1,0 +1,305 @@
+include "get_mix_weight_inc.dshl"
+
+macro WEIGHT_BLENDING(stage)
+hlsl(stage) {
+  half3 normalize_blending_weights(half3 weights)
+  {
+    return weights * rcp(dot(weights, 1));
+  }
+
+  half3 get_blending_weights_for_height(half3 weights, half3 initialHeight)
+  {
+    return normalize_blending_weights(initialHeight * weights + weights * 0.0001);
+  }
+
+  half3 get_blending_weights(half3 weights, half3 initialHeight)
+  {
+    half3 height14 = get_blending_weights_for_height(weights, initialHeight);
+    height14 = pow16_vec4(height14.xyzz).xyz;
+    height14 = saturate(height14 - 0.0000000002f);//0.25^16/2 is maximum!
+    return normalize_blending_weights(height14);
+  }
+}
+endmacro
+
+macro DETAIL_WEIGHTS_BLENDING(stage)
+hlsl(stage) {
+  half2 GetWeights(half4 detailColor1, half4 detailColor2, half alpha, half2 invert_heights)
+  {
+        half2 weights = half2(alpha, 1 - alpha);
+        half2 height14;
+        half2 initialHeight = half2(detailColor1.a, detailColor2.a);
+        initialHeight = lerp(initialHeight, 1 - initialHeight, invert_heights);
+        height14 = initialHeight * weights + weights * 0.0001;
+        half invHeightsSum;
+        invHeightsSum = rcp(dot(height14, 1));
+        height14 *= invHeightsSum;
+        height14 = pow16_vec4(height14.xyxy).xy;
+        height14 = saturate(height14 - 0.0000000002f);//0.25^16/2 is maximum!
+        invHeightsSum = rcp(dot(height14, 1));
+        weights = height14*invHeightsSum;
+        return weights;
+  }
+}
+endmacro
+
+macro INIT_LAYERED(always_use_normal_details)
+  texture tex = material.texture.diffuse;
+  texture normal = material.texture[2];
+  texture tex1 = material.texture[3];
+  texture tex2 = material.texture[5];
+  if (always_use_normal_details || (normal != NULL && compatibility_mode == compatibility_mode_off))
+  {
+    texture normal1 = material.texture[4];
+    texture normal2 = material.texture[6];
+  }
+endmacro
+
+macro USE_LAYERED_PS(always_use_normal_details)
+  (ps) {
+    diffuse_tex@static = tex;
+    normal_tex@static = normal;
+    diffuse_tex1@static = tex1;
+    diffuse_tex2@static = tex2;
+  }
+  if (always_use_normal_details || (normal != NULL && compatibility_mode == compatibility_mode_off))
+  {
+    (ps) {
+      normal_tex1@static = normal1;
+      normal_tex2@static = normal2;
+    }
+  }
+endmacro
+
+macro INIT_LAYERED_FULL(always_use_normal_details)
+  if (two_sided)
+  {
+    cull_mode = none;
+  }
+
+  texture mask_tex = material.texture[1];
+  INIT_LAYERED(always_use_normal_details)
+
+  channel float3 pos = pos;//half4?
+  //channel half4 pos=pos;
+  channel color8 norm = norm unsigned_pack;
+  channel short2 tc[0]=tc[0] mul_4k;
+  channel short2 tc[1]=tc[1] mul_4k;
+  channel short2 tc[2]=tc[2] mul_4k;
+
+
+  static float detail2_colored = 0;
+  static float detail1_tile_u = 1;
+  static float detail1_tile_v = 1;
+  static float detail2_tile_u = 1;
+  static float detail2_tile_v = 1;
+  static float detail2_scroll_u = 1;
+  static float detail2_scroll_v = 1;
+  static float mask_tile_u = 1;
+  static float mask_tile_v = 1;
+  static float mask_gamma_start = 0.5;
+  static float mask_gamma_end = 2.0;
+
+  static float atlas_tile_u = 1.0; //atlas_tile_size_x
+  static float atlas_tile_v = 1.0; //atlas_tile_size_y
+  static int atlas_first_tile = 0;
+  static int atlas_last_tile = 0;
+  static float4 paint_details = (0, 0, 0, 0);
+  static int palette_index = 1;
+  static int gpu_object_id = -1 no_warnings;
+
+  (vs) {
+    maskGamma__detail2Colored@f4 = ((mask_gamma_end - mask_gamma_start-0.001), mask_gamma_start+0.001, detail2_colored,0);
+    maskTile__detail2Scroll@f4 = (mask_tile_u, mask_tile_v, detail2_scroll_u, detail2_scroll_v);
+    detailTile@f4 = (detail1_tile_u, detail1_tile_v, detail2_tile_u, detail2_tile_v);
+    atlas_tileSize__interval@f4 = (atlas_tile_u, atlas_tile_v, atlas_first_tile, (atlas_last_tile-atlas_first_tile+1));
+  }
+endmacro
+
+macro RANDOM_UV_OFFSET(stage)
+  hlsl(stage) {
+    static const float4 uv_scroll_rnd_scale = float4(2.7883, 3.1415, 2.4135, 1.61428);
+    float2 get_random_uv_offset(in float3 instance_pos)
+    {
+      float2 flooredWorld = floor(float2(dot(instance_pos.xz + instance_pos.y, uv_scroll_rnd_scale.xy), dot(instance_pos.xz + instance_pos.y, uv_scroll_rnd_scale.zw)));
+      float2 rndUV = frac(flooredWorld.xx * uv_scroll_rnd_scale.xy + flooredWorld.yy * uv_scroll_rnd_scale.zw);
+      rndUV += frac(flooredWorld.yy * uv_scroll_rnd_scale.xy + flooredWorld.xx * uv_scroll_rnd_scale.zw);
+      return rndUV;
+    }
+  }
+endmacro
+
+macro LAYERED_VS_FUNCTIONS()
+  RANDOM_UV_OFFSET(vs)
+  hlsl(vs) {
+    void layered_transform_uvs_with_random_offset(in VsOutput output, in float3 instance_init_pos, inout float2 uv0mask_zw, inout float4 uv_detail, inout float pointToEye_w)
+    {
+      float2 rndUV = get_random_uv_offset(instance_init_pos);
+
+      uv0mask_zw += rndUV;
+      uv_detail.zw += rndUV.xy * get_maskTile__detail2Scroll().zw; //scroll only 2nd detail
+
+      pointToEye_w += frac(rndUV.x*11.1+rndUV.y*13.39)*get_maskGamma__detail2Colored().x+get_maskGamma__detail2Colored().y;
+    }
+
+    void apply_atlas_transform(in float3 instance_init_pos, inout float2 uv12_xy)
+    {
+      //apply atlas random tile selection (changes only uv12.xy)
+      //atlas_tile_size = whole tex size / one tile size
+      //atlas_tiles_interval - each objects has an interval of allowed tiles (first_tile & tiles_count)
+      //if atlas has an offset (if atlas is just a part of texture), then atlas_first_tile should take into consideration this fact
+      float2 uv_inside_tile = frac(uv12_xy / get_atlas_tileSize__interval().xy) * get_atlas_tileSize__interval().xy;
+      float obj_unique_index = floor(dot(instance_init_pos.xz, instance_init_pos.xz));
+      float tile_i = get_atlas_tileSize__interval().z + fmod(obj_unique_index, get_atlas_tileSize__interval().w);
+      float row_i = floor(tile_i * get_atlas_tileSize__interval().x);
+      float coll_i = tile_i - row_i / get_atlas_tileSize__interval().x;
+      float2 tile_ij = float2(coll_i, row_i) * get_atlas_tileSize__interval().xy;
+      uv12_xy = tile_ij + uv_inside_tile;
+    }
+  }
+endmacro
+
+macro LAYERED_HEIGHTMAP_PS()
+  hlsl(ps) {
+    void heightmap_ps(VsOutput input INPUT_VFACE)
+    {
+      #if SET_UP_MULTIDRAW
+        SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET(input));
+      #endif
+      half3 worldVertexNormal = MUL_VFACE(input.normal_transparency.xyz);
+      half3 worldPos = world_view_pos.xyz - input.pointToEye.xyz;
+
+      // Normal maps are required for correct blending, but this requires performance overhead, so this assumption is used
+      half3 worldNormal = normalize(worldVertexNormal);
+
+      #if (!RI_HMAP_BLEND_ON)
+        #error "Hmap blending should be enabled"
+      #endif
+
+      half blendKoef = calcLandBlendKoef(input.riHmapBlend, worldPos, worldNormal, worldNormal, getWorldHeight(worldPos.xz));
+      if (blendKoef >= 1)
+        discard;
+    }
+  }
+endmacro
+
+macro LAYERED_PS(is_normal_pass)
+  hlsl(ps) {
+    #ifndef SAMPLE_TEX
+      #define SAMPLE_TEX(tex, tc) tex2DBindless(tex, tc)
+    #endif
+    static const float modulation_detail2_alpha_inv_weight = 0.85;
+
+    #ifdef FORCE_EARLY_DEPTH_STENCIL
+      FORCE_EARLY_DEPTH_STENCIL
+    #endif
+
+    #if VOXELIZE_ALBEDO_PASS
+      void simple_ps(VsOutput input INPUT_VFACE HW_USE_SCREEN_POS)
+    #else
+      GBUFFER_OUTPUT simple_ps(VsOutput input INPUT_VFACE HW_USE_SCREEN_POS)
+    #endif
+    {
+      #if SET_UP_MULTIDRAW
+        SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET(input));
+      #endif
+      #ifdef VOXELIZE_DISCARD_PRIM
+        VOXELIZE_DISCARD_PRIM
+      #endif
+
+      half4 baseColor = SAMPLE_TEX(get_diffuse_tex(), input.uv12.xy);
+      half4 mask      = SAMPLE_TEX(get_mask_tex(), input.uv0mask.zw); //input.
+      half4 detailColor1 = SAMPLE_TEX(get_diffuse_tex1(), input.uv_detail.xy);
+      half4 detailColor2 = SAMPLE_TEX(get_diffuse_tex2(), input.uv_detail.zw);
+      half3 worldVertexNormal = MUL_VFACE(input.normal_transparency.xyz);
+
+      half weight = pow(mask.g, input.pointToEye.w)*baseColor.a;
+      half weight2 = get_mix_weight(detailColor1.a, detailColor2.a, weight);
+
+      //modulate detail2 color (fade modulation according to detail2.a)
+      float detail2a_weight = lerp(modulation_detail2_alpha_inv_weight, 1.0, detailColor2.a);
+
+      half3 point2EyeNrm = normalize(input.pointToEye.xyz);
+
+      half4 baseNormalMap = SAMPLE_TEX(get_normal_tex(), input.uv0mask.xy);
+      half4 detailNormal1 = SAMPLE_TEX(get_normal_tex1(), input.uv_detail.xy);
+      half4 detailNormal2 = SAMPLE_TEX(get_normal_tex2(), input.uv_detail.zw);
+
+      half3 d1n = unpack_ag_normal(detailNormal1);
+      half3 d2n = unpack_ag_normal(detailNormal2);
+
+      half3 worldNormal = blend_normals_worldspace(
+        unpack_ag_normal(baseNormalMap), d1n, d2n, weight2,
+        input.normal_transparency.xyz, input.pointToEye.xyz,  input.uv0mask.xy, input.uv_detail);
+
+
+      #if COLOR_NEEDED
+        float3 paint_details_col = input.colorMul;
+        detailColor1.rgb = lerp(detailColor1.rgb, detailColor1.rgb*paint_details_col, get_paint_details().x);
+        detailColor2.rgb = lerp(detailColor2.rgb, detailColor2.rgb*paint_details_col, get_paint_details().y);
+      #endif
+      half reflectance1 = 0.5;
+      half reflectance2 = 0.5;
+
+      #if !VOXELIZE_ALBEDO_PASS
+      BRANCH
+      if (character_micro_detail_layer1 >= 0)
+      {
+        apply_character_micro_detail1(sample_character_micro_detail1(input.uv_detail.xy*get_character_micro_detail_scale1().xy, character_micro_detail_layer1),
+          detailColor1.rgb, detailNormal1.rgb, reflectance1, detailNormal1.r);
+      }
+
+      BRANCH
+      if (character_micro_detail_layer2 >= 0)
+      {
+        apply_character_micro_detail2(sample_character_micro_detail2(input.uv_detail.zw*get_character_micro_detail_scale2().xy, character_micro_detail_layer2),
+          detailColor2.rgb, detailNormal2.rgb, reflectance2, detailNormal2.r);
+      }
+      #endif
+
+      #if USE_TOP_PROJECTION
+        apply_top_projection(worldNormal, detailColor1, detailColor2, weight, weight2, baseColor.rgb);
+      #endif
+
+      half4 detailColor = lerp(detailColor1, detailColor2, weight2);
+      //half3 diffuseColor = overlay_linear_gamma22(baseColor, detailColor);
+      //half3 diffuseColor = overlay_srgb_midpoint_linear(baseColor, detailColor);
+      half3 diffuseColor = baseColor.rgb * detailColor.rgb * COLOR_CORRECTION_MULTIPLIER;
+
+      half specularStr = lerp(detailNormal1.r, detailNormal2.r, weight2);
+      half smoothness = specularStr;
+      half metalness = lerp(detailNormal1.b, detailNormal2.b, weight2);
+      half ao = 1;
+      float3 worldPos = world_view_pos.xyz - input.pointToEye.xyz;
+      half reflectance = 0.5;
+
+      ##if (is_normal_pass && compatibility_mode == compatibility_mode_off)
+        apply_wetness_by_two_microdetails(character_micro_detail_layer1, character_micro_detail_layer2, weight2, worldPos, diffuseColor.rgb, worldNormal, reflectance, smoothness, ao);
+      ##endif
+
+      #if VOXELIZE_ALBEDO_PASS
+        WRITE_SCENE25D_VOXEL_DATA(worldPos, diffuseColor.rgb, 0, 0);
+      #else
+        UnpackedGbuffer gbuffer;
+        init_gbuffer(gbuffer);
+
+        init_smoothness(gbuffer, smoothness);
+        init_metalness(gbuffer, metalness);
+        init_normal(gbuffer, worldNormal);
+        init_ao(gbuffer, ao);
+
+        init_albedo(gbuffer, diffuseColor.rgb);
+
+        float4 screenpos = GET_SCREEN_POS(input.pos);
+
+        #if RI_HMAP_BLEND_ON
+          blend_with_landscape(gbuffer, screenpos, worldPos, normalize(worldVertexNormal), input.pointToEye.xyz, input.riHmapBlend);
+        #endif
+        #ifdef PLOD_PS_GEN
+          PLOD_PS_GEN(input, pack_gbuffer(gbuffer), baseNormalMap)
+        #endif
+        return encode_gbuffer(gbuffer, input.pointToEye.xyz, screenpos);
+      #endif
+    }
+  }
+endmacro

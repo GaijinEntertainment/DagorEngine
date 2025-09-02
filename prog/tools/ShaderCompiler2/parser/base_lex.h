@@ -16,7 +16,6 @@ public:
     tab_size = 8;
     got_creturn = false;
   }
-  // virtual Terminal *get_token()=0;
 
   virtual int get_token() = 0;
   // Warning! This pointer is valid only before next get_token called (or analyzer is dead)
@@ -27,8 +26,12 @@ public:
 
   virtual void set_error(const char *text) = 0;
   virtual void set_error(int file, int line, int col, const char *text) = 0;
+  virtual void set_warning(const char *text) = 0;
   virtual void set_warning(int file, int line, int col, const char *text) = 0;
-  virtual void set_warning(const char *text) { set_error(text); };
+  virtual void set_message(const char *text) = 0;
+  virtual void set_message(int file, int line, int col, const char *text) = 0;
+  virtual void set_debug_message(const char *text) = 0;
+  virtual void set_debug_message(int file, int line, int col, const char *text) = 0;
 
   virtual void set_cur_line(int) = 0;
   virtual void set_cur_column(int) = 0;

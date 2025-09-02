@@ -25,6 +25,7 @@ void close_stateblocks();
 void close_shader_block_stateblocks(bool final);
 void close_vprog();
 void close_fshader();
+void close_cshader();
 void close_global_constbuffers();
 void lock_block_critsec();
 void unlock_block_critsec();

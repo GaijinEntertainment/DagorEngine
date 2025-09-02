@@ -71,7 +71,7 @@ let mkToolboxTooltip = function(tt_obj, tt_text, dx, tb_state) {
   return @() {
     size = [0,0]
     watch = [tb_state.tooltipShow]
-    children = tb_state.tooltipShow.value && tb_state.tooltipElem == tt_obj ? {
+    children = tb_state.tooltipShow.get() && tb_state.tooltipElem == tt_obj ? {
       pos = [dx, 0]
       hplace = ALIGN_RIGHT
 

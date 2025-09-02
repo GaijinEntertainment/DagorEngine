@@ -1,1 +1,11 @@
 include "hardware_defines.dshl"
+
+hlsl(ps) {
+  half3 restore_normal(half2 xy)
+  {
+    half3 normal;
+    normal.xy = xy*2-1;
+    normal.z = sqrt(saturate(1-dot(normal.xy,normal.xy)));
+    return normal;
+  }
+}

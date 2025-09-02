@@ -29,7 +29,12 @@
 #include "rtm/impl/detect_cpp_version.h"
 
 #if RTM_CPP_VERSION >= RTM_CPP_VERSION_20
-	#include <bit>
+	#if __has_include(<bit>)
+		#include <bit>
+	#endif
+#endif
+#if defined(__clang__) && !defined(__cpp_lib_bit_cast)
+	#include <type_traits>
 #endif
 
 RTM_IMPL_FILE_PRAGMA_PUSH
@@ -44,9 +49,17 @@ namespace rtm
 		// C++20 introduced std::bit_cast which is safer than reinterpret_cast
 		//////////////////////////////////////////////////////////////////////////
 
-	#if RTM_CPP_VERSION >= RTM_CPP_VERSION_20
+	#if RTM_CPP_VERSION >= RTM_CPP_VERSION_20 && defined(__cpp_lib_bit_cast) && __cpp_lib_bit_cast >= 201806L
 		using std::bit_cast;
-	#else
+	#elif defined(__clang__)
+		template <class dest_type_t, class src_type_t,
+		std::enable_if_t<std::conjunction_v<std::bool_constant<sizeof(dest_type_t) == sizeof(src_type_t)>,
+				std::is_trivially_copyable<dest_type_t>, std::is_trivially_copyable<src_type_t>>, int> = 0>
+		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE constexpr dest_type_t bit_cast(src_type_t input) noexcept
+		{
+			return __builtin_bit_cast(dest_type_t, input);
+		}
+  #else
 		template<class dest_type_t, class src_type_t>
 		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE constexpr dest_type_t bit_cast(src_type_t input) noexcept
 		{

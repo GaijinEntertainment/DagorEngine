@@ -9,6 +9,7 @@ struct GpuDriverConfig : GpuUserConfig
 
   bool forceFullscreenToWindowed;
   bool flushBeforeSurvey;
+  bool flushBeforeSepAblendAndBlendFactorForRT1 = false;
 };
 
 const GpuDriverConfig &get_gpu_driver_cfg();

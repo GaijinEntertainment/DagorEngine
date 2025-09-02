@@ -11,7 +11,7 @@ AddIncludes =
 ;
 
 Sources =
-  ScnExportPlugin.cpp
+  scnExportPlugin.cpp
   main.cpp
 ;
 UseProgLibs =

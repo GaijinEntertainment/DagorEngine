@@ -1,0 +1,537 @@
+include "dafx_helpers.dshl"
+include "dafx_shaders.dshl"
+include "shader_global.dshl"
+include "fom_shadows.dshl"
+include "clustered/lights_cb.dshl"
+include "dynamic_lights_count.dshl"
+include "flexible_scale_rasterization.dshl"
+include "vr_reprojection.dshl"
+
+int modfx_debug_render = 0;
+interval modfx_debug_render : off < 1, on;
+
+int modfx_wboit_enabled = 0;
+interval modfx_wboit_enabled : off < 1, on;
+
+int fx_apply_volfog_per_pixel = 0;
+interval fx_apply_volfog_per_pixel: no < 1, yes; // must be disabled explicitly for WT compat for lack of UAV
+
+int fx_has_volfog_injection = 0;
+interval fx_has_volfog_injection: no < 1, yes;
+
+int rendering_distortion_color = 0;
+interval rendering_distortion_color: no < 1, yes;
+
+int fom_double_intensity = 0;
+interval fom_double_intensity: no < 1, yes;
+
+int modfx_bboard_lighting_from_clustered_lights = 0;
+interval modfx_bboard_lighting_from_clustered_lights: no < 1, yes;
+
+texture wboit_color;
+texture wboit_alpha;
+
+texture haze_scene_depth_tex;
+float haze_scene_depth_tex_lod;
+
+float modfx_wboit_depth_offset = 20;
+
+float fx_discard_alpha_threshold = 1.0/255;
+float fx_discard_color_threshold = 1.0/255;
+
+define_macro_if_not_defined DAFX_USE_CLOUD_SHADOWS()
+endmacro
+
+int dafx_modfx_g_tex_0_const_no = 10;
+int dafx_modfx_g_tex_1_const_no = 11;
+
+interval modfx_shader: not_set<1, dafx_modfx_bboard_render<2, dafx_modfx_ribbon_render<3, dafx_modfx_ribbon_render_side_only<4, dafx_modfx_bboard_render_atest<5,
+  dafx_modfx_bboard_distortion<6 , dafx_modfx_ribbon_distortion<7, dafx_modfx_ribbon_distortion_side_only<8, dafx_modfx_bboard_thermals<9,
+  dafx_modfx_bboard_render_fom<10, dafx_modfx_bboard_rain<11, dafx_modfx_bboard_rain_distortion<12, dafx_modfx_volshape_render<13, dafx_modfx_volshape_thermal<14,
+  dafx_modfx_volshape_wboit_render<15, dafx_modfx_bboard_volfog_injection<16, dafx_modfx_bboard_render_xray<17, dafx_modfx_bboard_water_fx;
+assume modfx_shader = not_set;
+
+macro GET_MODFX_SHADER_INTERVAL_BOOL(shader_name)
+  bool shader_name = modfx_shader == shader_name;
+endmacro
+
+macro PREPARE_MODFX_SHADER(shader_to_use)
+  G_ASSERT(modfx_shader == not_set || modfx_shader == shader_to_use,
+    "PREPARE_MODFX_SHADER: Invalid macro initialization.")
+
+  assume modfx_shader = shader_to_use;
+  GET_MODFX_SHADER_INTERVAL_BOOL(dafx_modfx_bboard_render)
+  GET_MODFX_SHADER_INTERVAL_BOOL(dafx_modfx_ribbon_render)
+  GET_MODFX_SHADER_INTERVAL_BOOL(dafx_modfx_ribbon_render_side_only)
+  GET_MODFX_SHADER_INTERVAL_BOOL(dafx_modfx_bboard_render_atest)
+  GET_MODFX_SHADER_INTERVAL_BOOL(dafx_modfx_bboard_distortion)
+  GET_MODFX_SHADER_INTERVAL_BOOL(dafx_modfx_ribbon_distortion)
+  GET_MODFX_SHADER_INTERVAL_BOOL(dafx_modfx_ribbon_distortion_side_only)
+  GET_MODFX_SHADER_INTERVAL_BOOL(dafx_modfx_bboard_thermals)
+  GET_MODFX_SHADER_INTERVAL_BOOL(dafx_modfx_bboard_render_fom)
+  GET_MODFX_SHADER_INTERVAL_BOOL(dafx_modfx_bboard_rain)
+  GET_MODFX_SHADER_INTERVAL_BOOL(dafx_modfx_bboard_rain_distortion)
+  GET_MODFX_SHADER_INTERVAL_BOOL(dafx_modfx_volshape_render)
+  GET_MODFX_SHADER_INTERVAL_BOOL(dafx_modfx_volshape_thermal)
+  GET_MODFX_SHADER_INTERVAL_BOOL(dafx_modfx_volshape_wboit_render)
+  GET_MODFX_SHADER_INTERVAL_BOOL(dafx_modfx_bboard_volfog_injection)
+  GET_MODFX_SHADER_INTERVAL_BOOL(dafx_modfx_bboard_render_xray)
+  GET_MODFX_SHADER_INTERVAL_BOOL(dafx_modfx_bboard_water_fx)
+
+  ENABLE_ASSERT(ps)
+  if (fx_apply_volfog_per_pixel == yes && !(dafx_modfx_bboard_distortion || dafx_modfx_ribbon_distortion || dafx_modfx_ribbon_distortion_side_only || dafx_modfx_bboard_rain_distortion || dafx_modfx_bboard_render_fom))
+  {
+    hlsl
+    {
+      #define MODFX_USE_FOG_PS_APPLY 1
+    }
+  }
+
+  (ps)
+  {
+    fx_discard_alpha_threshold@f1 = fx_discard_alpha_threshold;
+    fx_discard_color_threshold@f1 = fx_discard_color_threshold;
+    fx_discard_color_threshold_gamma@f1 = pow(fx_discard_color_threshold, 2.2);
+  }
+
+  z_test = true;
+  cull_mode = none;
+
+  DAFXEX_USE_SHADOW()
+  DAFXEX_USE_GI()
+
+  hlsl
+  {
+    #define MODFX_USE_LIGHTING 1
+    #if MOBILE_DEVICE || MODFX_BBOARD_MOBILE_LIGHTING
+      #define SIMPLIFIED_VS_LIGHTING 1
+    #else
+      #define SIMPLIFIED_VS_LIGHTING 0
+    #endif
+    #define MODFX_USE_FRAMEBLEND 1
+    #define MODFX_USE_MOTION_VECS 1
+    #define MODFX_USE_DEPTH_MASK 1
+    #define MODFX_USE_COLOR_MATRIX 1
+    #define MODFX_USE_COLOR_REMAP 1
+    #define MODFX_USE_PACK_HDR 1
+    #define MODFX_USE_FOG 1
+  }
+
+  if (dafx_modfx_ribbon_render || dafx_modfx_ribbon_render_side_only || dafx_modfx_ribbon_distortion || dafx_modfx_ribbon_distortion_side_only )
+  {
+    hlsl
+    {
+      #define MODFX_RIBBON_SHAPE 1
+    }
+
+    if (dafx_modfx_ribbon_render_side_only || dafx_modfx_ribbon_distortion_side_only)
+    {
+      hlsl
+      {
+        #define MODFX_RIBBON_SHAPE_IS_SIDE_ONLY 1
+      }
+    }
+    else
+    {
+      hlsl
+      {
+        #define MODFX_RIBBON_SHAPE_IS_SIDE_ONLY 0
+      }
+    }
+  }
+
+  if ( modfx_debug_render == on )
+  {
+    z_write = false;
+    z_test = false;
+
+    blend_src=one;
+    blend_dst=one;
+
+    blend_asrc=one;
+    blend_adst=one;
+
+    hlsl { #define MODFX_DEBUG_RENDER_ENABLED 1 }
+  }
+  else if ( dafx_modfx_bboard_render || dafx_modfx_bboard_rain || dafx_modfx_ribbon_render || dafx_modfx_ribbon_render_side_only || dafx_modfx_bboard_render_xray)
+  {
+    z_write = false;
+
+    if (dafx_modfx_bboard_render_xray)
+    {
+      z_test = false;
+      hlsl
+      {
+        #define MODFX_SHADER_XRAY 1
+
+        #undef MODFX_USE_DEPTH_MASK
+        #undef MODFX_USE_LIGHTING
+        #undef HAS_STATIC_SHADOW
+        #undef MODFX_USE_SHADOW
+        #undef MODFX_USE_GI
+        #undef MODFX_USE_FOG
+        #undef MODFX_USE_PACK_HDR
+      }
+    }
+    else
+    {
+      DAFX_USE_CLOUD_SHADOWS()
+    }
+
+    blend_src=one;
+    blend_dst=isa;
+
+    blend_asrc=zero;
+    blend_adst=isa;
+  }
+  else if ( dafx_modfx_bboard_water_fx )
+  {
+    z_write = false;
+    z_test = false;
+
+    hlsl
+    {
+      #define MODFX_SHADER_WATER_FX 1
+
+      #undef MODFX_USE_DEPTH_MASK
+      #undef MODFX_USE_LIGHTING
+      #undef HAS_STATIC_SHADOW
+      #undef MODFX_USE_SHADOW
+      #undef MODFX_USE_GI
+      #undef MODFX_USE_FOG
+      #undef MODFX_USE_PACK_HDR
+    }
+
+    if (compatibility_mode == compatibility_mode_off)
+    {
+      hlsl { #define MODFX_WATER_FX_OUTPUT_DETAILS 1 }
+    }
+
+    // Blend color and detail parameters according to FxBlending
+    blend_src[0]=one;
+    blend_dst[0]=isa;
+
+    blend_asrc[0]=zero;
+    blend_adst[0]=isa;
+
+    blend_src[2]=one;
+    blend_dst[2]=isa;
+
+    blend_asrc[2]=zero;
+    blend_adst[2]=isa;
+
+    // Add hmap, allow interference.
+    blend_src[1]=one;
+    blend_dst[1]=one;
+
+  }
+  else if ( dafx_modfx_volshape_render || dafx_modfx_volshape_thermal )
+  {
+    z_write = false;
+    blend_src=one;
+    blend_dst=isa;
+
+    blend_asrc=zero;
+    blend_adst=isa;
+
+    if (modfx_wboit_enabled == on)
+    {
+      (ps)
+      {
+        wboit_color@smp2d = wboit_color;
+        wboit_alpha@smp2d = wboit_alpha;
+      }
+    }
+    else
+    {
+      if ( dafx_modfx_volshape_thermal )
+      {
+        hlsl
+        {
+          #define MODFX_SHADER_THERMALS 1
+          #undef MODFX_USE_LIGHTING
+          #undef MODFX_USE_SHADOW
+          #undef MODFX_USE_GI
+          #include "fx_thermals_render.hlsl"
+        }
+      }
+    }
+
+    hlsl
+    {
+      #define MODFX_SHADER_VOLSHAPE 1
+      #undef MODFX_USE_DEPTH_MASK
+
+      ##if modfx_wboit_enabled == on
+        #define MODFX_SHADER_VOLSHAPE_WBOIT_APPLY 1
+      ##endif
+    }
+  }
+  else if ( dafx_modfx_volshape_wboit_render )
+  {
+    z_write = false;
+    blend_src=one;
+    blend_dst=one;
+    blend_asrc=zero;
+    blend_adst=isa;
+
+    DAFX_USE_CLOUD_SHADOWS()
+    hlsl
+    {
+      #define MODFX_SHADER_VOLSHAPE_WBOIT 1
+      #define MODFX_WBOIT_ENABLED 1
+      #undef MODFX_USE_DEPTH_MASK
+    }
+
+    (ps)
+    {
+      modfx_wboit_depth_offset@f1 = (modfx_wboit_depth_offset);
+    }
+  }
+  else if ( dafx_modfx_bboard_render_atest )
+  {
+    z_write = false;
+    blend_src=one;
+    blend_dst=zero;
+    blend_asrc=zero;
+    blend_adst=isa;
+
+    USE_ATEST_HALF()
+    DAFX_USE_CLOUD_SHADOWS()
+    hlsl { #define MODFX_SHADER_ATEST 1 }
+  }
+  else if (  dafx_modfx_bboard_distortion || dafx_modfx_ribbon_distortion || dafx_modfx_ribbon_distortion_side_only || dafx_modfx_bboard_rain_distortion)
+  {
+    z_write  =true;
+    blend_src[0]=one;
+    blend_dst[0]=one;
+
+    blend_asrc[0]=one;
+    blend_adst[0]=one;
+
+    blend_src[1] = 1; blend_dst[1] = 1;
+    blend_op[1] = max; // reverse depth
+
+    (ps)
+    {
+      haze_scene_depth_tex@smp2d = haze_scene_depth_tex;
+      haze_scene_depth_tex_lod@f1 = (haze_scene_depth_tex_lod);
+    }
+
+    if (rendering_distortion_color == yes)
+    {
+      hlsl
+      {
+        #define MODFX_SHADER_DISTORTION_IS_COLORED 1
+      }
+    }
+
+    hlsl
+    {
+      #undef DAFXEX_USE_REACTIVE_MASK
+      #define DAFXEX_USE_REACTIVE_MASK 0 // Disable reactive mask for distortions, since they apply after txaa
+
+      #define MODFX_SHADER_DISTORTION 1
+      #define MODFX_USE_DEPTH_OUTPUT 1
+
+      #undef HAS_STATIC_SHADOW
+      #undef MODFX_USE_SHADOW
+      #undef MODFX_USE_LIGHTING
+      #undef MODFX_USE_GI
+      #undef MODFX_USE_FRAMEBLEND
+      #undef MODFX_USE_MOTION_VECS
+      #undef MODFX_USE_DEPTH_MASK
+      #undef MODFX_USE_COLOR_MATRIX
+      #undef MODFX_USE_COLOR_REMAP
+      #undef MODFX_USE_PACK_HDR
+      #undef MODFX_USE_FOG
+    }
+  }
+  else if ( dafx_modfx_bboard_thermals )
+  {
+    z_write = false;
+    blend_src=one;
+    blend_dst=isa;
+
+    blend_asrc=zero;
+    blend_adst=isa;
+
+    hlsl
+    {
+      #define MODFX_SHADER_THERMALS 1
+      #undef MODFX_USE_LIGHTING
+      #undef MODFX_USE_SHADOW
+      #undef MODFX_USE_GI
+      #include "fx_thermals_render.hlsl"
+    }
+  }
+
+  else if ( dafx_modfx_bboard_volfog_injection )
+  {
+    if (fx_has_volfog_injection == no)
+    {
+      dont_render;
+    }
+
+    z_test = false;
+    z_write = false;
+
+    (ps)
+    {
+      view_inscatter_volume_resolution@f3 = (volfog_froxel_volume_res.x, volfog_froxel_volume_res.y, volfog_froxel_volume_res.z, 0);
+      view_inscatter_inv_range@f1 = volfog_froxel_range_params.y;
+      volfog_ff_initial_media_rw@uav : register(volfog_ff_initial_media_const_no) hlsl {
+        #define VOLFOG_FF_INITIAL_MEDIA RWTexture3D<float4> volfog_ff_initial_media_rw@uav;
+      }
+    }
+    hlsl(ps)
+    {
+      VOLFOG_FF_INITIAL_MEDIA;
+    }
+
+    hlsl
+    {
+      #define MODFX_SHADER_VOLFOG_INJECTION 1
+
+      #undef HAS_STATIC_SHADOW
+      #undef MODFX_USE_SHADOW
+      #undef MODFX_USE_LIGHTING
+      #undef MODFX_USE_GI
+      #undef MODFX_USE_PACK_HDR
+      #undef MODFX_USE_FOG
+      #undef MODFX_USE_DEPTH_MASK
+    }
+  }
+
+
+  else if ( dafx_modfx_bboard_render_fom )
+  {
+    z_write = false;
+    blend_src=one;
+    blend_dst=one;
+
+    hlsl
+    {
+      #define MODFX_SHADER_FOM 1
+      #undef HAS_STATIC_SHADOW
+      #undef MODFX_USE_SHADOW
+      #undef MODFX_USE_LIGHTING
+      #undef MODFX_USE_GI
+      #undef MODFX_USE_PACK_HDR
+      #undef MODFX_USE_FOG
+      #undef MODFX_USE_DEPTH_MASK
+      ##if fom_double_intensity == yes
+        #define FX_FOM_DOUBLE_INTESITY 1
+      ##endif
+      #include "fom_shadows_inc.hlsl"
+    }
+  }
+
+  DAFXEX_USE_PARTICLE_PLACEMENT()
+
+  if (dafx_modfx_bboard_rain || dafx_modfx_bboard_rain_distortion)
+  {
+    DAFXEX_USE_RAIN_CULLING()
+
+    hlsl
+    {
+      #define MODFX_RAIN 1
+    }
+  }
+
+
+  DAFX_RENDER_INIT()
+  DAFX_RENDER_USE()
+  DAFX_SCREEN_POS_TO_TC()
+  DECL_POSTFX_TC_VS_SCR()
+  DAFXEX_USE_SCENE_BLOCK()
+  DAFXEX_USE_DEPTH_MASK(ps)
+  DAFXEX_USE_HDR()
+  DAFXEX_USE_FOG()
+  USE_FSR(ps)
+
+  hlsl(vs)
+  {
+    // There is some bug in old adreno drivers (up to 512.420 version): vkCreateGraphicsPipelines can return null-handle with VK_OK result code.
+    // Disabling that optimization helps to work around the problem. So, do it for now.
+    ##if hardware.vulkan
+      #pragma spir-v optimizer disable convert-local-access-chains
+    ##endif
+  }
+
+  hlsl
+  {
+    #include "dafx_hlsl_funcs.hlsli"
+    #include "dafx_globals.hlsli"
+    #include "dafx_loaders.hlsli"
+    #include "dafx_packers.hlsli"
+    #include "dafx_random.hlsli"
+
+    #include "modfx/modfx_decl.hlsli"
+  }
+  if (modfx_debug_render == off && modfx_bboard_lighting_from_clustered_lights == yes && dynamic_lights_count != lights_off)
+  {
+    INIT_OMNI_LIGHTS_CB(vs)
+    INIT_SPOT_LIGHTS_CB(vs)
+    INIT_AND_USE_LIGHTS_CLUSTERED_CB(vs)
+    INIT_AND_USE_CLUSTERED_LIGHTS(vs)
+    INIT_AND_USE_COMMON_LIGHTS_SHADOWS_CB(vs)
+    INIT_AND_USE_LIGHT_SHADOWS(vs)
+    hlsl(vs)
+    {
+      #include "clustered/punctualLightsMath.hlsl"
+      #include "renderLights.hlsli"
+      #define MODFX_BBOARD_LIGHTING_FROM_CLUSTERED_LIGHTS 1
+    }
+  }
+
+  if (use_bounding_vr_reprojection == on)
+  {
+    INIT_BOUNDING_VIEW_REPROJECTION_VS()
+    USE_BOUNDING_VIEW_REPROJECTION_VS()
+    INIT_BOUNDING_VIEW_REPROJECTION_PS()
+    USE_BOUNDING_VIEW_REPROJECTION_PS()
+
+    hlsl {
+      float2 reproject_scattering(float2 tc, float raw_depth) { return vr_bounding_view_reproject_tc(tc, raw_depth); }
+    }
+  }
+  else
+  {
+    hlsl {
+      float2 reproject_scattering(float2 tc, float raw_depth) { return tc; }
+    }
+  }
+
+  (ps)
+  {
+    g_tex_0@smp2d : register(dafx_modfx_g_tex_0_const_no);
+    g_tex_1@smp2d : register(dafx_modfx_g_tex_1_const_no);
+  }
+endmacro
+
+macro USE_MODFX_UBERSHADER()
+  hlsl(vs)
+  {
+    #define FX_VS 1
+    #include "modfx/modfx_bboard_render.hlsl"
+    #undef FX_VS
+  }
+
+  hlsl(ps)
+  {
+    #define FX_PS 1
+    #include "modfx/modfx_bboard_render.hlsl"
+    #undef FX_PS
+  }
+
+  if (hardware.fsh_5_0)
+  {
+    compile( "ps_5_0", "dafx_bboard_ps" );
+  }
+  else
+  {
+    compile( "target_ps", "dafx_bboard_ps" );
+  }
+  compile( "target_vs", "dafx_bboard_vs" );
+endmacro

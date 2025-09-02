@@ -6,7 +6,7 @@ return {
     return ""
   }
   function setLanguageToSettings(_lang) {}
-  function loc(key, ...) {
+  function [pure] loc(key, ...) {
     assert(key == null || type(key) == "string", @() $"type of 'key' argument should be string")
     assert(vargv.len() <= 2)
     let def = vargv.findvalue(@(v) type(v)=="string")
@@ -15,11 +15,11 @@ return {
     assert(params==null || type(params) == "table", @() $"type of 'params' argument should be table")
     return def ?? key
   }
-  function doesLocTextExist(key) {
+  function [pure] doesLocTextExist(key) {
     assert("string" == type(key), @() $"type of argument should be one of: 'string'")
     return false
   }
-  function getLocTextForLang(key, lang) {
+  function [pure] getLocTextForLang(key, lang) {
     assert("string" == type(key), @() $"type of argument should be one of: 'string'")
     assert("string" == type(lang), @() $"type of argument should be one of: 'string'")
     return key
@@ -28,4 +28,6 @@ return {
     assert(["instance"].contains(type(a)), @() $"type of argument should be one of: 'instance'")
     assert(["string"].contains(type(b)), @() $"type of argument should be one of: 'string'")
   }
+  processHypenationsCN = @[pure](...) ""
+  processHypenationsJP = @[pure](...) ""
 }

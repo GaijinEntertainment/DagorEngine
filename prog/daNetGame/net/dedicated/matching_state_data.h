@@ -13,11 +13,6 @@ namespace dedicated_matching
 {
 namespace state_data
 {
-extern Json::Value room_info;
-extern matching::RoomId current_room_id;
-extern eastl::string room_secret;
-extern eastl::unordered_map<matching::UserId, Json::Value> room_members;
-extern int group_size; // 0 = unlimited
 extern bool (*generate_peer_auth)(matching::UserId user_id, void const *room_secret, size_t secret_size, matching::AuthKey &output);
 } // namespace state_data
 } // namespace dedicated_matching

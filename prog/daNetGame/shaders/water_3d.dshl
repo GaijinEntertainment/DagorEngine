@@ -1,5 +1,5 @@
 include "water_3d_geometry.dshl"
-include "water_3d_color.dshl"
+include "water_3d_color_dng.dshl"
 include "tonemapHelpers/use_full_tonemap_lut_inc.dshl"
 
 int use_satellite_rendering;
@@ -8,10 +8,6 @@ interval use_satellite_rendering: no<1, yes;
 shader water_nv2, water_nv2_heightmap
 {
   ENABLE_ASSERT(ps)
-  if (use_satellite_rendering == yes)
-  {
-    FULL_TONEMAP_LUT_APPLY(ps)
-  }
 
   if (hardware.metal && water_tess_factor != water_tess_factor_off)
   {
@@ -30,25 +26,60 @@ shader water_nv2, water_nv2_heightmap
     }
   }
 
-  if (in_editor_assume == no)
+  if (use_satellite_rendering == yes)
   {
-    USE_INDOOR_LIGHT_PROBES(ps, false)
+    bool colorPass = false;
+    WATER_3D_COMMON_VS()
+    WATER_3D_DEFERRED_COMMON_VS()
+    FULL_TONEMAP_LUT_APPLY(ps)
+    INIT_UNDERWATER_FOG(ps)
+    GET_UNDERWATER_FOG()
+  }
+  else
+  {
+    if (in_editor_assume == no)
+    {
+      USE_INDOOR_LIGHT_PROBES(ps, false)
+    }
+    bool colorPass = true;
+    INIT_SELECT_WATER_3D_DEFERRED_COLOR()
+    USE_SELECT_WATER_3D_DEFERRED_COLOR()
   }
 
-  INIT_WATER_3D_DEFERRED_COLOR()
-  USE_WATER_3D_DEFERRED_COLOR()
-
   hlsl(ps) {
-    float4 water_nv_ps(PS_INPUT In HW_USE_SCREEN_POS INPUT_VFACE) : SV_Target0
+    struct PsOutputReactiveMask
     {
+      float4 color : SV_Target0;
+      float reactive : SV_Target1;
+    };
+
+    ##if use_satellite_rendering == yes
+    float4 calc_water_color_from_ps_input_really_simple(PS_INPUT In HW_USE_SCREEN_POS INPUT_VFACE, half3 worldNormal)
+    {
+      //simple const color
+      float4 oceanColor = get_ocean_color(float2(0,0), 0);
+      return float4(oceanColor.xyz, 1);
+    }
+    ##endif
+
+    PsOutputReactiveMask water_nv_ps(PS_INPUT In HW_USE_SCREEN_POS INPUT_VFACE)
+    {
+      PsOutputReactiveMask result;
       half3 worldNormal = half3(0, 1, 0);
       ##if use_satellite_rendering == yes
         float4 waterCA = calc_water_color_from_ps_input_really_simple(In, vface, worldNormal);
         float3 ret = performLUTTonemap(waterCA.xyz);
-        return float4(ret,waterCA.w);
+        result.color = float4(ret,waterCA.w);
       ##else
-        return calc_water_color_from_ps_input(In, vface, worldNormal);
+        result.color = calc_water_color_from_ps_input(In, vface, worldNormal);
       ##endif
+      float4 screenpos = GET_SCREEN_POS(In.pos_clip);
+      float3 pointToEye = getPointToEye(screenpos.xy, screenpos.w);
+      float distSq = lengthSq(pointToEye.xz);
+      const float2 reactiveDistanceTransition = pow2(float2(200, 1000));
+      // There is some aliasing on the surface of the water in the distance, so reactive mask should drop off
+      result.reactive = pow2(saturate((distSq-reactiveDistanceTransition.y)/(reactiveDistanceTransition.x-reactiveDistanceTransition.y)));
+      return result;
     }
   }
 

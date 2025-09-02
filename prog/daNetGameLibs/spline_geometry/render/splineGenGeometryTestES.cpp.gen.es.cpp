@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "splineGenGeometryTestES.cpp.inl"
 ECS_DEF_PULL_VAR(splineGenGeometryTest);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc spline_gen_test_make_points_es_comps[] =
 {

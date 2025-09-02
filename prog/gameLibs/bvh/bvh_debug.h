@@ -20,55 +20,55 @@ enum class DebugMode
   GI,
   TwoSided,
   Paint,
+  IntersectionCount,
+  Instances,
 };
 
 struct MemoryStatistics
 {
-  int tlasSize;
-  int tlasUploadSize;
-  int scratchBuffersSize;
-  int transformBuffersSize;
-  int meshMetaSize;
+  int64_t tlasSize;
+  int64_t tlasUploadSize;
+  int64_t scratchBuffersSize;
+  int64_t transformBuffersSize;
+  int64_t meshMetaSize;
   int meshCount;
-  int meshBlasSize;
-  int meshVBSize;
-  int meshVBCopySize;
-  int meshIBSize;
+  int64_t meshBlasSize;
+  int64_t meshVBSize;
+  int64_t meshVBCopySize;
+  int64_t meshIBSize;
   int skinCount;
-  int skinBLASSize;
-  int skinVBSize;
+  int64_t skinBLASSize;
+  int64_t skinVBSize;
+  int skinCacheCount;
+  int64_t skinCacheBLASSize;
   int treeCount;
-  int treeBLASSize;
-  int treeVBSize;
+  int64_t treeBLASSize;
+  int64_t treeVBSize;
   int treeCacheCount;
-  int treeCacheBLASSize;
-  int dynamicVBAllocatorSize;
-  int terrainBlasSize;
-  int terrainVBSize;
-  int grassBlasSize;
-  int grassVBSize;
-  int grassIBSize;
-  int grassMetaSize;
-  int grassQuerySize;
-  int cableBLASSize;
-  int cableVBSize;
-  int cableIBSize;
-  int gobjMetaSize;
-  int gobjQuerySize;
+  int64_t treeCacheBLASSize;
+  int64_t dynamicVBAllocatorSize;
+  int64_t terrainBlasSize;
+  int64_t terrainVBSize;
+  int64_t grassBlasSize;
+  int64_t grassVBSize;
+  int64_t grassIBSize;
+  int64_t grassMetaSize;
+  int64_t grassQuerySize;
+  int64_t cableBLASSize;
+  int64_t cableVBSize;
+  int64_t cableIBSize;
+  int64_t gobjMetaSize;
+  int64_t gobjQuerySize;
   int blasCount;
-  int perInstanceDataSize;
-  int compactionSize;
-  int peakCompactionSize;
-  int atmosphereTextureSize;
-  int totalMemory;
-  int demoiserCommonSizeMB;
-  int demoiserAoSizeMB;
-  int demoiserReflectionSizeMB;
-  int demoiserTransientSizeMB;
+  int64_t perInstanceDataSize;
+  int64_t compactionSize;
+  int64_t peakCompactionSize;
+  int64_t atmosphereTextureSize;
+  int64_t totalMemory;
   int deathRowBufferCount;
-  int deathRowBufferSize;
+  int64_t deathRowBufferSize;
   int indexProcessorBufferCount;
-  int indexProcessorBufferSize;
+  int64_t indexProcessorBufferSize;
 };
 
 MemoryStatistics get_memory_statistics(ContextId context_id);

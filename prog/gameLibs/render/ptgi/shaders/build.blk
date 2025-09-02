@@ -1,0 +1,10 @@
+"@override:source" {
+  file:t = "../../../prog/gameLibs/render/ptgi/shaders/ptgi.dshl"
+}
+
+incDir:t="../../../prog/gameLibs/render/ptgi/shaders"
+incDir:t="../../../prog/3rdPartyLibs/NRD"
+incDir:t="../../../prog/3rdPartyLibs/NRD/Include"
+incDir:t="../../../prog/3rdPartyLibs/NRD/Resources"
+incDir:t="../../../prog/3rdPartyLibs/NRD/Source"
+incDir:t="../../../prog/3rdPartyLibs/math/MathLib"

@@ -125,6 +125,7 @@ void FpdBoneConstraintAction::save(DataBlock &blk, const GeomNodeTree &tree)
   {
     case DIRECTIONAL: blk.setStr("type", "directional"); break;
     case LENCONSTR: blk.setStr("type", "lenconstr"); break;
+    case HINGE: blk.setStr("type", "hinge"); break;
     default: logerr("BUG: unknow FastPhys bone type %d", type);
   }
 
@@ -145,6 +146,8 @@ bool FpdBoneConstraintAction::load(const DataBlock &blk, IFpdLoad &loader)
     type = DIRECTIONAL;
   else if (stricmp(s, "lenconstr") == 0)
     type = LENCONSTR;
+  else if (stricmp(s, "hinge") == 0)
+    type = HINGE;
   else
   {
     logerr("unknown FastPhys bone type '%s'", s);
@@ -210,6 +213,17 @@ void FpdBoneConstraintAction::exportAction(mkbindump::BinDumpSaveCB &cwr, IFpdEx
 
     cwr.writeReal(minLen / 100);
     cwr.writeReal(maxLen / 100);
+  }
+  else if (type == HINGE)
+  {
+    exp.countAction();
+    cwr.writeInt32e(FastPhys::AID_HINGE_CONSTRAINT);
+    cwr.writeInt32e(index1);
+    cwr.writeInt32e(index2);
+    cwr.writeReal(damping);
+    cwr.write32ex(&limitAxis, sizeof(limitAxis));
+    cwr.writeReal(cosf(DegToRad(limitAngle)));
+    cwr.writeDwString(exp.getNodeName(boneObj->ctrlAction->node));
   }
   else
     G_ASSERT(false);

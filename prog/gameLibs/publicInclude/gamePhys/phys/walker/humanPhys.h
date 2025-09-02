@@ -34,6 +34,8 @@ class GeomNodeTree;
 struct PrecomputedWeaponPositions;
 class ECSCustomPhysStateSyncer;
 
+// Be aware of adding new move states, a lot of logic relies on order in this enum assuming each state is faster than previous except
+// for EMS_ROTATE_!
 enum HUMoveState : uint8_t
 {
   EMS_STAND,
@@ -375,7 +377,10 @@ class HumanPhys final : public PhysicsBase<HumanPhysState, HumanControlState, Co
   DPoint3 ccdMove = {0.0, 0.0, 0.0};
   carray<carray<float, EMS_NUM>, ESS_NUM> walkSpeeds;
   carray<float, ESS_NUM> rotateSpeeds;
+
+public:
   carray<float, ESS_NUM> alignSpeeds;
+
   carray<Point2, ESS_NUM> rotateAngles;
   carray<float, EMS_NUM> fricitonByState;
   carray<float, EMS_NUM> accelerationByState;
@@ -411,7 +416,6 @@ class HumanPhys final : public PhysicsBase<HumanPhysState, HumanControlState, Co
   float ladderClimbSpeed = 1.f;
   float ladderQuickMoveUpSpeedMult = -1.0f;
   float ladderQuickMoveDownSpeedMult = -1.0f;
-  float ladderCheckClimbHeight = 1.9f;
   float ladderZeroVelocityHeight = 1.7f;
   float ladderMaxOverHeight = 0.1f;
 
@@ -419,6 +423,7 @@ class HumanPhys final : public PhysicsBase<HumanPhysState, HumanControlState, Co
 
   carray<Point3, ESS_NUM> collisionCenterPos;
   carray<Point3, ESS_NUM> ccdPos;
+  carray<Point3, ESS_NUM> gravityPivot;
   float maxObstacleHeight = 0.5f;
   float maxStepOverHeight = 0.0f;
   float maxCrawlObstacleHeight = 0.5f;
@@ -426,6 +431,10 @@ class HumanPhys final : public PhysicsBase<HumanPhysState, HumanControlState, Co
 
   Point2 forceDownReachDists = Point2(-1.0f, 0.0f);
   float forceDownReachVel = 0.f;
+
+  float lastCrawlingForceUpTime = 0.0f;
+  float lastCrawlingOutTimer = 0.0f;
+  float blockForceUpCrawlingTimer = 0.0f;
 
   float turnSpeedStill = TWOPI;
   float turnSpeedWalk = 1.5f * PI;
@@ -456,6 +465,8 @@ class HumanPhys final : public PhysicsBase<HumanPhysState, HumanControlState, Co
   float standSlideAngle = 50.f;
   float crawlSlideAngle = 35.f;
   float climbSlideAngle = 30.f;
+
+  float maxStepAngle = 74.0f;
 
   float crawlWalkNormTau = 0.2f;
 
@@ -497,8 +508,10 @@ class HumanPhys final : public PhysicsBase<HumanPhysState, HumanControlState, Co
   float fastClimbingMult = 2.f;
 
   float climbOverMaxHeight = -1.f; // < 0 disabled
+  float climbOverHeightThreshold = 0.1f;
   float climbOverForwardOffset = 0.7f;
   float climbOverMinHeightBehindObstacle = 0.5f;
+  float climbOverMaxHeightBehindObstacle = 2.0f;
   float climbOverStaticVelocity = 2.f;
 
   CollisionObject torsoCollision;
@@ -509,6 +522,8 @@ class HumanPhys final : public PhysicsBase<HumanPhysState, HumanControlState, Co
   Point3 sprintStopCollisionEnd;
   float sprintStopCollisionRad = 0.1f;
   bool enableSprintStopCollision = false;
+  bool limitCcdOnAttachingToExternalGun = false;
+  Point3 attachedToExternalGunCcdPos = Point3(0.1f, 0.4f, 0.0f);
 
   carray<dacoll::CollisionLinks, ESS_NUM> collisionLinks;
   bool isTorsoInWorld = true;
@@ -606,6 +621,7 @@ public:
   float walkRad = 0.2f;
   float collRad = 0.2f;
   float ccdRad = 0.2f;
+  float collideRiPosMinDiff = -1.f;
   float maxStamina = 100.f;
   int rayMatId = -1;
   eastl::unique_ptr<HumanCollision> humanCollision; // not null
@@ -624,11 +640,17 @@ public:
   float mass = 80.f;
 
   Point3 swimPosOffset = Point3(0.f, 1.2f, 0.f);
+  Point3 underwaterSwimPosOffset = Point3(0.f, 1.2f, 0.f);
 
   float waterSwimmingLevel = 1.2f;
   float swimmingAcceleration = 10.f;
   float swimmingLevelBias = 0.1f;
   float swimmingLookAngleSin = -0.2f;
+
+  float maxVerticalDirChangeCosine = -0.1;
+  float vertDirChangeTau = 0.3;
+
+  float ladderCheckClimbHeight = 1.9f;
 
   // TODO: move all of this to separate systems/subphys
   bool canCrawl = true;
@@ -640,6 +662,8 @@ public:
   bool canSwitchWeapon = true;
   bool isSimplifiedPhys = false;
   bool isSimplifiedQueryWalkPosition = false;
+  bool forcedSlidingIfWalkTraceFailed = false;
+  bool forcedIsInAir = false;
   bool hasGuns = true; // TODO: as above, move to a separate thing when we'll separate it into ecsphys
   bool hasExternalHeight = true;
   bool canFinishClimbing = true;
@@ -689,9 +713,12 @@ public:
   TMatrix calcGunTm(const TMatrix &tm, float gun_angles, float lean_pos, float height,
     PrecomputedPresetMode mode = PrecomputedPresetMode::TPV) const;
 
+  bool isGoProneAllowed() const { return lastCrawlingOutTimer <= 0.f; }
+
   Point3 calcCollCenter() const;
 
   Point3 calcCcdPos() const;
+  Point3 calcGravityPivot() const;
   virtual void setTmRough(TMatrix tm) override final;
 
   virtual void applyOffset(const Point3 &offset) override;

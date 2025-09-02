@@ -13,8 +13,9 @@
 #include <3d/dag_lowLatency.h>
 #include <startup/dag_globalSettings.h>
 
-#if _TARGET_GDK
-#include <osApiWrappers/gdk/queues.h>
+#if _TARGET_C4
+
+
 #endif
 
 #if _TARGET_PC_WIN
@@ -45,9 +46,7 @@ static bool pump_messages(bool input_only)
       if (!input_only)
         quit_game(msg.wParam);
     }
-    // Special message created by ReflexStats for latency measurement
-    if (lowlatency::feed_latency_input(msg.message))
-      continue;
+
     TranslateMessage(&msg);
     DispatchMessageW(&msg);
     were_events = true;
@@ -81,8 +80,17 @@ void dagor_process_sys_messages(bool input_only)
     ::perform_wnd_proc_components(NULL, 0, 0, 0, result);
   }
 
-#if _TARGET_GDK
-  gdk::dispatch_queue(gdk::get_default_queue());
+#if _TARGET_C4
+
+
+
+
+
+
+
+
+
+
 #endif
 
   if (::dgs_dont_use_cpu_in_background && !::dgs_app_active)

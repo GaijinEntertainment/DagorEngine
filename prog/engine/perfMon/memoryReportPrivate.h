@@ -44,15 +44,12 @@ struct BackendList
 
 #define MEMORYREPORT_PULL_VAR_NAME(name) DAG_CONCAT(memory_report_pull_, name)
 
-#define PULL_MEMORYREPORT_BACKEND(name)                 \
-  namespace memoryreport                                \
-  {                                                     \
-  extern int MEMORYREPORT_PULL_VAR_NAME(name);          \
-  }                                                     \
-  void pull_memoryreport_##name()                       \
-  {                                                     \
-    memoryreport::MEMORYREPORT_PULL_VAR_NAME(name) = 1; \
-  }
+#define PULL_MEMORYREPORT_BACKEND(name)        \
+  namespace memoryreport                       \
+  {                                            \
+  extern int MEMORYREPORT_PULL_VAR_NAME(name); \
+  }                                            \
+  void pull_memoryreport_##name() { memoryreport::MEMORYREPORT_PULL_VAR_NAME(name) = 1; }
 
 #define REGISTER_MEMORYREPORT_BACKEND(name, backend) \
   namespace memoryreport                             \

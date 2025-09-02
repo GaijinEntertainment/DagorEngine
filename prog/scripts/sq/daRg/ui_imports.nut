@@ -1,16 +1,15 @@
+import "%sqstd/log.nut" as logLib
+from "%sqstd/string.nut" import tostring_r
 from "%sqstd/frp.nut" import Watched, Computed, ComputedImmediate, FRP_INITIAL, FRP_DONT_CHECK_NESTED, set_nested_observable_debug, make_all_observables_immutable, isObservable, isComputed
-
-let {tostring_r} = require("%sqstd/string.nut")
-let logLib = require("%sqstd/log.nut")
 
 let log = logLib([
   {
     compare = @(val) isObservable(val)
-    tostring = @(val) "Watched: {0}".subst(tostring_r(val.value,{maxdeeplevel = 3, splitlines=false}))
+    tostring = @(val) "Watched: {0}".subst(tostring_r(val.get(),{maxdeeplevel = 3, splitlines=false}))
   }
   {
     compare = @(val) isComputed(val)
-    tostring = @(val) "Computed: {0}".subst(tostring_r(val.value,{maxdeeplevel = 3, splitlines=false}))
+    tostring = @(val) "Computed: {0}".subst(tostring_r(val.get(),{maxdeeplevel = 3, splitlines=false}))
   }
   {
     compare = @(val) type(val)=="instance" && "formatAsString" in val
@@ -42,10 +41,10 @@ let frpExtras = {
   make_all_observables_immutable
 }
 
-return require("daRg").__merge(
+return freeze(require("daRg").__merge(
   require("darg_library.nut")
   require("%sqstd/functools.nut")
   logs
   frpExtras
   {Behaviors = require("daRg.behaviors")}
-)
+))

@@ -107,7 +107,7 @@ static BMGError ReadUncompressedChannel(struct BMGImageStruct *img,
     I have only 2 test images for this format (1 PSD_INDEXED and 1 PSD_RGB ).
     All other modes have not been tested.
 */
-BMGError ReadPSD(IGenLoad &file, struct BMGImageStruct *img)
+BMGError ReadPSD(IGenLoad &file, struct BMGImageStruct *img, bool read_pixels)
 {
   struct PSDHeaderStruct header;
   union sigunion sigstring;
@@ -175,6 +175,8 @@ BMGError ReadPSD(IGenLoad &file, struct BMGImageStruct *img)
   img->height = header.rows;
   img->width = header.columns;
   img->palette_size = header.mode == PSD_RGB ? 0 : 256;
+  if (!read_pixels)
+    return BMG_OK;
 
   tmp = AllocateBMGImage(img);
   if (tmp != BMG_OK)

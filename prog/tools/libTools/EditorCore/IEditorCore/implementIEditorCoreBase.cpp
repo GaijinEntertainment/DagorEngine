@@ -3,6 +3,7 @@
 #include "implementIEditorCore.h"
 #include <EditorCore/captureCursor.h>
 #include <EditorCore/ec_ObjectCreator.h>
+#include <EditorCore/ec_wndGlobal.h>
 
 #include <drv/3d/dag_driver.h>
 #include <3d/dag_render.h>
@@ -51,7 +52,6 @@
 
 #include <fx/dag_hdrRender.h>
 
-#include <sepGui/wndGlobal.h>
 #include <gui/dag_stdGuiRender.h>
 
 
@@ -443,7 +443,7 @@ void EcConsole::showConsole(CoolConsole &con, bool activate) const { con.showCon
 
 
 //==================================================================================================
-void EcConsole::hideConsole(const CoolConsole &con) const { con.hideConsole(); }
+void EcConsole::hideConsole(const CoolConsole &con) const { const_cast<CoolConsole &>(con).hideConsole(); }
 
 
 //==================================================================================================

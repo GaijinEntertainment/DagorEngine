@@ -15,15 +15,17 @@ public:
   explicit FavoritesTab(IAssetSelectorFavoritesRecentlyUsedHost &tab_host, const DagorAssetMgr &asset_mgr) :
     favoritesTree(tab_host, asset_mgr), assetMgr(asset_mgr)
   {
-    closeIcon = (ImTextureID)((unsigned)PropPanel::load_icon("close_editor"));
-    searchIcon = (ImTextureID)((unsigned)PropPanel::load_icon("search"));
-    settingsIcon = (ImTextureID)((unsigned)PropPanel::load_icon("filter_default"));
-    settingsOpenIcon = (ImTextureID)((unsigned)PropPanel::load_icon("filter_active"));
+    closeIcon = PropPanel::load_icon("close_editor");
+    searchIcon = PropPanel::load_icon("search");
+    settingsIcon = PropPanel::load_icon("filter_default");
+    settingsOpenIcon = PropPanel::load_icon("filter_active");
   }
 
-  void fillTree() { favoritesTree.fillTree(); }
+  void fillTree(const DagorAsset *asset_to_select) { favoritesTree.fillTree(asset_to_select); }
 
   DagorAsset *getSelectedAsset() { return favoritesTree.getSelectedAsset(); }
+
+  void setSelectedAsset(const DagorAsset *asset) { favoritesTree.setSelectedAsset(asset); }
 
   void onAllowedTypesChanged(dag::ConstSpan<int> allowed_type_indexes)
   {
@@ -55,7 +57,7 @@ public:
     const bool searchInputChanged = PropPanel::ImguiHelper::searchInput(&searchInputFocusId, "##searchInput", "Filter and search",
       textToSearch, searchIcon, closeIcon, &inputFocused, &inputId);
 
-    PropPanel::set_previous_imgui_control_tooltip((const void *)inputId, AssetSelectorCommon::searchTooltip);
+    PropPanel::set_previous_imgui_control_tooltip((const void *)((uintptr_t)inputId), AssetSelectorCommon::searchTooltip);
 
     if (inputFocused)
     {
@@ -78,15 +80,15 @@ public:
     if (searchInputChanged)
     {
       favoritesTree.setSearchText(textToSearch);
-      favoritesTree.fillTree();
+      favoritesTree.fillTree(getSelectedAsset());
     }
 
     ImGui::SameLine();
     const char *popupId = "settingsPopup";
-    const ImTextureID settingsButtonIcon = settingsPanelOpen ? settingsOpenIcon : settingsIcon;
+    const PropPanel::IconId settingsButtonIcon = settingsPanelOpen ? settingsOpenIcon : settingsIcon;
     bool settingsButtonPressed =
       PropPanel::ImguiHelper::imageButtonWithArrow("settingsButton", settingsButtonIcon, fontSizedIconSize, settingsPanelOpen);
-    PropPanel::set_previous_imgui_control_tooltip((const void *)ImGui::GetItemID(), "Settings");
+    PropPanel::set_previous_imgui_control_tooltip((const void *)((uintptr_t)ImGui::GetItemID()), "Settings");
 
     if (settingsPanelOpen)
       showSettingsPanel(popupId);
@@ -132,7 +134,7 @@ private:
   void onShownTypeFilterChanged()
   {
     favoritesTree.setShownTypes(shownTypes);
-    favoritesTree.fillTree();
+    favoritesTree.fillTree(getSelectedAsset());
   }
 
   void showSettingsPanel(const char *popup_id)
@@ -158,7 +160,7 @@ private:
 
     bool showHierarchy = favoritesTree.getShowHierarchy();
     const bool showHierarchyPressed = PropPanel::ImguiHelper::checkboxWithDragSelection("Show hierarchy", &showHierarchy);
-    PropPanel::set_previous_imgui_control_tooltip((const void *)ImGui::GetItemID(),
+    PropPanel::set_previous_imgui_control_tooltip((const void *)((uintptr_t)ImGui::GetItemID()),
       "Show the favorite assets including their hierarchy.");
 
     if (showHierarchyPressed)
@@ -173,10 +175,10 @@ private:
   dag::Vector<bool> allowedTypes;
   dag::Vector<bool> shownTypes;
   String textToSearch;
-  ImTextureID closeIcon = nullptr;
-  ImTextureID searchIcon = nullptr;
-  ImTextureID settingsIcon = nullptr;
-  ImTextureID settingsOpenIcon = nullptr;
+  PropPanel::IconId closeIcon = PropPanel::IconId::Invalid;
+  PropPanel::IconId searchIcon = PropPanel::IconId::Invalid;
+  PropPanel::IconId settingsIcon = PropPanel::IconId::Invalid;
+  PropPanel::IconId settingsOpenIcon = PropPanel::IconId::Invalid;
   const bool searchInputFocusId = false; // Only the address of this member is used.
   bool settingsPanelOpen = false;
 };

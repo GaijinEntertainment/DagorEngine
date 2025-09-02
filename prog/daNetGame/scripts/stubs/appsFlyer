@@ -4,8 +4,10 @@ return {
   getAppsFlyerUID = @() ""
   setAppsFlyerCUID = @(_) null
   setAppsFlyerConsent = @(_,__,___) null
+  setAppsFlyerConsentData = @(_,__,___,____,_____) null
   startAppsFlyer = @() null
   getAppsFlyerDeepLink = @() "{}"
   clearAppsFlyerDeepLink = @() null
   triggerAppsFlyerDeepLink = @() null
+  setUserEmail = @(_) null
 }

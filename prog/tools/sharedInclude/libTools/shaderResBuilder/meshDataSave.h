@@ -53,7 +53,7 @@ public:
   void writeTexIdx(mkbindump::BinDumpSaveCB &cwr, dag::Span<TEXTUREID> map);
   void writeTexToBlk(DataBlock &dest);
 
-  int gettexindex(TEXTUREID);
+  int gettexindex(TEXTUREID) override;
 };
 
 // Helper class that saves shader materials.
@@ -86,13 +86,13 @@ public:
   void writeMatVdataCombinedNoMat(mkbindump::BinDumpSaveCB &);
   void writeMatToBlk(DataBlock &dest, ShaderTexturesSaver &texSaver, const char *mat_block_name);
 
-  int getmatindex(ShaderMaterial *);
+  int getmatindex(ShaderMaterial *) override;
 
   // add global vertex data
-  virtual void addGlobVData(GlobalVertexDataSrc *v);
+  void addGlobVData(GlobalVertexDataSrc *v) override;
 
   // get global vertex data index
-  virtual int getGlobVData(GlobalVertexDataSrc *v);
+  int getGlobVData(GlobalVertexDataSrc *v) override;
 
 protected:
   int hdrPos;

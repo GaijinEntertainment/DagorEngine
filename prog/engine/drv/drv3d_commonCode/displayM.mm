@@ -2,6 +2,8 @@
 
 #include <drv/3d/dag_driver.h>
 #include <drv/3d/dag_info.h>
+#include <startup/dag_globalSettings.h>
+#include <ioSys/dag_dataBlock.h>
 #if _TARGET_PC_MACOSX
 #import <AppKit/NSScreen.h>
 #import <Cocoa/Cocoa.h>
@@ -40,9 +42,11 @@ float d3d::get_display_scale() { return 1.f; }
 
 unsigned d3d::get_dedicated_gpu_memory_size_kb()
 {
-  size_t mem = 0;
-  mem = os_proc_available_memory() >> 11;
+  static const size_t totalMemKb = os_proc_available_memory() >> 10;
+  static const int cpuMemSize = ::dgs_get_settings()->getBlockByNameEx("iOS")->getInt("cpuReserveKb", 0);
+  if (cpuMemSize > 0)
+    return max(totalMemKb - cpuMemSize, (size_t)256000);
 
-  return mem;
+  return totalMemKb >> 1;
 }
 #endif

@@ -197,6 +197,26 @@ static BOOL CALLBACK enumEffectsCallback(LPCDIEFFECTINFO eff, LPVOID dev)
 
 #endif // DEBUG_DUMP_EFFECTS
 
+
+static BOOL CALLBACK detectHidUsage(const DIDEVICEOBJECTINSTANCE *pdidoi, VOID *pContext)
+{
+  Di8JoystickDevice &joy = *reinterpret_cast<Di8JoystickDevice *>(pContext);
+
+  static constexpr DWORD GENERIC_DESKTOP_PAGE = 0x01;
+  static constexpr uint16_t USAGE_GAMEPAD = 0x05;
+  bool isCollection = (pdidoi->dwType & DIDFT_COLLECTION) == DIDFT_COLLECTION;
+  if (isCollection && pdidoi->wUsagePage == GENERIC_DESKTOP_PAGE)
+  {
+    bool isGamepad = pdidoi->wUsage == USAGE_GAMEPAD;
+    debug("[HID] '%s' [%s] is %sgamepad", joy.getName(), joy.getDeviceID(), isGamepad ? "a " : "not a ");
+    joy.markAsGamepad(isGamepad);
+    return DIENUM_STOP;
+  }
+
+  return DIENUM_CONTINUE;
+}
+
+
 static BOOL CALLBACK enumJoysticksCallback(const DIDEVICEINSTANCE *pdidInstance, VOID *pContext)
 {
   Tab<Di8JoystickDevice *> &device = *reinterpret_cast<Tab<Di8JoystickDevice *> *>(pContext);
@@ -251,7 +271,18 @@ static BOOL CALLBACK enumJoysticksCallback(const DIDEVICEINSTANCE *pdidInstance,
   joyDev->setDeviceName(pdidInstance->tszInstanceName);
   joyDev->setId(device.size(), devNames.addNameId(pdidInstance->tszInstanceName) + 256);
 
-  hr = lpJoystick->EnumObjects(remap_360 ? enumObjSetLim : enumObjectsCallback, joyDev, DIDFT_ALL);
+  hr = lpJoystick->EnumObjects(detectHidUsage, joyDev, DIDFT_COLLECTION);
+  if (FAILED(hr))
+  {
+    HumanInput::printHResult(__FILE__, __LINE__, "EnumObjects", hr);
+
+    delete joyDev;
+    return DIENUM_CONTINUE;
+  };
+
+  bool doRemap360 = remap_360 && joyDev->isGamepad();
+
+  hr = lpJoystick->EnumObjects(doRemap360 ? enumObjSetLim : enumObjectsCallback, joyDev, DIDFT_ALL);
   if (FAILED(hr))
   {
     HumanInput::printHResult(__FILE__, __LINE__, "EnumObjects", hr);
@@ -269,7 +300,7 @@ static BOOL CALLBACK enumJoysticksCallback(const DIDEVICEINSTANCE *pdidInstance,
   }
 #endif
 
-  if (remap_360)
+  if (doRemap360)
     joyDev->applyRemapX360(pdidInstance->tszProductName);
   else
     joyDev->applyRemapHats();

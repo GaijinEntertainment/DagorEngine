@@ -5,7 +5,7 @@ let { hardPersistWatched } = require("%sqstd/globalState.nut")
 let { get_setting_by_blk_path, set_setting_by_blk_path, set_setting_by_blk_path_and_save, save_changed_settings } = require("settings")
 let { apply_video_settings } = require("videomode")
 let { mkCombo } = require("%scripts/ui/widgets/simpleComponents.nut")
-let { mkSettingsOption } = require("options_lib.nut")
+let { mkSettingsOption } = require("%scripts/ui/settings/options_lib.nut")
 
 let presets = ["bareMinimum", "minimum", "low", "medium", "high", "ultra"]
 
@@ -19,7 +19,7 @@ let mapOptionsByPresetTable = {
   ["graphics/shadowsQuality"]                 = ["low",         "low",     "low",    "low",     "medium",   "high"],
   ["graphics/effectsShadows"]                 = [false,         false,     false,    false,     true,       true],
   ["graphics/cloudsQuality"]                  = ["default",     "default", "default","default", "highres",  "volumetric"],
-  ["graphics/volumeFogQuality"]               = ["close",       "close",   "close",  "close",   "close",    "far"],
+  ["graphics/volumeFogQuality"]               = ["close",       "close",   "close",  "close",   "medium",    "far"],
   ["graphics/waterQuality"]                   = ["low",         "low",     "low",    "low",     "medium",   "high"],
   ["graphics/groundDisplacementQuality"]      = [0,             0,         0,        1,         1,          2],
   ["graphics/groundDeformations"]             = ["off",         "off",     "low",    "medium",  "high",     "high"],
@@ -89,8 +89,8 @@ function optionCtor(opt) {
   let setValue = function(v) {
     set(v)
     set_setting_by_blk_path_and_save(opt.blkPath, v)
-  if (needRestart)
-    showMsgboxOfRestart()
+    if (needRestart)
+      showMsgboxOfRestart()
   }
   return mkSettingsOption(opt.name, opt.widgetCtor(opt.__merge({var, setValue})))
 }

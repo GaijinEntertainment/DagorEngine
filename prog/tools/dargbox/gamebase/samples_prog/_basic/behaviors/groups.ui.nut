@@ -8,15 +8,15 @@ let mkButton = function(color, group = null) {
     group
     watch = sf
     rendObj = ROBJ_SOLID
-    color = sf.value & S_HOVER ? 0xFFFFFF : color
+    color = sf.get() & S_HOVER ? 0xFFFFFF : color
     padding = 20
     children = {
       rendObj = ROBJ_TEXT
       text = color
-      color = sf.value & S_HOVER ? 0xFF000000 : 0xFFFFFF
+      color = sf.get() & S_HOVER ? 0xFF000000 : 0xFFFFFF
     }
     behavior = Behaviors.Button
-    onElemState = @(flags) sf(flags)
+    onElemState = @(flags) sf.set(flags)
   }
 }
 

@@ -66,9 +66,16 @@ public:
 	/// before AddHit is called (e.g. the user data pointer or the velocity of the body).
 	virtual void			OnBody([[maybe_unused]] const Body &inBody)		{ /* Collects nothing by default */ }
 
-	/// Set by the collision detection functions to the current TransformedShape that we're colliding against before calling the AddHit function
+	/// When running a query through the NarrowPhaseQuery class, this will be called after all AddHit calls have been made for a particular body.
+	virtual void			OnBodyEnd()										{ /* Does nothing by default */ }
+
+	/// Set by the collision detection functions to the current TransformedShape that we're colliding against before calling the AddHit function.
+	/// Note: Only valid during AddHit! For performance reasons, the pointer is not reset after leaving AddHit so the context may point to freed memory.
 	void					SetContext(const TransformedShape *inContext)	{ mContext = inContext; }
 	const TransformedShape *GetContext() const								{ return mContext; }
+
+	/// This function can be used to set some user data on the collision collector
+	virtual void			SetUserData(uint64 inUserData)					{ /* Does nothing by default */ }
 
 	/// This function will be called for every hit found, it's up to the application to decide how to store the hit
 	virtual void			AddHit(const ResultType &inResult) = 0;

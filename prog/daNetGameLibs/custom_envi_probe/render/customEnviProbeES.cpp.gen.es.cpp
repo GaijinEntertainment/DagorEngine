@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "customEnviProbeES.cpp.inl"
 ECS_DEF_PULL_VAR(customEnviProbe);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc custom_envi_probe_created_es_event_handler_comps[] =
 {

@@ -26,6 +26,9 @@ void init(const char *blk_file, bool has_normalmap, bool stub_render_mode);
 // release system
 void release();
 
+// update samplers anisotropic
+void update_samplers();
+
 // remove all tire tracks from screen
 void clear(bool completeClear = false);
 

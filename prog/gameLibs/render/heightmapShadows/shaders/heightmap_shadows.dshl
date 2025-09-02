@@ -1,0 +1,328 @@
+include "shader_global.dshl"
+include "heightmap_common.dshl"
+include "heightmap_shadows_common.dshl"
+include "project_heightmap_shadows.dshl"
+
+define_macro_if_not_defined PROJECT_BASE_HEIGHTMAP_LEVEL(code)
+  hlsl(code) {
+    void get_project_base_heightmap(uint cascade, float2 worldPosXZ, inout float height, inout float high_hmap){}
+    bool get_project_base_heightmap_tc_valid(float2 hmap_tc)
+    {
+      return all(abs(hmap_tc*2 - 1) < 1);
+    }
+  }
+endmacro
+
+define_macro_if_not_defined PROJECT_ABOVE_HEIGHTMAP_LEVEL(code)
+  hlsl(code) {
+    void get_project_upper_heightmap(uint cascade, float2 worldPosXZ, inout float high_hmap){}
+  }
+endmacro
+
+hlsl{
+  #include "heightmapShadows.hlsli"
+  #define FILTER_SIZE HMAP_SHADOWS_FILTER_SIZE // must match c++
+  #define WARP 64
+  #define EFFECTIVE_SIZE (WARP-HMAP_SHADOWS_FILTER_SIZE*2)
+  #define PENUMBRA_CUTOFF 0.5 // 0.5 as approximate cut off of 0.5 penumbra (0.5 shadow),
+                              // where we prefer 'new', _lower_ shadow (obstacle) to 'old' higher (higher - including penumbra) shadow obstacle
+                              // PENUMBRA_CUTOFF 1 - would prefer penumbra, 0 - would always prefere new shadow (different artifacts)
+  #define MOVE_ALL 0
+  #define MOVE_X 1
+  #define MOVE_Z_POS 2
+  #define MOVE_Z_NEG 3
+}
+int4 heightmap_shadow_move;
+
+int heightmap_shadow_cascade;
+float4 heightmap_shadow_render_penumbra;
+float4 heightmap_shadow_shadow_step;
+int4 heightmap_shadow_calc_z;
+
+macro HMAP_SHADOW_CALC_COMMON(code)
+  INIT_HMAP_SHADOWS_MATH(code)
+  USE_HMAP_SHADOWS_MATH(code)
+  ENABLE_ASSERT(code)
+  PROJECT_ABOVE_HEIGHTMAP_LEVEL(code)
+  PROJECT_BASE_HEIGHTMAP_LEVEL(code)
+  INIT_WORLD_HEIGHTMAP_BASE(code)
+  USE_HEIGHTMAP_COMMON_BASE(code)
+  (code) {
+    heightmap_shadow_shadow_step@f4 = heightmap_shadow_shadow_step;
+    heightmap_shadow_cascade@i1 = (heightmap_shadow_cascade, 0,0,0);
+    penumbra_sun_tan@f1 = (heightmap_shadow_render_penumbra.x,0,0,0);
+    penumbra_sun_tan_encode@f1 = (heightmap_shadow_render_penumbra.w,0,0,0);
+    filterSize@f1 = (heightmap_shadow_render_penumbra.y,0,0,0);
+    heightmap_shadow_move@i4 = heightmap_shadow_move;
+    heightmap_shadow_calc_z@i4 = heightmap_shadow_calc_z;
+  }
+  hlsl(code) {
+    uint wrap_filtered_abs_coord(int absX)
+    {
+      return uint(heightmap_shadow_szi_np2.y + absX)%uint(heightmap_shadow_szi_np2.x + 2*HMAP_SHADOWS_FILTER_SIZE);
+    }
+    RWByteAddressBuffer heightmap_shadow_start:register(u0);
+    void sample_hmaps(float2 worldPosXZ, out float low_hmap, out float high_hmap)
+    {
+      #if 0
+        low_hmap = 0;
+        get_project_base_heightmap(heightmap_shadow_cascade, worldPosXZ, low_hmap, high_hmap, heightmap_shadow_shadow_step.w);
+        high_hmap = low_hmap;
+        return;
+      #endif
+      //todo: add holes support
+      float2 hmap_tc = calcTcLow(worldPosXZ);
+      high_hmap = low_hmap = decode_height(getHeightLowLod(hmap_tc, 0));
+      if (!get_project_base_heightmap_tc_valid(hmap_tc))
+      {
+        high_hmap = low_hmap = decode_height(0);
+        get_project_base_heightmap(heightmap_shadow_cascade, worldPosXZ, low_hmap, high_hmap, heightmap_shadow_shadow_step.w);
+      }
+
+      get_project_upper_heightmap(heightmap_shadow_cascade, worldPosXZ, high_hmap);
+      low_hmap = heightmap_shadow_height_encoding.x*low_hmap + heightmap_shadow_height_encoding.y;
+      high_hmap = heightmap_shadow_height_encoding.x*high_hmap + heightmap_shadow_height_encoding.y;
+      //low_hmap = max(depthAboveH, currentLowHmap);
+    }
+  }
+
+endmacro
+
+shader copy_last_row_heightmap_shadows_cs
+{
+  ENABLE_ASSERT(cs)
+  HMAP_SHADOW_CALC_COMMON(cs)
+  hlsl(cs) {
+    #pragma hlsl2021
+
+    [numthreads(64, 1, 1)]
+    void calc_heightmap_shadows_cs(uint gId : SV_GroupID, uint dtId : SV_DispatchThreadID, uint tid:SV_GroupIndex)
+    {
+      int x = heightmap_shadow_move.x + int(dtId) - HMAP_SHADOWS_FILTER_SIZE;
+      if (x < heightmap_shadow_move.y + HMAP_SHADOWS_FILTER_SIZE)
+      {
+        uint xCoord = wrap_filtered_abs_coord(sample_da_hmap_shadows_lt_coord(heightmap_shadow_cascade).x + x)*12;
+        storeBuffer3(heightmap_shadow_start, xCoord + heightmap_shadow_calc_z.w, loadBuffer3(heightmap_shadow_start, xCoord + heightmap_shadow_calc_z.z));
+      }
+    }
+  }
+  compile("target_cs", "calc_heightmap_shadows_cs");
+}
+
+shader start_heightmap_shadows_cs
+{
+  ENABLE_ASSERT(cs)
+  HMAP_SHADOW_CALC_COMMON(cs)
+  (cs) {
+    heightmap_shadow_read@smpArray = heightmap_shadow;
+  }
+  hlsl(cs) {
+    #pragma hlsl2021
+
+    [numthreads(64, 1, 1)]
+    void calc_heightmap_shadows_cs(uint gId : SV_GroupID, uint dtId : SV_DispatchThreadID, uint tid:SV_GroupIndex)
+    {
+      int x = heightmap_shadow_move.x + int(dtId) - HMAP_SHADOWS_FILTER_SIZE;
+      float texelSize = heightmap_shadow_shadow_step.w;
+      float lightAltOffset = heightmap_shadow_shadow_step.z;
+      float lightPenumbraAltOffset = penumbra_sun_tan;// const and different by tan(sunAngle)
+      float prevShadowAlt = -100000, prevHighHmap = -100000, prevShadowPenumbraAlt = 0;
+      int z = heightmap_shadow_calc_z.x, preSteps = heightmap_shadow_calc_z.y;
+
+      //fixme: optimize me
+      int2 absCoord = sample_da_hmap_shadows_lt_coord(heightmap_shadow_cascade).xy + int2(x, z);
+      absCoord.y -= preSteps;
+      float2 prevWorldPosXZ = da_hmap_shadows_abs_coord_to_world_pos_clip(absCoord, heightmap_shadow_cascade);
+      float prevLowHmap;
+      sample_hmaps(prevWorldPosXZ, prevLowHmap, prevHighHmap);
+      prevHighHmap = max(prevHighHmap, prevLowHmap);
+
+      float2 prevCascadeStart = -100000;
+
+      ##assert(heightmap_shadow_move.z != MOVE_Z_POS, "[%s:%.f] should not happen with positive movement", _FILE_, __LINE__);
+      if (heightmap_shadow_cascade < heightmap_shadow_szi_np2.w)
+      {
+        //todo: find best cascade!
+        //fixme:
+        uint biggerCascade = heightmap_shadow_cascade + 1;
+        float4 v = heightmap_shadow_tc_ofs_sz[biggerCascade];
+        float2 biggerTc = da_hmap_shadows_tc_to_sample(prevWorldPosXZ, biggerCascade);
+        if (da_hmap_shadows_is_tc_inside(biggerTc, v))
+        {
+          float4 shadowAltDist = tex3Dlod(heightmap_shadow_read, float4(biggerTc, biggerCascade, 0));
+          shadowAltDist.y *= asfloat(heightmap_shadow_world_lt_szi[biggerCascade].w);
+          prevShadowAlt = shadowAltDist.x;
+          prevShadowPenumbraAlt = shadowAltDist.y;
+        }
+
+        if (z <= 0 && x < heightmap_shadow_szi_np2.x + HMAP_SHADOWS_FILTER_SIZE)
+        {
+          float2 biggerStartTc = da_hmap_shadows_tc_to_sample(da_hmap_shadows_abs_coord_to_world_pos_clip(sample_da_hmap_shadows_lt_coord(heightmap_shadow_cascade).xy + int2(x, 0), heightmap_shadow_cascade), biggerCascade);
+          if (da_hmap_shadows_is_tc_inside(biggerStartTc, v))
+          {
+            prevCascadeStart = tex3Dlod(heightmap_shadow_read, float4(biggerStartTc, biggerCascade, 0)).xy;
+            prevCascadeStart.y *= asfloat(heightmap_shadow_world_lt_szi[biggerCascade].w);
+          }
+          storeBuffer2(heightmap_shadow_start, wrap_filtered_abs_coord(absCoord.x)*8, asuint(prevCascadeStart));
+        }
+      }
+
+      float2 worldPosXZ = da_hmap_shadows_abs_coord_to_world_pos_clip(absCoord, heightmap_shadow_cascade);
+      //todo: coarse and then bilinear steps
+      for (int i = 0; i < preSteps; ++i, ++absCoord.y)
+      {
+        float currentLowHmap, depthAboveH;
+        sample_hmaps(worldPosXZ, currentLowHmap, depthAboveH);
+
+        float currentHighHmap = max(currentLowHmap, depthAboveH);
+
+        //respect penumbra from higher mountains more
+        bool c = prevHighHmap + lightAltOffset > currentLowHmap && prevHighHmap >= prevShadowAlt + prevShadowPenumbraAlt*PENUMBRA_CUTOFF;
+        prevShadowAlt = c ? prevHighHmap : prevShadowAlt;
+        prevShadowPenumbraAlt = c ? 0 : prevShadowPenumbraAlt;
+
+        float newShadowAlt = prevShadowAlt + lightAltOffset;
+        float newShadowPenumbraAlt = prevShadowPenumbraAlt + lightPenumbraAltOffset;
+
+
+        prevShadowAlt = newShadowAlt;
+        prevShadowPenumbraAlt = newShadowPenumbraAlt;
+        prevHighHmap = currentHighHmap;
+        worldPosXZ += heightmap_shadow_shadow_step.xy;
+      }
+
+      float3 nextInfo = float3(prevShadowAlt, prevShadowPenumbraAlt, prevHighHmap);
+      //todo: write it to toroidal, so it is valid on xmove!
+      if (x < heightmap_shadow_move.y + HMAP_SHADOWS_FILTER_SIZE)
+        storeBuffer3(heightmap_shadow_start, wrap_filtered_abs_coord(absCoord.x)*12 + heightmap_shadow_calc_z.w, asuint(nextInfo));
+    }
+  }
+  compile("target_cs", "calc_heightmap_shadows_cs");
+}
+
+shader calc_heightmap_shadows_cs
+{
+  ENABLE_ASSERT(cs)
+  HMAP_SHADOW_CALC_COMMON(cs)
+  hlsl(cs) {
+    RWTexture2DArray<float4> heightmap_shadow:register(u1);
+    #if HMAP_SHADOWS_FILTER_SIZE > 0 && HMAP_SHADOWS_FILTER
+    groupshared float2 current_shared_shadow[WARP];
+    #endif
+    #pragma hlsl2021
+
+    [numthreads(WARP, 1, 1)]
+    void calc_heightmap_shadows_cs(uint gId : SV_GroupID, uint3 gtId : SV_GroupThreadID, uint tid:SV_GroupIndex)
+    {
+      int x = heightmap_shadow_move.x + int(gId*EFFECTIVE_SIZE) + int(tid) - HMAP_SHADOWS_FILTER_SIZE;
+      float texelSize = heightmap_shadow_shadow_step.w;
+      float lightAltOffset = heightmap_shadow_shadow_step.z;
+      float lightPenumbraAltOffset = penumbra_sun_tan;// const and different by tan(sunAngle)
+      int z = heightmap_shadow_calc_z.x, zEnd = heightmap_shadow_calc_z.y;
+
+      //fixme: optimize me
+      int2 absCoord = sample_da_hmap_shadows_lt_coord(heightmap_shadow_cascade).xy + int2(x, z);
+
+      float3 prevInfo = float3(-100000, 0, -100000);
+
+      if (x < heightmap_shadow_move.y + HMAP_SHADOWS_FILTER_SIZE)
+        prevInfo = asfloat(loadBuffer3(heightmap_shadow_start, wrap_filtered_abs_coord(absCoord.x)*12 + heightmap_shadow_calc_z.z));
+
+      float prevShadowAlt = prevInfo.x, prevShadowPenumbraAlt = prevInfo.y, prevHighHmap = prevInfo.z;
+      //prevShadowAlt = -1000, prevShadowPenumbraAlt = 0, prevHighHmap = -1000;
+
+      float2 worldPosXZ = da_hmap_shadows_abs_coord_to_world_pos_clip(absCoord, heightmap_shadow_cascade);
+      for (; z < zEnd; ++z, ++absCoord.y)
+      {
+        float currentLowHmap, depthAboveH;
+        sample_hmaps(worldPosXZ, currentLowHmap, depthAboveH);
+
+        float currentHighHmap = max(currentLowHmap, depthAboveH);
+
+        //respect penumbra from higher mountains more
+        bool c = prevHighHmap + lightAltOffset > currentLowHmap && prevHighHmap >= prevShadowAlt + prevShadowPenumbraAlt*PENUMBRA_CUTOFF;
+        prevShadowAlt = c ? prevHighHmap : prevShadowAlt;
+        prevShadowPenumbraAlt = c ? 0 : prevShadowPenumbraAlt;
+
+        float newShadowAlt = prevShadowAlt + lightAltOffset;
+        float newShadowPenumbraAlt = prevShadowPenumbraAlt + lightPenumbraAltOffset;
+
+        if (heightmap_shadow_cascade < heightmap_shadow_szi_np2.w && z == 0 && x < heightmap_shadow_szi_np2.x + HMAP_SHADOWS_FILTER_SIZE)
+        {
+          float2 prevCascadeStart = asfloat(heightmap_shadow_start.Load2(wrap_filtered_abs_coord(absCoord.x)*8));
+          if (newShadowAlt < prevCascadeStart.x) // ensure that shadow altitude is not lower than in previous cascade
+          {
+            newShadowAlt = prevCascadeStart.x;
+            newShadowPenumbraAlt = prevCascadeStart.y;
+          }
+        }
+
+        float4 result = float4(newShadowAlt, newShadowPenumbraAlt*penumbra_sun_tan_encode, 2, currentLowHmap);
+        #if HMAP_SHADOWS_FILTER_SIZE > 0 && HMAP_SHADOWS_FILTER
+        float2 shadow = result.xy;
+        current_shared_shadow[tid] = shadow;
+        GroupMemoryBarrierWithGroupSync();
+
+        {
+          float W = 1;
+          UNROLL
+          for (int fi = -HMAP_SHADOWS_FILTER_SIZE; fi <= HMAP_SHADOWS_FILTER_SIZE; ++fi)
+          {
+            if (fi != 0)
+            {
+              float cW = exp2(-filterSize*(fi*fi)/((HMAP_SHADOWS_FILTER_SIZE+1.f)*(HMAP_SHADOWS_FILTER_SIZE+1.f)));
+              uint index = uint(fi + tid);
+              if (index < uint(WARP) && current_shared_shadow[index].x > -100000)
+              {
+                shadow += current_shared_shadow[index] * cW;
+                W += cW;
+              }
+            }
+          }
+          shadow /= W;
+          result.xy = shadow;
+        }
+        #endif
+
+        //if (uint(tid - HMAP_SHADOWS_FILTER_SIZE) < EFFECTIVE_SIZE && uint(x) < uint(heightmap_shadow_szi_np2.x))
+        if (uint(tid - HMAP_SHADOWS_FILTER_SIZE) < EFFECTIVE_SIZE && uint(x) < uint(heightmap_shadow_move.y))
+          texture3DAt(heightmap_shadow, uint3(da_hmap_shadows_wrapped_coord_from_abs_coord(absCoord), heightmap_shadow_cascade)) = result;
+
+        prevShadowAlt = newShadowAlt;
+        prevShadowPenumbraAlt = newShadowPenumbraAlt;
+        prevHighHmap = currentHighHmap;
+        worldPosXZ += heightmap_shadow_shadow_step.xy;
+      }
+
+      float3 nextInfo = float3(prevShadowAlt, prevShadowPenumbraAlt, prevHighHmap);
+      if (x < heightmap_shadow_move.y + HMAP_SHADOWS_FILTER_SIZE
+         &&
+         //avoid race write
+         (tid < EFFECTIVE_SIZE + HMAP_SHADOWS_FILTER_SIZE || x >= heightmap_shadow_move.y)
+         )
+         storeBuffer3(heightmap_shadow_start, wrap_filtered_abs_coord(absCoord.x)*12 + heightmap_shadow_calc_z.w, asuint(nextInfo));
+    }
+  }
+  compile("target_cs", "calc_heightmap_shadows_cs");
+}
+
+shader copy_heightmap_shadows_cs
+{
+  ENABLE_ASSERT(cs)
+  (cs) {
+    heightmap_shadow_szi_np2@i4 = heightmap_shadow_szi_np2;
+    heightmap_shadow@smpArray = heightmap_shadow;
+  }
+  hlsl(cs) {
+    RWTexture2DArray<float4> heightmap_shadow_to:register(u0);
+
+    [numthreads(8, 8, 1)]
+    void copy_heightmap_shadows_cs(uint3 dtId : SV_DispatchThreadID)
+    {
+      if (all(dtId.xy < heightmap_shadow_szi_np2.x))
+        heightmap_shadow_to[dtId] = heightmap_shadow[dtId];
+    }
+  }
+  compile("target_cs", "copy_heightmap_shadows_cs");
+}
+

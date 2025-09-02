@@ -12,7 +12,7 @@ from "%darg/ui_imports.nut" import *
 
 let childrenFlex = @(color) {
   rendObj = ROBJ_BOX
-  size = [flex(), sh(10)]
+  size = static [flex(), sh(10)]
   borderWidth = hdpx(1)
   vplace = ALIGN_CENTER
   hplace = ALIGN_CENTER
@@ -20,7 +20,7 @@ let childrenFlex = @(color) {
   maxWidth = hdpx(135)
   margin = hdpx(40)
   children = {
-    size = [flex(), hdpx(60)]
+    size = static [flex(), hdpx(60)]
     rendObj = ROBJ_BOX
     borderWidth = hdpx(3)
     borderColor = color
@@ -28,7 +28,7 @@ let childrenFlex = @(color) {
 }
 
 return {
-  size = [sw(50), fsh(6)]
+  size = static [sw(50), fsh(6)]
   vplace = ALIGN_CENTER
   hplace = ALIGN_CENTER
   flow = FLOW_HORIZONTAL

@@ -19,7 +19,6 @@ Sources =
 
 UseProgLibs =
   gameLibs/rendInst
-  gameLibs/rendInst/riFx/stub
 ;
 
 if [ GLOB $(Root)/prog/gameLibs/gamePhys : * ]

@@ -72,6 +72,7 @@ shader process_hmap_patches_depth
     hmap_patches_depth_tex@smp2d = hmap_patches_depth_tex;
   }
 
+  PS4_DEF_TARGET_FMT_32_R()
   hlsl(ps) {
     float postfx_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target
     {

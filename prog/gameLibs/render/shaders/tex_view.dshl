@@ -85,7 +85,7 @@ shader tex_view
       ##elif text_color_mode == modeA
         return float4((tex2D(texsmp, v.tc)).aaa, 1);
       ##elif text_color_mode == modeRGB
-        return float4((tex2D(texsmp, v.tc)).rgb * v.col, 1);
+        return float4((tex2D(texsmp, v.tc)).rgb * v.col.rgb, 1);
       ##elif text_color_mode == modeTooDark || text_color_mode == modeTooBright
         float4 col = tex2D(texsmp, v.tc);
         float lum = col.r*0.212655 + col.g*0.715158 + col.b*0.072187;

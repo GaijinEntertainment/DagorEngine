@@ -51,8 +51,6 @@ folder {
   wildcard:t="settings-android.blk"
 }
 
-exclude
-{
-  //exclude:t="(gameData.*|config.*|gui.*|levels.*)[/\\]_[\w\.]*\.blk$"
+exclude {
   exclude:t="CVS"
 }

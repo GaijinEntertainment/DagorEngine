@@ -1,12 +1,13 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <render/daBfg/bfg.h>
+#include <render/daFrameGraph/daFG.h>
 #include <render/hdrRender.h>
 #include <shaders/dag_postFxRenderer.h>
 
 #include "frameGraphNodes.h"
 #include "main/watchdog.h"
 #include "render/renderer.h"
+#include <render/world/frameGraphHelpers.h>
 #include <drv/3d/dag_texture.h>
 
 static shaders::OverrideStateId gen_add_blend_override()
@@ -18,71 +19,79 @@ static shaders::OverrideStateId gen_add_blend_override()
   return shaders::overrides::create(state);
 }
 
-eastl::fixed_vector<dabfg::NodeHandle, 5, false> makeSubsamplingNodes(bool sub_sampling, bool super_sampling)
+eastl::fixed_vector<dafg::NodeHandle, 5, false> makeSubsamplingNodes(bool sub_sampling, bool super_sampling)
 {
   const char *inputTextureName = "frame_with_debug";
   const char *subsampledTextureName = "subsampled_frame";
   const char *supersampledTextureName = "supersampled_frame";
   const char *finalTextureName = "frame_to_present";
-  eastl::fixed_vector<dabfg::NodeHandle, 5, false> nodes;
+  eastl::fixed_vector<dafg::NodeHandle, 5, false> nodes;
   if (!sub_sampling && !super_sampling)
   {
-    nodes.emplace_back(dabfg::register_node("finish_frame_with_debug", DABFG_PP_NODE_SRC,
-      [inputTextureName, finalTextureName](dabfg::Registry registry) {
-        registry.renameTexture(inputTextureName, finalTextureName, dabfg::History::No);
-        registry.multiplex(dabfg::multiplexing::Mode::Viewport);
+    nodes.emplace_back(
+      dafg::register_node("finish_frame_with_debug", DAFG_PP_NODE_SRC, [inputTextureName, finalTextureName](dafg::Registry registry) {
+        registry.renameTexture(inputTextureName, finalTextureName, dafg::History::No);
+        registry.multiplex(dafg::multiplexing::Mode::Viewport);
       }));
     return nodes;
   }
   if (sub_sampling)
   {
     nodes.emplace_back(
-      dabfg::register_node("init_subsampling_frame", DABFG_PP_NODE_SRC, [subsampledTextureName](dabfg::Registry registry) {
+      dafg::register_node("init_subsampling_frame", DAFG_PP_NODE_SRC, [subsampledTextureName](dafg::Registry registry) {
         registry
-          .createTexture2d(subsampledTextureName, dabfg::History::No,
+          .createTexture2d(subsampledTextureName, dafg::History::No,
             {(uint32_t)(TEXCF_RTARGET | (hdrrender::is_hdr_enabled() ? TEXFMT_A16B16G16R16F : TEXFMT_A16B16G16R16)),
               registry.getResolution<2>("display")})
-          .atStage(dabfg::Stage::PS) // We set stage and usage here, because framegraph requires it.
-          .useAs(dabfg::Usage::COLOR_ATTACHMENT);
-        registry.multiplex(dabfg::multiplexing::Mode::Viewport | dabfg::multiplexing::Mode::SuperSampling);
+          .atStage(dafg::Stage::PS) // We set stage and usage here, because framegraph requires it.
+          .useAs(dafg::Usage::COLOR_ATTACHMENT);
+        registry.multiplex(dafg::multiplexing::Mode::Viewport | dafg::multiplexing::Mode::SuperSampling);
         registry.orderMeBefore("multisampling_setup_node");
         return [force_ignore_historyVarId = get_shader_variable_id("force_ignore_history", true)] {
           ShaderGlobal::set_int(force_ignore_historyVarId, 1);
         };
       }));
-    nodes.emplace_back(dabfg::register_node("fill_subsampling_frame", DABFG_PP_NODE_SRC,
-      [inputTextureName, subsampledTextureName](dabfg::Registry registry) {
-        registry.requestRenderPass().color({subsampledTextureName});
+    nodes.emplace_back(dafg::register_node("fill_subsampling_frame", DAFG_PP_NODE_SRC,
+      [inputTextureName, subsampledTextureName](dafg::Registry registry) {
+        auto subsampledTargetHndl = registry.modifyTexture(subsampledTextureName)
+                                      .atStage(dafg::Stage::POST_RASTER)
+                                      .useAs(dafg::Usage::COLOR_ATTACHMENT)
+                                      .handle();
         auto superSubPixelsHndl = registry.readBlob<IPoint2>("super_sub_pixels").handle();
-        auto frameHndl =
-          registry.readTexture(inputTextureName).atStage(dabfg::Stage::PS).useAs(dabfg::Usage::SHADER_RESOURCE).handle();
-        registry.readTexture("depth_for_postfx").atStage(dabfg::Stage::PS).bindToShaderVar("depth_gbuf");
-        return [superSubPixelsHndl, frameHndl, sub_pixelsVarId = ::get_shader_variable_id("sub_pixels", true),
+        auto frameHndl = registry.readTexture(inputTextureName).atStage(dafg::Stage::PS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
+        registry.readTexture("depth_for_postfx").atStage(dafg::Stage::PS).bindToShaderVar("depth_gbuf");
+        return [subsampledTargetHndl, superSubPixelsHndl, frameHndl, sub_pixelsVarId = ::get_shader_variable_id("sub_pixels", true),
                  additiveBlendStateId = gen_add_blend_override(),
-                 screenshot_composer = PostFxRenderer("screenshot_composer")](dabfg::multiplexing::Index multiplexing_index) {
+                 screenshot_composer = PostFxRenderer("screenshot_composer")](dafg::multiplexing::Index multiplexing_index) {
           watchdog_kick();
-          ShaderGlobal::set_int(sub_pixelsVarId, superSubPixelsHndl.ref().y);
 
+          d3d::set_render_target(subsampledTargetHndl.view().getTex2D(), 0);
+
+          ShaderGlobal::set_int(sub_pixelsVarId, superSubPixelsHndl.ref().y);
           const bool firstSubPixel = multiplexing_index.subSample == 0;
           if (!firstSubPixel)
             shaders::overrides::set(additiveBlendStateId);
           d3d::settex(1, frameHndl.view().getBaseTex());
+          d3d::set_sampler(STAGE_PS, 1, d3d::request_sampler({}));
           screenshot_composer.render();
           if (!firstSubPixel)
             shaders::overrides::reset();
           ShaderElement::invalidate_cached_state_block();
+          // complete queued work on GPU and finish profiler frame, otherwise we can hit TDR and/or profiler markers limit
+          d3d::driver_command(Drv3dCommand::D3D_FLUSH);
+          DA_PROFILE_TICK();
         };
       }));
     if (!super_sampling)
     {
-      nodes.emplace_back(dabfg::register_node("finish_subsampling_frame", DABFG_PP_NODE_SRC,
-        [subsampledTextureName, finalTextureName](dabfg::Registry registry) {
+      nodes.emplace_back(dafg::register_node("finish_subsampling_frame", DAFG_PP_NODE_SRC,
+        [subsampledTextureName, finalTextureName](dafg::Registry registry) {
           auto subsamplingFrameHndl =
-            registry.readTexture(subsampledTextureName).atStage(dabfg::Stage::TRANSFER).useAs(dabfg::Usage::COPY).handle();
-          registry.multiplex(dabfg::multiplexing::Mode::Viewport | dabfg::multiplexing::Mode::SuperSampling);
+            registry.readTexture(subsampledTextureName).atStage(dafg::Stage::TRANSFER).useAs(dafg::Usage::COPY).handle();
+          registry.multiplex(dafg::multiplexing::Mode::Viewport | dafg::multiplexing::Mode::SuperSampling);
           registry.modifyBlob<bool>("fake_blob");
           auto frameToPresentHndl =
-            registry.modifyTexture(finalTextureName).atStage(dabfg::Stage::TRANSFER).useAs(dabfg::Usage::COPY).handle();
+            registry.modifyTexture(finalTextureName).atStage(dafg::Stage::TRANSFER).useAs(dafg::Usage::COPY).handle();
           return [subsamplingFrameHndl, frameToPresentHndl,
                    force_ignore_historyVarId = get_shader_variable_id("force_ignore_history", true)] {
             d3d::stretch_rect(subsamplingFrameHndl.view().getTex2D(), frameToPresentHndl.view().getTex2D());
@@ -94,21 +103,21 @@ eastl::fixed_vector<dabfg::NodeHandle, 5, false> makeSubsamplingNodes(bool sub_s
   if (super_sampling)
   {
     nodes.emplace_back(
-      dabfg::register_node("init_supersampling_frame", DABFG_PP_NODE_SRC, [supersampledTextureName](dabfg::Registry registry) {
-        registry.multiplex(dabfg::multiplexing::Mode::Viewport);
-        registry.registerTexture2d(supersampledTextureName,
+      dafg::register_node("init_supersampling_frame", DAFG_PP_NODE_SRC, [supersampledTextureName](dafg::Registry registry) {
+        registry.multiplex(dafg::multiplexing::Mode::Viewport);
+        registry.registerTexture(supersampledTextureName,
           [](auto) -> ManagedTexView { return get_world_renderer()->getSuperResolutionScreenshot(); });
         return [] {};
       }));
 
     const char *texToSupersampleName = sub_sampling ? subsampledTextureName : inputTextureName;
-    nodes.emplace_back(dabfg::register_node("supersampling_apply_node", DABFG_PP_NODE_SRC,
-      [supersampledTextureName, texToSupersampleName](dabfg::Registry registry) {
-        registry.multiplex(dabfg::multiplexing::Mode::Viewport | dabfg::multiplexing::Mode::SuperSampling);
+    nodes.emplace_back(dafg::register_node("supersampling_apply_node", DAFG_PP_NODE_SRC,
+      [supersampledTextureName, texToSupersampleName](dafg::Registry registry) {
+        registry.multiplex(dafg::multiplexing::Mode::Viewport | dafg::multiplexing::Mode::SuperSampling);
         registry.requestRenderPass().color({supersampledTextureName});
         auto superSubPixelsHndl = registry.readBlob<IPoint2>("super_sub_pixels").handle();
         auto sourceFrameHndl =
-          registry.readTexture(texToSupersampleName).atStage(dabfg::Stage::PS).useAs(dabfg::Usage::SHADER_RESOURCE).handle();
+          registry.readTexture(texToSupersampleName).atStage(dafg::Stage::PS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
 
         d3d::SamplerInfo smpInfo;
         smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
@@ -117,7 +126,7 @@ eastl::fixed_vector<dabfg::NodeHandle, 5, false> makeSubsamplingNodes(bool sub_s
         return [sourceFrameHndl, superSubPixelsHndl, super_pixelsVarId = ::get_shader_variable_id("super_pixels"),
                  interleave_pixelsVarId = ::get_shader_variable_id("interleave_pixels"),
                  interleaveSamples = PostFxRenderer("interleave_samples_renderer"),
-                 smp = d3d::request_sampler(smpInfo)](dabfg::multiplexing::Index multiplexing_index) {
+                 smp = d3d::request_sampler(smpInfo)](dafg::multiplexing::Index multiplexing_index) {
           watchdog_kick();
           auto [superPixels, subPixels] = superSubPixelsHndl.ref();
           auto superSample = multiplexing_index.superSample;
@@ -135,10 +144,10 @@ eastl::fixed_vector<dabfg::NodeHandle, 5, false> makeSubsamplingNodes(bool sub_s
         };
       }));
 
-    nodes.emplace_back(dabfg::register_node("downscale_supersampling", DABFG_PP_NODE_SRC,
-      [supersampledTextureName, finalTextureName](dabfg::Registry registry) {
-        registry.multiplex(dabfg::multiplexing::Mode::Viewport);
-        registry.readTexture(supersampledTextureName).atStage(dabfg::Stage::PS).bindToShaderVar("super_screenshot_tex");
+    nodes.emplace_back(dafg::register_node("downscale_supersampling", DAFG_PP_NODE_SRC,
+      [supersampledTextureName, finalTextureName](dafg::Registry registry) {
+        registry.multiplex(dafg::multiplexing::Mode::Viewport);
+        registry.readTexture(supersampledTextureName).atStage(dafg::Stage::PS).bindToShaderVar("super_screenshot_tex");
         registry.requestRenderPass().color({finalTextureName});
         return [force_ignore_historyVarId = get_shader_variable_id("force_ignore_history", true),
                  downscaleSuperresScreenshot = PostFxRenderer("downscale_superres_screenshot")] {

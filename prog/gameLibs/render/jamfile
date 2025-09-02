@@ -12,6 +12,7 @@ AddIncludes =
   $(Root)/prog/3rdPartyLibs/binPack2D/include
   $(Root)/$(Location)
   $(Root)/$(Location)/shaders
+  $(Root)/prog/commonFx/commonFxGame
 ;
 
 Sources =
@@ -23,10 +24,11 @@ Sources =
   toroidalStaticShadows/shadowDepthScroller.cpp
   toroidalStaticShadows/toroidalStaticShadows.cpp
   load_texture_array.cpp
-  preIntegratedGF.cpp 
+  preIntegratedGF.cpp
   noiseTex.cpp
   noiseTexData.cpp
   gpuGrass.cpp
+  fast_grass.cpp
   ssao_common.cpp
   ssao.cpp
   gtao.cpp
@@ -79,6 +81,7 @@ Sources =
   clusteredLights.cpp
   dstReadbackLights.cpp
   temporalAA.cpp
+  smaa.cpp
   toroidalHeightmap.cpp
   toroidalPuddleMap.cpp
   mipRenderer.cpp
@@ -108,6 +111,8 @@ Sources =
   grassify.cpp
   driverNetworkManager.cpp
   motionVectorAccess.cpp
+  sphereRenderer.cpp
+  lightShadowParams.cpp
 ;
 
 UseProgLibs +=
@@ -117,18 +122,27 @@ UseProgLibs +=
   gameLibs/render/fx
   gameLibs/frustumCulling
   gameLibs/render/dynmodelRenderer
+  gameLibs/resourcePool
 ;
 
 if $(Config) != rel
 {
-  UseProgLibs += gameLibs/render/debugMesh ;
   UseProgLibs += gameLibs/render/imGuiProfiler ;
 }
 else
 {
-  UseProgLibs += gameLibs/render/debugMesh/stub ;
   UseProgLibs += gameLibs/render/imGuiProfiler/stub ;
 }
+
+UseDebugMeshLib ?= no ;
+if $(Config) != rel || $(UseDebugMeshLib) = yes {
+  UseProgLibs += gameLibs/render/debugMesh ;
+}
+else
+{
+  UseProgLibs += gameLibs/render/debugMesh/stub ;
+}
+
 
 CPPopt = ;
 
@@ -138,11 +152,6 @@ if $(Platform) in windows
 }
 else if $(Platform) = ps4
 {
-}
-
-if $(Platform) in android
-{
-  Sources += androidScreenRotation.cpp ;
 }
 
 include $(Root)/prog/_jBuild/build.jam ;

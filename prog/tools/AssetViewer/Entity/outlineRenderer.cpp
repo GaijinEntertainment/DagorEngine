@@ -2,14 +2,17 @@
 
 #include "outlineRenderer.h"
 #include <de3_interface.h>
+#include <perfMon/dag_statDrv.h>
 #include <EditorCore/ec_interface.h>
-#include <render/dynModelRenderer.h>
-#include <rendInst/rendInstExtraRender.h>
-#include <shaders/dag_dynSceneRes.h>
+#include <de3_dynRenderService.h>
+#include <rendInst/rendInstGenRender.h>
+#include <rendInst/visibility.h>
 #include <shaders/dag_shaderBlock.h>
 #include <drv/3d/dag_renderTarget.h>
 #include <drv/3d/dag_buffers.h>
 #include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <render/dag_cur_view.h>
 
 int OutlineRenderer::simple_outline_colorVarId = -1;
 int OutlineRenderer::simple_outline_color_rtVarId = -1;
@@ -17,8 +20,20 @@ int OutlineRenderer::global_frame_block_id = -1;
 int OutlineRenderer::rendinst_scene_block_id = -1;
 const E3DCOLOR OutlineRenderer::outline_color = E3DCOLOR(255, 255, 0);
 
+OutlineRenderer::~OutlineRenderer()
+{
+  if (isInited())
+  {
+    rendinst::destroyRIGenVisibility(globalVisibility);
+    rendinst::destroyRIGenVisibility(filteredVisibility);
+  }
+}
+
 void OutlineRenderer::init()
 {
+  globalVisibility = rendinst::createRIGenVisibility(midmem);
+  filteredVisibility = rendinst::createRIGenVisibility(midmem);
+
   const char *shaderName = "simple_outline_final_render";
   finalRender.init(shaderName);
   if (!finalRender.getMat())
@@ -29,10 +44,10 @@ void OutlineRenderer::init()
   global_frame_block_id = ShaderGlobal::getBlockId("global_frame");
   rendinst_scene_block_id = ShaderGlobal::getBlockId("rendinst_scene");
 
-  rendinstMatrixBuffer.reset(
-    d3d::create_sbuffer(sizeof(Point4), 4U, SBCF_BIND_SHADER_RES, TEXFMT_A32B32G32R32F, "simple_outline_matrix_buffer"));
-
   ShaderGlobal::set_color4(simple_outline_colorVarId, outline_color);
+  d3d::SamplerInfo smpInfo;
+  smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
+  ShaderGlobal::set_sampler(get_shader_variable_id("simple_outline_color_rt_samplerstate", true), d3d::request_sampler(smpInfo));
 }
 
 void OutlineRenderer::initResolution(int width_, int height_)
@@ -43,11 +58,13 @@ void OutlineRenderer::initResolution(int width_, int height_)
   colorRt.close();
   colorRt.set(d3d::create_tex(NULL, width, height, TEXCF_RTARGET | TEXFMT_DEFAULT, 1, "simple_outline_color_rt"),
     "simple_outline_color_rt");
-  colorRt.getTex2D()->texaddr(TEXADDR_CLAMP);
 }
 
-void OutlineRenderer::render(IGenViewportWnd &wnd, dag::ConstSpan<RenderElement> elements)
+void OutlineRenderer::render(IGenViewportWnd &wnd, const RIElementsCache &riElements,
+  dag::ConstSpan<DynamicRenderableSceneInstance *> dynmodelElements)
 {
+  TIME_D3D_PROFILE(render_outline_elements);
+
   int viewportWidth, viewportHeight;
   wnd.getViewportSize(viewportWidth, viewportHeight);
 
@@ -66,36 +83,30 @@ void OutlineRenderer::render(IGenViewportWnd &wnd, dag::ConstSpan<RenderElement>
   const int lastFrameBlockId = ShaderGlobal::getBlock(ShaderGlobal::LAYER_FRAME);
   ShaderGlobal::setBlock(global_frame_block_id, ShaderGlobal::LAYER_FRAME);
 
-  for (const RenderElement &re : elements)
+  // rendinst
+  mat44f globtm;
+  d3d::getglobtm(globtm);
+  rendinst::prepareRIGenVisibility(Frustum(globtm), ::grs_cur_view.pos, globalVisibility, false, nullptr);
+
+  rendinst::VisibilityExternalIdFilter ri_id_filter = [&riElements](int ri_idx, const TMatrix &tm) -> bool {
+    auto range = riElements.equal_range(ri_idx);
+    for (auto it = range.first; it != range.second; ++it)
+      if (it->second == tm)
+        return true;
+    return false;
+  };
+  rendinst::filterRIGenVisibilityById(globalVisibility, filteredVisibility, ri_id_filter);
   {
-    if (re.rendInstExtraResourceIndex >= 0)
-    {
-      Point4 data[4];
-      data[0] = Point4(re.transform.getcol(0).x, re.transform.getcol(1).x, re.transform.getcol(2).x, re.transform.getcol(3).x),
-      data[1] = Point4(re.transform.getcol(0).y, re.transform.getcol(1).y, re.transform.getcol(2).y, re.transform.getcol(3).y),
-      data[2] = Point4(re.transform.getcol(0).z, re.transform.getcol(1).z, re.transform.getcol(2).z, re.transform.getcol(3).z);
-      data[3] = Point4(0, 0, 0, 0);
-      rendinstMatrixBuffer.get()->updateData(0, sizeof(Point4) * 4U, &data, 0);
+    SCENE_LAYER_GUARD(rendinst_scene_block_id);
+    rendinst::render::renderRIGen(rendinst::RenderPass::Normal, filteredVisibility, ::grs_cur_view.itm,
+      rendinst::LayerFlag::Opaque | rendinst::LayerFlag::NotExtra, rendinst::OptimizeDepthPass::Yes);
+  }
 
-      IPoint2 offsAndCnt(0, 1);
-      uint16_t riIdx = re.rendInstExtraResourceIndex;
-      uint32_t zeroLodOffset = 0;
-
-      SCENE_LAYER_GUARD(rendinst_scene_block_id);
-
-      rendinst::render::ensureElemsRebuiltRIGenExtra(/*gpu_instancing = */ false);
-
-      rendinst::render::renderRIGenExtraFromBuffer(rendinstMatrixBuffer.get(), dag::ConstSpan<IPoint2>(&offsAndCnt, 1),
-        dag::ConstSpan<uint16_t>(&riIdx, 1), dag::ConstSpan<uint32_t>(&zeroLodOffset, 1), rendinst::RenderPass::Normal,
-        rendinst::OptimizeDepthPass::Yes, rendinst::OptimizeDepthPrepass::No, rendinst::IgnoreOptimizationLimits::No,
-        rendinst::LayerFlag::Opaque);
-    }
-    else
-    {
-      G_ASSERT(re.sceneInstance);
-      if (!dynrend::render_in_tools(re.sceneInstance, dynrend::RenderMode::Opaque))
-        re.sceneInstance->render();
-    }
+  // dynmodel
+  if (IDynRenderService *rs = EDITORCORE->queryEditorInterface<IDynRenderService>())
+  {
+    for (auto *re : dynmodelElements)
+      rs->renderOneDynModelInstance(re, IRenderingService::Stage::STG_RENDER_DYNAMIC_OPAQUE);
   }
 
   ShaderGlobal::setBlock(lastFrameBlockId, ShaderGlobal::LAYER_FRAME);

@@ -29,14 +29,14 @@ AddIncludes =
   $(Root)/prog/engine/sharedInclude
   $(Root)/prog/engine/drv/drv3d_commonCode
   $(Root)/prog/3rdPartyLibs/nvapi
-  $(Root)/prog/3rdPartyLibs/aftermath/2024.1.0.24075
+  $(Root)/prog/3rdPartyLibs/aftermath/2025.4.0.250729/include
   $(Root)/prog/3rdPartyLibs/adl_sdk
   $(Root)/prog/engine/drv/drv3d_DX11
 ;
 
 AddLibs += Version.lib ;
 
-CPPopt = -D__B_DRVDX -DINSIDE_DRIVER -FId3d_config.h ;
+CPPopt = -DINSIDE_DRIVER -FId3d_config.h ;
 if [ GLOB $(Root)/prog/3rdPartyLibs/nvapi : * ]     { CPPopt += -DHAS_NVAPI ; }
 if [ GLOB $(Root)/prog/3rdPartyLibs/aftermath : * ] { CPPopt += -DHAS_GF_AFTERMATH ; }
 if $(PlatformArch) in arm64 { CPPopt = [ StripStrings $(CPPopt) : -DHAS_NVAPI ] ; }

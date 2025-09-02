@@ -12,6 +12,7 @@
 #include <libTools/util/iLogWriter.h>
 #include <image/dag_loadImage.h>
 #include <image/dag_texPixel.h>
+#include <image/dag_dds.h>
 #include <nvtt/nvtt.h>
 #include <nvimage/image.h>
 #include <nvimage/floatImage.h>
@@ -301,11 +302,11 @@ class TexExporter : public IDagorAssetExporter //-V553
   };
 
 public:
-  virtual const char *__stdcall getExporterIdStr() const { return "tex exp"; }
+  const char *__stdcall getExporterIdStr() const override { return "tex exp"; }
 
-  virtual const char *__stdcall getAssetType() const { return TYPE; }
-  virtual unsigned __stdcall getGameResClassId() const { return 0; }
-  virtual unsigned __stdcall getGameResVersion() const { return preferZstdPacking ? (allowOodlePacking ? 11 : 10) : 9; }
+  const char *__stdcall getAssetType() const override { return TYPE; }
+  unsigned __stdcall getGameResClassId() const override { return 0; }
+  unsigned __stdcall getGameResVersion() const override { return preferZstdPacking ? (allowOodlePacking ? 11 : 10) : 9; }
 
   void __stdcall onRegister() override { buildResultsBlk = NULL; }
   void __stdcall onUnregister() override { buildResultsBlk = NULL; }
@@ -353,9 +354,9 @@ public:
 #undef GET_PROP
   }
 
-  virtual bool __stdcall isExportableAsset(DagorAsset &a) { return true; }
+  bool __stdcall isExportableAsset(DagorAsset &a) override { return true; }
 
-  virtual bool __stdcall exportAsset(DagorAsset &a, mkbindump::BinDumpSaveCB &cwr, ILogWriter &log)
+  bool __stdcall exportAsset(DagorAsset &a, mkbindump::BinDumpSaveCB &cwr, ILogWriter &log) override
   {
     if (int max_sz = a.props.getInt("thumbnailMaxDataSize", 0))
     {
@@ -542,7 +543,8 @@ public:
 
 #define GET_PROP(TYPE, PROP, DEF) props.get##TYPE(PROP, &props != &a.props ? a.props.get##TYPE(PROP, DEF) : DEF)
       const char *fmt = GET_PROP(Str, "fmt", "ARGB");
-      if (const DataBlock *b = blkAssetsBuildTex.getBlockByName(mkbindump::get_target_str(target_code)))
+      uint64_t tc_storage = 0;
+      if (const DataBlock *b = blkAssetsBuildTex.getBlockByName(mkbindump::get_target_str(target_code, tc_storage)))
         fmt = b->getBlockByNameEx("fmtSubst")->getStr(fmt, fmt);
 
       fmt_spec.aprintf(0, "%s;", fmt);
@@ -561,7 +563,8 @@ public:
   {
     if (buildResultsBlk->blockCount())
     {
-      const char *pkname = a.getCustomPackageName(mkbindump::get_target_str(tc), nullptr);
+      uint64_t tc_storage = 0;
+      const char *pkname = a.getCustomPackageName(mkbindump::get_target_str(tc, tc_storage), nullptr);
       if (DataBlock *b = buildResultsBlk->getBlockByName(pkname ? pkname : "."))
         b->removeBlock(a.getName());
     }
@@ -585,10 +588,256 @@ public:
     SimpleString hash;
     if (getAssetSourceHash(hash, a, cache_shared_data_ptr, tc))
     {
-      const char *pkname = a.getCustomPackageName(mkbindump::get_target_str(tc), nullptr);
+      uint64_t tc_storage = 0;
+      const char *pkname = a.getCustomPackageName(mkbindump::get_target_str(tc, tc_storage), nullptr);
       buildResultsBlk->addBlock(pkname ? pkname : ".")->addBlock(a.getName())->setStr("src", hash);
     }
     // debug("updateBuildResultsBlk(%s) %s", a.getName(), hash);
+    return true;
+  }
+  bool __stdcall makeTexDDSxHeader(DagorAsset &a, ddsx::Header &dest_hdr, unsigned &dest_lev_desc) override
+  {
+    unsigned target_code = _MAKE4C('PC');
+    const char *target_str = "PC";
+
+    memset(&dest_hdr, 0, sizeof(dest_hdr));
+    dest_hdr.label = _MAKE4C('DDSx');
+    dest_hdr.depth = 1;
+    DagorAsset *a_tq = a.getMgr().findAsset(String::mk_str_cat(a.getName(), "$tq"));
+    DagorAsset *a_hq = a.getMgr().findAsset(String::mk_str_cat(a.getName(), "$hq"));
+    DagorAsset *a_uhq = a.getMgr().findAsset(String::mk_str_cat(a.getName(), "$uhq"));
+
+#define GET_PROP(TYPE, PROP, DEF) props.get##TYPE(PROP, &props != &a.props ? a.props.get##TYPE(PROP, DEF) : DEF)
+    const DataBlock &props = a.getProfileTargetProps(target_code, nullptr);
+    const DataBlock *targetBlock = blkAssetsBuildTex.getBlockByNameEx(target_str);
+    const char *texTypeStr = GET_PROP(Str, "texType", nullptr);
+    const char *mipmap = GET_PROP(Str, "mipmap", "gen");
+    const char *mipFilt = GET_PROP(Str, "mipFilter", "");
+    int mipCnt = GET_PROP(Int, "mipCnt", -1);
+    int tex3d_depth = GET_PROP(Int, "texDepth", 1);
+    const float gamma = GET_PROP(Real, "gamma", 2.2);
+    bool iesTexture = GET_PROP(Bool, "buildIES", false);
+    bool bcFmtExpandImageTransp = GET_PROP(Bool, "bcFmtExpandImageTransp", false);
+    bool splitHigh = GET_PROP(Bool, "splitHigh", false);
+    int splitAt = GET_PROP(Int, "splitAt", 0);
+    bool splitOverrided = GET_PROP(Bool, "splitAtOverride", false);
+    const int defMaxTexSz = targetBlock->getInt("defMaxTexSz", blkAssetsBuildTex.getInt("defMaxTexSz", 0));
+    const int maxTexSz = props.getBlockByNameEx(target_str)->getInt("maxTexSz", GET_PROP(Int, "maxTexSz", defMaxTexSz));
+    const int defMipBias = targetBlock->getInt("mipBias", blkAssetsBuildTex.getInt("mipBias", 0));
+    const int mipBias = props.getBlockByNameEx(target_str)->getInt("mipBias", GET_PROP(Int, "mipBias", defMipBias));
+    const char *fmt = GET_PROP(Str, "fmt", "ARGB");
+    if (const DataBlock *b = blkAssetsBuildTex.getBlockByName(target_str))
+      fmt = b->getBlockByNameEx("fmtSubst")->getStr(fmt, fmt);
+    if (!splitOverrided)
+      splitAt = a.props.getBlockByNameEx(target_str)->getInt("splitAtSize", splitAt);
+    TextureMetaData tmd;
+    tmd.read(a.props, &a.props == &props ? "" : props.getBlockName());
+
+    if (mipCnt == 0)
+      mipmap = "none";
+    else if (stricmp(mipmap, "none") == 0)
+      mipCnt = 0;
+
+    if (!texTypeStr || strcmp(texTypeStr, "tex2D") == 0)
+      dest_hdr.flags |= 0;
+    else if (strcmp(texTypeStr, "cube") == 0)
+      dest_hdr.flags |= dest_hdr.FLG_CUBTEX;
+    else if (strcmp(texTypeStr, "tex3D") == 0)
+      dest_hdr.flags |= dest_hdr.FLG_VOLTEX;
+    if (GET_PROP(Bool, "rtMipGen", false))
+      dest_hdr.flags |= stricmp(mipFilt, "filterKaizer") == 0 ? dest_hdr.FLG_GENMIP_KAIZER : dest_hdr.FLG_GENMIP_BOX;
+    if (fabsf(gamma - 1.0f) < 1e-3f)
+      dest_hdr.flags |= dest_hdr.FLG_GAMMA_EQ_1;
+
+    bool alpha_used = false;
+    if (iesTexture)
+    {
+      dest_hdr.w = props.getInt("textureWidth", 4);
+      dest_hdr.h = a.props.getInt("textureHeight", 4);
+    }
+    else
+    {
+      int w = 0, h = 0;
+      String targetFilePath(a.getTargetFilePath());
+      const char *fn_ext = dd_get_fname_ext(targetFilePath);
+      if (fn_ext && strcmp(fn_ext, ".dds") == 0)
+      {
+        ImageInfoDDS dds_info;
+        if (!read_dds_info(targetFilePath, dds_info))
+          return false;
+        if (dds_info.cube_map || dds_info.volume_tex)
+          return false;
+        w = dds_info.width;
+        h = dds_info.height;
+        alpha_used = is_alpha_texformat(dds_info.format);
+      }
+      else if (!read_image_dimensions(targetFilePath, w, h, alpha_used))
+        return false;
+      dest_hdr.w = w;
+      dest_hdr.h = h;
+    }
+    if (stricmp(mipFilt, "filterStripe") == 0)
+      dest_hdr.w = (dest_hdr.w + 1) / 2;
+
+    if (mipCnt != -1)
+      mipCnt += 1 + tmd.hqMip;
+    if (dest_hdr.flags & dest_hdr.FLG_CUBTEX)
+      dest_hdr.h = dest_hdr.h / 6;
+    else if (dest_hdr.flags & dest_hdr.FLG_VOLTEX)
+    {
+      dest_hdr.depth = tex3d_depth;
+      dest_hdr.h = dest_hdr.h / tex3d_depth;
+      if (mipCnt == -1)
+        mipCnt = get_log2i(max(max(dest_hdr.w, dest_hdr.h), dest_hdr.depth));
+    }
+    else if (mipCnt == -1)
+      mipCnt = get_log2i(max(dest_hdr.w, dest_hdr.h));
+
+    const char *pow2mode =
+      GET_PROP(Str, "pow2", is_uncompressed_fmt(fmt) && (!is_pow_of2(dest_hdr.h) || !is_pow_of2(dest_hdr.w)) ? "none" : "round");
+
+    if (maxTexSz && splitAt)
+    {
+      tmd.hqMip += mipBias;
+      while ((dest_hdr.w >> tmd.hqMip) > maxTexSz || (dest_hdr.h >> tmd.hqMip) > maxTexSz)
+        tmd.hqMip++;
+    }
+#undef GET_PROP
+
+    unsigned tc_format = 0;
+    if (target_code == _MAKE4C('iOS') || target_code == _MAKE4C('and') || (target_code == _MAKE4C('PC') && pcAllowsASTC)) //-V560
+    {
+      if (stricmp(fmt, "ASTC") == 0)
+        tc_format = 0x114;
+      if (strnicmp(fmt, "ASTC:4", 6) == 0)
+        tc_format = 0x114;
+      else if (strnicmp(fmt, "ASTC:8", 6) == 0)
+        tc_format = 0x118;
+      else if (strnicmp(fmt, "ASTC:12", 7) == 0)
+        tc_format = 0x11C;
+    }
+    if (tc_format && (!is_pow_of2(dest_hdr.w) || !is_pow_of2(dest_hdr.h)) && strcmp(pow2mode, "none") == 0 &&
+        (target_code == _MAKE4C('PC') && pcAllowsASTC_to_ARGB)) //-V560
+    {
+      fmt = "ARGB";
+      tc_format = 0;
+    }
+
+    if (bcFmtExpandImageTransp)
+      if (strstr(fmt, "DXT") || strstr(fmt, "BC") || strstr(fmt, "ATI"))
+      {
+        int align = 4;
+        for (int i = 0; i < mipCnt; i++)
+          align *= 2;
+        bool full_mip_chain = (mipCnt == get_log2i(max(dest_hdr.w, dest_hdr.h)));
+        dest_hdr.w = (dest_hdr.w + align - 1) / align * align;
+        dest_hdr.h = (dest_hdr.h + align - 1) / align * align;
+        if (full_mip_chain)
+          mipCnt = get_log2i(max(dest_hdr.w, dest_hdr.h));
+      }
+
+    if (stricmp(fmt, "ARGB") == 0)
+      dest_hdr.d3dFormat = D3DFMT_A8R8G8B8;
+    else if (stricmp(fmt, "RGB") == 0)
+      dest_hdr.d3dFormat = D3DFMT_X8R8G8B8;
+    else if (tc_format)
+    {
+      dest_hdr.flags |= dest_hdr.FLG_MOBILE_TEXFMT;
+      if (tc_format == 0x114)
+        dest_hdr.dxtShift = 5, dest_hdr.bitsPerPixel = 8;
+      else if (tc_format == 0x118)
+        dest_hdr.dxtShift = 6, dest_hdr.bitsPerPixel = 2;
+      else if (tc_format == 0x11C) //-V547
+        dest_hdr.dxtShift = 7, dest_hdr.bitsPerPixel = 0;
+    }
+    else if (stricmp(fmt, "DXT1") == 0)
+      dest_hdr.d3dFormat = D3DFMT_DXT1;
+    else if (stricmp(fmt, "DXT1a") == 0)
+      dest_hdr.d3dFormat = D3DFMT_DXT1;
+    else if (stricmp(fmt, "DXT3") == 0)
+      dest_hdr.d3dFormat = D3DFMT_DXT3;
+    else if (stricmp(fmt, "DXT5") == 0)
+      dest_hdr.d3dFormat = D3DFMT_DXT5;
+    else if (stricmp(fmt, "DXT1|DXT5") == 0)
+      dest_hdr.d3dFormat = D3DFMT_DXT5;
+    else if (stricmp(fmt, "DXT1|BC7") == 0)
+      dest_hdr.d3dFormat = _MAKE4C('BC7 ');
+    else if (stricmp(fmt, "ATI1N") == 0 || stricmp(fmt, "BC4") == 0)
+      dest_hdr.d3dFormat = _MAKE4C('ATI1');
+    else if (stricmp(fmt, "ATI2N") == 0 || stricmp(fmt, "BC5") == 0)
+      dest_hdr.d3dFormat = _MAKE4C('ATI2');
+    else if (stricmp(fmt, "BC6H") == 0)
+      dest_hdr.d3dFormat = _MAKE4C('BC6H');
+    else if (stricmp(fmt, "BC7") == 0)
+      dest_hdr.d3dFormat = _MAKE4C('BC7 ');
+    else if (stricmp(fmt, "R8") == 0 || stricmp(fmt, "L8") == 0)
+      dest_hdr.d3dFormat = D3DFMT_L8;
+    else if (stricmp(fmt, "A8R8") == 0 || stricmp(fmt, "A8L8") == 0)
+      dest_hdr.d3dFormat = D3DFMT_A8L8;
+    else if (stricmp(fmt, "R8G8") == 0)
+      dest_hdr.d3dFormat = TEXFMT_R8G8;
+    else if (stricmp(fmt, "RGB565") == 0 || stricmp(fmt, "R5G6B5") == 0)
+      dest_hdr.d3dFormat = D3DFMT_R5G6B5;
+    else if (stricmp(fmt, "RGBA5551") == 0 || stricmp(fmt, "A1R5G5B5") == 0)
+      dest_hdr.d3dFormat = D3DFMT_A1R5G5B5;
+    else if (stricmp(fmt, "RGBA4444") == 0 || stricmp(fmt, "A4R4G4B4") == 0)
+      dest_hdr.d3dFormat = D3DFMT_A4R4G4B4;
+    else
+      return false;
+
+    dest_lev_desc = 0x0000;
+    if (a_uhq && splitAt)
+    {
+      TextureMetaData tmd_uhq;
+      const DataBlock &props_uhq = a_uhq->getProfileTargetProps(target_code, nullptr);
+      tmd_uhq.read(a_uhq->props, &a_uhq->props == &props_uhq ? "" : props_uhq.getBlockName());
+      if (int uhq_maxTexSz = props_uhq.getBlockByNameEx(target_str)->getInt("maxTexSz", props_uhq.getInt("maxTexSz", defMaxTexSz)))
+        while ((dest_hdr.w >> tmd_uhq.hqMip) > uhq_maxTexSz || (dest_hdr.h >> tmd_uhq.hqMip) > uhq_maxTexSz)
+          tmd_uhq.hqMip++;
+      G_ASSERTF(tmd_uhq.hqMip <= tmd.hqMip, "tmd_uhq.hqMip=%d tmd.hqMip=%d", tmd_uhq.hqMip, tmd.hqMip);
+      dest_hdr.w = max(dest_hdr.w >> tmd_uhq.hqMip, 1);
+      dest_hdr.h = max(dest_hdr.h >> tmd_uhq.hqMip, 1);
+      mipCnt -= tmd_uhq.hqMip;
+      if (dest_hdr.w > splitAt || dest_hdr.h > splitAt)
+        dest_lev_desc |= get_log2i(max(dest_hdr.w, dest_hdr.h)) << 12;
+      else
+        a_uhq = nullptr;
+      tmd.hqMip -= tmd_uhq.hqMip;
+    }
+    if (!a_uhq || !splitAt)
+    {
+      dest_hdr.w = max(dest_hdr.w >> tmd.hqMip, 1);
+      dest_hdr.h = max(dest_hdr.h >> tmd.hqMip, 1);
+      mipCnt -= tmd.hqMip;
+      tmd.hqMip = 0;
+    }
+
+    if (a_hq && splitAt)
+    {
+      int hq_w = max(dest_hdr.w >> tmd.hqMip, 1);
+      int hq_h = max(dest_hdr.h >> tmd.hqMip, 1);
+      if (hq_w > splitAt || hq_h > splitAt)
+        dest_lev_desc |= get_log2i(max(hq_w, hq_h)) << 8;
+    }
+    if (splitAt && splitHigh && dest_hdr.w <= splitAt && dest_hdr.h <= splitAt)
+    {
+      dest_hdr.w = dest_hdr.h = dest_hdr.levels = 0;
+      dest_lev_desc = 0;
+      return true;
+    }
+
+    unsigned qlev = get_log2i(max(dest_hdr.w, dest_hdr.h));
+    dest_lev_desc |= ((splitAt && !splitHigh) ? min(qlev, get_log2i(splitAt)) : qlev) << 4;
+    if (qlev < 5 + mipCnt && qlev > 5)
+      dest_lev_desc |= a_tq ? 0x5 : 0;
+    if (splitAt && qlev >= get_log2i(splitAt) + mipCnt)
+    {
+      splitAt = 0;
+      dest_lev_desc = qlev << 4; // only BQ (no real split due to mip count)
+    }
+
+    dest_hdr.levels = (splitAt && splitHigh) ? min<int>(mipCnt, qlev - get_log2i(splitAt)) : mipCnt;
+    // debug("makeDDSx(%s)=%dx%d,L%d lev_desc=0x%x", a.getName(), dest_hdr.w, dest_hdr.h, dest_hdr.levels, dest_lev_desc);
     return true;
   }
 
@@ -600,68 +849,6 @@ public:
     MMF_box,
     MMF_kaizer
   };
-  virtual int __stdcall getBqTexResolution(DagorAsset &a, unsigned target, const char *profile, ILogWriter &log)
-  {
-    if (a.props.getInt("thumbnailMaxDataSize", 0))
-    {
-      return 32;
-    }
-#define GET_PROP(TYPE, PROP, DEF) props.get##TYPE(PROP, &props != &a.props ? a.props.get##TYPE(PROP, DEF) : DEF)
-    const DataBlock &props = a.getProfileTargetProps(target, profile);
-    const char *texTypeStr = GET_PROP(Str, "texType", nullptr);
-    if (!a.props.getBool("convert", false) || (texTypeStr && (strcmp(texTypeStr, "tex2D") != 0)))
-      return 512;
-    TexImage32 *img = nullptr;
-    bool iesTexture = GET_PROP(Bool, "buildIES", false);
-    int mipCustomFilt = MMF_none;
-    bool alpha_used = false;
-    int mipCnt = 0;
-    TextureMetaData tmd;
-    tmd.read(a.props, &a.props == &props ? "" : props.getBlockName());
-    String targetFilePath(a.getTargetFilePath());
-    if (iesTexture)
-    {
-      IesReader::IesParams iesParams;
-      iesParams.blurRadius = GET_PROP(Real, "blurRadius", iesParams.blurRadius * RAD_TO_DEG) * DEG_TO_RAD;
-      iesParams.phiMin = GET_PROP(Real, "phiMin", iesParams.phiMin * RAD_TO_DEG) * DEG_TO_RAD;
-      iesParams.phiMax = GET_PROP(Real, "phiMax", iesParams.phiMax * RAD_TO_DEG) * DEG_TO_RAD;
-      iesParams.thetaMin = GET_PROP(Real, "thetaMin", iesParams.thetaMin * RAD_TO_DEG) * DEG_TO_RAD;
-      iesParams.thetaMax = GET_PROP(Real, "thetaMax", iesParams.thetaMax * RAD_TO_DEG) * DEG_TO_RAD;
-      iesParams.edgeFadeout = GET_PROP(Real, "edgeFadeout", iesParams.edgeFadeout * RAD_TO_DEG) * DEG_TO_RAD;
-      img = create_ies_image(a, log, iesParams, tmd);
-    }
-    else
-      img = ::load_image(targetFilePath, tmpmem, &alpha_used);
-    if (!img && dd_get_fname_ext(targetFilePath) && dd_stricmp(dd_get_fname_ext(targetFilePath), ".dds") == 0)
-    {
-      bool allow_mipstripe = GET_PROP(Bool, "useDDSmips", true);
-      int initial_mipCnt = mipCnt;
-      img = decode_image_from_dds(a, allow_mipstripe, mipCnt, mipCustomFilt, alpha_used, log);
-      if (allow_mipstripe && initial_mipCnt != mipCnt && mipCnt > 0)
-        mipCnt -= tmd.hqMip;
-    }
-    if (!img)
-      return 512;
-    int w = img->w;
-    int h = img->h;
-    memfree(img, tmpmem);
-    int splitAt = GET_PROP(Int, "splitAt", 0);
-    bool splitOverrided = GET_PROP(Bool, "splitAtOverride", false);
-    if (!splitOverrided)
-      splitAt = a.props.getBlockByNameEx(mkbindump::get_target_str(target))->getInt("splitAtSize", splitAt);
-
-    if (!splitAt)
-      return min(w, h);
-
-    while (w > splitAt || h > splitAt)
-    {
-      w >>= 1;
-      h >>= 1;
-    }
-    return min(w, h);
-#undef GET_PROP
-  }
-
   bool buildTexAsset(DagorAsset &a, mkbindump::BinDumpSaveCB &cwr, ILogWriter &log, bool mipmap_none = false,
     Tab<TexPixel32> *out_base_img = NULL)
   {
@@ -687,10 +874,12 @@ public:
     };
     AutoAlphaFmt auto_alpha_fmt = AAF_off;
     const DataBlock &props = a.getProfileTargetProps(cwr.getTarget(), cwr.getProfile());
-    const char *swizzle = GET_PROP(Str, "swizzleARGB", "ARGB");
+    char swizzle_stor[8] = {0};
+    strncpy(swizzle_stor, GET_PROP(Str, "swizzleARGB", "ARGB"), 7);
+    const char *swizzle = swizzle_stor;
     const char *fmt = GET_PROP(Str, "fmt", "ARGB");
     bool postCopyAtoR = GET_PROP(Bool, "postCopyAtoR", false);
-    const char *quality = GET_PROP(Str, "quality", "");
+    const char *quality = cwr.isFastBuild() ? "fastest" : GET_PROP(Str, "quality", "");
     bool iesTexture = GET_PROP(Bool, "buildIES", false);
     ImgBitFormat pix_format = IMG_BITFMT__NONE;
 
@@ -736,7 +925,8 @@ public:
     const float mipFiltStretch = GET_PROP(Real, "mipFilterStretch", 1);
     const float gamma = GET_PROP(Real, "gamma", 2.2);
 
-    const char *targetPlatform = mkbindump::get_target_str(cwr.getTarget());
+    uint64_t tc_storage = 0;
+    const char *targetPlatform = mkbindump::get_target_str(cwr.getTarget(), tc_storage);
 
     const DataBlock *targetBlock = blkAssetsBuildTex.getBlockByNameEx(targetPlatform);
 
@@ -816,26 +1006,19 @@ public:
       else if (strnicmp(fmt, "ASTC:12", 7) == 0)
         tc_format = 0x11C, suf = fmt + 7;
 
-      static char new_swizzle[16];
-      memset(new_swizzle, 0, sizeof(new_swizzle));
-      strncpy(new_swizzle, swizzle, 15);
-      new_swizzle[15] = 0;
       if (!suf[0] || strcmp(suf, ":rgba") == 0)
         ; // do nothing
       else if (strcmp(suf, ":r") == 0)
       {
         if (postCopyAtoR)
-          new_swizzle[1] = new_swizzle[2] = new_swizzle[3] = '0';
+          swizzle_stor[1] = swizzle_stor[2] = swizzle_stor[3] = '0';
         else
-          new_swizzle[0] = '1', new_swizzle[2] = '0', new_swizzle[3] = '0';
+          swizzle_stor[0] = '1', swizzle_stor[2] = '0', swizzle_stor[3] = '0';
       }
       else if (strcmp(suf, ":rg") == 0)
-        new_swizzle[0] = '1', new_swizzle[3] = '0';
+        swizzle_stor[0] = '1', swizzle_stor[3] = '0';
       else if (strcmp(suf, ":rgb") == 0)
-        new_swizzle[0] = '1';
-
-      if (strcmp(swizzle, new_swizzle) != 0)
-        swizzle = new_swizzle;
+        swizzle_stor[0] = '1';
     }
 
     BC67Format bc67_fmt = BC67_FORMAT_NONE;
@@ -887,12 +1070,7 @@ public:
     if (!ablend_btex && (stricmp(fmt, "DXT1") == 0 || stricmp(fmt, "RGB") == 0))
     {
       // force ALPHA=1 for texture formats without alpha
-      static char new_swizzle[16];
-      memset(new_swizzle, 0, sizeof(new_swizzle));
-      strncpy(new_swizzle, swizzle, 15);
-      new_swizzle[15] = 0;
-      new_swizzle[0] = '1';
-      swizzle = new_swizzle;
+      swizzle_stor[0] = '1';
     }
 
     if (mipCnt == 0)
@@ -1342,8 +1520,6 @@ public:
           KaiserFilter f(img_w, img_h, gamma, mipFiltAlpha, mipFiltStretch);
           FilterBase::create_mip_chain(image.ptr(), aim.imageMips, f);
         }
-        else
-          G_ASSERT(mipCustomFilt == MMF_point);
 
         mipCustomFilt = MMF_stripe;
         mipStripeProduced = true;
@@ -1534,7 +1710,7 @@ public:
       {
         //== we strip unused mips here to reduce processing time required for conversion;
         //   texconvcache::get_tex_asset_built_ddsx() (or any other consumer) must be aware of this
-        const char *dsFilt = GET_PROP(Str, "downscaleFilter", mipFilt);
+        const char *dsFilt = cwr.isFastBuild() ? "filterBox" : GET_PROP(Str, "downscaleFilter", mipFilt);
 
         if (tmd.hqMip > 0)
         {
@@ -2682,7 +2858,7 @@ public:
 
   struct ErrorHandler : public nvtt::ErrorHandler
   {
-    virtual void error(nvtt::Error e) { logerr("nvtt: '%s'", nvtt::errorString(e)); }
+    void error(nvtt::Error e) override { logerr("nvtt: '%s'", nvtt::errorString(e)); }
   };
   struct OutputHandler : public nvtt::OutputHandler
   {
@@ -2690,8 +2866,8 @@ public:
     int hqPartLev;
 
     OutputHandler() : cwr(NULL), hqPartLev(0) {}
-    virtual void beginImage(int size, int width, int height, int depth, int face, int miplevel) {}
-    virtual bool writeData(const void *data, int size)
+    void beginImage(int size, int width, int height, int depth, int face, int miplevel) override {}
+    bool writeData(const void *data, int size) override
     {
       cwr->write(data, size);
       if (hqPartLev && cwr->tell() > sizeof(DDSURFACEDESC2) + 4)
@@ -3517,24 +3693,24 @@ public:
 class TexRefs : public IDagorAssetRefProvider
 {
 public:
-  virtual const char *__stdcall getRefProviderIdStr() const { return "tex refs"; }
+  const char *__stdcall getRefProviderIdStr() const override { return "tex refs"; }
 
-  virtual const char *__stdcall getAssetType() const { return TYPE; }
+  const char *__stdcall getAssetType() const override { return TYPE; }
 
-  virtual void __stdcall onRegister() {}
-  virtual void __stdcall onUnregister() {}
+  void __stdcall onRegister() override {}
+  void __stdcall onUnregister() override {}
 
-  dag::ConstSpan<Ref> __stdcall getAssetRefs(DagorAsset &a) override { return {}; }
-  dag::ConstSpan<Ref> __stdcall getAssetRefsEx(DagorAsset &a, unsigned target, const char *profile) override
+  void __stdcall getAssetRefs(DagorAsset &a, Tab<Ref> &refs) override { refs.clear(); }
+  void __stdcall getAssetRefsEx(DagorAsset &a, Tab<Ref> &refs, unsigned target, const char *profile) override
   {
-    static Ref ref;
-
     TextureMetaData tmd;
-    tmd.read(a.props, a.resolveEffProfileTargetStr(mkbindump::get_target_str(target), profile));
+    uint64_t tc_storage = 0;
+    tmd.read(a.props, a.resolveEffProfileTargetStr(mkbindump::get_target_str(target, tc_storage), profile));
     if (!dagor_target_code_supports_tex_diff(target))
       tmd.baseTexName = NULL;
+    refs.clear();
     if (tmd.baseTexName.empty())
-      return {};
+      return;
 
 #define GET_PROP(TYPE, PROP, DEF) props.get##TYPE(PROP, &props != &a.props ? a.props.get##TYPE(PROP, DEF) : DEF)
     const DataBlock &props = a.getProfileTargetProps(target, profile);
@@ -3542,23 +3718,22 @@ public:
     bool splitBasePart = !splitHigh && a.props.getInt("splitAt", 0) > 0;
 
     if (splitBasePart && !GET_PROP(Bool, "rtMipGenBQ", false))
-      return {}; // BQ doesn't require baseTex
+      return; // BQ doesn't require baseTex
 
+    Ref &ref = refs.push_back();
     ref.flags = RFLG_EXTERNAL;
     ref.refAsset = a.getMgr().findAsset(String(0, "%s%s", tmd.baseTexName, splitHigh ? "$hq" : ""), a.getType());
     if (!ref.refAsset && splitHigh)
       ref.refAsset = a.getMgr().findAsset(tmd.baseTexName, a.getType());
     if (!ref.refAsset)
       ref.setBrokenRef(String(128, "%s:%s", tmd.baseTexName, TYPE));
-
-    return make_span_const(&ref, 1);
   }
 };
 
 class TexExporterPlugin : public IDaBuildPlugin
 {
 public:
-  virtual bool __stdcall init(const DataBlock &appblk)
+  bool __stdcall init(const DataBlock &appblk) override
   {
     appBlkCopy.setFrom(&appblk, appblk.resolveFilename());
     blkAssetsBuildTex.setFrom(appBlkCopy.getBlockByNameEx("assets")->getBlockByNameEx("build")->getBlockByNameEx("tex"));
@@ -3615,15 +3790,15 @@ public:
     DEBUG_DUMP_VAR(astcenc_jobs_limit);
     return true;
   }
-  virtual void __stdcall destroy() { delete this; }
+  void __stdcall destroy() override { delete this; }
 
-  virtual int __stdcall getExpCount() { return 1; }
-  virtual const char *__stdcall getExpType(int idx) { return TYPE; }
-  virtual IDagorAssetExporter *__stdcall getExp(int idx) { return &exp; }
+  int __stdcall getExpCount() override { return 1; }
+  const char *__stdcall getExpType(int idx) override { return TYPE; }
+  IDagorAssetExporter *__stdcall getExp(int idx) override { return &exp; }
 
-  virtual int __stdcall getRefProvCount() { return 1; }
-  virtual const char *__stdcall getRefProvType(int idx) { return TYPE; }
-  virtual IDagorAssetRefProvider *__stdcall getRefProv(int idx) { return &ref; }
+  int __stdcall getRefProvCount() override { return 1; }
+  const char *__stdcall getRefProvType(int idx) override { return TYPE; }
+  IDagorAssetRefProvider *__stdcall getRefProv(int idx) override { return &ref; }
 
 protected:
   TexExporter exp;

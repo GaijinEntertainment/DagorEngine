@@ -35,7 +35,7 @@ def DasHelpMarker(desc : string)
     EndTooltip()
 
 def get_max_mismatches_by_filter_length(filter_length : int)
-  let allowedMismatchesByFilterLength <- [[int[] 3; 3; 5; 8; 10; 13]]
+  let allowedMismatchesByFilterLength <- fixed_array(3, 3, 5, 8, 10, 13)
   var maxMismatches = 0
   for m in allowedMismatchesByFilterLength
     if filter_length > m
@@ -95,9 +95,9 @@ def ecs_scene_window()
   imgui::BeginChild("sub", float2(0., -25.))
 
   // common code must be sync with other daeditor_draw_entity_table
-  if BeginTable("split", 2, ImGuiTableFlags BordersOuter | ImGuiTableFlags RowBg)
-    TableSetupColumn("eid", ImGuiTableColumnFlags WidthFixed)
-    TableSetupColumn("template", ImGuiTableColumnFlags WidthStretch)
+  if BeginTable("split", 2, ImGuiTableFlags.BordersOuter | ImGuiTableFlags.RowBg)
+    TableSetupColumn("eid", ImGuiTableColumnFlags.WidthFixed)
+    TableSetupColumn("template", ImGuiTableColumnFlags.WidthStretch)
 
     let now = DagorTime::ref_time_ticks()
     let dt = DagorTime::get_time_usec(int64(lastUpdateDate))
@@ -156,10 +156,6 @@ def ecs_scene_window()
       entity_obj_editor_for_each_entity() <| $(ent)
         allEntities |> push(ent.eid)
 
-    var selectedEid = INVALID_ENTITY_ID
-    query() <| $ [es(REQUIRE=daeditor__selected)] (eid : EntityId)
-      selectedEid = eid
-    let selectedTemplateLength = length("+daeditor_selected")
     var allEntitiesNum = length(allEntities)
     if allEntitiesNum > 0
       let hasFilters = length(shingles) > 0
@@ -185,7 +181,7 @@ def ecs_scene_window()
             let match = find_component(eid) <| $ [unused_argument(_)] (comp_name; _)
               for inc in includeComponent
                 if find(comp_name, inc) >= 0
-                  data |> emplace <| [[EntityData eid=eid, eidStr=eidStr, templateStr=templateStr, extraStr=extraStr]]
+                  data |> emplace <| EntityData(eid = eid, eidStr = eidStr, templateStr = templateStr, extraStr = extraStr)
                   return true
               return false
             if match || !(hasFilters || searchTypes)
@@ -205,7 +201,7 @@ def ecs_scene_window()
               let typeName = getComponentTypes() |> component_types_findTypeName(comp.userType)
               for inc in includeTypes
                 if find(typeName, inc) >= 0
-                  data |> emplace <| [[EntityData eid=eid, eidStr=eidStr, templateStr=templateStr, extraStr=extraStr]]
+                  data |> emplace <| EntityData(eid = eid, eidStr = eidStr, templateStr = templateStr, extraStr = extraStr)
                   return true
               return false
             if match || !hasFilters
@@ -214,10 +210,12 @@ def ecs_scene_window()
           var misNeighbourCount = 0
           var mismatchCount = 0
           var prevIdx = -1
+          var lastFindIdx = 0
+          var shingleDistance = 0
           let searchedStr = get_entity_displayed_name(templateStr, extraStr)
           if !(*filter |> PassFilter(eidStr))
             for shingle in shingles
-              let idx = find(searchedStr, shingle)
+              let idx = find(searchedStr, shingle, lastFindIdx)
               if idx == -1
                 mismatchCount++
                 if mismatchCount > maxMismatches
@@ -227,15 +225,19 @@ def ecs_scene_window()
                 if misNeighbourCount > maxMisNeighbourCount
                   break
               prevIdx = idx
+              if idx != -1
+                shingleDistance += abs(idx - lastFindIdx)
+                lastFindIdx = idx
             if mismatchCount > maxMismatches || misNeighbourCount > maxMisNeighbourCount
               continue
-          let templStrLength = length(searchedStr) - (eid == selectedEid ? selectedTemplateLength : 0)
-          let itemDistance = float(mismatchCount) + abs(float(templStrLength) - float(length(shingles) + 1)) * 0.015 + float(misNeighbourCount) * 0.5
-          var value = [[EntityData eid=eid, eidStr=eidStr, templateStr=templateStr, extraStr=extraStr, distance=itemDistance]]
-          let insertIdx = lower_bound(data, value) <| $(x, y) => x.distance < y.distance
-          data |> emplace(value, insertIdx)
+          let itemDistance = float(mismatchCount) + float(misNeighbourCount) * 0.5 + float(shingleDistance) * 0.05
+          var value = EntityData(eid = eid, eidStr = eidStr, templateStr = templateStr, extraStr = extraStr, distance = itemDistance)
+          data |> emplace(value)
         else
-          data |> emplace <| [[EntityData eid=eid, eidStr=eidStr, templateStr=templateStr, extraStr=extraStr]]
+          data |> emplace <| EntityData(eid = eid, eidStr = eidStr, templateStr = templateStr, extraStr = extraStr)
+
+      if hasFilters
+        data |> sort <| $(x, y) => x.distance != y.distance ? x.distance < y.distance : uint(x.eid) < uint(y.eid)
 
     var selected : bool
     var selectedAddr = safe_addr(selected)
@@ -255,9 +257,9 @@ def ecs_scene_window()
           imgui::TableNextColumn()
           selected = selectedItem == eid || eid |> has("daeditor__selected")
           imgui::PushID(eidStr)
-          if imgui::Selectable(displayStr, selectedAddr, ImGuiSelectableFlags AllowDoubleClick)
+          if imgui::Selectable(displayStr, selectedAddr, ImGuiSelectableFlags.AllowDoubleClick)
             selectedItem = eid
-            if imgui::IsMouseDoubleClicked(ImGuiMouseButton Left)
+            if imgui::IsMouseDoubleClicked(ImGuiMouseButton.Left)
               if GetIO().KeyCtrl
                 editedItem = eid
                 entity_object_editor_selectEntity(eid, !has(eid, "daeditor__selected"))
@@ -294,7 +296,7 @@ def ecs_scene_window()
 
 [console_cmd(name="imgui.editor_ecs_scene")]
 def show_ecs_scene()
-  let isVisible = imgui_get_state() != ImGuiState OFF && imgui_window_is_visible("Editor", "Scene")
+  let isVisible = imgui_get_state() != ImGuiState.OFF && imgui_window_is_visible("Editor", "Scene")
   let setVisible = !isVisible
   console_command(setVisible ? "imgui.activate" : "imgui.off")
   imgui_window_set_visible("Editor", "Scene", setVisible)

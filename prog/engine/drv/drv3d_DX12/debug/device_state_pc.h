@@ -3,10 +3,12 @@
 
 #include "call_stack.h"
 #include "event_marker_tracker.h"
+#include "gpu_postmortem_dagor_trace.h"
 #include <dag/dag_vector.h>
 #include <driver.h>
 #include <pipeline.h>
 #include <EASTL/string_view.h>
+#include <EASTL/fixed_function.h>
 #include <supp/dag_comPtr.h>
 #include <util/dag_compilerDefs.h>
 
@@ -26,19 +28,40 @@ namespace pc
 {
 class DeviceState : public call_stack::Reporter, protected event_marker::Tracker
 {
-  GlobalState *globalState = nullptr;
+public:
+  class NVRTValidationLayer
+  {
+#if HAS_NVAPI
+    void *nvCallbackCookie = nullptr;
+    D3DDevice *device = nullptr;
+    eastl::function<void()> callback;
+#endif
+
+  public:
+    bool setup(D3DDevice *dev);
+    void teardown();
+    void flush() const;
+    void onDeviceRemoved() const { flush(); }
+    bool setRtValidationCallback(const eastl::function<void()> &c);
+    void onError() const;
+  };
+
+private:
+  bool inUse = false;
   DWORD callbackCookie = 0;
+  GlobalState *globalState = nullptr;
   ComPtr<ID3D12InfoQueue> debugQueue;
   dag::Vector<uint8_t> debugMessageBuffer;
+  NVRTValidationLayer nvRtValidationLayer;
 
 public:
-  bool setup(GlobalState &global, ID3D12Device *device, const Direct3D12Enviroment &d3d_env);
+  bool setup(GlobalState &global, D3DDevice *device, const Direct3D12Enviroment &d3d_env);
   void teardown();
-  void beginCommandBuffer(D3DDevice *device, ID3D12GraphicsCommandList *cmd);
-  void endCommandBuffer(ID3D12GraphicsCommandList *cmd);
-  void beginSection(ID3D12GraphicsCommandList *cmd, eastl::string_view text);
-  void endSection(ID3D12GraphicsCommandList *cmd);
-  void marker(ID3D12GraphicsCommandList *cmd, eastl::string_view text);
+  void beginCommandBuffer(D3DDevice *device, D3DGraphicsCommandList *cmd);
+  void endCommandBuffer(D3DGraphicsCommandList *cmd);
+  void beginSection(D3DGraphicsCommandList *cmd, eastl::string_view text);
+  void endSection(D3DGraphicsCommandList *cmd);
+  void marker(D3DGraphicsCommandList *cmd, eastl::string_view text);
   void draw(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &vs,
     const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline, uint32_t count, uint32_t instance_count,
     uint32_t start, uint32_t first_instance, D3D12_PRIMITIVE_TOPOLOGY topology);
@@ -67,9 +90,17 @@ public:
   void dispatchRaysIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
     const RayDispatchBasicParameters &dispatch_parameters, const ResourceBindingTable &rbt, const RayDispatchIndirectParameters &rdip);
 #endif
+  void nameResource(ID3D12Resource *resource, eastl::string_view name);
+  void nameResource(ID3D12Resource *resource, eastl::wstring_view name);
+  void nameObject(ID3D12Object *object, eastl::string_view name);
+  void nameObject(ID3D12Object *object, eastl::wstring_view name);
+  TraceCheckpoint getTraceCheckpoint();
+  TraceRunStatus getTraceRunStatusFor(const TraceCheckpoint &cp);
+  TraceStatus getTraceStatusFor(const TraceCheckpoint &cp);
+  void reportTraceDataForRange(const TraceCheckpoint &from, const TraceCheckpoint &to);
   void onDeviceRemoved(D3DDevice *device, HRESULT remove_reason);
   void preRecovery();
-  void recover(ID3D12Device *device, const Direct3D12Enviroment &d3d_env);
+  void recover(D3DDevice *device, const Direct3D12Enviroment &d3d_env);
   void beginCapture(const wchar_t *name);
   void endCapture();
   void captureNextFrames(const wchar_t *filename, int count);
@@ -77,9 +108,12 @@ public:
   void sendGPUCrashDump(const char *type, const void *data, uintptr_t size);
   void processDebugLog()
   {
-    if (DAGOR_UNLIKELY(debugQueue))
+    if (DAGOR_UNLIKELY(inUse))
       processDebugLogImpl();
   }
+  bool isAnyCapturerLoaded() const;
+  bool isGpuBasedValidationEnabled() const;
+  bool setRtValidationCallback(const eastl::function<void()> &callback);
 
   using event_marker::Tracker::currentEvent;
   using event_marker::Tracker::currentEventPath;

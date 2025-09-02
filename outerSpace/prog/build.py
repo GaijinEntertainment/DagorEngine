@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 import sys
 import shutil
+import notify_ops
 import os
+
 sys.path.append('../..')
 from build_all import run, run_per_platform, VROMFS_PACKER_EXE, DABUILD_CMD, FONTGEN_EXE, BUILD_COMPONENTS, DAGOR_HOST, BUILD_TARGET_ARCH
 sys.path.pop()
@@ -19,11 +21,17 @@ if 'code' in BUILD_COMPONENTS:
       AOT_COMPILER_JAM_OPTIONS += ['-sPlatformArch=x86_64']
     else: # otherwise just use the same arch to match main project settings
       AOT_COMPILER_JAM_OPTIONS = PROJ_JAM_OPTIONS
+  elif DAGOR_HOST == 'windows': # use x86_64 as default for windows
+    PROJ_JAM_OPTIONS += ['-sPlatformArch=x86_64']
+    AOT_COMPILER_JAM_OPTIONS = PROJ_JAM_OPTIONS
 
   run(['jam', '-sRoot=../..', '-sProjectLocation=outerSpace/prog', '-sTarget=outer_space-aot', '-sOutDir=../tools/das-aot',
        '-f', '../../prog/daNetGame-das-aot/jamfile'] + AOT_COMPILER_JAM_OPTIONS)
   run(['jam', '-sNeedDasAotCompile=yes'] + PROJ_JAM_OPTIONS)
   run(['jam', '-sNeedDasAotCompile=yes', '-sDedicated=yes'] + PROJ_JAM_OPTIONS)
+  run(['jam', '-sNeedDasAotCompile=yes', '-sDedicated=yes', '-sTargetType=dll'] + PROJ_JAM_OPTIONS)
+
+  run(['jam', '-sProjectPath=outerSpace', '-sRoot=../..', '-f', '../../prog/tools/relay/jamfile'])
 
   run(['jam', '-f', 'jamfile-decrypt'])
 
@@ -32,14 +40,15 @@ if 'shaders' in BUILD_COMPONENTS:
   run_per_platform(
     cmds_windows = ['compile_shaders_dx12.bat', 'compile_shaders_dx11.bat',
                     'compile_shaders_metal.bat', 'compile_shaders_spirv.bat',
-                    'compile_shaders_tools.bat'],
+                    'compile_shaders_tools.bat', 'compile_shaders_exp.bat',
+                    'compile_shaders_impostorbaker.bat'],
     cmds_macOS   = ['./compile_shaders_metal.sh', './compile_tool_shaders_metal.sh'],
     cmds_linux   = ['./compile_shaders_spirv.sh', './compile_tool_shaders_spirv.sh'],
     cwd='./shaders')
 
 if 'vromfs' in BUILD_COMPONENTS:
   #build game vromfs
-  run([VROMFS_PACKER_EXE, 'mk.vromfs.blk', '-quiet', '-addpath:.'], cwd='gameBase')
+  run([VROMFS_PACKER_EXE, 'mk.vromfs.blk', '-quiet', '-addpath:.'], cwd='.')
 
   #build vromfs for dev-launcher
   run([VROMFS_PACKER_EXE, 'common.vromfs.blk', '-platform:PC', '-quiet', '-addpath:.'], cwd='utils/dev_launcher')

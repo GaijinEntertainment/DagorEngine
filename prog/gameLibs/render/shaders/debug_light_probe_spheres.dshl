@@ -10,7 +10,6 @@ shader debug_mirror_sphere
 
   z_test = true;
   z_write = true;
-  cull_mode = none;
 
   (vs) {
     globtm@f44 = globtm;
@@ -25,7 +24,7 @@ shader debug_mirror_sphere
       float3 worldPos : TEXCOORD0;
     };
   }
-
+  ENABLE_ASSERT(ps)
   USE_AND_INIT_VIEW_VEC_VS()
   USE_INDOOR_LIGHT_PROBES(ps, false)
 
@@ -55,7 +54,7 @@ shader debug_mirror_sphere
     float3 debug_light_probe_spheres_ps(VsOutput input):SV_Target0
     {
       float3 normal = normalize(input.normal);
-      float4 indoorRefl__localWeight = use_indoor_probes(input.worldPos.xyz, normal, reflect(normalize(input.worldPos.xyz - world_view_pos), normal), 0 /* roughMip */, 0 /* viewDist */);
+      float4 indoorRefl__localWeight = use_indoor_probes(input.worldPos.xyz, normal, reflect(normalize(input.worldPos.xyz - world_view_pos.xyz), normal), 0 /* roughMip */, 0 /* viewDist */);
       return indoorRefl__localWeight.rgb;
     }
   }

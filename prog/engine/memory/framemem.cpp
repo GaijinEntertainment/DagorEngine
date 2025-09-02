@@ -320,7 +320,10 @@ public:
   {
     auto newCurPtr = state.lastBlock + aligned_size(sz);
     if (newCurPtr > MEM_END(this))
+    {
+      exhausted(sz);
       return false;
+    }
     if (newCurPtr > state.cur_ptr)
       fill_with_debug_pattern(state.cur_ptr, newCurPtr);
     state.cur_ptr = newCurPtr;
@@ -354,6 +357,7 @@ public:
       return p;
     void *ret = this->alloc(sz);
     memcpy(ret, p, min(sz, size_t((uintptr_t)(IS_OUR_PTR(this, ret) ? ret : MEM_END(this)) - (uintptr_t)p)));
+    this->freeImpl(p);
     return ret;
   }
 
@@ -364,6 +368,11 @@ public:
     if (!IS_OUR_PTR(this, p))
       return tmpmem->free(p);
     validateInsideLastLiberator(p);
+    freeImpl(p);
+  }
+
+  __forceinline void freeImpl(void *p)
+  {
     if (p == state.lastBlock)
     {
       G_FAST_ASSERT((uintptr_t)state.lastBlock <= (uintptr_t)state.cur_ptr);

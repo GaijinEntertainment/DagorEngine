@@ -38,17 +38,20 @@ hosts_processes = {}
 users = {}
 rooms = {} #{roomId : {roomKey, owner_uid, creater_nick, scene, sessionId, hostIp, hostPort, users}}
 roomsList = []
+arch_type = platform.uname().machine if sys.platform.startswith('linux') else 'x86_64' if sys.platform.startswith('darwin') else 'x86_64'
 
 globalparams = {
   "encryption": True,
   "game_server_dir": os.path.abspath(os.path.join(os.path.dirname(__file__), "../../game")),
   "external_fixed_host_ip": None,
-  "exe_path": 'win32/outer_space-ded-dev.exe' if sys.platform == 'win32' else 'linux64/outer_space-ded-dev',
+  "exe_path": 'windows-{}/outer_space-ded-dev.exe'.format(arch_type) if sys.platform.startswith('win32') else 'linux-{}/outer_space-ded-dev'.format(arch_type),
+  "relay_exe_path": 'windows-{}/relay-dev.exe'.format(arch_type) if sys.platform.startswith('win32') else 'linux-{}/relay-dev'.format(arch_type),
   "portrange_base":20010,
   "portrange_num":90,
+  "reserve_ports_for_relay_instance":8
 }
 if sys.platform == "darwin":
-  globalparams["exe_path"] = 'macOS/outer_space-ded-dev'
+  globalparams["exe_path"] = 'macOS-{}/outer_space-ded-dev'.format(arch_type)
 
 
 def uuid_str_int32():
@@ -70,6 +73,12 @@ def generate_username():
 
     return username
 
+def get_master_server_str():
+    host = request.host.split(':')[0]
+    server_ip = host[0]
+    port = host[1]
+    return server_ip if port == "80" else request.host
+
 def get_master_server_ip():
     server_ip = request.host.split(':')[0]  # Split to handle cases with port numbers
     print(f'server_ip IP address is {server_ip}')
@@ -82,7 +91,7 @@ def get_host_ip():
 
 def get_free_udp_socket():
     for i in range(globalparams["portrange_num"]):
-        port = globalparams["portrange_base"] + i
+        port = globalparams["portrange_base"] + i * globalparams["reserve_ports_for_relay_instance"]
         if port in hosts_processes:
             continue
         return port
@@ -92,6 +101,9 @@ def get_game_server_path():
 
 def get_game_server_exe():
     return globalparams["exe_path"]
+
+def get_game_relay_exe():
+    return globalparams["relay_exe_path"]
 
 def mk_user_info_for_room(userid, nick=None, status=NOT_READY):
     return {
@@ -173,7 +185,7 @@ def home():
     <body>
         <h1>Welcome to Outer Space Master Server Sample!</h1>
         <b>This is an admin\debug panel</b>
-        <p>Server Ip is <b>{get_master_server_ip()}</b>, use it in master server url in client</p>
+        <p>Server IP is <b>{get_master_server_str()}</b>, use it in master server url in client</p>
         <p><b>ATTENTION!</b><br/>Check that your master-server is available from clients by its url. Check that it's UDP ports in {globalparams["portrange_base"]}-{globalparams["portrange_base"]+globalparams["portrange_num"]} are also available</p>
         <p>Check that server can launch host process for session</p>
         <p>Game server dir: <b>{get_game_server_path()}</b></p>
@@ -374,7 +386,49 @@ class pushd:
     def __exit__(self, type, value, traceback):
         os.chdir(self.olddir)
 
+def start_p2p_host_processing(roomInfo, useRelay):
+    scene = roomInfo["scene"]
+    secret = roomInfo["roomSecret"]
+    hostIp = roomInfo["hostIp"]
+    hostPort = roomInfo["hostPort"]
+    params = roomInfo['params']
+    inviteData = {
+      "mode_info":{},
+      "roomId":roomInfo["roomId"],
+      "members":[
+#        {"userId":12, "name":"foo"}
+      ]
+    }
+    for userId, userInfo  in roomInfo["users"].items():
+      memberInfo = {}
+      memberInfo.update(userInfo)
+      memberInfo.update({"userId":userId, "name":userInfo["nick"]})
+      inviteData["members"].append(memberInfo)
+
+    listenCmd = f"-listen:0.0.0.0:2992"
+    if useRelay == False:
+        listenCmd = f"-listen:{hostIp}:{hostPort}"
+    cmd = [f'{listenCmd}', f'-scene:{scene}', '--no-sound', '--das-no-debugger', '-nostatsd',
+            '-config:debug/profiler:t=off',
+            f'-config:sessionLaunchParams/sessionMaxTimeLimit:r={params["sessionMaxTimeLimit"]}',
+            f'-session_id:{roomInfo["sessionId"]}',
+            '-invite_data=%s' % json_b64(inviteData),
+            f'-config:sessionLaunchParams/maxPlayers:i={params["maxPlayers"]}'
+          ]
+    if globalparams["encryption"]:
+        cmd.append(f'-room_secret:{secret}')
+    else:
+        cmd.extend(['-nonetenc', '-nopeerauth'])
+    roomInfo["cmd_args"] = cmd
+    if useRelay== True:
+        print("START RELAY");
+        cmd.append(f'--relay_connection:{hostIp}:{hostPort + 1}')
+        start_relay_processing(roomInfo, hostIp, hostPort)
+
+
 def start_host_processing(roomInfo):
+
+    print("start_host_processing");
     scene = roomInfo["scene"]
     secret = roomInfo["roomSecret"]
     hostIp = roomInfo["hostIp"]
@@ -394,6 +448,8 @@ def start_host_processing(roomInfo):
       memberInfo.update(userInfo)
       memberInfo.update({"userId":userId, "name":userInfo["nick"]})
       inviteData["members"].append(memberInfo)
+
+    roomInfo["cmd_args"] = ""
 
     listenCmd = "--listen" if not hostIp else f"-listen:{hostIp}:{hostPort}"
     cmd = [exe, f'{listenCmd}', f'-scene:{scene}', '--no-sound', '--das-no-debugger', '-nostatsd',
@@ -430,8 +486,39 @@ def start_host_processing(roomInfo):
             time.sleep(step)
             time_passed += step
 
+def start_relay_processing(roomInfo, host, port):
+    hostPort = roomInfo["hostPort"]
+    params = roomInfo['params']
+    game_server_path = get_game_server_path()
+    exe = get_game_relay_exe()
+
+    cmd = [exe, f'--ports_range_start:{port}', f'--host_url:0.0.0.0', f'--client_ports_amount:{params["maxPlayers"]}'  ]
+    print("starting relay executable in:", game_server_path, cmd)
+    max_timeout = 5
+    time_passed = 0
+    step = 0.1
+    with pushd(game_server_path):
+        process = subprocess.Popen(cmd)#, shell=False, stderr=subprocess.STDOUT)
+        hosts_processes[hostPort] = process
+    # Wait for the process to start
+    # You can check if the process has started by polling it and ensuring it's still running
+    while True:
+        # poll() returns None if the process is still running
+        if process.poll() is None:
+            # Process has started but is still running
+            print("Process has started successfully.")
+            break
+        elif time_passed > max_timeout+step:
+            process.terminate()
+            break
+        else:
+            # Process hasn't started yet, wait a bit and check again
+            time.sleep(step)
+            time_passed += step
+
 @app.route('/start_session', methods=['POST'])
 def start_session():
+    print("start session");
     roomId = request.form['roomId']
     userid = request.form['userid']
     nick = request.form.get('nick')
@@ -441,9 +528,19 @@ def start_session():
             print('USER NOT IN ROOM')
             return jsonify({'status':'USER NOT IN ROOM'}), 409
         print("Starting Session", roomId, userid)
-        roomInfo["hostIp"] = get_host_ip()
-        roomInfo["hostPort"] = get_free_udp_socket()
-        start_host_processing(roomInfo)
+        if not request.form.get("hostIp"):
+            print("start host with dedic");
+            roomInfo["hostIp"] = get_host_ip()
+            roomInfo["hostPort"] = get_free_udp_socket()
+            start_host_processing(roomInfo)
+        else:
+            if request.form.get("isLan"):
+                roomInfo["hostIp"] = request.form["hostIp"]
+                roomInfo["hostPort"] = request.form["hostPort"]
+            else:
+                roomInfo["hostIp"] = get_host_ip()
+                roomInfo["hostPort"] = get_free_udp_socket()
+            start_p2p_host_processing(roomInfo, not request.form.get("isLan"))
         roomInfo["timeSessionStarted"] = c_time()
         return mk_room_info_for_user(roomId, userid, nick), 200
     else:

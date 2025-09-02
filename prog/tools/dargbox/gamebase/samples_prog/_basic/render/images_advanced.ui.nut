@@ -23,13 +23,13 @@ return {
 
   children = [
     {
-      size = [sh(10), sh(10)]
+      size = sh(10)
       keepAspect = true
       rendObj = ROBJ_IMAGE
       image = picture_from_atlas
     }
     {
-      size = [sh(10), sh(10)]
+      size = sh(10)
       rendObj = ROBJ_IMAGE
       image = picture_from_atlas
       picSaturate = 0
@@ -39,7 +39,7 @@ return {
       flow = FLOW_HORIZONTAL
       children = [
         {
-          size = [sh(40), sh(8)] //means it will keep aspect ratio
+          size = static [sh(40), sh(8)] //means it will keep aspect ratio
           rendObj = ROBJ_IMAGE
           keepAspect = true
           image = picture_from_tga
@@ -47,7 +47,7 @@ return {
           children = {rendObj=ROBJ_FRAME size=flex()}
         }
         {
-          size = [sh(40), sh(8)] //means it will keep aspect ratio
+          size = static [sh(40), sh(8)] //means it will keep aspect ratio
           rendObj = ROBJ_IMAGE
           keepAspect=true
           image = picture_from_tga
@@ -57,35 +57,35 @@ return {
       ]
     }
     {
-      size = [sh(40), sh(20)]
+      size = static [sh(40), sh(20)]
       keepAspect = true
       rendObj = ROBJ_IMAGE
       image = picture_from_jpg
     }
     {
-      size = [sh(10), sh(10)]
+      size = sh(10)
       rendObj = ROBJ_IMAGE
       image = picture_from_png
     }
 /*
     {
-      size = [sh(20), SIZE_TO_CONTENT] //means it will keep aspect ratio
+      size = static [sh(20), SIZE_TO_CONTENT] //means it will keep aspect ratio
       rendObj = ROBJ_IMAGE
       image = picture_from_ddsx
     }
 */
     {
       flow = FLOW_HORIZONTAL
-      size = [sh(10),sh(5)]
+      size = static [sh(10),sh(5)]
       children = [
         {
-          size = [sh(5), sh(5)] //means it will keep aspect ratio
+          size = sh(5) //means it will keep aspect ratio
           rendObj = ROBJ_IMAGE
           image = picture_from_tga_premul
           keepAspect = true
         }
         {
-          size = [sh(5), sh(5)] //means it will keep aspect ratio
+          size = sh(5) //means it will keep aspect ratio
           rendObj = ROBJ_IMAGE
           keepAspect = true
           image = picture_from_tga_non_premul

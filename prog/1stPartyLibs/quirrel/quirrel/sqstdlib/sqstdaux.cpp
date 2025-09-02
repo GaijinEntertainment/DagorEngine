@@ -86,7 +86,7 @@ static void collect_stack_string(HSQUIRRELVM v, PrintFunc pf)
         const SQChar *src=_SC("unknown");
         if(si.funcname)fn=si.funcname;
         if(si.source)src=si.source;
-        pf(v,_SC("*FUNCTION [%s()] %s line [%d]\n"),fn,src,si.line);
+        pf(v,_SC("*FUNCTION [%s()] %s:%d\n"),fn,src,si.line);
         level++;
     }
     level=0;

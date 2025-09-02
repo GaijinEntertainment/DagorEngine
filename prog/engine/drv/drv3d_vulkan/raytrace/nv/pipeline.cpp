@@ -19,7 +19,7 @@ namespace drv3d_vulkan
 {
 
 template <>
-void RaytracePipeline::onDelayedCleanupFinish<RaytracePipeline::CLEANUP_DESTROY>()
+void RaytracePipeline::onDelayedCleanupFinish<CleanupTag::DESTROY>()
 {
   shutdown(Globals::VK::dev);
   delete this;
@@ -27,12 +27,11 @@ void RaytracePipeline::onDelayedCleanupFinish<RaytracePipeline::CLEANUP_DESTROY>
 
 } // namespace drv3d_vulkan
 
-RaytracePipeline::RaytracePipeline(VulkanDevice &dev, ProgramID prog, VulkanPipelineCacheHandle cache, LayoutType *l,
-  const CreationInfo &info) :
+RaytracePipeline::RaytracePipeline(ProgramID prog, VulkanPipelineCacheHandle cache, LayoutType *l, const CreationInfo &info) :
   BasePipeline(l), program(prog)
 {
-  eastl::vector<VkPipelineShaderStageCreateInfo> shaderInfos;
-  eastl::vector<VkRayTracingShaderGroupCreateInfoNV> groupInfos;
+  dag::Vector<VkPipelineShaderStageCreateInfo> shaderInfos;
+  dag::Vector<VkRayTracingShaderGroupCreateInfoNV> groupInfos;
   shaderInfos.resize(info.shader_count);
   groupInfos.resize(info.group_count);
 
@@ -107,7 +106,7 @@ RaytracePipeline::RaytracePipeline(VulkanDevice &dev, ProgramID prog, VulkanPipe
   {
     TIME_PROFILE(vulkan_rt_pipeline_compile);
     ScopedTimer compilationTimer(compilationTime);
-    VULKAN_EXIT_ON_FAIL(dev.vkCreateRayTracingPipelinesNV(dev.get(), cache, 1, &rpci, nullptr, ptr(handle)));
+    VULKAN_EXIT_ON_FAIL(dev.vkCreateRayTracingPipelinesNV(dev.get(), cache, 1, &rpci, VKALLOC(pipeline), ptr(handle)));
   }
 
 #if VULKAN_LOG_PIPELINE_ACTIVITY < 1
@@ -120,6 +119,7 @@ RaytracePipeline::RaytracePipeline(VulkanDevice &dev, ProgramID prog, VulkanPipe
     for (uint32_t i = 0; i < info.shader_count; ++i)
       debug("vulkan: %u = %s", i, debugInfo[i].debugName);
 #endif
+    dumpExecutablesInfo(handle);
   }
 }
 
@@ -131,8 +131,8 @@ VulkanPipelineHandle RaytracePipeline::getHandleForUse()
   return getHandle();
 }
 
-void RaytracePipeline::copyRaytraceShaderGroupHandlesToMemory(VulkanDevice &dev, uint32_t first_group, uint32_t group_count,
-  uint32_t size, void *ptr)
+void RaytracePipeline::copyRaytraceShaderGroupHandlesToMemory(uint32_t first_group, uint32_t group_count, uint32_t size, void *ptr)
 {
-  VULKAN_EXIT_ON_FAIL(dev.vkGetRayTracingShaderGroupHandlesNV(dev.get(), handle, first_group, group_count, size, ptr));
+  VULKAN_EXIT_ON_FAIL(
+    Globals::VK::dev.vkGetRayTracingShaderGroupHandlesNV(Globals::VK::dev.get(), handle, first_group, group_count, size, ptr));
 }

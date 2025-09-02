@@ -7,10 +7,6 @@
 #include <daScript/daScript.h>
 #include <daScript/simulate/aot.h>
 
-namespace bind_dascript
-{
-das::StackAllocator &get_shared_stack();
-}
 
 template <typename ReturnType>
 struct InvokeDas
@@ -22,7 +18,7 @@ struct InvokeDas
     context->tryRestartAndLock();
     if (!context->ownStack)
     {
-      das::SharedStackGuard guard(*context, bind_dascript::get_shared_stack());
+      das::SharedFramememStackGuard guard(*context);
       das::das_try_recover(
         context,
         [&]() { ret = das::das_invoke_function<ReturnType>::template invoke<ArgType...>(context, nullptr, *func_ptr, arg...); },
@@ -53,7 +49,7 @@ struct InvokeDas<void>
     context->tryRestartAndLock();
     if (!context->ownStack)
     {
-      das::SharedStackGuard guard(*context, bind_dascript::get_shared_stack());
+      das::SharedFramememStackGuard guard(*context);
       das::das_try_recover(
         context, [&]() { das::das_invoke_function<void>::invoke<ArgType...>(context, nullptr, *func_ptr, arg...); },
         [&]() {

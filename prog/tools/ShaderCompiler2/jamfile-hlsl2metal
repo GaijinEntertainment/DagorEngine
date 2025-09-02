@@ -59,7 +59,7 @@ if $(OS) = NT {
   AddLibs += D3dcompiler.lib ;
 }
 
-CPPopt += -D_CROSS_TARGET_METAL=1 -DBINDUMP_TARGET_BE=0 -D_CRT_SECURE_NO_DEPRECATE -D_HAS_EXCEPTIONS=0 -D_SECURE_SCL=0 -DEXCLUDE_PSTDINT -DENABLE_HLSL=1 ;
+CPPopt += -D_CROSS_TARGET_METAL -DBINDUMP_TARGET_BE=0 -D_CRT_SECURE_NO_DEPRECATE -D_HAS_EXCEPTIONS=0 -D_SECURE_SCL=0 -DEXCLUDE_PSTDINT -DENABLE_HLSL ;
 # -D_HAS_ITERATOR_DEBUGGING=0 -D_CRT_SECURE_NO_DEPRECATE -D_HAS_EXCEPTIONS=0 -D_SECURE_SCL=0 ;
 
 if $(Platform) != windows
@@ -67,7 +67,7 @@ if $(Platform) != windows
   CPPopt += -Wno-comment -Wno-writable-strings -Wno-int-to-pointer-cast -Wno-switch -Wno-tautological-constant-out-of-range-compare
          -Wno-undefined-bool-conversion
          -Wno-deprecated-declarations
-         -D_STD_RTL_MEMORY=1
+         -D_STD_RTL_MEMORY
   ;
 }
 

@@ -69,6 +69,7 @@ void FPObjectBone::refillPanel(PropPanel::ContainerPropertyControl *panel)
   PropPanel::ContainerPropertyControl *rgrp = panel->createRadioGroup(PID_CO_TYPE, "Constraint type:");
   rgrp->createRadio(FpdBoneConstraintAction::DIRECTIONAL, "directional");
   rgrp->createRadio(FpdBoneConstraintAction::LENCONSTR, "undirected");
+  rgrp->createRadio(FpdBoneConstraintAction::HINGE, "hinge");
   panel->setInt(PID_CO_TYPE, boneObject->constrAction->type);
 
   panel->createEditFloat(PID_CO_MINLEN, "Min length (%):", boneObject->constrAction->minLen);
@@ -286,7 +287,7 @@ void FPObjectBone::render()
       }
     }
 
-    if (isSelected() && boneObject->constrAction->limitAngle > 0)
+    if (isSelected() && boneObject->constrAction->type != FpdBoneConstraintAction::HINGE && boneObject->constrAction->limitAngle > 0)
     {
       auto nodeWtm = boneObject->ctrlAction->nodeWtm;
       if (auto pnode = nodeWtm ? mFPEditor.getGeomTree().getParentNodeIdx(boneObject->ctrlAction->node) : dag::Index16())
@@ -327,6 +328,56 @@ void FPObjectBone::render()
   }
 
   // if (((FastPhysObjectEditor*)objEditor)->updateAction->hasSubAction(ctrlAction)) ctrlAction->render();
+}
+
+void FPObjectBone::renderTrans()
+{
+  if (!mFPEditor.isObjectDebugVisible)
+    return;
+
+  FpdBone *boneObject = (FpdBone *)getObject();
+  G_ASSERT(boneObject);
+  FpdPoint *p1, *p2;
+
+  p1 = mFPEditor.getPointByName(boneObject->point1Name);
+  p2 = mFPEditor.getPointByName(boneObject->point2Name);
+  if (!p1 || !p2)
+    return;
+
+  begin_draw_cached_debug_lines(false, false);
+  set_cached_debug_lines_wtm(TMatrix::IDENT);
+  if (isSelected() && boneObject->constrAction->type == FpdBoneConstraintAction::HINGE)
+  {
+    auto nodeWtm = boneObject->ctrlAction->nodeWtm;
+    if (auto pnode = nodeWtm ? mFPEditor.getGeomTree().getParentNodeIdx(boneObject->ctrlAction->node) : dag::Index16())
+    {
+      TMatrix tm;
+      mFPEditor.getGeomTree().getNodeWtmRelScalar(pnode, tm);
+      tm = makeTM(quat_rotation_arc(Point3(0, 0, 1), tm % boneObject->constrAction->limitAxis));
+      tm.setcol(3, as_point3(&nodeWtm->col3));
+
+      Point3 worldPos = tm.getcol(3);
+      Point3 refDir = normalize(p2->getPos() - p1->getPos());
+      Point3 hingeAxis = tm % Point3(0, 0, 1);
+
+      float length = 0.5f;
+      draw_cached_debug_line(worldPos, worldPos + hingeAxis * length, boneAxisColor);
+      draw_cached_debug_line(worldPos, worldPos + refDir * length, boneConeColor);
+
+      float limitAngle = boneObject->constrAction->limitAngle;
+      if (limitAngle > 0)
+      {
+        float angleCos = cosf(DegToRad(limitAngle));
+        float angleSin = sinf(DegToRad(limitAngle));
+        Point3 perp = normalize(cross(hingeAxis, refDir));
+        Point3 l1 = normalize(refDir * angleCos + perp * angleSin);
+        Point3 l2 = normalize(refDir * angleCos - perp * angleSin);
+        draw_cached_debug_line(worldPos, worldPos + l1 * length, boneConeColor);
+        draw_cached_debug_line(worldPos, worldPos + l2 * length, boneConeColor);
+      }
+    }
+    end_draw_cached_debug_lines();
+  }
 }
 
 

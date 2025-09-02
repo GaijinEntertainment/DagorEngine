@@ -16,7 +16,7 @@ struct DynamicLutManager
   void setColorGradingToShader(float baseWhiteTemp, float timeOfDay, int whiteTempVarId);
   void setTonemapToShader(float timeOfDay);
   void loadBlk(const DataBlock &weatherBlk);
-  DynamicLutParams getLerpedLutParams(Tab<DynamicLutParams> dynamicLut_array, float time, float lerping_power);
+  DynamicLutParams getLerpedLutParams(const Tab<DynamicLutParams> &dynamicLut_array, float time, float lerping_power) const;
 
 #if DAGOR_DBGLEVEL > 0
   char imGuiWeatherPath[255];

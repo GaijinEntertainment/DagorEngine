@@ -72,8 +72,9 @@ macro USE_HEIGHTMAP_COMMON_VS()
       float2 tc_low = calcTcLow(worldPosXZ);
 
       float2 tc_texels = tc_low * tex_hmap_low_size.xy - 0.5;
-      float2 tc_frac = frac(tc_texels);
-      float2 centerTc = (floor(tc_texels) + 1.0) * tex_hmap_low_size.zw;
+      float2 flooredTexels = floor(tc_texels);
+      float2 tc_frac = tc_texels - flooredTexels;
+      float2 centerTc = flooredTexels*tex_hmap_low_size.zw + tex_hmap_low_size.zw;
       ##if hardware.fsh_4_0
       float4 hmap4 = tex_hmap_low.Gather(tex_hmap_low_samplerstate, centerTc);
       ##else
@@ -144,6 +145,7 @@ macro NORMAL_CORRECTION(stage)
 endmacro
 
 macro USE_HEIGHTMAP_COMMON_BASE(code)
+BEGIN_ONCE_STAGE(use_heightmap_common_base_included, code)
   hlsl(code) {
     #ifndef HEIGHTMAP_COMMON_INCLUDED
     #define HEIGHTMAP_COMMON_INCLUDED 1
@@ -269,6 +271,7 @@ macro USE_HEIGHTMAP_COMMON_BASE(code)
     }
     #endif
   }
+END_ONCE()
 endmacro
 macro USE_HEIGHTMAP_COMMON(code)
   USE_HEIGHTMAP_COMMON_BASE(code)
@@ -377,10 +380,6 @@ macro HEIGHTMAP_CALCULATIONS()
       result.normal.xzy = RNM_ndetail_normalized(result.normal.xzy, restore_normal(microNormalTS).xyz);
       applyHeightmapWetness(result, world_pos, porosity, wetness);
     }
-    UvWithDerivates microdetails_get_uv_and_derivates(float2 tc_world_posXZ)
-    {
-      return make_uv_with_derivates(get_microdetails_world_tc(tc_world_posXZ));
-    }
     void calculateHeightmapMicrodetails(inout UnpackedGbuffer result, DetailDesc detailNo,
                                         float3 tc_world_pos, float3 world_pos,
                                         half3 vertical_normal, half2 clip_normal_XY,
@@ -422,6 +421,7 @@ macro INIT_WORLD_HEIGHTMAP_VS()
 endmacro
 
 macro INIT_WORLD_HEIGHTMAP_BASE(code)
+BEGIN_ONCE_STAGE(init_world_heightmap_base_included, code)
   // Dynamic intervals impossible to fit in the shader blocks
   if (in_editor_assume == yes)
   {
@@ -441,9 +441,11 @@ macro INIT_WORLD_HEIGHTMAP_BASE(code)
     world_to_hmap_low@f4 = (world_to_hmap_low.x, world_to_hmap_low.y, world_to_hmap_low.z + 0.5*tex_hmap_inv_sizes.x, world_to_hmap_low.w+0.5*tex_hmap_inv_sizes.y);
     tex_hmap_low@smp2d = tex_hmap_low;
   }
+END_ONCE()
 endmacro
 
 macro INIT_HMAP_HOLES(stage)
+BEGIN_ONCE_STAGE(init_hmap_holes_included, stage)
 if (heightmap_holes_support_assume == on)
 {
   (stage) {
@@ -454,9 +456,11 @@ if (heightmap_holes_support_assume == on)
     hmap_holes_sampling_step_dist@f1 = hmap_holes_scale_step_offset.y;
   }
 }
+END_ONCE()
 endmacro
 
 macro USE_HMAP_HOLES(stage)
+BEGIN_ONCE_STAGE(use_hmap_holes_included, stage)
   hlsl (stage)
   {
     bool hasHeightmapHoles() {
@@ -492,6 +496,7 @@ macro USE_HMAP_HOLES(stage)
       ##endif
     }
   }
+END_ONCE()
 endmacro
 
 macro INIT_HMAP_HOLES_ZONES(stage)

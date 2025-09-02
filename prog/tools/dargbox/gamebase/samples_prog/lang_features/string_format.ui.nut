@@ -49,16 +49,16 @@ function sampleSubstTextTableTable(str, table1, table2) {
 function basicsRoot() {
   return {
     rendObj = ROBJ_SOLID
-    size = [pw(100), ph(100)]
+    size = static [pw(100), ph(100)]
     color = Color(30,40,50)
-    cursor = Cursor({rendObj = ROBJ_IMAGE size = [32, 32] image = Picture("!ui/atlas#cursor.svg:{0}:{0}:K".subst(hdpx(32)))})
+    cursor = Cursor({rendObj = ROBJ_IMAGE size = 32 image = Picture("!ui/atlas#cursor.svg:{0}:{0}:K".subst(hdpx(32)))})
     padding = 50
     children = [
       {
         valign = ALIGN_TOP
         halign = ALIGN_LEFT
         flow = FLOW_VERTICAL
-        size = [pw(100), ph(100)]
+        size = static [pw(100), ph(100)]
         gap = 0
         children = [
           sampleText("\"Score: {0}\".subst(4200)", "Score: {0}".subst(4200)),

@@ -1,0 +1,277 @@
+include "dagdp_common_heightmap.dshl"
+include "toroidal_grass.dshl"
+include "heightmap_ofs.dshl"
+
+buffer dagdp__instance_data;
+buffer dagdp__dyn_allocs;
+buffer dagdp__dyn_counters;
+
+buffer dagdp_heightmap__draw_ranges;
+buffer dagdp_heightmap__placeables;
+buffer dagdp_heightmap__placeable_weights;
+buffer dagdp_heightmap__renderable_indices;
+buffer dagdp_heightmap__tile_positions;
+buffer dagdp_heightmap__biomes;
+buffer dagdp_heightmap__variants;
+buffer dagdp_heightmap__indirect_args;
+buffer dagdp_heightmap__visible_tile_positions;
+
+int dagdp_heightmap__num_renderables;
+int dagdp_heightmap__num_placeables;
+int dagdp_heightmap__num_biomes;
+int dagdp_heightmap__num_tiles;
+
+float dagdp_heightmap__max_placeable_bounding_radius;
+float dagdp_heightmap__tile_pos_delta;
+float dagdp_heightmap__instance_pos_delta;
+float4 dagdp_heightmap__reference_pos;
+float dagdp_heightmap__debug_frustum_culling_bias;
+float dagdp_heightmap__grass_max_range;
+
+int dagdp_heightmap__prng_seed_jitter_x;
+int dagdp_heightmap__prng_seed_jitter_z;
+int dagdp_heightmap__prng_seed_placeable;
+int dagdp_heightmap__prng_seed_slope;
+int dagdp_heightmap__prng_seed_occlusion;
+int dagdp_heightmap__prng_seed_scale;
+int dagdp_heightmap__prng_seed_yaw;
+int dagdp_heightmap__prng_seed_pitch;
+int dagdp_heightmap__prng_seed_roll;
+int dagdp_heightmap__prng_seed_density;
+int dagdp_heightmap__prng_seed_decal;
+int dagdp_grass__prng_seed_height;
+
+float4 dagdp_heightmap__base_tile_pos_xz;
+int4 dagdp_heightmap__base_tile_int_pos_xz;
+float4 dagdp_heightmap__viewport_pos;
+float dagdp_heightmap__viewport_max_distance;
+int dagdp_heightmap__viewport_index;
+
+shader dagdp_grass_place_stage0, dagdp_grass_place_stage1
+{
+  ENABLE_ASSERT(cs)
+
+  (cs) {
+    instance_data@uav = dagdp__instance_data hlsl {
+      RWBuffer<float4> instance_data@uav;
+    }
+
+    dyn_counters@uav = dagdp__dyn_counters hlsl {
+      RWStructuredBuffer<uint> dyn_counters@uav;
+    }
+
+    dyn_allocs@buf = dagdp__dyn_allocs hlsl {
+      #include "dagdp_common.hlsli"
+      StructuredBuffer<DynAlloc> dyn_allocs@buf;
+    }
+
+    draw_ranges@buf = dagdp_heightmap__draw_ranges hlsl {
+      StructuredBuffer<float> draw_ranges@buf;
+    }
+
+    placeables@buf = dagdp_heightmap__placeables hlsl {
+      #include "dagdp_common.hlsli"
+      StructuredBuffer<PlaceableGpuData> placeables@buf;
+    }
+
+    placeable_weights@buf = dagdp_heightmap__placeable_weights hlsl {
+      StructuredBuffer<float> placeable_weights@buf;
+    }
+
+    renderable_indices@buf = dagdp_heightmap__renderable_indices hlsl {
+      StructuredBuffer<uint> renderable_indices@buf;
+    }
+
+    biomes@buf = dagdp_heightmap__biomes hlsl {
+      StructuredBuffer<uint> biomes@buf;
+    }
+
+    variants@buf = dagdp_heightmap__variants hlsl {
+      #include "dagdp_common_placer.hlsli"
+      StructuredBuffer<VariantGpuData> variants@buf;
+    }
+
+    visible_tile_positions@buf = dagdp_heightmap__visible_tile_positions hlsl {
+      ByteAddressBuffer visible_tile_positions@buf;
+    }
+
+    num_renderables@i1 = dagdp_heightmap__num_renderables;
+    num_placeables@i1 = dagdp_heightmap__num_placeables;
+    num_biomes@i1 = dagdp_heightmap__num_biomes;
+
+    max_placeable_bounding_radius@f1 = dagdp_heightmap__max_placeable_bounding_radius;
+    tile_pos_delta@f1 = dagdp_heightmap__tile_pos_delta;
+    instance_pos_delta@f1 = dagdp_heightmap__instance_pos_delta;
+    debug_frustum_culling_bias@f1 = dagdp_heightmap__debug_frustum_culling_bias;
+    grass_cull_range@f1 = dagdp_heightmap__grass_max_range + dagdp_heightmap__max_placeable_bounding_radius;
+    water_level@f1 = water_level;
+
+    prng_seed_jitter_x@i1 = dagdp_heightmap__prng_seed_jitter_x;
+    prng_seed_jitter_z@i1 = dagdp_heightmap__prng_seed_jitter_z;
+    prng_seed_placeable@i1 = dagdp_heightmap__prng_seed_placeable;
+    prng_seed_slope@i1 = dagdp_heightmap__prng_seed_slope;
+    prng_seed_occlusion@i1 = dagdp_heightmap__prng_seed_occlusion;
+    prng_seed_scale@i1 = dagdp_heightmap__prng_seed_scale;
+    prng_seed_yaw@i1 = dagdp_heightmap__prng_seed_yaw;
+    prng_seed_pitch@i1 = dagdp_heightmap__prng_seed_pitch;
+    prng_seed_roll@i1 = dagdp_heightmap__prng_seed_roll;
+    prng_seed_density@i1 = dagdp_heightmap__prng_seed_density;
+    prng_seed_decal@i1 = dagdp_heightmap__prng_seed_decal;
+    prng_seed_height@i1 = dagdp_grass__prng_seed_height;
+
+    base_tile_pos_xz@f2 = dagdp_heightmap__base_tile_pos_xz;
+    base_tile_int_pos_xz@i2 = dagdp_heightmap__base_tile_int_pos_xz;
+    viewport_pos@f3 = dagdp_heightmap__viewport_pos;
+    viewport_max_distance@f1 = dagdp_heightmap__viewport_max_distance;
+    viewport_index@i1 = dagdp_heightmap__viewport_index;
+
+    grass_color_tex@smp2d = grass_color_tex;
+  }
+
+  hlsl(cs) {
+    static const int lower_level = 0;
+  }
+
+  USE_DAGDP_COMMON_HEIGHTMAP(shader == dagdp_grass_place_stage1)
+  USE_GRASS_TC(cs)
+
+  hlsl(cs) {
+    #include <grassInstance.hlsli>
+
+    uint sampleGrassChannel(float2 grass_mask_tc, float2 dim)
+    {
+      float2 bilW = frac(grass_mask_tc * dim - 0.5f);
+      float4 red = grass_mask_tex.GatherRed(grass_mask_tex_samplerstate, grass_mask_tc);
+      float2 redX = bilW.y>0.5 ? red.xy : red.wz;
+      float redChannel = bilW.x>0.5 ? redX.x : redX.y;
+      return uint(redChannel*255);
+    }
+
+    #define sampleGrassMaskParams(tex, tc) tex2Dlod(tex, float4(tc,0,0))
+
+    void unpackGrassMaskParams(float4 packedGrassMask, out float maskScale, out float displacementScale, out float decalsGrassMask)
+    {
+      maskScale = packedGrassMask.g;
+      displacementScale = packedGrassMask.b;
+      decalsGrassMask = packedGrassMask.a;
+    }
+
+    [numthreads(1, TILE_INSTANCE_COUNT, 1)]
+    void main(uint3 dtId : SV_DispatchThreadID, uint3 tId : SV_GroupThreadID)
+    {
+      ##if shader == dagdp_grass_place_stage1
+        const bool isEarlyExit = structuredBufferAt(dyn_counters, DYN_COUNTERS_INDEX_SKIP_PESSIMISTIC_PLACEMENT) != 0;
+        ##if hardware.dx11
+          // Work around compiler assuming varying flow control.
+          BRANCH
+          if (threadGroupAnyTrue(isEarlyExit, tId.y))
+            return;
+        ##else
+          BRANCH
+          if (isEarlyExit)
+            return;
+        ##endif
+      ##endif
+
+      // XZ position inside the tile.
+      const uint2 instanceIntPos = uint2(dtId.y / TILE_INSTANCE_COUNT_1D, dtId.y % TILE_INSTANCE_COUNT_1D);
+
+      // XZ position of the tile itself.
+      const int2 tileIntPos = loadBuffer2(visible_tile_positions, dtId.x * TILE_POSITION_BYTE_SIZE);
+
+      const int2 stablePos = (base_tile_int_pos_xz + tileIntPos) * TILE_INSTANCE_COUNT_1D + int2(instanceIntPos);
+      const float2 randPosJitter = float2(stableRand(stablePos, prng_seed_jitter_x), stableRand(stablePos, prng_seed_jitter_z));
+      const float2 instancePosXZ = base_tile_pos_xz + tile_pos_delta * tileIntPos + instance_pos_delta * (instanceIntPos + randPosJitter);
+
+      PlacementDetails pd;
+      initPlacementDetails(instancePosXZ, pd, -1);
+
+      pd.position.y = pd.topY;
+
+      float2 grass_mask_tc = getGrassTC(pd.position);
+      float2 dim;
+      grass_mask_tex.GetDimensions(dim.x, dim.y);
+      uint grassChannel = sampleGrassChannel(grass_mask_tc, dim);
+
+      float maskScale;
+      float displacementScale;
+      float decals_grass_mask;
+      unpackGrassMaskParams(
+          sampleGrassMaskParams(grass_mask_tex, grass_mask_tc), maskScale,
+          displacementScale, decals_grass_mask);
+
+      float4 grassColor = tex2Dlod(grass_color_tex, float4(grass_mask_tc,0,0));//point_sampler
+      uint decals_grass_channel = floor(grassColor.a*255+0.5);
+
+      if (decals_grass_channel >= GRASS_MAX_CHANNELS)
+      {
+        grassChannel = 256;
+      }
+      else if (decals_grass_mask > 0.1)
+      {
+        float probability = decals_grass_mask;
+        if (probability >= stableRand(stablePos, prng_seed_decal))
+        {
+          grassChannel = decals_grass_channel;
+          maskScale = decals_grass_mask;
+        }
+      }
+
+      FLATTEN
+      if (distance(pd.position, viewport_pos) > grass_cull_range)
+        grassChannel = 256;
+
+      uint variantIndex = ~0u;
+      float height = 1.0;
+      float heightVariance = 0.0;
+      const int biomeIndex = grassChannel;
+
+      FLATTEN
+      if (biomeIndex < num_biomes)
+      {
+        variantIndex   =         structuredBufferAt(biomes, biomeIndex * 3 + 0) ;
+        height         = asfloat(structuredBufferAt(biomes, biomeIndex * 3 + 1));
+        heightVariance = asfloat(structuredBufferAt(biomes, biomeIndex * 3 + 2));
+      }
+
+      uint placeableIndex = ~0u;
+
+      VariantGpuData variant;
+      FLATTEN
+      if (variantIndex != ~0u)
+      {
+        variant = structuredBufferAt(variants, variantIndex);
+        placeableIndex = getPlaceableIndex(variant, stableRand(stablePos, prng_seed_placeable));
+      }
+
+      PlaceableGpuData placeable;
+      FLATTEN
+      if (placeableIndex != ~0u)
+      {
+        placeable = structuredBufferAt(placeables, placeableIndex);
+
+        //== TODO: make it a placer option? We don't want density for fast_grass, but could use it for GPUGrass eventually.
+        // const bool isDensityMaskOk = maskScale > stableRand(stablePos, prng_seed_density);
+        const bool isDensityMaskOk = true;
+
+        FLATTEN
+        if (!isDensityMaskOk)
+          placeableIndex = ~0u;
+      }
+
+      adjustPlacement(placeableIndex, placeable, stablePos, pd);
+
+      BRANCH
+      if (!threadGroupAnyTrue(placeableIndex != ~0u, tId.y)) // Whole tile is culled, can safely exit.
+        return;
+
+      float scaleFactor = (1 - heightVariance * stableRand(stablePos, prng_seed_height)) * height;
+
+      uint4 uc = uint4(grassColor.rgb * 255.0 + 0.5, grassChannel);
+      uint packedColor = uc.x | uc.y << 8 | uc.z << 16 | uc.w << 24;
+      finishPlacement(tId.y, stablePos, pd, placeableIndex, placeable, variant, scaleFactor,
+        float3(asfloat(packedColor), asfloat(stablePos)));
+    }
+  }
+  compile("target_cs", "main");
+}

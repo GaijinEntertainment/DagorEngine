@@ -17,6 +17,7 @@ Sources =
   consoleState.cpp
   consoleInit.cpp
   consoleVars.cpp
+  consoleUtil.cpp
   defAppConsole.cpp
   profilerConsole.cpp
 ;

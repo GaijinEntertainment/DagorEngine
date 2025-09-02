@@ -1,1 +1,0 @@
-include %daslib/enum_trait.das

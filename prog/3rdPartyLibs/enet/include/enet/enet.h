@@ -440,7 +440,13 @@ typedef enum _ENetEventType
      * the packet that was received; this packet must be destroyed with
      * enet_packet_destroy after use.
      */
-   ENET_EVENT_TYPE_RECEIVE    = 3
+   ENET_EVENT_TYPE_RECEIVE    = 3,
+
+
+   /** a packet has been received and intecepted via host->intecept callback
+     * interceptor states that enet should not process as whatever meaning it had has already been processed
+     */
+   ENET_EVENT_TYPE_INTERCEPTED = 4
 } ENetEventType;
 
 /**
@@ -566,8 +572,10 @@ ENET_API enet_uint32  ENET_CALLBACK enet_crc32 (const ENetBuffer *, size_t);
 ENET_API ENetHost * enet_host_create (const ENetAddress *, size_t, size_t, enet_uint32, enet_uint32);
 ENET_API void       enet_host_destroy (ENetHost *);
 ENET_API ENetPeer * enet_host_connect (ENetHost *, const ENetAddress *, size_t, enet_uint32);
+ENET_API ENetPeer * enet_host_connect_peer_from_the_end (ENetHost *, const ENetAddress *, size_t, enet_uint32);
 ENET_API int        enet_host_check_events (ENetHost *, ENetEvent *);
 ENET_API int        enet_host_service (ENetHost *, ENetEvent *, enet_uint32);
+ENET_API int        enet_host_service_only_incoming_commands (ENetHost *, ENetEvent *, enet_uint32);
 ENET_API void       enet_host_flush (ENetHost *);
 ENET_API void       enet_host_broadcast (ENetHost *, enet_uint8, ENetPacket *);
 ENET_API void       enet_host_compress (ENetHost *, const ENetCompressor *);
@@ -581,6 +589,7 @@ extern  enet_uint32 enet_host_random (ENetHost *);
 ENET_API int                 enet_peer_send (ENetPeer *, enet_uint8, ENetPacket *);
 ENET_API ENetPacket *        enet_peer_receive (ENetPeer *, enet_uint8 * channelID);
 ENET_API void                enet_peer_ping (ENetPeer *);
+ENET_API void                enet_peer_ping_target_request (ENetPeer *, enet_uint16);
 ENET_API void                enet_peer_ping_interval (ENetPeer *, enet_uint32);
 ENET_API void                enet_peer_timeout (ENetPeer *, enet_uint32, enet_uint32, enet_uint32);
 ENET_API void                enet_peer_reset (ENetPeer *);

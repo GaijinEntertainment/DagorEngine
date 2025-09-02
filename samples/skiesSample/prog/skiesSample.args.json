@@ -56,332 +56,731 @@
           ]
         },
         {
-          "Id": "f9e40c11-2579-4899-9d5c-f43bbe14242d",
+          "Id": "aa24e3cd-d957-4bf8-9cea-1c76a267b5ea",
           "Command": "DX12",
           "Items": [
             {
-              "Id": "cb3ff86b-f33d-44a5-b47f-b89e1beaf99e",
+              "Id": "3a6ee6bd-c92d-432d-a8b9-6e33bd75367c",
               "Command": "-config:video/driver:t=dx12"
             },
             {
-              "Id": "36dba3e1-73d0-4dad-99f2-4c1ff0f30b4a",
+              "Id": "dbe13576-131e-410a-817b-62fb8bddf62e",
               "Command": "Features",
               "Items": [
                 {
-                  "Id": "e3c792ee-8f56-4732-b07e-4e99e26ef160",
+                  "Id": "e8d83d9b-995e-4758-a83a-a083c0850528",
+                  "Command": "Enable Defragmentation",
+                  "ExclusiveMode": true,
+                  "Items": [
+                    {
+                      "Id": "f55b16a1-e4ac-4f98-ae2a-e8fd7e807b67",
+                      "Command": ""
+                    },
+                    {
+                      "Id": "f6d9dd29-a27f-4e4b-bef8-d87461eca105",
+                      "Command": "-config:dx12/enableDefragmentation:b=no"
+                    },
+                    {
+                      "Id": "af3810c1-149c-4e4c-b9d2-1f7430ff1885",
+                      "Command": "-config:dx12/enableDefragmentation:b=yes"
+                    }
+                  ]
+                },
+                {
+                  "Id": "b77a335d-d334-48a7-9fbe-6e064eba144e",
                   "Command": "Optimize Buffer Uploads",
                   "ExclusiveMode": true,
                   "Items": [
                     {
-                      "Id": "11ea9ee5-9d2f-425d-9411-e560aa2eecbb",
+                      "Id": "a3a4cbac-db4b-440d-bef7-1c2b1d06d4ae",
                       "Command": ""
                     },
                     {
-                      "Id": "551122ee-8241-4f2e-ab33-43baa605ae42",
+                      "Id": "e5665c5e-9579-4170-a9de-fd421ee7b224",
                       "Command": "-config:dx12/optimizeBufferUploads:b=yes"
                     }
                   ]
                 },
                 {
-                  "Id": "c4eadddc-5566-496f-8431-b07c1828e3a1",
+                  "Id": "0e9c6065-5738-491c-8d5d-50eb4682d72f",
                   "Command": "Execution mode",
                   "ExclusiveMode": true,
                   "Items": [
                     {
-                      "Id": "525e05de-f617-459f-88da-652e1735b6ff",
+                      "Id": "543f2291-ee99-45e9-b94f-650ed50b8dcb",
                       "Command": ""
                     },
                     {
-                      "Id": "5824c9d2-1c7e-41f3-aaba-28ea1d5ed62f",
+                      "Id": "4aee1454-e691-4f6f-ac81-e37ed504cb9b",
                       "Command": "-config:dx12/executionMode:t=concurrent"
                     },
                     {
-                      "Id": "68244b44-826e-4ffb-8120-fa922b71ca09",
+                      "Id": "9a8efa10-fe86-4279-92e1-c7de2440cf51",
+                      "Command": "-config:dx12/executionMode:t=synced"
+                    },
+                    {
+                      "Id": "29ab67e1-b48b-48b3-b886-fa498d9b5345",
                       "Command": "-config:dx12/executionMode:t=immediate"
                     }
                   ]
                 },
                 {
-                  "Id": "b11f7afd-529d-4b0a-ad23-a53c1e39fa13",
+                  "Id": "7dd87eda-5a52-43ab-9986-f0bd340c9d29",
                   "Command": "Pipeline compilation error is fatal",
                   "ExclusiveMode": true,
                   "Items": [
                     {
-                      "Id": "45d51ab6-74a3-4516-8dfb-3f3ba2a06f61",
+                      "Id": "f8b9c50c-6515-4d6f-962a-f5b826f3cc08",
                       "Command": ""
                     },
                     {
-                      "Id": "bf8cb196-1229-4134-9f66-9c0e86ca8217",
+                      "Id": "337e01a0-37c6-42aa-882d-f1700d706d2b",
                       "Command": "-config:dx12/PipelineCompilationErrorIsFatal:b=yes"
                     }
                   ]
                 },
                 {
-                  "Id": "27fa42b5-3e48-4365-b040-e44ba3b3b743",
+                  "Id": "504542a3-1594-4f4a-b39b-c322a1e3a32b",
                   "Command": "Assert on pipeline compilation error",
                   "ExclusiveMode": true,
                   "Items": [
                     {
-                      "Id": "0cf0cda5-09dd-4c07-8a29-0de2c6578c7e",
+                      "Id": "1a8944fa-9abd-44be-9bad-8be9bd10e0c6",
                       "Command": ""
                     },
                     {
-                      "Id": "b90c6d2d-989b-4bf2-813c-863ef204da2e",
+                      "Id": "978f63e1-4c24-4faa-a9cc-0eb828f1c896",
                       "Command": "-config:dx12/AssertOnPipelineCompilationError:b=yes"
                     }
                   ]
                 },
                 {
-                  "Id": "17db40a2-0080-42a3-baee-b957512e6832",
+                  "Id": "00428577-afa4-4b6c-bcef-28d029b0cbf8",
                   "Command": "Allow OS managed shader cache",
                   "ExclusiveMode": true,
                   "Items": [
                     {
-                      "Id": "013ef9c5-3c21-46a9-a601-ad45ba284ea7",
+                      "Id": "dfe4bba7-17f4-41cc-a9e7-c51dea29f7d9",
                       "Command": ""
                     },
                     {
-                      "Id": "216ac4ef-a76b-4c43-ada1-325fb0aa1c32",
+                      "Id": "49dc9757-d28f-461f-87d3-722bdefdcbdc",
                       "Command": "-config:dx12/allowOsManagedShaderCache:b=yes"
                     }
                   ]
                 },
                 {
-                  "Id": "5a971c45-e6aa-42cd-9d59-eacde4670fe1",
+                  "Id": "3c6c99c0-2b5d-4c28-bff1-bde0142eebb0",
                   "Command": "Scarlett wave64 compatibility mode",
                   "ExclusiveMode": true,
                   "Items": [
                     {
-                      "Id": "95f8b1a6-ba61-4090-bb3d-49312cb18998",
+                      "Id": "044a1c2e-c1b3-47a7-aede-53064f2e204d",
                       "Command": ""
                     },
                     {
-                      "Id": "afc5b9c8-dba3-426f-9df9-d26c67d0899d",
-                      "Command": ""
+                      "Id": "c7a29a70-ed14-45cb-9010-dcac48f690d2",
+                      "Command": "-config:dx12/scarlettWave64CompatibilityMode:b=yes"
                     }
                   ]
                 },
                 {
-                  "Id": "ca9d9284-20c0-4537-b757-a26f328f381c",
+                  "Id": "8c444f0b-18c4-41fb-af45-c01a7b6fdec1",
                   "Command": "Process user barriers",
                   "ExclusiveMode": true,
                   "Items": [
                     {
-                      "Id": "7dc0b6d8-8895-453b-878d-45111dadf221",
+                      "Id": "4922fe39-9155-44a2-83ae-38274377f5f4",
                       "Command": ""
                     },
                     {
-                      "Id": "da3f4f23-54fc-477f-9fa7-427e77e8ec2b",
+                      "Id": "f33d2606-7f5a-4a59-a023-f1a41f6ed346",
                       "Command": "-config:dx12/processUserBarriers:b=yes"
                     }
                   ]
                 },
                 {
-                  "Id": "41fa7002-6b2f-4ae7-976c-a34e981486e2",
+                  "Id": "6ad0f984-a0eb-4c6c-ae59-8dcb2962a0c1",
                   "Command": "Validate user barriers",
                   "ExclusiveMode": true,
                   "Items": [
                     {
-                      "Id": "d6091ce6-73f2-4d16-bf12-4de68aae714f",
+                      "Id": "fa61c09b-51fa-40ac-b144-55de91477322",
                       "Command": ""
                     },
                     {
-                      "Id": "e52bbb7d-9b3a-42e4-a123-a50ebb28cf30",
+                      "Id": "29d5e511-b18f-4edb-83a3-e63eb42c849f",
                       "Command": "-config:dx12/validateUserBarriers:b=yes"
                     }
                   ]
                 },
                 {
-                  "Id": "46b98946-bb9f-4a0a-a512-8c7e697d54cd",
+                  "Id": "b2f6c7db-dc91-45aa-ae02-189b0e0fd850",
                   "Command": "Generate all barriers",
                   "ExclusiveMode": true,
                   "Items": [
                     {
-                      "Id": "dbe56213-52f3-490e-b05f-2ca11a79caba",
+                      "Id": "3b3b0f8f-7cf1-41eb-aa0f-04fd054b2ef1",
                       "Command": ""
                     },
                     {
-                      "Id": "b593396f-3dc9-4eb0-9d94-6feaba458e5c",
+                      "Id": "e309df77-14df-41ff-be3c-eba6d4cfdc55",
                       "Command": "-config:dx12/generateAllBarriers:b=yes"
                     }
                   ]
                 },
                 {
-                  "Id": "339c0d0c-88a3-41df-80b5-bfd3c0eafc7d",
+                  "Id": "8f373848-4f4b-4a4d-bbc4-b9b3ec45e1d9",
                   "Command": "Allow stream buffers",
                   "ExclusiveMode": true,
                   "Items": [
                     {
-                      "Id": "5c7d2ed5-7977-48c7-83bc-74e9fc8bd0c8",
+                      "Id": "c9302767-0cd4-4542-a2fd-a5cca12606b2",
                       "Command": ""
                     },
                     {
-                      "Id": "aa8bea42-5b0f-412d-a92a-b3c706c80f18",
+                      "Id": "be2667c2-9c8a-426b-9e72-08cae8311c0c",
                       "Command": "-config:dx12/allowStreamBuffers:b=yes"
+                    }
+                  ]
+                },
+                {
+                  "Id": "33597fb9-266d-4405-90d2-861f1ff97ffc",
+                  "Command": "HDR",
+                  "ExclusiveMode": true,
+                  "Items": [
+                    {
+                      "Id": "39b38738-c7b5-4509-bf52-bcbb726c3986",
+                      "Command": ""
+                    },
+                    {
+                      "Id": "ebfd6838-35b1-4859-920c-878d66d09ced",
+                      "Command": "-config:dx12/forceHdr:b=no"
+                    },
+                    {
+                      "Id": "c1b48412-78e8-41ec-b1fd-f11306ef2cb3",
+                      "Command": "-config:dx12/forceHdr:b=yes"
+                    }
+                  ]
+                },
+                {
+                  "Id": "13cd4227-0d50-469d-97d9-a32cbdda686f",
+                  "Command": "Xbox Auto GameDvr",
+                  "ExclusiveMode": true,
+                  "Items": [
+                    {
+                      "Id": "69cc8a7f-6784-4521-8ae2-10c456ae5d3c",
+                      "Command": ""
+                    },
+                    {
+                      "Id": "9528dfd0-ebb6-4460-a515-3e5920fe1af7",
+                      "Command": "-config:dx12/autoGameDvr:b=no"
+                    },
+                    {
+                      "Id": "88d1f04f-bc54-4c71-becb-bb7fcecc23c0",
+                      "Command": "-config:dx12/autoGameDvr:b=yes"
                     }
                   ]
                 }
               ]
             },
             {
-              "Id": "86d3eb49-12f5-42d4-a80c-c4acf5179c4a",
+              "Id": "432a1b38-02d9-41a7-ab0f-b33d0a7f5f5a",
               "Command": "Debug",
               "Items": [
                 {
-                  "Id": "22d23d33-05c3-4196-a009-b151ebc0b6ca",
+                  "Id": "fae475b9-dbf5-41b1-8786-28cbd545d45a",
                   "Command": "Profile",
                   "ExclusiveMode": true,
                   "Items": [
                     {
-                      "Id": "2a3d4130-f13f-41c6-a78f-4c2443f7f860",
+                      "Id": "a9b12760-393e-4dd7-80c8-d9f973a44884",
                       "Command": ""
                     },
                     {
-                      "Id": "05217362-1ef7-40f7-b0d3-3c6b5d382eb9",
-                      "Command": "-config:dx12/debug/profile:t=release"
+                      "Id": "4ab0cd8c-6123-4ed2-aebf-570adfedc2eb",
+                      "Command": "Release",
+                      "ExclusiveMode": true,
+                      "Items": [
+                        {
+                          "Id": "16d15114-033d-4961-8386-5865160d02ec",
+                          "Command": "-config:dx12/debug/profile:t=release"
+                        },
+                        {
+                          "Id": "c1e6b002-d420-40b5-b9e9-af90b3a98d40",
+                          "Command": "-config:dx12/debugProfile:t=release"
+                        }
+                      ]
                     },
                     {
-                      "Id": "2effa878-9cd9-4766-9156-f5d6c7f9b070",
-                      "Command": "-config:dx12/debug/profile:t=dev"
+                      "Id": "1a36bf88-c265-48f3-9326-d7dffdbb7c30",
+                      "Command": "Dev",
+                      "ExclusiveMode": true,
+                      "Items": [
+                        {
+                          "Id": "08e390dd-b771-4c1e-8bf0-56bf1e611dc4",
+                          "Command": "-config:dx12/debug/profile:t=dev"
+                        },
+                        {
+                          "Id": "2a197f11-3494-4e2f-950c-15fdf8f070de",
+                          "Command": "-config:dx12/debugProfile:t=dev"
+                        }
+                      ]
                     },
                     {
-                      "Id": "16677ffe-2b6f-4b9a-a72f-2615d5f79f44",
-                      "Command": "-config:dx12/debug/profile:t=debug"
+                      "Id": "9d86c85b-994c-4a9b-b396-bfdef61428bb",
+                      "Command": "Debug",
+                      "ExclusiveMode": true,
+                      "Items": [
+                        {
+                          "Id": "2e2d9958-c553-4bbd-84cf-f882657549ff",
+                          "Command": "-config:dx12/debug/profile:t=debug"
+                        },
+                        {
+                          "Id": "b67ed07f-2f21-4e94-86a6-cf090f137cb8",
+                          "Command": "-config:dx12/debugProfile:t=debug"
+                        }
+                      ]
                     },
                     {
-                      "Id": "f107cce5-1509-4ce8-ba74-8e4c2df8be53",
-                      "Command": "-config:dx12/debug/profile:t=pix"
+                      "Id": "f967a7f1-781c-43c8-bd9e-05fac955ba7f",
+                      "Command": "Pix",
+                      "ExclusiveMode": true,
+                      "Items": [
+                        {
+                          "Id": "39b92500-8395-4557-a213-105560c5c9d8",
+                          "Command": "-config:dx12/debug/profile:t=pix"
+                        },
+                        {
+                          "Id": "b2caebe0-e401-4d97-8150-0d11c61edcb5",
+                          "Command": "-config:dx12/debugProfile:t=pix"
+                        }
+                      ]
                     },
                     {
-                      "Id": "23b40b4c-ebc0-4d43-809f-f0562ec12903",
-                      "Command": "-config:dx12/debug/profile:t=renderdoc"
+                      "Id": "05a6af91-d220-4c6f-82d4-dcfe91c2700c",
+                      "Command": "RenderDorc",
+                      "ExclusiveMode": true,
+                      "Items": [
+                        {
+                          "Id": "ce4b7844-be71-4a07-8696-539befe45ae5",
+                          "Command": "-config:dx12/debug/profile:t=renderdoc"
+                        },
+                        {
+                          "Id": "2688835c-9d52-4f40-baa4-96e5efe83922",
+                          "Command": "-config:dx12/debugProfile:t=renderdoc"
+                        }
+                      ]
                     },
                     {
-                      "Id": "be102797-e107-46ba-a549-9380da7dddeb",
-                      "Command": "-config:dx12/debug/profile:t=capture"
+                      "Id": "306f724c-675e-4e5d-9910-1c7c87f08bcb",
+                      "Command": "Capture",
+                      "ExclusiveMode": true,
+                      "Items": [
+                        {
+                          "Id": "c48db531-21d5-484d-9327-842fac629de5",
+                          "Command": "-config:dx12/debug/profile:t=capture"
+                        },
+                        {
+                          "Id": "7a454136-0cb9-40fd-ba74-310dfe73a5ed",
+                          "Command": "-config:dx12/debugProfile:t=capture"
+                        }
+                      ]
                     },
                     {
-                      "Id": "b2eb7769-a087-4433-8cdc-ffe89849fdcd",
-                      "Command": "-config:dx12/debug/profile:t=hang"
+                      "Id": "248bf2d1-52df-4d7b-ad26-86401c696bb8",
+                      "Command": "Hang",
+                      "ExclusiveMode": true,
+                      "Items": [
+                        {
+                          "Id": "611fe378-2230-448b-9e14-f6969f177803",
+                          "Command": "-config:dx12/debug/profile:t=hang"
+                        },
+                        {
+                          "Id": "17d171f5-08f6-41c9-9097-7967ae46f03c",
+                          "Command": "-config:dx12/debugProfile:t=hang"
+                        }
+                      ]
                     },
                     {
-                      "Id": "0d1c3f42-6302-484b-842c-10ab87984db5",
-                      "Command": "-config:dx12/debug/profile:t=shaders"
+                      "Id": "ba1ee2ef-653d-42ac-96f0-af35be7040cc",
+                      "Command": "Shaders",
+                      "ExclusiveMode": true,
+                      "Items": [
+                        {
+                          "Id": "1f63c45e-1e3b-4cc9-95e9-d19d8a19580c",
+                          "Command": "-config:dx12/debug/profile:t=shaders"
+                        },
+                        {
+                          "Id": "18a7dd70-297f-49ad-9c4f-573dbffc1f6e",
+                          "Command": "-config:dx12/debugProfile:t=shaders"
+                        }
+                      ]
                     },
                     {
-                      "Id": "b6dd6fa6-8567-4056-9339-212168c7faef",
-                      "Command": "-config:dx12/debug/profile:t=trace"
+                      "Id": "75a7efbf-ca40-49fd-80a0-82d2ca94d1c1",
+                      "Command": "Trace",
+                      "ExclusiveMode": true,
+                      "Items": [
+                        {
+                          "Id": "066adb3c-4372-4b6f-a197-6fe1cbd8d4f7",
+                          "Command": "-config:dx12/debug/profile:t=trace"
+                        },
+                        {
+                          "Id": "2e0cb335-54f8-430d-b03a-a6a04aa492e9",
+                          "Command": "-config:dx12/debugProfile:t=trace"
+                        }
+                      ]
                     },
                     {
-                      "Id": "7ba48c63-1c1e-4236-8629-c8949c609f5e",
-                      "Command": "-config:dx12/debug/profile:t=postmortem"
+                      "Id": "e6977152-2980-4575-92b2-99ad39a9bf85",
+                      "Command": "Postmortem",
+                      "ExclusiveMode": true,
+                      "Items": [
+                        {
+                          "Id": "a78db4da-a849-4ac6-972a-e927a944b9d0",
+                          "Command": "-config:dx12/debug/profile:t=postmortem"
+                        },
+                        {
+                          "Id": "54253e34-2d1c-4d6d-8531-467064491f10",
+                          "Command": "-config:dx12/debugProfile:t=postmortem"
+                        }
+                      ]
                     },
                     {
-                      "Id": "e98939ff-dc8d-4082-bb9f-8ba1730ea793",
-                      "Command": "-config:dx12/debug/profile:t=aftermath"
+                      "Id": "5efef602-7a69-4f59-ba35-5f40ce44c811",
+                      "Command": "Ags",
+                      "ExclusiveMode": true,
+                      "Items": [
+                        {
+                          "Id": "de39744a-144b-4284-950c-928af102d884",
+                          "Command": "-config:dx12/debug/profile:t=ags"
+                        },
+                        {
+                          "Id": "5acb52da-de6a-4ef6-a307-0bc298db3316",
+                          "Command": "-config:dx12/debugProfile:t=ags"
+                        }
+                      ]
                     },
                     {
-                      "Id": "527485a3-096c-421e-a9e7-5032a4dbb69d",
-                      "Command": "-config:dx12/debug/profile:t=dred"
+                      "Id": "da3d5cc8-b769-468e-936c-0497d18d3258",
+                      "Command": "Aftermath",
+                      "ExclusiveMode": true,
+                      "Items": [
+                        {
+                          "Id": "cd218c94-1f30-42f1-b4b1-3c4a3e50759b",
+                          "Command": "-config:dx12/debug/profile:t=aftermath"
+                        },
+                        {
+                          "Id": "7eba1fe4-f24a-4a81-bd9f-1e98b2f80d82",
+                          "Command": "-config:dx12/debugProfile:t=aftermath"
+                        }
+                      ]
                     },
                     {
-                      "Id": "1a990ec8-ce1d-44d0-9f43-b4dc841f82ca",
-                      "Command": "-config:dx12/debug/profile:t=dagor"
+                      "Id": "ecd13f4c-7873-44c4-85a3-b98d553e5dcd",
+                      "Command": "DRED",
+                      "ExclusiveMode": true,
+                      "Items": [
+                        {
+                          "Id": "51331a1f-a024-497b-a53e-34a9cdfedd3c",
+                          "Command": "-config:dx12/debug/profile:t=dred"
+                        },
+                        {
+                          "Id": "cd357b20-47f8-4abf-ab47-011a0f2666ed",
+                          "Command": "-config:dx12/debugProfile:t=dred"
+                        }
+                      ]
+                    },
+                    {
+                      "Id": "a49d79b9-dca4-44e7-bc01-46a3b694902e",
+                      "Command": "Dagor",
+                      "ExclusiveMode": true,
+                      "Items": [
+                        {
+                          "Id": "08a592d1-b16b-421c-9219-4ec48106abd1",
+                          "Command": "-config:dx12/debug/profile:t=dagor"
+                        },
+                        {
+                          "Id": "b3354e77-282d-4cd3-8205-91b2a1ae473a",
+                          "Command": "-config:dx12/debugProfile:t=dagor"
+                        }
+                      ]
                     }
                   ]
                 },
                 {
-                  "Id": "67afb210-e5ba-4311-a41b-615e41be7a55",
+                  "Id": "891b3b0d-3166-48cb-b19b-aef9be916ab0",
                   "Command": "Level",
                   "ExclusiveMode": true,
                   "Items": [
                     {
-                      "Id": "fd07cdc7-a1bc-45a3-960d-6df7a97d865b",
+                      "Id": "aad39631-4f5e-45cf-a6c6-e6c61c601a7e",
                       "Command": ""
                     },
                     {
-                      "Id": "ace05a6d-ae7d-43f1-baea-976ff6667ac5",
-                      "Command": "-config:dx12/debug/level:i=0"
+                      "Id": "9b73dc3f-bae6-434b-8d66-11d372a93a7c",
+                      "Command": "Level 0",
+                      "ExclusiveMode": true,
+                      "Items": [
+                        {
+                          "Id": "76cd7669-269e-4c40-9490-3be335ce352c",
+                          "Command": "-config:dx12/debug/level:i=0"
+                        },
+                        {
+                          "Id": "3bfa26fb-5cdc-4f41-a98f-ca8f89b3a046",
+                          "Command": "-config:dx12/debugLevel:i=0"
+                        }
+                      ]
                     },
                     {
-                      "Id": "30011ac4-950f-41f2-9295-9889293bce5f",
-                      "Command": "-config:dx12/debug/level:i=1"
+                      "Id": "ef6e8958-da51-43dd-901b-bab570fa96ba",
+                      "Command": "Level 1",
+                      "ExclusiveMode": true,
+                      "Items": [
+                        {
+                          "Id": "10669881-8899-4987-bcbf-0630c0115797",
+                          "Command": "-config:dx12/debug/level:i=1"
+                        },
+                        {
+                          "Id": "91417afe-e8a3-4eee-ab05-ab41383bb098",
+                          "Command": "-config:dx12/debugLevel:i=1"
+                        }
+                      ]
                     },
                     {
-                      "Id": "78ba1089-bae1-457d-8498-3382a2107ee4",
-                      "Command": "-config:dx12/debug/level:i=2"
+                      "Id": "e4d740ef-3106-4643-9411-a8de0fd45b41",
+                      "Command": "Level 2",
+                      "ExclusiveMode": true,
+                      "Items": [
+                        {
+                          "Id": "ab33891a-7164-4b50-931d-82cd4725ae97",
+                          "Command": "-config:dx12/debug/level:i=2"
+                        },
+                        {
+                          "Id": "6b38a127-e334-4bbf-91aa-8d5994a7bcc9",
+                          "Command": "-config:dx12/debugLevel:i=2"
+                        }
+                      ]
                     },
                     {
-                      "Id": "7a41ba78-792d-4eba-89b7-8d7c35d5398e",
-                      "Command": "-config:dx12/debug/level:i=3"
+                      "Id": "7a5f955f-7d6b-4add-bbe3-e89c1e13b1ef",
+                      "Command": "Level 3",
+                      "ExclusiveMode": true,
+                      "Items": [
+                        {
+                          "Id": "05a6b04b-f830-41f8-8eac-1be854bb2b94",
+                          "Command": "-config:dx12/debug/level:i=3"
+                        },
+                        {
+                          "Id": "9b33486b-0f07-4635-a8fd-a84e81060090",
+                          "Command": "-config:dx12/debugLevel:i=3"
+                        }
+                      ]
                     }
                   ]
                 },
                 {
-                  "Id": "cfc95507-a95c-412d-a04a-8f250693621d",
+                  "Id": "d4964ba2-e3a1-4792-b956-53d2a0ba896b",
                   "Command": "Aftermath",
                   "ExclusiveMode": true,
                   "Items": [
                     {
-                      "Id": "5718dc84-1e97-4e44-b46f-cbd0bbed86fb",
+                      "Id": "6d5e28ca-b588-46a0-bd6d-e9f4fc450179",
                       "Command": ""
                     },
                     {
-                      "Id": "b4474304-efed-40c8-8ddb-8e63acad0e53",
-                      "Command": "-config:dx12/debug/aftermath:b=no"
+                      "Id": "ec2c5316-2758-47ba-8960-a6f1e4e5f0b1",
+                      "Command": "Disable",
+                      "ExclusiveMode": true,
+                      "Items": [
+                        {
+                          "Id": "a573e304-1778-4f09-b093-1251b721b29b",
+                          "Command": "-config:dx12/debug/aftermath:b=no"
+                        },
+                        {
+                          "Id": "a8f9cb25-b116-47c5-a9ab-d87974eb6225",
+                          "Command": "-config:dx12/enableAftermath:b=no"
+                        }
+                      ]
                     },
                     {
-                      "Id": "03ee0234-5075-4b72-8fb5-b550ae8c94b0",
-                      "Command": "-config:dx12/debug/aftermath:b=yes"
+                      "Id": "34e5a997-8ec6-4b5b-bd87-57380e61232c",
+                      "Command": "Enable",
+                      "ExclusiveMode": true,
+                      "Items": [
+                        {
+                          "Id": "deafde9c-cad4-4564-b97d-2d14291a6ae2",
+                          "Command": "-config:dx12/debug/aftermath:b=yes"
+                        },
+                        {
+                          "Id": "f2922deb-fbda-4c65-a85e-42e653e0b5b7",
+                          "Command": "-config:dx12/enableAftermath:b=yes"
+                        }
+                      ]
                     }
                   ]
                 },
                 {
-                  "Id": "fee836f0-9ed5-4a86-ac10-bcdb5cc555d7",
+                  "Id": "528ef80d-f552-49d2-8db0-1e72311c4280",
+                  "Command": "Ags Trace",
+                  "ExclusiveMode": true,
+                  "Items": [
+                    {
+                      "Id": "14ac4dd3-b666-44b6-b650-d1058f6815d8",
+                      "Command": ""
+                    },
+                    {
+                      "Id": "74c1e488-f3c1-48f0-a37c-a3baf229f9de",
+                      "Command": "Disable",
+                      "Items": [
+                        {
+                          "Id": "9b7a52ff-9b48-4aae-b248-741cd3950e2b",
+                          "Command": "-config:dx12/debug/agsTrace:b=no"
+                        }
+                      ]
+                    },
+                    {
+                      "Id": "2b7386e0-da6e-47d4-a9ec-504f15f26c66",
+                      "Command": "Enable",
+                      "Items": [
+                        {
+                          "Id": "ae6e3de1-3d62-4e22-a78a-67cabfca9965",
+                          "Command": "-config:dx12/debug/agsTrace:b=yes"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Id": "21117efd-24e3-4e06-b176-eefb694a3b42",
+                  "Command": "Ags Profile",
+                  "ExclusiveMode": true,
+                  "Items": [
+                    {
+                      "Id": "cf1a550c-d1b3-4a3b-9535-eda7f45e34cc",
+                      "Command": ""
+                    },
+                    {
+                      "Id": "df4ff82c-b061-44ae-a59c-c1888192bf3b",
+                      "Command": "Disable",
+                      "Items": [
+                        {
+                          "Id": "45b926d5-e457-4b19-b82e-6b653c71664e",
+                          "Command": "-config:dx12/debug/agsProfile:b=no"
+                        }
+                      ]
+                    },
+                    {
+                      "Id": "abd5c6d0-3e7d-4b98-8b3f-14143215848e",
+                      "Command": "Enable",
+                      "Items": [
+                        {
+                          "Id": "ac9af684-53a6-4bd0-9ee9-afd44f8cf609",
+                          "Command": "-config:dx12/debug/agsProfile:b=yes"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Id": "1b38eeb4-5e42-4be5-a999-f7e2d36b41fd",
                   "Command": "Track PageFaults",
                   "ExclusiveMode": true,
                   "Items": [
                     {
-                      "Id": "bec1678b-6408-4ead-8420-326da5f42943",
+                      "Id": "ab88431d-8973-4059-8c2e-9ce967c3fa77",
                       "Command": ""
                     },
                     {
-                      "Id": "79cc6a3e-0f8d-405f-8b61-e120c795d9a7",
-                      "Command": "-config:dx12/debug/pageFaults:b=no"
+                      "Id": "235fc3f8-2883-406c-8321-94073b94a007",
+                      "Command": "Disable",
+                      "ExclusiveMode": true,
+                      "Items": [
+                        {
+                          "Id": "daa28b29-2079-4a2c-97b6-16f6ac3d2f3a",
+                          "Command": "-config:dx12/debug/pageFaults:b=no"
+                        },
+                        {
+                          "Id": "bad3423a-1c9c-40c3-acf7-faffccffd0bd",
+                          "Command": "-config:dx12/trackPageFaults:b=no"
+                        }
+                      ]
                     },
                     {
-                      "Id": "4219cdfd-e24b-4b19-afb5-27764a04e0ea",
-                      "Command": "-config:dx12/debug/pageFaults:b=yes"
+                      "Id": "a14e0995-1d57-4a8e-93f0-91aa13e38241",
+                      "Command": "Enable",
+                      "ExclusiveMode": true,
+                      "Items": [
+                        {
+                          "Id": "7cd92710-5067-42c2-9c80-824bc44ca0c1",
+                          "Command": "-config:dx12/debug/pageFaults:b=yes"
+                        },
+                        {
+                          "Id": "1e0b6a50-4cb2-4508-bbb2-32e89c9343ef",
+                          "Command": "-config:dx12/trackPageFaults:b=yes"
+                        }
+                      ]
                     }
                   ]
                 },
                 {
-                  "Id": "39ce5cff-fc83-406b-ad63-07f276888696",
+                  "Id": "63507b4f-867a-42cb-b98b-086952f09dca",
                   "Command": "DRED",
                   "ExclusiveMode": true,
                   "Items": [
                     {
-                      "Id": "5635199f-1034-4096-a2dc-fbd498a9d4ee",
+                      "Id": "f4e9b0b1-660b-49f3-b8cb-2af26ce39866",
                       "Command": ""
                     },
                     {
-                      "Id": "200dd3c0-2c63-49db-9234-898b4e94afda",
-                      "Command": "-config:dx12/debug/DRED:b=no"
-                    },
-                    {
-                      "Id": "1d4ce66b-39b0-4707-b5cf-e1d12cabf8a8",
-                      "Command": "-config:dx12/debug/DRED:b=yes"
-                    },
-                    {
-                      "Id": "fd465bfc-b748-4c8f-ae05-b522b1852660",
-                      "Command": "Force DRED",
+                      "Id": "d7f8d577-afcb-48cd-a71a-a0a13540aa2a",
+                      "Command": "Disable",
+                      "ExclusiveMode": true,
                       "Items": [
                         {
-                          "Id": "f132e32b-9d8a-49fd-b6e9-4b09a194cac2",
+                          "Id": "aa0b9caf-0e5b-46e1-8e42-3157732c534b",
+                          "Command": "-config:dx12/debug/DRED:b=no"
+                        },
+                        {
+                          "Id": "0580af55-4c29-4226-8bba-747dafce4b96",
+                          "Command": "-config:dx12/allowDRED:b=no"
+                        }
+                      ]
+                    },
+                    {
+                      "Id": "a6e4c6c8-417d-45fa-b1b8-fb0a4f518261",
+                      "Command": "Enable",
+                      "ExclusiveMode": true,
+                      "Items": [
+                        {
+                          "Id": "50d509ef-4e87-483f-b0a3-e08d7114a576",
                           "Command": "-config:dx12/debug/DRED:b=yes"
                         },
                         {
-                          "Id": "587e5e92-2dcb-4028-9cb9-079f06b4ddfb",
+                          "Id": "f42dc136-c8d4-4167-a0bf-a84399f691a7",
+                          "Command": "-config:dx12/allowDRED:b=yes"
+                        }
+                      ]
+                    },
+                    {
+                      "Id": "9c731fa8-a4b6-4c93-88be-9f21e0c63f4b",
+                      "Command": "Force DRED",
+                      "Items": [
+                        {
+                          "Id": "0854f222-f494-4d5d-94ab-ad8834cd2276",
+                          "Command": "-config:dx12/allowDRED:b=yes"
+                        },
+                        {
+                          "Id": "dda783ec-51c2-4347-8058-1926e5c1c6fb",
+                          "Command": "-config:dx12/debug/DRED:b=yes"
+                        },
+                        {
+                          "Id": "342f77fc-7f5f-41eb-983c-d339cd4a9540",
+                          "Command": "-config:dx12/ignoreDREDAvailability:b=yes"
+                        },
+                        {
+                          "Id": "9e1f42f2-2343-4b5d-8aef-99daff337239",
                           "Command": "-config:dx12/debug/ignoreDREDAvailability:b=yes"
                         }
                       ]
@@ -389,137 +788,460 @@
                   ]
                 },
                 {
-                  "Id": "7b2d87ab-c463-4590-97bd-992ac57e5ffa",
+                  "Id": "2347cc89-8ed7-4996-9e4b-582bfc84a3b3",
+                  "Command": "GPU Capturers",
+                  "ExclusiveMode": true,
+                  "Items": [
+                    {
+                      "Id": "803d7360-6861-4999-afaf-38af77888662",
+                      "Command": ""
+                    },
+                    {
+                      "Id": "48cecb3c-cc31-4392-b783-288cfcb85c1c",
+                      "Command": "Disable",
+                      "ExclusiveMode": true,
+                      "Items": [
+                        {
+                          "Id": "51f01be9-9a88-4945-baa4-354b4be4ce95",
+                          "Command": "-config:dx12/debug/gpuCapturers:b=no"
+                        },
+                        {
+                          "Id": "2759b3ee-ce09-46e4-9c77-e3aa282c1f5a",
+                          "Command": "-config:dx12/enableGPUCapturers:b=no"
+                        }
+                      ]
+                    },
+                    {
+                      "Id": "72eb7601-abeb-47ec-87b5-954db11e2f80",
+                      "Command": "Enable",
+                      "ExclusiveMode": true,
+                      "Items": [
+                        {
+                          "Id": "31cb5b69-748c-4f1f-bf25-382b9da7c046",
+                          "Command": "-config:dx12/debug/gpuCapturers:b=yes"
+                        },
+                        {
+                          "Id": "c0e5f883-e3f8-4a11-9c0c-d32a7737d89e",
+                          "Command": "-config:dx12/enableGPUCapturers:b=yes"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Id": "2f5b312e-9a4c-4f00-9935-9a9d15cbbbed",
                   "Command": "Load PIX Capturer",
                   "ExclusiveMode": true,
                   "Items": [
                     {
-                      "Id": "33af2930-ed84-4719-b8ca-a32752ff114a",
+                      "Id": "0c02ba73-7e5a-4a64-8590-adadd5333fa6",
                       "Command": ""
                     },
                     {
-                      "Id": "a91914a8-2ba2-4e15-97e3-6524bde65b85",
-                      "Command": "-config:dx12/debug/loadPixCapturer:b=no"
+                      "Id": "73849353-2527-48ba-9b97-1a199e777271",
+                      "Command": "Disable",
+                      "ExclusiveMode": true,
+                      "Items": [
+                        {
+                          "Id": "3f94e177-2511-4d6c-a008-8b82bdd67e3a",
+                          "Command": "-config:dx12/debug/loadPixCapturer:b=no"
+                        },
+                        {
+                          "Id": "b794264d-fe18-4221-8535-7276bb3c47ec",
+                          "Command": "-config:dx12/loadPixCapturer:b=no"
+                        }
+                      ]
                     },
                     {
-                      "Id": "139aa39c-51cd-46e6-ad91-1f814ac85ea4",
-                      "Command": "-config:dx12/debug/loadPixCapturer:b=yes"
+                      "Id": "6d168413-af91-408f-9628-68d69b406c0f",
+                      "Command": "Enable",
+                      "ExclusiveMode": true,
+                      "Items": [
+                        {
+                          "Id": "4ced8ee2-1613-40d9-bfee-a2d3965f2b4e",
+                          "Command": "-config:dx12/debug/loadPixCapturer:b=yes"
+                        },
+                        {
+                          "Id": "2c998191-c92f-40ab-addf-7cff278decf8",
+                          "Command": "-config:dx12/loadPixCapturer:b=yes"
+                        }
+                      ]
+                    },
+                    {
+                      "Id": "3b074e30-2492-4590-bbfd-9a18e2009e8f",
+                      "Command": "Enable - no streamline",
+                      "Items": [
+                        {
+                          "Id": "6f9616b1-abb1-4606-bba7-22ddd7af4a8b",
+                          "Command": "-config:dx12/loadPixCapturer:b=yes"
+                        },
+                        {
+                          "Id": "f4ac0137-3592-4df5-ac12-7c8418fbe370",
+                          "Command": "-config:dx12/debug/loadPixCapturer:b=yes"
+                        },
+                        {
+                          "Id": "7a827238-1c3e-4441-a26f-e5d66d666b95",
+                          "Command": "-config:video/disableStreamline:b=yes"
+                        }
+                      ]
                     }
                   ]
                 },
                 {
-                  "Id": "c322f8d0-fac2-4dea-9175-76ee04af2d17",
+                  "Id": "c01cdc6d-3d04-46b7-9923-2e928a6417fd",
+                  "Command": "LUID",
+                  "ExclusiveMode": true,
+                  "Items": [
+                    {
+                      "Id": "bd28efeb-4aa3-4f39-ab2e-a80891b67593",
+                      "Command": ""
+                    },
+                    {
+                      "Id": "c97e05b9-c586-4873-8a69-2654432c815e",
+                      "Command": "-config:dx12/AdapterLUID:i64=0"
+                    }
+                  ]
+                },
+                {
+                  "Id": "20f7e80d-a03f-4756-bd48-3f663c8b1d42",
                   "Command": "Dagor GPU Trace",
                   "ExclusiveMode": true,
                   "Items": [
                     {
-                      "Id": "5906fb1e-745f-4a0c-b3e6-8c7883e44aaa",
+                      "Id": "b625bf45-8ec2-46d0-a33e-edbd445f6615",
                       "Command": ""
                     },
                     {
-                      "Id": "0d972513-125a-44f0-a000-b1ed11f6619a",
-                      "Command": "-config:dx12/debug/dagorGPUTrace:b=no"
+                      "Id": "f68800b7-795a-4a8d-bf47-2912ceea1ed8",
+                      "Command": "Disable",
+                      "ExclusiveMode": true,
+                      "Items": [
+                        {
+                          "Id": "99e29458-79eb-472c-bca2-ba82ef278666",
+                          "Command": "-config:dx12/debug/dagorGPUTrace:b=no"
+                        },
+                        {
+                          "Id": "91031d40-7632-4acd-8e4a-9239021c45ea",
+                          "Command": "-config:dx12/enableDagorGPUTrace:b=no"
+                        }
+                      ]
                     },
                     {
-                      "Id": "53c47762-608c-456c-8379-a5c0f86499d5",
-                      "Command": "-config:dx12/debug/dagorGPUTrace:b=yes"
+                      "Id": "0c8a7ae7-410f-4e11-a604-70f9e996177f",
+                      "Command": "Enable",
+                      "ExclusiveMode": true,
+                      "Items": [
+                        {
+                          "Id": "45a6d237-8055-47b9-9902-4fd10cd55d73",
+                          "Command": "-config:dx12/debug/dagorGPUTrace:b=yes"
+                        },
+                        {
+                          "Id": "972d8192-403b-4468-bc6a-f41c33a86b59",
+                          "Command": "-config:dx12/enableDagorGPUTrace:b=yes"
+                        }
+                      ]
                     }
                   ]
                 },
                 {
-                  "Id": "042610db-8034-4544-8626-38b760f41754",
+                  "Id": "63d2cb1f-b2ec-4944-a7a0-12b2efc00894",
                   "Command": "Shader Error Reporting",
                   "ExclusiveMode": true,
                   "Items": [
                     {
-                      "Id": "639fa4cb-6e6f-4744-97aa-243d04e3ba71",
+                      "Id": "edf30684-4781-4b72-855c-dbe9e2485139",
                       "Command": ""
                     },
                     {
-                      "Id": "812ca722-e942-4b4a-b747-38a39280e879",
-                      "Command": "-config:dx12/debug/shaderErrorReporting:b=no"
+                      "Id": "dad9497a-d9a0-40b7-bcf2-bfd39fa9b1ec",
+                      "Command": "Disable",
+                      "ExclusiveMode": true,
+                      "Items": [
+                        {
+                          "Id": "cb224a5b-556d-4d1f-a4f6-d432058b0e53",
+                          "Command": "-config:dx12/debug/shaderErrorReporting:b=no"
+                        },
+                        {
+                          "Id": "7ab624b1-6e93-4d7a-af3e-fbf3d3a2910d",
+                          "Command": "-config:dx12/enableShaderErrorReporting:b=no"
+                        }
+                      ]
                     },
                     {
-                      "Id": "2c12f48f-4ea8-4295-9283-99b309189f1a",
-                      "Command": "-config:dx12/debug/shaderErrorReporting:b=yes"
+                      "Id": "619525e4-6cc7-4208-99a1-41b5dba1293c",
+                      "Command": "Enable",
+                      "ExclusiveMode": true,
+                      "Items": [
+                        {
+                          "Id": "6ac566c4-0d0e-4d90-835b-5d7d8d990d7f",
+                          "Command": "-config:dx12/debug/shaderErrorReporting:b=yes"
+                        },
+                        {
+                          "Id": "b6ac3cbd-3eeb-41d2-93a0-129ea2b4044c",
+                          "Command": "-config:dx12/enableShaderErrorReporting:b=yes"
+                        }
+                      ]
                     }
                   ]
                 },
                 {
-                  "Id": "9da3fe2b-d54f-4aaf-a9af-00e9d0084b32",
+                  "Id": "4c428382-4bdc-4355-82fe-8d49bbd5e98b",
                   "Command": "GPU Dumps",
                   "ExclusiveMode": true,
                   "Items": [
                     {
-                      "Id": "3e5c78f9-be0a-4252-83fa-4ace7dfc2470",
+                      "Id": "c964bd97-7e89-44cb-9075-5ee5fcde1a0b",
                       "Command": ""
                     },
                     {
-                      "Id": "4c6a3b69-678e-4bb7-83b4-7fca961716e0",
-                      "Command": "-config:dx12/debug/gpuDumps:b=no"
+                      "Id": "c288ae7f-6a02-4787-92d3-cf5472fa7f02",
+                      "Command": "Disable",
+                      "ExclusiveMode": true,
+                      "Items": [
+                        {
+                          "Id": "439b4e54-3fff-408c-abec-b1f0f1b33e78",
+                          "Command": "-config:dx12/debug/gpuDumps:b=no"
+                        },
+                        {
+                          "Id": "314dea2d-0e6e-4088-a00f-66dd2a118892",
+                          "Command": "-config:dx12/gpuDumps:b=no"
+                        }
+                      ]
                     },
                     {
-                      "Id": "2a75f72c-0da3-4732-bacb-b1faea6f5588",
-                      "Command": "-config:dx12/debug/gpuDumps:b=yes"
+                      "Id": "0138408c-a070-4530-ad91-fb6ecd4eaf1f",
+                      "Command": "Enable",
+                      "ExclusiveMode": true,
+                      "Items": [
+                        {
+                          "Id": "064f9f37-6b76-4b37-8e57-821d234578d0",
+                          "Command": "-config:dx12/debug/gpuDumps:b=yes"
+                        },
+                        {
+                          "Id": "27afe352-237e-4dc5-839d-fd2e51dbc2d4",
+                          "Command": "-config:dx12/gpuDumps:b=yes"
+                        }
+                      ]
                     }
                   ]
                 },
                 {
-                  "Id": "faaa3398-b999-466e-b522-23621be4612a",
+                  "Id": "b0bb6a7f-54c9-47be-b961-6c5e60704c32",
                   "Command": "CPU Validation",
                   "ExclusiveMode": true,
                   "Items": [
                     {
-                      "Id": "20006a69-63ad-4df2-8985-16a439ce0c3c",
+                      "Id": "c564af0d-8c49-426a-9f08-1ed72d14a7aa",
                       "Command": ""
                     },
                     {
-                      "Id": "7e1e8536-ec46-48e7-9ab6-95f5f50b9683",
-                      "Command": "-config:dx12/debug/cpuValidation:b=no"
+                      "Id": "13821911-6ff4-40cc-a18b-e2ba00450c7b",
+                      "Command": "Disable",
+                      "ExclusiveMode": true,
+                      "Items": [
+                        {
+                          "Id": "a274d250-92f2-47ee-9e0c-91fb793131bc",
+                          "Command": "-config:dx12/cpuValidation:b=no"
+                        }
+                      ]
                     },
                     {
-                      "Id": "25534714-d3c6-4a1b-901f-9d1d5fabd1b9",
-                      "Command": "-config:dx12/debug/cpuValidation:b=yes"
+                      "Id": "d4f8f860-f1de-40bc-96c4-2c529a598bea",
+                      "Command": "Enable",
+                      "ExclusiveMode": true,
+                      "Items": [
+                        {
+                          "Id": "069c9c6d-cd89-45e8-b1fb-7e60fed1637b",
+                          "Command": "-config:dx12/cpuValidation:b=yes"
+                        }
+                      ]
                     }
                   ]
                 },
                 {
-                  "Id": "a8677fa3-d30f-4490-9674-a4ae63e9df76",
+                  "Id": "048d2d64-a99c-437e-b08e-fc733f0ec6d1",
                   "Command": "GPU Validation",
                   "ExclusiveMode": true,
                   "Items": [
                     {
-                      "Id": "b429af8c-0f6e-477a-819d-f8d34c226197",
+                      "Id": "bd380733-8e86-489c-83e7-8ee470ab6e9a",
                       "Command": ""
                     },
                     {
-                      "Id": "61c06009-2d25-4041-8e42-fc3f75348692",
-                      "Command": "-config:dx12/debug/gpuValidation:b=no"
+                      "Id": "a66f3182-1f69-40bc-9ec6-6cee392bf4f4",
+                      "Command": "Disable",
+                      "ExclusiveMode": true,
+                      "Items": [
+                        {
+                          "Id": "86343866-8ec6-445c-afa5-751a161602a1",
+                          "Command": "-config:dx12/gpuValidation:b=no"
+                        }
+                      ]
                     },
                     {
-                      "Id": "96666201-f54d-453d-9855-7aaa7c9a8d40",
-                      "Command": "-config:dx12/debug/gpuValidation:b=yes"
+                      "Id": "39fc28c2-51d8-4ef8-ad04-5ff8b19349e0",
+                      "Command": "Enable",
+                      "ExclusiveMode": true,
+                      "Items": [
+                        {
+                          "Id": "24c4505b-a1f8-4707-9da6-de90c05a1e97",
+                          "Command": "-config:dx12/gpuValidation:b=yes"
+                        }
+                      ]
                     }
                   ]
-                }
-              ]
-            },
-            {
-              "Id": "bafc9584-2696-40ce-99b1-3eb782d79564",
-              "Command": "HDR",
-              "ExclusiveMode": true,
-              "Items": [
-                {
-                  "Id": "ac95632c-c23a-4d7f-9b9a-a95abcf89aa9",
-                  "Command": ""
                 },
                 {
-                  "Id": "e70dc023-f034-4341-9249-bcf9d48d6c8c",
-                  "Command": "-config:dx12/forceHdr:b=no"
+                  "Id": "fda5b4fb-99d3-4c21-a8a3-a4f14b6830c7",
+                  "Command": "Ray Trace Validation",
+                  "ExclusiveMode": true,
+                  "Items": [
+                    {
+                      "Id": "ef8b0a8b-db7c-4dbc-9583-4da6c8d680b2",
+                      "Command": ""
+                    },
+                    {
+                      "Id": "4f6ff591-9c52-4c49-841d-3c14e7a7e822",
+                      "Command": "Disable",
+                      "Items": [
+                        {
+                          "Id": "a8f9195f-b79b-4f38-8a3b-acf1fec8085f",
+                          "Command": "-config:dx12/debug/nvRTValidation:b=no"
+                        }
+                      ]
+                    },
+                    {
+                      "Id": "4eabc6fc-7cec-4d54-93cb-48959af89fb6",
+                      "Command": "Enable",
+                      "Items": [
+                        {
+                          "Id": "3ec20175-aeb4-4903-adab-24e3650a723b",
+                          "Command": "-config:dx12/debug/nvRTValidation:b=yes"
+                        }
+                      ]
+                    }
+                  ]
                 },
                 {
-                  "Id": "6e5e3977-7336-413c-bd24-5c8cc9fc579b",
-                  "Command": "-config:dx12/forceHdr:b=yes"
+                  "Id": "d536e671-d04b-40be-9af4-2c87411ea7c1",
+                  "Command": "SDK Version",
+                  "ExclusiveMode": true,
+                  "Items": [
+                    {
+                      "Id": "8ae3c33a-5d91-4452-b1bf-2577bc7df47f",
+                      "Command": ""
+                    },
+                    {
+                      "Id": "73a15183-8488-430d-b091-259bfaa7db17",
+                      "Command": "-config:dx12/sdkVersion:i=0"
+                    }
+                  ]
+                },
+                {
+                  "Id": "b5f97770-1acf-425e-8e33-1a31f07dd570",
+                  "Command": "Ignore",
+                  "Items": [
+                    {
+                      "Id": "e01a5ffd-cd04-48ce-8379-160a4813a494",
+                      "Command": "RESOURCE_BARRIER_UNMATCHED_END",
+                      "Items": [
+                        {
+                          "Id": "24ad0843-d64f-4865-943f-db638df3e11d",
+                          "Command": "-config:dx12/debug/ignore/RESOURCE_BARRIER_UNMATCHED_END:i=534"
+                        }
+                      ]
+                    },
+                    {
+                      "Id": "cc0b1110-f531-49b2-9502-2e605d63ca8b",
+                      "Command": "RESOURCE_BARRIER_UNMATCHED_BEGIN",
+                      "Items": [
+                        {
+                          "Id": "4a75c38f-c6a0-48dd-bee6-61923edd84b6",
+                          "Command": "-config:dx12/debug/ignore/RESOURCE_BARRIER_UNMATCHED_BEGIN:i=535"
+                        }
+                      ]
+                    },
+                    {
+                      "Id": "4d83c8ac-f875-4918-9c13-3573ef3e3392",
+                      "Command": "CREATEGRAPHICSPIPELINESTATE_RENDERTARGETVIEW_NOT_SET",
+                      "Items": [
+                        {
+                          "Id": "b2077d1a-36d5-4ba0-aa69-f3e98cd3ebe0",
+                          "Command": "-config:dx12/debug/ignore/CREATEGRAPHICSPIPELINESTATE_RENDERTARGETVIEW_NOT_SET:i=679"
+                        }
+                      ]
+                    },
+                    {
+                      "Id": "a73b778e-45f7-4e69-bb89-3cd375f2d72c",
+                      "Command": "CREATEGRAPHICSPIPELINESTATE_DEPTHSTENCILVIEW_NOT_SET",
+                      "Items": [
+                        {
+                          "Id": "95e291b5-2d15-48a2-b6ff-e93609cd89a3",
+                          "Command": "-config:dx12/debug/ignore/CREATEGRAPHICSPIPELINESTATE_DEPTHSTENCILVIEW_NOT_SET:i=680"
+                        }
+                      ]
+                    },
+                    {
+                      "Id": "f525d1dc-7544-4568-9f94-77c057fca149",
+                      "Command": "CLEARRENDERTARGETVIEW_MISMATCHINGCLEARVALUE",
+                      "Items": [
+                        {
+                          "Id": "3e5d0070-76e8-4bf9-8e4a-66da3e004145",
+                          "Command": "-config:dx12/debug/ignore/CLEARRENDERTARGETVIEW_MISMATCHINGCLEARVALUE:i=820"
+                        }
+                      ]
+                    },
+                    {
+                      "Id": "6cfbedf5-26f6-4e97-9656-20050a3107fe",
+                      "Command": "CLEARDEPTHSTENCILVIEW_MISMATCHINGCLEARVALUE",
+                      "Items": [
+                        {
+                          "Id": "68d14dc2-6a56-414b-94cf-75d3d72bdae6",
+                          "Command": "-config:dx12/debug/ignore/CLEARDEPTHSTENCILVIEW_MISMATCHINGCLEARVALUE:i=821"
+                        }
+                      ]
+                    },
+                    {
+                      "Id": "5200680b-9cbf-4dc7-a884-bbd448d47c40",
+                      "Command": "LOADPIPELINE_NAMENOTFOUND",
+                      "Items": [
+                        {
+                          "Id": "588051cf-73f5-42d8-b29e-9d60b5e27bf4",
+                          "Command": "-config:dx12/debug/ignore/LOADPIPELINE_NAMENOTFOUND:i=971"
+                        }
+                      ]
+                    },
+                    {
+                      "Id": "4b6d603d-e32b-4dde-96a9-b120334eba39",
+                      "Command": "RESOURCE_BARRIER_DUPLICATE_SUBRESOURCE_TRANSITIONS",
+                      "Items": [
+                        {
+                          "Id": "0ff448b0-9a8f-4c3f-b42b-82eba5be315e",
+                          "Command": "-config:dx12/debug/ignore/RESOURCE_BARRIER_DUPLICATE_SUBRESOURCE_TRANSITIONS:i=1008"
+                        }
+                      ]
+                    },
+                    {
+                      "Id": "25ffac9e-fd94-4084-ae10-3eb46a82f7e2",
+                      "Command": "CREATE_SAMPLER_COMPARISON_FUNC_IGNORED",
+                      "Items": [
+                        {
+                          "Id": "3b7f065c-a1a9-43fb-a020-5cd75f8bd8c8",
+                          "Command": "-config:dx12/debug/ignore/CREATE_SAMPLER_COMPARISON_FUNC_IGNORED:i=1361"
+                        }
+                      ]
+                    },
+                    {
+                      "Id": "a83570ad-90e1-4c15-a595-5b03dd1f792a",
+                      "Command": "RENDER_TARGET_OR_DEPTH_STENCIL_RESOUCE_NOT_INITIALIZED",
+                      "Items": [
+                        {
+                          "Id": "25c6bd1c-ce0c-4431-b43d-440c262f60ab",
+                          "Command": "-config:dx12/debug/ignore/RENDER_TARGET_OR_DEPTH_STENCIL_RESOUCE_NOT_INITIALIZED:i=1422"
+                        }
+                      ]
+                    }
+                  ]
                 }
               ]
             }
@@ -587,29 +1309,69 @@
       ]
     },
     {
-      "Id": "2e7eabd1-4d9b-4cd6-b3c1-1e73ba0959ce",
+      "Id": "c12b58f0-6499-4c7c-a080-424d8d47d3e8",
       "Command": "Resolution",
       "ExclusiveMode": true,
       "Items": [
         {
-          "Id": "155d8c2d-56a9-4c80-b086-327d5d07d1d4",
+          "Id": "9f6b8b4b-133a-4cd2-96f5-0d3814c29683",
+          "Command": "-config:video/resolution:t=3840x2160"
+        },
+        {
+          "Id": "8e18ec73-7c21-46bc-a4da-87be98037628",
+          "Command": "-config:video/resolution:t=3440x1440"
+        },
+        {
+          "Id": "1855ce7b-972f-477d-90a7-e5271b1688bc",
+          "Command": "-config:video/resolution:t=2560x1600"
+        },
+        {
+          "Id": "059a829b-6a4d-4fae-b0dc-990e494a0fa2",
+          "Command": "-config:video/resolution:t=2560x1440"
+        },
+        {
+          "Id": "89eb2d61-2b61-4f8f-a611-efbc27c63d67",
+          "Command": "-config:video/resolution:t=1920x1200"
+        },
+        {
+          "Id": "8af9a9d2-d3ce-4527-a73d-bc2dd439f9b9",
           "Command": "-config:video/resolution:t=1920x1080"
         },
         {
-          "Id": "71c1ab47-6d9a-4f68-bea6-1133ad26ec77",
+          "Id": "3d926faa-6cb3-4a0a-abd9-799ac4270e48",
+          "Command": "-config:video/resolution:t=1600x1200"
+        },
+        {
+          "Id": "74d72c19-cf1b-4d9c-883e-41b566eeb700",
           "Command": "-config:video/resolution:t=1600x900"
         },
         {
-          "Id": "466c61b4-458f-4eed-b47d-9ea994dc189e",
+          "Id": "4922c07b-82e1-4e0c-8d32-5cb0d824bb19",
+          "Command": "-config:video/resolution:t=1440x900"
+        },
+        {
+          "Id": "a28d392a-041c-4b81-a159-9201917c2c17",
+          "Command": "-config:video/resolution:t=1280x1024"
+        },
+        {
+          "Id": "663aead5-11f3-4c8b-b743-b0ae687dca08",
           "Command": "-config:video/resolution:t=1280x720"
         },
         {
-          "Id": "a34d6cd9-0a62-44c2-adfd-60b6866df97f",
+          "Id": "5577aa4f-9d77-4322-b3d2-330fa18f9025",
           "Command": "-config:video/resolution:t=1024x768"
         },
         {
-          "Id": "dfdf8534-3417-4025-93b3-2c6cc4ea3b05",
+          "Id": "cb817416-917c-48b4-8ecc-f75e59dd66c1",
           "Command": "-config:video/resolution:t=854x480"
+        },
+        {
+          "Id": "5a3ab00c-56cd-42a0-9e96-a4a82a5f1291",
+          "Command": "-config:video/resolution:t=640x480"
+        },
+        {
+          "Id": "6c964aa3-9143-42e4-b9a4-7373ed3c016a",
+          "Command": "-config:video/resolution:t=640x360"
         }
       ]
     },

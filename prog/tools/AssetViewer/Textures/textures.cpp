@@ -16,7 +16,6 @@
 #include <libTools/util/iLogWriter.h>
 #include <libTools/dtx/ddsxPlugin.h>
 #include <de3_dynRenderService.h>
-#include <de3_dxpFactory.h>
 
 #include <3d/dag_render.h>
 #include <3d/dag_texMgr.h>
@@ -51,11 +50,6 @@ enum
   TEX_COLOL_MODE_TOO_DARK,
   TEX_COLOL_MODE_TOO_BRIGHT,
 };
-
-namespace texmgr_internal
-{
-extern TexQL max_allowed_q;
-}
 
 //=============================================================================
 TexturesPlugin::TexturesPlugin()
@@ -179,7 +173,12 @@ bool TexturesPlugin::begin(DagorAsset *asset)
   chanelsRGB = 3;
   if (texture)
   {
-    const char *fmt = d3d::pcwin32::get_texture_format_str(texture);
+#if _TARGET_PC_WIN // TODO: tools Linux porting: d3d::pcwin::get_texture_format_str
+    const char *fmt = d3d::pcwin::get_texture_format_str(texture);
+#else
+    const char *fmt = "";
+#endif
+
     if (strchr(fmt, 'A') || (strncmp(fmt, "DXT", 3) == 0 && fmt[3] != '1') || strnicmp(fmt, "BC7", 3) == 0)
       hasAlpha = true;
 
@@ -229,6 +228,18 @@ bool TexturesPlugin::end()
   return true;
 }
 
+void TexturesPlugin::registerMenuAccelerators()
+{
+  IWndManager &wndManager = *EDITORCORE->getWndManager();
+  wndManager.addViewportAccelerator(CM_TEXTURES_RESET_SCALE, ImGuiMod_Ctrl | ImGuiKey_0);
+}
+
+void TexturesPlugin::handleViewportAcceleratorCommand([[maybe_unused]] IGenViewportWnd &wnd, [[maybe_unused]] unsigned id)
+{
+  if (id == CM_TEXTURES_RESET_SCALE)
+    texScale = 1.0f;
+}
+
 bool TexturesPlugin::reloadAsset(DagorAsset *asset)
 {
   ::release_managed_tex(texId);
@@ -253,13 +264,23 @@ void TexturesPlugin::renderObjects()
   if (!texture)
     return;
 
+  mark_managed_tex_lfu(texId, texReqLev);
+  if (!diffTexStatsReady && getPluginPanel())
+  {
+    String stat1, stat2;
+    diffTexStatsReady = getDiffTextureStats(stat1, stat2);
+    if (diffTexStatsReady)
+    {
+      getPluginPanel()->setCaption(ID_TEX_DIFFTEX_LABEL1, stat1);
+      getPluginPanel()->setCaption(ID_TEX_DIFFTEX_LABEL2, stat2);
+    }
+  }
+
   int vp_w = 1, vp_h = 1, tex_w = 1, tex_h = 1;
   if (IGenViewportWnd *vp = EDITORCORE->getViewport(0))
   {
     vp->getViewportSize(vp_w, vp_h);
-    TextureInfo ti;
-    texture->getinfo(ti);
-    tex_w = ti.w, tex_h = ti.h;
+    tex_w = currentTI.w, tex_h = currentTI.h;
 
     real wk = float(vp_w - 8) / tex_w;
     real hk = float(vp_h - 8) / tex_h;
@@ -280,18 +301,23 @@ void TexturesPlugin::renderObjects()
   d3d::settm(TM_WORLD, &Matrix44::IDENT);
   d3d::setwire(false);
 
-  if (texture->restype() == RES3D_TEX)
+  d3d::SamplerHandle smp = get_texture_separate_sampler(texId);
+  TextureInfo ti;
+  texture->getinfo(ti);
+  int miplevBias = int(get_log2i(max(max(ti.w, ti.h), ti.d))) - int(texReqLev);
+  int minmiplev = max(miplevBias + viewMipLevel, 0);
+  int maxmiplev = viewMipLevel < 0 ? miplevBias + currentTI.mipLevels - 1 : minmiplev;
+
+  texture->texmiplevel(minmiplev, maxmiplev);
+  if (currentTI.type == D3DResourceType::TEX)
   {
-    TextureInfo ti;
-    texture->getinfo(ti);
+    tex_w = currentTI.w;
+    tex_h = currentTI.h;
     if (showMipStripe)
     {
       if (viewMipLevel > 0)
-      {
-        ti.w = max(ti.w >> viewMipLevel, 1);
-        ti.h = max(ti.h >> viewMipLevel, 1);
-      }
-      ti.w *= 2;
+        tex_w = max(currentTI.w >> viewMipLevel, 1), tex_h = max(currentTI.h >> viewMipLevel, 1);
+      tex_w *= 2;
     }
 
     StdGuiRender::start_render(vp_w, vp_h);
@@ -301,27 +327,27 @@ void TexturesPlugin::renderObjects()
 
     StdGuiRender::set_color(e3dcolor(color4(mColor) * powf(10, cScaleDb / 10)));
 
-    StdGuiRender::set_texture(texId, d3d::INVALID_SAMPLER_HANDLE); // TODO: Use actual sampler IDs
+    StdGuiRender::set_texture(texId, smp);
     StdGuiRender::set_ablend(false);
 
     if (!forceStretch)
-      ti.w *= texScale, ti.h *= texScale;
-    real wk = float(vp_w - 8) / ti.w;
-    real hk = float(vp_h - 8) / ti.h;
+      tex_w *= texScale, tex_h *= texScale;
+    real wk = float(vp_w - 8) / tex_w;
+    real hk = float(vp_h - 8) / tex_h;
 
     real k = wk < hk ? wk : hk;
 
     if (forceStretch)
-      ti.w *= k, ti.h *= k;
+      tex_w *= k, tex_h *= k;
 
     Point2 tc0 = Point2(0, 0);
     Point2 tc1 = viewTile;
-    int l = (vp_w - ti.w) / 2, t = (vp_h - ti.h) / 2;
+    int l = (vp_w - tex_w) / 2, t = (vp_h - tex_h) / 2;
 
     int x0 = l;
     int y0 = t;
-    int x1 = l + ti.w;
-    int y1 = t + ti.h;
+    int x1 = l + tex_w;
+    int y1 = t + tex_h;
 
     // moving
 
@@ -332,8 +358,8 @@ void TexturesPlugin::renderObjects()
       {
         if (l + texMove.x > TEX_PADDING)
           texMove.x = TEX_PADDING - l;
-        else if (l + texMove.x + ti.w < vp_w - TEX_PADDING)
-          texMove.x = vp_w - TEX_PADDING - l - ti.w;
+        else if (l + texMove.x + tex_w < vp_w - TEX_PADDING)
+          texMove.x = vp_w - TEX_PADDING - l - tex_w;
 
         l += texMove.x;
         x0 += texMove.x;
@@ -344,8 +370,8 @@ void TexturesPlugin::renderObjects()
       {
         if (t + texMove.y > TEX_PADDING)
           texMove.y = TEX_PADDING - t;
-        else if (t + texMove.y + ti.h < vp_h - TEX_PADDING)
-          texMove.y = vp_h - TEX_PADDING - t - ti.h;
+        else if (t + texMove.y + tex_h < vp_h - TEX_PADDING)
+          texMove.y = vp_h - TEX_PADDING - t - tex_h;
 
         t += texMove.y;
         y0 += texMove.y;
@@ -357,21 +383,18 @@ void TexturesPlugin::renderObjects()
       StdGuiRender::render_rect_t(x0, y0, x1, y1, tc0, tc1);
     else
     {
-      texture->getinfo(ti);
-      if (forceStretch)
-        ti.w *= k, ti.h *= k;
-      else
-        ti.w *= texScale, ti.h *= texScale;
-      for (int i = max(viewMipLevel, 0); i < texture->level_count(); i++)
+      tex_w = currentTI.w * (forceStretch ? k : texScale);
+      tex_h = currentTI.h * (forceStretch ? k : texScale);
+      for (int i = max(viewMipLevel, 0); i < currentTI.mipLevels; i++)
       {
-        texture->texmiplevel(i, i);
-        x1 = x0 + max(ti.w >> i, 1);
-        y1 = y0 + max(ti.h >> i, 1);
+        texture->texmiplevel(max(miplevBias + i, 0), max(miplevBias + i, 0));
+        x1 = x0 + max(tex_w >> i, 1);
+        y1 = y0 + max(tex_h >> i, 1);
         StdGuiRender::render_rect_t(x0, y0, x1, y1, tc0, tc1);
         StdGuiRender::flush_data();
         x0 = x1;
       }
-      texture->texmiplevel(viewMipLevel, viewMipLevel < 0 ? 0 : viewMipLevel);
+      texture->texmiplevel(minmiplev, maxmiplev);
     }
 
     StdGuiRender::reset_shader();
@@ -379,18 +402,18 @@ void TexturesPlugin::renderObjects()
 
     StdGuiRender::end_render();
   }
-  else if (texture->restype() == RES3D_CUBETEX)
+  else if (currentTI.type == D3DResourceType::CUBETEX)
   {
     d3d::setview((vp_w - tex_w) / 2, (vp_h - tex_h) / 2, tex_w, tex_h, 0, 1);
     shaders::overrides::set_master_state(shaders::overrides::get(renderVolImageOverrideId));
-    EDITORCORE->queryEditorInterface<IDynRenderService>()->renderEnviCubeTexture(texture, cMul * powf(10, cScaleDb / 10), cAdd);
+    EDITORCORE->queryEditorInterface<IRenderHelperService>()->renderEnviCubeTexture(texture, cMul * powf(10, cScaleDb / 10), cAdd);
     shaders::overrides::reset_master_state();
   }
-  else if (texture->restype() == RES3D_VOLTEX)
+  else if (currentTI.type == D3DResourceType::VOLTEX)
   {
     d3d::setview((vp_w - tex_w) / 2, (vp_h - tex_h) / 2, tex_w, tex_h, 0, 1);
     shaders::overrides::set_master_state(shaders::overrides::get(renderVolImageOverrideId));
-    EDITORCORE->queryEditorInterface<IDynRenderService>()->renderEnviVolTexture(texture, cMul * powf(10, cScaleDb / 10), cAdd,
+    EDITORCORE->queryEditorInterface<IRenderHelperService>()->renderEnviVolTexture(texture, smp, cMul * powf(10, cScaleDb / 10), cAdd,
       Color4(0.5, -0.5, 0.5, 0.5), tcZ);
     shaders::overrides::reset_master_state();
   }
@@ -407,57 +430,180 @@ bool TexturesPlugin::supportAssetType(const DagorAsset &asset) const { return st
 
 //=============================================================================
 
+int TexturesPlugin::getTextureProps(ManagedTexEntryDesc &desc, String &s_type, String &s_dim, String &s_mem_sz)
+{
+  texture->getinfo(currentTI);
+
+  TexQL ql = (defShowTexQ == ID_SHOW_TEXQ_STUB) ? TQL_stub : TexQL(TQL_thumb + (defShowTexQ - ID_SHOW_TEXQ_THUMB));
+
+  if (!get_managed_tex_entry_desc(texId, desc))
+  {
+    desc.width = currentTI.w;
+    desc.height = currentTI.h;
+    desc.depth = currentTI.d;
+    desc.mipLevels = currentTI.mipLevels;
+    desc.qResSz[TQL_base] = texture->getSize();
+    desc.qLev[TQL_base] = get_log2i(max(max(currentTI.w, currentTI.h), currentTI.d));
+    desc.maxLev = desc.ldLev = desc.qLev[TQL_base];
+    desc.maxQL = desc.curQL = TQL_base;
+  }
+  if (curAsset && curUhqAsset == curAsset)
+  {
+    desc.qResSz[TQL_uhq] = desc.qResSz[TQL_base];
+    desc.qLev[TQL_uhq] = desc.qLev[TQL_base];
+    desc.qLev[TQL_thumb] = desc.qLev[TQL_base] = desc.qLev[TQL_high] = 0;
+    desc.maxQL = desc.curQL = TQL_uhq;
+    if (ql != TQL_stub)
+      ql = TQL_uhq;
+  }
+
+  if (ql != TQL_stub)
+  {
+    if (!desc.qLev[ql])
+      for (; ql > TQL_thumb; ql = TexQL(ql - 1))
+        if (desc.qLev[ql])
+          break;
+    if (!desc.qLev[ql])
+      ql = TQL_base;
+
+    unsigned downlev = desc.maxLev - desc.qLev[ql];
+    currentTI.w = max(currentTI.w >> downlev, 1);
+    currentTI.h = max(currentTI.h >> downlev, 1);
+    currentTI.d = max(currentTI.d >> downlev, 1);
+    currentTI.mipLevels = desc.mipLevels - downlev;
+    texReqLev = desc.qLev[ql];
+  }
+  else
+    currentTI.w = currentTI.h = currentTI.d = currentTI.mipLevels = texReqLev = 1;
+  mark_managed_tex_lfu(texId, texReqLev);
+
+  switch (currentTI.type)
+  {
+    case D3DResourceType::TEX:
+      s_type = "Texture";
+      s_dim.printf(0, "%d x %d", currentTI.w, currentTI.h);
+      break;
+    case D3DResourceType::CUBETEX:
+      s_type = "Cubemap";
+      s_dim.printf(0, "%d", currentTI.w);
+      break;
+    case D3DResourceType::VOLTEX:
+      s_type = "Volume";
+      s_dim.printf(0, "%d x %d x %d", currentTI.w, currentTI.h, currentTI.d);
+      break;
+
+    // to prevent the unhandled switch case error
+    case D3DResourceType::ARRTEX:
+    case D3DResourceType::CUBEARRTEX:
+    case D3DResourceType::SBUF: break;
+  }
+  if (ql == TQL_stub)
+    s_dim = "STUB";
+  s_mem_sz.printf(0, "%dK", ql == TQL_stub ? 0 : tql::sizeInKb(desc.qResSz[ql]));
+
+  return (ql == TQL_stub) ? ID_SHOW_TEXQ_STUB : unsigned(ql) + ID_SHOW_TEXQ_THUMB;
+}
+bool TexturesPlugin::getDiffTextureStats(String &stat1, String &stat2)
+{
+  ddsx::Buffer b;
+  DagorAsset &a = curHqAsset ? *curHqAsset : *curAsset;
+  bool is_prod_ready = false;
+  if (!texconvcache::is_tex_built_and_actual(a, _MAKE4C('PC'), nullptr, is_prod_ready))
+  {
+    stat1 = "??? %%";
+    stat2 = "  ??? / ??? DXT blk.";
+    return false;
+  }
+
+  stat1.clear();
+  stat2.clear();
+  if (texconvcache::get_tex_asset_built_ddsx(a, b, _MAKE4C('PC'), nullptr, nullptr))
+  {
+    ddsx::Header hdr;
+    InPlaceMemLoadCB crd(b.ptr, b.len);
+
+    crd.read(&hdr, sizeof(hdr));
+    int blk_total = (hdr.w / 4) * (hdr.h / 4);
+    int blk_empty = 0;
+
+    if (hdr.flags & ddsx::Header::FLG_NEED_PAIRED_BASETEX)
+    {
+      if (hdr.isCompressionZSTD())
+      {
+        ZstdLoadCB zcrd(crd, hdr.packedSz);
+        zcrd.readInt();
+        zcrd.readInt();
+        zcrd.readInt();
+        blk_empty = zcrd.readInt();
+        zcrd.ceaseReading();
+      }
+      else if (hdr.isCompressionOODLE())
+      {
+        OodleLoadCB zcrd(crd, hdr.packedSz, hdr.memSz);
+        zcrd.readInt();
+        zcrd.readInt();
+        zcrd.readInt();
+        blk_empty = zcrd.readInt();
+        zcrd.ceaseReading();
+      }
+      else if (hdr.isCompressionZLIB())
+      {
+        ZlibLoadCB zlib_crd(crd, hdr.packedSz);
+        zlib_crd.readInt();
+        zlib_crd.readInt();
+        zlib_crd.readInt();
+        blk_empty = zlib_crd.readInt();
+        zlib_crd.ceaseReading();
+      }
+      else if (hdr.isCompression7ZIP())
+      {
+        LzmaLoadCB lzma_crd(crd, hdr.packedSz);
+        lzma_crd.readInt();
+        lzma_crd.readInt();
+        lzma_crd.readInt();
+        blk_empty = lzma_crd.readInt();
+        lzma_crd.ceaseReading();
+      }
+      else
+      {
+        crd.seekrel(3 * 4);
+        blk_empty = crd.readInt();
+      }
+
+      stat1.printf(32, "%d%%", (blk_total - blk_empty) * 100 / blk_total);
+      stat2.printf(64, "  %d / %d DXT blk.", blk_total - blk_empty, blk_total);
+    }
+    b.free();
+  }
+  return true;
+}
+
 void TexturesPlugin::fillPropPanel(PropPanel::ContainerPropertyControl &panel)
 {
   panel.setEventHandler(this);
 
-  // texture info
-
   if (!texture)
     return;
 
-  if (texture->restype() == RES3D_TEX)
+  ManagedTexEntryDesc tex_desc;
+  String _tex_type, _tex_size, _tex_mem_sz;
+  showTexQ = getTextureProps(tex_desc, _tex_type, _tex_size, _tex_mem_sz);
+
+  if (currentTI.type == D3DResourceType::TEX)
     panel.createPoint2(ID_TEX_TILE, "View with texture tile:", viewTile);
-
-  String _tex_type;
-  String _tex_size;
-  unsigned _tex_c_flags = 0;
-  TextureInfo ti;
-  texture->getinfo(ti);
-
-  switch (texture->restype())
-  {
-    case RES3D_TEX:
-    {
-      _tex_size = String(32, "%d x %d", ti.w, ti.h);
-      _tex_c_flags = ti.cflg;
-      _tex_type = "Texture";
-    }
-    break;
-
-    case RES3D_CUBETEX:
-    {
-      _tex_size = String(32, "%d", ti.w);
-      _tex_c_flags = ti.cflg;
-      _tex_type = "Cubemap";
-    }
-    break;
-
-    case RES3D_VOLTEX:
-    {
-      _tex_size = String(32, "%d x %d x %d", ti.w, ti.h, ti.d);
-      _tex_c_flags = ti.cflg;
-      _tex_type = "Volume";
-    }
-    break;
-  }
 
   PropPanel::ContainerPropertyControl *igrp = panel.createGroupBox(ID_INFO_GRP, "Texture info");
 
   igrp->createStatic(0, "Type:");
   igrp->createStatic(0, _tex_type, false);
 
-  if (const char *fmtStr = d3d::pcwin32::get_texture_format_str(texture))
+#if _TARGET_PC_WIN // TODO: tools Linux porting: d3d::pcwin::get_texture_format_str
+  const char *fmtStr = d3d::pcwin::get_texture_format_str(texture);
+#else
+  const char *fmtStr = nullptr;
+#endif
+
+  if (fmtStr)
   {
     if (strlen(fmtStr) > 10)
       igrp->createStatic(0, String(0, "Format:  %s", fmtStr));
@@ -474,13 +620,17 @@ void TexturesPlugin::fillPropPanel(PropPanel::ContainerPropertyControl &panel)
   igrp->createStatic(ID_TEX_SIZE_LABEL, _tex_size, false);
 
   igrp->createStatic(0, "Memory size:");
-  igrp->createStatic(ID_TEX_MEMSZ_LABEL, String(32, "%dK", tql::sizeInKb(texture->ressize())), false);
+  igrp->createStatic(ID_TEX_MEMSZ_LABEL, _tex_mem_sz, false);
 
   igrp->createStatic(0, "Mipmap levels:");
-  igrp->createStatic(ID_TEX_MIPS_LABEL, String(32, "%d", texture->level_count()), false);
+  igrp->createStatic(ID_TEX_MIPS_LABEL, String(32, "%d", currentTI.mipLevels), false);
 
+  const char *tex_cvt_quality_label = "FAST";
+  bool is_prod_ready = false;
+  if (texconvcache::is_tex_built_and_actual(*curAsset, _MAKE4C('PC'), nullptr, is_prod_ready) && is_prod_ready)
+    tex_cvt_quality_label = "final";
   igrp->createStatic(0, "Conv. quality:");
-  igrp->createStatic(0, texconvcache::is_tex_built_fast(*curAsset, _MAKE4C('PC'), NULL) ? "FAST" : "final", false);
+  igrp->createStatic(0, tex_cvt_quality_label, false);
 
 #define GET_PROP(TYPE, PROP, DEF) props.get##TYPE(PROP, &props != &curAsset->props ? curAsset->props.get##TYPE(PROP, DEF) : DEF)
   const DataBlock &props = curAsset->getProfileTargetProps(_MAKE4C('PC'), NULL);
@@ -491,6 +641,7 @@ void TexturesPlugin::fillPropPanel(PropPanel::ContainerPropertyControl &panel)
   }
   if (GET_PROP(Str, "pairedToTex", NULL) && *GET_PROP(Str, "pairedToTex", NULL))
     igrp->createStatic(0, "Paired texture");
+  diffTexStatsReady = true;
   if (GET_PROP(Str, "baseTex", NULL) && *GET_PROP(Str, "baseTex", NULL))
   {
     igrp->createStatic(0, "Base texture:");
@@ -501,66 +652,12 @@ void TexturesPlugin::fillPropPanel(PropPanel::ContainerPropertyControl &panel)
     if (GET_PROP(Bool, "baseTexAlphaPatch", false))
       igrp->createStatic(0, "BT use alpha patch");
 
-    ddsx::Buffer b;
-    if (texconvcache::get_tex_asset_built_ddsx(curHqAsset ? *curHqAsset : *curAsset, b, _MAKE4C('PC'), NULL, NULL))
-    {
-      ddsx::Header hdr;
-      InPlaceMemLoadCB crd(b.ptr, b.len);
+    igrp->createStatic(0, "BT data diff:");
 
-      crd.read(&hdr, sizeof(hdr));
-      int blk_total = (hdr.w / 4) * (hdr.h / 4);
-      int blk_empty = 0;
-
-      if (hdr.flags & ddsx::Header::FLG_NEED_PAIRED_BASETEX)
-      {
-        if (hdr.isCompressionZSTD())
-        {
-          ZstdLoadCB zcrd(crd, hdr.packedSz);
-          zcrd.readInt();
-          zcrd.readInt();
-          zcrd.readInt();
-          blk_empty = zcrd.readInt();
-          zcrd.ceaseReading();
-        }
-        else if (hdr.isCompressionOODLE())
-        {
-          OodleLoadCB zcrd(crd, hdr.packedSz, hdr.memSz);
-          zcrd.readInt();
-          zcrd.readInt();
-          zcrd.readInt();
-          blk_empty = zcrd.readInt();
-          zcrd.ceaseReading();
-        }
-        else if (hdr.isCompressionZLIB())
-        {
-          ZlibLoadCB zlib_crd(crd, hdr.packedSz);
-          zlib_crd.readInt();
-          zlib_crd.readInt();
-          zlib_crd.readInt();
-          blk_empty = zlib_crd.readInt();
-          zlib_crd.ceaseReading();
-        }
-        else if (hdr.isCompression7ZIP())
-        {
-          LzmaLoadCB lzma_crd(crd, hdr.packedSz);
-          lzma_crd.readInt();
-          lzma_crd.readInt();
-          lzma_crd.readInt();
-          blk_empty = lzma_crd.readInt();
-          lzma_crd.ceaseReading();
-        }
-        else
-        {
-          crd.seekrel(3 * 4);
-          blk_empty = crd.readInt();
-        }
-
-        igrp->createStatic(0, "BT data diff:");
-        igrp->createStatic(0, String(32, "%d%%", (blk_total - blk_empty) * 100 / blk_total), false);
-        igrp->createStatic(0, String(64, "  %d / %d DXT blk.", blk_total - blk_empty, blk_total));
-      }
-      b.free();
-    }
+    String stat1, stat2;
+    diffTexStatsReady = getDiffTextureStats(stat1, stat2);
+    igrp->createStatic(ID_TEX_DIFFTEX_LABEL1, stat1, false);
+    igrp->createStatic(ID_TEX_DIFFTEX_LABEL2, stat2);
   }
   if (int splitAt = GET_PROP(Int, "splitAt", 0))
   {
@@ -589,23 +686,18 @@ void TexturesPlugin::fillPropPanel(PropPanel::ContainerPropertyControl &panel)
     PropPanel::ContainerPropertyControl *rgrp = igrp->createRadioGroup(ID_SHOW_TEXQ_GRP, "Show tex quality");
     bool valid_stub = curTqAsset != nullptr || stub_idx >= 0;
 
-    if (curAsset && curUhqAsset == curAsset)
-      showTexQ = ID_SHOW_TEXQ_UHQ;
-    else
+    if (valid_stub && !ext_tex)
     {
-      if (valid_stub && !ext_tex)
-      {
-        rgrp->createRadio(ID_SHOW_TEXQ_STUB, String(0, "stubTexIdx = %d", stub_idx));
-        if (curTqAsset)
-          rgrp->createRadio(ID_SHOW_TEXQ_THUMB, "Thumbnail");
-      }
-      rgrp->createRadio(ID_SHOW_TEXQ_BASE, "Base quality");
-      rgrp->createRadio(ID_SHOW_TEXQ_HIGH, "High quality");
+      rgrp->createRadio(ID_SHOW_TEXQ_STUB, String(0, "stubTexIdx = %d", stub_idx));
+      if (tex_desc.qLev[TQL_thumb])
+        rgrp->createRadio(ID_SHOW_TEXQ_THUMB, "Thumbnail");
     }
-    if (curUhqAsset)
+    if (tex_desc.qLev[TQL_base])
+      rgrp->createRadio(ID_SHOW_TEXQ_BASE, "Base quality");
+    if (tex_desc.qLev[TQL_high])
+      rgrp->createRadio(ID_SHOW_TEXQ_HIGH, "High quality");
+    if (tex_desc.qLev[TQL_uhq])
       rgrp->createRadio(ID_SHOW_TEXQ_UHQ, "Ultra-high quality");
-    if (showTexQ == ID_SHOW_TEXQ_UHQ && !curUhqAsset)
-      showTexQ = ID_SHOW_TEXQ_HIGH;
 
     igrp->setInt(ID_SHOW_TEXQ_GRP, showTexQ);
     if (ext_tex)
@@ -615,18 +707,18 @@ void TexturesPlugin::fillPropPanel(PropPanel::ContainerPropertyControl &panel)
   }
   // other props
 
-  if (viewMipLevel > texture->level_count() - 1)
+  if (viewMipLevel + 1 > currentTI.mipLevels)
     viewMipLevel = -1;
-  if (texture->level_count() > 1)
-    panel.createTrackInt(ID_MIP_LEVEL, "Mipmap level:", viewMipLevel, -1, texture->level_count() - 1, 1);
-  if (texture->restype() == RES3D_TEX)
+  if (currentTI.mipLevels > 1)
+    panel.createTrackInt(ID_MIP_LEVEL, "Mipmap level:", viewMipLevel, -1, currentTI.mipLevels - 1, 1);
+  if (currentTI.type == D3DResourceType::TEX)
   {
     if (aTestSVId != -1)
       panel.createTrackInt(ID_ALPHA_TEST, "Alpha test value:", viewAtestVal, 0, 255, 1);
     panel.createCheckBox(ID_STRETCH, "Stretch texture", forceStretch);
     panel.createCheckBox(ID_MIP_STRIPE, "Show MIP stripe", showMipStripe);
   }
-  if (texture->restype() == RES3D_VOLTEX)
+  if (currentTI.type == D3DResourceType::VOLTEX)
     panel.createTrackFloat(ID_TC_Z, "tc.Z:", tcZ, 0, 1, 0.01);
 
   if (iesTexture)
@@ -702,7 +794,8 @@ void TexturesPlugin::fillPropPanel(PropPanel::ContainerPropertyControl &panel)
     panel.setInt(ID_COLOR_MODE_GRP, targetViewMode);
     // rgrp->createRadio(ID_COLOR_MODE_TOO_DARK, "Check \"too dark\"");
     // rgrp->createRadio(ID_COLOR_MODE_TOO_BRIGHT, "Check \"too bright\"");
-    panel.createTrackFloat(ID_COLOR_MODE_SCALE, "Color scale, dB", cScaleDb, -10, texture->restype() == RES3D_TEX ? 0 : 20, 0);
+    panel.createTrackFloat(ID_COLOR_MODE_SCALE, "Color scale, dB", cScaleDb, -10, texture->getType() == D3DResourceType::TEX ? 0 : 20,
+      0);
   }
 
   if (curAsset->props.getBool("convert", false) || (curAsset->isVirtual() && !curAsset->getSrcFileName()))
@@ -714,12 +807,6 @@ void TexturesPlugin::fillPropPanel(PropPanel::ContainerPropertyControl &panel)
   onChange(ID_COLOR_MODE_GRP, &panel);
   onChange(ID_MIP_LEVEL, &panel);
   onChange(ID_ALPHA_TEST, &panel);
-  if (texId)
-  {
-    TexQL curQL = get_managed_res_cur_tql(texId);
-    if (curQL != ((showTexQ == ID_SHOW_TEXQ_STUB) ? TQL_stub : TexQL(showTexQ - ID_SHOW_TEXQ_THUMB + TQL_thumb)))
-      onChange(ID_SHOW_TEXQ_GRP, &panel);
-  }
 }
 
 
@@ -795,11 +882,7 @@ void TexturesPlugin::onChange(int pid, PropPanel::ContainerPropertyControl *pane
       EDITORCORE->invalidateViewportCache();
       break;
 
-    case ID_MIP_LEVEL:
-      viewMipLevel = panel->getInt(ID_MIP_LEVEL);
-      if (texture)
-        texture->texmiplevel(viewMipLevel, viewMipLevel < 0 ? 0 : viewMipLevel);
-      break;
+    case ID_MIP_LEVEL: viewMipLevel = panel->getInt(ID_MIP_LEVEL); break;
 
     case ID_STRETCH:
       forceStretch = panel->getBool(ID_STRETCH);
@@ -820,56 +903,25 @@ void TexturesPlugin::onChange(int pid, PropPanel::ContainerPropertyControl *pane
     case ID_TC_Z: tcZ = panel->getFloat(pid); break;
 
     case ID_SHOW_TEXQ_GRP:
-      showTexQ = panel->getInt(pid);
+      defShowTexQ = panel->getInt(pid);
       if (texture)
       {
-        if (showTexQ == ID_SHOW_TEXQ_STUB || (showTexQ == ID_SHOW_TEXQ_THUMB && !curTqAsset))
-        {
-          if (showTexQ == ID_SHOW_TEXQ_STUB)
-            texture->discardTex();
-          panel->setCaption(ID_TEX_SIZE_LABEL, "STUB");
-        }
-        else
-        {
-          texmgr_internal::max_allowed_q =
-            (showTexQ == ID_SHOW_TEXQ_STUB) ? TQL_stub : TexQL(showTexQ - ID_SHOW_TEXQ_THUMB + TQL_thumb);
-          ::release_managed_tex(texId);
-          discard_unused_managed_texture(texId);
-
-          texId = ::get_managed_texture_id(String(64, "%s*", curAsset->getName()));
-          texture = ::acquire_managed_tex(texId);
-          if (texture)
-          {
-            if (get_managed_texture_refcount(texId) > 1)
-              dxp_factory_reload_tex(texId, texmgr_internal::max_allowed_q);
-            ddsx::tex_pack2_perform_delayed_data_loading();
-            String _tex_size;
-            TextureInfo ti;
-            texture->getinfo(ti);
-            switch (texture->restype())
-            {
-              case RES3D_TEX: _tex_size = String(32, "%d x %d", ti.w, ti.h); break;
-              case RES3D_CUBETEX: _tex_size = String(32, "%d", ti.w); break;
-              case RES3D_VOLTEX: _tex_size = String(32, "%d x %d x %d", ti.w, ti.h, ti.d); break;
-            }
-            panel->setCaption(ID_TEX_SIZE_LABEL, _tex_size);
-          }
-          else
-            texId = BAD_TEXTUREID;
-        }
+        ManagedTexEntryDesc tex_desc;
+        String _tex_type, _tex_size, _tex_mem_sz;
+        showTexQ = getTextureProps(tex_desc, _tex_type, _tex_size, _tex_mem_sz);
+        panel->setCaption(ID_TEX_SIZE_LABEL, _tex_size);
+        panel->setCaption(ID_TEX_MIPS_LABEL, String(32, "%d", currentTI.mipLevels));
+        panel->setCaption(ID_TEX_MEMSZ_LABEL, _tex_mem_sz);
 
         if (texture)
         {
-          if (viewMipLevel > texture->level_count() - 1)
+          if (viewMipLevel + 1 > currentTI.mipLevels)
             viewMipLevel = -1;
-          if (texture->level_count() > 1)
+          if (currentTI.mipLevels > 1)
           {
-            panel->setMinMaxStep(ID_MIP_LEVEL, -1, texture->level_count() - 1, 1);
+            panel->setMinMaxStep(ID_MIP_LEVEL, -1, currentTI.mipLevels - 1, 1);
             panel->setInt(ID_MIP_LEVEL, viewMipLevel);
           }
-          texture->texmiplevel(viewMipLevel, viewMipLevel < 0 ? 0 : viewMipLevel);
-          panel->setCaption(ID_TEX_MIPS_LABEL, String(32, "%d", texture->level_count()));
-          panel->setCaption(ID_TEX_MEMSZ_LABEL, String(32, "%dK", tql::sizeInKb(texture->ressize())));
         }
       }
       break;
@@ -955,7 +1007,7 @@ static bool get_ddsx(DagorAsset &a, ddsx::DDSxDataPublicHdr &hdr, Tab<char> &dat
   if (!cvt)
   {
     TEXTUREID id = get_managed_texture_id(String(0, "%s*", a.getName()));
-    tmd.decode(get_managed_texture_name(id));
+    tmd.decodeData(get_managed_texture_name(id));
   }
   if (tmd.baseTexName.empty())
     return get_ddsx1(a, hdr, data);
@@ -1231,11 +1283,7 @@ bool TexturesPlugin::handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool
 
   return 0;
 }
-void TexturesPlugin::handleKeyPress(IGenViewportWnd *wnd, int vk, int modif)
-{
-  if (vk == '0' && (modif & wingw::M_CTRL))
-    texScale = 1.0f;
-}
+
 bool TexturesPlugin::handleMouseWheel(IGenViewportWnd *wnd, int wheel_d, int x, int y, int key_modif)
 {
   if (wheel_d > 0)

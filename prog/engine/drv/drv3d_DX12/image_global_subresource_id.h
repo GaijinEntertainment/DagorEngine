@@ -84,15 +84,37 @@ public:
 
   operator DagorSafeArg() const { return {index()}; }
 
-  constexpr SubresourceIndex toSubresouceIndex(ImageGlobalSubresourceId base) const
+  constexpr SubresourceIndex toSubresourceIndex(ImageGlobalSubresourceId base) const
   {
     return SubresourceIndex::make(index() - base.index());
   }
 };
 
-inline constexpr ImageGlobalSubresourceId swapchain_color_texture_global_id = ImageGlobalSubresourceId::makec(0);
-inline constexpr ImageGlobalSubresourceId swapchain_secondary_color_texture_global_id = ImageGlobalSubresourceId::makec(1);
-inline constexpr ImageGlobalSubresourceId first_dynamic_texture_global_id = ImageGlobalSubresourceId::makec(2);
+#if _TARGET_XBOX
+inline constexpr uint32_t max_swapchain_count = 1;
+inline constexpr uint32_t textures_per_swapchain = 2;
+#else
+inline constexpr uint32_t max_swapchain_count = 32;
+inline constexpr uint32_t textures_per_swapchain = 1;
+#endif
+
+inline ImageGlobalSubresourceId get_swapchain_color_texture_global_id(uint32_t swapchain_index)
+{
+  G_ASSERT(swapchain_index < max_swapchain_count);
+  return ImageGlobalSubresourceId::makec(swapchain_index * textures_per_swapchain);
+}
+
+#if _TARGET_XBOX
+inline ImageGlobalSubresourceId get_swapchain_secondary_color_texture_global_id(uint32_t swapchain_index)
+{
+  G_ASSERT(swapchain_index < max_swapchain_count);
+  return ImageGlobalSubresourceId::makec(swapchain_index * textures_per_swapchain + 1);
+}
+#endif
+
+inline constexpr ImageGlobalSubresourceId first_dynamic_texture_global_id =
+  ImageGlobalSubresourceId::makec(max_swapchain_count * textures_per_swapchain);
+
 
 inline constexpr ImageGlobalSubresourceId operator+(const ImageGlobalSubresourceId &l, uint32_t r)
 {
@@ -201,7 +223,7 @@ public:
 
   operator DagorSafeArg() const { return {index()}; }
 
-  constexpr SubresourceIndex toSubresouceIndex(ImageGlobalSubresourceId base) const
+  constexpr SubresourceIndex toSubresourceIndex(ImageGlobalSubresourceId base) const
   {
     return SubresourceIndex::make(index() - base.index());
   }

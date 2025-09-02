@@ -6,9 +6,9 @@
 #include <drv/shadersMetaData/spirv/compiled_meta_data.h>
 #include <ioSys/dag_zlibIo.h>
 #include <ioSys/dag_memIo.h>
-#include <EASTL/vector.h>
 #include "globals.h"
 #include "shader/program_database.h"
+#include "device_context.h"
 
 using namespace drv3d_vulkan;
 
@@ -42,9 +42,9 @@ static int create_shader_for_stage(const uint32_t *native_code, VkShaderStageFla
     auto comboHeaderChunks = reinterpret_cast<const spirv::CombinedChunk *>(native_code + 2);
     auto comboData = reinterpret_cast<const uint8_t *>(comboHeaderChunks + count);
 
-    eastl::vector<VkShaderStageFlagBits> comboStages;
-    eastl::vector<Tab<spirv::ChunkHeader>> comboChunks;
-    eastl::vector<Tab<uint8_t>> comboChunkData;
+    dag::Vector<VkShaderStageFlagBits> comboStages;
+    dag::Vector<Tab<spirv::ChunkHeader>> comboChunks;
+    dag::Vector<Tab<uint8_t>> comboChunkData;
     comboStages.reserve(count);
     comboChunks.reserve(count);
     comboChunkData.reserve(count);
@@ -105,7 +105,23 @@ PROGRAM d3d::create_program_cs(const uint32_t *cs_native, CSPreloaded)
   Tab<spirv::ChunkHeader> chunks;
   Tab<uint8_t> chunkData;
   decode_shader_binary(cs_native, 0, VK_SHADER_STAGE_COMPUTE_BIT, chunks, chunkData);
-  return Globals::shaderProgramDatabase.newComputeProgram(Globals::ctx, chunks, chunkData).get();
+
+  auto smh = spirv_extractor::getHeader(VK_SHADER_STAGE_COMPUTE_BIT, chunks, chunkData, 0);
+  if (!smh)
+    DAG_FATAL("Shader has no header");
+
+  auto smb = spirv_extractor::getBlob(chunks, chunkData, 0);
+  if (smb.blob.empty())
+    DAG_FATAL("Shader has no byte code blob");
+
+  PROGRAM prog = Globals::shaderProgramDatabase.newComputeProgram(Globals::ctx, *smh, smb).get();
+
+#if VULKAN_LOAD_SHADER_EXTENDED_DEBUG_DATA
+  auto dbg = spirv_extractor::getDebugInfo(chunks, chunkData, 0);
+  Globals::ctx.attachComputeProgramDebugInfo(ProgramID(prog), eastl::make_unique<ShaderDebugInfo>(dbg));
+#endif
+
+  return prog;
 }
 
 void d3d::delete_program(PROGRAM prog)

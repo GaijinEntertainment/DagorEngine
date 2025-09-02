@@ -24,6 +24,7 @@ struct ParticlePoint
   TMatrix helperTm;
   BBox3 limits;
   dag::Index16 gnNodeId;
+  int8_t subVehicleIdx = -1;
 
   ParticlePoint(const TMatrix &initial_tm);
 
@@ -57,6 +58,8 @@ public:
   ParticlePhysSystem() = default;
   ParticlePhysSystem(ParticlePhysSystem &&) = default;
   ~ParticlePhysSystem();
+
+  dag::ConstSpan<ParticlePoint *> getParticles() const { return make_span_const(particles); }
 
   ParticlePoint *findParticle(dag::Index16 gn_node_id) const;
   int findParticleId(dag::Index16 gn_node_id) const;

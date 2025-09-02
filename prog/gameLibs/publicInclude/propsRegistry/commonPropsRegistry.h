@@ -57,40 +57,22 @@ public:
 } // namespace propsreg
 
 #define PROPS_REGISTRY_DEF_CAN_LOAD(PropType) \
-  bool PropType::can_load(const DataBlock *)  \
-  {                                           \
-    return true;                              \
-  }
+  bool PropType::can_load(const DataBlock *) { return true; }
 
 #define PROPS_REGISTER_REGISTRY(PropType, prop_name, prop_class_name) \
   static propsreg::CommonPropsRegistry<PropType> prop_name##_registry(prop_class_name);
 
-#define PROPS_REGISTRY_IMPL_EX_IMPL(PropType, prop_name, prop_class_name, templ_prefix) \
-  PROPS_REGISTER_REGISTRY(PropType, prop_name, prop_class_name);                        \
-                                                                                        \
-  templ_prefix const PropType *PropType::get_props(int prop_id)                         \
-  {                                                                                     \
-    return prop_name##_registry.getProps(prop_id);                                      \
-  }                                                                                     \
-                                                                                        \
-  templ_prefix void PropType::register_props_class()                                    \
-  {                                                                                     \
-    propsreg::register_props_class(prop_name##_registry, prop_class_name);              \
-  }
+#define PROPS_REGISTRY_IMPL_EX_IMPL(PropType, prop_name, prop_class_name, templ_prefix)                            \
+  PROPS_REGISTER_REGISTRY(PropType, prop_name, prop_class_name);                                                   \
+  templ_prefix const PropType *PropType::get_props(int prop_id) { return prop_name##_registry.getProps(prop_id); } \
+  templ_prefix void PropType::register_props_class() { propsreg::register_props_class(prop_name##_registry, prop_class_name); }
 
 #define PROPS_REGISTRY_IMPL_EX(PropType, prop_name, prop_class_name) \
   PROPS_REGISTRY_IMPL_EX_IMPL(PropType, prop_name, prop_class_name, );
 
-#define PROPS_IMPL_COMMON(PropType, prop_name, prop_class_name)            \
-  static const PropType *get_props(int prop_id)                            \
-  {                                                                        \
-    return prop_name##_registry.getProps(prop_id);                         \
-  }                                                                        \
-                                                                           \
-  static void register_props_class()                                       \
-  {                                                                        \
-    propsreg::register_props_class(prop_name##_registry, prop_class_name); \
-  }
+#define PROPS_IMPL_COMMON(PropType, prop_name, prop_class_name)                                    \
+  static const PropType *get_props(int prop_id) { return prop_name##_registry.getProps(prop_id); } \
+  static void register_props_class() { propsreg::register_props_class(prop_name##_registry, prop_class_name); }
 
 
 #define PROPS_REGISTRY_IMPL(PropType, prop_name, prop_class_name) \
@@ -99,29 +81,17 @@ public:
 
 #define PROPS_REGISTRY_IMPL_SP(PropType, prop_name, prop_class_name) \
   PROPS_REGISTRY_IMPL_EX(PropType, prop_name, prop_class_name);      \
-  const PropType *PropType::try_get_props(int prop_id)               \
-  {                                                                  \
-    return prop_name##_registry.tryGetProps(prop_id);                \
-  }
+  const PropType *PropType::try_get_props(int prop_id) { return prop_name##_registry.tryGetProps(prop_id); }
 
-#define PROPS_REGISTRY_IMPL_EX_STUB(PropType) \
-  const PropType *PropType::get_props(int)    \
-  {                                           \
-    return NULL;                              \
-  }                                           \
-                                              \
-  void PropType::register_props_class()       \
-  {}
+#define PROPS_REGISTRY_IMPL_EX_STUB(PropType)               \
+  const PropType *PropType::get_props(int) { return NULL; } \
+  void PropType::register_props_class() {}
 
 #define PROPS_REGISTRY_DEF_CAN_LOAD_STUB(PropType) \
-  bool PropType::can_load(const DataBlock *)       \
-  {                                                \
-    return false;                                  \
-  }
+  bool PropType::can_load(const DataBlock *) { return false; }
 
 #define PROPS_REGISTRY_DEF_LOAD_STUB(PropType) \
-  void PropType::load(const DataBlock *)       \
-  {}
+  void PropType::load(const DataBlock *) {}
 
 #define PROPS_REGISTRY_IMPL_STUB(PropType)    \
   PROPS_REGISTRY_IMPL_EX_STUB(PropType);      \

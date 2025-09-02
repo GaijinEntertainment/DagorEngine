@@ -42,21 +42,29 @@ TerraformRenderer::TerraformRenderer(Terraform &in_tform, const Desc &in_desc) :
   {
     acquire_managed_tex(desc.diffuseTexId);
     tform_diffuse_texVarId = ::get_shader_glob_var_id("tform_diffuse_tex");
+    ShaderGlobal::set_sampler(::get_shader_variable_id("tform_diffuse_tex_samplerstate", true),
+      get_texture_separate_sampler(desc.diffuseTexId));
   }
   if (desc.diffuseAboveTexId != BAD_TEXTUREID)
   {
     acquire_managed_tex(desc.diffuseAboveTexId);
     tform_diffuse_above_texVarId = ::get_shader_glob_var_id("tform_diffuse_above_tex");
+    ShaderGlobal::set_sampler(::get_shader_variable_id("tform_diffuse_above_tex_samplerstate", true),
+      get_texture_separate_sampler(desc.diffuseAboveTexId));
   }
   if (desc.detailRTexId != BAD_TEXTUREID)
   {
     acquire_managed_tex(desc.detailRTexId);
     tform_detail_rtexVarId = ::get_shader_glob_var_id("tform_detail_rtex");
+    ShaderGlobal::set_sampler(::get_shader_variable_id("tform_detail_rtex_samplerstate", true),
+      get_texture_separate_sampler(desc.detailRTexId));
   }
   if (desc.normalsTexId != BAD_TEXTUREID)
   {
     acquire_managed_tex(desc.normalsTexId);
     tform_normals_texVarId = ::get_shader_glob_var_id("tform_normals_tex");
+    ShaderGlobal::set_sampler(::get_shader_variable_id("tform_normals_tex_samplerstate", true),
+      get_texture_separate_sampler(desc.normalsTexId));
   }
 
   ShaderGlobal::set_color4(::get_shader_glob_var_id("tform_above_ground_color"), desc.aboveGroundColor);
@@ -72,8 +80,7 @@ TerraformRenderer::TerraformRenderer(Terraform &in_tform, const Desc &in_desc) :
   patchShader.init("terraform_patch", NULL, 0, "terraform_patch");
 
   const IPoint2 hmapSizes = tform.getHMapSizes();
-  hmapSavedTex = UniqueTexHolder(dag::create_tex(NULL, hmapSizes.x, hmapSizes.y, TEXFMT_L16 | TEXCF_MAYBELOST, 1, "hmap_saved"),
-    "terraform_hmap_saved");
+  hmapSavedTex = UniqueTexHolder(dag::create_tex(NULL, hmapSizes.x, hmapSizes.y, TEXFMT_L16, 1, "hmap_saved"), "terraform_hmap_saved");
   uint16_t *texDataPtr = NULL;
   int texStride = 0;
   hmapSavedTex.getTex2D()->lockimg((void **)&texDataPtr, texStride, 0, TEXLOCK_WRITE | TEXLOCK_DISCARD);
@@ -81,7 +88,9 @@ TerraformRenderer::TerraformRenderer(Terraform &in_tform, const Desc &in_desc) :
   if (texDataPtr)
     tform.copyOriginalHeightMap(texDataPtr);
   hmapSavedTex.getTex2D()->unlockimg();
-  hmapSavedTex.getTex2D()->texaddr(TEXADDR_CLAMP);
+  d3d::SamplerInfo smpInfo;
+  smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
+  ShaderGlobal::set_sampler(::get_shader_variable_id("terraform_hmap_saved_samplerstate", true), d3d::request_sampler(smpInfo));
 
   index_buffer::init_quads_32bit(1);
 
@@ -92,6 +101,13 @@ TerraformRenderer::TerraformRenderer(Terraform &in_tform, const Desc &in_desc) :
   terraform_enabledVarId = get_shader_glob_var_id("terraform_enabled", true);
 
   ShaderGlobal::set_int(terraform_enabledVarId, 1);
+
+  {
+    d3d::SamplerInfo smpInfo;
+    smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
+    smpInfo.filter_mode = d3d::FilterMode::Linear;
+    ShaderGlobal::set_sampler(::get_shader_variable_id("terraform_tex_data_samplerstate", true), d3d::request_sampler(smpInfo));
+  }
 }
 
 TerraformRenderer::~TerraformRenderer()
@@ -122,9 +138,11 @@ void TerraformRenderer::initHeightMask()
   tform_height_mask_scale_offsetVarId = get_shader_glob_var_id("tform_height_mask_scale_offset");
 
   heightMaskTex =
-    dag::create_tex(NULL, desc.heightMaskSize.x, desc.heightMaskSize.y, TEXFMT_L8 | TEXCF_RTARGET, 1, "tform_height_mask");
-  heightMaskTex.getTex2D()->texfilter(TEXFILTER_LINEAR);
-  heightMaskTex.getTex2D()->texaddr(TEXADDR_WRAP);
+    dag::create_tex(NULL, desc.heightMaskSize.x, desc.heightMaskSize.y, TEXFMT_R8 | TEXCF_RTARGET, 1, "tform_height_mask");
+  d3d::SamplerInfo smpInfo;
+  smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Wrap;
+  smpInfo.filter_mode = d3d::FilterMode::Linear;
+  ShaderGlobal::set_sampler(::get_shader_variable_id("tform_height_mask_samplerstate", true), d3d::request_sampler(smpInfo));
 }
 
 void TerraformRenderer::closeHeightMask() { heightMaskTex.close(); }
@@ -321,11 +339,8 @@ TerraformRenderer::Patch *TerraformRenderer::getPatch(int patch_no)
     {
       patch = new Patch();
       String name(0, "terraform_tex_data_%d", patch_no);
-      patch->texData = UniqueTexHolder(dag::create_tex(NULL, PATCH_SIZE, PATCH_SIZE, TEXFMT_R8 | TEXCF_MAYBELOST, 1, name.str()),
-        "terraform_tex_data");
+      patch->texData = UniqueTexHolder(dag::create_tex(NULL, PATCH_SIZE, PATCH_SIZE, TEXFMT_R8, 1, name.str()), "terraform_tex_data");
       d3d_err(patch->texData.getTex2D());
-      patch->texData.getTex2D()->texaddr(TEXADDR_CLAMP);
-      patch->texData.getTex2D()->texfilter(TEXFILTER_LINEAR);
     }
     patch->invalid = true;
     iter = patches.insert(iter, eastl::make_pair(patch_no, patch));

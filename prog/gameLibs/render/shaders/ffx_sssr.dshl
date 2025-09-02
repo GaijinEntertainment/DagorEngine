@@ -9,9 +9,11 @@ endmacro
 
 macro FFX_RAYMARCH_USE(code)
   hlsl (code) {
+    #define SSR_FFX
     #define FFX_GPU
     #if WAVE_INTRINSICS
       #define FFX_WAVE
+      #define FFW_WAVE 1
     #endif
     #define FFX_HLSL
     #define FFX_HLSL_SM 61

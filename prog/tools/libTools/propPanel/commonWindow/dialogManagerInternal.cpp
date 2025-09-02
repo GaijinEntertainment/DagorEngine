@@ -2,6 +2,7 @@
 
 #include "dialogManagerInternal.h"
 #include <propPanel/commonWindow/dialogWindow.h>
+#include <propPanel/colors.h>
 #include <propPanel/constants.h>
 
 #include <imgui/imgui.h>
@@ -11,6 +12,7 @@ namespace PropPanel
 {
 
 DialogManager dialog_manager;
+IModalDialogEventHandler *modal_dialog_event_handler = nullptr;
 
 void DialogManager::showDialog(DialogWindow &dialog)
 {
@@ -83,8 +85,7 @@ void DialogManager::renderModalDialog(DialogWindow &dialog, int stack_index)
   dialog.beforeUpdateImguiDialog(useAutoSizeForTheCurrentFrame);
 
   // Change the color of the dialog title and the close button for the daEditorX Classic style.
-  ImGui::PushStyleColor(ImGuiCol_Text, Constants::DIALOG_TITLE_COLOR);
-  ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
+  PropPanel::pushDialogTitleBarColorOverrides();
 
   // Using ImGuiCol_WindowBg here because modal and modeless dialogs must have the same color.
   ImGui::PushStyleColor(ImGuiCol_PopupBg, ImGui::GetStyleColorVec4(ImGuiCol_WindowBg));
@@ -98,7 +99,9 @@ void DialogManager::renderModalDialog(DialogWindow &dialog, int stack_index)
   const ImGuiWindowFlags windowFlags = dialog.isManualModalSizingEnabled() ? ImGuiWindowFlags_None : ImGuiWindowFlags_AlwaysAutoResize;
   const bool isOpen = ImGui::BeginPopupModal(dialog.getCaption(), &initiallyOpen, windowFlags);
 
-  ImGui::PopStyleColor(dimModalBackground ? 3 : 4);
+  ImGui::PopStyleColor(dimModalBackground ? 1 : 2);
+
+  PropPanel::popDialogTitleBarColorOverrides();
 
   if (isOpen)
   {
@@ -125,8 +128,7 @@ void DialogManager::renderModelessDialog(DialogWindow &dialog)
   dialog.beforeUpdateImguiDialog(useAutoSizeForTheCurrentFrame);
 
   // Change the color of the dialog title and the close button for the daEditorX Classic style.
-  ImGui::PushStyleColor(ImGuiCol_Text, Constants::DIALOG_TITLE_COLOR);
-  ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
+  PropPanel::pushDialogTitleBarColorOverrides();
 
   // This is hacky, but ImGui::SetNextWindowContentSize(ImVec2(0.0f, 0.0f)) did not work.
   const ImGuiWindowFlags flags = useAutoSizeForTheCurrentFrame ? ImGuiWindowFlags_AlwaysAutoResize : ImGuiWindowFlags_None;
@@ -134,7 +136,7 @@ void DialogManager::renderModelessDialog(DialogWindow &dialog)
   bool isOpen = true;
   const bool renderContents = ImGui::Begin(dialog.getCaption(), &isOpen, flags);
 
-  ImGui::PopStyleColor(2);
+  PropPanel::popDialogTitleBarColorOverrides();
 
   if (renderContents)
   {
@@ -200,5 +202,7 @@ void DialogManager::updateImgui()
 }
 
 void render_dialogs() { dialog_manager.updateImgui(); }
+
+void set_modal_dialog_events(IModalDialogEventHandler *event_handler) { modal_dialog_event_handler = event_handler; }
 
 } // namespace PropPanel

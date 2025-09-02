@@ -62,6 +62,6 @@ extern void FreeBMGImage(struct BMGImageStruct *img);
 extern BMGError AllocateBMGImage(struct BMGImageStruct *img);
 
 /* reads image from PSD format */
-extern BMGError ReadPSD(IGenLoad &crd, struct BMGImageStruct *img);
+extern BMGError ReadPSD(IGenLoad &crd, struct BMGImageStruct *img, bool read_pixels);
 
 #endif

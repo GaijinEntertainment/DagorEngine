@@ -11,6 +11,7 @@
 #include <tagged_types.h>
 #include <typed_bit_set.h>
 
+#include <dag/dag_vector.h>
 #include <debug/dag_assert.h>
 #include <EASTL/numeric.h>
 #include <EASTL/optional.h>
@@ -423,7 +424,7 @@ protected:
   ALLOCATE_FREE_COUNTERS(allocatedScratchBuffer, freedScratchBuffer, scratchBuffer)                                                 \
   COUNTER(scratchBufferTempUse)                                                                                                     \
   COUNTER(scratchBufferPersistentUse)                                                                                               \
-  ALLOCATE_FREE_COUNTERS(allocatedRaytraceAccelStructHeap, freedRaytraceAccelStructHeap, raytraceAccelStructHeap)                   \
+  ALLOCATE_FREE_COUNTERS(allocatedRaytraceAccelStructPool, freedRaytraceAccelStructPool, raytraceAccelStructPool)                   \
   ALLOCATE_FREE_COUNTERS(allocatedRaytraceBottomStructure, freedRaytraceBottomStructure, raytraceBottomStructure)                   \
   ALLOCATE_FREE_COUNTERS(allocatedRaytraceTopStructure, freedRaytraceTopStructure, raytraceTopStructure)
 
@@ -596,8 +597,8 @@ protected:
         PLACE_TEXTURE_IN_USER_RESOURCE_HEAP,
         SCRATCH_BUFFER_ALLOCATE,
         SCRATCH_BUFFER_FREE,
-        RAYTRACE_ACCEL_STRUCT_HEAP_ALLOCATE,
-        RAYTRACE_ACCEL_STRUCT_HEAP_FREE,
+        RAYTRACE_ACCEL_STRUCT_POOL_ALLOCATE,
+        RAYTRACE_ACCEL_STRUCT_POOL_FREE,
         RAYTRACE_BOTTOM_STRUCTURE_ALLOCATE,
         RAYTRACE_BOTTOM_STRUCTURE_FREE,
         RAYTRACE_TOP_STRUCTURE_ALLOCATE,
@@ -1207,7 +1208,7 @@ protected:
     recordMemoryEvent(metricsAccess, MetricsState::ActionInfo::Type::ALLOCATE_USER_RESOURCE_HEAP, size, is_gpu);
   }
 
-  void recordDeletedUserResouceHeap(size_t size, bool is_gpu)
+  void recordDeletedUserResourceHeap(size_t size, bool is_gpu)
   {
     if (!isCollectingMetric(Metric::HEAPS))
       return;
@@ -1233,7 +1234,7 @@ protected:
       format, name);
   }
 
-  void recordBufferPlacedInUserResouceHeap(uint32_t size, bool is_gpu, const char *name)
+  void recordBufferPlacedInUserResourceHeap(uint32_t size, bool is_gpu, const char *name)
   {
     if (!isCollectingMetric(Metric::BUFFERS))
       return;
@@ -1365,28 +1366,28 @@ protected:
     // does not generate events, there are way too many
   }
 
-  void recordRaytraceAccelerationStructureHeapAllocated(uint32_t size)
+  void recordRaytraceAccelerationStructurePoolAllocated(uint32_t size)
   {
     if (!isCollectingMetric(Metric::RAYTRACING))
       return;
     auto metricsAccess = metrics.access();
-    auto &target = metricsAccess->currentFrame.rawCounters.allocatedRaytraceAccelStructHeap;
+    auto &target = metricsAccess->currentFrame.rawCounters.allocatedRaytraceAccelStructPool;
     target.count++;
     target.size += size;
 
-    recordBufferEvent(metricsAccess, MetricsState::ActionInfo::Type::RAYTRACE_ACCEL_STRUCT_HEAP_ALLOCATE, size, true);
+    recordBufferEvent(metricsAccess, MetricsState::ActionInfo::Type::RAYTRACE_ACCEL_STRUCT_POOL_ALLOCATE, size, true);
   }
 
-  void recordRaytraceAccelerationStructureHeapFreed(uint32_t size)
+  void recordRaytraceAccelerationStructurePoolFreed(uint32_t size)
   {
     if (!isCollectingMetric(Metric::RAYTRACING))
       return;
     auto metricsAccess = metrics.access();
-    auto &target = metricsAccess->currentFrame.rawCounters.freedRaytraceAccelStructHeap;
+    auto &target = metricsAccess->currentFrame.rawCounters.freedRaytraceAccelStructPool;
     target.count++;
     target.size += size;
 
-    recordBufferEvent(metricsAccess, MetricsState::ActionInfo::Type::RAYTRACE_ACCEL_STRUCT_HEAP_FREE, size, true);
+    recordBufferEvent(metricsAccess, MetricsState::ActionInfo::Type::RAYTRACE_ACCEL_STRUCT_POOL_FREE, size, true);
   }
 
   void recordRaytraceBottomStructureAllocated(uint32_t size)
@@ -1533,9 +1534,9 @@ protected:
   void recordPersistentBidirectionalMemoryAllocated(uint32_t) {}
   void recordPersistentBidirectionalMemoryFreed(uint32_t) {}
   void recordNewUserResourceHeap(size_t, bool) {}
-  void recordDeletedUserResouceHeap(size_t, bool) {}
+  void recordDeletedUserResourceHeap(size_t, bool) {}
   void recordTexturePlacedInUserResourceHeap(MipMapCount, ArrayLayerCount, const Extent3D &, uint32_t, FormatStore, const char *) {}
-  void recordBufferPlacedInUserResouceHeap(uint32_t, bool, const char *) {}
+  void recordBufferPlacedInUserResourceHeap(uint32_t, bool, const char *) {}
   // void setup(const SetupInfo &) {}
   // void shutdown() {}
   // void preRecovery() {}
@@ -1544,8 +1545,8 @@ protected:
   void recordScratchBufferFreed(uint32_t) {}
   void recordScratchBufferTempUse(uint32_t) {}
   void recordScratchBufferPersistentUse(uint32_t) {}
-  void recordRaytraceAccelerationStructureHeapAllocated(uint32_t) {}
-  void recordRaytraceAccelerationStructureHeapFreed(uint32_t) {}
+  void recordRaytraceAccelerationStructurePoolAllocated(uint32_t) {}
+  void recordRaytraceAccelerationStructurePoolFreed(uint32_t) {}
   void recordRaytraceBottomStructureAllocated(uint32_t) {}
   void recordRaytraceBottomStructureFreed(uint32_t) {}
   void recordRaytraceTopStructureAllocated(uint32_t) {}
@@ -1608,9 +1609,15 @@ protected:
   }
 
 public:
-  ImageGlobalSubresourceId getSwapchainColorGlobalId() const { return swapchain_color_texture_global_id; }
+  ImageGlobalSubresourceId getSwapchainColorGlobalId(uint32_t swapchain_index) const
+  {
+    return get_swapchain_color_texture_global_id(swapchain_index);
+  }
 
-  ImageGlobalSubresourceId getSwapchainSecondaryColorGlobalId() const { return swapchain_secondary_color_texture_global_id; }
+  ImageGlobalSubresourceId getSwapchainSecondaryColorGlobalId(uint32_t swapchain_index) const
+  {
+    return get_swapchain_color_texture_global_id(swapchain_index);
+  }
 
   ImageGlobalSubresourceId allocateGlobalResourceIdRange(SubresourceCount count)
   {

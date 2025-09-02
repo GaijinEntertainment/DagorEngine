@@ -5,7 +5,6 @@
 #pragma once
 
 #include <Jolt/Core/NonCopyable.h>
-#include <Jolt/Core/FPException.h>
 #include <Jolt/Geometry/ClosestPoint.h>
 #include <Jolt/Geometry/ConvexSupport.h>
 
@@ -73,7 +72,7 @@ private:
 		}
 
 #ifdef JPH_GJK_DEBUG
- 		Trace("GetClosest: set = 0b%s, v = [%s], |v| = %g", NibbleToBinary(set), ConvertToString(v).c_str(), (double)v.Length());
+		Trace("GetClosest: set = 0b%s, v = [%s], |v| = %g", NibbleToBinary(set), ConvertToString(v).c_str(), (double)v.Length());
 #endif
 
 		float v_len_sq = v.LengthSq();
@@ -114,10 +113,6 @@ private:
 			}
 		mNumPoints = num_points;
 	}
-
-	// GCC 11.3 thinks the assignments to mP, mQ and mY below may use uninitialized variables
-	JPH_SUPPRESS_WARNING_PUSH
-	JPH_GCC_SUPPRESS_WARNING("-Wmaybe-uninitialized")
 
 	// Remove points that are not in the set, only updates mP
 	void		UpdatePointSetP(uint32 inSet)
@@ -160,8 +155,6 @@ private:
 			}
 		mNumPoints = num_points;
 	}
-
-	JPH_SUPPRESS_WARNING_POP
 
 	// Calculate closest points on A and B
 	void		CalculatePointAAndB(Vec3 &outPointA, Vec3 &outPointB) const

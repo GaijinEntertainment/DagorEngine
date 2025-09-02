@@ -254,14 +254,13 @@ void ConverterDlg::findSources()
 {
   FilePathName name = srcFilename;
 
-  alefind_t find = {0};
   name.setName(name.getName(false));
 
   int files_count = 0, selected = 0;
   mPanel->setStrings(FILES_COMBOBOX_ID, {});
   Tab<String> filesTab(midmem);
   int selectItem = 0;
-  for (int result = ::dd_find_first(name + "*", 0, &find); result; result = ::dd_find_next(&find), files_count++)
+  for (const alefind_t &find : dd_find_iterator(name + "*", DA_FILE))
   {
     name.setName(find.name);
     FilePathName ext = name.getExt();
@@ -274,10 +273,10 @@ void ConverterDlg::findSources()
       if (name == srcFilename)
         selectItem = files_count;
     }
+    files_count++;
   }
   mPanel->setStrings(FILES_COMBOBOX_ID, filesTab);
   mPanel->setInt(FILES_COMBOBOX_ID, selectItem);
-  ::dd_find_close(&find);
 
   mPanel->setText(SRC_DIR_EDIT_ID, String("Path: ") + srcFilename.getPath());
   fileSelected();

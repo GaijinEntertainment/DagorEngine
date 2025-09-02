@@ -8,10 +8,10 @@ class HmapExportSizeDlg : public PropPanel::ControlEventHandler
 public:
   HmapExportSizeDlg(float &min_height, float &height_range, float min_height_hm, float height_range_hm);
 
-  ~HmapExportSizeDlg();
+  ~HmapExportSizeDlg() override;
 
-  virtual bool execute();
-  virtual void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel);
+  bool execute();
+  void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
 
 private:
   float &minHeight;

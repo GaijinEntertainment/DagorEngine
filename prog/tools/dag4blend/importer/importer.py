@@ -445,8 +445,8 @@ class DagImporter(Operator, ImportHelper):
             me.use_auto_smooth = True
             me.auto_smooth_angle = pi
         else:
-            with bpy.context.temp_override(object = o):
-                bpy.ops.object.shade_smooth(keep_sharp_edges=True)
+            values = [True]*o.data.polygons.__len__()
+            o.data.polygons.foreach_set('use_smooth', values)
         self.collection.objects.link(o)
         if parent is not None:
             o.parent = parent

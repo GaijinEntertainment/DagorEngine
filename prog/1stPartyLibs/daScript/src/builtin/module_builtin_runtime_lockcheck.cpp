@@ -20,11 +20,7 @@ namespace das
             return !((Table *)pa)->forego_lock_check;
         }
         virtual bool canVisitTableData ( TypeInfo * ti ) override {
-            if ( ti->secondType ) {
-                return (ti->secondType->flags & TypeInfo::flag_lockCheck) == TypeInfo::flag_lockCheck;
-            } else {
-                return false;
-            }
+            return ti->secondType && ((ti->secondType->flags & TypeInfo::flag_lockCheck) == TypeInfo::flag_lockCheck);
         }
         virtual bool canVisitHandle ( char *, TypeInfo * ) override {
             return false;
@@ -51,6 +47,106 @@ namespace das
             if ( pa->lock ) {
                 locked = true;
                 _cancel = true;
+            }
+        }
+
+        // fast versions of data walker functions
+
+        virtual void walk_table ( Table * tab, TypeInfo * info ) override {
+            if ( !info->secondType || ((info->secondType->flags & TypeInfo::flag_lockCheck) != TypeInfo::flag_lockCheck) ) return;
+            int keySize = info->firstType->size;
+            int valueSize = info->secondType->size;
+            uint32_t count = 0;
+            for ( uint32_t i=0, is=tab->capacity; i!=is; ++i ) {
+                if ( tab->hashes[i] > HASH_KILLED64 ) {
+                    char * value = tab->data + i*valueSize;
+                    walk ( value, info->secondType );
+                    if ( _cancel ) return;
+                    count ++;
+                }
+            }
+        }
+
+        virtual void walk_struct ( char * ps, StructInfo * si ) override {
+            if ( (si->flags & StructInfo::flag_class) ) {
+                auto ti = *(TypeInfo **) ps;
+                if ( ti!=nullptr ) si = ti->structType;
+                else invalidData(); // we are walking uninitialized class here
+            }
+            if ( canVisitStructure_(ps, si) ) {
+                beforeStructure_(ps, si);
+                if ( _cancel ) {
+                    afterStructureCancel_(ps, si);
+                    return;
+                }
+                for ( uint32_t i=0, is=si->count; i!=is; ++i ) {
+                    VarInfo * vi = si->fields[i];
+                    char * pf = ps + vi->offset;
+                    if ((vi->flags & TypeInfo::flag_lockCheck) == TypeInfo::flag_lockCheck) {
+                        walk(pf, vi);
+                        if ( _cancel ) {
+                            afterStructureCancel_(ps, si);
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+
+        virtual void walk_array ( char * pa, uint32_t stride, uint32_t count, TypeInfo * ti ) override {
+            if ( (ti->flags & TypeInfo::flag_lockCheck) != TypeInfo::flag_lockCheck ) return;
+            char * pe = pa;
+            for ( uint32_t i=0; i!=count; ++i ) {
+                walk(pe, ti);
+                if ( _cancel ) return;
+                pe += stride;
+            }
+        }
+
+        using DataWalker::walk;
+
+        virtual void walk ( char * pa, TypeInfo * info ) override {
+            if ( pa == nullptr ) {
+                Null(info);
+            } else if ( info->flags & TypeInfo::flag_ref ) {
+                TypeInfo ti = *info;
+                ti.flags &= ~TypeInfo::flag_ref;
+                walk(*(char **)pa, &ti);
+                ti.flags |= TypeInfo::flag_ref;
+                if ( _cancel ) return;
+            } else if ( info->dimSize ) {
+                walk_dim(pa, info);
+            } else if ( info->type==Type::tArray ) {
+                auto arr = (Array *) pa;
+                if ( !arr->forego_lock_check ) {
+                    if ( arr->lock ) {
+                        locked = true;
+                        _cancel = true;
+                        return;
+                    }
+                    walk_array(arr->data, info->firstType->size, arr->size, info->firstType);
+                    if ( _cancel ) return;
+                }
+            } else if ( info->type==Type::tTable ) {
+                auto tab = (Table *) pa;
+                if ( !((Table *)pa)->forego_lock_check ) {
+                    if ( tab->lock ) {
+                        locked = true;
+                        _cancel = true;
+                        return;
+                    }
+                    walk_table(tab, info);
+                    if ( _cancel ) return;
+                }
+            } else {
+                switch ( info->type ) {
+                    case Type::tStructure:  walk_struct(pa, info->structType); break;
+                    case Type::tTuple:      walk_tuple(pa, info); break;
+                    case Type::tVariant:    walk_variant(pa, info); break;
+                    case Type::tBlock:      WalkBlock((Block *)pa); break;
+                    case Type::tFunction:   WalkFunction((Func *)pa); break;
+                    default:                break;
+                }
             }
         }
     };
@@ -197,10 +293,10 @@ namespace das
         virtual void afterStructureField ( char *, StructInfo *, char *, VarInfo *, bool ) override {
             path.pop_back();
         }
-        virtual void beforeTupleEntry ( char *, TypeInfo * ti, char *, TypeInfo * vi, bool ) override {
-            path.emplace_back(PathChunk(ti,vi));
+        virtual void beforeTupleEntry ( char *, TypeInfo * ti, char *, int idx, bool ) override {
+            path.emplace_back(PathChunk(ti,ti->argTypes[idx]));
         }
-        virtual void afterTupleEntry ( char *, TypeInfo *, char *, TypeInfo *, bool ) override {
+        virtual void afterTupleEntry ( char *, TypeInfo *, char *, int, bool ) override {
             path.pop_back();
         }
         virtual void beforeArrayElement ( char *, TypeInfo *, char *, uint32_t index, bool ) override {

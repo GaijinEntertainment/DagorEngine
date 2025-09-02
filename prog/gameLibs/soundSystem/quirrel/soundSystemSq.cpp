@@ -23,21 +23,24 @@ Sqrat::Table script_callbacks;
 
 void play_sound(const char *name, const Sqrat::Object &params, float volume, const Point3 *pos)
 {
-  if (!name || !*name)
+  if (!name || !*name || volume <= 0.f)
+    return;
+
+  if (!sndsys::is_inited())
+    return;
+
+  if (params.IsNull() && volume == 1.f)
+  {
+    sndsys::play_oneshot(name, nullptr, pos);
+    return;
+  }
+
+  if (!sndsys::banks::is_loaded(sndsys::banks::get_master_preset()))
     return;
 
   sndsys::EventHandle eh = pos ? sndsys::init_event(name, *pos) : sndsys::init_event(name);
   if (!eh)
-  {
-    if (sndsys::is_inited() && sndsys::banks::is_loaded(sndsys::banks::get_master_preset()))
-    {
-      if (!sndsys::has_event(name))
-      {
-        logerr("sqapi: there is no sound event '%s'", name);
-      }
-    }
     return;
-  }
 
   if (!params.IsNull())
   {
@@ -55,7 +58,9 @@ void play_sound(const char *name, const Sqrat::Object &params, float volume, con
     }
   }
 
-  sndsys::set_volume(eh, volume);
+  if (volume != 1.f)
+    sndsys::set_volume(eh, volume);
+
   sndsys::start(eh);
   sndsys::abandon(eh);
 }
@@ -71,14 +76,14 @@ bool is_preset_loaded(const char *preset_name) { return preset_name && sndsys::b
 
 void debug_trace(const char *text) { sndsys::debug_trace_info("%s", text); }
 
-void play_one_shot_3d(const char *name, const Point3 &pos)
+void play_oneshot_3d(const char *name, const Point3 &pos)
 {
-  if (!sndsys::play_one_shot(name, nullptr, &pos) && sndsys::is_inited())
+  if (!sndsys::play_oneshot(name, nullptr, &pos) && sndsys::is_inited())
     sndsys::debug_trace_warn("oneshot 3d sound '%s' is not played", name);
 }
-void play_one_shot(const char *name)
+void play_oneshot(const char *name)
 {
-  if (!sndsys::play_one_shot(name) && sndsys::is_inited())
+  if (!sndsys::play_oneshot(name) && sndsys::is_inited())
     sndsys::debug_trace_warn("oneshot sound '%s' is not played", name);
 }
 
@@ -285,10 +290,10 @@ SQ_DEF_AUTO_BINDING_MODULE(bind_sound, "sound") // To consider: split client & s
 
   soundTbl //
     .Func("sound_debug_trace", debug_trace)
-    .Func("sound_play_one_shot_3d", play_one_shot_3d)
+    .Func("sound_play_oneshot_3d", play_oneshot_3d)
     .Func("sound_get_num_event_instances", get_num_event_instances)
     .Func("sound_is_preset_loaded", is_preset_loaded)
-    .Func("sound_play_one_shot", play_one_shot)
+    .Func("sound_play_oneshot", play_oneshot)
     .Func("sound_release_all_instances", release_all_instances)
     .SquirrelFunc("sound_play", play_sound_sq, -2, ".s")
     .Func("sound_set_volume", set_volume)

@@ -16,12 +16,12 @@
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_critSec.h>
 #include <osApiWrappers/dag_atomic.h>
+#include <osApiWrappers/dag_atomic_types.h>
 #include <osApiWrappers/dag_files.h>
 #include <startup/dag_globalSettings.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <perfMon/dag_cpuFreq.h>
 #include <osApiWrappers/basePath.h>
-#include <atomic>
 #if _TARGET_PC_WIN
 #include <direct.h>
 #include <stdlib.h>
@@ -55,7 +55,7 @@ debug_internal::write_stream_t debug_internal::dbgFile = NULL, debug_internal::l
 static char logerrFilepath[DAGOR_MAX_PATH], logwarnFilepath[DAGOR_MAX_PATH], lastDbgPath[DAGOR_MAX_PATH];
 static char fatalerrFilepath[DAGOR_MAX_PATH];
 static char logDirPath[DAGOR_MAX_PATH];
-static std::atomic<int> logFileSizes[LOGLEVEL_REMARK + 1];
+static dag::AtomicInteger<int> logFileSizes[LOGLEVEL_REMARK + 1];
 static unsigned logsMaxSize = 0;
 
 // debug_internal::Context debug_internal::debug_context = { NULL, -1 };
@@ -100,7 +100,7 @@ void crypt_debug_setup(const unsigned char *nkey, unsigned max_size)
   memcpy(cryptKeyStorage, nkey, sizeof(cryptKeyStorage));
   logsMaxSize = max_size;
   for (auto &sz : logFileSizes)
-    std::atomic_init(&sz, 0);
+    sz.store(0);
 
   cryptKey = NULL;
   for (unsigned char *k = cryptKeyStorage; k < (cryptKeyStorage + sizeof(cryptKeyStorage)) && !cryptKey; ++k) // empty key?
@@ -237,17 +237,18 @@ static bool prepare_file_impl(const char *path, write_stream_t &fpout, int lev_b
   {
     WinAutoLock lock(writeCS);
     write_stream_write("\n-------\n\n", 10, fp);
+    out_debug_str("\n-------\n\n");
   }
 #if _TARGET_STATIC_LIB
   char sbuf[256];
   int sz = i_strlen(dagor_get_build_stamp_str(sbuf, sizeof(sbuf), "\n\n"));
 
-#if DAGOR_DBGLEVEL > 0
-  out_debug_str(sbuf);
-#endif
-
   if (!debug_internal::append_files || debug_internal::append_files_stage < 2)
   {
+#if DAGOR_DBGLEVEL > 0
+    out_debug_str(sbuf);
+#endif
+
     WinAutoLock lock(writeCS);
 #if DAGOR_FORCE_LOGS
     if (cryptKey)
@@ -271,10 +272,11 @@ static bool prepare_file_impl(const char *path, write_stream_t &fpout, int lev_b
 
 #define MAX_CRYPTO_LINE (4 << 10)
 
-static void out_file(write_stream_t fp, int lc, int t, bool term, int ik, const char *format, const void *arg, int anum)
+// Returns true if ends with carriage return ('\n')
+static bool out_file(write_stream_t fp, int lc, int t, bool term, int ik, const char *format, const void *arg, int anum)
 {
-  if (logsMaxSize && ik != LOGLEVEL_FATAL && logFileSizes[ik] >= logsMaxSize)
-    return;
+  if (logsMaxSize && ik != LOGLEVEL_FATAL && logFileSizes[ik].load() >= logsMaxSize)
+    return false;
 
   char sbuf[MAX_CRYPTO_LINE];
 
@@ -352,9 +354,11 @@ static void out_file(write_stream_t fp, int lc, int t, bool term, int ik, const 
     }
 #endif
   }
-  logFileSizes[ik].fetch_add(sz, std::memory_order_relaxed);
+  logFileSizes[ik].fetch_add(sz, dag::memory_order_relaxed);
+  bool endsWithCR = final_sbuf[max(sz - 1, 0)] == '\n';
   if (final_sbuf != sbuf)
     free(final_sbuf);
+  return endsWithCR;
 }
 
 #if DAGOR_DBGLEVEL > 0
@@ -369,10 +373,13 @@ void debug_internal::vlog(int lev, const char *fmt, const void *arg, int anum)
   const int lc = ((uint32_t)lev <= LOGLEVEL_REMARK) ? debug_internal::stdTags[lev] : lev;
   bool term = !(&dbg_ctx)->holdLine;
 
-  int t = (!(&dbg_ctx)->lastHoldLine && timestampEnabled) ? get_time_msec() : -1;
+  bool &lastHoldLine = (&dbg_ctx)->lastHoldLine;
+  int t = (!lastHoldLine && timestampEnabled) ? get_time_msec() : -1;
+  lastHoldLine = !term; // <- holdLine
   if (prepare_file(dbgFilepath, dbgFile, 1 << LOGLEVEL_DEBUG))
   {
-    out_file(dbgFile, lc, t, term, LOGLEVEL_DEBUG, fmt, arg, anum);
+    if (out_file(dbgFile, lc, t, term, LOGLEVEL_DEBUG, fmt, arg, anum))
+      lastHoldLine = false;
 
     if (flush_debug)
       write_stream_flush_locked(dbgFile);
@@ -426,7 +433,7 @@ void debug_internal::vlog(int lev, const char *fmt, const void *arg, int anum)
     }
   }
 
-  (&dbg_ctx)->reset();
+  (&dbg_ctx)->file = nullptr;
 #if DEBUG_DO_PERIODIC_FLUSHES
   if (term && !flush_debug && get_time_msec() > next_flush_time)
   {

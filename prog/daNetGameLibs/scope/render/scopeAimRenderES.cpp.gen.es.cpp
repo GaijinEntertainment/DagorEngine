@@ -13,9 +13,11 @@ static constexpr ecs::component_t gunmod__lensLocalZ_get_type();
 static ecs::LTComponentList gunmod__lensLocalZ_component(ECS_HASH("gunmod__lensLocalZ"), gunmod__lensLocalZ_get_type(), "prog/daNetGameLibs/scope/render/scopeAimRenderES.cpp.inl", "", 0);
 static constexpr ecs::component_t gunmod__scopeRadLen_get_type();
 static ecs::LTComponentList gunmod__scopeRadLen_component(ECS_HASH("gunmod__scopeRadLen"), gunmod__scopeRadLen_get_type(), "prog/daNetGameLibs/scope/render/scopeAimRenderES.cpp.inl", "", 0);
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "scopeAimRenderES.cpp.inl"
 ECS_DEF_PULL_VAR(scopeAimRender);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc prepare_aim_occlusion_es_comps[] =
 {
@@ -49,12 +51,18 @@ static ecs::EntitySystemDesc prepare_aim_occlusion_es_es_desc
   ecs::EventSetBuilder<UpdateStageInfoBeforeRender>::build(),
   0
 ,"render",nullptr,"start_occlusion_and_sw_raster_es");
-//static constexpr ecs::ComponentDesc scope_quality_render_features_changed_es_comps[] ={};
+static constexpr ecs::ComponentDesc scope_quality_render_features_changed_es_comps[] =
+{
+//start of 1 ro components at [0]
+  {ECS_HASH("render_settings__scopeImageQuality"), ecs::ComponentTypeInfo<int>()}
+};
 static void scope_quality_render_features_changed_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
-  G_UNUSED(components);
-  scope_quality_render_features_changed_es(evt
-        );
+  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
+    scope_quality_render_features_changed_es(evt
+        , ECS_RO_COMP(scope_quality_render_features_changed_es_comps, "render_settings__scopeImageQuality", int)
+    );
+  while (++comp != compE);
 }
 static ecs::EntitySystemDesc scope_quality_render_features_changed_es_es_desc
 (
@@ -62,13 +70,13 @@ static ecs::EntitySystemDesc scope_quality_render_features_changed_es_es_desc
   "prog/daNetGameLibs/scope/render/scopeAimRenderES.cpp.inl",
   ecs::EntitySystemOps(nullptr, scope_quality_render_features_changed_es_all_events),
   empty_span(),
-  empty_span(),
+  make_span(scope_quality_render_features_changed_es_comps+0, 1)/*ro*/,
   empty_span(),
   empty_span(),
   ecs::EventSetBuilder<BeforeLoadLevel,
                        ChangeRenderFeatures>::build(),
   0
-,"render");
+,"render","render_settings__scopeImageQuality");
 static constexpr ecs::ComponentDesc init_scope_reticle_quad_rendering_es_event_handler_comps[] =
 {
 //start of 1 rq components at [0]
@@ -191,7 +199,7 @@ template<typename Callable>
 inline void in_vehicle_cockpit_ecs_query(Callable function)
 {
   perform_query(g_entity_mgr, in_vehicle_cockpit_ecs_query_desc.getHandle(),
-    [&function](const ecs::QueryView& __restrict components)
+    ecs::stoppable_query_cb_t([&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
         {
@@ -201,7 +209,7 @@ inline void in_vehicle_cockpit_ecs_query(Callable function)
             return ecs::QueryCbResult::Stop;
         }while (++comp != compE);
           return ecs::QueryCbResult::Continue;
-    }
+    })
   );
 }
 static constexpr ecs::ComponentDesc get_hero_cockpit_entities_with_prepass_flag_ecs_query_comps[] =
@@ -300,7 +308,7 @@ static constexpr ecs::ComponentDesc process_animchar_ecs_query_comps[] =
 {
 //start of 2 rw components at [0]
   {ECS_HASH("animchar_render"), ecs::ComponentTypeInfo<AnimV20::AnimcharRendComponent>()},
-  {ECS_HASH("animchar_visbits"), ecs::ComponentTypeInfo<uint8_t>()},
+  {ECS_HASH("animchar_visbits"), ecs::ComponentTypeInfo<animchar_visbits_t>()},
 //start of 2 ro components at [2]
   {ECS_HASH("additional_data"), ecs::ComponentTypeInfo<ecs::Point4List>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("animchar_render__enabled"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL}
@@ -324,7 +332,7 @@ inline void process_animchar_ecs_query(ecs::EntityId eid, Callable function)
             return;
           function(
               ECS_RW_COMP(process_animchar_ecs_query_comps, "animchar_render", AnimV20::AnimcharRendComponent)
-            , ECS_RW_COMP(process_animchar_ecs_query_comps, "animchar_visbits", uint8_t)
+            , ECS_RW_COMP(process_animchar_ecs_query_comps, "animchar_visbits", animchar_visbits_t)
             , ECS_RO_COMP_PTR(process_animchar_ecs_query_comps, "additional_data", ecs::Point4List)
             );
 
@@ -376,6 +384,36 @@ inline void render_scope_reticle_ecs_query(ecs::EntityId eid, Callable function)
 
         }
       }
+  );
+}
+static constexpr ecs::ComponentDesc render_scope_trans_ecs_query_comps[] =
+{
+//start of 1 rw components at [0]
+  {ECS_HASH("animchar_render"), ecs::ComponentTypeInfo<AnimV20::AnimcharRendComponent>()},
+//start of 1 rq components at [1]
+  {ECS_HASH("gunmod__drawScopeTrans"), ecs::ComponentTypeInfo<ecs::Tag>()}
+};
+static ecs::CompileTimeQueryDesc render_scope_trans_ecs_query_desc
+(
+  "render_scope_trans_ecs_query",
+  make_span(render_scope_trans_ecs_query_comps+0, 1)/*rw*/,
+  empty_span(),
+  make_span(render_scope_trans_ecs_query_comps+1, 1)/*rq*/,
+  empty_span());
+template<typename Callable>
+inline void render_scope_trans_ecs_query(ecs::EntityId eid, Callable function)
+{
+  perform_query(g_entity_mgr, eid, render_scope_trans_ecs_query_desc.getHandle(),
+    [&function](const ecs::QueryView& __restrict components)
+    {
+        constexpr size_t comp = 0;
+        {
+          function(
+              ECS_RW_COMP(render_scope_trans_ecs_query_comps, "animchar_render", AnimV20::AnimcharRendComponent)
+            );
+
+        }
+    }
   );
 }
 static constexpr ecs::ComponentDesc get_dof_entity_ecs_query_comps[] =
@@ -554,8 +592,9 @@ inline void enable_scope_ri_lod_change_ecs_query(ecs::EntityId eid, Callable fun
 }
 static constexpr ecs::ComponentDesc prepare_scope_aim_rendering_data_ecs_query_comps[] =
 {
-//start of 14 ro components at [0]
+//start of 13 ro components at [0]
   {ECS_HASH("aim_data__lensNodeId"), ecs::ComponentTypeInfo<int>()},
+  {ECS_HASH("aim_data__lensCollisionNodeId"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("aim_data__crosshairNodeId"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("aim_data__entityWithScopeLensEid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
   {ECS_HASH("aim_data__gunEid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
@@ -565,8 +604,6 @@ static constexpr ecs::ComponentDesc prepare_scope_aim_rendering_data_ecs_query_c
   {ECS_HASH("aim_data__nightVision"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("aim_data__nearDofEnabled"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("aim_data__simplifiedAimDof"), ecs::ComponentTypeInfo<bool>()},
-  {ECS_HASH("aim_data__scopeWeaponFov"), ecs::ComponentTypeInfo<float>()},
-  {ECS_HASH("aim_data__scopeWeaponFovType"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("aim_data__scopeWeaponLensZoomFactor"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("camera__active"), ecs::ComponentTypeInfo<bool>()}
 };
@@ -574,7 +611,7 @@ static ecs::CompileTimeQueryDesc prepare_scope_aim_rendering_data_ecs_query_desc
 (
   "prepare_scope_aim_rendering_data_ecs_query",
   empty_span(),
-  make_span(prepare_scope_aim_rendering_data_ecs_query_comps+0, 14)/*ro*/,
+  make_span(prepare_scope_aim_rendering_data_ecs_query_comps+0, 13)/*ro*/,
   empty_span(),
   empty_span());
 template<typename Callable>
@@ -589,6 +626,7 @@ inline void prepare_scope_aim_rendering_data_ecs_query(Callable function)
             continue;
           function(
               ECS_RO_COMP(prepare_scope_aim_rendering_data_ecs_query_comps, "aim_data__lensNodeId", int)
+            , ECS_RO_COMP(prepare_scope_aim_rendering_data_ecs_query_comps, "aim_data__lensCollisionNodeId", int)
             , ECS_RO_COMP(prepare_scope_aim_rendering_data_ecs_query_comps, "aim_data__crosshairNodeId", int)
             , ECS_RO_COMP(prepare_scope_aim_rendering_data_ecs_query_comps, "aim_data__entityWithScopeLensEid", ecs::EntityId)
             , ECS_RO_COMP(prepare_scope_aim_rendering_data_ecs_query_comps, "aim_data__gunEid", ecs::EntityId)
@@ -598,8 +636,6 @@ inline void prepare_scope_aim_rendering_data_ecs_query(Callable function)
             , ECS_RO_COMP(prepare_scope_aim_rendering_data_ecs_query_comps, "aim_data__nightVision", bool)
             , ECS_RO_COMP(prepare_scope_aim_rendering_data_ecs_query_comps, "aim_data__nearDofEnabled", bool)
             , ECS_RO_COMP(prepare_scope_aim_rendering_data_ecs_query_comps, "aim_data__simplifiedAimDof", bool)
-            , ECS_RO_COMP(prepare_scope_aim_rendering_data_ecs_query_comps, "aim_data__scopeWeaponFov", float)
-            , ECS_RO_COMP(prepare_scope_aim_rendering_data_ecs_query_comps, "aim_data__scopeWeaponFovType", int)
             , ECS_RO_COMP(prepare_scope_aim_rendering_data_ecs_query_comps, "aim_data__scopeWeaponLensZoomFactor", float)
             );
 

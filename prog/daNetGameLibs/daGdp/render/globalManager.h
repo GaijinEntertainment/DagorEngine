@@ -24,7 +24,7 @@ inline constexpr float DYNAMIC_THRESHOLD_MULTIPLIER = 1.0f;
 struct View
 {
   ViewInfo info;
-  dag::Vector<dabfg::NodeHandle> nodes;
+  dag::Vector<dafg::NodeHandle> nodes;
 #if DAGDP_DEBUG
   uint32_t dynamicInstanceCounter;
 #endif
@@ -52,7 +52,7 @@ class GlobalManager
   bool rulesAreValid = false;
 
   dag::Vector<View> views;
-  dag::Vector<dabfg::NodeHandle> viewIndependentNodes; // Built together with views, but not belonging to any particular one.
+  dag::Vector<dafg::NodeHandle> viewIndependentNodes; // Built together with views, but not belonging to any particular one.
   bool viewsAreCreated = false;
   bool viewsAreBuilt = false;
 
@@ -67,6 +67,7 @@ class GlobalManager
 
 public:
   GlobalManager() = default;
+  ~GlobalManager();
   void reconfigure(const GlobalConfig &new_config);
   void destroyViews();
   void invalidateViews();

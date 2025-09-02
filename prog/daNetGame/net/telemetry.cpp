@@ -25,11 +25,7 @@
 #include "main/vromfs.h"
 #include "main/main.h"
 #include "main/gameLoad.h"
-
-extern const char *default_game_statsd_url;
-extern const char *default_game_statsd_key;
-extern const char *default_game_eventlog_agent;
-extern const char *default_game_eventlog_project;
+#include "main/gameProjConfig.h"
 
 void telemetry_shutdown()
 {
@@ -49,16 +45,12 @@ static void init_statsd_client(const char *circuit_name)
   os.replaceAll(".", "_");
   os.toLower();
 
-  const char *keys[] = {circuit_name, default_game_statsd_key, os, NULL};
+  const char *keys[] = {circuit_name, gameproj::statsd_key(), os, NULL};
 
   const char *metricsFormat = ::dgs_get_argv("statsd", MetricFormat::influx);
-  const char *statsdProject = ::dgs_get_settings()->getStr("statsdGameName", nullptr);
-  if (!statsdProject)
-    statsdProject = ::dgs_get_settings()->getStr("matchingGameName", nullptr);
-  if (!statsdProject)
-    statsdProject = ::dgs_get_settings()->getStr("contactsGameId", get_game_name());
+  const char *statsdProject = ::dgs_get_settings()->getStr("statsdGameName", gameproj::game_telemetry_name());
 
-  const char *statsUrl = ::dgs_get_settings()->getStr("stats_url", default_game_statsd_url);
+  const char *statsUrl = ::dgs_get_settings()->getStr("stats_url", gameproj::default_statsd_url());
   if (!statsUrl)
     return;
 
@@ -110,10 +102,10 @@ void init_event_log(const char *circuit_name)
   eventInitParams.use_https = cfg->getBool("useHttps", true);
   eventInitParams.http_port = cfg->getInt("tcpPort", 0);
   eventInitParams.udp_port = cfg->getInt("udpPort", 20020);
-  eventInitParams.user_agent = default_game_eventlog_agent;
+  eventInitParams.user_agent = gameproj::eventlog_agent();
   eventInitParams.origin = dedicated::is_dedicated() ? "dedicated" : "client";
   eventInitParams.circuit = circuit_name;
-  eventInitParams.project = cfg->getStr("project", default_game_eventlog_project);
+  eventInitParams.project = cfg->getStr("project", gameproj::default_eventlog_project());
   // we probably don't need exe version but yup version. However - we don't have yup version
   eventInitParams.version = get_exe_version_str();
 
@@ -125,7 +117,7 @@ void init_event_log(const char *circuit_name)
 
   event_log::ErrorLogInitParams eparams;
   eparams.collection = "events";
-  eparams.game = get_game_name();
+  eparams.game = gameproj::game_telemetry_name();
 
   if ((dedicated::is_dedicated() || DAGOR_DBGLEVEL == 0) && ::dgs_get_settings()->getBool("logerr_telemetry", true))
     orig_debug_log = debug_set_log_callback(on_debug_log);
@@ -177,6 +169,7 @@ int on_debug_log(int lev_tag, const char *fmt, const void *arg, int anum, const 
       params.collection = "client_d3d_errorlog";
       params.meta["d3d_driver"] = d3d::get_driver_name();
       params.meta["gpu_vendor"] = d3d_get_vendor_name(d3d_get_gpu_cfg().primaryVendor);
+      params.meta["gpu_name"] = d3d::get_device_name();
     }
     if (!app_profile::get().serverSessionId.empty())
     {

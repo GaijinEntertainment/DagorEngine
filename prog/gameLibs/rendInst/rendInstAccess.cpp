@@ -25,9 +25,27 @@ rendinst::AutoLockReadPrimary::~AutoLockReadPrimary()
       rgl->rtData->riRwCs.unlockRead();
 }
 
+rendinst::AutoLockWritePrimary::AutoLockWritePrimary()
+{
+  for (int l = 0; l < rendinst::rgPrimaryLayers; l++)
+    if (RendInstGenData *rgl = rendinst::rgLayer[l])
+      rgl->rtData->riRwCs.lockWrite();
+}
+
+rendinst::AutoLockWritePrimary::~AutoLockWritePrimary()
+{
+  for (int l = rendinst::rgPrimaryLayers - 1; l >= 0; l--)
+    if (RendInstGenData *rgl = rendinst::rgLayer[l])
+      rgl->rtData->riRwCs.lockWrite();
+}
+
 rendinst::AutoLockReadPrimaryAndExtra::AutoLockReadPrimaryAndExtra() { rendinst::ccExtra.lockRead(); }
 
 rendinst::AutoLockReadPrimaryAndExtra::~AutoLockReadPrimaryAndExtra() { rendinst::ccExtra.unlockRead(); }
+
+rendinst::AutoLockWritePrimaryAndExtra::AutoLockWritePrimaryAndExtra() { rendinst::ccExtra.lockWrite(); }
+
+rendinst::AutoLockWritePrimaryAndExtra::~AutoLockWritePrimaryAndExtra() { rendinst::ccExtra.lockWrite(); }
 
 int rendinst::getRIGenMaterialId(const RendInstDesc &desc, bool need_lock)
 {
@@ -142,36 +160,37 @@ int rendinst::getRIExtraNextResIdx(int pool_id)
 
 static TMatrix get_ri_matrix_from_data(const rendinst::RendInstDesc &desc, const RendInstGenData::Cell *cell, const int16_t *data)
 {
+  const RendInstGenData *rgl = rendinst::getRgLayer(desc.layer);
+  if (!rgl)
+    return TMatrix::IDENT;
+
   const RendInstGenData::CellRtData &crt = *cell->rtData;
 
-  const RendInstGenData *rgl = rendinst::getRgLayer(desc.layer);
-  float cell_dh = crt.cellHeight;
-  float cell_x0 = as_point4(&crt.cellOrigin).x;
-  float cell_h0 = as_point4(&crt.cellOrigin).y;
-  float cell_z0 = as_point4(&crt.cellOrigin).z;
-  TMatrix tm = TMatrix::IDENT;
-  if (!rgl)
-    return tm;
-  bool palette_rotation = rgl->rtData->riPaletteRotation[desc.pool];
+  float subcellSz = rgl->grid2world * rgl->cellSz;
+  vec3f v_cell_add = crt.cellOrigin;
+  vec3f v_cell_mul = v_mul(rendinst::gen::VC_1div32767, v_make_vec4f(subcellSz, crt.cellHeight, subcellSz, 0));
+
+  mat44f tm4;
   if (rgl->rtData->riPosInst[desc.pool])
   {
-    int32_t paletteId;
-    if (!rendinst::gen::unpack_tm_pos_fast(tm, data, cell_x0, cell_h0, cell_z0, rgl->grid2world * rgl->cellSz, cell_dh,
-          palette_rotation, &paletteId))
-      return TMatrix::IDENT;
+    bool palette_rotation = rgl->rtData->riPaletteRotation[desc.pool];
     if (palette_rotation)
     {
-      rendinst::gen::RotationPaletteManager::Palette palette =
-        rendinst::gen::get_rotation_palette_manager()->getPalette({desc.layer, desc.pool});
-      TMatrix rotTm = rendinst::gen::RotationPaletteManager::get_tm(palette, paletteId);
-      tm = tm * rotTm;
+      vec4f v_pos, v_scale;
+      vec4i v_palette_id;
+      rendinst::gen::unpack_tm_pos(v_pos, v_scale, data, v_cell_add, v_cell_mul, palette_rotation, &v_palette_id);
+      auto palette = rendinst::gen::get_rotation_palette_manager()->getPalette({desc.layer, desc.pool});
+      quat4f v_rot = rendinst::gen::RotationPaletteManager::get_quat(palette, v_extract_xi(v_palette_id));
+      v_mat44_compose(tm4, v_pos, v_rot, v_scale);
     }
+    else
+      rendinst::gen::unpack_tm_pos(tm4, data, v_cell_add, v_cell_mul, palette_rotation);
   }
   else
-  {
-    if (!rendinst::gen::unpack_tm_full(tm, data, cell_x0, cell_h0, cell_z0, rgl->grid2world * rgl->cellSz, cell_dh))
-      return TMatrix::IDENT;
-  }
+    rendinst::gen::unpack_tm_full(tm4, data, v_cell_add, v_cell_mul);
+
+  TMatrix tm;
+  v_mat_43cu_from_mat44(tm.m[0], tm4);
   return tm;
 }
 
@@ -318,6 +337,33 @@ int rendinst::getRIGenStride(int layer_idx, int cell_id, int pool_id)
   return cell_id < 0 ? 16 : getRIGenStrideRaw(layer_idx, pool_id);
 }
 
+Point4 rendinst::getRIGenBSphere(const RendInstDesc &desc)
+{
+  Point4 bsph = Point4::ZERO;
+
+  G_ASSERT(desc.isValid());
+  if (!desc.isValid())
+    return bsph;
+  if (desc.isRiExtra())
+  {
+    if (const rendinst::RiExtraPool *pool = safe_at(riExtra, desc.pool))
+    {
+      vec4f xyzr = pool->bsphXYZR;
+      v_stu(&bsph.x, xyzr);
+      return bsph;
+    }
+  }
+
+  RendInstGenData *rgl = RendInstGenData::getGenDataByLayer(desc);
+  if (rgl && desc.pool < rgl->rtData->riRes.size())
+  {
+    bsph.set_xyz0(rgl->rtData->riRes[desc.pool]->bsphCenter);
+    bsph.w = rgl->rtData->riRes[desc.pool]->bsphRad;
+  }
+
+  return bsph;
+}
+
 BBox3 rendinst::getRIGenBBox(const RendInstDesc &desc)
 {
   BBox3 box;
@@ -359,15 +405,19 @@ int rendinst::get_debris_fx_type_id(RendInstGenData *rgl, const rendinst::RendIn
   return rgl->rtData->riDebrisMap[ri_desc.pool].fxType;
 }
 
-rendinst::RiDestrData rendinst::gather_ri_destr_data(const RendInstDesc &ri_desc)
+rendinst::RiDestrData rendinst::gather_ri_destr_data(const RendInstDesc &ri_desc, bool destroyedByDamage)
 {
-  RiDestrData result{1, false, -1, 1, ""};
+  RiDestrData result;
 
   if (ri_desc.layer < rgLayer.size() && rgLayer[ri_desc.layer] != nullptr)
     if (const auto *rtData = rgLayer[ri_desc.layer]->rtData)
     {
+      const rendinstdestr::BranchDestr &branchDestr = destroyedByDamage ? rtData->riProperties[ri_desc.pool].treeBranchDestrFromDamage
+                                                                        : rtData->riProperties[ri_desc.pool].treeBranchDestrOther;
+      result.branchDestr = &branchDestr;
       result.collisionHeightScale = rtData->riDestr[ri_desc.pool].collisionHeightScale;
       result.bushBehaviour = rtData->riProperties[ri_desc.pool].bushBehaviour;
+      result.canopyTriangle = rtData->riProperties[ri_desc.pool].canopyShape == RendInstGenData::CanopyShape::CONE;
       if (ri_desc.pool < rtData->riDebrisMap.size())
       {
         result.fxScale = rtData->riDebrisMap[ri_desc.pool].fxScale;
@@ -449,8 +499,22 @@ static inline void unpack_entity_data(vec4f pos, vec4f &scale, vec4i &palette_id
   scale = v_mul(v_floor(v_mul(pos, v_splats(PALETTE_SCALE_MULTIPLIER))), v_splats(1.0f / PALETTE_SCALE_MULTIPLIER));
 }
 
+static constexpr int ACCEL_BITS_LOD = 4;
+static constexpr int ACCEL_BITS_LAYER = 3;
+static constexpr int ACCEL_BITS_CELL = 32 - (ACCEL_BITS_LOD + ACCEL_BITS_LAYER);
+
+static constexpr int ACCEL_OFFSET_CELL = 0;
+static constexpr int ACCEL_OFFSET_LOD = ACCEL_OFFSET_CELL + ACCEL_BITS_CELL;
+static constexpr int ACCEL_OFFSET_LAYER = ACCEL_OFFSET_LOD + ACCEL_BITS_LOD;
+
+static constexpr int ACCEL_MASK_CELL = (1 << ACCEL_BITS_CELL) - 1;
+static constexpr int ACCEL_MASK_LOD = (1 << ACCEL_BITS_LOD) - 1;
+static constexpr int ACCEL_MASK_LAYER = (1 << ACCEL_BITS_LAYER) - 1;
+
+
 void rendinst::build_ri_gen_thread_accel(RiGenVisibility *visibility, dag::Vector<uint32_t> &accel1, dag::Vector<uint64_t> &accel2)
 {
+  G_STATIC_ASSERT((1 << ACCEL_BITS_LOD) >= RiGenVisibility::PER_INSTANCE_LODS);
   accel1.clear();
   FOR_EACH_RG_LAYER_RENDER (rgl, rgRenderMaskO)
   {
@@ -460,7 +524,7 @@ void rendinst::build_ri_gen_thread_accel(RiGenVisibility *visibility, dag::Vecto
 
     for (int lodIx = 0; lodIx < RiGenVisibility::PER_INSTANCE_LODS; ++lodIx)
       for (int cellIx = 0; cellIx < int(layerVisibility.perInstanceVisibilityCells[lodIx].size()) - 1; ++cellIx)
-        accel1.push_back((_layer << 29) | (lodIx << 26) | cellIx);
+        accel1.push_back((_layer << ACCEL_OFFSET_LAYER) | (lodIx << ACCEL_OFFSET_LOD) | (cellIx << ACCEL_OFFSET_CELL));
   }
 
   accel2.clear();
@@ -486,14 +550,16 @@ void rendinst::build_ri_gen_thread_accel(RiGenVisibility *visibility, dag::Vecto
           continue;
 
         for (int iter = range.startCell[lodIx]; iter < range.endCell[lodIx]; ++iter)
-          accel2.push_back((uint64_t(_layer) << 61) | (uint64_t(lodIx) << 58) | (uint64_t(poolIx) << 32) | iter);
+          accel2.push_back((uint64_t(_layer) << (32 + ACCEL_OFFSET_LAYER)) | (uint64_t(lodIx) << (32 + ACCEL_OFFSET_LOD)) |
+                           (uint64_t(poolIx) << (32 + ACCEL_OFFSET_CELL)) | iter);
       }
     }
   }
 }
 
 void rendinst::foreachRiGenInstance(RiGenVisibility *visibility, RiGenIterator callback, void *user_data,
-  const dag::Vector<uint32_t> &accel1, const dag::Vector<uint64_t> &accel2, volatile int &cursor1, volatile int &cursor2)
+  const dag::Vector<uint32_t> &accel1, const dag::Vector<uint64_t> &accel2, volatile int &cursor1, volatile int &cursor2,
+  bool simplified_impostor_matrix)
 {
   rendinst::AutoLockReadPrimary lock;
   for (int index = interlocked_increment(cursor1) - 1; index < accel1.size(); index = interlocked_increment(cursor1) - 1)
@@ -501,9 +567,9 @@ void rendinst::foreachRiGenInstance(RiGenVisibility *visibility, RiGenIterator c
     TIME_PROFILE(process_lod_1);
 
     uint32_t key = accel1[index];
-    int _layer = (key >> 29) & 0x7;
-    int lodIx = (key >> 26) & 0x7;
-    int cellIx = key & 0x3FFFFFF;
+    int _layer = (key >> ACCEL_OFFSET_LAYER) & ACCEL_MASK_LAYER;
+    int lodIx = (key >> ACCEL_OFFSET_LOD) & ACCEL_MASK_LOD;
+    int cellIx = key & ACCEL_MASK_CELL;
 
     RiGenVisibility &layerVisibility = visibility[_layer];
     RendInstGenData *rgl = rendinst::rgLayer[_layer];
@@ -551,12 +617,18 @@ void rendinst::foreachRiGenInstance(RiGenVisibility *visibility, RiGenIterator c
       vec4f v_scale;
       vec4i paletteId;
       unpack_entity_data(instance_data, v_scale, paletteId);
-      rendinst::gen::RotationPaletteManager::Palette palette =
-        rendinst::gen::get_rotation_palette_manager()->getPalette({_layer, pool_idx});
-      quat4f v_rot = rendinst::gen::RotationPaletteManager::get_quat(palette, v_extract_xi(paletteId));
-
       mat44f tm;
-      v_mat44_compose(tm, v_pos, v_rot, v_scale);
+      if (EASTL_LIKELY(simplified_impostor_matrix && isBakedImpostor && isImpostorLod))
+      {
+        v_mat44_compose(tm, v_pos, V_C_UNIT_0001, v_scale);
+      }
+      else
+      {
+        rendinst::gen::RotationPaletteManager::Palette palette =
+          rendinst::gen::get_rotation_palette_manager()->getPalette({_layer, pool_idx});
+        quat4f v_rot = rendinst::gen::RotationPaletteManager::get_quat(palette, v_extract_xi(paletteId));
+        v_mat44_compose(tm, v_pos, v_rot, v_scale);
+      }
 
       auto colors = &rgl->rtData->riColPair[pool_idx * 2];
 
@@ -570,9 +642,9 @@ void rendinst::foreachRiGenInstance(RiGenVisibility *visibility, RiGenIterator c
     TIME_PROFILE(process_lod_2);
 
     uint64_t key = accel2[index];
-    int _layer = (key >> 61) & 0x7;
-    int lodIx = (key >> 58) & 0x7;
-    int poolIx = (key >> 32) & 0x3FFFFFF;
+    int _layer = (key >> (32 + ACCEL_OFFSET_LAYER)) & ACCEL_MASK_LAYER;
+    int lodIx = (key >> (32 + ACCEL_OFFSET_LOD)) & ACCEL_MASK_LOD;
+    int poolIx = (key >> 32) & ACCEL_MASK_CELL;
     int iter = key & 0xFFFFFFFFU;
 
     RiGenVisibility &layerVisibility = visibility[_layer];
@@ -617,10 +689,15 @@ void rendinst::foreachRiGenInstance(RiGenVisibility *visibility, RiGenIterator c
             vec4f v_pos, v_scale;
             vec4i v_palette_id;
             rendinst::gen::unpack_tm_pos(v_pos, v_scale, data, v_cell_add, v_cell_mul, palette_rotation, &v_palette_id);
-
-            quat4f v_rot = rendinst::gen::RotationPaletteManager::get_quat(palette, v_extract_xi(v_palette_id));
-
-            v_mat44_compose(tm, v_pos, v_rot, v_scale);
+            if (EASTL_LIKELY(simplified_impostor_matrix && isImpostorLod))
+            {
+              v_mat44_compose(tm, v_pos, V_C_UNIT_0001, v_scale);
+            }
+            else
+            {
+              quat4f v_rot = rendinst::gen::RotationPaletteManager::get_quat(palette, v_extract_xi(v_palette_id));
+              v_mat44_compose(tm, v_pos, v_rot, v_scale);
+            }
           }
           else
           {

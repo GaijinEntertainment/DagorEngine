@@ -18,19 +18,19 @@ public:
 
   RBHelper();
 
-  void InvalidateUI();
+  void InvalidateUI() override;
 
-  virtual void set_axis_color(GraphicsWindow *gw, INode *, int axis);
-  int Display(TimeValue t, INode *inode, ViewExp *vpt, int flags);
-  int HitTest(TimeValue t, INode *inode, int type, int crossing, int flags, IPoint2 *p, ViewExp *vpt);
+  void set_axis_color(GraphicsWindow *gw, INode *, int axis);
+  int Display(TimeValue t, INode *inode, ViewExp *vpt, int flags) override;
+  int HitTest(TimeValue t, INode *inode, int type, int crossing, int flags, IPoint2 *p, ViewExp *vpt) override;
 
-  void DeleteThis() { delete this; }
-  SClass_ID SuperClassID() { return HELPER_CLASS_ID; }
-  int IsRenderable() { return 0; }
-  int UsesWireColor() { return 1; }
-  int DoOwnSelectHilite() { return 1; }
+  void DeleteThis() override { delete this; }
+  SClass_ID SuperClassID() override { return HELPER_CLASS_ID; }
+  int IsRenderable() override { return 0; }
+  int UsesWireColor() override { return 1; }
+  int DoOwnSelectHilite() override { return 1; }
 
-  CreateMouseCallBack *GetCreateMouseCallBack();
+  CreateMouseCallBack *GetCreateMouseCallBack() override;
 #if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
   const MCHAR *GetObjectName(bool localized = true) { return GetString(IDS_Dummy); }
 #else
@@ -43,26 +43,26 @@ public:
     return GetString(IDS_RBHelper);
   }
 #endif
-  RefTargetHandle Clone(RemapDir &remap = NoRemap());
+  RefTargetHandle Clone(RemapDir &remap) override;
 
-  BOOL OKtoDisplay(TimeValue t);
-  ParamDimension *GetParameterDim(int pbIndex);
+  BOOL OKtoDisplay(TimeValue t) override;
+  ParamDimension *GetParameterDim(int pbIndex) override;
 #if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
-  MSTR GetParameterName(int pbIndex, bool localized) { return MSTR(_T("???")); }
+  MSTR GetParameterName(int pbIndex, bool localized) override { return MSTR(_T("???")); }
 #else
-  TSTR GetParameterName(int pbIndex) { return TSTR(_T("???")); }
+  TSTR GetParameterName(int pbIndex) override { return TSTR(_T("???")); }
 #endif
 
-  void BeginEditParams(IObjParam *ip, ULONG flags, Animatable *prev);
-  void EndEditParams(IObjParam *ip, ULONG flags, Animatable *next);
+  void BeginEditParams(IObjParam *ip, ULONG flags, Animatable *prev) override;
+  void EndEditParams(IObjParam *ip, ULONG flags, Animatable *next) override;
 
-  void BuildMesh(TimeValue);
+  void BuildMesh(TimeValue) override;
   void DrawIt(GraphicsWindow *gw, TimeValue t, INode *inode, int sel, int flags, ViewExp *vpt);
-  void GetLocalBoundBox(TimeValue t, INode *inode, ViewExp *vpt, Box3 &box);
-  void GetWorldBoundBox(TimeValue t, INode *inode, ViewExp *vpt, Box3 &box);
-  void GetDeformBBox(TimeValue t, Box3 &box, Matrix3 *tm = NULL, BOOL useSel = FALSE);
+  void GetLocalBoundBox(TimeValue t, INode *inode, ViewExp *vpt, Box3 &box) override;
+  void GetWorldBoundBox(TimeValue t, INode *inode, ViewExp *vpt, Box3 &box) override;
+  void GetDeformBBox(TimeValue t, Box3 &box, Matrix3 *tm = NULL, BOOL useSel = FALSE) override;
 
-  Class_ID ClassID() { return RBDummy_CID; }
+  Class_ID ClassID() override { return RBDummy_CID; }
 };
 
 RBHelper *RBHelper::editOb = NULL;
@@ -137,13 +137,17 @@ float RBHelper::crtSize = 20.0f;
 class RBHelperClassDesc : public ClassDesc
 {
 public:
-  int IsPublic() { return TRUE; }
-  void *Create(BOOL loading = FALSE) { return new RBHelper(); }
-  const TCHAR *ClassName() { return GetString(IDS_RBHelper); }
+  int IsPublic() override { return TRUE; }
+  void *Create(BOOL loading = FALSE) override { return new RBHelper(); }
+  const TCHAR *ClassName() override { return GetString(IDS_RBHelper); }
+#if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
+  const MCHAR *NonLocalizedClassName() override { return ClassName(); }
+#else
   const MCHAR *NonLocalizedClassName() { return ClassName(); }
-  SClass_ID SuperClassID() { return HELPER_CLASS_ID; }
-  Class_ID ClassID() { return RBDummy_CID; }
-  const TCHAR *Category() { return GetString(IDS_DAGOR_CAT); }
+#endif
+  SClass_ID SuperClassID() override { return HELPER_CLASS_ID; }
+  Class_ID ClassID() override { return RBDummy_CID; }
+  const TCHAR *Category() override { return GetString(IDS_DAGOR_CAT); }
 };
 static RBHelperClassDesc RBHelperCD;
 
@@ -196,7 +200,7 @@ void RBHelper::EndEditParams(IObjParam *ip, ULONG flags, Animatable *next)
     pmapParam = NULL;
   }
 
-  pblock->GetValue(PB_SIZE, ip->GetTime(), crtSize, FOREVER);
+  pb_get_value(*pblock, PB_SIZE, ip->GetTime(), crtSize);
 }
 
 class RBHelperCreateCallBack : public CreateMouseCallBack
@@ -206,7 +210,7 @@ class RBHelperCreateCallBack : public CreateMouseCallBack
   Point3 p0, p1;
 
 public:
-  int proc(ViewExp *vpt, int msg, int point, int flags, IPoint2 m, Matrix3 &mat);
+  int proc(ViewExp *vpt, int msg, int point, int flags, IPoint2 m, Matrix3 &mat) override;
   void SetObj(RBHelper *obj) { ob = obj; }
 };
 
@@ -259,7 +263,7 @@ CreateMouseCallBack *RBHelper::GetCreateMouseCallBack()
 BOOL RBHelper::OKtoDisplay(TimeValue t)
 {
   float r;
-  pblock->GetValue(PB_SIZE, t, r, FOREVER);
+  pb_get_value(*pblock, PB_SIZE, t, r);
   if (r == 0.0f)
     return FALSE;
   else
@@ -302,7 +306,7 @@ void RBHelper::DrawIt(GraphicsWindow *gw, TimeValue t, INode *inode, int sel, in
   Matrix3 tm = inode->GetNodeTM(t);
   Point3 vx, vy, vz, p0, p[9];
   float sz;
-  pblock->GetValue(PB_SIZE, t, sz, FOREVER);
+  pb_get_value(*pblock, PB_SIZE, t, sz);
   vx = tm.GetRow(0) * sz;
   vy = tm.GetRow(1) * sz;
   vz = tm.GetRow(2) * sz;
@@ -349,7 +353,7 @@ void RBHelper::GetLocalBoundBox(TimeValue t, INode *inode, ViewExp *vpt, Box3 &b
   UpdateMesh(t);
   Matrix3 mat = Inverse(inode->GetNodeTM(t));
   float sz;
-  pblock->GetValue(PB_SIZE, t, sz, FOREVER);
+  pb_get_value(*pblock, PB_SIZE, t, sz);
   box.MakeCube(Point3(0, 0, 0), sz * 2);
 }
 
@@ -365,7 +369,7 @@ void RBHelper::GetDeformBBox(TimeValue t, Box3 &box, Matrix3 *tm, BOOL useSel)
 {
   UpdateMesh(t);
   float sz;
-  pblock->GetValue(PB_SIZE, t, sz, FOREVER);
+  pb_get_value(*pblock, PB_SIZE, t, sz);
   box.MakeCube(Point3(0, 0, 0), sz * 2);
   if (tm)
     box = box * (*tm);

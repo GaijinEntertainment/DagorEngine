@@ -39,9 +39,10 @@
 
 using hdpi::_pxScaled;
 
+static constexpr const char *default_global_paint_details_texture = "assets_color_global_tex_palette";
+
 extern ISkiesService *av_skies_srv;
 extern SimpleString av_skies_preset, av_skies_env, av_skies_wtype;
-static bool av_skies_grp_hidden = false, av_debug_grp_hidden = false, av_envtex_grp_hidden = true;
 extern IWindService *av_wind_srv;
 
 extern TEXTUREID load_land_micro_details(const DataBlock &micro);
@@ -68,6 +69,9 @@ static void decode_rel_fname(String &dest, const char *src);
 
 namespace environment
 {
+
+class EnvSetDlg;
+
 static BaseTexture *texture = NULL;
 static TEXTUREID texId = BAD_TEXTUREID;
 static int textureStretch = 0;
@@ -87,6 +91,7 @@ enum
   PID_SETTINGS_GROUP,
   PID_RDBG_GROUP,
   PID_TEX_GROUP,
+  PID_RENDER_GROUP,
 
   PID_SUN_AZIMUT,
   PID_SUN_ZENITH,
@@ -106,6 +111,7 @@ enum
   PID_REF_TEXTURE,
   PID_ENV_LEVEL_MICRODETAIL,
   PID_ENV_LEVEL_MICRODETAIL_LIST,
+  PID_GLOBAL_PAINT_DETAILS_TEXTURE,
   PID_PAINT_DETAILS_TEXTURE,
 
   PID_ENV_REND_GRID,
@@ -116,7 +122,8 @@ enum
   PID_SHADOW_QUALITY,
   PID_EXPOSURE,
   PID_RENDER_OPT,
-  PID_RENDER_OPT_LAST = PID_RENDER_OPT + IDynRenderService::ROPT_COUNT,
+  PID_RENDER_OPT_LAST = PID_RENDER_OPT + int(IDynRenderService::ROPT_COUNT),
+  PID_GAMEOBJ_VISIBLE,
 
   PID_LTDBG_GROUP,
   PID_LTDBG_NMAP,
@@ -128,6 +135,7 @@ enum
   PID_WEATHER_PRESET,
   PID_WEATHER_ENV,
   PID_WEATHER_TYPE,
+  PID_WEATHER_TIMEOFDAY,
 
   PID_DBGSHOW_GRP,
   PID_DBGSHOW_MODE,
@@ -147,14 +155,15 @@ enum
 };
 
 
-static SunLightProps savedSunProps;
-static AssetLightData savedAld;
 static DataBlock ShGlobVars;
 
 static bool supportRenderDebug = false;
 static int rdbgEnabledGvid = -1;
 static int rdbgTypeGvid = -1, rdbgUseNmapGvid = -1, rdbgUseDtexGvid = -1, rdbgUseLtGvid = -1;
 static int rdbgUseChromeGvid = -1;
+
+static eastl::unique_ptr<EnvSetDlg> environment_settings_dialog;
+static DataBlock av_ui_state;
 
 static inline void clearTex()
 {
@@ -163,21 +172,6 @@ static inline void clearTex()
   texId = BAD_TEXTUREID;
 
   texture = NULL;
-}
-
-static E3DCOLOR color4ToE3dcolor(Color4 col, float &brightness)
-{
-  brightness = col.r;
-  if (col.g > brightness)
-    brightness = col.g;
-  if (col.b > brightness)
-    brightness = col.b;
-
-  if (brightness <= 0.0)
-    return E3DCOLOR(0, 0, 0, 0);
-
-  col *= 255.0 / brightness;
-  return E3DCOLOR(col.r, col.g, col.b, col.a);
 }
 
 static void detectRenderDebug()
@@ -263,9 +257,11 @@ void renderEnvironment(bool ortho)
   shaders::overrides::set_master_state(state);
   d3d::setwire(false);
 
-  if (texture->restype() == RES3D_TEX || texture->restype() == RES3D_VOLTEX)
+  if (texture->getType() == D3DResourceType::TEX || texture->getType() == D3DResourceType::VOLTEX)
   {
-    texture->texaddr(TEXADDR_MIRROR);
+    d3d::SamplerInfo smpInfo;
+    smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Mirror;
+    d3d::SamplerHandle smp = d3d::request_sampler(smpInfo);
     Color4 scales(0.5, -0.5, 0.5, 0.5);
     if (IGenViewportWnd *vp = EDITORCORE->getViewport(0))
     {
@@ -290,20 +286,20 @@ void renderEnvironment(bool ortho)
       scales.set(sx * 0.5, -sy * 0.5, 0.5, 0.5);
     }
 
-    if (texture->restype() == RES3D_TEX)
-      EDITORCORE->queryEditorInterface<IDynRenderService>()->renderEnviBkgTexture(texture, scales);
-    else if (texture->restype() == RES3D_VOLTEX)
+    if (texture->getType() == D3DResourceType::TEX)
+      EDITORCORE->queryEditorInterface<IRenderHelperService>()->renderEnviBkgTexture(texture, smp, scales);
+    else if (texture->getType() == D3DResourceType::VOLTEX)
     {
       float z = 1.0f - abs(512 - (get_time_msec() / 8) % 1024) / 512.0f;
       float exposure = EDITORCORE->queryEditorInterface<IDynRenderService>()->getExposure();
-      EDITORCORE->queryEditorInterface<IDynRenderService>()->renderEnviVolTexture(texture, Color4(1, 1, 1, 1) * exposure,
+      EDITORCORE->queryEditorInterface<IRenderHelperService>()->renderEnviVolTexture(texture, smp, Color4(1, 1, 1, 1) * exposure,
         Color4(0, 0, 0, 1), scales, z);
     }
   }
-  else if (texture->restype() == RES3D_CUBETEX && !ortho)
+  else if (texture->getType() == D3DResourceType::CUBETEX && !ortho)
   {
     float exposure = EDITORCORE->queryEditorInterface<IDynRenderService>()->getExposure();
-    EDITORCORE->queryEditorInterface<IDynRenderService>()->renderEnviCubeTexture(texture, Color4(1, 1, 1, 1) * exposure,
+    EDITORCORE->queryEditorInterface<IRenderHelperService>()->renderEnviCubeTexture(texture, Color4(1, 1, 1, 1) * exposure,
       Color4(0, 0, 0, 1));
   }
 
@@ -350,7 +346,11 @@ const char *getEnviTitleStr(AssetLightData *ald)
   return s;
 }
 
-void clear() { clearTex(); }
+void clear()
+{
+  clearTex();
+  close_environment_settings_dialog();
+}
 
 void setUseSinglePaintColor(bool use) { useSinglePaintColor = use; }
 
@@ -375,7 +375,7 @@ static void createSinglePaintColorTex()
   environment::combinedPaintTex->getinfo(texInfo);
 
   environment::singlePaintColorTex =
-    dag::create_tex(nullptr, texInfo.w, texInfo.h, TEXFMT_A8R8G8B8 | TEXCF_SRGBREAD, 1, "single_paint_color_tex").release();
+    d3d::create_tex(nullptr, texInfo.w, texInfo.h, TEXFMT_A8R8G8B8 | TEXCF_SRGBREAD, 1, "single_paint_color_tex");
 
   if (!environment::singlePaintColorTex)
   {
@@ -383,16 +383,18 @@ static void createSinglePaintColorTex()
     return;
   }
 
-  environment::singlePaintColorTex->texfilter(TEXFILTER_POINT);
   environment::singlePaintColorTexId = register_managed_tex("single_paint_color_tex", environment::singlePaintColorTex);
+  d3d::SamplerInfo smpInfo;
+  smpInfo.filter_mode = d3d::FilterMode::Point;
+  ShaderGlobal::set_sampler(get_shader_variable_id("paint_details_tex_samplerstate", true), d3d::request_sampler(smpInfo));
 }
 
-static void fillTextureWithColor(BaseTexture &texture, uint32_t color)
+static void fillTextureWithColor(BaseTexture &tex, uint32_t color)
 {
   TextureInfo textureInfo;
-  texture.getinfo(textureInfo);
+  tex.getinfo(textureInfo);
 
-  LockedImage2DView<uint32_t> lockedTexture = lock_texture<uint32_t>(&texture, 0, TEXLOCK_WRITE);
+  LockedImage2DView<uint32_t> lockedTexture = lock_texture<uint32_t>(&tex, 0, TEXLOCK_WRITE);
   if (!lockedTexture)
     return;
 
@@ -426,9 +428,7 @@ class EnvSetDlg : public PropPanel::DialogWindow
 {
 public:
   EnvSetDlg(void *handle, SunLightProps *sun_props, AssetLightData *al_data) :
-    DialogWindow(handle, _pxScaled(540), _pxScaled(760 - (supportRenderDebug ? 0 : 120)), "Environment Settings"),
-    sunProps(sun_props),
-    ald(al_data)
+    DialogWindow(handle, _pxScaled(300), _pxScaled(300), "Environment Settings"), sunProps(sun_props), ald(al_data)
   {
     IDynRenderService *drSrv = EDITORCORE->queryEditorInterface<IDynRenderService>();
     PropPanel::ContainerPropertyControl *_panel = getPanel();
@@ -437,7 +437,7 @@ public:
     G_ASSERT(sun_props && "Sun properties is NULL in EnvSetDlg");
     G_ASSERT(al_data && "AlData is NULL in EnvSetDlg");
 
-    PropPanel::ContainerPropertyControl *_settings = drSrv->hasEnvironmentSnapshot()
+    PropPanel::ContainerPropertyControl *_settings = drSrv->hasEnvironmentSnapshot() || get_app().dngBasedSceneRenderUsed()
                                                        ? NULL
                                                        : (av_skies_srv ? _panel->createGroup(PID_SETTINGS_GROUP, "Settings")
                                                                        : _panel->createGroupBox(PID_SETTINGS_GROUP, "Settings"));
@@ -463,7 +463,6 @@ public:
       for (int i = 0; i < modes.size(); i++)
         _dbgShowRG->createRadio(i, modes[i]);
       _dbgShow->setInt(PID_DBGSHOW_MODE, drSrv->getDebugShowType());
-      _dbgShow->setBoolValue(av_debug_grp_hidden);
     }
 
     if (supportRenderDebug)
@@ -513,9 +512,21 @@ public:
       if (!ald->envTextureName.empty())
         _panel->setText(PID_ENV_TEXTURE, ald->envTextureName);
 
+      _tex->createStatic(-1, "global paint details texture");
+      _tex->createButton(PID_GLOBAL_PAINT_DETAILS_TEXTURE, "", false);
+      _tex->setTooltipId(PID_GLOBAL_PAINT_DETAILS_TEXTURE,
+        String(0,
+          "The global paint details texture cannot be edited.\nIts value comes from the selected level BLK file.\nIt uses %s if it is "
+          "not set in level BLK.",
+          default_global_paint_details_texture));
+      updateGlobalPaintDetailsTexture();
+
       _tex->createStatic(-1, "paint details texture");
-      _tex->createButton(PID_PAINT_DETAILS_TEXTURE,
-        ald->paintDetailsTexAsset.empty() ? "-- no palette tex --" : ald->paintDetailsTexAsset.str());
+      _tex->createButton(PID_PAINT_DETAILS_TEXTURE, "");
+      _tex->setTooltipId(PID_PAINT_DETAILS_TEXTURE,
+        "The manually set value overrides the default value that comes from the selected level BLK file.\nIf not set (neither "
+        "manually nor in the level BLK) then it uses the global paint details texture.");
+      updatePaintDetailsTexture();
 
       Tab<String> bkg_s;
       bkg_s.push_back() = "Tile, original size";
@@ -533,7 +544,7 @@ public:
 
       _masks.clear();
       _masks.push_back() = "Level BLK files|*.blk";
-      _tex->createFileButton(PID_ENV_LEVEL_MICRODETAIL, "Level BLK (for microdetails texture)");
+      _tex->createFileButton(PID_ENV_LEVEL_MICRODETAIL, "Level BLK (for global paint details and microdetails textures)");
       _panel->setStrings(PID_ENV_LEVEL_MICRODETAIL, _masks);
       if (!ald->envLevelBlkFn.empty())
         _panel->setText(PID_ENV_LEVEL_MICRODETAIL, ald->envLevelBlkFn);
@@ -561,32 +572,41 @@ public:
         }
       }
     }
-    if (addWeatherPanel(_panel, drSrv))
-      _settings->setBoolValue(true);
 
+    addWeatherPanel(_panel, drSrv);
     addAmbientWindPanel(_panel);
 
-    _tex->setBoolValue(av_envtex_grp_hidden);
-    _panel->createCheckBox(PID_ENV_REND_GRID, "render grid", get_app().getGrid().isVisible(0));
-    for (int i = 0; i < drSrv->ROPT_COUNT; i++)
-      if (drSrv->getRenderOptSupported(i))
-        _panel->createCheckBox(PID_RENDER_OPT + i, drSrv->getRenderOptName(i), drSrv->getRenderOptEnabled(i));
-    if (drSrv->getShadowQualityNames().size() > 0 && drSrv->getShadowQualityNames()[0])
+    PropPanel::ContainerPropertyControl *renderGrp = _panel->createGroup(PID_RENDER_GROUP, "Render settings");
+
+    if (auto *gameObjSrv = IDaEditor3Engine::get().findService("_goEntMgr"))
+      renderGrp->createCheckBox(PID_GAMEOBJ_VISIBLE, "gameObj previews", gameObjSrv->getServiceVisible());
+
     {
-      Tab<String> shadowQualityStr;
-      shadowQualityStr.resize(drSrv->getShadowQualityNames().size());
-      for (int i = 0; i < shadowQualityStr.size(); i++)
-        shadowQualityStr[i] = drSrv->getShadowQualityNames()[i];
-      _panel->createCombo(PID_SHADOW_QUALITY, "shadow quality", shadowQualityStr, drSrv->getShadowQuality());
+      renderGrp->createCheckBox(PID_ENV_REND_GRID, "render grid", get_app().getGrid().isVisible(0));
+      for (int i = 0; i < drSrv->ROPT_COUNT; i++)
+        if (drSrv->getRenderOptSupported(i))
+          renderGrp->createCheckBox(PID_RENDER_OPT + i, drSrv->getRenderOptName(i), drSrv->getRenderOptEnabled(i));
+      if (drSrv->getShadowQualityNames().size() > 0 && drSrv->getShadowQualityNames()[0])
+      {
+        Tab<String> shadowQualityStr;
+        shadowQualityStr.resize(drSrv->getShadowQualityNames().size());
+        for (int i = 0; i < shadowQualityStr.size(); i++)
+          shadowQualityStr[i] = drSrv->getShadowQualityNames()[i];
+        renderGrp->createCombo(PID_SHADOW_QUALITY, "shadow quality", shadowQualityStr, drSrv->getShadowQuality());
+      }
+      if (drSrv->hasExposure())
+        renderGrp->createTrackFloatLogarithmic(PID_EXPOSURE, "exposure (0-32 logarithmic)", drSrv->getExposure(), 0.0f, 32.0f, 0.0f,
+          sqrt(32.0f));
+      renderGrp->createSeparator();
+      renderGrp->createCheckBox(PID_ENV_REND_ENTITY, "render envi entity", ald->renderEnviEnt);
+      renderGrp->createButton(PID_ENV_SELECT_ENTITY,
+        ald->renderEnviEntAsset.empty() ? "-- no envi entity --" : ald->renderEnviEntAsset);
+      renderGrp->createPoint3(PID_ENV_ENTITY_POS, "render envi entity at", ald->renderEnviEntPos);
     }
-    if (drSrv->hasExposure())
-      _panel->createTrackFloatLogarithmic(PID_EXPOSURE, "exposure (0-10 logarithmic)", drSrv->getExposure(), 0.0f, 10.0f, 0.0f,
-        sqrt(10.0f));
-    _panel->createSeparator();
-    _panel->createCheckBox(PID_ENV_REND_ENTITY, "render envi entity", ald->renderEnviEnt);
-    _panel->createButton(PID_ENV_SELECT_ENTITY, ald->renderEnviEntAsset.empty() ? "-- no envi entity --" : ald->renderEnviEntAsset);
-    _panel->createPoint3(PID_ENV_ENTITY_POS, "render envi entity at", ald->renderEnviEntPos);
   }
+
+  ~EnvSetDlg() override { releaseShaderScheme(); }
+
   void setAmbientWindPanel(PropPanel::ContainerPropertyControl *_panel)
   {
     _panel->setBool(PID_WIND_ENABLED, windPreview.enabled);
@@ -634,23 +654,27 @@ public:
       Tab<String> preset(midmem), env(midmem), wtype(midmem);
       av_skies_srv->fillPresets(preset, env, wtype);
 
+      float local_time = av_skies_srv->getAppliedWeatherDesc().getReal("locTime", 12.0f);
+      _skies->createTrackFloat(PID_WEATHER_TIMEOFDAY, "Time of day", local_time, 0.f, 24.f, 0.1);
       insert_item_at(preset, 0, String("-- Disable daSkies --"));
       _skies->createList(PID_WEATHER_PRESET, "Weather presets", preset,
         av_skies_preset.empty() ? preset[0].str() : av_skies_preset.str());
-      _skies->createList(PID_WEATHER_ENV, "Environment types", env, av_skies_env);
-      _skies->createList(PID_WEATHER_TYPE, "Weather types", wtype, av_skies_wtype);
-
       _skies->getById(PID_WEATHER_PRESET)->setHeight(_pxScaled(80));
-      _skies->getById(PID_WEATHER_ENV)->setHeight(_pxScaled(80));
-      _skies->getById(PID_WEATHER_TYPE)->setHeight(_pxScaled(80));
-      _skies->setBoolValue(av_skies_grp_hidden);
+
+      if (preset.size() > 1)
+      {
+        _skies->createList(PID_WEATHER_ENV, "Environment types", env, av_skies_env);
+        _skies->createList(PID_WEATHER_TYPE, "Weather types", wtype, av_skies_wtype);
+        _skies->getById(PID_WEATHER_ENV)->setHeight(_pxScaled(80));
+        _skies->getById(PID_WEATHER_TYPE)->setHeight(_pxScaled(80));
+      }
       return true;
     }
     return false;
   }
 
 
-  virtual void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel)
+  void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) override
   {
     switch (pcb_id)
     {
@@ -664,10 +688,11 @@ public:
         }
         break;
       case PID_PAINT_DETAILS_TEXTURE:
-        if (const char *asset = DAEDITOR3.selectAssetX(ald->paintDetailsTexAsset, "Select palette texture", "tex", "palette", true))
+        if (const char *asset =
+              DAEDITOR3.selectAssetX(ald->getPaintDetailsTexAssetToLoad(), "Select palette texture", "tex", "palette", true))
         {
           ald->paintDetailsTexAsset = asset;
-          panel->setCaption(pcb_id, ald->paintDetailsTexAsset.empty() ? "-- no palette tex --" : ald->paintDetailsTexAsset);
+          updatePaintDetailsTexture();
           ald->setPaintDetailsTexture();
         }
         break;
@@ -675,7 +700,7 @@ public:
   }
 
 
-  virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel)
+  void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override
   {
     IDynRenderService *drSrv = EDITORCORE->queryEditorInterface<IDynRenderService>();
     switch (pcb_id)
@@ -733,16 +758,19 @@ public:
             ald->envLevelBlkFn = fn;
           panel->setText(PID_ENV_LEVEL_MICRODETAIL, ald->envLevelBlkFn);
           panel->setText(PID_ENV_LEVEL_MICRODETAIL_LIST, dd_file_exists(ald->envLevelBlkFn) ? ald->envLevelBlkFn : "--");
-          ald->applyMicrodetailFromLevelBlk();
+          ald->applySettingsFromLevelBlk();
         }
         else
         {
           ald->envLevelBlkFn = NULL;
           panel->setText(PID_ENV_LEVEL_MICRODETAIL, ald->envLevelBlkFn);
           panel->setText(PID_ENV_LEVEL_MICRODETAIL_LIST, "--");
-          ald->applyMicrodetailFromLevelBlk();
+          ald->applySettingsFromLevelBlk();
           updateLight();
         }
+
+        updateGlobalPaintDetailsTexture();
+        updatePaintDetailsTexture();
       }
       break;
       case PID_ENV_TEXTURE_STRETCH: textureStretch = ald->envTextureStretch = panel->getInt(pcb_id); break;
@@ -806,6 +834,13 @@ public:
         updateLight();
       }
       break;
+
+      case PID_GAMEOBJ_VISIBLE:
+      {
+        if (auto *gameObjSrv = IDaEditor3Engine::get().findService("_goEntMgr"))
+          gameObjSrv->setServiceVisible(panel->getBool(pcb_id));
+        break;
+      }
 
       case PID_SHADOW_QUALITY: drSrv->setShadowQuality(panel->getInt(pcb_id)); break;
 
@@ -883,12 +918,26 @@ public:
           else if (pcb_id == PID_WEATHER_TYPE)
             av_skies_wtype = wtype[panel->getInt(pcb_id)];
           else if (pcb_id == PID_WEATHER_ENV)
+          {
             av_skies_env = env[panel->getInt(pcb_id)];
+            av_skies_srv->overrideWeather(0, nullptr, nullptr, -1, nullptr, nullptr);
+          }
 
           if (!av_skies_preset.empty() && !av_skies_env.empty() && !av_skies_wtype.empty())
+          {
             av_skies_srv->setWeather(av_skies_preset, av_skies_env, av_skies_wtype);
+            panel->setFloat(PID_WEATHER_TIMEOFDAY, av_skies_srv->getAppliedWeatherDesc().getReal("locTime", 12.0f));
+          }
           updateLight();
           EDITORCORE->actObjects(1e-3); // to update use_skies flag
+        }
+        break;
+      case PID_WEATHER_TIMEOFDAY:
+        if (av_skies_srv)
+        {
+          DataBlock stars;
+          stars.setReal("localTime", panel->getFloat(pcb_id));
+          av_skies_srv->overrideWeather(0, nullptr, nullptr, -1, nullptr, &stars);
         }
         break;
 
@@ -908,8 +957,6 @@ public:
           drSrv->setRenderOptEnabled(pcb_id - PID_RENDER_OPT, panel->getBool(pcb_id));
           if (drSrv->getRenderOptEnabled(pcb_id - PID_RENDER_OPT) != panel->getBool(pcb_id))
             panel->setBool(pcb_id, drSrv->getRenderOptEnabled(pcb_id - PID_RENDER_OPT));
-          else if (pcb_id == PID_RENDER_OPT + drSrv->ROPT_NO_POSTFX && !panel->getBool(pcb_id))
-            drSrv->renderFramesToGetStableAdaptation(0.1, 10);
         }
         else if (unsigned(pcb_id) > 0x00100000)
           if (scheme->getParams(schemeGrp, ShGlobVars))
@@ -917,10 +964,29 @@ public:
     }
   }
 
-  PropPanel::PropPanelScheme *scheme;
-  PropPanel::ContainerPropertyControl *schemeGrp;
+  PropPanel::PropPanelScheme *scheme = nullptr;
+  PropPanel::ContainerPropertyControl *schemeGrp = nullptr;
 
 protected:
+  void releaseShaderScheme()
+  {
+    if (schemeGrp)
+      schemeGrp->setEventHandler(nullptr);
+    del_it(scheme);
+  }
+
+  void updateGlobalPaintDetailsTexture()
+  {
+    getPanel()->setText(PID_GLOBAL_PAINT_DETAILS_TEXTURE,
+      ald->globalPaintDetailsTexAsset.empty() ? "-- no palette tex --" : ald->globalPaintDetailsTexAsset.c_str());
+  }
+
+  void updatePaintDetailsTexture()
+  {
+    getPanel()->setText(PID_PAINT_DETAILS_TEXTURE,
+      ald->getPaintDetailsTexAssetToLoad().empty() ? "-- no palette tex --" : ald->getPaintDetailsTexAssetToLoad().c_str());
+  }
+
   SunLightProps *sunProps;
   AssetLightData *ald;
 };
@@ -930,85 +996,68 @@ protected:
 void show_environment_settings(void *handle, AssetLightData *ald)
 {
   ISceneLightService *ltSrv = EDITORCORE->queryEditorInterface<ISceneLightService>();
-  IDynRenderService *drSrv = EDITORCORE->queryEditorInterface<IDynRenderService>();
-
   G_ASSERT(ltSrv && "show_environment_settings: EDITORCORE has no interface!!!");
 
   if (ltSrv->getSunCount() == 0)
+  {
+    logerr("Sun count is zero. The environment dialog will not be displayed.");
     return;
-
-  SunLightProps *defSun = ltSrv->getSun(0);
-
-  savedSunProps = *defSun;
-  savedAld = *ald;
-  savedAld.renderEnviEntity = NULL;
-  bool saved_grid = get_app().getGrid().isVisible(0);
-  int saved_dstype = drSrv->getDebugShowType();
-  bool saved_ropt[drSrv->ROPT_COUNT];
-  for (int i = 0; i < drSrv->ROPT_COUNT; i++)
-    saved_ropt[i] = drSrv->getRenderOptEnabled(i);
-  bool savedShadowQ = drSrv->getShadowQuality();
-
-  SkyLightProps &sky = ltSrv->getSky();
-  SkyLightProps skyProps = sky;
-
-  EnvSetDlg envSetDlg(handle, defSun, ald);
-  envSetDlg.autoSize();
-
-  // ImGui scrolls to the focused item, which in this case is at the bottom and requires scrolling. Prevent that.
-  envSetDlg.setInitialFocus(PropPanel::DIALOG_ID_NONE);
-
-  // global shader vars fill
-
-  PropPanel::ContainerPropertyControl *grp = envSetDlg.getPanel()->createGroup(PID_SHGLVAR_GRP, "Shader global vars");
-  grp->setEventHandler(&envSetDlg);
-
-  DataBlock appBlk(::get_app().getWorkspace().getAppPath());
-  DataBlock schemeBlk;
-  schemeBlk.setFrom(appBlk.getBlockByNameEx("shader_glob_vars_scheme"));
-
-  PropPanel::PropPanelScheme *scheme = grp->createSceme();
-  scheme->load(schemeBlk, true);
-  scheme->setParams(grp, ShGlobVars);
-  grp->setBoolValue(true);
-  envSetDlg.scheme = scheme;
-  envSetDlg.schemeGrp = grp;
-  DataBlock old_ShGlobVars;
-  old_ShGlobVars = ShGlobVars;
-
-  // show dialog
-
-  if (envSetDlg.showDialog() == PropPanel::DIALOG_ID_CANCEL)
-  {
-    *defSun = savedSunProps;
-    destroy_it(ald->renderEnviEntity);
-    *ald = savedAld;
-    sky = skyProps;
-    get_app().getGrid().setVisible(saved_grid, 0);
-    drSrv->setDebugShowType(saved_dstype);
-    for (int i = 0; i < drSrv->ROPT_COUNT; i++)
-      drSrv->setRenderOptEnabled(i, saved_ropt[i]);
-    drSrv->setShadowQuality(savedShadowQ);
-
-    ald->setEnvironmentTexture(false);
-    ald->applyMicrodetailFromLevelBlk();
-    applyRenderDebug(*ald);
-    ShGlobVars = old_ShGlobVars;
-    ShaderGlobal::set_vars_from_blk(ShGlobVars);
-    drSrv->renderFramesToGetStableAdaptation(0.1, 10);
   }
+
+  if (!environment_settings_dialog)
+  {
+    SunLightProps *defSun = ltSrv->getSun(0);
+    environment_settings_dialog.reset(new EnvSetDlg(handle, defSun, ald));
+    environment_settings_dialog->setDialogButtonText(PropPanel::DIALOG_ID_OK, "Close");
+    environment_settings_dialog->removeDialogButton(PropPanel::DIALOG_ID_CANCEL);
+
+    // ImGui scrolls to the focused item, which in this case is at the bottom and requires scrolling. Prevent that.
+    environment_settings_dialog->setInitialFocus(PropPanel::DIALOG_ID_NONE);
+
+    // global shader vars fill
+
+    PropPanel::ContainerPropertyControl *grp =
+      environment_settings_dialog->getPanel()->createGroup(PID_SHGLVAR_GRP, "Shader global vars");
+    grp->setEventHandler(environment_settings_dialog.get());
+
+    DataBlock appBlk(::get_app().getWorkspace().getAppPath());
+    DataBlock schemeBlk;
+    schemeBlk.setFrom(appBlk.getBlockByNameEx("shader_glob_vars_scheme"));
+
+    PropPanel::PropPanelScheme *scheme = grp->createSceme();
+    scheme->load(schemeBlk, true);
+    scheme->setParams(grp, ShGlobVars);
+    grp->setBoolValue(true);
+    environment_settings_dialog->scheme = scheme;
+    environment_settings_dialog->schemeGrp = grp;
+
+    if (!environment_settings_dialog->hasEverBeenShown())
+      environment_settings_dialog->setWindowSize(IPoint2(hdpi::_pxS(500), (int)(ImGui::GetIO().DisplaySize.y * 0.8f)));
+
+    environment_settings_dialog->getPanel()->loadState(av_ui_state, /*by_name = */ true);
+  }
+
+  if (environment_settings_dialog->isVisible())
+    environment_settings_dialog->hide();
   else
-  {
-    // global shader vars change
-    if (scheme->getParams(grp, ShGlobVars))
-      ShaderGlobal::set_vars_from_blk(ShGlobVars);
-  }
-  av_skies_grp_hidden = envSetDlg.getPanel()->getBool(PID_SKIES_GROUP);
-  av_debug_grp_hidden = envSetDlg.getPanel()->getBool(PID_DBGSHOW_GRP);
-  av_envtex_grp_hidden = envSetDlg.getPanel()->getBool(PID_TEX_GROUP);
+    environment_settings_dialog->show();
+}
 
-  grp->setEventHandler(NULL);
-  del_it(scheme);
+
+static void get_ui_state_from_dialog()
+{
+  if (environment_settings_dialog)
+  {
+    av_ui_state.clearData();
+    environment_settings_dialog->getPanel()->saveState(av_ui_state, /*by_name = */ true);
+  }
+}
+
+
+void close_environment_settings_dialog()
+{
+  get_ui_state_from_dialog();
+  environment_settings_dialog.reset();
 }
 
 
@@ -1034,7 +1083,6 @@ void load_settings(DataBlock &blk, AssetLightData *ald, const AssetLightData *al
 
   ald->paintDetailsTexAsset = ltData.getStr("paint_details_tex", NULL);
   ald->paintDetailsTexAsset = DagorAsset::fpath2asset(ald->paintDetailsTexAsset);
-  ald->setPaintDetailsTexture();
 
   ISceneLightService *ltSrv = EDITORCORE->queryEditorInterface<ISceneLightService>();
   if (ltSrv->getSunCount() > 0)
@@ -1063,6 +1111,10 @@ void load_settings(DataBlock &blk, AssetLightData *ald, const AssetLightData *al
     sky.brightness = envBlk.getReal("brightness", sky.brightness);
     sky.color = envBlk.getE3dcolor("color", sky.color);
   }
+
+  if (auto *gameObjSrv = IDaEditor3Engine::get().findService("_goEntMgr"))
+    gameObjSrv->setServiceVisible(blk.getBool("gameObjsVisible", true));
+
   rend_grid = blk.getBool("renderGrid", true);
   ald->renderEnviEnt = blk.getBool("renderEnviEnt", ald_def->renderEnviEnt);
   ald->renderEnviEntAsset = blk.getStr("renderEnviEntAsset", ald_def->renderEnviEntAsset);
@@ -1097,9 +1149,9 @@ void load_settings(DataBlock &blk, AssetLightData *ald, const AssetLightData *al
   if (drSrv->hasExposure())
     drSrv->setExposure(blk.getReal("exposure", appBlk.getReal("AV_defaultExposure", 1.0f)));
 
-  av_skies_grp_hidden = blk.getBool("av_skies_grp_hidden", av_skies_grp_hidden);
-  av_debug_grp_hidden = blk.getBool("av_debug_grp_hidden", av_debug_grp_hidden);
-  av_envtex_grp_hidden = blk.getBool("av_envtex_grp_hidden", av_envtex_grp_hidden);
+  av_ui_state.clearData();
+  if (const DataBlock *uiState = blk.getBlockByName("environmentSettingsUiState"))
+    av_ui_state.setFrom(uiState);
 
   IWindService::readSettingsBlk(windPreview, *blk.getBlockByNameEx("wind"));
   if (IWindService *windSrv = EDITORCORE->queryEditorInterface<IWindService>())
@@ -1107,7 +1159,7 @@ void load_settings(DataBlock &blk, AssetLightData *ald, const AssetLightData *al
 }
 
 
-void save_settings(DataBlock &blk, AssetLightData *ald, const AssetLightData *ald_def, bool &rend_grid)
+static void save_settings_internal(DataBlock &blk, AssetLightData *ald, const AssetLightData *ald_def, bool &rend_grid)
 {
   DataBlock &ltData = *blk.addBlock("AssetLight");
 
@@ -1162,6 +1214,10 @@ void save_settings(DataBlock &blk, AssetLightData *ald, const AssetLightData *al
 
   if (!rend_grid)
     blk.setBool("renderGrid", false);
+
+  if (auto *gameObjSrv = IDaEditor3Engine::get().findService("_goEntMgr"))
+    blk.setBool("gameObjsVisible", gameObjSrv->getServiceVisible());
+
   blk.setBool("renderEnviEnt", ald->renderEnviEnt);
   blk.setStr("renderEnviEntAsset", ald->renderEnviEntAsset);
   blk.setPoint3("renderEnviEntPos", ald->renderEnviEntPos);
@@ -1187,16 +1243,22 @@ void save_settings(DataBlock &blk, AssetLightData *ald, const AssetLightData *al
   DataBlock *sgv_values = blk.addBlock("shader_glob_var_values");
   if (sgv_values)
     sgv_values->setFrom(&ShGlobVars);
-  blk.setBool("av_skies_grp_hidden", av_skies_grp_hidden);
-  blk.setBool("av_debug_grp_hidden", av_debug_grp_hidden);
-  blk.setBool("av_envtex_grp_hidden", av_envtex_grp_hidden);
+
+  blk.addNewBlock(&av_ui_state, "environmentSettingsUiState");
 
   float zn = 0.1f, zf = 10000.0f;
   get_app().getViewport(0)->getZnearZfar(zn, zf);
   blk.setReal("av_znear", zn);
   blk.setReal("av_zfar", zf);
 }
-}; // namespace environment
+
+void save_settings(DataBlock &blk, AssetLightData *ald, const AssetLightData *ald_def, bool &rend_grid)
+{
+  get_ui_state_from_dialog();
+  save_settings_internal(blk, ald, ald_def, rend_grid);
+}
+
+} // namespace environment
 
 void environment::load_skies_settings(const DataBlock &blk)
 {
@@ -1212,18 +1274,17 @@ void environment::load_skies_settings(const DataBlock &blk)
   if (!dd_file_exists(ps))
   {
     ps = preset_str;
-    if (!dd_file_exists(ps))
-      ps = "";
+    if (!dd_file_exists(ps) && !ps.empty())
+      ps = preset.empty() ? "" : preset[0];
   }
   if (ps.empty())
     get_app().getConsole().addMessage(ILogWriter::ERROR, ".asset-local/_av.blk: skies { preset:t=\"%s\"  not found or not set",
       blk.getStr("preset", ""));
   else
-  {
-    dd_strlwr(ps);
     simplify_fname(ps);
-  }
   idx = find_value_idx(preset, ps);
+  if (idx < 0 && !ps.empty() && !preset.empty())
+    idx = 0;
   av_skies_preset = idx >= 0 ? preset[idx].str() : "";
 
   idx = find_value_idx(env, String(blk.getStr("env", "")));
@@ -1245,7 +1306,8 @@ void environment::save_skies_settings(DataBlock &blk)
 
 void environment::on_asset_changed(const DagorAsset &asset, AssetLightData &ald)
 {
-  if (strcmp(asset.getName(), ald.paintDetailsTexAsset) != 0 && strcmp(asset.getName(), "assets_color_global_tex_palette") != 0)
+  if (
+    strcmp(asset.getName(), ald.getPaintDetailsTexAssetToLoad()) != 0 && strcmp(asset.getName(), ald.globalPaintDetailsTexAsset) != 0)
     return;
 
   logdbg("Updating paint details texture asset %s", asset.getName());
@@ -1309,9 +1371,28 @@ void AssetLightData::setPaintDetailsTexture()
   static int paintDetailsVarId = get_shader_variable_id("paint_details_tex", true);
   String localPaintTexPath;
   TEXTUREID localPaintColorsTexId, globalPaintColorsTexId;
-  globalPaintColorsTexId = get_managed_texture_id("assets_color_global_tex_palette*");
-  if (!paintDetailsTexAsset.empty())
-    localPaintColorsTexId = get_managed_texture_id(String(0, "%s*", paintDetailsTexAsset));
+  globalPaintColorsTexId = get_managed_texture_id(String(0, "%s*", globalPaintDetailsTexAsset));
+  if (globalPaintColorsTexId == BAD_TEXTUREID)
+  {
+    DAEDITOR3.conWarning("Global paint details texture \"%s\" cannot be found. Using \"%s\" as fallback.",
+      globalPaintDetailsTexAsset.c_str(), default_global_paint_details_texture);
+    if (strcmp(globalPaintDetailsTexAsset, default_global_paint_details_texture) != 0)
+    {
+      globalPaintDetailsTexAsset = default_global_paint_details_texture;
+      globalPaintColorsTexId = get_managed_texture_id(String(0, "%s*", globalPaintDetailsTexAsset));
+    }
+  }
+
+  if (!getPaintDetailsTexAssetToLoad().empty())
+  {
+    localPaintColorsTexId = get_managed_texture_id(String(0, "%s*", getPaintDetailsTexAssetToLoad().c_str()));
+    if (localPaintColorsTexId == BAD_TEXTUREID)
+    {
+      DAEDITOR3.conWarning("Paint details texture \"%s\" cannot be found. Using the global paint details texture as fallback.",
+        getPaintDetailsTexAssetToLoad().c_str());
+      localPaintColorsTexId = globalPaintColorsTexId;
+    }
+  }
   else
     localPaintColorsTexId = globalPaintColorsTexId;
 
@@ -1327,36 +1408,29 @@ void AssetLightData::setPaintDetailsTexture()
   if (environment::combinedPaintTex)
   {
     environment::combinedPaintTexId = register_managed_tex("paint_details_tex", environment::combinedPaintTex);
-    environment::combinedPaintTex->texfilter(TEXFILTER_POINT);
     TextureInfo texInfo;
     environment::combinedPaintTex->getinfo(texInfo);
     ShaderGlobal::set_real(get_shader_variable_id("paint_details_tex_inv_h", true), safediv(1.f, (float)texInfo.h));
   }
   else if (VariableMap::isGlobVariablePresent(paintDetailsVarId))
     DAEDITOR3.conError("failed to create combined painting texture (globTid=0x%x(%s) localTid=0x%x paintDetailsTexAsset='%s' var=%d)",
-      globalPaintColorsTexId, get_managed_texture_name(globalPaintColorsTexId), localPaintColorsTexId, paintDetailsTexAsset,
+      globalPaintColorsTexId, get_managed_texture_name(globalPaintColorsTexId), localPaintColorsTexId, getPaintDetailsTexAssetToLoad(),
       paintDetailsVarId);
   release_managed_tex(globalPaintColorsTexId);
   release_managed_tex(localPaintColorsTexId);
   ShaderGlobal::set_texture(paintDetailsVarId, environment::combinedPaintTexId);
+  d3d::SamplerInfo smpInfo;
+  smpInfo.filter_mode = d3d::FilterMode::Point;
+  ShaderGlobal::set_sampler(get_shader_variable_id("paint_details_tex_samplerstate", true), d3d::request_sampler(smpInfo));
 
   ShaderGlobal::reset_from_vars_and_release_managed_tex_verified(environment::singlePaintColorTexId, environment::singlePaintColorTex);
   environment::updatePaintColorTexture();
 }
 
-void AssetLightData::applyMicrodetailFromLevelBlk()
+void AssetLightData::applyMicrodetailFromLevelBlk(const DataBlock &level_blk)
 {
   static DataBlock microDetails;
   static TEXTUREID landMicrodetailsId = BAD_TEXTUREID;
-
-  String abs_fn;
-  decode_rel_fname(abs_fn, envLevelBlkFn);
-  if (!dd_file_exists(abs_fn) && dd_file_exists(envLevelBlkFn))
-    abs_fn = envLevelBlkFn;
-
-  DataBlock level_blk;
-  if (!abs_fn.empty())
-    level_blk.load(abs_fn);
 
   const DataBlock &blk = *level_blk.getBlockByNameEx("micro_details");
   if (microDetails != blk)
@@ -1367,6 +1441,32 @@ void AssetLightData::applyMicrodetailFromLevelBlk()
     landMicrodetailsId = load_land_micro_details(blk);
     microDetails = blk;
   }
+
+  const char *appDir = get_app().getWorkspace().getAppDir();
+  String fname(260, "%sapplication.blk", appDir);
+  DataBlock appBlk(fname);
+
+  EDITORCORE->queryEditorInterface<IDynRenderService>()->reloadCharacterMicroDetails(*appBlk.getBlockByNameEx("dynamicDeferred"),
+    level_blk);
+}
+
+void AssetLightData::applySettingsFromLevelBlk()
+{
+  String abs_fn;
+  decode_rel_fname(abs_fn, envLevelBlkFn);
+  if (!dd_file_exists(abs_fn) && dd_file_exists(envLevelBlkFn))
+    abs_fn = envLevelBlkFn;
+
+  DataBlock level_blk;
+  if (!abs_fn.empty())
+    level_blk.load(abs_fn);
+
+  applyMicrodetailFromLevelBlk(level_blk);
+
+  globalPaintDetailsTexAsset = level_blk.getStr("global_paint_details_tex", default_global_paint_details_texture);
+  levelBlkPaintDetailsTexAsset = level_blk.getBlockByNameEx("shader_vars")->getStr("paint_details_tex", "");
+  levelBlkPaintDetailsTexAsset = DagorAsset::fpath2asset(levelBlkPaintDetailsTexAsset);
+  setPaintDetailsTexture();
 }
 
 void AssetLightData::loadDefaultSettings(DataBlock &app_blk)
@@ -1397,8 +1497,6 @@ void AssetLightData::loadDefaultSettings(DataBlock &app_blk)
   rdbgUseChrome = ltData.getBool("rdbgUseChrome", true);
 }
 
-
-static SunLightProps sunData;
 
 SunLightProps *AssetLightData::createSun()
 {

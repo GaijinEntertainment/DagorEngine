@@ -11,7 +11,7 @@
 #include <Jolt/Physics/Collision/CastResult.h>
 #include <Jolt/Physics/Collision/CollidePointResult.h>
 #include <Jolt/Physics/Collision/TransformedShape.h>
-#include <Jolt/Physics/SoftBody/SoftBodyVertex.h>
+#include <Jolt/Physics/Collision/CollideSoftBodyVertexIterator.h>
 #include <Jolt/Geometry/RayAABox.h>
 #include <Jolt/ObjectStream/TypeDeclarations.h>
 #include <Jolt/Core/StreamIn.h>
@@ -59,7 +59,7 @@ BoxShape::BoxShape(const BoxShapeSettings &inSettings, ShapeResult &outResult) :
 {
 	// Check convex radius
 	if (inSettings.mConvexRadius < 0.0f
-		|| inSettings.mHalfExtent.ReduceMin() <= inSettings.mConvexRadius)
+		|| inSettings.mHalfExtent.ReduceMin() < inSettings.mConvexRadius)
 	{
 		outResult.SetError("Invalid convex radius");
 		return;
@@ -206,7 +206,7 @@ void BoxShape::CastRay(const RayCast &inRay, const RayCastSettings &inRayCastSet
 		}
 
 		// Check back side hit
-		if (inRayCastSettings.mBackFaceMode == EBackFaceMode::CollideWithBackFaces
+		if (inRayCastSettings.mBackFaceModeConvex == EBackFaceMode::CollideWithBackFaces
 			&& max_fraction < ioCollector.GetEarlyOutFraction())
 		{
 			hit.mFraction = max_fraction;
@@ -225,16 +225,16 @@ void BoxShape::CollidePoint(Vec3Arg inPoint, const SubShapeIDCreator &inSubShape
 		ioCollector.AddHit({ TransformedShape::sGetBodyID(ioCollector.GetContext()), inSubShapeIDCreator.GetID() });
 }
 
-void BoxShape::CollideSoftBodyVertices(Mat44Arg inCenterOfMassTransform, Vec3Arg inScale, SoftBodyVertex *ioVertices, uint inNumVertices, [[maybe_unused]] float inDeltaTime, [[maybe_unused]] Vec3Arg inDisplacementDueToGravity, int inCollidingShapeIndex) const
+void BoxShape::CollideSoftBodyVertices(Mat44Arg inCenterOfMassTransform, Vec3Arg inScale, const CollideSoftBodyVertexIterator &inVertices, uint inNumVertices, int inCollidingShapeIndex) const
 {
 	Mat44 inverse_transform = inCenterOfMassTransform.InversedRotationTranslation();
 	Vec3 half_extent = inScale.Abs() * mHalfExtent;
 
-	for (SoftBodyVertex *v = ioVertices, *sbv_end = ioVertices + inNumVertices; v < sbv_end; ++v)
-		if (v->mInvMass > 0.0f)
+	for (CollideSoftBodyVertexIterator v = inVertices, sbv_end = inVertices + inNumVertices; v != sbv_end; ++v)
+		if (v.GetInvMass() > 0.0f)
 		{
 			// Convert to local space
-			Vec3 local_pos = inverse_transform * v->mPosition;
+			Vec3 local_pos = inverse_transform * v.GetPosition();
 
 			// Clamp point to inside box
 			Vec3 clamped_point = Vec3::sMax(Vec3::sMin(local_pos, half_extent), -half_extent);
@@ -246,18 +246,15 @@ void BoxShape::CollideSoftBodyVertices(Mat44Arg inCenterOfMassTransform, Vec3Arg
 				Vec3 delta = half_extent - local_pos.Abs();
 				int index = delta.GetLowestComponentIndex();
 				float penetration = delta[index];
-				if (penetration > v->mLargestPenetration)
+				if (v.UpdatePenetration(penetration))
 				{
-					v->mLargestPenetration = penetration;
-
 					// Calculate contact point and normal
 					Vec3 possible_normals[] = { Vec3::sAxisX(), Vec3::sAxisY(), Vec3::sAxisZ() };
 					Vec3 normal = local_pos.GetSign() * possible_normals[index];
 					Vec3 point = normal * half_extent;
 
 					// Store collision
-					v->mCollisionPlane = Plane::sFromPointAndNormal(point, normal).GetTransformed(inCenterOfMassTransform);
-					v->mCollidingShapeIndex = inCollidingShapeIndex;
+					v.SetCollision(Plane::sFromPointAndNormal(point, normal).GetTransformed(inCenterOfMassTransform), inCollidingShapeIndex);
 				}
 			}
 			else
@@ -268,15 +265,12 @@ void BoxShape::CollideSoftBodyVertices(Mat44Arg inCenterOfMassTransform, Vec3Arg
 
 				// Penetration will be negative since we're not penetrating
 				float penetration = -normal_length;
-				if (penetration > v->mLargestPenetration)
+				if (v.UpdatePenetration(penetration))
 				{
 					normal /= normal_length;
 
-					v->mLargestPenetration = penetration;
-
 					// Store collision
-					v->mCollisionPlane = Plane::sFromPointAndNormal(clamped_point, normal).GetTransformed(inCenterOfMassTransform);
-					v->mCollidingShapeIndex = inCollidingShapeIndex;
+					v.SetCollision(Plane::sFromPointAndNormal(clamped_point, normal).GetTransformed(inCenterOfMassTransform), inCollidingShapeIndex);
 				}
 			}
 		}
@@ -284,7 +278,7 @@ void BoxShape::CollideSoftBodyVertices(Mat44Arg inCenterOfMassTransform, Vec3Arg
 
 void BoxShape::GetTrianglesStart(GetTrianglesContext &ioContext, const AABox &inBox, Vec3Arg inPositionCOM, QuatArg inRotation, Vec3Arg inScale) const
 {
-	new (&ioContext) GetTrianglesContextVertexList(inPositionCOM, inRotation, inScale, Mat44::sScale(mHalfExtent), sUnitBoxTriangles, sizeof(sUnitBoxTriangles) / sizeof(Vec3), GetMaterial());
+	new (&ioContext) GetTrianglesContextVertexList(inPositionCOM, inRotation, inScale, Mat44::sScale(mHalfExtent), sUnitBoxTriangles, std::size(sUnitBoxTriangles), GetMaterial());
 }
 
 int BoxShape::GetTrianglesNext(GetTrianglesContext &ioContext, int inMaxTrianglesRequested, Float3 *outTriangleVertices, const PhysicsMaterial **outMaterials) const

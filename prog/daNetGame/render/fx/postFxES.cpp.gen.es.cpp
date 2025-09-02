@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "postFxES.cpp.inl"
 ECS_DEF_PULL_VAR(postFx);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc post_fx_es_comps[] =
 {
@@ -10,7 +12,7 @@ static constexpr ecs::ComponentDesc post_fx_es_comps[] =
   {ECS_HASH("damage_indicator__startTime"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("damage_indicator__prevLife"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("damage_indicator__pulseState"), ecs::ComponentTypeInfo<Point3>()},
-//start of 11 ro components at [5]
+//start of 12 ro components at [5]
   {ECS_HASH("damage_indicator__thresholds"), ecs::ComponentTypeInfo<Point3>()},
   {ECS_HASH("damage_indicator__blockDuration"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("damage_indicator__lightPulsationFreq"), ecs::ComponentTypeInfo<Point4>()},
@@ -21,7 +23,8 @@ static constexpr ecs::ComponentDesc post_fx_es_comps[] =
   {ECS_HASH("damage_indicator__mediumIntensitySaturations"), ecs::ComponentTypeInfo<Point4>()},
   {ECS_HASH("damage_indicator__severePulsationFreq"), ecs::ComponentTypeInfo<Point4>()},
   {ECS_HASH("damage_indicator__severeIntensities"), ecs::ComponentTypeInfo<Point4>()},
-  {ECS_HASH("damage_indicator__severeIntensitySaturations"), ecs::ComponentTypeInfo<Point4>()}
+  {ECS_HASH("damage_indicator__severeIntensitySaturations"), ecs::ComponentTypeInfo<Point4>()},
+  {ECS_HASH("damage_indicator__enabled"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL}
 };
 static void post_fx_es_all(const ecs::UpdateStageInfo &__restrict info, const ecs::QueryView & __restrict components)
 {
@@ -45,6 +48,7 @@ static void post_fx_es_all(const ecs::UpdateStageInfo &__restrict info, const ec
     , ECS_RO_COMP(post_fx_es_comps, "damage_indicator__severePulsationFreq", Point4)
     , ECS_RO_COMP(post_fx_es_comps, "damage_indicator__severeIntensities", Point4)
     , ECS_RO_COMP(post_fx_es_comps, "damage_indicator__severeIntensitySaturations", Point4)
+    , ECS_RO_COMP_OR(post_fx_es_comps, "damage_indicator__enabled", bool(true))
     );
   while (++comp != compE);
 }
@@ -54,7 +58,7 @@ static ecs::EntitySystemDesc post_fx_es_es_desc
   "prog/daNetGame/render/fx/postFxES.cpp.inl",
   ecs::EntitySystemOps(post_fx_es_all),
   make_span(post_fx_es_comps+0, 5)/*rw*/,
-  make_span(post_fx_es_comps+5, 11)/*ro*/,
+  make_span(post_fx_es_comps+5, 12)/*ro*/,
   empty_span(),
   empty_span(),
   ecs::EventSetBuilder<>::build(),

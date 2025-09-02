@@ -15,7 +15,7 @@ int imgui_tex_type = 0;
 interval imgui_tex_type: twoD < 1, threeD < 2, array < 3, cube < 4, twoDInteger;
 
 int imgui_draw_function = 0;
-interval imgui_draw_function: normal < 1, rtr_tile_visualization;
+interval imgui_draw_function: normal < 1, rtr_tile_visualization < 2, fgrass_preview;
 
 float imgui_slice = 0;
 
@@ -66,7 +66,7 @@ shader imgui
       tex@tex = imgui_tex hlsl { Texture2D<uint> tex@tex; };
     }
   }
-  else if (imgui_tex_type == twoD)
+  else if (imgui_tex_type == twoD || imgui_draw_function == fgrass_preview)
   {
     (ps) {
       tex@smp2d = imgui_tex;
@@ -232,12 +232,33 @@ shader imgui
       }
     ##endif
 
+    ##if imgui_draw_function == fgrass_preview
+      float4 function_fgrass_preview(VsOutput i)
+      {
+        half4 texel = tex.SampleLevel(tex_samplerstate, i.uv, mip_level);
+        switch(channel_mask)
+        {
+          case 0: return half4(texel.rgb, texel.a / 0.25);
+          case 1:
+            if (texel.a < 4.5/255.0) return half4(0.3, 0, 0.3, 1);
+            if (texel.a >= 1) return half4(1, 1, 1, 1);
+            return saturate(half4(texel.a > 0.25 ? 0 : texel.a / 0.25, (texel.aa - 0.25) / 0.75, 1));
+          case 2: return half4(restore_normal(texel.ga)*0.5+0.5, 1);
+          case 3: return half4(texel.rrr, 1);
+          case 4: return half4(texel.bbb, 1);
+          default: return texel;
+        }
+      }
+    ##endif
+
     float4 imgui_ps(VsOutput i) : SV_Target
     {
       ##if imgui_draw_function == normal
         return function_normal(i);
       ##elif imgui_draw_function == rtr_tile_visualization
         return function_rtr_tile_visualization(i);
+      ##elif imgui_draw_function == fgrass_preview
+        return function_fgrass_preview(i);
       ##endif
     }
   }

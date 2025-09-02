@@ -38,6 +38,11 @@
 
 namespace Sqrat {
 
+enum class FunctionPurity {
+    Pure,
+    SideEffects,
+};
+
 class TableBase : public Object {
 public:
     TableBase() {
@@ -66,7 +71,8 @@ public:
 
     /// Binds a raw Squirrel closure to the Table
     TableBase& SquirrelFunc(const SQChar* name, SQFUNCTION func, SQInteger nparamscheck, const SQChar *typemask=nullptr,
-                            const SQChar *docstring=nullptr, SQInteger nfreevars=0, const Object *freevars=nullptr) {
+                            const SQChar *docstring=nullptr, SQInteger nfreevars=0, const Object *freevars=nullptr,
+                            FunctionPurity purity=FunctionPurity::SideEffects) {
         sq_pushobject(vm, GetObject());
         sq_pushstring(vm, name, -1);
         for (SQInteger i=0; i<nfreevars; ++i)
@@ -74,6 +80,8 @@ public:
         sq_newclosure(vm, func, nfreevars);
         SQRAT_VERIFY(SQ_SUCCEEDED(sq_setparamscheck(vm, nparamscheck, typemask)));
         SQRAT_VERIFY(SQ_SUCCEEDED(sq_setnativeclosurename(vm, -1, name)));
+        if (purity == FunctionPurity::Pure)
+            SQRAT_VERIFY(SQ_SUCCEEDED(sq_mark_pure_inplace(vm, -1)));
         if (docstring)
             SQRAT_VERIFY(SQ_SUCCEEDED(sq_setnativeclosuredocstring(vm, -1, docstring)));
         SQRAT_VERIFY(SQ_SUCCEEDED(sq_newslot(vm, -3, false)));
@@ -81,9 +89,20 @@ public:
         return *this;
     }
 
+    TableBase& SquirrelFuncDeclString(SQFUNCTION func, const SQChar *function_decl,
+                                      const SQChar *docstring=nullptr, SQInteger nfreevars=0, const Object *freevars=nullptr) {
+        sq_pushobject(vm, GetObject());
+        for (SQInteger i=0; i<nfreevars; ++i)
+            sq_pushobject(vm, freevars[i].GetObject());
+
+        SQRAT_VERIFY(SQ_SUCCEEDED(sq_new_closure_slot_from_decl_string(vm, func, nfreevars, function_decl, docstring)));
+        sq_pop(vm,1); // pop table
+        return *this;
+    }
+
     template<class V>
     TableBase& SetValue(const SQChar* name, const V& val) { //-V1071
-        BindValue<V>(name, val, false);
+        BindValue<V>(name, strlen(name), val, false);
         return *this;
     }
 

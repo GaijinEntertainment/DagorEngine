@@ -54,7 +54,7 @@ public:
   virtual const char *getObjAssetName() const = 0;
 
   //! called on enter/leave transformation mode with gizmo (implementation may apply perf optimizations)
-  virtual void setGizmoTranformMode(bool enabled) {}
+  virtual void setGizmoTranformMode([[maybe_unused]] bool enabled) {}
 
 public:
   static IObjEntity *create(const DagorAsset &asset, bool virtual_ent = false);

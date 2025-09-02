@@ -438,7 +438,8 @@ VirtualRomFsData *make_non_intrusive_vromfs(const VromfsDumpSections &sections, 
 }
 
 
-VirtualRomFsData *make_non_intrusive_vromfs(dag::ConstSpan<char> dump, IMemAlloc *mem, unsigned *out_hdr_sz, int *out_signature_ofs)
+VirtualRomFsData *make_non_intrusive_vromfs(dag::ConstSpan<char> dump, IMemAlloc *mem, unsigned *out_hdr_sz, int *out_md5_hash_ofs,
+  int *out_signature_ofs)
 {
   VromfsDumpSections sections;
   if (!dissect_vromfs_dump(dump, sections))
@@ -451,6 +452,20 @@ VirtualRomFsData *make_non_intrusive_vromfs(dag::ConstSpan<char> dump, IMemAlloc
   VirtualRomFsData *result = make_non_intrusive_vromfs(sections, bodySections, mem, out_hdr_sz);
   if (!result)
     return nullptr;
+
+  if (out_md5_hash_ofs)
+  {
+    if (sections.md5.size())
+    {
+      ptrdiff_t md5Offset = sections.md5.data() - sections.header.data();
+      G_ASSERT(md5Offset > 0 && md5Offset < dump.size());
+      *out_md5_hash_ofs = (unsigned)md5Offset;
+    }
+    else
+    {
+      *out_md5_hash_ofs = -1;
+    }
+  }
 
   if (out_signature_ofs)
   {
@@ -562,23 +577,103 @@ EVirtualRomFsFileAttributes guess_vromfs_file_type(const char *fileName, const d
   return EVFSFA_TYPE_PLAIN;
 }
 
-static void append_stream_to_checker(VromfsSignatureChecker &checker, IGenLoad &crd, Tab<char> &plainBuf)
+static void copy_stream_buffered(IGenSave &dst, IGenLoad &src, Tab<char> *buf)
 {
-  const int plainBufSize = plainBuf.size();
-  int bytesRead = plainBufSize;
-  while (bytesRead == plainBufSize)
+  if (buf)
   {
-    bytesRead = crd.tryRead(&plainBuf[0], plainBufSize);
-    if (bytesRead)
-      checker.append(&plainBuf[0], bytesRead);
+    const int bufSize = buf->size();
+    int bytesRead = bufSize;
+    while (bytesRead == bufSize)
+    {
+      bytesRead = src.tryRead(buf->data(), bufSize);
+      if (bytesRead)
+        dst.write(buf->data(), bytesRead);
+    }
+  }
+  else
+  {
+    Tab<char> defaultBuf(16 << 10);
+    copy_stream_buffered(dst, src, &defaultBuf);
   }
 }
+
+
+EVromfsEntryPlainRepresentationResult get_vromfs_entry_plain_representation(EVirtualRomFsFileAttributes attributes,
+  dag::ConstSpan<char> fileData, void *ddict_, IGenSave &receiver, Tab<char> *plainBuf)
+{
+  constexpr bool zstdtmp = true; // Use framemem if possible
+  ZSTD_DDict_s *ddict = (ZSTD_DDict_s *)ddict_;
+
+  switch (attributes & EVFSFA_TYPE_MASK)
+  {
+    case EVFSFA_TYPE_PLAIN: receiver.write(fileData.data(), fileData.size()); break;
+    case EVFSFA_TYPE_BLK:
+      if (fileData.size() > 1)
+      {
+        unsigned label = fileData.data()[0];
+        if (label == dblk::BBF_binary_with_shared_nm_zd)
+        {
+          if (!ddict)
+            return EVEPRR_NEEDS_DDICT;
+          ZstdLoadFromMemCB zcrd(make_span_const(fileData.data() + 1, fileData.size() - 1), ddict, zstdtmp);
+          copy_stream_buffered(receiver, zcrd, plainBuf);
+        }
+        else if (label == dblk::BBF_binary_with_shared_nm)
+        {
+          receiver.write(fileData.data() + 1, fileData.size() - 1);
+        }
+        else if (label == dblk::BBF_binary_with_shared_nm_z)
+        {
+          ZstdLoadFromMemCB zcrd(make_span_const(fileData.data() + 1, fileData.size() - 1), nullptr, zstdtmp);
+          copy_stream_buffered(receiver, zcrd, plainBuf);
+        }
+      }
+      break;
+    case EVFSFA_TYPE_SHARED_NM:
+    {
+      constexpr int plainPartSize = sizeof(uint64_t) + BLAKE3_OUT_LEN;
+      if (fileData.size() < plainPartSize)
+        return EVEPRR_INVALID_SHARED_NM_CONTENTS;
+      receiver.write(fileData.data(), plainPartSize);
+      ZstdLoadFromMemCB zcrd(make_span_const(fileData.data() + plainPartSize, fileData.size() - plainPartSize), nullptr, zstdtmp);
+      copy_stream_buffered(receiver, zcrd, plainBuf);
+    }
+    break;
+    default: return EVEPRR_UNKNOWN_TYPE;
+  }
+  return EVEPRR_OK;
+}
+
+
+struct CheckerAdapter : public IGenSave
+{
+  explicit CheckerAdapter(VromfsSignatureChecker &checker_) : checker(checker_) {}
+
+  void write(const void *ptr, int size) override
+  {
+    if (!failed)
+      if (!checker.append(ptr, size))
+        failed = true;
+  }
+
+  int tell(void) override { G_ASSERT_RETURN(false, 0); }
+  void seekto(int) override { G_ASSERT_RETURN(false, ); }
+  void seektoend(int) override { G_ASSERT_RETURN(false, ); }
+  const char *getTargetName() override { return "Vromfs signature checker"; }
+  void beginBlock() override { G_ASSERT_RETURN(false, ); }
+  void endBlock(unsigned) override { G_ASSERT_RETURN(false, ); }
+  int getBlockLevel(void) override { G_ASSERT_RETURN(false, 0); }
+  void flush(void) override { G_ASSERT_RETURN(false, ); }
+
+  VromfsSignatureChecker &checker;
+  bool failed = false;
+};
+
 
 static bool check_plain_data_signature(VromfsSignatureChecker &checker, const VromfsDumpSections &vfsdump,
   const dag::ConstSpan<uint8_t> *to_verify)
 {
   ZSTD_DDict_s *ddict = nullptr;
-  constexpr bool zstdtmp = true; // Use framemem if possible
   constexpr int PLAINBUF_SIZE = 16 << 10;
   Tab<char> plainBuf(PLAINBUF_SIZE);
 
@@ -630,71 +725,35 @@ static bool check_plain_data_signature(VromfsSignatureChecker &checker, const Vr
   // 1. Plain file data
   // Since vroms are built using a lexicographically sorted id list we can expect the order
   // of file data and file name data to be the same
+  CheckerAdapter checkerAdapter(checker);
   for (int i = 0; i < fileDataTabsAccessor.size(); i++)
   {
     const char *fileName = fileNamePtrsAccessor[i].get(baseAddress);
     const dag::ConstSpan<const char> fileData = fileDataTabsAccessor[i].getAccessor(baseAddress);
     EVirtualRomFsFileAttributes attr = haveAttrV1 ? fsAttr.attrData[i] : guess_vromfs_file_type(fileName, fileData);
-    switch (attr & EVFSFA_TYPE_MASK)
-    {
-      case EVFSFA_TYPE_PLAIN: checker.append(fileData.data(), fileData.size()); break;
-      case EVFSFA_TYPE_BLK:
-        if (!ddict)
-          goto failed;
-        if (fileData.size() > 1)
-        {
-          unsigned label = fileData.data()[0];
-          if (label == dblk::BBF_binary_with_shared_nm_zd)
-          {
-            ZstdLoadFromMemCB zcrd(make_span_const(fileData.data() + 1, fileData.size() - 1), ddict, zstdtmp);
-            append_stream_to_checker(checker, zcrd, plainBuf);
-          }
-          else if (label == dblk::BBF_binary_with_shared_nm)
-          {
-            checker.append(fileData.data() + 1, fileData.size() - 1);
-          }
-          else if (label == dblk::BBF_binary_with_shared_nm_z)
-          {
-            ZstdLoadFromMemCB zcrd(make_span_const(fileData.data() + 1, fileData.size() - 1), nullptr, zstdtmp);
-            append_stream_to_checker(checker, zcrd, plainBuf);
-          }
-        }
-        break;
-      case EVFSFA_TYPE_SHARED_NM:
-      {
-        constexpr int plainPartSize = sizeof(uint64_t) + BLAKE3_OUT_LEN;
-        if (fileData.size() < plainPartSize)
-          goto failed;
-        checker.append(fileData.data(), plainPartSize);
-        ZstdLoadFromMemCB zcrd(make_span_const(fileData.data() + plainPartSize, fileData.size() - plainPartSize), nullptr, zstdtmp);
-        append_stream_to_checker(checker, zcrd, plainBuf);
-      }
-      break;
-      default: goto failed;
-    }
+    EVromfsEntryPlainRepresentationResult res =
+      get_vromfs_entry_plain_representation(attr, fileData, ddict, checkerAdapter, &plainBuf);
+    if (res != EVEPRR_OK || checkerAdapter.failed)
+      goto failed;
   }
 
   if (ddict)
     zstd_destroy_ddict(ddict);
 
-  // 2. Unpatched file name pointers
-  checker.append(fileNamePtrsAccessor.data(), data_size(fileNamePtrsAccessor));
-
-  // 3. File name data
-  if (fileNamePtrsAccessor.size() > 0)
+  // 2. File names, zero-terminated
+  for (int i = 0, sz = fileDataTabsAccessor.size(); i < sz; i++)
   {
-    const char *begin = fileNamePtrsAccessor[0].get(baseAddress);
-    const char *end = fileNamePtrsAccessor[fileNamePtrsAccessor.size() - 1].get(baseAddress);
-    end += strlen(end) + 1;
-    int nameDataSize = end - begin;
-    checker.append(begin, nameDataSize);
+    const char *fileName = fileNamePtrsAccessor[i].get(baseAddress);
+    if (!fileName)
+      fileName = "";
+    checker.append(fileName, strlen(fileName) + 1);
   }
 
-  // 4. File attributes data, if present
+  // 3. File attributes data, if present
   if (bodySections.attributes.data() && bodySections.attributes.size() > 0)
     checker.append(bodySections.attributes.data(), bodySections.attributes.size());
 
-  // 5. Externally supplied aux data, typically vrom file name
+  // 4. Externally supplied aux data, typically vrom file name
   if (to_verify && to_verify->data() && to_verify->size() > 0)
     checker.append(to_verify->data(), to_verify->size());
 

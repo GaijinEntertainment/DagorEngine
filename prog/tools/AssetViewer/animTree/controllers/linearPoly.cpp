@@ -49,30 +49,12 @@ void linear_poly_init_block_settings(PropPanel::ContainerPropertyControl *panel,
 
   const DataBlock *defaultBlock = settings->getBlockByNameEx("child");
 
+  bool isEditable = !names.empty();
   panel->createList(PID_CTRLS_NODES_LIST, "Childs", names, 0);
   panel->createButton(PID_CTRLS_NODES_LIST_ADD, "Add");
   panel->createButton(PID_CTRLS_NODES_LIST_REMOVE, "Remove", /*enabled*/ true, /*new_line*/ false);
-  panel->createEditBox(PID_CTRLS_LINEAR_POLY_NODE_NAME, "name", defaultBlock->getStr("name", ""));
-  panel->createEditFloat(PID_CTRLS_LINEAR_POLY_NODE_VAL, "val", defaultBlock->getReal("val", 0.f));
-}
-
-// Need make convertation becuse settings block can contain blocks with comments before selected block
-static int get_child_block_idx_by_list_idx(const DataBlock *settings, int list_idx)
-{
-  int childIdx = -1;
-  for (int i = 0; i < settings->blockCount(); ++i)
-  {
-    // Here we want count only child block with name param
-    if (settings->getBlock(i)->paramExists("name"))
-    {
-      ++childIdx;
-      if (childIdx == list_idx)
-        return i;
-    }
-  }
-
-  // In case when block not already created
-  return -1;
+  panel->createEditBox(PID_CTRLS_LINEAR_POLY_NODE_NAME, "name", defaultBlock->getStr("name", ""), isEditable);
+  panel->createEditFloat(PID_CTRLS_LINEAR_POLY_NODE_VAL, "val", defaultBlock->getReal("val", 0.f), /*prec*/ 2, isEditable);
 }
 
 void AnimTreePlugin::linearPolySaveBlockSettings(PropPanel::ContainerPropertyControl *panel, DataBlock *settings, AnimCtrlData &data)
@@ -91,10 +73,12 @@ void AnimTreePlugin::linearPolySaveBlockSettings(PropPanel::ContainerPropertyCon
   {
     selectedBlock = settings->addNewBlock("child");
     selectedBlock->setStr("name", selectedName.c_str());
-    add_ctrl_child_idx_by_name(panel, data, controllersData, blendNodesData, fieldName);
   }
-  else if (selectedName != fieldName)
-    data.childs[selectedIdx] = find_ctrl_child_idx_by_name(panel, data, controllersData, blendNodesData, fieldName);
+  if (selectedName != fieldName || data.childs[selectedIdx] == AnimCtrlData::NOT_FOUND_CHILD)
+  {
+    data.childs[selectedIdx] = find_child_idx_by_name(panel, data.handle, controllersData, blendNodesData, fieldName);
+    check_ctrl_child_idx(data.childs[selectedIdx], settings->getStr("name"), fieldName);
+  }
 
   const char *blockName = selectedBlock->getStr("name");
   G_ASSERTF(selectedName == blockName, "Wrong order blocks in blk: %s, expected from list: %s", blockName, selectedName.c_str());
@@ -125,6 +109,9 @@ void linear_poly_set_selected_node_list_settings(PropPanel::ContainerPropertyCon
 
   panel->setText(PID_CTRLS_LINEAR_POLY_NODE_NAME, name.c_str());
   panel->setFloat(PID_CTRLS_LINEAR_POLY_NODE_VAL, selectedBlock->getReal("val", 0.f));
+  bool isEditable = selectedIdx >= 0;
+  panel->setEnabledById(PID_CTRLS_LINEAR_POLY_NODE_NAME, isEditable);
+  panel->setEnabledById(PID_CTRLS_LINEAR_POLY_NODE_VAL, isEditable);
 }
 
 void linear_poly_remove_node_from_list(PropPanel::ContainerPropertyControl *panel, DataBlock *settings)
@@ -153,7 +140,8 @@ void AnimTreePlugin::linearPolyFindChilds(PropPanel::ContainerPropertyControl *p
     if (settings.getBlock(i)->getNameId() == childNid)
     {
       const char *childName = settings.getBlock(i)->getStr("name");
-      add_ctrl_child_idx_by_name(panel, data, controllersData, blendNodesData, childName);
+      int idx = add_ctrl_child_idx_by_name(panel, data, controllersData, blendNodesData, childName);
+      check_ctrl_child_idx(idx, settings.getStr("name"), childName);
     }
 }
 
@@ -161,5 +149,17 @@ const char *linear_poly_get_child_name_by_idx(const DataBlock &settings, int idx
 
 String linear_poly_get_child_prefix_name(const DataBlock &settings, int idx)
 {
-  return String(0, "[%d] ", settings.getBlock(idx)->getReal("val", 0.f));
+  return String(0, "[%f] ", settings.getBlock(idx)->getReal("val", 0.f));
+}
+
+void linear_poly_update_child_name(DataBlock &settings, const char *name, const String &old_name)
+{
+  for (int i = 0; i < settings.blockCount(); ++i)
+  {
+    DataBlock *child = settings.getBlock(i);
+    const char *childName = child->getStr("name", nullptr);
+    String writeName;
+    if (childName && get_updated_child_name(name, old_name, childName, writeName))
+      child->setStr("name", writeName.c_str());
+  }
 }

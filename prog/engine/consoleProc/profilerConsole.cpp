@@ -91,6 +91,19 @@ static bool profiler_console_handler(const char *argv[], int argc)
       printf_all_modes("profiler.profile");
     show_current_modes();
   }
+  CONSOLE_CHECK_NAME("profiler", "log_event", 2, 2)
+  {
+    if (da_profiler::start_log_dump_server(argv[1]))
+      console::print_d("logging gpu event %s", argv[1]);
+  }
+  CONSOLE_CHECK_NAME("profiler", "continuous", 3, 3)
+  {
+    int frames = to_int(argv[1]);
+    int mbs = to_int(argv[2]);
+    da_profiler::set_continuous_limits(frames, mbs);
+    da_profiler::add_mode(da_profiler::CONTINUOUS);
+    console::print_d("profiler limits set to %d frames, %d MB", frames, mbs);
+  }
   // compatibility with old one
   CONSOLE_CHECK_NAME("profiler", "gpu", 1, 2)
   {

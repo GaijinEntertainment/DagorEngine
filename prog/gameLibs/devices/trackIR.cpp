@@ -390,10 +390,6 @@ void stop()
   }
 }
 
-void toggle_debug_draw()
-{ /* STUB */
-}
-void draw_debug(HudPrimitives *)
-{ /* STUB */
-}
+void toggle_debug_draw() { /* STUB */ }
+void draw_debug(HudPrimitives *) { /* STUB */ }
 } // namespace trackir

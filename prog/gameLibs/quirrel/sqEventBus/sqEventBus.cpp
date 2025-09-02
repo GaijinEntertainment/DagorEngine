@@ -1,11 +1,14 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <quirrel/sqEventBus/sqEventBus.h>
+#include <quirrel/sqEventBus/sqEventBusEx.h>
 #include <quirrel/sqCrossCall/sqCrossCall.h>
 #include <EASTL/hash_map.h>
 #include <EASTL/hash_set.h>
+#include <EASTL/variant.h>
 #include <memory/dag_framemem.h>
 #include <quirrel/quirrel_json/jsoncpp.h>
+#include <quirrel/quirrel_json/rapidjson.h>
 #include <quirrel/sqStackChecker.h>
 #include <util/dag_string.h>
 #include <util/dag_finally.h>
@@ -13,12 +16,14 @@
 #include <generic/dag_tab.h>
 #include <quirrel/sqModules/sqModules.h>
 #include <squirrel.h>
+#include <squirrel/memtrace.h>
 #include <sqrat/sqratFunction.h>
 #include <sqext.h>
 #include <dag/dag_vector.h>
 #include <osApiWrappers/dag_rwLock.h>
 #include <osApiWrappers/dag_spinlock.h>
 #include <osApiWrappers/dag_atomic.h>
+#include <rapidjson/document.h>
 
 
 namespace sqeventbus
@@ -48,11 +53,51 @@ struct EvHandler
 
 using HandlersMap = eastl::hash_multimap<eastl::string, EvHandler>;
 
+
+static inline JsonVariant copy_json(const rapidjson::Document &json)
+{
+  JsonVariant v = rapidjson::Document();
+
+  rapidjson::Document &doc = eastl::get<rapidjson::Document>(v);
+  doc.CopyFrom(json, doc.GetAllocator());
+
+  return v;
+}
+
+
+DAGOR_NOINLINE static Sqrat::Object json_to_quirrel(HSQUIRRELVM vm, const JsonVariant &value, int memory_threshold_bytes)
+{
+  const bool haveMemoryThreshold = memory_threshold_bytes > 0;
+  const int previousMemoryTreshold = haveMemoryThreshold ? sqmemtrace::set_huge_alloc_threshold(memory_threshold_bytes) : -1;
+
+  Sqrat::Object result = eastl::visit(
+    [vm](const auto &json) {
+      using JsonType = eastl::remove_cvref_t<decltype(json)>;
+      if constexpr (eastl::is_same_v<JsonType, Json::Value>)
+        return jsoncpp_to_quirrel(vm, json);
+      else if constexpr (eastl::is_same_v<JsonType, rapidjson::Document>)
+        return rapidjson_to_quirrel(vm, json);
+
+      G_ASSERTF(false, "Unexpected JsonVariant type");
+      return Sqrat::Object(vm);
+    },
+    value);
+
+  if (haveMemoryThreshold)
+  {
+    sqmemtrace::set_huge_alloc_threshold(previousMemoryTreshold);
+  }
+
+  return result;
+}
+
+
 struct QueuedEvent
 {
   Sqrat::Function handler;
-  Json::Value value;
-  int timestamp;
+  JsonVariant value;
+  int timestamp = 0;
+  int memoryThresholdBytes = 0; // zero means no value
 };
 
 struct BoundVm
@@ -70,6 +115,21 @@ static volatile int is_in_send = 0;
 
 
 static void process_events_impl(HSQUIRRELVM vm, BoundVm &vmData);
+
+
+static int get_handlers_count(BoundVm &vm_data, const char *evt_name, const char *source_id)
+{
+  ScopedLockWriteTemplate guard(vm_data.handlersLock);
+
+  int count = 0;
+
+  auto handlersRange = vm_data.handlers.equal_range(evt_name);
+  for (auto it = handlersRange.first; it != handlersRange.second; ++it)
+    if (it->second.isSourceAccepted(source_id))
+      ++count;
+
+  return count;
+}
 
 
 static bool collect_handlers(BoundVm &vm_data, const char *evt_name, const char *source_id, Tab<Sqrat::Function> &handlers_out)
@@ -152,7 +212,7 @@ static SQInteger send_internal(HSQUIRRELVM vm_from, const char *evt_name, SQInte
   FINALLY([] { interlocked_decrement(is_in_send); });
 
   Tab<Sqrat::Function> handlersCopy(framemem_ptr());
-  Json::Value msg;
+  rapidjson::Document msg;
   bool msgConverted = false;
 
   ScopedLockReadTemplate guard(vmsLock);
@@ -183,7 +243,7 @@ static SQInteger send_internal(HSQUIRRELVM vm_from, const char *evt_name, SQInte
         msgObj = Sqrat::Object(hMsg, vm_from);
       }
 
-      msg = quirrel_to_jsoncpp(msgObj);
+      msg = quirrel_to_rapidjson(msgObj);
       msgConverted = true;
     }
 
@@ -220,7 +280,7 @@ static SQInteger send_internal(HSQUIRRELVM vm_from, const char *evt_name, SQInte
       {
         QueuedEvent qevt;
         qevt.handler = handler;
-        qevt.value = msg;
+        qevt.value = copy_json(msg);
         qevt.timestamp = get_time_msec();
         {
           OSSpinlockScopedLock queueGuard(target.queueLock);
@@ -260,6 +320,84 @@ void send_event(const char *event_name, const Sqrat::Object &data, const char *s
   G_UNUSED(ret);
   G_ASSERTF(SQ_SUCCEEDED(ret), "eventbus send failed for '%s'", event_name);
   stackCheck.restore();
+}
+
+
+void send_event(const char *event_name, const rapidjson::Document &data, const char *source_id)
+{
+
+  interlocked_increment(is_in_send);
+  FINALLY([] { interlocked_decrement(is_in_send); });
+
+  if (g_native_event_handler)
+    g_native_event_handler(event_name, copy_json(data), source_id, /*immediate*/ false);
+
+  ScopedLockReadTemplate guard(vmsLock);
+  for (auto &v : vms)
+  {
+    BoundVm &target = v.second;
+
+    Tab<Sqrat::Function> handlersCopy(framemem_ptr());
+    if (!collect_handlers(target, event_name, source_id, handlersCopy))
+      continue;
+
+    for (Sqrat::Function &handler : handlersCopy)
+    {
+      QueuedEvent qevt;
+      qevt.handler = handler;
+      qevt.value = copy_json(data);
+      qevt.timestamp = get_time_msec();
+      {
+        OSSpinlockScopedLock queueGuard(target.queueLock);
+        target.queue.emplace_back(eastl::move(qevt));
+      }
+    }
+  }
+}
+
+
+void send_event_ex(const char *event_name, rapidjson::Document &&data, const EventParams &event_params)
+{
+  interlocked_increment(is_in_send);
+  FINALLY([] { interlocked_decrement(is_in_send); });
+
+  if (g_native_event_handler)
+    g_native_event_handler(event_name, copy_json(data), event_params.sourceId, /*immediate*/ false);
+
+  ScopedLockReadTemplate guard(vmsLock);
+
+  int totalHandlersCount = 0;
+  for (auto &v : vms)
+    totalHandlersCount += get_handlers_count(v.second, event_name, event_params.sourceId);
+
+  const bool canMove = totalHandlersCount == 1;
+
+  for (auto &v : vms)
+  {
+    BoundVm &target = v.second;
+
+    Tab<Sqrat::Function> handlersCopy(framemem_ptr());
+    if (!collect_handlers(target, event_name, event_params.sourceId, handlersCopy))
+      continue;
+
+    for (Sqrat::Function &handler : handlersCopy)
+    {
+      QueuedEvent qevt;
+      qevt.handler = handler;
+
+      if (EASTL_LIKELY(canMove))
+        qevt.value = eastl::move(data);
+      else
+        qevt.value = copy_json(data);
+
+      qevt.timestamp = get_time_msec();
+      qevt.memoryThresholdBytes = event_params.memoryThresholdBytes;
+      {
+        OSSpinlockScopedLock queueGuard(target.queueLock);
+        target.queue.emplace_back(eastl::move(qevt));
+      }
+    }
+  }
 }
 
 
@@ -349,7 +487,7 @@ static SQInteger has_foreign_listeners(HSQUIRRELVM vm_from)
 static void process_events_impl(HSQUIRRELVM vm, BoundVm &vmData)
 {
   SqStackChecker stackCheck(vm);
-  auto hook = sq_set_sq_call_hook(vm, nullptr); // remove the hook temprarily to avoid recursion
+  auto hook = sq_set_sq_call_hook(vm, nullptr); // remove the hook temporarily to avoid recursion
 
   {
     OSSpinlockScopedLock queueGuard(vmData.queueLock);
@@ -361,11 +499,13 @@ static void process_events_impl(HSQUIRRELVM vm, BoundVm &vmData)
     if (!qevt.handler.GetVM())
       continue;
     auto handler = eastl::move(qevt.handler); // to avoid recursion
-    if (!handler.Execute(jsoncpp_to_quirrel(vm, qevt.value)))
+
+    const Sqrat::Object valueObject = json_to_quirrel(vm, qevt.value, qevt.memoryThresholdBytes);
+    if (!handler.Execute(valueObject))
     {
       SQFunctionInfo fi;
-      sq_ext_getfuncinfo(qevt.handler.GetFunc(), &fi);
-      logerr("Subscriber %s call failed, target VM = %p", fi.name, qevt.handler.GetVM());
+      sq_ext_getfuncinfo(handler.GetFunc(), &fi);
+      logerr("Subscriber %s call failed, target VM = %p", fi.name, handler.GetVM());
     }
   }
 

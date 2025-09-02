@@ -17,8 +17,8 @@ constexpr inline OutputIterator copy_n(InputIterator first, Size n, OutputIterat
 }
 } // namespace backport
 
-template <typename T, std::size_t... N>
-constexpr auto concatenate(const std::array<T, N> &...arrays)
+template <typename T, size_t... N>
+constexpr auto concatenate(const eastl::array<T, N> &...arrays)
 {
   eastl::array<T, (N + ...)> result;
   size_t index = 0;
@@ -28,7 +28,7 @@ constexpr auto concatenate(const std::array<T, N> &...arrays)
   return result;
 }
 
-template <typename T, std::size_t... N>
+template <typename T, size_t... N>
 constexpr auto concatenate(const T (&...arrays)[N])
 {
   eastl::array<T, (N + ...)> result;

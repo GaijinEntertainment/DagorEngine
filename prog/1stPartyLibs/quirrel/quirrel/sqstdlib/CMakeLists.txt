@@ -7,6 +7,7 @@ set(SQSTDLIB_SRC sqstdaux.cpp
                  sqstdstream.cpp
                  sqstdstring.cpp
                  sqstddatetime.cpp
+                 sqstdserialization.cpp
                  sqstdsystem.cpp)
 
 

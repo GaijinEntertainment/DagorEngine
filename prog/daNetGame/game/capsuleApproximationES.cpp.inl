@@ -68,6 +68,7 @@ bool CapsuleApproximation::onLoaded(const ecs::EntityManager &mgr, ecs::EntityId
 
   auto checkNode = [eid](const char *nodeName, dag::Index16 nodeIdx, const CollisionNode *collisionNode) {
     G_UNUSED(nodeName);
+    G_UNUSED(eid);
     if (!nodeIdx)
     {
 #if DAGOR_DBGLEVEL > 0

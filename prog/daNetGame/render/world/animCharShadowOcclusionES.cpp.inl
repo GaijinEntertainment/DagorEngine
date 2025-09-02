@@ -12,11 +12,8 @@
 
 class AnimCharShadowOcclusionManager
 {
-  enum
-  {
-    GRID_SIZE = 128,
-    GRID_ELEMENT_MAX_BOXES = 3
-  };
+  static constexpr int GRID_SIZE = 128;
+  static constexpr int GRID_ELEMENT_MAX_BOXES = 3;
 
   struct CullGridElement
   {
@@ -74,7 +71,7 @@ public:
       elem.boxesCntAtCell = 0;
   }
 
-  void updateCullBboxes(const dag::Span<bbox3f> &cull_bboxes, const Point3 &cam_pos, float area_half_size)
+  void updateCullBboxes(const dag::ConstSpan<bbox3f> &cull_bboxes, const Point3 &cam_pos, float area_half_size)
   {
     areaHalfSize = area_half_size;
     areaSize = areaHalfSize * 2.0f;
@@ -150,10 +147,10 @@ static void expand_bbox_by_attaches(bbox3f &bbox, ecs::EntityId owner_eid, const
   for (ecs::EntityId attachedEid : *attaches_list)
   {
     expand_bbox_by_attach_ecs_query(attachedEid,
-      [&](const bbox3f &animchar_shadow_cull_bbox, const uint8_t &animchar_visbits,
-        ecs::EntityId slot_attach__attachedTo ECS_REQUIRE(eastl::true_type animchar_render__enabled = true)) {
+      [&](const bbox3f &animchar_shadow_cull_bbox, const animchar_visbits_t &animchar_visbits,
+        ecs::EntityId animchar_attach__attachedTo ECS_REQUIRE(eastl::true_type animchar_render__enabled = true)) {
         // we process shadow visibility in same time in other thread. it adds _other_ bit
-        if ((interlocked_relaxed_load(animchar_visbits) & VISFLG_WITHIN_RANGE) && slot_attach__attachedTo == owner_eid)
+        if ((interlocked_relaxed_load(animchar_visbits) & VISFLG_WITHIN_RANGE) && animchar_attach__attachedTo == owner_eid)
           v_bbox3_add_box(bbox, animchar_shadow_cull_bbox);
       });
   }
@@ -200,7 +197,7 @@ bbox3f ShadowsManager::gatherBboxesForAnimcharShadowCull(const Point3 &cam_pos,
 
   gather_soldier_bboxes_to_cull_ecs_query(
     [&](ecs::EntityId eid, const AnimV20::AnimcharRendComponent &animchar_render, const vec4f &animchar_bsph,
-      const bbox3f &animchar_shadow_cull_bbox, const uint8_t &animchar_visbits,
+      const bbox3f &animchar_shadow_cull_bbox, const animchar_visbits_t &animchar_visbits,
       const ecs::EidList *attaches_list ECS_REQUIRE(eastl::true_type animchar_render__enabled = true) ECS_REQUIRE(ecs::Tag human)) {
       vec4f r = v_sub(animchar_bsph, v_ldu(&cam_pos.x));
       if (!(interlocked_relaxed_load(animchar_visbits) & VISFLG_WITHIN_RANGE) ||

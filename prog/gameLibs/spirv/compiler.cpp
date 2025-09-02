@@ -451,8 +451,7 @@ protected:
           case glslang::Esd1D:
           case glslang::Esd2D:
           case glslang::Esd3D:
-          case glslang::EsdCube:
-            return sampler.isShadow() ? spirv::T_SAMPLED_IMAGE_WITH_COMPARE_OFFSET : spirv::T_SAMPLED_IMAGE_OFFSET;
+          case glslang::EsdCube: return spirv::T_SAMPLED_IMAGE_OFFSET;
           case glslang::EsdBuffer: return spirv::T_BUFFER_SAMPLED_IMAGE_OFFSET;
           case glslang::EsdRect:
           case glslang::EsdSubpass:
@@ -631,8 +630,7 @@ protected:
 
     switch (registerBase)
     {
-      case spirv::T_SAMPLED_IMAGE_OFFSET:
-      case spirv::T_SAMPLED_IMAGE_WITH_COMPARE_OFFSET: header.imageCheckIndices[header.imageCount++] = header.registerCount;
+      case spirv::T_SAMPLED_IMAGE_OFFSET: header.imageCheckIndices[header.imageCount++] = header.registerCount;
       case spirv::U_IMAGE_OFFSET: break;
       case spirv::U_BUFFER_IMAGE_OFFSET:
       case spirv::T_BUFFER_SAMPLED_IMAGE_OFFSET: header.bufferViewCheckIndices[header.bufferViewCount++] = header.registerCount; break;
@@ -644,45 +642,52 @@ protected:
     switch (registerBase)
     {
       case spirv::T_SAMPLED_IMAGE_OFFSET:
-        switch (imageViewType)
+      {
+        const glslang::TSampler &sampler = type.getSampler();
+        if (sampler.isShadow() && sampler.isTexture())
         {
-          case VK_IMAGE_VIEW_TYPE_1D_ARRAY:
-          case VK_IMAGE_VIEW_TYPE_1D: header.missingTableIndex[header.registerCount] = spirv::MISSING_IS_FATAL_INDEX; break;
-          case VK_IMAGE_VIEW_TYPE_2D: header.missingTableIndex[header.registerCount] = spirv::MISSING_SAMPLED_IMAGE_2D_INDEX; break;
-          case VK_IMAGE_VIEW_TYPE_3D: header.missingTableIndex[header.registerCount] = spirv::MISSING_SAMPLED_IMAGE_3D_INDEX; break;
-          case VK_IMAGE_VIEW_TYPE_CUBE:
-            header.missingTableIndex[header.registerCount] = spirv::MISSING_SAMPLED_IMAGE_CUBE_INDEX;
-            break;
-          case VK_IMAGE_VIEW_TYPE_2D_ARRAY:
-            header.missingTableIndex[header.registerCount] = spirv::MISSING_SAMPLED_IMAGE_2D_ARRAY_INDEX;
-            break;
-          case VK_IMAGE_VIEW_TYPE_CUBE_ARRAY:
-            header.missingTableIndex[header.registerCount] = spirv::MISSING_SAMPLED_IMAGE_CUBE_ARRAY_INDEX;
-            break;
+          switch (imageViewType)
+          {
+            case VK_IMAGE_VIEW_TYPE_1D_ARRAY:
+            case VK_IMAGE_VIEW_TYPE_1D: header.missingTableIndex[header.registerCount] = spirv::MISSING_IS_FATAL_INDEX; break;
+            case VK_IMAGE_VIEW_TYPE_2D:
+              header.missingTableIndex[header.registerCount] = spirv::MISSING_SAMPLED_IMAGE_WITH_COMPARE_2D_INDEX;
+              break;
+            case VK_IMAGE_VIEW_TYPE_3D:
+              header.missingTableIndex[header.registerCount] = spirv::MISSING_SAMPLED_IMAGE_WITH_COMPARE_3D_INDEX;
+              break;
+            case VK_IMAGE_VIEW_TYPE_CUBE:
+              header.missingTableIndex[header.registerCount] = spirv::MISSING_SAMPLED_IMAGE_WITH_COMPARE_CUBE_INDEX;
+              break;
+            case VK_IMAGE_VIEW_TYPE_2D_ARRAY:
+              header.missingTableIndex[header.registerCount] = spirv::MISSING_SAMPLED_IMAGE_WITH_COMPARE_2D_ARRAY_INDEX;
+              break;
+            case VK_IMAGE_VIEW_TYPE_CUBE_ARRAY:
+              header.missingTableIndex[header.registerCount] = spirv::MISSING_SAMPLED_IMAGE_WITH_COMPARE_CUBE_ARRAY_INDEX;
+              break;
+          }
+        }
+        else
+        {
+          switch (imageViewType)
+          {
+            case VK_IMAGE_VIEW_TYPE_1D_ARRAY:
+            case VK_IMAGE_VIEW_TYPE_1D: header.missingTableIndex[header.registerCount] = spirv::MISSING_IS_FATAL_INDEX; break;
+            case VK_IMAGE_VIEW_TYPE_2D: header.missingTableIndex[header.registerCount] = spirv::MISSING_SAMPLED_IMAGE_2D_INDEX; break;
+            case VK_IMAGE_VIEW_TYPE_3D: header.missingTableIndex[header.registerCount] = spirv::MISSING_SAMPLED_IMAGE_3D_INDEX; break;
+            case VK_IMAGE_VIEW_TYPE_CUBE:
+              header.missingTableIndex[header.registerCount] = spirv::MISSING_SAMPLED_IMAGE_CUBE_INDEX;
+              break;
+            case VK_IMAGE_VIEW_TYPE_2D_ARRAY:
+              header.missingTableIndex[header.registerCount] = spirv::MISSING_SAMPLED_IMAGE_2D_ARRAY_INDEX;
+              break;
+            case VK_IMAGE_VIEW_TYPE_CUBE_ARRAY:
+              header.missingTableIndex[header.registerCount] = spirv::MISSING_SAMPLED_IMAGE_CUBE_ARRAY_INDEX;
+              break;
+          }
         }
         break;
-      case spirv::T_SAMPLED_IMAGE_WITH_COMPARE_OFFSET:
-        switch (imageViewType)
-        {
-          case VK_IMAGE_VIEW_TYPE_1D_ARRAY:
-          case VK_IMAGE_VIEW_TYPE_1D: header.missingTableIndex[header.registerCount] = spirv::MISSING_IS_FATAL_INDEX; break;
-          case VK_IMAGE_VIEW_TYPE_2D:
-            header.missingTableIndex[header.registerCount] = spirv::MISSING_SAMPLED_IMAGE_WITH_COMPARE_2D_INDEX;
-            break;
-          case VK_IMAGE_VIEW_TYPE_3D:
-            header.missingTableIndex[header.registerCount] = spirv::MISSING_SAMPLED_IMAGE_WITH_COMPARE_3D_INDEX;
-            break;
-          case VK_IMAGE_VIEW_TYPE_CUBE:
-            header.missingTableIndex[header.registerCount] = spirv::MISSING_SAMPLED_IMAGE_WITH_COMPARE_CUBE_INDEX;
-            break;
-          case VK_IMAGE_VIEW_TYPE_2D_ARRAY:
-            header.missingTableIndex[header.registerCount] = spirv::MISSING_SAMPLED_IMAGE_WITH_COMPARE_2D_ARRAY_INDEX;
-            break;
-          case VK_IMAGE_VIEW_TYPE_CUBE_ARRAY:
-            header.missingTableIndex[header.registerCount] = spirv::MISSING_SAMPLED_IMAGE_WITH_COMPARE_CUBE_ARRAY_INDEX;
-            break;
-        }
-        break;
+      }
       case spirv::T_BUFFER_SAMPLED_IMAGE_OFFSET:
         header.missingTableIndex[header.registerCount] = spirv::MISSING_BUFFER_SAMPLED_IMAGE_INDEX;
         break;

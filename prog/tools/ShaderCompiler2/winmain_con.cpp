@@ -17,7 +17,9 @@ static const char *get_debug_fname()
   const char *log_dir = NULL;
   bool suppressLogs = false;
   const char *log_prefix =
-#if defined(_CROSS_TARGET_C1)
+#if defined(_CROSS_TARGET_EMPTY)
+    "ShaderLog-STUB"
+#elif defined(_CROSS_TARGET_C1)
 
 #elif defined(_CROSS_TARGET_C2)
 

@@ -80,13 +80,6 @@ macro GET_MEDIA_HARDCODED(code)
     {
       return get_ground_height_lod(world_pos, HEIGHTMAP_LOD);
     }
-    float3 getDepthAboveTcAndVignette(float3 world_pos)
-    {
-      float2 tc = saturate(world_to_depth_ao.xy * world_pos.xz + world_to_depth_ao.zw);
-      float2 vignette = saturate(abs(tc * 2 - 1) * 10 - 9);
-      float vignette_effect = saturate(dot(vignette, vignette));
-      return float3(tc - depth_ao_heights.zw, vignette_effect);
-    }
 
 
     // parameters intentionally have mixed case, so generated code can be copied into the function body as-is
@@ -203,9 +196,8 @@ macro GET_MEDIA_HARDCODED(code)
     float4 get_media_no_modifiers(float3 world_pos, float3 screen_tc, float wind_time)
     {
       float3 screenTcJittered = screen_tc;
-      float3 depthAboveTcAndVignette = getDepthAboveTcAndVignette(world_pos);
-      float2 depthAboveTc = depthAboveTcAndVignette.xy;
-      float depthAboveVignette = depthAboveTcAndVignette.z;
+      float depthAboveVignette = 0;
+      float2 depthAboveTc = get_depth_above_tc(world_pos, depthAboveVignette).xy;
 
       MRTOutput result = (MRTOutput)0;
       get_hardcoded_media(result, world_pos, screen_tc, wind_time, depthAboveTc, depthAboveVignette);

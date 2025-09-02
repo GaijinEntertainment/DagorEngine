@@ -1,0 +1,48 @@
+include "bvh.dshl"
+include "rt/rt_lighting.dshl"
+
+int use_hw_rt_gi;
+interval use_hw_rt_gi : off < 1, on;
+
+macro PROJECT_TRACE(code)
+  if (use_hw_rt_gi == on && use_hw_raytracing && compatibility_mode == compatibility_mode_off)
+  {
+    supports global_const_block;
+    INIT_MAIN_BVH(code, 0, false)
+    USE_MAIN_BVH(code, 1, 1, 1, 0, 1, 0, 1, 1)
+    INIT_RT_SURFACE_PARAMS(code)
+    USE_RT_SURFACE_PARAMS(code, true)
+
+    hlsl (code) {
+      #define DAGI_PROJECT_TRACE_HAS_RADIANCE 0
+      #define DAGI_PROJECT_TRACE_HAS_ALBEDO 1
+      #define DAGI_HAS_PROJECT_TRACE 1
+      //#define DAGI_PROJECT_DOES_NOT_NEED_SCREEN_TRACE 1
+      #define USE_TRACE_TO_INF 1
+
+      struct DaGiProjectHitRes
+      {
+        float3 hitCamPos, hitNormal;
+        float3 hitAlbedo, hitRadiance;
+        float hitAt; bool hasRadiance;
+      };
+      bool dagi_project_trace_surface(float3 cam_from, float3 origin, float3 worldDir, float maxT, inout DaGiProjectHitRes hit)
+      {
+        HitInfo hitInfo;
+        float3 bvhFrom = (origin - bvh_origin) + cam_from;
+        if (trace_ray(bvhMain, bvhFrom, worldDir, 0, maxT, 0, bvhGroupAll, hitInfo, 0.5))
+        {
+          SurfaceParams hitSurface = calc_surface_params(hitInfo, -worldDir, 0);
+          hit.hitAt = hitInfo.t;
+          hit.hitCamPos = cam_from + worldDir*hit.hitAt;
+          hit.hitNormal = hitSurface.normal;
+          hit.hitAlbedo = hitSurface.albedo;
+          return true;
+        }
+        return false;
+      }
+    }
+
+    compile("cs_set_target", "cs_6_5");
+  }
+endmacro

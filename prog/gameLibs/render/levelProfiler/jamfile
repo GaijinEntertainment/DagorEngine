@@ -1,0 +1,41 @@
+Root    ?= ../../.. ;
+StrictCompile = yes ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+Location = prog/gameLibs/render/levelProfiler ;
+TargetType  = lib ;
+Target      = gameLibs/render/levelProfiler.lib ;
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/gameLibs/render/levelProfiler/include
+  $(Root)/prog/gameLibs/render/levelProfiler/include/dataModules
+  $(Root)/prog/gameLibs/render/levelProfiler/include/uiComponents
+  $(Root)/prog/gameLibs/render/levelProfiler/include/uiModules
+;
+if $(Config) != rel {
+  Sources =
+    levelProfiler.cpp
+    # src/levelProfilerInterface.cpp
+    src/levelProfilerExporter.cpp
+    src/levelProfilerUI.cpp
+
+    # Data Modules
+    src/dataModules/textureModule.cpp
+    src/dataModules/riModule.cpp
+
+    # Base UI Components
+    src/uiComponents/levelProfilerTableBase.cpp
+    src/uiComponents/levelProfilerWidgets.cpp
+    src/uiComponents/levelProfilerFilter.cpp
+
+    # UI Modules
+    src/uiModules/levelProfilerTextureTable.cpp
+    # src/uiModules/levelProfilerRiTable.cpp
+  ;
+} else {
+  Sources =
+    levelProfilerStub.cpp
+  ;
+  Target = $(Target:S=-stub.lib) ;
+}
+CPPopt = ;
+include $(Root)/prog/_jBuild/build.jam ;

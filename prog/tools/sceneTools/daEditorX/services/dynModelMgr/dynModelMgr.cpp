@@ -11,11 +11,11 @@
 #include <de3_entityGatherTex.h>
 #include <de3_entityGetSceneLodsRes.h>
 #include <de3_randomSeed.h>
+#include <de3_dynRenderService.h>
 #include <oldEditor/de_common_interface.h>
 #include <assets/assetChangeNotify.h>
 #include <assets/assetMgr.h>
 #include <EditorCore/ec_interface.h>
-#include <shaders/dag_dynSceneRes.h>
 #include <gameRes/dag_gameResSystem.h>
 #include <gameRes/dag_stdGameRes.h>
 #include <gameRes/dag_collisionResource.h>
@@ -29,7 +29,6 @@
 #include <osApiWrappers/dag_critSec.h>
 #include <debug/dag_debug.h>
 #include <debug/dag_debug3d.h>
-#include <render/dynmodelRenderer.h>
 #include <regExp/regExp.h>
 
 extern bool(__stdcall *external_traceRay_for_rigen)(const Point3 &from, const Point3 &dir, float &current_t, Point3 *out_norm);
@@ -75,6 +74,7 @@ public:
   void clear()
   {
     noDynRender = false;
+    skeletonErrorsReported = false;
     del_it(sceneInstance);
 
     if (res)
@@ -91,7 +91,7 @@ public:
     }
   }
 
-  virtual void setTm(const TMatrix &_tm)
+  void setTm(const TMatrix &_tm) override
   {
     if (!sceneInstance)
       return;
@@ -127,23 +127,23 @@ public:
         sceneInstance->setNodeWtm(i, _tm);
   }
 
-  virtual void getTm(TMatrix &_tm) const { _tm = TMatrix::IDENT; }
-  virtual void destroy() { delete this; }
-  virtual void *queryInterfacePtr(unsigned huid) { return NULL; }
+  void getTm(TMatrix &_tm) const override { _tm = TMatrix::IDENT; }
+  void destroy() override { delete this; }
+  void *queryInterfacePtr(unsigned huid) override { return NULL; }
 
-  virtual BSphere3 getBsph() const { return bsph; }
-  virtual BBox3 getBbox() const { return bbox; }
+  BSphere3 getBsph() const override { return bsph; }
+  BBox3 getBbox() const override { return bbox; }
 
-  virtual const char *getObjAssetName() const
+  const char *getObjAssetName() const override
   {
     static String buf;
     buf.printf(0, "%s:dynModel", assetName());
     return buf;
   }
 
-  virtual DynamicRenderableSceneLodsResource *getSceneLodsRes() { return res; }
-  virtual const DynamicRenderableSceneLodsResource *getSceneLodsRes() const { return res; }
-  virtual DynamicRenderableSceneInstance *getSceneInstance() override { return sceneInstance; }
+  DynamicRenderableSceneLodsResource *getSceneLodsRes() override { return res; }
+  const DynamicRenderableSceneLodsResource *getSceneLodsRes() const override { return res; }
+  DynamicRenderableSceneInstance *getSceneInstance() override { return sceneInstance; }
 
   void setup(const DagorAsset &asset)
   {
@@ -240,12 +240,16 @@ public:
   DynModelEntity(int cls) : VirtualDynModelEntity(cls), idx(MAX_ENTITIES)
   {
     tm.identity();
-    texQ = 1;
     collision = NULL;
     collisionTried = false;
   }
+  ~DynModelEntity() override
+  {
+    if (collision)
+      ::release_game_resource((GameResource *)collision);
+  }
 
-  virtual void *queryInterfacePtr(unsigned huid)
+  void *queryInterfacePtr(unsigned huid) override
   {
     RETURN_INTERFACE(huid, ILodController);
     RETURN_INTERFACE(huid, IEntityGatherTex);
@@ -255,7 +259,7 @@ public:
     return NULL;
   }
 
-  virtual void setTm(const TMatrix &_tm)
+  void setTm(const TMatrix &_tm) override
   {
     VirtualDynModelEntity::setTm(_tm);
     tm = _tm;
@@ -263,8 +267,8 @@ public:
     current_dynmodel_gen++;
   }
 
-  virtual void getTm(TMatrix &_tm) const { _tm = tm; }
-  virtual void destroy()
+  void getTm(TMatrix &_tm) const override { _tm = tm; }
+  void destroy() override
   {
     WinAutoLock lock(*ccForTrace);
     pool->delEntity(this);
@@ -273,8 +277,8 @@ public:
   }
 
   // IDataBlockIdHolder
-  virtual void setDataBlockId(unsigned id) override { dataBlockId = id; }
-  virtual unsigned getDataBlockId() override { return dataBlockId; }
+  void setDataBlockId(unsigned id) override { dataBlockId = id; }
+  unsigned getDataBlockId() override { return dataBlockId; }
 
   void copyFrom(const VirtualDynModelEntity &e)
   {
@@ -319,53 +323,23 @@ public:
     collisionTried = true;
     if (!collision)
       return false;
-    collision->collapseAndOptimize(true);
+    collision->collapseAndOptimize(assetName(), true);
     return true;
   }
   void beforeRender() { sceneInstance->beforeRender(::grs_cur_view.pos); }
 
-  void render()
+  void render(IDynRenderService *rs, IRenderingService::Stage stage)
   {
-    dynrend::PerInstanceRenderData renderData;
-    Point4 &params = renderData.params.emplace_back();
-    memcpy(&params.x, &instanceSeed, sizeof(instanceSeed));
-
-    if (getSubtype() == decal3dSubtype || noDynRender ||
-        !dynrend::render_in_tools(sceneInstance, dynrend::RenderMode::Opaque, &renderData))
-      sceneInstance->render();
-  }
-
-  void renderTrans()
-  {
-    if (getSubtype() == decal3dSubtype || noDynRender || !dynrend::render_in_tools(sceneInstance, dynrend::RenderMode::Translucent))
-      sceneInstance->renderTrans();
-  }
-
-  void renderDistortion()
-  {
-    if (getSubtype() == decal3dSubtype || noDynRender || !dynrend::render_in_tools(sceneInstance, dynrend::RenderMode::Distortion))
-      sceneInstance->renderDistortion();
+    rs->renderOneDynModelInstance(sceneInstance, stage, &instanceSeed, getSubtype() == decal3dSubtype || noDynRender);
   }
 
   // ILodController
-  virtual int getLodCount() { return sceneInstance ? sceneInstance->getLodsCount() : 0; }
-  virtual void setCurLod(int n) { sceneInstance ? sceneInstance->setLod(n) : (void)0; }
-  virtual real getLodRange(int lod_n) { return sceneInstance->getLodsResource()->lods[lod_n].range; }
+  int getLodCount() override { return sceneInstance ? sceneInstance->getLodsCount() : 0; }
+  void setCurLod(int n) override { sceneInstance ? sceneInstance->setLod(n) : (void)0; }
+  real getLodRange(int lod_n) override { return sceneInstance->getLodsResource()->lods[lod_n].range; }
 
-  virtual int getTexQLCount() const { return 2; }
-  virtual void setTexQL(int ql)
-  {
-    if (ql == texQ)
-      return;
-    texQ = ql;
-    del_it(sceneInstance);
-    sceneInstance = new DynamicRenderableSceneInstance(res);
-    VirtualDynModelEntity::setTm(tm);
-  }
-  virtual int getTexQL() const { return texQ; }
-
-  virtual int getNamedNodeCount() { return sceneInstance ? sceneInstance->getNodeCount() : 0; }
-  virtual const char *getNamedNode(int idx)
+  int getNamedNodeCount() override { return sceneInstance ? sceneInstance->getNodeCount() : 0; }
+  const char *getNamedNode(int idx) override
   {
     if (!res)
       return NULL;
@@ -379,15 +353,15 @@ public:
     }
     return NULL;
   }
-  virtual int getNamedNodeIdx(const char *nm) { return sceneInstance ? sceneInstance->getNodeId(nm) : -1; }
-  virtual bool getNamedNodeVisibility(int idx) { return sceneInstance ? !sceneInstance->isNodeHidden(idx) : true; }
-  virtual void setNamedNodeVisibility(int idx, bool vis)
+  int getNamedNodeIdx(const char *nm) override { return sceneInstance ? sceneInstance->getNodeId(nm) : -1; }
+  bool getNamedNodeVisibility(int idx) override { return sceneInstance ? !sceneInstance->isNodeHidden(idx) : true; }
+  void setNamedNodeVisibility(int idx, bool vis) override
   {
     if (sceneInstance)
       sceneInstance->showNode(idx, vis);
   }
 
-  virtual const char *getNodeName(int idx)
+  const char *getNodeName(int idx) override
   {
     if (!res)
       return NULL;
@@ -395,11 +369,11 @@ public:
     return nm;
   }
 
-  virtual const GeomNodeTree *getSkeleton() override { return origSkeleton; }
-  virtual void setSkeletonForRender(GeomNodeTree *skel) override { geomNodeTree = skel ? skel : origSkeleton; }
+  const GeomNodeTree *getSkeleton() override { return origSkeleton; }
+  void setSkeletonForRender(GeomNodeTree *skel) override { geomNodeTree = skel ? skel : origSkeleton; }
 
   // IEntityGatherTex interface
-  virtual int gatherTextures(TextureIdSet &out_tex_id, int for_lod)
+  int gatherTextures(TextureIdSet &out_tex_id, int for_lod) override
   {
     if (!sceneInstance)
       return 0;
@@ -412,18 +386,16 @@ public:
   }
 
   // IRandomSeedHolder
-  virtual void setSeed(int new_seed) {}
-  virtual int getSeed() { return 0; }
-  virtual void setPerInstanceSeed(int seed) { instanceSeed = seed; }
-  virtual int getPerInstanceSeed() { return instanceSeed; }
+  void setSeed(int new_seed) override {}
+  int getSeed() override { return 0; }
+  void setPerInstanceSeed(int seed) override { instanceSeed = seed; }
+  int getPerInstanceSeed() override { return instanceSeed; }
 
 public:
-  static const int STEP = 512;
   static const int MAX_ENTITIES = 0xFFFFFFFF;
 
   unsigned idx;
   TMatrix tm;
-  int texQ;
   CollisionResource *collision;
   bool collisionTried;
   int instanceSeed = 0;
@@ -457,7 +429,7 @@ public:
     external_traceRay_for_rigen = &traceRay_for_rigen;
   }
 
-  ~DynModelEntityManagementService()
+  ~DynModelEntityManagementService() override
   {
     release_managed_tex(camoMicroNoiseTexId);
     external_traceRay_for_rigen = (external_traceRay_for_rigen == &traceRay_for_rigen) ? prev_traceRay_for_rigen : NULL;
@@ -466,15 +438,15 @@ public:
   }
 
   // IEditorService interface
-  virtual const char *getServiceName() const { return "_dmEntMgr"; }
-  virtual const char *getServiceFriendlyName() const { return "(srv) DynModel entities"; }
+  const char *getServiceName() const override { return "_dmEntMgr"; }
+  const char *getServiceFriendlyName() const override { return "(srv) DynModel entities"; }
 
-  virtual void setServiceVisible(bool vis) { visible = vis; }
-  virtual bool getServiceVisible() const { return visible; }
+  void setServiceVisible(bool vis) override { visible = vis; }
+  bool getServiceVisible() const override { return visible; }
 
-  virtual void actService(float dt) {}
-  virtual void beforeRenderService() {}
-  virtual void renderService()
+  void actService(float dt) override {}
+  void beforeRenderService() override {}
+  void renderService() override
   {
     dag::ConstSpan<DynModelEntity *> ent = objPool.getEntities();
     int st_mask = IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_RENDER);
@@ -496,11 +468,11 @@ public:
       end_draw_cached_debug_lines();
     }
   }
-  virtual void renderTransService() {}
+  void renderTransService() override {}
 
-  virtual void onBeforeReset3dDevice() {}
+  void onBeforeReset3dDevice() override {}
 
-  virtual void *queryInterfacePtr(unsigned huid)
+  void *queryInterfacePtr(unsigned huid) override
   {
     RETURN_INTERFACE(huid, IObjEntityMgr);
     RETURN_INTERFACE(huid, IRenderingService);
@@ -509,14 +481,16 @@ public:
   }
 
   // ILightingChangeClient
-  virtual void onLightingChanged() {}
+  void onLightingChanged() override {}
   void onLightingSettingsChanged() override {}
 
   // IRenderingService interface
-  virtual void renderGeometry(Stage stage)
+  void renderGeometry(Stage stage) override
   {
     static int camoMicroNoiseTexVarId = get_shader_variable_id("camo_micro_noise_tex", true);
+    static int camoMicroNoiseTexSamplerstateVarId = get_shader_variable_id("camo_micro_noise_tex_samplerstate", true);
     ShaderGlobal::set_texture(camoMicroNoiseTexVarId, camoMicroNoiseTexId);
+    ShaderGlobal::set_sampler(camoMicroNoiseTexSamplerstateVarId, get_texture_separate_sampler(camoMicroNoiseTexId));
 
     static int editor_dynmodel_render_gvid = ::get_shader_glob_var_id("editor_dynmodel_render", true);
     static int dynmodelObjEntInFlight = 0;
@@ -528,6 +502,9 @@ public:
     if (render_now && dynmodelObjEntInFlight)
       ShaderGlobal::set_int(editor_dynmodel_render_gvid, 1);
 
+    IDynRenderService *rs = EDITORCORE->queryEditorInterface<IDynRenderService>();
+    if (!rs)
+      return;
     dag::ConstSpan<DynModelEntity *> ent = objPool.getEntities();
     switch (stage)
     {
@@ -544,36 +521,29 @@ public:
       case STG_RENDER_DYNAMIC_OPAQUE:
       case STG_RENDER_TO_CLIPMAP:
       case STG_RENDER_SHADOWS:
+      case STG_RENDER_DYNAMIC_DECALS:
+      case STG_RENDER_DYNAMIC_TRANS:
+      case STG_RENDER_DYNAMIC_DISTORTION:
         for (int i = 0; i < ent.size(); i++)
           if (ent[i] && ent[i]->res && ent[i]->isNonVirtual() && ent[i]->checkSubtypeAndLayerHiddenMasks(st_mask, lh_mask))
           {
             if (stage == STG_RENDER_DYNAMIC_OPAQUE)
               ec_stat3d_on_unit_begin();
-            ent[i]->render();
+            ent[i]->render(rs, stage);
             if (stage == STG_RENDER_DYNAMIC_OPAQUE)
               ec_stat3d_on_unit_end();
           }
 
         break;
 
-      case STG_RENDER_DYNAMIC_TRANS:
-        for (int i = 0; i < ent.size(); i++)
-          if (ent[i] && ent[i]->res && ent[i]->isNonVirtual() && ent[i]->checkSubtypeAndLayerHiddenMasks(st_mask, lh_mask))
-            ent[i]->renderTrans();
-        break;
-
-      case STG_RENDER_DYNAMIC_DISTORTION:
-        for (int i = 0; i < ent.size(); i++)
-          if (ent[i] && ent[i]->res && ent[i]->isNonVirtual() && ent[i]->checkSubtypeAndLayerHiddenMasks(st_mask, lh_mask))
-            ent[i]->renderDistortion();
-        break;
+      default: break;
     }
     if (render_now && dynmodelObjEntInFlight)
       ShaderGlobal::set_int(editor_dynmodel_render_gvid, 0);
   }
 
 
-  virtual void initCamoMicroNoise()
+  void initCamoMicroNoise()
   {
     const DataBlock *options_blk = const_cast<DataBlock *>(dgs_get_game_params())->getBlockByNameEx("camoMicroNoise");
     const char *camoMicroNoiseTexName = options_blk->getStr("tex", NULL);
@@ -593,12 +563,12 @@ public:
   }
 
   // IObjEntityMgr interface
-  virtual bool canSupportEntityClass(int entity_class) const
+  bool canSupportEntityClass(int entity_class) const override
   {
     return dynModelEntityClassId >= 0 && dynModelEntityClassId == entity_class;
   }
 
-  virtual IObjEntity *createEntity(const DagorAsset &asset, bool virtual_ent)
+  IObjEntity *createEntity(const DagorAsset &asset, bool virtual_ent) override
   {
     if (!aMgr)
       aMgr = &asset.getMgr();
@@ -629,7 +599,7 @@ public:
     return ent;
   }
 
-  virtual IObjEntity *cloneEntity(IObjEntity *origin)
+  IObjEntity *cloneEntity(IObjEntity *origin) override
   {
     WinAutoLock lock(*ccForTrace);
     VirtualDynModelEntity *o = reinterpret_cast<VirtualDynModelEntity *>(origin);
@@ -645,7 +615,7 @@ public:
   }
 
   // IDagorAssetChangeNotify interface
-  virtual void onAssetRemoved(int asset_name_id, int asset_type)
+  void onAssetRemoved(int asset_name_id, int asset_type) override
   {
     dag::ConstSpan<DynModelEntity *> ent = objPool.getEntities();
     for (int i = 0; i < ent.size(); i++)
@@ -654,7 +624,7 @@ public:
     current_dynmodel_gen++;
     EDITORCORE->invalidateViewportCache();
   }
-  virtual void onAssetChanged(const DagorAsset &asset, int asset_name_id, int asset_type)
+  void onAssetChanged(const DagorAsset &asset, int asset_name_id, int asset_type) override
   {
     dag::ConstSpan<DynModelEntity *> ent = objPool.getEntities();
     for (int i = 0; i < ent.size(); i++)

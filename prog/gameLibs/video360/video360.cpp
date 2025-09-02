@@ -12,6 +12,7 @@
 #include "video360/video360.h"
 #include <drv/3d/dag_commands.h>
 #include <generic/dag_enumerate.h>
+#include <math/dag_cube_matrix.h>
 
 static ShaderVariableInfo copySourceVarId{"video360_copy_source"};
 
@@ -60,51 +61,11 @@ void Video360::update(ManagedTexView tex)
 
 bool Video360::isFinished() { return cubemapFace > 5; }
 
-static TMatrix build_cubemap_face_view_matrix(int face_index, const TMatrix &source_matrix)
-{
-  TMatrix cameraMatrix;
-  switch (face_index)
-  {
-    case 0:
-      cameraMatrix.setcol(0, -source_matrix.getcol(2));
-      cameraMatrix.setcol(1, source_matrix.getcol(1));
-      cameraMatrix.setcol(2, source_matrix.getcol(0));
-      break;
-    case 1:
-      cameraMatrix.setcol(0, source_matrix.getcol(2));
-      cameraMatrix.setcol(1, source_matrix.getcol(1));
-      cameraMatrix.setcol(2, -source_matrix.getcol(0));
-      break;
-    case 3:
-      cameraMatrix.setcol(0, source_matrix.getcol(0));
-      cameraMatrix.setcol(1, source_matrix.getcol(2));
-      cameraMatrix.setcol(2, -source_matrix.getcol(1));
-      break;
-    case 2:
-      cameraMatrix.setcol(0, source_matrix.getcol(0));
-      cameraMatrix.setcol(1, -source_matrix.getcol(2));
-      cameraMatrix.setcol(2, source_matrix.getcol(1));
-      break;
-    case 4:
-      cameraMatrix.setcol(0, source_matrix.getcol(0));
-      cameraMatrix.setcol(1, source_matrix.getcol(1));
-      cameraMatrix.setcol(2, source_matrix.getcol(2));
-      break;
-    case 5:
-      cameraMatrix.setcol(0, -source_matrix.getcol(0));
-      cameraMatrix.setcol(1, source_matrix.getcol(1));
-      cameraMatrix.setcol(2, -source_matrix.getcol(2));
-      break;
-  }
-  cameraMatrix.setcol(3, source_matrix.getcol(3));
-  return cameraMatrix;
-}
-
 eastl::optional<CameraSetupPerspPair> Video360::getCamera() const
 {
   G_ASSERT_RETURN(cubemapFace >= 0 && cubemapFace <= 5, eastl::nullopt);
 
-  TMatrix cameraMatrix = build_cubemap_face_view_matrix(cubemapFace, TMatrix::IDENT);
+  TMatrix cameraMatrix = cube_matrix(TMatrix::IDENT, cubemapFace);
   cameraMatrix = savedCameraTm * cameraMatrix;
 
   CameraSetup cam;

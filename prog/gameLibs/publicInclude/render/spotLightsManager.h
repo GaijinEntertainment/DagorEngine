@@ -6,6 +6,7 @@
 
 #include "spotLight.h"
 #include <vecmath/dag_vecMathDecl.h>
+#include <EASTL/bit.h>
 #include <generic/dag_bitset.h>
 #include <generic/dag_tabFwd.h>
 #include <generic/dag_staticTab.h>
@@ -14,6 +15,16 @@
 #include "renderLights.hlsli"
 
 #include <render/iesTextureManager.h>
+
+#include "light_mask_inc.hlsli"
+#include "spot_light_shadow_flags.hlsli"
+
+inline SpotLightMaskType &operator|=(SpotLightMaskType &lhs, SpotLightMaskType rhs)
+{
+  lhs = static_cast<SpotLightMaskType>(static_cast<eastl::underlying_type<SpotLightMaskType>::type>(lhs) | //-V1016
+                                       static_cast<eastl::underlying_type<SpotLightMaskType>::type>(rhs)); //-V1016
+  return lhs;
+}
 
 struct Frustum;
 class OmniShadowMap;
@@ -24,15 +35,8 @@ class SpotLightsManager
 public:
   typedef SpotLight Light;
   typedef Light RawLight;
-  typedef uint8_t mask_type_t;
 
   static constexpr int MAX_LIGHTS = 2048;
-  enum
-  {
-    GI_LIGHT_MASK = 0x1, // TODO: maybe rename it
-    MASK_LENS_FLARE = 0x2,
-    MASK_ALL = 0xFF
-  };
 
   SpotLightsManager();
   ~SpotLightsManager();
@@ -44,23 +48,23 @@ public:
   void prepare(const Frustum &frustum, Tab<uint16_t> &lights_inside_plane, Tab<uint16_t> &lights_outside_plane,
     eastl::bitset<MAX_LIGHTS> *visibleIdBitset, Occlusion *, bbox3f &inside_box, bbox3f &outside_box, vec4f znear_plane,
     const StaticTab<uint16_t, SpotLightsManager::MAX_LIGHTS> &shadow, float markSmallLightsAsFarLimit, vec3f cameraPos,
-    mask_type_t accept_mask) const;
+    SpotLightMaskType require_any_mask) const;
 
   void prepare(const Frustum &frustum, Tab<uint16_t> &lights_inside_plane, Tab<uint16_t> &lights_outside_plane,
     eastl::bitset<MAX_LIGHTS> *visibleIdBitset, Occlusion *occ, bbox3f &inside_box, bbox3f &outside_box, vec4f znear_plane,
     const StaticTab<uint16_t, SpotLightsManager::MAX_LIGHTS> &shadow, float markSmallLightsAsFarLimit, vec3f cameraPos,
-    mask_type_t accept_mask) const
+    SpotLightMaskType require_any_mask) const
   {
     prepare<true>(frustum, lights_inside_plane, lights_outside_plane, visibleIdBitset, occ, inside_box, outside_box, znear_plane,
-      shadow, markSmallLightsAsFarLimit, cameraPos, accept_mask);
+      shadow, markSmallLightsAsFarLimit, cameraPos, require_any_mask);
   }
 
   void prepare(const Frustum &frustum, Tab<uint16_t> &lights_inside_plane, Tab<uint16_t> &lights_outside_plane,
     eastl::bitset<MAX_LIGHTS> *visibleIdBitset, Occlusion *occ, bbox3f &inside_box, bbox3f &outside_box, vec4f znear_plane,
-    const StaticTab<uint16_t, SpotLightsManager::MAX_LIGHTS> &shadow, mask_type_t accept_mask)
+    const StaticTab<uint16_t, SpotLightsManager::MAX_LIGHTS> &shadow, SpotLightMaskType require_any_mask)
   {
     prepare<false>(frustum, lights_inside_plane, lights_outside_plane, visibleIdBitset, occ, inside_box, outside_box, znear_plane,
-      shadow, 0, v_zero(), accept_mask);
+      shadow, 0, v_zero(), require_any_mask);
   }
   void renderDebugBboxes();
   int addLight(const Light &light); // return -1 if fails
@@ -74,8 +78,11 @@ public:
       G_ASSERTF(0, "nan in setLight");
       return;
     }
+    // reset optimization only when optimization related parameters changed
+    bool resetOptimization = rawLights[id].pos_radius != l.pos_radius || rawLights[id].dir_tanHalfAngle != l.dir_tanHalfAngle;
     rawLights[id] = l;
-    resetLightOptimization(id);
+    if (resetOptimization)
+      resetLightOptimization(id);
     updateBoundingSphere(id);
   }
   RenderSpotLight getRenderLight(unsigned int id) const
@@ -91,9 +98,9 @@ public:
     ret.lightColorAngleScale.w = lightAngleScale;
     ret.lightDirectionAngleOffset = (const float4 &)l.dir_tanHalfAngle;
     ret.lightDirectionAngleOffset.w = lightAngleOffset;
-    ret.texId_scale_shadow_contactshadow = (const float4 &)l.texId_scale;
-    ret.texId_scale_shadow_contactshadow.z = l.shadows ? 1 : 0;
-    ret.texId_scale_shadow_contactshadow.w = l.contactShadows ? 1 : 0;
+    ret.texId_scale_illuminatingplane_shadow_contactshadow = (const float4 &)l.texId_scale_illuminatingPlane;
+    ret.texId_scale_illuminatingplane_shadow_contactshadow.w = eastl::bit_cast<float, uint32_t>(
+      (l.contactShadows ? SPOT_LIGHT_NEEDS_CONTACT_SHADOWS_MASK : 0) | (l.shadows ? SPOT_LIGHT_HAS_SHADOW_MASK : 0));
     return ret;
   }
 
@@ -111,7 +118,7 @@ public:
   void destroyAllLights();
 
   int addLight(const Point3 &pos, const Color3 &color, const Point3 &dir, const float angle, float radius, float attenuation_k = 1.f,
-    bool contact_shadows = false, int tex = -1);
+    bool contact_shadows = false, int tex = -1, float illuminating_plane = 0);
 
   void setLightPos(unsigned int id, const Point3 &pos)
   {
@@ -126,8 +133,8 @@ public:
     resetLightOptimization(id);
     updateBoundingSphere(id);
   }
-  mask_type_t getLightMask(unsigned int id) const { return masks[id]; }
-  void setLightMask(unsigned int id, mask_type_t mask) { masks[id] = mask; }
+  SpotLightMaskType getLightMask(unsigned int id) const { return masks[id]; }
+  void setLightMask(unsigned int id, SpotLightMaskType mask) { masks[id] = mask; }
   Point3 getLightPos(unsigned int id) const { return Point3::xyz(rawLights[id].pos_radius); }
   Point4 getLightPosRadius(unsigned int id) const { return rawLights[id].pos_radius; }
   void getLightView(unsigned int id, mat44f &viewITM);
@@ -186,7 +193,7 @@ public:
   void resetLightOptimization(int id)
   {
     // Additional checks if optimization is needed can be added here
-    bool shouldBeOptimized = (rawLights[id].pos_radius.w > 0) && (masks[id] & GI_LIGHT_MASK);
+    bool shouldBeOptimized = (rawLights[id].pos_radius.w > 0) && (masks[id] & SpotLightMaskType::SPOT_LIGHT_MASK_GI);
     nonOptLightIds.set(id, shouldBeOptimized);
     rawLights[id].culling_radius = -1.0f;
   }
@@ -200,7 +207,7 @@ private:
   alignas(16) carray<float, MAX_LIGHTS> cosHalfAngles; //-V730_NOINIT
   // masks allows to ignore specific lights in specific cases
   // for example, we can ignore highly dynamic lights for GI
-  carray<mask_type_t, MAX_LIGHTS> masks; //-V730_NOINIT
+  carray<SpotLightMaskType, MAX_LIGHTS> masks; //-V730_NOINIT
 
   StaticTab<uint16_t, MAX_LIGHTS> freeLightIds; //-V730_NOINIT
   Bitset<MAX_LIGHTS> nonOptLightIds;

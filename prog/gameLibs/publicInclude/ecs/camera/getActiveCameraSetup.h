@@ -5,10 +5,13 @@
 #pragma once
 
 #include <math/dag_TMatrix.h>
+#include <math/dag_TMatrix4D.h>
 #include <math/dag_Point3.h>
 #include <daECS/core/entityId.h>
 
 struct Driver3dPerspective;
+
+constexpr float CAMERA_FOV_REFERENCE_ASPECT_RATIO = 16.f / 9.f;
 
 enum FovMode
 {
@@ -21,6 +24,7 @@ struct CameraSetup
   TMatrix transform = TMatrix::IDENT;
   DPoint3 accuratePos = {0, 0, 0};
 
+  float fovSettings = 90.f;
   float fov = 90.f;
   float znear = 0.1f;
   float zfar = 5000.f;
@@ -55,6 +59,7 @@ HorVerFov calc_hor_ver_fov(const float fov_degree, const FovMode mode, const int
 Driver3dPerspective calc_camera_perspective(const CameraSetup &camera_setup, int view_w, int view_h);
 Driver3dPerspective calc_camera_perspective(const float fov_degree, const FovMode fov_mode, const float z_near, const float z_far,
   int view_w, int view_h);
+TMatrix4D calc_camera_view(const TMatrix4 &view_itm, const DPoint3 &view_pos);
 
 //! sets camera parameters to D3D
 void apply_camera_setup(const CameraSetup &camera_setup, TMatrix &out_view_tm, TMatrix &out_view_itm);

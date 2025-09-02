@@ -19,6 +19,7 @@ uint32_t d3dformat_to_texfmt(/*D3DFORMAT*/ uint32_t fmt)
     case D3DFMT_L16: return TEXFMT_L16;
     case D3DFMT_A8: return TEXFMT_A8;
     case D3DFMT_L8: return TEXFMT_R8;
+    case D3DFMT_A8L8: return TEXFMT_R8G8;
     case D3DFMT_G16R16F: return TEXFMT_G16R16F;
     case D3DFMT_G32R32F: return TEXFMT_G32R32F;
     case D3DFMT_R16F: return TEXFMT_R16F;

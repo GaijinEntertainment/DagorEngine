@@ -32,18 +32,18 @@ def terrain_roughness_visualizer(info : UpdateStageInfoRenderDebug; terrain_roug
     let isect2d = float2(isect.x, isect.z)
     let isectMatId = dacoll_get_lmesh_mat_id_at_point(isect2d)
     add_debug_text_mark(isect, "lmesh mat: {get_material_name(get_material(isectMatId))}", -1, 0f, E3DCOLOR(0xffffffff))
-    let phmatColors = [[E3DCOLOR E3DCOLOR(0xffff0000);
-                                 E3DCOLOR(0xff00ff00);
-                                 E3DCOLOR(0xff0000ff);
-                                 E3DCOLOR(0xffffff00);
-                                 E3DCOLOR(0xffff00ff);
-                                 E3DCOLOR(0xff00ffff);
-                                 E3DCOLOR(0xff88ff00);
-                                 E3DCOLOR(0xff0088ff);
-                                 E3DCOLOR(0xff00ff88);
-                                 E3DCOLOR(0xff888800);
-                                 E3DCOLOR(0xff880088);
-                                 E3DCOLOR(0xff008888)]]
+    let phmatColors = fixed_array<E3DCOLOR>(E3DCOLOR(0xffff0000),
+                                 E3DCOLOR(0xff00ff00),
+                                 E3DCOLOR(0xff0000ff),
+                                 E3DCOLOR(0xffffff00),
+                                 E3DCOLOR(0xffff00ff),
+                                 E3DCOLOR(0xff00ffff),
+                                 E3DCOLOR(0xff88ff00),
+                                 E3DCOLOR(0xff0088ff),
+                                 E3DCOLOR(0xff00ff88),
+                                 E3DCOLOR(0xff888800),
+                                 E3DCOLOR(0xff880088),
+                                 E3DCOLOR(0xff008888))
     let phmatLen = length(phmatColors)
     begin_draw_cached_debug_lines(false, false, false)
     let numCascades = 2
@@ -68,7 +68,7 @@ def terrain_roughness_visualizer(info : UpdateStageInfoRenderDebug; terrain_roug
             //draw_cached_debug_line(hmapPos, pos3d, color)
             let noiseAlpha = uint8(min(-safediv(noiseOffset, deform.mult) * 255f * 8f, 255f))
             let hcolor = E3DCOLOR((uint(color) & 0x00ffffff) | (uint(noiseAlpha) << uint(24)))
-            push(vertices, [[auto pos3d, hcolor]])
+            push(vertices,  (pos3d, hcolor))
       draw_grid(vertices, width, height)
     end_draw_cached_debug_lines()
     return true

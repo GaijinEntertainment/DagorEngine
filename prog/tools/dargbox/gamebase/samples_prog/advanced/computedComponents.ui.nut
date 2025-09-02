@@ -11,7 +11,7 @@ function watchElems(elems, params = {}) {
   watch.extend(elems.filter(@(v) isObservable(v)))
   return @() {
     children = elems
-      .map(@(v) isObservable(v) ? v.value : v)
+      .map(@(v) isObservable(v) ? v.get() : v)
       .filter(@(v) v != null)
   }.__update(params, { watch })
 }
@@ -23,25 +23,25 @@ let btnFlags = Watched(0)
 let btnControl = @() {
   watch = [extCounter, btnFlags]
   rendObj = ROBJ_SOLID
-  size = [sh(5), sh(5)]
+  size = sh(5)
   behavior = Behaviors.Button
-  onElemState = @(sf) btnFlags(sf)
-  onClick = @() extCounter(extCounter.value + 1)
-  color = btnFlags.value & S_ACTIVE ? 0xFF999999
-    : btnFlags.value & S_HOVER ? 0xFFAAAAAA
+  onElemState = @(sf) btnFlags.set(sf)
+  onClick = @() extCounter.set(extCounter.get() + 1)
+  color = btnFlags.get() & S_ACTIVE ? 0xFF999999
+    : btnFlags.get() & S_HOVER ? 0xFFAAAAAA
     : 0xFF666666
   valign = ALIGN_CENTER
   halign = ALIGN_CENTER
   children = {
     rendObj = ROBJ_TEXT
-    text = $"({extCounter.value})"
+    text = $"({extCounter.get()})"
   }
 }
 
 let mkRoller = @(step, offset = 0) ComputedImmediate(@()
-  (extCounter.value + offset) % step == 0 ? null : {
+  (extCounter.get() + offset) % step == 0 ? null : {
     rendObj = ROBJ_SOLID
-    size = [sh(5), sh(5)]
+    size = sh(5)
     valign = ALIGN_CENTER
     halign = ALIGN_CENTER
     color = 0xFFFFCC33
@@ -59,21 +59,21 @@ let uiEpic = mkRoller(13)
 
 let uiSpacer = {
   rendObj = ROBJ_SOLID
-  size = [sh(5), sh(5)]
+  size = sh(5)
   color = 0xFF556677
 }
 
 let uiFunc = @() {
   rendObj = ROBJ_SOLID
-  size = [sh(5), sh(5)]
+  size = sh(5)
   color = 0xFF557766
 }
 
 let uiWatched = @() {
   watch = extCounter
   rendObj = ROBJ_SOLID
-  size = [sh(5), sh(5)]
-  color = extCounter.value & 1 ? 0xFFFF0000 : 0xFF00FFFF
+  size = sh(5)
+  color = extCounter.get() & 1 ? 0xFFFF0000 : 0xFF00FFFF
 }
 
 let compList = watchElems([

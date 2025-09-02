@@ -28,6 +28,7 @@
 #include "lmeshRendererGlue.h"
 #include <memory/dag_framemem.h>
 #include <EASTL/string.h>
+#include <EASTL/bitset.h>
 #include <EASTL/hash_map.h>
 #include <EASTL/vector.h>
 #include <EASTL/unique_ptr.h>
@@ -38,16 +39,17 @@ struct LCTexturesLoaded
 {
   LandClassType lcType = LC_SIMPLE;
 
-  TEXTUREID colorMap = BAD_TEXTUREID;
-  TEXTUREID grassMask = BAD_TEXTUREID;
+  LandMeshRenderer::TidSamplerWithoutMipbiasPair colorMap = {BAD_TEXTUREID, {}};
+  LandMeshRenderer::TidSamplerWithoutMipbiasPair grassMask = {BAD_TEXTUREID, {}};
   Sbuffer **detailsCB = 0;
-  SmallTab<TEXTUREID, MidmemAlloc> lcTextures;
+  SmallTab<LandMeshRenderer::TidSamplerWithoutMipbiasPair, MidmemAlloc> lcTextures;
   carray<Tab<int16_t>, NUM_TEXTURES_STACK> lcDetailTextures;
   SmallTab<Point4, TmpmemAlloc> lcDetailParamsVS; // just CB
   SmallTab<Point4, TmpmemAlloc> lcDetailParamsPS; // just CB
-  TEXTUREID flowmapTex = BAD_TEXTUREID;
+  LandMeshRenderer::TidSamplerWithoutMipbiasPair flowmapTex = {BAD_TEXTUREID, {}};
 
   float textureDimensions = 1;
+  float weightMapNoiseScale = 0;
   Point2 invColormapSize = {1, 1};
   Point4 displacementMin = {0.0, 0.0, 0.0, 0.0};
   Point4 displacementMax = {0.0, 0.0, 0.0, 0.0};
@@ -56,7 +58,9 @@ struct LCTexturesLoaded
   Point4 randomFlowmapParams = {64.0, 0.0, 0.0, 0.0};
   Point4 flowmapMask = {1.0, 1.0, 1.0, 1.0};
   Point4 waterDecalBumpScale = {1.0, 0.0, 0.0, 0.0};
+  Point4 weighMapMulOffset = {-1, -1, -1, -1};
   IPoint4 physmatIDs = {0, 0, 0, 0};
+  Point4 puddleScales = {1.0, 1.0, 1.0, 1.0};
 
   mutable bool lastUsedGrassMask = false;
 };
@@ -66,6 +70,7 @@ struct LCTexturesLoaded
 #define RELEASE_MANAGED_TEX(t) ((t) == BAD_TEXTUREID ? ((void)0) : release_managed_tex((t)))
 
 #define TILE_CELLS_DIST2 2
+static int lmesh_rendering_modeVarId = -1;
 static int draw_landmesh_combined_gvid = -1;
 static int specularColorGvId = -1, specularPowerGvId = -1;
 static int worldViewPosVarId = -1;
@@ -75,6 +80,8 @@ static int vertDetTexGvId = -1;
 static int num_detail_textures_gvid = -1;
 static int bottomVarId = -1;
 static int indicestexDimensionsVarId = -1;
+static int decals_detail_overrideSamplerVarId = -1;
+static int skip_detail_lod_calculationVarId = -1;
 
 static int land_mesh_object_blkid[LandMeshRenderer::RENDER_TYPES_COUNT] = {-1, -1, -1, -1, -1};
 static const char *rtypes_block_name[LandMeshRenderer::RENDER_TYPES_COUNT] = {
@@ -102,6 +109,8 @@ static int lmesh_vs_const__pos_to_world = -1;
 static int lmesh_ps_const__mirror_scale = -1;
 
 static int lmesh_vs_const__mul_offset_base = -1;
+static int lmesh_vs_weight_params = -1;
+static int lmesh_ps_weight_params = -1;
 
 static int lmesh_sampler__land_detail_map = -1;
 static int lmesh_sampler__land_detail_map2 = -1;
@@ -110,6 +119,7 @@ static int lmesh_sampler__land_detail_ntex1 = -1;
 static int lmesh_ps_const__weight = 30;
 static int lmesh_ps_const__invtexturesizes = 28;
 static int lmesh_ps_const__bumpscales = -1;
+static int lmesh_ps_const__puddlescales = -1;
 static int lmesh_ps_const__displacementmin = -1;
 static int lmesh_ps_const__displacementmax = -1;
 static int lmesh_ps_const__compdiffusescales = -1;
@@ -122,6 +132,8 @@ static int lmesh_ps_const_land_detail_array_slices = -1;
 static int lmesh_sampler__land_detail_array1 = -1;
 
 static int lmesh_physmats__buffer_idx = -1;
+
+static carray<int, LandMeshManager::DECALS_OVERRIDE_SAMPLERS_COUNT> decals_overrideSampler_const_no_array;
 
 static int get_shader_int_constant(const char *name, int def)
 {
@@ -276,8 +288,13 @@ public:
   }
   inline void setBase() const
   {
+    d3d::SamplerInfo smpInfo;
+    smpInfo.address_mode_u = smpInfo.address_mode_v = d3d::AddressMode::Clamp;
+    d3d::SamplerHandle clampSampler = d3d::request_sampler(smpInfo);
     d3d::settex(lmesh_sampler__land_detail_map, map1);
+    d3d::set_sampler(STAGE_PS, lmesh_sampler__land_detail_map, clampSampler);
     d3d::settex(lmesh_sampler__land_detail_map2, map2);
+    d3d::set_sampler(STAGE_PS, lmesh_sampler__land_detail_map2, clampSampler);
     ShaderGlobal::set_int_fast(num_detail_textures_gvid, numDetailTextures);
     // d3d::set_vs_const(lmesh_vs_const__mul_offset_base+8, (const float*)detMapTcSet, 1);
   }
@@ -294,9 +311,10 @@ public:
       {
         if (lcIds[i] < lc.size())
         {
-          TEXTUREID tid = grass_mask ? lc[lcIds[i]].grassMask : lc[lcIds[i]].colorMap;
-          mark_managed_tex_lfu(tid);
-          d3d::set_tex(STAGE_PS, lmesh_sampler__land_detail_tex1 + i, D3dResManagerData::getBaseTex(tid));
+          LandMeshRenderer::TidSamplerWithoutMipbiasPair tex = grass_mask ? lc[lcIds[i]].grassMask : lc[lcIds[i]].colorMap;
+          mark_managed_tex_lfu(tex.tid);
+          d3d::set_tex(STAGE_PS, lmesh_sampler__land_detail_tex1 + i, D3dResManagerData::getBaseTex(tex.tid));
+          d3d::set_sampler(STAGE_PS, lmesh_sampler__land_detail_tex1 + i, tex.sampler);
           if (grass_mask)
           {
             physmats[i * 4 + 0] = lc[lcIds[i]].physmatIDs.x;
@@ -462,7 +480,7 @@ void LandMeshRenderer::MirroredCellState::setPsMirror() const
   }
 }
 
-void LandMeshRenderer::MirroredCellState::setFlipCull(LandMeshRenderer *renderer) const
+bool LandMeshRenderer::MirroredCellState::setFlipCull(LandMeshRenderer *renderer) const
 {
   if (getInvCull() != currentCullFlipped)
   {
@@ -478,7 +496,9 @@ void LandMeshRenderer::MirroredCellState::setFlipCull(LandMeshRenderer *renderer
       currentCullFlippedCurStateId = shaders::overrides::get_current();
     }
     currentCullFlipped = !currentCullFlipped;
+    return true;
   }
+  return false;
 }
 
 uint32_t LandMeshRenderer::MirroredCellState::current_mirror_mask = 0;
@@ -487,9 +507,9 @@ shaders::OverrideStateId LandMeshRenderer::MirroredCellState::currentCullFlipped
 shaders::OverrideStateId LandMeshRenderer::MirroredCellState::currentCullFlippedCurStateId;
 
 LandMeshRenderer::LandMeshRenderer(LandMeshManager &provider, dag::ConstSpan<LandClassDetailTextures> land_classes,
-  TEXTUREID vert_tex_id, d3d::SamplerHandle vert_tex_smp, TEXTUREID vert_nm_tex_id, d3d::SamplerHandle vert_nm_tex_smp,
-  TEXTUREID vert_det_tex_id, d3d::SamplerHandle vert_det_tex_smp, TEXTUREID tile_tex, d3d::SamplerHandle tile_smp, real tile_x,
-  real tile_y) :
+  int biome_land_class_idx, TEXTUREID vert_tex_id, d3d::SamplerHandle vert_tex_smp, TEXTUREID vert_nm_tex_id,
+  d3d::SamplerHandle vert_nm_tex_smp, TEXTUREID vert_det_tex_id, d3d::SamplerHandle vert_det_tex_smp, TEXTUREID tile_tex,
+  d3d::SamplerHandle tile_smp, real tile_x, real tile_y) :
   tileTexId(tile_tex),
   tileTexSmp(tile_smp),
   tileXSize(tile_x),
@@ -504,13 +524,13 @@ LandMeshRenderer::LandMeshRenderer(LandMeshManager &provider, dag::ConstSpan<Lan
   mem_set_0(megaDetailsArray);
   renderHeightmapType = NO_HMAP;
   useHmapTankDetail = 0;
-  customLcCount = 0;
   hmapSubDivLod0 = 0;
   verLabel = VER_LABEL;
   debugCells = false;
 
   cellStates = NULL;
   landClasses = land_classes;
+  biomeLandClassIdx = biome_land_class_idx;
 
   regionCallback = NULL;
   numBorderCellsXPos = 0;
@@ -534,6 +554,8 @@ LandMeshRenderer::LandMeshRenderer(LandMeshManager &provider, dag::ConstSpan<Lan
 #undef GET_VAR_ID
 #undef GET_VAR_ID2
 
+  lmesh_rendering_modeVarId = ::get_shader_glob_var_id("lmesh_rendering_mode", true);
+
   num_detail_textures_gvid = ::get_shader_glob_var_id("num_detail_textures", true);
 
   worldViewPosVarId = ::get_shader_glob_var_id("world_view_pos");
@@ -546,21 +568,33 @@ LandMeshRenderer::LandMeshRenderer(LandMeshManager &provider, dag::ConstSpan<Lan
   ShaderGlobal::set_sampler(::get_shader_glob_var_id("vertical_det_tex_samplerstate", true), vert_det_tex_smp);
   indicestexDimensionsVarId = ::get_shader_glob_var_id("indicestexDimensions", true);
 
+  if (d3d::get_driver_desc().info.vendor == GpuVendor::QUALCOMM)
+  {
+    skip_detail_lod_calculationVarId = ::get_shader_variable_id("skip_detail_lod_calculation", true);
+    ShaderGlobal::set_int(skip_detail_lod_calculationVarId, 1);
+  }
+
+  decals_detail_overrideSamplerVarId = ::get_shader_glob_var_id("decals_detail_overrideSampler", true);
+
   landmesh_debug_cells_scale_gvid = provider.isInTools() ? ::get_shader_glob_var_id("landmesh_debug_cells_scale", true) : -1;
 
 #define GET_SHADER_CONSTANT(c)          \
+  do                                    \
   {                                     \
     c = get_shader_int_constant(#c, c); \
-  }
+  } while (0)
 
   GET_SHADER_CONSTANT(lmesh_vs_const__pos_to_world);
   GET_SHADER_CONSTANT(lmesh_ps_const__mirror_scale);
 
   GET_SHADER_CONSTANT(lmesh_vs_const__mul_offset_base);
+  GET_SHADER_CONSTANT(lmesh_vs_weight_params);
+  GET_SHADER_CONSTANT(lmesh_ps_weight_params);
 
   GET_SHADER_CONSTANT(lmesh_ps_const__weight);
   GET_SHADER_CONSTANT(lmesh_ps_const__invtexturesizes);
   GET_SHADER_CONSTANT(lmesh_ps_const__bumpscales);
+  GET_SHADER_CONSTANT(lmesh_ps_const__puddlescales);
   GET_SHADER_CONSTANT(lmesh_ps_const__displacementmin);
   GET_SHADER_CONSTANT(lmesh_ps_const__displacementmax);
   GET_SHADER_CONSTANT(lmesh_ps_const__compdiffusescales);
@@ -590,6 +624,12 @@ LandMeshRenderer::LandMeshRenderer(LandMeshManager &provider, dag::ConstSpan<Lan
   G_ASSERT(lmesh_sampler__land_detail_tex1 >= 0);
 #undef GET_SHADER_CONSTANT
 
+  for (int i = 0; i < decals_overrideSampler_const_no_array.size(); ++i)
+  {
+    String smpReg(64, "decals_overrideSampler_%i_const_no", i);
+    decals_overrideSampler_const_no_array[i] = get_shader_int_constant(smpReg, -1);
+  }
+
   /*  for (int i=0; i<landClasses.size(); ++i)
     {
       ACQUIRE_MANAGED_TEX(landClasses[i].colormapId);
@@ -615,7 +655,7 @@ LandMeshRenderer::LandMeshRenderer(LandMeshManager &provider, dag::ConstSpan<Lan
   ShaderGlobal::set_texture_fast(vertDetTexGvId, vertDetTexId);
 
   detMapTcScale = detMapElemSize / (size * cellSize);
-  detMapTcOfs = 0.5f * cellSize / size;
+  detMapTcOfs = 0.f;
 
   has_detailed_land_classes = false;
   for (int i = 0; i < landClasses.size(); ++i)
@@ -799,8 +839,10 @@ void LandMeshRenderer::evictSplattingData()
 void LandMeshRenderer::resetTextures()
 {
   d3d::GpuAutoLock gpuLock;
-  d3d::settex(lmesh_sampler__land_detail_map, NULL);
-  d3d::settex(lmesh_sampler__land_detail_map2, NULL);
+  if (lmesh_sampler__land_detail_map >= 0)
+    d3d::settex(lmesh_sampler__land_detail_map, NULL);
+  if (lmesh_sampler__land_detail_map2 >= 0)
+    d3d::settex(lmesh_sampler__land_detail_map2, NULL);
 
   for (int i = 0; i < DET_TEX_NUM; ++i)
   {
@@ -838,6 +880,8 @@ void LandMeshRenderer::prepare(LandMeshManager &provider, const Point3 &pos, flo
   {
     prepareLandClasses(provider);
     cellStates = new CellState[provider.getNumCellsY() * provider.getNumCellsX()];
+    G_STATIC_ASSERT(sizeof(cellStates[0].lcIds[0]) == 1);
+    eastl::bitset<1 << (8 * sizeof(cellStates[0].lcIds[0]))> errorSignalled;
     for (int y = 0; y < provider.getNumCellsY(); ++y)
       for (int x = 0; x < provider.getNumCellsX(); ++x)
       {
@@ -846,7 +890,7 @@ void LandMeshRenderer::prepare(LandMeshManager &provider, const Point3 &pos, flo
         for (int di = 0; di < cellStates[x + y * provider.getNumCellsX()].numDetailTextures; ++di)
         {
           const LCTexturesLoaded &landLoaded = landClassesLoaded[cellStates[x + y * provider.getNumCellsX()].lcIds[di]];
-          if (landLoaded.colorMap)
+          if (landLoaded.colorMap.tid)
           {
             validId = cellStates[x + y * provider.getNumCellsX()].lcIds[di];
             break;
@@ -856,7 +900,7 @@ void LandMeshRenderer::prepare(LandMeshManager &provider, const Point3 &pos, flo
           for (int di = 0; di < landClassesLoaded.size(); ++di)
           {
             const LCTexturesLoaded &landLoaded = landClassesLoaded[di];
-            if (landLoaded.colorMap)
+            if (landLoaded.colorMap.tid)
             {
               validId = di;
               break;
@@ -864,12 +908,16 @@ void LandMeshRenderer::prepare(LandMeshManager &provider, const Point3 &pos, flo
           }
         for (int di = 0; di < cellStates[x + y * provider.getNumCellsX()].numDetailTextures; ++di)
         {
-          const LCTexturesLoaded &landLoaded = landClassesLoaded[cellStates[x + y * provider.getNumCellsX()].lcIds[di]];
-          if (!landLoaded.colorMap)
+          auto &lc = cellStates[x + y * provider.getNumCellsX()].lcIds[di];
+          const LCTexturesLoaded &landLoaded = landClassesLoaded[lc];
+          if (!landLoaded.colorMap.tid)
           {
-            logerr("land class %d without colormap was used in cell! replaced with %d",
-              cellStates[x + y * provider.getNumCellsX()].lcIds[di], validId);
-            cellStates[x + y * provider.getNumCellsX()].lcIds[di] = validId;
+            if (!errorSignalled.test(lc))
+            {
+              errorSignalled.set(lc, true);
+              logerr("land class %d without colormap was used in cell! replaced with %d", lc, validId);
+            }
+            lc = validId;
           }
         }
       }
@@ -938,58 +986,84 @@ void LandMeshRenderer::prepare(LandMeshManager &provider, const Point3 &pos, flo
   centerCell = cc;
 }
 
-static inline TEXTUREID query_tex_loading(TEXTUREID id, bool remove_aniso)
+static inline TEXTUREID query_tex_loading(TEXTUREID id)
 {
   if (id == BAD_TEXTUREID)
     return id;
   mark_managed_tex_lfu(id);
-  if (BaseTexture *tex = acquire_managed_tex(id))
-    tex->setAnisotropy(0);
-  add_anisotropy_exception(id);
-  release_managed_tex(id);
   return id;
 }
-
 
 bool LandMeshRenderer::reloadGrassMaskTex(int land_class_id, TEXTUREID newGrassMaskTexId)
 {
   landClasses[land_class_id].grassMaskTexId = newGrassMaskTexId;
   if (land_class_id < landClassesLoaded.size())
-    landClassesLoaded[land_class_id].grassMask = query_tex_loading(newGrassMaskTexId, true);
+    landClassesLoaded[land_class_id].grassMask.tid = query_tex_loading(newGrassMaskTexId);
   return true;
 }
 
-const char *LandMeshRenderer::getTextureName(TEXTUREID tex_id) { return get_managed_texture_name(tex_id); }
+// Landclasses are rendered on clipmap or on grassmask. We use seperate sampler in order to avoid additional mipbias.
+d3d::SamplerInfo LandMeshRenderer::getTextureSamplerInfo(TEXTUREID tid)
+{
+  if (tid == BAD_TEXTUREID)
+    return {};
+
+  return get_sampler_info(get_texture_meta_data(tid));
+}
+
+d3d::SamplerInfo LandMeshRenderer::getTextureSamplerInfo(TEXTUREID tid, float anisotropic_max)
+{
+  d3d::SamplerInfo samplerInfo = getTextureSamplerInfo(tid);
+  samplerInfo.anisotropic_max = anisotropic_max;
+  return samplerInfo;
+}
 
 void LandMeshRenderer::prepareLandClasses(LandMeshManager &provider)
 {
   landClassesLoaded.resize(0);
   landClassesLoaded.resize(landClasses.size());
-  customLcCount = 0;
   for (int i = 0; i < landClassesLoaded.size(); ++i)
   {
     landClassesLoaded[i].lcDetailParamsVS = landClasses[i].lcDetailParamsVS;
     landClassesLoaded[i].detailsCB = &landClasses[i].detailsCB;
+    landClassesLoaded[i].weighMapMulOffset = landClasses[i].weighMapMulOffset;
+    landClassesLoaded[i].weightMapNoiseScale = landClasses[i].weightMapNoiseScale;
     // landClassesLoaded[i].lcDetailParamsPS = landClasses[i].lcDetailParamsPS;
-    landClassesLoaded[i].colorMap = query_tex_loading(landClasses[i].colormapId, true);
-    if (BaseTexture *t = D3dResManagerData::getBaseTex(landClassesLoaded[i].colorMap))
+
+    landClassesLoaded[i].colorMap.tid = query_tex_loading(landClasses[i].colormapId);
+    landClassesLoaded[i].colorMap.sampler = d3d::request_sampler(getTextureSamplerInfo(landClassesLoaded[i].colorMap.tid, 1.f));
+
+    if (BaseTexture *t = D3dResManagerData::getBaseTex(landClassesLoaded[i].colorMap.tid))
     {
       TextureInfo tinfo;
       t->getinfo(tinfo, 0);
       landClassesLoaded[i].invColormapSize = Point2(safediv(1.0f, tinfo.w), safediv(1.0f, tinfo.h));
     }
-    landClassesLoaded[i].grassMask = query_tex_loading(landClasses[i].grassMaskTexId, true);
+
+    landClassesLoaded[i].grassMask.tid = query_tex_loading(landClasses[i].grassMaskTexId);
+    landClassesLoaded[i].grassMask.sampler = d3d::request_sampler(getTextureSamplerInfo(landClassesLoaded[i].grassMask.tid, 1.f));
+
     landClassesLoaded[i].lcType = landClasses[i].lcType;
     if (landClassesLoaded[i].lcType != LC_SIMPLE)
     {
       clear_and_resize(landClassesLoaded[i].lcTextures, landClasses[i].lcTextures.size());
       for (int j = 0; j < landClasses[i].lcTextures.size(); ++j)
-        landClassesLoaded[i].lcTextures[j] = query_tex_loading(landClasses[i].lcTextures[j], true);
-      // if (landClassesLoaded[i].lcType != LC_MEGA_NO_NORMAL)
-      //   landClassesLoaded[i].normalMap = query_tex_loading(landClasses[i].normalMapId, true);
+      {
+        landClassesLoaded[i].lcTextures[j].tid = query_tex_loading(landClasses[i].lcTextures[j]);
+
+        d3d::SamplerInfo lcSamplerInfo = getTextureSamplerInfo(landClassesLoaded[i].lcTextures[j].tid, 1.f);
+        if (auto *tex = D3dResManagerData::getBaseTex(landClassesLoaded[i].lcTextures[j].tid);
+            landClassesLoaded[i].lcType == LC_CUSTOM && tex && tex->level_count() == 1)
+        {
+          lcSamplerInfo.mip_map_mode = d3d::MipMapMode::Disabled;
+          lcSamplerInfo.filter_mode = d3d::FilterMode::Point;
+        }
+        landClassesLoaded[i].lcTextures[j].sampler = d3d::request_sampler(lcSamplerInfo);
+      }
     }
     landClassesLoaded[i].textureDimensions = safediv(1.0f, landClasses[i].tile);
     landClassesLoaded[i].bumpScales = landClasses[i].bumpScales;
+    landClassesLoaded[i].puddleScales = landClasses[i].puddleScales;
     landClassesLoaded[i].displacementMin = landClasses[i].displacementMin;
     landClassesLoaded[i].displacementMax = landClasses[i].displacementMax;
     landClassesLoaded[i].compatibilityDiffuseScales = landClasses[i].compatibilityDiffuseScales;
@@ -997,7 +1071,8 @@ void LandMeshRenderer::prepareLandClasses(LandMeshManager &provider)
     landClassesLoaded[i].flowmapMask = landClasses[i].flowmapMask;
     landClassesLoaded[i].waterDecalBumpScale = landClasses[i].waterDecalBumpScale;
 
-    landClassesLoaded[i].flowmapTex = query_tex_loading(landClasses[i].flowmapTex, true);
+    landClassesLoaded[i].flowmapTex.tid = query_tex_loading(landClasses[i].flowmapTex);
+    landClassesLoaded[i].flowmapTex.sampler = d3d::request_sampler(getTextureSamplerInfo(landClassesLoaded[i].flowmapTex.tid, 1.f));
 
     landClassesLoaded[i].physmatIDs = landClasses[i].physmatIds;
 
@@ -1015,47 +1090,45 @@ void LandMeshRenderer::prepareLandClasses(LandMeshManager &provider)
 
     if (landClassesLoaded[i].lcType == LC_CUSTOM)
     {
-      customLcCount++;
       landClassesLoaded[i].lcType = insert_land_shader(landClasses[i].shader_name, landClasses[i].name);
       G_ASSERT(landClassesLoaded[i].lcType >= LC_CUSTOM);
-    }
-    if (landClassesLoaded[i].lcType == LC_CUSTOM)
-    {
-      for (int j = 0; j < landClassesLoaded[i].lcTextures.size(); ++j)
-        if (auto *tex = D3dResManagerData::getBaseTex(landClassesLoaded[i].lcTextures[j]))
-        {
-          if (tex->level_count() == 1)
-          {
-            tex->texfilter(TEXFILTER_POINT);
-            tex->texmipmap(TEXMIPMAP_NONE);
-          }
-        }
     }
   }
   for (int dtype = 0; dtype < NUM_TEXTURES_STACK; ++dtype)
   {
     clear_and_resize(megaDetails[dtype], provider.getMegaDetailsId()[dtype].size());
     for (int i = 0; i < megaDetails[dtype].size(); ++i)
-      megaDetails[dtype][i] = query_tex_loading(provider.getMegaDetailsId()[dtype][i], false);
+    {
+      megaDetails[dtype][i].tid = query_tex_loading(provider.getMegaDetailsId()[dtype][i]);
+      megaDetails[dtype][i].sampler = d3d::INVALID_SAMPLER_HANDLE; // will set on updateCustomSamplers
+    }
   }
 
   for (int i = 0; i < megaDetailsArray.size(); ++i)
-    megaDetailsArray[i] = D3dResManagerData::getD3dTex<RES3D_ARRTEX>(query_tex_loading(provider.getMegaDetailsArrayId(i), false));
-
-  int maxCustomLcCount = 2;
-  const DataBlock *landClassBlk = dgs_get_game_params()->getBlockByName("landClasses");
-  if (landClassBlk)
   {
-    maxCustomLcCount = landClassBlk->getInt("maxIndexedLC", maxCustomLcCount);
+    // On DNG disabled anistropic use by using tex3Dlod.
+    megaDetailsArray[i].first.tid = query_tex_loading(provider.getMegaDetailsArrayId(i));
+    megaDetailsArray[i].first.sampler = d3d::INVALID_SAMPLER_HANDLE; // will set on updateCustomSamplers
+    megaDetailsArray[i].second = D3dResManagerData::getD3dTex<D3DResourceType::ARRTEX>(megaDetailsArray[i].first.tid);
   }
 
-  if (maxCustomLcCount >= 0 && customLcCount > maxCustomLcCount)
-  {
-    logerr("map has %d indexed landclasses! Only %d is allowed", customLcCount, maxCustomLcCount);
-  }
+  updateCustomSamplers(provider);
 }
 
-int LandMeshRenderer::getCustomLcCount() { return customLcCount; }
+void LandMeshRenderer::updateCustomSamplers(LandMeshManager &provider)
+{
+  for (int dtype = 0; dtype < NUM_TEXTURES_STACK; ++dtype)
+    for (int i = 0; i < megaDetails[dtype].size(); ++i)
+      megaDetails[dtype][i].sampler = d3d::request_sampler(getTextureSamplerInfo(megaDetails[dtype][i].tid));
+
+  for (int i = 0; i < megaDetailsArray.size(); ++i)
+    megaDetailsArray[i].first.sampler = d3d::request_sampler(getTextureSamplerInfo((megaDetailsArray[i].first.tid)));
+
+  ShaderGlobal::set_sampler(decals_detail_overrideSamplerVarId,
+    d3d::request_sampler({.anisotropic_max = (float)::dgs_tex_anisotropy}));
+
+  provider.updateOverrideSamplers();
+}
 
 void LandMeshRenderer::getCellState(LandMeshManager &provider, int cell_x, int cell_y, CellState &curState)
 {
@@ -1148,11 +1221,9 @@ void LandMeshRenderer::getCellState(LandMeshManager &provider, int cell_x, int c
     if (curState.lcIds[i] < landClassesLoaded.size())
     {
       curState.invTexSizes[i >> 2][i & 3] = landClassesLoaded[lcId].invColormapSize.x;
-      if (!landClassesLoaded[lcId].colorMap)
+      if (!landClassesLoaded[lcId].colorMap.tid)
       {
-        if (!provider.isInTools())
-          logerr("landclass %d has no colormap", lcId);
-        else
+        if (provider.isInTools())
           curState.numDetailTextures = i;
       }
       else if (landClasses[lcId].lcType != LC_SIMPLE)
@@ -1207,7 +1278,7 @@ __forceinline ShaderMesh *LandMeshRenderer::prepareGeomCellsCM(LandMeshManager &
 }
 
 void LandMeshRenderer::renderGeomCellsLM(LandMeshManager &provider, dag::ConstSpan<uint16_t> cells, int lodNo, RenderType rtype,
-  uint8_t hide_excluded)
+  uint8_t hide_excluded, bool force_set_states)
 {
   if (!cells.size() || !optScn)
     return;
@@ -1251,15 +1322,25 @@ void LandMeshRenderer::renderGeomCellsLM(LandMeshManager &provider, dag::ConstSp
   {
     virtual bool applyMat(ShaderElement *, int) const { return true; }
   };
+  struct RosdOneShaderWithStatesCB : landmesh::IRosdSetStatesCB
+  {
+    virtual bool applyMat(ShaderElement *mat, int) const { return mat->setStates(0, true); }
+  };
   struct RosdDepthCB : landmesh::IRosdSetStatesCB
   {
     LandMeshRenderer *renderer;
     mutable shaders::OverrideStateId prevStateId;
+    bool shouldSetStates = false;
 
-    RosdDepthCB(LandMeshRenderer *in_renderer) : renderer(in_renderer), prevStateId(shaders::overrides::get_current()) {}
+    RosdDepthCB(LandMeshRenderer *in_renderer, bool should_set_states) :
+      renderer(in_renderer), shouldSetStates(should_set_states), prevStateId(shaders::overrides::get_current())
+    {}
 
-    virtual bool applyMat(ShaderElement *, int bottom_type) const
+    virtual bool applyMat(ShaderElement *mat, int bottom_type) const
     {
+      if (shouldSetStates)
+        if (!mat->setStates(0, true))
+          return false;
       if (VariableMap::isGlobVariablePresent(bottomVarId))
       {
         if (bottom_type == BOTTOM_BELOW && skip_bottom_rendering)
@@ -1276,11 +1357,20 @@ void LandMeshRenderer::renderGeomCellsLM(LandMeshManager &provider, dag::ConstSp
   };
 
   if (rtype == RENDER_ONE_SHADER)
-    landmesh::renderOptSceneData(optScn[lodNo], RosdOneShaderCB());
+  {
+    if (force_set_states)
+    {
+      shaders::OverrideStateId prevStateId = shaders::overrides::get_current();
+      landmesh::renderOptSceneData(optScn[lodNo], RosdOneShaderWithStatesCB());
+      resetOverride(prevStateId);
+    }
+    else
+      landmesh::renderOptSceneData(optScn[lodNo], RosdOneShaderCB());
+  }
   else if (rtype == RENDER_DEPTH)
   {
     shaders::OverrideStateId prevStateId = shaders::overrides::get_current();
-    landmesh::renderOptSceneData(optScn[lodNo], RosdDepthCB(this));
+    landmesh::renderOptSceneData(optScn[lodNo], RosdDepthCB(this, force_set_states));
     resetOverride(prevStateId);
   }
   else
@@ -1292,7 +1382,7 @@ void LandMeshRenderer::renderGeomCellsLM(LandMeshManager &provider, dag::ConstSp
 }
 
 void LandMeshRenderer::renderGeomCellsCM(LandMeshManager &provider, dag::ConstSpan<uint16_t> cells, RenderType rtype,
-  bool skip_not_big)
+  bool skip_not_big, bool force_set_states)
 {
   if (!cells.size() || !provider.getCombinedVdata())
     return;
@@ -1313,7 +1403,8 @@ void LandMeshRenderer::renderGeomCellsCM(LandMeshManager &provider, dag::ConstSp
           if (skip_not_big && !isCombinedBig[ei])
             continue;
           const ShaderMesh::RElem &re = combinedm->getAllElems()[ei];
-          d3d_err(re.drawIndTriList());
+          if (!force_set_states || re.e->setStates(0, true))
+            d3d_err(re.drawIndTriList());
         }
       }
       break;
@@ -1345,6 +1436,11 @@ void LandMeshRenderer::renderGeomCellsCM(LandMeshManager &provider, dag::ConstSp
 
 uint32_t LandMeshRenderer::lmesh_render_flags = 0xFFFFFFFF;
 
+inline bool shouldRenderMeshElem(const LandMeshManager &provider, int cellId, int elemId)
+{
+  return provider.getDecalElems().data()[cellId].shouldRenderElem.empty() ||
+         provider.getDecalElems().data()[cellId].shouldRenderElem[elemId];
+}
 
 bool LandMeshRenderer::renderCellDecals(LandMeshManager &provider, const MirroredCellState &mirroredCell)
 {
@@ -1357,6 +1453,11 @@ bool LandMeshRenderer::renderCellDecals(LandMeshManager &provider, const Mirrore
   if (!provider.isInTools() && provider.getDecalElems().size() &&
       provider.getDecalElems()[id].elemBoxes.size() == decalm->getAllElems().size())
   {
+    bool setSamplersNoMipbias =
+      getLMeshRenderingMode() == LMeshRenderingMode::RENDERING_CLIPMAP &&
+      eastl::find_if(decals_overrideSampler_const_no_array.begin(), decals_overrideSampler_const_no_array.end(),
+        [](int smp_reg) { return smp_reg >= 0; }) != decals_overrideSampler_const_no_array.end();
+
     DECL_ALIGN16(IBBox2, subCellBox);
     Point3 meshOffset = provider.getOffset();
     float cellSize = provider.getLandCellSize();
@@ -1391,9 +1492,14 @@ bool LandMeshRenderer::renderCellDecals(LandMeshManager &provider, const Mirrore
     ShaderElement *e = NULL;
     bool curShaderValid = false;
     int stored_sv = 0, stored_numv = 0, stored_si = 0, stored_numf = 0, stored_baseVertex = 0;
+    carray<d3d::SamplerHandle, LandMeshManager::DECALS_OVERRIDE_SAMPLERS_COUNT> currentSamplers;
+    eastl::fill(currentSamplers.begin(), currentSamplers.end(), d3d::SamplerHandle::Invalid);
 
     for (int i = 0; i < decalm->getAllElems().size(); ++i)
     {
+      if (!shouldRenderMeshElem(provider, id, i))
+        continue;
+
 #if _TARGET_SIMD_SSE
       vec4i elemBoxV = *(vec4i *)(&provider.getDecalElems().data()[id].elemBoxes.data()[i][0].x);
       int mask = _mm_movemask_ps(v_cast_vec4f(_mm_cmpgt_epi32(elemBoxV, subCellBoxV))); // v_cmp_gti(elemBoxV,
@@ -1406,6 +1512,10 @@ bool LandMeshRenderer::renderCellDecals(LandMeshManager &provider, const Mirrore
         continue;
 #endif
       const ShaderMesh::RElem &re = decalm->getAllElems().data()[i];
+      const dag::Span<const d3d::SamplerHandle> reSamplers =
+        provider.getCellDecalElemSamplersNoMipbiasMeshOffseted(mirroredCell.cellX, mirroredCell.cellY, i);
+      G_ASSERT(!setSamplersNoMipbias || reSamplers.size() == currentSamplers.size());
+
       if (!re.e)
         continue;
       if (re.vertexData != vertexData)
@@ -1417,6 +1527,25 @@ bool LandMeshRenderer::renderCellDecals(LandMeshManager &provider, const Mirrore
         }
         vertexData = re.vertexData;
         vertexData->setToDriver();
+        stored_numf = 0;
+      }
+      if (setSamplersNoMipbias &&
+          !eastl::equal(currentSamplers.begin(), currentSamplers.end(), reSamplers.begin(),
+            [](const auto &curSmp, const auto &reSmp) { return reSmp == d3d::SamplerHandle::Invalid || reSmp == curSmp; }))
+      {
+        if (stored_numf && curShaderValid)
+        {
+          d3d_err(d3d::drawind(PRIM_TRILIST, stored_si, stored_numf, stored_baseVertex));
+          renderedAnything = true;
+        }
+        for (int j = 0; j < currentSamplers.size(); ++j)
+        {
+          if (reSamplers[j] != d3d::SamplerHandle::Invalid)
+          {
+            currentSamplers[j] = reSamplers[j];
+            d3d::set_sampler(STAGE_PS, decals_overrideSampler_const_no_array[j], currentSamplers[j]);
+          }
+        }
         stored_numf = 0;
       }
       if (e != re.e)
@@ -1467,6 +1596,8 @@ bool LandMeshRenderer::renderCellDecals(LandMeshManager &provider, const Mirrore
   {
     decalm->render();
     renderedAnything = true;
+    if (!provider.isInTools() && getLMeshRenderingMode() == LMeshRenderingMode::RENDERING_CLIPMAP)
+      LOGERR_ONCE("renderCellDecals: Fallback branch was used, samplerState might be incorrect during RENDERING_CLIPMAP.");
   }
 
   return renderedAnything;
@@ -1475,61 +1606,73 @@ bool LandMeshRenderer::renderCellDecals(LandMeshManager &provider, const Mirrore
 void LandMeshRenderer::setCustomLcTextures()
 {
   ShaderGlobal::set_texture(::get_shader_variable_id("biomeIndicesTex", true), BAD_TEXTUREID);
-  for (int i = 0; i < landClasses.size(); i++)
+  if (biomeLandClassIdx < 0)
+    return;
+
+  int i = biomeLandClassIdx;
+  const LandClassDetailTextures &land = landClasses[i];
+  const LCTexturesLoaded &landLoaded = landClassesLoaded[i];
+  static int use_flowmap_from_textureVarID = ::get_shader_glob_var_id("use_flowmap_from_texture", true);
+  ShaderGlobal::set_int(use_flowmap_from_textureVarID, 0);
+
+  ShaderGlobal::set_real(indicestexDimensionsVarId, landLoaded.textureDimensions);
+
+  if (landLoaded.lcTextures.size())
   {
-    if (landClasses[i].lcType != LC_CUSTOM)
-      continue;
-    else
+    for (int i = 0; i < landLoaded.lcTextures.size(); ++i)
     {
-      const LandClassDetailTextures &land = landClasses[i];
-      const LCTexturesLoaded &landLoaded = landClassesLoaded[i];
-      static int use_flowmap_from_textureVarID = ::get_shader_glob_var_id("use_flowmap_from_texture", true);
-      ShaderGlobal::set_int(use_flowmap_from_textureVarID, 0);
-
-      ShaderGlobal::set_real(indicestexDimensionsVarId, landLoaded.textureDimensions);
-
-      if (landLoaded.lcTextures.size())
-      {
-        for (int i = 0; i < landLoaded.lcTextures.size(); ++i)
-        {
-          mark_managed_tex_lfu(landLoaded.lcTextures[i]);
-          d3d::set_tex(STAGE_PS, lmesh_sampler__land_detail_tex1 + 1 + i, D3dResManagerData::getBaseTex(landLoaded.lcTextures[i]));
-        }
-      }
-
-      if (lmesh_sampler__land_detail_array1)
-      {
-        for (int i = 0; i < megaDetailsArray.size(); ++i)
-          d3d::set_tex(STAGE_PS, lmesh_sampler__land_detail_array1 + i, megaDetailsArray[i]);
-      }
-
-      const ShaderInfo &shader = landclassShader[LC_CUSTOM];
-
-      if (shader.lc_ps_details_cb_register >= 0 && landLoaded.detailsCB && *landLoaded.detailsCB)
-      {
-        d3d::set_const_buffer(STAGE_PS, shader.lc_ps_details_cb_register, *landLoaded.detailsCB);
-      }
-
-
-      BaseTexture *lcTex = ::acquire_managed_tex(landClasses[i].lcTextures[0]);
-      TextureInfo lcTexInfo;
-      lcTex->getinfo(lcTexInfo);
-      ::release_managed_tex(landClasses[i].lcTextures[0]);
-
-      float landSize = safediv(1.0f, landClasses[i].tile);
-      float worldLcTexelSize = landSize / lcTexInfo.w;
-
-      Point3 offset = Point3(0, 0, 0);
-
-      ShaderGlobal::set_texture(::get_shader_variable_id("biomeIndicesTex", true), landClasses[i].lcTextures[0]);
-      ShaderGlobal::set_color4(::get_shader_variable_id("biome_indices_tex_size", true), lcTexInfo.w, lcTexInfo.h, 1.0f / lcTexInfo.w,
-        1.0f / lcTexInfo.h);
-      ShaderGlobal::set_color4(::get_shader_variable_id("land_detail_mul_offset", true), landClasses[i].tile, -landClasses[i].tile,
-        (landClasses[i].offset.x - offset.x + 0.5f * worldLcTexelSize) * landClasses[i].tile,
-        (landClasses[i].offset.y - offset.z + 0.5f * worldLcTexelSize) * -landClasses[i].tile);
+      mark_managed_tex_lfu(landLoaded.lcTextures[i].tid);
+      d3d::set_tex(STAGE_PS, lmesh_sampler__land_detail_tex1 + 1 + i, D3dResManagerData::getBaseTex(landLoaded.lcTextures[i].tid));
+      d3d::set_sampler(STAGE_PS, lmesh_sampler__land_detail_tex1 + 1 + i, landLoaded.lcTextures[i].sampler);
     }
-    break;
   }
+
+  if (lmesh_sampler__land_detail_array1)
+  {
+    for (int i = 0; i < megaDetailsArray.size(); ++i)
+    {
+      d3d::set_tex(STAGE_PS, lmesh_sampler__land_detail_array1 + i, megaDetailsArray[i].second);
+      d3d::set_sampler(STAGE_PS, lmesh_sampler__land_detail_array1 + i, megaDetailsArray[i].first.sampler);
+    }
+  }
+
+  const ShaderInfo &shader = landclassShader[LC_CUSTOM];
+
+  if (shader.lc_ps_details_cb_register >= 0 && landLoaded.detailsCB && *landLoaded.detailsCB)
+  {
+    d3d::set_const_buffer(STAGE_PS, shader.lc_ps_details_cb_register, *landLoaded.detailsCB);
+  }
+
+  if (lmesh_vs_weight_params > 0 && landLoaded.weighMapMulOffset.x > 0.0f)
+  {
+    G_ASSERT(lmesh_ps_weight_params > 0);
+    d3d::set_vs_const(lmesh_vs_weight_params, &landLoaded.weighMapMulOffset, 1);
+    Point4 temp = {landLoaded.weightMapNoiseScale, 0, 0, 0};
+    d3d::set_ps_const(lmesh_ps_weight_params, &temp, 1);
+  }
+
+  BaseTexture *lcTex = ::acquire_managed_tex(landClasses[i].lcTextures[0]);
+  TextureInfo lcTexInfo;
+  lcTex->getinfo(lcTexInfo);
+  ::release_managed_tex(landClasses[i].lcTextures[0]);
+
+  float landSize = safediv(1.0f, landClasses[i].tile);
+  float worldLcTexelSize = landSize / lcTexInfo.w;
+
+  Point3 offset = Point3(0, 0, 0);
+
+  ShaderGlobal::set_texture(::get_shader_variable_id("biomeIndicesTex", true), landClasses[i].lcTextures[0]);
+  {
+    d3d::SamplerInfo smpInfo;
+    smpInfo.filter_mode = d3d::FilterMode::Point;
+    smpInfo.mip_map_mode = d3d::MipMapMode::Disabled;
+    ShaderGlobal::set_sampler(::get_shader_variable_id("biomeIndicesTex_samplerstate", true), d3d::request_sampler(smpInfo));
+  }
+  ShaderGlobal::set_color4(::get_shader_variable_id("biome_indices_tex_size", true), lcTexInfo.w, lcTexInfo.h, 1.0f / lcTexInfo.w,
+    1.0f / lcTexInfo.h);
+  ShaderGlobal::set_color4(::get_shader_variable_id("land_detail_mul_offset", true), landClasses[i].tile, -landClasses[i].tile,
+    (landClasses[i].offset.x - offset.x + 0.5f * worldLcTexelSize) * landClasses[i].tile,
+    (landClasses[i].offset.y - offset.z + 0.5f * worldLcTexelSize) * -landClasses[i].tile);
 }
 
 void LandMeshRenderer::renderLandclasses(CellState &curState, bool useFilter, LandClassType lcFilter)
@@ -1559,10 +1702,10 @@ void LandMeshRenderer::renderLandclasses(CellState &curState, bool useFilter, La
       blendSet = true;
     }
 
-    if ((currentLcType != landLoaded.lcType) || ((landLoaded.flowmapTex != BAD_TEXTUREID) != has_flowmap_tex))
+    if ((currentLcType != landLoaded.lcType) || ((landLoaded.flowmapTex.tid != BAD_TEXTUREID) != has_flowmap_tex))
     {
       static int use_flowmap_from_textureVarID = ::get_shader_glob_var_id("use_flowmap_from_texture", true);
-      has_flowmap_tex = (landLoaded.flowmapTex != BAD_TEXTUREID);
+      has_flowmap_tex = (landLoaded.flowmapTex.tid != BAD_TEXTUREID);
       // renderLandclasses always sets this interval when called so we don't need reset it to default value
       ShaderGlobal::set_int(use_flowmap_from_textureVarID, has_flowmap_tex ? 1 : 0);
 
@@ -1571,7 +1714,10 @@ void LandMeshRenderer::renderLandclasses(CellState &curState, bool useFilter, La
       if (lmesh_sampler__land_detail_array1 >= 0 && currentLcType >= LC_CUSTOM)
       {
         for (int i = 0; i < megaDetailsArray.size(); ++i)
-          d3d::set_tex(STAGE_PS, lmesh_sampler__land_detail_array1 + i, megaDetailsArray[i]);
+        {
+          d3d::set_tex(STAGE_PS, lmesh_sampler__land_detail_array1 + i, megaDetailsArray[i].second);
+          d3d::set_sampler(STAGE_PS, lmesh_sampler__land_detail_array1 + i, megaDetailsArray[i].first.sampler);
+        }
       }
       G_ASSERT(landclassShader[currentLcType].elem);
       if (!landclassShader[currentLcType].elem->setStates(0, true)) // different land class types!
@@ -1586,10 +1732,11 @@ void LandMeshRenderer::renderLandclasses(CellState &curState, bool useFilter, La
     if (!valid_shader)
       continue;
 
-    G_ASSERT(landLoaded.colorMap);
+    G_ASSERT(landLoaded.colorMap.tid);
 
-    mark_managed_tex_lfu(landLoaded.colorMap);
-    d3d::set_tex(STAGE_PS, lmesh_sampler__land_detail_tex1, D3dResManagerData::getBaseTex(landLoaded.colorMap));
+    mark_managed_tex_lfu(landLoaded.colorMap.tid);
+    d3d::set_tex(STAGE_PS, lmesh_sampler__land_detail_tex1, D3dResManagerData::getBaseTex(landLoaded.colorMap.tid));
+    d3d::set_sampler(STAGE_PS, lmesh_sampler__land_detail_tex1, landLoaded.colorMap.sampler);
     if (lmesh_ps_const__invtexturesizes >= 0) //&& normal map
       d3d::set_ps_const1(lmesh_ps_const__invtexturesizes, curState.invTexSizes[detailI >> 2][detailI & 3], 0, 0, 0);
 
@@ -1604,8 +1751,9 @@ void LandMeshRenderer::renderLandclasses(CellState &curState, bool useFilter, La
       {
         for (int i = 0; i < landLoaded.lcTextures.size(); ++i)
         {
-          mark_managed_tex_lfu(landLoaded.lcTextures[i]);
-          d3d::set_tex(STAGE_PS, shader.lc_textures_sampler + i, D3dResManagerData::getBaseTex(landLoaded.lcTextures[i]));
+          mark_managed_tex_lfu(landLoaded.lcTextures[i].tid);
+          d3d::set_tex(STAGE_PS, shader.lc_textures_sampler + i, D3dResManagerData::getBaseTex(landLoaded.lcTextures[i].tid));
+          d3d::set_sampler(STAGE_PS, shader.lc_textures_sampler + i, landLoaded.lcTextures[i].sampler);
         }
       }
       if (shader.ps_const_offset >= 0 && landLoaded.lcDetailParamsPS.size())
@@ -1625,12 +1773,22 @@ void LandMeshRenderer::renderLandclasses(CellState &curState, bool useFilter, La
           d3d::set_const_buffer(STAGE_PS, last_ps_cb_register, NULL);
         d3d::set_const_buffer(STAGE_PS, last_ps_cb_register = shader.lc_ps_details_cb_register, *landLoaded.detailsCB);
       }
+      if (lmesh_vs_weight_params > 0 && landLoaded.weighMapMulOffset.x > 0.0f)
+      {
+        G_ASSERT(lmesh_ps_weight_params > 0);
+        d3d::set_vs_const(lmesh_vs_weight_params, &landLoaded.weighMapMulOffset, 1);
+        Point4 temp = {landLoaded.weightMapNoiseScale, 0, 0, 0};
+        d3d::set_ps_const(lmesh_ps_weight_params, &temp, 1);
+      }
     }
 
     if (currentLcType < LC_CUSTOM)
     {
       if (lmesh_ps_const__bumpscales >= 0)
         d3d::set_ps_const(lmesh_ps_const__bumpscales, &landLoaded.bumpScales.x, 1);
+
+      if (lmesh_ps_const__puddlescales >= 0)
+        d3d::set_ps_const(lmesh_ps_const__puddlescales, &landLoaded.puddleScales.x, 1);
 
       if (lmesh_ps_const__displacementmin >= 0)
         d3d::set_ps_const(lmesh_ps_const__displacementmin, &landLoaded.displacementMin.x, 1);
@@ -1649,8 +1807,9 @@ void LandMeshRenderer::renderLandclasses(CellState &curState, bool useFilter, La
 
       if ((lmesh_sampler__flowmap_tex >= 0) && (has_flowmap_tex))
       {
-        mark_managed_tex_lfu(landLoaded.flowmapTex);
-        d3d::set_tex(STAGE_PS, lmesh_sampler__flowmap_tex, D3dResManagerData::getBaseTex(landLoaded.flowmapTex));
+        mark_managed_tex_lfu(landLoaded.flowmapTex.tid);
+        d3d::set_tex(STAGE_PS, lmesh_sampler__flowmap_tex, D3dResManagerData::getBaseTex(landLoaded.flowmapTex.tid));
+        d3d::set_sampler(STAGE_PS, lmesh_sampler__flowmap_tex, landLoaded.flowmapTex.sampler);
       }
     }
 
@@ -1665,9 +1824,10 @@ void LandMeshRenderer::renderLandclasses(CellState &curState, bool useFilter, La
         int sampler_idx = lmesh_sampler__land_detail_tex1 + 3 + di;
         if (albedoId >= 0)
         {
-          TEXTUREID tid = megaDetails[LandClassDetailTextures::ALBEDO][albedoId];
-          mark_managed_tex_lfu(tid);
-          d3d::set_tex(STAGE_PS, sampler_idx, D3dResManagerData::getBaseTex(tid));
+          TidSamplerWithoutMipbiasPair tidSamplerPair = megaDetails[LandClassDetailTextures::ALBEDO][albedoId];
+          mark_managed_tex_lfu(tidSamplerPair.tid);
+          d3d::set_tex(STAGE_PS, sampler_idx, D3dResManagerData::getBaseTex(tidSamplerPair.tid));
+          d3d::set_sampler(STAGE_PS, sampler_idx, tidSamplerPair.sampler);
         }
         else
           d3d::set_tex(STAGE_PS, sampler_idx, nullptr);
@@ -1677,9 +1837,10 @@ void LandMeshRenderer::renderLandclasses(CellState &curState, bool useFilter, La
           sampler_idx = lmesh_sampler__land_detail_ntex1 + di;
           if (reflectanceId >= 0)
           {
-            TEXTUREID tid = megaDetails[LandClassDetailTextures::REFLECTANCE][reflectanceId];
-            mark_managed_tex_lfu(tid);
-            d3d::set_tex(STAGE_PS, sampler_idx, D3dResManagerData::getBaseTex(tid));
+            TidSamplerWithoutMipbiasPair tidSamplerPair = megaDetails[LandClassDetailTextures::REFLECTANCE][reflectanceId];
+            mark_managed_tex_lfu(tidSamplerPair.tid);
+            d3d::set_tex(STAGE_PS, sampler_idx, D3dResManagerData::getBaseTex(tidSamplerPair.tid));
+            d3d::set_sampler(STAGE_PS, sampler_idx, tidSamplerPair.sampler);
           }
           else
             d3d::set_tex(STAGE_PS, sampler_idx, nullptr);
@@ -1918,7 +2079,18 @@ void LandMeshRenderer::renderCell(LandMeshManager &provider, int cellNo, int lod
 
     ShaderMesh *decalm = provider.getCellDecalShaderMeshOffseted(mirroredCell.cellX, mirroredCell.cellY);
     if (decalm)
-      decalm->render();
+    {
+      int id = mirroredCell.cellX + mirroredCell.cellY * provider.getNumCellsX();
+      const LandMeshManager::ElemsData *decalElems = provider.getDecalElems().data();
+
+      if (id < provider.getDecalElems().size() && !decalElems[id].shouldRenderElem.empty())
+      {
+        const SmallTab<bool, MidmemAlloc> &shouldRenderElems = decalElems[id].shouldRenderElem;
+        decalm->renderWithFilter([&](int i) { return shouldRenderElems[i]; });
+      }
+      else
+        decalm->render();
+    }
     ShaderMesh *combinedm = provider.getCellCombinedShaderMeshOffseted(mirroredCell.cellX, mirroredCell.cellY);
     if (combinedm)
     {
@@ -2024,6 +2196,16 @@ bool LandMeshRenderer::check_cull_matrix(const TMatrix &realView, const TMatrix4
 }
 #endif
 
+LMeshRenderingMode LandMeshRenderer::setLMeshRenderingMode(LMeshRenderingMode mode)
+{
+  G_ASSERT(mode < LMeshRenderingMode::LMESH_MAX);
+  if (lmeshRenderingMode == mode)
+    return lmeshRenderingMode;
+
+  ShaderGlobal::set_int(lmesh_rendering_modeVarId, static_cast<int>(mode));
+  return eastl::exchange(lmeshRenderingMode, mode);
+}
+
 void LandMeshRenderer::renderCulled(LandMeshManager &provider, RenderType rtype, const LandMeshCullingData &culledData,
   const Point3 &view_pos, RenderPurpose rpurpose)
 {
@@ -2058,8 +2240,10 @@ void LandMeshRenderer::renderCulled(LandMeshManager &provider, RenderType rtype,
     for (const auto &landClass : landClassesLoaded)
       if (landClass.lastUsedGrassMask)
       {
-        mark_managed_tex_lfu(landClass.grassMask);
-        d3d::set_tex(STAGE_CS, 15, D3dResManagerData::getBaseTex(landClass.grassMask)); // Avoid intersections with the shader blocks.
+        mark_managed_tex_lfu(landClass.grassMask.tid);
+        // Avoid intersections with the shader blocks.
+        d3d::set_tex(STAGE_CS, 15, D3dResManagerData::getBaseTex(landClass.grassMask.tid));
+        d3d::set_sampler(STAGE_CS, 15, landClass.grassMask.sampler);
       }
     d3d::set_tex(STAGE_CS, 15, NULL);
   }
@@ -2090,12 +2274,13 @@ void LandMeshRenderer::renderCulled(LandMeshManager &provider, RenderType rtype,
     for (int i = 0; i <= lmesh_sampler__max_used_sampler; ++i)
       d3d::settex(i, nullptr);
 
+  if (rtype == RENDER_WITH_CLIPMAP && provider.noVertTexHeightmap())
+    ShaderGlobal::set_texture_fast(vertTexGvId, BAD_TEXTUREID);
+
   ShaderGlobal::setBlock(land_mesh_object_blkid[rtype], ShaderGlobal::LAYER_SCENE);
   if (!provider.isInTools() && (lmesh_render_flags & RENDER_HEIGHTMAP) && renderHeightmapType != NO_HMAP &&
       provider.getHmapHandler() && rtype != RENDER_GRASS_MASK && rtype != RENDER_CLIPMAP && rtype != RENDER_PATCHES)
   {
-    if (rtype == RENDER_WITH_CLIPMAP && provider.noVertTexHeightmap())
-      ShaderGlobal::set_texture_fast(vertTexGvId, BAD_TEXTUREID);
     if (renderHeightmapType == ONEQUAD_HMAP)
     {
       provider.getHmapHandler()->renderOnePatch();
@@ -2105,7 +2290,10 @@ void LandMeshRenderer::renderCulled(LandMeshManager &provider, RenderType rtype,
       provider.getHmapHandler()->renderCulled(culledData.heightmapData);
     }
     if (rtype == RENDER_WITH_CLIPMAP && provider.noVertTexHeightmap())
+    {
       ShaderGlobal::set_texture_fast(vertTexGvId, vertTexId);
+      ShaderGlobal::setBlock(land_mesh_object_blkid[rtype], ShaderGlobal::LAYER_SCENE);
+    }
   }
 
   if (!provider.isInTools() && !culledData.count)
@@ -2297,9 +2485,9 @@ void LandMeshRenderer::renderCulled(LandMeshManager &provider, RenderType rtype,
                 // set mirror
                 const MirroredCellState &mirroredCell = mirroredCells[ctx->cellsFlattenedData[cellI]];
                 mirroredCell.setPsMirror();
-                mirroredCell.setFlipCull(this);
+                const bool cullFlipped = mirroredCell.setFlipCull(this);
                 d3d::set_vs_const(lmesh_vs_const__pos_to_world, &worldMulPos[mirroredCell.mirrorScaleState.xz][0].x, 2);
-                renderGeomCellsCM(provider, makeCellSpan(cellI, ctx->endRegion[regioni][mirrorI][lod]), rtype, lod > 0);
+                renderGeomCellsCM(provider, makeCellSpan(cellI, ctx->endRegion[regioni][mirrorI][lod]), rtype, lod > 0, cullFlipped);
               }
             }
           }
@@ -2314,9 +2502,10 @@ void LandMeshRenderer::renderCulled(LandMeshManager &provider, RenderType rtype,
               {
                 const MirroredCellState &mirroredCell = mirroredCells[ctx->cellsFlattenedData[cellI]];
                 mirroredCell.setPsMirror();
-                mirroredCell.setFlipCull(this);
+                const bool cullFlipped = mirroredCell.setFlipCull(this);
                 d3d::set_vs_const(lmesh_vs_const__pos_to_world, &worldMulPos[mirroredCell.mirrorScaleState.xz][0].x, 2);
-                renderGeomCellsLM(provider, makeCellSpan(cellI, ctx->endRegion[regioni][mirrorI][lod]), lod, rtype, use_exclusion);
+                renderGeomCellsLM(provider, makeCellSpan(cellI, ctx->endRegion[regioni][mirrorI][lod]), lod, rtype, use_exclusion,
+                  cullFlipped);
               }
             }
         }
@@ -2382,7 +2571,8 @@ bool LandMeshRenderer::renderDecals(LandMeshManager &provider, RenderType rtype,
     waterLevel = provider.getHmapHandler()->getPreparedWaterLevel();
   }
   LandMeshCullingData defaultCullData(framemem_ptr());
-  state.frustumCulling(provider, frustum, NULL, defaultCullData, NULL, 0, hmapOriginPos, cameraHeight, waterLevel, -1);
+  state.frustumCulling(provider, defaultCullData, NULL, 0,
+    HeightmapFrustumCullingInfo{hmapOriginPos, cameraHeight, waterLevel, frustum, NULL, -1});
 
   LandMeshRenderer::MirroredCellState::startRender();
 
@@ -2451,11 +2641,13 @@ void LandMeshRenderer::render(LandMeshManager &provider, RenderType rtype, const
   mat44f globtm;
   d3d::getglobtm(globtm);
   Frustum frustum(globtm);
-  return render(globtm, frustum, provider, rtype, view_pos, rpurpose);
+  TMatrix4 proj;
+  d3d::gettm(TM_PROJ, &proj);
+  return render(globtm, proj, frustum, provider, rtype, view_pos, rpurpose);
 }
 
-void LandMeshRenderer::render(mat44f_cref globtm, const Frustum &frustum, LandMeshManager &provider, RenderType rtype,
-  const Point3 &view_pos, RenderPurpose rpurpose)
+void LandMeshRenderer::render(mat44f_cref globtm, const TMatrix4 &proj, const Frustum &frustum, LandMeshManager &provider,
+  RenderType rtype, const Point3 &view_pos, RenderPurpose rpurpose)
 {
   if (lmesh_vs_const__pos_to_world < 0)
     return;
@@ -2484,6 +2676,9 @@ void LandMeshRenderer::render(mat44f_cref globtm, const Frustum &frustum, LandMe
   if (rtype == RENDER_DEPTH)
     defaultCullData.heightmapData.useHWTesselation = false;
   defaultCullData.heightmapData.frustum = frustum;
+  HeightmapFrustumCullingInfo fi{hmapOriginPos, cameraHeight, waterLevel, frustum, NULL, -1, 0, 1, proj,
+    lmeshRenderingMode == LMeshRenderingMode::RENDERING_HEIGHTMAP ? 1e-6f : 0.f,
+    lmeshRenderingMode == LMeshRenderingMode::RENDERING_HEIGHTMAP ? fi.FASTEST : fi.BEST};
 
   if (rtype == RENDER_CLIPMAP || rtype == RENDER_PATCHES || rtype == RENDER_GRASS_MASK ||
       (debugCells && (rtype == RENDER_WITH_CLIPMAP || rtype == RENDER_REFLECTION)))
@@ -2491,7 +2686,7 @@ void LandMeshRenderer::render(mat44f_cref globtm, const Frustum &frustum, LandMe
     state.useExclBox = false;
     if (!state.renderInBBox.isempty())
       state.cullMode = state.NO_CULLING; // faster culling - no bbox testing
-    state.frustumCulling(provider, frustum, NULL, defaultCullData, NULL, 0, hmapOriginPos, cameraHeight, waterLevel, -1);
+    state.frustumCulling(provider, defaultCullData, NULL, 0, fi);
   }
   else
   {
@@ -2516,12 +2711,12 @@ void LandMeshRenderer::render(mat44f_cref globtm, const Frustum &frustum, LandMe
         provider.cullingState.useExclBox = true;
       }
     }
+    fi.min_tank_lod = renderHeightmapType == TESSELATED_HMAP ? useHmapTankDetail : -1;
+    fi.lod0subdiv = hmapSubDivLod0;
     if (regionCallback)
-      state.frustumCulling(provider, frustum, NULL, defaultCullData, regionCallback->regions(), regionCallback->regionsCount(),
-        hmapOriginPos, cameraHeight, waterLevel, renderHeightmapType == TESSELATED_HMAP ? useHmapTankDetail : -1, hmapSubDivLod0);
+      state.frustumCulling(provider, defaultCullData, regionCallback->regions(), regionCallback->regionsCount(), fi);
     else
-      state.frustumCulling(provider, frustum, NULL, defaultCullData, NULL, 0, hmapOriginPos, cameraHeight, waterLevel,
-        renderHeightmapType == TESSELATED_HMAP ? useHmapTankDetail : -1, hmapSubDivLod0);
+      state.frustumCulling(provider, defaultCullData, NULL, 0, fi);
   }
   renderCulled(provider, rtype, defaultCullData, view_pos, rpurpose);
 

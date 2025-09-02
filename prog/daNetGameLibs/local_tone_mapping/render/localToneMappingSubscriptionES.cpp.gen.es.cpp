@@ -1,11 +1,13 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "localToneMappingSubscriptionES.cpp.inl"
 ECS_DEF_PULL_VAR(localToneMappingSubscription);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc register_local_tone_mapping_for_postfx_es_comps[] =
 {
 //start of 1 rq components at [0]
-  {ECS_HASH("local_tone_mapping__filter_node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()}
+  {ECS_HASH("local_tone_mapping__filter_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()}
 };
 static void register_local_tone_mapping_for_postfx_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {

@@ -2,6 +2,7 @@
 
 #include <shaders/dag_shaders.h>
 #include <math/dag_TMatrix4.h>
+#include <math/dag_color.h>
 
 #define VIEW_VARS_LIST \
   VAR(globtm_psf_0)    \

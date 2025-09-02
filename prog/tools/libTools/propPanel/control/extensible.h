@@ -18,26 +18,26 @@ public:
     ContainerPropertyControl(id, event_handler, parent, x, y, w, h)
   {}
 
-  virtual unsigned getTypeMaskForSet() const override { return CONTROL_DATA_TYPE_STRING | CONTROL_DATA_TYPE_INT; }
-  virtual unsigned getTypeMaskForGet() const override { return CONTROL_DATA_TYPE_INT; }
+  unsigned getTypeMaskForSet() const override { return CONTROL_DATA_TYPE_STRING | CONTROL_DATA_TYPE_INT; }
+  unsigned getTypeMaskForGet() const override { return CONTROL_DATA_TYPE_INT; }
 
-  virtual int getIntValue() const override
+  int getIntValue() const override
   {
     const int result = buttonStatus;
     buttonStatus = EXT_BUTTON_NONE;
     return result;
   }
 
-  virtual void setIntValue(int value) override { buttonFlags = value; }
+  void setIntValue(int value) override { buttonFlags = value; }
 
-  virtual void setTextValue(const char value[]) override { controlCaption = value; }
+  void setTextValue(const char value[]) override { controlCaption = value; }
 
-  virtual int getCaptionValue(char *buffer, int buflen) const override
+  int getCaptionValue(char *buffer, int buflen) const override
   {
     return ImguiHelper::getTextValueForString(controlCaption, buffer, buflen);
   }
 
-  virtual void setEnabled(bool enabled) override
+  void setEnabled(bool enabled) override
   {
     controlEnabled = enabled;
 
@@ -45,9 +45,9 @@ public:
       control->setEnabled(enabled);
   }
 
-  virtual bool isRealContainer() override { return false; }
+  bool isRealContainer() override { return false; }
 
-  virtual void updateImgui() override
+  void updateImgui() override
   {
     ScopedImguiBeginDisabled scopedDisabled(!controlEnabled);
 

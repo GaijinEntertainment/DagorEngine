@@ -1,7 +1,6 @@
+from "dagor.workcycle" import setInterval, clearTimer
+from "dagor.random" import rnd_int
 from "%darg/ui_imports.nut" import *
-let { setInterval, clearTimer } = require("dagor.workcycle")
-let { rnd_int } = require("dagor.random")
-
 let appearDelay = 0.043
 let duration = 1.8
 let rows = 8
@@ -12,7 +11,7 @@ let size = hdpx(60)
 let gap = hdpx(10)
 
 let mask = Watched(0)
-let rndMask = @() mask(mask.value | (1 << rnd_int(0, totalBlocks - 1).tointeger()))
+let rndMask = @() mask.set(mask.get() | (1 << rnd_int(0, totalBlocks - 1).tointeger()))
 
 let mkAnimBlock = @(animOvr) {
   size = flex()
@@ -34,11 +33,11 @@ let mkAnimsList = @(block) {
     gap
     children = array(columns).map(function(_, column) {
       let bit = 1 << (row * columns + column)
-      let isVisible = Computed(@() (mask.value & bit) != 0)
+      let isVisible = Computed(@() (mask.get() & bit) != 0)
       return @() {
         watch = isVisible
         size = [size, size]
-        children = !isVisible.value ? null : block
+        children = !isVisible.get() ? null : block
       }
     })
   })
@@ -49,7 +48,7 @@ return {
   size = flex()
   function onAttach() {
     setInterval(appearDelay, rndMask)
-    mask(0)
+    mask.set(0)
   }
   onDetach = @() clearTimer(rndMask)
 

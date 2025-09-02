@@ -63,7 +63,7 @@ static inline bool copyLinkForDag(const char *dag_file, const char *dest_path)
   class NoChangeResolver : public ITextureNameResolver
   {
   public:
-    virtual bool resolveTextureName(const char *src_name, String &out_str) { return false; }
+    bool resolveTextureName(const char *src_name, String &out_str) override { return false; }
   } resolveCb;
 
   StaticGeometryContainer sgc;
@@ -452,8 +452,7 @@ static inline bool procEntry(const DataBlock *library_blk, const DataBlock *blk,
 static void copyOtherFiles(const char *src, Tab<int> &files, OAHashNameMap<true> &file_nm, OAHashNameMap<true> &path_nm,
   const char *mask)
 {
-  alefind_t ff;
-  for (bool scan = dd_find_first(String(260, "%s/%s", src, mask), DA_FILE, &ff); scan; scan = dd_find_next(&ff))
+  for (const alefind_t &ff : dd_find_iterator(String(260, "%s/%s", src, mask), DA_FILE))
   {
     const int cnt = file_nm.nameCount();
     const int id = file_nm.addNameId(ff.name);
@@ -465,9 +464,8 @@ static void copyOtherFiles(const char *src, Tab<int> &files, OAHashNameMap<true>
       skipCnt++;
     }
   }
-  dd_find_close(&ff);
 
-  for (bool scan = dd_find_first(String(260, "%s/%s", src, "*.*"), DA_SUBDIR, &ff); scan; scan = dd_find_next(&ff))
+  for (const alefind_t &ff : dd_find_iterator(String(260, "%s/%s", src, "*.*"), DA_SUBDIR))
   {
     const char *dir = ff.name;
     if ((dir[0] == '.') || !(ff.attr & DA_SUBDIR))
@@ -478,7 +476,6 @@ static void copyOtherFiles(const char *src, Tab<int> &files, OAHashNameMap<true>
 
     copyOtherFiles(newDir, files, file_nm, path_nm, mask);
   }
-  dd_find_close(&ff);
 
   return;
 }

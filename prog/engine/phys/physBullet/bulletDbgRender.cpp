@@ -115,7 +115,7 @@ void physdbg::renderOneBody(PhysWorld *pw, const PhysBody *pb, const TMatrix &tm
     auto prev_drawer = scn->getDebugDrawer();
     scn->setDebugDrawer(&bullet_dbg_render);
     scn->debugDrawObject(to_btTransform(tm), pb->getActor()->getCollisionShape(),
-      btVector3(((col >> 16) & 0xFF) / 255., ((col >> 8) & 0xFF) / 255., ((col)&0xFF) / 255.));
+      btVector3(((col >> 16) & 0xFF) / 255., ((col >> 8) & 0xFF) / 255., ((col) & 0xFF) / 255.));
     scn->setDebugDrawer(prev_drawer);
     bullet_dbg_render.setDebugMode(dbgm0, pnb);
   }

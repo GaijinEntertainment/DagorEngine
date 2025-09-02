@@ -16,6 +16,8 @@
 #include <gamePhys/collision/cachedCollisionObject.h>
 #include <util/dag_finally.h>
 
+template class PhysicsBase<PhysObjState, PhysObjControlState, CommonPhysPartialState>;
+
 // This ensure faster copy/relocation code path. Can be removed if _really_ needed.
 static_assert(eastl::is_trivially_destructible_v<PhysObjState>);
 
@@ -72,34 +74,35 @@ void PhysObjState::applyDesyncedState(const PhysObjState & /*state*/) {}
 
 void PhysObjControlState::serialize(danet::BitStream &bs) const
 {
+  G_ASSERT(hasCustomControls == !!customControls.capacity());
   bs.Write(producedAtTick);
   bs.Write(sequenceNumber);
-  bs.Write(unitVersion);
-
-  const uint16_t customBits = customControls.GetNumberOfBitsUsed();
-  bs.Write(customBits);
-  if (customBits > 0)
-    bs.WriteBits(customControls.GetData(), customBits);
+  bs.Write(uint8_t(unitVersion | (hasCustomControls ? 0x80 : 0)));
+  if (hasCustomControls)
+  {
+    bs.WriteCompressed((uint16_t)customControls.size());
+    bs.Write((const char *)customControls.data(), customControls.size());
+  }
 }
 
-bool PhysObjControlState::deserialize(const danet::BitStream &bs_unsafe, IPhysBase &, int32_t &)
+bool PhysObjControlState::deserialize(const danet::BitStream &bs, IPhysBase &, int32_t &)
 {
   bool isOk = true;
-
-  isOk &= bs_unsafe.Read(producedAtTick);
-  isOk &= bs_unsafe.Read(sequenceNumber);
-  isOk &= bs_unsafe.Read(unitVersion);
-
-  uint16_t customBits = 0;
-  isOk &= bs_unsafe.Read(customBits);
-
-  if (customBits > 0)
+  isOk &= bs.Read(producedAtTick);
+  isOk &= bs.Read(sequenceNumber);
+  uint8_t uv = 0;
+  isOk &= bs.Read(uv);
+  unitVersion = uv;
+  if (uv & 0x80) // hasCustomControls
   {
-    customControls.reserveBits(customBits);
-    isOk &= bs_unsafe.ReadBits(customControls.GetData(), customBits);
-    customControls.SetWriteOffset(customBits);
+    uint16_t sizeOfCustomControls = 0;
+    isOk &= bs.ReadCompressed(sizeOfCustomControls);
+    if (isOk)
+    {
+      customControls.resize(sizeOfCustomControls);
+      isOk &= bs.Read((char *)customControls.data(), sizeOfCustomControls);
+    }
   }
-
   return isOk;
 }
 
@@ -115,12 +118,7 @@ bool PhysObjControlState::deserializeMinimalState(const danet::BitStream &, cons
 
 void PhysObjControlState::applyMinimalState(const PhysObjControlState &) {}
 
-void PhysObjControlState::reset()
-{
-  danet::BitStream bs;
-  customControls.swap(bs);
-}
-
+void PhysObjControlState::reset() { mem_set_0(customControls); }
 
 PhysObj::PhysObj(ptrdiff_t physactor_offset, PhysVars *phys_vars, float time_step) :
   PhysicsBase<PhysObjState, PhysObjControlState, CommonPhysPartialState>(physactor_offset, phys_vars, time_step)
@@ -436,7 +434,7 @@ void PhysObj::resolveCollision(float dt, dag::ConstSpan<gamephys::CollisionConta
   if (warmstartingFactor > 0.f)
   {
     Tab<gamephys::CachedContact> cachedContacts(framemem_ptr());
-    daphys::cache_solved_contacts(collisions, cachedContacts, MAX_CACHED_CONTACTS);
+    daphys::cache_solved_contacts(collisions, cachedContacts, PHYS_OBJ_MAX_CACHED_CONTACTS);
     currentState.numCachedContacts = cachedContacts.size();
     if (currentState.numCachedContacts)
       mem_copy_to(cachedContacts, currentState.cachedContacts.data());
@@ -466,14 +464,6 @@ void PhysObj::updatePhys(float at_time, float dt, bool)
       return;
     }
 
-  if (shouldFallThroughGround)
-  {
-    currentState.velocity += Point3(0.f, -gamephys::atmosphere::g(), 0.f) * dt;
-    currentState.location.P += currentState.velocity * dt;
-    update_current_state_tick(currentState, appliedCT, at_time, dt, timeStep);
-    return;
-  }
-
   const int prevStep = dacoll::set_hmap_step(1);
   FINALLY([prevStep]() { dacoll::set_hmap_step(prevStep); });
 
@@ -502,7 +492,7 @@ void PhysObj::updatePhys(float at_time, float dt, bool)
         frtCollisionNormal = contacts[0].wnormB;
         hasFrtCollision = true;
       }
-      dacoll::test_collision_ri(co, BBox3(ZERO<Point3>(), 1.f), contacts, true /*collInfo*/, at_time, nullptr, physMatId);
+      dacoll::test_collision_ri(co, BSphere3(Point3(), 1.f), contacts, true /*collInfo*/, at_time, nullptr, physMatId);
 
       for (int i = 0; i < contacts.size(); ++i)
       {
@@ -838,4 +828,15 @@ bool PhysObj::isCollisionValid() const
       break;
     }
   return result;
+}
+
+void PhysObj::initCustomControls(int sz)
+{
+  appliedCT.customControls.resize(sz);
+  appliedCT.hasCustomControls = sz > 0;
+  producedCT.customControls.resize(sz);
+  producedCT.hasCustomControls = sz > 0;
+  // This method is assumed to be called on init, before `saveProducedCTAsUnapproved` calls.
+  // Can be trivially supported though
+  G_ASSERT(unapprovedCT.empty());
 }

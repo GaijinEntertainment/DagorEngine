@@ -5,6 +5,3 @@ fxList =
   dafxModFx
   dafxCompound
 ;
-if $(SkipFlowAnCompoundPS) != yes {
-  fxList += compoundPs flowPs2 ;
-}

@@ -1,16 +1,7 @@
 require fx
 require ecs
 require DagorSystem
-
-
-[cpp_event(broadcast)]
-struct StartEffectEvent
-  pos : float3
-  fx : AcesEffect?
-  fxType : int
-
-[cpp_event(unicast)]
-struct RecreateEffectEvent {}
+options indenting = 2
 
 
 [generic]
@@ -26,7 +17,7 @@ def start_effect(name : string;
     return start_effect(fxType, emitter_tm, fx_tm, false)
   else
     logerr("Can't start effect with name <{name}>")
-    return null
+    return false
 
 
 [generic]

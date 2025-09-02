@@ -1,15 +1,21 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "predicted_latency_waiter.h"
-#include <perfMon/dag_sleepPrecise.h>
 #include <perfMon/dag_statDrv.h>
 #include "globals.h"
 #include "driver_config.h"
 #include "util/scoped_timer.h"
+#include <osApiWrappers/dag_atomic.h>
 
 using namespace drv3d_vulkan;
 
+#if DAGOR_DBGLEVEL > 0
+int64_t PredictedLatencyWaiter::getDbgLastExternalWaitTimeUs() { return interlocked_acquire_load(dbgLastExternalWaitUs); }
+int64_t PredictedLatencyWaiter::getDbgLastWaitTimeUs() { return interlocked_acquire_load(dbgLastInternalWaitUs); }
+#endif
+
 int64_t PredictedLatencyWaiter::getLastWaitTimeUs() { return profile_usec_from_ticks_delta(lastWaitTicks); }
+int64_t PredictedLatencyWaiter::getLastWaitTimeTicks() { return lastWaitTicks; }
 
 void PredictedLatencyWaiter::updateDynamicThreshold(uint64_t external_waited_us)
 {
@@ -18,6 +24,10 @@ void PredictedLatencyWaiter::updateDynamicThreshold(uint64_t external_waited_us)
   externalWaitUsSum -= externalWaitUsHistory[externalWaitHistoryIndex];
   externalWaitUsHistory[externalWaitHistoryIndex] = external_waited_us;
   externalWaitUsSum += external_waited_us;
+
+#if DAGOR_DBGLEVEL > 0
+  interlocked_release_store(dbgLastExternalWaitUs, external_waited_us);
+#endif
 
   // we can reach max wait time either because frame rate is too low
   // and we don't want to correct latency in this case, as prediction time correction step is considered small
@@ -47,28 +57,44 @@ void PredictedLatencyWaiter::wait(int64_t time_to_wait_us)
   if (time_to_wait_us > 0)
   {
     // wait for previous frame completion on GPU to reduce latency in GPU/worker bound scenarions
-    DA_PROFILE_AUTO_WAIT();
+    TIME_PROFILE(vulkan_latency_wait);
     ScopedTimerTicks watch(lastWaitTicks);
-    sleep_precise_usec(time_to_wait_us);
+    sleep_precise_usec(time_to_wait_us, preciseSleepContext);
   }
+  else
+    lastWaitTicks = 0;
+#if DAGOR_DBGLEVEL > 0
+  interlocked_release_store(dbgLastInternalWaitUs, profile_usec_from_ticks_delta(lastWaitTicks));
+#endif
 }
+
+void PredictedLatencyWaiter::reset() { timeToWaitUs = 0; }
 
 void PredictedLatencyWaiter::wait()
 {
-  // usuall predicted wait
+  // usual predicted wait
   wait(timeToWaitUs);
 }
 
 void PredictedLatencyWaiter::markAsyncWait()
 {
+  WinAutoLock lock(asyncWaitMutex);
+
+  // if async wait is skipped by application, process it here
+  // mixing skipped and non skipped frames is not ok, but that's considered application issue
   if (asyncWaitStartTicks != 0)
     wait();
+  asyncTimeToWaitUs = timeToWaitUs;
   asyncWaitStartTicks = profile_ref_ticks();
 }
 
 void PredictedLatencyWaiter::asyncWait()
 {
-  int64_t correctedWaitTimeUs = timeToWaitUs - profile_time_usec(asyncWaitStartTicks);
-  asyncWaitStartTicks = 0;
+  int64_t correctedWaitTimeUs;
+  {
+    WinAutoLock lock(asyncWaitMutex);
+    correctedWaitTimeUs = asyncTimeToWaitUs - profile_time_usec(asyncWaitStartTicks);
+    asyncWaitStartTicks = 0;
+  }
   wait(correctedWaitTimeUs);
 }

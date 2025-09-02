@@ -14,25 +14,25 @@ struct ReuseCache {
     ReuseChunk *    hold[DAS_MAX_BUCKET_COUNT];
 };
 
-DAS_THREAD_LOCAL ReuseCache * tlsReuseCache = nullptr;
-DAS_THREAD_LOCAL uint32_t tlsReuseCacheCount = 0;
+DAS_THREAD_LOCAL(ReuseCache *) tlsReuseCache;
+DAS_THREAD_LOCAL(uint32_t) tlsReuseCacheCount;
 
 void reuse_cache_push() {
-    if ( tlsReuseCacheCount==0 ) reuse_cache_create();
-    tlsReuseCacheCount ++;
+    if ( *tlsReuseCacheCount==0 ) reuse_cache_create();
+    (*tlsReuseCacheCount) ++;
 }
 
 void reuse_cache_pop() {
-    tlsReuseCacheCount --;
-    if ( tlsReuseCacheCount==0 ) reuse_cache_destroy();
+    (*tlsReuseCacheCount) --;
+    if ( *tlsReuseCacheCount==0 ) reuse_cache_destroy();
 }
 
 void * reuse_cache_allocate ( size_t size ) {
     if ( size==0 ) return nullptr;
     size = (size+15) & ~15;
-    if ( size<=DAS_MAX_REUSE_SIZE && tlsReuseCache ) {
+    if ( size<=DAS_MAX_REUSE_SIZE && *tlsReuseCache ) {
         auto bucket = (size >> 4) - 1;
-        auto & hold = tlsReuseCache->hold[bucket];
+        auto & hold = (*tlsReuseCache)->hold[bucket];
         if ( hold ) {
             void * data = hold;
             hold = hold->next;
@@ -47,9 +47,9 @@ void * reuse_cache_allocate ( size_t size ) {
 
 void reuse_cache_free ( void * ptr, size_t size ) {
     size = (size+15) & ~15;
-    if ( size<=DAS_MAX_REUSE_SIZE && tlsReuseCache ) {
+    if ( size<=DAS_MAX_REUSE_SIZE && *tlsReuseCache ) {
         auto bucket = (size >> 4) - 1;
-        auto & hold = tlsReuseCache->hold[bucket];
+        auto & hold = (*tlsReuseCache)->hold[bucket];
         auto next = hold;
         hold = (ReuseChunk *) ptr;
         hold->next = next;
@@ -63,16 +63,16 @@ void reuse_cache_free ( void * ptr ) {
 }
 
 void reuse_cache_create() {
-    if ( !tlsReuseCache ) {
-        tlsReuseCache = (ReuseCache *) das_aligned_alloc16(sizeof(ReuseCache));
-        memset(tlsReuseCache, 0, sizeof(ReuseCache));
+    if ( !*tlsReuseCache ) {
+        *tlsReuseCache = (ReuseCache *) das_aligned_alloc16(sizeof(ReuseCache));
+        memset(*tlsReuseCache, 0, sizeof(ReuseCache));
     }
 }
 
 void reuse_cache_clear() {
-    if ( tlsReuseCache ) {
+    if ( *tlsReuseCache ) {
         for ( size_t bucket=0; bucket!=DAS_MAX_BUCKET_COUNT; ++bucket ) {
-            ReuseChunk * & hold = tlsReuseCache->hold[bucket];
+            ReuseChunk * & hold = (*tlsReuseCache)->hold[bucket];
             while ( hold ) {
                 auto ptr = hold;
                 hold = hold->next;
@@ -83,10 +83,10 @@ void reuse_cache_clear() {
 }
 
 void reuse_cache_destroy() {
-    if ( tlsReuseCache ) {
+    if ( *tlsReuseCache ) {
         reuse_cache_clear();
-        das_aligned_free16(tlsReuseCache);
-        tlsReuseCache = nullptr;
+        das_aligned_free16(*tlsReuseCache);
+        *tlsReuseCache = nullptr;
     }
 }
 

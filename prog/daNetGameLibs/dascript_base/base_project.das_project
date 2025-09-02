@@ -9,22 +9,23 @@ var
   reqCount = 0
 
 let
-  commonMountPointPrefixes <- {{
-    "ecs" => "%dasGameLibs/ecs";
-    "math" => "%dasGameLibs/math";
-    "daBfg" => "%dasGameLibs/daBfg";
-    "daslib" => "%dngdas/daslib";
-    "imgui" => "%dngdas/imgui";
-    "debug" => "%dngdas/debug";
+  commonMountPointPrefixes <- {
+    "ecs" => "%dasGameLibs/ecs",
+    "docs" => "%dasGameLibs/docs",
+    "math" => "%dasGameLibs/math",
+    "daFrameGraph" => "%dasGameLibs/daFrameGraph",
+    "daslib" => "%daslib",
+    "imgui" => "%dasImgui",
+    "debug" => "%dngdas/debug",
     "remote" => "%dngdas/remote"
-  }}
-  commonAliasPath <- {{
-    "daBfg" => "%dasGameLibs/daBfg/daBfg.das"
-  }}
+  }
+  commonAliasPath <- {
+    "daFrameGraph" => "%dasGameLibs/daFrameGraph.daFG.das"
+  }
 
 
 [export]
-def module_get(req, from:string) : tuple<string;string;string> const
+def module_get(req, from : string) : tuple<string; string; string> const
   reqCount += 1
   if reqCount > 1000
     unsafe
@@ -33,35 +34,35 @@ def module_get(req, from:string) : tuple<string;string;string> const
 
   let aliasPath = commonAliasPath?[req] ?? ""
   if aliasPath != ""
-    return [[auto req, aliasPath, ""]]
+    return (req, aliasPath, "")
 
-  var rs <- split_by_chars(req,"./")
-  let path_name = join(rs,"/") + ".das"
+  var rs <- split_by_chars(req, "./")
+  let path_name = join(rs, "/") + ".das"
   if length(rs) <= 1
-    return [[auto req, path_name, ""]]
+    return (req, path_name, "")
 
-  let mod_name = rs[length(rs)-1]
+  let mod_name = rs[length(rs) - 1]
 
   if is_in_aot() && (path_name == "daslib/debug.das" || path_name |> ends_with("profiler.das"))
-    return [[auto "", "", ""]]
+    return ("", "", "")
 
   if rs[0] == "%daslib"
     rs[0] = commonMountPointPrefixes?["daslib"] ?? rs[0]
 
   if starts_with(req, "%")
-    return [[auto mod_name, path_name, ""]]
+    return (mod_name, path_name, "")
 
-  let alias_name = rs[length(rs)-1]
+  let alias_name = rs[length(rs) - 1]
   var prefix = unsafe(commonMountPointPrefixes?[rs[0]])
   if prefix == null
     prefix = unsafe(mountPointPrefixes?[rs[0]])
   if prefix != null
     rs |> erase(0)
-    return [[auto mod_name, "{*prefix}/{join(rs,"/")}.das", alias_name]]
+    return (mod_name, "{*prefix}/{join(rs,"/")}.das", alias_name)
 
-  return [[auto mod_name, "{DAS_PAK_ROOT}{join(rs,"/")}.das", alias_name]]
+  return (mod_name, "{DAS_PAK_ROOT}{join(rs,"/")}.das", alias_name)
 
 
 [export]
-def include_get(inc, from:string) : string
+def include_get(inc, from : string) : string
   return starts_with(inc, "%") ? inc : "{DAS_PAK_ROOT}{inc}"

@@ -30,7 +30,8 @@ RendInstPhys::RendInstPhys() :
   ttl(0.f),
   maxTtl(0.f),
   maxLifeDist(-1.f),
-  distConstrainedPhys(-1.f)
+  collisionDistLimit(-1.f),
+  collisionAngleLimitCos(-1.f)
 {}
 
 RendInstPhys::RendInstPhys(RendInstPhysType type, const rendinst::RendInstDesc &from_desc, const TMatrix &tm, float bodyMass,
@@ -48,7 +49,8 @@ RendInstPhys::RendInstPhys(RendInstPhysType type, const rendinst::RendInstDesc &
   ttl(1.f),
   maxTtl(max_life_time),
   maxLifeDist(max_life_dist),
-  distConstrainedPhys(-1.f),
+  collisionDistLimit(-1.f),
+  collisionAngleLimitCos(-1.f),
   originalTm(original_tm),
   centerOfMassTm(TMatrix::IDENT),
   lastValidTm(TMatrix::IDENT)

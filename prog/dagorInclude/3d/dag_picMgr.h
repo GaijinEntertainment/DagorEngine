@@ -4,8 +4,8 @@
 //
 #pragma once
 
-#include <3d/dag_texMgr.h>
-#include <math/dag_e3dColor.h>
+#include <drv/3d/dag_resId.h> // TEXTUREID
+#include <drv/3d/dag_samplerHandle.h>
 #include <math/dag_Point2.h>
 
 class DataBlock;

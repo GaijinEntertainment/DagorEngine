@@ -1,0 +1,4 @@
+include "../../../../prog/daNetGame/shaders/_build/shaders_impostorbaker.blk"
+mountPoint:t=".."
+incDir:t="../../../../prog/daNetGameLibs"
+"@override:outDumpName":t="../../develop/toolShaders/tools.impostorbakerDX12"

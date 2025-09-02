@@ -27,6 +27,9 @@ enum
 
   MB_ID_OK = 1,
   MB_ID_CANCEL = 2,
+  MB_ID_ABORT = 3,
+  MB_ID_RETRY = 4,
+  MB_ID_IGNORE = 5,
   MB_ID_YES = 6,
   MB_ID_NO = 7,
 };

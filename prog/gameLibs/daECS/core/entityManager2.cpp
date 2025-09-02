@@ -23,16 +23,12 @@
 static constexpr int MINIMUM_FREE_INDICES = 256;
 
 #if DAECS_EXTENSIVE_CHECKS
-#define VALIDATE_DESTROYING_GET(eid_)                           \
-  struct ScopedDestrValidate                                    \
-  {                                                             \
-    EntityId &eid;                                              \
-    ScopedDestrValidate(EntityId &e, EntityId to) : eid(e = to) \
-    {}                                                          \
-    ~ScopedDestrValidate()                                      \
-    {                                                           \
-      eid = INVALID_ENTITY_ID;                                  \
-    }                                                           \
+#define VALIDATE_DESTROYING_GET(eid_)                              \
+  struct ScopedDestrValidate                                       \
+  {                                                                \
+    EntityId &eid;                                                 \
+    ScopedDestrValidate(EntityId &e, EntityId to) : eid(e = to) {} \
+    ~ScopedDestrValidate() { eid = INVALID_ENTITY_ID; }            \
   } scopedDestr(destroyingEntity, eid_)
 
 #else
@@ -785,7 +781,6 @@ template_t EntityManager::instantiateTemplate(int id)
         else
         {
           HashedConstString hName = HashedConstString{getTemplateDB().getComponentName(compHash), compHash};
-          dag::Span<component_t> dependencies(nullptr, 0); // todo:actually we can create component dependencies on the fly
           const auto fi = getTemplateDB().info().componentFlags.find(hName.hash);
           flag |= (fi != getTemplateDB().info().componentFlags.end()) ? fi->second : 0;
           const component_type_t tp = it.second.getUserType() ? it.second.getUserType() : getTemplateDB().getComponentType(compHash);
@@ -823,8 +818,9 @@ template_t EntityManager::instantiateTemplate(int id)
   }
   const uint32_t oldArchetypesCount = archetypes.size(), oldArchetypesCapacity = archetypes.capacity();
   G_UNUSED(oldArchetypesCapacity); // only used in dev mode
-  const template_t ret = templates.createTemplate(archetypes, id, templComponentsIndices.cbegin(), templComponentsIndices.size(),
-    templReplicatedIndices.cbegin(), templReplicatedIndices.size(), templComponentsData.cbegin(), dataComponents, componentTypes);
+  const template_t ret =
+    templates.createTemplate(*this, archetypes, id, templComponentsIndices.cbegin(), templComponentsIndices.size(),
+      templReplicatedIndices.cbegin(), templReplicatedIndices.size(), templComponentsData.cbegin(), dataComponents, componentTypes);
 
 #if DAECS_EXTENSIVE_CHECKS
   debug("template %d <%s> has archetype %d", ret, templ.getName(), templates.getTemplate(ret).archetype);
@@ -1143,7 +1139,8 @@ void EntityManager::clear()
       if (entDesc.archetype != INVALID_ARCHETYPE)
       {
         destroyed = true;
-        destroyEntityImmediate(EntityId(make_eid(lasti, entDesc.generation)));
+        EntityId eid(make_eid(lasti, entDesc.generation));
+        destroyEntityImmediate(eid, /*findices*/ nullptr); // Don't update free indices on batch removal (opt)
       }
       minGen = eastl::min(minGen, entDesc.generation);
       maxGen = eastl::max(maxGen, entDesc.generation);
@@ -1195,7 +1192,7 @@ void EntityManager::clear()
   trackQueryIndices.clear();
   queryScheduled.clear();
 
-  ++lastEsGen;
+  --lastEsGen; // Note: EntitySystem's ctor does increment but we do decrement here to avoid collision
   resetEsOrder();
 
   if ((int)min(minGen, entDescs.globalGen) > 255 - (int)max(entDescs.globalGen, maxGen))
@@ -1215,7 +1212,6 @@ void EntityManager::clear()
 
 EntityManager::~EntityManager()
 {
-  // this is mostly to become ::clear()
   clear();
   debug("EntityManager destroyed");
 }
@@ -1224,6 +1220,10 @@ void EntityManager::copyFrom(const EntityManager &from)
 {
   getEventsDbMutable() = from.getEventsDb();
 
+  for (auto &q : esListQueries)
+    if (q)
+      destroyQuery(q);
+  esListQueries.clear();
   clearQueries();
   // clear this arrays, because clearQueries keeps them
   resolvedQueries.clear();
@@ -1233,26 +1233,32 @@ void EntityManager::copyFrom(const EntityManager &from)
   queryDescs.clear();
   queriesReferences.clear();
   queriesGenerations.clear();
-  int queryIdx = 0;
   for (uint32_t qi = 0u; qi < from.getQueriesCount(); qi++)
   {
     auto qid = from.getQuery(qi);
+    if (!qid)
+    {
+      addOneQuery();
+      queriesReferences.back() = 0;
+      queriesGenerations[qi] = from.queriesGenerations[qi];
+      continue;
+    }
     auto desc = from.getQueryDesc(qid);
     auto name = from.getQueryName(qid);
-    if (name == nullptr)
-      continue;
     ecs::NamedQueryDesc namedDesk(name, desc.componentsRW, desc.componentsRO, desc.componentsRQ, desc.componentsNO);
-    createQuery(namedDesk);
-    queriesGenerations[queryIdx] = from.queriesGenerations[queryIdx];
-    queriesReferences[queryIdx] = from.queriesReferences[queryIdx];
-    ++queryIdx;
+    currentQueryGen = qid.generation();
+    const QueryId newQid = createQuery(namedDesk);
+    G_UNUSED(newQid);
+    G_ASSERT(newQid == qid);
+    G_ASSERT(queriesGenerations[qid.index()] == from.queriesGenerations[qid.index()]);
   }
+  currentQueryGen = from.currentQueryGen;
   esTags = from.esTags;
+  lastEsGen = 0;
   resetEsOrder();
-  esListQueries = from.esListQueries;
 }
 
-inline void EntityManager::destroyEntityImmediate(EntityId eid)
+void EntityManager::destroyEntityImmediate(EntityId eid, decltype(freeIndices) *findices)
 {
   const unsigned idx = eid.index();
   if (idx >= entDescs.allocated_size() || entDescs[idx].generation != eid.generation())
@@ -1281,12 +1287,11 @@ inline void EntityManager::destroyEntityImmediate(EntityId eid)
   entDesc.generation++;
   DAECS_VALIDATE_ARCHETYPE(arch);
   removeFromArchetype(arch, entDesc.chunkId, entDesc.idInChunk, [](int, component_index_t) { return false; });
-  auto findices = (eid.index() <= MAX_RESERVED_EID_IDX_CONST) ? ((eid.index() < nextResevedEidIndex) ? &freeIndicesReserved : nullptr)
-                                                              : &freeIndices;
   if (findices)
   {
 #if DAECS_EXTENSIVE_CHECKS
-    for (auto it = findices->begin(), ite = findices->end(); it != ite; ++it)
+    int j = 0;
+    for (auto it = findices->begin(), ite = findices->end(); it != ite && j++ < MINIMUM_FREE_INDICES * 4; ++it)
       G_ASSERTF(((*it) & ENTITY_INDEX_MASK) != idx, "eid %d<%s> index %d is already in freeIndices (occupied with %d)",
         (ecs::entity_id_t)eid, this->getEntityTemplateName(eid), idx, *it);
 #endif
@@ -1295,6 +1300,12 @@ inline void EntityManager::destroyEntityImmediate(EntityId eid)
   entDescs[idx].reset();
 }
 
+void EntityManager::destroyEntityImmediate(EntityId eid)
+{
+  auto findices = (eid.index() <= MAX_RESERVED_EID_IDX_CONST) ? ((eid.index() < nextResevedEidIndex) ? &freeIndicesReserved : nullptr)
+                                                              : &freeIndices;
+  destroyEntityImmediate(eid, findices);
+}
 
 void EntityManager::flushGameResRequests()
 {
@@ -1353,9 +1364,10 @@ bool EntityManager::validateResources(EntityId eid, archetype_t old_archetype, t
   const ComponentsInitializer &initializer)
 {
   const RequestResources result = requestResources(eid, old_archetype, templ, initializer, RequestResourcesType::CHECK_ONLY);
-  if (result == RequestResources::Error)
+  if (DAGOR_UNLIKELY(result == RequestResources::Error))
   {
-    logerr("Creation of entity %d<%s> is not possible, as some resources are missing", eid, getTemplateName(templ));
+    logerr("Creation of entity %d<%s> is not possible, as some resources are missing, see log for details.", eid,
+      getTemplateName(templ));
     return false;
   }
   return true;
@@ -1488,6 +1500,8 @@ bool EntityManager::createQueuedEntitiesOOL()
             if (firstLoading) // Otherwise it won't be destroyed until end of loading preceding entities
               ce.clear();
           }
+          else if (entDescs[idx].archetype == INVALID_ARCHETYPE) // I.e. not re-creating
+            destroyEntityImmediate(eid);                         // Otherwise it would stuck in loading state
         }
         DAECS_EXT_ASSERTF(entDescs.isCurrentlyCreating(eid.index()), "%d", eid);
         entDescs.decreaseCreating(eid.index());
@@ -1680,18 +1694,11 @@ const char *EntityManager::getEntityFutureTemplateName(EntityId eid) const
 }
 
 bool Template::isSingleton() const { return isSingletonDB(g_entity_mgr->getTemplateDB()); }
-const ChildComponent &Template::getComponent(const HashedConstString &hash_name) const
-{
-  return getComponent(hash_name, g_entity_mgr->getTemplateDB());
-}
-bool Template::hasComponent(const HashedConstString &hash_name) const
-{
-  return hasComponent(hash_name, g_entity_mgr->getTemplateDB());
-}
+
 
 extern const uint32_t MAX_RESERVED_EID_IDX = MAX_RESERVED_EID_IDX_CONST; // To consider: unsatisfied/weak link time dep in order be
                                                                          // able configure it per game?
-};                                                                       // namespace ecs
+}; // namespace ecs
 
 using namespace ecs;
 #define ECS_DECL_CORE_EVENT ECS_REGISTER_EVENT

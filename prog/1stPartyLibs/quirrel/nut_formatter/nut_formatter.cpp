@@ -657,7 +657,7 @@ struct Formatter
         if (i >= int(tokens.size()) - 2)
           break;
 
-        if (tokens[i].eq("{") && tokens[i + 1].newLines && (tokens[i - 1].eq(")") || tokens[i - 1].eq("else")))
+        if (tokens[i].eq("{") && tokens[i + 1].newLines && i > 0 && (tokens[i - 1].eq(")") || tokens[i - 1].eq("else")))
         {
           int closingBraket = findPairBracket(i);
           if (closingBraket > i && !tokens[i].newLines)

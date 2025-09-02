@@ -4,7 +4,7 @@ require math.base
 require DagorMath
 require MotionMatching
 require AnimV20
-require danetlibs/motion_matching/es/mm_events
+require danetlibs.renderer.includes.pufd_events
 
 
 [es(on_event=AnimationDataBaseAssigned)]
@@ -48,11 +48,11 @@ def mm_trajectory_init_orientation(evt : Event;
                                    var mm_trajectory__currPosition : float3&;
                                    var mm_trajectory__currRotation : float4&)
   var tm : float3x4
-  animchar |> animchar_get_tm(tm);
-  mm_trajectory__currPosition = tm[3];
+  animchar |> animchar_get_tm(tm)
+  mm_trajectory__currPosition = tm[3]
   mm_trajectory__currRotation = float4(DagorMath::quat(tm))
 
-[es(before=mm_trajectory_track_history, REQUIRE_NOT=mm_trajectory__customUpdate)]
+[es(after=animchar_es, before=mm_trajectory_track_history, REQUIRE_NOT=mm_trajectory__customUpdate)]
 def mm_trajectory_update(info : ParallelUpdateFrameDelayed;
                          animchar : AnimcharBaseComponent;
                          var mm_trajectory__prevPosition : float3&;
@@ -66,8 +66,8 @@ def mm_trajectory_update(info : ParallelUpdateFrameDelayed;
   mm_trajectory__prevPosition = mm_trajectory__currPosition
   mm_trajectory__prevRotation = mm_trajectory__currRotation
   var tm : float3x4
-  animchar |> animchar_get_tm(tm);
-  mm_trajectory__currPosition = tm[3];
+  animchar |> animchar_get_tm(tm)
+  mm_trajectory__currPosition = tm[3]
   mm_trajectory__currRotation = float4(DagorMath::quat(tm))
   let currVelocity = (mm_trajectory__currPosition - mm_trajectory__prevPosition) / (info.dt + 0.00001f)
   mm_trajectory__linearVelocity = approach(mm_trajectory__linearVelocity, currVelocity, info.dt, mm_trajectory__linearVelocityViscosity)
@@ -154,34 +154,28 @@ def predict_future_trajectory(predict_time : float;
                               wishLinearVelocity, wishAngularVelocity : float3;
                               wishRotation : float4 const?;
                               linearVelocityViscosity, angularVelocityViscosity : float;
-                              rotateLinearVelocity : bool;
                               var out_world_pos : float3&;
                               var out_world_rot : quat&)
-  // Angular velocity: w(t) = approach(w0, w_wish, t, w_visc) = w_wish + (w0 - w_wish) * exp(-t / w_visc)
-  // Rotation: r(t) = r0 + integral w(t) dt = r0 + w_wish * t + (w0 - w_wish) * w_visc * (1 - exp(-t / w_visc))
-  var rotAngle = wishAngularVelocity.y * predict_time
-  if angularVelocityViscosity > 1e-5
-    rotAngle += (angularVelocity.y - wishAngularVelocity.y) * angularVelocityViscosity * (1f - exp(-predict_time / angularVelocityViscosity))
   if wishRotation != null
-    let halfAngleCos = clamp(quat_mul(*wishRotation, quat_conjugate(currRotation)).w, -1f, 1f)
-    let maxRotAngle = 2f * acos(abs(halfAngleCos))
-    rotAngle = clamp(rotAngle, -maxRotAngle, maxRotAngle)
-  let deltaRot = quat(float3(0, 1, 0), rotAngle)
-  out_world_rot = deltaRot * quat(currRotation)
+    var worldRotation = currRotation
+    var angVelocity = angularVelocity
+    simple_spring_damper_exact_q(worldRotation, angVelocity, *wishRotation, angularVelocityViscosity, predict_time)
+    out_world_rot = quat(worldRotation)
+  else
+    // Angular velocity: w(t) = approach(w0, w_wish, t, w_visc) = w_wish + (w0 - w_wish) * exp(-t / w_visc)
+    // Rotation: r(t) = r0 + integral w(t) dt = r0 + w_wish * t + (w0 - w_wish) * w_visc * (1 - exp(-t / w_visc))
+    var rotAngle = wishAngularVelocity.y * predict_time
+    if angularVelocityViscosity > 1e-5
+      rotAngle += (angularVelocity.y - wishAngularVelocity.y) * angularVelocityViscosity * (1f - exp(-predict_time / angularVelocityViscosity))
+    let deltaRot = quat(float3(0, 1, 0), rotAngle)
+    out_world_rot = deltaRot * quat(currRotation)
 
   // Velocity: v(t) = approach(v0, v_wish, t, v_visc) = v_wish + (v0 - v_wish) * exp(-t / v_visc)
   // Position: x(t) = x0 + integral v(t) dt = x0 + v_wish * t + (v0 - v_wish) * v_visc * (1 - exp(-t / v_visc))
   var deltaPos = wishLinearVelocity * predict_time
   if linearVelocityViscosity > 1e-5
     deltaPos += (linearVelocity - wishLinearVelocity) * linearVelocityViscosity * (1f - exp(-predict_time / linearVelocityViscosity))
-  if rotateLinearVelocity && abs(rotAngle) > 1e-5
-    // approximate with circle
-    let r = length(deltaPos) / rotAngle // r = v_average / w_average
-    let tangent = normalize(linearVelocity)
-    let chordLen = 2f * r * sin(rotAngle * 0.5f)
-    let chord = quat(float3(0, 1, 0), rotAngle * 0.5f) * tangent * chordLen
-    deltaPos = chord
-  out_world_pos = currPosition + deltaPos;
+  out_world_pos = currPosition + deltaPos
 
 [es(before=mm_update_goal_features_es)]
 def mm_trajectory_prediction(info : ParallelUpdateFrameDelayed;
@@ -202,8 +196,7 @@ def mm_trajectory_prediction(info : ParallelUpdateFrameDelayed;
                              var mm_trajectory__featureDirections : Point3List;
                              mm_trajectory__wishLinearVelocity : float3 const?;
                              mm_trajectory__wishAngularVelocity : float3 const?;
-                             mm_trajectory__wishRotation : float4 const?;
-                             mm_trajectory__rotateLinearVelocity : bool = true)
+                             mm_trajectory__wishRotation : float4 const?)
   assume dataBase = motion_matching__controller.dataBase
   if dataBase == null
     return
@@ -222,7 +215,7 @@ def mm_trajectory_prediction(info : ParallelUpdateFrameDelayed;
         mm_trajectory__wishLinearVelocity ?? mm_trajectory__linearVelocity,
         mm_trajectory__wishAngularVelocity ?? mm_trajectory__angularVelocity, mm_trajectory__wishRotation,
         mm_trajectory__linearVelocityViscosity, mm_trajectory__angularVelocityViscosity,
-        mm_trajectory__rotateLinearVelocity, worldPos, worldRot)
+        worldPos, worldRot)
     let localPos = worldPos - motion_matching__controller.rootPosition
     mm_trajectory__featurePositions[i] = invRotation * localPos
     mm_trajectory__featureDirections[i] = invRotation * worldRot * MotionMatching::FORWARD_DIRECTION.xyz

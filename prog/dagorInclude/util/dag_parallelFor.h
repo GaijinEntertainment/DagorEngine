@@ -37,6 +37,6 @@ namespace threadpool
 KRNLIMP void parallel_for(uint32_t begin, uint32_t end, uint32_t quant,
   eastl::fixed_function<sizeof(void *) * 2, void(uint32_t tbegin, uint32_t tend, uint32_t thread_id)> cb, uint32_t add_jobs_count = 0,
   JobPriority prio = PRIO_HIGH, bool wake = true, uint32_t dapDescId = 0); // wide load expects high priority
-};                                                                         // namespace threadpool
+}; // namespace threadpool
 
 #include <supp/dag_undef_KRNLIMP.h>

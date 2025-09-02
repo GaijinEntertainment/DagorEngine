@@ -15,6 +15,7 @@
 #include <de3_colorRangeService.h>
 #include <de3_genObjUtil.h>
 #include <de3_splineGenSrv.h>
+#include <de3_entityUserData.h>
 #include <EditorCore/ec_interface.h>
 #include <ioSys/dag_dataBlock.h>
 #include <ioSys/dag_memIo.h>
@@ -22,8 +23,9 @@
 #include <util/dag_simpleString.h>
 #include <util/dag_hash.h>
 #include <debug/dag_debug.h>
-#include <math/random/dag_random.h>
 #include <generic/dag_relocatableFixedVector.h>
+
+using namespace objgenerator; // prng
 
 static int compositEntityClassId = -1;
 
@@ -33,6 +35,8 @@ typedef MultiEntityPool<CompositEntity, CompositEntityPool> MultiCompositEntityP
 typedef VirtualMpEntity<MultiCompositEntityPool> VirtualCompositEntity;
 
 static FastNameMapEx labelId, refAssetNames;
+
+static bool ignoreParentSeeds = false;
 
 static int getAssetNid(const char *nm)
 {
@@ -107,9 +111,9 @@ public:
     tm.identity();
   }
 
-  virtual void setTm(const TMatrix &_tm);
-  virtual void getTm(TMatrix &_tm) const { _tm = tm; }
-  virtual void destroy()
+  void setTm(const TMatrix &_tm) override;
+  void getTm(TMatrix &_tm) const override { _tm = tm; }
+  void destroy() override
   {
     pool->delEntity(this);
     instSeed = 0;
@@ -117,11 +121,11 @@ public:
     autoRndSeed = true;
     tm.identity();
   }
-  virtual void setSubtype(int t);
-  virtual void setEditLayerIdx(int t);
+  void setSubtype(int t) override;
+  void setEditLayerIdx(int t) override;
   void setGizmoTranformMode(bool enabled) override;
 
-  virtual void *queryInterfacePtr(unsigned huid)
+  void *queryInterfacePtr(unsigned huid) override
   {
     RETURN_INTERFACE(huid, IRandomSeedHolder);
     RETURN_INTERFACE(huid, ICompositObj);
@@ -132,32 +136,38 @@ public:
   }
 
   // ICompositObj interface
-  virtual int getCompositSubEntityCount();
-  virtual IObjEntity *getCompositSubEntity(int idx);
-  virtual const ICompositObj::Props &getCompositSubEntityProps(int idx);
-  virtual int getCompositSubEntityIdxByLabel(const char *label);
+  int getCompositSubEntityCount() override;
+  IObjEntity *getCompositSubEntity(int idx) override;
+  const ICompositObj::Props &getCompositSubEntityProps(int idx) override;
+  int getCompositSubEntityIdxByLabel(const char *label) override;
   void setCompositPlaceTypeOverride(int placeType) override;
   int getCompositPlaceTypeOverride() override { return placeTypeOverride; }
 
   // IRandomSeedHolder interface
-  virtual void setSeed(int new_seed);
-  virtual int getSeed() { return rndSeed; }
-  virtual void setPerInstanceSeed(int seed);
-  virtual int getPerInstanceSeed() { return instSeed; }
+  void setSeed(int new_seed) override;
+  int getSeed() override { return rndSeed; }
+  void setPerInstanceSeed(int seed) override;
+  int getPerInstanceSeed() override { return instSeed; }
 
   // IColor interface
-  virtual void setColor(unsigned int in_color);
-  virtual unsigned int getColor() { return 0x00000000; }
+  void setColor(unsigned int in_color) override;
+  unsigned int getColor() override { return 0x00000000; }
 
   // IDataBlockIdHolder
-  virtual void setDataBlockId(unsigned id) override { dataBlockId = id; }
-  virtual unsigned getDataBlockId() override { return dataBlockId; }
+  void setDataBlockId(unsigned id) override { dataBlockId = id; }
+  unsigned getDataBlockId() override { return dataBlockId; }
 
-  virtual BBox3 getBbox() const;
-  virtual BSphere3 getBsph() const;
+  BBox3 getBbox() const override;
+  BSphere3 getBsph() const override;
+
+  static inline CompositEntity *castFrom(IObjEntity *e)
+  {
+    if (e && e->getAssetTypeId() == compositEntityClassId && e->queryInterface<ICompositObj>())
+      return static_cast<CompositEntity *>(e)->getPool() ? static_cast<CompositEntity *>(e) : nullptr;
+    return nullptr;
+  }
 
 public:
-  static const int STEP = 512;
   TMatrix tm;
   int entIdx : 30;
   unsigned autoRndSeed : 1, gizmoEnabled : 1;
@@ -173,34 +183,41 @@ public:
 
 class CompositEntityPool : public EntityPool<CompositEntity>, public IDagorAssetChangeNotify
 {
-  struct HierIter // iterate component index 0..comp.size() and get proper parent matrix
+  template <typename ParentT, bool LOGS = false>
+  struct HierIterBase // iterate component index 0..comp.size() and get proper parent matrix
   {
     dag::RelocatableFixedVector<int, 8, true, TmpmemAlloc, uint32_t, false> bi;
-    dag::RelocatableFixedVector<TMatrix, 8, true, TmpmemAlloc, uint32_t, false> tm;
+    dag::RelocatableFixedVector<ParentT, 8, true, TmpmemAlloc, uint32_t, false> pp;
     const int *bIdx, *eIdx, *bIdxEnd;
 
-    HierIter(dag::ConstSpan<int> begin_ind, dag::ConstSpan<int> end_ind) :
+    HierIterBase(dag::ConstSpan<int> begin_ind, dag::ConstSpan<int> end_ind) :
       bIdx(begin_ind.data()), eIdx(end_ind.data()), bIdxEnd(bIdx + begin_ind.size())
     {
       G_ASSERTF(begin_ind.size() == end_ind.size(), "begin_ind.size=%d end_ind.size=%d", begin_ind.size(), end_ind.size());
     }
-    void iterate(int i, const TMatrix &stm)
+    void iterate(int i, const ParentT &new_parent)
     {
       while (!bi.empty() && i == bi.back())
       {
         bi.pop_back();
-        tm.pop_back();
+        pp.pop_back();
       }
       if (bIdx < bIdxEnd && i == *bIdx)
       {
         bi.push_back(*eIdx);
-        tm.push_back(stm);
+        pp.push_back(new_parent);
         bIdx++;
         eIdx++;
       }
-      // DAEDITOR3.conNote("%d: block=%d:%d (depth %d) topPos=%@", i, *(bIdx-1), *(eIdx-1), bi.size(), getTm().getcol(3));
+      if (LOGS)
+        debug("%d: block=%d:%d (depth %d) parent=%@", i, *(bIdx - 1), *(eIdx - 1), bi.size(), getParent());
     }
-    const TMatrix &getTm() const { return tm.back(); }
+    const ParentT &getParent() const { return pp.back(); }
+  };
+  struct HierIter : public HierIterBase<TMatrix>
+  {
+    HierIter(dag::ConstSpan<int> begin_ind, dag::ConstSpan<int> end_ind) : HierIterBase<TMatrix>(begin_ind, end_ind) {}
+    const TMatrix &getTm() const { return HierIterBase<TMatrix>::getParent(); }
   };
 
 public:
@@ -232,7 +249,7 @@ public:
     G_STATIC_ASSERT(IDataBlockIdHolder::invalid_id == 0);
     unsigned nextDataBlockId = 1;
     defPlaceTypeOverride = blk.getInt("placeTypeOverride", -1);
-    loadAssetData(blk, nextDataBlockId, TMatrix::IDENT, false, false);
+    loadAssetData(blk, nextDataBlockId, TMatrix::IDENT, false, ignoreParentSeeds);
     /*
     DAEDITOR3.conNote("beginInd.size=%d endInd.size=%d comp.size=%d", beginInd.size(), endInd.size(), comp.size());
     for (int i = 0; i < beginInd.size(); i ++)
@@ -321,7 +338,7 @@ public:
     int realEntCnt = comp.size() - emptyComponents;
     if (realEntCnt <= 0)
       return;
-    e->entIdx = ePool.addEntities(realEntCnt, 128);
+    e->entIdx = ePool.addEntities(realEntCnt);
 
     int seed = 0, pos_seed = (!forceInstSeed0 && e->instSeed) ? e->instSeed : mem_hash_fnv1((const char *)&e->tm.m[3][0], 12);
     int place_type_override = -1;
@@ -417,7 +434,7 @@ public:
       for (int i = 0; i < realEntCnt; i++)
         if (ePool.ent[e->entIdx + i])
           ePool.ent[e->entIdx + i]->destroy();
-      ePool.delEntities(e->entIdx);
+      ePool.delEntities(e->entIdx, realEntCnt);
     }
   }
 
@@ -689,7 +706,7 @@ public:
   IObjEntity *getVirtualEnt() { return &virtualEntity; }
 
   // IDagorAssetChangeNotify interface
-  virtual void onAssetRemoved(int asset_name_id, int asset_type)
+  void onAssetRemoved(int asset_name_id, int asset_type) override
   {
     // release all derivative entities
     if (comp.size())
@@ -710,7 +727,7 @@ public:
 
     EDITORCORE->invalidateViewportCache();
   }
-  virtual void onAssetChanged(const DagorAsset &asset, int asset_name_id, int asset_type)
+  void onAssetChanged(const DagorAsset &asset, int asset_name_id, int asset_type) override
   {
     onAssetRemoved(asset_name_id, asset_type);
 
@@ -755,6 +772,46 @@ public:
 
   bool getQuantizeTm() const { return quantizeTm; }
 
+  void enumGameObjs(int ent_idx, IObjEntity *parent, int gameobj_atype)
+  {
+    int realEntCnt = comp.size() - emptyComponents;
+    if (realEntCnt <= 0)
+      return;
+
+    HierIterBase<IObjEntity *> iter(beginInd, endInd);
+    for (int i = 0, k = 0, cnt = comp.size(); i < cnt; i++)
+    {
+      iter.iterate(i, parent);
+      parent = iter.getParent();
+
+      if (!comp[i].empty())
+      {
+        if (IObjEntity *e = ePool.ent[ent_idx + k])
+        {
+          String e_name(e->getObjAssetName());
+          if (e->getAssetTypeId() == gameobj_atype)
+          {
+            auto *ud = e->queryInterface<IObjEntityUserDataHolder>();
+            if (parent && ud && ud->canBeAttached())
+            {
+              TMatrix ptm, ctm;
+              parent->getTm(ptm);
+              e->getTm(ctm);
+              TMatrix tm = inverse(ptm) * ctm;
+              // debug("%p(%s) <- [%d]%p(%s) localTr=%@", parent, parent->getObjAssetName(), k, e, e_name, tm);
+              ud->attachTo(parent, tm);
+            }
+            if (ud && ud->canBeParentForAttach())
+              parent = e;
+          }
+          if (CompositEntity *ce = CompositEntity::castFrom(e))
+            ce->getPool()->enumGameObjs(ce->entIdx, parent, gameobj_atype);
+        }
+        k++;
+      }
+    }
+  }
+
 protected:
   struct ObjCoordData
   {
@@ -788,7 +845,7 @@ protected:
     TMatrix &ctm() { return reinterpret_cast<TMatrix &>(data.tm); }
     ObjCoordData &cel() { return reinterpret_cast<ObjCoordData &>(data.cel); }
 
-    Component() : defColorIdx(0x400000), type(0), labelId(-1), realIdx(-1)
+    Component() : defColorIdx(0x400000), type(0), setInstSeed0(0), labelId(-1), realIdx(-1)
     {
       memset(&p, 0, sizeof(p));
       memset(&data, 0, sizeof(data));
@@ -798,11 +855,11 @@ protected:
     {
       if (entList.size() == 1)
       {
-        _rnd(rnd_seed);
+        rnd(rnd_seed);
         return entList[0];
       }
 
-      float w = _frnd(rnd_seed);
+      float w = frnd(rnd_seed);
       for (int i = 0; i < entList.size(); ++i)
       {
         w -= entList[i].weight;
@@ -832,7 +889,7 @@ protected:
   public:
     QuantedEntitiesPool() : ent(midmem), entUuIdx(midmem) {}
 
-    int addEntities(int quant, int step = 128)
+    int addEntities(int quant)
     {
       if (!entUuIdx.size())
         return append_items(ent, quant);
@@ -843,9 +900,10 @@ protected:
         return idx;
       }
     }
-    void delEntities(int idx)
+    void delEntities(int idx, int quant)
     {
-      G_ASSERT(idx >= 0 && idx < ent.size());
+      G_ASSERT(idx >= 0 && idx + quant <= ent.size());
+      mem_set_0(make_span(ent.data() + idx, quant));
       entUuIdx.push_back(idx);
     }
 
@@ -879,6 +937,8 @@ protected:
   int assetNameId;
   int defPlaceTypeOverride = -1;
   unsigned generated : 1, forceInstSeed0 : 1, quantizeTm : 1;
+  SmallTab<bool, TmpmemAlloc> entIsReferenced;
+  friend class CompositEntityManagementService;
 
   enum
   {
@@ -887,7 +947,7 @@ protected:
   };
 
 protected:
-  __forceinline real getRandom(const Point2 &r, int &rnd_seed) { return r.y ? r.x + (_frnd(rnd_seed) * 2 - 1) * r.y : r.x; }
+  __forceinline real getRandom(const Point2 &r, int &rnd_seed) { return r.y ? r.x + (frnd(rnd_seed) * 2 - 1) * r.y : r.x; }
 
   inline void getTm(TMatrix &tm, const ObjCoordData &gen, int rnd_seed)
   {
@@ -1021,10 +1081,15 @@ protected:
           wt = 1;
         for (int j = 0; j < c.entList.size(); j++)
           c.entList[j].weight /= wt;
-        c.setInstSeed0 = b.getBool("ignoreParentInstSeed", set_perinst_seed0);
       }
       else
         clear_and_shrink(c.entList);
+
+      if (has_ent || ignoreParentSeeds)
+      {
+        c.setInstSeed0 = b.getBool("ignoreParentInstSeed", set_perinst_seed0);
+        c.setInstSeed0 = !b.getBool("useParentInstSeed", !c.setInstSeed0);
+      }
 
       if (c.entList.size() > 1)
         need_generate = generated = true;
@@ -1122,8 +1187,10 @@ protected:
         comp.push_back(c);
       }
 
+      // If parent seeds are ignored by default (WT method), ignoring it should be recursive
+      // It could be recursive in general, but it would break existing assets (in Enlisted, for example)
       if (b.blockCount())
-        loadAssetData(b, nextDataBlockId, sztm, need_generate, set_perinst_seed0);
+        loadAssetData(b, nextDataBlockId, sztm, need_generate, ignoreParentSeeds ? c.setInstSeed0 : set_perinst_seed0);
       if (comp.size() == prev_comp + emptyComponents - prev_empty)
       {
         emptyComponents -= comp.size() - prev_comp;
@@ -1205,8 +1272,8 @@ void CompositEntity::setTm(const TMatrix &_tm)
   if (autoRndSeed)
     rndSeed = *(int *)&tm.m[3][0] + *(int *)&tm.m[3][1] + *(int *)&tm.m[3][2];
 
-#define QUANTIZE_R(V) (V) = floorf((V)*256.0f) / 256.0f
-#define QUANTIZE_P(V) (V) = floorf((V)*32.0f) / 32.0f
+#define QUANTIZE_R(V) (V) = floorf((V) * 256.0f) / 256.0f
+#define QUANTIZE_P(V) (V) = floorf((V) * 32.0f) / 32.0f
   if (pool->getPools()[poolIdx]->getQuantizeTm())
   {
     QUANTIZE_R(tm[0][0]);
@@ -1275,15 +1342,15 @@ public:
   CompositEntityManagementService() { compositEntityClassId = IDaEditor3Engine::get().getAssetTypeId("composit"); }
 
   // IEditorService interface
-  virtual const char *getServiceName() const { return "_compEntMgr"; }
-  virtual const char *getServiceFriendlyName() const { return NULL; }
+  const char *getServiceName() const override { return "_compEntMgr"; }
+  const char *getServiceFriendlyName() const override { return NULL; }
 
-  virtual void setServiceVisible(bool /*vis*/) {}
-  virtual bool getServiceVisible() const { return true; }
+  void setServiceVisible(bool /*vis*/) override {}
+  bool getServiceVisible() const override { return true; }
 
-  virtual void actService(float dt) {}
-  virtual void beforeRenderService() {}
-  virtual void renderService()
+  void actService(float dt) override {}
+  void beforeRenderService() override {}
+  void renderService() override
   {
     if (!IObjEntityFilter::getShowInvalidAsset())
       return;
@@ -1294,10 +1361,10 @@ public:
     for (int i = 0; i < p.size(); i++)
       p[i]->renderInvalidEntities(subtype_mask);
   }
-  virtual void renderTransService() {}
+  void renderTransService() override {}
 
-  virtual void onBeforeReset3dDevice() {}
-  virtual bool catchEvent(unsigned event_huid, void *userData)
+  void onBeforeReset3dDevice() override {}
+  bool catchEvent(unsigned event_huid, void *userData) override
   {
     if (event_huid == HUID_DumpEntityStat)
     {
@@ -1308,22 +1375,24 @@ public:
       for (CompositEntityPool *p : cPool.getPools())
         p->recalcPoolBbox();
     }
+    else if (event_huid == _MAKE4C('EnGO'))
+      enumerateGameObjHierarchy();
     return false;
   }
 
-  virtual void *queryInterfacePtr(unsigned huid)
+  void *queryInterfacePtr(unsigned huid) override
   {
     RETURN_INTERFACE(huid, IObjEntityMgr);
     return NULL;
   }
 
   // IObjEntityMgr interface
-  virtual bool canSupportEntityClass(int entity_class) const
+  bool canSupportEntityClass(int entity_class) const override
   {
     return compositEntityClassId >= 0 && compositEntityClassId == entity_class;
   }
 
-  virtual IObjEntity *createEntity(const DagorAsset &asset, bool virtual_ent)
+  IObjEntity *createEntity(const DagorAsset &asset, bool virtual_ent) override
   {
     CircularDependenceChecker chk;
 
@@ -1351,7 +1420,7 @@ public:
     return ent;
   }
 
-  virtual IObjEntity *cloneEntity(IObjEntity *origin)
+  IObjEntity *cloneEntity(IObjEntity *origin) override
   {
     CompositEntity *o = reinterpret_cast<CompositEntity *>(origin);
     if (!cPool.canAddEntity(o->poolIdx))
@@ -1403,12 +1472,56 @@ protected:
     static int depthCnt;
     static Tab<const DagorAsset *> assets;
   };
+
+  void enumerateGameObjHierarchy()
+  {
+    int gameobj_atype = IDaEditor3Engine::get().getAssetTypeId("gameObj");
+    if (gameobj_atype < 0)
+      return;
+
+    for (auto *p : cPool.getPools())
+    {
+      p->entIsReferenced.resize(p->ent.size());
+      mem_set_0(p->entIsReferenced);
+    }
+
+    for (auto *p : cPool.getPools())
+      for (auto *e : p->ePool.ent)
+        if (CompositEntity *ce = CompositEntity::castFrom(e))
+          if (!ce->getPool()->entIsReferenced[ce->idx])
+            mark_comp_referenced(ce);
+
+    for (auto *p : cPool.getPools())
+      for (auto *ce : p->ent)
+        if (ce)
+          if (!ce->getPool()->entIsReferenced[ce->idx])
+            enumerateGameObjs(ce, gameobj_atype);
+
+    for (auto *p : cPool.getPools())
+      clear_and_shrink(p->entIsReferenced);
+  }
+  void enumerateGameObjs(CompositEntity *e, int gameobj_atype)
+  {
+    // debug("enum %s:%d {%d}", e->getObjAssetName(), e->idx, e->entIdx);
+    e->getPool()->enumGameObjs(e->entIdx, nullptr, gameobj_atype);
+  }
+
+  static void mark_comp_referenced(IObjEntity *e)
+  {
+    if (CompositEntity *ce = CompositEntity::castFrom(e))
+    {
+      // debug("ref(%s) idx=%d", ce->getObjAssetName(), ce->idx);
+      ce->getPool()->entIsReferenced[ce->idx] = true;
+      for (int j = 0, je = ce->getCompositSubEntityCount(); j < je; j++)
+        mark_comp_referenced(ce->getCompositSubEntity(j));
+    }
+  }
 };
 int CompositEntityManagementService::CircularDependenceChecker::depthCnt = 0;
 Tab<const DagorAsset *> CompositEntityManagementService::CircularDependenceChecker::assets(tmpmem);
 
 
-void init_composit_mgr_service()
+void init_composit_mgr_service(const DataBlock &app_blk)
 {
   if (!IDaEditor3Engine::get().checkVersion())
   {
@@ -1417,4 +1530,5 @@ void init_composit_mgr_service()
   }
 
   IDaEditor3Engine::get().registerService(new (inimem) CompositEntityManagementService);
+  ignoreParentSeeds = app_blk.getBlockByNameEx("projectDefaults")->getBlockByNameEx("riMgr")->getBool("ignoreParentSeeds", false);
 }

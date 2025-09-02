@@ -81,7 +81,7 @@ macro USE_GRASS_GENERATE(code)
         to.landColor_tv |= (from.grassType<<24)|(from.grassVariation<<29);
         to.land_normal = encode_float2_to_uint(from.landNormal.xz);//compress_normal_float(from.landNormal.x)|(compress_normal_float(from.landNormal.z)<<8);
         to.position_y = from.position.y;
-        to.opacity = from.opacity;
+        to.opacity_porosity = (uint(floor(saturate(from.opacity) * 65535)) << 16) | uint(floor(saturate(from.porosity) * 65535));
         to.lodNo = (from.lodNo << 2) | (sign(from.landNormal.y) >= 0) << 1 | from.worldYOrientation;
         return to;
       }
@@ -106,7 +106,8 @@ macro USE_GRASS_GENERATE(code)
         to.landNormal.z = f16tof32(from.land_normal>>16);
         to.landNormal.y = sqrt(1-to.landNormal.x*to.landNormal.x - to.landNormal.z*to.landNormal.z);
         to.vAngle = f16tof32(from.vAngle_height);
-        to.opacity = from.opacity;
+        to.opacity = float(from.opacity_porosity >> 16) * (1.f / 65535.f);
+        to.porosity = float(from.opacity_porosity & 0x0000FFFF) * (1.f / 65535.f);
         to.lodNo = from.lodNo >> 2;
         int landNormalSign = (from.lodNo >> 1) & 1 ? 1 : -1;
         to.landNormal.y *= landNormalSign;

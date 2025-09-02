@@ -374,6 +374,7 @@ return ecsTypes.__merge({
   clear_vm_entity_systems = @() null
   start_es_loading = @() null
   end_es_loading = @() null
+  has_tag = @(_tag) false
   recreateEntityWithTemplates = function(params){assert(type(params)=="table" && params?.eid != null)}
   obsolete_dbg_get_comp_val = function(eid, component, optional_val=null) {
     assert(type(eid)=="integer" && type(component) == "string")

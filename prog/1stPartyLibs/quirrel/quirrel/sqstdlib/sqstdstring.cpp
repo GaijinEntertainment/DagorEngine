@@ -324,60 +324,47 @@ static SQInteger _regexp__typeof(HSQUIRRELVM v)
     return 1;
 }
 
-#define _DECL_REX_FUNC(name,nparams,pmask) {_SC(#name),_regexp_##name,nparams,pmask}
-static const SQRegFunction rexobj_funcs[]={
-    _DECL_REX_FUNC(constructor,2,_SC(".s")),
-    _DECL_REX_FUNC(search,-2,_SC("xsn")),
-    _DECL_REX_FUNC(match,2,_SC("xs")),
-    _DECL_REX_FUNC(capture,-2,_SC("xsn")),
-    _DECL_REX_FUNC(subexpcount,1,_SC("x")),
-    _DECL_REX_FUNC(_typeof,1,_SC("x")),
-    {NULL,(SQFUNCTION)0,0,NULL}
+static const SQRegFunctionFromStr rexobj_funcs[] = {
+    { _regexp_constructor, "constructor(pattern: string): instance" },
+    { _regexp_match, "instance.match(str: string): bool" },
+    { _regexp_search, "instance.search(str: string, [start: int]): table" },
+    { _regexp_capture, "instance.capture(str: string, [start: int]): array" },
+    { _regexp_subexpcount, "instance.subexpcount(): int" },
+    { _regexp__typeof, "instance._typeof(): string" },
+    { NULL, NULL }
 };
-#undef _DECL_REX_FUNC
 
-#define _DECL_FUNC(name,nparams,pmask) {_SC(#name),_string_##name,nparams,pmask}
-static const SQRegFunction stringlib_funcs[]={
-    _DECL_FUNC(format,-2,_SC(".s")),
-    _DECL_FUNC(printf,-2,_SC(".s")),
-    _DECL_FUNC(strip,2,_SC(".s")),
-    _DECL_FUNC(lstrip,2,_SC(".s")),
-    _DECL_FUNC(rstrip,2,_SC(".s")),
-    _DECL_FUNC(split_by_chars,-3,_SC(".ssb")),
-    _DECL_FUNC(escape,2,_SC(".s")),
-    _DECL_FUNC(startswith,3,_SC(".ss")),
-    _DECL_FUNC(endswith,3,_SC(".ss")),
-    {NULL,(SQFUNCTION)0,0,NULL}
+static const SQRegFunctionFromStr stringlib_funcs[] = {
+    { _string_format, "pure format(fmt: string, ...): string" },
+    { _string_printf, "printf(fmt: string, ...)" },
+    { _string_strip, "pure strip(str: string): string" },
+    { _string_lstrip, "pure lstrip(str: string): string" },
+    { _string_rstrip, "pure rstrip(str: string): string" },
+    { _string_split_by_chars, "split_by_chars(str: string, separators: string, [skip_empty: bool]): array" },
+    { _string_escape, "pure escape(str: string): string" },
+    { _string_startswith, "pure startswith(str: string, prefix: string): bool" },
+    { _string_endswith, "pure endswith(str: string, suffix: string): bool" },
+    { NULL, NULL },
 };
 #undef _DECL_FUNC
 
 
 SQRESULT sqstd_register_stringlib(HSQUIRRELVM v)
 {
-    sq_pushstring(v,_SC("regexp"),-1);
-    sq_newclass(v,SQFalse);
+    sq_pushstring(v, _SC("regexp"), -1);
+    sq_newclass(v, SQFalse);
     rex_typetag = (SQUserPointer)rexobj_funcs;
     sq_settypetag(v, -1, rex_typetag);
     SQInteger i = 0;
-    while(rexobj_funcs[i].name != 0) {
-        const SQRegFunction &f = rexobj_funcs[i];
-        sq_pushstring(v,f.name,-1);
-        sq_newclosure(v,f.f,0);
-        sq_setparamscheck(v,f.nparamscheck,f.typemask);
-        sq_setnativeclosurename(v,-1,f.name);
-        sq_newslot(v,-3,SQFalse);
+    while (rexobj_funcs[i].f) {
+        sq_new_closure_slot_from_decl_string(v, rexobj_funcs[i].f, 0, rexobj_funcs[i].declstring, rexobj_funcs[i].docstring);
         i++;
     }
-    sq_newslot(v,-3,SQFalse);
+    sq_newslot(v, -3, SQFalse);
 
     i = 0;
-    while(stringlib_funcs[i].name!=0)
-    {
-        sq_pushstring(v,stringlib_funcs[i].name,-1);
-        sq_newclosure(v,stringlib_funcs[i].f,0);
-        sq_setparamscheck(v,stringlib_funcs[i].nparamscheck,stringlib_funcs[i].typemask);
-        sq_setnativeclosurename(v,-1,stringlib_funcs[i].name);
-        sq_newslot(v,-3,SQFalse);
+    while (stringlib_funcs[i].f) {
+        sq_new_closure_slot_from_decl_string(v, stringlib_funcs[i].f, 0, stringlib_funcs[i].declstring, stringlib_funcs[i].docstring);
         i++;
     }
     return SQ_OK;

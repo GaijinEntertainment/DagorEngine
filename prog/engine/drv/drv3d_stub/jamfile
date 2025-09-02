@@ -10,7 +10,7 @@ Sources =
   init_d3di.cpp
 ;
 
-CPPopt = -DD3DSTUBBED=1  -DINSIDE_DRIVER ;
+CPPopt = -DD3DSTUBBED  -DINSIDE_DRIVER ;
 if $(Platform) in windows xboxOne scarlett { CPPopt += -FId3d_config.h ; } else { CPPopt += -include $(Root)/$(Location)/d3d_config.h ; }
 
 AddIncludes =

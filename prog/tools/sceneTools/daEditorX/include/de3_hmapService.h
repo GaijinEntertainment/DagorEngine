@@ -48,6 +48,8 @@ struct Cell;
 struct LandClassDetailTextures;
 struct LandClassDetailInfo;
 
+enum class LMeshRenderingMode : int;
+
 class IHmapService
 {
 public:
@@ -85,8 +87,8 @@ public:
   virtual void initLodGridHm2(const DataBlock &blk) = 0;
   virtual void setupRenderHm2(float sx, float sy, float ax, float ay, Texture *htTexMain, TEXTUREID htTexIdMain, float mx0, float my0,
     float mw, float mh, Texture *htTexDet, TEXTUREID htTexIdDet, float dx0, float dy0, float dw, float dh) = 0;
-  virtual void renderHm2(const Point3 &vpos, bool infinite, bool render_hm = false) const = 0;
-  virtual void renderHm2VSM(const Point3 &vpos) const = 0;
+  virtual void renderHm2(LandMeshRenderer &r, const Point3 &vpos, bool infinite, bool render_hm = false) const = 0;
+  virtual void renderHm2VSM(LandMeshRenderer &r, const Point3 &vpos) const = 0;
 
   //! LandMesh manager support
   virtual LandMeshManager *createLandMeshManager(IGenLoad &crd) = 0;
@@ -148,11 +150,18 @@ public:
   virtual bool exportLoftMasks(const char *fn_mask, const char *fn_id, const char *fn_ht, const char *fn_dir, int tex_sz,
     const Point3 &w0, const Point3 &w1, GeomObject *g) = 0;
 
+  virtual void setDesiredHmapUpscale(int scale) = 0;
+  virtual int getDesiredHmapUpscale() const = 0;
+  virtual void setHmapUpscale(int scale) = 0;
+  virtual int getHmapUpscale() const = 0;
+  virtual void setHmapUpscaleAlgo(int algo) = 0;
+  virtual int getHmapUpscaleAlgo() const = 0;
+
   virtual void setGrassBlk(const DataBlock *grassBlk) = 0;
 
   virtual void prepare(LandMeshRenderer &r, LandMeshManager &p, const Point3 &center_pos, const BBox3 &box) = 0;
-  virtual int setGrassMaskRenderingMode() = 0;
-  virtual void restoreRenderingMode(int oldMode) = 0;
+  virtual LMeshRenderingMode setGrassMaskRenderingMode(LandMeshRenderer &r) = 0;
+  virtual void restoreRenderingMode(LandMeshRenderer &r, LMeshRenderingMode oldMode) = 0;
   virtual int setLod0SubDiv(int) = 0;
   virtual BBox3 getLMeshBBoxWithHMapWBBox(LandMeshManager &p) const = 0;
   virtual PhysMap *loadPhysMap(LandMeshManager *landMeshManager, IGenLoad &crd) = 0;

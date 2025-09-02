@@ -291,7 +291,7 @@ shader rendinst_baked_impostor
       float4 color;
 
       // PC and PS3 instancing.
-      color = get_random_color(worldLocalPos);
+      color = get_random_color(worldLocalPos, 0);
 
       //inputPos = input.pos.xyz;
       inputPos = 0;

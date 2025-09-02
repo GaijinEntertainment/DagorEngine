@@ -4,6 +4,7 @@ include "distanceToClouds2.dshl"
 include "clouds_density_height_lut.dshl"
 include "cloudsDensity.dshl"
 include "writeToTex.dshl"
+include "bc_compression_inc.dshl"
 
 
 float4 clouds_field_res;//.xy - xz&y of res, .zw - xz&y of target res
@@ -18,7 +19,8 @@ macro GEN_FIELD(code)
     clouds_alt_to_world@f2 = (clouds_thickness2*1000, clouds_start_altitude2*1000,0,0);
     clouds_field_res@f4 = (clouds_field_res.x, clouds_field_res.y, 1./clouds_field_res.x, 1./clouds_field_res.y);
     clouds_average_weight@f1 = (clouds_average_weight);
-    samples_count@f2 = (clouds_field_res.z/clouds_field_res.x + 0.5, clouds_field_res.w/clouds_field_res.y + 0.5,0, 0)
+    samples_count_xz@f1 = max(clouds_field_res.z/clouds_field_res.x + 0.5, 1);
+    samples_count_y@f1 = max(clouds_field_res.w/clouds_field_res.y + 0.5, 1);
   }
   hlsl(code) {
     float get_density(float3 tc)
@@ -26,11 +28,17 @@ macro GEN_FIELD(code)
       float3 worldPos = float3((tc.xy-0.5)*WEATHER_SIZE, tc.z*clouds_alt_to_world.x + clouds_alt_to_world.y).xzy;
       return sampleCloudDensityMath(worldPos, 0, tc.z);
     }
+
+    float encode_density(float result)
+    {
+      result *= 0.5; // encode
+      return result >= 0.5/255 ? ceil(result*255)/255.0 : 0;//zero should be zero
+    }
+
     float getFinalDensity(uint3 tid)
     {
       float result = 0;
-      uint samples_count_xz = max(1, floor(samples_count.x));
-      uint samples_count_y = max(1, floor(samples_count.y));
+
       BRANCH
       if (max(samples_count_xz, samples_count_y) >= 2)//that's for preserve of conservative assumption, that lowres clouds should still produce at least same (or worser) clouds occlusion (i.e. reducing quality won't increase advantage)
       {
@@ -51,12 +59,13 @@ macro GEN_FIELD(code)
           }
         }
         result = lerp(result, avg*1./samples_count, clouds_average_weight);
-      } else
+      }
+      else
+      {
         result = get_density((tid.xyz+0.5f)*clouds_field_res.zzw);
-      result*=0.5;//encode
+      }
 
-      float encodedResult = result >= 0.5/255 ? ceil(result*255)/255.0 : 0;//zero should be zero
-      return encodedResult;
+      return encode_density(result);
     }
   }
 endmacro
@@ -185,14 +194,19 @@ macro USE_GEN_CLOUD_FIELD(stage)
   USE_BC4_COMPRESSION(stage)
   GEN_FIELD(stage)
   hlsl(stage) {
+
+    void process_texel(uint x, uint y, uint3 srcId, inout bc4_type texels[16], inout bc4_type minV, inout bc4_type maxV)
+    {
+      bc4_type v = getFinalDensity(srcId + uint3(x,y,0));
+      texels[x+(y*4)] = v;
+      minV = min(minV, v);
+      maxV = max(maxV, v);
+    }
+
     void get_texels(uint3 tid, out bc4_type texels[16], inout bc4_type minV, inout bc4_type maxV)
     {
       uint3 srcId = uint3(tid.x<<2, tid.y<<2, tid.z);
-      #define GET_TEXEL(x, y)\
-      {\
-        bc4_type v = getFinalDensity(srcId + uint3(x,y,0));\
-        texels[x+(y*4)] = v; minV = min(minV, v);maxV = max(maxV, v);\
-      }
+      #define GET_TEXEL(x, y) process_texel(x, y, srcId, texels, minV, maxV)
 
       GET_TEXEL(0,0);GET_TEXEL(1,0);GET_TEXEL(2,0);GET_TEXEL(3,0);
       GET_TEXEL(0,1);GET_TEXEL(1,1);GET_TEXEL(2,1);GET_TEXEL(3,1);
@@ -202,7 +216,6 @@ macro USE_GEN_CLOUD_FIELD(stage)
   }
 endmacro
 
-include "bc_compression_inc.dshl"
 shader gen_cloud_field_cmpr
 {
   ENABLE_ASSERT(cs)

@@ -1,3 +1,2 @@
 include "../../../prog/daNetGame/shaders/_build/shaders_tools_exp.blk"
-"@override:outDumpName":t="../../tools/tools.exp"
 "@override:outMiniDumpName":t="../../tools/tools.exp"

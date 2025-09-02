@@ -4,11 +4,12 @@
 //
 #pragma once
 
-#if (_TARGET_PC | _TARGET_C1 | _TARGET_C2 | _TARGET_XBOX) && !_TARGET_SIMD_NEON
-#if _MSC_VER <= 1310
-#include <xmmintrin.h>
+#if _TARGET_SIMD_SSE
+#if defined(_MSC_VER) && !defined(__clang__)
+extern "C" void _mm_prefetch(char const *, int);
+#pragma intrinsic(_mm_prefetch)
 #else
-#include <intrin.h>
+#include <xmmintrin.h>
 #endif
 
 #if defined(__has_feature)
@@ -22,7 +23,9 @@
 #endif
 
 #if defined(__GNUC__)
-#if defined(__clang__)
+#if defined(__e2k__)
+#define HAVE_INTRISTIC_RDTSC 1
+#elif defined(__clang__)
 #define HAVE_INTRISTIC_RDTSC __has_builtin(__builtin_ia32_rdtsc)
 #elif defined(__GNUC__)
 #define HAVE_INTRISTIC_RDTSC (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 5))

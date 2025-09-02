@@ -1,8 +1,10 @@
 include "dynamic_trans_inc.dshl"
 include "semi_trans_inc.dshl"
+include "camera_in_camera.dshl"
 
 shader dynamic_semi_trans
 {
+  IMPORT_ON_TOP_CAMERA_IN_CAMERA(ps)
   ENABLE_ASSERT(ps)
   DYNAMIC_BLOCK_TRANS()
   static int num_bones = 0;
@@ -37,6 +39,7 @@ shader dynamic_semi_trans
   }
   NO_SKINNING_VS()
   USE_FLOAT_POS_PACKING()
+  USE_UNPACK_UNIT_VECTOR_VS()
   hlsl(vs) {
     VsOutput dynamic_semi_trans_vs(VsInput input)
     {
@@ -47,7 +50,7 @@ shader dynamic_semi_trans
       float3 worldDu;
       float3 worldDv;
       float3 worldNormal;
-      float3 localNormal = BGR_SWIZZLE(input.normal.rgb)*2-1;
+      float3 localNormal = unpack_unit_vector(input.normal.rgb);
 
       float3 localDu = float3(1,0,0), localDv = float3(1,0,0);
 
@@ -62,11 +65,13 @@ shader dynamic_semi_trans
         worldNormal,
         worldDu,
         worldDv);
-      float4 offsetData;
-      get_per_instance_data(offsetData, 1);
+
+      uint2 offsetCount = get_offset_count_additional_data(AAD_RAW_PLACING_COLOR);
+      float4 placingColor = get_additional_data(offsetCount, 0);
+
       output.pointToEye.xyz = -eyeToPoint;
       output.normal.xyz = normalize(worldNormal);
-      output.placingColor = offsetData.xyz;
+      output.placingColor = placingColor.xyz;
       return output;
     }
   }

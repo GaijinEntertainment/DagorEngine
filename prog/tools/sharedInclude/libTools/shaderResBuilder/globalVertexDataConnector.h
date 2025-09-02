@@ -16,10 +16,10 @@ public:
   class UpdateInfoInterface
   {
   public:
-    UpdateInfoInterface(){};
-    virtual void beginConnect(int total_count){};
-    virtual void update(int processed_count, int total_count){};
-    virtual void endConnect(int before_count, int after_count){};
+    UpdateInfoInterface() {}
+    virtual void beginConnect(int total_count) {}
+    virtual void update(int processed_count, int total_count) {}
+    virtual void endConnect(int before_count, int after_count) {}
   };
 
   GlobalVertexDataConnector() : meshes(tmpmem), vdataSrc(tmpmem), vdataDest(tmpmem), srcMat(tmpmem), srcCr(tmpmem) {}

@@ -3,6 +3,9 @@ include "gbuffer.dshl"
 include "viewVecVS.dshl"
 include "bvh.dshl"
 include "rtsm_sun_dir.dshl"
+include "blue_noise.dshl"
+include "bvh_common_includes.dshl"
+include "contact_shadows.dshl"
 
 float4x4 inv_proj_tm;
 
@@ -14,27 +17,17 @@ texture rtsm_value;
 texture rtsm_translucency;
 texture rtsm_denoised;
 
-texture scrambling_ranking_texture;
-texture sobol_texture;
-
 texture denoiser_view_z;
 
 texture rtsm_dynamic_lights;
 
-texture perlin_noise3d;
-
-int rtsm_frame_index;
-
 int rtsm_render_mode;
-interval rtsm_render_mode: hard < 1, denoised < 2, denoised_translucent;
+interval rtsm_render_mode: hard < 1, denoised < 2, denoised_translucent < 3, rr;
 
 float4 big_light_pos_rad_0;
 float4 big_light_pos_rad_1;
 float4 big_light_color_0;
 float4 big_light_color_1;
-
-define_macro_if_not_defined USE_EMISSION_DECODE_COLOR_MAP(code)
-endmacro
 
 int rtsm_has_nuke = 0;
 float4 nuke_pos_wave;
@@ -42,54 +35,137 @@ float4 nuke_pos_wave;
 int rtsm_is_half_precision = 0;
 interval rtsm_is_half_precision : no < 1, yes;
 
-shader rt_shadows
+int rtsm_quality = 0;
+interval rtsm_quality : full_res < 1, slow_fill < 2, fast_fill;
+
+int rtsm_add_far_screen_space_shadows = 0;
+interval rtsm_add_far_screen_space_shadows : no < 1, yes;
+
+float impostor_shadow_offset = -10;
+
+float foliage_shadow_radius_scale = 2;
+float foliage_offset_distance = 1;
+
+float rtsm_tree_max_distance = 1000;
+
+// Contact shadow stuff
+float4 globtm_no_ofs_psf_0;
+float4 globtm_no_ofs_psf_1;
+float4 globtm_no_ofs_psf_2;
+float4 globtm_no_ofs_psf_3;
+
+macro READ_NEIGHBORS(stage)
+  hlsl(stage) {
+    #define HAS_READ_NEIGHBORS 1
+
+    void read_neighbors(uint2 dtid, out uint samples, out float neighbourSamples[4], out uint missCount)
+    {
+      samples = 0;
+      missCount = 0;
+
+      [branch]
+      if (dtid.x > 0)
+        neighbourSamples[samples++] = texture2DAt(rtsm_value, dtid - uint2(1, 0));
+
+      [branch]
+      if (dtid.x < resolution.x - 1)
+        neighbourSamples[samples++] = texture2DAt(rtsm_value, dtid + uint2(1, 0));
+
+      [branch]
+      if (dtid.y > 0)
+        neighbourSamples[samples++] = texture2DAt(rtsm_value, dtid - uint2(0, 1));
+
+      [branch]
+      if (dtid.y < resolution.y - 1)
+        neighbourSamples[samples++] = texture2DAt(rtsm_value, dtid + uint2(0, 1));
+
+      [unroll(4)]
+      for (uint i = 0; i < samples; ++i)
+        if (neighbourSamples[i] == NRD_FP16_MAX)
+          ++missCount;
+    }
+  }
+endmacro
+
+hlsl {
+  uint PseudoRandom(uint2 screenPosition, uint frameNumber)
+  {
+    uint frameIndex = (frameNumber >> 1) % 32;
+    uint seed = screenPosition.x + screenPosition.y * 4096 + frameNumber * 8192;
+    seed = (seed ^ 61) ^ (seed >> 16);
+    seed = seed + (seed << 3);
+    seed = seed ^ (seed >> 4);
+    seed = seed * 0x27d4eb2d;
+    seed = seed ^ (seed >> 15);
+    return seed;
+  }
+}
+
+shader rt_shadows, rt_shadows_fill_high
 {
   if (compatibility_mode == compatibility_mode_on || !use_hw_raytracing) { dont_render; }
+  if (shader == rt_shadows && rtsm_quality != full_res && rtsm_render_mode != denoised) { dont_render; }
+
   ENABLE_ASSERT(cs)
 
   RTSM_SUN_DIR()
+
   (cs) {
     inv_proj_tm@f44 = inv_proj_tm;
     world_view_pos@f3 = world_view_pos;
     resolution@u2 = rt_shadow_resolutionI;
     inv_resolution@f2 = (1.0 / rt_shadow_resolution.x, 1.0 / rt_shadow_resolution.y);
-    frame_index@i1 = rtsm_frame_index;
-    scrambling_ranking_texture@tex = scrambling_ranking_texture hlsl { Texture2D< float3 > scrambling_ranking_texture@tex; };
-    sobol_texture@tex = sobol_texture hlsl { Texture2D< float4 > sobol_texture@tex; };
     viewZTexture@uav = denoiser_view_z hlsl { RWTexture2D<float> viewZTexture@uav; };
+    impostor_shadow_offset@f1 = impostor_shadow_offset;
+    foliage_shadow_radius_scale@f1 = foliage_shadow_radius_scale;
+    foliage_offset_distance@f1 = foliage_offset_distance;
+    tree_max_distance_sq@f1 = rtsm_tree_max_distance * rtsm_tree_max_distance;
+
+    // Contact shadow stuff
+    contact_shadow_len@f1 = contact_shadow_len;
+    projectionMatrix@f44 = { projtm_psf_0, projtm_psf_1, projtm_psf_2, projtm_psf_3 };
+    viewProjectionMatrixNoOfs@f44 = { globtm_no_ofs_psf_0, globtm_no_ofs_psf_1, globtm_no_ofs_psf_2, globtm_no_ofs_psf_3 };
 
     // Nuke
     has_nuke@i1 = rtsm_has_nuke;
     nuke_pos_wave@f4 = nuke_pos_wave;
   }
 
+  INIT_BVH_DISSOLVE(cs)
+  USE_BVH_DISSOLVE(cs)
+
   if (rtsm_render_mode == hard)
   {
     hlsl(cs) {
       #define TRACE_RAY_EXTRA_FLAGS RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH
-      #define BVH_TRANSLUCENCY_IS_DISSOLVE 1
     }
     (cs) {
       combined_shadows@uav = combined_shadows hlsl { RWTexture2D<float4> combined_shadows@uav; };
-      perlin_noise3d@smp3d = perlin_noise3d;
+    }
+  }
+  else if (rtsm_render_mode == rr)
+  {
+    hlsl(cs) {
+      #define TRACE_RAY_EXTRA_FLAGS RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH
+    }
+    (cs) {
+      rtsm_value@uav = rtsm_value hlsl { RWTexture2D<float> rtsm_value@uav; };
     }
   }
   else if (rtsm_render_mode == denoised)
   {
     hlsl (cs) {
       #define TRACE_RAY_EXTRA_FLAGS RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH
-      #define BVH_TRANSLUCENCY_IS_DISSOLVE 1
     }
     (cs) {
-      rtsm_value@uav = rtsm_value hlsl { RWTexture2D<float2> rtsm_value@uav; };
+      rtsm_value@uav = rtsm_value hlsl { RWTexture2D<float> rtsm_value@uav; };
       rtsm_denoised@uav = rtsm_denoised hlsl { RWTexture2D<float4> rtsm_denoised@uav; };
-      perlin_noise3d@smp3d = perlin_noise3d;
     }
   }
   else if (rtsm_render_mode == denoised_translucent)
   {
     (cs) {
-      rtsm_value@uav = rtsm_value hlsl { RWTexture2D<float2> rtsm_value@uav; };
+      rtsm_value@uav = rtsm_value hlsl { RWTexture2D<float> rtsm_value@uav; };
       rtsm_translucency@uav = rtsm_translucency hlsl { RWTexture2D<float4> rtsm_translucency@uav; };
       rtsm_denoised@uav = rtsm_denoised hlsl { RWTexture2D<float4> rtsm_denoised@uav; };
     }
@@ -98,21 +174,20 @@ shader rt_shadows
   hlsl(cs) {
     #define DISABLE_TOONSHADING 1
 
-    #if BVH_TRANSLUCENCY_IS_DISSOLVE
-      float get_dissolve_value_from_world_position(float3 world_pos)
-      {
-        return tex3Dlod(perlin_noise3d, float4(frac(world_pos * 10), 0)).x;
-      }
-    #endif
-
     #include <Include/NRDEncoding.hlsli>
     #include <Include/NRD.hlsli>
+    #include <interleavedGradientNoise.hlsl>
   }
 
-  USE_EMISSION_DECODE_COLOR_MAP(cs)
+  INIT_BLUE_NOISE(cs)
+  USE_BLUE_NOISE(cs)
+  USE_EMISSION_DECODE_COLOR_MAP_STUB(cs)
   USE_AND_INIT_VIEW_VEC_CS()
   INIT_ZNZFAR_STAGE(cs)
-  INIT_LOAD_DEPTH_GBUFFER_BASE(cs)
+  INIT_READ_DEPTH_GBUFFER_BASE(cs)
+  hlsl (cs) {
+    #define depth_gbuf_load depth_gbuf_read
+  }
   USE_LOAD_DEPTH_GBUFFER_BASE(cs)
   INIT_LOAD_GBUFFER_BASE(cs)
   INIT_LOAD_BVH_FLAGS_BASE(cs)
@@ -122,66 +197,34 @@ shader rt_shadows
   USE_BVH_FOR_SHADOW(cs)
 
   USE_CALC_GEOMETRY_NORMAL(cs)
+  USE_ADAPTIVE_RAY_OFFSET(cs)
 
-  INIT_BVH_WATER_FADE(cs)
-  USE_BVH_WATER_FADE(cs)
+  INIT_BVH_WATER_FADE_BASE(cs)
+  USE_BVH_WATER_FADE_BASE(cs)
+
+  if (shader == rt_shadows_fill_high && rtsm_render_mode == denoised)
+  {
+    READ_NEIGHBORS(cs)
+  }
 
   hlsl(cs)
   {
-    // Blue noise from NVDenoiser
-
-    uint ReverseBits4( uint x )
-    {
-      x = ( ( x & 0x5 ) << 1 ) | ( ( x & 0xA ) >> 1 );
-      x = ( ( x & 0x3 ) << 2 ) | ( ( x & 0xC ) >> 2 );
-
-      return x;
-    }
-
-    uint Bayer4x4ui( uint2 samplePos, uint frameIndex, const uint mode = 1 )
-    {
-      uint2 samplePosWrap = samplePos & 3;
-      uint a = 2068378560 * ( 1 - ( samplePosWrap.x >> 1 ) ) + 1500172770 * ( samplePosWrap.x >> 1 );
-      uint b = ( samplePosWrap.y + ( ( samplePosWrap.x & 1 ) << 2 ) ) << 2;
-
-      uint sampleOffset = mode == 1 ? ReverseBits4( frameIndex ) : frameIndex;
-
-      return ( ( a >> b ) + sampleOffset ) & 0xF;
-    }
-
-    float2 GetBlueNoise( uint2 pixelPos, bool isCheckerboard, uint seed, uint sampleIndex, uint sppVirtual = 1, uint spp = 1 )
-    {
-      // Sample index
-      uint frameIndex = isCheckerboard ? ( frame_index >> 1 ) : frame_index;
-      uint virtualSampleIndex = ( frameIndex + seed ) & ( sppVirtual - 1 );
-      sampleIndex &= spp - 1;
-      sampleIndex += virtualSampleIndex * spp;
-
-      // The algorithm
-      uint3 A = texture2DAt(scrambling_ranking_texture, pixelPos & 127) * 255;
-      uint rankedSampleIndex = sampleIndex ^ A.z;
-      uint4 B = texture2DAt(sobol_texture, uint2( rankedSampleIndex & 255, 0 )) * 255;
-      float4 blue = ( float4( B ^ A.xyxy ) + 0.5 ) * ( 1.0 / 256.0 );
-
-      // Randomize in [ 0; 1 / 256 ] area to get rid of possible banding
-      uint d = Bayer4x4ui( pixelPos, frame_index );
-      float2 dither = ( float2( d & 3, d >> 2 ) + 0.5 ) * ( 1.0 / 4.0 );
-      blue += ( dither.xyxy - 0.5 ) * ( 1.0 / 256.0 );
-
-      return saturate( blue.xy );
-    }
+    ##if rtsm_add_far_screen_space_shadows == yes
+      #include "contactShadows.hlsl"
+    ##endif
 
     void write_no_shadow(uint2 dtid, float4 view_depth, float sol_radial_angle)
     {
-      ##if rtsm_render_mode == hard
+      ##if rtsm_render_mode == rr
+        texture2DAt(rtsm_value, dtid) = 1;
+      ##elif rtsm_render_mode == hard
         texture2DAt(combined_shadows, dtid) = float4(1, 1, 1, 1);
       ##else
         ##if rtsm_render_mode == denoised
-          texture2DAt(rtsm_value, dtid) = SIGMA_FrontEnd_PackShadow(view_depth.z / view_depth.w, NRD_FP16_MAX, sol_radial_angle);
+          texture2DAt(rtsm_value, dtid) = SIGMA_FrontEnd_PackPenumbra(NRD_FP16_MAX, sol_radial_angle);
         ##else
-          float4 shadowTrans;
-          texture2DAt(rtsm_value, dtid) = SIGMA_FrontEnd_PackShadow(view_depth.z / view_depth.w, NRD_FP16_MAX, sol_radial_angle, 0, shadowTrans);
-          texture2DAt(rtsm_translucency, dtid) = shadowTrans;
+          texture2DAt(rtsm_value, dtid) = SIGMA_FrontEnd_PackPenumbra(NRD_FP16_MAX, sol_radial_angle);
+          texture2DAt(rtsm_translucency, dtid) = SIGMA_FrontEnd_PackTranslucency(NRD_FP16_MAX, 1);
         ##endif
       ##endif
     }
@@ -189,26 +232,25 @@ shader rt_shadows
     RT_GROUP_SIZE
     void rt_shadows_cs(uint2 dtid : SV_DispatchThreadID)
     {
+      ##if rtsm_quality != full_res
+        dtid.x *= 2;
+
+        bool evenFrame = ( frame_index & 1 ) == 0;
+        bool evenLine  = ( dtid.y & 1 ) == 0;
+
+        ##if shader == rt_shadows
+          if ( evenFrame == evenLine )
+        ##else
+          if ( evenFrame != evenLine )
+        ##endif
+            ++dtid.x;
+      ##endif
+
       if (any(dtid >= resolution))
         return;
 
       UnpackedGbuffer gbuffer = unpackGbuffer(loadPackedGbuffer(dtid));
       float rawDepth = loadGbufferDepth(dtid);
-
-      BRANCH
-      if (rawDepth <= 0)
-      {
-        ##if rtsm_render_mode != hard
-          texture2DAt(rtsm_value, dtid) = SIGMA_FrontEnd_PackShadow(INF, 0, 0);
-        ##endif
-        return;
-      }
-
-      float w = linearize_z(rawDepth, zn_zfar.zw);
-      float underwaterFade = calc_underwater_fade(w, dtid, inv_resolution, world_view_pos);
-
-      float4 clipDepth = float4(0, 0, rawDepth, 1);
-      float4 viewDepth = mul(inv_proj_tm, clipDepth);
 
       // This here is to counter the fact that we shoot only one ray per pixel.
       // The noisy image is not defined enough to have real looking penumbra.
@@ -216,17 +258,59 @@ shader rt_shadows
       float solRadialAngle = solViewTanRadialAngle * sun_angle_multiplier;
 
       BRANCH
+      if (rawDepth <= 0 || !bvhMainValid)
+      {
+        ##if rtsm_render_mode != hard
+          texture2DAt(rtsm_value, dtid) = SIGMA_FrontEnd_PackPenumbra(NRD_FP16_MAX, solRadialAngle);
+        ##endif
+        return;
+      }
+
+      float4 clipDepth = float4(0, 0, rawDepth, 1);
+      float4 viewDepth = mul(inv_proj_tm, clipDepth);
+
+      #if HAS_READ_NEIGHBORS
+      {
+        uint samples = 0;
+        uint missCount = 0;
+        float neighbourSamples[4] = { 0, 0, 0, 0 };
+
+        read_neighbors(dtid, samples, neighbourSamples, missCount);
+
+        if (missCount == samples || missCount == 0)
+        {
+          // Already filled in the first pass
+          return;
+        }
+
+        // If the neighbours are not all hit or miss, then trace a ray or the penumbra will be unstable in motion
+      }
+      #endif
+
+      float w = linearize_z(rawDepth, zn_zfar.zw);
+      float underwaterFade = calc_underwater_fade(w, dtid, inv_resolution, world_view_pos);
+
+      BRANCH
       if (underwaterFade == 0)
       {
         write_no_shadow(dtid, viewDepth, solRadialAngle);
-        ##if rtsm_render_mode != hard && denoiser_view_z != NULL
+        ##if rtsm_render_mode != rr && rtsm_render_mode != hard && denoiser_view_z != NULL
           texture2DAt(viewZTexture, dtid) = INF;
           texture2DAt(rtsm_denoised, dtid) = 1;
+          ##if rtsm_quality != full_res && rtsm_render_mode == denoised
+            if (dtid.x < resolution.x - 1)
+            {
+              texture2DAt(viewZTexture, dtid + uint2(1, 0)) = INF;
+              texture2DAt(rtsm_denoised, dtid + uint2(1, 0)) = 1;
+            }
+          ##endif
         ##endif
         return;
       }
 
       float3 relPos = calc_camera_relative_pos(dtid, w, inv_resolution);
+      float dist_sq = dot(relPos, relPos);
+      relPos += impostor_shadow_offset * gbuffer.impostorMask * sun_dir_for_shadows;
 
       half nukeFade = 1;
       if (has_nuke)
@@ -249,7 +333,7 @@ shader rt_shadows
       ##if rtsm_render_mode == hard
         float3 direction = -sun_dir_for_shadows;
       ##else
-        float2 rnd = GetBlueNoise( dtid, false, 0, 0 );
+        float2 rnd = GetBlueNoise(dtid, false, 0);
         float3 direction = get_sun_direction(rnd);
       ##endif
 
@@ -257,74 +341,105 @@ shader rt_shadows
       bool isGrass = gbuffer.isGrass;
       bool isTwoSided = gbuffer.isTwoSided;
       bool isUnstable = gbuffer.isUnstable;
-
-      #ifdef SHADING_LANDSCAPE
-        bool isTerrain = gbuffer.material == SHADING_LANDSCAPE;
-      #else
-        bool isTerrain = false;
-      #endif
+      bool isTerrain = gbuffer.isLandscape;
+      bool isFoliage = gbuffer.material == SHADING_FOLIAGE || gbuffer.isFoliage;
 
       float3 geometryNormal = calc_geometry_normal(dtid, inv_resolution, resolution);
 
+      relPos = applyAdaptiveRayOffset(relPos, geometryNormal);
+
       BRANCH
-      if (!isGrass && !isImpostor && !isTerrain)
+      if (!isGrass && !isImpostor && !isTerrain && !isFoliage)
       {
-        if (dot(geometryNormal, direction) <= 0)
+        if (dot(gbuffer.normal, direction) <= 0)
         {
-          ##if rtsm_render_mode == hard
+          ##if rtsm_render_mode == rr
+            texture2DAt(rtsm_value, dtid) = 0;
+          ##elif rtsm_render_mode == hard
             texture2DAt(combined_shadows, dtid) = float4(0, 0, 0, 1);
           ##else
             ##if rtsm_render_mode == denoised
-              texture2DAt(rtsm_value, dtid) = SIGMA_FrontEnd_PackShadow(viewDepth.z / viewDepth.w, 0, solRadialAngle);
+              texture2DAt(rtsm_value, dtid) = SIGMA_FrontEnd_PackPenumbra(0, solRadialAngle);
             ##else
-              float4 shadowTrans;
-              texture2DAt(rtsm_value, dtid) = SIGMA_FrontEnd_PackShadow(viewDepth.z / viewDepth.w, 0, solRadialAngle, 0, shadowTrans);
-              texture2DAt(rtsm_translucency, dtid) = shadowTrans;
+              texture2DAt(rtsm_value, dtid) = SIGMA_FrontEnd_PackPenumbra(0, solRadialAngle);
+              texture2DAt(rtsm_translucency, dtid) = SIGMA_FrontEnd_PackTranslucency(0, 1);
             ##endif
           ##endif
           return;
         }
       }
 
-      if (isTwoSided)
-        relPos += geometryNormal * (isUnstable ? 0.2 : 0.001);
-
       HitInfo hitInfo;
       half3 rayColor;
       float translucentT;
+      float minT = 0;
+      float distanceScale = 1;
       uint groupMask = bvhGroupSoftShadow;
       if (isImpostor)
         groupMask &= ~bvhGroupImpostor;
       else if (isGrass)
         groupMask &= ~bvhGroupGrass;
       uint extraFlags = 0;
-      if (isTwoSided)
-        extraFlags |= RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH;
-      float bias = isTwoSided ? 0.002 : 0.0;
-      bool isHit = trace_ray(bvhMain, relPos.xyz, direction, bias, 100000, w, groupMask, hitInfo, rayColor, translucentT, 1, extraFlags);
+      if (isFoliage)
+      {
+        float dither = interleavedGradientNoiseFramed(dtid.xy, frame_index);
+        float distStepToSun = min(foliage_offset_distance, w);
+        minT = lerp(0.5, 1, dither) * gbuffer.translucency * distStepToSun;
+        distanceScale = 1.0 + gbuffer.translucency * foliage_shadow_radius_scale; // Increasing the blur size
+      }
 
-      ##if rtsm_render_mode == hard
+      bool isHit = trace_ray(bvhMain, relPos.xyz, direction, minT, 100000, w, groupMask, hitInfo, rayColor, translucentT, 1, extraFlags);
+
+      ##if rtsm_add_far_screen_space_shadows == yes
+        if (!isHit && dist_sq >= tree_max_distance_sq)
+        {
+          // Outside the tree range, if not in shadow already, shoot a contact shadow ray,
+          // but only accept hits on foliage. Don't want the usual artifacts on other objects,
+          // as those are covered by normal rays.
+
+          int shadow_steps = 24;
+          float rayLength = 24;
+
+          float2 hitUV;
+          float contactT = contactShadowRayCastWithScaleHitT(depth_gbuf_read,
+                                                             depth_gbuf_read_samplerstate,
+                                                             relPos + bvh_origin,
+                                                             direction,
+                                                             rayLength,
+                                                             shadow_steps,
+                                                             0,
+                                                             projectionMatrix,
+                                                             w,
+                                                             viewProjectionMatrixNoOfs,
+                                                             hitUV,
+                                                             gbuffer_uv_transform_depth_read);
+          if (contactT < 1)
+          {
+            UnpackedGbuffer occluderGbuffer = unpackGbuffer(loadPackedGbuffer(hitUV * resolution + 0.5));
+            if (occluderGbuffer.impostorMask || occluderGbuffer.material == SHADING_FOLIAGE)
+            {
+              isHit = true;
+              hitInfo.t = rayLength * contactT;
+            }
+          }
+        }
+      ##endif
+
+      hitInfo.t *= distanceScale;
+
+      ##if rtsm_render_mode == rr
+        texture2DAt(rtsm_value, dtid) = isHit ? 0 : 1;
+      ##elif rtsm_render_mode == hard
         texture2DAt(combined_shadows, dtid) = float4((isHit ? 0 : 1).xxx, 1);
       ##else
         ##if rtsm_render_mode == denoised
-          texture2DAt(rtsm_value, dtid) = SIGMA_FrontEnd_PackShadow(viewDepth.z / viewDepth.w, isHit ? hitInfo.t : NRD_FP16_MAX, solRadialAngle);
+          texture2DAt(rtsm_value, dtid) = SIGMA_FrontEnd_PackPenumbra(isHit ? hitInfo.t : NRD_FP16_MAX, solRadialAngle);
         ##else
-          #if 0 // Particle shadows. Disabled for now in favor of FOM shadows as they are better.
-            if (!isHit)
-            {
-              float shadowAlpha;
-              trace_ray_fx_shadow(relPos, direction, 0, 100000, shadowAlpha, translucentT);
-              shadowColor *= 1 - shadowAlpha;
-            }
-          #endif
-
           rayColor = lerp(1.h, rayColor, nukeFade);
 
           float hitT = isHit ? hitInfo.t : any(rayColor < 1.h) ? translucentT : NRD_FP16_MAX;
-          float4 shadowTrans;
-          texture2DAt(rtsm_value, dtid) = SIGMA_FrontEnd_PackShadow(viewDepth.z / viewDepth.w, hitT, solRadialAngle, rayColor, shadowTrans);
-          shadowTrans.yzw = lerp(1, shadowTrans.yzw, underwaterFade);
-          texture2DAt(rtsm_translucency, dtid) = shadowTrans;
+          texture2DAt(rtsm_value, dtid) = SIGMA_FrontEnd_PackPenumbra(hitT, solRadialAngle);
+          texture2DAt(rtsm_translucency, dtid) = SIGMA_FrontEnd_PackTranslucency(hitT, rayColor);
         ##endif
       ##endif
     }
@@ -340,22 +455,110 @@ shader rt_shadows
   }
 }
 
+shader rt_shadows_fill_low, rt_shadows_fill_high_prepass
+{
+  if (compatibility_mode == compatibility_mode_on || !use_hw_raytracing) { dont_render; }
+  ENABLE_ASSERT(cs)
+
+  RTSM_SUN_DIR()
+  (cs) {
+    resolution@u2 = rt_shadow_resolutionI;
+    inv_proj_tm@f44 = inv_proj_tm;
+    frame_index@u1 = blue_noise_frame_index;
+    rtsm_value@uav = rtsm_value hlsl { RWTexture2D<float> rtsm_value@uav; };
+  }
+
+  INIT_LOAD_DEPTH_GBUFFER_BASE(cs)
+  USE_LOAD_DEPTH_GBUFFER_BASE(cs)
+
+  hlsl(cs) {
+    #include <Include/NRDEncoding.hlsli>
+    #include <Include/NRD.hlsli>
+  }
+
+  READ_NEIGHBORS(cs)
+
+  hlsl(cs)
+  {
+    #pragma wave32
+
+    [numthreads(8, 4, 1)]
+    void rt_shadows_fill_cs(uint2 dtid : SV_DispatchThreadID)
+    {
+      dtid.x *= 2;
+
+      bool evenFrame = ( frame_index & 1 ) == 0;
+      bool evenLine  = ( dtid.y & 1 ) == 0;
+
+      if ( evenFrame != evenLine )
+        ++dtid.x;
+
+      if (any(dtid >= resolution))
+        return;
+
+      float rawDepth = loadGbufferDepth(dtid);
+      float4 clipDepth = float4(0, 0, rawDepth, 1);
+      float4 viewDepth = mul(inv_proj_tm, clipDepth);
+
+      uint samples = 0;
+      uint missCount = 0;
+      float neighbourSamples[4] = { 0, 0, 0, 0 };
+
+      read_neighbors(dtid, samples, neighbourSamples, missCount);
+
+      ##if shader == rt_shadows_fill_high_prepass
+      {
+        if (missCount == samples)
+        {
+          // All neighbours are missing, so emit a miss here
+          float solRadialAngle = solViewTanRadialAngle * sun_angle_multiplier;
+          texture2DAt(rtsm_value, dtid) = SIGMA_FrontEnd_PackPenumbra(NRD_FP16_MAX, solRadialAngle);
+          return;
+        }
+        if (missCount == 0)
+        {
+          // All neighbours are hitting, so pick a random neighbour as the result
+          uint random = PseudoRandom(dtid, frame_index);
+          float neighbourSample = neighbourSamples[random % samples];
+
+          texture2DAt(rtsm_value, dtid) = neighbourSample;
+          return;
+        }
+      }
+      ##else
+      {
+        // Select one neighbour
+        uint random = PseudoRandom(dtid, frame_index);
+        float neighbourSample = neighbourSamples[random % samples];
+
+        texture2DAt(rtsm_value, dtid) = neighbourSample;
+      }
+      ##endif
+    }
+  }
+
+  compile("cs_6_5", "rt_shadows_fill_cs");
+}
+
 include "use_tiled_lights.dshl"
 include "ssao_use.dshl"
 include "rtao_use.dshl"
+include_optional "ssss/ssss_transmittance_profile.dshl"
 
 float ssao_affect_on_landmesh = 1;
 
 int rstm_direct_light_has_ao = 0;
+float rtsm_dynamic_light_radius = 0.1;
+int rtsm_dynamic_soft_shadows = 0;
+float rtsm_dynamic_minimum_output_value = 0.001;
 
-define_macro_if_not_defined ASSUME_NO_SSSS()
+define_macro_if_not_defined USE_SSSS_TRANSMITTANCE_PROFILE(stage)
 endmacro
 
 shader rt_direct_lights
 {
   if (compatibility_mode == compatibility_mode_on || !use_hw_raytracing) { dont_render; }
   ENABLE_ASSERT(cs)
-  ASSUME_NO_SSSS()
 
   (cs) {
     world_view_pos@f3 = world_view_pos;
@@ -370,6 +573,11 @@ shader rt_direct_lights
     big_light_color_0@f4 = big_light_color_0;
     big_light_color_1@f4 = big_light_color_1;
 
+    light_radius@f1 = rtsm_dynamic_light_radius;
+    soft_shadows@i1 = rtsm_dynamic_soft_shadows;
+    frame_index@i1 = blue_noise_frame_index;
+    minimum_output_value@f1 = rtsm_dynamic_minimum_output_value;
+
     // Nuke
     has_nuke@i1 = rtsm_has_nuke;
     nuke_pos_wave@f4 = nuke_pos_wave;
@@ -379,12 +587,11 @@ shader rt_direct_lights
     #define DISABLE_TOONSHADING 1
     #define OMNI_CONTACT_SHADOWS 0
     #define SPOT_MULTIPLIER 1
-    #define SPOT_SHADOWS 0
-
+    #define SPOT_CONTACT_SHADOWS 0
     #define screen_size resolution
   }
 
-  USE_EMISSION_DECODE_COLOR_MAP(cs)
+  USE_EMISSION_DECODE_COLOR_MAP_STUB(cs)
   USE_AND_INIT_VIEW_VEC_CS()
   INIT_ZNZFAR_STAGE(cs)
   INIT_LOAD_DEPTH_GBUFFER_BASE(cs)
@@ -393,13 +600,14 @@ shader rt_direct_lights
   INIT_LOAD_BVH_FLAGS_BASE(cs)
   USE_LOAD_BVH_FLAGS_BASE(cs)
   USE_LOAD_GBUFFER_BASE(cs, true)
-  INIT_BVH(cs, 0, true)
-  USE_BVH_FOR_SHADOW(cs)
+  INIT_MAIN_BVH(cs, 0, true)
+  USE_BVH_FOR_DYNAMIC_SHADOW(cs)
 
   USE_CALC_GEOMETRY_NORMAL(cs)
+  USE_ADAPTIVE_RAY_OFFSET(cs)
 
-  INIT_BVH_WATER_FADE(cs)
-  USE_BVH_WATER_FADE(cs)
+  INIT_BVH_WATER_FADE_BASE(cs)
+  USE_BVH_WATER_FADE_BASE(cs)
 
   INIT_UPSCALE_SAMPLING_BASE(cs)
   USE_UPSCALE_SAMPLING_BASE(cs)
@@ -427,17 +635,63 @@ shader rt_direct_lights
       float minT;
       float w;
       uint groupMask;
+      float2 screenpos;
     };
+
+    float noise(float2 n) {
+      return frac(sin(dot(n, float2(12.9898, 4.1414))) * 43758.5453);
+    }
+    float3 uniform_sphere_surface_sample(float2 rand)
+    {
+      float a = 2*PI*rand.x;
+      float cosb = 1-2*rand.y;
+      float sinb = sqrt(1-cosb*cosb);
+      return float3(cos(a)*sinb, sin(a)*sinb, cosb);
+    }
+    float3 uniform_sphere_volume_sample(float3 rand)
+    {
+      float3 dir = uniform_sphere_surface_sample(rand.xy);
+      float r = pow(rand.z, 1.0 / 3.0);
+      return dir * r;
+    }
 
     void shadow_callback(inout half3 result, float3 light_direction, ShadowContext context)
     {
-      if (all(result < 0.001))
+      [branch]
+      if (all(result < minimum_output_value) || !bvhMainValid)
+      {
+        result = 0;
         return;
+      }
 
       if (is_in_nuke_range(context.relPos))
         return;
 
-      bool isObstructed = is_obstructed(bvhMain, context.relPos, normalize(light_direction), context.minT + 0.006, length(light_direction), context.w, context.groupMask);
+      float rayLengthSQ = dot(light_direction, light_direction);
+      if (rayLengthSQ < light_radius * light_radius)
+        return;
+
+      float rayLength = 0;
+      float3 normalizedDir = 0;
+      if (soft_shadows)
+      {
+        float3 worldPosFrac = frac(context.relPos + world_view_pos);
+        float3 rand = float3(noise(worldPosFrac.xy+worldPosFrac.z+(context.screenpos.xy + frame_index%32)/512),
+                             noise(worldPosFrac.yz+worldPosFrac.x+(context.screenpos.yx - frame_index%32)/512),
+                             noise(worldPosFrac.zx+worldPosFrac.y+(context.screenpos.x+context.screenpos.y)/1024));
+        light_direction += uniform_sphere_volume_sample(rand) * light_radius;
+        rayLength = length(light_direction);
+        normalizedDir = light_direction / rayLength;
+      }
+      else
+      {
+        rayLength = sqrt(rayLengthSQ);
+        normalizedDir = light_direction / rayLength;
+        rayLength -= light_radius;
+      }
+
+
+      bool isObstructed = is_obstructed(bvhMain, context.relPos, normalizedDir, context.minT, rayLength, context.w, context.groupMask);
       if (isObstructed)
         result = 0;
     }
@@ -445,6 +699,7 @@ shader rt_direct_lights
     #define RT_DYNAMIC_LIGHTS 1
   }
 
+  USE_SSSS_TRANSMITTANCE_PROFILE(cs)
   INIT_AND_USE_TILED_LIGHTS_WITH_CALLBACK(cs, shadow_callback)
 
   hlsl(cs)
@@ -470,19 +725,19 @@ shader rt_direct_lights
       if (underwaterFade == 0)
         return;
 
-      float bias = gbuffer.isTwoSided ? 0.002 : 0.0;
       bool isImpostor = gbuffer.impostorMask > 0.5;
 
       ShadowContext context;
 
       context.relPos = calc_camera_relative_pos(dtid, w, inv_resolution);
-      context.minT = bias;
+      context.minT = 0;
       context.groupMask = bvhGroupHardShadow;
       context.w = w;
       if (isImpostor)
         context.groupMask &= ~bvhGroupImpostor;
       else if (gbuffer.isGrass)
         context.groupMask &= ~bvhGroupGrass;
+      context.screenpos = dtid.xy;
 
       float2 pixelCenter = float2(dtid) + 0.5;
       float2 uv = pixelCenter * inv_resolution;
@@ -491,6 +746,8 @@ shader rt_direct_lights
       float NdotV = dot(processedGbuffer.normal, -normalize(context.relPos));
       float saturated_NdotV = saturate(NdotV);
       float NoV = abs(NdotV) + 1e-5;
+
+      context.relPos = applyAdaptiveRayOffset(context.relPos, calc_geometry_normal(dtid, inv_resolution, resolution));
 
       half ao = 1;
 
@@ -505,9 +762,7 @@ shader rt_direct_lights
         #endif
             ao = getSSAO(w, pixelCenter).x;
       }
-      #ifdef SHADING_LANDSCAPE
-        ao = lerp(1, ao, processedGbuffer.material == SHADING_LANDSCAPE ? ao_affect_on_landmesh : 1);
-      #endif
+      ao = lerp(1, ao, processedGbuffer.isLandscape ? ao_affect_on_landmesh : 1);
 
       half enviAO = processedGbuffer.ao * ao;
       half specularAOcclusion = computeSpecOcclusion(NoV, enviAO, processedGbuffer.ggx_alpha);
@@ -517,7 +772,9 @@ shader rt_direct_lights
       float3 result = get_dynamic_lighting(processedGbuffer, worldPos, -viewVect, w, pixelCenter, NoV, specularColor, uv, enviAO, context);
 
       float specStrength = processedGbuffer.extracted_albedo_ao;
-      if (big_light_pos_rad_0.w > 0)
+
+      [branch]
+      if (big_light_pos_rad_0.w > 0 && bvhMainValid)
       {
         half3 bigLightResult = perform_point_light(worldPos.xyz, -viewVect, NoV, processedGbuffer, specularColor, specStrength, gbuffer.ao, big_light_pos_rad_0, big_light_color_0, 0, pixelCenter);
         if (any(bigLightResult > 0.001) && !is_in_nuke_range(context.relPos))
@@ -528,7 +785,8 @@ shader rt_direct_lights
         result += bigLightResult;
       }
 
-      if (big_light_pos_rad_1.w > 0)
+      [branch]
+      if (big_light_pos_rad_1.w > 0 && bvhMainValid)
       {
         half3 bigLightResult = perform_point_light(worldPos.xyz, -viewVect, NoV, processedGbuffer, specularColor, specStrength, gbuffer.ao, big_light_pos_rad_1, big_light_color_1, 0, pixelCenter);
         if (any(bigLightResult > 0.001) && !is_in_nuke_range(context.relPos))

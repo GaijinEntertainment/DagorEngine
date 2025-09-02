@@ -27,6 +27,11 @@ namespace debug
 {
 namespace gpu_capture
 {
+struct Issues
+{
+  /// Pix version 2501.30 breaks external heaps as soon the DLL is loaded and it can not be undone, so we can not use the feature
+  bool brokenExistingHeaps : 1 = false;
+};
 class NoTool
 {
 public:
@@ -35,10 +40,14 @@ public:
   constexpr void endCapture() {}
   constexpr void onPresent() {}
   constexpr void captureFrames(const wchar_t *, int) {}
-  constexpr void beginEvent(ID3D12GraphicsCommandList *, eastl::span<const char>) {}
-  constexpr void endEvent(ID3D12GraphicsCommandList *) {}
-  constexpr void marker(ID3D12GraphicsCommandList *, eastl::span<const char>) {}
-  constexpr bool tryCreateDevice(DXGIAdapter *, UUID, D3D_FEATURE_LEVEL, void **) { return false; };
+  constexpr void beginEvent(D3DGraphicsCommandList *, eastl::span<const char>) {}
+  constexpr void endEvent(D3DGraphicsCommandList *) {}
+  constexpr void marker(D3DGraphicsCommandList *, eastl::span<const char>) {}
+  constexpr bool tryCreateDevice(DXGIAdapter *, UUID, D3D_FEATURE_LEVEL, void **, HLSLVendorExtensions &) { return false; };
+  constexpr void nameResource(ID3D12Resource *, eastl::string_view) {}
+  constexpr void nameResource(ID3D12Resource *, eastl::wstring_view) {}
+  constexpr void nameObject(ID3D12Object *, eastl::string_view) {}
+  constexpr void nameObject(ID3D12Object *, eastl::wstring_view) {}
 };
 
 class RenderDoc
@@ -55,13 +64,17 @@ public:
   void endCapture();
   void onPresent();
   void captureFrames(const wchar_t *, int);
-  void beginEvent(ID3D12GraphicsCommandList *cmd, eastl::span<const char> text);
-  void endEvent(ID3D12GraphicsCommandList *cmd);
-  void marker(ID3D12GraphicsCommandList *cmd, eastl::span<const char> text);
-  constexpr bool tryCreateDevice(DXGIAdapter *, UUID, D3D_FEATURE_LEVEL, void **) { return false; };
+  void beginEvent(D3DGraphicsCommandList *cmd, eastl::span<const char> text);
+  void endEvent(D3DGraphicsCommandList *cmd);
+  void marker(D3DGraphicsCommandList *cmd, eastl::span<const char> text);
+  constexpr bool tryCreateDevice(DXGIAdapter *, UUID, D3D_FEATURE_LEVEL, void **, HLSLVendorExtensions &) { return false; };
+  void nameResource(ID3D12Resource *resource, eastl::string_view name);
+  void nameResource(ID3D12Resource *resource, eastl::wstring_view name);
+  void nameObject(ID3D12Object *object, eastl::string_view name);
+  void nameObject(ID3D12Object *object, eastl::wstring_view name);
 
   template <typename T>
-  static bool connect(const Configuration &config, Direct3D12Enviroment &, T &target)
+  static bool connect(const Configuration &config, Direct3D12Enviroment &, Issues &, T &target)
   {
     if (!config.enableGPUCapturers)
     {
@@ -98,13 +111,17 @@ public:
   void endCapture();
   void onPresent();
   void captureFrames(const wchar_t *, int);
-  void beginEvent(ID3D12GraphicsCommandList *cmd, eastl::span<const char> text);
-  void endEvent(ID3D12GraphicsCommandList *cmd);
-  void marker(ID3D12GraphicsCommandList *cmd, eastl::span<const char> text);
-  constexpr bool tryCreateDevice(DXGIAdapter *, UUID, D3D_FEATURE_LEVEL, void **) { return false; };
+  void beginEvent(D3DGraphicsCommandList *cmd, eastl::span<const char> text);
+  void endEvent(D3DGraphicsCommandList *cmd);
+  void marker(D3DGraphicsCommandList *cmd, eastl::span<const char> text);
+  constexpr bool tryCreateDevice(DXGIAdapter *, UUID, D3D_FEATURE_LEVEL, void **, HLSLVendorExtensions &) { return false; };
+  void nameResource(ID3D12Resource *resource, eastl::string_view name);
+  void nameResource(ID3D12Resource *resource, eastl::wstring_view name);
+  void nameObject(ID3D12Object *object, eastl::string_view name);
+  void nameObject(ID3D12Object *object, eastl::wstring_view name);
 
   template <typename T>
-  static bool connect(const Configuration &config, Direct3D12Enviroment &d3d_env, T &target)
+  static bool connect(const Configuration &config, Direct3D12Enviroment &d3d_env, Issues &, T &target)
   {
     if (!config.enableGPUCapturers)
     {
@@ -131,8 +148,8 @@ class PIX
   LibPointer captureLib;
 
   static LibPointer try_load_runtime_interface();
-  static LibPointer try_connect_capture_interface();
-  static LibPointer try_load_capture_interface();
+  static LibPointer try_connect_capture_interface(Issues &issues);
+  static LibPointer try_load_capture_interface(Issues &issues);
 
   PIX(LibPointer &&runtime_lib, LibPointer &&capture_lib) : runtimeLib{eastl::move(runtime_lib)}, captureLib{eastl::move(capture_lib)}
   {}
@@ -143,13 +160,17 @@ public:
   void endCapture();
   void onPresent();
   void captureFrames(const wchar_t *, int);
-  void beginEvent(ID3D12GraphicsCommandList *cmd, eastl::span<const char> text);
-  void endEvent(ID3D12GraphicsCommandList *cmd);
-  void marker(ID3D12GraphicsCommandList *cmd, eastl::span<const char> text);
-  constexpr bool tryCreateDevice(DXGIAdapter *, UUID, D3D_FEATURE_LEVEL, void **) { return false; };
+  void beginEvent(D3DGraphicsCommandList *cmd, eastl::span<const char> text);
+  void endEvent(D3DGraphicsCommandList *cmd);
+  void marker(D3DGraphicsCommandList *cmd, eastl::span<const char> text);
+  constexpr bool tryCreateDevice(DXGIAdapter *, UUID, D3D_FEATURE_LEVEL, void **, HLSLVendorExtensions &) { return false; };
+  void nameResource(ID3D12Resource *resource, eastl::string_view name);
+  void nameResource(ID3D12Resource *resource, eastl::wstring_view name);
+  void nameObject(ID3D12Object *object, eastl::string_view name);
+  void nameObject(ID3D12Object *object, eastl::wstring_view name);
 
   template <typename T>
-  static bool connect(const Configuration &config, Direct3D12Enviroment &, T &target)
+  static bool connect(const Configuration &config, Direct3D12Enviroment &, Issues &issues, T &target)
   {
     if (!config.enableGPUCapturers)
     {
@@ -163,7 +184,7 @@ public:
       logdbg("DX12: ...failed, using fallback event and marker reporting...");
     }
     logdbg("DX12: Looking for PIX capture attachment...");
-    auto capture = try_connect_capture_interface();
+    auto capture = try_connect_capture_interface(issues);
     if (!capture)
     {
       logdbg("DX12: ...nothing found");
@@ -177,7 +198,7 @@ public:
 
   // PIX runtime can be loaded to take captures without attached application and allows later attachment of it.
   template <typename T>
-  static bool load(const Configuration &, Direct3D12Enviroment &, T &target)
+  static bool load(const Configuration &, Direct3D12Enviroment &, Issues &issues, T &target)
   {
     logdbg("DX12: Loading PIX runtime library...");
     auto runtime = try_load_runtime_interface();
@@ -186,7 +207,7 @@ public:
       logdbg("DX12: ...failed, using fallback event and marker reporting...");
     }
     logdbg("DX12: Loading PIX capture interface...");
-    auto capture = try_load_capture_interface();
+    auto capture = try_load_capture_interface(issues);
     if (!capture)
     {
       logdbg("DX12: ...failed");
@@ -213,13 +234,17 @@ public:
   void endCapture();
   void onPresent();
   void captureFrames(const wchar_t *, int);
-  void beginEvent(ID3D12GraphicsCommandList *, eastl::span<const char>);
-  void endEvent(ID3D12GraphicsCommandList *);
-  void marker(ID3D12GraphicsCommandList *, eastl::span<const char>);
-  constexpr bool tryCreateDevice(DXGIAdapter *, UUID, D3D_FEATURE_LEVEL, void **) { return false; };
+  void beginEvent(D3DGraphicsCommandList *, eastl::span<const char>);
+  void endEvent(D3DGraphicsCommandList *);
+  void marker(D3DGraphicsCommandList *, eastl::span<const char>);
+  constexpr bool tryCreateDevice(DXGIAdapter *, UUID, D3D_FEATURE_LEVEL, void **, HLSLVendorExtensions &) { return false; };
+  void nameResource(ID3D12Resource *resource, eastl::string_view name);
+  void nameResource(ID3D12Resource *resource, eastl::wstring_view name);
+  void nameObject(ID3D12Object *object, eastl::string_view name);
+  void nameObject(ID3D12Object *object, eastl::wstring_view name);
 
   template <typename T>
-  static bool connect(const Configuration &config, Direct3D12Enviroment &, T &target)
+  static bool connect(const Configuration &config, Direct3D12Enviroment &, Issues &, T &target)
   {
     if (!config.enableGPUCapturers)
     {
@@ -252,13 +277,18 @@ public:
   void endCapture();
   void onPresent();
   void captureFrames(const wchar_t *, int);
-  void beginEvent(ID3D12GraphicsCommandList *, eastl::span<const char>);
-  void endEvent(ID3D12GraphicsCommandList *);
-  void marker(ID3D12GraphicsCommandList *, eastl::span<const char>);
-  bool tryCreateDevice(DXGIAdapter *adapter, UUID uuid, D3D_FEATURE_LEVEL minimum_feature_level, void **ptr);
+  void beginEvent(D3DGraphicsCommandList *, eastl::span<const char>);
+  void endEvent(D3DGraphicsCommandList *);
+  void marker(D3DGraphicsCommandList *, eastl::span<const char>);
+  bool tryCreateDevice(DXGIAdapter *adapter, UUID uuid, D3D_FEATURE_LEVEL minimum_feature_level, void **ptr,
+    HLSLVendorExtensions &extensions);
+  void nameResource(ID3D12Resource *resource, eastl::string_view name);
+  void nameResource(ID3D12Resource *resource, eastl::wstring_view name);
+  void nameObject(ID3D12Object *object, eastl::string_view name);
+  void nameObject(ID3D12Object *object, eastl::wstring_view name);
 
   template <typename T>
-  static bool connect(const Configuration &config, Direct3D12Enviroment &, T &target)
+  static bool connect(const Configuration &config, Direct3D12Enviroment &, Issues &, T &target)
   {
     if (!config.enableAgsProfile)
     {
@@ -288,7 +318,6 @@ private:
   bool deviceInitialized = false;
 
   static bool try_connect_interface();
-  static AGSContext *initialize_context();
 };
 } // namespace amd
 #endif
@@ -303,13 +332,17 @@ public:
   void endCapture() {}
   void onPresent() {}
   void captureFrames(const wchar_t *, int) {}
-  void beginEvent(ID3D12GraphicsCommandList *, eastl::span<const char>) {}
-  void endEvent(ID3D12GraphicsCommandList *) {}
-  void marker(ID3D12GraphicsCommandList *, eastl::span<const char>) {}
-  bool tryCreateDevice(DXGIAdapter *, UUID, D3D_FEATURE_LEVEL, void **) { return false; };
+  void beginEvent(D3DGraphicsCommandList *, eastl::span<const char>) {}
+  void endEvent(D3DGraphicsCommandList *) {}
+  void marker(D3DGraphicsCommandList *, eastl::span<const char>) {}
+  bool tryCreateDevice(DXGIAdapter *, UUID, D3D_FEATURE_LEVEL, void **, HLSLVendorExtensions &) { return false; };
+  void nameResource(ID3D12Resource *, eastl::string_view) {}
+  void nameResource(ID3D12Resource *, eastl::wstring_view) {}
+  void nameObject(ID3D12Object *, eastl::string_view) {}
+  void nameObject(ID3D12Object *, eastl::wstring_view) {}
 
   template <typename T>
-  static bool connect(const Configuration &, Direct3D12Enviroment &, T &)
+  static bool connect(const Configuration &, Direct3D12Enviroment &, Issues &, T &)
   {
     return false;
   }
@@ -367,17 +400,17 @@ class GpuCapture
   ToolTableType::StorageType tool = ToolTableType::DefaultType{};
 
 public:
-  void setup(const Configuration &config, Direct3D12Enviroment &d3d_env)
+  void setup(const Configuration &config, Direct3D12Enviroment &d3d_env, gpu_capture::Issues &issues)
   {
     // Always try to connect to possible hosting frame debug tool.
-    bool aToolIsActive = ToolTableType::connect(tool, config, d3d_env);
+    bool aToolIsActive = ToolTableType::connect(tool, config, d3d_env, issues);
 #if DAGOR_DBGLEVEL > 0
     // When no tool is active try to load pix capture runtime to allow capturing even without a active frame debug tool.
     if (!aToolIsActive)
     {
       if (config.loadPIXCapturer)
       {
-        aToolIsActive = gpu_capture::PIX::load(config, d3d_env, tool);
+        aToolIsActive = gpu_capture::PIX::load(config, d3d_env, issues, tool);
       }
     }
 #else
@@ -416,21 +449,21 @@ public:
       eastl::visit([=](auto &tool) { tool.captureFrames(file_name, count); }, tool);
     }
   }
-  void beginEvent(ID3D12GraphicsCommandList *cmd, eastl::span<const char> text)
+  void beginEvent(D3DGraphicsCommandList *cmd, eastl::span<const char> text)
   {
     if (isAnyActive())
     {
       eastl::visit([=](auto &tool) { tool.beginEvent(cmd, text); }, tool);
     }
   }
-  void endEvent(ID3D12GraphicsCommandList *cmd)
+  void endEvent(D3DGraphicsCommandList *cmd)
   {
     if (isAnyActive())
     {
       eastl::visit([=](auto &tool) { tool.endEvent(cmd); }, tool);
     }
   }
-  void marker(ID3D12GraphicsCommandList *cmd, eastl::span<const char> text)
+  void marker(D3DGraphicsCommandList *cmd, eastl::span<const char> text)
   {
     if (isAnyActive())
     {
@@ -446,9 +479,43 @@ public:
   // PIX has current and legacy mode, to make it easier to check if any is active, have this meta method.
   bool isAnyPIXActive() const { return isActive<gpu_capture::PIX>() || isActive<gpu_capture::LegacyPIX>(); }
 
-  bool tryCreateDevice(DXGIAdapter *adapter, UUID uuid, D3D_FEATURE_LEVEL minimum_feature_level, void **ptr)
+  bool tryCreateDevice(DXGIAdapter *adapter, UUID uuid, D3D_FEATURE_LEVEL minimum_feature_level, void **ptr,
+    HLSLVendorExtensions &extensions)
   {
-    return eastl::visit([=](auto &tool) { return tool.tryCreateDevice(adapter, uuid, minimum_feature_level, ptr); }, tool);
+    return eastl::visit(
+      [=, &extensions](auto &tool) { return tool.tryCreateDevice(adapter, uuid, minimum_feature_level, ptr, extensions); }, tool);
+  }
+
+  void nameResource(ID3D12Resource *resource, eastl::string_view name)
+  {
+    if (isAnyActive())
+    {
+      eastl::visit([=](auto &tool) { tool.nameResource(resource, name); }, tool);
+    }
+  }
+
+  void nameResource(ID3D12Resource *resource, eastl::wstring_view name)
+  {
+    if (isAnyActive())
+    {
+      eastl::visit([=](auto &tool) { tool.nameResource(resource, name); }, tool);
+    }
+  }
+
+  void nameObject(ID3D12Object *object, eastl::string_view name)
+  {
+    if (isAnyActive())
+    {
+      eastl::visit([=](auto &tool) { tool.nameObject(object, name); }, tool);
+    }
+  }
+
+  void nameObject(ID3D12Object *object, eastl::wstring_view name)
+  {
+    if (isAnyActive())
+    {
+      eastl::visit([=](auto &tool) { tool.nameObject(object, name); }, tool);
+    }
   }
 };
 } // namespace debug

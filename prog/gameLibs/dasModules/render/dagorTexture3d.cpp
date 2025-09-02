@@ -3,6 +3,8 @@
 #include <dasModules/dagorTexture3d.h>
 #include <daScript/ast/ast_policy_types.h>
 
+DAS_BIND_ENUM_CAST(D3DResourceType);
+DAS_BASE_BIND_ENUM(D3DResourceType, D3DResourceType, TEX, CUBETEX, VOLTEX, ARRTEX, CUBEARRTEX, SBUF);
 
 namespace das
 {
@@ -11,10 +13,15 @@ IMPLEMENT_OP2_EVAL_BOOL_POLICY(Equ, D3DRESID);
 IMPLEMENT_OP2_EVAL_BOOL_POLICY(NotEqu, D3DRESID);
 }; // namespace das
 
+G_STATIC_ASSERT(D3DRESID::INVALID_ID == 0u);
+
 struct D3DRESIDAnnotation final : das::ManagedValueAnnotation<D3DRESID>
 {
   D3DRESIDAnnotation(das::ModuleLibrary &ml) : ManagedValueAnnotation(ml, "D3DRESID") { cppName = " ::D3DRESID"; }
   virtual void walk(das::DataWalker &walker, void *data) override { walker.UInt(*reinterpret_cast<unsigned *>(data)); }
+  virtual bool hasNonTrivialCtor() const override { return false; }
+  virtual bool hasNonTrivialCopy() const override { return false; }
+  virtual bool hasNonTrivialDtor() const override { return false; }
 };
 
 struct TextureInfoAnnotation final : das::ManagedStructureAnnotation<TextureInfo, false>
@@ -27,7 +34,7 @@ struct TextureInfoAnnotation final : das::ManagedStructureAnnotation<TextureInfo
     addField<DAS_BIND_MANAGED_FIELD(d)>("d");
     addField<DAS_BIND_MANAGED_FIELD(a)>("a");
     addField<DAS_BIND_MANAGED_FIELD(mipLevels)>("mipLevels");
-    addField<DAS_BIND_MANAGED_FIELD(resType)>("resType");
+    addField<DAS_BIND_MANAGED_FIELD(type)>("type");
     addField<DAS_BIND_MANAGED_FIELD(cflg)>("cflg");
   }
 };
@@ -64,6 +71,8 @@ public:
   {
     das::ModuleLibrary lib(this);
 
+    addEnumeration(das::make_smart<EnumerationD3DResourceType>());
+
     addAnnotation(das::make_smart<D3DRESIDAnnotation>(lib));
     addAnnotation(das::make_smart<TextureInfoAnnotation>(lib));
     addAnnotation(das::make_smart<BaseTextureAnnotation>(lib));
@@ -94,12 +103,6 @@ public:
     das::addExtern<DAS_CALL_METHOD(method)>(*this, lib, NAME, SIDE_EFFECT, DAS_CALL_MEMBER_CPP(METHOD)); \
   }
     BIND_METHOD(BaseTexture::getinfo, "getinfo", das::SideEffects::modifyArgument)
-    BIND_METHOD(BaseTexture::texaddr, "texaddr", das::SideEffects::modifyArgument)
-    BIND_METHOD(BaseTexture::texaddru, "texaddru", das::SideEffects::modifyArgument)
-    BIND_METHOD(BaseTexture::texaddrv, "texaddrv", das::SideEffects::modifyArgument)
-    BIND_METHOD(BaseTexture::texaddrw, "texaddrw", das::SideEffects::modifyArgument)
-    BIND_METHOD(BaseTexture::texfilter, "texfilter", das::SideEffects::modifyArgument)
-    BIND_METHOD(BaseTexture::texmipmap, "texmipmap", das::SideEffects::modifyArgument)
 
 
 #define BIND_FUNCTION(function, sinonim, side_effect) \

@@ -1,4 +1,4 @@
-# Shader: rendinst_deferred_modulate2x_decal
+# `rendinst_deferred_modulate2x_decal`
 
 ## Overview
 

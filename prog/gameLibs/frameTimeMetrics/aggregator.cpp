@@ -6,6 +6,7 @@
 #include <3d/dag_lowLatency.h>
 #include <util/dag_localization.h>
 #include <util/dag_convar.h>
+#include <util/dag_string.h>
 #include <drv/3d/dag_commands.h>
 
 #if _TARGET_XBOX
@@ -17,7 +18,7 @@ CONSOLE_INT_VAL("fps", update_rate_msec, 1000, 100, 100000);
 static const uint32_t MAX_FPS_TO_DISPLAY = 9999;
 
 void FrameTimeMetricsAggregator::update(const float current_time_msec, const uint32_t frame_no, const float dt,
-  PerfDisplayMode display_mode)
+  PerfDisplayMode display_mode, uint32_t last_frame_count)
 {
   if (update_rate_msec.pullValueChange())
     displayMode = PerfDisplayMode::OFF; // To reset counter
@@ -51,7 +52,7 @@ void FrameTimeMetricsAggregator::update(const float current_time_msec, const uin
     if (display_mode != PerfDisplayMode::OFF && display_mode != PerfDisplayMode::FPS)
     {
       latencyData = lowlatency::get_statistics_since(lastLatencyFrame);
-      lastLatencyFrame = lowlatency::get_current_render_frame();
+      lastLatencyFrame = latencyData.latestFrameId;
       lastAverageLatency = latencyData.gameToRenderLatency.avg;
       lastAverageLatencyA = latencyData.gameLatency.avg;
       lastAverageLatencyR = latencyData.renderLatency.avg;
@@ -69,6 +70,10 @@ void FrameTimeMetricsAggregator::update(const float current_time_msec, const uin
     else
       fpsText.sprintf("%s%s FPS:%5.1f (%4.1f<%4.1f %4.1f)", d3d::get_driver_name(), isPixCapturerLoaded.value() ? "(PIX)" : "",
         lastAverageFps, lastMinFrameTime, lastMaxFrameTime, lastAverageFrameTime);
+
+    if (last_frame_count > 1)
+      fpsText += String(-1, " FG:%u", last_frame_count - 1);
+
     switch (display_mode)
     {
       case PerfDisplayMode::OFF:

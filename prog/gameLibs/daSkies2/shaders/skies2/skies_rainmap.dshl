@@ -12,14 +12,14 @@ macro GET_SKIES_RAINMAP(code)
     clouds_rainmap_size@f4 = (skies_rain_strength*(1 + skies_rain_absorbtion), 1./clouds_weather_size,
       0.5 + clouds_origin_offset.x/clouds_weather_size, 0.5 + clouds_origin_offset.y/clouds_weather_size);
     clouds_rain_altitude_start_end@f4 = ((clouds_start_altitude2+0.6)*5 + 1, -5, (clouds_start_altitude2+0.6) + 0.2, skies_rain_strength);
-    clouds_hole_pos_tex@tex = clouds_hole_pos_tex hlsl {Texture2D<float4> clouds_hole_pos_tex@tex;};
+    clouds_hole_pos@f4 = clouds_hole_pos;
     skies_rain_wind@f2 = skies_rain_wind;
   }
   hlsl(code) {
     //todo: figure out how to generate rain map, and correct wind offset
     float getBaseRainmapAt(float altitude, float3 worldPos)
     {
-      float2 uv = (worldPos.xz + (clouds_rain_altitude_start_end.z-altitude)*skies_rain_wind.xy)*clouds_rainmap_size.y + clouds_rainmap_size.zw + clouds_hole_pos_tex[uint2(0, 0)].zw;//todo: correct add wind offset
+      float2 uv = (worldPos.xz + (clouds_rain_altitude_start_end.z-altitude)*skies_rain_wind.xy)*clouds_rainmap_size.y + clouds_rainmap_size.zw + clouds_hole_pos.zw;//todo: correct add wind offset
       float rain = saturate(tex2Dlod(clouds_weather_texture, float4(uv,0,0)).w*1.75-0.75);
       float rainAmount = rain*saturate(clouds_rain_altitude_start_end.x + clouds_rain_altitude_start_end.y*altitude);
       return rainAmount;

@@ -13,6 +13,7 @@
 #include <math/dag_Point3.h>
 #include <shaders/dag_rendInstRes.h>
 #include <shaders/dag_overrideStates.h>
+#include <shaders/dag_shaderBlock.h>
 #include <generic/dag_tab.h>
 #include <generic/dag_carray.h>
 #include <generic/dag_staticTab.h>
@@ -55,10 +56,7 @@ struct RenderStateContext
     }                                                                                                                                \
   }
 
-#define SWITCH_STATES()                          \
-  {                                              \
-    SWITCH_STATES_SHADER() SWITCH_STATES_VDATA() \
-  }
+#define SWITCH_STATES() {SWITCH_STATES_SHADER() SWITCH_STATES_VDATA()}
 
 inline constexpr bool RENDINST_FLOAT_POS = true; // for debug switching between floats and halfs
 
@@ -108,6 +106,7 @@ struct RiGenPerInstanceParameters
 };
 
 extern shaders::UniqueOverrideStateId afterDepthPrepassOverride;
+extern shaders::UniqueOverrideStateId afterDepthPrepassWithStencilTestOverride;
 extern Tab<UniqueBuf> riGenPerDrawDataForLayer;
 extern MultidrawContext<rendinst::render::RiGenPerInstanceParameters> riGenMultidrawContext;
 
@@ -118,10 +117,10 @@ extern void close_depth_VDECL();
 extern Vbuffer *oneInstanceTmVb;
 extern Vbuffer *rotationPaletteTmVb;
 extern void cell_set_encoded_bbox(RiShaderConstBuffers &cb, vec4f origin, float grid2worldcellSz, float ht);
-extern int globalFrameBlockId;
-extern int rendinstSceneBlockId;
-extern int rendinstSceneTransBlockId;
-extern int rendinstDepthSceneBlockId;
+extern ShaderBlockIdHolder globalFrameBlockId;
+extern ShaderBlockIdHolder rendinstSceneBlockId;
+extern ShaderBlockIdHolder rendinstSceneTransBlockId;
+extern ShaderBlockIdHolder rendinstDepthSceneBlockId;
 extern int rendinstRenderPassVarId;
 extern int rendinstShadowTexVarId;
 extern bool per_instance_visibility;
@@ -219,6 +218,7 @@ public:
   float sphereRadius, sphCenterY, cylinderRadius;
   float clipShadowWk, clipShadowHk, clipShadowOrigX, clipShadowOrigY;
   UniqueTex rendinstGlobalShadowTex;
+  d3d::SamplerHandle globalShadowSampler = d3d::INVALID_SAMPLER_HANDLE;
   Texture *rendinstClipmapShadowTex;
   TEXTUREID rendinstClipmapShadowTexId;
   DynamicImpostor impostor;
@@ -296,6 +296,7 @@ public:
     if (forShadow)
     {
       d3d::settex(dynamic_impostor_texture_const_no + DYNAMIC_IMPOSTOR_TEX_SHADOW_OFFSET, rendinstGlobalShadowTex.getArrayTex());
+      d3d::set_sampler(STAGE_PS, dynamic_impostor_texture_const_no + DYNAMIC_IMPOSTOR_TEX_SHADOW_OFFSET, globalShadowSampler);
       setShadowImpostorBoundingSphere(cb);
     }
     ShaderElement::invalidate_cached_state_block();

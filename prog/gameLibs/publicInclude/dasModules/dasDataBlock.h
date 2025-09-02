@@ -6,7 +6,6 @@
 
 #include <daScript/daScript.h>
 #include <ioSys/dag_dataBlock.h>
-#include <ioSys/dag_dataBlockUtils.h>
 
 MAKE_TYPE_FACTORY(DataBlock, DataBlock);
 MAKE_TYPE_FACTORY(SharedDataBlock, eastl::shared_ptr<DataBlock>);

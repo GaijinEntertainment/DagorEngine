@@ -14,6 +14,7 @@ StringifySourceFile unit_test.das : unit_test.das.inc : test_handles.cpp : "--fu
 
 Sources =
   main.cpp
+  bytecode.cpp
   test_handles.cpp
   test_enum.cpp
   ../../dagorAdapter/da.cpp

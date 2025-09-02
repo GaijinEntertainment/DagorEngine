@@ -189,7 +189,7 @@ void TexAnimFile::add_frame(char *fname)
 struct StopParser
 {};
 
-static char *errmsg;
+static const char *errmsg;
 static int errln, errcol;
 
 char *TexAnimFile::getlasterr()
@@ -199,7 +199,7 @@ char *TexAnimFile::getlasterr()
   return buf;
 }
 
-static void error(char *msg)
+static void error(const char *msg)
 {
   errmsg = msg;
   throw StopParser();

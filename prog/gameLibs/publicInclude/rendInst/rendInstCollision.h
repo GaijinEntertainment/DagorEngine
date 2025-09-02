@@ -4,10 +4,13 @@
 //
 #pragma once
 
-#include <gameRes/dag_collisionResource.h>
+#include <EASTL/fixed_function.h>
+#include <generic/dag_fixedMoveOnlyFunction.h>
 #include <scene/dag_physMatIdDecl.h>
+#include <gameRes/dag_collResDecl.h>
 #include <gameMath/traceUtils.h>
-
+#include <util/dag_simpleString.h>
+#include <memory/dag_framemem.h>
 #include <rendInst/rendInstDesc.h>
 #include <rendInst/constants.h>
 #include <dag/dag_relocatable.h>
@@ -15,6 +18,9 @@
 
 // This is actually private data, potential leak of abstraction here
 struct RendInstGenData;
+
+class CollisionResource;
+class Bitarray;
 
 namespace rendinst
 {
@@ -32,7 +38,7 @@ struct CollisionInfo
   float hp = 0.0f;
   float initialHp = 0.0f;
   int destrFxId = -1;
-  int32_t userData = -1;
+  mutable int32_t userData = -1;
   bool isImmortal = false;
   bool stopsBullets = true;
   bool isDestr = false;
@@ -41,6 +47,8 @@ struct CollisionInfo
   bool isParent = false;
   bool destructibleByParent = false;
   int destroyNeighbourDepth = 1;
+  SimpleString tag;
+  SimpleString destroyedByTag;
 
   explicit CollisionInfo(const RendInstDesc &ri_desc = RendInstDesc()) : desc(ri_desc) {}
 };
@@ -50,8 +58,6 @@ struct RendInstCollisionCB
   virtual void addCollisionCheck(const CollisionInfo &coll_info) = 0;
   virtual void addTreeCheck(const CollisionInfo &coll_info) = 0;
 };
-
-typedef eastl::fixed_function<64, bool(int)> CollisionNodeFilter;
 
 // ======= object to RI intersections ========
 
@@ -65,48 +71,27 @@ struct RiGenCollidableData
 };
 using rigen_collidable_data_t = dag::RelocatableFixedVector<RiGenCollidableData, 64, true, framemem_allocator>;
 
-bool testObjToRIGenIntersection(CollisionResource *obj_res, const CollisionNodeFilter &filter, const TMatrix &obj_tm,
-  const Point3 &obj_vel, Point3 *intersected_obj_pos, bool *tree_sphere_intersected, Point3 *collisionPoint);
-
-void testObjToRIGenIntersection(const BSphere3 &obj_sph, RendInstCollisionCB &callback, GatherRiTypeFlags ri_types,
-  const TraceMeshFaces *ri_cache = nullptr, PhysMat::MatID ray_mat = PHYSMAT_INVALID, bool unlock_in_cb = false);
-void testObjToRIGenIntersection(const BBox3 &obj_box, RendInstCollisionCB &callback, GatherRiTypeFlags ri_types,
-  const TraceMeshFaces *ri_cache = nullptr, PhysMat::MatID ray_mat = PHYSMAT_INVALID, bool unlock_in_cb = false);
+void testObjToRendInstIntersection(const BSphere3 &obj_sph, RendInstCollisionCB &callback, GatherRiTypeFlags ri_types,
+  const TraceMeshFaces *ri_cache = nullptr, PhysMat::MatID ray_mat = PHYSMAT_INVALID, bool unlock_before_cb = false);
+void testObjToRendInstIntersection(const BBox3 &obj_box, RendInstCollisionCB &callback, GatherRiTypeFlags ri_types,
+  const TraceMeshFaces *ri_cache = nullptr, PhysMat::MatID ray_mat = PHYSMAT_INVALID, bool unlock_before_cb = false);
 struct OrientedObjectBox
 {
   mat44f tm;
   bbox3f bbox;
 };
-void testObjToRIGenIntersection(const BBox3 &obj_box, const TMatrix &obj_tm, RendInstCollisionCB &callback, GatherRiTypeFlags ri_types,
-  const TraceMeshFaces *ri_cache = nullptr, PhysMat::MatID ray_mat = PHYSMAT_INVALID, bool unlock_in_cb = false);
-void testObjToRIGenIntersection(const Capsule &obj_capsule, RendInstCollisionCB &callback, GatherRiTypeFlags ri_types,
-  const TraceMeshFaces *ri_cache = nullptr, PhysMat::MatID ray_mat = PHYSMAT_INVALID, bool unlock_in_cb = false);
-
-inline bool testObjectToRendinstIntersection(CollisionResource *object_res, const CollisionNodeFilter &filter,
-  const TMatrix &object_tm, const Point3 &velocity, Point3 *intersected_object_pos, String *intersected_object_name,
-  bool *tree_sphere_intersected, Point3 *collisionPoint, bool *intersectedWithWood,
-  bool, // intersectWithWood
-  bool) // intersectWithOther
-{
-  (void)intersected_object_name;
-  if (tree_sphere_intersected)
-    *tree_sphere_intersected = false;
-
-  if (testObjToRIGenIntersection(object_res, filter, object_tm, velocity, intersected_object_pos, tree_sphere_intersected,
-        collisionPoint))
-  {
-    if (intersectedWithWood)
-      *intersectedWithWood = true;
-    return true;
-  }
-  return false;
-}
+void testObjToRendInstIntersection(const BBox3 &obj_box, const TMatrix &obj_tm, RendInstCollisionCB &callback,
+  GatherRiTypeFlags ri_types, const TraceMeshFaces *ri_cache = nullptr, PhysMat::MatID ray_mat = PHYSMAT_INVALID,
+  bool unlock_before_cb = false);
+void testObjToRendInstIntersection(const Capsule &obj_capsule, RendInstCollisionCB &callback, GatherRiTypeFlags ri_types,
+  const TraceMeshFaces *ri_cache = nullptr, PhysMat::MatID ray_mat = PHYSMAT_INVALID, bool unlock_before_cb = false);
 
 const char *get_rendinst_res_name_from_col_info(const CollisionInfo &col_info);
 CollisionInfo getRiGenDestrInfo(const RendInstDesc &desc);
 
 CheckBoxRIResultFlags checkBoxToRIGenIntersection(const BBox3 &box);
-void gatherRIGenCollidableInRadius(rigen_collidable_data_t &out_data, const Point3 &pos, float radius, GatherRiTypeFlags flags);
+void gatherRIGenCollidableInRadius(rigen_collidable_data_t &out_data, const Point3 &pos, float radius, GatherRiTypeFlags flags,
+  bool ignore_immortal = false);
 
 struct TraceRayRendInstData
 {
@@ -124,16 +109,34 @@ struct TraceRayRendInstData
   bool operator<(const TraceRayRendInstData &rhs) const { return sortKey < rhs.sortKey; }
 };
 
-struct TraceRayRendInstSolidData : TraceRayRendInstData
+struct TraceRayRendInstDataExt
 {
+  rendinst::RendInstDesc riDesc;
+  Point3 normIn;
+  int matId;
+  unsigned collisionNodeId;
+
+  union
+  {
+    struct
+    {
+      float tIn;
+      unsigned rayId;
+    };
+    uint64_t sortKey;
+  };
+
   float tOut;
   Point3 normOut;
+  float transparency;
+
+  bool operator<(const TraceRayRendInstDataExt &rhs) const { return sortKey < rhs.sortKey; }
 };
 
 using RendInstsIntersectionsList = dag::Vector<TraceRayRendInstData, framemem_allocator>;
-using RendInstsSolidIntersectionsList = dag::Vector<TraceRayRendInstSolidData, framemem_allocator>;
+using RendInstsIntersectionsListExt = dag::Vector<TraceRayRendInstDataExt, framemem_allocator>;
 
-void computeRiIntersectedSolids(RendInstsSolidIntersectionsList &intersected, const Point3 &from, const Point3 &dir,
+void computeRiIntersectedSolids(RendInstsIntersectionsListExt &intersected, const Point3 &from, const Point3 &dir,
   SolidSectionsMerge merge_mode);
 
 uint32_t setMaxNumRiCollisionCb(uint32_t new_max_num);
@@ -145,10 +148,20 @@ bool traceRayRendInstsNormalized(const Point3 &from, const Point3 &dir, float &t
   int *out_mat_id = nullptr);
 bool traceRayRendInstsListNormalized(const Point3 &from, const Point3 &dir, float dist, RendInstsIntersectionsList &ri_data,
   bool trace_meshes = false);
-bool traceRayRendInstsListAllNormalized(const Point3 &from, const Point3 &dir, float dist, RendInstsIntersectionsList &ri_data,
-  bool trace_meshes = false, float extend_ray = 0.0f);
-bool traceRayRendInstsListAllNormalized(const Point3 &from, const Point3 &dir, float dist, RendInstsSolidIntersectionsList &ri_data,
-  bool trace_meshes = false, float extend_ray = 0.0f);
+
+struct TraceRendInstParams
+{
+  PhysMat::MatID tracePhysMatId = PHYSMAT_INVALID;
+  bool traceMeshes = false;
+  float extendRay = 0.0f;
+
+  bool traceTransparencyPrimaryLayers = false;
+  bool traceTransparencyAllLayers = false;
+  float transparencyThreshold = 0.1f;
+  bool checkCanopy = false;
+};
+bool traceRayRendInstsRayBatchAllIntersections(dag::Span<Trace> traces, RendInstsIntersectionsListExt &ri_data,
+  const TraceRendInstParams &params);
 
 
 bool traceRayRIGenNormalized(dag::Span<Trace> traces, TraceFlags trace_flags, int ray_mat_id = -1,
@@ -181,10 +194,23 @@ inline bool traceRayRendInstsNormalized(dag::Span<Trace> traces, bool = false, b
   return traceRayRIGenNormalized(traces, traceFlags, ray_mat_id, ri_desc, ri_cache);
 }
 
-bool traceDownMultiRay(dag::Span<Trace> traces, bbox3f_cref rayBox, dag::Span<RendInstDesc> ri_desc,
-  const TraceMeshFaces *ri_cache = nullptr, int ray_mat_id = -1, TraceFlags trace_flags = TraceFlag::Destructible,
-  Bitarray *filter_pools = nullptr, IgnoreFunc ignore_func = nullptr); // all rays should be down
-
+using TraceDownMutiRayIgnoreCbType = eastl::fixed_function<sizeof(void *), bool(const RendInstDesc &)>;
+// Note: all rays should be down
+bool traceDownMultiRayNoCache(dag::Span<Trace> traces, bbox3f_cref rayBox, dag::Span<RendInstDesc> ri_desc, int ray_mat_id = -1,
+  TraceFlags trace_flags = TraceFlag::Destructible, TraceDownMutiRayIgnoreCbType ignore_func = {},
+  Bitarray *filter_pools = nullptr); // Note: Only supported in tools
+bool traceDownMultiRayCached(dag::Span<Trace> traces, bbox3f_cref rayBox, dag::Span<RendInstDesc> ri_desc,
+  const TraceMeshFaces &ri_cache, int ray_mat_id = -1, TraceFlags trace_flags = TraceFlag::Destructible,
+  TraceDownMutiRayIgnoreCbType ignore_func = {});
+inline bool traceDownMultiRay(dag::Span<Trace> traces, bbox3f_cref rayBox, dag::Span<RendInstDesc> ri_desc,
+  const TraceMeshFaces *ri_cache = {}, int ray_mat_id = -1, TraceFlags trace_flags = TraceFlag::Destructible,
+  TraceDownMutiRayIgnoreCbType ignore_func = {}, Bitarray *filter_pools = nullptr)
+{
+  if (ri_cache)
+    return traceDownMultiRayCached(traces, rayBox, ri_desc, *ri_cache, ray_mat_id, trace_flags, ignore_func);
+  else
+    return traceDownMultiRayNoCache(traces, rayBox, ri_desc, ray_mat_id, trace_flags, ignore_func, filter_pools);
+}
 
 bool rayhitRendInstNormalized(const Point3 &from, const Point3 &dir, float t, int ray_mat_id, const RendInstDesc &ri_desc);
 bool rayhitRendInstsNormalized(const Point3 &from, const Point3 &dir, float t, float min_size, int ray_mat_id,
@@ -201,6 +227,9 @@ struct ForeachCB
   virtual void executeForPos(RendInstGenData * /* rgl */, const RendInstDesc & /* ri_desc */, const TMatrix & /* tm */) {}
 };
 void foreachRIGenInBox(const BBox3 &box, GatherRiTypeFlags ri_types, ForeachCB &cb);
+
+using GetTmsCallbackType = dag::FixedMoveOnlyFunction<16, void(const RendInstDesc &, const mat44f &) const>;
+void getRIGenTMsInBox(const BBox3 &box, dag::ConstSpan<int16_t> pool_ids, GetTmsCallbackType &&tm_callback);
 
 void clipCapsuleRI(const ::Capsule &c, Point3 &lpt, Point3 &wpt, real &md, const Point3 &movedirNormalized,
   const TraceMeshFaces *ri_cache);

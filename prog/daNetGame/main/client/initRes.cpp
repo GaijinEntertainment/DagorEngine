@@ -1,7 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <fx/dag_commonFx.h>
-#include <fx/dag_fxInterface.h>
 #include <startup/dag_globalSettings.h>
 #include <gameRes/dag_stdGameRes.h>
 #include <gameRes/dag_gameResSystem.h>
@@ -20,6 +19,7 @@
 #include "render/fx/fx.h"
 #include "render/renderEvent.h"
 #include "render/rendererFeatures.h"
+#include "main/version.h"
 
 void init_shaders()
 {
@@ -40,7 +40,7 @@ void init_shaders()
 #if _TARGET_XBOXONE || _TARGET_C1
   if (strcmp(::dgs_get_settings()->getBlockByNameEx("graphics")->getStr("consolePreset", "HighFPS"), "bareMinimum") == 0)
     sh_bindump_prefix = "compiledShaders/compatPC/game";
-#elif _TARGET_PC_WIN || _TARGET_APPLE
+#elif _TARGET_PC || _TARGET_APPLE
   if (strcmp(::dgs_get_settings()->getBlockByNameEx("graphics")->getStr("preset", "medium"), "bareMinimum") == 0)
     sh_bindump_prefix = "compiledShaders/compatPC/game";
 #endif
@@ -51,11 +51,25 @@ void init_shaders()
   else if (renderingPath == "mobile_deferred")
     sh_bindump_prefix = ::dgs_get_settings()->getStr("deferredShaders", "compiledShaders/gameAndroidDeferred");
 
+  set_stcode_special_tag_interp([](eastl::string_view directive) -> eastl::optional<eastl::string> {
+    if (directive == "version")
+    {
+      exe_version32_t ver = get_exe_version32();
+      return eastl::string{
+        eastl::string::CtorSprintf{}, "%hhu.%hhu.%hhu.%hhu", ver >> 24, (ver >> 16) & 0xFF, (ver >> 8) & 0xFF, ver & 0xFF};
+    }
+    else
+    {
+      return eastl::nullopt;
+    }
+  });
+
   ::startup_shaders(sh_bindump_prefix);
 }
 
 void init_res_factories()
 {
+  ::set_gameres_undefined_res_loglevel(LOGLEVEL_ERR);
   ::register_common_game_tex_factories();
   ::register_svg_tex_load_factory();
   ::register_loadable_tex_create_factory();
@@ -85,10 +99,8 @@ void init_res_factories()
   ::register_any_vromfs_tex_create_factory("avif|png|jpg|tga|ddsx");
   ::register_any_tex_load_factory();
   ::register_lshader_gameres_factory();
-
-  EffectsInterface::startup();
 }
-void term_res_factories() { EffectsInterface::shutdown(); }
+void term_res_factories() {}
 
 void init_fx()
 {
@@ -97,11 +109,6 @@ void init_fx()
   bool dafxEnabled = acesfx::init_dafx(dafxGpuSim); // we need to create dafx context before fx factories
   G_ASSERT_RETURN(dafxEnabled, );
 
-  if (::dgs_get_settings()->getBlockByNameEx("graphics")->getBool("outdatedFxFactories", false))
-  {
-    ::register_compound_ps_fx_factory();
-    ::register_dafx_factory();
-  }
   ::register_dafx_sparks_factory();
   ::register_dafx_modfx_factory();
   ::register_dafx_compound_factory();

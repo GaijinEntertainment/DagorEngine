@@ -15,7 +15,7 @@ class EnvironmentPlugin::ShaderGlobVarsPanel : public PropPanel::ControlEventHan
 {
 public:
   ShaderGlobVarsPanel(EnvironmentPlugin &plugin, void *hwnd);
-  ~ShaderGlobVarsPanel();
+  ~ShaderGlobVarsPanel() override;
 
   PropPanel::PanelWindowPropertyControl *getPanel()
   {
@@ -23,14 +23,14 @@ public:
     return propPanel;
   }
 
-  virtual void fillPanel();
+  void fillPanel();
 
 private:
   void setGameBlk(const DataBlock &blk);
   void getSchemeBlk(DataBlock &blk);
 
   // ControlEventHandler
-  virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel);
+  void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
 
   PropPanel::PanelWindowPropertyControl *propPanel;
   EnvironmentPlugin &plugin;

@@ -19,7 +19,7 @@ function mkOnHover(groupId, itemId, action, repayTime = REPAY_TIME) {
       groupTimers.$rawdelete(itemId)
       action(itemId)
     }
-    gui_scene.setTimeout(repayTime, groupTimers[itemId])
+    gui_scene.setTimeout(repayTime, groupTimers[itemId], groupTimers[itemId])
   }
 }
 

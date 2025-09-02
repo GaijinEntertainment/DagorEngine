@@ -109,8 +109,8 @@ namespace das
     };
 
     struct SimNode_DeleteArray : SimNode_Delete {
-        SimNode_DeleteArray ( const LineInfo & a, SimNode * s, uint32_t t, uint32_t st )
-            : SimNode_Delete(a,s,t), stride(st) {}
+        SimNode_DeleteArray ( const LineInfo & a, SimNode * s, uint32_t t, uint32_t st, const char * em )
+            : SimNode_Delete(a,s,t,em), stride(st) {}
         virtual SimNode * visit ( SimVisitor & vis ) override;
         DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override;
         uint32_t stride;

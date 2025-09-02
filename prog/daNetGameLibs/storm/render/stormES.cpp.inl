@@ -3,7 +3,7 @@
 #include <daECS/core/coreEvents.h>
 #include <ecs/core/entityManager.h>
 #include "render/fx/effectEntity.h"
-#include "render/fx/effectManager.h"
+#include <effectManager/effectManager.h>
 
 
 template <typename Callable>

@@ -202,7 +202,15 @@ typedef struct tagSQRegFunction{
     SQFUNCTION f;
     SQInteger nparamscheck;
     const SQChar *typemask;
+    const SQChar *docstring;
+    bool pure;
 }SQRegFunction;
+
+typedef struct tagSQRegFunctionFromStr{
+    SQFUNCTION f;
+    const SQChar *declstring;
+    const SQChar *docstring;
+}SQRegFunctionFromStr;
 
 typedef struct tagSQFunctionInfo {
     SQUserPointer funcid;
@@ -270,6 +278,9 @@ SQUIRREL_API void sq_checktrailingspaces(HSQUIRRELVM v, const SQChar *sourceName
 SQUIRREL_API void sq_dumpast(HSQUIRRELVM v, SQCompilation::SqASTData *astData, OutputStream *s);
 SQUIRREL_API void sq_dumpbytecode(HSQUIRRELVM v, HSQOBJECT obj, OutputStream *s, int instruction_index = -1);
 
+SQUIRREL_API void sq_reset_static_memos(HSQUIRRELVM v, HSQOBJECT func);
+
+SQUIRREL_API SQCompilation::SqASTData *sq_allocateASTData(HSQUIRRELVM v);
 SQUIRREL_API void sq_releaseASTData(HSQUIRRELVM v, SQCompilation::SqASTData *astData);
 
 SQUIRREL_API void sq_setcompilationoption(HSQUIRRELVM v, enum CompilationOptions co, bool value);
@@ -300,6 +311,7 @@ SQUIRREL_API SQUserPointer sq_newuserdata(HSQUIRRELVM v,SQUnsignedInteger size);
 SQUIRREL_API void sq_newtable(HSQUIRRELVM v);
 SQUIRREL_API void sq_newtableex(HSQUIRRELVM v,SQInteger initialcapacity);
 SQUIRREL_API void sq_newarray(HSQUIRRELVM v,SQInteger size);
+SQUIRREL_API SQRESULT sq_new_closure_slot_from_decl_string(HSQUIRRELVM v, SQFUNCTION func, SQUnsignedInteger nfreevars, const SQChar *function_decl, const SQChar *docstring);
 SQUIRREL_API void sq_newclosure(HSQUIRRELVM v,SQFUNCTION func,SQUnsignedInteger nfreevars);
 SQUIRREL_API SQRESULT sq_setparamscheck(HSQUIRRELVM v,SQInteger nparamscheck,const SQChar *typemask);
 SQUIRREL_API SQRESULT sq_bindenv(HSQUIRRELVM v,SQInteger idx);
@@ -336,6 +348,7 @@ SQUIRREL_API SQRESULT sq_getclosureinfo(HSQUIRRELVM v,SQInteger idx,SQInteger *n
 SQUIRREL_API SQRESULT sq_getclosurename(HSQUIRRELVM v,SQInteger idx);
 SQUIRREL_API SQRESULT sq_setnativeclosurename(HSQUIRRELVM v,SQInteger idx,const SQChar *name);
 SQUIRREL_API SQRESULT sq_setnativeclosuredocstring(HSQUIRRELVM v,SQInteger idx,const SQChar *docstring);
+SQUIRREL_API SQRESULT sq_setobjectdocstring(HSQUIRRELVM v, const HSQOBJECT *obj, const SQChar *docstring);
 SQUIRREL_API SQRESULT sq_setinstanceup(HSQUIRRELVM v, SQInteger idx, SQUserPointer p);
 SQUIRREL_API SQRESULT sq_getinstanceup(HSQUIRRELVM v, SQInteger idx, SQUserPointer *p,SQUserPointer typetag);
 SQUIRREL_API SQRESULT sq_setclassudsize(HSQUIRRELVM v, SQInteger idx, SQInteger udsize);
@@ -379,6 +392,9 @@ SQUIRREL_API SQRESULT sq_getweakrefval(HSQUIRRELVM v,SQInteger idx);
 SQUIRREL_API SQRESULT sq_clear(HSQUIRRELVM v,SQInteger idx,SQBool freemem = SQTrue);
 SQUIRREL_API SQRESULT sq_freeze(HSQUIRRELVM v, SQInteger idx);
 SQUIRREL_API SQRESULT sq_freeze_inplace(HSQUIRRELVM v, SQInteger idx);
+SQUIRREL_API SQRESULT sq_mark_pure_inplace(HSQUIRRELVM v, SQInteger idx);
+SQUIRREL_API bool sq_is_pure_function(HSQOBJECT *func);
+
 
 /*calls*/
 SQUIRREL_API SQRESULT sq_call(HSQUIRRELVM v,SQInteger params,SQBool retval,SQBool invoke_err_handler);
@@ -388,6 +404,7 @@ SQUIRREL_API SQRESULT sq_getcallee(HSQUIRRELVM v);
 SQUIRREL_API const SQChar *sq_getfreevariable(HSQUIRRELVM v,SQInteger idx,SQUnsignedInteger nval);
 SQUIRREL_API void sq_throwparamtypeerror(HSQUIRRELVM v, SQInteger nparam, SQInteger typemask, SQInteger type);
 SQUIRREL_API SQRESULT sq_throwerror(HSQUIRRELVM v,const SQChar *err);
+// see also: sqstd_throwerrorf(HSQUIRRELVM v,const SQChar *err,...)
 SQUIRREL_API SQRESULT sq_throwobject(HSQUIRRELVM v);
 SQUIRREL_API void sq_reseterror(HSQUIRRELVM v);
 SQUIRREL_API void sq_getlasterror(HSQUIRRELVM v);
@@ -446,7 +463,6 @@ SQUIRREL_API bool sq_loadanalyzerconfigblk(const KeyValueFile &config);
 
 SQUIRREL_API bool sq_setdiagnosticstatebyname(const char *diagId, bool val);
 SQUIRREL_API bool sq_setdiagnosticstatebyid(int32_t id, bool val);
-SQUIRREL_API void sq_invertwarningsstate();
 SQUIRREL_API void sq_printwarningslist(FILE *ostream);
 SQUIRREL_API void sq_enablesyntaxwarnings(bool on);
 SQUIRREL_API void sq_checkglobalnames(HSQUIRRELVM v);
@@ -491,5 +507,15 @@ SQUIRREL_API void sq_mergeglobalnames(const HSQOBJECT *bindings);
 #ifdef __cplusplus
 } /*extern "C"*/
 #endif
+
+
+/*
+  Removed SQObjectPtr overload to forbid dangerous cast to SQObjectPtr.
+  Passing SQObjectPtr instead of SQObject to some quirrel API functions can cause
+  unwanted call of extra Release() which may lead to memory corruption.
+  This function is explicitly deleted to prevent such errors.
+*/
+struct SQObjectPtr;
+SQUIRREL_API SQRESULT sq_getstackobj(HSQUIRRELVM v,SQInteger idx, SQObjectPtr *po) = delete;
 
 #endif /*_SQUIRREL_H_*/

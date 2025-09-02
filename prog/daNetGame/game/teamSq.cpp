@@ -1,6 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include "team.h"
+#include <ecs/game/generic/team.h>
 #include <bindQuirrelEx/autoBind.h>
 
 SQ_DEF_AUTO_BINDING_MODULE(bind_team, "team")

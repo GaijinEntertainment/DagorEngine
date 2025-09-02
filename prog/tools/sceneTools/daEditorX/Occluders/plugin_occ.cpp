@@ -118,6 +118,7 @@ void occplugin::Plugin::clearObjects()
 {
   objEd.removeAllObjects(false);
   objEd.reset();
+  disPlugins.clear();
   renderExternalOccluders = false;
   renderExternalOccludersDist = 500;
 }

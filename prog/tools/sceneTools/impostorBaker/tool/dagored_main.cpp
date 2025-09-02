@@ -18,6 +18,7 @@
 #include <perfMon/dag_cpuFreq.h>
 #include <shaders/dag_shaderBlock.h>
 #include <shaders/dag_shaders.h>
+#include <shaders/dag_shaderResUnitedData.h>
 #include <startup/dag_fatalHandler.inc.cpp>
 #include <startup/dag_globalSettings.h>
 #include <startup/dag_inpDevClsDrv.h>
@@ -26,11 +27,13 @@
 #include <workCycle/dag_gameSettings.h>
 #include <workCycle/dag_startupModules.h>
 #include <workCycle/dag_workCycle.h>
-#include <de3_dxpFactory.h>
+#include <workCycle/dag_gameScene.h>
 #include <libTools/util/makeBindump.h>
+#include <shaders/dag_rendInstRes.h>
 #include <rendInst/rendInstGen.h>
 #include <libTools/util/setupTexStreaming.h>
 #include <assets/assetPlugin.h>
+#include <assets/texAssetBuilderTextureFactory.h>
 
 #if _TARGET_PC_WIN
 #include <startup/dag_winMain.inc.cpp>
@@ -110,7 +113,7 @@ static bool assertion_handler(bool verify, const char *file, int line, const cha
     return true;
 
   char fmtBuf[1024];
-  DagorSafeArg::print_fmt(fmtBuf, sizeof(fmtBuf), fmt, arg, anum);
+  DagorSafeArg::print_fmt(fmtBuf, sizeof(fmtBuf), fmt ? fmt : "", arg, anum);
 
   char buf[1024];
   int w = snprintf(buf, sizeof(buf), "%s failed in %s:%d,%s() :\n\"%s\"%s%s\n", verify ? "verify" : "assert", file, line, func, cond,
@@ -123,6 +126,24 @@ static bool assertion_handler(bool verify, const char *file, int line, const cha
   debug_flush(true);
   _exit(13);
   return true;
+}
+
+static ImpostorGenerator::GenerateResponse impostor_export_callback(DagorAsset *asset, unsigned int ind, unsigned int count)
+{
+  if (ImpostorGenerator::interrupted)
+    return ImpostorGenerator::GenerateResponse::ABORT;
+  String title(0, "[%d/%d] Processing %s", ind + 1, count, asset->getName());
+  ::win32_set_window_title(title);
+  engine->conNote("%s", title.c_str());
+
+  // clear references to already processed RIs, dump streaming state
+  rendinst::clearRIGen();
+  unitedvdata::riUnitedVdata.clear();
+  free_unused_game_resources();
+  dump_texture_streaming_memory_state();
+  // largely increase frame# to allow aggressive textures discard when needed
+  interlocked_add(dagor_frame_no_int, 600);
+  return ImpostorGenerator::GenerateResponse::PROCESS;
 }
 
 int DagorWinMain(int nCmdShow, bool /*debugmode*/)
@@ -178,21 +199,31 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
   global_settings_blk->addBlock("video")->setStr("mode", "windowed");
   global_settings_blk->addBlock("video")->setStr("resolution", "480x270");
 
+#if _TARGET_PC_WIN
+  if (strcmp(appblk.getStr("impostorbakerDriver", ""), "dx12") == 0)
+  {
+    global_settings_blk->addBlock("video")->setStr("driver", "dx12");
+    global_settings_blk->addBlock("dx12")->setStr("executionMode", "immediate");
+  }
+  else
+    global_settings_blk->addBlock("video")->setStr("driver", "dx11");
+#endif
+
   cpujobs::init();
 
   const DataBlock &blk = *appblk.getBlockByNameEx("assets");
   const DataBlock *exp_blk = blk.getBlockByName("export");
   const DataBlock *game_blk = appblk.getBlockByName("game");
 
-  const char *sh_file = appblk.getStr("shaders", "compiledShaders/tools");
+  const char *sh_file = appblk.getStr("impostorbakerShaders", appblk.getStr("shaders", "compiledShaders/tools"));
   appblk.setStr("appDir", app_dir);
 
   DataBlock texStreamingBlk;
   ::load_tex_streaming_settings(String(0, "%s/application.blk", appblk.getStr("appDir")), &texStreamingBlk);
 
   global_settings_blk->removeBlock("texStreaming");
-  global_settings_blk->addNewBlock(&texStreamingBlk, "texStreaming")->setInt("forceGpuMemMB", 1);
-  init_managed_textures_streaming_support(-1);
+  global_settings_blk->addNewBlock(&texStreamingBlk, "texStreaming")->setBool("texLoadOnDemand", true);
+  init_managed_textures_streaming_support();
   if (int resv_tid_count = appblk.getInt("texMgrReserveTIDcount", 128 << 10))
     enable_res_mgr_mt(true, resv_tid_count);
 
@@ -252,7 +283,7 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
   {
     ::set_gameres_sys_ver(2);
     if (!loadDDSxPacks)
-      ::init_dxp_factory_service();
+      texconvcache::init_build_on_demand_tex_factory(engine->getAssetManager(), engine->getConsoleLogWriter());
   }
   if (blk.getStr("gameRes", nullptr) || blk.getStr("ddsxPacks", nullptr))
   {
@@ -273,18 +304,36 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
   rendinst::configurateRIGen(*appblk.getBlockByNameEx("projectDefaults")->getBlockByNameEx("riMgr")->getBlockByNameEx("config"));
   rendinst::initRIGen(true, 80, 8000.0f);
 
+  struct SceneToEnablePresent : public DagorGameScene
+  {
+    ImpostorGenerator *app = nullptr;
+    void actScene() override {}
+    void drawScene() override
+    {
+      d3d::clearview(CLEAR_TARGET, 0, 0, 0);
+      if (app)
+        app->getImpostorBaker()->drawLastExportedImage();
+    }
+  } scene;
+
   int ret = 0;
   {
-    ImpostorGenerator app{app_dir, appblk, &engine->getAssetManager(), engine->getConsoleLogWriter()};
+    RenderableInstanceLodsResource::on_higher_lod_required = nullptr; // force lod0 streaming
+    ImpostorGenerator app{app_dir, appblk, &engine->getAssetManager(), engine->getConsoleLogWriter(), true, impostor_export_callback};
+    scene.app = &app;
+    dagor_select_game_scene(&scene);
+    dagor_reset_spent_work_time();
     ret = app.run(options) ? 0 : 1;
     if (ret == 0)
       app.generateQualitySummary("impostor_baker_quality_summery.csv");
+    scene.app = nullptr;
   }
 
+  dagor_select_game_scene(nullptr);
   rendinst::clearRIGen();
   rendinst::termRIGen();
   reset_game_resources();
-  ::term_dxp_factory_service();
+  texconvcache::term_build_on_demand_tex_factory();
   engine.demandDestroy();
 
   shutdown_game(RESTART_ALL);

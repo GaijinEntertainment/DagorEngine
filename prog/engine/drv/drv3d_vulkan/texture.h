@@ -9,239 +9,157 @@
 #include <DXGIFormat.h>
 #endif
 #include <3d/tql.h>
+#include <ioSys/dag_memIo.h>
+#include <resourceName.h>
 
 #include "image_resource.h"
 #include "async_completion_state.h"
 #include "globals.h"
 #include "translate_d3d_to_vk.h"
+#include "basetexture.h"
+#include "vk_format_utils.h"
 
 namespace drv3d_vulkan
 {
 
-struct BaseTex final : public BaseTexture
+// close to TextureInfo, but not tied to it, as we may store more or instead, less
+struct BaseTexParams
 {
-  static constexpr float default_lodbias = 0.f;
-  static constexpr int default_aniso = 1;
+  uint16_t w;
+  uint16_t h;
+  uint16_t d;
+  uint8_t levels;
+  D3DResourceType type;
+  int flg;
 
-  int resType = 0;
+  void updateLevelsIfNeeded() { levels = count_mips_if_needed(w, h, flg, levels); }
+  bool allowSrgbWrite() const { return (flg & TEXCF_SRGBWRITE) != 0; }
+  bool allowSrgbRead() const { return (flg & TEXCF_SRGBREAD) != 0; }
+  uint32_t getDepthSlices() const { return type == D3DResourceType::VOLTEX ? d : 1; }
+  bool isArray() const { return (type == D3DResourceType::ARRTEX) || (type == D3DResourceType::CUBEARRTEX); }
+  bool isCubeMap() const { return (type == D3DResourceType::CUBETEX) || (type == D3DResourceType::CUBEARRTEX); }
+  bool isVolume() const { return type == D3DResourceType::VOLTEX; }
+  bool is2DTex() const { return type == D3DResourceType::TEX; }
+  bool isGPUWritable() const { return flg & (TEXCF_RTARGET | TEXCF_UNORDERED); }
+  bool isStagingPermanent() const { return flg & (TEXCF_READABLE | TEXCF_SYSMEM | TEXCF_DYNAMIC); }
+  bool isStagingDiscardable() const { return flg & TEXCF_DYNAMIC; }
 
-  struct D3DTextures
+  ImageCreateInfo getImageCreateInfo() const
   {
-    Image *image = nullptr;
-    Buffer *stagingBuffer = nullptr;
-    uint32_t memSize = 0;
-    uint32_t realMipLevels = 0;
+    ImageCreateInfo ret;
+    ret.type = isVolume() ? VK_IMAGE_TYPE_3D : VK_IMAGE_TYPE_2D;
+    ret.size.width = w;
+    ret.size.height = h;
+    ret.size.depth = getDepthSlices();
+    ret.mips = levels;
+    ret.arrays = getArrayCount();
+    ret.initByTexCreate(flg, isCubeMap());
+    return ret;
+  }
 
-    void release(AsyncCompletionState &event);
-    void releaseDelayed(AsyncCompletionState &event);
-    void useStaging(FormatStore fmt, int32_t w, int32_t h, int32_t d, int32_t levels, uint16_t arrays, bool temporary = false);
-    void destroyStaging();
-  } tex;
+  uint32_t getArrayCount() const
+  {
+    switch (type)
+    {
+      case D3DResourceType::CUBETEX: return 6;
+      case D3DResourceType::ARRTEX: return d;
+      case D3DResourceType::CUBEARRTEX: return 6 * d;
+      default: return 1;
+    }
+    return 1;
+  }
 
-  uint32_t mappedSubresource = 0;
-  uint32_t lockFlags = 0;
-  AsyncCompletionState waitEvent;
+  uint32_t getMipBiasedDepthSlices(uint32_t level) const { return type == D3DResourceType::VOLTEX ? max(d >> level, 1) : 1; }
 
-  uint32_t cflg = 0;
-  FormatStore fmt;
+  VkExtent3D getMipExtent(uint32_t level) const
+  {
+    VkExtent3D result;
+    result.width = max(w >> level, 1);
+    result.height = max(h >> level, 1);
+    result.depth = getMipBiasedDepthSlices(level);
+    return result;
+  }
 
-  inline bool allowSrgbWrite() const { return (cflg & TEXCF_SRGBWRITE) != 0; }
-  inline bool allowSrgbRead() const { return (cflg & TEXCF_SRGBREAD) != 0; }
+  bool verify() const;
+};
 
-  inline FormatStore getFormat() const { return tex.image ? tex.image->getFormat() : fmt; }
-  inline Image *getDeviceImage() const { return tex.image; }
+struct BaseTex final : public D3dResourceNameImpl<BaseTexture>
+{
+  /// views
+  ImageViewState imageViewCache;
 
   inline ImageViewState getViewInfoUAV(uint32_t mip, uint32_t layer, bool as_uint) const
   {
     ImageViewState result;
-    if (resType == RES3D_TEX)
+    result.isArray = pars.isArray();
+    result.isCubemap = pars.isCubeMap();
+    switch (pars.type)
     {
-      result.isCubemap = 0;
-      result.isArray = 0;
-      result.setArrayBase(0);
-      result.setArrayCount(1);
-      G_ASSERTF(layer == 0, "UAV view for layer/face %u requested, but texture was 2d and has no layers/faces", layer);
-    }
-    else if (resType == RES3D_CUBETEX)
-    {
-      result.isCubemap = 1;
-      result.isArray = 0;
-      result.setArrayBase(layer);
-      result.setArrayCount(6 - layer);
-      G_ASSERTF(layer < 6,
-        "UAV view for layer/face %u requested, but texture was cubemap and has only 6 "
-        "faces",
-        layer);
-    }
-    else if (resType == RES3D_ARRTEX)
-    {
-      result.isArray = 1;
-      result.isCubemap = isArrayCube;
-      result.setArrayBase(layer);
-      result.setArrayCount(getArrayCount() - layer);
-      G_ASSERTF(layer < getArrayCount(), "UAV view for layer/face %u requested, but texture has only %u layers", layer,
-        getArrayCount());
-    }
-    else if (resType == RES3D_VOLTEX)
-    {
-      result.isArray = 0;
-      result.isCubemap = 0;
-      result.setArrayBase(0);
-      result.setArrayCount(1);
-      G_ASSERTF(layer == 0, "UAV view for layer/face %u requested, but texture was 3d and has no layers/faces", layer);
+      case D3DResourceType::CUBETEX:
+      case D3DResourceType::CUBEARRTEX:
+      case D3DResourceType::ARRTEX:
+        result.setArrayBase(layer);
+        result.setArrayCount(pars.getArrayCount() - layer);
+        D3D_CONTRACT_ASSERTF(layer < pars.getArrayCount(),
+          "vulkan: UAV view for layer/face %u requested, but texture has only %u layers", layer, pars.getArrayCount());
+        break;
+      case D3DResourceType::TEX:
+      case D3DResourceType::VOLTEX:
+        result.setArrayBase(0);
+        result.setArrayCount(1);
+        D3D_CONTRACT_ASSERTF(layer == 0, "vulkan: UAV view for layer/face %u requested, but texture was 2d/3d and has no layers/faces",
+          layer);
+        break;
+      default: D3D_CONTRACT_ASSERT_FAIL("vulkan: unknown res type for UAV view %u", eastl ::to_underlying(pars.type)); break;
     }
     if (as_uint)
     {
-      G_ASSERT(getFormat().getBytesPerPixelBlock() == 4);
+      D3D_CONTRACT_ASSERT(getFormat().getBytesPerPixelBlock() == 4);
       result.setFormat(FormatStore::fromCreateFlags(TEXFMT_R32UI));
     }
     else
-    {
       result.setFormat(getFormat().getLinearVariant());
-    }
+
     result.setMipBase(mip);
     result.setMipCount(1);
     result.isRenderTarget = 0;
     result.isUAV = 1;
     return result;
   }
+
   inline ImageViewState getViewInfoRenderTarget(uint32_t mip, uint32_t layer) const
   {
     ImageViewState result;
-    result.isArray = 0;
     result.isCubemap = 0;
-    result.setFormat(allowSrgbWrite() ? getFormat() : getFormat().getLinearVariant());
-    bool renderToWholeArray = layer >= d3d::RENDER_TO_WHOLE_ARRAY;
-    result.setMipBase(mip);
-    result.setMipCount(1);
-    result.setArrayBase(renderToWholeArray ? 0 : layer);
-    if (renderToWholeArray)
+    result.setFormat(pars.allowSrgbWrite() ? getFormat().getSRGBVariant() : getFormat().getLinearVariant());
+    if (layer < d3d::RENDER_TO_WHOLE_ARRAY)
     {
-      result.isArray = 1;
-      switch (resType)
-      {
-        case RES3D_CUBETEX: result.setArrayCount(6); break;
-        case RES3D_ARRTEX: result.setArrayCount(depth); break;
-        case RES3D_VOLTEX: result.setArrayCount(max<uint32_t>(1u, depth >> mip)); break;
-        default: result.setArrayCount(1); break;
-      }
+      result.setArrayBase(layer);
+      result.setArrayCount(1);
+      result.isArray = 0;
     }
     else
-      result.setArrayCount(1);
+    {
+      result.setArrayBase(0);
+      result.setArrayCount(pars.type == D3DResourceType::VOLTEX ? pars.getMipBiasedDepthSlices(mip) : pars.getArrayCount());
+      result.isArray = 1;
+    }
+
+    result.setMipBase(mip);
+    result.setMipCount(1);
     result.isRenderTarget = 1;
     result.isUAV = 0;
     return result;
   }
-  inline ImageViewState getViewInfo() const
-  {
-    ImageViewState ret = imageViewCache;
 
-    // need it here as streaming resource swap have race that can lead to problems if we update cache at swap time
-    // (where it should be)
-    int32_t baseMip = clamp<int32_t>(maxMipLevel, 0, max(0, (int32_t)tex.realMipLevels - 1));
-    int32_t mipCount = (minMipLevel - maxMipLevel) + 1;
-    if (mipCount <= 0 || baseMip + mipCount > tex.realMipLevels)
-      mipCount = tex.realMipLevels - baseMip;
-
-    ret.setMipBase(baseMip);
-    ret.setMipCount(max(mipCount, 1));
-
-    return ret;
-  }
-
-  inline static VkBorderColor remap_border_color(E3DCOLOR color, bool as_float)
-  {
-    bool isBlack = (color.r == 0) && (color.g == 0) && (color.b == 0);
-    bool isTransparent = color.a == 0;
-    static const VkBorderColor colorTable[] = //
-      {VK_BORDER_COLOR_INT_OPAQUE_WHITE, VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE, VK_BORDER_COLOR_INT_OPAQUE_BLACK,
-        VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK, VK_BORDER_COLOR_INT_TRANSPARENT_BLACK, VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK,
-        VK_BORDER_COLOR_INT_TRANSPARENT_BLACK, VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK};
-    return colorTable[int(as_float) | (int(isBlack) << 1) | (int(isTransparent) << 2)];
-  }
-
-  void rebindTRegs(SamplerState new_sampler) { samplerState = new_sampler; }
-
-  inline void setUsedAsRenderTarget() { dirtyRt = 1; }
-
-  inline Image *getResolveTarget() const
-  {
-    if (resType == RES3D_VOLTEX)
-      return tex.image;
-    return nullptr;
-  }
-
-  inline VkExtent3D getMipmapExtent(uint32_t level) const
-  {
-    VkExtent3D result;
-    result.width = max(width >> level, 1);
-    result.height = max(height >> level, 1);
-    result.depth = resType == RES3D_VOLTEX ? max(depth >> level, 1) : 1;
-    return result;
-  }
-
-  inline uint32_t getMemorySize() const { return tex.memSize; }
-
-  ImageViewState imageViewCache;
-  SamplerState samplerState;
-  uint8_t mipLevels = 0;
-  uint8_t minMipLevel = 0;
-  uint8_t maxMipLevel = 0;
-  bool delayedCreate = false;
-  bool preallocBeforeLoad = false;
-  bool isArrayCube = false;
-  bool unlockImageUploadSkipped = false;
-
-  uint16_t width = 0;
-  uint16_t height = 0;
-  uint16_t depth = 0;
-  // uint16_t layers = 0;
-
-  uint8_t lockedLevel = 0;
-  uint8_t lockedLayer = 0;
-
-  SmallTab<uint8_t, MidmemAlloc> texCopy; //< ddsx::Header + ddsx data; sysCopyQualityId stored in hdr.hqPartLevel
-
-  struct ImageMem
-  {
-    void *ptr = nullptr;
-    uint32_t rowPitch = 0;
-    uint32_t slicePitch = 0;
-    uint32_t memSize = 0;
-  };
-
-  char *debugLockData = nullptr;
-  ImageMem lockMsr;
-
-  uint32_t dirtyRt : 6;
-  DECLARE_TQL_TID_AND_STUB()
-
-  void setParams(int w, int h, int d, int levels, const char *stat_name);
-
-  inline uint32_t getArrayCount() const
-  {
-    if (resType == RES3D_CUBETEX)
-      return 6;
-    else if (resType == RES3D_ARRTEX)
-      return (isArrayCube ? 6 : 1) * depth;
-    return 1;
-  }
-
-  inline uint32_t getDepthSlices() const
-  {
-    if (resType == RES3D_VOLTEX)
-      return depth;
-    return 1;
-  }
-
-  inline void setInitialImageViewState()
+  void setInitialImageViewState()
   {
     // this fields not gonna change over texture lifetime
-    imageViewCache.setFormat(allowSrgbRead() ? getFormat() : getFormat().getLinearVariant());
-    imageViewCache.isArray = resType == RES3D_ARRTEX ? 1 : 0;
-    imageViewCache.isCubemap = resType == RES3D_CUBETEX ? 1 : (resType == RES3D_ARRTEX ? int(isArrayCube) : 0);
+    imageViewCache.setFormat(pars.allowSrgbRead() ? getFormat() : getFormat().getLinearVariant());
+    imageViewCache.isArray = pars.isArray();
+    imageViewCache.isCubemap = pars.isCubeMap();
     imageViewCache.setArrayBase(0);
-    imageViewCache.setArrayCount(getArrayCount());
+    imageViewCache.setArrayCount(pars.getArrayCount());
     imageViewCache.isRenderTarget = 0;
     imageViewCache.isUAV = 0;
 
@@ -249,253 +167,245 @@ struct BaseTex final : public BaseTexture
     imageViewCache.sampleStencil = false;
   }
 
-  BaseTex(int res_type, uint32_t cflg_) :
-    resType(res_type),
-    cflg(cflg_),
-    mipLevels(0),
-    lockedLevel(0),
-    minMipLevel(20),
-    maxMipLevel(0),
-    mappedSubresource(0),
-    lockFlags(0),
-    delayedCreate(false),
-    debugLockData(nullptr),
-    dirtyRt(0),
-    depth(1),
-    width(0),
-    height(0)
+  inline ImageViewState getViewInfo() const
   {
-    samplerState.setBias(default_lodbias);
-    samplerState.setAniso(default_aniso);
-    samplerState.setW(translate_texture_address_mode_to_vulkan(TEXADDR_WRAP));
-    samplerState.setV(translate_texture_address_mode_to_vulkan(TEXADDR_WRAP));
-    samplerState.setU(translate_texture_address_mode_to_vulkan(TEXADDR_WRAP));
-    samplerState.setMip(VK_SAMPLER_MIPMAP_MODE_LINEAR);
-    samplerState.setFilter(VK_FILTER_LINEAR);
+    ImageViewState ret = imageViewCache;
 
-    preallocBeforeLoad = false;
+    // need it here as streaming resource swap have race that can lead to problems if we update cache at swap time
+    // (where it should be)
+    int32_t baseMip = clamp<int32_t>(maxMipLevel, 0, max(0, (int32_t)pars.levels - 1));
+    int32_t mipCount = (minMipLevel - maxMipLevel) + 1;
+    if (mipCount <= 0 || baseMip + mipCount > pars.levels)
+      mipCount = pars.levels - baseMip;
 
-    if (RES3D_CUBETEX == resType)
+    ret.setMipBase(baseMip);
+    ret.setMipCount(max(mipCount, 1));
+
+    return ret;
+  }
+
+  /// sys copy
+  struct ImageMem
+  {
+    void *ptr = nullptr;
+    uint32_t rowPitch = 0;
+    uint32_t slicePitch = 0;
+  };
+
+#if VULKAN_TEXCOPY_SUPPORT > 0
+  SmallTab<uint8_t, MidmemAlloc> texCopy; //< ddsx::Header + ddsx data; sysCopyQualityId stored in hdr.hqPartLevel
+  void storeSysCopy(void *data);
+  void updateSystexCopyFromCurrentLock();
+  uint8_t *allocSysCopyForDDSX(ddsx::Header &hdr, int quality_id);
+#else
+  void storeSysCopy(void *) {}
+  void updateSystexCopyFromCurrentLock() {}
+  uint8_t *allocSysCopyForDDSX(ddsx::Header &, int) { return nullptr; }
+#endif
+
+  /// bindless streaming tracking
+
+  // stub textures don't have unique image, so we can't swap them in bindless slots without additional data
+  dag::Vector<uint32_t> bindlessStubSwapQueue;
+
+  void enqueueBindlessStubSwap(uint32_t slot)
+  {
+    for (uint32_t i : bindlessStubSwapQueue)
     {
-      texaddru(TEXADDR_CLAMP);
-      texaddrv(TEXADDR_CLAMP);
+      if (i == slot)
+        return;
     }
-
-    setInitialImageViewState();
+    bindlessStubSwapQueue.push_back(slot);
   }
 
-  ~BaseTex() override { cleanupWaitEvent(); }
-  void cleanupWaitEvent();
+  void updateBindlessViewsForStreamedTextures();
+  void onDeviceReset();
+  void afterDeviceReset();
 
-  /// ->>
-  void setReadStencil(bool on) override
-  {
-    imageViewCache.sampleStencil = on && (getFormat().getAspektFlags() & VK_IMAGE_ASPECT_STENCIL_BIT);
-  }
-  int restype() const override { return resType; }
-  int ressize() const override
-  {
-    if (isStub())
-      return 0;
-    const uint32_t w = width;
-    const uint32_t h = height;
-    const uint32_t d = getDepthSlices();
-    const uint32_t a = getArrayCount();
-    return getFormat().calculateImageSize(w, h, d, mipLevels) * a;
-  }
-
-  int getinfo(TextureInfo &info, int level = 0) const override
-  {
-    level = clamp<int>(level, 0, mipLevels - 1);
-
-    info.w = max<uint32_t>(1u, width >> level);
-    info.h = max<uint32_t>(1u, height >> level);
-    switch (resType)
-    {
-      case RES3D_CUBETEX:
-        info.d = 1;
-        info.a = 6;
-        break;
-      case RES3D_CUBEARRTEX:
-      case RES3D_ARRTEX:
-        info.d = 1;
-        info.a = getArrayCount();
-        break;
-      case RES3D_VOLTEX:
-        info.d = max<uint32_t>(1u, getDepthSlices() >> level);
-        info.a = 1;
-        break;
-      default:
-        info.d = 1;
-        info.a = 1;
-        break;
-    }
-
-    info.mipLevels = mipLevels;
-    info.resType = resType;
-    info.cflg = cflg;
-    return 1;
-  }
-
-  int level_count() const override { return mipLevels; }
-
-  int texaddrImpl(int a) override
-  {
-    SamplerState newSampler = samplerState;
-    newSampler.setW(translate_texture_address_mode_to_vulkan(a));
-    newSampler.setV(translate_texture_address_mode_to_vulkan(a));
-    newSampler.setU(translate_texture_address_mode_to_vulkan(a));
-    rebindTRegs(newSampler);
-    return 1;
-  }
-
-  int texaddruImpl(int a) override
-  {
-    SamplerState newSampler = samplerState;
-    newSampler.setU(translate_texture_address_mode_to_vulkan(a));
-    rebindTRegs(newSampler);
-    return 1;
-  }
-
-  int texaddrvImpl(int a) override
-  {
-    SamplerState newSampler = samplerState;
-    newSampler.setV(translate_texture_address_mode_to_vulkan(a));
-    rebindTRegs(newSampler);
-    return 1;
-  }
-
-  int texaddrwImpl(int a) override
-  {
-    if (RES3D_VOLTEX == resType)
-    {
-      SamplerState newSampler = samplerState;
-      newSampler.setW(translate_texture_address_mode_to_vulkan(a));
-      rebindTRegs(newSampler);
-      return 1;
-    }
-    return 0;
-  }
-
-  int texbordercolorImpl(E3DCOLOR c) override
-  {
-    SamplerState newSampler = samplerState;
-    newSampler.setBorder(remap_border_color(c, getFormat().isSampledAsFloat()));
-    rebindTRegs(newSampler);
-    return 1;
-  }
-
-  int texfilterImpl(int m) override
-  {
-    SamplerState newSampler = samplerState;
-    newSampler.setFilter(translate_filter_type_to_vulkan(m));
-    newSampler.setIsCompare(m == TEXFILTER_COMPARE);
-    rebindTRegs(newSampler);
-    return 1;
-  }
-
-  int texmipmapImpl(int m) override
-  {
-    SamplerState newSampler = samplerState;
-    newSampler.setMip(translate_mip_filter_type_to_vulkan(m));
-    rebindTRegs(newSampler);
-    return 1;
-  }
-
-  int texlodImpl(float mipmaplod) override
-  {
-    SamplerState newSampler = samplerState;
-    newSampler.setBias(mipmaplod);
-    rebindTRegs(newSampler);
-    return 1;
-  }
-
-  int texmiplevel(int minlevel, int maxlevel) override
-  {
-    maxMipLevel = (minlevel >= 0) ? minlevel : 0;
-    minMipLevel = (maxlevel >= 0) ? maxlevel : (mipLevels - 1);
-
-    // workaround fact that sampler state does not contains min/map mip
-    rebindTRegs(samplerState);
-    return 1;
-  }
-
-  int setAnisotropyImpl(int level) override
-  {
-    SamplerState newSampler = samplerState;
-    newSampler.setAniso(clamp<int>(level, 1, 16));
-    rebindTRegs(newSampler);
-    return 1;
-  }
-
-  int generateMips() override;
-
-  bool setReloadCallback(IReloadData *) override { return false; }
-
-  void releaseTex();
-  void swapInnerTex(D3DTextures &new_tex);
-  void preload() {}
-
-  int lockimg(void **, int &stride_bytes, int level = 0, unsigned flags = TEXLOCK_DEFAULT) override;
-  int lockimg(void **, int &stride_bytes, int face, int level = 0, unsigned flags = TEXLOCK_DEFAULT) override;
-  int update(BaseTexture *src) override;
-  int updateSubRegion(BaseTexture *src, int src_subres_idx, int src_x, int src_y, int src_z, int src_w, int src_h, int src_d,
-    int dest_subres_idx, int dest_x, int dest_y, int dest_z) override;
-  int updateSubRegionNoOrder(BaseTexture *src, int src_subres_idx, int src_x, int src_y, int src_z, int src_w, int src_h, int src_d,
-    int dest_subres_idx, int dest_x, int dest_y, int dest_z) override;
-  int unlockimg() override;
-  int lockbox(void **data, int &row_pitch, int &slice_pitch, int level, unsigned flags = TEXLOCK_DEFAULT) override;
-  int unlockbox() override;
-  void destroy() override;
-
-  /// <<-
-
-  void release() { releaseTex(); }
-  bool recreate();
-
-  void copy(Image *dst);
-  void resolve(Image *dst);
-  int updateSubRegionInternal(BaseTexture *src, int src_level, int src_x, int src_y, int src_z, int src_w, int src_h, int src_d,
-    int dest_level, int dest_x, int dest_y, int dest_z, bool unordered);
-
-  void destroyObject();
-
+  /// naming
   void updateTexName()
   {
     // don't propagate down to stub images
     if (isStub())
       return;
-    if (tex.image)
-      Globals::Dbg::naming.setTexName(tex.image, getResName());
+    if (image)
+      Globals::Dbg::naming.setTexName(image, getName());
   }
 
   void setTexName(const char *name)
   {
-    setResName(name);
+    setName(name);
     updateTexName();
   }
 
-  virtual void setResApiName(const char *name) const override { Globals::Dbg::naming.setTexName(tex.image, name); }
+  /// underlying resource managment
+  void release();
+  bool recreate();
+  void destroyObject();
+  bool allocateImage(BaseTex::ImageMem *initial_data = nullptr);
 
-  bool allocateTex() override;
+  /// action-like external callable methods
+  void copy(Image *dst);
+  void resolve(Image *dst);
+  int updateSubRegionInternal(BaseTexture *src, int src_level, int src_x, int src_y, int src_z, int src_w, int src_h, int src_d,
+    int dest_level, int dest_x, int dest_y, int dest_z, bool unordered);
+
+  /// user facing interface
+  DECLARE_TQL_TID_AND_STUB()
+
+  void setReadStencil(bool on) override
+  {
+    imageViewCache.sampleStencil = on && (getFormat().getAspektFlags() & VK_IMAGE_ASPECT_STENCIL_BIT);
+  }
+
+  D3DResourceType getType() const override { return pars.type; }
+  bool isCubeArray() const override { return getType() == D3DResourceType::CUBEARRTEX; }
+  int level_count() const override { return pars.levels; }
+
+  uint32_t getSize() const override
+  {
+    if (isStub())
+      return 0;
+    return getFormat().calculateImageSize(pars.w, pars.h, pars.getDepthSlices(), pars.levels) * pars.getArrayCount();
+  }
+
+  int getinfo(TextureInfo &info, int level = 0) const override
+  {
+    level = clamp<int>(level, 0, pars.levels - 1);
+
+    info.w = max<uint32_t>(1u, pars.w >> level);
+    info.h = max<uint32_t>(1u, pars.h >> level);
+    info.a = pars.getArrayCount();
+    info.d = pars.getMipBiasedDepthSlices(level);
+    info.mipLevels = pars.levels;
+    info.type = pars.type;
+    info.cflg = pars.flg;
+    return 1;
+  }
+
+  int texmiplevel(int minlevel, int maxlevel) override
+  {
+    uint8_t oldMaxMip = maxMipLevel;
+    uint8_t oldMinMip = minMipLevel;
+    maxMipLevel = (minlevel >= 0) ? minlevel : 0;
+    minMipLevel = (maxlevel >= 0) ? maxlevel : (pars.levels - 1);
+
+    if (usedInBindless && (oldMaxMip != maxMipLevel || oldMinMip != minMipLevel))
+      updateBindlessViewsForStreamedTextures();
+    return 1;
+  }
+
+  bool allocateTex() override { return allocateImage(); }
+  void destroy() override;
+  bool updateTexResFormat(unsigned d3d_format) override;
+  BaseTexture *makeTmpTexResCopy(int w, int h, int d, int l) override;
+  void replaceTexResObject(BaseTexture *&other_tex) override;
   void discardTex() override
   {
     if (stubTexIdx >= 0)
     {
-      releaseTex();
+      release();
       recreate();
     }
   }
-  inline bool isTexResEqual(BaseTexture *bt) const { return bt && ((BaseTex *)bt)->tex.image == tex.image; }
-  bool isCubeArray() const { return isArrayCube; }
 
-  BaseTexture *makeTmpTexResCopy(int w, int h, int d, int l, bool staging_tex) override;
-  void replaceTexResObject(BaseTexture *&other_tex) override;
+  bool setReloadCallback(IReloadData *_rld) override;
+  void setApiName(const char *name) const override { Globals::Dbg::naming.setTexName(image, name); }
 
-  void blockingReadbackWait();
+  int generateMips() override;
+  int update(BaseTexture *src) override;
+  int updateSubRegion(BaseTexture *src, int src_subres_idx, int src_x, int src_y, int src_z, int src_w, int src_h, int src_d,
+    int dest_subres_idx, int dest_x, int dest_y, int dest_z) override;
+  int updateSubRegionNoOrder(BaseTexture *src, int src_subres_idx, int src_x, int src_y, int src_z, int src_w, int src_h, int src_d,
+    int dest_subres_idx, int dest_x, int dest_y, int dest_z) override;
+
+  int lockimg(void **p, int &stride_bytes, int level = 0, unsigned flags = TEXLOCK_DEFAULT) override
+  {
+    return lock(p, stride_bytes, nullptr, level, 0, flags);
+  }
+  int lockimg(void **p, int &stride_bytes, int face, int level = 0, unsigned flags = TEXLOCK_DEFAULT) override
+  {
+    return lock(p, stride_bytes, nullptr, level, face, flags);
+  }
+  int unlockimg() override { return unlock(); }
+
+  int lockbox(void **data, int &row_pitch, int &slice_pitch, int level, unsigned flags = TEXLOCK_DEFAULT) override
+  {
+    return lock(data, row_pitch, &slice_pitch, level, 0, flags);
+  }
+  int unlockbox() override { return unlock(); }
+
+  // other
+  inline FormatStore getFormat() const { return image ? image->getFormat() : fmt; }
+  inline bool isTexResEqual(BaseTexture *bt) const { return bt && ((BaseTex *)bt)->image == image; }
+  IReloadData *rld = nullptr;
+
+  Image *image = nullptr;
+  BaseTexParams pars;
+  FormatStore fmt;
+  uint8_t minMipLevel = 0;
+  uint8_t maxMipLevel = 0;
+  bool usedInBindless = false;
+  bool delayedCreate = false;
+  bool preallocBeforeLoad = false;
+  bool unlockImageUploadSkipped = false;
+
+  BaseTex(BaseTexParams _pars, const char *stat_name) :
+    pars(_pars), lockedLevel(0), minMipLevel(20), maxMipLevel(0), lockFlags(0), delayedCreate(false), preallocBeforeLoad(false)
+  {
+    pars.updateLevelsIfNeeded();
+    D3D_CONTRACT_ASSERT(pars.levels > 0);
+
+    fmt = FormatStore::fromCreateFlags(pars.flg);
+    maxMipLevel = 0;
+    minMipLevel = pars.levels - 1;
+    setTexName(stat_name);
+
+    setInitialImageViewState();
+  }
+
+  ~BaseTex() { finishReadback(); }
 
   static Texture *wrapVKImage(VkImage tex_res, ResourceBarrier current_state, int width, int height, int layers, int mips,
     const char *name, int flg);
+
+private:
+  bool allocateImageInternal(BaseTex::ImageMem *initial_data);
+  void initialImageFill(const ImageCreateInfo &ici, BaseTex::ImageMem *initial_data);
+
+  /// lock related logic
+  uint32_t lockFlags = 0;
+  uint8_t lockedLevel = 0;
+  uint8_t lockedLayer = 0;
+  bool lockedSmallStaging = false;
+  ImageMem lockMsr;
+
+  int lock(void **p, int &row_stride, int *slice_stride, int mip, int slice, unsigned flags);
+  int unlock();
+  int clearLockState();
+  bool isStagingTemporaryForCurrentLock();
+  bool allocateOnLockIfNeeded(unsigned flags);
+  uint32_t subresourceOffsetInFullStaging(int mip, int slice);
+
+  /// readback helpers
+  AsyncCompletionState readback;
+  void finishReadback();
+  void startReadback(int mip, int slice, int staging_offset);
+
+  /// staging buffer
+  Buffer *stagingBuffer = nullptr;
+  AsyncCompletionState gpuUpload;
+  void useStagingForWholeTexture(bool temporary = false)
+  {
+    useStaging(pars.w, pars.h, pars.getDepthSlices(), pars.levels, pars.getArrayCount(), temporary);
+  }
+  void useStagingForSubresource(int mip, bool temporary = false)
+  {
+    VkExtent3D mipExtent = pars.getMipExtent(mip);
+    useStaging(mipExtent.width, mipExtent.height, mipExtent.depth, 1, 1, temporary);
+  }
+  void useStaging(int32_t w, int32_t h, int32_t d, int32_t levels, uint16_t arrays, bool temporary = false);
+  void destroyStaging();
 };
 
 static inline BaseTex *getbasetex(/*const*/ BaseTexture *t) { return t ? (BaseTex *)t : nullptr; }
@@ -506,7 +416,8 @@ inline BaseTex *cast_to_texture_base(BaseTexture *t) { return getbasetex(t); }
 
 inline BaseTex &cast_to_texture_base(BaseTexture &t) { return *getbasetex(&t); }
 typedef BaseTex TextureInterfaceBase;
-TextureInterfaceBase *allocate_texture(int res_type, uint32_t cflg);
+TextureInterfaceBase *allocate_texture(uint16_t w, uint16_t h, uint16_t d, uint8_t levels, D3DResourceType type, int flg,
+  const char *stat_name);
 void free_texture(TextureInterfaceBase *texture);
 
 } // namespace drv3d_vulkan

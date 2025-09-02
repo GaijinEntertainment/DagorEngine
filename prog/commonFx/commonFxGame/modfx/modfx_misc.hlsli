@@ -40,6 +40,14 @@ ModfxDepthMask ModfxDepthMask_load( BufferData_cref buf, uint ofs )
   return pp;
 }
 
+ModfxDeclZfarFadeout ModfxDeclZfarFadeout_load( BufferData_cref buf, uint ofs )
+{
+  ModfxDeclZfarFadeout pp;
+  pp.negative_inv_dist_diff = dafx_load_1f( buf, ofs );
+  pp.one_plus_min_dist_div_by_diff = dafx_load_1f( buf, ofs );
+  return pp;
+}
+
 ModfxDeclShapeStaticAligned ModfxDeclShapeStaticAligned_load( BufferData_cref buf, uint ofs )
 {
   ModfxDeclShapeStaticAligned pp;
@@ -54,6 +62,14 @@ ModfxDeclShapeStaticAlignedInit ModfxDeclShapeStaticAlignedInit_load( BufferData
   ModfxDeclShapeStaticAlignedInit pp;
   pp.up_vec = dafx_load_3f( buf, ofs );
   pp.right_vec = dafx_load_3f( buf, ofs );
+  return pp;
+}
+
+ModfxDeclShapeStaticVelocityAlignedInit ModfxDeclShapeStaticVelocityAlignedInit_load( BufferData_cref buf, uint ofs )
+{
+  ModfxDeclShapeStaticVelocityAlignedInit pp;
+  pp.right_vec = dafx_load_3f( buf, ofs );
+  pp.orientation_vec = dafx_load_3f( buf, ofs );
   return pp;
 }
 
@@ -84,6 +100,26 @@ ModfxDeclLighting ModfxDeclLighting_load( BufferData_cref buf, uint ofs )
   pp.specular_strength = v.x;
   pp.sphere_normal_power = v.y;
   pp.sphere_normal_radius = dafx_load_1f( buf, ofs );
+  return pp;
+}
+
+ModfxDeclAdvancedTranslucency ModfxDeclAdvancedTranslucency_load( BufferData_cref buf, uint ofs )
+{
+  ModfxDeclAdvancedTranslucency pp;
+
+  pp.advanced_translucency_flags = dafx_load_1ui( buf, ofs );
+  pp.translucency_color_mul = dafx_load_3f( buf, ofs );
+
+  pp.min_radian = dafx_load_1f( buf, ofs );
+  pp.max_radian = dafx_load_1f( buf, ofs );
+  pp.inv_max_radian_diff = dafx_load_1f( buf, ofs );
+
+  pp.alpha_min = dafx_load_1f( buf, ofs );
+  pp.alpha_max = dafx_load_1f( buf, ofs );
+  pp.trans_min = dafx_load_1f( buf, ofs );
+  pp.trans_max = dafx_load_1f( buf, ofs );
+  pp.alpha_diff_inv = dafx_load_1f( buf, ofs );
+
   return pp;
 }
 
@@ -163,6 +199,18 @@ ModfxDeclFrameInfo ModfxDeclFrameInfo_load( BufferData_cref buf, uint ofs )
 #endif
 }
 
+DAFX_INLINE
+ModfxDeclMotionVectors ModfxDeclMotionVectors_load( BufferData_cref buf, uint ofs )
+{
+#ifdef __cplusplus
+  return *(ModfxDeclMotionVectors*)( buf + ofs );
+#else
+  ModfxDeclMotionVectors pp;
+  pp.motion_vectors_strength = dafx_load_1f( buf, ofs );
+  return pp;
+#endif
+}
+
 ModfxDeclVolfogInjectionParams ModfxDeclVolfogInjectionParams_load(BufferData_cref buf, uint ofs)
 {
   ModfxDeclVolfogInjectionParams pp;
@@ -172,5 +220,41 @@ ModfxDeclVolfogInjectionParams ModfxDeclVolfogInjectionParams_load(BufferData_cr
 
   return pp;
 }
+
+DAFX_INLINE
+ModfxDeclXrayParams ModfxDeclXrayParams_load(BufferData_cref buf, uint ofs)
+{
+  ModfxDeclXrayParams pp;
+
+  pp.blend_color1 = dafx_load_1ui(buf, ofs);
+  pp.blend_color2 = dafx_load_1ui(buf, ofs);
+  pp.inv_max_distance_times_power = dafx_load_1f(buf, ofs);
+
+  return pp;
+}
+
+ModfxDeclWaterFxParams ModfxDeclWaterFxParams_load(BufferData_cref buf, uint ofs)
+{
+  ModfxDeclWaterFxParams pp;
+
+  pp.use_height_tex_1 = dafx_load_1ui(buf, ofs);
+  pp.height_scale = dafx_load_1f(buf, ofs);
+  pp.detail_params = dafx_load_3f(buf, ofs);
+
+  return pp;
+}
+
+DAFX_INLINE
+ModfxDeclFakeBrightness ModfxDeclFakeBrightness_load( BufferData_cref buf, uint ofs )
+{
+#ifdef __cplusplus
+  return *(ModfxDeclFakeBrightness*)(buf + ofs);
+#else
+  ModfxDeclFakeBrightness pp;
+  pp.brightness_values = dafx_load_4f( buf, ofs );
+  return pp;
+#endif
+}
+
 
 #endif

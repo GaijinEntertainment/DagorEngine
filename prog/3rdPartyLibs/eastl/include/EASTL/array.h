@@ -17,6 +17,7 @@
 
 
 #include <EASTL/internal/config.h>
+#include <EASTL/internal/tuple_fwd_decls.h>
 #include <EASTL/iterator.h>
 #include <EASTL/algorithm.h>
 #include <EASTL/utility.h>
@@ -27,6 +28,9 @@
 	#include <stdexcept> // std::out_of_range, std::length_error.
 	EA_RESTORE_ALL_VC_WARNINGS()
 #endif
+
+// 4512/4626 - 'class' : assignment operator could not be generated.  // This disabling would best be put elsewhere.
+EA_DISABLE_VC_WARNING(4512 4626);
 
 #if defined(EA_PRAGMA_ONCE_SUPPORTED)
 	#pragma once // Some compilers (e.g. VC++) benefit significantly from using this. We've measured 3-4% build speed improvements in apps as a result.
@@ -69,18 +73,17 @@ namespace eastl
 		typedef eastl_size_t                                  size_type;        // See config.h for the definition of eastl_size_t, which defaults to size_t.
 		typedef ptrdiff_t                                     difference_type;
 
-	public:
 		enum
 		{
-			count = N
+			count EASTL_REMOVE_AT_2024_APRIL = N
 		};
 
 		// Note that the member data is intentionally public.
 		// This allows for aggregate initialization of the
 		// object (e.g. array<int, 5> a = { 0, 3, 2, 4 }; )
-		value_type mValue[N ? N : 1];
+		// do not use this member directly (use data() instead).
+		value_type mValue[N];
 
-	public:
 		// We intentionally provide no constructor, destructor, or assignment operator.
 
 		void fill(const value_type& value);
@@ -127,6 +130,98 @@ namespace eastl
 		int  validate_iterator(const_iterator i) const;
 
 	}; // class array
+
+	// declaring a C-style array of size 0 is not valid C++.
+	// thus, we have to declare this partial specialization:
+	template <typename T>
+	struct array<T, 0>
+	{
+	public:
+		typedef array<T, 0>                                   this_type;
+		typedef T                                             value_type;
+		typedef value_type& reference;
+		typedef const value_type& const_reference;
+		typedef value_type* iterator;
+		typedef const value_type* const_iterator;
+		typedef eastl::reverse_iterator<iterator>             reverse_iterator;
+		typedef eastl::reverse_iterator<const_iterator>       const_reverse_iterator;
+		typedef eastl_size_t                                  size_type;        // See config.h for the definition of eastl_size_t, which defaults to size_t.
+		typedef ptrdiff_t                                     difference_type;
+
+		enum
+		{
+			count EASTL_REMOVE_AT_2024_APRIL = 0
+		};
+
+		// We intentionally provide no constructor, destructor, or assignment operator.
+
+		void fill(const value_type&) {}
+
+		// Unlike the swap function for other containers, array::swap takes linear time,
+		// may exit via an exception, and does not cause iterators to become associated with the other container.
+		void swap(this_type&) EA_NOEXCEPT {}
+
+		EA_CPP14_CONSTEXPR iterator       begin() EA_NOEXCEPT { return nullptr; }
+		EA_CPP14_CONSTEXPR const_iterator begin() const EA_NOEXCEPT { return nullptr; }
+		EA_CPP14_CONSTEXPR const_iterator cbegin() const EA_NOEXCEPT { return nullptr; }
+
+		EA_CPP14_CONSTEXPR iterator       end() EA_NOEXCEPT { return nullptr; }
+		EA_CPP14_CONSTEXPR const_iterator end() const EA_NOEXCEPT { return nullptr; }
+		EA_CPP14_CONSTEXPR const_iterator cend() const EA_NOEXCEPT { return nullptr; }
+
+		EA_CPP14_CONSTEXPR reverse_iterator       rbegin() EA_NOEXCEPT { return reverse_iterator(nullptr); }
+		EA_CPP14_CONSTEXPR const_reverse_iterator rbegin() const EA_NOEXCEPT { return const_reverse_iterator(nullptr); }
+		EA_CPP14_CONSTEXPR const_reverse_iterator crbegin() const EA_NOEXCEPT { return const_reverse_iterator(nullptr); }
+
+		EA_CPP14_CONSTEXPR reverse_iterator       rend() EA_NOEXCEPT { return reverse_iterator(nullptr); }
+		EA_CPP14_CONSTEXPR const_reverse_iterator rend() const EA_NOEXCEPT { return const_reverse_iterator(nullptr); }
+		EA_CPP14_CONSTEXPR const_reverse_iterator crend() const EA_NOEXCEPT { return const_reverse_iterator(nullptr); }
+
+		EA_CPP14_CONSTEXPR bool empty() const EA_NOEXCEPT { return true; }
+		EA_CPP14_CONSTEXPR size_type size() const EA_NOEXCEPT { return 0; }
+		EA_CPP14_CONSTEXPR size_type max_size() const EA_NOEXCEPT { return 0; }
+
+		EA_CPP14_CONSTEXPR T* data() EA_NOEXCEPT { return nullptr; }
+		EA_CPP14_CONSTEXPR const T* data() const EA_NOEXCEPT { return nullptr; }
+
+		EA_CPP14_CONSTEXPR reference       operator[](size_type) { return *data(); }
+		EA_CPP14_CONSTEXPR const_reference operator[](size_type) const { return *data(); }
+
+		EA_DISABLE_VC_WARNING(4702); // unreachable code
+		EA_CPP14_CONSTEXPR const_reference at(size_type) const
+		{
+#if EASTL_EXCEPTIONS_ENABLED
+			throw std::out_of_range("array::at -- out of range");
+#elif EASTL_ASSERT_ENABLED
+			EASTL_FAIL_MSG("array::at -- out of range");
+#endif
+			return *data();
+		}
+		EA_RESTORE_VC_WARNING();
+
+		EA_DISABLE_VC_WARNING(4702); // unreachable code
+		EA_CPP14_CONSTEXPR reference       at(size_type)
+		{
+#if EASTL_EXCEPTIONS_ENABLED
+			throw std::out_of_range("array::at -- out of range");
+#elif EASTL_ASSERT_ENABLED
+			EASTL_FAIL_MSG("array::at -- out of range");
+#endif
+			return *data();
+		}
+		EA_RESTORE_VC_WARNING();
+
+		EA_CPP14_CONSTEXPR reference       front() { return *data(); }
+		EA_CPP14_CONSTEXPR const_reference front() const { return *data(); }
+
+		EA_CPP14_CONSTEXPR reference       back() { return *data(); }
+		EA_CPP14_CONSTEXPR const_reference back() const { return *data(); }
+
+		bool validate() const { return true; }
+		int  validate_iterator(const_iterator) const { return isf_none; }
+
+	}; // class array
+
 
 
 	///////////////////////////////////////////////////////////////////////////
@@ -279,6 +374,15 @@ namespace eastl
 	EA_CPP14_CONSTEXPR inline typename array<T, N>::reference
 	array<T, N>::operator[](size_type i)
 	{
+		#if EASTL_ASSERT_ENABLED && EASTL_EMPTY_REFERENCE_ASSERT_ENABLED
+			if (EASTL_UNLIKELY(i >= N))
+				EASTL_FAIL_MSG("array::operator[] -- out of range");
+		#elif EASTL_ASSERT_ENABLED
+			// We allow taking a reference to arr[0]
+			if (EASTL_UNLIKELY((i != 0) && i >= N))
+				EASTL_FAIL_MSG("array::operator[] -- out of range");
+		#endif
+
 		return mValue[i];
 	}
 
@@ -287,6 +391,15 @@ namespace eastl
 	EA_CPP14_CONSTEXPR inline typename array<T, N>::const_reference
 	array<T, N>::operator[](size_type i) const
 	{
+		#if EASTL_ASSERT_ENABLED && EASTL_EMPTY_REFERENCE_ASSERT_ENABLED
+			if (EASTL_UNLIKELY(i >= N))
+				EASTL_FAIL_MSG("array::operator[] -- out of range");
+		#elif EASTL_ASSERT_ENABLED
+			// We allow taking a reference to arr[0]
+			if (EASTL_UNLIKELY((i != 0) && i >= N))
+				EASTL_FAIL_MSG("array::operator[] -- out of range");
+		#endif
+
 		return mValue[i];
 	}
 
@@ -401,6 +514,13 @@ namespace eastl
 		return eastl::equal(&a.mValue[0], &a.mValue[N], &b.mValue[0]);
 	}
 
+#if defined(EA_COMPILER_HAS_THREE_WAY_COMPARISON)
+	template <typename T, size_t N>
+	inline synth_three_way_result<T> operator<=>(const array<T, N>& a, const array<T,N>& b)
+	{
+	    return eastl::lexicographical_compare_three_way(&a.mValue[0], &a.mValue[N], &b.mValue[0], &b.mValue[N], synth_three_way{});
+	}
+#else
 
 	template <typename T, size_t N>
 	EA_CPP14_CONSTEXPR inline bool operator<(const array<T, N>& a, const array<T, N>& b)
@@ -435,7 +555,39 @@ namespace eastl
 	{
 		return !eastl::lexicographical_compare(&a.mValue[0], &a.mValue[N], &b.mValue[0], &b.mValue[N]);
 	}
+#endif
 
+	///////////////////////////////////////////////////////////////////////
+	// non-member functions
+	///////////////////////////////////////////////////////////////////////
+
+	template<size_t I, typename T, size_t N>
+	EA_NODISCARD EA_CONSTEXPR T& get(array<T, N>& value) EA_NOEXCEPT
+	{
+		static_assert(I < N, "array index out of bounds");
+		return value.mValue[I];
+	}
+
+	template<size_t I, typename T, size_t N>
+	EA_NODISCARD EA_CONSTEXPR T&& get(array<T, N>&& value) EA_NOEXCEPT
+	{
+		static_assert(I < N, "array index out of bounds");
+		return move(value.mValue[I]);
+	}
+
+	template<size_t I, typename T, size_t N>
+	EA_NODISCARD EA_CONSTEXPR const T& get(const array<T, N>& value) EA_NOEXCEPT
+	{
+		static_assert(I < N, "array index out of bounds");
+		return value.mValue[I];
+	}
+
+	template<size_t I, typename T, size_t N>
+	EA_NODISCARD EA_CONSTEXPR const T&& get(const array<T, N>&& value) EA_NOEXCEPT
+	{
+		static_assert(I < N, "array index out of bounds");
+		return move(value.mValue[I]);
+	}
 
 	template <typename T, size_t N>
 	inline void swap(array<T, N>& a, array<T, N>& b)
@@ -478,9 +630,53 @@ namespace eastl
 		return internal::to_array(eastl::move(a), eastl::make_index_sequence<N>{});
 	}
 
+#if EASTL_TUPLE_ENABLED
 
+	///////////////////////////////////////////////////////////////////////
+	// helper classes
+	///////////////////////////////////////////////////////////////////////
+
+	template<typename T, size_t N>
+	struct tuple_size<array<T, N>> : public integral_constant<size_t, N> {};
+
+	namespace internal {
+	template<size_t I, typename T, size_t N, typename = void>
+	struct tuple_element {};
+
+	template<size_t I, typename T, size_t N>
+	struct tuple_element<I, T, N, eastl::enable_if_t<(I < N)>> {
+		using type = T;
+	};
+	}
+
+	template<size_t I, typename T, size_t N>
+	struct tuple_element<I, array<T, N>> : internal::tuple_element<I, T, N> {};
+
+#endif  // EASTL_TUPLE_ENABLED
 } // namespace eastl
 
+///////////////////////////////////////////////////////////////////////
+// C++17 structured bindings support for eastl::array
+///////////////////////////////////////////////////////////////////////
+
+#ifndef EA_COMPILER_NO_STRUCTURED_BINDING
+// we can't forward declare tuple_size and tuple_element because some std implementations
+// don't declare it in the std namespace, but instead alias it.
+#include <array>
+
+namespace std
+{
+
+template<typename T, size_t N>
+struct tuple_size<eastl::array<T, N>> : public eastl::integral_constant<size_t, N> {};
+
+template<size_t I, typename T, size_t N>
+struct tuple_element<I, eastl::array<T, N>> : public eastl::tuple_element<I, eastl::array<T, N>> {};
+}
+#endif
+
+
+EA_RESTORE_VC_WARNING();
 
 #endif // Header include guard
 

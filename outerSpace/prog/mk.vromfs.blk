@@ -1,0 +1,168 @@
+platform:t="PC"
+//platform:t="iOS"
+outputRoot_PC:t= "../game/"
+//outputRoot_iOS:t="../game.iOS/"
+output:t="outer_space.vromfs.bin"
+
+allowMkDir:b=yes
+pack:b=true
+
+sign_private_key:t=""
+sign_digest:t="sha256"
+
+rootFolder:t="."
+
+
+folder {
+  path:t="gameBase"
+  dest_path:t="./"
+  scan_folder:b=true
+  scan_subfolders:b=true
+  wildcard:t="*.json"
+  wildcard:t="*.blk"
+  wildcard:t="*.nut"
+  wildcard:t="*.das"
+  wildcard:t="*.patch"
+}
+folder {
+  path:t="scripts/"
+  dest_path:t="scripts/"
+  scan_folder:b=true
+  scan_subfolders:b=true
+  wildcard:t="*.json"
+  wildcard:t="*.blk"
+  wildcard:t="*.nut"
+  wildcard:t="*.das"
+  wildcard:t="*.patch"
+  wildcard:t="*.json"
+  wildcard:t="project.das_project"
+  wildcard:t="*.svg"
+}
+
+folder {
+  path:t="../../prog/scripts/sq/daRg"
+  dest_path:t="sq/darg"
+  scan_folder:b=true
+  scan_subfolders:b=true
+  wildcard:t=*.nut
+}
+
+folder {
+  path:t="../../prog/scripts/sq/std"
+  dest_path:t="sq/std"
+  scan_folder:b=true
+  scan_subfolders:b=true
+  wildcard:t=*.nut
+}
+folder {
+  path:t="../../prog/scripts/sq/daeditor"
+  dest_path:t="sq/daeditor"
+  scan_folder:b=true
+  scan_subfolders:b=true
+  wildcard:t=*.nut
+  wildcard:t=*.blk
+  wildcard:t=*.svg
+}
+"@clone-last:folder"{
+  "@override:path":t="../../prog/1stPartyLibs/daScript/daslib"
+  "@override:dest_path":t="daslib"
+  "@delete-all:wildcard":t=""
+  wildcard:t=*.das
+  wildcard:t=*.blk
+  wildcard:t=*.nut
+}
+"@clone-last:folder"{
+  "@override:path":t="../../prog/scripts/game"
+  "@override:dest_path":t="game"
+}
+"@clone-last:folder"{
+  "@override:path":t="../../prog/daNetGame/scripts/das/daslib"
+  "@override:dest_path":t="das/daslib"
+}
+"@clone-last:folder" {
+  "@override:path":t="../../prog/daNetGame/scripts/globals"
+  "@override:dest_path":t="daNetGame/qscripts"
+}
+
+
+"@clone-last:folder"{
+  "@override:path":t="../../prog/daNetGame/scripts/das/debug"
+  "@override:dest_path":t="das/debug"
+}
+
+"@clone-last:folder"{
+  "@override:path":t="../../prog/gameLibs/das/ecs"
+  "@override:dest_path":t="das/ecs"
+}
+"@clone-last:folder"{
+  "@override:path":t="../../prog/gameLibs/das/daFrameGraph"
+  "@override:dest_path":t="das/daFrameGraph"
+}
+"@clone-last:folder"{
+  "@override:path":t="../../prog/gameLibs/das/math"
+  "@override:dest_path":t="das/math"
+}
+
+"@clone-last:folder"{
+  "@override:path":t="../../prog/daNetGameLibs/dascript_base/"
+  "@override:dest_path":t="danetlibs/dascript_base/"
+}
+
+"@clone-last:folder"{
+  "@override:path":t="../../prog/daNetGameLibs/native_dasevents/"
+  "@override:dest_path":t="danetlibs/native_dasevents/"
+}
+
+"@clone-last:folder"{
+  "@override:path":t="../../prog/daNetGameLibs/render_debug/"
+  "@override:dest_path":t="danetlibs/render_debug/"
+}
+
+"@clone-last:folder"{
+  "@override:path":t="../../prog/daNetGameLibs/frame_graph_renderer/"
+  "@override:dest_path":t="danetlibs/frame_graph_renderer/"
+}
+
+"@clone-last:folder"{
+  "@override:path":t="../../prog/daNetGameLibs/renderer/"
+  "@override:dest_path":t="danetlibs/renderer/"
+}
+
+"@clone-last:folder"{
+  "@override:path":t="../../prog/daNetGameLibs/bloom/"
+  "@override:dest_path":t="danetlibs/bloom/"
+}
+
+"@clone-last:folder"{
+  "@override:path":t="../../prog/daNetGameLibs/render_debug/"
+  "@override:dest_path":t="danetlibs/render_debug/"
+}
+
+"@clone-last:folder"{
+  "@override:path":t="../../prog/daNetGameLibs/blurred_ui/"
+  "@override:dest_path":t="danetlibs/blurred_ui/"
+}
+
+exclude {
+//  exclude:t="(gameData.*|config.*|gui.*)[/\\]_[\w\.\-]*\.blk$"
+}
+preprocess {
+  ext:t=blk
+  ext:t=txt
+  ext:t=nut
+  ext:t=css
+  ext:t=csv
+  keepLines {
+    include:t=".*\.nut$"
+  }
+}
+
+packBlk {
+  exclude:t="\.gameparams\.blk$"
+  exclude:t="/_dm_settings\.blk$"
+  exclude:t="/_dm_wheel_settings\.blk$"
+
+  include:t=".*.blk$"
+  include:t="\.settings\.blk$"
+  exclude:t="\/network.blk$"
+}

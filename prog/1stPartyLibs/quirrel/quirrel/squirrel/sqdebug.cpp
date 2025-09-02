@@ -71,7 +71,7 @@ void SQVM::Raise_Error(const SQObjectPtr &desc)
     _lasterror = desc;
 }
 
-SQString *SQVM::PrintObjVal(const SQObjectPtr &o)
+SQString *SQVM::PrintObjVal(const SQObject &o)
 {
     switch(sq_type(o)) {
     case OT_STRING: return _string(o);
@@ -90,28 +90,28 @@ SQString *SQVM::PrintObjVal(const SQObjectPtr &o)
 
 void SQVM::Raise_IdxError(const SQObjectPtr &o)
 {
-    SQObjectPtr oval = PrintObjVal(o);
+    SQObjectPtr oval(PrintObjVal(o));
     Raise_Error(_SC("the index '%.50s' does not exist"), _stringval(oval));
 }
 
 void SQVM::Raise_CompareError(const SQObject &o1, const SQObject &o2)
 {
-    SQObjectPtr oval1 = PrintObjVal(o1), oval2 = PrintObjVal(o2);
+    SQObjectPtr oval1(PrintObjVal(o1)), oval2(PrintObjVal(o2));
     Raise_Error(_SC("comparison between '%.50s' and '%.50s'"), _stringval(oval1), _stringval(oval2));
 }
 
 
 void SQVM::Raise_ParamTypeError(SQInteger nparam,SQInteger typemask,SQInteger type)
 {
-    SQObjectPtr exptypes = SQString::Create(_ss(this), _SC(""), -1);
+    SQObjectPtr exptypes(SQString::Create(_ss(this), _SC(""), -1));
     SQInteger found = 0;
     for(SQInteger i=0; i<16; i++)
     {
         SQInteger mask = ((SQInteger)1) << i;
         if(typemask & (mask)) {
-            if(found>0) StringCat(exptypes,SQString::Create(_ss(this), _SC("|"), -1), exptypes);
+            if(found>0) StringCat(exptypes, SQObjectPtr(SQString::Create(_ss(this), _SC("|"), -1)), exptypes);
             found ++;
-            StringCat(exptypes,SQString::Create(_ss(this), IdType2Name((SQObjectType)mask), -1), exptypes);
+            StringCat(exptypes, SQObjectPtr(SQString::Create(_ss(this), IdType2Name((SQObjectType)mask), -1)), exptypes);
         }
     }
     Raise_Error(_SC("parameter %d has an invalid type '%s' ; expected: '%s'"), (int)nparam,

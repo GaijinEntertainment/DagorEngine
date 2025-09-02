@@ -1,0 +1,20 @@
+include shaders_tools11.blk
+
+"@override:outDumpName":t="../../tools/common/compiledShaders/tools.impostorbakerDX12"
+"@override:shader_root_dir":t="."
+
+"@delete:source" {}
+source
+{
+  includePath:t="../../../prog/daNetGame/shaders"
+
+  file:t = "pack_impostor_texture.dshl"
+  file:t = "pack_grass_impostor_texture.dshl"
+  file:t = "rendinst_impostor_shadow_atlas.dshl"
+  file:t = "generate_imp_mipmaps.dshl"
+  file:t = "bc4_compression.dshl"
+
+  include rendinstImpostorbakeableShadersList.blk
+
+  file:t = "../gui_default.dshl"
+}

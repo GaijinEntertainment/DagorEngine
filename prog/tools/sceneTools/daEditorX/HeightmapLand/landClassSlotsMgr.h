@@ -143,8 +143,5 @@ public:
     DataBlock &fileBlk, int layer_idx);
 
 protected:
-  static void __stdcall LandClassSlotsManager::reinitRIGenCallBack(void *arg)
-  {
-    reinterpret_cast<LandClassSlotsManager *>(arg)->reinitRIGen(true);
-  }
+  static void __stdcall reinitRIGenCallBack(void *arg) { reinterpret_cast<LandClassSlotsManager *>(arg)->reinitRIGen(true); }
 };

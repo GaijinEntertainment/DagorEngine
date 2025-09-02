@@ -551,17 +551,20 @@ Clicking `Shift`+`Ctrl`+`LMB` on texture shows it as simple unlit shader.
 
 ### Batch Import
 
-For importing several assets at once it's better to use **Batch Import** panel.
-This panel is way more functional than basic import. `?` button right in the header
-enables additional block with short description of active import mode.
+For importing several assets at once, it's better to use the **Batch Import**
+panel. This panel is much more functional than the basic import option. The
+question icon {octicon}`question;1em` in the header enables an additional block
+with a short description of the active import mode.
 
 <img src="_images/batch_imp.png" alt="Batch Import" align="center">
 
-Batch Import panel has two main blocks: global parameters and mode.
+The **Batch Import** panel has two main blocks: global parameters
+([**Parameters**](#parameters)) and mode ([**Simple**](#simple-mode),
+[**Wildcard**](#wildcard-mode), [**Regexp**](#regex-mode)).
 
 #### Parameters
 
-  It contains all the parameters for processing each `.dag` regardless mode.
+  It contains all the parameters for processing `.dag` regardless mode.
 
 - **Search in subfolders**: checks all subdirectories for files. Use cautiously,
   as it can freeze Blender if too many matches are found.
@@ -582,43 +585,36 @@ Batch Import panel has two main blocks: global parameters and mode.
 
 #### Simple Mode
 
-This mode currently matches behavior of `File/Import`, 
-but can search in subfolders for variations, if corresponding parameter is iset to True.
+This mode currently matches behavior of [**File > Import**](#file--import), 
+but can search in subfolders for variations, if corresponding parameter is set to `True`.
 
-If `filepath` does not exist, `IMPORT` button would be disabled.
-
-If parent directory of `filepath` does not exist, `open import directory` would be disabled as well.
+If the filepath in the **File Path** field does not exist, the **IMPORT** button
+will be disabled. If the parent directory of the filepath does not exist, the
+**open import directory** button will also be disabled.
 
 #### Wildcard Mode
 
 <img src="_images/batch_imp_wildcard.png" alt="Batch Import Wildcard" align="center">
 
-Instead of single filepath, this mode uses path to a directory and rules for processing files.
-This mode uses [fnmatch](https://docs.python.org/3/library/fnmatch.html) library for filtering.
+Instead of a single file path, this mode uses a directory path (**Dirpath**) and
+a set of rules for processing files. It uses the
+[fnmatch](https://docs.python.org/3/library/fnmatch.html) library for filtering.
 
 Rules are quite simple:
 
-<table class="docutils align-default" id="index-2">
-<thead>
-<tr class="row-odd"><th class="head"><p>Pattern</p></th>
-<th class="head"><p>Meaning</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">*</span></code></p></td>
-<td><p>matches everything</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">?</span></code></p></td>
-<td><p>matches any single character</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">[seq]</span></code></p></td>
-<td><p>matches any character in <em>seq</em></p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">[!seq]</span></code></p></td>
-<td><p>matches any character not in <em>seq</em></p></td>
-</tr>
-</tbody>
-</table>
+```{eval-rst}
++------------+---------------------------------------------+
+| Pattern    | Meaning                                     |
++============+=============================================+
+| ``*``      | matches everything                          |
++------------+---------------------------------------------+
+| ``?``      | matches any single character                |
++------------+---------------------------------------------+
+| ``[seq]``  | matches any character in *seq*              |
++------------+---------------------------------------------+
+| ``[!seq]`` | matches any character not in *seq*          |
++------------+---------------------------------------------+
+```
 
 Every other symbol is processed as is.
 
@@ -636,22 +632,26 @@ so you don't have to specify extension every time.
 
   **Example:**
 
-  `Includes: “asset_a.lod0[0,2]", "asset_b_dp*”; Excludes=“*_dmg*”` imports
-  `asset_a.lod00.dag`, `asset_a.lod02.dag`, and all LODs of all `asset_b_dp`,
-  except their `_dmg` versions. `other_asset_a.lod00.dag` would be skipped,
-  because `*` is not present in the beginning of include, so extra symbols are not allowed.
+**Includes:** `“asset_a.lod0[0,2]", "asset_b_dp*”;` **Excludes**: `“*_dmg*”`
+imports `asset_a.lod00.dag`, `asset_a.lod02.dag`, and all LODs of all
+`asset_b_dp`, except their `_dmg` versions. The `other_asset_a.lod00.dag` file
+would be skipped, because `*` is not present in the beginning of include, so
+extra symbols are not allowed.
 
 #### Regex Mode
 
-This mode is quite similar to previous one, but uses full power of [regular expressions](https://docs.python.org/3/library/re.html#regular-expression-syntax)
+This mode is quite similar to previous one, but uses full power of [regular expressions](https://docs.python.org/3/library/re.html#regular-expression-syntax).
 
 It exist for rare cases, when fnmatch is not enough for some comlex processing.
-If you're not familliar with regex synthax, just stick to `Wildcard` mode.
+If you're not familliar with regex synthax, just stick to **Wildcard** mode.
 
 ```{note}
-When you paste filepath from window explorer to `Simple` mode parameter, `"` are removed automatically.
-When you paste filepath to `Dirpath` parameter of `Wildcard` or `Regex` modes,
-it's cut down to dirpath, while filename takes place of includes (with corrected sythax)
+When you paste a filepath from Explorer into the **File Path** field of the
+**Simple** mode, quotation marks (`"`) are removed automatically.
+
+When you paste a filepath into the **Dirpath** field of the **Wildcard** or
+**Regex** modes, it's trimmed down to the directory path, while the filename is
+moved to the includes section (with corrected syntax).
 ```
 
 ```{note}

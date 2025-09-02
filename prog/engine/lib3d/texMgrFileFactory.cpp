@@ -56,7 +56,13 @@ BaseTexture *FileTextureFactory::createTexture(TEXTUREID id)
   // when it optimizes the memory layout of stored texture names.
   // Creating a copy of this texture makes it very unlikely that it would cause a crash it this function,
   // which has been happening previously in WTM
-  eastl::fixed_string<char, 128, true, framemem_allocator> textureName = get_managed_texture_name(id);
+  const char *fn = get_managed_texture_name(id);
+  if (!fn || !*fn)
+  {
+    logwarn("%s(0x%x) refers to null texname, rc=%d", __FUNCTION__, id, get_managed_texture_refcount(id));
+    return nullptr;
+  }
+  eastl::fixed_string<char, 128, true, framemem_allocator> textureName = fn;
   if (textureName.empty())
     return NULL;
 

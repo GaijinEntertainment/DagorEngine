@@ -1,9 +1,9 @@
 buffer plod_output;
 
-int plod_output_no = 5;
+int plod_output_no = 6;
 
 macro PLOD_GEN_COMMON(enable, channel_count)
-  static int plod_gen = 0;
+  static int plod_gen = 0 no_warnings;
   static float plod_level = 5.0 no_warnings; // TODO: Should depend on cloud density and be set explicitly.
   interval plod_gen : plod_gen_off < 1, plod_gen_on;
   if (enable && plod_gen == plod_gen_on)

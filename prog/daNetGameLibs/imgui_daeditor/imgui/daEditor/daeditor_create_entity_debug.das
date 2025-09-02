@@ -11,7 +11,7 @@ require imgui/imgui_boost
 
 [console_cmd(name="imgui.editor_create_window")]
 def show_create_window()
-  let isVisible = imgui_get_state() != ImGuiState OFF && imgui_window_is_visible("Editor", "Create entity")
+  let isVisible = imgui_get_state() != ImGuiState.OFF && imgui_window_is_visible("Editor", "Create entity")
   let setVisible = !isVisible
   console_command(setVisible ? "imgui.activate" : "imgui.off")
   imgui_window_set_visible("Editor", "Create entity", setVisible)

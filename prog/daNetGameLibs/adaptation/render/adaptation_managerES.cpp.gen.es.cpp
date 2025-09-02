@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "adaptation_managerES.cpp.inl"
 ECS_DEF_PULL_VAR(adaptation_manager);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc adaptation_settings_tracking_es_comps[] =
 {
@@ -277,13 +279,13 @@ static constexpr ecs::ComponentDesc adaptation_node_init_ecs_query_comps[] =
 {
 //start of 8 rw components at [0]
   {ECS_HASH("adaptation__manager"), ecs::ComponentTypeInfo<AdaptationManager>()},
-  {ECS_HASH("adaptation__update_readback_exposure_node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()},
-  {ECS_HASH("adaptation__create_histogram_node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()},
-  {ECS_HASH("adaptation__gen_histogram_forward_node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()},
+  {ECS_HASH("adaptation__update_readback_exposure_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
+  {ECS_HASH("adaptation__create_histogram_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
+  {ECS_HASH("adaptation__gen_histogram_forward_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
   {ECS_HASH("adaptation__gen_histogram_node"), ecs::ComponentTypeInfo<resource_slot::NodeHandleWithSlotsAccess>()},
-  {ECS_HASH("adaptation__accumulate_histogram"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()},
-  {ECS_HASH("adaptation__adapt_exposure_node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()},
-  {ECS_HASH("adaptation__set_exposure_node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()}
+  {ECS_HASH("adaptation__accumulate_histogram"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
+  {ECS_HASH("adaptation__adapt_exposure_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
+  {ECS_HASH("adaptation__set_exposure_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()}
 };
 static ecs::CompileTimeQueryDesc adaptation_node_init_ecs_query_desc
 (
@@ -302,13 +304,13 @@ inline void adaptation_node_init_ecs_query(ecs::EntityId eid, Callable function)
         {
           function(
               ECS_RW_COMP(adaptation_node_init_ecs_query_comps, "adaptation__manager", AdaptationManager)
-            , ECS_RW_COMP(adaptation_node_init_ecs_query_comps, "adaptation__update_readback_exposure_node", dabfg::NodeHandle)
-            , ECS_RW_COMP(adaptation_node_init_ecs_query_comps, "adaptation__create_histogram_node", dabfg::NodeHandle)
-            , ECS_RW_COMP(adaptation_node_init_ecs_query_comps, "adaptation__gen_histogram_forward_node", dabfg::NodeHandle)
+            , ECS_RW_COMP(adaptation_node_init_ecs_query_comps, "adaptation__update_readback_exposure_node", dafg::NodeHandle)
+            , ECS_RW_COMP(adaptation_node_init_ecs_query_comps, "adaptation__create_histogram_node", dafg::NodeHandle)
+            , ECS_RW_COMP(adaptation_node_init_ecs_query_comps, "adaptation__gen_histogram_forward_node", dafg::NodeHandle)
             , ECS_RW_COMP(adaptation_node_init_ecs_query_comps, "adaptation__gen_histogram_node", resource_slot::NodeHandleWithSlotsAccess)
-            , ECS_RW_COMP(adaptation_node_init_ecs_query_comps, "adaptation__accumulate_histogram", dabfg::NodeHandle)
-            , ECS_RW_COMP(adaptation_node_init_ecs_query_comps, "adaptation__adapt_exposure_node", dabfg::NodeHandle)
-            , ECS_RW_COMP(adaptation_node_init_ecs_query_comps, "adaptation__set_exposure_node", dabfg::NodeHandle)
+            , ECS_RW_COMP(adaptation_node_init_ecs_query_comps, "adaptation__accumulate_histogram", dafg::NodeHandle)
+            , ECS_RW_COMP(adaptation_node_init_ecs_query_comps, "adaptation__adapt_exposure_node", dafg::NodeHandle)
+            , ECS_RW_COMP(adaptation_node_init_ecs_query_comps, "adaptation__set_exposure_node", dafg::NodeHandle)
             );
 
         }

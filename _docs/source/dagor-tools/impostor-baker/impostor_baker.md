@@ -1,3 +1,5 @@
+# Impostor Baker
+
 ## Overview
 
 The purpose of this tool is to generate impostor textures of rendinst models to

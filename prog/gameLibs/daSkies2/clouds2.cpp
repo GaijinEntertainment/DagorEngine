@@ -136,7 +136,7 @@ void Clouds2::setGameParams(const DaSkies::CloudsSettingsParams &game_params)
   field.setParams(gameParams);
   field.invalidate();
   cloudShadows.invalidate(); // todo: instead force temporal recalc!
-  holeFound = false;
+  holeFound = HoleFindStatus::REQUIRE_FIND;
 }
 
 void Clouds2::setWeatherGen(const DaSkies::CloudsWeatherGen &weather_params)
@@ -164,7 +164,7 @@ void Clouds2::invalidateShadows()
 
   field.invalidate();
   cloudShadows.invalidate(); // todo: instead force temporal recalc!
-  holeFound = false;
+  holeFound = HoleFindStatus::REQUIRE_FIND;
   // light.invalidate();
 }
 
@@ -232,14 +232,15 @@ void Clouds2::update(float dt)
 }
 
 void Clouds2::renderClouds(CloudsRendererData &data, const TextureIDPair &depth, const TextureIDPair &prev_depth,
-  const TMatrix &view_tm, const TMatrix4 &proj_tm)
+  const TMatrix &view_tm, const TMatrix4 &proj_tm, const bool acquare_new_resource, const bool set_camera_vars)
 {
   if (!renderingEnabled)
   {
     return;
   }
   noises.setVars();
-  clouds.render(data, depth, prev_depth, erosionWindChange, weatherParams.worldSize, view_tm, proj_tm);
+  clouds.render(data, depth, prev_depth, erosionWindChange, weatherParams.worldSize, view_tm, proj_tm, nullptr, acquare_new_resource,
+    set_camera_vars);
 }
 
 void Clouds2::renderCloudsScreen(CloudsRendererData &data, const TextureIDPair &downsampled_depth, TEXTUREID target_depth,
@@ -250,42 +251,6 @@ void Clouds2::renderCloudsScreen(CloudsRendererData &data, const TextureIDPair &
     return;
   }
   clouds.renderFull(data, downsampled_depth, target_depth, target_depth_transform, view_tm, proj_tm);
-}
-
-void Clouds2::processHole()
-{
-  if (!useHole)
-    return;
-
-  if (needHoleCPUUpdate == HOLE_UPDATED)
-    return;
-
-  if (needHoleCPUUpdate == HOLE_CREATED)
-  {
-    int frame1;
-    Texture *currentTarget = ringTextures.getNewTarget(frame1);
-    if (currentTarget)
-    {
-      d3d::stretch_rect(holePosTex.getTex2D(), currentTarget, NULL, NULL);
-      ringTextures.startCPUCopy();
-      needHoleCPUUpdate = HOLE_PROCESSED;
-    }
-  }
-
-  if (needHoleCPUUpdate == HOLE_PROCESSED)
-  {
-    uint32_t frame2;
-    int stride;
-    uint8_t *data = ringTextures.lock(stride, frame2);
-    if (!data)
-      return;
-    Point4 destData;
-    memcpy(&destData, data, sizeof(Point4));
-
-    ringTextures.unlock();
-    ShaderGlobal::set_color4(clouds_hole_posVarId, destData.x, destData.y, destData.z, destData.w);
-    needHoleCPUUpdate = HOLE_UPDATED;
-  }
 }
 
 CloudsChangeFlags Clouds2::prepareLighting(const Point3 &main_light_dir, const Point3 &second_light_dir)
@@ -308,12 +273,10 @@ CloudsChangeFlags Clouds2::prepareLighting(const Point3 &main_light_dir, const P
     changes |= uint32_t(light.render(main_light_dir, second_light_dir)); // not afr ready
 
     if (cloudsShadowsUpdateFlags == CLOUDS_INVALIDATED)
-      holeFound = false;
+      holeFound = HoleFindStatus::REQUIRE_FIND;
   }
 
   changes |= validateHole(main_light_dir) ? uint32_t(CLOUDS_INVALIDATED) : uint32_t(0);
-
-  processHole();
 
   return CloudsChangeFlags(changes);
 }
@@ -360,42 +323,39 @@ void Clouds2::initHole()
     posTexFlags |= TEXCF_RTARGET;
   }
 
-  holePosTex = dag::create_tex(nullptr, 1, 1, posTexFlags | TEXCF_CLEAR_ON_CREATE, 1, "clouds_hole_pos_tex");
-  ringTextures.close();
-  ringTextures.init(1, 1, 1, "CPU_clouds_hole_tex",
-    TEXFMT_A32B32G32R32F | TEXCF_RTARGET | TEXCF_LINEAR_LAYOUT | TEXCF_CPU_CACHED_MEMORY);
-#if !_TARGET_PC_WIN && !_TARGET_XBOX
-  d3d::GpuAutoLock gpuLock;
-  if (VoltexRenderer::is_compute_supported())
-  {
-    Point4 zeroPos(0, 0, 0, 0);
-    d3d::clear_rwtexf(holePosTex.getTex2D(), reinterpret_cast<float *>(&zeroPos), 0, 0);
-  }
-  else
-  {
-    SCOPE_RENDER_TARGET;
-    d3d::set_render_target(holePosTex.getTex2D(), 0);
-    d3d::clearview(CLEAR_TARGET, E3DCOLOR(), 0, 0);
-  }
-#endif
-  d3d::resource_barrier({holePosTex.getTex2D(), RB_RO_SRV | RB_STAGE_COMPUTE | RB_STAGE_ALL_GRAPHICS, 0, 0});
-  holePosTexStaging = dag::create_tex(nullptr, 1, 1, TEXFMT_A32B32G32R32F, 1, "clouds_hole_pos_tex_1");
+  holePosTex = dag::create_tex(nullptr, 1, 1, posTexFlags, 1, "clouds_hole_pos_tex");
+  holeReadbackQuery.reset(d3d::create_event_query());
 }
 
 bool Clouds2::validateHole(const Point3 &main_light_dir)
 {
-  if (holeFound)
+  if (!d3d::get_event_query_status(holeReadbackQuery.get(), false))
     return false;
 
-  holeFound = true;
-  if (!findHole(main_light_dir))
+  if (holeFound == HoleFindStatus::REQUIRE_FIND)
   {
-    Point2 hole(0, 0);
-    setHole(hole);
+    holeFound = HoleFindStatus::REQUIRE_READBACK;
+    if (!findHole(main_light_dir))
+    {
+      ShaderGlobal::set_color4(clouds_hole_posVarId, Point4::ZERO);
+      holeFound = HoleFindStatus::DONE;
+      return true;
+    }
+    d3d::issue_event_query(holeReadbackQuery.get());
   }
-  needHoleCPUUpdate = HOLE_CREATED;
-  ringTextures.reset();
-  return true;
+  else if (holeFound == HoleFindStatus::REQUIRE_READBACK)
+  {
+    G_ASSERT(useHole);
+    if (auto locked = lock_texture<const Point4>(holePosTex.getTex2D(), 0, TEXLOCK_READ | TEXLOCK_NOSYSLOCK))
+    {
+      Point4 destData = locked.at(0, 0);
+      ShaderGlobal::set_color4(clouds_hole_posVarId, destData);
+      holeFound = HoleFindStatus::DONE;
+      return true;
+    }
+  }
+
+  return false;
 }
 
 bool Clouds2::findHole(const Point3 &main_light_dir)
@@ -409,8 +369,8 @@ bool Clouds2::findHole(const Point3 &main_light_dir)
   if (clouds_hole_cs && clouds_hole_pos_cs)
   {
     {
-      uint32_t v[4] = {0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF};
-      d3d::clear_rwbufi(holeBuf.getBuf(), v);
+      const uint32_t v = 0xFFFFFFFF;
+      holeBuf->updateData(0, sizeof(v), &v, VBLOCK_WRITEONLY);
       d3d::resource_barrier({holeBuf.getBuf(), RB_FLUSH_UAV | RB_STAGE_COMPUTE | RB_SOURCE_STAGE_COMPUTE});
       STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_CS, 0, VALUE), holeBuf.getBuf());
       clouds_hole_cs->dispatchThreads(CLOUDS_HOLE_GEN_RES, CLOUDS_HOLE_GEN_RES, 1);
@@ -421,7 +381,6 @@ bool Clouds2::findHole(const Point3 &main_light_dir)
       ShaderGlobal::set_color4(clouds_hole_target_altVarId, P3D(holeTarget), alt);
       ShaderGlobal::set_color4(clouds_hole_light_dirVarId, P3D(main_light_dir), 0);
       clouds_hole_pos_cs->dispatch();
-      d3d::resource_barrier({holePosTex.getTex2D(), RB_RO_SRV | RB_STAGE_COMPUTE | RB_STAGE_ALL_GRAPHICS, 0, 0});
     }
   }
   else if (clouds_hole_ps.getElem() && clouds_hole_pos_ps.getElem())
@@ -440,8 +399,8 @@ bool Clouds2::findHole(const Point3 &main_light_dir)
     d3d::clearview(CLEAR_TARGET, E3DCOLOR(), 0, 0);
     clouds_hole_pos_ps.getElem()->setStates();
     d3d::draw_instanced(PRIM_TRILIST, 0, 1, 1);
-    d3d::resource_barrier({holePosTex.getTex2D(), RB_RO_SRV | RB_STAGE_COMPUTE | RB_STAGE_ALL_GRAPHICS, 0, 0});
   }
+  request_readback_nosyslock(holePosTex.getTex2D(), 0);
   return true;
 }
 
@@ -456,49 +415,22 @@ void Clouds2::setUseHole(bool set)
   }
   else
   {
-    holeFound = false;
+    holeFound = HoleFindStatus::REQUIRE_FIND;
     ShaderGlobal::set_real(clouds_hole_densityVarId, 1);
   }
 }
 
-void Clouds2::resetHole(const Point3 &hole_target, const float &hole_density)
+void Clouds2::setHole(const Point3 &hole_target, float hole_density)
 {
-  if (!useHole)
-    return;
-
   holeTarget = hole_target;
   holeDensity = hole_density;
-  holeFound = false;
+  holeFound = HoleFindStatus::REQUIRE_FIND;
 }
 
 Point2 Clouds2::getCloudsHole() const
 {
-  Point2 point(0, 0);
-  if (holePosTex.getTex2D() && holeFound)
-  {
-    if (auto lockedTex = lock_texture<const Point4>(holePosTex.getTex2D(), 0, TEXLOCK_READ))
-    {
-      Point4 src = lockedTex.at(0, 0);
-      point = Point2(src.x, src.y);
-      d3d::resource_barrier({holePosTex.getTex2D(), RB_RO_SRV | RB_STAGE_COMPUTE | RB_STAGE_ALL_GRAPHICS, 0, 0});
-    }
-  }
-  return point;
-}
-
-void Clouds2::setHole(const Point2 &p)
-{
-  Point4 bufferData(p.x, p.y, p.x / weatherParams.worldSize, p.y / weatherParams.worldSize);
-  Point4 *holePos;
-  int stride;
-  if (holePosTexStaging && holePosTexStaging->lockimgEx(&holePos, stride, 0, TEXLOCK_WRITE) && holePos)
-  {
-    *holePos = bufferData;
-    holePosTexStaging->unlockimg();
-    holePosTex->update(holePosTexStaging.getTex2D());
-    d3d::resource_barrier({holePosTex.getTex2D(), RB_RO_SRV | RB_STAGE_COMPUTE | RB_STAGE_ALL_GRAPHICS, 0, 0});
-    holeFound = true;
-  }
+  Color4 point = ShaderGlobal::get_color4(clouds_hole_posVarId);
+  return {point.r, point.g};
 }
 
 void Clouds2::getTextureResourceDependencies(Tab<TEXTUREID> &dependencies) const

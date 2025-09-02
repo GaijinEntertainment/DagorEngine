@@ -5,7 +5,8 @@
 #pragma once
 
 #include <shaders/dag_postFxRenderer.h>
-#include <EASTL/shared_ptr.h>
+#include <shaders/dag_computeShaders.h>
+#include <EASTL/unique_ptr.h>
 
 class TextureIDPair;
 class BaseTexture;
@@ -15,13 +16,13 @@ class MipRenderer
 {
 protected:
   PostFxRenderer mipRenderer;
-  eastl::shared_ptr<ComputeShaderElement> mipRendererCS; // shared_ptr is a workaround to use it in framegraph
+  eastl::unique_ptr<ComputeShaderElement> mipRendererCS;
 
 public:
   ~MipRenderer();
   MipRenderer();
   MipRenderer(const char *shader) { init(shader); }
-  MipRenderer(const MipRenderer &) = default;
+  MipRenderer(MipRenderer &&) = default;
   MipRenderer &operator=(MipRenderer &&) = default;
   void close();
   bool init(const char *shader);

@@ -52,17 +52,21 @@ The topological sort order for the init functions is specified in the init annot
 Consider the following example::
 
     [init(before="middle")]
-    def a
+    def a {
         order |> push("a")
+    }
     [init(tag="middle")]
-    def b
+    def b {
         order |> push("b")
+    }
     [init(tag="middle")]
-    def c
+    def c {
         order |> push("c")
+    }
     [init(after="middle")]
-    def d
+    def d {
         order |> push("d")
+    }
 
 Functions will appear in the order of
     1. d
@@ -95,4 +99,28 @@ Lookups
 =======
 
 Global variables and functions can be looked up by name or by mangled name hash on both Daslang and C++ side.
+
+========================================
+Memory allocation and garbage collection
+========================================
+
+Memory allocation strategies for both string heap and regular heap are specified in the `CodeOfPolicies`, as well as options.
+
+To allow garbage collection from inside the context, the following options are necessary::
+
+    options persistent_heap // this one enables garbage-collectable heap
+    options gc              // this one enables garbage collection for the variables on the stack
+
+To collect garbage, from the inside of the context::
+
+    var collect_string_heap = true
+    var validate_after_collect = false
+    heap_collect(collect_string_heap, validate_after_collect)
+
+To do the same thing from the C++ side::
+
+    context->collectHeap(dummy_line_info_ptr, collect_string_heap, validate_after_collect);
+
+
+
 

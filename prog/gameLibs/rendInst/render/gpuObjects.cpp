@@ -104,7 +104,7 @@ void add(const eastl::string &name, int cell_tile, int grid_size, float cell_siz
     manager->getCellData(id, cell_tile, grid_size, cell_size);
     rendinst::riExtra[id].radiusFade = grid_size * cell_size * 0.5;
     rendinst::riExtra[id].radiusFadeDrown = 0.5;
-    rendinst::riExtra[id].hardness = clamp(1.0f - nodeBasedMetadataAppliedParams.hardness, 0.0f, 1.0f);
+    rendinst::riExtra[id].softness = clamp(1.0f - nodeBasedMetadataAppliedParams.hardness, 0.0f, 1.0f);
     rendinst::render::update_per_draw_gathered_data(id);
   }
 }
@@ -196,6 +196,7 @@ void render_layer(RenderPass render_pass, const RiGenVisibility *visibility, Lay
 {
   if (manager && visibility[0].gpuObjectsCascadeId != -1 && gpu_objects_enable.get())
   {
+    bool oldRiDepthPrepass = rendinst::render::useRiDepthPrepass(false);
     ShaderGlobal::set_int(useRiTrackdirtOffsetVarId, 1);
     // TODO: this seems nonsensical, why would we need both layer flags and some particular layer?
     // Possibly some obscure corner-case is involved.
@@ -208,6 +209,7 @@ void render_layer(RenderPass render_pass, const RiGenVisibility *visibility, Lay
       manager->getGpuInstancing(visibility[0].gpuObjectsCascadeId), manager->getIndirectionBuffer(visibility[0].gpuObjectsCascadeId),
       manager->getOffsetsBuffer(visibility[0].gpuObjectsCascadeId));
     ShaderGlobal::set_int(useRiTrackdirtOffsetVarId, 0);
+    rendinst::render::useRiDepthPrepass(oldRiDepthPrepass);
   }
 }
 

@@ -1,0 +1,44 @@
+int lens_glow_enabled = 0;
+texture lens_glow_tex;
+float4 lens_glow_tint = float4(0, 0, 0, 0);
+float4 lens_glow_flare_params = float4(0, 0, 0, 0);
+float4 lens_glow_bloom_params = float4(0, 0, 0, 0);
+float4 lens_glow_tex_params = float4(0, 0, 0, 0);
+
+macro INIT_LENS_GLOW()
+  (ps) {
+    lens_glow_tex@tex2d = lens_glow_tex;
+    lens_glow_enabled@i1 = (lens_glow_enabled);
+    lens_glow_tex_exists@i1 = (exists_tex(lens_glow_tex));
+    lens_glow_tint@f3 = lens_glow_tint;
+    lens_glow_flare_offset_mul@f2 = lens_glow_flare_params;
+    lens_glow_bloom_offset_mul@f2 = lens_glow_bloom_params;
+    lens_glow_tex_params@f2 = lens_glow_tex_params;
+  }
+endmacro
+
+macro USE_LENS_GLOW(flare_sampler)
+  hlsl(ps) {
+    #define lens_glow_tex_samplerstate flare_sampler
+
+    void apply_lens_glow(inout half3 color, float2 screen_uv, half3 lens_flare_value, float3 bloom)
+    {
+      BRANCH
+      if (!lens_glow_enabled || !lens_glow_tex_exists)
+        return;
+
+      // Values are intentionally used without decoding the exposure:
+      //  a) Encoded value is produced as a result, so no need to apply exposure on the result
+      //  b) The offset parameters implicitly scale with exposure, which ensure consistent effect independent of lighting conditions (looks good)
+
+      half3 bloomGlow = max((bloom - lens_glow_bloom_offset_mul.xxx) * lens_glow_bloom_offset_mul.y, 0);
+      half3 flareGlow = max((lens_flare_value - lens_glow_flare_offset_mul.xxx) * lens_glow_flare_offset_mul.y, 0);
+
+      float2 texCoords = ((screen_uv*2-1)*lens_glow_tex_params.xy)*0.5+0.5;
+      half3 textureValue = tex2D(lens_glow_tex, texCoords).rgb;
+      half3 glowValue = lens_glow_tint * (bloomGlow + flareGlow) * textureValue;
+
+      color += glowValue;
+    }
+  }
+endmacro

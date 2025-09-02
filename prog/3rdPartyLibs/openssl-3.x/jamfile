@@ -62,6 +62,12 @@ if $(EnableZlibForSSL) = yes {
   Copt += -DZLIB ;
 }
 
+if $(PlatformSpec) = clang {
+  if $(Sanitize) = undefined {
+    Copt += -fno-sanitize=undefined ;
+  }
+}
+
 if $(PlatformSpec) = gcc {
   if $(Sanitize) = thread {
     Copt += -fno-sanitize=thread ;

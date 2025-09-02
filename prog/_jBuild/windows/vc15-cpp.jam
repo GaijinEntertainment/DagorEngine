@@ -134,9 +134,9 @@ rule ProcessCompileTarget
       _CONFIG_OPT = /GF /Gy /Gw /Oi /Ot /Oy- -DDAGOR_DBGLEVEL=1 ;           # /Ob0 - internal compiler error workaround.
       if $(CheckOnly) = yes { _CONFIG_OPT += /Od ; } else { _CONFIG_OPT += /Ox ; }
     case rel :
-      _CONFIG_OPT = /Ox /GF /Gy /Gw /Oi /Ot /Oy- -DDAGOR_DBGLEVEL=0 -DNDEBUG=1 -D_SECURE_SCL=0 ;
+      _CONFIG_OPT = /Ox /GF /Gy /Gw /Oi /Ot /Oy- -DDAGOR_DBGLEVEL=0 -DNDEBUG -D_SECURE_SCL=0 ;
     case irel :
-      _CONFIG_OPT = /Ox /GF /Gy /Gw /Oi /Ot /Oy- -DDAGOR_DBGLEVEL=-1 -DNDEBUG=1 -D_SECURE_SCL=0 ;
+      _CONFIG_OPT = /Ox /GF /Gy /Gw /Oi /Ot /Oy- -DDAGOR_DBGLEVEL=-1 -DNDEBUG -D_SECURE_SCL=0 ;
     case dbg :
       _CONFIG_OPT = /Od /RTC1 -DDAGOR_DBGLEVEL=2 ;
     case * :
@@ -148,7 +148,7 @@ rule ProcessCompileTarget
   }
   if $(BuildDagorEngineIndependentCode) = yes {
     _CONFIG_OPT = $(_GlobCopt_Optimize) ;
-    if $(Config) in rel irel { _CONFIG_OPT += -DNDEBUG=1 -D_SECURE_SCL=0 ; }
+    if $(Config) in rel irel { _CONFIG_OPT += -DNDEBUG -D_SECURE_SCL=0 ; }
   }
 
   if $(MSVectorcall) = yes { _CONFIG_OPT += /Gv ; }
@@ -159,12 +159,12 @@ rule ProcessCompileTarget
   if $(CheckOnly) = yes && $(ParallelCompilation) != no { _CONFIG_OPT += /MP2 ; }
 
   if $(Exceptions) != yes {
-    _CONFIG_OPT += -D_HAS_EXCEPTIONS=0 -DEA_COMPILER_NO_NOEXCEPT ;
+    _CONFIG_OPT += -D_HAS_EXCEPTIONS=0 ;
   } else {
     if $(CatchSEH) != yes {
-      _CONFIG_OPT += /EHsc -DDAGOR_EXCEPTIONS_ENABLED=1 ;
+      _CONFIG_OPT += /EHsc -DDAGOR_EXCEPTIONS_ENABLED ;
     } else {
-      _CONFIG_OPT += /EHac -DDAGOR_EXCEPTIONS_ENABLED=1 ;
+      _CONFIG_OPT += /EHac -DDAGOR_EXCEPTIONS_ENABLED ;
     }
   }
 
@@ -178,7 +178,7 @@ rule ProcessCompileTarget
     _CONFIG_OPT += $(_VC_CRT_TYPE)d ;
   }
 
-  if $(BuildDagorEngineIndependentCode) != yes && $(KernelLinkage) = static { _CONFIG_OPT += -D_TARGET_STATIC_LIB=1 ; }
+  if $(BuildDagorEngineIndependentCode) != yes && $(KernelLinkage) = static { _CONFIG_OPT += -D_TARGET_STATIC_LIB ; }
   if $(UseWholeOpt) = yes      { _CONFIG_OPT += /GL ; }
 
   _CONFIG_OPT += /FS ;         # Force Synchronous PDB Writes.
@@ -233,6 +233,7 @@ actions together quietly compile_cpp
 #async
   $(VC_START_SHOW_INCLUDES_FILTER)
   set_filter $(1:S=.d) /$(VC_SHOW_INCLUDES_FILTER_PREFIX)(.+)/d1 $(1:G=:D=): $1
+  set_filter nul /Command line warning D9025/
   call_filtered $(_CPP_COMPILER) $(pre_opt) $(_CPP_BASE_INCLUDES) $(cpp_opt) -showIncludes #\( -Fo$(outfile:E=$(1)) $(2:G=) )\#
   if errorlevel 1 goto failed
   if not exist $(outfile:E=$(1)) goto failed
@@ -249,6 +250,7 @@ actions together quietly compile_c
 #async
   $(VC_START_SHOW_INCLUDES_FILTER)
   set_filter $(1:S=.d) /$(VC_SHOW_INCLUDES_FILTER_PREFIX)(.+)/d1 $(1:G=:D=): $1
+  set_filter nul /Command line warning D9025/
   call_filtered $(_C_COMPILER) $(pre_opt) $(_C_BASE_INCLUDES) $(c_opt) -showIncludes #\( -Fo$(outfile:E=$(1)) $(2:G=) )\#
   if errorlevel 1 goto failed
   if not exist $(outfile:E=$(1)) goto failed

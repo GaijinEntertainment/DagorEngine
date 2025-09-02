@@ -19,10 +19,10 @@ public:
 public:
   FpdClipPointsAction(FpdClipper *o) : clipObj(o) { actionName = "clipPt"; }
 
-  virtual FpdObject *getObject();
-  virtual void save(DataBlock &blk, const GeomNodeTree &tree) {}
-  virtual bool load(const DataBlock &blk, IFpdLoad &loader) { return true; }
-  virtual void exportAction(mkbindump::BinDumpSaveCB &cwr, IFpdExport &exp);
+  FpdObject *getObject() override;
+  void save(DataBlock &blk, const GeomNodeTree &tree) override {}
+  bool load(const DataBlock &blk, IFpdLoad &loader) override { return true; }
+  void exportAction(mkbindump::BinDumpSaveCB &cwr, IFpdExport &exp) override;
 };
 
 
@@ -60,11 +60,11 @@ public:
 public:
   FpdClipper();
 
-  virtual void save(DataBlock &blk, const GeomNodeTree &tree);
-  virtual bool load(const DataBlock &blk, IFpdLoad &loader);
+  void save(DataBlock &blk, const GeomNodeTree &tree) override;
+  bool load(const DataBlock &blk, IFpdLoad &loader) override;
 
-  virtual void initActions(FpdContainerAction *init_a, FpdContainerAction *upd_a, IFpdLoad &ld);
-  virtual void getActions(Tab<FpdAction *> &actions);
+  void initActions(FpdContainerAction *init_a, FpdContainerAction *upd_a, IFpdLoad &ld) override;
+  void getActions(Tab<FpdAction *> &actions) override;
 
   int findPoint(const char *name);
   void addPoint(const char *name);
@@ -90,7 +90,7 @@ public:
     }
   }
 
-  virtual bool setPos(const Point3 &p)
+  bool setPos(const Point3 &p) override
   {
     if (nodeWtm)
     {
@@ -107,7 +107,7 @@ public:
 
     return FpdObject::setPos(p);
   }
-  virtual bool setMatrix(const Matrix3 &tm)
+  bool setMatrix(const Matrix3 &tm) override
   {
     if (nodeWtm)
     {
@@ -129,7 +129,7 @@ public:
 
     return true;
   }
-  virtual bool getMatrix(Matrix3 &tm) const
+  bool getMatrix(Matrix3 &tm) const override
   {
     if (nodeWtm)
     {
@@ -145,5 +145,5 @@ public:
     return true;
   }
 
-  virtual bool isSubOf(DClassID id) { return id == FpdClipper::HUID || FpdObject::isSubOf(id); }
+  bool isSubOf(DClassID id) override { return id == FpdClipper::HUID || FpdObject::isSubOf(id); }
 };

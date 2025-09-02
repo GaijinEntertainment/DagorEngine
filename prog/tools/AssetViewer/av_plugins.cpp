@@ -24,6 +24,7 @@ extern void init_plugin_csg_entities();
 extern void init_plugin_wt_unit();
 extern void init_plugin_a2d();
 extern void init_plugin_anim_tree();
+extern void init_plugin_ecs_templates();
 // extern void init_plugin_custom();
 
 void init_all_editor_plugins()
@@ -55,6 +56,7 @@ void init_all_editor_plugins()
   INIT_SERVICE("wtUnit", ::init_plugin_wt_unit());
 #endif
   INIT_SERVICE("a2d", ::init_plugin_a2d());
+  INIT_SERVICE("ecs_template", ::init_plugin_ecs_templates());
   //::init_plugin_custom();
 #undef INIT_SERVICE
 }
@@ -89,7 +91,7 @@ CoolConsole &IGenEditorPlugin::getMainConsole() { return get_app().getConsole();
 IWndManager &IGenEditorPlugin::getWndManager() { return *get_app().getWndManager(); }
 
 
-void IGenEditorPlugin::onPropPanelClear(PropPanel::ContainerPropertyControl &propPanel)
+void IGenEditorPlugin::onPropPanelClear(PropPanel::ContainerPropertyControl &)
 {
   if (spEditor)
     spEditor->destroyPanel();

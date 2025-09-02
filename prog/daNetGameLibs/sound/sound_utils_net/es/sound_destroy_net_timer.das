@@ -1,6 +1,6 @@
 require ecs
-require app
-require sound_utils_net.modules.sound_utils_net_events
+require app // get_sync_time
+require danetlibs.renderer.includes.pufd_events
 
 
 [es(tag=server, on_appear)]

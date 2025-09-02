@@ -78,6 +78,8 @@ TMatrix CompositeEditorTreeDataNode::getTransformationMatrix() const
   return TMatrix::IDENT;
 }
 
+void CompositeEditorTreeDataNode::setIdentityTransformationMatrix() { params.setTm("tm", TMatrix::IDENT); }
+
 bool CompositeEditorTreeDataNode::canTransform() const
 {
   Point2 p2;
@@ -141,6 +143,7 @@ void CompositeEditorTreeDataNode::insertNodeBlock(int index)
 {
   eastl::unique_ptr<CompositeEditorTreeDataNode> subNode = eastl::make_unique<CompositeEditorTreeDataNode>();
   subNode->params.changeBlockName("node");
+  subNode->setIdentityTransformationMatrix();
   if (index >= 0)
     nodes.insert(nodes.begin() + index, std::move(subNode));
   else

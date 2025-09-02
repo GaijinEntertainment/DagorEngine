@@ -8,7 +8,6 @@
 #include "daScript/ast/ast_interop.h"
 #include "daScript/ast/ast_policy_types.h"
 #include "daScript/ast/ast_handle.h"
-#include "daScript/simulate/aot_builtin_time.h"
 
 #include "daScript/misc/performance_time.h"
 #include "daScript/misc/sysos.h"
@@ -109,46 +108,65 @@ namespace das {
 }
 
 
-
-#if !DAS_NO_FILEIO
-
-#include <sys/stat.h>
-
-#if defined(_MSC_VER)
-
-#include <io.h>
-#include <direct.h>
-
-#else
-#include <libgen.h>
-#include <dirent.h>
-#include <unistd.h>
-#include <sys/mman.h>
-#endif
+#if DAS_NO_FILEIO
 
 namespace das {
-    struct FStat {
-        struct stat stats;
-        bool        is_valid;
-        uint64_t size() const   { return stats.st_size; }
-#if defined(_MSC_VER)
-        Time     atime() const  { return { stats.st_atime }; }
-        Time     ctime() const  { return { stats.st_ctime }; }
-        Time     mtime() const  { return { stats.st_mtime }; }
-        bool     is_reg() const { return stats.st_mode & _S_IFREG; }
-        bool     is_dir() const { return stats.st_mode & _S_IFDIR; }
+    #define GENERATE_IO_STUB { context->throw_error_at(at, "%s is not implemented (because DAS_NO_FILEIO is enabled)", __FUNCTION__); }
+    void builtin_fprint(const FILE *f, const char *text, Context *context, LineInfoArg *at) GENERATE_IO_STUB
+    void builtin_fclose ( const FILE * f, Context * context, LineInfoArg * at ) GENERATE_IO_STUB
+    void builtin_fflush ( const FILE * f, Context * context, LineInfoArg * at ) GENERATE_IO_STUB
+    void builtin_map_file(const FILE* f, const TBlock<void, TTemporary<TArray<uint8_t>>>& blk, Context* context, LineInfoArg * at) GENERATE_IO_STUB
+    int64_t builtin_ftell ( const FILE * f, Context * context, LineInfoArg * at ) GENERATE_IO_STUB
+    int64_t builtin_fseek ( const FILE * f, int64_t offset, int32_t mode, Context * context, LineInfoArg * at ) GENERATE_IO_STUB
+    char * builtin_fread ( const FILE * f, Context * context, LineInfoArg * at ) GENERATE_IO_STUB
+    char * builtin_fgets(const FILE* f, Context* context, LineInfoArg * at ) GENERATE_IO_STUB
+    void builtin_fwrite ( const FILE * f, char * str, Context * context, LineInfoArg * at ) GENERATE_IO_STUB
+    char * builtin_dirname ( const char * name, Context * context, LineInfoArg * at ) GENERATE_IO_STUB
+    char * builtin_basename ( const char * name, Context * context, LineInfoArg * at ) GENERATE_IO_STUB
+    bool builtin_fstat ( const FILE * f, FStat & fs, Context * context, LineInfoArg * at ) GENERATE_IO_STUB
+    void builtin_dir ( const char * path, const Block & fblk, Context * context, LineInfoArg * at ) GENERATE_IO_STUB
+    char * builtin_getcwd ( Context * context, LineInfoArg * at) GENERATE_IO_STUB
+    int builtin_popen_impl ( const char * cmd, bool bin, const TBlock<void,const FILE *> & blk, Context * context, LineInfoArg * at ) GENERATE_IO_STUB
+    int builtin_popen_binary ( const char * cmd, const TBlock<void,const FILE *> & blk, Context * context, LineInfoArg * at ) GENERATE_IO_STUB
+    int builtin_popen ( const char * cmd, const TBlock<void,const FILE *> & blk, Context * context, LineInfoArg * at ) GENERATE_IO_STUB
+    char * get_full_file_name ( const char * path, Context * context, LineInfoArg * at ) GENERATE_IO_STUB
+    bool has_env_variable ( const char * var, Context * context, LineInfoArg * at ) GENERATE_IO_STUB
+    char * get_env_variable ( const char * var, Context * context, LineInfoArg * at ) GENERATE_IO_STUB
+    char * sanitize_command_line ( const char * cmd, Context * context, LineInfoArg * at ) GENERATE_IO_STUB
+#undef GENERATE_IO_STUB
 
-#else
-        Time     atime() const  { return { stats.st_atime }; }
-        Time     ctime() const  { return { stats.st_ctime }; }
-        Time     mtime() const  { return { stats.st_mtime }; }
-        bool     is_reg() const { return S_ISREG(stats.st_mode); }
-        bool     is_dir() const { return S_ISDIR(stats.st_mode); }
+#define GENERATE_IO_STUB { DAS_FATAL_ERROR("%s is not implemented (because DAS_NO_FILEIO is enabled).", __FUNCTION__); }
+#define GENERATE_IO_STUB_RET { GENERATE_IO_STUB; return {}; }
+    void builtin_sleep ( uint32_t msec ) GENERATE_IO_STUB
+    const FILE * builtin_stdin() GENERATE_IO_STUB_RET
+    const FILE * builtin_stdout() GENERATE_IO_STUB_RET
+    const FILE * builtin_stderr() GENERATE_IO_STUB_RET
+    bool builtin_feof(const FILE* _f) GENERATE_IO_STUB_RET
+    const FILE * builtin_fopen  ( const char * name, const char * mode ) GENERATE_IO_STUB_RET
+    vec4f builtin_read ( Context & context, SimNode_CallBase * call, vec4f * args ) GENERATE_IO_STUB_RET
+    vec4f builtin_write ( Context & context, SimNode_CallBase * call, vec4f * args ) GENERATE_IO_STUB_RET
+    vec4f builtin_load ( Context & context, SimNode_CallBase * node, vec4f * args ) GENERATE_IO_STUB_RET
+    bool builtin_stat ( const char * filename, FStat & fs ) GENERATE_IO_STUB_RET
+    bool builtin_chdir ( const char * path ) GENERATE_IO_STUB_RET
+    bool builtin_mkdir ( const char * path ) GENERATE_IO_STUB_RET
+    void builtin_exit ( int32_t ec ) GENERATE_IO_STUB
+    bool builtin_remove_file ( const char * path ) GENERATE_IO_STUB_RET
+    bool builtin_rename_file ( const char * old_path, const char * new_path ) GENERATE_IO_STUB_RET
+#undef GENERATE_IO_STUB
+#undef GENERATE_IO_STUB_RET
 
-#endif
+
+    class Module_FIO : public Module {
+    public:
+        Module_FIO() : Module("fio") {
+        }
+        virtual ModuleAotType aotRequire ( TextWriter & tw ) const override {
+            return ModuleAotType::cpp;
+        }
     };
-}
 
+}
+#else // DAS_NO_FILEIO
 
 MAKE_TYPE_FACTORY(FStat, das::FStat)
 MAKE_TYPE_FACTORY(FILE,FILE)
@@ -545,6 +563,12 @@ namespace das {
         return rename(old_path, new_path) == 0;
     }
 
+    bool has_env_variable ( const char * var, Context * , LineInfoArg * ) {
+        if ( !var ) return false;
+        auto res = getenv(var);
+        return res != nullptr;
+    }
+
     char * get_env_variable ( const char * var, Context * context, LineInfoArg * at ) {
         if ( !var ) return nullptr;
         auto res = getenv(var);
@@ -672,7 +696,7 @@ namespace das {
                 SideEffects::modifyExternal, "builtin_sleep")
                     ->arg("msec");
             addExtern<DAS_BIND_FUN(getchar_wrapper)>(*this, lib, "getchar",
-                SideEffects::modifyExternal, "getchar");
+                SideEffects::modifyExternal, "getchar_wrapper");
             addExtern<DAS_BIND_FUN(builtin_exit)>(*this, lib, "exit",
                 SideEffects::modifyExternal, "builtin_exit")
                     ->arg("exitCode")->unsafeOperation = true;
@@ -687,6 +711,9 @@ namespace das {
                     ->args({"path","context","at"});
             addExtern<DAS_BIND_FUN(get_env_variable)>(*this, lib, "get_env_variable",
                 SideEffects::accessExternal, "get_env_variable")
+                    ->args({"var","context","at"});
+            addExtern<DAS_BIND_FUN(has_env_variable)>(*this, lib, "has_env_variable",
+                SideEffects::accessExternal, "has_env_variable")
                     ->args({"var","context","at"});
             addExtern<DAS_BIND_FUN(sanitize_command_line)>(*this, lib, "sanitize_command_line",
                 SideEffects::none, "sanitize_command_line")
@@ -707,8 +734,6 @@ namespace das {
         }
     };
 }
-
-REGISTER_MODULE_IN_NAMESPACE(Module_FIO,das);
 
 #if _WIN32
 
@@ -742,4 +767,5 @@ int munmap ( void* start, size_t ) {
 
 #endif
 
-#endif
+#endif // !DAS_NO_FILEIO
+REGISTER_MODULE_IN_NAMESPACE(Module_FIO,das);

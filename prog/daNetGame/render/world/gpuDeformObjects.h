@@ -2,7 +2,6 @@
 #pragma once
 
 #include <3d/dag_resPtr.h>
-#include <drv/3d/dag_driver.h>
 #include <math/dag_bounds3.h>
 
 class GpuDeformObjectsManager

@@ -1,7 +1,7 @@
 require ecs
 require soundEvent
 require DagorMath
-require sound_utils_net.modules.sound_utils_net_events
+require danetlibs.renderer.includes.pufd_events
 
 
 [es(tag=sound, after=sound_begin_update_es, before=sound_end_update_es)]

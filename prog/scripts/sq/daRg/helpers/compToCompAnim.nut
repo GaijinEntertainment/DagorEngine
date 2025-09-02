@@ -2,7 +2,7 @@ from "%darg/ui_imports.nut" import *
 
 let curAnimations = [] //id, comp
 let generation = Watched(0)
-let incGen = @() generation(generation.value + 1)
+let incGen = @() generation.modify(@(v) v + 1)
 
 let compToCompAnimations = @() {
   watch = generation
@@ -33,7 +33,7 @@ function addCompToCompAnim(from, to, component, easing = InOutQuad, duration = 1
     return null
   }
 
-  let id = generation.value
+  let id = generation.get()
   let fromSize = mkSize(fromBox)
   let toSize = mkSize(toBox)
   let animations = []
@@ -61,7 +61,7 @@ function addCompToCompAnim(from, to, component, easing = InOutQuad, duration = 1
       key = id
       size = toSize
       pos = [toBox.l, toBox.t]
-      transform = { pivot = [0, 0] }
+      transform = static { pivot = [0, 0] }
       children = component
       animations
       onDetach = @() removeCompAnim(id)
@@ -71,8 +71,8 @@ function addCompToCompAnim(from, to, component, easing = InOutQuad, duration = 1
   return id
 }
 
-return {
+return freeze({
   addCompToCompAnim = kwarg(addCompToCompAnim)
   removeCompAnim
   compToCompAnimations
-}
+})

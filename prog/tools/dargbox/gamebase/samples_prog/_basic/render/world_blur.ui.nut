@@ -4,12 +4,12 @@ let backImage = Picture("ui/loading.jpg")
 
 let mkBlur = @(color) {
   rendObj = ROBJ_WORLD_BLUR
-  size = [flex(), 30]
+  size = static [flex(), 30]
   color
 }
 
 let darkBlock = {
-  size = [flex(), SIZE_TO_CONTENT]
+  size = FLEX_H
   gap = 20
   flow = FLOW_VERTICAL
   children = [
@@ -23,7 +23,7 @@ let darkBlock = {
 }
 
 let liteBlock = {
-  size = [flex(), SIZE_TO_CONTENT]
+  size = FLEX_H
   gap = 20
   flow = FLOW_VERTICAL
   children = [
@@ -38,7 +38,7 @@ let liteBlock = {
 
 return {
   rendObj = ROBJ_IMAGE
-  size = [pw(100), ph(100)]
+  size = static [pw(100), ph(100)]
   keepAspect = true
   image = backImage
   vplace = ALIGN_CENTER

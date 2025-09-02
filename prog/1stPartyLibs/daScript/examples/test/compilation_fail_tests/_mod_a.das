@@ -1,5 +1,7 @@
+options gen2
 require _mod_b
 
-struct Foo
+struct Foo {
     a : int
+}
 

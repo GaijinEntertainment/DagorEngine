@@ -29,6 +29,26 @@ bool FrontFramebufferState::isReferenced(const Image *object) const
   return false;
 }
 
+bool FrontFramebufferState::replaceImage(const Image *src, Image *dst)
+{
+  bool ret = false;
+  using Bind = StateFieldFramebufferAttachment;
+  Bind *fbAttachments = &get<StateFieldFramebufferAttachments, StateFieldFramebufferAttachment>();
+
+  for (uint32_t i = 0; i < StateFieldFramebufferAttachments::size(); ++i)
+  {
+    Bind &rt = fbAttachments[i];
+    if (rt.image == src)
+    {
+      Bind replacement = rt;
+      replacement.image = dst;
+      set<StateFieldFramebufferAttachments, Bind::Indexed>({i, replacement});
+      ret |= true;
+    }
+  }
+  return ret;
+}
+
 bool FrontFramebufferState::handleObjectRemoval(const Image *object)
 {
   bool ret = false;
@@ -69,13 +89,6 @@ Driver3dRenderTarget &FrontFramebufferState::asDriverRT()
     StateFieldFramebufferAttachment &col = fbAttachments[i];
     if (col.image)
       rt.setColor(i, col.tex, col.view.getMipBase(), col.view.getArrayBase());
-    else if (col.useSwapchain)
-    {
-      if (i == 0)
-        rt.setBackbufColor();
-      else
-        rt.setColor(i, col.tex, col.view.getMipBase(), col.view.getArrayBase());
-    }
   }
 
   return rt;

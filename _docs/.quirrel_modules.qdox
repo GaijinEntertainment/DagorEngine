@@ -1,0 +1,89 @@
+//this is json with single line comments supported
+// QDox config file
+[
+{
+  "start_path":"..",
+  "paths": ["prog/gameLibs"], //folders or files list, required,
+  "doc_chapter": "quirrel-modules/quirrel_gamelibs", //internal folder name, required
+  "chapter_desc": "Docs for Quirrel modules extracted from source in gameLibs.", //displayed title, optional
+  "chapter_title": "Quirrel Gamelibs Native Modules", //displayed title, optional
+  "extensions": [".cpp"], //optional, list of extensions of files
+  "exclude_dirs_re": [], //optional, list of regexps that should full match to exclude dirs in recursive search
+  "exclude_files_re": [], //optional, list of full match regexp to skip files'
+  "recursive": true //optional, do recursive search for folders'
+},
+
+{
+  "start_path":"..",
+  "paths": ["prog/gameLibs/ecs/scripts"], //folders or files list, required,
+  "doc_chapter": "quirrel-modules/quirrel_daECS", //internal folder name, required
+  "chapter_desc": "Docs for Quirrel modules for Dagor ECS.", //displayed title, optional
+  "chapter_title": "Quirrel ECS", //displayed title, optional
+  "extensions": [".cpp"], //optional, list of extensions of files
+  "exclude_dirs_re": [], //optional, list of regexps that should full match to exclude dirs in recursive search
+  "exclude_files_re": [], //optional, list of full match regexp to skip files'
+  "recursive": true //optional, do recursive search for folders'
+},
+
+{
+  "start_path":"..",
+  "paths": ["prog/gameLibs/daRg"], //folders or files list, required,
+  "doc_chapter": "quirrel-modules/darg_framework", //internal folder name, required
+  "chapter_desc": "Docs for daRG - Dagor Reactive GUI framework, based on Quirrel language and Functional Reactive Programming (FRP).", //displayed title, optional
+  "chapter_desc_files": ["prog/gameLibs/daRg/daRg_readme.rst"],
+  "chapter_title": "daRG Framework", //displayed title, optional
+  "extensions": [".cpp"], //optional, list of extensions of files
+  "exclude_dirs_re": [], //optional, list of regexps that should full match to exclude dirs in recursive search
+  "exclude_files_re": [], //optional, list of full match regexp to skip files'
+  "recursive": true //optional, do recursive search for folders'
+},
+
+{
+  "start_path":"..",
+  "paths": ["prog/tools/dargbox"], //folders or files list, required,
+  "doc_chapter": "tools/dargbox", //internal folder name, required
+  "chapter_desc": "Docs for dargbox - daRG utility application and sandbox.", //displayed title, optional
+  "chapter_title": "dargbox Tool", //displayed title, optional
+  "extensions": [".cpp"], //optional, list of extensions of files
+  "exclude_dirs_re": [], //optional, list of regexps that should full match to exclude dirs in recursive search
+  "exclude_files_re": [], //optional, list of full match regexp to skip files'
+  "recursive": true //optional, do recursive search for folders'
+},
+
+{
+  "start_path":"..",
+  "paths": ["prog/daNetGameLibs"], //folders or files list, required,
+  "doc_chapter": "quirrel-modules/daNetGameLibs", //internal folder name, required
+  "chapter_desc": "Docs for daNetGameLibs Quirrel Modules. The daNetGameLibs can be used in any daNetGame-based project.", //displayed title, optional
+  "chapter_title": "daNetGameLibs", //displayed title, optional
+  "extensions": [".cpp"], //optional, list of extensions of files
+  "exclude_dirs_re": [], //optional, list of regexps that should full match to exclude dirs in recursive search
+  "exclude_files_re": [], //optional, list of full match regexp to skip files'
+  "recursive": true //optional, do recursive search for folders'
+},
+
+{
+  "start_path":"..",
+  "paths": ["prog/daNetGame"], //folders or files list, required,
+  "doc_chapter": "quirrel-modules/daNetGame", //internal folder name, required
+  "chapter_desc": "Docs for daNetGame Quirrel Modules. The daNetGame framework is designed for building games.", //displayed title, optional
+  "chapter_title": "daNetGame", //displayed title, optional
+  "extensions": [".cpp"], //optional, list of extensions of files
+  "exclude_dirs_re": [], //optional, list of regexps that should full match to exclude dirs in recursive search
+  "exclude_files_re": [], //optional, list of full match regexp to skip files'
+  "recursive": true //optional, do recursive search for folders'
+},
+
+{
+  "start_path":"..",
+  "paths": ["prog/gameLibs/soundSystem/quirrel"], //folders or files list, required,
+  "doc_chapter": "quirrel-modules/soundSystem", //internal folder name, required
+  "chapter_desc": "Docs for soundSystem Quirrel Modules. The soundSystem can be used in any daNetGame-based project.", //displayed title, optional
+  "chapter_title": "soundSystem", //displayed title, optional
+  "extensions": [".cpp",".inl"], //optional, list of extensions of files
+  "exclude_dirs_re": [], //optional, list of regexps that should full match to exclude dirs in recursive search
+  "exclude_files_re": [], //optional, list of full match regexp to skip files'
+  "recursive": true //optional, do recursive search for folders'
+}
+
+]

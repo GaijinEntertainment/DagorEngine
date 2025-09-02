@@ -10,6 +10,7 @@
 #include <EASTL/string.h>
 #include <hash/wyhash.h>
 #include <util/dag_generationRefId.h>
+#include <generic/dag_functionRef.h>
 #include <generic/dag_span.h>
 #include <drv/3d/dag_resId.h>
 
@@ -18,6 +19,8 @@ struct Frustum;
 class Occlusion;
 class BaseTexture;
 struct mat44f;
+
+using OcclusionSyncWaitFunc = dag::FunctionRef<Occlusion *() const>;
 
 //
 // proper dafx call order:
@@ -121,6 +124,7 @@ struct EmitterData
   float delay = 0;              // delay for the first emission
   float globalLifeLimitMin = 0; // after this time spawning new parts will be cancelled. 0 for infinity
   float globalLifeLimitMax = 0; // per instance life limit (rnd min..max)
+  float spawnRangeLimit = 0;
 
   float minEmissionFactor = 0.f;
   FixedData fixedData;
@@ -193,15 +197,19 @@ enum class SortingType : int
 struct CullingDesc
 {
   CullingDesc(const eastl::string &t, SortingType s, int vrs_rate = 0, float screen_discard_threshold = 0,
-    uint32_t visibility_mask = 0xffffffff) :
-    tag(t), sortingType(s), vrsRate(vrs_rate), screenAreaDiscardThreshold(screen_discard_threshold), visibilityMask(visibility_mask)
+    bool disable_occlusion = false) :
+    tag(t),
+    sortingType(s),
+    vrsRate(vrs_rate),
+    screenAreaDiscardThreshold(screen_discard_threshold),
+    disableOcclusion(disable_occlusion)
   {}
 
   int vrsRate;
   float screenAreaDiscardThreshold;
   eastl::string tag;
   SortingType sortingType;
-  uint32_t visibilityMask;
+  bool disableOcclusion;
 };
 
 struct SystemDesc
@@ -240,6 +248,13 @@ struct SystemDesc
   int gameResId = -1;
 };
 
+struct SimLodGenParams
+{
+  bool enabled = true;
+  float startDist = 100.f;
+  float boxProjScale = 1.f;
+};
+
 struct Config;
 struct Stats;
 struct SystemUsageStat;
@@ -252,6 +267,7 @@ void after_reset_device(ContextId cid);
 void register_cpu_override_shader(ContextId cid, const eastl::string &name, cpu_exec_cb_t cb);
 
 SystemId register_system(ContextId cid, const SystemDesc &desc, const eastl::string &name);
+SystemId get_dummy_system_id(ContextId cid);
 void release_system(ContextId cid, SystemId sid);
 void release_all_systems(ContextId cid);
 bool get_system_name(ContextId cid, SystemId sid, eastl::string &out_name);
@@ -266,15 +282,14 @@ void reset_instance(ContextId cid, InstanceId iid);
 void warmup_instance(ContextId cid, InstanceId iid, float time);
 void clear_instances(ContextId cid, int keep_allocated_count); // pass keep_allocated_count = 0 for complete memory shrink
 
-CullingId create_culling_state(ContextId cid, const eastl::vector<CullingDesc> &descs);
+CullingId create_culling_state(ContextId cid, const eastl::vector<CullingDesc> &descs, uint32_t visibilityMask = 0xffffffff);
 CullingId create_proxy_culling_state(ContextId cid);
-void destroy_culling_state(ContextId cid, CullingId cull_id);
+void destroy_culling_state(ContextId cid, CullingId &cull_id);
 void update_culling_state(ContextId cid, CullingId cullid, const Frustum &frustum, const Point3 &view_pos,
-  Occlusion *(*occlusion_sync_wait_f)() = nullptr);
+  OcclusionSyncWaitFunc occlusion_sync_wait_f = {});
 void update_culling_state(ContextId cid, CullingId cullid, const Frustum &frustum, const mat44f &globtm, const Point3 &view_pos,
-  Occlusion *(*occlusion_sync_wait_f)() = nullptr);
+  OcclusionSyncWaitFunc occlusion_sync_wait_f = {});
 void clear_culling_state(ContextId cid, CullingId cullid);
-uint32_t get_culling_state_visiblity_mask(ContextId cid, CullingId cullid);
 void remap_culling_state_tag(ContextId cid, CullingId cullid, const eastl::string &from, const eastl::string &to); // pass same values
                                                                                                                    // to reset remap
 uint32_t inverse_remap_tags_mask(ContextId cid, uint32_t tags_mask);
@@ -293,6 +308,7 @@ void finish_update_gpu_only(ContextId cid, bool update_gpu_fetch,
 
 bool update_finished(ContextId cid);
 void flush_command_queue(ContextId cid);
+void clear_draw_cache(ContextId cid);
 
 void updateDafxFrameBounds(ContextId cid);
 
@@ -324,7 +340,7 @@ void set_subinstance_value_from_system(ContextId cid, InstanceId iid, int sub_id
   dag::Span<const float> scale_vec = {} /*optional: assumes target and scale values are floats*/);
 void set_instance_pos(ContextId cid, InstanceId iid, const Point4 &pos); // for sorting and distance based emitters
 void set_instance_emission_rate(ContextId cid, InstanceId iid, float v);
-void set_instance_status(ContextId cid, InstanceId iid, bool enabled);
+void set_instance_status(ContextId cid, InstanceId iid, bool enabled, float distance = 0);
 bool get_instance_status(ContextId cid, InstanceId iid);
 void set_instance_visibility(ContextId cid, InstanceId iid, uint32_t visibility);
 bool is_instance_renderable_active(ContextId cid, InstanceId iid);
@@ -342,6 +358,7 @@ void render_debug_opt(ContextId cid);
 void set_debug_flags(ContextId cid, uint32_t flags);
 const Config &get_config(ContextId cid);
 bool set_config(ContextId cid, const Config &cfg);
+void set_sim_lod_params(ContextId cid, const SimLodGenParams &params);
 uint32_t get_debug_flags(ContextId cid);
 void clear_stats(ContextId cid);
 void get_stats(ContextId cid, Stats &out_s);
@@ -363,8 +380,11 @@ struct Config
   bool delayed_release_gpu_buffers = true;
   bool screen_area_cull_discard = true;
   bool approx_boundary_computation = false;
+  bool cache_draw_queue = false;      // only worth for VR (saving draw queue per tag for one eye and reusing it for another one). req
+                                      // clear_draw_cache call!
   unsigned int max_async_threads = 0; // if 0, threadpool::get_num_workers() will be used
   unsigned int forced_sim_lod_offset = 0;
+  unsigned int prepare_workers_async_thresholld = 0; // if >0, will parralize prepare_workers job, running jobs = workers / this value
 
   int render_buffer_gc_tail = 100;
   int render_buffer_gc_after = 5 * 1024 * 1024;
@@ -372,7 +392,10 @@ struct Config
 
   bool sim_lods_enabled = false;
   bool gen_sim_lods_for_invisible_instances = false;
-  float min_sim_lod_dt_tick = 1.f / 5.f; // default: 5 ticks per frame
+  bool gen_sim_lods_based_on_distance = false; // distance + proj bbox radius weight function
+  float min_sim_lod_dt_tick = 1.f / 5.f;       // default: 5 ticks per second (5fps)
+
+  float emitter_max_distance_travelled = 1000000.f;
 
   float render_buffer_shrink_ratio = 0.2f;
   float emission_factor = 1.f;
@@ -380,7 +403,7 @@ struct Config
   unsigned int emission_limit = 4096;
   unsigned int data_buffer_size = 524288;
   unsigned int staging_buffer_size = 65536;
-  unsigned int warmup_sims_budged = 50; // parent/root instances
+  unsigned int warmup_sims_budget = 50; // parent/root instances
   unsigned int max_warmup_steps_per_instance = 10;
   unsigned int max_multidraw_batch_size = 256;
   unsigned int multidraw_buffer_size = 4096;
@@ -390,6 +413,7 @@ struct Config
 #if DAGOR_DBGLEVEL > 0
   eastl::vector<eastl::string> unsupportedShaders;
 #endif
+  bool has_bvh_shader = false;
 
   static const int emission_max_limit = 65536;
 
@@ -455,6 +479,7 @@ struct Stats
 
   int totalInstances;
   int activeInstances;
+  int renderInstances;
 
   int gpuTransferCount;
   int gpuTransferSize;
@@ -488,5 +513,7 @@ struct SystemUsageStat
   int gameResId;
   int instanceCount;
   int particleCount;
+  int cpuDataSize;
+  int gpuDataSize;
 };
 } // namespace dafx

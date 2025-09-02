@@ -226,7 +226,7 @@ static DWORD WINAPI dummyfn(LPVOID a) { return 0; }
 static void debug_pos_diff(const char *nodename, const Tab<PosKey> &pos, const Tab<Point3> &temp_pos, float thres);
 static void debug_rot_diff(const char *nodename, const Tab<RotKey> &pos, const Tab<Quat> &temp_pos, float thres);
 
-static void optimize_pos_key(Tab<PosKey> &pos, int ktime_count, bool reduce_keys, Interval limit, float pos_thr, char *label)
+static void optimize_pos_key(Tab<PosKey> &pos, int ktime_count, bool reduce_keys, Interval limit, float pos_thr, const char *label)
 {
   Tab<Point3> temp_pos;
   int total_pos = 1, removed_pos1 = 0, removed_pos2 = 0;
@@ -325,7 +325,7 @@ static void optimize_pos_key(Tab<PosKey> &pos, int ktime_count, bool reduce_keys
   // debug_pos_diff ( node[k]->GetName(), pos, temp_pos, pos_thr );
 }
 
-static void optimize_rot_key(Tab<RotKey> &rot, int ktime_count, bool reduce_keys, Interval limit, float rot_thr, char *label)
+static void optimize_rot_key(Tab<RotKey> &rot, int ktime_count, bool reduce_keys, Interval limit, float rot_thr, const char *label)
 {
   Tab<Quat> temp_rot;
   int total_rot = 1, removed_rot1 = 0, removed_rot2 = 0;

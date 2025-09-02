@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <util/dag_localization.h>
+#include <quirrel/bindQuirrelEx/autoBind.h>
 #include "main/vromfs.h"
 #include <osApiWrappers/dag_vromfs.h>
 #include <osApiWrappers/dag_files.h>
@@ -100,4 +101,46 @@ void unload_localization()
 {
   loaded_loc.clear();
   shutdown_localization();
+}
+
+
+static void sq_reinit_localization(const char *lang)
+{
+  const char *curLang = lang && *lang ? lang : get_current_language();
+  uint32_t langHash = str_hash_fnv1(curLang);
+  debug("reiniting localization for %s (%s)", curLang, get_current_language());
+  set_language_to_settings(curLang);
+
+  shutdown_localization();
+
+  dag::Vector<TmpVrom, framemem_allocator> tmpVroms;
+
+  const DataBlock *langBlk = dgs_get_settings()->getBlockByNameEx("localizationVroms");
+  const int tmpVromsCount = langBlk->blockCount();
+  tmpVroms.resize(tmpVromsCount);
+  for (int i = 0; i < tmpVromsCount; ++i)
+  {
+    const char *vromPath = langBlk->getBlock(i)->getStr("vrom");
+    tmpVroms[i].reset(load_vromfs_dump(get_eff_vrom_fpath(vromPath), framemem_ptr(), NULL, NULL, DF_IGNORE_MISSING));
+    if (tmpVroms[i])
+      add_vromfs(tmpVroms[i].get());
+  }
+
+  if (startup_localization_V2(get_localization_blk(), curLang))
+  {
+    loaded_loc.lang = langHash;
+    debug("localization reinited (%s)", get_current_language());
+  }
+  else
+    logerr("Failed to init localization - see log for details");
+}
+
+SQ_DEF_AUTO_BINDING_MODULE_EX(bind_localizations, "app", sq::VM_ALL /*VM_INTERNAL_UI*/)
+{
+  Sqrat::Table tbl(vm);
+
+  tbl //
+    .Func("reinit_localization", sq_reinit_localization)
+    /**/;
+  return tbl;
 }

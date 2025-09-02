@@ -52,7 +52,6 @@ unsigned ShaderMeshData::buildForTargetCode = _MAKE4C('PC');
 bool ShaderMeshData::forceZlibPacking = false;
 bool ShaderMeshData::preferZstdPacking = false;
 bool ShaderMeshData::allowOodlePacking = false;
-bool ShaderMeshData::fastNoPacking = false;
 unsigned ShaderMeshData::zstdMaxWindowLog = 0;
 int ShaderMeshData::zstdCompressionLevel = 18;
 

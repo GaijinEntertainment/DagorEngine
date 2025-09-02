@@ -6,14 +6,17 @@
 
 #include <EditorCore/ec_interface.h>
 #include <util/dag_hierBitMap2d.h>
-#include <math/random/dag_random.h>
+#include <gameMath/objgenPrng.h>
 #include <math/dag_e3dColor.h>
 #include <de3_multiPointData.h>
 #include <de3_genObjHierMask.h>
+#include <de3_baseInterfaces.h>
 
 #include <debug/dag_debug.h>
+
 namespace objgenerator
 {
+
 struct WorldHugeBitmask
 {
   HugeBitmask *bm;
@@ -182,14 +185,14 @@ template <class T>
 static void calc_matrix_33(T &obj, TMatrix &tm, int &seed, float force_x_scale = 0)
 {
   float ax, ay, az;
-  _rnd_svec(seed, az, ay, ax);
-  float s = obj.scale[0] + _srnd(seed) * obj.scale[1], sz = s;
+  rnd_svec(seed, az, ay, ax);
+  float s = obj.scale[0] + srnd(seed) * obj.scale[1], sz = s;
   if (force_x_scale > 0)
     s = force_x_scale, sz = 1;
   ax = obj.rotX[0] + ax * obj.rotX[1];
   ay = obj.rotY[0] + ay * obj.rotY[1];
   az = obj.rotZ[0] + az * obj.rotZ[1];
-  float sy = (obj.yScale[0] + _srnd(seed) * obj.yScale[1]) * (force_x_scale > 0 ? obj.scale[0] / force_x_scale : 1);
+  float sy = (obj.yScale[0] + srnd(seed) * obj.yScale[1]) * (force_x_scale > 0 ? obj.scale[0] / force_x_scale : 1);
   int mask = (float_nonzero(ax) << 0) | (float_nonzero(ay) << 1) | (float_nonzero(az) << 2) | (float_nonzero(s - 1) << 3) |
              (float_nonzero(sy - 1) << 4) | (float_nonzero(sz - 1) << 5);
   if (!mask)
@@ -272,4 +275,5 @@ static inline void rotate_multipoint(TMatrix &tm, MpPlacementRec &mppRec)
 
   tm = mpp_tm;
 }
+
 } // namespace objgenerator

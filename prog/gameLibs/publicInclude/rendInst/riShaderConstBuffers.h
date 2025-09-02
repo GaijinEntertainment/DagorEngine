@@ -61,7 +61,7 @@ struct RiShaderConstBuffers
   void setShadowImpostorSizes(const SizePerRotationArr &sizes);
   void setImpostorLocalView(const Point3 &view_x, const Point3 &view_y);
   void setRadiusFade(float radius, float drown_scale);
-  void setInteractionParams(float hardness, float rendinst_height, float center_x, float center_z);
+  void setInteractionParams(float softness, float rendinst_height, float center_x, float center_z);
   void flushPerDraw() const;
   void setRandomColors(const E3DCOLOR colors[2]);
   void setPLODRadius(float radius);

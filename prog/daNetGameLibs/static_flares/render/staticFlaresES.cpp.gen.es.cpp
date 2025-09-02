@@ -1,13 +1,15 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "staticFlaresES.cpp.inl"
 ECS_DEF_PULL_VAR(staticFlares);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc init_static_flares_es_comps[] =
 {
 //start of 3 rw components at [0]
   {ECS_HASH("static_flares__instancesBuf"), ecs::ComponentTypeInfo<UniqueBufHolder>()},
   {ECS_HASH("static_flares__instances"), ecs::ComponentTypeInfo<StaticFlareInstances>()},
-  {ECS_HASH("static_flares__node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()},
+  {ECS_HASH("static_flares__node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
 //start of 1 ro components at [3]
   {ECS_HASH("static_flares__maxCount"), ecs::ComponentTypeInfo<int>()}
 };
@@ -18,7 +20,7 @@ static void init_static_flares_es_all_events(const ecs::Event &__restrict evt, c
         , ECS_RO_COMP(init_static_flares_es_comps, "static_flares__maxCount", int)
     , ECS_RW_COMP(init_static_flares_es_comps, "static_flares__instancesBuf", UniqueBufHolder)
     , ECS_RW_COMP(init_static_flares_es_comps, "static_flares__instances", StaticFlareInstances)
-    , ECS_RW_COMP(init_static_flares_es_comps, "static_flares__node", dabfg::NodeHandle)
+    , ECS_RW_COMP(init_static_flares_es_comps, "static_flares__node", dafg::NodeHandle)
     );
   while (++comp != compE);
 }

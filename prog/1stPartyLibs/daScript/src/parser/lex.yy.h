@@ -447,11 +447,12 @@ void yyfree ( void * , yyscan_t yyscanner );
 #define INITIAL 0
 #define indent 1
 #define strb 2
-#define c_comment 3
-#define cpp_comment 4
-#define include 5
-#define normal 6
-#define reader 7
+#define strfmt 3
+#define c_comment 4
+#define cpp_comment 5
+#define include 6
+#define normal 7
+#define reader 8
 
 #endif
 
@@ -719,9 +720,9 @@ extern int yylex \
 #undef yyTABLES_NAME
 #endif
 
-#line 1020 "ds_lexer.lpp"
+#line 1131 "ds_lexer.lpp"
 
 
-#line 725 "lex.yy.h"
+#line 726 "lex.yy.h"
 #undef das_yyIN_HEADER
 #endif /* das_yyHEADER_H */

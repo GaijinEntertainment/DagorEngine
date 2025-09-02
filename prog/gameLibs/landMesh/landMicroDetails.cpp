@@ -2,6 +2,7 @@
 
 #include <ioSys/dag_dataBlock.h>
 #include <3d/dag_texMgr.h>
+#include <drv/3d/dag_sampler.h>
 #include <drv/3d/dag_commands.h>
 #include <math/dag_e3dColor.h>
 #include <math/dag_color.h>
@@ -9,6 +10,7 @@
 #include <shaders/dag_shaders.h>
 #include <daECS/core/entityManager.h>
 #include <daECS/core/componentTypes.h>
+#include <EASTL/optional.h>
 
 extern TEXTUREID load_texture_array_immediate(const char *name, const char *param_name, const DataBlock &blk, int &count);
 
@@ -19,14 +21,16 @@ DataBlock load_microdetail_settings(ecs::EntityId eid)
     return DataBlock();
 
   DataBlock microdetailBlock;
-  if (g_entity_mgr->has(eid, ECS_HASH("land_micro_details_uv_scale")))
-    microdetailBlock.setReal("land_micro_details_uv_scale", g_entity_mgr->get<float>(eid, ECS_HASH("land_micro_details_uv_scale")));
 
   for (auto &entry : microDetailTextures)
   {
     const ecs::Object &obj = entry.get<ecs::Object>();
     microdetailBlock.addStr("micro_detail", obj[ECS_HASH("texture_name")].getOr(""));
   }
+
+  if (g_entity_mgr->has(eid, ECS_HASH("land_micro_details_uv_scale")))
+    microdetailBlock.setReal("land_micro_details_uv_scale", g_entity_mgr->get<float>(eid, ECS_HASH("land_micro_details_uv_scale")));
+
   for (auto &entry : microDetailTextures)
   {
     const ecs::Object &obj = entry.get<ecs::Object>();
@@ -51,6 +55,17 @@ DataBlock load_microdetail_settings(ecs::EntityId eid)
   return microdetailBlock;
 }
 
+void update_land_micro_details_sampler(eastl::optional<float> mip_bias = {})
+{
+  static float lastMipBias = 0.f;
+  lastMipBias = mip_bias.value_or(lastMipBias);
+
+  d3d::SamplerInfo smpInfo;
+  smpInfo.anisotropic_max = ::dgs_tex_anisotropy;
+  smpInfo.mip_map_bias = lastMipBias;
+  ShaderGlobal::set_sampler(get_shader_variable_id("land_micro_details_samplerstate"), d3d::request_sampler(smpInfo));
+}
+
 TEXTUREID load_land_micro_details(const DataBlock &microdetail_settings_fallback)
 {
   DataBlock loadedMicrodetailSettings;
@@ -72,6 +87,8 @@ TEXTUREID load_land_micro_details(const DataBlock &microdetail_settings_fallback
     return BAD_TEXTUREID;
   }
   int microDetailCount = 0;
+  // TODO: the loading of micro_detail:t depends on their parameter indices in the block. It should only depend on their relative order
+  // inside the block
   TEXTUREID landMicrodetailsId = load_texture_array_immediate("land_micro_details*", "micro_detail", micro, microDetailCount);
   if (landMicrodetailsId != BAD_TEXTUREID)
   {
@@ -101,11 +118,8 @@ TEXTUREID load_land_micro_details(const DataBlock &microdetail_settings_fallback
     }
   }
   ShaderGlobal::set_texture(land_micro_detailsVarId, landMicrodetailsId);
-  {
-    d3d::SamplerInfo smpInfo;
-    smpInfo.anisotropic_max = ::dgs_tex_anisotropy;
-    ShaderGlobal::set_sampler(get_shader_variable_id("land_micro_details_samplerstate"), d3d::request_sampler(smpInfo));
-  }
+  update_land_micro_details_sampler();
+
   int land_micro_details_countVarId = get_shader_variable_id("land_micro_details_count", true);
   if (land_micro_details_countVarId >= 0)
     ShaderGlobal::set_int(land_micro_details_countVarId, microDetailCount);

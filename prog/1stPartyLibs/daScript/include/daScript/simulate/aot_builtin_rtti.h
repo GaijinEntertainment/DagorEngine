@@ -1,6 +1,7 @@
 #pragma once
 
 #include "daScript/simulate/bind_enum.h"
+#include "daScript/simulate/aot.h"
 #include "daScript/misc/arraytype.h"
 
 DAS_BIND_ENUM_CAST(RefMatters);
@@ -24,29 +25,12 @@ namespace das {
     class Module;
     struct Annotation;
 
-    #pragma pack(16)
-    struct RttiValue {
-        int32_t         _variant;
-        union {
-            bool        bValue;         // 0
-            int32_t     iValue;         // 1
-            uint32_t    uValue;         // 2
-            int64_t     i64Value;       // 3
-            uint64_t    u64Value;       // 4
-            float       fValue;         // 5
-            double      dfValue;        // 6
-            char *      sValue;         // 7
-            vec4f       nothing;        // 8
-        };
-    };
-    #pragma pack()
+    using RttiValue = TVariant<32,16,bool,int32_t,uint32_t,int64_t,uint64_t,float,double,char *,vec4f>;
     static_assert(sizeof(RttiValue)==32,"sizeof RttiValue must be 32");
 
-    template <> struct das_alias<RttiValue>
-        : das_alias_ref<RttiValue,TVariant<sizeof(RttiValue),alignof(RttiValue),bool,int32_t,uint32_t,int64_t,uint64_t,float,double,char *,vec4f>> {};
-
-    template <typename TT, typename PD, typename TTA = const TT>
+    template <typename TT, typename PD>
     struct das_rtti_iterator {
+        using TTA = typename std::conditional_t<std::is_const<PD>::value, const TT, TT>;
         __forceinline das_rtti_iterator(const PD & r) {
             array_start = r.fields;
             array_end = array_start + r.count;
@@ -77,28 +61,25 @@ namespace das {
         TT ** array_end;
     };
 
-    template <>
-    struct das_iterator<EnumInfo> :
-        das_rtti_iterator<EnumValueInfo, EnumInfo, EnumValueInfo> {
-        das_iterator(const EnumInfo & info) : das_rtti_iterator<EnumValueInfo, EnumInfo, EnumValueInfo>(info) {}
+    template<typename T, typename... Ts>
+    constexpr bool is_one_of = (std::is_same_v<T, Ts> || ...);
+
+    template <typename T>
+    struct das_iterator<T, enable_if_t<is_one_of<T, EnumInfo, const EnumInfo>>> :
+        das_rtti_iterator<EnumValueInfo, T> {
+        das_iterator(T & info) : das_rtti_iterator<EnumValueInfo, T>(info) {}
     };
 
-    template <>
-    struct das_iterator<EnumInfo const> :
-        das_rtti_iterator<EnumValueInfo, EnumInfo> {
-        das_iterator(EnumInfo const & info) : das_rtti_iterator<EnumValueInfo, EnumInfo>(info) {}
+    template <class T>
+    struct das_iterator<T, enable_if_t<is_one_of<T, FuncInfo, const FuncInfo>>> :
+        das_rtti_iterator<VarInfo, T> {
+        das_iterator(T & info) : das_rtti_iterator<VarInfo, T>(info) {}
     };
 
-    template <>
-    struct das_iterator<FuncInfo const> :
-        das_rtti_iterator<VarInfo, FuncInfo> {
-        das_iterator(FuncInfo const & info) : das_rtti_iterator<VarInfo, FuncInfo>(info) {}
-    };
-
-    template <>
-    struct das_iterator<StructInfo const> :
-        das_rtti_iterator<VarInfo, StructInfo> {
-        das_iterator(StructInfo const & info) : das_rtti_iterator<VarInfo, StructInfo>(info) {}
+    template <typename T>
+    struct das_iterator<T, enable_if_t<is_one_of<T, StructInfo, const StructInfo>>> :
+        das_rtti_iterator<VarInfo, T> {
+        das_iterator(T & info) : das_rtti_iterator<VarInfo, T>(info) {}
     };
 
     char * rtti_get_das_type_name(Type tt, Context * context, LineInfoArg * at);
@@ -133,7 +114,7 @@ namespace das {
         const TBlock<void, bool, smart_ptr<Program>, const string> & block, Context * context, LineInfoArg * lineinfo);
 
     void rtti_builtin_simulate ( const smart_ptr<Program> & program,
-        const TBlock<void,bool,smart_ptr<Context>,string> & block, Context * context, LineInfoArg * lineinfo );
+        const TBlock<void,bool,smart_ptr_raw<Context>,string> & block, Context * context, LineInfoArg * lineinfo );
 
     void rtti_builtin_program_for_each_module(smart_ptr_raw<Program> prog, const TBlock<void, Module *> & block, Context * context, LineInfoArg * lineinfo);
     void rtti_builtin_program_for_each_registered_module(const TBlock<void, Module *> & block, Context * context, LineInfoArg * lineinfo);

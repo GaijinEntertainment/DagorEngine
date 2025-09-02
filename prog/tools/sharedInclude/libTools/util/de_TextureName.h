@@ -45,7 +45,7 @@ public:
   }
 
   // find texture (if base_path==NULL in locations list)
-  virtual bool findExisting(const char *base_path = NULL);
+  bool findExisting(const char *base_path = NULL);
 
   // cut base path (if NULL, use locations list)
   bool makeRelativePath(const char *base_path = NULL);

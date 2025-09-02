@@ -1,6 +1,8 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include "delmem.h"
+
 #ifdef IOSTREAMH
 #include <iostream>
 using namespace std;

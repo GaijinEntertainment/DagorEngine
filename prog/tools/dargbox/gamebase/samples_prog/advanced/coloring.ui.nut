@@ -2,7 +2,7 @@ from "%darg/ui_imports.nut" import *
 let function col(color){
   return {
     rendObj = ROBJ_BOX
-    size = [40,40]
+    size = 40
     fillColor = color
     borderColor= Color(100,100,100)
   }
@@ -30,7 +30,7 @@ return {
     {flow=FLOW_HORIZONTAL valign = ALIGN_CENTER children = [
       text("fillColor:") col(fillColor) text(", borderColor: ") col(borderColor) text($", brightness: {brightness}") text(", tintColor to:") col(tintColor)
     ]}
-    {rendObj = ROBJ_BOX borderWidth=4 fillColor = fillColor borderColor=borderColor brightness=brightness tint = tintColor size = [sh(10),sh(10)]}
-    {rendObj = ROBJ_SOLID color = fillColor borderColor=borderColor brightness=brightness tint = tintColor size = [sh(10),sh(10)]}
+    {rendObj = ROBJ_BOX borderWidth=4 fillColor = fillColor borderColor=borderColor brightness=brightness tint = tintColor size = sh(10)}
+    {rendObj = ROBJ_SOLID color = fillColor borderColor=borderColor brightness=brightness tint = tintColor size = sh(10)}
   ]
 }

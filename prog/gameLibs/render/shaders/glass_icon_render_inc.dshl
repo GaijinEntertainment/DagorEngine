@@ -1,0 +1,52 @@
+int render_to_icon = 0;
+interval render_to_icon : no < 1, yes;
+float background_alpha = 0;
+float4 icon_silhouette_color = (0,0,0,2);
+float icon_silhouette_has_shadow = 0.0;
+interval icon_silhouette_has_shadow: no <1.0, yes;
+float icon_silhouette_glass_color_mul = 0.4;
+
+macro INIT_GLASS_ICON_RENDER(code)
+  if (render_to_icon == yes) {
+    hlsl(code) {
+      #define ICON_RENDER 1
+    }
+
+    if (icon_silhouette_has_shadow == yes) {
+      no_ablend;
+      hlsl(code) {
+        #define ICON_RENDER_HAS_SILHOUETTE_SHADOW 1
+      }
+    }
+
+    (code) {
+      background_alpha@f1 = background_alpha;
+      icon_silhouette_color@f4 = icon_silhouette_color;
+      icon_silhouette_glass_color_mul@f1 = icon_silhouette_glass_color_mul;
+    }
+  } else {
+    if (icon_silhouette_has_shadow == yes) {
+      dont_render;
+    }
+    hlsl (code) {
+      #define ICON_RENDER 0
+      #define ICON_RENDER_HAS_SILHOUETTE_SHADOW 0
+    }
+  }
+endmacro
+
+macro USE_GLASS_ICON_RENDER(code)
+  hlsl(code) {
+  #if ICON_RENDER_HAS_SILHOUETTE_SHADOW
+    float4 get_glass_silhouette_color()
+    {
+      return float4(icon_silhouette_color.rgb * icon_silhouette_glass_color_mul, 1.0);
+    }
+  #endif
+  }
+endmacro
+
+macro INIT_AND_USE_GLASS_ICON_RENDER(code)
+  INIT_GLASS_ICON_RENDER(code)
+  USE_GLASS_ICON_RENDER(code)
+endmacro

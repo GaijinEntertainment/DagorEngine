@@ -28,11 +28,12 @@
 #include <workCycle/dag_gameSettings.h>
 #include <workCycle/dag_startupModules.h>
 #include <workCycle/dag_workCycle.h>
-#include <de3_dxpFactory.h>
+#include <workCycle/dag_gameScene.h>
 #include <libTools/util/makeBindump.h>
 #include <rendInst/rendInstGen.h>
 #include <libTools/util/setupTexStreaming.h>
 #include <assets/assetPlugin.h>
+#include <assets/texAssetBuilderTextureFactory.h>
 
 #include <startup/dag_winMain.inc.cpp>
 
@@ -191,8 +192,8 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
   ::load_tex_streaming_settings(String(0, "%s/application.blk", appBlk.getStr("appDir")), &texStreamingBlk);
 
   global_settings_blk->removeBlock("texStreaming");
-  global_settings_blk->addNewBlock(&texStreamingBlk, "texStreaming")->setInt("forceGpuMemMB", 1);
-  init_managed_textures_streaming_support(-1);
+  global_settings_blk->addNewBlock(&texStreamingBlk, "texStreaming");
+  init_managed_textures_streaming_support();
 
   ::dagor_init_video("DagorWClass", nCmdShow, NULL, "PLOD gen");
   dagor_install_dev_fatal_handler(NULL);
@@ -217,7 +218,7 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
   {
     ::set_gameres_sys_ver(2);
     if (!loadDDSxPacks)
-      ::init_dxp_factory_service();
+      texconvcache::init_build_on_demand_tex_factory(engine->getAssetManager(), engine->getConsoleLogWriter());
   }
   if (blk.getStr("gameRes", nullptr) || blk.getStr("ddsxPacks", nullptr))
   {
@@ -235,6 +236,13 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
 
   rendinst::configurateRIGen(*appBlk.getBlockByNameEx("projectDefaults")->getBlockByNameEx("riMgr")->getBlockByNameEx("config"));
   rendinst::initRIGen(true, 80, 8000.0f);
+
+  struct SceneToEnablePresent : public DagorGameScene
+  {
+    void actScene() override {}
+    void drawScene() override {}
+  } scene;
+
   int ret = 0;
   {
     RenderableInstanceLodsResource::on_higher_lod_required = nullptr; // force lod0 streaming
@@ -245,13 +253,16 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
       logerr("PLOD generator failed to initialize! Target project is not supported!");
       return 2;
     }
+    dagor_select_game_scene(&scene);
+    dagor_reset_spent_work_time();
     ret = baker.generatePLODs() ? 0 : 1;
   }
 
+  dagor_select_game_scene(nullptr);
   rendinst::clearRIGen();
   rendinst::termRIGen();
   reset_game_resources();
-  ::term_dxp_factory_service();
+  texconvcache::term_build_on_demand_tex_factory();
   engine.demandDestroy();
 
   shutdown_game(RESTART_ALL);

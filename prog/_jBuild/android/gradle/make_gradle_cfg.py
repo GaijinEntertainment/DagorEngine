@@ -26,7 +26,7 @@ if(len(args.VARS) > 2):
 if args.PROJECT_FILE == "none":
   args.PROJECT_FILE=''
 else:
-  args.PROJECT_FILE= '\nPROJECT_FILE=' + args.PROJECT_FILE
+  args.PROJECT_FILE= args.PROJECT_FILE
 
 main_prop = """\
 NAMESPACE={APK_NAMESPACE}
@@ -34,18 +34,20 @@ VERSION_CODE={VERSION_CODE}
 VERSION_NAME={VERSION_NAME}
 MIN_SDK={MIN_SDK}
 TARGET_SDK={TARGET_SDK}
-PROJECT_FILE={PROJECT_FILE}
+android.enableR8.fullMode=false
 org.gradle.jvmargs=-Xmx8192m
 android.useAndroidX=true
 android.enableJetifier=true
 """.format(
   APK_NAMESPACE=args.APK_NAMESPACE,
-  PROJECT_FILE=args.PROJECT_FILE,
   VERSION_CODE=args.VERSION_CODE,
   VERSION_NAME=args.VERSION_NAME,
   MIN_SDK=args.MIN_SDK,
   TARGET_SDK=args.TARGET_SDK
   )
+
+if args.PROJECT_FILE:
+  main_prop += "PROJECT_FILE={}\n".format(args.PROJECT_FILE)
 
 build_dep_prop = ''
 if len(args.VARS) == 3:

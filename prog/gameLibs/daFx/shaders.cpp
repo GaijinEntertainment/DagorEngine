@@ -2,7 +2,7 @@
 
 #include "shaders.h"
 #include "context.h"
-#include <dag_noise/dag_uint_noise.h>
+#include <math/random/dag_random.h>
 #include <generic/dag_relocatableFixedVector.h>
 #include <memory/dag_framemem.h>
 #include <drv/3d/dag_shaderConstants.h>
@@ -141,11 +141,11 @@ int update_cpu_tasks(Context &ctx, const eastl::vector<int> &workers, int start,
     int lodOfs = 1 << lod;
     G_FAST_ASSERT(buf.offset <= 0xffffff && lodOfs <= 0xff);
 
-    int rnd = interlocked_increment(ctx.rndSeed);
+    int rnd = interlocked_increment(ctx.rndSeed) + sid + ddesc.startAndCount;
     ddesc.headOffsetAndLodOfs = (buf.offset & 0xffffff) | (lodOfs << 24);
     ddesc.startAndCount = state.start | (state.count << 16);
     ddesc.aliveStartAndCount = inst.aliveStart | (inst.aliveCount << 16);
-    ddesc.rndSeedAndCullingId = (uint32_hash(rnd + sid + ddesc.startAndCount) % 0xff) | (stream.get<INST_CULLING_ID>(sid) << 8);
+    ddesc.rndSeedAndCullingId = _rnd_int(rnd, 0, 255) | (stream.get<INST_CULLING_ID>(sid) << 8);
     cpuElemProcessed += state.count;
     cpuElemProcessedByLods[lod] += state.count;
   }
@@ -263,11 +263,11 @@ void update_gpu_tasks(Context &ctx, const eastl::vector<int> &workers)
     int lodOfs = 1 << lod;
     G_FAST_ASSERT(buf.offset <= 0xffffff && lodOfs <= 0xff);
 
-    int rnd = interlocked_increment(ctx.rndSeed);
+    int rnd = interlocked_increment(ctx.rndSeed) + sid + ddesc.startAndCount;
     ddesc.headOffsetAndLodOfs = (buf.offset & 0xffffff) | (lodOfs << 24);
     ddesc.startAndCount = state.start | (state.count << 16);
     ddesc.aliveStartAndCount = inst.aliveStart | (inst.aliveCount << 16);
-    ddesc.rndSeedAndCullingId = (uint32_hash(rnd + sid + ddesc.startAndCount) % 0xff) | (stream.get<INST_CULLING_ID>(sid) << 8);
+    ddesc.rndSeedAndCullingId = _rnd_int(rnd, 0, 255) | (stream.get<INST_CULLING_ID>(sid) << 8);
     gpuElemProcessed += state.count;
     gpuElemProcessedByLods[lod] += state.count;
   }

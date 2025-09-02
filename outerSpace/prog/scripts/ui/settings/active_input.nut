@@ -4,7 +4,7 @@ let console_register_command = require("console").register_command
 let {set_actions_binding_column_active} = require("dainput2")
 let { eventbus_send, eventbus_subscribe } = require("eventbus")
 let platform = require("%dngscripts/platform.nut")
-let controlsTypes = require("input_types.nut")
+let controlsTypes = require("%scripts/ui/settings/input_types.nut")
 let forcedControlsType = mkWatched(persist, "forcedControlsType")
 let defRaw = platform.is_pc ? 0 : 1
 let lastActiveControlsTypeRaw = mkWatched(persist, "lastActiveControlsTypeRaw", defRaw)
@@ -13,7 +13,7 @@ let lastActiveControlsType = mkWatched(persist, "lastActiveControlType", def)
 
 const EV_FORCE_CONTROLS_TYPE = "forced_controls_type"
 function setForcedControlsType(v){
-  forcedControlsType(v)
+  forcedControlsType.set(v)
 }
 
 enum ControlsTypes {
@@ -34,8 +34,8 @@ function update_input_types(new_val){
     //[3] = controlsTypes.ds4gamepad, //< no such value sent
   }
   local ctype = map?[new_val] ?? def
-  lastActiveControlsTypeRaw.update(new_val ?? defRaw)
-  lastActiveControlsType.update(ctype)
+  lastActiveControlsTypeRaw.set(new_val ?? defRaw)
+  lastActiveControlsType.set(ctype)
 }
 
 forcedControlsType.subscribe(function(val) {
@@ -44,7 +44,7 @@ forcedControlsType.subscribe(function(val) {
 })
 
 eventbus_subscribe(EV_INPUT_USED, function(msg) {
-  if ([null, 0].contains(forcedControlsType.value))
+  if ([null, 0].contains(forcedControlsType.get()))
     update_input_types(msg.val)
 })
 
@@ -58,18 +58,18 @@ let wasGamepad = mkWatched(persist, "wasGamepad", function() {
   return wasGamepadV
 }())
 
-let enabledGamepadControls = Watched(!platform.is_pc || isGamepad.value)
+let enabledGamepadControls = Watched(!platform.is_pc || isGamepad.get())
 
 if (platform.is_pc){
-  wasGamepad.subscribe(@(v) enabledGamepadControls(v))
-  let setGamePadActive = @(v) set_actions_binding_column_active(GAMEPAD_COLUMN, v && forcedControlsType.value != ControlsTypes.KB_MOUSE)
+  wasGamepad.subscribe(@(v) enabledGamepadControls.set(v))
+  let setGamePadActive = @(v) set_actions_binding_column_active(GAMEPAD_COLUMN, v && forcedControlsType.get() != ControlsTypes.KB_MOUSE)
   enabledGamepadControls.subscribe(setGamePadActive)
-  forcedControlsType.subscribe(@(_v) setGamePadActive(enabledGamepadControls.value))
-  setGamePadActive(isGamepad.value)
+  forcedControlsType.subscribe(@(_v) setGamePadActive(enabledGamepadControls.get()))
+  setGamePadActive(isGamepad.get())
 }
 
 isGamepad.subscribe(function(v) {
-  wasGamepad(wasGamepad.value || v)
+  wasGamepad.set(wasGamepad.get() || v)
   log($"isGamepad changed to = {v}")
   gui_scene.setConfigProps({gamepadCursorControl = v})
 })

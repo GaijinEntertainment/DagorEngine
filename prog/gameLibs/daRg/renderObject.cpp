@@ -5,6 +5,7 @@
 
 #include <generic/dag_tabUtils.h>
 #include <gui/dag_stdGuiRenderEx.h>
+#include <util/dag_string.h>
 
 
 namespace darg

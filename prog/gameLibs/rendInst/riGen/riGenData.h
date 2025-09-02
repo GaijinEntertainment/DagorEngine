@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include <rendInst/rendInstConsts.h>
 #include <rendInst/rendInstGen.h>
 #include <rendInst/rendInstDebris.h>
 #include <rendInst/rendInstGenDamageInfo.h>
@@ -139,6 +140,8 @@ struct RendInstGenData
     bool isParent = false;
     bool destructibleByParent = false;
     int destroyNeighbourDepth = 1;
+    SimpleString tag;
+    SimpleString destroyedByTag;
     SimpleString destrName;
     int destrFxId = -1;
     SimpleString destrFxName;
@@ -159,6 +162,8 @@ struct RendInstGenData
       isParent = p.isParent;
       destructibleByParent = p.destructibleByParent;
       destroyNeighbourDepth = p.destroyNeighbourDepth;
+      eastl::swap(tag, p.tag);
+      eastl::swap(destroyedByTag, p.destroyedByTag);
       eastl::swap(destrName, p.destrName);
       eastl::swap(destrFxId, p.destrFxId);
       eastl::swap(destrFxName, p.destrFxName);
@@ -168,21 +173,30 @@ struct RendInstGenData
     ~DestrProps();
   };
 
+  enum class CanopyShape : uint8_t
+  {
+    BOX,
+    CONE,
+    SPHEROID
+  };
+
   struct RendinstProperties
   {
     int matId;
     bool immortal;
+    bool damageable;
     bool stopsBullets;
     bool bushBehaviour;
     bool treeBehaviour;
-    bool canopyTriangle;
+    CanopyShape canopyShape;
     float canopyTopOffset;
     float canopyTopPart;
     float canopyWidthPart;
     float canopyOpacity;
+    float trunkRadius;
     float soundOcclusion;
-    rendinstdestr::TreeDestr::BranchDestr treeBranchDestrFromDamage;
-    rendinstdestr::TreeDestr::BranchDestr treeBranchDestrOther;
+    rendinstdestr::BranchDestr treeBranchDestrFromDamage;
+    rendinstdestr::BranchDestr treeBranchDestrOther;
   };
 
   struct ElemMask
@@ -300,7 +314,6 @@ struct RendInstGenData
       bool free_temp_resources);
 
   private:
-    bool areImpostorsReady(bool force_update);
     bool haveNextPoolForShadowImpostors();
     bool shouldRenderGlobalShadows();
     GlobalShadowRet renderGlobalShadow(GlobalShadowTask &task, const Point3 &sun_dir_0, bool force_update, bool use_compression);
@@ -327,6 +340,10 @@ struct RendInstGenData
         updateDelayedDebrisRi(dt, movedDebrisBbox);
     }
 
+    void initRiSoundOccluders(const dag::ConstSpan<eastl::pair<const char *, const char *>> &ri_name_to_occluder_type,
+      const dag::ConstSpan<eastl::pair<const char *, float>> &occluders);
+    bool debugGetSoundOcclusion(const char *ri_name, float &value);
+
     int riResFirstLod(int ri_idx) const { return riRes[ri_idx]->getQlMinAllowedLod(); }
     int riResLodCount(int ri_idx) const
     {
@@ -350,11 +367,12 @@ struct RendInstGenData
     }
     inline float riResLodRange(int ri_idx, int lod, const DataBlock *ri_ovr)
     {
-      static const char *lod_nm[] = {"lod0", "lod1", "lod2", "lod3"};
+      static const char *lod_nm[] = {"lod0", "lod1", "lod2", "lod3", "lod4", "lod5", "lod6", "lod7"};
+      G_STATIC_ASSERT(countof(lod_nm) == rendinst::RI_MAX_LODS);
       if (lod < riRes[ri_idx]->getQlMinAllowedLod())
         return -1; // lod = riRes[ri_idx]->getQlBestLod();
 
-      if (!ri_ovr || lod > 3)
+      if (!ri_ovr || lod >= rendinst::RI_MAX_LODS)
         return riResLod(ri_idx, lod).range;
       return ri_ovr->getReal(lod_nm[lod], riResLod(ri_idx, lod).range);
     }
@@ -431,11 +449,16 @@ struct RendInstGenData
     {
       return scs[remapPoolIndex(poolIdx) * (SUBCELL_DIV * SUBCELL_DIV) + subCellIdx];
     }
+    bool isDataUploaded() const { return interlocked_acquire_load(dataUploaded); }
+    void setDataUploadFlag(bool value) { interlocked_release_store(dataUploaded, value); }
 
     void clear();
     void allocate(int idx);
     void update(int size, RendInstGenData &rgd); // in bytes
     void applyBurnDecal(const bbox3f &decal_bbox);
+
+  private:
+    bool dataUploaded = false;
   };
 
   struct LandClassRec
@@ -515,12 +538,16 @@ public:
 
   CellRtData *generateCell(int x, int y);
   int precomputeCell(CellRtData &crt, int x, int y);
+  void allocateVb(CellRtData &crt, int idx);
   void updateVb(RendInstGenData::CellRtData &crt, int idx);
+  void updateOnlyVb(RendInstGenData::CellRtData &crt);
   void onDeviceReset();
   template <bool use_external_filter = false>
   bool prepareVisibility(const Frustum &frustum, const Point3 &vpos, RiGenVisibility &visibility, bool forShadow,
     rendinst::LayerFlags layer_flags, Occlusion *use_occlusion, bool for_visual_collision = false,
     const rendinst::VisibilityExternalFilter &external_filter = {});
+  void filterRIGenVisibilityById(const RiGenVisibility &visibility, RiGenVisibility &filteredVis,
+    const rendinst::VisibilityExternalIdFilter &id_filter);
   void sortRIGenVisibility(RiGenVisibility &visibility, const Point3 &viewPos, const Point3 &viewDir, float vertivalFov,
     float horizontalFov, float value);
   void renderPreparedOpaque(rendinst::RenderPass renderPass, rendinst::LayerFlags layer_flags, const RiGenVisibility &visibility,
@@ -530,7 +557,6 @@ public:
 
   void render(rendinst::RenderPass renderPass, const RiGenVisibility &visibility, const TMatrix &view_itm,
     rendinst::LayerFlags layer_flags, bool depth_optimized);
-  void render(rendinst::LayerFlags layer_flags);
 
   void applyBurnDecal(const bbox3f &decal)
   {
@@ -636,19 +662,15 @@ int getPersistentPackType(RenderableInstanceLodsResource *res, int def);
 uint8_t getResHideMask(const char *res_name, const BBox3 *lbox);
 inline bool isResHidden(uint8_t hide_mask) { return ri_game_render_mode < 0 ? false : (hide_mask >> ri_game_render_mode) & 1; }
 
-inline bool is_pos_rendinst_data_destroyed(const int16_t *data) { return interlocked_relaxed_load((const uint16_t &)data[3]) == 0; }
-inline bool is_tm_rendinst_data_destroyed(const int16_t *data)
-{
-  const uint32_t *data32 = (const uint32_t *)data; //-V1032
-  return interlocked_relaxed_load(data32[0]) == 0 && interlocked_relaxed_load(data32[1]) == 0;
-}
+inline bool is_pos_rendinst_data_destroyed(const int16_t *data) { return data[3] == 0; }
+inline bool is_tm_rendinst_data_destroyed(const int16_t *data) { return *(const uint64_t *)data == 0; } //-V1032
 inline void destroy_pos_rendinst_data(int16_t *data, dag::ConstSpan<uint8_t> mrange)
 {
   G_UNUSED(mrange);
 #ifdef _DEBUG_TAB_
   G_FAST_ASSERT((uint8_t *)data >= mrange.data() && (uint8_t *)&data[3] < mrange.end());
 #endif
-  interlocked_release_store((uint16_t &)data[3], 0);
+  data[3] = 0;
 }
 inline void destroy_tm_rendinst_data(int16_t *data, dag::ConstSpan<uint8_t> mrange)
 {
@@ -656,19 +678,7 @@ inline void destroy_tm_rendinst_data(int16_t *data, dag::ConstSpan<uint8_t> mran
 #ifdef _DEBUG_TAB_
   G_FAST_ASSERT((uint8_t *)data >= mrange.data() && (uint8_t *)&data[10] < mrange.end());
 #endif
-  uint32_t *data32 = reinterpret_cast<uint32_t *>(data); //-V1032
-  // Begin with storing sentinel value to the data32[1], this value
-  // cant occur naturally, so it will be treated as invalid, if loaded.
-  // Because we start with release-storing this value, reader is guaranteed
-  // to see it, if it reads data after this operation, see acquire_load_tm_data_first_row
-  // NOTE: we cant use 64 bit atomics here, because data is always aligned by 4 bytes, but not by 8
-  interlocked_release_store(data32[1], 0x80008000u);
-  interlocked_relaxed_store(data32[0], 0);
-  for (int i = 4; i < 11; i++)
-    interlocked_relaxed_store((uint16_t &)data[i], 0);
-  // replace sentinel value with zero, release-store instead of relaxed, so reader will be
-  // guaranteed to see other data zeroed too
-  interlocked_release_store(data32[1], 0);
+  data[0] = data[1] = data[2] = data[4] = data[5] = data[6] = data[8] = data[9] = data[10] = 0;
 }
 
 RenderableInstanceLodsResource *get_stub_res();
@@ -716,8 +726,7 @@ inline bool getRIGenCanopyBBox(const RendInstGenData::RendinstProperties &prop, 
 #if RIGEN_PERINST_ADD_DATA_FOR_TOOLS
 #define RIGEN_ADD_STRIDE_PER_INST_B(ZERO_INST_SEEDS, PER_INST_DWORDS) ((ZERO_INST_SEEDS) ? 0 : ((((PER_INST_DWORDS) + 3) & ~3) * 2))
 #define RIGEN_TM_STRIDE_B(ZERO_INST_SEEDS, PER_INST_DWORDS)           (12 * 2 + RIGEN_ADD_STRIDE_PER_INST_B(ZERO_INST_SEEDS, PER_INST_DWORDS))
-#define RIGEN_POS_STRIDE_B(ZERO_INST_SEEDS, PER_INST_DWORDS) \
-  (4 * 2) // pos inst don't have per-inst data since https://cvs1.gaijin.lan/#/c/dagor4/+/169657/
+#define RIGEN_POS_STRIDE_B(ZERO_INST_SEEDS, PER_INST_DWORDS)          (4 * 2) // pos inst don't have per-inst data
 #else
 #define RIGEN_ADD_STRIDE_PER_INST_B(ZERO_INST_SEEDS, PER_INST_DWORDS) 0
 #define RIGEN_TM_STRIDE_B(ZERO_INST_SEEDS, PER_INST_DWORDS)           (12 * 2)

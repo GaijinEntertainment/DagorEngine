@@ -56,3 +56,12 @@ struct RequestSaveKeyFrame {}
 
 [cpp_event(unicast, with_scheme)]
 struct CmdUpdateGridScale {}
+
+[cpp_event(unicast, with_scheme)]
+struct CmdShowHitcamera {}
+
+[cpp_event(unicast, with_scheme)]
+struct EventOnHitCameraControlEvent
+  target : EntityId
+  xrayEventType : int
+  hitResult : int

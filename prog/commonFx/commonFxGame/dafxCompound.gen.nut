@@ -2,20 +2,12 @@ from "dagor.math" import Color3, Color4, Point2, Point3
 
 from "params.gen.nut" import *
 
+include_decl_h("LightfxShadow");
+declare_extern_struct("LightfxShadowParams");
+
 begin_declare_params("DafxCompound");
 
-declare_struct("LightfxShadowParams", 1,
-[
-  { name="enabled", type="bool", defVal=false },
-  { name="is_dynamic_light", type="bool", defVal=false },
-  { name="shadows_for_dynamic_objects", type="bool", defVal=false },
-  { name="shadows_for_gpu_objects", type="bool", defVal=false },
-  { name="quality", type="int", defVal=0 },
-  { name="shrink", type="int", defVal=0 },
-  { name="priority", type="int", defVal=0 },
-]);
-
-declare_struct("LightfxParams", 4,
+declare_struct("LightfxParams", 5,
 [
   { name="ref_slot", type="int", defVal=0 },
   { name="allow_game_override", type="bool", defVal=0 },
@@ -25,6 +17,7 @@ declare_struct("LightfxParams", 4,
   { name="life_time", type="real", defVal=0 },
   { name="fade_time", type="real", defVal=0 },
 
+  { name="override_shadow", type="bool", defVal=0 },
   { name="shadow", type="LightfxShadowParams" },
 ]);
 
@@ -35,7 +28,7 @@ declare_struct("ModFxQuality", 1,
   { name="high_quality", type="bool", defVal=1 },
 ]);
 
-declare_struct("ModfxParams", 10,
+declare_struct("ModfxParams", 11,
 [
   { name="ref_slot", type="int", defVal=0 },
   { name="offset", type="Point3", defVal=Point3(0,0,0) },
@@ -61,18 +54,41 @@ declare_struct("ModfxParams", 10,
   { name="global_life_time_min", type="real", defVal=0 },
   { name="global_life_time_max", type="real", defVal=0 },
   { name="transform_type", type="list", list=["default", "world_space", "local_space"] },
-  { name="render_group", type="list", list=["default", "lowres", "highres", "distortion", "water_proj", "underwater"] },
+  { name="render_group", type="list", list=["default", "lowres", "highres", "distortion", "water_proj_advanced", "water_proj", "underwater"] },
 
   { name="quality", type="ModFxQuality" },
 ]);
 
-declare_struct("CFxGlobalParams", 3,
+declare_struct("SphereSectorPlacement", 1,
+[
+  { name="sector_angle", type="real", defVal=0 },
+]);
+
+declare_struct("CylinderPlacement", 1,
+[
+  { name="placement_height", type="real", defVal=1 },
+  { name="use_whole_surface", type="bool", defVal=1},
+]);
+
+declare_struct("CompositePlacement", 1,
+[
+  { name="enabled", type="bool", defVal=0 },
+  { name="placement_type", type="list", list=["default","sphere","sphere_sector","cylinder"] },
+  { name="placement_radius", type="real", defVal=1 },
+  { name="copies_number", type="int", defval=1 },
+  { name="place_in_volume", type="bool", defVal=0 },
+  { name="sphere_sector", type="SphereSectorPlacement" },
+  { name="cylinder", type="CylinderPlacement" },
+]);
+
+declare_struct("CFxGlobalParams", 4,
 [
   { name="spawn_range_limit", type="real", defVal=0 },
   { name="max_instances", type="int", defVal=100 },
   { name="player_reserved", type="int", defVal=10 },
   { name="one_point_number", type="real", defVal=3 },
   { name="one_point_radius", type="real", defVal=5 },
+  { name="procedural_placement", type="CompositePlacement"},
 ]);
 
 declare_struct("CompModfx", 3,

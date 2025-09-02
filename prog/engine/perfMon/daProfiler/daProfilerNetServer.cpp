@@ -41,7 +41,7 @@ class AcceptedClientServer
 public:
   SocketHandler sock;
   AcceptedClientServer() = default;
-  AcceptedClientServer(SocketHandler &&s) : sock((SocketHandler &&) s) {}
+  AcceptedClientServer(SocketHandler &&s) : sock((SocketHandler &&)s) {}
   void update()
   {
     if (!sock)
@@ -108,7 +108,7 @@ public:
     os_socket_set_option(sock.get(), OSO_NONBLOCK, 1); // prefer non-blocking sockets for listening
     os_socket_set_reuse_addr(sock.get(), true);
     debug("Listening to profiler client on port %d", port);
-    listenSocket = ((SocketHandler &&) sock);
+    listenSocket = ((SocketHandler &&)sock);
     return true;
   }
   template <bool send>
@@ -134,7 +134,7 @@ public:
     reinitCompressed();
     debug("got profiler connection from %d.%d.%d.%d:%d", host & 0xFF, (host >> 8) & 0xFF, (host >> 16) & 0xFF, host >> 24, port);
     settingsGen = pluginsGen = 1 << 30;
-    client.sock = ((SocketHandler &&) incomingSocket);
+    client.sock = ((SocketHandler &&)incomingSocket);
     os_socket_set_option(client.sock.get(), OSO_NONBLOCK, 0); // we prefer blocking socket. as long as connection established
     {
       struct FirstMessage

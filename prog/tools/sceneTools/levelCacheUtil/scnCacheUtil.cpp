@@ -15,11 +15,11 @@
 class QuietGenProgressInd : public IGenProgressInd
 {
 public:
-  virtual void setActionDescFmt(const char *, const DagorSafeArg *arg, int anum) {}
-  virtual void setTotal(int total_cnt) {}
-  virtual void setDone(int done_cnt) {}
-  virtual void incDone(int inc = 1) {}
-  virtual void destroy() {}
+  void setActionDescFmt(const char *, const DagorSafeArg *arg, int anum) override {}
+  void setTotal(int total_cnt) override {}
+  void setDone(int done_cnt) override {}
+  void incDone(int inc = 1) override {}
+  void destroy() override {}
 };
 static QuietGenProgressInd quiet_pbar;
 
@@ -108,42 +108,32 @@ static bool check_ribb_cache(IGenLoad &crd, const char *ribb_cache_fn, bool &out
 
 static void gather_level_files(FastNameMapEx &files, const char *folder_path)
 {
-  alefind_t ff;
-
-  if (::dd_find_first(String(260, "%s/*.bin", folder_path), 0, &ff))
+  for (const alefind_t &ff : dd_find_iterator(String(260, "%s/*.bin", folder_path), DA_FILE))
   {
-    do
-    {
-      int len = strlen(ff.name);
-      if (len > 8 && stricmp(".dxp.bin", &ff.name[len - 8]) == 0)
-        continue;
-      if (len > 11 && stricmp(".vromfs.bin", &ff.name[len - 11]) == 0)
-        continue;
+    int len = strlen(ff.name);
+    if (len > 8 && stricmp(".dxp.bin", &ff.name[len - 8]) == 0)
+      continue;
+    if (len > 11 && stricmp(".vromfs.bin", &ff.name[len - 11]) == 0)
+      continue;
 
-      files.addNameId(String(260, "%s/%s", folder_path, ff.name));
-    } while (dd_find_next(&ff));
-    dd_find_close(&ff);
+    files.addNameId(String(260, "%s/%s", folder_path, ff.name));
   }
 
-  if (::dd_find_first(String(260, "%s/*", folder_path), DA_SUBDIR, &ff))
+  for (const alefind_t &ff : dd_find_iterator(String(260, "%s/*", folder_path), DA_SUBDIR))
   {
-    do
-      if (ff.attr & DA_SUBDIR)
-      {
-        if (dd_stricmp(ff.name, "cvs") == 0 || dd_stricmp(ff.name, ".svn") == 0 || dd_stricmp(ff.name, ".git") == 0)
-          continue;
+    if (ff.attr & DA_SUBDIR)
+    {
+      if (dd_stricmp(ff.name, "cvs") == 0 || dd_stricmp(ff.name, ".svn") == 0 || dd_stricmp(ff.name, ".git") == 0)
+        continue;
 
-        gather_level_files(files, String(260, "%s/%s", folder_path, ff.name));
-      }
-    while (dd_find_next(&ff));
-    dd_find_close(&ff);
+      gather_level_files(files, String(260, "%s/%s", folder_path, ff.name));
+    }
   }
 }
 
 
 bool update_level_caches(const char *cache_dir, const FastNameMapEx &level_dirs, bool clean, IGenProgressInd *pbar, bool quiet)
 {
-  alefind_t ff;
   FastNameMapEx cache_files;
   FastNameMapEx level_files;
 
@@ -153,12 +143,9 @@ bool update_level_caches(const char *cache_dir, const FastNameMapEx &level_dirs,
   pbar->setDone(0);
   if (!quiet)
     pbar->setActionDesc("scanning cache files");
-  if (::dd_find_first(String(260, "%s/*.*", cache_dir), 0, &ff))
+  for (const alefind_t &ff : dd_find_iterator(String(260, "%s/*.*", cache_dir), DA_FILE))
   {
-    do
-      cache_files.addNameId(String(260, "%s/%s", cache_dir, ff.name));
-    while (dd_find_next(&ff));
-    dd_find_close(&ff);
+    cache_files.addNameId(String(260, "%s/%s", cache_dir, ff.name));
   }
 
   if (!quiet)
@@ -213,7 +200,6 @@ bool update_level_caches(const char *cache_dir, const FastNameMapEx &level_dirs,
 
 bool verify_level_caches_files(const char *cache_dir, IGenProgressInd *pbar, bool quiet)
 {
-  alefind_t ff;
   FastNameMapEx cache_files;
 
   if (!pbar)
@@ -222,12 +208,10 @@ bool verify_level_caches_files(const char *cache_dir, IGenProgressInd *pbar, boo
   pbar->setDone(0);
   if (!quiet)
     pbar->setActionDesc("scanning cache files");
-  if (::dd_find_first(String(260, "%s/*.*", cache_dir), 0, &ff))
+
+  for (const alefind_t &ff : dd_find_iterator(String(260, "%s/*.*", cache_dir), DA_FILE))
   {
-    do
-      cache_files.addNameId(String(260, "%s/%s", cache_dir, ff.name));
-    while (dd_find_next(&ff));
-    dd_find_close(&ff);
+    cache_files.addNameId(String(260, "%s/%s", cache_dir, ff.name));
   }
 
   pbar->setTotal(cache_files.nameCount());

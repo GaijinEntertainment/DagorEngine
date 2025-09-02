@@ -30,7 +30,7 @@
   VAR(dagi_sky_visibility_sph_samplerstate) \
   VAR(dagi_irradiance_grid_sph1_samplerstate)
 
-#define VAR(a) static ShaderVariableInfo a##VarId(#a);
+#define VAR(a) static ShaderVariableInfo a##VarId(#a, true);
 GLOBAL_VARS_LIST
 #undef VAR
 
@@ -338,7 +338,6 @@ void SkyVisibility::initClipmap(uint32_t w_, uint32_t d_, uint32_t clips_)
   dagi_sky_visibility_sph.close();
   dagi_sky_visibility_sph =
     dag::create_voltex(clipW, clipW, (clipD + 2) * clips_, TEXCF_UNORDERED | TEXFMT_A16B16G16R16F, 1, "dagi_sky_visibility_sph");
-  dagi_sky_visibility_sph->disableSampler();
   dagi_sky_visibility_sph_samplerstateVarId.set_sampler(d3d::request_sampler({}));
   dagi_irradiance_grid_sph1_samplerstateVarId.set_sampler(d3d::request_sampler({}));
   dagi_sky_visibility_age.close();
@@ -413,6 +412,12 @@ void SkyVisibility::resetClipmap(uint32_t clips)
 
 void SkyVisibility::init(uint32_t w_, uint32_t d_, uint32_t clips_, float probe0, uint32_t frames_to_update_clip, bool replicateTo)
 {
+#define VAR(a)     \
+  if (!(a##VarId)) \
+    logerr("mandatory shader variable is missing: %s", #a);
+  GLOBAL_VARS_LIST
+#undef VAR
+
   replicateToIrradiance = replicateTo;
   const bool sameClipmap = clipW == w_ && clipD == d_ && clipmap.size() == clips_;
   if (sameClipmap && probe0 == probeSize0)

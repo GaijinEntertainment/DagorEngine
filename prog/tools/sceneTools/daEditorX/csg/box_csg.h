@@ -16,33 +16,32 @@ public:
   BoxCSG(const BoxCSG &);
 
 
-  virtual void update(float);
+  void update(float) override;
 
-  virtual void beforeRender() {}
-  virtual void render();
-  virtual void renderTrans() {}
+  void beforeRender() override {}
+  void render() override;
+  void renderTrans() override {}
 
-  virtual bool isSelectedByRectangle(IGenViewportWnd *vp, const EcRect &rect) const;
-  virtual bool isSelectedByPointClick(IGenViewportWnd *vp, int x, int y) const;
-  virtual bool getWorldBox(BBox3 &box) const;
+  bool isSelectedByRectangle(IGenViewportWnd *vp, const EcRect &rect) const override;
+  bool isSelectedByPointClick(IGenViewportWnd *vp, int x, int y) const override;
+  bool getWorldBox(BBox3 &box) const override;
 
-  virtual void fillProps(PropPanel::ContainerPropertyControl &op, DClassID for_class_id,
-    dag::ConstSpan<RenderableEditableObject *> objects);
+  void fillProps(PropPanel::ContainerPropertyControl &op, DClassID for_class_id,
+    dag::ConstSpan<RenderableEditableObject *> objects) override;
 
-  virtual void onPPChange(int pid, bool edit_finished, PropPanel::ContainerPropertyControl &panel,
-    dag::ConstSpan<RenderableEditableObject *> objects);
+  void onPPChange(int pid, bool edit_finished, PropPanel::ContainerPropertyControl &panel,
+    dag::ConstSpan<RenderableEditableObject *> objects) override;
 
-  virtual void onPPBtnPressed(int pid, PropPanel::ContainerPropertyControl &panel, dag::ConstSpan<RenderableEditableObject *> objects);
-  // virtual bool onPPValidateParam(int pid, PropPanel::ContainerPropertyControl &panel,
-  //   dag::ConstSpan<RenderableEditableObject*> objects);
+  void onPPBtnPressed(int pid, PropPanel::ContainerPropertyControl &panel,
+    dag::ConstSpan<RenderableEditableObject *> objects) override;
 
-  virtual void save(DataBlock &blk);
-  virtual void load(const DataBlock &blk);
+  void save(DataBlock &blk);
+  void load(const DataBlock &blk);
 
-  virtual bool mayRename() { return true; }
-  virtual bool mayDelete() { return true; }
+  bool mayRename() override { return true; }
+  bool mayDelete() override { return true; }
 
-  virtual void onAdd(ObjectEditor *objEditor);
+  void onAdd(ObjectEditor *objEditor) override;
 
   EO_IMPLEMENT_RTTI(HUID)
 
@@ -52,7 +51,7 @@ public:
   void renderCommonGeom(DynRenderBuffer &dynBuf, const TMatrix4 &gtm);
 
 protected:
-  virtual ~BoxCSG() {}
+  ~BoxCSG() override {}
 
   bool box;
 

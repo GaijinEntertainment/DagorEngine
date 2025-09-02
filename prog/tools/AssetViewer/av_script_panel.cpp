@@ -6,7 +6,7 @@
 #include <osApiWrappers/dag_direct.h>
 #include <libTools/util/strUtil.h>
 #include <libTools/util/blkUtil.h>
-#include <sepGui/wndGlobal.h>
+#include <EditorCore/ec_wndGlobal.h>
 #include <debug/dag_debug.h>
 #include <assetsGui/av_selObjDlg.h>
 #include <assets/asset.h>
@@ -177,9 +177,10 @@ const char *AVScriptPanelEditor::selectAsset(const char *old_choise, dag::ConstS
   SelectAssetDlg dlg(0, amgr, "Select asset", "Select asset", "Reset asset", masks);
   dlg.selectObj(old_choise);
   dlg.setManualModalSizingEnabled();
-  dlg.positionLeftToWindow("Properties", true);
-  int ret = dlg.showDialog();
+  if (!dlg.hasEverBeenShown())
+    dlg.positionLeftToWindow("Properties", true);
 
+  int ret = dlg.showDialog();
   if (ret == PropPanel::DIALOG_ID_CLOSE)
     return old_choise;
   if (ret == PropPanel::DIALOG_ID_OK)
@@ -205,4 +206,4 @@ const char *AVScriptPanelEditor::selectGroupName(const char *old_choise)
 }
 
 
-const char *AVScriptPanelEditor::validateTarget(const char *name, const char *type) { return NULL; }
+const char *AVScriptPanelEditor::validateTarget(const char *, const char *) { return nullptr; }

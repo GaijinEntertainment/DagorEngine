@@ -91,38 +91,37 @@ public:
 class JpegLoadImageFactory : public ILoadImageFactory
 {
 public:
-  virtual TexImage32 *loadImage(const char *fn, IMemAlloc *mem, const char *fn_ext, bool *out_used_alpha = NULL)
+  static inline bool checkFnExt(const char *ext) { return ext && (dd_stricmp(ext, ".jpg") == 0 || dd_stricmp(ext, ".jpeg") == 0); }
+  bool readImageDimensions(const char *fn, const char *fn_ext, int &out_w, int &out_h, bool &out_may_have_alpha) override
   {
-    if (!fn_ext || (dd_stricmp(fn_ext, ".jpg") != 0 && dd_stricmp(fn_ext, ".jpeg") != 0))
-      return NULL;
-    if (out_used_alpha)
-      *out_used_alpha = false;
-    return load_jpeg32(fn, mem);
+    out_may_have_alpha = false;
+    return checkFnExt(fn_ext) ? read_jpeg32_dimensions(fn, out_w, out_h) : false;
   }
-  virtual TexImage32 *loadImage(IGenLoad &crd, IMemAlloc *mem, const char *fn_ext, bool *out_used_alpha = NULL)
+  TexImage32 *loadImage(const char *fn, IMemAlloc *mem, const char *fn_ext, bool *out_used_alpha) override
   {
-    if (!fn_ext || (dd_stricmp(fn_ext, ".jpg") != 0 && dd_stricmp(fn_ext, ".jpeg") != 0))
-      return NULL;
-    if (out_used_alpha)
+    TexImage32 *im = checkFnExt(fn_ext) ? load_jpeg32(fn, mem) : nullptr;
+    if (im && out_used_alpha)
       *out_used_alpha = false;
-    return load_jpeg32(crd, mem);
+    return im;
   }
-  virtual bool supportLoadImage2() { return true; }
-  virtual void *loadImage2(const char *fn, IAllocImg &a, const char *fn_ext)
+  TexImage32 *loadImage(IGenLoad &crd, IMemAlloc *mem, const char *fn_ext, bool *out_used_alpha) override
   {
-    if (!fn_ext || (dd_stricmp(fn_ext, ".jpg") != 0 && dd_stricmp(fn_ext, ".jpeg") != 0))
-      return NULL;
-
+    TexImage32 *im = checkFnExt(fn_ext) ? load_jpeg32(crd, mem) : nullptr;
+    if (im && out_used_alpha)
+      *out_used_alpha = false;
+    return im;
+  }
+  bool supportLoadImage2() override { return true; }
+  void *loadImage2(const char *fn, IAllocImg &a, const char *fn_ext) override
+  {
+    if (!checkFnExt(fn_ext))
+      return nullptr;
     CachedFullFileLoadCB crd(fn);
-    if (!crd.isOK())
-      return NULL;
-    return load_jpeg32(crd, a);
+    return crd.isOK() ? load_jpeg32(crd, a) : nullptr;
   }
-  virtual void *loadImage2(IGenLoad &crd, IAllocImg &a, const char *fn_ext)
+  void *loadImage2(IGenLoad &crd, IAllocImg &a, const char *fn_ext) override
   {
-    if (!fn_ext || (dd_stricmp(fn_ext, ".jpg") != 0 && dd_stricmp(fn_ext, ".jpeg") != 0))
-      return NULL;
-    return load_jpeg32(crd, a);
+    return checkFnExt(fn_ext) ? load_jpeg32(crd, a) : nullptr;
   }
 };
 

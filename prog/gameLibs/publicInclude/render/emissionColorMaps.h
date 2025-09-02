@@ -14,7 +14,7 @@ class EmissionColorMaps
   void upload();
 
 public:
-  EmissionColorMaps();
+  EmissionColorMaps(bool use_sbuffer = true);
   void render();
   void onReset();
 };

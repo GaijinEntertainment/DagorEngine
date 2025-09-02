@@ -108,14 +108,26 @@ namespace eastl
 
 	public:
 		set(const allocator_type& allocator = EASTL_SET_DEFAULT_ALLOCATOR);
+		// some differences with the standard in what is marked as explicit in these constructors:
 		set(const Compare& compare, const allocator_type& allocator = EASTL_SET_DEFAULT_ALLOCATOR);
 		set(const this_type& x);
 		set(this_type&& x);
 		set(this_type&& x, const allocator_type& allocator);
 		set(std::initializer_list<value_type> ilist, const Compare& compare = Compare(), const allocator_type& allocator = EASTL_SET_DEFAULT_ALLOCATOR);
+		set(std::initializer_list<value_type> ilist, const allocator_type& allocator);
 
 		template <typename Iterator>
 		set(Iterator itBegin, Iterator itEnd); // allocator arg removed because VC7.1 fails on the default arg. To do: Make a second version of this function without a default arg.
+
+		// missing constructors, to implement:
+		// 
+		// set(const this_type& x, const allocator_type& allocator);
+		// 
+		// template <typename InputIterator>
+		// set(InputIterator first, InputIterator last, const Compare& comp = Compare(), const Allocator& alloc = Allocator());
+		//
+		// template <typename InputIterator>
+		// set(InputIterator first, InputIterator last, const Allocator& alloc);
 
 		// The (this_type&& x) ctor above has the side effect of forcing us to make operator= visible in this subclass.
 		this_type& operator=(const this_type& x) { return (this_type&)base_type::operator=(x); }
@@ -134,8 +146,18 @@ namespace eastl
 
 		size_type count(const Key& k) const;
 
+		// missing transparent key support:
+		// template<typename K>
+		// size_type count(const K& k) const;
+
 		eastl::pair<iterator, iterator>             equal_range(const Key& k);
 		eastl::pair<const_iterator, const_iterator> equal_range(const Key& k) const;
+
+		// missing transparent key support:
+		// template<typename K>
+		// eastl::pair<iterator, iterator>             equal_range(const K& k);
+		// template<typename K>
+		// eastl::pair<const_iterator, const_iterator> equal_range(const K& k) const;
 
 	}; // set
 
@@ -196,10 +218,21 @@ namespace eastl
 		multiset(this_type&& x);
 		multiset(this_type&& x, const allocator_type& allocator);
 		multiset(std::initializer_list<value_type> ilist, const Compare& compare = Compare(), const allocator_type& allocator = EASTL_MULTISET_DEFAULT_ALLOCATOR);
+		multiset(std::initializer_list<value_type> ilist, const allocator_type& allocator);
 
 		template <typename Iterator>
 		multiset(Iterator itBegin, Iterator itEnd); // allocator arg removed because VC7.1 fails on the default arg. To do: Make a second version of this function without a default arg.
 
+		// missing constructors, to implement:
+		// 
+		// multiset(const this_type& x, const allocator_type& allocator);
+		// 
+		// template <typename InputIterator>
+		// multiset(InputIterator first, InputIterator last, const Compare& comp = Compare(), const Allocator& alloc = Allocator());
+		//
+		// template <typename InputIterator>
+		// multiset(InputIterator first, InputIterator last, const Allocator& alloc);
+		
 		// The (this_type&& x) ctor above has the side effect of forcing us to make operator= visible in this subclass.
 		this_type& operator=(const this_type& x) { return (this_type&)base_type::operator=(x); }
 		this_type& operator=(std::initializer_list<value_type> ilist) { return (this_type&)base_type::operator=(ilist); }
@@ -217,14 +250,30 @@ namespace eastl
 
 		size_type count(const Key& k) const;
 
+		// missing transparent key support:
+		// template<typename K>
+		// size_type count(const K& k) const;
+
 		eastl::pair<iterator, iterator>             equal_range(const Key& k);
 		eastl::pair<const_iterator, const_iterator> equal_range(const Key& k) const;
+
+		// missing transparent key support:
+		// template<typename K>
+		// eastl::pair<iterator, iterator>             equal_range(const K& k);
+		// template<typename K>
+		// eastl::pair<const_iterator, const_iterator> equal_range(const K& k) const;
 
 		/// equal_range_small
 		/// This is a special version of equal_range which is optimized for the 
 		/// case of there being few or no duplicated keys in the tree.
 		eastl::pair<iterator, iterator>             equal_range_small(const Key& k);
 		eastl::pair<const_iterator, const_iterator> equal_range_small(const Key& k) const;
+
+		// missing transparent key support:
+		// template<typename K>
+		// eastl::pair<iterator, iterator>             equal_range_small(const K& k);
+		// template<typename K>
+		// eastl::pair<const_iterator, const_iterator> equal_range_small(const K& k) const;
 
 	}; // multiset
 
@@ -273,6 +322,13 @@ namespace eastl
 	template <typename Key, typename Compare, typename Allocator>
 	inline set<Key, Compare, Allocator>::set(std::initializer_list<value_type> ilist, const Compare& compare, const allocator_type& allocator)
 		: base_type(ilist.begin(), ilist.end(), compare, allocator)
+	{
+	}
+
+
+	template <typename Key, typename Compare, typename Allocator>
+	inline set<Key, Compare, Allocator>::set(std::initializer_list<value_type> ilist, const allocator_type& allocator)
+		: base_type(ilist.begin(), ilist.end(), Compare(), allocator)
 	{
 	}
 
@@ -401,8 +457,9 @@ namespace eastl
 	// https://en.cppreference.com/w/cpp/container/set/erase_if
 	///////////////////////////////////////////////////////////////////////
 	template <class Key, class Compare, class Allocator, class Predicate>
-	void erase_if(set<Key, Compare, Allocator>& c, Predicate predicate)
+	typename set<Key, Compare, Allocator>::size_type erase_if(set<Key, Compare, Allocator>& c, Predicate predicate)
 	{
+		auto oldSize = c.size();
 		for (auto i = c.begin(), last = c.end(); i != last;)
 		{
 			if (predicate(*i))
@@ -414,7 +471,16 @@ namespace eastl
 				++i;
 			}
 		}
+		return oldSize - c.size();
 	}
+
+#if defined(EA_COMPILER_HAS_THREE_WAY_COMPARISON)
+	template <class Key, class Compare, class Allocator>
+	synth_three_way_result<Key> operator<=>(const set<Key, Compare, Allocator>& a, const set<Key, Compare, Allocator>& b)
+	{
+	    return eastl::lexicographical_compare_three_way(a.begin(), a.end(), b.begin(), b.end(), synth_three_way{});
+	}
+#endif
 
 
 	///////////////////////////////////////////////////////////////////////
@@ -458,6 +524,13 @@ namespace eastl
 	template <typename Key, typename Compare, typename Allocator>
 	inline multiset<Key, Compare, Allocator>::multiset(std::initializer_list<value_type> ilist, const Compare& compare, const allocator_type& allocator)
 		: base_type(ilist.begin(), ilist.end(), compare, allocator)
+	{
+	}
+
+
+	template <typename Key, typename Compare, typename Allocator>
+	inline multiset<Key, Compare, Allocator>::multiset(std::initializer_list<value_type> ilist, const allocator_type& allocator)
+		: base_type(ilist.begin(), ilist.end(), Compare(), allocator)
 	{
 	}
 
@@ -581,7 +654,7 @@ namespace eastl
 		const iterator itLower(lower_bound(k));
 		iterator       itUpper(itLower);
 
-		while((itUpper != end()) && !compare(k, itUpper.mpNode->mValue))
+		while((itUpper != end()) && !compare(k, *itUpper))
 			++itUpper;
 
 		return eastl::pair<iterator, iterator>(itLower, itUpper);
@@ -611,8 +684,9 @@ namespace eastl
 	// https://en.cppreference.com/w/cpp/container/multiset/erase_if
 	///////////////////////////////////////////////////////////////////////
 	template <class Key, class Compare, class Allocator, class Predicate>
-	void erase_if(multiset<Key, Compare, Allocator>& c, Predicate predicate)
+	typename multiset<Key, Compare, Allocator>::size_type erase_if(multiset<Key, Compare, Allocator>& c, Predicate predicate)
 	{
+		auto oldSize = c.size();
 		// Erases all elements that satisfy the predicate pred from the container.
 		for (auto i = c.begin(), last = c.end(); i != last;)
 		{
@@ -625,7 +699,16 @@ namespace eastl
 				++i;
 			}
 		}
+		return oldSize - c.size();
 	}
+
+#if defined(EA_COMPILER_HAS_THREE_WAY_COMPARISON)
+	template <class Key, class Compare, class Allocator>
+	synth_three_way_result<Key> operator<=>(const multiset<Key, Compare, Allocator>& a, const multiset<Key, Compare, Allocator>& b)
+	{
+	    return eastl::lexicographical_compare_three_way(a.begin(), a.end(), b.begin(), b.end(), synth_three_way{});
+	}
+#endif
 
 
 } // namespace eastl

@@ -10,6 +10,8 @@
 #include <math/dag_TMatrix4.h>
 #include <math/dag_bounds3.h>
 #include <shaders/dag_overrideStateId.h>
+#include <3d/dag_resPtr.h>
+#include <resourcePool/resourcePool.h>
 
 class PseudoGaussBlur;
 
@@ -35,7 +37,7 @@ public:
   VsmType vsmType = VsmType::VSM_HW;
   void init(int w, int h, VsmType vsmTypeIn = VSM_HW);
   void close();
-  bool isInited() const { return dest_tex != NULL || targ_tex != NULL; }
+  bool isInited() const { return inited; }
 
   Variance();
   ~Variance() { close(); }
@@ -49,27 +51,25 @@ public:
   bool needUpdate() const { return isUpdateForced(); } // Ignore box position change or light direction change.
   bool needUpdate(const Point3 &light_dir) const;
   void setOff();
-  void setDest(Texture *dest, TEXTUREID destId)
-  {
-    dest_tex = dest;
-    dest_texId = destId;
-  }
-  void getDest(Texture *&dest, TEXTUREID &destId) const
-  {
-    dest = dest_tex;
-    destId = dest_texId;
-  }
   int getWidth() const { return width; }
   int getHeight() const { return height; }
   float getShadowDist() const { return updateShadowDist; }
 
+  Texture *getVsmShadowmap() const { return targ_tex ? targ_tex->getTex2D() : nullptr; }
+  d3d::SamplerHandle getVsmSampler() const { return vsmSampler; }
+
 protected:
+  bool inited = false;
+
   PseudoGaussBlur *blur;
   int width, height;
 
-  Texture *temp_tex, *targ_tex, *dest_tex;
-  TEXTUREID temp_texId, targ_texId, dest_texId;
-  Texture *temp_wrtex, *targ_wrtex;
+  RTarget::Ptr temp_tex;
+  RTarget::Ptr targ_tex;
+  UniqueTex dest_tex;
+  d3d::SamplerHandle vsmSampler = d3d::INVALID_SAMPLER_HANDLE;
+
+  RTargetPool::Ptr vsmRTPool;
 
   Driver3dRenderTarget oldrt;
   TMatrix4 lightProj, shadowProjMatrix;
@@ -77,7 +77,6 @@ protected:
   int vsmShadowProjXVarId, vsmShadowProjYVarId, vsmShadowProjZVarId, vsmShadowProjWVarId;
   int vsm_shadowmapVarId;
   int shadow_distVarId;
-  int vsm_hw_filterVarId;
   int vsm_shadow_tex_sizeVarId;
   Point3 oldLightDir;
   BBox3 oldBox;

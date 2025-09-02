@@ -1,4 +1,4 @@
-# Shader: rendinst_simple_glass
+# `rendinst_simple_glass`
 
 ## Overview
 

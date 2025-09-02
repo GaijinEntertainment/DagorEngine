@@ -109,24 +109,27 @@ void create_billboard_blases()
   d3d::build_bottom_acceleration_structure(billboard_shadow_blas.get(), buildInfo);
 }
 
-static int get_particle_meta(ContextId context_id, TEXTUREID texture_id)
+static MeshMetaAllocator::AllocId get_particle_meta(ContextId context_id, TEXTUREID texture_id)
 {
   auto iter = context_id->particleMeta.find((uint32_t)texture_id);
   if (iter != context_id->particleMeta.end())
     return iter->second.metaAllocId;
 
-  int metaAllocId = context_id->allocateMetaRegion();
-  auto &meta = context_id->meshMetaAllocator.get(metaAllocId);
+  auto metaAllocId = context_id->allocateMetaRegion(1);
+  auto &meta = context_id->meshMetaAllocator.get(metaAllocId)[0];
 
   meta.markInitialized();
 
-  context_id->holdTexture(texture_id, meta.albedoTextureAndSamplerIndex);
+  meta.holdAlbedoTex(context_id, texture_id);
 
   meta.materialType = MeshMeta::bvhMaterialParticle;
   meta.setIndexBitAndTexcoordFormat(2, VSDT_FLOAT2);
-  meta.texcoordNormalColorOffsetAndVertexStride =
-    (offsetof(BillboardVertex, texcoord) << 24) | 0xFF0000U | 0xFF00U | sizeof(BillboardVertex);
-  meta.indexAndVertexBufferIndex = (bindless_indices_index << 16) | bindless_vertices_index;
+  meta.texcoordOffset = offsetof(BillboardVertex, texcoord);
+  meta.normalOffset = 0xFFU;
+  meta.colorOffset = 0xFFU;
+  meta.vertexStride = sizeof(BillboardVertex);
+  meta.setIndexBufferIndex(bindless_indices_index);
+  meta.setVertexBufferIndex(bindless_vertices_index);
   meta.startIndex = 0;
   meta.startVertex = 0;
 
@@ -145,8 +148,8 @@ struct BVHConnection : public bvh::BVHConnection
   {
     static int reg_no = ShaderGlobal::get_slot_by_name("dafx_modfx_bvh_meta_id_regno");
 
-    int metaAllocId = get_particle_meta(*contexts.begin(), texture_id);
-    int reg[] = {metaAllocId, 0, 0, 0};
+    auto metaAllocId = get_particle_meta(*contexts.begin(), texture_id);
+    int reg[] = {MeshMetaAllocator::decode(metaAllocId), 0, 0, 0};
     d3d::set_const(STAGE_VS, reg_no, reg, 1);
   }
 

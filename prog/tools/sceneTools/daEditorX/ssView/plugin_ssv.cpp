@@ -2,6 +2,7 @@
 
 #include "plugin_ssv.h"
 #include <de3_interface.h>
+#include <shaders/dag_renderScene.h>
 #include <EditorCore/ec_interface_ex.h>
 #include <EditorCore/ec_interface.h>
 #include "sceneHolder.h"

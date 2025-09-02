@@ -1,0 +1,71 @@
+macro WATER_3D_TBN(stage)
+if(water_heightmap_pages != NULL)
+{
+  hlsl (vs) {
+    void calcWaterTBN(float3 pos_world, bool useWaterHeightmap, out float3 out_tangent, out float3 out_bitangent)
+    {
+      static const float TANGENT_DISTANCE = 1.0;
+
+      float3 center = pos_world;
+      float3 tangent = center + float3(TANGENT_DISTANCE, 0, 0);
+      float3 bitangent = center + float3(0, 0, TANGENT_DISTANCE);
+      if (useWaterHeightmap)
+      {
+        get_water_height(center.xz, center.y);
+        get_water_height(tangent.xz, tangent.y);
+        get_water_height(bitangent.xz, bitangent.y);
+      }
+      out_tangent = normalize(tangent - center);
+      out_bitangent = normalize(bitangent - center);
+    }
+  }
+}
+endmacro
+
+macro WATER_3D_POSITION(stage)
+hlsl (vs) {
+
+  float3 getWavesDisplacement(const float3 pos_world, const ShoreData shoreData)
+  {
+    float4 nvsf_tex_coord_cascade01, nvsf_tex_coord_cascade23, nvsf_tex_coord_cascade45;
+    float viewDist = length(world_view_pos - pos_world.xzy);
+
+    #if has_water_flowmap
+      float3 worldPos_a, worldPos_b;
+      float viewDist_a, viewDist_b;
+      float crossFade;
+      calcWaterFlowmapParams(pos_world.xzy, viewDist, worldPos_a, worldPos_b, viewDist_a, viewDist_b, crossFade);
+
+      float4 nvsf_tex_coord_cascade01_a, nvsf_tex_coord_cascade23_a, nvsf_tex_coord_cascade45_a;
+      float4 nvsf_tex_coord_cascade01_b, nvsf_tex_coord_cascade23_b, nvsf_tex_coord_cascade45_b;
+      float3 waterDispl_a = getWaterDisplacementWithShoreData(worldPos_a.xzy, viewDist_a, nvsf_tex_coord_cascade01_a, nvsf_tex_coord_cascade23_a, nvsf_tex_coord_cascade45_a, shoreData);
+      float3 waterDispl_b = getWaterDisplacementWithShoreData(worldPos_b.xzy, viewDist_b, nvsf_tex_coord_cascade01_b, nvsf_tex_coord_cascade23_b, nvsf_tex_coord_cascade45_b, shoreData);
+
+      float3 waterDispl = lerp(waterDispl_a, waterDispl_b, crossFade);
+      nvsf_tex_coord_cascade01 = lerp(nvsf_tex_coord_cascade01_a, nvsf_tex_coord_cascade01_b, crossFade);
+      nvsf_tex_coord_cascade23 = lerp(nvsf_tex_coord_cascade23_a, nvsf_tex_coord_cascade23_b, crossFade);
+    #else
+      float3 waterDispl = getWaterDisplacementWithShoreData(pos_world, viewDist, nvsf_tex_coord_cascade01, nvsf_tex_coord_cascade23, nvsf_tex_coord_cascade45, shoreData);
+    #endif
+
+    return waterDispl;
+  }
+
+  float3 getWFXDisplacement(const float3 pos_world, const float4 pos_clip_undisplaced)
+  {
+    float displacementHeight = 0;
+    #if has_projection_effects && has_wfx_wake
+      float3 wfxTc = normalize_wfx_tc(pos_clip_undisplaced);
+      float wfxHeight = tex2Dlod(wfx_hmap, float4(wfxTc.xy, 0, 0)).r * (oneCellSize > 4.0 ? 0.0 : 1.0);
+      wfxHeight = lerp(0, wfxHeight, wfxTc.z);
+      displacementHeight += wfxHeight;
+    #endif
+    #if has_water_ripples
+      displacementHeight += get_water_ripples_displace(pos_world.xzy) * (oneCellSize > 0.5 ? 0.0 : 1.0);
+    #endif
+    displacementHeight = clamp(displacementHeight, -wfx_height_limit, wfx_height_limit);
+
+    return float3(0, 0, displacementHeight);
+  }
+}
+endmacro

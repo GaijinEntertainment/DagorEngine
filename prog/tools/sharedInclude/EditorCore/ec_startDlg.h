@@ -2,6 +2,7 @@
 #pragma once
 
 #include <propPanel/commonWindow/dialogWindow.h>
+#include <propPanel/messageQueue.h>
 
 class EditorWorkspace;
 
@@ -11,28 +12,32 @@ class EditorWorkspace;
 enum
 {
   ID_START_DIALOG_COMBO = 400,
+  ID_START_DIALOG_ERROR_MESSAGE,
   ID_START_DIALOG_BUTTON_ADD,
   ID_START_DIALOG_BUTTON_EDIT,
 };
 
 
-class EditorStartDialog : public PropPanel::DialogWindow
+class EditorStartDialog : public PropPanel::DialogWindow, public PropPanel::IDelayedCallbackHandler
 {
 public:
   EditorStartDialog(const char *caption, EditorWorkspace &wsp, const char *wsp_blk, const char *select_wsp);
-  virtual ~EditorStartDialog();
+  ~EditorStartDialog() override;
 
   void editWorkspace();
 
+  const String &getStartWorkspace() const { return startWsp; }
+  int getWorkspaceIndex(const char *name) const;
+
   // DialogWindow interface
 
-  virtual bool onOk();
-  virtual bool onCancel() { return true; };
+  bool onOk() override;
+  bool onCancel() override { return true; };
 
   // ControlEventHandler methods from CDialogWindow
 
-  virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel);
-  virtual void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel);
+  void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
+  void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
 
   virtual void onCustomFillPanel(PropPanel::ContainerPropertyControl &panel) {}
   virtual bool onCustomSettings(PropPanel::ContainerPropertyControl &panel) { return true; }
@@ -43,6 +48,11 @@ protected:
   inline int getCustomTop() const { return customTop; }
   inline bool isWspEditing() const { return editWsp; }
 
+  // IDelayedCallbackHandler
+  void onImguiDelayedCallback(void *user_data) override;
+
+  void updateImguiDialog() override;
+
   virtual void createCustom() {}
 
   virtual void onChangeWorkspace(const char *name);
@@ -51,6 +61,7 @@ protected:
   virtual void onEditWorkspace();
 
   void reloadWsp();
+  void updateOkButtonState();
 
 private:
   String startWsp;
@@ -58,6 +69,8 @@ private:
 
   bool editWsp;
   bool wspInited;
+  bool showAddWorkspaceDialog = false;
+  bool selectedWorkspaceValid = false;
 
   int customTop;
 
@@ -72,13 +85,13 @@ public:
 
   // DialogWindow interface
 
-  virtual bool onOk();
-  virtual bool onCancel() { return true; };
+  bool onOk() override;
+  bool onCancel() override { return true; };
 
   // ControlEventHandler methods from CDialogWindow
 
-  virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel);
-  virtual void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel);
+  void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
+  void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
 
 protected:
   enum

@@ -48,7 +48,7 @@ public:
     }
   }
 
-  ~ExportLayeesDlg() { del_it(mDialog); }
+  ~ExportLayeesDlg() override { del_it(mDialog); }
 
 
   bool execute()
@@ -284,7 +284,7 @@ bool HmapLandPlugin::onPluginMenuClick(unsigned id)
 
     case CM_EXPORT_LOFT_MASKS:
     {
-      PropPanel::DialogWindow *dlg = DAGORED2->createDialog(_pxScaled(350), _pxScaled(704), "Loft mask export props");
+      PropPanel::DialogWindow *dlg = DAGORED2->createDialog(_pxScaled(350), _pxScaled(705), "Loft mask export props");
       PropPanel::ContainerPropertyControl &panel = *dlg->getPanel();
       panel.createCheckBox(11, "Build main HMAP loft masks", lastExpLoftMain);
       panel.createEditInt(12, "Main HMAP masks tex size", lastExpLoftMainSz);
@@ -323,10 +323,13 @@ bool HmapLandPlugin::onPluginMenuClick(unsigned id)
       panel.createSeparator(0);
       panel.createCheckBox(61, "Honour layers' \"to mask\" properties", true);
 
-      String prj;
-      DAGORED2->getProjectFolderPath(prj);
+      String prjLoft;
+      DAGORED2->getProjectFolderPath(prjLoft);
+      append_slash(prjLoft);
+      prjLoft += "loft_masks";
+
       panel.createSeparator(0);
-      panel.createFileEditBox(41, "Out dir", lastExpLoftFolder.empty() ? prj : lastExpLoftFolder);
+      panel.createFileEditBox(41, "Out dir", lastExpLoftFolder.empty() ? prjLoft : lastExpLoftFolder);
       panel.setBool(41, true);
       panel.createCheckBox(42, "Create subfolders when areas used", lastExpLoftCreateAreaSubfolders);
       if (dlg->showDialog() == PropPanel::DIALOG_ID_OK)
@@ -505,7 +508,7 @@ bool HmapLandPlugin::onPluginMenuClick(unsigned id)
     case CM_MOVE_OBJECTS:
     case CM_UNIFY_OBJ_NAMES:
     case CM_HIDE_UNSELECTED_SPLINES:
-    case CM_UNHIDE_ALL_SPLINES: objEd.onClick(id, 0); break;
+    case CM_UNHIDE_ALL_SPLINES: objEd.onClick(id, nullptr); return true;
 
     case CM_SET_PT_VIS_DIST:
     {
@@ -638,6 +641,31 @@ bool HmapLandPlugin::onPluginMenuClick(unsigned id)
   return false;
 }
 
+bool HmapLandPlugin::onSettingsMenuClick(unsigned id)
+{
+  PropPanel::IMenu *mainMenu = DAGORED2->getMainMenu();
+
+  const unsigned normalized_id = id - settingsBaseId;
+  switch (normalized_id)
+  {
+    case CM_PREFERENCES_PLACE_TYPE_DROPDOWN:
+    case CM_PREFERENCES_PLACE_TYPE_RADIO:
+    {
+      mainMenu->setRadioById(id, settingsBaseId + CM_PREFERENCES_PLACE_TYPE_DROPDOWN,
+        settingsBaseId + CM_PREFERENCES_PLACE_TYPE_RADIO);
+      const bool isRadio = normalized_id == CM_PREFERENCES_PLACE_TYPE_RADIO;
+      if (ObjectEditor::getPlaceTypeRadio() != isRadio)
+      {
+        ObjectEditor::setPlaceTypeRadio(isRadio);
+        objEd.invalidateObjectProps();
+      }
+      return true;
+    }
+  }
+
+  return false;
+}
+
 void HmapLandPlugin::handleViewportAcceleratorCommand(unsigned id)
 {
   if (onPluginMenuClick(id))
@@ -645,74 +673,3 @@ void HmapLandPlugin::handleViewportAcceleratorCommand(unsigned id)
 
   objEd.onClick(id, nullptr);
 }
-
-//==============================================================================
-
-void HmapLandPlugin::handleKeyPress(IGenViewportWnd *wnd, int vk, int modif)
-{
-  objEd.handleKeyPress(wnd, vk, modif);
-
-  switch (vk)
-  {
-    case 'G':
-      if (wingw::is_key_pressed(wingw::V_CONTROL))
-        onPluginMenuClick(CM_BUILD_COLORMAP);
-      return;
-
-    case 'H':
-      if (wingw::is_key_pressed(wingw::V_CONTROL) && wingw::is_key_pressed(wingw::V_ALT))
-        onPluginMenuClick(CM_RESTORE_HM_BACKUP);
-      else if (wingw::is_key_pressed(wingw::V_CONTROL))
-        onPluginMenuClick(CM_COMMIT_HM_CHANGES);
-      return;
-
-    case 'E':
-      if (wingw::is_key_pressed(wingw::V_CONTROL) && wingw::is_key_pressed(wingw::V_SHIFT))
-        onPluginMenuClick(CM_UNHIDE_ALL_SPLINES);
-      else if (wingw::is_key_pressed(wingw::V_CONTROL))
-        onPluginMenuClick(CM_HIDE_UNSELECTED_SPLINES);
-      return;
-
-    case 'M':
-      if (wingw::is_key_pressed(wingw::V_CONTROL))
-        onPluginMenuClick(CM_COLLAPSE_MODIFIERS);
-      return;
-
-    case 'R':
-      if (wingw::is_key_pressed(wingw::V_CONTROL))
-        onPluginMenuClick(CM_REBUILD);
-      return;
-
-    case '1':
-      if (!wingw::is_special_pressed())
-        onPluginMenuClick(CM_HILL_UP);
-      return;
-
-    case '2':
-      if (!wingw::is_special_pressed())
-        onPluginMenuClick(CM_HILL_DOWN);
-      return;
-
-    case '3':
-      if (!wingw::is_special_pressed())
-        onPluginMenuClick(CM_ALIGN);
-      return;
-
-    case '4':
-      if (!wingw::is_special_pressed())
-        onPluginMenuClick(CM_SMOOTH);
-      return;
-
-    case '5':
-      if (!wingw::is_special_pressed())
-        onPluginMenuClick(CM_SHADOWS);
-      return;
-
-    case '6':
-      if (!wingw::is_special_pressed())
-        onPluginMenuClick(CM_SCRIPT);
-      return;
-  }
-}
-
-void HmapLandPlugin::handleKeyRelease(IGenViewportWnd *wnd, int vk, int modif) { objEd.handleKeyRelease(wnd, vk, modif); }

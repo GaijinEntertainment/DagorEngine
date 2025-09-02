@@ -77,9 +77,8 @@ endmacro
 macro INIT_AND_USE_TILED_LIGHTS_FORWARD()
   if (compatibility_mode == compatibility_mode_off && mobile_render == off)
   {
-    assume use_ssss = off;
     USE_SCREENPOS_TO_TC()
-    INIT_AND_USE_TILED_LIGHTS(ps)
+    INIT_AND_USE_TILED_LIGHTS_WITHOUT_SSSS(ps)
     (ps) { screen_size@f2 = (1. / screen_pos_to_texcoord.x, 1. / screen_pos_to_texcoord.y, 0, 0); }
     hlsl(ps){#define FORWARD_USE_TILED_LIGHTS 1}
   }
@@ -113,6 +112,9 @@ macro WRITE_GBUFFER_FORWARD()
     struct GBUFFER_OUTPUT
     {
       float4 color : SV_Target0;
+      #if USE_REACTIVE_MASK
+      float reactive : SV_Target1;
+      #endif
     };
 
 #ifndef DISABLE_FAKE_SIMPLE_TONEMAPPING
@@ -375,6 +377,10 @@ macro WRITE_GBUFFER_FORWARD()
       #else
         GBUFFER_OUTPUT ret = encode_gbuffer_exposure_simple(gbuf, pointToEye, screenPos, exposure, sunLightDir, sunLightColor,
                                                             sph0, sph1, sph2, enviSpecularBrightness);
+      #endif
+
+      #if USE_REACTIVE_MASK
+      ret.reactive = gbuf.reactive;
       #endif
 
       #ifndef FORWARD_NO_INTERNAL_LUT

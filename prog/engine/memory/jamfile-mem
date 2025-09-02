@@ -44,7 +44,7 @@ if $(Platform) in windows xboxOne scarlett {
   ;
 }
 if $(Platform) in ps4 ps5 {
-  if -DUSE_MIMALLOC=1 in $(CPPopt) {
+  if -DUSE_MIMALLOC in $(CPPopt) {
   } else if $(Sanitize) = address {
     Sources += sony/sanitizedMspace.cpp ;
   } else {

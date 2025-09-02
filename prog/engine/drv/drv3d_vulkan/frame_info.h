@@ -3,20 +3,18 @@
 
 // gpu work item aka frame info
 
-#include <drv/3d/rayTrace/dag_drvRayTrace.h> // for D3D_HAS_RAY_TRACING
-
 #include "buffer_resource.h"
 #include "driver.h"
 #include "fence_manager.h"
 #include "image_resource.h"
-#if D3D_HAS_RAY_TRACING
+#if VULKAN_HAS_RAYTRACING
 #include "raytrace_as_resource.h"
 #endif
 #include "pipeline.h"
 #include "query_pools.h"
 #include "async_completion_state.h"
 #include "cleanup_queue.h"
-#include "timestamp_queries.h"
+#include "queries.h"
 #include "device_execution_tracker.h"
 #include "device_queue.h"
 
@@ -25,7 +23,6 @@ namespace drv3d_vulkan
 
 struct FrameInfo
 {
-  Tab<CleanupQueue *> cleanupsRefs;
   CleanupQueue cleanups;
 
   struct QueueCommandBuffers
@@ -52,17 +49,22 @@ struct FrameInfo
   CommandBuffersGroup commandBuffers = {};
 
   ThreadedFence *frameDone = nullptr;
+  ThreadedFence *readbackDone = nullptr;
   Tab<VulkanSemaphoreHandle> readySemaphores;
   int pendingSemaphoresRingIdx = 0;
   Tab<VulkanSemaphoreHandle> pendingSemaphores[GPU_TIMELINE_HISTORY_SIZE];
   Tab<VulkanCommandBufferHandle> pendingDmaBuffers;
-  TimestampQueryBlock *pendingTimestamps = nullptr;
-  eastl::vector<eastl::unique_ptr<ShaderModule>> deletedShaderModules;
+  QueryBlock *pendingTimestamps = nullptr;
+  QueryBlock *pendingOcclusionQueries = nullptr;
+  dag::Vector<eastl::unique_ptr<ShaderModule>> deletedShaderModules;
   DeviceExecutionTracker execTracker;
+  Tab<VulkanEventHandle> gpuEvents;
 
   void init();
+  VulkanEventHandle allocateGpuEvent();
   VulkanCommandBufferHandle allocateCommandBuffer(DeviceQueueType queue);
-  VulkanSemaphoreHandle allocSemaphore(VulkanDevice &device);
+  VulkanSemaphoreHandle allocSemaphore();
+  void recycleSemaphore(VulkanSemaphoreHandle sem);
   void addPendingSemaphore(VulkanSemaphoreHandle sem);
 
   void finishShaderModules();
@@ -70,6 +72,7 @@ struct FrameInfo
   void finishSemaphores();
   void finishGpuWork();
   void finishCleanups();
+  void finishGpuEvents();
 
   // internal state
 

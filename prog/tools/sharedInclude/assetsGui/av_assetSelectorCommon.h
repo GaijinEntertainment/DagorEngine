@@ -2,8 +2,12 @@
 #pragma once
 
 #include <dag/dag_vector.h>
-#include <drv/3d/dag_resId.h>
 #include <generic/dag_span.h>
+
+namespace PropPanel
+{
+enum class IconId : int;
+}
 
 class DagorAsset;
 class DagorAssetFolder;
@@ -22,12 +26,12 @@ public:
   static void copyAssetNameToClipboard(const DagorAsset &asset);
   static void copyAssetFolderNameToClipboard(const DagorAssetFolder &folder);
   static const DagorAsset *getAssetByName(const DagorAssetMgr &asset_mgr, const char *_name, dag::ConstSpan<int> asset_types);
-  static TEXTUREID getAssetTypeIcon(int type) { return assetTypeIcons[type]; }
+  static PropPanel::IconId getAssetTypeIcon(int type) { return assetTypeIcons[type]; }
   static dag::ConstSpan<int> getAllAssetTypeIndexes() { return allAssetTypeIndexes; }
 
   static const char *const searchTooltip;
 
 private:
-  static dag::Vector<TEXTUREID> assetTypeIcons;
+  static dag::Vector<PropPanel::IconId> assetTypeIcons;
   static dag::Vector<int> allAssetTypeIndexes;
 };

@@ -137,11 +137,9 @@ void DaSkies::initPanorama(SkiesData * /*panorama_data*/, bool blend_two, int re
     }
     else
       start = 1;
-    uint32_t alphaPanoramaFmt = TEXFMT_L8;
-    if ((d3d::get_texformat_usage(TEXFMT_L8) & (d3d::USAGE_RTARGET | d3d::USAGE_FILTER)) == (d3d::USAGE_RTARGET | d3d::USAGE_FILTER))
-      alphaPanoramaFmt = TEXFMT_L8;
-    else
-      alphaPanoramaFmt = TEXFMT_DEFAULT;
+    uint32_t alphaPanoramaFmt = TEXFMT_DEFAULT;
+    if ((d3d::get_texformat_usage(TEXFMT_R8) & (d3d::USAGE_RTARGET | d3d::USAGE_FILTER)) == (d3d::USAGE_RTARGET | d3d::USAGE_FILTER))
+      alphaPanoramaFmt = TEXFMT_R8;
 
     debug("alphaPanoramaFmt=0x%08X, noAlphaSkyHdrFmt=0x%08X", alphaPanoramaFmt, panoramaFmt);
     invalidatePanorama(true);
@@ -153,21 +151,21 @@ void DaSkies::initPanorama(SkiesData * /*panorama_data*/, bool blend_two, int re
       smpInfo.address_mode_v = d3d::AddressMode::Clamp;
       ShaderGlobal::set_sampler(clouds_alpha_panorama_tex_samplerstateVarId, d3d::request_sampler(smpInfo));
     }
-    cloudsAlphaPanoramaTex->disableSampler();
 
     if (VariableMap::isGlobVariablePresent(get_shader_variable_id("clouds_panorama_mip", true)))
     {
       cloudsPanoramaMipTex =
         dag::create_tex(NULL, resolutionW / 4, resolutionH / 4, TEXCF_RTARGET | panoramaFmt, 4, "clouds_panorama_mip");
       mipRenderer.init("bloom_filter_mipchain");
-      cloudsPanoramaMipTex->texaddru(TEXADDR_WRAP);
-      cloudsPanoramaMipTex->texaddrv(TEXADDR_CLAMP);
+      d3d::SamplerInfo smpInfo;
+      smpInfo.address_mode_u = d3d::AddressMode::Wrap;
+      smpInfo.address_mode_v = d3d::AddressMode::Clamp;
+      ShaderGlobal::set_sampler(::get_shader_variable_id("clouds_panorama_mip_samplerstate", true), d3d::request_sampler(smpInfo));
     }
 
     // todo: sky panorama patch
     // todo: skyPanoramaTex can and should be just LUT in panoramaData
     skyPanoramaTex = dag::create_tex(NULL, 256, 128, TEXCF_RTARGET | panoramaFmt, 1, "sky_panorama_tex");
-    skyPanoramaTex->disableSampler();
     {
       d3d::SamplerInfo smpInfo;
       smpInfo.address_mode_u = d3d::AddressMode::Wrap;
@@ -250,14 +248,12 @@ void DaSkies::createCloudsPanoramaTex(bool blend_two, int resolution_width, int 
     const uint32_t flg = (TEXCF_RTARGET | panoramaFmt);
     cloudsPanoramaTex[i].close();
     cloudsPanoramaTex[i] = dag::create_tex(NULL, w, h, flg, 1, name);
-    cloudsPanoramaTex[i]->disableSampler();
 
     if (skyPanoramaPatchEnabled)
     {
       name.printf(128, "clouds_panorama_patch_tex_%d", i);
       cloudsPanoramaPatchTex[i].close();
       cloudsPanoramaPatchTex[i] = dag::create_tex(NULL, pw, ph, flg, 1, name);
-      cloudsPanoramaPatchTex[i]->disableSampler();
     }
 
     d3d::GpuAutoLock gpuLock;
@@ -310,7 +306,6 @@ void DaSkies::initPanoramaCompression(int width, int height)
     auto compressFormat = etc2 ? TEXFMT_ETC2_RGBA : TEXFMT_DXT5;
     compressedCloudsPanoramaTex = dag::create_tex(NULL, width, height,
       compressFormat | TEXCF_CLEAR_ON_CREATE | TEXCF_UPDATE_DESTINATION, 1, "compressed_clouds_panorama_tex");
-    compressedCloudsPanoramaTex->disableSampler();
 
     panoramaCompressor = eastl::make_unique<PanoramaCompressor>(cloudsPanoramaTex[0], compressFormat);
   }
@@ -795,25 +790,24 @@ const Point3 DaSkies::calcPanoramaSunDir(const Point3 &camera_pos) const
 }
 
 void DaSkies::createPanoramaDepthTexHelper(UniqueTex &depth, const char *depth_name, UniqueTexHolder &downsampled_depth,
-  const char *downsampled_depth_name, int w, int h, int addru, int addrv)
+  const char *downsampled_depth_name, int w, int h, d3d::AddressMode addru, d3d::AddressMode addrv)
 {
   depth.close();
   downsampled_depth.close();
 
   depth = dag::create_tex(NULL, w, h, TEXCF_RTARGET | TEXFMT_R32F | TEXCF_UNORDERED | TEXCF_GENERATEMIPS,
     panoramaDepthTexMipNumber + 1, depth_name);
-  depth->texfilter(TEXFILTER_LINEAR);
-  depth->texmipmap(TEXMIPMAP_LINEAR);
-  depth->texaddru(addru);
-  depth->texaddrv(addrv);
 
   uint16_t downsampledW = w >> panoramaDepthTexMipNumber;
   uint16_t downsampledH = h >> panoramaDepthTexMipNumber;
   downsampled_depth =
     dag::create_tex(NULL, downsampledW, downsampledH, TEXCF_RTARGET | TEXFMT_R32F | TEXCF_UNORDERED, 1, downsampled_depth_name);
-  downsampled_depth->texfilter(TEXFILTER_LINEAR);
-  downsampled_depth->texaddru(addru);
-  downsampled_depth->texaddrv(addrv);
+  d3d::SamplerInfo smpInfo;
+  smpInfo.address_mode_u = addru;
+  smpInfo.address_mode_v = addrv;
+  smpInfo.filter_mode = d3d::FilterMode::Linear;
+  String samplerName(0, "%s_samplerstate", downsampled_depth_name);
+  ShaderGlobal::set_sampler(get_shader_variable_id(samplerName.c_str()), d3d::request_sampler(smpInfo));
 }
 
 void DaSkies::createPanoramaDepthTex()
@@ -823,7 +817,7 @@ void DaSkies::createPanoramaDepthTex()
   int resolutionW = info.w;
   int resolutionH = info.h;
   createPanoramaDepthTexHelper(cloudsDepthPanoramaTex, "clouds_depth_panorama_tex", cloudsDepthDownsampledPanoramaTex,
-    "clouds_depth_downsampled_panorama_tex", resolutionW, resolutionH, TEXADDR_WRAP, TEXADDR_CLAMP);
+    "clouds_depth_downsampled_panorama_tex", resolutionW, resolutionH, d3d::AddressMode::Wrap, d3d::AddressMode::Clamp);
 }
 
 void DaSkies::createDepthPanoramaPatchTex()
@@ -833,7 +827,7 @@ void DaSkies::createDepthPanoramaPatchTex()
   int resolutionW = info.w;
   int resolutionH = info.h;
   createPanoramaDepthTexHelper(cloudsDepthPanoramaPatchTex, "clouds_depth_panorama_patch_tex", cloudsDepthDownsampledPanoramaPatchTex,
-    "clouds_depth_downsampled_panorama_patch_tex", resolutionW, resolutionH, TEXADDR_CLAMP, TEXADDR_CLAMP);
+    "clouds_depth_downsampled_panorama_patch_tex", resolutionW, resolutionH, d3d::AddressMode::Clamp, d3d::AddressMode::Clamp);
 }
 
 void DaSkies::downsamplePanoramaDepth(UniqueTex &depth, UniqueTexHolder &downsampled_depth)

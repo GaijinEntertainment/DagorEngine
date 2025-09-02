@@ -36,15 +36,22 @@ void BhvRtPropUpdate::onDetach(Element * /*elem*/, DetachMode) {}
 
 void BhvRtPropUpdate::runForElem(Element *elem)
 {
-  Sqrat::Function updFunc = elem->props.scriptDesc.RawGetFunction(elem->csk->update);
+  Sqrat::Table src = elem->props.scriptDesc;
+  Sqrat::Function updFunc = src.RawGetFunction(elem->csk->update);
   if (updFunc.IsNull())
     return;
+
+  bool onlyWhenParentInScreen = src.RawGetSlotValue<bool>(elem->csk->onlyWhenParentInScreen, false);
+  if (onlyWhenParentInScreen)
+  {
+    Element *parent = elem->getParent();
+    if (!parent || parent->clippedScreenRect.isempty())
+      return;
+  }
 
   Sqrat::Table tblNew;
   if (!updFunc.Evaluate(tblNew))
     return;
-
-  Sqrat::Table src = elem->props.scriptDesc;
 
   HSQUIRRELVM vm = src.GetVM();
   Sqrat::Object::iterator it;

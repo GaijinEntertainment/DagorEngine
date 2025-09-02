@@ -7,13 +7,15 @@
 #include <math/dag_e3dColor.h>
 #include <math/dag_Point2.h>
 #include <math/dag_Point3.h>
+#include <math/dag_color.h>
 #include <vecmath/dag_vecMath_common.h>
 #include <math/dag_bounds2.h>
 #include <3d/dag_texMgr.h>
 #include <util/dag_stdint.h>
 #include <util/dag_globDef.h>
 #include <util/dag_safeArg.h>
-#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_resId.h>
+#include <drv/3d/dag_samplerHandle.h>
 
 #include <generic/dag_DObject.h>
 #include <shaders/dag_shaderCommon.h>
@@ -268,7 +270,7 @@ public:
   Point2 rightBottom;
   bool applied, isNull;
 
-  inline GuiViewPort() : leftTop(0, 0), rightBottom(0, 0), applied(false), isNull(true){};
+  inline GuiViewPort() : leftTop(0, 0), rightBottom(0, 0), applied(false), isNull(true) {}
 
   inline explicit GuiViewPort(real left, real top, real right, real bottom) :
     leftTop(left, top), rightBottom(right, bottom), applied(false)
@@ -358,15 +360,8 @@ namespace StdGuiRender
 {
 enum // flags to be used with draw_str_scaled_buf/draw_str_scaled_u_buf/render_str_buf (Draw Str to Buf API)
 {
-  DSBFLAG_abs = 0x0001,      // buffer/render quads with abs positions
-  DSBFLAG_checkVis = 0x0002, // check quad visibility during buffer/render
-  DSBFLAG_curColor = 0x0004, // apply current color during render
-
-  DSBFLAG_rel = 0,      // !DSBFLAG_abs
-  DSBFLAG_allQuads = 0, // !DSBFLAG_checkVis
-
-  DSBFLAG_drawDefault = DSBFLAG_abs | DSBFLAG_checkVis,
-  DSBFLAG_renderDefault = DSBFLAG_abs | DSBFLAG_allQuads,
+  DSBFLAG_checkVis = 0x0001, // check quad visibility during buffer/render
+  DSBFLAG_curColor = 0x0002, // apply current color during render
 };
 extern short dyn_font_atlas_reset_generation; //< public access expected to be read-only
 

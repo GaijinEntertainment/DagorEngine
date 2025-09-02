@@ -24,7 +24,7 @@ struct WindowState
   } settings = {};
 
   int refreshRate = 0;
-  void updateRefreshRateFromCurrentDisplayMode(){};
+  void updateRefreshRateFromCurrentDisplayMode() {}
 
   void set(void *, const char *, int, void *, void *, void *, const char *title, void *wnd_proc)
   {

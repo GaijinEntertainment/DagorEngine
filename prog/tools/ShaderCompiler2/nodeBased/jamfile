@@ -6,7 +6,6 @@ ProjectAllowsOodle = yes ;
 PlatformArch_windows ?= x86_64 ;
 PlatformSpec_windows_x86_64 ?= clang ;
 PlatformSpec_windows_arm64 ?= vc17 ; # clang 15.0.7 crashes with dag_shaderModelVersion.h when building arm64
-CPPStd = 20 ;
 
 Root    ?= ../../../.. ;
 Location = prog/tools/ShaderCompiler2/nodeBased ;
@@ -53,6 +52,6 @@ UseProgLibs =
 ;
 UseMemoryDebugLevel = off ;
 
-CPPopt = -DBINDUMP_TARGET_BE=0 -DIS_OFFLINE_SHADER_COMPILER=1 ;
+CPPopt = -DBINDUMP_TARGET_BE=0 -DIS_OFFLINE_SHADER_COMPILER ;
 
 include $(Root)/prog/_jBuild/build.jam ;

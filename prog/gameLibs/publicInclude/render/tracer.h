@@ -5,6 +5,7 @@
 #pragma once
 
 #include <generic/dag_carray.h>
+#include <ADT/parallelWriteVector.h>
 #include <shaders/dag_dynSceneRes.h>
 #include <math/dag_Point4.h>
 #include <osApiWrappers/dag_cpuJobs.h>
@@ -15,7 +16,8 @@
 #include <3d/dag_ringDynBuf.h>
 #include <osApiWrappers/dag_critSec.h>
 
-#define MAX_FX_TRACERS 2048
+#define MAX_FX_TRACERS            2048
+#define MAX_SEGMENTS_BUFFER_QUEUE 256
 
 struct Frustum;
 class AcesEffect;
@@ -45,7 +47,8 @@ public:
 
   void setMinLen(float value);
   void setStartPos(const Point3 &value);
-  void setPos(const Point3 &in_pos, const Point3 &in_dir, float time_left, float angle_eps = cosf(0.6f * PI / 180.0f));
+  void flushSegmentAdditions();
+  void setPos(const Point3 &in_pos, const Point3 &in_dir, float time_left, int lod = 1);
   void decay(const Point3 &in_pos);
   float getCurLifeTime() const;
 
@@ -86,6 +89,9 @@ protected:
   int firstSegment;
   int lastSegment;
   bool wasPrepared;
+
+  bool queueSegmentAddition;
+  Point3 positionQueued;
 };
 
 
@@ -105,7 +111,7 @@ public:
 
   void update(float dt);
   void beforeRender(const Frustum *frustum_, const Point3 &view_pos, const TMatrix &view_itm);
-  void renderTrans(const Point3 &view_pos, const TMatrix &view_itm, bool heads = true, bool trails = true, const float *hk = NULL,
+  void renderTrans(const Point3 &view_pos, const TMatrix &view_itm, const float persp_hk, bool heads = true, bool trails = true,
     HeadPrimType head_prim_type = HEAD_PRIM_DIR);
   void finishPreparingIfNecessary();
 
@@ -121,7 +127,9 @@ public:
 
   void readBlk(const DataBlock *blk);
   void clear();
-  void reset();
+  void resetConfig();
+  void afterResetDevice();
+  void restoreSegmentBuffers();
 
   float getTrailSizeHeuristic(int trailType);
   void setMTMode(bool mt) { isMTMode = mt; }
@@ -138,12 +146,13 @@ protected:
     void close();
     int lock(uint32_t ofs_bytes, uint32_t size_bytes, void **p, int flags);
     void unlock();
-    void append(uint32_t id, dag::ConstSpan<uint8_t> elem);
+    void append(uint32_t id, dag::ConstSpan<uint8_t> elem, int amount = 1);
     void process(ComputeShaderElement *cs, int fx_create_cmd, int element_count);
 
     inline Sbuffer *getSbuffer() const { return buf.getBuf(); }
     inline uint8_t *getData() { return data.data(); }
     inline const uint8_t *getData() const { return data.data(); }
+    inline int cmdCount() const { return cmd; }
 
   private:
     int structSize;
@@ -151,7 +160,7 @@ protected:
     UniqueBuf buf;
     UniqueBuf createCmdBuf;
     Tab<uint8_t> data;
-    Tab<uint8_t> cmds;
+    ParallelWriteVector<uint8_t> cmds;
     int cmd;
   };
 
@@ -161,6 +170,7 @@ protected:
     FX_INSTANCING_SBUF = 1
   };
 
+  const char *getJobName(bool &) const override { return "tracer_manager_cull"; }
   void doJob();
   void releaseJob() {}
 
@@ -168,7 +178,7 @@ protected:
   void renderTrails();
   void initHeads();
   void renderHeads(const Point3 &view_pos, const TMatrix &view_itm);
-  void releaseRes();
+  void releaseRes(bool release_tracers_data = true);
 
   uint32_t numTracers, numVisibleTracers, maxTracerNo;
   carray<Tracer, MAX_FX_TRACERS> tracers;
@@ -185,10 +195,6 @@ protected:
   DrawBuffer tracerTypeBuffer;
   carray<Point4, FX_HEAD_MAXIUM_REGISTERS> headData;
 
-  int headShapeParamsVarId;
-  int tracerBeamTimeVarId;
-  int tracerPrimTypeVarId;
-
   Point4 headShapeParams;
   float headVibratingRate;
   Point2 eyeDistBlend;
@@ -204,6 +210,8 @@ protected:
   float tailLengthMeters;
   float tailNoisePeriodMeters;
   float tailDecayToDelete;
+  float tailAngleLod0;
+  float tailAngleLod1;
   ComputeShaderElement *createCmdCs;
 
   bool computeAndBaseVertexSupported;
@@ -218,6 +226,14 @@ protected:
   DrawBuffer segmentBuffer;
   uint32_t segmentDrawCount;
   Tab<uint32_t> lodOffsList;
+
+  bool tailsBatchedRendering = false;
+  uint32_t batchInstancesCount[MAX_TAIL_BATCHES];
+  uint32_t batchMaxParticles[MAX_TAIL_BATCHES];
+  uint32_t batchBufferOffsets[MAX_TAIL_BATCHES];
+  Tab<uint32_t> tailSegmentLods;
+  DrawBuffer tailInstancesBuffer;
+
   float curTime;
   bool preparing;
   bool tracerLimitExceedMsg;

@@ -116,7 +116,7 @@ shader rendinst_projective_decal
   }
 
   USE_DECODE_DEPTH()
-  POJECTIVE_DECALS_WITHOUT_ZN_ZFAR_PS()
+  PROJECTIVE_DECALS_WITHOUT_ZN_ZFAR_PS()
 
   hlsl(ps) {
     GBUFFER_OUTPUT projective_decal_ps(VsOutput input HW_USE_SCREEN_POS)

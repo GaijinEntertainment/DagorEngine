@@ -2,7 +2,7 @@
 #pragma once
 
 #include <oldEditor/de_interface.h>
-#include <oldEditor/de_clipping.h>
+#include <oldEditor/de_collision.h>
 #include <de3_baseInterfaces.h>
 #include <oldEditor/de_common_interface.h>
 #include "objEd_csg.h"
@@ -15,64 +15,64 @@ public:
   ObjEd objEd;
 
   CSGPlugin();
-  ~CSGPlugin();
+  ~CSGPlugin() override;
 
   // IGenEventHandler
-  virtual IGenEventHandler *getWrappedHandler() { return &objEd; }
+  IGenEventHandler *getWrappedHandler() override { return &objEd; }
 
   // IGenEditorPlugin
-  virtual const char *getInternalName() const { return "csg"; }
-  virtual const char *getMenuCommandName() const { return "CSG"; }
-  virtual const char *getHelpUrl() const { return "/html/Plugins/CSG/index.htm"; }
+  const char *getInternalName() const override { return "csg"; }
+  const char *getMenuCommandName() const override { return "CSG"; }
+  const char *getHelpUrl() const override { return "/html/Plugins/CSG/index.htm"; }
 
-  virtual void processGeometry(StaticGeometryContainer &container);
+  void processGeometry(StaticGeometryContainer &container) override;
 
-  virtual int getRenderOrder() const { return 101; }
-  virtual int getBuildOrder() const { return 0; }
+  int getRenderOrder() const override { return 101; }
+  int getBuildOrder() const override { return 0; }
 
-  virtual bool showInTabs() const { return true; }
-  virtual bool showSelectAll() const { return true; }
+  bool showInTabs() const override { return true; }
+  bool showSelectAll() const override { return true; }
 
-  virtual bool acceptSaveLoad() const { return true; }
+  bool acceptSaveLoad() const override { return true; }
 
-  virtual void registered() {}
-  virtual void unregistered() {}
-  virtual void beforeMainLoop() {}
+  void registered() override {}
+  void unregistered() override {}
+  void beforeMainLoop() override {}
 
-  virtual bool begin(int toolbar_id, unsigned menu_id);
-  virtual bool end();
-  virtual void onNewProject() {}
-  virtual IGenEventHandler *getEventHandler() { return this; }
+  bool begin(int toolbar_id, unsigned menu_id) override;
+  bool end() override;
+  void onNewProject() override {}
+  IGenEventHandler *getEventHandler() override { return this; }
 
-  virtual void setVisible(bool vis);
-  virtual bool getVisible() const;
-  virtual bool getSelectionBox(BBox3 &box) const { return false; }
-  virtual bool getStatusBarPos(Point3 &pos) const { return false; }
+  void setVisible(bool vis) override;
+  bool getVisible() const override;
+  bool getSelectionBox(BBox3 &box) const override { return false; }
+  bool getStatusBarPos(Point3 &pos) const override { return false; }
 
-  virtual void clearObjects();
-  virtual void saveObjects(DataBlock &blk, DataBlock &local_data, const char *base_path);
-  virtual void loadObjects(const DataBlock &blk, const DataBlock &local_data, const char *base_path);
-  virtual void selectAll() {}
-  virtual void deselectAll() {}
+  void clearObjects() override;
+  void saveObjects(DataBlock &blk, DataBlock &local_data, const char *base_path) override;
+  void loadObjects(const DataBlock &blk, const DataBlock &local_data, const char *base_path) override;
+  void selectAll() override {}
+  void deselectAll() override {}
 
-  virtual void actObjects(float dt);
-  virtual void beforeRenderObjects(IGenViewportWnd *vp);
-  virtual void renderObjects();
-  virtual void renderTransObjects();
+  void actObjects(float dt) override;
+  void beforeRenderObjects(IGenViewportWnd *vp) override;
+  void renderObjects() override;
+  void renderTransObjects() override;
 
-  virtual void *queryInterfacePtr(unsigned huid);
+  void *queryInterfacePtr(unsigned huid) override;
 
-  virtual bool onPluginMenuClick(unsigned id) { return false; }
-  virtual void handleViewportAcceleratorCommand(unsigned id) override;
-  virtual void registerMenuAccelerators() override;
+  bool onPluginMenuClick(unsigned id) override { return false; }
+  void handleViewportAcceleratorCommand(unsigned id) override;
+  void registerMenuAccelerators() override;
 
-  virtual void gatherStaticVisualGeometry(StaticGeometryContainer &cont) {}
+  void gatherStaticVisualGeometry(StaticGeometryContainer &cont) override {}
 
-  virtual void gatherStaticCollisionGeomGame(StaticGeometryContainer &cont);
+  void gatherStaticCollisionGeomGame(StaticGeometryContainer &cont) override;
 
-  virtual void gatherStaticCollisionGeomEditor(StaticGeometryContainer &cont);
+  void gatherStaticCollisionGeomEditor(StaticGeometryContainer &cont) override;
 
-  virtual void gatherStaticEnviGeometry(StaticGeometryContainer &container) {}
+  void gatherStaticEnviGeometry(StaticGeometryContainer &container) override {}
 
 private:
   bool isVisible;

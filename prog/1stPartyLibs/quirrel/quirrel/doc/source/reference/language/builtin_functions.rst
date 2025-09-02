@@ -36,21 +36,21 @@ throws an exception if exp is null or false. Throws "assertion failed" string by
 If message argument is function it is evaluated and return value is used as message text. This is to avoid
 unnecessary string formatting when it is not needed.
 
-.. sq:function:: print(x)
+.. sq:function:: print(...)
 
-prints x calling host app printing function set by (:ref:`sq_setprintfunc <sq_setprintfunc>`) call
+prints all arguments (space-separated if more than one) calling host app printing function set by (:ref:`sq_setprintfunc <sq_setprintfunc>`) call
 
-.. sq:function:: println(x)
+.. sq:function:: println(...)
 
-prints x adding line feed ('\n') to the resulting string
+prints space-separated arguments adding line feed ('\n') to the resulting string
 
-.. sq:function:: error(x)
+.. sq:function:: error(...)
 
-prints x calling host app error printing function set by (:ref:`sq_setprintfunc <sq_setprintfunc>`) call
+same as print() but using the error printing function set by (:ref:`sq_setprintfunc <sq_setprintfunc>`) call
 
-.. sq:function:: errorln(x)
+.. sq:function:: errorln(...)
 
-same as error(x) but adds line feed ('\n') to the resulting string
+same as error() but adds line feed ('\n') to the resulting string
 
 .. sq:function:: compilestring(string,[buffername],[bindings])
 
@@ -426,6 +426,9 @@ Arguments to merge fields from can be tables, classes and instances.
 
 If table has a delegate with _call() metamethod, get info about it (see function.getfuncinfos() for details).
 
+.. sq:function:: table.swap(index1, index2)
+
+Swap two values in table by indecies.
 
 Example: ::
 
@@ -599,6 +602,10 @@ Returns matched value (for which callback returned non-false value) or default v
 
 Copies content of source array into given array by replacing its contents. Returns target array itself.
 
+.. sq:function:: array.swap(index1, index2)
+
+Swap two values in array by indecies. If index is negative it is used as index from the array end.
+
 .. sq:function:: array.is_frozen()
 
 Return true if reference to the array is frozen with 'freeze' global function.
@@ -737,6 +744,11 @@ In other words it mutates table with data from provided tables.
 
 Seals the class protecting from modifying its fields event if it was not instantinated yet.
 
+.. sq:function:: table.swap(key1, key1)
+
+Swap two values in instance by keys.
+
+
 ^^^^^^^^^^^^^^
 Class Instance
 ^^^^^^^^^^^^^^
@@ -784,6 +796,9 @@ Returns metamethod closure (e.g. foo.getmetamethod("_add")) or null if method is
 
 Return true if reference to the instance is frozen with 'freeze' global function.
 
+.. sq:function:: table.swap(key1, key1)
+
+Swap two values in instance by keys.
 
 ^^^^^^^^^^^^^^
 Generator

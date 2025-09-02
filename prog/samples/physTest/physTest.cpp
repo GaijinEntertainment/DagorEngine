@@ -83,9 +83,10 @@ static PhysWorld *physWorld = NULL;
 #define ALLOW_BUILD_DYNMODEL    0 // obsolete and not working
 
 #define SIM_DT_MUL    1.0
-// #define SIM_DT_MUL 0.1
 // #define START_CAM_POS 5, 2, -4
 #define START_CAM_POS 13, -17, 10
+
+#define VEHICLE_SIM_DT 0.01
 
 
 PhysBody *capsuleBody = NULL;
@@ -175,6 +176,9 @@ class SampleWheelForces : public IPhysVehicle::ICalcWheelContactForces
     float &out_long_force)
   {
     cpt_friction = 1.0;
+    static const float LOW_SPEED_FRICTION_MUL_LONG = 1;
+    static const float LOW_SPEED_FRICTION_MUL_LAT = 1;
+
     {
       // side force
 
@@ -201,7 +205,7 @@ class SampleWheelForces : public IPhysVehicle::ICalcWheelContactForces
 
       float side_velocity = fabs(wheel_basis[B_SIDE] * ground_vel);
       if (side_velocity < 1.0f)
-        side_force *= side_velocity * cpt_friction;
+        side_force *= side_velocity * cpt_friction * LOW_SPEED_FRICTION_MUL_LAT;
 
       out_lat_force = side_force;
       // debug("%p: x=%g slip_angle=%g side_velocity=%g lat_force=%.4f  fwd=%g/side=%g",
@@ -234,7 +238,7 @@ class SampleWheelForces : public IPhysVehicle::ICalcWheelContactForces
 
       float forward_velocity = fabs(wheel_basis[B_FWD] * wheel_velocity);
       if (forward_velocity < 1.0f)
-        forward_force *= forward_velocity * forward_velocity * 1.0f;
+        forward_force *= forward_velocity * forward_velocity * LOW_SPEED_FRICTION_MUL_LONG;
 
       //--forcePt = body->getTransform() * spring.forcePt;
 
@@ -251,7 +255,11 @@ static inline Point3 calc_box_moi(float mass, const Point3 &sz)
 #if ALLOW_PHYS_CAR
 float _slip[4], _nforce[4];
 
-#if USE_BULLET_PHYSICS
+static const float CAR_SPRING_K = 19500;
+static const float CAR_SPRING_B_BUMP = 1000;
+static const float CAR_SPRING_B_REBOUND = 50;
+
+#if USE_BULLET_PHYSICS || USE_JOLT_PHYSICS
 
 IPhysVehicle *constructCar(const TMatrix &car_tm, float mass, float wheel_mass, const Point3 &dim, float mc_ofs, const Point3 &spr_ofs,
   float wheel_rad, float wheel_frict, float wheel_dump)
@@ -271,41 +279,33 @@ IPhysVehicle *constructCar(const TMatrix &car_tm, float mass, float wheel_mass, 
   __car_body = new PhysBody(physWorld, mass, &compColl, car_tm, pbcd);
   compColl.clear();
 
+#if USE_BULLET_PHYSICS
   IPhysVehicle *car = IPhysVehicle::createRayCarBullet(__car_body);
+#elif USE_JOLT_PHYSICS
+  IPhysVehicle *car = IPhysVehicle::createRayCarJolt(__car_body);
+#endif
   tm.identity();
 
   PhysSphereCollision coll(wheel_rad);
-  wheel = new PhysBody(physWorld, 0, &coll);
-  wid = car->addWheel(wheel, wheel_rad, Point3(0, 0, -1), 0);
-  car->setWheelParams(wid, wheel_mass, wheel_frict);
-  car->setSpringPoints(wid, Point3(dim.x / 2 - spr_ofs.x, -spr_ofs.y, dim.z / 2 - spr_ofs.z), Point3(0, -1, 0), 0.25, 0.75, 0.8, -1,
-    -1);
-  car->setSpringHardness(wid, 19500.0, 1000.0, 50.0);
-  car->setWheelDamping(0, wheel_dump);
+  const Point3 suspPos[4] = {//
+    {dim.x / 2 - spr_ofs.x, -spr_ofs.y, dim.z / 2 - spr_ofs.z}, {dim.x / 2 - spr_ofs.x, -spr_ofs.y, -dim.z / 2 + spr_ofs.z},
+    {-dim.x / 2 + spr_ofs.x, -spr_ofs.y, dim.z / 2 - spr_ofs.z}, {-dim.x / 2 + spr_ofs.x, -spr_ofs.y, -dim.z / 2 + spr_ofs.z}};
 
-  wheel = new PhysBody(physWorld, 0, &coll);
-  wid = car->addWheel(wheel, wheel_rad, Point3(0, 0, -1), 0);
-  car->setWheelParams(wid, wheel_mass, wheel_frict);
-  car->setSpringPoints(wid, Point3(dim.x / 2 - spr_ofs.x, -spr_ofs.y, -dim.z / 2 + spr_ofs.z), Point3(0, -1, 0), 0.25, 0.75, 0.8, -1,
-    -1);
-  car->setSpringHardness(wid, 19500.0, 1000.0, 50.0);
-  car->setWheelDamping(0, wheel_dump);
+  for (int i = 0; i < 4; i++)
+  {
+    wheel = new PhysBody(physWorld, wheel_mass, &coll);
+    wid = car->addWheel(wheel, wheel_rad, Point3(0, 0, -1), 0);
+#if USE_JOLT_PHYSICS
+    const float wheelInertia = 2.f * wheel_rad * wheel_rad * wheel_mass;
+    wheel->disableGravity(true);
+    wheel->setMassMatrix(wheel_mass, wheelInertia, wheelInertia, wheelInertia);
+#endif
+    car->setWheelParams(wid, wheel_mass, wheel_frict);
+    car->setSpringPoints(wid, suspPos[i], Point3(0, -1, 0), 0.25, 0.75, 0.8, -1, -1);
+    car->setSpringHardness(wid, CAR_SPRING_K, CAR_SPRING_B_BUMP, CAR_SPRING_B_REBOUND);
+    car->setWheelDamping(wid, wheel_dump);
+  }
 
-  wheel = new PhysBody(physWorld, 0, &coll);
-  wid = car->addWheel(wheel, wheel_rad, Point3(0, 0, -1), 0);
-  car->setWheelParams(wid, wheel_mass, wheel_frict);
-  car->setSpringPoints(wid, Point3(-dim.x / 2 + spr_ofs.x, -spr_ofs.y, dim.z / 2 - spr_ofs.z), Point3(0, -1, 0), 0.25, 0.75, 0.8, -1,
-    -1);
-  car->setSpringHardness(wid, 19500.0, 1000.0, 50.0);
-  car->setWheelDamping(0, wheel_dump);
-
-  wheel = new PhysBody(physWorld, 0, &coll);
-  wid = car->addWheel(wheel, wheel_rad, Point3(0, 0, -1), 0);
-  car->setWheelParams(wid, wheel_mass, wheel_frict);
-  car->setSpringPoints(wid, Point3(-dim.x / 2 + spr_ofs.x, -spr_ofs.y, -dim.z / 2 + spr_ofs.z), Point3(0, -1, 0), 0.25, 0.75, 0.8, -1,
-    -1);
-  car->setSpringHardness(wid, 19500.0, 1000.0, 50.0);
-  car->setWheelDamping(0, wheel_dump);
   car->setCwcf(0xFFFFFFFF, &calc_cwcf);
 
   return car;
@@ -953,7 +953,7 @@ static void initPhysics()
 
   //  BBox3 worldSize = BBox3(Point3(-50, -50, -50), Point3(50, 50, 50));
 
-  physWorld = new PhysWorld(0.9f, 0.7f, 0.5f, 1.0f); //, worldSize);
+  physWorld = new PhysWorld(0.9f, 0.5f);
   physdbg::init<PhysWorld>();
 
   DEBUG_CTX("init test scene");
@@ -1081,12 +1081,12 @@ public:
 #if ALLOW_PHYS_CAR
             if (__car)
             {
-              __car->update(0.01 * SIM_DT_MUL);
-              __car_ctrl.update(0.01 * SIM_DT_MUL);
+              __car->update(VEHICLE_SIM_DT * SIM_DT_MUL);
+              __car_ctrl.update(VEHICLE_SIM_DT * SIM_DT_MUL);
             }
 #endif
-            physWorld->simulate(0.01 * SIM_DT_MUL);
-            delta -= 0.01;
+            physWorld->simulate(VEHICLE_SIM_DT * SIM_DT_MUL);
+            delta -= VEHICLE_SIM_DT;
             simCnt++;
           }
           simTime += ::get_time_usec(reft);

@@ -2,6 +2,8 @@
 
 #include <ctype.h>
 #include <generic/dag_sort.h>
+#include <osApiWrappers/dag_files.h>
+#include <osApiWrappers/dag_miscApi.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include <imgui/imgui.h>
@@ -24,6 +26,7 @@ struct VisualNode
   dag::Vector<VisualNodeIndex> sources, watchers;
   SimpleString name, sourceFile, filterText;
   uint16_t sourceLine;
+  uint16_t numSubscribers;
 
   union
   {
@@ -98,7 +101,7 @@ static ObservablesGraph *cur_graph = nullptr;
 static dag::Vector<VisualNode> all_nodes;
 static dag::Vector<GraphComponent> components;
 static ska::flat_hash_map<const BaseObservable *, VisualNodeIndex> node_map;
-static int num_computed = 0, num_used = 0, num_components;
+static int num_computed = 0, num_used = 0, num_used_computed = 0, num_subscribers = 0, num_components;
 static bool need_sorting = false, pending_sort = false;
 static dag::Vector<VisualNodeIndex> sorted_nodes;
 static ska::flat_hash_set<ViewerSelection> selected_nodes;
@@ -318,6 +321,8 @@ void sqfrp::graph_viewer()
       all_nodes.clear();
       all_nodes.resize(cur_graph->allObservables.size());
       num_used = 0;
+      num_used_computed = 0;
+      num_subscribers = 0;
 
       VisualNodeIndex ni = 0;
       for (auto o : cur_graph->allObservables)
@@ -325,6 +330,8 @@ void sqfrp::graph_viewer()
         auto &n = all_nodes[ni];
         n.flags = 0;
         n.observable = o;
+        n.numSubscribers = o->scriptSubscribers.size();
+        num_subscribers += n.numSubscribers;
         node_map[o] = ni;
 
         if (auto info = o->getInitInfo())
@@ -348,6 +355,8 @@ void sqfrp::graph_viewer()
 
         if (o->getComputed())
         {
+          if (o->isUsed)
+            num_used_computed++;
           n.isUsed = o->isUsed;
           n.needImmediate = o->needImmediate;
         }
@@ -505,14 +514,55 @@ void sqfrp::graph_viewer()
       n.visible = !name_filter.IsActive() || name_filter.PassFilter(n.filterText);
   }
 
+  static String saveMessage;
+  if (cur_graph)
+  {
+    ImGui::SameLine();
+    if (ImGui::Button("Export DOT"))
+    {
+      DagorDateTime time;
+      ::get_local_time(&time);
+      String fname(256, "%s %04d.%02d.%02d %02d.%02d.%02d.dot", "frp", time.year, time.month, time.day, time.hour, time.minute,
+        time.second);
+
+      if (auto file = df_open(fname.c_str(), DF_CREATE | DF_WRITE | DF_REALFILE_ONLY))
+      {
+        df_cprintf(file, "digraph \"%s\" {\n", cur_graph->graphName.c_str());
+        for (auto &n : all_nodes)
+        {
+          df_cprintf(file, "_%p[label=\"%s\"", n.observable, n.name.c_str());
+          if (n.sources.empty())
+            df_cprintf(file, ",shape=box");
+          df_cprintf(file, "];\n");
+          for (auto wi : n.watchers)
+            df_cprintf(file, "_%p->_%p;\n", n.observable, all_nodes[wi].observable);
+        }
+        df_cprintf(file, "}\n");
+        df_close(file);
+        saveMessage.setStrCat("Saved ", fname.c_str());
+      }
+      else
+        saveMessage.setStrCat("Failed to save ", fname.c_str());
+
+      ImGui::OpenPopup("SaveMessage");
+    }
+  }
+
+  if (ImGui::BeginPopup("SaveMessage"))
+  {
+    ImGui::TextUnformatted(saveMessage.begin(), saveMessage.end());
+    ImGui::EndPopup();
+  }
+
   // title text
   auto drawList = ImGui::GetWindowDrawList();
   drawList->PushClipRectFullScreen();
   drawList->AddText(ImGui::GetWindowPos() + ImGui::GetStyle().FramePadding +
                       ImVec2(ImGui::CalcTextSize("Graph ViewerX").x + ImGui::GetFontSize() + ImGui::GetStyle().ItemInnerSpacing.x, 0),
     ImGui::GetColorU32(ImGuiCol_Text),
-    String(0, "%s: %d Computed, %d Watched, %d unused, %d clusters", all_nodes.size() >= 3000 ? "aka Spaghetti Browser " : "",
-      num_computed, all_nodes.size() - num_computed, all_nodes.size() - num_used, num_components));
+    String(0, "%s: %d/%d used Computed, %d/%d used Watched, %d subscribers, %d clusters",
+      all_nodes.size() >= 3000 ? "aka Spaghetti Browser " : "", num_used_computed, num_computed, num_used - num_used_computed,
+      all_nodes.size() - num_computed, num_subscribers, num_components));
   drawList->PopClipRect();
 
   // main display thing
@@ -1038,15 +1088,18 @@ void sqfrp::graph_viewer()
           ImGui::TextColored(ImVec4(1, 0.1f, 0.1f, 1), "NOT USED");
         if (n.needImmediate)
           ImGui::TextColored(ImVec4(1, 0.1f, 1, 1), "IMMEDIATE");
+        if (n.numSubscribers > 0)
+          ImGui::TextColored(ImVec4(1, 0.9f, 0, 1), "%u subscribers", n.numSubscribers);
 
         ImGui::SeparatorText("Cluster stats");
         if (
           auto compIt = eastl::find_if(components.begin(), components.end(), [ni](const GraphComponent &c) { return c.contains(ni); });
           compIt != components.end())
         {
-          int numEdges = 0, numSources = 0, numSinks = 0, maxDepth = 0;
+          int numEdges = 0, numSources = 0, numSinks = 0, numSubscribers = 0, maxDepth = 0;
           for (auto &cn : *compIt)
           {
+            numSubscribers += cn.numSubscribers;
             if (cn.sources.empty())
             {
               numSources++;
@@ -1072,6 +1125,7 @@ void sqfrp::graph_viewer()
             STAT("Edges", "%d", numEdges)
             STAT("Sinks", "%d", numSinks)
             STAT("Depth", "%d", maxDepth)
+            STAT("Subscribers", "%d", numSubscribers)
 #undef STAT
             ImGui::EndTable();
           }

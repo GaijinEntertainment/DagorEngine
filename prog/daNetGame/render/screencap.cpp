@@ -8,6 +8,7 @@
 #include <image/dag_exr.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <osApiWrappers/dag_direct.h>
+#include <osApiWrappers/dag_clipboard.h>
 #include <workCycle/dag_workCycle.h>
 #include <EASTL/unique_ptr.h>
 #include <EASTL/string_view.h>
@@ -292,11 +293,16 @@ void screencap::make_screenshot(
   if (success)
   {
     if (dd_mkpath(fname.str()) && ScreenShotSystem::saveScreenShotTo(screen, fname))
+    {
       debug("screenshot saved to %s", fname.str());
+      clipboard::set_clipboard_file(fname.c_str());
+    }
     else
+    {
       debug("could not save screenshot to %s", fname.str());
-    if (format != Format::EXR)
-      ScreenShotSystem::saveScreenShotToClipboard(screen);
+      if (format != Format::EXR)
+        ScreenShotSystem::saveScreenShotToClipboard(screen);
+    }
   }
 }
 

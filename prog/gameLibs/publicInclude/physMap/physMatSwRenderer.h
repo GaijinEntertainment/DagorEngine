@@ -92,7 +92,7 @@ public:
       Point2 vert = mesh.vertices[vi] - regOrigin;
       vert.x *= scaleX;
       vert.y *= scaleY;
-      vertices[vi] = IPoint2::xy(vert + Point2(0.5 * SR_PRECISE_VALUE, 0.5 * SR_PRECISE_VALUE));
+      vertices[vi] = IPoint2::xy(vert + Point2(0.5 * SR_PRECISE_VALUEF, 0.5 * SR_PRECISE_VALUEF));
 
       if (vertices_bits.size())
         vertices_bits[vi] = (vertices[vi].x < 0) | ((vertices[vi].x > (WIDTH << SR_PRECISE_BITS)) << 1) | ((vertices[vi].y < 0) << 2) |

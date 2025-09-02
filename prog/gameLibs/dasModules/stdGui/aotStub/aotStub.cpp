@@ -85,6 +85,8 @@ void StdGuiRender::GuiContext::render_rectangle_aa(Point2, Point2, float, E3DCOL
 void StdGuiRender::GuiContext::render_rectangle_aa(Point2, Point2, float, E3DCOLOR, E3DCOLOR, E3DCOLOR) { G_ASSERT(0); }
 void StdGuiRender::GuiContext::render_smooth_round_rect(Point2, Point2, float, float, E3DCOLOR) { G_ASSERT(0); }
 void StdGuiRender::GuiContext::render_rect(real, real, real, real, Point2, Point2, Point2) { G_ASSERT(0); }
+void StdGuiRender::GuiContext::set_alpha_blend(BlendMode) { G_ASSERT(0); }
+BlendMode StdGuiRender::GuiContext::get_alpha_blend() { G_ASSERT_RETURN(false, BlendMode::NO_BLEND); }
 void StdGuiRender::GuiContext::goto_xy(Point2) { G_ASSERT(0); }
 Point2 StdGuiRender::GuiContext::get_text_pos() { G_ASSERT_RETURN(false, {}); }
 void StdGuiRender::GuiContext::set_spacing(int) { G_ASSERT(0); }

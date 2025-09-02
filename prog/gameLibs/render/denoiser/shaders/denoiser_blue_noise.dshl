@@ -1,0 +1,45 @@
+// Based on the NRD Sample
+
+texture scrambling_ranking_texture;
+texture sobol_texture;
+
+int blue_noise_frame_index;
+
+macro INIT_DENOISER_BLUE_NOISE(stage)
+  (stage) {
+    scrambling_ranking_texture@tex = scrambling_ranking_texture hlsl { Texture2D< float3 > scrambling_ranking_texture@tex; };
+    sobol_texture@tex = sobol_texture hlsl { Texture2D< float4 > sobol_texture@tex; };
+    frame_index@u1 = blue_noise_frame_index;
+  }
+endmacro
+
+macro USE_DENOISER_BLUE_NOISE(stage)
+  hlsl(stage) {
+    #include "ml.hlsli"
+
+    #define BLUE_NOISE_SPATIAL_DIM  128 // see StaticTexture::ScramblingRanking
+    #define BLUE_NOISE_TEMPORAL_DIM 4   // good values: 4-8 for shadows, 8-16 for occlusion, 8-32 for lighting
+
+    float2 GetBlueNoise(uint2 pixelPos, bool isCheckerboard, uint seed = 0)
+    {
+      uint frameIndex = isCheckerboard ? (frameIndex >> 1) : inFrameIndex;
+      uint sampleIndex = (frameIndex + seed) & (BLUE_NOISE_TEMPORAL_DIM - 1);
+
+      uint3 A = scrambling_ranking_texture[pixelPos & (BLUE_NOISE_SPATIAL_DIM - 1)] * 255;
+      uint rankedSampleIndex = sampleIndex ^ A.z;
+      uint4 B = sobol_texture[uint2(rankedSampleIndex & 255, 0)] * 255;
+      float4 blue = (float4(B ^ A.xyxy) + 0.5) * (1.0 / 256.0);
+
+      uint d = Sequence::Bayer4x4ui(pixelPos, inFrameIndex);
+      float2 dither = (float2(d & 3, d >> 2) + 0.5) * (1.0 / 4.0);
+      blue += (dither.xyxy - 0.5) * (1.0 / 256.0);
+
+      // When Ray Reconstruction gets in place, revisit this
+      //[flatten]
+      //if(gDenoiserType == DENOISER_REFERENCE || gRR)
+      //    blue.xy = Rng::Hash::GetFloat2();
+
+      return saturate(blue.xy);
+    }
+  }
+endmacro

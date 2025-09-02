@@ -63,6 +63,7 @@
 #include <gui/dag_imgui.h>
 #include <util/dag_localization.h>
 #include <daScript/daScript.h>
+#include <dasModules/dasSystem.h>
 
 #include "game/gameScripts.h"
 #include "input/inputControls.h"
@@ -91,6 +92,8 @@
 #include "level.h"
 #include "logProcessing.h"
 
+#include "game/hostedServerLauncher.h"
+
 #include <sqrat.h>
 #include <quirrel/frp/dag_frp.h>
 #include <stdio.h>
@@ -99,8 +102,8 @@
 
 #if _TARGET_C1 | _TARGET_C2
 
-#elif _TARGET_GDK
-#include "platform/gdk/gdkServices.h"
+#elif _TARGET_C4
+
 #elif _TARGET_C3
 
 #elif _TARGET_ANDROID
@@ -128,7 +131,7 @@ extern void runIOSRunloop(const eastl::function<void()> &callback);
 #include <aio.h>
 #endif
 #define CURL_STATICLIB
-#if !_TARGET_GDK
+#if !_TARGET_C4
 #include <curl/curl.h>
 #endif
 
@@ -141,6 +144,7 @@ extern void runIOSRunloop(const eastl::function<void()> &callback);
 #include <osApiWrappers/dag_basePath.h>
 #include "updaterEvents.h"
 #include <perfMon/dag_daProfilerSettings.h>
+#include "main/gameProjConfig.h"
 
 extern void dng_load_localization();
 
@@ -202,12 +206,7 @@ static void init_early() // called from within main(), but before log system ini
 #define __DEBUG_FILEPATH dng_get_log_prefix(true)
 #endif
 
-static String get_log_dir()
-{
-  String dir(framemem_ptr());
-  dir.printf(0, ".logs~%s", get_game_name());
-  return dir;
-}
+static const char *get_log_dir() { return ".game_logs"; }
 
 #if _TARGET_PC
 static String dng_get_log_prefix(bool do_crypt)
@@ -258,7 +257,7 @@ namespace ddsx
 {
 extern void shutdown_tex_pack2_data();
 }
-static bool do_fatal_on_logerr_on_exit = false;
+bool do_fatal_on_logerr_on_exit = false;
 static bool initial_loading_complete = false;
 
 static const char *quit_reason = nullptr;
@@ -286,8 +285,22 @@ void exit_game(const char *reason_static_str)
   quit_reason = reason_static_str;
 }
 
+extern "C"
+#if _TARGET_PC_WIN
+  __declspec(dllexport)
+#else
+  __attribute__((visibility("default")))
+#endif
+  void
+  exit_game_exported(const char *reason_static_str)
+{
+  debug("exit game exported %s", reason_static_str);
+  exit_game(reason_static_str);
+}
+
+
 extern void init_device_reset();
-extern void app_start();
+extern void app_start(bool register_dagor_scene = true);
 extern void app_close();
 
 #if _TARGET_ANDROID
@@ -361,15 +374,15 @@ void DagorWinMainInit(int, bool)
   DataBlock::singleBlockChecking = true;
 #if _TARGET_ANDROID
   restoreConfigIfNotExist("config.blk");
-#elif _TARGET_GDK
-  init_gdk_services();
+#elif _TARGET_C4
+
 #elif _TARGET_C3
 
 #endif
-  folders::initialize(get_game_name());
+  folders::initialize(gameproj::game_user_dir_name());
 
 #if _TARGET_ANDROID
-  String configBlkFilename(get_config_filename(get_game_name()));
+  String configBlkFilename(get_config_filename());
   restoreConfigIfNotExist(configBlkFilename);
   dagor_android_preload_settings_blk = &preLoadSettings;
   DataBlock &cfg = preLoadSettings;
@@ -394,8 +407,12 @@ void DagorWinMainInit(int, bool)
 
 bool is_initial_loading_complete() { return initial_loading_complete; }
 
+extern void wait_additional_game_job_done();
+
 static void post_shutdown_handler()
 {
+  gameproj::post_shutdown_handler();
+
   // non zero ptr might be used as threads interruption condition
   interlocked_compare_exchange_ptr(quit_reason, (const char *)"null", (const char *)nullptr);
   dgs_app_active = true; // Otherwise watchdog isn't working
@@ -411,6 +428,7 @@ static void post_shutdown_handler()
   }
 #endif
 
+  wait_additional_game_job_done();
   g_entity_mgr->broadcastEventImmediate(VromfsUpdaterShutdownEvent{});
   memreport::dump_memory_usage_report(0);
   animated_splash_screen_stop(); //-V779
@@ -423,11 +441,12 @@ static void post_shutdown_handler()
 
   app_close();
 
-#if _TARGET_GDK
-  shutdown_gdk_services();
+#if _TARGET_C4
+
 #endif
 
   stop_webui();
+  gameproj::reset_game_resources();
   reset_game_resources();
   gameres_rendinst_desc.reset();
   gameres_dynmodel_desc.reset();
@@ -446,7 +465,7 @@ static void post_shutdown_handler()
   curl_global::shutdown();
 
   crypto::cleanup_ssl();
-
+  shutdown_internal_server_on_host_exit();
 #if _TARGET_PC
   DaThread::terminate_all(/*wait*/ true, /*timeout*/ 7000); // wait for PurgeLogThread and similar threads
 #endif
@@ -464,7 +483,7 @@ void set_window_title(const char *net_role)
 {
 #if _TARGET_PC
   String title(framemem_ptr());
-  if (const char *nm = get_localized_text("windowTitle", ::dgs_get_settings()->getStr("windowTitle", get_game_name())))
+  if (const char *nm = get_localized_text("windowTitle", ::dgs_get_settings()->getStr("windowTitle", gameproj::game_window_title())))
     title.printf(0, "%s", nm);
 #if DAGOR_DBGLEVEL > 0
   if (net_role)
@@ -612,6 +631,8 @@ void set_corrected_fps_limit(int fps_limit)
 struct FrameSleeper
 {
   static constexpr unsigned MIN_LOADING_FRAME_TIME_US = 1e6 / 30.0;
+  // class instance is temporal (scope limited), but context for precise sleep must be preserved, so keep it alive via static
+  static PreciseSleepContext precise_sleep_context;
   int64_t startRefTicks;
 
   // if allowed and d3d driver supports frame event callbacks
@@ -652,7 +673,7 @@ struct FrameSleeper
         if (load) // Note: imprecise FPS is fine during loading (i.e. don't waste CPU on active wait)
           sleep_msec((minFrameTimeUs - frameTimeUs) / 1000);
         else
-          sleep_precise_usec(minFrameTimeUs - frameTimeUs);
+          sleep_precise_usec(minFrameTimeUs - frameTimeUs, precise_sleep_context);
       }
     }
   }
@@ -666,6 +687,7 @@ struct FrameSleeper
   }
 };
 
+PreciseSleepContext FrameSleeper::precise_sleep_context = {};
 
 static unsigned int quirrel_alloc_ignore_size = 0;
 
@@ -691,13 +713,11 @@ static void quirrel_huge_alloc_hook(unsigned int size, unsigned cur_threshold, H
   }
 }
 
-SQInteger get_thread_id_func() { return SQInteger(get_current_thread_id()); }
-
 #if _TARGET_PC
 static void purge_obsolete_logs(const DataBlock &purgeLogCfg)
 {
   int refms = get_time_msec();
-  String logDir = get_log_dir();
+  String logDir(get_log_dir());
   int64_t maxSize = purgeLogCfg.getInt64("maxSizeKB", 512 << 10) << 10;
   bool dryRun = purgeLogCfg.getBool("dryRun", DAGOR_DBGLEVEL > 0);
 #if DAGOR_DBGLEVEL > 0
@@ -729,29 +749,26 @@ static void purge_obsolete_logs(const DataBlock &purgeLogCfg)
     ++nremoved;
     removedSize += alf.size;
   };
-  Tab<alefind_t> fileList;
+  Tab<alefind_t> fileList(framemem_ptr());
   SNPRINTF(tmpPath, sizeof(tmpPath), "%s/*", logDir.c_str());
-  alefind_t ff;
-  if (::dd_find_first(tmpPath, DA_FILE, &ff)) // To consider: what about dirs?
+
+  for (const alefind_t &ff : dd_find_iterator(tmpPath, DA_FILE)) // To consider: what about dirs?
   {
-    do
+    ++nfound;
+    if (eraseTime && ff.mtime <= eraseTime)
+      removef(ff, /*bytime*/ true);
+    else
     {
-      ++nfound;
-      if (eraseTime && ff.mtime <= eraseTime)
-        removef(ff, /*bytime*/ true);
-      else
-      {
-        fileList.push_back(ff);
-        totalSize += ff.size;
-      }
-      if (interlocked_acquire_load_ptr(quit_reason) || timeLimit < time(nullptr))
-      {
-        maxSize = 0;
-        break;
-      }
-    } while (dd_find_next(&ff));
+      fileList.push_back(ff);
+      totalSize += ff.size;
+    }
+    if (interlocked_acquire_load_ptr(quit_reason) || timeLimit < time(nullptr))
+    {
+      maxSize = 0;
+      break;
+    }
   }
-  else
+  if (nfound == 0)
   {
     logwarn("%s: failed to find any files at '%s'", func, logDir.c_str());
     return;
@@ -830,7 +847,7 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
   if (!selfcheck_passed)
     return 3;
 
-  if (!net_init_early()) // do init network early as it might fail application startup (i.e. on server)
+  if (!net_init_early(*g_entity_mgr)) // do init network early as it might fail application startup (i.e. on server)
     return 1;
 
   g_entity_mgr->broadcastEventImmediate(VromfsUpdaterEarlyInitEvent{});
@@ -869,9 +886,7 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
 #if _TARGET_C1 | _TARGET_C2
 
 #endif
-  load_settings(get_game_name(), /* resolve_tex_streaming */ false, /* use_on_reload_backup */ true);
-  apply_vrom_list_difference(*dgs_get_settings()->getBlockByNameEx("vromList"), {});
-  load_settings(get_game_name(), true); // we reload settings (with resolving tex_streaming config)
+  initial_load_settings();
 
   // This must be called after settings load
   cpujobs::init(dgs_get_settings()->getBlockByNameEx("debug")->getInt("coreCount", -1), /*reserve_jobmgr_cores*/ false);
@@ -883,16 +898,22 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
   da_profiler::set_mode(0);
 #endif
 
-  visual_err_log_setup(dedicated::is_dedicated()); // need to call it before start_purge_logs_thread to avoid datarace
-  bindquirrel::setup_logerr_interceptor();
+  { // Setup log handlers before we start any threads which can log (specifically start_purge_logs_thread) to avoid dataraces.
+    visual_err_log_setup(dedicated::is_dedicated());
+    bindquirrel::setup_logerr_interceptor();
+
+#if DAGOR_DBGLEVEL > 0
+    if (const char *mask = ::dgs_get_settings()->getBlockByNameEx("debug")->getStr("assertOnLogerr", nullptr))
+      enable_assert_on_logerrs(mask);
+#endif
+
+    if (::dgs_get_settings()->getBlockByNameEx("debug")->getBool("dasStackOnLogerr", true))
+      bind_dascript::enable_das_stackwalk_log_on_logerr();
+  }
 
   dng_load_localization();
 
-  start_purge_logs_thread(); // as soon as settings loaded & cpujobs inited
-#if DAGOR_DBGLEVEL > 0
-  if (const char *mask = ::dgs_get_settings()->getBlockByNameEx("debug")->getStr("assertOnLogerr", nullptr))
-    enable_assert_on_logerrs(mask);
-#endif
+  start_purge_logs_thread(); // as soon as settings loaded & cpujobs inited, after setting up log handlers
 
   g_entity_mgr->broadcastEventImmediate(OnStoreApiInit{});
 
@@ -941,17 +962,24 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
   init_tex_streaming();
 
   fatal::set_language();
-  const char *title = get_localized_text("windowTitle", ::dgs_get_settings()->getStr("windowTitle", get_game_name()));
+  const char *title = get_localized_text("windowTitle", ::dgs_get_settings()->getStr("windowTitle", gameproj::game_window_title()));
   fatal::set_product_title(title);
 
-  ::dagor_init_video("DagorWClass", nCmdShow,
+  gameproj::before_init_video();
+
+  const char *wcName = "DagorWClass";
+  if (gameproj::is_hosted_server_instance())
+    wcName = nullptr; // prevents most video initialization, especially window itself
+
+  ::dagor_init_video(wcName, nCmdShow,
 #if _TARGET_PC_WIN
     LoadIcon((HINSTANCE)win32_get_instance(), "AppIcon"),
 #else
     NULL,
 #endif
-    "Loading...", get_game_name(), get_exe_version32());
+    "Loading...", gameproj::game_window_title(), get_exe_version32());
   ::startup_game(RESTART_ALL);
+  try_apply_auto_graphical_settings();
   fatal::set_d3d_driver_data(d3d::get_driver_name(), d3d_get_vendor_name(d3d_get_gpu_cfg().primaryVendor));
 #if _TARGET_ANDROID
   android::startup::set_android_graphics_preset();
@@ -980,10 +1008,10 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
     das::daScriptEnvironment *bound = nullptr;
 
   public:
-    InitialLoadingThread() : DaThread("InitialLoadingThread", 512 << 10, 0, WORKER_THREADS_AFFINITY_MASK)
+    InitialLoadingThread() : DaThread("InitialLoadingThread", 256 << 10, 0, WORKER_THREADS_AFFINITY_MASK)
     {
       das::daScriptEnvironment::ensure();
-      bound = das::daScriptEnvironment::bound;
+      bound = *das::daScriptEnvironment::bound;
     }
 
     void waitWithSplashAnimation()
@@ -992,10 +1020,11 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
       dagor_hide_splash_screen();
 
       animated_splash_screen_start();
+      uint32_t frameIndex = 0;
       for (;;)
       {
         TIME_PROFILER_TICK();
-        lowlatency::start_frame();
+        d3d::begin_frame(frameIndex, true);
         const uint32_t lastDraw = get_time_msec();
 
         watchdog_kick();
@@ -1007,9 +1036,10 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
           d3d::GpuAutoLock gpuLock;
           d3d::set_render_target();
 
-          animated_splash_screen_draw(d3d::get_backbuffer_tex());
+          animated_splash_screen_draw();
           ShaderElement::invalidate_cached_state_block();
-          d3d::update_screen();
+          d3d::update_screen(frameIndex);
+          frameIndex++;
         }
         if (interlocked_acquire_load(terminating))
           break;
@@ -1020,12 +1050,13 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
 
     void execThread()
     {
+      TIME_PROFILE(execThread)
       memreport::dump_memory_usage_report(0);
 
 #if _TARGET_C3
 
 #endif
-
+      // devMode is special mode for modmakers. They are not allowed to loging and mess with production services
       if (!(app_profile::get().disableRemoteNetServices || app_profile::get().devMode))
         circuit::init();
 
@@ -1135,8 +1166,8 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
 
     void execute() override
     {
-      TIME_PROFILE_AUTO_THREAD();
-      das::daScriptEnvironment::bound = bound;
+      TIME_PROFILE_THREAD(getCurrentThreadName());
+      *das::daScriptEnvironment::bound = bound;
       ScopeSetWatchdogCurrentThreadDump wctd;
 
       execThread();
@@ -1170,11 +1201,14 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
           ::dagor_reset_spent_work_time();
         },
         nullptr); // DA to execute this after actual scene load
+      gameproj::init_before_main_loop();
     }
 
 #if !_TARGET_IOS
     FrameSleeper _sleep;
 #endif
+    wait_additional_game_job_done();
+    gameproj::update_before_dagor_work_cycle();
     ::dagor_work_cycle();
     update_webui();
     cpujobs::release_done_jobs();
@@ -1182,8 +1216,13 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
     watchdog_kick();
   });
   /* Don't add shutdown code here - it will not be executed, use post_shutdown_handler() instead */
-  quit_game(0, /*bRestart*/ false);
-  G_ASSERT(0); // unreachable, actual shutdown performed in post_shutdown_handler()
+  if (gameproj::is_hosted_server_instance()) // we quit the game normally, flushing everything, but do not exit the process itself
+    shutdown_game_instance();
+  else
+  {
+    quit_game(0, /*bRestart*/ false);
+    G_ASSERT(0);
+  }
   return 0;
 }
 

@@ -1,0 +1,20 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/libTools/ecsPropPanel ;
+
+TargetType  = lib ;
+Target      = tools/libTools/ecsPropPanel.lib ;
+
+AddIncludes =
+  $(Root)/prog/tools/sharedInclude
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+Sources =
+  ecsEditableObjectPropertyPanel.cpp
+  ecsBasicObjectEditor.cpp
+  ecsOrderedTemplatesGroups.cpp
+  ecsPropertyPanelMapping.cpp
+  ecsTemplateSelectorDialog.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

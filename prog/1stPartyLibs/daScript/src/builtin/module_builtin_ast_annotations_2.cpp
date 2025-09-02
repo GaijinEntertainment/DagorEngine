@@ -47,7 +47,8 @@ namespace das {
             return context.code->makeNode<SimNode_NewHandle<MakeStruct,true>>(at);
         }
         virtual SimNode * simulateDeletePtr ( Context & context, const LineInfo & at, SimNode * sube, uint32_t count ) const override {
-            return context.code->makeNode<SimNode_DeleteHandlePtr<MakeStruct,true>>(at,sube,count);
+            return context.code->makeNode<SimNode_DeleteHandlePtr<MakeStruct,true>>(at,sube,count,
+                context.code->allocateName("type<"+name+">"));
         }
         static void * jit_new ( Context * ) {
             auto res = new MakeStruct();
@@ -177,6 +178,7 @@ namespace das {
             addField<DAS_BIND_MANAGED_FIELD(iterators)>("iterators");
             addField<DAS_BIND_MANAGED_FIELD(iteratorsAka)>("iteratorsAka");
             addField<DAS_BIND_MANAGED_FIELD(iteratorsAt)>("iteratorsAt");
+            addField<DAS_BIND_MANAGED_FIELD(iteratorsTupleExpansion)>("iteratorsTupleExpansion");
             addField<DAS_BIND_MANAGED_FIELD(iteratorVariables)>("iteratorVariables");
             addField<DAS_BIND_MANAGED_FIELD(iteratorsTags)>("iteratorsTags");
             addField<DAS_BIND_MANAGED_FIELD(sources)>("sources");

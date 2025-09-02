@@ -140,6 +140,7 @@ struct GrassLod
 
   Texture *diffuseTex;
   Texture *alphaTex;
+  d3d::SamplerHandle grassTexSmp;
 
   TEXTUREID diffuseTexId;
   TEXTUREID alphaTexId;
@@ -237,11 +238,10 @@ protected:
   void beginRender(const LandMask &land_mask);
   void endRender();
   void draw(const LandMask &land_mask, bool opaque, int startLod, int endLod); // endLod = lastLodToRender+1
-  void setGrassLodLayerStates();
   void setLodStates(const GrassLod &lod);
   void closeTextures();
 
-  UniqueBuf layerDataVS, layerDataPS;
+  UniqueBufHolder layerDataVS, layerDataColor;
 
   float grassRadiusMul;
   float grassDensityMul;

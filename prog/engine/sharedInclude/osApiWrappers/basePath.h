@@ -10,11 +10,13 @@
 
 static constexpr int DF_MAX_BASE_PATH_NUM = 64;
 
+#include <supp/dag_define_KRNLIMP.h>
 //! unused entries are always at the end and are NULLs
-extern const char *df_base_path[DF_MAX_BASE_PATH_NUM];
-extern bool df_base_path_vrom_mounted[DF_MAX_BASE_PATH_NUM];
+extern KRNLIMP const char *df_base_path[DF_MAX_BASE_PATH_NUM];
+extern KRNLIMP bool df_base_path_vrom_mounted[DF_MAX_BASE_PATH_NUM];
 
 void rebuild_basepath_vrom_mounted();
+#include <supp/dag_undef_KRNLIMP.h>
 
 static inline const char *resolve_named_mount_in_path(const char *fpath, const char *&mnt_path)
 {

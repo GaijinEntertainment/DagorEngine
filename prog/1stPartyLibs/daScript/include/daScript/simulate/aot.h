@@ -1,6 +1,9 @@
 #pragma once
 
+#include <algorithm> // constexpr std::max
+
 #include "daScript/misc/callable.h"
+#include "daScript/misc/macro.h"
 #include "daScript/simulate/runtime_profile.h"
 #include "daScript/simulate/debug_print.h"
 #include "daScript/simulate/sim_policy.h"
@@ -31,19 +34,16 @@ namespace das {
 
     #define DAS_MAKE_ANNOTATION(name)   ((TypeAnnotation*)(intptr_t(name)|1))
 
-    #define DAS_COMMENT(...)
-
-    #define DAS_STRINGIFY(x) #x
-    #define DAS_TOSTRING(x) DAS_STRINGIFY(x)
-    #define DAS_FILE_LINE_NAME(a,b) a " at line " DAS_TOSTRING(b)
-    #define DAS_FILE_LINE   DAS_FILE_LINE_NAME(__FILE__,__LINE__)
-
     void das_debug ( Context * context, TypeInfo * typeInfo, const char * FILE, int LINE, vec4f res, const char * message = nullptr );
 
 #if (!defined(DAS_ENABLE_EXCEPTIONS)) || (!DAS_ENABLE_EXCEPTIONS)
     void das_throw(const char * msg);
     void das_trycatch(callable<void()> tryBody, callable<void(const char * msg)> catchBody);
 #endif
+
+    __forceinline void __bit_set ( Bitfield & value, Bitfield mask, bool on ) {
+        value.value = on ? (value.value | mask.value) : (value.value & ~mask.value);
+    }
 
     template <typename TT>
     struct das_auto_cast {
@@ -70,7 +70,7 @@ namespace das {
         template <typename QQ>
         __forceinline static TT cast ( QQ && expr ) {
             TT res = expr;
-            memset(&expr, 0, sizeof(QQ));
+            memset((void*)&expr, 0, sizeof(QQ));
             return res;
         }
     };
@@ -78,7 +78,7 @@ namespace das {
     template <typename TT>
     __forceinline void das_zero ( TT & a ) {
         using TTNC = typename remove_const<TT>::type;
-        memset(const_cast<TTNC *>(&a), 0, sizeof(TT));
+        memset(reinterpret_cast<void*>(const_cast<TTNC *>(&a)), 0, sizeof(TT));
     }
 
     template <typename TT, typename QQ>
@@ -86,8 +86,8 @@ namespace das {
         using TTNC = typename remove_const<TT>::type;
         static_assert(sizeof(TT)<=sizeof(QQ),"can't move from smaller type");
         if ( ((void*)&a) != ((void *)&b) ) {
-            memcpy(const_cast<TTNC *>(&a), &b, sizeof(TT));
-            memset((TTNC *)&b, 0, sizeof(TT));
+            memcpy(reinterpret_cast<void*>(const_cast<TTNC *>(&a)), reinterpret_cast<const void*>(&b), sizeof(TT));
+            memset((void *)&b, 0, sizeof(TT));
         }
     }
 
@@ -95,7 +95,7 @@ namespace das {
     __forceinline void das_copy ( TT & a, const QQ b ) {
         using TTNC = typename remove_const<TT>::type;
         static_assert(sizeof(TT)<=sizeof(QQ),"can't copy from smaller type");
-        memcpy(const_cast<TTNC *>(&a), &b, sizeof(TT));
+        memcpy(reinterpret_cast<void*>(const_cast<TTNC *>(&a)), reinterpret_cast<const void*>(&b), sizeof(TT));
     }
 
     template <typename TT>
@@ -553,7 +553,7 @@ namespace das {
         }
     };
 
-    template <typename TT>
+    template <typename TT, typename Enable = void>
     struct das_index;
 
     template <typename TT>
@@ -628,11 +628,8 @@ namespace das {
     }
 
     template <typename TT>
-    struct das_index<vector<TT>> : das_default_vector_index<vector<TT>, TT> {};
-
-    template <typename TT>
-    struct das_index<vector<TT> const> : das_default_vector_index<vector<TT>, TT> {};
-
+    struct das_index<TT, enable_if_t<is_base_of_v<vector<typename TT::value_type>, TT>>>
+        : das_default_vector_index<vector<typename TT::value_type>, typename TT::value_type> {};
 
     template <typename TT, typename VecT, uint32_t size>
     struct das_vec_index {
@@ -915,31 +912,6 @@ namespace das {
         }
     };
 
-    template <typename TT>
-    struct is_workhorse_type {
-        enum {
-            value =
-                    is_enum<TT>::value
-                ||  is_pointer<TT>::value
-                ||  is_arithmetic<TT>::value
-                ||  is_same<TT,bool>::value
-                ||  is_same<TT,Bitfield>::value
-                ||  is_same<TT,range>::value
-                ||  is_same<TT,urange>::value
-                ||  is_same<TT,range64>::value
-                ||  is_same<TT,urange64>::value
-                ||  is_same<TT,int2>::value
-                ||  is_same<TT,int3>::value
-                ||  is_same<TT,int4>::value
-                ||  is_same<TT,uint2>::value
-                ||  is_same<TT,uint3>::value
-                ||  is_same<TT,uint4>::value
-                ||  is_same<TT,float2>::value
-                ||  is_same<TT,float3>::value
-                ||  is_same<TT,float4>::value
-        };
-    };
-
     template <typename TK, typename TV>
     struct TTable : Table {
         // static_assert(is_workhorse_type<TK>::value,"only supported for `workhorse` types");
@@ -1002,8 +974,100 @@ namespace das {
         }
     };
 
+    template <int tupleSize, typename... TA>
+    struct TTuple;
+
+    template <int tupleSize, int align, typename... TA>
+    struct TVariant;
+
+    template <typename T>
+    struct TypeAlign {
+        static constexpr int align = alignof(T);
+    };
+
+    template <>
+    struct TypeAlign<FILE> {
+        static constexpr int align = 16; // hardcoded in module fio
+    };
+
+    template <typename... TA>
+    constexpr int max_alignof() { return std::max({TypeAlign<TA>::align...}); }
+
+    template <typename... TA>
+    constexpr int variant_align() {
+        return max_alignof<int, TA...>();
+    }
+
+
+    template <typename... TA>
+    constexpr int tuple_align() {
+        return max_alignof<TA...>();
+    }
+
+    template <int tupleSize, typename... TA>
+    struct TypeAlign<TTuple<tupleSize, TA...>> {
+        static constexpr int align = tuple_align<TA...>();
+    };
+
+    template <int tupleSize, int alignment, typename... TA>
+    struct TypeAlign<TVariant<tupleSize, alignment, TA...>> {
+        static constexpr int align = alignment;
+    };
+
+    /**
+     * x =  ⌈x / align⌉ * align
+     */
+    constexpr int round_up(int x, int align) { return (x + align - 1) & (~(align - 1)); }
+
+    template <typename T>
+    struct TypeSize {
+        static constexpr int size = sizeof(T);
+    };
+
+    template <>
+    struct TypeSize<void> {
+        static constexpr int size = 0;
+    };
+
+    template <>
+    struct TypeSize<FILE> {
+        static constexpr int size = 16; // hardcoded in module FIO
+    };
+
+    template <int tupleSize, typename... TA>
+    struct TypeSize<TTuple<tupleSize, TA...>> {
+        static constexpr int size = tupleSize;
+    };
+
+    template <typename... TA>
+    constexpr int tuple_size() {
+        int ma = 0;
+        (..., (ma = round_up(ma, TypeAlign<TA>::align) + TypeSize<TA>::size));
+        return round_up(ma, tuple_align<TA...>());
+    }
+
+    template <typename... TA>
+    constexpr int variant_sizeof() {
+        constexpr auto align = variant_align<TA...>();
+        int ma = 0;
+        ((ma = std::max(round_up(TypeSize<int>::size, align) + round_up(TypeSize<TA>::size, align), ma)), ...);
+        return ma;
+    }
+
+    template <int id, typename... TA>
+    constexpr int tuple_offset() {
+        int cur_id = 0;
+        int offset = 0;
+        (..., ((cur_id++) < id ? offset = round_up(offset, TypeAlign<TA>::align) + TypeSize<TA>::size : 0));
+        using OurT = std::tuple_element_t<id, std::tuple<TA...>>;
+        return round_up(offset, TypeAlign<OurT>::align);
+    }
+
+
     template <int tupleSize, typename ...TA>
     struct TTuple : Tuple {
+        static_assert(tupleSize == tuple_size<TA...>());
+
         TTuple() {}
         TTuple(const TTuple & arr) { moveT(arr); }
         TTuple(TTuple && arr ) { moveT(arr); }
@@ -1015,6 +1079,9 @@ namespace das {
         char data[tupleSize];
     };
 
+    template <typename ...TA>
+    using AutoTuple = TTuple<tuple_size<TA...>(), TA...>;
+
     template <typename TT, int offset>
     struct das_get_tuple_field {
         static __forceinline TT & get ( const Tuple & t ) {
@@ -1023,6 +1090,9 @@ namespace das {
         }
     };
 
+    template <typename TT, int idx, typename ...Types>
+    using das_get_auto_tuple_field = das_get_tuple_field<TT, tuple_offset<idx, Types...>()>;
+
     template <typename TT, int offset>
     struct das_get_tuple_field_ptr {
         static __forceinline TT & get ( const Tuple * t ) {
@@ -1030,6 +1100,9 @@ namespace das {
             return *(TT *)(data + offset);
         }
     };
+
+    template <typename TT, int idx, typename ...Types>
+    using das_get_auto_tuple_field_ptr = das_get_tuple_field_ptr<TT, tuple_offset<idx, Types...>()>;
 
     template <typename RR, int offset>
     struct das_safe_navigation_tuple {
@@ -1045,12 +1118,32 @@ namespace das {
 
     template <int variantSize, int variantAlign, typename ...TA>
     struct alignas(variantAlign) TVariant : Variant {
+        static_assert(variantSize == variant_sizeof<TA...>());
+        static_assert(variantAlign == variant_align<TA...>());
+
+        template<int N> using NthType =
+            typename std::tuple_element<N, std::tuple<TA...>>::type;
+
         struct alignas(1) TData {
             char data[variantSize - sizeof(int32_t)];
         };
         TVariant() {}
         TVariant(const TVariant & arr) { moveT(arr); }
         TVariant(TVariant && arr ) { moveT(arr); }
+
+        template <typename T, size_t idx>
+        void set(T val, size_t align) {
+            static_assert(std::is_same_v<NthType<idx>, T>);
+            index = idx;
+            new(data.data + align) T(val);
+        }
+        template <typename T, size_t idx>
+        static TVariant create(T val, size_t align) {
+            TVariant var;
+            var.set<T, idx>(val, align);
+            return var;
+        }
+
         TVariant & operator = ( const TVariant & arr ) { moveT(arr); return *this; }
         TVariant & operator = ( TVariant && arr ) { moveT(arr); return *this; }
         __forceinline void moveT ( const TVariant & arr ) {
@@ -1058,6 +1151,9 @@ namespace das {
         }
         TData data;
     };
+
+    template <typename ...TA>
+    using AutoVariant = TVariant<variant_sizeof<TA...>(), variant_align<TA...>(), TA...>;
 
     template <typename TT, int offset, int variant>
     struct das_get_variant_field {
@@ -1105,6 +1201,9 @@ namespace das {
         }
     };
 
+    template <typename TT, int idx, typename ...Types>
+    using das_get_auto_variant_field = das_get_variant_field<TT, TypeSize<int>::size, idx>;
+
     template <typename TT, int offset, int variant>
     struct das_get_variant_field_ptr {
         static __forceinline TT & get ( const Variant * t ) {
@@ -1112,6 +1211,9 @@ namespace das {
             return *(TT *)(data + offset);
         }
     };
+
+    template <typename TT, int idx, typename ...Types>
+    using das_get_auto_variant_field_ptr = das_get_variant_field_ptr<TT, TypeSize<int>::size, idx>;
 
     template <typename RR, int offset, int variant>
     struct das_safe_navigation_variant {
@@ -1138,7 +1240,7 @@ namespace das {
     TSequence<int32_t> builtin_count ( int32_t start, int32_t step, Context * context, LineInfoArg * at );
     TSequence<uint32_t> builtin_ucount ( uint32_t start, uint32_t step, Context * context, LineInfoArg * at );
 
-    template <typename TT>
+    template <typename TT, typename Enable = void>
     struct das_iterator;
 
     template <typename TT>
@@ -1754,7 +1856,7 @@ namespace das {
 
     template <typename FuncT, FuncT fn>
     struct SimNode_Aot : SimNode_CallBase {
-        __forceinline SimNode_Aot ( ) : SimNode_CallBase(LineInfo()) {
+        __forceinline SimNode_Aot ( ) : SimNode_CallBase(LineInfo(),"") {
             aotFunction = (void*) fn;
         }
         DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override {
@@ -1769,9 +1871,12 @@ namespace das {
         }
     };
 
+    template <auto fn>
+    using AutoSimNode_Aot = SimNode_Aot<decltype(fn), fn>;
+
     template <typename FuncT, FuncT fn>
     struct SimNode_AotCMRES : SimNode_CallBase {
-        __forceinline SimNode_AotCMRES ( ) : SimNode_CallBase(LineInfo()) {}
+        __forceinline SimNode_AotCMRES ( ) : SimNode_CallBase(LineInfo(),"") {}
         DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE
             vec4f * aa = context.abiArg;
@@ -1784,6 +1889,9 @@ namespace das {
         }
     };
 
+    template <auto fn>
+    using AutoSimNode_AotCMRES = SimNode_AotCMRES<decltype(fn), fn>;
+
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable:4100)
@@ -1792,7 +1900,7 @@ namespace das {
 #endif
 
     struct SimNode_AotInteropBase : SimNode_CallBase {
-        __forceinline SimNode_AotInteropBase() : SimNode_CallBase(LineInfo()) {}
+        __forceinline SimNode_AotInteropBase() : SimNode_CallBase(LineInfo(),"") {}
         DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE
             return v_zero();
@@ -1864,7 +1972,7 @@ namespace das {
         }
         auto length = writer.tellp();
         if ( length ) {
-            auto str = __context__->allocateString(writer.c_str(), uint32_t(length), &node.debugInfo);
+            auto str = __context__->allocateTempString(writer.c_str(), uint32_t(length), &node.debugInfo);
             __context__->freeTempString(str, &node.debugInfo);
             return str;
         } else {
@@ -2137,6 +2245,10 @@ namespace das {
         }
         template <typename ...ArgType, typename BLK>
         static __forceinline enable_if_t<is_invocable_v<BLK, ArgType...>, ResType> invoke_cmres ( Context *, LineInfo *, const BLK & blk, ArgType ...arg ) {
+            return blk(das::forward<ArgType>(arg)...);
+        }
+        template <typename ...ArgType, typename BLK>
+        static __forceinline enable_if_t<is_invocable_v<BLK, ArgType...>, ResType> invoke ( Context *, LineInfo *, const BLK & blk, ArgType ...arg ) {
             return blk(das::forward<ArgType>(arg)...);
         }
     };
@@ -2650,7 +2762,7 @@ namespace das {
     template <typename TT>
     Sequence das_vector_each_sequence ( TT & vec, Context * context, LineInfoArg * at ) {
         using VectorIterator = StdVectorIterator<TT>;
-        char * iter = context->allocateIterator(sizeof(VectorIterator), "std::vector<> iterator", at);
+        char * iter = context->allocateIterator(sizeof(VectorIterator), "vector<> iterator", at);
         if ( !iter ) context->throw_out_of_memory(false, sizeof(VectorIterator)+16, at);
         new (iter) VectorIterator(&vec, at);
         return { (Iterator *) iter };
@@ -2671,7 +2783,9 @@ namespace das {
         if ( uint32_t(at)>vec.size() ) {
             context->throw_error_ex("insert index out of range, %i of %u", at, uint32_t(vec.size()));
         }
-        vec.insert(vec.begin() + at, value);
+        (void)value;
+        if constexpr (das::is_stub_type<QQ>::value) { DAS_ASSERTF(false, "STUB!"); }
+        else vec.insert(vec.begin() + at, value);
     }
 
     template <typename TT, typename QQ = typename TT::value_type>
@@ -2679,77 +2793,98 @@ namespace das {
         if ( uint32_t(at)>vec.size() ) {
             context->throw_error_ex("insert index out of range, %i of %u", at, uint32_t(vec.size()));
         }
-        vec.insert(vec.begin() + at, value);
+        (void)value;
+        if constexpr (das::is_stub_type<QQ>::value) { DAS_ASSERTF(false, "STUB!"); }
+        else vec.insert(vec.begin() + at, value);
     }
 
-    template <typename TT>
+    template <typename TT, typename QQ = typename TT::value_type>
     __forceinline void das_vector_push_empty ( TT & vec, int32_t at, Context * context ) {
         if ( uint32_t(at)>vec.size() ) {
             context->throw_error_ex("insert index out of range, %i of %u", at, uint32_t(vec.size()));
         }
-        vec.emplace(vec.begin() + at);
+        if constexpr (das::is_stub_type<QQ>::value) { DAS_ASSERTF(false, "STUB!"); }
+        else vec.emplace(vec.begin() + at);
     }
 
     template <typename TT, typename QQ = typename TT::value_type>
     __forceinline void das_vector_emplace ( TT & vec, QQ & value, int32_t at ) {
-        vec.emplace(vec.begin()+at, das::move(value));
+        if constexpr (das::is_stub_type<QQ>::value) { DAS_ASSERTF(false, "STUB!"); }
+        else vec.emplace(vec.begin()+at, das::move(value));
     }
 
     template <typename TT, typename QQ = typename TT::value_type>
     __forceinline void das_vector_push_back ( TT & vec, const QQ & value ) {
-        vec.push_back(value);
+        (void)value;
+        if constexpr (das::is_stub_type<QQ>::value) { DAS_ASSERTF(false, "STUB!"); }
+        else vec.push_back(value);
     }
 
     template <typename TT, typename QQ = typename TT::value_type>
     __forceinline void das_vector_push_back_value ( TT & vec, QQ value ) {
-        vec.push_back(value);
+        (void)value;
+        if constexpr (das::is_stub_type<QQ>::value) { DAS_ASSERTF(false, "STUB!"); }
+        else vec.push_back(value);
     }
 
-    template <typename TT>
+    template <typename TT, typename QQ = typename TT::value_type>
     __forceinline void das_vector_push_back_empty ( TT & vec ) {
-        vec.emplace_back();
+        if constexpr (das::is_stub_type<QQ>::value) { DAS_ASSERTF(false, "STUB!"); }
+        else vec.emplace_back();
     }
 
     template <typename TT, typename QQ = typename TT::value_type>
     __forceinline void das_vector_emplace_back ( TT & vec, QQ & value ) {
-        vec.emplace_back(das::move(value));
+        (void)value;
+        if constexpr (das::is_stub_type<QQ>::value) { DAS_ASSERTF(false, "STUB!"); }
+        else vec.emplace_back(das::move(value));
     }
 
-    template <typename TT>
+    template <typename TT, typename QQ = typename TT::value_type>
     __forceinline void das_vector_pop ( TT & vec ) {
-        vec.pop_back();
+        if constexpr (das::is_stub_type<QQ>::value) { DAS_ASSERTF(false, "STUB!"); }
+        else vec.pop_back();
     }
 
-    template <typename TT>
+    template <typename TT, typename QQ = typename TT::value_type>
     __forceinline void das_vector_clear ( TT & vec ) {
-        vec.clear();
+        if constexpr (das::is_stub_type<QQ>::value) { DAS_ASSERTF(false, "STUB!"); }
+        else vec.clear();
     }
 
-    template <typename TT>
+    template <typename TT, typename QQ = typename TT::value_type>
     __forceinline void das_vector_resize ( TT & vec, int32_t newSize ) {
-        vec.resize(newSize);
+        if constexpr (das::is_stub_type<QQ>::value) { DAS_ASSERTF(false, "STUB!"); }
+        else vec.resize(newSize);
     }
 
-    template <typename TT>
+    template <typename TT, typename QQ = typename TT::value_type>
     __forceinline void das_vector_erase ( TT & vec, int32_t index, Context * context ) {
         if ( uint32_t(index)>vec.size() ) {
             context->throw_error_ex("erasing vector index out of range %i of %i", index, int32_t(vec.size()));
         }
-        vec.erase(vec.begin() + index);
+        if constexpr (das::is_stub_type<QQ>::value) { DAS_ASSERTF(false, "STUB!"); }
+        else vec.erase(vec.begin() + index);
     }
 
-    template <typename TT>
+    template <typename TT, typename QQ = typename TT::value_type>
     __forceinline void das_vector_erase_range ( TT & vec, int32_t index, int32_t count, Context * context ) {
         if ( index < 0 || count < 0 || uint32_t(index + count) > uint32_t(vec.size()) ) {
             context->throw_error_ex(
                 "erasing vector range is invalid: index=%i count=%i size=%i", index, count, int32_t(vec.size()));
         }
-        vec.erase(vec.begin() + index, vec.begin() + index + count);
+        if constexpr (das::is_stub_type<QQ>::value) { DAS_ASSERTF(false, "STUB!"); }
+        else vec.erase(vec.begin() + index, vec.begin() + index + count);
     }
 
     template <typename TT>
     __forceinline int32_t das_vector_length ( const TT & vec ) {
         return int32_t(vec.size());
+    }
+
+    template <typename TT>
+    __forceinline bool das_vector_empty ( const TT & vec ) {
+        return vec.empty();
     }
 
     template <typename TT>
@@ -2775,7 +2910,7 @@ namespace das {
     };
 
     char * to_das_string(const string & str, Context * ctx, LineInfoArg * at);
-    char * pass_string( char * str );
+    const char * pass_string( const char * str );
     char * clone_pass_string( char * str, Context * ctx, LineInfoArg * at);
     void set_das_string(string & str, const char * bs);
     void set_string_das(char * & bs, const string & str, Context * ctx, LineInfoArg * at);

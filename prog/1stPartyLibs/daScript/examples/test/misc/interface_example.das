@@ -3,25 +3,25 @@ require daslib/interfaces
 [interface]
 class ITick
     def abstract beforeTick : bool
-    def abstract tick ( dt:float ) : void
+    def abstract tick(dt : float) : void
     def abstract afterTick : void
 
 [interface]
 class ILogger
-    def abstract log ( message : string ) : void
+    def abstract log(message : string) : void
 
-[implements(ITick),implements(ILogger)]
+[implements(ITick), implements(ILogger)]
 class Foo
     def Foo
         pass
-    def ITick`tick ( dt:float )
+    def ITick`tick(dt : float)
         print("tick {dt}\n")
     def ITick`beforeTick
         print("beforeTick\n")
         return true
     def ITick`afterTick
         print("afterTick\n")
-    def ILogger`log ( message : string )
+    def ILogger`log(message : string)
         print("log {message}\n")
 
 [export]

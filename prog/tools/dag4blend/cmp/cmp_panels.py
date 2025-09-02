@@ -1,279 +1,72 @@
 import bpy
 
-from bpy.types                  import Panel, Operator, PropertyGroup
-from bpy.utils                  import register_class, unregister_class, user_resource
-from bpy.props                  import StringProperty, BoolProperty, PointerProperty
-from mathutils                  import Vector
-from math                       import pi
+
+from bpy.types  import Panel, Operator
+from bpy.utils  import register_class, unregister_class, user_resource
+from bpy.props  import IntProperty, BoolProperty, StringProperty
+
 from ..helpers.basename         import basename
-from ..helpers.popup            import show_popup
 from ..helpers.texts            import log
 from ..helpers.get_preferences  import *
 from ..helpers.version          import get_blender_version
-from ..tools.tools_functions    import *
-from ..tools.tools_panel        import apply_modifiers
 
-from .cmp_import                import DAGOR_OP_CmpImport
-from .cmp_export                import DAGOR_OP_CmpExport
+from ..helpers.popup            import show_popup
+from ..ui.draw_elements         import draw_custom_header, draw_custom_toggle
+
+from .cmp_import        import DAGOR_OP_CmpImport
+from .cmp_export        import DAGOR_OP_CmpExport
+from .node_properties   import draw_matrix, draw_place_type
+from .composite_functions   import *
 
 classes = []
 
-RAND_PROPS = [  'offset_x:p2',
-                'offset_y:p2',
-                'offset_z:p2',
-                'rot_x:p2',
-                'rot_y:p2',
-                'rot_z:p2',
-                'scale:p2',
-                'yScale:p2',
-                ]
-
-#FUNCTIONS
-
-def get_collection(name):
-    col = bpy.data.collections.get(name)
-    if col is None:
-        col = bpy.data.collections.new(name)
-    return col
-
-#adds transefer_col to each scene
-def upd_transfer_collection():
-    t_col = get_collection('TRANSFER_COLLECTION')
-    for s in bpy.data.scenes:
-        if s.collection.children.get(t_col.name) is None:
-            s.collection.children.link(t_col)
-    return
-
-#creates scenes for cmp supported data types
-def upd_scenes():
-    for S in ["COMPOSITS", "GAMEOBJ", "GEOMETRY", "TECH_STUFF"]:
-        if bpy.data.scenes.get(S) is None:
-            new_scene = bpy.data.scenes.new(name = S)
-            new_scene.world = bpy.data.worlds[0]
-    upd_transfer_collection()
-    return
-
-#removes unused "ranom.NNN" collections
-def cleanup_tech_stuff():
-    scene = bpy.data.scenes.get('TECH_STUFF')
-    if scene is None:
-        scene = bpy.context.scene
-    for col in scene.collection.children:
-        if col.name.startswith('random.') and col.users ==1:
-            for obj in list(col.objects):
-                if obj.users==1:
-                    bpy.data.objects.remove(obj)
-            bpy.data.collections.remove(col)
-    return
-
-#returns all "parents" of collection
-def col_users_collection(subcol):
-    users = []
-    collections = list(bpy.data.collections)
-    for scene in bpy.data.scenes:
-        collections.append(scene.collection)
-    for col in collections:
-        if subcol in list(col.children):
-            users.append(col)
-    return users
-
-#removes entity from random node
-def node_remove_entity(node,entity):
-    node.instance_collection.objects.unlink(entity)
-    if entity.users==0:
-        bpy.data.objects.remove(entity)
-    if node.instance_collection.objects.__len__()==1:
-        node.instance_collection = node.instance_collection.objects[0].instance_collection
-    cleanup_tech_stuff()
-    return
-
-#turns basic node into random; adds extra entyty to random node
-def node_add_entity(node):
-    col = node.instance_collection
-    if col is None or not col.name .startswith('random.'):
-        parent_scene = bpy.data.scenes.get('TECH_STUFF')
-        if parent_scene is None:
-            parent = bpy.context.scene.collection
-        else:
-            parent = parent_scene.collection
-        rand_col = bpy.data.collections.new(name = 'random.000')
-        parent.children.link(rand_col)
-        entity = bpy.data.objects.new('',None)
-        entity.instance_type = 'COLLECTION'
-        entity.instance_collection = col
-        rand_col.objects.link(entity)
-        node.instance_collection = rand_col
-    else:
-        rand_col = col
-    new_entity = bpy.data.objects.new('',None)
-    new_entity.instance_type = 'COLLECTION'
-    rand_col.objects.link(new_entity)
-    cleanup_tech_stuff()
-    return
-
-#returns geometry nodegroup that turns collection into single mesh
-def get_converter_ng():
-    group_name = "GN_col_to_mesh"
-    addon_name = basename(__package__)
-    lib_path = user_resource('SCRIPTS') + f'/addons/{addon_name}/extras/library.blend/NodeTree'
-    file = lib_path+f"/{group_name}"
-    bpy.ops.wm.append(filepath = file, directory = lib_path,filename = group_name, do_reuse_local_id = True)
-    node_group = bpy.data.node_groups.get(group_name)
-    return node_group
-
-#turns bboxes of selected objects into chosen node
-def bbox_to_gameobj(source, gameobj_collection):
-#creating new node
-    gameobj_node = bpy.data.objects.new(gameobj_collection.name,None)
-    for col in source.users_collection:
-        col.objects.link(gameobj_node)
-    gameobj_node.empty_display_type = 'CUBE'
-    gameobj_node.empty_display_size = 0.5
-    gameobj_node.instance_type = 'COLLECTION'
-    gameobj_node.instance_collection = gameobj_collection
-    og_matrix = source.matrix_world
-    rotation = og_matrix.to_euler()
-#converting
-    bbox = source.bound_box
-    min = Vector(bbox[0])
-    max = Vector(bbox[6])
-    gameobj_node.matrix_world = og_matrix
-    gameobj_node.location = (og_matrix @ min+og_matrix @ max)/2
-    gameobj_node.scale *= (max-min)
-#cleanup
-    bpy.data.objects.remove(source)
-    return
-
-
-#turns collection instance into mesh
-def node_to_geo(node):
-    #preparation
-    mesh = bpy.data.meshes.new('')
-    geo_node = bpy.data.objects.new('name',mesh)
-    matr = node.matrix_local
-    col = bpy.context.collection
-    col.objects.link(geo_node)
-    geo_node.matrix_local = matr
-    geo_node.parent = node.parent
-    name = node.name
-    #convertion
-    geo_node.name = name
-    mod = geo_node.modifiers.new('','NODES')
-    if mod.node_group is not None:
-        bpy.data.node_groups.remove(mod.node_group)
-    converter_group = get_converter_ng()
-    mod.node_group = converter_group
-    mod['Input_1'] = node.instance_collection
-    #cleanup
-    apply_modifiers(geo_node)
-    bpy.data.objects.remove(node)
-    #shading
-    version = get_blender_version()
-    if version <= 4.0:
-        geo_node.data.use_auto_smooth = True
-        geo_node.data.auto_smooth_angle = 2*pi
-    else:
-        for poly in geo_node.data.polygons:
-            poly.use_smooth = True
-    return
-
-#hides instance_collection, spawns objects of instance_collection instead
-def node_explode(node):
-    tm = node.matrix_world
-    col = node.instance_collection
-    #rendinsts
-    if col.name.endswith('.lods'):
-        for lod in col.children:
-            lod_name = lod.name[lod.name.find(".")+1:]
-            subnode = bpy.data.objects.new(f'{lod_name}',None)
-            subnode.instance_collection = lod
-            subnode.instance_type = 'COLLECTION'
-            for col_user in node.users_collection:
-                col_user.objects.link(subnode)
-            if subnode.parent is None:
-                subnode.parent = node
-            node_explode(subnode)
-    #random_stuff and subcomposits
-    else:
-        for obj in col.objects:
-            entity = obj.copy()
-            for col in node.users_collection:
-                col.objects.link(entity)
-                if entity.parent is None:
-                    entity.parent = node
-                elif col.objects.get(entity.parent.name) is not None:
-                    pass
-                else:
-                    entity.parent = node
-                    entity.matrix_world = node.matrix_world @ obj.matrix_world
-    node.instance_type = 'NONE'
-    return
-
-#Clears instance_collection and puts node.chidren into it
-def node_rebuild(node):
-    col = node.instance_collection
-    if col.name.endswith('.lods'):
-        for lod in list(node.children):
-            node_rebuild(lod)
-            bpy.data.objects.remove(lod)
-    else:
-        for obj in list(col.objects):
-            col.objects.unlink(obj)
-        for child in node.children_recursive:
-            for user in child.users_collection:
-                user.objects.unlink(child)
-            col.objects.link(child)
-            if child.parent == node:
-                child.parent = None
-            #random node can't have offsets inside
-            if col.name.startswith('random.'):
-                child.location = [0,0,0]
-                child.rotation_euler = [0,0,0]
-                child.scale = [1,1,1]
-    node.instance_type = 'COLLECTION'
-    return
-
-#Clears node.children and turns instancing back
-def node_revert(node):
-    #RI with multiple nodes
-    if node.instance_collection.name.endswith('.lods'):
-        for lod in list(node.children):
-            for child in list(lod.children):
-                bpy.data.objects.remove(child)
-            bpy.data.objects.remove(lod)
-    else:
-        for child in list(node.children):
-            bpy.data.objects.remove(child)
-    node.instance_type = 'COLLECTION'
-    return
-
 #OPERATORS
-class DAGOR_OT_node_explode(Operator):
-    bl_idname = 'dt.node_explode'
-    bl_label = 'Explode'
-    bl_description = 'Replace node.instance_collection by content of it, parented to the same node'
+class DAGOR_OT_nodes_split(Operator):
+    bl_idname = 'dt.nodes_split'
+    bl_label = 'Split Node'
+    bl_description = 'Turns node entities or composite content into actual children nodes'
     bl_options = {'UNDO'}
 
-    node: StringProperty(default = '')
+    recursive:   BoolProperty(default = False)
+    destructive: BoolProperty(default = False)
+
+    @classmethod
+    def poll(cls, context):
+        nodes_to_split = get_valid_nodes_to_split()
+        if nodes_to_split.__len__() == 0:
+            return False
+        return True
+
+    @classmethod
+    def description(cls, context, properties):
+        nodes_to_split = get_valid_nodes_to_split()
+        if nodes_to_split.__len__() == 0:
+            return "No valid nodes to split"
+        return "Split selected composite(s) into separate parts"
 
     def execute(self, context):
-        node = bpy.data.objects.get(self.node)
-        err = None
-        if node is None:
-            err = 'No active object detected!'
-        elif node.type!='EMPTY':
-            err = 'Active object is not an empty!'
-        elif node.instance_type!='COLLECTION':
-            err = 'Instancing is turned off!'
-        elif node.instance_collection is None:
-            err = 'Node does not have instance collection to begin with!'
-        if err is not None:
-            log(f'"{err}"\n', type = 'ERROR', show = True)
-            show_popup(message = err)
-            return {'CANCELLED'}
-        node_explode(node)
+        nodes_to_split = get_valid_nodes_to_split()
+        if not self.recursive:
+            nodes_split(nodes_to_split, recursive = False, destructive = self.destructive)
+            return {'FINISHED'}
+        old_children = []
+        for node in nodes_to_split:
+            for child in node.children:
+                if child in nodes_to_split:
+                    continue
+                old_children.append(child)
+        nodes_split(nodes_to_split, destructive = self.destructive)
+        bpy.ops.object.select_all(action = 'DESELECT')
+        if self.destructive:
+            return {'FINISHED'}
+        for node in nodes_to_split:
+            for child in node.children:
+                if child in old_children or child in nodes_to_split:
+                    continue
+                child.select_set(True)
+                context.view_layer.objects.active = child
         return {'FINISHED'}
-classes.append(DAGOR_OT_node_explode)
+classes.append(DAGOR_OT_nodes_split)
 
 
 class DAGOR_OT_node_revert(Operator):
@@ -282,10 +75,8 @@ class DAGOR_OT_node_revert(Operator):
     bl_description = 'Turn exploded node back to original state'
     bl_options = {'UNDO'}
 
-    node: StringProperty(default = '')
-
     def execute(self, context):
-        node = bpy.data.objects.get(self.node)
+        node = context.object
         err = None
         if node is None:
             err = 'No active object detected!'
@@ -302,17 +93,14 @@ class DAGOR_OT_node_revert(Operator):
 classes.append(DAGOR_OT_node_revert)
 
 
-
 class DAGOR_OT_node_rebuild(Operator):
     bl_idname = 'dt.node_rebuild'
     bl_label = 'Rebuild'
     bl_description = 'Update instance collection based on exploded node'
     bl_options = {'UNDO'}
 
-    node: StringProperty(default = '')
-
     def execute(self, context):
-        node = bpy.data.objects.get(self.node)
+        node = context.object
         err = None
         if node is None:
             err = 'No active object detected!'
@@ -329,6 +117,159 @@ class DAGOR_OT_node_rebuild(Operator):
 classes.append(DAGOR_OT_node_rebuild)
 
 
+class DAGOR_OT_nodes_to_asset(Operator):
+    bl_idname = 'dt.nodes_to_asset'
+    bl_label = "To asset"
+    bl_options = {'UNDO'}
+
+    to_rendinst:    BoolProperty()
+
+    @classmethod
+    def poll(cls, context):
+        props = get_local_props()
+        cmp_tools_props = props.cmp.tools
+        naming_mode = cmp_tools_props.naming_mode
+        if naming_mode == 'NAME':
+            asset_name = cmp_tools_props.asset_name
+            if asset_name == "":
+                return False
+        parent_node = cmp_tools_props.parent_node
+        parent_collection = cmp_tools_props.parent_collection
+        if parent_collection is None and parent_node:
+            parent_collection = parent_node.instance_collection
+        nodes = [ node for node in context.selected_objects if ( node != parent_node
+            and node.type == 'EMPTY'
+            and node.instance_type == 'COLLECTION'
+            and node.instance_collection is not None
+            and node.instance_collection != parent_collection)]
+        if nodes.__len__() == 0:
+            return False
+        return True
+
+    @classmethod
+    def description(cls, context, properties):
+        type = "rendinst" if properties.to_rendinst else "composit"
+        props = get_local_props()
+        cmp_tools_props = props.cmp.tools
+        naming_mode = cmp_tools_props.naming_mode
+        asset_name = cmp_tools_props.asset_name
+        parent_node = cmp_tools_props.parent_node
+        pivot = "world origin" if parent_node is None else f'"{parent_node.name}" node'
+        if naming_mode == 'COLLECTION':
+            parent_collection = cmp_tools_props.parent_collection
+            if parent_collection is None and parent_node is not None:
+                parent_collection = parent_node.instance_collection
+            if parent_collection is not None:
+                asset = f'"{parent_collection.name}:{type}"'
+            elif parent_node is not None and parent_node.instance_collection is not None:
+                asset = f'"{parent_node.instance_collection.name}:{type}"'
+            else:
+                asset = f'new unnamed "{type}" asset'
+        else:
+            asset = f'"{asset_name}:{type}"' if asset_name != "" else f'new unnamed "{type}" asset'
+        return f'Convert selected nodes into {asset} with pivot in the {pivot}'
+
+
+    def execute(self, context):
+        props = get_local_props()
+        cmp_tools_props = props.cmp.tools
+        nodes = [ o for o in context.selected_objects if o.type == 'EMPTY']
+
+        parent_node = cmp_tools_props.parent_node
+        if parent_node is None:
+            parent_node = bpy.data.objects.new("", None)
+            context.scene.collection.objects.link(parent_node)
+        elif parent_node in nodes:
+            nodes.remove(parent_node)
+
+        if cmp_tools_props.naming_mode == 'COLLECTION':
+            collection = cmp_tools_props.parent_collection
+            if collection is None:
+                collection = parent_node.instance_collection
+            if collection is None:
+                collection = bpy.data.collections.new("new_asset")
+                context.scene.collection.children.link(collection)
+        else:
+            asset_name = cmp_tools_props.asset_name
+            if self.to_rendinst and (not asset_name.endswith('.lods')):
+                asset_name += '.lods'
+            collection = bpy.data.collections.new(asset_name)
+            context.scene.collection.children.link(collection)
+        if self.to_rendinst:
+            nodes_to_rendinst(nodes, parent_node, collection)
+        else:
+            nodes_to_composite(nodes, parent_node, collection)
+        return {'FINISHED'}
+classes.append(DAGOR_OT_nodes_to_asset)
+
+
+class DAGOR_OT_composite_to_rendinst(Operator):
+    bl_idname = 'dt.composite_to_rendinst'
+    bl_label = "To rendinst"
+
+    def execute(self, context):
+        props = get_local_props()
+        collection_to_convert = props.cmp.tools.collection_to_convert
+        bpy.ops.object.select_all(action = 'DESELECT')
+        nodes = collection_to_convert.objects
+        for node in nodes:
+            node.select_set(True)
+        while context.selected_objects.__len__()>0:
+            for node in context.selected_objects:
+                nodes_split(node, split_to_lods = True, split_to_meshes = True)
+        existing_lods = {}
+        for obj in list(collection_to_convert.objects):
+            if not obj.name.startswith("lod"):
+                collection_to_convert.objects.unlink(obj)
+                continue
+            found_lod = obj.name[:5]
+            if not found_lod in existing_lods:
+                lod_collection = bpy.data.collections.new(basename(collection_to_convert.name) + "." + found_lod)
+                existing_lods[found_lod] = lod_collection
+                collection_to_convert.children.link(existing_lods[found_lod])
+            collection_to_convert.objects.unlink(obj)
+            existing_lods[found_lod].objects.link(obj)
+            for child in list(obj.children_recursive):
+                existing_lods[found_lod].objects.link(child)
+        return {'FINISHED'}
+classes.append(DAGOR_OT_composite_to_rendinst)
+
+
+class DAGOR_OT_parent_node_link_to_scene(Operator):
+    bl_idname = 'dt.parent_node_link_to_scene'
+    bl_label = "Link to this scene"
+    bl_options = {'UNDO'}
+
+    @classmethod
+    def poll(cls, context):
+        props = get_local_props()
+        parent_node = props.cmp.tools.parent_node
+        if parent_node is None:
+            return False
+        if context.scene.objects.get(parent_node.name):
+            return False
+        return True
+
+    @classmethod
+    def description(cls, context, properties):
+        scene_name = context.scene.name
+        props = get_local_props()
+        parent_node = props.cmp.tools.parent_node
+        if parent_node is None:
+            return "No parent node to process"
+        if context.scene.objects.get(parent_node.name):
+            return f"\"{parent_node.name}\" object is already in \"{scene_name}\" scene!"
+        else:
+            return f"link \"{parent_node.name}\" object to \"{scene_name}\" scene"
+        return ""
+
+    def execute(self, context):
+        props = get_local_props()
+        parent_node = props.cmp.tools.parent_node
+        context.scene.collection.objects.link(parent_node)
+        return {'FINISHED'}
+classes.append(DAGOR_OT_parent_node_link_to_scene)
+
 
 class DAGOR_OT_node_make_unic(Operator):
     bl_idname = 'dt.node_make_unic'
@@ -336,10 +277,8 @@ class DAGOR_OT_node_make_unic(Operator):
     bl_description = 'Replaces instance collection by exact copy'
     bl_options = {'UNDO'}
 
-    node: StringProperty(default = '')
-
     def execute(self,context):
-        node = bpy.data.objects.get(self.node)
+        node = context.object
         err = None
         if node is None:
             err = 'No active object detected!'
@@ -374,22 +313,27 @@ class DAGOR_OT_node_remove_entity(Operator):
     bl_description = 'Removes an entity from random node'
     bl_options = {'UNDO'}
 
-    node: StringProperty(default = '')
-    entity: StringProperty(default = '')
+    index: IntProperty(default = -1)
+
+    @classmethod
+    def poll(self, context):
+        if context.object is None:
+            return False
+        if context.object.type != 'EMPTY':
+            return False
+        if context.object.instance_type != 'COLLECTION':
+            return False
+        if context.object.instance_collection is None:
+            return False
+        return True
 
     def execute(self, context):
-        node = bpy.data.objects.get(self.node)
-        entity = bpy.data.objects.get(self.entity)
-        err = None
-        if node is None:
-            err = 'No node selected!'
-        elif entity is None:
-            err = 'No entity to delete!'
-        if err is not None:
-            log(f'{err}\n', type = 'ERROR', show = True)
-            show_popup(message = err)
+        node = context.object
+        index = self.index
+        if index < 0 or index >= node.instance_collection.objects.__len__():
+            log('Wrong entity index!', type = 'ERROR', show = True)
             return {'CANCELLED'}
-        node_remove_entity(node,entity)
+        node_remove_entity(node, index)
         return {'FINISHED'}
 classes.append(DAGOR_OT_node_remove_entity)
 
@@ -400,10 +344,8 @@ class DAGOR_OT_node_add_entity(Operator):
     bl_description = 'Adds an entity to random node,turns static node into random one'
     bl_options = {'UNDO'}
 
-    node: StringProperty(default = '')
-
     def execute(self, context):
-        node = bpy.data.objects.get(self.node)
+        node = context.object
         err = None
         if node is None:
             err = 'No node selected!'
@@ -423,13 +365,12 @@ class DAGOR_OT_node_init_weight(Operator):
     bl_description = 'Add a "weight:r" property to set it to something different than 1.0'
     bl_options = {'UNDO'}
 
-    node: StringProperty(default = '')
+    index: IntProperty(default = -1)
 
     def execute(self, context):
-        node = bpy.data.objects.get(self.node)
-        if node is None:
-            return {'CANCELLED'}
-        node.dagorprops['weight:r'] = 1.0
+        node = context.object
+        entity = node.instance_collection.objects[self.index]
+        entity.dagorprops['weight:r'] = 1.0
         return {'FINISHED'}
 classes.append(DAGOR_OT_node_init_weight)
 
@@ -440,13 +381,12 @@ class DAGOR_OT_node_clear_weight(Operator):
     bl_description = 'Remove a "weight:r" property'
     bl_options = {'UNDO'}
 
-    node: StringProperty(default = '')
+    index: IntProperty(default = -1)
 
     def execute(self, context):
-        node = bpy.data.objects.get(self.node)
-        if node is None:
-            return {'CANCELLED'}
-        del node.dagorprops['weight:r']
+        node = context.object
+        entity = node.instance_collection.objects[self.index]
+        del entity.dagorprops['weight:r']
         return {'FINISHED'}
 classes.append(DAGOR_OT_node_clear_weight)
 
@@ -510,7 +450,7 @@ class DAGOR_OT_Materialize(Operator):
             show_popup('No collection instances selected!')
             return {'CANCELLED'}
         for obj in sel:
-            node_to_geo(obj)
+            node_to_geometry(obj)
         return {'FINISHED'}
 classes.append(DAGOR_OT_Materialize)
 
@@ -532,86 +472,147 @@ class DAGOR_PT_composits(Panel):
     def draw_entity_editor(self,context,layout):
         node = context.object
         ent_editor = layout.box()
-        name = ent_editor.row()
         pref = get_preferences()
-        
-        name.prop(pref, 'cmp_entities_maximized', icon = 'DOWNARROW_HLT' if pref.cmp_entities_maximized else 'RIGHTARROW_THIN',
-            emboss=False,text='Entities',expand=True)
-        name.label(icon = 'MONKEY')
-        if pref.cmp_entities_maximized:
-            if node is None:
-                ent_editor.label(text = 'Select node', icon = 'INFO')
-                return
-            elif node.type!='EMPTY':
-                ent_editor.label(text = 'Only Empty supported', icon = 'INFO')
-                return
-            if node.instance_type!='COLLECTION':
-                ent_editor.label(text = 'Turn instansing on:')
-                row = ent_editor.row()
-                row.prop(node, 'instance_type',expand=True)
-                return
-            col = node.instance_collection
-            if col is not None and col.name.startswith('random.'):
-                if col.users>2:
-                    warning = ent_editor.box()
-                    warning.label(text = 'WARNING!')
-                    warning.label(text = 'Node data has multiple users,')
-                    warning.label(text = 'changes will affect other copies')
-                    warning.operator('dt.node_make_unic', text = 'Make unic').node = context.object.name
-                for obj in col.objects:
-                    node = ent_editor.box()
-                    row = node.row(align = True)
-                    row.prop(obj,'hide_viewport',text='',emboss = False)
-                    row.prop(obj,'instance_collection', text = '')
-                    remove = row.operator('dt.node_remove_entity', icon = 'TRASH', text = '')
-                    remove.node = context.object.name
-                    remove.entity = obj.name
-                    if obj.dagorprops.get('weight:r') is None:
-                        node.operator('dt.node_init_weight').node = obj.name
-                    else:
-                        weight = node.row(align = True)
-                        weight.prop(obj.dagorprops,'["weight:r"]')
-                        weight.operator('dt.node_clear_weight', text = "", icon = 'TRASH').node = obj.name
-            else:
+        header = ent_editor.row()
+        draw_custom_header(header, "Entities", pref, 'cmp_entities_maximized',
+            control_value = pref.cmp_entities_maximized, icon = 'MONKEY')
+        if not pref.cmp_entities_maximized:
+            return
+        if node.instance_type!='COLLECTION':
+            ent_editor.label(text = 'Turn instansing on:')
+            row = ent_editor.row()
+            row.prop(node, 'instance_type',expand = True)
+            return
+        col = node.instance_collection
+        if col is not None and col.name.startswith('random.'):
+            if col.users>2:
+                warning = ent_editor.box()
+                warning.label(text = 'WARNING!')
+                warning.label(text = 'Node data has multiple users,')
+                warning.label(text = 'changes will affect other copies')
+                warning.operator('dt.node_make_unic', text = 'Make unic')
+            index = 0
+            for obj in col.objects:
                 node = ent_editor.box()
-                row = node.row()
-                obj = context.object
-                if obj.instance_type == 'COLLECTION':
-                    row.prop(obj,'instance_collection', text = '')
-            ent_editor.operator('dt.node_add_entity', text = '', icon = 'ADD').node = context.object.name
+                row = node.row(align = True)
+                row.prop(obj,'hide_viewport',text='',emboss = False)
+                row.prop(obj,'instance_collection', text = '')
+                row.operator('dt.node_remove_entity', icon = 'TRASH', text = '').index = index
+                if obj.dagorprops.get('weight:r') is None:
+                    node.operator('dt.node_init_weight').index = index
+                else:
+                    weight = node.row(align = True)
+                    weight.prop(obj.dagorprops,'["weight:r"]')
+                    weight.operator('dt.node_clear_weight', text = "", icon = 'TRASH').index = index
+                index += 1
+        else:
+            node = ent_editor.box()
+            row = node.row()
+            obj = context.object
+            if obj.instance_type == 'COLLECTION':
+                row.prop(obj,'instance_collection', text = '')
+        ent_editor.operator('dt.node_add_entity', text = '', icon = 'ADD')
         return
-#Node explode n stuff
-    def draw_node_converter(self,context,layout):
+
+    def draw_nodes_to_asset_converter(self, context, layout):
         pref = get_preferences()
         props = get_local_props()
         cmp_tools_props = props.cmp.tools
         box = layout.box()
-        header = box.row()
-        header.prop(pref, 'cmp_converter_maximized',icon = 'DOWNARROW_HLT'if pref.cmp_converter_maximized else 'RIGHTARROW_THIN',
-            emboss=False,text='Convert',expand=True)
-        header.label(text='', icon='ARROW_LEFTRIGHT')
-        node = context.object
-        if pref.cmp_converter_maximized:
-            if node is None:
-                box.label(text = 'Select object', icon = 'INFO')
-                return
-            elif node.type not in ['EMPTY','MESH']:
-                box.label(text = f'{node.type} objects not supported', icon = 'INFO')
-                return
-            if node.type=='EMPTY':
-                box.operator('dt.materialize_nodes', icon='MESH_MONKEY', text = 'To mesh')
-            if node.instance_type == 'COLLECTION':
-                box.operator('dt.node_explode', icon = 'FULLSCREEN_ENTER').node = context.object.name
-            elif node.instance_collection is not None:
-                box.operator('dt.node_revert', icon = 'FILE_REFRESH').node = context.object.name
-                box.operator('dt.node_rebuild', icon = 'FULLSCREEN_EXIT').node = context.object.name
+        draw_custom_header(box, "Nodes to Asset", pref, 'nodes_to_asset_maximized',
+            control_value = pref.nodes_to_asset_maximized, icon = 'STICKY_UVS_LOC')
+        if not pref.nodes_to_asset_maximized:
+            return
 
-            elif node.type == 'MESH':
-                box.label(text = 'node:')
-                box.prop(cmp_tools_props, 'node', text = '')
-                box.operator('dt.bbox_to_gameobj', text = 'BBOX to node', icon = 'CUBE')
-                if cmp_tools_props.node is None:
-                    box.label(text = 'Choose node collection!', icon = 'ERROR')
+        parameters = box.column(align = True)
+        row = parameters.row()
+        row.label(text = "Parent node:")
+        row = parameters.row(align = True)
+        row.prop(cmp_tools_props, 'parent_node', text = "")
+        row.operator('dt.parent_node_link_to_scene', text = "", icon = 'LINKED')
+        parameters.separator()
+
+        row = parameters.row()
+        row.label(text = "Naming mode:")
+        row = parameters.row()
+        row.prop(cmp_tools_props, 'naming_mode', expand = True)
+        parameters.separator()
+
+        row = parameters.row()
+        if cmp_tools_props.naming_mode == 'COLLECTION':
+            row.label(text = "Asset collection:")
+            row = parameters.row()
+            row.prop(cmp_tools_props, 'parent_collection', text = "")
+        else:
+            row.label(text = "Asset name:")
+            row = parameters.row()
+            row.prop(cmp_tools_props, 'asset_name', text = "")
+        parameters.separator()
+
+        buttons = box.row(align = True)
+        buttons.scale_y = 2
+        button_a = buttons.row()
+        op = button_a.operator('dt.nodes_to_asset', text = 'To sub-composite')
+        op.to_rendinst = False
+        button_b = buttons.row()
+        op = button_b.operator('dt.nodes_to_asset', text = 'To rendinst node')
+        op.to_rendinst = True
+        return
+
+#Node explode n stuff
+    def draw_hyerarchy_editor(self,context,layout):
+        pref = get_preferences()
+        props = get_local_props()
+        cmp_tools_props = props.cmp.tools
+        self.draw_nodes_to_asset_converter(context, layout)
+        box = layout.box()
+        draw_custom_header(box, "Edit Sub-Composites", pref, 'cmp_hyerarchy_maximized',
+            control_value = pref.cmp_hyerarchy_maximized, icon = 'ARROW_LEFTRIGHT')
+        node = context.object
+        if not pref.cmp_hyerarchy_maximized:
+            return
+
+        props = box.column(align = True)
+        draw_custom_toggle(props, cmp_tools_props, 'recursive', cmp_tools_props.recursive)
+        draw_custom_toggle(props, cmp_tools_props, 'destructive', cmp_tools_props.destructive)
+        row = props.row()
+        button = row.operator('dt.nodes_split', icon = 'FULLSCREEN_ENTER')
+        button.recursive = cmp_tools_props.recursive
+        button.destructive = cmp_tools_props.destructive
+        row.scale_y = 2
+
+        row = box.row()
+        row.scale_y = 2
+        row.operator('dt.node_revert', icon = 'FILE_REFRESH')
+        row.operator('dt.node_rebuild', icon = 'FULLSCREEN_EXIT')
+        row.enabled = row.active = (node is not None and
+            node.type == 'EMPTY' and
+            node.instance_type != 'COLLECTION' and
+            node.instance_collection is not None)
+        return
+
+    def draw_node_converter(self, context, layout):
+        pref = get_preferences()
+        props = get_local_props()
+        cmp_tools_props = props.cmp.tools
+        node = context.object
+        box = layout.box()
+        draw_custom_header(box, "Basic Converters", pref, 'basic_converter_maximized',
+            control_value = pref.basic_converter_maximized, icon = 'GEOMETRY_SET')
+        if not pref.basic_converter_maximized:
+            return
+
+        row = box.row()
+        row.operator('dt.materialize_nodes', icon='MESH_MONKEY', text = 'Nodes to mesh')
+        row.enabled = row.active = node is not None and node.type == 'EMPTY'
+        box = box.box()
+        col = box.column()
+        col.label(text = 'gameobj:')
+        col.prop(cmp_tools_props, 'node', text = '')
+        col.operator('dt.bbox_to_gameobj', text = 'Mesh BBOX to node', icon = 'CUBE')
+        if cmp_tools_props.node is None:
+            col.label(text = 'Choose gameobj collection!', icon = 'ERROR')
+        col.enabled = col.active = node is not None and node.type == 'MESH'
         return
 
     def draw_init(self,context,layout):
@@ -622,48 +623,46 @@ class DAGOR_PT_composits(Panel):
         for sc in ["COMPOSITS", "GAMEOBJ", "GEOMETRY", "TECH_STUFF"]:
             if bpy.data.scenes.get(sc) is not None:
                 first_time = False
-        header.prop(pref, 'cmp_init_maximized',icon = 'DOWNARROW_HLT'if pref.cmp_init_maximized else 'RIGHTARROW_THIN',
-            emboss=False,text='Scenes',expand=True)
-        header.label(text='', icon='ERROR' if first_time else 'FILE_REFRESH')
-        if pref.cmp_init_maximized:
-            window = context.window
-            box.operator('dt.init_blend', text = 'Init scenes' if first_time else 'Refresh scenes')
-            box.template_ID(window, "scene")
+        draw_custom_header(header, "Scenes", pref, 'cmp_init_maximized',
+            control_value = pref.cmp_init_maximized,
+            icon='ERROR' if first_time else 'FILE_REFRESH')
+
+        if not pref.cmp_init_maximized:
+            return
+        window = context.window
+        box.operator('dt.init_blend', text = 'Init scenes' if first_time else 'Refresh scenes')
+        box.template_ID(window, "scene")
         return
 
-    def draw_node_props(self,context,layout):
-        node = context.object
-        if node is None or node.type!="EMPTY":
-            return
+    def draw_node_place_type(self, context,layout):
         pref = get_preferences()
         box = layout.box()
-        header = box.row()
-        header.prop(pref, 'cmp_node_prop_maximized',icon = 'DOWNARROW_HLT'if pref.cmp_node_prop_maximized else 'RIGHTARROW_THIN',
-            emboss=False,text='Node Properties',expand=True)
-        header.label(text = '', icon = 'OPTIONS')
-        if pref.cmp_node_prop_maximized:
-            tm = box.column(align = True)
-            tm.label(text = "Transforms:")
-            loc = tm.row(align = True)
-            loc.prop(node, 'location', text = '')
-            rot = tm.row(align = True)
-            rot.prop(node, 'rotation_euler', text = '')
-            scale = tm.row(align = True)
-            scale.prop(node, 'scale', text = '')
+        draw_custom_header(box, "Place Type", pref, 'cmp_place_maximized',
+            control_value = pref.cmp_place_maximized, icon = 'ORIENTATION_LOCAL')
+        if not pref.cmp_place_maximized:
+            return
+        node = context.object
+        draw_place_type(box,node)
         return
 
-    def draw(self,context):
+    def draw_node_transforms(self,context,layout):
+        pref = get_preferences()
+        box = layout.box()
+        draw_custom_header(box, "Transformations", pref, 'cmp_tm_maximized',
+            control_value = pref.cmp_tm_maximized, icon = 'EMPTY_ARROWS')
+        if not pref.cmp_tm_maximized:
+            return
+        node = context.object
+        draw_matrix(box, node)
+        return
+
+    def draw_cmp_importer(self, context, layout):
         pref = get_preferences()
         props = get_local_props()
         cmp_import_props = props.cmp.importer
-        cmp_export_props = props.cmp.exporter
-
-        l = self.layout
-        importer = l.box()
-        header = importer.row()
-        header.prop(pref, 'cmp_imp_maximized',icon = 'DOWNARROW_HLT'if pref.cmp_imp_maximized else 'RIGHTARROW_THIN',
-            emboss=False,text='CMP Import',expand=True)
-        header.label(text='', icon='IMPORT')
+        importer = layout.box()
+        draw_custom_header(importer, "Import", pref, 'cmp_imp_maximized',
+            control_value = pref.cmp_imp_maximized, icon = 'IMPORT')
         if pref.cmp_imp_maximized:
             importer.label(text = 'import path:')
             importer.prop(cmp_import_props,'filepath',text='')
@@ -684,12 +683,15 @@ class DAGOR_PT_composits(Panel):
             button = importer.row()
             button.scale_y = 2
             button.operator('dt.cmp_import', icon = 'IMPORT')
+        return
 
-        exporter = l.box()
-        header = exporter.row()
-        header.prop(pref, 'cmp_exp_maximized',icon = 'DOWNARROW_HLT'if pref.cmp_exp_maximized else 'RIGHTARROW_THIN',
-            emboss=False,text='CMP Export',expand=True)
-        header.label(text='', icon='EXPORT')
+    def draw_cmp_exporter(self, context, layout):
+        pref = get_preferences()
+        props = get_local_props()
+        cmp_export_props = props.cmp.exporter
+        exporter = layout.box()
+        draw_custom_header(exporter, "Export", pref, 'cmp_exp_maximized',
+            control_value = pref.cmp_exp_maximized, icon = 'EXPORT')
         if pref.cmp_exp_maximized:
             exporter.label(text = 'export path:')
             exporter.prop(cmp_export_props, 'dirpath',text = '')
@@ -697,17 +699,47 @@ class DAGOR_PT_composits(Panel):
             button = exporter.row()
             button.scale_y = 2
             button.operator('dt.cmp_export', icon = 'EXPORT')
+        return
 
-        tools = l.box()
-        header = tools.row()
-        header.prop(pref, 'cmp_tools_maximized',icon = 'DOWNARROW_HLT'if pref.cmp_tools_maximized else 'RIGHTARROW_THIN',
-            emboss=False,text='CMP Tools',expand=True)
-        header.label(text='', icon='TOOL_SETTINGS')
-        if pref.cmp_tools_maximized:
-            self.draw_init(context,tools)
-            self.draw_node_converter(context,tools)
-            self.draw_node_props(context,tools)
-            self.draw_entity_editor(context,tools)
+    def draw_cmp_tools(self, context, layout):
+        pref = get_preferences()
+        tools = layout.box()
+        draw_custom_header(tools, "Tools", pref, 'cmp_tools_maximized',
+            control_value = pref.cmp_tools_maximized, icon = 'TOOL_SETTINGS')
+        if not pref.cmp_tools_maximized:
+            return
+        self.draw_init(context, tools)
+        self.draw_node_converter(context, tools)
+        self.draw_hyerarchy_editor(context, tools)
+        return
+
+    def draw_node_props(self, context, layout):
+        pref = get_preferences()
+        node_props = layout.box()
+        draw_custom_header(node_props, "Node Properties", pref, 'cmp_props_maximized',
+            control_value = pref.cmp_props_maximized, icon = 'OPTIONS')
+        if not pref.cmp_props_maximized:
+            return
+        column = node_props.column(align = True)
+        if context.object is None:
+            column.label(text = 'No active object', icon = 'INFO')
+            return
+        elif context.object.type != 'EMPTY':
+            column.label(text = 'Active object is not Empty', icon = 'INFO')
+            return
+        row = column.row()
+        self.draw_entity_editor(context, row)
+        row = column.row()
+        self.draw_node_transforms(context, row)
+        row = column.row()
+        self.draw_node_place_type(context, row)
+        return
+
+    def draw(self,context):
+        self.draw_cmp_importer(context, self.layout)
+        self.draw_cmp_exporter(context, self.layout)
+        self.draw_cmp_tools(context, self.layout)
+        self.draw_node_props(context, self.layout)
         return
 classes.append(DAGOR_PT_composits)
 
@@ -715,10 +747,9 @@ classes.append(DAGOR_PT_composits)
 def register():
     for cl in classes:
         register_class(cl)
-
     return
 
 def unregister():
-    for cl in classes:
+    for cl in classes[::-1]:
         unregister_class(cl)
     return

@@ -17,8 +17,6 @@
 #include <3d/dag_render.h>
 #include <3d/dag_texMgr.h>
 
-#include <sepGui/wndMenuInterface.h>
-
 #include <gui/dag_stdGuiRenderEx.h>
 #include <util/dag_string.h>
 #include <render/dynmodelRenderer.h>
@@ -57,7 +55,6 @@ static const char *ds_blk_text = "draw_prim {\nid:i=1\nname:t=Draw prim\nconsole
                                  "vertex_shader_const {\nid:i=1024\nname:t=VS const\nconsole:t=vsc\n"
                                  "color:c=50,50,255,255\nup:i=5000\n}\n"
                                  "refresh_usec:i=0\n";
-static int fps_stat_id = -1;
 static int fps_min, fps_max, fps_cnt, fps_last_time = 0;
 static double ifps_total, fps_avg;
 
@@ -69,10 +66,10 @@ static float cpu_usage_avg = 0, cpu_usage_total = 0;
 static DrawStatSingle frame_stat;
 static dynrend::Statistics unit_stat;
 
-static const int stat_count = 10;
+static const int stat_count = 11;
 static const char *stat_names[stat_count] = {
-  "cpu frame", "triangles", "dip", "lock_vbib", "rt", "shaders", "instances", "rpasses", "dip/unit", "tri/unit"};
-static bool displayed_stats[stat_count] = {true, true, true, true, true, true, true, true, true, true};
+  "fps", "cpu frame", "triangles", "dip", "lock_vbib", "rt", "shaders", "instances", "rpasses", "dip/unit", "tri/unit"};
+static bool displayed_stats[stat_count] = {true, true, true, true, true, true, true, true, true, true, true};
 
 void ec_init_stat3d()
 {
@@ -80,7 +77,6 @@ void ec_init_stat3d()
   if (inited)
     return;
   inited = true;
-  fps_stat_id = -1;
   fps_min = 0;
   fps_max = 0;
   fps_avg = 0;
@@ -173,6 +169,41 @@ void ViewportWindow::drawStat3d()
   if (!needStat3d())
     return;
 
+  double cfps = 1.e6 / total_cpu_render_time;
+  if (cfps > 0)
+  {
+    fps_cnt++;
+    ifps_total += cfps < 1e5 ? 1.0 / cfps : 1e-5;
+    float cpu_usage = ((cpu_render_time / 1e6) * cfps) * 100;
+    cpu_usage_total += cpu_usage;
+    int ct = ::get_time_msec();
+
+    if (ct > fps_last_time + 1000)
+    {
+      fps_avg = fps_cnt / ifps_total;
+      fps_min = cfps;
+      fps_max = cfps;
+      cpu_usage_min = cpu_usage;
+      cpu_usage_max = cpu_usage;
+      cpu_usage_avg = cpu_usage_total / fps_cnt;
+      fps_cnt = 0;
+      ifps_total = 0;
+      cpu_usage_total = 0;
+      fps_last_time = ct;
+    }
+    else
+    {
+      if (fps_max < cfps)
+        fps_max = cfps;
+      if (fps_min > cfps)
+        fps_min = cfps;
+      if (cpu_usage_max < cpu_usage)
+        cpu_usage_max = cpu_usage;
+      if (cpu_usage_min > cpu_usage)
+        cpu_usage_min = cpu_usage;
+    }
+  }
+
   bool do_start = !StdGuiRender::is_render_started();
   if (do_start)
     StdGuiRender::continue_render();
@@ -180,11 +211,11 @@ void ViewportWindow::drawStat3d()
   StdGuiRender::set_font(0);
   StdGuiRender::set_color(COLOR_WHITE);
 
-  G_STATIC_ASSERT(stat_count == (DRAWSTAT_NUM + 3));
+  G_STATIC_ASSERT(stat_count == (2 + DRAWSTAT_NUM + 2));
   hdpi::Px lineX = _pxScaled(8);
-  for (int i = -1; i < DRAWSTAT_NUM + 2; i++)
+  for (int i = -2; i < DRAWSTAT_NUM + 2; i++)
   {
-    const int zeroBasedIndex = i + 1;
+    const int zeroBasedIndex = i + 2;
     if (!displayed_stats[zeroBasedIndex])
       continue;
 
@@ -200,62 +231,22 @@ void ViewportWindow::drawStat3d()
       String curStat(128, "%s: %d", name, val);
       drawText(lineX, nextStat3dLineY, curStat);
     }
+    else if (i == -1)
+    {
+      float cpuFrameAvg = fps_avg > 0 ? ((cpu_usage_avg / 100) * 1000 / fps_avg) : 0.0;
+      String curStat(128, "CPU frame avg: %5.1fms, current: %5.1fms, with wait %5.1fms ", cpuFrameAvg, cpu_render_time / 1000.,
+        total_cpu_render_time / 1000.);
+      drawText(lineX, nextStat3dLineY, curStat);
+    }
     else
     {
-      String curStat(128, "%s: %gms, with wait %gms ", name, cpu_render_time / 1000., total_cpu_render_time / 1000.);
+      String curStat(256, "FPS avg: %5.1f, min: %3d, max: %3d", fps_avg, fps_min, fps_max);
       drawText(lineX, nextStat3dLineY, curStat);
     }
 
     nextStat3dLineY += _pxScaled(20);
   }
 
-  if (fps_stat_id != -1)
-  {
-    double cfps = 1.e6 / total_cpu_render_time;
-    if (cfps > 0)
-    {
-      fps_cnt++;
-      ifps_total += cfps < 1e5 ? 1.0 / cfps : 1e-5;
-      float cpu_usage = ((cpu_render_time / 1e6) * cfps) * 100;
-      cpu_usage_total += cpu_usage;
-      int ct = ::get_time_msec();
-
-      if (ct > fps_last_time + 1000)
-      {
-        fps_avg = fps_cnt / ifps_total;
-        fps_min = cfps;
-        fps_max = cfps;
-        cpu_usage_min = cpu_usage;
-        cpu_usage_max = cpu_usage;
-        cpu_usage_avg = cpu_usage_total / fps_cnt;
-        fps_cnt = 0;
-        ifps_total = 0;
-        cpu_usage_total = 0;
-        fps_last_time = ct;
-      }
-      else
-      {
-        if (fps_max < cfps)
-          fps_max = cfps;
-        if (fps_min > cfps)
-          fps_min = cfps;
-        if (cpu_usage_max < cpu_usage)
-          cpu_usage_max = cpu_usage;
-        if (cpu_usage_min > cpu_usage)
-          cpu_usage_min = cpu_usage;
-      }
-    }
-
-    String fpsStat(256, "min/max/avg Fps: %3d/%3d/%5.1f", fps_min, fps_max, fps_avg);
-    String cpuStat(256, "min/max/avg CPU usage: %3d%%/%3d%%/%5.1f%%  %.1fms", cpu_usage_min, cpu_usage_max, cpu_usage_avg,
-      fps_avg > 0 ? (cpu_usage_avg / 100) * 1000 / fps_avg : 0.0);
-    String memStat(256, "mem usage: %6dK", get_max_mem_used() >> 10);
-
-    drawText(lineX, nextStat3dLineY, fpsStat);
-    drawText(lineX, nextStat3dLineY + _pxScaled(20), cpuStat);
-    drawText(lineX, nextStat3dLineY + _pxScaled(40), memStat);
-    nextStat3dLineY += _pxScaled(60);
-  }
   StdGuiRender::flush_data();
   if (do_start)
     StdGuiRender::end_render();

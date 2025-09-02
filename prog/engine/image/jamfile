@@ -23,6 +23,7 @@ Sources =
   saveExr.cpp
   loadImage.cpp
   loadDds.cpp
+  loadDdsTex.cpp
   imgAlloc.cpp
   resampleImage.cpp
   regImageLoadAny.cpp

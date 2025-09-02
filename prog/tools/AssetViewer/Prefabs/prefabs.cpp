@@ -27,7 +27,6 @@
 #include <coolConsole/coolConsole.h>
 
 #include <shaders/dag_shaders.h>
-#include <shaders/dag_dynSceneRes.h>
 
 #include <osApiWrappers/dag_direct.h>
 #include <debug/dag_debug.h>
@@ -169,6 +168,8 @@ void PrefabsPlugin::renderGeometry(Stage stage)
       if ((mask & rendEntGeomMask) == rendEntGeomMask)
         geom->renderTrans();
       break;
+
+    default: break;
   }
 }
 

@@ -36,8 +36,10 @@ void draw_cached_debug_line_twocolored(const Point3 &, const Point3 &, E3DCOLOR,
 bool init_draw_cached_debug_twocolored_shader() { return false; }
 void close_draw_cached_debug() {}
 void draw_cached_debug_line(const Point3 *, int, E3DCOLOR) {}
+void draw_cached_matrix_axis(const TMatrix &, float) {}
 void draw_cached_debug_box(const BBox3 &, E3DCOLOR) {}
 void draw_cached_debug_box(const Point3 &, const Point3 &, const Point3 &, const Point3 &, E3DCOLOR) {}
+void draw_cached_debug_box(const BBox3 &, E3DCOLOR, const TMatrix &) {}
 void draw_cached_debug_sphere(const Point3 &, real, E3DCOLOR, int) {}
 void draw_cached_debug_circle(const Point3 &, const Point3 &, const Point3 &, real, E3DCOLOR, int) {}
 void draw_skeleton_link(const Point3 &, real, E3DCOLOR) {}
@@ -382,6 +384,13 @@ void end_draw_cached_debug_lines_ex()
     end_draw_cached_debug_lines();
 }
 
+void draw_cached_matrix_axis(const TMatrix &tm, float axis_len)
+{
+  const Point3 &p0 = tm.getcol(3);
+  draw_cached_debug_line(p0, p0 + tm.getcol(0) * axis_len, E3DCOLOR(255, 0, 0));
+  draw_cached_debug_line(p0, p0 + tm.getcol(1) * axis_len, E3DCOLOR(0, 255, 0));
+  draw_cached_debug_line(p0, p0 + tm.getcol(2) * axis_len, E3DCOLOR(0, 0, 255));
+}
 
 void draw_cached_debug_box(const BBox3 &box, E3DCOLOR color)
 {
@@ -416,7 +425,7 @@ void draw_cached_debug_box(const Point3 &p0, const Point3 &ax, const Point3 &ay,
   draw_cached_debug_line(p0 + ay + az, p0 + ax + ay + az, color);
 }
 
-void draw_cached_debug_box(const BBox3 &box, E3DCOLOR color, TMatrix tm)
+void draw_cached_debug_box(const BBox3 &box, E3DCOLOR color, const TMatrix &tm)
 {
   const Point3 p0 = tm * box[0];
   const Point3 p1x = tm * Point3(box[1].x, box[0].y, box[0].z);
@@ -459,6 +468,57 @@ void draw_cached_debug_sphere(const Point3 &c, real rad, E3DCOLOR col, int segs)
   ::draw_cached_debug_line(c - Point3(0, 0, rad), c + Point3(0, 0, rad), col);
 }
 
+void draw_cached_debug_sphere_outline_clipped(const Point3 &camera, const Point3 &center, const real R, const Point4 &clipPlane,
+  E3DCOLOR col, int segs)
+{
+  if (R <= 0 || segs < 3)
+    return;
+
+  const Point3 v = center - camera;
+  const float d2 = v.lengthSq();
+  if (d2 <= R * R)
+    return;
+
+  const float k = (R * R) / d2;
+  const float Rtan = R * sqrt(1.0f - k);
+  const Point3 Ctan = center - k * v;
+
+  const Point3 n(clipPlane.x, clipPlane.y, clipPlane.z);
+  Point3 forward, tangent, binormal;
+  ortho_normalize(v, Point3(0, 1, 0), forward, tangent, binormal);
+
+  const int MAX_SEGS = 64;
+  Point3 pt[MAX_SEGS];
+  segs = eastl::min(segs, MAX_SEGS);
+  for (int32_t i = 0; i < segs; ++i)
+  {
+    float angle = i * TWOPI / segs;
+    float s, c;
+    sincos(angle, s, c);
+    pt[i] = tangent * c * Rtan + binormal * s * Rtan;
+  }
+  for (int32_t i = 0; i < segs; ++i)
+  {
+    Point3 a = Ctan + pt[i];
+    Point3 b = Ctan + pt[(i + 1) % segs];
+    float dist_a = dot(a, n) + clipPlane.w;
+    float dist_b = dot(b, n) + clipPlane.w;
+
+    if (dist_a < 0.0f && dist_b < 0.0f)
+    {
+      continue;
+    }
+    else if (dist_a >= 0.0f && dist_b >= 0.0f)
+    {
+      ::draw_cached_debug_line(a, b, col);
+    }
+    else
+    {
+      Point3 c = a + (dist_a / (dist_a - dist_b)) * (b - a);
+      ::draw_cached_debug_line((dist_a >= 0.0f) ? a : b, c, col);
+    }
+  }
+}
 
 void draw_cached_debug_circle(const Point3 &c, const Point3 &a1, const Point3 &a2, real rad, E3DCOLOR col, int segs)
 {
@@ -721,6 +781,44 @@ void draw_cached_debug_quad(const Point3 p[4], E3DCOLOR c)
 
 void draw_cached_debug_solid_triangle(const Point3 p[3], E3DCOLOR c) { cdld.addTriangle(p[0], c, p[1], c, p[2], c); }
 
+void draw_cached_line_strip(const TMatrix &tm, dag::ConstSpan<Point2> v, const float width, const E3DCOLOR &color)
+{
+  if (v.size() < 2)
+    return;
+
+  Point3 vertices[4];
+  Point2 edge1 = normalize(v[1] - v[0]);
+  Point2 norm = Point2(edge1.y, -edge1.x);
+  vertices[0].set_xy0(v[0] - norm * width);
+  vertices[1].set_xy0(v[0] + norm * width);
+  vertices[0] = tm * vertices[0];
+  vertices[1] = tm * vertices[1];
+
+  for (int32_t i = 1; i < v.size(); i++)
+  {
+    edge1 = normalize(v[i] - v[i - 1]);
+    norm = Point2(edge1.y, -edge1.x);
+
+    float len = width;
+    if (i < v.size() - 1)
+    {
+      Point2 edge2 = normalize(v[i + 1] - v[i]);
+      Point2 miterNorm = normalize(Point2(edge1.y + edge2.y, -edge1.x - edge2.x));
+      len = width / dot(norm, miterNorm);
+      norm = miterNorm;
+    }
+
+    vertices[2].set_xy0(v[i] - norm * len);
+    vertices[3].set_xy0(v[i] + norm * len);
+    vertices[2] = tm * vertices[2];
+    vertices[3] = tm * vertices[3];
+    cdld.addTriangle(vertices[0], color, vertices[1], color, vertices[2], color);
+    cdld.addTriangle(vertices[2], color, vertices[1], color, vertices[3], color);
+    vertices[0] = vertices[2];
+    vertices[1] = vertices[3];
+  }
+}
+
 void draw_cached_debug_solid_box(const mat43f *__restrict tm, const bbox3f *__restrict box, int count, E3DCOLOR c)
 {
   push_blocks();
@@ -858,35 +956,29 @@ void draw_cached_debug_proj_matrix(const TMatrix4 &tm, E3DCOLOR nearplaneColor, 
   if (!inverse44(tm, invTm, det))
     return;
 
-  Point3 pt[8] = {
-    Point3(-1, 1, 0),
-    Point3(1, 1, 0),
-    Point3(1, -1, 0),
-    Point3(-1, -1, 0),
-
-    Point3(-1, 1, 1),
-    Point3(1, 1, 1),
-    Point3(1, -1, 1),
-    Point3(-1, -1, 1),
-  };
+  Point4 pt[8] = {
+    {-1, 1, 0, 1}, {1, 1, 0, 1}, {1, -1, 0, 1}, {-1, -1, 0, 1}, {-1, 1, 1, 1}, {1, 1, 1, 1}, {1, -1, 1, 1}, {-1, -1, 1, 1}};
 
   for (int i = 0; i < 8; ++i)
     pt[i] = pt[i] * invTm;
 
-  ::draw_cached_debug_line(pt[0], pt[4], sideColor);
-  ::draw_cached_debug_line(pt[1], pt[5], sideColor);
-  ::draw_cached_debug_line(pt[2], pt[6], sideColor);
-  ::draw_cached_debug_line(pt[3], pt[7], sideColor);
+  for (int i = 0; i < 8; ++i)
+    pt[i] /= pt[i].w;
 
-  ::draw_cached_debug_line(pt[0], pt[1], nearplaneColor);
-  ::draw_cached_debug_line(pt[1], pt[2], nearplaneColor);
-  ::draw_cached_debug_line(pt[2], pt[3], nearplaneColor);
-  ::draw_cached_debug_line(pt[3], pt[0], nearplaneColor);
+  ::draw_cached_debug_line((Point3 &)pt[0], (Point3 &)pt[4], sideColor);
+  ::draw_cached_debug_line((Point3 &)pt[1], (Point3 &)pt[5], sideColor);
+  ::draw_cached_debug_line((Point3 &)pt[2], (Point3 &)pt[6], sideColor);
+  ::draw_cached_debug_line((Point3 &)pt[3], (Point3 &)pt[7], sideColor);
 
-  ::draw_cached_debug_line(pt[4], pt[5], farplaneColor);
-  ::draw_cached_debug_line(pt[5], pt[6], farplaneColor);
-  ::draw_cached_debug_line(pt[6], pt[7], farplaneColor);
-  ::draw_cached_debug_line(pt[7], pt[4], farplaneColor);
+  ::draw_cached_debug_line((Point3 &)pt[0], (Point3 &)pt[1], nearplaneColor);
+  ::draw_cached_debug_line((Point3 &)pt[1], (Point3 &)pt[2], nearplaneColor);
+  ::draw_cached_debug_line((Point3 &)pt[2], (Point3 &)pt[3], nearplaneColor);
+  ::draw_cached_debug_line((Point3 &)pt[3], (Point3 &)pt[0], nearplaneColor);
+
+  ::draw_cached_debug_line((Point3 &)pt[4], (Point3 &)pt[5], farplaneColor);
+  ::draw_cached_debug_line((Point3 &)pt[5], (Point3 &)pt[6], farplaneColor);
+  ::draw_cached_debug_line((Point3 &)pt[6], (Point3 &)pt[7], farplaneColor);
+  ::draw_cached_debug_line((Point3 &)pt[7], (Point3 &)pt[4], farplaneColor);
 }
 
 #endif

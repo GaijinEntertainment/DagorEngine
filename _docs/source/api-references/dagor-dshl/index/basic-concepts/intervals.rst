@@ -10,25 +10,25 @@ Consider this example:
 
 .. code-block:: c
 
-  int var;
-  interval var:below_zero<0, zero<1, positive_less_than_four<4, four<5, five_or_higher;
-  // same goes for floats
+    int var;
+    interval var:below_zero<0, zero<1, positive_less_than_four<4, four<5, five_or_higher;
+    // same goes for floats
 
 This declaration will create 5 permutations of the shader (``below_zero``, ``zero``, ``positive_less_than_four``, ``four`` and ``five_or_higher``),
 and the ``var`` interval itself can be accessed in hlsl blocks with special preprocessor tag ``##``.
 
 .. code-block:: c
 
-  int var;
-  interval var:below_zero<0, zero<1, positive_less_than_four<4, four<5, five_or_higher;
+    int var;
+    interval var:below_zero<0, zero<1, positive_less_than_four<4, four<5, five_or_higher;
 
-  shader example_shader {
-    hlsl {
-      ##if var == five_or_higher
-        ...
-      ##endif
+    shader example_shader {
+      hlsl {
+        ##if var == five_or_higher
+          ...
+        ##endif
+      }
     }
-  }
 
 It is essential to understand that this construction doesn't mean that ``var`` equals to ``5``, but
 it means ``var`` is within the declared interval ``five_or_higher``, so this syntax applies to ``float`` numbers as well.
@@ -42,43 +42,6 @@ it means ``var`` is within the declared interval ``five_or_higher``, so this syn
   Intervals on ``dynamic`` and global variables, however, are resolved each time the shader is used for rendering (on ``setStates()`` call), because such variables can change during runtime.
   This has worse CPU performance impact, compared to ``static`` intervals.
 
-------------------
-Optional intervals
-------------------
-
-If the interval is used in HLSL code blocks, you can make this interval ``optional``.
-All conditions in HLSL code which use ``optional`` intervals will be replaced with HLSL branches, thus reducing the number of shader variants.
-
-.. warning::
-  Shaders with ``optional`` intervals can be used only for conditionals in HLSL blocks and need to be compiled with ``-optionalAsBranches`` flag
-  (otherwise ``optional`` intervals will act the same as regular intervals).
-  This feature should only be used for dev build.
-
-.. code-block:: c
-
-  int test_optional = 0;
-  optional interval test_optional : zero < 1, one < 2, two < 3, three;
-
-  shader testMaterial
-  {
-    // ...
-    hlsl
-    {
-      float3 color = float3(0, 0, 0);
-  ##if test_optional == one
-      color = float3(1, 0, 0);
-  ##elif test_optional == two || test_optional == three
-      color = float3(0, 0, 1);
-  ##if test_optional == two
-      color *= 0.5;
-  ##endif
-
-  ##else
-      color = float3(0, 0, 1);
-  ##endif
-    }
-  }
-
 -------
 Assumes
 -------
@@ -91,18 +54,18 @@ To do this, create an ``assume_vars`` block inside a ``Compile`` block and then 
 
 .. code-block:: c
 
-  Compile
-  {
-    // ...
-    assume_vars
+    Compile
     {
-      include common_assumes.blk
-      supports_sh_6_1:i = 0
-      static_shadows_custom_fxaa:i=0
-      grass_use_quads:i=0
-      bloom_tex:i = 1
+      // ...
+      assume_vars
+      {
+        include common_assumes.blk
+        supports_sh_6_1:i = 0
+        static_shadows_custom_fxaa:i=0
+        grass_use_quads:i=0
+        bloom_tex:i = 1
+      }
     }
-  }
 
 .. note::
   By assuming a texture, e.g. ``bloom_tex:i = 1``, you declare that this texture is never ``NULL``.
@@ -112,12 +75,22 @@ To do this, create an ``assume_vars`` block inside a ``Compile`` block and then 
 You can use ``assume interval_name = interval_value;`` statement in DSHL shaders to force an interval to be fixed.
 This can be useful to disable unnecessary shader variants when the same interval is shared among different shaders.
 
+Assumes are evaluated irrespective of static and dynamic intervals: if you put an assume statement inside a
+static or dynamic condition, it will be applied, and it will only be ignored if the condition is constant
+irrespective of variants.
+
+Assumes to the same interval override each other in program order, and assumes in code override assumes from the blk.
+If you need an assume that doesn't override ones from blk or ones declared before as a default fallback, use
+``assume_if_not_assumed interval_name = interval_value;``
+
 .. code-block:: c
 
-  include "deferred_shadow_common.dshl"
+    include "deferred_shadow_common.dshl"
 
-  shader deferred_shadow_classify_tiles
-  {
     assume use_ssss = off;
-    // ...
-  }
+
+    shader deferred_shadow_classify_tiles
+    {
+      assume_if_not_assumed use_ssss = on; // use_ssss is still assumed to be off
+      // ...
+    }

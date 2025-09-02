@@ -5,248 +5,8 @@
 #include "modfx/modfx_misc.hlsli"
 #include "modfx/modfx_part_data.hlsli"
 #include "modfx/modfx_render_placement.hlsli"
-
-// #define MODFX_TEX_DEBUG_ENABLED 1
-
-
-#if MODFX_DEBUG_RENDER_ENABLED
-  #undef MODFX_USE_SHADOW
-  #define MODFX_USE_SHADOW 0
-
-  #undef DAFX_USE_CLOUD_SHADOWS
-  #define DAFX_USE_CLOUD_SHADOWS 0
-
-  #undef MODFX_USE_GI
-  #define MODFX_USE_GI 0
-
-  #undef MODFX_USE_FOG
-  #define MODFX_USE_FOG 0
-
-  #undef MODFX_USE_FOG_PS_APPLY
-  #define MODFX_USE_FOG_PS_APPLY 0
-
-  #undef FX_FOG_MULT_ALPHA
-  #define FX_FOG_MULT_ALPHA 0
-#endif
-
-
-#if !APPLY_VOLUMETRIC_FOG
-  #undef MODFX_USE_FOG_PS_APPLY
-  #define MODFX_USE_FOG_PS_APPLY 0 // no per-pixel fog apply if we don't have volfog at all
-#endif
-
-#if MODFX_RIBBON_SHAPE || (MODFX_USE_FOG && !MODFX_USE_FOG_PS_APPLY && !FX_FOG_MULT_ALPHA)
-  #define COLOR_INTERPOLATION linear
-#else
-  #define COLOR_INTERPOLATION nointerpolation
-  #if MODFX_USE_FOG && !MODFX_USE_FOG_PS_APPLY && FX_FOG_MULT_ALPHA
-    #define COLOR_PS_FOG_MULT 1
-  #endif
-#endif
-
-#if MODFX_RIBBON_SHAPE
-  #define PARAM_INTERPOLATION linear
-#else
-  #define PARAM_INTERPOLATION nointerpolation
-#endif
-
-#if FX_VS || FX_PS
-
-  struct VsOutput
-  {
-    VS_OUT_POSITION(pos)
-    COLOR_INTERPOLATION float4 color  : TEXCOORD0;
-
-#if MODFX_SHADER_VOLSHAPE || MODFX_SHADER_VOLSHAPE_WBOIT
-    PARAM_INTERPOLATION float3 life_radius: TEXCOORD2;
-#else
-    PARAM_INTERPOLATION float life_radius : TEXCOORD2;
-#endif
-
-#if MODFX_SHADER_THERMALS
-    COLOR_INTERPOLATION float4 emission   : TEXCOORD4;
-#else
-    COLOR_INTERPOLATION float3 emission   : TEXCOORD4;
-#endif
-
-#if MODFX_USE_SHADOW || DAFX_USE_CLOUD_SHADOWS
-    float4 lighting   : TEXCOORD7;
-#elif MODFX_USE_LIGHTING
-    float3 lighting   : TEXCOORD7;
-#endif
-
-#if MODFX_USE_GI
-    float3 ambient    : TEXCOORD12;
-#endif
-
-#if MODFX_RIBBON_SHAPE
-    float2 delta_tc   : TEXCOORD1;
-    float frame_idx   : TEXCOORD3;
-  #if !MODFX_RIBBON_SHAPE_IS_SIDE_ONLY
-    uint ribbon_side  : TEXCOORD8;
-  #endif
-    float3 fwd_dir    : TEXCOORD9;
-#else
-    float4 tc                         : TEXCOORD1;
-    nointerpolation float frame_blend : TEXCOORD3;
-    float2 delta                      : TEXCOORD8;
-    nointerpolation float3 right_dir  : TEXCOORD10;
-    nointerpolation float3 up_dir     : TEXCOORD11;
-#endif
-
-#if !MODFX_RIBBON_SHAPE || (MODFX_USE_FOG && MODFX_USE_FOG_PS_APPLY)
-    PARAM_INTERPOLATION float3 view_dir   : TEXCOORD13;
-#endif
-
-#if MODFX_USE_FOG
-  #if MODFX_USE_FOG_PS_APPLY
-    PARAM_INTERPOLATION float4 scattering_color__view_dir_dist : TEXCOORD5;
-    float4 scattering_base                                     : TEXCOORD14;
-  #else
-    float3 fog_add    : TEXCOORD5;
-    #if FX_FOG_MULT_ALPHA
-      float3 fog_mul : TEXCOORD14;
-    #endif
-  #endif
-#endif
-    nointerpolation uint draw_call_id : TEXCOORD6;
-  };
-
-  float2 rotate_point(float2 pos, float angle_cos, float angle_sin, float inv_scale)
-  {
-    pos -= 0.5;
-    float2 rot_delta;
-    rot_delta.x =  angle_cos * pos.x + angle_sin * pos.y;
-    rot_delta.y = -angle_sin * pos.x + angle_cos * pos.y;
-    rot_delta *= inv_scale;
-    rot_delta += 0.5;
-    return rot_delta;
-  }
-  float4 rotate_points(float4 pos, float angle_cos, float angle_sin, float inv_scale)
-  {
-    pos -= 0.5;
-    float4 rot_delta;
-    rot_delta.xz =  angle_cos * pos.xz + angle_sin * pos.yw;
-    rot_delta.yw = -angle_sin * pos.xz + angle_cos * pos.yw;
-    rot_delta *= inv_scale;
-    rot_delta += 0.5;
-    return rot_delta;
-  }
-
-  float2 calc_delta_offset(float frame_idx, ModfxDeclFrameInfo finfo, float2 frames_inv)
-  {
-    // same as this, but faster // float2 delta_ofs = float2( (uint)frame_idx % finfo.frames_x, (uint)frame_idx / finfo.frames_x ) * frames_inv;
-    float2 delta_ofs;
-    static const float FRAME_EPS = 1.0/(DAFX_FLIPBOOK_MAX_KEYFRAME_DIM*DAFX_FLIPBOOK_MAX_KEYFRAME_DIM+1); // some GPUs have horrible float precision
-    delta_ofs.y = floor((frame_idx + FRAME_EPS) * frames_inv.x);
-    delta_ofs.x = frame_idx - delta_ofs.y * finfo.frames_x;
-    delta_ofs *= frames_inv;
-    return delta_ofs;
-  }
-
-  float4 modfx_render_get_frame_tc(
-    ModfxParentRenData parent_data,
-    uint frame_idx,
-    uint frame_flags,
-    bool use_uv_rotation,
-    float angle_cos,
-    float angle_sin,
-#if MODFX_RIBBON_SHAPE
-    float2 delta_tc,
-#else
-    inout float2 delta,
-#endif
-    out float2 scale_tc )
-  {
-    ModfxDeclFrameInfo finfo = ModfxDeclFrameInfo_load( 0, parent_data.mods_offsets[MODFX_RMOD_FRAME_INFO] );
-    float4 tc = 0;
-
-#if !MODFX_RIBBON_SHAPE
-  // disabled for ribbons for now (it has a completely different pos/tc calc)
-  #if MODFX_USE_FRAMEBOUNDS
-    if (dafx_frame_boundary_buffer_enabled && finfo.boundary_id_offset != DAFX_INVALID_BOUNDARY_OFFSET)
-    {
-      float4 frame_boundary = structuredBufferAt(dafx_frame_boundary_buffer, finfo.boundary_id_offset + frame_idx);
-
-    #if MODFX_USE_FRAMEBLEND
-      if ( FLAG_ENABLED( parent_data.flags, MODFX_RFLAG_FRAME_ANIMATED_FLIPBOOK ) )
-      {
-        uint total_frames = finfo.frames_x * finfo.frames_y;
-        uint next_frame_idx = (frame_idx + 1) % total_frames;
-        float4 next_frame_boundary = structuredBufferAt(dafx_frame_boundary_buffer, finfo.boundary_id_offset + next_frame_idx);
-        frame_boundary = float4(min(frame_boundary.xy, next_frame_boundary.xy), max(frame_boundary.zw, next_frame_boundary.zw));
-      }
-    #endif
-
-      if ( use_uv_rotation )
-      {
-        float4 p00_p01 = rotate_points(frame_boundary.xyxw, angle_cos, angle_sin, finfo.inv_scale);
-        float4 p10_p11 = rotate_points(frame_boundary.zyzw, angle_cos, angle_sin, finfo.inv_scale);
-        float2 minPos = min(min(p00_p01.xy, p00_p01.zw), min(p10_p11.xy, p10_p11.zw));
-        float2 maxPos = max(max(p00_p01.xy, p00_p01.zw), max(p10_p11.xy, p10_p11.zw));
-        frame_boundary = float4(minPos, maxPos);
-      }
-
-      if ( frame_flags & MODFX_FRAME_FLAGS_FLIP_X )
-        frame_boundary.xz = 1 - frame_boundary.zx;
-
-      if (frame_flags & MODFX_FRAME_FLAGS_FLIP_Y )
-        frame_boundary.yw = 1 - frame_boundary.wy;
-
-      delta = lerp(frame_boundary.xy, frame_boundary.zw, delta);
-    }
-  #endif
-
-    float2 delta_tc = float2( delta.x, 1.f - delta.y );
-#endif
-
-    if ( frame_flags & MODFX_FRAME_FLAGS_FLIP_X )
-      delta_tc.x = 1.f - delta_tc.x;
-    if ( frame_flags & MODFX_FRAME_FLAGS_FLIP_Y )
-      delta_tc.y = 1.f - delta_tc.y;
-
-    // delta_tc *= crop.x;
-    // delta_tc += crop.y;
-
-    if ( use_uv_rotation )
-      delta_tc = rotate_point(delta_tc, angle_cos, angle_sin, finfo.inv_scale);
-
-    float2 frames_inv = 1.0 / float2(finfo.frames_x, finfo.frames_y);
-    delta_tc *= frames_inv;
-
-    scale_tc = delta_tc;
-
-    float2 delta_ofs = calc_delta_offset(frame_idx, finfo, frames_inv);
-    tc.xy = delta_tc + delta_ofs;
-
-#if MODFX_USE_FRAMEBLEND
-    uint total_frames = finfo.frames_x * finfo.frames_y;
-    if ( FLAG_ENABLED( parent_data.flags, MODFX_RFLAG_FRAME_ANIMATED_FLIPBOOK ) )
-    {
-      uint next_frame_idx = ( frame_idx + 1 ) % total_frames;
-      delta_ofs = calc_delta_offset(next_frame_idx, finfo, frames_inv);
-      tc.zw = delta_tc + delta_ofs;
-    }
-#endif
-    return tc;
-  }
-
-  float4 modfx_render_get_frame_tc_opt(
-    ModfxParentRenData parent_data,
-    uint frame_idx,
-    uint frame_flags,
-    bool use_uv_rotation,
-    float angle_cos,
-    float angle_sin,
-    inout float2 delta_tc )
-  {
-    float2 tmp;
-    if ( parent_data.mods_offsets[MODFX_RMOD_FRAME_INFO] )
-      return modfx_render_get_frame_tc( parent_data, frame_idx, frame_flags, use_uv_rotation, angle_cos, angle_sin, delta_tc, tmp );
-    else
-      return 0;
-  }
-#endif
+#include "modfx/modfx_bboard_common.hlsl"
+#include "pbr/BRDF.hlsl"
 
 #if FX_VS
 
@@ -255,13 +15,40 @@
     float3 rvec = pos - omni_pos;
     float sqrDist = dot(rvec, rvec);
     float attenF = sqrDist * rcp(pow2(max(omni_radius, 0.01)));
-    float atten = pow2(saturate(1. - pow2(attenF))) * rcp(max(sqrDist, 0.00001));
+    float atten = pow2(saturate((1. - pow2(attenF)) * rcp(max(sqrDist, 0.00001))));
 
     return atten * omni_color;
   }
 
 #if MODFX_BBOARD_LIGHTING_FROM_CLUSTERED_LIGHTS
-  float3 get_omni_lighting_from_clustered_lights(float3 pos, float2 tc, float proj_dist)
+  float3 get_spot_lighting(float3 pos, float3 view_dir_norm, int spot_light_index)
+  {
+    RenderSpotLight sl = spot_lights_cb[spot_light_index];
+    float4 lightPosRadius = sl.lightPosRadius;
+    half4 lightColor = half4(sl.lightColorAngleScale);
+    half4 lightDirection = half4(sl.lightDirectionAngleOffset);
+
+    half lightAngleScale = lightColor.a;
+    half lightAngleOffset = lightDirection.a;
+    half geomAttenuation; half3 dirFromLight, point2light;
+    spot_light_params(pos, lightPosRadius, lightDirection.xyz, lightAngleScale, lightAngleOffset, geomAttenuation, dirFromLight, point2light);
+    half attenuation = geomAttenuation;
+
+    BRANCH
+    if (attenuation <= 0)
+      return 0;
+
+    float4 lightShadowTC = mul(getSpotLightTm(spot_light_index), float4(pos, 1));
+    if (lightShadowTC.w > 1e-6)
+    {
+      lightShadowTC.xyz /= lightShadowTC.w;
+      attenuation *= 1-dynamic_shadow_sample(lightShadowTC.xy, lightShadowTC.z);
+    }
+
+    return attenuation * lightColor.xyz;
+  }
+
+  float3 get_lighting_from_clustered_lights(float3 pos, float3 view_dir_norm, float2 tc, float proj_dist)
   {
     float3 lighting = 0;
 
@@ -281,7 +68,22 @@
         mask ^= ( 1U << bitIndex );
         uint omni_light_index = ((omniWordIndex<<5) + bitIndex);
         RenderOmniLight light = omni_lights_cb[omni_light_index];
-        lighting += get_omni_lighting(pos, light.posRadius.xyz, light.posRadius.a, light.colorFlags.rgb);
+        lighting += get_omni_lighting(pos, light.posRadius.xyz, light.posRadius.a, get_omni_light_color(light).rgb);
+      }
+    }
+
+    uint spotAddress = clusterIndex*spotLightsWordCount + ((CLUSTERS_D+1)*CLUSTERS_H*CLUSTERS_W*omniLightsWordCount);
+    LOOP
+    for ( uint spotWordIndex = 0; spotWordIndex < spotLightsWordCount; spotWordIndex++ )
+    {
+      // Can't use MERGE_MASK in the vertex shader, so just read mask for current vertex
+      uint mask = flatBitArray[spotAddress + spotWordIndex];
+      while ( mask != 0 )
+      {
+        uint bitIndex = firstbitlow( mask );
+        mask ^= ( 1U << bitIndex );
+        uint spot_light_index = ((spotWordIndex<<5) + bitIndex);
+        lighting += get_spot_lighting(pos, view_dir_norm, spot_light_index);
       }
     }
 
@@ -290,28 +92,58 @@
 #endif
 
 #if MODFX_USE_SHADOW
-    half get_static_shadow_for_fx(float3 pos, float radius, float3 wpos, float3 view_dir_norm, float3 from_sun_direction)
+  half get_static_shadow_for_fx(float3 pos, float radius, float3 wpos, float3 view_dir_norm, float3 from_sun_direction)
+  {
+    static const int shadowBroadSampleCnt = 2;
+
+    float3 shadowSampleDirFwd = (pos - wpos) * (1./ shadowBroadSampleCnt);
+
+    float sunHackRadius = radius * (1./ shadowBroadSampleCnt);
+    float3 sunHackUp = normalize( cross( from_sun_direction, float3(1,0,0) ) ) * sunHackRadius;
+    float3 sunHackRight = normalize(cross( view_dir_norm, sunHackUp )) * sunHackRadius;
+
+    float3 shadowPos = wpos + shadowSampleDirFwd * 0.5;
+    half staticShadowSum = 0;
+    UNROLL for (int i = 0; i < shadowBroadSampleCnt; ++i)
     {
-      static const int shadowBroadSampleCnt = 2;
-
-      float3 shadowSampleDirFwd = (pos - wpos) * (1./ shadowBroadSampleCnt);
-
-      float sunHackRadius = radius * (1./ shadowBroadSampleCnt);
-      float3 sunHackUp = normalize( cross( from_sun_direction, float3(1,0,0) ) ) * sunHackRadius;
-      float3 sunHackRight = normalize(cross( view_dir_norm, sunHackUp )) * sunHackRadius;
-
-      float3 shadowPos = wpos + shadowSampleDirFwd * 0.5;
-      half staticShadowSum = 0;
-      UNROLL for (int i = 0; i < shadowBroadSampleCnt; ++i)
-      {
-        staticShadowSum += getStaticShadow(shadowPos - sunHackUp - sunHackRight);
-        staticShadowSum += getStaticShadow(shadowPos + sunHackUp - sunHackRight);
-        staticShadowSum += getStaticShadow(shadowPos + sunHackUp + sunHackRight);
-        staticShadowSum += getStaticShadow(shadowPos - sunHackUp + sunHackRight);
-        shadowPos += shadowSampleDirFwd;
-      }
-      return staticShadowSum * (0.25 / shadowBroadSampleCnt);
+      staticShadowSum += getStaticShadow(shadowPos - sunHackUp - sunHackRight);
+      staticShadowSum += getStaticShadow(shadowPos + sunHackUp - sunHackRight);
+      staticShadowSum += getStaticShadow(shadowPos + sunHackUp + sunHackRight);
+      staticShadowSum += getStaticShadow(shadowPos - sunHackUp + sunHackRight);
+      shadowPos += shadowSampleDirFwd;
     }
+    return staticShadowSum * (0.25 / shadowBroadSampleCnt);
+  }
+
+  half get_shadow_at_background_pos(ModfxParentRenData parent_data)
+  {
+    if (!dafx_use_fake_adaptation || !parent_data.mods_offsets[MODFX_RMOD_FAKE_BRIGHTNESS_POS])
+      return 1; // no background pos, so no shadow at background pos
+
+    float3 background_pos = dafx_get_3f(0, parent_data.mods_offsets[MODFX_RMOD_FAKE_BRIGHTNESS_POS]);
+    return getStaticShadow(background_pos);
+  }
+
+  float calculate_brightness_modifier(ModfxParentRenData parent_data, float3 effect_pos)
+  {
+    if (!dafx_use_fake_adaptation || !parent_data.mods_offsets[MODFX_RMOD_FAKE_BRIGHTNESS])
+      return 1.f;
+
+    // shadow is 1, if there is no shadow
+    // shadow is 0, if there is a shadow
+    float shadow_at_bg = get_shadow_at_background_pos(parent_data);
+    float shadow_at_fx = getStaticShadow(effect_pos);
+
+    //        fx   -   bg
+    // 0 --- dark  -  dark
+    // 1 --- dark  -  light
+    // 2 --- light -  dark
+    // 3 --- light -  light
+    uint2 idx2d = uint2(saturate(round(float2(shadow_at_fx, shadow_at_bg))));
+    uint idx = idx2d.x * 2 + idx2d.y;
+    ModfxDeclFakeBrightness pp = ModfxDeclFakeBrightness_load(0, parent_data.mods_offsets[MODFX_RMOD_FAKE_BRIGHTNESS]);
+    return pp.brightness_values[idx];
+  }
 #endif
 
   float get_placement_height(float3 pos, float placement_threshold, uint flags)
@@ -421,21 +253,23 @@
     float2 delta = float2( vertex_id % 3 != 0, (vertex_id / 2) );
 
     // hlsl error X4580 workaround
-    float4x4 wtm =
-      { 1, 0, 0, 0,
-        0, 1, 0, 0,
-        0, 0, 1, 0,
-        0, 0, 0, 1 };
+    float4x4 wtm = get_identity_tm();
+    float wtm_scale = 1;
     if ( parent_data.mods_offsets[MODFX_RMOD_INIT_TM] )
-      wtm = dafx_get_44mat( 0, parent_data.mods_offsets[MODFX_RMOD_INIT_TM] );
+#if MOBILE_DEVICE
+      // old Adreno drivers fail to compile usual loader variant
+      dafx_get_44mat_scale_noret( 0, parent_data.mods_offsets[MODFX_RMOD_INIT_TM], wtm, wtm_scale);
+#else
+      wtm = dafx_get_44mat_scale( 0, parent_data.mods_offsets[MODFX_RMOD_INIT_TM], wtm_scale);
+#endif
 
     bool apply_wtm = FLAG_ENABLED( flags, MODFX_RFLAG_USE_ETM_AS_WTM );
     if ( apply_wtm )
     {
-      rdata.pos = mul( float4( rdata.pos, 1 ), wtm ).xyz;
+      rdata.pos = mul_tm_pos(rdata.pos, wtm);
 #if MODFX_RIBBON_SHAPE
-      older_pos = mul( float4( older_pos, 1 ), wtm ).xyz;
-      newer_pos = mul( float4( newer_pos, 1 ), wtm ).xyz;
+      older_pos = mul_tm_pos(older_pos, wtm);
+      newer_pos = mul_tm_pos(newer_pos, wtm);
 #endif
     }
 
@@ -471,6 +305,8 @@
     }
 #endif
 
+    float zfar_opacity = 1.0f;
+
 #if !(MODFX_SHADER_VOLSHAPE || MODFX_SHADER_VOLSHAPE_WBOIT) && !MODFX_SHADER_VOLFOG_INJECTION
     if ( parent_data.mods_offsets[MODFX_RMOD_DEPTH_MASK] && !is_dead )
     {
@@ -481,11 +317,23 @@
       znear_opacity = saturate(znear_opacity);
 
       rdata.color.a *= znear_opacity;
-      if ( FLAG_ENABLED( flags, MODFX_RFLAG_BLEND_PREMULT ) )
+      if (is_blending_premult(flags))
         rdata.color.rgb *= znear_opacity;
 
       if ( znear_opacity < 0.0001 )
         is_dead = true;
+
+      if (parent_data.mods_offsets[MODFX_RMOD_ZFAR_FADEOUT] && !is_dead)
+      {
+        ModfxDeclZfarFadeout pp = ModfxDeclZfarFadeout_load( 0, parent_data.mods_offsets[MODFX_RMOD_ZFAR_FADEOUT] );
+        // Shorter version of `1.0 - (view_dir_dist - min_dist) / (max_dist - min_dist)`
+        zfar_opacity = saturate(view_dir_dist * pp.negative_inv_dist_diff + pp.one_plus_min_dist_div_by_diff);
+  #if !MODFX_SHADER_DISTORTION
+        rdata.color.a *= zfar_opacity;
+        if (is_blending_premult(flags))
+          rdata.color.rgb *= zfar_opacity;
+  #endif
+      }
     }
 #endif
 
@@ -554,7 +402,7 @@
       fade = 0;
 
     rdata.color.a *= fade;
-    if ( FLAG_ENABLED( flags, MODFX_RFLAG_BLEND_PREMULT ) )
+    if (is_blending_premult(flags))
       rdata.color.rgb *= fade;
 
 #else
@@ -579,9 +427,9 @@
       pivot_offset.y = pp[1] * ( 1.f / 254 ) - 0.5f;
     }
 
-    // MODFX_RMOD_SHAPE_SCREEN
-    float3 up_vec = gdata.view_dir_y;
-    float3 right_vec = gdata.view_dir_x;
+    // most common defaults:
+    float3 up_vec = rdata.up_vec;
+    float3 right_vec = rdata.right_vec;
 
 #if (MODFX_SHADER_VOLSHAPE || MODFX_SHADER_VOLSHAPE_WBOIT)
     float stable_rnd_offset = (ren_info.instance_id + ren_info.data_ofs % 20 ) * 0.001;
@@ -604,23 +452,22 @@
     up_vec = normalize(lerp(gdata.view_dir_y, cross_up, k));
     right_vec = normalize(lerp(gdata.view_dir_x, cross(view_dir_norm, cross_up), k));
 #else
-    bool apply_wtm_to_view = false;
-    if ( MOD_ENABLED( parent_data.mods, MODFX_RMOD_SHAPE_VIEW_POS ) )
+    bool apply_wtm_to_view = apply_wtm;
+
+    if ( MOD_ENABLED( parent_data.mods, MODFX_RMOD_SHAPE_SCREEN ) )
     {
+      apply_wtm_to_view = false;
+      up_vec = gdata.view_dir_y;
+      right_vec = gdata.view_dir_x;
+    }
+    else if ( MOD_ENABLED( parent_data.mods, MODFX_RMOD_SHAPE_VIEW_POS ) )
+    {
+      apply_wtm_to_view = false;
       up_vec = normalize( cross( gdata.view_dir_x, view_dir_norm ) );
       right_vec = cross( view_dir_norm, up_vec );
     }
-    else if ( parent_data.mods_offsets[MODFX_RMOD_SHAPE_STATIC_ALIGNED] )
-    {
-      apply_wtm_to_view = apply_wtm;
-
-      up_vec = rdata.up_vec;
-      right_vec = rdata.right_vec;
-    }
     else if ( MOD_ENABLED( parent_data.mods, MODFX_RMOD_SHAPE_VELOCITY_MOTION ) )
     {
-      apply_wtm_to_view = apply_wtm;
-      up_vec = rdata.up_vec;
       right_vec = normalize( cross( view_dir_norm, up_vec ) );
       float vl = 1.f + rdata.velocity_length;
       aspect.x /= vl;
@@ -628,21 +475,29 @@
     }
     else if ( MOD_ENABLED( parent_data.mods, MODFX_RMOD_SHAPE_ADAPTIVE_ALIGNED ) )
     {
-      apply_wtm_to_view = apply_wtm;
-      up_vec = rdata.up_vec;
-      right_vec = normalize( cross( gdata.view_dir_y, up_vec ) );
+      right_vec = cross(abs(dot(gdata.view_dir_y, up_vec)) < 0.5 ? gdata.view_dir_y : gdata.view_dir_z, up_vec); // prevent cross "floating" if up_vec and view_dir_y are too similar
+      // maintain consistent orientation when right vec would flip due to view_dir
+      float flip = dot(right_vec, gdata.view_dir_x) < 0 ? -1 : 1;
+      right_vec = flip * normalize(right_vec);
     }
+    else if ( MOD_ENABLED( parent_data.mods, MODFX_RMOD_SHAPE_STATIC_VELOCITY_ALIGNED ) )
+    {
+      static const float EPS = 0.0001;
+      // prevent up_vec from being 0 or being completely parallel to orientation_vec
+      up_vec += EPS * rdata.right_vec;
+      up_vec = normalize( up_vec - dot( up_vec, rdata.orientation_vec ) * rdata.orientation_vec );
+      right_vec = cross( rdata.orientation_vec, up_vec );
+    }
+    // else: MODFX_RMOD_SHAPE_STATIC_ALIGNED
 
     if ( apply_wtm_to_view )
     {
-      up_vec = mul( float4( up_vec, 0 ), wtm ).xyz;
-      right_vec = mul( float4( right_vec, 0 ), wtm ).xyz;
+      up_vec = mul_tm_dir(up_vec, wtm);
+      right_vec = mul_tm_dir(right_vec, wtm);
     }
 
     if ( parent_data.mods_offsets[MODFX_RMOD_SHAPE_STATIC_ALIGNED] )
     {
-      float wtm_scale = length( wtm[0] ); // TODO: move to CPP?
-
       if ( !apply_wtm_to_view ) // up/right vec are normalized
       {
         up_vec *= wtm_scale;
@@ -664,7 +519,7 @@
   #if !MODFX_SHADER_VOLFOG_INJECTION
       rdata.color.w *= a;
 
-      if ( FLAG_ENABLED( flags, MODFX_RFLAG_BLEND_PREMULT ) )
+      if (is_blending_premult(flags))
         rdata.color.rgb *= a;
   #endif
     }
@@ -737,14 +592,19 @@
 
     wpos += camera_offset * view_dir_norm;
     vs_out.pos = mul( float4( wpos, 1.f ), gdata.globtm );
+#if MODFX_PASS_FRAME_FLAGS
+    vs_out.frame_flags = rdata.frame_flags;
+#endif
 
     float3 lighting = 0;
+#if !SIMPLIFIED_VS_LIGHTING
     bool isModfxOmniLightEnabled = FLAG_ENABLED( flags, MODFX_RFLAG_OMNI_LIGHT_ENABLED );
     if ( isModfxOmniLightEnabled )
     {
       ModfxDeclExternalOmnilight pp = ModfxDeclExternalOmnilight_load( 0, parent_data.mods_offsets[MODFX_RMOD_OMNI_LIGHT_INIT] );
       lighting = get_omni_lighting(wpos.xyz, pp.pos, pp.radius, pp.color);
     }
+#endif
 
 #if MODFX_USE_GI
     if ( FLAG_ENABLED( flags, MODFX_RFLAG_LIGHTING_AMBIENT_ENABLED ) )
@@ -758,13 +618,13 @@
       is_dead = cull_away_rain(rdata.pos - float3(0, rdata.radius, 0)); //Always test with bottom
 #endif
 
-#if MODFX_BBOARD_LIGHTING_FROM_CLUSTERED_LIGHTS
+#if MODFX_BBOARD_LIGHTING_FROM_CLUSTERED_LIGHTS && !SIMPLIFIED_VS_LIGHTING
     BRANCH
     if (FLAG_ENABLED( flags, MODFX_RFLAG_EXTERNAL_LIGHTS_ENABLED ) && !isModfxOmniLightEnabled)
     {
       // Find omni lights outside of current modfx
       const float2 tc = (vs_out.pos.xy / vs_out.pos.w) * float2(0.5, -0.5) + 0.5;
-      lighting += get_omni_lighting_from_clustered_lights(wpos.xyz, tc, proj_dist);
+      lighting += get_lighting_from_clustered_lights(wpos.xyz, view_dir_norm, tc, proj_dist);
     }
 #endif
 
@@ -785,7 +645,10 @@
     }
 #endif
     vs_out.color = rdata.color;
+#if !MODFX_SHADER_WATER_FX
     vs_out.emission.rgb = emission_mask;
+#endif
+    float3 fwd_dir = cross( rotated_up_vec, rotated_right_vec );
 #if MODFX_USE_SHADOW || MODFX_USE_LIGHTING || DAFX_USE_CLOUD_SHADOWS
     #if MODFX_USE_SHADOW || DAFX_USE_CLOUD_SHADOWS
       vs_out.lighting.a = 1.f;
@@ -802,6 +665,38 @@
       vs_out.lighting.a *= dafx_get_clouds_shadow(rdata.pos);
     #endif
 
+#if SIMPLIFIED_VS_LIGHTING
+    BRANCH
+    if ( parent_data.mods_offsets[MODFX_RMOD_LIGHTING_INIT] )
+    {
+      ModfxDeclLighting pp = ModfxDeclLighting_load( 0, parent_data.mods_offsets[MODFX_RMOD_LIGHTING_INIT] );
+      float translucency = pp.translucency / 255.f;
+      float normal_softness = pp.normal_softness / 255.f;
+    #if MODFX_RIBBON_SHAPE
+      float3 wnorm = float3( 0, 1, 0 );
+    #else
+      float3 wnorm = 0;
+      if ( pp.type == MODFX_LIGHTING_TYPE_UNIFORM )
+        wnorm = float3( 0, 1, 0 );
+      else
+        wnorm = fwd_dir;
+    #endif
+      float ndl = saturate( dot( -gdata.from_sun_direction, wnorm ) );
+      ndl = ndl * ( 1.f - normal_softness ) + normal_softness;
+      ndl = lerp( ndl, 1.f, saturate( dot( gdata.from_sun_direction, fwd_dir ) ) * translucency );
+    #if MODFX_USE_SHADOW || DAFX_USE_CLOUD_SHADOWS
+      half shadow = vs_out.lighting.a;
+    #else
+      half shadow = 1.f;
+    #endif
+    #if MODFX_USE_GI
+      float3 ambient = vs_out.ambient.rgb;
+    #else
+      float3 ambient = gdata.sky_color;
+    #endif
+      lighting += ndl * gdata.sun_color * shadow + ambient;
+    }
+#endif
     vs_out.lighting.rgb = lighting.rgb;
 #endif
 #if MODFX_RIBBON_SHAPE
@@ -822,7 +717,7 @@
     #if !MODFX_RIBBON_SHAPE_IS_SIDE_ONLY
       vs_out.ribbon_side = ribbon_side;
     #endif
-    vs_out.fwd_dir = cross( rotated_up_vec, rotated_right_vec );
+    vs_out.fwd_dir = fwd_dir;
 #else
     vs_out.frame_blend = rdata.frame_blend;
     vs_out.delta = float2( delta.x - 0.5, -delta.y + 0.5 ) * 2.f;
@@ -844,13 +739,21 @@
 #else
 #endif
 
+#if MODFX_SHADER_XRAY
+    vs_out.view_dir_dist = view_dir_dist;
+#endif
+
+#if MODFX_SHADER_DISTORTION
+    vs_out.zfar_strength = zfar_opacity;
+#endif
+
 #if MODFX_USE_FOG
     float stc_raw_depth = vs_out.pos.w > 0 ? vs_out.pos.z / vs_out.pos.w : 0;
     float2 stc = vs_out.pos.w > 0 ? vs_out.pos.xy * RT_SCALE_HALF / vs_out.pos.w + float2(0.5, 0.5) : 0;
     stc = reproject_scattering(stc, stc_raw_depth);
     #if MODFX_USE_FOG_PS_APPLY
       float tcZ;
-      vs_out.scattering_base = get_scattering_tc_scatter_loss(stc, view_dir_norm, view_dir_dist, tcZ);
+      vs_out.scattering_base = get_scattering_tc_scatter_loss(stc, view_dir_dist, tcZ);
       vs_out.scattering_color__view_dir_dist = float4(
         get_fog_prepared_tc(getPreparedScatteringTc(view_dir_norm.y, view_dir_dist)),
         view_dir_dist);
@@ -882,6 +785,9 @@
     vs_out.emission.w = thermal_value;
 #endif
 
+#if MODFX_USE_SHADOW
+    vs_out.fake_brightness = calculate_brightness_modifier(parent_data, rdata.pos);
+#endif
     if ( is_dead )
       vs_out.pos = float4(-2,-2,1,1);
 
@@ -897,65 +803,15 @@
 
 #if FX_PS
 
-  float3 modfx_pack_hdr( float3 v )
-  {
-  #if MODFX_USE_PACK_HDR
-    return pack_hdr( v.xyz );
-  #else
-    return v;
-  #endif
-  }
-
-#if MODFX_WBOIT_ENABLED
-    struct WboitData
-    {
-      float4 color : SV_Target0;
-      float alpha : SV_Target1;
-    };
-
-  float wboit_weight(float z, float a)
-  {
-    z += modfx_wboit_depth_offset;
-    // https://jcgt.org/published/0002/02/09/paper.pdf
-    //return a * max(pow(10.f, -2.f), min(3*pow(10.f, 3.f), 10.f / (pow(10.f, -5.f) + pow(abs(z)/5.f, 2.f) + pow(abs(z)/200.f, 6.f))));
-    return a * max(0.00001, min(1000.f, 10.f / (1e-05 + pow((z)/5.f, 2.f) + pow((z)/200.f, 6.f))));
-  }
+#if MODFX_SHADER_VOLFOG_INJECTION
+  #define fx_null
+#elif MODFX_SHADER_FOM
+  #define fx_null fx_fom_null()
+#elif MODFX_SHADER_VOLSHAPE_WBOIT
+  #define fx_null (WboitData)0
+#else
+  #define fx_null encode_output(0, 0, 0)
 #endif
-
-
-  float3 calc_debug_color(float2 delta_xy, float delta_scale, float border_scale, float center_scale)
-  {
-    float2 dd = delta_xy.xy * 0.5 + 0.5;
-
-    float border = 0;
-    float tt = 0.05;
-    if ( dd.x < tt || dd.x > ( 1 - tt ) )
-      border = 1;
-
-    if ( dd.y < tt || dd.y > ( 1 - tt ) )
-      border = 1;
-
-    float center = 0;
-    if ( dot( delta_xy, delta_xy ) < 0.3 )
-      center = 1;
-
-    dd *= delta_scale;
-    border *= border_scale;
-    center *= center_scale;
-
-    float3 color;
-    color.r = ( center > 0 ? 1 : 0 );
-    color.gb = ( center > 0 ? 0 : 1 ) * dd;
-    color.rgb += border;
-    color = saturate( color );
-    return color;
-  }
-
-  float3 calc_debug_color(float2 delta_xy)
-  {
-    // default params for debug rendering
-    return calc_debug_color(delta_xy, 0.1, 0.2, 0.3);
-  }
 
 #if !MODFX_SHADER_ATEST && !_HARDWARE_METALIOS
   #define USE_EARLY_DEPTH_STENCIL [earlydepthstencil]
@@ -973,12 +829,13 @@ struct PsOutput
   float depth : SV_Target1;
 #endif
 };
-PsOutput encode_output(float4 color, float depth)
+PsOutput encode_output(float4 color, float depth, uint flags)
 {
   PsOutput output;
   output.color = color;
 #if DAFXEX_USE_REACTIVE_MASK
-  output.reactive = color.a;
+  bool additiveBlending = FLAG_ENABLED( flags, MODFX_RFLAG_BLEND_ADD );
+  output.reactive = additiveBlending ? max3(color.rgb) : color.a;
 #endif
 #if MODFX_USE_DEPTH_OUTPUT
   output.depth = depth;
@@ -986,31 +843,59 @@ PsOutput encode_output(float4 color, float depth)
   return output;
 }
 
-#if MODFX_SHADER_VOLFOG_INJECTION
-  #define fx_null
-#elif MODFX_SHADER_FOM
-  #define fx_null fx_fom_null()
-#elif MODFX_SHADER_VOLSHAPE_WBOIT
-  #define fx_null (WboitData)0
-#else
-  #define fx_null encode_output(0, 0)
-#endif
-
-bool color_discard_test(float4 src, uint flags)
+float4 unpack_distortion(float4 tex_input)
 {
-  // default = premult
-  float src_alpha = src.a;
-  float src_color_sum = dot(src.rgb, 1.f);
-#if MODFX_SHADER_DISTORTION
-  src_color_sum = abs(src_color_sum);
-#endif
-  if ( FLAG_ENABLED( flags, MODFX_RFLAG_BLEND_ADD ) )
-    src_alpha = 0;
-  else if ( FLAG_ENABLED( flags, MODFX_RFLAG_BLEND_ABLEND ) )
-    src_color_sum = 0;
-
-  return (src_alpha + src_color_sum) < 1.f / 255.f;
+  tex_input.xy -= float2( 127.f / 255.f, 127.f / 255.f );
+  return tex_input;
 }
+
+#if MODFX_USE_LIGHTING
+void apply_shadow_to_ps_lighting(inout float3 lighting_part, VsOutput input, GlobalData gdata, float3 ndl, float3 nda,
+  float specular, float alpha, float3 translucency)
+{
+#if MODFX_USE_SHADOW || DAFX_USE_CLOUD_SHADOWS
+  half shadow = input.lighting.a;
+#else
+  half shadow = 1.f;
+#endif
+
+#if MODFX_USE_GI
+  float3 ambient = input.ambient.rgb;
+#else
+  float3 ambient = gdata.sky_color;
+#endif
+
+#if MODFX_WATER_PROJ_IGNORES_LIGHTING
+  bool applyLighting = !dafx_is_water_proj;
+#else
+  bool applyLighting = true;
+#endif
+
+  float3 lighting = ndl * gdata.sun_color * shadow + nda * ambient + input.lighting.rgb + translucency;
+  if (applyLighting)
+    lighting_part *= lighting;
+
+  lighting_part += specular * gdata.sun_color * alpha * shadow;
+}
+
+#if !MODFX_RIBBON_SHAPE
+float3 apply_advanced_translucency_to_lighting(float3 lighting_part, VsOutput input, GlobalData gdata, float ndl,
+  float translucency, float3 translucency_color_mul)
+{
+#if MODFX_USE_SHADOW || DAFX_USE_CLOUD_SHADOWS
+  half shadow = input.lighting.a;
+#else
+  half shadow = 1.f;
+#endif
+
+  float3 backColor = translucency * lighting_part;
+  float3 sssColor = gdata.sun_color * backColor;
+  sssColor *= translucency_color_mul;
+  return (foliageSSSfast(ndl) * shadow) * sssColor;
+}
+#endif
+
+#endif
 
 #if MODFX_SHADER_VOLFOG_INJECTION
   USE_EARLY_DEPTH_STENCIL void dafx_bboard_ps(VsOutput input HW_USE_SCREEN_POS)
@@ -1024,7 +909,7 @@ bool color_discard_test(float4 src, uint flags)
   {
 
 #if MODFX_DEBUG_RENDER_ENABLED
-    PsOutput output = encode_output(0, 0);
+    PsOutput output = encode_output(0, 0, 0);
 #if !MODFX_RIBBON_SHAPE // TODO: add ribbon support for debug rendering
     output.color.xyz = modfx_pack_hdr(calc_debug_color(input.delta.xy));
 #endif
@@ -1054,6 +939,13 @@ bool color_discard_test(float4 src, uint flags)
 #endif
 #endif
 
+#if !MODFX_RIBBON_SHAPE && !MODFX_SHADER_VOLSHAPE_WBOIT_APPLY
+  if ( FLAG_ENABLED( flags, MODFX_RFLAG_USE_UV_ROTATION ) && dot( input.delta, input.delta ) > 1.f)
+  {
+    discard;
+  }
+#endif
+
 #if MODFX_TEX_DEBUG_ENABLED
     const bool tex_enabled = false;
 #else
@@ -1061,7 +953,6 @@ bool color_discard_test(float4 src, uint flags)
 #endif
 
 #if MODFX_RIBBON_SHAPE
-
     #if MODFX_RIBBON_SHAPE_IS_SIDE_ONLY
       bool ribbon_side = 1;
     #else
@@ -1101,49 +992,22 @@ bool color_discard_test(float4 src, uint flags)
     }
   #endif
 #else
+
+    if (tex_enabled)
+      input.tc += modfx_render_get_motion_vecs(parent_data, input.tc, input.frame_blend);
+
     float4 src_tex_0 = 1;
     if (tex_enabled)
       src_tex_0 = tex2D( g_tex_0, input.tc.xy );
 
-#if MODFX_USE_FRAMEBLEND && !MODFX_SHADER_VOLSHAPE_WBOIT_APPLY
+  #if MODFX_USE_FRAMEBLEND && !MODFX_SHADER_VOLSHAPE_WBOIT_APPLY
     if ( tex_enabled && FLAG_ENABLED( flags, MODFX_RFLAG_FRAME_ANIMATED_FLIPBOOK ) )
       src_tex_0 = lerp( src_tex_0, tex2D( g_tex_0, input.tc.zw ), input.frame_blend );
-#endif
-
-  uint any_color_remap = 0;
-  bool shouldDiscard = false;
-#if !(MODFX_SHADER_VOLSHAPE || MODFX_SHADER_VOLSHAPE_WBOIT || MODFX_SHADER_VOLFOG_INJECTION)
-#if MODFX_USE_COLOR_MATRIX
-  any_color_remap |= (parent_data.mods_offsets[MODFX_RMOD_TEX_COLOR_MATRIX] != 0) ? 1 : 0;
-#endif
-#if MODFX_USE_COLOR_REMAP
-  any_color_remap |= (parent_data.mods_offsets[MODFX_RMOD_TEX_COLOR_REMAP] != 0) ? 1 : 0;
-#endif
-
-  BRANCH
-  if (!any_color_remap)
-    shouldDiscard = color_discard_test(src_tex_0, flags);
-
-#endif
-
-#if !MODFX_SHADER_VOLSHAPE_WBOIT_APPLY
-    if ( FLAG_ENABLED( flags, MODFX_RFLAG_USE_UV_ROTATION ) )
-    {
-      if ( dot( input.delta, input.delta ) > 1.f )
-        shouldDiscard = true;
-    }
-#endif
-
-  if (shouldDiscard)
-  {
-    discard;
-    return fx_null;
-  }
-
+  #endif
 #endif
 
 #if MODFX_SHADER_DISTORTION
-    src_tex_0.xy -= float2( 127.f / 255.f, 127.f / 255.f );
+  src_tex_0 = unpack_distortion(src_tex_0);
 #endif
 
     float depth_mask = 1;
@@ -1158,50 +1022,9 @@ bool color_discard_test(float4 src, uint flags)
       return;
 #endif
 
-#if MODFX_USE_DEPTH_MASK && !(MODFX_SHADER_VOLSHAPE || MODFX_SHADER_VOLSHAPE_WBOIT)
-    if ( parent_data.mods_offsets[MODFX_RMOD_DEPTH_MASK] )
-    {
-      ModfxDepthMask pp = ModfxDepthMask_load( 0, parent_data.mods_offsets[MODFX_RMOD_DEPTH_MASK] );
-      float4 cloud_tc = viewport_tc;
-      cloud_tc.xy = reproject_scattering(cloud_tc.xy, cloud_tc.z / cloud_tc.w);
-      depth_mask = dafx_get_soft_depth_mask(viewport_tc, cloud_tc, pp.depth_softness_rcp, gdata);
+    src_tex_0 = modfx_render_mul_color_matrix(parent_data, src_tex_0);
 
-  #if !MODFX_SHADER_VOLFOG_INJECTION
-      if (depth_mask < 1e-03)
-      {
-        discard;
-        return fx_null;
-      }
-  #endif
-    }
-#endif
-
-#if MODFX_USE_COLOR_MATRIX
-    if ( parent_data.mods_offsets[MODFX_RMOD_TEX_COLOR_MATRIX] )
-    {
-      uint4 mat = dafx_get_4ui( 0, parent_data.mods_offsets[MODFX_RMOD_TEX_COLOR_MATRIX] );
-      float4 r = unpack_e3dcolor_to_n4f( mat.x );
-      float4 g = unpack_e3dcolor_to_n4f( mat.y );
-      float4 b = unpack_e3dcolor_to_n4f( mat.z );
-      float4 a = unpack_e3dcolor_to_n4f( mat.w );
-
-      float4 c;
-      c.r = dot( src_tex_0, r );
-      c.g = dot( src_tex_0, g );
-      c.b = dot( src_tex_0, b );
-      c.a = dot( src_tex_0, a );
-
-      src_tex_0 = saturate( c );
-    }
-#endif
-
-    float alpha = src_tex_0.w * input.color.w;
-
-    if ( FLAG_ENABLED( flags, MODFX_RFLAG_COLOR_USE_ALPHA_THRESHOLD ) )
-    {
-      alpha = src_tex_0.w - ( 1.f - input.color.w );
-      alpha = saturate( alpha );
-    }
+    float alpha = calc_alpha(src_tex_0, input, flags);
 
     float3 emissive_part = 0;
     float3 lighting_part = 0;
@@ -1227,7 +1050,7 @@ bool color_discard_test(float4 src, uint flags)
         first *= input.color.xyz;
       }
       #if MODFX_USE_FOG && !MODFX_USE_FOG_PS_APPLY && FX_FOG_MULT_ALPHA
-      else if (FLAG_ENABLED( flags, MODFX_RFLAG_BLEND_PREMULT))
+      else if (is_blending_premult(flags))
       {
         first *= input.fog_mul.xyz;
       }
@@ -1245,7 +1068,7 @@ bool color_discard_test(float4 src, uint flags)
           second *= input.color.xyz;
         }
         #if  MODFX_USE_FOG && !MODFX_USE_FOG_PS_APPLY && FX_FOG_MULT_ALPHA
-        else if (FLAG_ENABLED( flags, MODFX_RFLAG_BLEND_PREMULT))
+        else if (is_blending_premult(flags))
         {
           second *= input.fog_mul.xyz;
         }
@@ -1266,11 +1089,29 @@ bool color_discard_test(float4 src, uint flags)
       lighting_part = c;
     }
 
-#if !(MODFX_SHADER_VOLSHAPE || MODFX_SHADER_VOLSHAPE_WBOIT || MODFX_SHADER_VOLFOG_INJECTION || MODFX_SHADER_DISTORTION)
+#if !(MODFX_SHADER_VOLSHAPE || MODFX_SHADER_VOLSHAPE_WBOIT || MODFX_SHADER_VOLFOG_INJECTION)
     if (color_discard_test(float4(lighting_part.xyz + emissive_part.xyz, alpha), flags))
     {
       discard;
       return fx_null;
+    }
+#endif
+
+#if MODFX_USE_DEPTH_MASK && !(MODFX_SHADER_VOLSHAPE || MODFX_SHADER_VOLSHAPE_WBOIT)
+    if (!(gdata.flags & DAFX_GLOBAL_DATA_FLAG_RENDERING_WATER_REFLECTION) && parent_data.mods_offsets[MODFX_RMOD_DEPTH_MASK] )
+    {
+      ModfxDepthMask pp = ModfxDepthMask_load( 0, parent_data.mods_offsets[MODFX_RMOD_DEPTH_MASK] );
+      float4 cloud_tc = viewport_tc;
+      cloud_tc.xy = reproject_scattering(distortedToLinearTc(cloud_tc.xy), cloud_tc.z / cloud_tc.w);
+      depth_mask = dafx_get_soft_depth_mask(viewport_tc, cloud_tc, pp.depth_softness_rcp, gdata);
+
+  #if !MODFX_SHADER_VOLFOG_INJECTION
+      if (depth_mask < 1e-03)
+      {
+        discard;
+        return fx_null;
+      }
+  #endif
     }
 #endif
 
@@ -1332,7 +1173,7 @@ bool color_discard_test(float4 src, uint flags)
 #if MODFX_SHADER_VOLSHAPE_WBOIT_APPLY
 
 #ifdef DAFXEX_CLOUD_MASK_ENABLED
-    alpha *= dafx_get_screen_cloud_volume_mask(viewport_tc.xy, viewport_tc.w);
+    alpha *= dafx_get_screen_cloud_volume_mask(distortedToLinearTc(viewport_tc.xy), viewport_tc.w);
 #endif
 
     float4 wboit_accum = tex2D(wboit_color, viewport_tc.xy);
@@ -1341,18 +1182,25 @@ bool color_discard_test(float4 src, uint flags)
 
     float3 col = wboit_accum.xyz / clamp(wboit_accum.w, 0.0000001f, 1000.f);
     float a = 1.f - wboit_r;
-    return encode_output(float4(col * a, a) * alpha * a, 0);
+    return encode_output(float4(col * a, a) * alpha * a, 0, 0);
 #endif
 
 #endif
 
 #if MODFX_USE_LIGHTING
+#if SIMPLIFIED_VS_LIGHTING
+  #if MODFX_WATER_PROJ_IGNORES_LIGHTING
+    if (!dafx_is_water_proj)
+  #endif
+      lighting_part *= input.lighting.rgb;
+#else
     // TODO: optimize!
     BRANCH
     if ( parent_data.mods_offsets[MODFX_RMOD_LIGHTING_INIT] )
     {
       ModfxDeclLighting pp = ModfxDeclLighting_load( 0, parent_data.mods_offsets[MODFX_RMOD_LIGHTING_INIT] );
 
+      float3 wnorm = float3( 0, 1, 0 );
       float translucency = pp.translucency / 255.f;
       float sphere_rad = pp.sphere_normal_radius;
       float sphere_power = pp.sphere_normal_power / 255.f;
@@ -1361,8 +1209,6 @@ bool color_discard_test(float4 src, uint flags)
 #if MODFX_RIBBON_SHAPE
       float3 fwd_dir = input.fwd_dir;
       float ndl, nda;
-      float3 wnorm = 0;
-      wnorm = float3( 0, 1, 0 );
       nda = 1.f;
 #else
       float3 fwd_dir = cross( input.up_dir, input.right_dir );
@@ -1375,10 +1221,8 @@ bool color_discard_test(float4 src, uint flags)
       sphere_normal = fwd_dir * sphere_normal.z + input.right_dir * sphere_normal.x + input.up_dir * sphere_normal.y;
 
       float ndl, nda;
-      float3 wnorm = 0;
       if ( pp.type == MODFX_LIGHTING_TYPE_UNIFORM )
       {
-        wnorm = float3( 0, 1, 0 );
         nda = 1.f;
       }
       else if ( pp.type == MODFX_LIGHTING_TYPE_DISC )
@@ -1402,7 +1246,8 @@ bool color_discard_test(float4 src, uint flags)
         lnorm.xy = src_tex_1 * 2.f - 1.f;
         lnorm.z = sqrt( saturate( 1 - dot( lnorm.xy, lnorm.xy ) ) );
 
-        wnorm = fwd_dir * lnorm.z + input.right_dir * lnorm.x - input.up_dir * lnorm.y;
+        float2 flip = (input.frame_flags.xx & uint2(MODFX_FRAME_FLAGS_FLIP_X, MODFX_FRAME_FLAGS_FLIP_Y)) ? -1 : 1;
+        wnorm = fwd_dir * lnorm.z + flip.x * input.right_dir * lnorm.x - flip.y * input.up_dir * lnorm.y;
 
         nda = saturate( dot( sphere_normal, wnorm ) );
   #endif
@@ -1423,31 +1268,55 @@ bool color_discard_test(float4 src, uint flags)
 #endif
 
       ndl = ndl * ( 1.f - normal_softness ) + normal_softness;
-      ndl = lerp( ndl, 1.f, saturate( dot( gdata.from_sun_direction, fwd_dir ) ) * translucency );
-#if MODFX_USE_SHADOW || MODFX_USE_LIGHTING || DAFX_USE_CLOUD_SHADOWS
-      #if MODFX_USE_SHADOW || DAFX_USE_CLOUD_SHADOWS
-      half shadow = input.lighting.a;
-      #else
-      half shadow = 1.f;
-      #endif
-      #if MODFX_USE_GI
-      float3 ambient = input.ambient.rgb;
-      #else
-      float3 ambient = gdata.sky_color;
-      #endif
 
-      float3 lighting = ndl * gdata.sun_color * shadow + nda * ambient + input.lighting.rgb;
+      float3 translucency_lighting = 0;
 
-#if MODFX_WATER_PROJ_IGNORES_LIGHTING
-      if (!dafx_is_water_proj)
+      BRANCH
+      if (parent_data.mods_offsets[MODFX_RMOD_ADVANCED_TRANSLUCENCY])
+      {
+#if !MODFX_RIBBON_SHAPE
+        ModfxDeclAdvancedTranslucency pp = ModfxDeclAdvancedTranslucency_load(0, parent_data.mods_offsets[MODFX_RMOD_ADVANCED_TRANSLUCENCY]);
+        float3 translucency_color_mul = pp.translucency_color_mul;
+
+        // Normal-based translucency
+        bool use_view_for_translucency = FLAG_ENABLED(pp.advanced_translucency_flags, MODFX_TRANSLUCENCY_USE_VIEW_VEC_TRANSLUCENCY);
+        float3 direction = use_view_for_translucency ? input.view_dir : gdata.from_sun_direction;
+
+        float cosPhi = dot(direction, wnorm);
+
+        FLATTEN
+        if (FLAG_ENABLED(pp.advanced_translucency_flags, MODFX_TRANSLUCENCY_INVERT_ACCEPTED_DEGREES))
+          cosPhi = 1 - cosPhi;
+
+        float phi = clamp(acos(cosPhi), pp.min_radian, pp.max_radian) - pp.min_radian;
+        float normal_based_translucency = phi * pp.inv_max_radian_diff;
+
+        // Alpha-based translucency
+        float alpha_t = abs(pp.alpha_max - min(alpha - pp.alpha_min, pp.alpha_max)) * pp.alpha_diff_inv; // Normalize to 0-1
+        float alpha_based_translucency = lerp(pp.trans_min, pp.trans_max, alpha_t);
+
+        bool use_normal_based_trans = FLAG_ENABLED(pp.advanced_translucency_flags, MODFX_TRANSLUCENCY_USE_NORMAL_BASED_TRANSLUCENCY);
+        bool use_alpha_based_trans = FLAG_ENABLED(pp.advanced_translucency_flags, MODFX_TRANSLUCENCY_USE_ALPHA_BASED_TRANSLUCENCY);
+
+        // Maximum translucency
+        translucency *= max(use_normal_based_trans ? normal_based_translucency : 0, use_alpha_based_trans ? alpha_based_translucency : 0);
+        translucency *= FLAG_ENABLED(pp.advanced_translucency_flags, MODFX_TRANSLUCENCY_WEIGH_BY_VOL) ? saturate(dot( input.view_dir, gdata.from_sun_direction )) : 1;
+
+        // Applying advanced translucency
+        translucency_lighting = apply_advanced_translucency_to_lighting(lighting_part, input, gdata, ndl, translucency, translucency_color_mul);
 #endif
-        lighting_part *= lighting;
-#endif
-      lighting_part += specular * gdata.sun_color * alpha * shadow;
+      }
+      else // default translucency
+      {
+        ndl = lerp( ndl, 1.f, saturate( dot( gdata.from_sun_direction, fwd_dir ) ) * translucency );
+      }
+
+      apply_shadow_to_ps_lighting(lighting_part, input, gdata, ndl, nda, specular, alpha, translucency_lighting);
     }
 #endif
+#endif
 
-    if ( FLAG_ENABLED( flags, MODFX_RFLAG_BLEND_PREMULT ) )
+    if ( is_blending_premult(flags) )
       emissive_part *= alpha;
 
     float4 result = float4( emissive_part + lighting_part, alpha );
@@ -1461,12 +1330,13 @@ bool color_discard_test(float4 src, uint flags)
     if (depthHaze <= depthScene)
     {
       discard;
-      return encode_output(0, 0);
+      return encode_output(0, 0, 0);
     }
 
     float distortionMod = dafx_get_1f(0, parent_data.mods_offsets[MODFX_RMOD_DISTORTION_STRENGTH]);
+    distortionMod *= input.zfar_strength;
 
-    if ( ( abs( result.x ) + abs( result.y ) ) < ( 1.f / 127.f ))
+    if (all(abs(result.xy) < MODFX_DISTORTION_DISCARD_THRESHOLD))
       result.w = 0;
 
     result.xy *= distortionMod;
@@ -1512,6 +1382,15 @@ bool color_discard_test(float4 src, uint flags)
   #endif
 #endif
 
+#if MODFX_SHADER_XRAY
+    ModfxDeclXrayParams xray_blend_params = ModfxDeclXrayParams_load(0, parent_data.mods_offsets[MODFX_RMOD_XRAY_PARAMS]);
+    float4 blend_color1 = unpack_e3dcolor_to_n4f(xray_blend_params.blend_color1);
+    float4 blend_color2 = unpack_e3dcolor_to_n4f(xray_blend_params.blend_color2);
+
+    float distance_val = saturate(input.view_dir_dist * xray_blend_params.inv_max_distance_times_power);
+    result *= lerp(blend_color1, blend_color2, distance_val);
+#endif
+
     result.w *= depth_mask;
 
 #if MODFX_SHADER_ATEST
@@ -1520,7 +1399,7 @@ bool color_discard_test(float4 src, uint flags)
     result.xyz = modfx_pack_hdr( result.xyz );
     clip_alpha( result.w );
     result.w = 1.f;
-    return encode_output(result, depth);
+    return encode_output(result, depth, flags);
 
 #elif MODFX_SHADER_FOM
 
@@ -1557,28 +1436,31 @@ bool color_discard_test(float4 src, uint flags)
       result.rgb = fx_thermals_apply( 0.032, thermal_color, emissive_part, 0.5 + 0.5*thermal_normal, thermal_alpha).rgb;
   #endif
 
-    if ( FLAG_ENABLED( flags, MODFX_RFLAG_BLEND_ADD ) )
+    if (is_blending_premult(flags))
+    {
+      float3 ablend_part = result.xyz * alpha + fog_add;
+      ablend_part *= result.w;
+
+      float3 add_part = result.xyz * ( 1.f - alpha ) * depth_mask;
+
+      result.xyz = ablend_part + add_part;
+    }
+    else if ( FLAG_ENABLED( flags, MODFX_RFLAG_BLEND_ADD ) )
     {
       result.xyz *= result.w;
       result.w = 0;
-      result.xyz = modfx_pack_hdr( result.xyz );
     }
     else if ( FLAG_ENABLED( flags, MODFX_RFLAG_BLEND_ABLEND ) )
     {
       result.xyz += fog_add;
       result.xyz *= result.w;
-      result.xyz = modfx_pack_hdr( result.xyz );
     }
-    else // premult
-    {
-      float3 ablend_part = result.xyz * alpha + fog_add;
-      ablend_part = modfx_pack_hdr( ablend_part ) * result.w;
 
-      float3 add_part = result.xyz * ( 1.f - alpha ) * depth_mask;
-      add_part = modfx_pack_hdr( add_part );
+  #if MODFX_USE_SHADOW
+    result.xyz *= input.fake_brightness;
+  #endif
 
-      result.xyz = ablend_part + add_part;
-    }
+    result.xyz = modfx_pack_hdr( result.xyz );
 
   #if MODFX_WBOIT_ENABLED
       WboitData wboit_res;
@@ -1587,7 +1469,7 @@ bool color_discard_test(float4 src, uint flags)
       wboit_res.alpha = result.w * wboit_weight(cur_depth, result.w);
       return wboit_res;
   #else
-    return encode_output(result, depth);
+    return encode_output(result, depth, flags);
   #endif
 #endif
 

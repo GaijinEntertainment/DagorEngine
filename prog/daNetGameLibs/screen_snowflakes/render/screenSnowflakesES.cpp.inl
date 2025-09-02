@@ -9,7 +9,7 @@
 #include <ecs/render/resPtr.h>
 #include <gamePhys/collision/collisionLib.h>
 #include <math/random/dag_random.h>
-#include <render/daBfg/ecs/frameGraphNode.h>
+#include <render/daFrameGraph/ecs/frameGraphNode.h>
 #include <render/renderEvent.h>
 #include <render/renderSettings.h>
 #include <shaders/dag_DynamicShaderHelper.h>
@@ -45,15 +45,16 @@ static void snowflakes_enabled_global_setting_ecs_query(Callable c);
 
 ECS_TAG(render)
 ECS_ON_EVENT(OnRenderSettingsReady, SetResolutionEvent, ChangeRenderFeatures)
-ECS_TRACK(render_settings__screenSpaceWeatherEffects)
-static void create_screen_snowflakes_renderer_entity_on_settings_changed_es(const ecs::Event &,
-  bool render_settings__screenSpaceWeatherEffects)
+ECS_TRACK(render_settings__screenSpaceWeatherEffects, render_settings__bare_minimum)
+static void create_screen_snowflakes_renderer_entity_on_settings_changed_es(
+  const ecs::Event &, bool render_settings__screenSpaceWeatherEffects, bool render_settings__bare_minimum)
 {
   bool renderSnowflakes = false;
-  snow_enabled_on_level_ecs_query([&renderSnowflakes, render_settings__screenSpaceWeatherEffects](ecs::Tag snow_tag) {
+  snow_enabled_on_level_ecs_query([&renderSnowflakes](ecs::Tag snow_tag) {
     G_UNUSED(snow_tag);
-    renderSnowflakes = render_settings__screenSpaceWeatherEffects;
+    renderSnowflakes = true;
   });
+  renderSnowflakes = renderSnowflakes && render_settings__screenSpaceWeatherEffects && !render_settings__bare_minimum;
   create_or_destroy_screen_snowflakes_renderer_entity(renderSnowflakes);
 }
 
@@ -90,7 +91,7 @@ static void init_screen_snowflakes_es(const ecs::Event &,
   bool &screen_snowflakes__camera_inside_vehicle,
   int screen_snowflakes__max_count,
   UniqueBufHolder &screen_snowflakes__instances_buf,
-  dabfg::NodeHandle &screen_snowflakes__node)
+  dafg::NodeHandle &screen_snowflakes__node)
 {
   screen_snowflakes__enabled_on_level = true;
 
@@ -99,13 +100,15 @@ static void init_screen_snowflakes_es(const ecs::Event &,
       screen_snowflakes__camera_inside_vehicle = isInVehicle;
     });
 
-  screen_snowflakes__instances_buf = dag::create_sbuffer(sizeof(Snowflake), screen_snowflakes__max_count,
-    SBCF_MISC_STRUCTURED | SBCF_BIND_SHADER_RES, 0, "screen_snowflakes_buf");
+  screen_snowflakes__instances_buf =
+    dag::buffers::create_one_frame_sr_structured(sizeof(Snowflake), screen_snowflakes__max_count, "screen_snowflakes_buf");
 
-  screen_snowflakes__node = dabfg::register_node("screen_snowflakes_node", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
-    auto screenSnowflakesTexHndl = registry.createTexture2d("screen_snowflakes_tex", dabfg::History::No,
-      {TEXFMT_R16F | TEXCF_RTARGET, registry.getResolution<2>("post_fx", 0.5f)});
-    registry.requestRenderPass().clear(screenSnowflakesTexHndl, make_clear_value(0, 0, 0, 0)).color({screenSnowflakesTexHndl});
+  screen_snowflakes__node = dafg::register_node("screen_snowflakes_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    auto screenSnowflakesTexHndl = registry
+                                     .createTexture2d("screen_snowflakes_tex", dafg::History::No,
+                                       {TEXFMT_R16F | TEXCF_RTARGET, registry.getResolution<2>("post_fx", 0.5f)})
+                                     .clear(make_clear_value(0.f, 0.f, 0.f, 0.f));
+    registry.requestRenderPass().color({screenSnowflakesTexHndl});
 
     return [renderer = DynamicShaderHelper("screen_snowflakes")]() {
       render_screen_snowflakes_ecs_query([&renderer](const SnowflakeInstances &screen_snowflakes__instances) {
@@ -125,7 +128,7 @@ ECS_TAG(render)
 ECS_ON_EVENT(on_disappear)
 static void destroy_screen_snowflakes_es(const ecs::Event &,
   UniqueBufHolder &screen_snowflakes__instances_buf,
-  dabfg::NodeHandle &screen_snowflakes__node,
+  dafg::NodeHandle &screen_snowflakes__node,
   bool &screen_snowflakes__enabled_on_level)
 {
   screen_snowflakes__enabled_on_level = false;
@@ -219,5 +222,5 @@ static void screen_snowflakes_before_render_es(const UpdateStageInfoBeforeRender
 ECS_TAG(render)
 static void register_screen_snowflakes_for_postfx_es(const RegisterPostfxResources &evt)
 {
-  evt.get<0>().readTexture("screen_snowflakes_tex").atStage(dabfg::Stage::PS).bindToShaderVar().optional();
+  evt.get<0>().readTexture("screen_snowflakes_tex").atStage(dafg::Stage::PS).bindToShaderVar().optional();
 }

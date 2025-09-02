@@ -22,7 +22,8 @@ public:
   using ISSAORenderer::render;
 
   GTAORenderer() = delete;
-  GTAORenderer(int w, int h, int views, uint32_t flags = SSAO_NONE, bool use_own_textures = true);
+  GTAORenderer(int w, int h, int views, uint32_t flags = SSAO_NONE, bool use_own_textures = true,
+    bool use_own_reprojection_params = true);
   virtual ~GTAORenderer();
 
   void reset() override;
@@ -32,6 +33,10 @@ public:
   TEXTUREID getSSAOTexId() override;
 
   void setCurrentView(int viewIndex);
+
+  void renderGTAO(const TMatrix &view_tm, const TMatrix4 &proj_tm, const ManagedTex *ssao_tex, const DPoint3 *world_pos);
+  void applyGTAOFilter(const ManagedTex *ssao_tex, const ManagedTex *prev_ssao_tex, const ManagedTex *tmp_tex,
+    SubFrameSample sub_sample = SubFrameSample::Single);
 
 private:
   void render(const TMatrix &view_tm, const TMatrix4 &proj_tm, BaseTexture *ssaoDepthTexUse, const ManagedTex *ssaoTex,
@@ -71,4 +76,5 @@ private:
 
   ViewDependentResource<Afr, 2> afrs;
   bool useOwnTextures;
+  bool useOwnReprojectionParams;
 };

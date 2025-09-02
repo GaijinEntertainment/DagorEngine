@@ -1,0 +1,53 @@
+include "land_block_inc.dshl"
+include "bc_compression_inc.dshl"
+include "etc2_compression_inc.dshl"
+
+texture cache_buffer_tex_0;
+texture cache_buffer_tex_1;
+texture cache_buffer_tex_2;
+
+bool find_base_colors_with_pca = compatibility_mode == compatibility_mode_off;
+
+macro DIRECT_CACHE_BYPASS_VS()
+  supports land_mesh_prepare_clipmap;
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float4 texcoord : TEXCOORD0;
+    };
+  }
+
+  hlsl(vs) {
+    float4 rel_queue_page_sz__rel_cache_page_sz:register(c50);
+    #define rel_queue_page_sz (rel_queue_page_sz__rel_cache_page_sz.xy)
+    #define rel_cache_page_sz (rel_queue_page_sz__rel_cache_page_sz.zw)
+    float mip:register(c51);
+    //no reason to allocate more than COMPRESS_QUEUE_SIZE
+    //otherwise it is possible OOB read from const buffer, which
+    //bugs out on Adreno 660 devices (either hw specific prefetch bug in driver or bug in general)
+    #define MAX_QUADS 4
+    float4 quads[MAX_QUADS]:register(c52);
+##if !hardware.metal
+    #if !SHADER_COMPILER_DXC
+    //next register that is not used
+    float4 last:register(c56);
+    #endif
+##endif
+    VsOutput bypass_vs(uint vertexId : SV_VertexID)
+    {
+      uint quadId = vertexId/6;
+      uint subvertexId = vertexId%6;
+      float2 localPos = float2(subvertexId % 2, subvertexId > 1 && subvertexId < 5);
+      float4 quad = quads[quadId];
+      VsOutput output;
+      float mipExp = exp2(mip);
+      float2 srcTc = localPos.xy*rel_queue_page_sz + quad.zw;
+      output.pos = float4((quad.xy+localPos)*rel_cache_page_sz*2-1, 0, 1);
+      output.pos.y = -output.pos.y;
+      output.texcoord.xy = srcTc;
+      output.texcoord.zw = mip;
+      return output;
+    }
+  }
+endmacro

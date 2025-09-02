@@ -36,11 +36,12 @@
 #include <3d/dag_createTex.h>
 #include <osApiWrappers/dag_direct.h>
 #include <drv/3d/dag_variableRateShading.h>
+#include <render/shaderCacheWarmup/shaderCacheWarmup.h>
 
 #include "renderer.h"
 
 CONSOLE_INT_VAL("app", splashId, -1, -1, 1000);
-CONSOLE_BOOL_VAL("render", forceLoadingHalfRes, true);
+CONSOLE_BOOL_VAL("render", splashScreenFullRes, false);
 CONSOLE_BOOL_VAL("app", useTitleLogoForSplash, false);
 
 extern bool grs_draw_wire;
@@ -58,6 +59,15 @@ static bool is_encoding = true;
 static void (*splash_render_func)(int w, int h, void *arg) = nullptr;
 static void *splash_render_func_arg = nullptr;
 static bool splash_render_func_exclusive = false;
+
+#define ANIMATED_SPLASH_SCREEN_CONST_LIST                            \
+  VAR(loading_splash_noise_64_tex_l8, false)                         \
+  VAR(loading_splash_noise_128_tex_hash, false)                      \
+  VAR(loading_splash_iGlobalTime_iResolution_iPaperWhiteNits, false) \
+  VAR(loading_splash_title_logo, true)
+#define VAR(a, opt) static ShaderVariableInfo a##_const_no{#a "_const_no", opt};
+ANIMATED_SPLASH_SCREEN_CONST_LIST
+#undef VAR
 
 static volatile int allow_watchdog_kick = 0;
 void animated_splash_screen_allow_watchdog_kick(bool allow) { interlocked_release_store(allow_watchdog_kick, allow ? 1 : 0); }
@@ -99,6 +109,9 @@ void load_title_logo()
   if (!titleLogo)
     // silently wait while engine systems initialize
     return;
+
+  if (loading_splash_title_logo_const_no < 0)
+    logerr("shader variable %s is not present in shaders dump", loading_splash_title_logo_const_no.getName());
 }
 
 void animated_splash_screen_start(bool do_encode)
@@ -112,6 +125,9 @@ void animated_splash_screen_start(bool do_encode)
     return;
 
   useTitleLogoForSplash.set(dgs_get_settings()->getBool("useTitleLogoForSplash", false));
+#if _TARGET_PC
+  splashScreenFullRes.set(dgs_get_settings()->getBool("splashScreenFullRes", false));
+#endif
 
   init_and_get_l8_64_noise();
   init_and_get_hash_128_noise();
@@ -171,7 +187,7 @@ void animated_splash_screen_stop()
   ddsx::set_streaming_mode(ddsx::BackgroundSerial);
 }
 
-void animated_splash_screen_draw(Texture *target_frame)
+void animated_splash_screen_draw()
 {
   interlocked_release_store(last_splash_draw_msec, (int)get_time_msec());
   if (::grs_draw_wire)
@@ -189,83 +205,77 @@ void animated_splash_screen_draw(Texture *target_frame)
     int w = 0, h = 0;
     d3d::get_target_size(w, h);
 
-    bool useVrs = d3d::get_driver_desc().caps.hasVariableRateShading;
-    bool loadingHalfRes = forceLoadingHalfRes.get() || w > 1920;
-#if !_TARGET_PC
-    loadingHalfRes = true;
-#endif
+    bool loadingHalfRes = !splashScreenFullRes;
+    bool loadingHalfResThroughVrs = d3d::get_driver_desc().caps.hasVariableRateShading && loadingHalfRes;
     load_title_logo();
-    if (splash_render_func_exclusive || useVrs || hdrrender::get_hdr_output_mode() == HdrOutputMode::HDR10_AND_SDR)
+    if (splash_render_func_exclusive || loadingHalfResThroughVrs || hdrrender::get_hdr_output_mode() == HdrOutputMode::HDR10_AND_SDR)
       loadingHalfRes = false;
 
-    Texture *rt = nullptr;
-    if (loadingHalfRes)
+    if (loadingHalfRes && !halfTargetTex)
     {
-      if (auto wr = get_world_renderer(); wr && !hdrrender::is_hdr_enabled())
-      {
-        target_frame = wr->getFinalTargetTex2D();
-      }
-      rt = halfTargetTex;
-      if (!rt)
-      {
-        uint32_t rtFmt = TEXFMT_R11G11B10F;
-        if (!(d3d::get_texformat_usage(rtFmt) & d3d::USAGE_RTARGET) || hdrrender::is_hdr_enabled())
-          rtFmt = TEXFMT_A16B16G16R16F;
-        halfTargetTex = d3d::create_tex(NULL, w / 2, h / 2, rtFmt | TEXCF_RTARGET, 1, "splash_half_target");
-        if (halfTargetTex)
-        {
-          halfTargetTex->disableSampler();
-          debug("[splash] created splash_half_target on demand");
-          rt = halfTargetTex;
-        }
-        else
-          logerr("Failed to create RT <splash_half_target>");
-      }
-      if (!rt)
-        d3d::set_render_target();
+      uint32_t rtFmt = TEXFMT_R11G11B10F;
+      if (!(d3d::get_texformat_usage(rtFmt) & d3d::USAGE_RTARGET) || hdrrender::is_hdr_enabled())
+        rtFmt = TEXFMT_A16B16G16R16F;
+      halfTargetTex = d3d::create_tex(NULL, w / 2, h / 2, rtFmt | TEXCF_RTARGET, 1, "splash_half_target");
+      if (halfTargetTex)
+        debug("[splash] created splash_half_target on demand");
       else
-        d3d::set_render_target(rt, 0);
+        logerr("Failed to create RT <splash_half_target>");
+    }
+
+    Driver3dRenderTarget outputRt;
+    Texture *halfResRt = loadingHalfRes ? halfTargetTex : nullptr;
+    if (halfResRt)
+    {
+      d3d::get_render_target(outputRt);
+      d3d::set_render_target(halfResRt, 0);
     }
 
     d3d::get_target_size(w, h);
     float splashParams[4] = {splash_time, static_cast<float>(w), static_cast<float>(h), static_cast<float>(paper_white_nits)};
-    d3d::set_ps_const(0, splashParams, 1);
+    d3d::set_ps_const(loading_splash_iGlobalTime_iResolution_iPaperWhiteNits_const_no.get_int(), splashParams, 1);
     const SharedTexHolder &noise64 = init_and_get_l8_64_noise();
     const SharedTexHolder &noise128 = init_and_get_hash_128_noise();
-    d3d::set_tex(STAGE_PS, 0, noise64.getTex2D());
-    d3d::set_tex(STAGE_PS, 1, noise128.getTex2D());
+    d3d::SamplerHandle smp = d3d::request_sampler({});
+    d3d::set_tex(STAGE_PS, loading_splash_noise_64_tex_l8_const_no.get_int(), noise64.getTex2D());
+    d3d::set_sampler(STAGE_PS, loading_splash_noise_64_tex_l8_const_no.get_int(), smp);
+    d3d::set_tex(STAGE_PS, loading_splash_noise_128_tex_hash_const_no.get_int(), noise128.getTex2D());
+    d3d::set_sampler(STAGE_PS, loading_splash_noise_128_tex_hash_const_no.get_int(), smp);
     if (titleLogo)
-      d3d::set_tex(STAGE_PS, 2, titleLogo);
+    {
+      d3d::set_tex(STAGE_PS, loading_splash_title_logo_const_no.get_int(), titleLogo);
+      d3d::set_sampler(STAGE_PS, loading_splash_title_logo_const_no.get_int(), smp);
+    }
     if (!splash_render_func_exclusive)
     {
-      if (useVrs)
+      if (loadingHalfResThroughVrs)
         d3d::set_variable_rate_shading(2, 2);
 
       loadingSplash.getElem()->setProgram(0);
       d3d::setvsrc(0, 0, 0);
       d3d::draw(PRIM_TRILIST, 0, 1);
 
-      if (useVrs)
+      if (loadingHalfResThroughVrs)
         d3d::set_variable_rate_shading(1, 1);
     }
 
-    if (loadingHalfRes)
-    {
-      if (target_frame == d3d::get_backbuffer_tex())
-        d3d::set_render_target();
-      else
-        d3d::set_render_target(target_frame, 0);
-      if (rt)
-      {
-        rt->texmiplevel(0, 0);
-        d3d::stretch_rect(rt, target_frame);
-        rt->texmiplevel(-1, -1);
-      }
-    }
     if (splash_render_func)
     {
       d3d::get_target_size(w, h);
       splash_render_func(w, h, splash_render_func_arg);
+    }
+    shadercache::draw_warmup_status();
+
+    if (halfResRt)
+    {
+      // outputRt.color[0].tex == nullptr may either mean the backbuffer or no texture is bound as the target.
+      // Make sure it's the backbuffer by checking the usage. (d3d::stretch_rect(*, d3d::get_backbuffer_tex()) will stretch to the
+      // backbuffer)
+      G_ASSERT(outputRt.isColorUsed(0));
+      halfResRt->texmiplevel(0, 0);
+      d3d::stretch_rect(halfResRt, outputRt.getColor(0).tex);
+      halfResRt->texmiplevel(-1, -1);
+      d3d::set_render_target(outputRt);
     }
 
     release_l8_64_noise();
@@ -280,7 +290,7 @@ void debug_animated_splash_screen()
   {
     int8_t prev_splash_id = splash_id;
     splash_id = splashId.get();
-    animated_splash_screen_draw(hdrrender::is_hdr_enabled() ? hdrrender::get_render_target_tex() : d3d::get_backbuffer_tex());
+    animated_splash_screen_draw();
     splash_id = prev_splash_id;
   }
   else
@@ -296,7 +306,7 @@ static void splash_render()
   d3d::set_render_target();
 
   d3d::clearview(CLEAR_TARGET, 0, 0, 0);
-  animated_splash_screen_draw(d3d::get_backbuffer_tex());
+  animated_splash_screen_draw();
 
   d3d::update_screen();
 }
@@ -332,7 +342,7 @@ public:
 #if _TARGET_PC_WIN // For Fraps and other 3rd parties that hook d3d present
       512 << 10,
 #else
-      256 << 10,
+      192 << 10,
 #endif
       // we increase priority by one step to match main thread priority
       cpujobs::DEFAULT_THREAD_PRIORITY - cpujobs::THREAD_PRIORITY_LOWER_STEP,
@@ -344,7 +354,8 @@ public:
 
 void start_animated_splash_screen_in_thread()
 {
-  if (dgs_get_settings()->getBool("skipSplashScreenAnimation", false))
+  if (dgs_get_settings()->getBool("skipSplashScreenAnimation", false) ||
+      dgs_get_settings()->getBool("skipSplashScreenAnimationInThread", false))
     return;
 
 #if _TARGET_PC_WIN

@@ -100,8 +100,11 @@ public:
   {
     RenderType renderType = RENDER_HEIGHT;
     TEXTUREID diffuseTexId = BAD_TEXTUREID;
+    d3d::SamplerHandle diffuseSampler = d3d::INVALID_SAMPLER_HANDLE;
     TEXTUREID distortionTexId = BAD_TEXTUREID;
+    d3d::SamplerHandle distortionSampler = d3d::INVALID_SAMPLER_HANDLE;
     TEXTUREID gradientTexId = BAD_TEXTUREID;
+    d3d::SamplerHandle gradientSampler = d3d::INVALID_SAMPLER_HANDLE;
   };
 
   struct Spawn
@@ -205,8 +208,11 @@ private:
   BufPtr indirectBuffer;
 
   int diffuseTexVarId;
+  int diffuseTex_samplerstateVarId;
   int distortionTexVarId;
+  int distortionTex_samplerstateVarId;
   int gradientTexVarId;
+  int gradientTex_samplerstateVarId;
   int countVarId;
   int offsetVarId;
   int limitVarId;

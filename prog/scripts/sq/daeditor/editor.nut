@@ -1,24 +1,25 @@
-let {sh, sw, set_kb_focus} = require("daRg")
+from "daRg" import sh, sw, set_kb_focus
 require("interop.nut")
 require("daeditor_es.nut")
 
-let {showHelp, editorIsActive, editorFreeCam, showEntitySelect, showTemplateSelect, propPanelVisible,
-     showPointAction, typePointAction, entitiesListUpdateTrigger} = require("state.nut")
+let { showHelp, editorIsActive, editorFreeCam, showTemplateSelect, propPanelVisible, showPointAction, typePointAction, entitiesListUpdateTrigger } = require("state.nut")
 
 editorIsActive.subscribe(function(v){ if(v == false) set_kb_focus(null) })
 editorFreeCam.subscribe(function(v){ if(v == true) set_kb_focus(null) })
 propPanelVisible.subscribe(function(v){ if (v == false) set_kb_focus(null) })
 
 let mainToolbar = require("mainToolbar.nut")
-let entitySelect = require("entitySelect.nut")
-let {showLogsWindow} = require("%daeditor/state/logsWindow.nut")
-let logsWindow = require("logsWindow.nut")
 let templateSelect = require("templateSelect.nut")
 let attrPanel = require("attrPanel.nut")
 let help = require("components/help.nut")(showHelp)
 let cursors = require("components/cursors.nut")
-let {modalWindowsComponent} = require("components/modalWindows.nut")
-let {msgboxComponent} = require("editor_msgbox.nut")
+let { modalWindowsComponent } = require("components/modalWindows.nut")
+let { msgboxComponent } = require("%daeditor/components/msgbox.nut")
+let { windowsManager, registerWindow } = require("%daeditor/components/window.nut")
+
+registerWindow(require("entitySelect.nut"))
+registerWindow(require("loadedScenes.nut"))
+registerWindow(require("logsWindow.nut"))
 
 function getActionCursor(actionType) {
   if (actionType=="point_action")
@@ -29,7 +30,7 @@ function getActionCursor(actionType) {
 }
 
 return function() {
-  if (!editorIsActive.value) {
+  if (!editorIsActive.get()) {
     return {
       watch = editorIsActive
     }
@@ -39,29 +40,26 @@ return function() {
     size = [sw(100), sh(100)]
     watch = [
       editorIsActive
-      showEntitySelect
       showTemplateSelect
       showPointAction
       typePointAction
       showHelp
       entitiesListUpdateTrigger
-      showLogsWindow
       editorFreeCam
     ]
 
-    cursor = editorFreeCam.value ? null
-      : showPointAction.value ? getActionCursor(typePointAction.value)
+    cursor = editorFreeCam.get() ? null
+      : showPointAction.get() ? getActionCursor(typePointAction.get())
       : cursors.normal
 
     children = [
       mainToolbar,
-      (showEntitySelect.value ? entitySelect : null),
-      (showTemplateSelect.value ? templateSelect : null),
-      attrPanel,
-      (showHelp.value ? help : null),
+      windowsManager,
+      (showTemplateSelect.get() ? templateSelect : null), //fixme
+      attrPanel, //fixme
+      (showHelp.get() ? help : null),
       modalWindowsComponent,
       msgboxComponent,
-      (showLogsWindow.value ? logsWindow : null),
     ]
   }
 }

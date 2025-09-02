@@ -1,0 +1,28 @@
+R"(ROUTINE_VISIBILITY void stroutine%u(void *context) // <- local routine id
+{
+  enum class Location : size_t
+  {
+
+  // Destination registers for constants and slots for resources
+%s
+
+  };
+
+
+  StblkcodeContext &ctx = *(StblkcodeContext *)context;
+  const uint8_t *vars_base = (const uint8_t *)ctx.vars;
+  void *bindless_ctx = ctx.bindlessContext;
+
+  // temp storage for numeric constants and textures
+%s
+
+  // Custom (local and bool vars) decls
+%s
+
+  // Routine code
+%s
+
+  // Create state call
+%s
+}
+)"

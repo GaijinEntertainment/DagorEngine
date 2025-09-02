@@ -513,8 +513,8 @@ void ContactSolver::addContact(int index_a, int index_b, gamephys::CollisionCont
     cachePair->manifold.addManifoldPoint(p);
 }
 
-void ContactSolver::addFrictionConstraint(Constraint::Type type, const ContactManifoldPoint &info, double lambda, double friction,
-  const DPoint3 &u)
+void ContactSolver::addFrictionConstraint(Tab<Constraint> &constraints, Constraint::Type type, const ContactManifoldPoint &info,
+  double lambda, double friction, const DPoint3 &u)
 {
   Constraint &c = constraints.push_back();
 
@@ -534,7 +534,7 @@ void ContactSolver::addFrictionConstraint(Constraint::Type type, const ContactMa
   c.init(getState(c.indexA), getState(c.indexB));
 }
 
-void ContactSolver::addContactConstraint(const ContactManifoldPoint &info, double beta, double bias)
+void ContactSolver::addContactConstraint(Tab<Constraint> &constraints, const ContactManifoldPoint &info, double beta, double bias)
 {
   Constraint &c = constraints.push_back();
   c.type = Constraint::Type::Contact;
@@ -560,13 +560,13 @@ void ContactSolver::addContactConstraint(const ContactManifoldPoint &info, doubl
   c.init(getState(info.indexA), getState(info.indexB));
 }
 
-void ContactSolver::initVelocityConstraints()
+void ContactSolver::initVelocityConstraints(Tab<Constraint> &constraints)
 {
-  clear_and_shrink(constraints);
-
   Tab<ContactManifoldPoint> manifold(framemem_ptr());
   cache.getManifold(manifold);
 
+  constraints.clear();
+  constraints.reserve(manifold.size() * 2 + manifold.size());
   for (auto &info : manifold)
   {
     const double mu = (info.frictionA + info.frictionB) * 0.5;
@@ -575,23 +575,23 @@ void ContactSolver::initVelocityConstraints()
     DPoint3 u1 = normalize(info.normal % dpoint3(info.orientB.getForward()));
     DPoint3 u2 = normalize(info.normal % u1);
 
-    addFrictionConstraint(Constraint::Type::Friction1, info, info.lambdaFriction1, mu * m, u1);
-    addFrictionConstraint(Constraint::Type::Friction2, info, info.lambdaFriction2, mu * m, u2);
+    addFrictionConstraint(constraints, Constraint::Type::Friction1, info, info.lambdaFriction1, mu * m, u1);
+    addFrictionConstraint(constraints, Constraint::Type::Friction2, info, info.lambdaFriction2, mu * m, u2);
   }
 
   for (auto &info : manifold)
-    addContactConstraint(info, 0.0, 0.0);
+    addContactConstraint(constraints, info, 0.0, 0.0);
 }
 
-void ContactSolver::initPositionConstraints()
+void ContactSolver::initPositionConstraints(Tab<Constraint> &constraints)
 {
-  clear_and_shrink(constraints);
-
   Tab<ContactManifoldPoint> manifold(framemem_ptr());
   cache.getManifold(manifold);
 
+  constraints.clear();
+  constraints.reserve(manifold.size());
   for (auto &info : manifold)
-    addContactConstraint(info, 0.0, 0.0);
+    addContactConstraint(constraints, info, 0.0, 0.0);
 }
 
 ContactSolver::BodyState &ContactSolver::getState(int index) { return index >= 0 ? bodyStates[index] : groundState; }
@@ -620,7 +620,7 @@ void ContactSolver::BodyState::applyPseudoImpulse(double lambda, const DPoint3 &
   location.O.setQuat(normalize(location.O.getQuat() + spin));
 }
 
-void ContactSolver::solveVelocityConstraints(double dt)
+void ContactSolver::solveVelocityConstraints(Tab<Constraint> &constraints, double dt)
 {
   const double invDt = safeinv(dt);
 
@@ -705,7 +705,7 @@ void ContactSolver::solveVelocityConstraints(double dt)
   }
 }
 
-bool ContactSolver::solvePositionConstraints()
+bool ContactSolver::solvePositionConstraints(Tab<Constraint> &constraints)
 {
   for (auto &state : bodyStates)
     mem_set_0(state.appliedForce);
@@ -786,7 +786,7 @@ void ContactSolver::clearData()
 void ContactSolver::clearData(int index) { cache.clearData(index); }
 
 void ContactSolver::checkStaticCollisions(int body_no, const ContactSolver::Body &body, const TMatrix &tm,
-  dag::Span<CollisionObject> coll_objects)
+  dag::ConstSpan<CollisionObject> coll_objects)
 {
   if (!(body.flags & Flags::ProcessGround) || !bodyStates[body_no].shouldCheckContactWithGround)
     return;
@@ -794,7 +794,7 @@ void ContactSolver::checkStaticCollisions(int body_no, const ContactSolver::Body
   bodyStates[body_no].shouldCheckContactWithGround = false;
 
   Tab<gamephys::CollisionContactData> contacts(framemem_ptr());
-  for (CollisionObject &co : coll_objects)
+  for (const CollisionObject &co : coll_objects)
   {
     if (!co.isValid())
       continue;
@@ -902,11 +902,11 @@ void ContactSolver::update(double at_time, double dt)
 
     TMatrix curBodyTm;
     curBodyPhys->getCurrentStateLoc().toTM(curBodyTm);
-    dag::Span<CollisionObject> curCollisionObjects = curBodyPhys->getMutableCollisionObjects();
+    dag::ConstSpan<CollisionObject> curCollisionObjects = curBodyPhys->getCollisionObjects();
 
     TMatrix testBodyTm;
     testBodyPhys->getCurrentStateLoc().toTM(testBodyTm);
-    dag::Span<CollisionObject> testCollisionObjects = testBodyPhys->getMutableCollisionObjects();
+    dag::ConstSpan<CollisionObject> testCollisionObjects = testBodyPhys->getCollisionObjects();
 
     Tab<gamephys::CollisionContactData> contacts(framemem_ptr());
     dacoll::test_pair_collision(curCollisionObjects, curBodyPhys->getActiveCollisionObjectsBitMask(), curBodyTm, testCollisionObjects,
@@ -926,20 +926,20 @@ void ContactSolver::update(double at_time, double dt)
   }
 
   integrateVelocity(dt);
-  initVelocityConstraints();
 
+  Tab<Constraint> constraints(framemem_ptr());
+  initVelocityConstraints(constraints);
   for (int i = 0; i < velocity_iterations; ++i)
-    solveVelocityConstraints(dt);
+    solveVelocityConstraints(constraints, dt);
 
   integratePositions(dt);
-
-  initPositionConstraints();
+  initPositionConstraints(constraints);
 
   bool positionsSolved = false;
   if (solverFlags & SolverFlags::SolvePositions)
     for (int i = 0; i < position_iterations; ++i)
     {
-      positionsSolved = solvePositionConstraints();
+      positionsSolved = solvePositionConstraints(constraints);
       if (positionsSolved)
         break;
     }

@@ -12,10 +12,13 @@
 #include <util/dag_watchdog.h>
 #include <thread>
 #include <EASTL/string.h>
+#include <drv/3d/dag_info.h>
 
 namespace drv3d_metal
 {
-  static const uint32_t PRECACHE_VERSION = _MAKE4C('2.9');
+  extern Driver3dDesc g_device_desc;
+
+  static const uint32_t PRECACHE_VERSION = _MAKE4C('2.12');
 
   std::thread g_saver;
   std::thread g_compiler;
@@ -26,12 +29,12 @@ namespace drv3d_metal
     MTLRenderPipelineDescriptor* pipelineStateDescriptor = [[MTLRenderPipelineDescriptor alloc] init];
 
 #if DAGOR_DBGLEVEL > 0
-    char ablend[shaders::RenderState::NumIndependentBlendParameters + 1];
+    char ablend[shaders::RenderState::NumIndependentBlendParameters + 1], has_blend = 0;
     for (int i = 0; i < shaders::RenderState::NumIndependentBlendParameters; ++i)
-      ablend[i] = (rstate.raster_state.blend[i].ablend) ? '1' : '0';
+      ablend[i] = (rstate.raster_state.blend[i].ablend) ? '1' : '0', has_blend |= rstate.raster_state.blend[i].ablend;
     ablend[shaders::RenderState::NumIndependentBlendParameters] = '\0';
-    pipelineStateDescriptor.label = [NSString stringWithFormat:@"%@@%@%@%@%@", vshader.label, pshader ? pshader.label : @"",
-                                     discard ? @"_discard" : @"", [NSString stringWithUTF8String:ablend], @"_blend"];
+    pipelineStateDescriptor.label = [NSString stringWithFormat:@"%@@%@%@%@", vshader.label, pshader ? pshader.label : @"",
+                                     discard ? @"_discard_" : @"", has_blend ? [NSString stringWithUTF8String:ablend] : @""];
 #endif
     pipelineStateDescriptor.sampleCount = rstate.sample_count;
 
@@ -81,6 +84,74 @@ namespace drv3d_metal
 
         renderbufferAttachment.destinationAlphaBlendFactor = rstate.raster_state.blend[i].sepblend ?
                 (MTLBlendFactor)rstate.raster_state.blend[i].ablendDst : (MTLBlendFactor)rstate.raster_state.blend[i].rgbblendDst;
+        renderbufferAttachment.destinationRGBBlendFactor = (MTLBlendFactor)rstate.raster_state.blend[i].rgbblendDst;
+      }
+      else
+      {
+        renderbufferAttachment.blendingEnabled = false;
+      }
+    }
+
+    return pipelineStateDescriptor;
+  }
+
+  API_AVAILABLE(ios(16.0), macos(13.0))
+  static MTLMeshRenderPipelineDescriptor* buildMeshPipelineDescriptor(id<MTLFunction> mshader, id<MTLFunction> ashader, id<MTLFunction> pshader,
+                                      const Program::RenderState& rstate, bool discard, uint32_t output_mask)
+  {
+    MTLMeshRenderPipelineDescriptor* pipelineStateDescriptor = [MTLMeshRenderPipelineDescriptor new];
+
+#if DAGOR_DBGLEVEL > 0
+    char ablend[shaders::RenderState::NumIndependentBlendParameters + 1], has_blend = 0;
+    for (int i = 0; i < shaders::RenderState::NumIndependentBlendParameters; ++i)
+      ablend[i] = (rstate.raster_state.blend[i].ablend) ? '1' : '0', has_blend |= rstate.raster_state.blend[i].ablend;
+    ablend[shaders::RenderState::NumIndependentBlendParameters] = '\0';
+    pipelineStateDescriptor.label = [NSString stringWithFormat:@"%@@%@%@%@", mshader.label, pshader ? pshader.label : @"",
+                                     discard ? @"_discard_" : @"", has_blend ? [NSString stringWithUTF8String:ablend] : @""];
+#endif
+    pipelineStateDescriptor.rasterSampleCount = rstate.sample_count;
+
+    pipelineStateDescriptor.meshFunction = mshader;
+    pipelineStateDescriptor.fragmentFunction = pshader;
+    pipelineStateDescriptor.objectFunction = ashader;
+
+    pipelineStateDescriptor.depthAttachmentPixelFormat = rstate.depthFormat;
+    pipelineStateDescriptor.stencilAttachmentPixelFormat = rstate.stencilFormat;
+    pipelineStateDescriptor.alphaToCoverageEnabled = rstate.raster_state.a2c;
+
+    int writeMask = rstate.raster_state.writeMask & output_mask;
+    bool hasColor = false;
+
+    for (int i = 0; i < Program::MAX_SIMRT; i++, writeMask>>=4)
+    {
+      pipelineStateDescriptor.colorAttachments[i].pixelFormat = rstate.pixelFormat[i];
+      hasColor |= rstate.pixelFormat[i] != MTLPixelFormatInvalid;
+
+      int metal_mask = 0;
+      int mask = writeMask & 0xF;
+
+      metal_mask |= MTLColorWriteMaskRed * ((mask&WRITEMASK_RED0) > 0);
+      metal_mask |= MTLColorWriteMaskBlue * ((mask&WRITEMASK_BLUE0) > 0);
+      metal_mask |= MTLColorWriteMaskGreen * ((mask&WRITEMASK_GREEN0) > 0);
+      metal_mask |= MTLColorWriteMaskAlpha * ((mask&WRITEMASK_ALPHA0) > 0);
+
+      pipelineStateDescriptor.colorAttachments[i].writeMask = metal_mask;
+
+      MTLRenderPipelineColorAttachmentDescriptor *renderbufferAttachment = pipelineStateDescriptor.colorAttachments[i];
+      if (i < shaders::RenderState::NumIndependentBlendParameters && rstate.raster_state.blend[i].ablend && rstate.pixelFormat[i] != 0)
+      {
+        renderbufferAttachment.blendingEnabled = true;
+
+        renderbufferAttachment.alphaBlendOperation = rstate.raster_state.blend[i].sepblend ?
+          (MTLBlendOperation)rstate.raster_state.blend[i].ablendOp : (MTLBlendOperation)rstate.raster_state.blend[i].rgbblendOp;
+        renderbufferAttachment.rgbBlendOperation = (MTLBlendOperation)rstate.raster_state.blend[i].rgbblendOp;
+
+        renderbufferAttachment.sourceAlphaBlendFactor = rstate.raster_state.blend[i].sepblend ?
+          (MTLBlendFactor)rstate.raster_state.blend[i].ablendScr : (MTLBlendFactor)rstate.raster_state.blend[i].rgbblendScr;
+        renderbufferAttachment.sourceRGBBlendFactor = (MTLBlendFactor)rstate.raster_state.blend[i].rgbblendScr;
+
+        renderbufferAttachment.destinationAlphaBlendFactor = rstate.raster_state.blend[i].sepblend ?
+          (MTLBlendFactor)rstate.raster_state.blend[i].ablendDst : (MTLBlendFactor)rstate.raster_state.blend[i].rgbblendDst;
         renderbufferAttachment.destinationRGBBlendFactor = (MTLBlendFactor)rstate.raster_state.blend[i].rgbblendDst;
       }
       else
@@ -215,20 +286,25 @@ namespace drv3d_metal
 
     cache_version = version ? version : PRECACHE_VERSION;
 
+#if DAGOR_DBGLEVEL > 0
+    shaderLogMask = dgs_get_settings()->getBlockByNameEx("debug")->getStr("metalShaderLogMask", "");
+#endif
+
     String cache_root, cache_version_str(16, "%u", cache_version);
+    const char *bindless = g_device_desc.caps.hasBindless ? "_bindless" : "";
     #if _TARGET_PC_MACOSX
     NSString *dir = [[NSBundle mainBundle] bundlePath];
 
     HashMD5 hash;
     hash.calc([dir UTF8String], [dir length]);
 
-    snprintf(shdCachePath, sizeof(shdCachePath), "%s/cache/%s/%u", getenv("HOME"), hash.get(), cache_version);
-    cache_root.printf(sizeof(shdCachePath), "%s/cache/%s", getenv("HOME"), hash.get());
+    snprintf(shdCachePath, sizeof(shdCachePath), "%s/cache/%s%s/%u", getenv("HOME"), hash.get(), bindless, cache_version);
+    cache_root.printf(sizeof(shdCachePath), "%s/cache/%s%s", getenv("HOME"), hash.get(), bindless);
     #else
     NSArray *paths = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES);
     NSString *dir = [paths objectAtIndex:0];
-    snprintf(shdCachePath, sizeof(shdCachePath), "%s/%u", [dir UTF8String], cache_version);
-    cache_root.printf(sizeof(shdCachePath), "%s", [dir UTF8String]);
+    snprintf(shdCachePath, sizeof(shdCachePath), "%s%s/%u", [dir UTF8String], bindless, cache_version);
+    cache_root.printf(sizeof(shdCachePath), "%s%s", [dir UTF8String], bindless);
     #endif
 
     dd_mkdir(shdCachePath);
@@ -424,8 +500,8 @@ namespace drv3d_metal
           if (df_read(fl, &rstate, sizeof(rstate)) != sizeof(rstate))
             break;
 
-          uint32_t discard = 0;
-          if (df_read(fl, &discard, sizeof(discard)) != sizeof(discard))
+          uint32_t flags = 0;
+          if (df_read(fl, &flags, sizeof(flags)) != sizeof(flags))
             break;
 
           uint32_t output_mask = 0;
@@ -438,7 +514,7 @@ namespace drv3d_metal
           pso->descriptor_hash = decl_hash;
           pso->rstate = rstate;
           pso->pso = nil;
-          pso->discard = discard;
+          pso->flags = flags;
           pso->output_mask = output_mask;
 
           pipelines[i] = eastl::make_pair(hash, pso);
@@ -624,7 +700,7 @@ namespace drv3d_metal
         fwrite(&it.second->ps_hash, sizeof(it.second->ps_hash), 1, fl);
         fwrite(&it.second->descriptor_hash, sizeof(it.second->descriptor_hash), 1, fl);
         fwrite(&it.second->rstate, sizeof(it.second->rstate), 1, fl);
-        fwrite(&it.second->discard, sizeof(it.second->discard), 1, fl);
+        fwrite(&it.second->flags, sizeof(it.second->flags), 1, fl);
         fwrite(&it.second->output_mask, sizeof(it.second->output_mask), 1, fl);
       }
       fclose(fl);
@@ -704,6 +780,19 @@ namespace drv3d_metal
     g_saver_condition.notify_all();
 
     g_cache_dirty = false;
+    compilations_this_frame = 0;
+  }
+
+  void ShadersPreCache::tickCompilation()
+  {
+    constexpr uint32_t max_compilations_before_kick = 100;
+
+    compilations_this_frame++;
+    if (compilations_this_frame >= max_compilations_before_kick)
+    {
+      watchdog_kick();
+      compilations_this_frame = 0;
+    }
   }
 
   id <MTLFunction> ShadersPreCache::compileShader(const QueuedShader& shader)
@@ -714,9 +803,14 @@ namespace drv3d_metal
     eastl::string name = is_binary || newline == shader.data.end() ? shader.entry
       : eastl::string((char*)shader.data.data(), eastl::distance(shader.data.begin(), newline));
     TIME_PROFILE_NAME(compile_shader, name.c_str());
+
+    if (!shaderLogMask.empty() && !is_binary && strstr((char*)shader.data.data(), shaderLogMask.c_str()))
+      debug("%s\n\n", shader.data.data());
 #else
     TIME_PROFILE(compile_shader);
 #endif
+
+    tickCompilation();
 
     id <MTLFunction> func = nil;
     id <MTLLibrary> lib = nil;
@@ -731,7 +825,12 @@ namespace drv3d_metal
     else
     {
       MTLCompileOptions* options = [[MTLCompileOptions alloc] init];
-      if (@available(iOS 15, macOS 12.0, *))
+      if (@available(iOS 16, macOS 13.0, *))
+      {
+        options.languageVersion = d3d::get_driver_desc().caps.hasMeshShader ? MTLLanguageVersion3_0 : MTLLanguageVersion2_4;
+        options.preserveInvariance = YES;
+      }
+      else if (@available(iOS 15, macOS 12.0, *))
       {
         // Really important! Only 2.4 supports ray queries for raytracing!
         // And spirv-cross can emit raytracing code only with queries.
@@ -739,14 +838,10 @@ namespace drv3d_metal
         options.languageVersion = MTLLanguageVersion2_4;
         options.preserveInvariance = YES;
       }
-      else if (@available(iOS 14, macOS 11.0, *))
+      else
       {
         options.languageVersion = MTLLanguageVersion2_3;
         options.preserveInvariance = YES;
-      }
-      else if (@available(macOS 10.15, *))
-      {
-        options.languageVersion = MTLLanguageVersion2_2;
       }
       NSString* sh_src = [NSString stringWithUTF8String:(const char*)shader.data.data()];
       lib = [drv3d_metal::render.device newLibraryWithSource : sh_src options : options error : &err];
@@ -761,12 +856,15 @@ namespace drv3d_metal
         func = [lib newFunctionWithName : [[lib functionNames] objectAtIndex:0]];
         [func retain];
 
-#if MAC_OS_X_VERSION_MAX_ALLOWED >= 101200 && DAGOR_DBGLEVEL > 0
+#if DAGOR_DBGLEVEL > 0
         func.label = [NSString stringWithUTF8String : name.c_str()];
 #endif
       }
       else
       {
+#if DAGOR_DBGLEVEL > 0
+        debug("Failed to compile shader %s", name.c_str());
+#endif
         D3D_ERROR("Error, shader (%llu) not contain function, error %s", shader.hash, [[err localizedDescription] UTF8String]);
         return nil;
       }
@@ -774,6 +872,9 @@ namespace drv3d_metal
 
     if (func == nil)
     {
+#if DAGOR_DBGLEVEL > 0
+      debug("Failed to compile shader %s", name.c_str());
+#endif
       D3D_ERROR("Failed to compile shader (%llu), error %s", shader.hash, [[err localizedDescription] UTF8String]);
       return nil;
     }
@@ -932,9 +1033,75 @@ namespace drv3d_metal
     return compileDescriptor(hash, desc);
   }
 
+  id <MTLRenderPipelineState> ShadersPreCache::compileMeshPipeline(uint64_t hash, CachedPipelineState* pso, bool free)
+  {
+    if (!free)
+      g_saver_mutex.lock();
+
+    auto ms_it = shader_cache.find(pso->ms_hash);
+    auto as_it = shader_cache.find(pso->as_hash);
+    auto ps_it = shader_cache.find(pso->ps_hash);
+    id<MTLFunction> ms = ms_it == end(shader_cache) ? nil : ms_it->second->func;
+    id<MTLFunction> as = as_it == end(shader_cache) ? nil : as_it->second->func;
+    id<MTLFunction> ps = ps_it == end(shader_cache) ? nil : ps_it->second->func;
+
+    if (ms == nil || (pso->ps_hash && ps == nil))
+    {
+      if (ms == nil && free)
+        logwarn("Failed to find ms %llu when creating pso", pso->ms_hash);
+      if (ps == nil && pso->ps_hash && free)
+        logwarn("Failed to find ps %llu when creating pso", pso->ps_hash);
+      if (free)
+        pso_cache_objects.freeOneBlock(pso);
+      else
+        g_saver_mutex.unlock();
+      return nullptr;
+    }
+
+    if (!free)
+      g_saver_mutex.unlock();
+
+    tickCompilation();
+
+    id <MTLRenderPipelineState> pipelineState = nil;
+    if (@available(iOS 16, macOS 13.0, *))
+    {
+      MTLMeshRenderPipelineDescriptor* pipelineStateDescriptor = buildMeshPipelineDescriptor(ms, as, ps, pso->rstate, pso->discard, pso->output_mask);
+
+      NSError *error = nil;
+      pipelineState = [render.device newRenderPipelineStateWithMeshDescriptor : pipelineStateDescriptor
+                                                                                                  options : MTLPipelineOptionNone
+                                                                                               reflection : nil
+                                                                                                    error : &error];
+      [pipelineStateDescriptor release];
+      if (!pipelineState)
+      {
+        D3D_ERROR("Failed to created mesh pipeline state, error %s",
+              [[error localizedDescription] UTF8String]);
+        if (free)
+          pso_cache_objects.freeOneBlock(pso);
+        return nullptr;
+      }
+    }
+    else
+      return nullptr;
+
+    pso->pso = pipelineState;
+    if (free)
+    {
+      std::unique_lock<std::mutex> l(g_saver_mutex);
+      pso_cache[hash] = pso;
+    }
+
+    return pipelineState;
+  }
+
   id <MTLRenderPipelineState> ShadersPreCache::compilePipeline(uint64_t hash, CachedPipelineState* pso, bool free)
   {
     TIME_PROFILE(compile_pipeline);
+
+    if (pso->mesh_pipeline)
+      return compileMeshPipeline(hash, pso, free);
 
     if (!free)
       g_saver_mutex.lock();
@@ -963,6 +1130,8 @@ namespace drv3d_metal
 
     if (!free)
       g_saver_mutex.unlock();
+
+    tickCompilation();
 
     MTLRenderPipelineDescriptor* pipelineStateDescriptor = buildPipelineDescriptor(vs, ps, desc, pso->rstate, pso->discard, pso->output_mask);
 
@@ -996,18 +1165,32 @@ namespace drv3d_metal
     vdecl = vdecl ? vdecl : program->vdecl;
 
     Shader* vshader = program->vshader;
+    Shader* mshader = program->mshader;
+    Shader* ashader = program->ashader;
     Shader* pshader = program->pshader;
-    G_ASSERT(vshader);
+    G_ASSERT(vshader || mshader);
+
+    bool mesh_pipeline = mshader != nullptr;
 
     uint64_t hash = 0;
-    uint64_t decl_hash = vshader->num_va > 0 ? vdecl->hash : 0;
-    uint64_t vs_hash = vshader->shader_hash;
+    uint64_t decl_hash = !mesh_pipeline && vshader->num_va > 0 ? vdecl->hash : 0;
+    uint64_t vs_hash = !mesh_pipeline ? vshader->shader_hash : 0;
     uint64_t ps_hash = pshader ? pshader->shader_hash : 0;
+    uint64_t ms_hash = mshader ? mshader->shader_hash : 0;
+    uint64_t as_hash = ashader ? ashader->shader_hash : 0;
     uint32_t output_mask = pshader ? pshader->output_mask : 0;
     uint64_t rstate_hash = buildRenderStateHash(rstate, output_mask);
 
-    hash_combine(hash, decl_hash);
-    hash_combine(hash, vs_hash);
+    if (mesh_pipeline)
+    {
+      hash_combine(hash, ms_hash);
+      hash_combine(hash, as_hash);
+    }
+    else
+    {
+      hash_combine(hash, decl_hash);
+      hash_combine(hash, vs_hash);
+    }
     hash_combine(hash, ps_hash);
     hash_combine(hash, rstate_hash);
 
@@ -1016,19 +1199,28 @@ namespace drv3d_metal
       return it->second->pso;
 
     MTLVertexDescriptor* vertexDescriptor = nil;
-    if (vshader->num_va > 0)
+    if (!mesh_pipeline && vshader->num_va > 0)
       vertexDescriptor = buildDescriptor(vshader, vdecl, rstate, decl_hash);
     else
       decl_hash = 0;
 
     CachedPipelineState* pso = (CachedPipelineState*)pso_cache_objects.allocateOneBlock();
-    pso->vs_hash = vs_hash;
+    if (mesh_pipeline)
+    {
+      pso->ms_hash = ms_hash;
+      pso->as_hash = as_hash;
+    }
+    else
+    {
+      pso->vs_hash = vs_hash;
+      pso->descriptor_hash = decl_hash;
+    }
     pso->ps_hash = ps_hash;
-    pso->descriptor_hash = decl_hash;
     pso->rstate = rstate;
     pso->pso = nil;
     pso->output_mask = output_mask;
     pso->discard = pshader && pshader->src ? !!strstr([pshader->src UTF8String], "discard_fragment") : false;
+    pso->mesh_pipeline = mesh_pipeline;
 
     if (async)
     {
@@ -1070,6 +1262,8 @@ namespace drv3d_metal
       logwarn("Failed to find shader (%llu) for compute pipeline", hash);
       return nullptr;
     }
+
+    tickCompilation();
 
     MTLComputePipelineDescriptor* desc = [[MTLComputePipelineDescriptor alloc] init];
     desc.computeFunction = func;

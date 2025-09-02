@@ -1,8 +1,8 @@
 from "%scripts/ui/ui_library.nut" import *
 import "dainput2" as dainput
 
-let { controlsGeneration } = require("input_generation.nut")
-let {isGamepad} = require("active_input.nut")
+let { controlsGeneration } = require("%scripts/ui/settings/input_generation.nut")
+let {isGamepad} = require("%scripts/ui/settings/active_input.nut")
 
 let dtext = @(text, params = null) {text, rendObj = ROBJ_TEXT}.__update(params ?? {})
 let format_ctrl_name = dainput.format_ctrl_name
@@ -200,8 +200,8 @@ function buildElems(textlist, params = {imgFunc=null, textFunc=mkText, eventText
 
 function mkHasBinding(actionName){
   return Computed(function() {
-    let _ = controlsGeneration.value // warning disable: -declared-never-used
-    return dainput.is_action_binding_set(dainput.get_action_handle(actionName, 0xFFFF), isGamepad.value ? 1 : 0)
+    let _ = controlsGeneration.get() // warning disable: -declared-never-used
+    return dainput.is_action_binding_set(dainput.get_action_handle(actionName, 0xFFFF), isGamepad.get() ? 1 : 0)
   })
 }
 

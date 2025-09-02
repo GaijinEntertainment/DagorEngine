@@ -28,10 +28,10 @@ def private raise_pos_above_collision(pos : float3) // need pos above collision 
   return pos + float3(0., 0.5, 0.) // TODO: find better, correct offsets, e.g. from pelvis
 
 def get_desc_id_from_human_state(move_state : CCMoveType; stand_state : CCStandType; irqs : Array) : int
-  let name = ((stand_state == CCStandType ESS_CROUCH) ? "step" :
-              (stand_state == CCStandType ESS_CRAWL) ? "crawl" :
-              (move_state == CCMoveType EMS_SPRINT) ? "sprint" :
-              (move_state == CCMoveType EMS_RUN) ? "run" :
+  let name = ((stand_state == CCStandType.ESS_CROUCH) ? "step" :
+              (stand_state == CCStandType.ESS_CRAWL) ? "crawl" :
+              (move_state == CCMoveType.EMS_SPRINT) ? "sprint" :
+              (move_state == CCMoveType.EMS_RUN) ? "run" :
               "step")
 
   for it, idx in irqs, range(length(irqs))
@@ -44,7 +44,7 @@ def get_desc_id_from_human_state(move_state : CCMoveType; stand_state : CCStandT
 def private is_on_lmesh(pos : float3; stand_state : CCStandType)
   let posXZ = pos.xz
   let ground = traceht_lmesh(posXZ)
-  let threshold = stand_state == CCStandType ESS_CRAWL ? 0.2 :  0.05
+  let threshold = stand_state == CCStandType.ESS_CRAWL ? 0.2 :  0.05
   return pos.y < ground + threshold
 
 
@@ -56,14 +56,14 @@ def human_steps_sound_generate(cur_time : float;
                                stand_state : CCStandType;
                                move_speed : float;
                                var lastStepAt_cooldown : float2&;
-                               [[shared_comp]] irqs : Array) : int
+                               @shared_comp irqs : Array) : int
 
   assume last_step_at = lastStepAt_cooldown.x
   assume cooldown = lastStepAt_cooldown.y
 
-  let useGenerator = (move_state != CCMoveType EMS_STAND) && move_speed > VERY_SMALL_NUMBER
+  let useGenerator = (move_state != CCMoveType.EMS_STAND) && move_speed > VERY_SMALL_NUMBER
 
-  if move_state == CCMoveType EMS_STAND || !is_on_ground || is_climbing
+  if move_state == CCMoveType.EMS_STAND || !is_on_ground || is_climbing
     cooldown = min(cooldown + dt, 1.)
     return INVALID_IRQ_OBJ_IDX
 
@@ -71,7 +71,7 @@ def human_steps_sound_generate(cur_time : float;
 
   if useGenerator
     let intervals = float3(1.15, 1.0, 1.6)
-    let interval = safediv((move_state == CCMoveType EMS_SPRINT) ? intervals.z : (move_state == CCMoveType EMS_RUN) ? intervals.y : intervals.x, move_speed)
+    let interval = safediv((move_state == CCMoveType.EMS_SPRINT) ? intervals.z : (move_state == CCMoveType.EMS_RUN) ? intervals.y : intervals.x, move_speed)
     cooldown = min(cooldown, interval * 0.5)
 
     if cur_time >= last_step_at + interval
@@ -89,7 +89,7 @@ def trace_footstep(pos : float3;
                    biome_pmid : int;
                    biome_overrides_water : bool;
                    puddle_depth : float;
-                   var step_material_id : float&;
+                   var step_material_id : int&;
                    var step_water_depth : float&)
 
   var pmid = PHYSMAT_INVALID
@@ -134,18 +134,18 @@ def play_footstep(desc : Object;
                   biome_overrides_water : bool;
                   puddle_depth : float;
                   stand_state : CCStandType;
-                  var step_material_id : float&;
+                  var step_material_id : int&;
                   var step_water_depth : float&)
 
   trace_footstep(pos, trace_offset_len, stand_state, biome_pmid, biome_overrides_water, puddle_depth, step_material_id, step_water_depth)
 
-  if step_material_id >= 0.
+  if step_material_id >= 0
     var pathStr : string
     if sound_player_common::get_option_path(path, sound_tags, true, pathStr)
       let offsetedPos = raise_pos_above_collision(pos)
       var handle = sound_player_common::play_desc_path(desc, apply_watched_prefix(pathStr, true), true, offsetedPos, false)
       set_volume(handle, volume)
-      set_var(handle, "mat", step_material_id)
+      set_var(handle, "mat", float(step_material_id))
       pass_steps_occlusion_var(handle, occlusion)
       abandon(handle)
 
@@ -161,23 +161,23 @@ def human_steps_sound_update_states(cur_time : float;
   human_steps_sound__stateFlags = state_flg
 
   if (raisedStates | clearedStates) != 0
-    if read_state(CCStateFlag ST_ON_GROUND, clearedStates)
+    if read_state(CCStateFlag.ST_ON_GROUND, clearedStates)
       human_steps_sound__lastTimeOnGround = cur_time
 
-    if read_state(CCStateFlag ST_JUMP, raisedStates)
+    if read_state(CCStateFlag.ST_JUMP, raisedStates)
       return "jump"
-    elif read_state(CCStateFlag ST_ON_GROUND, raisedStates)
+    elif read_state(CCStateFlag.ST_ON_GROUND, raisedStates)
       return "land"
-    elif read_state(CCStateFlag ST_SWIM, raisedStates)
-      if !read_state(CCStateFlag ST_ON_GROUND, state_flg)
+    elif read_state(CCStateFlag.ST_SWIM, raisedStates)
+      if !read_state(CCStateFlag.ST_ON_GROUND, state_flg)
         return "land"
-    elif read_state(CCStateFlag ST_CROUCH, raisedStates)
+    elif read_state(CCStateFlag.ST_CROUCH, raisedStates)
       return "downKnee"
-    elif read_state(CCStateFlag ST_CROUCH, clearedStates)
+    elif read_state(CCStateFlag.ST_CROUCH, clearedStates)
       return "upKnee"
-    elif read_state(CCStateFlag ST_CRAWL, raisedStates)
+    elif read_state(CCStateFlag.ST_CRAWL, raisedStates)
       return "downGround"
-    elif read_state(CCStateFlag ST_CRAWL, clearedStates)
+    elif read_state(CCStateFlag.ST_CRAWL, clearedStates)
       return "upGround"
   return ""
 
@@ -195,7 +195,7 @@ def human_steps_sound_update(info : ParallelUpdateFrameDelayed)
                                              phys__vel : float3;
                                              charctrl__state : int3;
 
-                                             [[shared_comp]] human_steps_sound__irqs : Array;
+                                             @shared_comp human_steps_sound__irqs : Array;
 
                                              var human_steps_sound__stateFlags : int&;
                                              var human_steps_sound__lastTimeOnGround : float&;
@@ -217,7 +217,7 @@ def human_steps_sound_update(info : ParallelUpdateFrameDelayed)
 
     let irqObjIdx = human_steps_sound_generate(info.curTime,
                                                info.dt,
-                                               read_state(CCStateFlag ST_ON_GROUND, charctrl__state.z),
+                                               read_state(CCStateFlag.ST_ON_GROUND, charctrl__state.z),
                                                /*climbing*/false,
                                                moveState,
                                                standState,
@@ -226,7 +226,7 @@ def human_steps_sound_update(info : ParallelUpdateFrameDelayed)
                                                human_steps_sound__irqs)
 
     sound_landmesh_queries_vars__speedSq = length_sq(phys__vel.xz)
-    sound_landmesh_queries_vars__isOnGround = read_state(CCStateFlag ST_ON_GROUND, charctrl__state.z)
+    sound_landmesh_queries_vars__isOnGround = read_state(CCStateFlag.ST_ON_GROUND, charctrl__state.z)
 
     let descId = human_steps_sound_update_states(info.curTime,
                                                  charctrl__state.z,
@@ -241,13 +241,13 @@ def human_steps_sound_update(info : ParallelUpdateFrameDelayed)
                           human_steps_sound__traceStepOffsetLen : float2;
                           occluded_sound__occlusion = 0.;
 
-                          [[shared_comp]] human_steps_sound__path : Object;
-                          [[shared_comp]] human_steps_sound__descs : Object;
-                          [[shared_comp]] human_steps_sound__irqs : Array;
-                          [[shared_comp]] human_steps_sound__stepFx : Object;
+                          @shared_comp human_steps_sound__path : Object;
+                          @shared_comp human_steps_sound__descs : Object;
+                          @shared_comp human_steps_sound__irqs : Array;
+                          @shared_comp human_steps_sound__stepFx : Object;
 
                           var human_steps_sound__waterDepth : float&;
-                          var human_steps_sound__smid : float&;
+                          var human_steps_sound__smid : int&;
                           var human_steps_sound__stepIdx : uint&;
 
                           sound_landmesh_queries__biomePhysMatId : int;

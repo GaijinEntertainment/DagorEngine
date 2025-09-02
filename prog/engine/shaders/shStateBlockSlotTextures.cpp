@@ -3,6 +3,7 @@
 #include <drv/3d/dag_shaderConstants.h>
 #include <drv/3d/dag_texture.h>
 #include <drv/3d/dag_buffers.h>
+#include <EASTL/string.h>
 
 #include "shStateBlock.h"
 #include "concurrentElementPool.h"
@@ -20,73 +21,76 @@ struct SBSamplerState
   static_assert(DEFAULT_TEX_STATE_ID == decltype(all)::FIRST_ID);
 
   TexDataCont::Range textures; // we start with PS textures, then VS textures
-  uint8_t psCount;             // don't think we will need more than 4 bits
-  uint8_t vsCount;             // Redundant, but it doesn't hurt storing it
-  uint8_t psBase;              // don't think we will need more than 4 bits
-  uint8_t vsBase;
+  SlotTexturesRangeInfo psRange;
+  SlotTexturesRangeInfo vsRange;
 
   void apply(int tex_level)
   {
     const auto dataView = data.view(textures);
 
-    const auto setTex = [&](TEXTUREID tid, ShaderStage stage, int slot) {
+    const auto setTex = [&](TEXTUREID tid, ShaderStage stage, int slot, int smp_slot) {
       mark_managed_tex_lfu(tid, tex_level);
-      const auto sampler = get_texture_separate_sampler(tid);
-      if (sampler != d3d::INVALID_SAMPLER_HANDLE)
+      d3d::set_tex(stage, slot, D3dResManagerData::getBaseTex(tid));
+      if (auto smp = get_texture_separate_sampler(tid); DAGOR_LIKELY(smp != d3d::INVALID_SAMPLER_HANDLE))
       {
-        d3d::set_tex(stage, slot, D3dResManagerData::getBaseTex(tid), false);
-        d3d::set_sampler(stage, slot, sampler);
+        d3d::set_sampler(stage, smp_slot, smp);
       }
       else
-        d3d::set_tex(stage, slot, D3dResManagerData::getBaseTex(tid));
+      {
+        G_ASSERT(tid == BAD_TEXTUREID);
+        d3d::set_sampler(stage, smp_slot, d3d::INVALID_SAMPLER_HANDLE);
+      }
     };
 
-    for (uint32_t i = 0, e = psCount; i < e; ++i)
-      setTex(dataView[i], STAGE_PS, psBase + i);
-    for (uint32_t i = 0, e = vsCount; i < e; ++i)
-      setTex(dataView[psCount + i], STAGE_VS, vsBase + i);
+    for (uint32_t i = 0, e = psRange.count; i < e; ++i)
+      setTex(dataView[i], STAGE_PS, psRange.texBase + i, psRange.smpBase + i);
+    for (uint32_t i = 0, e = vsRange.count; i < e; ++i)
+      setTex(dataView[psRange.count + i], STAGE_VS, vsRange.texBase + i, vsRange.smpBase + i);
   }
 
   void reqTexLevel(int tex_level)
   {
     const auto dataView = data.view(textures);
-    for (uint32_t i = 0, e = psCount; i < e; ++i)
+    for (uint32_t i = 0, e = psRange.count; i < e; ++i)
       mark_managed_tex_lfu(dataView[i], tex_level);
-    for (uint32_t i = vsBase, e = vsCount; i < e; ++i)
-      mark_managed_tex_lfu(dataView[psCount + i], tex_level);
+    for (uint32_t i = 0, e = vsRange.count; i < e; ++i)
+      mark_managed_tex_lfu(dataView[psRange.count + i], tex_level);
   }
 
-  static TexStateIdx create(const TEXTUREID *ps, uint8_t ps_base, uint8_t ps_cnt, const TEXTUREID *vs, uint8_t vs_base, uint8_t vs_cnt)
+  static TexStateIdx create(const TEXTUREID *ps, SlotTexturesRangeInfo ps_range, const TEXTUREID *vs, SlotTexturesRangeInfo vs_range)
   {
     OSSpinlockScopedLock lock(mutex);
 
     {
       TexStateIdx id = all.findIf([&](const SBSamplerState &c) {
-        if (c.psCount != ps_cnt || c.vsCount != vs_cnt || c.psBase != ps_base || c.vsBase != vs_base)
+        if (c.psRange != ps_range || c.vsRange != vs_range)
           return false;
         const auto dataView = data.view(c.textures);
-        if (memcmp(dataView.data(), ps, ps_cnt * sizeof(*ps)) == 0 && memcmp(dataView.data() + ps_cnt, vs, vs_cnt * sizeof(*vs)) == 0)
+        if (memcmp(dataView.data(), ps, ps_range.count * sizeof(*ps)) == 0 &&
+            memcmp(dataView.data() + ps_range.count, vs, vs_range.count * sizeof(*vs)) == 0)
+        {
           return true;
+        }
         return false;
       });
       if (id != TexStateIdx::Invalid)
         return id;
     }
 
-    const auto dataId = data.allocate(ps_cnt + vs_cnt);
+    const auto dataId = data.allocate(ps_range.count + vs_range.count);
     const auto dataView = data.view(dataId);
-    memcpy(dataView.data(), ps, ps_cnt * sizeof(*ps));
-    memcpy(dataView.data() + ps_cnt, vs, vs_cnt * sizeof(*vs));
+    memcpy(dataView.data(), ps, ps_range.count * sizeof(*ps));
+    memcpy(dataView.data() + ps_range.count, vs, vs_range.count * sizeof(*vs));
 
     const TexStateIdx result = all.allocate();
-    all[result] = SBSamplerState{dataId, ps_cnt, vs_cnt, ps_base, vs_base};
+    all[result] = SBSamplerState{dataId, ps_range, vs_range};
     return result;
   }
   static void clear()
   {
     data.clear();
     all.clear();
-    all[all.allocate()] = SBSamplerState{TexDataCont::Range::Empty, 0, 0, 0, 0};
+    all[all.allocate()] = SBSamplerState{TexDataCont::Range::Empty, {}, {}};
   }
 };
 
@@ -162,7 +166,7 @@ struct ConstState
     const ConstState &state = all[const_state_idx];
     if (!interlocked_acquire_load_ptr(allConstBuf[const_state_idx]) && ConstsDataCont::range_size(state.consts) > 0)
     {
-      String s(0, "staticCbuf%d", eastl::to_underlying(const_state_idx));
+      eastl::string s(eastl::string::CtorSprintf{}, "staticCbuf%d", eastl::to_underlying(const_state_idx));
       const auto constsView = dataConsts.view(state.consts);
       Sbuffer *constBuf = d3d::buffers::create_persistent_cb(constsView.size(), s.c_str());
       if (!constBuf)
@@ -182,11 +186,11 @@ decltype(ConstState::all) ConstState::all;                 // first one is defau
 decltype(ConstState::allConstBuf) ConstState::allConstBuf; // parallel to all
 decltype(ConstState::mutex) ConstState::mutex;
 
-ShaderStateBlock create_slot_textures_state(const TEXTUREID *ps, uint8_t ps_base, uint8_t ps_cnt, const TEXTUREID *vs, uint8_t vs_base,
-  uint8_t vs_cnt, const Point4 *consts_data, uint8_t consts_count, bool static_block)
+ShaderStateBlock create_slot_textures_state(const TEXTUREID *ps, SlotTexturesRangeInfo ps_range, const TEXTUREID *vs,
+  SlotTexturesRangeInfo vs_range, const Point4 *consts_data, uint8_t consts_count, bool static_block)
 {
   ShaderStateBlock block;
-  block.samplerIdx = SBSamplerState::create(ps, ps_base, ps_cnt, vs, vs_base, vs_cnt);
+  block.samplerIdx = SBSamplerState::create(ps, ps_range, vs, vs_range);
   block.constIdx = ConstState::create(consts_data, consts_count);
   if (static_block)
     ConstState::prepareConstBuf(block.constIdx);

@@ -15,7 +15,7 @@ class EnvironmentPlugin::PostfxPanel : public PropPanel::ControlEventHandler
 {
 public:
   PostfxPanel(EnvironmentPlugin &plugin, void *hwnd);
-  ~PostfxPanel();
+  ~PostfxPanel() override;
 
   PropPanel::PanelWindowPropertyControl *getPanel()
   {
@@ -23,14 +23,14 @@ public:
     return propPanel;
   }
 
-  virtual void fillPanel();
+  void fillPanel();
 
 private:
   void setGameBlk(const DataBlock &blk, bool save);
   void getSchemeBlk(DataBlock &blk);
 
   // ControlEventHandler
-  virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel);
+  void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
 
   PropPanel::PanelWindowPropertyControl *propPanel;
   EnvironmentPlugin &plugin;

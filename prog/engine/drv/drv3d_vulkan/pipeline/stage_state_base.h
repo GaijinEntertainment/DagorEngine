@@ -4,7 +4,6 @@
 #include <generic/dag_tab.h>
 #include <generic/dag_staticTab.h>
 #include <math/dag_lsbVisitor.h>
-#include <drv/3d/rayTrace/dag_drvRayTrace.h> // for D3D_HAS_RAY_TRACING
 
 #include "descriptor_set.h"
 #include "render_pass.h"
@@ -14,6 +13,7 @@
 #include "util/backtrace.h"
 #include "descriptor_table.h"
 #include "dummy_resources.h"
+#include "immediate_const_buffer.h"
 
 namespace drv3d_vulkan
 {
@@ -72,7 +72,12 @@ struct PipelineStageStateBase
 
   VulkanDescriptorSetHandle lastDescriptorSet;
 
+  bool pushConstantsChanged = false;
+  uint32_t pushConstants[MAX_IMMEDIATE_CONST_WORDS] = {};
+
   PipelineStageStateBase();
+
+  void setImmediateConsts(const uint32_t *data);
 
   void setUempty(uint32_t unit);
   void setUtexture(uint32_t unit, Image *image, ImageViewState view_state, VulkanImageViewHandle view);
@@ -82,7 +87,7 @@ struct PipelineStageStateBase
   void setTtexture(uint32_t unit, Image *image, ImageViewState view_state, bool as_const_ds, VulkanImageViewHandle view);
   void setTinputAttachment(uint32_t unit, Image *image, bool as_const_ds, VulkanImageViewHandle view);
   void setTbuffer(uint32_t unit, BufferRef buffer);
-#if D3D_HAS_RAY_TRACING
+#if VULKAN_HAS_RAYTRACING
   void setTas(uint32_t unit, RaytraceAccelerationStructure *as);
 #endif
 
@@ -91,6 +96,7 @@ struct PipelineStageStateBase
 
   void setSempty(uint32_t unit);
   void setSSampler(uint32_t unit, const SamplerInfo *sampler);
+  bool applySamplersToCombinedImage(uint32_t unit);
   void applySamplers(uint32_t unit);
 
   // set RO DS if matches and drop RO DS if not
@@ -106,16 +112,17 @@ struct PipelineStageStateBase
 #if VULKAN_TRACK_DEAD_RESOURCE_USAGE > 0
   void checkForDeadResources(const spirv::ShaderHeader &hdr);
 #else
-  void checkForDeadResources(const spirv::ShaderHeader &){};
+  void checkForDeadResources(const spirv::ShaderHeader &) {}
 #endif
 
   void clearDirty(const spirv::ShaderHeader &hdr)
   {
     tBinds.resetDirtyBits(hdr.tRegisterUseMask);
-    sBinds.resetDirtyBits(hdr.tRegisterUseMask);
+    sBinds.resetDirtyBits(hdr.sRegisterUseMask);
     uBinds.resetDirtyBits(hdr.uRegisterUseMask);
     bBinds.resetDirtyBits(hdr.bRegisterUseMask);
     bOffsetDirtyMask &= ~hdr.bRegisterUseMask;
+    pushConstantsChanged = false;
   }
 
   VkImageLayout getImgLayout(bool as_const_ds)
@@ -125,11 +132,11 @@ struct PipelineStageStateBase
 
   void invalidateState();
   template <typename T>
-  void apply(VulkanDevice &device, const ResourceDummySet &dummy_resource_table, size_t frame_index, DescriptorSet &registers,
+  void apply(const ResourceDummySet &dummy_resource_table, size_t frame_index, DescriptorSet &registers,
     ExtendedShaderStage target_stage, T bind);
 
   template <typename T>
-  void applyNoDiff(VulkanDevice &device, const ResourceDummySet &dummy_resource_table, size_t frame_index, DescriptorSet &registers,
+  void applyNoDiff(const ResourceDummySet &dummy_resource_table, size_t frame_index, DescriptorSet &registers,
     ExtendedShaderStage target_stage, T bind);
 
 
@@ -144,12 +151,15 @@ struct PipelineStageStateBase
       dynamicOffsets[dynamicOffsetCount++] = bBinds[i].buffer ? bBinds[i].bufOffset(0) : 0;
     cb(ds_handle, dynamicOffsets, dynamicOffsetCount);
   }
+
+  void applyPushConstants(DescriptorSet &registers, VulkanPipelineLayoutHandle layout, VkShaderStageFlags shader_stages,
+    ExtendedShaderStage target_stage);
 };
 
 // this needs to be here, or it will fail to compile because of incomplete types
 template <typename T>
-void PipelineStageStateBase::apply(VulkanDevice &device, const ResourceDummySet &dummy_resource_table, size_t frame_index,
-  DescriptorSet &registers, ExtendedShaderStage target_stage, T bind)
+void PipelineStageStateBase::apply(const ResourceDummySet &dummy_resource_table, size_t frame_index, DescriptorSet &registers,
+  ExtendedShaderStage target_stage, T bind)
 {
   const auto &header = registers.header;
 
@@ -162,7 +172,7 @@ void PipelineStageStateBase::apply(VulkanDevice &device, const ResourceDummySet 
       break;
     if (tBinds.dirtyMask & header.tRegisterUseMask)
       break;
-    if (sBinds.dirtyMask & header.tRegisterUseMask)
+    if (sBinds.dirtyMask & header.sRegisterUseMask)
       break;
     if (uBinds.dirtyMask & header.uRegisterUseMask)
       break;
@@ -176,26 +186,26 @@ void PipelineStageStateBase::apply(VulkanDevice &device, const ResourceDummySet 
   checkForDeadResources(header);
 
   if ((header.tRegisterUseMask & tBinds.emptyMask) || (header.uRegisterUseMask & uBinds.emptyMask) ||
-      (header.bRegisterUseMask & bBinds.emptyMask))
+      (header.bRegisterUseMask & bBinds.emptyMask) || (header.sRegisterUseMask & sBinds.emptyMask))
     checkForMissingBinds(header, dummy_resource_table, target_stage);
 
-  lastDescriptorSet = registers.getSet(device, frame_index, &dtab.arr[0]);
+  lastDescriptorSet = registers.getSet(frame_index, &dtab.arr[0]);
   clearDirty(header);
   bindDescriptor(header, lastDescriptorSet, bind);
 }
 
 template <typename T>
-void PipelineStageStateBase::applyNoDiff(VulkanDevice &device, const ResourceDummySet &dummy_resource_table, size_t frame_index,
-  DescriptorSet &registers, ExtendedShaderStage target_stage, T bind)
+void PipelineStageStateBase::applyNoDiff(const ResourceDummySet &dummy_resource_table, size_t frame_index, DescriptorSet &registers,
+  ExtendedShaderStage target_stage, T bind)
 {
   const auto &header = registers.header;
   checkForDeadResources(header);
 
   if ((header.tRegisterUseMask & tBinds.emptyMask) || (header.uRegisterUseMask & uBinds.emptyMask) ||
-      (header.bRegisterUseMask & bBinds.emptyMask))
+      (header.bRegisterUseMask & bBinds.emptyMask) || (header.sRegisterUseMask & sBinds.emptyMask))
     checkForMissingBinds(header, dummy_resource_table, target_stage);
 
-  bindDescriptor(header, registers.getSet(device, frame_index, &dtab.arr[0]), bind);
+  bindDescriptor(header, registers.getSet(frame_index, &dtab.arr[0]), bind);
 }
 
 } // namespace drv3d_vulkan

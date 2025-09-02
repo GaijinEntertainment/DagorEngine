@@ -8,10 +8,16 @@
 #include <EASTL/string.h>
 #include <math/dag_adjpow2.h>
 
-bool TextureIDPair::is_voltex() const { return !tex || tex->restype() == RES3D_VOLTEX; }
-bool TextureIDPair::is_arrtex() const { return !tex || tex->restype() == RES3D_ARRTEX || tex->restype() == RES3D_CUBEARRTEX; }
-bool TextureIDPair::is_cubetex() const { return !tex || tex->restype() == RES3D_CUBETEX || tex->restype() == RES3D_CUBEARRTEX; }
-bool TextureIDPair::is_tex2d() const { return !tex || tex->restype() == RES3D_TEX; }
+bool TextureIDPair::is_voltex() const { return !tex || tex->getType() == D3DResourceType::VOLTEX; }
+bool TextureIDPair::is_arrtex() const
+{
+  return !tex || tex->getType() == D3DResourceType::ARRTEX || tex->getType() == D3DResourceType::CUBEARRTEX;
+}
+bool TextureIDPair::is_cubetex() const
+{
+  return !tex || tex->getType() == D3DResourceType::CUBETEX || tex->getType() == D3DResourceType::CUBEARRTEX;
+}
+bool TextureIDPair::is_tex2d() const { return !tex || tex->getType() == D3DResourceType::TEX; }
 void TextureIDPair::releaseAndEvictTexId()
 {
   if (texId != BAD_TEXTUREID)
@@ -100,12 +106,12 @@ void ResizableTextureIDHolder::resize(int w, int h)
     logerr("resizing non initialized tex");
     return;
   }
-  if (aliases.empty())
+  TextureInfo currentTexInfo;
+  tex->getinfo(currentTexInfo);
+  TextureRecord currentTexRec = {tex, texId};
+  if (aliases.empty() && !currentTexInfo.isCommitted) // if texture is committed, we can't alias it
   {
-    TextureInfo texInfo;
-    tex->getinfo(texInfo);
-    TextureRecord texRec = {tex, texId};
-    aliases.insert({getKey(texInfo.w, texInfo.h), texRec});
+    aliases.insert({getKey(currentTexInfo.w, currentTexInfo.h), currentTexRec});
   }
   TexRecKey key = getKey(w, h);
   auto iter = aliases.find(key);
@@ -118,12 +124,13 @@ void ResizableTextureIDHolder::resize(int w, int h)
   }
   else
   {
-    const TextureRecord &baseTexRec = aliases.rbegin()->second; // base texture always has largest size
+    // base texture always has largest size
+    const TextureRecord &baseTexRec = aliases.empty() ? currentTexRec : aliases.rbegin()->second;
     TextureInfo baseTexInfo;
     baseTexRec.tex->getinfo(baseTexInfo);
     int maxMips = min(get_log2w(w), get_log2w(h)) + 1;
     int mipLevels = min(baseTexRec.tex->level_count(), maxMips);
-    if (w > baseTexInfo.w || h > baseTexInfo.h)
+    if (w > baseTexInfo.w || h > baseTexInfo.h || currentTexInfo.isCommitted)
     {
       debug("Resizing %s to larger size than it has. This texture will be recreated", get_managed_res_name(baseTexRec.texId));
       eastl::string baseTexName(get_managed_res_name(baseTexRec.texId));
@@ -142,7 +149,7 @@ void ResizableTextureIDHolder::resize(int w, int h)
       return;
     }
     texRec.texId = register_managed_tex(aliasTexName.data(), texRec.tex);
-    aliases.insert({getKey(w, h), texRec});
+    aliases.insert({getKey(w, h), texRec}); // aliased texture also can be aliased, we don't need to check here
     // todo: copy sampler state from base to alias
     // todo: we also can remove registry every alias if enhance tex manager api. We need to replace
     //  old d3dRes with new alias and guarantee that previous tex not used anywhere (refcount == 1)

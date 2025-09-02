@@ -1,6 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include "scopeAimRender.h"
+#include <render/scopeAimRender/scopeAimRender.h>
 #include "scopeMobileNodes.h"
 
 #include <drv/3d/dag_viewScissor.h>
@@ -11,10 +11,10 @@
 #include <render/world/frameGraphHelpers.h>
 #include <render/world/gbufferConsts.h>
 
-dabfg::NodeHandle mk_scope_begin_rp_mobile_node(d3d::RenderPass *opaqueWithScopeRenderPass)
+dafg::NodeHandle mk_scope_begin_rp_mobile_node(d3d::RenderPass *opaqueWithScopeRenderPass)
 {
-  return dabfg::register_node("scope_begin_rp_mobile", DABFG_PP_NODE_SRC, [opaqueWithScopeRenderPass](dabfg::Registry registry) {
-    dag::Vector<dabfg::VirtualResourceHandle<BaseTexture, true, false>> renderPassHndls;
+  return dafg::register_node("scope_begin_rp_mobile", DAFG_PP_NODE_SRC, [opaqueWithScopeRenderPass](dafg::Registry registry) {
+    dag::Vector<dafg::VirtualResourceHandle<BaseTexture, true, false>> renderPassHndls;
 
     const bool simplified = renderer_has_feature(FeatureRenderFlags::MOBILE_SIMPLIFIED_MATERIALS);
     const size_t gbufCount = simplified ? MOBILE_SIMPLIFIED_GBUFFER_RT_COUNT : MOBILE_GBUFFER_RT_COUNT;
@@ -22,7 +22,7 @@ dabfg::NodeHandle mk_scope_begin_rp_mobile_node(d3d::RenderPass *opaqueWithScope
 
     auto appendRT = [&renderPassHndls, &registry](const char *name) {
       renderPassHndls.push_back(
-        registry.modify(name).texture().atStage(dabfg::Stage::PS).useAs(dabfg::Usage::COLOR_ATTACHMENT).handle());
+        registry.modify(name).texture().atStage(dafg::Stage::PS).useAs(dafg::Usage::COLOR_ATTACHMENT).handle());
     };
 
     for (size_t i = 0; i < gbufCount; ++i)
@@ -32,12 +32,12 @@ dabfg::NodeHandle mk_scope_begin_rp_mobile_node(d3d::RenderPass *opaqueWithScope
     appendRT("target_for_resolve");
 
     const auto mainViewResolution = registry.getResolution<2>("main_view");
-    renderPassHndls.push_back(registry.create("scope_lens_mask", dabfg::History::No)
+    renderPassHndls.push_back(registry.create("scope_lens_mask", dafg::History::No)
                                 .texture({(uint32_t)get_scope_mask_format() | TEXCF_RTARGET, mainViewResolution})
-                                .atStage(dabfg::Stage::PS)
-                                .useAs(dabfg::Usage::COLOR_ATTACHMENT)
+                                .atStage(dafg::Stage::PS)
+                                .useAs(dafg::Usage::COLOR_ATTACHMENT)
                                 .handle());
-    registry.create("scope_lens_sampler", dabfg::History::No).blob(d3d::request_sampler({}));
+    registry.create("scope_lens_sampler", dafg::History::No).blob(d3d::request_sampler({}));
 
     registry.requestState().setFrameBlock("global_frame");
 
@@ -56,10 +56,10 @@ dabfg::NodeHandle mk_scope_begin_rp_mobile_node(d3d::RenderPass *opaqueWithScope
   });
 }
 
-dabfg::NodeHandle mk_scope_prepass_mobile_node()
+dafg::NodeHandle mk_scope_prepass_mobile_node()
 {
-  return dabfg::register_node("scope_prepass_mobile", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
-    registry.read("gbuf_depth_for_opaque").texture().atStage(dabfg::Stage::PS).useAs(dabfg::Usage::DEPTH_ATTACHMENT);
+  return dafg::register_node("scope_prepass_mobile", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.read("gbuf_depth_for_opaque").texture().atStage(dafg::Stage::PS).useAs(dafg::Usage::DEPTH_ATTACHMENT);
 
     registry.requestState().setFrameBlock("global_frame");
 
@@ -77,9 +77,9 @@ dabfg::NodeHandle mk_scope_prepass_mobile_node()
   });
 }
 
-dabfg::NodeHandle mk_scope_mobile_node()
+dafg::NodeHandle mk_scope_mobile_node()
 {
-  return dabfg::register_node("scope_mobile", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
+  return dafg::register_node("scope_mobile", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     registry.orderMeAfter("scope_prepass_mobile");
 
     const bool simplified = renderer_has_feature(FeatureRenderFlags::MOBILE_SIMPLIFIED_MATERIALS);
@@ -87,9 +87,9 @@ dabfg::NodeHandle mk_scope_mobile_node()
     const auto *gbufNames = simplified ? MOBILE_SIMPLIFIED_GBUFFER_RT_NAMES.data() : MOBILE_GBUFFER_RT_NAMES.data();
 
     for (size_t i = 0; i < gbufCount; ++i)
-      registry.modify(gbufNames[i]).texture().atStage(dabfg::Stage::PS).useAs(dabfg::Usage::COLOR_ATTACHMENT);
+      registry.modify(gbufNames[i]).texture().atStage(dafg::Stage::PS).useAs(dafg::Usage::COLOR_ATTACHMENT);
 
-    registry.read("gbuf_depth_for_opaque").texture().atStage(dabfg::Stage::PS).useAs(dabfg::Usage::DEPTH_ATTACHMENT);
+    registry.read("gbuf_depth_for_opaque").texture().atStage(dafg::Stage::PS).useAs(dafg::Usage::DEPTH_ATTACHMENT);
 
     registry.requestState().allowWireframe().setFrameBlock("global_frame");
 
@@ -107,12 +107,12 @@ dabfg::NodeHandle mk_scope_mobile_node()
   });
 }
 
-dabfg::NodeHandle mk_scope_lens_mask_mobile_node()
+dafg::NodeHandle mk_scope_lens_mask_mobile_node()
 {
-  return dabfg::register_node("scope_lens_mask_mobile", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
+  return dafg::register_node("scope_lens_mask_mobile", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     registry.orderMeAfter("scope_mobile");
-    registry.read("gbuf_depth_for_opaque").texture().atStage(dabfg::Stage::PS).useAs(dabfg::Usage::DEPTH_ATTACHMENT);
-    registry.modify("scope_lens_mask").texture().atStage(dabfg::Stage::PS).useAs(dabfg::Usage::COLOR_ATTACHMENT);
+    registry.read("gbuf_depth_for_opaque").texture().atStage(dafg::Stage::PS).useAs(dafg::Usage::DEPTH_ATTACHMENT);
+    registry.modify("scope_lens_mask").texture().atStage(dafg::Stage::PS).useAs(dafg::Usage::COLOR_ATTACHMENT);
 
     shaders::OverrideState overrideState;
     overrideState.set(shaders::OverrideState::Z_WRITE_DISABLE);
@@ -132,13 +132,13 @@ dabfg::NodeHandle mk_scope_lens_mask_mobile_node()
   });
 }
 
-dabfg::NodeHandle mk_scope_depth_cut_mobile_node()
+dafg::NodeHandle mk_scope_depth_cut_mobile_node()
 {
-  return dabfg::register_node("scope_depth_cut_mobile", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
+  return dafg::register_node("scope_depth_cut_mobile", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     registry.orderMeAfter("scope_lens_mask_mobile");
     registry.orderMeBefore("opaque_mobile");
-    registry.modify("scope_lens_mask").texture().atStage(dabfg::Stage::PS).useAs(dabfg::Usage::COLOR_ATTACHMENT);
-    registry.read("gbuf_depth_for_opaque").texture().atStage(dabfg::Stage::PS).useAs(dabfg::Usage::DEPTH_ATTACHMENT);
+    registry.modify("scope_lens_mask").texture().atStage(dafg::Stage::PS).useAs(dafg::Usage::COLOR_ATTACHMENT);
+    registry.read("gbuf_depth_for_opaque").texture().atStage(dafg::Stage::PS).useAs(dafg::Usage::DEPTH_ATTACHMENT);
 
     shaders::OverrideState overrideState;
     overrideState.set(shaders::OverrideState::Z_FUNC);

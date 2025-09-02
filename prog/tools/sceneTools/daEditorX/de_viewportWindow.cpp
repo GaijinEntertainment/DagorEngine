@@ -2,15 +2,13 @@
 
 #include "de_viewportWindow.h"
 #include "de_screenshotMetaInfoLoader.h"
+#include "de3_dynRenderService.h"
+
 #include <EditorCore/ec_brush.h>
 #include <ioSys/dag_dataBlock.h>
 #include <oldEditor/de_interface.h>
 #include <util/dag_string.h>
 #include <winGuiWrapper/wgw_dialogs.h>
-
-DagorEdViewportWindow::DagorEdViewportWindow(TEcHandle parent, int left, int top, int w, int h) :
-  ViewportWindow(parent, left, top, w, h)
-{}
 
 bool DagorEdViewportWindow::onDropFiles(const dag::Vector<String> &files)
 {
@@ -44,4 +42,14 @@ bool DagorEdViewportWindow::canStartInteractionWithViewport()
   }
 
   return true;
+}
+
+BaseTexture *DagorEdViewportWindow::getDepthBuffer()
+{
+  if (auto *srv = EDITORCORE->queryEditorInterface<IDynRenderService>())
+  {
+    return srv->getDepthBuffer();
+  }
+
+  return nullptr;
 }

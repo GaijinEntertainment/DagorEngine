@@ -19,7 +19,7 @@ The pathfinding for vertical ladders functions as follows. Each ladder has a
 gameObj file like `ladder_template.gameObj.blk`, which contains:
 
 - `volumeType:t="box"` – The type of primitive displayed in
-  [*daEditor*](../../../dagor-tools/daeditor/daeditor/).
+  [daEditor](../../../dagor-tools/daeditor/daeditor/daeditor.md).
 - `boxSz:r=0.5` – The size of the base primitive.
 - `isLadder:b=yes` – A flag indicating that this is a ladder.
 - `ladderStepsCount:i=13` – The number of steps on the ladder.

@@ -4,8 +4,11 @@
   half geomAttenuation; half3 dirFromLight, point2light;//point2light - not normalized
   spot_light_params(worldPos.xyz, lightPosRadius, lightDirection.xyz, lightAngleScale, lightAngleOffset, geomAttenuation, dirFromLight, point2light);
 
+  const float inFrontOfIlluminatingPlane = saturate(sign(dot(-point2light, lightDirection.xyz) - illuminatingPlaneOffset));
+  geomAttenuation *= inFrontOfIlluminatingPlane;
+
   half NoL = dot(half3(gbuffer.normal), dirFromLight);
-  half attenuation = calc_micro_shadow(NoL, gbuffer.ao)*geomAttenuation;
+  half attenuation = calc_micro_shadow(NoL, ao)*geomAttenuation;
   half ggx_alpha = max(1e-4, gbuffer.linearRoughness*gbuffer.linearRoughness);
 
   #if DYNAMIC_LIGHTS_EARLY_EXIT
@@ -28,10 +31,13 @@
   #endif
 
   half spotShadow = 1;
+  #if SPOT_SHADOWS || defined(SPOT_CONTACT_SHADOWS_CALC)
+  float zbias = shadowZBias + shadowSlopeZBias / (abs(NoL)+0.1);
+  float4x4 spotLightTm = getSpotLightTm(spot_light_index);
+  float4 lightShadowTC = mul(spotLightTm, float4(worldPos.xyz+(point2light+dirFromLight)*zbias, 1));
+  #endif
+
   #if !RT_DYNAMIC_LIGHTS && (SPOT_SHADOWS || defined(SPOT_CONTACT_SHADOWS_CALC))
-    float zbias = shadowZBias + shadowSlopeZBias / (abs(NoL)+0.1);
-    float4x4 spotLightTm = getSpotLightTm(spot_light_index);
-    float4 lightShadowTC = mul(spotLightTm, float4(worldPos.xyz+(point2light+dirFromLight)*zbias, 1));
     if (lightShadowTC.w > 1e-6)
     {
       lightShadowTC.xyz /= lightShadowTC.w;
@@ -79,7 +85,7 @@
     #endif
     {
       BRANCH if (isSubSurfaceShader(gbuffer.material))
-        lightBRDF += (foliageSSS(NoL, view, dirFromLight)*gbuffer.ao) * gbuffer.translucencyColor;//can make gbuffer.ao*gbuffer.translucencyColor only once for all lights
+        lightBRDF += (foliageSSS(NoL, view, dirFromLight)*ao) * gbuffer.translucencyColor;//can make ao*gbuffer.translucencyColor only once for all lights
     }
   #else
     #if SHEEN_SPECULAR

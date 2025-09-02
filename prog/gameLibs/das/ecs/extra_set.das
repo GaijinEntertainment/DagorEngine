@@ -1,3 +1,4 @@
+options indenting = 2
 module extra_set shared
 require ecs
 
@@ -238,10 +239,10 @@ def set(var init : Object | #; name : string; source : array<float3x4>)
 /*
 [init]
 def gen()
-  let types <- {{ "bool" => "BoolList"; "string" => "StringList"; "EntityId" => "EidList";
-    "float" => "FloatList"; "float2" => "Point2List"; "float3" => "Point3List"; "float4" => "Point4List";
-    "uint8" => "UInt8List"; "uint16" => "UInt16List"; "uint" => "UInt32List"; "uint64" => "UInt64List";
-    "int8" => "Int8List"; "int16" => "Int16List"; "int" => "IntList"; "int64" => "Int64List";
+  let types <- {{ "bool" => "BoolList"; "string" => "StringList"; "EntityId" => "EidList"
+    "float" => "FloatList"; "float2" => "Point2List"; "float3" => "Point3List"; "float4" => "Point4List"
+    "uint8" => "UInt8List"; "uint16" => "UInt16List"; "uint" => "UInt32List"; "uint64" => "UInt64List"
+    "int8" => "Int8List"; "int16" => "Int16List"; "int" => "IntList"; "int64" => "Int64List"
     "int2" => "IPoint2List"; "int3" => "IPoint3List"; "int4" => "IPoint4List" }}
 
 

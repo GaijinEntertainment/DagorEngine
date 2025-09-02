@@ -110,7 +110,7 @@ void Templates::remap(const template_t *map, uint32_t used_count, bool defrag_na
   G_UNUSED(defrag_names);
 }
 
-InstantiatedTemplate::InstantiatedTemplate(const Archetypes &archetypes, uint32_t archetype_,
+InstantiatedTemplate::InstantiatedTemplate(ecs::EntityManager &mgr, const Archetypes &archetypes, uint32_t archetype_,
   const ChildComponent *const *initializers, const DataComponents &dataComponents, ComponentTypes &componentTypes) :
   archetype(archetype_)
 {
@@ -144,7 +144,7 @@ InstantiatedTemplate::InstantiatedTemplate(const Archetypes &archetypes, uint32_
       typeManager->create(tmpData, *(EntityManager *)(uintptr_t)1, INVALID_ENTITY_ID, ComponentsMap(), componentIndex);
       // ugly const_cast..
       *(ChildComponent *)initializer =
-        ChildComponent(componentTypes.getTypeById(componentTypeIndex), tmpData, ChildComponent::CopyType::Shallow);
+        ChildComponent(mgr, componentTypes.getTypeById(componentTypeIndex), tmpData, ChildComponent::CopyType::Shallow);
       if (!(typeFlags & COMPONENT_TYPE_BOXED))
         typeManager->destroy(tmpData);
       if (tmpData != tmpBuf)
@@ -187,7 +187,7 @@ InstantiatedTemplate::InstantiatedTemplate(const Archetypes &archetypes, uint32_
   }
 }
 
-template_t Templates::createTemplate(Archetypes &archetypes, const uint32_t db_id,
+template_t Templates::createTemplate(ecs::EntityManager &mgr, Archetypes &archetypes, const uint32_t db_id,
   const component_index_t *__restrict componentIndices, uint32_t componentIndicesSize, const component_index_t *__restrict replIndices,
   uint32_t replIndicesSize, const ChildComponent *const *initializers, const DataComponents &dataComponents,
   ComponentTypes &componentTypes)
@@ -201,7 +201,7 @@ template_t Templates::createTemplate(Archetypes &archetypes, const uint32_t db_i
   DAECS_EXT_ASSERTF(templ == templateDbId.size(), "%d != %d", templ, templateDbId.size());
   DAECS_EXT_ASSERT(templ < INVALID_TEMPLATE_INDEX);
 
-  templates.emplace_back(archetypes, archetype, initializers, dataComponents, componentTypes);
+  templates.emplace_back(mgr, archetypes, archetype, initializers, dataComponents, componentTypes);
   templateDbId.push_back(db_id);
 
   if (archetypes.getArchetypeCombinedTypeFlags(archetype) & COMPONENT_TYPE_REPLICATION)

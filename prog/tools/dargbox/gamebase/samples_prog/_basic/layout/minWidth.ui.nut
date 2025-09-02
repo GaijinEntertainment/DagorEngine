@@ -5,14 +5,14 @@ let cursors = require("samples_prog/_cursors.nut")
 function item(text) {
   return {
     color = Color(200, 50, 50)
-    size = [flex(), SIZE_TO_CONTENT]
+    size = FLEX_H
     minWidth = SIZE_TO_CONTENT
 
     children = [
       {
         rendObj = ROBJ_SOLID
         color = Color(20, 20, 180)
-        size = [pw(100), ph(100)]
+        size = static [pw(100), ph(100)]
       }
       {
         margin = 5

@@ -4,6 +4,7 @@
 #include <drv/3d/dag_driver.h>
 #include <drv/3d/dag_info.h>
 #include <drv/3d/dag_commands.h>
+#include <drv/3d/dag_renderTarget.h>
 #include <3d/dag_gpuConfig.h>
 #include <startup/dag_restart.h>
 #include <debug/dag_debug.h>
@@ -18,19 +19,22 @@ static IDrv3DResetCB *ext_drv3d_reset_handler = NULL;
 IDrv3DDeviceLostCB *ext_drv3d_device_lost_handler = NULL;
 
 static bool window_resizing_by_mouse = false;
-static bool driver_reset_pending_on_exit_sizing = false;
-static bool window_size_has_been_changed_programmatically = false;
+static bool window_resize_handling_in_progress = false;
+static int window_width = 0, window_height = 0;
 
-bool is_window_resizing_by_mouse() { return window_resizing_by_mouse; }
-void set_driver_reset_pending_on_exit_sizing() { driver_reset_pending_on_exit_sizing = true; }
-void set_window_size_has_been_changed_programmatically(bool value) { window_size_has_been_changed_programmatically = value; }
-bool is_window_size_has_been_changed_programmatically() { return window_size_has_been_changed_programmatically; }
+bool is_window_resizing_by_mouse() { return window_resizing_by_mouse || window_resize_handling_in_progress; }
+void set_window_resizing_by_mouse(bool value) { window_resizing_by_mouse = value; }
+void notify_window_resized(int w, int h)
+{
+  window_width = w;
+  window_height = h;
+}
 
 void
 #if _MSC_VER >= 1300
   __declspec(noinline)
 #endif
-    d3derr_in_device_reset(const char *msg)
+  d3derr_in_device_reset(const char *msg)
 {
   D3D_ERROR("%s:\n%s (device reset)", msg, d3d::get_last_error());
   G_UNUSED(msg);
@@ -66,15 +70,23 @@ void zero_reset_3d_device_counter()
     ext_drv3d_reset_handler->resetCounter();
 }
 
-void on_window_resized_change_reset_request()
+bool check_and_handle_window_resize()
 {
   if (dgs_get_window_mode() != WindowMode::WINDOWED_RESIZABLE)
-    return;
-  window_resizing_by_mouse = true;
+    return false;
+
+  int scrW, scrH;
+  d3d::get_screen_size(scrW, scrH);
+  if (DAGOR_LIKELY(scrW == window_width && scrH == window_height))
+    return false;
+
+  window_resize_handling_in_progress = true;
+
   if (ext_drv3d_reset_handler)
     ext_drv3d_reset_handler->windowResized();
   bool applyAfterResetDevice = false;
   change_driver_reset_request(applyAfterResetDevice, true);
+  return true;
 }
 
 void fullscreen_state_restored()
@@ -102,40 +114,40 @@ void set_3d_device_reset_callback(IDrv3DResetCB *handler) { ext_drv3d_reset_hand
 
 void set_3d_device_lost_callback(IDrv3DDeviceLostCB *handler) { ext_drv3d_device_lost_handler = handler; }
 
-#if _TARGET_PC_WIN | _TARGET_ANDROID
+#if _TARGET_PC | _TARGET_ANDROID
+static int restoring_3d_device = 0;
+bool is_restoring_3d_device() { return interlocked_acquire_load(restoring_3d_device) != 0; }
 bool check_and_restore_3d_device()
 {
   static int reset_failed_count = 0;
   static bool d3dd_requires_reset = false;
 
-  bool can_reset_now = true;
-
-  if (dagor_d3d_notify_fullscreen_state_restored)
+  if (DAGOR_UNLIKELY(dagor_d3d_notify_fullscreen_state_restored))
   {
     dagor_d3d_notify_fullscreen_state_restored = false;
     fullscreen_state_restored();
   }
 
   d3d::driver_command(Drv3dCommand::ACQUIRE_OWNERSHIP);
-  if (!d3d::device_lost(&can_reset_now) && !d3dd_requires_reset)
+  if (bool can_reset_now = true; DAGOR_LIKELY(!d3d::device_lost(&can_reset_now) && !d3dd_requires_reset))
   {
     d3d::driver_command(Drv3dCommand::RELEASE_OWNERSHIP);
     return true;
   }
-
-  if (!can_reset_now)
+  else if (!can_reset_now)
   {
     d3d::driver_command(Drv3dCommand::RELEASE_OWNERSHIP);
     return false;
   }
 
+  interlocked_release_store(restoring_3d_device, 1);
   d3d::driver_command(Drv3dCommand::RELEASE_OWNERSHIP);          // Reset CS is outside of the GPU CS in loading threads.
   d3d::driver_command(Drv3dCommand::ACQUIRE_LOADING, (void *)1); // lockWrite
   d3d::driver_command(Drv3dCommand::ACQUIRE_OWNERSHIP);          // Re-acquire the GPU from non-loading, non-main threads, no
                                                                  // need to re-check device_lost, if it was lost, only the
                                                                  // main thread will reset it.
 
-  bool full_reset = !dagor_d3d_force_driver_mode_reset && d3d::get_driver_code().is(d3d::dx11 || d3d::dx12);
+  bool full_reset = !dagor_d3d_force_driver_mode_reset && d3d::get_driver_code().is(d3d::dx11 || d3d::dx12 || d3d::vulkan);
   bool mode_reset = dagor_d3d_force_driver_mode_reset;
 
   before_reset_3d_device(full_reset);
@@ -170,14 +182,9 @@ bool check_and_restore_3d_device()
     debug("Device lost again during afterReset"); // It is OK for device to be lost again at this point.
 
   reset_failed_count = 0;
-  if (window_resizing_by_mouse && driver_reset_pending_on_exit_sizing)
-  {
-    driver_reset_pending_on_exit_sizing = false;
-    on_window_resized_change_reset_request();
-  }
-  else
-    window_resizing_by_mouse = false;
+  window_resize_handling_in_progress = false;
   d3d::driver_command(Drv3dCommand::RELEASE_OWNERSHIP);
+  interlocked_release_store(restoring_3d_device, 0);
   return true;
 }
 #endif

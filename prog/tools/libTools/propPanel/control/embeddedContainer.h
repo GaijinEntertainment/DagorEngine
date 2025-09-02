@@ -19,10 +19,10 @@ public:
     setVerticalSpaceBetweenControls(vertical_space_between_controls);
   }
 
-  virtual unsigned getTypeMaskForSet() const override { return 0; }
-  virtual unsigned getTypeMaskForGet() const override { return 0; }
+  unsigned getTypeMaskForSet() const override { return 0; }
+  unsigned getTypeMaskForGet() const override { return 0; }
 
-  virtual void updateImgui() override
+  void updateImgui() override
   {
     if (mControlArray.empty())
       return;

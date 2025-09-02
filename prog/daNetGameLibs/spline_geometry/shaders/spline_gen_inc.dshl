@@ -7,9 +7,8 @@ int spline_gen_stripes;
 int spline_gen_vertex_count;
 buffer spline_gen_instancing_buffer;
 buffer spline_gen_spline_buffer;
+buffer spline_gen_prev_spline_buffer;
 buffer spline_gen_indirection_buffer;
-buffer spline_gen_vertex_buffer;
-buffer spline_gen_prev_vertex_buffer;
 
 buffer spline_gen_culled_buffer;
 
@@ -22,6 +21,9 @@ float4 prevOrigoRelativeViewProjTm1;
 float4 prevOrigoRelativeViewProjTm2;
 float4 prevOrigoRelativeViewProjTm3;
 
+texture spline_gen_texture_d;
+texture spline_gen_texture_emissive_mask;
+texture spline_gen_texture_skin_ao;
 
 macro INIT_SPLINE_GEN_INSTANTIATION_BASE(stage)
   (stage)
@@ -74,10 +76,22 @@ macro USE_SPLINE_GEN_INSTANTIATION(stage)
       return uint2(vertexRotation, vertexStrip);
     }
 
+    uint2 shift_coord(uint2 coord, int2 shift)
+    {
+      coord += uint2(spline_gen_slices + shift.x, shift.y);
+      coord.x = coord.x % spline_gen_slices;
+      return coord;
+    }
+
+    uint decode_coord(uint2 coord)
+    {
+      return coord.x % spline_gen_slices + coord.y * (spline_gen_slices + 1);
+    }
+
     uint decode_shifted_coord(uint2 coord, int2 shift)
     {
       coord += uint2(spline_gen_slices + shift.x, shift.y);
-      return coord.x % spline_gen_slices + coord.y * (spline_gen_slices + 1);
+      return decode_coord(coord);
     }
 
     bool is_coord_valid(uint2 coord)
@@ -90,19 +104,156 @@ macro USE_SPLINE_GEN_INSTANTIATION(stage)
       return float2(coord) * spline_gen_inverses.xy;
     }
 
-    uint get_vb_index(InstanceId instance_id, uint vertex_id)
-    {
-      return instance_id * spline_gen_vertex_count + vertex_id;
-    }
-
-    uint decode_vb_index(InstanceId instance_id, uint2 coord, int2 shift)
-    {
-      return get_vb_index(instance_id, decode_shifted_coord(coord, shift));
-    }
-
     uint get_spline_index(InstanceId instance_id, uint local_spline)
     {
       return instance_id * (spline_gen_stripes + 1) +  local_spline;
+    }
+  }
+endmacro
+
+macro USE_VS_SPLINE_GEN(stage)
+  hlsl(stage)
+  {
+    float3x3 get_spline_tm(SplineGenSpline spline)
+    {
+      return float3x3(spline.tangent, spline.bitangent, cross(spline.tangent, spline.bitangent));
+    }
+
+    float get_radius(SplineGenSpline spline, SplineGenInstance instance_data, float2 float_coord)
+    {
+      float2 texcoord = float_coord * instance_data.tcMul;
+      float alpha = tex2Dlod(spline_gen_texture_d, float4(texcoord, 0, instance_data.displacementLod)).a;
+      float radius = spline.radius;
+      radius *= 1 + (alpha * 2 - 1) * instance_data.displacementStrength;
+      return radius;
+    }
+
+    float3 get_world_pos(SplineGenSpline spline, SplineGenInstance instance_data, uint2 coord)
+    {
+      const float3 planeX = float3(0,1,0);
+      const float3 planeY = float3(0,0,1);
+
+      float2 floatCoord = convert_coord_to_float(coord);
+      float radius = get_radius(spline, instance_data, floatCoord);
+
+      float sina, cosa;
+      sincos(floatCoord.x * PI * 2.0, sina, cosa);
+      float3 localPos = cosa * planeX - sina * planeY;
+
+      float3x3 splineTm = get_spline_tm(spline) * radius;
+      return mul(localPos, splineTm) + spline.pos;
+    }
+
+    float3 get_world_pos(SplineGenInstance instance_data, InstanceId instance_id, uint2 coord, int2 shift)
+    {
+      uint2 shifted_coord = shift_coord(coord, shift);
+      uint decoded_idx = decode_coord(shifted_coord);
+      uint splineIndex = get_spline_index(instance_id, shifted_coord.y);
+
+      SplineGenSpline spline = structuredBufferAt(spline_gen_spline_buffer, splineIndex);
+      return get_world_pos(spline, instance_data, shifted_coord);
+    }
+
+    void calculate_tangent_space(uint2 coord, uint vertexId, uint instanceId,
+      out float3 tangent, out float3 bitangent, out float3 normal)
+    {
+      uint vbIndex = vertexId;
+      SplineGenSpline currSpline = structuredBufferAt(spline_gen_spline_buffer, get_spline_index(instanceId, coord.y));
+
+      // Default, used when there is no previous and no next stripe with radius > 0
+      normal = currSpline.tangent;
+      tangent = currSpline.bitangent;
+      bitangent = cross(normal, tangent);
+
+      const float EPS = 0.001;
+      bool currValid = currSpline.radius > EPS;
+      bool prevValid = false;
+      BRANCH
+      if (coord.y > 0)
+      {
+        prevValid = structuredBufferAt(spline_gen_spline_buffer, get_spline_index(instanceId, coord.y - 1)).radius > EPS;
+      }
+
+      bool nextValid = false;
+      BRANCH
+      if (coord.y < spline_gen_stripes)
+      {
+        nextValid = structuredBufferAt(spline_gen_spline_buffer, get_spline_index(instanceId, coord.y + 1)).radius > EPS;
+      }
+
+      SplineGenInstance instanceData = structuredBufferAt(spline_gen_instancing_buffer, instanceId);
+
+      // If there is a previous stripe, and a next stripe with rad > 0
+      if (currValid)
+      {
+        normal = float3(0,0,0);
+        tangent = float3(0,0,0);
+        bitangent = float3(0,0,0);
+
+        float3 pos00 = get_world_pos(instanceData, instanceId, coord, int2(0, 0));
+        float3 pos10 = get_world_pos(instanceData, instanceId, coord, int2(1, 0));
+        float3 pos_10 = get_world_pos(instanceData, instanceId, coord, int2(-1, 0));
+        tangent = pos10 - pos_10;
+
+        if (coord.y < spline_gen_stripes)
+        {
+          float3 pos01 = get_world_pos(instanceData, instanceId, coord, int2(0, 1));
+          float3 pos_11 = get_world_pos(instanceData, instanceId, coord, int2(-1, 1));
+          normal += cross(normalize(pos01 - pos00), normalize(pos10 - pos00));
+          normal += cross(normalize(pos_11 - pos00), normalize(pos01 - pos00));
+          normal += cross(normalize(pos_10 - pos00), normalize(pos_11 - pos00));
+
+          bitangent += pos01 - pos00;
+        }
+        if (coord.y > 0)
+        {
+          float3 pos0_1 = get_world_pos(instanceData, instanceId, coord, int2(0, -1));
+          float3 pos1_1 = get_world_pos(instanceData, instanceId, coord, int2(1, -1));
+          normal += cross(normalize(pos0_1 - pos00), normalize(pos_10 - pos00));
+          normal += cross(normalize(pos1_1 - pos00), normalize(pos0_1 - pos00));
+          normal += cross(normalize(pos10 - pos00), normalize(pos1_1 - pos00));
+
+          bitangent += pos00 - pos0_1;
+        }
+      }
+      else if (prevValid && nextValid)
+      {
+        float3 pos11 = get_world_pos(instanceData, instanceId, coord, int2(1, 1));
+        float3 pos_11 = get_world_pos(instanceData, instanceId, coord, int2(-1, 1));
+        float3 tangent1 = pos11 - pos_11;
+
+        float3 pos1_1 = get_world_pos(instanceData, instanceId, coord, int2(1, -1));
+        float3 pos_1_1 = get_world_pos(instanceData, instanceId, coord, int2(-1, -1));
+        float3 tangent2 = pos1_1 - pos_1_1;
+
+        float3 bitangent1 = pos1_1 - pos11;
+        float3 bitangent2 = pos_1_1 - pos_11;
+
+        tangent = tangent1 + tangent2;
+        bitangent = bitangent1 + bitangent2;
+        normal = cross(tangent, bitangent);
+      }
+      else if (prevValid || nextValid)
+      {
+        //Special handling for the "tip", since all the triangles share a common point
+        float mul = nextValid ? -1.0 : 1.0;
+        normal = mul * currSpline.tangent;
+
+        int2 shiftUpper = nextValid ? int2(1, 1) : int2(1, -1);
+        int2 shiftLower = nextValid ? int2(-1, 1) : int2(-1, -1);
+
+        float3 posUpper = get_world_pos(instanceData, instanceId, coord, shiftUpper);
+        float3 posLower = get_world_pos(instanceData, instanceId, coord, shiftLower);
+        tangent = posUpper - posLower;
+        bitangent = cross(tangent, normal);
+      }
+    }
+
+    float3 calculate_normal(uint2 coord, uint vertexId, uint instanceId)
+    {
+      float3 tangent, bitangent, normal;
+      calculate_tangent_space(coord, vertexId, instanceId, tangent, bitangent, normal);
+      return normal;
     }
   }
 endmacro
@@ -116,34 +267,6 @@ macro INIT_SPLINE_GEN_ATTACHMENT_BATCHES(stage)
       #include "spline_gen_buffer.hlsli"
       Buffer<BatchId> spline_gen_obj_batch_id_buffer@buf;
     };
-  }
-endmacro
-
-macro USE_UNIT_VEC_CODEC()
-  hlsl
-  {
-    #define ELEVEN_BITS_MASK 0x7FF
-    #define TEN_BITS_MASK 0x3FF
-    uint encode_unit_vector(float3 unit_vec)
-    {
-      float3 scaledVec = saturate(unit_vec * 0.5 + 0.5);
-      uint3 unpackedVec = uint3(round(scaledVec * float3(ELEVEN_BITS_MASK, ELEVEN_BITS_MASK, TEN_BITS_MASK)));
-      uint packedVec = ((unpackedVec.x & ELEVEN_BITS_MASK) << 21 ) |
-                       ((unpackedVec.y & ELEVEN_BITS_MASK) << 10)  |
-                       (unpackedVec.z & TEN_BITS_MASK);
-      return packedVec;
-    }
-
-    float3 decode_unit_vector(uint packed_vec)
-    {
-      uint3 unpackedVec;
-      unpackedVec.x = (packed_vec >> 21) & ELEVEN_BITS_MASK;
-      unpackedVec.y = (packed_vec >> 10) & ELEVEN_BITS_MASK;
-      unpackedVec.z = packed_vec & TEN_BITS_MASK;
-      float3 scaledVec = float3(unpackedVec) / float3(ELEVEN_BITS_MASK, ELEVEN_BITS_MASK, TEN_BITS_MASK);
-      float3 unitVec = normalize(scaledVec * 2 - 1);
-      return unitVec;
-    }
   }
 endmacro
 
@@ -161,11 +284,15 @@ macro DYNAMIC_SPLINE_GEN_VS_COMMON()
       float3 pointToEye : TEXCOORD0;
       float2 texcoord : TEXCOORD1;
       float3 normal : TEXCOORD2;
+      ##if shader == dynamic_emissive_spline_gen
+      float4 emissiveColor: TEXCOORD7;
+      float emissiveIntensity : TEXCOORD8;
+      ##endif
       #ifdef MOTION_VECTORS_ENABLED
       float4 out_pos : TEXCOORD3;
       float4 out_prev_pos : TEXCOORD4;
       #endif
-      ##if shader == dynamic_spline_gen
+      ##if shader == dynamic_spline_gen || shader == dynamic_emissive_spline_gen || shader == dynamic_skin_spline_gen
       float3 tangent : TEXCOORD5;
       float3 bitangent : TEXCOORD6;
       ##endif
@@ -187,20 +314,33 @@ macro DYNAMIC_SPLINE_GEN_PS_COMMON()
   WRITE_GBUFFER()
   USE_MOTION_VEC_ENCODE(ps)
   USE_NORMAL_DETAIL()
+
+  if (shader == dynamic_emissive_spline_gen)
+  {
+    (ps) {
+      spline_gen_texture_emissive_mask@smp2d = spline_gen_texture_emissive_mask;
+    }
+  }
+  if (shader == dynamic_skin_spline_gen)
+  {
+    (ps) {
+      spline_gen_texture_skin_ao@smp2d = spline_gen_texture_skin_ao;
+    }
+  }
+
   hlsl (ps)
   {
     GBUFFER_OUTPUT spline_gen_ps_base_impl(VsOutput input, float4 packed_diffuse, float4 packed_normal_map, float4 screenpos)
     {
       float3 color = packed_diffuse.rgb;
       float alpha = packed_diffuse.a;
-      clip_alpha(alpha)
+      clip_alpha(alpha);
       float3 normalMap = unpack_ag_normal(packed_normal_map);
-      ##if shader == dynamic_spline_gen
-      float3 normal = normalMap.x * input.tangent + normalMap.y * input.bitangent + normalMap.z * input.normal;
+      ##if shader == dynamic_spline_gen || shader == dynamic_emissive_spline_gen || shader == dynamic_skin_spline_gen
+        float3 normal = normalMap.x * input.tangent + normalMap.y * input.bitangent + normalMap.z * input.normal;
       ##else // dynamic_spline_attachment
-      float3 normal = perturb_normal_precise(normalMap, normalize(input.normal), input.pointToEye, input.texcoord);
+        float3 normal = perturb_normal_precise(normalMap, normalize(input.normal), input.pointToEye, input.texcoord);
       ##endif
-      half metallness = packed_normal_map.b;
       half smoothness = packed_normal_map.r;
 
       UnpackedGbuffer gbuffer;
@@ -208,8 +348,42 @@ macro DYNAMIC_SPLINE_GEN_PS_COMMON()
       init_albedo(gbuffer, color);
       init_normal(gbuffer, normal);
       init_smoothness(gbuffer, smoothness);
-      init_metalness(gbuffer, metallness);
       init_dynamic(gbuffer, true);
+      init_material(gbuffer, SHADING_NORMAL);
+
+      ##if shader == dynamic_skin_spline_gen
+        // Lighting.
+        half diffuseLum = luminance(color);
+        half ao = saturate(diffuseLum*100.0);
+        ##if spline_gen_texture_skin_ao != NULL
+          ao *= tex2D(spline_gen_texture_skin_ao, input.texcoord).r;
+        ##endif
+        half reflectance = 0.5;
+
+        init_material(gbuffer, SHADING_SUBSURFACE);
+        init_ao(gbuffer, ao);
+        init_translucency(gbuffer, packed_normal_map.b);
+        init_reflectance(gbuffer, reflectance);
+        half shadow = 1;
+        init_shadow(gbuffer, shadow);
+      ##elif shader == dynamic_emissive_spline_gen
+        float emissiveMask = tex2D(spline_gen_texture_emissive_mask, input.texcoord).r;
+        FLATTEN
+        if (input.emissiveColor.a < 0)
+          emissiveMask = 1 - emissiveMask;
+
+        FLATTEN
+        if (emissiveMask > 0)
+        {
+          init_material(gbuffer, SHADING_SELFILLUM);
+          init_emission(gbuffer, emissiveMask * min3(abs(input.emissiveColor.a), input.emissiveIntensity, MAX_EMISSION));
+          init_emission_color(gbuffer, float4(input.emissiveColor.rgb, emissiveMask));
+        }
+      ##else // dynamic_spline_gen
+        half metallness = packed_normal_map.b;
+        init_metalness(gbuffer, metallness);
+      ##endif
+
       #ifdef MOTION_VECTORS_ENABLED
         float3 motion = encode_motion_vector(input.out_pos, input.out_prev_pos);
         init_motion_vector(gbuffer, motion);

@@ -1,12 +1,15 @@
 "@override:source" {
   file:t = "../../../prog/gameLibs/render/denoiser/shaders/denoiser_prepare.dshl"
+  file:t = "../../../prog/gameLibs/render/denoiser/shaders/sigma_shadow.dshl"
   file:t = "../../../prog/gameLibs/render/denoiser/shaders/reblur_diffuse_occlusion.dshl"
+  file:t = "../../../prog/gameLibs/render/denoiser/shaders/reblur_diffuse.dshl"
   file:t = "../../../prog/gameLibs/render/denoiser/shaders/reblur_specular.dshl"
   file:t = "../../../prog/gameLibs/render/denoiser/shaders/relax_specular.dshl"
-  file:t = "../../../prog/gameLibs/render/denoiser/shaders/sigma_shadow.dshl"
 }
 
-incDir:t="../../../prog/gameLibs/render/denoiser/shaders/NRD"
-incDir:t="../../../prog/gameLibs/render/denoiser/shaders/NRD/Include"
-incDir:t="../../../prog/gameLibs/render/denoiser/shaders/NRD/Resources"
-incDir:t="../../../prog/gameLibs/render/denoiser/shaders/NRD/Source"
+incDir:t="../../../prog/gameLibs/render/denoiser/shaders"
+incDir:t="../../../prog/3rdPartyLibs/NRD"
+incDir:t="../../../prog/3rdPartyLibs/NRD/Include"
+incDir:t="../../../prog/3rdPartyLibs/NRD/Resources"
+incDir:t="../../../prog/3rdPartyLibs/NRD/Source"
+incDir:t="../../../prog/3rdPartyLibs/math/MathLib"

@@ -1,0 +1,12 @@
+#define NBS_SHADER 1
+
+//For Gbuffer:
+#define NEED_MOTION_VECTOR_UNPACKING 1
+#define DEFERRED_MOBILE 0
+#define GBUFFER_IN_EDITOR 0
+#define RW_PREFIX
+
+#define IS_ENVI_COVER 1
+#define USE_SPARKLES_3D_NOISE 1
+
+#define USE_CAMERA_IN_CAMERA 1

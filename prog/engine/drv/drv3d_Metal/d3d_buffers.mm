@@ -21,6 +21,7 @@
 
 #include "render.h"
 #include "drv_log_defs.h"
+#include "drv_assert_defs.h"
 
 using namespace drv3d_metal;
 
@@ -81,7 +82,7 @@ bool d3d::setvsrc_ex(int slot, Sbuffer *vb, int offset, int stride)
 
 bool d3d::set_const_buffer(unsigned stage, unsigned slot, Sbuffer* buffer, uint32_t consts_offset, uint32_t consts_size)
 {
-  G_ASSERT_RETURN(!consts_offset && !consts_size, false); //not implemented, not tested
+  D3D_CONTRACT_ASSERT_RETURN(!consts_offset && !consts_size, false); //not implemented, not tested
   return set_buffer_ex(stage, CONST_BUFFER, slot, (Buffer*)buffer, 0, 0);
 }
 
@@ -124,7 +125,7 @@ static inline uint32_t nprim_to_nverts(uint32_t prim_type, uint32_t numprim)
 
 void check_primtype(const int prim_type)
 {
-  G_ASSERT(prim_type >= 0 && prim_type < PRIM_COUNT && prim_type != PRIM_4_CONTROL_POINTS);
+  D3D_CONTRACT_ASSERT(prim_type >= 0 && prim_type < PRIM_COUNT && prim_type != PRIM_4_CONTROL_POINTS);
 }
 
 bool d3d::draw_base(int prim_type, int start_vertex, int numprim, uint32_t num_inst, uint32_t start_instance)
@@ -193,4 +194,138 @@ bool d3d::set_immediate_const(unsigned shader_stage, const uint32_t *data, unsig
   render.setImmediateConst(shader_stage, data, num_words);
 
   return true;
+}
+
+namespace d3d
+{
+
+struct ResUpdateBuffer
+{
+  drv3d_metal::Texture *texture = nullptr;
+  id<MTLBuffer> buffer = nullptr;
+  uint32_t level = 0;
+  uint32_t face = 0;
+  uint32_t x = 0;
+  uint32_t y = 0;
+  uint32_t z = 0;
+  uint32_t w = 0;
+  uint32_t h = 0;
+  uint32_t d = 0;
+  size_t pitch = 0;
+  size_t slicePitch = 0;
+};
+
+ResUpdateBuffer *allocate_update_buffer_for_tex_region(BaseTexture *dest_base_texture, unsigned dest_mip, unsigned dest_slice,
+                                                            unsigned offset_x, unsigned offset_y, unsigned offset_z, unsigned width, unsigned height, unsigned depth)
+{
+  G_ASSERT_RETURN(dest_base_texture, nullptr);
+
+  ResUpdateBuffer *rub = new ResUpdateBuffer;
+  rub->texture = (drv3d_metal::Texture *)dest_base_texture;
+  rub->level = dest_mip;
+  rub->face = dest_slice;
+  rub->x = offset_x;
+  rub->y = offset_y;
+  rub->z = offset_z;
+  rub->w = width;
+  rub->h = height;
+  rub->d = depth;
+
+  TextureInfo base_ti;
+  dest_base_texture->getinfo(base_ti, 0);
+
+  G_ASSERT_RETURN(dest_mip < base_ti.mipLevels, nullptr);
+  G_ASSERT_RETURN(dest_slice < base_ti.a, nullptr);
+
+  int row_pitch = 0, slice_pitch = 0;
+  rub->texture->getStride(rub->texture->base_format, width, height, 0, row_pitch, slice_pitch);
+
+  rub->pitch = row_pitch;
+  rub->slicePitch = slice_pitch;
+
+  String name;
+  name.printf(0, "upload for %s %llu", rub->texture->getName(), render.frame);
+  rub->buffer = render.createBuffer(slice_pitch, MTLResourceStorageModeShared, name);
+
+  return rub;
+}
+
+ResUpdateBuffer *allocate_update_buffer_for_tex(BaseTexture *dest_tex, int dest_mip, int dest_slice)
+{
+  G_ASSERT_RETURN(dest_tex, nullptr);
+
+  TextureInfo base_ti;
+  dest_tex->getinfo(base_ti, dest_mip);
+
+  ResUpdateBuffer *rub = new ResUpdateBuffer;
+  rub->texture = (drv3d_metal::Texture *)dest_tex;
+  rub->level = dest_mip;
+  rub->face = dest_slice;
+  rub->x = 0;
+  rub->y = 0;
+  rub->z = 0;
+  rub->w = base_ti.w;
+  rub->h = base_ti.h;
+  rub->d = base_ti.d;
+
+  G_ASSERT_RETURN(dest_mip < base_ti.mipLevels, nullptr);
+  G_ASSERT_RETURN(dest_slice < base_ti.a, nullptr);
+
+  int row_pitch = 0, slice_pitch = 0;
+  rub->texture->getStride(rub->texture->base_format, rub->w, rub->h, 0, row_pitch, slice_pitch);
+
+  int d = rub->texture->type == D3DResourceType::VOLTEX ? rub->d : 1;
+
+  rub->pitch = row_pitch;
+  rub->slicePitch = slice_pitch;
+
+  String name;
+  name.printf(0, "upload for %s %llu", rub->texture->getName(), render.frame);
+  rub->buffer = render.createBuffer(slice_pitch * d, MTLResourceStorageModeShared, name);
+
+  return rub;
+}
+
+void release_update_buffer(ResUpdateBuffer *&rub)
+{
+  if (rub == nullptr)
+    return;
+
+  render.queueResourceForDeletion(rub->buffer);
+
+  delete rub;
+  rub = nullptr;
+}
+
+char *get_update_buffer_addr_for_write(ResUpdateBuffer *rub)
+{
+  return rub && rub->buffer ? (char *)rub->buffer.contents : nullptr;
+}
+
+size_t get_update_buffer_size(ResUpdateBuffer *rub)
+{
+  return rub && rub->buffer ? rub->slicePitch : 0;
+}
+
+size_t get_update_buffer_pitch(ResUpdateBuffer *rub)
+{
+  return rub ? rub->pitch : 0;
+}
+
+size_t get_update_buffer_slice_pitch(ResUpdateBuffer *rub)
+{
+  return rub ? rub->slicePitch : 0;
+}
+
+bool update_texture_and_release_update_buffer(ResUpdateBuffer *&src_rub)
+{
+  if (src_rub == nullptr)
+    return false;
+
+  render.uploadTexture(src_rub->texture, src_rub->texture->apiTex->texture, src_rub->level, src_rub->face, src_rub->x, src_rub->y, src_rub->z, src_rub->w, src_rub->h, src_rub->d, src_rub->buffer, src_rub->pitch, src_rub->slicePitch);
+
+  d3d::release_update_buffer(src_rub);
+  return true;
+}
+
 }

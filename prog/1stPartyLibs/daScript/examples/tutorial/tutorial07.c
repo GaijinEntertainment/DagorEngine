@@ -86,6 +86,7 @@ das_module * register_module_tutorial_07() {
     // create module and library
     das_module * mod = das_module_create ("tutorial_07");
     das_module_group * lib = das_modulegroup_make();
+    das_modulegroup_add_module(lib, mod);
     // alias
     das_module_bind_alias (mod, lib, "intarray", "1<i>A" );
     // enumeration

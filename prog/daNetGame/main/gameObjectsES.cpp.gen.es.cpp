@@ -1,9 +1,19 @@
 #include <daECS/core/internal/ltComponentList.h>
+static constexpr ecs::component_t hierarchy_transform_get_type();
+static ecs::LTComponentList hierarchy_transform_component(ECS_HASH("hierarchy_transform"), hierarchy_transform_get_type(), "prog/daNetGame/main/gameObjectsES.cpp.inl", "game_objects_events_es_event_handler", 0);
+static constexpr ecs::component_t hierarchy_unresolved_id_get_type();
+static ecs::LTComponentList hierarchy_unresolved_id_component(ECS_HASH("hierarchy_unresolved_id"), hierarchy_unresolved_id_get_type(), "prog/daNetGame/main/gameObjectsES.cpp.inl", "game_objects_events_es_event_handler", 0);
+static constexpr ecs::component_t hierarchy_unresolved_parent_id_get_type();
+static ecs::LTComponentList hierarchy_unresolved_parent_id_component(ECS_HASH("hierarchy_unresolved_parent_id"), hierarchy_unresolved_parent_id_get_type(), "prog/daNetGame/main/gameObjectsES.cpp.inl", "game_objects_events_es_event_handler", 0);
+static constexpr ecs::component_t initialTransform_get_type();
+static ecs::LTComponentList initialTransform_component(ECS_HASH("initialTransform"), initialTransform_get_type(), "prog/daNetGame/main/gameObjectsES.cpp.inl", "game_objects_events_es_event_handler", 0);
 static constexpr ecs::component_t transform_get_type();
 static ecs::LTComponentList transform_component(ECS_HASH("transform"), transform_get_type(), "prog/daNetGame/main/gameObjectsES.cpp.inl", "game_objects_events_es_event_handler", 0);
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "gameObjectsES.cpp.inl"
 ECS_DEF_PULL_VAR(gameObjects);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc game_objects_es_comps[] =
 {
@@ -146,4 +156,8 @@ static ecs::EntitySystemDesc ladder_optimize_es_event_handler_es_desc
   ecs::EventSetBuilder<EventGameObjectsOptimize>::build(),
   0
 );
+static constexpr ecs::component_t hierarchy_transform_get_type(){return ecs::ComponentTypeInfo<TMatrix>::type; }
+static constexpr ecs::component_t hierarchy_unresolved_id_get_type(){return ecs::ComponentTypeInfo<int>::type; }
+static constexpr ecs::component_t hierarchy_unresolved_parent_id_get_type(){return ecs::ComponentTypeInfo<int>::type; }
+static constexpr ecs::component_t initialTransform_get_type(){return ecs::ComponentTypeInfo<TMatrix>::type; }
 static constexpr ecs::component_t transform_get_type(){return ecs::ComponentTypeInfo<TMatrix>::type; }

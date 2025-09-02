@@ -16,7 +16,10 @@ struct PhysObjCollisionSoundRequiredComponents
 struct PhysObjCollisionSoundTemplate
   phys_obj_collision_sound__threshold : float2
   phys_obj_collision_sound__path : string
-  phys_obj_collision_sound__lifetime : float
+  phys_obj_collision_sound__numSounds : int
+  phys_obj_collision_sound__enabled : bool
+  phys_obj_collision_sound__offset : float3
+  phys_obj_collision_sound__interval : float
   phys_obj_collision_sound__omegaMul : float
   phys_obj_collision_sound__maxRange : float
   phys_obj_collision_sound__time : float

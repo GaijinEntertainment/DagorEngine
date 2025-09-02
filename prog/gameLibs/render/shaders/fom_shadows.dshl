@@ -52,21 +52,24 @@ macro DO_USE_FOM_SHADOWS(stage)
   hlsl(stage) {
     #if FOM_SHADOW_BINDLESS
       BINDLESS_TEX_ARRAY(Texture2D, fom_shadows_array, 1);
-      BINDLESS_SMP_ARRAY(SamplerState, fom_shadows_samplers_array, 1);
+      #ifndef GLOBAL_SAMPLES_ARRAY_DEFINED
+        BINDLESS_SMP_ARRAY(SamplerState, global_samplers_array, 1);
+        #define GLOBAL_SAMPLES_ARRAY_DEFINED 1
+      #endif
 
       float4 sample_sin(float2 uv)
       {
         [BRANCH]
         if (fom_shadows_array_index.x < 0)
           return 0;
-        return fom_shadows_array[fom_shadows_array_index.x].SampleLevel(fom_shadows_samplers_array[fom_shadows_array_index.z], uv, 0);
+        return fom_shadows_array[fom_shadows_array_index.x].SampleLevel(global_samplers_array[fom_shadows_array_index.z], uv, 0);
       }
       float4 sample_cos(float2 uv)
       {
         [BRANCH]
         if (fom_shadows_array_index.y < 0)
           return 0;
-        return fom_shadows_array[fom_shadows_array_index.y].SampleLevel(fom_shadows_samplers_array[fom_shadows_array_index.w], uv, 0);
+        return fom_shadows_array[fom_shadows_array_index.y].SampleLevel(global_samplers_array[fom_shadows_array_index.w], uv, 0);
       }
     #else
       float4 sample_sin(float2 uv)

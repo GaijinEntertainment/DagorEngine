@@ -21,14 +21,14 @@ bool compile_compute_shader(const char *hlsl_text, unsigned len, const char *ent
     len = static_cast<unsigned>(strlen(hlsl_text));
 
   CompileResult result = dx12::dxil::compileShader(make_span(hlsl_text, len), profile, entry, false, false, false, false, true, false,
-    nullptr, 4096, "", platform, useScarlettWaveSize32, false, hlslDebugLevel, hlslEmbedSource);
+    nullptr, 4096, "", platform, useScarlettWaveSize32, false, hlslDebugLevel, hlslEmbedSource, {});
+  if (!result.errors.empty())
+    out_err.aprintf(0, "%s\n", result.errors.c_str());
   if (result.bytecode.empty())
     return false;
 
   shader_bin.assign((result.bytecode.size() + sizeof(uint32_t) - 1) / sizeof(uint32_t), 0);
   memcpy(shader_bin.data(), result.bytecode.data(), result.bytecode.size());
-  if (!result.errors.empty())
-    out_err = result.errors.c_str();
   return true;
 }
 } // namespace

@@ -1,19 +1,20 @@
+import "eventbus" as eventbus
+import "dagor.udp" as udp
+from "json" import object_to_json_string, parse_json
+from "dagor.time" import format_unixtime, get_local_unixtime, get_time_msec
 from "%darg/ui_imports.nut" import *
+
 let textInput = require("samples_prog/_basic/components/textInput.nut")
-let autoScrollTextArea = require("samples_prog/_basic/components/autoScrollTextArea.nut")
+//let autoScrollTextArea = require("samples_prog/_basic/components/autoScrollTextArea.nut")
 let textLog  = require("textlog.nut")
 
-let eventbus = require("eventbus")
-let { object_to_json_string, parse_json } = require("json")
-let {format_unixtime, get_local_unixtime, get_time_msec} = require("dagor.time")
 
-let udp = require("dagor.udp")
 
 local logMessages = Watched([])
 local echoPort = Watched("8192")
 
 function print_log(msg) {
-  local newKey = logMessages.value.len() ? logMessages.value.top().key + 1 : 0
+  local newKey = logMessages.get().len() ? logMessages.get().top().key + 1 : 0
   logMessages.mutate(@(v)
     v.append(
       {key = newKey, text = msg}
@@ -21,7 +22,7 @@ function print_log(msg) {
 }
 
 function error_log(msg) {
-  local newKey = logMessages.value.len() ? logMessages.value.top().key + 1 : 0
+  local newKey = logMessages.get().len() ? logMessages.get().top().key + 1 : 0
   logMessages.mutate(@(v)
     v.append(
       {key = newKey, text = msg, color=Color(255, 17, 17)}
@@ -47,7 +48,7 @@ function onStartButtonClick() {
   print_log("Asynchronous UDP echo test starting.")
   udp.close_socket("echo-server-socket")
   udp.close_socket("client-socket")
-  let echoPortInt = echoPort.value.tointeger()
+  let echoPortInt = echoPort.get().tointeger()
 
   if (!udp.bind("echo-server-socket", "127.0.0.1", echoPortInt))  {
     error_log($"Failed to bind socket to port {echoPortInt}. {udp.last_error()}")
@@ -63,7 +64,7 @@ function onStartButtonClick() {
 let startButton = @() {
   rendObj = ROBJ_SOLID
   color = Color(0,25,205)
-  size = [pw(20), SIZE_TO_CONTENT]
+  size = static [pw(20), SIZE_TO_CONTENT]
   behavior = Behaviors.Button
   valign = ALIGN_CENTER
   halign = ALIGN_CENTER
@@ -77,11 +78,11 @@ let startButton = @() {
 
 let ctrlPanel = @() {
   flow = FLOW_HORIZONTAL
-  size = [pw(100), SIZE_TO_CONTENT]
+  size = static [pw(100), SIZE_TO_CONTENT]
   children = [
     startButton
     {
-      size = [pw(10), flex()]
+      size = static [pw(10), flex()]
     }
     {
       flow = FLOW_HORIZONTAL
@@ -93,7 +94,7 @@ let ctrlPanel = @() {
           text = "Echo UDP port:"
         }
         {
-          size = [pw(20), flex()]
+          size = static [pw(20), flex()]
           children = textInput(echoPort, {
             margin=0
             textmargin = hdpx(4)
@@ -107,19 +108,19 @@ let ctrlPanel = @() {
 return {
   rendObj = ROBJ_SOLID
   color = Color(30,40,50)
-  size = [pw(100), ph(100)]
+  size = static [pw(100), ph(100)]
   children = {
     flow = FLOW_VERTICAL
     pos = [pw(5), ph(5)]
-    size = [pw(90), ph(90)]
+    size = static [pw(90), ph(90)]
     gap = sh(2)
     children = [
         ctrlPanel
         {
           rendObj = ROBJ_SOLID
           color = Color(0, 0, 0)
-          size = [flex(), flex()]
-          children = textLog(logMessages, {size = [pw(100), ph(100)]})
+          size = flex()
+          children = textLog(logMessages, {size = static [pw(100), ph(100)]})
         }
     ]
   }

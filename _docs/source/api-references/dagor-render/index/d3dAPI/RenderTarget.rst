@@ -1,5 +1,5 @@
 Render Targets
 =================================================
 
-.. autodoxygenfile:: dag_renderTarget.h
+.. doxygenfile:: dag_renderTarget.h
   :project: d3dAPI

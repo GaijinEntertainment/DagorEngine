@@ -12,6 +12,8 @@ namespace shaderbindump
 using VarList = bindump::Mapper<shader_layout::VarList>;
 }
 
+class ShaderVarsState;
+
 namespace ShUtils
 {
 const char *fsh_version(d3d::shadermodel::Version vertex_shader_model);
@@ -27,5 +29,6 @@ const char *fshVerToString(int fsh);
 
 // dump code table
 void shcod_dump(dag::ConstSpan<int> cod, const shaderbindump::VarList *globals = nullptr,
-  const shaderbindump::VarList *locals = nullptr, dag::ConstSpan<uint32_t> stVarMap = {}, bool embrace_dump = true);
+  const ShaderVarsState *globals_state = nullptr, const shaderbindump::VarList *locals = nullptr,
+  dag::ConstSpan<uint32_t> stVarMap = {}, bool embrace_dump = true);
 } // namespace ShUtils

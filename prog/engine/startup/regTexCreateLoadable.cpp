@@ -137,7 +137,7 @@ class LoadableCreateTexFactory : public ICreateTexFactory
 public:
   virtual BaseTexture *createTex(const char *fn, int flg, int /*levels*/, const char *fn_ext, const TextureMetaData &tmd)
   {
-    int levels = 1; // since noone else can autogenerate mips...
+    int levels = 1; // since no one else can autogenerate mips...
     if (flg & TEXCF_DYNAMIC)
       flg &= ~TEXCF_LOADONCE;
 
@@ -213,7 +213,6 @@ public:
       return NULL;
 
   setup_tex_props:
-    apply_gen_tex_props(t, tmd);
     TEXTUREID tid = get_managed_texture_id(fn);
     set_texture_separate_sampler(tid, get_sampler_info(tmd));
     if (!(flg & TEXCF_SYSTEXCOPY))

@@ -22,7 +22,7 @@ common_assume_vars {}
 Compile
 {
   fsh:t = SpirV-5.0
-  group_size_in_kb:i=1019
+  group_size_in_kb:i=128
   assume_vars {
     //base mobile assumes
     include common_assumes.blk
@@ -42,7 +42,7 @@ Compile
     hmap_tess_factor:r=0
     water_tess_factor:r=0
     gi_quality:i=-1
-    envi_cover:i=0
+    envi_cover_use_in_resolve:i=0
     hdr_ps_output_mode:i=0
     volumetric_light_assumed_off:i=1
     has_wounds:i=0 // Too many textures in dynamic_skin with use_postfx=no
@@ -58,6 +58,7 @@ Compile
     depth_bounds_support:i=0
     world_sdf_support_uav_load:i=1
   }
+  required_shaders {}
 }
 
 explicit_var_ref

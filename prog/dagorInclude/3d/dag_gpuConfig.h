@@ -28,7 +28,7 @@ struct GpuVideoSettings
 
 struct GpuUserConfig
 {
-  int primaryVendor = D3D_VENDOR_NONE;
+  GpuVendor primaryVendor = GpuVendor::UNKNOWN;
   uint32_t physicalFrameBufferSize = 0;
   uint32_t deviceId = 0;
   bool vendorAAisOn = false;

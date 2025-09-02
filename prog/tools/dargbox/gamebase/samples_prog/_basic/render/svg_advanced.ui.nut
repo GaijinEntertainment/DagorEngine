@@ -8,14 +8,14 @@ let pic_custom_size_k = Picture("ui/chat.svg:200:200:K")
 //local pic_custom_size_f = Picture("ui/chat.svg:200:200:F")
 
 let image1 = {
-  size = [sh(25), sh(25)] //means it will keep aspect ratio
+  size = sh(25) //means it will keep aspect ratio
   keepAspect = true
   rendObj = ROBJ_IMAGE
   image=pic
 }
 
 let image2 = {
-  size = [sh(25), sh(25)] //means it will keep aspect ratio
+  size = sh(25) //means it will keep aspect ratio
   keepAspect = true
   rendObj = ROBJ_IMAGE
   image=pic_custom_size

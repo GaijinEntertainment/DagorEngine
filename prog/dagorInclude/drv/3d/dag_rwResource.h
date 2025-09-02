@@ -48,26 +48,13 @@ bool clear_rwtexi(BaseTexture *tex, const uint32_t val[4], uint32_t face, uint32
 bool clear_rwtexf(BaseTexture *tex, const float val[4], uint32_t face, uint32_t mip_level);
 
 /**
- * @brief Clear UAV buffer with integer values
- *
- * 4 components are required by DirectX API, so the buffer will be cleared with the same 4 dwords pattern.
+ * @brief Zero out UAV buffer as uint. Distinction between types is needed for DX.
  *
  * @param buf buffer to clear
- * @param val clear value
  * @return true if success, false otherwise
  */
-bool clear_rwbufi(Sbuffer *buf, const uint32_t val[4]);
+bool zero_rwbufi(Sbuffer *buf);
 
-/**
- * @brief Clear UAV buffer with float values
- *
- * 4 components are required by DirectX API, so the buffer will be cleared with the same 4 dwords pattern.
- *
- * @param buf buffer to clear
- * @param val clear value
- * @return true if success, false otherwise
- */
-bool clear_rwbuff(Sbuffer *buf, const float val[4]);
 } // namespace d3d
 
 #if _TARGET_D3D_MULTI
@@ -86,7 +73,7 @@ inline bool clear_rwtexf(BaseTexture *tex, const float val[4], uint32_t face, ui
 {
   return d3di.clear_rwtexf(tex, val, face, mip);
 }
-inline bool clear_rwbufi(Sbuffer *tex, const uint32_t val[4]) { return d3di.clear_rwbufi(tex, val); }
-inline bool clear_rwbuff(Sbuffer *tex, const float val[4]) { return d3di.clear_rwbuff(tex, val); }
+
+inline bool zero_rwbufi(Sbuffer *buffer) { return d3di.zero_rwbufi(buffer); }
 } // namespace d3d
 #endif

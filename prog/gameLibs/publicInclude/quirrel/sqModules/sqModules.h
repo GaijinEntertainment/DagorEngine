@@ -64,6 +64,7 @@ public:
     Sqrat::Object exports;
     Sqrat::Object stateStorage;
     Sqrat::Array refHolder;
+    Sqrat::Object scriptClosure;
     string __name__;
   };
 
@@ -84,10 +85,13 @@ public:
 
   bool reloadAll(String &err_msg);
 
+  void resetStaticMemos();
+
   //
   // 'module_name' shall point to to null-terminated statically allocated string
   //
-  bool addNativeModule(const char *module_name, const Sqrat::Object &exports);
+  bool addNativeModule(const char *module_name, const Sqrat::Object &exports, const char *module_doc_string = nullptr);
+
 
   void registerMathLib();
   void registerStringLib();
@@ -149,6 +153,7 @@ public:
   SqModulesConfigBits configBits;
   vector<Module> modules;
   vector<Module> prevModules; //< for hot reload
+  vector<Sqrat::Object> runningScriptClosuresStack;
 
   eastl::vector_map<eastl::string, Sqrat::Object> nativeModules;
 
@@ -169,7 +174,11 @@ public:
 
   // if this flag is false we won't try to open files from real file system if there are missing in vromfs.
   // this is to allow modding on PC and useAddonVromfs in dev build
+#if _TARGET_PC || DAGOR_DBGLEVEL > 0
   static bool tryOpenFilesFromRealFS;
+#else
+  static constexpr bool tryOpenFilesFromRealFS = false;
+#endif
 
   IFileSystemOverride *fileSystemOverride = nullptr;
 

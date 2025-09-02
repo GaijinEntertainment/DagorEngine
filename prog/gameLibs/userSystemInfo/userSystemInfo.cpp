@@ -12,6 +12,7 @@
 #include <drv/hid/dag_hiComposite.h>
 #include <3d/dag_gpuConfig.h>
 #include <util/dag_localization.h>
+#include <util/dag_string.h>
 
 #ifdef USE_STEAMWORKS
 #include <steam/steam.h>

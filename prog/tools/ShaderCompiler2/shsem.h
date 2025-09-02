@@ -2,7 +2,9 @@
 #pragma once
 
 #include "shsyn.h"
+#include "shlexterm.h"
 #include "shVarBool.h"
+#include "shTargetContext.h"
 #include <generic/dag_tab.h>
 #include <util/dag_simpleString.h>
 
@@ -12,19 +14,6 @@ class DefineTable;
 
 namespace ShaderParser
 {
-
-enum
-{
-  HLSL_PS = 1,
-  HLSL_VS = 2,
-  HLSL_CS = 4,
-  HLSL_DS = 8,
-  HLSL_HS = 16,
-  HLSL_GS = 32,
-  HLSL_MS = 64,
-  HLSL_AS = 128,
-  HLSL_ALL = 0xFFFF
-};
 
 class ShaderEvalCB
 {
@@ -53,6 +42,7 @@ public:
   virtual void eval_supports(supports_stat &) = 0;
   virtual void eval_render_stage(render_stage_stat &) = 0;
   virtual void eval_assume_stat(assume_stat &) = 0;
+  virtual void eval_assume_if_not_assumed_stat(assume_if_not_assumed_stat &) = 0;
   virtual void eval_command(shader_directive &) = 0;
 
   virtual int eval_if(bool_expr &) = 0;
@@ -71,6 +61,8 @@ public:
   virtual ShVarBool eval_expr(bool_expr &) = 0;
   virtual ShVarBool eval_bool_value(bool_value &) = 0;
   virtual int eval_interval_value(const char *ival_name) = 0;
+  virtual void report_bool_eval_error(const char *error) {}
+
   virtual void decl_bool_alias(const char *name, bool_expr &expr) {}
   virtual int add_message(const char *message, bool file_name) { return 0; }
   virtual int is_debug_mode_enabled() { return false; }
@@ -78,26 +70,26 @@ public:
 
 void eval_shader(shader_decl &sh, ShaderEvalCB &cb);
 
+template <bool USE_CB_FOR_NESTED_EXPRESSIONS = false>
 ShVarBool eval_shader_bool(bool_expr &, ShaderBoolEvalCB &cb);
 
-void add_shader(shader_decl *, ShaderSyntaxParser &, bool &out_shaderDebugModeEnabled);
-void add_block(block_decl *, ShaderSyntaxParser &);
+void add_shader(shader_decl *, Parser &, shc::TargetContext &ctx);
+void add_block(block_decl *, Parser &, shc::TargetContext &ctx);
 
 // add a global bool var
-void add_global_bool(ShaderTerminal::bool_decl &bool_var, ShaderTerminal::ShaderSyntaxParser &parser);
+void add_global_bool(ShaderTerminal::bool_decl &bool_var, Parser &parser, shc::TargetContext &ctx);
 
-void add_hlsl(hlsl_global_decl_class &, ShaderSyntaxParser &, bool need_file_idx);
+void add_hlsl(hlsl_global_decl_class &, Parser &, shc::TargetContext &ctx);
 
 void build_bool_expr_string(bool_expr &e, String &out, bool clr_str = true);
 
-void addSourceCode(String &text, SHTOK_hlsl_text *source_text, ShaderSyntaxParser &parser, bool need_file_idx);
-void addSourceCode(String &text, Symbol *term, const char *source_text, ShaderSyntaxParser &parser, bool need_file_idx);
+void addSourceCode(String &text, SHTOK_hlsl_text *source_text, Parser &parser, SCFastNameMap &messages_table, bool need_file_idx);
+void addSourceCode(String &text, Symbol *term, const char *source_text, Parser &parser, SCFastNameMap &messages_table,
+  bool need_file_idx);
 
-bool_expr *parse_condition(const char *cond_str, int cond_str_len, const char *file_name, int line);
-shader_stat *parse_shader_stat(const char *stat_str, int stat_str_len, IMemAlloc *alloc = nullptr);
-
-void reset();
+bool_expr *parse_condition(const char *cond_str, int cond_str_len, const char *file_name, int line, shc::TargetContext &ctx);
+shader_stat *parse_shader_stat(const char *stat_str, int stat_str_len, shc::TargetContext &ctx, IMemAlloc *alloc = nullptr);
 }; // namespace ShaderParser
 
-// report error
-void sh_report_error(ShaderTerminal::shader_stat *s, ShaderTerminal::ShaderSyntaxParser &parser);
+// report error, for plugging into generated code
+void sh_report_error_cb(ShaderTerminal::shader_stat *s, GeneratedParser &parser);

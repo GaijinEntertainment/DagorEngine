@@ -8,7 +8,7 @@
 
 namespace bind_dascript
 {
-inline bool get_ecs_enum_values(const char *type_name, const das::TBlock<void, das::TTemporary<das::TArray<char *>>> &block,
+inline bool get_ecs_enum_values(const char *type_name, const das::TBlock<void, const das::TTemporary<das::TArray<char *>>> &block,
   das::Context *context, das::LineInfoArg *at)
 {
   auto values = ecs::get_ecs_enum_values(type_name);

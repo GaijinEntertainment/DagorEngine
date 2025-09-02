@@ -15,6 +15,7 @@ AddIncludes =
 
 Sources =
   dynRender.cpp
+  renderHelperSrv.cpp
 ;
 
 SourceES =
@@ -30,7 +31,7 @@ UseProgLibs =
 CPPopt = ;
 
 if $(ToolsHaveVR) = yes {
-  CPPopt += -DTOOLS_HAVE_VR=1 ;
+  CPPopt += -DTOOLS_HAVE_VR ;
   Target = $(Target:S=~vr.lib) ;
 }
 

@@ -3,6 +3,7 @@ include "viewVecVS.dshl"
 include "heightmap_common.dshl"
 include "heightmap_ofs.dshl"
 include "physmap_patch_common.dshl"
+include "invalidate_hmap_displacement_inc.dshl"
 
 texture deform_hmap_postfx_source_tex;
 texture deform_hmap_info_tex;
@@ -92,8 +93,9 @@ shader deform_hmap_deform_cs
       hmap_displacement_down,
       1 / (hmap_displacement_up - hmap_displacement_down)
     );
-    hmap_deform_params_buffer@buf = hmap_deform_params_buffer hlsl { StructuredBuffer<float2> hmap_deform_params_buffer@buf; };
+    hmap_deform_params_buffer@buf = hmap_deform_params_buffer hlsl { StructuredBuffer<float4> hmap_deform_params_buffer@buf; };
   }
+  INIT_AND_USE_HMAP_DISPLACEMENT_INVALIDATION(cs, xz)
 
   if (deform_fps_cam_dist == on)
   {
@@ -129,26 +131,20 @@ shader deform_hmap_deform_cs
     RWTexture2D<unorm float> result_texture : register(u0);
     RWTexture2D<unorm float> mask_grid : register(u1);
 
-    float update_deform_height_with_vehicle_pressure(float generalDeformHeight, float offsetedHight, float heightmapHeight,
-      float baseVehicleDeform, uint2 dtid)
+    float update_deform_height_with_pressure_info(float deformingPointWorldPosY, float offsetedHeight, float heightmapHeight,
+      float baseVehicleDeform, float humanDeform, uint2 dtid)
     {
-      // generalDeformHeight is actually world-space height of the point on animchar that deforms heightmap, thus making
-      // pointDeformingHmapLocalHeight defined below the height of the point relative to the lowest point of the vehicle:
-      float pointDeformingHmapLocalHeight = generalDeformHeight - heightmapHeight;
-      // The way our code works is that we have two separate deformation subsystems. The first contains information from all of the
-      // animchars, and the second only from vehicles, but it also contains info about accurate pressure on the ground. However, the
-      // second subsystem, unlike the first, doesn't account for height of the point that deforms heightmap. This is a problem, since
-      // not only tires can use the shader that deforms heightmap. Because of this, we need to restore the local height of the point
-      // from the first subsystem and ignore info from the second one if the point is too high. Otherwise, it may lead to weird patterns
-      // on the heightmap.
+      // Since now both humans (see below) and vehicles don't use deformation depth from an orthographic projection depth texture, and
+      // animchars are rendered into it completely (be it below or above the ground), we need to account for the height of the point that
+      // deforms the heightmap. If it's too high, we don't deform the ground; otherwise, it may lead to weird patterns on the heightmap.
+      const float deformingPointLocalPosY = deformingPointWorldPosY - heightmapHeight;
       const float MAX_HEIGHT_TO_DEFORM_HMAP = 0.1f;
-      float vehiclePressure = pointDeformingHmapLocalHeight < MAX_HEIGHT_TO_DEFORM_HMAP ?
-        hmap_info_tex[dtid] * DEFORM_HMAP_VEHICLE_DEFORM_COMPRESSION_FACTOR : 0.f;
-      float vehicleDeformHeight = offsetedHight - baseVehicleDeform * vehiclePressure;
-      // If vehicleDeformHeight is different from base height, than generalDeformHeight must also differ from base height.
-      // This in turn should result in the abscence of sharp changes on vehicle trail if we use only vehicleDeformHeight.
-      // Since we want physically accurate deformation, we prioritize vehicle-specific deformation if it exists:
-      return vehiclePressure > 0.f ? vehicleDeformHeight : generalDeformHeight;
+      const bool shouldBeDeformed = deformingPointLocalPosY < MAX_HEIGHT_TO_DEFORM_HMAP;
+      // This always deforms the heightmap by the same value. TODO: Change the logic when characters stop levitating above the ground:
+      const float humanDeformHeight = shouldBeDeformed ? offsetedHeight - humanDeform : offsetedHeight;
+      const float vehiclePressure = shouldBeDeformed ? hmap_info_tex[dtid] * DEFORM_HMAP_VEHICLE_DEFORM_COMPRESSION_FACTOR : 0.f;
+      const float vehicleDeformHeight = offsetedHeight - baseVehicleDeform * vehiclePressure;
+      return min(vehicleDeformHeight, humanDeformHeight);
     }
 
     [numthreads(DEFORM_HMAP_THREADGROUP_WIDTH, DEFORM_HMAP_THREADGROUP_WIDTH, 1)]
@@ -166,25 +162,31 @@ shader deform_hmap_deform_cs
         cameraOffset = fps_cam_dist2 - dot(relPos,relPos);
       ##endif
 
+      float hmapDisplacementReduction = get_hmap_displacement_reduction(worldPos);
+      bool reduceHmapDisplacement = hmapDisplacementReduction > 0.0001f;
       float depthTexSample = source_tex[dtid];
 
       BRANCH
       if (cameraOffset <= 0)
       {
-        BRANCH if (depthTexSample < 0.0001f)
+        BRANCH if (depthTexSample < 0.0001f && !reduceHmapDisplacement)
           return;
       }
 
-      float2 base_max_deform = hmap_deform_params_buffer[getPhysMat(worldPos.xz)];
+      float4 deformParams = hmap_deform_params_buffer[getPhysMat(worldPos.xz)];
+      float vehicleBaseDeform = deformParams.x;
+      float vehicleMaxDeform = deformParams.y;
+      float humanDeform = deformParams.z;
 
       float generalDeformHeight = depth_zfar - depthTexSample * depth_zrange;
       worldPos.y = getWorldHeight(worldPos.xz);
       float3 worldNormal = getWorldNormal(worldPos);
 
       // This is not entirely correct, because terrain is displaced along normal and not only upwards
-      float offsetedHight = worldPos.y + worldNormal.y * get_hmap_ofs_no_grass_vignette(worldPos.xz);
-      float deformHeight =
-        update_deform_height_with_vehicle_pressure(generalDeformHeight, offsetedHight, worldPos.y, base_max_deform.x, dtid);
+      float heightOffset = worldNormal.y * get_hmap_ofs_no_grass_vignette(worldPos.xz);
+      float offsetedHeight = worldPos.y + heightOffset;
+      float deformHeight = update_deform_height_with_pressure_info(generalDeformHeight, offsetedHeight, worldPos.y, vehicleBaseDeform,
+        humanDeform, dtid);
 
       ##if (deform_fps_cam_dist == on)
         FLATTEN
@@ -193,12 +195,14 @@ shader deform_hmap_deform_cs
       ##endif
 
       float minHeight = worldPos.y + disp_down;
-      float deformedHeight = max(minHeight, min(offsetedHight, deformHeight));
+      float deformedHeight = max(minHeight, min(offsetedHeight, deformHeight));
 
-      BRANCH if (deformedHeight >= offsetedHight)
+      BRANCH if (deformedHeight >= offsetedHeight && !reduceHmapDisplacement)
         return;
 
-      float deformAmount = min(offsetedHight - deformedHeight, base_max_deform.y);
+      float deformAmount = min(offsetedHeight - deformedHeight, vehicleMaxDeform);
+      // Zero displacement is equivalent to deformAmount being equal to heightOffset:
+      deformAmount = lerp(deformAmount, heightOffset, hmapDisplacementReduction);
       result_texture[dtid] = deformAmount * inv_disp_range * 0.5f + 0.5f;
 
       mask_grid[gid] = 1;

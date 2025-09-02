@@ -1,21 +1,26 @@
+options gen2
 typedef ResNameId = uint
 
-struct ResUid
+struct ResUid {
     nameId : ResNameId
     history : bool
+}
 
-variant VirtualAttachmentResource
+variant VirtualAttachmentResource {
     resUid : ResUid
     name : string
+}
 
-struct VirtualAttachmentRequest
+struct VirtualAttachmentRequest {
     resource : VirtualAttachmentResource
     mipLevel : uint16
     layer : uint16
+}
 
 [export]
-def test
-    var t = typeinfo(sizeof type<VirtualAttachmentRequest>)
+def test {
+    var t = typeinfo sizeof(type<VirtualAttachmentRequest>)
     t = t
     return true
+}
 

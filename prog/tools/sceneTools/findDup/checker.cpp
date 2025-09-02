@@ -22,24 +22,14 @@ void FileChecker::gatherFileNames(const char *dir_path)
 {
   String mask(260, "%s/*.*", dir_path);
 
-  alefind_t fileInfo;
-  if (::dd_find_first(mask, DA_FILE, &fileInfo))
+  for (const alefind_t &fileInfo : dd_find_iterator(mask, DA_FILE))
   {
     processFile(String(260, "%s/%s", dir_path, fileInfo.name));
-    while (::dd_find_next(&fileInfo))
-      processFile(String(260, "%s/%s", dir_path, fileInfo.name));
-
-    ::dd_find_close(&fileInfo);
   }
 
-  alefind_t dirInfo;
-  if (::dd_find_first(mask, DA_SUBDIR, &dirInfo))
+  for (const alefind_t &dirInfo : dd_find_iterator(mask, DA_SUBDIR))
   {
     checkDir(dirInfo.name, dir_path);
-    while (::dd_find_next(&dirInfo))
-      checkDir(dirInfo.name, dir_path);
-
-    ::dd_find_close(&dirInfo);
   }
 }
 

@@ -159,7 +159,7 @@ public:
   Tab<FColor> Colors;
 
   // Constructors.
-  UPalette() : Colors(tmpmem){};
+  UPalette() : Colors(tmpmem) {}
 
   // UObject interface.
   // void Serialize( FArchive& Ar );
@@ -343,7 +343,7 @@ class /*ENGINE_API*/ UTexture : public UBitmap
   DWORD GetColorsIndex() { return Palette->GetIndex(); }
   FColor *GetColors() { return Palette ? &Palette->Colors[0] : NULL; }
   INT GetNumMips() { return Mips.size(); }
-  FMipmapBase *GetMip(INT i) { return &Mips[i]; }
+  FMipmapBase *GetMip(INT i) override { return &Mips[i]; }
   // void Lock( FTextureInfo& TextureInfo, DOUBLE Time, INT LOD, URenderDevice* RenDev );
   void Unlock(FTextureInfo &TextureInfo);
 

@@ -111,6 +111,8 @@ public:
 public:
   // creators for different car types / physics engines
   static IPhysVehicle *createRayCarBullet(PhysBody *car, int iter_count = 1);
+  static IPhysVehicle *createRayCarJolt(PhysBody *car, int iter_count = 1);
 
   static void bulletSetStaticTracer(bool (*traceray)(const Point3 &p, const Point3 &d, float &mt, Point3 &out_n, int &out_pmid));
+  static void joltSetStaticTracer(bool (*traceray)(const Point3 &p, const Point3 &d, float &mt, Point3 &out_n, int &out_pmid));
 };

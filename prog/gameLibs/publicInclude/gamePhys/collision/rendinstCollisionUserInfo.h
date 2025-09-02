@@ -11,37 +11,42 @@
 
 struct RendinstCollisionUserInfo : public PhysObjectUserData
 {
-  struct RendinstImpulseThresholdData : public CachedCollisionObjectInfo
+  class RendinstImpulseThresholdData final : public CachedCollisionObjectInfo
   {
-    rendinst::CollisionInfo collInfo;
+    virtual ~RendinstImpulseThresholdData() override;
+
+  public:
+    const rendinst::CollisionInfo collInfo;
+    Point3 finalImpulse;
+    Point3 finalPos;
 
     RendinstImpulseThresholdData(float impulse, const rendinst::RendInstDesc &ri_desc, float at_time,
       const rendinst::CollisionInfo &coll_info);
 
-    virtual ~RendinstImpulseThresholdData();
-
     virtual float onImpulse(float impulse, const Point3 &dir, const Point3 &pos, float point_vel, const Point3 & /*collision_normal*/,
-      uint32_t /*flags*/ = CIF_NONE, int32_t user_data = -1, gamephys::ImpulseLogFunc /*log_func*/ = nullptr) override;
+      uint32_t /*flags*/ = CIF_NONE, int32_t user_data = -1, gamephys::ImpulseLogFunc /*log_func*/ = nullptr,
+      const char * /*actor_name*/ = nullptr) override;
     virtual float getDestructionImpulse() const override;
     virtual bool isRICollision() const override;
   };
 
-  struct TreeRendinstImpulseThresholdData : public CachedCollisionObjectInfo
+  class TreeRendinstImpulseThresholdData final : public CachedCollisionObjectInfo
   {
+    virtual ~TreeRendinstImpulseThresholdData() override;
+
+  public:
+    const rendinst::CollisionInfo collInfo;
     Point3 finalImpulse;
     Point3 finalPos;
-    TMatrix invRiTm;
     float lastPointVel;
     float lastOmega;
-    rendinst::CollisionInfo collInfo;
 
     TreeRendinstImpulseThresholdData(float impulse, const rendinst::RendInstDesc &ri_desc, float at_time,
       const rendinst::CollisionInfo &coll_info);
 
-    virtual ~TreeRendinstImpulseThresholdData();
-
     virtual float onImpulse(float impulse, const Point3 &dir, const Point3 &pos, float point_vel, const Point3 & /*collision_normal*/,
-      uint32_t /*flags*/ = CIF_NONE, int32_t user_data = -1, gamephys::ImpulseLogFunc /*log_func*/ = nullptr) override;
+      uint32_t /*flags*/ = CIF_NONE, int32_t user_data = -1, gamephys::ImpulseLogFunc /*log_func*/ = nullptr,
+      const char * /*actor_name*/ = nullptr) override;
     virtual float getDestructionImpulse() const override;
     virtual bool isTreeCollision() const override;
   };

@@ -14,6 +14,8 @@
 #include <drv/shadersMetaData/dxil/compiled_shader_header.h>
 #include <generic/dag_bitset.h>
 #include <generic/dag_smallTab.h>
+#include <osApiWrappers/dag_atomic_types.h>
+#include <resourceName.h>
 
 namespace drv3d_dx12
 {
@@ -27,11 +29,12 @@ void mark_texture_stages_dirty_no_lock(BaseTex *texture, const Bitset<dxil::MAX_
 void dirty_srv_no_lock(BaseTex *texture, uint32_t stage, Bitset<dxil::MAX_T_REGISTERS> slots);
 void dirty_srv(BaseTex *texture, uint32_t stage, Bitset<dxil::MAX_T_REGISTERS> slots);
 void dirty_sampler(BaseTex *texture, uint32_t stage, Bitset<dxil::MAX_T_REGISTERS> slots);
+void dirty_sampler_no_lock(BaseTex *texture, uint32_t stage, Bitset<dxil::MAX_T_REGISTERS> slots);
 void dirty_srv_and_sampler_no_lock(BaseTex *texture, uint32_t stage, Bitset<dxil::MAX_T_REGISTERS> slots);
 void dirty_uav_no_lock(BaseTex *texture, uint32_t stage, Bitset<dxil::MAX_U_REGISTERS> slots);
-void dirty_rendertarget_no_lock(BaseTex *texture, Bitset<Driver3dRenderTarget::MAX_SIMRT> slots);
+void dirty_rendertarget_no_lock(BaseTex *texture, Bitset<Driver3dRenderTarget::MAX_SIMRT> slots, bool dsv);
 
-class BaseTex final : public BaseTexture
+class BaseTex final : public D3dResourceNameImpl<BaseTexture>
 {
 public:
   bool isRenderTarget() const { return 0 != (cflg & TEXCF_RTARGET); }
@@ -39,9 +42,9 @@ public:
   bool isMultisampled() const { return 0 != (cflg & TEXCF_SAMPLECOUNT_MASK); }
 
   bool isLocked() const { return lockFlags != 0; }
-  bool isLockedNoCopy() const { return (lockFlags & ~(TEX_COPIED | TEXLOCK_COPY_STAGING)) != 0; }
+  bool isLockedNoCopy() const { return (lockFlags & ~TEX_COPIED) != 0; }
 
-  void setResApiName(const char *name) const override;
+  void setApiName(const char *name) const override;
 
   FormatStore getFormat() const;
   Image *getDeviceImage() const { return image; }
@@ -56,9 +59,10 @@ public:
 
   void notifySamplerChange();
   void notifySrvChange();
+  void dirtyBoundSamplersNoLock();
   void dirtyBoundSrvsNoLock();
   void dirtyBoundUavsNoLock();
-  void dirtyBoundRtvsNoLock() { dirty_rendertarget_no_lock(this, getRtvBinding()); }
+  void dirtyBoundRtvsNoLock() { dirty_rendertarget_no_lock(this, getRtvBinding(), getDsvBinding()); }
 
   void setUavBinding(uint32_t stage, uint32_t index, bool s);
   void setSrvBinding(uint32_t stage, uint32_t index, bool s);
@@ -83,12 +87,12 @@ public:
 
   ArrayLayerCount getArrayCount() const;
 
-  BaseTex(int res_type, uint32_t cflg_);
+  BaseTex(D3DResourceType type, uint32_t cflg);
 
   /// ->>
   void setReadStencil(bool on) override { setIsSampleStencil(on && getFormat().isStencil()); }
-  int restype() const override { return resType; }
-  int ressize() const override;
+  D3DResourceType getType() const override { return type; }
+  uint32_t getSize() const override;
   int getinfo(TextureInfo &ti, int level = 0) const override;
   int level_count() const override { return mipLevels; }
 
@@ -119,7 +123,8 @@ public:
 
   bool isCubeArray() const override { return isArrayCube(); }
 
-  BaseTexture *makeTmpTexResCopy(int w, int h, int d, int l, bool staging_tex) override;
+  bool updateTexResFormat(unsigned d3d_format) override;
+  BaseTexture *makeTmpTexResCopy(int w, int h, int d, int l) override;
   void replaceTexResObject(BaseTexture *&other_tex) override;
 
   BaseTexture *downSize(int new_width, int new_height, int new_depth, int new_mips, unsigned start_src_level,
@@ -156,7 +161,7 @@ public:
   uint32_t realMipLevels = 0;
 
   uint32_t cflg = 0;
-  const int resType = 0;
+  const D3DResourceType type = {};
 
   uint16_t width = 0;
   uint16_t height = 0;
@@ -165,6 +170,8 @@ public:
   FormatStore fmt;
 
   SamplerState samplerState;
+
+  dag::AtomicFlag usedInBindless{};
 
   struct ImageMem
   {
@@ -234,17 +241,6 @@ private:
   Bitset<texture_state_bits_count> stateBitSet;
   Bitset<dxil::MAX_T_REGISTERS> srvBindingStages[STAGE_MAX_EXT];
   Bitset<dxil::MAX_U_REGISTERS> uavBindingStages[STAGE_MAX_EXT];
-
-protected:
-  int texaddrImpl(int a) override;
-  int texaddruImpl(int a) override;
-  int texaddrvImpl(int a) override;
-  int texaddrwImpl(int a) override;
-  int texbordercolorImpl(E3DCOLOR c) override;
-  int texfilterImpl(int m) override;
-  int texmipmapImpl(int m) override;
-  int texlodImpl(float mipmaplod) override;
-  int setAnisotropyImpl(int level) override;
 };
 
 static inline BaseTex *getbasetex(BaseTexture *t) { return static_cast<BaseTex *>(t); }

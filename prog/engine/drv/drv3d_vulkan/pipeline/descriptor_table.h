@@ -19,8 +19,6 @@ struct DescriptorTable
       arr[spirv::B_CONST_BUFFER_OFFSET + i].buffer.offset = 0;
     for (uint32_t i = 0; i < spirv::T_REGISTER_INDEX_MAX; ++i)
       arr[spirv::T_SAMPLED_IMAGE_OFFSET + i].image.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    for (uint32_t i = 0; i < spirv::T_REGISTER_INDEX_MAX; ++i)
-      arr[spirv::T_SAMPLED_IMAGE_WITH_COMPARE_OFFSET + i].image.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     for (uint32_t i = 0; i < spirv::U_REGISTER_INDEX_MAX; ++i)
       arr[spirv::U_IMAGE_OFFSET + i].image.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
     for (uint32_t i = 0; i < spirv::TOTAL_REGISTER_COUNT; ++i)
@@ -30,7 +28,6 @@ struct DescriptorTable
 
   VkAnyDescriptorInfo &BConstBuffer(uint32_t index) { return offset(index, spirv::B_CONST_BUFFER_OFFSET); }
   VkAnyDescriptorInfo &TSampledImage(uint32_t index) { return offset(index, spirv::T_SAMPLED_IMAGE_OFFSET); }
-  VkAnyDescriptorInfo &TSampledCompareImage(uint32_t index) { return offset(index, spirv::T_SAMPLED_IMAGE_WITH_COMPARE_OFFSET); }
   VkAnyDescriptorInfo &TSampledBuffer(uint32_t index) { return offset(index, spirv::T_BUFFER_SAMPLED_IMAGE_OFFSET); }
   VkAnyDescriptorInfo &TBuffer(uint32_t index) { return offset(index, spirv::T_BUFFER_OFFSET); }
   VkAnyDescriptorInfo &TRaytraceAS(uint32_t index) { return offset(index, spirv::T_ACCELERATION_STRUCTURE_OFFSET); }
@@ -38,6 +35,7 @@ struct DescriptorTable
   VkAnyDescriptorInfo &UImage(uint32_t index) { return offset(index, spirv::U_IMAGE_OFFSET); }
   VkAnyDescriptorInfo &USampledBuffer(uint32_t index) { return offset(index, spirv::U_BUFFER_IMAGE_OFFSET); }
   VkAnyDescriptorInfo &UBuffer(uint32_t index) { return offset(index, spirv::U_BUFFER_OFFSET); }
+  VkAnyDescriptorInfo &TSampler(uint32_t index) { return offset(index, spirv::S_SAMPLER_OFFSET); }
 };
 
 } // namespace drv3d_vulkan

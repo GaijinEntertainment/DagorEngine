@@ -92,6 +92,8 @@ public:
   bool getTextureVariable(const int variable_id, TEXTUREID &value) const override;
   bool getSamplerVariable(const int variable_id, d3d::SamplerHandle &value) const override;
 
+  ShaderVarType getVariableType(const int variable_id) const override;
+
   int get_flags() const override { return props.matflags; };
 
   void set_flags(int value, int mask);

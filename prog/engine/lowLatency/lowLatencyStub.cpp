@@ -2,19 +2,9 @@
 
 #include <3d/dag_lowLatency.h>
 
-uint32_t lowlatency::start_frame() { return 0; }
+void lowlatency::start_frame(uint32_t) {}
 
-uint32_t lowlatency::get_current_frame() { return 0; }
-
-void lowlatency::start_render() {}
-
-uint32_t lowlatency::get_current_render_frame() { return 0; }
-
-void lowlatency::init() {}
-
-bool lowlatency::is_inited() { return false; }
-
-void lowlatency::close() {}
+bool lowlatency::is_available() { return false; }
 
 lowlatency::LatencyMode lowlatency::get_latency_mode() { return lowlatency::LATENCY_MODE_OFF; }
 
@@ -26,11 +16,9 @@ void lowlatency::set_latency_mode(LatencyMode) {}
 
 void lowlatency::set_latency_mode(LatencyMode, float) {}
 
-bool lowlatency::sleep() { return false; }
+void lowlatency::sleep(uint32_t) {}
 
 void lowlatency::mark_flash_indicator() {}
-
-bool lowlatency::feed_latency_input(unsigned int) { return false; }
 
 void lowlatency::set_marker(uint32_t, LatencyMarkerType) {}
 
@@ -40,16 +28,6 @@ lowlatency::LatencyData lowlatency::get_last_statistics() { return {}; }
 
 lowlatency::LatencyData lowlatency::get_new_statistics(uint32_t) { return {}; }
 
-void lowlatency::ScopedLatencyMarker::close() {}
-
-lowlatency::ScopedLatencyMarker::ScopedLatencyMarker(uint32_t, LatencyMarkerType, LatencyMarkerType) {}
-
-lowlatency::ScopedLatencyMarker::~ScopedLatencyMarker() {}
-
-void lowlatency::register_slop(uint32_t, int) {}
-
 void lowlatency::render_debug_low_latency() {}
 
-lowlatency::Timer::Timer() : stamp(0) {}
-
-int lowlatency::Timer::timeUSec() const { return 0; }
+bool lowlatency::is_vsync_allowed() { return true; }

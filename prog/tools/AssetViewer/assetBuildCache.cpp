@@ -21,8 +21,8 @@ class DaBuildCacheChecker : public IDagorAssetBaseChangeNotify
 public:
   DaBuildCacheChecker() : treeChanged(false) {}
 
-  virtual void onAssetBaseChanged(dag::ConstSpan<DagorAsset *> changed_assets, dag::ConstSpan<DagorAsset *> added_assets,
-    dag::ConstSpan<DagorAsset *> removed_assets)
+  void onAssetBaseChanged(dag::ConstSpan<DagorAsset *> changed_assets, dag::ConstSpan<DagorAsset *> added_assets,
+    dag::ConstSpan<DagorAsset *> removed_assets) override
   {
     for (int i = 0; i < changed_assets.size(); i++)
       if (const char *packname = dabuild->getPackName(changed_assets[i]))
@@ -125,7 +125,7 @@ static void getPackForFolder(FastNameMap &packs, dag::ConstSpan<int> folders_idx
 const char *get_asset_pack_name(DagorAsset *asset) { return dabuild ? dabuild->getPackName(asset) : NULL; }
 String get_asset_pkg_name(DagorAsset *asset) { return dabuild ? dabuild->getPkgName(asset) : String(); }
 
-bool check_assets_base_up_to_date(dag::ConstSpan<const char *> packs, bool tex, bool res)
+bool check_assets_base_up_to_date(dag::ConstSpan<const char *> packs, [[maybe_unused]] bool tex, [[maybe_unused]] bool res)
 {
   TIME_PROFILE(check_assets_base_up_to_date);
   if (!dabuild)
@@ -176,7 +176,6 @@ bool check_assets_base_up_to_date(dag::ConstSpan<const char *> packs, bool tex, 
 
   EDITORCORE->updateViewports();
   EDITORCORE->invalidateViewportCache();
-  ;
   ::get_app().afterUpToDateCheck(ret);
 
   return ret;
@@ -197,6 +196,7 @@ void rebuild_assets_in_folders(dag::ConstSpan<unsigned> tc, dag::ConstSpan<int> 
 
   ILogWriter *log = &::get_app().getConsole();
 
+  const bool consoleWasOpen = ::get_app().getConsole().isVisible();
   ::get_app().getConsole().showConsole();
 
   dabuild->setupReports(log, &::get_app().getConsole());
@@ -207,7 +207,8 @@ void rebuild_assets_in_folders(dag::ConstSpan<unsigned> tc, dag::ConstSpan<int> 
   tab_from_namemap(packs, _packs);
 
   if (dabuild->exportPacks(tc, packs))
-    ::get_app().getConsole().hideConsole();
+    if (!consoleWasOpen)
+      ::get_app().getConsole().hideConsole();
 
   dabuild->setupReports(NULL, NULL);
 
@@ -221,6 +222,7 @@ void rebuild_assets_in_root(dag::ConstSpan<unsigned> tc, bool build_tex, bool bu
 
   ILogWriter *log = &::get_app().getConsole();
 
+  const bool consoleWasOpen = ::get_app().getConsole().isVisible();
   ::get_app().getConsole().showConsole();
 
   dabuild->setupReports(log, &::get_app().getConsole());
@@ -244,7 +246,8 @@ void rebuild_assets_in_root(dag::ConstSpan<unsigned> tc, bool build_tex, bool bu
   tab_from_namemap(packs, _packs);
 
   if (!dabuild->exportPacks(tc, packs))
-    ::get_app().getConsole().hideConsole();
+    if (!consoleWasOpen)
+      ::get_app().getConsole().hideConsole();
 
   dabuild->setupReports(NULL, NULL);
 
@@ -299,6 +302,7 @@ void build_assets(dag::ConstSpan<unsigned> tc, dag::ConstSpan<DagorAsset *> asse
 
   ILogWriter *log = &::get_app().getConsole();
 
+  const bool consoleWasOpen = ::get_app().getConsole().isVisible();
   ::get_app().getConsole().showConsole();
 
   dabuild->setupReports(log, &::get_app().getConsole());
@@ -310,7 +314,8 @@ void build_assets(dag::ConstSpan<unsigned> tc, dag::ConstSpan<DagorAsset *> asse
   }
 
   if (dabuild->exportPacks(tc, packs))
-    ::get_app().getConsole().hideConsole();
+    if (!consoleWasOpen)
+      ::get_app().getConsole().hideConsole();
 
   dabuild->setupReports(NULL, NULL);
 

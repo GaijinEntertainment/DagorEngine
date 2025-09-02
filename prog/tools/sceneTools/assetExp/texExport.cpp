@@ -542,8 +542,8 @@ bool buildDdsxTexPack(mkbindump::BinDumpSaveCB &cwr, dag::ConstSpan<DagorAsset *
   if (dabuild_skip_any_build)
     return up_to_date = dd_file_exist(pack_fname);
 
-  char target_str[5];
-  strcpy(target_str, mkbindump::get_target_str(cwr.getTarget()));
+  uint64_t tc_storage = 0;
+  const char *target_str = mkbindump::get_target_str(cwr.getTarget(), tc_storage);
 
   up_to_date = false;
 
@@ -606,11 +606,14 @@ bool buildDdsxTexPack(mkbindump::BinDumpSaveCB &cwr, dag::ConstSpan<DagorAsset *
     if (exp)
     {
       exp->gatherSrcDataFiles(*assets[i], a_files);
-      int cnt = a_files.size();
-      for (int j = 0; j < cnt; j++)
+      // skip first if already checked
+      bool target_file_checked = a_files.size() && a_files[0].operator==(texname);
+      for (int j = target_file_checked ? 1 : 0; j < a_files.size(); j++)
         if (c4.checkFileChanged(a_files[j]))
           changed = true;
     }
+    if (!changed && AssetExportCache::sharedDataIsAssetInForceRebuildList(*assets[i]))
+      changed = true;
 
     if (prev_pack && changed)
       prev_pack->removeDDSx(assets[i]->getName());
@@ -709,8 +712,8 @@ bool checkDdsxTexPackUpToDate(unsigned tc, const char *profile, bool be, dag::Co
 {
   if (dabuild_build_tex_separate)
     return true;
-  char target_str[5];
-  strcpy(target_str, mkbindump::get_target_str(tc));
+  uint64_t tc_storage = 0;
+  const char *target_str = mkbindump::get_target_str(tc, tc_storage);
 
   FullFileLoadCB prev_fcrd(pack_fname);
   BinDumpReader prev_crd(&prev_fcrd, tc, be);
@@ -761,6 +764,8 @@ bool checkDdsxTexPackUpToDate(unsigned tc, const char *profile, bool be, dag::Co
     if (c4.checkDataBlockChanged(assets[i]->getNameTypified(), assets[i]->props))
       goto cur_changed;
 
+    if (AssetExportCache::sharedDataIsAssetInForceRebuildList(*assets[i]))
+      goto cur_changed;
     texname = assets[i]->getTargetFilePath();
 
     if (c4.checkFileChanged(texname))
@@ -769,13 +774,9 @@ bool checkDdsxTexPackUpToDate(unsigned tc, const char *profile, bool be, dag::Co
     if (exp)
     {
       exp->gatherSrcDataFiles(*assets[i], a_files);
-      // A lot of assets add the asset itself to the list of src data files.
-      // checkFileChanged is quite slow and we checked this asset already above.
-      // Removing this asset from gather list is faster then calling checkFileChanged one extra time
-      if (a_files.size() > 0 && strcmp(a_files[0].c_str(), texname.c_str()) == 0)
-        a_files.erase(a_files.begin());
-      int cnt = a_files.size();
-      for (int j = 0; j < cnt; j++)
+      // skip first if already checked
+      bool target_file_checked = a_files.size() && a_files[0].operator==(texname);
+      for (int j = target_file_checked ? 1 : 0; j < a_files.size(); j++)
         if (c4.checkFileChanged(a_files[j]))
           goto cur_changed;
     }

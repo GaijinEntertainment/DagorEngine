@@ -17,7 +17,7 @@
 #include <propPanel/propPanel.h>
 #include <imgui/imgui.h>
 
-class RecentlyUsedTab : public IMenuEventHandler, public PropPanel::ITreeViewEventHandler
+class RecentlyUsedTab : public PropPanel::IMenuEventHandler, public PropPanel::ITreeViewEventHandler
 {
 public:
   explicit RecentlyUsedTab(IAssetSelectorFavoritesRecentlyUsedHost &tab_host, const DagorAssetMgr &asset_mgr) :
@@ -25,10 +25,10 @@ public:
     assetMgr(asset_mgr),
     recentlyUsedTree(this, nullptr, 0, 0, hdpi::_pxActual(0), hdpi::_pxActual(0), "", /*icons_show = */ true)
   {
-    closeIcon = (ImTextureID)((unsigned)PropPanel::load_icon("close_editor"));
-    searchIcon = (ImTextureID)((unsigned)PropPanel::load_icon("search"));
-    settingsIcon = (ImTextureID)((unsigned)PropPanel::load_icon("filter_default"));
-    settingsOpenIcon = (ImTextureID)((unsigned)PropPanel::load_icon("filter_active"));
+    closeIcon = PropPanel::load_icon("close_editor");
+    searchIcon = PropPanel::load_icon("search");
+    settingsIcon = PropPanel::load_icon("filter_default");
+    settingsOpenIcon = PropPanel::load_icon("filter_active");
   }
 
   void onAllowedTypesChanged(dag::ConstSpan<int> allowed_type_indexes)
@@ -49,10 +49,9 @@ public:
     onShownTypeFilterChanged();
   }
 
-  void fillTree()
+  void fillTree(const DagorAsset *asset_to_select)
   {
     const dag::ConstSpan<int> allowedTypeIndexes = tabHost.getAllowedTypes();
-    const DagorAsset *selectedAsset = getSelectedAsset();
     PropPanel::TLeafHandle itemToSelect = nullptr;
     int assetsMatchingAllowedTypes = 0;
 
@@ -75,9 +74,9 @@ public:
       if (!textFilter.matchesFilter(asset->getName()))
         continue;
 
-      const TEXTUREID icon = AssetSelectorCommon::getAssetTypeIcon(asset->getType());
+      const PropPanel::IconId icon = AssetSelectorCommon::getAssetTypeIcon(asset->getType());
       PropPanel::TLeafHandle newItem = recentlyUsedTree.addItem(assetName, icon, nullptr, const_cast<DagorAsset *>(asset));
-      if (asset == selectedAsset)
+      if (asset == asset_to_select)
         itemToSelect = newItem;
     }
 
@@ -98,6 +97,12 @@ public:
     return reinterpret_cast<DagorAsset *>(recentlyUsedTree.getItemData(selectedNode));
   }
 
+  void setSelectedAsset(const DagorAsset *asset)
+  {
+    PropPanel::TLeafHandle treeItem = getTreeItemByItemData(asset);
+    recentlyUsedTree.setSelectedItem(treeItem);
+  }
+
   void updateImgui()
   {
     ImGui::PushID(this);
@@ -112,7 +117,7 @@ public:
     const bool searchInputChanged = PropPanel::ImguiHelper::searchInput(&searchInputFocusId, "##searchInput", "Filter and search",
       textToSearch, searchIcon, closeIcon, &inputFocused, &inputId);
 
-    PropPanel::set_previous_imgui_control_tooltip((const void *)inputId, AssetSelectorCommon::searchTooltip);
+    PropPanel::set_previous_imgui_control_tooltip((const void *)((uintptr_t)inputId), AssetSelectorCommon::searchTooltip);
 
     if (inputFocused)
     {
@@ -135,15 +140,15 @@ public:
     if (searchInputChanged)
     {
       textFilter.setSearchText(textToSearch);
-      fillTree();
+      fillTree(getSelectedAsset());
     }
 
     ImGui::SameLine();
     const char *popupId = "settingsPopup";
-    const ImTextureID settingsButtonIcon = settingsPanelOpen ? settingsOpenIcon : settingsIcon;
+    const PropPanel::IconId settingsButtonIcon = settingsPanelOpen ? settingsOpenIcon : settingsIcon;
     bool settingsButtonPressed =
       PropPanel::ImguiHelper::imageButtonWithArrow("settingsButton", settingsButtonIcon, fontSizedIconSize, settingsPanelOpen);
-    PropPanel::set_previous_imgui_control_tooltip((const void *)ImGui::GetItemID(), "Settings");
+    PropPanel::set_previous_imgui_control_tooltip((const void *)((uintptr_t)ImGui::GetItemID()), "Settings");
 
     if (settingsPanelOpen)
       showSettingsPanel(popupId);
@@ -166,7 +171,7 @@ public:
   }
 
 private:
-  virtual int onMenuItemClick(unsigned id) override
+  int onMenuItemClick(unsigned id) override
   {
     switch (id)
     {
@@ -204,18 +209,19 @@ private:
     return 0;
   }
 
-  virtual void onTvSelectionChange(PropPanel::TreeBaseWindow &tree_base_window, PropPanel::TLeafHandle new_sel) override
+  void onTvSelectionChange(PropPanel::TreeBaseWindow &, PropPanel::TLeafHandle) override
   {
     tabHost.onSelectionChanged(getSelectedAsset());
   }
 
-  virtual void onTvDClick(PropPanel::TreeBaseWindow &tree_base_window, PropPanel::TLeafHandle node) override
+  void onTvDClick(PropPanel::TreeBaseWindow &, PropPanel::TLeafHandle) override
   {
     tabHost.onSelectionDoubleClicked(getSelectedAsset());
   }
 
-  virtual bool onTvContextMenu(PropPanel::TreeBaseWindow &tree_base_window, PropPanel::ITreeInterface &in_tree) override
+  bool onTvContextMenu(PropPanel::TreeBaseWindow &, PropPanel::ITreeInterface &in_tree) override
   {
+    using PropPanel::ROOT_MENU_ITEM;
     if (getSelectedAsset())
     {
       PropPanel::IMenu &menu = in_tree.createContextMenu();
@@ -229,7 +235,7 @@ private:
     return false;
   }
 
-  void onShownTypeFilterChanged() { fillTree(); }
+  void onShownTypeFilterChanged() { fillTree(getSelectedAsset()); }
 
   void selectNextItem(bool forward = true)
   {
@@ -246,6 +252,20 @@ private:
     next = recentlyUsedTree.getNextNode(next, forward);
     if (next)
       recentlyUsedTree.setSelectedItem(next);
+  }
+
+  PropPanel::TLeafHandle getTreeItemByItemData(const void *item_data)
+  {
+    const int childrenCount = recentlyUsedTree.getChildrenCount(nullptr);
+    for (int i = 0; i < childrenCount; ++i)
+    {
+      PropPanel::TLeafHandle childItem = recentlyUsedTree.getChild(nullptr, i);
+      G_ASSERT(recentlyUsedTree.getChildrenCount(childItem) == 0);
+      if (recentlyUsedTree.getItemData(childItem) == item_data)
+        return childItem;
+    }
+
+    return nullptr;
   }
 
   void showSettingsPanel(const char *popup_id)
@@ -276,10 +296,10 @@ private:
   dag::Vector<bool> shownTypes;
   AssetsGuiTextFilter textFilter;
   String textToSearch;
-  ImTextureID closeIcon = nullptr;
-  ImTextureID searchIcon = nullptr;
-  ImTextureID settingsIcon = nullptr;
-  ImTextureID settingsOpenIcon = nullptr;
+  PropPanel::IconId closeIcon = PropPanel::IconId::Invalid;
+  PropPanel::IconId searchIcon = PropPanel::IconId::Invalid;
+  PropPanel::IconId settingsIcon = PropPanel::IconId::Invalid;
+  PropPanel::IconId settingsOpenIcon = PropPanel::IconId::Invalid;
   const bool searchInputFocusId = false; // Only the address of this member is used.
   bool settingsPanelOpen = false;
 };

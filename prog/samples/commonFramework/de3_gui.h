@@ -59,64 +59,42 @@ struct GuiControlDesc
   }
 };
 
-#define DECLARE_INT_EDITBOX(P, V, MIN_V, MAX_V, DEF_V)                                                  \
-  {                                                                                                     \
-    {&((P).V)}, {MIN_V}, {MAX_V}, {{DEF_V, 0, 0, 0}}, #V, #P, GuiControlDesc::GCDT_Int, 0, {0}, nullptr \
-  }
+#define DECLARE_INT_EDITBOX(P, V, MIN_V, MAX_V, DEF_V) \
+  {{&((P).V)}, {MIN_V}, {MAX_V}, {{DEF_V, 0, 0, 0}}, #V, #P, GuiControlDesc::GCDT_Int, 0, {0}, nullptr}
 
-#define DECLARE_IPOINT2_EDITBOX(P, V, DEF_V_X, DEF_V_Y)                                                     \
-  {                                                                                                         \
-    {&((P).V)}, {0}, {0}, {{DEF_V_X, DEF_V_Y, 0, 0}}, #V, #P, GuiControlDesc::GCDT_IPoint2, 0, {0}, nullptr \
-  }
+#define DECLARE_IPOINT2_EDITBOX(P, V, DEF_V_X, DEF_V_Y) \
+  {{&((P).V)}, {0}, {0}, {{DEF_V_X, DEF_V_Y, 0, 0}}, #V, #P, GuiControlDesc::GCDT_IPoint2, 0, {0}, nullptr}
 
-#define DECLARE_IPOINT3_EDITBOX(P, V, DEF_V_X, DEF_V_Y, DEF_V_Z)                                                  \
-  {                                                                                                               \
-    {&((P).V)}, {0}, {0}, {{DEF_V_X, DEF_V_Y, DEF_V_Z, 0}}, #V, #P, GuiControlDesc::GCDT_IPoint3, 0, {0}, nullptr \
-  }
+#define DECLARE_IPOINT3_EDITBOX(P, V, DEF_V_X, DEF_V_Y, DEF_V_Z) \
+  {{&((P).V)}, {0}, {0}, {{DEF_V_X, DEF_V_Y, DEF_V_Z, 0}}, #V, #P, GuiControlDesc::GCDT_IPoint3, 0, {0}, nullptr}
 
-#define DECLARE_FLOAT_EDITBOX(P, V, MIN_V, MAX_V, DEF_V)                                                                     \
-  {                                                                                                                          \
-    {&((P).V)}, {GuiControlDesc::f2i(MIN_V)}, {GuiControlDesc::f2i(MAX_V)}, {{GuiControlDesc::f2i(DEF_V), 0, 0, 0}}, #V, #P, \
-      GuiControlDesc::GCDT_Int, 0, {0}, nullptr                                                                              \
-  }
+#define DECLARE_FLOAT_EDITBOX(P, V, MIN_V, MAX_V, DEF_V)                                                                    \
+  {{&((P).V)}, {GuiControlDesc::f2i(MIN_V)}, {GuiControlDesc::f2i(MAX_V)}, {{GuiControlDesc::f2i(DEF_V), 0, 0, 0}}, #V, #P, \
+    GuiControlDesc::GCDT_Int, 0, {0}, nullptr}
 
-#define DECLARE_POINT2_EDITBOX(P, V, DEF_V_X, DEF_V_Y)                                                                               \
-  {                                                                                                                                  \
-    {&((P).V)}, {0}, {0}, {{GuiControlDesc::f2i(DEF_V_X), GuiControlDesc::f2i(DEF_V_Y), 0, 0}}, #V, #P, GuiControlDesc::GCDT_Point2, \
-      0, {0}, nullptr                                                                                                                \
-  }
+#define DECLARE_POINT2_EDITBOX(P, V, DEF_V_X, DEF_V_Y)                                                                              \
+  {{&((P).V)}, {0}, {0}, {{GuiControlDesc::f2i(DEF_V_X), GuiControlDesc::f2i(DEF_V_Y), 0, 0}}, #V, #P, GuiControlDesc::GCDT_Point2, \
+    0, {0}, nullptr}
 
-#define DECLARE_POINT3_EDITBOX(P, V, DEF_V_X, DEF_V_Y, DEF_V_Z)                                                                    \
-  {                                                                                                                                \
-    {&((P).V)}, {0}, {0}, {{GuiControlDesc::f2i(DEF_V_X), GuiControlDesc::f2i(DEF_V_Y), GuiControlDesc::f2i(DEF_V_Z), 0}}, #V, #P, \
-      GuiControlDesc::GCDT_Point3, 0, {0}, nullptr                                                                                 \
-  }
+#define DECLARE_POINT3_EDITBOX(P, V, DEF_V_X, DEF_V_Y, DEF_V_Z)                                                                   \
+  {{&((P).V)}, {0}, {0}, {{GuiControlDesc::f2i(DEF_V_X), GuiControlDesc::f2i(DEF_V_Y), GuiControlDesc::f2i(DEF_V_Z), 0}}, #V, #P, \
+    GuiControlDesc::GCDT_Point3, 0, {0}, nullptr}
 
-#define DECLARE_INT_SLIDER(P, V, MIN_V, MAX_V, DEF_V)                                                         \
-  {                                                                                                           \
-    {&((P).V)}, {MIN_V}, {MAX_V}, {{DEF_V, 0, 0, 0}}, #V, #P, GuiControlDesc::GCDT_SliderInt, 0, {0}, nullptr \
-  }
+#define DECLARE_INT_SLIDER(P, V, MIN_V, MAX_V, DEF_V) \
+  {{&((P).V)}, {MIN_V}, {MAX_V}, {{DEF_V, 0, 0, 0}}, #V, #P, GuiControlDesc::GCDT_SliderInt, 0, {0}, nullptr}
 
-#define DECLARE_FLOAT_SLIDER(P, V, MIN_V, MAX_V, DEF_V, STEP)                                                                \
-  {                                                                                                                          \
-    {&((P).V)}, {GuiControlDesc::f2i(MIN_V)}, {GuiControlDesc::f2i(MAX_V)}, {{GuiControlDesc::f2i(DEF_V), 0, 0, 0}}, #V, #P, \
-      GuiControlDesc::GCDT_SliderFloat, 0, {0}, nullptr                                                                      \
-  }
+#define DECLARE_FLOAT_SLIDER(P, V, MIN_V, MAX_V, DEF_V, STEP)                                                               \
+  {{&((P).V)}, {GuiControlDesc::f2i(MIN_V)}, {GuiControlDesc::f2i(MAX_V)}, {{GuiControlDesc::f2i(DEF_V), 0, 0, 0}}, #V, #P, \
+    GuiControlDesc::GCDT_SliderFloat, 0, {0}, nullptr}
 
-#define DECLARE_BOOL_CHECKBOX(P, V, DEF_V)                                                       \
-  {                                                                                              \
-    {&((P).V)}, {0}, {0}, {{DEF_V, 0, 0, 0}}, #V, #P, GuiControlDesc::GCDT_Bool, 0, {0}, nullptr \
-  }
+#define DECLARE_BOOL_CHECKBOX(P, V, DEF_V) \
+  {{&((P).V)}, {0}, {0}, {{DEF_V, 0, 0, 0}}, #V, #P, GuiControlDesc::GCDT_Bool, 0, {0}, nullptr}
 
-#define DECLARE_BOOL_BUTTON(P, V, DEF_V)                                                           \
-  {                                                                                                \
-    {&((P).V)}, {0}, {0}, {{DEF_V, 0, 0, 0}}, #V, #P, GuiControlDesc::GCDT_Button, 0, {0}, nullptr \
-  }
+#define DECLARE_BOOL_BUTTON(P, V, DEF_V) \
+  {{&((P).V)}, {0}, {0}, {{DEF_V, 0, 0, 0}}, #V, #P, GuiControlDesc::GCDT_Button, 0, {0}, nullptr}
 
-#define DECLARE_INT_COMBOBOX(P, V, DEF_V, ...)                                                                     \
-  {                                                                                                                \
-    {&((P).V)}, {0}, {0}, {{DEF_V, 0, 0, 0}}, #V, #P, GuiControlDesc::GCDT_IntEnum, 0, {__VA_ARGS__}, #__VA_ARGS__ \
-  }
+#define DECLARE_INT_COMBOBOX(P, V, DEF_V, ...) \
+  {{&((P).V)}, {0}, {0}, {{DEF_V, 0, 0, 0}}, #V, #P, GuiControlDesc::GCDT_IntEnum, 0, {__VA_ARGS__}, #__VA_ARGS__}
 
 
 #define GUI_ENABLE_OBJ(P, V)     de3_imgui_enable_obj(&((P).V), true)

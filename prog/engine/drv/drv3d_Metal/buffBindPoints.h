@@ -29,7 +29,7 @@ union EncodedMetalImageType
   int value = 0;
 };
 
-enum BufferType
+enum BufferType : uint8_t
 {
   GEOM_BUFFER = 0,
   CONST_BUFFER = 1,
@@ -40,13 +40,42 @@ enum BufferType
   BINDLESS_BUFFER_ID_BUFFER = 6
 };
 
+union EncodedBufferRemap
+{
+  enum class RemapType : uint8_t
+  {
+    Invalid = 0,
+    Buffer,
+    Texture,
+    Sampler
+  };
+
+  struct
+  {
+    MetalImageType texture_type;
+    BufferType buffer_type;
+    RemapType remap_type = RemapType::Invalid;
+    int8_t slot = -1;
+  };
+  int value;
+
+  EncodedBufferRemap()
+  {
+    texture_type = MetalImageType::Count;
+    buffer_type = BufferType::GEOM_BUFFER;
+    remap_type = RemapType::Invalid;
+    slot = -1;
+  }
+};
+static_assert(sizeof(EncodedBufferRemap) == 4, "this is important");
+
 enum BufferTypeCount
 {
   GEOM_BUFFER_COUNT = 2,
   CONST_BUFFER_COUNT = 9,
   STRUCT_BUFFER_COUNT = 32,
-  RW_BUFFER_COUNT = 8,
-  BINDLESS_TEXTURE_ID_BUFFER_COUNT = 6,
+  RW_BUFFER_COUNT = 10,
+  BINDLESS_TEXTURE_ID_BUFFER_COUNT = 4,
   BINDLESS_SAMPLER_ID_BUFFER_COUNT = 3,
   BINDLESS_BUFFER_ID_BUFFER_COUNT = 3,
 

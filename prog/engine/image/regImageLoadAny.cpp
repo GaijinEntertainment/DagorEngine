@@ -13,7 +13,21 @@
 class AnyLoadImageFactory : public ILoadImageFactory
 {
 public:
-  virtual TexImage32 *loadImage(const char *fn, IMemAlloc *mem, const char *fn_ext, bool *out_used_alpha = NULL)
+  bool readImageDimensions(const char *fn, const char *fn_ext, int &out_w, int &out_h, bool &out_may_have_alpha) override
+  {
+    if (fn_ext)
+      return false;
+
+    for (int i = 0; i < useExt.size(); i++)
+    {
+      String new_fn(0, "%s%s", fn, useExt[i]);
+      if (dd_file_exists(new_fn))
+        return read_image_dimensions(new_fn, out_w, out_h, out_may_have_alpha, useExt[i]);
+    }
+    return false;
+  }
+
+  TexImage32 *loadImage(const char *fn, IMemAlloc *mem, const char *fn_ext, bool *out_used_alpha) override
   {
     if (fn_ext)
       return NULL;
@@ -28,8 +42,8 @@ public:
     return NULL;
   }
 
-  virtual bool supportLoadImage2() { return true; }
-  virtual void *loadImage2(const char *fn, IAllocImg &a, const char *fn_ext)
+  bool supportLoadImage2() override { return true; }
+  void *loadImage2(const char *fn, IAllocImg &a, const char *fn_ext) override
   {
     if (fn_ext)
       return NULL;
@@ -52,7 +66,18 @@ public:
 class UrlAuxLoadImageFactory : public ILoadImageFactory
 {
 public:
-  virtual TexImage32 *loadImage(const char *fn, IMemAlloc *mem, const char *fn_ext, bool *out_used_alpha = NULL)
+  bool readImageDimensions(const char *fn, const char *fn_ext, int &out_w, int &out_h, bool &out_may_have_alpha) override
+  {
+    String real_fn;
+    bool ret = false;
+    if (file_ptr_t fp = resolveFn(fn, fn_ext, real_fn))
+    {
+      ret = read_image_dimensions(real_fn, out_w, out_h, out_may_have_alpha, fn_ext);
+      df_close(fp);
+    }
+    return ret;
+  }
+  TexImage32 *loadImage(const char *fn, IMemAlloc *mem, const char *fn_ext, bool *out_used_alpha) override
   {
     TexImage32 *img = NULL;
     String real_fn;
@@ -64,8 +89,8 @@ public:
     return img;
   }
 
-  virtual bool supportLoadImage2() { return true; }
-  virtual void *loadImage2(const char *fn, IAllocImg &a, const char *fn_ext)
+  bool supportLoadImage2() override { return true; }
+  void *loadImage2(const char *fn, IAllocImg &a, const char *fn_ext) override
   {
     void *img = NULL;
     String real_fn;

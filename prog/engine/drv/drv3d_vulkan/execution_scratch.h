@@ -5,7 +5,6 @@
 
 #include <drv/3d/dag_commands.h>
 #include <util/dag_stdint.h>
-#include <EASTL/vector.h>
 
 #include "vk_wrapped_handles.h"
 #include "buffer_ref.h"
@@ -15,11 +14,13 @@ namespace drv3d_vulkan
 {
 
 class Image;
+class Buffer;
 
 struct ExecutionScratch
 {
-  eastl::vector<FrameEvents *> frameEventCallbacks;
-  eastl::vector<Image *> imageResidenceRestores;
+  dag::Vector<FrameEvents *> frameEventCallbacks;
+  dag::Vector<Image *> imageResidenceRestores;
+  dag::Vector<Buffer *> bufferResidenceRestores;
 
   struct DiscardNotify
   {
@@ -27,7 +28,7 @@ struct ExecutionScratch
     BufferRef newBuf;
     uint32_t flags;
   };
-  eastl::vector<DiscardNotify> delayedDiscards;
+  dag::Vector<DiscardNotify> delayedDiscards;
   struct CommandBufferSubmit
   {
     DeviceQueueType queue;
@@ -35,20 +36,21 @@ struct ExecutionScratch
     uint32_t signals;
     uint32_t waits;
   };
-  eastl::vector<CommandBufferSubmit> cmdListsToSubmit;
+  dag::Vector<CommandBufferSubmit> cmdListsToSubmit;
 
   struct CommandBufferSubmitDeps
   {
     uint32_t from;
     uint32_t to;
   };
-  eastl::vector<CommandBufferSubmitDeps> cmdListsSubmitDeps;
+  dag::Vector<CommandBufferSubmitDeps> cmdListsSubmitDeps;
 
   struct QueueSubmitItem
   {
     Tab<VulkanCommandBufferHandle> cbs;
     Tab<VulkanSemaphoreHandle> signals;
-    Tab<VulkanSemaphoreHandle> submitSemaphores;
+    Tab<VulkanSemaphoreHandle> waitSemaphores;
+    Tab<DeviceQueue::TimelineInfo> waitTimelines;
     uint32_t signalsCount;
     DeviceQueueType queue;
     uint32_t originalSignalId;
@@ -62,14 +64,14 @@ struct ExecutionScratch
     size_t bufferIdx;
     uint8_t waitedOnQueuesMask;
   };
-  eastl::vector<UserQueueSignal> userQueueSignals;
+  dag::Vector<UserQueueSignal> userQueueSignals;
 
   struct DebugEvent
   {
     uint32_t color;
     const char *name;
   };
-  eastl::vector<DebugEvent> debugEventStack;
+  dag::Vector<DebugEvent> debugEventStack;
 };
 
 } // namespace drv3d_vulkan

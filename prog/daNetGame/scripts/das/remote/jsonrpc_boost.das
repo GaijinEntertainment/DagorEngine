@@ -18,23 +18,23 @@ require remote.jsonrpc_args public
 [macro_function]
 def private keep_args(var func)
   for arg in func.arguments
-    arg.flags |= VariableFlags marked_used
+    arg.flags |= VariableFlags.marked_used
 
 
 [macro_function]
 def private keep_func_and_args(var func)
-  func.flags |= FunctionFlags exports
+  func.flags |= FunctionFlags.exports
   keep_args(func)
 
 
 [macro_function]
 def private add_call_reg_func(at; call_fn_name; call_fn_alias)
   let fn_name = "register_{call_fn_name}_{call_fn_alias}"
-  var inscope fn <- new [[Function() at = at, atDecl = at, name := fn_name]]
-  fn.flags |= FunctionFlags generated
-  fn.flags |= FunctionFlags privateFunction
-  fn.flags |= FunctionFlags init
-  fn.result |> move_new() <| new [[TypeDecl() baseType=Type autoinfer, at=at]]
+  var inscope fn <- new Function(at = at, atDecl = at, name := fn_name)
+  fn.flags |= FunctionFlags.generated
+  fn.flags |= FunctionFlags.privateFunction
+  fn.flags |= FunctionFlags.init
+  fn.result |> move_new() <| new TypeDecl(baseType = Type.autoinfer, at = at)
 
   var inscope qblock <- quote() <|
     unsafe
@@ -44,13 +44,13 @@ def private add_call_reg_func(at; call_fn_name; call_fn_alias)
           add_call(func_name, func, this_context())
 
   var inscope rules : Template
-  rules |> replaceVariable("func_name") <| new [[ExprConstString() at = at, value := call_fn_alias]]
-  rules |> replaceVariable("func") <| new [[ExprAddr() at = at, target := call_fn_name, funcType <- typeinfo(ast_typedecl type<function<(var params : JsonValue?; id : uint64) : void>>)]]
+  rules |> replaceVariable("func_name") <| new ExprConstString(at = at, value := call_fn_alias)
+  rules |> replaceVariable("func") <| new ExprAddr(at = at, target := call_fn_name, funcType <- typeinfo ast_typedecl(type<function<(var params : JsonValue?; id : uint64) : void>>))
   apply_template(rules, at, qblock)
   delete rules
   unsafe
     var blk <- move_unquote_block(qblock)
-    blk.blockFlags ^= ExprBlockFlags isClosure
+    blk.blockFlags ^= ExprBlockFlags.isClosure
     fn.body <- blk
 
   compiling_module() |> add_function(fn)
@@ -59,11 +59,11 @@ def private add_call_reg_func(at; call_fn_name; call_fn_alias)
 [macro_function]
 def private add_notification_reg_func(at; call_fn_name; call_fn_alias)
   let fn_name = "register_{call_fn_name}_{call_fn_alias}"
-  var inscope fn <- new [[Function() at = at, atDecl = at, name := fn_name]]
-  fn.flags |= FunctionFlags generated
-  fn.flags |= FunctionFlags privateFunction
-  fn.flags |= FunctionFlags init
-  fn.result |> move_new() <| new [[TypeDecl() baseType=Type autoinfer, at=at]]
+  var inscope fn <- new Function(at = at, atDecl = at, name := fn_name)
+  fn.flags |= FunctionFlags.generated
+  fn.flags |= FunctionFlags.privateFunction
+  fn.flags |= FunctionFlags.init
+  fn.result |> move_new() <| new TypeDecl(baseType = Type.autoinfer, at = at)
 
   var inscope qblock <- quote() <|
     unsafe
@@ -73,13 +73,13 @@ def private add_notification_reg_func(at; call_fn_name; call_fn_alias)
           add_notification(func_name, func, this_context())
 
   var inscope rules : Template
-  rules |> replaceVariable("func_name") <| new [[ExprConstString() at = at, value := call_fn_alias]]
-  rules |> replaceVariable("func") <| new [[ExprAddr() at = at, target := call_fn_name, funcType <- typeinfo(ast_typedecl type<function<(var params : JsonValue?) : void>>)]]
+  rules |> replaceVariable("func_name") <| new ExprConstString(at = at, value := call_fn_alias)
+  rules |> replaceVariable("func") <| new ExprAddr(at = at, target := call_fn_name, funcType <- typeinfo ast_typedecl(type<function<(var params : JsonValue?) : void>>))
   apply_template(rules, at, qblock)
   delete rules
   unsafe
     var blk <- move_unquote_block(qblock)
-    blk.blockFlags ^= ExprBlockFlags isClosure
+    blk.blockFlags ^= ExprBlockFlags.isClosure
     fn.body <- blk
 
   compiling_module() |> add_function(fn)
@@ -90,7 +90,7 @@ def private transform_args(var func; is_call; var errors : das_string) : bool
   var inscope fn <- clone_function(func)
   fn.annotations |> clear()
   fn.name := "{genFnPrefix}{fn.name}"
-  fn.flags |= FunctionFlags generated
+  fn.flags |= FunctionFlags.generated
   let at = fn.at
   var blk : ExprBlock?
   unsafe
@@ -101,59 +101,59 @@ def private transform_args(var func; is_call; var errors : das_string) : bool
   let processArgsNum = argsNum - (is_call ? 1 : 0)
   for i in range(processArgsNum)
     if true
-      var inscope argi <- new [[ExprCall() at = at, name := "get_arg"]]
-      argi.arguments |> emplace_new(new [[ExprVar() at = at, name := paramsName]])
-      argi.arguments |> emplace_new(new [[ExprConstInt() at = at, value = i]])
+      var inscope argi <- new ExprCall(at = at, name := "get_arg")
+      argi.arguments |> emplace_new(new ExprVar(at = at, name := paramsName))
+      argi.arguments |> emplace_new(new ExprConstInt(at = at, value = i))
 
       assume baseArg = fn.arguments[i]
       assume baseArgType = baseArg._type
-      if baseArgType.baseType == Type tInt
-        var inscope toValue <- new [[ExprCall() at = at, name := "as_int"]]
+      if baseArgType.baseType == Type.tInt
+        var inscope toValue <- new ExprCall(at = at, name := "as_int")
         toValue.arguments |> emplace(argi)
         argi |> move() <| toValue
-      elif baseArgType.baseType == Type tUInt
-        var inscope toValue <- new [[ExprCall() at = at, name := "as_uint"]]
+      elif baseArgType.baseType == Type.tUInt
+        var inscope toValue <- new ExprCall(at = at, name := "as_uint")
         toValue.arguments |> emplace(argi)
         argi |> move() <| toValue
-      elif baseArgType.baseType == Type tFloat
-        var inscope toValue <- new [[ExprCall() at = at, name := "as_float"]]
+      elif baseArgType.baseType == Type.tFloat
+        var inscope toValue <- new ExprCall(at = at, name := "as_float")
         toValue.arguments |> emplace(argi)
         argi |> move() <| toValue
-      elif baseArgType.baseType == Type tDouble
-        var inscope toValue <- new [[ExprCall() at = at, name := "as_double"]]
+      elif baseArgType.baseType == Type.tDouble
+        var inscope toValue <- new ExprCall(at = at, name := "as_double")
         toValue.arguments |> emplace(argi)
         argi |> move() <| toValue
-      elif baseArgType.baseType == Type tBool
-        var inscope toValue <- new [[ExprCall() at = at, name := "as_bool"]]
+      elif baseArgType.baseType == Type.tBool
+        var inscope toValue <- new ExprCall(at = at, name := "as_bool")
         toValue.arguments |> emplace(argi)
         argi |> move() <| toValue
-      elif baseArgType.baseType == Type tString
-        var inscope toValue <- new [[ExprCall() at = at, name := "as_string"]]
+      elif baseArgType.baseType == Type.tString
+        var inscope toValue <- new ExprCall(at = at, name := "as_string")
         toValue.arguments |> emplace(argi)
         argi |> move() <| toValue
-      elif (baseArgType.baseType == Type tPointer && baseArgType.firstType != null && baseArgType.firstType.baseType == Type tStructure
+      elif (baseArgType.baseType == Type.tPointer && baseArgType.firstType != null && baseArgType.firstType.baseType == Type.tStructure
             && string(baseArgType.firstType.structType.name) == "JsonValue" && string(baseArgType.firstType.structType._module.name) == "json")
         pass // JsonValue
       else
         errors := "{baseArg.name}: {describe(baseArgType)} - unsupported argument type"
         return false
 
-      var inscope vlet <- new [[ExprLet() at = at, atInit = at]]
-      vlet.variables |> emplace_new() <| new [[Variable() at = at,
+      var inscope vlet <- new ExprLet(at = at, atInit = at)
+      vlet.variables |> emplace_new() <| new Variable(at = at,
               name := baseArg.name,
               _type := baseArgType,
               init <- argi
-          ]]
+          )
       blk.list |> emplace(vlet, i)
 
   for _ in range(processArgsNum) // cleanup all arguments
     fn.arguments |> erase(0)
 
-  var inscope paramsArg <- new [[Variable()
+  var inscope paramsArg <- new Variable(
     at = at,
     name := paramsName,
-    _type <- typeinfo(ast_typedecl type<json::JsonValue? -const>)
-  ]]
+    _type <- typeinfo ast_typedecl(type<json::JsonValue? -const>)
+  )
   fn.arguments |> emplace(paramsArg, 0)
 
   keep_func_and_args(fn)
@@ -205,7 +205,7 @@ def private validate_req_id_arg(arguments; var errors : das_string)
   if argsNum < 1
     errors := "at least one argument with request id is required (req_id: uint64)"
     return false
-  if arguments[argsNum - 1]._type.baseType != Type tUInt64
+  if arguments[argsNum - 1]._type.baseType != Type.tUInt64
     errors := "the last argument should be of uint64 type (req_id: uint64)"
     return false
   return true

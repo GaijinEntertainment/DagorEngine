@@ -21,6 +21,7 @@
 #include <stdio.h> // for SNPRINTF
 
 #include "internal/delayed.h"
+#include "internal/releasing.h"
 #include "internal/streams.h"
 #include "internal/soundSystem.h"
 #include "internal/events.h"
@@ -28,7 +29,7 @@
 #include "internal/debug.h"
 
 #include <math/random/dag_random.h>
-#include <atomic>
+#include <osApiWrappers/dag_atomic_types.h>
 
 #if _TARGET_IOS
 #include "soundSystem_ios.h"
@@ -42,6 +43,7 @@
 
 #if _TARGET_ANDROID
 #include <jni.h>
+#include <supp/dag_android_native_app_glue.h>
 extern JavaVM *g_jvm;
 ScoopedJavaThreadAttacher::ScoopedJavaThreadAttacher()
 {
@@ -53,7 +55,7 @@ ScoopedJavaThreadAttacher::ScoopedJavaThreadAttacher()
   if (getEnvStat == JNI_EDETACHED)
   {
     //      DEBUG_CTX("GetEnv: expected behavior not attached");
-    if (g_jvm->AttachCurrentThread(&env, NULL) != 0)
+    if (android::attach_current_thread(g_jvm, &env, NULL) != 0)
       DAG_FATAL("Failed to attach JavaThread");
     isAttach = true;
   }
@@ -92,7 +94,7 @@ enum Defaults
   DF_STACK_SIZE_NON_BLOCKING = 131072,
 };
 
-static std::atomic_bool g_is_inited = ATOMIC_VAR_INIT(false);
+static dag::AtomicInteger<bool> g_is_inited = false;
 static uint32_t g_version = 0;
 static size_t g_memory_block_size = 0;
 static void *g_memory_block = nullptr;
@@ -460,10 +462,9 @@ static int get_loglevel(FMOD_DEBUG_FLAGS flags, const char *message)
 
     if (strstr(message, "assertion: 'inchannels <= mMixMatrixCurrent.numin()' failed"))
       return LOGLEVEL_WARN; // workaround: suppress FMOD assert to disable logerr reporting
-                            // qa.fmod.com/t/assertion-inchannels-mmixmatrixcurrent-numin/14511/2
 
     if (strstr(message, "returned 0x88890004")) // suppress FMOD assert (0x88890004 = AUDCLNT_E_DEVICE_INVALIDATED)
-      return LOGLEVEL_WARN;                     // youtrack.gaijin.team/issue/12-135114 youtrack.gaijin.team/issue/38-45149
+      return LOGLEVEL_WARN; // e.g. "IAudioCaptureClient::GetCurrentPadding returned 0x88890004. Device was unplugged!"
 
     return LOGLEVEL_ERR;
   }
@@ -552,9 +553,9 @@ bool init(const DataBlock &blk)
   registerIOSNotifications(&set_snd_suspend);
 #endif
 
-  g_is_inited = true;
+  g_is_inited.store(true);
 
-  return g_is_inited;
+  return g_is_inited.load();
 }
 
 void shutdown()
@@ -566,6 +567,9 @@ void shutdown()
   streams::close();
 
   delayed::close();
+
+  releasing::close();
+
   events_close();
 
   occlusion::close();
@@ -597,10 +601,10 @@ void shutdown()
 
 #endif
 
-  g_is_inited = false;
+  g_is_inited.store(false);
 }
 
-bool is_inited() { return g_is_inited; }
+bool is_inited() { return g_is_inited.load(); }
 
 void get_memory_statistics(unsigned &system_allocated, unsigned &current_allocated, unsigned &max_allocated)
 {
@@ -827,6 +831,7 @@ void set_output_device(int device_id)
 void set_snd_suspend(bool suspend)
 {
   SNDSYS_IF_NOT_INITED_RETURN;
+  debug("[SNDSYS] suspend mixer: %s", suspend ? "true" : "false");
   suspend ? fmodapi::get_system()->mixerSuspend() : fmodapi::get_system()->mixerResume();
 }
 

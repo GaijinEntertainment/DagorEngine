@@ -23,11 +23,11 @@ class NullTrace
 {
 public:
   void configure() { logdbg("DX12: ...no GPU postmortem tracer active..."); }
-  constexpr void beginCommandBuffer(ID3D12Device3 *, ID3D12GraphicsCommandList *) {}
-  constexpr void endCommandBuffer(ID3D12GraphicsCommandList *) {}
-  constexpr void beginEvent(ID3D12GraphicsCommandList *, eastl::span<const char>, eastl::span<const char>) {}
-  constexpr void endEvent(ID3D12GraphicsCommandList *, eastl::span<const char>) {}
-  constexpr void marker(ID3D12GraphicsCommandList *, eastl::span<const char>) {}
+  constexpr void beginCommandBuffer(D3DDevice *, D3DGraphicsCommandList *) {}
+  constexpr void endCommandBuffer(D3DGraphicsCommandList *) {}
+  constexpr void beginEvent(D3DGraphicsCommandList *, eastl::span<const char>, eastl::span<const char>) {}
+  constexpr void endEvent(D3DGraphicsCommandList *, eastl::span<const char>) {}
+  constexpr void marker(D3DGraphicsCommandList *, eastl::span<const char>) {}
   constexpr void draw(const call_stack::CommandData &, D3DGraphicsCommandList *, const PipelineStageStateBase &,
     const PipelineStageStateBase &, BasePipeline &, PipelineVariant &, uint32_t, uint32_t, uint32_t, uint32_t,
     D3D12_PRIMITIVE_TOPOLOGY)
@@ -68,10 +68,28 @@ public:
   {
     logdbg("DX12: Device reset detected, no postmortem data available...");
   }
-  constexpr bool tryCreateDevice(DXGIAdapter *, UUID, D3D_FEATURE_LEVEL, void **) { return false; }
+  constexpr bool tryCreateDevice(DXGIAdapter *, UUID, D3D_FEATURE_LEVEL, void **, HLSLVendorExtensions &) { return false; }
   constexpr bool sendGPUCrashDump(const char *, const void *, uintptr_t) { return false; }
   constexpr void onDeviceShutdown() {}
-  constexpr bool onDeviceSetup(ID3D12Device *, const Configuration &, const Direct3D12Enviroment &) { return true; }
+  template <typename... Ts>
+  constexpr bool onDeviceSetup(Ts &&...)
+  {
+    return true;
+  }
+  template <typename... Ts>
+  auto onDeviceCreated(Ts &&...ts)
+  {
+    return onDeviceSetup(eastl::forward<Ts>(ts)...);
+  }
+  template <typename T>
+  static bool load(const Configuration &, const Direct3D12Enviroment &, T &&target)
+  {
+    target.template emplace<NullTrace>();
+    return true;
+  }
+
+  void nameResource(ID3D12Resource *, eastl::string_view) {}
+  void nameResource(ID3D12Resource *, eastl::wstring_view) {}
 };
 } // namespace gpu_postmortem
 } // namespace debug

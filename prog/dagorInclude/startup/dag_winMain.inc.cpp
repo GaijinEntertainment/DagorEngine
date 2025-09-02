@@ -22,8 +22,9 @@
 #include <direct.h>
 #include <eh.h>
 
-#if _TARGET_GDK
-#include <osApiWrappers/gdk/app.h>
+#if _TARGET_C4
+
+
 #endif
 
 #include "dag_addBasePathDef.h"
@@ -74,7 +75,10 @@ int PASCAL WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR /*lpCmdLi
   if (::dgs_get_argv("no_level_file"))
     debug_allow_level_files(false);
 
-  symhlp_init_default();
+#if DAGOR_DBGLEVEL > 0
+  if (!dgs_get_argv("nodbgsyms"))
+#endif
+    symhlp_init_default();
 
   signal(SIGABRT, &abort_handler);
 
@@ -118,8 +122,9 @@ static int dagor_program_exec(int nCmdShow, int debugmode, WinDeferredStartupLog
   dagor_init_base_path();
   dagor_change_root_directory(::dgs_get_argv("rootdir"));
 
-#if _TARGET_GDK
-  gdk::initialize_runtime();
+#if _TARGET_C4
+
+
 #endif
 
 #if defined(__DEBUG_FILEPATH)
@@ -142,12 +147,12 @@ static int dagor_program_exec(int nCmdShow, int debugmode, WinDeferredStartupLog
     set_debug_console_handle((intptr_t)::GetStdHandle(STD_OUTPUT_HANDLE));
   }
 
-#if _TARGET_GDK
-  if (!gdk::app_initialize())
-  {
-    logerr("Failed to initialize GDK application");
-    return 1;
-  }
+#if _TARGET_C4
+
+
+
+
+
 #endif
 
   if (deferredLogs.failed_SetProcessDPIAware)

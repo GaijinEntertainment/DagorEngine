@@ -9,21 +9,18 @@
 
 using namespace drv3d_vulkan;
 
-bool d3d::stretch_rect(BaseTexture *src, BaseTexture *dst, RectInt *rsrc, RectInt *rdst)
+bool d3d::stretch_rect(BaseTexture *src, BaseTexture *dst, const RectInt *rsrc, const RectInt *rdst)
 {
   VERIFY_GLOBAL_LOCK_ACQUIRED();
 
   TextureInterfaceBase *srcTex = cast_to_texture_base(src);
   TextureInterfaceBase *dstTex = cast_to_texture_base(dst);
 
-  Image *srcImg = nullptr;
-  Image *dstImg = nullptr;
+  if (!srcTex || !dstTex)
+    return false;
 
-  if (srcTex)
-    srcImg = srcTex->getDeviceImage();
-
-  if (dstTex)
-    dstImg = dstTex->getDeviceImage();
+  Image *srcImg = srcTex->image;
+  Image *dstImg = dstTex->image;
 
   VkImageBlit blit;
   blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -44,24 +41,14 @@ bool d3d::stretch_rect(BaseTexture *src, BaseTexture *dst, RectInt *rsrc, RectIn
     blit.srcOffsets[1].y = rsrc->bottom;
     blit.srcOffsets[1].z = 1;
   }
-  else if (srcTex)
-  {
-    blit.srcOffsets[0].x = 0;
-    blit.srcOffsets[0].y = 0;
-    blit.srcOffsets[0].z = 0;
-    blit.srcOffsets[1] = toOffset(srcTex->getMipmapExtent(0));
-    if (blit.dstOffsets[1].z < 1)
-      blit.dstOffsets[1].z = 1;
-  }
   else
   {
-    VkExtent2D size = Globals::swapchain.getMode().extent;
     blit.srcOffsets[0].x = 0;
     blit.srcOffsets[0].y = 0;
     blit.srcOffsets[0].z = 0;
-    blit.srcOffsets[1].x = size.width;
-    blit.srcOffsets[1].y = size.height;
-    blit.srcOffsets[1].z = 1;
+    blit.srcOffsets[1] = toOffset(srcTex->pars.getMipExtent(0));
+    if (blit.srcOffsets[1].z < 1)
+      blit.srcOffsets[1].z = 1;
   }
 
   if (rdst)
@@ -73,24 +60,14 @@ bool d3d::stretch_rect(BaseTexture *src, BaseTexture *dst, RectInt *rsrc, RectIn
     blit.dstOffsets[1].y = rdst->bottom;
     blit.dstOffsets[1].z = 1;
   }
-  else if (dstTex)
-  {
-    blit.dstOffsets[0].x = 0;
-    blit.dstOffsets[0].y = 0;
-    blit.dstOffsets[0].z = 0;
-    blit.dstOffsets[1] = toOffset(dstTex->getMipmapExtent(0));
-    if (blit.dstOffsets[1].z < 1)
-      blit.dstOffsets[1].z = 1;
-  }
   else
   {
-    VkExtent2D size = Globals::swapchain.getMode().extent;
     blit.dstOffsets[0].x = 0;
     blit.dstOffsets[0].y = 0;
     blit.dstOffsets[0].z = 0;
-    blit.dstOffsets[1].x = size.width;
-    blit.dstOffsets[1].y = size.height;
-    blit.dstOffsets[1].z = 1;
+    blit.dstOffsets[1] = toOffset(dstTex->pars.getMipExtent(0));
+    if (blit.dstOffsets[1].z < 1)
+      blit.dstOffsets[1].z = 1;
   }
 
   Globals::ctx.blitImage(srcImg, dstImg, blit, /*whole_subres*/ rdst == nullptr);

@@ -238,8 +238,8 @@ bool NodesProcessing::canChangeAsset()
 
     switch (dialogResult)
     {
-      case PropPanel::DIALOG_ID_CANCEL: return false;
-      case PropPanel::DIALOG_ID_YES:
+      case wingw::MB_ID_CANCEL: return false;
+      case wingw::MB_ID_YES:
         saveCollisionNodes();
         if (!curAsset->isVirtual())
           curAsset->getMgr().callAssetChangeNotifications(*curAsset, curAsset->getNameId(), curAsset->getType());
@@ -401,6 +401,10 @@ void NodesProcessing::switchPanelByType(int pcb_id, SelectedNodesSettings &&new_
       }
       convexVhacdProcessing.calcSelectedInterface();
       break;
+
+    // to prevent the unhandled switch case error
+    case ExportCollisionNodeType::UNKNOWN_TYPE:
+    case ExportCollisionNodeType::NODE_TYPES_COUNT: break;
   }
   combinedNodesProcessing.clearSelectedNode();
 }
@@ -409,7 +413,7 @@ void NodesProcessing::saveNewNode(int pcb_id)
 {
   if (selectionNodesProcessing.editSettings)
   {
-    ExportCollisionNodeType type;
+    ExportCollisionNodeType type = ExportCollisionNodeType::UNKNOWN_TYPE;
     String nodeName = selectionNodesProcessing.editSettings->nodeName;
     deleteNodeFromProcessing(nodeName, type, selectionNodesProcessing.deleteSelectedNode(nodeName, type));
     selectionNodesProcessing.editSettings = nullptr;
@@ -443,7 +447,7 @@ void NodesProcessing::saveNewNode(int pcb_id)
   }
   for (const auto &nodeName : selectionNodesProcessing.deleteNodesCandidats)
   {
-    ExportCollisionNodeType type;
+    ExportCollisionNodeType type = ExportCollisionNodeType::UNKNOWN_TYPE;
     deleteNodeFromProcessing(nodeName, type, selectionNodesProcessing.deleteSelectedNode(nodeName, type));
   }
   selectionNodesProcessing.deleteNodesCandidats.clear();
@@ -544,6 +548,8 @@ void NodesProcessing::setButtonNameByType(const ExportCollisionNodeType &type)
     case ExportCollisionNodeType::KDOP:
     case ExportCollisionNodeType::CONVEX_COMPUTER:
     case ExportCollisionNodeType::CONVEX_VHACD: panel->setText(PID_NEXT_EDIT_NODE, "Next"); break;
+
+    default: break;
   }
 }
 
@@ -667,7 +673,7 @@ void NodesProcessing::deleteCollisionNode()
   delete_flags_prefix(nodeName);
   if (!selectionNodesProcessing.deleteNodeFromBlk(nodeName))
   {
-    ExportCollisionNodeType type;
+    ExportCollisionNodeType type = ExportCollisionNodeType::UNKNOWN_TYPE;
     deleteNodeFromProcessing(nodeName, type, selectionNodesProcessing.deleteSelectedNode(nodeName, type));
     tree->clear();
     selectionNodesProcessing.fillInfoTree(tree);
@@ -705,6 +711,8 @@ void NodesProcessing::deleteNodeFromProcessing(const String &node_name, const Ex
       case ExportCollisionNodeType::CONVEX_VHACD:
         convexVhacdProcessing.interfaces.erase(convexVhacdProcessing.interfaces.begin() + idx);
         break;
+
+      default: break;
     }
   }
 }

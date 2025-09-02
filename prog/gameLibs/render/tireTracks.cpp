@@ -234,14 +234,14 @@ public:
 
         prevNodePos.z = newSideVector.x;
         prevNodePos.w = newSideVector.y;
-      }
 
-      // We have to invalidate previous node with the corrected side vector if it exists or with the original side vector otherwise:
-      Point3 newSideVector3D = Point3(prevNodePos.z, 0.f, prevNodePos.w); // Y-coordinate is irrelevant in clipmap invalidation
-      Point3 pPos = lastPos + newSideVector3D;
-      v_bbox3_add_pt(updateBbox, v_ldu(&pPos.x));
-      pPos = lastPos - newSideVector3D;
-      v_bbox3_add_pt(updateBbox, v_ldu(&pPos.x));
+        // We have to invalidate previous node with the corrected side vector
+        Point3 newSideVector3D = Point3(prevNodePos.z, 0.f, prevNodePos.w);
+        Point3 pPos = lastPos + newSideVector3D;
+        v_bbox3_add_pt(updateBbox, v_ldu(&pPos.x));
+        pPos = lastPos - newSideVector3D;
+        v_bbox3_add_pt(updateBbox, v_ldu(&pPos.x));
+      }
     }
 
     secondLastPos = lastPos;
@@ -373,6 +373,17 @@ static int tires_drift_texVarId = -1, tires_diffuse_texVarId = -1, tires_normal_
 
 static uint32_t nodeCount = MAX_ALLOWED_TRACKS * (4 + MAX_NODES_PER_TRACK);
 
+void update_samplers()
+{
+  if (!initialized)
+    return;
+
+  d3d::SamplerHandle tireSampler = d3d::request_sampler({.anisotropic_max = (float)::dgs_tex_anisotropy});
+  ShaderGlobal::set_sampler(get_shader_variable_id("tires_drift_tex_samplerstate"), tireSampler);
+  ShaderGlobal::set_sampler(get_shader_variable_id("tires_diffuse_tex_samplerstate"), tireSampler);
+  ShaderGlobal::set_sampler(get_shader_variable_id("tires_normal_tex_samplerstate", true), tireSampler);
+}
+
 // init system. load settings from blk-file
 void init(const char *blk_file, bool has_normalmap, bool stub_render_mode)
 {
@@ -430,10 +441,7 @@ void init(const char *blk_file, bool has_normalmap, bool stub_render_mode)
   tires_base_yVarId = get_shader_variable_id("tires_base_y", true);
   tires_frame_countVarId = get_shader_variable_id("tires_frame_count", true);
   tires_start_instVarId = get_shader_variable_id("tires_start_inst", true);
-  d3d::SamplerHandle defaultSampler = d3d::request_sampler({});
-  ShaderGlobal::set_sampler(get_shader_variable_id("tires_drift_tex_samplerstate"), defaultSampler);
-  ShaderGlobal::set_sampler(get_shader_variable_id("tires_diffuse_tex_samplerstate"), defaultSampler);
-  ShaderGlobal::set_sampler(get_shader_variable_id("tires_normal_tex_samplerstate", true), defaultSampler);
+  update_samplers();
 
   // load texture params
   const char *texName = NULL;

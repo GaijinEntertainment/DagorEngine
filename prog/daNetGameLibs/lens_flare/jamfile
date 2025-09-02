@@ -9,6 +9,7 @@ Location = prog/daNetGameLibs/$(Module) ;
 AddIncludes =
   $(Root)/prog/daNetGameLibs
   $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/gameLibs
   $(Root)/prog/daNetGame
 ;
 
@@ -17,6 +18,8 @@ local AllSrcFolder_ES = ;
 local AllSrcFolder_DAS = ;
 
 if $(HaveRenderer) = yes {
+  UseProgLibs += gameLibs/render/lensFlare ;
+
   AllSrcFolder_ES += render ;
   AllSrcFolder_CPP += render ;
 }

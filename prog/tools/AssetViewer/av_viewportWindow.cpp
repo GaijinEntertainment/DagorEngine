@@ -4,6 +4,8 @@
 #include "assetStats.h"
 #include "av_cm.h"
 #include "av_appwnd.h"
+#include "de3_dynRenderService.h"
+
 #include <EditorCore/ec_cm.h>
 #include <EditorCore/ec_ViewportWindowStatSettingsDialog.h>
 #include <gameRes/dag_collisionResource.h>
@@ -31,10 +33,6 @@ G_STATIC_ASSERT(AssetStatType::Count == 6);
 static const char *asset_stat_names[AssetStatType::Count] = {
   "triangles renderable", "phys geometry", "trace geometry", "material count", "texture count", "current LOD"};
 static bool displayed_asset_stats[AssetStatType::Count] = {true, true, true, true, true, true};
-
-AssetViewerViewportWindow::AssetViewerViewportWindow(TEcHandle parent, int left, int top, int w, int h) :
-  ViewportWindow(parent, left, top, w, h)
-{}
 
 void AssetViewerViewportWindow::load(const DataBlock &blk)
 {
@@ -230,4 +228,14 @@ int AssetViewerViewportWindow::getAssetStatIndexByName(const char *name)
       return i;
 
   return -1;
+}
+
+BaseTexture *AssetViewerViewportWindow::getDepthBuffer()
+{
+  if (auto *srv = EDITORCORE->queryEditorInterface<IDynRenderService>())
+  {
+    return srv->getDepthBuffer();
+  }
+
+  return nullptr;
 }

@@ -47,6 +47,38 @@ testData/static_analyzer/w262.nut:38:4
     ^----
 
 
+WARNING: w315 (invalid-indentation) Invalid indentation. Pay attention to lines 11 and 13.
+testData/static_analyzer/w262.nut:13:4
+
+    print(3)
+    print(4) // EXPECTED 2
+    ^-------
+
+
+WARNING: w315 (invalid-indentation) Invalid indentation. Pay attention to lines 13 and 15.
+testData/static_analyzer/w262.nut:15:0
+
+while (false)
+^--------
+    print(x)
+
+
+WARNING: w315 (invalid-indentation) Invalid indentation. Pay attention to lines 15 and 17.
+testData/static_analyzer/w262.nut:17:4
+
+    print(x)
+    print(y) // EXPECTED 3
+    ^-------
+
+
+WARNING: w315 (invalid-indentation) Invalid indentation. Pay attention to lines 17 and 19.
+testData/static_analyzer/w262.nut:19:0
+
+while (false)
+^----
+    print(x)
+
+
 WARNING: w262 (suspicious-formatting) Suspicious code formatting.
 testData/static_analyzer/w262.nut:24:0
 
@@ -54,6 +86,54 @@ while (false)
 print(x)
 ^-------
     print(y) // EXPECTED 4
+
+
+WARNING: w315 (invalid-indentation) Invalid indentation. Pay attention to lines 23 and 25.
+testData/static_analyzer/w262.nut:25:4
+
+print(x)
+    print(y) // EXPECTED 4
+    ^-------
+
+
+WARNING: w315 (invalid-indentation) Invalid indentation. Pay attention to lines 25 and 27.
+testData/static_analyzer/w262.nut:27:0
+
+for (;false;)
+^--------
+    print(x)
+
+
+WARNING: w315 (invalid-indentation) Invalid indentation. Pay attention to lines 27 and 29.
+testData/static_analyzer/w262.nut:29:4
+
+    print(x)
+    print(y) // EXPECTED 5
+    ^-------
+
+
+WARNING: w315 (invalid-indentation) Invalid indentation. Pay attention to lines 29 and 31.
+testData/static_analyzer/w262.nut:31:0
+
+for (;false;)
+^----
+    print(x)
+
+
+WARNING: w315 (invalid-indentation) Invalid indentation. Pay attention to lines 36 and 38.
+testData/static_analyzer/w262.nut:38:4
+
+    print(x)
+    print(y) // EXPECTED 6
+    ^-------
+
+
+WARNING: w315 (invalid-indentation) Invalid indentation. Pay attention to lines 38 and 40.
+testData/static_analyzer/w262.nut:40:0
+
+foreach (_z in [])
+^----
+    print(x)
 
 
 WARNING: w262 (suspicious-formatting) Suspicious code formatting.

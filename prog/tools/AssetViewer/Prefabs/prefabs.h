@@ -24,52 +24,52 @@ class PrefabsPlugin : public IGenEditorPlugin, public INodeModifierClient, publi
 {
 public:
   PrefabsPlugin();
-  ~PrefabsPlugin();
+  ~PrefabsPlugin() override;
 
   // IGenEditorPlugin
-  virtual const char *getInternalName() const { return "prefabsEditor"; }
+  const char *getInternalName() const override { return "prefabsEditor"; }
 
-  virtual void registered();
-  virtual void unregistered();
+  void registered() override;
+  void unregistered() override;
 
-  virtual bool begin(DagorAsset *asset);
-  virtual bool end();
+  bool begin(DagorAsset *asset) override;
+  bool end() override;
 
-  virtual void clearObjects();
-  virtual void onSaveLibrary();
-  virtual void onLoadLibrary();
+  void clearObjects() override;
+  void onSaveLibrary() override;
+  void onLoadLibrary() override;
 
-  virtual bool getSelectionBox(BBox3 &box) const;
+  bool getSelectionBox(BBox3 &box) const override;
 
-  virtual void actObjects(float dt) {}
-  virtual void beforeRenderObjects() {}
-  virtual void renderObjects() {}
-  virtual void renderTransObjects();
-  virtual void renderGeometry(Stage stage);
+  void actObjects(float dt) override {}
+  void beforeRenderObjects() override {}
+  void renderObjects() override {}
+  void renderTransObjects() override;
+  void renderGeometry(Stage stage) override;
 
-  virtual bool supportAssetType(const DagorAsset &asset) const;
+  bool supportAssetType(const DagorAsset &asset) const override;
 
-  virtual void fillPropPanel(PropPanel::ContainerPropertyControl &panel);
-  virtual void postFillPropPanel() {}
+  void fillPropPanel(PropPanel::ContainerPropertyControl &panel) override;
+  void postFillPropPanel() override {}
 
   // IGenEventHandler
-  virtual void handleViewportPaint(IGenViewportWnd *wnd) {}
+  void handleViewportPaint(IGenViewportWnd *wnd) override {}
 
   // ControlEventHandler
-  virtual void onChange(int pid, PropPanel::ContainerPropertyControl *panel);
-  virtual void onClick(int pid, PropPanel::ContainerPropertyControl *panel);
+  void onChange(int pid, PropPanel::ContainerPropertyControl *panel) override;
+  void onClick(int pid, PropPanel::ContainerPropertyControl *panel) override;
 
   // INodeModifierClient
-  virtual void onNodeFlagsChanged(int node_idx, int or_flags, int and_flags);
-  virtual void onVisRangeChanged(int node_idx, real vis_range);
-  virtual void onLightingChanged(int node_idx, StaticGeometryNode::Lighting light);
-  virtual void onLtMulChanged(int node_idx, real lt_mul);
-  virtual void onVltMulChanged(int node_idx, int vlt_mul);
-  virtual void onLinkedResChanged(int node_idx, const char *res_name);
-  virtual void onTopLodChanged(int node_idx, const char *top_lod_name);
-  virtual void onLodRangeChanged(int node_idx, int lod_range);
-  virtual void onShowOccludersChanged(int node_idx, bool show_occluders);
-  virtual void onUseDefaultChanged(bool use_default) {}
+  void onNodeFlagsChanged(int node_idx, int or_flags, int and_flags) override;
+  void onVisRangeChanged(int node_idx, real vis_range) override;
+  void onLightingChanged(int node_idx, StaticGeometryNode::Lighting light) override;
+  void onLtMulChanged(int node_idx, real lt_mul) override;
+  void onVltMulChanged(int node_idx, int vlt_mul) override;
+  void onLinkedResChanged(int node_idx, const char *res_name) override;
+  void onTopLodChanged(int node_idx, const char *top_lod_name) override;
+  void onLodRangeChanged(int node_idx, int lod_range) override;
+  void onShowOccludersChanged(int node_idx, bool show_occluders) override;
+  void onUseDefaultChanged(bool use_default) override {}
 
 private:
   GeomObject *geom;

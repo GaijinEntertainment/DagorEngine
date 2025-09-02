@@ -1,6 +1,6 @@
 //{{NO_DEPENDENCIES}}
 // Microsoft Visual C++ generated include file.
-// Used by Dagor.rc
+// Used by dagor.rc
 //
 #define IDS_UTIL_CAT                      1
 #define IDS_UTIL_NAME                     2
@@ -63,6 +63,7 @@
 #define IDS_MatConvUtil_ROLL              57
 #define IDS_RBHelper                      58
 #define IDS_RBDUMMY_ROLL                  59
+#define IDS_IMPUTIL_ROLL                  60
 #define IDS_GET_NT_ERR                    61
 #define IDS_PUT_NT_ERR                    62
 #define IDS_NO_NTRK                       63
@@ -135,9 +136,12 @@
 #define IDS_PHYS_FILES                    114
 #define IDD_DAGORPAR_ENUM                 115
 #define IDS_SAVE_PHYS_TITLE               115
-#define IDD_DAGORPAR_RANGE                116
+#define IDS_OPEN_SCENE_TITLE              116
+#define IDD_DAGORPAR_BOOL                 116
 #define IDD_DIALOG1                       117
+#define IDS_IMPUTIL_PARAM_ROLL            117
 #define IDD_MatConvUtil                   118
+#define IDS_IMPUTIL_HELP_ROLL             118
 #define IDD_OBJECT_PROPERTIES_EDITOR      119
 #define IDD_RBDUMMY_PARAM                 120
 #define IDD_GENERATE_OBJECTS_ON_SURFACE   121
@@ -151,6 +155,21 @@
 #define IDD_DAGORPAR_COLOR                128
 #define IDS_DAGOR_IMPORT_IFACE            129
 #define IDD_DAGOR_LOG_WINDOW              130
+#define IDS_IMPUTIL_NAME                  130
+#define IDD_IMPORT                        133
+#define IDD_IMPUTIL_LEGACY                144
+#define IDD_IMPUTIL_STANDARD              145
+#define IDD_DIALOG2                       148
+#define IDD_IMPUTIL                       148
+#define IDD_DIALOG3                       150
+#define IDD_IMPUTIL_WILDCARD              150
+#define IDD_DIALOG4                       152
+#define IDD_IMPUTIL_REGEX                 152
+#define IDD_IMPUTIL_PARAM                 153
+#define IDD_DIALOG5                       154
+#define IDD_IMPUTIL_HELP                  155
+#define IDD_EXPOTHER                      156
+#define IDD_EXPANIM                       159
 #define OBJ_PROP_DLG_WIDTH                221
 #define IDC_LOCKID                        1000
 #define IDC_COPY_TO_CB                    1001
@@ -174,7 +193,6 @@
 #define IDC_CLSNAME                       1006
 #define IDC_EXPSEL                        1006
 #define IDC_FLARE_FAR_SIZE_SPIN           1006
-#define IDC_EXPANIM                       1007
 #define IDC_GET_NTRK                      1007
 #define IDC_FLARE_RANGE_SPIN              1007
 #define IDC_EXPORT2                       1007
@@ -232,13 +250,13 @@
 #define IDC_DONTCHKKEYS                   1025
 #define IDC_TCCOPY                        1026
 #define IDC_MAX2MAT                       1026
-#define IDC_DONT_REDUCE_POS               1026
+#define IDC_REDUCE_POS                    1026
 #define IDC_TCSWAP                        1027
-#define IDC_DONT_REDUCE_ROT               1027
 #define IDC_CONVERT_SPACES                1027
+#define IDC_REDUCE_ROT                    1027
 #define IDC_TCMOVE                        1028
-#define IDC_DONT_REDUCE_SCL               1028
 #define IDC_IMPORT_MS_ANIM                1028
+#define IDC_REDUCE_SCL                    1028
 #define IDC_GRASSTILE                     1029
 #define IDC_APPLYSELECTEDFACES            1029
 #define IDC_EXPORT_CAMERA2                1029
@@ -324,12 +342,8 @@
 #define IDC_SET_OUTPUTPATH                1078
 #define IDC_SELFACES                      1079
 #define IDC_PARAM_NEW                     1089
-#define IDC_PARAM_STATUS                  1090
-#define IDC_PARAM_STATUS1                 1090
 #define IDC_PARAM_NAME                    1091
 #define IDC_PAR_TEXT_VALUE                1096
-#define IDC_PAR_RANGE_VALUE               1101
-#define IDC_PAR_RANGE_SPINNER             1102
 #define IDC_PAR_REAL_VALUE                1106
 #define IDC_PAR_REAL_VALUE_SPINNER        1114
 #define IDC_PAR_COLOR_VALUE               1115
@@ -396,11 +410,53 @@
 #define IDC_SIMPLE_LIGHTMAP               1202
 #define IDC_SELECT_FLOOR                  1203
 #define IDC_EXPORT_INSTANCES              1204
-#define IDC_EXP_NO_VNORM                  1205
+#define IDC_EXP_VNORM                     1205
 #define IDC_EXPMATEROPT                   1206
 #define IDC_OPEN_LOG                      1207
 #define IDC_CLEAR_LOG                     1208
 #define IDC_EXPORT_MODE                   1209
+#define IDC_USE_LEGACY_IMPORT             1210
+#define IDC_IMPORT_LOD                    1211
+#define IDC_IMPORT_DP                     1213
+#define IDC_IMPORT_DMG                    1214
+#define IDC_IMPORT_DESTR                  1215
+#define IDC_REPLACE_EXISTING_LAYER        1217
+#define IDC_RENAME_NEW_LAYER              1218
+#define IDC_STATIC1                       1218
+#define IDC_STATIC2                       1219
+#define IDC_STATIC3                       1220
+#define IDC_STATIC4                       1221
+#define IDC_STATIC8                       1222
+#define IDC_STATIC5                       1223
+#define IDC_STATIC6                       1224
+#define IDC_TAB1                          1225
+#define IDC_IMPORT                        1227
+#define IDC_EDIT5                         1231
+#define IDC_PATH                          1231
+#define IDC_STATIC9                       1232
+#define IDC_SEPARATE_LAYERS               1233
+#define IDC_BUTTON1                       1234
+#define IDC_OPENDIR                       1234
+#define IDC_OPEN_DOC                      1234
+#define IDC_OPTIMIZE_MATERIAL_SLOTS       1236
+#define IDC_PRESERVE_SMOOTHING_GROUPS     1238
+#define IDC_IMPUTIL_WILDCARD_INCL         1238
+#define IDC_IMPUTIL_WILDCARD_EXCL         1239
+#define IDC_PATHLIST_INCL                 1239
+#define IDC_REIMPORT_EXISTING             1240
+#define IDC_PRESERVE_PATHS                1241
+#define IDC_PATHLIST_EXCL                 1241
+#define IDC_GROUP_INCL                    1242
+#define IDC_GROUP_EXCL                    1243
+#define IDC_PATHLIST_ADD_INCL             1244
+#define IDC_PATHLIST_DEL_INCL             1245
+#define IDC_PATHLIST_ADD_EXCL             1246
+#define IDC_PATHLIST_DEL_EXCL             1247
+#define IDC_SEARCH_IN_SUBFOLDERS          1248
+#define IDC_ENUM_2SIDED                   1251
+#define IDC_PARAM_START                   1252
+#define IDC_CHECK1                        1253
+#define IDC_PAR_BOOL_VALUE                1253
 #define IDC_TEX0                          2000
 #define IDC_TEX1                          2001
 #define IDS_DAGEXP_LONG                   2001
@@ -421,6 +477,7 @@
 #define IDC_TEX13                         2013
 #define IDC_TEX14                         2014
 #define IDC_TEX15                         2015
+#define IDC_TEX16                         2017
 #define IDC_TEXNAME0                      2100
 #define IDC_TEXNAME1                      2101
 #define IDC_TEXNAME2                      2102
@@ -456,9 +513,9 @@
 //
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE 131
+#define _APS_NEXT_RESOURCE_VALUE 158
 #define _APS_NEXT_COMMAND_VALUE  40014
-#define _APS_NEXT_CONTROL_VALUE  1210
+#define _APS_NEXT_CONTROL_VALUE  1254
 #define _APS_NEXT_SYMED_VALUE    101
 #endif
 #endif

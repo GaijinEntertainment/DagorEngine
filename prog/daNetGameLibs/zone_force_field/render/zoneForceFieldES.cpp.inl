@@ -77,19 +77,6 @@ static bool is_camera_outside_sphere_mesh(
   return camDistSq > trSq;
 }
 
-static float get_max_radius_error(float sphR, uint32_t slices /* count of meridians */, uint32_t stacks /* count of parallels + 1 */)
-{
-  // A good approximation of "error" by minimizing 'r' variable at is_camera_outside_sphere_mesh function.
-  // Using camAngleH = Pi/2, camAngleHTrunc = halfStackAngle, camAngleTrunc = halfSliceAngle.
-  float stackAngle = PI / stacks;
-  float halfStackAngle = stackAngle * 0.5f;
-  float sliceAngle = 2.0f * PI / slices;
-  float halfSliceAngle = sliceAngle * 0.5f;
-  float r = sphR * cos(halfSliceAngle) * cos(halfStackAngle);
-
-  return sphR - r;
-}
-
 ZoneForceFieldRenderer::~ZoneForceFieldRenderer()
 {
   shaders::overrides::destroy(zonesInState);
@@ -129,11 +116,11 @@ void ZoneForceFieldRenderer::fillBuffers()
     1.0f, SLICES, SLICES, sizeof(Point3), false, false, false, false);
 }
 
-dabfg::NodeHandle ZoneForceFieldRenderer::createRenderingNode(const char *rendering_shader_name, uint32_t render_target_fmt)
+dafg::NodeHandle ZoneForceFieldRenderer::createRenderingNode(const char *rendering_shader_name, uint32_t render_target_fmt)
 {
-  auto nodeNs = dabfg::root() / "transparent" / "middle";
-  return nodeNs.registerNode("zone_renderer", DABFG_PP_NODE_SRC,
-    [this, rendering_shader_name, render_target_fmt](dabfg::Registry registry) {
+  auto nodeNs = dafg::root() / "transparent" / "middle";
+  return nodeNs.registerNode("zone_renderer", DAFG_PP_NODE_SRC,
+    [this, rendering_shader_name, render_target_fmt](dafg::Registry registry) {
       if (
         !forceFieldShader.init(rendering_shader_name, forcefield_channels, countof(forcefield_channels), rendering_shader_name, true))
         logerr("Forcefield rendering shader initialization failed");
@@ -152,20 +139,20 @@ dabfg::NodeHandle ZoneForceFieldRenderer::createRenderingNode(const char *render
       }
 
       auto lowResFfHndl =
-        registry.create("low_res_forcefield", dabfg::History::No)
-          .texture(dabfg::Texture2dCreateInfo{render_target_fmt | TEXCF_RTARGET, registry.getResolution<2>("main_view", .5f), 1})
-          .atStage(dabfg::Stage::POST_RASTER)
-          .useAs(dabfg::Usage::COLOR_ATTACHMENT)
+        registry.create("low_res_forcefield", dafg::History::No)
+          .texture(dafg::Texture2dCreateInfo{render_target_fmt | TEXCF_RTARGET, registry.getResolution<2>("main_view", .5f), 1})
+          .atStage(dafg::Stage::POST_RASTER)
+          .useAs(dafg::Usage::COLOR_ATTACHMENT)
           .handle();
 
       // To do this through FG render passes, we need to support clears
-      eastl::optional<dabfg::VirtualResourceHandle<const Texture, true, false>> maybeDownsampledDepthHndl;
+      eastl::optional<dafg::VirtualResourceHandle<const Texture, true, false>> maybeDownsampledDepthHndl;
       if (!renderer_has_feature(FeatureRenderFlags::FORWARD_RENDERING))
       {
         maybeDownsampledDepthHndl = registry.read("downsampled_depth_with_early_after_envi_water")
                                       .texture()
-                                      .atStage(dabfg::Stage::PS)
-                                      .useAs(dabfg::Usage::DEPTH_ATTACHMENT)
+                                      .atStage(dafg::Stage::PS)
+                                      .useAs(dafg::Usage::DEPTH_ATTACHMENT)
                                       .handle();
       }
 
@@ -174,17 +161,14 @@ dabfg::NodeHandle ZoneForceFieldRenderer::createRenderingNode(const char *render
       {
         if (bilateral_upscale && renderer_has_feature(FeatureRenderFlags::FULL_DEFERRED))
         {
-          registry.read("checkerboard_depth")
-            .texture()
-            .atStage(dabfg::Stage::PS)
-            .bindToShaderVar("downsampled_checkerboard_depth_tex");
+          registry.read("checkerboard_depth").texture().atStage(dafg::Stage::PS).bindToShaderVar("downsampled_checkerboard_depth_tex");
           registry.read("checkerboard_depth_sampler")
             .blob<d3d::SamplerHandle>()
             .bindToShaderVar("downsampled_checkerboard_depth_tex_samplerstate");
         }
         else
         {
-          registry.read("far_downsampled_depth").texture().atStage(dabfg::Stage::PS).bindToShaderVar("downsampled_far_depth_tex");
+          registry.read("far_downsampled_depth").texture().atStage(dafg::Stage::PS).bindToShaderVar("downsampled_far_depth_tex");
           registry.read("far_downsampled_depth_sampler")
             .blob<d3d::SamplerHandle>()
             .bindToShaderVar("downsampled_far_depth_tex_samplerstate");
@@ -193,16 +177,16 @@ dabfg::NodeHandle ZoneForceFieldRenderer::createRenderingNode(const char *render
 
       registry.requestState().setFrameBlock("global_frame");
 
-      auto cameraHndl = registry.readBlob<CameraParams>("current_camera").handle();
-      auto occlusionHndl = registry.readBlob<Occlusion *>("current_occlusion").handle();
+      auto cameraHndl = use_camera_in_camera(registry);
 
-      return [this, cameraHndl, occlusionHndl, lowResFfHndl, maybeDownsampledDepthHndl]() {
+      return [this, cameraHndl, lowResFfHndl, maybeDownsampledDepthHndl]() {
         TextureInfo info;
         lowResFfHndl.ref().getinfo(info);
         texHt = info.h;
 
         // Gather them again, in order to apply occlusion.
-        gatherForceFields(cameraHndl.ref().viewItm, cameraHndl.ref().jitterFrustum, occlusionHndl.ref());
+        Occlusion *occlusion = cameraHndl.ref().jobsMgr->getOcclusion();
+        gatherForceFields(cameraHndl.ref().viewItm, cameraHndl.ref().jitterFrustum, occlusion);
 
         if (frameZones.empty())
           return;
@@ -232,12 +216,12 @@ dabfg::NodeHandle ZoneForceFieldRenderer::createRenderingNode(const char *render
     });
 }
 
-dabfg::NodeHandle ZoneForceFieldRenderer::createApplyingNode(const char *applying_shader_name,
+dafg::NodeHandle ZoneForceFieldRenderer::createApplyingNode(const char *applying_shader_name,
   const char *fullscreen_applying_shader_name)
 {
-  auto nodeNs = dabfg::root() / "transparent" / "middle";
-  return nodeNs.registerNode("zone_applier", DABFG_PP_NODE_SRC,
-    [this, applying_shader_name, fullscreen_applying_shader_name](dabfg::Registry registry) {
+  auto nodeNs = dafg::root() / "transparent" / "middle";
+  return nodeNs.registerNode("zone_applier", DAFG_PP_NODE_SRC,
+    [this, applying_shader_name, fullscreen_applying_shader_name](dafg::Registry registry) {
       // TODO: you are NOT supposed to init state within declaration callbacks.
       // It is better to stop storing this object inside the class and simply
       // store it inside the execution lambda's capture.
@@ -247,14 +231,14 @@ dabfg::NodeHandle ZoneForceFieldRenderer::createApplyingNode(const char *applyin
 
       forceFieldManyApplier.init(fullscreen_applying_shader_name);
 
-      render_transparency(registry);
+      request_common_transparent_state(registry);
 
-      registry.read("low_res_forcefield").texture().atStage(dabfg::Stage::PS).bindToShaderVar("low_res_forcefield");
+      registry.read("low_res_forcefield").texture().atStage(dafg::Stage::PS).bindToShaderVar("low_res_forcefield");
       {
         d3d::SamplerInfo smpInfo;
         smpInfo.filter_mode = bilateral_upscale && renderer_has_feature(FeatureRenderFlags::FULL_DEFERRED) ? d3d::FilterMode::Point
                                                                                                            : d3d::FilterMode::Linear;
-        registry.create("low_res_forcefield_sampler", dabfg::History::No)
+        registry.create("low_res_forcefield_sampler", dafg::History::No)
           .blob(d3d::request_sampler(smpInfo))
           .bindToShaderVar("low_res_forcefield_samplerstate");
       }
@@ -267,20 +251,20 @@ dabfg::NodeHandle ZoneForceFieldRenderer::createApplyingNode(const char *applyin
       // unknown usages.
       // We really need proper mobile RP handling in FG soon...
       if (renderer_has_feature(FeatureRenderFlags::FORWARD_RENDERING))
-        registry.read("low_res_forcefield").texture().atStage(dabfg::Stage::UNKNOWN).useAs(dabfg::Usage::UNKNOWN);
+        registry.read("low_res_forcefield").texture().atStage(dafg::Stage::UNKNOWN).useAs(dafg::Usage::UNKNOWN);
 
-      registry.read("upscale_sampling_tex").texture().atStage(dabfg::Stage::PS).bindToShaderVar("upscale_sampling_tex").optional();
+      registry.read("upscale_sampling_tex").texture().atStage(dafg::Stage::PS).bindToShaderVar("upscale_sampling_tex").optional();
 
       // Distortion is only used in some games
       registry.read("forcefield_distortion")
         .texture()
-        .atStage(dabfg::Stage::PS)
+        .atStage(dafg::Stage::PS)
         .bindToShaderVar("forcefield_distortion_res_tex")
         .optional();
       {
         d3d::SamplerInfo smpInfo;
         smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
-        registry.create("forcefield_distortion_sampler", dabfg::History::No)
+        registry.create("forcefield_distortion_sampler", dafg::History::No)
           .blob(d3d::request_sampler(smpInfo))
           .bindToShaderVar("forcefield_distortion_res_tex_samplerstate")
           .optional();
@@ -288,11 +272,13 @@ dabfg::NodeHandle ZoneForceFieldRenderer::createApplyingNode(const char *applyin
 
       registry.requestState().setFrameBlock("global_frame");
 
-      return [this]() {
+      return [this](const dafg::multiplexing::Index &multiplexing_index) {
         if (frameZones.empty())
           return;
 
         TIME_D3D_PROFILE(zone_force_field_apply);
+
+        const camera_in_camera::ApplyMasterState camcam{multiplexing_index};
 
         if (frameZones.size() == 1)
           applyOne(frameZones[0], frameZonesOut.size() == 1);
@@ -436,7 +422,7 @@ PartitionSphere ZoneForceFieldRenderer::getClosestForceField(const Point3 &camer
       partitionSphere.status = PartitionSphere::Status::CAMERA_INSIDE_SPHERE;
   }
 
-  partitionSphere.maxRadiusError = get_max_radius_error(partitionSphere.sphere.w, SLICES, SLICES);
+  partitionSphere.maxRadiusError = calc_sphere_max_radius_error(partitionSphere.sphere.w, SLICES, SLICES);
   return partitionSphere;
 }
 

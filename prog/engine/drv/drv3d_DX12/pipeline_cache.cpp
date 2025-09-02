@@ -58,7 +58,7 @@ enum CacheFileFlags
 };
 
 constexpr uint32_t CACHE_FILE_MAGIC = _MAKE4C('CX12');
-constexpr uint32_t CACHE_FILE_VERSION = 27;
+constexpr uint32_t CACHE_FILE_VERSION = 29;
 constexpr uint32_t EXPECTED_POINTER_SIZE = static_cast<uint32_t>(sizeof(void *));
 // Version history:
 // 1 - initial
@@ -90,6 +90,8 @@ constexpr uint32_t EXPECTED_POINTER_SIZE = static_cast<uint32_t>(sizeof(void *))
 // 25 - graphics root signature was using wrong type for combine masks
 // 26 - InputLayout data structure updated, fixed padding issues, reduced size, fixed issues with uninitialized bits
 // 27 - FramebufferLayout data structure updated, fixed padding issues, fixed issues with uninitialized bits
+// 28 - Dual source blending support
+// 29 - Stream output support
 } // namespace
 
 void PipelineCache::init(const SetupParameters &params)

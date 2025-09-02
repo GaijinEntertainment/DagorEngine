@@ -141,7 +141,7 @@ void decompress_dxt5(unsigned char *decompressedData, int lw, int lh, int row_pi
       {
         for (int i = 0; i < 4; i++)
         {
-          unsigned int Offset = (j)*row_pitch + (i)*4 + 3;
+          unsigned int Offset = (j)*row_pitch + (i) * 4 + 3;
           decompressedData[Offset] = alphas[bits & 0x07];
           bits >>= 3;
         }
@@ -152,7 +152,7 @@ void decompress_dxt5(unsigned char *decompressedData, int lw, int lh, int row_pi
       {
         for (int i = 0; i < 4; i++)
         {
-          unsigned int Offset = (j)*row_pitch + (i)*4 + 3;
+          unsigned int Offset = (j)*row_pitch + (i) * 4 + 3;
           decompressedData[Offset] = alphas[bits & 0x07];
           bits >>= 3;
         }

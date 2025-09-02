@@ -31,6 +31,7 @@
 DANETGAME_PHYS_ECS_EVENTS
 #undef PHYS_ECS_EVENT
 ECS_REGISTER_EVENT(CmdUpdateRemoteShadow)
+ECS_REGISTER_EVENT(CmdPrePhysUpdate)
 ECS_REGISTER_EVENT(CmdPostPhysUpdate)
 ECS_REGISTER_EVENT(CmdPostPhysUpdateRemoteShadow)
 ECS_REGISTER_EVENT(QueryPhysActorsNotCollidable);
@@ -285,6 +286,11 @@ void BasePhysActor::initNetPhysId(phys_eids_list_t &eidsList,
 void BasePhysActor::postPhysUpdate(int32_t tick, float dt, bool is_for_real)
 {
   g_entity_mgr->sendEventImmediate(eid, CmdPostPhysUpdate(tick, dt, is_for_real));
+}
+
+void BasePhysActor::prePhysUpdate(int32_t tick, float dt, bool is_for_real)
+{
+  g_entity_mgr->sendEventImmediate(eid, CmdPrePhysUpdate(tick, dt, is_for_real));
 }
 
 eastl::pair<float, float> phys_get_xpolation_times(int prev_tick, int last_tick, float timestep, float at_time)

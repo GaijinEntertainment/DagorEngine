@@ -28,7 +28,7 @@ bool register_value_binds(ValueBindMap &dst, const eastl::string &sys_name, cons
     int nameId = fxSysNameMap.addNameId(desc.name.c_str(), desc.name.length());
     if (DAGOR_LIKELY(nameId >= dst.size() || dst[nameId] == ValueBind{}))
     {
-      dst.resize(nameId + 1);
+      dst.resize(max<size_t>(dst.size(), nameId + 1));
       dst[nameId] = v;
     }
     else
@@ -69,6 +69,6 @@ void release_local_value_binds(Binds &dst, ValueBindId rid)
 
 bool register_global_value_binds(Binds &dst, const eastl::string &sys_name, const eastl::vector<ValueBindDesc> &binds)
 {
-  return register_value_binds(dst.globalValues, sys_name, binds, DAFX_GLOBAL_DATA_SIZE, true);
+  return register_value_binds(dst.globalValues, sys_name, binds, DAFX_GLOBAL_DATA_SIZE * sizeof(uint32_t), true);
 }
 } // namespace dafx

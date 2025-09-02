@@ -21,9 +21,8 @@ BeforeWindowDestroyedCookie *register_before_window_destroyed_callback(eastl::fu
 void unregister_before_window_destroyed_callback(BeforeWindowDestroyedCookie *cookie)
 {
   G_ASSERT(cookie);
-  auto node = reinterpret_cast<CallbackStorageT::iterator::node_type *>(cookie);
   WinAutoLock lock{mutex};
-  on_before_window_destroyed_callbacks.DoFreeNode(node);
+  on_before_window_destroyed_callbacks.erase(reinterpret_cast<CallbackStorageT::node_type *>(cookie));
 }
 } // namespace d3d
 

@@ -9,7 +9,7 @@ return {
   size = flex()
   valign = ALIGN_CENTER
   halign = ALIGN_CENTER
-  cursor = Cursor({ rendObj = ROBJ_IMAGE size = [32, 32] image = Picture("!ui/atlas#cursor.svg:{0}:{0}:K".subst(hdpx(32))) })
+  cursor = Cursor({ rendObj = ROBJ_IMAGE size = 32 image = Picture("!ui/atlas#cursor.svg:{0}:{0}:K".subst(hdpx(32))) })
   children = @() {
     valign  = ALIGN_CENTER
     halign  = ALIGN_CENTER

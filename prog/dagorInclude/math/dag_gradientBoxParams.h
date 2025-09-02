@@ -52,7 +52,7 @@ struct GradientBoxSampler
     return values.back().color;
   }
 
-  void load(const char *&ptr, int &len)
+  bool load(const char *&ptr, int &len)
   {
     int count = *(const int *)ptr;
     G_FAST_ASSERT(count <= MAX_POINTS);
@@ -72,5 +72,6 @@ struct GradientBoxSampler
     }
 
     len -= (sizeof(int) + sizeof(float)) * count;
+    return true;
   }
 };

@@ -1,7 +1,7 @@
 include "sky_shader_global.dshl"
 
 texture depth_ao_tex_to_blur;
-float depth_ao_texture_rcp_size;
+float depth_ao_texture_size_inv;
 int depth_above_blur_layer = 0;
 
 shader single_pass_blur11
@@ -47,7 +47,7 @@ shader single_pass_blur11
   (ps) {
     tex0@smpArray = depth_ao_tex_to_blur;
     blur_layer@i1 = depth_above_blur_layer;
-    ofs@f1 = (depth_ao_texture_rcp_size, 0, 0, 0);
+    ofs@f1 = (depth_ao_texture_size_inv, 0, 0, 0);
   }
 
   PS4_DEF_TARGET_FMT_UNORM16_ABGR()

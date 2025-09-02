@@ -36,12 +36,12 @@ static Point2 getCoords(const IPoint2 &point, const BBox2 &view_box, const Point
 // -----------------------------------------------
 
 
+static constexpr int CURVE_SENSITIVE = 5;
+static constexpr int CURVE_POINT_RAD = 3;
+static constexpr int CURVE_SCROLL_SPEED = 10;
+
 enum
 {
-  CURVE_SENSITIVE = 5,
-  CURVE_POINT_RAD = 3,
-  CURVE_SCROLL_SPEED = 10,
-
   DIALOG_ID_X = 1000,
   DIALOG_ID_Y,
 };

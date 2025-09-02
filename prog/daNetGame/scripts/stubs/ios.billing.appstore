@@ -3,9 +3,11 @@ return {
   startPurchaseAsync = @(_) null
   setSuspend = @(_) null
   setBillingUUID = @(_) null
-  restorePurchases = @() null
-  restorePurchasesForUUID = @(_) null
+  restorePurchases = @(_) null
+  restorePurchasesForUUID = @(_,__) null
   confirmPurchase = @(_) null
+  manageSubscription = @() null
+  refundPurchase = @(_) null
   AS_OK = 0
   AS_NOT_INITED = -1
   AS_CANT_BUY = 1

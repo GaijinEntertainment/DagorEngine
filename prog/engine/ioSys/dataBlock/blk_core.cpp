@@ -3,6 +3,7 @@
 #include "blk_shared.h"
 #include <math/integer/dag_IPoint2.h>
 #include <math/integer/dag_IPoint3.h>
+#include <math/integer/dag_IPoint4.h>
 #include <math/dag_Point3.h>
 #include <math/dag_Point4.h>
 #include <math/dag_TMatrix.h>
@@ -178,6 +179,21 @@ T DataBlock::getByNameId(int paramNameId, const T &def) const
   return get<T, rw>(id, def);
 }
 
+template <class To>
+static __forceinline To extend_to_larger_signed_type(int32_t f)
+{
+#if _TARGET_CPU_BE
+#error Big endian version of extend_to_larger_signed_type() is not implemented yet
+#endif
+  To ret;
+  if (DAGOR_LIKELY(f >= 0))
+    memset(&ret, 0, sizeof(ret));
+  else
+    memset(&ret, -1, sizeof(ret));
+  memcpy(&ret, &f, sizeof(f) < sizeof(To) ? sizeof(f) : sizeof(To));
+  return ret;
+}
+
 template <class T, bool rw>
 __forceinline T DataBlock::get(uint32_t param_idx, const T &def) const
 {
@@ -195,7 +211,7 @@ __forceinline T DataBlock::get(uint32_t param_idx, const T &def) const
         return memcpy_cast<T, int32_t>(v);
     }
     else if (TypeOf<T>::type == TYPE_INT64 && p.type == TYPE_INT)
-      return memcpy_cast<T, int64_t>(pv);
+      return extend_to_larger_signed_type<T>(int32_t(pv));
 #if DAGOR_DBGLEVEL > 0
     issue_error_bad_type_get(getNameId(), p.nameId, TypeOf<T>::type, p.type);
 #endif
@@ -371,49 +387,37 @@ int DataBlock::addByNameId(int name_id, const T &val)
   return insertParamAt<T>(paramCount(), uint32_t(name_id), val);
 }
 
-#define TYPE_FUNCTION_3(CppType, CRefType, ApiName)                        \
-  CppType DataBlock::get##ApiName(int pidx) const                          \
-  {                                                                        \
-    return uint32_t(pidx) < paramCount() ? get<CppType>(pidx) : CppType(); \
-  }                                                                        \
-  CppType DataBlock::get##ApiName(const char *name, CRefType def) const    \
-  {                                                                        \
-    return getByName<CppType>(name, def);                                  \
-  }                                                                        \
-  CppType DataBlock::get##ApiName(const char *name) const                  \
-  {                                                                        \
-    return getByName<CppType>(name);                                       \
-  }                                                                        \
-  CppType DataBlock::get##ApiName##ByNameId(int pnid, CRefType def) const  \
-  {                                                                        \
-    return getByNameId<CppType>(pnid, def);                                \
-  }                                                                        \
-  bool DataBlock::set##ApiName(int pidx, CRefType v)                       \
-  {                                                                        \
-    if (uint32_t(pidx) >= paramCount())                                    \
-      return false;                                                        \
-    toOwned();                                                             \
-    return set<CppType>(pidx, v);                                          \
-  }                                                                        \
-  int DataBlock::set##ApiName##ByNameId(int nid, CRefType v)               \
-  {                                                                        \
-    toOwned();                                                             \
-    return setByNameId<CppType, true>(nid, v);                             \
-  }                                                                        \
-  int DataBlock::set##ApiName(const char *name, CRefType v)                \
-  {                                                                        \
-    toOwned();                                                             \
-    return setByName<CppType>(name, v);                                    \
-  }                                                                        \
-  int DataBlock::add##ApiName(const char *name, CRefType v)                \
-  {                                                                        \
-    toOwned();                                                             \
-    return addByName<CppType>(name, v);                                    \
-  }                                                                        \
-  int DataBlock::addNew##ApiName##ByNameId(int nid, CRefType v)            \
-  {                                                                        \
-    toOwned();                                                             \
-    return addByNameId<CppType, true>(nid, v);                             \
+#define TYPE_FUNCTION_3(CppType, CRefType, ApiName)                                                                          \
+  CppType DataBlock::get##ApiName(int pidx) const { return uint32_t(pidx) < paramCount() ? get<CppType>(pidx) : CppType(); } \
+  CppType DataBlock::get##ApiName(const char *name, CRefType def) const { return getByName<CppType>(name, def); }            \
+  CppType DataBlock::get##ApiName(const char *name) const { return getByName<CppType>(name); }                               \
+  CppType DataBlock::get##ApiName##ByNameId(int pnid, CRefType def) const { return getByNameId<CppType>(pnid, def); }        \
+  bool DataBlock::set##ApiName(int pidx, CRefType v)                                                                         \
+  {                                                                                                                          \
+    if (uint32_t(pidx) >= paramCount())                                                                                      \
+      return false;                                                                                                          \
+    toOwned();                                                                                                               \
+    return set<CppType>(pidx, v);                                                                                            \
+  }                                                                                                                          \
+  int DataBlock::set##ApiName##ByNameId(int nid, CRefType v)                                                                 \
+  {                                                                                                                          \
+    toOwned();                                                                                                               \
+    return setByNameId<CppType, true>(nid, v);                                                                               \
+  }                                                                                                                          \
+  int DataBlock::set##ApiName(const char *name, CRefType v)                                                                  \
+  {                                                                                                                          \
+    toOwned();                                                                                                               \
+    return setByName<CppType>(name, v);                                                                                      \
+  }                                                                                                                          \
+  int DataBlock::add##ApiName(const char *name, CRefType v)                                                                  \
+  {                                                                                                                          \
+    toOwned();                                                                                                               \
+    return addByName<CppType>(name, v);                                                                                      \
+  }                                                                                                                          \
+  int DataBlock::addNew##ApiName##ByNameId(int nid, CRefType v)                                                              \
+  {                                                                                                                          \
+    toOwned();                                                                                                               \
+    return addByNameId<CppType, true>(nid, v);                                                                               \
   }
 
 #define TYPE_FUNCTION(CppType, ApiName)    TYPE_FUNCTION_3(CppType, CppType, ApiName)
@@ -429,6 +433,7 @@ TYPE_FUNCTION_CR(Point3, Point3)
 TYPE_FUNCTION_CR(Point4, Point4)
 TYPE_FUNCTION_CR(IPoint2, IPoint2)
 TYPE_FUNCTION_CR(IPoint3, IPoint3)
+TYPE_FUNCTION_CR(IPoint4, IPoint4)
 TYPE_FUNCTION_CR(TMatrix, Tm)
 #undef TYPE_FUNCTION
 #undef TYPE_FUNCTION_CR

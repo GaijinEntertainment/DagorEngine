@@ -7,6 +7,9 @@
 #include <stdint.h>
 #include <generic/dag_enumBitMask.h>
 
+// Legacy code only used in WT. In DNG was moved to scripts.
+// TODO: move to scripts, remove from cpp.
+
 namespace AnimV20
 {
 class AnimcharBaseComponent;

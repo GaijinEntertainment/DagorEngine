@@ -68,6 +68,8 @@ IPoint2 AntiAliasing::computeInputResolution(const IPoint2 &outputResolution)
 
   IPoint2 inputResolution(round(outputResolution.x * (upsamplingRatio / 100.0f)),
     round(outputResolution.y * (upsamplingRatio / 100.0f)));
+  inputResolution.x &= ~1;
+  inputResolution.y &= ~1;
 
   if (inputResolution.x < 32 || inputResolution.y < 32)
   {

@@ -9,92 +9,25 @@
 namespace dagor_random
 {
 
-#define DAGOR_RAND_MAX 32767
+#define DAGOR_RAND_MAX 65535
 
-__forceinline int _rnd(int &seed)
+__forceinline unsigned mutate_seed(int &seed)
 {
-  unsigned int a = ((unsigned)seed) * 0x41C64E6D + 0x3039;
+  unsigned int a = ((unsigned)seed) * 1103515245 + 12345;
   seed = (int)a;
-  return int((a >> 16) & DAGOR_RAND_MAX);
+  return a;
 }
 
-__forceinline float _frnd(int &s) { return float(_rnd(s)) / float(DAGOR_RAND_MAX + 1); }
-
-__forceinline float _srnd(int &s) { return float(_rnd(s) * 2 - (DAGOR_RAND_MAX + 1)) / float(DAGOR_RAND_MAX + 1); }
-
-__forceinline void _rnd_ivec(int &seed, int &x, int &y, int &z)
+__forceinline int _rnd(int &seed) { return mutate_seed(seed) >> 16; } // Returns [0, DAGOR_RAND_MAX]
+__forceinline float _frnd(int &s)                                     // Returns [0, 1.0)
 {
-  unsigned int a = ((unsigned)seed) * 0x41C64E6D + 0x3039, b, c;
-  b = a * 0x41C64E6D + 0x3039;
-  c = b * 0x41C64E6D + 0x3039;
-  z = int((a >> 16) & DAGOR_RAND_MAX);
-  y = int((b >> 16) & DAGOR_RAND_MAX);
-  x = int((c >> 16) & DAGOR_RAND_MAX);
-  seed = (int)c;
+  return __builtin_bit_cast(float, /*1.0*/ 0x3f800000 | (mutate_seed(s) >> 9)) - 1.f;
 }
-
-__forceinline void _rnd_fvec(int &seed, float &x, float &y, float &z)
-{
-  int ix, iy, iz;
-  _rnd_ivec(seed, ix, iy, iz);
-  x = float(ix) / float(DAGOR_RAND_MAX + 1);
-  y = float(iy) / float(DAGOR_RAND_MAX + 1);
-  z = float(iz) / float(DAGOR_RAND_MAX + 1);
-}
-
-__forceinline void _rnd_svec(int &seed, float &x, float &y, float &z)
-{
-  int ix, iy, iz;
-  _rnd_ivec(seed, ix, iy, iz);
-  x = float(ix * 2 - (DAGOR_RAND_MAX + 1)) / float(DAGOR_RAND_MAX + 1);
-  y = float(iy * 2 - (DAGOR_RAND_MAX + 1)) / float(DAGOR_RAND_MAX + 1);
-  z = float(iz * 2 - (DAGOR_RAND_MAX + 1)) / float(DAGOR_RAND_MAX + 1);
-}
-
-__forceinline void _skip_rnd_ivec4(int &seed)
-{
-  unsigned int a = ((unsigned)seed) * 0x41C64E6D + 0x3039, b, c, d;
-  b = (unsigned)a * 0x41C64E6D + 0x3039;
-  c = (unsigned)b * 0x41C64E6D + 0x3039;
-  d = (unsigned)c * 0x41C64E6D + 0x3039;
-  seed = (int)d;
-}
-
-__forceinline void _rnd_ivec4(int &seed, int &x, int &y, int &z, int &w)
-{
-  unsigned int a = ((unsigned)seed) * 0x41C64E6D + 0x3039, b, c, d;
-  b = a * 0x41C64E6D + 0x3039;
-  c = b * 0x41C64E6D + 0x3039;
-  d = c * 0x41C64E6D + 0x3039;
-  w = int((a >> 16) & DAGOR_RAND_MAX);
-  z = int((b >> 16) & DAGOR_RAND_MAX);
-  y = int((c >> 16) & DAGOR_RAND_MAX);
-  x = int((d >> 16) & DAGOR_RAND_MAX);
-  seed = (int)d;
-}
-
-__forceinline void _rnd_fvec4(int &seed, float &x, float &y, float &z, float &w)
-{
-  int ix, iy, iz, iw;
-  _rnd_ivec4(seed, ix, iy, iz, iw);
-  x = float(ix) / float(DAGOR_RAND_MAX + 1);
-  y = float(iy) / float(DAGOR_RAND_MAX + 1);
-  z = float(iz) / float(DAGOR_RAND_MAX + 1);
-  w = float(iw) / float(DAGOR_RAND_MAX + 1);
-}
-
-__forceinline void _rnd_svec4(int &seed, float &x, float &y, float &z, float &w)
-{
-  int ix, iy, iz, iw;
-  _rnd_ivec4(seed, ix, iy, iz, iw);
-  x = float(ix * 2 - (DAGOR_RAND_MAX + 1)) / float(DAGOR_RAND_MAX + 1);
-  y = float(iy * 2 - (DAGOR_RAND_MAX + 1)) / float(DAGOR_RAND_MAX + 1);
-  z = float(iz * 2 - (DAGOR_RAND_MAX + 1)) / float(DAGOR_RAND_MAX + 1);
-  w = float(iw * 2 - (DAGOR_RAND_MAX + 1)) / float(DAGOR_RAND_MAX + 1);
-}
-
-__forceinline float _rnd_float(int &seed, float a, float b) { return a + (b - a) * _frnd(seed); }
-__forceinline int _rnd_int(int &seed, int a, int b) { return a + (b - a + 1) * _rnd(seed) / (DAGOR_RAND_MAX + 1); }
+__forceinline float _srnd(int &s) { return _frnd(s) * 2.f - 1.f; } // Returns (-1.0, 1.0)
+__forceinline void _rnd_svec(int &seed, float &x, float &y, float &z) { x = _srnd(seed), y = _srnd(seed), z = _srnd(seed); }
+__forceinline float _rnd_float(int &seed, float a, float b) { return a + (b - a) * _frnd(seed); } // Returns [a, b)
+__forceinline int _rnd_range(int &seed, int a, int b) { return a + int((b - a) * _frnd(seed)); }  // Returns [a, b)
+__forceinline int _rnd_int(int &seed, int a, int b) { return _rnd_range(seed, a, b + 1); }        // Returns [a, b]
 
 //
 // Gaussian random number
@@ -109,7 +42,7 @@ __forceinline float _gauss_rnd(int &seed, int n = 0)
 {
   unsigned int a = ((unsigned)seed) * 0x41C64E6D + 0x3039;
   seed = (int)a;
-  unsigned x = (a >> 16) & DAGOR_RAND_MAX, t = x >> 7;
+  unsigned x = (a >> 16) & 0x7FFF, t = x >> 7;
   return _gauss_table[n][t].b + _gauss_table[n][t].k_div_128 * float(x & 0x7F);
 }
 

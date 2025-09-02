@@ -13,7 +13,7 @@
 #include <main/level.h>
 #include <daECS/core/coreEvents.h>
 #include <ecs/render/updateStageRender.h>
-#include <render/daBfg/ecs/frameGraphNode.h>
+#include <render/daFrameGraph/ecs/frameGraphNode.h>
 #include <drv/3d/dag_renderTarget.h>
 #include <drv/3d/dag_driver.h>
 #include <drv/3d/dag_info.h>
@@ -47,6 +47,7 @@ public:
     WaterEffects::Settings settings;
     settings.rtWidth = w;
     settings.rtHeight = h;
+    settings.maxRenderingResolution = get_max_possible_rendering_resolution();
     const DataBlock *graphicsBlk = ::dgs_get_settings()->getBlockByNameEx("graphics");
     settings.foamFxOn = (get_water_quality() >= 2) && graphicsBlk->getBool("useFoamFx", false); // FoamFx from high water quality
     settings.waterQuality = get_water_quality();
@@ -67,9 +68,12 @@ static void get_foam_params_ecs_query(Callable c);
 template <typename Callable>
 static void get_water_effects_ecs_query(ecs::EntityId, Callable c);
 
+static ecs::EntityId water_effects_eid = ecs::INVALID_ENTITY_ID;
+
 static void destroy_water_effects_entity()
 {
-  g_entity_mgr->destroyEntity(g_entity_mgr->getSingletonEntity(ECS_HASH("water_effects")));
+  g_entity_mgr->destroyEntity(water_effects_eid);
+  water_effects_eid = ecs::INVALID_ENTITY_ID;
 }
 
 FFTWater *get_water()
@@ -89,9 +93,9 @@ static void attempt_to_enable_water_effects_es(const ecs::Event &)
     destroy_water_effects_entity();
     return;
   }
-  if (g_entity_mgr->getSingletonEntity(ECS_HASH("water_effects")))
+  if (water_effects_eid != ecs::INVALID_ENTITY_ID && g_entity_mgr->doesEntityExist(water_effects_eid))
     return;
-  g_entity_mgr->createEntityAsync("water_effects");
+  water_effects_eid = g_entity_mgr->createEntityAsync("water_effects");
 }
 
 ECS_TAG(render)
@@ -122,39 +126,6 @@ static void update_water_effects_es(const UpdateStageInfoBeforeRender &evt, Wate
   });
 }
 
-static FoamFxParams prepare_foam_params(float foamfx__tile_uv_scale,
-  float foamfx__distortion_scale,
-  float foamfx__normal_scale,
-  float foamfx__pattern_gamma,
-  float foamfx__mask_gamma,
-  float foamfx__gradient_gamma,
-  float foamfx__underfoam_threshold,
-  float foamfx__overfoam_threshold,
-  float foamfx__underfoam_weight,
-  float foamfx__overfoam_weight,
-  const Point3 &foamfx__underfoam_color,
-  const Point3 &foamfx__overfoam_color,
-  float foamfx__reflectivity,
-  const ecs::string &foamfx__tile_tex,
-  const ecs::string &foamfx__gradient_tex)
-{
-  Point3 scale(foamfx__tile_uv_scale, foamfx__distortion_scale, foamfx__normal_scale);
-  Point3 gamma(foamfx__pattern_gamma, foamfx__mask_gamma, foamfx__gradient_gamma);
-  Point2 threshold(foamfx__underfoam_threshold, foamfx__overfoam_threshold);
-  Point2 weight(foamfx__underfoam_weight, foamfx__overfoam_weight);
-  FoamFxParams waterFoamFxParams;
-  waterFoamFxParams.scale = scale;
-  waterFoamFxParams.gamma = gamma;
-  waterFoamFxParams.threshold = threshold;
-  waterFoamFxParams.weight = weight;
-  waterFoamFxParams.underfoamColor = foamfx__underfoam_color;
-  waterFoamFxParams.overfoamColor = foamfx__overfoam_color;
-  waterFoamFxParams.reflectivity = foamfx__reflectivity;
-  waterFoamFxParams.tileTex = String(foamfx__tile_tex.c_str());
-  waterFoamFxParams.gradientTex = String(foamfx__gradient_tex.c_str());
-  return waterFoamFxParams;
-}
-
 ECS_TAG(render)
 static void set_up_foam_params_es(const SetResolutionEvent &evt, WaterEffects &water_effects)
 {
@@ -177,10 +148,10 @@ static void set_up_foam_params_es(const ecs::Event &, WaterEffects &water_effect
       float foamfx__overfoam_threshold, float foamfx__underfoam_weight, float foamfx__overfoam_weight,
       const Point3 &foamfx__underfoam_color, const Point3 &foamfx__overfoam_color, float foamfx__reflectivity,
       const ecs::string &foamfx__tile_tex, const ecs::string &foamfx__gradient_tex) {
-      FoamFxParams waterFoamFxParams = prepare_foam_params(foamfx__tile_uv_scale, foamfx__distortion_scale, foamfx__normal_scale,
+      FoamFxParams waterFoamFxParams = FoamFx::prepareParams(foamfx__tile_uv_scale, foamfx__distortion_scale, foamfx__normal_scale,
         foamfx__pattern_gamma, foamfx__mask_gamma, foamfx__gradient_gamma, foamfx__underfoam_threshold, foamfx__overfoam_threshold,
         foamfx__underfoam_weight, foamfx__overfoam_weight, foamfx__underfoam_color, foamfx__overfoam_color, foamfx__reflectivity,
-        foamfx__tile_tex, foamfx__gradient_tex);
+        String(foamfx__tile_tex.c_str()), String(foamfx__gradient_tex.c_str()));
       water_effects.setFoamFxParams(waterFoamFxParams);
     });
 }
@@ -189,8 +160,8 @@ ECS_TAG(render)
 ECS_ON_EVENT(on_appear)
 static void set_up_water_effect_nodes_es(const ecs::Event &,
   WaterEffects &water_effects,
-  dabfg::NodeHandle &water_effects__init_res_node,
-  dabfg::NodeHandle &water_effects__node)
+  dafg::NodeHandle &water_effects__init_res_node,
+  dafg::NodeHandle &water_effects__node)
 {
   water_effects__init_res_node = makeWaterEffectsPrepareNode();
   water_effects__node = makeWaterEffectsNode(water_effects);
@@ -229,10 +200,10 @@ static void water_foamfx_es(const ecs::Event &,
   const ecs::string &foamfx__tile_tex,
   const ecs::string &foamfx__gradient_tex)
 {
-  FoamFxParams waterFoamFxParams = prepare_foam_params(foamfx__tile_uv_scale, foamfx__distortion_scale, foamfx__normal_scale,
+  FoamFxParams waterFoamFxParams = FoamFx::prepareParams(foamfx__tile_uv_scale, foamfx__distortion_scale, foamfx__normal_scale,
     foamfx__pattern_gamma, foamfx__mask_gamma, foamfx__gradient_gamma, foamfx__underfoam_threshold, foamfx__overfoam_threshold,
     foamfx__underfoam_weight, foamfx__overfoam_weight, foamfx__underfoam_color, foamfx__overfoam_color, foamfx__reflectivity,
-    foamfx__tile_tex, foamfx__gradient_tex);
+    String(foamfx__tile_tex.c_str()), String(foamfx__gradient_tex.c_str()));
   get_water_effects_ecs_query(g_entity_mgr->getSingletonEntity(ECS_HASH("water_effects")),
     [&waterFoamFxParams](WaterEffects &water_effects) { water_effects.setFoamFxParams(waterFoamFxParams); });
 }
@@ -264,8 +235,9 @@ struct WwaterProjFxRenderHelper : public IWwaterProjFxRenderHelper
 {
   WwaterProjFxRenderHelper(WaterEffects *water_effects) : waterEffects(water_effects) {}
 
-  bool render_geometry()
+  bool render_geometry(float mipbias = 0.f)
   {
+    G_UNUSED(mipbias);
     if (waterEffects)
     {
       TIME_D3D_PROFILE(water_effects_foam);
@@ -312,7 +284,7 @@ WaterEffects::WaterEffects(const Settings &in_settings) : settings(in_settings)
         wakeSettings.foamTurboTexId != BAD_TEXTUREID && wakeSettings.foamTrailTexId != BAD_TEXTUREID)
     {
       shipWakeFx = eastl::make_unique<ShipWakeFx>(wakeSettings);
-      createWaterProjectedFx(settings.rtWidth, settings.rtHeight);
+      createWaterProjectedFx();
     }
     else
       unload_textures(wakeSettings);
@@ -341,12 +313,7 @@ void WaterEffects::renderInternalWaterProjFx()
   TMatrix4 view, proj;
   Point3 pos;
   if (waterProjectedFx && waterProjectedFx->getView(view, proj, pos))
-  {
-    STATE_GUARD(ShaderGlobal::set_texture(effects_depth_texVarId, VALUE), BAD_TEXTUREID,
-      ShaderGlobal::get_tex(effects_depth_texVarId));
-
     acesfx::renderTransWaterProj(view, proj, pos, getWaterProjectedFxLodBias());
-  }
 }
 
 WaterEffects::~WaterEffects()
@@ -363,7 +330,8 @@ void WaterEffects::update(
   if (!shipWakeFx)
     return;
 
-  float waterLevel = fft_water::get_height(&water, ::grs_cur_view.pos);
+  const Point3 &camPos = view_itm.getcol(3);
+  float waterLevel = fft_water::get_height(&water, camPos);
   waterProjectedFx->prepare(view_tm, view_itm, proj_tm, glob_tm, waterLevel, fft_water::get_significant_wave_height(&water),
     dagor_frame_no(), false);
 
@@ -427,12 +395,11 @@ void WaterEffects::render(FFTWater &water,
       if (is_under_water)
         shaders::overrides::set(flipCullStateId);
       fft_water::render(&water, inverse(view_tm).getcol(3), BAD_TEXTUREID, Frustum(TMatrix4(view_tm) * TMatrix4(proj_tm)), perps,
-        fft_water::GEOM_HIGH, -1, nullptr, fft_water::RenderMode::WATER_DEPTH_SHADER);
+        fft_water::GEOM_NORMAL, -1, nullptr, fft_water::RenderMode::WATER_DEPTH_SHADER);
       if (is_under_water)
         shaders::overrides::reset();
       if (isShipWakeFxActive)
         shipWakeFx->renderFoamMask();
-      foamFx->endMaskRender();
 
       foamFx->prepare(viewTm, projTm);
     }
@@ -441,28 +408,29 @@ void WaterEffects::render(FFTWater &water,
     d3d::clearview(CLEAR_TARGET, 0, 0, 0);
 
     if (usingFoamFx)
-    {
       foamFx->renderHeight();
-    }
+
     if (isShipWakeFxActive)
-    {
       shipWakeFx->render();
+
+    {
+      TIME_D3D_PROFILE(render_normals);
+      d3d::resource_barrier({heightMaskTex.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+      ShaderGlobal::set_texture(wfx_hmapVarId, heightMaskTex);
+
+      TextureInfo normalTexInfo;
+      normalsTex.getTex2D()->getinfo(normalTexInfo);
+      ShaderGlobal::set_color4(wfx_normal_pixel_sizeVarId, 1.0f / normalTexInfo.w, 1.0f / normalTexInfo.h, 0.0f, 0.0f);
+
+      d3d::set_render_target({}, DepthAccess::RW, {{normalsTex.getTex2D(), 0}});
+      d3d::clearview(CLEAR_DISCARD, 0, 0, 0);
+
+      d3d::set_render_target(normalsTex.getTex2D(), 0);
+      set_viewvecs_to_shader(view_tm, proj_tm);
+      normalsRender.render();
+
+      ShaderGlobal::setBlock(oldBlock, ShaderGlobal::LAYER_FRAME);
     }
-    d3d::resource_barrier({heightMaskTex.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
-    ShaderGlobal::set_texture(wfx_hmapVarId, heightMaskTex);
-
-    TextureInfo normalTexInfo;
-    normalsTex.getTex2D()->getinfo(normalTexInfo);
-    ShaderGlobal::set_color4(wfx_normal_pixel_sizeVarId, 1.0f / normalTexInfo.w, 1.0f / normalTexInfo.h, 0.0f, 0.0f);
-
-    d3d::set_render_target({}, DepthAccess::RW, {{normalsTex.getTex2D(), 0}});
-    d3d::clearview(CLEAR_DISCARD, 0, 0, 0);
-
-    d3d::set_render_target(normalsTex.getTex2D(), 0);
-    set_viewvecs_to_shader(view_tm, proj_tm);
-    normalsRender.render();
-
-    ShaderGlobal::setBlock(oldBlock, ShaderGlobal::LAYER_FRAME);
   }
 }
 
@@ -505,12 +473,12 @@ IPoint2 WaterEffects::calcWaterProjectedFxResolution(IPoint2 target_res) const
   return IPoint2(target_res.x / texDiv, target_res.y / texDiv);
 }
 
-void WaterEffects::createWaterProjectedFx(int targetWidth, int targetHeight)
+void WaterEffects::createWaterProjectedFx()
 {
   if (waterProjectedFx)
     return;
 
-  projFxResolution = calcWaterProjectedFxResolution({targetWidth, targetHeight});
+  projFxResolution = calcWaterProjectedFxResolution(settings.maxRenderingResolution);
 
   uint32_t diffuseTexFormat = 0;
   // some Adreno drivers fail to properly load src color
@@ -524,6 +492,15 @@ void WaterEffects::createWaterProjectedFx(int targetWidth, int targetHeight)
   WaterProjectedFx::TargetDesc targetDesc = {diffuseTexFormat, SimpleString("projected_on_water_effects_tex"), 0xFF000000};
   waterProjectedFx = eastl::make_unique<WaterProjectedFx>(projFxResolution.x, projFxResolution.y,
     dag::Span<WaterProjectedFx::TargetDesc>(&targetDesc, 1), nullptr);
+
+  setProjFxResolution();
+}
+
+void WaterEffects::setProjFxResolution()
+{
+  projFxResolution = calcWaterProjectedFxResolution(IPoint2(settings.rtWidth, settings.rtHeight));
+  if (waterProjectedFx)
+    waterProjectedFx->setResolution(projFxResolution.x, projFxResolution.y);
 }
 
 void WaterEffects::clearWaterProjectedFx()
@@ -555,11 +532,17 @@ void WaterEffects::setResolution(uint32_t rtWidth, uint32_t rtHeight, float lodB
   settings.rtHeight = rtHeight;
   settings.lodBias = lodBias;
 
-  if (waterProjectedFx)
+  IPoint2 maxRes = get_max_possible_rendering_resolution();
+  bool hasBeenChangedMaxRes = settings.maxRenderingResolution != maxRes;
+  settings.maxRenderingResolution = maxRes;
+
+  if (waterProjectedFx && hasBeenChangedMaxRes)
   {
     clearWaterProjectedFx();
-    createWaterProjectedFx(settings.rtWidth, settings.rtHeight);
+    createWaterProjectedFx();
   }
+  else
+    setProjFxResolution();
 
   if (foamFx)
   {
@@ -596,7 +579,7 @@ void WaterEffects::effectsResolutionChanged()
   if (waterProjectedFx)
   {
     clearWaterProjectedFx();
-    createWaterProjectedFx(settings.rtWidth, settings.rtHeight);
+    createWaterProjectedFx();
   }
 }
 

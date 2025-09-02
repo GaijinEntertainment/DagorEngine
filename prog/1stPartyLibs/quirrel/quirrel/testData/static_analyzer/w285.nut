@@ -1,8 +1,8 @@
- if (__name__ == "__analysis__")
-   return
+if (__name__ == "__analysis__")
+  return
 
- //-file:undefined-global
- //-file:declared-never-used
+//-file:undefined-global
+//-file:declared-never-used
 
 
 local uu = ::sys.gh("fff") ?? ""

@@ -4,6 +4,7 @@
 #include <EASTL/functional.h>
 #include <EASTL/unique_ptr.h>
 #include <dag/dag_vector.h>
+#include <math/dag_e3dColor.h>
 
 class IWndManager;
 class IWndManagerEventHandler;
@@ -18,11 +19,14 @@ public:
   explicit EditorMainWindow(IWndManagerEventHandler &event_handler);
 
   // file_drop_handler: if it is set then the main window will accept drag and dropped files from Windows.
-  void run(const char *caption, const char *icon, FileDropHandler file_drop_handler = nullptr);
+  // bg_color: background color of the window (can be seen before d3d starts drawing)
+  void run(const char *caption, const char *icon, FileDropHandler file_drop_handler = nullptr,
+    E3DCOLOR bg_color = E3DCOLOR(229, 229, 229));
 
   intptr_t windowProc(void *h_wnd, unsigned msg, void *w_param, void *l_param);
 
 private:
+  IWndManager *createWindowManager();
   void onMainWindowCreated();
   void onClose();
   void close();

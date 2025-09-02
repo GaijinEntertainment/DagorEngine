@@ -1,0 +1,67 @@
+include "shader_global.dshl"
+include "gbuffer.dshl"
+include "viewVecVS.dshl"
+include "bvh_common_includes.dshl"
+
+texture dlss_normal_roughness;
+texture dlss_specular_albedo;
+
+shader prepare_ray_reconstruction
+{
+  hlsl {
+    #define DISABLE_TOONSHADING 1
+    }
+  ENABLE_ASSERT(cs)
+  USE_EMISSION_DECODE_COLOR_MAP_STUB(cs)
+
+  INIT_LOAD_GBUFFER_BASE(cs)
+  USE_LOAD_GBUFFER_BASE(cs, false)
+
+  VIEW_VEC_OPTIMIZED(cs)
+
+  (cs) {
+    normalRoughness@uav = dlss_normal_roughness hlsl { RWTexture2D<float4> normalRoughness@uav; }
+    specularAlbedo@uav = dlss_specular_albedo hlsl { RWTexture2D<float3> specularAlbedo@uav; }
+    outputResolution@i2 = get_dimensions(dlss_normal_roughness, 0);
+    outputInvResolution@f2 = 1/get_dimensions(dlss_normal_roughness, 0);
+  }
+
+  hlsl (cs)
+  {
+    float3 EnvBRDFApprox2(float3 SpecularColor, float ggx_alpha, float NoV)
+    {
+      NoV = abs(NoV);
+      // [Ray Tracing Gems, Chapter 32]
+      float4 X;
+      X.x = 1.f;
+      X.y = NoV;
+      X.z = NoV * NoV;
+      X.w = NoV * X.z;
+      float4 Y;
+      Y.x = 1.f;
+      Y.y = ggx_alpha;
+      Y.z = ggx_alpha * ggx_alpha;
+      Y.w = ggx_alpha * Y.z;
+      float2x2 M1 = float2x2(0.99044f, -1.28514f, 1.29678f, -0.755907f);
+      float3x3 M2 = float3x3(1.f, 2.92338f, 59.4188f, 20.3225f, -27.0302f, 222.592f, 121.563f, 626.13f, 316.627f);
+      float2x2 M3 = float2x2(0.0365463f, 3.32707, 9.0632f, -9.04756);
+      float3x3 M4 = float3x3(1.f, 3.59685f, -1.36772f, 9.04401f, -16.3174f, 9.22949f, 5.56589f, 19.7886f, -20.2123f);
+      float bias = dot(mul(M1, X.xy), Y.xy) * rcp(dot(mul(M2, X.xyw), Y.xyw));
+      float scale = dot(mul(M3, X.xy), Y.xy) * rcp(dot(mul(M4, X.xzw), Y.xyw));
+      return SpecularColor * scale + bias;
+    }
+
+    [numthreads(16, 16, 1)]
+    void main(uint2 dtId : SV_DispatchThreadID) {
+      if (any(dtId >= outputResolution))
+        return;
+
+      ProcessedGbuffer gbuffer = processGbuffer(unpackGbuffer(loadPackedGbuffer(dtId)));
+      normalRoughness[dtId] = float4(gbuffer.normal, gbuffer.linearRoughness);
+      const float NoV = dot(gbuffer.normal, -normalize(getViewVecOptimized((dtId+0.5)*outputInvResolution)));
+      specularAlbedo[dtId] = EnvBRDFApprox2(gbuffer.specularColor, max(1e-4, gbuffer.linearRoughness * gbuffer.linearRoughness), NoV);
+    }
+  }
+
+  compile("target_cs", "main");
+}

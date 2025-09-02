@@ -14,7 +14,7 @@ public:
   int flags;
 
   LightObject(D3dLight *l = NULL);
-  ~LightObject();
-  int classid();
-  bool isSubOf(unsigned);
+  ~LightObject() override;
+  int classid() override;
+  bool isSubOf(unsigned) override;
 };

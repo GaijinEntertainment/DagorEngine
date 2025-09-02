@@ -234,8 +234,8 @@ namespace das {
             return TypeDecl::gcFlag_heap | TypeDecl::gcFlag_stringHeap;
         }
         virtual void walk(DataWalker & walker, void * data) override {
-            bool gResolve = daScriptEnvironment::bound->g_resolve_annotations;
-            daScriptEnvironment::bound->g_resolve_annotations = false;
+            bool gResolve = (*daScriptEnvironment::bound)->g_resolve_annotations;
+            (*daScriptEnvironment::bound)->g_resolve_annotations = false;
             BasicStructureAnnotation::walk(walker, data);
             Channel * ch = (Channel *) data;
             if ( !ch->isValid() ) {
@@ -245,7 +245,7 @@ namespace das {
                     walker.walk((char *)&data, ti);
                 });
             }
-            daScriptEnvironment::bound->g_resolve_annotations = gResolve;
+            (*daScriptEnvironment::bound)->g_resolve_annotations = gResolve;
         }
     };
 
@@ -304,8 +304,8 @@ namespace das {
             return TypeDecl::gcFlag_heap | TypeDecl::gcFlag_stringHeap;
         }
         virtual void walk(DataWalker & walker, void * data) override {
-            bool gResolve = daScriptEnvironment::bound->g_resolve_annotations;
-            daScriptEnvironment::bound->g_resolve_annotations = false;
+            bool gResolve = (*daScriptEnvironment::bound)->g_resolve_annotations;
+            (*daScriptEnvironment::bound)->g_resolve_annotations = false;
             BasicStructureAnnotation::walk(walker, data);
             LockBox * ch = (LockBox *) data;
             if ( !ch->isValid() ) {
@@ -315,7 +315,7 @@ namespace das {
                     walker.walk((char *)&data, ti);
                 });
             }
-            daScriptEnvironment::bound->g_resolve_annotations = gResolve;
+            (*daScriptEnvironment::bound)->g_resolve_annotations = gResolve;
         }
     };
 
@@ -355,9 +355,9 @@ namespace das {
         ptr += 16;
         das_invoke_function<void>::invoke(forkContext.get(), lineinfo, fn, ptr, lambda.capture);
         das_delete<Lambda>::clear(context, lambda);
-        auto bound = daScriptEnvironment::bound;
+        auto bound = *daScriptEnvironment::bound;
         g_jobQue->push([=]() mutable {
-            daScriptEnvironment::bound = bound;
+            *daScriptEnvironment::bound = bound;
             Lambda flambda(ptr);
             das_invoke_lambda<void>::invoke(forkContext.get(), lineinfo, flambda);
             das_delete<Lambda>::clear(forkContext.get(), flambda);
@@ -382,13 +382,14 @@ namespace das {
         das_invoke_function<void>::invoke(forkContext.get(), lineinfo, fn, ptr, lambda.capture);
         das_delete<Lambda>::clear(context, lambda);
         g_jobQueTotalThreads ++;
-        auto bound = daScriptEnvironment::bound;
+        auto bound = *daScriptEnvironment::bound;
         thread([=]() mutable {
-            daScriptEnvironment::bound = bound;
+            *daScriptEnvironment::bound = bound;
             Lambda flambda(ptr);
             das_invoke_lambda<void>::invoke(forkContext.get(), lineinfo, flambda);
             das_delete<Lambda>::clear(forkContext.get(), flambda);
             g_jobQueTotalThreads --;
+            shutdownThreadLocalDebugAgent();
         }).detach();
     }
 
@@ -412,13 +413,14 @@ namespace das {
         debugger_started.store(true);
         shared_ptr<Context> forkContext;
         forkContext.reset(get_clone_context(context, uint32_t(ContextCategory::thread_clone)));
-        auto bound = daScriptEnvironment::bound;
+        auto bound = *daScriptEnvironment::bound;
         thread([=]() mutable {
-            daScriptEnvironment::bound = bound;
+            *daScriptEnvironment::bound = bound;
             das_invoke<void>::invoke(forkContext.get(), lineinfo, lambda);
             forkContext.reset();
             stop_debugger();
             stop_requested = false;
+            shutdownThreadLocalDebugAgent();
         }).detach();
     }
 

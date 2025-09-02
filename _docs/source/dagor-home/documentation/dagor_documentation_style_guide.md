@@ -37,35 +37,49 @@ other languages.
 
 ## Word List
 
-**3ds Max**
+3ds Max
 : Always capitalize *Max*.
 
-**add-on (noun or adjective), add on (verb)**
+add-on vs. add on
 : Not *addon*.
 
-**Asset Viewer**
+  Use *add-on* as a noun or adjective.
+
+  {octicon}`check;1.4em` The game includes a new add-on for additional levels.
+
+  Use *add on* as a verb.
+
+  {octicon}`check;1.4em` The developer plans to add on more content next update.
+
+Asset Viewer
 : Capitalize each word.
 
-**assetViewer{}**
-
-**Blender**
+Blender
 : Always capitalize.
 
-**BLK format**
+BLK format
 : When referring to a format in general.
 
-**`.blk` files**
+`.blk` files
 : When referring to specific files with the BLK format. File extensions are
   formatted with a [code font](#code-font).
 
-**Building Resources**
-: Use *Building Resources* when referring to the title or heading, and *resource
-  building process* (or similar) when describing the act of compiling resources.
+Building Resources
+: Use *Building Resources* when referring to the title or heading.
 
-**button**
-: You *click* on-screen buttons and mouse buttons, and *press* keys on the keyboard.
+  Use *resource building process* (or similar) when describing the act of
+  compiling resources.
 
-**checkbox**
+button
+: You *click* on-screen buttons and mouse buttons, and *press* keys on the
+  keyboard.
+
+changelog
+: Not *changeLog* or *ChangeLog*.
+
+  Lowercase except at the beginning of a sentence, heading, or list item.
+
+checkbox
 : Use *check*/*uncheck* for clear and specific checkbox actions.
 
   {octicon}`check;1.4em` Check the **Enable Ray Tracing** box to activate
@@ -83,111 +97,188 @@ lighting changes during gameplay.
 "enable the box" mean? Does it turn on the feature or just make the checkbox
 switchable?)
 
-**daBuild**
+D3D, Direct3D, DirectX
+: Always capitalize.
 
-**daEditor**
+daBuild
+: Retain the exact casing as defined by the development team. If possible,
+  revise the sentence to avoid starting with a lowercase
+  [product name](dagor_documentation_style_guide.md#product-names).
 
-**Dagor Engine**
+daEditor, daEditorX
+: Retain the exact casing as defined by the development team. If possible,
+  revise the sentence to avoid starting with a lowercase
+  [product name](dagor_documentation_style_guide.md#product-names).
+
+daGI
+: Expand the abbreviation on first mention: Dagor Global Illumination (daGI).
+
+Dagor Engine
 : Capitalize each word.
 
-**daNetGame**
+daNetGame
+: Retain the exact casing as defined by the development team. If possible,
+  revise the sentence to avoid starting with a lowercase
+  [product name](dagor_documentation_style_guide.md#product-names).
 
-**daNetGame-based, daNetGame-like**
+daNetGame-based, daNetGame-like
+: Not *daNetGame based* or *daNetGame like*.
 
-**dynmodel**
+daRG
+: Expand the abbreviation on first mention: Dagor Reactive GUI (daRG).
+
+dynmodel
 : Lowercase except at the beginning of a sentence, heading, or list item.
 
-**ECS**
-: All caps. Expand the abbreviation on first mention.
+ECS
+: All caps. Expand the abbreviation on first mention: Entity-Component-System
+  (ECS). When expanded, capitalize each word and hyphenate to form a compound
+  noun.
 
-**FAR**
+FAR
 : All caps.
 
-**gameobj**
+gameobj
 : Lowercase except at the beginning of a sentence, heading, or list item.
 
-**ID**
+ID
 : Not *Id* or *id*, except in string literals or enums.
 
-**Impostor Baker**
+Impostor Baker
 : Capitalize each word.
 
-**in-game (adjective)**
-: Not *in game*.
+in-game vs. in game
+: Not *ingame*.
 
-**internet**
+  Use *in-game* as an adjective.
+
+  {octicon}`check;1.4em` View your in-game settings.
+
+  Use *in game* only when *in* is a preposition followed by the noun *game*.
+
+  {octicon}`check;1.4em` That feature isn't available in game.
+
+internet
 : Lowercase except at the beginning of a sentence, heading, or list item.
 
-**LOD, LODs**
-: All caps. Expand the abbreviation on first mention.
+LOD, LODs
+: All caps. Expand the abbreviation on first mention: Level of Detail (LOD).
 
-**login (noun or adjective), log in (verb)**
+login vs. log in
 : Not *log-in*.
 
-**microdetails**
-: Not *micro-details*. Lowercase except at the beginning of a sentence, heading,
-  or list item.
+  Use *login* as a noun or adjective.
 
-**parent-child or parent/child**
+  {octicon}`check;1.4em` Enter your login credentials.
+
+  Use *log in* as a verb.
+
+  {octicon}`check;1.4em` You need to log in to view your achievements.
+
+microdetails
+: Not *micro-details*.
+
+  Lowercase except at the beginning of a sentence, heading, or list item.
+
+parent-child or parent/child
 : Not *parent – child* or *parent—child*.
 
-**per**
+per
 : To express a rate, use *per* instead of the division slash (`/`).
 
-**please**
+please
 : Do not use *please* in the normal course of explaining how to use a product.
 
   Use *please* only when you're asking for permission or forgiveness. For
   example, when what you're asking for inconveniences a reader, or suggests a
   potential issue with a product.
 
-**plugin (noun), plug-in (adjective), plug in (verb)**
+plugin vs. plug-in vs. plug in
+: Use *plugin* as a noun.
 
-**pop-up window**, **pop-up menu**,
+  {octicon}`check;1.4em` This audio plugin improves spatial sound processing.
+
+  Use *plug-in* as an adjective.
+
+  {octicon}`check;1.4em` Enable the plug-in module for particle effects.
+
+  Use *plug in* as a verb.
+
+  {octicon}`check;1.4em` Please plug in the VR headset to continue.
+
+pop-up window, pop-up menu
 : Use *pop-up window* to describe a window that appears over the main interface
   to provide additional information, request input, or display notifications.
 
   Use *pop-up menu* to describe the menu that appears when a user right-clicks
   an item.
 
-**prebuilt**
+prebuilt
 : Not *pre-built*.
 
-**prefab**
+prefab
 : Lowercase except at the beginning of a sentence, heading, or list item.
 
-**read-only**
+read-only
 : Not *read only*.
 
-**rendinst**
+real-time vs. real time
+: Use *real-time* with a hyphen when used as an adjective:
+
+  {octicon}`check;1.4em` real-time updates, real-time communication
+
+  Use *real time* without a hyphen when used as a noun.
+
+  {octicon}`check;1.4em` The system operates in real time.
+
+rendinst
 : Lowercase except at the beginning of a sentence, heading, or list item.
 
-**screenshot**
+riExtra
+: Lowercase except at the beginning of a sentence, heading, or list item. Always
+  capitalize *Extra*.
+
+screenshot
 : Not *screen shot*.
 
-**sign-in (noun or adjective), sign in (verb)**
+sign-in vs. sign in
+: Use *sign-in* as a noun or adjective.
 
-**sign-out (noun or adjective), sign out (verb)**
+  {octicon}`check;1.4em` The sign-in process includes two-factor authentication.
 
-**subdirectory**
+  Use *sign in* as a verb.
+
+  {octicon}`check;1.4em` Players must sign in with their account before
+  accessing online services.
+
+sign-out vs. sign out
+: Use *sign-out* as a noun or adjective.
+
+  {octicon}`check;1.4em` The sign-out option is in the settings menu.
+
+  Use *sign out* as a verb.
+
+  {octicon}`check;1.4em` The game automatically signs out inactive users.
+
+subdirectory
 : Not *sub-directory*.
 
-**toolkit**
+toolkit
 : Not *tool-kit* or *tool kit*.
 
-**utilize**
+utilize
 : Do not use *utilize* when you mean *use*.
 
   Use *utilize* or *utilization* when referring to the quantity of a resource
   being used.
 
-**vromfs**
+vromfs
 : Lowercase except at the beginning of a sentence, heading, or list item.
 
-**War Thunder**
+War Thunder
 : Capitalize each word.
 
-**War Thunder-based, War Thunder-like**
+War Thunder-based, War Thunder-like
 : Not *WarThunder-based* or *War-Thunder-based*.
 
 ## Product Names
@@ -214,7 +305,7 @@ This section describes how to use product names.
 
   ```{seealso}
   For more information, see
-  [Use *The*](#use-the).
+  [Use *The*](#using-the).
   ```
 
 ## Text Formatting
@@ -323,14 +414,14 @@ the following:
   uses camel case.
 
   ```{seealso}
-  For information on how to capitalize specific words, see
+  For information about how to capitalize specific words, see
   [Word List](#word-list).
   ```
 
-#### Capitalize Product Names
+#### Capitalization of Product Names
 
 ```{seealso}
-For more information on how to capitalize product names, see
+For more information about how to capitalize product names, see
 [Product Names](#product-names).
 ```
 
@@ -347,8 +438,8 @@ For more information on how to capitalize product names, see
 
 - When referencing any title or heading from a document that follows this guide,
   use **title case**.
-- For titles or headings from works or sources that do not follow this guide,
-  retain the original capitalization.
+- For titles or headings from sources that do not follow this guide, retain the
+  original capitalization.
 
 #### Capitalization for Figures and Tables
 
@@ -508,9 +599,9 @@ and output.
 
   {octicon}`check;1.4em` Level of Detail (LOD)
 
-  {octicon}`check;1.4em` Graphical User Interface (GUI)
+  {octicon}`check;1.4em` Artificial Intelligence (AI)
 
-  {octicon}`check;1.4em` eXtensible Markup Language (XML)
+  {octicon}`check;1.4em` Game Engine Architecture (GEA)
 
 #### Commonly Accepted Abbreviations
 
@@ -518,16 +609,16 @@ The following abbreviations are widely recognized and generally do not need to
 be spelled out:
 
 - API
-- LOD
+- CPU, GPU, RAM
 - FPS
 - File formats such as PNG, JPEG, or OBJ
+- GUI, UI
 - Units of measurement like MB, GB, or TB
 - URL
-- GPU, CPU, RAM
 
 ### Articles
 
-#### Use *The*
+#### Using *The*
 
 Using *the* with product names in documentation depends on whether the product
 name is treated as a proper noun or a general noun phrase.
@@ -573,5 +664,469 @@ name is treated as a proper noun or a general noun phrase.
 
   {octicon}`check;1.4em` Features include GPU-driven rendering, multi-threaded
   processing, and terrain optimization.
+
+#### Omitting Articles in Headings and Titles
+
+It is acceptable to omit articles (such as *a*, *an*, and *the*) in headings and
+titles for brevity and clarity. This helps maintain a clean and concise
+presentation of content, especially when space is limited or when the title
+needs to be more direct.
+
+## Linking
+
+### Cross-references
+
+Cross-references are typically used to link to nonessential information that
+enhances the reader's understanding. Whenever possible, provide contextual help
+rather than redirecting the reader elsewhere.
+
+Follow these guidelines when creating cross-references to other documents:
+
+- When referring to a document that adheres to this style guide, place the
+  reference in a separate paragraph using the documentation builder tools. If
+  you are referencing the same document from multiple locations within the
+  original document, it is acceptable to insert the link directly within the
+  text, without placing it in a separate paragraph.
+
+- When referencing third-party tools or products, linking to the relevant site
+  is acceptable. Ensure that any linked site is reputable, reliable, and of high
+  quality.
+
+- Do not link to content that is behind a paywall or otherwise restricted. All
+  linked materials must be freely accessible to the reader, with no additional
+  access requirements.
+
+### Formatting Cross-references
+
+- Introduce the link with the phrase *For more information, see* or *For more
+  information about..., see*.
+
+- Use *see* and *about* instead of *read* and *on* when referencing links and
+  cross-references.
+
+  {octicon}`check;1.4em` Recommended:
+
+  ```{seealso}
+  For more information about how to set up and start developing with the Dagor
+  Engine, see
+  [Getting Started with Dagor](../../getting-started/index.rst).
+  ```
+
+  {octicon}`x;1.4em` For more information on assets, read
+  [Introduction to Assets](../../assets/about-assets/about_assets.md).
+
+  {octicon}`x;1.4em` See this
+  [article](../documentation/dagor_documentation_style_guide.md).
+
+  {octicon}`x;1.4em` Click
+  [here](../documentation/dagor_documentation_style_guide.md).
+
+- When referencing a document title or heading from a document that follows this
+  guide, use the full document title in **title case**.
+
+  {octicon}`check;1.4em` Recommended:
+
+  ```{seealso}
+  For more information, see
+  [Capitalization in References to Titles and Headings](#capitalization-in-references-to-titles-and-headings).
+  ```
+
+- If the link points to a downloadable file, clarify this in the link text and
+  specify the file type and size if the file is large.
+
+  {octicon}`check;1.4em` Recommended:
+
+  ```{seealso}
+  For more information about Dagor ECS, download Anton Yudintsev's video lecture
+  {download}`Gameplay-Architecture-and-Design.mp4, 3.65 GB <https://drive.google.com/file/d/1Op_NELH6slRCGsbTPcNF-Tmx18ulnYjC/view?usp=drive_link>`.
+  ```
+
+- When including a cross-reference as a link, avoid putting the link text in
+  quotation marks.
+
+  {octicon}`check;1.4em` Recommended:
+
+  ```{seealso}
+  For more information, see
+  [BLK File Format](../../dagor-tools/blk/blk.md).
+  ```
+
+  {octicon}`x;1.4em` Not recommended:
+
+  ```{seealso}
+  For more information, see
+  ["BLK File Format"](../../dagor-tools/blk/blk.md).
+  ```
+
+- Do not use a URL as link text. Instead, use the page title or a description of
+  the linked page. An exception may be made for certain legal documents (e.g.,
+  Terms of Service), where URLs can be used as link text.
+
+- If the link includes an abbreviation in parentheses, include both the full
+  form and the abbreviation in the link text.
+
+  {octicon}`check;1.4em` [Physically based rendering (PBR)](https://en.wikipedia.org/wiki/Physically_based_rendering)
+
+  {octicon}`x;1.4em` [Physically based rendering](https://en.wikipedia.org/wiki/Physically_based_rendering) (PBR)
+
+- If the text includes a command or a code element typically represented in code
+  font, include a description of the code element in the link text, unless it
+  would be redundant or awkward.
+
+  {octicon}`check;1.4em` To set the current camera direction, run the
+  [`camera.dir` command](../../dagor-tools/daeditor/daeditor-console-commands/daeditor_console_commands.md#cameradir).
+
+  {octicon}`check;1.4em` The daEditor supports the
+  [`list`](../../dagor-tools/daeditor/daeditor-console-commands/daeditor_console_commands.md#list),
+  [`help`](../../dagor-tools/daeditor/daeditor-console-commands/daeditor_console_commands.md#help),
+  and
+  [`clear`](../../dagor-tools/daeditor/daeditor-console-commands/daeditor_console_commands.md#clear)
+  console commands.
+
+  {octicon}`x;1.4em` To configure the environment settings, run the
+  [`envi.set`](../../dagor-tools/daeditor/daeditor-console-commands/daeditor_console_commands.md#enviset)
+  command.
+
+- Do not place links in section headings.
+
+- Do not use images as links.
+
+### Links to Sections on the Same Page
+
+When linking to another section on the same page, indicate that the link will
+navigate to a different section of the same document.
+
+{octicon}`check;1.4em` Recommended:
+
+```{seealso}
+For more information, see the
+[Formatting Cross-references](#formatting-cross-references) section of this document.
+```
+
+### Links to Sections on Another Page
+
+When linking to a section on another page, format the link the same way as a
+standard cross-reference.
+
+If the section title on the destination page is identical to one on the source
+page, provide additional context for clarity.
+
+  {octicon}`check;1.4em` Recommended:
+
+  ```{seealso}
+  For more information, see
+  [Basic concepts](../../api-references/dagor-ecs/dagor_ecs.md#basic-concepts) in "Dagor ECS".
+  ```
+
+### Punctuation with Links
+
+When punctuation appears immediately before or after a link, place the
+punctuation outside the link tags where possible.
+
+{octicon}`check;1.4em` For more information, see
+[Getting Started with Dagor](../../getting-started/index.rst).
+
+{octicon}`x;1.4em` For more information, see
+[Getting Started with Dagor.](../../getting-started/index.rst)
+
+## Punctuation
+
+### Hyphen, Dash, and Minus Sign
+
+[Em dashes (—)](#em-dash-), [en dashes (–)](#en-dash-), [hyphens
+(-)](#hyphen--), and [minus signs (−)](#minus-sign) are distinct and should be
+handled accordingly, with attention to their proper function.
+
+#### Hyphen (-)
+
+Use the hyphen to join words or split them at the end of a line.
+
+**General Guidelines**
+
+Hyphenation depends on context, readability, and conventions:
+
+- **Position**: Does the term come before a noun or after a verb?
+- **Clarity**: Will the sentence be unclear without a hyphen?
+- **Rules**: Some terms must always or never be hyphenated, regardless of other
+  factors.
+
+Exceptions are common. If unsure, check these sources in order:
+
+1. Existing documentation conventions.
+2. This style guide's [Word List](#word-list).
+3. [Merriam-Webster dictionary](https://www.merriam-webster.com/).
+
+**Use hyphen for:**
+
+- **Compound Noun Modifiers**
+
+  Use a hyphen between two or more words that work together to modify a noun
+  **before** the noun, especially when:
+
+  - **Clarity requires it**
+
+    {octicon}`check;1.4em` floating-point texture
+
+    {octicon}`check;1.4em` frame-by-frame playback
+
+    {octicon}`check;1.4em` up-to-date build
+
+    {octicon}`x;1.4em` frame by frame playback
+
+  - **One word is a participle (-ed or -ing)**
+
+    {octicon}`check;1.4em` GPU-accelerated path
+
+    {octicon}`check;1.4em` baked-in lighting
+
+    {octicon}`check;1.4em` left-aligned text
+
+    {octicon}`check;1.4em` The text is left aligned. *(no hyphen after noun)*
+
+  - **The modifier includes a number or letter**
+
+    {octicon}`check;1.4em` 3-point lighting
+
+    {octicon}`check;1.4em` 5-stage pipeline
+
+    {octicon}`check;1.4em` Y-based sorting
+
+  Avoid hyphens when the meaning is clear without them or the modifier comes
+  after the noun.
+
+  If a modifier has more than two words, try to rephrase. If rephrasing isn't
+  possible, hyphenate as needed for clarity.
+
+  ```{admonition} Exceptions
+  :class: warning
+
+  Don't hyphenate **-ly adverbs** unless clarity suffers:
+
+  {octicon}`check;1.4em` Publicly available assets
+
+  {octicon}`check;1.4em` Highly detailed mesh
+
+  {octicon}`check;1.4em` Visually rich environment
+
+  {octicon}`x;1.4em` Poorly-lit scene
+
+  Don't hyphenate terms that are **commonly unhyphenated**:
+
+  {octicon}`check;1.4em` A managed instance group
+
+  {octicon}`check;1.4em` A machine learning model
+
+  For **number + unit** modifiers, skip the hyphen unless needed:
+
+  {octicon}`check;1.4em` 60&nbsp;FPS animation
+
+  {octicon}`check;1.4em` 200&nbsp;GB disk
+
+  ```{seealso}
+  For more information, see [Units of Measurement](#units-of-measurement).
+  ```
+
+- **Suspended Compound Modifiers**
+
+  Avoid **suspended compound modifiers**, such as:
+
+  {octicon}`x;1.4em` CPU- and GPU-bound tasks
+
+  {octicon}`x;1.4em` left- and right-aligned elements
+
+  These constructions can reduce clarity. Instead, spell out the full phrase:
+
+  {octicon}`check;1.4em` CPU-bound and GPU-bound tasks
+
+  {octicon}`check;1.4em` left-aligned and right-aligned elements
+
+  If you must use a suspended modifier due to space constraints (e.g. in UI or
+  diagrams), include a hyphen after the first word and a space:
+
+  {octicon}`check;1.4em` mouse- or keyboard-based input
+
+  **Don't** use suspension when dealing with **simple one-word adjectives**:
+
+  {octicon}`check;1.4em` high and low settings
+
+  {octicon}`x;1.4em` high- and low settings
+
+- **Compound Numerals and Fractions**
+
+  Use hyphens in **compound numerals** and **fractions** when they function as
+  adjectives.
+
+  {octicon}`check;1.4em` a thirty-second frame
+
+  {octicon}`check;1.4em` a one-third resolution scale
+
+  {octicon}`check;1.4em` a sixty-four-bit architecture
+
+  Don't hyphenate if the fraction or number is used as a noun:
+
+  {octicon}`check;1.4em` The frame took one third of a millisecond.
+
+  {octicon}`check;1.4em` Support for sixty four bit is deprecated.
+
+  {octicon}`x;1.4em` Support for sixty-four-bit is deprecated.
+
+- **Compound Nouns**
+
+  It's preferable to use the **closed (one-word)** form for compound nouns
+  whenever it's standard in engine or toolchain usage:
+
+  {octicon}`check;1.4em` renderpass, framebuffer, toolchain
+
+  If [Merriam-Webster](https://www.merriam-webster.com/) lists a spaced or
+  hyphenated form but the closed version is commonly used in game engine-related
+  area or codebase, use the closed form.
+
+  ```{admonition} Exceptions
+  :class: warning
+
+  Use hyphens or spaces for established terms:
+
+  {octicon}`check;1.4em` multi-pass rendering, debug layer, camera rig, physics material
+
+  Some words change form by usage:
+
+  {octicon}`check;1.4em` **set up** (verb), **setup** (noun)
+
+  {octicon}`check;1.4em` **log in** (verb), **login** (noun)
+
+  For compound units of measurement or units that multiply, use hyphens:
+
+  {octicon}`check;1.4em` 120&nbsp;render-thread-hours
+
+  {octicon}`check;1.4em` 10&nbsp;AI-agent-hours
+
+  {octicon}`check;1.4em` 5&nbsp;vCPU-hours
+
+  {octicon}`check;1.4em` 40&nbsp;person-hours
+  ```
+
+- **Prefixes**
+
+  Avoid creating new, nonstandard words by simply attaching a prefix to an
+  existing word. If the resulting form isn't widely recognized, rephrase for
+  clarity.
+
+  {octicon}`check;1.4em` reinitialize the renderer
+
+  {octicon}`check;1.4em` non-player entity
+
+  {octicon}`x;1.4em` reinit renderer
+
+  {octicon}`x;1.4em` noninteractiveable UI
+
+  Use a hyphen between a prefix and a stem word:
+
+  - If a confusing or ambiguous word results without the hyphen:
+
+    {octicon}`check;1.4em` **re-sign** (sign again) vs **resign** (quit a job)
+
+    {octicon}`check;1.4em` **co-op** (cooperative) vs **coop** (a cage for chickens)
+
+  - If the stem word begins with a capital letter:
+
+    {octicon}`check;1.4em` non-XML, pre-IPv6
+
+  If the prefixed word is listed in
+  [Merriam-Webster](https://www.merriam-webster.com/) or the [Word
+  List](#word-list), you can use it. When in doubt, rewrite or hyphenate to
+  improve readability.
+
+  In general, don't include a hyphen after the following prefixes unless
+  omitting the hyphen could confuse the reader.
+
+  - auto-
+  - co-
+  - cyber-
+  - exa-, giga-, kilo-, mega-
+  - inter-, intra-
+  - macro-, micro-, mono-
+  - non-
+  - omni-
+  - pre-
+  - re-
+  - sub-
+  - tera-
+  - un-, uni-
+
+#### En Dash (–)
+
+**Don't use en dashes.**
+
+Use a hyphen or the word ***to*** instead.
+
+For ranges, use:
+
+{octicon}`check;1.4em` **60–120 FPS** write as **60 to 120 FPS**
+
+{octicon}`check;1.4em` **GPU-bound tasks 1–4** write as **tasks 1 to 4**
+
+**Avoid using dashes with spaces** (–, —, or -) to separate labels from
+descriptions. Use a colon or period instead.
+
+{octicon}`check;1.4em` Frame timing: Controls update frequency.
+
+{octicon}`check;1.4em` Example: Use renderpass to group draw calls.
+
+{octicon}`x;1.4em` Frame timing - Controls update frequency
+
+{octicon}`x;1.4em` Example — Use renderpass to group draw calls
+
+#### Em Dash (—)
+
+**Don't use em dashes.**
+
+Em dashes can cause inconsistency in formatting, reduce readability in technical
+contexts, and create issues in code snippets, tooling, and localization.
+
+Instead, use:
+
+- A **colon (:)** to introduce explanations or definitions.
+- A **hyphen (-)** for compound terms.
+- The word ***to*** for ranges.
+
+  {octicon}`check;1.4em` Renderpass: Defines a sequence of draw calls
+
+  {octicon}`check;1.4em` Use a real-time rendering pipeline
+
+  {octicon}`check;1.4em` Set frame rate to 60 to 120 FPS
+
+```{admonition} Why we avoid en/em dashes?
+:class: important
+
+To keep formatting consistent and machine-friendly, **Dagor documentation does
+not use en (–) or em (—) dashes**. Dashes can cause issues with readability,
+localization, and rendering across platforms. Instead, we prefer clear and
+stable alternatives:
+
+- Use a **colon (:)** to introduce definitions or descriptions.
+- Use the word ***to*** for numeric ranges.
+- Use a **hyphen (-)** for compound terms.
+
+  {octicon}`check;1.4em` LOD: Level of Detail system
+
+  {octicon}`check;1.4em` 60 to 120 FPS
+
+  {octicon}`check;1.4em` GPU-bound rendering
+
+This approach improves clarity and avoids formatting issues in tools, editors,
+and translations.
+```
+
+#### Minus Sign
+
+Use the minus sign (−) only for subtraction and negative numbers in formulas or
+code.
+
+Do **not** substitute an en dash (–) for the minus sign, as it can cause
+confusion and accessibility issues.
+
+{octicon}`check;1.4em` `Health = MaxHealth − DamageTaken`
+
+{octicon}`check;1.4em` Velocity = −9.8 m/s² (gravity)
 
 

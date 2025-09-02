@@ -94,7 +94,7 @@ bool InputLayout::fromVdecl(DecodeContext &context, const VSDTYPE &decl)
 
       case VSDT_E3DCOLOR: sz = 8 + 8 + 8 + 8; break;
       case VSDT_UBYTE4: sz = 8 + 8 + 8 + 8; break;
-      default: G_ASSERTF_RETURN(false, false, "invalid vertex declaration type 0x%08X", data); break;
+      default: D3D_CONTRACT_ASSERT_FAIL_RETURN(false, "invalid vertex declaration type 0x%08X", data); break;
     }
     context.ofs += sz / 8;
   }
@@ -120,13 +120,13 @@ bool InputLayout::fromVdecl(DecodeContext &context, const VSDTYPE &decl)
   return true;
 }
 
-StageShaderModule drv3d_dx12::shader_layout_to_module(const bindump::Mapper<dxil::Shader> *layout)
+StageShaderModule drv3d_dx12::shader_layout_to_module(const bindump::Mapper<dxil::Shader> &layout)
 {
   StageShaderModule result;
-  result.header = layout->shaderHeader;
-  result.byteCode = eastl::make_unique<uint8_t[]>(layout->bytecode.size());
-  eastl::copy(layout->bytecode.begin(), layout->bytecode.end(), result.byteCode.get());
-  result.byteCodeSize = layout->bytecode.size();
+  result.header = layout.shaderHeader;
+  result.byteCode = eastl::make_unique<uint8_t[]>(layout.bytecode.size());
+  eastl::copy(layout.bytecode.begin(), layout.bytecode.end(), result.byteCode.get());
+  result.byteCodeSize = layout.bytecode.size();
   return result;
 }
 
@@ -310,11 +310,11 @@ eastl::unique_ptr<PixelShaderModule> drv3d_dx12::decode_pixel_shader(const void 
   return ps;
 }
 
-StageShaderModuleInBinaryRef drv3d_dx12::shader_layout_to_module_ref(const bindump::Mapper<dxil::Shader> *layout)
+StageShaderModuleInBinaryRef drv3d_dx12::shader_layout_to_module_ref(const bindump::Mapper<dxil::Shader> &layout)
 {
   StageShaderModuleInBinaryRef result;
-  result.header = layout->shaderHeader;
-  result.byteCode = {layout->bytecode.begin(), layout->bytecode.end()};
+  result.header = layout.shaderHeader;
+  result.byteCode = {layout.bytecode.begin(), layout.bytecode.end()};
   return result;
 }
 
@@ -775,10 +775,11 @@ void ShaderProgramDatabase::registerShaderBinDump(DeviceContext &ctx, ScriptedSh
 {
   if (!dump)
   {
-    shaderProgramGroups.dropGroup(1);
     ctx.removeShaderGroup(1);
     // wait until backend has processed the removal
     ctx.finish();
+    // dropGroup should be called after ctx.finish() to avoid using broken dump in context commands
+    shaderProgramGroups.dropGroup(1);
     return;
   }
 
@@ -834,6 +835,8 @@ void backend::ShaderModuleManager::addVertexShader(ShaderID id, VertexShaderModu
   shader = eastl::make_unique<GroupZeroVertexShaderModule>();
   shader->header.hash = module->ident.shaderHash;
   shader->header.header = module->header;
+  shader->header.streamOutputDesc.resize(module->streamOutputDesc.size());
+  eastl::copy(module->streamOutputDesc.begin(), module->streamOutputDesc.end(), shader->header.streamOutputDesc.data());
   shader->header.debugName = module->debugName;
   shader->bytecode.bytecode = eastl::move(module->byteCode);
   shader->bytecode.bytecodeSize = module->byteCodeSize;
@@ -957,6 +960,8 @@ backend::VertexShaderModuleRefStore backend::ShaderModuleManager::getVertexShade
         auto module = decode_vertex_shader_ref(byteCode.data(), byteCode.size());
         shader->header.header = module.header;
         shader->header.debugName = module.debugName;
+        shader->header.streamOutputDesc.resize(module.streamOutputDesc.size());
+        eastl::copy(module.streamOutputDesc.begin(), module.streamOutputDesc.end(), shader->header.streamOutputDesc.data());
         shader->bytecode.shaderOffset = offset_to_base(byteCode.data(), module);
         shader->bytecode.shaderSize = module.byteCode.size();
 

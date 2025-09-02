@@ -13,10 +13,10 @@ struct AnimObjCtrlFifo : public AnimObjCtrl
 
 public:
   AnimObjCtrlFifo() { type = TYPE_Fifo; }
-  virtual void load(const DataBlock &blk);
+  void load(const DataBlock &blk) override;
   void save(DataBlock &blk, const char *suffix) const override;
   void addNeededBnls(NameMap &b, NameMap &a2d, AnimObjGraphTree &t, const char *suf) const override {}
-  virtual void virtualCopy(const AnimObjCtrl *source)
+  void virtualCopy(const AnimObjCtrl *source) override
   {
     AnimObjCtrl::virtualCopy(source);
     varname = ((AnimObjCtrlFifo *)source)->varname;
@@ -40,20 +40,20 @@ struct AnimObjCtrlLinear : public AnimObjCtrl
 
 public:
   AnimObjCtrlLinear() : list(midmem) { type = TYPE_Linear; }
-  virtual void load(const DataBlock &blk);
+  void load(const DataBlock &blk) override;
   void save(DataBlock &blk, const char *suffix) const override;
   void addNeededBnls(NameMap &b, NameMap &a2d, AnimObjGraphTree &t, const char *suf) const override;
-  virtual int getListCount() const { return list.size(); }
-  virtual int getRecParamsCount() const { return 3; }
-  virtual RecParamInfo getRecParamInfo(int i) const;
-  virtual void insertRec(int i);
-  virtual void eraseRec(int i);
-  virtual void getParamValueText(int param_no, int rec_no, String &text) const;
-  virtual void setParamValueText(int param_no, int rec_no, const char *text);
-  virtual void getParamValueReal(int param_no, int rec_no, real &val) const;
-  virtual void setParamValueReal(int param_no, int rec_no, const real &val);
-  virtual bool canAdd() { return true; }
-  virtual void virtualCopy(const AnimObjCtrl *source)
+  int getListCount() const override { return list.size(); }
+  int getRecParamsCount() const override { return 3; }
+  RecParamInfo getRecParamInfo(int i) const override;
+  void insertRec(int i) override;
+  void eraseRec(int i) override;
+  void getParamValueText(int param_no, int rec_no, String &text) const override;
+  void setParamValueText(int param_no, int rec_no, const char *text) override;
+  void getParamValueReal(int param_no, int rec_no, real &val) const override;
+  void setParamValueReal(int param_no, int rec_no, const real &val) override;
+  bool canAdd() override { return true; }
+  void virtualCopy(const AnimObjCtrl *source) override
   {
     AnimObjCtrl::virtualCopy(source);
     varname = ((AnimObjCtrlLinear *)source)->varname;
@@ -73,20 +73,20 @@ struct AnimObjCtrlLinearPoly : public AnimObjCtrl
 
 public:
   AnimObjCtrlLinearPoly() : list(midmem) { type = TYPE_LinearPoly; }
-  virtual void load(const DataBlock &blk);
+  void load(const DataBlock &blk) override;
   void save(DataBlock &blk, const char *suffix) const override;
   void addNeededBnls(NameMap &b, NameMap &a2d, AnimObjGraphTree &t, const char *suf) const override;
-  virtual int getListCount() const { return list.size(); }
-  virtual int getRecParamsCount() const { return 2; }
-  virtual RecParamInfo getRecParamInfo(int i) const;
-  virtual void insertRec(int i);
-  virtual void eraseRec(int i);
-  virtual void getParamValueText(int param_no, int rec_no, String &text) const;
-  virtual void setParamValueText(int param_no, int rec_no, const char *text);
-  virtual void getParamValueReal(int param_no, int rec_no, real &val) const;
-  virtual void setParamValueReal(int param_no, int rec_no, const real &val);
-  virtual bool canAdd() { return true; }
-  virtual void virtualCopy(const AnimObjCtrl *source)
+  int getListCount() const override { return list.size(); }
+  int getRecParamsCount() const override { return 2; }
+  RecParamInfo getRecParamInfo(int i) const override;
+  void insertRec(int i) override;
+  void eraseRec(int i) override;
+  void getParamValueText(int param_no, int rec_no, String &text) const override;
+  void setParamValueText(int param_no, int rec_no, const char *text) override;
+  void getParamValueReal(int param_no, int rec_no, real &val) const override;
+  void setParamValueReal(int param_no, int rec_no, const real &val) override;
+  bool canAdd() override { return true; }
+  void virtualCopy(const AnimObjCtrl *source) override
   {
     AnimObjCtrl::virtualCopy(source);
     varname = ((AnimObjCtrlLinearPoly *)source)->varname;
@@ -107,20 +107,20 @@ struct AnimObjCtrlRandomSwitch : public AnimObjCtrl
 
 public:
   AnimObjCtrlRandomSwitch() : list(midmem) { type = TYPE_RandomSwitch; }
-  virtual void load(const DataBlock &blk);
+  void load(const DataBlock &blk) override;
   void save(DataBlock &blk, const char *suffix) const override;
   void addNeededBnls(NameMap &b, NameMap &a2d, AnimObjGraphTree &t, const char *suf) const override;
-  virtual int getListCount() const { return list.size(); }
-  virtual int getRecParamsCount() const { return 3; }
-  virtual RecParamInfo getRecParamInfo(int i) const;
-  virtual void insertRec(int i);
-  virtual void eraseRec(int i);
-  virtual void getParamValueText(int param_no, int rec_no, String &text) const;
-  virtual void setParamValueText(int param_no, int rec_no, const char *text);
-  virtual void getParamValueReal(int param_no, int rec_no, real &val) const;
-  virtual void setParamValueReal(int param_no, int rec_no, const real &val);
-  virtual bool canAdd() { return true; }
-  virtual void virtualCopy(const AnimObjCtrl *source)
+  int getListCount() const override { return list.size(); }
+  int getRecParamsCount() const override { return 3; }
+  RecParamInfo getRecParamInfo(int i) const override;
+  void insertRec(int i) override;
+  void eraseRec(int i) override;
+  void getParamValueText(int param_no, int rec_no, String &text) const override;
+  void setParamValueText(int param_no, int rec_no, const char *text) override;
+  void getParamValueReal(int param_no, int rec_no, real &val) const override;
+  void setParamValueReal(int param_no, int rec_no, const real &val) override;
+  bool canAdd() override { return true; }
+  void virtualCopy(const AnimObjCtrl *source) override
   {
     AnimObjCtrl::virtualCopy(source);
     varname = ((AnimObjCtrlRandomSwitch *)source)->varname;
@@ -142,20 +142,20 @@ struct AnimObjCtrlParametricSwitch : public AnimObjCtrl
 
 public:
   AnimObjCtrlParametricSwitch() : list(midmem) { type = TYPE_ParamSwitch; }
-  virtual void load(const DataBlock &blk);
+  void load(const DataBlock &blk) override;
   void save(DataBlock &blk, const char *suffix) const override;
   void addNeededBnls(NameMap &b, NameMap &a2d, AnimObjGraphTree &t, const char *suf) const override;
-  virtual int getListCount() const { return list.size(); }
-  virtual int getRecParamsCount() const { return 3; }
-  virtual RecParamInfo getRecParamInfo(int i) const;
-  virtual void insertRec(int i);
-  virtual void eraseRec(int i);
-  virtual void getParamValueText(int param_no, int rec_no, String &text) const;
-  virtual void setParamValueText(int param_no, int rec_no, const char *text);
-  virtual void getParamValueReal(int param_no, int rec_no, real &val) const;
-  virtual void setParamValueReal(int param_no, int rec_no, const real &val);
-  virtual bool canAdd() { return true; }
-  virtual void virtualCopy(const AnimObjCtrl *source)
+  int getListCount() const override { return list.size(); }
+  int getRecParamsCount() const override { return 3; }
+  RecParamInfo getRecParamInfo(int i) const override;
+  void insertRec(int i) override;
+  void eraseRec(int i) override;
+  void getParamValueText(int param_no, int rec_no, String &text) const override;
+  void setParamValueText(int param_no, int rec_no, const char *text) override;
+  void getParamValueReal(int param_no, int rec_no, real &val) const override;
+  void setParamValueReal(int param_no, int rec_no, const real &val) override;
+  bool canAdd() override { return true; }
+  void virtualCopy(const AnimObjCtrl *source) override
   {
     AnimObjCtrl::virtualCopy(source);
     varname = ((AnimObjCtrlParametricSwitch *)source)->varname;
@@ -182,20 +182,20 @@ struct AnimObjCtrlHub : public AnimObjCtrl
 
 public:
   AnimObjCtrlHub() : list(midmem) { type = TYPE_Hub; }
-  virtual void load(const DataBlock &blk);
+  void load(const DataBlock &blk) override;
   void save(DataBlock &blk, const char *suffix) const override;
   void addNeededBnls(NameMap &b, NameMap &a2d, AnimObjGraphTree &t, const char *suf) const override;
-  virtual int getListCount() const { return list.size(); }
-  virtual int getRecParamsCount() const { return 3; }
-  virtual RecParamInfo getRecParamInfo(int i) const;
-  virtual void insertRec(int i);
-  virtual void eraseRec(int i);
-  virtual void getParamValueText(int param_no, int rec_no, String &text) const;
-  virtual void setParamValueText(int param_no, int rec_no, const char *text);
-  virtual void getParamValueReal(int param_no, int rec_no, real &val) const;
-  virtual void setParamValueReal(int param_no, int rec_no, const real &val);
-  virtual bool canAdd() { return true; }
-  virtual void virtualCopy(const AnimObjCtrl *source)
+  int getListCount() const override { return list.size(); }
+  int getRecParamsCount() const override { return 3; }
+  RecParamInfo getRecParamInfo(int i) const override;
+  void insertRec(int i) override;
+  void eraseRec(int i) override;
+  void getParamValueText(int param_no, int rec_no, String &text) const override;
+  void setParamValueText(int param_no, int rec_no, const char *text) override;
+  void getParamValueReal(int param_no, int rec_no, real &val) const override;
+  void setParamValueReal(int param_no, int rec_no, const real &val) override;
+  bool canAdd() override { return true; }
+  void virtualCopy(const AnimObjCtrl *source) override
   {
     AnimObjCtrl::virtualCopy(source);
     _const = ((AnimObjCtrlHub *)source)->_const;
@@ -216,20 +216,20 @@ struct AnimObjCtrlDirectSync : public AnimObjCtrl
 
 public:
   AnimObjCtrlDirectSync() : list(midmem) { type = TYPE_DirectSync; }
-  virtual void load(const DataBlock &blk);
+  void load(const DataBlock &blk) override;
   void save(DataBlock &blk, const char *suffix) const override;
   void addNeededBnls(NameMap &b, NameMap &a2d, AnimObjGraphTree &t, const char *suf) const override {}
-  virtual int getListCount() const { return list.size(); }
-  virtual int getRecParamsCount() const { return 6; }
-  virtual RecParamInfo getRecParamInfo(int i) const;
-  virtual void insertRec(int i);
-  virtual void eraseRec(int i);
-  virtual void getParamValueText(int param_no, int rec_no, String &text) const;
-  virtual void setParamValueText(int param_no, int rec_no, const char *text);
-  virtual void getParamValueReal(int param_no, int rec_no, real &val) const;
-  virtual void setParamValueReal(int param_no, int rec_no, const real &val);
-  virtual bool canAdd() { return true; }
-  virtual void virtualCopy(const AnimObjCtrl *source)
+  int getListCount() const override { return list.size(); }
+  int getRecParamsCount() const override { return 6; }
+  RecParamInfo getRecParamInfo(int i) const override;
+  void insertRec(int i) override;
+  void eraseRec(int i) override;
+  void getParamValueText(int param_no, int rec_no, String &text) const override;
+  void setParamValueText(int param_no, int rec_no, const char *text) override;
+  void getParamValueReal(int param_no, int rec_no, real &val) const override;
+  void setParamValueReal(int param_no, int rec_no, const real &val) override;
+  bool canAdd() override { return true; }
+  void virtualCopy(const AnimObjCtrl *source) override
   {
     AnimObjCtrl::virtualCopy(source);
     varname = ((AnimObjCtrlDirectSync *)source)->varname;
@@ -240,7 +240,7 @@ public:
 struct AnimObjCtrlNull : public AnimObjCtrl
 {
   AnimObjCtrlNull() { type = TYPE_Null; }
-  virtual void load(const DataBlock &blk) {}
+  void load(const DataBlock &blk) override {}
   void save(DataBlock &blk, const char *suffix) const override {}
   void addNeededBnls(NameMap &b, NameMap &a2d, AnimObjGraphTree &t, const char *suf) const override {}
 };
@@ -254,19 +254,19 @@ struct AnimObjCtrlBlender : public AnimObjCtrl
 
 public:
   AnimObjCtrlBlender() { type = TYPE_Blender; }
-  virtual void load(const DataBlock &blk);
+  void load(const DataBlock &blk) override;
   void save(DataBlock &blk, const char *suffix) const override;
   void addNeededBnls(NameMap &b, NameMap &a2d, AnimObjGraphTree &t, const char *suf) const override;
-  virtual int getListCount() const { return 2; }
-  virtual int getRecParamsCount() const { return 1; }
-  virtual RecParamInfo getRecParamInfo(int i) const;
-  virtual void insertRec(int i);
-  virtual void eraseRec(int i);
-  virtual void getParamValueText(int param_no, int rec_no, String &text) const;
-  virtual void setParamValueText(int param_no, int rec_no, const char *text);
-  virtual void getParamValueReal(int param_no, int rec_no, real &val) const;
-  virtual void setParamValueReal(int param_no, int rec_no, const real &val);
-  virtual void virtualCopy(const AnimObjCtrl *source)
+  int getListCount() const override { return 2; }
+  int getRecParamsCount() const override { return 1; }
+  RecParamInfo getRecParamInfo(int i) const override;
+  void insertRec(int i) override;
+  void eraseRec(int i) override;
+  void getParamValueText(int param_no, int rec_no, String &text) const override;
+  void setParamValueText(int param_no, int rec_no, const char *text) override;
+  void getParamValueReal(int param_no, int rec_no, real &val) const override;
+  void setParamValueReal(int param_no, int rec_no, const real &val) override;
+  void virtualCopy(const AnimObjCtrl *source) override
   {
     AnimObjCtrl::virtualCopy(source);
     varname = ((AnimObjCtrlBlender *)source)->varname;
@@ -286,19 +286,19 @@ struct AnimObjCtrlBIS : public AnimObjCtrl
 
 public:
   AnimObjCtrlBIS() { type = TYPE_BIS; }
-  virtual void load(const DataBlock &blk);
+  void load(const DataBlock &blk) override;
   void save(DataBlock &blk, const char *suffix) const override;
   void addNeededBnls(NameMap &b, NameMap &a2d, AnimObjGraphTree &t, const char *suf) const override;
-  virtual int getListCount() const { return 3; }
-  virtual int getRecParamsCount() const { return 1; }
-  virtual RecParamInfo getRecParamInfo(int i) const;
-  virtual void insertRec(int i);
-  virtual void eraseRec(int i);
-  virtual void getParamValueText(int param_no, int rec_no, String &text) const;
-  virtual void setParamValueText(int param_no, int rec_no, const char *text);
-  virtual void getParamValueReal(int param_no, int rec_no, real &val) const;
-  virtual void setParamValueReal(int param_no, int rec_no, const real &val);
-  virtual void virtualCopy(const AnimObjCtrl *source)
+  int getListCount() const override { return 3; }
+  int getRecParamsCount() const override { return 1; }
+  RecParamInfo getRecParamInfo(int i) const override;
+  void insertRec(int i) override;
+  void eraseRec(int i) override;
+  void getParamValueText(int param_no, int rec_no, String &text) const override;
+  void setParamValueText(int param_no, int rec_no, const char *text) override;
+  void getParamValueReal(int param_no, int rec_no, real &val) const override;
+  void setParamValueReal(int param_no, int rec_no, const real &val) override;
+  void virtualCopy(const AnimObjCtrl *source) override
   {
     AnimObjCtrl::virtualCopy(source);
     varname = ((AnimObjCtrlBIS *)source)->varname;
@@ -321,19 +321,19 @@ struct AnimObjCtrlAlignNode : public AnimObjCtrl
 
 public:
   AnimObjCtrlAlignNode() { type = TYPE_AlignNode; }
-  virtual void load(const DataBlock &blk);
+  void load(const DataBlock &blk) override;
   void save(DataBlock &blk, const char *suffix) const override;
   void addNeededBnls(NameMap &b, NameMap &a2d, AnimObjGraphTree &t, const char *suf) const override {}
-  virtual int getListCount() const { return 1; }
-  virtual int getRecParamsCount() const { return 2; }
-  virtual RecParamInfo getRecParamInfo(int i) const;
-  virtual void insertRec(int i);
-  virtual void eraseRec(int i);
-  virtual void getParamValueText(int param_no, int rec_no, String &text) const;
-  virtual void setParamValueText(int param_no, int rec_no, const char *text);
-  virtual void getParamValueReal(int param_no, int rec_no, real &val) const;
-  virtual void setParamValueReal(int param_no, int rec_no, const real &val);
-  virtual void virtualCopy(const AnimObjCtrl *source)
+  int getListCount() const override { return 1; }
+  int getRecParamsCount() const override { return 2; }
+  RecParamInfo getRecParamInfo(int i) const override;
+  void insertRec(int i) override;
+  void eraseRec(int i) override;
+  void getParamValueText(int param_no, int rec_no, String &text) const override;
+  void setParamValueText(int param_no, int rec_no, const char *text) override;
+  void getParamValueReal(int param_no, int rec_no, real &val) const override;
+  void setParamValueReal(int param_no, int rec_no, const real &val) override;
+  void virtualCopy(const AnimObjCtrl *source) override
   {
     AnimObjCtrl::virtualCopy(source);
     src = ((AnimObjCtrlAlignNode *)source)->src;
@@ -361,20 +361,20 @@ struct AnimObjCtrlRotateNode : public AnimObjCtrl
 
 public:
   AnimObjCtrlRotateNode() : target(uimem) { type = TYPE_RotateNode; }
-  virtual void load(const DataBlock &blk);
+  void load(const DataBlock &blk) override;
   void save(DataBlock &blk, const char *suffix) const override;
   void addNeededBnls(NameMap &b, NameMap &a2d, AnimObjGraphTree &t, const char *suf) const override {}
-  virtual int getListCount() const { return target.size(); }
-  virtual int getRecParamsCount() const { return 1; }
-  virtual RecParamInfo getRecParamInfo(int i) const;
-  virtual void insertRec(int i);
-  virtual void eraseRec(int i);
-  virtual void getParamValueText(int param_no, int rec_no, String &text) const;
-  virtual void setParamValueText(int param_no, int rec_no, const char *text);
-  virtual void getParamValueReal(int param_no, int rec_no, real &val) const;
-  virtual void setParamValueReal(int param_no, int rec_no, const real &val);
-  virtual bool canAdd() { return true; }
-  virtual void virtualCopy(const AnimObjCtrl *source)
+  int getListCount() const override { return target.size(); }
+  int getRecParamsCount() const override { return 1; }
+  RecParamInfo getRecParamInfo(int i) const override;
+  void insertRec(int i) override;
+  void eraseRec(int i) override;
+  void getParamValueText(int param_no, int rec_no, String &text) const override;
+  void setParamValueText(int param_no, int rec_no, const char *text) override;
+  void getParamValueReal(int param_no, int rec_no, real &val) const override;
+  void setParamValueReal(int param_no, int rec_no, const real &val) override;
+  bool canAdd() override { return true; }
+  void virtualCopy(const AnimObjCtrl *source) override
   {
     AnimObjCtrl::virtualCopy(source);
     paramName = ((AnimObjCtrlRotateNode *)source)->paramName;

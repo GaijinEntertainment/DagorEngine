@@ -38,6 +38,53 @@ static inline void free_hmap_data(void *ptr, size_t sz)
   memfree(ptr, tmpmem);
 }
 
+void HeightmapPhysHandler::finalizeLoad()
+{
+  uint16_t minH16 = 65535, maxH16 = 0;
+  compressed.iterateBlocks(0, 0, compressed.bw, compressed.bh, [&](uint32_t, uint32_t, uint16_t mn, uint16_t mx) {
+    minH16 = min(mn, minH16);
+    maxH16 = max(mx, maxH16);
+  });
+  worldSize = Point2(hmapWidth.x * hmapCellSize, hmapWidth.y * hmapCellSize);
+  worldBox[0] = Point3(worldPosOfs.x, hMin + minH16 * hScaleRaw, worldPosOfs.y);
+  worldBox[1] = Point3(worldPosOfs.x + worldSize.x, hMin + maxH16 * hScaleRaw, worldPosOfs.y + worldSize.y);
+  worldBox2 = BBox2(Point2::xz(worldBox[0]), Point2::xz(worldBox[1]));
+  // worldBox[0] = Point3(worldPosOfs.x, hMin, worldPosOfs.y);
+  // worldBox[1] = Point3(worldPosOfs.x+worldSize.x, hMin+hScale, worldPosOfs.y+worldSize.y);
+  vecbox = v_ldu_bbox3(worldBox);
+
+  invElemSize = v_splats(1.0f / hmapCellSize);
+  v_worldOfsxzxz = v_make_vec4f(worldPosOfs.x, worldPosOfs.y, worldPosOfs.x, worldPosOfs.y);
+}
+
+void HeightmapPhysHandler::initRaw(const uint16_t *raw, float cell, uint16_t w, uint16_t h, float hmin, float hscale,
+  const Point2 &ofs, uint8_t blockShift, uint8_t hrbSubSz)
+{
+  close();
+
+  hmapCellSize = cell;
+  hMin = hmin;
+  hScale = hscale;
+  hScaleRaw = hscale / 65535.0;
+  worldPosOfs = ofs;
+  hmapWidth.x = w;
+  hmapWidth.y = h;
+  excludeBounding = IBBox2{{0, 0}, {0, 0}};
+
+  const size_t allocatedDataSize = CompressedHeightmap::calc_data_size_needed(hmapWidth.x, hmapWidth.y, blockShift, hrbSubSz);
+
+  hmap_data = alloc_hmap_data(allocatedDataSize, /*failable*/ true);
+  if (!hmap_data)
+  {
+    logerr("%s failed to allocate %dK", __FUNCTION__, allocatedDataSize >> 10);
+    return;
+  }
+  compressed = CompressedHeightmap::compress((uint8_t *)hmap_data, allocatedDataSize, //
+    raw, hmapWidth.x, hmapWidth.y, blockShift, hrbSubSz);
+
+  finalizeLoad();
+}
+
 bool HeightmapPhysHandler::loadDump(IGenLoad &loadCb, GlobalSharedMemStorage *sharedMem, int skip_mips)
 {
   hmapCellSize = loadCb.readReal() * (1 << skip_mips);
@@ -190,27 +237,50 @@ bool HeightmapPhysHandler::loadDump(IGenLoad &loadCb, GlobalSharedMemStorage *sh
   if (!own_data)
     hmap_data = NULL;
 
-  uint16_t minH16 = 65535, maxH16 = 0;
-  compressed.iterateBlocks(0, 0, compressed.bw, compressed.bh, [&](uint32_t, uint32_t, uint16_t mn, uint16_t mx) {
-    minH16 = min(mn, minH16);
-    maxH16 = max(mx, maxH16);
-  });
-  worldSize = Point2(hmapWidth.x * hmapCellSize, hmapWidth.y * hmapCellSize);
-  worldBox[0] = Point3(worldPosOfs.x, hMin + minH16 * hScaleRaw, worldPosOfs.y);
-  worldBox[1] = Point3(worldPosOfs.x + worldSize.x, hMin + maxH16 * hScaleRaw, worldPosOfs.y + worldSize.y);
-  worldBox2 = BBox2(Point2::xz(worldBox[0]), Point2::xz(worldBox[1]));
-  // worldBox[0] = Point3(worldPosOfs.x, hMin, worldPosOfs.y);
-  // worldBox[1] = Point3(worldPosOfs.x+worldSize.x, hMin+hScale, worldPosOfs.y+worldSize.y);
-  vecbox = v_ldu_bbox3(worldBox);
+  finalizeLoad();
   unsigned grid_res = compressed.getBestHtRangeBlocksResolution(), grid_step = compressed.getW() / grid_res;
   debug("heightmap of size %dx%d at %@, minH=%g(real=%g) maxH=%g(real=%g)  memSz=%dK (%s), hier-grid %dx%d,L%d (blocks of %dx%d)"
         " [fmt=%d:%dK skip=%d] decoded for %d ms",
     hmapWidth.x, hmapWidth.y, worldPosOfs, hMin, worldBox[0].y, hMin + hScale, worldBox[1].y, compressed.dataSizeCurrent() >> 10,
     hmap_data ? "owned" : "shared", grid_res, grid_res, compressed.htRangeBlocksLevels, grid_step, grid_step, version, chunkSz >> 10,
     skip_mips, t0_msec ? get_time_msec() - t0_msec : 0);
+  return true;
+}
 
-  invElemSize = v_splats(1.0f / hmapCellSize);
-  v_worldOfsxzxz = v_make_vec4f(worldPosOfs.x, worldPosOfs.y, worldPosOfs.x, worldPosOfs.y);
+bool HeightmapPhysHandler::repackCompressedData(uint8_t use_hrb_subsz)
+{
+  unsigned w = compressed.bw * compressed.block_width, h = compressed.bh * compressed.block_width;
+  uint8_t block_shift = compressed.block_size_shift;
+
+  // validate use_hrb_subsz
+  if (w != h)
+    use_hrb_subsz = 0;
+  else if (use_hrb_subsz * 2 > w)
+    use_hrb_subsz = w / 2;
+  uint8_t hrb_subsz_bits = use_hrb_subsz > 1 ? __bsf(use_hrb_subsz) : 0;
+  if (!hrb_subsz_bits)
+    use_hrb_subsz = 0;
+  else if ((1 << hrb_subsz_bits) != use_hrb_subsz)
+  {
+    logerr("bad use_hrb_subsz=%d, must be > 1 and pow-of-2 (hrb_subsz_bits=%d)", use_hrb_subsz, hrb_subsz_bits);
+    use_hrb_subsz = hrb_subsz_bits = 0;
+  }
+
+  if (use_hrb_subsz == (w >> compressed.htRangeBlocksLevels))
+    return false;
+
+  // unpack to plain hmap
+  Tab<uint16_t> hmap16;
+  hmap16.resize(w * h);
+  compressed.iterateBlocksPixels(0, 0, compressed.bw, compressed.bh,
+    [&](uint32_t x, uint32_t y, const uint16_t v) { hmap16[y * w + x] = v; });
+
+  // reallocate storage and re-compress hmap
+  const size_t allocatedDataSize = CompressedHeightmap::calc_data_size_needed(w, h, block_shift, use_hrb_subsz);
+  close();
+  hmap_data = alloc_hmap_data(allocatedDataSize);
+
+  compressed = CompressedHeightmap::compress((uint8_t *)hmap_data, allocatedDataSize, hmap16.data(), w, h, block_shift, use_hrb_subsz);
   return true;
 }
 

@@ -47,13 +47,14 @@ public:
   // but at the same time follow the movements from the animation clip as much as possible.
   bool rootSynchronization = true;
   bool rootAdjustment = false;
+  bool rootAdjustmentByFutureTrajectory = false;
   bool rootClamping = false;
 
   // root adjustment parameters
   float rootAdjustmentVelocityRatio = 0.5;
-  float rootAdjustmentPosTime = 0.2;
+  float rootAdjustmentPosHalfLife = 0.1;
   float rootAdjustmentAngVelocityRatio = 0.5;
-  float rootAdjustmentRotTime = 0.4;
+  float rootAdjustmentRotHalfLife = 0.2;
 
   // root clamping parameters
   float rootClampingMaxDistance = 0.1;
@@ -67,10 +68,15 @@ public:
   void playAnimation(int clip_index, int frame_index, bool need_transition);
 
   void updateAnimationProgress(float dt);
+  void updateNodeWeights(bool mm_enabled, float blend_time, float dt);
   void updateRoot(float dt,
-    const AnimV20::AnimcharBaseComponent &animchar,
+    mat44f_cref animchar_tm,
     const Point3 &animchar_velocity,
-    const Point3 &animchar_angular_velocity);
+    const Point3 &animchar_angular_velocity,
+    const Point3 &wish_root_direction);
+  void updateAnimationSpeed(const Point3 &animchar_velocity, const Point3 &animchar_angular_velocity);
+
+  void copyPoseFeaturesFromActiveAnimation(FrameFeatures &goal_features) const;
 
   bool hasActiveAnimation() const { return currentClipInfo.clip >= 0; }
   int getCurrentClip() const { return currentClipInfo.clip; }

@@ -31,7 +31,7 @@
 
 static ShaderVariableInfo object_tess_factorVarId{"object_tess_factor", true};
 
-#define VAR(a) static ShaderVariableInfo a##VarId(#a);
+#define VAR(a) static ShaderVariableInfo a##VarId(#a, true);
 GLOBAL_VARS_LIST
 #undef VAR
 
@@ -251,6 +251,12 @@ void TreesAboveDepth::prepare(const Point3 &origin, float minZ, float maxZ, cons
 
 void TreesAboveDepth::init(float half_distance, float texel_size)
 {
+#define VAR(a)     \
+  if (!(a##VarId)) \
+    logerr("mandatory shader variable is missing: %s", #a);
+  GLOBAL_VARS_LIST
+#undef VAR
+
   const int trees2dDRes = get_bigger_pow2(ceilf(2.f * half_distance / texel_size));
   const float nextTrees2dDist = half_distance;
   if (trees2dDRes == trees2dHelper.texSize)
@@ -277,9 +283,6 @@ void TreesAboveDepth::init(float half_distance, float texel_size)
     "trees2d_depth_min");
   trees2dDepthMin.setVar();
 
-  trees2d.getTex2D()->disableSampler();
-  trees2dDepth.getTex2D()->disableSampler();
-  trees2dDepthMin.getTex2D()->disableSampler();
   {
     d3d::SamplerInfo smpInfo;
     smpInfo.filter_mode = d3d::FilterMode::Point;

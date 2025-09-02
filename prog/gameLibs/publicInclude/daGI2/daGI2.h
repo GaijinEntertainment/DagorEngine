@@ -97,9 +97,10 @@ public:
   struct ScreenProbesSettings
   {
     uint8_t tileSize = 16;
-    uint8_t radianceOctRes = 8; // 4..16
-    bool angleFiltering = false;
-    float temporality = 1.f; // 1 - each probe updates each frame.
+    uint8_t radianceOctRes = 8;  // 4..16
+    bool angleFiltering = false; // if angleFiltering is on, radiance is stored in argb16f format, with alpha being distance to hit,
+                                 // and spatial filtering is done using this distance. Quality difference is not high
+    float temporality = 1.f;     // 1 - each probe updates each frame.
     uint8_t quality = 0;
     float overAllocation = 0.75; // should be used instead of console command
   };
@@ -113,6 +114,16 @@ public:
     float irradianceProbeDetail = 1.f;  // 1+, 1 - means same as radiance grid. Much faster option (if with additionalIrradianceClips =
                                         // 0).
     uint8_t additionalIrradianceClips = 0; // amount of additional clips in radiance grid.
+  };
+
+  struct GiDatablockCache
+  {
+    float voxelSceneResScale = 0.5f;
+    uint8_t sdfClips = 5;
+    float sdfVoxel0 = 0.15f;
+    uint8_t albedoClips = 3;
+    uint8_t radianceGridClipW = 28;
+    uint8_t radianceGridClips = 4;
   };
 
   // begin not used
@@ -157,6 +168,7 @@ public:
     VolumetricGISettings volumetricGI;
     RadianceGridSettings radianceGrid;
     SkyVisibilitySettings skyVisibility;
+    GiDatablockCache giDatablockCache;
 
     // not used
     RadianceCacheSettings radianceCache;
@@ -171,14 +183,21 @@ public:
   virtual void requestUpdatePosition(const request_sdf_radiance_data_cb &sdf_cb, const cancel_sdf_radiance_data_cb &cancel_sdf_cb,
     const request_albedo_data_cb &albedo_cb, const cancel_albedo_data_cb &cancel_albedo_cb) = 0;
   virtual void updatePosition(const rasterize_sdf_radiance_cb &sdf_cb, const rasterize_albedo_cb &albedo_cb) = 0;
+  enum class RadianceUpdate
+  {
+    Off,
+    On
+  };
   virtual void beforeRender(uint32_t screen_w, uint32_t screen_h, uint32_t max_screen_w, uint32_t max_screen_h, const TMatrix &viewItm,
-    const TMatrix4 &projTm, float zn, float zf) = 0;
+    const TMatrix4 &projTm, float zn, float zf, RadianceUpdate u = RadianceUpdate::On) = 0;
   virtual void setSettings(const Settings &s) = 0;
   virtual Settings getCurrentSettings() const = 0;
   virtual Settings getNextSettings() const = 0;
+  virtual void afterSettingsChanged() const = 0;
   virtual const WorldSDF &getWorldSDF() const = 0;
   virtual WorldSDF &getWorldSDF() = 0;
   virtual void afterReset() = 0;
+  virtual uint32_t getHistoryFrames() const = 0;
   enum FrameData
   {
     FrameHasDepth = 1 << 0,
@@ -193,7 +212,7 @@ public:
   //  if FrameHasLitScene, voxelLitScene will be updated. You can update using lit data (rendered frame),
   //    it is cheaper, but will include specular and may be scattering (depends)
   //  You can also update it using gbuffer (rendered frame)
-  virtual void afterFrameRendered(FrameData frame_featues) = 0;
+  virtual void afterFrameRendered(FrameData frame_featues, const bool allow_update_from_gbuf = true) = 0;
 
   virtual void beforeFrameLit(float quality = 1.0f) = 0; // if quality is 0, we calculate GI with a same algorithm, but as fast as
                                                          // possible

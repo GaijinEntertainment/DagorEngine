@@ -5,47 +5,41 @@
 
 #include <drv/3d/dag_commands.h>
 #include <fsr_args.h>
+#include <3d/dag_nvFeatures.h>
 
 #include "util/variant_vector.h"
 #include "buffer_resource.h"
 #include "graphics_state.h"
 #include "fence_manager.h"
-#include "swapchain.h"
 #include "debug_ui.h"
 #include "async_completion_state.h"
 #include "execution_state.h"
 #include "pipeline_state.h"
 #include "memory_heap_resource.h"
 #include "resource_manager.h"
+#include "queries.h"
 
 namespace drv3d_vulkan
 {
 
-#define VULKAN_BEGIN_CONTEXT_COMMAND(name) \
-  struct Cmd##name                         \
-  {                                        \
-    static const char *getName()           \
-    {                                      \
-      return "Cmd" #name;                  \
-    }                                      \
+struct SwapchainImage;
+
+#define VULKAN_BEGIN_CONTEXT_COMMAND(name)               \
+  struct Cmd##name                                       \
+  {                                                      \
+    static const char *getName() { return "Cmd" #name; } \
     inline void execute(ExecutionContext &ctx) const;
 
-#define VULKAN_BEGIN_CONTEXT_COMMAND_TRANSIT(name) \
-  struct Cmd##name                                 \
-  {                                                \
-    static const char *getName()                   \
-    {                                              \
-      return "CmdTR" #name;                        \
-    }                                              \
+#define VULKAN_BEGIN_CONTEXT_COMMAND_TRANSIT(name)         \
+  struct Cmd##name                                         \
+  {                                                        \
+    static const char *getName() { return "CmdTR" #name; } \
     inline void execute(ExecutionContext &ctx) const;
 
-#define VULKAN_BEGIN_CONTEXT_COMMAND_NO_PROFILE(name) \
-  struct Cmd##name                                    \
-  {                                                   \
-    static const char *getName()                      \
-    {                                                 \
-      return "Cmd" #name;                             \
-    }                                                 \
+#define VULKAN_BEGIN_CONTEXT_COMMAND_NO_PROFILE(name)    \
+  struct Cmd##name                                       \
+  {                                                      \
+    static const char *getName() { return "Cmd" #name; } \
     inline void execute(ExecutionContext &ctx) const;
 
 #define VULKAN_END_CONTEXT_COMMAND \

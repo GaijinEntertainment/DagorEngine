@@ -5,11 +5,6 @@
 #pragma once
 
 #include "dag_vecMath.h"
-#ifdef __cplusplus
-#include <cmath> //for fabsf, which is used once, and not wise
-#else
-#include <math.h>
-#endif
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -70,6 +65,11 @@ VECTORCALL VECMATH_FINLINE vec4f v_add_y(vec4f a, float y) { return v_perm_xbzw(
 VECTORCALL VECMATH_FINLINE vec4f v_add_z(vec4f a, float z) { return v_perm_xycw(a, v_add(a, v_splats(z))); }
 VECTORCALL VECMATH_FINLINE vec4f v_add_w(vec4f a, float w) { return v_perm_xyzd(a, v_add(a, v_splats(w))); }
 
+VECTORCALL VECMATH_FINLINE vec4f v_mul_x(vec4f a, float x) { return v_perm_ayzw(a, v_mul_x(a, v_set_x(x))); }
+VECTORCALL VECMATH_FINLINE vec4f v_mul_y(vec4f a, float y) { return v_perm_xbzw(a, v_mul(a, v_splats(y))); }
+VECTORCALL VECMATH_FINLINE vec4f v_mul_z(vec4f a, float z) { return v_perm_xycw(a, v_mul(a, v_splats(z))); }
+VECTORCALL VECMATH_FINLINE vec4f v_mul_w(vec4f a, float w) { return v_perm_xyzd(a, v_mul(a, v_splats(w))); }
+
 VECTORCALL VECMATH_FINLINE vec4f v_cmp_le(vec4f a, vec4f b) { return v_cmp_ge(b, a); }
 VECTORCALL VECMATH_FINLINE vec4f v_cmp_lt(vec4f a, vec4f b) { return v_cmp_gt(b, a); }
 
@@ -81,6 +81,20 @@ VECTORCALL VECMATH_FINLINE vec4f v_clamp(vec4f t, vec4f min_val, vec4f max_val)
 VECTORCALL VECMATH_FINLINE vec4i v_clampi(vec4i t, vec4i min_val, vec4i max_val)
 {
   return v_maxi(v_mini(t, max_val), min_val);
+}
+
+VECTORCALL VECMATH_FINLINE vec4f v_round(vec4f a)
+{
+  vec4f offset = v_btsel(V_C_HALF, a, V_CI_SIGN_MASK);
+  vec4f adjusted = v_add(a, offset);
+  return v_trunc(adjusted);
+}
+
+VECTORCALL VECMATH_FINLINE vec4i v_cvt_roundi(vec4f a)
+{
+  vec4f offset = v_btsel(V_C_HALF, a, V_CI_SIGN_MASK);
+  vec4f adjusted = v_add(a, offset);
+  return v_cvt_trunci(adjusted);
 }
 
 VECTORCALL VECMATH_FINLINE vec4f v_cmp_relative_equal(vec4f a, vec4f b, vec4f max_diff, vec4f max_rel_diff)
@@ -264,15 +278,10 @@ VECTORCALL VECMATH_FINLINE vec4f v_norm2_safe(vec4f a, vec4f def)
 
 VECTORCALL VECMATH_FINLINE vec3f v_cross3(vec3f a, vec3f b)
 {
-  // a.y * b.z - a.z * b.y
-  // a.z * b.x - a.x * b.z
-  // a.x * b.y - a.y * b.x
-  vec3f tmp0 = v_perm_yzxw(a);
-  vec3f tmp1 = v_perm_zxyw(b);
-  vec3f tmp2 = v_mul(tmp0, b);
-  vec3f tmp3 = v_mul(tmp0, tmp1);
-  vec3f tmp4 = v_perm_yzxw(tmp2);
-  return v_sub(tmp3, tmp4);
+  // (a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x)
+  vec3f yzxw = v_perm_yzxw(a);
+  vec3f bcad = v_perm_yzxw(b);
+  return v_perm_yzxy(v_nmsub(yzxw, b, v_mul(a, bcad)));
 }
 
 VECTORCALL VECMATH_FINLINE void v_mat44_make_persp_forward(mat44f &dest, float wk, float hk, float zn, float zf)
@@ -328,8 +337,7 @@ VECTORCALL VECMATH_FINLINE vec4f v_remove_not_finite(vec4f a)
 
 VECTORCALL VECMATH_FINLINE vec4f v_remove_nan(vec4f a)
 {
-  volatile vec4f v = a;
-  return v_and(a, v_cmp_eq(a, (vec4f &)v));
+  return v_andnot(v_is_nan(a), a);
 }
 
 VECTORCALL VECMATH_FINLINE vec4f v_is_nan(vec4f a)
@@ -670,6 +678,12 @@ VECTORCALL VECMATH_FINLINE vec4f v_mat44_max_scale43_sq(mat44f_cref tm)
   vec4f zScaleSq = v_length3_sq(tm.col2);
   return v_max(xScaleSq, v_max(yScaleSq, zScaleSq));
 }
+VECTORCALL VECMATH_FINLINE void v_mat44_apply_scale43(mat44f &tm, vec3f scale)
+{
+  tm.col0 = v_mul(tm.col0, v_splat_x(scale));
+  tm.col1 = v_mul(tm.col1, v_splat_y(scale));
+  tm.col2 = v_mul(tm.col2, v_splat_z(scale));
+}
 VECTORCALL VECMATH_FINLINE vec4f v_mat44_max_scale43(mat44f_cref tm)
 {
   return v_sqrt(v_mat44_max_scale43_sq(tm));
@@ -903,8 +917,8 @@ VECTORCALL inline bool v_bbox3_test_trasformed_box_intersect_no_check(bbox3f box
   {
     vec3f point0 = v_sel(v_zero(), box1.bmin, elemMask0);
     vec3f point1 = v_sel(v_zero(), box1.bmax, elemMask0);
-    vec3f elemMask1 = v_perm_xycd(v_perm_xaxa(v_cmp_eq(elemMask0, v_zero()), v_xor(elemMask0, v_zero())), v_zero()); // take Y on pass 0, and X on others
-    vec3f elemMask2 = v_cmp_eq(v_or(elemMask0, elemMask1), v_zero());
+    vec3f elemMask1 = v_perm_xycd(v_perm_xaxa(v_cmp_eqi(elemMask0, v_zero()), v_xor(elemMask0, v_zero())), v_zero()); // take Y on pass 0, and X on others
+    vec3f elemMask2 = v_cmp_eqi(v_or(elemMask0, elemMask1), v_zero());
     elemMask0 = v_rot_3(elemMask0);
 
     for (int j = 0; j < 2; j++)
@@ -1077,6 +1091,14 @@ VECMATH_FINLINE void v_bsph_init_empty(vec4f &sph)
 VECMATH_FINLINE void v_bsph_init(vec4f &sph, vec3f center, vec4f radius_x)
 {
   sph = v_perm_xyzd(center, v_splat_x(radius_x));
+}
+
+VECMATH_FINLINE void v_bsph_init(vec4f &sph, mat44f_cref tm, vec3f center, vec4f radius_x)
+{
+  vec4f scale = v_mat44_max_scale43_x(tm);
+  vec3f c = v_mat44_mul_vec3p(tm, center);
+  vec4f r = v_mul_x(radius_x, scale);
+  sph = v_perm_xyzd(c, v_splat_x(r));
 }
 
 VECMATH_FINLINE void v_bsph_init_by_bbox3(vec4f &sph, bbox3f b)
@@ -1412,8 +1434,7 @@ VECTORCALL inline quat4f v_quat_slerp(vec4f t, quat4f a, quat4f b)
 VECTORCALL VECMATH_FINLINE quat4f v_quat_qslerp(float t, quat4f l, quat4f r)
 {
   float ca = v_extract_x(v_dot4_x(l, r));
-  //todo: vectorize
-  float d = fabsf(ca);
+  float d = v_extract_x(v_abs(v_set_x(ca)));
   float k = 0.931872f + d * (-1.25654f + d * 0.331442f);
   float ot = t + t * (t - 0.5f) * (t - 1) * k;
 
@@ -2875,11 +2896,32 @@ VECTORCALL VECMATH_FINLINE vec4f distance_to_seg_x(vec3f point, vec3f a, vec3f b
 }
 
 
+#if _TARGET_HAS_FC16
+// always use faster conversions on AVX2 (there are no HW which has AVX2 and no FC16 intrinsics)
+// tunc is most closer in results to v_float_to_half
+VECTORCALL VECMATH_FINLINE vec4i v_float_to_half(vec4f a) {return v_fc16_float_to_half_trunc(a);}
+VECTORCALL VECMATH_FINLINE vec4i v_float_to_half_trunc(vec4f a) {return v_fc16_float_to_half_trunc(a);}
+VECTORCALL VECMATH_FINLINE vec4i v_float_to_half_specials(vec4f a) {return v_fc16_float_to_half_trunc(a);}
+VECTORCALL VECMATH_FINLINE vec4i v_float_to_half_rtne(vec4f a) {return v_fc16_float_to_half_rtne(a);}
+VECTORCALL VECMATH_FINLINE vec4i v_float_to_half_up(vec4f a) {return v_fc16_float_to_half_up(a);}
+VECTORCALL VECMATH_FINLINE vec4i v_float_to_half_down(vec4f a) {return v_fc16_float_to_half_down(a);}
+
+VECTORCALL VECMATH_FINLINE vec4i v_float_to_half_trunc_lo(vec4f a) {return v_fc16_float_to_half_trunc_lo(a);}
+VECTORCALL VECMATH_FINLINE vec4i v_float_to_half_specials_lo(vec4f a) {return v_fc16_float_to_half_trunc_lo(a);}
+VECTORCALL VECMATH_FINLINE vec4i v_float_to_half_rtne_lo(vec4f a) {return v_fc16_float_to_half_rtne_lo(a);}
+VECTORCALL VECMATH_FINLINE vec4i v_float_to_half_up_lo(vec4f a) {return v_fc16_float_to_half_up_lo(a);}
+VECTORCALL VECMATH_FINLINE vec4i v_float_to_half_down_lo(vec4f a) {return v_fc16_float_to_half_down_lo(a);}
+
+VECTORCALL VECMATH_FINLINE vec4f v_half_to_float(vec4i a) {return v_fc16_half_to_float(a);}
+VECTORCALL VECMATH_FINLINE vec4f v_half_to_float_specials(vec4i a) {return v_fc16_half_to_float(a);}
+VECTORCALL VECMATH_FINLINE vec4f v_half_to_float_lo(vec4i a) {return v_fc16_half_to_float_lo(a);}
+VECTORCALL VECMATH_FINLINE vec4f v_half_to_float_specials_lo(vec4i a) {return v_fc16_half_to_float_lo(a);}
+#else
+
 //https://fgiesen.wordpress.com/2012/03/28/half-to-float-done-quic/
 //https://gist.github.com/rygorous/2156668
-
-//doesn't round correctly
-VECTORCALL VECMATH_FINLINE vec4i v_float_to_half(vec4f f)
+//doesn't round correctly, basically truncs to zero
+VECTORCALL VECMATH_FINLINE vec4i v_float_to_half_trunc(vec4f f)
 {
   vec4i mask_fabs  = v_splatsi(0x7fffffff);
   vec4i c_f16max   = v_splatsi((127 + 16) << 23);
@@ -2902,7 +2944,9 @@ VECTORCALL VECMATH_FINLINE vec4i v_float_to_half(vec4f f)
   return final;
 }
 
-//handles infs/nans, doesn't round correctly
+VECTORCALL VECMATH_FINLINE vec4i v_float_to_half(vec4f f) {return v_float_to_half_trunc(f);}
+
+//handles infs/nans, doesn't round correctly (truncs)
 //it (incorrectly) translates some of sNaNs into infinity, so be careful!
 VECTORCALL VECMATH_FINLINE vec4i v_float_to_half_specials(vec4f f)
 {
@@ -2980,12 +3024,6 @@ VECTORCALL VECMATH_FINLINE vec4i v_float_to_half_rtne(vec4f f)
   return final;
 }
 
-VECTORCALL VECMATH_FINLINE void v_float_to_half(uint16_t* __restrict m, const vec4f v)
-{
-  v_stui_half(m, v_packus(v_float_to_half(v)));
-}
-
-
 VECTORCALL VECMATH_FINLINE vec4f v_half_to_float(vec4i h)
 {
   const vec4f magic = v_cast_vec4f(v_splatsi((254 - 15) << 23));
@@ -3004,6 +3042,16 @@ VECTORCALL VECMATH_FINLINE vec4f v_half_to_float_specials(vec4i h)
   return v_or(of, v_cast_vec4f(v_sll(v_srl(h, 15), 31)));
 }
 
+VECTORCALL VECMATH_FINLINE vec4f v_half_to_float_lo(vec4i a)
+{
+  return v_half_to_float(v_cvt_lo_ush_vec4i(a));
+}
+
+VECTORCALL VECMATH_FINLINE vec4f v_half_to_float_specials_lo(vec4i a)
+{
+  return v_half_to_float_specials(v_cvt_lo_ush_vec4i(a));
+}
+
 //not checking for NANs
 VECTORCALL VECMATH_FINLINE vec4i v_float_to_half_up(vec4f a)
 {
@@ -3018,6 +3066,18 @@ VECTORCALL VECMATH_FINLINE vec4i v_float_to_half_down(vec4f a)
   vec4i c = v_float_to_half(a);//
   vec4f incMask = v_cmp_gt(v_half_to_float(c), a);
   return v_btseli(c, v_addi(c, v_splatsi(1)), v_cast_vec4i(incMask));
+}
+
+VECTORCALL VECMATH_FINLINE vec4i v_float_to_half_specials_lo(vec4f v) {return v_packus(v_float_to_half_specials(v));}
+VECTORCALL VECMATH_FINLINE vec4i v_float_to_half_trunc_lo(vec4f v) {return v_packus(v_float_to_half_trunc(v));}
+VECTORCALL VECMATH_FINLINE vec4i v_float_to_half_down_lo(vec4f v) {return v_packus(v_float_to_half_down(v));}
+VECTORCALL VECMATH_FINLINE vec4i v_float_to_half_up_lo(vec4f v) {return v_packus(v_float_to_half_up(v));}
+VECTORCALL VECMATH_FINLINE vec4i v_float_to_half_rtne_lo(vec4f v) {return v_packus(v_float_to_half_rtne(v));}
+#endif
+
+VECTORCALL VECMATH_FINLINE void v_float_to_half(uint16_t* __restrict m, const vec4f v)
+{
+  v_stui_half(m, v_float_to_half_trunc_lo(v));
 }
 
 VECTORCALL VECMATH_FINLINE vec4f v_half_to_float(const uint16_t* __restrict m)

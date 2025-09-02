@@ -4,6 +4,7 @@
 
 #include <daECS/core/entitySystem.h>
 #include <dasModules/dasScriptsLoader.h>
+#include <dasModules/dasSharedStack.h>
 
 namespace
 {
@@ -60,7 +61,7 @@ static inline void defer_to_act_es(const ecs::UpdateStageInfoAct &)
 
     if (!context->ownStack)
     {
-      das::SharedStackGuard guard(*context, bind_dascript::get_shared_stack());
+      das::SharedFramememStackGuard guard(*context);
       das::das_invoke_function<void>::invoke(context, nullptr, f.fn);
     }
     else

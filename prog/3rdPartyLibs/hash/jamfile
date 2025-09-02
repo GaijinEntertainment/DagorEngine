@@ -12,6 +12,7 @@ AddIncludes =
 
 Sources =
   sha1.cpp
+  sha256.cpp
   md5.c
   xxhash.c
   crc32.c
@@ -29,8 +30,11 @@ if $(UseSystemOpenSSL) != yes {
   UseProgLibs += 3rdPartyLibs/openssl-$(OpenSSLVer)/crypto/sha ;
 }
 
-# warning 6386| Buffer overrun: accessing 'argument 1', the writable size is '64' bytes, but '746' bytes might be written:
-if $(Platform) in windows && $(PlatformSpec) != clang { Copt += /wd6386 ; }
+if $(Platform) in windows {
+  # warning 6386| Buffer overrun: accessing 'argument 1', the writable size is '64' bytes, but '746' bytes might be written:
+  if $(PlatformSpec) != clang { Copt += /wd6386 ; }
+  else if $(PlatformArch) in x86 x86_64 { opt on crc32c.c = -mcrc32 ; }
+}
 if $(PlatformArch) = e2k { CPPopt += -Wno-reduced-alignment ; }
 
 include $(Root)/prog/_jBuild/build.jam ;

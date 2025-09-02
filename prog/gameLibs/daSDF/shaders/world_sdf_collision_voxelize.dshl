@@ -1,4 +1,4 @@
-include "shader_global.dshl"
+include "sky_shader_global.dshl"
 include "globtm.dshl"
 include "world_sdf_update_common.dshl"
 include "world_sdf_collision_buffers_common.dshl"

@@ -1,6 +1,38 @@
+rotating_door_sound{
+  _group{
+    _tags:t="sound"
+    rotating_door_sound__isInited:b=no
+    rotating_door_sound__isClosed:b=yes
+    rotating_door_sound__prevAngle:r=0
+    rotating_door_sound__speedHistory:p3=0,0,0
+    rotating_door_sound__speed:r=0
+    rotating_door_sound__nextMovingAt:r=0
+    rotating_door_sound__nextPushAt:r=0
+    "rotating_door_sound__movingEvent:SoundEvent"{}
+    "rotatingDoorSounds:tag"{}
+    // setup
+    rotating_door_sound__openedPath:t=""
+    rotating_door_sound__closedPath:t=""
+    rotating_door_sound__movingPath:t=""
+    rotating_door_sound__pushPath:t=""
+    rotating_door_sound__closedSpeedToVar:p2=0,150
+    rotating_door_sound__movingSpeedToVar:p2=0,150
+    rotating_door_sound__pushSpeedToVar:p2=10,150
+    rotating_door_sound__movingSpeedThreshold:r=5
+    rotating_door_sound__movingCooldown:r=0.5
+    rotating_door_sound__pushCooldown:r=1
+    rotating_door_sound__maxRange:r=30
+  }
+  _tracked:t="rotating_door_sound__isClosed"
+}
+
+// no simple phys or legacy
+
 base_door_sound{
   _group{
     _tags:t="sound"
+    door_sound__isOpened:b=no
+    // setup
     door_sound__openPath:t="env_effects/doors/standart/open"
     door_sound__closePath:t="env_effects/doors/standart/close"
   }
@@ -12,24 +44,6 @@ metal_gate_door_sounds{
     _tags:t="sound"
     door_sound__openPath:t="env_effects/doors/metal_gate_01/open"
     door_sound__closePath:t="env_effects/doors/metal_gate_01/close"
-  }
-}
-
-modern_metal_gate_door_sounds{
-  _use:t="base_door_sound"
-  _group{
-    _tags:t="sound"
-    door_sound__openPath:t="env_effects/doors/modern_metal_gate/open"
-    door_sound__closePath:t="env_effects/doors/modern_metal_gate/close"
-  }
-}
-
-modern_wooden_gate_sounds{
-  _use:t="base_door_sound"
-  _group{
-    _tags:t="sound"
-    door_sound__openPath:t="env_effects/doors/modern_wooden_gate/open"
-    door_sound__closePath:t="env_effects/doors/modern_wooden_gate/close"
   }
 }
 

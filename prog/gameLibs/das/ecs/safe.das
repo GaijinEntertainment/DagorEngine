@@ -1,3 +1,4 @@
+options indenting = 2
 module safe shared
 require ecs
 require DagorMath
@@ -77,7 +78,7 @@ def operator ?[] (t : Array const? const; idx : int) : ChildComponent const? con
 
 [generic, constant_expression(name=false), unused_argument(name)]
 def operator .(t : Object const ==const; name : string) : ChildComponent const? const
-  static_if typeinfo(is_argument name)
+  static_if typeinfo is_argument(name)
     return t[name]
   else
     return get_child(t, name, ecs_hash(name))
@@ -85,7 +86,7 @@ def operator .(t : Object const ==const; name : string) : ChildComponent const? 
 
 [generic, constant_expression(name=false), unused_argument(name)]
 def operator .(var t : Object ==const; name : string) : ChildComponent?
-  static_if typeinfo(is_argument name)
+  static_if typeinfo is_argument(name)
     return t[name]
   else
     return getRW_child(t, name, ecs_hash(name))
@@ -94,41 +95,41 @@ def operator .(var t : Object ==const; name : string) : ChildComponent?
 [generic, constant_expression(name=false), unused_argument(name)]
 def operator ?.(t : Object const? const ==const; name : string) : ChildComponent const? const
   if t != null
-    static_if typeinfo(is_argument name)
+    static_if typeinfo is_argument(name)
       return (*t)[name]
     else
       return get_child(*t, name, ecs_hash(name))
-  return [[ChildComponent const? const]]
+  return default<ChildComponent const? const>
 
 
 [generic, constant_expression(name=false), unused_argument(name)]
 def operator ?.(var t : Object? ==const; name : string) : ChildComponent?
   if t != null
-    static_if typeinfo(is_argument name)
+    static_if typeinfo is_argument(name)
       return (*t)[name]
     else
       return getRW_child(*t, name, ecs_hash(name))
-  return [[ChildComponent?]]
+  return default<ChildComponent?>
 
 
 [generic, constant_expression(name=false), unused_argument(name)]
 def operator ?[] (t : Object const? const; name : string) : ChildComponent const? const
   if t != null
-    static_if typeinfo(is_argument name)
+    static_if typeinfo is_argument(name)
       return (*t)[name]
     else
       return get_child(*t, name, ecs_hash(name))
-  return [[ChildComponent const? const]]
+  return default<ChildComponent const? const>
 
 
 [generic, constant_expression(name=false), unused_argument(name)]
 def operator ?[] (var t : Object?; name : string) : ChildComponent?
   if t != null
-    static_if typeinfo(is_argument name)
+    static_if typeinfo is_argument(name)
       return (*t)[name]
     else
       return getRW_child(*t, name, ecs_hash(name))
-  return [[ChildComponent?]]
+  return default<ChildComponent?>
 
 
 def operator ??(a : ChildComponent const? const; default_value)
@@ -316,7 +317,7 @@ def operator ??(a : ChildComponent const#; default_value)
 
 [generic, constant_expression(name), unused_argument(child, name)]
 def operator ?as(child : ChildComponent const? const ==const; name : string)
-  static_if !typeinfo(is_argument name)
+  static_if !typeinfo is_argument(name)
     static_if name == "Object"
       return get_ecs_object(child)
     static_elif name == "Array"
@@ -371,7 +372,7 @@ def operator ?as(child : ChildComponent const? const ==const; name : string)
 
 [generic, constant_expression(name), unused_argument(child, name)]
 def operator ?as(child : ChildComponent const? const# ==const; name : string)
-  static_if !typeinfo(is_argument name)
+  static_if !typeinfo is_argument(name)
     static_if name == "Object"
       return get_ecs_object(child)
     static_elif name == "Array"
@@ -426,7 +427,7 @@ def operator ?as(child : ChildComponent const? const# ==const; name : string)
 
 [generic, constant_expression(name), unused_argument(child, name)]
 def operator as(child : ChildComponent const ==const; name : string)
-  static_if !typeinfo(is_argument name)
+  static_if !typeinfo is_argument(name)
     static_if name == "Object"
       return get_ecs_object(child)
     static_elif name == "Array"
@@ -481,7 +482,7 @@ def operator as(child : ChildComponent const ==const; name : string)
 
 [generic, constant_expression(name), unused_argument(child, name)]
 def operator as(child : ChildComponent const# ==const; name : string)
-  static_if !typeinfo(is_argument name)
+  static_if !typeinfo is_argument(name)
     static_if name == "Object"
       return get_ecs_object(child)
     static_elif name == "Array"
@@ -536,7 +537,7 @@ def operator as(child : ChildComponent const# ==const; name : string)
 
 [generic, constant_expression(name), unused_argument(child, name)]
 def operator ?as(var child : ChildComponent? ==const; name : string)
-  static_if !typeinfo(is_argument name)
+  static_if !typeinfo is_argument(name)
     static_if name == "Object"
       return getRW_ecs_object(child)
     static_elif name == "Array"
@@ -591,7 +592,7 @@ def operator ?as(var child : ChildComponent? ==const; name : string)
 
 [generic, constant_expression(name), unused_argument(child, name)]
 def operator ?as(var child : ChildComponent?# ==const; name : string)
-  static_if !typeinfo(is_argument name)
+  static_if !typeinfo is_argument(name)
     static_if name == "Object"
       return getRW_ecs_object(child)
     static_elif name == "Array"
@@ -646,7 +647,7 @@ def operator ?as(var child : ChildComponent?# ==const; name : string)
 
 [generic, constant_expression(name), unused_argument(child, name)]
 def operator as(var child : ChildComponent ==const; name : string)
-  static_if !typeinfo(is_argument name)
+  static_if !typeinfo is_argument(name)
     static_if name == "Object"
       return getRW_ecs_object(child)
     static_elif name == "Array"
@@ -701,7 +702,7 @@ def operator as(var child : ChildComponent ==const; name : string)
 
 [generic, constant_expression(name), unused_argument(child, name)]
 def operator as(var child : ChildComponent# ==const; name : string)
-  static_if !typeinfo(is_argument name)
+  static_if !typeinfo is_argument(name)
     static_if name == "Object"
       return getRW_ecs_object(child)
     static_elif name == "Array"

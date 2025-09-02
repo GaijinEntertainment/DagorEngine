@@ -9,6 +9,7 @@ shader deferred_light_compute
     dont_render;//deferred are not used in compatibility
   }
 
+  ENABLE_ASSERT(cs)
   INIT_LOAD_DEPTH_GBUFFER_BASE(cs)
   USE_LOAD_DEPTH_GBUFFER_BASE(cs)
   INIT_RENDERING_RESOLUTION(cs)
@@ -34,7 +35,7 @@ shader deferred_light_compute
     ##if gi_quality == screen_probes
       RWTexture2D<GI_ENCODED_TYPE> g_specular : register(u0);
       RWTexture2D<GI_ENCODED_TYPE> g_ambient : register(u1);
-      RWTexture2D<uint> g_pixel_age : register(u2);
+      RWTexture2D<float> g_pixel_age : register(u2);
     ##else
         RWTexture2D<half3> g_specular : register(u0);
       ##if gi_quality != off
@@ -71,7 +72,7 @@ shader deferred_light_compute
       float3 worldPos = world_view_pos.xyz - pointToEyeOfs;
 
       half3 computedSpecular, computedAmbient;
-      uint age;
+      float age;
       ComputeDeferredLight(gbuffer, worldPos, rawDepth, curViewTc, screenCoordCenter, pointToEye, computedSpecular, computedAmbient, age);
 
       ##if gi_quality == screen_probes

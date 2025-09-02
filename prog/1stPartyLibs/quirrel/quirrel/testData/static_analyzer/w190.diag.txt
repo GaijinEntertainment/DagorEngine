@@ -11,7 +11,7 @@ testData/static_analyzer/w190.nut:9:4
 AN ERROR HAS OCCURRED [attempt to call 'string']
 
 CALLSTACK
-*FUNCTION [__main__()] testData/static_analyzer/w190.nut line [8]
+*FUNCTION [__main__()] testData/static_analyzer/w190.nut:8
 
 LOCALS
 [x] TABLE={bar="T"}

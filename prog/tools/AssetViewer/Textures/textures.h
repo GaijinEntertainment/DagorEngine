@@ -12,6 +12,7 @@
 #include <gui/dag_stdGuiRenderEx.h>
 #include <shaders/dag_overrideStateId.h>
 #include <libTools/util/iesReader.h>
+#include <assets/texAssetBuilderTextureFactory.h>
 #include "tex_cm.h"
 
 
@@ -19,44 +20,45 @@ class TexturesPlugin : public IGenEditorPlugin, public PropPanel::ControlEventHa
 {
 public:
   TexturesPlugin();
-  ~TexturesPlugin();
+  ~TexturesPlugin() override;
 
   // IGenEditorPlugin
-  virtual const char *getInternalName() const { return "texturesEditor"; }
+  const char *getInternalName() const override { return "texturesEditor"; }
 
-  virtual void registered() {}
-  virtual void unregistered() {}
+  void registered() override {}
+  void unregistered() override {}
 
-  virtual bool begin(DagorAsset *asset);
-  virtual bool end();
-  virtual bool reloadAsset(DagorAsset *asset);
+  bool begin(DagorAsset *asset) override;
+  bool end() override;
+  void registerMenuAccelerators() override;
+  void handleViewportAcceleratorCommand([[maybe_unused]] IGenViewportWnd &wnd, [[maybe_unused]] unsigned id) override;
+  bool reloadAsset(DagorAsset *asset) override;
 
-  virtual void clearObjects() {}
-  virtual void onSaveLibrary() {}
-  virtual void onLoadLibrary() {}
+  void clearObjects() override {}
+  void onSaveLibrary() override {}
+  void onLoadLibrary() override {}
 
-  virtual bool getSelectionBox(BBox3 &box) const { return false; }
+  bool getSelectionBox(BBox3 &box) const override { return false; }
 
-  virtual void actObjects(float dt) {}
-  virtual void beforeRenderObjects() {}
-  virtual void renderObjects();
-  virtual void renderTransObjects() {}
+  void actObjects(float dt) override {}
+  void beforeRenderObjects() override {}
+  void renderObjects() override;
+  void renderTransObjects() override {}
 
-  virtual bool supportAssetType(const DagorAsset &asset) const;
-  virtual bool supportEditing() const { return false; }
+  bool supportAssetType(const DagorAsset &asset) const override;
+  bool supportEditing() const override { return false; }
 
-  virtual void fillPropPanel(PropPanel::ContainerPropertyControl &panel);
-  virtual void postFillPropPanel() {}
+  void fillPropPanel(PropPanel::ContainerPropertyControl &panel) override;
+  void postFillPropPanel() override {}
 
-  virtual bool handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
-  virtual bool handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
-  virtual bool handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
-  virtual void handleKeyPress(IGenViewportWnd *wnd, int vk, int modif);
-  virtual bool handleMouseWheel(IGenViewportWnd *wnd, int wheel_d, int x, int y, int key_modif);
+  bool handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
+  bool handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
+  bool handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
+  bool handleMouseWheel(IGenViewportWnd *wnd, int wheel_d, int x, int y, int key_modif) override;
 
   // ControlEventHandler
-  virtual void onChange(int pid, PropPanel::ContainerPropertyControl *panel);
-  virtual void onClick(int pid, PropPanel::ContainerPropertyControl *panel);
+  void onChange(int pid, PropPanel::ContainerPropertyControl *panel) override;
+  void onClick(int pid, PropPanel::ContainerPropertyControl *panel) override;
 
 private:
   Point2 viewTile;
@@ -84,12 +86,18 @@ private:
   bool showMipStripe = false;
   Point2 texMove = Point2(0, 0), priorMousePos = Point2(0, 0);
   int viewAtestVal = 0, viewRgbaMode = ID_COLOR_MODE_RGBA, viewMipLevel = -1;
-  int showTexQ = TQL_high;
+  int showTexQ = ID_SHOW_TEXQ_HIGH;
+  int defShowTexQ = ID_SHOW_TEXQ_HIGH;
+  TextureInfo currentTI;
+  unsigned texReqLev = 15;
+  bool diffTexStatsReady = false;
   float tcZ = 0;
   float texScale = 1.0f;
   shaders::OverrideStateId renderVolImageOverrideId;
 
   void setIesData();
+  int getTextureProps(ManagedTexEntryDesc &out_desc, String &out_type, String &out_dim, String &out_mem_sz);
+  bool getDiffTextureStats(String &stat1, String &stat2);
 
   bool iesTexture = false;
   IesReader::IesParams iesParams;

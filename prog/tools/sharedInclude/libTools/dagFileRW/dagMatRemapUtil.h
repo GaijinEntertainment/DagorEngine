@@ -21,7 +21,7 @@ struct DagData
   struct Block
   {
     int tag, start, end;
-    void *data;
+    SmallTab<unsigned short, TmpmemAlloc> data;
   };
   struct Node
   {

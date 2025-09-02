@@ -13,51 +13,29 @@ void Trace::walkBreadcumbs(call_stack::Reporter &reporter)
 {
   CommandListTraceBase::printLegend();
 
-  commandListTable.visitAll([&reporter](auto cmd, auto &cmdList) {
-    if (cmdList.traceRecodring.isCompleted())
+  commandListTable.visitAll([&reporter, this](auto cmd, auto &cmdList) {
+    if (traceRecoderingPool.isCompleted(cmdList.recorder))
     {
       logdbg("DX12: Command Buffer was executed without error");
       logdbg("DX12: Command Buffer: %p", cmd);
     }
+    else if (!traceRecoderingPool.hasAnyTracesRecorded(cmdList.recorder))
+    {
+      logdbg("DX12: Command Buffer execution was likely not started yet");
+      logdbg("DX12: Command Buffer: %p", cmd);
+    }
     else
     {
-      uint32_t count = cmdList.traceRecodring.completedCount();
-
-      if (0 == count)
-      {
-        logdbg("DX12: Command Buffer execution was likely not started yet");
-        logdbg("DX12: Command Buffer: %p", cmd);
-        logdbg("DX12: Breadcrumb count: %u", count);
-        logdbg("DX12: Last breadcrumb value: %u", cmdList.traceRecodring.indexToTraceID(0));
-        auto vistorContext = cmdList.traceList.beginVisitation();
-        cmdList.traceList.reportEverythingAsNotCompleted(vistorContext, cmdList.traceRecodring.indexToTraceID(1), reporter);
-      }
-      else
-      {
-        auto completedTraceID = cmdList.traceRecodring.indexToTraceID(count);
-        auto vistorContext = cmdList.traceList.beginVisitation();
-
-        logdbg("DX12: Command Buffer execution incomplete");
-        logdbg("DX12: Command Buffer: %p", cmd);
-        logdbg("DX12: Breadcrumb count: %u", count);
-        logdbg("DX12: Last breadcrumb value: %u", completedTraceID);
-
-        // Report everything until the trace it as regular completed
-        cmdList.traceList.reportEverythingUntilAsCompleted(vistorContext, completedTraceID, reporter);
-
-        // Report everything that matches the trace as last completed
-        logdbg("DX12: ~Last known good command~~");
-        cmdList.traceList.reportEverythingMatchingAsLastCompleted(vistorContext, completedTraceID, reporter);
-
-        logdbg("DX12: ~First may be bad command~");
-        // Will print full dump for all remaining trace entries
-        cmdList.traceList.reportEverythingAsNoCompleted(vistorContext, reporter);
-      }
+      logdbg("DX12: Command Buffer execution incomplete");
+      logdbg("DX12: Command Buffer: %p", cmd);
+      logdbg("DX12: Breadcrumb count: %u", traceRecoderingPool.getTraceRecordIssued(cmdList.recorder));
+      cmdList.traceList.report(reporter,
+        [this, &cmdList](auto trace_id) { return traceRecoderingPool.readTraceStatus(cmdList.recorder, trace_id); });
     }
   });
 }
 
-bool Trace::try_load(const Configuration &config, const Direct3D12Enviroment &d3d_env)
+bool Trace::try_load(const Configuration &config, const Direct3D12Enviroment &)
 {
   if (!config.enableDagorGPUTrace)
   {
@@ -66,61 +44,39 @@ bool Trace::try_load(const Configuration &config, const Direct3D12Enviroment &d3
   }
 
   logdbg("DX12: Dagor GPU trace is enabled...");
-
-  // when page fault should be tracked we try to use DRED, if it works nice, if not, no loss
-  if (!config.trackPageFaults)
-  {
-    logdbg("DX12: ...page fault tracking is disabled by configuration");
-    return true;
-  }
-
-  logdbg("DX12: Trying to capture page faults with DRED, may not work...");
-  logdbg("DX12: ...loading debug interface query...");
-  PFN_D3D12_GET_DEBUG_INTERFACE D3D12GetDebugInterface = nullptr;
-  reinterpret_cast<FARPROC &>(D3D12GetDebugInterface) = d3d_env.getD3DProcAddress("D3D12GetDebugInterface");
-  if (!D3D12GetDebugInterface)
-  {
-    logdbg("DX12: ...D3D12GetDebugInterface not found in direct dx runtime library");
-    return true;
-  }
-
-  ComPtr<ID3D12DeviceRemovedExtendedDataSettings> dredConfig;
-  if (FAILED(D3D12GetDebugInterface(COM_ARGS(&dredConfig))))
-  {
-    logdbg("DX12: ...unable to acquire DRED config interface");
-    return false;
-  }
-
-  dredConfig->SetPageFaultEnablement(D3D12_DRED_ENABLEMENT_FORCED_ON);
-  logdbg("DX12: ...enabled page fault tracking of DRED");
   return true;
 }
 
-void Trace::beginCommandBuffer(ID3D12Device3 *device, ID3D12GraphicsCommandList *cmd)
+void Trace::beginCommandBuffer(D3DDevice *device, D3DGraphicsCommandList *cmd)
 {
-  auto &list = commandListTable.beginList(cmd, device);
-  list.traceRecodring.beginRecording();
+  auto &list =
+    commandListTable.beginListWithCallback(cmd, [this, device](auto) { return traceRecoderingPool.allocateTraceRecorder(device); });
+  traceRecoderingPool.beginRecording(list.recorder);
   list.traceList.beginTrace();
 }
 
-void Trace::endCommandBuffer(ID3D12GraphicsCommandList *cmd) { commandListTable.endList(cmd); }
-
-void Trace::beginEvent(ID3D12GraphicsCommandList *cmd, eastl::span<const char> text, const eastl::string &full_path)
+void Trace::endCommandBuffer(D3DGraphicsCommandList *cmd)
 {
-  auto &list = commandListTable.getList(cmd);
-  list.traceList.beginEvent({}, text, full_path);
+  commandListTable.endList(cmd);
+  lastCheckpoint = {};
 }
 
-void Trace::endEvent(ID3D12GraphicsCommandList *cmd, const eastl::string &full_path)
+void Trace::beginEvent(D3DGraphicsCommandList *cmd, eastl::span<const char> text, const eastl::string &full_path)
 {
   auto &list = commandListTable.getList(cmd);
-  list.traceList.endEvent({}, full_path);
+  list.traceList.beginEvent(text, full_path);
 }
 
-void Trace::marker(ID3D12GraphicsCommandList *cmd, eastl::span<const char> text)
+void Trace::endEvent(D3DGraphicsCommandList *cmd, const eastl::string &full_path)
 {
   auto &list = commandListTable.getList(cmd);
-  list.traceList.marker({}, text);
+  list.traceList.endEvent(full_path);
+}
+
+void Trace::marker(D3DGraphicsCommandList *cmd, eastl::span<const char> text)
+{
+  auto &list = commandListTable.getList(cmd);
+  list.traceList.marker(text);
 }
 
 void Trace::draw(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &vs,
@@ -128,8 +84,9 @@ void Trace::draw(const call_stack::CommandData &debug_info, D3DGraphicsCommandLi
   uint32_t start, uint32_t first_instance, D3D12_PRIMITIVE_TOPOLOGY topology)
 {
   auto &list = commandListTable.getList(cmd);
-  auto id = list.traceRecodring.record(cmd);
+  auto id = traceRecoderingPool.recordTrace(list.recorder, cmd);
   list.traceList.draw(id, debug_info, vs, ps, pipeline_base, pipeline, count, instance_count, start, first_instance, topology);
+  lastCheckpoint = {.commandList = cmd, .progress = id};
 }
 
 void Trace::drawIndexed(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &vs,
@@ -137,9 +94,10 @@ void Trace::drawIndexed(const call_stack::CommandData &debug_info, D3DGraphicsCo
   uint32_t index_start, int32_t vertex_base, uint32_t first_instance, D3D12_PRIMITIVE_TOPOLOGY topology)
 {
   auto &list = commandListTable.getList(cmd);
-  auto id = list.traceRecodring.record(cmd);
+  auto id = traceRecoderingPool.recordTrace(list.recorder, cmd);
   list.traceList.drawIndexed(id, debug_info, vs, ps, pipeline_base, pipeline, count, instance_count, index_start, vertex_base,
     first_instance, topology);
+  lastCheckpoint = {.commandList = cmd, .progress = id};
 }
 
 void Trace::drawIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &vs,
@@ -147,8 +105,9 @@ void Trace::drawIndirect(const call_stack::CommandData &debug_info, D3DGraphicsC
   const BufferResourceReferenceAndOffset &buffer)
 {
   auto &list = commandListTable.getList(cmd);
-  auto id = list.traceRecodring.record(cmd);
+  auto id = traceRecoderingPool.recordTrace(list.recorder, cmd);
   list.traceList.drawIndirect(id, debug_info, vs, ps, pipeline_base, pipeline, buffer);
+  lastCheckpoint = {.commandList = cmd, .progress = id};
 }
 
 void Trace::drawIndexedIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
@@ -156,32 +115,36 @@ void Trace::drawIndexedIndirect(const call_stack::CommandData &debug_info, D3DGr
   const BufferResourceReferenceAndOffset &buffer)
 {
   auto &list = commandListTable.getList(cmd);
-  auto id = list.traceRecodring.record(cmd);
+  auto id = traceRecoderingPool.recordTrace(list.recorder, cmd);
   list.traceList.drawIndexedIndirect(id, debug_info, vs, ps, pipeline_base, pipeline, buffer);
+  lastCheckpoint = {.commandList = cmd, .progress = id};
 }
 
 void Trace::dispatchIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
   const PipelineStageStateBase &state, ComputePipeline &pipeline, const BufferResourceReferenceAndOffset &buffer)
 {
   auto &list = commandListTable.getList(cmd);
-  auto id = list.traceRecodring.record(cmd);
+  auto id = traceRecoderingPool.recordTrace(list.recorder, cmd);
   list.traceList.dispatchIndirect(id, debug_info, state, pipeline, buffer);
+  lastCheckpoint = {.commandList = cmd, .progress = id};
 }
 
 void Trace::dispatch(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &state,
   ComputePipeline &pipeline, uint32_t x, uint32_t y, uint32_t z)
 {
   auto &list = commandListTable.getList(cmd);
-  auto id = list.traceRecodring.record(cmd);
+  auto id = traceRecoderingPool.recordTrace(list.recorder, cmd);
   list.traceList.dispatch(id, debug_info, state, pipeline, x, y, z);
+  lastCheckpoint = {.commandList = cmd, .progress = id};
 }
 
 void Trace::dispatchMesh(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &vs,
   const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline, uint32_t x, uint32_t y, uint32_t z)
 {
   auto &list = commandListTable.getList(cmd);
-  auto id = list.traceRecodring.record(cmd);
+  auto id = traceRecoderingPool.recordTrace(list.recorder, cmd);
   list.traceList.dispatchMesh(id, debug_info, vs, ps, pipeline_base, pipeline, x, y, z);
+  lastCheckpoint = {.commandList = cmd, .progress = id};
 }
 
 void Trace::dispatchMeshIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
@@ -189,15 +152,17 @@ void Trace::dispatchMeshIndirect(const call_stack::CommandData &debug_info, D3DG
   const BufferResourceReferenceAndOffset &args, const BufferResourceReferenceAndOffset &count, uint32_t max_count)
 {
   auto &list = commandListTable.getList(cmd);
-  auto id = list.traceRecodring.record(cmd);
+  auto id = traceRecoderingPool.recordTrace(list.recorder, cmd);
   list.traceList.dispatchMeshIndirect(id, debug_info, vs, ps, pipeline_base, pipeline, args, count, max_count);
+  lastCheckpoint = {.commandList = cmd, .progress = id};
 }
 
 void Trace::blit(const call_stack::CommandData &call_stack, D3DGraphicsCommandList *cmd)
 {
   auto &list = commandListTable.getList(cmd);
-  auto id = list.traceRecodring.record(cmd);
+  auto id = traceRecoderingPool.recordTrace(list.recorder, cmd);
   list.traceList.blit(id, call_stack);
+  lastCheckpoint = {.commandList = cmd, .progress = id};
 }
 
 #if D3D_HAS_RAY_TRACING
@@ -205,20 +170,22 @@ void Trace::dispatchRays(const call_stack::CommandData &debug_info, D3DGraphicsC
   const RayDispatchBasicParameters &dispatch_parameters, const ResourceBindingTable &rbt, const RayDispatchParameters &rdp)
 {
   auto &list = commandListTable.getList(cmd);
-  auto id = list.traceRecodring.record(cmd);
+  auto id = traceRecoderingPool.recordTrace(list.recorder, cmd);
   list.traceList.dispatchRays(id, debug_info, dispatch_parameters, rbt, rdp);
+  lastCheckpoint = {.commandList = cmd, .progress = id};
 }
 
 void Trace::dispatchRaysIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
   const RayDispatchBasicParameters &dispatch_parameters, const ResourceBindingTable &rbt, const RayDispatchIndirectParameters &rdip)
 {
   auto &list = commandListTable.getList(cmd);
-  auto id = list.traceRecodring.record(cmd);
+  auto id = traceRecoderingPool.recordTrace(list.recorder, cmd);
   list.traceList.dispatchRaysIndirect(id, debug_info, dispatch_parameters, rbt, rdip);
+  lastCheckpoint = {.commandList = cmd, .progress = id};
 }
 #endif
 
-void Trace::onDeviceRemoved(D3DDevice *device, HRESULT reason, call_stack::Reporter &reporter)
+void Trace::onDeviceRemoved(D3DDevice *, HRESULT reason, call_stack::Reporter &reporter)
 {
   if (DXGI_ERROR_INVALID_CALL == reason)
   {
@@ -226,24 +193,18 @@ void Trace::onDeviceRemoved(D3DDevice *device, HRESULT reason, call_stack::Repor
     return;
   }
 
-  // For possible page fault information we fall back to DRED
-  logdbg("DX12: Acquiring DRED interface...");
-  ComPtr<ID3D12DeviceRemovedExtendedData> dred;
-  if (FAILED(device->QueryInterface(COM_ARGS(&dred))))
-  {
-    logdbg("DX12: ...failed, no DRED information available");
-    return;
-  }
-
   walkBreadcumbs(reporter);
-  report_page_fault(dred.Get());
 }
 
 bool Trace::sendGPUCrashDump(const char *, const void *, uintptr_t) { return false; }
 
-void Trace::onDeviceShutdown() { commandListTable.reset(); }
+void Trace::onDeviceShutdown()
+{
+  commandListTable.reset();
+  traceRecoderingPool.reset();
+}
 
-bool Trace::onDeviceSetup(ID3D12Device *device, const Configuration &, const Direct3D12Enviroment &)
+bool Trace::onDeviceSetup(D3DDevice *device, const Configuration &, const Direct3D12Enviroment &)
 {
   // have to check if hw does support the necessary features
   D3D12_FEATURE_DATA_D3D12_OPTIONS3 level3Options = {};
@@ -273,4 +234,25 @@ bool Trace::onDeviceSetup(ID3D12Device *device, const Configuration &, const Dir
   }
   return true;
 }
+
+void Trace::reportTraceDataForRange(const TraceCheckpoint &from, const TraceCheckpoint &to, call_stack::Reporter &reporter)
+{
+  if (from.commandList != to.commandList && from.commandList)
+  {
+    // the tracer can not handle command list jumps, this has to be handled by the caller, by keeping track on per command list
+    // identity
+    logwarn("DX12: reportTraceDataForRange with from.commandList = %p and to.commandList = %p", from.commandList, to.commandList);
+    return;
+  }
+
+  auto list = commandListTable.getOptionalList(to.commandList);
+  if (!list)
+  {
+    return;
+  }
+
+  list->traceList.reportRange(from.progress, to.progress, reporter,
+    [this, list](auto trace_id) { return traceRecoderingPool.readTraceStatus(list->recorder, trace_id); });
+}
+
 } // namespace drv3d_dx12::debug::gpu_postmortem::dagor

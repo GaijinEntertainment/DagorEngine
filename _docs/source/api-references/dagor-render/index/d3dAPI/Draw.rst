@@ -1,5 +1,5 @@
-Draw calls API
+Draw Calls API
 =================================================
 
-.. autodoxygenfile:: dag_draw.h
+.. doxygenfile:: dag_draw.h
   :project: d3dAPI

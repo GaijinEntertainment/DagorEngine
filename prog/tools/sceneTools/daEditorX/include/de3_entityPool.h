@@ -7,6 +7,7 @@
 #include <assets/asset.h>
 #include <generic/dag_tab.h>
 #include <math/dag_bounds3.h>
+#include <math/dag_TMatrix.h> // TMatrix::IDENT
 #include <util/dag_globDef.h>
 
 
@@ -230,21 +231,23 @@ template <class Pool>
 class VirtualMpEntity : public IObjEntity
 {
 public:
-  VirtualMpEntity(int cls) : IObjEntity(cls), pool(NULL), idx(MAX_POOLS), poolIdx(MAX_ENTITIES) {}
+  VirtualMpEntity(int cls) : IObjEntity(cls) {}
 
-  virtual void setTm(const TMatrix &_tm) {}
-  virtual void getTm(TMatrix &_tm) const { _tm = TMatrix::IDENT; }
-  virtual void destroy() {}
-  virtual BSphere3 getBsph() const { return pool->getPools()[poolIdx]->getBsph(); }
-  virtual BBox3 getBbox() const { return pool->getPools()[poolIdx]->getBbox(); }
+  void setTm(const TMatrix &_tm) override {}
+  void getTm(TMatrix &_tm) const override { _tm = TMatrix::IDENT; }
+  void destroy() override {}
+  BSphere3 getBsph() const override { return pool->getPools()[poolIdx]->getBsph(); }
+  BBox3 getBbox() const override { return pool->getPools()[poolIdx]->getBbox(); }
+  auto *getPool() { return pool && poolIdx < pool->getPools().size() ? pool->getPools()[poolIdx] : nullptr; }
+  const auto *getPool() const { return pool && poolIdx < pool->getPools().size() ? pool->getPools()[poolIdx] : nullptr; }
 
-  virtual void *queryInterfacePtr(unsigned huid) { return NULL; }
+  void *queryInterfacePtr(unsigned huid) override { return NULL; }
 
-  virtual const char *getObjAssetName() const { return pool->getPools()[poolIdx]->getObjAssetName(); }
+  const char *getObjAssetName() const override { return pool->getPools()[poolIdx]->getObjAssetName(); }
 
-  Pool *pool;
-  unsigned idx;
-  unsigned poolIdx;
+  Pool *pool = nullptr;
+  unsigned idx = MAX_ENTITIES;
+  unsigned poolIdx = MAX_POOLS;
 
   enum
   {

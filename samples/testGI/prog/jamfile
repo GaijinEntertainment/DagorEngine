@@ -16,7 +16,7 @@ if $(UseWholeOpt) != yes {
   UseLLDLink ?= yes ;
 }
 
-if $(Platform)-$(PlatformArch) in windows-x86_64 linux-x86_64 || $(Platform) in ps5 {
+if $(Platform)-$(PlatformArch) in windows-x86_64 linux-x86_64 || $(Platform) in ps5 scarlett {
   BVHSupport = yes ;
   BVHRi = no ;
   BVHRandomGrass = no ;
@@ -35,6 +35,9 @@ AddIncludes =
 
 Sources =
 #  perlinNoise.cpp
+  heightmapMetricsCulling.cpp
+  level.cpp
+  lmesh.cpp
   test_app.cpp
   test_main.cpp
 ;
@@ -42,7 +45,6 @@ Sources =
 UseProgLibs =
   engine/osApiWrappers
   engine/kernel
-  engine/memory
   engine/ioSys
   engine/startup
   engine/baseUtil
@@ -63,6 +65,7 @@ UseProgLibs =
   samples/commonFramework
 
 
+  gameLibs/daSWRT
   gameLibs/render/lruCollision
   gameLibs/webui
   gameLibs/daSkies2
@@ -70,15 +73,16 @@ UseProgLibs =
   gameLibs/visualConsole
   gameLibs/fftWater
   gameLibs/heightmap
+  gameLibs/landMesh
   engine/consoleProc
   gameLibs/daEditorE
   gameLibs/daGI2
   gameLibs/render/voxelizationTarget
-  gameLibs/daGI
   gameLibs/bvh
   gameLibs/render/rtsm
   gameLibs/render/denoiser
   gameLibs/render/upscale
+  gameLibs/render/heightmapShadows
   gameLibs/profileEventsGUI
 ;
 
@@ -156,6 +160,18 @@ if $(Platform) in windows {
   Exit unsupported Platform\=$(Platform) for Target\=$(Target) ;
 }
 
-if $(Platform) in windows && $(Config) != rel && $(Sanitize) != address { UseMemoryDebugLevel = dbg ; }
+MemLib ?= memory ;
+
+if $(Sanitize) && $(Sanitize) != disabled {
+} else {
+  MemLib ?= memory/mimallocMem ;
+}
+
+if $(MemLib) = memory {
+  if $(Platform) in windows && $(Config) != rel && $(Sanitize) != address { UseMemoryDebugLevel ?= dbg ; }
+}
+
+
+if $(MemLib) { UseProgLibs += engine/$(MemLib) ; } else { UseProgLibs += engine/memory ; }
  
 include $(Root)/prog/_jBuild/build.jam ;

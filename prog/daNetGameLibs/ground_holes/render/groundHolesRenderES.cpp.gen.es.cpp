@@ -1,27 +1,24 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "groundHolesRenderES.cpp.inl"
 ECS_DEF_PULL_VAR(groundHolesRender);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc ground_holes_initialize_es_comps[] =
 {
-//start of 5 rw components at [0]
+//start of 4 rw components at [0]
   {ECS_HASH("hmap_holes_scale_step_offset_varId"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("hmap_holes_temp_ofs_size_varId"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("should_render_ground_holes"), ecs::ComponentTypeInfo<bool>()},
-  {ECS_HASH("hmapHolesTex"), ecs::ComponentTypeInfo<UniqueTexHolder>()},
-  {ECS_HASH("holes"), ecs::ComponentTypeInfo<ecs::Point4List>()},
-//start of 1 ro components at [5]
-  {ECS_HASH("ground_holes_main_tex_size"), ecs::ComponentTypeInfo<int>()}
+  {ECS_HASH("holes"), ecs::ComponentTypeInfo<ecs::Point4List>()}
 };
 static void ground_holes_initialize_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     ground_holes_initialize_es(evt
-        , ECS_RO_COMP(ground_holes_initialize_es_comps, "ground_holes_main_tex_size", int)
-    , ECS_RW_COMP(ground_holes_initialize_es_comps, "hmap_holes_scale_step_offset_varId", int)
+        , ECS_RW_COMP(ground_holes_initialize_es_comps, "hmap_holes_scale_step_offset_varId", int)
     , ECS_RW_COMP(ground_holes_initialize_es_comps, "hmap_holes_temp_ofs_size_varId", int)
     , ECS_RW_COMP(ground_holes_initialize_es_comps, "should_render_ground_holes", bool)
-    , ECS_RW_COMP(ground_holes_initialize_es_comps, "hmapHolesTex", UniqueTexHolder)
     , ECS_RW_COMP(ground_holes_initialize_es_comps, "holes", ecs::Point4List)
     );
   while (++comp != compE);
@@ -31,8 +28,8 @@ static ecs::EntitySystemDesc ground_holes_initialize_es_es_desc
   "ground_holes_initialize_es",
   "prog/daNetGameLibs/ground_holes/render/groundHolesRenderES.cpp.inl",
   ecs::EntitySystemOps(nullptr, ground_holes_initialize_es_all_events),
-  make_span(ground_holes_initialize_es_comps+0, 5)/*rw*/,
-  make_span(ground_holes_initialize_es_comps+5, 1)/*ro*/,
+  make_span(ground_holes_initialize_es_comps+0, 4)/*rw*/,
+  empty_span(),
   empty_span(),
   empty_span(),
   ecs::EventSetBuilder<ecs::EventEntityCreated,
@@ -80,12 +77,10 @@ static constexpr ecs::ComponentDesc ground_hole_render_es_comps[] =
   {ECS_HASH("should_render_ground_holes"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("holes"), ecs::ComponentTypeInfo<ecs::Point4List>()},
   {ECS_HASH("invalidate_bboxes"), ecs::ComponentTypeInfo<ecs::Point3List>()},
-//start of 5 ro components at [9]
-  {ECS_HASH("ground_holes_temp_tex_size"), ecs::ComponentTypeInfo<int>()},
-  {ECS_HASH("ground_holes_main_tex_size"), ecs::ComponentTypeInfo<int>()},
+//start of 3 ro components at [9]
   {ECS_HASH("hmap_holes_scale_step_offset_varId"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("hmap_holes_temp_ofs_size_varId"), ecs::ComponentTypeInfo<int>()},
-  {ECS_HASH("ground_holes_scale_offset"), ecs::ComponentTypeInfo<Point4>()}
+  {ECS_HASH("heightmap_holes_process_cs"), ecs::ComponentTypeInfo<ComputeShader>()}
 };
 static void ground_hole_render_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
@@ -99,13 +94,11 @@ static void ground_hole_render_es_all_events(const ecs::Event &__restrict evt, c
     , ECS_RW_COMP(ground_hole_render_es_comps, "hmapHolesMipmapRenderer", PostFxRenderer)
     , ECS_RW_COMP(ground_hole_render_es_comps, "hmapHolesPrepareRenderer", ShadersECS)
     , ECS_RW_COMP(ground_hole_render_es_comps, "should_render_ground_holes", bool)
-    , ECS_RO_COMP(ground_hole_render_es_comps, "ground_holes_temp_tex_size", int)
-    , ECS_RO_COMP(ground_hole_render_es_comps, "ground_holes_main_tex_size", int)
     , ECS_RO_COMP(ground_hole_render_es_comps, "hmap_holes_scale_step_offset_varId", int)
     , ECS_RO_COMP(ground_hole_render_es_comps, "hmap_holes_temp_ofs_size_varId", int)
-    , ECS_RO_COMP(ground_hole_render_es_comps, "ground_holes_scale_offset", Point4)
     , ECS_RW_COMP(ground_hole_render_es_comps, "holes", ecs::Point4List)
     , ECS_RW_COMP(ground_hole_render_es_comps, "invalidate_bboxes", ecs::Point3List)
+    , ECS_RO_COMP(ground_hole_render_es_comps, "heightmap_holes_process_cs", ComputeShader)
     );
   while (++comp != compE);
 }
@@ -115,7 +108,7 @@ static ecs::EntitySystemDesc ground_hole_render_es_es_desc
   "prog/daNetGameLibs/ground_holes/render/groundHolesRenderES.cpp.inl",
   ecs::EntitySystemOps(nullptr, ground_hole_render_es_all_events),
   make_span(ground_hole_render_es_comps+0, 9)/*rw*/,
-  make_span(ground_hole_render_es_comps+9, 5)/*ro*/,
+  make_span(ground_hole_render_es_comps+9, 3)/*ro*/,
   empty_span(),
   empty_span(),
   ecs::EventSetBuilder<UpdateStageInfoRender>::build(),

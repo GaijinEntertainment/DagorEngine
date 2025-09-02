@@ -1,16 +1,8 @@
 #ifndef DAFX_MODFX_CURVE_HLSL
 #define DAFX_MODFX_CURVE_HLSL
 
-DAFX_INLINE
-float modfx_calc_curve_weight( uint steps, float life_k, uint_ref k0, uint_ref k1 )
-{
-  uint s = steps - 1;
-  float k = s * life_k;
+#include "modfx/modfx_curve_inc.hlsli"
 
-  k0 = (uint)k;
-  k1 = min( k0 + 1, s );
-  return k - (float)k0;
-}
 
 DAFX_INLINE
 float modfx_get_1f_curve( BufferData_cref buf, uint ofs, float life_k )

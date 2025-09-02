@@ -1,4 +1,4 @@
-# Shader Family: land_mesh_combined_decal
+# Shader Family: `land_mesh_combined_decal`
 
 ## Overview
 
@@ -41,7 +41,7 @@ The difference between dynamic and static shaders boils down to two key points:
   tab.
 ```
 
-## land_mesh_combined / dynamic_combined_decal – Basic Shader
+## Basic Shader: `land_mesh_combined`/`dynamic_combined_decal`
 
 This is the simplest shader in the family. It has no parameters and applies only
 a decal texture to the geometry. The typical material configuration looks like
@@ -80,7 +80,7 @@ transparent alpha texture is assigned to this geometry:
 
 <br>
 
-## land_mesh_combined_detailed_decal / dynamic_combined_detailed_decal – Shader with One Detail Layer
+## Shader with One Detail Layer: `land_mesh_combined_detailed_decal`/`dynamic_combined_detailed_decal`
 
 This shader works with three textures:
 
@@ -130,7 +130,7 @@ fine textures such as small cracks or wear patterns are handled by the detail
 layers, while larger surface elements, like ruts or pathways, are represented by
 the decal.
 
-## land_mesh_combined_mixed_decal / dynamic_combined_mixed_decal – Shader with Four Detail Layers
+## Shader with Four Detail Layers: `land_mesh_combined_mixed_decal`/`dynamic_combined_mixed_decal`
 
 This is the most advanced shader in the family. It operates similarly to
 `land_mesh_combined_detailed_decal` but supports up to four detail layers

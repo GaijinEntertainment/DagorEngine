@@ -4,10 +4,12 @@ return {
   get_button_state = function(btn){
     let t = type(btn)
     assert(["integer","string"].contains(t))
+    return 0
   }
   get_mouse_pos = @() Point2()
   get_joystick_axis = function(axis){
     assert(type(axis) == "integer")
+    return 0
   }
   buttonIds = {} //name by id
   buttonNames = {} //id by name

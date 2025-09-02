@@ -41,7 +41,7 @@ class ConcurrentRangePool
   static_assert(INITIAL_CAPACITY >= 256, "INITIAL_CAPACITY must be at least 256");
   static constexpr uint32_t OFFSET_BITS_FOR_FIRST_BUCKET = INITIAL_CAPACITY_LOG2;
   static constexpr uint32_t BUCKET_AND_OFFSET_BITS = 24;
-  static constexpr uint32_t MAX_BUCKET_COUNT = BUCKET_AND_OFFSET_BITS - OFFSET_BITS_FOR_FIRST_BUCKET - 1;
+  static constexpr uint32_t MAX_BUCKET_COUNT = BUCKET_AND_OFFSET_BITS - OFFSET_BITS_FOR_FIRST_BUCKET;
   static_assert(BUCKET_COUNT > 0, "BUCKET_COUNT must be non-zero!");
   static_assert(BUCKET_COUNT <= MAX_BUCKET_COUNT, "BUCKET_COUNT must be less than MAX_BUCKET_COUNT");
 
@@ -136,7 +136,7 @@ public:
   eastl::span<T> view(Range r)
   {
     const auto [size, bucket, offset] = break_range(r);
-    return {buckets[bucket].get() + offset, size};
+    return {buckets.data()[bucket].get() + offset, size};
   }
 
   /// @brief returns a view of the range previously allocated.
@@ -145,7 +145,7 @@ public:
   eastl::span<const T> view(Range r) const
   {
     const auto [size, bucket, offset] = break_range(r);
-    return {buckets[bucket].get() + offset, size};
+    return {buckets.data()[bucket].get() + offset, size};
   }
 
   /// @brief returns an index of the chunk that contains the given range.
@@ -182,7 +182,7 @@ public:
     const uint32_t raw = eastl::to_underlying(c);
     const uint32_t bucket = get_log2i(raw + 1);
     const uint32_t offset = (raw + 1 - (1 << bucket)) * INITIAL_CAPACITY;
-    return {buckets[bucket].get() + offset, INITIAL_CAPACITY};
+    return {buckets.data()[bucket].get() + offset, INITIAL_CAPACITY};
   }
 
   void clear()
@@ -213,7 +213,7 @@ private:
     const uint8_t size = static_cast<uint8_t>(raw >> BUCKET_AND_OFFSET_BITS);
     const uint32_t rest = raw & ((1 << BUCKET_AND_OFFSET_BITS) - 1);
     const uint32_t zeroBitsCount = __clz_unsafe(rest) - CHAR_BIT * sizeof(uint8_t);
-    const uint8_t bucket = static_cast<uint8_t>(MAX_BUCKET_COUNT - zeroBitsCount);
+    const uint8_t bucket = static_cast<uint8_t>(MAX_BUCKET_COUNT - 1 - zeroBitsCount);
     const uint32_t offsetBitsCount = BUCKET_AND_OFFSET_BITS - zeroBitsCount - 1;
     const uint16_t offset = static_cast<uint16_t>(rest & ((1 << offsetBitsCount) - 1));
     G_FAST_ASSERT(bucket < MAX_BUCKET_COUNT && offset + size <= capacity(bucket));

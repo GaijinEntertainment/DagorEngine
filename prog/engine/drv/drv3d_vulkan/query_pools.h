@@ -46,8 +46,8 @@ struct SurveyQueryPool : QueryPool
 
 class SurveyQueryManager
 {
-  eastl::vector<SurveyQueryPool> surveyPool;
-  eastl::vector<SurveyQueryPool::BlockMask_t> surveyPoolAllocMask;
+  dag::Vector<SurveyQueryPool> surveyPool;
+  dag::Vector<SurveyQueryPool::BlockMask_t> surveyPoolAllocMask;
   WinCritSec surveyPoolGuard;
 
   uint32_t openSurveyScopeCount = 0;
@@ -74,6 +74,8 @@ public:
   void shutdownPools();
 
   bool anyScopesActive() const { return openSurveyScopeCount > 0; }
+  void onDeviceReset();
+  void afterDeviceReset();
 };
 
 class RaytraceBLASCompactionSizeQueryPool

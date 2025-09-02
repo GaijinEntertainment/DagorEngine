@@ -2,36 +2,27 @@
 
 #include <EditorCore/ec_gizmofilter.h>
 #include <EditorCore/captureCursor.h>
-
-#include <stdlib.h>
-
-#include <debug/dag_debug.h>
-#include <3d/dag_render.h>
-#include <math/dag_math2d.h>
-
-#include <gui/dag_stdGuiRenderEx.h>
+#include <EditorCore/ec_input.h>
 #include <winGuiWrapper/wgw_input.h>
+#include "ec_gizmoRenderer.h"
+
+#include <imgui/imgui.h>
 
 using hdpi::_pxS;
 
-#define AXIS_LEN_PIX      _pxS(100)
-#define ELLIPSE_SEG_COUNT 30
-#define ELLIPSE_STEP      (TWOPI / ELLIPSE_SEG_COUNT)
-#define GISMO_PIXEL_WIDTH _pxS(4)
-#define GISMO_BOX_WIDTH   _pxS(4)
-#define FILL_MASK         0xAAAAAAAA
-#define GIZMO_METER       0.01
-#define MAX_TRACE_DIST    1000.0
+#define GIZMO_METER    0.01
+#define MAX_TRACE_DIST 1000.0
 
 
 //==============================================================================
 GizmoEventFilter::GizmoEventFilter(GeneralEditorData &ged_, const GridObject &grid_) :
-  ged(ged_), grid(grid_), moveStarted(false), scale(1, 1, 1), deltaX(0), deltaY(0)
+  ged(ged_), grid(grid_), moveStarted(false), scale(1, 1, 1), rotAngle(0), startRotAngle(0), deltaX(0), deltaY(0)
 {
   startPos2d.reserve(16);
   vp.reserve(16);
   s_vp.reserve(16);
   memset(&gizmo, 0, sizeof(gizmo));
+  renderer.reset(new GizmoRendererClassic(this));
 }
 
 
@@ -56,23 +47,11 @@ void GizmoEventFilter::correctCursorInSurfMove(const Point3 &delta)
 
 
 //==============================================================================
-void GizmoEventFilter::handleKeyPress(IGenViewportWnd *wnd, int vk, int modif)
-{
-  if (moveStarted && vk == wingw::V_ESC)
-  {
-    endGizmo(false);
-    return;
-  }
-
-  if (ged.curEH)
-    ged.curEH->handleKeyPress(wnd, vk, modif);
-}
-
-
-//==============================================================================
 bool GizmoEventFilter::handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif)
 {
-  if (gizmo.prevMode != (IEditorCoreEngine::GIZMO_MASK_Mode & gizmo.type))
+  mouseCurrentPos = Point2(x, y);
+
+  if (gizmo.prevMode != (IEditorCoreEngine::GIZMO_MASK_Mode & int(gizmo.type)))
   {
     gizmo.prevMode = gizmo.type;
     gizmo.selected = 0;
@@ -85,9 +64,9 @@ bool GizmoEventFilter::handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool 
 
     const real maxDownscale = 0.05;
     const int index = ged.findViewportIndex(wnd);
-    mousePos = Point2(x, y);
+    mousePos = mouseCurrentPos;
 
-    const Point3 gcPos = gizmo.client->getPt();
+    const Point3 gcPos = gizmo.client->shouldComputeDeltaFromStartPos() ? startPos : gizmo.client->getPt();
 
     Point2 gPos;
     wnd->worldToClient(gcPos, gPos);
@@ -121,6 +100,12 @@ bool GizmoEventFilter::handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool 
           switch (gizmo.selected & 7)
           {
             case AXIS_X | AXIS_Y | AXIS_Z:
+            {
+              TMatrix viewTm;
+              wnd->getCameraTransform(viewTm);
+              planeNormal = viewTm.getcol(2);
+              break;
+            }
             case AXIS_X | AXIS_Y: planeNormal = az; break;
             case AXIS_X | AXIS_Z: planeNormal = ay; break;
             case AXIS_Y | AXIS_Z: planeNormal = ax; break;
@@ -147,7 +132,7 @@ bool GizmoEventFilter::handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool 
         if ((gcPos + movedDelta - mouseWorld) * mouseDir < 0)
           movedDelta = Point3(0, 0, 0);
 
-        const bool shouldSnapMove = wingw::is_key_pressed(wingw::V_CAPSLOCK) ? !grid.getMoveSnap() : grid.getMoveSnap();
+        const bool shouldSnapMove = ec_is_key_down(ImGuiKey_CapsLock) ? !grid.getMoveSnap() : grid.getMoveSnap();
         if (shouldSnapMove)
         {
           Point3 movedToPos = gcPos + movedDelta;
@@ -210,24 +195,24 @@ bool GizmoEventFilter::handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool 
         switch (gizmo.selected)
         {
           case AXIS_X | AXIS_Y:
-            max = __max(movedDelta.x, movedDelta.y);
+            max = ::max(movedDelta.x, movedDelta.y);
             movedDelta.x = max;
             movedDelta.y = max;
             break;
           case AXIS_Y | AXIS_Z:
-            max = __max(movedDelta.y, movedDelta.z);
+            max = ::max(movedDelta.y, movedDelta.z);
             movedDelta.y = max;
             movedDelta.z = max;
             break;
           case AXIS_X | AXIS_Z:
-            max = __max(movedDelta.z, movedDelta.x);
+            max = ::max(movedDelta.z, movedDelta.x);
             movedDelta.z = max;
             movedDelta.x = max;
             break;
           case AXIS_X | AXIS_Y | AXIS_Z: movedDelta.x = movedDelta.z = movedDelta.y; break;
         }
 
-        const bool shouldSnapScale = wingw::is_key_pressed(wingw::V_CAPSLOCK) ? !grid.getScaleSnap() : grid.getScaleSnap();
+        const bool shouldSnapScale = ec_is_key_down(ImGuiKey_CapsLock) ? !grid.getScaleSnap() : grid.getScaleSnap();
         if (shouldSnapScale)
           movedDelta = grid.snapToScale(movedDelta);
 
@@ -252,7 +237,7 @@ bool GizmoEventFilter::handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool 
           movedDelta.z = len2;
 
         // snap correction (if presented)
-        const bool shouldSnapRotate = wingw::is_key_pressed(wingw::V_CAPSLOCK) ? !grid.getRotateSnap() : grid.getRotateSnap();
+        const bool shouldSnapRotate = ec_is_key_down(ImGuiKey_CapsLock) ? !grid.getRotateSnap() : grid.getRotateSnap();
         if (shouldSnapRotate)
           movedDelta = grid.snapToAngle(movedDelta);
 
@@ -273,6 +258,8 @@ bool GizmoEventFilter::handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool 
 
         break;
       }
+
+      case IEditorCoreEngine::MODE_None: break; // to prevent the unhandled switch case error
     }
 
     gizmo.client->changed(movedDelta);
@@ -373,9 +360,9 @@ void GizmoEventFilter::startGizmo(IGenViewportWnd *wnd, int x, int y)
     startRotAngle = 0;
 
     Point2 pos, dx, dy;
-    int delta = GISMO_PIXEL_WIDTH;
+    int delta = GIZMO_PIXEL_WIDTH;
     int count = 0;
-    float dist2, min_dist2 = float(GISMO_PIXEL_WIDTH * GISMO_PIXEL_WIDTH * 32);
+    float dist2, min_dist2 = float(GIZMO_PIXEL_WIDTH * GIZMO_PIXEL_WIDTH * 32);
 
 
     startPos2d[vp_i] -= vp[vp_i].center;
@@ -407,9 +394,9 @@ void GizmoEventFilter::startGizmo(IGenViewportWnd *wnd, int x, int y)
 
       if (count > 380)
       {
-        delta += GISMO_PIXEL_WIDTH;
+        delta += GIZMO_PIXEL_WIDTH;
         count = 0;
-        if (min_dist2 >= float(GISMO_PIXEL_WIDTH * GISMO_PIXEL_WIDTH * 16) || delta >= GISMO_PIXEL_WIDTH * 4)
+        if (min_dist2 >= float(GIZMO_PIXEL_WIDTH * GIZMO_PIXEL_WIDTH * 16) || delta >= GIZMO_PIXEL_WIDTH * 4)
         {
           pos = Point2(x, y) - vp[vp_i].center;
           startRotAngle = 0;
@@ -447,12 +434,12 @@ void GizmoEventFilter::startGizmo(IGenViewportWnd *wnd, int x, int y)
 //==============================================================================
 void GizmoEventFilter::endGizmo(bool apply)
 {
+  if (!moveStarted)
+    return;
+
   moveStarted = false;
   gizmo.client->gizmoEnded(apply);
   scale = Point3(1, 1, 1);
-
-  if (gizmo.type & IEditorCoreEngine::MODE_Scale)
-    gizmo.selected = 0;
 
   repaint();
 }
@@ -525,194 +512,32 @@ void GizmoEventFilter::handleViewportPaint(IGenViewportWnd *wnd)
 //==============================================================================
 void GizmoEventFilter::handleViewChange(IGenViewportWnd *wnd) { wnd->redrawClientRect(); }
 
+//==============================================================================
+void GizmoEventFilter::setGizmoStyle(GizmoEventFilter::Style style)
+{
+  if (renderer->getStyle() == style)
+    return;
+
+  switch (style)
+  {
+    case Style::New: renderer.reset(new GizmoRendererNew(this)); break;
+    case Style::Classic: renderer.reset(new GizmoRendererClassic(this)); break;
+  }
+
+  repaint();
+}
+
+GizmoEventFilter::Style GizmoEventFilter::getGizmoStyle() const { return renderer->getStyle(); }
 
 //==============================================================================
 bool GizmoEventFilter::checkGizmo(IGenViewportWnd *wnd, int x, int y)
 {
   Point2 mouse = Point2(x, y);
   int vp_i = ged.findViewportIndex(wnd);
-
-  if (gizmo.type != IEditorCoreEngine::MODE_Rotate)
-  {
-    if (::is_point_in_rect(mouse, vp[vp_i].center, vp[vp_i].center + vp[vp_i].ax, GISMO_PIXEL_WIDTH))
-    {
-      gizmo.over = AXIS_X;
-      return true;
-    }
-
-    if (::is_point_in_rect(mouse, vp[vp_i].center, vp[vp_i].center + vp[vp_i].ay, GISMO_PIXEL_WIDTH) &&
-        gizmo.type != IEditorCoreEngine::MODE_MoveSurface)
-    {
-      gizmo.over = AXIS_Y;
-      return true;
-    }
-
-    if (::is_point_in_rect(mouse, vp[vp_i].center, vp[vp_i].center + vp[vp_i].az, GISMO_PIXEL_WIDTH))
-    {
-      gizmo.over = AXIS_Z;
-      return true;
-    }
-  }
-  else
-  {
-    if (isPointInEllipse(vp[vp_i].center, vp[vp_i].ay, vp[vp_i].az, GISMO_PIXEL_WIDTH * 2, mouse))
-    {
-      gizmo.over = AXIS_X;
-      return true;
-    }
-
-    if (isPointInEllipse(vp[vp_i].center, vp[vp_i].az, vp[vp_i].ax, GISMO_PIXEL_WIDTH * 2, mouse))
-    {
-      gizmo.over = AXIS_Y;
-      return true;
-    }
-
-    if (isPointInEllipse(vp[vp_i].center, vp[vp_i].ax, vp[vp_i].ay, GISMO_PIXEL_WIDTH * 2, mouse))
-    {
-      gizmo.over = AXIS_Z;
-      return true;
-    }
-  }
-
-  switch (gizmo.type)
-  {
-    case IEditorCoreEngine::MODE_Move:
-    {
-      Point2 rectXY[4];
-      rectXY[0] = vp[vp_i].center;
-      rectXY[1] = vp[vp_i].center + vp[vp_i].ax / 3.0;
-      rectXY[2] = rectXY[1] + vp[vp_i].ay / 3.0;
-      rectXY[3] = vp[vp_i].center + vp[vp_i].ay / 3.0;
-
-      Point2 rectYZ[4];
-      rectYZ[0] = vp[vp_i].center;
-      rectYZ[1] = vp[vp_i].center + vp[vp_i].ay / 3.0;
-      rectYZ[2] = rectYZ[1] + vp[vp_i].az / 3.0;
-      rectYZ[3] = vp[vp_i].center + vp[vp_i].az / 3.0;
-
-      Point2 rectZX[4];
-      rectZX[0] = vp[vp_i].center;
-      rectZX[1] = vp[vp_i].center + vp[vp_i].az / 3.0;
-      rectZX[2] = rectZX[1] + vp[vp_i].ax / 3.0;
-      rectZX[3] = vp[vp_i].center + vp[vp_i].ax / 3.0;
-
-
-      if (::is_point_in_rect(mouse, rectZX[1], rectZX[2], GISMO_BOX_WIDTH) ||
-          ::is_point_in_rect(mouse, rectZX[3], rectZX[2], GISMO_BOX_WIDTH))
-      {
-        gizmo.over = AXIS_X | AXIS_Z;
-        return true;
-      }
-
-      if (gizmo.selected == (AXIS_X | AXIS_Z) && ::is_point_in_conv_poly(mouse, rectZX, 4))
-      {
-        gizmo.over = AXIS_X | AXIS_Z;
-        return true;
-      }
-
-      if (::is_point_in_rect(mouse, rectXY[1], rectXY[2], GISMO_BOX_WIDTH) ||
-          ::is_point_in_rect(mouse, rectXY[3], rectXY[2], GISMO_BOX_WIDTH))
-      {
-        gizmo.over = AXIS_X | AXIS_Y;
-        return true;
-      }
-
-      if (::is_point_in_rect(mouse, rectYZ[1], rectYZ[2], GISMO_BOX_WIDTH) ||
-          ::is_point_in_rect(mouse, rectYZ[3], rectYZ[2], GISMO_BOX_WIDTH))
-      {
-        gizmo.over = AXIS_Y | AXIS_Z;
-        return true;
-      }
-
-
-      if (gizmo.selected == (AXIS_X | AXIS_Y) && ::is_point_in_conv_poly(mouse, rectXY, 4))
-      {
-        gizmo.over = AXIS_X | AXIS_Y;
-        return true;
-      }
-
-      if (gizmo.selected == (AXIS_Y | AXIS_Z) && ::is_point_in_conv_poly(mouse, rectYZ, 4))
-      {
-        gizmo.over = AXIS_Y | AXIS_Z;
-        return true;
-      }
-
-      break;
-    }
-
-    case IEditorCoreEngine::MODE_MoveSurface:
-    {
-      Point2 rectZX[4];
-      rectZX[0] = vp[vp_i].center;
-      rectZX[1] = vp[vp_i].center + vp[vp_i].az / 2.0;
-      rectZX[2] = rectZX[1] + vp[vp_i].ax / 2.0;
-      rectZX[3] = vp[vp_i].center + vp[vp_i].ax / 2.0;
-
-      if (::is_point_in_rect(mouse, rectZX[1], rectZX[2], GISMO_BOX_WIDTH) ||
-          ::is_point_in_rect(mouse, rectZX[3], rectZX[2], GISMO_BOX_WIDTH))
-      {
-        gizmo.over = AXIS_X | AXIS_Z;
-        return true;
-      }
-
-      if (::is_point_in_conv_poly(mouse, rectZX, 4))
-      {
-        gizmo.over = AXIS_X | AXIS_Z;
-        return true;
-      }
-
-      break;
-    }
-
-    case IEditorCoreEngine::MODE_Scale:
-    {
-      Point2 start, end;
-      start = vp[vp_i].center + vp[vp_i].ax * 7 / 12;
-      end = vp[vp_i].center + vp[vp_i].ay * 7 / 12;
-
-      if (::is_point_in_rect(mouse, start, end, GISMO_BOX_WIDTH * 2))
-      {
-        gizmo.over = AXIS_X | AXIS_Y;
-        return true;
-      }
-
-      start = vp[vp_i].center + vp[vp_i].ay * 7 / 12;
-      end = vp[vp_i].center + vp[vp_i].az * 7 / 12;
-
-      if (::is_point_in_rect(mouse, start, end, GISMO_BOX_WIDTH * 2))
-      {
-        gizmo.over = AXIS_Y | AXIS_Z;
-        return true;
-      }
-
-      start = vp[vp_i].center + vp[vp_i].az * 7 / 12;
-      end = vp[vp_i].center + vp[vp_i].ax * 7 / 12;
-
-      if (::is_point_in_rect(mouse, start, end, GISMO_BOX_WIDTH * 2))
-      {
-        gizmo.over = AXIS_X | AXIS_Z;
-        return true;
-      }
-
-      Point2 triangle[3];
-      triangle[0] = vp[vp_i].center + vp[vp_i].ax / 2;
-      triangle[1] = vp[vp_i].center + vp[vp_i].ay / 2;
-      triangle[2] = vp[vp_i].center + vp[vp_i].az / 2;
-
-      if (::is_point_in_triangle(mouse, triangle))
-      {
-        gizmo.over = AXIS_X | AXIS_Y | AXIS_Z;
-        return true;
-      }
-
-      break;
-    }
-  }
-
-  gizmo.over = 0;
-  return false;
+  Point2 axes[3] = {vp[vp_i].ax, vp[vp_i].ay, vp[vp_i].az};
+  gizmo.over = renderer->intersection(mouse, vp[vp_i].center, axes, gizmo.selected, rotateDir);
+  return gizmo.over != 0;
 }
-
 
 //==============================================================================
 void GizmoEventFilter::recalcViewportGizmo()
@@ -749,14 +574,17 @@ void GizmoEventFilter::recalcViewportGizmo()
     vpw->worldToClient(pt + GIZMO_METER * az1, pt2);
     az = (pt2 - center);
 
-    if (gizmo.type & IEditorCoreEngine::MODE_Scale)
-      correctScaleGizmo(i, ax1, ay1, az1, ax, ay, az);
+    Matrix3 basis;
+    basis.setcol(0, ax1);
+    basis.setcol(1, ay1);
+    basis.setcol(2, az1);
+    renderer->flip(vpw, basis, ax, ay, az);
 
     real xl = length(ax);
     real yl = length(ay);
     real zl = length(az);
 
-    real maxlen = __max(__max(xl, yl), zl);
+    real maxlen = ::max(::max(xl, yl), zl);
 
     if (xl == 0)
       xl = 1e-5;
@@ -777,408 +605,6 @@ void GizmoEventFilter::recalcViewportGizmo()
   }
 }
 
-
-//==============================================================================
-void GizmoEventFilter::drawGizmoLine(const Point2 &from, const Point2 &delta, real offset)
-{
-  StdGuiRender::draw_line(from.x + delta.x * offset, from.y + delta.y * offset, from.x + delta.x, from.y + delta.y);
-}
-
-
-//==============================================================================
-void GizmoEventFilter::drawGizmoLineFromTo(const Point2 &from, const Point2 &to, real offset) { StdGuiRender::draw_line(from, to); }
-
-
-//==============================================================================
-void GizmoEventFilter::drawGizmoEllipse(const Point2 &center, const Point2 &a, const Point2 &b, real start, real end)
-{
-  Point2 prev = center + a * cos(start) + b * sin(start);
-  Point2 next;
-
-  for (real t = start; t < end; t += ELLIPSE_STEP) //-V1034
-  {
-    next = center + a * cos(t) + b * sin(t);
-    StdGuiRender::draw_line(prev, next);
-
-    prev = next;
-  }
-
-  next = center + a * cos(end) + b * sin(end);
-  StdGuiRender::draw_line(prev, next);
-}
-
-
-//==============================================================================
-void GizmoEventFilter::fillGizmoEllipse(const Point2 &center, const Point2 &a, const Point2 &b, E3DCOLOR color, int fp, real start,
-  real end)
-{
-  Point2 points[ELLIPSE_SEG_COUNT + 2];
-  int cur = 0;
-
-  drawGizmoLineFromTo(center, center); // mega hack for StdGuiRender!!!
-
-  for (real t = start; t < end; t += ELLIPSE_STEP) //-V1034
-  {
-    points[cur++] = center + a * cos(t) + b * sin(t);
-  }
-
-  if (start != 0 || end != TWOPI)
-  {
-    points[cur++] = center + a * cos(end) + b * sin(end);
-    points[cur++] = center;
-  }
-
-  // dc.selectFillPattern(fp);
-  StdGuiRender::draw_fill_poly_fan(points, cur, color);
-}
-
-
-static inline void swap(float &a, float &b)
-{
-  float tmp = a;
-  a = b;
-  b = tmp;
-}
-
-
-//==============================================================================
-void GizmoEventFilter::drawGizmoArrow(const Point2 &from, const Point2 &delta, E3DCOLOR col_fill, real offset)
-{
-  Point2 tri[3];
-  Point2 norm = normalize(delta);
-  ::swap(norm.x, norm.y);
-  norm.y = -norm.y;
-
-  tri[0] = from + delta;
-  tri[1] = from + delta * 0.8 + norm * _pxS(3);
-  tri[2] = from + delta * 0.8 - norm * _pxS(3);
-
-  drawGizmoLine(from, delta * 0.9, offset);
-
-  // dc.selectFillPattern(0xFFFFFFFF);
-  StdGuiRender::draw_fill_poly_fan(tri, 3, col_fill);
-}
-
-
-//==============================================================================
-void GizmoEventFilter::drawGizmoArrowScale(const Point2 &from, const Point2 &delta, E3DCOLOR col_fill, real offset)
-{
-  Point2 tri[4];
-  Point2 norm = normalize(delta);
-  ::swap(norm.x, norm.y);
-  norm.y = -norm.y;
-
-  tri[0] = from + delta - norm * _pxS(3);
-  tri[1] = from + delta + norm * _pxS(3);
-  tri[2] = from + delta * 0.9 + norm * _pxS(3);
-  tri[3] = from + delta * 0.9 - norm * _pxS(3);
-
-  drawGizmoLine(from, delta * 0.95, offset);
-
-  // dc.selectFillPattern(0xFFFFFFFF);
-  StdGuiRender::draw_fill_poly_fan(tri, 4, col_fill);
-}
-
-
-//==============================================================================
-void GizmoEventFilter::drawGizmoQuad(const Point2 &from, const Point2 &delta1, const Point2 &delta2, E3DCOLOR col1, E3DCOLOR col2,
-  E3DCOLOR col_sel, bool sel, real div)
-{
-  G_ASSERT(div > 0);
-
-  const Point2 d1 = delta1 / div;
-  const Point2 d2 = delta2 / div;
-
-  if (!sel)
-  {
-    StdGuiRender::set_color(col1);
-    drawGizmoLine(from + d1, d2, 0);
-
-    StdGuiRender::set_color(col2);
-    drawGizmoLine(from + d2, d1, 0);
-  }
-  else
-  {
-    StdGuiRender::set_color(col_sel);
-    StdGuiRender::render_quad(from, from + d2, from + d1 + d2, from + d1);
-
-    drawGizmoLine(from + d1, d2, 0);
-    drawGizmoLine(from + d2, d1, 0);
-    drawGizmoLine(from, d1, 0);
-    drawGizmoLine(from, d2, 0);
-  }
-}
-
-
-//==============================================================================
-void GizmoEventFilter::drawMoveGizmo(int vp_i, int sel)
-{
-  StdGuiRender::set_color((sel & AXIS_X) ? COLOR_YELLOW : COLOR_LTRED);
-  drawGizmoArrow(vp[vp_i].center, vp[vp_i].ax, COLOR_LTRED);
-
-  StdGuiRender::set_color((sel & AXIS_Y) ? COLOR_YELLOW : COLOR_LTGREEN);
-  drawGizmoArrow(vp[vp_i].center, vp[vp_i].ay, COLOR_LTGREEN);
-
-  StdGuiRender::set_color((sel & AXIS_Z) ? COLOR_YELLOW : COLOR_LTBLUE);
-  drawGizmoArrow(vp[vp_i].center, vp[vp_i].az, COLOR_LTBLUE);
-
-  drawGizmoQuad(vp[vp_i].center, vp[vp_i].az, vp[vp_i].ax, COLOR_LTBLUE, COLOR_LTRED, COLOR_YELLOW, (sel & 5) == 5);
-  drawGizmoQuad(vp[vp_i].center, vp[vp_i].ax, vp[vp_i].ay, COLOR_LTRED, COLOR_LTGREEN, COLOR_YELLOW, (sel & 3) == 3);
-  drawGizmoQuad(vp[vp_i].center, vp[vp_i].ay, vp[vp_i].az, COLOR_LTGREEN, COLOR_LTBLUE, COLOR_YELLOW, (sel & 6) == 6);
-}
-
-
-//==============================================================================
-void GizmoEventFilter::drawSurfMoveGizmo(int vp_i, int sel)
-{
-  StdGuiRender::set_color((sel & AXIS_X) ? COLOR_YELLOW : COLOR_LTRED);
-  drawGizmoArrow(vp[vp_i].center, vp[vp_i].ax, COLOR_LTRED);
-
-  StdGuiRender::set_color((sel & AXIS_Z) ? COLOR_YELLOW : COLOR_LTBLUE);
-  drawGizmoArrow(vp[vp_i].center, vp[vp_i].az, COLOR_LTBLUE);
-
-  drawGizmoQuad(vp[vp_i].center, vp[vp_i].az, vp[vp_i].ax, COLOR_LTBLUE, COLOR_LTRED, COLOR_YELLOW, (sel & 5) == 5, 2.0);
-}
-
-
-//==============================================================================
-void GizmoEventFilter::drawScaleGizmo(int vp_i, int sel)
-{
-  Point2 center = vp[vp_i].center;
-  Point2 ax = vp[vp_i].ax + vp[vp_i].ax * (scale.x - 1);
-  Point2 ay = vp[vp_i].ay + vp[vp_i].ay * (scale.y - 1);
-  Point2 az = vp[vp_i].az + vp[vp_i].az * (scale.z - 1);
-
-  Point2 points[4];
-
-  if (sel)
-  {
-    Point2 start, end;
-
-    StdGuiRender::set_color(sel == 3 ? COLOR_YELLOW : COLOR_LTRED);
-
-    start = center + ax / 3 * 2;
-    end = center + ay / 3 * 2;
-    drawGizmoLineFromTo(start, start + (end - start) / 2);
-
-    StdGuiRender::set_color(sel == 5 ? COLOR_YELLOW : COLOR_LTRED);
-
-    end = center + az / 3 * 2;
-    drawGizmoLineFromTo(start, start + (end - start) / 2);
-
-    StdGuiRender::set_color(sel == 3 ? COLOR_YELLOW : COLOR_LTRED);
-
-    start = center + ax / 2;
-    end = center + ay / 2;
-    drawGizmoLineFromTo(start, start + (end - start) / 2);
-
-    StdGuiRender::set_color(sel == 5 ? COLOR_YELLOW : COLOR_LTRED);
-
-    end = center + az / 2;
-    drawGizmoLineFromTo(start, start + (end - start) / 2);
-
-    StdGuiRender::set_color(sel == 3 ? COLOR_YELLOW : COLOR_LTGREEN);
-
-    start = center + ay / 3 * 2;
-    end = center + ax / 3 * 2;
-    drawGizmoLineFromTo(start, start + (end - start) / 2);
-
-    StdGuiRender::set_color(sel == 6 ? COLOR_YELLOW : COLOR_LTGREEN);
-
-    end = center + az / 3 * 2;
-    drawGizmoLineFromTo(start, start + (end - start) / 2);
-
-    StdGuiRender::set_color(sel == 3 ? COLOR_YELLOW : COLOR_LTGREEN);
-
-    start = center + ay / 2;
-    end = center + ax / 2;
-    drawGizmoLineFromTo(start, start + (end - start) / 2);
-
-    StdGuiRender::set_color(sel == 6 ? COLOR_YELLOW : COLOR_LTGREEN);
-
-    end = center + az / 2;
-    drawGizmoLineFromTo(start, start + (end - start) / 2);
-
-    StdGuiRender::set_color(sel == 5 ? COLOR_YELLOW : COLOR_LTBLUE);
-
-    start = center + az / 3 * 2;
-    end = center + ax / 3 * 2;
-    drawGizmoLineFromTo(start, start + (end - start) / 2);
-
-    StdGuiRender::set_color(sel == 6 ? COLOR_YELLOW : COLOR_LTBLUE);
-
-    end = center + ay / 3 * 2;
-    drawGizmoLineFromTo(start, start + (end - start) / 2);
-
-    StdGuiRender::set_color(sel == 5 ? COLOR_YELLOW : COLOR_LTBLUE);
-
-    start = center + az / 2;
-    end = center + ax / 2;
-    drawGizmoLineFromTo(start, start + (end - start) / 2);
-
-    StdGuiRender::set_color(sel == 6 ? COLOR_YELLOW : COLOR_LTBLUE);
-
-    end = center + ay / 2;
-    drawGizmoLineFromTo(start, start + (end - start) / 2);
-
-    // dc.selectFillColor(PC_Yellow);
-    // dc.selectFillPattern(FILL_MASK);
-
-    switch (sel)
-    {
-      case 3:
-        points[0] = center + ax / 2;
-        points[1] = center + ax / 3 * 2;
-        points[2] = center + ay / 3 * 2;
-        points[3] = center + ay / 2;
-
-        StdGuiRender::draw_fill_poly_fan(points, 4, COLOR_YELLOW);
-        break;
-
-      case 6:
-        points[0] = center + ay / 2;
-        points[1] = center + ay / 3 * 2;
-        points[2] = center + az / 3 * 2;
-        points[3] = center + az / 2;
-
-        StdGuiRender::draw_fill_poly_fan(points, 4, COLOR_YELLOW);
-        break;
-
-      case 5:
-        points[0] = center + az / 2;
-        points[1] = center + az / 3 * 2;
-        points[2] = center + ax / 3 * 2;
-        points[3] = center + ax / 2;
-
-        StdGuiRender::draw_fill_poly_fan(points, 4, COLOR_YELLOW);
-        break;
-
-      case 7:
-        points[0] = center + ax / 2;
-        points[1] = center + ay / 2;
-        points[2] = center + az / 2;
-
-        StdGuiRender::draw_fill_poly_fan(points, 3, COLOR_YELLOW);
-        break;
-    }
-  }
-  else
-  {
-    StdGuiRender::set_color(COLOR_YELLOW);
-
-    drawGizmoLineFromTo(center + ax / 3 * 2, center + ay / 3 * 2);
-    drawGizmoLineFromTo(center + ax / 2, center + ay / 2);
-
-    drawGizmoLineFromTo(center + ay / 3 * 2, center + az / 3 * 2);
-    drawGizmoLineFromTo(center + ay / 2, center + az / 2);
-
-    drawGizmoLineFromTo(center + az / 3 * 2, center + ax / 3 * 2);
-    drawGizmoLineFromTo(center + az / 2, center + ax / 2);
-
-    points[0] = center + ax / 2;
-    points[1] = center + ay / 2;
-    points[2] = center + az / 2;
-
-    // dc.selectFillPattern(FILL_MASK);
-    StdGuiRender::draw_fill_poly_fan(points, 3, COLOR_YELLOW);
-  }
-
-  StdGuiRender::set_color((sel & 1) ? COLOR_YELLOW : COLOR_LTRED);
-  drawGizmoArrowScale(center, ax, COLOR_LTRED);
-
-  StdGuiRender::set_color((sel & 2) ? COLOR_YELLOW : COLOR_LTGREEN);
-  drawGizmoArrowScale(center, ay, COLOR_LTGREEN);
-
-  StdGuiRender::set_color((sel & 4) ? COLOR_YELLOW : COLOR_LTBLUE);
-  drawGizmoArrowScale(center, az, COLOR_LTBLUE);
-}
-
-
-//==============================================================================
-void GizmoEventFilter::drawRotateGizmo(IGenViewportWnd *w, int vp_i, int sel)
-{
-  if (moveStarted && sel)
-  {
-    Point2 a, b;
-    E3DCOLOR col1, col2;
-
-    switch (sel)
-    {
-      case AXIS_X:
-        a = vp[vp_i].ay;
-        b = vp[vp_i].az;
-        col1 = COLOR_LTRED;
-        col2 = COLOR_RED;
-        break;
-      case AXIS_Y:
-        a = vp[vp_i].az;
-        b = vp[vp_i].ax;
-        col1 = COLOR_LTGREEN;
-        col2 = COLOR_GREEN;
-        break;
-      case AXIS_Z:
-        a = vp[vp_i].ax;
-        b = vp[vp_i].ay;
-        col1 = COLOR_LTBLUE;
-        col2 = COLOR_BLUE;
-        break;
-    }
-
-    const real deltaAngle = rotAngle - startRotAngle;
-    const real rotAbs = fabs(deltaAngle);
-    const bool rotWorld = IEditorCoreEngine::get()->getGizmoBasisType() == IEditorCoreEngine::BASIS_World;
-
-    real angle = rotWorld ? rotAngle : startRotAngle - deltaAngle;
-
-    if (rotAbs < TWOPI)
-    {
-      fillGizmoEllipse(vp[vp_i].center, a, b, col1, FILL_MASK, __min(startRotAngle, angle), __max(startRotAngle, angle));
-    }
-    else if (rotAbs < TWOPI * 2)
-    {
-      const int divizer = (deltaAngle) / TWOPI;
-      const real endRot = rotAngle - TWOPI * divizer;
-
-      angle = rotWorld ? endRot : startRotAngle - (endRot - startRotAngle);
-
-      const real start = __min(startRotAngle, angle);
-      const real end = __max(startRotAngle, angle);
-
-      fillGizmoEllipse(vp[vp_i].center, a, b, col2, 0xFFFFFFFF, start, end);
-      fillGizmoEllipse(vp[vp_i].center, a, b, col1, FILL_MASK, end - TWOPI, start);
-    }
-    else
-      fillGizmoEllipse(vp[vp_i].center, a, b, col2, 0xFFFFFFFF);
-
-    StdGuiRender::set_color(rotAbs < TWOPI ? col1 : col2);
-    drawGizmoLineFromTo(vp[vp_i].center, startPos2d[vp_i]);
-
-    angle = rotWorld ? rotAngle : startRotAngle;
-
-    Point2 end = vp[vp_i].center + a * cos(angle) + b * sin(angle);
-    drawGizmoLineFromTo(vp[vp_i].center, end);
-
-    StdGuiRender::set_font(0);
-    StdGuiRender::set_color(COLOR_YELLOW);
-
-    StdGuiRender::end_raw_layer();
-    StdGuiRender::draw_strf_to(vp[vp_i].center.x - _pxS(80), vp[vp_i].center.y - AXIS_LEN_PIX - _pxS(40), "[%.2f, %.2f, %.2f]",
-      RadToDeg(movedDelta.x), RadToDeg(movedDelta.y), RadToDeg(movedDelta.z));
-    StdGuiRender::reset_textures();
-    StdGuiRender::start_raw_layer();
-  }
-
-  StdGuiRender::set_color((sel == 1) ? COLOR_YELLOW : COLOR_RED);
-  drawGizmoEllipse(vp[vp_i].center, vp[vp_i].ay, vp[vp_i].az);
-
-  StdGuiRender::set_color((sel == 2) ? COLOR_YELLOW : COLOR_LTGREEN);
-  drawGizmoEllipse(vp[vp_i].center, vp[vp_i].az, vp[vp_i].ax);
-
-  StdGuiRender::set_color((sel == 4) ? COLOR_YELLOW : COLOR_LTBLUE);
-  drawGizmoEllipse(vp[vp_i].center, vp[vp_i].ax, vp[vp_i].ay);
-}
-
-
 //==============================================================================
 void GizmoEventFilter::drawGizmo(IGenViewportWnd *w)
 {
@@ -1187,78 +613,37 @@ void GizmoEventFilter::drawGizmo(IGenViewportWnd *w)
 
   recalcViewportGizmo();
 
+  bool isMouseOver = gizmo.client->isMouseOver(w, mouseCurrentPos.x, mouseCurrentPos.y);
   int vp_i = ged.findViewportIndex(w);
-  int sel = gizmo.over ? gizmo.over : gizmo.selected;
+  int sel = ((moveStarted || isMouseOver) && !gizmo.over) ? gizmo.selected : gizmo.over;
+  if ((gizmo.type & IEditorCoreEngine::MODE_Rotate)) // TODO: remove this
+  {
+    sel = moveStarted ? gizmo.selected : gizmo.over;
+  }
 
   Point2 screen;
   if (!w->worldToClient(gizmo.client->getPt(), screen))
     return;
 
+  const Point2 axes[3] = {vp[vp_i].ax, vp[vp_i].ay, vp[vp_i].az};
+
   StdGuiRender::reset_textures();
   StdGuiRender::start_raw_layer();
   switch (gizmo.type)
   {
-    case IEditorCoreEngine::MODE_Move: drawMoveGizmo(vp_i, sel); break;
+    case IEditorCoreEngine::MODE_Move: renderer->renderMove(w, vp[vp_i].center, axes, sel); break;
 
-    case IEditorCoreEngine::MODE_Scale: drawScaleGizmo(vp_i, sel); break;
+    case IEditorCoreEngine::MODE_Scale: renderer->renderScale(w, vp[vp_i].center, axes, sel, scale); break;
 
-    case IEditorCoreEngine::MODE_Rotate: drawRotateGizmo(w, vp_i, sel); break;
+    case IEditorCoreEngine::MODE_Rotate:
+      renderer->renderRotate(w, vp[vp_i].center, axes, startPos2d[vp_i], rotAngle, startRotAngle, sel);
+      break;
 
-    case IEditorCoreEngine::MODE_MoveSurface: drawSurfMoveGizmo(vp_i, sel); break;
+    case IEditorCoreEngine::MODE_MoveSurface: renderer->renderSurfMove(vp[vp_i].center, axes, sel); break;
 
     default: debug("FATAL: gizmo.type == 0x%X", gizmo.type); G_ASSERT(0);
   }
   StdGuiRender::end_raw_layer();
 
   repaint();
-}
-
-
-//==============================================================================
-bool GizmoEventFilter::isPointInEllipse(const Point2 &center, const Point2 &a, const Point2 &b, real width, const Point2 &point,
-  real start, real end)
-{
-  Point2 prev = center + a * cos(start) + b * sin(start);
-  Point2 next;
-
-  for (real t = start; t < end; t += ELLIPSE_STEP) //-V1034
-  {
-    next = center + a * cos(t) + b * sin(t);
-    if (::is_point_in_rect(point, prev, next, width))
-    {
-      rotateDir = normalize(next - prev);
-      return true;
-    }
-
-    prev = next;
-  }
-
-  next = center + a * cos(end) + b * sin(end);
-  return ::is_point_in_rect(point, prev, next, width);
-}
-
-
-//==============================================================================
-void GizmoEventFilter::correctScaleGizmo(int idx, const Point3 &x_dir, const Point3 &y_dir, const Point3 &z_dir, Point2 &ax,
-  Point2 &ay, Point2 &az)
-{
-  const IGenViewportWnd *vpw = IEditorCoreEngine::get()->getViewport(idx);
-
-  if (!vpw)
-    return;
-
-  TMatrix tm;
-  vpw->getCameraTransform(tm);
-  tm = inverse(tm);
-
-  const Point3 camDir = Point3(tm.m[0][2], tm.m[1][2], tm.m[2][2]);
-
-  if (x_dir * camDir > 0)
-    ax = -ax;
-
-  if (y_dir * camDir > 0)
-    ay = -ay;
-
-  if (z_dir * camDir > 0)
-    az = -az;
 }

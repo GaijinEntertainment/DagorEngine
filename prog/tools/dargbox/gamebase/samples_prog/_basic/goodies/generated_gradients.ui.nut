@@ -9,7 +9,7 @@ let {mkLinearGradientImg
 let red = [255,0,0]
 let blue = [0, 0, 255]
 
-let mkImage = @(img) {rendObj=ROBJ_IMAGE image=img size = [hdpx(300), hdpx(300)]}
+let mkImage = @(img) {rendObj=ROBJ_IMAGE image=img size = hdpx(300)}
 let linGradParams1 = {
   points = [red, blue, {color = [0, 255, 0] opacity = 0.2}]
   width = 64

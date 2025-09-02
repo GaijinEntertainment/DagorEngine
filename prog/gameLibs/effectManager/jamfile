@@ -1,0 +1,26 @@
+ModuleDependsOnVars = HaveRenderer ;
+HaveRenderer ?= yes ;
+
+Root    ?= ../../.. ;
+StrictCompile = yes ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/gameLibs/effectManager ;
+
+TargetType  = lib ;
+Target      = gameLibs/effectManager.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/commonFx/commonFxGame
+;
+
+Sources = ;
+
+if $(HaveRenderer) = yes {
+  Sources += effectManager.cpp ;
+} else {
+  Sources += stub/effectManagerStub.cpp ;
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

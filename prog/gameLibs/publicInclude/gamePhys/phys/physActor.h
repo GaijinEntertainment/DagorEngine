@@ -9,6 +9,7 @@
 
 #include <generic/dag_span.h>
 #include <debug/dag_assert.h>
+#include <gamePhys/phys/physActor.h>
 
 class NetCrew;
 class NetWeapon;
@@ -25,7 +26,7 @@ class BitStream;
 class IPhysActor
 {
 public:
-  enum RoleFlags : uint8_t
+  enum NetRole : uint8_t
   {
     URF_INITIALIZED = 1 << 0, // If this bit is not set, than role is not defined.
 
@@ -36,10 +37,7 @@ public:
     URF_AUTHORITY = 1 << 2, // Set when and only when this instance of the unit is being executed
                             // on a trusted machine and can deal and receive damage, respawn etc.
                             // This instance confirms requests when being controlled remotely.
-  };
 
-  enum NetRole : uint8_t
-  {
     // Default initial value to catch uninitialized role.
     ROLE_UNINITIALIZED = 0,
 
@@ -107,6 +105,7 @@ public:
   virtual void teleportToPos(bool /*is_soft*/, const Point3 & /*pos*/) {}
   virtual void sendDesyncData(const danet::BitStream & /*sync_cur_data*/) {}
   virtual void sendDesyncStats(const PhysDesyncStats &) {}
+  virtual void prePhysUpdate(int32_t /*tick*/, float /*dt*/, bool /*is_for_real*/ = true) {}
   virtual void postPhysUpdate(int32_t /*tick*/, float /*dt*/, bool /*is_for_real*/ = true) {}
   virtual void postPhysInterpolate(float /*at_time*/, float /*dt*/) {}
 
@@ -133,7 +132,7 @@ public:
   virtual dag::ConstSpan<NetWeaponControl *> getAllWeaponControls() const { return {}; }
   virtual NetAutopilot *getAutopilot() const { return NULL; }
   virtual NetAvionics *getAvionics() { return NULL; }
-  virtual void validateGunsLists(){};
+  virtual void validateGunsLists() {}
 
   virtual const char *getActorName() const { return nullptr; }
 };

@@ -1,5 +1,5 @@
 from "%sqstd/ecs.nut" import *
-let {TEAM_UNASSIGNED} = require("team")
+from "team" import TEAM_UNASSIGNED
 
 let find_human_player_by_connidQuery = SqQuery("find_human_player_by_connidQuery", {comps_ro=[["connid", TYPE_INT]], comps_rq=["player"], comps_no=["playerIsBot"]})
 function find_human_player_by_connid(filter_connid){
@@ -69,7 +69,7 @@ function get_alive_teammates_count(hero_eid){
   return result
 }
 
-return {
+return freeze({
   find_human_player_by_connid
   find_any_player_that_possess
   find_connected_player_that_possess
@@ -80,4 +80,4 @@ return {
   get_local_player_team
   get_alive_teams
   get_alive_teammates_count,
-}
+})

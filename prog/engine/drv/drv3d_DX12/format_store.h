@@ -136,11 +136,28 @@ BEGIN_BITFIELD_TYPE(FormatStore, uint8_t)
   const char *getNameString() const;
   // returns true if the format can be represented with this storage
   static bool canBeStored(DXGI_FORMAT fmt);
-#if _TARGET_PC_WIN
-  static void patchFormatTalbe(ID3D12Device * device, uint32_t vendor);
-#endif
+  static void configureFormatTable(ID3D12Device * device, uint32_t vendor = 0);
   FormatPlaneCount getPlanes() const;
   uint32_t getChannelMask() const;
+  // isSupported section
+  bool isSupported(D3D12_FORMAT_SUPPORT1 flags) const;
+  bool isSupported(D3D12_FORMAT_SUPPORT2 flags) const;
+  bool isSupportedTexture2D() const;
+  bool isSupportedTexture3D() const;
+  bool isSupportedTextureCube() const;
+  bool isSupportedDepthStencil() const;
+  bool isSupportedRenderTarget() const;
+  bool isSupportedMultisampleRenderTarget() const;
+  bool isSupportedMultisampleResolve() const;
+  bool isSupportedMultisampleLoad() const;
+  bool isSupportedBlendable() const;
+  bool isSupportedShaderSample() const;
+  bool isSupportedTypedUav() const;
+  bool isSupportedUavTypedLoad() const;
+  bool isSupportedTiled() const;
+  // msaa section
+  bool isSampleCountSupported(int32_t sampleCount) const;
+  int32_t getMaxSampleCount() const;
   // returns true if a format can be mem copied by the GPU
   bool isCopyConvertible(FormatStore other) const;
 END_BITFIELD_TYPE()

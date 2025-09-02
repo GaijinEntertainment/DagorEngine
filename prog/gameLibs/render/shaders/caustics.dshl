@@ -19,10 +19,7 @@ endmacro
 
 macro USE_CAUSTICS_BASE(code)
 
-  if (use_extended_global_frame_block == no)
-  {
-    INIT_CAUSTICS_BASE_STCODE(code)
-  }
+  INIT_CAUSTICS_BASE_STCODE(code)
 
   // Even though it's assumed to be false, WTM doesn't compile with this in the global_frame block.
   if (caustics__indoor_probe_mask != NULL)
@@ -37,7 +34,7 @@ macro USE_CAUSTICS_BASE(code)
 
   hlsl(code)
   {
-  #if defined(USE_CAUSTICS_RENDER) || FORCE_CAUSTICS
+  #if defined(USE_CAUSTICS_RENDER)
 
     #ifndef get_shadow
       #define get_shadow(shadowPos) 1
@@ -92,11 +89,7 @@ macro USE_CAUSTICS_BASE(code)
 
       float weight =normalWeight * heightWeight * fresnelTerm;
 
-      #if defined(CAUSTICS_CUSTOM_WORLD_SCALE)
-      float worldScale = CAUSTICS_CUSTOM_WORLD_SCALE;
-      #else
       float worldScale = caustics_world_scale;
-      #endif
 
       float causticWeight = max(saturate(water_height-worldPos.y), weight);
       float distanceFade=saturate(0.015*(170-distance*worldScale));
@@ -135,12 +128,4 @@ endmacro
 macro USE_SSR_CAUSTICS(code)
   supports global_const_block;
   USE_CAUSTICS_BASE(code)
-endmacro
-
-macro USE_CAUSTICS_FORWARD()
-  hlsl(ps)
-  {
-    #define FORCE_CAUSTICS 1
-  }
-  USE_CAUSTICS_BASE(ps)
 endmacro

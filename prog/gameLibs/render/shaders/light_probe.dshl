@@ -14,6 +14,8 @@ hlsl {
 int integrate_face = 6;
 interval integrate_face: integrate_face_one<6, integrate_face_all;
 
+int dynamic_cube_tex_reg_no = 15;
+
 shader specular_cube
 {
   SUPPORT_GLOBAL_FRAME()
@@ -45,11 +47,11 @@ shader specular_cube
     }
   }
 
-  (ps) { relight_mip@f2 = (relight_mip,integrate_face,0,0); }
+  (ps) {
+    relight_mip@f2 = (relight_mip,integrate_face,0,0);
+    dynamic_cube_tex@smpCube : register(dynamic_cube_tex_reg_no);
+  }
   hlsl(ps) {
-    TextureCube dynamic_cube_tex:register(t7);
-    SamplerState dynamic_cube_tex_samplerstate:register(s7);
-
     struct MRT_OUTPUT
     {
       float4 color0:SV_Target0;

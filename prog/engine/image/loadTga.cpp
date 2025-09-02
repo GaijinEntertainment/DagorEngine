@@ -207,6 +207,19 @@ TexImage32 *load_tga32(const char *fn, IMemAlloc *mem, bool *out_used_alpha)
   return load_tga32(fn, mem, out_used_alpha, NULL, NULL);
 }
 
+bool read_tga32_dimensions(const char *fn, int &out_w, int &out_h, bool &out_may_have_alpha)
+{
+  bool ret = false;
+  if (file_ptr_t h = df_open(fn, DF_READ))
+  {
+    TgaHeader hdr;
+    if (readhdr(hdr, h))
+      ret = true, out_w = hdr.w, out_h = hdr.h, out_may_have_alpha = (hdr.bits == 32);
+    df_close(h);
+  }
+  return ret;
+}
+
 TexImage32 *load_tga32(IGenLoad &crd, IMemAlloc *mem, bool *out_used_alpha, unsigned char *app_data, unsigned int *app_data_len)
 {
   TgaHeader hdr;

@@ -1,0 +1,109 @@
+int ptgi_bindless_slot = -1;
+int ptgi_bindless_sampler_slot = -1;
+
+int ptgi_depth_bindless_slot = -1;
+int ptgi_depth_bindless_sampler_slot = -1;
+
+int ptgi_res_mul = 1;
+int ptgi_use_rr = 1;
+
+macro CHECKING_PTGI(stage)
+  if (use_hw_raytracing)
+  {
+    (stage) {
+      ptgi_bindless_slot@i1 = ptgi_bindless_slot;
+      ptgi_bindless_sampler_slot@u1 = ptgi_bindless_sampler_slot;
+      ptgi_depth_bindless_slot@i1 = ptgi_depth_bindless_slot;
+      ptgi_depth_bindless_sampler_slot@u1 = ptgi_depth_bindless_sampler_slot;
+      ptgi_res_mul@u1 = ptgi_res_mul;
+      ptgi_use_rr@u1 = ptgi_use_rr;
+    }
+
+    hlsl (stage) {
+      bool isPTGIEnabled()
+      {
+        return ptgi_bindless_slot >= 0;
+      }
+    }
+  }
+  else
+  {
+    hlsl (stage) {
+      bool isPTGIEnabled()
+      {
+        return false;
+      }
+    }
+  }
+endmacro
+
+macro USING_PTGI(stage)
+  CHECKING_PTGI(stage)
+
+  if (use_hw_raytracing)
+  {
+    hlsl (stage) {
+      #define HAS_PTGI 1
+
+      #include <rt_texture_outputs.inc.hlsli>
+
+      float3 getPTGI(float2 uv, float linearDepth)
+      {
+        float4 color = 0;
+
+        if (ptgi_res_mul == 1)
+        {
+          color = rt_texture_outputs[ptgi_bindless_slot].SampleLevel(global_samplers_array[ptgi_bindless_sampler_slot], uv, 0);
+        }
+        else
+        {
+          const float depthTolerance = 1;
+
+          float ptgiDepth = rt_texture_outputs[ptgi_depth_bindless_slot].SampleLevel(global_samplers_array[ptgi_depth_bindless_sampler_slot], uv, 0).r;
+          [branch]
+          if (abs(ptgiDepth - linearDepth) < depthTolerance)
+            color = rt_texture_outputs[ptgi_bindless_slot].SampleLevel(global_samplers_array[ptgi_bindless_sampler_slot], uv, 0);
+          else
+          {
+            // If the depth is not close enough, we will try to find the closest depth in the PTGI buffer
+            float4 ptgiDepths = rt_texture_outputs[ptgi_depth_bindless_slot].GatherRed(global_samplers_array[ptgi_depth_bindless_sampler_slot], uv, 0);
+
+            uint cix = 4;
+            float dt = abs(ptgiDepth - linearDepth);
+
+            [unroll]
+            for (uint ix = 0; ix < 4; ++ix)
+            {
+              float dts = abs(ptgiDepths[ix] - linearDepth);
+              if (dts < dt)
+              {
+                dt = dts;
+                cix = ix;
+              }
+            }
+
+            if (cix == 4)
+              color = rt_texture_outputs[ptgi_bindless_slot].SampleLevel(global_samplers_array[ptgi_bindless_sampler_slot], uv, 0);
+            else
+            {
+              color.r = rt_texture_outputs[ptgi_bindless_slot].GatherRed(global_samplers_array[ptgi_bindless_sampler_slot], uv, 0)[cix];
+              color.g = rt_texture_outputs[ptgi_bindless_slot].GatherGreen(global_samplers_array[ptgi_bindless_sampler_slot], uv, 0)[cix];
+              color.b = rt_texture_outputs[ptgi_bindless_slot].GatherBlue(global_samplers_array[ptgi_bindless_sampler_slot], uv, 0)[cix];
+            }
+          }
+        }
+
+        return ptgi_use_rr ? color.rgb :REBLUR_BackEnd_UnpackRadianceAndNormHitDist(color).rgb;
+      }
+    }
+  }
+  else
+  {
+    hlsl (stage) {
+      float3 getPTGI(float2 uv, float linearDepth)
+      {
+        return 1;
+      }
+    }
+  }
+endmacro

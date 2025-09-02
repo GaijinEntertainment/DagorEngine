@@ -17,73 +17,73 @@ class ScnExportPlugin : public IGenEditorPlugin, public IRenderingService, publi
 {
 public:
   ScnExportPlugin();
-  ~ScnExportPlugin();
+  ~ScnExportPlugin() override;
 
-  virtual const char *getInternalName() const { return "scnExport"; }
-  virtual const char *getMenuCommandName() const { return "ScnExport"; }
-  virtual const char *getHelpUrl() const { return "/html/Plugins/ScnExport/index.htm"; }
+  const char *getInternalName() const override { return "scnExport"; }
+  const char *getMenuCommandName() const override { return "ScnExport"; }
+  const char *getHelpUrl() const override { return "/html/Plugins/ScnExport/index.htm"; }
 
-  virtual int getRenderOrder() const { return -200; }
-  virtual int getBuildOrder() const { return 0; }
-  virtual bool showInTabs() const { return false; }
+  int getRenderOrder() const override { return -200; }
+  int getBuildOrder() const override { return 0; }
+  bool showInTabs() const override { return false; }
 
-  virtual void registered()
+  void registered() override
   {
     isVisible = true;
     clearObjects();
   }
-  virtual void unregistered() {}
-  virtual void beforeMainLoop() {}
+  void unregistered() override {}
+  void beforeMainLoop() override {}
 
-  virtual bool begin(int toolbar_id, unsigned menu_id);
-  virtual bool end() { return true; }
+  bool begin(int toolbar_id, unsigned menu_id) override;
+  bool end() override { return true; }
 
-  virtual void setVisible(bool vis)
+  void setVisible(bool vis) override
   {
     isVisible = vis;
     if (bsSrv)
       bsSrv->setServiceVisible(vis);
   }
-  virtual bool getVisible() const { return isVisible; }
+  bool getVisible() const override { return isVisible; }
 
-  virtual bool getSelectionBox(BBox3 &) const { return false; }
-  virtual bool getStatusBarPos(Point3 &pos) const { return false; }
+  bool getSelectionBox(BBox3 &) const override { return false; }
+  bool getStatusBarPos(Point3 &pos) const override { return false; }
 
-  virtual void clearObjects();
-  virtual void onNewProject() {}
-  virtual void saveObjects(DataBlock &blk, DataBlock &local_data, const char *base_path);
-  virtual void loadObjects(const DataBlock &blk, const DataBlock &local_data, const char *base_path);
-  virtual bool acceptSaveLoad() const { return true; }
+  void clearObjects() override;
+  void onNewProject() override {}
+  void saveObjects(DataBlock &blk, DataBlock &local_data, const char *base_path) override;
+  void loadObjects(const DataBlock &blk, const DataBlock &local_data, const char *base_path) override;
+  bool acceptSaveLoad() const override { return true; }
 
-  virtual void selectAll() {}
-  virtual void deselectAll() {}
+  void selectAll() override {}
+  void deselectAll() override {}
 
-  virtual void actObjects(float dt) {}
-  virtual void beforeRenderObjects(IGenViewportWnd *vp) {}
-  virtual void renderObjects() {}
-  virtual void renderTransObjects() {}
+  void actObjects(float dt) override {}
+  void beforeRenderObjects(IGenViewportWnd *vp) override {}
+  void renderObjects() override {}
+  void renderTransObjects() override {}
 
-  virtual void *queryInterfacePtr(unsigned huid);
+  void *queryInterfacePtr(unsigned huid) override;
 
-  virtual bool catchEvent(unsigned event_huid, void *userData) { return bsSrv ? bsSrv->catchEvent(event_huid, userData) : false; }
-  virtual bool onPluginMenuClick(unsigned id);
+  bool catchEvent(unsigned event_huid, void *userData) override { return bsSrv ? bsSrv->catchEvent(event_huid, userData) : false; }
+  bool onPluginMenuClick(unsigned id) override;
 
   // command handlers
-  virtual IGenEventHandler *getEventHandler() { return NULL; }
+  IGenEventHandler *getEventHandler() override { return NULL; }
 
   // IBinaryDataBuilder implemenatation
-  virtual bool validateBuild(int target, ILogWriter &rep, PropPanel::ContainerPropertyControl *params);
-  virtual bool addUsedTextures(ITextureNumerator &tn);
-  virtual bool buildAndWrite(BinDumpSaveCB &cwr, const ITextureNumerator &tn, PropPanel::ContainerPropertyControl *pp);
-  virtual bool useExportParameters() const { return true; }
-  virtual void fillExportPanel(PropPanel::ContainerPropertyControl &params);
-  virtual bool checkMetrics(const DataBlock &metrics_blk) { return true; }
+  bool validateBuild(int target, ILogWriter &rep, PropPanel::ContainerPropertyControl *params) override;
+  bool addUsedTextures(ITextureNumerator &tn) override;
+  bool buildAndWrite(BinDumpSaveCB &cwr, const ITextureNumerator &tn, PropPanel::ContainerPropertyControl *pp) override;
+  bool useExportParameters() const override { return true; }
+  void fillExportPanel(PropPanel::ContainerPropertyControl &params) override;
+  bool checkMetrics(const DataBlock &metrics_blk) override { return true; }
 
   // IRenderingService interface
-  virtual void renderGeometry(Stage stage) { return bsRendGeom->renderGeometry(stage); }
+  void renderGeometry(Stage stage) override { return bsRendGeom->renderGeometry(stage); }
 
   // IRenderOnCubeTex interface
-  void prepareCubeTex(bool renderEnvi, bool renderLit, bool renderStreamLit)
+  void prepareCubeTex(bool renderEnvi, bool renderLit, bool renderStreamLit) override
   {
     bsRendCube->prepareCubeTex(renderEnvi, renderLit, renderStreamLit);
   }

@@ -1,5 +1,5 @@
 Texture Management
 =================================================
 
-.. autodoxygenfile:: dag_texMgr.h
+.. doxygenfile:: dag_texMgr.h
   :project: d3dHelpers

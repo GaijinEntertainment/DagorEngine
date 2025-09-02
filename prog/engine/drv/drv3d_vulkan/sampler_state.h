@@ -2,6 +2,7 @@
 #pragma once
 
 #include <math/dag_mathBase.h>
+#include <math/dag_e3dColor.h>
 
 #include "util/bits.h"
 #include "vulkan_api.h"
@@ -52,6 +53,7 @@ BEGIN_BITFIELD_TYPE(SamplerState, uint64_t)
     ADD_BITFIELD_MEMBER(sign, 31, 1)
   END_BITFIELD_TYPE()
 
+  //!! must match to d3d::SamplerInfo{}
   static SamplerState make_default()
   {
     SamplerState st;
@@ -113,6 +115,17 @@ BEGIN_BITFIELD_TYPE(SamplerState, uint64_t)
   }
   inline void setBorder(VkBorderColor b) { borderColorMode = b; }
   inline VkBorderColor getBorder() const { return (VkBorderColor)(uint32_t)borderColorMode; }
+
+  static constexpr VkBorderColor color_table[] = //
+    {VK_BORDER_COLOR_INT_OPAQUE_WHITE, VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE, VK_BORDER_COLOR_INT_OPAQUE_BLACK,
+      VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK, VK_BORDER_COLOR_INT_TRANSPARENT_BLACK, VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK,
+      VK_BORDER_COLOR_INT_TRANSPARENT_BLACK, VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK};
+  static VkBorderColor remap_border_color(E3DCOLOR color, bool as_float)
+  {
+    bool isBlack = (color.r == 0) && (color.g == 0) && (color.b == 0);
+    bool isTransparent = color.a == 0;
+    return color_table[int(as_float) | (int(isBlack) << 1) | (int(isTransparent) << 2)];
+  }
 END_BITFIELD_TYPE()
 
 } // namespace drv3d_vulkan

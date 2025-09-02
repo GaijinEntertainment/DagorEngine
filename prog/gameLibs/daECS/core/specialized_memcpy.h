@@ -12,7 +12,7 @@
     case 8: SPECIALIZE_MEMCPY_HELPER(TO, uint64_t, EID, FROM, 1); break;      \
     case 12: SPECIALIZE_MEMCPY_HELPER(TO, uint32_t, EID * 3, FROM, 3); break; \
     case 16: SPECIALIZE_MEMCPY_HELPER(TO, vec4i, EID, FROM, 1); break;        \
-    default: memcpy(TO + (EID)*CSZ, FROM, CSZ);                               \
+    default: memcpy(TO + (EID) * CSZ, FROM, CSZ);                             \
   }
 
 #define SPECIALIZE_MEMCPY_HELPER_SOA2(DATA_TO, DATA_FROM, TYPE, OFS, SRC_OFS, CNT) \
@@ -26,7 +26,7 @@
     case 8: SPECIALIZE_MEMCPY_HELPER_SOA2(DATA_TO, DATA_FROM, uint64_t, TO, FROM, 1); break;          \
     case 12: SPECIALIZE_MEMCPY_HELPER_SOA2(DATA_TO, DATA_FROM, uint32_t, TO * 3, FROM * 3, 3); break; \
     case 16: SPECIALIZE_MEMCPY_HELPER_SOA2(DATA_TO, DATA_FROM, vec4i, TO, FROM, 1); break;            \
-    default: memcpy(DATA_TO + (TO)*CSZ, DATA_FROM + (FROM)*CSZ, CSZ);                                 \
+    default: memcpy(DATA_TO + (TO) * CSZ, DATA_FROM + (FROM) * CSZ, CSZ);                             \
   }
 
 #define SPECIALIZE_MEMCPY_IN_SOA(CSZ, DATA, TO, FROM) SPECIALIZE_MEMCPY_IN_SOA2(CSZ, DATA, DATA, TO, FROM)

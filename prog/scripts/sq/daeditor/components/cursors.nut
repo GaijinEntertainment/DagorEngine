@@ -14,7 +14,7 @@ let tooltipGen = Watched(0)
 let tooltipComp = {value = null}
 function setTooltip(val){
   tooltipComp.value = val
-  tooltipGen(tooltipGen.value+1)
+  tooltipGen.modify(@(v) v+1)
 }
 let getTooltip = @() tooltipComp.value
 

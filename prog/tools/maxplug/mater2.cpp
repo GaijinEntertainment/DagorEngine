@@ -1,12 +1,15 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <max.h>
-#include <stdmat.h>
-#include <math.h>
 #include <vector>
+#include <array>
 #include <map>
 #include <memory>
 #include <sstream>
+#include <algorithm>
+
+#include <max.h>
+#include <stdmat.h>
+#include <math.h>
 #include <iparamb2.h>
 
 #include "dagor.h"
@@ -18,7 +21,7 @@
 
 #include <d3dx9.h>
 #include <d3d9types.h>
-#include <IHardwareMaterial.h>
+#include <ihardwarematerial.h>
 #include "dag_auto_ptr.h"
 
 std::string wideToStr(const TCHAR *sw);
@@ -30,118 +33,81 @@ M_STD_STRING strToWide(const char *sz);
 #define TX_ALPHABLEND 1
 #define BMIDATA(x)    ((UBYTE *)((BYTE *)(x) + sizeof(BITMAPINFOHEADER)))
 
+static const TSTR default_shader_name(_T("gi_black"));
+static const TSTR dagor_shaders_config(_T("DagorShaders.cfg"));
+static const TCHAR *real_two_sided(_T("real_two_sided"));
+
+class MaterDlg2;
+
 class MaterParNew2
 {
-  // : public ParamDlg {
 public:
-  class MaterDlg2 *parent;
-  HWND hWnd;
-  BOOL isActive;
-
-  M_STD_STRING shader;
-
-  int param_name_ind;
-  int param_status_ind;
-
-  M_STD_STRING param_status;
-  M_STD_STRING param_name;
-
-  M_STD_STRING GetParamStatus();
-  M_STD_STRING GetParamName();
-
-  MaterParNew2(MaterDlg2 *p);
+  MaterParNew2(MaterDlg2 *p, M_STD_STRING &shdr);
   virtual ~MaterParNew2();
 
-  int DoModal();
-  /*
-  void ReloadDialog() {};
-  Class_ID ClassID() {return DagorMat2_CID;}
-  void SetThing(ReferenceTarget *m) {}
-  ReferenceTarget* GetThing() { return NULL; }
-  void DeleteThis() { delete this; }
-  void SetTime(TimeValue t) {}
-  void ActivateDlg(BOOL onOff) {}
-  */
-  virtual BOOL WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+  M_STD_STRING GetNewParamName() const { return param_name; }
 
-  HWND GetHWND();
+  int DoModal();
+  BOOL WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 private:
-  int param_shader_starts_from;
+  M_STD_STRING GetParamName();
+
+  HWND hWnd;
+  MaterDlg2 *parent;
+  M_STD_STRING shader;
+  M_STD_STRING param_name;
 };
 
 
 class MaterPar2 : public ParamDlg
 {
 public:
-  void SetOwnerDlg(MaterDlg2 *dlg2);
-
-  class MaterDlg2 *parent;
-
   //////////////////////////
 
   HWND hPanel;
-  HWND hWnd;
-  BOOL isActive;
-  BOOL valid;
+  HWND hSType;
   BOOL creating;
 
   M_STD_STRING name;
-  M_STD_STRING owner;
   M_STD_STRING value;
 
   //////////////////////////
 
-  MaterPar2(M_STD_STRING n, M_STD_STRING o, M_STD_STRING v, MaterDlg2 *p);
-  virtual ~MaterPar2();
+  MaterPar2(M_STD_STRING n, M_STD_STRING v, MaterDlg2 *p);
+  ~MaterPar2() override;
 
   //////////////////////////
 
-  void Invalidate();
-
-  void ReloadDialog(){};
-  Class_ID ClassID() { return DagorMat2_CID; }
-  void SetThing(ReferenceTarget *m) {}
-  ReferenceTarget *GetThing() { return NULL; }
-  void DeleteThis() { delete this; }
-  void SetTime(TimeValue t) {}
-  void ActivateDlg(BOOL onOff) {}
+  void ReloadDialog() override {}
+  Class_ID ClassID() override { return DagorMat2_CID; }
+  void SetThing(ReferenceTarget *m) override {}
+  ReferenceTarget *GetThing() override { return NULL; }
+  void DeleteThis() override { delete this; }
+  void SetTime(TimeValue t) override {}
+  void ActivateDlg(BOOL onOff) override {}
 
   //////////////////////////
 
-  virtual BOOL WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
-
-  HWND GetHWND();
-
-  int GetType();
-  int GetStatus();
-
-  virtual M_STD_STRING GetName();
-  virtual M_STD_STRING GetValue();
-
-  virtual void SetName(const M_STD_STRING n);
-  virtual void SetValue(const M_STD_STRING v);
-
-  virtual void Move(const Rect &place);
-
-  virtual void Reheight(const unsigned cy);
-  virtual void Rewidth(const unsigned cx);
+  virtual const TCHAR *GetType() const = 0;
 
 protected:
-  bool rollUpLess;
-  MaterDlg2 *ownerDlg2;
+  MaterDlg2 *parent;
 };
 
 class MaterParText2 : public MaterPar2
 {
 public:
-  MaterParText2(M_STD_STRING n, M_STD_STRING o, M_STD_STRING v, MaterDlg2 *p);
-  virtual ~MaterParText2();
+  MaterParText2(M_STD_STRING n, M_STD_STRING v, MaterDlg2 *p);
+  ~MaterParText2() override;
 
-  virtual BOOL WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+  BOOL WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-  virtual M_STD_STRING GetValue();
-  virtual void SetValue(const M_STD_STRING v);
+  const TCHAR *GetType() const override { return _T("t"); }
+
+private:
+  void GetValue();
+  void SetValue(const M_STD_STRING v);
 
   ICustEdit *edit;
 };
@@ -149,27 +115,16 @@ public:
 class MaterParReal2 : public MaterPar2
 {
 public:
-  MaterParReal2(M_STD_STRING n, M_STD_STRING o, M_STD_STRING v, MaterDlg2 *p);
-  virtual ~MaterParReal2();
+  MaterParReal2(M_STD_STRING n, M_STD_STRING v, MaterDlg2 *p);
+  ~MaterParReal2() override;
 
-  virtual BOOL WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+  BOOL WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-  virtual M_STD_STRING GetValue();
-  virtual void SetValue(const M_STD_STRING v);
+  const TCHAR *GetType() const override { return _T("r"); }
 
-  ISpinnerControl *spinner;
-};
-
-class MaterParRange2 : public MaterPar2
-{
-public:
-  MaterParRange2(M_STD_STRING n, M_STD_STRING o, M_STD_STRING v, MaterDlg2 *p);
-  virtual ~MaterParRange2();
-
-  virtual BOOL WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
-
-  virtual M_STD_STRING GetValue();
-  virtual void SetValue(const M_STD_STRING v);
+private:
+  void GetValue();
+  void SetValue(const M_STD_STRING v);
 
   ISpinnerControl *spinner;
 };
@@ -177,13 +132,12 @@ public:
 class MaterParEnum2 : public MaterPar2
 {
 public:
-  MaterParEnum2(M_STD_STRING n, M_STD_STRING o, M_STD_STRING v, MaterDlg2 *p);
-  virtual ~MaterParEnum2();
+  MaterParEnum2(M_STD_STRING n, M_STD_STRING v, MaterDlg2 *p);
+  ~MaterParEnum2() override;
 
-  virtual BOOL WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+  BOOL WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-  virtual M_STD_STRING GetValue();
-  virtual void SetValue(const M_STD_STRING v);
+  const TCHAR *GetType() const override { return _T("e"); }
 
   int GetCount();
 
@@ -192,29 +146,61 @@ public:
 
   int GetRadioSelected();
 
+private:
+  void GetValue();
+  void SetValue(const M_STD_STRING v);
+
   int count;
 };
 
 class MaterParColor2 : public MaterPar2
 {
 public:
-  MaterParColor2(M_STD_STRING n, M_STD_STRING o, M_STD_STRING v, MaterDlg2 *p);
-  virtual ~MaterParColor2();
+  MaterParColor2(M_STD_STRING n, M_STD_STRING v, MaterDlg2 *p);
+  ~MaterParColor2() override;
 
-  virtual BOOL WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+  BOOL WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-  virtual M_STD_STRING GetValue();
-  virtual void SetValue(const M_STD_STRING v);
+  const TCHAR *GetType() const override { return _T("c"); }
+
+private:
+  void GetValue();
+  void SetValue(const M_STD_STRING v);
 
   IColorSwatch *col;
 };
 
-typedef dag_auto_ptr<MaterPar2> MaterParPtr2;
+class MaterParBool2 : public MaterPar2
+{
+public:
+  MaterParBool2(M_STD_STRING n, M_STD_STRING v, MaterDlg2 *p);
+  ~MaterParBool2() override;
 
-typedef std::vector<MaterParPtr2> MaterParVector2;
-typedef std::map<M_STD_STRING, MaterParPtr2> MaterParMap2;
+  BOOL WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-static int iPDC;
+  const TCHAR *GetType() const override { return _T("b"); }
+
+private:
+  void GetValue();
+  void SetValue(const M_STD_STRING v);
+};
+
+class MaterParInt2 : public MaterPar2
+{
+public:
+  MaterParInt2(M_STD_STRING n, M_STD_STRING v, MaterDlg2 *p);
+  ~MaterParInt2() override;
+
+  BOOL WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
+  const TCHAR *GetType() const override { return _T("i"); }
+
+private:
+  void GetValue();
+  void SetValue(const M_STD_STRING v);
+
+  ISpinnerControl *spinner;
+};
 
 ///////////////////////////////////////////////////////////////////////////
 
@@ -226,19 +212,19 @@ public:
   IMtlParams *ip;
   class DagorMat2 *theMtl;
   HWND hPanel;
-  HWND hWnd;
   BOOL valid;
   BOOL isActive;
   IColorSwatch *csa, *csd, *css, *cse;
   BOOL creating;
   TexDADMgr dadmgr;
-  ICustButton *texbut[NUMTEXMAPS];
-  ICustStatus *texname[NUMTEXMAPS];
 
-  MaterParMap2 parameters;
+  std::array<ICustButton *, NUMTEXMAPS> texbut;
+  POINT paramOrg;
+
+  std::vector<std::unique_ptr<MaterPar2>> parameters;
 
   MaterDlg2(HWND hwMtlEdit, IMtlParams *imp, DagorMat2 *m);
-  ~MaterDlg2();
+  ~MaterDlg2() override;
 
   void RestoreParams();
   void SaveParams();
@@ -246,12 +232,13 @@ public:
   void FillSlotNames();
 
   M_STD_STRING GetShaderName();
-  MaterPar2 *AddParam(M_STD_STRING owner, M_STD_STRING name, M_STD_STRING value);
-  MaterPar2 *GetParam(M_STD_STRING owner, M_STD_STRING name);
-  bool FindParam(M_STD_STRING owner, M_STD_STRING name);
-  void DelParam(M_STD_STRING owner, M_STD_STRING name);
-  void RemParam(M_STD_STRING owner, M_STD_STRING name);
-  void DelParamAll();
+  void UpdateShaderName();
+  void ChangeShaderName();
+  void UpdateEnum2Sided();
+  void AddParam(int type, M_STD_STRING name, M_STD_STRING value = M_STD_STRING());
+  MaterPar2 *GetParam(M_STD_STRING name);
+  void RemParam(M_STD_STRING name);
+  void MarkUnknownParams(CfgShader &cfg);
 
   BOOL WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
   void Invalidate();
@@ -259,15 +246,15 @@ public:
   void UpdateTexDisplay(int i);
 
   // methods inherited from ParamDlg:
-  int FindSubTexFromHWND(HWND hw);
-  void ReloadDialog();
-  Class_ID ClassID() { return DagorMat2_CID; }
+  int FindSubTexFromHWND(HWND hw) override;
+  void ReloadDialog() override;
+  Class_ID ClassID() override { return DagorMat2_CID; }
   BOOL KeyAtCurTime(int id);
-  void SetThing(ReferenceTarget *m);
-  ReferenceTarget *GetThing() { return (ReferenceTarget *)theMtl; }
-  void DeleteThis() { delete this; }
-  void SetTime(TimeValue t) { Invalidate(); }
-  void ActivateDlg(BOOL onOff)
+  void SetThing(ReferenceTarget *m) override;
+  ReferenceTarget *GetThing() override { return (ReferenceTarget *)theMtl; }
+  void DeleteThis() override { delete this; }
+  void SetTime(TimeValue t) override { Invalidate(); }
+  void ActivateDlg(BOOL onOff) override
   {
     csa->Activate(onOff);
     csd->Activate(onOff);
@@ -278,9 +265,8 @@ public:
   HWND AppendDialog(const TCHAR *paramName, long Resource, DLGPROC lpDialogProc, LPARAM param);
 };
 
-#define MAX_PARAM_DLGS 20
-HWND paramDlgs[MAX_PARAM_DLGS];
-
+static const size_t MAX_PARAM_DLGS = 20;
+static const int PARAM_DLG_GAP = 5;
 
 //////////////////////////////////////////////////////////////////////////////////
 
@@ -289,9 +275,9 @@ class DagorMat2PostLoadCallback : public PostLoadCallback
 public:
   DagorMat2 *parent;
 
-  DagorMat2PostLoadCallback::DagorMat2PostLoadCallback() { parent = NULL; }
+  DagorMat2PostLoadCallback() { parent = NULL; }
 
-  virtual void proc(ILoad *iload);
+  void proc(ILoad *iload) override;
 };
 
 
@@ -301,115 +287,118 @@ public:
   class MaterDlg2 *dlg;
   IParamBlock *pblock;
   Texmaps *texmaps;
-  TexHandle *texHandle[NUMTEXMAPS];
+  std::array<TexHandle *, NUMTEXMAPS> texHandle;
   Interval ivalid;
   float shin;
   float power;
   Color cola, cold, cols, cole;
-  BOOL twosided;
+  Sides twosided;
   TSTR classname, script;
   DagorMat2PostLoadCallback postLoadCallback;
+  static ToolTipExtender tooltip;
 
   DagorMat2(BOOL loading);
-  ~DagorMat2();
+  ~DagorMat2() override;
   void NotifyChanged();
 
-  void *GetInterface(ULONG);
-  void ReleaseInterface(ULONG, void *);
+  void *GetInterface(ULONG) override;
+  void ReleaseInterface(ULONG, void *) override;
 
   // From IDagorMat
-  Color get_amb();
-  Color get_diff();
-  Color get_spec();
-  Color get_emis();
-  float get_power();
-  BOOL get_2sided();
-  const TCHAR *get_classname();
-  const TCHAR *get_script();
-  const TCHAR *get_texname(int);
-  float get_param(int);
+  Color get_amb() override;
+  Color get_diff() override;
+  Color get_spec() override;
+  Color get_emis() override;
+  float get_power() override;
+  IDagorMat::Sides get_2sided() override;
+  const TCHAR *get_classname() override;
+  const TCHAR *get_script() override;
+  const TCHAR *get_texname(int) override;
+  float get_param(int) override;
 
-  void set_amb(Color);
-  void set_diff(Color);
-  void set_spec(Color);
-  void set_emis(Color);
-  void set_power(float);
-  void set_2sided(BOOL);
-  void set_classname(const TCHAR *);
-  void set_script(const TCHAR *);
-  void set_texname(int, const TCHAR *);
-  void set_param(int, float);
+  void set_amb(Color) override;
+  void set_diff(Color) override;
+  void set_spec(Color) override;
+  void set_emis(Color) override;
+  void set_power(float) override;
+  void set_2sided(Sides) override;
+  void set_classname(const TCHAR *) override;
+  void set_script(const TCHAR *) override;
+  void set_texname(int, const TCHAR *) override;
+  void set_param(int, float) override;
 
   // From MtlBase and Mtl
-  int NumSubTexmaps();
-  Texmap *GetSubTexmap(int);
-  void SetSubTexmap(int i, Texmap *m);
+  int NumSubTexmaps() override;
+  Texmap *GetSubTexmap(int) override;
+  void SetSubTexmap(int i, Texmap *m) override;
 
-  void SetAmbient(Color c, TimeValue t);
-  void SetDiffuse(Color c, TimeValue t);
-  void SetSpecular(Color c, TimeValue t);
-  void SetShininess(float v, TimeValue t);
+  void SetAmbient(Color c, TimeValue t) override;
+  void SetDiffuse(Color c, TimeValue t) override;
+  void SetSpecular(Color c, TimeValue t) override;
+  void SetShininess(float v, TimeValue t) override;
 
-  Color GetAmbient(int mtlNum = 0, BOOL backFace = FALSE);
-  Color GetDiffuse(int mtlNum = 0, BOOL backFace = FALSE);
-  Color GetSpecular(int mtlNum = 0, BOOL backFace = FALSE);
-  float GetXParency(int mtlNum = 0, BOOL backFace = FALSE);
-  float GetShininess(int mtlNum = 0, BOOL backFace = FALSE);
-  float GetShinStr(int mtlNum = 0, BOOL backFace = FALSE);
+  Color GetAmbient(int mtlNum = 0, BOOL backFace = FALSE) override;
+  Color GetDiffuse(int mtlNum = 0, BOOL backFace = FALSE) override;
+  Color GetSpecular(int mtlNum = 0, BOOL backFace = FALSE) override;
+  float GetXParency(int mtlNum = 0, BOOL backFace = FALSE) override;
+  float GetShininess(int mtlNum = 0, BOOL backFace = FALSE) override;
+  float GetShinStr(int mtlNum = 0, BOOL backFace = FALSE) override;
 
-  ParamDlg *CreateParamDlg(HWND hwMtlEdit, IMtlParams *imp);
+  ParamDlg *CreateParamDlg(HWND hwMtlEdit, IMtlParams *imp) override;
 
-  void Shade(ShadeContext &sc);
-  void Update(TimeValue t, Interval &valid);
-  void Reset();
-  Interval Validity(TimeValue t);
+  void Shade(ShadeContext &sc) override;
+  void Update(TimeValue t, Interval &valid) override;
+  void Reset() override;
+  Interval Validity(TimeValue t) override;
 
-  Class_ID ClassID();
-  SClass_ID SuperClassID();
+  Class_ID ClassID() override;
+  SClass_ID SuperClassID() override;
 #if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
-  void GetClassName(TSTR &s, bool localized) { s = GetString(IDS_DAGORMAT2); }
+  void GetClassName(TSTR &s, bool localized) const override { s = GetString(IDS_DAGORMAT2); }
 #else
   void GetClassName(TSTR &s) { s = GetString(IDS_DAGORMAT2); }
 #endif
 
-  void DeleteThis();
+  void DeleteThis() override;
 
-  ULONG Requirements(int subMtlNum);
-  ULONG LocalRequirements(int subMtlNum);
-  int NumSubs();
-  Animatable *SubAnim(int i);
+  ULONG Requirements(int subMtlNum) override;
+  ULONG LocalRequirements(int subMtlNum) override;
+  int NumSubs() override;
+  Animatable *SubAnim(int i) override;
 #if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
-  MSTR SubAnimName(int i, bool localized);
+  MSTR SubAnimName(int i, bool localized) override;
 #else
-  TSTR SubAnimName(int i);
+  TSTR SubAnimName(int i) override;
 #endif
-  int SubNumToRefNum(int subNum);
+  int SubNumToRefNum(int subNum) override;
 
   // From ref
-  int NumRefs();
-  RefTargetHandle GetReference(int i);
-  void SetReference(int i, RefTargetHandle rtarg);
+  int NumRefs() override;
+  RefTargetHandle GetReference(int i) override;
+  void SetReference(int i, RefTargetHandle rtarg) override;
 
-  IOResult Save(ISave *isave);
-  IOResult Load(ILoad *iload);
+  IOResult Save(ISave *isave) override;
+  IOResult Load(ILoad *iload) override;
 
-  RefTargetHandle Clone(RemapDir &remap = NoRemap());
+  RefTargetHandle Clone(RemapDir &remap) override;
 
 #if defined(MAX_RELEASE_R17) && MAX_RELEASE >= MAX_RELEASE_R17
-  RefResult NotifyRefChanged(const Interval &changeInt, RefTargetHandle hTarget, PartID &partID, RefMessage message, BOOL propagate);
+  RefResult NotifyRefChanged(const Interval &changeInt, RefTargetHandle hTarget, PartID &partID, RefMessage message,
+    BOOL propagate) override;
 #else
-  RefResult NotifyRefChanged(Interval changeInt, RefTargetHandle hTarget, PartID &partID, RefMessage message);
+  RefResult NotifyRefChanged(Interval changeInt, RefTargetHandle hTarget, PartID &partID, RefMessage message) override;
 #endif
 
-  virtual BOOL SupportTexDisplay();
-  virtual BOOL SupportsMultiMapsInViewport();
-  virtual void SetupGfxMultiMaps(TimeValue t, Material *mtl, MtlMakerCallback &cb);
-  virtual void ActivateTexDisplay(BOOL onoff);
+  BOOL SupportTexDisplay() override;
+  BOOL SupportsMultiMapsInViewport() override;
+  void SetupGfxMultiMaps(TimeValue t, Material *mtl, MtlMakerCallback &cb) override;
+  void ActivateTexDisplay(BOOL onoff) override;
   void DiscardTexHandles();
   void updateViewportTexturesState();
   bool hasAlpha();
 };
 
+ToolTipExtender DagorMat2::tooltip;
 
 #define PB_REF  0
 #define TEX_REF 9
@@ -426,13 +415,17 @@ enum
 class MaterClassDesc2 : public ClassDesc
 {
 public:
-  int IsPublic() { return 1; }
-  void *Create(BOOL loading) { return new DagorMat2(loading); }
-  const TCHAR *ClassName() { return GetString(IDS_DAGORMAT2_LONG); }
+  int IsPublic() override { return 1; }
+  void *Create(BOOL loading) override { return new DagorMat2(loading); }
+  const TCHAR *ClassName() override { return GetString(IDS_DAGORMAT2_LONG); }
+#if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
+  const MCHAR *NonLocalizedClassName() override { return ClassName(); }
+#else
   const MCHAR *NonLocalizedClassName() { return ClassName(); }
-  SClass_ID SuperClassID() { return MATERIAL_CLASS_ID; }
-  Class_ID ClassID() { return DagorMat2_CID; }
-  const TCHAR *Category() { return _T(""); }
+#endif
+  SClass_ID SuperClassID() override { return MATERIAL_CLASS_ID; }
+  Class_ID ClassID() override { return DagorMat2_CID; }
+  const TCHAR *Category() override { return _T(""); }
 };
 static MaterClassDesc2 materCD;
 ClassDesc *GetMaterCD2() { return &materCD; }
@@ -440,55 +433,40 @@ ClassDesc *GetMaterCD2() { return &materCD; }
 class TexmapsClassDesc2 : public ClassDesc
 {
 public:
-  int IsPublic() { return 0; }
-  void *Create(BOOL loading) { return new Texmaps; }
-  const TCHAR *ClassName() { return _T("DagorTexmaps"); }
+  int IsPublic() override { return 0; }
+  void *Create(BOOL loading) override { return new Texmaps; }
+  const TCHAR *ClassName() override { return _T("DagorTexmaps"); }
+#if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
+  const MCHAR *NonLocalizedClassName() override { return ClassName(); }
+#else
   const MCHAR *NonLocalizedClassName() { return ClassName(); }
-  SClass_ID SuperClassID() { return TEXMAP_CONTAINER_CLASS_ID; }
-  Class_ID ClassID() { return Texmaps_CID; }
-  const TCHAR *Category() { return _T(""); }
+#endif
+  SClass_ID SuperClassID() override { return TEXMAP_CONTAINER_CLASS_ID; }
+  Class_ID ClassID() override { return Texmaps_CID; }
+  const TCHAR *Category() override { return _T(""); }
 };
 static TexmapsClassDesc2 texmapsCD;
 ClassDesc *GetTexmapsCD2() { return &texmapsCD; }
 
 //--- MaterDlg2 ------------------------------------------------------
 
-static int texidc[NUMTEXMAPS] =
-  {
-    IDC_TEX0,
-    IDC_TEX1,
-    IDC_TEX2,
-    IDC_TEX3,
-    IDC_TEX4,
-    IDC_TEX5,
-    IDC_TEX6,
-    IDC_TEX7,
-    IDC_TEX8,
-    IDC_TEX9,
-    IDC_TEX10,
-    IDC_TEX11,
-    IDC_TEX12,
-    IDC_TEX13,
-    IDC_TEX14,
-    IDC_TEX15,
-},
-           texnameidc[NUMTEXMAPS] = {
-             IDC_TEXNAME0,
-             IDC_TEXNAME1,
-             IDC_TEXNAME2,
-             IDC_TEXNAME3,
-             IDC_TEXNAME4,
-             IDC_TEXNAME5,
-             IDC_TEXNAME6,
-             IDC_TEXNAME7,
-             IDC_TEXNAME8,
-             IDC_TEXNAME9,
-             IDC_TEXNAME10,
-             IDC_TEXNAME11,
-             IDC_TEXNAME12,
-             IDC_TEXNAME13,
-             IDC_TEXNAME14,
-             IDC_TEXNAME15,
+static const int texidc[NUMTEXMAPS] = {
+  IDC_TEX0,
+  IDC_TEX1,
+  IDC_TEX2,
+  IDC_TEX3,
+  IDC_TEX4,
+  IDC_TEX5,
+  IDC_TEX6,
+  IDC_TEX7,
+  IDC_TEX8,
+  IDC_TEX9,
+  IDC_TEX10,
+  IDC_TEX11,
+  IDC_TEX12,
+  IDC_TEX13,
+  IDC_TEX14,
+  IDC_TEX15,
 };
 
 static INT_PTR CALLBACK PanelDlgProc2(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
@@ -498,6 +476,7 @@ static INT_PTR CALLBACK PanelDlgProc2(HWND hWnd, UINT msg, WPARAM wParam, LPARAM
   {
     dlg = (MaterDlg2 *)lParam;
     SetWindowLongPtr(hWnd, GWLP_USERDATA, lParam);
+    dlg->hPanel = hWnd;
   }
   else
   {
@@ -513,20 +492,13 @@ static INT_PTR CALLBACK PanelDlgProc2(HWND hWnd, UINT msg, WPARAM wParam, LPARAM
 
 MaterDlg2::MaterDlg2(HWND hwMtlEdit, IMtlParams *imp, DagorMat2 *m)
 {
-  hWnd = NULL;
   dadmgr.Init(this);
   hwmedit = hwMtlEdit;
   ip = imp;
   theMtl = m;
   valid = FALSE;
   creating = TRUE;
-  //    iPDC = 0;
-  //    memset(paramDlgs, 0, sizeof(HWND)*MAX_PARAM_DLGS);
-  for (int i = 0; i < NUMTEXMAPS; ++i)
-  {
-    texbut[i] = NULL;
-    texname[i] = NULL;
-  }
+  std::fill(texbut.begin(), texbut.end(), nullptr);
   hPanel = ip->AddRollupPage(hInstance, MAKEINTRESOURCE(IDD_DAGORMAT2), PanelDlgProc2, GetString(IDS_DAGORMAT_LONG), (LPARAM)this);
   creating = FALSE;
 }
@@ -534,180 +506,203 @@ MaterDlg2::MaterDlg2(HWND hwMtlEdit, IMtlParams *imp, DagorMat2 *m)
 MaterDlg2::~MaterDlg2()
 {
   SaveParams();
-  DelParamAll();
-  theMtl->dlg = NULL;
   ReleaseIColorSwatch(csa);
   ReleaseIColorSwatch(csd);
   ReleaseIColorSwatch(css);
   ReleaseIColorSwatch(cse);
-  for (int i = 0; i < NUMTEXMAPS; ++i)
-  {
-    ReleaseICustButton(texbut[i]);
-    ReleaseICustStatus(texname[i]);
-  }
+  for (ICustButton *cb : texbut)
+    ReleaseICustButton(cb);
   SetWindowLongPtr(hPanel, GWLP_USERDATA, NULL);
+}
+
+void MaterDlg2::MarkUnknownParams(CfgShader &cfg)
+{
+  M_STD_STRING sh = GetShaderName();
+  if (sh.empty())
+    return;
+
+  cfg.GetShaderParams(sh);
+
+  for (size_t i = 0; i < parameters.size(); ++i)
+  {
+    MaterPar2 *p = parameters[i].get();
+    if (p->name.empty())
+      continue;
+
+    // mark unknown parameter
+    if (std::find(cfg.shader_params.begin(), cfg.shader_params.end(), p->name) == cfg.shader_params.end())
+    {
+      if (p->hSType)
+        ::SetWindowText(p->hSType, (_T("*") + p->name).data());
+
+      std::wstringstream ss;
+      ss << p->name << _T("\n*not specified in the shader\n") << sh;
+      DagorMat2::tooltip.SetToolTip(p->hPanel, ss.str().data());
+    }
+    else
+      DagorMat2::tooltip.SetToolTip(p->hPanel, p->name.data());
+  }
 }
 
 static M_STD_STRING simplifyRN(const M_STD_STRING &from)
 {
-  M_STD_STRING to;
-  size_t start = 0;
-  while (start != M_STD_STRING::npos && !from.empty() && start != from.length())
+  M_STD_STRING s = from;
+  size_t pos = 0;
+  while ((pos = s.find(_T("\r\n"), pos)) != std::string::npos)
+    s.replace(pos, 2, _T("\n"));
+  return s;
+}
+
+static int deserialize_param_type(const std::wstring &s)
+{
+  if (s == _T("t"))
+    return CFG_TEXT;
+
+  if (s == _T("b"))
+    return CFG_BOOL;
+
+  if (s == _T("i"))
+    return CFG_INT;
+
+  if (s == _T("r"))
+    return CFG_REAL;
+
+  if (s == _T("c"))
+    return CFG_COLOR;
+
+  if (s == _T("e"))
+    return CFG_ENUM;
+
+  return CFG_UNKNOWN;
+}
+
+static std::vector<std::wstring> split(const std::wstring &text, const wchar_t delim)
+{
+  std::vector<std::wstring> tokens;
+  std::wistringstream iss(text + delim);
+  std::wstring tok;
+  while (std::getline(iss, tok, delim))
+    tokens.push_back(tok);
+  return tokens;
+}
+
+static bool get_param_type(CfgShader cfg, const std::wstring classname, const std::wstring name, const std::wstring value, int &type)
+{
+  type = CFG_UNKNOWN;
+
+  if (!classname.empty())
   {
-    size_t end = from.find(_T("\r\n"), start);
-    if (end == M_STD_STRING::npos)
-    {
-      to += from.substr(start, from.length() - start);
-      return to;
-    }
-    else
-    {
-      to += from.substr(start, end - start);
-      to += _T("\n");
-    }
-    start = end + 2;
+    type = cfg.GetParamType(classname, name);
+    if (type != CFG_UNKNOWN)
+      return true;
   }
-  return to;
+
+  type = cfg.GetParamType(CFG_GLOBAL_NAME, name);
+  if (type != CFG_UNKNOWN)
+    return true;
+
+  type = CFG_TEXT;
+  return true;
+}
+
+static bool get_param_name_value_type(CfgShader cfg, const std::wstring &line, const std::wstring &classname, std::wstring &name,
+  std::wstring &value, int &type)
+{
+  // split the line into name and value
+  std::vector<std::wstring> tokens = split(line, _T('='));
+  if (tokens.size() != 2)
+    return false;
+
+  if (tokens[0].empty())
+    return false;
+
+  name = tokens[0];
+  value = tokens[1];
+  type = CFG_UNKNOWN;
+
+  if (!get_param_type(cfg, classname, name, value, type))
+    return false;
+
+  return type != CFG_UNKNOWN;
 }
 
 void MaterDlg2::RestoreParams()
 {
-  M_STD_STRING script = simplifyRN(M_STD_STRING(theMtl->script));
+  parameters.clear();
+  DagorMat2::tooltip.RemoveToolTips();
 
   TCHAR filename[MAX_PATH];
-  CfgShader::GetCfgFilename(_T("DagorShaders.cfg"), filename);
+  CfgShader::GetCfgFilename(dagor_shaders_config, filename);
   CfgShader cfg(filename);
 
-  int start = 0;
-  int end = 0;
-  iPDC = 0;
+  M_STD_STRING script = simplifyRN(M_STD_STRING(theMtl->script));
 
-  StringVector params;
+  // cut the script into lines
+  std::vector<std::wstring> lines = split(script, _T('\n'));
 
-  while (start != M_STD_STRING::npos && !script.empty())
-  {
-    start = end > 0 ? end + 1 : end;
-    if (start >= script.length())
-      break;
-    end = (int)script.find(_T("\n"), start);
-    if (end == M_STD_STRING::npos)
-      end = (int)script.length();
-    M_STD_STRING data = script.substr(start, end - start);
-    if (!data.empty())
+  for (std::wstring &line : lines)
+    if (!line.empty())
     {
-      int par = (int)data.find(_T("="));
-      if (par == M_STD_STRING::npos)
+      // split each line into name, value and type (if any)
+      int type = CFG_UNKNOWN;
+      std::wstring param_name, param_value;
+      if (!get_param_name_value_type(cfg, line, theMtl->classname.data(), param_name, param_value, type))
+        continue; // invalid name or type
+
+      // "real_two_sided" is treated as a dropdown enum
+      if (param_name == real_two_sided)
+      {
+        ::SendMessage(GetDlgItem(hPanel, IDC_ENUM_2SIDED), CB_SETCURSEL,
+          WPARAM(param_value == _T("yes") ? IDagorMat::Sides::RealDoubleSided : IDagorMat::Sides::OneSided), NULL);
         continue;
-      M_STD_STRING param_name = data.substr(0, par);
-      M_STD_STRING param_value = data.substr(par + 1, data.length() - par + 1);
-      if (param_name.empty() || param_value.empty())
-        continue;
-      params.push_back(data);
-
-      M_STD_STRING param_owner = cfg.GetParamOwner(param_name);
-
-      if (param_name != _T("real_two_sided"))
-      {
-        MaterPar2 *dlg = AddParam(param_owner, param_name, param_value);
       }
-      else
-      {
-        if (param_value == _T("yes"))
-          CheckDlgButton(hWnd, IDC_2SIDEDREAL, 1);
-        else
-          CheckDlgButton(hWnd, IDC_2SIDEDREAL, 0);
-      }
+
+      AddParam(type, param_name, param_value);
+      SaveParams();
     }
-  }
 
-  cfg.GetGlobalParams();
-
-  int index = 0;
-
-  for (index = 0; index < cfg.global_params.size(); ++index)
-  {
-    int mode = cfg.GetParamMode(CFG_GLOBAL_NAME, cfg.global_params.at(index));
-    if (mode == CFG_COMMON && !FindParam(CFG_GLOBAL_NAME, cfg.global_params.at(index)))
-    {
-      if (cfg.global_params.at(index) != _T("real_two_sided"))
-      {
-        AddParam(CFG_GLOBAL_NAME, cfg.global_params.at(index), _T(""));
-      }
-    }
-  }
-
-  M_STD_STRING sh = GetShaderName();
-
-  if (!sh.empty())
-  {
-    cfg.GetShaderParams(sh);
-
-    for (index = 0; index < cfg.shader_params.size(); ++index)
-    {
-      int mode = cfg.GetParamMode(sh, cfg.shader_params.at(index));
-      if (mode == CFG_COMMON && !FindParam(sh, cfg.shader_params.at(index)))
-      {
-        AddParam(sh, cfg.shader_params.at(index), _T(""));
-      }
-    }
-  }
+  DialogsReposition();
+  MarkUnknownParams(cfg);
 }
 
 void MaterDlg2::SaveParams()
 {
   M_STD_STRING buffer;
-  MaterParMap2::iterator itr = parameters.begin();
-  while (itr != parameters.end())
-  {
-    if (!itr->second.get())
-      continue;
-    M_STD_STRING name = itr->second.get()->name;
-    M_STD_STRING value = itr->second.get()->value;
 
-    if (!name.empty() && !value.empty())
+  for (size_t i = 0; i < parameters.size(); ++i)
+  {
+    MaterPar2 *p = parameters[i].get();
+
+    if (!p->name.empty())
     {
-      buffer += name;
-      buffer += _T("=");
-      buffer += value;
+      buffer += p->name;
+      buffer += _T('=');
+      buffer += p->value;
       buffer += _T("\r\n");
     }
-    itr++;
   }
-  // MessageBox(NULL, (LPCSTR)buffer.c_str(), "Buffer", MB_OK);
 
-  if (IsDlgButtonChecked(hWnd, IDC_2SIDEDREAL))
-  {
-    buffer += _T("real_two_sided");
-    buffer += _T("=");
-    buffer += _T("yes");
-    buffer += _T("\r\n");
-  }
+  if (::SendMessage(GetDlgItem(hPanel, IDC_ENUM_2SIDED), CB_GETCURSEL, 0, 0) == int(IDagorMat::Sides::RealDoubleSided))
+    buffer += _T("real_two_sided=yes\r\n");
   else
-  {
-    buffer += _T("real_two_sided");
-    buffer += _T("=");
-    buffer += _T("no");
-    buffer += _T("\r\n");
-  }
+    buffer += _T("real_two_sided=no\r\n");
 
   theMtl->script = buffer.c_str();
   theMtl->NotifyChanged();
-
-  long a = 0;
 }
 
 int MaterDlg2::FindSubTexFromHWND(HWND hw)
 {
-  for (int i = 0; i < NUMTEXMAPS; ++i)
+  for (size_t i = 0; i < texbut.size(); ++i)
     if (texbut[i])
       if (texbut[i]->GetHwnd() == hw)
-        return i;
+        return int(i);
   return -1;
 }
 
 M_STD_STRING MaterDlg2::GetShaderName()
 {
-  HWND hName = ::GetDlgItem(hWnd, IDC_CLASSNAME);
+  HWND hName = ::GetDlgItem(hPanel, IDC_CLASSNAME);
   long index = ::SendMessage(hName, CB_GETCURSEL, 0, 0);
   long length = ::SendMessage(hName, CB_GETLBTEXTLEN, (WPARAM)index, NULL);
   M_STD_STRING name;
@@ -719,170 +714,91 @@ M_STD_STRING MaterDlg2::GetShaderName()
   return name;
 }
 
-MaterPar2 *MaterDlg2::AddParam(M_STD_STRING owner, M_STD_STRING name, M_STD_STRING value)
+void MaterDlg2::UpdateShaderName()
 {
-  if (owner.empty() || name.empty())
-    return NULL;
+  HWND hCmb = ::GetDlgItem(hPanel, IDC_CLASSNAME);
+  int iclass = ::SendMessage(hCmb, CB_FINDSTRINGEXACT, 0, (LPARAM)theMtl->classname.data());
+  ::SendMessage(hCmb, CB_SETCURSEL, iclass, NULL);
+}
 
-  TCHAR filename[MAX_PATH];
-  CfgShader::GetCfgFilename(_T("DagorShaders.cfg"), filename);
-  CfgShader cfg(filename);
-
-  MaterPar2 *par = NULL;
-  MaterParPtr2 ptr;
-
-  M_STD_STRING key = owner + _T("/") + name;
-
-  switch (cfg.GetParamType(owner, name))
+void MaterDlg2::ChangeShaderName()
+{
+  M_STD_STRING str = GetShaderName();
+  if (str.substr(0, 1) == _T("-"))
   {
-    case CFG_TEXT:
-    {
-      par = new MaterParText2(name, owner, value, this);
-    }
-    break;
-    case CFG_REAL:
-    {
-      par = new MaterParReal2(name, owner, value, this);
-    }
-    break;
-    case CFG_RANGE:
-    {
-      par = new MaterParRange2(name, owner, value, this);
-    }
-    break;
-    case CFG_ENUM:
-    {
-      par = new MaterParEnum2(name, owner, value, this);
-    }
-    break;
-    case CFG_COLOR:
-    {
-      par = new MaterParColor2(name, owner, value, this);
-    }
-    break;
+    TSTR msg;
+    msg.printf(_T("\"%s\" category cannot be set as shader class. Revert to \"%s\"."), TSTR(str.data()), theMtl->classname);
+    MessageBox(NULL, msg, _T("Class selection error"), MB_ICONERROR | MB_OK);
+    UpdateShaderName();
+    return;
   }
-  if (par)
+  theMtl->classname = str.c_str();
+  UpdateShaderName();
+  theMtl->NotifyChanged();
+  SaveParams();
+  RestoreParams();
+  FillSlotNames();
+  DialogsReposition();
+}
+
+void MaterDlg2::UpdateEnum2Sided()
+{
+  HWND hw = ::GetDlgItem(hPanel, IDC_ENUM_2SIDED);
+  ::SendMessage(hw, CB_SETCURSEL, WPARAM(theMtl->twosided), NULL);
+}
+
+void MaterDlg2::AddParam(int type, M_STD_STRING name, M_STD_STRING value)
+{
+  if (name.empty())
+    return;
+
+  MaterPar2 *par = nullptr;
+  switch (type)
   {
-    // ptr = MaterParPtr2(par);
-    // ptr.release();
-    parameters[key] = MaterParPtr2(par);
+    case CFG_TEXT: par = new MaterParText2(name, value, this); break;
+    case CFG_BOOL: par = new MaterParBool2(name, value, this); break;
+    case CFG_INT: par = new MaterParInt2(name, value, this); break;
+    case CFG_REAL: par = new MaterParReal2(name, value, this); break;
+    case CFG_ENUM: par = new MaterParEnum2(name, value, this); break;
+    case CFG_COLOR: par = new MaterParColor2(name, value, this); break;
+    default: return;
   }
-  SaveParams();
-  return par;
+
+  parameters.emplace_back(std::unique_ptr<MaterPar2>(par));
 }
 
-MaterPar2 *MaterDlg2::GetParam(M_STD_STRING owner, M_STD_STRING name)
+MaterPar2 *MaterDlg2::GetParam(M_STD_STRING name)
 {
-  M_STD_STRING key = owner + _T("/") + name;
-  MaterParMap2::iterator itr = parameters.find(key);
-  if (itr == parameters.end())
-    return NULL;
-  return itr->second.get();
+  for (auto &p : parameters)
+    if (p->name == name)
+      return p.get();
+  return nullptr;
 }
 
-bool MaterDlg2::FindParam(M_STD_STRING owner, M_STD_STRING name)
+void MaterDlg2::RemParam(M_STD_STRING name)
 {
-  M_STD_STRING key = owner + _T("/") + name;
-  MaterParMap2::iterator itr = parameters.find(key);
-  if (itr == parameters.end())
-    return false;
-  // debug ( "findParam: key=%s itr->second.get()=%p", key.c_str(), itr->second.get());
-  return itr->second.get() != NULL ? true : false;
-}
-void MaterDlg2::DelParam(M_STD_STRING owner, M_STD_STRING name)
-{
-  MaterPar2 *param = GetParam(owner, name);
-  if (!param)
+  auto it = std::find_if(parameters.begin(), parameters.end(), [&name](std::unique_ptr<MaterPar2> &p) { return p->name == name; });
+  if (it == parameters.end())
     return;
-  M_STD_STRING key = owner + _T("/") + name;
-  parameters.erase(key);
-  delete param;
-  SaveParams();
-}
 
-void MaterDlg2::RemParam(M_STD_STRING owner, M_STD_STRING name)
-{
-  MaterPar2 *param = GetParam(owner, name);
-  if (!param)
-    return;
-  M_STD_STRING key = owner + _T("/") + name;
-  parameters.erase(key);
+  parameters.erase(it);
   SaveParams();
 }
 
 HWND MaterDlg2::AppendDialog(const TCHAR *paramName, long Resource, DLGPROC lpDialogProc, LPARAM param)
 {
-  assert(iPDC < 100);
-  HWND result = ::CreateDialogParam(hInstance, MAKEINTRESOURCE(Resource), hWnd, lpDialogProc, param);
-  if (!result)
-  {
-    DWORD error = GetLastError();
-  }
+  HWND result = ::CreateDialogParam(hInstance, MAKEINTRESOURCE(Resource), hPanel, lpDialogProc, param);
 
-
-  RECT rct;
-  POINT pt;
-  HWND parWnd = (::IsWindow(hPanel) ? (hPanel) : (hWnd));
-  if (iPDC > 0)
-  {
-    ::GetWindowRect(paramDlgs[iPDC], &rct);
-    pt.x = rct.left;
-    pt.y = rct.bottom + 5;
-    ::ScreenToClient(parWnd, &pt);
-
-    ::SetWindowPos(result, HWND_TOP, pt.x, pt.y, 0, 0, SWP_NOSIZE | SWP_SHOWWINDOW);
-  }
-  else
-  {
-    HWND stHwnd = ::FindWindowEx(parWnd, NULL, _T("Button"), _T("ParamStart"));
-    ::GetWindowRect(stHwnd, &rct);
-    pt.x = rct.left;
-    pt.y = rct.top;
-    ::ScreenToClient(parWnd, &pt);
-
-    ::SetWindowPos(result, HWND_TOP, pt.x, pt.y, 0, 0, SWP_NOSIZE | SWP_SHOWWINDOW);
-  }
-
-  ::GetWindowRect(result, &rct);
-  pt.y = rct.bottom;
-  pt.x = 0;
-  ::ScreenToClient(parWnd, &pt);
-
-  IRollupWindow *irw = ip->GetMtlEditorRollup();
-  int ind = irw->GetPanelIndex(::GetParent(result));
-  if (ind >= 0)
-  {
-    irw->SetPageDlgHeight(ind, pt.y + 5);
-  }
-  else
-  {
-    // irw->SetPageDlgHeight(0,pt.y+5);
-  }
-
+  MaterPar2 *dlg = (MaterParText2 *)GetWindowLongPtr(result, GWLP_USERDATA);
 
   ::SetWindowText(result, paramName);
-  HWND stype = ::FindWindowEx(result, NULL, _T("STATIC"), _T("StaticType"));
-  if (stype)
-    ::SetWindowText(stype, paramName);
+  dlg->hSType = ::FindWindowEx(result, NULL, _T("STATIC"), _T("StaticType"));
+  if (dlg->hSType)
+    ::SetWindowText(dlg->hSType, paramName);
   ::ShowWindow(result, SW_SHOW);
-  iPDC++;
-  paramDlgs[iPDC] = result;
+
+  dlg->creating = false;
   return result;
-}
-
-
-void MaterDlg2::DelParamAll()
-{
-  MaterParMap2::iterator itr = parameters.begin();
-  while (itr != parameters.end())
-  {
-    //                delete itr->second.get();
-    //              itr->second.reset(NULL);
-    itr++;
-  }
-
-  parameters.clear();
-  // SaveParams();
 }
 
 BOOL MaterDlg2::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
@@ -891,7 +807,11 @@ BOOL MaterDlg2::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
   {
     case WM_INITDIALOG:
     {
-      this->hWnd = hWnd;
+      HWND h2sided = ::GetDlgItem(hWnd, IDC_ENUM_2SIDED);
+      ::SendMessage(h2sided, CB_INSERTSTRING, -1, (LPARAM) _T("1 sided"));
+      ::SendMessage(h2sided, CB_INSERTSTRING, -1, (LPARAM) _T("2 sided"));
+      ::SendMessage(h2sided, CB_INSERTSTRING, -1, (LPARAM) _T("Real 2 sided"));
+      UpdateEnum2Sided();
 
       csa = GetIColorSwatch(GetDlgItem(hWnd, IDC_AMB), theMtl->cola, GetString(IDS_AMB_COLOR));
       assert(csa);
@@ -901,46 +821,35 @@ BOOL MaterDlg2::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
       assert(css);
       cse = GetIColorSwatch(GetDlgItem(hWnd, IDC_EMIS), theMtl->cole, GetString(IDS_EMIS_COLOR));
       assert(cse);
-      CheckDlgButton(hWnd, IDC_2SIDED, theMtl->twosided);
 
       HWND hCmb = ::GetDlgItem(hWnd, IDC_CLASSNAME);
 
       TCHAR filename[MAX_PATH];
-      CfgShader::GetCfgFilename(_T("DagorShaders.cfg"), filename);
+      CfgShader::GetCfgFilename(dagor_shaders_config, filename);
       CfgShader cfg(filename);
 
       cfg.GetShaderNames();
 
-      HWND hCmbName = ::GetDlgItem(hWnd, IDC_PARAM_STATUS);
-
       for (int pos = 0; pos < cfg.shader_names.size(); ++pos)
-      {
         ::SendMessage(hCmb, CB_INSERTSTRING, -1, (LPARAM)cfg.shader_names.at(pos).c_str());
-        // (LPARAM) (LPCTSTR) cfg.shader_names.at(pos).c_str());
-      }
 
-      if (!theMtl->classname.isNull())
-      {
-        HWND hCmb = ::GetDlgItem(hWnd, IDC_CLASSNAME);
-        int iclass = ::SendMessage(hCmb, CB_FINDSTRINGEXACT, 0, (LPARAM)theMtl->classname.data());
-        ::SendMessage(hCmb, CB_SETCURSEL, iclass, NULL);
-      }
-      else
-      {
-        ::SendMessage(hCmb, CB_SETCURSEL, 0, NULL);
-        M_STD_STRING str = GetShaderName();
-        theMtl->classname = (TCHAR *)str.c_str();
-        theMtl->NotifyChanged();
-      }
+      UpdateShaderName();
+      theMtl->NotifyChanged();
 
-      for (int i = 0; i < NUMTEXMAPS; ++i)
+      for (size_t i = 0; i < texbut.size(); ++i)
       {
         texbut[i] = GetICustButton(GetDlgItem(hWnd, texidc[i]));
         texbut[i]->SetDADMgr(&dadmgr);
-        texname[i] = GetICustStatus(GetDlgItem(hWnd, texnameidc[i]));
       }
 
       FillSlotNames();
+
+      RECT rc;
+      GetWindowRect(GetDlgItem(hWnd, IDC_PARAM_START), &rc);
+      paramOrg.x = rc.left;
+      paramOrg.y = rc.top;
+      ScreenToClient(hWnd, &paramOrg);
+      DialogsReposition();
       break;
     }
     case WM_SHOWWINDOW:
@@ -960,48 +869,30 @@ BOOL MaterDlg2::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
     case WM_COMMAND:
     {
-      for (int i = 0; i < NUMTEXMAPS; ++i)
+      for (size_t i = 0; i < NUMTEXMAPS; ++i)
         if (LOWORD(wParam) == texidc[i])
-        {
           PostMessage(hwmedit, WM_TEXMAP_BUTTON, i, (LPARAM)theMtl);
-        }
-      // else if (HIWORD(wParam) == EN_CHANGE && LOWORD(wParam) == texnameidc[i]) {}
 
       switch (LOWORD(wParam))
       {
-        case IDC_2SIDED:
-        {
-          if (creating)
-            break;
-          theMtl->twosided = IsDlgButtonChecked(hWnd, IDC_2SIDED);
-          theMtl->NotifyChanged();
-          UpdateMtlDisplay();
-        }
-        break;
-        case IDC_2SIDEDREAL:
-        {
-          if (creating)
-            break;
-          theMtl->NotifyChanged();
-          UpdateMtlDisplay();
-        }
-        break;
+        case IDC_ENUM_2SIDED:
+          if (HIWORD(wParam) == CBN_SELCHANGE)
+          {
+            if (creating)
+              break;
+
+            theMtl->twosided = IDagorMat::Sides(::SendMessage(GetDlgItem(hWnd, IDC_ENUM_2SIDED), CB_GETCURSEL, 0, 0));
+            theMtl->NotifyChanged();
+            SaveParams();
+            UpdateMtlDisplay();
+          }
+          break;
         case IDC_CLASSNAME:
         {
           if (creating)
             break;
-          int a = CBN_SELCHANGE;
-          int b = HIWORD(wParam);
           if (HIWORD(wParam) == CBN_SELCHANGE)
-          {
-            M_STD_STRING str = GetShaderName();
-            theMtl->classname = (TCHAR *)str.c_str();
-            theMtl->NotifyChanged();
-            SaveParams();
-            DelParamAll();
-            RestoreParams();
-            FillSlotNames();
-          }
+            ChangeShaderName();
         }
         break;
         case IDC_SCRIPT:
@@ -1032,28 +923,28 @@ BOOL MaterDlg2::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
           {
             case BN_CLICKED:
             {
-              MaterParNew2 new_par(this);
-              new_par.shader = GetShaderName();
+              M_STD_STRING shader = GetShaderName();
+              MaterParNew2 new_par(this, shader);
               if (new_par.DoModal() == IDOK)
               {
-                M_STD_STRING owner;
-                M_STD_STRING name = new_par.param_name;
+                M_STD_STRING name = new_par.GetNewParamName();
 
-                switch (new_par.param_status_ind)
+                TCHAR filename[MAX_PATH];
+                CfgShader::GetCfgFilename(dagor_shaders_config, filename);
+                CfgShader cfg(filename);
+
+                int type = cfg.GetParamType(shader, name); // recognize as local
+                if (type == CFG_UNKNOWN)
                 {
-                  case CFG_GLOBAL:
-                  {
-                    owner = CFG_GLOBAL_NAME;
-                  }
-                  break;
-                  case CFG_SHADER:
-                  {
-                    owner = new_par.shader;
-                  }
-                  break;
+                  type = cfg.GetParamType(CFG_GLOBAL_NAME, name); // try as global
+                  if (type == CFG_UNKNOWN)
+                    type = CFG_TEXT; // treat unknown as text
                 }
 
-                AddParam(owner, name, _T(""));
+                AddParam(type, name);
+                SaveParams();
+                DialogsReposition();
+                MarkUnknownParams(cfg);
               }
             }
             break;
@@ -1127,7 +1018,6 @@ BOOL MaterDlg2::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
       break;
     case CC_SPINNER_BUTTONDOWN: theHold.Begin(); break;
     case WM_CUSTEDIT_ENTER:
-      // MessageBox(NULL, "WM_CUSTEDIT_ENTER", "!", MB_OK);
     case CC_SPINNER_BUTTONUP:
       if (HIWORD(wParam) || msg == WM_CUSTEDIT_ENTER)
         theHold.Accept(GetString(IDS_PARAM_CHANGE));
@@ -1143,32 +1033,7 @@ BOOL MaterDlg2::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
 void MaterDlg2::FillSlotNames()
 {
-  TCHAR filename[MAX_PATH], textureShadersFName[MAX_PATH];
-  CfgShader::GetCfgFilename(_T("DagorShaders.cfg"), filename);
-  CfgShader::GetCfgFilename(_T("dagorTextures.cfg"), textureShadersFName);
-  CfgShader cfg(filename), texturesCfg(textureShadersFName);
-
-  cfg.GetSettingsParams();
-
-  for (int p = 0; p < cfg.settings_params.size(); ++p)
-  {
-    M_STD_STRING value = cfg.GetParamValue(CFG_SETTINGS_NAME, cfg.settings_params.at(p));
-    texname[p]->SetText((TCHAR *)value.c_str());
-
-    M_STD_STRING shader_name = theMtl->classname;
-    M_STD_STRING tex_slot = cfg.settings_params.at(p);
-    texturesCfg.GetShaderParams(shader_name);
-
-    for (int j = 0; j < texturesCfg.shader_params.size(); ++j)
-      if (texturesCfg.shader_params.at(j) == tex_slot)
-      {
-        value = texturesCfg.GetParamValue(shader_name, tex_slot.c_str());
-        texname[p]->SetText((TCHAR *)value.c_str());
-        break;
-      }
-
-    texbut[p]->Enable(value != _T(""));
-  }
+  // reserved for future update
 }
 
 void MaterDlg2::Invalidate()
@@ -1219,17 +1084,12 @@ void MaterDlg2::ReloadDialog()
   css->SetKeyBrackets(KeyAtCurTime(PB_SPEC));
   cse->SetColor(theMtl->cole);
   cse->SetKeyBrackets(KeyAtCurTime(PB_EMIS));
-  CheckDlgButton(hPanel, IDC_2SIDED, theMtl->twosided);
+  UpdateEnum2Sided();
   SetDlgItemText(hPanel, IDC_SCRIPT, theMtl->script);
   for (int i = 0; i < NUMTEXMAPS; ++i)
     UpdateTexDisplay(i);
 
-  if (!theMtl->classname.isNull())
-  {
-    HWND hCmb = ::GetDlgItem(hWnd, IDC_CLASSNAME);
-    int iclass = ::SendMessage(hCmb, CB_FINDSTRINGEXACT, 0, (LPARAM)theMtl->classname.data());
-    ::SendMessage(hCmb, CB_SETCURSEL, iclass, NULL);
-  }
+  UpdateShaderName();
 }
 
 //--- DagorMat2 -------------------------------------------------
@@ -1269,7 +1129,7 @@ DagorMat2::DagorMat2(BOOL loading)
   pblock = NULL;
   texmaps = NULL;
   ivalid.SetEmpty();
-  ZeroMemory(texHandle, sizeof(texHandle));
+  std::fill(texHandle.begin(), texHandle.end(), nullptr);
 
   // debug("mat=0x%08x created", (unsigned int)this);
 
@@ -1296,8 +1156,8 @@ void DagorMat2::Reset()
   pblock->SetValue(PB_SPEC, 0, cols = Color(1, 1, 1));
   pblock->SetValue(PB_EMIS, 0, cole = Color(0, 0, 0));
   pblock->SetValue(PB_SHIN, 0, shin = 30.0f);
-  twosided = 0;
-  classname = _T("");
+  twosided = Sides::OneSided;
+  classname = default_shader_name;
   script = _T("");
   updateViewportTexturesState();
 }
@@ -1408,18 +1268,13 @@ void DagorMat2::updateViewportTexturesState()
 
 void DagorMat2::DiscardTexHandles()
 {
-  for (int i = 0; i < NUMTEXMAPS; i++)
-  {
-    if (texHandle[i])
+  for (auto &th : texHandle)
+    if (th)
     {
-      // debug("mat=0x%08x discards tex", (unsigned int)this);
-
-      texHandle[i]->DeleteThis();
-      texHandle[i] = NULL;
+      th->DeleteThis();
+      th = nullptr;
     }
-  }
 }
-
 
 void DagorMat2::SetupGfxMultiMaps(TimeValue t, Material *mtl, MtlMakerCallback &cb)
 {
@@ -1516,12 +1371,11 @@ void DagorMat2::SetupGfxMultiMaps(TimeValue t, Material *mtl, MtlMakerCallback &
 ULONG DagorMat2::Requirements(int subm)
 {
   ULONG r = MTLREQ_PHONG;
-  if (twosided)
+  if (twosided == IDagorMat::Sides::DoubleSided)
     r |= MTLREQ_2SIDE;
   for (int i = 0; i < NUMTEXMAPS; ++i)
     if (texmaps->texmap[i])
       r |= texmaps->texmap[i]->Requirements(subm);
-  //      if(texmap[0]) r|=texmap[0]->Requirements(subm);
 
   Texmap *tex = texmaps->gettex(0);
   if (tex && tex->ClassID() == Class_ID(BMTEX_CLASS_ID, 0x00))
@@ -1676,7 +1530,7 @@ RefTargetHandle DagorMat2::Clone(RemapDir &remap)
   mtl->ReplaceReference(PB_REF, remap.CloneRef(pblock));
   mtl->ReplaceReference(TEX_REF, remap.CloneRef(texmaps));
   mtl->twosided = twosided;
-  mtl->classname = classname;
+  mtl->classname = (classname ? classname : default_shader_name);
   mtl->script = script;
 #if MAX_RELEASE >= 4000
   BaseClone(this, mtl, remap);
@@ -1749,7 +1603,7 @@ IOResult DagorMat2::Save(ISave *isave)
   if (res != IO_OK)
     return res;
   isave->EndChunk();
-  if (twosided)
+  if (twosided == IDagorMat::Sides::DoubleSided)
   {
     isave->BeginChunk(CH_2SIDED);
     isave->EndChunk();
@@ -1773,7 +1627,7 @@ IOResult DagorMat2::Load(ILoad *iload)
   int id;
   IOResult res;
 
-  twosided = 0;
+  twosided = Sides::OneSided;
   while (IO_OK == (res = iload->OpenChunk()))
   {
     switch (id = iload->CurChunkID())
@@ -1783,7 +1637,7 @@ IOResult DagorMat2::Load(ILoad *iload)
         ivalid.SetEmpty();
         break;
       case CH_2SIDED:
-        twosided = 1;
+        twosided = Sides::DoubleSided;
         ivalid.SetEmpty();
         break;
       case CH_CLASSNAME:
@@ -1791,7 +1645,7 @@ IOResult DagorMat2::Load(ILoad *iload)
         TCHAR *s;
         res = iload->ReadCStringChunk(&s);
         if (res == IO_OK)
-          classname = s;
+          classname = (s ? s : default_shader_name);
         ivalid.SetEmpty();
       }
       break;
@@ -1878,39 +1732,39 @@ void DagorMat2::DeleteThis() { delete this; }
 Color DagorMat2::get_amb()
 {
   Color c;
-  pblock->GetValue(PB_AMB, 0, c, FOREVER);
+  pb_get_value(*pblock, PB_AMB, 0, c);
   return c;
 }
 
 Color DagorMat2::get_diff()
 {
   Color c;
-  pblock->GetValue(PB_DIFF, 0, c, FOREVER);
+  pb_get_value(*pblock, PB_DIFF, 0, c);
   return c;
 }
 
 Color DagorMat2::get_spec()
 {
   Color c;
-  pblock->GetValue(PB_SPEC, 0, c, FOREVER);
+  pb_get_value(*pblock, PB_SPEC, 0, c);
   return c;
 }
 
 Color DagorMat2::get_emis()
 {
   Color c;
-  pblock->GetValue(PB_EMIS, 0, c, FOREVER);
+  pb_get_value(*pblock, PB_EMIS, 0, c);
   return c;
 }
 
 float DagorMat2::get_power()
 {
   float f = 0;
-  pblock->GetValue(PB_SHIN, 0, f, FOREVER);
+  pb_get_value(*pblock, PB_SHIN, 0, f);
   return powf(2.0f, f / 10.0f) * 4.0f;
 }
 
-BOOL DagorMat2::get_2sided() { return twosided; }
+IDagorMat::Sides DagorMat2::get_2sided() { return twosided; }
 
 const TCHAR *DagorMat2::get_classname() { return classname; }
 
@@ -1981,7 +1835,7 @@ void DagorMat2::set_power(float p)
   pblock->SetValue(PB_SHIN, 0, shin);
 }
 
-void DagorMat2::set_2sided(BOOL b)
+void DagorMat2::set_2sided(Sides b)
 {
   twosided = b;
   NotifyChanged();
@@ -1992,7 +1846,7 @@ void DagorMat2::set_classname(const TCHAR *s)
   if (s)
     classname = s;
   else
-    classname = _T("");
+    classname = default_shader_name;
   NotifyChanged();
 }
 
@@ -2046,22 +1900,21 @@ static INT_PTR CALLBACK MaterParNewProc2(HWND hWnd, UINT msg, WPARAM wParam, LPA
       return FALSE;
   }
 
-  dlg->isActive = TRUE;
-  int res = dlg->WndProc(hWnd, msg, wParam, lParam);
-  dlg->isActive = FALSE;
-
-  return res;
+  return dlg->WndProc(hWnd, msg, wParam, lParam);
 }
 
-MaterParNew2::MaterParNew2(MaterDlg2 *p) :
-  param_status_ind(-1), param_name_ind(-1), param_status(_T("")), param_name(_T("")), parent(p)
-{}
+MaterParNew2::MaterParNew2(MaterDlg2 *p, M_STD_STRING &shdr) : parent(p), hWnd(NULL), param_name(), shader(shdr) {}
 
 MaterParNew2::~MaterParNew2() {}
 
 int MaterParNew2::DoModal()
 {
   return ::DialogBoxParam(hInstance, (const TCHAR *)IDD_DAGORPAR_NEW, NULL, MaterParNewProc2, (LPARAM)this);
+}
+
+static bool is_parameter_name_valid(const M_STD_STRING &name)
+{
+  return std::all_of(name.begin(), name.end(), [](TCHAR c) { return isalnum(c) || c == '_'; });
 }
 
 BOOL MaterParNew2::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
@@ -2072,67 +1925,26 @@ BOOL MaterParNew2::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     {
       this->hWnd = hWnd;
 
-      //                                      HWND hCmbStatus = ::GetDlgItem(hWnd, IDC_PARAM_STATUS);
-
-      //                                      ::SendMessage(hCmbStatus, CB_INSERTSTRING, -1, (LPARAM) (LPCTSTR)"global parameter");
-      //                                      ::SendMessage(hCmbStatus, CB_INSERTSTRING, -1, (LPARAM) (LPCTSTR)"shader parameter");
-
       HWND hCmbName = ::GetDlgItem(hWnd, IDC_PARAM_NAME);
 
-      // Parameters list
-      // HWND hCmbStatus       = ::GetDlgItem(hWnd, IDC_PARAM_STATUS);
-      //                                       param_status_ind = ::SendMessage(hCmbStatus, CB_GETCURSEL, 0, 0);
-
       TCHAR filename[MAX_PATH];
-      CfgShader::GetCfgFilename(_T("DagorShaders.cfg"), filename);
+      CfgShader::GetCfgFilename(dagor_shaders_config, filename);
       CfgShader cfg(filename);
-      // HWND hCmbName = ::GetDlgItem(hWnd, IDC_PARAM_NAME);
 
       ::SendMessage(hCmbName, CB_RESETCONTENT, 0, 0);
 
-      //                                      ::SendMessage(hCmbName, CB_INSERTSTRING, -1, (LPARAM) (LPCTSTR)"Global");
-
       cfg.GetGlobalParams();
-      int pcount = 0;
-      for (int pos = 0; pos < cfg.global_params.size(); ++pos)
-      {
-        int mode = cfg.GetParamMode(CFG_GLOBAL_NAME, cfg.global_params.at(pos));
-        TCHAR pname[255];
-        _tcscpy(pname, cfg.global_params.at(pos).c_str());
-
-        if (mode != CFG_COMMON && !parent->FindParam(CFG_GLOBAL_NAME, cfg.global_params.at(pos)) &&
-            _tcscmp(pname, _T( "real_two_sided" )) != 0)
-        {
-          ::SendMessage(hCmbName, CB_INSERTSTRING, -1, (LPARAM)pname);
-          pcount++;
-        }
-      }
-
-      param_shader_starts_from = pcount;
-
-      //                                      ::SendMessage(hCmbName, CB_INSERTSTRING, -1, (LPARAM) (LPCTSTR)"Shader");
+      for (M_STD_STRING &param : cfg.global_params)
+        if (!parent->GetParam(param) && param != real_two_sided)
+          ::SendMessage(hCmbName, CB_INSERTSTRING, -1, (LPARAM)param.data());
 
       if (!shader.empty())
       {
         cfg.GetShaderParams(shader);
-        for (int pos = 0; pos < cfg.shader_params.size(); ++pos)
-        {
-          int mode = cfg.GetParamMode(shader, cfg.shader_params.at(pos));
-          if (mode != CFG_COMMON && !parent->FindParam(shader, cfg.shader_params.at(pos)))
-          {
-            TCHAR pname[255];
-            _tcscpy(pname, cfg.shader_params.at(pos).c_str());
-            ::SendMessage(hCmbName, CB_INSERTSTRING, -1, (LPARAM)pname);
-          }
-        }
+        for (M_STD_STRING &param : cfg.shader_params)
+          if (!parent->GetParam(param))
+            ::SendMessage(hCmbName, CB_INSERTSTRING, -1, (LPARAM)param.data());
       }
-      //-Paramlist
-    }
-    break;
-
-    case WM_PAINT:
-    {
-      return FALSE;
     }
     break;
 
@@ -2146,19 +1958,24 @@ BOOL MaterParNew2::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
           {
             case BN_CLICKED:
             {
-              HWND hCmbStatus = ::GetDlgItem(hWnd, IDC_PARAM_STATUS);
-              HWND hCmbName = ::GetDlgItem(hWnd, IDC_PARAM_NAME);
-              param_status_ind = ((::SendMessage(hCmbName, CB_GETCURSEL, 0, 0)) < param_shader_starts_from) ? (0) : (1);
-
-              // char dbg_str[255];
-              // sprintf(dbg_str, "%d>%d", param_shader_starts_from,(::SendMessage(hCmbName, CB_GETCURSEL, 0, 0)));
-              // MessageBox(NULL, dbg_str, "Debug", MB_OK);
-
-              param_name_ind = ::SendMessage(hCmbName, CB_GETCURSEL, 0, 0);
-
-              GetParamStatus();
               GetParamName();
 
+              const TCHAR *err = nullptr;
+
+              if (param_name.empty())
+                err = _T("Name is empty");
+
+              if (!is_parameter_name_valid(param_name))
+                err = _T("Name must contain characters: 'A'..'Z', 'a'..'z', '_'");
+
+              if (parent->GetParam(param_name))
+                err = _T("Name already exists");
+
+              if (err)
+              {
+                MessageBox(hWnd, err, _T("Error"), MB_OK | MB_ICONSTOP);
+                return TRUE;
+              }
 
               ::EndDialog(hWnd, IDOK);
             }
@@ -2171,11 +1988,7 @@ BOOL MaterParNew2::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
         {
           switch (HIWORD(wParam))
           {
-            case BN_CLICKED:
-            {
-              ::EndDialog(hWnd, IDCANCEL);
-            }
-            break;
+            case BN_CLICKED: ::EndDialog(hWnd, IDCANCEL); break;
           };
         }
         break;
@@ -2186,93 +1999,24 @@ BOOL MaterParNew2::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
           {
             case CBN_DBLCLK:
             {
-              HWND hCmbOK = ::GetDlgItem(hWnd, IDOK);
-              //::SendMessage(hWnd, WM_COMMAND, MAKELONG(IDOK,BN_CLICKED), (LONG_PTR)hCmbOK);
-
-              HWND hCmbStatus = ::GetDlgItem(hWnd, IDC_PARAM_STATUS);
-              HWND hCmbName = ::GetDlgItem(hWnd, IDC_PARAM_NAME);
-              param_status_ind = ((::SendMessage(hCmbName, CB_GETCURSEL, 0, 0)) < param_shader_starts_from) ? (0) : (1);
-
-
-              param_name_ind = ::SendMessage(hCmbName, CB_GETCURSEL, 0, 0);
-
-              GetParamStatus();
               GetParamName();
-
-
               ::EndDialog(hWnd, IDOK);
-
               break;
             }
           }
-        }
-
-        case IDC_PARAM_STATUS:
-        {
-          switch (HIWORD(wParam))
-          {
-            case CBN_SELCHANGE:
-            {
-              /*                                                                              HWND hCmbStatus = ::GetDlgItem(hWnd,
-              IDC_PARAM_STATUS); param_status_ind = ::SendMessage(hCmbStatus, CB_GETCURSEL, 0, 0); char filename[MAX_PATH];
-              CfgShader::GetCfgFilename("DagorShaders.cfg", filename);
-              CfgShader cfg(filename);
-              HWND hCmbName = ::GetDlgItem(hWnd, IDC_PARAM_NAME);
-              ::SendMessage(hCmbName, CB_RESETCONTENT , 0, 0);
-              if(param_status_ind == 0) {
-              cfg.GetGlobalParams();
-              for(int pos=0; pos<cfg.global_params.size();++pos) {
-              int mode = cfg.GetParamMode(CFG_GLOBAL_NAME, cfg.global_params.at(pos));
-              if(mode != CFG_COMMON && !parent->FindParam(CFG_GLOBAL_NAME, cfg.global_params.at(pos)) && cfg.global_params.at(pos) !=
-              "real_two_sided")
-              ::SendMessage(hCmbName, CB_INSERTSTRING, -1, (LPARAM) (LPCTSTR) cfg.global_params.at(pos).c_str());
-              }
-              }
-              else if(!shader.empty()){
-              cfg.GetShaderParams(shader);
-              for(int pos=0; pos<cfg.shader_params.size();++pos) {
-              int mode = cfg.GetParamMode(shader, cfg.shader_params.at(pos));
-              if(mode != CFG_COMMON && !parent->FindParam(shader, cfg.shader_params.at(pos))) ::SendMessage(hCmbName, CB_INSERTSTRING,
-              -1, (LPARAM) (LPCTSTR) cfg.shader_params.at(pos).c_str());
-              }
-              }
-              */
-            }
-            break;
-          };
+          break;
         }
         break;
 
-        default:
-        {
-        }
-        break;
+        default: break;
       }
     }
     break;
 
-    default:
-    {
-      return FALSE;
-    }
-    break;
+    default: return FALSE;
   }
 
   return TRUE;
-}
-
-M_STD_STRING MaterParNew2::GetParamStatus()
-{
-  HWND hCmbStatus = ::GetDlgItem(hWnd, IDC_PARAM_STATUS);
-  int len = ::GetWindowTextLength(hCmbStatus);
-
-  if (len > 0)
-  {
-    param_status.resize(len);
-    ::GetWindowText(hCmbStatus, (TCHAR *)param_status.c_str(), len + 1);
-  }
-
-  return param_status;
 }
 
 M_STD_STRING MaterParNew2::GetParamName()
@@ -2291,140 +2035,11 @@ M_STD_STRING MaterParNew2::GetParamName()
 
 ////////////////////////////////////////////////////////////////
 
-MaterPar2::MaterPar2(M_STD_STRING n, M_STD_STRING o, M_STD_STRING v, MaterDlg2 *p) :
-  name(n), owner(o), value(v), parent(p), hWnd(NULL), hPanel(NULL), valid(FALSE), creating(TRUE)
-{
-  rollUpLess = false;
-}
+MaterPar2::MaterPar2(M_STD_STRING n, M_STD_STRING v, MaterDlg2 *p) :
+  parent(p), hPanel(NULL), hSType(NULL), creating(TRUE), name(n), value(v)
+{}
 
-MaterPar2::~MaterPar2()
-{
-  if (!rollUpLess)
-  {
-    IRollupWindow *irw = parent->ip->GetMtlEditorRollup();
-    int ind = irw->GetPanelIndex(hPanel);
-    irw->DeleteRollup(ind, 1);
-  }
-  else
-  {
-    ::DestroyWindow(hPanel);
-  }
-}
-
-void MaterPar2::Invalidate()
-{
-  valid = FALSE;
-  isActive = FALSE;
-  Rect rect;
-  rect.left = rect.top = 0;
-  rect.right = rect.bottom = 10;
-  InvalidateRect(hPanel, &rect, FALSE);
-}
-
-BOOL MaterPar2::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
-{
-  switch (msg)
-  {
-    case WM_INITDIALOG:
-    {
-    }
-    break;
-
-    case WM_PAINT:
-    {
-      if (!valid)
-      {
-        valid = TRUE;
-        ReloadDialog();
-      }
-      return FALSE;
-    }
-    break;
-
-    case WM_COMMAND:
-    {
-    }
-    break;
-    case WM_CUSTEDIT_ENTER:
-    case CC_SPINNER_BUTTONUP:
-    {
-      //                                                                                      MessageBox(NULL, "123", "321", MB_OK);
-      //                                                                                      if (ownerDlg2) ownerDlg2->SaveParams();
-      break;
-    }
-
-    default:
-    {
-      return FALSE;
-    }
-    break;
-  }
-
-  return TRUE;
-}
-
-int MaterPar2::GetType() { return 0; }
-
-int MaterPar2::GetStatus() { return 0; }
-
-HWND MaterPar2::GetHWND() { return hPanel; }
-
-M_STD_STRING MaterPar2::GetName() { return name; }
-
-M_STD_STRING MaterPar2::GetValue() { return value; }
-
-void MaterPar2::SetName(const M_STD_STRING n) { name = n; }
-
-void MaterPar2::SetValue(const M_STD_STRING v) { value = v; }
-
-void MaterPar2::Move(const Rect &place)
-{
-  ::MoveWindow(hPanel, place.left, place.top, place.right - place.left, place.bottom - place.top, TRUE);
-  IRollupWindow *irw = parent->ip->GetMtlEditorRollup();
-  int ind = irw->GetPanelIndex(::GetParent(hPanel));
-  irw->GetPanelHeight(ind);
-  irw->SetPageDlgHeight(ind, place.bottom - place.top);
-}
-
-void MaterPar2::Reheight(const unsigned cy)
-{
-  if (!rollUpLess)
-  {
-    RECT rect;
-    ::GetWindowRect(hPanel, &rect);
-    POINT point;
-    point.x = rect.left;
-    point.y = rect.top;
-    ::ScreenToClient(::GetParent(hPanel), &point);
-    rect.bottom += cy;
-    ::MoveWindow(hPanel, point.x, point.y, rect.right - rect.left, rect.bottom - rect.top, TRUE);
-
-    IRollupWindow *irw = parent->ip->GetMtlEditorRollup();
-    int ind = irw->GetPanelIndex(::GetParent(hPanel));
-    irw->GetPanelHeight(ind);
-    irw->SetPageDlgHeight(ind, rect.bottom - rect.top);
-  }
-}
-
-void MaterPar2::Rewidth(const unsigned cx)
-{
-  if (!rollUpLess)
-  {
-    RECT rect;
-    ::GetWindowRect(hPanel, &rect);
-    POINT point;
-    point.x = rect.left;
-    point.y = rect.top;
-    ::ScreenToClient(::GetParent(hPanel), &point);
-    rect.right += cx;
-    ::MoveWindow(hPanel, point.x, point.y, rect.right - rect.left, rect.bottom - rect.top, TRUE);
-
-    IRollupWindow *irw = parent->ip->GetMtlEditorRollup();
-    int ind = irw->GetPanelIndex(::GetParent(hPanel));
-    irw->GetPanelHeight(ind);
-    irw->SetPageDlgHeight(ind, rect.bottom - rect.top);
-  }
-}
+MaterPar2::~MaterPar2() { ::DestroyWindow(hPanel); }
 
 //////////////////////////////////////////////////////////////////////
 
@@ -2441,28 +2056,12 @@ static INT_PTR CALLBACK MaterParTextProc2(HWND hWnd, UINT msg, WPARAM wParam, LP
     if ((dlg = (MaterParText2 *)GetWindowLongPtr(hWnd, GWLP_USERDATA)) == NULL)
       return FALSE;
   }
-  dlg->isActive = TRUE;
-  int res = dlg->WndProc(hWnd, msg, wParam, lParam);
-  dlg->isActive = FALSE;
-  return res;
+  return dlg->WndProc(hWnd, msg, wParam, lParam);
 }
 
-MaterParText2::MaterParText2(M_STD_STRING n, M_STD_STRING o, M_STD_STRING v, MaterDlg2 *p) : edit(NULL), MaterPar2(n, o, v, p)
+MaterParText2::MaterParText2(M_STD_STRING n, M_STD_STRING v, MaterDlg2 *p) : MaterPar2(n, v, p), edit(NULL)
 {
-  M_STD_STRING title(GetString(IDS_DAGORPAR_TEXT_LONG));
-  title += _T(": ");
-  title += name;
-  rollUpLess = true;
-
-  //        hPanel = p->ip->AddRollupPage(
-  //                hInstance,
-  //                MAKEINTRESOURCE(IDD_DAGORPAR_TEXT),
-  //                MaterParTextProc2,
-  //                (LPSTR)title.c_str(),
-  //                (LPARAM)this);
   hPanel = p->AppendDialog(name.c_str(), IDD_DAGORPAR_TEXT, MaterParTextProc2, (LPARAM)this);
-  Reheight(0);
-  creating = FALSE;
 }
 
 MaterParText2::~MaterParText2() {}
@@ -2473,26 +2072,10 @@ BOOL MaterParText2::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
   {
     case WM_INITDIALOG:
     {
-      this->hWnd = hWnd;
       edit = ::GetICustEdit(GetDlgItem(hWnd, IDC_PAR_TEXT_VALUE));
-      TCHAR filename[MAX_PATH];
-      CfgShader::GetCfgFilename(_T("DagorShaders.cfg"), filename);
-      CfgShader cfg(filename);
-      if (cfg.GetParamMode(owner, name) == CFG_OPTIONAL)
-        ::EnableWindow(::GetDlgItem(hWnd, IDC_PARAM_DELETE), TRUE);
+      ::EnableWindow(::GetDlgItem(hWnd, IDC_PARAM_DELETE), TRUE);
       if (!value.empty())
         SetValue(value);
-    }
-    break;
-
-    case WM_PAINT:
-    {
-      if (!valid)
-      {
-        valid = TRUE;
-        ReloadDialog();
-      }
-      return FALSE;
     }
     break;
 
@@ -2519,9 +2102,8 @@ BOOL MaterParText2::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
           {
             case BN_CLICKED:
             {
-              parent->RemParam(owner, name);
+              parent->RemParam(name);
               parent->DialogsReposition();
-              //                                                                                        delete this;
               return FALSE;
             }
             break;
@@ -2546,14 +2128,12 @@ BOOL MaterParText2::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
   return TRUE;
 }
 
-M_STD_STRING MaterParText2::GetValue()
+void MaterParText2::GetValue()
 {
-  TCHAR buff[MAX_PATH];
-  edit->GetText(buff, MAX_PATH);
-  value = buff;
+  TSTR buf;
+  edit->GetText(buf);
+  value = buf.data();
   parent->SaveParams();
-
-  return value;
 }
 
 void MaterParText2::SetValue(const M_STD_STRING v)
@@ -2577,44 +2157,15 @@ static INT_PTR CALLBACK MaterParRealProc2(HWND hWnd, UINT msg, WPARAM wParam, LP
     if ((dlg = (MaterParReal2 *)GetWindowLongPtr(hWnd, GWLP_USERDATA)) == NULL)
       return FALSE;
   }
-  dlg->isActive = TRUE;
-  int res = dlg->WndProc(hWnd, msg, wParam, lParam);
-  dlg->isActive = FALSE;
-  return res;
+  return dlg->WndProc(hWnd, msg, wParam, lParam);
 }
 
-MaterParReal2::MaterParReal2(M_STD_STRING n, M_STD_STRING o, M_STD_STRING v, MaterDlg2 *p) : spinner(NULL), MaterPar2(n, o, v, p)
+MaterParReal2::MaterParReal2(M_STD_STRING n, M_STD_STRING v, MaterDlg2 *p) : MaterPar2(n, v, p), spinner(NULL)
 {
-  M_STD_STRING title(GetString(IDS_DAGORPAR_REAL_LONG));
-  title += _T(": ");
-  title += name;
-
-  rollUpLess = true;
-  // hPanel = p->ip->AddRollupPage(
-  //         hInstance,
-  //         MAKEINTRESOURCE(IDD_DAGORPAR_REAL),
-  //         MaterParRealProc2,
-  //         (LPSTR)title.c_str(),
-  //         (LPARAM)this);
-
   hPanel = p->AppendDialog(name.c_str(), IDD_DAGORPAR_REAL, MaterParRealProc2, (LPARAM)this);
-
-  Reheight(0);
-  creating = FALSE;
 }
 
-MaterParReal2::~MaterParReal2()
-{
-  //      ::DestroyWindow(hPanel);
-  //      EndDialog(hPanel, 0);
-  //      hPanel = parent->ip->AddRollupPage(
-  //              hInstance,
-  //              MAKEINTRESOURCE(IDD_DAGORPAR_REAL),
-  //              MaterParRealProc2,
-  //             (LPSTR)"11",
-  //              (LPARAM)this);
-  //        rollUpLess=false;
-}
+MaterParReal2::~MaterParReal2() {}
 
 BOOL MaterParReal2::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
@@ -2622,26 +2173,10 @@ BOOL MaterParReal2::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
   {
     case WM_INITDIALOG:
     {
-      this->hWnd = hWnd;
       spinner = ::SetupFloatSpinner(hWnd, IDC_PAR_REAL_VALUE_SPINNER, IDC_PAR_REAL_VALUE, -2147483648.0f, 2147483648.0f, 0.0f, 1.0f);
-      TCHAR filename[MAX_PATH];
-      CfgShader::GetCfgFilename(_T("DagorShaders.cfg"), filename);
-      CfgShader cfg(filename);
-      if (cfg.GetParamMode(owner, name) == CFG_OPTIONAL)
-        ::EnableWindow(::GetDlgItem(hWnd, IDC_PARAM_DELETE), TRUE);
+      ::EnableWindow(::GetDlgItem(hWnd, IDC_PARAM_DELETE), TRUE);
       if (!value.empty())
         SetValue(value);
-    }
-    break;
-
-    case WM_PAINT:
-    {
-      if (!valid)
-      {
-        valid = TRUE;
-        ReloadDialog();
-      }
-      return FALSE;
     }
     break;
 
@@ -2655,9 +2190,8 @@ BOOL MaterParReal2::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
           {
             case BN_CLICKED:
             {
-              parent->RemParam(owner, name);
+              parent->RemParam(name);
               parent->DialogsReposition();
-
               return FALSE;
             }
             break;
@@ -2703,7 +2237,7 @@ BOOL MaterParReal2::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
   return TRUE;
 }
 
-M_STD_STRING MaterParReal2::GetValue()
+void MaterParReal2::GetValue()
 {
   float f = spinner->GetFVal();
 
@@ -2711,11 +2245,7 @@ M_STD_STRING MaterParReal2::GetValue()
   str << f;
 
   value = str.str();
-
-  parent->theMtl->script;
   parent->SaveParams();
-
-  return value;
 }
 
 void MaterParReal2::SetValue(const M_STD_STRING v)
@@ -2743,24 +2273,12 @@ static INT_PTR CALLBACK MaterParColorProc2(HWND hWnd, UINT msg, WPARAM wParam, L
     if ((dlg = (MaterParColor2 *)GetWindowLongPtr(hWnd, GWLP_USERDATA)) == NULL)
       return FALSE;
   }
-  dlg->isActive = TRUE;
-  int res = dlg->WndProc(hWnd, msg, wParam, lParam);
-  dlg->isActive = FALSE;
-  return res;
+  return dlg->WndProc(hWnd, msg, wParam, lParam);
 }
 
-MaterParColor2::MaterParColor2(M_STD_STRING n, M_STD_STRING o, M_STD_STRING v, MaterDlg2 *p) : col(NULL), MaterPar2(n, o, v, p)
+MaterParColor2::MaterParColor2(M_STD_STRING n, M_STD_STRING v, MaterDlg2 *p) : MaterPar2(n, v, p), col(NULL)
 {
-  M_STD_STRING title(GetString(IDS_DAGORPAR_COLOR_LONG));
-  title += _T( ": ");
-  title += name;
-
-  rollUpLess = true;
-
   hPanel = p->AppendDialog(name.c_str(), IDD_DAGORPAR_COLOR, MaterParColorProc2, (LPARAM)this);
-
-  Reheight(0);
-  creating = FALSE;
 }
 
 MaterParColor2::~MaterParColor2() { ReleaseIColorSwatch(col); }
@@ -2771,29 +2289,12 @@ BOOL MaterParColor2::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
   {
     case WM_INITDIALOG:
     {
-      this->hWnd = hWnd;
       AColor c;
       col = GetIColorSwatch(GetDlgItem(hWnd, IDC_PAR_COLOR_VALUE), c, _T("Color4 parameter"));
-
-      TCHAR filename[MAX_PATH];
-      CfgShader::GetCfgFilename(_T("DagorShaders.cfg"), filename);
-      CfgShader cfg(filename);
-      if (cfg.GetParamMode(owner, name) == CFG_OPTIONAL)
-        ::EnableWindow(::GetDlgItem(hWnd, IDC_PARAM_DELETE), TRUE);
+      ::EnableWindow(::GetDlgItem(hWnd, IDC_PARAM_DELETE), TRUE);
       if (!value.empty())
         SetValue(value);
       GetValue();
-    }
-    break;
-
-    case WM_PAINT:
-    {
-      if (!valid)
-      {
-        valid = TRUE;
-        ReloadDialog();
-      }
-      return FALSE;
     }
     break;
 
@@ -2818,9 +2319,8 @@ BOOL MaterParColor2::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
           {
             case BN_CLICKED:
             {
-              parent->RemParam(owner, name);
+              parent->RemParam(name);
               parent->DialogsReposition();
-
               return FALSE;
             }
             break;
@@ -2845,18 +2345,14 @@ BOOL MaterParColor2::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
   return TRUE;
 }
 
-M_STD_STRING MaterParColor2::GetValue()
+void MaterParColor2::GetValue()
 {
   AColor c = col->GetAColor();
   TCHAR buf[128];
   _stprintf(buf, _T("%.3f,%.3f,%.3f,%.3f"), c.r, c.g, c.b, c.a);
 
   value = buf;
-
-  parent->theMtl->script;
   parent->SaveParams();
-
-  return value;
 }
 
 void MaterParColor2::SetValue(const M_STD_STRING v)
@@ -2873,78 +2369,181 @@ void MaterParColor2::SetValue(const M_STD_STRING v)
 
 //////////////////////////////////////////////////////////////////////
 
-static INT_PTR CALLBACK MaterParRangeProc2(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+static INT_PTR CALLBACK MaterParEnumProc2(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-  MaterParRange2 *dlg;
+  MaterParEnum2 *dlg;
   if (msg == WM_INITDIALOG)
   {
-    dlg = (MaterParRange2 *)lParam;
+    dlg = (MaterParEnum2 *)lParam;
     SetWindowLongPtr(hWnd, GWLP_USERDATA, lParam);
   }
   else
   {
-    if ((dlg = (MaterParRange2 *)GetWindowLongPtr(hWnd, GWLP_USERDATA)) == NULL)
+    if ((dlg = (MaterParEnum2 *)GetWindowLongPtr(hWnd, GWLP_USERDATA)) == NULL)
       return FALSE;
   }
-  dlg->isActive = TRUE;
-  int res = dlg->WndProc(hWnd, msg, wParam, lParam);
-  dlg->isActive = FALSE;
-  return res;
+  return dlg->WndProc(hWnd, msg, wParam, lParam);
 }
 
-MaterParRange2::MaterParRange2(M_STD_STRING n, M_STD_STRING o, M_STD_STRING v, MaterDlg2 *p) : spinner(NULL), MaterPar2(n, o, v, p)
+MaterParEnum2::MaterParEnum2(M_STD_STRING n, M_STD_STRING v, MaterDlg2 *p) : MaterPar2(n, v, p), count(0)
 {
-  M_STD_STRING title(GetString(IDS_DAGORPAR_RANGE_LONG));
-  title += _T(": ");
-  title += name;
-  rollUpLess = true;
-  // hPanel = p->ip->AddRollupPage(
-  //         hInstance,
-  //         MAKEINTRESOURCE(IDD_DAGORPAR_RANGE),
-  //         MaterParRangeProc2,
-  //         (LPSTR)title.c_str(),
-  //         (LPARAM)this);
-
-  hPanel = p->AppendDialog(name.c_str(), IDD_DAGORPAR_RANGE, MaterParRangeProc2, (LPARAM)this);
-
-  Reheight(0);
-  creating = FALSE;
+  hPanel = p->AppendDialog(name.c_str(), IDD_DAGORPAR_ENUM, MaterParEnumProc2, (LPARAM)this);
 }
 
-MaterParRange2::~MaterParRange2() {}
+MaterParEnum2::~MaterParEnum2() {}
 
-BOOL MaterParRange2::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+BOOL MaterParEnum2::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
   switch (msg)
   {
     case WM_INITDIALOG:
     {
-      this->hWnd = hWnd;
+#if 0
       TCHAR filename[MAX_PATH];
-      CfgShader::GetCfgFilename(_T("DagorShaders.cfg"), filename);
+      CfgShader::GetCfgFilename(dagor_shaders_config, filename);
       CfgShader cfg(filename);
+
+
       StringVector buttons = cfg.GetParamData(owner, name);
+      count = (int)buttons.size();
 
-      float fmin = ::_tstof(buttons.at(0).c_str());
-      float fmax = ::_tstof(buttons.at(1).c_str());
+      for (int pos = 0; pos < count; ++pos)
+      {
+        int col = pos % 4;
+        int row = pos / 4;
 
-      spinner = ::SetupFloatSpinner(hWnd, IDC_PAR_RANGE_SPINNER, IDC_PAR_RANGE_VALUE, fmin, fmax, 0.0f, 1.0f);
+        HMENU hID = (HMENU)(intptr_t)(IDC_PAR_ENUM_RADIO + (row * 4) + col);
 
-      if (cfg.GetParamMode(owner, name) == CFG_OPTIONAL)
-        ::EnableWindow(::GetDlgItem(hWnd, IDC_PARAM_DELETE), TRUE);
+        HWND hRadioNew = ::CreateWindowEx(0, _T("BUTTON"), _T(""), BS_AUTORADIOBUTTON | WS_VISIBLE | WS_CHILD | WS_TABSTOP,
+          67 + 67 * col, 15 * row, 67, 15, hWnd, hID, ::hInstance, NULL);
+        ::SetWindowText(hRadioNew, buttons.at((row * 4) + col).c_str());
+      }
+#endif
+
+      ::EnableWindow(::GetDlgItem(hWnd, IDC_PARAM_DELETE), TRUE);
       if (!value.empty())
         SetValue(value);
     }
     break;
 
-    case WM_PAINT:
+    case WM_COMMAND:
     {
-      if (!valid)
+      if (LOWORD(wParam) >= IDC_PAR_ENUM_RADIO && LOWORD(wParam) < IDC_PAR_ENUM_RADIO + count)
       {
-        valid = TRUE;
-        ReloadDialog();
+        if (creating)
+          break;
+        GetValue();
       }
+      switch (LOWORD(wParam))
+      {
+        case IDC_PARAM_DELETE:
+        {
+          if (creating)
+            break;
+          switch (HIWORD(wParam))
+          {
+            case BN_CLICKED:
+            {
+              parent->RemParam(name);
+              parent->DialogsReposition();
+              return FALSE;
+            }
+            break;
+          };
+        }
+        break;
+
+        default:
+        {
+        }
+        break;
+      }
+    }
+    break;
+
+    default:
+    {
       return FALSE;
+    }
+    break;
+  }
+
+  return TRUE;
+}
+
+void MaterParEnum2::GetValue()
+{
+  for (int pos = 0; pos < count; ++pos)
+  {
+    int id = (IDC_PAR_ENUM_RADIO + pos);
+    int state = ::SendMessage(::GetDlgItem(hPanel, id), BM_GETCHECK, 0, NULL);
+    if (state)
+    {
+      int length = ::GetWindowTextLength(::GetDlgItem(hPanel, id));
+      value.resize(length);
+      ::GetWindowText(::GetDlgItem(hPanel, id), (TCHAR *)value.c_str(), length + 1);
+      break;
+    }
+  }
+  parent->SaveParams();
+}
+
+void MaterParEnum2::SetValue(const M_STD_STRING v)
+{
+  for (int pos = 0; pos < count; ++pos)
+  {
+    int id = (IDC_PAR_ENUM_RADIO + pos);
+    M_STD_STRING str;
+    int length = ::GetWindowTextLength(::GetDlgItem(hPanel, id));
+    str.resize(length);
+    ::GetWindowText(::GetDlgItem(hPanel, id), (TCHAR *)str.c_str(), length + 1);
+    ::SendMessage(::GetDlgItem(hPanel, id), BM_SETCHECK, str == v, NULL);
+  }
+}
+
+int MaterParEnum2::GetCount() { return (int)(count / 2); }
+
+TCHAR *MaterParEnum2::GetRadioName(int at) { return NULL; }
+
+int MaterParEnum2::GetRadioState(int at) { return 0; }
+
+int MaterParEnum2::GetRadioSelected() { return 0; }
+
+//////////////////////////////////////////////////////////////////////
+
+static INT_PTR CALLBACK MaterParBoolProc2(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+  MaterParBool2 *dlg;
+  if (msg == WM_INITDIALOG)
+  {
+    dlg = (MaterParBool2 *)lParam;
+    SetWindowLongPtr(hWnd, GWLP_USERDATA, lParam);
+  }
+  else
+  {
+    if ((dlg = (MaterParBool2 *)GetWindowLongPtr(hWnd, GWLP_USERDATA)) == NULL)
+      return FALSE;
+  }
+  return dlg->WndProc(hWnd, msg, wParam, lParam);
+}
+
+MaterParBool2::MaterParBool2(M_STD_STRING n, M_STD_STRING v, MaterDlg2 *p) : MaterPar2(n, v, p)
+{
+  hPanel = p->AppendDialog(name.c_str(), IDD_DAGORPAR_BOOL, MaterParBoolProc2, (LPARAM)this);
+}
+
+MaterParBool2::~MaterParBool2() {}
+
+BOOL MaterParBool2::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+  switch (msg)
+  {
+    case WM_INITDIALOG:
+    {
+      hPanel = hWnd;
+      ::EnableWindow(::GetDlgItem(hWnd, IDC_PARAM_DELETE), TRUE);
+      if (!value.empty())
+        SetValue(value);
     }
     break;
 
@@ -2958,7 +2557,95 @@ BOOL MaterParRange2::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
           {
             case BN_CLICKED:
             {
-              parent->RemParam(owner, name);
+              parent->RemParam(name);
+              parent->DialogsReposition();
+              return FALSE;
+            }
+            break;
+          };
+        }
+        break;
+
+        case IDC_PAR_BOOL_VALUE: GetValue(); break;
+
+        default: break;
+      }
+      break;
+    }
+    break;
+
+    default:
+    {
+      return FALSE;
+    }
+    break;
+  }
+
+  return TRUE;
+}
+
+void MaterParBool2::GetValue()
+{
+  value = IsDlgButtonChecked(hPanel, IDC_PAR_BOOL_VALUE) ? _T("yes") : _T("no");
+  parent->SaveParams();
+}
+
+void MaterParBool2::SetValue(const M_STD_STRING v)
+{
+  CheckDlgButton(hPanel, IDC_PAR_BOOL_VALUE, v == _T("yes") || v == _T("true"));
+  value = v;
+}
+
+//////////////////////////////////////////////////////////////////////
+
+static INT_PTR CALLBACK MaterParIntProc2(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+  MaterParInt2 *dlg;
+  if (msg == WM_INITDIALOG)
+  {
+    dlg = (MaterParInt2 *)lParam;
+    SetWindowLongPtr(hWnd, GWLP_USERDATA, lParam);
+  }
+  else
+  {
+    if ((dlg = (MaterParInt2 *)GetWindowLongPtr(hWnd, GWLP_USERDATA)) == NULL)
+      return FALSE;
+  }
+  return dlg->WndProc(hWnd, msg, wParam, lParam);
+}
+
+MaterParInt2::MaterParInt2(M_STD_STRING n, M_STD_STRING v, MaterDlg2 *p) : MaterPar2(n, v, p), spinner(NULL)
+{
+  hPanel = p->AppendDialog(name.c_str(), IDD_DAGORPAR_REAL, MaterParIntProc2, (LPARAM)this);
+}
+
+MaterParInt2::~MaterParInt2() {}
+
+BOOL MaterParInt2::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+  switch (msg)
+  {
+    case WM_INITDIALOG:
+    {
+      spinner = ::SetupIntSpinner(hWnd, IDC_PAR_REAL_VALUE_SPINNER, IDC_PAR_REAL_VALUE, -INT_MAX, INT_MAX, 0);
+      ::EnableWindow(::GetDlgItem(hWnd, IDC_PARAM_DELETE), TRUE);
+      if (!value.empty())
+        SetValue(value);
+    }
+    break;
+
+    case WM_COMMAND:
+    {
+      switch (LOWORD(wParam))
+      {
+        case IDC_PARAM_DELETE:
+        {
+          switch (HIWORD(wParam))
+          {
+            case BN_CLICKED:
+            {
+              parent->RemParam(name);
+              parent->DialogsReposition();
               return FALSE;
             }
             break;
@@ -2978,7 +2665,7 @@ BOOL MaterParRange2::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
         theHold.Begin();
       switch (LOWORD(wParam))
       {
-        case IDC_PAR_RANGE_SPINNER:
+        case IDC_PAR_REAL_VALUE_SPINNER:
         {
           GetValue();
         }
@@ -3004,263 +2691,64 @@ BOOL MaterParRange2::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
   return TRUE;
 }
 
-M_STD_STRING MaterParRange2::GetValue()
+void MaterParInt2::GetValue()
 {
-  float f = spinner->GetFVal();
+  int i = spinner->GetIVal();
 
   M_STD_OSTRINGSTREAM str;
-  str << f;
+  str << i;
 
   value = str.str();
-
-  parent->theMtl->script;
   parent->SaveParams();
-
-  return value;
 }
 
-void MaterParRange2::SetValue(const M_STD_STRING v)
+void MaterParInt2::SetValue(const M_STD_STRING v)
 {
   M_STD_ISTRINGSTREAM str(v);
-  float f;
-  str >> f;
-  spinner->SetValue(f, TRUE);
+  int i;
+  str >> i;
+  spinner->SetValue(i, TRUE);
 
   value = v;
 }
 
 //////////////////////////////////////////////////////////////////////
 
-static INT_PTR CALLBACK MaterParEnumProc2(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
-{
-  MaterParEnum2 *dlg;
-  if (msg == WM_INITDIALOG)
-  {
-    dlg = (MaterParEnum2 *)lParam;
-    SetWindowLongPtr(hWnd, GWLP_USERDATA, lParam);
-  }
-  else
-  {
-    if ((dlg = (MaterParEnum2 *)GetWindowLongPtr(hWnd, GWLP_USERDATA)) == NULL)
-      return FALSE;
-  }
-  dlg->isActive = TRUE;
-  int res = dlg->WndProc(hWnd, msg, wParam, lParam);
-  dlg->isActive = FALSE;
-  return res;
-}
-
-MaterParEnum2::MaterParEnum2(M_STD_STRING n, M_STD_STRING o, M_STD_STRING v, MaterDlg2 *p) : MaterPar2(n, o, v, p), count(0)
-{
-  M_STD_STRING title(GetString(IDS_DAGORPAR_ENUM_LONG));
-  title += _T(": ");
-  title += name;
-  rollUpLess = true;
-  //        hPanel = p->ip->AddRollupPage(
-  //                hInstance,
-  //                MAKEINTRESOURCE(IDD_DAGORPAR_ENUM),
-  //                MaterParEnumProc2,
-  //                (LPSTR)title.c_str(),
-  //                (LPARAM)this);
-  hPanel = p->AppendDialog(name.c_str(), IDD_DAGORPAR_ENUM, MaterParEnumProc2, (LPARAM)this);
-
-  Reheight((count / 4) * 15);
-  creating = FALSE;
-}
-
-MaterParEnum2::~MaterParEnum2() {}
-
-BOOL MaterParEnum2::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
-{
-  switch (msg)
-  {
-    case WM_INITDIALOG:
-    {
-      this->hWnd = hWnd;
-
-      TCHAR filename[MAX_PATH];
-      CfgShader::GetCfgFilename(_T("DagorShaders.cfg"), filename);
-      CfgShader cfg(filename);
-
-      StringVector buttons = cfg.GetParamData(owner, name);
-      count = (int)buttons.size();
-
-      for (int pos = 0; pos < count; ++pos)
-      {
-        int col = pos % 4;
-        int row = pos / 4;
-
-        HMENU hID = (HMENU)(intptr_t)(IDC_PAR_ENUM_RADIO + (row * 4) + col);
-
-        HWND hRadioNew = ::CreateWindowEx(0, _T("BUTTON"), _T(""), BS_AUTORADIOBUTTON | WS_VISIBLE | WS_CHILD | WS_TABSTOP,
-          67 + 67 * col, 15 * row, 67, 15, hWnd, hID, ::hInstance, NULL);
-        ::SetWindowText(hRadioNew, buttons.at((row * 4) + col).c_str());
-      }
-
-      if (cfg.GetParamMode(owner, name) == CFG_OPTIONAL)
-        ::EnableWindow(::GetDlgItem(hWnd, IDC_PARAM_DELETE), TRUE);
-
-      if (!value.empty())
-        SetValue(value);
-    }
-    break;
-
-    case WM_PAINT:
-    {
-      if (!valid)
-      {
-        valid = TRUE;
-        ReloadDialog();
-      }
-      return FALSE;
-    }
-    break;
-
-    case WM_COMMAND:
-    {
-      if (LOWORD(wParam) >= IDC_PAR_ENUM_RADIO && LOWORD(wParam) < IDC_PAR_ENUM_RADIO + count)
-      {
-        if (creating)
-          break;
-        GetValue();
-      }
-      switch (LOWORD(wParam))
-      {
-        case IDC_PARAM_DELETE:
-        {
-          if (creating)
-            break;
-          switch (HIWORD(wParam))
-          {
-            case BN_CLICKED:
-            {
-              parent->RemParam(owner, name);
-              return FALSE;
-            }
-            break;
-          };
-        }
-        break;
-
-        default:
-        {
-        }
-        break;
-      }
-    }
-    break;
-
-    default:
-    {
-      return FALSE;
-    }
-    break;
-  }
-
-  return TRUE;
-}
-
-M_STD_STRING MaterParEnum2::GetValue()
-{
-  for (int pos = 0; pos < count; ++pos)
-  {
-    int id = (IDC_PAR_ENUM_RADIO + pos);
-    int state = ::SendMessage(::GetDlgItem(hWnd, id), BM_GETCHECK, 0, NULL);
-    if (state)
-    {
-      int length = ::GetWindowTextLength(::GetDlgItem(hWnd, id));
-      value.resize(length);
-      ::GetWindowText(::GetDlgItem(hWnd, id), (TCHAR *)value.c_str(), length + 1);
-      break;
-    }
-  }
-  parent->SaveParams();
-  return value;
-}
-
-void MaterParEnum2::SetValue(const M_STD_STRING v)
-{
-  for (int pos = 0; pos < count; ++pos)
-  {
-    int id = (IDC_PAR_ENUM_RADIO + pos);
-    M_STD_STRING str;
-    int length = ::GetWindowTextLength(::GetDlgItem(hWnd, id));
-    str.resize(length);
-    ::GetWindowText(::GetDlgItem(hWnd, id), (TCHAR *)str.c_str(), length + 1);
-    if (str == v)
-    {
-      ::SendMessage(::GetDlgItem(hWnd, id), BM_SETCHECK, 1, NULL);
-    }
-    else
-    {
-      ::SendMessage(::GetDlgItem(hWnd, id), BM_SETCHECK, 0, NULL);
-    }
-  }
-}
-
-int MaterParEnum2::GetCount() { return (int)(count / 2); }
-
-TCHAR *MaterParEnum2::GetRadioName(int at) { return NULL; }
-
-int MaterParEnum2::GetRadioState(int at) { return 0; }
-
-int MaterParEnum2::GetRadioSelected() { return 0; }
-
-void MaterPar2::SetOwnerDlg(MaterDlg2 *dlg2) { ownerDlg2 = dlg2; }
-
-
 void MaterDlg2::DialogsReposition()
 {
-  assert(iPDC < 100);
-  // Remove deleted window from paramDlgs array
-  UINT i;
-  for (i = 1; i <= iPDC; i++)
+  IRollupWindow *irw = ip->GetMtlEditorRollup();
+  int ind = irw->GetPanelIndex(hPanel);
+
+  if (parameters.empty())
   {
-    if (!::IsWindow(paramDlgs[i]))
-    {
-      for (UINT n = i; n <= iPDC; n++)
-        paramDlgs[n] = paramDlgs[(n + 1 <= iPDC) ? (n + 1) : (n)];
-      if (iPDC > 0)
-        iPDC--;
-      break;
-    }
+    if (ind >= 0)
+      irw->SetPageDlgHeight(ind, paramOrg.y);
+
+    return;
   }
 
-  // Dialogs reposition
   RECT rct;
-  POINT pt;
-  HWND parWnd = (::IsWindow(hWnd) ? (hWnd) : (hPanel));
-  for (i = 1; i <= iPDC; i++)
-    if (i > 1)
-    {
-      ::GetWindowRect(paramDlgs[i - 1], &rct);
-      pt.x = rct.left;
-      pt.y = rct.bottom + 5;
-      ::ScreenToClient(parWnd, &pt);
+  POINT pt = paramOrg;
 
-      ::SetWindowPos(paramDlgs[i], HWND_TOP, pt.x, pt.y, 0, 0, SWP_NOSIZE | SWP_SHOWWINDOW);
-    }
-    else
-    {
-      HWND stHwnd = ::FindWindowEx(parWnd, NULL, _T("Button"), _T("ParamStart"));
-      ::GetWindowRect(stHwnd, &rct);
-      pt.x = rct.left;
-      pt.y = rct.top;
-      ::ScreenToClient(parWnd, &pt);
+  // 0th parameter
+  HWND par = parameters.front()->hPanel;
+  ::SetWindowPos(par, HWND_TOP, pt.x, pt.y, 0, 0, SWP_NOSIZE | SWP_SHOWWINDOW);
+  ::GetWindowRect(par, &rct);
+  pt.x = rct.left;
+  pt.y = rct.bottom + PARAM_DLG_GAP;
+  ::ScreenToClient(hPanel, &pt);
 
-      ::SetWindowPos(paramDlgs[i], HWND_TOP, pt.x, pt.y, 0, 0, SWP_NOSIZE | SWP_SHOWWINDOW);
-    }
+  // other parameters
+  for (size_t i = 1; i < parameters.size(); ++i)
+  {
+    par = parameters[i]->hPanel;
+    ::SetWindowPos(par, HWND_TOP, pt.x, pt.y, 0, 0, SWP_NOSIZE | SWP_SHOWWINDOW);
+    ::GetWindowRect(par, &rct);
+    pt.x = rct.left;
+    pt.y = rct.bottom + PARAM_DLG_GAP;
+    ::ScreenToClient(hPanel, &pt);
+  }
 
-  //      if(::IsWindow(paramDlgs[i]))
-  //    {
-  //      ::GetWindowRect(paramDlgs[i], &rct);
-  //      pt.y=rct.bottom;
-  //      pt.x=0;
-  //      ::ScreenToClient(parWnd, &pt);
-  //
-  //      IRollupWindow *irw = ip->GetMtlEditorRollup();
-  //      int ind = irw->GetPanelIndex(::GetParent(parWnd));
-  //      irw->GetPanelHeight(ind);
-  //      irw->SetPageDlgHeight(ind,pt.y+5);
-  //    }
+  if (ind >= 0)
+    irw->SetPageDlgHeight(ind, pt.y + PARAM_DLG_GAP);
 }

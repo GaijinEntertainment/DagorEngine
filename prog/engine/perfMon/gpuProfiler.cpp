@@ -5,7 +5,6 @@
 #include <perfMon/dag_graphStat.h>
 #include <drv/3d/dag_lock.h>
 #include <perfMon/dag_perfTimer.h>
-#include <atomic>
 #include <EASTL/unique_ptr.h>
 #include <osApiWrappers/dag_spinlock.h>
 
@@ -13,22 +12,8 @@ namespace gpu_profiler
 {
 void stop_ds(DrawStatSingle &ds) { Stat3D::stopStatSingle(ds); }
 void start_ds(DrawStatSingle &ds) { Stat3D::startStatSingle(ds); }
-#if LOCK_AROUND_GPU_COMMAND
-static OSSpinlock gpu_lock;
-struct GpuExternalAccessScopeGuard
-{
-  GpuExternalAccessScopeGuard() { gpu_lock.lock(); }
-  ~GpuExternalAccessScopeGuard() { gpu_lock.unlock(); }
-};
-#define GPU_GUARD GpuExternalAccessScopeGuard guard
-#else
-// we don't lock around gpu command as our profiler is profiling gpu events only from main thread
-// if that would change, we need enable command locking
-struct GpuExternalAccessScopeGuard
-{};
-#define GPU_GUARD
-#endif
-static std::atomic<bool> inited(false);
+
+static bool initialized(false);
 // Lets take max for all drivers from microprofile.cpp
 enum
 {
@@ -40,7 +25,7 @@ struct QueriesStorage
   void *queries[GPU_MAX_QUERIES]{0};
   uint64_t *queryResults[GPU_MAX_QUERIES]{0};
   uint64_t queryResultsInternal[GPU_MAX_QUERIES]{0};
-  std::atomic<uint32_t> queryCount{0};
+  uint32_t queryCount{0};
   uint32_t queryStart{0};
   void *syncQuery{nullptr};
   uint64_t gpuFreq{1};
@@ -49,12 +34,9 @@ struct QueriesStorage
 static eastl::unique_ptr<QueriesStorage> gpuStorage;
 bool init()
 {
-  if (inited.load(std::memory_order_relaxed))
+  if (initialized)
     return true;
   G_STATIC_ASSERT(GPU_MAX_QUERIES_SHIFT <= 16);
-  GPU_GUARD;
-  if (inited.load())
-    return true;
   uint64_t gpuFreq = 0;
   d3d::driver_command(Drv3dCommand::TIMESTAMPFREQ, &gpuFreq);
   if (!gpuFreq)
@@ -62,7 +44,7 @@ bool init()
     logwarn("gpu profiling is not possible, timestamps are not supported");
     return false; // timestamps are unsupported
   }
-  inited = true;
+  initialized = true;
 
   gpuStorage = eastl::make_unique<QueriesStorage>();
   gpuStorage->gpuFreq = gpuFreq;
@@ -79,7 +61,7 @@ bool init()
 void resubmit_pending_timestamps()
 {
   uint32_t id = gpuStorage->queryStart % GPU_MAX_QUERIES;
-  const uint32_t modQid = gpuStorage->queryCount.load() % GPU_MAX_QUERIES;
+  const uint32_t modQid = gpuStorage->queryCount % GPU_MAX_QUERIES;
   for (; id != modQid; id = (id + 1) % GPU_MAX_QUERIES)
   {
     d3d::driver_command(Drv3dCommand::TIMESTAMPISSUE, &gpuStorage->queries[id]);
@@ -88,16 +70,14 @@ void resubmit_pending_timestamps()
 
 void after_reset(bool)
 {
-  GPU_GUARD;
-  if (!inited.load())
+  if (!initialized)
     return;
   resubmit_pending_timestamps();
 }
 
 void shutdown()
 {
-  GPU_GUARD;
-  if (!inited.load())
+  if (!initialized)
     return;
   for (uint32_t i = 0; i < GPU_MAX_QUERIES; ++i)
   {
@@ -105,22 +85,31 @@ void shutdown()
   }
   d3d::driver_command(Drv3dCommand::RELEASE_QUERY, &gpuStorage->syncQuery);
   gpuStorage.reset();
-  inited = false;
+  initialized = false;
 }
 
 static uint32_t insert_time_stamp_base()
 {
-  const uint32_t id = gpuStorage->queryCount.fetch_add(1) % GPU_MAX_QUERIES; // todo: we'd better return
-  const uint32_t index = id % GPU_MAX_QUERIES;
-  GPU_GUARD;
+  const uint32_t count = gpuStorage->queryCount;
+  const uint32_t start = gpuStorage->queryStart;
+
+  if (count - start == GPU_MAX_QUERIES - 1)
+    return UINT32_MAX;
+
+  gpuStorage->queryCount++;
+
+  const uint32_t index = count % GPU_MAX_QUERIES;
   d3d::driver_command(Drv3dCommand::TIMESTAMPISSUE, &gpuStorage->queries[index]);
-  return id;
+  return count;
 }
 
-bool is_on() { return inited.load(std::memory_order_relaxed); }
+bool is_on() { return initialized; }
 uint32_t insert_time_stamp_unsafe(uint64_t *r)
 {
   const uint32_t id = insert_time_stamp_base();
+  if (id == UINT32_MAX)
+    return id;
+
   gpuStorage->queryResults[id % GPU_MAX_QUERIES] = r;
   return id;
 }
@@ -128,9 +117,12 @@ uint32_t insert_time_stamp(uint64_t *r) { return is_on() ? insert_time_stamp_uns
 
 uint32_t insert_time_stamp()
 {
-  if (!inited.load(std::memory_order_relaxed))
+  if (!initialized)
     return ~0u;
   const uint32_t id = insert_time_stamp_base();
+  if (id == UINT32_MAX)
+    return id;
+
   const uint32_t index = id % GPU_MAX_QUERIES;
   gpuStorage->queryResults[index] = &gpuStorage->queryResultsInternal[index];
   return id;
@@ -138,8 +130,10 @@ uint32_t insert_time_stamp()
 
 uint64_t get_time_stamp(uint32_t id)
 {
-  // return *gpuStorage->queryResults[id];
-  return is_on() ? gpuStorage->queryResultsInternal[id % GPU_MAX_QUERIES] : ~0ULL;
+  if (!is_on() || id == UINT32_MAX)
+    return ~0ULL;
+
+  return gpuStorage->queryResultsInternal[id % GPU_MAX_QUERIES];
 }
 
 uint64_t ticks_per_second() { return gpuStorage ? gpuStorage->gpuFreq : 1; }
@@ -167,24 +161,23 @@ int get_profile_cpu_ticks_reference(int64_t &out_cpu, int64_t &out_gpu) // that 
 
 static void finish_queries_internal()
 {
-  const uint32_t count = gpuStorage->queryCount.load();
-  if (uint32_t(count - gpuStorage->queryStart) >= GPU_MAX_QUERIES)
-    logerr("gpu queries overrun, we have issued %d queries, which is more than %d buffer size",
-      uint32_t(count - gpuStorage->queryStart), GPU_MAX_QUERIES);
+  const uint32_t count = gpuStorage->queryCount;
+  const uint32_t start = gpuStorage->queryStart;
+
   const uint32_t modQid = count % GPU_MAX_QUERIES;
-  uint32_t id = gpuStorage->queryStart % GPU_MAX_QUERIES, processed = 0;
+  uint32_t id = start % GPU_MAX_QUERIES, processed = 0;
   for (; id != modQid; id = (id + 1) % GPU_MAX_QUERIES, ++processed)
   {
     if (!d3d::driver_command(Drv3dCommand::TIMESTAMPGET, gpuStorage->queries[id], gpuStorage->queryResults[id]))
       break;
   }
+
   gpuStorage->queryStart += processed;
 }
 void finish_queries()
 {
   if (!is_on())
     return;
-  GPU_GUARD; // has to follow insert_time_stamp
   finish_queries_internal();
 }
 uint32_t flip(uint64_t *gpu_start)
@@ -196,7 +189,6 @@ uint32_t flip(uint64_t *gpu_start)
     d3d::GpuAutoLock gpuLock;
     return gpu_start ? insert_time_stamp(gpu_start) : insert_time_stamp(); // another spinlock is inside insert_time_stamp
   }();
-  GPU_GUARD; // has to follow insert_time_stamp
   finish_queries_internal();
 
   bool disjoint = false;

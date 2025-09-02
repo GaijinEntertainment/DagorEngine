@@ -42,7 +42,7 @@ struct TerrainVertexPositionNormal
 };
 
 template <bool embed_normals>
-using TerrainVertex = eastl::type_select_t<embed_normals, TerrainVertexPositionNormal, TerrainVertexPosition>;
+using TerrainVertex = eastl::conditional_t<embed_normals, TerrainVertexPositionNormal, TerrainVertexPosition>;
 
 static constexpr int terrain_thread_count = 8;
 
@@ -87,15 +87,14 @@ static bool generate_indices()
 
 template <bool has_context, bool embed_normals>
 bool generate_patch_buffer(ContextId context_id, UniqueBVHBuffer &vertices, void *scratch, Point2 origin, int cell_size,
-  bool scratch_ready)
+  bool scratch_ready, bool &has_hole)
 {
   using TerrainVertex = ::bvh::terrain::TerrainVertex<embed_normals>;
-
   if (!scratch_ready)
   {
     if constexpr (has_context)
     {
-      context_id->heightProvider->getHeight(scratch, origin, cell_size, terrain_cell_size);
+      context_id->heightProvider->getHeight(scratch, origin, cell_size, terrain_cell_size, has_hole);
     }
     else
     {
@@ -170,7 +169,7 @@ static bool generate_patch_template(int cell_size, TerrainPatch &patch, TerrainV
 {
   patch.position = Point2::ZERO;
 
-  if (!generate_patch_buffer<false, embed_normals>(nullptr, patch.vertices, scratch, Point2::ZERO, cell_size, false))
+  if (!generate_patch_buffer<false, embed_normals>(nullptr, patch.vertices, scratch, Point2::ZERO, cell_size, false, patch.hasHole))
     return false;
 
   patch.blas = create_patch_blas<embed_normals>(patch.vertices.get());
@@ -200,7 +199,7 @@ static bool instantiate_patch(ContextId context_id, TerrainPatch &patch, void *s
 
   patch.position = origin;
 
-  if (!generate_patch_buffer<true, embed_normals>(context_id, patch.vertices, scratch, origin, cell_size, true))
+  if (!generate_patch_buffer<true, embed_normals>(context_id, patch.vertices, scratch, origin, cell_size, true, patch.hasHole))
     return false;
 
   auto patch_desc = get_patch_blas_desc<embed_normals>(patch.vertices.get());
@@ -222,12 +221,12 @@ static bool instantiate_patch(ContextId context_id, TerrainPatch &patch, void *s
 
   d3d::build_bottom_acceleration_structure(patch.blas.get(), buildInfo);
 
-  if (patch.metaAllocId < 0)
+  if (patch.metaAllocId == MeshMetaAllocator::INVALID_ALLOC_ID)
   {
     G_ASSERT(indices_bindless_slot != -1);
 
-    patch.metaAllocId = context_id->allocateMetaRegion();
-    auto &meta = context_id->meshMetaAllocator.get(patch.metaAllocId);
+    patch.metaAllocId = context_id->allocateMetaRegion(1);
+    auto &meta = context_id->meshMetaAllocator.get(patch.metaAllocId)[0];
 
     meta.markInitialized();
 
@@ -235,7 +234,8 @@ static bool instantiate_patch(ContextId context_id, TerrainPatch &patch, void *s
     context_id->holdBuffer(patch.vertices.get(), bindlessVerticesIndex);
 
     meta.materialType = MeshMeta::bvhMaterialTerrain;
-    meta.indexAndVertexBufferIndex = (indices_bindless_slot << 16) | bindlessVerticesIndex;
+    meta.setIndexBufferIndex(indices_bindless_slot);
+    meta.setVertexBufferIndex(bindlessVerticesIndex);
   }
 
   return true;
@@ -257,13 +257,14 @@ struct TerrainBVHJob : public cpujobs::IJob
   int lodIx;
   Point2 leftBottomOrigin;
   int lodGridSize;
+  bool hasHole[9];
 
   dag::Vector<dag::Vector<uint8_t>> scratches;
 
+  const char *getJobName(bool &) const override { return "TerrainBVHJob"; }
+
   void doJob()
   {
-    TIME_PROFILE(TerrainBVHJob);
-
     bool normals = contextId->heightProvider->embedNormals();
 
     if (scratches.empty())
@@ -274,42 +275,41 @@ struct TerrainBVHJob : public cpujobs::IJob
     }
 
     int lodCellSize = terrain_cell_size * lodGridSize;
-
     switch (state)
     {
       case Idle:
       case Done: break;
       case Start2:
         contextId->heightProvider->getHeight(scratches[0].data(), leftBottomOrigin + Point2(0, 0) * lodCellSize, lodGridSize,
-          terrain_cell_size);
+          terrain_cell_size, hasHole[0]);
         contextId->heightProvider->getHeight(scratches[1].data(), leftBottomOrigin + Point2(1, 0) * lodCellSize, lodGridSize,
-          terrain_cell_size);
+          terrain_cell_size, hasHole[1]);
         state = State(state + 1);
         break;
       case Start4:
         contextId->heightProvider->getHeight(scratches[2].data(), leftBottomOrigin + Point2(2, 0) * lodCellSize, lodGridSize,
-          terrain_cell_size);
+          terrain_cell_size, hasHole[2]);
         contextId->heightProvider->getHeight(scratches[3].data(), leftBottomOrigin + Point2(0, 1) * lodCellSize, lodGridSize,
-          terrain_cell_size);
+          terrain_cell_size, hasHole[3]);
         state = State(state + 1);
         break;
       case Start6:
         contextId->heightProvider->getHeight(scratches[4].data(), leftBottomOrigin + Point2(2, 1) * lodCellSize, lodGridSize,
-          terrain_cell_size);
+          terrain_cell_size, hasHole[4]);
         contextId->heightProvider->getHeight(scratches[5].data(), leftBottomOrigin + Point2(0, 2) * lodCellSize, lodGridSize,
-          terrain_cell_size);
+          terrain_cell_size, hasHole[5]);
         state = State(state + 1);
         break;
       case Start8:
         contextId->heightProvider->getHeight(scratches[6].data(), leftBottomOrigin + Point2(1, 2) * lodCellSize, lodGridSize,
-          terrain_cell_size);
+          terrain_cell_size, hasHole[6]);
         contextId->heightProvider->getHeight(scratches[7].data(), leftBottomOrigin + Point2(2, 2) * lodCellSize, lodGridSize,
-          terrain_cell_size);
+          terrain_cell_size, hasHole[7]);
 
         // The middle one is all the lower lods, except for the lowest one
         if (lodIx == 0)
           contextId->heightProvider->getHeight(scratches[8].data(), leftBottomOrigin + Point2(1, 1) * lodCellSize, lodGridSize,
-            terrain_cell_size);
+            terrain_cell_size, hasHole[8]);
 
         state = State(state + 1);
         break;
@@ -322,6 +322,8 @@ static void update_terrain(ContextId context_id, const Point2 &location)
 {
   // TODO: LOD borders vertices can have holes
 
+  TIME_PROFILE(bvh::update_terrain);
+
   bool isWorking = false;
 
   Point2 leftBottomOrigin = context_id->terrainMiddlePoint - Point2(3 * terrain_cell_size / 2, 3 * terrain_cell_size / 2);
@@ -331,7 +333,12 @@ static void update_terrain(ContextId context_id, const Point2 &location)
   for (auto &lod : context_id->terrainLods)
   {
     int lodIx = li++;
-    threadpool::wait(&terrain_bvh_jobs[lodIx]);
+
+    if (!interlocked_acquire_load(terrain_bvh_jobs[lodIx].done))
+    {
+      isWorking = true;
+      continue;
+    }
 
     auto &job = terrain_bvh_jobs[lodIx];
     if (job.state == TerrainBVHJob::Done)
@@ -341,6 +348,9 @@ static void update_terrain(ContextId context_id, const Point2 &location)
       bool normals = context_id->heightProvider->embedNormals();
 
       int lodCellSize = terrain_cell_size * lodGridSize;
+
+      for (int i = 0; i < lod.patches.size(); i++)
+        lod.patches[i].hasHole = job.hasHole[i];
 
       if (!normals)
       {
@@ -451,26 +461,28 @@ void teardown() { indices.close(); }
 
 void teardown(ContextId context_id)
 {
-  remove_patches(context_id);
-  context_id->terrainPatchTemplate.~TerrainPatch();
-
-  G_ASSERT(indices_bindless_slot != -1);
-  G_VERIFY(context_id->releaseBuffer(indices.getBuf()));
-  indices_bindless_slot = -1;
+  if (context_id->has(Features::Terrain))
+  {
+    remove_patches(context_id);
+    context_id->terrainPatchTemplate.~TerrainPatch();
+    G_ASSERT(indices_bindless_slot != -1);
+    G_VERIFY(context_id->releaseBuffer(indices.getBuf()));
+    indices_bindless_slot = -1;
+  }
 }
 
-dag::Vector<eastl::tuple<uint64_t, uint32_t, Point2>> get_blases(ContextId context_id)
+dag::Vector<eastl::tuple<uint64_t, MeshMetaAllocator::AllocId, Point2, bool>> get_blases(ContextId context_id)
 {
   TIME_PROFILE(terrain_get_blases);
 
   Point2 leftBottomOrigin = context_id->terrainMiddlePoint - Point2(3 * terrain_cell_size / 2, 3 * terrain_cell_size / 2);
   int lodGridSize = 1;
 
-  dag::Vector<eastl::tuple<uint64_t, uint32_t, Point2>> blases;
+  dag::Vector<eastl::tuple<uint64_t, MeshMetaAllocator::AllocId, Point2, bool>> blases;
   for (int lodIx = 0; lodIx < context_id->terrainLods.size(); ++lodIx)
   {
     for (auto &patch : context_id->terrainLods[lodIx].patches)
-      blases.push_back({patch.blas.getGPUAddress(), patch.metaAllocId, patch.position});
+      blases.push_back({patch.blas.getGPUAddress(), patch.metaAllocId, patch.position, patch.hasHole});
 
     lodGridSize *= 3;
     leftBottomOrigin.y -= lodGridSize * terrain_cell_size;

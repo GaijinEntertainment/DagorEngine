@@ -8,11 +8,13 @@
 #include <de3_baseInterfaces.h>
 #include <de3_animCtrl.h>
 #include <de3_lodController.h>
+#include <de3_dynRenderService.h>
 #include <oldEditor/de_common_interface.h>
 #include <assets/assetChangeNotify.h>
 #include <assets/assetMgr.h>
 #include <assets/assetRefs.h>
 #include <EditorCore/ec_interface.h>
+#include <EditorCore/ec_input.h>
 #include <animChar/dag_animCharacter2.h>
 #include <anim/dag_animBlend.h>
 #include <anim/dag_animBlendCtrl.h>
@@ -32,9 +34,7 @@
 #include <de3_writeObjsToPlaceDump.h>
 #include <oldEditor/de_interface.h>
 #include <oldEditor/de_workspace.h>
-#include <winGuiWrapper/wgw_busy.h>
 #include <osApiWrappers/dag_direct.h>
-#include <render/dynmodelRenderer.h>
 
 static int animCharEntityClassId = -1;
 static ISceneLightService *ltService;
@@ -82,7 +82,7 @@ public:
     usedAssetNid = -1;
   }
 
-  virtual ~VirtualAnimCharEntity()
+  ~VirtualAnimCharEntity()
   {
     clear();
     assetNameId = -1;
@@ -97,15 +97,15 @@ public:
       destroy_it(att.ac);
   }
 
-  virtual void setTm(const TMatrix &_tm) {}
-  virtual void getTm(TMatrix &_tm) const { _tm = TMatrix::IDENT; }
-  virtual void destroy() { delete this; }
-  virtual void *queryInterfacePtr(unsigned huid) { return NULL; }
+  void setTm(const TMatrix &_tm) override {}
+  void getTm(TMatrix &_tm) const override { _tm = TMatrix::IDENT; }
+  void destroy() override { delete this; }
+  void *queryInterfacePtr(unsigned huid) override { return NULL; }
 
-  virtual BSphere3 getBsph() const { return bsph; }
-  virtual BBox3 getBbox() const { return bbox; }
+  BSphere3 getBsph() const override { return bsph; }
+  BBox3 getBbox() const override { return bbox; }
 
-  virtual const char *getObjAssetName() const { return usedAssetNames.getName(usedAssetNid); }
+  const char *getObjAssetName() const override { return usedAssetNames.getName(usedAssetNid); }
 
   void setup(const DagorAsset &asset)
   {
@@ -492,7 +492,7 @@ public:
       erase_item_by_value(usedRefNids, att.setAssetNid);
       if (DagorAsset *a = DAEDITOR3.getAssetByName(String(0, "%s%s", enum_val, att.attSuffix), animCharEntityClassId))
       {
-        wingw::set_busy(true);
+        ec_set_busy(true);
         usedRefNids.push_back(att.setAssetNid = usedAssetNames.addNameId(a->getNameTypified()));
 
         FastNameMap resNameMap;
@@ -516,7 +516,7 @@ public:
           att.setAssetNid = -1;
         }
         replaceAtt(att.slotId, attAc);
-        wingw::set_busy(false);
+        ec_set_busy(false);
       }
       else
       {
@@ -629,14 +629,14 @@ public:
     VirtualAnimCharEntity::clear();
   }
 
-  virtual void *queryInterfacePtr(unsigned huid)
+  void *queryInterfacePtr(unsigned huid) override
   {
     RETURN_INTERFACE(huid, IAnimCharController);
     RETURN_INTERFACE(huid, ILodController);
     return NULL;
   }
 
-  virtual void setTm(const TMatrix &_tm)
+  void setTm(const TMatrix &_tm) override
   {
     if (!ac)
       return;
@@ -644,8 +644,8 @@ public:
     ac->setTm(_tm);
   }
 
-  virtual void getTm(TMatrix &m) const { ac ? ac->getTm(m) : VirtualAnimCharEntity::getTm(m); }
-  virtual void destroy()
+  void getTm(TMatrix &m) const override { ac ? ac->getTm(m) : VirtualAnimCharEntity::getTm(m); }
+  void destroy() override
   {
     pool->delEntity(this);
     clear();
@@ -679,10 +679,10 @@ public:
   }
 
   // IAnimCharController
-  virtual int getStatesCount() { return getAnimGraph() ? getAnimGraph()->getStateCount() : 0; }
-  virtual const char *getStateName(int s_idx) { return getAnimGraph() && s_idx >= 0 ? getAnimGraph()->getStateName(s_idx) : NULL; }
-  virtual int getStateIdx(const char *name) { return getAnimGraph() ? getAnimGraph()->getStateIdx(name) : -1; }
-  virtual void enqueueState(int s_idx, float force_spd = -1.f)
+  int getStatesCount() override { return getAnimGraph() ? getAnimGraph()->getStateCount() : 0; }
+  const char *getStateName(int s_idx) override { return getAnimGraph() && s_idx >= 0 ? getAnimGraph()->getStateName(s_idx) : NULL; }
+  int getStateIdx(const char *name) override { return getAnimGraph() ? getAnimGraph()->getStateIdx(name) : -1; }
+  void enqueueState(int s_idx, float force_spd = -1.f) override
   {
     if (!getAnimGraph() || s_idx < 0)
       return;
@@ -690,7 +690,7 @@ public:
     if (isPaused())
       fastUpdate();
   }
-  virtual bool hasReferencesTo(const DagorAsset *a)
+  bool hasReferencesTo(const DagorAsset *a) override
   {
     int nid = usedAssetNames.getNameId(a->getNameTypified());
     if (nid < 0)
@@ -710,7 +710,7 @@ public:
     if (IDagorAssetRefProvider *refProvider = amain->getMgr().getAssetRefProvider(amain->getType()))
     {
       Tab<IDagorAssetRefProvider::Ref> refs;
-      refs = refProvider->getAssetRefs(*const_cast<DagorAsset *>(amain));
+      refProvider->getAssetRefs(*const_cast<DagorAsset *>(amain), refs);
       for (int i = 0; i < refs.size(); ++i)
         if (refs[i].getAsset() == a)
           return true;
@@ -721,15 +721,15 @@ public:
     return false;
   }
 
-  virtual AnimV20::AnimationGraph *getAnimGraph() const { return ac ? ac->getAnimGraph() : NULL; }
-  virtual AnimV20::IAnimStateHolder *getAnimState() const { return ac ? ac->getAnimState() : NULL; }
-  virtual AnimV20::IAnimCharacter2 *getAnimChar() const { return ac; }
+  AnimV20::AnimationGraph *getAnimGraph() const override { return ac ? ac->getAnimGraph() : NULL; }
+  AnimV20::IAnimStateHolder *getAnimState() const override { return ac ? ac->getAnimState() : NULL; }
+  AnimV20::IAnimCharacter2 *getAnimChar() const override { return ac; }
 
-  virtual bool isPaused() const { return simPaused; }
-  virtual void setPaused(bool paused) { simPaused = paused; }
-  virtual float getTimeScale() const { return simDtScale; }
-  virtual void setTimeScale(float t_scale) { simDtScale = t_scale; }
-  virtual void restart()
+  bool isPaused() const override { return simPaused; }
+  void setPaused(bool paused) override { simPaused = paused; }
+  float getTimeScale() const override { return simDtScale; }
+  void setTimeScale(float t_scale) override { simDtScale = t_scale; }
+  void restart() override
   {
     if (ac)
     {
@@ -748,17 +748,17 @@ public:
       ac->act(0.03, ::grs_cur_view.pos);
   }
 
-  virtual int getAnimNodeCount()
+  int getAnimNodeCount() override
   {
     fillDbgAnimNodes();
     return dbgAnimNodes.size();
   }
-  virtual const char *getAnimNodeName(int a_idx)
+  const char *getAnimNodeName(int a_idx) override
   {
     fillDbgAnimNodes();
     return a_idx >= 0 && a_idx < dbgAnimNodes.size() ? dbgAnimNodes[a_idx] : NULL;
   }
-  virtual bool enqueueAnimNode(const char *anim_node_nm)
+  bool enqueueAnimNode(const char *anim_node_nm) override
   {
     if (enqueueAnim(anim_node_nm))
       return true;
@@ -785,26 +785,20 @@ public:
   }
 
   // ILodController
-  virtual int getLodCount() { return ac ? ac->getSceneInstance()->getLodsCount() : 0; }
-  virtual void setCurLod(int n) { ac ? ac->getSceneInstance()->setLod(n) : (void)0; }
-  virtual real getLodRange(int lod_n) { return ac->getSceneInstance()->getLodsResource()->lods[lod_n].range; }
-
-  // no texture quality level support
-  virtual int getTexQLCount() const { return 1; }
-  virtual void setTexQL(int ql) {}
-  virtual int getTexQL() const { return 0; }
+  int getLodCount() override { return ac ? ac->getSceneInstance()->getLodsCount() : 0; }
+  void setCurLod(int n) override { ac ? ac->getSceneInstance()->setLod(n) : (void)0; }
+  real getLodRange(int lod_n) override { return ac->getSceneInstance()->getLodsResource()->lods[lod_n].range; }
 
   // no named nodes support
-  virtual int getNamedNodeCount() { return 0; }
-  virtual const char *getNamedNode(int idx) { return NULL; }
-  virtual int getNamedNodeIdx(const char *nm) { return -1; }
-  virtual bool getNamedNodeVisibility(int idx) { return true; }
-  virtual void setNamedNodeVisibility(int idx, bool vis) {}
+  int getNamedNodeCount() override { return 0; }
+  const char *getNamedNode(int idx) override { return NULL; }
+  int getNamedNodeIdx(const char *nm) override { return -1; }
+  bool getNamedNodeVisibility(int idx) override { return true; }
+  void setNamedNodeVisibility(int idx, bool vis) override {}
 
 public:
   enum
   {
-    STEP = 512,
     MAX_ENTITIES = 0x7FFFFFFF
   };
 
@@ -828,16 +822,16 @@ public:
     aMgr = NULL;
     visible = true;
   }
-  ~AnimCharEntityManagementService() { usedAssetNames.reset(true); }
+  ~AnimCharEntityManagementService() override { usedAssetNames.reset(true); }
 
   // IEditorService interface
-  virtual const char *getServiceName() const { return "_acEntMgr"; }
-  virtual const char *getServiceFriendlyName() const { return "(srv) AnimChar entities"; }
+  const char *getServiceName() const override { return "_acEntMgr"; }
+  const char *getServiceFriendlyName() const override { return "(srv) AnimChar entities"; }
 
-  virtual void setServiceVisible(bool vis) { visible = vis; }
-  virtual bool getServiceVisible() const { return visible; }
+  void setServiceVisible(bool vis) override { visible = vis; }
+  bool getServiceVisible() const override { return visible; }
 
-  virtual void actService(float dt)
+  void actService(float dt) override
   {
     if (simPaused)
       return;
@@ -849,13 +843,13 @@ public:
       if (ent[i] && ent[i]->isNonVirtual() && ent[i]->checkSubtypeAndLayerHiddenMasks(st_mask, lh_mask))
         ent[i]->update(dt);
   }
-  virtual void beforeRenderService() {}
-  virtual void renderService() {}
-  virtual void renderTransService() {}
+  void beforeRenderService() override {}
+  void renderService() override {}
+  void renderTransService() override {}
 
-  virtual void onBeforeReset3dDevice() {}
+  void onBeforeReset3dDevice() override {}
 
-  virtual void *queryInterfacePtr(unsigned huid)
+  void *queryInterfacePtr(unsigned huid) override
   {
     RETURN_INTERFACE(huid, IObjEntityMgr);
     RETURN_INTERFACE(huid, IRenderingService);
@@ -866,15 +860,19 @@ public:
   }
 
   // ILightingChangeClient
-  virtual void onLightingChanged() {}
-  virtual void onLightingSettingsChanged() {}
+  void onLightingChanged() override {}
+  void onLightingSettingsChanged() override {}
 
   // IRenderingService interface
-  virtual void renderGeometry(Stage stage)
+  void renderGeometry(Stage stage) override
   {
     dag::ConstSpan<AnimCharEntity *> ent = objPool.getEntities();
     int st_mask = IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_RENDER);
     uint64_t lh_mask = IObjEntityFilter::getLayerHiddenMask();
+    IDynRenderService *srv = EDITORCORE->queryEditorInterface<IDynRenderService>();
+    if (!srv)
+      return;
+
     switch (stage)
     {
       case STG_BEFORE_RENDER:
@@ -897,41 +895,29 @@ public:
         break;
 
       case STG_RENDER_DYNAMIC_OPAQUE:
+      case STG_RENDER_DYNAMIC_TRANS:
       case STG_RENDER_SHADOWS:
         for (int i = 0; i < ent.size(); i++)
           if (ent[i] && ent[i]->ac && ent[i]->isNonVirtual() && ent[i]->checkSubtypeAndLayerHiddenMasks(st_mask, lh_mask))
           {
-            if (!dynrend::render_in_tools(ent[i]->ac->getSceneInstance(), dynrend::RenderMode::Opaque))
-              ent[i]->ac->render(::grs_cur_view.pos);
+            srv->renderOneDynModelInstance(ent[i]->ac->getSceneInstance(), stage);
             for (auto &att : ent[i]->attStor)
               if (att.ac)
-                if (!dynrend::render_in_tools(att.ac->getSceneInstance(), dynrend::RenderMode::Opaque))
-                  att.ac->render(::grs_cur_view.pos);
+                srv->renderOneDynModelInstance(att.ac->getSceneInstance(), stage);
           }
         break;
 
-      case STG_RENDER_DYNAMIC_TRANS:
-        for (int i = 0; i < ent.size(); i++)
-          if (ent[i] && ent[i]->ac && ent[i]->isNonVirtual() && ent[i]->checkSubtypeAndLayerHiddenMasks(st_mask, lh_mask))
-          {
-            if (!dynrend::render_in_tools(ent[i]->ac->getSceneInstance(), dynrend::RenderMode::Translucent))
-              ent[i]->ac->renderTrans(::grs_cur_view.pos);
-            for (auto &att : ent[i]->attStor)
-              if (att.ac)
-                if (!dynrend::render_in_tools(att.ac->getSceneInstance(), dynrend::RenderMode::Translucent))
-                  att.ac->renderTrans(::grs_cur_view.pos);
-          }
-        break;
+      default: break;
     }
   }
 
   // IObjEntityMgr interface
-  virtual bool canSupportEntityClass(int entity_class) const
+  bool canSupportEntityClass(int entity_class) const override
   {
     return animCharEntityClassId >= 0 && animCharEntityClassId == entity_class;
   }
 
-  virtual IObjEntity *createEntity(const DagorAsset &asset, bool virtual_ent)
+  IObjEntity *createEntity(const DagorAsset &asset, bool virtual_ent) override
   {
     if (!aMgr)
       aMgr = &asset.getMgr();
@@ -962,7 +948,7 @@ public:
     return ent;
   }
 
-  virtual IObjEntity *cloneEntity(IObjEntity *origin)
+  IObjEntity *cloneEntity(IObjEntity *origin) override
   {
     VirtualAnimCharEntity *o = reinterpret_cast<VirtualAnimCharEntity *>(origin);
     AnimCharEntity *ent = objPool.allocEntity();
@@ -978,7 +964,7 @@ public:
   }
 
   // IDagorAssetChangeNotify interface
-  virtual void onAssetRemoved(int asset_name_id, int asset_type)
+  void onAssetRemoved(int asset_name_id, int asset_type) override
   {
     dag::ConstSpan<AnimCharEntity *> ent = objPool.getEntities();
     for (int i = 0; i < ent.size(); i++)
@@ -986,7 +972,7 @@ public:
         ent[i]->clear();
     EDITORCORE->invalidateViewportCache();
   }
-  virtual void onAssetChanged(const DagorAsset &asset, int asset_name_id, int asset_type)
+  void onAssetChanged(const DagorAsset &asset, int asset_name_id, int asset_type) override
   {
     dag::ConstSpan<AnimCharEntity *> ent = objPool.getEntities();
     for (int i = 0; i < ent.size(); i++)
@@ -999,7 +985,7 @@ public:
   }
 
   // IBinaryDataBuilder interface
-  virtual bool validateBuild(int target, ILogWriter &log, PropPanel::ContainerPropertyControl *params)
+  bool validateBuild(int target, ILogWriter &log, PropPanel::ContainerPropertyControl *params) override
   {
     if (objPool.isEmpty())
       log.addMessage(log.WARNING, "No animChar entities for export");
@@ -1028,7 +1014,7 @@ public:
     return true;
   }
 
-  virtual bool buildAndWrite(BinDumpSaveCB &main_cwr, const ITextureNumerator &tn, PropPanel::ContainerPropertyControl *)
+  bool buildAndWrite(BinDumpSaveCB &main_cwr, const ITextureNumerator &tn, PropPanel::ContainerPropertyControl *) override
   {
     dag::Vector<SrcObjsToPlace> objs;
     dag::ConstSpan<AnimCharEntity *> ent = objPool.getEntities();
@@ -1056,7 +1042,7 @@ public:
     return true;
   }
 
-  virtual bool checkMetrics(const DataBlock &metrics_blk)
+  bool checkMetrics(const DataBlock &metrics_blk) override
   {
     const int maxEntities = metrics_blk.getInt("max_entities", 10);
     if (objPool.getEntities().size() > maxEntities)
@@ -1067,10 +1053,10 @@ public:
     return true;
   }
 
-  virtual bool addUsedTextures(ITextureNumerator &tn) { return true; }
+  bool addUsedTextures(ITextureNumerator &tn) override { return true; }
 
   // ILevelResListBuilder
-  virtual void addUsedResNames(OAHashNameMap<true> &res_list)
+  void addUsedResNames(OAHashNameMap<true> &res_list) override
   {
     dag::ConstSpan<AnimCharEntity *> ent = objPool.getEntities();
     for (int i = 0; i < ent.size(); i++)

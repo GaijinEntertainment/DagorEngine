@@ -14,6 +14,7 @@
 #include "main/main.h"
 #include "ui/overlay.h"
 #include "game/gameLauncher.h"
+#include "game/hostedServerLauncher.h"
 #include "main/localStorage.h"
 #include "main/app.h"
 #include "net/replay.h" // load_replay_meta_info
@@ -175,9 +176,15 @@ static void sq_reload_ui_scripts()
 {
   ::delayed_call([]() { reload_ui_scripts(false); });
 }
+
 static void sq_reload_overlay_ui_scripts()
 {
   ::delayed_call([]() { reload_overlay_ui_scripts(false); });
+}
+
+static void sq_hard_reload_overlay_ui_scripts()
+{
+  ::delayed_call([]() { reload_overlay_ui_scripts(true); });
 }
 
 static SQInteger get_circuit_conf(HSQUIRRELVM vm)
@@ -191,7 +198,6 @@ SQ_DEF_AUTO_BINDING_MODULE_EX(bind_app, "app", sq::VM_ALL)
   Sqrat::Table tbl(vm);
 
   tbl //
-    .Func("get_game_name", get_game_name)
     .Func("get_current_scene", []() { return sceneload::get_current_game().sceneName.c_str(); })
     .Func("get_app_id", app_profile_get_app_id)
     .Func("get_matching_invite_data", [vm]() { return rapidjson_to_quirrel(vm, app_profile::get().matchingInviteData); })
@@ -240,9 +246,11 @@ SQ_DEF_AUTO_BINDING_MODULE_EX(bind_app, "app", sq::VM_ALL)
     .Func("get_dir", get_dir)
     .Func("reload_ui_scripts", sq_reload_ui_scripts)
     .Func("reload_overlay_ui_scripts", sq_reload_overlay_ui_scripts)
+    .Func("hard_reload_overlay_ui_scripts", sq_hard_reload_overlay_ui_scripts)
     /**/;
 
   gamelauncher::bind_game_launcher(tbl);
+  bind_hosting_internal_dedicated_server(tbl);
 
   Sqrat::Table localStorage(vm);
   tbl.Bind("local_storage", localStorage);

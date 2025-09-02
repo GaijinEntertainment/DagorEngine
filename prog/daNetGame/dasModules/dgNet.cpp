@@ -13,6 +13,7 @@
 
 static char dng_net_das[] =
 #include "dgNet.das.inl"
+
   ;
 
 class EnumerationDisconnectionCause : public das::Enumeration
@@ -42,6 +43,9 @@ DAS_BASE_BIND_ENUM_FACTORY(DisconnectionCause_DasProxy, "DisconnectionCause")
 
 namespace bind_dascript
 {
+
+uint16_t get_NET_PROTO_VERSION() { return NET_PROTO_VERSION; }
+int get_NET_MAX_PLAYERS() { return NET_MAX_PLAYERS; }
 
 struct LocSnapshotAnnotation final : das::ManagedStructureAnnotation<LocSnapshot, false>
 {
@@ -77,8 +81,6 @@ public:
     addBuiltinDependency(lib, require("rapidjson")); // for get_matching_invite_data
     addBuiltinDependency(lib, require("net"), true);
     addBuiltinDependency(lib, require("BitStream"));
-    das::addConstant(*this, "NET_MAX_PLAYERS", NET_MAX_PLAYERS);
-    das::addConstant(*this, "NET_PROTO_VERSION", NET_PROTO_VERSION);
     addEnumeration(das::make_smart<EnumerationDisconnectionCause>());
     addEnumeration(das::make_smart<EnumerationClientNetFlags>());
     addAnnotation(das::make_smart<LocSnapshotAnnotation>(lib));
@@ -112,8 +114,8 @@ public:
       "::is_true_net_server");
     das::addExtern<DAS_BIND_FUN(dedicated::is_dedicated)>(*this, lib, "is_dedicated", das::SideEffects::accessExternal,
       "dedicated::is_dedicated");
-    das::addExtern<DAS_BIND_FUN(bind_dascript::get_dasevent_net_version)>(*this, lib, "get_dasevent_net_version",
-      das::SideEffects::accessExternal, "bind_dascript::get_dasevent_net_version");
+    das::addExtern<DAS_BIND_FUN(bind_dascript::das_get_dasevent_net_version)>(*this, lib, "get_dasevent_net_version",
+      das::SideEffects::accessExternal, "bind_dascript::das_get_dasevent_net_version");
     das::addExtern<DAS_BIND_FUN(::has_network)>(*this, lib, "has_network", das::SideEffects::accessExternal, "::has_network");
     das::addExtern<DAS_BIND_FUN(::get_server_conn)>(*this, lib, "get_server_conn", das::SideEffects::accessExternal,
       "::get_server_conn");
@@ -130,6 +132,12 @@ public:
       das::SideEffects::modifyArgumentAndExternal, "::send_transform_snapshots_event");
     das::addExtern<DAS_BIND_FUN(::send_reliable_transform_snapshots_event)>(*this, lib, "send_TransformSnapshotReliable_event",
       das::SideEffects::modifyArgumentAndExternal, "::send_reliable_transform_snapshots_event");
+
+    das::addExtern<DAS_BIND_FUN(bind_dascript::get_NET_PROTO_VERSION)>(*this, lib, "get_NET_PROTO_VERSION",
+      das::SideEffects::modifyArgumentAndExternal, "bind_dascript::get_NET_PROTO_VERSION");
+
+    das::addExtern<DAS_BIND_FUN(bind_dascript::get_NET_MAX_PLAYERS)>(*this, lib, "get_NET_MAX_PLAYERS",
+      das::SideEffects::modifyArgumentAndExternal, "bind_dascript::get_NET_MAX_PLAYERS");
 
     das::addUsing<::LocSnapshot>(*this, lib, "::LocSnapshot");
 

@@ -9,17 +9,17 @@ let
   commonMountPointPrefixes <- {{
     "ecs" => "%dasGameLibs/ecs";
     "math" => "%dasGameLibs/math";
-    "daBfg" => "%dasGameLibs/daBfg";
-    "daslib" => "%dngdas/daslib";
+    "daFrameGraph" => "%dasGameLibs/daFrameGraph";
+    "daslib" => "%daslib";
     "danetlibs" => "%danetlibs";
-    "imgui" => "%dngdas/imgui";
+    "imgui" => "%dasImgui";
     "debug" => "%dngdas/das/debug";
     "remote" => "%dngdas/das/remote";
 
     "sound_utils_net" => "%danetlibs/sound/sound_utils_net";
   }}
   commonAliasPath <- {{
-    "daBfg" => "%dasGameLibs/daBfg/daBfg.das"
+    "daFrameGraph" => "%dasGameLibs/daFrameGraph.daFG.das"
   }}
 
 [export]

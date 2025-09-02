@@ -88,7 +88,7 @@ bool TextureRegManager::shrinkTex(int reg)
   logger->log(LOGLEVEL_REMARK, String(128, "push #%d", reg));
   freeRegs.push_back(reg);
   if (textureRegs[reg].tex)
-    currentMemSize -= textureRegs[reg].tex->ressize();
+    currentMemSize -= textureRegs[reg].tex->getSize();
   textureRegs[reg].close(logger);
   return true;
 }
@@ -230,23 +230,25 @@ void TextureRegManager::fillGradientTexture(Texture *tex, const char *gradient_s
         b = arr[(len - 1) * 5 + 3];
         a = arr[(len - 1) * 5 + 4];
       }
+      else
+      {
+        for (int i = 1; i < len; i++)
+          if (t < arr[i * 5])
+          {
+            float k = nearest ? 0.f : (t - arr[(i - 1) * 5]) / (arr[i * 5] - arr[(i - 1) * 5] + 1e-6f);
+            float invK = 1.0 - k;
 
-      for (int i = 1; i < len; i++)
-        if (t < arr[i * 5])
-        {
-          float k = nearest ? 0.f : (t - arr[(i - 1) * 5]) / (arr[i * 5] - arr[(i - 1) * 5] + 1e-6f);
-          float invK = 1.0 - k;
+            float res[4] = {0};
+            for (int n = 0; n < 4; n++)
+              res[n] = clamp(arr[(i - 1) * 5 + n + 1] * invK + arr[i * 5 + n + 1] * k, 0.0f, 1.0f);
 
-          float res[4] = {0};
-          for (int n = 0; n < 4; n++)
-            res[n] = clamp(arr[(i - 1) * 5 + n + 1] * invK + arr[i * 5 + n + 1] * k, 0.0f, 1.0f);
-
-          r = res[0];
-          g = res[1];
-          b = res[2];
-          a = res[3];
-          break;
-        }
+            r = res[0];
+            g = res[1];
+            b = res[2];
+            a = res[3];
+            break;
+          }
+      }
 
       data[x * 4 + 0] = clamp(int(r * 65535 + 0.5f), 0, 65535);
       data[x * 4 + 1] = clamp(int(g * 65535 + 0.5f), 0, 65535);
@@ -418,7 +420,7 @@ int TextureRegManager::createTexture(const char *name, uint32_t fmt, int w, int 
     logger->log(LOGLEVEL_REMARK, String(128, "reg#%d: tex=%p owned=%d", regNo, textureRegs[regNo].tex, textureRegs[regNo].owned));
     if (textureRegs[regNo].tex && textureRegs[regNo].owned)
     {
-      if (textureRegs[regNo].tex->restype() == RES3D_TEX)
+      if (textureRegs[regNo].tex->getType() == D3DResourceType::TEX)
       {
         TextureInfo tinfo;
         ((BaseTexture *)textureRegs[regNo].tex)->getinfo(tinfo, 0);
@@ -595,7 +597,7 @@ int TextureRegManager::createTexture(const char *name, uint32_t fmt, int w, int 
 
   if (tex)
   {
-    currentMemSize += tex->ressize();
+    currentMemSize += tex->getSize();
     maxMemSize = max(maxMemSize, currentMemSize);
   }
 
@@ -641,9 +643,9 @@ int TextureRegManager::createParticlesBuffer(const char *name, int max_count, in
     logger->log(LOGLEVEL_REMARK, String(128, "%d: %p %d", regNo, textureRegs[regNo].tex, textureRegs[regNo].owned));
     if (textureRegs[regNo].tex && textureRegs[regNo].owned)
     {
-      if (textureRegs[regNo].tex->restype() == RES3D_SBUF)
+      if (textureRegs[regNo].tex->getType() == D3DResourceType::SBUF)
       {
-        int maxParticlesCnt = textureRegs[regNo].tex->ressize() / PARTICLE_SIZE;
+        int maxParticlesCnt = textureRegs[regNo].tex->getSize() / PARTICLE_SIZE;
         if (maxParticlesCnt < max_count)
         {
           logger->log(LOGLEVEL_ERR,
@@ -676,7 +678,7 @@ int TextureRegManager::createParticlesBuffer(const char *name, int max_count, in
   owned = true;
   if (particles)
   {
-    currentMemSize += particles->ressize();
+    currentMemSize += particles->getSize();
     maxMemSize = max(maxMemSize, currentMemSize);
   }
   if (!particles)
@@ -770,7 +772,7 @@ BaseTexture *TextureRegManager::getTexture(int reg) const
   D3dResource *res = getResource(reg);
   if (!res)
     return 0;
-  if (res->restype() > RES3D_ARRTEX)
+  if (res->getType() > D3DResourceType::ARRTEX)
   {
     logger->log(LOGLEVEL_ERR, String(128, "reg #d <%s> is not a texture", reg, getRegName(reg)));
     return 0;
@@ -791,9 +793,9 @@ Sbuffer *TextureRegManager::getParticlesBuffer(int reg) const
   D3dResource *res = getResource(reg);
   if (!res)
     return 0;
-  if (res->restype() != RES3D_SBUF)
+  if (res->getType() != D3DResourceType::SBUF)
   {
-    logger->log(LOGLEVEL_ERR, String(128, "reg %d <%s> is not a buffer, it is #%d", reg, getRegName(reg), res->restype()));
+    logger->log(LOGLEVEL_ERR, String(128, "reg %d <%s> is not a buffer, it is #%d", reg, getRegName(reg), int(res->getType())));
     return 0;
   }
   return (Sbuffer *)res;

@@ -1,0 +1,5 @@
+glass_gbuffer_renderer {
+  _singleton:b=yes
+  _tags:t="render"
+  "glass_gbuffer_renderer_node:dafg::NodeHandle"{}
+}

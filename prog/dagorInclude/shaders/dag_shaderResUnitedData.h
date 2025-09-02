@@ -82,11 +82,13 @@ struct BufPool
   int maxVbSize = 64 << 20;
   bool allowRebuild = true, allowDelRes = false;
   char nameChar;
+  int maxIBUseKb = INT_MAX;
+  int maxVBUseKb = INT_MAX;
   std::mutex updateMutex;
 
   BufPool(char nc) : nameChar(nc) { sbuf.push_back(nullptr); } // pre-alloc for IB
-  BufChunk allocChunkForStride(int stride, int req_avail_sz, const BufConfig &hints);
-  bool arrangeVdata(dag::ConstSpan<Ptr<ShaderMatVdata>> smvd_list, BufChunkTab &out_c, Sbuffer *ib, bool can_fail,
+  BufChunk allocChunkForStride(int stride, int req_avail_sz, const BufConfig &hints, bool use_soft_limit);
+  bool arrangeVdata(dag::ConstSpan<Ptr<ShaderMatVdata>> smvd_list, BufChunkTab &out_c, Sbuffer *ib, bool can_fail, bool use_soft_limit,
     const BufConfig &hints, int *vbShortage = nullptr, int *ibShortage = nullptr);
   void resetVdataBufPointers(dag::ConstSpan<Ptr<ShaderMatVdata>> smvd_list);
   void getSeparateChunks(dag::ConstSpan<Ptr<ShaderMatVdata>> smvd_list, int first_lod, dag::Span<BufChunk> c, BufChunkTab &out_c1,
@@ -169,12 +171,14 @@ public:
   // This even is triggered whenever a resource was changed due to
   // vertex buffer defrag and things like RElem::bv and RElem::si are no
   // longer the same as before.
-  inline static MulticastEvent<void(const RES *, bool /*deleted*/)> on_mesh_relems_updated;
+  inline static MulticastEvent<void(const RES *, bool /*deleted*/, int /*upper_lod*/)> on_mesh_relems_updated;
 
-  typedef void (*enumRElemFct)(const RES *);
-  void enumRElems(enumRElemFct enum_cb);
+  typedef void (*availableRElemsAccessorFct)(dag::Span<RES *>);
+  void availableRElemsAccessor(availableRElemsAccessorFct access_cb);
 
   inline int getRequestLodsByDistanceFrames() const { return requestLodsByDistanceFrames; }
+
+  void setAllocationLimits(int ibKb, int vbKb);
 
 protected:
   unitedvdata::BufPool buf;

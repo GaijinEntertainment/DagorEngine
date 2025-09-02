@@ -2,10 +2,8 @@
 #pragma once
 
 #include <3d/dag_resPtr.h>
-#include <shaders/dag_postFxRenderer.h>
-#include <3d/dag_resourcePool.h>
 #include <3d/dag_textureIDHolder.h>
-#include <render/daBfg/nodeHandle.h>
+#include <render/daFrameGraph/nodeHandle.h>
 
 class AdaptationCS;
 class ColorGradingLUT;

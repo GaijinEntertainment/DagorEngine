@@ -25,6 +25,7 @@ public:
   virtual void onDetach(Element *, DetachMode) override;
   virtual int onDeactivateInput(Element *, InputDevice device, int pointer_id) override;
   virtual int update(UpdateStage /*stage*/, Element * /*elem*/, float /*dt*/) override;
+  virtual void onRecalcLayout(Element *) override;
 
 private:
   Element *findDropTarget(ElementTree *etree, const Point2 &pos, const Element *own_elem, Sqrat::Object &handler);
@@ -35,9 +36,10 @@ private:
   void callDragModeHandler(IGuiScene *scene, Element *elem, bool mode_on);
   int pointingEvent(ElementTree *etree, Element *elem, InputDevice device, InputEvent event, int pointer_id, int button_id,
     const Point2 &pointer_pos, int accum_res);
-  void applyPointerMove(const Point2 &pointer_pos, darg::DragAndDropState *ddState, darg::Element *elem, darg::ElementTree *etree,
+  int applyPointerMove(const Point2 &pointer_pos, darg::DragAndDropState *ddState, darg::Element *elem, darg::ElementTree *etree,
     int activeStateFlag);
   void startVisualDrag(ElementTree *etree, darg::Element *elem);
+  void startElemDragAfterDelay(darg::DragAndDropState *ddState, darg::Element *elem);
 
   DragAndDropState *activeDrag;
 };

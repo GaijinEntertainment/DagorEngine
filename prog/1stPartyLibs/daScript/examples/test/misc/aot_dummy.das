@@ -1,4 +1,6 @@
+options gen2
 [export]
-def test
+def test {
     return true
+}
 

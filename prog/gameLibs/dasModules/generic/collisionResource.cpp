@@ -7,7 +7,7 @@
 DAS_BASE_BIND_ENUM_98(CollisionNode::BehaviorFlag, BehaviorFlag, TRACEABLE, PHYS_COLLIDABLE, SOLID, FLAG_ALLOW_HOLE,
   FLAG_DAMAGE_REQUIRED, FLAG_CUT_REQUIRED, FLAG_CHECK_SIDE, FLAG_ALLOW_BULLET_DECAL, FLAG_ALLOW_SPLASH_HOLE);
 
-DAS_BASE_BIND_ENUM_98(CollisionNode::TransformType, CollisionNodeFlag, IDENT, TRANSLATE, ORTHONORMALIZED, ORTHOUNIFORM);
+DAS_BASE_BIND_ENUM_98(CollisionNode::NodeFlag, CollisionNodeFlag, NONE, IDENT, TRANSLATE, ORTHONORMALIZED, ORTHOUNIFORM);
 
 DAS_BASE_BIND_ENUM_98(CollisionResourceNodeType, CollisionResourceNodeType, COLLISION_NODE_TYPE_MESH, COLLISION_NODE_TYPE_POINTS,
   COLLISION_NODE_TYPE_BOX, COLLISION_NODE_TYPE_SPHERE, COLLISION_NODE_TYPE_CAPSULE, COLLISION_NODE_TYPE_CONVEX,
@@ -73,6 +73,7 @@ public:
     addBuiltinDependency(lib, require("AnimV20"));
     addBuiltinDependency(lib, require("GeomNodeTree"));
 
+    addEnumeration(das::make_smart<EnumerationCollisionResourceNodeType>());
     addAnnotation(das::make_smart<CollisionNodeAnnotation>(lib));
     addAnnotation(das::make_smart<CollisionResourceAnnotation>(lib));
     addAnnotation(das::make_smart<IntersectedNodeAnnotation>(lib));
@@ -82,7 +83,6 @@ public:
 
     addEnumeration(das::make_smart<EnumerationBehaviorFlag>());
     addEnumeration(das::make_smart<EnumerationCollisionNodeFlag>());
-    addEnumeration(das::make_smart<EnumerationCollisionResourceNodeType>());
 
     das::addExtern<DAS_BIND_FUN(collnode_get_name)>(*this, lib, "collnode_get_name", das::SideEffects::none,
       "bind_dascript::collnode_get_name");

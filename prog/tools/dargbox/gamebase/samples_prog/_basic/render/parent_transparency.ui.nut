@@ -8,8 +8,8 @@ return {
   padding = 10
   opacity = 0.2
   children = [
-    { rendObj = ROBJ_SOLID, size = [200, 200], color = 0xFFFF00 }
-    { rendObj = ROBJ_SOLID, size = [200, 200], color = 0xFF00FF }
-    { rendObj = ROBJ_SOLID, size = [200, 200], color = 0x00FFFF }
+    { rendObj = ROBJ_SOLID, size = 200, color = 0xFFFF00 }
+    { rendObj = ROBJ_SOLID, size = 200, color = 0xFF00FF }
+    { rendObj = ROBJ_SOLID, size = 200, color = 0x00FFFF }
   ]
 }

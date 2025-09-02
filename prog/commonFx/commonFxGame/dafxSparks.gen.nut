@@ -6,7 +6,7 @@ include_decl_h("DafxEmitter");
 
 begin_declare_params("DafxSparks");
 
-declare_struct("SparkFxValueCurveOpt", 1,
+declare_struct("SparkFxValueCurveOpt", 2,
 [
   { name="enabled", type="bool", defVal=0 },
   { name="curve", type="cubic_curve" },
@@ -96,10 +96,12 @@ declare_struct("DafxSparksGlobalParams", 2,
   { name="transform_type", type="list", list=["default", "world_space", "local_space"] },
 ]);
 
-declare_struct("DafxSparksOptionalModifiers", 2, // optional stuff must be separate from DafxSparksSimParams due to implementation reasons
+// DafxSparksOptionalModifiers is used for anything that is not directly binded to ParentSimData/ParentRenData structs.
+declare_struct("DafxSparksOptionalModifiers", 3,
 [
   { name="widthOverLife", type="SparkFxValueCurveOpt" },
   { name="allowScreenProjDiscard", type="bool", defVal=1 },
+  { name="collision", type="list", list=["default", "disabled", "relaxed"] },
 ]);
 
 

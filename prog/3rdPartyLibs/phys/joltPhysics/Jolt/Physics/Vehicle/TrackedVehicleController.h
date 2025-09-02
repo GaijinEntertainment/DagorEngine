@@ -17,15 +17,15 @@ class PhysicsSystem;
 /// WheelSettings object specifically for TrackedVehicleController
 class JPH_EXPORT WheelSettingsTV : public WheelSettings
 {
-public:
 	JPH_DECLARE_SERIALIZABLE_VIRTUAL(JPH_EXPORT, WheelSettingsTV)
 
+public:
 	// See: WheelSettings
 	virtual void				SaveBinaryState(StreamOut &inStream) const override;
 	virtual void				RestoreBinaryState(StreamIn &inStream) override;
 
 	float						mLongitudinalFriction = 4.0f;				///< Friction in forward direction of tire
-	float						mLateralFriction = 2.0f;					///< Friction in sideway direction of tire
+	float						mLateralFriction = 2.0f;					///< Friction in sideways direction of tire
 };
 
 /// Wheel object specifically for TrackedVehicleController
@@ -58,9 +58,9 @@ public:
 /// Note to avoid issues with very heavy objects vs very light objects the mass of the tank should be a lot lower (say 10x) than that of a real tank. That means that the engine/brake torque is also 10x less.
 class JPH_EXPORT TrackedVehicleControllerSettings : public VehicleControllerSettings
 {
-public:
 	JPH_DECLARE_SERIALIZABLE_VIRTUAL(JPH_EXPORT, TrackedVehicleControllerSettings)
 
+public:
 	// Constructor
 								TrackedVehicleControllerSettings();
 

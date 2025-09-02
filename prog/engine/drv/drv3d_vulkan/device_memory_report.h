@@ -46,7 +46,7 @@ class DeviceMemoryReport
   };
 
   eastl::hash_map<VkObjectType, PerObjectTypeStat> perObjectTypeStats;
-  eastl::vector<PerHeapStat> perHeapStats;
+  dag::Vector<PerHeapStat> perHeapStats;
   eastl::hash_map<uint64_t, MemoryObjectInfo> activeObjects;
 
   // callback can be called from anywhere

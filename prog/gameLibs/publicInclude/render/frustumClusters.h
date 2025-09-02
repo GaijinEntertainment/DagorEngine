@@ -13,6 +13,8 @@
 #include <generic/dag_staticTab.h>
 #include "clustered_constants.hlsli"
 
+
+class Occlusion;
 struct FrustumClusters
 {
   static inline float getDepthAtSlice(uint32_t slice, float depthSliceScale, float depthSliceBias)
@@ -73,7 +75,7 @@ struct FrustumClusters
     ItemRect3D(const FrustumScreenRect &r, uint8_t zmn, uint8_t zmx, uint16_t l) : rect(r), zmin(zmn), zmax(zmx), itemId(l) {}
   };
 
-  void prepareFrustum(mat44f_cref view_, mat44f_cref proj_, float zn, float minDist, float maxDist, bool use_occlusion);
+  void prepareFrustum(mat44f_cref view_, mat44f_cref proj_, float zn, float minDist, float maxDist, Occlusion *occlusion);
 
   typedef uint32_t MaskType;
   struct ClusterGridItemMasks

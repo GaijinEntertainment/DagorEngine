@@ -19,4 +19,6 @@ return {
   readBoolSettings = @(_,__) false
   writeBoolSettings = @(_,__) null
   getScreenPPI = @() 360.0
+  APPREVIEW_OK = 1
+  APPREVIEW_ERROR = 2
 }

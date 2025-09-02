@@ -40,9 +40,8 @@ macro TRACE_CLOUDS(stage)
       LOOP
       for (uint i = 0; i < min(TRACE_CLOUDS_MAX_STEPS, e); ++i, t += step_size)    // Metal compiler is sensitive to how the loop constraint is defined and whether it is defined at all.
       {
-        float heightFraction;
         float3 sample_pos = origin + t*dir;
-        float cloudDensity = sampleCloudDensity(sample_pos, 1, 0, heightFraction, false);
+        float cloudDensity = sampleCloudDensity(sample_pos, 1, 0);
         //this is for near plane transition. Only needed for first sequence. Cost up to 0.1ms
         if (cloudDensity <= 0.0000001)
           continue;

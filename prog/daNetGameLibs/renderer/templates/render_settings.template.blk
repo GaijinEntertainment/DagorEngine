@@ -20,10 +20,11 @@ render_settings {
   render_settings__waterQuality:t="low" // low, medium, high
   render_settings__fullDeferred:b=true // render feature
   render_settings__rain_ripples_enabled:b=true // graphics
-  render_settings__motionBlur:b=false // graphics
+  render_settings__motionBlurStrength:r=0 // graphics
   render_settings__screenSpaceWeatherEffects:b=true // graphics
-  render_settings__mudOnScreen:b=false // graphics
-  render_settings__lensFlares:b=no
+  render_settings__lensFlares:b=yes
+  render_settings__scopeImageQuality:i=0
+  render_settings__scopeZoomMode:t="default"
 
   render_settings__forwardRendering:b=true // render feature
   render_settings__upscaleSamplingTex:b=true // render feature
@@ -33,12 +34,25 @@ render_settings {
   render_settings__gpuResidentAdaptation:b=true // render feature
 
   render_settings__anisotropy:i=-1 // graphics
+  render_settings__chromaticAberration:b=true // graphics
 
-  render_settings__effectsShadows:b=false // graphics
+  render_settings__effectsShadows:b=true // graphics
   render_settings__effects__max_active_shadows:i=4
 
   render_settings__HQVolfog:b=false
   render_settings__volumeFogQuality:t="close" // "close", "far"
 
   render_settings__giAlgorithm:t="medium"
+
+  render_settings__enableBVH:b=no
+  render_settings__enableRTSM:t="off"
+  render_settings__enableRTR:b=no
+  render_settings__enableRTTR:b=no
+  render_settings__enableRTAO:b=no
+  render_settings__enablePTGI:b=no
+  render_settings__RTRWater:b=no
+  render_settings__enableRTGI:b=no
+
+  render_settings__antiAliasingMode:i=0
+  render_settings__rayReconstruction:b=no
 }

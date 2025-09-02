@@ -7,13 +7,13 @@ include $(Root)/prog/platform.jam ;
 # temporary substitute for legacy Platform names
 switch $(Platform) {
   case macosx :
-    Platform = macOS ; echo replaced macosx with Platform=$(Platform) ;
+    Platform = macOS ; echo warning: replaced macosx with Platform=$(Platform) ;
   case linux64 :
-    Platform = linux ; echo replaced linux64 with Platform=$(Platform) ;
+    Platform = linux ; echo warning: replaced linux64 with Platform=$(Platform) ;
   case win32 :
-    Platform = windows ; PlatformArch = x86 ; echo replaced win32 with Platform=$(Platform) PlatformArch=$(PlatformArch) ;
+    Platform = windows ; PlatformArch = x86 ; echo warning: replaced win32 with Platform=$(Platform) PlatformArch=$(PlatformArch) ;
   case win64 :
-    Platform = windows ; PlatformArch = x86_64 ; echo replaced win64 with Platform=$(Platform) PlatformArch=$(PlatformArch) ;
+    Platform = windows ; PlatformArch = x86_64 ; echo warning: replaced win64 with Platform=$(Platform) PlatformArch=$(PlatformArch) ;
 }
 
 switch $(OS) {

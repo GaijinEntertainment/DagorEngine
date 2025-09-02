@@ -7,16 +7,6 @@ int editorEnableZ = 1;
 interval editorEnableZ : no<1, yes;
 
 float sky_scale = 0;   // Not used.
-
-block(scene) static_scene
-{
-}
-
-block(scene) static_scene_depth
-{
-}
-
-
 shader editor_helper, editor_helper_no_tex, editor_helper_no_tex_blend
 {
   z_write=false;

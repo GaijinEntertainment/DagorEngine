@@ -1,7 +1,7 @@
-let ecs = require("ecs")
-let {INVALID_CONNECTION_ID} = require("net")
-let {find_connected_player_that_possess} = require("common_queries.nut")
-let {server_send_net_sqevent} = require("ecs.netevent")
+import "ecs" as ecs
+from "net" import INVALID_CONNECTION_ID
+from "common_queries.nut" import find_connected_player_that_possess
+from "ecs.netevent" import server_send_net_sqevent
 
 function server_send_event_to_owner(eid, evt) {
   let possessesPlayerEid = find_connected_player_that_possess(eid) ?? ecs.INVALID_ENTITY_ID

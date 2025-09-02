@@ -1,0 +1,48 @@
+texture rtr_probes;
+buffer rtr_probe_locations;
+sampler rtr_probe_sampler;
+int rtr_probes_w = 1;
+int rtr_probes_h = 1;
+
+macro INIT_RTR_PROBES_NO_SAMPLER(stage)
+  (stage) {
+    probes@tex2d = rtr_probes;
+    probe_locations@buf = rtr_probe_locations hlsl { StructuredBuffer<float4> probe_locations@buf; };
+    probe_count@u2 = (rtr_probes_w, rtr_probes_h);
+    inv_probe_count@f2 = (1.0 / rtr_probes_w, 1.0 / rtr_probes_h);
+  }
+
+  hlsl(stage) {
+    #define rtr_use_probes 1
+  }
+endmacro
+
+macro INIT_RTR_PROBES(stage)
+  INIT_RTR_PROBES_NO_SAMPLER(stage)
+  (stage) {
+    probes_samplerstate@sampler = rtr_probe_sampler;
+  }
+endmacro
+
+macro USE_RTR_PROBES(stage)
+  hlsl(stage) {
+    #include <octahedral.hlsl>
+    #include <rtr_constants.hlsli>
+
+    float2 remap_texcoord(float2 uv)
+    {
+      float borderUV = float(PROBE_BORDER) / float(PROBE_RESOLUTION_WITH_BORDER);
+      float scaleUV = float(PROBE_RESOLUTION) / float(PROBE_RESOLUTION_WITH_BORDER);
+      return uv * scaleUV + borderUV;
+    }
+
+    float4 sample_probe(uint2 probeIndex, float3 dir)
+    {
+      float2 uv = octEncode(dir) * 0.5 + 0.5;
+      uv = remap_texcoord(uv);
+      uv *= inv_probe_count;
+      uv += probeIndex * inv_probe_count;
+      return probes.SampleLevel(probes_samplerstate, uv, 0);
+    }
+  }
+endmacro

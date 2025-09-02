@@ -1,6 +1,4 @@
-pushd gameBase
 call create_vfsroms.bat
-popd
 if ERRORLEVEL 1 goto on_error
 
 goto EOF

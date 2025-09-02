@@ -4,7 +4,7 @@
 //
 #pragma once
 
-#include <3d/dag_resourcePool.h>
+#include <resourcePool/resourcePool.h>
 #include <3d/dag_resPtr.h>
 #include <shaders/dag_postFxRenderer.h>
 #include <shaders/dag_DynamicShaderHelper.h>
@@ -29,6 +29,10 @@ public:
   FoamFx(int _width, int _height);
   ~FoamFx();
 
+  static FoamFxParams prepareParams(float tile_uv_scale, float distortion_scale, float normal_scale, float pattern_gamma,
+    float mask_gamma, float gradient_gamma, float underfoam_threshold, float overfoam_threshold, float underfoam_weight,
+    float overfoam_weight, const Point3 &underfoam_color, const Point3 &overfoam_color, float reflectivity, const String &tile_tex,
+    const String &gradient_tex);
   void setParams(const FoamFxParams &params);
 
   void prepare(const TMatrix4 &view_tm, const TMatrix4 &proj_tm);
@@ -36,7 +40,6 @@ public:
   void renderFoam();
 
   void beginMaskRender();
-  void endMaskRender();
 
 private:
   int width, height;
@@ -58,6 +61,4 @@ private:
 
   RTarget::Ptr overfoam;
   RTarget::Ptr underfoam_downsampled;
-
-  shaders::OverrideStateId zFuncLeqStateId;
 };

@@ -25,38 +25,37 @@ class MaterialsPlugin : public IGenEditorPlugin, public PropPanel::ControlEventH
 {
 public:
   MaterialsPlugin();
-  ~MaterialsPlugin();
+  ~MaterialsPlugin() override;
 
   // IGenEditorPlugin
-  virtual const char *getInternalName() const { return "materialsEditor"; }
+  const char *getInternalName() const override { return "materialsEditor"; }
 
-  virtual void registered();
-  virtual void unregistered();
+  void registered() override;
+  void unregistered() override;
 
-  virtual bool begin(DagorAsset *asset);
-  virtual bool end();
-  virtual IGenEventHandler *getEventHandler() { return NULL; }
+  bool begin(DagorAsset *asset) override;
+  bool end() override;
+  IGenEventHandler *getEventHandler() override { return NULL; }
 
-  virtual void clearObjects() {}
-  virtual void onSaveLibrary();
-  virtual void onLoadLibrary();
+  void clearObjects() override {}
+  void onSaveLibrary() override;
+  void onLoadLibrary() override;
 
-  virtual bool getSelectionBox(BBox3 &box) const;
+  bool getSelectionBox(BBox3 &box) const override;
 
-  virtual void actObjects(float dt) {}
-  virtual void beforeRenderObjects() {}
-  virtual void renderObjects() {}
-  virtual void renderTransObjects() {}
-  virtual void renderGeometry(Stage stage);
+  void actObjects(float dt) override {}
+  void beforeRenderObjects() override {}
+  void renderObjects() override {}
+  void renderTransObjects() override {}
+  void renderGeometry(Stage stage) override;
 
-  virtual bool supportAssetType(const DagorAsset &asset) const;
+  bool supportAssetType(const DagorAsset &asset) const override;
 
-  virtual void fillPropPanel(PropPanel::ContainerPropertyControl &panel);
-  virtual void fillShaderPanel(PropPanel::ContainerPropertyControl *panel);
-  virtual void postFillPropPanel() {}
+  void fillPropPanel(PropPanel::ContainerPropertyControl &panel) override;
+  void postFillPropPanel() override {}
 
-  virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel);
-  virtual void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel);
+  void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
+  void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
 
 private:
   DagorAsset *curAsset;
@@ -88,6 +87,7 @@ private:
   // get existent parameter or create new one
   MatParam &findMatParam(const char *name);
 
+  void fillShaderPanel(PropPanel::ContainerPropertyControl *panel);
   void fillShaderParams(PropPanel::ContainerPropertyControl *panel, const MaterialRec &mat, const MatShader &shader);
 
   void addTexture(PropPanel::ContainerPropertyControl *panel, const MaterialRec &mat, const char *caption, int ctrl_idx,

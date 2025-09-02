@@ -19,4 +19,7 @@ incDir:t="../../../prog/daNetGameLibs"
     "@delete-all:static_shadows_cascades":i=2
     static_shadows_cascades:i=2
   }
+  "@override:required_shaders" {
+    rendinst_tree_gradient:b=no
+  }
 }

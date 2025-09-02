@@ -36,6 +36,7 @@ struct CommandQueue
   struct InstanceStatus
   {
     InstanceId iid;
+    float distance;
     bool enabled;
   };
 

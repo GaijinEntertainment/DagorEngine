@@ -9,7 +9,7 @@ static const int MD5_LEN = 16;
 
 struct FileInfo
 {
-  FileInfo(const char *file) : filePath(file){};
+  FileInfo(const char *file) : filePath(file) {}
 
   SimpleString filePath;
   unsigned char hash[MD5_LEN];
@@ -18,7 +18,7 @@ struct FileInfo
 
 struct FilePair
 {
-  FilePair(int i, int j) : f1(i), f2(j){};
+  FilePair(int i, int j) : f1(i), f2(j) {}
 
   int f1, f2;
 };

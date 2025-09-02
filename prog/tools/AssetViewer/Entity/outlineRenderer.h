@@ -5,33 +5,34 @@
 #include <3d/dag_textureIDHolder.h>
 #include <generic/dag_span.h>
 #include <shaders/dag_postFxRenderer.h>
+#include <EASTL/vector_multimap.h>
 
 class DynamicRenderableSceneInstance;
 class IGenViewportWnd;
+struct RiGenVisibility;
 
 class OutlineRenderer
 {
 public:
-  class RenderElement
-  {
-  public:
-    TMatrix transform;
-    int rendInstExtraResourceIndex;
-    DynamicRenderableSceneInstance *sceneInstance;
-  };
+  using RIElementsCache = eastl::vector_multimap<int, TMatrix>;
 
-  void render(IGenViewportWnd &wnd, dag::ConstSpan<RenderElement> elements);
+  ~OutlineRenderer();
+
+  void render(IGenViewportWnd &wnd, const RIElementsCache &riElements,
+    dag::ConstSpan<DynamicRenderableSceneInstance *> dynmodelElements);
 
 private:
   void init();
-  bool isInited() const { return rendinstMatrixBuffer.get() != nullptr; }
+  bool isInited() const { return globalVisibility != nullptr; }
   void initResolution(int width_, int height_);
 
   int width = 0;
   int height = 0;
   PostFxRenderer finalRender;
   TextureIDHolderWithVar colorRt;
-  eastl::unique_ptr<Sbuffer, DestroyDeleter<Sbuffer>> rendinstMatrixBuffer;
+
+  RiGenVisibility *globalVisibility = nullptr;
+  RiGenVisibility *filteredVisibility = nullptr;
 
   static int simple_outline_colorVarId;
   static int simple_outline_color_rtVarId;

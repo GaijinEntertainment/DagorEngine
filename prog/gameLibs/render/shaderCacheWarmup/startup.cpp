@@ -3,6 +3,7 @@
 #include <render/shaderCacheWarmup/shaderCacheWarmup.h>
 
 #include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_info.h>
 #include <ioSys/dag_dataBlock.h>
 #include <ioSys/dag_dataBlockUtils.h>
 #include <osApiWrappers/dag_miscApi.h>
@@ -13,7 +14,7 @@ namespace shadercache
 static bool warmup_enabled(const DataBlock *blk)
 {
   const char *platform = get_platform_string_id();
-  return blk->getBool(platform, false);
+  return blk->getBool(platform, false) && blk->getBool(d3d::get_driver_name(), false);
 }
 
 static Tab<const char *> get_shaders_to_warmup(const char *pipeline_type, const DataBlock *blk)

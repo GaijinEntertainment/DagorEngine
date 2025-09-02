@@ -125,6 +125,8 @@ public:
 
   void save(DataBlock &blk, const ecs::Scene::EntityRecord &erec) const;
   bool hasTransform() const;
+  bool canTransformFreely() const;
+  EntityObj *getParentObject();
 
   static void register_script_class(HSQUIRRELVM vm);
   BBox3 getLbb() const override { return lbb; }

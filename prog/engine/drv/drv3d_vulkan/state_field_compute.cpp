@@ -102,7 +102,9 @@ void StateFieldComputeFlush::applyTo(BackComputeStateStorage &state, ExecutionCo
 
   target.trackStageResAccessesNonParallel(regRef.header, ExtendedShaderStage::CS);
 
-  Backend::State::exec.getResBinds(STAGE_CS).apply(target.vkDev, Globals::dummyResources.getTable(), Backend::gpuJob->index, regRef,
+  Backend::State::exec.getResBinds(STAGE_CS).applyPushConstants(regRef, layoutHandle, VK_SHADER_STAGE_COMPUTE_BIT,
+    ExtendedShaderStage::CS);
+  Backend::State::exec.getResBinds(STAGE_CS).apply(Globals::dummyResources.getTable(), Backend::gpuJob->index, regRef,
     ExtendedShaderStage::CS,
     [layoutHandle](VulkanDescriptorSetHandle set, const uint32_t *offsets, uint32_t offset_count) //
     {

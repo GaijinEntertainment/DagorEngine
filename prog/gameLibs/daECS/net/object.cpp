@@ -90,7 +90,6 @@ void dump_and_clear_components_profiler_stats() {}
 /* static */
 bool Object::do_not_verify_destruction = false;
 eastl::vector_set<ecs::EntityId> Object::pending_destroys;
-Object::dirty_entities_list_t Object::dirtyList;
 static uint32_t objectsCreationOrderSequence = 0;
 static const ecs::component_index_t NO_COMPONENTS_STUB = 0;
 typedef eastl::vector<const ecs::component_index_t *> components_list_type_t;
@@ -129,15 +128,24 @@ static inline void gather_ignored(const ecs::Template *templ, eastl::vector_set<
     gather_ignored(g_entity_mgr->getTemplateDB().getTemplateById(p), ignored);
 };
 
+template <typename T>
+static inline void insert_0th_base_cast(T &vec, typename T::value_type v)
+{
+  using icbt_t = typename eastl::remove_cvref_t<decltype(vec)>::base_type;
+  static_cast<icbt_t &>(vec).insert(vec.begin(), v);
+}
+template <typename T>
+static inline void insert_0th_get_cont(T &vec, typename T::value_type v)
+{
+  vec.getContainer().insert(vec.begin(), v);
+}
+
 const ecs::component_index_t *get_template_ignored_initial_components(ecs::template_t tid)
 {
   if (const ecs::component_index_t *ret = (tid < ignored_components.size()) ? ignored_components[tid] : nullptr)
     return (ret == &NO_COMPONENTS_STUB) ? nullptr : ret;
   const char *templateName = g_entity_mgr->getTemplateName(tid);
-  const ecs::Template *templ = nullptr;
-  if (!templateName)
-    return nullptr;
-  templ = g_entity_mgr->getTemplateDB().getTemplateByName(templateName);
+  const ecs::Template *templ = templateName ? g_entity_mgr->getTemplateDB().getTemplateByName(templateName) : nullptr;
   if (!templ)
     return nullptr;
   eastl::vector_set<ecs::component_index_t> ignoredComponents;
@@ -149,7 +157,11 @@ const ecs::component_index_t *get_template_ignored_initial_components(ecs::templ
     ignored_components[tid] = &NO_COMPONENTS_STUB;
     return nullptr;
   }
-  ignoredComponents.getContainer().insert(ignoredComponents.begin(), ignoredComponents.size());
+  // Note: 0th slot = size
+  if constexpr (eastl::is_base_of_v<typename decltype(ignoredComponents)::base_type, decltype(ignoredComponents)>)
+    insert_0th_base_cast(ignoredComponents, ignoredComponents.size());
+  else
+    insert_0th_get_cont(ignoredComponents, ignoredComponents.size());
   ignoredComponents.shrink_to_fit();
   ignored_components[tid] = ignoredComponents.data();
   ignoredComponents.reset_lose_memory();
@@ -170,14 +182,14 @@ void ObjectReplica::debugVerifyRemoteCompVers(const CompVersMap &local_comp_vers
 #endif
 }
 
-Object::Object(const ecs::EntityManager &, ecs::EntityId eid_, const ecs::ComponentsMap &map) :
+Object::Object(const ecs::EntityManager &mgr, ecs::EntityId eid_, const ecs::ComponentsMap &map) :
   eid(eid_),
   controlledBy(INVALID_CONNECTION_ID),
   creationOrder(objectsCreationOrderSequence++),
   isReplicaFlag(map[ECS_HASH("serverEid")].getOr((int)ecs::ECS_INVALID_ENTITY_ID_VAL) != ecs::ECS_INVALID_ENTITY_ID_VAL),
   isMeantToBeDestroyed(!isReplicaFlag) // if it is server replica then, and only then, we should wait for destruction packet
 {
-  register_pending_component_filters(); // we can actually remove it from here, and make callback for new component creation instead
+  register_pending_component_filters(mgr); // we can actually remove it from here, and make callback for new component creation instead
   if (!isReplica())
     initCompVers(); // Potentially accesses some filters, registered in register_pending_component_filters call above
 }
@@ -316,6 +328,9 @@ void Object::serializeComps(const Connection *conn, danet::BitStream &bs, const 
   G_FAST_ASSERT(compVers.size() == repl.remoteCompVers.size());
 #endif
   bool writtenSomething = false;
+#if PROFILE_COMPONENTS_SERIALIZATION_STATS
+  const bool writeCompSerStats = !conn->isBlackHole(); // Don't account replay conn
+#endif
   for (int i = 0, sz = compVers.size(); i < sz; ++i)
   {
     auto &compVer = compVers.data()[i];
@@ -341,8 +356,8 @@ void Object::serializeComps(const Connection *conn, danet::BitStream &bs, const 
       comps_serialized.push_back(CompRevision{localCompIdx, localCompVer});
       writtenSomething = true;
 #if PROFILE_COMPONENTS_SERIALIZATION_STATS
-      // FIXME: these measurements are incorrect when replication is thrown away (when packet over MTU limit)
-      if (!conn->isBlackHole())
+      // Note: these measurements are incorrect when replication is thrown away (when packet over MTU limit)
+      if (writeCompSerStats)
       {
         auto &stat = replication_components_stats[g_entity_mgr->getEntityTemplateId(eid) | (localCompIdx << 16)];
         stat.first++;

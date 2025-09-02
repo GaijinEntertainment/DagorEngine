@@ -15,6 +15,7 @@ KRNLIMP bool set_clipboard_ansi_text(const char *buf);
 KRNLIMP bool get_clipboard_utf8_text(char *dest, int bufSize);
 KRNLIMP bool set_clipboard_utf8_text(const char *buf);
 KRNLIMP bool set_clipboard_bmp_image(TexPixel32 *im, int wd, int ht, int stride);
+KRNLIMP bool set_clipboard_file(const char *filename);
 } // namespace clipboard
 
 #include <supp/dag_undef_KRNLIMP.h>

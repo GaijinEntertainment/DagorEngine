@@ -58,9 +58,9 @@ float get_volume_bus(const char *bus_name)
   return volume;
 }
 
-bool is_bus_exists(const char *bus_name)
+bool is_bus_exists(const char *bus_name, bool is_obligatory)
 {
-  FMOD::Studio::Bus *bus = get_bus(bus_name);
+  FMOD::Studio::Bus *bus = is_obligatory ? get_bus(bus_name) : get_bus_nullable(bus_name);
   return bus ? true : false;
 }
 

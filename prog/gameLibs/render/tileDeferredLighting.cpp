@@ -12,16 +12,18 @@
 #include <math/dag_TMatrix4.h>
 #include <perfMon/dag_statDrv.h>
 
-#define GLOBAL_VARS_LIST \
-  VAR(allLights)         \
-  VAR(far_depth)         \
-  VAR(lightsCount)       \
-  VAR(viewClip)          \
-  VAR(rendering_res)     \
+#define GLOBAL_VARS_LIST      \
+  VAR(allLights)              \
+  VAR(far_depth)              \
+  VAR(far_depth_samplerstate) \
+  VAR(lightsCount)            \
+  VAR(viewClip)               \
+  VAR(rendering_res)          \
   VAR(lights_indices_size)
 
 #define GLOBAL_VARS_OPT_LIST   \
   VAR(near_depth)              \
+  VAR(near_depth_samplerstate) \
   VAR(all_lights_view_pos_rad) \
   VAR(all_lights_box_center)   \
   VAR(all_lights_box_extent)   \
@@ -59,7 +61,6 @@ void TileDeferredLighting::initAllLights()
   {
     String name(128, "allLights%d", i);
     allLights[i].set(d3d::create_tex(NULL, OmniLightsManager::MAX_LIGHTS * 2, 1, TEXFMT_A32B32G32R32F | TEXCF_DYNAMIC, 1, name), name);
-    allLights[i].getTex2D()->texfilter(TEXFILTER_POINT);
   }
 }
 
@@ -75,13 +76,16 @@ bool TileDeferredLighting::init(int w, int h)
   if (!lightsArray)
     return false;
   lightsIndicesArray.set(lightsArray, "lights_indices");
-  lightsIndicesArray.getArrayTex()->texaddr(TEXADDR_CLAMP);
-  lightsIndicesArray.getArrayTex()->texfilter(TEXFILTER_POINT);
 
   prepareLightCount.init("prepare_lights_count");
   initAllLights();
   mem_set_0(allLightsCount);
   currentAllLightsId = 0;
+  d3d::SamplerInfo smpInfo;
+  smpInfo.address_mode_u = smpInfo.address_mode_v = d3d::AddressMode::Clamp;
+  d3d::SamplerHandle smp = d3d::request_sampler(smpInfo);
+  ShaderGlobal::set_sampler(far_depth_samplerstateVarId, smp);
+  ShaderGlobal::set_sampler(near_depth_samplerstateVarId, smp);
   return true;
 }
 
@@ -114,12 +118,10 @@ void TileDeferredLighting::classifyPointLights(const TextureIDPair &far_depth, c
   for (int i = 0; i < MAX_LIGHTS_PER_TILE / 4; ++i)
     d3d::set_render_target(i, lightsIndicesArray.getArrayTex(), i, 0);
 
-  far_depth.getTex2D()->texaddr(TEXADDR_CLAMP);
   far_depth.getTex2D()->texmiplevel(3, 3);
   G_ASSERT(far_depth.getTex2D()->level_count() >= 3);
   if (close_depth.getTex2D())
   {
-    close_depth.getTex2D()->texaddr(TEXADDR_CLAMP);
     close_depth.getTex2D()->texmiplevel(3, 3);
     G_ASSERT(close_depth.getTex2D()->level_count() >= 3);
   }
@@ -136,12 +138,10 @@ void TileDeferredLighting::classifyPointLights(const TextureIDPair &far_depth, c
 
   d3d::set_render_target(prevRT);
   far_depth.getTex2D()->texmiplevel(-1, -1);
-  far_depth.getTex2D()->texaddr(TEXADDR_BORDER);
 
   if (close_depth.getTex2D())
   {
     close_depth.getTex2D()->texmiplevel(-1, -1);
-    close_depth.getTex2D()->texaddr(TEXADDR_BORDER);
   }
 
   lightsIndicesArray.setVar();

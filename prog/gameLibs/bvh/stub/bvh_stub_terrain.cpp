@@ -8,7 +8,7 @@ int bvh_terrain_lod_count = 1;
 namespace bvh::terrain
 {
 UniqueBLAS *get_blas(int, int) {}
-dag::Vector<eastl::tuple<uint64_t, uint32_t, Point2>> get_blases(ContextId) { return {}; };
+dag::Vector<eastl::tuple<uint64_t, MeshMetaAllocator::AllocId, Point2, bool>> get_blases(ContextId) { return {}; };
 dag::Vector<Sbuffer *> get_buffers(ContextId) { return {}; };
 
 void init() {}

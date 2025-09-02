@@ -288,8 +288,13 @@ void
 basic_formatter<charT, traits>::
 flush()	{
 	assert(false);
-	if (advance() && !uncaught_exception())	
-		throw logic_error("Not all format specifiers were used");
+	if (advance())
+#if defined(__cpp_lib_uncaught_exceptions) && __cpp_lib_uncaught_exceptions >= 201411L
+    if (!std::uncaught_exceptions())
+#else
+    if (!std::uncaught_exception())
+#endif
+		  throw logic_error("Not all format specifiers were used");
 }
 
 template<class charT, class traits>

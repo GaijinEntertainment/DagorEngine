@@ -28,6 +28,10 @@ public:
 		else
 			return base_type::end();
 	}
+  friend bool operator<(const sorted_vector<T> &a, const sorted_vector<T> &b)
+  {
+    return std::lexicographical_compare(a.begin(), a.end(), b.begin(), b.end());
+  }
 	void insert(const T &x)
 	{
 		iterator p=find_around(x);

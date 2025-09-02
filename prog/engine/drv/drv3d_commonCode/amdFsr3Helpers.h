@@ -4,7 +4,11 @@
 #include "amdFsr.h"
 
 #include <osApiWrappers/dag_unicode.h>
-#include <ffx_api/ffx_upscale.hpp>
+#if __has_include(<ffx_upscale.hpp>) // Vulkan is currently not supported in SDK 2.0
+#include <ffx_upscale.hpp>           // AMD FidelityFX™ SDK 2.0.0
+#else                                //
+#include <ffx_api/ffx_upscale.hpp>   // AMD FidelityFX™ SDK 1.1.4
+#endif
 
 namespace amd
 {

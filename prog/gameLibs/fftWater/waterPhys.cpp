@@ -58,7 +58,7 @@ void WaterNVPhysics::initializeCascades()
   threadpool::wait(this);
 
   mem_set_0(fifoMaxZ);
-  allFifoMaxZ = 0;
+  allFifoMaxZ.store(0);
   if (noActualWaves)
   {
     delete[] cascades;
@@ -347,7 +347,6 @@ int WaterNVPhysics::getDisplaceData(int destFifo, int start, int count)
 
 void WaterNVPhysics::doJob()
 {
-  TIME_PROFILE(water_phys);
   if (currentJobIndex < 0)
     return;
   if (!currentJobIndex)
@@ -414,7 +413,7 @@ void WaterNVPhysics::runAsyncTask(int nextLastTick, float tasks)
     START_JOB_SIZE = MIN_JOB_SIZE_TO_DO * 2
   };
 
-  int nextJobSize = currentJobIndex == 0 ? START_JOB_SIZE : (totalJobSize - currentJobIndex) * tasks;
+  int nextJobSize = currentJobIndex == 0 ? START_JOB_SIZE : int((totalJobSize - currentJobIndex) * tasks);
   if (nextJobSize < MIN_JOB_SIZE_TO_START)
     return;
   nextJobSize = clamp(nextJobSize, (int)MIN_JOB_SIZE_TO_DO, totalJobSize - currentJobIndex);
@@ -721,7 +720,6 @@ vec4f WaterNVPhysics::getRenderedHeight(float x, float z)
 int WaterNVPhysics::getHeightAboveWater(double time, const Point3 &point, float &result, Point3 *out_displacement,
   bool matchRenderGrid)
 {
-  TIME_PROFILE_DEV(getHeightAboveWater);
   if (!cascades)
   {
     if (waterHeightmap)
@@ -747,8 +745,7 @@ int WaterNVPhysics::getHeightAboveWater(double time, const Point3 &point, float 
   float originY = maxSeaLevel;
   if (waterHeightmap)
     originY = waterHeightmap->heightMax + maxWaveHeight;
-  if (
-    intersectRayWithOcean(time, resPos, t, Point3(point.x, originY, point.z), Point3(0, -1.0f, 0), out_displacement, matchRenderGrid))
+  if (intersectRayWithOcean(time, resPos, t, Point3::xVz(point, originY), Point3(0, -1.0f, 0), out_displacement, matchRenderGrid))
   {
     result = point.y - resPos.y;
     return 1;

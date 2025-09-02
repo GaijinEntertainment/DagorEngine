@@ -1,6 +1,8 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#if _TARGET_PC_WIN // TODO: tools Linux porting: SplashScreen
+
 class SplashScreen
 {
 public:
@@ -19,3 +21,16 @@ private:
   static unsigned registerSplashClass();
   static int __stdcall wndProc(void *h_wnd, unsigned msg, void *w_param, void *l_param);
 };
+
+#else
+
+class SplashScreen
+{
+public:
+  SplashScreen() {}
+  ~SplashScreen() {}
+
+  static void kill() {}
+};
+
+#endif

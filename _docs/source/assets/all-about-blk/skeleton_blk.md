@@ -1,6 +1,6 @@
-# .skeleton.blk
+# `.skeleton.blk`
 
-## Purpose of .skeleton.blk
+## Purpose of `.skeleton.blk`
 
 Composite models are constructed from multiple dynamic models that share a
 common skeleton. Below are the rules for creating a `.skeleton.blk` file for a
@@ -11,7 +11,7 @@ composite model.
 Let's break down the configuration using the example of a tank with various
 turret and gun options.
 
-```
+```text
 name:t="tank_body.lod00.dag"
 attachSubSkel{
   attach_to:t="bone_turret"
@@ -46,7 +46,7 @@ attachSubSkel{
 ### Parameter Details
 
 - `name:t=`: The name of the parent model.
-- `attachSubSkel`: Block for adding a dynamic model.
+- `attachSubSkel{}`: Block for adding a dynamic model.
   - `attach_to:t=`: Node in the parent skeleton to which the dynamic model is
     linked.
   - `skel_file:t=`: Name of the child model.
@@ -71,7 +71,7 @@ prefixes `G1` and `G2`, while the nodes of `turret_b` receive the prefix `T1`.
 - When specifying the attachment node, do not account for the automatically
   added prefixes.
 - If a child node is linked to a node with the same name, the previous node is
-removed from the hierarchy to avoid duplicates.
+  removed from the hierarchy to avoid duplicates.
 ```
 
 ### Hierarchical Dependencies
@@ -81,7 +81,7 @@ are easier to manage. Before adding another level, ensure its necessity.
 
 A multi-level hierarchy might look like this:
 
-```
+```text
 name:t="papa.lod00.dag"
 attachSubSkel{
   attach_to:t="bone_papa"

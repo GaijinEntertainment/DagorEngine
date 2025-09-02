@@ -18,7 +18,6 @@ public:
   void refilter();
 
   void saveTreeData(DataBlock &blk);
-  void loadSelectedItem();
 
   void selectNextItem(bool forward = true);
   bool selectAsset(const DagorAsset *asset);
@@ -29,18 +28,18 @@ public:
   DagorAssetFolder *getSelectedAssetFolder() const;
   bool isFolder(PropPanel::TLeafHandle node) const;
 
-  virtual void updateImgui(float control_height = 0.0f) override;
+  void updateImgui(float control_height = 0.0f) override;
 
   static const int IS_DAGOR_ASSET_FOLDER = 1;
 
 protected:
-  virtual bool handleNodeFilter(const PropPanel::TTreeNode &node) override;
+  bool handleNodeFilter(const PropPanel::TTreeNode &node) override;
 
 private:
   PropPanel::TLeafHandle addGroup(int folder_idx, PropPanel::TLeafHandle parent, const DataBlock *blk);
   PropPanel::TLeafHandle addEntry(const DagorAsset *asset, PropPanel::TLeafHandle parent, bool selected);
 
-  void scanOpenTree(PropPanel::TLeafHandle parent, DataBlock *blk);
+  void saveTreeExpansionState(const PropPanel::TTreeNode &parent, DataBlock *blk);
 
   DagorAssetMgr *assetMgr = nullptr;
   PropPanel::TLeafHandle firstSel = nullptr;

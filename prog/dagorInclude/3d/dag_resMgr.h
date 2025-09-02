@@ -90,11 +90,11 @@ struct D3dResManagerData
   static __forceinline BaseTexture *getBaseTex(D3DRESID id) { return (BaseTexture *)getD3dRes(id); }
   //! returns registered typed texture for D3DRESID resource;
   //! nullptr value means missing, unregistered, unreferenced or non-tex resource
-  template <int TYPE>
+  template <D3DResourceType TYPE>
   static __forceinline BaseTexture *getD3dTex(D3DRESID id)
   {
     D3dResource *r = getD3dRes(id);
-    return (r && r->restype() == TYPE) ? (BaseTexture *)r : nullptr;
+    return (r && r->getType() == TYPE) ? (BaseTexture *)r : nullptr;
   }
 
   //! returns last-frame-used (LFU) for D3DRESID resource; 0 value means missing (unregistered) resource
@@ -242,6 +242,14 @@ bool is_managed_res_factory_set(D3DRESID id);
 //! \param id the managed ID to acquire
 //! \returns the acquired resource object or nullptr if the ID is invalid
 D3dResource *acquire_managed_res(D3DRESID id);
+
+//! \brief Replaces the resource for managed id \p id.
+//! \warning This does not work with asset resources owned by resMgr, only with registered resources.
+//! Texture factories and mip/bias rules will not be respected.
+//! \param id Managed ID to replace the resource for
+//! \param new_res New driver resource to use for this \p id
+//! \returns `true` if the resource was replaced successfully, `false` otherwise
+bool change_managed_res(D3DRESID id, D3dResource *new_res);
 
 //! \brief Releases resource object and decrements resource reference count.
 //! \details When reference count reaches 0, resource may be released.

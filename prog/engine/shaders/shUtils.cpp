@@ -128,11 +128,12 @@ const char *shcod_tokname(int t)
     case SHCOD_CALL_FUNCTION: return "CALL_FUNCTION";
     case SHCOD_INVERSE: return "INVERSE";
     case SHCOD_STATIC_BLOCK: return "STATIC_BLOCK";
-    case SHCOD_BLK_ICODE_LEN: return "BLK_ICODE_LEN";
     case SHCOD_COPY_REAL: return "COPY_REAL";
     case SHCOD_COPY_VEC: return "COPY_VEC";
+    case SHCOD_INT_TOREAL: return "SHCOD_INT_TOREAL";
+    case SHCOD_IVEC_TOREAL: return "SHCOD_IVEC_TOREAL";
     case SHCOD_REG_BINDLESS: return "REG_BINDLESS";
-    case SHCOD_PACK_MATERIALS: return "PACK_MATERIALS";
+    case SHCOD_STATIC_MULTIDRAW_BLOCK: return "STATIC_MULTIDRAW_BLOCK";
     case SHCOD_RWTEX: return "RWTEX";
     case SHCOD_RWBUF: return "RWBUF";
   }
@@ -149,8 +150,8 @@ static int resolve_local_var(int ofs, dag::ConstSpan<uint32_t> stVarMap, const s
 }
 
 // dump code table to debug
-void shcod_dump(dag::ConstSpan<int> cod, const shaderbindump::VarList *globals, const shaderbindump::VarList *locals,
-  dag::ConstSpan<uint32_t> stVarMap, bool embrace_dump)
+void shcod_dump(dag::ConstSpan<int> cod, const shaderbindump::VarList *globals, const ShaderVarsState *globals_state,
+  const shaderbindump::VarList *locals, dag::ConstSpan<uint32_t> stVarMap, bool embrace_dump)
 {
   if (embrace_dump)
     debug("dump shcode (%p)-----", cod.data());
@@ -159,7 +160,6 @@ void shcod_dump(dag::ConstSpan<int> cod, const shaderbindump::VarList *globals, 
   (void)(locals);
   (void)(stVarMap);
 
-  int break_idx = -1;
   for (int i = 0; i < cod.size(); i++)
   {
     int opcode = shaderopcode::getOp(cod[i]);
@@ -230,7 +230,7 @@ void shcod_dump(dag::ConstSpan<int> cod, const shaderbindump::VarList *globals, 
         if (v >= 0)
         {
           debug_("%sreg=%d var_ofs=%d  |", str.str(), ro, ofs);
-          shaderbindump::dumpVar(*locals, v);
+          shaderbindump::dumpVar(*locals, globals_state, v);
           continue;
         }
         else
@@ -254,7 +254,7 @@ void shcod_dump(dag::ConstSpan<int> cod, const shaderbindump::VarList *globals, 
         if (globals && (uint32_t)ofs < (uint32_t)globals->v.size())
         {
           debug_("%sreg=%d var_ofs=%d  |", str.str(), ro, ofs);
-          shaderbindump::dumpVar(*globals, ofs);
+          shaderbindump::dumpVar(*globals, globals_state, ofs);
           continue;
         }
         else
@@ -334,7 +334,7 @@ void shcod_dump(dag::ConstSpan<int> cod, const shaderbindump::VarList *globals, 
         if (v >= 0)
         {
           debug_("%sreg=%d var_ofs=%d  |", str.str(), ro, ofs);
-          shaderbindump::dumpVar(*locals, v);
+          shaderbindump::dumpVar(*locals, globals_state, v);
           continue;
         }
         else
@@ -352,32 +352,32 @@ void shcod_dump(dag::ConstSpan<int> cod, const shaderbindump::VarList *globals, 
           int ind = shaderopcode::getOpStageSlot_Slot(cod[i]);
           const char *stageStr = stage == STAGE_CS ? "cs" : (stage == STAGE_PS ? "ps" : stage == STAGE_VS ? "vs" : "?");
           debug_("%sstage=%s reg=%d var_ofs=%d  |", str.str(), stageStr, ind, ofs);
-          shaderbindump::dumpVar(*globals, ofs);
+          shaderbindump::dumpVar(*globals, globals_state, ofs);
 #endif
           continue;
         }
       }
       break;
+      case SHCOD_STATIC_MULTIDRAW_BLOCK: str.aprintf(128, "// Shader supports packed materials."); [[fallthrough]];
       case SHCOD_STATIC_BLOCK:
-        str.aprintf(128, "texCnt=%u vsCnt=%u psCnt=%u texBase=%d vsBase=%d psBase=%d", shaderopcode::getOp3p1(cod[i]),
-          shaderopcode::getOp3p2(cod[i]), shaderopcode::getOp3p3(cod[i]), (cod[i + 1] >> 16) & 0xFF, (cod[i + 1] >> 8) & 0xFF,
-          cod[i + 1] & 0xFF);
+      {
+        auto [vsTexBase, vsSamplerBaseAndExtentPacked, psTexBase, psSamplerBaseAndExtentPacked] =
+          shaderopcode::unpackData4(cod[i + 1]);
+        auto [vsSamplerBase, vsCnt] =
+          eastl::pair{uint8_t(vsSamplerBaseAndExtentPacked >> 4), uint8_t(vsSamplerBaseAndExtentPacked & 0xF)};
+        auto [psSamplerBase, psCnt] =
+          eastl::pair{uint8_t(psSamplerBaseAndExtentPacked >> 4), uint8_t(psSamplerBaseAndExtentPacked & 0xF)};
+        str.aprintf(128, "constCnt=%u vsCnt=%u psCnt=%u vsTexBase=%d psTexBase=%d vsSmpBase=%d psSmpBase=%d",
+          shaderopcode::getOp3p1(cod[i]), vsCnt, psCnt, vsTexBase, psTexBase, vsSamplerBase, psSamplerBase);
         i += 1;
-        break;
-
-      case SHCOD_BLK_ICODE_LEN:
-        str.aprintf(128, " %d opcodes", shaderopcode::getOp1p1(cod[i]));
-        break_idx = i + 1 + shaderopcode::getOp1p1(cod[i]);
-        break;
+      }
+      break;
 
       case SHCOD_COPY_REAL:
       case SHCOD_COPY_VEC: str.aprintf(128, "dest=%d src=%d", shaderopcode::getOp2p1(cod[i]), shaderopcode::getOp2p2(cod[i])); break;
-      case SHCOD_PACK_MATERIALS: str.aprintf(128, "// Shader supports packed materials."); break;
 
       default: str.aprintf(128, " opcode=%08X", cod[i]);
     }
-    if (i == break_idx)
-      debug("   ---");
     debug("%s", str.str());
   }
 

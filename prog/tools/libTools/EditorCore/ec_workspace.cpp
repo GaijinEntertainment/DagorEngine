@@ -2,6 +2,7 @@
 
 #include <EditorCore/ec_workspace.h>
 #include <EditorCore/ec_interface.h>
+#include <EditorCore/ec_wndGlobal.h>
 
 #include <generic/dag_sort.h>
 #include <libTools/util/fileUtils.h>
@@ -13,7 +14,6 @@
 
 #include <util/dag_globDef.h>
 #include <debug/dag_debug.h>
-#include <sepGui/wndGlobal.h>
 
 #include <winGuiWrapper/wgw_dialogs.h>
 
@@ -137,9 +137,9 @@ bool EditorWorkspace::loadIndirect(const char *app_blk_path)
     String applicationDir(app_blk_path);
     ::location_from_path(applicationDir);
 
-    char buf[512];
-    dd_append_slash_c(_fullpath(buf, applicationDir, 512));
-    applicationDir = buf;
+    applicationDir = make_path_absolute(applicationDir);
+    G_ASSERT(!applicationDir.empty());
+    append_slash(applicationDir);
 
     appBlk.setStr("application_path", app_blk_path);
     appBlk.setStr("application_dir", applicationDir);
@@ -201,7 +201,6 @@ bool EditorWorkspace::loadFromBlk(DataBlock &blk, bool *app_path_set)
   levelsDir = ::make_full_path(appDir, sdkBlk->getStr("levels_folder", ""));
   resDir = ::make_full_path(appDir, sdkBlk->getStr("resource_database_folder", ""));
   scriptDir = ::make_full_path(appDir, sdkBlk->getStr("script_scheme_folder", ""));
-  soundFxFileName = ::make_full_path(appDir, sdkBlk->getStr("default_sound", ""));
 
   const char *asd = sdkBlk->getStr("asset_script_scheme_folder", NULL);
   assetScriptsDir = (asd) ? ::make_full_path(appDir, asd) : "";
@@ -221,10 +220,7 @@ bool EditorWorkspace::loadFromBlk(DataBlock &blk, bool *app_path_set)
   levelsBinDir = ::make_full_path(appDir, gameBlk->getStr("levels_bin_folder", ""));
   const char *tmp = gameBlk->getStr("physmat", "/game/config/physmat.blk");
   physmatPath = (tmp && tmp[0]) ? ::make_full_path(appDir, tmp) : "";
-  soundFileName = ::make_full_path(appDir, gameBlk->getStr("sound", ""));
   scriptLibrary = ::make_full_path(appDir, gameBlk->getStr("script_objects", ""));
-
-  ::debug("soundFileName = %s", (const char *)soundFileName);
 
   const DataBlock *deDisabledBlk = appBlk.getBlockByName("dagored_disabled_plugins");
 

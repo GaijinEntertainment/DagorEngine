@@ -12,10 +12,10 @@
 #include <coolConsole/coolConsole.h>
 
 
-#define DEF_MOVE      IEditorCoreEngine::BASIS_World | IEditorCoreEngine::CENTER_Pivot
-#define DEF_MOVE_SURF IEditorCoreEngine::BASIS_World | IEditorCoreEngine::CENTER_Pivot
-#define DEF_SCALE     IEditorCoreEngine::BASIS_Local | IEditorCoreEngine::CENTER_Pivot
-#define DEF_ROTATE    IEditorCoreEngine::BASIS_World | IEditorCoreEngine::CENTER_Pivot
+#define DEF_MOVE      int(IEditorCoreEngine::BASIS_World) | int(IEditorCoreEngine::CENTER_Pivot)
+#define DEF_MOVE_SURF int(IEditorCoreEngine::BASIS_World) | int(IEditorCoreEngine::CENTER_Pivot)
+#define DEF_SCALE     int(IEditorCoreEngine::BASIS_Local) | int(IEditorCoreEngine::CENTER_Pivot)
+#define DEF_ROTATE    int(IEditorCoreEngine::BASIS_World) | int(IEditorCoreEngine::CENTER_Pivot)
 
 const float SPIN_CHANGE_SENSE = 1e-4;
 
@@ -119,7 +119,7 @@ void ToolBarManager::init(int toolbar_id)
   tb2->setButtonPictures(CM_ENVIRONMENT_SETTINGS, "environment_settings");
   tb2->createSeparator();
 
-  tb2->createButton(CM_CONSOLE, "Show/hide console");
+  tb2->createCheckBox(CM_CONSOLE, "Show/hide console\tCtrl+`");
   tb2->setButtonPictures(CM_CONSOLE, "console");
 
   setEnabled(false);
@@ -156,6 +156,32 @@ IEditorCoreEngine::CenterType ToolBarManager::getCenterType() const
 }
 
 
+IEditorCoreEngine::CenterType ToolBarManager::getGizmoCenterTypeForMode(IEditorCoreEngine::ModeType tp) const
+{
+  if (type == tp)
+  {
+    if (gizmoCenterType != -1)
+      return (IEditorCoreEngine::CenterType)gizmoCenterType;
+  }
+
+  switch (tp)
+  {
+    case IEditorCoreEngine::MODE_Move: return (IEditorCoreEngine::CenterType)(moveGizmo & IEditorCoreEngine::GIZMO_MASK_CENTER);
+
+    case IEditorCoreEngine::MODE_MoveSurface:
+      return (IEditorCoreEngine::CenterType)(moveSurfGizmo & IEditorCoreEngine::GIZMO_MASK_CENTER);
+
+    case IEditorCoreEngine::MODE_Scale: return (IEditorCoreEngine::CenterType)(scaleGizmo & IEditorCoreEngine::GIZMO_MASK_CENTER);
+
+    case IEditorCoreEngine::MODE_Rotate: return (IEditorCoreEngine::CenterType)(rotateGizmo & IEditorCoreEngine::GIZMO_MASK_CENTER);
+
+    case IEditorCoreEngine::MODE_None: break; // to prevent the unhandled switch case error
+  }
+
+  return IEditorCoreEngine::CENTER_None;
+}
+
+
 IEditorCoreEngine::CenterType ToolBarManager::getCenterTypeByName(const char *name, bool enableRotObj) const
 {
   if (!strcmp(name, getCenterPivotCaption()))
@@ -182,6 +208,7 @@ const char *ToolBarManager::getCenterNameByType(IEditorCoreEngine::CenterType ty
     case IEditorCoreEngine::CENTER_Selection:
     case IEditorCoreEngine::CENTER_SelectionNotRotObj: return getCenterSelectionCaption();
     case IEditorCoreEngine::CENTER_Coordinates: return getCenterCoordCaption();
+    case IEditorCoreEngine::CENTER_None: break; // to prevent the unhandled switch case error
   }
 
   return NULL;
@@ -216,6 +243,8 @@ IEditorCoreEngine::BasisType ToolBarManager::getGizmoBasisTypeForMode(IEditorCor
     case IEditorCoreEngine::MODE_Scale: return (IEditorCoreEngine::BasisType)(scaleGizmo & IEditorCoreEngine::GIZMO_MASK_Basis);
 
     case IEditorCoreEngine::MODE_Rotate: return (IEditorCoreEngine::BasisType)(rotateGizmo & IEditorCoreEngine::GIZMO_MASK_Basis);
+
+    case IEditorCoreEngine::MODE_None: break; // to prevent the unhandled switch case error
   }
 
   return IEditorCoreEngine::BASIS_None;
@@ -228,6 +257,8 @@ IEditorCoreEngine::BasisType ToolBarManager::getBasisTypeByName(const char *name
     return IEditorCoreEngine::BASIS_World;
   else if (!strcmp(name, getBasisLocalCaption()))
     return IEditorCoreEngine::BASIS_Local;
+  else if (!strcmp(name, getBasisParentCaption()))
+    return IEditorCoreEngine::BASIS_Parent;
 
   return IEditorCoreEngine::BASIS_None;
 }
@@ -239,6 +270,8 @@ const char *ToolBarManager::getBasisNameByType(IEditorCoreEngine::BasisType type
   {
     case IEditorCoreEngine::BASIS_World: return getBasisWorldCaption();
     case IEditorCoreEngine::BASIS_Local: return getBasisLocalCaption();
+    case IEditorCoreEngine::BASIS_Parent: return getBasisParentCaption();
+    case IEditorCoreEngine::BASIS_None: break; // to prevent the unhandled switch case error
   }
 
   return NULL;
@@ -250,13 +283,15 @@ void ToolBarManager::setGizmoClient(IGizmoClient *gc, IEditorCoreEngine::ModeTyp
 {
   switch (type)
   {
-    case IEditorCoreEngine::MODE_Move: moveGizmo = getBasisType() | getCenterType(); break;
+    case IEditorCoreEngine::MODE_Move: moveGizmo = int(getBasisType()) | int(getCenterType()); break;
 
-    case IEditorCoreEngine::MODE_MoveSurface: moveSurfGizmo = getBasisType() | getCenterType(); break;
+    case IEditorCoreEngine::MODE_MoveSurface: moveSurfGizmo = int(getBasisType()) | int(getCenterType()); break;
 
-    case IEditorCoreEngine::MODE_Scale: scaleGizmo = getBasisType() | getCenterType(); break;
+    case IEditorCoreEngine::MODE_Scale: scaleGizmo = int(getBasisType()) | int(getCenterType()); break;
 
-    case IEditorCoreEngine::MODE_Rotate: rotateGizmo = getBasisType() | getCenterType(); break;
+    case IEditorCoreEngine::MODE_Rotate: rotateGizmo = int(getBasisType()) | int(getCenterType()); break;
+
+    case IEditorCoreEngine::MODE_None: break; // to prevent the unhandled switch case error
   }
 
   client = gc;
@@ -297,6 +332,8 @@ void ToolBarManager::setGizmoClient(IGizmoClient *gc, IEditorCoreEngine::ModeTyp
     case IEditorCoreEngine::MODE_Rotate:
       setGizmoBasisAndCenter(rotateGizmo & IEditorCoreEngine::GIZMO_MASK_Basis, rotateGizmo & IEditorCoreEngine::GIZMO_MASK_CENTER);
       break;
+
+    case IEditorCoreEngine::MODE_None: break; // to prevent the unhandled switch case error
   }
 }
 
@@ -316,7 +353,7 @@ void ToolBarManager::act()
 
   if (client)
   {
-    switch (type & IEditorCoreEngine::GIZMO_MASK_Mode)
+    switch (int(type) & IEditorCoreEngine::GIZMO_MASK_Mode)
     {
       case IEditorCoreEngine::MODE_Rotate:
         if ((getCenterType() == IEditorCoreEngine::CENTER_Selection ||
@@ -365,7 +402,7 @@ void ToolBarManager::act()
     tb->setFloat(CM_GIZMO_Z, v.z);
   }
 
-  if (!client && ((type & IEditorCoreEngine::GIZMO_MASK_Mode) == IEditorCoreEngine::MODE_None))
+  if (!client && ((int(type) & IEditorCoreEngine::GIZMO_MASK_Mode) == IEditorCoreEngine::MODE_None))
   {
     IGenViewportWnd *wp = EDITORCORE->getCurrentViewport();
     if (wp)
@@ -435,6 +472,9 @@ void ToolBarManager::refillTypes()
     if (availableTypes & IEditorCoreEngine::BASIS_Local)
       itemsBasis.push_back() = getBasisLocalCaption();
 
+    if (availableTypes & IEditorCoreEngine::BASIS_Parent)
+      itemsBasis.push_back() = getBasisParentCaption();
+
     if (availableTypes & IEditorCoreEngine::CENTER_Pivot)
       itemsCenter.push_back() = getCenterPivotCaption();
 
@@ -481,6 +521,8 @@ void ToolBarManager::setGizmoBasisAndCenter(int basis, int center)
       case IEditorCoreEngine::BASIS_World: basisName = getBasisWorldCaption(); break;
 
       case IEditorCoreEngine::BASIS_Local: basisName = getBasisLocalCaption(); break;
+
+      case IEditorCoreEngine::BASIS_Parent: basisName = getBasisParentCaption(); break;
 
       default: G_ASSERT(0);
     }
@@ -557,7 +599,7 @@ void ToolBarManager::setClientValues(Point3 &val)
   Point3 pt;
   client->gizmoStarted();
 
-  switch (type & IEditorCoreEngine::GIZMO_MASK_Mode)
+  switch (int(type) & IEditorCoreEngine::GIZMO_MASK_Mode)
   {
     case IEditorCoreEngine::MODE_Rotate:
       if (client->getRot(pt))
@@ -588,7 +630,7 @@ Point3 ToolBarManager::getClientGizmoValue()
 
   if (client)
   {
-    switch (type & IEditorCoreEngine::GIZMO_MASK_Mode)
+    switch (int(type) & IEditorCoreEngine::GIZMO_MASK_Mode)
     {
       case IEditorCoreEngine::MODE_Rotate:
         if (client->getRot(v))

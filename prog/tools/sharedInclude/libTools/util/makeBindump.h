@@ -254,26 +254,31 @@ public:
 #ifdef BINDUMP_TARGET_BE
   static const int WRITE_BE = BINDUMP_TARGET_BE;
 
-  BinDumpSaveCB(int max_sz, unsigned target) : cwr(max_sz < (128 << 10) ? max_sz : (128 << 10)), blocks(midmem), origin(midmem)
+  BinDumpSaveCB(int max_sz, unsigned target) : cwr(max_sz < (128 << 10) ? max_sz : (128 << 10))
   {
     targetCode = target;
-    memset(zero, 0, sizeof(zero));
-    curOrigin = 0;
     cwr.setMcdMinMax(128 << 10, 8 << 20);
   }
 #else
-  bool WRITE_BE;
+  bool WRITE_BE = false;
 
-  BinDumpSaveCB(int max_sz, unsigned target, bool big_endian) :
-    cwr(max_sz < (128 << 10) ? max_sz : (128 << 10)), blocks(midmem), origin(midmem), WRITE_BE(big_endian)
+  BinDumpSaveCB(int max_sz, unsigned target, bool big_endian) : cwr(max_sz < (128 << 10) ? max_sz : (128 << 10)), WRITE_BE(big_endian)
   {
     targetCode = target;
-    memset(zero, 0, sizeof(zero));
-    memset(cvtBuf, 0, sizeof(cvtBuf));
-    curOrigin = 0;
     cwr.setMcdMinMax(128 << 10, 8 << 20);
   }
 #endif
+
+  BinDumpSaveCB(int max_sz, const BinDumpSaveCB &orig) : cwr(max_sz < (128 << 10) ? max_sz : (128 << 10))
+  {
+#ifndef BINDUMP_TARGET_BE
+    WRITE_BE = orig.WRITE_BE;
+#endif
+    targetCode = orig.getTarget();
+    setFastBuildFlag(orig.isFastBuild());
+    setProfile(orig.getProfile());
+    cwr.setMcdMinMax(128 << 10, 8 << 20);
+  }
 
   //! returns target code assigned in ctor
   unsigned getTarget() const { return targetCode; }
@@ -282,6 +287,11 @@ public:
   void setProfile(const char *str) { profileName = str; }
   //! returns profile string assigned with setProfile()
   const char *getProfile() const { return profileName.empty() ? NULL : profileName.str(); }
+
+  //! setup fast-build flag (is off by default)
+  void setFastBuildFlag(bool fast_build) { fastBuildFlag = fast_build; }
+  //! returns current fast-build flag
+  bool isFastBuild() const { return fastBuildFlag; }
 
   //! fully resets writer
   void reset(int new_size)
@@ -642,11 +652,12 @@ protected:
   MemorySaveCB cwr;
   Tab<int> blocks;
   Tab<int> origin;
-  uint32_t zero[32];
-  uint32_t cvtBuf[32];
-  unsigned targetCode;
+  uint32_t zero[32] = {0};
+  uint32_t cvtBuf[32] = {0};
+  unsigned targetCode = 0;
   SimpleString profileName;
-  int curOrigin;
+  int curOrigin = 0;
+  bool fastBuildFlag = false;
 
   static void cvt_uint16_le2be(uint16_t *data, int cnt)
   {
@@ -750,14 +761,17 @@ public:
   int base, count, pos, resvDataPos;
 };
 
-static inline const char *get_target_str(unsigned targetCode)
+static inline const char *get_target_str(unsigned targetCode, uint64_t &storage)
 {
-  static unsigned str[2] = {'xxxx', 0};
   if (!targetCode)
     return "????";
 
-  str[0] = targetCode;
-  char *p = (char *)&str[0];
+#if _TARGET_CPU_BE
+  storage = uint64_t(le2be32(targetCode)) << 32;
+#else
+  storage = targetCode;
+#endif
+  const char *p = (const char *)(void *)&storage;
   while (!*p)
     p++;
   return p;

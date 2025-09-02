@@ -21,18 +21,18 @@ static const char *TYPE = "mat";
 class MaterialExporter : public IDagorAssetExporter
 {
 public:
-  virtual const char *__stdcall getExporterIdStr() const { return "material exp"; }
+  const char *__stdcall getExporterIdStr() const override { return "material exp"; }
 
-  virtual const char *__stdcall getAssetType() const { return TYPE; }
-  virtual unsigned __stdcall getGameResClassId() const { return MaterialGameResClassId; }
-  virtual unsigned __stdcall getGameResVersion() const { return 2; }
+  const char *__stdcall getAssetType() const override { return TYPE; }
+  unsigned __stdcall getGameResClassId() const override { return MaterialGameResClassId; }
+  unsigned __stdcall getGameResVersion() const override { return 2; }
 
-  virtual void __stdcall onRegister() {}
-  virtual void __stdcall onUnregister() {}
+  void __stdcall onRegister() override {}
+  void __stdcall onUnregister() override {}
 
   void __stdcall gatherSrcDataFiles(const DagorAsset &a, Tab<SimpleString> &files) override { files.clear(); }
 
-  virtual bool __stdcall isExportableAsset(DagorAsset &a) { return true; }
+  bool __stdcall isExportableAsset(DagorAsset &a) override { return true; }
 
   void writePoint4(const Point4 &point, mkbindump::BinDumpSaveCB &cwr)
   {
@@ -42,7 +42,7 @@ public:
     cwr.writeReal(point.w);
   }
 
-  virtual bool __stdcall exportAsset(DagorAsset &a, mkbindump::BinDumpSaveCB &cwr, ILogWriter &log)
+  bool __stdcall exportAsset(DagorAsset &a, mkbindump::BinDumpSaveCB &cwr, ILogWriter &log) override
   {
     cwr.writeDwString(a.props.getStr("class_name", "simple"));
     cwr.writeDwString(a.props.getStr("script", ""));
@@ -61,20 +61,18 @@ public:
 class MaterialRefs : public IDagorAssetRefProvider
 {
 public:
-  virtual const char *__stdcall getRefProviderIdStr() const { return "material refs"; }
+  const char *__stdcall getRefProviderIdStr() const override { return "material refs"; }
 
-  virtual const char *__stdcall getAssetType() const { return TYPE; }
+  const char *__stdcall getAssetType() const override { return TYPE; }
 
-  virtual void __stdcall onRegister() {}
-  virtual void __stdcall onUnregister() {}
+  void __stdcall onRegister() override {}
+  void __stdcall onUnregister() override {}
 
-  dag::ConstSpan<Ref> __stdcall getAssetRefs(DagorAsset &a) override
+  void __stdcall getAssetRefs(DagorAsset &a, Tab<Ref> &refs) override
   {
-    static Tab<IDagorAssetRefProvider::Ref> tmpRefs(tmpmem);
-
-    tmpRefs.clear();
+    refs.clear();
     if (a.getMgr().getTexAssetTypeId() < 0)
-      return tmpRefs;
+      return;
 
     const DataBlock *texturesBlk = a.props.getBlockByNameEx("textures");
     String texBuf;
@@ -87,7 +85,7 @@ public:
         continue;
 
       DagorAsset *texA = a.getMgr().findAsset(texName, a.getMgr().getTexAssetTypeId());
-      IDagorAssetRefProvider::Ref &r = tmpRefs.push_back();
+      IDagorAssetRefProvider::Ref &r = refs.push_back();
       r.flags = RFLG_EXTERNAL;
 
       if (!texA)
@@ -95,19 +93,17 @@ public:
       else
         r.refAsset = texA;
     }
-
-    return tmpRefs;
   }
 };
 
 class MaterialExporterPlugin : public IDaBuildPlugin
 {
 public:
-  virtual bool __stdcall init(const DataBlock &appblk) { return true; }
-  virtual void __stdcall destroy() { delete this; }
+  bool __stdcall init(const DataBlock &appblk) override { return true; }
+  void __stdcall destroy() override { delete this; }
 
-  virtual int __stdcall getExpCount() { return 1; }
-  virtual const char *__stdcall getExpType(int idx)
+  int __stdcall getExpCount() override { return 1; }
+  const char *__stdcall getExpType(int idx) override
   {
     switch (idx)
     {
@@ -115,7 +111,7 @@ public:
       default: return NULL;
     }
   }
-  virtual IDagorAssetExporter *__stdcall getExp(int idx)
+  IDagorAssetExporter *__stdcall getExp(int idx) override
   {
     switch (idx)
     {
@@ -124,8 +120,8 @@ public:
     }
   }
 
-  virtual int __stdcall getRefProvCount() { return 1; }
-  virtual const char *__stdcall getRefProvType(int idx)
+  int __stdcall getRefProvCount() override { return 1; }
+  const char *__stdcall getRefProvType(int idx) override
   {
     switch (idx)
     {
@@ -133,7 +129,7 @@ public:
       default: return NULL;
     }
   }
-  virtual IDagorAssetRefProvider *__stdcall getRefProv(int idx)
+  IDagorAssetRefProvider *__stdcall getRefProv(int idx) override
   {
     switch (idx)
     {

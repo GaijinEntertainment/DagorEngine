@@ -1,5 +1,5 @@
 cable_renderer {
-  "cable_trans_framegraph_node:dabfg::NodeHandle" {}
+  "cable_trans_framegraph_node:dafg::NodeHandle" {}
   _singleton:b=yes
   _tags:t="render"
 }

@@ -11,6 +11,8 @@
 #define GRASS_MAX_TYPES 32
 #define GRASS_MAX_CHANNELS 64
 
+#define FAST_GRASS_MAX_CLIPMAP_CASCADES 10
+
 #ifdef __cplusplus
   #define INITIALIZER(...)  = __VA_ARGS__
   #define INITIALIZER4(a,b,c,d)  = {a,b,c,d}
@@ -44,6 +46,9 @@ struct GrassType
   #endif
     float vertical_angle_add INITIALIZER(-0.1), vertical_angle_mul INITIALIZER(0.2);//for vertical PI/2, 0.003
     float2 size_lod_mul INITIALIZER2(1.3, 1.3);
+    float fit_range INITIALIZER(0);
+    float porosity INITIALIZER(0);
+    float2 reserved2 INITIALIZER2(0, 0);
 };
 
 struct GrassTypesCB
@@ -56,7 +61,7 @@ struct GrassColorVS
 {
   float3 mask_r_color0;
   uint grassTextureType;
-  
+
   float3 mask_r_color1;
   float grassVariations;
 
@@ -65,6 +70,27 @@ struct GrassColorVS
 
   float3 mask_b_color0;float resv2;
   float3 mask_b_color1;float resv3;
+};
+
+struct FastGrassType
+{
+  float3 mask_r_color0;
+  float height;
+
+  float3 mask_r_color1;
+  float texIndex;
+
+  float3 mask_g_color0;
+  float stiffness;
+
+  float3 mask_g_color1;
+  uint w_to_height_add__height_var;
+
+  float3 mask_b_color0;
+  float reserved1;
+
+  float3 mask_b_color1;
+  float reserved2;
 };
 
 #if UNCOMPRESSED
@@ -79,7 +105,7 @@ struct GrassColorVS
     uint land_normal;
     uint lodNo; //can put something useful here
     float position_y;
-    float opacity;
+    uint opacity_porosity;
   };
 #endif
 
@@ -94,6 +120,7 @@ struct GrassInstanceUncompressed
   float3 landNormal;
   float vAngle;
   float opacity;
+  float porosity;
   uint lodNo;
   bool worldYOrientation;
 };

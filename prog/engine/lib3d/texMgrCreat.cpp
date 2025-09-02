@@ -94,11 +94,27 @@ BaseTexture *acquire_managed_tex(D3DRESID id)
   D3dResource *res = acquire_managed_res(id);
   if (!res)
     return nullptr;
-  int t = res->restype();
-  if (t == RES3D_TEX || t == RES3D_CUBETEX || t == RES3D_VOLTEX || t == RES3D_ARRTEX || t == RES3D_CUBEARRTEX)
+  using enum D3DResourceType;
+  auto t = res->getType();
+  if (t == TEX || t == CUBETEX || t == VOLTEX || t == ARRTEX || t == CUBEARRTEX)
     return static_cast<BaseTexture *>(res);
-  G_ASSERTF(0, "non-tex res in acquire_managed_tex(0x%x), type=%d, name=%s", id, t, get_managed_res_name(id));
+  G_ASSERTF(0, "non-tex res in acquire_managed_tex(0x%x), type=%d, name=%s", id, eastl::to_underlying(t), get_managed_res_name(id));
   return nullptr;
+}
+
+bool change_managed_res(D3DRESID tid, D3dResource *new_texture)
+{
+  int idx = RMGR.toIndex(tid);
+  if (idx < 0 || RMGR.getRefCount(idx) < 0)
+    return false;
+
+  TEX_REC_AUTO_LOCK();
+
+  G_ASSERTF_RETURN(RMGR.getFactory(idx) == nullptr, false, "Cannot use change_managed_res with asset textures!");
+
+  RMGR.setD3dRes(idx, new_texture);
+
+  return true;
 }
 
 void release_managed_res_impl(D3DRESID rid, D3dResource *cmp)
@@ -247,8 +263,8 @@ bool texmgr_internal::evict_managed_tex_and_id(TEXTUREID tid)
   {
     // delayed
     RMGR.scheduleForRemoval(idx);
-    logerr("[TEXMGR] QUEUE for remove tex 0x%x, current ref = %d, ptr = %p", tid, RMGR.getRefCount(idx) & ~RMGR.RCBIT_FOR_REMOVE,
-      RMGR.getD3dRes(idx));
+    logerr("[TEXMGR] QUEUE for remove texId=0x%x(%s), current refCount=%d, ptr=%p", tid, RMGR.getName(idx),
+      RMGR.getRefCount(idx) & ~RMGR.RCBIT_FOR_REMOVE, RMGR.getD3dRes(idx));
     // debug_dump_stack();
     ret = false;
   }
@@ -275,6 +291,7 @@ bool change_managed_texture(TEXTUREID tid, BaseTexture *new_texture, TextureFact
   RMGR.setD3dRes(idx, new_texture);
   RMGR.setFactory(idx, factory);
   apply_mip_bias_rules(t, RMGR.getName(idx));
+  RMGR.incTexStreamingGeneration(idx);
   TEX_REC_UNLOCK();
 
   if (f && t)

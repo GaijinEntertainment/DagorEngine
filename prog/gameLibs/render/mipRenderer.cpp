@@ -63,6 +63,7 @@ void MipRenderer::renderTo(BaseTexture *src, BaseTexture *dst, const IPoint2 &ta
   src->texmiplevel(0, 0);
   d3d::resource_barrier({src, RB_RO_SRV | RB_STAGE_PIXEL, 0, 1});
   d3d::set_tex(STAGE_PS, prev_mip_tex_register_const_no, src);
+  d3d::set_sampler(STAGE_PS, prev_mip_tex_register_const_no, d3d::request_sampler({}));
   mipRenderer.render();
   src->texmiplevel(-1, -1);
 }
@@ -84,9 +85,10 @@ void MipRenderer::render(BaseTexture *tex, uint8_t max_level) const
 
   const int levelCount = min(tex->level_count(), int(max_level) + 1);
 
+  d3d::set_sampler(isCS ? STAGE_CS : STAGE_PS, prev_mip_tex_register_const_no, d3d::request_sampler({}));
   for (int i = 1; i < levelCount; ++i)
   {
-    int w = texInfo.w >> i, h = texInfo.h >> i;
+    int w = max(texInfo.w >> i, 1), h = max(texInfo.h >> i, 1);
     ShaderGlobal::set_color4(mip_target_sizeVarId, w, h, 1.0f / w, 1.0f / h);
     tex->texmiplevel(i - 1, i - 1);
     d3d::set_tex(isCS ? STAGE_CS : STAGE_PS, prev_mip_tex_register_const_no, tex);

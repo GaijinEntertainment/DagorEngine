@@ -59,6 +59,19 @@ void get_final_render_target_resolution(int &w, int &h)
   }
 }
 
+void get_max_possible_rendering_resolution(int &w, int &h)
+{
+  if (WorldRenderer *renderer = (WorldRenderer *)get_world_renderer())
+  {
+    renderer->getMaxPossibleRenderingResolution(w, h);
+  }
+  else
+  {
+    w = h = 0;
+    logerr("WorldRenderer doesn't exist, failed get_max_possible_rendering_resolution");
+  }
+}
+
 IPoint2 get_display_resolution()
 {
   int w = 0, h = 0;
@@ -84,6 +97,13 @@ IPoint2 get_final_render_target_resolution()
 {
   int w = 0, h = 0;
   get_final_render_target_resolution(w, h);
+  return IPoint2(w, h);
+}
+
+IPoint2 get_max_possible_rendering_resolution()
+{
+  int w = 0, h = 0;
+  get_max_possible_rendering_resolution(w, h);
   return IPoint2(w, h);
 }
 

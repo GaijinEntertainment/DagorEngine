@@ -40,7 +40,7 @@ void bind_jwt(SqModules *module_mgr)
   Sqrat::Table nsTbl(module_mgr->getVM());
   ///@module jwt
   nsTbl.SquirrelFunc("decode", decode_jwt, 3, ".ss")
-    /**
+    /* qdox
     @param jwt_string s
     @param key s
     @return t : return decoded jwt table with {header=<json_value>, payload=<jsonvalue>} or {error=string}

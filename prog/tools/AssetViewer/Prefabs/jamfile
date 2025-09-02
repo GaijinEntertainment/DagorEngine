@@ -11,7 +11,7 @@ AddIncludes =
 
 Sources =
   main.cpp
-  Prefabs.cpp
+  prefabs.cpp
   pf_PPClient.cpp
   pf_PPFill.cpp
 ;

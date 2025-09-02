@@ -120,6 +120,9 @@ RayCar::RayCar(const char *car_name, PhysBody *body_, const TMatrix &phys_to_log
 #if defined(USE_BULLET_PHYSICS)
   vehicle = IPhysVehicle::createRayCarBullet(phBody, ::dagor_game_act_rate < 100 ? 4 : 2);
 
+#elif defined(USE_JOLT_PHYSICS)
+  vehicle = IPhysVehicle::createRayCarJolt(phBody, ::dagor_game_act_rate < 100 ? 4 : 2);
+
 #else
   DAG_FATAL("unsupported physics!");
 #endif
@@ -1547,6 +1550,8 @@ void RayCar::setCarPhysMode(CarPhysMode mode)
 
 #if defined(USE_BULLET_PHYSICS)
 void IPhysCar::applyCarPhysModeChangesBullet()
+#elif defined(USE_JOLT_PHYSICS)
+void IPhysCar::applyCarPhysModeChangesJolt()
 #endif
 {
   if (!dcar_op.size())

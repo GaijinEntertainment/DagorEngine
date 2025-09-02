@@ -23,7 +23,11 @@ void after_new_frame()
 
 void before_end_frame() { tooltip_helper.beforeEndFrame(); }
 
-TEXTUREID load_icon(const char *filename) { return image_helper.loadIcon(filename); }
+IconId load_icon(const char *filename) { return image_helper.loadIcon(filename); }
+
+ImTextureID get_im_texture_id_from_icon_id(IconId icon_id) { return image_helper.getImTextureIdFromIconId(icon_id); }
+
+void reload_all_icons() { image_helper.reloadAllIcons(); }
 
 void set_previous_imgui_control_tooltip(const void *control, const char *text, const char *text_end)
 {

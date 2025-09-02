@@ -1,0 +1,328 @@
+include "modfx_bboard_render_inc.dshl"
+include "bvh_common_includes.dshl"
+
+int dafx_modfx_bvh_instance_buffer_regno = 2 always_referenced;
+int dafx_modfx_bvh_instance_count_regno = 3 always_referenced;
+int dafx_modfx_bvh_instance_data_regno = 4 always_referenced;
+int dafx_modfx_bvh_meta_id_regno = 59 always_referenced;
+
+int dafx_modfx_bvh_max_count = 0;
+int4 dafx_modfx_bvh_blas_address = 0;
+
+shader dafx_modfx_bvh
+{
+  ENABLE_ASSERT(ps)
+
+  if (!use_hw_raytracing) { dont_render; } // Compiles in compatibility mode too, because FX system checks for shader
+
+  (vs) {
+    bvh_instance_buffer@uav : register(dafx_modfx_bvh_instance_buffer_regno) hlsl {
+      #include <RTHWInstance.hlsli>
+      RWStructuredBuffer<RTHWInstance> bvh_instance_buffer@uav;
+    };
+    bvh_instance_count@uav : register(dafx_modfx_bvh_instance_count_regno) hlsl { RWByteAddressBuffer bvh_instance_count@uav; };
+    bvh_instance_data@uav : register(dafx_modfx_bvh_instance_data_regno) hlsl {
+      #include "modfx/modfx_bvh.hlsli"
+      RWStructuredBuffer<ModfxBVHParticleData> bvh_instance_data@uav;
+    };
+
+    bvh_max_count@i1 = dafx_modfx_bvh_max_count;
+    bvh_blas_address@i4 = dafx_modfx_bvh_blas_address;
+  }
+
+  DAFX_RENDER_INIT()
+  DAFX_RENDER_USE()
+
+  DAFXEX_USE_SCENE_BLOCK()
+  DAFX_USE_CLOUD_SHADOWS()
+  DAFXEX_USE_SHADOW()
+  DAFXEX_USE_GI()
+
+  DAFXEX_USE_PARTICLE_PLACEMENT()
+
+  INIT_BVH_ATMOSPHERE(vs)
+  USE_BVH_ATMOPHERE(vs)
+
+  (vs)
+  {
+    bvh_meta_id@i1 : register(dafx_modfx_bvh_meta_id_regno);
+  }
+
+  hlsl(vs)
+  {
+    #define MODFX_USE_FRAMEBLEND 1
+
+    #undef MODFX_USE_FRAMEBOUNDS
+    #define MODFX_USE_FRAMEBOUNDS 0 // TODO: the modfx frameboundary optimization is disabled for bvh for now, as the vertex setup works differently
+
+    #include "dafx_hlsl_funcs.hlsli"
+    #include "dafx_globals.hlsli"
+    #include "dafx_loaders.hlsli"
+    #include "dafx_packers.hlsli"
+    #include "dafx_random.hlsli"
+
+    #include "modfx/modfx_decl.hlsli"
+
+    #define FX_VS 1
+      #include "modfx/modfx_bboard_render.hlsl"
+    #undef FX_VS
+
+    #define ADD_SHADOW_INSTANCE 0
+
+    float4 dafx_bvh_vs(uint vertexId : SV_VertexID, uint instanceId : SV_InstanceID, uint draw_call_id : TEXCOORD0) : SV_Position
+    {
+      DafxRenderData ren_info;
+      dafx_get_render_info( instanceId, vertexId, draw_call_id, ren_info );
+
+      // Skip every other particles, to lessen the load on tracing them.
+      if (vertexId != 0 || (( ren_info.start_source + instanceId) & 1) == 1)
+        return 0;
+
+      uint bvhIndex, bvhDataIndex;
+      bvh_instance_count.InterlockedAdd(0, ADD_SHADOW_INSTANCE ? 2 : 1, bvhIndex);
+      bvhDataIndex = ADD_SHADOW_INSTANCE ? bvhIndex / 2 : bvhIndex;
+
+      // Write a HW instance here
+      if (bvhIndex >= uint(bvh_max_count))
+        return 0;
+
+      GlobalData gdata = global_data_load();
+
+      ModfxParentRenData parent_data;
+      dafx_preload_parent_ren_data( 0, ren_info.parent_ofs, parent_data );
+
+      uint decls = parent_data.decls;
+      uint flags = parent_data.flags;
+
+      bool reverse_order = FLAG_ENABLED( flags, MODFX_RFLAG_REVERSE_ORDER );
+      uint data_ofs = dafx_get_render_data_offset( ren_info, !reverse_order );
+
+      bool is_dead = false;
+
+      ModfxRenData rdata;
+      modfx_load_ren_data(0, data_ofs, decls, rdata);
+      rdata.pos += rdata.pos_offset;
+      if (rdata.radius <= 0.f)
+        is_dead = true;
+
+      float angle_sin = 0.f;
+      float angle_cos = 1.f;
+      sincos( -rdata.angle, angle_sin, angle_cos );
+
+      float4x4 wtm = get_identity_tm();
+      float wtm_scale = 1;
+      if ( parent_data.mods_offsets[MODFX_RMOD_INIT_TM] )
+        wtm = dafx_get_44mat_scale( 0, parent_data.mods_offsets[MODFX_RMOD_INIT_TM], wtm_scale );
+
+      bool apply_wtm = FLAG_ENABLED( flags, MODFX_RFLAG_USE_ETM_AS_WTM );
+      if ( apply_wtm )
+        rdata.pos = mul( float4( rdata.pos, 1 ), wtm ).xyz;
+
+      float2 aspect = 1;
+      if ( parent_data.mods_offsets[MODFX_RMOD_CUSTOM_ASPECT] )
+        aspect = dafx_get_2f( 0, parent_data.mods_offsets[MODFX_RMOD_CUSTOM_ASPECT] );
+
+      float stable_rnd_offset = (ren_info.instance_id + ren_info.data_ofs % 20) * 0.001;
+      rdata.pos += gdata.view_dir_z * stable_rnd_offset;
+
+      BRANCH
+      if ( parent_data.mods_offsets[MODFX_RMOD_RENDER_PLACEMENT_PARAMS] )
+      {
+        ModfxDeclRenderPlacementParams placementParams = ModfxDeclRenderPlacementParams_load(0, parent_data.mods_offsets[MODFX_RMOD_RENDER_PLACEMENT_PARAMS]);
+        if (!place_fx_above(rdata.pos, placementParams.placement_threshold, placementParams.flags))
+          is_dead = true;
+      }
+
+      float3 view_dir = gdata.world_view_pos - rdata.pos;
+      float view_dir_dist = length( view_dir );
+      float3 view_dir_norm = view_dir * (view_dir_dist > 0.01 ? rcp( view_dir_dist ) : 0);
+      float3 up_vec = float3(0, 1, 0);
+      float3 right_vec = normalize(cross(view_dir_norm, up_vec));
+      up_vec = normalize(cross(right_vec, view_dir_norm));
+
+      bool use_uv_rotation = FLAG_ENABLED( flags, MODFX_RFLAG_USE_UV_ROTATION );
+
+      float3 rotated_forward_vec = view_dir_norm;
+      float3 rotated_right_vec;
+      float3 rotated_up_vec;
+      if ( use_uv_rotation )
+      {
+        rotated_right_vec = right_vec;
+        rotated_up_vec = up_vec;
+      }
+      else
+      {
+        rotated_right_vec = angle_cos * right_vec - angle_sin * up_vec;
+        rotated_up_vec = angle_sin * right_vec + angle_cos * up_vec;
+      }
+
+      ModfxBVHParticleData particleData;
+      particleData.padding1 = 0;
+
+      particleData.upDir = rotated_up_vec;
+      particleData.rightDir = rotated_right_vec;
+
+      rotated_forward_vec *= rdata.radius;
+      rotated_right_vec *= aspect.x * rdata.radius;
+      rotated_up_vec *= aspect.y * rdata.radius;
+
+      float2 pivot_offset = 0;
+      if ( parent_data.mods_offsets[MODFX_RMOD_PIVOT_OFFSET] )
+      {
+        uint4 pp = unpack_4b( dafx_get_1ui( 0, parent_data.mods_offsets[MODFX_RMOD_PIVOT_OFFSET] ) );
+        pivot_offset.x = pp[0] * ( 1.f / 254 ) - 0.5f;
+        pivot_offset.y = pp[1] * ( 1.f / 254 ) - 0.5f;
+      }
+      float3 worldDelta =
+        2 * (pivot_offset.x * rotated_right_vec
+        + pivot_offset.y * rotated_up_vec);
+
+      float3 wpos = rdata.pos + worldDelta;
+
+      RTHWInstance bvhInstance;
+      bvhInstance.transform0 = float4(rotated_right_vec.x, rotated_up_vec.x, rotated_forward_vec.x, wpos.x);
+      bvhInstance.transform1 = float4(rotated_right_vec.y, rotated_up_vec.y, rotated_forward_vec.y, wpos.y);
+      bvhInstance.transform2 = float4(rotated_right_vec.z, rotated_up_vec.z, rotated_forward_vec.z, wpos.z);
+      bvhInstance.instanceId_mask = bvh_meta_id | (1 << 24);
+      bvhInstance.instanceOffset_flags = RT_INSTANCE_FLAG_TRIANGLE_CULL_DISABLE << 24 | bvhDataIndex;
+      bvhInstance.blas = is_dead ? int2(0, 0) : bvh_blas_address.xy;
+      structuredBufferAt(bvh_instance_buffer, bvhIndex) = bvhInstance;
+
+      #if ADD_SHADOW_INSTANCE
+        rotated_forward_vec = normalize(-gdata.from_sun_direction.xyz);
+        rotated_up_vec = float3(0, 1, 0);
+        rotated_right_vec = normalize(cross(rotated_up_vec, rotated_forward_vec));
+        rotated_up_vec = normalize(cross(rotated_forward_vec, rotated_right_vec));
+
+        wpos += rotated_forward_vec * rdata.radius * 0.25f;
+
+        rotated_right_vec *= aspect.x * rdata.radius;
+        rotated_up_vec *= aspect.y * rdata.radius;
+        rotated_forward_vec *= rdata.radius;
+
+        bvhInstance.transform0 = float4(rotated_right_vec.x, rotated_up_vec.x, rotated_forward_vec.x, wpos.x);
+        bvhInstance.transform1 = float4(rotated_right_vec.y, rotated_up_vec.y, rotated_forward_vec.y, wpos.y);
+        bvhInstance.transform2 = float4(rotated_right_vec.z, rotated_up_vec.z, rotated_forward_vec.z, wpos.z);
+        bvhInstance.instanceId_mask = bvh_meta_id | (2 << 24);
+        bvhInstance.instanceOffset_flags = RT_INSTANCE_FLAG_TRIANGLE_CULL_DISABLE << 24 | bvhDataIndex;
+        bvhInstance.blas = is_dead ? int2(0, 0) : bvh_blas_address.zw;
+        structuredBufferAt(bvh_instance_buffer, bvhIndex + 1) = bvhInstance;
+      #endif
+
+      float2 delta;
+
+      delta = float2( 0, 0 );
+      particleData.texcoord0 = modfx_render_get_frame_tc_opt( parent_data, rdata.frame_idx, rdata.frame_flags, use_uv_rotation, angle_cos, angle_sin, delta );
+      delta = float2( 1, 0 );
+      particleData.texcoord1 = modfx_render_get_frame_tc_opt( parent_data, rdata.frame_idx, rdata.frame_flags, use_uv_rotation, angle_cos, angle_sin, delta );
+      delta = float2( 1, 1 );
+      particleData.texcoord2 = modfx_render_get_frame_tc_opt( parent_data, rdata.frame_idx, rdata.frame_flags, use_uv_rotation, angle_cos, angle_sin, delta );
+      delta = float2( 0, 1 );
+      particleData.texcoord3 = modfx_render_get_frame_tc_opt( parent_data, rdata.frame_idx, rdata.frame_flags, use_uv_rotation, angle_cos, angle_sin, delta );
+
+      if ( FLAG_ENABLED( flags, MODFX_RFLAG_FRAME_ANIMATED_FLIPBOOK ) )
+        particleData.frameBlend = rdata.frame_blend;
+      else
+        particleData.frameBlend = 0;
+
+      particleData.color = rdata.color;
+      if( FLAG_ENABLED( flags, MODFX_RFLAG_GAMMA_CORRECTION ) )
+        particleData.color.rgb = pow2(particleData.color.rgb);
+
+      particleData.emission = 0;
+      if ( parent_data.mods_offsets[MODFX_RMOD_COLOR_EMISSION] )
+      {
+        ModfxColorEmission pp = ModfxColorEmission_load( 0, parent_data.mods_offsets[MODFX_RMOD_COLOR_EMISSION] );
+        particleData.emission = unpack_e3dcolor_to_n4f( pp.mask ).xyz * pp.value * rdata.emission_fade;
+      }
+
+      particleData.radius = rdata.radius;
+
+      particleData.lifeNorm = rdata.life_norm;
+
+      particleData.gradScaleRcp = 0;
+      if ( parent_data.mods_offsets[MODFX_RMOD_TEX_COLOR_REMAP_DYNAMIC] )
+      {
+        particleData.gradScaleRcp = dafx_get_1f( 0, parent_data.mods_offsets[MODFX_RMOD_TEX_COLOR_REMAP_DYNAMIC] );
+      }
+
+      particleData.lighting = 0;
+      if ( FLAG_ENABLED( flags, MODFX_RFLAG_OMNI_LIGHT_ENABLED ) )
+      {
+        ModfxDeclExternalOmnilight pp = ModfxDeclExternalOmnilight_load( 0, parent_data.mods_offsets[MODFX_RMOD_OMNI_LIGHT_INIT] );
+        particleData.lighting = get_omni_lighting(rdata.pos.xyz, pp.pos, pp.radius, pp.color);
+      }
+
+      #if MODFX_USE_SHADOW
+        float3 shadowWorldPos = lerp(rdata.pos, wpos, rcp(2 * rdata.radius + 1.f));
+        particleData.shadow = get_static_shadow_for_fx(rdata.pos, rdata.radius, wpos, view_dir_norm, gdata.from_sun_direction.xyz) *
+          getFOMShadow(wpos - gdata.from_sun_direction.xyz * rdata.radius) * clouds_shadow(shadowWorldPos);
+      #elif DAFX_USE_CLOUD_SHADOWS
+        particleData.shadow = dafx_get_clouds_shadow(rdata.pos);
+      #else
+        particleData.shadow = 1;
+      #endif
+
+      #define GET_BVH_MODFX_RFLAG(rflags, name) (FLAG_ENABLED( rflags, MODFX_RFLAG_##name ) ? BVH_MODFX_RFLAG_##name : 0)
+      #define GET_BVH_MODFX_MODFLAG(parent_data, name) (parent_data.mods_offsets[MODFX_RMOD_##name] ? BVH_MODFX_RMOD_##name : 0)
+
+      particleData.flags = 0;
+      particleData.flags |= GET_BVH_MODFX_RFLAG( flags, COLOR_USE_ALPHA_THRESHOLD );
+      particleData.flags |= GET_BVH_MODFX_MODFLAG( parent_data, LIGHTING_INIT );
+      particleData.flags |= GET_BVH_MODFX_MODFLAG( parent_data, TEX_COLOR_MATRIX );
+      particleData.flags |= GET_BVH_MODFX_MODFLAG( parent_data, TEX_COLOR_REMAP );
+      particleData.flags |= GET_BVH_MODFX_RFLAG( flags, TEX_COLOR_REMAP_APPLY_BASE_COLOR );
+      particleData.flags |= GET_BVH_MODFX_RFLAG( flags, TEX_COLOR_REMAP_SECOND_MASK );
+      particleData.flags |= GET_BVH_MODFX_RFLAG( flags, TEX_COLOR_REMAP_SECOND_MASK_APPLY_BASE_COLOR );
+      particleData.flags |= GET_BVH_MODFX_MODFLAG( parent_data, TEX_COLOR_REMAP_DYNAMIC );
+      particleData.flags |= GET_BVH_MODFX_RFLAG( flags, BLEND_ABLEND );
+      particleData.flags |= GET_BVH_MODFX_RFLAG( flags, BLEND_ADD );
+
+      #if MODFX_USE_GI
+      if (FLAG_ENABLED(flags, MODFX_RFLAG_LIGHTING_AMBIENT_ENABLED))
+        particleData.ambient = ambient_calculating(wpos, gdata.world_view_pos, gdata.sky_color, 0);
+      else
+      #endif
+        particleData.ambient = gdata.sky_color;
+
+      if ( parent_data.mods_offsets[MODFX_RMOD_LIGHTING_INIT] )
+      {
+        ModfxDeclLighting pp = ModfxDeclLighting_load( 0, parent_data.mods_offsets[MODFX_RMOD_LIGHTING_INIT] );
+
+        particleData.lighting_type = pp.type;
+        particleData.lighting_translucency = pp.translucency / 255.0;
+        particleData.sphere_normal_power = pp.sphere_normal_power / 255.0;
+        particleData.sphere_normal_softness = pp.normal_softness / 255.0;
+        particleData.sphere_normal_radius = pp.sphere_normal_radius;
+      }
+
+      if ( parent_data.mods_offsets[MODFX_RMOD_TEX_COLOR_REMAP] )
+      {
+        const uint ofs = parent_data.mods_offsets[MODFX_RMOD_TEX_COLOR_REMAP];
+        const uint cnt = clamp(dafx_get_1ui( buf, ofs ), 0, MODFX_PREBAKE_GRAD_STEPS_LIMIT);
+        particleData.colorRemapStepCnt = cnt;
+
+        UNROLL
+        for (uint i = 0; i < MODFX_PREBAKE_GRAD_STEPS_LIMIT; ++i)
+          particleData.colorRemapArr[i] = i < cnt ? dafx_get_1ui( buf, ofs + min(i + 1, cnt) ) : 0;
+      }
+
+      if ( parent_data.mods_offsets[MODFX_RMOD_TEX_COLOR_MATRIX] )
+      {
+        particleData.colorMatrix = dafx_get_4ui( 0, parent_data.mods_offsets[MODFX_RMOD_TEX_COLOR_MATRIX] );
+      }
+
+      half3 loss, insc;
+      calc_atmosphere_loss_inscatter(-view_dir, view_dir_dist, loss, insc);
+      particleData.atmosphereLoss = loss;
+      particleData.atmosphereInscatter = insc;
+
+      structuredBufferAt(bvh_instance_data, bvhDataIndex) = particleData;
+
+      return 0;
+    }
+  }
+
+  compile( "target_vs", "dafx_bvh_vs" );
+  compile( "ps_null", "null_ps" );
+}

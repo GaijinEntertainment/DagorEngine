@@ -1,7 +1,6 @@
+from "dagor.http" import httpRequest, HTTP_FAILED, HTTP_ABORTED, HTTP_SUCCESS
 from "functools.nut" import *
-
-let {Task} = require("monads.nut")
-let { httpRequest, HTTP_FAILED, HTTP_ABORTED, HTTP_SUCCESS } = require("dagor.http")
+let { Task } = require("monads.nut")
 //local dlog = require("log.nut")().dlog
 /*
   todo:

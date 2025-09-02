@@ -17,6 +17,9 @@ texture sky_panorama_tex;
 int sky_space_mode = 0;
 interval sky_space_mode: sky_space_off < 1, sky_space_on;
 
+int disable_volfog_on_stars = 0;
+interval disable_volfog_on_stars: no < 1, yes;
+
 shader daStars, daMoon
 {
   z_write=false;
@@ -59,16 +62,19 @@ shader daStars, daMoon
   USE_SKIES_LUT(ps)
   ATMO(ps)
   GET_ATMO(ps)
-  INIT_BOUNDING_VIEW_REPROJECTION(ps)
-  USE_BOUNDING_VIEW_REPROJECTION(ps)
+  INIT_BOUNDING_VIEW_REPROJECTION_PS()
+  USE_BOUNDING_VIEW_REPROJECTION_PS()
   ENABLE_ASSERT(ps)
 
   (ps) {
     skies_transmittance_texture@smp2d = skies_transmittance_texture;
   }
 
-  INIT_ZNZFAR_STAGE(ps)
-  USE_CUSTOM_FOG_SKY(ps)
+  if (disable_volfog_on_stars == no)
+  {
+    INIT_ZNZFAR_STAGE(ps)
+    USE_CUSTOM_FOG_SKY(ps)
+  }
 
   hlsl {
     #include "star_rendering_consts.hlsli"
@@ -147,10 +153,14 @@ shader daStars, daMoon
         float3 inscatterColor = sample_skies_scattering_color_camera(scrTC, view, miePhase).rgb;
       ##endif
 
-      float4 combinedFog = float4(inscatterColor, alpha);
-      apply_sky_custom_fog(combinedFog, scrTC, scrTC);
-      inscatterColor = combinedFog.rgb;
-      alpha = combinedFog.a;
+##if disable_volfog_on_stars == no
+      {
+        float4 combinedFog = float4(inscatterColor, alpha);
+        apply_sky_custom_fog(combinedFog, scrTC, scrTC);
+        inscatterColor = combinedFog.rgb;
+        alpha = combinedFog.a;
+      }
+##endif
 
       ##if shader == daMoon
         half4 result = getMoonTex(view.xzy);

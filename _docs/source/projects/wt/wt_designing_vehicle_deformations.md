@@ -11,16 +11,16 @@ destruction.
 ### Plugins and Tools
 
 - Dagor import/export plugin.
-- [Dagor 2 Transfer Vertex Position to Vertex Color
-  Tool](../../dagor-tools/addons/3ds-max/dagor2-3ds-max-tools/transfer_vertex_position_to_vertex_color_tool.md).
-- [Dagor 2 Damages Setup
-  Tool](../../dagor-tools/addons/3ds-max/dagor2-3ds-max-tools/damages_setup_tool.md)
+- [Dagor Transfer Vertex Position to Vertex Color
+  Tool](../../dagor-tools/addons/3ds-max/dagor-maxscript-toolbox/transfer_vertex_position_to_vertex_color_tool.md).
+- [Dagor Damages Setup
+  Tool](../../dagor-tools/addons/3ds-max//dagor-maxscript-toolbox/damages_setup_tool.md)
   for setting up rigid-body destruction.
-- [Dagor 2 Fast Editor User
-  Properties](../../dagor-tools/addons/3ds-max/dagor2-3ds-max-tools/fast_editor_user_properties.md)
+- [Dagor Fast Editor User
+  Properties](../../dagor-tools/addons/3ds-max/dagor-maxscript-toolbox/fast_editor_user_properties.md)
   for streamlined property editing.
-- [Dagor 2 Fix Normal Orientation
-  Tool](../../dagor-tools/addons/3ds-max/dagor2-3ds-max-tools/fix_normal_orientation_tool.md)
+- [Dagor Fix Normal Orientation
+  Tool](../../dagor-tools/addons/3ds-max/dagor-maxscript-toolbox/fix_normal_orientation_tool.md)
   to preemptively correct normal issues in dynamic objects.
 - [RayFire plugin](https://rayfirestudios.com/) for glass and wood
   destruction.
@@ -113,8 +113,9 @@ should resemble this degree of deformation:
 
    <img src="_images/wt_designing_vehicle_deformations_04.jpg" alt="Rigid object layer icon in 3ds Mas" align="center" width="10em">
 
-2. **Launch Script**: Use [Dagor 2 Damages Setup
-   Tool](../../dagor-tools/addons/3ds-max/dagor2-3ds-max-tools/damages_setup_tool.md).
+2. **Launch Script**: Use [Dagor Damages Setup
+   Tool](../../dagor-tools/addons/3ds-max/dagor-maxscript-toolbox/damages_setup_tool.md).
+
 3. **Reset Pivots**: Reset pivots to object centers.
 
    <img src="_images/wt_designing_vehicle_deformations_05.jpg" alt="Pivots reset to objects center in 3ds Max" align="center" width="50em">
@@ -171,8 +172,8 @@ Simpler shapes, such as side mirrors {bdg-dark-line}`2`, can typically be
 described with a single box.
 
 To streamline the review of object properties, it is recommended to use the
-[Dagor 2 Fast Editor User
-Properties](../../dagor-tools/addons/3ds-max/dagor2-3ds-max-tools/fast_editor_user_properties.md)
+[Dagor Fast Editor User
+Properties](../../dagor-tools/addons/3ds-max/dagor-maxscript-toolbox/fast_editor_user_properties.md)
 script. After installation, the script is activated with `Alt`+`Ctrl`. For all
 selected objects {bdg-dark-line}`1`, it will display the contents of their
 **custom user properties** {bdg-dark-line}`3` in a dedicated window
@@ -251,8 +252,8 @@ critical to maintain consistent vertex indexing. The result will be two distinct
 models – deformed and undeformed. For convenience, move the pivot point of each
 model to the center of the scene and perform a **Reset Transform**. This step
 helps prevent potential issues with normals during export. Tools such as the
-[Dagor 2 Fix Normal Orientation
-Tool](../../dagor-tools/addons/3ds-max/dagor2-3ds-max-tools/fix_normal_orientation_tool.md)
+[Dagor Fix Normal Orientation
+Tool](../../dagor-tools/addons/3ds-max/dagor-maxscript-toolbox/fix_normal_orientation_tool.md)
 or 3ds Max's built-in tools can assist with this. The scene should now appear as
 follows:
 
@@ -260,8 +261,8 @@ follows:
 
 ### Transferring Vertex Positions to Vertex Colors
 
-Run the [Dagor 2 Transfer Vertex Position to Vertex Color
-Tool](../../dagor-tools/addons/3ds-max/dagor2-3ds-max-tools/transfer_vertex_position_to_vertex_color_tool.md)
+Run the [Dagor Transfer Vertex Position to Vertex Color
+Tool](../../dagor-tools/addons/3ds-max/dagor-maxscript-toolbox/transfer_vertex_position_to_vertex_color_tool.md)
 script. Select the undeformed model, set the deformed model as the source in the
 **Pick Source Object** field, and click **Transfer Vertex Position to VColor!**
 This will map the deformed model's vertex position changes into the vertex color
@@ -487,7 +488,7 @@ Ready-to-export scene:
 
    ```{seealso}
    For more information, see
-   [Resource Building](../../dagor-tools/resource-building/resource_building.md).
+   [Building Resources](../../dagor-tools/building-resources/building_resources.md).
    ```
 
    ```{tip}
@@ -690,11 +691,11 @@ To add shattered glass:
 
    <img src="_images/wt_designing_vehicle_deformations_48.jpg" alt="Changing the Rendinst Pbr Glass shader to Dynamic Pbr Glass shader in 3ds Max" align="center" width="30em">
 
-6. Assigned it to all available glass fragments, generate collisions with
-  [Dagor 2 Damages Setup
-  Tool](../../dagor-tools/addons/3ds-max/dagor2-3ds-max-tools/damages_setup_tool.md):
+6. Assigned it to all available glass fragments, generate collisions with [Dagor
+  Damages Setup
+  Tool](../../dagor-tools/addons/3ds-max/dagor-maxscript-toolbox/damages_setup_tool.md):
 
-   <img src="_images/wt_designing_vehicle_deformations_49.jpg" alt="The Dagor 2 Damages Setup Tool option in Gaijin Tools menu in 3ds Max" align="center" width="20em">
+   <img src="_images/wt_designing_vehicle_deformations_49.jpg" alt="The Dagor Damages Setup Tool option in Gaijin Tools menu in 3ds Max" align="center" width="20em">
 
    <img src="_images/wt_designing_vehicle_deformations_50.jpg" alt="Generating collisions with Dagor 2 Damages Setup Tool" align="center" width="50em">
 

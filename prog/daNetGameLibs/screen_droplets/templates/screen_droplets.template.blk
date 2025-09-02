@@ -1,6 +1,6 @@
 screen_droplets{
   _singleton:b=yes
-  "water_droplets_node:dabfg::NodeHandle"{}
+  "water_droplets_node:dafg::NodeHandle"{}
   _tags:t="render"
   screen_droplets__visible:b=false
 }

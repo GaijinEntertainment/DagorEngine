@@ -25,7 +25,7 @@ static constexpr int DXP_PRIO_COUNT = 3;
 #define RMGR_TRACE(...) ((void)0)
 #endif
 
-struct DDSxDecodeCtxBase //-V730
+struct DDSxDecodeCtxBase
 {
   cpujobs::JobQueue<cpujobs::IJob *, false> q;
   OSSpinlock queueSL;
@@ -80,6 +80,8 @@ struct DDSxDecodeCtx : DDSxDecodeCtxBase
       tid = _tid;
       return true;
     }
+
+    const char *getJobName(bool &) const override { return "TexCreateJob"; }
 
     virtual void doJob()
     {
@@ -275,10 +277,6 @@ struct DDSxDecodeCtx : DDSxDecodeCtxBase
 
   void waitAllDone(int prio)
   {
-    if (prio < 0)
-      while (q.size() > 0)
-        sleep_msec(1);
-
   check_done:
     for (int i = 0; i < numWorkers * 2; i++)
       if (!interlocked_acquire_load(jobs[i].done))

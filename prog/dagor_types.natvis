@@ -79,15 +79,15 @@
   </Expand>
 </Type>
 
-<Type Name="InitOnDemand&lt;*,0&gt;">
+<Type Name="InitOnDemand&lt;*,0,*&gt;">
   <SmartPointer Usage="Minimal">($T1*)objBuf</SmartPointer>
   <DisplayString>{{ inited={inited} }}</DisplayString>
   <Expand>
     <ExpandedItem>($T1*)objBuf</ExpandedItem>
   </Expand>
 </Type>
-  
-<Type Name="InitOnDemand&lt;*,1&gt;">
+
+<Type Name="InitOnDemand&lt;*,1,*&gt;">
   <SmartPointer Usage="Minimal">obj</SmartPointer>
   <DisplayString>{{ inited={obj!=nullptr} }}</DisplayString>
   <Expand>
@@ -124,7 +124,28 @@
   <DisplayString>x={x} y={y} z={z} w={w}</DisplayString>
 </Type>
 
-<Type Name="Color3">
+<Type Name="BBox3">
+  <DisplayString>x0={lim[0].x, g} y0={lim[0].y, g} z0={lim[0].z, g} x1={lim[1].x, g} y1={lim[1].y, g} z1={lim[1].z, g}</DisplayString>
+  <Expand>
+    <Item Name="lim[0]">lim[0]</Item>
+    <Item Name="lim[1]">lim[1]</Item>
+    <Synthetic Name="width()">
+      <DisplayString>x={lim[1].x - lim[0].x} y={lim[1].y - lim[0].y} z={lim[1].z - lim[0].z}</DisplayString>
+    </Synthetic>
+  </Expand>
+</Type>
+<Type Name="BBox2">
+  <DisplayString>x0={lim[0].x, g} y0={lim[0].y, g} x1={lim[1].x, g} y1={lim[1].y, g}</DisplayString>
+  <Expand>
+    <Item Name="lim[0]">lim[0]</Item>
+    <Item Name="lim[1]">lim[1]</Item>
+    <Synthetic Name="width()">
+      <DisplayString>x={lim[1].x - lim[0].x} y={lim[1].y - lim[0].y}</DisplayString>
+    </Synthetic>
+  </Expand>
+</Type>
+
+  <Type Name="Color3">
   <DisplayString>r={r} g={g} b={b}</DisplayString>
 </Type>
 
@@ -545,6 +566,20 @@
   <DisplayString>{{ {*($T1*)((uint8_t *)this + mOffset)} }}</DisplayString>
 </Type>
 
+<Type Name="bindump::detail::mapper::PtrMapper&lt;*&gt;">
+  <DisplayString>{{ {*($T1*)((uint8_t *)this + mOffset)} }}</DisplayString>
+  <Expand>
+    <ExpandedItem>*($T1*)((uint8_t *)this + mOffset)</ExpandedItem>
+  </Expand>
+</Type>
+
+<Type Name="ScriptedShaderElement">
+  <DisplayString>{{name={shClass.name}}}</DisplayString>
+  <Expand HideRawView="true">
+    <ExpandedItem>*(ScriptedShaderElement*)this</ExpandedItem>
+  </Expand>
+</Type>
+
 <Type Name="ScriptedShaderElement::PackedPassId">
   <DisplayString>{*(ScriptedShaderElement::PackedPassId::Id*)this}</DisplayString>
   <Expand HideRawView="true">
@@ -575,6 +610,30 @@
         <Item Name="[{_i}] ->" Condition="_i == currentView">values[_i][0]</Item>
         <Item Name="[{_i}]" Condition="_i != currentView">values[_i][0]</Item>
         <Exec>_i++</Exec>
+      </Loop>
+    </CustomListItems>
+  </Expand>
+</Type>
+
+<Type Name="ConcurrentElementPool&lt;*,*&gt;">
+  <AlternativeType Name="ConcurrentRangePool&lt;*,*&gt;" />
+  <DisplayString>{{ size={totalElems} }}</DisplayString>
+  <Expand>
+    <Item Name="[size]">totalElems</Item>
+    <CustomListItems>
+      <Variable Name="_i" InitialValue="0" />
+      <Variable Name="_bucket" InitialValue="0" />
+      <Variable Name="_bucketSize" InitialValue="INITIAL_CAPACITY" />
+      <Variable Name="_offset" InitialValue="0" />
+      <Size>totalElems</Size>
+      <Loop Condition="_i &lt; totalElems">
+        <If Condition="_offset ==_bucketSize">
+          <Exec>_bucket++</Exec>
+          <Exec>_bucketSize=INITIAL_CAPACITY&lt;&lt;_bucket</Exec>
+          <Exec>_offset=0</Exec>
+        </If>
+        <Item Name="[{_bucketSize + _offset}]">buckets.mBeginAndAllocator.mFirst[_bucket].mPair.mFirst[_offset]</Item>
+        <Exec>_i++,_offset++</Exec>
       </Loop>
     </CustomListItems>
   </Expand>

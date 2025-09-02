@@ -7,7 +7,9 @@ shader rendinst_simple_emissive_anim
 {
   ENABLE_ASSERT(ps)
 
-  COMMON_RENDINST_SIMPLE_INIT()
+  NO_DYNSTCODE()
+
+  COMMON_RENDINST_SIMPLE_INIT(true)
 
   texture tex = material.texture.diffuse;
   texture normal = material.texture[2];

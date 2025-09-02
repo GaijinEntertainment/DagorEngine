@@ -2,4 +2,8 @@ return {
   function scan_vrom_folder(a) {
     assert(["table"].contains(type(a)), @() $"type of argument should be one of: 'table'")
   }
+  function get_vromfs_dump_version(a) {
+    assert(["string"].contains(type(a)), @() $"type of argument should be one of: 'string'")
+    return 0
+  }
 }

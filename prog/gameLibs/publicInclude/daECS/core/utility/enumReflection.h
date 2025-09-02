@@ -11,9 +11,7 @@
 
 
 #define __ENUM_TO_STR(Enum, x) \
-  case Enum::x:                \
-    return #x;                 \
-    break;
+  case Enum::x: return #x; break;
 #define __STR_TO_ENUM(Enum, x) \
   case #x##_h:                 \
     retval = Enum::x;          \

@@ -21,15 +21,15 @@ namespace debug::pc
 class DeviceContextState : public break_point::Controller
 {
 public:
-  void debugBeginCommandBuffer(DeviceState &dds, D3DDevice *device, ID3D12GraphicsCommandList *cmd)
+  void debugBeginCommandBuffer(DeviceState &dds, D3DDevice *device, D3DGraphicsCommandList *cmd)
   {
     dds.beginCommandBuffer(device, cmd);
   }
-  void debugEndCommandBuffer(DeviceState &dds, ID3D12GraphicsCommandList *cmd) { dds.endCommandBuffer(cmd); }
+  void debugEndCommandBuffer(DeviceState &dds, D3DGraphicsCommandList *cmd) { dds.endCommandBuffer(cmd); }
   void debugFramePresent(DeviceState &dds) { dds.handlePresentToPresentCapture(); }
-  void debugEventBegin(DeviceState &dds, ID3D12GraphicsCommandList *cmd, eastl::string_view name) { dds.beginSection(cmd, name); }
-  void debugEventEnd(DeviceState &dds, ID3D12GraphicsCommandList *cmd) { dds.endSection(cmd); }
-  void debugMarkerSet(DeviceState &dds, ID3D12GraphicsCommandList *cmd, eastl::string_view name) { dds.marker(cmd, name); }
+  void debugEventBegin(DeviceState &dds, D3DGraphicsCommandList *cmd, eastl::string_view name) { dds.beginSection(cmd, name); }
+  void debugEventEnd(DeviceState &dds, D3DGraphicsCommandList *cmd) { dds.endSection(cmd); }
+  void debugMarkerSet(DeviceState &dds, D3DGraphicsCommandList *cmd, eastl::string_view name) { dds.marker(cmd, name); }
 
   void debugFrameCaptureBegin(DeviceState &dds, ID3D12CommandQueue *, uint32_t, eastl::span<const wchar_t> name)
   {
@@ -107,6 +107,10 @@ public:
 #endif
 
   void debugOnDeviceRemoved(DeviceState &dds, D3DDevice *device, HRESULT remove_reason) { dds.onDeviceRemoved(device, remove_reason); }
+
+  void nameResource(DeviceState &dds, ID3D12Resource *resource, eastl::string_view name) { dds.nameResource(resource, name); }
+
+  void nameResource(DeviceState &dds, ID3D12Resource *resource, eastl::wstring_view name) { dds.nameResource(resource, name); }
 };
 } // namespace debug::pc
 } // namespace drv3d_dx12

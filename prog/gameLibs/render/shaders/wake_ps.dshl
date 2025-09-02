@@ -11,6 +11,9 @@ float wfx_ftime = 0;
 int wfx_emitter_type = 0;
 interval wfx_emitter_type: emitter_flow < 1, emitter_tail;
 
+int wfx_foam_z_enable = 1;
+interval wfx_foam_z_enable : no < 1, yes;
+
 float4 wfx_normals_pixel_size = (1.0 / 512.0, 1.0 / 512.0, 0.0, 0.0);
 
 texture wfx_diffuse;
@@ -18,8 +21,6 @@ texture wfx_distortion;
 texture wfx_gradient;
 texture wfx_hmap;
 texture wfx_normals;
-
-texture heightmap_tex;
 
 macro USE_PARTICLE_SYSTEM(stage)
   (stage) { cnt_ofs_lim_dt@f4 = (wfx_count, wfx_offset, wfx_limit, wfx_ftime); }
@@ -130,11 +131,13 @@ shader wfx_update
     void main(uint3 dtId: SV_DispatchThreadID)
     {
       uint cmdId = dtId.x;
+      BRANCH
       if (cmdId >= cnt_ofs_lim_dt.x)
         return;
 
       uint partId = cnt_ofs_lim_dt.y + cmdId;
       GPUParticle particle = structuredBufferAt(particleBuffer, partId);
+      BRANCH
       if (particle.timeLeft <= 0)
         return;
 
@@ -216,8 +219,12 @@ shader wfx_render_height, wfx_render_height_distorted, wfx_render_foam, wfx_rend
     blend_dst = one;
   }
 
-  z_test = true;
-  if (shader == wfx_render_foam_mask) {
+  if ((shader == wfx_render_foam_mask) && (wfx_foam_z_enable == no)) {
+    z_test = false;
+  } else {
+    z_test = true;
+  }
+  if ((shader == wfx_render_foam_mask) && (wfx_foam_z_enable == yes)) {
     z_write = true;
   } else {
     z_write = false;
@@ -322,7 +329,7 @@ shader wfx_render_height, wfx_render_height_distorted, wfx_render_foam, wfx_rend
   USE_WATER_HEIGHTMAP(vs)
 
   hlsl(vs) {
-    StructuredBuffer<GPUParticleRender> particleRenderBuffer: register(t2);
+    StructuredBuffer<GPUParticleRender> particleRenderBuffer: register(t3);
 
     VsOutput wfx_vs(uint vertexId : SV_VertexID, uint instanceId : SV_InstanceID)
     {
@@ -389,21 +396,32 @@ shader wfx_normals
   POSTFX_VS_TEXCOORD(1, texcoord)
 
   hlsl(ps) {
-    float4 get_water_position(float2 texcoord, float2 offset, out float3 out_view)
+    float4 get_water_position(float2 texcoord, float2 offset, out float3 out_view, out float hmap_height)
     {
       texcoord = texcoord + offset * wlevel_psize.yz;
       out_view = normalize(lerp_view_vec(texcoord));
       float waterDist = -(world_view_pos.y - wlevel_psize.x) / out_view.y;
-      float texCol = tex2Dlod(wfx_hmap, float4(texcoord, 0, 0)).r;
-      return float4(out_view * waterDist + float3(0, texCol, 0.0), waterDist);
+      hmap_height = tex2Dlod(wfx_hmap, float4(texcoord, 0, 0)).r;
+      return float4(out_view * waterDist + float3(0, hmap_height, 0.0), waterDist);
     }
+
     float4 wfx_normals_ps(VsOutput input): SV_Target
     {
       #define DIRECTIONS 4
       #define OFFSET_FROM_VIEW_VEC_THRESHOLD 0.125
 
       float3 viewVec = float3(0, -1, 0);
-      float4 center = get_water_position(input.texcoord.xy, float2(0, 0), viewVec);
+      float wfxHeight;
+      float4 center = get_water_position(input.texcoord.xy, float2(0, 0), viewVec, wfxHeight);
+
+      ##if hardware.dx12
+      // Avoid sampling hmap multiple times when we know that there are no effects
+      // in this wave. May very rarely cause artifacts, but I doubt anyone will notice.
+      if (WaveActiveAllTrue(wfxHeight <= 0.0f))
+        return float4(0.5f, 0.5f, 0.0f, 0.0f);
+      ##endif
+
+
       float horOffset = 1.0 / max(-viewVec.y, OFFSET_FROM_VIEW_VEC_THRESHOLD);
       float2 offsets[DIRECTIONS] = { float2(horOffset, 0),  float2(0, 1), float2(-horOffset, 0), float2(0, -1) };
 
@@ -418,7 +436,10 @@ shader wfx_normals
       uint i;
       UNROLL
       for (i = 0; i < DIRECTIONS; ++i)
-          vectors[i] = get_water_position(input.texcoord.xy, offsets[i] * distortion, viewVec).xyz - center.xyz;
+      {
+        float dummy;
+        vectors[i] = get_water_position(input.texcoord.xy, offsets[i] * distortion, viewVec, dummy).xyz - center.xyz;
+      }
       float3 normal = 0;
       UNROLL
       for (i = 0; i < DIRECTIONS; ++i)

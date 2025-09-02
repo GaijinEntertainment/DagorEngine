@@ -18,46 +18,32 @@ VULKAN_TRACKED_STATE_FIELD_REF(StateFieldFramebufferSwapchainSrgbWrite, swapchai
 template <>
 void StateFieldFramebufferAttachment::applyTo(uint32_t index, FrontFramebufferStateStorage &state, ExecutionState &target) const
 {
-  G_ASSERTF(view.isRenderTarget || (!image && !useSwapchain), "vulkan: trying to use non RT view for FB attachment");
-  Image *actualImage = image;
+  D3D_CONTRACT_ASSERTF(view.isRenderTarget || !image, "vulkan: trying to use non RT view for FB attachment");
   ImageViewState actualView = view;
+  if (image && image->getDescription().memFlags & Image::MEM_SWAPCHAIN)
+    actualView.setFormat(
+      state.swapchainSrgbWrite.data ? actualView.getFormat().getSRGBVariant() : actualView.getFormat().getLinearVariant());
   ExecutionContext &ctx = target.getExecutionContext();
 
-  if (useSwapchain)
-  {
-    FormatStore fmt = ctx.swapchain.getActiveMode().colorFormat;
-    actualView.setFormat(
-      state.swapchainSrgbWrite.data && ctx.swapchain.getActiveMode().enableSrgb ? fmt.getSRGBVariant() : fmt.getLinearVariant());
-    // need to update to the actual format of the swapchain as the proxy texture might has
-    // not the right one (a format that can not be represented by TEXFMT_)
-    actualImage = ctx.swapchain.getColorImage();
-    if (actualImage)
-    {
-      auto reqFormat = actualView.getFormat();
-      auto replacementFormat = actualImage->getFormat();
-      replacementFormat.isSrgb = reqFormat.isSrgb && replacementFormat.isSrgbCapableFormatType();
-      actualView.setFormat(replacementFormat);
-    }
-  }
-  else if (actualImage)
-    ctx.verifyResident(actualImage);
+  if (image)
+    ctx.verifyResident(image);
 
-  G_ASSERTF(!actualImage || actualImage->isAllowedForFramebuffer(),
-    "vulkan: trying to bind non-RT image %p-%s as framebuffer attachment %u", actualImage, actualImage->getDebugName(), index);
+  D3D_CONTRACT_ASSERTF(!image || image->isAllowedForFramebuffer(),
+    "vulkan: trying to bind non-RT image %p-%s as framebuffer attachment %u", image, image->getDebugName(), index);
 
   FramebufferState &fbs = target.get<BackGraphicsState, BackGraphicsState>().framebufferState;
 
   // depth
   if (index >= MRT_INDEX_DEPTH_STENCIL)
   {
-    if (actualImage)
+    if (image)
     {
       fbs.renderPassClass.depthState =
         state.readOnlyDepth.data ? RenderPassClass::Identifier::RO_DEPTH : RenderPassClass::Identifier::RW_DEPTH;
       fbs.renderPassClass.depthStencilFormat = actualView.getFormat();
-      fbs.renderPassClass.depthSamples = actualImage->getSampleCount();
+      fbs.renderPassClass.depthSamples = image->getSampleCount();
       fbs.frameBufferInfo.depthStencilAttachment =
-        RenderPassClass::FramebufferDescription::AttachmentInfo(actualImage, actualImage->getImageView(actualView), actualView);
+        RenderPassClass::FramebufferDescription::AttachmentInfo(image, image->getImageView(actualView), actualView);
     }
     else
     {
@@ -70,13 +56,13 @@ void StateFieldFramebufferAttachment::applyTo(uint32_t index, FrontFramebufferSt
   else
   {
     // color
-    if (actualImage)
+    if (image)
     {
       fbs.renderPassClass.colorTargetMask |= 1 << index;
       fbs.renderPassClass.colorFormats[index] = actualView.getFormat();
-      fbs.renderPassClass.colorSamples[index] = actualImage->getSampleCount();
+      fbs.renderPassClass.colorSamples[index] = image->getSampleCount();
       fbs.frameBufferInfo.colorAttachments[index] =
-        RenderPassClass::FramebufferDescription::AttachmentInfo(actualImage, actualImage->getImageView(actualView), actualView);
+        RenderPassClass::FramebufferDescription::AttachmentInfo(image, image->getImageView(actualView), actualView);
     }
     else
     {
@@ -93,14 +79,14 @@ void StateFieldFramebufferAttachment::applyTo(uint32_t index, FrontFramebufferSt
 template <>
 void StateFieldFramebufferAttachment::transit(uint32_t index, FrontFramebufferStateStorage &, DeviceContext &target) const
 {
-  CmdSetFramebufferAttachment cmd{index, image, view, useSwapchain};
+  CmdSetFramebufferAttachment cmd{index, image, view};
   target.dispatchCommandNoLock(cmd);
 }
 
 template <>
 void StateFieldFramebufferAttachment::dumpLog(uint32_t index, const FrontFramebufferStateStorage &) const
 {
-  debug("attachment%u: %p[%s] %s", index, image, image ? image->getDebugName() : "none", useSwapchain ? "swapchain" : "");
+  debug("attachment%u: %p[%s]", index, image, image ? image->getDebugName() : "none");
 }
 
 template <>
@@ -214,26 +200,17 @@ void StateFieldFramebufferSwapchainSrgbWrite::applyTo(FrontFramebufferStateStora
 
 using namespace drv3d_vulkan;
 
-ImageViewState bb_ivs()
-{
-  ImageViewState ret{};
-  ret.isRenderTarget = 1;
-  return ret;
-}
-
-StateFieldFramebufferAttachment StateFieldFramebufferAttachment::back_buffer = {nullptr, bb_ivs(), true};
-StateFieldFramebufferAttachment StateFieldFramebufferAttachment::empty = {nullptr, {}, false};
+StateFieldFramebufferAttachment StateFieldFramebufferAttachment::empty = {nullptr, {}};
 
 void StateFieldFramebufferAttachment::set(const StateFieldFramebufferAttachment &v)
 {
   image = v.image;
   view = v.view;
-  useSwapchain = v.useSwapchain;
 }
 
 bool StateFieldFramebufferAttachment::diff(const StateFieldFramebufferAttachment &v) const
 {
-  return (image != v.image) || (view != v.view) || (useSwapchain != v.useSwapchain);
+  return (image != v.image) || (view != v.view);
 }
 
 void StateFieldFramebufferAttachment::set(const StateFieldFramebufferAttachment::RawFrontData &v)
@@ -242,14 +219,12 @@ void StateFieldFramebufferAttachment::set(const StateFieldFramebufferAttachment:
   if (v.tex)
   {
     BaseTex *base = cast_to_texture_base(v.tex);
-    image = base->getDeviceImage();
-    useSwapchain = image == nullptr;
+    image = base->image;
     view = base->getViewInfoRenderTarget(v.mip, v.layer);
   }
   else
   {
     image = nullptr;
-    useSwapchain = false;
 
     view.isArray = 0;
     view.isCubemap = 0;
@@ -271,13 +246,10 @@ bool StateFieldFramebufferAttachment::diff(const StateFieldFramebufferAttachment
     return true;
 
   if (!v.tex)
-    return (image != nullptr) || useSwapchain;
+    return (image != nullptr);
 
   BaseTex *base = cast_to_texture_base(v.tex);
-  Image *img = base->getDeviceImage();
-
-  if (img == nullptr) // v.tex is "swapchain"
-    return !useSwapchain;
+  Image *img = base->image;
 
   return image != img;
 }

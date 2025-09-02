@@ -1,0 +1,30 @@
+Root           ?= ../../.. ;
+Location        = prog/3rdPartyLibs/netImgui ;
+
+TargetType      = lib ;
+Target          = 3rdPartyLibs/netImgui.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes =
+  $(Root)/$(Location)
+  $(Root)/$(Location)/nlohmann_json
+  $(Root)/$(Location)/quicklz
+
+  $(Root)/prog/3rdPartyLibs/imgui
+  $(Root)/prog/3rdPartyLibs/stb
+;
+
+Sources =
+  source/NetImgui_Api.cpp
+  source/NetImgui_Client.cpp
+  source/NetImgui_CmdPackets_DrawFrame.cpp
+  quicklz/quicklz.cpp
+;
+if $(Platform) in windows { Sources += source/NetImgui_NetworkWin32.cpp ; }
+
+UseProgLibs =
+  3rdPartyLibs/imgui
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

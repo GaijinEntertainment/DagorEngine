@@ -1,0 +1,87 @@
+include "shader_global.dshl"
+include "bvh.dshl"
+
+int bvh_process_ahs_vertices_index_count;
+int bvh_process_ahs_vertices_texcoord_offset;
+int bvh_process_ahs_vertices_texcoord_format;
+int bvh_process_ahs_vertices_color_offset;
+int bvh_process_ahs_vertices_vertex_stride;
+
+int bvh_process_ahs_vertices_indices_const_no = 6;
+int bvh_process_ahs_vertices_vertices_const_no = 7;
+int bvh_process_ahs_vertices_output_uav_no = 0;
+
+
+interval bvh_process_ahs_vertices_color_offset : no < 0, yes;
+
+shader bvh_process_ahs_vertices
+{
+  if (compatibility_mode == compatibility_mode_on)
+  {
+    dont_render;
+  }
+
+  (cs) {
+    index_count@u1 = bvh_process_ahs_vertices_index_count;
+    texcoord_offset@u1 = bvh_process_ahs_vertices_texcoord_offset;
+    texcoord_format@u1 = bvh_process_ahs_vertices_texcoord_format;
+    color_offset@u1 = bvh_process_ahs_vertices_color_offset;
+    vertex_stride@u1 = bvh_process_ahs_vertices_vertex_stride;
+    indices@buf : register(bvh_process_ahs_vertices_indices_const_no) hlsl { ByteAddressBuffer indices@buf; };
+    vertices@buf : register(bvh_process_ahs_vertices_vertices_const_no) hlsl { ByteAddressBuffer vertices@buf; };
+    output@uav : register(bvh_process_ahs_vertices_output_uav_no) hlsl { RWByteAddressBuffer output@uav; };
+  }
+
+  ENABLE_ASSERT(cs)
+
+  USE_BVH_ATTRIBUTE_FUNCTIONS(cs)
+
+  hlsl(cs) {
+    [numthreads( 64, 1, 1 )]
+    void bvh_process_dynrend_indices(uint3 dtId : SV_DispatchThreadID)
+    {
+      uint indexId = dtId.x;
+      if (indexId >= index_count)
+        return;
+
+      uint index;
+
+      int indexAddress = indexId * 2;
+      [branch]
+      if (indexId & 1)
+      {
+        // Unaligned index
+        indexAddress -= 2;
+        index = loadBuffer(indices, indexAddress);
+        index >>= 16;
+      }
+      else
+      {
+        index = loadBuffer(indices, indexAddress);
+        index &= 0xFFFFU;
+      }
+
+      uint vertexAddress = index * vertex_stride;
+
+      float2 tc;
+      LoadAttribute(vertices, vertexAddress + texcoord_offset, texcoord_format, tc);
+
+      uint2 tcu2 = f32tof16(tc);
+      uint tcu = tcu2.x | (tcu2.y << 16);
+
+      storeBuffer(output, indexId * 4, tcu);
+
+      ##if bvh_process_ahs_vertices_color_offset == yes
+        float2 sd;
+        LoadAttribute(vertices, vertexAddress + color_offset, bvhAttributeFloat2, sd);
+
+        uint2 sdu2 = f32tof16(sd);
+        uint sdu = sdu2.x | (sdu2.y << 16);
+
+        storeBuffer(output, (indexId + index_count) * 4, sdu);
+      ##endif
+    }
+  }
+
+  compile("target_cs", "bvh_process_dynrend_indices");
+}

@@ -1,0 +1,254 @@
+include "puddles_inc.dshl"
+
+macro USE_FLEXGRID_WPOS_VS()
+    hlsl(vs) {
+      #include "heightmap/flexGridConsts.hlsli"
+
+      float decodeQuadID(uint quadXID) {
+          float val = float(quadXID) * (255.0 / 8.0);
+          val = round(val);
+          return val / 255.0;
+      }
+
+      float2 calcWorldPosXZ(float4 data0, float2 patch_offset, float patch_scale, float vertex_index, float lod_offset, float4 lod_offset_4, uint4 edges_dir_packed, uint vertexId)
+      {
+        // parent data usage
+        uint packedParentXY = edges_dir_packed.z;
+        uint quadParentOffsetX = (packedParentXY >> 16) & 0xFFFF;
+        uint quadParentOffsetY  = packedParentXY & 0xFFFF;
+        uint quadStepScale = edges_dir_packed.w;
+
+        uint triID = vertexId / 3u;
+        uint vertInTri = vertexId % 3u;
+        uint quadId = triID>>1;
+
+        int quadX = (quadId % 8);
+        int quadY = (quadId / 8);
+
+        int edgeDataQuadX = quadParentOffsetX + quadX / quadStepScale;
+        int edgeDataQuadY = quadParentOffsetY + quadY / quadStepScale;
+        int edgeDataQuadId = edgeDataQuadY * 8 + edgeDataQuadX;
+
+        bool notABorder = (lod_offset_4.x < 0.01f || quadX > 0)
+          && (lod_offset_4.z < 0.01f || quadX < FLEXGRID_PATCH_QUADS - 1)
+          && (lod_offset_4.y < 0.01f || quadY > 0)
+          && (lod_offset_4.w < 0.01f || quadY < FLEXGRID_PATCH_QUADS - 1);
+
+        uint isSecondTri = (triID & 1);
+
+        uint packedValue = edgeDataQuadId >= 32 ? edges_dir_packed.y : edges_dir_packed.x; // packed in two uint32_t
+        uint bitPos = edgeDataQuadId % 32;
+
+        bool shouldFlip = (packedValue >> bitPos) & 1u;
+        bool flipA = !isSecondTri && vertInTri == 2;
+        bool flipB = isSecondTri && vertInTri == 1;
+        if (notABorder && shouldFlip && (flipA || flipB))
+        {
+          int quadXToUse = flipA ? quadX + 1 : quadX;
+
+          data0.x = decodeQuadID(quadXToUse); // 'data0.x += FLEXGRID_QUAD_SIZE' will be incorrect because of packing
+        }
+
+        const float edge_shift = fmod(vertex_index, exp2(lod_offset));
+        const float2 patch_vertex_position = data0.xy + data0.zw * edge_shift;
+        const float2 vertex_relative_position = patch_offset + patch_vertex_position * patch_scale; // [0, 1] on whole map
+
+        return (vertex_relative_position - world_to_hmap_low_without_texel_offset.zw)/world_to_hmap_low_without_texel_offset.xy; // [worldTerrainBBox[0] - halfTexel, worldTerrainBBox[1] - halfTexel]
+      }
+
+      float3 getWorldPosFlexGridSimple(float2 worldPosXZ, float3 morph_value_direction)
+      {
+        float exactHeight = getHeight(worldPosXZ);
+        float neighborHeight1 = getHeight(worldPosXZ + morph_value_direction.yz);
+        float neighborHeight2 = getHeight(worldPosXZ - morph_value_direction.yz);
+        float interpolatedHeight = (neighborHeight1 + neighborHeight2) * 0.5f;
+
+        float3 worldPos;
+        worldPos.xz = worldPosXZ;
+        worldPos.y = lerp(interpolatedHeight, exactHeight, morph_value_direction.x);
+
+        worldPos.xz = clamp(worldPos.xz, heightmap_region.xy, heightmap_region.zw);
+        return worldPos;
+      }
+
+      float3 calcMorph(float4 edge_shift_mask, float4 neighbor_patch_morph, float4 avg_shift_prev_lod,
+        float2 avg_shift, float patch_scale, float patch_morph, float lod_offset)
+      {
+        const float is_inner_vertex = max(0.0f, 1.0 - dot(edge_shift_mask, float4(1.0, 1.0, 1.0, 1.0)));
+        const float morph_value = dot(edge_shift_mask, neighbor_patch_morph) + patch_morph * is_inner_vertex;
+
+        const float w2 = step(1.5f, lod_offset); // neighbor parent LOD
+        const float w1 = step(0.5f, lod_offset) * (1.0f - w2); // neighbor grandparent LOD
+
+        const float2 morphShift = avg_shift * (1.0f - w1 - w2) + avg_shift_prev_lod.xy * w1 + avg_shift_prev_lod.zw * w2;
+
+        const float2 avg_shift_world_space = morphShift * patch_scale / world_to_hmap_low_without_texel_offset.xy;
+        return float3(morph_value, avg_shift_world_space.x, avg_shift_world_space.y);
+      }
+
+      float2 decodePos(float2 c) {
+          float2 byteVal = round(c * 255.0);
+          return byteVal / 255.0; // [0, 1]
+      }
+
+      float decodePosToIndex(float c) {
+          float byteVal = round(c * 255.0);
+          return round(byteVal * (8.0 / 255.0));
+      }
+
+      float2 unpackToMinusOneZeroOne(float2 c) // map 0/0.5/1 to -1/0/1
+      {
+        // can't use "return c*2-1;" since 0.5 packed in u8 has error ~0.002
+        return -1.0 + step(0.25, c) + step(0.75, c);
+      }
+
+      struct FlexGridVsInput
+      {
+        // per vertex
+        float4 data0 : POSITION; //position in patch; vertex shift direction
+        float4 edgeShiftMask : NORMAL;
+        float4 avgShiftPrevLod : TEXCOORD0; // .xy - parent, .zw - grandparent
+        float4 data1 : TEXCOORD1; //vertex index on edge; shift direction for average value; fence
+      };
+
+      struct FlexGridInstanceData {
+        float4 patchData; // .xy - offset, scale, morph
+        float4 neighborLodOffset; // is needed for gluing with other LOD
+        float4 neighborPatchMorph; // NO NEED when morphing is disabled
+        uint4 packedEdgesDirection; // flipping edge direction
+      };
+
+      // c70 '==' FLEXGRID_INSTANCE_DATA_CB_REG
+      FlexGridInstanceData flexgrid_instance_data[FLEXGRID_MAX_INSTANCES_PER_DRAW]: register(c70);
+      float4 lastreg: register(c2030);
+      #define USE_INSTANCE_ID  ,uint instance_id:SV_InstanceID
+    }
+endmacro
+
+macro USE_FLEXGRID_WPOS_DISPLACEMENT_VS()
+
+hlsl(vs) {
+  float4 getTrackDirtScales(float2 worldPosXZ, float base_height)
+  {
+    float thickTex=0;
+    float ofsTex = 0;
+
+    thickTex = tex2Dlod(hmap_ofs_thickness, float4(worldPosXZ*hmap_ofs_thickness_map.xy + hmap_ofs_thickness_map.zw,0,0)).r;
+    ##if has_ofs_tex
+        float2 tc_ofs = worldPosXZ*world_to_hmap_ofs.xy + world_to_hmap_ofs.zw;
+        float2 tc_centered = saturate(-10*abs(tc_ofs*2-1)+10);
+        float weightOfs = (tc_centered.x*tc_centered.y);
+
+        ofsTex = tc_ofs.x >= 0 && tc_ofs.y >= 0 && tc_ofs.x < 1 && tc_ofs.y < 1 ?
+        2*tex2Dlod(hmap_ofs_tex, float4(tc_ofs,0,0)).r : 1;
+    ##else
+        float weightOfs = 1;
+        ##if lmesh_rendering_mode != rendering_depth
+        weightOfs = saturate(16 - 0.05*length(worldPosXZ - world_view_pos.xz));
+        ##endif
+    ##endif
+    return float4(base_height, thickTex, ofsTex, weightOfs);
+  }
+
+  float4 getHeightAndScales(float2 worldPosXZ)
+  {
+    float thickTex=0;
+    float ofsTex = 0;
+    float2 tc_low = calcTcLow(worldPosXZ); // with half texel offset
+    // float height = tex2Dlod(tex_hmap_low, float4(tc_low,0,0)).r; // we use manual bilinear for precision
+    float2 tc_texels = tc_low * tex_hmap_low_size.xy - 0.5;
+    float2 flooredTexels = floor(tc_texels);
+    float2 tc_frac = tc_texels - flooredTexels;
+    float2 centerTc = flooredTexels*tex_hmap_low_size.zw + tex_hmap_low_size.zw;
+    ##if hardware.fsh_4_0
+    float4 hmap4 = tex_hmap_low.Gather(tex_hmap_low_samplerstate, centerTc);
+    ##else
+    float4 hmap4 = tex_hmap_low.GatherRed(tex_hmap_low_samplerstate, centerTc);
+    ##endif
+    float4 bilW = float4(1-tc_frac, tc_frac);
+    bilW = bilW.xzzx*bilW.wwyy;
+
+    float height = dot(hmap4, bilW);
+
+    ##if has_high_texture
+        float2 tc_high = worldPosXZ*world_to_hmap_high.xy + world_to_hmap_high.zw;
+        float2 tc_high_sat = saturate(tc_high);
+        if (tc_high.x == tc_high_sat.x && tc_high.y == tc_high_sat.y)
+        {
+        tc_high += 0.5*tex_hmap_inv_sizes.zw;
+        height = tex2Dlod(hmap_hdetail, float4(tc_high,0,0)).r;
+        }
+    ##endif
+
+    float base_height = decode_height(height);
+    return getTrackDirtScales(worldPosXZ, base_height);
+  }
+
+  float3 getWorldPos_NormalScale(float2 inPosXZ, float3 morphValueDirection, float3 worldViewPos,
+    out float normalScale, out float3 displacementOffset, out float tformHeight)
+  {
+    tformHeight = 0;
+    float4 worldPosY_heightScales=getHeightAndScales(inPosXZ);
+
+    float baseHeight = worldPosY_heightScales.x;
+    float3 worldPos;
+    worldPos.y = baseHeight.x;
+    worldPos.xz = clamp(inPosXZ, heightmap_region.xy, heightmap_region.zw);
+
+    normalScale=worldPosY_heightScales.y;
+
+    float thickTex = worldPosY_heightScales.y;
+    float ofsTex = worldPosY_heightScales.z;
+    float weightOfs = worldPosY_heightScales.w;
+    float3 worldNormal = getWorldNormal(worldPos);
+
+    float displ_offset = 0;
+
+    displacementOffset = get_displacement_relief(worldPos, worldNormal, thickTex,
+        ofsTex, float2(weightOfs, hmap_ofs_tex_size.y), baseHeight, morphValueDirection, tformHeight, displ_offset);
+
+    float puddleLevel = 0;
+    ##if lmesh_rendering_mode == rendering_landmesh && heightmap_puddles != heightmap_puddles_off
+        puddleLevel = sample_tor_puddle(worldPos.xz);
+        ##if use_tform
+        puddleLevel = lerp(puddleLevel, 0, tformHeight != 0 ? 1 : 0);
+        ##endif
+
+        float dist = 0;
+        BRANCH
+        if (check_puddles_conditions(puddleLevel, dist, worldNormal))
+        {
+        float puddleDisplacement = 0;
+        float wetness = get_puddles_wetness(worldPos, worldNormal, dist, puddleLevel,
+            thickTex * hmap_ofs_tex_size_2f.y, ofsTex, displ_offset, puddleDisplacement);
+        puddleDisplacement = max(puddleDisplacement, displacementOffset.y);
+
+        displacementOffset.y = lerp(displacementOffset.y, puddleDisplacement, saturate((wetness - 0.8) * 5));
+        }
+    ##endif
+
+    ##if lmesh_rendering_mode == rendering_depth
+        displacementOffset.y = min(tformHeight, 0.0f) + DEPTH_RENDERING_Z_VALUE; // to avoid incorrect z-prepass we use only negative tform values
+    ##endif
+
+    return worldPos;
+  }
+}
+
+
+endmacro
+
+macro USE_FLEXGRID_VS_OUTPUT()
+hlsl{
+    struct FlexGridVsOutput
+    {
+        VS_OUT_POSITION(pos)
+
+        float4 pToEye_Nscale                     : TEXCOORD3;
+        ##if use_tform
+        float tformHeight                      : TEXCOORD4;
+        ##endif
+        float3 worldPos                        : TEXCOORD5;
+    };
+}
+endmacro

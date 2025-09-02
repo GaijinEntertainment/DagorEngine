@@ -11,7 +11,7 @@
 typedef void(*dag_sq_error_handler_t)(HSQUIRRELVM vm, const char *err, const char *src_name, int line);
 
 void sqdagor_seterrorhandlers(HSQUIRRELVM v);
-SQInteger sqdagor_formatcallstack(HSQUIRRELVM v, SQChar *out_buf, SQInteger out_buf_size, bool is_short_form = false);
+SQInteger sqdagor_formatcallstack(HSQUIRRELVM v, SQChar *out_buf, SQInteger out_buf_size, bool is_short_form = false, bool *is_empty_stack = nullptr);
 void sqdagor_printcallstack(HSQUIRRELVM v, bool is_short_form = false);
 
 void sqdagor_get_exception_source_and_line(HSQUIRRELVM v, const char** src, int& line);

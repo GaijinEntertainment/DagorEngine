@@ -16,7 +16,7 @@ bloom_base{
   }
 
   "bloom__downsample_node:resource_slot::NodeHandleWithSlotsAccess"{}
-  "bloom__downsample_chain:dag::Vector<dabfg::NodeHandle>"{}
-  "bloom__upsample_chain:dag::Vector<dabfg::NodeHandle>"{}
+  "bloom__downsample_chain:dag::Vector<dafg::NodeHandle>"{}
+  "bloom__upsample_chain:dag::Vector<dafg::NodeHandle>"{}
   _tags:t="render"
 }

@@ -19,7 +19,8 @@ static constexpr float AMBIENT_WIND_PERIOD_SECONDS = 2000.0f;
   VAR(ambient_wind_map_scale__offset)                                  \
   VAR(ambient_wind_tex)                                                \
   VAR(ambient_wind_tex_samplerstate)                                   \
-  VAR(wind_perlin_tex)
+  VAR(wind_perlin_tex)                                                 \
+  VAR(wind_perlin_tex_samplerstate)
 
 #define VAR(a) static int a##VarId = -1;
 GLOBAL_VARS_AMBIENT_WIND_LIST
@@ -162,6 +163,8 @@ void AmbientWind::setWindTextures(const char *wind_flowmap_name, const char *win
     }
 
     ShaderGlobal::set_texture(wind_perlin_texVarId, hasNoiseMap ? noisemapGameresTex.getTexId() : BAD_TEXTUREID);
+    ShaderGlobal::set_sampler(wind_perlin_tex_samplerstateVarId,
+      hasNoiseMap ? get_texture_separate_sampler(noisemapGameresTex.getTexId()) : d3d::INVALID_SAMPLER_HANDLE);
   }
 
   needReset = flowmapName != wind_flowmap_name || !flowmapTexFallback;
@@ -173,12 +176,10 @@ void AmbientWind::setWindTextures(const char *wind_flowmap_name, const char *win
 
     if (!flowmapTexFallback)
       flowmapTexFallback = dag::create_tex(nullptr, 1, 1, TEXFMT_A8R8G8B8, 1, "ambient_wind_tex_fallback");
-    flowmapTexFallback->disableSampler();
 
     if (hasFlowmap)
     {
       flowmapGameresTex = dag::get_tex_gameres(wind_flowmap_name);
-      flowmapGameresTex->disableSampler();
       G_ASSERTF(flowmapGameresTex, "Could not load ambient wind texture '%s'", wind_flowmap_name);
       prefetch_managed_texture(flowmapGameresTex.getTexId());
     }

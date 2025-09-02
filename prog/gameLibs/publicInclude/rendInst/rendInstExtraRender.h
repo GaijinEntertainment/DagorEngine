@@ -11,6 +11,7 @@
 
 #include <drv/3d/dag_buffers.h>
 #include <3d/dag_texStreamingContext.h>
+#include <3d/dag_resPtr.h>
 #include <shaders/dag_shaders.h>
 #include <generic/dag_span.h>
 
@@ -51,9 +52,7 @@ void reinitOnShadersReload();
 void invalidateRIGenExtraShadowsVisibility();
 void invalidateRIGenExtraShadowsVisibilityBox(bbox3f_cref box);
 
-void prepareToStartAsyncRIGenExtraOpaqueRender(RiGenVisibility &vis, int frame_stblk, TexStreamingContext texCtx, bool enable = true);
-void startPreparedAsyncRIGenExtraOpaqueRender(RiGenVisibility &vis, bool wake = true);
-void waitAsyncRIGenExtraOpaqueRenderVbFill(const RiGenVisibility *vis);
-RiExtraRenderer *waitAsyncRIGenExtraOpaqueRender(const RiGenVisibility *vis = nullptr);
+void updatePerDrawGatheredData(uint32_t id);
+const UniqueBuf &getPerDrawGatheredData();
 
 } // namespace rendinst::render

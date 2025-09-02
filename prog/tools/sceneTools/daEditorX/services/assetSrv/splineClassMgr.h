@@ -31,7 +31,9 @@ public:
 
 
   static void clearAsset(AssetData &a);
-
+  static void init();
+  static float splineMinStep;
+  static bool inited;
 
 public:
   int assetNameId = -1, nameId = -1;
@@ -65,8 +67,8 @@ public:
   void delNotifyClient(IAssetUpdateNotify *n);
 
   // IDagorAssetChangeNotify interface
-  virtual void onAssetRemoved(int asset_name_id, int asset_type);
-  virtual void onAssetChanged(const DagorAsset &asset, int asset_name_id, int asset_type);
+  void onAssetRemoved(int asset_name_id, int asset_type) override;
+  void onAssetChanged(const DagorAsset &asset, int asset_name_id, int asset_type) override;
 
   static void build2DSpline(BezierSpline2d &spline, dag::ConstSpan<Point4> spts, bool closed);
   static void createLoftMesh(Mesh &mesh, const splineclass::LoftGeomGenData::Loft &loft, const BezierSplinePrec3d &path,

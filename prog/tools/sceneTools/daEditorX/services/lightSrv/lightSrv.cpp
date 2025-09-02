@@ -30,14 +30,9 @@ static E3DCOLOR color4ToE3dcolor(Color4 col, float &brightness)
 class GenericLightService : public ISceneLightService
 {
 public:
-  GenericLightService() : sun(midmem)
-  {
-    reset();
+  GenericLightService() : sun(midmem) { memset(&nullSun, 0, sizeof(nullSun)); }
 
-    memset(&nullSun, 0, sizeof(nullSun));
-  }
-
-  virtual void reset()
+  void reset() override
   {
     GeomObject::setTonemapper(&tonemap);
 
@@ -71,7 +66,7 @@ public:
     dlGvId.worldLt.col1 = ShaderGlobal::get_glob_var_id(VariableMap::getVariableId("world_lt_color_1"));
   }
 
-  virtual void setSunCount(int sun_count)
+  void setSunCount(int sun_count) override
   {
     if (sun_count > sun.size())
     {
@@ -86,17 +81,17 @@ public:
     else if (sun_count < sun.size())
       sun.resize(sun_count);
   }
-  virtual int getSunCount() const { return sun.size(); }
+  int getSunCount() const override { return sun.size(); }
 
-  virtual SkyLightProps &getSky() { return sky; }
-  virtual SunLightProps *getSun(int sun_idx) { return sun_idx < sun.size() ? &sun[sun_idx] : NULL; }
-  virtual const SunLightProps &getSunEx(int idx) { return idx < sun.size() ? sun[idx] : nullSun; }
+  SkyLightProps &getSky() override { return sky; }
+  SunLightProps *getSun(int sun_idx) override { return sun_idx < sun.size() ? &sun[sun_idx] : NULL; }
+  const SunLightProps &getSunEx(int idx) override { return idx < sun.size() ? sun[idx] : nullSun; }
 
-  virtual void setSyncLtColors(bool sync) { syncLtColors = sync; }
-  virtual void setSyncLtDirs(bool sync) { syncLtDirs = sync; }
-  virtual bool getSyncLtColors() { return syncLtColors; }
-  virtual bool getSyncLtDirs() { return syncLtDirs; }
-  virtual bool updateDirLightFromSunSky()
+  void setSyncLtColors(bool sync) override { syncLtColors = sync; }
+  void setSyncLtDirs(bool sync) override { syncLtDirs = sync; }
+  bool getSyncLtColors() override { return syncLtColors; }
+  bool getSyncLtDirs() override { return syncLtDirs; }
+  bool updateDirLightFromSunSky() override
   {
     if (!syncLtDirs && !syncLtColors)
       return false;
@@ -161,7 +156,7 @@ public:
     ShaderGlobal::setBlock(global_frame_const_blockid, ShaderGlobal::LAYER_GLOBAL_CONST);
   }
 
-  virtual void updateShaderVars()
+  void updateShaderVars() override
   {
     if (sun.size() > 0)
     {
@@ -186,14 +181,14 @@ public:
     setupSkyLighting();
   }
 
-  virtual bool applyLightingToGeometry() const { return applySunLighting() || applySkyLighting(); }
+  bool applyLightingToGeometry() const override { return applySunLighting() || applySkyLighting(); }
 
-  virtual StaticSceneBuilder::StdTonemapper &toneMapper() { return tonemap; }
-  virtual void saveToneMapper(DataBlock &blk) const { tonemap.save(blk); }
-  virtual void loadToneMapper(const DataBlock &blk) { tonemap.load(blk); }
+  StaticSceneBuilder::StdTonemapper &toneMapper() override { return tonemap; }
+  void saveToneMapper(DataBlock &blk) const override { tonemap.save(blk); }
+  void loadToneMapper(const DataBlock &blk) override { tonemap.load(blk); }
 
   // direct lighting
-  virtual void getDirectLight(Point3 &sun1_dir, Color3 &sun1_col, Point3 &sun2_dir, Color3 &sun2_col, Color3 &sky_col, bool native)
+  void getDirectLight(Point3 &sun1_dir, Color3 &sun1_col, Point3 &sun2_dir, Color3 &sun2_col, Color3 &sky_col, bool native) override
   {
     if (native)
     {
@@ -245,7 +240,7 @@ public:
     }
   }
 
-  virtual void saveSunsAndSky(DataBlock &blk) const
+  void saveSunsAndSky(DataBlock &blk) const override
   {
     DataBlock *b;
     blk.setBool("sync_dir_light_dir", syncLtDirs);
@@ -281,7 +276,7 @@ public:
       b->setBool("enabled", sun[i].enabled);
     }
   }
-  virtual void loadSunsAndSky(const DataBlock &blk)
+  void loadSunsAndSky(const DataBlock &blk) override
   {
     const DataBlock *b;
     syncLtDirs = blk.getBool("sync_dir_light_dir", true);
@@ -363,30 +358,30 @@ public:
 protected:
   struct DirLtVarIds
   {
-    int dir0, col0;
-    int dir1, col1;
+    int dir0 = -1, col0 = -1;
+    int dir1 = -1, col1 = -1;
   };
 
   Tab<SunLightProps> sun;
   SkyLightProps sky;
   SunLightProps nullSun;
   StaticSceneBuilder::StdTonemapper tonemap;
-  bool syncLtColors, syncLtDirs;
-  bool writeNumberedSuns;
+  bool syncLtColors = false, syncLtDirs = false;
+  bool writeNumberedSuns = false;
 
-  int sunLtDir0GvId;
-  int sunCol0GvId;
-  int sunLtDir1GvId;
-  int sunCol1GvId;
-  int skyColGvId;
-  int sunColLtmapGvid;
-  int sunDirLtmapGvid;
+  int sunLtDir0GvId = -1;
+  int sunCol0GvId = -1;
+  int sunLtDir1GvId = -1;
+  int sunCol1GvId = -1;
+  int skyColGvId = -1;
+  int sunColLtmapGvid = -1;
+  int sunDirLtmapGvid = -1;
 
   struct DynLtVarIds
   {
     DirLtVarIds worldLt;
-    int lightDir;
-    int lightSpecularColor;
+    int lightDir = -1;
+    int lightSpecularColor = -1;
   } dlGvId;
 
   void setDefSkyProps(SkyLightProps &p)

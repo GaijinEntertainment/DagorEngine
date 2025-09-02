@@ -6,6 +6,7 @@
 
 #include "animation_data_base.h"
 #include "animation_sampling.h"
+#include "feature_normalization.h"
 #include "motion_matching_controller.h"
 
 CONSOLE_BOOL_VAL("motion_matching", debug_force_disable_post_blend_controllers, false);
@@ -77,6 +78,7 @@ bool MotionMatchingController::getPose(AnimV20::AnimBlender::TlsContext &tls, co
 
 void MotionMatchingController::playAnimation(int clip_index, int frame_index, bool need_transition)
 {
+  G_ASSERT(clip_index >= 0 && frame_index >= 0);
   currentClipInfo.clip = clip_index;
   currentClipInfo.frame = frame_index;
   currentClipInfo.linearBlendProgress = 0.f;
@@ -97,7 +99,7 @@ void MotionMatchingController::playAnimation(int clip_index, int frame_index, bo
 
     // caclulate offset between currentAnimation and nextAnimation
     // we will decay offset for smooth transition
-    inertialize_pose_transition(offset, currentAnimation, nextAnimation, perNodeWeights);
+    inertialize_pose_transition(offset, currentAnimation, nextAnimation, perNodeWeights, nextClip.nodeMask);
   }
 }
 
@@ -139,6 +141,30 @@ bool MotionMatchingController::willCurrentAnimationEnd(float dt)
   return false;
 }
 
+void MotionMatchingController::updateAnimationSpeed(const Point3 &animchar_velocity, const Point3 &animchar_angular_velocity)
+{
+  if (!hasActiveAnimation())
+    return;
+  int curFrame = currentClipInfo.frame;
+  const AnimationClip &curClip = dataBase->clips[currentClipInfo.clip];
+  if (curFrame == 0)
+    curFrame = 1;
+  vec3f posDelta = v_sub(curClip.rootMotion[curFrame].translation, curClip.rootMotion[curFrame - 1].translation);
+  float animationVelocity = v_extract_x(v_length3_x(v_mul(posDelta, V_TICKS_PER_SECOND)));
+  float characterVelocity = length(animchar_velocity);
+  float characterRotationSpeed = length(animchar_angular_velocity);
+  if (animationVelocity > 0.001f)
+    playSpeedMult = characterVelocity / animationVelocity;
+  else if (characterRotationSpeed > 0.1f) // no need to adjust animation speed when character is standing still and not rotating
+  {
+    quat4f rotDelta =
+      v_quat_abs(v_quat_mul_quat(curClip.rootMotion[curFrame].rotation, v_quat_conjugate(curClip.rootMotion[curFrame - 1].rotation)));
+    float rotationSpeed = v_extract_w(v_mul(v_acos(v_clamp(rotDelta, v_splats(-1.0f), V_C_ONE)), v_splats(TICKS_PER_SECOND)));
+    playSpeedMult = rotationSpeed > 0.001f ? characterRotationSpeed / rotationSpeed : 1.0f;
+  }
+  playSpeedMult = clamp(playSpeedMult, curClip.playSpeedMultiplierRange.x, curClip.playSpeedMultiplierRange.y);
+}
+
 void MotionMatchingController::updateAnimationProgress(float dt)
 {
   if (!hasActiveAnimation())
@@ -162,15 +188,35 @@ void MotionMatchingController::updateAnimationProgress(float dt)
   inertialize_pose_update(resultAnimation, offset, currentAnimation, perNodeWeights, transitionBlendTime * 0.5f, dt);
 }
 
-void MotionMatchingController::updateRoot(
-  float dt, const AnimV20::AnimcharBaseComponent &animchar, const Point3 &animchar_velocity, const Point3 &animchar_angular_velocity)
+
+void MotionMatchingController::updateNodeWeights(bool mm_enabled, float blend_time, float dt)
 {
-  mat44f animcharTm;
-  animchar.getTm(animcharTm);
+  const AnimationClip *curentClip = nullptr;
+  if (mm_enabled && hasActiveAnimation())
+    curentClip = &dataBase->clips[getCurrentClip()];
+  float weightDelta = dt / blend_time;
+  motionMatchingWeight = 0.0f;
+  for (int i = 0, e = perNodeWeights.size(); i < e; ++i)
+  {
+    float targetWeight = curentClip ? curentClip->nodeMask[i] : 0.0f;
+    if (perNodeWeights[i] < targetWeight)
+      perNodeWeights[i] = min(perNodeWeights[i] + weightDelta, targetWeight);
+    else
+      perNodeWeights[i] = max(perNodeWeights[i] - weightDelta, targetWeight);
+    motionMatchingWeight = max(motionMatchingWeight, perNodeWeights[i]);
+  }
+}
+
+void MotionMatchingController::updateRoot(float dt,
+  mat44f_cref animchar_tm,
+  const Point3 &animchar_velocity,
+  const Point3 &animchar_angular_velocity,
+  const Point3 &wish_root_direction)
+{
   if (rootSynchronization || !hasActiveAnimation())
   {
     vec3f scale;
-    v_mat4_decompose(animcharTm, rootPosition, rootRotation, scale);
+    v_mat4_decompose(animchar_tm, rootPosition, rootRotation, scale);
   }
   else
   {
@@ -191,15 +237,15 @@ void MotionMatchingController::updateRoot(
     vec3f deltaPos = v_sub(nextRoot.translation, prevRoot.translation);
     quat4f animSpaceToWorldSpace = v_quat_mul_quat(rootRotation, v_quat_conjugate(prevRoot.rotation));
     rootPosition = v_add(rootPosition, v_quat_mul_vec3(animSpaceToWorldSpace, deltaPos));
-    rootPosition = v_perm_xbzw(rootPosition, animcharTm.col3); // don't have movement along Y axis in animations
+    rootPosition = v_perm_xbzw(rootPosition, animchar_tm.col3); // don't have movement along Y axis in animations
     quat4f prevToNextQuat = v_quat_mul_quat(nextRoot.rotation, v_quat_conjugate(prevRoot.rotation));
     rootRotation = v_norm4(v_quat_mul_quat(prevToNextQuat, rootRotation));
 
-    quat4f animcharRotation = v_quat_from_mat43(animcharTm);
+    quat4f animcharRotation = v_quat_from_mat43(animchar_tm);
     if (rootAdjustment)
     {
-      vec3f adjustmentPos = v_sub(animcharTm.col3, rootPosition);
-      adjustmentPos = damp_adjustment_exact_v3(adjustmentPos, rootAdjustmentPosTime * 0.5, dt);
+      vec3f adjustmentPos = v_sub(animchar_tm.col3, rootPosition);
+      adjustmentPos = damper_exact_v3(v_zero(), adjustmentPos, rootAdjustmentPosHalfLife, dt);
       if (rootAdjustmentVelocityRatio > 0)
       {
         vec4f maxAdjustmentPos = v_splats(rootAdjustmentVelocityRatio * length(animchar_velocity) * dt);
@@ -208,8 +254,22 @@ void MotionMatchingController::updateRoot(
       }
       rootPosition = v_add(rootPosition, adjustmentPos);
 
-      quat4f adjustmentRot = v_quat_abs(v_quat_mul_quat(animcharRotation, v_quat_conjugate(rootRotation)));
-      adjustmentRot = damp_adjustment_exact_q(adjustmentRot, rootAdjustmentRotTime * 0.5, dt);
+      quat4f adjustmentRot;
+      const AnimationClip &curClip = dataBase->clips[curAnimation.clip];
+      if (rootAdjustmentByFutureTrajectory)
+      {
+        int rootDirectionOffset = dataBase->trajectorySize - 1; // Need .zw components from last trajectory vector
+        vec4f normalizedRootDirection = curClip.features.get_trajectory_features(curAnimation.frame)[rootDirectionOffset];
+        int normalizationOffset = curClip.featuresNormalizationGroup * dataBase->featuresSize + rootDirectionOffset;
+        denormalize_feature(make_span(&normalizedRootDirection, 1), dataBase->featuresAvg.data() + normalizationOffset,
+          dataBase->featuresStd.data() + normalizationOffset);
+        vec4f clipDirection = v_perm_zcwd(normalizedRootDirection, v_zero());
+        vec4f wishDirection = v_perm_xbzw(v_ldu_p3(&wish_root_direction.x), v_zero());
+        adjustmentRot = v_quat_from_arc(clipDirection, wishDirection);
+      }
+      else
+        adjustmentRot = v_quat_abs(v_quat_mul_quat(animcharRotation, v_quat_conjugate(rootRotation)));
+      adjustmentRot = damper_exact_q(V_C_UNIT_0001, adjustmentRot, rootAdjustmentRotHalfLife, dt);
       if (rootAdjustmentAngVelocityRatio > 0)
       {
         float maxAdjustmentRot = rootAdjustmentAngVelocityRatio * length(animchar_angular_velocity) * dt;
@@ -221,11 +281,11 @@ void MotionMatchingController::updateRoot(
     }
     if (rootClamping)
     {
-      vec3f clampingPos = v_sub(rootPosition, animcharTm.col3);
+      vec3f clampingPos = v_sub(rootPosition, animchar_tm.col3);
       if (v_extract_x(v_length3_sq_x(clampingPos)) > rootClampingMaxDistance * rootClampingMaxDistance)
       {
         clampingPos = v_mul(v_splats(rootClampingMaxDistance), v_norm3(clampingPos));
-        rootPosition = v_add(animcharTm.col3, clampingPos);
+        rootPosition = v_add(animchar_tm.col3, clampingPos);
       }
 
       quat4f clampingRot = v_quat_abs(v_quat_mul_quat(rootRotation, v_quat_conjugate(animcharRotation)));
@@ -239,25 +299,23 @@ void MotionMatchingController::updateRoot(
     }
     G_ASSERT(!v_test_xyzw_nan(rootRotation));
   }
-  if (hasActiveAnimation())
+}
+
+void MotionMatchingController::copyPoseFeaturesFromActiveAnimation(FrameFeatures &goal_features) const
+{
+  if (!hasActiveAnimation())
+    return;
+  NodeFeature dstFeatures = goal_features.get_node_feature(0);
+  int clip = getCurrentClip();
+  int frame = getCurrentFrame();
+  ConstNodeFeature srcFeatures = dataBase->clips[clip].features.get_node_feature(frame);
+  for (int i = 0; i < dataBase->nodeCount; i++)
   {
-    int curFrame = currentClipInfo.frame;
-    const AnimationClip &curClip = dataBase->clips[currentClipInfo.clip];
-    if (curFrame == 0)
-      curFrame = 1;
-    vec3f posDelta = v_sub(curClip.rootMotion[curFrame].translation, curClip.rootMotion[curFrame - 1].translation);
-    float animationVelocity = v_extract_x(v_length3_x(v_mul(posDelta, V_TICKS_PER_SECOND)));
-    float characterVelocity = length(animchar_velocity);
-    float characterRotationSpeed = length(animchar_angular_velocity);
-    if (animationVelocity > 0.001f)
-      playSpeedMult = characterVelocity / animationVelocity;
-    else if (characterRotationSpeed > 0.1f) // no need to adjust animation speed when character is standing still and not rotating
-    {
-      quat4f rotDelta = v_quat_abs(
-        v_quat_mul_quat(curClip.rootMotion[curFrame].rotation, v_quat_conjugate(curClip.rootMotion[curFrame - 1].rotation)));
-      float rotationSpeed = v_extract_w(v_mul(v_acos(v_clamp(rotDelta, v_splats(-1.0f), V_C_ONE)), v_splats(TICKS_PER_SECOND)));
-      playSpeedMult = rotationSpeed > 0.001f ? characterRotationSpeed / rotationSpeed : 1.0f;
-    }
-    playSpeedMult = clamp(playSpeedMult, curClip.playSpeedMultiplierRange.x, curClip.playSpeedMultiplierRange.y);
+    dstFeatures.nodePositions[i] = srcFeatures.nodePositions[i];
+    dstFeatures.nodeVelocities[i] = srcFeatures.nodeVelocities[i];
   }
+  int nodeFeaturesOffset =
+    dataBase->clips[clip].featuresNormalizationGroup * dataBase->featuresSize + goal_features.trajectorySizeInVec4f;
+  denormalize_feature(goal_features.get_node_features_raw(0), dataBase->featuresAvg.data() + nodeFeaturesOffset,
+    dataBase->featuresStd.data() + nodeFeaturesOffset);
 }

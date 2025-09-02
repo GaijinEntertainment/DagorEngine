@@ -12,11 +12,13 @@
 /// native_events
 
 ECS_REGISTER_EVENT(ChangeServerRoute);
+ECS_REGISTER_EVENT(CmdShowHitcamera);
 ECS_REGISTER_EVENT(CmdUpdateGridScale);
 ECS_REGISTER_EVENT(EventAnyEntityResurrected);
 ECS_REGISTER_EVENT(EventGameSessionFinished);
 ECS_REGISTER_EVENT(EventGameSessionStarted);
 ECS_REGISTER_EVENT(EventKeyFrameSaved);
+ECS_REGISTER_EVENT(EventOnHitCameraControlEvent);
 ECS_REGISTER_EVENT(EventTickrateChanged);
 ECS_REGISTER_EVENT(PossessTargetByPlayer);
 ECS_REGISTER_EVENT(RequestSaveKeyFrame);
@@ -27,11 +29,13 @@ SQ_DEF_AUTO_BINDING_MODULE(dasEvents, "dasevents")
 {
   Sqrat::Table tbl(vm);
   bind_dascript::DasEventsBind<ChangeServerRoute>::bind(vm, tbl);
+  bind_dascript::DasEventsBind<CmdShowHitcamera>::bind(vm, tbl);
   bind_dascript::DasEventsBind<CmdUpdateGridScale>::bind(vm, tbl);
   bind_dascript::DasEventsBind<EventAnyEntityResurrected>::bind(vm, tbl);
   bind_dascript::DasEventsBind<EventGameSessionFinished>::bind(vm, tbl);
   bind_dascript::DasEventsBind<EventGameSessionStarted>::bind(vm, tbl);
   bind_dascript::DasEventsBind<EventKeyFrameSaved>::bind(vm, tbl);
+  bind_dascript::DasEventsBind<EventOnHitCameraControlEvent>::bind(vm, tbl);
   bind_dascript::DasEventsBind<EventTickrateChanged>::bind(vm, tbl);
   bind_dascript::DasEventsBind<PossessTargetByPlayer>::bind(vm, tbl);
   bind_dascript::DasEventsBind<RequestSaveKeyFrame>::bind(vm, tbl);

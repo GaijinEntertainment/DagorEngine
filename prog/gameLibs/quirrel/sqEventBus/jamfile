@@ -10,6 +10,7 @@ AddIncludes =
   $(Root)/prog/gameLibs/publicInclude
   $(Root)/prog/engine/sharedInclude
   $(Root)/prog/1stPartyLibs/jsoncpp/include
+  $(Root)/prog/3rdPartyLibs/rapidjson/include
 ;
 
 UseProgLibs =

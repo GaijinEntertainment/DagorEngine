@@ -1,0 +1,44 @@
+biome_query{
+  _use:t="ecs_no_debug"
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+
+  _group{
+    _tags:t="render"
+    biome_query__state:i = 0
+    biome_query__id:i = -1
+    biome_query__radius:r = 0.1
+    biome_query__liveFrames:i = 10
+    biome_query__groupId:i = -1
+    biome_query__color:p4 = 1.0,1.0,1.0,0.5
+  }
+
+  _tracked:t="biome_query__state"
+}
+
+hit_fx_readback_info{
+  _use:t="biome_query"
+  _group{
+    _tags:t="render"
+    biome_query__desiredBiomeName:t=""
+  }
+  hit_fx_name:t=""
+}
+
+burning_grass_readback_info{
+  _use:t="hit_fx_readback_info"
+  _group{
+    _tags:t="render"
+    biome_query__radius:r=0.3
+    biome_query__desiredBiomeName:t="grass"
+  }
+  hit_fx_name:t="envir_misc_floating_ashes_2m_up_effect"
+}
+
+biome_fx_color_replacement{
+  "biome_query__biomeReplaceNameList:list<t>"{
+    value:t="grass"
+    value:t="forest"
+  }
+  "biome_query__biomeReplaceIdList:list<i>"{}
+  biome_query__mudBiomeColor:p4 = 0.06, 0.04, 0.02, 1.0
+}

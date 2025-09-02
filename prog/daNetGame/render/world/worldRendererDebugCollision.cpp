@@ -34,6 +34,8 @@ enum
 };
 static int lastThreshold = -1;
 
+static ShaderVariableInfo commonBufferReg{"debug_buffer_reg_no"};
+
 void WorldRenderer::renderDebugCollisionDensity()
 {
   if (!collision_density.get() && !phys_density.get())
@@ -133,14 +135,15 @@ void WorldRenderer::fillDebugCollisionDensity(int threshold, const Point3 &cell,
   eastl::unique_ptr<Sbuffer, DestroyDeleter<Sbuffer>> tempFacesBufCount(
     d3d::buffers::create_ua_sr_structured(sizeof(uint32_t), FILL_DEBUG_SIZE * FILL_DEBUG_SIZE * FILL_DEBUG_SIZE_Y, "tempBuffer"));
 
+  const int bufferReg = commonBufferReg.get_int();
+
   BBox3 worldBox = getWorldBBox3();
   const IPoint3 res(FILL_DEBUG_SIZE, FILL_DEBUG_SIZE_Y, FILL_DEBUG_SIZE);
   const IPoint3 widthCells = (ipoint3(ceil(div(worldBox.width(), cell))) + res - IPoint3(1, 1, 1)) / FILL_DEBUG_SIZE;
   Point3 fillCell = cell * FILL_DEBUG_SIZE;
   rendinst::riex_collidable_t handles;
   ShaderGlobal::set_color4(get_shader_variable_id("debug_count_tri_cell", true), cell.x, cell.y, cell.z, threshold);
-  uint32_t zeroes[4] = {0};
-  d3d::clear_rwbufi(debugCollisionCounterSB.get(), zeroes);
+  d3d::zero_rwbufi(debugCollisionCounterSB.get());
   for (int z = 0; z < widthCells.z; z++)
     for (int x = 0; x < widthCells.x; x++)
     {
@@ -150,12 +153,12 @@ void WorldRenderer::fillDebugCollisionDensity(int threshold, const Point3 &cell,
       rendinst::gatherRIGenExtraCollidable(handles, box, true /*read_lock*/);
       if (!handles.size())
         continue;
-      d3d::clear_rwbufi(tempFacesBufCount.get(), zeroes);
+      d3d::zero_rwbufi(tempFacesBufCount.get());
       // d3d::set_rwbuffer(STAGE_VS, 4, tempFacesBufCount.get(), false);
       ShaderGlobal::set_color4(get_shader_variable_id("debug_count_tri_start", true), lt.x, lt.y, lt.z, 0);
 
       d3d::set_rwbuffer(STAGE_CS, 0, tempFacesBufCount.get());
-      d3d::set_buffer(STAGE_CS, 0, facesBoxes.get());
+      d3d::set_buffer(STAGE_CS, bufferReg, facesBoxes.get());
       for (auto h : handles)
       {
         const uint32_t type = rendinst::handle_to_ri_type(h);
@@ -172,11 +175,11 @@ void WorldRenderer::fillDebugCollisionDensity(int threshold, const Point3 &cell,
 
       d3d::set_rwbuffer(STAGE_CS, 0, debugCollisionSB.get());
       d3d::set_rwbuffer(STAGE_CS, 1, debugCollisionCounterSB.get());
-      d3d::set_buffer(STAGE_CS, 0, tempFacesBufCount.get());
+      d3d::set_buffer(STAGE_CS, bufferReg, tempFacesBufCount.get());
       debug_count_tri_cs->dispatch(FILL_DEBUG_SIZE / 4, FILL_DEBUG_SIZE / 4, FILL_DEBUG_SIZE_Y / 4);
       d3d::set_rwbuffer(STAGE_CS, 0, 0);
       d3d::set_rwbuffer(STAGE_CS, 1, 0);
-      d3d::set_buffer(STAGE_CS, 0, 0);
+      d3d::set_buffer(STAGE_CS, bufferReg, 0);
     }
   uint32_t *debugCollisionCount = nullptr;
   if (debugCollisionCounterSB->lock32(0, sizeof(uint32_t), &debugCollisionCount, VBLOCK_READONLY) && debugCollisionCount)

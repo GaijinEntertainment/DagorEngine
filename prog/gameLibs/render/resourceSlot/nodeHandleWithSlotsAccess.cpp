@@ -5,8 +5,9 @@
 
 #include <detail/storage.h>
 #include <detail/unregisterAccess.h>
-#include <render/daBfg/bfg.h>
+#include <render/daFrameGraph/daFG.h>
 
+void mark_context_for_clear_resource_slot(const das::Context *context);
 
 ECS_DEF_PULL_VAR(nodeHandleWithSlotsAccess);
 ECS_REGISTER_RELOCATABLE_TYPE(resource_slot::NodeHandleWithSlotsAccess, nullptr);
@@ -25,7 +26,7 @@ void resource_slot::NodeHandleWithSlotsAccess::reset()
 }
 resource_slot::NodeHandleWithSlotsAccess::~NodeHandleWithSlotsAccess() { reset(); }
 
-resource_slot::NodeHandleWithSlotsAccess::NodeHandleWithSlotsAccess(dabfg::NameSpace ns, int handle_id, unsigned generation_number) :
+resource_slot::NodeHandleWithSlotsAccess::NodeHandleWithSlotsAccess(dafg::NameSpace ns, int handle_id, unsigned generation_number) :
   nameSpace(ns), id(handle_id), generation(generation_number), isValid(true)
 {
   G_ASSERT(handle_id >= 0);
@@ -33,7 +34,7 @@ resource_slot::NodeHandleWithSlotsAccess::NodeHandleWithSlotsAccess(dabfg::NameS
   G_ASSERT(generation_number <= (1U << 31U));
 };
 
-resource_slot::NodeHandleWithSlotsAccess::NodeHandleWithSlotsAccess() : nameSpace(dabfg::root()), id(0), generation(0), isValid(false)
+resource_slot::NodeHandleWithSlotsAccess::NodeHandleWithSlotsAccess() : nameSpace(dafg::root()), id(0), generation(0), isValid(false)
 {}
 
 resource_slot::NodeHandleWithSlotsAccess::NodeHandleWithSlotsAccess(NodeHandleWithSlotsAccess &&h) :
@@ -63,4 +64,5 @@ void resource_slot::NodeHandleWithSlotsAccess::_noteContext(const das::Context *
   detail::Storage &storage = detail::storage_list[nameSpace];
 
   storage.registeredNodes[nodeId].context = context;
+  mark_context_for_clear_resource_slot(context);
 }

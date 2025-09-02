@@ -39,12 +39,14 @@ struct UiPlotScrollBuffer
 
 void debug_ui_memory();
 void debug_ui_frame();
+void debug_ui_latency_wait();
 void debug_ui_timeline();
 void debug_ui_resources();
 void debug_ui_pipelines();
 void debug_ui_renderpasses();
-void debug_ui_misc();
 void debug_ui_sync();
+void debug_ui_swapchain();
+void debug_ui_misc();
 
 void debug_ui_update_pipelines_data();
 

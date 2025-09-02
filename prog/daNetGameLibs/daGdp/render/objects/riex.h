@@ -5,7 +5,7 @@
 #include <shaders/dag_computeShaders.h>
 #include <shaders/dag_shaderMesh.h>
 #include <shaders/dag_shaderVarsUtils.h>
-#include <render/daBfg/nodeHandle.h>
+#include <render/daFrameGraph/nodeHandle.h>
 #include <render/world/dynamicShadowRenderExtender.h>
 #include "../common.h"
 

@@ -416,6 +416,9 @@ enum
 };
 //! returns mask of drivers that reported any event for recent 'past_frames_threshold' frames
 unsigned get_last_used_device_mask(unsigned past_frames_threshold = 100);
+//! enable/disable reporting used device mask and button clicks count (for specified device mask)
+void enable_reports_for_devices(bool enable,
+  unsigned dev_used_mask = DEV_USED_mouse | DEV_USED_kbd | DEV_USED_gamepad | DEV_USED_touch);
 
 //! returns count of button clicks (press+release) since dainput init for given device mask
 unsigned get_overall_button_clicks_count(unsigned dev_used_mask = DEV_USED_mouse | DEV_USED_kbd | DEV_USED_gamepad);

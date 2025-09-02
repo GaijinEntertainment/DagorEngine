@@ -53,6 +53,8 @@ public:
   }
 
 protected:
+  Image2DReadOnly() = default;
+
   Image2DReadOnly(uint8_t *pixels, uint32_t w, uint32_t h, uint32_t byte_stride, uint32_t fmt) :
     width{w}, height{h}, byteStride{byte_stride}, data{pixels}, format{fmt}
   {
@@ -155,6 +157,8 @@ public:
   }
 
 protected:
+  Image2D() = default;
+
   Image2D(uint8_t *pixels, uint32_t w, uint32_t h, uint32_t byte_stride, uint32_t fmt) :
     Image2DReadOnly{pixels, w, h, byte_stride, fmt}
   {}
@@ -193,12 +197,13 @@ template <typename ElementType>
 class Image2DView : public eastl::conditional_t<eastl::is_const_v<ElementType>, Image2DReadOnly, Image2D>
 {
 public:
-  Image2DView() : BaseType{nullptr, 0, 0, 0, 0} {}
+  Image2DView() = default;
 
   Image2DView(uint8_t *pixels, uint32_t w, uint32_t h, uint32_t byte_stride, uint32_t fmt) : BaseType{pixels, w, h, byte_stride, fmt}
   {
-    G_ASSERTF(BaseType::bytesPerElement == sizeof(ElementType),
-      "Image2DView template parameter is inscompatible with underlying format");
+    G_ASSERTF(pixels && BaseType::bytesPerElement == sizeof(ElementType),
+      "Image2DView template parameter is inscompatible with underlying format (%d != %d)", BaseType::bytesPerElement,
+      sizeof(ElementType));
   }
 
   const ElementType &at(uint32_t x, uint32_t y) const
@@ -258,8 +263,8 @@ public:
       ++(*this);
       return prevIt;
     }
-    bool operator==(const ForwardIterator &other) { return itPtr == other.itPtr; };
-    bool operator!=(const ForwardIterator &other) { return !(*this == other); };
+    bool operator==(const ForwardIterator &other) const { return itPtr == other.itPtr; };
+    bool operator!=(const ForwardIterator &other) const { return !(*this == other); };
 
   private:
     const uint32_t widthInElems, stridePad;
@@ -330,13 +335,17 @@ class LockedImage : public ImageView
       "Attempt to create read-only texture wrapper with TEXLOCK_WRITE flag");
     G_ASSERTF(ImageView::isReadOnly || (flags & TEXLOCK_READWRITE) != TEXLOCK_READ,
       "Attempt to create read-write texture wrapper with readonly lock flag");
+    G_ASSERT_RETURN(tex, LockedImage(nullptr, 0, 0, 0, 0, nullptr););
 
     uint8_t *pixels = nullptr;
     int strideBytes = 0u;
     int ret = 0;
 
     if (layer.has_value())
+    {
+      G_ASSERTF(has_layers(tex), "Attempt to lock layer %d of texture that has no layers", *layer);
       ret = tex->lockimg((void **)&pixels, strideBytes, *layer, level, flags);
+    }
     else
       ret = tex->lockimg((void **)&pixels, strideBytes, level, flags);
 
@@ -346,15 +355,23 @@ class LockedImage : public ImageView
       tex->getinfo(texInfo, level);
       return LockedImage{pixels, texInfo.w, texInfo.h, uint32_t(strideBytes), texInfo.cflg & TEXFMT_MASK, tex};
     }
-    return LockedImage{nullptr, 0, 0, 0, 0, nullptr};
+    return LockedImage{};
   }
 
 public:
-  LockedImage() {}
+  LockedImage() = default;
 
   static LockedImage lock_texture(BaseTexture *tex, int level, unsigned flags)
   {
     return lock_texture(tex, eastl::nullopt, level, flags);
+  }
+
+  static bool has_layers(BaseTexture *tex)
+  {
+    if (tex == nullptr)
+      return false;
+    D3DResourceType type = tex->getType();
+    return D3DResourceType::CUBETEX == type || D3DResourceType::ARRTEX == type || D3DResourceType::CUBEARRTEX == type;
   }
 
   static LockedImage lock_texture(BaseTexture *tex, int layer, int level, unsigned flags)
@@ -368,11 +385,11 @@ public:
       lockedTexture->unlock();
   }
 
-  LockedImage(LockedImage &&rhs) noexcept : ImageView{rhs} { std::swap(lockedTexture, rhs.lockedTexture); }
+  LockedImage(LockedImage &&rhs) noexcept : ImageView{rhs} { eastl::swap(lockedTexture, rhs.lockedTexture); }
 
   LockedImage &operator=(LockedImage &&rhs)
   {
-    std::swap(lockedTexture, rhs.lockedTexture);
+    eastl::swap(lockedTexture, rhs.lockedTexture);
     ImageView::operator=(rhs);
     return *this;
   }
@@ -432,4 +449,22 @@ inline LockedImage2DReadOnly lock_texture_ro(BaseTexture *tex, int level, unsign
 inline LockedImage2DReadOnly lock_texture_ro(BaseTexture *tex, int layer, int level, unsigned flags)
 {
   return LockedImage2DReadOnly::lock_texture(tex, layer, level, flags | TEXLOCK_READ);
+}
+
+
+template <int Flags = 0>
+inline void request_readback_nosyslock(BaseTexture *tex, int level)
+{
+  int stride_bytes;
+  if (tex->lockimg(nullptr, stride_bytes, level, TEXLOCK_READ | TEXLOCK_NOSYSLOCK | Flags))
+    tex->unlockimg();
+}
+
+
+template <int Flags = 0>
+inline void request_readback_nosyslock(BaseTexture *tex, int layer, int level)
+{
+  int stride_bytes;
+  if (tex->lockimg(nullptr, stride_bytes, layer, level, TEXLOCK_READ | TEXLOCK_NOSYSLOCK | Flags))
+    tex->unlockimg();
 }

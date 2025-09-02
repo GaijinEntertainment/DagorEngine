@@ -118,7 +118,7 @@ struct ComponentTypeInfo<EntityComponentRef>
 {
   static constexpr bool is_boxed = false;
   static constexpr size_t ref_alignment =
-    ecs_data_alignment(sizeof(eastl::type_select<is_defined<EntityComponentRef>, EntityComponentRef, char>::type));
+    ecs_data_alignment(sizeof(eastl::conditional<is_defined<EntityComponentRef>, EntityComponentRef, char>::type));
   ;
 };
 

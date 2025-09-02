@@ -16,24 +16,23 @@ namespace drv3d_vulkan
 class SamplerCache
 {
 private:
-  // it is cached in texture, no need to double waste memory on lower bound here
-  Tab<SamplerInfo *> samplers;
-
   WinCritSec samplerResourcesMutex;
   typedef eastl::pair<SamplerState, SamplerResource *> SamplerResourcesDescPtrPair;
   Tab<SamplerResourcesDescPtrPair> samplerResources;
 
-private:
   SamplerCache(const SamplerCache &);
   SamplerCache &operator=(const SamplerCache &);
+  SamplerResource *defaultSampler = nullptr;
+  SamplerState defaultSamplerState = {};
 
 public:
   SamplerCache() {}
-  SamplerInfo *get(SamplerState state);
+
   SamplerInfo create(SamplerState state);
-
   SamplerResource *getResource(SamplerState state);
+  SamplerResource *getDefaultSampler() { return defaultSampler; }
 
+  void init();
   void shutdown();
 };
 

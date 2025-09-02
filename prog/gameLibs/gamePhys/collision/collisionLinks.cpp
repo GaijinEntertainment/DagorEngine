@@ -118,4 +118,6 @@ void lerp_collisions(tmp_collisions_t &a_collisions, const tmp_collisions_t &b_c
 
 int get_link_name_id(const char *name) { return collision_names.getNameId(name); }
 
+const char *get_link_name(const int id) { return collision_names.getName(id); }
+
 } // namespace dacoll

@@ -26,13 +26,13 @@ struct GPUSmokeTracer//todo: compress.
   float3 dir; //changes on create only, needed for update&culling
   float pad1;
 
-  float3 head_color;//changes on create only, needed for culling only (creates head)
+  float3 headColor;//changes on create only, needed for culling only (creates head)
   float burnTime;// for head
 
-  float3 start_head_color;
-  float start_mult;
+  float3 startHeadColor;
+  float startMult;
 
-  float4 smoke_color_density;//changes on create only, needed for culling only(creates tail)
+  float4 smokeColor__density;//changes on create only, needed for culling only(creates tail)
 
   float ttl, radiusStart;//changes on create only, needed for update&culling
   float startTime;//changes on create only, needed for update&culling
@@ -69,7 +69,7 @@ struct TracerUpdateCommand
 
 struct GPUSmokeTracerTailRender//todo: compress me!
 {
-  float4 smoke_color_density;//can be compressed
+  float4 smokeColor__density;//can be compressed
   float ttl, radiusStart;//can be compressed
   float startTime;
   uint firstVert_totalVerts;
@@ -93,13 +93,13 @@ struct TracerCreateCommand
 {
   float3 pos0; float ttl;
   float3 dir; uint id;
-  float4 smoke_color;
-  float4 head_color__burnTime;
-  float3 start_head_color; float start_mult;
+  float4 smokeColor;
+  float3 headColor; float burnTime;
+  float3 startHeadColor; float startMult;
   #ifdef __cplusplus
   TracerCreateCommand() = default;
-  TracerCreateCommand(int id_, const float3 &p0, const float3 &d, float ttl_, const float4 &smoke_color_, const float4 &head_color_, const float3 &start_head_color_, float start_mult_):
-    id(id_), pos0(p0), dir(d), ttl(ttl_), smoke_color(smoke_color_), head_color__burnTime(head_color_), start_head_color(start_head_color_), start_mult(start_mult_){}
+  TracerCreateCommand(int id_, const float3 &p0, const float3 &d, float ttl_, const float4 &smoke_color, const float3 &head_color, float burn_time, const float3 &start_head_color, float start_mult):
+    id(id_), pos0(p0), dir(d), ttl(ttl_), smokeColor(smoke_color), headColor(head_color), burnTime(burn_time), startHeadColor(start_head_color), startMult(start_mult){}
   #endif
 };
 

@@ -14,7 +14,7 @@ public:
   static bool is_enabled();
 
 private:
-  dabfg::NodeHandle applierNode;
+  dafg::NodeHandle applierNode;
 };
 
 void xess_render(Texture *in_color,

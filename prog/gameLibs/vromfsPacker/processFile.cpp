@@ -4,9 +4,11 @@
 #include <osApiWrappers/dag_files.h>
 #include <osApiWrappers/dag_direct.h>
 #include <util/dag_oaHashNameMap.h>
+#include <util/dag_string.h>
 #include <stdio.h>
 
 extern OAHashNameMap<true> preproc_defines;
+static String exc_text;
 
 static char *find(char *begin, char *end, const char *sub)
 {
@@ -130,10 +132,38 @@ static bool find_else_endif(char *begin, char *end, char *&out_else, char *&out_
   }
 }
 
-static void preprocess(char *buf, int &len, const char *target, bool keepLines)
+static void preprocess(char *buf, int &len, const char *target, bool keepLines, const char *fname)
 {
   char *pif = buf, *pife;
   char *end = buf + len;
+
+  if (char *p = strstr(pif, "#ifdef"))
+  {
+    bool violates = false;
+    while (pif)
+    {
+      pif = strstr(p + 6, "#ifdef");
+      for (p--; p >= buf; p--)
+        if (*p == '\"')
+          break;
+        else if (*p == '\n')
+        {
+          violates = true;
+          break;
+        }
+        else if (*p == ' ' || *p == '\t' || *p == '/')
+          continue;
+        else
+          break;
+      if (violates)
+      {
+        exc_text.printf(0, "%s: incorrect directive #ifdef, use #if_def() instead", fname);
+        DAGOR_THROW(IGenSave::SaveException(exc_text, 0));
+      }
+      p = pif;
+    }
+    pif = buf;
+  }
 
   for (pif = find(pif, end, "#if_"); pif; pif = find(pif, end, "#if_"))
   {
@@ -143,7 +173,10 @@ static void preprocess(char *buf, int &len, const char *target, bool keepLines)
       erase(pif, end, 11); // strlen("#if_target(")
       pife = find(pif, end, ")");
       if (!pife)
-        DAGOR_THROW(IGenSave::SaveException("file bad - missing ) after #if_target", 0));
+      {
+        exc_text.printf(0, "%s: missing ) after #if_target", fname);
+        DAGOR_THROW(IGenSave::SaveException(exc_text, 0));
+      }
       *pife = '\0';
 
       char *pifnext = find(pif, pife, "|");
@@ -166,7 +199,10 @@ static void preprocess(char *buf, int &len, const char *target, bool keepLines)
       erase(pif, end, 8); // strlen("#if_def(")
       pife = find(pif, end, ")");
       if (!pife)
-        DAGOR_THROW(IGenSave::SaveException("file bad - missing ) after #if_def", 0));
+      {
+        exc_text.printf(0, "%s: missing ) after #if_def", fname);
+        DAGOR_THROW(IGenSave::SaveException(exc_text, 0));
+      }
       *pife = '\0';
 
       int c0 = 0, op = 0;
@@ -207,7 +243,10 @@ static void preprocess(char *buf, int &len, const char *target, bool keepLines)
 
     char *pendif, *pelse;
     if (!find_else_endif(pif, end, pelse, pendif))
-      DAGOR_THROW(IGenSave::SaveException("file bad - missing #endif", 0));
+    {
+      exc_text.printf(0, "%s: missing #endif", fname);
+      DAGOR_THROW(IGenSave::SaveException(exc_text, 0));
+    }
     erase(pendif, end, 6); // strlen("#endif")
 
     if (!pelse)
@@ -251,57 +290,90 @@ static int getBlockEnd(const char *str, const char *block_str, int block_str_len
   }
   return -1;
 }
-static const char *delBlock(const char *str, int at, int length, int str_len)
+static const char *delBlock(const char *str, int at, int length, int &str_len, bool keepLines)
 {
-  char *buf = new (uimem) char[str_len - length + 1];
-  _snprintf(buf, str_len - length + 1, "%.*s%s", at, str, &str[at + length]);
+  int new_lines = 0;
+  if (keepLines)
+    for (const char *p = str + at, *pe = p + length; p < pe; p++)
+      if (*p == '\n')
+        new_lines++;
+  char *buf = new (uimem) char[new_lines + str_len - length + 1];
+  if (at > 0)
+    memcpy(buf, str, at);
+  memset(buf + at, '\n', new_lines);
+  if (str_len > at + length)
+    memcpy(buf + at + new_lines, str + at + length, str_len - length - at);
+  buf[str_len - length + new_lines] = '\0';
+  str_len -= length - new_lines;
   return buf;
 }
 
 static void process_and_copy_file_to_stream(file_ptr_t fp, IGenSave &cwr, int size, const char *targetString, bool keepLines,
-  bool strip_css_comments)
+  bool strip_comments, const char *fname)
 {
   int len = size;
   char *buf = new char[size + 1];
   df_read(fp, buf, len);
   buf[len] = 0;
 
-  if (strip_css_comments)
+  preprocess(buf, len, targetString, keepLines, fname);
+  size = len;
+  if (strip_comments)
   {
     // debug("strip css commments: src_len=%d", len);
     bool strCreated = false;
     const char *lastStr = NULL;
-    const char *css_text = buf;
+    const char *text = buf;
     int i = 0;
-    int cached_strlen = i_strlen(css_text);
-    while (css_text[i] != '\0')
+    int cached_strlen = size;
+    int quote_open = 0;
+    while (text[i] != '\0')
     {
-      if (css_text[i] == '/')
+      if (text[i] == '\\' && strchr("\\\"\'", text[i + 1]))
       {
-        if (css_text[i + 1] == '/')
+        i += 2; // skip escaped symbol
+        continue;
+      }
+      if (text[i] == '"' && (!quote_open || quote_open == 1))
+        quote_open = quote_open ? 0 : 1;
+      else if (text[i] == '\'' && (!quote_open || quote_open == 2))
+        quote_open = quote_open ? 0 : 2;
+      if (quote_open)
+      {
+        // skip // and /* inside strings
+      }
+      else if (text[i] == '/')
+      {
+        if (text[i + 1] == '/')
         {
-          lastStr = css_text;
-          int delCnt = getBlockEnd(&css_text[i + 2], '\n') + 2 + 1;
-          int mlc = getBlockEnd(&css_text[i + 2], "/*", 2);
+          lastStr = text;
+          int delCnt = getBlockEnd(&text[i + 2], '\n');
+          if (delCnt >= 0)
+            delCnt += 2 + 1; // include // and \n
+          else
+            delCnt = cached_strlen - i; // remove all trailing text (as no \n found)
+          int mlc = getBlockEnd(&text[i + 2], "/*", 2);
           if ((mlc > 0) && (mlc < delCnt))
           {
-            mlc += getBlockEnd(&css_text[i + 2 + mlc], "*/", 2) + 2;
+            mlc += getBlockEnd(&text[i + 2 + mlc], "*/", 2) + 2;
             if (mlc > delCnt)
               delCnt = mlc;
           }
-          css_text = delBlock(css_text, i, delCnt, cached_strlen);
-          cached_strlen -= delCnt;
+          text = delBlock(text, i, delCnt, cached_strlen, keepLines);
           if (strCreated)
             delete (lastStr);
           strCreated = true;
           continue;
         }
-        else if (css_text[i + 1] == '*')
+        else if (text[i + 1] == '*')
         {
-          lastStr = css_text;
-          int delCnt = getBlockEnd(&css_text[i + 2], "*/", 2) + 2;
-          css_text = delBlock(css_text, i, delCnt, cached_strlen);
-          cached_strlen -= delCnt;
+          lastStr = text;
+          int delCnt = getBlockEnd(&text[i + 2], "*/", 2);
+          if (delCnt >= 0)
+            delCnt += 2; // include /*
+          else
+            delCnt = cached_strlen - i; // remove all trailing text (as no */ found)
+          text = delBlock(text, i, delCnt, cached_strlen, keepLines);
           if (strCreated)
             delete (lastStr);
           strCreated = true;
@@ -313,22 +385,31 @@ static void process_and_copy_file_to_stream(file_ptr_t fp, IGenSave &cwr, int si
     if (cached_strlen < size)
     {
       size = len = cached_strlen;
-      memcpy(buf, css_text, len);
+      memcpy(buf, text, len);
     }
     // debug("  -> stripped_len=%d", len);
   }
-  preprocess(buf, len, targetString, keepLines);
 
   cwr.write(buf, len);
   delete[] buf;
 }
 
 
-void process_and_copy_file_to_stream(const char *fname, IGenSave &cwr, const char *targetString, bool keepLines)
+void process_and_copy_file_to_stream(const char *fname, IGenSave &cwr, const char *targetString, bool keepLines, bool strip_comments)
 {
   file_ptr_t fp = df_open(fname, DF_READ);
   if (!fp)
-    DAGOR_THROW(IGenSave::SaveException("file not found", 0));
-  process_and_copy_file_to_stream(fp, cwr, df_length(fp), targetString, keepLines, stricmp(dd_get_fname_ext(fname), ".css") == 0);
+  {
+    exc_text.printf(0, "%s: file not found", fname);
+    DAGOR_THROW(IGenSave::SaveException(exc_text, 0));
+  }
+  if (const char *ext = dd_get_fname_ext(fname)) // always strip comments in *.nut, *.das, *.js and *.css
+  {
+    if (stricmp(ext, ".nut") == 0 || stricmp(ext, ".das") == 0)
+      strip_comments = keepLines = true;
+    else if (stricmp(ext, ".css") == 0 || stricmp(ext, ".js") == 0)
+      strip_comments = true;
+  }
+  process_and_copy_file_to_stream(fp, cwr, df_length(fp), targetString, keepLines, strip_comments, fname);
   df_close(fp);
 }

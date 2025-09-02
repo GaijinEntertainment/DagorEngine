@@ -47,7 +47,12 @@ hlsl(code)
   #define get_trackdirt_offset(_param) 0.0f
 }
 endmacro
-
+macro RIPPLES_USE_WATER_FLOWMAP(code)
+if (in_editor_assume == no && compatibility_mode == compatibility_mode_off)
+{
+  USE_WATER_FLOWMAP_ADD(code)
+}
+endmacro
 INIT_WATER_FLOWMAP()
 
 hlsl
@@ -88,7 +93,7 @@ shader water_ripples_update
   }
   INIT_WATER_HEIGHTMAP(ps)
   USE_WATER_HEIGHTMAP(ps)
-  USE_WATER_FLOWMAP_ADD(ps)
+  RIPPLES_USE_WATER_FLOWMAP(ps)
 
   if (water_ripples_puddles == water_ripples_puddles_on)
   {
@@ -323,7 +328,7 @@ shader water_ripples_resolve
 
   INIT_TRACKDIRT_OFFSET(ps)
   USE_TRACKDIRT_OFFSET(ps)
-  USE_WATER_FLOWMAP_ADD(ps)
+  RIPPLES_USE_WATER_FLOWMAP(ps)
 
   if (render_with_normalmap == render_displacement)
   {

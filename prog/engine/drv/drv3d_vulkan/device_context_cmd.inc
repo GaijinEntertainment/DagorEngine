@@ -5,6 +5,8 @@ VULKAN_CONTEXT_COMMAND_PARAM(ShaderStage, stage)
 
 #if VULKAN_CONTEXT_COMMAND_IMPLEMENTATION
 auto &resBinds = Backend::State::pipe.getStageResourceBinds(stage);
+if (buffer)
+  ctx.verifyResident(buffer.buffer);
 resBinds.set_raw<StateFieldGlobalConstBuffer, BufferRef>(buffer);
 #endif
 VULKAN_END_CONTEXT_COMMAND
@@ -152,10 +154,10 @@ VULKAN_BEGIN_CONTEXT_COMMAND(CompileGraphicsPipeline)
       return;
   }
 
-  Backend::State::pod.nonDrawCompile = true;
+  Backend::State::asyncCompileState.nonDrawCompile = true;
   Backend::State::exec.set<StateFieldActiveExecutionStage>(ActiveExecutionStage::GRAPHICS);
   ctx.flushGrahpicsState(top);
-  Backend::State::pod.nonDrawCompile = false;
+  Backend::State::asyncCompileState.nonDrawCompile = false;
   ctx.invalidateActiveGraphicsPipeline();
 #endif
 VULKAN_END_CONTEXT_COMMAND
@@ -335,32 +337,13 @@ VULKAN_BEGIN_CONTEXT_COMMAND(CopyBuffer)
 #endif
 VULKAN_END_CONTEXT_COMMAND
 
-VULKAN_BEGIN_CONTEXT_COMMAND(ClearBufferFloat)
+VULKAN_BEGIN_CONTEXT_COMMAND(FillBuffer)
   VULKAN_CONTEXT_COMMAND_PARAM(BufferRef, buffer)
-  VULKAN_CONTEXT_COMMAND_PARAM_ARRAY(float, values, 4)
+  VULKAN_CONTEXT_COMMAND_PARAM(uint32_t, value)
 
 #if VULKAN_CONTEXT_COMMAND_IMPLEMENTATION
-  union
-  {
-    float f;
-    unsigned i;
-  } fAsI;
-
-  fAsI.f = values[0];
-  // TODO: this is incorrect, but it works for now
-  ctx.beginCustomStage("ClearBufferFloat");
-  ctx.fillBuffer(buffer.buffer, buffer.bufOffset(0), buffer.visibleDataSize, fAsI.i);
-#endif
-VULKAN_END_CONTEXT_COMMAND
-
-VULKAN_BEGIN_CONTEXT_COMMAND(ClearBufferInt)
-  VULKAN_CONTEXT_COMMAND_PARAM(BufferRef, buffer)
-  VULKAN_CONTEXT_COMMAND_PARAM_ARRAY(int32_t, values, 4)
-
-#if VULKAN_CONTEXT_COMMAND_IMPLEMENTATION
-  // TODO: this is incorrect, but it works for now
-  ctx.beginCustomStage("ClearBufferInt");
-  ctx.fillBuffer(buffer.buffer, buffer.bufOffset(0), buffer.visibleDataSize, values[0]);
+  ctx.beginCustomStage("FillBuffer");
+  ctx.fillBuffer(buffer.buffer, buffer.bufOffset(0), buffer.visibleDataSize, value);
 #endif
 VULKAN_END_CONTEXT_COMMAND
 
@@ -480,13 +463,10 @@ VULKAN_BEGIN_CONTEXT_COMMAND(BlitImage)
   auto srcI = src;
   auto dstI = dst;
 
-  if (!srcI)
-    srcI = ctx.swapchain.getColorImage();
-  if (!dstI)
-    dstI = ctx.swapchain.getColorImage();
-
   ctx.verifyResident(srcI);
   ctx.verifyResident(dstI);
+
+  const VkFilter blitFilter = srcI->verifyLinearFilteringSupported("BlitImage", &ctx) ? VK_FILTER_LINEAR : VK_FILTER_NEAREST;
 
   Backend::sync.addImageAccess({VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT}, srcI,
     VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
@@ -503,7 +483,7 @@ VULKAN_BEGIN_CONTEXT_COMMAND(BlitImage)
   Backend::sync.completeNeeded();
 
   VULKAN_LOG_CALL(Backend::cb.wCmdBlitImage(srcI->getHandle(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, dstI->getHandle(),
-    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region, VK_FILTER_LINEAR));
+    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region, blitFilter));
   ctx.writeExectionChekpoint(VK_PIPELINE_STAGE_TRANSFER_BIT);
 #endif
 VULKAN_END_CONTEXT_COMMAND
@@ -548,26 +528,53 @@ VULKAN_BEGIN_CONTEXT_COMMAND(RecordFrameTimings)
 
   timingData->gpuWaitDuration = Backend::timings.gpuWaitDuration;
   timingData->backendFrontendWaitDuration = Backend::timings.workWaitDuration;
-  timingData->backbufferAcquireDuration = Backend::timings.acquireBackBufferDuration;
   // time blocked in present are counted from last frame
   timingData->presentDuration = Backend::timings.presentWaitDuration;
 #endif
 VULKAN_END_CONTEXT_COMMAND
 
-VULKAN_BEGIN_CONTEXT_COMMAND_NO_PROFILE(Present)
+VULKAN_BEGIN_CONTEXT_COMMAND(SwapchainImageAcquire)
+  VULKAN_CONTEXT_COMMAND_PARAM(Image *, img)
+  VULKAN_CONTEXT_COMMAND_PARAM(VulkanSemaphoreHandle, acquireSem)
 
+#if VULKAN_CONTEXT_COMMAND_IMPLEMENTATION
+  ctx.beginCustomStage("SwapchainImageAcquire");
+  // discard contents of image
+  img->layout.resetTo(VK_IMAGE_LAYOUT_UNDEFINED);
+  // as noted in spec, we must sync acquire to any stages we use image later on
+  // treat this as fake read on all stages
+  Backend::sync.addImageAccess({VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_ACCESS_MEMORY_READ_BIT}, img, VK_IMAGE_LAYOUT_UNDEFINED,
+    {0, 1, 0, 1});
+  Backend::sync.completeNeeded();
+  if (!is_null(acquireSem))
+    // non checked assume that swapchain image will be first used in graphics queue, beware
+    Globals::VK::queue[DeviceQueueType::GRAPHICS].waitExternSemaphore(acquireSem, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+#endif
+VULKAN_END_CONTEXT_COMMAND
+
+VULKAN_BEGIN_CONTEXT_COMMAND_NO_PROFILE(Present)
+VULKAN_CONTEXT_COMMAND_PARAM(WinCritSec *, mutex)
+VULKAN_CONTEXT_COMMAND_PARAM(VulkanSwapchainKHRHandle, swapchain)
+VULKAN_CONTEXT_COMMAND_PARAM(VulkanSemaphoreHandle, frameSem)
+VULKAN_CONTEXT_COMMAND_PARAM(Image *, img)
+VULKAN_CONTEXT_COMMAND_PARAM(uint32_t, imageIndex)
+VULKAN_CONTEXT_COMMAND_PARAM(uint32_t *, currentAcquireId)
+VULKAN_CONTEXT_COMMAND_PARAM(uint32_t, submitAcquireId)
+VULKAN_CONTEXT_COMMAND_PARAM(uint32_t *, backendAcquireImageIndex)
+VULKAN_CONTEXT_COMMAND_PARAM(VkResult *, backendAcquireResult)
+VULKAN_CONTEXT_COMMAND_PARAM(SwapchainImage *, images)
 #if VULKAN_CONTEXT_COMMAND_IMPLEMENTATION
 Backend::profilerStack.finish(); // ends frame core
 TIME_PROFILE(vulkan_cmdPresent)
-ctx.present();
+ctx.present(*this);
 #endif
 VULKAN_END_CONTEXT_COMMAND
 
 VULKAN_BEGIN_CONTEXT_COMMAND_NO_PROFILE(InsertTimesampQuery)
-VULKAN_CONTEXT_COMMAND_PARAM(TimestampQueryIndex, queryIndex)
+VULKAN_CONTEXT_COMMAND_PARAM(QueryIndex, queryIndex)
 
 #if VULKAN_CONTEXT_COMMAND_IMPLEMENTATION
-TimestampQueryBlock &qb = *ctx.data.timestampQueryBlock;
+QueryBlock &qb = *ctx.data.timestampQueryBlock;
 
 if (ctx.frameCoreQueue != DeviceQueueType::GRAPHICS)
 {
@@ -585,20 +592,37 @@ ctx.lastTimestampActionIdx = ctx.actionIdx;
 #endif
 VULKAN_END_CONTEXT_COMMAND
 
-VULKAN_BEGIN_CONTEXT_COMMAND(StartPreRotate)
-  VULKAN_CONTEXT_COMMAND_PARAM(uint32_t, bindingSlot)
+VULKAN_BEGIN_CONTEXT_COMMAND_NO_PROFILE(StartOcclusionQuery)
+VULKAN_CONTEXT_COMMAND_PARAM(QueryIndex, queryIndex)
 
 #if VULKAN_CONTEXT_COMMAND_IMPLEMENTATION
-  ctx.swapchain.preRotateStart(bindingSlot, Backend::gpuJob.get(), ctx);
-#endif
+QueryBlock &qb = *ctx.data.occlusionQueryBlock;
 
+G_ASSERTF(ctx.frameCoreQueue == DeviceQueueType::GRAPHICS, "vulkan: occlusion query begin on non graphics queue, from %s",
+  ctx.getCurrentCmdCaller());
+G_ASSERTF(queryIndex == qb.data.size(), "vulkan: occlusion query index %u is invalid, some queries are skipped, from %s",
+  ctx.getCurrentCmdCaller());
+
+ctx.beginCustomStage("BeginOcclusionQuery");
+VULKAN_LOG_CALL(Backend::cb.wCmdBeginQuery(qb.pool, qb.data.size(), 0));
+// dataIndexes are unused now, but possible work in this direction may done to support cross command buffer queries
+qb.dataIndexes.push_back(qb.data.size());
+qb.data.push_back(0);
+#endif
 VULKAN_END_CONTEXT_COMMAND
 
-VULKAN_BEGIN_CONTEXT_COMMAND(HoldPreRotate)
-#if VULKAN_CONTEXT_COMMAND_IMPLEMENTATION
-  ctx.swapchain.holdPreRotatedStateForOneFrame();
-#endif
+VULKAN_BEGIN_CONTEXT_COMMAND_NO_PROFILE(EndOcclusionQuery)
+VULKAN_CONTEXT_COMMAND_PARAM(QueryIndex, queryIndex)
 
+#if VULKAN_CONTEXT_COMMAND_IMPLEMENTATION
+QueryBlock &qb = *ctx.data.occlusionQueryBlock;
+
+G_ASSERTF(ctx.frameCoreQueue == DeviceQueueType::GRAPHICS, "vulkan: occlusion query end on non graphics queue, from %s",
+  ctx.getCurrentCmdCaller());
+
+ctx.beginCustomStage("EndOcclusionQuery");
+VULKAN_LOG_CALL(Backend::cb.wCmdEndQuery(qb.pool, queryIndex));
+#endif
 VULKAN_END_CONTEXT_COMMAND
 
 VULKAN_BEGIN_CONTEXT_COMMAND(GenerateMipmaps)
@@ -638,8 +662,10 @@ VULKAN_BEGIN_CONTEXT_COMMAND(GenerateMipmaps)
   blit.dstOffsets[1].y = mipExtent.height;
   blit.dstOffsets[1].z = 1;
 
+  const VkFilter blitFilter = img->verifyLinearFilteringSupported("GenerateMipmaps", &ctx) ? VK_FILTER_LINEAR : VK_FILTER_NEAREST;
+
   VULKAN_LOG_CALL(Backend::cb.wCmdBlitImage(img->getHandle(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, img->getHandle(),
-    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit, VK_FILTER_LINEAR));
+    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit, blitFilter));
 
   if (img->getMipLevels() > 2)
   {
@@ -662,7 +688,7 @@ VULKAN_BEGIN_CONTEXT_COMMAND(GenerateMipmaps)
       blit.dstOffsets[1].x = mipExtent.width;
       blit.dstOffsets[1].y = mipExtent.height;
       VULKAN_LOG_CALL(Backend::cb.wCmdBlitImage(img->getHandle(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, img->getHandle(),
-        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit, VK_FILTER_LINEAR));
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit, blitFilter));
 
       lastMipExtent = mipExtent;
     }
@@ -672,7 +698,7 @@ VULKAN_BEGIN_CONTEXT_COMMAND(GenerateMipmaps)
   // we can't know is it readed or not, so assume readed
   if (img->isUsedInBindless())
   {
-    ctx.trackBindlessRead(img);
+    ctx.trackBindlessRead(img, {0, img->getMipLevels(), 0, img->getArrayLayers()});
     Backend::sync.completeNeeded();
   }
 #endif
@@ -729,10 +755,9 @@ VULKAN_BEGIN_CONTEXT_COMMAND_TRANSIT(SetFramebufferAttachment)
 VULKAN_CONTEXT_COMMAND_PARAM(uint32_t, index)
 VULKAN_CONTEXT_COMMAND_PARAM(Image *, image)
 VULKAN_CONTEXT_COMMAND_PARAM(ImageViewState, view)
-VULKAN_CONTEXT_COMMAND_PARAM(bool, useSwapchain)
 #if VULKAN_CONTEXT_COMMAND_IMPLEMENTATION
 using Bind = StateFieldFramebufferAttachment;
-Bind bind{image, view, useSwapchain};
+Bind bind{image, view};
 Backend::State::pipe.set_raw<StateFieldFramebufferAttachments, Bind::Indexed, FrontGraphicsState, FrontFramebufferState>(
   {index, bind});
 #endif
@@ -775,10 +800,11 @@ VULKAN_END_CONTEXT_COMMAND
 
 VULKAN_BEGIN_CONTEXT_COMMAND(CaptureScreen)
   VULKAN_CONTEXT_COMMAND_PARAM(Buffer *, buffer)
+  VULKAN_CONTEXT_COMMAND_PARAM(Image *, colorImage)
+  VULKAN_CONTEXT_COMMAND_PARAM(VkFormat *, imageVkFormat)
 
 #if VULKAN_CONTEXT_COMMAND_IMPLEMENTATION
   ctx.beginCustomStage("CaptureScreen");
-  auto colorImage = ctx.swapchain.getColorImage();
 
   // do the copy to buffer
   auto extent = colorImage->getMipExtents2D(0);
@@ -794,13 +820,19 @@ VULKAN_BEGIN_CONTEXT_COMMAND(CaptureScreen)
   ctx.verifyResident(colorImage);
   ctx.verifyResident(buffer);
 
+  if (imageVkFormat)
+    *imageVkFormat = colorImage->getFormat().asVkFormat();
+
   Backend::sync.addImageAccess({VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT}, colorImage,
     VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, {0, 1, 0, 1});
   Backend::sync.addBufferAccess({VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT}, buffer, {copy.bufferOffset, copySize});
-
   Backend::sync.completeNeeded();
+
   VULKAN_LOG_CALL(
     Backend::cb.wCmdCopyImageToBuffer(colorImage->getHandle(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, buffer->getHandle(), 1, &copy));
+
+  Backend::sync.addBufferAccess({VK_PIPELINE_STAGE_HOST_BIT, VK_ACCESS_HOST_READ_BIT}, buffer, {copy.bufferOffset, copySize});
+  Backend::sync.completeNeeded();
 #endif
 VULKAN_END_CONTEXT_COMMAND
 
@@ -837,7 +869,7 @@ VULKAN_BEGIN_CONTEXT_COMMAND(AddComputeProgram)
   VULKAN_CONTEXT_COMMAND_PARAM(ShaderModuleHeader, header)
 
 #if VULKAN_CONTEXT_COMMAND_IMPLEMENTATION
-  Globals::pipelines.addCompute(ctx.vkDev, Globals::pipeCache.getHandle(), program, *sci, header);
+  Globals::pipelines.addCompute(Globals::pipeCache.getHandle(), program, *sci, header);
   delete sci;
 #endif
 VULKAN_END_CONTEXT_COMMAND
@@ -876,8 +908,8 @@ VULKAN_BEGIN_CONTEXT_COMMAND(AddGraphicsProgram)
   ShaderModules teModules = getShaderModules(te);
   ShaderModules gsModules = getShaderModules(gs);
 
-  Globals::pipelines.addGraphics(ctx.vkDev, program, *vsModules.module, *vsModules.header, *fsModules.module, *fsModules.header,
-    gsModules.module, gsModules.header, tcModules.module, tcModules.header, teModules.module, teModules.header);
+  Globals::pipelines.addGraphics(program, *vsModules.module, *vsModules.header, *fsModules.module, *fsModules.header, gsModules.module,
+    gsModules.header, tcModules.module, tcModules.header, teModules.module, teModules.header);
 
 #if VULKAN_LOAD_SHADER_EXTENDED_DEBUG_DATA
   Globals::pipelines.get<VariatedGraphicsPipeline>(program).setDebugInfo(
@@ -894,7 +926,7 @@ VULKAN_BEGIN_CONTEXT_COMMAND(PlaceAftermathMarker)
 
 #if VULKAN_CONTEXT_COMMAND_IMPLEMENTATION
 #if VK_EXT_debug_utils
-  if (ctx.vkDev.getInstance().hasExtension<DebugUtilsEXT>())
+  if (Globals::VK::inst.hasExtension<DebugUtilsEXT>())
   {
     VkDebugUtilsLabelEXT dul = {VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT};
     dul.pLabelName = ctx.data.charStore.data() + stringIndex.get();
@@ -922,7 +954,7 @@ VULKAN_END_CONTEXT_COMMAND
 
 #endif
 
-#if D3D_HAS_RAY_TRACING
+#if VULKAN_HAS_RAYTRACING
 VULKAN_BEGIN_CONTEXT_COMMAND(TraceRays)
   VULKAN_CONTEXT_COMMAND_PARAM(BufferRef, rayGenTable)
   VULKAN_CONTEXT_COMMAND_PARAM(BufferRef, missTable)
@@ -982,19 +1014,6 @@ VULKAN_END_CONTEXT_COMMAND
 
 #endif
 
-VULKAN_BEGIN_CONTEXT_COMMAND_NO_PROFILE(ChangeSwapchainMode)
-VULKAN_CONTEXT_COMMAND_PARAM(SwapchainMode, newMode)
-VULKAN_CONTEXT_COMMAND_PARAM(ThreadedFence *, fence)
-
-#if VULKAN_CONTEXT_COMMAND_IMPLEMENTATION
-Backend::profilerStack.finish(); // ends frame core
-TIME_PROFILE(vulkan_cmdChangeSwapchainMode);
-ctx.flushAndWait(nullptr);
-ctx.swapchain.changeSwapchainMode(ctx, newMode);
-fence->setSignaledExternally();
-#endif
-VULKAN_END_CONTEXT_COMMAND
-
 VULKAN_BEGIN_CONTEXT_COMMAND_NO_PROFILE(FlushAndWait)
 VULKAN_CONTEXT_COMMAND_PARAM(ThreadedFence *, userFence)
 
@@ -1005,21 +1024,13 @@ ctx.flushAndWait(userFence);
 #endif
 VULKAN_END_CONTEXT_COMMAND
 
-
-VULKAN_BEGIN_CONTEXT_COMMAND(ShutdownSwapchain)
-
-#if VULKAN_CONTEXT_COMMAND_IMPLEMENTATION
-  ctx.swapchain.shutdown(Backend::gpuJob.get());
-#endif
-VULKAN_END_CONTEXT_COMMAND
-
 VULKAN_BEGIN_CONTEXT_COMMAND(AddPipelineCache)
   VULKAN_CONTEXT_COMMAND_PARAM(VulkanPipelineCacheHandle, cache)
 #if VULKAN_CONTEXT_COMMAND_IMPLEMENTATION
   if (VULKAN_CHECK_OK(ctx.vkDev.vkMergePipelineCaches(ctx.vkDev.get(), Globals::pipeCache.getHandle(), 1, ptr(cache))))
     debug("vulkan: additional pipeline cache added");
 
-  VULKAN_LOG_CALL(ctx.vkDev.vkDestroyPipelineCache(ctx.vkDev.get(), cache, NULL));
+  VULKAN_LOG_CALL(ctx.vkDev.vkDestroyPipelineCache(ctx.vkDev.get(), cache, VKALLOC(pipeline_cache)));
 #endif
 VULKAN_END_CONTEXT_COMMAND
 
@@ -1055,7 +1066,7 @@ VULKAN_BEGIN_CONTEXT_COMMAND(DestroyImage)
   VULKAN_CONTEXT_COMMAND_PARAM(Image *, image)
 #if VULKAN_CONTEXT_COMMAND_IMPLEMENTATION
   image->markDead();
-  Backend::gpuJob.get().cleanups.enqueueFromBackend<Image::CLEANUP_DESTROY>(*image);
+  Backend::gpuJob.get().cleanups.enqueue(*image);
 #endif
 VULKAN_END_CONTEXT_COMMAND
 
@@ -1064,7 +1075,7 @@ VULKAN_BEGIN_CONTEXT_COMMAND(DestroyRenderPassResource)
 #if VULKAN_CONTEXT_COMMAND_IMPLEMENTATION
   rp->markDead();
   if (Backend::State::pendingCleanups.removeWithReferenceCheck(rp, Backend::State::pipe))
-    Backend::gpuJob.get().cleanups.enqueueFromBackend<RenderPassResource::CLEANUP_DESTROY>(*rp);
+    Backend::gpuJob.get().cleanups.enqueue(*rp);
 #endif
 VULKAN_END_CONTEXT_COMMAND
 
@@ -1073,7 +1084,7 @@ VULKAN_BEGIN_CONTEXT_COMMAND(DestroyBuffer)
 #if VULKAN_CONTEXT_COMMAND_IMPLEMENTATION
   buffer->markDead();
   if (Backend::State::pendingCleanups.removeWithReferenceCheck(buffer, Backend::State::pipe))
-    Backend::gpuJob.get().cleanups.enqueueFromBackend<Buffer::CLEANUP_DESTROY>(*buffer);
+    Backend::gpuJob.get().cleanups.enqueue(*buffer);
 #endif
 VULKAN_END_CONTEXT_COMMAND
 
@@ -1081,7 +1092,23 @@ VULKAN_BEGIN_CONTEXT_COMMAND(DestroyHeap)
   VULKAN_CONTEXT_COMMAND_PARAM(MemoryHeapResource *, heap)
 #if VULKAN_CONTEXT_COMMAND_IMPLEMENTATION
   heap->markDead();
-  Backend::gpuJob.get().cleanups.enqueueFromBackend<MemoryHeapResource::CLEANUP_DESTROY>(*heap);
+  Backend::gpuJob.get().cleanups.enqueue(*heap);
+#endif
+VULKAN_END_CONTEXT_COMMAND
+
+VULKAN_BEGIN_CONTEXT_COMMAND(DestroyTLAS)
+  VULKAN_CONTEXT_COMMAND_PARAM(RaytraceAccelerationStructure *, tlas)
+#if VULKAN_CONTEXT_COMMAND_IMPLEMENTATION
+  tlas->markDead();
+  Backend::gpuJob.get().cleanups.enqueue<CleanupTag::DESTROY_TOP>(*tlas);
+#endif
+VULKAN_END_CONTEXT_COMMAND
+
+VULKAN_BEGIN_CONTEXT_COMMAND(DestroyBLAS)
+  VULKAN_CONTEXT_COMMAND_PARAM(RaytraceAccelerationStructure *, blas)
+#if VULKAN_CONTEXT_COMMAND_IMPLEMENTATION
+  blas->markDead();
+  Backend::gpuJob.get().cleanups.enqueue<CleanupTag::DESTROY_BOTTOM>(*blas);
 #endif
 VULKAN_END_CONTEXT_COMMAND
 
@@ -1131,6 +1158,46 @@ VULKAN_BEGIN_CONTEXT_COMMAND(ExecuteFSR)
 #if VULKAN_CONTEXT_COMMAND_IMPLEMENTATION
   ctx.beginCustomStage("executeFSR");
   ctx.executeFSR(fsr, params);
+#endif
+VULKAN_END_CONTEXT_COMMAND
+
+VULKAN_BEGIN_CONTEXT_COMMAND(ExecuteDLSS)
+  VULKAN_CONTEXT_COMMAND_PARAM(nv::DlssParams<Image>, params)
+
+#if VULKAN_CONTEXT_COMMAND_IMPLEMENTATION
+  ctx.beginCustomStage("executeDLSS");
+  ctx.executeDLSS(params);
+#endif
+VULKAN_END_CONTEXT_COMMAND
+
+VULKAN_BEGIN_CONTEXT_COMMAND(InitializeDLSS)
+  VULKAN_CONTEXT_COMMAND_PARAM(int, mode)
+  VULKAN_CONTEXT_COMMAND_PARAM(int, width)
+  VULKAN_CONTEXT_COMMAND_PARAM(int, height)
+
+#if VULKAN_CONTEXT_COMMAND_IMPLEMENTATION
+  ctx.beginCustomStage("initializeDLSS");
+  ctx.initializeDLSS(mode, width, height);
+#endif
+VULKAN_END_CONTEXT_COMMAND
+
+VULKAN_BEGIN_CONTEXT_COMMAND(InitializeStreamlineDLSS)
+  VULKAN_CONTEXT_COMMAND_PARAM(int, width)
+  VULKAN_CONTEXT_COMMAND_PARAM(int, height)
+
+#if VULKAN_CONTEXT_COMMAND_IMPLEMENTATION
+  ctx.beginCustomStage("initializeStreamlineDlss");
+  ctx.initializeStreamlineDlss(width, height);
+#endif
+VULKAN_END_CONTEXT_COMMAND
+
+VULKAN_BEGIN_CONTEXT_COMMAND(ExecuteStreamlineDLSS)
+  VULKAN_CONTEXT_COMMAND_PARAM(nv::DlssParams<Image>, dlssParams)
+  VULKAN_CONTEXT_COMMAND_PARAM(int, view_index)
+
+#if VULKAN_CONTEXT_COMMAND_IMPLEMENTATION
+  ctx.beginCustomStage("executeStreamlineDlss");
+  ctx.executeStreamlineDlss(dlssParams, view_index);
 #endif
 VULKAN_END_CONTEXT_COMMAND
 
@@ -1290,20 +1357,24 @@ drv3d_vulkan::Globals::pipelines.setAsyncCompile(mask);
 #endif
 VULKAN_END_CONTEXT_COMMAND
 
-VULKAN_BEGIN_CONTEXT_COMMAND(CopyBindlessDescriptors)
-  VULKAN_CONTEXT_COMMAND_PARAM(uint32_t, resourceType)
-  VULKAN_CONTEXT_COMMAND_PARAM(uint32_t, src)
-  VULKAN_CONTEXT_COMMAND_PARAM(uint32_t, dst)
-  VULKAN_CONTEXT_COMMAND_PARAM(uint32_t, count)
+VULKAN_BEGIN_CONTEXT_COMMAND(AsyncPipeFeedbackBegin)
+  VULKAN_CONTEXT_COMMAND_PARAM(uint32_t *, feedbackPtr)
 #if VULKAN_CONTEXT_COMMAND_IMPLEMENTATION
-  Backend::bindless.copyBindlessDescriptors(resourceType, src, dst, count);
+  for (int i = 0; i < Backend::State::asyncCompileState.asyncPipelineCompileFeedbackStack.size(); i++)
+    interlocked_add(*Backend::State::asyncCompileState.asyncPipelineCompileFeedbackStack[i],
+      Backend::State::asyncCompileState.currentSkippedCount);
+  Backend::State::asyncCompileState.currentSkippedCount = 0;
+  Backend::State::asyncCompileState.asyncPipelineCompileFeedbackStack.push_back(feedbackPtr);
 #endif
 VULKAN_END_CONTEXT_COMMAND
 
-VULKAN_BEGIN_CONTEXT_COMMAND(AsyncPipeFeedbackPtr)
-  VULKAN_CONTEXT_COMMAND_PARAM(uint32_t *, feedbackPtr)
+VULKAN_BEGIN_CONTEXT_COMMAND(AsyncPipeFeedbackEnd)
 #if VULKAN_CONTEXT_COMMAND_IMPLEMENTATION
-  Backend::State::pod.asyncPipelineCompileFeedbackPtr = feedbackPtr;
+  uint32_t stackSize = Backend::State::asyncCompileState.asyncPipelineCompileFeedbackStack.size();
+  G_ASSERT(stackSize > 0);
+  interlocked_add(*Backend::State::asyncCompileState.asyncPipelineCompileFeedbackStack[stackSize - 1],
+    Backend::State::asyncCompileState.currentSkippedCount);
+  Backend::State::asyncCompileState.asyncPipelineCompileFeedbackStack.pop_back();
 #endif
 VULKAN_END_CONTEXT_COMMAND
 
@@ -1335,7 +1406,7 @@ VULKAN_END_CONTEXT_COMMAND
 VULKAN_BEGIN_CONTEXT_COMMAND(QueueSwitch)
   VULKAN_CONTEXT_COMMAND_PARAM(int, queue)
 #if VULKAN_CONTEXT_COMMAND_IMPLEMENTATION
-  if (!Globals::cfg.bits.allowMultiQueue)
+  if (!Globals::cfg.bits.allowUserProvidedMultiQueue)
     return;
   if ((int)ctx.frameCoreQueue == queue)
     return;
@@ -1353,7 +1424,7 @@ VULKAN_BEGIN_CONTEXT_COMMAND(QueueSignal)
   VULKAN_CONTEXT_COMMAND_PARAM(uint32_t, signalIdx)
   VULKAN_CONTEXT_COMMAND_PARAM(int, queue)
 #if VULKAN_CONTEXT_COMMAND_IMPLEMENTATION
-  if (!Globals::cfg.bits.allowMultiQueue)
+  if (!Globals::cfg.bits.allowUserProvidedMultiQueue)
     return;
   ctx.recordUserQueueSignal(signalIdx, (DeviceQueueType)queue);
 #endif
@@ -1363,7 +1434,7 @@ VULKAN_BEGIN_CONTEXT_COMMAND(QueueWait)
   VULKAN_CONTEXT_COMMAND_PARAM(uint32_t, signalIdx)
   VULKAN_CONTEXT_COMMAND_PARAM(int, queue)
 #if VULKAN_CONTEXT_COMMAND_IMPLEMENTATION
-  if (!Globals::cfg.bits.allowMultiQueue)
+  if (!Globals::cfg.bits.allowUserProvidedMultiQueue)
     return;
 
   // interrupt command buffer on wait, to avoid waiting for previous work together with next work

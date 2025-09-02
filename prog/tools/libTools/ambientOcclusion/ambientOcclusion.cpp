@@ -6,8 +6,10 @@
 #include <math/dag_TMatrix.h>
 #include <math/dag_Point4.h>
 #include <util/dag_bitArray.h>
-#include <math/random/dag_random.h>
+#include <gameMath/objgenPrng.h>
 #include <sceneRay/dag_sceneRay.h>
+
+using namespace objgenerator; // prng
 
 struct PrtSamples
 {
@@ -140,7 +142,7 @@ void calculatePRT(MeshData &meshData, const TMatrix &toWorld, StaticSceneRayTrac
       float a, b;
       do
       {
-        a = _frnd(seed1), b = _frnd(seed2);
+        a = frnd(seed1), b = frnd(seed2);
         if (a + b > 1)
         {
           b = 1 - b;

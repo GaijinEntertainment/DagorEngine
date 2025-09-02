@@ -1,9 +1,11 @@
 #include <daECS/core/internal/ltComponentList.h>
 static constexpr ecs::component_t appearance__rndSeed_get_type();
 static ecs::LTComponentList appearance__rndSeed_component(ECS_HASH("appearance__rndSeed"), appearance__rndSeed_get_type(), "prog/daNetGameLibs/dynamic_details/render/dynamicDetailsES.cpp.inl", "dynamic_details_es_event_handler", 0);
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "dynamicDetailsES.cpp.inl"
 ECS_DEF_PULL_VAR(dynamicDetails);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 //static constexpr ecs::ComponentDesc create_dynamic_details_es_comps[] ={};
 static void create_dynamic_details_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
@@ -33,7 +35,9 @@ static constexpr ecs::ComponentDesc dynamic_details_es_event_handler_comps[] =
   {ECS_HASH("dynamic_details__groups"), ecs::ComponentTypeInfo<ecs::Object>()},
   {ECS_HASH("dynamic_details__presets"), ecs::ComponentTypeInfo<ecs::Array>()},
   {ECS_HASH("dynamic_details_preset"), ecs::ComponentTypeInfo<ecs::Array>(), ecs::CDF_OPTIONAL},
-  {ECS_HASH("skeleton_attach__attachedTo"), ecs::ComponentTypeInfo<ecs::EntityId>()}
+  {ECS_HASH("animchar_attach__attachedTo"), ecs::ComponentTypeInfo<ecs::EntityId>()},
+//start of 1 rq components at [5]
+  {ECS_HASH("skeleton_attach__attached"), ecs::ComponentTypeInfo<bool>()}
 };
 static void dynamic_details_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
@@ -43,7 +47,7 @@ static void dynamic_details_es_event_handler_all_events(const ecs::Event &__rest
     , ECS_RO_COMP(dynamic_details_es_event_handler_comps, "dynamic_details__groups", ecs::Object)
     , ECS_RO_COMP(dynamic_details_es_event_handler_comps, "dynamic_details__presets", ecs::Array)
     , ECS_RO_COMP_PTR(dynamic_details_es_event_handler_comps, "dynamic_details_preset", ecs::Array)
-    , ECS_RO_COMP(dynamic_details_es_event_handler_comps, "skeleton_attach__attachedTo", ecs::EntityId)
+    , ECS_RO_COMP(dynamic_details_es_event_handler_comps, "animchar_attach__attachedTo", ecs::EntityId)
     );
   while (++comp != compE);
 }
@@ -54,12 +58,12 @@ static ecs::EntitySystemDesc dynamic_details_es_event_handler_es_desc
   ecs::EntitySystemOps(nullptr, dynamic_details_es_event_handler_all_events),
   make_span(dynamic_details_es_event_handler_comps+0, 1)/*rw*/,
   make_span(dynamic_details_es_event_handler_comps+1, 4)/*ro*/,
-  empty_span(),
+  make_span(dynamic_details_es_event_handler_comps+5, 1)/*rq*/,
   empty_span(),
   ecs::EventSetBuilder<ecs::EventEntityCreated,
                        ecs::EventComponentsAppear>::build(),
   0
-,"render","skeleton_attach__attachedTo");
+,"render","animchar_attach__attachedTo");
 static constexpr ecs::ComponentDesc dynamic_detials_after_reset_es_comps[] =
 {
 //start of 1 rw components at [0]
@@ -152,10 +156,10 @@ static constexpr ecs::ComponentDesc info_dynamic_details_selected_ecs_query_comp
 //start of 1 ro components at [1]
   {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
 //start of 5 rq components at [2]
+  {ECS_HASH("skeleton_attach__attached"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("animchar"), ecs::ComponentTypeInfo<AnimV20::AnimcharBaseComponent>()},
   {ECS_HASH("dynamic_details__presets"), ecs::ComponentTypeInfo<ecs::Array>()},
   {ECS_HASH("dynamic_details__groups"), ecs::ComponentTypeInfo<ecs::Object>()},
-  {ECS_HASH("skeleton_attach__attachedTo"), ecs::ComponentTypeInfo<ecs::EntityId>()},
   {ECS_HASH("daeditor__selected"), ecs::ComponentTypeInfo<ecs::Tag>()}
 };
 static ecs::CompileTimeQueryDesc info_dynamic_details_selected_ecs_query_desc

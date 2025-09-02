@@ -24,8 +24,8 @@
 #include "sha1_cache_version.h"
 #include "shLog.h"
 #include "shCompiler.h"
+#include "makeShBinDump.h"
 #include "globalConfig.h"
-#include "shadervarGenerator.h"
 #include <ioSys/dag_io.h>
 #include "shCacheVer.h"
 // #include <shaders/shOpcodeUnittest.h>
@@ -43,7 +43,6 @@
 #include <perfMon/dag_cpuFreq.h>
 
 #include "DebugLevel.h"
-#include <libTools/util/atomicPrintf.h>
 
 #include "cppStcode.h"
 #include <EASTL/string.h>
@@ -69,8 +68,13 @@ extern char **__argv;
 void SleepEx(uint32_t ms, bool) { usleep(ms * 1000); }
 #endif
 
+#include "hash.h"
 
-#if _CROSS_TARGET_C1
+#include <cstdarg>
+
+#if _CROSS_TARGET_EMPTY
+#define OUTPUT_DIR "_output-stub/"
+#elif _CROSS_TARGET_C1
 
 
 #elif _CROSS_TARGET_C2
@@ -102,31 +106,32 @@ extern void add_shaders_inc_base(const char *base);
 
 #if _CROSS_TARGET_METAL || _CROSS_TARGET_SPIRV
 extern const char *debug_output_dir;
+extern const char *debug_output_dir_shader_name;
 #endif
 
 #define QUOTE(x) #x
 #define STR(x)   QUOTE(x)
 static void show_header()
 {
-  printf("Dagor Shader Compiler %s (dump format '%c%c%c%c', obj format '%c%c%c%c', shader cache ver 0x%x)\n"
-#if _CROSS_TARGET_C1
+  sh_printf("Dagor Shader Compiler %s (dump format '%c%c%c%c', obj format '%c%c%c%c', shader cache ver 0x%x)\n"
+#if _CROSS_TARGET_EMPTY
+            "Target: stub.%s"
+#elif _CROSS_TARGET_C1
 
 #elif _CROSS_TARGET_C2
 
 #elif _CROSS_TARGET_SPIRV
-         "Target: Spir-V via HLSLcc (dxbc->glsl), DX SDK %s"
+            "Target: Spir-V via HLSLcc (dxbc->glsl), DX SDK %s"
 #elif _CROSS_TARGET_METAL
-         "Target: Metal via HLSL2GLS"
+            "Target: Metal via HLSL2GLS"
 #elif _CROSS_TARGET_DX12
-         "Target: XboxOne or PC DirectX 12, DXC"
+            "Target: XboxOne or PC DirectX 12, DXC"
 #elif _CROSS_TARGET_DX11
-         "Target: PC DirectX 11, SDK.%s"
-#elif _CROSS_TARGET_EMPTY
-         "Target: stub.%s"
+            "Target: PC DirectX 11, SDK.%s"
 #else
 #error "DX9 support dropped"
 #endif
-         "\n\nCopyright (C) Gaijin Games KFT, 2023\n",
+            "\n\nCopyright (C) Gaijin Games KFT, 2023\n",
     shc::config().version, _DUMP4C(SHADER_BINDUMP_VER), _DUMP4C(SHADER_CACHE_VER), sha1_cache_version
 #if _CROSS_TARGET_C1
 
@@ -146,11 +151,11 @@ static void show_header()
 #undef STR
 
 
-// @TODO: update usage (-optionalAsBranches, maybe there is something else)
+// @TODO: update usage
 static void showUsage()
 {
   show_header();
-  printf(
+  sh_printf(
     "\nUsage:\n"
     "  dsc2-dev.exe <config blk-file|single *.dshl file> <optional options>\n"
     "\n"
@@ -174,6 +179,7 @@ static void showUsage()
     "  -wall - print really all warning, including strange ones\n"
     "  -nosave - no save output code (for debugs)\n"
     "  -debug - enable debugging mode in shaders. It assumes the DEBUG = yes interval, and enables assert\n"
+    "  -allowLargeDumpSize - remove limitation on compressed lib/bindump size. Use at your discretion\n"
 #if _CROSS_TARGET_C1 | _CROSS_TARGET_C2
 
 #else
@@ -206,17 +212,18 @@ static void showUsage()
     "  -logExactTiming - enable logging of compilation times with 0.001s (1ms) precision\n"
     "  -perFileAllLogs - enable logging of compilation times for all files with additional info\n"
     "  -saveDumpOnCrash - save a dump for the proccess if there is a critical issue during compilation (could cause a process hung)\n"
-    "  -cppStcode       - compile cpp stcode along with bytecode (overrides compileCppStcode:b from blk).\n"
+    "  -cppStcode       - compile cpp stcode along with bytecode (overrides compileCppStcode:b from blk). use "
+    "-cppStcode=[regular|brances] for specific mode (regular is default).\n"
     "  -noCppStcode     - complie only bytecode stcode (overrides compileCppStcode:b from blk).\n"
     "  -useCpujobsBackend - Use old cpujobs as the mt backend. Shows worse cpu utilizaiton, kept as a fallback for now.\n"
     "  -cppUnityBuild   - use unity build for cpp stcode.\n"
     "  -cppStcodeArch   - Arch for stcode compilation. Default is chosen when it is not specified. Opts: "
-    "x86|x86_64|arm64|arm64e|armv7|armv7s|armeabi-v7a|arm64-v8a|i386|e2k.\n"
+    "  -cppStcodeConfig - build config for cpp stcode [dev|rel|dbg]. Default is dev.\n"
     "  -cppStcodePlatform - Platform for stcode compilation. Win is chosen when it is not specified. Current opts: pc|android.\n"
+    "  -cppStcodeTag - Custom tag for cppstcode dynlib, could be used for keeping multiple versions of the dynlib.\n"
+    "  -generateCppStcodeValidationData - generate const-setting masks for bytecode and cppstcode for runtime validation.\n"
 #if _CROSS_TARGET_DX12
     "  -localTimestamp - use filesystem timestamps for shader classes instead of git commit timestamps\n"
-    "  -autotestMode - disables some features for test speed. Currently disables phase 2 of xbox compilation\n"
-    "compilation tests\n"
 #endif
 #if _CROSS_TARGET_SPIRV || _CROSS_TARGET_METAL
     "  -enableBindless:<on|off> - enables utilizing bindless features (default: "
@@ -250,6 +257,10 @@ static void showUsage()
 #endif
 #if _CROSS_TARGET_SPIRV || _CROSS_TARGET_METAL
     "  -debugdir DIR   - use DIR to store debuginfo for shader debugger\n"
+    "  -intervalsdebugdir DIR - use DIR to store intervals for compiled shaders\n"
+    "  -spirv-dxc-path DIR - use DIR to load dxc binaries from\n"
+    "  -spirv-dxc-params KEY VALUE - pass additional KEY VALUE parameter to dxc, pass _ as VALUE if no VALUE needed\n"
+    "  -allowNoDXC - don't fail if dxc dynlib is not found, but just don't compile shaders (for stcode-only builds)"
 #endif
 #if !_CROSS_TARGET_C1 && !_CROSS_TARGET_C2
     "  -fsh:<1.1|1.3|1.4|2.0|2.b|2.a|3.0> - set fsh version (<2.0> by default)\n"
@@ -258,10 +269,10 @@ static void showUsage()
 }
 
 #if _TARGET_PC_LINUX | _TARGET_PC_MACOSX
-static pthread_t sigint_handler_thread;
+static pthread_t g_sigint_handler_thread;
 #endif
 
-static bool doCompileModulesAsync(const ShVariantName &sv)
+static bool doCompileModulesAsync(const ShCompilationInfo &comp)
 {
   eastl::string cmdname(__argv[0]);
 #if _TARGET_PC_WIN
@@ -273,28 +284,32 @@ static bool doCompileModulesAsync(const ShVariantName &sv)
   for (int i = 1; i < __argc; i++)
     commonArgv.emplace_back(__argv[i]);
   commonArgv.emplace_back("-r");
-  if (shc::config().compileCppStcode)
+  if (shc::config().cppStcodeMode != shader_layout::ExternalStcodeMode::NONE)
+  {
     commonArgv.emplace_back("-cppStcode");
+    commonArgv.emplace_back(shc::config().cppStcodeMode == shader_layout::ExternalStcodeMode::BRANCHED_CPP ? "branches" : "regular");
+  }
 
-  if (sv.sourceFilesList.size() < 2)
+  if (comp.sources().size() < 2)
     return false;
 
   int timeMsec = get_time_msec();
   int modules_cnt = 0;
-  for (int i = 0; i < sv.sourceFilesList.size(); i++)
+  for (int i = 0; i < comp.sources().size(); i++)
   {
-    if (!shc::should_recompile_sh(sv, sv.sourceFilesList[i]) && !shc::config().forceRebuild)
+    if (!shc::should_recompile_sh(comp, comp.sources()[i]) && !shc::config().forceRebuild)
       continue;
 
     auto argv = commonArgv;
     argv.emplace_back("-c");
-    argv.emplace_back(sv.sourceFilesList[i].c_str());
+    argv.emplace_back(comp.sources()[i].c_str());
 
     // clang-format off
     proc::enqueue(proc::ProcessTask{
       eastl::move(argv),
       eastl::nullopt,
-      [fname = eastl::string(shc::get_obj_file_name_from_source(sv.sourceFilesList[i], sv))] {
+      [] {},
+      [fname = eastl::string(shc::get_obj_file_name_from_source(comp.sources()[i], comp))] {
         if (dd_file_exist(fname.c_str()))
           dd_erase(fname.c_str());
       }});
@@ -331,54 +346,79 @@ static bool remove_recursive(const char *dirname)
 {
   if (!dd_dir_exist(dirname))
     return false;
-  alefind_t ff;
   char dirmask[320] = {0};
   SNPRINTF(dirmask, sizeof(dirmask), "%s/*.*", dirname);
   bool ret = true;
-  if (dd_find_first(dirmask, DA_SUBDIR, &ff))
+  for (const alefind_t &ff : dd_find_iterator(dirmask, DA_SUBDIR))
   {
-    do
-    {
-      SNPRINTF(dirmask, sizeof(dirmask), "%s/%s", dirname, ff.name);
-      ret &= (ff.attr & DA_SUBDIR) ? remove_recursive(dirmask) : dd_erase(dirmask);
-    } while (dd_find_next(&ff));
-    dd_find_close(&ff);
+    SNPRINTF(dirmask, sizeof(dirmask), "%s/%s", dirname, ff.name);
+    ret &= (ff.attr & DA_SUBDIR) ? remove_recursive(dirmask) : dd_erase(dirmask);
   }
   ret &= dd_rmdir(dirname);
   return ret;
 }
 
-static void compile(Tab<String> &source_files, const char *fn, const char *bindump_fnprefix, const ShHardwareOptions &opt,
-  const char *blk_file_name, const char *cfg_dir, const char *binminidump_fnprefix, BindumpPackingFlags packing_flags,
-  shc::CompilerConfig &config_rw)
+static void mergeDataBlock(DataBlock &dest, const DataBlock &src, const SCFastNameMap *ex_nm = NULL)
 {
-  ShVariantName sv(dd_get_fname(fn), opt);
-  ShaderParser::AssembleShaderEvalCB::buildHwDefines(opt);
-  sv.sourceFilesList = source_files;
-  for (int i = 0; i < sv.sourceFilesList.size(); i++)
-    simplify_fname(sv.sourceFilesList[i]);
+  int num = src.paramCount();
+  for (int i = 0; i < num; ++i)
+  {
+    const char *name = src.getParamName(i);
+
+    switch (src.getParamType(i))
+    {
+      case DataBlock::TYPE_INT: dest.setInt(name, src.getInt(i)); break;
+      case DataBlock::TYPE_REAL: dest.setReal(name, src.getReal(i)); break;
+      case DataBlock::TYPE_BOOL: dest.setBool(name, src.getBool(i)); break;
+
+      default: sh_debug(SHLOG_WARNING, "unsupported type=%d", src.getParamType(i));
+    }
+  }
+
+  num = src.blockCount();
+  for (int i = 0; i < num; ++i)
+  {
+    const char *name = src.getBlock(i)->getBlockName();
+    DataBlock *d = dest.getBlockByName(name);
+    if (!d || (ex_nm && ex_nm->getNameId(name) != -1))
+      d = dest.addNewBlock(src.getBlock(i), name);
+    else
+      mergeDataBlock(*d, *src.getBlock(i));
+  }
+}
+
+static void compile(Tab<String> &&source_files, const char *fn, const char *bindump_fnprefix, const ShHardwareOptions &opt,
+  const char *blk_file_name, const char *cfg_dir, const char *binminidump_fnprefix, BindumpPackingFlags packing_flags,
+  shc::CompilerConfig &config_rw, const DataBlock *config_args)
+{
+  Tab<String> sourceList = eastl::move(source_files);
+  String intermediateDir{};
+
+  for (String &fname : sourceList)
+    simplify_fname(fname);
+
   if (shc::config().singleCompilationShName)
   {
-    for (int i = 0; i < sv.sourceFilesList.size(); i++)
-      if (sv.sourceFilesList[i] == shc::config().singleCompilationShName)
+    for (int i = 0; i < sourceList.size(); i++)
+      if (sourceList[i] == shc::config().singleCompilationShName)
       {
-        clear_and_shrink(sv.sourceFilesList);
-        sv.sourceFilesList.push_back() = shc::config().singleCompilationShName;
+        clear_and_shrink(sourceList);
+        sourceList.emplace_back(shc::config().singleCompilationShName);
         break;
       }
 
-    if (sv.sourceFilesList.size() != 1 || sv.sourceFilesList[0] != shc::config().singleCompilationShName)
+    if (sourceList.size() != 1 || sourceList[0] != shc::config().singleCompilationShName)
     {
       sh_debug(SHLOG_ERROR, "unknown source '%s', available are:", shc::config().singleCompilationShName);
 
-      int linesForStdout = min<size_t>(100ul, sv.sourceFilesList.size());
+      int linesForStdout = min<size_t>(100ul, sourceList.size());
       for (int i = 0; i < linesForStdout; i++)
-        sh_debug(SHLOG_NORMAL, "    %s", sv.sourceFilesList[i]);
-      if (linesForStdout > sv.sourceFilesList.size())
+        sh_debug(SHLOG_NORMAL, "    %s", sourceList[i]);
+      if (linesForStdout > sourceList.size())
       {
         sh_debug(SHLOG_NORMAL, "\nToo many available files, see full list in log");
-        for (int i = linesForStdout; i < sv.sourceFilesList.size(); i++)
-          debug("    %s", sv.sourceFilesList[i]);
+        for (int i = linesForStdout; i < sourceList.size(); i++)
+          debug("    %s", sourceList[i]);
       }
 
       sh_process_errors();
@@ -387,16 +427,14 @@ static void compile(Tab<String> &source_files, const char *fn, const char *bindu
   }
 
   if (shc::config().intermediateDir)
-  {
-    sv.intermediateDir = shc::config().intermediateDir;
-  }
+    intermediateDir = shc::config().intermediateDir;
   else
   {
-    char intermediateDir[260];
-    dd_get_fname_location(intermediateDir, fn);
-    dd_append_slash_c(intermediateDir);
-    strcat(intermediateDir, OUTPUT_DIR);
-    sv.intermediateDir = intermediateDir;
+    char intermediateDirBuf[260];
+    dd_get_fname_location(intermediateDirBuf, fn);
+    dd_append_slash_c(intermediateDirBuf);
+    strcat(intermediateDirBuf, OUTPUT_DIR);
+    intermediateDir = intermediateDirBuf;
   }
   String additionalDirStr;
   additionalDirStr.aprintf(0, "-O%d", shc::config().hlslOptimizationLevel);
@@ -413,91 +451,72 @@ static void compile(Tab<String> &source_files, const char *fn, const char *bindu
 #if _CROSS_TARGET_SPIRV || _CROSS_TARGET_METAL
   if (shc::config().enableBindless)
     additionalDirStr += "-bindless";
+  additionalDirStr.aprintf(0, "-dxc%s", spirv::getDXCVerString(shc::config().dxcContext));
+  String comboPars("");
+  for (const String &i : shc::config().dxcParams)
+    comboPars += i;
+  if (!comboPars.empty())
+    additionalDirStr.aprintf(0, "-dxcp%08lX", get_hash(comboPars.c_str()));
 #endif
-  if (shc::config().autotestMode)
-    additionalDirStr += "-autotest";
 
-  sv.intermediateDir += additionalDirStr;
-  dd_mkdir(sv.intermediateDir);
-  SNPRINTF(sha1_cache_dir_buf, sizeof(sha1_cache_dir_buf), "%s/../../shaders_sha~%s%s", sv.intermediateDir.c_str(),
+  intermediateDir += additionalDirStr;
+  dd_mkdir(intermediateDir.c_str());
+  SNPRINTF(sha1_cache_dir_buf, sizeof(sha1_cache_dir_buf), "%s/../../shaders_sha~%s%s", intermediateDir.c_str(),
     shc::config().crossCompiler, additionalDirStr.c_str());
   config_rw.sha1CacheDir = sha1_cache_dir_buf;
   if (shc::config().purgeSha1)
   {
     debug("purging cache %s: %s", shc::config().sha1CacheDir, remove_recursive(shc::config().sha1CacheDir) ? "success" : "error");
   }
-  sv.dest = String(0, "%s/%s", sv.intermediateDir, sv.dest);
-  debug("dest: %s", sv.dest);
 
-  bool isBlkChanged = false;
-  eastl::string blkHashFilename;
-  using HashBytes = eastl::array<uint8_t, 20>;
-  HashBytes blkHash;
+  const char *destFnBase = dd_get_fname(fn);
+
+  debug("dest: %s", destFnBase);
+
+  BlkHashBytes blkHash = {};
   if (blk_file_name)
   {
-    blkHashFilename = eastl::string(eastl::string::CtorSprintf{}, "%s/blk_hash.txt", sv.intermediateDir.c_str());
     IGenSave *hasher = create_hash_computer_cb(HASH_SAVECB_SHA1);
     DataBlock blk(blk_file_name);
+    if (config_args)
+      mergeDataBlock(blk, *config_args);
     blk.removeBlock("source");
     blk.removeBlock("explicit_var_ref");
     blk.removeParam("outDumpName");
     blk.removeParam("outMiniDumpName");
     blk.removeParam("packBin");
     blk.removeParam("packShGroups");
-    blk.removeParam("compileCppStcode"); // This will be added back in with possible override
+    blk.removeParam("compileCppStcode");         // This will be added back in with possible override
+    blk.removeParam("cppStcodeDynamicBranches"); // same here
     if (shc::config().addTextureType)
       blk.addBool("addTextureType", true);
-    if (shc::config().compileCppStcode)
+    if (shc::config().cppStcodeMode != shader_layout::ExternalStcodeMode::NONE)
       blk.addBool("compileCppStcode", true);
+    if (shc::config().cppStcodeMode == shader_layout::ExternalStcodeMode::BRANCHED_CPP)
+      blk.addBool("cppStcodeDynamicBranches", true);
     if (shc::config().cppStcodeUnityBuild)
       blk.addBool("cppStcodeUnityBuild", true);
-    if (shc::config().cppStcodeArch != StcodeTargetArch::DEFAULT)
-      blk.addInt("cppStcodeArch", (int)shc::config().cppStcodeArch);
+    if (shc::config().generateCppStcodeValidationData)
+      blk.addBool("generateCppStcodeValidationData", true);
     blk.saveToTextStream(*hasher);
     get_computed_hash(hasher, blkHash.data(), blkHash.size());
     destory_hash_computer_cb(hasher);
-    String new_hash_hex;
-    data_to_str_hex(new_hash_hex, blkHash.data(), blkHash.size());
-    // blk.saveToTextFile(String(0, "%s-stripped-%s.blk", blk_file_name, new_hash_hex));
-    auto blkHashFile = df_open(blkHashFilename.c_str(), DF_READ);
-    if (blkHashFile)
-    {
-      HashBytes previosBlkHash;
-      df_read(blkHashFile, previosBlkHash.data(), previosBlkHash.size());
-      df_close(blkHashFile);
-      isBlkChanged = memcmp(previosBlkHash.data(), blkHash.data(), blkHash.size()) != 0;
-      String old_hash_hex;
-      data_to_str_hex(old_hash_hex, previosBlkHash.data(), previosBlkHash.size());
-      sh_debug(SHLOG_INFO, "'%s' hash=%s, '%s' hash=%s => isBlkChanged=%d", blkHashFilename.c_str(), old_hash_hex, blk_file_name,
-        new_hash_hex, isBlkChanged);
-    }
-    else
-    {
-      isBlkChanged = true;
-      sh_debug(SHLOG_INFO, "Previous hash missed (%s), '%s' hash=%s => isBlkChanged=%d", blkHashFilename.c_str(), blk_file_name,
-        new_hash_hex, isBlkChanged);
-    }
+
+    if (!shc::config().singleCompilationShName)
+      sh_debug(SHLOG_NORMAL, "Compilation blk hash is : '%s'", blk_hash_string(blkHash).c_str());
+  }
+  else
+  {
+    if (!shc::config().singleCompilationShName)
+      sh_debug(SHLOG_NORMAL, "Compilation blk is not used");
   }
 
-  if (isBlkChanged)
-  {
-    sh_debug(SHLOG_INFO, "'%s' changed. '%s' should be deleted to force rebuild", blk_file_name, (const char *)sv.intermediateDir);
-    config_rw.forceRebuild = true;
-  }
   if (shc::config().forceRebuild && shc::config().relinkOnly)
   {
-    if (isBlkChanged)
-    {
-      sh_debug(SHLOG_FATAL, "need to recompile %s but compilation is denied by -relinkOnly",
-        shc::config().singleCompilationShName ? shc::config().singleCompilationShName : "");
-      return;
-    }
-    else // caused by -r flag: -relinkOnly reduces -r to -forceRelink
-    {
-      config_rw.forceRebuild = false;
-      config_rw.forceRelink = true;
-      sh_debug(SHLOG_NORMAL, "[WARNING] -r flag was reduced to -forceRelink because -relinkOnly was specified");
-    }
+    // caused by -r flag: -relinkOnly reduces -r to -forceRelink
+    config_rw.forceRebuild = false;
+    config_rw.forceRelink = true;
+    sh_debug(SHLOG_NORMAL, "[WARNING] -r flag was reduced to -forceRelink because -relinkOnly was specified");
   }
   if (shc::config().forceRelink && shc::config().singleCompilationShName)
   {
@@ -521,13 +540,13 @@ static void compile(Tab<String> &source_files, const char *fn, const char *bindu
 #if _CROSS_TARGET_SPIRV || _CROSS_TARGET_METAL
   if (shc::config().enableBindless)
   {
-    _snprintf(bindump_fn, 260, "%s.bindless.%s%s.shdump.bin", bindump_fnprefix, verStr, shc::config().autotestMode ? ".autotest" : "");
+    _snprintf(bindump_fn, 260, "%s.bindless.%s.shdump.bin", bindump_fnprefix, verStr);
     _snprintf(stcode_lib_path, 260, "%s.bindless.%s-stcode", bindump_fnprefix, verStr);
   }
   else
 #endif
   {
-    _snprintf(bindump_fn, 260, "%s.%s%s.shdump.bin", bindump_fnprefix, verStr, shc::config().autotestMode ? ".autotest" : "");
+    _snprintf(bindump_fn, 260, "%s.%s.shdump.bin", bindump_fnprefix, verStr);
     _snprintf(stcode_lib_path, 260, "%s.%s-stcode", bindump_fnprefix, verStr);
   }
 
@@ -568,10 +587,12 @@ static void compile(Tab<String> &source_files, const char *fn, const char *bindu
 #endif
   }
 
-  prepare_stcode_directory(sv.intermediateDir);
-  eastl::optional<StcodeInterface> stcodeMainInterface{}; // Only gets inited if linkage takes place
+  StcodeCompilationDirs stcodeDirs = init_stcode_compilation(intermediateDir.c_str(), intermediateDir.c_str());
 
-  CompilerAction compAction = shc::config().forceRebuild ? CompilerAction::COMPILE_AND_LINK : shc::should_recompile(sv);
+  ShCompilationInfo compilation{destFnBase, intermediateDir.c_str(), eastl::move(sourceList), blkHash, eastl::move(stcodeDirs), opt};
+  shc::CompilationContext compilationCtx{compilation};
+
+  CompilerAction compAction = shc::config().forceRebuild ? CompilerAction::COMPILE_AND_LINK : shc::should_recompile(compilation);
   if (shc::config().singleCompilationShName)
   {
     if (compAction == CompilerAction::COMPILE_AND_LINK)
@@ -590,11 +611,10 @@ static void compile(Tab<String> &source_files, const char *fn, const char *bindu
   if (compAction != CompilerAction::NOTHING)
   {
     if (shc::config().shortMessages && !shc::config().singleCompilationShName)
-      ATOMIC_PRINTF_IMM("[INFO] Building '%s'...\n", (char *)sv.dest);
+      sh_printf("[INFO] Building '%s'...\n", compilation.dest().c_str());
     if (proc::is_multiproc())
     {
-      const bool compileResult = doCompileModulesAsync(sv);
-      AtomicPrintfMutex::term();
+      const bool compileResult = doCompileModulesAsync(compilation);
 
       if (compileResult)
       {
@@ -605,7 +625,7 @@ static void compile(Tab<String> &source_files, const char *fn, const char *bindu
           compAction = CompilerAction::NOTHING;
       }
     }
-    shc::compileShader(sv, stcodeMainInterface, shc::config().noSave, shc::config().forceRebuild, compAction);
+    shc::compileShader(compAction, shc::config().noSave, shc::config().forceRebuild, compilationCtx);
     if (!shc::config().suppressLogs)
       ShaderCompilerStat::printReport((proc::is_multiproc() || shc::config().singleCompilationShName)
                                         ? nullptr
@@ -613,7 +633,7 @@ static void compile(Tab<String> &source_files, const char *fn, const char *bindu
   }
   else
   {
-    sh_debug(SHLOG_INFO, "Skipping up-to-date '%s'", (char *)sv.dest);
+    sh_debug(SHLOG_INFO, "Skipping up-to-date '%s'", compilation.dest().c_str());
   }
   shc::resetCompiler();
   if (shc::config().singleCompilationShName)
@@ -622,23 +642,23 @@ static void compile(Tab<String> &source_files, const char *fn, const char *bindu
   if (strcmp(bindump_fnprefix, "*") != 0)
   {
     dd_mkpath(bindump_fn);
-    if (!shc::buildShaderBinDump(bindump_fn, sv.dest, shc::config().forceRebuild, false, packing_flags,
-          stcodeMainInterface.has_value() ? &stcodeMainInterface.value() : nullptr))
+    if (!shc::buildShaderBinDump(bindump_fn, compilation.dest().c_str(), shc::config().forceRebuild, false, packing_flags,
+          compilationCtx))
     {
-      sh_debug(SHLOG_FATAL, "Failed to build bindump at '%s' from combined obj at '%s'", bindump_fn, sv.dest.c_str());
+      sh_debug(SHLOG_FATAL, "Failed to build bindump at '%s' from combined obj at '%s'", bindump_fn, compilation.dest().c_str());
       return;
     }
   }
 
   if (binminidump_fnprefix)
   {
-    _snprintf(bindump_fn, 260, "%s.%s%s.shdump.bin", binminidump_fnprefix, verStr, shc::config().autotestMode ? ".autotest" : "");
+    _snprintf(bindump_fn, 260, "%s.%s.shdump.bin", binminidump_fnprefix, verStr);
     dd_mkpath(bindump_fn);
-    if (!shc::buildShaderBinDump(bindump_fn, sv.dest, dd_stricmp(binminidump_fnprefix, bindump_fnprefix) == 0, true, packing_flags,
-          nullptr))
+    if (!shc::buildShaderBinDump(bindump_fn, compilation.dest().c_str(), dd_stricmp(binminidump_fnprefix, bindump_fnprefix) == 0, true,
+          packing_flags, compilationCtx))
     {
       sh_debug(SHLOG_FATAL, "Failed to build minidump %s at '%s' from combined obj at '%s'", binminidump_fnprefix, bindump_fn,
-        sv.dest.c_str());
+        compilation.dest().c_str());
       return;
     }
   }
@@ -650,7 +670,7 @@ static void compile(Tab<String> &source_files, const char *fn, const char *bindu
   else
     bindump_path = eastl::string("./");
 
-  auto stcodeCompTaskMaybe = make_stcode_compilation_task(bindump_path.c_str(), stcode_lib_fn, sv);
+  auto stcodeCompTaskMaybe = make_stcode_compilation_task(bindump_path.c_str(), stcode_lib_fn, compilation);
   if (stcodeCompTaskMaybe)
   {
     proc::enqueue(eastl::move(stcodeCompTaskMaybe).value());
@@ -660,28 +680,11 @@ static void compile(Tab<String> &source_files, const char *fn, const char *bindu
       sh_debug(SHLOG_FATAL, "Failed to compile stcode");
       return;
     }
-
-    cleanup_after_stcode_compilation(bindump_path.c_str(), stcode_lib_fn);
   }
   else if (stcodeCompTaskMaybe.error() == StcodeMakeTaskError::FAILED)
   {
     sh_debug(SHLOG_FATAL, "Failed to create stcode task");
     return;
-  }
-
-  if (blk_file_name && isBlkChanged)
-  {
-    if (auto blkHashFile = df_open(blkHashFilename.c_str(), DF_WRITE | DF_CREATE))
-    {
-      df_write(blkHashFile, blkHash.data(), blkHash.size());
-      df_close(blkHashFile);
-      sh_debug(SHLOG_INFO, "Write a new blk hash into %s.", blkHashFilename.c_str());
-    }
-    else
-    {
-      sh_debug(SHLOG_ERROR, "Failed to write a new blk hash into %s. Next compilation could lead to the whole recompilation.",
-        blkHashFilename.c_str());
-    }
   }
 }
 
@@ -746,19 +749,17 @@ void add_include_path(const char *d, shc::CompilerConfig &config_rw)
   fs::path dirPath(d);
   eastl::string dir = convert_dir_separator(d);
   std::error_code ec;
-  // printf("dir %s\n", d);
   for (const auto &p : fs::recursive_directory_iterator(d, ec))
   {
     if (bool(ec))
     {
-      printf("error %s iterating for %s\n", ec.message().c_str(), d);
+      sh_printf("error %s iterating for %s\n", ec.message().c_str(), d);
       continue;
     }
     // fs::path absPath = fs::absolute(p.path(), ec);
     if (p.is_directory(ec) || bool(ec))
       continue;
     eastl::string fn = convert_dir_separator(p.path().lexically_relative(dirPath).string().c_str());
-    // printf("%s: %s\n", d, fn.c_str());
     if (config_rw.fileToFullPath.find(fn) == config_rw.fileToFullPath.end())
     {
       config_rw.fileToFullPath[fn] = (dir + "/") + fn;
@@ -802,47 +803,18 @@ String shc::search_include_with_pathes(const char *fn) // we can save mem alloca
 static class CompilerRestartProc : public SRestartProc
 {
 public:
-  const char *procname() { return "shaderCompiler"; }
+  const char *procname() override { return "shaderCompiler"; }
 
   CompilerRestartProc() : SRestartProc(RESTART_GAME | RESTART_VIDEO) {}
 
-  void startup() { shc::startup(); }
+  void startup() override { shc::startup(); }
 
-  void shutdown() { shc::shutdown(); }
+  void shutdown() override { shc::shutdown(); }
 } compiler_rproc;
-
-static void mergeDataBlock(DataBlock &dest, const DataBlock &src, const SCFastNameMap *ex_nm = NULL)
-{
-  int num = src.paramCount();
-  for (int i = 0; i < num; ++i)
-  {
-    const char *name = src.getParamName(i);
-
-    switch (src.getParamType(i))
-    {
-      case DataBlock::TYPE_INT: dest.setInt(name, src.getInt(i)); break;
-      case DataBlock::TYPE_REAL: dest.setReal(name, src.getReal(i)); break;
-      case DataBlock::TYPE_BOOL: dest.setBool(name, src.getBool(i)); break;
-
-      default: sh_debug(SHLOG_WARNING, "unsupported type=%d", src.getParamType(i));
-    }
-  }
-
-  num = src.blockCount();
-  for (int i = 0; i < num; ++i)
-  {
-    const char *name = src.getBlock(i)->getBlockName();
-    DataBlock *d = dest.getBlockByName(name);
-    if (!d || (ex_nm && ex_nm->getNameId(name) != -1))
-      d = dest.addNewBlock(src.getBlock(i), name);
-    else
-      mergeDataBlock(*d, *src.getBlock(i));
-  }
-}
 
 static void stderr_report_fatal_error(const char *, const char *msg, const char *call_stack)
 {
-  ATOMIC_FPRINTF_IMM(stderr, "Fatal error: %s\n%s", msg, call_stack);
+  sh_fprintf(stderr, "Fatal error: %s\n%s", msg, call_stack);
 }
 
 #if HAVE_BREAKPAD_BINDER
@@ -900,20 +872,23 @@ void ctrl_break_handler(int)
 
 #if _TARGET_PC_LINUX | _TARGET_PC_MACOSX
   // We only process sigints in a dedicated thread to avoid deadlocks in shutdown.
-  // (See comment below where we create sigint_handler_thread)
+  // (See comment below where we create g_sigint_handler_thread)
   // We should not be doing shutdown logic in handlers anyway, but that requires more substantial refac.
 
-  if (!pthread_equal(sigint_handler_thread, pthread_self()))
+  if (!pthread_equal(g_sigint_handler_thread, pthread_self()))
   {
     signal(SIGINT, &ctrl_break_handler);
-    pthread_kill(sigint_handler_thread, SIGINT);
+    pthread_kill(g_sigint_handler_thread, SIGINT);
     return;
   }
 #endif
 
   // When in process loop, shutdown is locked, so instead we signal it to cancel
   if (proc::is_multiproc())
+  {
+    sh_printf("Cancelling compilation (%d processes)...\n", proc::max_proc_count());
     proc::cancel();
+  }
 
   if (!shc::try_enter_shutdown())
   {
@@ -927,20 +902,42 @@ void ctrl_break_handler(int)
 
   setvbuf(stdout, NULL, _IOLBF, 4096);
   if (shc::config().singleCompilationShName)
-    ATOMIC_PRINTF_IMM("Cancelling compilation (%s)...\n", shc::config().singleCompilationShName);
+    sh_printf("Cancelling compilation (%s)...\n", shc::config().singleCompilationShName);
   else
-    ATOMIC_PRINTF_IMM("Cancelling compilation (%d processes)...\n", proc::max_proc_count());
-  debug("SIGINT received!\n");
+    sh_printf("Cancelling compilation...\n");
 
+  proc::deinit();
   shc::deinit_jobs();
-  fflush(stdout);
-  AtomicPrintfMutex::term();
 
+  fflush(stdout);
   quit_game(1);
 
 #if _TARGET_PC_WIN
   return TRUE;
 #endif
+}
+
+template <class... Args>
+static void sh_printf_only_in_parent(const char *const fmt, Args &&...args)
+{
+  if (shc::config().singleBuild || shc::config().singleCompilationShName)
+    return;
+
+  sh_printf(fmt, eastl::forward<Args>(args)...);
+}
+
+// For passing as a function pointer callback
+static int printf_only_in_parent(const char *const fmt, ...)
+{
+  if (shc::config().singleBuild || shc::config().singleCompilationShName)
+    return -1;
+
+  va_list args;
+  va_start(args, fmt);
+  int res = vprintf(fmt, args);
+  va_end(args);
+
+  return res;
 }
 
 int DagorWinMain(bool debugmode)
@@ -953,7 +950,12 @@ int DagorWinMain(bool debugmode)
 
   startup_game(RESTART_ALL);
 
-#if _TARGET_PC_LINUX | _TARGET_PC_MACOSX
+#if _TARGET_PC_WIN
+
+  SetConsoleCtrlHandler(&ctrl_break_handler, TRUE);
+
+#elif _TARGET_PC_LINUX | _TARGET_PC_MACOSX
+
   // On unix signal can be handled by any thread, on windows a separate thread is spun up.
   // The unix behaviour is unacceptable in the current implementation: as we are still shutting
   // down in the handler, it a worker catches it we deadlock in jobs deinit. If the main thread
@@ -961,7 +963,7 @@ int DagorWinMain(bool debugmode)
   // listens to signals, and SIGINTS are forwarded to it (see ctrl_break_handler).
   {
     int res = pthread_create(
-      &sigint_handler_thread, nullptr,
+      &g_sigint_handler_thread, nullptr,
       +[](void *) -> void * {
         for (;;)
           pause();
@@ -970,16 +972,13 @@ int DagorWinMain(bool debugmode)
       nullptr);
     if (res != 0)
     {
-      fprintf(stderr, "Failed to create sighandler thread\n");
+      sh_fprintf(stderr, "Failed to create sighandler thread\n");
       return 1;
     }
   }
-#endif
 
-#if _TARGET_PC_WIN
-  SetConsoleCtrlHandler(&ctrl_break_handler, TRUE);
-#else
   signal(SIGINT, ctrl_break_handler);
+
 #endif
 
   // get options
@@ -996,6 +995,7 @@ int DagorWinMain(bool debugmode)
   }
 
   shc::CompilerConfig &globalConfigRW = shc::acquire_rw_config();
+  DataBlock configArgs{};
 
   const char *filename = __argv[1];
 
@@ -1006,12 +1006,38 @@ int DagorWinMain(bool debugmode)
     globalConfigRW.singleBuild = true;
   }
   bool shouldCancelRunningProcsOnFail = true;
-  eastl::optional<bool> useCppStcodeOverride{};
+  eastl::optional<shader_layout::ExternalStcodeMode> useCppStcodeOverride{};
   for (int i = 2; i < __argc; i++)
   {
     const char *s = __argv[i];
     if (dd_stricmp(s, "-r") == 0)
       globalConfigRW.forceRebuild = true;
+    else if (dd_strnicmp(s, "-config:", 8) == 0)
+    {
+      eastl::string_view blkArg{s + 8};
+      DataBlock *curBlk = &configArgs;
+      size_t id, prevId = 0;
+      while ((id = blkArg.find('/', prevId)) != eastl::string::npos)
+      {
+        eastl::string subBlock{&blkArg[prevId], &blkArg[id]};
+        curBlk = curBlk->addBlock(subBlock.c_str());
+        prevId = id + 1;
+      }
+#if _TARGET_PC_WIN // Windows treats '=' as a separator in args
+      if (i == __argc - 1)
+        goto usage_err;
+      auto arg = eastl::string{blkArg.substr(prevId)} + "=" + eastl::string{__argv[++i]};
+#else
+      auto arg = blkArg.substr(prevId);
+#endif
+      DataBlock tmp{};
+      if (!tmp.loadText(arg.data(), arg.length()))
+      {
+        sh_fprintf(stderr, "Invalid custom blk arg: %s", blkArg.data());
+        goto usage_err;
+      }
+      curBlk->appendParamsFrom(&tmp);
+    }
     else if (dd_stricmp(s, "-depBlk") == 0)
       ; // no-op
     else if (dd_stricmp(s, "-q") == 0)
@@ -1037,6 +1063,8 @@ int DagorWinMain(bool debugmode)
       globalConfigRW.noSave = true;
     else if (dd_stricmp(s, "-debug") == 0)
       globalConfigRW.isDebugModeEnabled = true;
+    else if (dd_stricmp(s, "-allowLargeDumpSize") == 0)
+      globalConfigRW.constrainCompressedBindumpSize = false;
 #if _CROSS_TARGET_C1 | _CROSS_TARGET_C2
 
 #else
@@ -1098,23 +1126,6 @@ int DagorWinMain(bool debugmode)
       shc::setRequiredShadersDef(true);
     else if (dd_stricmp(s, "-supressLogs") == 0 || dd_stricmp(s, "-suppressLogs") == 0)
       globalConfigRW.suppressLogs = true;
-    else if (dd_stricmp(s, "-shadervar-generator-mode") == 0)
-    {
-      using namespace std::string_view_literals;
-      i++;
-      if (i >= __argc)
-        goto usage_err;
-      if (__argv[i] == "none"sv)
-        globalConfigRW.shadervarGeneratorMode = ShadervarGeneratorMode::None;
-      else if (__argv[i] == "remove"sv)
-        globalConfigRW.shadervarGeneratorMode = ShadervarGeneratorMode::Remove;
-      else if (__argv[i] == "check"sv)
-        globalConfigRW.shadervarGeneratorMode = ShadervarGeneratorMode::Check;
-      else if (__argv[i] == "generate"sv)
-        globalConfigRW.shadervarGeneratorMode = ShadervarGeneratorMode::Generate;
-      else
-        printf("\n[WARNING] Unknown shadervar generator mode '%s'\n", __argv[i]);
-    }
     else if (dd_stricmp(s, "-invalidAsNull") == 0)
       shc::setInvalidAsNullDef(true);
     else if (dd_stricmp(s, "-no_sha1_cache") == 0)
@@ -1133,6 +1144,10 @@ int DagorWinMain(bool debugmode)
     {
       globalConfigRW.purgeSha1 = true;
     }
+    else if (dd_stricmp(s, "-enablefp16") == 0)
+    {
+      globalConfigRW.enableFp16Override = true;
+    }
 #if _CROSS_TARGET_SPIRV || _CROSS_TARGET_METAL
     else if (strnicmp(s, "-enableBindless:", 15) == 0)
     {
@@ -1140,6 +1155,10 @@ int DagorWinMain(bool debugmode)
         globalConfigRW.enableBindless = true;
       else if (strstr(s, "off"))
         globalConfigRW.enableBindless = false;
+    }
+    else if (dd_stricmp(s, "-allowNoDXC") == 0)
+    {
+      globalConfigRW.allowCompilationWithoutDxc = true;
     }
 #endif
 #if _CROSS_TARGET_DX12
@@ -1162,20 +1181,14 @@ int DagorWinMain(bool debugmode)
     {
       globalConfigRW.hlsl2021 = true;
     }
-    else if (0 == dd_stricmp(s, "-enablefp16"))
-    {
-      globalConfigRW.enableFp16 = true;
-    }
-    else if (0 == dd_stricmp(s, "-autotestMode"))
-    {
-      globalConfigRW.autotestMode = true;
-    }
 #endif
 #if _CROSS_TARGET_SPIRV
     else if (dd_stricmp(s, "-compiler-hlslcc") == 0)
       globalConfigRW.compilerHlslCc = true;
     else if (dd_stricmp(s, "-compiler-dxc") == 0)
       globalConfigRW.compilerDXC = true;
+    else if (dd_stricmp(s, "-dumpSPVOnly") == 0)
+      globalConfigRW.dumpSpirvOnly = true;
 #endif
 #ifdef _CROSS_TARGET_METAL
     else if (dd_stricmp(s, "-metalios") == 0)
@@ -1198,6 +1211,31 @@ int DagorWinMain(bool debugmode)
       debug_output_dir = __argv[i];
       dd_mkdir(debug_output_dir);
     }
+    else if (dd_stricmp(s, "-intervalsdebugdir") == 0)
+    {
+      i++;
+      if (i >= __argc)
+        goto usage_err;
+      debug_output_dir_shader_name = __argv[i];
+      dd_mkdir(debug_output_dir_shader_name);
+    }
+    else if (dd_stricmp(s, "-spirv-dxc-path") == 0)
+    {
+      i++;
+      if (i >= __argc)
+        goto usage_err;
+      globalConfigRW.dxcPath = __argv[i];
+    }
+    else if (dd_stricmp(s, "-spirv-dxc-params") == 0)
+    {
+      i += 2;
+      if (i >= __argc)
+        goto usage_err;
+      if (dd_stricmp(__argv[i], "_") == 0)
+        globalConfigRW.dxcParams.push_back(String(64, "%s", __argv[i - 1]));
+      else
+        globalConfigRW.dxcParams.push_back(String(64, "%s %s", __argv[i - 1], __argv[i]));
+    }
 #endif
     else if (dd_stricmp(s, "-wx") == 0)
     {
@@ -1206,7 +1244,6 @@ int DagorWinMain(bool debugmode)
     }
     else if (dd_stricmp(s, "-wall") == 0)
     {
-      sh_change_mode(SHLOG_SILENT_WARNING, SHLOG_WARNING);
       globalConfigRW.hlslShowWarnings = true;
       sh_console_print_warnings(true);
     }
@@ -1229,7 +1266,7 @@ int DagorWinMain(bool debugmode)
       else
       {
         show_header();
-        printf("\n[FATAL ERROR] Unknown fsh version '%s'\n", s);
+        sh_printf("\n[FATAL ERROR] Unknown fsh version '%s'\n", s);
         showUsage();
         return 13;
       }
@@ -1284,10 +1321,6 @@ int DagorWinMain(bool debugmode)
         globalConfigRW.usePcToken = false;
 #endif
     }
-    else if (dd_stricmp(s, "-optionalAsBranches") == 0)
-    {
-      globalConfigRW.optionalIntervalsAsBranches = true;
-    }
     else if (dd_stricmp(s, "-logExactTiming") == 0)
     {
       globalConfigRW.logExactCompilationTimes = true;
@@ -1302,43 +1335,66 @@ int DagorWinMain(bool debugmode)
     {
       globalConfigRW.saveDumpOnCrash = true;
     }
-    else if (strnicmp("-useCpujobsBackend", __argv[i], 18) == 0)
+    else if (dd_stricmp("-useCpujobsBackend", __argv[i]) == 0)
     {
       globalConfigRW.useThreadpool = false;
     }
-    else if (strnicmp("-cppStcode", __argv[i], 11) == 0)
+    else if (dd_stricmp("-cppStcode", __argv[i]) == 0)
     {
-      if (useCppStcodeOverride.has_value() && !useCppStcodeOverride.value())
+      if (useCppStcodeOverride.has_value() && useCppStcodeOverride.value() == shader_layout::ExternalStcodeMode::NONE)
       {
-        printf("Can't combine -cppStcode and -noCppStcode flags\n");
+        sh_printf("Can't combine -cppStcode and -noCppStcode flags\n");
         goto usage_err;
       }
-      useCppStcodeOverride.emplace(true);
+      if (i < __argc - 1 && (useCppStcodeOverride = arg_str_to_cpp_stcode_mode(__argv[i + 1])).has_value())
+        ++i;
+      else
+        useCppStcodeOverride.emplace(shader_layout::ExternalStcodeMode::BRANCHLESS_CPP);
     }
-    else if (strnicmp("-noCppStcode", __argv[i], 13) == 0)
+    else if (dd_stricmp("-noCppStcode", __argv[i]) == 0)
     {
-      if (useCppStcodeOverride.has_value() && useCppStcodeOverride.value())
+      if (useCppStcodeOverride.has_value() && useCppStcodeOverride.value() != shader_layout::ExternalStcodeMode::NONE)
       {
-        printf("Can't combine -cppStcode and -noCppStcode flags\n");
+        sh_printf("Can't combine -cppStcode and -noCppStcode flags\n");
         goto usage_err;
       }
-      useCppStcodeOverride.emplace(false);
+      useCppStcodeOverride.emplace(shader_layout::ExternalStcodeMode::NONE);
     }
-    else if (strnicmp("-cppUnityBuild", __argv[i], 15) == 0)
+    else if (dd_stricmp("-cppUnityBuild", __argv[i]) == 0)
     {
       globalConfigRW.cppStcodeUnityBuild = true;
     }
-    else if (strnicmp("-cppStcodePdb", __argv[i], 14) == 0)
+    else if (dd_stricmp("-cppStcodePdb", __argv[i]) == 0)
     {
       globalConfigRW.cppStcodeDeleteDebugInfo = false;
     }
-    else if (strnicmp("-cppStcodeArch", s, 15) == 0)
+    else if (dd_stricmp("-cppStcodeConfig", __argv[i]) == 0)
+    {
+      ++i;
+      if (i >= __argc)
+        goto usage_err;
+      if (!set_stcode_config_from_arg(__argv[i], globalConfigRW))
+        goto usage_err;
+    }
+    else if (dd_stricmp("-cppStcodeArch", __argv[i]) == 0)
     {
       ++i;
       if (i >= __argc)
         goto usage_err;
       if (!set_stcode_arch_from_arg(__argv[i], globalConfigRW))
         goto usage_err;
+    }
+    else if (dd_stricmp("-cppStcodeTag", __argv[i]) == 0)
+    {
+      ++i;
+      if (i >= __argc)
+        goto usage_err;
+
+      globalConfigRW.cppStcodeCustomTag = __argv[i];
+    }
+    else if (dd_stricmp("-generateCppStcodeValidationData", __argv[i]) == 0)
+    {
+      globalConfigRW.generateCppStcodeValidationData = true;
     }
 #if _CROSS_TARGET_SPIRV | _CROSS_TARGET_METAL
     else if (strnicmp("-cppStcodePlatform", s, 20) == 0)
@@ -1362,7 +1418,7 @@ int DagorWinMain(bool debugmode)
     {
     usage_err:
       show_header();
-      printf("\n[FATAL ERROR] Unknown option '%s'\n", s);
+      sh_printf("\n[FATAL ERROR] Unknown option '%s'\n", s);
       showUsage();
       return 13;
     }
@@ -1379,21 +1435,47 @@ int DagorWinMain(bool debugmode)
   globalConfigRW.useSha1Cache &= (shc::config().hlslDebugLevel == DebugLevel::NONE) && shc::config().hlslNoDisassembly;
   if (shc::config().singleCompilationShName)
     globalConfigRW.numProcesses = 0;
-  else
-    printf("hlslOptimizationLevel is set to %d\n", shc::config().hlslOptimizationLevel);
 
-#if _CROSS_TARGET_EMPTY
-  noSave = true;
-#endif
+  if (!globalConfigRW.constrainCompressedBindumpSize)
+  {
+    sh_printf_only_in_parent("[WARNING] The compressed bindump size check is disabled, linkage/compression/file operations may be "
+                             "slow for large files. Use at your own discretion!\n");
+  }
+
+  sh_printf_only_in_parent("hlslOptimizationLevel is set to %d\n", shc::config().hlslOptimizationLevel);
 
   if (!shc::config().shortMessages && !shc::config().singleCompilationShName)
     show_header();
 
+#if _CROSS_TARGET_METAL || _CROSS_TARGET_SPIRV
+
+  globalConfigRW.dxcContext = spirv::setupDXC(globalConfigRW.dxcPath, globalConfigRW.dxcParams, &printf_only_in_parent);
+
+  if (!globalConfigRW.dxcContext)
+  {
+    if (shc::config().allowCompilationWithoutDxc)
+    {
+      sh_printf_only_in_parent("[WARNING] failed to load DXC dynamic library, shader bytecode will not be compiled\n");
+    }
+    else
+    {
+      sh_printf_only_in_parent("[ERROR] failed to load DXC dynamic library, terminating\n");
+      return 13;
+    }
+  }
+  DEFER([&] { spirv::shutdownDXC(globalConfigRW.dxcContext); });
+#endif
+
   shc::init_jobs(shc::config().numWorkers);
-  DEFER(shc::deinit_jobs());
+  DEFER(&shc::deinit_jobs);
 
   proc::init(shc::config().numProcesses, shouldCancelRunningProcsOnFail);
-  DEFER(proc::deinit());
+  DEFER(&proc::deinit);
+
+  // Protects main-line calls to shc::deinit_jobs and proc::deinit from concurrent sighandler shutdown invocations
+  DEFER([] {
+    while (!shc::try_enter_shutdown()) {}
+  });
 
   if (shc::config().singleCompilationShName || proc::is_multiproc())
     setvbuf(stdout, NULL, _IOFBF, 4096);
@@ -1414,22 +1496,22 @@ int DagorWinMain(bool debugmode)
     ShaderCompilerStat::reset();
     Tab<String> sourceFiles(midmem);
     sourceFiles.push_back(String(filename));
-    compile(sourceFiles, filename, makeShBinDumpName(filename), shc::config().singleOptions, NULL, getDir(filename), NULL,
-      BindumpPackingFlagsBits::NONE, globalConfigRW);
+    compile(eastl::move(sourceFiles), filename, makeShBinDumpName(filename), shc::config().singleOptions, NULL, getDir(filename), NULL,
+      BindumpPackingFlagsBits::NONE, globalConfigRW, nullptr);
   }
   else
   {
-    if (shc::config().singleCompilationShName || proc::is_multiproc())
-      AtomicPrintfMutex::init(dd_get_fname(__argv[0]), filename);
-
     // read data block with files
     const String cfgDir(getDir(filename));
     DataBlock blk;
     if (!load_blk_with_report(blk, filename))
     {
-      printf("\n[FATAL ERROR] Cannot open BLK file '%s' (file not found or syntax error, or unresolved includes)\n", filename);
+      sh_printf("\n[FATAL ERROR] Cannot open BLK file '%s' (file not found or syntax error, or unresolved includes)\n", filename);
       return 13;
     }
+
+    mergeDataBlock(blk, configArgs);
+
     if (const DataBlock *b = blk.getBlockByName("renderStages"))
     {
       ShaderParser::renderStageToIdxMap.reset();
@@ -1440,7 +1522,7 @@ int DagorWinMain(bool debugmode)
           ShaderParser::renderStageToIdxMap.addNameId(b->getStr(i));
           if (nc == ShaderParser::renderStageToIdxMap.nameCount())
           {
-            printf("\n[FATAL ERROR] duplicate stage <%s> in renderStages{} in <%s> ?\n", b->getStr(i), filename);
+            sh_printf("\n[FATAL ERROR] duplicate stage <%s> in renderStages{} in <%s> ?\n", b->getStr(i), filename);
             return 13;
           }
           if (!shc::config().singleCompilationShName)
@@ -1450,7 +1532,8 @@ int DagorWinMain(bool debugmode)
     }
     if (ShaderParser::renderStageToIdxMap.nameCount() > SC_STAGE_IDX_MASK + 1)
     {
-      printf("\n[FATAL ERROR] too many render stages (%d) > %d", ShaderParser::renderStageToIdxMap.nameCount(), SC_STAGE_IDX_MASK + 1);
+      sh_printf("\n[FATAL ERROR] too many render stages (%d) > %d", ShaderParser::renderStageToIdxMap.nameCount(),
+        SC_STAGE_IDX_MASK + 1);
       return 13;
     }
 
@@ -1486,8 +1569,17 @@ int DagorWinMain(bool debugmode)
     if (blk.getStr("outDumpName", NULL))
       defShBindDumpPrefix = blk.getStr("outDumpName", NULL);
 
-    globalConfigRW.compileCppStcode =
-      useCppStcodeOverride.has_value() ? useCppStcodeOverride.value() : blk.getBool("compileCppStcode", false);
+    if (useCppStcodeOverride.has_value())
+      globalConfigRW.cppStcodeMode = useCppStcodeOverride.value();
+    else
+    {
+      globalConfigRW.cppStcodeMode = blk.getBool("compileCppStcode", false) ? shader_layout::ExternalStcodeMode::BRANCHLESS_CPP
+                                                                            : shader_layout::ExternalStcodeMode::NONE;
+      if (globalConfigRW.cppStcodeMode != shader_layout::ExternalStcodeMode::NONE && blk.getBool("cppStcodeDynamicBranches", false))
+        globalConfigRW.cppStcodeMode = shader_layout::ExternalStcodeMode::BRANCHED_CPP;
+    }
+
+    globalConfigRW.generateCppStcodeValidationData &= globalConfigRW.compileCppStcode();
 
     Tab<String> sourceFiles(midmem);
     DataBlock *sourceBlk = blk.getBlockByName("source");
@@ -1495,9 +1587,9 @@ int DagorWinMain(bool debugmode)
     globalConfigRW.shaderSrcRoot = shader_root;
     if (!sourceBlk)
     {
-      printf("Shader source files should be copied from shaders.sh\n"
-             "to shaders.blk as a source block with file:t parameters\n"
-             "Headers should NOT be copied.");
+      sh_printf("Shader source files should be copied from shaders.sh\n"
+                "to shaders.blk as a source block with file:t parameters\n"
+                "Headers should NOT be copied.");
       return 13;
     }
 
@@ -1535,7 +1627,6 @@ int DagorWinMain(bool debugmode)
     DataBlock *blk_cav = blk.getBlockByName("common_assume_vars");
     DataBlock *blk_crs = blk.getBlockByName("common_required_shaders");
     DataBlock *blk_cvv = blk.getBlockByName("common_valid_variants");
-    DataBlock *blk_svg = blk.getBlockByName("shadervar_generator");
     if (!blk_cav && blk.getBlockByName("common_assume_static"))
     {
       sh_debug(SHLOG_WARNING, "use '%s' block name instead of obsolete '%s'!", "common_assume_vars", "common_assume_static");
@@ -1552,41 +1643,6 @@ int DagorWinMain(bool debugmode)
       blk_crs = NULL;
     if (blk_cvv && blk_cvv->blockCount() == 0)
       blk_cvv = NULL;
-    if (blk_svg)
-    {
-      globalConfigRW.shadervarsCodeTemplateFilename = blk_svg->getStr("code_template");
-      for (int b = blk_svg->findBlock("generated_path"); b != -1; b = blk_svg->findBlock("generated_path", b))
-      {
-        DataBlock *blk_gp = blk_svg->getBlock(b);
-        if (!blk_gp)
-        {
-          printf("\n[ERROR] Couldn't get block 'generated_path[%i]'\n", b);
-          continue;
-        }
-        auto &info = globalConfigRW.generatedPathInfos.emplace_back();
-        info.matcher = blk_gp->getStr("matcher");
-        info.replacer = blk_gp->getStr("replacer");
-      }
-
-      for (int p = blk_svg->findParam("exclude"); p != -1; p = blk_svg->findParam("exclude", p))
-        globalConfigRW.excludeFromGeneration.emplace_back(blk_svg->getStr(p));
-
-      if (shc::config().shadervarGeneratorMode == ShadervarGeneratorMode::None)
-      {
-        using namespace std::string_view_literals;
-        const char *mode = blk_svg->getStr("mode", "none");
-        if (mode == "none"sv)
-          globalConfigRW.shadervarGeneratorMode = ShadervarGeneratorMode::None;
-        else if (mode == "remove"sv)
-          globalConfigRW.shadervarGeneratorMode = ShadervarGeneratorMode::Remove;
-        else if (mode == "check"sv)
-          globalConfigRW.shadervarGeneratorMode = ShadervarGeneratorMode::Check;
-        else if (mode == "generate"sv)
-          globalConfigRW.shadervarGeneratorMode = ShadervarGeneratorMode::Generate;
-        else
-          printf("\n[WARNING] Unknown shadervar generator mode '%s'\n", mode);
-      }
-    }
 
     const int compNameId = blk.getNameId("Compile");
     for (int i = 0; i < blk.blockCount(); i++)
@@ -1607,6 +1663,8 @@ int DagorWinMain(bool debugmode)
 
         globalConfigRW.dictionarySizeInKb = comp->getInt("dict_size_in_kb", shc::config().dictionarySizeInKb);
         globalConfigRW.shGroupSizeInKb = comp->getInt("group_size_in_kb", shc::config().shGroupSizeInKb);
+        globalConfigRW.shGroupCompressionLevel = comp->getInt("group_compression_level", shc::config().shGroupCompressionLevel);
+        globalConfigRW.shDumpCompressionLevel = comp->getInt("dump_compression_level", shc::config().shDumpCompressionLevel);
 
         ShHardwareOptions opt(4.0_sm);
 
@@ -1639,7 +1697,7 @@ int DagorWinMain(bool debugmode)
             return 13;
           }
         }
-        opt.enableHalfProfile = comp->getBool("enableHalfProfile", true) || shc::config().enableFp16;
+        opt.enableHalfProfile = comp->getBool("enableHalfProfile", true) || shc::config().enableFp16Override;
 
         DataBlock *blk_av = comp->getBlockByName("assume_vars");
         DataBlock *blk_rs = comp->getBlockByName("required_shaders");
@@ -1686,9 +1744,11 @@ int DagorWinMain(bool debugmode)
           blk_rs = NULL;
         if (blk_vv && !blk_vv->blockCount())
           blk_vv = NULL;
-        shc::setAssumedVarsBlock(blk_av);
         shc::setValidVariantsBlock(blk_vv);
         shc::setRequiredShadersBlock(blk_rs);
+
+        if (blk_av)
+          globalConfigRW.assumedVarsConfig = blk_av;
 
         ShaderCompilerStat::reset();
 
@@ -1700,8 +1760,8 @@ int DagorWinMain(bool debugmode)
           if (blk.getBool("packBin", false)) // Don't further compress bindump by default
             packingFlags |= BindumpPackingFlagsBits::WHOLE_BINARY;
         }
-        compile(sourceFiles, fName, comp->getStr("outDumpName", defShBindDumpPrefix), opt, filename, getDir(filename),
-          blk.getStr("outMiniDumpName", NULL), packingFlags, globalConfigRW);
+        compile(eastl::move(sourceFiles), fName, comp->getStr("outDumpName", defShBindDumpPrefix), opt, filename, getDir(filename),
+          blk.getStr("outMiniDumpName", NULL), packingFlags, globalConfigRW, &configArgs);
       }
     }
   }
@@ -1736,17 +1796,17 @@ int DagorWinMain(bool debugmode)
     return 0;
   }
 
-  printf("\n");
+  sh_printf("\n");
   float timeSec = float(get_time_msec() - timeMsec) * 1e-3;
   int wholeSeconds = int(timeSec);
   if (shc::config().logExactCompilationTimes && wholeSeconds > 1)
-    printf("took %.4gs\n", timeSec);
+    sh_printf("took %.4gs\n", timeSec);
   else
   {
     if (wholeSeconds > 60)
-      printf("took %dm:%02ds\n", wholeSeconds / 60, wholeSeconds % 60);
+      sh_printf("took %dm:%02ds\n", wholeSeconds / 60, wholeSeconds % 60);
     else if (wholeSeconds > 1)
-      printf("took %ds\n", wholeSeconds);
+      sh_printf("took %ds\n", wholeSeconds);
   }
 
   if (!::dgs_execute_quiet && ::getenv("DAGOR_BUILD_BELL") != nullptr)
@@ -1758,7 +1818,7 @@ int DagorWinMain(bool debugmode)
     // Sends the BEL signal to the Windows Terminal app, which is default in latest versions of Windows.
     // The Windows Terminal app is not reacting to FlashWindowEx() API, so we need to send the BEL signal
     // to get the user's attention.
-    printf("\a");
+    sh_printf("\a");
 #endif
   }
 

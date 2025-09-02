@@ -3,6 +3,7 @@
 
 #include <assets/assetMgr.h>
 #include <generic/dag_span.h>
+#include <propPanel/colors.h>
 #include <propPanel/imguiHelper.h>
 #include <EASTL/optional.h>
 #include <imgui/imgui.h>
@@ -80,8 +81,8 @@ public:
 private:
   static bool filterButton(const char *label)
   {
-    ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(0, 137, 255, 255));
-    ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(209, 209, 209, 255));
+    ImGui::PushStyleColor(ImGuiCol_Text, PropPanel::getOverriddenColor(PropPanel::ColorOverride::FILTER_TEXT));
+    ImGui::PushStyleColor(ImGuiCol_Button, PropPanel::getOverriddenColor(PropPanel::ColorOverride::FILTER_BUTTON));
     ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(framePadding, framePadding));
     const bool result = ImGui::Button(label);

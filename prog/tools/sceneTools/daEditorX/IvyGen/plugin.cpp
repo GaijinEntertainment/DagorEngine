@@ -3,11 +3,12 @@
 #include <ioSys/dag_dataBlock.h>
 #include <coolConsole/coolConsole.h>
 
-#include <sepGui/wndPublic.h>
+#include <EditorCore/ec_wndPublic.h>
+#include <EditorCore/ec_IEditorCore.h>
 
 #include <debug/dag_debug.h>
 
-#include "plugIn.h"
+#include "plugin.h"
 
 
 IvyGenPlugin *IvyGenPlugin::self = NULL;
@@ -20,7 +21,11 @@ IvyGenPlugin::IvyGenPlugin()
 }
 
 
-IvyGenPlugin::~IvyGenPlugin() { self = NULL; }
+IvyGenPlugin::~IvyGenPlugin()
+{
+  self = NULL;
+  editorcore_extapi::dagRender->releaseManagedTex(IvyObject::texPt);
+}
 
 
 //==============================================================================

@@ -24,8 +24,8 @@ struct InstantiatedTemplate // it would be used for memcpy
   archetype_t archetype = INVALID_ARCHETYPE;
   uint16_t componentsCount = 0;
   InstantiatedTemplate() {}
-  InstantiatedTemplate(const Archetypes &archetypes, uint32_t archetype, const ChildComponent *const *initial_data,
-    const DataComponents &dataComponents, ComponentTypes &componentTypes);
+  InstantiatedTemplate(ecs::EntityManager &mgr, const Archetypes &archetypes, uint32_t archetype,
+    const ChildComponent *const *initial_data, const DataComponents &dataComponents, ComponentTypes &componentTypes);
   void clear(const Archetypes &archetypes, const DataComponents &dataComponents, ComponentTypes &componentTypes);
   InstantiatedTemplate(const InstantiatedTemplate &) = delete;
   InstantiatedTemplate(InstantiatedTemplate &&) = default;
@@ -57,9 +57,10 @@ struct Templates
 {
 public:
   uint32_t size() const { return (uint32_t)templates.size(); }
-  template_t createTemplate(Archetypes &archetypes, const uint32_t db_id, const component_index_t *__restrict components,
-    uint32_t components_cnt, const component_index_t *__restrict repl, uint32_t repl_cnt, const ChildComponent *const *initial_data,
-    const DataComponents &dataComponents, ComponentTypes &componentTypes); // will always create template. no search
+  template_t createTemplate(ecs::EntityManager &mgr, Archetypes &archetypes, const uint32_t db_id,
+    const component_index_t *__restrict components, uint32_t components_cnt, const component_index_t *__restrict repl,
+    uint32_t repl_cnt, const ChildComponent *const *initial_data, const DataComponents &dataComponents,
+    ComponentTypes &componentTypes); // will always create template. no search
   const InstantiatedTemplate &getTemplate(template_t t) const { return templates[t]; }
   void clear(const Archetypes &archetypes, const DataComponents &dataComponents, ComponentTypes &componentTypes);
   const void *getTemplateData(template_t t, uint32_t ofs, uint32_t ci) const; // ci 0.. to components count

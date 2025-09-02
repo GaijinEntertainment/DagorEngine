@@ -84,8 +84,8 @@ public:
     }
     bool empty() const { return cnt == 0; }
     size_t size() const { return cnt; }
-    bool operator==(const ComponentsSet &a) { return size() == a.size() && memcmp(b, a.b, size() * sizeof(*b)) == 0; }
-    bool operator!=(const ComponentsSet &a) { return !(*this == a); }
+    bool operator==(const ComponentsSet &a) const { return size() == a.size() && memcmp(b, a.b, size() * sizeof(*b)) == 0; }
+    bool operator!=(const ComponentsSet &a) const { return !(*this == a); }
     template <class T>
     static ComponentsSet from(const T &t)
     {
@@ -131,8 +131,6 @@ public:
   bool isEqual(const Template &t, const ecs::ComponentTypes &types) const;
 
   bool isSingleton() const;
-  const ChildComponent &getComponent(const HashedConstString &hash_name) const;
-  bool hasComponent(const HashedConstString &hash_name) const;
   bool needCopy(component_t comp, const TemplatesData &db) const;     // get flags from sets
   bool isReplicated(component_t comp, const TemplatesData &db) const; // get flags from sets
   bool isValid() const { return name != NULL; }                       // we can use flags for that, there are plenty bits
@@ -387,11 +385,20 @@ struct TemplateRefs : public TemplatesData
   TemplateRefs(EntityManager &mgr) : TemplatesData(&mgr) {}
   TemplateRefs(EntityManager *mgr) : TemplatesData(mgr) {}
 
+  void setIgnoreNames(const NameMap *ignore_types, const NameMap *ignore_comp)
+  {
+    ignoreTypeNm = ignore_types;
+    ignoreCompNm = ignore_comp;
+  }
+  const NameMap *getIgnoreTypeNm() const { return ignoreTypeNm; }
+  const NameMap *getIgnoreCompNm() const { return ignoreCompNm; }
+
 private:
   void topoSort();
   void resolveBroken();
   uint32_t pushEmpty(const char *n);
   uint32_t emptyCount = 0;
+  const NameMap *ignoreTypeNm = nullptr, *ignoreCompNm = nullptr;
   bool finalized = false;
 };
 

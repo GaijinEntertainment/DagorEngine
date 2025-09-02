@@ -4,18 +4,20 @@
 #include <perfMon/dag_statDrv.h>
 #include <math/dag_TMatrix4.h>
 #include <math/dag_occlusionTest.h>
+#include <scene/dag_occlusion.h>
 
 #define SHRINK_SPHERE     1
 #define VALIDATE_CLUSTERS 0
 
+
 static constexpr int get_target_mip(int srcW, int destW) { return srcW <= destW ? 0 : 1 + get_target_mip(srcW / 2, destW); }
-bool get_max_occlusion_depth(vec4f *destDepth) // from occlusion
+bool get_max_occlusion_depth(vec4f *destDepth, Occlusion *occlusion) // from occlusion
 {
   if (OCCLUSION_W / OCCLUSION_H != CLUSTERS_W / CLUSTERS_H)
     return false;
   constexpr int occlusionMip = get_target_mip(OCCLUSION_W, CLUSTERS_W);
   G_STATIC_ASSERT((OCCLUSION_H >> occlusionMip) == CLUSTERS_H);
-  vec4f *occlusionZ = reinterpret_cast<vec4f *>(OcclusionTest<OCCLUSION_W, OCCLUSION_H>::getZbuffer(occlusionMip));
+  vec4f *occlusionZ = reinterpret_cast<vec4f *>(occlusion->getOcclusionTest().getZbuffer(occlusionMip));
   for (int i = 0; i < CLUSTERS_W * CLUSTERS_H / 4; ++i, destDepth++, occlusionZ++)
     *destDepth = occlusion_convert_from_internal_zbuffer(*occlusionZ);
   return true;
@@ -24,7 +26,7 @@ bool get_max_occlusion_depth(vec4f *destDepth) // from occlusion
 static __forceinline vec3f v_dist3_sq_x(vec3f a, vec3f b) { return v_length3_sq_x(v_sub(a, b)); }
 
 void FrustumClusters::prepareFrustum(mat44f_cref view_, mat44f_cref proj_, float zn, float minDist, float maxDist,
-  bool use_occlusion) // from occlusion
+  Occlusion *occlusion) // from occlusion
 {
   depthSliceScale = CLUSTERS_D / log2f(maxDist / minDist);
   depthSliceBias = -log2f(minDist) * depthSliceScale;
@@ -41,7 +43,7 @@ void FrustumClusters::prepareFrustum(mat44f_cref view_, mat44f_cref proj_, float
 
   {
     vec4f destDepthW[(CLUSTERS_W * CLUSTERS_H + 3) / 4];
-    if (use_occlusion && get_max_occlusion_depth(destDepthW))
+    if (occlusion && get_max_occlusion_depth(destDepthW, occlusion))
     {
       vec4f *sliceDepth = destDepthW;
       uint32_t *slicesNo = (uint32_t *)maxSlicesNo.data();

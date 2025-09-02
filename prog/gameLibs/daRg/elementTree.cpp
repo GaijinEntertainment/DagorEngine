@@ -52,7 +52,7 @@ static void enable_kb_ime(bool on)
   });
 }
 
-ElementTree::ElementTree(GuiScene *gui_scene, Panel *panel_) : guiScene(gui_scene), panel(panel_)
+ElementTree::ElementTree(GuiScene *gui_scene, Screen *sc) : guiScene(gui_scene), screen(sc)
 {
   elemAllocator.init(sizeof(Element), 32);
   xmbAllocator.init(sizeof(XmbData), 32);
@@ -604,6 +604,8 @@ int ElementTree::detachElement(Element *elem)
   if (itOverscroll != overscroll.end())
     overscroll.erase(itOverscroll);
 
+  // Iterate backwards, but preserve order
+  size_t fadeOutInsertPos = elem->fadeOutChildren.size();
   for (int i = elem->children.size() - 1; i >= 0; --i)
   {
     Element *child = elem->children[i];
@@ -615,7 +617,7 @@ int ElementTree::detachElement(Element *elem)
       if (childRes & RESULT_ELEMS_ADDED_OR_REMOVED)
       {
         elem->children.erase(elem->children.begin() + i);
-        elem->fadeOutChildren.push_back(child);
+        elem->fadeOutChildren.insert(elem->fadeOutChildren.begin() + fadeOutInsertPos, child);
         child->startFadeOutAnims();
         animated.insert(child);
       }

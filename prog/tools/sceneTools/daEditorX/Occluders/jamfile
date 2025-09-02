@@ -16,7 +16,7 @@ Sources =
   main_occ.cpp
   plugin_occ.cpp
   objEd_occ.cpp
-  Occluder.cpp
+  occluder.cpp
 ;
 
 

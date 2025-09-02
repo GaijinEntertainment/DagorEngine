@@ -2,9 +2,9 @@
 #pragma once
 
 #include <drv/3d/dag_commands.h>
-#include <drv/3d/rayTrace/dag_drvRayTrace.h> // for D3D_HAS_RAY_TRACING
 #include <osApiWrappers/dag_spinlock.h>
 #include <3d/dag_amdFsr.h>
+#include <3d/dag_nvFeatures.h>
 
 #include "os.h"
 #include "render_state_system.h"
@@ -48,10 +48,9 @@ class DeviceContext //-V553
 {
   struct WorkerThread : public DaThread
   {
-    WorkerThread(uint64_t affinity)
-      // Not less than 4mb required for molten vk
-      :
-      DaThread("Vulkan Worker", 4096 << 10, 0, affinity)
+    WorkerThread(uint64_t affinity) :
+      // use higher priority insead of dedicated affinity, as we don't have system to reserve core properly
+      DaThread("Vulkan Worker", 4096 << 10, cpujobs::DEFAULT_THREAD_PRIORITY + 1, affinity)
     {}
     // calls device.processCommandPipe() until termination is requested
     void execute() override;
@@ -93,19 +92,16 @@ class DeviceContext //-V553
       return coreCount < 2 ? 0x1 : 0x2; // main is always core0, so use whatver non core0 possible
     else
     {
-      // main at core2 with HT core3, core0 and core1 are HT + "system used"
-      // use core4 if possible, otherwise core0/core1
-      if (coreCount <= 4)
-        return 0x2; // core1
-      return 0x10;  // core4
+      // use worker threads mask, leaving it for system to decide how to balance it
+      // because using fixed one tends to get in conflict with other workload
+      return WORKER_THREADS_AFFINITY_USE;
     }
 #endif
     return ~0ull; // any core safety fallback
   }
 
   // internal state
-  VulkanDevice &vkDev;
-  eastl::vector<FrameEvents *> frameEventCallbacks;
+  dag::Vector<FrameEvents *> frameEventCallbacks;
 
   OSSpinlock mutex;
 
@@ -120,7 +116,6 @@ class DeviceContext //-V553
 
   // misc
   void reportAlliveObjects(FaultReportDump &dump);
-  void executeDebugFlush(const char *caller);
 
   void setPipelineState();
 
@@ -190,8 +185,6 @@ public:
   size_t getCurrentWorkItemId();
 
   void waitForItemPushSpace();
-  void startPreRotate(uint32_t binding_slot);
-  void holdPreRotateStateForOneFrame();
 
   void updateDebugUIPipelinesData();
   void setPipelineUsability(ProgramID program, bool value);
@@ -203,8 +196,12 @@ public:
 
   void compileGraphicsPipeline(const VkPrimitiveTopology top);
   void compileComputePipeline();
-  uint64_t getTimestampResult(TimestampQueryId query_id);
-  TimestampQueryId insertTimestamp();
+  uint64_t getTimestampResult(QueryId query_id);
+  QueryId insertTimestamp();
+
+  int getOcclusionQueryResult(QueryId query_id);
+  QueryId startOcclusionQuery();
+  void endOcclusionQuery(QueryId query_id);
 
   void clearView(int clear_flags);
   void allowOpLoad();
@@ -220,15 +217,16 @@ public:
     uint32_t data_size);
   void copyBuffer(const BufferRef &source, const BufferRef &dest, uint32_t src_offset, uint32_t dst_offset, uint32_t data_size);
   void pushEvent(const char *name);
-  void clearDepthStencilImage(Image *image, const VkImageSubresourceRange &area, const VkClearDepthStencilValue &value);
+  void clearDepthStencilImage(Image *image, const VkImageSubresourceRange &area, const VkClearDepthStencilValue &value,
+    bool unordered = false);
   void clearColorImage(Image *image, const VkImageSubresourceRange &area, const VkClearColorValue &value, bool unordered = false);
   void copyImage(Image *src, Image *dst, const VkImageCopy *regions, uint32_t region_count, uint32_t src_mip, uint32_t dst_mip,
     uint32_t mip_count, bool unordered = false);
   void resolveMultiSampleImage(Image *src, Image *dst);
   void flushDraws();
+  void executeDebugFlush(const char *caller);
   void copyImageToBuffer(Image *image, Buffer *buffer, uint32_t region_count, VkBufferImageCopy *regions, AsyncCompletionState *sync);
-  void copyBufferToImage(Buffer *src, Image *dst_id, uint32_t region_count, VkBufferImageCopy *regions, bool seal);
-  void copyBufferToImageOrdered(Buffer *src, Image *dst_id, uint32_t region_count, VkBufferImageCopy *regions);
+  void copyBufferToImage(Buffer *src, Image *dst_id, uint32_t region_count, VkBufferImageCopy *regions, bool ordered_copy = false);
   void blitImage(Image *src, Image *dst, const VkImageBlit &region, bool whole_subres);
   void processAllPendingWork();
   void wait();
@@ -245,11 +243,8 @@ public:
   // upload to framemem with memory class that is optimal to be used for device reads
   BufferRef uploadToDeviceFrameMem(uint32_t size, const void *src);
   void destroyRenderPassResource(RenderPassResource *rp);
-  void destroyImageDelayed(Image *img);
   void destroyImage(Image *img);
   void present();
-  void changeSwapchainMode(const SwapchainMode &new_mode);
-  void shutdownSwapchain();
   void shutdownImmediateConstBuffers();
   void addRenderState(shaders::DriverRenderStateId id, const shaders::RenderState &render_state_data);
   void addPipelineCache(VulkanPipelineCacheHandle cache);
@@ -258,10 +253,10 @@ public:
   void waitForIfPending(AsyncCompletionState &sync);
   void resourceBarrier(ResourceBarrierDesc desc, GpuPipeline gpu_pipeline);
 
-  void updateBindlessResource(uint32_t index, D3dResource *res);
-  void updateBindlessSampler(uint32_t index, SamplerState samplerInfo);
-  void copyBindlessDescriptors(uint32_t resource_type, uint32_t src, uint32_t dst, uint32_t count);
-  void updateBindlessResourcesToNull(uint32_t resource_type, uint32_t index, uint32_t count);
+  bool updateBindlessResource(uint32_t index, D3dResource *res, bool stub_swap = false);
+  void updateBindlessSampler(uint32_t index, const SamplerResource *sampler_res);
+  void copyBindlessDescriptors(D3DResourceType type, uint32_t src, uint32_t dst, uint32_t count);
+  void updateBindlessResourcesToNull(D3DResourceType type, uint32_t index, uint32_t count);
 
   void deleteAsyncCompletionStateOnFinish(AsyncCompletionState &sync);
   void generateFaultReport();
@@ -270,8 +265,12 @@ public:
   void writeDebugMessage(const char *msg, intptr_t msg_length, intptr_t severity);
 
   void executeFSR(amd::FSR *fsr, const amd::FSR::UpscalingArgs &params);
+  void executeDLSS(const nv::DlssParams<BaseTexture> &params);
+  void initializeDLSS(int mode, int width, int height);
+  void initializeStreamlineDlss(int width, int height);
+  void executeStreamlineDlss(const nv::DlssParams<BaseTexture> &dlss_params, int view_index);
 
-#if D3D_HAS_RAY_TRACING
+#if VULKAN_HAS_RAYTRACING
   void deleteRaytraceBottomAccelerationStructure(RaytraceBottomAccelerationStructure *desc);
   void deleteRaytraceTopAccelerationStructure(RaytraceTopAccelerationStructure *desc);
   void traceRays(Buffer *ray_gen_table, uint32_t ray_gen_offset, Buffer *miss_table, uint32_t miss_offset, uint32_t miss_stride,

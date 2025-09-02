@@ -694,7 +694,7 @@ int64_t make_game_resources_diff(const char *base_root_dir, const char *new_root
             otex_sz = old_dxp[old_idx].data->texRec[old_rec_idx].packedDataSize;
 
         TextureMetaData otmd;
-        otmd.decode(old_dxp[old_idx].data->texNames.map[old_rec_idx], &stor2);
+        otmd.decodeData(old_dxp[old_idx].data->texNames.map[old_rec_idx]);
         if (memcmp(&ohdr, &nhdr, sizeof(ohdr)) != 0)
           ; // changed
         else if (game_resources_diff_strict_tex && stricmp(otmd.encode(tex_name, &stor2), tmd.encode(tex_name, &stor3)) != 0)

@@ -2,6 +2,8 @@
 #pragma once
 
 #include <hash/BLAKE3/blake3.h>
+#include <cstring>
+
 struct CryptoHash
 {
   uint8_t data[32];
@@ -11,6 +13,7 @@ struct CryptoHasher
 {
   blake3_hasher hasher;
   CryptoHasher() { blake3_hasher_init(&hasher); }
+  explicit CryptoHasher(const CryptoHash &key) { blake3_hasher_init_keyed(&hasher, key.data); }
   void update(const void *data, size_t len) { blake3_hasher_update(&hasher, data, len); }
   template <class T>
   void update(const T &d)

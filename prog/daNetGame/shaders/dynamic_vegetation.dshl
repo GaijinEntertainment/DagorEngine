@@ -117,6 +117,7 @@ shader dynamic_tree_colored
    }
 
   OPTIONAL_SKINNING_SHADER()
+  USE_UNPACK_UNIT_VECTOR_VS()
 
   if (dyn_model_render_pass == render_pass_normal)
   {
@@ -154,7 +155,7 @@ shader dynamic_tree_colored
       VsOutput output;
       float3 localNormal = 1;
 ##if (atest == atestOn || dyn_model_render_pass != render_to_depth)
-      localNormal = normalize(BGR_SWIZZLE(input.normal.xyz) * 2 - 1);
+      localNormal = unpack_unit_vector(input.normal.xyz);
 ##endif
       float3 localPos = input.pos.xyz;
       float opacity = 1;
@@ -167,8 +168,8 @@ shader dynamic_tree_colored
       float3 worldNormal;
 
 #if VERTEX_TANGENT
-      float3 localDu = BGR_SWIZZLE(input.packedDu) * 2 - 1;
-      float3 localDv = BGR_SWIZZLE(input.packedDv) * 2 - 1;
+      float3 localDu = unpack_unit_vector(input.packedDu);
+      float3 localDv = unpack_unit_vector(input.packedDv);
 #else
       float3 localDu = float3(1, 0, 0), localDv = float3(1, 0, 0);
 #endif

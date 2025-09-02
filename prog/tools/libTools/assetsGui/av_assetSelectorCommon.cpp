@@ -11,7 +11,7 @@
 #include <osApiWrappers/dag_direct.h>
 #include <propPanel/propPanel.h>
 
-dag::Vector<TEXTUREID> AssetSelectorCommon::assetTypeIcons;
+dag::Vector<PropPanel::IconId> AssetSelectorCommon::assetTypeIcons;
 dag::Vector<int> AssetSelectorCommon::allAssetTypeIndexes;
 
 const char *const AssetSelectorCommon::searchTooltip =

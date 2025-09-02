@@ -8,7 +8,8 @@ Daslang is a strong, statically typed language.  All variables have a type.
 Daslang's basic POD (plain old data) data types are::
 
     int, uint, float, bool, double, int64, uint64
-    int2, int3, int4, uint2, uint3, uint4, float2, float3, float4
+    int2, int3, int4, uint2, uint3, uint4, float2, float3, float4,
+    range, urange, range64, urange64
 
 All PODs are represented with machine register/word. All PODs are passed to functions by value.
 
@@ -109,9 +110,9 @@ Array
 
 Arrays are simple sequences of objects. There are static arrays (fixed size) and dynamic arrays (container, size is dynamic).  The index always starts from 0::
 
-    var a = [[int[4] 1; 2; 3; 4]] // fixed size of array is 4, and content is [1, 2, 3, 4]
-    var b: array<string>          // empty dynamic array
-    push(b,"some")                // now it is 1 element of "some"
+    var a = fixed_array(1, 2, 3, 4) // fixed size of array is 4, and content is [1, 2, 3, 4]
+    var b: array<string>            // empty dynamic array
+    push(b,"some")                  // now it is 1 element of "some"
 
 (see :ref:`Arrays <arrays>`).
 
@@ -174,13 +175,15 @@ Function
 
 Functions are similar to those in most other languages::
 
-    def twice(a: int): int
+    def twice(a: int): int {
         return a + a
+    }
 
 However, there are generic (templated) functions, which will be 'instantiated' during function calls by type inference::
 
-    def twice(a)
+    def twice(a) {
         return a + a
+    }
 
     let f = twice(1.0) // 2.0 float
     let i = twice(1)   // 2 int
@@ -193,8 +196,9 @@ Reference
 
 References are types that 'reference' (point to) some other data::
 
-    def twice(var a: int&)
+    def twice(var a: int&) {
         a = a + a
+    }
     var a = 1
     twice(a) // a value is now 2
 
@@ -211,16 +215,20 @@ Dereferencing will panic if a null pointer is passed to it.
 Pointers can be created using the new operator, or with the C++ environment.
 ::
 
-    def twice(var a: int&)
+    def twice(var a: int&) {
         a = a + a
-    def twicePointer(var a: int?)
+    }
+    def twicePointer(var a: int?) {
         twice(*a)
+    }
 
-    struct Foo
+    struct Foo {
         x: int
+    }
 
-    def getX(foo: Foo?)  // it returns either foo.x or -1, if foo is null
+    def getX(foo: Foo?) { // it returns either foo.x or -1, if foo is null
        return foo?.x ?? -1
+    }
 
 -----------
 Iterators

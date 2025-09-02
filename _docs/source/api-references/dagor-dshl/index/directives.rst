@@ -12,30 +12,30 @@ no_dynstcode
 This means that the shader can only access ``material`` variables, or variables defined in a shader block :ref:`shader-blocks`, which is supported by the shader.
 Consider the following example:
 
-.. code-block:: c
+.. code-block:: text
 
-  float4 some_global_var;
-  float4 another_global_var;
+    float4 some_global_var;
+    float4 another_global_var;
 
-  block(scene) common_scene_block
-  {
-    (vs) { some_global_var@f4 = some_global_var; }
-  }
+    block(scene) common_scene_block
+    {
+      (vs) { some_global_var@f4 = some_global_var; }
+    }
 
-  shader test_shader
-  {
-    no_dynstcode;
+    shader test_shader
+    {
+      no_dynstcode;
 
-    texture tex = material.texture.diffuse;
-    (ps) { diffuse_tex@static = tex; }
-    // diffuse_tex is now accessible inside hlsl(ps){...} blocks
+      texture tex = material.texture.diffuse;
+      (ps) { diffuse_tex@static = tex; }
+      // diffuse_tex is now accessible inside hlsl(ps){...} blocks
 
-    supports common_scene_block;
-    // some_global_var is now accessible inside hlsl(vs){...} blocks
+      supports common_scene_block;
+      // some_global_var is now accessible inside hlsl(vs){...} blocks
 
-    // will cause compilation error
-    (vs) { another_global_var@f4 = another_global_var; }
-  }
+      // will cause compilation error
+      (vs) { another_global_var@f4 = another_global_var; }
+    }
 
 -----------
 dont_render
@@ -48,17 +48,17 @@ A special value of ``NULL`` will be assigned to the shader variant that has ``do
 When ``NULL`` dynamic variant is selected during runtime, no rendering or dispatching (in case of compute shaders) happens.
 If a ``ShaderElement`` is being created from a ``NULL`` static shader variant, it will just return ``NULL``.
 
-.. code-block:: c
+.. code-block:: text
 
-  include "render_pass_modes.dshl"
+    include "render_pass_modes.dshl"
 
-  shader decals_shader
-  {
-    if (render_pass_mode == render_pass_impostor)
-    { dont_render; }
+    shader decals_shader
+    {
+      if (render_pass_mode == render_pass_impostor)
+      { dont_render; }
 
-    // ...
-  }
+      // ...
+    }
 
 .. note::
   ``dont_render`` does not directly decrease the number of shader variants.

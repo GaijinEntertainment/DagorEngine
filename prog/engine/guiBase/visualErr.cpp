@@ -91,7 +91,10 @@ static int visuallog_callback(int lev_tag, const char *fmt, const void *arg, int
 
   entered = 1;
 
-  String s(framemem_ptr());
+  // NOTE: our logging infra CAN be called from foreign DLLs and arbitrary threads, e.g. from
+  // a dx12 debug layer callback, in which case we cannot have an initialized framemem.
+  IMemAlloc *fmem = framemem_ptr();
+  String s(fmem ? fmem : strmem);
   if (ctx_file)
     s.printf(0, "[%c] %s,%d: ", isError ? 'E' : 'F', ctx_file, ctx_line);
   else

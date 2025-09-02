@@ -7,6 +7,7 @@ include "stencil_inc.dshl"
 include "clustered/lights_cb.dshl"
 include "taa_inc.dshl"
 include "use_tiled_lights.dshl"
+include "motion_vector_access.dshl"
 
 macro MODE(mode, num)
   mode < num,
@@ -33,11 +34,16 @@ endmacro
 float overdraw_range;
 float lights_degug_mode = 0;
 
+float gbuf_debug_scale = 1;
+
+texture dbg_gbuff_tex;
+
 shader debug_final_gbuffer
 {
   cull_mode = none;
   z_write = false;
   z_test = false;
+
 
   INIT_ZNZFAR()
   ENABLE_ASSERT(ps)
@@ -49,14 +55,20 @@ shader debug_final_gbuffer
   INIT_LOAD_STENCIL_GBUFFER()
 
   (ps) {
-    screen_size@f4 = (1. / screen_pos_to_texcoord.x, 1. / screen_pos_to_texcoord.y, screen_pos_to_texcoord.x, screen_pos_to_texcoord.y);
+    viewport@f4 = get_viewport();
     show_gbuffer@i1 = (show_gbuffer);
     overdraw_range@f1 = (overdraw_range);
     lights_degug_mode@f1 = (lights_degug_mode);
+    gbuf_debug_scale@f1 = (gbuf_debug_scale);
 
     lights_list@buf = lights_list hlsl { StructuredBuffer<uint> lights_list@buf; };
     z_binning_lookup@buf = z_binning_lookup hlsl { StructuredBuffer<uint> z_binning_lookup@buf; };
     inv_lights_distance@f1 = (1 / max_lights_distance, 0, 0, 0);
+
+    if (show_gbuffer == mip || show_gbuffer == texelDensity)
+    {
+      dbg_gbuff_tex@tex2d = dbg_gbuff_tex;
+    }
   }
 
   hlsl(ps) {
@@ -84,7 +96,7 @@ shader debug_final_gbuffer
     half4 get_dynamic_lights_count(float3 worldPos, float w, float2 screenpos)
     {
       half3 result = 0;
-      uint2 tiledGridSize = (screen_size.xy + TILE_EDGE - 1) / TILE_EDGE;
+      uint2 tiledGridSize = (viewport.zw + TILE_EDGE - 1) / TILE_EDGE;
 
       uint2 tileIdx = screen_uv_to_tile_idx(screenpos);
       uint tileOffset = (tileIdx.x * tiledGridSize.y + tileIdx.y) * DWORDS_PER_TILE;
@@ -176,14 +188,17 @@ shader debug_final_gbuffer
   USING_SSAO()
   USING_SSR()
 
+  INIT_RENDERING_RESOLUTION(ps)
   USE_AND_INIT_VIEW_VEC_PS()
   INIT_READ_GBUFFER()
   USE_READ_GBUFFER()
-  POSTFX_VS_TEXCOORD(1, texcoord)
+  POSTFX_VS_TEXCOORD(1, tcLinear)
   INIT_READ_MOTION_BUFFER()
   USE_READ_MOTION_BUFFER()
   INIT_READ_IS_HERO_COCKPIT(ps)
   USE_READ_IS_HERO_COCKPIT(ps)
+  INIT_READ_RESOLVED_MOTION_BUFFER_BASE(ps)
+  USE_READ_RESOLVED_MOTION_BUFFER_BASE(ps)
   INIT_HDR(ps)
   USE_HDR(ps)
 
@@ -224,38 +239,104 @@ shader debug_final_gbuffer
   }
 
   hlsl(ps) {
+    ##if show_gbuffer == mip
+      #include "debug_gbuffer_tex_constants.hlsli"
+
+      half4 get_mip_overlay_color(float2 texCoord, half3 albedo)
+      {
+        static const half3 DBG_MIP_COLOR[MAX_DEBUG_MIP_LEVELS_DISPLAYED + 1] = {
+          half3(1,1,1),      // 0 : White
+          half3(1,0,0),      // 1 : Red
+          half3(1, 0.5, 0),  // 2 : Orange
+          half3(1, 1, 0),    // 3 : Yellow
+          half3(0.2, 1, 0),  // 4 : Neon Green
+          half3(0, 0.5, 0),  // 5 : Dark Green
+          half3(0, 0.5, 0.5),// 6 : Dark Cyan
+          half3(0, 1, 1),    // 7 : Bright Cyan
+          half3(0, 0, 1),    // 8 : Bright Blue
+          half3(0, 0, 0.5),  // 9 : Dark Blue
+          half3(0.5, 0, 0.5),//10 : Purple
+          half3(1, 0, 1),    //11+: Magenta
+        };
+
+        float2 res;
+        dbg_gbuff_tex.GetDimensions(res.x, res.y);
+
+        float mip_level = texelFetch(dbg_gbuff_tex, (int2)floor(texCoord * res), 0).x * (MAX_DEBUG_MIP_LEVELS_DISPLAYED + 1);
+
+        int idxFloor = clamp((int)floor(mip_level), 0, MAX_DEBUG_MIP_LEVELS_DISPLAYED);
+        int idxCeil = clamp((int)ceil(mip_level), 0, MAX_DEBUG_MIP_LEVELS_DISPLAYED);
+
+        half3 mipColor = lerp(DBG_MIP_COLOR[idxFloor], DBG_MIP_COLOR[idxCeil], frac(mip_level));
+
+        return half4(lerp(mipColor, albedo, mip_level <= MAX_DEBUG_MIP_LEVELS_DISPLAYED ? 0.2 : 1.0), 1);
+      }
+  ##endif
+    ##if show_gbuffer == texelDensity
+      half4 get_texel_density_overlay_color(float2 texCoord, half3 albedo)
+      {
+        #include "debug_gbuffer_tex_constants.hlsli"
+
+        float2 res;
+        dbg_gbuff_tex.GetDimensions(res.x, res.y);
+
+        float texDensity = texelFetch(dbg_gbuff_tex, (int2) floor(texCoord * res), 0).x * (MAX_TEXEL_DENSITY_DISPLAYED + 1);
+
+        half3 texDensityColor;
+        if (texDensity > 9.5)
+        {
+          texDensityColor = half3(1, 1, 0);
+        }
+        else if (texDensity > 1)
+        {
+          texDensityColor = lerp(half3(1,1,1), half3(1,0,0), (texDensity - 1.0) / 5.0);
+        }
+        else if(texDensity > 0.1)
+        {
+          texDensityColor = lerp(half3(0,0,1), half3(1,1,1), texDensity);
+        }
+        else
+        {
+          texDensityColor = half3(1, 0, 1);
+        }
+
+        return half4(lerp(texDensityColor, albedo, texDensity <= MAX_TEXEL_DENSITY_DISPLAYED + 0.99 ? 0.2 : 1), 1);
+      }
+    ##endif
+
     #include <envi_brdf.hlsl>
     #include <pixelPacking/ColorSpaceUtility.hlsl>
     float4 debug_ps(VsOutput input HW_USE_SCREEN_POS): SV_Target
     {
       // for now, only depth or stencil can be used, but not both of them
-      float2 screenpos = GET_SCREEN_POS(input.pos).xy;
+      float2 screenpos = GET_SCREEN_POS(input.pos).xy - viewport.xy;
+      float2 distortedTc = screenpos / viewport.zw;
       ##if show_gbuffer < debug_mesh
-      float w = linearize_z(readGbufferDepth(input.texcoord), zn_zfar.zw);
+      float w = linearize_z(readGbufferDepth(distortedTc), zn_zfar.zw);
 
       BRANCH
       if (w >= zn_zfar.y)
         return 0;
       // TODO on Bare Mininmum with the full deferred capability it should use getSSAOSimple
-      SSAO_TYPE ssao = getSSAO(w, screenpos).SSAO_ATTRS;
+      SSAO_TYPE ssao = getSSAO(w, distortedTc * rendering_res.xy).SSAO_ATTRS;
 
       ##endif
 
-      UnpackedGbuffer gbuf = unpackGbuffer(readPackedGbuffer(input.texcoord));
+      UnpackedGbuffer gbuf = unpackGbuffer(readPackedGbuffer(distortedTc));
       ProcessedGbuffer gbuffer = processGbuffer(gbuf);
 
-      float3 viewVect = lerp(lerp(view_vecLT, view_vecRT, input.texcoord.x), lerp(view_vecLB, view_vecRB, input.texcoord.x), input.texcoord.y).xyz;
+      float3 viewVect = lerp(lerp(view_vecLT, view_vecRT, input.tcLinear.x), lerp(view_vecLB, view_vecRB, input.tcLinear.x), input.tcLinear.y).xyz;
       float NdotV = dot(gbuffer.normal, normalize(viewVect));
       float NoV = abs( NdotV ) + 1e-5;
 
       ##if show_gbuffer == lights
-        return get_dynamic_lights_count(viewVect*w, w, input.texcoord.xy * screen_size.xy);
+        return get_dynamic_lights_count(viewVect*w, w, input.tcLinear.xy * viewport.zw);
       ##elif show_gbuffer == emission
         return half4(gbuffer.emissionColor, 1);
       ##elif show_gbuffer >= debug_mesh
         float2 res;
         depth_gbuf_read.GetDimensions(res.x, res.y);
-        uint stencil = stencilFetch(depth_gbuf_stencil, (int2)round(input.texcoord.xy * res));
+        uint stencil = stencilFetch(depth_gbuf_stencil, (int2)round(distortedTc * res));
 
         if (is_overdraw_mode()) {
           float strength = clamp(float(stencil), 0, overdraw_range) / overdraw_range;
@@ -300,14 +381,14 @@ shader debug_final_gbuffer
         half finalAO = gbuffer.ao*gbuffer.extracted_albedo_ao*ssao.x;
         return half4(finalAO.xxx,1);
       ##elif show_gbuffer == ssr
-        return half4(ApplySRGBCurve(pack_hdr(getSSR(gbuffer.linearRoughness, input.texcoord, screenpos).rgb)*EnvBRDFApprox( gbuffer.specularColor, gbuffer.linearRoughness, NoV).x),1);
+        return half4(ApplySRGBCurve(pack_hdr(getSSR(gbuffer.linearRoughness, distortedTc, screenpos).rgb)*EnvBRDFApprox( gbuffer.specularColor, gbuffer.linearRoughness, NoV).x),1);
       ##elif show_gbuffer == ssrStrength
-        return getSSR(gbuffer.linearRoughness, input.texcoord, screenpos).a;
+        return getSSR(gbuffer.linearRoughness, distortedTc, screenpos).a;
       ##elif show_gbuffer == materialType
         #ifdef GBUFFER_HAS_DYNAMIC_BIT
-        half one = 1 - 0.5 * gbuffer.dynamic;
+          half one = 1 - 0.5 * gbuffer.dynamic;
         #else
-        half one = 1;
+          half one = 1 - 0.5 * gbuf.motionMask;
         #endif
         if (gbuffer.material == 2)
           return half4(0, one, 0, 1);
@@ -318,10 +399,23 @@ shader debug_final_gbuffer
         return half4(one.xxx, 1);
       ##elif show_gbuffer == reflectance
         return half4(gbuf.reflectance.xxx, 1);
-      ##elif show_gbuffer == velocity
-        return half4(saturate(readMotionBuffer(input.texcoord).xy * 0.5 + 0.5), 0, 1);
+      ##elif show_gbuffer == motionGbuf
+        return half4(saturate(readMotionBuffer(distortedTc).xyz * gbuf_debug_scale * 0.5 + 0.5), 1);
+      ##elif show_gbuffer == motionResolvedXY || show_gbuffer == motionResolvedDepth
+        float3 outColor = saturate(readResolvedMotionBuffer(distortedTc)).xyz * gbuf_debug_scale * 0.5 + 0.5;
+        ##if show_gbuffer == motionResolvedXY
+          return half4(outColor.xy, 0, 1);
+        ##elif show_gbuffer == motionResolvedDepth
+          return half4(outColor.zzz, 1);
+        ##endif
       ##elif show_gbuffer == isHeroCockpit && gbuffer_has_hero_cockpit
         return half4(gbuffer.isHeroCockpit.xxx, 1);
+      ##elif show_gbuffer == mip
+        return get_mip_overlay_color(distortedTc, gbuffer.diffuseColor);
+      ##elif show_gbuffer == texelDensity
+        return get_texel_density_overlay_color(distortedTc, gbuffer.diffuseColor);
+      ##elif show_gbuffer == impostorMask
+        return half4(gbuf.impostorMask.xxx, 1);
       ##endif
       return 0;
     }
@@ -392,7 +486,7 @@ shader debug_final_gbuffer_vec
   }
 
   (vs) {
-    screen_size@f4 = (1. / screen_pos_to_texcoord.x, 1. / screen_pos_to_texcoord.y, screen_pos_to_texcoord.x, screen_pos_to_texcoord.y);
+    viewport@f4 = get_viewport();
     screen_ration@f1 = (screen_pos_to_texcoord.y / screen_pos_to_texcoord.x, 1, 1, 1);
     vec_count_scale@f2 = (gbuffer_debug_vec_count, gbuffer_debug_vec_scale, 1, 1);
     globtm@f44 = globtm;

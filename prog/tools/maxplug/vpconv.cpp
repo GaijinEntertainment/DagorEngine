@@ -9,39 +9,39 @@
 class VPnorm : public ImageFilter
 {
 public:
-  const TCHAR *Description() { return _T("Normals to RGB"); }
-  const TCHAR *AuthorName() { return _T("Aleksey Volynskov"); }
-  const TCHAR *CopyrightMessage() { return _T("(c) Aleksey Volynskov, 2001"); }
-  UINT Version() { return 1; }
-  DWORD Capability() { return IMGFLT_FILTER; }
-  void ShowAbout(HWND hw)
+  const TCHAR *Description() override { return _T("Normals to RGB"); }
+  const TCHAR *AuthorName() override { return _T("Aleksey Volynskov"); }
+  const TCHAR *CopyrightMessage() override { return _T("(c) Aleksey Volynskov, 2001"); }
+  UINT Version() override { return 1; }
+  DWORD Capability() override { return IMGFLT_FILTER; }
+  void ShowAbout(HWND hw) override
   {
     MessageBox(hw,
       _T( "Normals to RGB convertor\n" )
       _T( "(c) Aleksey Volynskov, 2001" ),
       _T( "About..."), MB_OK | MB_ICONINFORMATION);
   }
-  BOOL Render(HWND hw);
-  DWORD ChannelsRequired() { return BMM_CHAN_NORMAL; }
+  BOOL Render(HWND hw) override;
+  DWORD ChannelsRequired() override { return BMM_CHAN_NORMAL; }
 };
 
 class VPzbufa : public ImageFilter
 {
 public:
-  const TCHAR *Description() { return _T("Z to Alpha"); }
-  const TCHAR *AuthorName() { return _T("Aleksey Volynskov"); }
-  const TCHAR *CopyrightMessage() { return _T("(c) Aleksey Volynskov, 2001"); }
-  UINT Version() { return 1; }
-  DWORD Capability() { return IMGFLT_FILTER; }
-  void ShowAbout(HWND hw)
+  const TCHAR *Description() override { return _T("Z to Alpha"); }
+  const TCHAR *AuthorName() override { return _T("Aleksey Volynskov"); }
+  const TCHAR *CopyrightMessage() override { return _T("(c) Aleksey Volynskov, 2001"); }
+  UINT Version() override { return 1; }
+  DWORD Capability() override { return IMGFLT_FILTER; }
+  void ShowAbout(HWND hw) override
   {
     MessageBox(hw,
       _T( "Z to Alpha convertor\n")
       _T( "(c) Aleksey Volynskov, 2001"),
       _T( "About..."), MB_OK | MB_ICONINFORMATION);
   }
-  BOOL Render(HWND hw);
-  DWORD ChannelsRequired() { return BMM_CHAN_Z; }
+  BOOL Render(HWND hw) override;
+  DWORD ChannelsRequired() override { return BMM_CHAN_Z; }
 };
 
 static inline int lim16(int a)
@@ -131,13 +131,17 @@ BOOL VPzbufa::Render(HWND hw)
 class VPnormClassDesc : public ClassDesc
 {
 public:
-  int IsPublic() { return 1; }
-  void *Create(BOOL loading) { return new VPnorm; }
-  const TCHAR *ClassName() { return _T("VPnorm2rgb"); }
+  int IsPublic() override { return 1; }
+  void *Create(BOOL loading) override { return new VPnorm; }
+  const TCHAR *ClassName() override { return _T("VPnorm2rgb"); }
+#if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
+  const MCHAR *NonLocalizedClassName() override { return ClassName(); }
+#else
   const MCHAR *NonLocalizedClassName() { return ClassName(); }
-  SClass_ID SuperClassID() { return FLT_CLASS_ID; }
-  Class_ID ClassID() { return VPNORM_CID; }
-  const TCHAR *Category() { return _T(""); }
+#endif
+  SClass_ID SuperClassID() override { return FLT_CLASS_ID; }
+  Class_ID ClassID() override { return VPNORM_CID; }
+  const TCHAR *Category() override { return _T(""); }
 };
 
 static VPnormClassDesc VPnormCD;
@@ -146,13 +150,17 @@ ClassDesc *GetVPnormCD() { return &VPnormCD; }
 class VPzbufaClassDesc : public ClassDesc
 {
 public:
-  int IsPublic() { return 1; }
-  void *Create(BOOL loading) { return new VPzbufa; }
-  const TCHAR *ClassName() { return _T("VPzbuf2a"); }
+  int IsPublic() override { return 1; }
+  void *Create(BOOL loading) override { return new VPzbufa; }
+  const TCHAR *ClassName() override { return _T("VPzbuf2a"); }
+#if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
+  const MCHAR *NonLocalizedClassName() override { return ClassName(); }
+#else
   const MCHAR *NonLocalizedClassName() { return ClassName(); }
-  SClass_ID SuperClassID() { return FLT_CLASS_ID; }
-  Class_ID ClassID() { return VPZBUF_CID; }
-  const TCHAR *Category() { return _T(""); }
+#endif
+  SClass_ID SuperClassID() override { return FLT_CLASS_ID; }
+  Class_ID ClassID() override { return VPZBUF_CID; }
+  const TCHAR *Category() override { return _T(""); }
 };
 
 static VPzbufaClassDesc VPzbufaCD;

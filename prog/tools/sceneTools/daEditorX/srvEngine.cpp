@@ -5,6 +5,8 @@
 #include <de3_interface.h>
 #include <de3_objEntity.h>
 #include <de3_entityFilter.h>
+#include <de3_dynRenderService.h>
+#include <de3_skiesService.h>
 #include <assets/asset.h>
 #include <assets/assetFolder.h>
 #include <assets/assetMgr.h>
@@ -12,9 +14,12 @@
 #include <assets/assetMsgPipe.h>
 #include <assets/assetHlp.h>
 #include <assets/assetExpCache.h>
+#include <assets/texAssetBuilderTextureFactory.h>
 #include <assetsGui/av_selObjDlg.h>
 #include <EditorCore/ec_imguiInitialization.h>
 #include <EditorCore/ec_outliner.h>
+#include <EditorCore/ec_wndGlobal.h>
+#include <EditorCore/ec_wndPublic.h>
 #include <libTools/util/strUtil.h>
 #include <libTools/dagFileRW/textureNameResolver.h>
 #include <libTools/shaderResBuilder/shaderMeshData.h>
@@ -22,7 +27,6 @@
 #include <oldEditor/de_interface.h>
 #include <propPanel/constants.h>
 #include <propPanel/control/panelWindow.h>
-#include <sepGui/wndGlobal.h>
 #include <coolConsole/coolConsole.h>
 #include <workCycle/dag_workCycle.h>
 #include <gameRes/dag_gameResSystem.h>
@@ -35,7 +39,6 @@
 #include <startup/dag_globalSettings.h>
 #include <debug/dag_debug.h>
 
-#include <sepGui/wndPublic.h>
 #include "de_batch_log.h"
 
 #include <imgui/imgui.h>
@@ -59,89 +62,89 @@ class GenServicePlugin : public IGenEditorPlugin
 {
 public:
   GenServicePlugin(IEditorService *_srv) : srv(_srv) {}
-  virtual ~GenServicePlugin() {}
+  ~GenServicePlugin() override {}
 
   // internal name (C idenitifier name restrictons); used save/load data and logging
-  virtual const char *getInternalName() const { return srv->getServiceName(); }
+  const char *getInternalName() const override { return srv->getServiceName(); }
   // user-friendly plugin name to be displayed in menu
-  virtual const char *getMenuCommandName() const { return srv->getServiceFriendlyName(); }
+  const char *getMenuCommandName() const override { return srv->getServiceFriendlyName(); }
 
   // returns desired order number; by default plugins are sorted by this number (increasing order)
-  virtual int getRenderOrder() const { return 0; }
+  int getRenderOrder() const override { return 0; }
   // returns desired order number for binary data build process;
   // data is build and saved to dump in increasion order
-  virtual int getBuildOrder() const { return 10; }
+  int getBuildOrder() const override { return 10; }
 
   // non-pure virtual functions
   //  help link in CHM file
-  virtual const char *getHelpUrl() const { return NULL; }
+  const char *getHelpUrl() const override { return NULL; }
   // show this plugin in menu
-  virtual bool showInMenu() const { return false; }
+  bool showInMenu() const override { return false; }
   // show this plugin in Tab Bar
-  virtual bool showInTabs() const { return false; }
+  bool showInTabs() const override { return false; }
   // show in menu "Select all" command for this plugin
-  virtual bool showSelectAll() const { return false; }
+  bool showSelectAll() const override { return false; }
 
 
   // notification about register/unregister
-  virtual void registered() {}
-  virtual void unregistered()
+  void registered() override {}
+  void unregistered() override
   {
     DAEDITOR3.unregisterService(srv);
     del_it(srv);
   }
 
   // called before enter in main loop when all plugins loaded and initialized
-  virtual void beforeMainLoop() {}
+  void beforeMainLoop() override {}
 
   // called when user requests switch to this plugin; returns true on success
-  virtual bool begin(int toolbar_id, unsigned menu_id) { return false; }
+  bool begin(int toolbar_id, unsigned menu_id) override { return false; }
   // called when user requests switch from this plugin; returns true on success
-  virtual bool end() { return false; }
+  bool end() override { return false; }
   // called by editor AFTER begin() returns true; can return NULL when no event handling is needed
-  virtual IGenEventHandler *getEventHandler() { return NULL; }
+  IGenEventHandler *getEventHandler() override { return NULL; }
 
   // used by editor to set/get visibility flag
-  virtual void setVisible(bool vis) { srv->setServiceVisible(vis); }
-  virtual bool getVisible() const { return srv->getServiceVisible(); }
+  void setVisible(bool vis) override { srv->setServiceVisible(vis); }
+  bool getVisible() const override { return srv->getServiceVisible(); }
 
-  virtual bool getSelectionBox(BBox3 &box) const { return false; }
-  virtual bool getStatusBarPos(Point3 &pos) const { return false; }
+  bool getSelectionBox(BBox3 &box) const override { return false; }
+  bool getStatusBarPos(Point3 &pos) const override { return false; }
 
   // clears all objects contained in this plugin (on NEW or before LOAD command)
-  virtual void clearObjects() { srv->clearServiceData(); }
+  void clearObjects() override { srv->clearServiceData(); }
   // notify plugin about new project creation
-  virtual void onNewProject() {}
+  void onNewProject() override {}
   // saves all objects contained in this plugin to data block
   // and/or to base_path folder (with trailing slash)
-  virtual void saveObjects(DataBlock &blk, DataBlock &l_data, const char *base_path) {}
+  void saveObjects(DataBlock &blk, DataBlock &l_data, const char *base_path) override {}
   // loads all objects for this plugin from data block
   // and/or from base_path folder (with trailing slash)
-  virtual void loadObjects(const DataBlock &blk, const DataBlock &l_data, const char *base_path) {}
-  virtual bool acceptSaveLoad() const { return false; }
+  void loadObjects(const DataBlock &blk, const DataBlock &l_data, const char *base_path) override {}
+  bool acceptSaveLoad() const override { return false; }
 
   // selects all objects
-  virtual void selectAll() {}
-  virtual void deselectAll() {}
+  void selectAll() override {}
+  void deselectAll() override {}
 
   // render/acting interface
-  virtual void actObjects(float dt) { srv->actService(dt); }
-  virtual void beforeRenderObjects(IGenViewportWnd *vp)
+  void actObjects(float dt) override { srv->actService(dt); }
+  void beforeRenderObjects(IGenViewportWnd *vp) override
   {
     if (vp)
       srv->beforeRenderService();
   }
-  virtual void renderObjects() { srv->renderService(); }
-  virtual void renderTransObjects() { srv->renderTransService(); }
+  void renderObjects() override { srv->renderService(); }
+  void renderTransObjects() override { srv->renderTransService(); }
 
-  virtual void onBeforeReset3dDevice() { srv->onBeforeReset3dDevice(); }
+  void onBeforeReset3dDevice() override { srv->onBeforeReset3dDevice(); }
 
   // COM-like facilities
-  virtual void *queryInterfacePtr(unsigned huid) { return srv->queryInterfacePtr(huid); }
+  void *queryInterfacePtr(unsigned huid) override { return srv->queryInterfacePtr(huid); }
   // return true if stop catching
-  virtual bool catchEvent(unsigned ev_huid, void *data) { return srv->catchEvent(ev_huid, data); }
+  bool catchEvent(unsigned ev_huid, void *data) override { return srv->catchEvent(ev_huid, data); }
 
-  virtual bool onPluginMenuClick(unsigned id) { return false; }
+  bool onPluginMenuClick(unsigned id) override { return false; }
 
 public:
   IEditorService *srv;
@@ -154,15 +157,14 @@ static Tab<IObjEntityMgr *> entityMgrs(inimem);
 static Tab<IObjEntityMgr *> entityClsMap(inimem);
 static IObjEntityMgr *invEntMgr = NULL;
 static Tab<int> genObjTypes(inimem);
-static void *ppHwnd = NULL;
 
 
 class DaEditor3Updater : public IDagorAssetChangeNotify
 {
 public:
-  virtual void onAssetRemoved(int asset_name_id, int asset_type) {}
+  void onAssetRemoved(int asset_name_id, int asset_type) override {}
 
-  virtual void onAssetChanged(const DagorAsset &asset, int asset_name_id, int asset_type)
+  void onAssetChanged(const DagorAsset &asset, int asset_name_id, int asset_type) override
   {
     bool changed = reload_changed_texture_asset(asset);
     changed |= environment::on_asset_changed(asset);
@@ -190,7 +192,7 @@ static bool de3_gen_fatal_handler(const char *msg, const char *call_stack, const
   if (!fatalQuiet)
   {
     DAEDITOR3.conError("FATAL: %s,%d:\n    %s", file, line, msg);
-    DAEDITOR3.conShow(true);
+    EDITORCORE->getConsole().showConsole();
   }
   return false;
 }
@@ -207,8 +209,8 @@ public:
 
   Tab<String> objFilterList;
 
-  virtual const char *getBuildString() { return "1.0"; }
-  virtual bool registerService(IEditorService *srv)
+  const char *getBuildString() override { return "1.0"; }
+  bool registerService(IEditorService *srv) override
   {
     if (srv->getServiceFriendlyName())
     {
@@ -235,7 +237,7 @@ public:
 
     return true;
   }
-  virtual bool unregisterService(IEditorService *srv)
+  bool unregisterService(IEditorService *srv) override
   {
     debug("unregister service: %s", srv->getServiceName());
     for (int i = srvPlugins.size() - 1; i >= 0; i--)
@@ -257,7 +259,15 @@ public:
     return false;
   }
 
-  virtual bool registerEntityMgr(IObjEntityMgr *oemgr)
+  IEditorService *findService(const char *internalName) const override
+  {
+    for (int i = 0; i < srvPlugins.size(); i++)
+      if (strcmp(srvPlugins[i]->getInternalName(), internalName) == 0)
+        return srvPlugins[i]->srv;
+    return nullptr;
+  }
+
+  bool registerEntityMgr(IObjEntityMgr *oemgr) override
   {
     for (int i = entityMgrs.size() - 1; i >= 0; i--)
       if (entityMgrs[i] == oemgr)
@@ -268,7 +278,7 @@ public:
       invEntMgr = oemgr;
     return true;
   }
-  virtual bool unregisterEntityMgr(IObjEntityMgr *oemgr)
+  bool unregisterEntityMgr(IObjEntityMgr *oemgr) override
   {
     for (int i = entityMgrs.size() - 1; i >= 0; i--)
       if (entityMgrs[i] == oemgr)
@@ -284,30 +294,30 @@ public:
     return false;
   }
 
-  virtual int getAssetTypeId(const char *entity_name) const { return assetMgr.getAssetTypeId(entity_name); }
-  virtual const char *getAssetTypeName(int cls) const { return assetMgr.getAssetTypeName(cls); }
-  virtual IObjEntity *createEntity(const DagorAsset &asset, bool virtual_ent) { return IObjEntity::create(asset, virtual_ent); }
-  virtual IObjEntity *createInvalidEntity(bool virtual_ent)
+  int getAssetTypeId(const char *entity_name) const override { return assetMgr.getAssetTypeId(entity_name); }
+  const char *getAssetTypeName(int cls) const override { return assetMgr.getAssetTypeName(cls); }
+  IObjEntity *createEntity(const DagorAsset &asset, bool virtual_ent) override { return IObjEntity::create(asset, virtual_ent); }
+  IObjEntity *createInvalidEntity(bool virtual_ent) override
   {
     const DagorAsset *null = NULL;
     return invEntMgr ? invEntMgr->createEntity(*null, virtual_ent) : NULL;
   }
-  virtual IObjEntity *cloneEntity(IObjEntity *origin)
+  IObjEntity *cloneEntity(IObjEntity *origin) override
   {
     if (origin->getAssetTypeId() == -1)
       return invEntMgr ? invEntMgr->cloneEntity(origin) : NULL;
 
     return IObjEntity::clone(origin);
   }
-  virtual int registerEntitySubTypeId(const char *subtype_str) { return IObjEntity::registerSubTypeId(subtype_str); }
-  virtual unsigned getEntitySubTypeMask(int mask_type) { return IObjEntityFilter::getSubTypeMask(mask_type); }
-  virtual void setEntitySubTypeMask(int mask_type, unsigned value) { IObjEntityFilter::setSubTypeMask(mask_type, value); }
-  virtual uint64_t getEntityLayerHiddenMask() { return IObjEntityFilter::getLayerHiddenMask(); }
-  virtual void setEntityLayerHiddenMask(uint64_t value) { IObjEntityFilter::setLayerHiddenMask(value); }
+  int registerEntitySubTypeId(const char *subtype_str) override { return IObjEntity::registerSubTypeId(subtype_str); }
+  unsigned getEntitySubTypeMask(int mask_type) override { return IObjEntityFilter::getSubTypeMask(mask_type); }
+  void setEntitySubTypeMask(int mask_type, unsigned value) override { IObjEntityFilter::setSubTypeMask(mask_type, value); }
+  uint64_t getEntityLayerHiddenMask() override { return IObjEntityFilter::getLayerHiddenMask(); }
+  void setEntityLayerHiddenMask(uint64_t value) override { IObjEntityFilter::setLayerHiddenMask(value); }
 
-  virtual dag::ConstSpan<int> getGenObjAssetTypes() const { return genObjTypes; }
+  dag::ConstSpan<int> getGenObjAssetTypes() const override { return genObjTypes; }
 
-  virtual DagorAsset *getAssetByName(const char *_name, int asset_type)
+  DagorAsset *getAssetByName(const char *_name, int asset_type) override
   {
     if (!_name || !_name[0])
       return NULL;
@@ -333,7 +343,7 @@ public:
       return assetMgr.findAsset(name, asset_type);
   }
 
-  virtual DagorAsset *getAssetByName(const char *_name, dag::ConstSpan<int> asset_types)
+  DagorAsset *getAssetByName(const char *_name, dag::ConstSpan<int> asset_types) override
   {
     if (!_name || !_name[0])
       return NULL;
@@ -364,18 +374,18 @@ public:
     return assetMgr.findAsset(name, asset_types);
   }
 
-  virtual const DataBlock *getAssetProps(const DagorAsset &asset) override { return &asset.props; }
+  const DataBlock *getAssetProps(const DagorAsset &asset) override { return &asset.props; }
 
-  virtual String getAssetTargetFilePath(const DagorAsset &asset) override { return asset.getTargetFilePath(); }
+  String getAssetTargetFilePath(const DagorAsset &asset) override { return asset.getTargetFilePath(); }
 
-  virtual const char *getAssetParentFolderName(const DagorAsset &asset) override
+  const char *getAssetParentFolderName(const DagorAsset &asset) override
   {
     const int folderIndex = asset.getFolderIndex();
     const DagorAssetFolder &folder = asset.getMgr().getFolder(folderIndex);
     return folder.folderName;
   }
 
-  virtual const char *resolveTexAsset(const char *tex_asset_name)
+  const char *resolveTexAsset(const char *tex_asset_name) override
   {
     static String tmp;
     if (resolveTextureName(tex_asset_name, tmp))
@@ -399,7 +409,7 @@ public:
         objFilterList.push_back() = blk->getStr(i);
   }
 
-  virtual bool initAssetBase(const char *app_dir)
+  bool initAssetBase(const char *app_dir) override
   {
     String fname(260, "%sapplication.blk", app_dir);
     DataBlock appblk;
@@ -415,6 +425,8 @@ public:
     appblk.setStr("appDir", app_dir);
     ::dagor_set_game_act_rate(appblk.getInt("work_cycle_act_rate", 100));
     DataBlock::setRootIncludeResolver(app_dir);
+    if (appblk.getBlockByNameEx("assets")->getBlockByName("export"))
+      texconvcache::init_build_on_demand_tex_factory(assetMgr, &getCon());
 
     // load asset base
     const DataBlock &blk = *appblk.getBlockByNameEx("assets");
@@ -576,12 +588,12 @@ public:
 
 
   //! simple console messages output
-  virtual ILogWriter &getCon() { return DAGORED2->getConsole(); }
-  virtual void conErrorV(const char *fmt, const DagorSafeArg *arg, int anum) { conMessageV(ILogWriter::ERROR, fmt, arg, anum); }
-  virtual void conWarningV(const char *fmt, const DagorSafeArg *arg, int anum) { conMessageV(ILogWriter::WARNING, fmt, arg, anum); }
-  virtual void conNoteV(const char *fmt, const DagorSafeArg *arg, int anum) { conMessageV(ILogWriter::NOTE, fmt, arg, anum); }
-  virtual void conRemarkV(const char *fmt, const DagorSafeArg *arg, int anum) { conMessageV(ILogWriter::REMARK, fmt, arg, anum); }
-  virtual void conShow(bool show_console_wnd)
+  ILogWriter &getCon() override { return DAGORED2->getConsole(); }
+  void conErrorV(const char *fmt, const DagorSafeArg *arg, int anum) override { conMessageV(ILogWriter::ERROR, fmt, arg, anum); }
+  void conWarningV(const char *fmt, const DagorSafeArg *arg, int anum) override { conMessageV(ILogWriter::WARNING, fmt, arg, anum); }
+  void conNoteV(const char *fmt, const DagorSafeArg *arg, int anum) override { conMessageV(ILogWriter::NOTE, fmt, arg, anum); }
+  void conRemarkV(const char *fmt, const DagorSafeArg *arg, int anum) override { conMessageV(ILogWriter::REMARK, fmt, arg, anum); }
+  void conShow(bool show_console_wnd) override
   {
     if (show_console_wnd)
       DAGORED2->getConsole().showConsole(true);
@@ -596,7 +608,8 @@ public:
 #undef DSA_OVERLOADS_PARAM_PASS
   void conMessageV(ILogWriter::MessageType type, const char *msg, const DagorSafeArg *arg, int anum)
   {
-    static String s1, s2;
+    static String s1;
+    String s2;
     String &s = is_main_thread() ? s1 : s2;
 
     s.vprintf(1024, msg, arg, anum);
@@ -606,7 +619,7 @@ public:
       bl_callback->write(s.str());
   }
 
-  virtual void onAssetMgrMessage(int msg_type, const char *msg, DagorAsset *asset, const char *asset_src_fpath)
+  void onAssetMgrMessage(int msg_type, const char *msg, DagorAsset *asset, const char *asset_src_fpath) override
   {
     G_ASSERT(msg_type >= NOTE && msg_type <= REMARK);
     ILogWriter::MessageType t = (ILogWriter::MessageType)msg_type;
@@ -621,7 +634,7 @@ public:
   }
 
   //! simple fatal handler interface
-  virtual void setFatalHandler(bool quiet)
+  void setFatalHandler(bool quiet) override
   {
     FatalHandlerCtx &ctx = fhCtx.push_back();
     ctx.handler = dgs_fatal_handler;
@@ -631,9 +644,9 @@ public:
     fatalStatus = false;
     fatalQuiet = quiet;
   }
-  virtual bool getFatalStatus() { return fatalStatus; }
-  virtual void resetFatalStatus() { fatalStatus = false; }
-  virtual void popFatalHandler()
+  bool getFatalStatus() override { return fatalStatus; }
+  void resetFatalStatus() override { fatalStatus = false; }
+  void popFatalHandler() override
   {
     if (fhCtx.size() < 1)
       return;
@@ -646,34 +659,14 @@ public:
   }
 
   // asset GUI
-  virtual const char *selectAsset(const char *asset, const char *caption, dag::ConstSpan<int> types, const char *filter_str,
-    bool open_all_grp)
+  const char *selectAsset(const char *asset, const char *caption, dag::ConstSpan<int> types, const char *filter_str,
+    bool open_all_grp) override
   {
-    static const int DLG_W = 320;
     static String buf;
-    int _x = 0, _y = 0, _w = 0, _h = 600;
     IWndManager *_manager = DAGORED2->getWndManager();
 
-    IGenViewportWnd *viewport = DAGORED2->getCurrentViewport();
-    int vp_w = 0, vp_h = 0;
-    if (viewport)
-      viewport->getViewportSize(vp_w, vp_h);
-    _w = (vp_w > 1600) ? DLG_W * 7 / 4 : DLG_W;
-    _h = vp_h;
-
-    unsigned pp_w = 0, pp_h = 0;
-    if (_manager->getWindowPosSize(ppHwnd, _x, _y, pp_w, pp_h))
-    {
-      _manager->clientToScreen(_x, _y);
-      _x = ((int)(_x - _w - 5) < 0) ? _x + pp_w + 5 : _x - _w - 5;
-      _h = pp_h;
-    }
-    else if (viewport)
-    {
-      viewport->clientToScreen(_x, _y);
-      _x += vp_w - _w - 5;
-    }
-    SelectAssetDlg dlg(_manager->getMainWindow(), &assetMgr, caption, "Select asset", "Reset asset", types, _x, _y, _w, _h);
+    SelectAssetDlg dlg(_manager->getMainWindow(), &assetMgr, caption, "Select asset", "Reset asset", types);
+    dlg.setManualModalSizingEnabled();
 
     dlg.selectObj(asset);
     if (open_all_grp)
@@ -689,6 +682,7 @@ public:
     Tab<bool> tree_exps(midmem);
     assetTreeStateCache.getState(tree_exps, types);
     dlg.setTreeNodesExpand(tree_exps);
+    dlg.expandNodesFromSelectionTillRoot();
 
     int ret = dlg.showDialog();
 
@@ -708,10 +702,8 @@ public:
     return "";
   }
 
-  virtual void showAssetWindow(bool show, const char *caption, IAssetBaseViewClient *cli, dag::ConstSpan<int> types)
+  void showAssetWindow(bool show, const char *caption, IAssetBaseViewClient *cli, dag::ConstSpan<int> types) override
   {
-    static const int DLG_W = 250;
-    static const int DLG_H = 450;
     Tab<bool> tree_exps(midmem);
     static Tab<int> last_filter(midmem);
 
@@ -738,9 +730,9 @@ public:
     {
       IWndManager *_manager = DAGORED2->getWndManager();
       IGenViewportWnd *viewport = DAGORED2->getCurrentViewport();
-      int _x = 0, _y = 0, _w = DLG_W, _h = DLG_H;
 
-      assetDlg = new (uimem) SelectAssetDlg(_manager->getMainWindow(), &assetMgr, cli, caption, types, _x, _y, _w, _h);
+      const String captionWithId = String::mk_str_cat(caption, "###AssetSelectorPanel");
+      assetDlg = new (uimem) SelectAssetDlg(_manager->getMainWindow(), &assetMgr, cli, captionWithId, types);
 
       if (DAEDITOR3.getAssetTypeId("spline") == m_FilterTypeId && !mSelectedSplineName.empty())
         assetDlg->selectObj(mSelectedSplineName.str());
@@ -755,23 +747,23 @@ public:
       last_filter = types;
       assetTreeStateCache.getState(tree_exps, types);
       assetDlg->setTreeNodesExpand(tree_exps);
-      assetDlg->dockTo(DAGORED2->getLeftDockNodeId());
+      assetDlg->expandNodesFromSelectionTillRoot();
       assetDlg->show();
     }
   }
 
-  virtual void addAssetToRecentlyUsed(const char *name) override
+  void addAssetToRecentlyUsed(const char *name) override
   {
     if (assetDlg)
       assetDlg->addAssetToRecentlyUsed(name);
   }
 
-  virtual bool getTexAssetBuiltDDSx(DagorAsset &a, ddsx::Buffer &dest, unsigned target, const char *profile, ILogWriter *log)
+  bool getTexAssetBuiltDDSx(DagorAsset &a, ddsx::Buffer &dest, unsigned target, const char *profile, ILogWriter *log) override
   {
     return texconvcache::get_tex_asset_built_ddsx(a, dest, target, profile, log);
   }
-  virtual bool getTexAssetBuiltDDSx(const char *a_name, const DataBlock &a_props, ddsx::Buffer &dest, unsigned target,
-    const char *profile, ILogWriter *log)
+  bool getTexAssetBuiltDDSx(const char *a_name, const DataBlock &a_props, ddsx::Buffer &dest, unsigned target, const char *profile,
+    ILogWriter *log) override
   {
     class DagorAssetX : public DagorAsset
     {
@@ -798,23 +790,30 @@ public:
     return texconvcache::get_tex_asset_built_ddsx(a, dest, target, profile, log);
   }
 
-  virtual void imguiBegin(const char *name, bool *open, unsigned window_flags) override
-  {
-    editor_core_imgui_begin(name, open, window_flags);
-  }
+  void imguiBegin(const char *name, bool *open, unsigned window_flags) override { editor_core_imgui_begin(name, open, window_flags); }
 
-  virtual void imguiBegin(PropPanel::PanelWindowPropertyControl &panel_window, bool *open, unsigned window_flags) override
+  void imguiBegin(PropPanel::PanelWindowPropertyControl &panel_window, bool *open, unsigned window_flags) override
   {
     panel_window.beforeImguiBegin();
     imguiBegin(panel_window.getStringCaption(), open, window_flags);
   }
 
-  virtual void imguiEnd() override { ImGui::End(); }
+  void imguiEnd() override { ImGui::End(); }
 
   void resetInterface()
   {
     static_geom_mat_subst.setMatProcessor(nullptr);
     AssetExportCache::saveSharedData();
+
+    if (EDITORCORE)
+    {
+      if (auto *srv = EDITORCORE->queryEditorInterface<ISkiesService>())
+        srv->term();
+      if (auto *srv = EDITORCORE->queryEditorInterface<IDynRenderService>())
+        srv->term();
+    }
+
+    texconvcache::term_build_on_demand_tex_factory();
     dabuildcache::term();
     texconvcache::term();
     set_global_tex_name_resolver(this);
@@ -832,7 +831,7 @@ public:
   }
   void update() { assetMgr.trackChangesContinuous(-1); }
 
-  virtual bool resolveTextureName(const char *src_name, String &out_str)
+  bool resolveTextureName(const char *src_name, String &out_str) override
   {
     String tmp_stor;
     out_str = DagorAsset::fpath2asset(TextureMetaData::decodeFileName(src_name, &tmp_stor));
@@ -858,7 +857,7 @@ public:
     return true;
   }
 
-  virtual Outliner::OutlinerWindow *createOutlinerWindow() override { return new Outliner::OutlinerWindow(); }
+  Outliner::OutlinerWindow *createOutlinerWindow() override { return new Outliner::OutlinerWindow(); }
 
 protected:
   DagorAssetMgr assetMgr;
@@ -991,7 +990,6 @@ void terminate_interface_de3()
   IDaEditor3Engine::set(NULL);
 }
 void regular_update_interface_de3() { engine_impl.update(); }
-void daeditor3_set_plugin_prop_panel(void *h) { ppHwnd = h; }
 
 void services_act(float dt)
 {

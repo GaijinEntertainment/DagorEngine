@@ -52,6 +52,7 @@ public:
   bool isReferenced(T object) const;
 
   bool processBufferDiscard(const BufferRef &old_buffer, const BufferRef &new_ref, uint32_t buf_flags);
+  void replaceImage(const Image *src, Image *dst);
 
   PipelineState();
   PipelineState(const PipelineState &from);

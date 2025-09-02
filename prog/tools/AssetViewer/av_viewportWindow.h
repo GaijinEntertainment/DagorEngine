@@ -4,23 +4,25 @@
 #include "assetStats.h"
 #include <EditorCore/ec_ViewportWindow.h>
 
+class BaseTexture;
+
 class AssetViewerViewportWindow : public ViewportWindow
 {
 public:
-  AssetViewerViewportWindow(TEcHandle parent, int left, int top, int w, int h);
-
   AssetStats &getAssetStats() { return assetStats; }
   bool needShowAssetStats() const { return showStats && showAssetStats; }
 
 private:
-  virtual void load(const DataBlock &blk) override;
-  virtual void save(DataBlock &blk) const override;
-  virtual void paint(int w, int h) override;
-  virtual void fillStatSettingsDialog(ViewportWindowStatSettingsDialog &dialog) override;
-  virtual void handleStatSettingsDialogChange(int pcb_id, bool value) override;
-  virtual bool canStartInteractionWithViewport() override;
+  void load(const DataBlock &blk) override;
+  void save(DataBlock &blk) const override;
+  void paint(int w, int h) override;
+  void fillStatSettingsDialog(ViewportWindowStatSettingsDialog &dialog) override;
+  void handleStatSettingsDialogChange(int pcb_id, bool value) override;
+  bool canStartInteractionWithViewport() override;
 
   int getAssetStatByIndex(int index);
+  BaseTexture *getDepthBuffer() override;
+
   static int getAssetStatIndexByName(const char *name);
   static void formatGeometryStat(String &statText, const char *stat_name, const AssetStats::GeometryStat &geometry);
 

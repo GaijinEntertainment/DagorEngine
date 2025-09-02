@@ -52,15 +52,16 @@ void DeviceExecutionTracker::dumpFaultData(FaultReportDump &dump) const
   {
     Marker &dmarker = *(Marker *)deviceMarkers->ptrOffsetLoc(i * sizeof(Marker));
     mark = dump.addTagged(FaultReportDump::GlobalTag::TAG_GPU_EXEC_MARKER, (uint64_t)&dmarker,
-      String(8, "hash %016llX job %u", dmarker.hash, dmarker.jobId));
+      String(8, "hash %016llX-%016llX job %u", dmarker.hash, dmarker.dataHash, dmarker.jobId));
     dump.addRef(mark, FaultReportDump::GlobalTag::TAG_GPU_JOB_ITEM, dmarker.jobId);
 
     Marker &hmarker = *(Marker *)hostMarkers->ptrOffsetLoc(i * sizeof(Marker));
     mark = dump.addTagged(FaultReportDump::GlobalTag::TAG_CPU_EXEC_MARKER, (uint64_t)&hmarker,
-      String(8, "hash %016llX job %u", hmarker.hash, hmarker.jobId));
+      String(8, "hash %016llX-%016llX job %u", hmarker.hash, hmarker.dataHash, hmarker.jobId));
     dump.addRef(mark, FaultReportDump::GlobalTag::TAG_GPU_JOB_ITEM, hmarker.jobId);
 #if DAGOR_DBGLEVEL > 0
     dump.addRef(mark, FaultReportDump::GlobalTag::TAG_CALLER_HASH, hmarker.caller);
+    dump.addRef(mark, FaultReportDump::GlobalTag::TAG_CMD, (uint64_t)hmarker.cmdPtr);
 #endif
   }
 }
@@ -79,22 +80,28 @@ void DeviceExecutionTracker::addMarker(const void *data, size_t data_sz)
   {
     hostMarkers = Buffer::create(msz * maxMarkerCount, //
       DeviceMemoryClass::HOST_RESIDENT_HOST_READ_WRITE_BUFFER, 1, BufferMemoryFlags::DEDICATED);
+    hostMarkers->setDebugName("device_execution_host_markers");
+    Globals::Dbg::naming.setBufName(hostMarkers, hostMarkers->getDebugName());
     deviceMarkers = Buffer::create(msz * maxMarkerCount, //
       DeviceMemoryClass::HOST_RESIDENT_HOST_READ_ONLY_BUFFER, 1, BufferMemoryFlags::DEDICATED);
+    deviceMarkers->setDebugName("device_execution_device_markers");
+    Globals::Dbg::naming.setBufName(deviceMarkers, deviceMarkers->getDebugName());
     allocatedBuffers = true;
   }
 
   const uint8_t *dt = (const uint8_t *)data;
   for (int i = 0; i < data_sz; ++i)
-    currentMarker.hash = fnv1a_step<64>(dt[i], currentMarker.hash);
+    currentMarker.hash = fnv1a_step<64>((uint8_t)dt[i], currentMarker.hash);
+  currentMarker.dataHash = mem_hash_fnv1<64>((const char *)data, data_sz);
 #if DAGOR_DBGLEVEL > 0
   currentMarker.caller = Backend::State::exec.getExecutionContext().getCurrentCmdCallerHash();
+  currentMarker.cmdPtr = Backend::State::exec.getExecutionContext().cmd;
 #endif
 
   if (Globals::cfg.executionTrackerBreakpoint != 0 && Globals::cfg.executionTrackerBreakpoint == currentMarker.hash)
   {
     generateFaultReport();
-    DAG_FATAL("vulkan: reached execution hash breakpoint %016llX at cmd %p:%u", currentMarker.hash,
+    DAG_FATAL("vulkan: reached execution hash breakpoint %016llX-%016llX at cmd %p:%u", currentMarker.hash, currentMarker.dataHash,
       Backend::State::exec.getExecutionContext().cmd, Backend::State::exec.getExecutionContext().cmdIndex);
   }
 
@@ -112,7 +119,8 @@ void DeviceExecutionTracker::addMarker(const void *data, size_t data_sz)
   // which is what is required, otherwise it will not represent our serial-like
   Backend::cb.wCmdPipelineBarrier(syncStages, syncStages, 0, 1, &syncMem, 0, nullptr, 0, nullptr);
   Backend::cb.wCmdCopyBuffer(hostMarkers->getHandle(), deviceMarkers->getHandle(), 1, &markerCopy);
-  Backend::cb.wCmdPipelineBarrier(syncStages, syncStages, 0, 1, &syncMem, 0, nullptr, 0, nullptr);
+  // in addition flush writes to host, for data to be available properly there
+  Backend::cb.wCmdPipelineBarrier(syncStages, syncStages | VK_PIPELINE_STAGE_HOST_BIT, 0, 1, &syncMem, 0, nullptr, 0, nullptr);
 
   ++markerCount;
 }
@@ -142,10 +150,10 @@ void DeviceExecutionTracker::verify()
   if (Globals::cfg.bits.enableDeviceExecutionTracker == 0 || markerCount == 0)
     return;
 
-  deviceMarkers->markNonCoherentRangeLoc(0, (markerCount - 1) * sizeof(Marker), false);
+  deviceMarkers->markNonCoherentRangeLoc(0, markerCount * sizeof(Marker), false);
 
   uint64_t firstFailedHash = 0;
-  uint64_t firstFailedCaller = 0;
+  Marker *firstFailedMarker = nullptr;
 
   for (int i = markerCount - 1; i > 0; --i)
   {
@@ -154,15 +162,20 @@ void DeviceExecutionTracker::verify()
     if (dmarker.hash != hmarker.hash)
     {
       firstFailedHash = hmarker.hash;
-#if DAGOR_DBGLEVEL > 0
-      firstFailedCaller = hmarker.caller;
-#endif
+      firstFailedMarker = &hmarker;
     }
     else
       break;
   }
-  if (firstFailedHash != 0)
-    D3D_ERROR(
-      "vulkan: GPU execution tracker verify failed. First hash %016llX (caller %016llX) not reached on GPU, frame hash %016llX",
-      firstFailedHash, firstFailedCaller, currentMarker.hash);
+  if (firstFailedMarker)
+  {
+#if DAGOR_DBGLEVEL > 0
+    D3D_ERROR("vulkan: GPU execution tracker verify failed. First hash %016llX-%016llX (caller %016llX cmd %p) not reached on GPU, "
+              "frame hash %016llX",
+      firstFailedHash, firstFailedMarker->dataHash, firstFailedMarker->caller, firstFailedMarker->cmdPtr, currentMarker.hash);
+#else
+    D3D_ERROR("vulkan: GPU execution tracker verify failed. First hash %016llX-%016llX not reached on GPU, frame hash %016llX",
+      firstFailedHash, firstFailedMarker->dataHash, currentMarker.hash);
+#endif
+  }
 }

@@ -7,20 +7,20 @@
 class DeDagorPhys : public IDagorPhys
 {
 public:
-  virtual StaticSceneRayTracer *loadBinaryRaytracer(IGenLoad &crd) const;
+  StaticSceneRayTracer *loadBinaryRaytracer(IGenLoad &crd) const override;
 
-  virtual bool traceRayStatic(const Point3 &p, const Point3 &dir, real &maxt) const;
-  virtual bool traceRayStatic(const Point3 &p, const Point3 &dir, real &maxt, Point3 &norm) const;
-  virtual bool rayHitStatic(const Point3 &p, const Point3 &dir, real maxt) const;
+  bool traceRayStatic(const Point3 &p, const Point3 &dir, real &maxt) const override;
+  bool traceRayStatic(const Point3 &p, const Point3 &dir, real &maxt, Point3 &norm) const override;
+  bool rayHitStatic(const Point3 &p, const Point3 &dir, real maxt) const override;
 
-  virtual real clipCapsuleStatic(Capsule &c, Point3 &cap_pt, Point3 &world_pt) const;
-  virtual real clipCapsuleStatic(Capsule &c, Point3 &cap_pt, Point3 &world_pt, Point3 &norm) const;
+  real clipCapsuleStatic(Capsule &c, Point3 &cap_pt, Point3 &world_pt) const override;
+  real clipCapsuleStatic(Capsule &c, Point3 &cap_pt, Point3 &world_pt, Point3 &norm) const override;
 
-  virtual FastRtDump *getFastRtDump() const;
+  FastRtDump *getFastRtDump() const override;
 
-  virtual void initClippingBinary(StaticSceneRayTracer *rt) const;
+  void initCollisionBinary(StaticSceneRayTracer *rt) const override;
 
-  virtual void closeClipping() const;
+  void closeCollision() const override;
 
-  virtual BBox3 getBoundingBox() const;
+  BBox3 getBoundingBox() const override;
 };

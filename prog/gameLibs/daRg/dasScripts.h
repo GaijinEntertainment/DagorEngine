@@ -40,33 +40,25 @@ class DasLogWriter : public das::TextWriter
 
 struct DasScript
 {
-  eastl::string filename;
   das::smart_ptr<das::Context> ctx;
   das::ProgramPtr program;
-};
-
-
-struct DasEnvironmentGuard
-{
-  das::daScriptEnvironment *initialOwned;
-  das::daScriptEnvironment *initialBound;
-  DasEnvironmentGuard(das::daScriptEnvironment *environment = nullptr);
-  ~DasEnvironmentGuard();
 };
 
 
 class DasScriptsData
 {
 public:
-  DasScriptsData();
+  DasScriptsData(const char *das_project = nullptr);
   ~DasScriptsData() = default;
 
   void initDasEnvironment(TInitDasEnv init_callback);
   void shutdownDasEnvironment();
   void initModuleGroup();
   void resetBeforeReload();
+  void cleanupAfterReload();
 
 public:
+  das::string dasProject;
   das::daScriptEnvironment *dasEnv = nullptr;
   bool isOwnedDasEnv = false;
   TInitDasEnv initCallback = nullptr;
@@ -81,6 +73,7 @@ public:
   das::TypeInfo *typeGuiContextRef = nullptr;
   das::TypeInfo *typeConstElemRenderDataRef = nullptr;
   das::TypeInfo *typeConstRenderStateRef = nullptr;
+  das::TypeInfo *typeConstElemRef = nullptr;
   das::TypeInfo *typeConstPropsRef = nullptr;
 };
 

@@ -31,9 +31,11 @@ static constexpr ecs::component_t floatingRiGroup__volumesCount_get_type();
 static ecs::LTComponentList floatingRiGroup__volumesCount_component(ECS_HASH("floatingRiGroup__volumesCount"), floatingRiGroup__volumesCount_get_type(), "prog/gameLibs/ecs/rendInst/./rendinstFloatingES.cpp.inl", "", 0);
 static constexpr ecs::component_t floatingRiGroup__wreckageFloatDuration_get_type();
 static ecs::LTComponentList floatingRiGroup__wreckageFloatDuration_component(ECS_HASH("floatingRiGroup__wreckageFloatDuration"), floatingRiGroup__wreckageFloatDuration_get_type(), "prog/gameLibs/ecs/rendInst/./rendinstFloatingES.cpp.inl", "", 0);
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "rendinstFloatingES.cpp.inl"
 ECS_DEF_PULL_VAR(rendinstFloating);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 //static constexpr ecs::ComponentDesc rendinst_floating_render_debug_es_comps[] ={};
 static void rendinst_floating_render_debug_es_all(const ecs::UpdateStageInfo &__restrict info, const ecs::QueryView & __restrict components)

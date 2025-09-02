@@ -1,10 +1,13 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "globVarSem.h"
+#include "shTargetContext.h"
 #include "shsyn.h"
 #include "shExprParser.h"
+#include "shErrorReporting.h"
 #include "semUtils.h"
 #include "shCompiler.h"
+#include "shCompContext.h"
 #include "cppStcode.h"
 
 #include "globVar.h"
@@ -19,29 +22,8 @@ using namespace ShaderTerminal;
 
 namespace ShaderParser
 {
-void error(const char *msg, Symbol *s, ShaderSyntaxParser &parser)
-{
-  if (s)
-  {
-    eastl::string str = msg;
-    if (!s->macro_call_stack.empty())
-      str.append("\nCall stack:\n");
-    for (auto it = s->macro_call_stack.rbegin(); it != s->macro_call_stack.rend(); ++it)
-      str.append_sprintf("  %s()\n    %s(%i)\n", it->name, parser.get_lex_parser().get_filename(it->file), it->line);
-    parser.get_lex_parser().set_error(s->file_start, s->line_start, s->col_start, str.c_str());
-  }
-  else
-    parser.get_lex_parser().set_error(msg);
-}
-
-static void warning(const char *msg, Symbol *s, ShaderSyntaxParser &parser)
-{
-  G_ASSERT(s);
-  parser.get_lex_parser().set_warning(s->file_start, s->line_start, s->col_start, msg);
-}
-
 // add a new global variable to a global variable list
-void add_global_var(global_var_decl *decl, ShaderTerminal::ShaderSyntaxParser &parser)
+void add_global_var(global_var_decl *decl, Parser &parser, shc::TargetContext &ctx)
 {
   if (!decl)
     return;
@@ -60,18 +42,22 @@ void add_global_var(global_var_decl *decl, ShaderTerminal::ShaderSyntaxParser &p
     case SHADER_TOKENS::SHTOK_const_buffer: t = SHVT_BUFFER; break;
     default: G_ASSERT(0);
   }
-  int variableNameID = VarMap::addVarId(decl->name->text);
+  int variableNameID = ctx.varNameMap().addVarId(decl->name->text);
 
-  int v = ShaderGlobal::get_var_internal_index(variableNameID);
+  int v = ctx.globVars().getVarInternalIndex(variableNameID);
   if (v >= 0)
   {
-    eastl::string message(eastl::string::CtorSprintf{}, "global variable '%s' already declared in ", decl->name->text);
-    message += parser.get_lex_parser().get_symbol_location(variableNameID, SymbolType::GLOBAL_VARIABLE);
-    error(message.c_str(), decl->name, parser);
+    String message;
+
+    String incStack = parser.get_lexer().build_current_include_stack();
+    message.aprintf(0, "%s\nglobal variable '%s' already declared in %s", incStack.c_str(), decl->name->text,
+      parser.get_lexer().get_symbol_location(variableNameID, SymbolType::GLOBAL_VARIABLE));
+
+    report_error(parser, decl->name, message.c_str());
     return;
   }
 
-  parser.get_lex_parser().register_symbol(variableNameID, SymbolType::GLOBAL_VARIABLE, decl->name);
+  parser.get_lexer().register_symbol(variableNameID, SymbolType::GLOBAL_VARIABLE, decl->name);
 
   bool is_array = decl->size != nullptr;
   if (is_array)
@@ -79,7 +65,7 @@ void add_global_var(global_var_decl *decl, ShaderTerminal::ShaderSyntaxParser &p
     bool is_valid_syntax = !decl->expr && (t == SHVT_COLOR4 || t == SHVT_INT4);
     if (!is_valid_syntax)
     {
-      error("Wrong array assignment", decl->name, parser);
+      report_error(parser, decl->name, "Wrong array assignment");
       return;
     }
   }
@@ -88,12 +74,12 @@ void add_global_var(global_var_decl *decl, ShaderTerminal::ShaderSyntaxParser &p
     bool is_valid_syntax = !decl->arr0;
     if (!is_valid_syntax)
     {
-      error("Wrong variable syntax", decl->name, parser);
+      report_error(parser, decl->name, "Wrong variable syntax");
       return;
     }
   }
 
-  Tab<ShaderGlobal::Var> &variable_list = ShaderGlobal::getMutableVariableList();
+  Tab<ShaderGlobal::Var> &variable_list = ctx.globVars().getMutableVariableList();
   int size = is_array ? semutils::int_number(decl->size->text) : 1;
 
   if (is_array)
@@ -102,7 +88,7 @@ void add_global_var(global_var_decl *decl, ShaderTerminal::ShaderSyntaxParser &p
 
     v = append_items(variable_list, 1);
     variable_list[v].type = SHVT_INT;
-    variable_list[v].nameId = VarMap::addVarId(array_size_getter_name.c_str());
+    variable_list[v].nameId = ctx.varNameMap().addVarId(array_size_getter_name.c_str());
     variable_list[v].isAlwaysReferenced = true;
     variable_list[v].value.i = size;
   }
@@ -112,7 +98,7 @@ void add_global_var(global_var_decl *decl, ShaderTerminal::ShaderSyntaxParser &p
     if (i > 0)
     {
       eastl::string name(eastl::string::CtorSprintf{}, "%s[%i]", decl->name->text, i);
-      variableNameID = VarMap::addVarId(name.c_str());
+      variableNameID = ctx.varNameMap().addVarId(name.c_str());
     }
 
     v = append_items(variable_list, 1);
@@ -121,7 +107,7 @@ void add_global_var(global_var_decl *decl, ShaderTerminal::ShaderSyntaxParser &p
     variable_list[v].nameId = variableNameID;
     variable_list[v].isAlwaysReferenced = decl->is_always_referenced ? true : false;
     variable_list[v].shouldIgnoreValue = decl->undefined ? true : false;
-    variable_list[v].fileName = bindump::string(parser.get_lex_parser().get_filename(decl->name->file_start));
+    variable_list[v].fileName = bindump::string(parser.get_lexer().get_filename(decl->name->file_start));
     variable_list[v].array_size = size;
     variable_list[v].index = i;
 
@@ -137,7 +123,8 @@ void add_global_var(global_var_decl *decl, ShaderTerminal::ShaderSyntaxParser &p
 
     if (expr)
     {
-      ExpressionParser::getStatic().setParser(&parser);
+      const ExpressionParser exprParser{parser};
+
       shexpr::ValueType expectedValType = shexpr::VT_UNDEFINED;
       if (t == SHVT_REAL || t == SHVT_INT)
         expectedValType = shexpr::VT_REAL;
@@ -145,14 +132,13 @@ void add_global_var(global_var_decl *decl, ShaderTerminal::ShaderSyntaxParser &p
         expectedValType = shexpr::VT_COLOR4;
       else if (t == SHVT_FLOAT4X4)
       {
-        error("float4x4 default value is not supported", decl->name, parser);
+        report_error(parser, decl->name, "float4x4 default value is not supported");
         return;
       }
 
-      if (!ExpressionParser::getStatic().parseConstExpression(*expr, val,
-            ExpressionParser::Context{expectedValType, expectingInt, decl->name}))
+      if (!exprParser.parseConstExpression(*expr, val, ExpressionParser::Context{expectedValType, expectingInt, decl->name}))
       {
-        error("Wrong expression", decl->name, parser);
+        report_error(parser, decl->name, "Wrong expression");
         return;
       }
     }
@@ -182,29 +168,26 @@ void add_global_var(global_var_decl *decl, ShaderTerminal::ShaderSyntaxParser &p
     }
   }
 
-  g_cppstcode.globVars.setVar(ShaderVarType(t), decl->name->text);
+  ctx.cppStcode().globVars.setVar(ShaderVarType(t), decl->name->text);
 }
 
-void add_sampler(sampler_decl *decl, ShaderSyntaxParser &parser) { g_sampler_table.add(*decl, parser); }
+void add_sampler(sampler_decl *decl, Parser &parser, shc::TargetContext &ctx) { ctx.samplers().add(*decl, parser); }
 
-void add_interval(IntervalList &intervals, interval &interv, ShaderVariant::VarType type, ShaderSyntaxParser &parser)
+void add_interval(IntervalList &intervals, interval &interv, ShaderVariant::VarType type, Parser &parser, shc::TargetContext &ctx)
 {
   SymbolType symbol_type = type == ShaderVariant::VARTYPE_GLOBAL_INTERVAL ? SymbolType::INTERVAL : SymbolType::LOCAL_INTERVAL;
-  if (intervals.intervalExists(interv.name->text))
+  int intervalId = ctx.intervalNameMap().addNameId(interv.name->text);
+  if (intervals.intervalExists(intervalId))
   {
-    int intervalId = IntervalValue::getIntervalNameId(interv.name->text);
     eastl::string message(eastl::string::CtorSprintf{}, "interval '%s' already declared in ", interv.name->text);
-    message += parser.get_lex_parser().get_symbol_location(intervalId, symbol_type);
-    warning(message.c_str(), interv.name, parser);
+    message += parser.get_lexer().get_symbol_location(intervalId, symbol_type);
+    report_warning(parser, *interv.name, message.c_str());
   }
 
-  eastl::string file_name = parser.get_lex_parser().get_filename(interv.name->file_start);
+  eastl::string file_name = parser.get_lexer().get_filename(interv.name->file_start);
 
-  Interval newInterval(interv.name->text, type, interv.is_optional ? true : false, eastl::move(file_name));
-  parser.get_lex_parser().register_symbol(newInterval.getNameId(), symbol_type, interv.name);
-
-  ExpressionParser &exprParser = ExpressionParser::getStatic();
-  exprParser.setParser(&parser);
+  Interval newInterval(intervalId, type, eastl::move(file_name));
+  parser.get_lexer().register_symbol(newInterval.getNameId(), symbol_type, interv.name);
 
   for (int i = 0; i < interv.var_decl.size(); i++)
   {
@@ -212,51 +195,44 @@ void add_interval(IntervalList &intervals, interval &interv, ShaderVariant::VarT
 
     real v = semutils::real_number(var->val);
 
-    if (!newInterval.addValue(var->name->text, v))
-    {
-      error("Duplicate value found in interval!", interv.name, parser);
-    }
+    int valueNameId = ctx.intervalNameMap().addNameId(var->name->text);
+    if (!newInterval.addValue(valueNameId, v))
+      report_error(parser, interv.name, "Duplicate value found in interval!");
   }
 
-  if (!newInterval.addValue(interv.last_var_name->text, IntervalValue::VALUE_INFINITY))
-  {
-    error("Duplicate value found in interval!", interv.name, parser);
-  }
+  int valueNameId = ctx.intervalNameMap().addNameId(interv.last_var_name->text);
+  if (!newInterval.addValue(valueNameId, IntervalValue::VALUE_INFINITY))
+    report_error(parser, interv.name, "Duplicate value found in interval!");
 
   if (!intervals.addInterval(newInterval))
-  {
-    error("Interval already exists and their type diffirent from new interval!", interv.name, parser);
-  }
+    report_error(parser, interv.name, "Interval already exists and their type diffirent from new interval!");
 }
 
 // add a new global variable interval
-void add_global_interval(ShaderTerminal::interval &interv, ShaderTerminal::ShaderSyntaxParser &parser)
+void add_global_interval(ShaderTerminal::interval &interv, Parser &parser, shc::TargetContext &ctx)
 {
-  IntervalList &intervals = ShaderGlobal::getMutableIntervalList();
-  add_interval(intervals, interv, ShaderVariant::VARTYPE_GLOBAL_INTERVAL, parser);
+  IntervalList &intervals = ctx.globVars().getMutableIntervalList();
+  add_interval(intervals, interv, ShaderVariant::VARTYPE_GLOBAL_INTERVAL, parser, ctx);
 }
 
-static DataBlock blk_storage_for_assumed_vars;
-void add_assume_to_blk(const char *block_name, const IntervalList &intervals, assume_stat &s, ShaderSyntaxParser &parser)
+static void add_assume_impl(ShaderAssumesTable &table, const IntervalList &intervals, auto &stat, Parser &parser,
+  shc::TargetContext &ctx)
 {
-  DataBlock *blk = shc::getAssumedVarsBlock();
-  if (!blk)
-    shc::setAssumedVarsBlock(blk = &blk_storage_for_assumed_vars);
+  using stat_t = eastl::remove_cvref_t<decltype(stat)>;
+  static_assert(eastl::is_same_v<stat_t, assume_stat> || eastl::is_same_v<stat_t, assume_if_not_assumed_stat>);
+  constexpr bool OVERRIDE = eastl::is_same_v<stat_t, assume_stat>;
 
-  if (block_name)
-    blk = blk->addBlock(block_name);
-
-  int interval_nid = IntervalValue::getIntervalNameId(s.interval->text);
-  int value_nid = IntervalValue::getIntervalNameId(s.value->text);
+  int interval_nid = ctx.intervalNameMap().getNameId(stat.interval->text);
+  int value_nid = ctx.intervalNameMap().getNameId(stat.value->text);
   if (interval_nid < 0)
   {
-    error(String(0, "Undeclared interval '%s' (nameId=%d) is used in 'assume'", s.interval->text, interval_nid), s.interval, parser);
+    report_error(parser, stat.interval, "Undeclared interval '%s' (nameId=%d) is used in 'assume'", stat.interval->text, interval_nid);
     return;
   }
   if (value_nid < 0)
   {
-    error(String(0, "Bad value '%s' (nameId=%d) for interval '%s' is used in 'assume'", s.value->text, value_nid, s.interval->text),
-      s.value, parser);
+    report_error(parser, stat.value, "Bad value '%s' (nameId=%d) for interval '%s' is used in 'assume'", stat.value->text, value_nid,
+      stat.interval->text);
     return;
   }
 
@@ -266,46 +242,45 @@ void add_assume_to_blk(const char *block_name, const IntervalList &intervals, as
     interv = intervals.getInterval(intervalIndex);
   else
   {
-    intervalIndex = ShaderGlobal::getIntervalList().getIntervalIndex(interval_nid);
-    interv = ShaderGlobal::getIntervalList().getInterval(intervalIndex);
+    intervalIndex = ctx.globVars().getIntervalList().getIntervalIndex(interval_nid);
+    interv = ctx.globVars().getIntervalList().getInterval(intervalIndex);
   }
   if (!interv)
   {
-    error(String(0, "Undeclared interval '%s' (nameId=%d) is used in 'assume'", s.interval->text, interval_nid), s.interval, parser);
+    report_error(parser, stat.interval, "Undeclared interval '%s' (nameId=%d) is used in 'assume'", stat.interval->text, interval_nid);
     return;
   }
 
-  const IntervalValue *interv_val = interv->getValue(value_nid);
+  const IntervalValue *interv_val = interv->getValueByNameId(value_nid);
   if (!interv_val)
   {
-    error(String(0, "Bad value '%s' (nameId=%d) for interval '%s' is used in 'assume'", s.value->text, value_nid, s.interval->text),
-      s.value, parser);
+    report_error(parser, stat.value, "Bad value '%s' (nameId=%d) for interval '%s' is used in 'assume'", stat.value->text, value_nid,
+      stat.interval->text);
     return;
   }
 
-  float val = (interv_val->getBounds().getMin() + interv_val->getBounds().getMax()) * 0.5;
-  int p_idx = blk->findParam(s.interval->text);
-  if (p_idx >= 0)
-  {
-    if (blk->getParamType(p_idx) != DataBlock::TYPE_REAL)
-    {
-      error(String(0, "cannot override %s{ %s:%s= } in *_assume_static with 'assume' statement (:r= is required!)",
-              block_name ? block_name : "", s.interval->text, dblk::resolve_short_type(blk->getParamType(p_idx))),
-        s.interval, parser);
-      return;
-    }
-    if (blk->getReal(p_idx) != val)
-      warning(String(0, "Overriding %s (for %s) old=%g -> new=%g in 'assume' statement", s.interval->text,
-                block_name ? block_name : "", blk->getReal(p_idx), val),
-        s.interval, parser);
-  }
-  blk->setReal(s.interval->text, val);
-  debug("%s=%s -> %s %s=%g", s.interval->text, s.value->text, blk->getBlockName(), s.interval->text, val);
+  float newval = table.addIntervalAssume(stat.interval->text, *interv_val, !OVERRIDE, parser, stat.interval);
+  debug("%s=%s -> %s %s=%g", stat.interval->text, stat.value->text, table.getDebugName(), stat.interval->text, newval);
 }
 
-void add_global_assume(ShaderTerminal::assume_stat &assume, ShaderTerminal::ShaderSyntaxParser &parser)
+void add_shader_assume(assume_stat &s, Parser &parser, shc::ShaderContext &ctx)
 {
-  add_assume_to_blk(nullptr, {}, assume, parser);
+  add_assume_impl(ctx.assumes(), ctx.intervals(), s, parser, ctx.tgtCtx());
+}
+
+void add_shader_assume_if_not_assumed(ShaderTerminal::assume_if_not_assumed_stat &s, Parser &parser, shc::ShaderContext &ctx)
+{
+  add_assume_impl(ctx.assumes(), ctx.intervals(), s, parser, ctx.tgtCtx());
+}
+
+void add_global_assume(ShaderTerminal::assume_stat &assume, Parser &parser, shc::TargetContext &ctx)
+{
+  add_assume_impl(ctx.globAssumes(), {}, assume, parser, ctx);
+}
+
+void add_global_assume_if_not_assumed(ShaderTerminal::assume_if_not_assumed_stat &assume, Parser &parser, shc::TargetContext &ctx)
+{
+  add_assume_impl(ctx.globAssumes(), {}, assume, parser, ctx);
 }
 
 } // namespace ShaderParser

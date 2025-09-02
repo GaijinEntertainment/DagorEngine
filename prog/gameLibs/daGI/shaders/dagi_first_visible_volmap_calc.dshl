@@ -34,6 +34,7 @@ shader calc_initial_ambient_walls_dist_cs
       StructuredBuffer<VisibleAmbientVoxelPoint> visible_ambient_voxels@buf;
     };
     visible_ambient_voxels_walls_planes@uav : register(calc_initial_ambient_walls_dist_cs_visible_ambient_voxels_walls_planes_uav_no) hlsl {
+      #include "dagi_common_types.hlsli"
       RWStructuredBuffer<AmbientVoxelsPlanes> visible_ambient_voxels_walls_planes@uav;
     };
   }

@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "ragdollES.cpp.inl"
 ECS_DEF_PULL_VAR(ragdoll);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc ragdoll_start_es_event_handler_comps[] =
 {
@@ -91,9 +93,10 @@ static constexpr ecs::ComponentDesc ragdoll_dead_es_event_handler_comps[] =
 //start of 2 rw components at [0]
   {ECS_HASH("ragdoll"), ecs::ComponentTypeInfo<ragdoll_t>()},
   {ECS_HASH("projectile_impulse"), ecs::ComponentTypeInfo<ProjectileImpulse>()},
-//start of 3 ro components at [2]
+//start of 4 ro components at [2]
   {ECS_HASH("projectile_impulse__impulseSaveDeltaTime"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("projectile_impulse__cinematicArtistryMultDead"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("projectile_impulse__maxSingleImpulse"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("isAlive"), ecs::ComponentTypeInfo<bool>()}
 };
 static void ragdoll_dead_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
@@ -108,6 +111,7 @@ static void ragdoll_dead_es_event_handler_all_events(const ecs::Event &__restric
       , ECS_RW_COMP(ragdoll_dead_es_event_handler_comps, "projectile_impulse", ProjectileImpulse)
       , ECS_RO_COMP_OR(ragdoll_dead_es_event_handler_comps, "projectile_impulse__impulseSaveDeltaTime", float(1.f))
       , ECS_RO_COMP_OR(ragdoll_dead_es_event_handler_comps, "projectile_impulse__cinematicArtistryMultDead", float(5.f))
+      , ECS_RO_COMP_OR(ragdoll_dead_es_event_handler_comps, "projectile_impulse__maxSingleImpulse", float(0.01f))
       );
   } while (++comp != compE);
 }
@@ -117,7 +121,7 @@ static ecs::EntitySystemDesc ragdoll_dead_es_event_handler_es_desc
   "prog/gameLibs/ecs/phys/ragdollES.cpp.inl",
   ecs::EntitySystemOps(nullptr, ragdoll_dead_es_event_handler_all_events),
   make_span(ragdoll_dead_es_event_handler_comps+0, 2)/*rw*/,
-  make_span(ragdoll_dead_es_event_handler_comps+2, 3)/*ro*/,
+  make_span(ragdoll_dead_es_event_handler_comps+2, 4)/*ro*/,
   empty_span(),
   empty_span(),
   ecs::EventSetBuilder<EventOnPhysImpulse>::build(),

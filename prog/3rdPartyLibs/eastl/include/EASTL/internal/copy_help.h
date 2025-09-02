@@ -33,17 +33,16 @@ namespace eastl
 	/// doesn't target overlapping memory and so memcpy would be usable.
 	///
 	/// We can use memmove/memcpy if the following hold true:
-	///     InputIterator and OutputIterator are of the same type.
+	///     InputIterator and OutputIterator have the same value type.
 	///     InputIterator and OutputIterator are of type contiguous_iterator_tag or simply are pointers (the two are virtually synonymous).
-	///     is_trivially_copyable<T>::value is true. i.e. the constructor T(const T& t) (or T(T&& t) if present) can be replaced by memmove(this, &t, sizeof(T))
+	///     is_trivially_copyable<T>::value is true. i.e. from the standard (http://www.eel.is/c++draft/basic.types.general#2):
+	///			For any object (other than a potentially-overlapping subobject) of trivially copyable type T, whether or not the object
+	///			holds a valid value of type T, the underlying bytes making up the object can be copied into an array of char, unsigned char,
+	///			or std::byte [footnote: By using, for example, the library functions std::memcpy or std::memmove].
 	///
 	/// copy normally differs from move, but there is a case where copy is the same as move: when copy is
 	/// used with a move_iterator. We handle that case here by detecting that copy is being done with a
 	/// move_iterator and redirect it to move (which can take advantage of memmove/memcpy).
-	///
-	/// The generic_iterator class is typically used for wrapping raw memory pointers so they can act like
-	/// formal iterators. Since pointers provide an opportunity for memmove/memcpy operations, we can
-	/// detect a generic iterator and use it's wrapped type as a pointer if it happens to be one.
 
 	// Implementation moving copying both trivial and non-trivial data via a lesser iterator than random-access.
 	template <typename /*InputIteratorCategory*/, bool /*isMove*/, bool /*canMemmove*/>
@@ -121,29 +120,53 @@ namespace eastl
 	};
 
 
+	namespace internal {
+		// This exists to handle the case when EASTL_ITC_NS is `std`
+		// and the C++ version is older than C++20, in this case
+		// std::contiguous_iterator_tag does not exist so we can't use
+		// is_same<> directly.
+	#if !EASTL_STD_ITERATOR_CATEGORY_ENABLED || defined(EA_COMPILER_CPP20_ENABLED)
+		template <typename IC>
+		using is_contiguous_iterator = eastl::is_same<IC, EASTL_ITC_NS::contiguous_iterator_tag>;
+	#else
+		template <typename IC>
+		using is_contiguous_iterator = eastl::false_type;
+	#endif
+
+		template <typename InputIterator, typename OutputIterator>
+		struct can_be_memmoved_helper {
+			using IIC = typename eastl::iterator_traits<InputIterator>::iterator_category;
+			using OIC = typename eastl::iterator_traits<OutputIterator>::iterator_category;
+			using value_type_input = typename eastl::iterator_traits<InputIterator>::value_type;
+			using value_type_output = typename eastl::iterator_traits<OutputIterator>::value_type;
+
+			static constexpr bool value = eastl::is_trivially_copyable<value_type_output>::value &&
+				                          eastl::is_same<value_type_input, value_type_output>::value &&
+				                         (eastl::is_pointer<InputIterator>::value  || is_contiguous_iterator<IIC>::value) &&
+				                         (eastl::is_pointer<OutputIterator>::value || is_contiguous_iterator<OIC>::value);
+
+		};
+	}
 
 	template <bool isMove, typename InputIterator, typename OutputIterator>
 	inline OutputIterator move_and_copy_chooser(InputIterator first, InputIterator last, OutputIterator result)
 	{
 		typedef typename eastl::iterator_traits<InputIterator>::iterator_category  IIC;
-		typedef typename eastl::iterator_traits<OutputIterator>::iterator_category OIC;
-		typedef typename eastl::iterator_traits<InputIterator>::value_type         value_type_input;
-		typedef typename eastl::iterator_traits<OutputIterator>::value_type        value_type_output;
 
-		const bool canBeMemmoved = eastl::is_trivially_copyable<value_type_output>::value &&
-								   eastl::is_same<value_type_input, value_type_output>::value &&
-								  (eastl::is_pointer<InputIterator>::value  || eastl::is_same<IIC, eastl::contiguous_iterator_tag>::value) &&
-								  (eastl::is_pointer<OutputIterator>::value || eastl::is_same<OIC, eastl::contiguous_iterator_tag>::value);
+		const bool canBeMemmoved = internal::can_be_memmoved_helper<InputIterator, OutputIterator>::value;
 
-		return eastl::move_and_copy_helper<IIC, isMove, canBeMemmoved>::move_or_copy(first, last, result); // Need to chose based on the input iterator tag and not the output iterator tag, because containers accept input ranges of iterator types different than self.
+		// Need to choose based on the input iterator tag and not the output iterator tag, because containers accept input ranges of iterator types different than self.
+		return eastl::move_and_copy_helper<IIC, isMove, canBeMemmoved>::move_or_copy(first, last, result);
 	}
 
 
-	// We have a second layer of unwrap_iterator calls because the original iterator might be something like move_iterator<generic_iterator<int*> > (i.e. doubly-wrapped).
+	// We have a second layer of unwrap_iterator calls because the original iterator might be something like move_iterator<reverse_iterator<int*> > (i.e. doubly-wrapped).
 	template <bool isMove, typename InputIterator, typename OutputIterator>
-	inline OutputIterator move_and_copy_unwrapper(InputIterator first, InputIterator last, OutputIterator result)
+	EASTL_REMOVE_AT_2024_SEPT inline OutputIterator move_and_copy_unwrapper(InputIterator first, InputIterator last, OutputIterator result)
 	{
-		return OutputIterator(eastl::move_and_copy_chooser<isMove>(eastl::unwrap_iterator(first), eastl::unwrap_iterator(last), eastl::unwrap_iterator(result))); // Have to convert to OutputIterator because result.base() could be a T*
+		EASTL_INTERNAL_DISABLE_DEPRECATED() // 'unwrap_iterator': was declared deprecated
+		return OutputIterator(eastl::move_and_copy_chooser<isMove>(eastl::unwrap_iterator(first), eastl::unwrap_iterator(last), eastl::unwrap_iterator(result))); // Have to convert to OutputIterator because unwrap_iterator(result) could be a T*
+		EASTL_INTERNAL_RESTORE_DEPRECATED()
 	}
 
 
@@ -170,7 +193,7 @@ namespace eastl
 	template <typename InputIterator, typename OutputIterator>
 	inline OutputIterator move(InputIterator first, InputIterator last, OutputIterator result)
 	{
-		return eastl::move_and_copy_unwrapper<true>(eastl::unwrap_iterator(first), eastl::unwrap_iterator(last), result);
+		return eastl::move_and_copy_chooser<true>(first, last, result);
 	}
 
 
@@ -191,9 +214,7 @@ namespace eastl
 	template <typename InputIterator, typename OutputIterator>
 	inline OutputIterator copy(InputIterator first, InputIterator last, OutputIterator result)
 	{
-		const bool isMove = eastl::is_move_iterator<InputIterator>::value; EA_UNUSED(isMove);
-
-		return eastl::move_and_copy_unwrapper<isMove>(eastl::unwrap_iterator(first), eastl::unwrap_iterator(last), result);
+		return eastl::move_and_copy_chooser<false>(first, last, result);
 	}
 } // namespace eastl
 

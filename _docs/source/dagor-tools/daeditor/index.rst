@@ -8,7 +8,7 @@ daEditor
 
    daeditor/index.rst
    daeditor-console-commands/index.rst
-   splines_in_daeditor.md
    navmesh/index.rst
+   splines_in_daeditor.md
 
 

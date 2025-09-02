@@ -4,7 +4,11 @@ using namespace das;
 
 extern int MAIN_FUNC_NAME ( int, char * argv[] );
 
+namespace das { vector<void *> force_aot_stub(); }
+
 int main(int argc, char * argv[]) {
+    // force libDaScriptAot linking
+    force_aot_stub();
     // request our custom module
     NEED_MODULE(Module_TestProfile);
     // call daScript for main.das

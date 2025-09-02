@@ -44,6 +44,7 @@ class LandMeshManager
 {
 public:
   static constexpr int DET_TEX_NUM = LoadElement::DET_TEX_NUM;
+  static constexpr int DECALS_OVERRIDE_SAMPLERS_COUNT = 2;
 
   friend struct LandMeshCullingState;
 
@@ -52,6 +53,8 @@ public:
   struct ElemsData
   {
     SmallTab<IBBox2, MidmemAlloc> elemBoxes; // minx, miny, maxx, maxy
+    SmallTab<Point3, MidmemAlloc> firstVertexPos;
+    SmallTab<bool, MidmemAlloc> shouldRenderElem;
   };
   class DetailMap
   {
@@ -92,6 +95,7 @@ protected:
   SmallTab<int, MidmemAlloc> landClassesEditorId;
   Tab<LandClassDetailTextures> landClasses;
   carray<Tab<TEXTUREID>, NUM_TEXTURES_STACK> megaDetailsId;
+  int biomeLandClassIdx = -1;
 
   carray<TEXTUREID, NUM_TEXTURES_STACK> megaDetailsArrayId;
 
@@ -110,6 +114,7 @@ protected:
         ShaderMesh *patches;
       };
     };
+    SmallTab<carray<d3d::SamplerHandle, DECALS_OVERRIDE_SAMPLERS_COUNT>, MidmemAlloc> decalsNoMipbiasSamplers;
     SmallTab<bool, MidmemAlloc> isCombinedBig;
     CellData() = default;
     CellData(const CellData &) = delete;
@@ -152,7 +157,7 @@ protected:
   void loadRaytracerData(IGenLoad &loadCb, IMemAlloc *rayTracerAllocator = midmem);
 
 public:
-  LandMeshManager(bool tools_internal = false);
+  LandMeshManager(bool tools_internal = false, LandMeshCullingState::CullMode cull_mode = LandMeshCullingState::ASYNC_CULLING);
   ~LandMeshManager();
   LandClassData getRenderDataNeeded() const { return (LandClassData)renderDataNeeded; }
   HeightmapHandler *getHmapHandler() const { return hmapHandler; }
@@ -176,10 +181,12 @@ public:
       holesMgr->clearHoles();
   }
   void afterDeviceReset(LandMeshRenderer *lrend, bool full_reset);
+  void updateOverrideSamplers();
   void setHmapLodDistance(int lodD);
   int getHmapLodDistance() const;
   bool loadHeightmapDump(IGenLoad &loadCb, bool load_render_data);
   PhysMap *loadPhysMap(IGenLoad &loadCb, bool lmp2);
+  void filterHeighLandmeshDecals(const DataBlock &levelBlk);
   const carray<Tab<TEXTUREID>, NUM_TEXTURES_STACK> &getMegaDetailsId() const { return megaDetailsId; }
 
   int getLCEditorId(int i) const { return landClassesEditorId[i]; }
@@ -257,9 +264,17 @@ public:
     if (x < 0 || x >= mapSizeX || y < 0 || y >= mapSizeY)
       return NULL;
     return getCellDecalShaderMeshRaw(x, y);
-    int cellId = x + y * mapSizeX;
-    return cells[cellId].decal;
   }
+
+  dag::Span<const d3d::SamplerHandle> getCellDecalElemSamplersNoMipbiasMeshOffseted(int x, int y, int i)
+  {
+    if (x < 0 || x >= mapSizeX || y < 0 || y >= mapSizeY)
+      return {};
+
+    int cellId = x + y * mapSizeX;
+    return cells[cellId].decalsNoMipbiasSamplers[i];
+  }
+
   ShaderMesh *getCellCombinedShaderMeshOffseted(int x, int y, bool **out_is_combined_big = NULL)
   {
     if (x < 0 || x >= mapSizeX || y < 0 || y >= mapSizeY)

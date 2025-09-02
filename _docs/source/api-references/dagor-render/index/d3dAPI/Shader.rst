@@ -1,5 +1,5 @@
-Shader programs
+Shader Programs
 =================================================
 
-.. autodoxygenfile:: dag_shader.h
+.. doxygenfile:: dag_shader.h
   :project: d3dAPI

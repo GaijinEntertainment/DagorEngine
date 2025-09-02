@@ -45,10 +45,14 @@ struct HeightmapGrid
   float tileWorldSize = FLT_MAX;
   int prngSeed = 0;
   float gridJitter = 0.0f;
+  float displacementNoiseScale = 1;
+  float displacementStrength = 0;
+  float placementNoiseScale = 1.0f / 109; // 1 over prime around 100 to avoid aliasing issues
+  float sampleRange = -1.0f;
   bool lowerLevel = false;
-  bool useDynamicAllocation = false;
+  bool useDecals = false;
+  bool discardOnGrassErasure = true;
   dag::VectorSet<HeightmapTileCoord> tiles;
-  dag::RelocatableFixedVector<uint32_t, 64> placeablesTileLimits;
 };
 
 struct HeightmapConfig
@@ -85,7 +89,6 @@ struct HeightmapManager
 // If optimistic phase fails, the pessimistic phase is used after rearrangement.
 enum class HeightmapPlacementType
 {
-  STATIC,
   DYNAMIC_OPTIMISTIC,
   DYNAMIC_PESSIMISTIC,
 };

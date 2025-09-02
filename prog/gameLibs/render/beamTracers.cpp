@@ -27,6 +27,8 @@
 GLOBAL_VARS_LIST
 #undef VAR
 
+static ShaderVariableInfo beam_tracers_head_culledTracers_const_no;
+
 void BeamTracerManager::updateAlive()
 {
   int nextUsed = (1 - currentUsed) & 1;
@@ -86,8 +88,9 @@ void BeamTracerManager::initGPU(const DataBlock &settings)
 
   beamTex = dag::get_tex_gameres("misc_ribbon_trail_1_tex_a", "beam_tracer_tex");
   // beamTex = dag::get_tex_gameres("soldier_teeth_tex_d", "beam_tracer_tex");
-  if (beamTex)
-    beamTex->texaddr(TEXADDR_WRAP);
+  d3d::SamplerInfo smpInfo;
+  smpInfo.address_mode_u = smpInfo.address_mode_v = d3d::AddressMode::Wrap;
+  ShaderGlobal::set_sampler(get_shader_variable_id("beam_tracer_tex_samplerstate", true), d3d::request_sampler(smpInfo));
 
   updateCommands_cs.reset(new_compute_shader("update_beam_tracer_commands_cs"));
   createCommands_cs.reset(new_compute_shader("create_beam_tracer_commands_cs"));
@@ -175,14 +178,19 @@ int BeamTracerManager::updateTracerPos(unsigned id, const Point3 &pos, const Poi
 }
 
 int BeamTracerManager::createTracer(const Point3 &start_pos, const Point3 &ndir, float radius, const Color4 &smoke_color,
-  const Color4 &head_color, float time_to_live, float fade_dist, float begin_fade_time, float end_fade_time, float scroll_speed,
-  bool is_ray)
+  const Color3 &head_color, float luminosity, float burn_time, float time_to_live, float fade_dist, float begin_fade_time,
+  float end_fade_time, float scroll_speed, bool is_ray)
 {
+  if (!shader_exists("beam_tracers_head"))
+    return -1;
+
   if (DAGOR_UNLIKELY(!tracerVertsBuffer))
   {
     const DataBlock *tracersBlk = dgs_get_settings()->getBlockByNameEx("tracers");
     if (!tracersBlk)
       return -1;
+
+    beam_tracers_head_culledTracers_const_no = get_shader_variable_id("beam_tracers_head_culledTracers_const_no");
     init(*tracersBlk);
   }
 
@@ -192,8 +200,8 @@ int BeamTracerManager::createTracer(const Point3 &start_pos, const Point3 &ndir,
     debug("no free");
     return -1;
   }
-  if (head_color.a < 0)
-    logerr("negative tracer head ttl, head burnTime = %f", head_color.a);
+  if (burn_time < 0)
+    logerr("negative tracer head ttl, head burnTime = %f", burn_time);
   if (time_to_live < 0)
     logerr("negative tracer smoke ttl, smoke vaporTime = %f", time_to_live);
   int id = freeTracers.back();
@@ -204,9 +212,9 @@ int BeamTracerManager::createTracer(const Point3 &start_pos, const Point3 &ndir,
   tracersLeft.reset(id);
 #endif
   tracersVaporTime[id] = time_to_live;
-  float4 head_color_(head_color.r, head_color.g, head_color.b, head_color.a);
-  createCommands.push_back(BeamTracerCreateCommand(id, start_pos, ndir * radius, time_to_live, head_color_, fade_dist,
-    is_ray ? -begin_fade_time : begin_fade_time, end_fade_time, scroll_speed));
+  createCommands.push_back(
+    BeamTracerCreateCommand(id, start_pos, ndir * radius, time_to_live, reinterpret_cast<const float3 &>(head_color) * luminosity,
+      burn_time, fade_dist, is_ray ? -begin_fade_time : begin_fade_time, end_fade_time, scroll_speed));
   // v_bbox3_init(tracersBox[id], v_ldu(&start_pos.x));
   // v_bbox3_add_pt(tracersBox[id], v_ldu(&next_pos.x));
 
@@ -364,20 +372,8 @@ void BeamTracerManager::renderTrans()
   ShaderGlobal::set_real(beam_fog_intensity_mulVarId, tacLaserRenderSettings.fogIntensityMul);
   headRenderer.shader->setStates(0, true);
   d3d::setvsrc(0, 0, 0);
-  d3d::set_buffer(STAGE_VS, 8, culledTracerHeads.get());
+  d3d::set_buffer(STAGE_VS, beam_tracers_head_culledTracers_const_no.get_int(), culledTracerHeads.get());
   d3d::draw_indirect(PRIM_TRISTRIP, drawIndirectBuffer.get(), 0);
-
-  /*
-    tailRenderer.shader->setStates(0, true);
-    d3d::set_buffer(STAGE_VS, 12, culledTracerTails.getSbuffer());
-    d3d::set_buffer(STAGE_VS, 13, tracerVertsBuffer.getSbuffer());
-    d3d::draw_indirect(PRIM_TRISTRIP, drawIndirectBuffer.getSbuffer(), sizeof(uint32_t) * DRAW_INDIRECT_NUM_ARGS);
-    //d3d::draw(PRIM_TRISTRIP, 0, 32);
-    d3d::set_buffer(STAGE_VS, 12, 0);
-    d3d::set_buffer(STAGE_VS, 13, 0);
-    //d3d::set_buffer(STAGE_VS, 1, 0);
-    //d3d::set_buffer(STAGE_VS, 2, 0);
-  */
 }
 
 BeamTracerManager::BeamTracerManager() : currentUsed(0), cTime(0), lastDt(0)

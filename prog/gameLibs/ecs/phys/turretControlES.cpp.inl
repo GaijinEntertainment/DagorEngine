@@ -140,7 +140,7 @@ bool TurretAimDrivesMult::operator==(const TurretAimDrivesMult &rhs) const { ret
 
 
 template <typename Callable>
-inline void turret_payload_gun_ammo_ecs_query(ecs::EntityId eid, Callable c);
+inline void turret_payload_gun_ammo_ecs_query(ecs::EntityManager &mgr, ecs::EntityId eid, Callable c);
 
 ECS_NO_ORDER
 ECS_REQUIRE(eastl::true_type turret_control__hasPayload)
@@ -154,7 +154,7 @@ void __forceinline update_turret_payload_es(const ParallelUpdateFrameDelayed &, 
   ecs::IntList &ammoList = evt.get<1>();
   ammoList.resize(turret_control__gunEids.size(), 0);
   for (int gunIndex = 0; gunIndex < turret_control__gunEids.size(); ++gunIndex)
-    turret_payload_gun_ammo_ecs_query(turret_control__gunEids[gunIndex],
+    turret_payload_gun_ammo_ecs_query(manager, turret_control__gunEids[gunIndex],
       [&](ECS_REQUIRE(ecs::auto_type gun) ECS_REQUIRE(eastl::true_type gun__isPayload) int gun__ammo) {
         ammoList[gunIndex] = gun__ammo;
       });

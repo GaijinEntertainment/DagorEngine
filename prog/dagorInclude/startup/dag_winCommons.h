@@ -63,7 +63,16 @@ inline void win_set_process_dpi_aware(WinDeferredStartupLogs &deferredLogs)
         deferredLogs.failed_SetProcessDPIAware = true;
     }
 
-    // Windows 10+, fallback path. Original comment from https://cvs1.gaijin.lan/c/dagor4/+/158002 :
+    // Windows 10+, fallback path. Original comment:
+    // The DPI scaling has been disabled to get a pixel to pixel rendering, except the
+    // following cases:
+    // 1. Change monitor DPI scaling without reboot. PER_MONITOR_AWARE flag is
+    // required to override system scaling after that.
+    // 2. Set DPI scaling compatibility options for far.exe and start the game from
+    // it. Only SetThreadDpiAwarenessContext can override inherited process options.
+    // Both are available only on Windows 10, so keep SetProcessDPIAware as a
+    // fallback.
+    // Fix: Incorrect window size and blurred picture in some cases.
     //
     // > SetProcessDpiAwarenessContext does not work here because it cannot override compatibility
     // > options of the parent process (far.exe for example), while the SetThreadDpiAwarenessContext can.

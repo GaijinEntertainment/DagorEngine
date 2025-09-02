@@ -212,7 +212,7 @@
 
 	// EA_COMPILER_HAS_BUILTIN
 	#ifndef EA_COMPILER_HAS_BUILTIN
-		#if defined(__clang__)
+		#if defined(__clang__) || (defined(__GNUC__) && (__GNUC__ >= 10))
 			#define EA_COMPILER_HAS_BUILTIN(x) __has_builtin(x)
 		#else
 			#define EA_COMPILER_HAS_BUILTIN(x) 0
@@ -599,7 +599,7 @@
 		#elif (defined(EA_COMPILER_CLANG) || defined(EA_COMPILER_GNUC) || defined(EA_COMPILER_INTEL) || defined(EA_COMPILER_RVCT)) && !defined(__EXCEPTIONS) // GCC and most EDG-based compilers define __EXCEPTIONS when exception handling is enabled.
 			#define EA_COMPILER_NO_EXCEPTIONS 1
 
-		#elif (defined(EA_COMPILER_BORLAND) || defined(EA_COMPILER_MSVC)) && !defined(_CPPUNWIND)
+		#elif (defined(EA_COMPILER_MSVC)) && !defined(_CPPUNWIND)
 			#define EA_COMPILER_NO_UNWIND 1
 
 		#endif // EA_COMPILER_NO_EXCEPTIONS / EA_COMPILER_NO_UNWIND
@@ -621,7 +621,7 @@
 		#if defined(_MSC_VER)
 			#define EA_DISABLE_ALL_VC_WARNINGS()  \
 				__pragma(warning(push, 0)) \
-				__pragma(warning(disable: 4244 4265 4267 4350 4472 4509 4548 4623 4710 4985 6320 4755 4625 4626 4702)) // Some warnings need to be explicitly called out.
+				__pragma(warning(disable: 4244 4265 4267 4350 4472 4509 4548 4623 4710 4985 6320 4755 4625 4626 4702 4668)) // Some warnings need to be explicitly called out.
 		#else
 			#define EA_DISABLE_ALL_VC_WARNINGS()
 		#endif
@@ -697,7 +697,7 @@
 			#define EA_THROW_SPEC_DELETE_NONE() throw() 
 
 		#else
-			#if defined(EA_PLATFORM_C1)
+			#if defined(EA_PLATFORM_C)
 
 			#elif defined(_MSC_VER)
 				// Disabled warning "nonstandard extension used: 'throw (...)'" as this warning is a W4 warning which is usually off by default

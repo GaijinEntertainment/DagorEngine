@@ -26,7 +26,7 @@
   VAR(depth_ao_heights)          \
   VAR(depth_ao_tex_to_blur)      \
   VAR(depth_ao_texture_size)     \
-  VAR(depth_ao_texture_rcp_size) \
+  VAR(depth_ao_texture_size_inv) \
   VAR(world_to_depth_ao_extra)   \
   VAR(depth_ao_heights_extra)    \
   VAR(blurred_depth)
@@ -55,10 +55,10 @@ GLOBAL_VARS_LIST_OPT
 static void init_shader_vars()
 {
 #define VAR(a) a##VarId = get_shader_variable_id(#a);
-  GLOBAL_VARS_LIST
+  GLOBAL_VARS_LIST;
 #undef VAR
 #define VAR(a) a##VarId = get_shader_variable_id(#a, true);
-  GLOBAL_VARS_LIST_OPT
+  GLOBAL_VARS_LIST_OPT;
 #undef VAR
 }
 
@@ -84,15 +84,12 @@ DepthAOAboveRenderer::DepthAOAboveRenderer(const int tex_size, const float depth
     ShaderGlobal::set_sampler(depth_around_samplerstateVarId, sampler);
     ShaderGlobal::set_sampler(depth_ao_tex_to_blur_samplerstateVarId, sampler);
     ShaderGlobal::set_sampler(depth_around_transparent_samplerstateVarId, sampler);
-    worldAODepth->disableSampler();
   }
 
   blurredDepth.close();
   blurredDepth = dag::create_array_tex(texSize, texSize, numCascades, TEXCF_RTARGET | TEXFMT_L16, 1, "blurred_depth");
   if (blurredDepth.getTexId() == BAD_TEXTUREID)
     logerr("DepthAOAboveRenderer: Failed to create 'blurred_depth' texture");
-  else
-    blurredDepth->disableSampler();
 
   if (renderTransparent)
   {
@@ -103,15 +100,12 @@ DepthAOAboveRenderer::DepthAOAboveRenderer(const int tex_size, const float depth
       dag::create_array_tex(texSize, texSize, numCascades, TEXCF_RTARGET | TEXFMT_DEPTH16, 1, "depth_around_transparent");
     if (worldAODepthWithTransparency.getTexId() == BAD_TEXTUREID)
       logerr("DepthAOAboveRenderer: Failed to create 'depth_around_transparent' texture");
-    worldAODepthWithTransparency->disableSampler();
 
     blurredDepthWithTransparency.close();
     blurredDepthWithTransparency =
       dag::create_array_tex(texSize, texSize, numCascades, TEXCF_RTARGET | TEXFMT_L16, 1, "blurred_depth_transparent");
     if (blurredDepthWithTransparency.getTexId() == BAD_TEXTUREID)
       logerr("DepthAOAboveRenderer: Failed to create 'blurred_depth_transparent' texture");
-    else
-      blurredDepthWithTransparency->disableSampler();
   }
   else
   {
@@ -205,7 +199,7 @@ void DepthAOAboveRenderer::BlurDepthRenderer::render(BaseTexture *target, TEXTUR
   d3d::set_render_target((Texture *)target, cascade_no, 0);
   ShaderGlobal::set_texture(depth_ao_tex_to_blurVarId, depth_tid);
   ShaderGlobal::set_real(depth_ao_texture_sizeVarId, worldAODepthData.texSize);
-  ShaderGlobal::set_real(depth_ao_texture_rcp_sizeVarId, 1.0f / worldAODepthData.texSize);
+  ShaderGlobal::set_real(depth_ao_texture_size_invVarId, 1.0f / worldAODepthData.texSize);
   ShaderGlobal::set_int(depth_above_blur_layerVarId, cascade_no);
   blurDepth->shader->setStates(0, true);
   d3d::draw_up(PRIM_TRILIST, tris.size() / 3, tris.data(), elem_size(tris));
@@ -578,7 +572,7 @@ void DepthAOAboveRenderer::setVars()
     ShaderGlobal::set_texture(blurred_depth_transparentVarId, blurredDepth);
   }
   ShaderGlobal::set_real(depth_ao_texture_sizeVarId, texSize);
-  ShaderGlobal::set_real(depth_ao_texture_rcp_sizeVarId, 1.0f / texSize);
+  ShaderGlobal::set_real(depth_ao_texture_size_invVarId, 1.0f / texSize);
 }
 
 bool DepthAOAboveRenderer::isValid() const

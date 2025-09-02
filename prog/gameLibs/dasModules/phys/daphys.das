@@ -1,4 +1,5 @@
 require Daphys
+options indenting = 2
 
 [generic]
 def resolve_penetration(var position : DPoint3; var orientation : quat; contacts : array<CollisionContactData>#;

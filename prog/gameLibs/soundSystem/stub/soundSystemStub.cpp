@@ -49,6 +49,7 @@ void enable_starting_with(const char *, bool, const PathTags &) {}
 const char *get_master_preset() { return ""; }
 bool is_enabled(const char *preset_name) { return false; }
 bool is_loaded(const char *preset_name) { return false; }
+bool is_master_loaded() { return false; }
 bool is_exist(const char *preset_name) { return false; }
 bool is_preset_has_failed_banks(const char *preset_name) { return false; }
 void get_failed_banks_names(eastl::vector<eastl::string, framemem_allocator> &) {}
@@ -85,7 +86,7 @@ EventHandle init_event(const char *, const char *, ieff_t, const Point3 *) { ret
 EventHandle init_event(const FMODGUID &) { return {}; }
 bool has_event(const FMODGUID &) { return false; }
 bool get_event_id(const char *, const char *, bool, FMODGUID &, bool) { return false; }
-bool play_one_shot(const char *, const char *, const Point3 *, ieff_t, float) { return false; }
+bool play_oneshot(const char *, const char *, const Point3 *, ieff_t, float) { return false; }
 void release_immediate(EventHandle &, bool) {}
 void release_delayed(EventHandle &, float) {}
 void release(EventHandle &, float, bool) {}
@@ -98,7 +99,7 @@ bool get_playback_state(EventHandle, PlayBackState &) { return false; }
 bool get_property(const FMODGUID &, int, int &) { return false; }
 bool is_valid_handle(EventHandle) { return false; }
 bool is_valid_event_instance(EventHandle) { return false; }
-bool is_one_shot(EventHandle) { return false; }
+bool is_oneshot(EventHandle) { return false; }
 bool is_delayable(EventHandle) { return false; }
 bool has_occlusion(EventHandle) { return false; }
 bool is_3d(EventHandle) { return false; }
@@ -155,6 +156,8 @@ void block_programmer_sounds(bool) {}
 int get_programmer_sounds_generation() { return 0; }
 void increment_programmer_sounds_generation() {}
 
+void set_debug_init_event_failed_cb(debug_init_event_failed_cb_t) {}
+
 // streams.cpp
 StreamHandle init_stream(const char *, const Point2 &, const char *) { return {}; }
 void release(StreamHandle &) {}
@@ -189,6 +192,7 @@ void end_update(float) {}
 void lazy_update() {}
 void override_time_speed(float) {}
 Point3 get_3d_listener_pos() { return {}; }
+Point3 get_3d_listener_up() { return {}; }
 TMatrix get_3d_listener() { return {}; }
 
 // eventInstanceStealing.cpp

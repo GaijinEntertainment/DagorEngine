@@ -39,7 +39,7 @@ public:
   virtual void connected() = 0;
   virtual void disconnected() = 0;
 
-  virtual char *getUserFriendlyName() = 0;
+  virtual const char *getUserFriendlyName() = 0;
 };
 
 // Interface for generic socket client

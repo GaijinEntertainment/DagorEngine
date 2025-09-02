@@ -20,7 +20,9 @@ struct AssetLightData
   SimpleString textureName;
   SimpleString shaderVar;
   SimpleString envTextureName;
-  SimpleString paintDetailsTexAsset; // per level painting texture name
+  SimpleString globalPaintDetailsTexAsset;   // global painting texture name
+  SimpleString paintDetailsTexAsset;         // per level painting texture name
+  SimpleString levelBlkPaintDetailsTexAsset; // the loaded value from level blk, used if paintDetailsTexAsset is empty
   int envTextureStretch;
   SimpleString envBlkFn;
   SimpleString envLevelBlkFn;
@@ -52,10 +54,16 @@ public:
     renderEnviEntity = NULL;
   }
 
+  const SimpleString &getPaintDetailsTexAssetToLoad() const
+  {
+    return paintDetailsTexAsset.empty() ? levelBlkPaintDetailsTexAsset : paintDetailsTexAsset;
+  }
+
   void setReflectionTexture();
   void setEnvironmentTexture(bool require_lighting_update = true);
   void setPaintDetailsTexture();
-  void applyMicrodetailFromLevelBlk();
+  void applyMicrodetailFromLevelBlk(const DataBlock &level_blk);
+  void applySettingsFromLevelBlk();
 
   void loadDefaultSettings(DataBlock &app_blk);
 
@@ -66,6 +74,7 @@ public:
 namespace environment
 {
 void show_environment_settings(void *handle, AssetLightData *ald);
+void close_environment_settings_dialog();
 void load_settings(DataBlock &blk, AssetLightData *ald, const AssetLightData *ald_def, bool &rend_grid);
 void save_settings(DataBlock &blk, AssetLightData *ald, const AssetLightData *ald_def, bool &rend_grid);
 

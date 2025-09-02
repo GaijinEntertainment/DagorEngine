@@ -81,6 +81,7 @@ public:
   void resetPartialUpdate();
 
   TEXTUREID getPotentialTexId() const;
+  d3d::SamplerHandle getPotentialTexSampler() const { return pointSampler; }
   float getSimulationTime() const;
   int getNumDispatches() const;
   void setNumDispatchesForCascade(int cascade_no, int num_dispatches);
@@ -113,6 +114,8 @@ private:
   float simulationTime = 0.0f;
 
   void switchToCascade(int cascade);
+  d3d::SamplerHandle pointSampler = d3d::INVALID_SAMPLER_HANDLE;
+  d3d::SamplerHandle linearSampler = d3d::INVALID_SAMPLER_HANDLE;
 };
 
 } // namespace cfd

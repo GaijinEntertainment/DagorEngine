@@ -15,7 +15,7 @@ public:
     uint16_t word[3]; //-V730_NOINIT
     uint8_t byte[6];  //-V730_NOINIT
 
-    UUID(){};
+    UUID() {}
     UUID(uint32_t a, uint16_t b0, uint16_t b1, uint16_t b2, uint8_t c0, uint8_t c1, uint8_t c2, uint8_t c3, uint8_t c4, uint8_t c5)
     {
       dword = a;

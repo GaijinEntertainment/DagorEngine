@@ -3,9 +3,11 @@ static constexpr ecs::component_t animchar_get_type();
 static ecs::LTComponentList animchar_component(ECS_HASH("animchar"), animchar_get_type(), "prog/gameLibs/ecs/game/actions/actionES.cpp.inl", "", 0);
 static constexpr ecs::component_t phys_vars_get_type();
 static ecs::LTComponentList phys_vars_component(ECS_HASH("phys_vars"), phys_vars_get_type(), "prog/gameLibs/ecs/game/actions/actionES.cpp.inl", "", 0);
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "actionES.cpp.inl"
 ECS_DEF_PULL_VAR(action);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc actions_updater_es_comps[] =
 {
@@ -21,7 +23,8 @@ static void actions_updater_es_all_events(const ecs::Event &__restrict evt, cons
   G_FAST_ASSERT(evt.is<UpdateActionsEvent>());
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     actions_updater_es(static_cast<const UpdateActionsEvent&>(evt)
-        , ECS_RO_COMP(actions_updater_es_comps, "eid", ecs::EntityId)
+        , components.manager()
+    , ECS_RO_COMP(actions_updater_es_comps, "eid", ecs::EntityId)
     , ECS_RW_COMP(actions_updater_es_comps, "actions", EntityActions)
     , ECS_RW_COMP(actions_updater_es_comps, "phys_vars", PhysVars)
     , ECS_RO_COMP_PTR(actions_updater_es_comps, "actions__animLayer", ecs::string)

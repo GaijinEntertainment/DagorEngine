@@ -62,6 +62,7 @@ macro MS_APPROXIMATE(code)
   ATMO(code)
   GET_ATMO(code)
   hlsl(code) {
+    #include <fast_shader_trig.hlsl>
     #define SQRTSAMPLECOUNT 8
     #define NUM_RAYS (SQRTSAMPLECOUNT*SQRTSAMPLECOUNT)
     void calcRay(IN(AtmosphereParameters) atmosphere_p, float2 uv, uint rayI, uint rayJ, out float3 L, out float3 MultiScatAs1)
@@ -85,7 +86,7 @@ macro MS_APPROXIMATE(code)
         float randA = i / sqrtSample;
         float randB = j / sqrtSample;
         float theta = 2.0f * PI * randA;
-        float phi = PI * randB;
+        float phi = acosFast4(1.0f - 2.0f * randB);
         float cosPhi = cos(phi);
         float sinPhi = sin(phi);
         float cosTheta = cos(theta);

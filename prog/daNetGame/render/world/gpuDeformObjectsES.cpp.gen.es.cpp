@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "gpuDeformObjectsES.cpp.inl"
 ECS_DEF_PULL_VAR(gpuDeformObjects);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc gpu_deform_objects_manager_draw_debug_geometry_es_comps[] =
 {

@@ -30,6 +30,18 @@ SomeEnum98_DasProxy efn_takeOne_giveTwo_98_DasProxy ( SomeEnum98_DasProxy two) {
 
 DAS_BASE_BIND_ENUM_98(SomeEnum_16, SomeEnum_16, SomeEnum_16_zero, SomeEnum_16_one, SomeEnum_16_two)
 
+bool testBindEnumFunction ( Context * context, LineInfoArg * at ) {
+    if ( !context->thisProgram ) {
+        context->throw_error_at(at, "missing options rtti");
+    }
+    SimFunction * fn = context->findFunction("testBindEnum");
+    if ( !fn ) {
+        context->throw_error_at(at, "missing testBindEnum(arg:SomeEnum):void function");
+    }
+    return verifyCall<void,SomeEnum>(fn->debugInfo, context->thisProgram->library);
+}
+
+
 void Module_UnitTest::addEnumTest(ModuleLibrary &lib)
 {
     // enum
@@ -44,5 +56,8 @@ void Module_UnitTest::addEnumTest(ModuleLibrary &lib)
         SideEffects::modifyExternal, "efn_takeOne_giveTwo_98");
     // enum16
     addEnumeration(make_smart<EnumerationSomeEnum_16>());
+    // testing verifyCall
+    addExtern<DAS_BIND_FUN(testBindEnumFunction)>(*this, lib, "testBindEnumFunction",
+        SideEffects::worstDefault, "testBindEnumFunction");
 };
 

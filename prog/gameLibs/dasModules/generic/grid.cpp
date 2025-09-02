@@ -17,7 +17,7 @@ public:
   {
     das::ModuleLibrary lib(this);
     addBuiltinDependency(lib, require("ecs"));
-    addBuiltinDependency(lib, require("DagorMath"));
+    addBuiltinDependency(lib, require("DagorMath"), true);
     addEnumeration(das::make_smart<EnumerationGridEntCheck>());
 
     das::addExtern<DAS_BIND_FUN(_builtin_gather_entities_in_grid_box)>(*this, lib, "gather_entities_in_grid",

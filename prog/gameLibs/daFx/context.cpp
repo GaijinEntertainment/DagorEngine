@@ -3,6 +3,7 @@
 #include "context.h"
 #include <drv/3d/dag_lock.h>
 #include <drv/3d/dag_info.h>
+#include <util/dag_parallelFor.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <util/dag_convar.h>
 
@@ -11,7 +12,13 @@ namespace convar
 CONSOLE_INT_VAL("dafx", force_sim_lod, -1, -1, 7);
 CONSOLE_BOOL_VAL("dafx", allow_sim_lods, true);
 CONSOLE_BOOL_VAL("dafx", allow_visibility_sim_lods, true);
+CONSOLE_BOOL_VAL("dafx", allow_autogen_sim_lods, true);
+CONSOLE_BOOL_VAL("dafx", allow_workers_split, true);
 CONSOLE_FLOAT_VAL("dafx", visibility_sim_lod_min_fps, 0);
+
+
+CONSOLE_FLOAT_VAL("dafx", gen_sim_lod_min_dist, -1);
+CONSOLE_FLOAT_VAL("dafx", gen_sim_lod_box_scale, -1);
 } // namespace convar
 
 namespace dafx
@@ -60,6 +67,19 @@ static inline void start_job(const Config &cfg, cpujobs::IJob &job, bool wake = 
     job.doJob();
 }
 
+static bool create_dummy_system(Context &ctx)
+{
+  // one system idx is reserved for "dummy" system, empty system designed to be a fallback in case of an error
+  G_ASSERT(!ctx.systems.dummySystemId);
+  ctx.systems.dummySystemId = ctx.systems.list.emplaceOne();
+  SystemTemplate *sys = ctx.systems.list.get(ctx.systems.dummySystemId);
+  G_ASSERT_RETURN(sys, false);
+  sys->refFlags = SYS_DUMMY_SYSTEM;
+  sys->name = "dafx_dummy_system";
+  ctx.systems.nameMap.insert(sys->name).first->second = ctx.systems.dummySystemId;
+  return true;
+}
+
 ContextId create_context(const Config &cfg)
 {
   DBG_OPT("create_context - start");
@@ -70,6 +90,7 @@ ContextId create_context(const Config &cfg)
   Context *ctx = g_ctx_list.get(cid);
 
   bool v = set_config(cid, cfg);
+  set_sim_lod_params(cid, ctx->simLodGenParams); // apply config overide
 
   G_ASSERT(cfg.staging_buffer_size % DAFX_ELEM_STRIDE == 0);
 
@@ -104,6 +125,8 @@ ContextId create_context(const Config &cfg)
   d3d::driver_command(Drv3dCommand::RELEASE_OWNERSHIP);
 
   os_spinlock_init(&ctx->queueLock);
+
+  v &= create_dummy_system(*ctx);
 
   if (!v)
   {
@@ -195,6 +218,10 @@ void release_all_systems(ContextId cid)
       release_system(cid, rid);
   }
   G_ASSERT(ctx.systems.list.empty());
+
+  // release_all can be called without context recreateion, so we need to recreate dummy system
+  ctx.systems.dummySystemId = SystemId();
+  create_dummy_system(ctx);
 }
 
 void release_context(ContextId cid)
@@ -262,6 +289,8 @@ void after_reset_device(ContextId cid)
 
 void prepare_sim_lods(Context &ctx, float dt, int begin_sid, int end_sid)
 {
+  TIME_PROFILE(prepare_sim_lods);
+
   bool allowSimulationLods = ctx.cfg.sim_lods_enabled && convar::allow_sim_lods;
   bool allowVisibilitySimLods =
     allowSimulationLods && ctx.cfg.gen_sim_lods_for_invisible_instances && convar::allow_visibility_sim_lods;
@@ -271,15 +300,11 @@ void prepare_sim_lods(Context &ctx, float dt, int begin_sid, int end_sid)
   int maxAllowedLod = Config::max_simulation_lods - 1;
   float minSimLodDtTick =
     convar::visibility_sim_lod_min_fps > 0 ? 1.f / convar::visibility_sim_lod_min_fps : ctx.cfg.min_sim_lod_dt_tick;
-  for (int i = 1; i <= Config::max_simulation_lods; ++i)
-  {
-    int lodOfs = 1 << i;
-    if (dt * lodOfs > minSimLodDtTick)
-    {
-      maxAllowedLod = i - 1;
-      break;
-    }
-  }
+
+  G_ASSERT(dt > 0);
+  maxAllowedLod = min((int)round(log2f(max(minSimLodDtTick / dt, 1.f))), maxAllowedLod);
+
+  SimLodGenParams simLodGenParams = ctx.simLodGenParams;
 
 #if DAGOR_DBGLEVEL > 0
   // we need to clear debug lods on those console command
@@ -288,13 +313,24 @@ void prepare_sim_lods(Context &ctx, float dt, int begin_sid, int end_sid)
     for (int i = begin_sid; i < end_sid; ++i)
       stream.get<INST_LOD>(i) = 0;
   }
+
+  if (convar::gen_sim_lod_min_dist > 0)
+    simLodGenParams.startDist = convar::gen_sim_lod_min_dist.get();
+  if (convar::gen_sim_lod_box_scale > 0)
+    simLodGenParams.boxProjScale = convar::gen_sim_lod_box_scale.get();
+  simLodGenParams.enabled &= convar::allow_autogen_sim_lods;
 #endif
+
+  simLodGenParams.enabled &= allowSimulationLods;
+
+  float genLodStartDistSq = simLodGenParams.startDist * simLodGenParams.startDist;
+  float genLodStartDistSqRcp = 1.f / genLodStartDistSq;
 
   const uint32_t cpuSimMask = SYS_ENABLED | SYS_CPU_SIMULATION_REQ | SYS_ALLOW_SIMULATION_LODS;
   const uint32_t gpuSimMask = SYS_ENABLED | SYS_GPU_SIMULATION_REQ | SYS_ALLOW_SIMULATION_LODS;
   const uint32_t allSimMask = cpuSimMask | gpuSimMask;
 
-  if (allowVisibilitySimLods)
+  if (allowVisibilitySimLods || simLodGenParams.enabled)
   {
     for (int i = begin_sid; i < end_sid; ++i)
     {
@@ -304,7 +340,22 @@ void prepare_sim_lods(Context &ctx, float dt, int begin_sid, int end_sid)
       if (simulationState.count > 0 && (m == cpuSimMask || m == gpuSimMask))
       {
         // invalid box could mean that inst is in-between part spawning, so it should be not lod-ed out
-        stream.get<INST_LOD>(i) = flags & SYS_VISIBLE ? 0 : (flags & SYS_BBOX_VALID ? (uint8_t)maxAllowedLod : 0);
+        bool isVisible = flags & SYS_VISIBLE;
+        bool isValidBox = flags & SYS_BBOX_VALID;
+        int lod = (!allowVisibilitySimLods || isVisible) ? 0 : (isValidBox ? (uint8_t)maxAllowedLod : 0);
+        stream.get<INST_LOD>(i) = lod;
+        if (!isVisible || !isValidBox || !simLodGenParams.enabled)
+          continue;
+
+        float projSize = stream.get<INST_PROJ_SIZE_MAX>(i);
+        float minDistSq = stream.get<INST_VIEW_DIST_MIN>(i);
+        // *0.5 allow us to not do a square root of distSq
+        float lodf = minDistSq < genLodStartDistSq ? 0 : log2(max(minDistSq * genLodStartDistSqRcp, 1.f)) * 0.5f + 1.f;
+        lodf *= saturate(1.f - projSize * simLodGenParams.boxProjScale);
+
+        stream.get<INST_LOD>(i) = min((int)lodf, maxAllowedLod);
+        stream.get<INST_VIEW_DIST_MIN>(i) = FLT_MAX; // reset for the next frame
+        stream.get<INST_PROJ_SIZE_MAX>(i) = 0;       // same as ^
       }
     }
   }
@@ -334,6 +385,7 @@ void prepare_workers(Context &ctx, float dt, bool main_pass, int begin_sid, int 
   //
 
   TIME_PROFILE(dafx_prepare_workers);
+  DA_PROFILE_TAG(dafx_prepare_workers, "workers: %d", (int)end_sid - begin_sid);
   InstanceGroups &stream = ctx.instances.groups;
 
   prepare_sim_lods(ctx, dt, begin_sid, end_sid);
@@ -406,6 +458,8 @@ void prepare_workers(Context &ctx, float dt, bool main_pass, int begin_sid, int 
         stream.get<INST_CULLING_ID>(i) = ctx.culling.gpuCullIdx++;
         ctx.culling.gpuWorkers.push_back(i);
       }
+
+      stat_inc(ctx.stats.renderInstances);
     }
 
     stat_inc(ctx.stats.activeInstances);
@@ -434,6 +488,7 @@ void prepare_render_buffers_state(Context &ctx)
   // Allow overwrite of previous buffers data
   ctx.currentRenderDispatchBuffer = 0;
   ctx.currentMutltidrawBuffer = 0;
+  ctx.currentMutltidrawBufferRingId = (ctx.currentMutltidrawBufferRingId + 1) % ctx.multiDrawBufferRingSize;
   ctx.beforeRenderUpdatedTags = 0;
 
   // Reset SYS_RENDER_BUF_TAKEN state
@@ -763,7 +818,7 @@ void warmup_instance_from_queue(Context &ctx)
   float origDt = 0;
   get_global_value(ctx, ctx.cfg.dt_global_id, &origDt, sizeof(float));
 
-  const unsigned int simSteps = clamp((unsigned int)(ctx.cfg.warmup_sims_budged / ctx.commandQueue.instanceWarmup.size()), 1U,
+  const unsigned int simSteps = clamp((unsigned int)(ctx.cfg.warmup_sims_budget / ctx.commandQueue.instanceWarmup.size()), 1U,
     ctx.cfg.max_warmup_steps_per_instance);
 
   eastl::vector<int> subinstances;
@@ -953,21 +1008,37 @@ void AsyncPrepareJob::doJob()
 
   warmup_instance_from_queue(ctx); // TODO: move to multiple threads
   // always update emitters before everything else
-  TIME_PROFILE(dafx_prepare);
   ctx.culling.cpuCullIdx = 0;
   ctx.culling.gpuCullIdx = 0;
-  update_emitters(ctx, dt, 0, ctx.instances.groups.size());
+
+  bool allowWorkersSplit = ctx.cfg.use_async_thread && ctx.cfg.prepare_workers_async_thresholld > 0 && convar::allow_workers_split;
+  int quant = ctx.instances.groups.size();
+  int threads = 1;
+  if (allowWorkersSplit && ctx.instances.groups.size() >= ctx.cfg.prepare_workers_async_thresholld && ctx.cfg.max_async_threads > 1)
+  {
+    // we are already in a separate thread, so should use ctx.cfg.max_async_threads - 1
+    threads = min(ctx.instances.groups.size() / ctx.cfg.prepare_workers_async_thresholld, ctx.cfg.max_async_threads - 1);
+    quant = ctx.cfg.prepare_workers_async_thresholld;
+  }
+
+  threadpool::parallel_for(
+    0, ctx.instances.groups.size(), quant,
+    [&ctx, dt = this->dt](uint32_t tbegin, uint32_t tend, uint32_t /*thread_id*/) { update_emitters(ctx, dt, tbegin, tend); },
+    threads);
+
+  // TODO: also move to parallel_for, but first - separate all workers containers to per-thread
   prepare_workers(ctx, dt, true, 0, ctx.instances.groups.size(), gpu_fetch);
   sort_shader_tasks(ctx);
   prepare_cpu_culling(ctx, true);
   start_next_cpu_compute_threads(cid);
+
+  stat_set(ctx.stats.updateEmitters, interlocked_acquire_load(ctx.asyncStats.updateEmitters));
   ctx.app_was_inactive = false;
 }
 
 void AsyncCpuComputeJob::doJob()
 {
   GET_CTX();
-  TIME_PROFILE(dafx_cpu_compute_tasks);
 
   eastl::vector<int> &workers =
     threadId >= 0 ? ctx.workersByThreads[threadId] : (emission ? ctx.cpuEmissionWorkers[depth] : ctx.cpuSimulationWorkers[depth]);
@@ -1322,6 +1393,13 @@ bool set_config(ContextId cid, const Config &cfg)
   return true;
 }
 
+void set_sim_lod_params(ContextId cid, const SimLodGenParams &params)
+{
+  GET_CTX();
+  ctx.simLodGenParams = params;
+  ctx.simLodGenParams.enabled &= ctx.cfg.gen_sim_lods_based_on_distance;
+}
+
 void set_debug_flags(ContextId cid, uint32_t flags)
 {
   GET_CTX();
@@ -1409,6 +1487,7 @@ void get_stats_as_string(ContextId cid, eastl::string &out_s)
 
   ADDV(totalInstances);
   ADDV(activeInstances);
+  ADDV(renderInstances);
 
   out_s.append_sprintf("CPU sim elems total by lods:\n");
   static eastl::array<int, Config::max_simulation_lods> cpuElemTotalSimLodsPadding = {};
@@ -1455,7 +1534,15 @@ void gather_system_usage_stats(Context &ctx)
   if (!(ctx.debugFlags & DEBUG_ENABLE_SYSTEM_USAGE_STATS))
     return;
 
-  eastl::vector_map<int, eastl::pair<int, int>> map;
+  struct Elem
+  {
+    int instCount;
+    int partCount;
+    int cpuDataSize;
+    int gpuDataSize;
+  };
+
+  eastl::vector_map<int, Elem> map;
   InstanceGroups &stream = ctx.instances.groups;
   for (int i = 0; i < stream.size(); ++i)
   {
@@ -1463,19 +1550,24 @@ void gather_system_usage_stats(Context &ctx)
     if ((flags & SYS_ENABLED) && (flags & (SYS_CPU_SIMULATION_REQ | SYS_GPU_SIMULATION_REQ)))
     {
       const InstanceState &activeState = stream.get<INST_ACTIVE_STATE>(i);
-      auto it = map.insert(eastl::pair{stream.cget<INST_GAMERES_ID>(i), eastl::pair{1, activeState.aliveCount}});
+      const CpuBuffer &cpuBuffer = stream.get<INST_CPU_BUFFER>(i);
+      const GpuBuffer &gpuBuffer = stream.get<INST_GPU_BUFFER>(i);
+      auto it = map.insert(
+        eastl::pair<int, Elem>{stream.cget<INST_GAMERES_ID>(i), {1, activeState.aliveCount, cpuBuffer.size, gpuBuffer.size}});
       G_ASSERT(it.first != map.end());
       if (!it.second)
       {
-        it.first->second.first++;
-        it.first->second.second += activeState.aliveCount;
+        it.first->second.instCount++;
+        it.first->second.partCount += activeState.aliveCount;
+        it.first->second.cpuDataSize += cpuBuffer.size;
+        it.first->second.gpuDataSize += gpuBuffer.size;
       }
     }
   }
 
   ctx.systemUsageStats.clear();
   for (auto it : map)
-    ctx.systemUsageStats.push_back({it.first, it.second.first, it.second.second});
+    ctx.systemUsageStats.push_back({it.first, it.second.instCount, it.second.partCount, it.second.cpuDataSize, it.second.gpuDataSize});
 }
 #else
 void gather_system_usage_stats(Context &) {}
@@ -1487,3 +1579,79 @@ dag::ConstSpan<SystemUsageStat> get_system_usage_stats(ContextId cid)
   return make_span(ctx.systemUsageStats);
 }
 } // namespace dafx
+
+#if DAGOR_DBGLEVEL > 0
+#include <util/dag_console.h>
+#include <gameRes/dag_gameResSystem.h>
+
+namespace dafx
+{
+static void get_res_name(int res_id, String &out)
+{
+  if (res_id >= 0)
+    get_game_resource_name(res_id, out);
+  else
+    out = "?";
+}
+
+static void dump_loaded_systems()
+{
+  Context *pctx = nullptr;
+  for (int i = 0; i < g_ctx_list.totalSize(); ++i)
+  {
+    pctx = g_ctx_list.get(g_ctx_list.getRefByIdx(i));
+    if (pctx)
+      break;
+  }
+  G_ASSERT_RETURN(pctx, );
+  Context &ctx = *pctx;
+
+  struct Elem
+  {
+    SystemTemplate *sys;
+    int cpuSize;
+    int gpuSize;
+  };
+
+  dag::Vector<Elem, framemem_allocator> list;
+  for (int i = 0; i < ctx.systems.list.totalSize(); ++i)
+  {
+    SystemId rid = ctx.systems.list.getRefByIdx(i);
+    SystemTemplate *sys = rid ? ctx.systems.list.get(rid) : nullptr;
+    if (sys)
+    {
+      int cpuDataSize = sys->totalCpuDataSize;
+      int gpuDataSize = sys->totalGpuDataSize;
+      adjust_buffer_size_by_quality(ctx, *sys, cpuDataSize, gpuDataSize, false);
+      list.push_back({sys, cpuDataSize, gpuDataSize});
+    }
+  }
+
+  eastl::sort(list.begin(), list.end(),
+    [](const auto &v1, const auto &v2) { return v1.cpuSize + v1.gpuSize > v2.cpuSize + v2.gpuSize; });
+
+  eastl::string out;
+  out.append_sprintf("dafx registered systems dump:\n");
+  for (const Elem &i : list)
+  {
+    String resName;
+    get_res_name(i.sys->gameResId, resName);
+    out.append_sprintf("%s (%s), cpu: %d, gpu: %d\n", i.sys->name.c_str(), resName.c_str(), i.cpuSize, i.gpuSize);
+  }
+
+  console::print(out.c_str());
+  debug(out.c_str());
+}
+} // namespace dafx
+static bool dafx_console_handler(const char *argv[], int argc)
+{
+  int found = 0;
+  CONSOLE_CHECK_NAME("dafx", "dump_loaded_systems", 1, 1)
+  {
+    dafx::dump_loaded_systems();
+    return true;
+  }
+  return found;
+}
+REGISTER_CONSOLE_HANDLER(dafx_console_handler);
+#endif

@@ -1,11 +1,10 @@
+import "dagor.math" as dagorMath
+import "math" as math
+from "string" import regexp, strip, format
+from "%sqstd/string.nut" import tostring_r
+from "console" import command
 from "%darg/ui_imports.nut" import *
 from "%sqstd/ecs.nut" import *
-let { regexp, strip, format } = require("string")
-let dagorMath = require("dagor.math")
-let {tostring_r} = require("%sqstd/string.nut")
-let {command} = require("console")
-let math = require("math")
-
 let rexFloat = regexp(@"(\+|-)?([0-9]+\.?[0-9]*|\.[0-9]+)([eE](\+|-)?[0-9]+)?")
 let rexInt = regexp(@"[\+\-]?[0-9]+")
 let tofloat = @(v) v.tofloat()

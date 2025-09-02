@@ -1,0 +1,55 @@
+Root    ?= ../../../.. ;
+Location = prog/1stPartyLibs/daScript/daslib ;
+
+TargetType  = lib ;
+Target      = 1stPartyLibs/daScript/daslib.lib ;
+
+AddIncludes =
+  $(Root)/prog/1stPartyLibs/daScript/include
+;
+
+Sources +=
+  algorithm.das
+  apply.das
+  apply_in_context.das
+  array_boost.das
+  assert_once.das
+  ast_boost.das
+  constant_expression.das
+  contracts.das
+  cpp_bind.das
+  dap.das
+  debug.das
+  debug_eval.das
+  defer.das
+  enum_trait.das
+  export_constructor.das
+  functional.das
+  if_not_null.das
+  instance_function.das
+  is_local.das
+  jobque_boost.das
+  json.das
+  json_boost.das
+  lint.das
+  lint_everything.das
+  lpipe.das
+  macro_boost.das
+  match.das
+  math_bits.das
+  regex.das
+  regex_boost.das
+  remove_call_args.das
+  safe_addr.das
+  sort_boost.das
+  static_let.das
+  strings_boost.das
+  stub.das
+  templates.das
+  templates_boost.das
+  typemacro_boost.das
+;
+
+ExplicitLicenseUsed += $(Root)/prog/1stPartyLibs/daScript ;
+
+include $(Root)/prog/_jBuild/build.jam ;

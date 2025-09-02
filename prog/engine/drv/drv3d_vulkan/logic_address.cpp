@@ -91,7 +91,7 @@ static VkPipelineStageFlags stageForResourceAtExecStage[(uint32_t)ExtendedShader
   VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,  // CS
   VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, // PS
   VK_PIPELINE_STAGE_VERTEX_SHADER_BIT,   // VS
-#if D3D_HAS_RAY_TRACING
+#if VULKAN_HAS_RAYTRACING
   VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR, // RT
 #else
   VK_PIPELINE_STAGE_NONE, // RT-stub
@@ -178,13 +178,10 @@ LogicAddress LogicAddress::forAccelerationStructureOnExecStage(ExtendedShaderSta
 
 LogicAddress LogicAddress::forBLASIndirectReads()
 {
-  return
-  {
-    VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT
-#if D3D_HAS_RAY_TRACING
-    | VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR
+  return {
+#if VULKAN_HAS_RAYTRACING
+    VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR |
 #endif
-      ,
-      VK_ACCESS_SHADER_READ_BIT
-  };
+      VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+    VK_ACCESS_SHADER_READ_BIT};
 }

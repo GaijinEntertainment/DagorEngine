@@ -8,7 +8,6 @@
 #include <shaders/dag_shaderCommon.h>
 #include <shaders/dag_shaderHash.h>
 #include <math/integer/dag_IPoint4.h>
-#include <math/dag_TMatrix4.h>
 #include <util/dag_bindump_ext.h>
 #include <EASTL/array.h>
 
@@ -35,6 +34,13 @@ enum
 };
 #endif
 
+enum class ExternalStcodeMode : uint32_t
+{
+  NONE = 0,
+  BRANCHLESS_CPP = 1,
+  BRANCHED_CPP = 2
+};
+
 BINDUMP_BEGIN_LAYOUT(Var)
   Address<int> valPtr;
   uint16_t nameId = 0;
@@ -56,24 +62,6 @@ BINDUMP_BEGIN_LAYOUT(VarList)
   {
     return *(Type *)&v[index].valPtr.get();
   }
-  template <typename Type>
-  Type &get(int index)
-  {
-    return *(Type *)&v[index].valPtr.get();
-  }
-  template <typename Type>
-  void set(int index, const Type &value)
-  {
-    get<Type>(index) = value;
-  }
-
-  inline const Tex &getTex(int i) const { return get<Tex>(i); }
-  inline const Buf &getBuf(int i) const { return get<Buf>(i); }
-
-  inline void setTexId(int i, TEXTUREID a) { get<Tex>(i).texId = a; }
-  inline void setTex(int i, class BaseTexture *a) { get<Tex>(i).tex = a; }
-  inline void setBufId(int i, D3DRESID a) { get<Buf>(i).bufId = a; }
-  inline void setBuf(int i, Sbuffer *a) { get<Buf>(i).buf = a; }
 
   int findVar(int var_name_id) const;
 BINDUMP_END_LAYOUT()
@@ -85,8 +73,7 @@ BINDUMP_BEGIN_LAYOUT(Interval)
     TYPE_MODE = 0,
     TYPE_INTERVAL,
     TYPE_GLOBAL_INTERVAL,
-    TYPE_ASSUMED_INTERVAL,
-    TYPE_VIOLATED_ASSUMED_INTERVAL
+    TYPE_ASSUMED_INTERVAL
   };
   enum
   {
@@ -104,7 +91,7 @@ BINDUMP_BEGIN_LAYOUT(Interval)
 
   uint32_t getAssumedVal() const
   {
-    G_ASSERT(type == TYPE_ASSUMED_INTERVAL || type == TYPE_VIOLATED_ASSUMED_INTERVAL);
+    G_ASSERT(type == TYPE_ASSUMED_INTERVAL);
     // The assumed value is stored in the `mCount` field of the `maxVal` member,
     // this is done because the `maxVal` member is not used for the assumed interval,
     // and there are no other fields, and in order not to change the dump format, it is done this way
@@ -253,7 +240,42 @@ struct ShRef
   uint16_t threadGroupSizeY;
   uint16_t threadGroupSizeZ : 15;
   uint16_t scarlettWave32 : 1;
+
+  union
+  {
+    struct
+    {
+      int16_t branchlessCppStcodeId;
+      uint16_t pad1_;
+      int16_t branchlessCppStblkcodeId;
+      uint16_t pad2_;
+    };
+    struct
+    {
+      uint32_t branchedCppStcodeRegisterTableOffset;
+      uint32_t branchedCppStblkcodeRegisterTableOffset; // @TODO: remove, as it can't be used
+    };
+  };
+
+  ShRef() :
+    vprId(-1),
+    fshId(-1),
+    stcodeId(-1),
+    stblkcodeId(-1),
+    renderStateNo(-1),
+    threadGroupSizeX(0),
+    threadGroupSizeY(0),
+    threadGroupSizeZ(0),
+    scarlettWave32(false),
+    branchlessCppStcodeId(-1),
+    branchlessCppStblkcodeId(-1),
+    pad1_(0),
+    pad2_(0)
+  {}
 };
+
+static_assert(sizeof(ShRef) == 24);
+
 } // namespace detail
 
 BINDUMP_BEGIN_LAYOUT(Pass)
@@ -273,6 +295,9 @@ BINDUMP_BEGIN_LAYOUT(ShaderCode)
   Span<uint32_t> stVarMap;
   Span<ShaderChannelId> channel;
   Span<int> initCode;
+
+  int16_t branchedCppStcodeId = -1;
+  int16_t branchedCppStblkcodeId = -1; // @TODO: remove, as it can't be used
 
   int16_t varSize = 0, __unused1 = -1;
   static constexpr uint16_t CF_USED = 0x8000;
@@ -327,6 +352,7 @@ BINDUMP_BEGIN_LAYOUT(ShaderBlock)
   blk_word_t uidMask = 0, uidVal = 0;
   blk_word_t suppBlkMask = 0;
   int16_t stcodeId = 0, nameId = 0;
+  int16_t cppStcodeId = 0;
   Address<blk_word_t> suppBlockUid;
 
   inline unsigned modifyBlockStateWord(unsigned sw) const { return (sw & ~uidMask) | uidVal; }
@@ -403,10 +429,16 @@ BINDUMP_BEGIN_LAYOUT(ScriptedShadersBinDump)
   const Field<ShaderClass> *findShaderClass(const char *name) const;
 BINDUMP_END_LAYOUT()
 
+struct ScriptedShadersBinDumpCompressedHeader
+{
+  uint32_t magicPart1 = 0, magicPart2 = 0;
+  uint32_t version = 0;
+  uint8_t checksumHash[32] = {};
+};
+
 BINDUMP_BEGIN_LAYOUT(ScriptedShadersBinDumpCompressed)
   BINDUMP_USING_EXTENSION()
-  uint32_t signPart1, signPart2;
-  uint32_t version;
+  ScriptedShadersBinDumpCompressedHeader header{};
   CompressedLayout<ScriptedShadersBinDump> scriptedShadersBindumpCompressed;
 BINDUMP_END_LAYOUT()
 
@@ -467,8 +499,69 @@ BINDUMP_BEGIN_EXTEND_LAYOUT(ScriptedShadersBinDumpV2, ScriptedShadersBinDump)
   }
 BINDUMP_END_LAYOUT()
 
+struct StcodeConstValidationMask
+{
+  static constexpr unsigned MAX_VALIDATED_STCODE_VECTORS = 4096;
+  static constexpr unsigned BITS_PER_STCODE_VECTOR = 4;
+  static constexpr unsigned CHUNK_SIZE_BITS = 8 * sizeof(uint64_t);
+  static constexpr unsigned CHUNK_SIZE = CHUNK_SIZE_BITS / BITS_PER_STCODE_VECTOR;
+  static constexpr unsigned CHUNK_COUNT = MAX_VALIDATED_STCODE_VECTORS / CHUNK_SIZE;
+
+  uint64_t psOrCsChunks[CHUNK_COUNT] = {};
+  uint64_t vsChunks[CHUNK_COUNT] = {};
+
+  auto &chunks(ShaderStage stage) { return stage == STAGE_VS ? vsChunks : psOrCsChunks; }
+  const auto &chunks(ShaderStage stage) const { return stage == STAGE_VS ? vsChunks : psOrCsChunks; }
+
+  bool test(unsigned reg, unsigned component, ShaderStage stage) const
+  {
+    G_ASSERT(component < 4);
+
+    const unsigned regStartBits = reg * BITS_PER_STCODE_VECTOR;
+    const unsigned chunk = regStartBits / CHUNK_SIZE_BITS;
+    const unsigned bit = regStartBits % CHUNK_SIZE_BITS + component;
+
+    G_ASSERT(chunk < countof(chunks(stage)));
+
+    return chunks(stage)[chunk] & (1ULL << bit);
+  }
+
+  void add(unsigned reg, unsigned component_count, ShaderStage stage)
+  {
+    G_ASSERT(component_count > 0);
+    G_ASSERT(component_count < 4 || component_count % 4 == 0);
+
+    const unsigned regStartBits = reg * BITS_PER_STCODE_VECTOR;
+
+    for (unsigned totalBit = regStartBits; totalBit < regStartBits + component_count; ++totalBit)
+    {
+      const unsigned chunk = totalBit / CHUNK_SIZE_BITS;
+      const unsigned bit = totalBit % CHUNK_SIZE_BITS;
+
+      G_ASSERT(chunk < countof(chunks(stage)));
+
+      chunks(stage)[chunk] |= 1ULL << bit;
+    }
+  }
+
+  void merge(const StcodeConstValidationMask &other)
+  {
+    for (unsigned i = 0; i < CHUNK_COUNT; ++i)
+    {
+      psOrCsChunks[i] |= other.psOrCsChunks[i];
+      vsChunks[i] |= other.vsChunks[i];
+    }
+  }
+};
+
 BINDUMP_BEGIN_EXTEND_LAYOUT(ScriptedShadersBinDumpV3, ScriptedShadersBinDumpV2)
   BINDUMP_USING_EXTENSION()
   VecHolder<d3d::SamplerInfo> samplers;
+
+  ExternalStcodeMode externalStcodeMode = ExternalStcodeMode::NONE;
+  uint32_t externalStcodeVersion = 0;
+  uint8_t externalStcodeHash[32] = {};
+
+  VecHolder<StcodeConstValidationMask> stcodeConstValidationMasks;
 BINDUMP_END_LAYOUT()
 } // namespace shader_layout

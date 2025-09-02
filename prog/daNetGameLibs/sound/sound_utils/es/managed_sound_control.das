@@ -6,22 +6,22 @@ require sound_utils.modules.managed_sound_control_common
 def managed_sound_on_appear(evt : Event;
                             managed_sound__maxInstances : int;
                             managed_sound__type : string;
-                            var managed_sound__idx : int&)
+                            var managed_sound__typeIdx : int&)
 
-  managed_sound__idx = -1
+  managed_sound__typeIdx = -1
   query() <| $ [es] (var managed_sound_control__types : StringList&;
                      var managed_sound_control__beginPosEnd : IPoint3List&;
                      var managed_sound_control__entities : EidList&;
                      var managed_sound_control__positions : Point3List&)
 
-    append_managed_sound(managed_sound__maxInstances,
-                         managed_sound__type,
-                         managed_sound__idx,
+    append_managed_sound_type(managed_sound__maxInstances,
+                              managed_sound__type,
+                              managed_sound__typeIdx,
 
-                         managed_sound_control__types,
-                         managed_sound_control__beginPosEnd,
-                         managed_sound_control__entities,
-                         managed_sound_control__positions)
+                              managed_sound_control__types,
+                              managed_sound_control__beginPosEnd,
+                              managed_sound_control__entities,
+                              managed_sound_control__positions)
 
 
 
@@ -39,18 +39,16 @@ def managed_sound_control_on_appear(evt : Event;
 
   query() <| $ [es] (managed_sound__maxInstances : int;
                      managed_sound__type : string;
-                     var managed_sound__idx : int&)
+                     var managed_sound__typeIdx : int&)
 
-    managed_sound__idx = -1
+    append_managed_sound_type(managed_sound__maxInstances,
+                              managed_sound__type,
+                              managed_sound__typeIdx,
 
-    append_managed_sound(managed_sound__maxInstances,
-                         managed_sound__type,
-                         managed_sound__idx,
-
-                         managed_sound_control__types,
-                         managed_sound_control__beginPosEnd,
-                         managed_sound_control__entities,
-                         managed_sound_control__positions)
+                              managed_sound_control__types,
+                              managed_sound_control__beginPosEnd,
+                              managed_sound_control__entities,
+                              managed_sound_control__positions)
 
 
 
@@ -67,19 +65,20 @@ def managed_sound_control_update(evt : Event;
                                managed_sound_control__positions)
 
 
-[es(tag=sound, track=isAlive)]
+[es(tag=sound, track=(isAlive, managed_sound__excluded))]
 def managed_sound_track_is_alive(evt : Event;
                                  eid : EntityId;
-                                 isAlive : bool;
-                                 managed_sound__idx : int;
+                                 isAlive = true;
+                                 managed_sound__excluded : bool;
+                                 managed_sound__typeIdx : int;
                                  var sound_control__allowSound : bool&)
-  if !isAlive
-    remove_managed_sound(eid, managed_sound__idx)
+  if !isAlive || managed_sound__excluded
+    remove_managed_sound_instance(eid, managed_sound__typeIdx)
     sound_control__allowSound = false
 
 
 [es(tag=sound, on_disappear)]
 def managed_sound_disappear(evt : Event;
                             eid : EntityId;
-                            managed_sound__idx : int)
-  remove_managed_sound(eid, managed_sound__idx)
+                            managed_sound__typeIdx : int)
+  remove_managed_sound_instance(eid, managed_sound__typeIdx)

@@ -1,0 +1,2 @@
+int use_glass_dual_source_blending = 0;
+interval use_glass_dual_source_blending: no < 1, yes;

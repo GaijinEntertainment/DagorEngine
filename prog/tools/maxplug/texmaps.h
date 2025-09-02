@@ -16,22 +16,22 @@ public:
   Texmap *gettex(int i) { return (Texmap *)GetReference(i); }
   void settex(int i, Texmap *t) { ReplaceReference(i, t); }
 
-  Class_ID ClassID() { return Texmaps_CID; }
+  Class_ID ClassID() override { return Texmaps_CID; }
 #if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
   void GetClassName(TSTR &s, bool localized = true) { s = _T("DagorTexmaps"); }
 #else
   void GetClassName(TSTR &s) { s = _T("DagorTexmaps"); }
 #endif
-  void DeleteThis() { delete this; }
-  int NumSubs() { return NUMTEXMAPS; }
-  Animatable *SubAnim(int i)
+  void DeleteThis() override { delete this; }
+  int NumSubs() override { return NUMTEXMAPS; }
+  Animatable *SubAnim(int i) override
   {
     if (i >= 0 && i < NUMTEXMAPS)
       return texmap[i];
     return NULL;
   }
 #if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
-  TSTR SubAnimName(int i, bool localized)
+  TSTR SubAnimName(int i, bool localized) override
   {
     TSTR s;
     s.printf(_T("tex %d"), i);
@@ -45,20 +45,20 @@ public:
     return s;
   }
 #endif
-  int SubNumToRefNum(int n) { return n; }
-  int NumRefs() { return NUMTEXMAPS; }
-  RefTargetHandle GetReference(int i)
+  int SubNumToRefNum(int n) override { return n; }
+  int NumRefs() override { return NUMTEXMAPS; }
+  RefTargetHandle GetReference(int i) override
   {
     if (i >= 0 && i < NUMTEXMAPS)
       return texmap[i];
     return NULL;
   }
-  void SetReference(int i, RefTargetHandle rtarg)
+  void SetReference(int i, RefTargetHandle rtarg) override
   {
     if (i >= 0 && i < NUMTEXMAPS)
       texmap[i] = (Texmap *)rtarg;
   }
-  RefTargetHandle Clone(RemapDir &remap)
+  RefTargetHandle Clone(RemapDir &remap) override
   {
     Texmaps *mtl = new Texmaps;
     for (int i = 0; i < NUMTEXMAPS; ++i)
@@ -70,9 +70,10 @@ public:
   }
 
 #if defined(MAX_RELEASE_R17) && MAX_RELEASE >= MAX_RELEASE_R17
-  RefResult NotifyRefChanged(const Interval &changeInt, RefTargetHandle hTarget, PartID &partID, RefMessage message, BOOL propagate)
+  RefResult NotifyRefChanged(const Interval &changeInt, RefTargetHandle hTarget, PartID &partID, RefMessage message,
+    BOOL propagate) override
 #else
-  RefResult NotifyRefChanged(Interval changeInt, RefTargetHandle hTarget, PartID &partID, RefMessage message)
+  RefResult NotifyRefChanged(Interval changeInt, RefTargetHandle hTarget, PartID &partID, RefMessage message) override
 #endif
 
   {

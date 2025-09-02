@@ -64,8 +64,7 @@ public:
       }
       else
       {
-        logerr("Failed to load collres <%s> for entity %d<%s>", collResName, (ecs::entity_id_t)eid,
-          g_entity_mgr->getEntityTemplateName(eid));
+        logerr("Failed to load collres <%s> for entity %d<%s>", collResName, (ecs::entity_id_t)eid, mgr.getEntityTemplateName(eid));
         return;
       }
     }

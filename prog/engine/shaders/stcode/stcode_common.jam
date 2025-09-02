@@ -1,6 +1,6 @@
 TargetType = dll ;
 Exceptions = no ;
-Config ?= dev ; # @TODO: make generalizable (currently, no way to choose in compiler or in game)
+Config ?= dev ;
 
 include $(Root)/prog/_jBuild/defPlatform.jam ;
 
@@ -20,14 +20,14 @@ if $(Platform) = iOS {
       frameworkName = $(frameworkName)-$(Config) ;
     }
     BuildAsFramework = $(frameworkName).framework ;
-  }
 
-  BundlePlist =
-    @$(Root)/prog/_jBuild/iOS/generic.framework.plist Info.plist
-  ;
-  BundleName = $(Target:B) ;
-  BundleTitle = $(BundleName) ;
-  BundleID = $(BundleName) ;
+    BundlePlist =
+      @$(Root)/prog/_jBuild/iOS/generic.framework.plist Frameworks/$(BuildAsFramework)/Info.plist
+    ;
+    BundleName = $(Target:B) ;
+    BundleTitle = $(BundleName) ;
+    BundleID = $(BundleName) ;
+  }
 }
 
 BuildDagorEngineIndependentCode = yes ;
@@ -40,7 +40,11 @@ AddIncludes =
 
 Sources += stcode_main.stcode.gen.cpp ;
 
-CPPopt += -Ofast ;
+if $(Platform) in macOS iOS {
+  CPPopt += -O3 -ffast-math ;
+} else {
+  CPPopt += -Ofast ;
+}
 CPPopt += -D__GENERATED_STCODE_FILE ;
 
 include $(Root)/prog/_jBuild/build.jam ;

@@ -47,7 +47,15 @@ public:
     }
     return *this;
   }
-  explicit operator bool() const { return handle != INVALID_VAL; }
-  operator T() const { return handle; }
+  bool valid() const { return handle != INVALID_VAL; }
+  explicit operator bool() const { return valid(); }
+
+  // NOTE: this class does  not provide an operator T() function.
+  // This is because automatic conversion is unsafe and error prone.
+  T get() const
+  {
+    G_ASSERT_RETURN(valid(), INVALID_VAL);
+    return handle;
+  }
   ~UniqueResHandle() { reset(); }
 };

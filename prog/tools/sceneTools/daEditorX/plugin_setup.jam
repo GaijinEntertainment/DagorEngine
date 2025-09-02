@@ -6,7 +6,12 @@ if $(KernelLinkage) = dynamic {
   }
   UseProgLibs += tools/sceneTools/daEditorX/de3dllCore ;
   ImportProgLibs = tools/libTools/daKernel ;
-  LINKopt += -def:$(Root)/prog/tools/sceneTools/daEditorX/de3dllCore/de3_plugin.def ;
+
+  if $(Platform) = windows {
+    LINKopt += -def:$(Root)/prog/tools/sceneTools/daEditorX/de3dllCore/de3_plugin.def ;
+  } else if $(Platform) = linux {
+    LINKopt += -L$(Root)/tools/dagor_cdk/$(Platform)-$(PlatformArch) ; # to be able to find daKernel-dev.so
+  }
 } else {
   TargetType  = lib ;
   Target      = $(Target:D)/$(Location:B).lib ;

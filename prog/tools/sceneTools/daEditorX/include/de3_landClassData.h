@@ -15,7 +15,6 @@
 #include <util/dag_simpleString.h>
 #include <util/dag_roHugeHierBitMap2d.h>
 #include <math/dag_e3dColor.h>
-#include <math/random/dag_random.h>
 
 class IDagorEdCustomCollider;
 
@@ -162,7 +161,7 @@ public:
     if (entity)
       entity->destroy();
     entity = NULL;
-    density = NULL;
+    density = 0;
   }
 
 public:

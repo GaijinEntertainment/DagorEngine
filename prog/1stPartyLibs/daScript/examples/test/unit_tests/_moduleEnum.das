@@ -1,5 +1,7 @@
+options gen2
 module _moduleEnum
 
-enum Numbers
+enum Numbers {
     zero
     one
+}

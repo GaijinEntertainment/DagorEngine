@@ -7,8 +7,9 @@ shader rendinst_cliff
   RENDINST_OVERLAY_COLOR_MAP(vs, shader == rendinst_cliff, get_paint_palette_row_index().x)
   ENABLE_ASSERT(ps)
 
+  INIT_COMMON_RENDINST_TESSELLATION_VARS()
+  COMMON_RENDINST_VCOLOR_INIT(pn_triangulation_enabled, true)
   INIT_COMMON_RENDINST_TESSELLATION()
-  COMMON_RENDINST_VCOLOR_INIT(pn_triangulation_enabled)
   COMMON_RENDINST_INIT_HMAP()
   INIT_COMMON_RENDINST_TESSELLATION_CHANNELS()
 
@@ -41,7 +42,8 @@ shader rendinst_cliff
     #define VS_SPECIFIC_OUTPUT_INIT_FIELDS(output) \
       output.gradientFactor = 0;
 
-    void vs_specific_output(VsInput input, float3 worldPos, float3 worldLocalPos, inout VsOutput output)
+    void vs_specific_output(VsInput input, float3 worldPos, float3 worldLocalPos, uint perInstanceRenderDataOffset, uint perInstanceRenderDataFlags,
+      float3 worldLocalX, float3 worldLocalY, float3 worldLocalZ, inout VsOutput output, inout float3 prev_input_pos)
     {
       const float gradient_overlay_offset = get_gradient_overlay_vector().w;
       float3 gradVector = get_gradient_overlay_vector().xyz;
@@ -52,7 +54,9 @@ shader rendinst_cliff
 
   COMMON_RENDINST_VS()
 
-  COMMON_RENDINST_VCOLOR_PS(true)
+  NO_DYNSTCODE()
+
+  COMMON_RENDINST_VCOLOR_PS(true, true)
 
   if (pn_triangulation_enabled)
   {
@@ -95,7 +99,7 @@ shader rendinst_cliff
 
     hlsl(ds)
     {
-      void fields_barycentric_values(const OutputPatch<HsControlPoint, 3> input, inout VsOutput output, float3 uvw)
+      void fields_barycentric_values(const OutputPatch<HsControlPoint, 3> input, inout VsOutput output, float3 uvw, float tessellation_transition_weight)
       {
         BARYCENTRIC_COORDS_UNPACK(uvw)
         COMMON_RENDINST_TESS_FIELD_BARYCENTRIC_VALUE
@@ -108,7 +112,7 @@ shader rendinst_cliff
         #endif
         FIELD_BARYCENTRIC_VALUE(gradientFactor);
 
-        modify_tessellation_displacement(input, output, uvw);
+        modify_tessellation_displacement(input, output, uvw, tessellation_transition_weight);
       }
     }
     USE_COMMON_RENDINST_TESSELLATION()

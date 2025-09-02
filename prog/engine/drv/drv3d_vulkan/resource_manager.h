@@ -1,13 +1,11 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <drv/3d/rayTrace/dag_drvRayTrace.h> // for D3D_HAS_RAY_TRACING
-
 #include "driver.h"
 #include "device_memory.h"
 #include "device_resource.h"
 #include "device_memory_pages.h"
-#if D3D_HAS_RAY_TRACING
+#if VULKAN_HAS_RAYTRACING
 #include "raytrace_as_resource.h"
 #endif
 #include "sampler_resource.h"
@@ -305,8 +303,8 @@ class DedicatedAllocator : public AbstractAllocator
   Tab<DeviceMemory> list;
 
 public:
-  ~DedicatedAllocator(){};
-  void init() override{};
+  ~DedicatedAllocator() {}
+  void init() override {}
   void shutdown() override;
 
   bool alloc(ResourceMemory &target, const AllocationDesc &desc) override;
@@ -321,8 +319,8 @@ class ObjectBackedAllocator : public AbstractAllocator
   uint32_t count;
 
 public:
-  ~ObjectBackedAllocator(){};
-  void init() override{};
+  ~ObjectBackedAllocator() {}
+  void init() override {}
   void shutdown() override;
 
   bool alloc(ResourceMemory &target, const AllocationDesc &desc) override;
@@ -454,6 +452,9 @@ class ResourceManager
     VulkanDeviceMemoryHandle getDeviceMemoryHandle(ResourceMemory &target);
 
     const AbstractAllocator::Stats printStats();
+
+    void onDeviceReset();
+    void afterDeviceReset();
   };
 
   bool allowMixedPages;
@@ -490,7 +491,7 @@ class ResourceManager
     ObjectPool<RenderPassResource> renderPass;
     ObjectPool<SamplerResource> sampler;
     ObjectPool<MemoryHeapResource> heap;
-#if D3D_HAS_RAY_TRACING
+#if VULKAN_HAS_RAYTRACING
     ObjectPool<RaytraceAccelerationStructure> as;
 #endif
   } resPools;
@@ -503,6 +504,8 @@ public:
 
   void init(const PhysicalDeviceSet &dev_set);
   void shutdown();
+  void onDeviceReset();
+  void afterDeviceReset();
 
   ResourceMemoryId allocAliasedMemory(ResourceMemoryId src_memory_id, VkDeviceSize size, VkDeviceSize offset);
   void freeAliasedMemory(ResourceMemoryId memory_id);

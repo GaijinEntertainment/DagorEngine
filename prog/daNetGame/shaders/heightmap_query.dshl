@@ -1,0 +1,132 @@
+include "landclass_inc.dshl"
+include "heightmap_common.dshl"
+include "heightmap_ofs.dshl"
+include "deform_hmap_common.dshl"
+
+int hmap_query_dispatch_cnt_const_no = 15 always_referenced;
+int hmap_query_dispatch_results_offset_no = 16 always_referenced;
+int hmap_query_dispatch_buf_const_no = 0 always_referenced;
+buffer heightmap_query_input_buf;
+
+
+shader heightmap_query_cs
+{
+  hlsl {
+    #define NO_GRADIENTS_IN_SHADER 1
+  }
+
+  INIT_LANDCLASS_DISPLACEMENT(cs, true, true)
+  USE_LANDCLASS_DISPLACEMENT(cs, true)
+  USE_LANDSCAPE_TC_TO_WORLD(cs)
+
+  INIT_WORLD_HEIGHTMAP_BASE(cs)
+  USE_HEIGHTMAP_COMMON_BASE(cs)
+
+  INIT_HEIGHTMAP_OFS(cs)
+  USE_HEIGHTMAP_OFS(cs)
+
+  INIT_DEFORM_HMAP(cs)
+  USE_DEFORM_HMAP(cs)
+  ENABLE_ASSERT(cs)
+
+  (cs) {
+    input_buffer@buf = heightmap_query_input_buf hlsl {
+      #include "landMesh/heightmap_query.hlsli"
+      StructuredBuffer<HeightmapQueryInput> input_buffer@buf;
+    };
+  }
+
+  hlsl(cs) {
+    #include "landMesh/heightmap_query.hlsli"
+
+    uint dispatchCnt : register(c15);
+    uint resultsOffset : register(c16);
+    RWStructuredBuffer<HeightmapQueryResult> resultsBuffer : register(u0);
+
+    float3 projectPointOntoPlane(float3 normal, float3 pointOnPlane, float3 worldPos)
+    {
+      float3 pointToPlane = worldPos - pointOnPlane;
+      float dist = dot(pointToPlane, normal);
+      float3 projectedPos = worldPos - normal * dist;
+      return projectedPos;
+    }
+
+    HeightmapQueryResult calcQueryResultLandclass(HeightmapQueryInput input)
+    {
+      HeightmapQueryResult result = (HeightmapQueryResult)0;
+      result.normal = float3(0,1,0);
+
+      float3 worldPos = input.worldPos;
+      uint indirectionOffset = get_clipmap_indirection_offset_by_index(input.riLandclassIndex);
+      float offset = 0;
+      if (indirectionOffset > 0 && !is_clipmap_indirection_invalid(indirectionOffset))
+      {
+        uint riLandclassIndex = (int)indirectionOffset - 1;
+        float displacementEffectLandclass = 1;
+        float3 planeNormal = ri_landclass_tm_y_arr[riLandclassIndex].xyz;
+        float3 landclassPos = ri_landclass_tm_pos_arr[riLandclassIndex].xyz;
+        float3 projectedPos = projectPointOntoPlane(planeNormal, landclassPos, worldPos);
+
+        float3 diff = projectedPos - worldPos;
+        result.hitDistNoOffset = -length(diff);
+        if (abs(result.hitDistNoOffset) > 1e-6)
+          result.normal = diff / result.hitDistNoOffset;
+
+        float4x4 invTm = float4x4(ri_landclass_inv_tm_x_arr[riLandclassIndex],
+                                  ri_landclass_inv_tm_y_arr[riLandclassIndex],
+                                  ri_landclass_inv_tm_z_arr[riLandclassIndex],
+                                  ri_landclass_inv_tm_w_arr[riLandclassIndex]);
+        float3 localPos = mulPointTm(worldPos, invTm).xyz;
+
+        float2 mappedCenter = ri_landclass_mapping_arr[riLandclassIndex].zw * ri_landscape_tc_to_world.xy + ri_landscape_tc_to_world.zw;
+        float2 spoofedWorldPosXZ = localPos.xz + mappedCenter;
+
+        float heightOffset =  get_hmap_ofs_ri_landclass(riLandclassIndex, spoofedWorldPosXZ, displacementEffectLandclass);
+        offset = heightOffset * dot(planeNormal, result.normal);
+        result.hitDistWithOffset = result.hitDistNoOffset - offset;
+        result.hitDistWithOffsetDeform = result.hitDistWithOffset;
+      }
+
+      return result;
+    }
+
+    HeightmapQueryResult calcQueryResultHeightmap(HeightmapQueryInput input)
+    {
+      float worldHeight = getWorldHeight(input.worldPos.xz);
+      float3 worldPos = float3(input.worldPos.x, worldHeight, input.worldPos.z);
+      float3 worldNormal = getWorldNormal(worldPos);
+
+      // This is not entirely correct, because terrain is displaced along normal and not only upwards (but good enough)
+      float offsetedHeight = worldHeight + worldNormal.y * get_hmap_ofs_no_grass_vignette(input.worldPos.xz);
+
+      float deformAmount = getDeformHeight(worldPos, world_to_hmap_tex_ofs.z);
+      float deformedHeight = offsetedHeight + deformAmount;
+
+      HeightmapQueryResult result = (HeightmapQueryResult)0;
+      result.hitDistNoOffset = worldHeight - input.worldPos.y;
+      result.hitDistWithOffset = offsetedHeight - input.worldPos.y;
+      result.hitDistWithOffsetDeform = deformedHeight - input.worldPos.y;
+      result.normal = float3(0,1,0);
+      return result;
+    }
+
+    HeightmapQueryResult calcQueryResult(HeightmapQueryInput input)
+    {
+      BRANCH
+      if (input.riLandclassIndex >= 0)
+        return calcQueryResultLandclass(input);
+
+      return calcQueryResultHeightmap(input);
+    }
+
+    [numthreads(HEIGHTMAP_QUERY_WARP_SIZE, 1, 1)]
+    void heightmap_query_cs(uint id : SV_DispatchThreadID)
+    {
+      if (id >= dispatchCnt)
+        return;
+      structuredBufferAt(resultsBuffer, resultsOffset + id) = calcQueryResult(structuredBufferAt(input_buffer, id));
+    }
+  }
+
+  compile("target_cs", "heightmap_query_cs");
+}

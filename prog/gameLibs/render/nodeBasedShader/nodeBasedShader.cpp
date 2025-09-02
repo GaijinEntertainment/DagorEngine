@@ -19,6 +19,7 @@ void NodeBasedShader::dispatch(int xdim, int ydim, int zdim) const
   d3d::dispatch(xdim, ydim, zdim);
   d3d::release_cb0_data(STAGE_CS);
   ShaderElement::invalidate_cached_state_block();
+  shaderManager->resetSubCbuffers();
 }
 
 void NodeBasedShader::setArrayValue(const char *name, const Tab<Point4> &values)
@@ -49,8 +50,6 @@ NodeBasedShader::NodeBasedShader(NodeBasedShaderType shader, const String &shade
     (int)shader, variant_id);
 }
 NodeBasedShader::~NodeBasedShader() = default;
-
-void NodeBasedShader::init(const DataBlock &blk) { init(String(blk.getStr("rootFogGraph", nullptr))); }
 
 void NodeBasedShader::closeShader()
 {
@@ -117,7 +116,6 @@ void NodeBasedShader::enableOptionalGraph(const String &graph_name, bool enable)
 
 PROGRAM *NodeBasedShader::getProgram() { return shadersCache[currentShaderIdx].get(); }
 
-const DataBlock &NodeBasedShader::getMetadata() const { return shaderManager->getMetadata(); }
 
 namespace nodebasedshaderutils
 {

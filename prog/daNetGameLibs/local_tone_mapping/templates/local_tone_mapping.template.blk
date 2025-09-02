@@ -2,10 +2,10 @@ local_tone_mapping {
   _tags:t="render"
   _singleton:b=yes
 
-  "local_tone_mapping__downsample_nodes:dag::Vector<dabfg::NodeHandle>"{}
-  "local_tone_mapping__upsample_nodes:dag::Vector<dabfg::NodeHandle>"{}
-  "local_tone_mapping__filter_node:dabfg::NodeHandle"{}
-  "local_tone_mapping__samplers_node:dabfg::NodeHandle"{}
+  "local_tone_mapping__downsample_nodes:dag::Vector<dafg::NodeHandle>"{}
+  "local_tone_mapping__upsample_nodes:dag::Vector<dafg::NodeHandle>"{}
+  "local_tone_mapping__filter_node:dafg::NodeHandle"{}
+  "local_tone_mapping__samplers_node:dafg::NodeHandle"{}
   "local_tone_mapping_downsample:ComputeShader"{}
   local_tone_mapping_downsample_name:t="local_tone_mapping_downsample"
   "local_tone_mapping_upsample:ComputeShader"{}

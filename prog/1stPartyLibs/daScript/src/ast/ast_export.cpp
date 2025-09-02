@@ -7,6 +7,9 @@ namespace das {
 
     class ClearUnusedSymbols : public Visitor {
     public:
+        virtual bool canVisitFunction ( Function * fun ) override {
+            return !fun->isTemplate;    // we don't do a thing with templates
+        }
         virtual bool canVisitStructureFieldInit ( Structure * ) override { return true; }
         virtual bool canVisitArgumentInit ( Function *, const VariablePtr &, Expression * ) override { return false; }
         virtual void preVisit(ExprAddr * expr) override {
@@ -30,12 +33,12 @@ namespace das {
     public:
         MarkSymbolUse ( bool bid ) : builtInDependencies(bid) {
         }
-        __forceinline void push ( const VariablePtr & pvar ) {
+        __forceinline void push ( Variable* pvar ) {
             if ( !tw ) return;
             *tw << string(logTab,'\t') << pvar->getMangledName() << "\n";
             logTab ++;
         }
-        __forceinline void push ( const FunctionPtr & pfun ) {
+        __forceinline void push ( Function* pfun ) {
             if ( !tw ) return;
             *tw << string(logTab,'\t') << pfun->getMangledName() << "\n";
             logTab ++;
@@ -44,8 +47,8 @@ namespace das {
             if ( !tw ) return;
             logTab --;
         }
-        void propageteVarUse(const VariablePtr & var) {
-            assert(var);
+        void propageteVarUse(Variable * var) {
+            DAS_ASSERT(var);
             if (var->used) return;
             push(var);
             var->used = true;
@@ -57,8 +60,9 @@ namespace das {
             }
             pop();
         }
-        void propagateFunctionUse(const FunctionPtr & fn) {
-            assert(fn);
+        void propagateFunctionUse(Function * fn) {
+            DAS_ASSERT(fn);
+            if (fn->isTemplate) return;
             if (fn->used) return;
             if (fn->builtIn) return;
             push(fn);
@@ -71,12 +75,15 @@ namespace das {
             }
             pop();
         }
+        bool isVarExported ( const VariablePtr & var ) const {
+            return var->annotation.getBoolOption("export",false);
+        }
         void markVarsUsed( ModuleLibrary & lib, bool forceAll ){
             lib.foreach([&](Module * pm) {
                 for ( auto & var : pm->globals.each() ) {
-                    if ( forceAll || var->used ) {
+                    if ( forceAll || var->used || isVarExported(var) ) {
                         var->used = false;
-                        propageteVarUse(var);
+                        propageteVarUse(var.get());
                     }
                 }
                 return true;
@@ -87,7 +94,7 @@ namespace das {
                 if ( initThis && macroModule && pm!=macroModule ) return true;
                 for ( auto & fn : pm->functions.each() ) {
                     if ( (forceAll && !fn->macroInit) || fn->exports || fn->init || fn->shutdown || (fn->macroInit && initThis) ) {
-                        propagateFunctionUse(fn);
+                        propagateFunctionUse(fn.get());
                     }
                 }
                 return true;
@@ -96,7 +103,7 @@ namespace das {
         void markModuleVarsUsed( ModuleLibrary &, Module * inWhichModule ) {
             for ( auto & var : inWhichModule->globals.each() ) {
                 var->used = false;
-                propageteVarUse(var);
+                propageteVarUse(var.get());
             }
         }
         void markModuleUsedFunctions( ModuleLibrary &, Module * inWhichModule ) {
@@ -104,7 +111,7 @@ namespace das {
                 if ( fn->builtIn || fn->macroInit || fn->macroFunction  ) continue;
                 if ( fn->privateFunction && fn->generated && fn->fromGeneric ) continue;    // instances of templates are never roots
                 if ( fn->isClassMethod && fn->classParent->macroInterface ) continue;       // methods of macro interfaces
-                propagateFunctionUse(fn);
+                propagateFunctionUse(fn.get());
             }
         }
         void RemoveUnusedSymbols ( Module & mod ) {
@@ -136,6 +143,9 @@ namespace das {
     public:
         TextWriter * tw = nullptr;
     protected:
+        virtual bool canVisitFunction ( Function * fun ) override {
+            return !fun->isTemplate;    // we don't do a thing with templates
+        }
         virtual bool canVisitStructureFieldInit ( Structure * ) override { return false; }
         virtual bool canVisitArgumentInit ( Function *, const VariablePtr &, Expression * ) override { return false; }
         // global variable declaration
@@ -186,7 +196,7 @@ namespace das {
         virtual void preVisit(ExprAddr * addr) override {
             Visitor::preVisit(addr);
             if (builtInDependencies || (addr->func && !addr->func->builtIn)) {
-                assert(addr->func);
+                DAS_ASSERT(addr->func);
                 if (func) {
                     func->useFunctions.insert(addr->func);
                 } else if (gVar) {
@@ -214,7 +224,7 @@ namespace das {
             Visitor::preVisit(call);
             if ( call->initializer ) {
                 if (builtInDependencies || !call->func->builtIn) {
-                    assert(call->func);
+                    DAS_ASSERT(call->func);
                     if (func) {
                         func->useFunctions.insert(call->func);
                     } else if (gVar) {
@@ -237,7 +247,7 @@ namespace das {
         virtual void preVisit(ExprOp1 * expr) override {
             Visitor::preVisit(expr);
             if (builtInDependencies || !expr->func->builtIn) {
-                assert(expr->func);
+                DAS_ASSERT(expr->func);
                 if (func) {
                     func->useFunctions.insert(expr->func);
                 } else if (gVar) {
@@ -249,7 +259,7 @@ namespace das {
         virtual void preVisit(ExprOp2 * expr) override {
             Visitor::preVisit(expr);
             if (builtInDependencies || !expr->func->builtIn) {
-                assert(expr->func);
+                DAS_ASSERT(expr->func);
                 if (func) {
                     func->useFunctions.insert(expr->func);
                 } else if (gVar) {
@@ -261,7 +271,7 @@ namespace das {
         virtual void preVisit(ExprOp3 * expr) override {
             Visitor::preVisit(expr);
             if ( expr->func && (builtInDependencies || !expr->func->builtIn) ) {
-                assert(expr->func);
+                DAS_ASSERT(expr->func);
                 if (func) {
                     func->useFunctions.insert(expr->func);
                 } else if (gVar) {

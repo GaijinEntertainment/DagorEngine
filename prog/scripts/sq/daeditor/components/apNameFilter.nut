@@ -1,15 +1,15 @@
+from "daRg" import set_kb_focus
 let nameFilter = require("nameFilter.nut")
-let {set_kb_focus} = require("daRg")
 
 return @(filterString, selectedCompName) nameFilter(filterString, {
   placeholder = "Filter by name"
 
   function onChange(text) {
-    filterString.update(text)
+    filterString.set(text)
 
-    if ((text.len() > 0 ) && selectedCompName.value
-      && !selectedCompName.value.contains(text)) {
-      selectedCompName.update(null)
+    if ((text.len() > 0 ) && selectedCompName.get()
+      && !selectedCompName.get().contains(text)) {
+      selectedCompName.set(null)
     }
   }
 
@@ -22,8 +22,7 @@ return @(filterString, selectedCompName) nameFilter(filterString, {
   }
 
   function onClear() {
-    filterString.update("")
+    filterString.set("")
     set_kb_focus(null)
   }
 })
-

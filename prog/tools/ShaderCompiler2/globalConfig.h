@@ -1,11 +1,11 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include "shHardwareOpt.h"
+#include "shCompilationInfo.h"
 #include "DebugLevel.h"
-#include "shadervarGenerator.h"
 #include "cppStcodePlatformInfo.h"
 
+#include <ioSys/dag_dataBlock.h>
 #include <dag/dag_vector.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
 
@@ -15,6 +15,8 @@
 #include "dx12/asmShaderDXIL.h"
 #elif _CROSS_TARGET_DX11
 #include <d3dcompiler.h>
+#elif _CROSS_TARGET_SPIRV | _CROSS_TARGET_METAL
+#include <spirv/compiler_dxc.h>
 #else
 #if _TARGET_PC_WIN
 #include <d3dcompiler.h>
@@ -26,7 +28,7 @@ namespace shc
 struct CompilerConfig
 {
   // See https://gaijinentertainment.github.io/DagorEngine/dagor-tools/shader-compiler/contributing_to_compiler.html#versioning
-  const char *version = "2.73"; // logging only
+  const char *version = "2.77"; // logging only
 
   const char *singleCompilationShName = nullptr;
   const char *intermediateDir = nullptr;
@@ -63,16 +65,17 @@ struct CompilerConfig
   SimpleString engineRootDir;
   ShHardwareOptions singleOptions{4.0_sm};
 
-  std::string shadervarsCodeTemplateFilename;
-  GeneratedPathInfos generatedPathInfos;
-  dag::Vector<std::string> excludeFromGeneration;
-
   dag::Vector<String> dscIncludePaths;
   // use power_of_two strategy, because we have good enough hashes for strings
   ska::flat_hash_map<eastl::string, eastl::string> fileToFullPath;
 
   size_t dictionarySizeInKb = 4096;
   size_t shGroupSizeInKb = 1024;
+
+  static constexpr int DEFAULT_COMPRESSION_LEVEL = 11;
+
+  int shGroupCompressionLevel = DEFAULT_COMPRESSION_LEVEL;
+  int shDumpCompressionLevel = DEFAULT_COMPRESSION_LEVEL;
 
   unsigned numProcesses = -1;
   unsigned numWorkers = 0;
@@ -81,10 +84,17 @@ struct CompilerConfig
   int hlslMaximumPsfAllowed = 2048;
   int hlslOptimizationLevel = 4;
 
+  const DataBlock *assumedVarsConfig = &DataBlock::emptyBlock;
+
   DebugLevel hlslDebugLevel = DebugLevel::NONE;
-  ShadervarGeneratorMode shadervarGeneratorMode = ShadervarGeneratorMode::None;
+
+  shader_layout::ExternalStcodeMode cppStcodeMode = shader_layout::ExternalStcodeMode::NONE;
+  StcodeDynlibConfig cppStcodeCompConfig = StcodeDynlibConfig::DEV;
   StcodeTargetArch cppStcodeArch = StcodeTargetArch::DEFAULT;
   StcodeTargetPlatform cppStcodePlatform = StcodeTargetPlatform::DEFAULT;
+  const char *cppStcodeCustomTag = nullptr;
+
+  bool generateCppStcodeValidationData : 1 = false;
 
 #if USE_BINDLESS_FOR_STATIC_TEX
   bool enableBindless : 1 = true;
@@ -102,6 +112,7 @@ struct CompilerConfig
   bool noSave : 1 = false;
   bool hlslSavePPAsComments : 1 = false;
   bool isDebugModeEnabled : 1 = false;
+  bool constrainCompressedBindumpSize : 1 = true;
   bool hlslEmbedSource : 1 = false;
   bool hlslSkipValidation : 1 = false;
   bool hlslNoDisassembly : 1 = false;
@@ -115,19 +126,16 @@ struct CompilerConfig
   bool useCompression : 1 = true;
   bool addTextureType : 1 = false;
   bool suppressLogs : 1 = false;
-  bool optionalIntervalsAsBranches : 1 = false;
   bool logExactCompilationTimes : 1 = false;
   bool logFullPerFileCompilationStats : 1 = false;
-  bool autotestMode : 1 = false;
   bool useSha1Cache : 1 = true;
   bool writeSha1Cache : 1 = true;
   bool purgeSha1 : 1 = false;
-  bool enableFp16 : 1 = false;
+  bool enableFp16Override : 1 = false;
   bool saveDumpOnCrash : 1 = false;
   bool singleBuild : 1 = false;
   bool relinkOnly : 1 = false;
   bool useThreadpool : 1 = true;
-  bool compileCppStcode : 1 = false;
   bool cppStcodeUnityBuild : 1 = false;
   bool cppStcodeDeleteDebugInfo : 1 = true;
   bool disallowHlslHardcodedRegs : 1 = false;
@@ -138,12 +146,22 @@ struct CompilerConfig
   bool compilerHlslCc : 1 = false;
   bool compilerDXC : 1 = false;
   bool usePcToken : 1 = true;
+  bool dumpSpirvOnly : 1 = false;
 #elif _CROSS_TARGET_METAL
   bool useIosToken : 1 = false;
   bool useBinaryMsl : 1 = false;
 #endif
 
+#if _CROSS_TARGET_SPIRV | _CROSS_TARGET_METAL
+  bool allowCompilationWithoutDxc : 1 = false;
+  String dxcPath;
+  dag::Vector<String> dxcParams;
+  // @TODO: move to CompilationContext/ShCompilationInfo
+  spirv::DXCContext *dxcContext;
+#endif
+
   const char *getShaderSrcRoot() const { return shaderSrcRoot.empty() ? nullptr : shaderSrcRoot.c_str(); }
+  bool compileCppStcode() const { return cppStcodeMode != shader_layout::ExternalStcodeMode::NONE; }
 };
 
 const CompilerConfig &config();

@@ -10,14 +10,19 @@
 #include <X11/X.h>
 #include <X11/Xlib.h>
 
+
+namespace
+{
 static POINT last_mouse_pos = {-1, -1};
+static Window getWindowFromPtrHandle(void *w) { return (intptr_t)w; }
+} // namespace
 
 bool get_window_screen_rect(void *w, RECT *rect, RECT *rect_unclipped)
 {
   if (!w || !rect)
     return false;
 
-  const XWindowAttributes &attrib = workcycle_internal::get_window_attrib(*(Window *)w, true);
+  const XWindowAttributes &attrib = workcycle_internal::get_window_attrib(getWindowFromPtrHandle(w), true);
   const XWindowAttributes &rootAttrib = workcycle_internal::get_window_attrib(0, false);
 
   RECT winRect;
@@ -77,27 +82,27 @@ bool mouse_api_GetClientRect(void *w, RECT *rect)
 bool mouse_api_GetCursorPosRel(POINT *pt, void *w)
 {
   // use cached value from last processed motion window event
-  return workcycle_internal::get_last_cursor_pos(&pt->x, &pt->y, *(Window *)w);
+  return workcycle_internal::get_last_cursor_pos(&pt->x, &pt->y, getWindowFromPtrHandle(w));
 }
 
 void mouse_api_SetCursorPosRel(void *w, POINT *pt)
 {
   last_mouse_pos = *pt;
-  XWarpPointer(workcycle_internal::get_root_display(), None, *(Window *)w, 0, 0, 0, 0, pt->x, pt->y);
+  XWarpPointer(workcycle_internal::get_root_display(), None, getWindowFromPtrHandle(w), 0, 0, 0, 0, pt->x, pt->y);
   // update cached cursor position directly, avoiding extra api call
-  workcycle_internal::update_cursor_position(pt->x, pt->y, *(Window *)w);
+  workcycle_internal::update_cursor_position(pt->x, pt->y, getWindowFromPtrHandle(w));
 }
 
 void mouse_api_ClipCursorToAppWindow()
 {
   Display *display = workcycle_internal::get_root_display();
-  Window *window = (Window *)win32_get_main_wnd();
+  Window window = getWindowFromPtrHandle(win32_get_main_wnd());
 
   if (window)
   {
-    XSetInputFocus(display, *window, RevertToParent, CurrentTime);
-    XGrabPointer(display, *window, 0, ButtonPressMask | ButtonReleaseMask | PointerMotionMask | ButtonMotionMask, GrabModeAsync,
-      GrabModeAsync, *window, None, CurrentTime);
+    XSetInputFocus(display, window, RevertToParent, CurrentTime);
+    XGrabPointer(display, window, 0, ButtonPressMask | ButtonReleaseMask | PointerMotionMask | ButtonMotionMask, GrabModeAsync,
+      GrabModeAsync, window, None, CurrentTime);
   }
 }
 
@@ -129,7 +134,7 @@ void mouse_api_get_deltas(int &dx, int &dy)
 void mouse_api_hide_cursor(bool hide)
 {
   Display *display = workcycle_internal::get_root_display();
-  Window window = *(Window *)win32_get_main_wnd();
+  Window window = getWindowFromPtrHandle(win32_get_main_wnd());
 
   if (hide)
   {

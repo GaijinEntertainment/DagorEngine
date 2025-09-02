@@ -35,7 +35,6 @@ public:
     das::addExtern<DAS_BIND_FUN(set_timespeed)>(*this, lib, "set_timespeed", das::SideEffects::modifyExternal, "::set_timespeed");
     das::addExtern<DAS_BIND_FUN(toggle_pause)>(*this, lib, "toggle_pause", das::SideEffects::modifyExternal, "::toggle_pause");
 
-    das::addExtern<DAS_BIND_FUN(get_game_name)>(*this, lib, "get_game_name", das::SideEffects::accessExternal, "::get_game_name");
     das::addExtern<DAS_BIND_FUN(get_exe_version_str)>(*this, lib, "get_exe_version_str", das::SideEffects::accessExternal,
       "::get_exe_version_str");
 
@@ -49,7 +48,8 @@ public:
 
     das::addExtern<DAS_BIND_FUN(sceneload::load_game_scene)>(*this, lib, "load_game_scene", das::SideEffects::modifyExternal,
       "sceneload::load_game_scene")
-      ->arg_init(/*import_depth*/ 1, das::make_smart<das::ExprConstInt>(1));
+      ->arg_init(/*import_depth*/ 1, das::make_smart<das::ExprConstInt>(1))
+      ->arg_init(/*load_type*/ 2, das::make_smart<das::ExprConstUInt>(3 /*IMPORT*/));
     das::addExtern<DAS_BIND_FUN(das_switch_scene_1)>(*this, lib, "switch_scene", das::SideEffects::modifyExternal,
       "bind_dascript::das_switch_scene_1");
     das::addExtern<DAS_BIND_FUN(das_switch_scene_2)>(*this, lib, "switch_scene", das::SideEffects::modifyExternal,

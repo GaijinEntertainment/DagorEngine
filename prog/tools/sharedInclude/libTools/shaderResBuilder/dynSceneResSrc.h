@@ -47,6 +47,7 @@ public:
   static bool (*process_scene)(const char *fn, int lod_n, AScene &sc, float start_range, const DataBlock &props);
   static DataBlock *buildResultsBlk;
   static bool sepMatToBuildResultsBlk;
+  static const DataBlock *warnTwoSided;
 
   struct RigidObj
   {

@@ -1,13 +1,12 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include <fx/dag_commonFx.h>
 #include <gameRes/dag_gameResources.h>
 #include <math/dag_bounds3.h>
 #include <math/dag_TMatrix.h>
 #include <daFx/dafx.h>
 #include <daECS/core/event.h>
-
-#include "fxErrorType.h"
 
 class FXGunFire;
 class AcesEffect;
@@ -15,6 +14,7 @@ class DataBlock;
 class BaseTexture;
 class Sbuffer;
 struct Driver3dPerspective;
+struct TMatrix4_vec4;
 
 enum FxRenderGroup
 {
@@ -34,7 +34,7 @@ enum FxRenderTargetOverride
   FX_RT_OVERRIDE_HIGHRES = 2,
 };
 
-enum FxQuality
+enum FxQuality : uint32_t
 {
   FX_QUALITY_LOW = 1 << 0,
   FX_QUALITY_MEDIUM = 1 << 1,
@@ -61,10 +61,6 @@ enum
 {
   HUID_ACES_RESET = 0xA781BF24u
 };
-enum
-{
-  HUID_ACES_IS_ACTIVE = 0xD6872FCEu
-};
 
 namespace acesfx
 {
@@ -74,15 +70,22 @@ struct GravityZoneWithDistanceToCamera
   Point3 size;
   uint32_t shape;
   uint32_t type;
+  float weight;
   float sqDistanceToCamera;
   bool isImportant;
 
-  GravityZoneWithDistanceToCamera(
-    const TMatrix &transform_, const Point3 &size_, uint32_t shape_, uint32_t type_, float sq_distance_to_camera, bool is_important) :
+  GravityZoneWithDistanceToCamera(const TMatrix &transform_,
+    const Point3 &size_,
+    uint32_t shape_,
+    uint32_t type_,
+    float weight_,
+    float sq_distance_to_camera,
+    bool is_important) :
     transform(transform_),
     size(size_),
     shape(shape_),
     type(type_),
+    weight(weight_),
     sqDistanceToCamera(sq_distance_to_camera),
     isImportant(is_important)
   {}
@@ -93,6 +96,7 @@ void push_gravity_zone(GravityZoneBuffer &buffer,
   const Point3 &size,
   uint32_t shape,
   uint32_t type,
+  float weight,
   float sq_distance_to_camera,
   bool is_important);
 
@@ -115,6 +119,10 @@ void setSkyParams(const Point3 &sun_dir, const Color3 &sun_color, const Color3 &
 void setWindParams(float wind_strength, Point2 wind_dir);
 void set_gravity_zones(GravityZoneBuffer &buffer);
 
+void set_immediate_mode(bool v, bool flush_cmds);
+void start_fx_managers_update_job(float dt);
+void wait_fx_managers_update_job_done();
+void wait_fx_managers_update_and_allow_accum_cmds();
 void init(const DataBlock &fx);
 void shutdown();
 void reset();
@@ -142,31 +150,20 @@ struct StartEffectEvent : public ecs::Event
 
 ECS_BROADCAST_EVENT_TYPE(StartEffectPosNormEvent, int /*type*/, Point3 /*pos*/, Point3 /*norm*/, bool /*is_player*/, float /*scale*/);
 
-struct SoundDesc
-{
-  const char *parameter = nullptr;
-  float value = 0.f;
-  SoundDesc() = default;
-  explicit SoundDesc(const char *parameter, float value) : parameter(parameter), value(value) {}
-};
-static const SoundDesc defSoundDesc;
-
-AcesEffect *start_effect(int type,
+void start_effect(int type,
   const TMatrix &emitter_tm,
   const TMatrix &fx_tm,
   bool is_player,
-  const SoundDesc *snd_desc = &defSoundDesc,
+  float scale = -1.0f,
+  AcesEffect **locked_fx = nullptr,
   FxErrorType *perr = nullptr);
 
-AcesEffect *start_effect_pos(
-  int type, const Point3 &pos, bool is_player, float scale = 1.f, const SoundDesc *snd_desc = &defSoundDesc);
+void start_effect_pos(int type, const Point3 &pos, bool is_player, float scale = 1.f, AcesEffect **locked_fx = nullptr);
 
-AcesEffect *start_effect_pos_norm(
-  int type, const Point3 &pos, const Point3 &norm, bool is_player, float scale = 1.f, const SoundDesc *snd_desc = &defSoundDesc);
+void start_effect_pos_norm(
+  int type, const Point3 &pos, const Point3 &norm, bool is_player, float scale = 1.f, AcesEffect **locked_fx = nullptr);
 
 TMatrix create_matrix_from_pos_norm(const Point3 &pos, const Point3 &norm);
-
-AcesEffect *start_effect_fxtm(int type, TMatrix tm, bool is_player, float scale = 1.f, const SoundDesc *snd_desc = &defSoundDesc);
 
 bool prefetch_effect(int type);
 
@@ -176,18 +173,21 @@ void kill_effect(AcesEffect *&fx);
 bool can_start_effect(int type, bool is_player);
 void start_all_effects(const Point3 &pos, float rad, int mul, float rad_step);
 
-void start_update_prepare(float dt, const Driver3dPerspective &persp, int targetWidth, int targetHeight);
-void start_update(float dt);
+void setup_camera_and_debug(float dt, const TMatrix &view_itm, const Driver3dPerspective &persp, int targetWidth, int targetHeight);
+void update_fx_managers(float dt);
+void flush_dafx_commands();
+void start_dafx_update(float dt = -1.0f);
 
-void finish_update(const TMatrix4 &tm);
+void finish_update_main_camera(const TMatrix4 &tm);
+void finish_update(const TMatrix4 &tm, Occlusion *);
 void before_render();
-void prepare_main_culling(const TMatrix4 &tm);
-void prepare_fom_culling(const TMatrix4 &tm);
-void prepare_bvh_culling(const TMatrix4 &tm);
+void prepare_main_culling(const TMatrix4_vec4 &tm);
+void prepare_fom_culling(const TMatrix4_vec4 &tm);
+void prepare_bvh_culling(const TMatrix4_vec4 &tm);
 void before_reset();
 void after_reset();
-void async_update_started();
-void async_update_finished();
+void notify_fx_managers_update_started();
+void notify_fx_managers_update_finished();
 
 bool renderTransLowRes(dafx::CullingId cull_id = dafx::CullingId());
 bool renderTransHighRes(dafx::CullingId cull_id = dafx::CullingId());
@@ -210,7 +210,7 @@ void dump_statistics();
 void get_stats_by_fx_name(const char *name, eastl::string &o);
 
 const char *get_fxres_name(const char *fx_name);
-int get_type_by_name(const char *name, bool optional = false);
+int get_type_by_name_opt(const char *name, bool optional);
 int get_and_init_type_by_name(const char *name);
 const char *get_name_by_type(int type);
 void set_dafx_globaldata(const TMatrix4 &tm, const TMatrix &view, const Point3 &view_pos);

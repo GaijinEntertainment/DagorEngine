@@ -32,11 +32,10 @@ A flickering light source object is composed of several components.
    cheaper than dynamic models shadows).
    - Destroying the light source (lights disappear when the render instance
    whose bounding box contains the centers of the light sources is destroyed).
-   - Visually destroying the object (render instances are easily [destroyed via
-   destructors](../about-assets/customizing_asset_destructions.md). Dealing with
-   dynamic models is more complex, so we make them disappear following the light
-   source rules – their pivots must fall within the bounding box of the
-   destroyed render instance).
+   - Visually destroying the object (render instances are easily destroyed via
+   destructors. Dealing with dynamic models is more complex, so we make them
+   disappear following the light source rules – their pivots must fall within
+   the bounding box of the destroyed render instance).
 
    Simply put, when the render instance is destroyed, the dynamic model
    disappears, the light source is removed, and the render instance breaks apart
@@ -142,14 +141,13 @@ already been outlined:
 
 - **Destruction**:
 
-  [The render instance is replaced with a destructible version when
-  destroyed](../about-assets/customizing_asset_destructions.md). This is a
-  straightforward mechanism. In contrast, substituting the entire lamp dynamic
-  model with a broken version involves a new, more complex pipeline, which isn't
-  practical. Therefore, we destroy the dynamic model alongside the render
-  instance. In this case, the dynamic model simply disappears, and the destroyed
-  render instance is replaced with a damaged version of the dynamic model’s
-  section, broken as necessary.
+  The render instance is replaced with a destructible version when destroyed.
+  This is a straightforward mechanism. In contrast, substituting the entire lamp
+  dynamic model with a broken version involves a new, more complex pipeline,
+  which isn't practical. Therefore, we destroy the dynamic model alongside the
+  render instance. In this case, the dynamic model simply disappears, and the
+  destroyed render instance is replaced with a damaged version of the dynamic
+  model’s section, broken as necessary.
 
 ```{important}
 If you're creating rare lamps that will be placed in around 10 locations on the

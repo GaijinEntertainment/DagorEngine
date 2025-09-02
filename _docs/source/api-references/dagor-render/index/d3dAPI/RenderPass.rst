@@ -1,9 +1,10 @@
-RenderPass
+Render Pass
 =================================================
 
-* See samples/testDrv3d/render_pass_tests.h for example usage
+* See ``samples/testDrv3d/render_pass_tests.h`` for example usage.
 
-Callable d3d:: methods
+Callable D3D:: methods
+----------------------
 
 .. doxygengroup:: RenderPassD3D
   :project: d3dAPI
@@ -11,9 +12,8 @@ Callable d3d:: methods
   :undoc-members:
   :content-only:
 
-=================================================
-
-Related structures
+Related Structures
+------------------
 
 .. doxygengroup:: RenderPassStructs
   :project: d3dAPI
@@ -21,9 +21,8 @@ Related structures
   :undoc-members:
   :content-only:
 
-=================================================
-
-Related constants
+Related Constants
+-----------------
 
 .. doxygengroup:: RenderPassConsts
   :project: d3dAPI

@@ -7,7 +7,7 @@ sys.path.pop()
 
 # build EXE
 if 'code' in BUILD_COMPONENTS:
-  run('jam')
+  run(['jam', '-f', 'jamfile-test-bullet'])
   run(['jam', '-f', 'jamfile-test-jolt'])
 
 # build shaders

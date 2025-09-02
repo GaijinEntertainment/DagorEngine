@@ -40,7 +40,7 @@
 #define PICMGR_DEBUG(...) ((void)0)
 #endif
 
-/** @page PictureManager
+/* qdox @page PictureManager
 
 .. seealso:: :ref:`image_rasterization`
 
@@ -270,7 +270,7 @@ struct AsyncPicLoadJob : public cpujobs::IJob
     JT_picInAtlas,
     JT_texPic
   };
-  SimpleString name;
+  String name;
   async_load_done_cb_t done_cb;
   void *done_arg;
   Point2 *outTc0, *outTc1, *outSz, tc0S, tc1S, szS;
@@ -286,10 +286,10 @@ struct AsyncPicLoadJob : public cpujobs::IJob
   static volatile int numJobsInFlight;
   static volatile bool loadAllowed;
 
-  AsyncPicLoadJob(JobType jt, PICTUREID pic, const char *nm, Point2 *out_tc0, Point2 *out_tc1, Point2 *out_sz, async_load_done_cb_t cb,
+  AsyncPicLoadJob(JobType jt, PICTUREID pic, String &&nm, Point2 *out_tc0, Point2 *out_tc1, Point2 *out_sz, async_load_done_cb_t cb,
     void *arg) :
     jtype(jt),
-    name(nm),
+    name(eastl::move(nm)),
     picId(pic),
     done_cb(cb),
     done_arg(arg),
@@ -306,6 +306,8 @@ struct AsyncPicLoadJob : public cpujobs::IJob
     interlocked_increment(numJobsInFlight);
     interlocked_increment(texRec[getTexRecIdx(picId)]->refCount);
   }
+
+  const char *getJobName(bool &) const override { return "AsyncPicLoadJob"; }
 
   virtual void doJob()
   {
@@ -372,6 +374,8 @@ protected:
     if (!jobDone)
     {
       discardUndonePic();
+      if (jtype == JT_texPic && reportErr != 100 && done_cb) // done_cb cannot release texPicture on error, so release here
+        tr.delRef();
       interlocked_decrement(numJobsInFlight);
     }
     interlocked_decrement(tr.refCount);
@@ -384,8 +388,9 @@ protected:
       case 13: DAG_FATAL("PM: load failed, name='%s', pic=%08X (%d pics missing)", name, picId, tr.ad->missingPicHash.size()); break;
       case 22: DAG_FATAL("PM: load failed, name='%s', pic=%08X texId=0x%x", name, picId, outTexId); break;
       case 100:
-        debug("PM: async load aborted, name='%s', pic=%08X texId=0x%x", name, picId, outTexId);
-        if (done_cb && tr.ad)
+        debug("PM: async load aborted, name='%s', pic=%08X texId=0x%x rc=%d pend_rc=%d done_cb=%p", //
+          name, picId, outTexId, tr.refCount, tr.getPendingTexRef(), (void *)done_cb);
+        if (done_cb) // done_cb can be nullptr only after reloadDiscardedPic() for job abortion case
           tr.delRef();
         break;
     }
@@ -655,7 +660,7 @@ static bool reloadDiscardedPic(PICTUREID pid, DynamicPicAtlas::ItemData *d)
     String fn = tr.ad->makeAbsFn(pic_nm);
     PICMGR_DEBUG("PM: scheduling reload %s[%d]='%s', pic=%08X (was discarded)", tr.getName(), getPicRecIdx(pid), fn, pid);
 
-    AsyncPicLoadJob *j = new AsyncPicLoadJob(AsyncPicLoadJob::JT_picInAtlas, pid, fn, NULL, NULL, NULL, NULL, NULL);
+    AsyncPicLoadJob *j = new AsyncPicLoadJob(AsyncPicLoadJob::JT_picInAtlas, pid, eastl::move(fn), NULL, NULL, NULL, NULL, NULL);
     j->premulAlpha = tr.ad->premultiplyAlpha;
     if (asyncLoadJobMgr < 0)
     {
@@ -693,7 +698,7 @@ static void init_transp_tex(unsigned fmt)
   }
   else if (fmt == AtlasData::FMT_L8)
   {
-    tr_tex_flg |= TEXFMT_L8;
+    tr_tex_flg |= TEXFMT_R8;
     h_step = 1;
     bpp = 1;
     margin = MAX_MARGIN_WD;
@@ -845,8 +850,9 @@ static bool check_pic_still_valid(PICTUREID pid, const uint8_t &gen, int &x0, in
   WinAutoLock lock(critSec);
   int tex_idx;
   if (const DynamicPicAtlas::ItemData *d = decodePicId(pid, tex_idx, /*update_lru*/ false, &gen))
-    // treat image as valid if ST_restoring is setted up in dx field, to support first round of render_pic_with_factory
-    if (d->valid() || d->dx == DynamicPicAtlas::ItemData::ST_restoring)
+    // treat image as valid if ST_waitFirstPictureFactoryRender is setted up in dx field, to support first round of
+    // render_pic_with_factory
+    if (d->valid() || d->dx == DynamicPicAtlas::ItemData::ST_waitPictureFactoryFirstRender)
     {
       // dynamic atlas could be rearranged (see reArrangeAndAlloc()), so update actual texture coordinates
       x0 = d->x0;
@@ -867,11 +873,25 @@ static const char *extract_pic_name(PICTUREID pid, uint8_t gen)
 #else
 static const char *extract_pic_name(PICTUREID, uint8_t) { return nullptr; }
 #endif
+
+static void discard_canceled_atlas_picture(PictureRenderContext &ctx)
+{
+  if (!check_pic_still_valid(ctx.pid, ctx.gen, ctx.x0, ctx.y0))
+    return;
+  int atlasItemIdx = getPicRecIdx(ctx.pid);
+  int texIdx = getTexRecIdx(ctx.pid);
+  rbp::Rect rect;
+  texRec[texIdx]->ad->atlas.discardItem(atlasItemIdx, rect);
+  debug("PM: atlas pic=%08X(%s) at (%d,%d) was discarded because pictures load is not allowed for now", ctx.pid,
+    extract_pic_name(ctx.pid, ctx.gen), ctx.x0, ctx.y0);
+}
+
 static void retry_render_pic_with_factory_imm(void *arg)
 {
   PictureRenderContext &ctx = *(PictureRenderContext *)arg;
   if (!AsyncPicLoadJob::loadAllowed)
   {
+    discard_canceled_atlas_picture(ctx);
     delete &ctx;
     return;
   }
@@ -888,7 +908,7 @@ static void retry_render_pic_with_factory_imm(void *arg)
       add_delayed_callback_buffered(retry_render_pic_with_factory_imm, arg);
       return;
     }
-    debug("PM: render succeed at last for pic=%08X(%s)", ctx.pid, extract_pic_name(ctx.pid, ctx.gen));
+    debug("PM: render succeed at last for pic=%08X(%s) at %d,%d", ctx.pid, extract_pic_name(ctx.pid, ctx.gen), ctx.x0, ctx.y0);
   }
   else
     logwarn("PM: pic=%08X(%s) was discarded, render retry ceased", ctx.pid, extract_pic_name(ctx.pid, ctx.gen));
@@ -896,10 +916,15 @@ static void retry_render_pic_with_factory_imm(void *arg)
 }
 static void render_pic_with_factory_imm(PictureRenderContext &ctx)
 {
-  if (!check_pic_still_valid(ctx.pid, ctx.gen, ctx.x0, ctx.y0) || !AsyncPicLoadJob::loadAllowed)
+  if (!check_pic_still_valid(ctx.pid, ctx.gen, ctx.x0, ctx.y0))
   {
     logwarn("PM: pic=%08X(%s) was discarded, render retry ceased", ctx.pid, extract_pic_name(ctx.pid, ctx.gen));
     return; // try no more
+  }
+  if (!AsyncPicLoadJob::loadAllowed)
+  {
+    discard_canceled_atlas_picture(ctx);
+    return;
   }
 
   d3d::GpuAutoLock gpu_lock;
@@ -957,7 +982,7 @@ void PictureManager::init(const DataBlock *params)
 
   if (asyncLoadJobMgr == -1 && params->getBool("createAsyncLoadJobMgr", false))
   {
-    size_t stackSize = (256 << 10) * (1 + sizeof(int) / sizeof(void *)); // More stack on 32 bit for avif load (dav1d)
+    constexpr size_t stackSize = (192 << 10) * (1 + sizeof(int) / sizeof(void *)); // More stack on 32 bit for avif load (dav1d)
     asyncLoadJobMgr = cpujobs::create_virtual_job_manager(stackSize, WORKER_THREADS_AFFINITY_MASK, "PicMgr::asyncLoad");
     asyncLoadJobMgrOwned = true;
   }
@@ -1142,7 +1167,7 @@ PICTUREID PictureManager::add_picture(BaseTexture *tex, const char *as_name, boo
   G_ASSERTF(tr.texId != BAD_TEXTUREID, "tex=%p as_name=%s", tex, as_name);
 
   TextureInfo ti;
-  if (tex->restype() == RES3D_TEX && tex->getinfo(ti))
+  if (tex->getType() == D3DResourceType::TEX && tex->getinfo(ti))
     tr.size.set(ti.w, ti.h);
   if (get_it)
     tr.addRef();
@@ -1276,7 +1301,7 @@ bool PictureManager::get_picture_ex(const char *file_name, PICTUREID &out_pic_id
     if (tr.refCount == -1)
     {
       tr.refCount = 0;
-      tr.addPendingTexRef();
+      tr.addRef();
     }
     TEXTUREID tex_id = tr.resolveTexId();
     bool add_quard_ref = get_managed_texture_refcount(tex_id) > 0 && D3dResManagerData::getD3dRes(tex_id);
@@ -1294,7 +1319,8 @@ bool PictureManager::get_picture_ex(const char *file_name, PICTUREID &out_pic_id
       done_cb = NULL;
     }
 
-    j = new AsyncPicLoadJob(AsyncPicLoadJob::JT_texPic, out_pic_id, file_name, out_tc0, out_tc1, out_sz, done_cb, cb_arg);
+    j = new AsyncPicLoadJob(AsyncPicLoadJob::JT_texPic, out_pic_id, String(file_name), out_tc0, out_tc1, out_sz, done_cb, cb_arg);
+    tr.addRef();
     if (!done_cb || asyncLoadJobMgr < 0 || tr.texId != BAD_TEXTUREID)
     {
       lock.unlockFinal();
@@ -1395,8 +1421,8 @@ void PictureManager::free_picture(PICTUREID pid)
   if (tex_idx < texRec.size() && texRec[tex_idx]->refCount > 0)
   {
     TexRec &tr = *texRec[tex_idx];
-    G_ASSERT_LOG(tr.refCount > 1, "refCount(%s)=%d{%d} pid=%08X", tr.getName(), tr.refCount, get_managed_texture_refcount(tr.texId),
-      pid);
+    G_ASSERT_LOG(tr.refCount > (tr.ad ? 1 : 0), "refCount(%s)=%d{%d} pid=%08X", tr.getName(), tr.refCount,
+      get_managed_texture_refcount(tr.texId), pid);
     tr.delRef();
     PICMGR_DEBUG("PM: free_picture(%08X) refCount(%s)=%d{%d}", pid, tr.getName(), tr.refCount, get_managed_texture_refcount(tr.texId));
   }
@@ -1570,7 +1596,7 @@ bool PictureManager::TexRec::initAtlas()
     if (strcmp(fmt_str, "ARGB") == 0)
       tex_fmt = TEXFMT_A8R8G8B8;
     else if (strcmp(fmt_str, "L8") == 0)
-      tex_fmt = TEXFMT_L8;
+      tex_fmt = TEXFMT_R8;
     else if (strcmp(fmt_str, "DXT5") == 0)
       tex_fmt = TEXFMT_DXT5;
     else if (strcmp(fmt_str, "DXT1") == 0)
@@ -1592,11 +1618,11 @@ bool PictureManager::TexRec::initAtlas()
       margin = clamp(margin, 0, (int)MAX_MARGIN_WD), ad->fmt = ad->FMT_ARGB;
     else if (tex_fmt == TEXFMT_R8G8B8A8)
       margin = clamp(margin, 0, (int)MAX_MARGIN_WD), ad->fmt = ad->FMT_RGBA;
-    else if (tex_fmt == TEXFMT_L8)
+    else if (tex_fmt == TEXFMT_R8)
       margin = clamp(margin, 0, (int)MAX_MARGIN_WD), ad->fmt = ad->FMT_L8;
     else if (tex_fmt == TEXFMT_DXT5)
       margin = margin ? 4 : 0, ad->fmt = ad->FMT_DXT5;
-    else if (tex_fmt == TEXFMT_DXT1)
+    else if (tex_fmt == TEXFMT_DXT1) //-V547
       margin = 0, ad->fmt = ad->FMT_none;
 
     size.set(sz.x, sz.y);
@@ -1869,7 +1895,7 @@ void PictureManager::AsyncPicLoadJob::loadPicInAtlas()
 
   if (!prf && pic_tex)
   {
-    if (pic_tex->restype() != RES3D_TEX || !pic_tex.get()->getinfo(ti))
+    if (pic_tex->getType() != D3DResourceType::TEX || !pic_tex.get()->getinfo(ti))
       ti.w = ti.h = ti.cflg = 0;
     if ((ti.cflg & TEXFMT_MASK) != tr.ad->texFmt)
     {
@@ -1904,7 +1930,7 @@ void PictureManager::AsyncPicLoadJob::loadPicInAtlas()
     if (prf)
     {
       // mark image as not valid, to avoid rendering it to screen from uninitialized rect
-      d->dx = DynamicPicAtlas::ItemData::ST_restoring;
+      d->dx = DynamicPicAtlas::ItemData::ST_waitPictureFactoryFirstRender;
 
       uint8_t gen = texRecGen[tex_idx];
       PictureRenderContext ctx(prf, tr.ad->atlas.tex.first.getTex2D(), d->x0, d->y0, ti.w, ti.h,
@@ -1918,7 +1944,7 @@ void PictureManager::AsyncPicLoadJob::loadPicInAtlas()
         return;
       }
       // check that d->dx is not changed to something else
-      if (d->dx == DynamicPicAtlas::ItemData::ST_restoring)
+      if (d->dx == DynamicPicAtlas::ItemData::ST_waitPictureFactoryFirstRender)
         // restore image dx field, to make it vaild and available for rendering
         d->dx = 0;
     }
@@ -1981,7 +2007,7 @@ void PictureManager::AsyncPicLoadJob::loadTexPic()
 
   BaseTexture *tex = acquire_managed_tex(outTexId);
   TextureInfo ti;
-  if (!tex || tex->restype() != RES3D_TEX || !tex->getinfo(ti))
+  if (!tex || tex->getType() != D3DResourceType::TEX || !tex->getinfo(ti))
     ti.w = ti.h = 0;
 
   if (debugAsyncSleepMs > 0 && done_cb)
@@ -2045,7 +2071,6 @@ void PictureManager::AsyncPicLoadJob::loadTexPic()
     if (new_missing && !df_is_fname_url_like(name))
       logerr("PM: texture load failed, name='%s', pic=%08X", name, picId);
 
-    tr.addPendingTexRef();
     tr.size.y = 1;
     outTc0->set(0, 0);
     outTc1->set(0, 0);
@@ -2065,7 +2090,6 @@ void PictureManager::AsyncPicLoadJob::loadTexPic()
     outTc0->set(0, 0);
     outTc1->set(1, 1);
     outSz->set(ti.w, ti.h);
-    tr.addRef();
     release_managed_tex(outTexId); // release texture since we are not the first who acquired it!
     jobDone = true;
     interlocked_decrement(numJobsInFlight);
@@ -2078,7 +2102,6 @@ void PictureManager::AsyncPicLoadJob::loadTexPic()
   if (int add_texref = tr.getPendingTexRef()) // get this before trashing tr.size.x where counter is stored
   {
     PICMGR_DEBUG("PM: loaded(%s) add %d pending references for texId=%d", name, add_texref, outTexId);
-    interlocked_increment(tr.refCount); // convert one pending ref (added in PictureManager::get_picture_ex) to real ref
     for (int i = 1; i < add_texref; i++)
       acquire_managed_tex(outTexId);
   }
@@ -2089,7 +2112,6 @@ void PictureManager::AsyncPicLoadJob::loadTexPic()
   outSz->set(ti.w, ti.h);
   tr.texId = outTexId;
   tr.smpId = smpId;
-  tr.addRef();
   jobDone = true;
   interlocked_decrement(numJobsInFlight);
   PICMGR_DEBUG("PM: refCount(%s)=%d{%d},  %d pending load jobs", name, tr.refCount, get_managed_texture_refcount(tr.texId),

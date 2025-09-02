@@ -12,6 +12,7 @@ include "hero_matrix_inc.dshl"
 include "halfres_close_depth_with_normals.dshl"
 include "motion_vectors_type.dshl"
 include "ssr_common_use.dshl"
+include "ffx_sssr.dshl"
 include_optional "ssr_env_resolve.dshl"
 
 int ssr_quality = 1;
@@ -29,6 +30,7 @@ float ssr_clamping_gamma = 1.0;
 float ssr_neighborhood_bias_tight = 0.0;
 float ssr_neighborhood_bias_wide = 0.05;
 float ssr_neighborhood_velocity_difference_scale = 100;
+float4 ssr_back_surface_fix_distance = (1, 2, 0, 0);
 
 float4 analytic_light_sphere_pos_r=(0,0,0,0);
 float4 analytic_light_sphere_color=(1,0,0,1);
@@ -46,6 +48,32 @@ endmacro
 define_macro_if_not_defined GET_PLANAR_REFLECTIONS(code)
 hlsl(code) {
   void get_planar_reflections(inout half4 newTarget, inout float precision, float3 worldPos, float3 normal, float2 screenTC) {}
+}
+endmacro
+
+define_macro_if_not_defined GET_BACK_SURFACE_REFLECTIONS(code)
+hlsl(code) {
+  half get_back_surface_reflections(half linearRoughness, float4 backSurfaceBeginPos, float3 backSurfaceEndPos) {
+    // This method reduce confidence of alternate reflections
+    // when they occluded dynamic objects in screenspace.
+    // This is could cause halos around objects which is noticible on puddles.
+    // Skip all mirror like reflections, to avoid possible problems.
+    bool isMirror = linearRoughness < 0.1f;
+
+    BRANCH
+    if(!backSurfaceBeginPos.w || isMirror)
+      return 1.0;
+
+    static float2 fadeDistance = float2(2.0, 4.0);
+    float z = linearize_z(backSurfaceBeginPos.z, prev_zn_zfar.zw);
+    if(z > fadeDistance.y)
+      return 1.0;
+
+    float surface_z = texelFetch(downsampled_close_depth_tex, backSurfaceBeginPos.xy * lowres_rt_params.xy, 0).r;
+    half distance = z - linearize_z(surface_z, prev_zn_zfar.zw);
+    half confidence = smoothstep(ssr_back_surface_fix_distance.x, ssr_back_surface_fix_distance.y, distance);
+    return lerp(confidence, 1, smoothstep(fadeDistance.x, fadeDistance.y, z));
+  }
 }
 endmacro
 
@@ -106,6 +134,7 @@ macro SSR_BASE(code)
     ssr_world_view_pos@f4 = ssr_world_view_pos;
     SSRParams@f4 = (SSRParams.x, SSRParams.y, ssr_frameNo.z, ssr_frameNo.y);
     ssr_target_size@f4 = ssr_target_size;
+    ssr_back_surface_fix_distance@f2 = (ssr_back_surface_fix_distance.x, ssr_back_surface_fix_distance.y);
   }
 endmacro
 
@@ -157,6 +186,11 @@ macro SSR_COMMON(code)
   SSR_BASE(code)
   SSR_REPROJECTION(code)
   GET_PLANAR_REFLECTIONS(code)
+  GET_BACK_SURFACE_REFLECTIONS(code)
+  if(ssr_quality != low)
+  {
+    FFX_RAYMARCH(code)
+  }
 
   (code) {
     prev_frame_tex@smp2d = prev_frame_tex;
@@ -188,12 +222,6 @@ macro SSR_COMMON(code)
       #define SSR_QUALITY 2
     ##else
       #define SSR_QUALITY 1
-    ##endif
-
-    ##if ssr_quality != low
-      #define SSR_FFX
-      #define FFX_SSSR_INVERTED_DEPTH_RANGE
-      #include "../../../3rdPartyLibs/ssr/ffx_sssr.h"
     ##endif
 
     #define PREV_HERO_SPHERE 1
@@ -340,13 +368,13 @@ macro SSR_DISOCCLUSION(code)
       #if USE_PREV_DOWNSAMPLED_NORMALS && USE_PREV_DOWNSAMPLED_CLOSE_DEPTH
       half4 historyVirtualSample;
       half virtualWeight = get_ssr_disocclusion_weight_sample_virtual(current_normal, current_roughness, historyVirtualUV, prev_linear_depth, historyVirtualSample);
+      half ret = max(virtualWeight, historyWeight);
       //virtualWeight = virtualWeight > 0.01;
       virtualWeight *= rough_virtual_weight;
       historyWeight *= (1.0-pow4(virtualWeight));
       //virtualWeight *= inf_refl_virtual_weight;
       half totalW = historyWeight + virtualWeight;
       half invTotalW = rcp(max(1e-6h, totalW));
-      half ret = max(virtualWeight, historyWeight);
       historyWeight *= invTotalW;
       virtualWeight *= invTotalW;
       historySample = historySample*historyWeight + historyVirtualSample*virtualWeight;
@@ -374,7 +402,7 @@ endmacro
 macro SSR_GET_TEMPORAL_REPROJECTION_DUO(code)
   SSR_DISOCCLUSION(code)
   hlsl(code) {
-    half get_ssr_reprojection_with_weight(inout half relativePixelTranslation, inout half neighboorhoodVariance, float3 cameraToPoint, float2 curViewTc, half3 normal, half linear_roughness, float reflectionDistance, float w, inout half4 prevFrame, out half virtualWeight)
+    half get_ssr_reprojection_with_weight(float4x4 prevGlobtmNoOfs, inout half relativePixelTranslation, inout half neighboorhoodVariance, float3 cameraToPoint, float2 curViewTc, half3 normal, half linear_roughness, float reflectionDistance, float w, inout half4 prevFrame, out half virtualWeight)
     {
       relativePixelTranslation = saturate(scaled_prev_camera_translation/w);
       float disocclusionWeightAtten = 1;
@@ -384,7 +412,7 @@ macro SSR_GET_TEMPORAL_REPROJECTION_DUO(code)
         bool isHero = apply_hero_matrix(curViewTc, prevViewVec);
       #endif
 
-      float4 prevClipExactPos = mul(float4(prevViewVec, 1), prev_globtm_no_ofs_psf);
+      float4 prevClipExactPos = mul(float4(prevViewVec, 1), prevGlobtmNoOfs);
       float3 prevScreenExact = prevClipExactPos.w > 1e-6 ? prevClipExactPos.xyz/prevClipExactPos.w : float3(2,2,0);
       float2 oldExactUV = prevScreenExact.xy*float2(0.5,-0.5) + float2(0.5,0.5);
       float3 oldExactUVZ = float3(oldExactUV, clamp(linearize_z(prevScreenExact.z, prev_zn_zfar.zw), prev_zn_zfar.x, prev_zn_zfar.y));
@@ -392,7 +420,7 @@ macro SSR_GET_TEMPORAL_REPROJECTION_DUO(code)
       float rayLength = length(cameraToPoint);
       half linearRoughnessIsRoughW = get_is_rough_surface_param(linear_roughness);
       float reflectionDistanceUse = lerp(reflectionDistance, 0, linearRoughnessIsRoughW);
-      float4 prevReflClip = mul(float4(prevViewVec*(reflectionDistanceUse + rayLength)/rayLength, 1), prev_globtm_no_ofs_psf);
+      float4 prevReflClip = mul(float4(prevViewVec*(reflectionDistanceUse + rayLength)/rayLength, 1), prevGlobtmNoOfs);
       float3 prevReflScreen = prevReflClip.w > 1e-6 ? prevReflClip.xyz/prevReflClip.w : float3(2,2,0);
       float2 prevVirtualUV = prevReflScreen.xy*float2(0.5,-0.5) + float2(0.5,0.5);
       float3 prevVirtualUVZ = float3(prevVirtualUV, clamp(linearize_z(prevReflScreen.z, prev_zn_zfar.zw), prev_zn_zfar.x, prev_zn_zfar.y));

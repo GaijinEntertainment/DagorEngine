@@ -24,14 +24,21 @@ static eastl::string collection;
 
 static float fatal_probability = 0.0f;
 
-static uint32_t str_hash_fnv1_skip_digits(const char *s)
+static uint32_t str_hash_fnv1_skip_digits_and_comments(const char *s)
 {
   uint32_t result = FNV1Params<32>::offset_basis;
   uint32_t c = 0;
-  while ((c = *s++) != 0)
+  int pos = 0;
+  bool insideComment = false;
+  while ((c = s[pos]) != 0)
   {
-    char v = ((c < '0' || c > '9') && c != '.') ? c : ' ';
-    result = (result * FNV1Params<32>::prime) ^ v;
+    if (!insideComment && s[pos] == '/' && s[pos + 1] == '*')
+      insideComment = true;
+    else if (insideComment && pos > 2 && s[pos - 2] == '*' && s[pos - 1] == '/')
+      insideComment = false;
+    if (!insideComment && (c < '0' || c > '9') && c != '.')
+      result = (result * FNV1Params<32>::prime) ^ c;
+    pos++;
   }
   return result;
 }
@@ -80,11 +87,11 @@ static uint32_t calc_error_hash(const char *error_message)
     result = mem_hash_fnv1(error_message, variablesBegin - error_message);
     const char *variablesEnd = strstr(variablesBegin, "\n\n");
     if (variablesEnd)
-      result ^= str_hash_fnv1_skip_digits(variablesEnd);
+      result ^= str_hash_fnv1_skip_digits_and_comments(variablesEnd);
   }
   else
   {
-    result = str_hash_fnv1_skip_digits(error_message);
+    result = str_hash_fnv1_skip_digits_and_comments(error_message);
   }
 
   return result;

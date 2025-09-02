@@ -41,13 +41,15 @@ struct ScreenSpaceProbes
   void drawSequence(uint32_t c);
   ~ScreenSpaceProbes();
   void afterReset();
+  void resetHistoryAge();
 
 protected:
+  void calc_probes_back_colors();
   void filter_probe_radiance(const ComputeShaderElement &e, BaseTexture *dest);
   DynamicShaderHelper drawDebugAllProbes, drawJitteredPoints;
   PostFxRenderer tileClassificatorDebug;
 
-  ResizableTex screenspace_irradiance, current_radiance, current_radiance_distance;
+  ResizableTex screenspace_irradiance, current_radiance;
   carray<ResizableTex, 2> screenspaceRadiance;
 
   carray<UniqueBuf, 2> screenspaceProbePos;
@@ -59,11 +61,11 @@ protected:
     calc_screenspace_irradiance_cs, calc_screenspace_irradiance_sph3_cs, filter_screenspace_radiance_cs,
     temporal_filter_screenspace_radiance_cs, temporal_only_filter_screenspace_radiance_cs;
   eastl::unique_ptr<ComputeShaderElement> clear_additional_screenspace_probes_count_cs, initial_probes_placement_cs,
-    additional_probes_placement_cs, rearrange_additional_probes_placement_cs;
+    additional_probes_placement_cs, rearrange_additional_probes_placement_cs, dagi_probes_back_color_cs;
   eastl::unique_ptr<ComputeShaderElement> screenspace_probes_create_dispatch_indirect_cs;
   float additionalPlanesAllocation = 0.5; // over allocation, we probably need no more than 25%
 
-  int radianceRes = 8;
+  int radianceRes = 8, radianceTraceRes = 6;
   struct ScreenRes
   {
     int sw = 0, sh = 0, w = 0, h = 0, atlasW = 0, atlasH = 0, tileSize = 0;
@@ -73,6 +75,7 @@ protected:
       return sw == b.sw && sh == b.sh && tileSize == b.tileSize && atlasW == b.atlasW && atlasH == b.atlasH;
     }
     bool operator!=(const ScreenRes &b) const { return !(*this == b); }
+    uint32_t getTileClassifyDwords() const { return (((screenProbes + 31) >> 5) + 3) & ~3; } // align on 4
   } allocated, current, prev, next;
 
   static ScreenRes calc(int tile_size, int sw, int sh, float additional);
@@ -88,4 +91,5 @@ protected:
   bool useRGBEFormat = false, supportRGBE_UAV = false;
   float currentTemporality = 1.f;
   bool validHistory = false;
+  bool currentNeedDistance = false;
 };

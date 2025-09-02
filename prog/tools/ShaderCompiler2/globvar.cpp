@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "globVar.h"
+#include "shTargetContext.h"
 #include "intervals.h"
 #include "varMap.h"
 #include <shaders/dag_shaderCommon.h>
@@ -8,69 +9,70 @@
 #include <generic/dag_tabUtils.h>
 #include <generic/dag_initOnDemand.h>
 #include "shLog.h"
+
 namespace ShaderGlobal
 {
-static Tab<int> variable_by_nameid(midmem_ptr());
-static Tab<Var> variable_list(midmem_ptr());
-static int variable_by_nameid_last_built = -1;
-static IntervalList intervals;
 
-Tab<Var> &getMutableVariableList() { return variable_list; }
-IntervalList &getMutableIntervalList() { return intervals; }
+const char *get_var_name(const Var &variable, const shc::TargetContext &ctx) { return ctx.varNameMap().getName(variable.nameId); }
+
+Tab<Var> &VarTable::getMutableVariableList() { return variableList; }
+IntervalList &VarTable::getMutableIntervalList() { return intervals; }
+
+const Tab<Var> &VarTable::getVariableList() const { return variableList; }
 
 // get interval list
-const IntervalList &getIntervalList() { return intervals; }
+const IntervalList &VarTable::getIntervalList() const { return intervals; }
 
 // return variable by ID
-int get_var_count() { return variable_list.size(); }
+int VarTable::getVarCount() const { return variableList.size(); }
 
-Var &get_var(int internal_index) { return variable_list[internal_index]; }
+Var &VarTable::getVar(int internal_index) { return variableList[internal_index]; }
 
 // delete all variables
-void clear()
+void VarTable::clear()
 {
-  clear_and_shrink(variable_list);
+  clear_and_shrink(variableList);
   intervals.clear();
-  clear_and_shrink(variable_by_nameid);
-  variable_by_nameid_last_built = 0;
+  clear_and_shrink(variableByNameId);
+  variableByNameIdLastBuilt = 0;
 }
 
 // find id by id
-int get_var_internal_index(const int variable_id)
+int VarTable::getVarInternalIndex(const int variable_id)
 {
-  if (variable_id == VarMap::BAD_ID)
+  if (variable_id == VarNameMap::BAD_ID)
     return -1;
-  if (variable_id < variable_by_nameid.size())
-    return variable_by_nameid[variable_id];
+  if (variable_id < variableByNameId.size())
+    return variableByNameId[variable_id];
 
-  if (variable_list.size() == variable_by_nameid_last_built)
+  if (variableList.size() == variableByNameIdLastBuilt)
     return -1;
 
-  for (int i = variable_by_nameid_last_built; i < variable_list.size(); ++i)
+  for (int i = variableByNameIdLastBuilt; i < variableList.size(); ++i)
   {
-    int nameId = variable_list[i].nameId;
-    if (variable_by_nameid.size() <= nameId)
+    int nameId = variableList[i].nameId;
+    if (variableByNameId.size() <= nameId)
     {
-      int addCnt = nameId - variable_by_nameid.size() + 1;
-      int at = append_items(variable_by_nameid, addCnt);
-      memset(&variable_by_nameid[at], 0xFF, sizeof(variable_by_nameid[at]) * addCnt);
+      int addCnt = nameId - variableByNameId.size() + 1;
+      int at = append_items(variableByNameId, addCnt);
+      memset(&variableByNameId[at], 0xFF, sizeof(variableByNameId[at]) * addCnt);
     }
 
-    variable_by_nameid[nameId] = i;
+    variableByNameId[nameId] = i;
   }
 
-  variable_by_nameid_last_built = variable_list.size();
+  variableByNameIdLastBuilt = variableList.size();
 
-  return get_var_internal_index(variable_id);
+  return getVarInternalIndex(variable_id);
 }
 
 // set variable value from string
-bool set_var_value(int internal_index, const char *str)
+bool VarTable::setVarValue(int internal_index, const char *str)
 {
-  if (!tabutils::isCorrectIndex(variable_list, internal_index) || !str)
+  if (!tabutils::isCorrectIndex(variableList, internal_index) || !str)
     return false;
 
-  Var &variable = variable_list[internal_index];
+  Var &variable = variableList[internal_index];
 
   switch (variable.type)
   {
@@ -118,7 +120,7 @@ bool Var::operator==(const Var &right) const
   return false;
 }
 
-void link(const Tab<ShaderGlobal::Var> &variables, const IntervalList &intervalsFromFile, Tab<int> &global_var_link_table,
+void VarTable::link(const Tab<ShaderGlobal::Var> &variables, const IntervalList &intervalsFromFile, Tab<int> &global_var_link_table,
   Tab<ShaderVariant::ExtType> &interval_link_table)
 {
   // Global vars.
@@ -129,31 +131,32 @@ void link(const Tab<ShaderGlobal::Var> &variables, const IntervalList &intervals
     const Var &var = variables[varNo];
 
     bool exists = false;
-    for (unsigned int existingVar = 0; existingVar < variable_list.size(); existingVar++)
+    for (int existingVarId = 0; existingVarId < variableList.size(); existingVarId++)
     {
-      if (var.nameId == variable_list[existingVar].nameId)
+      Var &existingVar = variableList[existingVarId];
+      if (var.nameId == existingVar.nameId)
       {
         exists = true;
-        global_var_link_table[varNo] = existingVar;
+        global_var_link_table[varNo] = existingVarId;
 
-        if (var.type != variable_list[existingVar].type)
-          DAG_FATAL("Different variable types: '%s'", var.getName());
+        if (var.type != existingVar.type)
+          sh_debug(SHLOG_FATAL, "Different variable types: '%s'", varNameMap.getName(var.nameId));
 
-        if (var != variable_list[existingVar])
-          DAG_FATAL("Different variable values: '%s'", var.getName());
+        if (var != existingVar)
+          sh_debug(SHLOG_FATAL, "Different variable values: '%s'", varNameMap.getName(var.nameId));
 
-        if (var.isAlwaysReferenced != variable_list[existingVar].isAlwaysReferenced)
-          DAG_FATAL("Different variable always_referenced states: '%s'", var.getName());
+        if (var.isAlwaysReferenced != existingVar.isAlwaysReferenced)
+          sh_debug(SHLOG_FATAL, "Different variable always_referenced states: '%s'", varNameMap.getName(var.nameId));
 
-        if (var.isImplicitlyReferenced && !variable_list[existingVar].isImplicitlyReferenced)
-          variable_list[existingVar].isImplicitlyReferenced = true;
+        if (var.isImplicitlyReferenced && !existingVar.isImplicitlyReferenced)
+          existingVar.isImplicitlyReferenced = true;
       }
     }
 
     if (!exists)
     {
-      global_var_link_table[varNo] = variable_list.size();
-      variable_list.push_back(var);
+      global_var_link_table[varNo] = variableList.size();
+      variableList.push_back(var);
     }
   }
 
@@ -165,7 +168,8 @@ void link(const Tab<ShaderGlobal::Var> &variables, const IntervalList &intervals
     {
       bool res = intervals.addInterval(*intervalsFromFile.getInterval(intervalNo));
       if (!res)
-        DAG_FATAL("Different intervals: '%s'", intervalsFromFile.getInterval(intervalNo)->getNameStr());
+        sh_debug(SHLOG_FATAL, "Different intervals: '%s'",
+          intervalNameMap.getName(intervalsFromFile.getInterval(intervalNo)->getNameId()));
 
       interval_link_table[intervalNo] = intervals.getIntervalIndex(intervalsFromFile.getInterval(intervalNo)->getNameId());
     }
@@ -175,4 +179,5 @@ void link(const Tab<ShaderGlobal::Var> &variables, const IntervalList &intervals
     }
   }
 }
+
 } // namespace ShaderGlobal

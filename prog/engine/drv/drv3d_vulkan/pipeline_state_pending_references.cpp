@@ -13,14 +13,14 @@ template <>
 void PipelineStatePendingReferenceList::cleanupObj(Image *obj)
 {
   FrameInfo &frame = Backend::gpuJob.get();
-  frame.cleanups.enqueueFromBackend<Image::CLEANUP_DESTROY>(*obj);
+  frame.cleanups.enqueue(*obj);
 }
 
 template <>
 void PipelineStatePendingReferenceList::cleanupObj(Buffer *obj)
 {
   FrameInfo &frame = Backend::gpuJob.get();
-  frame.cleanups.enqueueFromBackend<Buffer::CLEANUP_DESTROY>(*obj);
+  frame.cleanups.enqueue(*obj);
 }
 
 template <>
@@ -34,50 +34,67 @@ template <>
 void PipelineStatePendingReferenceList::cleanupObj(RenderPassResource *obj)
 {
   FrameInfo &frame = Backend::gpuJob.get();
-  frame.cleanups.enqueueFromBackend<RenderPassResource::CLEANUP_DESTROY>(*obj);
+  frame.cleanups.enqueue(*obj);
 }
 
 template <>
 void PipelineStatePendingReferenceList::cleanupObj(MemoryHeapResource *obj)
 {
   FrameInfo &frame = Backend::gpuJob.get();
-  frame.cleanups.enqueueFromBackend<MemoryHeapResource::CLEANUP_DESTROY>(*obj);
+  frame.cleanups.enqueue(*obj);
 }
 
+#if VULKAN_HAS_RAYTRACING
 template <>
-eastl::vector<Image *> &PipelineStatePendingReferenceList::getArray()
+void PipelineStatePendingReferenceList::cleanupObj(RaytraceAccelerationStructure *obj)
+{
+  FrameInfo &frame = Backend::gpuJob.get();
+  frame.cleanups.enqueue<CleanupTag::DESTROY_TOP>(*obj);
+}
+#endif
+
+template <>
+dag::Vector<Image *> &PipelineStatePendingReferenceList::getArray()
 {
   return images;
 }
 
 template <>
-eastl::vector<Buffer *> &PipelineStatePendingReferenceList::getArray()
+dag::Vector<Buffer *> &PipelineStatePendingReferenceList::getArray()
 {
   return buffers;
 }
 
 template <>
-eastl::vector<ProgramID> &PipelineStatePendingReferenceList::getArray()
+dag::Vector<ProgramID> &PipelineStatePendingReferenceList::getArray()
 {
   return progs;
 }
 
 template <>
-eastl::vector<RenderPassResource *> &PipelineStatePendingReferenceList::getArray()
+dag::Vector<RenderPassResource *> &PipelineStatePendingReferenceList::getArray()
 {
   return renderPasses;
 }
 
 template <>
-eastl::vector<SamplerResource *> &PipelineStatePendingReferenceList::getArray()
+dag::Vector<SamplerResource *> &PipelineStatePendingReferenceList::getArray()
 {
   return samplers;
 }
 
 template <>
-eastl::vector<MemoryHeapResource *> &PipelineStatePendingReferenceList::getArray()
+dag::Vector<MemoryHeapResource *> &PipelineStatePendingReferenceList::getArray()
 {
   return memHeaps;
 }
+
+#if VULKAN_HAS_RAYTRACING
+template <>
+dag::Vector<RaytraceAccelerationStructure *> &PipelineStatePendingReferenceList::getArray()
+{
+  return accelerationStructures;
+}
+#endif
 
 } // namespace drv3d_vulkan

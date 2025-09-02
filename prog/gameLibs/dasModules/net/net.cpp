@@ -6,6 +6,7 @@
 #include <daECS/net/dasEvents.h>
 #include <dasModules/dasEvent.h>
 #include <dasModules/dasModulesCommon.h>
+#include <dasModules/dasSystem.h>
 #include <daECS/net/component_replication_filter.h>
 
 static char net_das[] =
@@ -144,9 +145,10 @@ struct RegisterComponentFilterFunction
       das::cast<net::IConnection *>::from(conn)};
     vec4f res{};
     context->tryRestartAndLock();
+    bind_dascript::RAIIStackwalkOnLogerr stackwalkOnLogerr(context);
     if (!context->ownStack)
     {
-      das::SharedStackGuard guard(*context, bind_dascript::get_shared_stack());
+      das::SharedFramememStackGuard guard(*context);
       res = context->evalWithCatch(fn, args);
     }
     else
@@ -177,7 +179,7 @@ struct RegisterComponentFilterAnnotation : das::FunctionAnnotation
 
   bool apply(const das::FunctionPtr &fn, das::ModuleGroup &, const das::AnnotationArgumentList &, eastl::string &err) override
   {
-    auto program = das::daScriptEnvironment::bound->g_Program;
+    auto program = (*das::daScriptEnvironment::bound)->g_Program;
     if (program->thisModule->isModule)
     {
       err = "register_component_filter shouldn't be placed in the module. Please move the function to a file without module directive";
@@ -370,6 +372,7 @@ public:
     BIND_MEMBER(net::IConnection::getUserPtr, "connection_getUserPtr", das::SideEffects::none)
 
     das::addConstant(*this, "replicate_everywhere_filter_id", net::replicate_everywhere_filter_id);
+    das::addConstant(*this, "invalid_filter_id", net::invalid_filter_id);
 
     das::onDestroyCppDebugAgent(name.c_str(), [](das::Context *ctx) {
       das::lock_guard<das::mutex> lock(registryMutex);

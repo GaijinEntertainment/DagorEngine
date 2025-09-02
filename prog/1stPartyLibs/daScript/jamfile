@@ -48,11 +48,16 @@ if $(daScript_sanitizer) = 1 {
 if $(daScript_keepalive) = 1 {
   Target = $(Target:S=~ka$(daScript_keepalive).lib) ;
   CPPopt += -DDAS_ENABLE_KEEPALIVE=$(daScript_keepalive) ;
+} else {
+  CPPopt += -DDAS_ENABLE_KEEPALIVE=0 ;
 }
 
 if $(Platform) = macOS {
   CPPopt += -Wno-deprecated-declarations ;
 }
+
+# Fix for fmt library Unicode compilation errors
+CPPopt += -DFMT_UNICODE=0 ;
 
 if $(daScript_ConsoleExe) = yes {
   Target = $(Target:S=~s$(Target:S)) ;
@@ -80,18 +85,23 @@ AutoscanBuildLists $(AllSrcFolder_CPP) : *.cpp       : Sources ;
 
 local ExcOpt ;
 if $(Platform) in windows xboxOne scarlett {
-  ExcOpt += /EHsc -D_HAS_EXCEPTIONS=1 -DDAS_ENABLE_EXCEPTIONS=1 ;
+  ExcOpt += /EHsc -D_HAS_EXCEPTIONS=1 -DDAS_ENABLE_EXCEPTIONS ;
 } else {
-  ExcOpt += -fexceptions -DDAS_ENABLE_EXCEPTIONS=1 ;
+  ExcOpt += -fexceptions -DDAS_ENABLE_EXCEPTIONS ;
   if $(Platform) in ps4 ps5 { ExcOpt += -D_HAS_DEBUG_COMPATIBILITY=1 ; } # for ool ~runtime_error impl
 }
 if $(PlatformSpec) = clang { ExcOpt += -Wno-macro-redefined ; }
-if $(Platform)-$(PlatformArch) = windows-arm64 { ExcOpt += /GL- ; }
+
+# Workaround for `error C2220: the following warning is treated as an error
+# warning C4743: 'const std::runtime_error::`vftable'' has different size in ...
+if $(Platform)-$(PlatformArch) = windows-arm64 && $(PlatformSpec) != clang { ExcOpt += /GL- ; }
+
 for s in $(Sources) {
   switch $(s) {
     case *_exceptions.cpp : opt on $(s) = $(ExcOpt) ;
     case *_ast_serialize.cpp : opt on $(s) = $(ExcOpt) ;
     case *runtime_string.cpp : opt on $(s) = $(ExcOpt) ;
+    case *format.cpp : opt on $(s) = $(ExcOpt) ;
   }
 }
 if $(PlatformArch) = e2k { opt on src/simulate/simulate_gc.cpp = -Wno-overloaded-virtual ; }
@@ -101,5 +111,6 @@ UseProgLibs +=
   3rdPartyLibs/uriparser
   3rdPartyLibs/fmt
 ;
+if $(DAS_AOT_COMPILER) { UseProgLibs += 1stPartyLibs/daScript/daslib ; }
 
 include $(Root)/prog/_jBuild/build.jam ;

@@ -2,7 +2,7 @@ from "%darg/ui_imports.nut" import *
 from "%darg/laconic.nut" import *
 from "math" import max
 
-require("daRg").gui_scene.config.kbCursorControl = true
+require("daRg").gui_scene.setConfigProps({kbCursorControl= true})
 let fa = require("samples_prog/_basic/goodies/fontawesome.map.nut")
 
 let mkDummy = @(_, i) comp(Size(sh(10)), Button, RendObj(ROBJ_BOX), FillColr(50,60,60), txt(i), HACenter, VACenter,
@@ -71,13 +71,13 @@ function makeScroll(content, options = DEF_SIDE_SCROLL_OPTIONS) {
   let scrollVal = Watched(0)
   let elemSizeV = Watched(0)
   let contentSizeVal = Watched(0)
-  let showUpBtn = Computed(@() scrollVal.value > 0 )
-  let showDnBtn = Computed(@() contentSizeVal.value - (scrollVal.value + elemSizeV.value) > 0 )
+  let showUpBtn = Computed(@() scrollVal.get() > 0 )
+  let showDnBtn = Computed(@() contentSizeVal.get() - (scrollVal.get() + elemSizeV.get()) > 0 )
   let triggerUp = {}
   let triggerDn = {}
-  let scrollStep = Computed(@() elemSizeV.value/percentToScroll)
-  let upBtn = mkBtn(@() scrollHandler.scrollToY(scrollVal.value - scrollStep.value), {pos = [0, fsh(0.5)] trigger = triggerUp})
-  let dnBtn = mkBtn(@() scrollHandler.scrollToY(scrollVal.value + scrollStep.value), {pos = [0, -fsh(0.5)] up=false, vplace = ALIGN_BOTTOM trigger = triggerDn})
+  let scrollStep = Computed(@() elemSizeV.get()/percentToScroll)
+  let upBtn = mkBtn(@() scrollHandler.scrollToY(scrollVal.get() - scrollStep.get()), {pos = [0, fsh(0.5)] trigger = triggerUp})
+  let dnBtn = mkBtn(@() scrollHandler.scrollToY(scrollVal.get() + scrollStep.get()), {pos = [0, -fsh(0.5)] up=false, vplace = ALIGN_BOTTOM trigger = triggerDn})
   return @() {
     size = options.size
     clipChildren = true
@@ -97,17 +97,17 @@ function makeScroll(content, options = DEF_SIDE_SCROLL_OPTIONS) {
         behavior = [Behaviors.WheelScroll, Behaviors.ScrollEvent, Behaviors.Pannable]
         onScroll = function(elem) {
           let nScroll = elem?.getScrollOffsY() ?? 0
-          if (showDnBtn.value && nScroll > scrollVal.value)
+          if (showDnBtn.get() && nScroll > scrollVal.get())
             anim_start(triggerDn)
-          if (showUpBtn.value && nScroll < scrollVal.value)
+          if (showUpBtn.get() && nScroll < scrollVal.get())
             anim_start(triggerUp)
-          scrollVal(nScroll)
-          elemSizeV(elem?.getHeight() ?? 0)
-          contentSizeVal(elem?.getContentHeight() ?? 0)
+          scrollVal.set(nScroll)
+          elemSizeV.set(elem?.getHeight() ?? 0)
+          contentSizeVal.set(elem?.getContentHeight() ?? 0)
         }
       }.__update(options.rootStyle ?? {}),
-      showUpBtn.value ? upBtn : null,
-      showDnBtn.value ? dnBtn : null
+      showUpBtn.get() ? upBtn : null,
+      showDnBtn.get() ? dnBtn : null
     ]
   }
 }

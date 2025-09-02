@@ -12,10 +12,9 @@
 #include <osApiWrappers/dag_vromfs.h>
 #include <util/dag_texMetaData.h>
 #include <assets/assetExpCache.h>
-#include <de3_dxpFactory.h>
 #include <libTools/dtx/ddsxPlugin.h>
 #include <rendInst/rendInstGen.h>
-#include <sepGui/wndGlobal.h>
+#include <libTools/util/fileUtils.h>
 
 #include <libTools/shaderResBuilder/shaderMeshData.h>
 
@@ -23,6 +22,7 @@
 #include <assets/assetHlp.h>
 
 #include <EditorCore/ec_interface.h>
+#include <EditorCore/ec_wndGlobal.h>
 #include <oldEditor/de_interface.h>
 
 IDaEditor3Engine *IDaEditor3Engine::__daeditor3_global_instance = nullptr;
@@ -91,6 +91,9 @@ void DaEditor3Engine::conRemarkV(const char *fmt, const DagorSafeArg *arg, int a
 
 bool DaEditor3Engine::initAssetBase(const char *app_dir)
 {
+  char start_dir[260] = "";
+  dag_get_appmodule_dir(start_dir, sizeof(start_dir));
+
   String fname(260, "%sapplication.blk", app_dir);
   DataBlock appblk;
 
@@ -173,16 +176,16 @@ bool DaEditor3Engine::initAssetBase(const char *app_dir)
   {
     if (!minimizeDabuildUsage)
     {
-      G_ASSERT(dabuildcache::init(sgg::get_exe_path_full(), &console));
+      G_ASSERT(dabuildcache::init(start_dir, &console));
       G_ASSERT(dabuildcache::bind_with_mgr(assetMgr, appblk, app_dir) >= 0);
     }
-    if (texconvcache::init(assetMgr, appblk, sgg::get_exe_path_full(), false, true))
+    if (texconvcache::init(assetMgr, appblk, start_dir, false, true))
     {
       addMessage(ILogWriter::NOTE, "texture conversion cache inited");
-      int pc = ddsx::load_plugins(String(260, "%s/plugins/ddsx", sgg::get_exe_path_full()));
+      int pc = ddsx::load_plugins(String(260, "%s/plugins/ddsx", start_dir));
       debug("loaded %d DDSx export plugin(s)", pc);
     }
-    if (assetrefs::load_plugins(assetMgr, appblk, sgg::get_exe_path_full(), !minimizeDabuildUsage))
+    if (assetrefs::load_plugins(assetMgr, appblk, start_dir, !minimizeDabuildUsage))
       addMessage(ILogWriter::NOTE, "asset refs plugins inited");
   }
   const DataBlock &projDefBlk = *appblk.getBlockByNameEx("projectDefaults");

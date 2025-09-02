@@ -3,6 +3,7 @@
 
 #include "group.h"
 #include "../messageQueueInternal.h"
+#include <propPanel/colors.h>
 #include <propPanel/constants.h>
 
 namespace PropPanel
@@ -16,19 +17,19 @@ public:
     GroupPropertyControl(event_handler, parent, id, x, y, w, h, caption)
   {}
 
-  virtual unsigned getTypeMaskForSet() const override { return CONTROL_CAPTION | CONTROL_DATA_TYPE_BOOL | CONTROL_DATA_TYPE_INT; }
-  virtual unsigned getTypeMaskForGet() const override { return CONTROL_DATA_TYPE_BOOL | CONTROL_DATA_TYPE_INT; }
+  unsigned getTypeMaskForSet() const override { return CONTROL_CAPTION | CONTROL_DATA_TYPE_BOOL | CONTROL_DATA_TYPE_INT; }
+  unsigned getTypeMaskForGet() const override { return CONTROL_DATA_TYPE_BOOL | CONTROL_DATA_TYPE_INT; }
 
-  virtual int getIntValue() const override
+  int getIntValue() const override
   {
     const int result = buttonStatus;
     buttonStatus = EXT_BUTTON_NONE;
     return result;
   }
 
-  virtual void setIntValue(int value) override { buttonFlags = value; }
+  void setIntValue(int value) override { buttonFlags = value; }
 
-  virtual void updateImgui() override
+  void updateImgui() override
   {
     // NOTE: if you modify this then you might have to modify the code in GroupPropertyControl too!
 
@@ -71,19 +72,11 @@ public:
 
       addVerticalSpaceAfterControl();
 
-      // Draw the half frame.
       const ImVec2 cursorPos = ImGui::GetCursorScreenPos();
-      ImDrawList *drawList = ImGui::GetWindowDrawList();
-      drawList->AddLine(ImVec2(headerButtonTopLeft.x, headerButtonBottomRight.y), ImVec2(headerButtonTopLeft.x, cursorPos.y),
-        Constants::GROUP_BORDER_COLOR);
-      drawList->AddLine(ImVec2(headerButtonTopLeft.x, cursorPos.y),
-        ImVec2(headerButtonTopLeft.x + headerWidth + spaceBetweenControls + menuButtonWidth, cursorPos.y),
-        Constants::GROUP_BORDER_COLOR);
-
+      const float lineRightX = headerButtonTopLeft.x + headerWidth + spaceBetweenControls + menuButtonWidth;
+      drawHalfFrame(headerButtonTopLeft.x, headerButtonBottomRight.y, lineRightX, cursorPos.y);
       ImGui::SetCursorScreenPos(ImVec2(cursorPos.x, cursorPos.y + ImGui::GetStyle().ItemSpacing.y));
-
-      // This is here to prevent assert in ImGui::ErrorCheckUsingSetCursorPosToExtendParentBoundaries().
-      ImGui::Dummy(ImVec2(0.0f, 0.0f));
+      ImGui::Dummy(ImVec2(0.0f, 0.0f)); // Prevent assert in ImGui::ErrorCheckUsingSetCursorPosToExtendParentBoundaries().
     }
   }
 

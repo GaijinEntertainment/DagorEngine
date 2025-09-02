@@ -6,6 +6,7 @@
 #include <EASTL/vector.h>
 #include <math/integer/dag_IPoint2.h>
 #include <math/integer/dag_IPoint3.h>
+#include <math/integer/dag_IPoint4.h>
 #include <math/dag_Point3.h>
 #include <math/dag_Point4.h>
 #include <math/dag_TMatrix.h>
@@ -207,6 +208,7 @@ bool DataBlock::loadFromStreamBBF3(IGenLoad &crd, const int *cnv, const int *cnv
         case TYPE_REAL: p.v = memcpy_cast<uint32_t, float>(readReal32(crd, load_le)); break;
         case TYPE_POINT3:
         case TYPE_IPOINT3:
+        case TYPE_IPOINT4:
         case TYPE_POINT2:
         case TYPE_IPOINT2:
         case TYPE_POINT4:

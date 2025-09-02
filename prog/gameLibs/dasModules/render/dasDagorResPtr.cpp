@@ -45,9 +45,9 @@ struct ManagedTexAnnotation final : das::ManagedStructureAnnotation<ManagedTex>
   }
 };
 template <typename T>
-struct ManagedResAnnotation : das::ManagedStructureAnnotation<T, false>
+struct ManagedResAnnotation : das::ManagedStructureAnnotation<T, true, true>
 {
-  ManagedResAnnotation(const char *name, das::ModuleLibrary &ml) : das::ManagedStructureAnnotation<T, false>(name, ml, name) {}
+  ManagedResAnnotation(const char *name, das::ModuleLibrary &ml) : das::ManagedStructureAnnotation<T, true, true>(name, ml, name) {}
   bool rtti_isHandledTypeAnnotation() const override { return true; }
   bool isRefType() const override { return true; }
   bool isLocal() const override { return false; }

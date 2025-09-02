@@ -119,9 +119,6 @@ void render_panels_and_gui_surface_if_needed(darg::IGuiScene &gui_scene, int glo
 {
   if (enabled_for_this_frame)
   {
-    gui_texture.getTex2D()->texaddr(TEXADDR_BORDER);
-    gui_texture.getTex2D()->texbordercolor(E3DCOLOR(0, 0, 0, 0));
-
     auto &vrViewConfig = view_configs[active_view_config];
 
     SCOPE_RENDER_TARGET;
@@ -145,10 +142,11 @@ void render_panels_and_gui_surface_if_needed(darg::IGuiScene &gui_scene, int glo
       viewOrigin.makeTM(view.orientation);
       viewOrigin.setcol(3, view.position);
 
-      d3d::settm(TM_VIEW, orthonormalized_inverse(viewOrigin));
+      TMatrix viewNew = orthonormalized_inverse(viewOrigin);
+      d3d::settm(TM_VIEW, viewNew);
 
       ShaderGlobal::setBlock(global_frame, ShaderGlobal::LAYER_FRAME);
-      darg_panel_renderer::render_panels_in_world(gui_scene, view.position, darg_panel_renderer::RenderPass::Translucent);
+      darg_panel_renderer::render_panels_in_world(gui_scene, darg_panel_renderer::RenderPass::Translucent, view.position, viewNew);
       ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
 
       TMatrix vrOrientation;

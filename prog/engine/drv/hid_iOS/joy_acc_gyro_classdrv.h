@@ -63,10 +63,10 @@ public:
   void enable(bool enable) override;
 
   // acquires all devices of class
-  void acquireDevices() override{};
+  void acquireDevices() override {}
 
   // unacquires all devices of class
-  void unacquireDevices() override{};
+  void unacquireDevices() override {}
 
   // destroys all devices and class driver
   void destroy() override;

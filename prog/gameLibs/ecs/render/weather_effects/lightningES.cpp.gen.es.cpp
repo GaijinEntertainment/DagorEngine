@@ -3,9 +3,11 @@ static constexpr ecs::component_t animchar__res_get_type();
 static ecs::LTComponentList animchar__res_component(ECS_HASH("animchar__res"), animchar__res_get_type(), "prog/gameLibs/ecs/render/weather_effects/lightningES.cpp.inl", "lightning_manager_created_es", 0);
 static constexpr ecs::component_t animchar_render__enabled_get_type();
 static ecs::LTComponentList animchar_render__enabled_component(ECS_HASH("animchar_render__enabled"), animchar_render__enabled_get_type(), "prog/gameLibs/ecs/render/weather_effects/lightningES.cpp.inl", "lightning_manager_created_es", 0);
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "lightningES.cpp.inl"
 ECS_DEF_PULL_VAR(lightning);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc lightning_update_es_comps[] =
 {

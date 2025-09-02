@@ -31,11 +31,12 @@ assume motion_vector_source_to_use = not_set;
  * USE_FETCH_MOTION_VECTOR(cs, gbuffer)  // gbuffer, downsampled or resolved
  * hlsl(cs){
  *   ...
- *   float3 motion_vector = fetch_motion_vector_jittered(uv, depth);
+ *   float3 unjittered_motion_vector = fetch_motion_vector_unjittered(uv, depth);
+ *   float3 jittered_motion_vector = unjittered_to_jittered(uv, depth);
  *   ...
  * }
  *
- * Depth is absolutely necessary if the shader is expected to work in with reprojection as well.
+ * Depth is absolutely necessary if the shader is expected to work with reprojection as well.
  * If it's not expected to work in such a case 0 can be passed as depth.
  */
 
@@ -68,17 +69,22 @@ macro INIT_FETCH_MOTION_VECTOR(stage, source)
   if (motion_vector_type == static_uvz || motion_vector_type == dynamic_uv_static_z)
   {
     (stage) {
-      uvz_to_prev_frame_uvz@f44 = {uvz_to_prev_frame_uvz};
-      depth_linearization_slope@f2 = (1.0/zn_zfar_current_prev.yw);
-      depth_linearization_offset@f2 = (zn_zfar_current_prev.yw-zn_zfar_current_prev.xz)/(zn_zfar_current_prev.xz * zn_zfar_current_prev.yw);
+      uvz_to_prev_frame_uvz@f44 = uvz_to_prev_frame_uvz;
+      depth_linearization_slope_offset@f4 = (
+        (zn_zfar_current_prev.y-zn_zfar_current_prev.x)/(zn_zfar_current_prev.x * zn_zfar_current_prev.y),
+        (zn_zfar_current_prev.w-zn_zfar_current_prev.z)/(zn_zfar_current_prev.z * zn_zfar_current_prev.w),
+        1.0/zn_zfar_current_prev.y,
+        1.0/zn_zfar_current_prev.w
+      );
     }
 
     if (has_hero_matrix == yes)
     {
       INIT_READ_IS_HERO_COCKPIT(stage)
+      INIT_READ_DYNAMIC_FLAG(stage)
       (stage) {
-        uvz_to_prev_frame_hero_bbox@f44 = {uvz_to_prev_frame_hero_bbox};
-        uvz_to_prev_frame_hero_uvz@f44 = {uvz_to_prev_frame_hero_uvz};
+        uvz_to_prev_frame_hero_bbox@f44 = uvz_to_prev_frame_hero_bbox;
+        uvz_to_prev_frame_hero_uvz@f44 = uvz_to_prev_frame_hero_uvz;
         can_ignore_bbox@i1 = can_ignore_bbox;
       }
     }
@@ -106,6 +112,7 @@ macro USE_FETCH_MOTION_VECTOR(stage, source)
   if ((motion_vector_type == static_uvz || motion_vector_type == dynamic_uv_static_z) && has_hero_matrix == yes)
   {
     USE_READ_IS_HERO_COCKPIT(stage)
+    USE_READ_DYNAMIC_FLAG(stage)
   }
 
   hlsl(stage) {
@@ -116,7 +123,7 @@ macro USE_FETCH_MOTION_VECTOR(stage, source)
         bool is_in_hero_bbox(float2 uv, float depth)
         {
           float4 posRelToBBox = mul(uvz_to_prev_frame_hero_bbox, float4(uv, depth, 1));
-          return all(abs(posRelToBBox / posRelToBBox.w) < 1);
+          return all(abs(posRelToBBox / posRelToBBox.w).xyz < 1) && isGbufferDynamic(uv);
         }
 
         bool is_subject_to_hero_reprojection(float2 uv, float depth)
@@ -140,14 +147,14 @@ macro USE_FETCH_MOTION_VECTOR(stage, source)
           float4x4 reprojection = uvz_to_prev_frame_uvz;
         ##endif
         float4 prevUVDepth = mul(reprojection, float4(uv, depth, 1));
-        prevUVDepth /= prevUVDepth.w;
+        prevUVDepth.xyz /= prevUVDepth.w;
         float2 depths = float2(depth, prevUVDepth.z);
-        float2 linearZ = rcp(depth_linearization_slope * depths + depth_linearization_offset);
+        float2 linearZ = rcp(depth_linearization_slope_offset.xy * depths + depth_linearization_slope_offset.zw);
         return float3(prevUVDepth.xy - uv, linearZ.y - linearZ.x);
       }
     ##endif
 
-    float3 fetch_motion_vector(float2 uv, float depth)
+    float3 fetch_motion_vector_unjittered(float2 uv, float depth)
     {
       ##if motion_vector_type == static_uvz
         return calculate_reprojected_motion_vector(uv, depth);

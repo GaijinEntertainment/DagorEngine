@@ -5,12 +5,14 @@
 #include <generic/dag_tab.h>
 #include <osApiWrappers/dag_wndProcComponent.h>
 #include <perfMon/dag_cpuFreq.h>
+#include <EASTL/unique_ptr.h>
+#include <dag/dag_vector.h>
 
 #include "hid_udev.h"
 
 namespace HumanInput
 {
-class HidJoystickDevice;
+class UDevJoystick;
 
 class HidJoystickClassDriver : public IGenJoystickClassDrv
 {
@@ -62,7 +64,7 @@ public:
   }
 
 protected:
-  Tab<HidJoystickDevice *> device;
+  dag::Vector<eastl::unique_ptr<UDevJoystick>> device;
   IGenJoystickClient *defClient;
   IGenJoystickClassDrv *secDrv;
   IGenJoystick *defJoy;

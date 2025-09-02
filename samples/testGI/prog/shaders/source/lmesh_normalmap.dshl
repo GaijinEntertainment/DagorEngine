@@ -1,0 +1,24 @@
+texture landmesh_normalmap;
+float4 world_to_lightmap;
+macro INIT_LMESH_NORMALMAP(code)
+  (code) {
+    landmesh_normalmap@smp2d = landmesh_normalmap;
+    world_to_lightmap@f4 = world_to_lightmap;
+  }
+endmacro
+
+macro USE_LMESH_NORMALMAP(code)
+  hlsl (code) {
+    half3 get_lmesh_normalmap(float2 worldXZ, inout half ao)
+    {
+      float2 lightmapTexcoord = worldXZ * world_to_lightmap.xy + world_to_lightmap.zw;
+      half4 lightmap = tex2D(landmesh_normalmap, lightmapTexcoord);
+      //half3 normal = restore_normal(lightmap.ga).xzy;
+      half3 worldNormal;
+      worldNormal.xz = lightmap.ga * 2 - 1;
+      worldNormal.y = sqrt(saturate(1 - dot(worldNormal.xz, worldNormal.xz)));
+      ao = lightmap.b;
+      return worldNormal;
+    }
+  }
+endmacro

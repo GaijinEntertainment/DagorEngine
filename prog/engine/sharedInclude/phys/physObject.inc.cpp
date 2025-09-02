@@ -7,7 +7,6 @@
 #include <generic/dag_tabUtils.h>
 #include <debug/dag_debug.h>
 #include <math/twistCtrl.h>
-#include <render/dynmodelRenderer.h>
 #include <3d/dag_render.h>
 
 
@@ -59,7 +58,11 @@ void DynamicPhysObject::init(const DynamicPhysObjectData *phys_obj_data, PhysWor
     modelEntries.push_back(entry);
 
     entry->model = new DynamicRenderableSceneInstance(phys_obj_data->models[nModel]);
-
+    for (int i = 0; i < entry->model->getNodeCount(); i++)
+    {
+      entry->model->setNodeWtm(i, tm);
+      entry->model->setPrevNodeWtm(i, tm);
+    }
     clear_and_shrink(entry->nodeHelpers);
     clear_and_shrink(entry->treeIndex);
 
@@ -241,39 +244,6 @@ void DynamicPhysObject::beforeRender(const Point3 &cam_pos)
     }
 }
 
-
-template <>
-void DynamicPhysObject::render(real opacity /*= 1*/)
-{
-  if (dynrend::is_initialized())
-  {
-    for (int n = 0; n < modelEntries.size(); n++)
-      if (!dynrend::render_in_tools(modelEntries[n]->model, dynrend::RenderMode::Opaque))
-        modelEntries[n]->model->render(opacity);
-  }
-  else
-  {
-    for (int n = 0; n < modelEntries.size(); n++)
-      modelEntries[n]->model->render(opacity);
-  }
-}
-
-
-template <>
-void DynamicPhysObject::renderTrans(real opacity /*= 1*/)
-{
-  if (dynrend::is_initialized())
-  {
-    for (int n = 0; n < modelEntries.size(); n++)
-      if (!dynrend::render_in_tools(modelEntries[n]->model, dynrend::RenderMode::Translucent))
-        modelEntries[n]->model->renderTrans(opacity);
-  }
-  else
-  {
-    for (int n = 0; n < modelEntries.size(); n++)
-      modelEntries[n]->model->renderTrans(opacity);
-  }
-}
 
 template <>
 void DynamicPhysObject::getBodyVisualTm(int index, TMatrix &tm)

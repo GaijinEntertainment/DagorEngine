@@ -29,7 +29,7 @@ macro REPROJECT_GI(code)
       prev_specular@tex = prev_specular hlsl { Texture2D<uint> prev_specular@tex; };
     }*/
 
-    prev_gi_pixel_age@tex = prev_gi_pixel_age hlsl { Texture2D<uint> prev_gi_pixel_age@tex; };
+    prev_gi_pixel_age@tex = prev_gi_pixel_age hlsl { Texture2D<float> prev_gi_pixel_age@tex; };
 
     jitteredCamPosToUnjitteredHistoryClip@f44 = jitteredCamPosToUnjitteredHistoryClip;// current jittered screencoord -> history unjittered screencoord
     prev_gbuf_depth@tex2d = prev_gbuf_depth;
@@ -49,7 +49,7 @@ macro REPROJECT_GI(code)
   hlsl(code)
   {
     #define MOTION_TO_PREV_JITTERED_UV_OFS (current_jittered_pos_to_prev_jittered_pos_ofs)
-    bool reproject_gi(half preExposure, bool isHeroCockpitGbuf, SamplerState sampler_st, half new_specular_w, half new_diffuse_w, float3 camPos, float2 cur_view_tc, float rawDepth, float linearDepth, inout half3 ambient, inout half3 specular, out uint age)
+    bool reproject_gi(half preExposure, bool isHeroCockpitGbuf, SamplerState sampler_st, half new_specular_w, half new_diffuse_w, float3 camPos, float2 cur_view_tc, float rawDepth, float linearDepth, inout half3 ambient, inout half3 specular, out float age)
     {
       age = 0;
       if (!reproject_screen_gi)
@@ -87,7 +87,7 @@ macro REPROJECT_GI(code)
         float4 weights = (depthDiff < threshold);
         float4 spatialWeights = exp(-depthDiff * (5.0 / threshold));
         weights *= (spatialWeights * bilW);
-        weights = select(weights > 1e-4, weights, float4(0,0,0,0));
+        weights = select(and(weights > 1e-4, prevRawZ != 0), weights, float4(0,0,0,0));
         float sumW = valid ? dot(weights, 1.0) : 0;
         if (sumW > 1e-4)
         {
@@ -110,11 +110,11 @@ macro REPROJECT_GI(code)
           #endif
 
           float oldAge = dot(prev_gi_pixel_age.GatherRed(sampler_st, gatherUV.xy).wzxy, weights);
-          float newAgeF = (oldAge + 1);
-          float historyW = 1./(newAgeF + 1);
+          float newAgeF = (oldAge + 1/255.f);
+          float historyW = (1./255.f)/(newAgeF + 1/255.f);
           ambient = lerp(preExposure*prevAmbient, ambient, max(new_diffuse_w, historyW));
           specular = lerp(preExposure*prevSpecular, specular, max(new_specular_w, historyW));
-          age = newAgeF + 0.5f;
+          age = newAgeF + 0.5f/255.f;
           return true;
         }
       }

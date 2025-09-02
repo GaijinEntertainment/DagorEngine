@@ -4,7 +4,6 @@ let { mkBitmapPicture } = require("%darg/helpers/bitmap.nut")
 
 let mkWhite = @(part) part + (part << 8) + (part << 16) + (part << 24)
 let getDistance = @(x, y) sqrt(x*x + y*y)
-let getDistanceSq = @(x, y) x*x + y*y
 
 //cutRadius > 0 - cutFrom inner side.  cutRadius < 0 - cutFrom outher side
 function mkLensFlareCutRadiusLeft(radius, outherWidth, innerWidth, cutRadius, cutWidth, cutOffset) {
@@ -35,7 +34,7 @@ function mkLensFlareCutRadiusLeft(radius, outherWidth, innerWidth, cutRadius, cu
             continue
           }
           let distance = getDistance(0.5 + x - center, 0.5 + y - center) - radius
-          let mul = distance >= 0 ? distance / (outherWidth || 1) : - distance / (innerWidth || 1)
+          let mul = distance >= 0 ? distance / (outherWidth != 0 ? outherWidth : 1) : - distance / (innerWidth != 0 ? innerWidth : 1)
           bmp.setPixel(x, y, mkWhite((0xFF * max(0.0, (1.0 - mul) * cutMul)).tointeger()))
         }
     })

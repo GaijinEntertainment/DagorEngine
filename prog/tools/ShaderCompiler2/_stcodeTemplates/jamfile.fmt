@@ -1,8 +1,10 @@
-R"(Root = %s ; # Root relative to dir in _output
+R"(%s
+Root = %s ; # Root relative to cwd
 Location = %s ; # _ouptut dir relative to root
 OutDir   = $(Root)/%s ; # output dir
 
 Target = %s/%s%s ; # Path/dynlib name
+TargetCodeName = %s ; # Shorter name for compilation cache
 
 Sources =
   %s # full list of sources for shader files (only used for non-unity build)

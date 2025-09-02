@@ -37,7 +37,6 @@
 using namespace drv3d_metal;
 
 extern bool get_metal_settings_resolution(int &width, int &height, bool& is_retina, int def_width, int def_height, bool &out_is_auto);
-extern int get_retina_mode();
 extern bool get_allow_intel4000();
 
 extern bool metal_use_queries;
@@ -184,8 +183,6 @@ bool d3d::init_video(void* hinst,
            const char* title,
            Driver3dInitCallback* cb)
 {
-  float scale = 1.0f;
-
 #if _TARGET_PC_MACOSX
   D3dInitialSettings initSetts(0, 0);
   render.scr_bpp = 32;
@@ -196,13 +193,11 @@ bool d3d::init_video(void* hinst,
   initSetts.resolution.y = mainDisplayRect.size.height;
 
   get_initial_settings(initSetts);
-  scale = get_retina_mode() > 0 ? [[NSScreen mainScreen] backingScaleFactor] : 1;
-  float rt_scale = scale;
 
   render.scr_wd = initSetts.resolution.x;
   render.scr_ht = initSetts.resolution.y;
-  render.wnd_wd = render.scr_wd * scale;
-  render.wnd_ht = render.scr_ht * scale;
+  render.wnd_wd = render.scr_wd;
+  render.wnd_ht = render.scr_ht;
 
   if (inwin)
   {
@@ -212,27 +207,20 @@ bool d3d::init_video(void* hinst,
   }
 
   NSRect viewRect = NSMakeRect(0.0, 0.0, mainDisplayRect.size.width, mainDisplayRect.size.height);
-  render.mainview = [[MetalView alloc] initWithFrame:viewRect andScale:scale];
+  render.mainview = [[MetalView alloc] initWithFrame:viewRect andScale:1.0f];
 
   [render.mainview setWidth : render.scr_wd setHeight: render.scr_ht];
   [render.mainview setVSync : initSetts.vsync];
 
-  render.scr_wd *= rt_scale;
-  render.scr_ht *= rt_scale;
-
-  debug("[METAL_INIT] src_wd=%d scr_ht=%d wnd_wd=%d wnd_ht=%d scale=%.3f rt_scale=%.3f vsync=%s fullscreen=%s",
-    render.scr_wd, render.scr_ht, render.wnd_wd, render.wnd_ht, scale, rt_scale,
+  debug("[METAL_INIT] src_wd=%d scr_ht=%d wnd_wd=%d wnd_ht=%d vsync=%s fullscreen=%s",
+    render.scr_wd, render.scr_ht, render.wnd_wd, render.wnd_ht,
     initSetts.vsync ? "vsync-on" : "no-vsync", inwin ? "false" : "true");
   debug("[METAL_INIT] display rect = (%d %d %d %d)",
     mainDisplayRect.origin.x, mainDisplayRect.origin.y, mainDisplayRect.size.width, mainDisplayRect.size.height);
 
 #else
 
-  if ([[UIScreen mainScreen] respondsToSelector:@selector(nativeScale)])
-  {
-    scale = get_retina_mode() > 0 ? [[UIScreen mainScreen] nativeScale] : 1;
-  }
-  float rt_scale = scale;
+  float scale = [[UIScreen mainScreen] nativeScale];
 
   render.scr_wd = [[UIScreen mainScreen] bounds].size.width;
   render.scr_ht = [[UIScreen mainScreen] bounds].size.height;
@@ -243,8 +231,8 @@ bool d3d::init_video(void* hinst,
   D3dInitialSettings initSetts(render.scr_wd, render.scr_ht);
   get_initial_settings(initSetts);
 
-  render.scr_wd *= rt_scale;
-  render.scr_ht *= rt_scale;
+  render.scr_wd *= scale;
+  render.scr_ht *= scale;
 
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= 90000
   CGRect rect = [[UIScreen mainScreen] bounds];
@@ -268,8 +256,6 @@ bool d3d::init_video(void* hinst,
   debug("[METAL_INIT] supported metal version %c %c %c %c", mtl[0], mtl[1], mtl[2], mtl[3]);
   debug("[METAL_INIT] readWriteTextureTier1 %d", render.caps.readWriteTextureTier1);
   debug("[METAL_INIT] readWriteTextureTier2 %d", render.caps.readWriteTextureTier2);
-  debug("[METAL_INIT] samplerHaveCmprFun %d", render.caps.samplerHaveCmprFun);
-  debug("[METAL_INIT] drawIndxWithBaseVertes %d", render.caps.drawIndxWithBaseVertes);
 
   tql::initTexStubs();
 
@@ -291,7 +277,7 @@ void d3d::get_screen_size(int &w, int &h)
 }
 
 bool g_ios_pause_rendering = false;
-bool d3d::update_screen(bool app_active)
+bool d3d::update_screen(uint32_t, bool app_active)
 {
   if (g_ios_pause_rendering)
     return true;
@@ -347,10 +333,10 @@ bool d3d::enable_vsync(bool) { return true; }
 /// many captures can be followed by only one end_fast_capture_screen()
 void *d3d::fast_capture_screen(int &width, int &height, int &stride_bytes, int &format)
 {
-  render.acquireOwnerShip();
+  render.acquireOwnership();
   render.save_backBuffer = true;
   render.flush(true);
-  render.releaseOwnerShip();
+  render.releaseOwnership();
 
   id<MTLTexture> backBuffer = [render.mainview getSavedBackBuffer];
 

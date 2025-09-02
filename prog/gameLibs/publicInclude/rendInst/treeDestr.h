@@ -13,6 +13,32 @@ class DataBlock;
 namespace rendinstdestr
 {
 
+struct BranchDestr
+{
+  bool enableBranchDestruction = false;
+  bool newPhysics = false;                  // if false, uses old physics, which doesn't support cutting in half
+  bool fullDestructionByExplosions = false; // if false, trees destroyed by explosions will use a simplified animation
+  float cutInHalfDamageThreshold = 500.0f;  // negative value disables cutting completely
+  bool multiplierMode = false;              // if false, overrides default values
+  float impulseMul = 1.0f;                  // multiplies the incoming impulse
+  float impulseMin = 0.0f;                  // if the impulse is lower than this, the falling chance will be 0%
+  float impulseMax = 6.0f;                  // if the impulse is higher than this, the falling chance will be 100%
+  float branchSizeMin = 3.0f;               // if the branch size is lower than this, the falling chance will not be decreased
+  float branchSizeMax = 20.0f;              // if the branch size if higher than this, the falling chance will be 0%
+  float rotateRandomSpeedMulX = 0.5f;
+  float rotateRandomSpeedMulY = 1.5f;
+  float rotateRandomSpeedMulZ = 0.5f;
+  float rotateRandomAngleSpread = 0.7f * PI;
+  float branchSizeSlowDown = 0.05f;
+  float fallingSpeedMul = 0.7f;
+  float fallingSpeedRnd = 0.4f;
+  float horizontalSpeedMul = 1.0f;
+  float maxVisibleDistance = 100.0f;
+  float fallThroughGroundIfBigger = 1.6f;
+
+  void apply(const BranchDestr &other);
+};
+
 struct TreeDestr
 {
   float heightThreshold = 5.0f;
@@ -33,36 +59,27 @@ struct TreeDestr
   Point2 constraintLimitY = Point2(0.f, 0.f);
   float canopyLinearDamping = 0.9f;
   float canopyAngularDamping = 0.9f;
+  float canopyJointDamping = 0.5f;
+  float treeFriction = 0.7f;
+  float treeDampingLinear = 0.4f;
+  float treeDampingAngular = 0.5f;
+  float groundOffsetMul = 0.05f;
+  float groundDamping = 0.85f;
+  float groundJointAngleLimitWhole = 90.0f;
+  float groundJointAngleLimitBottom = 15.0f;
+  float groundJointDamping = 10.0f;
+  float collisionDistLimit = 6.0f;
+  float collisionAngleLimit = 65.0f;
   bool useBoxAsCanopyCollision = false;
 
-  struct BranchDestr
-  {
-    bool enableBranchDestruction = false;
-    bool multiplierMode = false; // if false, overrides default values
-    float impulseMul = 1.0f;     // multiplies the incoming impulse
-    float impulseMin = 0.0f;     // if the impulse is lower than this, the falling chance will be 0%
-    float impulseMax = 6.0f;     // if the impulse is higher than this, the falling chance will be 100%
-    float branchSizeMin = 3.0f;  // if the branch size is lower than this, the falling chance will not be decreased
-    float branchSizeMax = 20.0f; // if the branch size if higher than this, the falling chance will be 0%
-    float rotateRandomSpeedMulX = 0.5f;
-    float rotateRandomSpeedMulY = 1.5f;
-    float rotateRandomSpeedMulZ = 0.5f;
-    float rotateRandomAngleSpread = 0.7f * PI;
-    float branchSizeSlowDown = 0.05f;
-    float fallingSpeedMul = 0.7f;
-    float fallingSpeedRnd = 0.4f;
-    float horizontalSpeedMul = 1.0f;
-    float maxVisibleDistance = 100.0f;
-
-    void apply(const BranchDestr &other);
-  } branchDestrFromDamage, branchDestrOther;
+  BranchDestr branchDestrFromDamage, branchDestrOther;
 
   InterpolateTabFloat radiusToImpulse;
   float getRadiusToImpulse(float radius) const;
 };
 
 void tree_destr_load_from_blk(const DataBlock &blk);
-void branch_destr_load_from_blk(TreeDestr::BranchDestr &target, const DataBlock *blk);
+void branch_destr_load_from_blk(rendinstdestr::BranchDestr &target, const DataBlock *blk);
 const TreeDestr &get_tree_destr();
 TreeDestr &get_tree_destr_mutable();
 

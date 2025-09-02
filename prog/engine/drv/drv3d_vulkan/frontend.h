@@ -17,6 +17,8 @@ struct FrontendPODState;
 class TempBufferManager;
 class FramememBufferManager;
 struct ExecutionSyncCapture;
+struct ResourceReadbacks;
+class Swapchain;
 
 struct Frontend
 {
@@ -28,6 +30,8 @@ struct Frontend
   static TempBufferManager tempBuffers;
   static FramememBufferManager frameMemBuffers;
   static ExecutionSyncCapture syncCapture;
+  static ResourceReadbacks readbacks;
+  static Swapchain swapchain;
 
   struct State
   {

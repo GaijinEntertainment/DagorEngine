@@ -51,6 +51,7 @@ public:
   ~HeightmapHeightCulling();
   void setUpDisplacement(float v) { displacementUpwardMaxOffset = v; };
   void setDownDisplacement(float v) { displacementDownwardMaxOffset = v; };
+  float getDisplacementRange() const { return displacementUpwardMaxOffset + displacementDownwardMaxOffset; };
 
 protected:
   static constexpr int HEIGHT_CULLING_BUFFER_SIZE = 128;
@@ -81,6 +82,7 @@ union LodGridPatchParams
   };
   Point4 params;
 
+  LodGridPatchParams() = default;
   LodGridPatchParams(float _size, uint32_t _tess, float origin_x, float origin_y)
   {
     size = _size;
@@ -88,11 +90,25 @@ union LodGridPatchParams
     originX = origin_x;
     originY = origin_y;
   }
+  LodGridPatchParams(const Point4 &p) : params(p) {}
 };
 
 struct LodGridCullData
 {
   Tab<LodGridPatchParams> patches;
+  enum
+  {
+    DIAMOND_FIRST_LTRB,
+    REGULAR_RTLB,
+    REGULAR_LTRB,
+    ADD_TRICNT
+  };
+  carray<Tab<LodGridPatchParams>, ADD_TRICNT> additionalTriPatches;
+  bool hasAdditionalTriPatches() const
+  {
+    return !additionalTriPatches[0].empty() || !additionalTriPatches[1].empty() || !additionalTriPatches[2].empty();
+  }
+  bool hasPatches() const { return !patches.empty() || hasAdditionalTriPatches(); }
   int startFlipped = 1000000;      // starting from startFlipped, patches triangulation is flipped
   Point2 originPos = Point2::ZERO; // just in case
   float scaleX = 1;
@@ -109,6 +125,29 @@ struct LodGridCullData
 
 class Occlusion;
 class HMapTesselationData;
+struct HeightmapFrustumCullingInfo
+{
+  Point3 world_pos = {0, 0, 0};
+  float camera_height = 0;
+  float water_level = HeightmapHeightCulling::NO_WATER_ON_LEVEL;
+  Frustum frustum;
+  const Occlusion *occlusion = nullptr;
+  int min_tank_lod = 0;
+  int lod0subdiv = 0;
+  float lod0scale = 1.0f;
+  // this is view projection, not current projection. it is used for finding the distance scale (zoom). For CSM it is main camera one.
+  TMatrix4 proj = TMatrix4::IDENT;
+  float maxRelativeTexelTess = 0; // if maxRelativeTexelTess > 0, we won't tesselate more than said amount of texels. 2 means at most
+                                  // over tesselation of 2, 0.5 - under tesselation of 0.5
+  enum : uint8_t
+  {
+    FASTEST = 0,
+    USE_MORPH = 1,
+    EXACT_EDGES = 2,
+    BEST = USE_MORPH | EXACT_EDGES
+  } quality = BEST;
+};
+
 
 void cull_lod_grid(const LodGrid &lodGrid, int max_lod, float originPosX, float originPosY, float scaleX, float scaleY, float alignX,
   float alignY, float hMin, float hMax, const Frustum *frustum, const BBox2 *clip, LodGridCullData &cull_data,

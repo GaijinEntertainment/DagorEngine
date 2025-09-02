@@ -4,6 +4,7 @@ include "rendinst_trans_inc.dshl"
 include "rendinst_voxelize_albedo_inc.dshl"
 include "metatex_inc.dshl"
 include "normaldetail.dshl"
+include "camera_in_camera.dshl"
 
 include "indoor_light_probes.dshl"
 include "glass.dshl"
@@ -23,6 +24,7 @@ shader rendinst_metatex, rendinst_emissive_metatex, rendinst_translucent_metatex
     cull_mode = none;
   }
   NO_DYNSTCODE()
+  ENABLE_ASSERT(ps)
 
   ENABLE_MULTI_DRAW(rendinst_render_pass == rendinst_render_pass_to_shadow || rendinst_render_pass == rendinst_render_pass_depth)
   RENDINST_BLOCK()
@@ -123,15 +125,17 @@ shader rendinst_metatex, rendinst_emissive_metatex, rendinst_translucent_metatex
 shader rendinst_refraction_metatex
 {
   assume instancing_type = tm_vb;
+  if (in_editor_assume == no)
+  {
+    IMPORT_ON_TOP_CAMERA_IN_CAMERA(ps)
+    USE_BRUNETON_FOG()
+  }
   if (rendinst_render_pass != rendinst_render_pass_normal)
   {
     dont_render;
   }
+  ENABLE_ASSERT(ps)
   RI_NO_VOXELIZE()
-  if (in_editor_assume == no)
-  {
-    USE_BRUNETON_FOG()
-  }
   INIT_REFRACTION_GLASS()
   if (gi_quality != off)
   {
@@ -189,7 +193,7 @@ shader rendinst_refraction_metatex
   INIT_METATEX_REFRACTIVE()
   APPLY_METATEX()
   INIT_GLASS_TRANSP()
-  USE_GLASS()
+  USE_GLASS(false)
 
   hlsl(ps) {
     float4 glass_ps(VsOutput input HW_USE_SCREEN_POS INPUT_VFACE):SV_Target0
@@ -211,7 +215,7 @@ shader rendinst_refraction_metatex
       float4 diffuseColor = float4(color, opacity * get_transparency_mul());
 
       float4 screenpos = GET_SCREEN_POS(input.pos);
-      half4 result = apply_glass_base(input, screenpos, diffuseColor, worldNormal, thickness, smoothness);
+      half4 result = apply_glass_base(input, screenpos, diffuseColor, worldNormal, thickness, smoothness).color;
       return float4(pack_hdr(result.rgb), result.a);
     }
   }

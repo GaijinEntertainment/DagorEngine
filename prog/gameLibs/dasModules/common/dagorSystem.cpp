@@ -18,6 +18,33 @@ DAS_BASE_BIND_ENUM(ConsoleModel, ConsoleModel, UNKNOWN, PS4, PS4_PRO, XBOXONE, X
 namespace bind_dascript
 {
 static DasExitFunctionPtr das_exit_function_ptr = nullptr;
+static DAS_THREAD_LOCAL(das::Context *) current_context;
+
+RAIIStackwalkOnLogerr::RAIIStackwalkOnLogerr(das::Context *c)
+{
+  old = *current_context;
+  *current_context = c;
+}
+RAIIStackwalkOnLogerr::~RAIIStackwalkOnLogerr() { *current_context = old; }
+
+static int das_stackwalk_log_on_logerr(int lev_tag, const char *fmt, const void *arg, int anum, const char *ctx_file, int ctx_line)
+{
+  static const int D3DE_TAG = _MAKE4C('D3DE');
+  if (lev_tag == LOGLEVEL_ERR || lev_tag == D3DE_TAG)
+    if (*current_context != nullptr && ((*current_context)->category.value & uint32_t(das::ContextCategory::dead)) == 0)
+      (*current_context)->stackWalk(nullptr, false, false);
+
+  if (orig_debug_log)
+    return orig_debug_log(lev_tag, fmt, arg, anum, ctx_file, ctx_line);
+  else
+    return 1;
+}
+
+void enable_das_stackwalk_log_on_logerr()
+{
+  G_ASSERTF(orig_debug_log == nullptr, "Don't call this function twice!");
+  orig_debug_log = debug_set_log_callback(das_stackwalk_log_on_logerr);
+}
 
 void set_das_exit_function_ptr(DasExitFunctionPtr func) { das_exit_function_ptr = func; }
 

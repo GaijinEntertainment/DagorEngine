@@ -47,7 +47,7 @@ struct ContextData
 
 
 struct Event
-    [[do_not_delete]] data : TreeData?
+    @do_not_delete data : TreeData?
     heap : uint64
     stringHeap : uint64
     childHeap : uint64
@@ -100,6 +100,7 @@ class MemoryProfilerAgent : DapiDebugAgent
     [unused_argument(fun)] def override onInstrumentFunction(var ctx : Context; fun : SimFunction ?; entering : bool; user_data : uint64) : void
         var heapStats : uint64[2]
         unsafe(get_heap_stats(ctx, unsafe(addr(heapStats[0]))))
+        let stringHeapSize = heapStats[1] - unsafe(temp_string_size(ctx))
         let ctxId = intptr(unsafe(addr(ctx)))
         if entering
             var fnData : TreeData?
@@ -113,11 +114,11 @@ class MemoryProfilerAgent : DapiDebugAgent
                     parentEvent.data.children[user_data] = new TreeData()
                 fnData = parentEvent.data.children[user_data]
             ++fnData.calls
-            stack |> emplace() <| [[Event data=fnData, heap=heapStats[0], stringHeap = heapStats[1]]]
+            stack |> emplace() <| Event(data = fnData, heap = heapStats[0], stringHeap = stringHeapSize)
         elif length(stack) > 0
             var event & = unsafe(stack[length(stack) - 1])
             let totalHeapDiff = heapStats[0] - event.heap
-            let totalStringHeapDiff = heapStats[1] - event.stringHeap
+            let totalStringHeapDiff = stringHeapSize - event.stringHeap
             event.data.totalUsedHeap += totalHeapDiff
             event.data.totalUsedStringHeap += totalStringHeapDiff
 
@@ -155,7 +156,7 @@ class MemoryProfilerAgent : DapiDebugAgent
 
             let ctxId = intptr(unsafe(addr(ctx)))
             assume tab = data[ctxId]
-            tab.functions[sfn.mangledNameHash] <- [[FuncData name=sfn.name, mangledName=sfn.mangledName, line=line, file=fileName]]
+            tab.functions[sfn.mangledNameHash] <- FuncData(name = sfn.name, mangledName = sfn.mangledName, line = line, file = fileName)
             if empty(tab.name) && !empty(ctx.name)
                 tab.name = string(ctx.name)
             return sfn.mangledNameHash

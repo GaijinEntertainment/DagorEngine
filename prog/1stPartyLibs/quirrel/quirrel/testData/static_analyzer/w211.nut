@@ -14,5 +14,5 @@ switch(x) {
   case MODE.MODE_1: ::print("3"); break;
   default:
     ::print("0")
-  break;
+    break;
 }

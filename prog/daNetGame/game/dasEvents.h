@@ -12,11 +12,13 @@
 /// native_events
 
 ECS_BROADCAST_EVENT_TYPE(ChangeServerRoute, /*currentIsUnresponsive*/ bool);
+ECS_UNICAST_EVENT_TYPE(CmdShowHitcamera);
 ECS_UNICAST_EVENT_TYPE(CmdUpdateGridScale);
 ECS_BROADCAST_EVENT_TYPE(EventAnyEntityResurrected, /*eid*/ ecs::EntityId);
 ECS_BROADCAST_EVENT_TYPE(EventGameSessionFinished, /*disconnected*/ bool);
 ECS_BROADCAST_EVENT_TYPE(EventGameSessionStarted);
 ECS_BROADCAST_EVENT_TYPE(EventKeyFrameSaved, /*time*/ int);
+ECS_UNICAST_EVENT_TYPE(EventOnHitCameraControlEvent, /*target*/ ecs::EntityId, /*xrayEventType*/ int, /*hitResult*/ int);
 ECS_BROADCAST_EVENT_TYPE(EventTickrateChanged, /*oldTickrate*/ int, /*newTickrate*/ int);
 ECS_UNICAST_EVENT_TYPE(PossessTargetByPlayer, /*target*/ ecs::EntityId);
 ECS_BROADCAST_EVENT_TYPE(RequestSaveKeyFrame);

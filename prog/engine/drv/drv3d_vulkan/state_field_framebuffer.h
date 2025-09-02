@@ -29,18 +29,16 @@ struct StateFieldFramebufferAttachment
 
   Image *image;
   ImageViewState view;
-  bool useSwapchain;
   BaseTexture *tex;
 
   static StateFieldFramebufferAttachment empty;
-  static StateFieldFramebufferAttachment back_buffer;
+  static StateFieldFramebufferAttachment back_buffer_template;
 
   template <typename T>
   void reset(T &)
   {
     image = nullptr;
     view = {};
-    useSwapchain = false;
     tex = nullptr;
   }
 

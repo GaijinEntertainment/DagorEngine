@@ -20,24 +20,24 @@ public:
     PropertyControlBase(id, event_handler, parent, x, y, w, hdpi::Px(0)), controlCaption(caption)
   {}
 
-  virtual unsigned getTypeMaskForSet() const override { return CONTROL_DATA_TYPE_COLOR | CONTROL_CAPTION; }
-  virtual unsigned getTypeMaskForGet() const override { return CONTROL_DATA_TYPE_COLOR; }
+  unsigned getTypeMaskForSet() const override { return CONTROL_DATA_TYPE_COLOR | CONTROL_CAPTION; }
+  unsigned getTypeMaskForGet() const override { return CONTROL_DATA_TYPE_COLOR; }
 
-  virtual E3DCOLOR getColorValue() const override { return controlValue; }
-  virtual void setColorValue(E3DCOLOR value) override { controlValue = value; }
+  E3DCOLOR getColorValue() const override { return controlValue; }
+  void setColorValue(E3DCOLOR value) override { controlValue = value; }
 
-  virtual void setCaptionValue(const char value[]) override { controlCaption = value; }
+  void setCaptionValue(const char value[]) override { controlCaption = value; }
 
-  virtual void reset() override
+  void reset() override
   {
     controlValue = E3DCOLOR(0);
 
     PropertyControlBase::reset();
   }
 
-  virtual void setEnabled(bool enabled) override { controlEnabled = enabled; }
+  void setEnabled(bool enabled) override { controlEnabled = enabled; }
 
-  virtual void updateImgui() override
+  void updateImgui() override
   {
     ScopedImguiBeginDisabled scopedDisabled(!controlEnabled);
 
@@ -85,7 +85,7 @@ public:
   }
 
 private:
-  virtual void onImguiDelayedCallback(void *data) override
+  void onImguiDelayedCallback(void *data) override
   {
     String dialogCaption;
     if (controlCaption.empty())

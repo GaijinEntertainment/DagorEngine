@@ -35,6 +35,7 @@
 #include <util/dag_strUtil.h>
 #include "queryExpression.h"
 #include "timers.h"
+#include <dasModules/aotECSGlobalTags.h>
 
 EA_DISABLE_VC_WARNING(4505) // unreferenced local function has been removed
 
@@ -145,7 +146,7 @@ static inline ecs::sq::push_instance_fn_t get_event_script_push_inst_fn(ecs::eve
 namespace ecs
 {
 
-bool ecs_is_in_init_phase = true;
+static bool ecs_is_in_init_phase = true;
 
 } // namespace ecs
 
@@ -3280,7 +3281,7 @@ SQInteger SqQuery::perform(HSQUIRRELVM vm)
       qd.filterToUse = &sqQuery.filterExpr;
   }
 
-  auto queryCb = [&qd, &sqQuery](const ecs::QueryView &__restrict qv) {
+  ecs::stoppable_query_cb_t queryCb = [&qd, &sqQuery](const ecs::QueryView &__restrict qv) {
     if (!qd.scriptRes.IsNull())
       return ecs::QueryCbResult::Stop;
 
@@ -3393,6 +3394,8 @@ static SQInteger get_schemeless_payload(HSQUIRRELVM vm)
   return 1;
 }
 
+///@module ecs
+
 static SQInteger get_null(HSQUIRRELVM) { return 0; }
 
 template <typename CT, typename T, typename ItemType, bool readonly = false>
@@ -3400,7 +3403,7 @@ static void bind_list_class(HSQUIRRELVM vm, Sqrat::Table &tbl, const char *type_
 {
   CT sqListClass(vm, type_name);
   ///@class ecs/BaseList
-  /**
+  /* qdox
     **This is not real class. Just all List classes has this methods!**
 
     Real classes are following:
@@ -3594,6 +3597,7 @@ void ecs_register_sq_binding(SqModules *module_mgr, bool create_systems, bool cr
     .Func("destroyEntity", (bool(EntityManager::*)(const ecs::EntityId &)) & EntityManager::destroyEntity)
     .Func("doesEntityExist", &EntityManager::doesEntityExist)
     .Func("getNumEntities", &EntityManager::getNumEntities)
+    .Func("enableES", &EntityManager::enableES)
 
     //.Func("getNumComponents", &EntityManager::getNumComponents)
 
@@ -3823,6 +3827,7 @@ void ecs_register_sq_binding(SqModules *module_mgr, bool create_systems, bool cr
     tblEcs.Func("start_es_loading", start_es_loading);
     tblEcs.Func("end_es_loading", end_es_loading);
   }
+  tblEcs.Func("has_tag", bind_dascript::ecs_has_tag);
 
   G_ASSERT(g_entity_mgr);
   tblEcs.SetValue("g_entity_mgr", g_entity_mgr.get());

@@ -64,6 +64,16 @@ float4x4 dafx_get_44mat( BufferData_cref buf, uint offset )
   return *(TMatrix4*)(buf + offset );
 }
 
+// scale is stored in the last element
+DAFX_INLINE
+float4x4 dafx_get_44mat_scale( BufferData_cref buf, uint offset, float_ref scale )
+{
+  float4x4 mat = dafx_get_44mat( buf, offset );
+  scale = mat[3][3];
+  mat[3][3] = 1;
+  return mat;
+}
+
 // setters
 DAFX_INLINE
 void dafx_set_1ui( uint v, BufferData_ref buf, uint offset )
@@ -312,12 +322,34 @@ float4x4 _dafx_get_44mat(uint offset, int file, int ln )
   return r;
 }
 
+// scale is stored in the last element
+// TODO: return a float3x4 instead
+#define dafx_get_44mat_scale(_buf, _offset, _scale) _dafx_get_44mat_scale(_offset, _scale, _FILE_, __LINE__)
+float4x4 _dafx_get_44mat_scale(uint offset, out float scale, int file, int ln )
+{
+  float4x4 r = _dafx_get_44mat( offset, file, ln );
+  scale = r[3][3];
+  r[3][3] = 1;
+  return r;
+}
+
+#define dafx_get_44mat_scale_noret(_buf, _offset, _wtm, _scale) _dafx_get_44mat_scale_noret(_offset, _wtm, _scale, _FILE_, __LINE__)
+void _dafx_get_44mat_scale_noret(uint offset, out float4x4 wtm, out float scale, int file, int ln )
+{
+  wtm[0] = _dafx_get_4f( offset + 0, file, ln );
+  wtm[1] = _dafx_get_4f( offset + 4, file, ln );
+  wtm[2] = _dafx_get_4f( offset + 8, file, ln );
+  wtm[3] = _dafx_get_4f( offset + 12, file, ln );
+  scale = wtm[3][3];
+  wtm[3][3] = 1;
+}
+
 // setters
 #define dafx_set_1ui(_v, _buf, _offset) _dafx_set_1ui(_v, _offset, _FILE_, __LINE__)
 void _dafx_set_1ui( uint v, uint offset, int file, int ln )
 {
   #ifdef DAFX_RW_ENABLED
-    #if DEBUG_ENABLE_BOUNDS_CHECKS
+    #if DEBUG_ENABLE_BOUNDS_CHECKS && !_HARDWARE_METAL
       uint dim, stride;
       dafx_system_data.GetDimensions(dim, stride);
       checkBufferBounds(offset, dim, file, ln, -1);
@@ -330,7 +362,7 @@ void _dafx_set_1ui( uint v, uint offset, int file, int ln )
 void _dafx_set_4ui( uint4_cref v, uint offset, int file, int ln )
 {
   #ifdef DAFX_RW_ENABLED
-    #if DEBUG_ENABLE_BOUNDS_CHECKS
+    #if DEBUG_ENABLE_BOUNDS_CHECKS && !_HARDWARE_METAL
       uint dim, stride;
       dafx_system_data.GetDimensions(dim, stride);
       checkBufferBounds(offset + 3, dim, file, ln, -1);
@@ -346,7 +378,7 @@ void _dafx_set_4ui( uint4_cref v, uint offset, int file, int ln )
 void _dafx_set_1f( float v, uint offset, int file, int ln )
 {
   #ifdef DAFX_RW_ENABLED
-    #if DEBUG_ENABLE_BOUNDS_CHECKS
+    #if DEBUG_ENABLE_BOUNDS_CHECKS && !_HARDWARE_METAL
       uint dim, stride;
       dafx_system_data.GetDimensions(dim, stride);
       checkBufferBounds(offset, dim, file, ln, -1);
@@ -359,7 +391,7 @@ void _dafx_set_1f( float v, uint offset, int file, int ln )
 void _dafx_set_2f( float2_cref v, uint offset, int file, int ln )
 {
   #ifdef DAFX_RW_ENABLED
-    #if DEBUG_ENABLE_BOUNDS_CHECKS
+    #if DEBUG_ENABLE_BOUNDS_CHECKS && !_HARDWARE_METAL
       uint dim, stride;
       dafx_system_data.GetDimensions(dim, stride);
       checkBufferBounds(offset + 1, dim, file, ln, -1);
@@ -373,7 +405,7 @@ void _dafx_set_2f( float2_cref v, uint offset, int file, int ln )
 void _dafx_set_3f( float3_cref v, uint offset, int file, int ln )
 {
   #ifdef DAFX_RW_ENABLED
-    #if DEBUG_ENABLE_BOUNDS_CHECKS
+    #if DEBUG_ENABLE_BOUNDS_CHECKS && !_HARDWARE_METAL
       uint dim, stride;
       dafx_system_data.GetDimensions(dim, stride);
       checkBufferBounds(offset + 2, dim, file, ln, -1);
@@ -388,7 +420,7 @@ void _dafx_set_3f( float3_cref v, uint offset, int file, int ln )
 void _dafx_set_4f( float4_cref v, uint offset, int file, int ln )
 {
   #ifdef DAFX_RW_ENABLED
-    #if DEBUG_ENABLE_BOUNDS_CHECKS
+    #if DEBUG_ENABLE_BOUNDS_CHECKS && !_HARDWARE_METAL
       uint dim, stride;
       dafx_system_data.GetDimensions(dim, stride);
       checkBufferBounds(offset + 3, dim, file, ln, -1);

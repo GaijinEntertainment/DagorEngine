@@ -7,7 +7,7 @@
 #include <drv/3d/dag_tex3d.h>
 #include <3d/dag_texMgr.h>
 #include <3d/dag_resPtr.h>
-#include <3d/dag_resourcePool.h>
+#include <resourcePool/resourcePool.h>
 #include <math/dag_TMatrix4.h>
 #include <generic/dag_carray.h>
 #include <shaders/dag_postFxRenderer.h>
@@ -17,7 +17,7 @@ class TextureIDPair;
 
 struct IWwaterProjFxRenderHelper
 {
-  virtual bool render_geometry() = 0;
+  virtual bool render_geometry(float mipbias = 0.f) = 0;
   virtual bool render_geometry_without_aa() { return false; }
   virtual void prepare_taa_reprojection_blend(const TEXTUREID *prev_frame_targets, const TEXTUREID *cur_frame_targets)
   {
@@ -44,6 +44,7 @@ public:
 
   WaterProjectedFx(int frame_width, int frame_height, dag::Span<TargetDesc> target_descs,
     const char *taa_reprojection_blend_shader_name, bool own_textures = true);
+  void setResolution(int frame_width, int frame_height);
 
   void setTextures();
   void setView();
@@ -53,15 +54,14 @@ public:
   void prepare(const TMatrix &view_tm, const TMatrix &view_itm, const TMatrix4 &proj_tm, const TMatrix4 &glob_tm, float water_level,
     float significant_wave_height, int frame_no, bool change_projection);
   bool render(IWwaterProjFxRenderHelper *render_helper);
-  bool render(IWwaterProjFxRenderHelper *render_helper, dag::Span<const TextureIDPair> targets,
-    dag::Span<const TextureIDPair> taa_temp = {}, dag::Span<const TextureIDPair> taa_history = {});
+  bool renderImpl(IWwaterProjFxRenderHelper *render_helper);
   void clear(bool forceClear = false);
 
   // It's assumed that the targets won't be modified outside of this class if they're owned by this class.
   Texture *getTarget(int target_id)
   {
-    G_ASSERT(ownTextures && target_id < nTargets);
-    return internalTargets[target_id].getTex2D();
+    G_ASSERT(ownTextures && target_id < nTargets && internalTargets[target_id]);
+    return internalTargets[target_id]->getTex2D();
   }
   uint32_t getTargetAdditionalFlags() const;
 
@@ -81,14 +81,15 @@ private:
   int frameWidth;
   int frameHeight;
   int nTargets;
-  UniqueTexHolder internalTargets[MAX_TARGETS];
+  ResizableRTargetPool::Ptr tempRTPools[MAX_TARGETS];
+  ResizableRTarget::Ptr internalTargets[MAX_TARGETS];
+  UniqueTex emptyInternalTextures[MAX_TARGETS];
+  int internalTargetsTexVarIds[MAX_TARGETS];
   E3DCOLOR targetClearColors[MAX_TARGETS];
   const bool ownTextures;
   bool targetsCleared;
 
   bool taaEnabled;
-  RTargetPool::Ptr taaRtTempPools[MAX_TARGETS];
-  RTarget::Ptr taaHistory[MAX_TARGETS];
   PostFxRenderer taaRenderer;
 
   int globalFrameId;

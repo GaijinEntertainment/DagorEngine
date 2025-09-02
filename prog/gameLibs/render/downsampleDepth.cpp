@@ -100,8 +100,7 @@ void init(const char *ps_name, const char *wave_cs_name, const char *cs_name)
   {
     atomicCountersBuf = dag::buffers::create_ua_sr_structured(sizeof(uint32_t), 2, "DownsamplerAtomicCounters");
 
-    uint32_t zeroes[4] = {0};
-    d3d::clear_rwbufi(atomicCountersBuf.getBuf(), zeroes);
+    d3d::zero_rwbufi(atomicCountersBuf.getBuf());
   }
 
   shaders::OverrideState zFuncState;
@@ -450,7 +449,6 @@ void generate_depth_mips(const TextureIDPair &tex)
   }
 
   tex.getTex2D()->texmiplevel(-1, -1);
-  tex.getTex2D()->texaddr(TEXADDR_BORDER);
 
   // Preserve state of `has_motion_vectors`.
   ShaderGlobal::set_int(has_motion_vectorsVarId, savedHasMotionVectors);
@@ -481,11 +479,9 @@ void generate_depth_mips(const TextureIDPair *depth_mips, int depth_mip_count)
     d3d::set_depth(depth_mips[i].getTex2D(), DepthAccess::RW);
     d3d::clearview(CLEAR_DISCARD_ZBUFFER, 0, 0.f, 0);
     downsampleDepth.render();
-    depth_mips[i - 1].getTex2D()->texaddr(TEXADDR_BORDER);
   }
   d3d::resource_barrier(
     {depth_mips[depth_mip_count - 1].getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE | RB_RO_COPY_SOURCE, 0, 1});
-  depth_mips[depth_mip_count - 1].getTex2D()->texaddr(TEXADDR_BORDER);
 
   shaders::overrides::reset();
 
@@ -548,7 +544,7 @@ void downsampleWithWaveIntin(const TextureIDPair &from_depth, int w, int h, cons
   {
     d3d::resource_barrier({far_depth.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE | RB_RO_COPY_SOURCE, 0, 1});
     far_depth.getTex2D()->texmiplevel(0, 0);
-    d3d::set_tex(STAGE_CS, 0, far_depth.getTex2D(), false);
+    d3d::set_tex(STAGE_CS, 0, far_depth.getTex2D());
 
     ShaderGlobal::set_int(downsampled_depth_mip_countVarId, farMipsCount + 1);
     for (int i = 1; i < far_depth.getTex2D()->level_count(); ++i)
@@ -573,7 +569,7 @@ void downsampleWithWaveIntin(const TextureIDPair &from_depth, int w, int h, cons
     d3d::resource_barrier({close_depth->getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE, 0, 1});
     d3d::resource_barrier({atomicCountersBuf.getBuf(), RB_NONE});
     close_depth->getTex2D()->texmiplevel(0, 0);
-    d3d::set_tex(STAGE_CS, 0, close_depth->getTex2D(), false);
+    d3d::set_tex(STAGE_CS, 0, close_depth->getTex2D());
 
     const int closeMipsCount = close_depth->getTex2D()->level_count() - 1;
     for (int i = 1; i < close_depth->getTex2D()->level_count(); ++i)
@@ -592,7 +588,7 @@ void downsampleWithWaveIntin(const TextureIDPair &from_depth, int w, int h, cons
   // Preserve state of `has_motion_vectors`.
   ShaderGlobal::set_int(has_motion_vectorsVarId, savedHasMotionVectors);
 
-  d3d::set_tex(STAGE_CS, 0, nullptr, false);
+  d3d::set_tex(STAGE_CS, 0, nullptr);
   d3d::set_rwbuffer(STAGE_CS, MAX_CS_SUPPORTED_MIPS, nullptr);
   for (int i = 0; i < MAX_CS_SUPPORTED_MIPS; ++i)
   {

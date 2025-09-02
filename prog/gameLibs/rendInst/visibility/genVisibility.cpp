@@ -41,6 +41,11 @@ void rendinst::destroyRIGenVisibility(RiGenVisibility *visibility)
   }
 }
 
+void rendinst::setRIForcedLocalPoolOrder(RiGenVisibility *visibility, bool forced_local_pool_order)
+{
+  visibility->riex.forcedLocalPoolOrder = forced_local_pool_order;
+}
+
 void rendinst::setRIGenVisibilityMinLod(RiGenVisibility *visibility, int ri_lod, int ri_extra_lod)
 {
   visibility[0].forcedLod = visibility[1].forcedLod = ri_lod;
@@ -84,6 +89,15 @@ bool rendinst::prepareRIGenVisibility(const Frustum &frustum, const Point3 &vpos
   return ret;
 }
 
+void rendinst::filterRIGenVisibilityById(const RiGenVisibility *visibility, RiGenVisibility *filteredVis,
+  const VisibilityExternalIdFilter &id_filter)
+{
+  FOR_EACH_RG_LAYER_DO (rgl)
+  {
+    rgl->filterRIGenVisibilityById(visibility[_layer], filteredVis[_layer], id_filter);
+  }
+}
+
 void rendinst::sortRIGenVisibility(RiGenVisibility *visibility, const Point3 &viewPos, const Point3 &viewDir, float vertivalFov,
   float horizontalFov, float areaThreshold, unsigned renderMaskO)
 {
@@ -107,6 +121,133 @@ struct SortByY
 {
   bool operator()(const IPoint2 &a, const IPoint2 &b) const { return a.y < b.y; }
 };
+
+
+void RendInstGenData::filterRIGenVisibilityById(const RiGenVisibility &visibility, RiGenVisibility &filteredVis,
+  const rendinst::VisibilityExternalIdFilter &id_filter)
+{
+  TIME_D3D_PROFILE(filter_visibility_by_id);
+
+  if (!visibility.vismask)
+  {
+    filteredVis.resizeRanges(0, 0);
+    filteredVis.startTreeInstances();
+    filteredVis.closeTreeInstances();
+    filteredVis.vismask = 0;
+    return;
+  }
+
+  filteredVis.resizeRanges(rtData->riRes.size(), 8);
+  filteredVis.forcedLod = visibility.forcedLod;
+  filteredVis.riex = visibility.riex;
+  filteredVis.riDistMul = visibility.riDistMul;
+  filteredVis.stride = visibility.stride;
+  filteredVis.vismask = 0;
+
+  Tab<uint32_t> passedInstanceIndices(tmpmem);
+
+  for (unsigned int ri_idx = 0; ri_idx < rtData->riRes.size(); ++ri_idx)
+  {
+    if (rendinst::isResHidden(rtData->riResHideMask[ri_idx]))
+      continue;
+
+    const int lodCnt = rtData->riResLodCount(ri_idx);
+    const int alphaFarLodNo = lodCnt + 1;
+    const int stride = RIGEN_STRIDE_B(rtData->riPosInst[ri_idx], rtData->riZeroInstSeeds[ri_idx], perInstDataDwords);
+    RenderRanges &rr = filteredVis.renderRanges[ri_idx];
+    rr.vismask = 0;
+
+    filteredVis.startRenderRange(ri_idx);
+    for (int lodI = 0; lodI < alphaFarLodNo; ++lodI)
+    {
+      if (!visibility.renderRanges[ri_idx].hasCells(lodI))
+        continue;
+
+      for (uint32_t cellIdx = visibility.renderRanges[ri_idx].startCell[lodI]; cellIdx < visibility.renderRanges[ri_idx].endCell[lodI];
+           ++cellIdx)
+      {
+        const RiGenVisibility::CellRange &cellRange = visibility.cellsLod[lodI][cellIdx];
+        const CellRtData *crt = cells[cellRange.x + cellRange.z * cellNumW].isReady();
+        if (!crt)
+          continue;
+
+        passedInstanceIndices.clear();
+
+        for (uint32_t subCellIdx = 0; subCellIdx < cellRange.startSubCellCnt; ++subCellIdx)
+        {
+          const auto &subCell = visibility.subCells[cellRange.startSubCell + subCellIdx];
+          for (uint16_t instIdx = 0; instIdx < subCell.cnt; ++instIdx)
+          {
+            uint32_t instanceOfs = subCell.ofs + instIdx;
+            const int16_t *data = (const int16_t *)(crt->sysMemData.get() + cellRange.startVbOfs + instanceOfs * stride);
+
+            mat44f tm44;
+            const float cellSzVal = grid2world * this->cellSz;
+            const vec3f v_cell_mul = v_mul(rendinst::gen::VC_1div32767, v_make_vec4f(cellSzVal, crt->cellHeight, cellSzVal, 0));
+
+            if (rtData->riPosInst[ri_idx])
+              rendinst::gen::unpack_tm_pos(tm44, data, crt->cellOrigin, v_cell_mul, rtData->riPaletteRotation[ri_idx]);
+            else
+              rendinst::gen::unpack_tm_full(tm44, data, crt->cellOrigin, v_cell_mul);
+
+            TMatrix tm;
+            v_mat_43cu_from_mat44(tm.array, tm44);
+
+            if (id_filter(ri_idx, tm))
+              passedInstanceIndices.push_back(instanceOfs);
+          }
+        }
+
+        if (!passedInstanceIndices.empty())
+        {
+          filteredVis.addCell(lodI, cellRange.x, cellRange.z, cellRange.startVbOfs);
+          stlsort::sort(passedInstanceIndices.begin(), passedInstanceIndices.end());
+
+          uint32_t range_start = passedInstanceIndices[0];
+          uint32_t range_len = 1;
+          for (size_t i = 1; i < passedInstanceIndices.size(); ++i)
+          {
+            if (passedInstanceIndices[i] == passedInstanceIndices[i - 1] + 1)
+              range_len++;
+            else
+            {
+              filteredVis.addRange(lodI, cellRange.startVbOfs + range_start * stride, range_len * stride);
+              range_start = passedInstanceIndices[i];
+              range_len = 1;
+            }
+          }
+          filteredVis.addRange(lodI, cellRange.startVbOfs + range_start * stride, range_len * stride);
+          filteredVis.closeRanges(lodI);
+        }
+      }
+      rr.vismask |= VIS_HAS_OPAQUE;
+    }
+    filteredVis.endRenderRange(ri_idx);
+
+    // update vismask
+    if (rr.hasCells(alphaFarLodNo))
+      rr.vismask |= VIS_HAS_TRANSP;
+    if (rtData->rtPoolData[ri_idx] && rtData->rtPoolData[ri_idx]->hasImpostor())
+      if ((rr.vismask & VIS_HAS_TRANSP) || rr.hasCells(alphaFarLodNo - 1))
+        rr.vismask |= VIS_HAS_IMPOSTOR;
+    filteredVis.vismask |= rr.vismask;
+  }
+
+  filteredVis.startTreeInstances();
+  filteredVis.closeTreeInstances();
+
+  // update vismask
+  if (rendinst::render::per_instance_visibility)
+  {
+    if (!filteredVis.perInstanceVisibilityCells[RiGenVisibility::PI_ALPHA_LOD].empty())
+      filteredVis.vismask |= VIS_HAS_TRANSP;
+    if ((filteredVis.vismask & VIS_HAS_TRANSP) || !filteredVis.perInstanceVisibilityCells[RiGenVisibility::PI_IMPOSTOR_LOD].empty())
+      filteredVis.vismask |= VIS_HAS_IMPOSTOR;
+    for (int i = 0; i < RiGenVisibility::PI_ALPHA_LOD; ++i)
+      if (!filteredVis.perInstanceVisibilityCells[i].empty())
+        filteredVis.vismask |= VIS_HAS_OPAQUE;
+  }
+}
 
 template <bool use_external_filter>
 bool RendInstGenData::prepareVisibility(const Frustum &frustum, const Point3 &camera_pos, RiGenVisibility &visibility, bool forShadow,
@@ -284,6 +425,7 @@ bool RendInstGenData::prepareVisibility(const Frustum &frustum, const Point3 &ca
       farLodStartRange = 0;
     float farLodEndRange =
       pool.hasImpostor() ? rtData->get_trees_last_range(pool.lodRange[farLodNo]) : rtData->get_last_range(pool.lodRange[farLodNo]);
+    farLodStartRange *= visibility.riDistMul;
     farLodEndRange *= visibility.riDistMul;
     farLodStartRange = min(farLodStartRange, farLodEndRange * 0.99f);
     float farLodEndRangeSq = farLodEndRange * farLodEndRange;
@@ -314,13 +456,14 @@ bool RendInstGenData::prepareVisibility(const Frustum &frustum, const Point3 &ca
     {
       const auto instanceLod = lodI + lodTranslation;
       lodDistancesSq_perInst[instanceLod] =
-        pool.hasImpostor() ? rtData->get_trees_range(pool.lodRange[lodI - 1]) : rtData->get_range(pool.lodRange[lodI - 1]);
+        (pool.hasImpostor() ? rtData->get_trees_range(pool.lodRange[lodI - 1]) : rtData->get_range(pool.lodRange[lodI - 1])) *
+        visibility.riDistMul;
     }
     if (!hasImpostor)
       lodDistancesSq_perInst[visibility.PI_ALPHA_LOD] = 100000;
 
     lodDistancesSq_perInst[lodTranslation] = -1.f;
-    if (alphaBlendOnSubCellRadius < 0)
+    if (alphaBlendOnSubCellRadius < 0 || alphaBlendOnCellRadius < 0)
       lodDistancesSq_perInst[visibility.PI_ALPHA_LOD] = lodDistancesSq_perInst[visibility.PI_IMPOSTOR_LOD];
     else
       lodDistancesSq_perInst[visibility.PI_ALPHA_LOD] = alphaBlendOnSubCellRadius + subCellOfsSize;
@@ -365,6 +508,8 @@ bool RendInstGenData::prepareVisibility(const Frustum &frustum, const Point3 &ca
       if (!crt_ptr)
         continue;
       const RendInstGenData::CellRtData &crt = *crt_ptr;
+      if (!crt.isDataUploaded())
+        continue;
       if (crt.pools[ri_idx].total - crt.pools[ri_idx].avail < 1)
         continue;
 

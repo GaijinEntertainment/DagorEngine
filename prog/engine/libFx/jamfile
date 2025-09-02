@@ -7,7 +7,6 @@ Target      = engine/libFx.lib ;
 AddIncludes = $(Root)/prog/engine/sharedInclude ;
 
 Sources =
-  effectsInterface.cpp
   fxTex.cpp
 
   leavesWind.cpp

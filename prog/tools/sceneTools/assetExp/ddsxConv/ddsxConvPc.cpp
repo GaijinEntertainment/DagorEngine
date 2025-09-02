@@ -5,11 +5,6 @@
 #include <3d/ddsxTex.h>
 #include <3d/ddsFormat.h>
 #include <drv/3d/dag_tex3d.h>
-#if _TARGET_PC_WIN
-#include <d3d9.h>
-#include <DXGIFormat.h>
-#include <windows.h>
-#endif
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
@@ -971,11 +966,11 @@ static bool convert_dds_tex(ddsx::Buffer &dest, DDSURFACEDESC2 &dsc, uint8_t *sp
 class PcDdsxExport : public IDdsxCreatorPlugin
 {
 public:
-  virtual bool __stdcall startup() { return true; }
+  bool __stdcall startup() override { return true; }
 
-  virtual void __stdcall shutdown() {}
+  void __stdcall shutdown() override {}
 
-  virtual unsigned __stdcall targetCode()
+  unsigned __stdcall targetCode() override
   {
 #define _MAKE4C(x) MAKE4C((int(x) >> 24) & 0xFF, (int(x) >> 16) & 0xFF, (int(x) >> 8) & 0xFF, int(x) & 0xFF)
 #ifdef IOS_EXP
@@ -987,7 +982,7 @@ public:
 #endif
   }
 
-  virtual bool __stdcall convertDds(ddsx::Buffer &dest, void *dds_data, int dds_len, const ddsx::ConvertParams &p)
+  bool __stdcall convertDds(ddsx::Buffer &dest, void *dds_data, int dds_len, const ddsx::ConvertParams &p) override
   {
     dest.zero();
 
@@ -1005,13 +1000,13 @@ public:
       return convert_dds_tex(dest, *dsc, ((uint8_t *)dds_data) + data_ofs, dds_len - data_ofs, fmt, bpp, p);
   }
 
-  virtual int __stdcall getTexDataHeaderSize(const void * /*data*/) const { return sizeof(ddsx::Header); }
-  virtual bool __stdcall checkCompressionSupport(int compr_flag) const
+  int __stdcall getTexDataHeaderSize(const void * /*data*/) const override { return sizeof(ddsx::Header); }
+  bool __stdcall checkCompressionSupport(int compr_flag) const override
   {
     return compr_flag == ddsx::Header::FLG_ZLIB || compr_flag == ddsx::Header::FLG_7ZIP || compr_flag == ddsx::Header::FLG_OODLE ||
            compr_flag == ddsx::Header::FLG_ZSTD;
   }
-  virtual void __stdcall setTexDataHeaderCompression(void *data, int compr_sz, int compr_flag) const
+  void __stdcall setTexDataHeaderCompression(void *data, int compr_sz, int compr_flag) const override
   {
     if (!checkCompressionSupport(compr_flag) || (compr_flag & ddsx::Header::FLG_COMPR_MASK) != compr_flag)
       return;
@@ -1021,7 +1016,7 @@ public:
     hdr->packedSz = compr_sz;
   }
 
-  virtual const char *__stdcall getLastErrorText() { return errBuf[0] ? errBuf : NULL; }
+  const char *__stdcall getLastErrorText() override { return errBuf[0] ? errBuf : NULL; }
 };
 
 static PcDdsxExport plugin;
@@ -1032,7 +1027,7 @@ extern "C"
 #elif _TARGET_PC_LINUX
   __attribute__((visibility("default")))
 #endif
-    IDdsxCreatorPlugin *__stdcall get_plugin(IDdsxCreatorPlugin::IAlloc *a)
+  IDdsxCreatorPlugin *__stdcall get_plugin(IDdsxCreatorPlugin::IAlloc *a)
 {
   alloc = a;
   return &plugin;

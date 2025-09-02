@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include <rendInst/rendInstConsts.h>
 #include <rendInst/rendInstExtra.h>
 #include <vecmath/dag_vecMath.h>
 #include <math/dag_e3dColor.h>
@@ -19,7 +20,7 @@ namespace rendinst
 
 struct RiExtraPool
 {
-  static constexpr int MAX_LODS = 4;
+  static constexpr int MAX_LODS = RI_MAX_LODS;
 
 
   RenderableInstanceLodsResource *res = nullptr;
@@ -32,7 +33,6 @@ struct RiExtraPool
   {
     float distSqLOD[MAX_LODS];
     unsigned distSqLOD_i[MAX_LODS];
-    vec4f distSqLODV;
   };
   int riPoolRef = -1;
   LayerFlags layers = {};
@@ -108,7 +108,9 @@ struct RiExtraPool
   int destrCompositeFxId = -1;
   float destrFxScale = 0;
   float destrTimeToLive = -1.f;
+  float destrDefaultTimeToLive = -1.f;
   float destrTimeToKinematic = -1.f;
+  float destrTimeToSinkUnderground = -1.f;
   int dmgFxType = -1;
   float dmgFxScale = 1.f;
   float damageThreshold = 0;
@@ -130,16 +132,17 @@ struct RiExtraPool
   };
   Tab<RiLandclassCachedData> riLandclassCachedData; // 0 size if not RI landclass (dirty hack to emulate unique ptr)
 
-  float hardness = 1.f;
+  float softness = 1.f;
   float rendinstHeight = 0.f; // some buildings made by putting one ri at other, so the actual height of ri not equal bbox height
 
   float plodRadius = 0.0f;
 
   int clonedFromIdx = -1;
 
-  char qlPrevBestLod = 0;
   SimpleString dmgFxTemplate;
   SimpleString destrFxTemplate;
+
+  SimpleString materialMarkedForHiding;
 
   float scaleForPrepasses = 1.0f;
 
@@ -208,7 +211,7 @@ struct RiExtraPool
   {
     if (idx < 0 || idx >= tsNodeIdx.size())
       return scene::INVALID_NODE;
-    return tsNodeIdx[idx] & 0x3fffffff;
+    return tsNodeIdx.data()[idx] & 0x3fffffff;
   }
   float bsphRad() const { return v_extract_w(bsphXYZR); }
 

@@ -43,6 +43,15 @@ static void find_real_files_in_folder(Tab<SimpleString> &out_list, const char *d
   }
 }
 
+#if _TARGET_PC_WIN
+#include "findFilesInRealFS.h"
+#else
+inline void find_real_files_in_folder_ex(Tab<SimpleString> &l, const char *dir, const char *suffix, bool subdirs)
+{
+  find_real_files_in_folder(l, dir, suffix, subdirs);
+}
+#endif
+
 static void find_vromfs_files_in_folder(Tab<SimpleString> &out_list, const char *dir_path, const char *file_suffix_to_match,
   bool subdirs)
 {
@@ -125,7 +134,7 @@ int find_files_in_folder(Tab<SimpleString> &out_list, const char *dir_path, cons
   if (vromfs && vromfs_first_priority)
     find_vromfs_files_in_folder(out_list, dir_path, file_suffix_to_match, subdirs);
   if (realfs)
-    find_real_files_in_folder(out_list, dir_path, file_suffix_to_match, subdirs);
+    find_real_files_in_folder_ex(out_list, dir_path, file_suffix_to_match, subdirs);
   if (vromfs && !vromfs_first_priority)
     find_vromfs_files_in_folder(out_list, dir_path, file_suffix_to_match, subdirs);
 

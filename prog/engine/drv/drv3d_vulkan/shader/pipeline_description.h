@@ -190,8 +190,8 @@ struct InputLayout
   InputLayout() = default;
   InputLayout(const CreationInfo &info) { *this = info; };
 
-  void addToContext(DeviceContext &, InputLayoutID, const CreationInfo &){};
-  void removeFromContext(DeviceContext &, InputLayoutID){};
+  void addToContext(DeviceContext &, InputLayoutID, const CreationInfo &) {}
+  void removeFromContext(DeviceContext &, InputLayoutID) {}
 
   bool isSame(const CreationInfo &info);
   uint32_t getHash32() const

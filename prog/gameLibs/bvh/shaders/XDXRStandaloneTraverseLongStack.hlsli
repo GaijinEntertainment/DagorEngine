@@ -268,7 +268,7 @@ uint64_t Uint2ToGpuVA(
     uint x,
     uint y)
 {
-    return ((uint64_t)x) | ((uint64_t)y << 32ull);
+    return ((uint64_t)x) | ((uint64_t)y << uint64_t(32));
 }
 
 inline
@@ -443,7 +443,7 @@ uint64_t XdxrNodePointerToVA(
     XboxBvh4NodePtr nodePtr)
 {
 
-    return vaBVH + ((uint64_t)(nodePtr >> 3)) * 64ull;
+    return vaBVH + ((uint64_t)(nodePtr >> 3)) * uint64_t(64);
 }
 
 inline
@@ -451,7 +451,7 @@ XboxBvh4NodePtr XdxrVAToNodePointer(
     uint64_t vaBVH,
     uint64_t vaNode)
 {
-    return (XboxBvh4NodePtr)( ( (vaNode - vaBVH) / 64ull ) << 3 );
+    return (XboxBvh4NodePtr)( ( (vaNode - vaBVH) / uint64_t(64) ) << 3 );
 }
 
 inline
@@ -801,7 +801,7 @@ uint64_t XdxrBvhGetSizeBytes(
 
 
 
-    const uint64_t bvhSize = (pHeader.totalSizeIn64BNodes + 1) * 64ULL;
+    const uint64_t bvhSize = (pHeader.totalSizeIn64BNodes + 1) * uint64_t(64);
 
     return bvhSize;
 }
@@ -2103,7 +2103,7 @@ export uint64_t XDXR_Runtime_Callback_PackTraceRayParams01(
     uint64_t tlas,
     uint rayFlags)
 {
-    return ((tlas & 0xffffffff00ull) >> 8) |
+    return ((tlas & uint64_t(0xffffffff00)) >> 8) |
            (((uint64_t)(rayFlags)) << 32);
 }
 
@@ -2156,7 +2156,7 @@ float3x4 GetWorldToObjectMatrix(
     if (BvhIsTranslated(compressionParams))
     {
         uint32_t vaBLAS_aligned = GpuVALoad1(instanceVA + XboxBvh4Instance_OffsetToBlasPointer);
-        uint64_t vaBLAS = uint64_t(vaBLAS_aligned) << 8ull;
+        uint64_t vaBLAS = uint64_t(vaBLAS_aligned) << uint64_t(8);
         float3 minBound = asfloat(GpuVALoad3(vaBLAS + XboxBvh4Header_OffsetToSceneBounds_Min_X));
         float3 maxBound = asfloat(GpuVALoad3(vaBLAS + XboxBvh4Header_OffsetToSceneBounds_Max_X));
         float3 objectCenter = BvhGetTranslation(minBound, maxBound);
@@ -2656,14 +2656,14 @@ uint4 BvhMakeDescriptor(
     bool bigPages,
     bool triangleReturnMode)
 {
-    uint64_t low64 = (baseAddress / 256) & 0xFFFFFFFFFFull;
+    uint64_t low64 = (baseAddress / 256) & uint64_t(0xFFFFFFFFFF);
     low64 |= (uint64_t)min(boxGrowingAmount, 255) << 55;
     low64 |= (uint64_t)boxSortingEnabled << 63;
 
     const uint64_t sizeIn64B = (addressRange + 63) / 64;
     const uint type = 8;
 
-    uint64_t high64 = (sizeIn64B - 1) & 0x3FFFFFFFFFFull;
+    uint64_t high64 = (sizeIn64B - 1) & uint64_t(0x3FFFFFFFFFF);
     high64 |= (uint64_t)triangleReturnMode << 56;
     high64 |= (uint64_t)bigPages << 59;
     high64 |= (uint64_t)type << 60;
@@ -2725,7 +2725,7 @@ inline
 uint64_t Uint2ToUint64(
     uint2 v)
 {
-    return ((uint64_t)v.x) | ((uint64_t)v.y << 32ull);
+    return ((uint64_t)v.x) | ((uint64_t)v.y << uint64_t(32));
 }
 static const uint TRAVERSE_STEP_RESULT_BREAK = 0;
 static const uint TRAVERSE_STEP_RESULT_INTERSECT_ANYHIT_ALLOWED = 1;

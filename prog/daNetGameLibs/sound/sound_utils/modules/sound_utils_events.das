@@ -6,6 +6,10 @@ struct EventOnSoundPresetLoaded
   hash : uint
   isLoaded : bool
 
+[cpp_event(broadcast)]
+struct EventOnMasterSoundPresetLoaded
+  isLoaded : bool
+
 [event(unicast)]
 struct CmdPlaySound
   hash : uint

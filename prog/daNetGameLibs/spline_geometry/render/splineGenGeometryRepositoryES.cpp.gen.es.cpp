@@ -1,23 +1,28 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "splineGenGeometryRepositoryES.cpp.inl"
 ECS_DEF_PULL_VAR(splineGenGeometryRepository);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc load_spline_gen_template_params_ecs_query_comps[] =
 {
-//start of 7 ro components at [0]
+//start of 10 ro components at [0]
   {ECS_HASH("spline_gen_template__template_name"), ecs::ComponentTypeInfo<ecs::string>()},
   {ECS_HASH("spline_gen_template__slices"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("spline_gen_template__stripes"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("spline_gen_template__diffuse_name"), ecs::ComponentTypeInfo<ecs::string>()},
   {ECS_HASH("spline_gen_template__normal_name"), ecs::ComponentTypeInfo<ecs::string>()},
   {ECS_HASH("spline_gen_template__asset_name"), ecs::ComponentTypeInfo<ecs::string>()},
+  {ECS_HASH("spline_gen_template__shader_type"), ecs::ComponentTypeInfo<ecs::string>()},
+  {ECS_HASH("spline_gen_template__emissive_mask_name"), ecs::ComponentTypeInfo<ecs::string>()},
+  {ECS_HASH("spline_gen_template__skin_ao_tex_name"), ecs::ComponentTypeInfo<ecs::string>()},
   {ECS_HASH("spline_gen_template__asset_lod"), ecs::ComponentTypeInfo<int>()}
 };
 static ecs::CompileTimeQueryDesc load_spline_gen_template_params_ecs_query_desc
 (
   "load_spline_gen_template_params_ecs_query",
   empty_span(),
-  make_span(load_spline_gen_template_params_ecs_query_comps+0, 7)/*ro*/,
+  make_span(load_spline_gen_template_params_ecs_query_comps+0, 10)/*ro*/,
   empty_span(),
   empty_span());
 template<typename Callable>
@@ -35,6 +40,9 @@ inline void load_spline_gen_template_params_ecs_query(Callable function)
             , ECS_RO_COMP(load_spline_gen_template_params_ecs_query_comps, "spline_gen_template__diffuse_name", ecs::string)
             , ECS_RO_COMP(load_spline_gen_template_params_ecs_query_comps, "spline_gen_template__normal_name", ecs::string)
             , ECS_RO_COMP(load_spline_gen_template_params_ecs_query_comps, "spline_gen_template__asset_name", ecs::string)
+            , ECS_RO_COMP(load_spline_gen_template_params_ecs_query_comps, "spline_gen_template__shader_type", ecs::string)
+            , ECS_RO_COMP(load_spline_gen_template_params_ecs_query_comps, "spline_gen_template__emissive_mask_name", ecs::string)
+            , ECS_RO_COMP(load_spline_gen_template_params_ecs_query_comps, "spline_gen_template__skin_ao_tex_name", ecs::string)
             , ECS_RO_COMP(load_spline_gen_template_params_ecs_query_comps, "spline_gen_template__asset_lod", int)
             );
 

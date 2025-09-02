@@ -71,7 +71,7 @@ public:
   eastl::unique_ptr<DynamicPhysObjectClass<PhysWorld>> physObj;
   eastl::unique_ptr<destructables::DestrRendData, destructables::DestrRendDataDeleter> rendData;
   int resIdx;
-  Point4 intialTmAndHash[4]; // row0-1 - initialTm(43), row3 = hash
+  Point4 intialTmAndHash[4]; // row0-2 - initialTm(43), row3 = hash
 
   DestructableObject(const destructables::DestructableCreationParams &params, PhysWorld *phys_world, float scale_dt);
   bool update(float dt, float cur_dt_scale, bool force_update_ttl); // return false if it need to be destroyed

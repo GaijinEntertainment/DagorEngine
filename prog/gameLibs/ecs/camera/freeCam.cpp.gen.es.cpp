@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "freeCam.cpp.inl"
 ECS_DEF_PULL_VAR(freeCam);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc free_cam_es_comps[] =
 {
@@ -96,9 +98,9 @@ static ecs::CompileTimeQueryDesc get_free_cam_speeds_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void get_free_cam_speeds_ecs_query(Callable function)
+inline void get_free_cam_speeds_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, get_free_cam_speeds_ecs_query_desc.getHandle(),
+  perform_query(&manager, get_free_cam_speeds_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do

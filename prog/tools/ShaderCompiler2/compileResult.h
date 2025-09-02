@@ -19,5 +19,6 @@ struct CompileResult
   eastl::vector<uint8_t> bytecode;
   eastl::string disassembly;
   eastl::string errors;
+  eastl::string logs;
   ComputeShaderInfo computeShaderInfo;
 };

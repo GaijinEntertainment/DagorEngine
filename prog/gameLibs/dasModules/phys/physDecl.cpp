@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <dasModules/aotPhysDecl.h>
+#include <phys/dag_physics.h>
 #include <dasModules/aotGeomNodeTree.h>
 
 struct PhysSystemInstanceAnnotation : das::ManagedStructureAnnotation<PhysSystemInstance, false>
@@ -151,9 +152,21 @@ public:
     das::addExtern<DAS_CALL_METHOD(method_getVelocity)>(*this, lib, "phys_body_getVelocity", das::SideEffects::none,
       DAS_CALL_MEMBER_CPP(PhysBody::getVelocity));
 
+    using method_setAngularVelocity = DAS_CALL_MEMBER(PhysBody::setAngularVelocity);
+    das::addExtern<DAS_CALL_METHOD(method_setAngularVelocity)>(*this, lib, "phys_body_setAngularVelocity",
+      das::SideEffects::modifyArgument, DAS_CALL_MEMBER_CPP(PhysBody::setAngularVelocity));
+
+    using method_getAngularVelocity = DAS_CALL_MEMBER(PhysBody::getAngularVelocity);
+    das::addExtern<DAS_CALL_METHOD(method_getAngularVelocity)>(*this, lib, "phys_body_getAngularVelocity", das::SideEffects::none,
+      DAS_CALL_MEMBER_CPP(PhysBody::getAngularVelocity));
+
     using method_setGravity = DAS_CALL_MEMBER(PhysBody::setGravity);
     das::addExtern<DAS_CALL_METHOD(method_setGravity)>(*this, lib, "phys_body_setGravity", das::SideEffects::modifyArgument,
       DAS_CALL_MEMBER_CPP(PhysBody::setGravity));
+
+    using method_disableGravity = DAS_CALL_MEMBER(PhysBody::disableGravity);
+    das::addExtern<DAS_CALL_METHOD(method_disableGravity)>(*this, lib, "phys_body_disableGravity", das::SideEffects::modifyArgument,
+      DAS_CALL_MEMBER_CPP(PhysBody::disableGravity));
 
     using method_activateBody = DAS_CALL_MEMBER(PhysBody::activateBody);
     das::addExtern<DAS_CALL_METHOD(method_activateBody)>(*this, lib, "phys_body_activateBody", das::SideEffects::modifyArgument,
@@ -167,10 +180,6 @@ public:
     das::addExtern<DAS_CALL_METHOD(method_disableDeactivation)>(*this, lib, "phys_body_disableDeactivation",
       das::SideEffects::modifyArgument, DAS_CALL_MEMBER_CPP(PhysBody::disableDeactivation));
 
-    using method_setAngularVelocity = DAS_CALL_MEMBER(PhysBody::setAngularVelocity);
-    das::addExtern<DAS_CALL_METHOD(method_setAngularVelocity)>(*this, lib, "phys_body_setAngularVelocity",
-      das::SideEffects::modifyArgument, DAS_CALL_MEMBER_CPP(PhysBody::setAngularVelocity));
-
     das::addExtern<DAS_BIND_FUN(projectile_impulse_get_data)>(*this, lib, "projectile_impulse_get_data",
       das::SideEffects::accessExternal, "bind_dascript::projectile_impulse_get_data");
 
@@ -182,6 +191,8 @@ public:
   das::ModuleAotType aotRequire(das::TextWriter &tw) const override
   {
     tw << "#include <dasModules/aotPhysDecl.h>\n";
+    tw << "#include <phys/dag_physics.h>\n";
+
     return das::ModuleAotType::cpp;
   }
 };

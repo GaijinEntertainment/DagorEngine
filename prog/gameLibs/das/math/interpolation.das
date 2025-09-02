@@ -1,3 +1,4 @@
+options indenting = 2
 module interpolation shared
 require ecs
 require DagorMath

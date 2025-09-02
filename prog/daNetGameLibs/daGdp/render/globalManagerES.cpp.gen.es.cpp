@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "globalManagerES.cpp.inl"
 ECS_DEF_PULL_VAR(globalManager);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc dagdp_update_es_comps[] =
 {
@@ -188,10 +190,14 @@ static ecs::EntitySystemDesc dagdp_placer_changed_es_es_desc
 ,"render","dagdp__name,dagdp__object_groups");
 static constexpr ecs::ComponentDesc dagdp_level_settings_changed_es_comps[] =
 {
-//start of 3 rq components at [0]
-  {ECS_HASH("dagdp__use_heightmap_dynamic_objects"), ecs::ComponentTypeInfo<bool>()},
+//start of 7 rq components at [0]
   {ECS_HASH("dagdp_level_settings"), ecs::ComponentTypeInfo<ecs::Tag>()},
-  {ECS_HASH("dagdp__max_objects"), ecs::ComponentTypeInfo<int>()}
+  {ECS_HASH("dagdp__default_target_mesh_lod"), ecs::ComponentTypeInfo<int>()},
+  {ECS_HASH("dagdp__max_meshes"), ecs::ComponentTypeInfo<int>()},
+  {ECS_HASH("dagdp__max_objects"), ecs::ComponentTypeInfo<int>()},
+  {ECS_HASH("dagdp__max_tiles"), ecs::ComponentTypeInfo<int>()},
+  {ECS_HASH("dagdp__max_triangles"), ecs::ComponentTypeInfo<int>()},
+  {ECS_HASH("dagdp__max_volumes"), ecs::ComponentTypeInfo<int>()}
 };
 static void dagdp_level_settings_changed_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
@@ -206,28 +212,32 @@ static ecs::EntitySystemDesc dagdp_level_settings_changed_es_es_desc
   ecs::EntitySystemOps(nullptr, dagdp_level_settings_changed_es_all_events),
   empty_span(),
   empty_span(),
-  make_span(dagdp_level_settings_changed_es_comps+0, 3)/*rq*/,
+  make_span(dagdp_level_settings_changed_es_comps+0, 7)/*rq*/,
   empty_span(),
   ecs::EventSetBuilder<ecs::EventEntityCreated,
                        ecs::EventComponentsAppear,
                        ecs::EventEntityDestroyed,
                        ecs::EventComponentsDisappear>::build(),
   0
-,"render","dagdp__max_objects,dagdp__use_heightmap_dynamic_objects");
+,"render","dagdp__default_target_mesh_lod,dagdp__max_meshes,dagdp__max_objects,dagdp__max_tiles,dagdp__max_triangles,dagdp__max_volumes");
 static constexpr ecs::ComponentDesc level_settings_ecs_query_comps[] =
 {
-//start of 2 ro components at [0]
+//start of 6 ro components at [0]
   {ECS_HASH("dagdp__max_objects"), ecs::ComponentTypeInfo<int>()},
-  {ECS_HASH("dagdp__use_heightmap_dynamic_objects"), ecs::ComponentTypeInfo<bool>()},
-//start of 1 rq components at [2]
+  {ECS_HASH("dagdp__max_triangles"), ecs::ComponentTypeInfo<int>()},
+  {ECS_HASH("dagdp__max_meshes"), ecs::ComponentTypeInfo<int>()},
+  {ECS_HASH("dagdp__max_tiles"), ecs::ComponentTypeInfo<int>()},
+  {ECS_HASH("dagdp__max_volumes"), ecs::ComponentTypeInfo<int>()},
+  {ECS_HASH("dagdp__default_target_mesh_lod"), ecs::ComponentTypeInfo<int>()},
+//start of 1 rq components at [6]
   {ECS_HASH("dagdp_level_settings"), ecs::ComponentTypeInfo<ecs::Tag>()}
 };
 static ecs::CompileTimeQueryDesc level_settings_ecs_query_desc
 (
   "dagdp::level_settings_ecs_query",
   empty_span(),
-  make_span(level_settings_ecs_query_comps+0, 2)/*ro*/,
-  make_span(level_settings_ecs_query_comps+2, 1)/*rq*/,
+  make_span(level_settings_ecs_query_comps+0, 6)/*ro*/,
+  make_span(level_settings_ecs_query_comps+6, 1)/*rq*/,
   empty_span());
 template<typename Callable>
 inline void dagdp::level_settings_ecs_query(Callable function)
@@ -239,7 +249,11 @@ inline void dagdp::level_settings_ecs_query(Callable function)
         {
           function(
               ECS_RO_COMP(level_settings_ecs_query_comps, "dagdp__max_objects", int)
-            , ECS_RO_COMP(level_settings_ecs_query_comps, "dagdp__use_heightmap_dynamic_objects", bool)
+            , ECS_RO_COMP(level_settings_ecs_query_comps, "dagdp__max_triangles", int)
+            , ECS_RO_COMP(level_settings_ecs_query_comps, "dagdp__max_meshes", int)
+            , ECS_RO_COMP(level_settings_ecs_query_comps, "dagdp__max_tiles", int)
+            , ECS_RO_COMP(level_settings_ecs_query_comps, "dagdp__max_volumes", int)
+            , ECS_RO_COMP(level_settings_ecs_query_comps, "dagdp__default_target_mesh_lod", int)
             );
 
         }while (++comp != compE);

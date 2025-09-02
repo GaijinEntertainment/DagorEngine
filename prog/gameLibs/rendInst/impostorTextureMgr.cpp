@@ -33,11 +33,19 @@
 
 #include <render/rendinst_impostor_dirs.hlsli>
 
+namespace rendinst
+{
+namespace render
+{
+extern Vbuffer *oneInstanceTmVb;
+}
+} // namespace rendinst
 
-static int globalFrameBlockId = -1;
-static int rendinstSceneBlockId = -1;
 
-#define GLOBAL_VARS_LIST VAR(treeCrown_buf_slot)
+static ShaderBlockIdHolder globalFrameBlockId{"global_frame"};
+static ShaderBlockIdHolder rendinstSceneBlockId{"rendinst_scene"};
+
+#define GLOBAL_VARS_LIST
 
 #define GLOBAL_OPTIONAL_VARS_LIST       \
   VAR(impostor_bounding_sphere)         \
@@ -53,7 +61,8 @@ static int rendinstSceneBlockId = -1;
   VAR(impostor_shadow)                  \
   VAR(impostor_scale)                   \
   VAR(impostor_slice)                   \
-  VAR(texture_size)
+  VAR(texture_size)                     \
+  VAR(treeCrown_buf_slot)
 
 #define VAR(a) static int a##VarId = -1;
 GLOBAL_VARS_LIST
@@ -114,12 +123,10 @@ ImpostorTextureManager::ImpostorTextureManager()
   GLOBAL_OPTIONAL_VARS_LIST
 #undef VAR
 
-  treeCrownBufSlot = ShaderGlobal::get_int(treeCrown_buf_slotVarId);
+  if (VariableMap::isVariablePresent(treeCrown_buf_slotVarId))
+    treeCrownBufSlot = ShaderGlobal::get_int(treeCrown_buf_slotVarId);
 
   ::init_rendinst_impostor_shader();
-
-  globalFrameBlockId = ShaderGlobal::getBlockId("global_frame");
-  rendinstSceneBlockId = ShaderGlobal::getBlockId("rendinst_scene");
 
   shaders::OverrideState state;
   state.set(shaders::OverrideState::Z_FUNC);
@@ -312,6 +319,86 @@ Point3 ImpostorTextureManager::get_point_to_eye_octahedral(uint32_t h, uint32_t 
   return get_point_to_eye_octahedral(h, v, gen_data.horizontalSamples, gen_data.verticalSamples);
 }
 
+void ImpostorTextureManager::render_instances(const TMatrix &view_to_world, float scale_x, float scale_y, float zn, float zf,
+  RenderableInstanceLodsResource *res, dag::Span<TMatrix> placement, int block_id, int lod)
+{
+  if (lod < 0)
+    lod = res->getQlMinAllowedLod();
+  G_ASSERT(lod >= res->getQlBestLod());
+  TIME_D3D_PROFILE(RenderImpostor);
+
+  rendinst::gen::ScopedDisablePaletteRotation disableRotation;
+
+  static const E3DCOLOR defaultColors[] = {E3DCOLOR(127, 127, 127, 127), E3DCOLOR(127, 127, 127, 127)};
+
+  res->lods[lod].scene->getMesh()->getMesh()->getMesh()->acquireTexRefs();
+
+  TMatrix4 projTm = matrix_ortho_lh_reverse(scale_x, scale_y, zn, zf);
+  d3d::settm(TM_PROJ, &projTm);
+
+  TMatrix viewItm = view_to_world;
+  TMatrix viewTm = orthonormalized_inverse(view_to_world);
+  d3d::settm(TM_VIEW, viewTm);
+  Point3_vec4 col[3];
+  for (int i = 0; i < 3; ++i)
+    col[i] = viewItm.getcol(i);
+  LeavesWindEffect::setNoAnimShaderVars(col[0], col[1], col[2]);
+
+  IPoint2 viewOffset;
+  IPoint2 viewSize;
+  float zmin, zmax;
+  d3d::getview(viewOffset.x, viewOffset.y, viewSize.x, viewSize.y, zmin, zmax);
+  d3d::setscissor(viewOffset.x, viewOffset.y, viewSize.x, viewSize.y);
+
+  for (const auto &tm : placement)
+  {
+    if (auto data = lock_sbuffer<Point4>(rendinst::render::oneInstanceTmVb, 0, 4, VBLOCK_WRITEONLY))
+    {
+      data[0] = Point4(tm.col[0].x, tm.col[1].x, tm.col[2].x, tm.col[3].x);
+      data[1] = Point4(tm.col[0].y, tm.col[1].y, tm.col[2].y, tm.col[3].y);
+      data[2] = Point4(tm.col[0].z, tm.col[1].z, tm.col[2].z, tm.col[3].z);
+      data[3] = Point4(0, 0, 0, 1);
+    }
+    d3d::set_buffer(STAGE_VS, rendinst::render::instancingTexRegNo, rendinst::render::oneInstanceTmVb);
+
+    SCENE_LAYER_GUARD(block_id);
+
+    rendinst::render::RiShaderConstBuffers cb;
+    cb.setOpacity(0, 1);
+    cb.setCrossDissolveRange(0);
+    const Point3 &sphereCenter = res->bsphCenter;
+    float sphereRadius = res->bsphRad + sqrtf(sphereCenter.x * sphereCenter.x + sphereCenter.z * sphereCenter.z);
+    // sphere radius is needed for ellipsoid normal
+    cb.setBoundingSphere(0, 0, sphereRadius, 1, 0);
+    cb.setRandomColors(defaultColors);
+    cb.setInstancing(0, 3, 0, 0);
+    cb.flushPerDraw();
+
+    // We update rendinst::render::perDrawCB inside cb.flushPerDraw() if it's not null.
+    // It causes split of renderpass in Vulkan cause of stage change.
+    // Just have to accept it unless we allocate multiple buffers and update them in advance.
+    d3d::allow_render_pass_target_load();
+
+    if (treeCrownBufSlot >= 0)
+      d3d::set_buffer(STAGE_PS, treeCrownBufSlot, treeCrownDataBuf);
+
+    ImpostorGenRenderWrapperControl rwc;
+    res->lods[lod].scene->render(TMatrix(1), rwc);
+    res->lods[lod].scene->renderTrans(TMatrix(1), rwc);
+
+    if (treeCrownBufSlot >= 0)
+      d3d::set_buffer(STAGE_PS, treeCrownBufSlot, nullptr);
+  }
+
+  Point4 *data = nullptr;
+  rendinst::render::oneInstanceTmVb->lock(0, sizeof(Point4) * 4, reinterpret_cast<void **>(&data), VBLOCK_WRITEONLY);
+  data[0] = Point4(1, 0, 0, 0);
+  data[1] = Point4(0, 1, 0, 0);
+  data[2] = Point4(0, 0, 1, 0);
+  data[3] = Point4(0, 0, 0, 1);
+  rendinst::render::oneInstanceTmVb->unlock();
+}
+
 void ImpostorTextureManager::render(const Point3 &point_to_eye, const TMatrix &view_to_content, RenderableInstanceLodsResource *res,
   int block_id, int lod) const
 {
@@ -391,11 +478,13 @@ void ImpostorTextureManager::render(const Point3 &point_to_eye, const TMatrix &v
     // Just have to accept it unless we allocate multiple buffers and update them in advance.
     d3d::allow_render_pass_target_load();
 
-    d3d::set_buffer(STAGE_PS, treeCrownBufSlot, treeCrownDataBuf);
+    if (treeCrownBufSlot >= 0)
+      d3d::set_buffer(STAGE_PS, treeCrownBufSlot, treeCrownDataBuf);
     ImpostorGenRenderWrapperControl rwc;
     res->lods[lod].scene->render(TMatrix(1), rwc);
     res->lods[lod].scene->renderTrans(TMatrix(1), rwc);
-    d3d::set_buffer(STAGE_PS, treeCrownBufSlot, nullptr);
+    if (treeCrownBufSlot >= 0)
+      d3d::set_buffer(STAGE_PS, treeCrownBufSlot, nullptr);
   }
 }
 
@@ -511,7 +600,6 @@ UniqueTex ImpostorTextureManager::renderDepthAtlasForShadow(RenderableInstanceLo
   UniqueTex impostorDepthBuffer =
     dag::create_tex(nullptr, info.w, info.h, TEXFMT_DEPTH16 | TEXCF_RTARGET, 1, "tmp_impostor_depth_atlas");
   G_ASSERT_RETURN(impostorDepthBuffer, {});
-  impostorDepthBuffer->disableSampler();
   {
     d3d::SamplerInfo smpInfo;
     smpInfo.filter_mode = d3d::FilterMode::Point;
@@ -579,12 +667,17 @@ bool ImpostorTextureManager::update_shadow(RenderableInstanceLodsResource *res, 
     TextureInfo compressionInfo;
     if (impostorCompressionBuffer)
       impostorCompressionBuffer->getinfo(compressionInfo);
-    if (!impostorCompressionBuffer || compressionInfo.w != texInfo.w || compressionInfo.h != texInfo.h)
+    if (!impostorCompressionBuffer || compressionInfo.w != texInfo.w || compressionInfo.h != texInfo.h ||
+        compressionInfo.mipLevels != texInfo.mipLevels)
     {
       if (impostorCompressionBuffer)
         logwarn("Compression buffer is recreated in impostorTextureMgr");
-      impostorCompressionBuffer = dag::create_tex(nullptr, texInfo.w, texInfo.h, TEXCF_RTARGET | TEXFMT_L8 | TEXCF_GENERATEMIPS,
+      impostorCompressionBuffer = dag::create_tex(nullptr, texInfo.w, texInfo.h, TEXCF_RTARGET | TEXFMT_R8 | TEXCF_GENERATEMIPS,
         arrayTex->level_count(), "impostorCompressionBuffer");
+      d3d::SamplerInfo smpInfo;
+      smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Border;
+      smpInfo.border_color = d3d::BorderColor::Color::TransparentBlack;
+      sampler = d3d::request_sampler(smpInfo);
     }
     targetTex = impostorCompressionBuffer.getTex2D();
     targetSlice = 0;
@@ -600,7 +693,7 @@ bool ImpostorTextureManager::update_shadow(RenderableInstanceLodsResource *res, 
       d3d::SamplerInfo smpInfo;
       smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
       smpInfo.anisotropic_max = 1;
-      smpInfo.filter_mode = d3d::FilterMode::Default;
+      smpInfo.filter_mode = d3d::FilterMode::Linear;
       smpInfo.mip_map_bias = 0;
       ShaderGlobal::set_sampler(impostor_atlas_mask_samplerstateVarId, d3d::request_sampler(smpInfo));
     }
@@ -650,7 +743,7 @@ bool ImpostorTextureManager::update_shadow(RenderableInstanceLodsResource *res, 
         TextureInfo ti;
         arrayTex->getinfo(ti, i);
 
-        shadowAtlasCompressor->updateFromMip(impostorCompressionBuffer.getTexId(), i, i);
+        shadowAtlasCompressor->updateFromMip(impostorCompressionBuffer.getTexId(), sampler, i, i);
         shadowAtlasCompressor->copyToMip(arrayTex, i + palette_id * arrayTex->level_count(), 0, 0, i, 0, 0, ti.w, ti.h);
       }
     }

@@ -141,7 +141,7 @@ class ZstdDecompressSaveCB : public IGenSave
 public:
   explicit KRNLIMP ZstdDecompressSaveCB(IGenSave &dest_cwr, const ZSTD_DDict_s *dict = nullptr, bool tmp = false,
     bool multiframe = true);
-  ~ZstdDecompressSaveCB();
+  KRNLIMP ~ZstdDecompressSaveCB();
 
   KRNLIMP void write(const void *ptr, int size) override;
   KRNLIMP void finish();
@@ -161,7 +161,7 @@ public:
     return 0;
   }
   const char *getTargetName() override { return cwrDest.getTargetName(); }
-  void flush() override;
+  KRNLIMP void flush() override;
 
 private:
   bool doProcessStep(void *opaqueInBuf);

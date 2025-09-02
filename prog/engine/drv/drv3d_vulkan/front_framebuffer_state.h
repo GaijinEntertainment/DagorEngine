@@ -35,6 +35,7 @@ public:
   Driver3dRenderTarget &asDriverRT();
   bool handleObjectRemoval(const Image *object);
   bool isReferenced(const Image *object) const;
+  bool replaceImage(const Image *src, Image *dst);
 
   FrontFramebufferState &getValue() { return *this; }
   const FrontFramebufferState &getValueRO() const { return *this; }

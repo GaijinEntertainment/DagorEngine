@@ -4,6 +4,7 @@
 #include <propPanel/c_indirect.h>
 
 #include <ioSys/dag_dataBlock.h>
+#include <math/integer/dag_IPoint4.h>
 
 namespace PropPanel
 {
@@ -226,22 +227,22 @@ ParamGroup::ParamGroup(const DataBlock &blk) : items(midmem)
   real presetMin = 0;
   for (int i = 0; i < blk.paramCount(); i++)
   {
-    if (strcmp(blk.getParamName(i), "caption") == NULL)
+    if (strcmp(blk.getParamName(i), "caption") == 0)
     {
       presetCaption = blk.getStr(i);
       continue;
     }
-    if (strcmp(blk.getParamName(i), "track_step") == NULL)
+    if (strcmp(blk.getParamName(i), "track_step") == 0)
     {
       presetStep = blk.getReal(i);
       continue;
     }
-    if (strcmp(blk.getParamName(i), "track_min") == NULL)
+    if (strcmp(blk.getParamName(i), "track_min") == 0)
     {
       presetMin = blk.getReal(i);
       continue;
     }
-    if (strcmp(blk.getParamName(i), "track_max") == NULL)
+    if (strcmp(blk.getParamName(i), "track_max") == 0)
     {
       presetMax = blk.getReal(i);
       continue;
@@ -252,7 +253,7 @@ ParamGroup::ParamGroup(const DataBlock &blk) : items(midmem)
 
     DataBlock param;
     param.setStr("name", blk.getParamName(i));
-    if (strcmp(presetCaption, "") != NULL)
+    if (strcmp(presetCaption, "") != 0)
     {
       param.setStr("caption", presetCaption);
       presetCaption = "";
@@ -277,6 +278,8 @@ ParamGroup::ParamGroup(const DataBlock &blk) : items(midmem)
       case DataBlock::TYPE_IPOINT2: param.setIPoint2("def", blk.getIPoint2(blk.getParamName(i), IPoint2(0, 0))); break;
 
       case DataBlock::TYPE_IPOINT3: param.setIPoint3("def", blk.getIPoint3(blk.getParamName(i), IPoint3(0, 0, 0))); break;
+
+      case DataBlock::TYPE_IPOINT4: param.setIPoint4("def", blk.getIPoint4(blk.getParamName(i), IPoint4(0, 0, 0, 0))); break;
 
       case DataBlock::TYPE_BOOL: param.setBool("def", blk.getBool(blk.getParamName(i), 0)); break;
 

@@ -4,13 +4,15 @@
 //
 #pragma once
 
-#include <gamePhys/phys/unitPhysBase.h>
+#include <generic/dag_relocatableFixedVector.h>
+#include <gamePhys/phys/commonPhysBase.h>
 #include <gamePhys/collision/collisionObject.h>
 #include <gamePhys/collision/contactData.h>
 #include <gamePhys/collision/collisionInfo.h>
+#include <debug/dag_log.h>
 #include <generic/dag_carray.h>
 
-constexpr int MAX_CACHED_CONTACTS = 8;
+constexpr unsigned PHYS_OBJ_MAX_CACHED_CONTACTS = 8;
 
 namespace rendinst
 {
@@ -39,7 +41,7 @@ struct PhysObjState
   float sleepTimer = 0.f;
   float ignoreGameObjsUntilTime = -1.0f; // -1 - not initialized, 0 - ignore forever
 
-  carray<gamephys::CachedContact, MAX_CACHED_CONTACTS> cachedContacts; // Note: dimension - `numCachedContacts`
+  carray<gamephys::CachedContact, PHYS_OBJ_MAX_CACHED_CONTACTS> cachedContacts; // Note: dimension - `numCachedContacts`
 
   void reset();
 
@@ -99,18 +101,19 @@ struct PhysObjControlState
   int sequenceNumber = 0;
   int getSequenceNumber() const { return sequenceNumber; }
   void setSequenceNumber(int seq) { sequenceNumber = seq; }
-  uint8_t unitVersion = 0;
+  uint8_t unitVersion : 7 = 0;
+  uint8_t hasCustomControls : 1 = 0;
   bool isForged = false;
   void setControlsForged(bool val) { isForged = val; }
   bool isControlsForged() const { return isForged; }
-  // TODO: add any external forces here (which should be checked of course)
 
-  danet::BitStream customControls;
+  dag::Vector<uint8_t> customControls;
 
   DEFINE_COMMON_PHYS_CONTROLS_METHODS(PhysObjControlState);
   void init() { reset(); }
   void stepHistory() {}
 };
+DAG_DECLARE_RELOCATABLE(PhysObjControlState);
 
 struct CCDCheck
 {
@@ -124,7 +127,7 @@ struct CCDCheck
   {}
 };
 
-class PhysObj final : public PhysicsBase<PhysObjState, PhysObjControlState, CommonPhysPartialState>
+class PhysObj : public PhysicsBase<PhysObjState, PhysObjControlState, CommonPhysPartialState>
 {
 public:
   float mass = 1.f;
@@ -160,7 +163,6 @@ public:
   bool hasGroundCollisionPoint = false;
   bool hasRiDestroyingCollision = false;
   bool hasFrtCollision = false;
-  bool shouldFallThroughGround = false;
   bool shouldTraceGround = false;
   bool addToWorld = false;
   bool skipUpdateOnSleep = false;
@@ -200,10 +202,9 @@ public:
 
   void addCollisionToWorld() override;
 
-  virtual void updatePhys(float at_time, float dt, bool is_for_real) override final;
-  virtual dag::ConstSpan<CollisionObject> getCollisionObjects() const { return collision; }
-  virtual uint64_t getActiveCollisionObjectsBitMask() const { return ~0ull; }
-  virtual dag::Span<CollisionObject> getMutableCollisionObjects() const { return make_span(const_cast<PhysObj *>(this)->collision); }
+  virtual void updatePhys(float at_time, float dt, bool is_for_real) override;
+  dag::ConstSpan<CollisionObject> getCollisionObjects() const override { return collision; }
+  uint64_t getActiveCollisionObjectsBitMask() const override { return ~0ull; }
   virtual void applyOffset(const Point3 &offset);
   virtual void addSoundShockImpulse(float val);
   virtual float getSoundShockImpulse() const;
@@ -250,4 +251,22 @@ public:
   TMatrix getCollisionObjectsMatrix() const override;
   bool isCollisionValid() const;
   PhysObjState *getAuthorityApprovedState() const { return authorityApprovedState.get(); }
+
+  void *getAppliedCustomControls(int sz) { return getCustomControlsImpl(appliedCT, sz); }
+  void *getProducedCustomControls(int sz) { return getCustomControlsImpl(producedCT, sz); }
+
+  void initCustomControls(int sz);
+
+private:
+  template <typename T>
+  void *getCustomControlsImpl(T &ct, [[maybe_unused]] int sz)
+  {
+#if DAGOR_DBGLEVEL > 0
+    if (DAGOR_UNLIKELY(ct.customControls.size() != sz))
+      LOGERR_ONCE("Custom controls size mismatch (%d != %d). Was `initCustomControls` called?", ct.customControls.size(), sz);
+#endif
+    return ct.customControls.data();
+  }
 };
+
+extern template class PhysicsBase<PhysObjState, PhysObjControlState, CommonPhysPartialState>;

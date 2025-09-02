@@ -4,6 +4,7 @@
 #include "global_state.h"
 
 #include <validationLayer.h>
+#include <gpuVendorNvidia.h>
 #if USE_PIX
 #if _TARGET_64BIT
 // PROFILE_BUILD will enable USE_PIX in pix3.h if architecture is supported
@@ -47,12 +48,33 @@ void unregister_message_callback(ID3D12InfoQueue *debug_queue, DWORD &callback_c
   }
   callback_cookie = 0;
 }
+
+#if HAS_NVAPI
+void __stdcall rt_validation(void *self, NVAPI_D3D12_RAYTRACING_VALIDATION_MESSAGE_SEVERITY severity, const char *message_code,
+  const char *message, const char *message_details)
+{
+  switch (severity)
+  {
+    case NVAPI_D3D12_RAYTRACING_VALIDATION_MESSAGE_SEVERITY_ERROR:
+      D3D_ERROR("DX12: NV RT Validation [%s] %s\n%s", message_code, message, message_details);
+      break;
+    case NVAPI_D3D12_RAYTRACING_VALIDATION_MESSAGE_SEVERITY_WARNING:
+      logwarn("DX12: NV RT Validation [%s] %s\n%s", message_code, message, message_details);
+      break;
+  }
+
+  if (auto nvRtValidationLayer = static_cast<drv3d_dx12::debug::pc::DeviceState::NVRTValidationLayer *>(self))
+  {
+    nvRtValidationLayer->onError();
+  }
+}
+#endif
 } // namespace
 
 
 namespace drv3d_dx12::debug::pc
 {
-bool DeviceState::setup(GlobalState &global, ID3D12Device *device, const Direct3D12Enviroment &d3d_env)
+bool DeviceState::setup(GlobalState &global, D3DDevice *device, const Direct3D12Enviroment &d3d_env)
 {
   globalState = &global;
   globalState->postmortemTrace().setupDevice(device, global.configuration(), d3d_env);
@@ -79,6 +101,7 @@ bool DeviceState::setup(GlobalState &global, ID3D12Device *device, const Direct3
     {
       debugQueue1->RegisterMessageCallback(&::process_debug_log, D3D12_MESSAGE_CALLBACK_FLAG_NONE, nullptr, &callbackCookie);
     }
+    inUse = true;
   }
   else
   {
@@ -89,39 +112,45 @@ bool DeviceState::setup(GlobalState &global, ID3D12Device *device, const Direct3
     logdbg("DX12: Failed, no debug messages are reported to the log...");
   }
 
-  return static_cast<bool>(debugQueue);
+  if (global.configuration().enableNVRTValidation)
+  {
+    inUse |= nvRtValidationLayer.setup(device);
+  }
+
+  return inUse;
 }
 
 void DeviceState::teardown()
 {
+  nvRtValidationLayer.teardown();
   unregister_message_callback(debugQueue.Get(), callbackCookie);
   debugQueue.Reset();
 
   globalState->postmortemTrace().onDeviceShutdown();
 }
 
-void DeviceState::beginCommandBuffer(D3DDevice *device, ID3D12GraphicsCommandList *cmd)
+void DeviceState::beginCommandBuffer(D3DDevice *device, D3DGraphicsCommandList *cmd)
 {
   globalState->postmortemTrace().beginCommandBuffer(device, cmd);
 }
 
-void DeviceState::endCommandBuffer(ID3D12GraphicsCommandList *cmd) { globalState->postmortemTrace().endCommandBuffer(cmd); }
+void DeviceState::endCommandBuffer(D3DGraphicsCommandList *cmd) { globalState->postmortemTrace().endCommandBuffer(cmd); }
 
-void DeviceState::beginSection(ID3D12GraphicsCommandList *cmd, eastl::string_view text)
+void DeviceState::beginSection(D3DGraphicsCommandList *cmd, eastl::string_view text)
 {
   auto eventText = event_marker::Tracker::beginEvent(text);
   globalState->captureTool().beginEvent(cmd, eventText);
   globalState->postmortemTrace().beginEvent(cmd, eventText, currentEventPath());
 }
 
-void DeviceState::endSection(ID3D12GraphicsCommandList *cmd)
+void DeviceState::endSection(D3DGraphicsCommandList *cmd)
 {
   event_marker::Tracker::endEvent();
   globalState->captureTool().endEvent(cmd);
   globalState->postmortemTrace().endEvent(cmd, currentEventPath());
 }
 
-void DeviceState::marker(ID3D12GraphicsCommandList *cmd, eastl::string_view text)
+void DeviceState::marker(D3DGraphicsCommandList *cmd, eastl::string_view text)
 {
   auto markerText = event_marker::Tracker::marker(text);
   globalState->captureTool().marker(cmd, markerText);
@@ -203,6 +232,44 @@ void DeviceState::dispatchRaysIndirect(const call_stack::CommandData &debug_info
 }
 #endif
 
+void DeviceState::nameResource(ID3D12Resource *resource, eastl::string_view name)
+{
+  globalState->captureTool().nameResource(resource, name);
+  globalState->postmortemTrace().nameResource(resource, name);
+}
+
+void DeviceState::nameResource(ID3D12Resource *resource, eastl::wstring_view name)
+{
+  globalState->captureTool().nameResource(resource, name);
+  globalState->postmortemTrace().nameResource(resource, name);
+}
+
+void DeviceState::nameObject(ID3D12Object *object, eastl::string_view name)
+{
+  globalState->captureTool().nameObject(object, name);
+  // globalState->postmortemTrace().nameObject(object, name);
+}
+
+void DeviceState::nameObject(ID3D12Object *object, eastl::wstring_view name)
+{
+  globalState->captureTool().nameObject(object, name);
+  // globalState->postmortemTrace().nameObject(object, name);
+}
+
+TraceCheckpoint DeviceState::getTraceCheckpoint() { return globalState->postmortemTrace().getTraceCheckpoint(); }
+
+TraceRunStatus DeviceState::getTraceRunStatusFor(const TraceCheckpoint &cp)
+{
+  return globalState->postmortemTrace().getTraceRunStatusFor(cp);
+}
+
+TraceStatus DeviceState::getTraceStatusFor(const TraceCheckpoint &cp) { return globalState->postmortemTrace().getTraceStatusFor(cp); }
+
+void DeviceState::reportTraceDataForRange(const TraceCheckpoint &from, const TraceCheckpoint &to)
+{
+  globalState->postmortemTrace().reportTraceDataForRange(from, to, *this);
+}
+
 void DeviceState::onDeviceRemoved(D3DDevice *device, HRESULT remove_reason)
 {
   if (DXGI_ERROR_INVALID_CALL == remove_reason)
@@ -212,6 +279,7 @@ void DeviceState::onDeviceRemoved(D3DDevice *device, HRESULT remove_reason)
   }
 
   globalState->postmortemTrace().onDeviceRemoved(device, remove_reason, *this);
+  nvRtValidationLayer.onDeviceRemoved();
 }
 
 void DeviceState::preRecovery()
@@ -221,7 +289,7 @@ void DeviceState::preRecovery()
   debugQueue.Reset();
 }
 
-void DeviceState::recover(ID3D12Device *device, const Direct3D12Enviroment &d3d_env) { setup(*globalState, device, d3d_env); }
+void DeviceState::recover(D3DDevice *device, const Direct3D12Enviroment &d3d_env) { setup(*globalState, device, d3d_env); }
 
 void DeviceState::beginCapture(const wchar_t *name) { globalState->captureTool().beginCapture(name); }
 
@@ -239,9 +307,15 @@ void DeviceState::sendGPUCrashDump(const char *type, const void *data, uintptr_t
   }
 }
 
+bool DeviceState::isAnyCapturerLoaded() const { return globalState->captureTool().isAnyActive(); }
+
+bool DeviceState::isGpuBasedValidationEnabled() const { return globalState->configuration().enableGPUValidation; }
+
 void DeviceState::processDebugLogImpl()
 {
-  if (callbackCookie)
+  nvRtValidationLayer.flush();
+
+  if (callbackCookie || !debugQueue)
     return;
 
   // ClearStoredMessages can corrupt the internal counter and GetNumStoredMessages can return 0xffffffffffffffff
@@ -260,6 +334,84 @@ void DeviceState::processDebugLogImpl()
   }
   debugQueue->ClearStoredMessages();
 }
+
+bool DeviceState::setRtValidationCallback(const eastl::function<void()> &callback)
+{
+  return nvRtValidationLayer.setRtValidationCallback(callback);
+}
+
+#if HAS_NVAPI
+bool DeviceState::NVRTValidationLayer::setup(D3DDevice *dev)
+{
+  if (!gpu::init_nvapi())
+  {
+    D3D_ERROR("DX12: NV RT Validation layer was requested, but NVAPI init failed.");
+    return false;
+  }
+
+  auto result = NvAPI_D3D12_EnableRaytracingValidation(dev, NVAPI_D3D12_RAYTRACING_VALIDATION_FLAG_NONE);
+  if (result == NVAPI_OK)
+  {
+    result = NvAPI_D3D12_RegisterRaytracingValidationMessageCallback(dev, &rt_validation, this, &nvCallbackCookie);
+  }
+
+  if (result != NVAPI_OK)
+  {
+    if (result == NVAPI_ACCESS_DENIED)
+      D3D_ERROR("DX12: NV_ALLOW_RAYTRACING_VALIDATION envvar must be set to 1 .");
+    else
+      D3D_ERROR("DX12: NV RT Validation layer was requested, but failed to enable with error code: %d .", result);
+    return false;
+  }
+  logdbg("DX12: NV RT Validation layer is enabled.");
+
+  G_ASSERT(nvCallbackCookie);
+  device = dev;
+
+  return true;
+}
+
+void DeviceState::NVRTValidationLayer::teardown()
+{
+  if (nvCallbackCookie)
+  {
+    NvAPI_D3D12_UnregisterRaytracingValidationMessageCallback(device, nvCallbackCookie);
+    nvCallbackCookie = nullptr;
+    device = nullptr;
+  }
+}
+
+void DeviceState::NVRTValidationLayer::flush() const
+{
+  if (nvCallbackCookie)
+  {
+    NvAPI_D3D12_FlushRaytracingValidationMessages(device);
+  }
+}
+
+bool DeviceState::NVRTValidationLayer::setRtValidationCallback(const eastl::function<void()> &c)
+{
+  if (nvCallbackCookie)
+  {
+    callback = c;
+    return true;
+  }
+  return false;
+}
+
+void DeviceState::NVRTValidationLayer::onError() const
+{
+  if (callback)
+    callback();
+}
+#else
+bool DeviceState::NVRTValidationLayer::setup(D3DDevice *) { return false; }
+void DeviceState::NVRTValidationLayer::teardown() {}
+void DeviceState::NVRTValidationLayer::flush() const {}
+bool DeviceState::NVRTValidationLayer::setRtValidationCallback(const eastl::function<void()> &) { return false; }
+void DeviceState::NVRTValidationLayer::onError() const {}
+#endif
+
 } // namespace drv3d_dx12::debug::pc
 
 #endif // COMMAND_BUFFER_DEBUG_INFO_DEFINED

@@ -37,7 +37,7 @@ RegisterThreadResult ProfilerData::addThreadData(uint32_t description)
 
   if (!threadsDataStor.capacity())
   {
-    threadsDataStor.reserve((get_logical_cores() + 7) & ~7);
+    threadsDataStor.reserve((get_logical_cores() + 31) & ~31);
     threadsData.reserve(threadsDataStor.capacity());
   }
 
@@ -160,7 +160,10 @@ bool ProfilerData::removeCurrentThread()
   if (idx < 0 || !threadsData[idx] || !threadsData[idx]->tlsStorage)
     report_logerr("could not be happening, assert, thread wasn not registered!");
   else
-    threadsData[idx]->tlsStorage = nullptr; // tls variable is not valid anymore
+  {
+    threadsData[idx]->tlsStorage = nullptr;                                   // tls variable is not valid anymore
+    threadsData[idx]->storage.threadId = ~threadsData[idx]->storage.threadId; // tid can be recyled after thread shudown
+  }
   u64_interlocked_release_store(threadsData[idx]->removedTick, cpu_current_ticks());
   interlocked_increment(threadsGeneration); // so sampling thread knows, that it has to arrange new threads
   interlocked_increment(removedThreadsCount);

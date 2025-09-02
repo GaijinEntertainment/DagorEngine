@@ -51,6 +51,11 @@ if $(UseMinCompressionUtils) = yes {
   ;
 }
 
+if $(MimicWrongSignatureOffsetDiffCreation) = yes {
+  CPPopt += -DMIMIC_WRONG_SIGNATURE_OFFSET_DIFF_CREATION ;
+  Target = $(Target:S=-wso.lib) ;
+}
+
 CPPopt +=
   -DOPENSSL_SUPPRESS_DEPRECATED
 ;

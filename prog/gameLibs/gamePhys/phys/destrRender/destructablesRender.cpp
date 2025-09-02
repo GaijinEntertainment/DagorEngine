@@ -30,7 +30,6 @@ void destructables::before_render(const Point3 &view_pos, bool has_motion_vector
   {
     if (destr->isAlive())
     {
-      destr->physObj->beforeRender(view_pos);
       if (has_motion_vectors)
       {
         for (const DestrRendData::RendData &rdata : destr->rendData->rendData)
@@ -39,6 +38,7 @@ void destructables::before_render(const Point3 &view_pos, bool has_motion_vector
             rdata.inst->savePrevNodeWtm();
         }
       }
+      destr->physObj->beforeRender(view_pos);
     }
   }
 
@@ -94,7 +94,8 @@ void destructables::render(dynrend::ContextId inst_ctx, const Frustum &frustum, 
     {
       if (instanceInitPosConstNo >= 0)
         d3d::set_vs_const(instanceInitPosConstNo, &initialPos.x, 1);
-      destr->physObj->render();
+      for (int i = 0, ie = destr->physObj->getModelCount(); i < ie; ++i)
+        destr->physObj->getModel(i)->render();
     }
   }
 }

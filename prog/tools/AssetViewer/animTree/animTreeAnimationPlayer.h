@@ -15,6 +15,7 @@ class ContainerPropertyControl;
 class ILodController;
 class IObjEntity;
 class DagorAsset;
+class DagorAssetMgr;
 struct AnimParamData;
 enum class BlendNodeType;
 
@@ -31,7 +32,7 @@ struct AnimNodeData
 class AnimTreeAnimationPlayer
 {
 public:
-  AnimTreeAnimationPlayer(int dyn_model_id);
+  AnimTreeAnimationPlayer(int dyn_model_id, const DagorAssetMgr &mgr);
 
   void init(const DagorAsset &asset);
   void clear();
@@ -43,7 +44,7 @@ public:
   void setValuesFormStillNode(PropPanel::ContainerPropertyControl *panel, const dag::Vector<AnimParamData> &params);
   void setValuesFormParametricNode(PropPanel::ContainerPropertyControl *panel, const dag::Vector<AnimParamData> &params);
   void loadA2dResource(PropPanel::ContainerPropertyControl *panel, const dag::Vector<AnimParamData> &params,
-    PropPanel::TLeafHandle leaf);
+    PropPanel::TLeafHandle leaff, bool validate_without_error = false);
   void animate(int key);
   void animNodesFieldChanged(PropPanel::ContainerPropertyControl *panel, const dag::Vector<AnimParamData> &params,
     const AnimParamData &param);
@@ -63,6 +64,7 @@ private:
   GeomNodeTree geomTree;
   String modelName;
   const int dynModelId;
+  const DagorAssetMgr &assetMgr;
 
   AnimV20::AnimData *selectedA2d = nullptr;
   String selectedA2dName;

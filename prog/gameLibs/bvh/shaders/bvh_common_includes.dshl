@@ -1,0 +1,75 @@
+include "wetness_inc.dshl"
+
+macro USE_EMISSION_DECODE_COLOR_MAP_STUB(code)
+hlsl (code) {
+  #define decodeEmissionColor(a) float3(0,0,0)
+}
+endmacro
+
+macro USE_CLIPMAP_BINDLESS_TEXTURE_DECLARATIONS(code)
+hlsl(code){
+  static Texture2D<float4> cache_tex0 = bvh_textures[NonUniformResourceIndex(bvh_textures_range_start + cache_tex0_tex_slot)];
+  static SamplerState cache_tex0_samplerstate = bvh_samplers[NonUniformResourceIndex(cache_tex0_smp_slot)];
+  static Texture2D<float4> indirection_tex = bvh_textures[NonUniformResourceIndex(bvh_textures_range_start + indirection_tex_tex_slot)];
+  static Texture2D<float4> cache_tex1 = bvh_textures[NonUniformResourceIndex(bvh_textures_range_start + cache_tex1_tex_slot)];
+  static Texture2D<float4> cache_tex2 = bvh_textures[NonUniformResourceIndex(bvh_textures_range_start + cache_tex2_tex_slot)];
+  static Texture2D<float4> last_clip_tex = bvh_textures[NonUniformResourceIndex(bvh_textures_range_start + last_clip_tex_tex_slot)];
+  static SamplerState last_clip_tex_samplerstate = bvh_samplers[NonUniformResourceIndex(last_clip_tex_smp_slot)];
+}
+endmacro
+
+texture bvh_atmosphere_texture;
+float bvh_atmosphere_texture_distance = 10000;
+
+macro INIT_BVH_ATMOSPHERE(code)
+ (code)
+ {
+    atmosphere_texture@smpArray = bvh_atmosphere_texture;
+    atmosphere_texture_distance_inv@f1 = 1.0 / bvh_atmosphere_texture_distance;
+ }
+endmacro
+
+macro USE_BVH_ATMOPHERE(code)
+hlsl(code)
+{
+  void calc_atmosphere_loss_inscatter(float3 position, float distance, out half3 loss, out half3 insc)
+  {
+    float3 atmosphereDir = normalize(float3(position.x, 0, position.z));
+    float angle = atan2(atmosphereDir.x, atmosphereDir.z);
+    if (angle < 0)
+      angle += 2 * PI;
+    float2 tc = float2(angle / (2 * PI), distance * atmosphere_texture_distance_inv);
+    insc = half3(tex3Dlod(atmosphere_texture, float4(tc, 0, 0)).rgb); // add
+    loss = half3(tex3Dlod(atmosphere_texture, float4(tc, 1, 0)).rgb); // mul
+  }
+
+  void calc_atmosphere(inout half3 litPixel, float3 position, float distance)
+  {
+    half3 loss, insc;
+    calc_atmosphere_loss_inscatter(position, distance, loss, insc);
+    litPixel = litPixel * loss + insc;
+  }
+}
+endmacro
+
+macro WETNESS_FOR_SPEC_BRDF(stage)
+  INIT_WRITE_GBUFFER_WETNESS_BASE(stage)
+  INIT_WETNESS_STAGE(stage)
+  USE_WETNESS_STAGE(stage)
+  hlsl(stage) {
+    void apply_env_wetness(float3 world_pos, float3 vertical_normal, float3 view, float material, bool isLandscape, inout half3 albedo, inout half smoothness, inout float3 normal, inout half reflectance)
+    {
+      float waterBorder;
+      float wetness = get_base_wetness(world_pos, vertical_normal, waterBorder);
+      if (wetness > 0)
+      {
+        BRANCH
+        if ((hpuddles_gfade.x == 0.0 || !isLandscape) && material != SHADING_FOLIAGE)
+        {
+          half ao = 1, shadow = 1, translucency = 0;
+          apply_wetness(wetness, waterBorder, vertical_normal, view, albedo.rgb, ao, shadow, translucency, smoothness, normal, reflectance);
+        }
+      }
+    }
+  }
+endmacro

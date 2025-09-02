@@ -50,15 +50,14 @@ void render_last_clip_in_box(const BBox3 &land_box_part, const Point2 &half_texe
   proj = matrix_ortho_off_center_lh(land_box_part[0].x + geomOfs.x, land_box_part[1].x + geomOfs.x, land_box_part[1].z + geomOfs.y,
     land_box_part[0].z + geomOfs.y, landBBox[0].y - 10, landBBox[1].y + 10);
   d3d::settm(TM_PROJ, &proj);
-  if (data.start_render)
-    data.start_render();
   ShaderGlobal::setBlock(data.global_frame_id, ShaderGlobal::LAYER_FRAME);
+  renderer.setLMeshRenderingMode(LMeshRenderingMode::RENDERING_CLIPMAP);
 
   renderer.setRenderInBBox(land_box_part);
   // if (::app->renderer->isCompatibilityMode())
   //   renderer.setRenderClipmapWithPosition(true);//since we don't render with depth anyway
   TMatrix4_vec4 globTm = TMatrix4_vec4(vtm) * proj;
-  renderer.render(reinterpret_cast<mat44f_cref>(globTm), Frustum{globTm}, provider, renderer.RENDER_CLIPMAP, view_pos);
+  renderer.render(reinterpret_cast<mat44f_cref>(globTm), proj, Frustum{globTm}, provider, renderer.RENDER_CLIPMAP, view_pos);
   // if (::app->renderer->isCompatibilityMode())
   //   renderer.setRenderClipmapWithPosition(false);
   renderer.setRenderInBBox(BBox3());
@@ -123,9 +122,8 @@ void render_last_clip_in_box_tor(const BBox3 &land_box_part, const Point2 &half_
     Point3 posT = box3.center();
     posT.y = landBBox[1].y + 10;
     renderer.prepare(provider, posT, 0.f);
-    if (data.start_render)
-      data.start_render();
     ShaderGlobal::setBlock(data.global_frame_id, ShaderGlobal::LAYER_FRAME);
+    renderer.setLMeshRenderingMode(LMeshRenderingMode::RENDERING_CLIPMAP);
 
     renderer.setRenderInBBox(box3);
     renderer.render(provider, renderer.RENDER_CLIPMAP, view_pos);
@@ -134,8 +132,7 @@ void render_last_clip_in_box_tor(const BBox3 &land_box_part, const Point2 &half_
 
     if (data.decals_cb)
     {
-      static int land_mesh_prepare_clipmap_blockid = ShaderGlobal::getBlockId("land_mesh_prepare_clipmap");
-      ShaderGlobal::setBlock(land_mesh_prepare_clipmap_blockid, ShaderGlobal::LAYER_SCENE);
+      ShaderGlobal::setBlock(data.land_mesh_prepare_clipmap_blockid, ShaderGlobal::LAYER_SCENE);
       data.decals_cb(box3);
       ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_SCENE);
     }
@@ -177,6 +174,26 @@ void apply_last_clip_anisotropy(d3d::SamplerInfo &last_clip_sampler)
   ShaderGlobal::set_sampler(get_shader_variable_id("last_clip_tex_samplerstate", true), d3d::request_sampler(last_clip_sampler));
 }
 
+void configure_last_clip_sampler(d3d::SamplerInfo &last_clip_sampler)
+{
+  last_clip_sampler.mip_map_mode = d3d::MipMapMode::Linear;
+  last_clip_sampler.filter_mode = d3d::FilterMode::Best;
+  last_clip_sampler.address_mode_u = last_clip_sampler.address_mode_v = last_clip_sampler.address_mode_w = d3d::AddressMode::Mirror;
+}
+
+void configure_world_to_last_clip(const LandMeshManager *lmeshMgr)
+{
+  BBox3 landBox = lmeshMgr->getBBox();
+  landBox[0].x = lmeshMgr->getCellOrigin().x * lmeshMgr->getLandCellSize();
+  landBox[0].z = lmeshMgr->getCellOrigin().y * lmeshMgr->getLandCellSize();
+  landBox[1].x = (lmeshMgr->getNumCellsX() + lmeshMgr->getCellOrigin().x) * lmeshMgr->getLandCellSize() - lmeshMgr->getGridCellSize();
+  landBox[1].z = (lmeshMgr->getNumCellsY() + lmeshMgr->getCellOrigin().y) * lmeshMgr->getLandCellSize() - lmeshMgr->getGridCellSize();
+  Color4 world_to_last_clip(1.f / landBox.width().x, 1.f / landBox.width().z, -landBox[0].x / landBox.width().x,
+    -landBox[0].z / landBox.width().z);
+  static int world_to_last_clipVardId = get_shader_variable_id("world_to_last_clip", true);
+  ShaderGlobal::set_color4(world_to_last_clipVardId, world_to_last_clip);
+}
+
 void preload_textures_for_last_clip()
 {
   prefetch_managed_textures_by_textag(TEXTAG_LAND);
@@ -191,8 +208,16 @@ void preload_textures_for_last_clip()
   prefetch_and_wait_managed_textures_loaded(land_tex);
 }
 
+enum class LastClipComp
+{
+  NONE,
+  DXT,
+  ETC2
+};
+
 template <typename T>
-void render_and_compress(const T &render_func, UniqueTexHolder &last_clip, const LandMeshData &data, int numMips)
+void render_and_compress(const T &render_func, UniqueTexHolder &last_clip, const LandMeshData &data, int numMips,
+  LastClipComp comp_type)
 {
   UniqueTex temp = dag::create_tex(NULL, data.texture_size, data.texture_size, TEXFMT_A8R8G8B8 | TEXCF_RTARGET | TEXCF_SRGBWRITE, 1,
     "temp_last_clip_tex");
@@ -200,12 +225,18 @@ void render_and_compress(const T &render_func, UniqueTexHolder &last_clip, const
   render_func(temp);
   {
     d3d::GpuAutoLock acquire;
-    auto bcType = get_texture_compression_type(TEXFMT_ETC2_RGBA);
-    auto temp_comp = eastl::make_unique<BcCompressor>(bcType, numMips, data.texture_size, data.texture_size, 1, "etc2_compressor");
+    auto bcType = get_texture_compression_type(comp_type == LastClipComp::DXT ? TEXFMT_DXT1 : TEXFMT_ETC2_RGBA);
+    auto temp_comp = eastl::make_unique<BcCompressor>(bcType, numMips, data.texture_size, data.texture_size, 1,
+      comp_type == LastClipComp::DXT ? "bc1_compressor" : "etc2_compressor");
+    if (!temp_comp->isValid()) // In case of device loss.
+      return;
+
+    d3d::SamplerHandle sampler = d3d::request_sampler({});
+
     int j = data.texture_size;
     for (int i = 0; i < numMips; i++)
     {
-      temp_comp->updateFromMip(temp.getTexId(), 0, i);
+      temp_comp->updateFromMip(temp.getTexId(), sampler, 0, i);
       temp_comp->copyToMip(last_clip.getTex2D(), i, 0, 0, i, 0, 0, j, j);
       j /= 2;
     }
@@ -229,29 +260,28 @@ void prepare_fixed_clip(UniqueTexHolder &last_clip, d3d::SamplerInfo &last_clip_
     numMips++;
   debug("create last clip of size %dx%d, %d mips", data.texture_size, data.texture_size, numMips);
   int64_t reft = ref_time_ticks();
-  enum class LastClipComp
-  {
-    NONE,
-    DXT,
-    ETC2
-  };
   LastClipComp compression = LastClipComp::NONE;
-#if SAVE_RT || _TARGET_TVOS
-  compression = LastClipComp::NONE;
 
+  if (::dgs_get_settings()->getBlockByNameEx("clipmap")->getBool("allowLastclipRuntimeCompression", true))
+  {
+#if SAVE_RT || _TARGET_TVOS
+    compression = LastClipComp::NONE;
 #elif _TARGET_IOS || _TARGET_ANDROID
-  const bool allowETC2 = ::dgs_get_settings()->getBlockByNameEx("graphics")->getBool("allowETC2", true);
-  if (allowETC2 && d3d::check_texformat(TEXFMT_ETC2_RGBA))
-    compression = LastClipComp::ETC2;
+    const bool allowETC2 = ::dgs_get_settings()->getBlockByNameEx("graphics")->getBool("allowETC2", true);
+    if (allowETC2 && d3d::check_texformat(TEXFMT_ETC2_RGBA))
+      compression = LastClipComp::ETC2;
 #else
-  if (d3d::check_texformat(TEXFMT_DXT1 | data.texflags) && data.use_dxt)
-    compression = LastClipComp::DXT;
+    if (d3d::check_texformat(TEXFMT_DXT1 | data.texflags) && data.use_dxt)
+      compression = LastClipComp::DXT;
 #endif
+  }
+
+  const bool supportsGpuCompression = d3d::get_driver_desc().caps.hasResourceCopyConversion;
 
   const unsigned flags = [&]() -> unsigned {
     switch (compression)
     {
-      case LastClipComp::DXT: return TEXFMT_DXT1 | data.texflags;
+      case LastClipComp::DXT: return TEXFMT_DXT1 | data.texflags | (supportsGpuCompression ? TEXCF_UPDATE_DESTINATION : 0);
       case LastClipComp::ETC2:
         numMips = get_log2i_of_pow2(data.texture_size) - 1;
         // TODO: Change RGBA to RGB when 3-channel compression becomes available
@@ -293,17 +323,21 @@ void prepare_fixed_clip(UniqueTexHolder &last_clip, d3d::SamplerInfo &last_clip_
 
   // debug("total last clip time = %dus",get_time_usec(reft));
   d3d::driver_command(Drv3dCommand::ACQUIRE_OWNERSHIP);
-  switch (compression)
+
+  if (compression != LastClipComp::NONE)
   {
-    case LastClipComp::DXT:
+    if (supportsGpuCompression)
+      render_and_compress(plain_render, last_clip, data, numMips, compression);
+    else if (compression == LastClipComp::DXT) // -V547
       PartialDxtRender(last_clip.getTex2D(), NULL, partHeight, data.texture_size, data.texture_size, numMips,
         (flags & TEXFMT_MASK) == TEXFMT_DXT5, false, &fixedClipPartialRenderCb, &data, view_pos, gamma_mips, update_game_screen);
-      break;
-    case LastClipComp::ETC2: render_and_compress(plain_render, last_clip, data, numMips); break;
-    default:
-      plain_render(last_clip);
-      last_clip.getTex2D()->generateMips();
-      break;
+    else
+      logerr("Couldn't compress last clip, unsupported compression type");
+  }
+  else
+  {
+    plain_render(last_clip);
+    last_clip.getTex2D()->generateMips();
   }
 
   d3d_set_view_proj(viewProj);
@@ -315,20 +349,7 @@ void prepare_fixed_clip(UniqueTexHolder &last_clip, d3d::SamplerInfo &last_clip_
   save_rt_image_as_tga(last_clip, "last_clip.tga");
 #endif
 
-  last_clip_sampler.mip_map_mode = d3d::MipMapMode::Linear;
-  last_clip_sampler.filter_mode = d3d::FilterMode::Best;
-  last_clip_sampler.address_mode_u = last_clip_sampler.address_mode_v = last_clip_sampler.address_mode_w = d3d::AddressMode::Mirror;
+  configure_last_clip_sampler(last_clip_sampler);
   apply_last_clip_anisotropy(last_clip_sampler);
-  last_clip->disableSampler();
-
-  LandMeshManager *lmeshMgr = data.lmeshMgr;
-  BBox3 landBox = lmeshMgr->getBBox();
-  landBox[0].x = lmeshMgr->getCellOrigin().x * lmeshMgr->getLandCellSize();
-  landBox[0].z = lmeshMgr->getCellOrigin().y * lmeshMgr->getLandCellSize();
-  landBox[1].x = (lmeshMgr->getNumCellsX() + lmeshMgr->getCellOrigin().x) * lmeshMgr->getLandCellSize() - lmeshMgr->getGridCellSize();
-  landBox[1].z = (lmeshMgr->getNumCellsY() + lmeshMgr->getCellOrigin().y) * lmeshMgr->getLandCellSize() - lmeshMgr->getGridCellSize();
-  Color4 world_to_last_clip(1.f / landBox.width().x, 1.f / landBox.width().z, -landBox[0].x / landBox.width().x,
-    -landBox[0].z / landBox.width().z);
-  static int world_to_last_clipVardId = get_shader_variable_id("world_to_last_clip", true);
-  ShaderGlobal::set_color4(world_to_last_clipVardId, world_to_last_clip);
+  configure_world_to_last_clip(data.lmeshMgr);
 }

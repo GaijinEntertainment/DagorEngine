@@ -1,0 +1,34 @@
+texture bloom_tex;
+float bloom_mul = 0.8;
+
+macro INIT_BLOOM(code)
+(code) {
+  bloom_tex@smp2d = bloom_tex;
+  bloom_mul@f1 = (bloom_mul);
+}
+endmacro
+
+macro USE_BLOOM(code)
+hlsl (code) {
+  float3 getBloom(float2 tc)
+  {
+    ##if (in_editor_assume == no) && (bloom_tex != NULL)
+      #if !NO_BLOOM
+        float3 bloomVal = tex2Dlod(bloom_tex, float4(tc, 0, 0)).xyz;
+        return bloom_mul*bloomVal;
+      #endif
+    ##endif
+    return 0;
+  }
+
+  void apply_precalculated_bloom(float3 bloom, inout float3 frame)
+  {
+    frame += bloom;
+  }
+
+  void apply_bloom(float2 tc, inout float3 frame) {
+    float3 bloom = getBloom(tc);
+    apply_precalculated_bloom(bloom, frame);
+  }
+}
+endmacro

@@ -33,7 +33,10 @@ static void dng_destroy_water(FFTWater *water)
   if (!water)
     return;
   if (IRenderWorld *wr = get_world_renderer())
+  {
+    wr->closeNBSShaders();
     wr->setWater(nullptr);
+  }
   fft_water::remove_flowmap(water);
   dacoll::set_water_source(nullptr);
   fft_water::delete_water(water);
@@ -165,9 +168,10 @@ ECS_ON_EVENT(on_appear)
 ECS_TRACK(water__flowmap_foam_power,
   water__flowmap_foam_scale,
   water__flowmap_foam_threshold,
-  water__flowmap_foam_reflectivity,
-  water__flowmap_foam_reflectivity_min,
-  water__flowmap_foam_color,
+  water__flowmap_foam_color_0,
+  water__flowmap_foam_color_1,
+  water__flowmap_foam_smoothness,
+  water__flowmap_foam_softness,
   water__flowmap_foam_tiling,
   water__flowmap_speed_depth_scale,
   water__flowmap_foam_speed_scale,
@@ -181,9 +185,10 @@ static void water_flowmap_foam_es_event_handler(const ecs::Event &,
   float water__flowmap_foam_power,
   float water__flowmap_foam_scale,
   float water__flowmap_foam_threshold,
-  float water__flowmap_foam_reflectivity,
-  float water__flowmap_foam_reflectivity_min,
-  const Point3 &water__flowmap_foam_color,
+  const Point4 &water__flowmap_foam_color_0,
+  const Point4 &water__flowmap_foam_color_1,
+  float water__flowmap_foam_smoothness,
+  float water__flowmap_foam_softness,
   float water__flowmap_foam_tiling,
   float water__flowmap_speed_depth_scale,
   float water__flowmap_foam_speed_scale,
@@ -197,14 +202,15 @@ static void water_flowmap_foam_es_event_handler(const ecs::Event &,
   if (waterFlowmap)
   {
     Point4 flowmap_foam(water__flowmap_foam_power, water__flowmap_foam_scale, water__flowmap_foam_threshold,
-      water__flowmap_foam_reflectivity);
+      water__flowmap_foam_smoothness);
     Point4 flowmap_depth(water__flowmap_speed_depth_scale, water__flowmap_foam_speed_scale, water__flowmap_speed_depth_max,
       water__flowmap_foam_depth_max);
 
     waterFlowmap->flowmapFoam = flowmap_foam;
-    waterFlowmap->flowmapFoamColor = water__flowmap_foam_color;
+    waterFlowmap->flowmapFoamColor0 = water__flowmap_foam_color_0;
+    waterFlowmap->flowmapFoamColor1 = water__flowmap_foam_color_1;
+    waterFlowmap->flowmapFoamSoftness = water__flowmap_foam_softness;
     waterFlowmap->flowmapFoamTiling = water__flowmap_foam_tiling;
-    waterFlowmap->flowmapFoamReflectivityMin = water__flowmap_foam_reflectivity_min;
     waterFlowmap->flowmapDepth = flowmap_depth;
     waterFlowmap->flowmapSlope = water__flowmap_slope;
     waterFlowmap->flowmapDetail = water__flowmap_detail;
@@ -214,45 +220,17 @@ static void water_flowmap_foam_es_event_handler(const ecs::Event &,
   }
 }
 
-ECS_REQUIRE(const FFTWater &water)
-ECS_ON_EVENT(on_appear, EventLevelLoaded)
-ECS_TRACK(shore__texture_size, shore__enabled, shore__hmap_size, shore__rivers_width, shore__significant_wave_threshold, )
-static void water_shore_setup_es_event_handler(const ecs::Event &,
-  int shore__texture_size,
-  bool shore__enabled,
-  float shore__hmap_size,
-  float shore__rivers_width,
-  float shore__significant_wave_threshold)
+ECS_ON_EVENT(on_appear)
+ECS_TRACK(water__flowmap_foam_bumpmapping_scale)
+static void water_flowmap_foam_2_es_event_handler(const ecs::Event &, FFTWater &water, float water__flowmap_foam_bumpmapping_scale)
 {
-  if (IRenderWorld *wr = get_world_renderer())
+  fft_water::WaterFlowmap *waterFlowmap = fft_water::get_flowmap(&water);
+  if (waterFlowmap)
   {
-    wr->setupShore(shore__enabled, shore__texture_size, shore__hmap_size, shore__rivers_width, shore__significant_wave_threshold);
-  }
-}
+    waterFlowmap->flowmapBumpmappingScale = water__flowmap_foam_bumpmapping_scale;
 
-ECS_REQUIRE(const FFTWater &water)
-ECS_ON_EVENT(on_appear, EventLevelLoaded)
-ECS_TRACK(shore__wave_height_to_amplitude,
-  shore__amplitude_to_length,
-  shore__parallelism_to_wind,
-  shore__width_k,
-  shore__waves_dist,
-  shore__waves_depth_min,
-  shore__waves_depth_fade_interval,
-  shore__wave_gspeed)
-static void water_shore_surf_setup_es_event_handler(const ecs::Event &,
-  float shore__wave_height_to_amplitude,
-  float shore__amplitude_to_length,
-  float shore__parallelism_to_wind,
-  float shore__width_k,
-  const Point4 &shore__waves_dist,
-  float shore__waves_depth_min,
-  float shore__waves_depth_fade_interval,
-  float shore__wave_gspeed)
-{
-  if (IRenderWorld *wr = get_world_renderer())
-    wr->setupShoreSurf(shore__wave_height_to_amplitude, shore__amplitude_to_length, shore__parallelism_to_wind, shore__width_k,
-      shore__waves_dist, shore__waves_depth_min, shore__waves_depth_fade_interval, shore__wave_gspeed);
+    fft_water::set_flowmap_foam_params(&water);
+  }
 }
 
 ECS_ON_EVENT(on_appear, EventLevelLoaded)

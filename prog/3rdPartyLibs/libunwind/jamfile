@@ -8,29 +8,103 @@ TargetType  = lib ;
 include $(Root)/prog/_jBuild/defaults.jam ;
 
 Sources =
-  src/libunwind.cpp
-  src/Unwind-EHABI.cpp
-  src/Unwind-seh.cpp
-  src/UnwindLevel1.c
-  src/UnwindLevel1-gcc-ext.c
-  src/Unwind-sjlj.c
-  src/UnwindRegistersRestore.S
-  src/UnwindRegistersSave.S
+  src/mi/init.c
+  src/mi/flush_cache.c
+  src/mi/mempool.c
+  src/mi/strerror.c
+  src/mi/backtrace.c
+  src/mi/dyn-cancel.c
+  src/mi/dyn-info-list.c
+  src/mi/dyn-register.c
+  src/mi/Laddress_validator.c
+  src/mi/Ldestroy_addr_space.c
+  src/mi/Ldyn-extract.c
+  src/mi/Lfind_dynamic_proc_info.c
+  src/mi/Lget_accessors.c
+  src/mi/Lget_fpreg.c
+  src/mi/Lset_fpreg.c
+  src/mi/Lget_proc_info_by_ip.c
+  src/mi/Lget_proc_name.c
+  src/mi/Lget_reg.c
+  src/mi/Lput_dynamic_unwind_info.c
+  src/mi/Lset_cache_size.c
+  src/mi/Lset_caching_policy.c
+  src/mi/Lset_iterate_phdr_function.c
+  src/mi/Lset_reg.c
+  src/mi/Lget_elf_filename.c
+
+  src/aarch64/is_fpreg.c
+  src/aarch64/regname.c
+  src/aarch64/Los-linux.c
+  src/aarch64/Lapply_reg_state.c
+  src/aarch64/Lcreate_addr_space.c
+  src/aarch64/Lget_proc_info.c
+  src/aarch64/Lget_save_loc.c
+  src/aarch64/Lglobal.c
+  src/aarch64/Linit.c
+  src/aarch64/Linit_local.c
+  src/aarch64/Linit_remote.c
+  src/aarch64/Lis_signal_frame.c
+  src/aarch64/Lregs.c
+  src/aarch64/Lreg_states_iterate.c
+  src/aarch64/Lresume.c
+  src/aarch64/Lstash_frame.c
+  src/aarch64/Lstep.c
+  src/aarch64/Ltrace.c
+
+  src/aarch64/getcontext.S
+  src/aarch64/longjmp.S
+  src/aarch64/siglongjmp.S
+
+  src/dwarf/Lexpr.c
+  src/dwarf/Lfde.c
+  src/dwarf/Lfind_proc_info-lsb.c
+  src/dwarf/Lfind_unwind_table.c
+  src/dwarf/Lget_proc_info_in_range.c
+  src/dwarf/Lparser.c
+  src/dwarf/Lpe.c
+  src/dwarf/global.c
+
+  src/setjmp/longjmp.c
+  src/setjmp/siglongjmp.c
+
+  src/unwind/Backtrace.c
+  src/unwind/DeleteException.c
+  src/unwind/FindEnclosingFunction.c
+  src/unwind/ForcedUnwind.c
+  src/unwind/GetBSP.c
+  src/unwind/GetCFA.c
+  src/unwind/GetDataRelBase.c
+  src/unwind/GetGR.c
+  src/unwind/GetIP.c
+  src/unwind/GetIPInfo.c
+  src/unwind/GetLanguageSpecificData.c
+  src/unwind/GetRegionStart.c
+  src/unwind/GetTextRelBase.c
+  src/unwind/RaiseException.c
+  src/unwind/Resume.c
+  src/unwind/Resume_or_Rethrow.c
+  src/unwind/SetGR.c
+  src/unwind/SetIP.c
+
+  src/elf64.c
+  src/os-linux.c
 ;
 
-if $(Platform) in macOS tvOS iOS {
-  Sources +=
-    src/Unwind_AppleExtras.cpp
-  ;
-}
+#if $(Platform) in macOS tvOS iOS {
+#  Sources +=
+#    src/Unwind_AppleExtras.cpp
+#  ;
+#}
 
 AddIncludes += 
-  $(Root)/prog/3rdPartyLibs/libunwind/include 
+  $(Root)/prog/3rdPartyLibs/libunwind/include
+  $(Root)/prog/3rdPartyLibs/libunwind/include/tdep-aarch64
   $(Root)/prog/3rdPartyLibs/libunwind/src
 ;
 
 MasterPreInclude  = ;
 ASMopt = -target aarch64-none-linux-android ;
-CPPopt = -D_LIBUNWIND_IS_NATIVE_ONLY ;
+CPPopt = -DHAVE_CONFIG_H -D__EXTENSIONS__ -D_GNU_SOURCE -DNDEBUG ;
 
 include $(Root)/prog/_jBuild/build.jam ;

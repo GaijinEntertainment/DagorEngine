@@ -6,7 +6,7 @@ build:
     python: "3.11"
   commands:
     - python -m pip install --exists-action=w --no-cache-dir -r _docs/requirements.txt
-    - python3 _docs/build_all_docs.py
+    - cd _docs && python3 build_all_docs.py
     - cd _docs && sphinx-build -c . -b html source $READTHEDOCS_OUTPUT/html
 
 sphinx:

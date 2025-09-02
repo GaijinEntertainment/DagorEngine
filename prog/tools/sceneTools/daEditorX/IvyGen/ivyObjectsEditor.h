@@ -18,36 +18,35 @@ class IvyObjectEditor : public ObjectEditor
 {
 public:
   IvyObjectEditor();
-  virtual ~IvyObjectEditor();
+  ~IvyObjectEditor() override;
 
   // ObjectEditor interface implementation
-  virtual void fillToolBar(PropPanel::ContainerPropertyControl *toolbar);
-  virtual void updateToolbarButtons();
+  void fillToolBar(PropPanel::ContainerPropertyControl *toolbar) override;
+  void updateToolbarButtons() override;
 
-  // virtual void handleCommand(int cmd);
-  virtual bool handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
-  virtual bool handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
-  virtual bool handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
-  virtual bool handleMouseRBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
-  virtual void gizmoStarted();
-  virtual void gizmoEnded(bool apply);
+  bool handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
+  bool handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
+  bool handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
+  bool handleMouseRBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
+  void gizmoStarted() override;
+  void gizmoEnded(bool apply) override;
 
-  virtual void setEditMode(int cm);
+  void setEditMode(int cm) override;
 
-  virtual void beforeRender();
-  virtual void render();
-  virtual void renderTrans();
+  void beforeRender() override;
+  void render() override;
+  void renderTrans() override;
 
-  virtual void update(real dt);
+  void update(real dt) override;
 
   void save(DataBlock &blk);
   void load(const DataBlock &blk);
 
   bool findTargetPos(IGenViewportWnd *wnd, int x, int y, Point3 &out);
 
-  virtual void getObjNames(Tab<String> &names, Tab<String> &sel_names, const Tab<int> &types);
-  virtual void getTypeNames(Tab<String> &names);
-  virtual void onSelectedNames(const Tab<String> &names);
+  void getObjNames(Tab<String> &names, Tab<String> &sel_names, const Tab<int> &types) override;
+  void getTypeNames(Tab<String> &names) override;
+  void onSelectedNames(const Tab<String> &names) override;
 
   void gatherStaticGeometry(StaticGeometryContainer &cont, int flags);
 
@@ -59,7 +58,7 @@ public:
 
   inline bool isCloneMode() { return cloneMode; }
 
-  virtual void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel);
+  void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
 
 protected:
   shaders::OverrideStateId zFuncLessStateId;

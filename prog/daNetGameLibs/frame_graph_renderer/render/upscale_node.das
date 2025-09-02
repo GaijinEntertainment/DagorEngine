@@ -3,31 +3,31 @@ options persistent_heap
 require DagorShaders
 require danetlibs/renderer/includes/upscale_sampling
 require ecs
-require daBfg.bfg_ecs
+require daFrameGraph.fg_ecs
 
 let upscale_tex_gen_node_entity = "upscale_node"
 
-[bfg_ecs_node(on_appear)]
+[fg_ecs_node(on_appear)]
 def register_upscale_tex_gen_node(var upscale_tex_gen_node : NodeHandle&)
   upscale_tex_gen_node <- root() |> registerNode("upscale_tex_gen_node") <| @(var registry : Registry)
-    registry |> read("gbuf_depth") |> texture |> atStage(Stage POST_RASTER) |> bindToShaderVar("depth_gbuf")
-    registry |> read("gbuf_1") |> texture |> optional |> atStage(Stage POST_RASTER) |> bindToShaderVar("normal_gbuf")
+    registry |> read("gbuf_depth") |> texture |> atStage(Stage.POST_RASTER) |> bindToShaderVar("depth_gbuf")
+    registry |> read("gbuf_1") |> texture |> optional |> atStage(Stage.POST_RASTER) |> bindToShaderVar("normal_gbuf")
 
-    registry |> read("checkerboard_depth") |> texture |> optional |> atStage(Stage POST_RASTER) |> bindToShaderVar("downsampled_checkerboard_depth_tex")
+    registry |> read("checkerboard_depth") |> texture |> optional |> atStage(Stage.POST_RASTER) |> bindToShaderVar("downsampled_checkerboard_depth_tex")
     registry |> read("checkerboard_depth_sampler") |> blob(type<SamplerHandle>) |> optional |> bindToShaderVar("downsampled_checkerboard_depth_tex_samplerstate")
 
-    registry |> read("close_depth") |> texture |> optional |> atStage(Stage POST_RASTER) |> bindToShaderVar("downsampled_close_depth_tex")
+    registry |> read("close_depth") |> texture |> optional |> atStage(Stage.POST_RASTER) |> bindToShaderVar("downsampled_close_depth_tex")
     registry |> read("close_depth_sampler") |> blob(type<SamplerHandle>) |> optional |> bindToShaderVar("downsampled_close_depth_tex_samplerstate")
-    registry |> read("downsampled_normals") |> texture |> optional |> atStage(Stage POST_RASTER) |> bindToShaderVar("downsampled_normals")
+    registry |> read("downsampled_normals") |> texture |> optional |> atStage(Stage.POST_RASTER) |> bindToShaderVar("downsampled_normals")
     registry |> read("downsampled_normals_sampler") |> blob(type<SamplerHandle>) |> optional |> bindToShaderVar("downsampled_normals_samplerstate")
 
-    let upscaleInfo = [[Texture2dCreateInfo()
+    let upscaleInfo = Texture2dCreateInfo(
       creationFlags = TEXCF_RTARGET | TEXFMT_R8UI,
-      resolution = [[TextureResolution2 autoRes=registry |> getResolution`2("main_view")]],
+      resolution = TextureResolution2(autoRes = registry |> getResolution`2("main_view")),
       mipLevels = 1u
-    ]]
-    var upscaleTexReq = registry |> create("upscale_sampling_tex", History No) |> texture(upscaleInfo)
-    registry |> requestRenderPass |> color([[auto[] upscaleTexReq]])
+    )
+    var upscaleTexReq = registry |> create("upscale_sampling_tex", History.No) |> texture(upscaleInfo)
+    registry |> requestRenderPass |> color(fixed_array(upscaleTexReq))
 
     return <- @ <|
       query() <| $ [es] (upscale_shader : PostFxRenderer)

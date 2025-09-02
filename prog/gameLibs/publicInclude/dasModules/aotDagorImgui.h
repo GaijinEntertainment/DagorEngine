@@ -4,6 +4,9 @@
 //
 #pragma once
 
+#include <dasModules/dasScriptsLoader.h>
+#include <dasModules/dasSharedStack.h>
+#include <dasModules/dasSystem.h>
 #include <daScript/daScript.h>
 #include <dasModules/dasDataBlock.h>
 #include <gui/dag_imgui.h>
@@ -13,7 +16,6 @@ DAS_BIND_ENUM_CAST(ImGuiState);
 
 namespace bind_dascript
 {
-das::StackAllocator &get_shared_stack();
 
 struct RegisterFunction
 {
@@ -63,7 +65,7 @@ struct RegisterImguiFunctionAnnotation : das::FunctionAnnotation
 
   bool apply(const das::FunctionPtr &fn, das::ModuleGroup &, const das::AnnotationArgumentList &, eastl::string &err) override
   {
-    auto program = das::daScriptEnvironment::bound->g_Program;
+    auto program = (*das::daScriptEnvironment::bound)->g_Program;
     if (program->thisModule->isModule)
     {
       err = "imgui function shouldn't be placed in the module. Please move the function to a file without module directive";
@@ -210,16 +212,16 @@ struct RegisterImguiFunctionAnnotation : das::FunctionAnnotation
 
     if (das::SimFunction *fn = closureInfo.context->fnByMangledName(closureInfo.mangledNameHash))
     {
+      RAIIAlwaysErrorOnException alwaysErrorOnException(closureInfo.context);
+      RAIIStackwalkOnLogerr stackwalkOnLogerr(closureInfo.context);
       closureInfo.context->tryRestartAndLock();
       if (!closureInfo.context->ownStack)
       {
-        das::SharedStackGuard guard(*closureInfo.context, bind_dascript::get_shared_stack());
-        closureInfo.context->eval(fn);
+        das::SharedFramememStackGuard guard(*closureInfo.context);
+        closureInfo.context->evalWithCatch(fn);
       }
       else
-        closureInfo.context->eval(fn);
-      if (auto exp = closureInfo.context->getException())
-        logerr("error: %s\n", exp);
+        closureInfo.context->evalWithCatch(fn);
       closureInfo.context->unlock();
     }
   }

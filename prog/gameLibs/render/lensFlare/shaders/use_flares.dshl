@@ -1,0 +1,24 @@
+texture lens_flare_tex;
+int lens_flares_enabled = 0;
+
+macro INIT_FLARES()
+  (ps) {
+    lens_flare_tex@tex2d = lens_flare_tex;
+    lens_flares_enabled@i1 = (lens_flares_enabled);
+    lens_flare_tex_exists@i1 = (exists_tex(lens_flare_tex));
+  }
+endmacro
+
+macro USE_FLARES(flare_sampler)
+  hlsl(ps) {
+    half3 apply_lens_flare(inout half3 color, float2 screen_uv)
+    {
+      half3 lensFlareValue = 0;
+      BRANCH
+      if (lens_flares_enabled > 0 && lens_flare_tex_exists > 0)
+        lensFlareValue = lens_flare_tex.SampleLevel(flare_sampler, screen_uv, 0).rgb;
+      color += lensFlareValue;
+      return lensFlareValue;
+    }
+  }
+endmacro

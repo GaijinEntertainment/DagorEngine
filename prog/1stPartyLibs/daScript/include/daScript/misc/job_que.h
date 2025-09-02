@@ -42,13 +42,13 @@ namespace das {
         int releaseRef() { return --mRef; }
         int size() const;
         int append(int size);
-        bool isValid() const { return mMagic==STATUS_MAGIC; }
+        bool isValid() const { return mMagic==uint32_t(STATUS_MAGIC); }
     protected:
         mutable mutex		mCompleteMutex;
         uint32_t			mRemaining = 0;
         condition_variable	mCond;
         atomic<int>         mRef{0};
-        int32_t             mMagic = STATUS_MAGIC;
+        uint32_t             mMagic = uint32_t(STATUS_MAGIC);
     };
 
     class JobQue {

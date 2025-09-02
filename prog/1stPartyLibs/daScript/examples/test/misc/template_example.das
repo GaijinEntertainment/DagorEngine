@@ -1,3 +1,4 @@
+options gen2
 options log = true
 
 require ast
@@ -5,16 +6,17 @@ require daslib/ast_boost
 require daslib/templates_boost
 
 [export]
-def test
+def test {
 
-    var expr <- quote() <|
+    var inscope expr <- quote() <| $() {
         x ++
         print("{x}\n")
+    }
 
     print(describe(expr))
 
-    var rules : Template
-    rules |> replaceVariable("x") <| new [[ExprVar() name:="y"]]
+    var inscope rules : Template
+    rules |> replaceVariable("x") <| new ExprVar(name := "y")
     rules |> renameVariable("x", "y")
 
     apply_template(rules, expr.at, expr)
@@ -22,3 +24,4 @@ def test
     print(describe(expr))
 
     return true
+}

@@ -331,6 +331,7 @@ bool CompressedHeightmap::loadData(CompressedHeightmap &hmap, IGenLoad &crd, uns
       UnpackChunkJob(CompressedHeightmap &h, uint32_t ci, uint32_t bpc, uint32_t &o, uint32_t f) :
         hmap(h), cidx(ci), blocksPerChunk(bpc), cOfs(o), fmt(f)
       {}
+      const char *getJobName(bool &) const override { return "UnpackChunkJob"; }
       virtual void doJob() override { unpack_chunk(hmap, nullptr, cidx, blocksPerChunk, false, &cOfs, &cdata, fmt); }
     };
 

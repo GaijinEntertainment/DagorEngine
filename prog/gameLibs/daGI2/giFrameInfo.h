@@ -14,6 +14,7 @@ struct DaGIFrameInfo
   TMatrix viewTm = TMatrix::IDENT, viewItm = TMatrix::IDENT;
   TMatrix4 projTm = TMatrix4::IDENT, globTm = TMatrix4::IDENT, globTmNoOfs = TMatrix4::IDENT;
   TMatrix4 projTmUnjittered = TMatrix4::IDENT, globTmUnjittered = TMatrix4::IDENT, globTmNoOfsUnjittered = TMatrix4::IDENT;
+  float ox = 0, oy = 0; // jitter in Clip Space
   float znear = 1, zfar = 10;
 };
 

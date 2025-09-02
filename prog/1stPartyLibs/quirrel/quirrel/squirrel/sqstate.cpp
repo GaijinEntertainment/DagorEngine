@@ -28,6 +28,7 @@ SQSharedState::SQSharedState(SQAllocContext allocctx) :
     _foreignptr = NULL;
     _releasehook = NULL;
     compilationOptions = 0;
+    doc_object_index = 1;
 }
 
 
@@ -82,7 +83,17 @@ SQTable *CreateDefaultDelegate(SQSharedState *ss,const SQRegFunction *funcz)
         nc->_name = SQString::Create(ss,funcz[i].name);
         if(funcz[i].typemask && !CompileTypemask(nc->_typecheck,funcz[i].typemask))
             return NULL;
-        t->NewSlot(SQString::Create(ss,funcz[i].name),nc);
+        if (funcz[i].pure)
+            nc->_purefunction = true;
+        if (funcz[i].docstring) {
+            SQObjectPtr docValue(SQString::Create(ss, funcz[i].docstring));
+            SQObjectPtr docKey;
+            docKey._type = OT_USERPOINTER;
+            docKey._unVal.pUserPointer = (void *)nc->_function;
+            _table(ss->doc_objects)->NewSlot(docKey, docValue);
+        }
+
+        t->NewSlot(nc->_name, SQObjectPtr(nc));
         i++;
     }
     return t;
@@ -104,7 +115,7 @@ void SQSharedState::Init()
     _metamethodsmap = SQTable::Create(this,MT_NUM_METHODS);
 
 #define newsysstring(s) {   \
-    _systemstrings->push_back(SQString::Create(this,s));    \
+    _systemstrings->push_back(SQObjectPtr(SQString::Create(this,s)));    \
     }
 
     //adding type strings to avoid memory trashing
@@ -128,8 +139,8 @@ void SQSharedState::Init()
 
     //meta methods
 #define MM_IMPL(mm, name) {  \
-        _metamethodnames->push_back(SQString::Create(this,name));  \
-        _table(_metamethodsmap)->NewSlot(_metamethodnames->back(),(SQInteger)(mm)); \
+        _metamethodnames->push_back(SQObjectPtr(SQString::Create(this,name)));  \
+        _table(_metamethodsmap)->NewSlot(_metamethodnames->back(), SQObjectPtr((SQInteger)(mm))); \
     }
 
     METAMETHODS_LIST
@@ -139,6 +150,7 @@ void SQSharedState::Init()
     _constructorstr = SQString::Create(this,_SC("constructor"));
     _registry = SQTable::Create(this,0);
     _consts = SQTable::Create(this,0);
+    doc_objects = SQTable::Create(this,0);
     _table_default_delegate = CreateDefaultDelegate(this,_table_default_delegate_funcz);
     _array_default_delegate = CreateDefaultDelegate(this,_array_default_delegate_funcz);
     _string_default_delegate = CreateDefaultDelegate(this,_string_default_delegate_funcz);
@@ -150,7 +162,6 @@ void SQSharedState::Init()
     _instance_default_delegate = CreateDefaultDelegate(this,_instance_default_delegate_funcz);
     _weakref_default_delegate = CreateDefaultDelegate(this,_weakref_default_delegate_funcz);
     _userdata_default_delegate = CreateDefaultDelegate(this,_userdata_default_delegate_funcz);
-
 }
 
 SQSharedState::~SQSharedState()
@@ -160,9 +171,11 @@ SQSharedState::~SQSharedState()
     _table(_registry)->Finalize();
     _table(_consts)->Finalize();
     _table(_metamethodsmap)->Finalize();
+    _table(doc_objects)->Finalize();
     _registry.Null();
     _consts.Null();
     _metamethodsmap.Null();
+    doc_objects.Null();
     while(!_systemstrings->empty()) {
         _systemstrings->back().Null();
         _systemstrings->pop_back();
@@ -262,7 +275,7 @@ void SQSharedState::RunMark(SQVM* SQ_UNUSED_ARG(vm),SQCollectable **tchain)
     MarkObject(_instance_default_delegate,tchain);
     MarkObject(_weakref_default_delegate,tchain);
     MarkObject(_userdata_default_delegate,tchain);
-
+    MarkObject(doc_objects,tchain);
 }
 
 SQInteger SQSharedState::ResurrectUnreachable(SQVM *vm)
@@ -311,7 +324,7 @@ SQInteger SQSharedState::ResurrectUnreachable(SQVM *vm)
     }
 
     if(ret) {
-        SQObjectPtr temp = ret;
+        SQObjectPtr temp(ret);
         vm->Push(temp);
     }
     else {

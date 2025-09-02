@@ -14,11 +14,12 @@
 #include "render/skies.h"
 #include "lightHandle.h"
 #include "render/renderEvent.h"
-#include <shaders/light_consts.hlsli>
+#include <render/light_consts.hlsli>
 #include <render/lightShadowParams.h>
 #include <render/renderSettings.h>
 #include <util/dag_convar.h>
 #include <camera/sceneCam.h>
+#include <game/gameEvents.h>
 
 #define INSIDE_RENDERER 1
 #include "../world/private_worldRenderer.h"
@@ -72,9 +73,9 @@ struct OmniLightEntity
       return true;
 
     if (WorldRenderer *wr = get_renderer())
-      lightId = wr->addOmniLight(OmniLight::create_empty(), OmniLightsManager::GI_LIGHT_MASK);
+      lightId = wr->addOmniLight(OmniLight::create_empty(), OmniLightMaskType::OMNI_LIGHT_MASK_DEFAULT);
 
-    return lightId;
+    return lightId.valid();
   }
 };
 
@@ -98,9 +99,9 @@ struct SpotLightEntity
       return true;
 
     if (WorldRenderer *wr = get_renderer())
-      lightId = wr->addSpotLight(SpotLight::create_empty(), SpotLightsManager::GI_LIGHT_MASK);
+      lightId = wr->addSpotLight(SpotLight::create_empty(), SpotLightMaskType::SPOT_LIGHT_MASK_DEFAULT);
 
-    return lightId;
+    return lightId.valid();
   }
 };
 
@@ -111,11 +112,11 @@ ECS_AUTO_REGISTER_COMPONENT(SpotLightEntity, "spot_light", nullptr, 0);
 template <typename LightType>
 static bool is_light_visible(const LightType &light)
 {
-  if (light.lightId < 0)
+  if (!light.lightId)
     return false;
 
   if (get_renderer())
-    return get_renderer()->isLightVisible(light.lightId);
+    return get_renderer()->isLightVisible(light.lightId.get());
 
   return false;
 }
@@ -133,12 +134,12 @@ void set_up_omni_lights()
     if (!omni_light.lightId)
       return;
 
-    OmniLight light = get_renderer()->getOmniLight(omni_light.lightId);
+    OmniLight light = get_renderer()->getOmniLight(omni_light.lightId.get());
 
     if (get_renderer()->getBoxAround(Point3{light.pos_radius.x, light.pos_radius.y, light.pos_radius.z}, light__box)) //-V1051
     {
       light.setBox(light__box);
-      get_renderer()->setLight(omni_light.lightId, light, false);
+      get_renderer()->setLight(omni_light.lightId.get(), light, false);
     }
   });
 
@@ -214,7 +215,8 @@ static __forceinline void omni_light_set(OmniLightEntity &omni_light,
   LightApproximateStatic light__approximate_static_shadows,
   LightAffectVolumes light__affect_volumes,
   LightRenderGpuObjects light__render_gpu_objects,
-  LightLensFlares light__enable_lens_flares)
+  LightLensFlares light__enable_lens_flares,
+  bool light__force_affect_volfog)
 {
   if (!get_renderer())
     return;
@@ -234,7 +236,7 @@ static __forceinline void omni_light_set(OmniLightEntity &omni_light,
   shadowParams.priority = omni_light__priority;
   bool contact_shadows = shadowQuality >= ShadowsQuality::SHADOWS_HIGH ? bool(light__contact_shadows) : false;
 
-  get_renderer()->updateLightShadow(omni_light.lightId, shadowParams);
+  get_renderer()->updateLightShadow(omni_light.lightId.get(), shadowParams);
   Color3 color = color3(light__color) * light__brightness;
 
   const float dropOffLuminance = 0.05; // 5% of the original luminance
@@ -299,14 +301,20 @@ static __forceinline void omni_light_set(OmniLightEntity &omni_light,
   IesTextureCollection::PhotometryData data;
   if (photometryTextures && tex_idx != -1)
     data = photometryTextures->getTextureData(tex_idx);
+  color = bool(omni_light__shadows) ? color : -color;
   OmniLight omniLight =
     OmniLight(position, direction, color, radius, bool(contact_shadows) ? 1.0f : 0.f, tex_idx, data.zoom, data.rotated, light__box);
-  OmniLightsManager::mask_type_t mask = ~OmniLightsManager::mask_type_t(0);
-  if (light__dynamic_light == LightDynamicLight::On || light__affect_volumes == LightAffectVolumes::Off)
-    mask &= ~OmniLightsManager::GI_LIGHT_MASK;
-  if (light__enable_lens_flares == LightLensFlares::Off)
-    mask &= ~OmniLightsManager::MASK_LENS_FLARE;
-  get_renderer()->setLightWithMask(omni_light.lightId, eastl::move(omniLight), mask, true);
+  OmniLightMaskType mask = OmniLightMaskType::OMNI_LIGHT_MASK_NONE;
+  if (light__dynamic_light == LightDynamicLight::Off && light__affect_volumes == LightAffectVolumes::On)
+  {
+    mask |= OmniLightMaskType::OMNI_LIGHT_MASK_VOLFOG; //-V1016
+    mask |= OmniLightMaskType::OMNI_LIGHT_MASK_GI;     //-V1016
+  }
+  if (light__force_affect_volfog)
+    mask |= OmniLightMaskType::OMNI_LIGHT_MASK_VOLFOG; //-V1016
+  if (light__enable_lens_flares == LightLensFlares::On)
+    mask |= OmniLightMaskType::OMNI_LIGHT_MASK_LENS_FLARE; //-V1016
+  get_renderer()->setLightWithMask(omni_light.lightId.get(), eastl::move(omniLight), mask, true);
 }
 
 ECS_TAG(render)
@@ -374,6 +382,7 @@ static __forceinline void update_omni_light_es(const ecs::Event &evt,
   bool light__is_paused = false,
   bool light__enable_lens_flares = false,
   bool light__approximate_static = false,
+  bool light__force_affect_volfog = false,
   const TMatrix *transform = nullptr,
   const AnimV20::AnimcharBaseComponent *animchar = nullptr,
   const TMatrix *lightModTm = nullptr)
@@ -397,7 +406,53 @@ static __forceinline void update_omni_light_es(const ecs::Event &evt,
     omni_light__shadow_shrink, light__radius_scale, light__max_radius, LightDynamicLight(light__dynamic_light),
     LightContactShadows(light__contact_shadows), LightApproximateStatic(light__approximate_static),
     LightAffectVolumes(light__affect_volumes), LightRenderGpuObjects(light__render_gpu_objects),
-    LightLensFlares(light__enable_lens_flares));
+    LightLensFlares(light__enable_lens_flares), light__force_affect_volfog);
+}
+
+ECS_TAG(render)
+ECS_ON_EVENT(EventOnGameUpdateAfterGameLogic)
+ECS_REQUIRE(ecs::Tag light__high_priority_update)
+ECS_TRACK(*)
+static __forceinline void update_high_priority_omni_light_es(const ecs::Event &,
+  ecs::EntityId eid,
+  const ecs::EntityManager &manager,
+  OmniLightEntity &omni_light,
+  bool light__use_box,
+  bool &light__automatic_box,
+  bool &light__force_max_light_radius,
+  TMatrix &light__box,
+  const Point3 &light__offset,
+  const Point3 &light__direction,
+  const ecs::string &light__texture_name,
+  const E3DCOLOR light__color,
+  float light__brightness,
+  bool omni_light__shadows,
+  bool omni_light__dynamic_obj_shadows,
+  int omni_light__shadow_quality = 0,
+  int omni_light__priority = 0,
+  int omni_light__shadow_shrink = 0,
+  float light__radius_scale = 1,
+  float light__max_radius = -1,
+  bool light__dynamic_light = false,
+  bool light__contact_shadows = true,
+  bool light__affect_volumes = true,
+  bool light__render_gpu_objects = false,
+  bool light__enable_lens_flares = false,
+  bool light__approximate_static = false,
+  bool light__force_affect_volfog = false,
+  const TMatrix *transform = nullptr,
+  const AnimV20::AnimcharBaseComponent *animchar = nullptr,
+  const TMatrix *lightModTm = nullptr)
+{
+  const TMatrix tm = light_tm(eid, manager, transform, animchar, lightModTm);
+
+  omni_light_set(omni_light, tm, LightUseBox(light__use_box), light__automatic_box, light__force_max_light_radius, light__box,
+    light__offset, light__direction, light__texture_name, light__color, light__brightness, LightHasShadows(omni_light__shadows),
+    LightHasDynamicCasters(omni_light__dynamic_obj_shadows), omni_light__shadow_quality, omni_light__priority,
+    omni_light__shadow_shrink, light__radius_scale, light__max_radius, LightDynamicLight(light__dynamic_light),
+    LightContactShadows(light__contact_shadows), LightApproximateStatic(light__approximate_static),
+    LightAffectVolumes(light__affect_volumes), LightRenderGpuObjects(light__render_gpu_objects),
+    LightLensFlares(light__enable_lens_flares), light__force_affect_volfog);
 }
 
 ECS_TAG(render)
@@ -427,7 +482,8 @@ static __forceinline void omni_light_es(const ecs::UpdateStageInfoAct &,
   bool light__affect_volumes = true,
   bool light__render_gpu_objects = false,
   bool light__enable_lens_flares = false,
-  bool light__approximate_static = false)
+  bool light__approximate_static = false,
+  bool light__force_affect_volfog = false)
 {
   TMatrix transform = TMatrix::IDENT;
   animchar.getTm(transform);
@@ -440,7 +496,7 @@ static __forceinline void omni_light_es(const ecs::UpdateStageInfoAct &,
     omni_light__priority, omni_light__shadow_shrink, light__radius_scale, light__max_radius, LightDynamicLight(light__dynamic_light),
     LightContactShadows(light__contact_shadows), LightApproximateStatic(light__approximate_static),
     LightAffectVolumes(light__affect_volumes), LightRenderGpuObjects(light__render_gpu_objects),
-    LightLensFlares(light__enable_lens_flares));
+    LightLensFlares(light__enable_lens_flares), light__force_affect_volfog);
 }
 
 static __forceinline void spot_light_set(SpotLightEntity &spot_light,
@@ -457,6 +513,7 @@ static __forceinline void spot_light_set(SpotLightEntity &spot_light,
   int spot_light__priority,
   int spot_light__shadow_shrink,
   float spot_light__cone_angle,
+  float spot_light__illuminating_disc_radius,
   float spot_light__inner_attenuation,
   float light__radius_scale,
   float light__max_radius,
@@ -464,7 +521,8 @@ static __forceinline void spot_light_set(SpotLightEntity &spot_light,
   LightContactShadows spot_light__contact_shadows,
   LightApproximateStatic light__approximate_static_shadows,
   LightRenderGpuObjects light__render_gpu_objects,
-  LightLensFlares light__enable_lens_flares)
+  LightLensFlares light__enable_lens_flares,
+  bool light__force_affect_volfog)
 {
   if (!get_renderer())
     return;
@@ -484,7 +542,7 @@ static __forceinline void spot_light_set(SpotLightEntity &spot_light,
   shadowParams.priority = spot_light__priority;
   bool contact_shadows = shadowQuality >= ShadowsQuality::SHADOWS_HIGH ? bool(spot_light__contact_shadows) : false;
 
-  get_renderer()->updateLightShadow(spot_light.lightId, shadowParams);
+  get_renderer()->updateLightShadow(spot_light.lightId.get(), shadowParams);
   Color3 color = color3(light__color) * light__brightness;
 
   float auto_radius = light__radius_scale * rgbsum(color) * (4.47f / 3); // 4.47 = 1/sqrt(0.05)/ (3 for rgbsum), i.e. 95% of brightness
@@ -528,15 +586,25 @@ static __forceinline void spot_light_set(SpotLightEntity &spot_light,
   IesTextureCollection::PhotometryData data;
   if (photometryTextures && tex_idx != -1)
     data = photometryTextures->getTextureData(tex_idx);
-  SpotLight spotLight =
-    SpotLight(transform * light__offset, color, light__brightness > 0 ? radius : -1, attCos, transform.getcol(2) / col_length, halfTan,
-      bool(contact_shadows) && bool(spot_light__shadows), bool(spot_light__shadows), tex_idx, data.zoom, data.rotated);
-  SpotLightsManager::mask_type_t mask = ~SpotLightsManager::mask_type_t(0);
-  if (spot_light__dynamic_light == LightDynamicLight::On || light__affect_volumes == LightAffectVolumes::Off)
-    mask &= ~SpotLightsManager::GI_LIGHT_MASK;
-  if (light__enable_lens_flares == LightLensFlares::Off)
-    mask &= ~SpotLightsManager::MASK_LENS_FLARE;
-  get_renderer()->setLight(spot_light.lightId, eastl::move(spotLight), mask, true);
+  const float illuminatingDiscOffset = safediv(spot_light__illuminating_disc_radius, halfTan);
+  constexpr float EPS = 1e-6;
+  const Point3 worldUpDir(0.f, 1.f, 0.f);
+  const Point3 direction = col_length > EPS ? transform.getcol(2) / col_length : worldUpDir;
+  const Point3 coneApexPosistion = transform * light__offset - direction * illuminatingDiscOffset;
+  SpotLight spotLight = SpotLight(coneApexPosistion, color, light__brightness > 0 ? radius : -1, attCos, direction, halfTan,
+    bool(contact_shadows) && bool(spot_light__shadows), bool(spot_light__shadows), tex_idx, data.zoom, data.rotated,
+    illuminatingDiscOffset);
+  SpotLightMaskType mask = SpotLightMaskType::SPOT_LIGHT_MASK_NONE;
+  if (spot_light__dynamic_light == LightDynamicLight::Off && light__affect_volumes == LightAffectVolumes::On)
+  {
+    mask |= SpotLightMaskType::SPOT_LIGHT_MASK_GI;     //-V1016
+    mask |= SpotLightMaskType::SPOT_LIGHT_MASK_VOLFOG; //-V1016
+  }
+  if (light__force_affect_volfog)
+    mask |= SpotLightMaskType::SPOT_LIGHT_MASK_VOLFOG; //-V1016
+  if (light__enable_lens_flares == LightLensFlares::On)
+    mask |= SpotLightMaskType::SPOT_LIGHT_MASK_LENS_FLARE; //-V1016
+  get_renderer()->setLight(spot_light.lightId.get(), eastl::move(spotLight), mask, true);
 }
 
 ECS_TAG(render)
@@ -620,6 +688,7 @@ static __forceinline void update_spot_light_es(const ecs::Event &evt,
   int spot_light__priority = 0,
   int spot_light__shadow_shrink = 0,
   float spot_light__cone_angle = -1.0,
+  float spot_light__illuminating_disc_radius = 0.0,
   float spot_light__inner_attenuation = 0.95,
   float light__radius_scale = 1,
   float light__max_radius = -1,
@@ -631,7 +700,8 @@ static __forceinline void update_spot_light_es(const ecs::Event &evt,
   const AnimV20::AnimcharBaseComponent *animchar = nullptr,
   const TMatrix *lightModTm = nullptr,
   bool light__enable_lens_flares = false,
-  bool light__approximate_static = false)
+  bool light__approximate_static = false,
+  bool light__force_affect_volfog = false)
 {
   if (auto evtRenderFeatures = evt.cast<ChangeRenderFeatures>())
   {
@@ -640,7 +710,7 @@ static __forceinline void update_spot_light_es(const ecs::Event &evt,
       return;
   }
 
-  bool shouldCreate = !light__is_paused && (light__nightly ? get_daskies()->getSunDir().y < NIGHT_SUN_COS : true);
+  bool shouldCreate = !light__is_paused && (light__nightly && get_daskies() ? get_daskies()->getSunDir().y < NIGHT_SUN_COS : true);
   if (!spot_light.ensureLightIdCreated(shouldCreate))
     return;
 
@@ -649,10 +719,55 @@ static __forceinline void update_spot_light_es(const ecs::Event &evt,
   spot_light_set(spot_light, tm, light__offset, light__texture_name, light__color, light__brightness,
     LightDynamicLight(spot_light__dynamic_light), LightHasShadows(spot_light__shadows),
     LightHasDynamicCasters(spot_light__dynamic_obj_shadows), light__force_max_light_radius, spot_light__shadow_quality,
-    spot_light__priority, spot_light__shadow_shrink, spot_light__cone_angle, spot_light__inner_attenuation, light__radius_scale,
-    light__max_radius, LightAffectVolumes(light__affect_volumes), LightContactShadows(spot_light__contact_shadows),
-    LightApproximateStatic(light__approximate_static), LightRenderGpuObjects(light__render_gpu_objects),
-    LightLensFlares(light__enable_lens_flares));
+    spot_light__priority, spot_light__shadow_shrink, spot_light__cone_angle, spot_light__illuminating_disc_radius,
+    spot_light__inner_attenuation, light__radius_scale, light__max_radius, LightAffectVolumes(light__affect_volumes),
+    LightContactShadows(spot_light__contact_shadows), LightApproximateStatic(light__approximate_static),
+    LightRenderGpuObjects(light__render_gpu_objects), LightLensFlares(light__enable_lens_flares), light__force_affect_volfog);
+}
+
+ECS_TAG(render)
+ECS_ON_EVENT(EventOnGameUpdateAfterGameLogic)
+ECS_REQUIRE(ecs::Tag light__high_priority_update)
+ECS_TRACK(*)
+static __forceinline void update_high_priority_spot_light_es(const ecs::Event &,
+  ecs::EntityId eid,
+  const ecs::EntityManager &manager,
+  SpotLightEntity &spot_light,
+  const Point3 &light__offset,
+  const ecs::string &light__texture_name,
+  const E3DCOLOR light__color,
+  float light__brightness,
+  bool spot_light__dynamic_light,
+  bool spot_light__shadows,
+  bool spot_light__dynamic_obj_shadows,
+  bool &light__force_max_light_radius,
+  int spot_light__shadow_quality = 0,
+  int spot_light__priority = 0,
+  int spot_light__shadow_shrink = 0,
+  float spot_light__cone_angle = -1.0,
+  float spot_light__illuminating_disc_radius = 0.0,
+  float spot_light__inner_attenuation = 0.95,
+  float light__radius_scale = 1,
+  float light__max_radius = -1,
+  bool light__affect_volumes = true,
+  bool spot_light__contact_shadows = false,
+  bool light__render_gpu_objects = false,
+  const TMatrix *transform = nullptr,
+  const AnimV20::AnimcharBaseComponent *animchar = nullptr,
+  const TMatrix *lightModTm = nullptr,
+  bool light__enable_lens_flares = false,
+  bool light__approximate_static = false,
+  bool light__force_affect_volfog = false)
+{
+  const TMatrix tm = light_tm(eid, manager, transform, animchar, lightModTm);
+
+  spot_light_set(spot_light, tm, light__offset, light__texture_name, light__color, light__brightness,
+    LightDynamicLight(spot_light__dynamic_light), LightHasShadows(spot_light__shadows),
+    LightHasDynamicCasters(spot_light__dynamic_obj_shadows), light__force_max_light_radius, spot_light__shadow_quality,
+    spot_light__priority, spot_light__shadow_shrink, spot_light__cone_angle, spot_light__illuminating_disc_radius,
+    spot_light__inner_attenuation, light__radius_scale, light__max_radius, LightAffectVolumes(light__affect_volumes),
+    LightContactShadows(spot_light__contact_shadows), LightApproximateStatic(light__approximate_static),
+    LightRenderGpuObjects(light__render_gpu_objects), LightLensFlares(light__enable_lens_flares), light__force_affect_volfog);
 }
 
 ECS_TAG(render)
@@ -675,6 +790,7 @@ static __forceinline void spot_light_es(const ecs::UpdateStageInfoAct &,
   int spot_light__shadow_shrink = 0,
   float spot_light__inner_attenuation = 0.95,
   float spot_light__cone_angle = -1.0,
+  float spot_light__illuminating_disc_radius = 0.0,
   float light__radius_scale = 1,
   float light__max_radius = -1,
   bool animchar_render__enabled = true,
@@ -682,7 +798,8 @@ static __forceinline void spot_light_es(const ecs::UpdateStageInfoAct &,
   bool spot_light__contact_shadows = false,
   bool light__render_gpu_objects = false,
   bool light__enable_lens_flares = false,
-  bool light__approximate_static = false)
+  bool light__approximate_static = false,
+  bool light__force_affect_volfog = false)
 {
   TMatrix transform = TMatrix::IDENT;
   animchar.getTm(transform);
@@ -691,10 +808,11 @@ static __forceinline void spot_light_es(const ecs::UpdateStageInfoAct &,
   spot_light_set(spot_light, transform, light__offset, light__texture_name, light__color,
     animchar_render__enabled ? light__brightness : 0.f, LightDynamicLight(spot_light__dynamic_light),
     LightHasShadows(spot_light__shadows), LightHasDynamicCasters(spot_light__dynamic_obj_shadows), light__force_max_light_radius,
-    spot_light__shadow_quality, spot_light__priority, spot_light__shadow_shrink, spot_light__cone_angle, spot_light__inner_attenuation,
-    light__radius_scale, light__max_radius, LightAffectVolumes(light__affect_volumes),
-    LightContactShadows(spot_light__contact_shadows), LightApproximateStatic(light__approximate_static),
-    LightRenderGpuObjects(light__render_gpu_objects), LightLensFlares(light__enable_lens_flares));
+    spot_light__shadow_quality, spot_light__priority, spot_light__shadow_shrink, spot_light__cone_angle,
+    spot_light__illuminating_disc_radius, spot_light__inner_attenuation, light__radius_scale, light__max_radius,
+    LightAffectVolumes(light__affect_volumes), LightContactShadows(spot_light__contact_shadows),
+    LightApproximateStatic(light__approximate_static), LightRenderGpuObjects(light__render_gpu_objects),
+    LightLensFlares(light__enable_lens_flares), light__force_affect_volfog);
 }
 
 template <typename Callable>
@@ -739,7 +857,7 @@ static __forceinline void editor_draw_omni_light_es(const UpdateStageInfoRenderD
     if (!selected && drawMode == EditorLightDrawMode::Selected)
       return;
 
-    const OmniLightsManager::Light &light = renderer->getOmniLight(omni_light.lightId);
+    const OmniLightsManager::Light &light = renderer->getOmniLight(omni_light.lightId.get());
     const float lightRadius = light.posRelToOrigin_cullRadius.w > 0.0f ? light.posRelToOrigin_cullRadius.w : light.pos_radius.w;
     if (lightRadius <= 0.0f)
       return;
@@ -777,7 +895,7 @@ static __forceinline void editor_draw_spot_light_es(const UpdateStageInfoRenderD
     if (!selected && drawMode == EditorLightDrawMode::Selected)
       return;
 
-    const SpotLightsManager::Light &light = renderer->getSpotLight(spot_light.lightId);
+    const SpotLightsManager::Light &light = renderer->getSpotLight(spot_light.lightId.get());
     const float lightRadius = light.culling_radius > 0.0f ? light.culling_radius : light.pos_radius.w;
     if (lightRadius <= 0.0f)
       return;

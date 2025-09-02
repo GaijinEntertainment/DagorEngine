@@ -2,33 +2,10 @@ include "shader_global.dshl"
 include "hardware_defines.dshl"
 
 macro USE_DRAW_INDIRECT_BUFFER_LAYOUT()
-  // Layout of:
-  //  struct DrawIndexedIndirectArgs
-  //  {
-  //    uint extraArgument; // only for dx12
-  //    uint indexCountPerInstance;
-  //    uint instanceCount;
-  //    uint startIndexLocation;
-  //    int baseVertexLocation;
-  //    uint startInstanceLocation;
-  //  };
-
-  if (hardware.dx12)
-  {
-    hlsl {
-      #define INDEX_COUNT_PER_INSTANCE 1
-      #define INSTANCE_COUNT_OFFSET 2
-      #define START_INSTANCE_LOCATION_OFFSET 5
-      #define DRAW_INDIRECT_ARGS_SIZEOF 6
-    }
-  }
-  else
-  {
-    hlsl {
-      #define INDEX_COUNT_PER_INSTANCE 0
-      #define INSTANCE_COUNT_OFFSET 1
-      #define START_INSTANCE_LOCATION_OFFSET 4
-      #define DRAW_INDIRECT_ARGS_SIZEOF 5
-    }
+  hlsl {
+    #define INDEX_COUNT_PER_INSTANCE 0
+    #define INSTANCE_COUNT_OFFSET 1
+    #define START_INSTANCE_LOCATION_OFFSET 4
+    #define DRAW_INDIRECT_ARGS_SIZEOF 5
   }
 endmacro

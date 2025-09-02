@@ -62,13 +62,15 @@
 #include "ui/uiRender.h"
 #include "ui/loadingUi.h"
 
-#include <util/dag_threadPool.h>
+#include <camTrack/camTrack.h>
 #include <daRg/dag_guiScene.h>
+#include <util/dag_threadPool.h>
 
 #include "animatedSplashScreen.h"
 #include <debug/dag_memReport.h>
 #include <render/deviceResetTelemetry/deviceResetTelemetry.h>
 #include <render/world/wrDispatcher.h>
+#include <ui/xrayUiOrder.h>
 
 CONSOLE_INT_VAL("app", sleep_msec_val, 0, 0, 1000);
 CONSOLE_BOOL_VAL("app", screenshot_hide_debug, true);
@@ -89,6 +91,7 @@ static bool should_hide_gui() { return screencap::should_hide_gui() || hide_gui.
 namespace game_scene
 {
 extern bool parallel_logic_mode;
+extern bool parallel_no_latency_mode;
 extern void updateInput(float rtDt, float dt, float cur_time);
 } // namespace game_scene
 
@@ -101,26 +104,34 @@ extern void free_reserved_tp_worker();
 
 static class AdditionalGameJob final : public cpujobs::IJob
 {
+  uint32_t frameId = 0;
   float dt = 0.;
   float rtdt = 0.;
   float curTime = 0.;
 
 public:
-  AdditionalGameJob *prepare(float _rtdt, float time_speed, float _curTime)
+  AdditionalGameJob *prepare(uint32_t frame_id, float _rtdt, float time_speed, float _curTime)
   {
+    frameId = frame_id;
     rtdt = _rtdt;
     dt = _rtdt * time_speed;
     curTime = _curTime;
-    bind_dascript::enable_thread_safe_das_ctx_region(true);
+    if (!game_scene::parallel_no_latency_mode)
+      bind_dascript::enable_thread_safe_das_ctx_region(true);
     return this;
   }
+  const char *getJobName(bool &) const override { return "AdditionalGameJob"; }
   void doJob() override
   {
-    static bool gpuLatencyWait = dgs_get_settings()->getBlockByName("video")->getBool("pufdGpuLatencyWait", true);
-    if (gpuLatencyWait)
+    int64_t ownedThread = g_entity_mgr->getOwnerThreadId();
+    g_entity_mgr->setOwnerThreadId(get_current_thread_id());
+
+    uirender::start_ui_before_render_job();
+
     {
-      TIME_PROFILE(gpu_latency_wait);
-      d3d::gpu_latency_wait();
+      TIME_PROFILE(begin_frame);
+      static bool gpuLatencyWait = dgs_get_settings()->getBlockByName("video")->getBool("pufdGpuLatencyWait", true);
+      dagor_start_next_frame(gpuLatencyWait);
     }
     TIME_PROFILE(ParallelUpdateFrameDelayed);
     FRAMEMEM_REGION;
@@ -132,30 +143,32 @@ public:
       dainput::set_control_thread_id(get_main_thread_id());
     }
 
-    uirender::start_ui_before_render_job();
     dacoll::phys_world_set_control_thread_id(get_current_thread_id());
     g_entity_mgr->broadcastEventImmediate(ParallelUpdateFrameDelayed(dt, curTime));
     dacoll::phys_world_set_control_thread_id(get_main_thread_id());
 
     dacoll::phys_world_set_invalid_fetch_sim_res_thread(-1); // set to invalid
 
+    g_entity_mgr->setOwnerThreadId(ownedThread);
     free_reserved_tp_worker(); // Allow Jolt to use all threadpool workers
   }
 } additional_game_job;
 
-static inline void wait_additional_game_job_done()
+void wait_additional_game_job_done()
 {
   if (!interlocked_acquire_load(additional_game_job.done))
   {
     TIME_PROFILE(wait_additional_game_job_done);
     threadpool::wait(&additional_game_job);
   }
-  bind_dascript::enable_thread_safe_das_ctx_region(false);
+  if (!game_scene::parallel_no_latency_mode) // need be reworked for this mode
+    bind_dascript::enable_thread_safe_das_ctx_region(false);
 }
 
 void render_scene_debug(BaseTexture *target, BaseTexture *depth, const CameraParams &camera)
 {
-  wait_additional_game_job_done(); // some systems on UpdateStageInfoRenderDebug can conflict with this game job
+  if (!game_scene::parallel_no_latency_mode)
+    wait_additional_game_job_done(); // some systems on UpdateStageInfoRenderDebug can conflict with this game job
   if (should_hide_debug() || !get_world_renderer())
     return;
 
@@ -194,8 +207,7 @@ void render_scene_debug(BaseTexture *target, BaseTexture *depth, const CameraPar
   }
 }
 
-void before_draw_scene(
-  int realtime_elapsed_usec, float gametime_elapsed_sec, float time_speed, ecs::EntityId cur_cam, TMatrix &view_itm)
+void before_draw_scene(int realtime_elapsed_usec, float gametime_elapsed_sec, float time_speed, ecs::EntityId cur_cam)
 {
   last_realtime_elapsed_usec = realtime_elapsed_usec;
   last_gametime_elapsed_sec = gametime_elapsed_sec;
@@ -230,8 +242,6 @@ void before_draw_scene(
   DPoint3 camPosition = cam.accuratePos;
   Driver3dPerspective curPersp = calc_camera_perspective(cam, w, h);
 
-  view_itm = camTransform;
-
   if (capture360::is_360_capturing_in_progress())
   {
     if (eastl::optional<CameraSetupPerspPair> camera360 = screencap::get_camera())
@@ -248,18 +258,21 @@ void before_draw_scene(
   ::grs_cur_view.tm = viewTransform;
   ::grs_cur_view.pos = ::grs_cur_view.itm.getcol(3);
 
+  const double curTime = get_time_mgr().getSeconds();
+  camtrack::update_record(curTime, camTransform, curPersp.wk);
+
   if (auto wr = get_world_renderer(); wr && is_level_loaded_not_empty())
   {
     wr->beforeRender(scaledDt, rtDt, realtime_elapsed_usec * 1e-6, get_sync_time(), camTransform, camPosition, curPersp);
   }
 
   user_ui::before_render();
-  uirender::before_render(realtime_elapsed_usec * 1e-6, camTransform, viewTransform);
+
+  const TMatrix4 &projTm = matrix_perspective(curPersp.wk, curPersp.hk, curPersp.zn, curPersp.zf);
+  uirender::before_render(realtime_elapsed_usec * 1e-6, camTransform, viewTransform, projTm);
 
   if (has_in_game_editor())
   {
-    TMatrix4 projTm;
-    d3d::gettm(TM_PROJ, &projTm);
     get_da_editor4().beforeRender(::grs_cur_view.tm, ::grs_cur_view.itm, projTm, ::grs_cur_view.pos);
   }
 }
@@ -271,7 +284,7 @@ static void final_blit()
   {
     TIME_D3D_PROFILE(final_blit);
     d3d::set_srgb_backbuffer_write(false);
-    d3d::stretch_rect(get_world_renderer()->getFinalTargetTex().getTex2D(), NULL);
+    d3d::stretch_rect(get_world_renderer()->getFinalTargetTex().getTex2D(), d3d::get_backbuffer_tex());
   }
 }
 
@@ -284,9 +297,8 @@ enum
   AGT_ALL = 7
 };
 static uint8_t async_game_tasks_started = AGT_NONE;
-extern void acefx_start_update_prepared();
 
-void start_async_game_tasks(int agt = AGT_ALL, bool wake = true)
+void start_async_game_tasks(uint32_t frame_id, int agt = AGT_ALL, bool wake = true)
 {
   if ((async_game_tasks_started & agt) == agt)
     return;
@@ -297,14 +309,14 @@ void start_async_game_tasks(int agt = AGT_ALL, bool wake = true)
   if ((agt & AGT_ADDITIONAL) && !(async_game_tasks_started & AGT_ADDITIONAL))
   {
     if (is_level_loaded())
-      threadpool::add(additional_game_job.prepare(last_gametime_elapsed_sec, get_timespeed(), get_sync_time()), threadpool::PRIO_LOW,
-        wake);
+      threadpool::add(additional_game_job.prepare(frame_id, last_gametime_elapsed_sec, get_timespeed(), get_sync_time()),
+        threadpool::PRIO_LOW, wake);
     else // we must start before render ui job when level loading in progress
       uirender::start_ui_before_render_job();
   }
 
   if ((agt & AGT_DAFX) && !(async_game_tasks_started & AGT_DAFX))
-    acefx_start_update_prepared();
+    acesfx::start_dafx_update();
 
   if ((agt & AGT_UI) && !(async_game_tasks_started & AGT_UI))
   {
@@ -317,9 +329,16 @@ void start_async_game_tasks(int agt = AGT_ALL, bool wake = true)
   async_game_tasks_started |= agt;
 }
 
+static inline void wait_before_finish_rendering_ui()
+{
+  if (!game_scene::parallel_no_latency_mode)
+    wait_additional_game_job_done();
+  uirender::wait_ui_before_render_job_done();
+}
+
 void finish_rendering_ui()
 {
-  wait_additional_game_job_done();
+  wait_before_finish_rendering_ui();
 
   CameraSetup cameraSetup = get_active_camera_setup();
   TMatrix viewTm;
@@ -333,13 +352,7 @@ void finish_rendering_ui()
   prepare_debug_text_marks(globTm, view_w, view_h);
   bool isPersp = d3d::validatepersp(persp);
 
-  auto uiScenes = uirender::get_all_scenes();
-
-  bool willResetGuiBufferPosInThread = !should_hide_gui() && uirender::multithreaded && !uiScenes.empty();
-  if (!willResetGuiBufferPosInThread)
-    StdGuiRender::reset_per_frame_dynamic_buffer_pos();
-
-  if (!should_hide_gui())
+  if (DAGOR_LIKELY(!should_hide_gui()))
   {
     TIME_D3D_PROFILE(gui);
 
@@ -354,20 +367,18 @@ void finish_rendering_ui()
         gui_screen_sizeVarId = get_shader_variable_id("gui_screen_size", true);
       ShaderGlobal::set_color4(gui_screen_sizeVarId, sw, sh, 1.0f / sw, 1.0f / sh);
 
-      if (!uiScenes.empty())
+      auto uiScenes = uirender::get_all_scenes();
+
+      if (DAGOR_LIKELY(uirender::multithreaded))
+        uirender::wait_ui_render_job_done(); // Note: job calls `reset_per_frame_dynamic_buffer_pos`
+      else
       {
-        if (DAGOR_LIKELY(uirender::multithreaded))
+        TIME_PROFILE(darg_scene_build_render);
+        StdGuiRender::reset_per_frame_dynamic_buffer_pos();
+        for (darg::IGuiScene *scn : uiScenes)
         {
-          uirender::wait_ui_render_job_done();
-        }
-        else
-        {
-          TIME_PROFILE(darg_scene_build_render);
-          for (darg::IGuiScene *scn : uirender::get_all_scenes())
-          {
-            scn->renderThreadBeforeRender();
-            scn->buildRender();
-          }
+          scn->renderThreadBeforeRender();
+          scn->buildRender();
         }
       }
 
@@ -391,6 +402,24 @@ void finish_rendering_ui()
         g_entity_mgr->broadcastEventImmediate(RenderEventUI(viewTm, cameraSetup.transform, ssGlobTm, persp));
       }
 
+      auto renderXray = [&]() {
+        StdGuiRender::ScopeStarterOptional strt;
+        StdGuiRender::set_font(0);
+        StdGuiRender::set_color(255, 0, 255, 255);
+        StdGuiRender::set_ablend(true);
+        StdGuiRender::flush_data();
+
+        mat44f ssGlobTm;
+        v_mat44_make_from_44cu(ssGlobTm, &globTm._11);
+        g_entity_mgr->broadcastEventImmediate(RenderXray(viewTm, cameraSetup.transform, ssGlobTm, persp));
+      };
+
+      if (isPersp && ui::xray_ui_order::should_render_xray_before_ui())
+      {
+        TIME_D3D_PROFILE_DEV(render_xray_before_ui);
+        renderXray();
+      }
+
       if (!uiScenes.empty())
       {
         TIME_D3D_PROFILE(flush_render);
@@ -401,18 +430,10 @@ void finish_rendering_ui()
           scn->flushRender();
       }
 
-      if (isPersp)
+      if (isPersp && !ui::xray_ui_order::should_render_xray_before_ui())
       {
-        TIME_D3D_PROFILE_DEV(render_after_ui);
-        StdGuiRender::ScopeStarterOptional strt;
-        StdGuiRender::set_font(0);
-        StdGuiRender::set_color(255, 0, 255, 255);
-        StdGuiRender::set_ablend(true);
-        StdGuiRender::flush_data();
-
-        mat44f ssGlobTm;
-        v_mat44_make_from_44cu(ssGlobTm, &globTm._11);
-        g_entity_mgr->broadcastEventImmediate(RenderEventAfterUI(viewTm, cameraSetup.transform, ssGlobTm, persp));
+        TIME_D3D_PROFILE_DEV(render_xray_after_ui);
+        renderXray();
       }
 
       netstat::render();
@@ -421,6 +442,8 @@ void finish_rendering_ui()
         get_da_editor4().renderUi();
     }
   }
+  else
+    StdGuiRender::reset_per_frame_dynamic_buffer_pos();
 
   if (!screencap::should_hide_debug())
   {
@@ -460,9 +483,9 @@ void finish_rendering_ui()
   }
 }
 
-void draw_scene(const TMatrix &view_itm)
+void draw_scene(uint32_t frame_id)
 {
-  if (DAGOR_UNLIKELY(sceneload::is_scene_switch_in_progress()))
+  if (DAGOR_UNLIKELY(sceneload::is_scene_switch_in_progress() || d3d::device_lost(nullptr)))
   {
     uirender::skip_ui_render_job();
     g_entity_mgr->setConstrainedMTMode(false);
@@ -516,7 +539,7 @@ void draw_scene(const TMatrix &view_itm)
       if (is_level_loaded_not_empty())
       {
         TIME_D3D_PROFILE(draw_frame);
-        get_world_renderer()->draw(last_realtime_elapsed_usec * 1e-6f);
+        get_world_renderer()->draw(frame_id, last_realtime_elapsed_usec * 1e-6f);
       }
 
       debug_animated_splash_screen();
@@ -539,7 +562,7 @@ void draw_scene(const TMatrix &view_itm)
           animated_splash_screen_start(!hdrrender::is_hdr_enabled());
         }
 
-        animated_splash_screen_draw(hdrrender::is_hdr_enabled() ? hdrrender::get_render_target_tex() : d3d::get_backbuffer_tex());
+        animated_splash_screen_draw();
       }
     }
   }
@@ -547,7 +570,7 @@ void draw_scene(const TMatrix &view_itm)
   // Preset is soon, this makes driver thread sleep less
   d3d::driver_command(Drv3dCommand::ENABLE_WORKER_LOW_LATENCY_MODE, (void *)(uintptr_t)1); //-V566
 
-  start_async_game_tasks(); // Start the rest of tasks in case it wasnt started before
+  start_async_game_tasks(frame_id); // Start the rest of tasks in case it wasnt started before
 
   // On Xbox this sets the SDR render target for GUI render
   d3d::set_render_target(1, d3d::get_secondary_backbuffer_tex(), 0);
@@ -562,10 +585,10 @@ void draw_scene(const TMatrix &view_itm)
   if (!is_level_loaded_not_empty() || (get_world_renderer() && !get_world_renderer()->needSeparatedUI()))
     finish_rendering_ui();
   else
-    wait_additional_game_job_done();
+    wait_before_finish_rendering_ui();
 
   if (screencap::is_screenshot_scheduled())
-    set_screen_shot_comments(view_itm);
+    set_screen_shot_comments(cameraSetup.transform);
   if (get_world_renderer())
   {
     if (capture360::is_360_capturing_in_progress())
@@ -606,14 +629,15 @@ void draw_scene(const TMatrix &view_itm)
   }
 
   g_entity_mgr->setConstrainedMTMode(false);
-  G_ASSERT(!g_entity_mgr->isConstrainedMTMode());
+  if (!game_scene::parallel_no_latency_mode) // in this mode parallel update can start parallel for query
+    G_ASSERT(!g_entity_mgr->isConstrainedMTMode());
 
 #if _TARGET_C1 | _TARGET_C2
 
 #endif
 }
 
-#if _TARGET_PC_WIN
+#if _TARGET_PC_WIN | _TARGET_PC_LINUX | _TARGET_ANDROID
 
 #include <util/dag_watchdog.h>
 static bool watchdog_paused = false;
@@ -639,35 +663,40 @@ static struct DeviceLostCallback : public IDrv3DDeviceLostCB
 static struct Reset3DCallback : public IDrv3DResetCB
 {
   int resetCount = 0;
-  int resetSeriesSize;
-  int lastResetTime;
+  int deviceResetSeriesSize;
+  int lastDeviceResetTime;
   enum
   {
-    MAX_RESET_COUNT = 30,
-    NO_RESET_TIME_MS = 10000
+    MAX_DEVICE_RESET_COUNT = 30,
+    NO_DEVICE_RESET_TIME_MS = 10000
   };
-  Reset3DCallback() : resetSeriesSize(0), lastResetTime(0) {}
+  Reset3DCallback() : deviceResetSeriesSize(0), lastDeviceResetTime(0) {}
   virtual void beforeReset(bool full_reset)
   {
-    debug("Reset3DCallback::beforeReset(%s), resetCount=%d, time since last %d ms", full_reset ? "full" : "partial", resetSeriesSize,
-      get_time_msec() - lastResetTime);
-    debug_flush(false);
+    debug("Reset3DCallback::beforeReset(%s): resetCount=%d", full_reset ? "full" : "mode", resetCount);
 
     resetCount++;
-    if (get_time_msec() - lastResetTime >= NO_RESET_TIME_MS)
-      resetSeriesSize = 0;
-    if (++resetSeriesSize >= MAX_RESET_COUNT)
+    if (full_reset)
     {
-      DAG_FATAL("Video driver stopped responding. Try decrease graphics settings");
-      return;
+      debug("New device reset occured! Time since last device reset: %d ms; deviceResetSeriesSize=%d",
+        get_time_msec() - lastDeviceResetTime, deviceResetSeriesSize);
+      debug_flush(false);
+
+      if (get_time_msec() - lastDeviceResetTime >= NO_DEVICE_RESET_TIME_MS)
+        deviceResetSeriesSize = 0;
+      if (++deviceResetSeriesSize >= MAX_DEVICE_RESET_COUNT)
+      {
+        DAG_FATAL("Video driver stopped responding. Try decrease graphics settings");
+        return;
+      }
+      lastDeviceResetTime = get_time_msec();
+
+      report_device_reset();
+
+      dump_gpu_temperature();
+      dump_proc_memory();
+      dump_gpu_memory();
     }
-    lastResetTime = get_time_msec();
-
-    report_device_reset();
-
-    dump_gpu_temperature();
-    dump_proc_memory();
-    dump_gpu_memory();
 
     uishared::before_device_reset();
     DEBUG_CP();
@@ -694,7 +723,7 @@ static struct Reset3DCallback : public IDrv3DResetCB
 
   virtual void afterReset(bool full_reset)
   {
-    debug("Reset3DCallback::afterReset(%s)", full_reset ? "full" : "partial");
+    debug("Reset3DCallback::afterReset(%s)", full_reset ? "full" : "mode");
     debug_flush(false);
 
     hdrrender::update_globals();
@@ -727,4 +756,4 @@ void init_device_reset()
 
 void init_device_reset() {}
 
-#endif // _TARGET_PC_WIN
+#endif // _TARGET_PC_WIN | _TARGET_PC_LINUX | _TARGET_ANDROID

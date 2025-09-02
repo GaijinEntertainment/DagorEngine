@@ -5,4 +5,13 @@ return {
   function md5(a) {
     assert(["string"].contains(type(a)), @() $"type of argument should be one of: 'string'")
   }
+  function sha256(a) {
+    assert(["string"].contains(type(a)), @() $"type of argument should be one of: 'string'")
+  }
+  function file_sha256(a) {
+    assert(["string"].contains(type(a)), @() $"type of argument should be one of: 'string'")
+  }
+  function create_guid() {
+    return ""
+  }
 }

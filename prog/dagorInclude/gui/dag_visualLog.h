@@ -62,6 +62,13 @@ void act(float dt);
 void draw(int min_level = 0);
 
 dag::ConstSpan<SimpleString> getHistory();
+
+// Callback for listening all massages sent by visuallog::logmsg
+typedef void (*OnLogItemAdded)(const visuallog::LogItem &item);
+
+// Set callback for listening all massages sent by visuallog::logmsg
+void setOnLogItemAdded(OnLogItemAdded cb);
+
 } // namespace visuallog
 
 

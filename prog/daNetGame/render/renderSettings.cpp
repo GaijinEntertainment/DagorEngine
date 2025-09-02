@@ -14,11 +14,7 @@
 ECS_REGISTER_EVENT(OnRenderSettingsReady)
 
 extern const char *const EMPTY_LEVEL_NAME;
-
-namespace ecs
-{
-extern bool ecs_is_in_init_phase;
-}
+extern const char *const DEFAULT_WR_LEVEL_NAME;
 
 template <class CB>
 static void gather_components_from_blk(const DataBlock &blk, CB cb, const char *prefix)
@@ -45,6 +41,8 @@ static void gather_components_from_blk(const DataBlock &blk, CB cb, const char *
       case DataBlock::TYPE_IPOINT2: cb(hashName, blk.getIPoint2(param_idx)); break;
 
       case DataBlock::TYPE_IPOINT3: cb(hashName, blk.getIPoint3(param_idx)); break;
+
+      case DataBlock::TYPE_IPOINT4: cb(hashName, blk.getIPoint4(param_idx)); break;
 
       case DataBlock::TYPE_E3DCOLOR: cb(hashName, blk.getE3dcolor(param_idx)); break;
 
@@ -85,7 +83,7 @@ static void gather_components(const DataBlock *level_override, CB cb)
     gather_components_from_blk(*level_override, cb, "render_settings__");
   cb(ECS_HASH("render_settings__is_hdr_enabled"), hdrrender::is_hdr_enabled());
   bool bare_minimum = false;
-#if _TARGET_PC_WIN || _TARGET_APPLE
+#if _TARGET_PC || _TARGET_APPLE
   bare_minimum = strcmp(graphicsBlk->getStr("preset", "medium"), "bareMinimum") == 0;
 #elif _TARGET_XBOXONE || _TARGET_C1
   bare_minimum = strcmp(graphicsBlk->getStr("consolePreset", "HighFPS"), "bareMinimum") == 0;
@@ -120,8 +118,6 @@ bool update_settings_entity(const DataBlock *level_override)
         *render_settings__inited = true;
       }
     }
-    if (!ecs::ecs_is_in_init_phase) // FIXME: this is ugly but otherwise it might crashes on unresolved sq ESes
-      g_entity_mgr->performTrackChanges(true);
     return true;
   }
 
@@ -183,7 +179,8 @@ void apply_united_vdata_settings(const DataBlock *scene_blk)
           applied = true;
           DataBlock levelBlk;
           const char *levelPath = eblk->getStr(pid);
-          bool ok = strcmp(levelPath, EMPTY_LEVEL_NAME) != 0 && dblk::load(levelBlk, levelPath, dblk::ReadFlag::ROBUST_IN_REL);
+          bool ok = strcmp(levelPath, EMPTY_LEVEL_NAME) != 0 && strcmp(levelPath, DEFAULT_WR_LEVEL_NAME) != 0 &&
+                    dblk::load(levelBlk, levelPath, dblk::ReadFlag::ROBUST_IN_REL);
           prepare_united_vdata_setup(ok ? &levelBlk : nullptr);
         }
       });

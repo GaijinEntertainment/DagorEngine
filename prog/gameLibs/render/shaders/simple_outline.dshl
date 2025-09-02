@@ -26,12 +26,12 @@ shader simple_outline_final_render
       int2 ipos = int2(pos.xy);
 
       float4 color = texelFetchOffset(color_rt, ipos, 0, int2(0, 0));
-      if (color.r == 0.0)
+      if (color.a == 0.0)
       {
-        if (texelFetchOffset(color_rt, ipos, 0, int2(-1, 0)).r != 0.0
-          || texelFetchOffset(color_rt, ipos, 0, int2(1, 0)).r != 0.0
-          || texelFetchOffset(color_rt, ipos, 0, int2(0, -1)).r != 0.0
-          || texelFetchOffset(color_rt, ipos, 0, int2(0, 1)).r != 0.0)
+        if (texelFetchOffset(color_rt, ipos, 0, int2(-1, 0)).a != 0.0
+          || texelFetchOffset(color_rt, ipos, 0, int2(1, 0)).a != 0.0
+          || texelFetchOffset(color_rt, ipos, 0, int2(0, -1)).a != 0.0
+          || texelFetchOffset(color_rt, ipos, 0, int2(0, 1)).a != 0.0)
         {
           return simple_outline_color;
         }

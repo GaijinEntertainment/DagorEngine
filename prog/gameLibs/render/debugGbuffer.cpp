@@ -9,6 +9,8 @@
 #include <drv/3d/dag_renderTarget.h>
 #include <drv/3d/dag_draw.h>
 #include <drv/3d/dag_vertexIndexBuffer.h>
+#include <drv/3d/dag_info.h>
+#include <ioSys/dag_dataBlock.h>
 
 using OptionsMap = eastl::array<eastl::string_view, (size_t)DebugGbufferMode::Count>;
 const OptionsMap gbuffer_debug_options = {
@@ -42,6 +44,7 @@ const int USE_DEBUG_GBUFFER_MODE = -2;
 int debug_vectors_count = 1000.;
 float debug_vectors_scale = 0.05f;
 
+
 bool shouldRenderGbufferDebug()
 {
   return show_gbuffer != DebugGbufferMode::None || show_gbuffer_with_vectors != DebugGbufferMode::None;
@@ -74,6 +77,7 @@ static void setModeHelper(eastl::string_view str, DebugGbufferMode &mode_out)
   else if (next_found >= -1)
     mode_out = (DebugGbufferMode)next_found;
 }
+
 
 void setDebugGbufferMode(eastl::string_view mode) { setModeHelper(mode, show_gbuffer); }
 
@@ -112,7 +116,6 @@ public:
     d3d::get_render_target(renderTarget);
     rwDepth = renderTarget.isDepthReadOnly();
     renderTarget.setDepthReadOnly();
-    d3d::set_render_target(renderTarget);
 
     // TODO: make a more flexible solution for stencil access
     useStencil = debug_mesh::is_enabled();
@@ -137,9 +140,80 @@ private:
   Driver3dRenderTarget renderTarget;
 };
 
+static int prevMode = -1;
+
 void debug_render_gbuffer(const PostFxRenderer &debugRenderer, DeferredRT &gbuffer, int mode)
 {
   gbuffer.setVar();
+
+  if (mode == USE_DEBUG_GBUFFER_MODE)
+    mode = (int)show_gbuffer;
+
+  static int dbgGbuffMode_VarId = get_shader_variable_id("gbuff_dbg_mode", true);
+
+  if (mode == (int)DebugGbufferMode::mip || mode == (int)DebugGbufferMode::texelDensity)
+  {
+    if (mode != prevMode)
+    {
+      bool found = false;
+      const Driver3dDesc &dsc = d3d::get_driver_desc();
+
+      for (auto version : d3d::smAll)
+      {
+        if (dsc.shaderModel < version)
+          continue;
+
+        if (load_shaders_debug_bindump(version))
+        {
+          found = true;
+          break;
+        }
+      }
+
+      if (!found)
+      {
+        logerr("Debug shader dump could not be loaded!");
+        return;
+      }
+    }
+
+    static int dbgGbuffer_TexId = get_shader_variable_id("dbg_gbuff_tex");
+
+    gbuffer.setShouldRenderDbgTex(true);
+    ShaderGlobal::set_int(dbgGbuffMode_VarId, mode == (int)DebugGbufferMode::texelDensity);
+    ShaderGlobal::set_texture(dbgGbuffer_TexId, gbuffer.getDbgTex());
+  }
+  else
+  {
+    if (mode != prevMode)
+    {
+      bool found = false;
+      const Driver3dDesc &dsc = d3d::get_driver_desc();
+
+      for (auto version : d3d::smAll)
+      {
+        if (dsc.shaderModel < version)
+          continue;
+
+        if (unload_shaders_debug_bindump(version))
+        {
+          found = true;
+          break;
+        }
+      }
+
+      if (!found)
+      {
+        logerr("Non-debug shader dump could not be loaded!");
+        return;
+      }
+    }
+
+    ShaderGlobal::set_int(dbgGbuffMode_VarId, -1);
+    gbuffer.setShouldRenderDbgTex(false);
+  }
+
+  prevMode = mode;
   debug_render_gbuffer(debugRenderer, gbuffer.getDepth(), mode);
 }
 
@@ -192,3 +266,5 @@ void debug_render_gbuffer_with_vectors(const DynamicShaderHelper &debugVecShader
     d3d::draw_instanced(PRIM_LINELIST, 0, 2, debug_vectors_count);
   }
 }
+
+DebugGbufferMode get_debug_gbuffer_mode() { return show_gbuffer; }

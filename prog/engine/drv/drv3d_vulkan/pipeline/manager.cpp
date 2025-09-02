@@ -9,14 +9,15 @@
 #include "backend.h"
 #include "driver_config.h"
 #include "timelines.h"
+#include "vulkan_allocation_callbacks.h"
 
 using namespace drv3d_vulkan;
 
-void PipelineManager::addCompute(VulkanDevice &device, VulkanPipelineCacheHandle cache, ProgramID program, const ShaderModuleBlob &sci,
+void PipelineManager::addCompute(VulkanPipelineCacheHandle cache, ProgramID program, const ShaderModuleBlob &sci,
   const ShaderModuleHeader &header)
 {
   ComputePipeline::CreationInfo info = {&sci, {{&header}}, asyncCompileEnabledCS()};
-  compute.add(device, program, cache, info);
+  compute.add(program, cache, info);
 }
 
 void PipelineManager::trackGrPipelineSeenStatus(VariatedGraphicsPipeline::CreationInfo &ci)
@@ -65,23 +66,23 @@ void PipelineManager::trackGrPipelineSeenStatus(VariatedGraphicsPipeline::Creati
   }
 }
 
-void PipelineManager::addGraphics(VulkanDevice &device, ProgramID program, const ShaderModule &vs_module,
-  const ShaderModuleHeader &vs_header, const ShaderModule &fs_module, const ShaderModuleHeader &fs_header,
-  const ShaderModule *gs_module, const ShaderModuleHeader *gs_header, const ShaderModule *tc_module,
-  const ShaderModuleHeader *tc_header, const ShaderModule *te_module, const ShaderModuleHeader *te_header)
+void PipelineManager::addGraphics(ProgramID program, const ShaderModule &vs_module, const ShaderModuleHeader &vs_header,
+  const ShaderModule &fs_module, const ShaderModuleHeader &fs_header, const ShaderModule *gs_module,
+  const ShaderModuleHeader *gs_header, const ShaderModule *tc_module, const ShaderModuleHeader *tc_header,
+  const ShaderModule *te_module, const ShaderModuleHeader *te_header)
 {
   VariatedGraphicsPipeline::CreationInfo info = {{&vs_module, &fs_module, gs_module, tc_module, te_module}, graphicVariations,
     {{&vs_header, &fs_header, gs_header, tc_header, te_header}}, /*seenBefore*/ false};
 
   trackGrPipelineSeenStatus(info);
 
-  graphics.add(device, program, VulkanPipelineCacheHandle(), info);
+  graphics.add(program, VulkanPipelineCacheHandle(), info);
 }
 
-void PipelineManager::unloadAll(VulkanDevice &device)
+void PipelineManager::unloadAll()
 {
-  graphics.unload(device);
-  compute.unload(device);
+  graphics.unload();
+  compute.unload();
   seenGraphicsPipes.clear();
 }
 
@@ -91,8 +92,8 @@ void PipelineManager::prepareRemoval(ProgramID program)
   auto index = program_to_index(program);
   switch (get_program_type(program))
   {
-    case program_type_graphics: cleanups.enqueueFromBackend(*graphics.takeOut(index)); break;
-    case program_type_compute: cleanups.enqueueFromBackend(*compute.takeOut(index)); break;
+    case program_type_graphics: cleanups.enqueue(*graphics.takeOut(index)); break;
+    case program_type_compute: cleanups.enqueue(*compute.takeOut(index)); break;
     default: G_ASSERTF(false, "Broken program type"); return;
   }
 }
@@ -104,7 +105,7 @@ VulkanShaderModuleHandle PipelineManager::makeVkModule(const ShaderModuleBlob *m
   smci.pCode = module->blob.data();
 
   VulkanShaderModuleHandle shader = VulkanShaderModuleHandle();
-  VULKAN_EXIT_ON_FAIL(Globals::VK::dev.vkCreateShaderModule(Globals::VK::dev.get(), &smci, NULL, ptr(shader)));
+  VULKAN_EXIT_ON_FAIL(Globals::VK::dev.vkCreateShaderModule(Globals::VK::dev.get(), &smci, VKALLOC(shader_module), ptr(shader)));
 
 #if VULKAN_LOAD_SHADER_EXTENDED_DEBUG_DATA
   Globals::Dbg::naming.setShaderModuleName(shader, module->name.c_str());

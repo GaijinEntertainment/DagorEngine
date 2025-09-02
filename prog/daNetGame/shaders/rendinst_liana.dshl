@@ -214,6 +214,7 @@ shader rendinst_liana
     }
 
     USE_CHARACTER_MICRODETAIL()
+    ENABLE_ASSERT(ps)
 
     hlsl(ps) {
 

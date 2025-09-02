@@ -5,9 +5,11 @@ static constexpr ecs::component_t skies_settings__weatherSeed_get_type();
 static ecs::LTComponentList skies_settings__weatherSeed_component(ECS_HASH("skies_settings__weatherSeed"), skies_settings__weatherSeed_get_type(), "prog/daNetGame/main/levelES.cpp.inl", "", 0);
 static constexpr ecs::component_t transform_get_type();
 static ecs::LTComponentList transform_component(ECS_HASH("transform"), transform_get_type(), "prog/daNetGame/main/levelES.cpp.inl", "", 0);
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "levelES.cpp.inl"
 ECS_DEF_PULL_VAR(level);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc level_es_comps[] =
 {
@@ -240,17 +242,16 @@ inline void query_level_entity_eid_set_seed_ecs_query(Callable function)
 }
 static constexpr ecs::ComponentDesc query_get_level_seeds_ecs_query_comps[] =
 {
-//start of 4 ro components at [0]
+//start of 3 ro components at [0]
   {ECS_HASH("level__weatherSeed"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("level__timeSeed"), ecs::ComponentTypeInfo<int>()},
-  {ECS_HASH("level__timeOfDay"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("level__weather"), ecs::ComponentTypeInfo<ecs::string>()}
 };
 static ecs::CompileTimeQueryDesc query_get_level_seeds_ecs_query_desc
 (
   "query_get_level_seeds_ecs_query",
   empty_span(),
-  make_span(query_get_level_seeds_ecs_query_comps+0, 4)/*ro*/,
+  make_span(query_get_level_seeds_ecs_query_comps+0, 3)/*ro*/,
   empty_span(),
   empty_span());
 template<typename Callable>
@@ -264,7 +265,6 @@ inline void query_get_level_seeds_ecs_query(ecs::EntityId eid, Callable function
           function(
               ECS_RO_COMP(query_get_level_seeds_ecs_query_comps, "level__weatherSeed", int)
             , ECS_RO_COMP(query_get_level_seeds_ecs_query_comps, "level__timeSeed", int)
-            , ECS_RO_COMP(query_get_level_seeds_ecs_query_comps, "level__timeOfDay", float)
             , ECS_RO_COMP(query_get_level_seeds_ecs_query_comps, "level__weather", ecs::string)
             );
 

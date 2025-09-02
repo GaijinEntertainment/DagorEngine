@@ -47,6 +47,8 @@ RainX7::RainX7(const DataBlock &blk) :
   particleBox *= ::dgs_get_settings()->getBlockByNameEx("graphics")->getReal("rain_particleBox_multiplier", 1.0f);
 
   diffuseTexId = ::get_tex_gameres(blk.getStr("diffuseTex", "rain_x7"));
+  ShaderGlobal::set_sampler(get_shader_variable_id("rain_x7_diffuse_tex_samplerstate", true),
+    get_texture_separate_sampler(diffuseTexId));
   G_ASSERT(diffuseTexId != BAD_TEXTUREID);
 
   /*

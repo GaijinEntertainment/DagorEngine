@@ -145,7 +145,7 @@ shader cull_out_of_frustum_lights_cs
         lightBitFinalIndex = lightId&31u;
 
         uint omniOffset = asuint(out_of_frustum_grid_cull_box[1].w);
-        uint wordsPerOmni = uint(spot_lights_count.y);
+        uint wordsPerOmni = uint(omni_lights_count.y);
         lightGridFinalIndex = gridCellIndex*wordsPerOmni + lightWordIndex + omniOffset;
       } else
       {

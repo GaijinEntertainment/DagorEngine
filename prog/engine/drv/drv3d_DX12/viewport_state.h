@@ -9,12 +9,12 @@ namespace drv3d_dx12
 
 struct ViewportState
 {
-  int x;
-  int y;
-  int width;
-  int height;
-  float minZ;
-  float maxZ;
+  int x = 0;
+  int y = 0;
+  int width = 1;
+  int height = 1;
+  float minZ = 0.f;
+  float maxZ = 1.f;
 
   ViewportState() = default;
 

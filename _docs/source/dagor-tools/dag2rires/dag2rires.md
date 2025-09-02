@@ -1,3 +1,5 @@
+# dag2riRes
+
 ## Overview
 
 The dag2riRes tool is used for the following purposes:
@@ -75,7 +77,7 @@ When generating individual `.dag` files:
 To run `dag2riRes-dev.exe`, it is recommended to use FAR. Upon launching, the
 log will display a brief instruction:
 
-<img src="_images/dag2rires_01.png" alt="Running the dag2riRes" align="center" width="">
+<img src="_images/dag2rires_01.png" alt="Running the dag2riRes" align="center">
 
 Enter the command in the command line. At a minimum, you need to specify the
 name of the `.dag` file you are processing and the target directory. For

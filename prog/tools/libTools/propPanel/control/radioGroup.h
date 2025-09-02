@@ -19,12 +19,12 @@ public:
     setVerticalSpaceBetweenControls(hdpi::_pxActual(itemSpacingY));
   }
 
-  virtual unsigned getTypeMaskForSet() const override { return CONTROL_CAPTION | CONTROL_DATA_TYPE_INT; }
-  virtual unsigned getTypeMaskForGet() const override { return CONTROL_DATA_TYPE_INT; }
+  unsigned getTypeMaskForSet() const override { return CONTROL_CAPTION | CONTROL_DATA_TYPE_INT; }
+  unsigned getTypeMaskForGet() const override { return CONTROL_DATA_TYPE_INT; }
 
-  virtual void setCaptionValue(const char value[]) override { controlCaption = value; }
+  void setCaptionValue(const char value[]) override { controlCaption = value; }
 
-  virtual void setIntValue(int value) override
+  void setIntValue(int value) override
   {
     if (value == selectedValue)
       return;
@@ -48,35 +48,35 @@ public:
     }
   }
 
-  virtual int getIntValue() const override { return selectedValue; }
+  int getIntValue() const override { return selectedValue; }
 
-  virtual void setBoolValue(bool value) override { G_ASSERT(false && "Old radio button use, contact developers"); }
+  void setBoolValue(bool value) override { G_ASSERT(false && "Old radio button use, contact developers"); }
 
-  virtual bool getBoolValue() const override
+  bool getBoolValue() const override
   {
     G_ASSERT(false && "Old radio button use, contact developers");
     return false;
   }
 
-  virtual void setEnabled(bool enabled) override { controlEnabled = enabled; }
+  void setEnabled(bool enabled) override { controlEnabled = enabled; }
 
-  virtual void reset() override
+  void reset() override
   {
     setIntValue(RADIO_SELECT_NONE);
 
     ContainerPropertyControl::reset();
   }
 
-  virtual void clear() override
+  void clear() override
   {
     selectedValue = RADIO_SELECT_NONE;
 
     ContainerPropertyControl::clear();
   }
 
-  virtual bool isRealContainer() override { return false; }
+  bool isRealContainer() override { return false; }
 
-  virtual void updateImgui() override
+  void updateImgui() override
   {
     if (!controlCaption.empty())
       ImguiHelper::labelOnly(controlCaption);
@@ -85,7 +85,7 @@ public:
   }
 
 private:
-  virtual void onWcChange(WindowBase *source) override
+  void onWcChange(WindowBase *source) override
   {
     for (PropertyControlBase *control : mControlArray)
     {

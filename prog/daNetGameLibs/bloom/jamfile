@@ -9,7 +9,10 @@ AddIncludes =
   $(Root)/prog/daNetGameLibs
   $(Root)/prog/gameLibs/publicInclude
   $(Root)/prog/daNetGame
+  $(Root)/prog/gameLibs
 ;
+
+UseProgLibs += gameLibs/render/bloomCore ;
 
 local AllSrcFolder_CPP = ;
 local AllSrcFolder_ES = ;

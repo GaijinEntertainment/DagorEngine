@@ -5,7 +5,7 @@
 
 class SimpleString;
 
-/*
+/**
  * @brief Get the timestamp of the most recent commit for list of files
  * @param file_paths The list of file paths
  * @return The timestamp of the most recent commit

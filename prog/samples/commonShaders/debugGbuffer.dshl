@@ -65,7 +65,7 @@ shader debug_final_gbuffer
       half ssao = BNAO.w;
       ##else
       ##endif*/
-      half ssao = getSSAO(w, screenpos.xy);
+      half ssao = getSSAO(w, screenpos.xy).x;
 
       PackedGbuffer packGbuf = readPackedGbuffer(input.texcoord);
       UnpackedGbuffer gbuf = unpackGbuffer(packGbuf);

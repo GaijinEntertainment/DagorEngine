@@ -87,7 +87,7 @@ static void blur_mip(int tex_mip, TextureIDHolder &tex, TextureIDHolder &interm_
     if (s->lim[1].x <= s->lim[0].x || s->lim[1].y <= s->lim[0].y)
       continue;
 
-    *(quad++) = int4(s->lim[0].x, s->lim[0].y, (s->lim[1].x - s->lim[0].x), (s->lim[1].y - s->lim[0].y));
+    *(quad++) = int4(s->lim[0].x, s->lim[0].y, s->lim[1].x, s->lim[1].y);
   }
 
   blur.getElem()->setStates();
@@ -201,10 +201,6 @@ void update_blurred_from(const TextureIDPair &src, const TextureIDPair &backgrou
     TIME_D3D_PROFILE(downsample_mips);
 
     intermediate.getTex2D()->texmiplevel(downsampled_frame_mip, downsampled_frame_mip);
-
-    if (intermediate2.getTex2D())
-      intermediate2.getTex2D()->texaddr(TEXADDR_CLAMP);
-    intermediate.getTex2D()->texaddr(TEXADDR_CLAMP);
 
     const int startUiMip = 0;
     for (int uiMipI = startUiMip; uiMipI < max_ui_mip; ++uiMipI)

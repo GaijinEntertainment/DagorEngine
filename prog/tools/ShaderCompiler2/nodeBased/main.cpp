@@ -201,9 +201,8 @@ bool updateGraph(const char *graph_name, const char *output_name)
 eastl::vector<String> findLevelDirectories(const String &game_folder)
 {
   eastl::vector<String> levelDirectories;
-  alefind_t file;
   const String fileMask = game_folder + "/content/*";
-  for (int lastErrCode = ::dd_find_first(fileMask, DA_SUBDIR, &file); lastErrCode != 0; lastErrCode = dd_find_next(&file))
+  for (const alefind_t &file : dd_find_iterator(fileMask, DA_SUBDIR))
   {
     levelDirectories.push_back(String(file.name));
     if (settings.verbose)
@@ -241,19 +240,18 @@ eastl::vector<String> findShaderSources(const String &root)
   eastl::vector<String> shaderFiles;
   for (const String &levelDir : findLevelDirectories(root))
   {
-    alefind_t file;
     const String fileDir = root + "/content/" + levelDir + "/shaders/";
 
     eastl::map<String, int64_t, StringLessComparator> compiledShadersModificationTime;
     if (!settings.forceRebuild)
     {
       const String binFileMask = fileDir + "*.bin";
-      for (int lastErrCode = ::dd_find_first(binFileMask, 0, &file); lastErrCode != 0; lastErrCode = dd_find_next(&file))
+      for (const alefind_t &file : dd_find_iterator(binFileMask, DA_FILE))
         compiledShadersModificationTime[extractFilenameWithoutExt(String(file.name))] = file.mtime;
     }
 
     const String fileMask = fileDir + "*.json";
-    for (int lastErrCode = ::dd_find_first(fileMask, 0, &file); lastErrCode != 0; lastErrCode = dd_find_next(&file))
+    for (const alefind_t &file : dd_find_iterator(fileMask, DA_FILE))
     {
       String s = fileDir + file.name;
       if (settings.forceRebuild || compiledShadersModificationTime[extractFilenameWithoutExt(String(file.name))] <= file.mtime)
@@ -324,6 +322,12 @@ bool is_correct_plugin(const String &shader_filename, String &plugin_name)
       plugin_name = "fog_shader_editor";
       return true;
     }
+    String enviCoverPluginSearchStr(0, "\"pluginId\": \"[[plugin:%s]]\"", "envi_cover_shader_editor");
+    if (strstr(shaderFile.str(), enviCoverPluginSearchStr.str()) != nullptr)
+    {
+      plugin_name = "envi_cover_shader_editor";
+      return true;
+    }
   }
   else
   {
@@ -351,6 +355,8 @@ DataBlock read_shader_data_block(const String &shader_filename, NodeBasedShaderT
   String shaderTypeName = getSubstring(shaderFile, "[[plugin:", "]]");
   if (shaderTypeName == FOG_SHADER_EDITOR_PLUGIN_NAME)
     shader_type = NodeBasedShaderType::Fog;
+  else if (shaderTypeName == ENVI_COVER_SHADER_EDITOR_PLUGIN_NAME)
+    shader_type = NodeBasedShaderType::EnviCover;
   else
     G_ASSERTF(false, "shader type can't be determined! %s", shader_filename.str());
 
@@ -402,6 +408,22 @@ static String join_str(Tab<String> &arr, const char *delimiter)
   return res;
 }
 
+static String getShaderNodesJS(NodeBasedShaderType type, char *exePath)
+{
+  String result;
+  switch (type)
+  {
+    case NodeBasedShaderType::Fog:
+      result.aprintf(0, "%s\\..\\..\\..\\prog\\gameLibs\\webui\\plugins\\shaderEditors\\shaderNodes\\shaderNodesFog.js ", exePath);
+      break;
+    case NodeBasedShaderType::EnviCover:
+      result.aprintf(0, "%s\\..\\..\\..\\prog\\gameLibs\\webui\\plugins\\shaderEditors\\shaderNodes\\shaderNodesEnviCover.js ",
+        exePath);
+      break;
+  }
+  result.aprintf(0, "%s\\..\\..\\..\\prog\\gameLibs\\webui\\plugins\\shaderEditors\\shaderNodes\\shaderNodesCommon.js ", exePath);
+  return result;
+}
 
 int DagorWinMain(bool debugmode)
 {
@@ -435,19 +457,32 @@ int DagorWinMain(bool debugmode)
 
     String outputJson = settings.singleInputJson + ".compiled.tmp";
 
+    // We need to use pluginName to identify shaderType as outputJson does not exist yet.
+    NodeBasedShaderType shaderType;
+    if (strcmp(pluginName, FOG_SHADER_EDITOR_PLUGIN_NAME) == 0)
+      shaderType = NodeBasedShaderType::Fog;
+    else if (strcmp(pluginName, ENVI_COVER_SHADER_EDITOR_PLUGIN_NAME) == 0)
+      shaderType = NodeBasedShaderType::EnviCover;
+    else
+    {
+      printf("ERROR: plugin in file '%s' is not recognized as a valid shader editor type!", settings.singleInputJson.str());
+      return 1;
+    }
+
     char exePath[1024];
     dag_get_appmodule_dir(exePath, sizeof(exePath));
 
     String cmd(0,
       "call %s\\duktape.exe "
-      "%s\\..\\commonData\\graphEditor\\builder\\offlineEditorApiStub.js "
-      "%s\\..\\commonData\\graphEditor\\builder\\shaderNodes.js "
-      "%s\\..\\commonData\\graphEditor\\builder\\nodeUtils.js "
-      "%s\\..\\commonData\\graphEditor\\builder\\graphEditor.js "
-      "%s\\..\\commonData\\graphEditor\\builder\\rebuildShaderCode.js "
+      "%s\\..\\..\\..\\prog\\gameLibs\\webui\\plugins\\grapheditor\\editorScripts\\offlineEditorApiStub.js "
+      "%s" // Shader type based shaderNode variant
+      "%s\\..\\..\\..\\prog\\gameLibs\\webui\\plugins\\grapheditor\\editorScripts\\nodeUtils.js "
+      "%s\\..\\..\\..\\prog\\gameLibs\\webui\\plugins\\grapheditor\\editorScripts\\graphEditor.js "
+      "%s\\..\\..\\..\\prog\\gameLibs\\webui\\plugins\\grapheditor\\editorScripts\\rebuildShaderCode.js "
       "pluginName=%s globalSubgraphsDir=%s rootFileName=%s outputFileName=%s %s",
-      exePath, exePath, exePath, exePath, exePath, exePath, pluginName.str(), settings.subgraphsFolder.str(),
-      settings.singleInputJson.str(), outputJson.str(), (String("includes=") + settings.optionalGraphs).str());
+      exePath, exePath, getShaderNodesJS(shaderType, exePath).str(), exePath, exePath, exePath, pluginName.str(),
+      settings.subgraphsFolder.str(), settings.singleInputJson.str(), outputJson.str(),
+      (String("includes=") + settings.optionalGraphs).str());
 
     if (settings.verbose)
       printf("\nexecuting: %s\n\n", cmd.str());
@@ -461,7 +496,6 @@ int DagorWinMain(bool debugmode)
     }
 
     String errors;
-    NodeBasedShaderType shaderType;
     const DataBlock shaderBlk = read_shader_data_block(outputJson, shaderType);
     NodeBasedShaderManager shaderManager(shaderType, get_shader_name(shaderType), get_shader_suffix(shaderType));
 

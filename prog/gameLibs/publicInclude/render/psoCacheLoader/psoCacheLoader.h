@@ -4,4 +4,4 @@
 //
 #pragma once
 
-void load_pso_cache(const char *game_name, const char *game_version);
+void load_pso_cache(const char *game_version);

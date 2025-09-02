@@ -14,7 +14,6 @@
 #include <shaders/dag_shaderBlock.h>
 #include "game/player.h"
 #include "game/gameEvents.h"
-#include <util/dag_threadPool.h>
 #include <util/dag_convar.h>
 #include <util/dag_finally.h>
 #include <util/dag_console.h>
@@ -28,6 +27,8 @@
 #include "dynModelRenderer.h"
 #include <ecs/anim/animchar_visbits.h>
 #include <ecs/core/utility/ecsRecreate.h>
+#include <render/world/frameGraphHelpers.h>
+#include <render/daFrameGraph/ecs/frameGraphNode.h>
 
 // for console command
 #include <ioSys/dag_fileIo.h>
@@ -68,7 +69,7 @@ class AnimCharShadowOcclusionManager;
 AnimCharShadowOcclusionManager *get_animchar_shadow_occlusion();
 bool is_bbox_visible_in_shadows(const AnimCharShadowOcclusionManager *manager, bbox3f_cref bbox);
 
-extern int dynamicSceneTransBlockId, dynamicSceneBlockId, dynamicDepthSceneBlockId;
+extern ShaderBlockIdHolder dynamicSceneTransBlockId, dynamicSceneBlockId, dynamicDepthSceneBlockId;
 
 using namespace dynmodel_renderer;
 
@@ -153,7 +154,7 @@ static __forceinline void animchar_before_render_es(const UpdateStageInfoBeforeR
       const float &animchar_render__dist_sq, vec3f &animchar_render__root_pos, bbox3f *animchar_attaches_bbox,
       const bbox3f *animchar_attaches_bbox_precalculated, vec4f &animchar_bsph, const vec4f *animchar_bsph_precalculated,
       const BBox3 *animchar_bbox_precalculated, const BBox3 *animchar_shadow_cull_bbox_precalculated, bbox3f &animchar_bbox,
-      bbox3f &animchar_shadow_cull_bbox, uint8_t &animchar_visbits, float &animchar_render__shadow_cast_dist,
+      bbox3f &animchar_shadow_cull_bbox, animchar_visbits_t &animchar_visbits, float &animchar_render__shadow_cast_dist,
       bool animchar__usePrecalculatedData = false, bool animchar_render__enabled = true,
       const ecs::Tag *animchar__actOnDemand = nullptr, bool animchar__updatable = true, float animchar_extra_culling_dist = 100,
       bool animchar__use_precise_shadow_culling = false) {
@@ -207,7 +208,7 @@ static __forceinline void animchar_before_render_es(const UpdateStageInfoBeforeR
           return;
       }
 
-      animchar_visbits |= VISFLG_MAIN_AND_SHADOW_VISIBLE;
+      animchar_visbits |= VISFLG_MAIN_AND_SHADOW_VISIBLE | VISFLG_LOD_CHOSEN | VISFLG_GEOM_TREE_UPDATED;
       if (animchar__actOnDemand || animchar__updatable)
         animchar_render__shadow_cast_dist = -1.f;
 
@@ -223,12 +224,12 @@ static __forceinline void animchar_before_render_es(const UpdateStageInfoBeforeR
   {
     animchar_process_objects_in_shadow_ecs_query(
       [&](AnimV20::AnimcharRendComponent &animchar_render, const AnimcharNodesMat44 &animchar_node_wtm, bbox3f &animchar_bbox,
-        const vec4f &animchar_bsph, uint8_t &animchar_visbits, bool animchar_render__enabled = true) {
+        const vec4f &animchar_bsph, animchar_visbits_t &animchar_visbits, bool animchar_render__enabled = true) {
         if (!animchar_render__enabled || (animchar_visbits & VISFLG_MAIN_AND_SHADOW_VISIBLE) ||
             !v_bbox3_test_box_intersect(activeShadowVolume, animchar_bbox))
           return;
 
-        animchar_visbits |= VISFLG_MAIN_AND_SHADOW_VISIBLE;
+        animchar_visbits |= VISFLG_MAIN_AND_SHADOW_VISIBLE | VISFLG_LOD_CHOSEN | VISFLG_GEOM_TREE_UPDATED;
 
         // we have to call it here, as otherwise node collapser won't work // probably no longer true
         prepare_for_render(animchar_render);
@@ -249,7 +250,7 @@ static __forceinline void animchar_before_render_es(const UpdateStageInfoBeforeR
     update_animchar_hmap_deform_ecs_query(
       [&](ECS_REQUIRE_NOT(const Point3 semi_transparent__placingColor) ECS_REQUIRE_NOT(ecs::Tag invisibleUpdatableAnimchar)
             AnimV20::AnimcharRendComponent &animchar_render,
-        const AnimcharNodesMat44 &animchar_node_wtm, const bbox3f &animchar_bbox, uint8_t &animchar_visbits,
+        const AnimcharNodesMat44 &animchar_node_wtm, const bbox3f &animchar_bbox, animchar_visbits_t &animchar_visbits,
         const ecs::Tag *animchar__actOnDemand, const ecs::Tag *slot_attach, bool animchar__updatable = true) {
         if ((!animchar__updatable || animchar__actOnDemand != nullptr) && slot_attach == nullptr)
           return;
@@ -257,48 +258,60 @@ static __forceinline void animchar_before_render_es(const UpdateStageInfoBeforeR
           v_signmask(v_cmp_gt(hmapDeformRect, v_perm_xzac(animchar_bbox.bmin, v_neg(animchar_bbox.bmax)))) == 0b1111;
         if (!isInDeformRect)
           return;
-        animchar_visbits |= VISFLG_RENDER_CUSTOM;
-        if (animchar_visbits & VISFLG_MAIN_AND_SHADOW_VISIBLE)
-          ; // Skip if it was already updated
-        else
+        animchar_visbits |= VISFLG_HMAP_DEFORM;
+        if (!(animchar_visbits & VISFLG_GEOM_TREE_UPDATED))
+        {
+          animchar_visbits |= VISFLG_GEOM_TREE_UPDATED;
+          prepare_for_render(animchar_render);
           update_geom_tree(animchar_render, animchar_node_wtm, stg.negRoundedCamPos, stg.negRemainderCamPos);
+        }
       });
   }
 }
+
+template <typename Callable>
+static void preprocess_visible_animchars_in_frustum_ecs_query(Callable c);
 
 void preprocess_visible_animchars_in_frustum(
   // Before render stage is needed, because it holds the correct rounded camera positions (those are NOT the same as the eye pos)
   const UpdateStageInfoBeforeRender &stg,
   const Frustum &frustum,
   const vec3f &eye_pos,
-  AnimV20::AnimcharRendComponent &animchar_render,
-  const AnimcharNodesMat44 &animchar_node_wtm,
-  const vec4f &animchar_bsph,
-  uint8_t &animchar_visbits,
-  bool animchar_render__enabled)
+  AnimcharVisbits custom_flag_to_add)
 {
-  if (animchar_visbits & VISFLG_MAIN_AND_SHADOW_VISIBLE)
-    return; // It's already updated
-  if (!animchar_render__enabled || !(animchar_visbits & VISFLG_WITHIN_RANGE))
-    return;
-  // animchar_bsph is already calculated if the animchar is within range
-  if (!frustum.testSphereB(animchar_bsph, v_splat_w(animchar_bsph)))
-    return;
+  preprocess_visible_animchars_in_frustum_ecs_query(
+    [&](AnimV20::AnimcharRendComponent &animchar_render, const AnimcharNodesMat44 &animchar_node_wtm, const vec4f &animchar_bsph,
+      animchar_visbits_t &animchar_visbits, bool animchar_render__enabled) {
+      if (!animchar_render__enabled || !(animchar_visbits & VISFLG_WITHIN_RANGE))
+        return;
+      // animchar_bsph is already calculated if the animchar is within range
+      if (!frustum.testSphereB(animchar_bsph, v_splat_w(animchar_bsph)))
+        return;
 
-  animchar_visbits |= VISFLG_RENDER_CUSTOM;
+      animchar_visbits |= custom_flag_to_add;
 
-  // we have to call it here, as otherwise node collapser won't work // probably no longer true
-  prepare_for_render(animchar_render);
+      if (!(animchar_visbits & VISFLG_LOD_CHOSEN))
+      {
+        DynamicRenderableSceneInstance *scene = animchar_render.getSceneInstance();
+        G_ASSERT_RETURN(scene != nullptr, );
+        scene->chooseLodByDistSq(v_extract_x(v_length3_sq_x(v_sub(eye_pos, animchar_bsph))));
+        animchar_visbits |= VISFLG_LOD_CHOSEN;
+      }
 
-  DynamicRenderableSceneInstance *scene = animchar_render.getSceneInstance();
-  G_ASSERT_RETURN(scene != nullptr, );
-  scene->chooseLodByDistSq(v_extract_x(v_length3_sq_x(v_sub(eye_pos, animchar_bsph))));
-
-  update_geom_tree(animchar_render, animchar_node_wtm, stg.negRoundedCamPos, stg.negRemainderCamPos);
+      if (!(animchar_visbits & VISFLG_GEOM_TREE_UPDATED))
+      {
+        // we have to call it here, as otherwise node collapser won't work // probably no longer true
+        prepare_for_render(animchar_render);
+        update_geom_tree(animchar_render, animchar_node_wtm, stg.negRoundedCamPos, stg.negRemainderCamPos);
+        animchar_visbits |= VISFLG_GEOM_TREE_UPDATED;
+      }
+    });
 }
 
 template <typename T>
 static inline void gather_animchar_ecs_query(T cb);
+template <typename T>
+static inline void find_animchar_single_ecs_query(ecs::EntityId, T cb);
 template <typename T>
 static inline void ignore_occlusion_visibility_ecs_query(T cb);
 
@@ -328,10 +341,10 @@ void update_csm_length(const Frustum &frustum, const Point3 &dir_from_sun, float
   TIME_D3D_PROFILE(update_csm_length);
   const AnimCharShadowOcclusionManager *animCharShadowOcclMgr = get_animchar_shadow_occlusion();
   animchar_csm_distance_ecs_query(
-    [&](ECS_REQUIRE_NOT(ecs::Tag cockpitEntity) uint8_t &animchar_visbits, const vec4f &animchar_bsph, const bbox3f &animchar_bbox,
-      const bbox3f &animchar_shadow_cull_bbox, float &animchar_render__shadow_cast_dist, const ecs::EidList *attaches_list,
-      ecs::EntityId slot_attach__attachedTo = ecs::INVALID_ENTITY_ID) {
-      if (!(animchar_visbits & VISFLG_MAIN_AND_SHADOW_VISIBLE) || !!slot_attach__attachedTo)
+    [&](ECS_REQUIRE_NOT(ecs::Tag cockpitEntity) animchar_visbits_t &animchar_visbits, const vec4f &animchar_bsph,
+      const bbox3f &animchar_bbox, const bbox3f &animchar_shadow_cull_bbox, float &animchar_render__shadow_cast_dist,
+      const ecs::EidList *attaches_list, ecs::EntityId animchar_attach__attachedTo = ecs::INVALID_ENTITY_ID) {
+      if (!(animchar_visbits & VISFLG_MAIN_AND_SHADOW_VISIBLE) || !!animchar_attach__attachedTo)
         return;
       if (!frustum.testSphereB(animchar_bsph, v_splat_w(animchar_bsph)) ||
           !is_bbox_visible_in_shadows(animCharShadowOcclMgr, animchar_shadow_cull_bbox))
@@ -358,11 +371,11 @@ void compute_csm_visibility(const Occlusion &occlusion, const Point3 &dir_from_s
 {
   TIME_D3D_PROFILE(csm_occlusion);
   animchar_csm_visibility_ecs_query(
-    [&](ECS_REQUIRE_NOT(ecs::Tag cockpitEntity) ECS_REQUIRE_NOT(ecs::Tag attachedToParent) uint8_t &animchar_visbits,
+    [&](ECS_REQUIRE_NOT(ecs::Tag cockpitEntity) ECS_REQUIRE_NOT(ecs::Tag attachedToParent) animchar_visbits_t &animchar_visbits,
       const bbox3f &animchar_bbox, const bbox3f *animchar_attaches_bbox, const float &animchar_render__shadow_cast_dist,
-      const ecs::EidList *attaches_list, const ecs::EntityId *slot_attach__attachedTo) {
+      const ecs::EidList *attaches_list, const ecs::EntityId *animchar_attach__attachedTo) {
       if (animchar_render__shadow_cast_dist < 0.0f ||
-          (slot_attach__attachedTo && *slot_attach__attachedTo /* ignore non roots of attaches */) ||
+          (animchar_attach__attachedTo && *animchar_attach__attachedTo /* ignore non roots of attaches */) ||
           !(animchar_visbits & VISFLG_MAIN_AND_SHADOW_VISIBLE))
         return;
       bbox3f extendedBbox = animchar_attaches_bbox ? *animchar_attaches_bbox : animchar_bbox;
@@ -372,7 +385,7 @@ void compute_csm_visibility(const Occlusion &occlusion, const Point3 &dir_from_s
         if (attaches_list)
           for (ecs::EntityId aeid : *attaches_list)
             animchar_attaches_inherit_visibility_ecs_query(aeid,
-              [&](uint8_t &animchar_visbits) { animchar_visbits &= ~VISFLG_MAIN_AND_SHADOW_VISIBLE; });
+              [&](animchar_visbits_t &animchar_visbits) { animchar_visbits &= ~VISFLG_MAIN_AND_SHADOW_VISIBLE; });
       }
     });
 }
@@ -380,10 +393,10 @@ void compute_csm_visibility(const Occlusion &occlusion, const Point3 &dir_from_s
 void debug_draw_shadow_occlusion_bboxes(const Point3 &dir_from_sun, bool final_extend)
 {
   draw_shadow_occlusion_boxes_ecs_query(
-    [&](const uint8_t &animchar_visbits, bbox3f &animchar_bbox, float &animchar_render__shadow_cast_dist,
-      const bbox3f *animchar_attaches_bbox, const ecs::EntityId *slot_attach__attachedTo) {
+    [&](const animchar_visbits_t &animchar_visbits, bbox3f &animchar_bbox, float &animchar_render__shadow_cast_dist,
+      const bbox3f *animchar_attaches_bbox, const ecs::EntityId *animchar_attach__attachedTo) {
       if (animchar_render__shadow_cast_dist < 0.0f || !(animchar_visbits & VISFLG_MAIN_AND_SHADOW_VISIBLE) ||
-          (slot_attach__attachedTo && *slot_attach__attachedTo != ecs::INVALID_ENTITY_ID))
+          (animchar_attach__attachedTo && *animchar_attach__attachedTo != ecs::INVALID_ENTITY_ID))
         return;
 
       bbox3f extendedBbox = animchar_attaches_bbox ? *animchar_attaches_bbox : animchar_bbox;
@@ -412,8 +425,8 @@ static void animchar_render_opaque_async_es(const AnimcharRenderAsyncEvent &stg)
 {
   DynModelRenderingState &state = stg.state;
 
-  const uint8_t add_vis_bits = stg.add_vis_bits;
-  const uint8_t check_bits = stg.check_bits;
+  const animchar_visbits_t add_vis_bits = stg.add_vis_bits;
+  const animchar_visbits_t check_bits = stg.check_bits;
   // for shadows we use imprecise 'just sphere' culling.
   // we can test box, but usually sphere is good enough
   const bool needPreviousMatrices = stg.needPrevious;
@@ -423,8 +436,8 @@ static void animchar_render_opaque_async_es(const AnimcharRenderAsyncEvent &stg)
 
   // TODO compare with gather_animchar_ecs_query and separate setting threshold to independent system
   gather_animchar_async_ecs_query([&](ECS_REQUIRE_NOT(const Point3 semi_transparent__placingColor) ecs::EntityId eid,
-                                    const ecs::Tag *invisibleUpdatableAnimchar, uint8_t &animchar_visbits, const vec4f &animchar_bsph,
-                                    const bbox3f &animchar_bbox, const bbox3f *animchar_attaches_bbox,
+                                    const ecs::Tag *invisibleUpdatableAnimchar, animchar_visbits_t &animchar_visbits,
+                                    const vec4f &animchar_bsph, const bbox3f &animchar_bbox, const bbox3f *animchar_attaches_bbox,
                                     const AnimV20::AnimcharRendComponent &animchar_render, const ecs::Point4List *additional_data,
                                     const ecs::UInt8List *animchar_render__nodeVisibleStgFilters,
                                     bool animchar__renderPriority = false, bool needImmediateConstPS = false) {
@@ -446,14 +459,12 @@ static void animchar_render_opaque_async_es(const AnimcharRenderAsyncEvent &stg)
     G_ASSERT_RETURN(scene != nullptr, );
 
     // add to render list, and process bones
-    const bool noAdditionalData = additional_data == nullptr || additional_data->empty();
-    const Point4 *additionalData = noAdditionalData ? ZERO_PTR<Point4>() : additional_data->data();
-    const uint32_t additionalDataSize = noAdditionalData ? 1 : additional_data->size();
     const uint8_t *filter = animchar_render__nodeVisibleStgFilters ? animchar_render__nodeVisibleStgFilters->begin() : nullptr;
     const uint32_t pathFilterSize = animchar_render__nodeVisibleStgFilters ? animchar_render__nodeVisibleStgFilters->size() : 0;
     G_ASSERT(!animchar_render__nodeVisibleStgFilters || pathFilterSize == scene->getNodeCount());
-    state.process_animchar(0, ShaderMesh::STG_imm_decal, scene, additionalData, additionalDataSize, needPreviousMatrices, nullptr,
-      filter, pathFilterSize, stg.filterMask, needImmediateConstPS,
+
+    state.process_animchar(0, ShaderMesh::STG_imm_decal, scene, animchar_additional_data::get_optional_data(additional_data),
+      needPreviousMatrices, nullptr, filter, pathFilterSize, stg.filterMask, needImmediateConstPS,
       animchar__renderPriority ? dynmodel_renderer::RenderPriority::HIGH : dynmodel_renderer::RenderPriority::DEFAULT,
       stg.globVarsState, stg.texCtx);
   });
@@ -476,91 +487,8 @@ static void render_state(ConstState &state, dynmodel_renderer::BufferType buf_ty
   state.render(buffer->curOffset);
 }
 
-static struct AnimcharRenderMainJob final : public cpujobs::IJob
-{
-  static inline int jobsLeft = 0;
-  AnimcharRenderAsyncFilter flt;
-  uint32_t hints;
-  const Frustum *frustum; // Note: points to `current_camera` blob within daBfg
-  dynmodel_renderer::DynModelRenderingState *dstate;
-  static inline GlobalVariableStates globalVarsState;
-  TexStreamingContext texCtx = TexStreamingContext(0);
-  void doJob() override;
-} animchar_render_main_jobs[AnimcharRenderAsyncFilter::ARF_IDX_COUNT];
-static uint32_t animchar_render_main_jobs_tpqpos = 0;
-
-void AnimcharRenderMainJob::doJob()
-{
-  if (this == animchar_render_main_jobs) // First one wake others up
-    threadpool::wake_up_all();
-  G_FAST_ASSERT(dstate && frustum);
-  const uint8_t add_vis_bits = VISFLG_MAIN_VISIBLE | VISFLG_MAIN_CAMERA_RENDERED;
-  const uint8_t check_bits = VISFLG_MAIN_AND_SHADOW_VISIBLE | VISFLG_MAIN_VISIBLE;
-  const uint8_t filterMask = UpdateStageInfoRender::RENDER_MAIN;
-  g_entity_mgr->broadcastEventImmediate(
-    AnimcharRenderAsyncEvent(*dstate, &globalVarsState, current_occlusion, *frustum, add_vis_bits, check_bits, filterMask,
-      /*needPreviousMatrices*/ (hints & UpdateStageInfoRender::RENDER_MOTION_VECS) != 0, flt, texCtx));
-  // To consider: pre-sort partially here to make final sort faster?
-  if (interlocked_decrement(jobsLeft) == 0) // Last one finalizes to 0th
-  {
-    for (int n = 1; n < AnimcharRenderAsyncFilter::ARF_IDX_COUNT; n++)
-      animchar_render_main_jobs[0].dstate->addStateFrom(eastl::move(*animchar_render_main_jobs[n].dstate));
-    animchar_render_main_jobs[0].dstate->prepareForRender();
-  }
-}
-
-extern const char *fmt_csm_render_pass_name(int cascade, char tmps[], int csm_task_id = 0);
-
-void start_async_animchar_main_render(const Frustum &fr, uint32_t hints, TexStreamingContext texCtx)
-{
-  G_ASSERT(g_entity_mgr->isConstrainedMTMode());
-
-  ShaderGlobal::set_int(dyn_model_render_passVarId, eastl::to_underlying(dynmodel::RenderPass::Color));
-  G_ASSERT(
-    animchar_render_main_jobs[0].globalVarsState.empty() /* Expected to be cleared by previous `wait_async_animchar_main_render` */);
-  animchar_render_main_jobs[0].globalVarsState.set_allocator(framemem_ptr());
-  copy_current_global_variables_states(animchar_render_main_jobs[0].globalVarsState);
-
-  interlocked_relaxed_store(AnimcharRenderMainJob::jobsLeft, AnimcharRenderAsyncFilter::ARF_IDX_COUNT);
-  char tmps[] = "csm#000";
-  int i = 0;
-  for (auto &job : animchar_render_main_jobs)
-  {
-    job.flt = AnimcharRenderAsyncFilter(i);
-    job.hints = hints;
-    job.frustum = &fr;
-    job.dstate = dynmodel_renderer::create_state(fmt_csm_render_pass_name(i++, tmps));
-    job.texCtx = texCtx;
-    using namespace threadpool;
-    add(&job, PRIO_HIGH, animchar_render_main_jobs_tpqpos, AddFlags::None);
-  }
-  threadpool::wake_up_one();
-}
-
-void wait_async_animchar_main_render()
-{
-  for (int j = AnimcharRenderAsyncFilter::ARF_IDX_COUNT - 1; j >= 0; j--)
-  {
-    AnimcharRenderMainJob &job = animchar_render_main_jobs[j];
-    if (!interlocked_acquire_load(job.done))
-    {
-      TIME_PROFILE_DEV(wait_animchar_async_render_main);
-      if (j == AnimcharRenderAsyncFilter::ARF_IDX_COUNT - 1) // Last
-        threadpool::barrier_active_wait_for_job(&job, threadpool::PRIO_HIGH, animchar_render_main_jobs_tpqpos);
-      for (int i = j; i >= 0; i--)
-        threadpool::wait(&animchar_render_main_jobs[i]);
-      break;
-    }
-  }
-  G_ASSERT(!interlocked_relaxed_load(AnimcharRenderMainJob::jobsLeft));
-  auto &job = animchar_render_main_jobs[0];
-  G_ASSERT(job.globalVarsState.get_allocator() == framemem_ptr() || job.globalVarsState.empty());
-  job.globalVarsState.clear(); // Free framemem allocated data
-}
-
-ECS_TAG(render)
-ECS_NO_ORDER
-static void animchar_render_opaque_es(const UpdateStageInfoRender &stg)
+// If eid is valid, it will only render that entity. Otherwise all entities.
+static void animchar_render_opaque(ecs::EntityId eid, const UpdateStageInfoRender &stg)
 {
   if ((stg.hints & stg.RENDER_MAIN) && stg.pState)
   {
@@ -575,11 +503,11 @@ static void animchar_render_opaque_es(const UpdateStageInfoRender &stg)
   TIME_D3D_PROFILE(animchar_render);
 
   const uint32_t mainHints = (stg.RENDER_MAIN | stg.RENDER_COLOR);
-  const uint8_t add_vis_bits = (stg.hints & (mainHints | stg.RENDER_SHADOW)) == mainHints
-                                 ? VISFLG_MAIN_VISIBLE | VISFLG_MAIN_CAMERA_RENDERED
-                               : stg.hints & stg.RENDER_SHADOW ? VISFLG_CSM_SHADOW_RENDERED
-                                                               : 0;
-  const uint8_t check_bits =
+  const animchar_visbits_t add_vis_bits = (stg.hints & (mainHints | stg.RENDER_SHADOW)) == mainHints
+                                            ? VISFLG_MAIN_VISIBLE | VISFLG_MAIN_CAMERA_RENDERED
+                                          : stg.hints & stg.RENDER_SHADOW ? VISFLG_CSM_SHADOW_RENDERED
+                                                                          : 0;
+  const animchar_visbits_t check_bits =
     (stg.hints & UpdateStageInfoRender::RENDER_MAIN)
       ? ((stg.hints & UpdateStageInfoRender::RENDER_SHADOW) ? VISFLG_MAIN_AND_SHADOW_VISIBLE
                                                             : (VISFLG_MAIN_AND_SHADOW_VISIBLE | VISFLG_MAIN_VISIBLE))
@@ -593,37 +521,58 @@ static void animchar_render_opaque_es(const UpdateStageInfoRender &stg)
   const Occlusion *occlusion = (stg.hints & stg.RENDER_SHADOW) ? NULL : stg.occlusion;
   DynModelRenderingState &state = dynmodel_renderer::get_immediate_state();
 
-  // TODO compare with gather_animchar_ecs_query and separate setting threshold to independent system
-  gather_animchar_ecs_query(
-    [&](ECS_REQUIRE_NOT(const Point3 semi_transparent__placingColor) uint8_t &animchar_visbits, const vec4f &animchar_bsph,
-      const bbox3f &animchar_bbox, const bbox3f *animchar_attaches_bbox, const AnimV20::AnimcharRendComponent &animchar_render,
-      const ecs::Point4List *additional_data, const ecs::UInt8List *animchar_render__nodeVisibleStgFilters,
-      const ecs::Tag *invisibleUpdatableAnimchar, bool animchar__renderPriority = false, bool needImmediateConstPS = false) {
-      if (!(animchar_visbits & check_bits) || !stg.cullingFrustum.testSphereB(animchar_bsph, v_splat_w(animchar_bsph)) ||
-          (occlusion && !occlusion->isVisibleBox(animchar_attaches_bbox ? animchar_attaches_bbox->bmin : animchar_bbox.bmin,
-                          animchar_attaches_bbox ? animchar_attaches_bbox->bmax : animchar_bbox.bmax)))
-        return;
+  auto process_one = [&](animchar_visbits_t &animchar_visbits, const vec4f &animchar_bsph, const bbox3f &animchar_bbox,
+                       const bbox3f *animchar_attaches_bbox, const AnimV20::AnimcharRendComponent &animchar_render,
+                       const ecs::Point4List *additional_data, const ecs::UInt8List *animchar_render__nodeVisibleStgFilters,
+                       const ecs::Tag *invisibleUpdatableAnimchar, bool animchar__renderPriority, bool needImmediateConstPS) {
+    if (!(animchar_visbits & check_bits) || !stg.cullingFrustum.testSphereB(animchar_bsph, v_splat_w(animchar_bsph)) ||
+        (occlusion && !occlusion->isVisibleBox(animchar_attaches_bbox ? animchar_attaches_bbox->bmin : animchar_bbox.bmin,
+                        animchar_attaches_bbox ? animchar_attaches_bbox->bmax : animchar_bbox.bmax)))
+      return;
 
-      animchar_visbits |= add_vis_bits;
+    animchar_visbits |= add_vis_bits;
 
-      if (invisibleUpdatableAnimchar)
-        return;
+    if (invisibleUpdatableAnimchar)
+      return;
 
-      const DynamicRenderableSceneInstance *scene = animchar_render.getSceneInstance();
-      G_ASSERT_RETURN(scene != nullptr, );
+    const DynamicRenderableSceneInstance *scene = animchar_render.getSceneInstance();
+    G_ASSERT_RETURN(scene != nullptr, );
 
-      // Render
-      const bool noAdditionalData = additional_data == nullptr || additional_data->empty();
-      const Point4 *additionalData = noAdditionalData ? ZERO_PTR<Point4>() : additional_data->data();
-      const uint32_t additionalDataSize = noAdditionalData ? 1 : additional_data->size();
-      const uint8_t *filter = animchar_render__nodeVisibleStgFilters ? animchar_render__nodeVisibleStgFilters->begin() : nullptr;
-      const uint32_t pathFilterSize = animchar_render__nodeVisibleStgFilters ? animchar_render__nodeVisibleStgFilters->size() : 0;
-      G_ASSERT(!animchar_render__nodeVisibleStgFilters || pathFilterSize == scene->getNodeCount());
-      state.process_animchar(0, ShaderMesh::STG_imm_decal, scene, additionalData, additionalDataSize, needPreviousMatrices, nullptr,
-        filter, pathFilterSize, stg.hints & (stg.RENDER_SHADOW | stg.RENDER_MAIN | stg.FORCE_NODE_COLLAPSER_ON), needImmediateConstPS,
-        animchar__renderPriority ? dynmodel_renderer::RenderPriority::HIGH : dynmodel_renderer::RenderPriority::DEFAULT, nullptr,
-        stg.texCtx);
-    });
+    // Render
+    const uint8_t *filter = animchar_render__nodeVisibleStgFilters ? animchar_render__nodeVisibleStgFilters->begin() : nullptr;
+    const uint32_t pathFilterSize = animchar_render__nodeVisibleStgFilters ? animchar_render__nodeVisibleStgFilters->size() : 0;
+    G_ASSERT(!animchar_render__nodeVisibleStgFilters || pathFilterSize == scene->getNodeCount());
+    state.process_animchar(0, ShaderMesh::STG_imm_decal, scene, animchar_additional_data::get_optional_data(additional_data),
+      needPreviousMatrices, nullptr, filter, pathFilterSize, stg.hints & (stg.RENDER_SHADOW | stg.RENDER_MAIN), needImmediateConstPS,
+      animchar__renderPriority ? dynmodel_renderer::RenderPriority::HIGH : dynmodel_renderer::RenderPriority::DEFAULT, nullptr,
+      stg.texCtx);
+  };
+
+  if (eid)
+  {
+    find_animchar_single_ecs_query(eid,
+      [&](ECS_REQUIRE_NOT(const Point3 semi_transparent__placingColor) animchar_visbits_t &animchar_visbits,
+        const vec4f &animchar_bsph, const bbox3f &animchar_bbox, const bbox3f *animchar_attaches_bbox,
+        const AnimV20::AnimcharRendComponent &animchar_render, const ecs::Point4List *additional_data,
+        const ecs::UInt8List *animchar_render__nodeVisibleStgFilters, const ecs::Tag *invisibleUpdatableAnimchar,
+        bool animchar__renderPriority = false, bool needImmediateConstPS = false) {
+        process_one(animchar_visbits, animchar_bsph, animchar_bbox, animchar_attaches_bbox, animchar_render, additional_data,
+          animchar_render__nodeVisibleStgFilters, invisibleUpdatableAnimchar, animchar__renderPriority, needImmediateConstPS);
+      });
+  }
+  else
+  {
+    // TODO compare with gather_animchar_ecs_query and separate setting threshold to independent system
+    gather_animchar_ecs_query(
+      [&](ECS_REQUIRE_NOT(const Point3 semi_transparent__placingColor) animchar_visbits_t &animchar_visbits,
+        const vec4f &animchar_bsph, const bbox3f &animchar_bbox, const bbox3f *animchar_attaches_bbox,
+        const AnimV20::AnimcharRendComponent &animchar_render, const ecs::Point4List *additional_data,
+        const ecs::UInt8List *animchar_render__nodeVisibleStgFilters, const ecs::Tag *invisibleUpdatableAnimchar,
+        bool animchar__renderPriority = false, bool needImmediateConstPS = false) {
+        process_one(animchar_visbits, animchar_bsph, animchar_bbox, animchar_attaches_bbox, animchar_render, additional_data,
+          animchar_render__nodeVisibleStgFilters, invisibleUpdatableAnimchar, animchar__renderPriority, needImmediateConstPS);
+      });
+  }
 
   if (state.empty())
     return;
@@ -644,6 +593,16 @@ static void animchar_render_opaque_es(const UpdateStageInfoRender &stg)
   d3d::settm(TM_VIEW, stg.viewTm);
 }
 
+void animchar_render_single_opaque(ecs::EntityId eid, const UpdateStageInfoRender &stg)
+{
+  G_ASSERT(eid);
+  animchar_render_opaque(eid, stg);
+}
+
+ECS_TAG(render)
+ECS_NO_ORDER
+static void animchar_render_opaque_es(const UpdateStageInfoRender &stg) { animchar_render_opaque({}, stg); }
+
 template <typename T>
 static inline void gather_animchar_vehicle_cockpit_ecs_query(T cb);
 
@@ -655,7 +614,7 @@ static void animchar_vehicle_cockpit_render_depth_prepass_es(const VehicleCockpi
   gather_animchar_vehicle_cockpit_ecs_query(
     [&](ECS_REQUIRE(ecs::Tag cockpitEntity) ECS_REQUIRE(ecs::EntityId cockpit__vehicleEid)
           const AnimV20::AnimcharRendComponent &animchar_render,
-      const ecs::Point4List *additional_data, const uint8_t &animchar_visbits, bool needImmediateConstPS = false) {
+      const ecs::Point4List *additional_data, const animchar_visbits_t &animchar_visbits, bool needImmediateConstPS = false) {
       // Use interlocked load b/c it's might intersect with `animchar_render_main_job` which adds bits
       if (!(interlocked_relaxed_load(animchar_visbits) & VISFLG_MAIN_AND_SHADOW_VISIBLE))
         return;
@@ -664,11 +623,8 @@ static void animchar_vehicle_cockpit_render_depth_prepass_es(const VehicleCockpi
       G_ASSERT_RETURN(scene != nullptr, );
 
       // Render
-      const bool noAdditionalData = additional_data == nullptr || additional_data->empty();
-      const Point4 *additionalData = noAdditionalData ? ZERO_PTR<Point4>() : additional_data->data();
-      const uint32_t additionalDataSize = noAdditionalData ? 1 : additional_data->size();
-      state.process_animchar(0, ShaderMesh::STG_imm_decal, scene, additionalData, additionalDataSize, false, nullptr, nullptr, 0, 0,
-        needImmediateConstPS);
+      state.process_animchar(0, ShaderMesh::STG_imm_decal, scene, animchar_additional_data::get_optional_data(additional_data), false,
+        nullptr, nullptr, 0, 0, needImmediateConstPS);
     });
   if (state.empty())
     return;
@@ -680,6 +636,14 @@ static void animchar_vehicle_cockpit_render_depth_prepass_es(const VehicleCockpi
   d3d::settm(TM_VIEW, event.viewTm);
 }
 
+ECS_TAG(render)
+static void copy_hero_crawling_es(const UpdateStageInfoBeforeRender &, bool &is_hero_crawling)
+{
+  // Copy to render entity to avoid data race with ParallelUpdateFrameDelayed
+  const bool isHeroCrawling = g_entity_mgr->getOr<bool>(game::get_controlled_hero(), ECS_HASH("human_net_phys__isCrawl"), false);
+  is_hero_crawling = isHeroCrawling;
+}
+
 template <typename T>
 static inline void render_animchar_hmap_deform_ecs_query(T cb);
 ECS_TAG(render)
@@ -689,14 +653,23 @@ static void animchar_render_hmap_deform_es(const RenderHmapDeform &event)
   TIME_D3D_PROFILE(animchar_render_hmap_deform);
 
   DynModelRenderingState &state = dynmodel_renderer::get_immediate_state();
+  const ecs::EntityId heroCockpitRenderer = g_entity_mgr->getSingletonEntity(ECS_HASH("hero_cockpit_renderer"));
+  const bool isHeroCrawling = g_entity_mgr->getOr<bool>(heroCockpitRenderer, ECS_HASH("is_hero_crawling"), false);
+  const ecs::EidList *heroCockpitEntities =
+    g_entity_mgr->getNullable<ecs::EidList>(heroCockpitRenderer, ECS_HASH("hero_cockpit_entities"));
 
   // TODO compare with gather_animchar_ecs_query and separate setting threshold to independent system
   render_animchar_hmap_deform_ecs_query(
-    [&](ECS_REQUIRE_NOT(const Point3 semi_transparent__placingColor) ECS_REQUIRE_NOT(ecs::Tag invisibleUpdatableAnimchar)
-          AnimV20::AnimcharRendComponent &animchar_render,
-      uint8_t animchar_visbits, const ecs::Point4List *additional_data, const int *forced_lod_for_hmap_deform,
-      const ecs::UInt8List *vehicle_trails__nodesFilter = nullptr) {
-      if (!(animchar_visbits & VISFLG_RENDER_CUSTOM)) // It was set by `update_animchar_hmap_deform_ecs_query`
+    [&state, isHeroCrawling, heroCockpitEntities](ECS_REQUIRE_NOT(const Point3 semi_transparent__placingColor)
+                                                    ECS_REQUIRE_NOT(ecs::Tag invisibleUpdatableAnimchar) ecs::EntityId eid,
+      AnimV20::AnimcharRendComponent &animchar_render, animchar_visbits_t animchar_visbits, const ecs::Point4List *additional_data,
+      const int *forced_lod_for_hmap_deform, const ecs::UInt8List *vehicle_trails__nodesFilter = nullptr,
+      bool render_to_hmap_deform_in_crawling_fps_mode = true) {
+      if (!(animchar_visbits & VISFLG_HMAP_DEFORM))
+        return;
+      // Don't deform heightmap with own gun when crawling to avoid messing with depth perception due to having hero cockpit:
+      if (isHeroCrawling && !render_to_hmap_deform_in_crawling_fps_mode && heroCockpitEntities &&
+          eastl::find(heroCockpitEntities->begin(), heroCockpitEntities->end(), eid) != heroCockpitEntities->end())
         return;
       const DynamicRenderableSceneInstance *scene = animchar_render.getSceneInstance();
       G_ASSERT_RETURN(scene != nullptr, );
@@ -709,15 +682,11 @@ static void animchar_render_hmap_deform_es(const RenderHmapDeform &event)
       deformLod = max(deformLod, scene->getLodsResource()->getQlBestLod());
 
       // Render
-      const bool noAdditionalData = additional_data == nullptr || additional_data->empty();
-      const Point4 *additionalData = noAdditionalData ? ZERO_PTR<Point4>() : additional_data->data();
-      const uint32_t additionalDataSize = noAdditionalData ? 1 : additional_data->size();
       const DynamicRenderableSceneResource *lodResource = scene->getLodsResource()->lods[deformLod].scene;
-
       const uint8_t *filter = vehicle_trails__nodesFilter ? vehicle_trails__nodesFilter->data() : nullptr;
       int filter_size = vehicle_trails__nodesFilter ? vehicle_trails__nodesFilter->size() : 0;
-      state.process_animchar(0, ShaderMesh::STG_opaque, scene, lodResource, additionalData, additionalDataSize, false, nullptr, filter,
-        filter_size, 1);
+      state.process_animchar(0, ShaderMesh::STG_opaque, scene, lodResource,
+        animchar_additional_data::get_optional_data(additional_data), false, nullptr, filter, filter_size, 1);
     });
 
   TMatrix itm = event.viewItm;
@@ -800,15 +769,15 @@ static __forceinline void animchar_render_trans_es(const UpdateStageInfoRenderTr
   animchar_render_trans_first_ecs_query(
     [&state, &stg](ECS_REQUIRE(ecs::Tag requires_trans_render) ECS_REQUIRE_NOT(ecs::Tag late_transparent_render)
                      AnimV20::AnimcharRendComponent &animchar_render,
-      uint8_t animchar_visbits, const ecs::UInt8List *animchar_render__nodeVisibleStgFilters) {
+      animchar_visbits_t animchar_visbits, const ecs::UInt8List *animchar_render__nodeVisibleStgFilters) {
       if (animchar_visbits & VISFLG_MAIN_VISIBLE) //< reuse visibility check from render
       {
         const DynamicRenderableSceneInstance *scene = animchar_render.getSceneInstance();
         const uint8_t *filter = animchar_render__nodeVisibleStgFilters ? animchar_render__nodeVisibleStgFilters->begin() : nullptr;
         const uint32_t pathFilterSize = animchar_render__nodeVisibleStgFilters ? animchar_render__nodeVisibleStgFilters->size() : 0;
         G_ASSERT(!animchar_render__nodeVisibleStgFilters || pathFilterSize == scene->getNodeCount());
-        state.process_animchar(ShaderMesh::STG_trans, ShaderMesh::STG_trans, scene, nullptr, 0, false, nullptr, filter, pathFilterSize,
-          UpdateStageInfoRender::RENDER_MAIN, false, RenderPriority::HIGH, nullptr, stg.texCtx);
+        state.process_animchar(ShaderMesh::STG_trans, ShaderMesh::STG_trans, scene, animchar_additional_data::get_null_data(), false,
+          nullptr, filter, pathFilterSize, UpdateStageInfoRender::RENDER_MAIN, false, RenderPriority::HIGH, nullptr, stg.texCtx);
       }
     });
 
@@ -826,15 +795,16 @@ static __forceinline void animchar_render_distortion_es(const UpdateStageInfoRen
 
   animchar_render_distortion_ecs_query(
     [&state, &stg](ECS_REQUIRE(ecs::Tag requires_distortion_render) AnimV20::AnimcharRendComponent &animchar_render,
-      uint8_t animchar_visbits, const ecs::UInt8List *animchar_render__nodeVisibleStgFilters) {
+      animchar_visbits_t animchar_visbits, const ecs::UInt8List *animchar_render__nodeVisibleStgFilters) {
       if (animchar_visbits & VISFLG_MAIN_VISIBLE) //< reuse visibility check from render
       {
         const DynamicRenderableSceneInstance *scene = animchar_render.getSceneInstance();
         const uint8_t *filter = animchar_render__nodeVisibleStgFilters ? animchar_render__nodeVisibleStgFilters->begin() : nullptr;
         const uint32_t pathFilterSize = animchar_render__nodeVisibleStgFilters ? animchar_render__nodeVisibleStgFilters->size() : 0;
         G_ASSERT(!animchar_render__nodeVisibleStgFilters || pathFilterSize == scene->getNodeCount());
-        state.process_animchar(ShaderMesh::STG_distortion, ShaderMesh::STG_distortion, scene, nullptr, 0, false, nullptr, filter,
-          pathFilterSize, UpdateStageInfoRender::RENDER_MAIN, false, RenderPriority::HIGH, nullptr, stg.texCtx);
+        state.process_animchar(ShaderMesh::STG_distortion, ShaderMesh::STG_distortion, scene,
+          animchar_additional_data::get_null_data(), false, nullptr, filter, pathFilterSize, UpdateStageInfoRender::RENDER_MAIN, false,
+          RenderPriority::HIGH, nullptr, stg.texCtx);
       }
     });
 
@@ -844,14 +814,18 @@ static __forceinline void animchar_render_distortion_es(const UpdateStageInfoRen
   d3d::settm(TM_VIEW, stg.viewTm);
 }
 
-bool animchar_has_any_visible_distortion()
+ECS_TAG(render)
+ECS_NO_ORDER
+static void animchar_has_any_visible_distortion_es(UpdateStageInfoNeedDistortion &e)
 {
-  return animchar_render_find_any_visible_distortion_ecs_query(
-           [](ECS_REQUIRE(ecs::Tag requires_distortion_render) uint8_t animchar_visbits) {
-             if (animchar_visbits & VISFLG_MAIN_VISIBLE)
-               return ecs::QueryCbResult::Stop;
-             return ecs::QueryCbResult::Continue;
-           }) == ecs::QueryCbResult::Stop;
+  if (e.needed)
+    return;
+  e.needed |= animchar_render_find_any_visible_distortion_ecs_query(
+                [](ECS_REQUIRE(ecs::Tag requires_distortion_render) animchar_visbits_t animchar_visbits) {
+                  if (animchar_visbits & VISFLG_MAIN_VISIBLE)
+                    return ecs::QueryCbResult::Stop;
+                  return ecs::QueryCbResult::Continue;
+                }) == ecs::QueryCbResult::Stop;
 }
 
 void render_mainhero_trans(const TMatrix &view_tm)
@@ -859,16 +833,16 @@ void render_mainhero_trans(const TMatrix &view_tm)
   DynModelRenderingState &state = dynmodel_renderer::get_immediate_state();
 
   animchar_render_trans_second_ecs_query(
-    [&state](ECS_REQUIRE(ecs::Tag late_transparent_render) AnimV20::AnimcharRendComponent &animchar_render, uint8_t animchar_visbits,
-      const ecs::UInt8List *animchar_render__nodeVisibleStgFilters) {
+    [&state](ECS_REQUIRE(ecs::Tag late_transparent_render) AnimV20::AnimcharRendComponent &animchar_render,
+      animchar_visbits_t animchar_visbits, const ecs::UInt8List *animchar_render__nodeVisibleStgFilters) {
       if (animchar_visbits & VISFLG_MAIN_VISIBLE) //< reuse visibility check from render
       {
         const DynamicRenderableSceneInstance *scene = animchar_render.getSceneInstance();
         const uint8_t *filter = animchar_render__nodeVisibleStgFilters ? animchar_render__nodeVisibleStgFilters->begin() : nullptr;
         const uint32_t pathFilterSize = animchar_render__nodeVisibleStgFilters ? animchar_render__nodeVisibleStgFilters->size() : 0;
         G_ASSERT(!animchar_render__nodeVisibleStgFilters || pathFilterSize == scene->getNodeCount());
-        state.process_animchar(ShaderMesh::STG_trans, ShaderMesh::STG_trans, scene, nullptr, 0, false, nullptr, filter, pathFilterSize,
-          UpdateStageInfoRender::RENDER_MAIN, false, RenderPriority::DEFAULT, nullptr,
+        state.process_animchar(ShaderMesh::STG_trans, ShaderMesh::STG_trans, scene, animchar_additional_data::get_null_data(), false,
+          nullptr, filter, pathFilterSize, UpdateStageInfoRender::RENDER_MAIN, false, RenderPriority::DEFAULT, nullptr,
           ((WorldRenderer *)get_world_renderer())->getTexCtx());
       }
     });
@@ -883,6 +857,68 @@ ECS_TAG(render)
 static void close_animchar_bindpose_buffer_es(const EventOnGameShutdown &)
 {
   DynamicRenderableSceneLodsResource::closeBindposeBuffer();
+}
+
+template <typename Callable>
+static void get_animchars_with_moved_decals_ecs_query(Callable c);
+template <typename Callable>
+static void mark_animchar_for_reactive_mask_ecs_query(ecs::EntityId eid, Callable c);
+
+static int last_decal_movement_frame_id = 0;
+
+void mark_animchar_for_reactive_mask_pass(ecs::EntityId eid)
+{
+  mark_animchar_for_reactive_mask_ecs_query(eid, [&](int &needsRenderToReactiveMask) {
+    last_decal_movement_frame_id = ::dagor_frame_no();
+    needsRenderToReactiveMask = ::dagor_frame_no();
+  });
+}
+
+ECS_TAG(render)
+ECS_ON_EVENT(on_appear)
+static void init_vehicle_reactive_mask_node_es_event_handler(const ecs::Event &, dafg::NodeHandle &reactiveMaskNode)
+{
+  reactiveMaskNode = dafg::register_node("render", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    shaders::OverrideState state;
+    state.set(shaders::OverrideState::Z_BIAS);
+    state.zBias = 0.00025;
+    auto cameraHndl = use_camera_in_camera(registry);
+    use_camera_in_camera_jitter_frustum_plane_shader_vars(registry);
+    registry.requestState().setFrameBlock("global_frame").allowWireframe().enableOverride(state);
+    registry.readBlob<Point4>("world_view_pos").bindToShaderVar("world_view_pos");
+    auto reactiveMaskHndl =
+      registry.modifyTexture("reactive_mask").atStage(dafg::Stage::PS).useAs(dafg::Usage::COLOR_ATTACHMENT).optional().handle();
+    auto depthHndl =
+      registry.readTexture("gbuf_depth").atStage(dafg::Stage::PS).useAs(dafg::Usage::DEPTH_ATTACHMENT_AND_SHADER_RESOURCE).handle();
+
+    return [cameraHndl, depthHndl, reactiveMaskHndl, dyn_model_render_passVarId = ::get_shader_variable_id("dyn_model_render_pass"),
+             animchar_reactive_mask_passVarId = ::get_shader_variable_id("animchar_reactive_mask_pass"),
+             animchar_reactive_mask_valueVarId = ::get_shader_variable_id("animchar_reactive_mask_value")]() {
+      if (last_decal_movement_frame_id != ::dagor_frame_no() || reactiveMaskHndl.get() == nullptr)
+        return;
+
+      SCOPE_RENDER_TARGET;
+
+      d3d::set_render_target({depthHndl.view().getBaseTex(), 0}, DepthAccess::SampledRO, {{reactiveMaskHndl.get(), 0}});
+
+      const auto &camera = cameraHndl.ref();
+      ShaderGlobal::set_int(dyn_model_render_passVarId, eastl::to_underlying(dynmodel::RenderPass::Color));
+      ShaderGlobal::set_int(animchar_reactive_mask_passVarId, 1);
+      ShaderGlobal::set_real(animchar_reactive_mask_valueVarId, 1);
+
+      get_animchars_with_moved_decals_ecs_query([&](int needsRenderToReactiveMask, ecs::EntityId eid) {
+        if (needsRenderToReactiveMask != ::dagor_frame_no())
+          return;
+        uint32_t hints = UpdateStageInfoRender::RENDER_COLOR;
+        animchar_render_single_opaque(eid,
+          UpdateStageInfoRender(hints, camera.jitterFrustum, camera.viewItm, camera.viewTm, camera.jitterProjTm,
+            camera.viewItm.getcol(3), camera.negRoundedCamPos, camera.negRemainderCamPos, nullptr, RENDER_MAIN));
+      });
+
+      ShaderGlobal::set_real(animchar_reactive_mask_valueVarId, 0);
+      ShaderGlobal::set_int(animchar_reactive_mask_passVarId, 0);
+    };
+  });
 }
 
 static bool animchar_console_handler(const char *argv[], int argc)
@@ -901,7 +937,7 @@ static bool animchar_console_handler(const char *argv[], int argc)
                              "\n";
     eastl::vector_map<ecs::string, IPoint2> nameCountMap;
 
-    count_animchar_renderer_ecs_query([&](const ecs::string &animchar__res, uint8_t animchar_visbits) {
+    count_animchar_renderer_ecs_query([&](const ecs::string &animchar__res, animchar_visbits_t animchar_visbits) {
       IPoint2 &count_rendered = nameCountMap[animchar__res];
       count_rendered.x += 1;
       count_rendered.y +=

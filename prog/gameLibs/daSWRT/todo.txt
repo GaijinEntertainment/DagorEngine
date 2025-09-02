@@ -1,0 +1,16 @@
+* pull up from blas to tlas
+  if mesh is 'big' and 'heavy' one, we better pull-up 1-2 levels of hierarchy.
+  so, tlas will have 2-4 more leaves (not one instance, but 2-4) pointing to 1/2 level of hierarchy in blas.
+* combine both shadow_strength & combined shadows in one bitmask
+  it is more accurate, as it takes full res normal into account, not half res
+  probably not very expensive also
++ offset from areas inside static cascade towards sun
++ checkerboard layout of rt shadows
++ frustum with sun size
++ use 1-bit result (instead of texture), when typed uav is not available
++ calculate planes in cpp code (optimization)
++ fix plane for horizontal sun
++ checkerboard optimization (reduce memory)
++ getAdditionalShadows _before_ contact shadows
+* checkerboard optimization (we can store 1 bit of visibility, writing whole tile)
+* offset from areas inside csm towards sun (for planes, etc!)

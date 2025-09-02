@@ -68,6 +68,17 @@ namespace das {
     class TextWriter : public StringWriter {
     public:
         TextWriter() {}
+
+        /*
+         * Copy and move constructors are not supported
+         * This helps prevent issues with `largeBuffer` ownership
+         * and keeps the code cleaner and simpler
+         */
+        TextWriter(const TextWriter&) = delete;
+        TextWriter(TextWriter&&) = delete;
+        TextWriter& operator=(const TextWriter&) = delete;
+        TextWriter& operator=(TextWriter&&) = delete;
+
         virtual ~TextWriter();
         virtual string str() const override;
         virtual uint64_t tellp() const override;
@@ -117,6 +128,7 @@ namespace das {
 
         // DEBUG - information useful for application developers. (DEBUG is defaut level)
         debug       = 10000,
+        defaultPrint = debug,
 
         // TRACE - information useful for developers of subsystems, libraries, daScript etc.
         // For example: application activation/deactivation, key pressed, texture loaded from a file, sound file loaded.

@@ -1,22 +1,24 @@
 include "biomes.dshl"
 include "dagdp_common_heightmap.dshl"
+include "toroidal_grass.dshl"
+
+texture perlin_noise3d;
+texture blue_noise_tex;
 
 buffer dagdp__instance_data;
 buffer dagdp__dyn_allocs;
 buffer dagdp__dyn_counters;
-buffer dagdp__counters;
 
 buffer dagdp_heightmap__draw_ranges;
 buffer dagdp_heightmap__placeables;
 buffer dagdp_heightmap__placeable_weights;
-buffer dagdp_heightmap__placeable_tile_limits;
 buffer dagdp_heightmap__renderable_indices;
-buffer dagdp_heightmap__instance_regions;
 buffer dagdp_heightmap__tile_positions;
 buffer dagdp_heightmap__biomes;
 buffer dagdp_heightmap__variants;
 buffer dagdp_heightmap__indirect_args;
 buffer dagdp_heightmap__visible_tile_positions;
+buffer dagdp_heightmap__density_mask_channel_weights;
 
 texture dagdp_heightmap__density_mask;
 float4 dagdp_heightmap__density_mask_scale_offset;
@@ -36,20 +38,26 @@ int dagdp_heightmap__prng_seed_jitter_x;
 int dagdp_heightmap__prng_seed_jitter_z;
 int dagdp_heightmap__prng_seed_placeable;
 int dagdp_heightmap__prng_seed_slope;
+int dagdp_heightmap__prng_seed_occlusion;
 int dagdp_heightmap__prng_seed_scale;
 int dagdp_heightmap__prng_seed_yaw;
 int dagdp_heightmap__prng_seed_pitch;
 int dagdp_heightmap__prng_seed_roll;
 int dagdp_heightmap__prng_seed_density;
 float dagdp_heightmap__grid_jitter;
+float dagdp_heightmap__displacement_noise_scale;
+float dagdp_heightmap__displacement_strength;
+float dagdp_heightmap__placement_noise_scale;
+float dagdp_heightmap__sample_range;
 int dagdp_heightmap__lower_level;
+int dagdp_heightmap__use_decals;
+int dagdp_heightmap__discard_on_grass_erasure;
 
 float4 dagdp_heightmap__base_tile_pos_xz;
 int4 dagdp_heightmap__base_tile_int_pos_xz;
 float4 dagdp_heightmap__viewport_pos;
 float dagdp_heightmap__viewport_max_distance;
 int dagdp_heightmap__viewport_index;
-int dagdp_heightmap__viewport_instance_offset;
 
 shader dagdp_heightmap_cull_tiles
 {
@@ -118,7 +126,7 @@ shader dagdp_heightmap_cull_tiles
   compile("target_cs", "main");
 }
 
-shader dagdp_heightmap_place, dagdp_heightmap_place_stage0, dagdp_heightmap_place_stage1
+shader dagdp_heightmap_place_stage0, dagdp_heightmap_place_stage1
 {
   ENABLE_ASSERT(cs)
 
@@ -127,26 +135,13 @@ shader dagdp_heightmap_place, dagdp_heightmap_place_stage0, dagdp_heightmap_plac
       RWBuffer<float4> instance_data@uav;
     }
 
-    if (shader == dagdp_heightmap_place)
-    {
-      counters@uav = dagdp__counters hlsl {
-        RWStructuredBuffer<uint> counters@uav;
-      }
-
-      instance_regions@buf = dagdp_heightmap__instance_regions hlsl {
-        StructuredBuffer<uint2> instance_regions@buf;
-      }
+    dyn_counters@uav = dagdp__dyn_counters hlsl {
+      RWStructuredBuffer<uint> dyn_counters@uav;
     }
-    else
-    {
-      dyn_counters@uav = dagdp__dyn_counters hlsl {
-        RWStructuredBuffer<uint> dyn_counters@uav;
-      }
 
-      dyn_allocs@buf = dagdp__dyn_allocs hlsl {
-        #include "dagdp_common.hlsli"
-        StructuredBuffer<DynAlloc> dyn_allocs@buf;
-      }
+    dyn_allocs@buf = dagdp__dyn_allocs hlsl {
+      #include "dagdp_common.hlsli"
+      StructuredBuffer<DynAlloc> dyn_allocs@buf;
     }
 
     draw_ranges@buf = dagdp_heightmap__draw_ranges hlsl {
@@ -166,10 +161,6 @@ shader dagdp_heightmap_place, dagdp_heightmap_place_stage0, dagdp_heightmap_plac
       StructuredBuffer<uint> renderable_indices@buf;
     }
 
-    placeable_tile_limits@buf = dagdp_heightmap__placeable_tile_limits hlsl {
-      StructuredBuffer<uint> placeable_tile_limits@buf;
-    }
-
     biomes@buf = dagdp_heightmap__biomes hlsl {
       StructuredBuffer<uint> biomes@buf;
     }
@@ -181,6 +172,10 @@ shader dagdp_heightmap_place, dagdp_heightmap_place_stage0, dagdp_heightmap_plac
 
     visible_tile_positions@buf = dagdp_heightmap__visible_tile_positions hlsl {
       ByteAddressBuffer visible_tile_positions@buf;
+    }
+
+    density_mask_channel_weights@buf = dagdp_heightmap__density_mask_channel_weights hlsl {
+      StructuredBuffer<float4> density_mask_channel_weights@buf;
     }
 
     density_mask@smp2d = dagdp_heightmap__density_mask;
@@ -201,36 +196,54 @@ shader dagdp_heightmap_place, dagdp_heightmap_place_stage0, dagdp_heightmap_plac
     prng_seed_jitter_z@i1 = dagdp_heightmap__prng_seed_jitter_z;
     prng_seed_placeable@i1 = dagdp_heightmap__prng_seed_placeable;
     prng_seed_slope@i1 = dagdp_heightmap__prng_seed_slope;
+    prng_seed_occlusion@i1 = dagdp_heightmap__prng_seed_occlusion;
     prng_seed_scale@i1 = dagdp_heightmap__prng_seed_scale;
     prng_seed_yaw@i1 = dagdp_heightmap__prng_seed_yaw;
     prng_seed_pitch@i1 = dagdp_heightmap__prng_seed_pitch;
     prng_seed_roll@i1 = dagdp_heightmap__prng_seed_roll;
     prng_seed_density@i1 = dagdp_heightmap__prng_seed_density;
     grid_jitter@f1 = dagdp_heightmap__grid_jitter;
+    displacement_noise_scale@f1 = 1.0 / max(dagdp_heightmap__displacement_noise_scale, 1e-8);
+    displacement_strength@f1 = dagdp_heightmap__displacement_strength;
+    placement_noise_scale@f1 = 1.0 / max(dagdp_heightmap__placement_noise_scale*128, 1e-8);
+    sample_range@f1 = dagdp_heightmap__sample_range;
     lower_level@i1 = dagdp_heightmap__lower_level;
+    use_decals@i1 = dagdp_heightmap__use_decals;
+    discard_on_grass_erasure@i1 = dagdp_heightmap__discard_on_grass_erasure
 
     base_tile_pos_xz@f2 = dagdp_heightmap__base_tile_pos_xz;
     base_tile_int_pos_xz@i2 = dagdp_heightmap__base_tile_int_pos_xz;
     viewport_pos@f3 = dagdp_heightmap__viewport_pos;
     viewport_max_distance@f1 = dagdp_heightmap__viewport_max_distance;
     viewport_index@i1 = dagdp_heightmap__viewport_index;
-    viewport_instance_offset@i1 = dagdp_heightmap__viewport_instance_offset;
+
+    grass_color_tex@smp2d = grass_color_tex;
+    perlin_noise3d@smp3d = perlin_noise3d;
+    blue_noise_tex@smp2d = blue_noise_tex;
   }
 
   INIT_BIOMES(cs)
   USE_BIOMES(cs)
-  USE_DAGDP_COMMON_HEIGHTMAP(shader != dagdp_heightmap_place, shader == dagdp_heightmap_place_stage1)
+  USE_DAGDP_COMMON_HEIGHTMAP(shader == dagdp_heightmap_place_stage1)
+  USE_GRASS_TC(cs)
 
   hlsl(cs) {
-    float getDensityFromMask(float2 worldXZ, int channelToUse)
+    #include <grassInstance.hlsli>
+
+    float getDensityFromMask(float2 worldXZ, uint placeableIndex)
     {
       BRANCH
-      if (channelToUse < 0 || channelToUse > 3 || !density_mask_exists)
+      if (!density_mask_exists)
         return 1.0;
 
       float2 tc = worldXZ * density_mask_scale_offset.xy + density_mask_scale_offset.zw;
       float4 densities = tex2Dlod(density_mask, float4(tc, 0, 0));
-      return densities[channelToUse];
+      float4 densityMaskChannelWeights = structuredBufferAt(density_mask_channel_weights, placeableIndex);
+
+      return lerp(1.0, densities.x, densityMaskChannelWeights.x) *
+             lerp(1.0, densities.y, densityMaskChannelWeights.y) *
+             lerp(1.0, densities.z, densityMaskChannelWeights.z) *
+             lerp(1.0, densities.w, densityMaskChannelWeights.w);
     }
 
     [numthreads(1, TILE_INSTANCE_COUNT, 1)]
@@ -257,18 +270,43 @@ shader dagdp_heightmap_place, dagdp_heightmap_place_stage0, dagdp_heightmap_plac
       const int2 tileIntPos = loadBuffer2(visible_tile_positions, dtId.x * TILE_POSITION_BYTE_SIZE);
 
       const int2 stablePos = (base_tile_int_pos_xz + tileIntPos) * TILE_INSTANCE_COUNT_1D + int2(instanceIntPos);
-      const float2 randPosJitter = 0.5 + grid_jitter * (float2(stableRand(stablePos, prng_seed_jitter_x), stableRand(stablePos, prng_seed_jitter_z)) - 0.5);
-      const float2 instancePosXZ = base_tile_pos_xz + tile_pos_delta * tileIntPos + instance_pos_delta * (instanceIntPos + randPosJitter);
+      float2 randPosJitter = 0.5 + grid_jitter * (float2(stableRand(stablePos, prng_seed_jitter_x), stableRand(stablePos, prng_seed_jitter_z)) - 0.5);
+      // compute from integer coordinates using only tile_pos_delta, for stability:
+      const float2 baseInstancePosXZ = (stablePos + randPosJitter) * (tile_pos_delta / TILE_INSTANCE_COUNT_1D);
+      float2 instancePosXZ = baseInstancePosXZ;
+      if (displacement_strength != 0)
+        instancePosXZ += (tex3Dlod(perlin_noise3d, float4(instancePosXZ * displacement_noise_scale, 0, 0)).xy * 2 - 1)
+          * (displacement_strength * instance_pos_delta);
 
       PlacementDetails pd;
-      initPlacementDetails(instancePosXZ, pd);
+      initPlacementDetails(instancePosXZ, pd, sample_range);
 
       FLATTEN
       if (!lower_level)
         pd.position.y = pd.topY;
 
       uint variantIndex = ~0u;
-      const int biomeIndex = getBiomeIndex(pd.position);
+      int biomeIndex = getBiomeIndex(pd.position);
+
+      BRANCH
+      if (use_decals)
+      {
+        float2 grass_mask_tc = getGrassTC(pd.position);
+        uint decalBiome = floor(tex2Dlod(grass_color_tex, float4(grass_mask_tc, 0, 0)).a * 255 + 0.5);
+        half decalMask = tex2Dlod(grass_mask_tex, float4(grass_mask_tc, 0, 0)).a;
+        FLATTEN
+        if (decalBiome >= 255 || decalMask >= stableRand(stablePos, prng_seed_density))
+          biomeIndex = decalBiome;
+      }
+
+      if (discard_on_grass_erasure)
+      {
+        float2 grass_mask_tc = getGrassTC(pd.position);
+        uint grassChannel = tex2Dlod(grass_mask_tex, float4(grass_mask_tc, 0, 0)).r * 255;
+        FLATTEN
+        if (grassChannel >= GRASS_MAX_CHANNELS)
+          biomeIndex = num_biomes; // make it invalid
+      }
 
       FLATTEN
       if (biomeIndex < num_biomes)
@@ -281,7 +319,15 @@ shader dagdp_heightmap_place, dagdp_heightmap_place_stage0, dagdp_heightmap_plac
       if (variantIndex != ~0u)
       {
         variant = structuredBufferAt(variants, variantIndex);
-        placeableIndex = getPlaceableIndex(variant, stableRand(stablePos, prng_seed_placeable));
+
+        float2 noise = tex2Dlod(blue_noise_tex, float4(baseInstancePosXZ * placement_noise_scale, 0, 0)).rg;
+        // float randomSample = stableRand(stablePos, prng_seed_placeable); // old RNG for comparison
+        float randomSample = noise.r + noise.g * (1.0/(1<<8)); // use more bits from the noise
+
+        // Wrap around, so that ~0 values ("empty weight") use middle of the noise range.
+        // It looks like values close to 0 and 1 are less likely in noise textures (because of interpolation?)
+        randomSample = frac(randomSample + 0.5);
+        placeableIndex = getPlaceableIndex(variant, randomSample);
       }
 
       PlaceableGpuData placeable;
@@ -290,7 +336,7 @@ shader dagdp_heightmap_place, dagdp_heightmap_place_stage0, dagdp_heightmap_plac
       {
         placeable = structuredBufferAt(placeables, placeableIndex);
 
-        const bool isDensityMaskOk = getDensityFromMask(pd.position.xz, GET_DENSITY_MASK_CHANNEL(placeable.flags)) > stableRand(stablePos, prng_seed_density);
+        const bool isDensityMaskOk = getDensityFromMask(pd.position.xz, placeableIndex) > stableRand(stablePos, prng_seed_density);
 
         FLATTEN
         if (!isDensityMaskOk)

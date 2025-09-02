@@ -1,8 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <drv/3d/rayTrace/dag_drvRayTrace.h> // for D3D_HAS_RAY_TRACING
-
 #include "device_memory.h"
 #include "util/backtrace.h"
 #include "logic_address.h"
@@ -22,7 +20,7 @@ enum class ResourceType
   RENDER_PASS,
   SAMPLER,
   HEAP,
-#if D3D_HAS_RAY_TRACING
+#if VULKAN_HAS_RAYTRACING
   AS,
 #endif
   COUNT
@@ -41,8 +39,6 @@ struct AllocationDesc
 
   bool isDedicated() const { return forceDedicated || reqs.needDedicated(); }
   bool isSharedHandleAllowed() const { return canUseSharedHandle && !isDedicated(); }
-
-  AllocationDesc() = delete;
 };
 
 template <typename ResourceImpl>
@@ -99,13 +95,19 @@ class ResourceAlgorithm
 
       if (res.tryAllocMemory(allocDsc))
       {
-        // prevent possible misaligment
-        // before memory bind, as vk will fail binding if misaligned
-        G_ASSERT((res.getMemory().offset % allocDsc.reqs.requirements.alignment) == 0);
-        res.bindMemory();
+        if (!allocDsc.objectBaked)
+        {
+          // prevent possible misaligment
+          // before memory bind, as vk will fail binding if misaligned
+          G_ASSERT((res.getMemory().offset % allocDsc.reqs.requirements.alignment) == 0);
+          res.bindMemory();
+        }
       }
       else
+      {
+        destroyVkObj();
         return false;
+      }
     }
     else
       res.reuseHandle();
@@ -211,6 +213,25 @@ public:
     res.restoreFromSysCopy(ctx);
     return true;
   }
+
+  void onDeviceReset()
+  {
+    if (!res.getBaseHandle() || !res.isManaged())
+      return;
+
+    res.markDeviceReset();
+    res.onDeviceReset();
+    freeVulkanResource();
+  }
+
+  void afterDeviceReset()
+  {
+    if (!res.isManaged())
+      return;
+    res.clearDeviceReset();
+    create();
+    res.afterDeviceReset();
+  }
 };
 
 class Resource
@@ -221,12 +242,14 @@ class Resource
   bool managed : 1;
   bool resident : 1;
   bool evicting : 1;
+  bool inDeviceReset : 1;
   bool sharedHandle : 1;
 #if VULKAN_TRACK_DEAD_RESOURCE_USAGE
   bool markedDead : 1;
 #endif
 
 #if DAGOR_DBGLEVEL > 0
+  bool emptyAfterDeviceReset : 1;
   uint32_t usedInRendering;
 #endif
 
@@ -247,10 +270,12 @@ public:
     managed(manage),
     resident(false),
     evicting(false),
-    sharedHandle(false)
+    sharedHandle(false),
+    inDeviceReset(false)
 #if DAGOR_DBGLEVEL > 0
     ,
-    usedInRendering(0)
+    usedInRendering(0),
+    emptyAfterDeviceReset(false)
 #endif
 #if VULKAN_TRACK_DEAD_RESOURCE_USAGE
     ,
@@ -270,11 +295,32 @@ public:
 #else
   void setDebugName(const char *) {}
   const char *getDebugName() const { return "<unknown>"; }
-  void setStagingDebugName(Resource *){};
+  void setStagingDebugName(Resource *) {}
 #endif
   bool tryAllocMemory(const AllocationDesc &dsc);
   bool tryReuseHandle(const AllocationDesc &dsc);
   void markForEviction() { evicting = true; }
+  void markDeviceReset() { inDeviceReset = true; }
+  void clearDeviceReset()
+  {
+    inDeviceReset = false;
+#if DAGOR_DBGLEVEL > 0
+    emptyAfterDeviceReset = true;
+#endif
+  }
+#if DAGOR_DBGLEVEL > 0
+  void checkAccessAfterDeviceReset(bool is_write)
+  {
+    if (is_write)
+      emptyAfterDeviceReset = false;
+    else if (emptyAfterDeviceReset)
+    {
+      D3D_ERROR("vulkan: reading garbage left by device reset in %s %p:%s", resTypeString(), this, getDebugName());
+    }
+  }
+#else
+  void checkAccessAfterDeviceReset(bool) {}
+#endif
   void freeMemory();
   ResourceMemoryId getMemoryId() const { return memoryId; }
   // this call is thread unsafe, resource manager / res algo should be in calling stack
@@ -286,6 +332,7 @@ public:
   bool isManaged() const { return managed; }
   bool isHandleShared() const { return sharedHandle; }
   bool isEvicting() const { return evicting; }
+  bool isInDeviceReset() const { return inDeviceReset; }
 #if DAGOR_DBGLEVEL > 0
   void setUsedInRendering() { usedInRendering++; }
   void clearUsedInRendering() { usedInRendering = 0; }
@@ -309,7 +356,7 @@ public:
   void markDead() { markedDead = true; }
 #else
   bool checkDead() const { return false; }
-  void markDead(){};
+  void markDead() {}
 #endif
 
   ResourceType getResType() const { return tid; };
@@ -341,14 +388,25 @@ struct ResourcePlaceableExtend
   };
 #else
   void releaseHeapEarly(const char *) {}
-  void setHeap(MemoryHeapResource *){};
+  void setHeap(MemoryHeapResource *) {}
   void releaseHeap() {}
 #endif
 };
 
 struct ResourceBindlessExtend
 {
-  void addBindlessSlot(uint32_t slot) { bindlessSlots.push_back(slot); }
+  void addBindlessSlot(uint32_t slot)
+  {
+#if DAGOR_DBGLEVEL > 0
+    // slot must be unique, otherwise related logic will fail
+    // check managment code in bindless backend if this fails
+    for (uint32_t i : bindlessSlots)
+    {
+      G_ASSERTF(slot != i, "vulkan: trying to double add bindless slot %u to resource!", slot);
+    }
+#endif
+    bindlessSlots.push_back(slot);
+  }
 
   void removeBindlessSlot(uint32_t slot)
   {
@@ -358,8 +416,17 @@ struct ResourceBindlessExtend
 
   bool isUsedInBindless() { return bindlessSlots.size() > 0; }
 
+  template <typename CbType>
+  void iterateBindlessSlots(CbType cb)
+  {
+    for (uint32_t slot : bindlessSlots)
+      cb(slot);
+  }
+
+  void clearSlots() { bindlessSlots.clear(); }
+
 protected:
-  eastl::vector<uint32_t> bindlessSlots;
+  dag::Vector<uint32_t> bindlessSlots;
 };
 
 class ResourceExecutionSyncableExtend
@@ -449,6 +516,15 @@ public:
   }
 
   LogicAddress getRoSealReads() { return roSeal.reads; }
+
+#if DAGOR_DBGLEVEL > 0
+  size_t disallowedAccessGpuWorkId = -1;
+  void disallowAccessesOnGpuWorkId(size_t gpu_work_id) { disallowedAccessGpuWorkId = gpu_work_id; }
+  bool verifyAccessAllowed(size_t gpu_work_id) { return disallowedAccessGpuWorkId != gpu_work_id; }
+#else
+  void disallowAccessesOnGpuWorkId(size_t) {}
+  bool verifyAccessAllowed(size_t) { return true; }
+#endif
 };
 
 // template for resource implementation

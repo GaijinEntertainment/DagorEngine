@@ -32,14 +32,14 @@ public:
       {
         struct
         {
-          uint8_t ablend : 1;
-          uint8_t ablendOp : 3;
-          uint8_t ablendScr : 4;
-          uint8_t ablendDst : 4;
-          uint8_t sepblend : 1;
-          uint8_t rgbblendOp : 3;
-          uint8_t rgbblendScr : 4;
-          uint8_t rgbblendDst : 4;
+          uint32_t ablend : 1;
+          uint32_t ablendOp : 3;
+          uint32_t ablendScr : 5;
+          uint32_t ablendDst : 5;
+          uint32_t sepblend : 1;
+          uint32_t rgbblendOp : 3;
+          uint32_t rgbblendScr : 5;
+          uint32_t rgbblendDst : 5;
         } blend[shaders::RenderState::NumIndependentBlendParameters];
 
         uint32_t writeMask;
@@ -108,9 +108,11 @@ public:
 
   VDecl *vdecl = nullptr;
 
-  Shader *vshader;
-  Shader *pshader;
-  Shader *cshader;
+  Shader *vshader = nullptr;
+  Shader *pshader = nullptr;
+  Shader *cshader = nullptr;
+  Shader *mshader = nullptr;
+  Shader *ashader = nullptr;
 
   id<MTLComputePipelineState> csPipeline;
 

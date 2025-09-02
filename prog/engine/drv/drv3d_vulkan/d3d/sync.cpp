@@ -18,6 +18,9 @@ DeviceQueueType gpu_pipeline_to_device_queue_type(GpuPipeline pipe)
 {
   if (pipe == GpuPipeline::ASYNC_COMPUTE)
     return DeviceQueueType::COMPUTE;
+  else if (pipe == GpuPipeline::TRANSFER)
+    // reuse upload queue because it will be free from any workload at time user logic is processed
+    return DeviceQueueType::TRANSFER_UPLOAD;
   else
     return DeviceQueueType::GRAPHICS;
 }
@@ -51,7 +54,7 @@ struct PrefixedFenceHandle
 
 // TODO: move implementation out of device context class
 
-void d3d::resource_barrier(ResourceBarrierDesc desc, GpuPipeline gpu_pipeline /*= GpuPipeline::GRAPHICS*/)
+void d3d::resource_barrier(const ResourceBarrierDesc &desc, GpuPipeline gpu_pipeline /*= GpuPipeline::GRAPHICS*/)
 {
   if (Globals::lock.isAcquired() && Globals::VK::phy.hasBindless)
     Globals::ctx.resourceBarrier(desc, gpu_pipeline);

@@ -3,6 +3,7 @@
 
 #include <propPanel/control/listBoxInterface.h>
 #include <propPanel/c_window_event_handler.h>
+#include <propPanel/colors.h>
 #include <propPanel/constants.h>
 #include <propPanel/imguiHelper.h>
 #include "../contextMenuInternal.h"
@@ -34,6 +35,8 @@ public:
 
     return &values[selectedIndex];
   }
+
+  dag::ConstSpan<String> getValues() { return values; }
 
   void setSelectedIndex(int index)
   {
@@ -83,7 +86,7 @@ public:
 
   void setEnabled(bool enabled) { controlEnabled = enabled; }
 
-  virtual IMenu &createContextMenu() override
+  IMenu &createContextMenu() override
   {
     contextMenu.reset(new ContextMenu());
     return *contextMenu;
@@ -105,9 +108,9 @@ public:
     {
       const float listBoxInnerWidth = ImGui::GetContentRegionAvail().x;
 
-      ImGui::PushStyleColor(ImGuiCol_Header, Constants::LISTBOX_SELECTION_BACKGROUND_COLOR);
-      ImGui::PushStyleColor(ImGuiCol_HeaderActive, Constants::LISTBOX_HIGHLIGHT_BACKGROUND_COLOR);
-      ImGui::PushStyleColor(ImGuiCol_HeaderHovered, Constants::LISTBOX_HIGHLIGHT_BACKGROUND_COLOR);
+      ImGui::PushStyleColor(ImGuiCol_Header, getOverriddenColor(ColorOverride::LISTBOX_SELECTION_BACKGROUND));
+      ImGui::PushStyleColor(ImGuiCol_HeaderActive, getOverriddenColor(ColorOverride::LISTBOX_HIGHLIGHT_BACKGROUND_ACTIVE));
+      ImGui::PushStyleColor(ImGuiCol_HeaderHovered, getOverriddenColor(ColorOverride::LISTBOX_HIGHLIGHT_BACKGROUND_HOVERED));
 
       // The only reason we use ImGui::BeginMultiSelect here is because with that the keyboard arrows keys work as
       // expected: they move the selection instead of just the focus.
@@ -124,7 +127,7 @@ public:
       {
         const bool wasSelected = i == oldSelectedIndex;
         if (wasSelected)
-          ImGui::PushStyleColor(ImGuiCol_Text, Constants::LISTBOX_SELECTION_TEXT_COLOR);
+          ImGui::PushStyleColor(ImGuiCol_Text, getOverriddenColor(ColorOverride::LISTBOX_SELECTION_TEXT));
 
         ImGui::SetNextItemSelectionUserData(i);
 
@@ -154,7 +157,7 @@ public:
         {
           const ImVec2 labelSize = ImGui::CalcTextSize(label, nullptr, true);
           if (labelSize.x > listBoxInnerWidth)
-            tooltip_helper.setPreviousImguiControlTooltip((const void *)ImGui::GetItemID(), label);
+            tooltip_helper.setPreviousImguiControlTooltip((const void *)((uintptr_t)ImGui::GetItemID()), label);
         }
       }
 

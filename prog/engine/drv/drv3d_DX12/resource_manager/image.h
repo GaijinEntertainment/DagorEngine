@@ -4,6 +4,8 @@
 #include <constants.h>
 #include <container_mutex_wrapper.h>
 #include <driver.h>
+#include <drv_log_defs.h>
+#include <drv_assert_defs.h>
 #include <extents.h>
 #include <image_global_subresource_id.h>
 #include <image_view_state.h>
@@ -13,6 +15,7 @@
 #include <dag/dag_vector.h>
 #include <osApiWrappers/dag_spinlock.h>
 #include <supp/dag_comPtr.h>
+#include <util/dag_string.h>
 
 #if DX12_USE_ESRAM
 #include "esram_resource_xbox.h"
@@ -21,8 +24,6 @@
 #if _TARGET_XBOX
 #include "texture_access_computer_xbox.h"
 #endif
-
-#define DX12_IMAGE_DEBUG_NAMES 1
 
 namespace drv3d_dx12
 {
@@ -96,7 +97,7 @@ public:
   {
     if (condition)
       return;
-    logerr("DX12: Image validation info failed (%s). Logging debug info...", str);
+    D3D_ERROR("DX12: Image validation info failed (%s). Logging debug info...", str);
     dbgOnImageValidationFailed(image_view_state, desc);
   }
 #endif
@@ -219,7 +220,7 @@ public:
     // planes, so we have only a range of the first plane
     auto limit = getSubresourcesPerPlane();
     G_ASSERTF_RETURN(offset < limit.count(), SubresourceRange::make_invalid(),
-      "DX12: Invalid subresouce index %u in barrier for texture <%s>, texture has "
+      "DX12: Invalid subresource index %u in barrier for texture <%s>, texture has "
       "only only %u subresources",
       offset, *debugName.access(), limit);
     if (!count)
@@ -227,7 +228,7 @@ public:
       count = limit.count() - offset;
     }
     G_ASSERTF_RETURN(offset + count <= limit.count(), SubresourceRange::make_invalid(),
-      "DX12: Invalid subresouce range from %u to %u in barrier for texture <%s>, "
+      "DX12: Invalid subresource range from %u to %u in barrier for texture <%s>, "
       "texture has only %u subresources",
       offset, offset + count, *debugName.access(), limit);
     return SubresourceRange::make(offset, count);
@@ -338,5 +339,9 @@ public:
 
   void updateFormat(FormatStore fmt) { format = fmt; }
 };
+
+/// Gets the handle from a image ptr that may be null
+inline ID3D12Resource *get_handle(Image *img) { return img ? img->getHandle() : nullptr; }
+inline void *get_handle_v(Image *img) { return get_handle(img); }
 
 } // namespace drv3d_dx12

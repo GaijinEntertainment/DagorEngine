@@ -6,9 +6,11 @@ return {
   getItemDigitPrice = @(_sku) 0
   getItemPriceCurrency = @(_sku) ""
   checkPurchases = @() null
+  restorePurchases = @() null
   getPurchaseHistory = @() null
   manageSubscription = @(_) null
-  upgradeSubscription = @(_,__) null
+  upgradeSubscription = @(_,__,___) null
+  isItemPurchased = @(_) false
   GP_EMPTY_RESPONSE_PURCHASE_DATA = -13
   GP_NOT_INITED = -12
   GP_EMPTY_RESPONSE_SKU_DATA = -11
@@ -26,4 +28,10 @@ return {
   GP_ITEM_ALREADY_OWNED = 7
   GP_ITEM_NOT_OWNED = 8
   GP_NETWORK_ERROR = 12
+  SUBS_UPD_DEFERRED = 6
+  SUBS_UPD_CHARGE_FULL_PRICE = 5
+  SUBS_UPD_WITHOUT_PRORATION = 3
+  SUBS_UPD_CHARGE_PRORATED_PRICE = 2
+  SUBS_UPD_WITH_TIME_PRORATION = 1
+  GP_PURCHSTATE_PENDING = 4
 }

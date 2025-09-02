@@ -1,3 +1,4 @@
+options indenting = 2
 module maybe_pos shared
 
 require math

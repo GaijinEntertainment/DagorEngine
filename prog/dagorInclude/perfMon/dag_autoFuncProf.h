@@ -27,7 +27,7 @@ struct AutoFuncProfT
   inline void finish()
   {
     int64_t v = get_time_usec(ref) / units;
-    fmt && (v >= minv) ? debug(fmt, v) : (void)0;
+    fmt && (v >= minv) ? logdbg(fmt, v) : (void)0;
     fmt = NULL;
   }
   int64_t ref;

@@ -1,6 +1,7 @@
 include "shader_global.dshl"
 include "clustered/lights_cb.dshl"
 include "viewVecVS.dshl"
+include "camera_in_camera.dshl"
 
 float pixel_scale;
 int has_conservative_rasterization = 0;
@@ -8,6 +9,8 @@ interval has_conservative_rasterization : no < 1, yes;
 
 shader spot_lights_tiles, omni_lights_tiles
 {
+  INIT_AND_USE_ON_TOP_CAMERA_IN_CAMERA(ps)
+
   supports global_frame;
   cull_mode = none;
   z_test = false;
@@ -190,9 +193,13 @@ shader spot_lights_tiles, omni_lights_tiles
       return depth_min_max.x < t2 + EPS && depth_min_max.y > t1 - EPS;
     }
 
-    float light_tiles_ps(VsOutput input INPUT_VFACE HW_USE_SCREEN_POS) : SV_Target0
+    void light_tiles_ps(VsOutput input INPUT_VFACE HW_USE_SCREEN_POS)
     {
       float4 screenpos = GET_SCREEN_POS(input.pos);
+      float2 uv = screenpos.xy * screen_size.zw * TILE_EDGE;
+
+      DISCARD_IF_INVALID_VIEW_AREA_PS(uv);
+
       uint2 tileIdx = screenpos.xy;
       uint2 depthTile = tileIdx;
       uint2 tiledGridSize = (screen_size.xy + TILE_EDGE - 1) / TILE_EDGE;
@@ -215,7 +222,6 @@ shader spot_lights_tiles, omni_lights_tiles
           || check_ray_light_intersection(input, float2(closeDepth, farDepth), viewVecTileRB))
           InterlockedOr(structuredBufferAt(perTileLights, finalIdx), 1u << (index % BITS_IN_UINT));
       #endif
-      return 0;
     }
   }
   compile("target_ps", "light_tiles_ps");

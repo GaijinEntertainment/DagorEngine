@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "depthAboveRenderTransparentES.cpp.inl"
 ECS_DEF_PULL_VAR(depthAboveRenderTransparent);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc request_depth_above_render_transparent_on_appear_es_comps[] =
 {

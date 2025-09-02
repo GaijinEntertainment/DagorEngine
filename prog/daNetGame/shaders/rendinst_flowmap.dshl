@@ -37,7 +37,7 @@ shader rendinst_animated_flow
     cull_mode = none;
   }
 
-
+  ENABLE_ASSERT(ps)
   ENABLE_MULTI_DRAW(rendinst_render_pass == rendinst_render_pass_depth)
   RENDINST_BLOCK()
   RI_VOXELIZE_ALBEDO()
@@ -110,7 +110,6 @@ shader rendinst_animated_flow
     DETAIL_WEIGHTS_BLENDING(ps)
     PREPARE_EMISSIVE_COLOR(ps, emissive_color)
     USE_PIXEL_TANGENT_SPACE()
-    ENABLE_ASSERT(ps)
     if (rendinst_render_pass != rendinst_render_pass_voxelize_albedo)
     {
       WRITE_GBUFFER()

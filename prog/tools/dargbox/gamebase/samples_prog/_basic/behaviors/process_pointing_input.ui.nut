@@ -4,7 +4,7 @@ from "math" import sqrt, floor
 let cursors = require("samples_prog/_cursors.nut")
 
 let overlay = watchElemState(@(sf) {
-  size = [pw(80), ph(80)]
+  size = static [pw(80), ph(80)]
   pos = [pw(20), ph(20)]
   hplace = ALIGN_CENTER
   vplace = ALIGN_CENTER
@@ -31,10 +31,10 @@ let processorState = Watched({
 
 let processor = @() {
   rendObj = ROBJ_BOX
-  fillColor = processorState.value.devId!=null ? Color(120,240,100) : Color(160,220,120)
+  fillColor = processorState.get().devId!=null ? Color(120,240,100) : Color(160,220,120)
   borderWidth = 2
-  borderColor = processorState.value.devId!=null ? Color(255,255,255) : Color(50,240,50)
-  size = [pw(80), ph(80)]
+  borderColor = processorState.get().devId!=null ? Color(255,255,255) : Color(50,240,50)
+  size = static [pw(80), ph(80)]
   behavior = Behaviors.ProcessPointingInput
   watch = processorState
 
@@ -49,7 +49,7 @@ let processor = @() {
       return null
     }
 
-    if (processorState.value.devId!=null) {
+    if (processorState.get().devId!=null) {
       dlog("Already pressed by another pointer/device, skipping")
       return null
     }
@@ -69,7 +69,7 @@ let processor = @() {
 
   function onPointerRelease(evt) {
     //dlog("onPointerRelease", evt)
-    let state = processorState.value
+    let state = processorState.get()
     if (evt.devId != state.devId || evt.pointerId != state.pointerId || evt.btnId!=state.btnId) {
       dlog("Not pressed by this pointer/device, skipping")
       return null
@@ -87,7 +87,7 @@ let processor = @() {
 
   function onPointerMove(evt) {
     //dlog("onPointerMove", evt)
-    let state = processorState.value
+    let state = processorState.get()
     if (evt.devId == state.devId && evt.pointerId == state.pointerId && (evt.btnId==state.btnId || evt.devId == DEVID_MOUSE)) {
       processorState.mutate(function(v) {
         let dx = evt.x - v.x0
@@ -100,7 +100,7 @@ let processor = @() {
   children = [
     {
       rendObj = ROBJ_TEXT
-      text=$"Input processor | dragged distance = {floor(processorState.value.dragDistance)}"
+      text=$"Input processor | dragged distance = {floor(processorState.get().dragDistance)}"
       fontSize=sh(5)
       padding=sh(2)
     }

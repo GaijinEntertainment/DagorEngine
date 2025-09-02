@@ -30,10 +30,10 @@ public:
 class NullMsgPipe : public IDagorAssetMsgPipe
 {
 public:
-  virtual void onAssetMgrMessage(int msg_type, const char *, DagorAsset *, const char *) { updateErrCount(msg_type); }
+  void onAssetMgrMessage(int msg_type, const char *, DagorAsset *, const char *) override { updateErrCount(msg_type); }
 
-  virtual int getErrorCount() { return errCount; }
-  virtual void resetErrorCount() { errCount = 0; }
+  int getErrorCount() override { return errCount; }
+  void resetErrorCount() override { errCount = 0; }
 
 protected:
   int errCount;
@@ -48,7 +48,7 @@ protected:
 class SimpleDebugMsgPipe : public NullMsgPipe
 {
 public:
-  virtual void onAssetMgrMessage(int msg_type, const char *msg, DagorAsset *asset, const char *asset_src_fpath);
+  void onAssetMgrMessage(int msg_type, const char *msg, DagorAsset *asset, const char *asset_src_fpath) override;
 };
 
 

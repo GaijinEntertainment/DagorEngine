@@ -46,7 +46,6 @@ public:
   // close unlock only if lock was succesfill
   void unlock();
   void reset() { currentBufferIssued = currentBufferToLock = bufferLockCounter = 0; }
-  void texaddr(int addrmode);
 
 protected:
   struct FencedGPUResource

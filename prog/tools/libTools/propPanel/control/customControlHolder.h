@@ -15,10 +15,10 @@ public:
     PropertyControlBase(id, event_handler, parent, x, y, w, hdpi::Px(0)), control(in_control)
   {}
 
-  virtual unsigned getTypeMaskForSet() const override { return 0; }
-  virtual unsigned getTypeMaskForGet() const override { return 0; }
+  unsigned getTypeMaskForSet() const override { return 0; }
+  unsigned getTypeMaskForGet() const override { return 0; }
 
-  virtual void updateImgui() override
+  void updateImgui() override
   {
     if (control)
       control->customControlUpdate(mId);

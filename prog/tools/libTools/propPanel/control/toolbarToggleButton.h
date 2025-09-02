@@ -2,6 +2,7 @@
 #pragma once
 
 #include <propPanel/control/propertyControlBase.h>
+#include <propPanel/colors.h>
 #include "../imageHelper.h"
 #include "../scopedImguiBeginDisabled.h"
 
@@ -18,36 +19,36 @@ public:
     controlTooltip = caption;
   }
 
-  virtual unsigned getTypeMaskForSet() const override { return 0; }
-  virtual unsigned getTypeMaskForGet() const override { return 0; }
+  unsigned getTypeMaskForSet() const override { return 0; }
+  unsigned getTypeMaskForGet() const override { return 0; }
 
-  virtual void setCaptionValue(const char value[]) override { controlTooltip = value; }
-  virtual void setBoolValue(bool value) override { controlValue = value; }
-  virtual bool getBoolValue() const override { return controlValue; }
+  void setCaptionValue(const char value[]) override { controlTooltip = value; }
+  void setBoolValue(bool value) override { controlValue = value; }
+  bool getBoolValue() const override { return controlValue; }
 
-  virtual void reset() override
+  void reset() override
   {
     setBoolValue(false);
 
     PropertyControlBase::reset();
   }
 
-  virtual void setEnabled(bool enabled) override { controlEnabled = enabled; }
+  void setEnabled(bool enabled) override { controlEnabled = enabled; }
 
-  virtual void setButtonPictureValues(const char *fname) override
+  void setButtonPictureValues(const char *fname) override
   {
     // Currently this gets called before d3d::init in daEditorX, so the actual loading must be delayed.
     iconName = fname;
-    iconId = nullptr;
+    iconId = IconId::Invalid;
   }
 
-  virtual void updateImgui() override
+  void updateImgui() override
   {
     ScopedImguiBeginDisabled scopedDisabled(!controlEnabled);
 
     if (!iconName.empty())
     {
-      iconId = ImageHelper::TextureIdToImTextureId(image_helper.loadIcon(iconName));
+      iconId = image_helper.loadIcon(iconName);
       iconName.clear();
     }
 
@@ -59,12 +60,11 @@ public:
       ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
 
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
-    ImGui::PushStyleColor(ImGuiCol_Border, PropPanel::Constants::TOGGLE_BUTTON_CHECKED_BORDER_COLOR);
+    ImGui::PushStyleColor(ImGuiCol_Border, getOverriddenColor(ColorOverride::TOGGLE_BUTTON_CHECKED_BORDER));
 
+    const ImTextureID icon = image_helper.getImTextureIdFromIconId(iconId);
     const float size = ImGui::GetTextLineHeight();
-    PropPanel::ImguiHelper::setPointSampler();
-    const bool clicked = ImGui::ImageButton("ib", iconId, ImVec2(size, size)); // "ib" stands for ImageButton. It could be anything.
-    PropPanel::ImguiHelper::setDefaultSampler();
+    const bool clicked = ImGui::ImageButton("ib", icon, ImVec2(size, size)); // "ib" stands for ImageButton. It could be anything.
 
     ImGui::PopStyleColor(2);
 
@@ -86,7 +86,7 @@ private:
   bool controlValue = false;
   bool controlEnabled = true;
   String iconName;
-  ImTextureID iconId = nullptr;
+  IconId iconId = IconId::Invalid;
 };
 
 } // namespace PropPanel

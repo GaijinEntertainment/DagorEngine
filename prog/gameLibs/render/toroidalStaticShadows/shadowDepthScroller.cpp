@@ -57,7 +57,7 @@ bool ShadowDepthScroller::translateDepth(Texture *tex, int layer, float scale, f
       d3d::set_immediate_const(STAGE_PS, &addr, 1);
       d3d_err(d3d::set_render_target(tileTex.getTex2D(), 0, 0));
       d3d::set_depth(NULL, DepthAccess::RW);
-      d3d::set_tex(STAGE_PS, tile_change_depth_source_tex_const_no, tex, false);
+      d3d::set_tex(STAGE_PS, tile_change_depth_source_tex_const_no, tex);
       readDepthPS->render();
       d3d::resource_barrier({tileTex.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
       d3d_err(d3d::set_render_target(0, (Texture *)NULL, 0));
@@ -65,7 +65,7 @@ bool ShadowDepthScroller::translateDepth(Texture *tex, int layer, float scale, f
         d3d_err(d3d::set_depth(tex, layer, DepthAccess::RW));
       else
         d3d_err(d3d::set_depth(tex, DepthAccess::RW));
-      d3d::set_tex(STAGE_PS, tile_change_depth_source_tex_const_no, tileTex.getTex2D(), false);
+      d3d::set_tex(STAGE_PS, tile_change_depth_source_tex_const_no, tileTex.getTex2D());
       d3d::setview(x, y, min<int>(tinfo.w - x, tileSizeW), min<int>(tinfo.h - y, tileSizeH), 0, 1);
       writeDepthPS->render();
       // fixme: I don't understand resource barriers logic. Probably there should be no resource barrier in loop on frontFrame tex, as
@@ -114,7 +114,5 @@ void ShadowDepthScroller::init()
 
   const char *name = "static_shadow_depth_tile_patch";
   tileTex.set(d3d::create_tex(NULL, tileSizeW, tileSizeH, TEXCF_RTARGET | TEXFMT_L16, 1, name), name);
-  tileTex.getTex()->texfilter(TEXFILTER_POINT);
-  tileTex.getTex()->texaddr(TEXADDR_CLAMP);
   tileTex.setVar();
 }

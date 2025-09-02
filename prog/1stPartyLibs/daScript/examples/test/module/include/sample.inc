@@ -1,2 +1,3 @@
-def madd(a,b,c)
+def madd(a,b,c) {
 	return a*b + c
+}

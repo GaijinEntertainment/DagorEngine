@@ -336,6 +336,8 @@ struct IndexDownloadRequest : public DownloadRequest
     entry = back->filecache->set(INDEX_FILE_NAME);
   }
 
+  const char *getJobName(bool &) const override { return "IndexDownloadRequest"; }
+
   virtual void doJob()
   {
     WinAutoLockOpt lock(backend->csJob);
@@ -400,6 +402,8 @@ struct FileDownloadRequest : public DownloadRequest
     memset(downloadedHash, 0, sizeof(downloadedHash));
     entry = back->filecache->set(key_);
   }
+
+  const char *getJobName(bool &) const override { return "FileDownloadRequest"; }
 
   virtual void doJob()
   {
@@ -482,6 +486,8 @@ struct NonIndexedFileDownloadRequest : public DownloadRequest
     return streamio::ProcessResult::Consumed;
   }
 
+  const char *getJobName(bool &) const override { return "NonIndexedFileDownloadRequest"; }
+
   virtual void doJob()
   {
     WinAutoLockOpt lock(backend->csJob);
@@ -538,6 +544,7 @@ struct AsyncHashCalcJob : public AsyncJob
     G_ASSERT(entry);
     memset(entryHash, 0, sizeof(entryHash));
   }
+  const char *getJobName(bool &) const override { return "AsyncHashCalcJob"; }
   virtual void doJob()
   {
     dag::ConstSpan<uint8_t> edata = entry->getData();
@@ -593,7 +600,8 @@ struct PassRespHeadersToCallback final : public cpujobs::IJob
       respHeadersList.push_back(eastl::make_pair(to_string(kv.first), to_string(kv.second)));
   }
 
-  virtual void doJob() override{};
+  const char *getJobName(bool &) const override { return "PassRespHeadersToCallback"; }
+  virtual void doJob() override {}
   void releaseJob() override
   {
     WinAutoLockOpt lock(req->backend->csMgr);

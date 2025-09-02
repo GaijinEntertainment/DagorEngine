@@ -71,7 +71,6 @@ shader dynamic_painted_by_mask
         float2 diffuseTexcoord                  : TEXCOORD0;
         float3 pointToEye                       : TEXCOORD1;
         float3 normal                           : TEXCOORD2;
-        float isDead                            : TEXCOORD3;
         #ifdef MOTION_VECTORS_ENABLED
         float4 out_pos                          : TEXCOORD4;
         float4 out_pos_prev                     : TEXCOORD5;
@@ -106,11 +105,6 @@ shader dynamic_painted_by_mask
   hlsl(vs) {
     void vs_post_function(VsInput input, inout VsOutput output)
     {
-      ##if (dyn_model_render_pass == render_pass_normal)
-      float4 data;
-      get_per_instance_data(data, 1);
-      output.isDead = data.z;
-      ##endif
       init_burning_and_wounds(input, output);
     }
   }
@@ -209,27 +203,9 @@ shader dynamic_painted_by_mask
         // Damaged insides.
         worldNormal = MUL_VFACE(worldNormal);
 
-        half isDead = input.isDead;
-        bool skipBloodWound = emissiveColor.a > 0 && !isDead;
+        bool skipBloodWound = emissiveColor.a > 0;
         apply_burning_and_wounds(input, character_micro_detail_layer, worldNormal,
           diffuseColor.rgb, smoothness, reflectance, skipBloodWound);
-
-        isDead = saturate(floor(isDead) * 0.01); //0-alive, 100-dead
-
-        if (burnt_tank_color.a * isDead > 0.0)
-        {
-          //NOTE:
-            //1. all such parts have 0 in pureCamoMask: burnt_mask.x
-            //2. don't apply effect where we see pure metall (i.e. sub metalness): burnt_mask.y
-            //3. don't overdark already dark surfaces (apply effect only if color differs from unburned): burnt_mask.z
-          half color_luma = luminance(diffuseColor.rgb);
-
-          half3 burnt_mask = saturate(half3(pureCamoMask, metalness * 0.0, 1.0) * burnt_tank_params.xyz + half3(1.0, 0.0, color_luma));
-          half burnt_koef = saturate(burnt_mask.x + burnt_mask.y) * saturate(burnt_mask.z * burnt_tank_params.w) * isDead;
-
-          diffuseColor.rgb = lerp(burnt_tank_color.rgb * color_luma, diffuseColor.rgb, burnt_koef);
-          smoothness = lerp(0.3, smoothness, burnt_koef);
-        }
 
         ##if aoTex != NULL
         ao *= tex2DBindless(get_aoTex(), input.diffuseTexcoord.xy).g;

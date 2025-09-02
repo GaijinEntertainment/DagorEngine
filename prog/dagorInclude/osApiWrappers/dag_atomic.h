@@ -52,7 +52,7 @@ inline int interlocked_compare_exchange(volatile int &dest, int xchg, int cmpr)
 //! atomic compare-and-exchange (with weak acquire), returns initial value of dest
 inline int interlocked_compare_exchange_weak_acquire(volatile int &dest, int xchg, int cmpr)
 {
-  __atomic_compare_exchange_n(&dest, &cmpr, xchg, false, __ATOMIC_ACQUIRE, __ATOMIC_RELAXED);
+  __atomic_compare_exchange_n(&dest, &cmpr, xchg, true, __ATOMIC_ACQUIRE, __ATOMIC_RELAXED);
   return cmpr;
 }
 
@@ -97,7 +97,7 @@ inline uint32_t interlocked_compare_exchange(volatile uint32_t &dest, uint32_t x
 //! atomic compare-and-exchange (with weak acquire), returns initial value of dest
 inline uint32_t interlocked_compare_exchange_weak_acquire(volatile uint32_t &dest, uint32_t xchg, uint32_t cmpr)
 {
-  __atomic_compare_exchange_n(&dest, &cmpr, xchg, false, __ATOMIC_ACQUIRE, __ATOMIC_RELAXED);
+  __atomic_compare_exchange_n(&dest, &cmpr, xchg, true, __ATOMIC_ACQUIRE, __ATOMIC_RELAXED);
   return cmpr;
 }
 

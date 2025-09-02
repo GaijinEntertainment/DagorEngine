@@ -45,7 +45,7 @@ let variants = [
 let children = []
 foreach(i, v in variants) {
   if (i)
-    children.append({ size = [pw(70), 1], rendObj = ROBJ_SOLID, color = Color(110, 110, 1100, 150), margin = 1 })
+    children.append({ size = static [pw(70), 1], rendObj = ROBJ_SOLID, color = Color(110, 110, 1100, 150), margin = 1 })
   children.append(v.__merge({ rendObj=ROBJ_TEXT, text = $"text: {v.text}" }))
   children.append(v.__merge({ rendObj=ROBJ_TEXTAREA, behavior = Behaviors.TextArea, halign = ALIGN_CENTER, text = $"textarea: {v.text}"}))
 }

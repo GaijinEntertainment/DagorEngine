@@ -1,4 +1,4 @@
-# Shader: rendinst_blend_normal_decal
+# `rendinst_blend_normal_decal`
 
 ## Overview
 

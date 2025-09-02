@@ -21,10 +21,14 @@ Sources =
   processFile.cpp
 ;
 
+if $(KernelLinkage) != dynamic {
+  UseProgLibs +=
+    engine/osApiWrappers
+    engine/ioSys
+    engine/baseUtil
+  ;
+}
 UseProgLibs +=
-  engine/osApiWrappers
-  engine/ioSys
-  engine/baseUtil
   tools/libTools/util
   3rdPartyLibs/hash/BLAKE3
 ;

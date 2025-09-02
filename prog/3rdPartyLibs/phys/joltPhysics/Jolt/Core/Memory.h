@@ -10,7 +10,7 @@ JPH_NAMESPACE_BEGIN
 
 // Normal memory allocation, must be at least 8 byte aligned on 32 bit platform and 16 byte aligned on 64 bit platform
 using AllocateFunction = void *(*)(size_t inSize);
-using ReallocateFunction = void *(*)(void *inBlock, size_t inSize);
+using ReallocateFunction = void *(*)(void *inBlock, size_t inOldSize, size_t inNewSize);
 using FreeFunction = void (*)(void *inBlock);
 
 // Aligned memory allocation
@@ -36,13 +36,17 @@ JPH_EXPORT void RegisterDefaultAllocator();
 	JPH_INLINE void *operator new (size_t inCount, std::align_val_t inAlignment)				{ return JPH::AlignedAllocate(inCount, static_cast<size_t>(inAlignment)); } \
 	JPH_INLINE void operator delete (void *inPointer, [[maybe_unused]] std::align_val_t inAlignment) noexcept	{ JPH::AlignedFree(inPointer); } \
 	JPH_INLINE void *operator new[] (size_t inCount, std::align_val_t inAlignment)				{ return JPH::AlignedAllocate(inCount, static_cast<size_t>(inAlignment)); } \
-	JPH_INLINE void operator delete[] (void *inPointer, [[maybe_unused]] std::align_val_t inAlignment) noexcept	{ JPH::AlignedFree(inPointer); }
+	JPH_INLINE void operator delete[] (void *inPointer, [[maybe_unused]] std::align_val_t inAlignment) noexcept	{ JPH::AlignedFree(inPointer); } \
+	JPH_INLINE void *operator new ([[maybe_unused]] size_t inCount, void *inPointer) noexcept	{ return inPointer; } \
+	JPH_INLINE void operator delete ([[maybe_unused]] void *inPointer, [[maybe_unused]] void *inPlace) noexcept { /* Do nothing */ } \
+	JPH_INLINE void *operator new[] ([[maybe_unused]] size_t inCount, void *inPointer) noexcept	{ return inPointer; } \
+	JPH_INLINE void operator delete[] ([[maybe_unused]] void *inPointer, [[maybe_unused]] void *inPlace) noexcept { /* Do nothing */ }
 
 #else
 
 // Directly define the allocation functions
 JPH_EXPORT void *Allocate(size_t inSize);
-JPH_EXPORT void *Reallocate(void *inBlock, size_t inSize);
+JPH_EXPORT void *Reallocate(void *inBlock, size_t inOldSize, size_t inNewSize);
 JPH_EXPORT void Free(void *inBlock);
 JPH_EXPORT void *AlignedAllocate(size_t inSize, size_t inAlignment);
 JPH_EXPORT void AlignedFree(void *inBlock);

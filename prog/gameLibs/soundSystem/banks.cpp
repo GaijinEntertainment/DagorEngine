@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <stdio.h>
+#include <atomic>
 #include <EASTL/vector.h>
 #include <EASTL/string.h>
 #include <EASTL/fixed_string.h>
@@ -31,7 +32,7 @@
 #if _TARGET_ANDROID || _TARGET_IOS
 #include <crashlytics/firebase_crashlytics.h>
 #endif
-#include <atomic>
+#include <osApiWrappers/dag_atomic_types.h>
 
 namespace sndsys::banks
 {
@@ -105,6 +106,7 @@ static Bitset failed_banks;
 
 static eastl::fixed_string<char, 8> locale;
 static eastl::fixed_string<char, 8> master_preset_name;
+static std::atomic<bool> g_master_preset_loaded = false;
 static eastl::string g_banks_folder;
 static const char *mod_path = "mod/";
 
@@ -137,7 +139,7 @@ static inline bool is_valid_events_in_bank(Bank::id_t id) { return is_loaded(id)
 // ............................................................
 
 static HashedKeySet<guid_hash_t> g_all_valid_event_guids;
-static std::atomic_int g_debug_all_valid_event_guids_count = ATOMIC_VAR_INIT(0);
+static dag::AtomicInteger<int> g_debug_all_valid_event_guids_count = 0;
 
 static WinCritSec g_valid_event_guids_cs;
 #define SNDSYS_VALID_EVENT_GUIDS_BLOCK WinAutoLock validEventGuidsLock(g_valid_event_guids_cs);
@@ -182,7 +184,7 @@ static void gather_all_valid_event_guids()
         g_all_valid_event_guids.insert(hash_fun(guid));
     }
   }
-  g_debug_all_valid_event_guids_count = g_all_valid_event_guids.size();
+  g_debug_all_valid_event_guids_count.store(g_all_valid_event_guids.size());
 }
 
 static void validate_cache()
@@ -389,8 +391,11 @@ static inline void update_presets(bool update_cache, loaded_presets_t &lp)
         validate_cache();
       }
       preset.isLoaded = isLoaded;
-      debug_trace_info("%s preset \"%s\", %d valid events total", isLoaded ? "loaded" : "unloaded", preset.name.c_str(),
-        int(g_debug_all_valid_event_guids_count));
+      if (preset.name == get_master_preset())
+        g_master_preset_loaded = isLoaded;
+
+      debug_trace_log("%s preset \"%s\", %d valid events total", isLoaded ? "loaded" : "unloaded", preset.name.c_str(),
+        g_debug_all_valid_event_guids_count.load());
       lp.emplace_back(preset.hash, isLoaded);
     }
   }
@@ -420,7 +425,7 @@ static inline void init_locale_deprecated(const DataBlock &blk, const DataBlock 
 
 static inline void init_locale(const DataBlock &blk, const DataBlock &banks_blk)
 {
-  locale = ::dgs_get_settings()->getBlockByNameEx("sound")->getStr("locale", "");
+  locale = blk.getStr("locale", "");
   if (!locale.empty())
     return;
   if (banks_blk.blockExists("locales"))
@@ -721,7 +726,7 @@ static void unload_banks_impl(banks_for_unload_t &banks_for_unload)
     SOUND_VERIFY(it->unload());
 }
 
-bool are_banks_from_preset_exist(const char *preset_name, const char *lang)
+bool are_banks_from_preset_exist(const char *preset_name, const char *lang, const char *type)
 {
   SNDSYS_BANKS_BLOCK;
   if (Preset *preset = find_preset(preset_name))
@@ -732,7 +737,14 @@ bool are_banks_from_preset_exist(const char *preset_name, const char *lang)
       {
         FrameStr bankPath = bank.path.c_str();
         if (lang)
+        {
           replace(bankPath, "<lang>", lang);
+          String strToFind(5, "_%s.", lang);
+          if ((bankPath.find(strToFind.c_str()) == FrameStr::npos))
+            continue;
+        }
+        if (type)
+          replace(bankPath, "<type>", type);
         if (!dd_file_exist(bankPath.c_str()))
           return false;
       }
@@ -794,6 +806,8 @@ bool is_loaded(const char *preset_name)
   const Preset *preset = find_preset(preset_name);
   return preset && preset->isLoaded;
 }
+
+bool is_master_loaded() { return g_master_preset_loaded; }
 
 bool is_exist(const char *preset_name)
 {

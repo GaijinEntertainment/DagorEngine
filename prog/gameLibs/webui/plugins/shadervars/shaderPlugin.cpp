@@ -115,7 +115,7 @@ static const char *str_color4_html(char *buf, int buf_size, const Color4 &c)
 {
   if (c.r < 0.0 || c.r > 1.0 || c.g < 0.0 || c.g > 1.0 || c.b < 0.0 || c.b > 1.0)
     return "#not_a_color";
-#define TO_INT(cc) (int)floorf((cc)*255.f + 0.5f)
+#define TO_INT(cc) (int)floorf((cc) * 255.f + 0.5f)
   SNPRINTF(buf, buf_size, "#%02x%02x%02x", TO_INT(c.r), TO_INT(c.g), TO_INT(c.b));
 #undef TO_INT
   return buf;
@@ -234,7 +234,7 @@ static void on_shader_vars(RequestInfo *params)
     G_ASSERT(type >= 0);
     if (type >= countof(tn))
     {
-      logerr("unkown shaderVar type %d", type);
+      logerr("unknown shaderVar type %d", type);
     }
 
     buf.printf("  <tr align=\"center\">");

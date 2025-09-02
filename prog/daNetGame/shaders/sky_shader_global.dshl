@@ -14,6 +14,7 @@ hlsl {
   //remove scattering closer than 30m
   #define REDUCE_SCATTERING_ON_CLOSE_DIST 0.03
   #define NO_SCATTERING_ON_CLOSE_DIST 0.01
+  #define DETAILED_CLOUDS_REFLECTIONS 1
 }
 
 include "shader_global.dshl"

@@ -4,7 +4,7 @@
 //
 #pragma once
 
-#include <type_traits>
+#include <EASTL/type_traits.h>
 
 /*
   BitFlagsMask is a zero-cost and type safe handler for bit-flags operations
@@ -64,7 +64,7 @@ template <typename BitFlags>
 class BitFlagsMask
 {
 public:
-  typedef typename std::underlying_type<BitFlags>::type MaskType;
+  typedef typename eastl::underlying_type<BitFlags>::type MaskType;
 
   constexpr BitFlagsMask() : mask(0) {}
 
@@ -150,18 +150,7 @@ constexpr BitFlagsMask<BitFlags> make_bitmask(BitFlags bit)
   return BitFlagsMask<BitFlags>(bit);
 }
 
-#define BITMASK_DECLARE_FLAGS_OPERATORS(BitFlags)                          \
-  constexpr BitFlagsMask<BitFlags> operator|(BitFlags bit1, BitFlags bit2) \
-  {                                                                        \
-    return make_bitmask(bit1) | bit2;                                      \
-  }                                                                        \
-                                                                           \
-  constexpr BitFlagsMask<BitFlags> operator&(BitFlags bit1, BitFlags bit2) \
-  {                                                                        \
-    return make_bitmask(bit1) & bit2;                                      \
-  }                                                                        \
-                                                                           \
-  constexpr BitFlagsMask<BitFlags> operator^(BitFlags bit1, BitFlags bit2) \
-  {                                                                        \
-    return make_bitmask(bit1) ^ bit2;                                      \
-  }
+#define BITMASK_DECLARE_FLAGS_OPERATORS(BitFlags)                                                                \
+  constexpr BitFlagsMask<BitFlags> operator|(BitFlags bit1, BitFlags bit2) { return make_bitmask(bit1) | bit2; } \
+  constexpr BitFlagsMask<BitFlags> operator&(BitFlags bit1, BitFlags bit2) { return make_bitmask(bit1) & bit2; } \
+  constexpr BitFlagsMask<BitFlags> operator^(BitFlags bit1, BitFlags bit2) { return make_bitmask(bit1) ^ bit2; }

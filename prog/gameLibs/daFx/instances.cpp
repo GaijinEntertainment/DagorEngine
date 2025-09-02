@@ -3,7 +3,6 @@
 #include "instances.h"
 #include "context.h"
 #include <gameRes/dag_gameResSystem.h>
-#include <dag_noise/dag_uint_noise.h>
 
 namespace dafx
 {
@@ -51,8 +50,9 @@ void adjust_buffer_size_by_quality(Context &ctx, const SystemTemplate &sys, int 
     adjust_buffer_size_by_quality(ctx, subSys, cpu_size, gpu_size, force_dummy);
 };
 
-InstanceId create_subinstance(Context &ctx, InstanceId queued_iid, const SystemTemplate &sys, int parent_sid, GpuBuffer &group_gpu_buf,
-  CpuBuffer &group_cpu_buf, int gpu_parent_offset, int cpu_parent_offset, float life_time, int depth)
+static inline InstanceId create_subinstance(Context &ctx, InstanceId queued_iid, SystemId sys_id, const SystemTemplate &sys,
+  int parent_sid, GpuBuffer &group_gpu_buf, CpuBuffer &group_cpu_buf, int gpu_parent_offset, int cpu_parent_offset, float life_time,
+  int depth)
 {
   if (!check_quality(ctx, sys) || (group_cpu_buf.size == 0 && group_gpu_buf.size == 0)) // subfx or whole chain is discarded by quality
   {
@@ -117,14 +117,8 @@ InstanceId create_subinstance(Context &ctx, InstanceId queued_iid, const SystemT
 
   EmitterState emitterState = sys.emitterState;
 
-  int rng = uint32_hash(interlocked_increment(ctx.rndSeed));
-  apply_emitter_randomizer(sys.emitterRandomizer, emitterState, rng);
-
-  if (life_time > 0)
-  {
-    emitterState.globalLifeLimit = emitterState.globalLifeLimit > 0 ? min(emitterState.globalLifeLimit, life_time) : life_time;
-    emitterState.globalLifeLimitRef = emitterState.globalLifeLimit;
-  }
+  int rng = interlocked_increment(ctx.rndSeed);
+  apply_emitter_randomizer(sys.emitterRandomizer, emitterState, rng, life_time);
 
   InstanceState instanceState = {0, 0, emitterState.emissionLimit};
   EmissionState emissionState = {0, 0};
@@ -147,6 +141,7 @@ InstanceId create_subinstance(Context &ctx, InstanceId queued_iid, const SystemT
 #define SETV(a, b) stream.get<a>(sid) = b;
 
   SETV(INST_RID, rid);
+  SETV(INST_SYS_ID, sys_id);
   SETV(INST_FLAGS, sys.refFlags);
   SETV(INST_REF_FLAGS, sys.refFlags);
   SETV(INST_SYNCED_FLAGS, sys.refFlags);
@@ -210,6 +205,8 @@ InstanceId create_subinstance(Context &ctx, InstanceId queued_iid, const SystemT
   v_bbox3_init_empty(stream.get<INST_BBOX>(sid));
   SETV(INST_POSITION, Point4(0, 0, 0, 0));
   SETV(INST_VIEW_DIST, 0);
+  SETV(INST_VIEW_DIST_MIN, FLT_MAX);
+  SETV(INST_PROJ_SIZE_MAX, 0);
   SETV(INST_RENDER_SORT_DEPTH, sys.renderSortDepth);
   SETV(INST_CULLING_ID, 0xffffffff);
   SETV(INST_LAST_VALID_BBOX_FRAME, ctx.currentFrame);
@@ -347,7 +344,7 @@ InstanceId create_subinstance(Context &ctx, InstanceId queued_iid, const SystemT
 
   for (const SystemTemplate &subSys : sys.subsystems)
   {
-    InstanceId subRid = create_subinstance(ctx, InstanceId(), subSys, sid, group_gpu_buf, //
+    InstanceId subRid = create_subinstance(ctx, InstanceId(), SystemId(), subSys, sid, group_gpu_buf, //
       group_cpu_buf, gpu_parent_offset, cpu_parent_offset, emitterState.globalLifeLimit, depth + 1);
 
     int *subSid = instances.list.get(subRid);
@@ -389,7 +386,8 @@ void create_instances_from_queue(Context &ctx)
     int cpuDataSize = sys->totalCpuDataSize;
     int gpuDataSize = sys->totalGpuDataSize;
 
-    adjust_buffer_size_by_quality(ctx, *sys, cpuDataSize, gpuDataSize, false);
+    bool forceDummy = (sys->refFlags & SYS_DUMMY_SYSTEM) ? true : false;
+    adjust_buffer_size_by_quality(ctx, *sys, cpuDataSize, gpuDataSize, forceDummy);
 
     if (cpuDataSize > ctx.cfg.data_buffer_size || gpuDataSize > ctx.cfg.data_buffer_size)
     {
@@ -419,7 +417,7 @@ void create_instances_from_queue(Context &ctx)
       }
     }
 
-    InstanceId iid = create_subinstance(ctx, cq.iid, *sys, -1, gpuBuf, cpuBuf, -1, -1, 0.0f, 0);
+    InstanceId iid = create_subinstance(ctx, cq.iid, cq.sid, *sys, -1, gpuBuf, cpuBuf, -1, -1, 0.0f, 0);
     G_ASSERT_CONTINUE(gpuBuf.size == 0);
     G_ASSERT_CONTINUE(cpuBuf.size == 0);
     G_ASSERT_CONTINUE(iid == cq.iid);
@@ -545,7 +543,7 @@ void destroy_instance_from_queue(Context &ctx)
   }
 }
 
-inline void reset_subinstance(Context &ctx, int sid)
+static inline void reset_subinstance(Context &ctx, int sid, int &rng, SystemTemplate *sys, float life_time)
 {
   if (sid == queue_instance_sid)
     return;
@@ -558,6 +556,14 @@ inline void reset_subinstance(Context &ctx, int sid)
   InstanceGroups &stream = ctx.instances.groups;
   G_ASSERT(sid >= 0 && sid < stream.size());
   G_ASSERT_RETURN(stream.get<INST_FLAGS>(sid) & SYS_VALID, );
+
+  if (!sys)
+  {
+    SystemId sysId = stream.get<INST_SYS_ID>(sid);
+    G_ASSERT(sysId);
+    sys = ctx.systems.list.get(sysId);
+    G_ASSERT(sys);
+  }
 
   InstanceState &instState = stream.get<INST_ACTIVE_STATE>(sid);
   EmissionState &emState = stream.get<INST_EMISSION_STATE>(sid);
@@ -622,10 +628,12 @@ inline void reset_subinstance(Context &ctx, int sid)
   }
 
   reset_emitter_state(stream.get<INST_EMITTER_STATE>(sid));
+  apply_emitter_randomizer(sys->emitterRandomizer, stream.get<INST_EMITTER_STATE>(sid), rng, life_time);
 
   eastl::vector<int> &subinstances = stream.get<INST_SUBINSTANCES>(sid);
-  for (int subSid : subinstances)
-    reset_subinstance(ctx, subSid);
+  G_ASSERT(subinstances.size() == sys->subsystems.size());
+  for (int i = 0; i < subinstances.size(); ++i)
+    reset_subinstance(ctx, subinstances[i], rng, &sys->subsystems[i], stream.get<INST_EMITTER_STATE>(sid).globalLifeLimit);
 }
 
 void reset_instance(ContextId cid, InstanceId iid)
@@ -644,7 +652,8 @@ void reset_instance_from_queue(Context &ctx)
     INST_LIST_LOCK_GUARD;
     int *sid = ctx.instances.list.get(iid);
     G_ASSERT_CONTINUE(sid);
-    reset_subinstance(ctx, *sid);
+    int rng = interlocked_increment(ctx.rndSeed);
+    reset_subinstance(ctx, *sid, rng, nullptr, 0.0f);
   }
 }
 
@@ -784,7 +793,7 @@ void set_instance_value_from_queue(Context &ctx)
     ValueBind *bind = get_local_value_bind(ctx.binds.localValues, stream.get<INST_VALUE_BIND_ID>(sid), cq.name);
     G_ASSERT(bind || cq.isOpt);
     if (!bind)
-      return;
+      continue;
 
     G_ASSERT(bind->size == cq.size);
     set_instance_value(ctx, sid, bind->offset + sizeof(DataHead), ctx.commandQueue.instanceValueData.data() + cq.srcOffset, cq.size);
@@ -1068,13 +1077,20 @@ void set_subinstance_value_from_system(ContextId cid, InstanceId iid, int sub_id
   set_instance_value_from_system(ctx, iid, sub_idx, sid, offset, size, scale_vec);
 }
 
-void set_instance_status(Context &ctx, int sid, bool enabled)
+void set_instance_status(Context &ctx, int sid, bool enabled, float distance, SystemTemplate *sys)
 {
   if (sid == dummy_instance_sid)
     return;
   INST_TUPLE_LOCK_GUARD;
 
   InstanceGroups &stream = ctx.instances.groups;
+  if (!sys)
+  {
+    SystemId sysId = stream.get<INST_SYS_ID>(sid);
+    G_ASSERT(sysId);
+    sys = ctx.systems.list.get(sysId);
+    G_ASSERT(sys);
+  }
 
   uint32_t &flag = stream.get<INST_FLAGS>(sid);
   G_ASSERT(flag & SYS_VALID);
@@ -1082,19 +1098,22 @@ void set_instance_status(Context &ctx, int sid, bool enabled)
     return;
 
   flag &= ~SYS_ENABLED;
+  bool allowedByDistance = sys->spawnRangeLimit <= 0 || distance <= sys->spawnRangeLimit;
+  enabled = enabled && allowedByDistance;
   flag |= enabled ? SYS_ENABLED : 0;
 
   eastl::vector<int> &subinstances = stream.get<INST_SUBINSTANCES>(sid);
+  int subInd = 0;
   for (int subSid : subinstances)
-    set_instance_status(ctx, subSid, enabled);
+    set_instance_status(ctx, subSid, enabled, distance, &sys->subsystems[subInd++]);
 }
 
-void set_instance_status(ContextId cid, InstanceId iid, bool enabled)
+void set_instance_status(ContextId cid, InstanceId iid, bool enabled, float distance)
 {
   GET_CTX();
   G_ASSERT_RETURN(iid, );
   os_spinlock_lock(&ctx.queueLock);
-  ctx.commandQueueNext.instanceStatus.push_back({iid, enabled});
+  ctx.commandQueueNext.instanceStatus.push_back({iid, distance, enabled});
   os_spinlock_unlock(&ctx.queueLock);
 }
 
@@ -1105,7 +1124,7 @@ void set_instance_status_from_queue(Context &ctx)
   {
     int *sid = ctx.instances.list.get(cq.iid);
     G_ASSERT_CONTINUE(sid);
-    set_instance_status(ctx, *sid, cq.enabled);
+    set_instance_status(ctx, *sid, cq.enabled, cq.distance, nullptr);
   }
 }
 

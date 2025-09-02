@@ -44,7 +44,7 @@
   half3 result = (diffuse + (D*G)*F)*NoL;
   #if DYNAMIC_LIGHTS_SSS
   if (isSubSurfaceShader(gbuffer.material))
-    result += (foliageSSS(NoL, view, lightDir)*gbuffer.ao) * gbuffer.translucencyColor;//can make gbuffer.ao*gbuffer.translucencyColor only once for all lights
+    result += (foliageSSS(NoL, view, lightDir)*ao) * gbuffer.translucencyColor;//can make ao*gbuffer.translucencyColor only once for all lights
   #endif
   half3 lightBRDF = result * shadowTerm * color_and_attenuation.xyz;
   #endif
@@ -82,7 +82,7 @@
   #endif
   #if DYNAMIC_LIGHTS_SSS
   if (isSubSurfaceShader(gbuffer.material))
-    result += (foliageSSS(NoL, view, lightDir)*gbuffer.ao) * gbuffer.translucencyColor;//can make gbuffer.ao*gbuffer.translucencyColor only once for all lights
+    result += (foliageSSS(NoL, view, lightDir)*ao) * gbuffer.translucencyColor;//can make ao*gbuffer.translucencyColor only once for all lights
   #endif
   half3 lightBRDF = result*attenuation*color_and_attenuation.xyz;
 #endif

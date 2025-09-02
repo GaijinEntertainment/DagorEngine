@@ -18,6 +18,7 @@ enum FxRenderTag : uint8_t
   ERT_TAG_UNDERWATER = 11,
   ERT_TAG_VOLFOG_INJECTION = 12,
   ERT_TAG_BVH = 13,
+  ERT_TAG_XRAY = 14,
   ERT_TAG_COUNT,
 };
 
@@ -37,6 +38,7 @@ static const char *render_tags[] = {
   "underwater",
   "volfog_injection",
   "bvh",
+  "xray",
 };
 
 enum

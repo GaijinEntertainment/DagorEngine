@@ -48,6 +48,7 @@ class ParsedFunction:
     self.mgrArgId = -1
     self.mgrType = 'ecs::EntityManager'
     self.isEventType = False
+    self.isStatic = False
 
 
 def sorted_by_loc(nodes):
@@ -292,6 +293,12 @@ def get_function_info(node, file, is_es_name, all_functions, all_gets, queries_t
             parsedFunction.annotations = get_annotation(node)
             all_functions.append(parsedFunction)
 
+        if ((node.kind == clang.cindex.CursorKind.FUNCTION_DECL) and node.spelling.endswith('_ecs_query_id')):
+            current_function = node.spelling
+            parsedFunction = ParsedFunction(node.spelling, fully_qualified(node))
+            parsedFunction.isStatic = node.storage_class == clang.cindex.StorageClass.STATIC
+            all_functions.append(parsedFunction)
+
         if ((node.kind == clang.cindex.CursorKind.FUNCTION_TEMPLATE) and node.spelling.endswith('_ecs_query')):
             queries_types[node.spelling] = node.result_type.get_canonical().spelling
 
@@ -349,50 +356,33 @@ def get_diag_info(diag):
             'spelling': diag.spelling}
 
 
-def get_clang_info():
-    p = subprocess.Popen(['clang -x c++ -fsyntax-only -v -'], shell=True,
-                         stdout=subprocess.PIPE,
-                         stderr=subprocess.PIPE,
-                         stdin=subprocess.PIPE)
-    clangInfo = p.communicate()[1]
-    if type(clangInfo) != str:
-        clangInfo = clangInfo.decode("utf-8")
-    clangInfo = clangInfo.split("\n")
-    result = {"ResourceDir": "", "LibDir": ""}
-    for infoLine in clangInfo:
-        rd = infoLine.find("-resource-dir")
-        if rd != -1:
-            s = infoLine.find(" ", rd) + 1
-            e = infoLine.find(" ", s)
-            result["ResourceDir"] = infoLine[s:e]
-        rd = infoLine.find("InstalledDir:")
-        if rd != -1:
-            s = infoLine.find(" ")
-            if s != -1:
-                installedDir = infoLine[s + 1:]
-                libDir = os.path.join(os.path.dirname(installedDir), "lib64")
-                if not os.path.exists(libDir):
-                    libDir = os.path.join(os.path.dirname(installedDir), "lib")
-                result["LibDir"] = libDir
-    return result
-
-
 def parse_ecs_functions(input_filename, search_filename, clang_args, should_parse_name, skipFunctionBodies, compiler_errors, all_gets):
     from clang.cindex import Index
     if os.environ.get('CLANG_LIBRARY_PATH', None):
       clang.cindex.conf.set_library_path(os.environ.get('CLANG_LIBRARY_PATH'))
     elif sys.platform.startswith('win'):
         assert sys.maxsize > 2**32, '64-bit python3 is required!'
-        clanglibpath = os.path.join(os.environ['DAGOR_CLANG_DIR'], "bin")
-        clang.cindex.conf.set_library_path(clanglibpath)
+        clanglibpath = os.environ['DAGOR_CLANG_DIR']
+        clang.cindex.conf.set_library_path(os.path.join(clanglibpath, "bin"))
+        if not '-isystem' in clang_args: # for clang-specific headers (e.g. intrinsics) when building with msvc
+            clangver = clanglibpath[clanglibpath.rfind('-')+1:]
+            clang_args = ['-isystem', os.path.join(clanglibpath, "lib/clang", clangver[:2] if clangver[:2] > "15" else clangver, "include")] + clang_args
     else:
-        clangInfo = get_clang_info()  # TODO: additional clang invocation is SLOW. Do something about it (use envvars?)
-        libclang = 'libclang.%s' % ({'darwin':'dylib'}.get(sys.platform, 'so'))
-        libclangpath = os.path.join(clangInfo["LibDir"], libclang)
-        if not os.path.isfile(libclangpath): # on Ubuntu/Debian InstalledDir and libclang.so dir could be unrelated
+        p = subprocess.Popen(['clang -print-resource-dir'], shell=True, stdout=subprocess.PIPE)
+        resDir = p.communicate()[0][:-1].decode("utf-8")
+        libDir = os.path.normpath(os.path.join(resDir, '../..'))
+        clangver = os.path.split(resDir)[1] # e.g. 15.0.7
+        clangmajver = clangver[:clangver.find('.')] if '.' in clangver else clangver # e.g. 15
+        soext = {'darwin':'dylib'}.get(sys.platform, 'so')
+        libclang = 'libclang.%s.%s' % (soext, clangmajver) if 'lib64' in libDir else ''
+        libclangpath = os.path.join(libDir, libclang)
+        if not libclang or not os.path.isfile(libclangpath):
+            libclang = 'libclang.%s' % soext
+            libclangpath = os.path.join(libDir, libclang)
+        if not os.path.isfile(libclangpath):
             libclangpath = subprocess.check_output('clang --print-file-name %s' % libclang, shell=True)[:-1] # :-1 to cut trailing \n
         clang.cindex.conf.set_library_file(libclangpath)
-        clang_args += ["-resource-dir", clangInfo["ResourceDir"]]
+        clang_args += ["-resource-dir", resDir]
 
     try:
       cymbal.monkeypatch_type('get_template_argument_type',

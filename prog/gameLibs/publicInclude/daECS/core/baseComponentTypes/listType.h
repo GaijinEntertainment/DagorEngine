@@ -239,7 +239,7 @@ public:
   } // do not change generation
   inline List &operator=(List &&a)
   {
-    ((base_type &)*this) = (base_type &&) eastl::move(a);
+    ((base_type &)*this) = (base_type &&)eastl::move(a);
     changeGen();
     return *this;
   } // do not change generation

@@ -91,8 +91,9 @@ public:
 
   void *getInlinePtr(int id)
   {
-    G_ASSERT(id >= 0 && id < val.size());
-    G_ASSERTF(isInlinePtrType(paramTypes[id]), "paramTypes[%d]=%d", id, paramTypes[id]);
+    G_ASSERTF(id >= 0 && id < val.size(), "Id = '%d' out of range [0; %d]", id, val.size());
+    G_ASSERTF(isInlinePtrType(paramTypes[id]), "Trying to get inline pointer but paramTypes[%d]=%d is not an inline pointer type.", id,
+      paramTypes[id]);
     return &val[id].scalarInt;
   }
   const void *getInlinePtr(int id) const { return const_cast<AnimCommonStateHolder *>(this)->getInlinePtr(id); }
@@ -119,8 +120,9 @@ public:
   static bool isBasicType(int t) { return t == PT_ScalarParam || t == PT_ScalarParamInt || t == PT_TimeParam; }
   static unsigned getInlinePtrWords(dag::ConstSpan<uint8_t> param_types, int id)
   {
-    G_ASSERT_RETURN(id >= 0 && id < param_types.size(), 0);
-    G_ASSERTF_RETURN(isInlinePtrType(param_types[id]), 0, "paramTypes[%d]=%d", id, param_types[id]);
+    G_ASSERTF_RETURN(id >= 0 && id < param_types.size(), 0, "Id: '%d' out of range [0; %d]", id, param_types.size());
+    G_ASSERTF_RETURN(isInlinePtrType(param_types[id]), 0,
+      "Trying to get inline pointer but paramTypes[%d]=%d is not an inline pointer type.", id, param_types[id]);
     int numw = 1;
     while (id + numw < param_types.size() && param_types[id + numw] == PT_Reserved)
       numw++;
@@ -155,14 +157,16 @@ private:
 
 inline float AnimCommonStateHolder::getParam(int id) const
 {
-  G_ASSERT((unsigned)id < val.size());
-  G_ASSERT(paramTypes[id] == PT_ScalarParam || paramTypes[id] == PT_TimeParam);
+  G_ASSERTF((unsigned)id < val.size(), "Id: '%d' out of range [0; %d]", id, val.size());
+  G_ASSERTF(paramTypes[id] == PT_ScalarParam || paramTypes[id] == PT_TimeParam, "Unexpected (%d) non float type on param <%s>(%d)",
+    paramTypes[id], paramNames.getName(id), id);
   return val[id].scalar;
 }
 
 inline void AnimCommonStateHolder::setParam(int id, float value)
 {
-  G_ASSERTF(id < val.size() && check_finite(value), "%d/%d %g", id, val.size(), value);
+  G_ASSERTF(id < val.size(), "Id: '%d' out of range [0; %d]", id, val.size(), value);
+  G_ASSERTF(check_finite(value), "Setting an infinite value: '%g'", value);
   G_ASSERTF(paramTypes[id] == PT_ScalarParam || paramTypes[id] == PT_TimeParam, "Unexpected (%d) non float type on param <%s>(%d)",
     paramTypes[id], paramNames.getName(id), id);
   if (val[id].scalar != value)

@@ -129,9 +129,8 @@ public:
   virtual void __stdcall onRegister() {}
   virtual void __stdcall onUnregister() {}
 
-  dag::ConstSpan<Ref> __stdcall getAssetRefs(DagorAsset &a) override
+  void __stdcall getAssetRefs(DagorAsset &a, Tab<Ref> &refs) override
   {
-    static Tab<IDagorAssetRefProvider::Ref> tmpRefs(tmpmem);
     static constexpr int REF_NUM = 4;
     static const char *atype_nm[REF_NUM] = {"physObj", "dynModel", "dynModel", "vehicleDesc"};
     static const char *ref_nm[REF_NUM] = {"physObj", "frontWheel", "rearWheel", "vehicleDesc"};
@@ -141,12 +140,12 @@ public:
       for (int i = 0; i < REF_NUM; i++)
         atype[i] = a.getMgr().getAssetTypeId(atype_nm[i]);
 
-    tmpRefs.clear();
+    refs.clear();
     for (int i = 0; i < REF_NUM; i++)
     {
       if (atype[i] < 0)
       {
-        IDagorAssetRefProvider::Ref &r = tmpRefs.push_back();
+        IDagorAssetRefProvider::Ref &r = refs.push_back();
         r.flags = RFLG_EXTERNAL | RFLG_OPTIONAL;
         r.setBrokenRef("");
         continue;
@@ -155,15 +154,13 @@ public:
       const char *r_name = a.props.getStr(ref_nm[i], "");
       DagorAsset *ra = a.getMgr().findAsset(r_name, atype[i]);
 
-      IDagorAssetRefProvider::Ref &r = tmpRefs.push_back();
+      IDagorAssetRefProvider::Ref &r = refs.push_back();
       r.flags = RFLG_EXTERNAL;
       if (!ra)
         r.setBrokenRef(String(64, "%s:%s", r_name, atype_nm[i]));
       else
         r.refAsset = ra;
     }
-
-    return tmpRefs;
   }
 };
 

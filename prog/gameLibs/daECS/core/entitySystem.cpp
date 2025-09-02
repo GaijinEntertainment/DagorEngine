@@ -187,7 +187,7 @@ void EntityManager::resetEsOrder()
       auto insResult = nameESMap.emplace(es, graphNodesCount);
       if (insResult.second)
       {
-        if (esOrder.size() && (esSkip.find_as(name, eastl::less_2<const eastl::string, const char *>()) == esSkip.end()))
+        if (esOrder.size() && (esSkip.find_as(name, eastl::less<>()) == esSkip.end()))
         {
           const bool eventHandler = es.find("_event_handler") != es.npos;
           G_UNUSED(eventHandler);
@@ -292,12 +292,12 @@ void EntityManager::resetEsOrder()
       EntitySystemDesc *sd = esFullList[i];
       if (!sd) // removed invalid ES
         continue;
-      if (disableEntitySystems.find_as(sd->name, eastl::less_2<const eastl::string, const char *>()) != disableEntitySystems.end())
+      if (disableEntitySystems.find_as(sd->name, eastl::less<>()) != disableEntitySystems.end())
       {
         debug("skip ES <%s> due to it is switched off in inspection", sd->name);
         continue;
       }
-      if (esSkip.find_as(sd->name, eastl::less_2<const eastl::string, const char *>()) != esSkip.end())
+      if (esSkip.find_as(sd->name, eastl::less<>()) != esSkip.end())
       {
         debug("skip ES <%s> due to it is not needed", sd->name);
         continue;
@@ -314,7 +314,7 @@ void EntityManager::resetEsOrder()
 
       // if there is no before/after and not in esOrder
       if (sd->ops.onUpdate && (sd->getBefore() == nullptr && sd->getAfter() == nullptr) && !esOrder.empty() &&
-          esOrder.find_as(sd->name, eastl::less_2<const eastl::string, const char *>()) == esOrder.end())
+          esOrder.find_as(sd->name, eastl::less<>()) == esOrder.end())
       {
         if (ignoredES.insert(ECS_HASH_SLOW(sd->name).hash).second)
           logerr("Unknown update ES order for '%s'", sd->name);
@@ -388,7 +388,7 @@ void EntityManager::resetEsOrder()
 
 void EntityManager::enableES(const char *es_name, bool on)
 {
-  auto it = disableEntitySystems.find_as(es_name, eastl::less_2<const eastl::string, const char *>());
+  auto it = disableEntitySystems.find_as(es_name, eastl::less<>());
   if (on != (it == disableEntitySystems.end()))
   {
     if (on)

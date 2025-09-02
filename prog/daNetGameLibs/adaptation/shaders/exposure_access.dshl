@@ -22,5 +22,12 @@ macro USE_EXPOSURE(code)
     half getInvExposureScale() { return half(exposureBuf[1]); } // for decoding
     half getPrevExposureRatio() { return half(exposureBuf[2]); } // for decoding previous frame and immediately encoding it as current
     half getPrevInvExposure() { return half(exposureBuf[3]); } // for decoding previous frame
+
+    ##if (compatibility_mode == compatibility_mode_off)
+    #define HAS_ADAPTATION_BUF 1
+    half getInvAverageLuma() { return half(exposureBuf[9]); }
+    ##else
+    half getInvAverageLuma() { return getInvExposureScale(); }
+    ##endif
   }
 endmacro

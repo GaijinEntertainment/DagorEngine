@@ -1,12 +1,16 @@
-struct Point
+options gen2
+struct Point {
     x, y : int = 0
+}
 
 [export]
-def test
+def test {
     var p = Point()
-    with p
+    with (p) {
         x = 1
         y = 2
-    assert(p.x==1 && p.y==2)
+    }
+    assert(p.x == 1 && p.y == 2)
     return true
+}
 

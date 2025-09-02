@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "physObjActorDbgRenderES.cpp.inl"
 ECS_DEF_PULL_VAR(physObjActorDbgRender);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc debug_draw_phys_phys_obj_es_comps[] =
 {

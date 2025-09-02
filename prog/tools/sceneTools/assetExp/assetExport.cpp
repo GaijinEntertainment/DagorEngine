@@ -17,14 +17,117 @@
 #include <ioSys/dag_fileIo.h>
 #include <util/dag_simpleString.h>
 #include <osApiWrappers/dag_direct.h>
+#include <osApiWrappers/dag_miscApi.h>
 #include <debug/dag_debug.h>
 #include <debug/dag_log.h>
+#include <debug/dag_logSys.h>
 #include <stdio.h>
 #include <perfMon/dag_cpuFreq.h>
 #include <util/dag_string.h>
 #include "jobSharedMem.h"
 
 static bool reqFastConv = false;
+static debug_log_callback_t original_log_callback = nullptr;
+static dag::Vector<String> *build_warnings = nullptr;
+
+class WarningCheckingLogWriter : public ILogWriter
+{
+public:
+  explicit WarningCheckingLogWriter(ILogWriter &original_log_writer) : originalLogWriter(original_log_writer) {}
+
+  void addMessageFmt(MessageType type, const char *fmt, const DagorSafeArg *arg, int anum) override
+  {
+    G_ASSERT(is_main_thread());
+
+    if (type == ILogWriter::WARNING || type == ILogWriter::ERROR || type == ILogWriter::FATAL)
+    {
+      String message;
+      message += getLogPrefix(type);
+      message.avprintf(0, fmt, arg, anum);
+      build_warnings->emplace_back(message);
+    }
+
+    originalLogWriter.addMessageFmt(type, fmt, arg, anum);
+  }
+
+  bool hasErrors() const override { return originalLogWriter.hasErrors(); }
+  void startLog() override { originalLogWriter.startLog(); }
+  void endLog() override { originalLogWriter.endLog(); }
+
+  static char getLogPrefix(MessageType type)
+  {
+    switch (type)
+    {
+      case ILogWriter::NOTE: return 'N';
+      case ILogWriter::WARNING: return 'W';
+      case ILogWriter::ERROR: return 'E';
+      case ILogWriter::FATAL: return 'F';
+      case ILogWriter::REMARK: return 'R';
+    }
+
+    G_ASSERT(false);
+    return ' ';
+  }
+
+  static MessageType getLogMessageType(char prefix)
+  {
+    switch (prefix)
+    {
+      case 'N': return ILogWriter::NOTE;
+      case 'W': return ILogWriter::WARNING;
+      case 'E': return ILogWriter::ERROR;
+      case 'F': return ILogWriter::FATAL;
+      case 'R': return ILogWriter::REMARK;
+    }
+
+    G_ASSERT(false);
+    return ILogWriter::REMARK;
+  }
+
+private:
+  ILogWriter &originalLogWriter;
+};
+
+static int warning_checking_log_callback(int lev_tag, const char *fmt, const void *arg, int anum, const char *ctx_file, int ctx_line)
+{
+  // AssetViewer only redirects errors to the console, so capture only those.
+  // Ignore messages redirected by the console to log (these start with "CON: ") otherwise they would be added twice.
+  if (lev_tag == LOGLEVEL_ERR && is_main_thread() && strncmp(fmt, "CON: ", 5) != 0)
+  {
+    String message;
+    message += WarningCheckingLogWriter::getLogPrefix(ILogWriter::ERROR);
+    message.avprintf(0, fmt, (const DagorSafeArg *)arg, anum);
+    build_warnings->emplace_back(message);
+  }
+
+  return original_log_callback ? original_log_callback(lev_tag, fmt, arg, anum, ctx_file, ctx_line) : 1;
+}
+
+static bool warning_checking_build_asset(IDagorAssetExporter &exp, DagorAsset &a, mkbindump::BinDumpSaveCB &cwr, ILogWriter &log,
+  dag::Vector<String> &warnings)
+{
+  G_ASSERT(is_main_thread());
+
+  const bool reentrance = build_warnings != nullptr;
+  if (!reentrance)
+    original_log_callback = debug_set_log_callback(&warning_checking_log_callback);
+
+  dag::Vector<String> *originalBuildWarnings = build_warnings;
+  build_warnings = &warnings;
+
+  WarningCheckingLogWriter logWriter(log);
+  const bool result = exp.exportAsset(a, cwr, logWriter);
+
+  build_warnings = originalBuildWarnings;
+
+  if (!reentrance)
+  {
+    debug_set_log_callback(original_log_callback);
+    original_log_callback = nullptr;
+  }
+
+  return result;
+}
 
 static inline void clearCache(const String &path, const char *mask)
 {
@@ -32,15 +135,15 @@ static inline void clearCache(const String &path, const char *mask)
 
   String mp(512, "%s%s", path.str(), mask);
 
-  for (bool ok = ::dd_find_first(mp, DA_FILE, &ff); ok; ok = ::dd_find_next(&ff))
+  for (const alefind_t &ff : dd_find_iterator(mp, DA_FILE))
     ::dd_erase(path + ff.name);
-  ::dd_find_close(&ff);
 
   mp = path + "*";
-  for (bool ok = ::dd_find_first(mp, DA_SUBDIR, &ff); ok; ok = ::dd_find_next(&ff))
+  for (const alefind_t &ff : dd_find_iterator(mp, DA_SUBDIR))
+  {
     clearCache(path + ff.name + "/", mask);
-  ::dd_rmdir(path + ff.name);
-  ::dd_find_close(&ff);
+    ::dd_rmdir(path + ff.name);
+  }
 }
 
 static bool checkCacheChanged(AssetExportCache &c4, DagorAsset &a, IDagorAssetExporter *exp)
@@ -98,8 +201,8 @@ String get_name_of_package_containing_asset(const DataBlock &app_blk, DagorAsset
 
   Tab<AssetPack *> grpPack(tmpmem), texPack(tmpmem);
   FastNameMapEx packages;
-  char targetStr[6];
-  strcpy(targetStr, mkbindump::get_target_str(target_code));
+  uint64_t tc_storage = 0;
+  const char *targetStr = mkbindump::get_target_str(target_code, tc_storage);
   preparePacks(mgr, make_span_const<DagorAsset *>(&asset, 1), expTypesMask, expblk, texPack, grpPack, packages, log,
     /*export_tex = */ true, /*export_res = */ true, targetStr, profile);
 
@@ -131,15 +234,15 @@ static class NullLogWriter : public ILogWriter
 public:
   NullLogWriter() : err(false) {}
 
-  virtual void addMessageFmt(MessageType type, const char *fmt, const DagorSafeArg *arg, int anum)
+  void addMessageFmt(MessageType type, const char *fmt, const DagorSafeArg *arg, int anum) override
   {
     if (type == ERROR || type == FATAL)
       err = true;
   }
-  virtual bool hasErrors() const { return err; }
+  bool hasErrors() const override { return err; }
 
-  virtual void startLog() {}
-  virtual void endLog() {}
+  void startLog() override {}
+  void endLog() override {}
 } null_log;
 
 class AssetExport : public IDaBuildInterface
@@ -147,10 +250,10 @@ class AssetExport : public IDaBuildInterface
 public:
   AssetExport() : mgr(NULL), pbar(&null_pbar), log(&null_log) {}
 
-  virtual void __stdcall release() {}
+  void __stdcall release() override {}
 
-  virtual int __stdcall init(const char *startdir, DagorAssetMgr &m, const DataBlock &appblk, const char *appdir,
-    const char *ddsxPluginsPath = nullptr)
+  int __stdcall init(const char *startdir, DagorAssetMgr &m, const DataBlock &appblk, const char *appdir,
+    const char *ddsxPluginsPath = nullptr) override
   {
 
     appBlk.setFrom(&appblk, appblk.resolveFilename());
@@ -183,7 +286,7 @@ public:
 
     return exp_cnt;
   }
-  virtual void __stdcall term()
+  void __stdcall term() override
   {
     texconvcache::term();
     mgr = NULL;
@@ -191,13 +294,13 @@ public:
     appDir = NULL;
   }
 
-  virtual void __stdcall setupReports(ILogWriter *l, IGenericProgressIndicator *pb)
+  void __stdcall setupReports(ILogWriter *l, IGenericProgressIndicator *pb) override
   {
     log = l ? l : &null_log;
     pbar = pb ? pb : &null_pbar;
   }
 
-  virtual bool __stdcall loadExporterPlugins()
+  bool __stdcall loadExporterPlugins() override
   {
     // load exporter plugins
     const DataBlock &blk = *appBlk.getBlockByNameEx("assets")->getBlockByNameEx("export")->getBlockByNameEx("plugins");
@@ -224,21 +327,21 @@ public:
 
     return true;
   }
-  virtual bool __stdcall loadExporterPluginsInFolder(const char *dirpath)
+  bool __stdcall loadExporterPluginsInFolder(const char *dirpath) override
   {
     return ::loadExporterPlugins(appBlk, *mgr, dirpath, expTypesMask, *log);
   }
-  virtual bool __stdcall loadSingleExporterPlugin(const char *dll_path)
+  bool __stdcall loadSingleExporterPlugin(const char *dll_path) override
   {
     return ::loadSingleExporterPlugin(appBlk, *mgr, dll_path, expTypesMask, *log);
   }
-  virtual void __stdcall unloadExporterPlugins()
+  void __stdcall unloadExporterPlugins() override
   {
     if (mgr)
       ::unloadExporterPlugins(*mgr);
   }
 
-  virtual bool __stdcall exportAll(dag::ConstSpan<unsigned> tc, const char *profile)
+  bool __stdcall exportAll(dag::ConstSpan<unsigned> tc, const char *profile) override
   {
     bool ret = true;
     texconvcache::set_fast_conv(false);
@@ -248,7 +351,7 @@ public:
     texconvcache::set_fast_conv(reqFastConv);
     return ret;
   }
-  virtual bool __stdcall exportPacks(dag::ConstSpan<unsigned> tc, dag::ConstSpan<const char *> packs, const char *profile)
+  bool __stdcall exportPacks(dag::ConstSpan<unsigned> tc, dag::ConstSpan<const char *> packs, const char *profile) override
   {
     bool ret = true;
     texconvcache::set_fast_conv(false);
@@ -260,13 +363,13 @@ public:
     texconvcache::set_fast_conv(reqFastConv);
     return ret;
   }
-  virtual bool __stdcall exportByFolders(dag::ConstSpan<unsigned> tc, dag::ConstSpan<const char *> folders, const char *profile)
+  bool __stdcall exportByFolders(dag::ConstSpan<unsigned> tc, dag::ConstSpan<const char *> folders, const char *profile) override
   {
     return false;
   }
 
-  virtual bool __stdcall exportRaw(dag::ConstSpan<unsigned> tc, dag::ConstSpan<const char *> packs,
-    dag::ConstSpan<const char *> packs_re, bool export_tex, bool export_res, const char *profile)
+  bool __stdcall exportRaw(dag::ConstSpan<unsigned> tc, dag::ConstSpan<const char *> packs, dag::ConstSpan<const char *> packs_re,
+    bool export_tex, bool export_res, const char *profile) override
   {
     bool ret = true;
     texconvcache::set_fast_conv(false);
@@ -279,7 +382,7 @@ public:
     return ret;
   }
 
-  virtual void __stdcall resetStat()
+  void __stdcall resetStat() override
   {
     stat_grp_total = stat_grp_built = stat_grp_failed = 0;
     stat_tex_total = stat_tex_built = stat_tex_failed = 0;
@@ -288,7 +391,7 @@ public:
     stat_grp_sz_diff = stat_tex_sz_diff = 0;
     stat_changed_grp_total_sz = stat_changed_tex_total_sz = 0;
   }
-  virtual void __stdcall getStat(bool tex_pack, int &processed, int &built, int &failed)
+  void __stdcall getStat(bool tex_pack, int &processed, int &built, int &failed) override
   {
     if (tex_pack)
     {
@@ -303,9 +406,9 @@ public:
       failed = stat_grp_failed;
     }
   }
-  virtual int __stdcall getRemovedPackCount() { return stat_pack_removed; }
+  int __stdcall getRemovedPackCount() override { return stat_pack_removed; }
 
-  virtual const char *__stdcall getPackName(DagorAsset *asset)
+  const char *__stdcall getPackName(DagorAsset *asset) override
   {
     if (expTypesMask[asset->getType()])
       return asset->getDestPackName();
@@ -313,18 +416,18 @@ public:
       return NULL;
   }
 
-  virtual const char *__stdcall getPackNameFromFolder(int fld_idx, bool tex_or_res)
+  const char *__stdcall getPackNameFromFolder(int fld_idx, bool tex_or_res) override
   {
     return mgr->getFolderPackName(fld_idx, tex_or_res, NULL);
   }
 
-  virtual String __stdcall getPkgName(DagorAsset *asset) override
+  String __stdcall getPkgName(DagorAsset *asset) override
   {
     return get_name_of_package_containing_asset(appBlk, *mgr, /*target_code = */ _MAKE4C('PC'), /*profile = */ nullptr, *log, asset);
   }
 
-  virtual bool __stdcall checkUpToDate(dag::ConstSpan<unsigned> tc, dag::Span<int> tc_flags,
-    dag::ConstSpan<const char *> packs_to_check, const char *profile)
+  bool __stdcall checkUpToDate(dag::ConstSpan<unsigned> tc, dag::Span<int> tc_flags, dag::ConstSpan<const char *> packs_to_check,
+    const char *profile) override
   {
     bool ret = true;
     for (int i = 0; i < tc.size(); i++)
@@ -333,9 +436,9 @@ public:
     return ret;
   }
 
-  virtual bool __stdcall isAssetExportable(DagorAsset *asset) { return ::isAssetExportable(*mgr, asset, expTypesMask); }
+  bool __stdcall isAssetExportable(DagorAsset *asset) override { return ::isAssetExportable(*mgr, asset, expTypesMask); }
 
-  virtual void __stdcall destroyCache(dag::ConstSpan<unsigned> tc, const char *profile)
+  void __stdcall destroyCache(dag::ConstSpan<unsigned> tc, const char *profile) override
   {
     if (profile && !*profile)
       profile = NULL;
@@ -350,7 +453,8 @@ public:
     for (int i = 0; i < pcnt; i++)
     {
       log->addMessage(ILogWriter::NOTE, "clear cache for platform '%c%c%c%c'", _DUMP4C(tc[i]));
-      String mask(128, "*.%s.*", mkbindump::get_target_str(tc[i]));
+      uint64_t tc_storage = 0;
+      String mask(128, "*.%s.*", mkbindump::get_target_str(tc[i], tc_storage));
       clearCache(cacheBase, mask);
 
       log->addMessage(ILogWriter::NOTE, "complete");
@@ -358,14 +462,14 @@ public:
   }
 
 
-  virtual void __stdcall invalidateBuiltRes(const DagorAsset &a, const char *cache_folder)
+  void __stdcall invalidateBuiltRes(const DagorAsset &a, const char *cache_folder) override
   {
     String cacheFname(260, "%s/%s~%s.c4.bin", cache_folder, a.getName(), a.getTypeStr());
     dd_erase(cacheFname);
   }
 
-  virtual bool __stdcall getBuiltRes(DagorAsset &a, mkbindump::BinDumpSaveCB &cwr, IDagorAssetExporter *exp, const char *cache_folder,
-    String &cache_path, int &data_offset, bool save_all_caches)
+  bool __stdcall getBuiltRes(DagorAsset &a, mkbindump::BinDumpSaveCB &cwr, IDagorAssetExporter *exp, const char *cache_folder,
+    String &cache_path, int &data_offset, bool save_all_caches) override
   {
     cache_path = String(260, "%s/%s~%s.c4.bin", cache_folder, a.getName(), a.getTypeStr());
 
@@ -381,7 +485,7 @@ public:
     if (loaded && !checkCacheChanged(c4, a, exp))
     {
       FullFileLoadCB crd(cache_path);
-      if (crd.fileHandle && (crd.readInt() == _MAKE4C('fC1')) && (crd.readInt() == 2))
+      if (crd.fileHandle && (crd.readInt() == _MAKE4C('fC1')) && (crd.readInt() >= 2))
       {
         crd.seekto(cacheEndPos);
 
@@ -390,14 +494,15 @@ public:
         {
           cwr.copyRaw(crd, sz);
           crd.endBlock();
-
           return true;
         }
       }
     }
 
     int64_t ref = ref_time_ticks();
-    if (!exp->buildAssetFast(a, cwr, *log))
+    dag::Vector<String> warnings;
+    bool res = is_main_thread() ? warning_checking_build_asset(*exp, a, cwr, *log, warnings) : exp->exportAsset(a, cwr, *log);
+    if (!res)
       return false;
 
     if (!save_all_caches && get_time_usec(ref) < 5 * 1000)
@@ -411,13 +516,40 @@ public:
       checkCacheChanged(c4, a, exp);
 
     c4.setAssetExpVer(a.getType(), exp->getGameResClassId(), exp->getGameResVersion());
+    c4.setWarnings(warnings);
     c4.save(cache_path, *mgr, &cwr, &data_offset);
 
     data_offset += sizeof(int); // see first data_offset caclulation
 
     return true;
   }
-  virtual void __stdcall setExpCacheSharedData(void *p) { AssetExportCache::setSharedDataPtr(p); }
+
+  bool __stdcall getBuiltResWarnings(DagorAsset &asset, IDagorAssetExporter &exporter, const char *cache_folder,
+    dag::Vector<BuildWarning> &warnings, bool &cache_up_to_date) override
+  {
+    const String cache_path(260, "%s/%s~%s.c4.bin", cache_folder, asset.getName(), asset.getTypeStr());
+
+    AssetExportCache c4;
+    if (!c4.load(cache_path, *mgr))
+    {
+      cache_up_to_date = false;
+      return false;
+    }
+
+    for (const String &message : c4.getWarnings())
+      if (!message.empty())
+      {
+        BuildWarning warning;
+        warning.messageType = WarningCheckingLogWriter::getLogMessageType(message[0]);
+        warning.message = message.c_str() + 1;
+        warnings.emplace_back(warning);
+      }
+
+    cache_up_to_date = !checkCacheChanged(c4, asset, &exporter);
+    return true;
+  }
+
+  void __stdcall setExpCacheSharedData(void *p) override { AssetExportCache::setSharedDataPtr(p); }
 
   void __stdcall processSrcHashForDestPacks() override
   {

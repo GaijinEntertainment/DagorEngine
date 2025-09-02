@@ -4,12 +4,12 @@
 
 #include <propPanel/commonWindow/dialogWindow.h>
 #include "dialogManagerInternal.h"
+#include <propPanel/commonWindow/dialogManager.h>
 #include <propPanel/control/container.h>
 #include <propPanel/focusHelper.h>
 
 #include <drv/3d/dag_driver.h>
 #include <drv/3d/dag_lock.h>
-#include <winGuiWrapper/wgw_busy.h>
 #include <winGuiWrapper/wgw_dialogs.h>
 #include <workCycle/dag_workCycle.h>
 
@@ -24,7 +24,7 @@ class DialogButtonsHandler : public PropPanel::ControlEventHandler
 public:
   explicit DialogButtonsHandler(DialogWindow &in_dialog) : dialog(in_dialog) {}
 
-  virtual void onClick(int pcb_id, ContainerPropertyControl *panel) override
+  void onClick(int pcb_id, ContainerPropertyControl *panel) override
   {
     if (pcb_id == DIALOG_ID_OK && dialog.onOk())
       dialog.hide(pcb_id);
@@ -86,7 +86,7 @@ void DialogWindow::show()
     buttonsPanel->setFocusById(initialFocusId);
 
   // Modals (BeginPopupModal) are centered by ImGui, so this is only needed here.
-  if (!moveRequested && (!dockingRequested || dockingRequestNodeId == 0))
+  if (!moveRequested && (!dockingRequested || dockingRequestNodeId == 0) && !hasEverBeenShown())
     centerWindow();
 
   if (!visible)
@@ -111,7 +111,8 @@ int DialogWindow::showDialog()
 
   G_ASSERT(!visible);
 
-  const bool wasBusy = wingw::set_busy(false);
+  if (modal_dialog_event_handler)
+    modal_dialog_event_handler->beforeModalDialogShown();
 
   dialogResult = DIALOG_ID_NONE;
   modal = true;
@@ -131,16 +132,10 @@ int DialogWindow::showDialog()
   dialog_manager.showDialog(*this);
 
   while (visible)
-  {
-    d3d::GpuAutoLock gpuLock;
-
-    dagor_work_cycle_flush_pending_frame();
-    dagor_draw_scene_and_gui(true, true);
-    d3d::update_screen();
     dagor_work_cycle();
-  }
 
-  wingw::set_busy(wasBusy);
+  if (modal_dialog_event_handler)
+    modal_dialog_event_handler->afterModalDialogShown();
 
   return dialogResult;
 }
@@ -236,6 +231,17 @@ void DialogWindow::dockTo(unsigned dock_node_id)
   dockingRequestNodeId = dock_node_id;
 }
 
+bool DialogWindow::hasEverBeenShown() const
+{
+  const ImGuiID windowId = ImHashStr(dialogCaption.c_str());
+  const ImGuiWindow *window = ImGui::FindWindowByID(windowId);
+  if (window && ((window->SetWindowPosAllowFlags & ImGuiCond_FirstUseEver) == 0 ||
+                  (window->SetWindowSizeAllowFlags & ImGuiCond_FirstUseEver) == 0))
+    return true;
+
+  return ImGui::FindWindowSettingsByID(windowId);
+}
+
 int DialogWindow::getScrollPos() const
 {
   ImGuiWindow *window = ImGui::FindWindowByName(dialogCaption);
@@ -279,8 +285,8 @@ bool DialogWindow::removeDialogButton(int id)
 void DialogWindow::beforeUpdateImguiDialog(bool &use_auto_size_for_the_current_frame)
 {
   const ImVec2 minSize(initialWidth, initialHeight);
-  const ImVec2 maxSize(ImGui::GetIO().DisplaySize * 0.95f);
-  ImGui::SetNextWindowSizeConstraints(minSize, ImVec2(max(minSize.x, maxSize.x), max(minSize.y, maxSize.y)));
+  const ImVec2 maxSize(FLT_MAX, FLT_MAX);
+  ImGui::SetNextWindowSizeConstraints(minSize, maxSize);
 
   use_auto_size_for_the_current_frame = autoSizingRequestedForFrames > 0;
   if (autoSizingRequestedForFrames > 0)
@@ -333,7 +339,8 @@ void DialogWindow::updateImguiDialog()
     const float propertiesPanelHeight = max(regionAvailYStart - buttonPanelHeight - ImGui::GetStyle().ItemSpacing.y, 0.0f);
 
     // "c" stands for child. It could be anything.
-    if (ImGui::BeginChild("c", ImVec2(0.0f, propertiesPanelHeight), ImGuiChildFlags_NavFlattened, windowFlags))
+    const ImVec2 childWindowSize(0.0f, autoSizingRequestedForFrames > 0 ? 0.0f : propertiesPanelHeight);
+    if (ImGui::BeginChild("c", childWindowSize, ImGuiChildFlags_NavFlattened, windowFlags))
     {
       const ImGuiWindow *childWindow = ImGui::GetCurrentWindowRead();
 

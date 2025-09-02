@@ -32,6 +32,88 @@
 #define PIX_EVENT_PIX3BLOB_VERSION 2
 #endif
 
+namespace
+{
+void set_name(ID3D12Object *object, eastl::string_view name)
+{
+  // lazy way of converting to wchar, this assumes name is not multi byte encoding
+  wchar_t wcharName[1024];
+  *eastl::copy(name.data(), min(name.data() + name.size(), name.data() + 1023), wcharName) = L'\0';
+  object->SetName(wcharName);
+}
+
+struct LibraryVersionInfo
+{
+  uint16_t major;
+  uint16_t minor;
+  uint16_t revision;
+  uint16_t build;
+
+  bool operator==(const LibraryVersionInfo &) const = default;
+};
+
+eastl::optional<LibraryVersionInfo> get_library_version_from_module(HMODULE module)
+{
+  wchar_t dllName[MAX_PATH];
+  if (!GetModuleFileNameW(module, dllName, MAX_PATH))
+  {
+    return eastl::nullopt;
+  }
+  DWORD versionHandle = 0;
+  auto versionSize = GetFileVersionInfoSizeW(dllName, &versionHandle);
+  if (!versionSize)
+  {
+    return eastl::nullopt;
+  }
+
+  auto versionData = eastl::make_unique<uint8_t[]>(versionSize);
+  VS_FIXEDFILEINFO *fileVersionInfo = NULL;
+  UINT fileVersionInfoSize = 0;
+  if (!GetFileVersionInfoW(dllName, versionHandle, versionSize, versionData.get()))
+  {
+    return eastl::nullopt;
+  }
+
+  if (!VerQueryValueW(versionData.get(), L"\\", (void **)&fileVersionInfo, &fileVersionInfoSize))
+  {
+    return eastl::nullopt;
+  }
+
+  if (!fileVersionInfo)
+  {
+    return eastl::nullopt;
+  }
+
+  return LibraryVersionInfo{.major = HIWORD(fileVersionInfo->dwProductVersionMS),
+    .minor = LOWORD(fileVersionInfo->dwProductVersionMS),
+    .revision = HIWORD(fileVersionInfo->dwProductVersionLS),
+    .build = LOWORD(fileVersionInfo->dwProductVersionLS)};
+}
+
+void win_pix_gpu_capturer_issue_check(HMODULE module, ::drv3d_dx12::debug::gpu_capture::Issues &issues)
+{
+  auto version = get_library_version_from_module(module);
+
+  if (version)
+  {
+    // This version of pix GPU capture tool causes nullptr exceptions during command list submission as soon as a resource is created
+    // using a external heap. After the dll is loaded in, the process is tainted and unloading will not revert this issue.
+    issues.brokenExistingHeaps = *version == LibraryVersionInfo{.major = 1, .minor = 0, .revision = 2501, .build = 30001};
+
+    if (issues.brokenExistingHeaps)
+    {
+      logdbg("DX12: Detected broken <WinPixGpuCapturer.dll> version %u.%u.%u.%u, can not use existing heaps feature or we risk "
+             "nullptr execption on command list submission",
+        version->major, version->minor, version->revision, version->build);
+    }
+  }
+  else
+  {
+    logwarn("DX12: Unable to get DLL version of <WinPixGpuCapturer.dll>, this may cause crashes with broken versions");
+  }
+}
+} // namespace
+
 namespace drv3d_dx12::debug::gpu_capture
 {
 RENDERDOC_API_1_5_0 *RenderDoc::try_connect_interface()
@@ -64,17 +146,22 @@ void RenderDoc::onPresent() {}
 
 void RenderDoc::captureFrames(const wchar_t *, int count) { api->TriggerMultiFrameCapture(count); }
 
-void RenderDoc::beginEvent(ID3D12GraphicsCommandList *cmd, eastl::span<const char> text)
+void RenderDoc::beginEvent(D3DGraphicsCommandList *cmd, eastl::span<const char> text)
 {
   cmd->BeginEvent(PIX_EVENT_ANSI_VERSION, text.data(), text.size());
 }
 
-void RenderDoc::endEvent(ID3D12GraphicsCommandList *cmd) { cmd->EndEvent(); }
+void RenderDoc::endEvent(D3DGraphicsCommandList *cmd) { cmd->EndEvent(); }
 
-void RenderDoc::marker(ID3D12GraphicsCommandList *cmd, eastl::span<const char> text)
+void RenderDoc::marker(D3DGraphicsCommandList *cmd, eastl::span<const char> text)
 {
   cmd->SetMarker(PIX_EVENT_ANSI_VERSION, text.data(), text.size());
 }
+
+void RenderDoc::nameResource(ID3D12Resource *resource, eastl::string_view name) { set_name(resource, name); }
+void RenderDoc::nameResource(ID3D12Resource *resource, eastl::wstring_view name) { resource->SetName(name.data()); }
+void RenderDoc::nameObject(ID3D12Object *object, eastl::string_view name) { set_name(object, name); }
+void RenderDoc::nameObject(ID3D12Object *object, eastl::wstring_view name) { object->SetName(name.data()); }
 
 ComPtr<IDXGraphicsAnalysis> LegacyPIX::try_connect_interface(Direct3D12Enviroment &d3d_env)
 {
@@ -129,32 +216,47 @@ void LegacyPIX::onPresent()
 
 void LegacyPIX::captureFrames(const wchar_t *, int count) { framesToCapture = count; }
 
-void LegacyPIX::beginEvent(ID3D12GraphicsCommandList *cmd, eastl::span<const char> text)
+void LegacyPIX::beginEvent(D3DGraphicsCommandList *cmd, eastl::span<const char> text)
 {
   cmd->BeginEvent(PIX_EVENT_ANSI_VERSION, text.data(), text.size());
 }
 
-void LegacyPIX::endEvent(ID3D12GraphicsCommandList *cmd) { cmd->EndEvent(); }
+void LegacyPIX::endEvent(D3DGraphicsCommandList *cmd) { cmd->EndEvent(); }
 
-void LegacyPIX::marker(ID3D12GraphicsCommandList *cmd, eastl::span<const char> text)
+void LegacyPIX::marker(D3DGraphicsCommandList *cmd, eastl::span<const char> text)
 {
   cmd->SetMarker(PIX_EVENT_ANSI_VERSION, text.data(), text.size());
 }
 
+void LegacyPIX::nameResource(ID3D12Resource *resource, eastl::string_view name) { set_name(resource, name); }
+void LegacyPIX::nameResource(ID3D12Resource *resource, eastl::wstring_view name) { resource->SetName(name.data()); }
+void LegacyPIX::nameObject(ID3D12Object *object, eastl::string_view name) { set_name(object, name); }
+void LegacyPIX::nameObject(ID3D12Object *object, eastl::wstring_view name) { object->SetName(name.data()); }
+
 LibPointer PIX::try_load_runtime_interface() { return {LoadLibraryW(L"WinPixEventRuntime.dll"), {}}; }
 
-LibPointer PIX::try_connect_capture_interface()
+LibPointer PIX::try_connect_capture_interface(Issues &issues)
 {
   HMODULE module = nullptr;
-  if (GetModuleHandleExW(0, L"WinPixGpuCapturer.dll", &module))
+  if (!GetModuleHandleExW(0, L"WinPixGpuCapturer.dll", &module))
   {
-    return {module, {}};
+    return {};
   }
-  return {};
+  win_pix_gpu_capturer_issue_check(module, issues);
+  return {module, {}};
 }
 
 #if USE_PIX
-LibPointer PIX::try_load_capture_interface() { return {PIXLoadLatestWinPixGpuCapturerLibrary(), {}}; }
+LibPointer PIX::try_load_capture_interface(Issues &issues)
+{
+  LibPointer lib{PIXLoadLatestWinPixGpuCapturerLibrary(), {}};
+  if (lib)
+  {
+    win_pix_gpu_capturer_issue_check(lib.get(), issues);
+  }
+
+  return lib;
+}
 
 void PIX::configure() { PIXSetHUDOptions(PIXHUDOptions::PIX_HUD_SHOW_ON_NO_WINDOWS); }
 
@@ -182,7 +284,7 @@ void PIX::captureFrames(const wchar_t *file_name, int count)
   PIXGpuCaptureNextFrames(filePath, count);
 }
 
-void PIX::beginEvent(ID3D12GraphicsCommandList *cmd, eastl::span<const char> text)
+void PIX::beginEvent(D3DGraphicsCommandList *cmd, eastl::span<const char> text)
 {
   if (runtimeLib)
   {
@@ -194,7 +296,7 @@ void PIX::beginEvent(ID3D12GraphicsCommandList *cmd, eastl::span<const char> tex
   }
 }
 
-void PIX::endEvent(ID3D12GraphicsCommandList *cmd)
+void PIX::endEvent(D3DGraphicsCommandList *cmd)
 {
   if (runtimeLib)
   {
@@ -206,7 +308,7 @@ void PIX::endEvent(ID3D12GraphicsCommandList *cmd)
   }
 }
 
-void PIX::marker(ID3D12GraphicsCommandList *cmd, eastl::span<const char> text)
+void PIX::marker(D3DGraphicsCommandList *cmd, eastl::span<const char> text)
 {
   if (runtimeLib)
   {
@@ -217,16 +319,25 @@ void PIX::marker(ID3D12GraphicsCommandList *cmd, eastl::span<const char> text)
     cmd->SetMarker(PIX_EVENT_ANSI_VERSION, text.data(), text.size());
   }
 }
+
+void PIX::nameResource(ID3D12Resource *resource, eastl::string_view name) { set_name(resource, name); }
+void PIX::nameResource(ID3D12Resource *resource, eastl::wstring_view name) { resource->SetName(name.data()); }
+void PIX::nameObject(ID3D12Object *object, eastl::string_view name) { set_name(object, name); }
+void PIX::nameObject(ID3D12Object *object, eastl::wstring_view name) { object->SetName(name.data()); }
 #else
-LibPointer PIX::try_load_capture_interface() { return {}; }
+LibPointer PIX::try_load_capture_interface(Issues &) { return {}; }
 void PIX::configure() {}
 void PIX::beginCapture(const wchar_t *) {}
 void PIX::endCapture() {}
 void PIX::onPresent() {}
 void PIX::captureFrames(const wchar_t *, int) {}
-void PIX::beginEvent(ID3D12GraphicsCommandList *, eastl::span<const char>) {}
-void PIX::endEvent(ID3D12GraphicsCommandList *) {}
-void PIX::marker(ID3D12GraphicsCommandList *, eastl::span<const char>) {}
+void PIX::beginEvent(D3DGraphicsCommandList *, eastl::span<const char>) {}
+void PIX::endEvent(D3DGraphicsCommandList *) {}
+void PIX::marker(D3DGraphicsCommandList *, eastl::span<const char>) {}
+void PIX::nameResource(ID3D12Resource *, eastl::string_view) {}
+void PIX::nameResource(ID3D12Resource *, eastl::wstring_view) {}
+void PIX::nameObject(ID3D12Object *, eastl::string_view) {}
+void PIX::nameObject(ID3D12Object *, eastl::wstring_view) {}
 #endif
 
 bool nvidia::NSight::try_connect_interface()
@@ -255,6 +366,12 @@ bool nvidia::NSight::try_connect_interface()
     logdbg("DX12: ...found...");
     return true;
   }
+  logdbg("DX12: ...nothing, looking for ngfx-capture-injection.dll...");
+  if (GetModuleHandleW(L"ngfx-capture-injection.dll"))
+  {
+    logdbg("DX12: ...found...");
+    return true;
+  }
   return false;
 }
 
@@ -263,15 +380,19 @@ void nvidia::NSight::beginCapture(const wchar_t *) {}
 void nvidia::NSight::endCapture() {}
 void nvidia::NSight::onPresent() {}
 void nvidia::NSight::captureFrames(const wchar_t *, int) {}
-void nvidia::NSight::beginEvent(ID3D12GraphicsCommandList *cmd, eastl::span<const char> text)
+void nvidia::NSight::beginEvent(D3DGraphicsCommandList *cmd, eastl::span<const char> text)
 {
   cmd->BeginEvent(PIX_EVENT_ANSI_VERSION, text.data(), text.size());
 }
-void nvidia::NSight::endEvent(ID3D12GraphicsCommandList *cmd) { cmd->EndEvent(); }
-void nvidia::NSight::marker(ID3D12GraphicsCommandList *cmd, eastl::span<const char> text)
+void nvidia::NSight::endEvent(D3DGraphicsCommandList *cmd) { cmd->EndEvent(); }
+void nvidia::NSight::marker(D3DGraphicsCommandList *cmd, eastl::span<const char> text)
 {
   cmd->SetMarker(PIX_EVENT_ANSI_VERSION, text.data(), text.size());
 }
+void nvidia::NSight::nameResource(ID3D12Resource *resource, eastl::string_view name) { set_name(resource, name); }
+void nvidia::NSight::nameResource(ID3D12Resource *resource, eastl::wstring_view name) { resource->SetName(name.data()); }
+void nvidia::NSight::nameObject(ID3D12Object *object, eastl::string_view name) { set_name(object, name); }
+void nvidia::NSight::nameObject(ID3D12Object *object, eastl::wstring_view name) { object->SetName(name.data()); }
 
 #if HAS_AMD_GPU_SERVICES
 void amd::RadeonGPUProfiler::configure() {}
@@ -279,7 +400,7 @@ void amd::RadeonGPUProfiler::beginCapture(const wchar_t *) {}
 void amd::RadeonGPUProfiler::endCapture() {}
 void amd::RadeonGPUProfiler::onPresent() {}
 void amd::RadeonGPUProfiler::captureFrames(const wchar_t *, int) {}
-void amd::RadeonGPUProfiler::beginEvent(ID3D12GraphicsCommandList *command_list, eastl::span<const char> text)
+void amd::RadeonGPUProfiler::beginEvent(D3DGraphicsCommandList *command_list, eastl::span<const char> text)
 {
   G_ASSERT_RETURN(command_list, );
   G_ASSERT_RETURN(agsContext, );
@@ -292,7 +413,7 @@ void amd::RadeonGPUProfiler::beginEvent(ID3D12GraphicsCommandList *command_list,
     return;
   logwarn("DX12: Failed to push AGS marker %s. Result = %d", eastl::string(text.data(), text.size()).c_str(), agsResult);
 }
-void amd::RadeonGPUProfiler::endEvent(ID3D12GraphicsCommandList *command_list)
+void amd::RadeonGPUProfiler::endEvent(D3DGraphicsCommandList *command_list)
 {
   G_ASSERT_RETURN(command_list, );
   G_ASSERT_RETURN(agsContext, );
@@ -305,7 +426,7 @@ void amd::RadeonGPUProfiler::endEvent(ID3D12GraphicsCommandList *command_list)
     return;
   logwarn("DX12: Failed to pop AGS marker. Result = %d", agsResult);
 }
-void amd::RadeonGPUProfiler::marker(ID3D12GraphicsCommandList *command_list, eastl::span<const char> text)
+void amd::RadeonGPUProfiler::marker(D3DGraphicsCommandList *command_list, eastl::span<const char> text)
 {
   G_ASSERT_RETURN(command_list, );
   G_ASSERT_RETURN(agsContext, );
@@ -339,11 +460,17 @@ bool amd::RadeonGPUProfiler::try_connect_interface()
   return false;
 }
 
-bool amd::RadeonGPUProfiler::tryCreateDevice(DXGIAdapter *adapter, UUID uuid, D3D_FEATURE_LEVEL minimum_feature_level, void **ptr)
+bool amd::RadeonGPUProfiler::tryCreateDevice(DXGIAdapter *adapter, UUID uuid, D3D_FEATURE_LEVEL minimum_feature_level, void **ptr,
+  HLSLVendorExtensions &extensions)
 {
-  deviceInitialized = debug::ags::create_device_with_user_markers(agsContext, adapter, uuid, minimum_feature_level, ptr);
+  deviceInitialized = debug::ags::create_device_with_user_markers(agsContext, adapter, uuid, minimum_feature_level, ptr, extensions);
   return deviceInitialized;
 }
+
+void amd::RadeonGPUProfiler::nameResource(ID3D12Resource *, eastl::string_view) {}
+void amd::RadeonGPUProfiler::nameResource(ID3D12Resource *, eastl::wstring_view) {}
+void amd::RadeonGPUProfiler::nameObject(ID3D12Object *, eastl::string_view) {}
+void amd::RadeonGPUProfiler::nameObject(ID3D12Object *, eastl::wstring_view) {}
 #endif
 
 } // namespace drv3d_dx12::debug::gpu_capture

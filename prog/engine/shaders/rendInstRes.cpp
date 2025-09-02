@@ -9,6 +9,7 @@
 #include <drv/3d/dag_texture.h>
 #include <drv/3d/dag_driver.h>
 #include <3d/dag_resMgr.h>
+#include <3d/dag_texIdSet.h>
 #include <drv/3d/dag_resId.h>
 #include <ioSys/dag_genIo.h>
 #include <math/dag_TMatrix.h>
@@ -48,6 +49,7 @@ GLOBAL_OPTIONAL_VARS_LIST
 static bool parallax_allowed = false;
 static bool tri_view_allowed = false;
 static bool rendinst_impostor_shader_initialized = false;
+static bool rendinst_disable_anisotropy = false;
 
 void init_rendinst_impostor_shader()
 {
@@ -64,6 +66,26 @@ void rendinst_impostor_set_view_mode(bool allowed) { tri_view_allowed = allowed;
 bool rendinst_impostor_is_parallax_allowed() { return parallax_allowed; }
 
 bool rendinst_impostor_is_tri_view_allowed() { return tri_view_allowed; }
+
+void rendinst_impostor_disable_anisotropy() { rendinst_disable_anisotropy = true; }
+
+static void patchAnisotropy(const TextureIdSet &matTexList)
+{
+  for (int texNo = 0; texNo < matTexList.size(); ++texNo)
+  {
+    BaseTexture *tree_tex = acquire_managed_tex(matTexList[texNo]);
+    if (tree_tex)
+    {
+      add_anisotropy_exception(matTexList[texNo]);
+
+      d3d::SamplerInfo info = get_sampler_info(get_texture_meta_data(matTexList[texNo]));
+      info.anisotropic_max = 1;
+      set_texture_separate_sampler(matTexList[texNo], info);
+
+      release_managed_tex(matTexList[texNo]);
+    }
+  }
+}
 
 RenderableInstanceResource *RenderableInstanceResource::loadResourceInternal(IGenLoad &crd, int srl_flags, ShaderMatVdata &smvd)
 {
@@ -482,6 +504,17 @@ void RenderableInstanceLodsResource::patchAndLoadData(int res_sz, IGenLoad &crd,
       lods.init(lods.data(), i);
     }
 
+  {
+    // This is a very commonly used condition in the BVH, so it is cached here.
+    auto isTree = [](ShaderMesh::RElem &elem) { return strncmp(elem.mat->getShaderClassName(), "rendinst_tree", 13) == 0; };
+    auto isFlag = [](ShaderMesh::RElem &elem) { return strncmp(elem.mat->getShaderClassName(), "rendinst_flag", 13) == 0; };
+    if (auto &scene = lods.front().scene)
+    {
+      auto elems = scene->getMesh()->getMesh()->getMesh()->getElems(ShaderMesh::STG_opaque, ShaderMesh::STG_atest);
+      hasTreeOrFlagMaterial = eastl::any_of(elems.begin(), elems.end(), [&](auto &e) { return isTree(e) || isFlag(e); });
+    }
+  }
+
   uint32_t qlBestLod = 0;
   if (RenderableInstanceLodsResource::get_skip_first_lods_count && !(flags & SRLOAD_TO_SYSMEM))
     qlMinAllowedLod = qlBestLod =
@@ -517,13 +550,25 @@ void RenderableInstanceLodsResource::prepareTextures(const char *name, uint32_t 
   {
     if (impostorTextures.isInitialized())
       return;
+
+    if (rendinst_disable_anisotropy)
+    {
+      TextureIdSet matTexList;
+      gatherUsedTex(matTexList);
+      patchAnisotropy(matTexList);
+    }
+
     impostorTextures.albedo_alpha = ::get_tex_gameres(String(0, "%s_aa", name));
     if (impostorTextures.albedo_alpha != BAD_TEXTUREID)
     {
-      if (BaseTexture *tex = D3dResManagerData::getD3dTex<RES3D_TEX>(impostorTextures.albedo_alpha))
+      if (BaseTexture *tex = D3dResManagerData::getD3dTex<D3DResourceType::TEX>(impostorTextures.albedo_alpha))
       {
+        d3d::SamplerInfo info = get_sampler_info(get_texture_meta_data(impostorTextures.albedo_alpha));
+        info.anisotropic_max = 1;
+        info.address_mode_u = info.address_mode_v = info.address_mode_w = d3d::AddressMode::Clamp;
+        info.mip_map_bias = 0;
+        set_texture_separate_sampler(impostorTextures.albedo_alpha, info);
         add_anisotropy_exception(impostorTextures.albedo_alpha);
-        tex->disableSampler();
         TextureInfo texInfo;
         tex->getinfo(texInfo);
         impostorTextures.height = texInfo.h;
@@ -550,9 +595,7 @@ void RenderableInstanceLodsResource::prepareTextures(const char *name, uint32_t 
             if (shadowTex)
             {
               impostorTextures.shadowAtlas = register_managed_tex(textureName, shadowTex);
-              shadowTex->texlod(0);
-              shadowTex->texfilter(TEXFILTER_DEFAULT);
-              shadowTex->setAnisotropy(1);
+              set_texture_separate_sampler(impostorTextures.shadowAtlas, {});
               add_anisotropy_exception(impostorTextures.shadowAtlas);
 
               impostorTextures.shadowAtlasTex = acquire_managed_tex(impostorTextures.shadowAtlas);
@@ -565,22 +608,26 @@ void RenderableInstanceLodsResource::prepareTextures(const char *name, uint32_t 
     impostorTextures.normal_translucency = ::get_tex_gameres(String(0, "%s_nt", name));
     if (impostorTextures.normal_translucency != BAD_TEXTUREID)
     {
-      if (BaseTexture *tex = D3dResManagerData::getD3dTex<RES3D_TEX>(impostorTextures.normal_translucency))
+      if (BaseTexture *tex = D3dResManagerData::getD3dTex<D3DResourceType::TEX>(impostorTextures.normal_translucency))
       {
-        tex->texaddr(TEXADDR_CLAMP);
-        tex->texlod(0);
-        tex->setAnisotropy(1);
+        d3d::SamplerInfo info = get_sampler_info(get_texture_meta_data(impostorTextures.normal_translucency));
+        info.anisotropic_max = 1;
+        info.address_mode_u = info.address_mode_v = info.address_mode_w = d3d::AddressMode::Clamp;
+        info.mip_map_bias = 0;
+        set_texture_separate_sampler(impostorTextures.normal_translucency, info);
         add_anisotropy_exception(impostorTextures.normal_translucency);
       }
     }
     impostorTextures.ao_smoothness = ::get_tex_gameres(String(0, "%s_as", name));
     if (impostorTextures.ao_smoothness != BAD_TEXTUREID)
     {
-      if (BaseTexture *tex = D3dResManagerData::getD3dTex<RES3D_TEX>(impostorTextures.ao_smoothness))
+      if (BaseTexture *tex = D3dResManagerData::getD3dTex<D3DResourceType::TEX>(impostorTextures.ao_smoothness))
       {
-        tex->texaddr(TEXADDR_CLAMP);
-        tex->texlod(0);
-        tex->setAnisotropy(1);
+        d3d::SamplerInfo info = get_sampler_info(get_texture_meta_data(impostorTextures.ao_smoothness));
+        info.anisotropic_max = 1;
+        info.address_mode_u = info.address_mode_v = info.address_mode_w = d3d::AddressMode::Clamp;
+        info.mip_map_bias = 0;
+        set_texture_separate_sampler(impostorTextures.ao_smoothness, info);
         add_anisotropy_exception(impostorTextures.ao_smoothness);
       }
     }
@@ -598,7 +645,8 @@ RenderableInstanceLodsResource::RenderableInstanceLodsResource(const RenderableI
   bound0rad(0.f),
   impostorDataOfs(from.impostorDataOfs),
   packedFields(interlocked_relaxed_load(from.packedFields) & ~(RES_LD_FLG_MASK << RES_LD_FLG_SHIFT)),
-  smvd(from.smvd)
+  smvd(from.smvd),
+  hasTreeOrFlagMaterial(from.hasTreeOrFlagMaterial)
 {
   uint32_t resSize = (packedFields >> RES_SIZE_SHIFT) & RES_SIZE_MASK;
   // don't touch (write) occl unless (hasOccluderBox|hasOccluderQuad)!=0; resSize MAY BE smaller than offset between lods and end of
@@ -607,6 +655,7 @@ RenderableInstanceLodsResource::RenderableInstanceLodsResource(const RenderableI
   const void *old_base = &from.lods;
 
   bvhId = from.bvhId;
+  setRiExtraId(-1);
 
   memcpy(new_base, old_base, resSize);
   lods.rebase(new_base, old_base);

@@ -171,9 +171,10 @@ shader dagi_radiance_grid_create_indirect_cs
   DAGI_RAD_GRID_CLIPMAP_MATH(cs)
   (cs)
   {
-    dagi_rad_grid_temporal_indirect@i3 = dagi_rad_grid_temporal_indirect;
+    dagi_rad_grid_temporal_indirect@i4 = dagi_rad_grid_temporal_indirect;
   }
   hlsl(cs) {
+    #pragma wave32
     RWByteAddressBuffer dagi_radiance_grid_selected_probes:register(u0);
     RWByteAddressBuffer dagi_rad_grid_indirect_buffer:register(u1);
     #include <dagi_rad_grid.hlsli>
@@ -181,7 +182,7 @@ shader dagi_radiance_grid_create_indirect_cs
     void dagi_radiance_grid_create_indirect_cs(uint dtid : SV_DispatchThreadID)
     {
       uint count = loadBuffer(dagi_radiance_grid_selected_probes, 0);
-      storeBuffer3(dagi_rad_grid_indirect_buffer, 0, uint3(min(uint(dagi_rad_grid_temporal_indirect.z), count), 1, 1));
+      storeBuffer3(dagi_rad_grid_indirect_buffer, dagi_rad_grid_temporal_indirect.w, uint3(min(uint(dagi_rad_grid_temporal_indirect.z), count), 1, 1));
 
       const uint count_fixed_point = 32;//5 bit for fractional part of fixed point. we use fixed point to avoid nans, etc
       uint totalClipSize = dagi_rad_grid_temporal_indirect.x;
@@ -235,6 +236,7 @@ shader dagi_radiance_grid_calc_temporal_cs
     [numthreads(DAGI_RAD_GRID_OCT_RES, DAGI_RAD_GRID_OCT_RES, 1)]
     void dagi_radiance_grid_calc_temporal_cs(uint tid:SV_GroupIndex, uint2 gtid : SV_GroupThreadID, uint gId : SV_GroupID)
     {
+      ##assert(gId < dagi_rad_grid_temporal_size.x, "[%s:%.f] 'selected invalid probe count' %.f < (%.f)", _FILE_, __LINE__, gId, dagi_rad_grid_temporal_size.x);
       if (tid == 0)
       {
         shared_probe = loadBuffer(dagi_radiance_grid_selected_probes, gId*4 + RAD_GRID_TEMPORAL_DATA_OFFSET);
@@ -251,6 +253,9 @@ shader dagi_radiance_grid_calc_temporal_cs
       uint2 clipSize = dagi_rad_grid_temporal_size.zw;
 
       uint3 targetProbeCoord = uint3(probeI%clipSize.x, (probeI/clipSize.x)%clipSize.x, probeI/(clipSize.x*clipSize.x));
+      ##assert(targetProbeCoord.z < clipSize.y, "[%s:%.f] 'selected invalid probe' %.f < (%.f)", _FILE_, __LINE__, targetProbeCoord.z, clipSize.y);
+      if (targetProbeCoord.z >= clipSize.y) // should never happen
+        return;
       if (tid == 0)
       {
         uint3 atlasAgeCoord = targetProbeCoord + uint3(0,0,clip*dagi_rad_grid_get_clip_size().y);

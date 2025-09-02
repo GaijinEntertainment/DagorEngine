@@ -1,5 +1,8 @@
 .venv
 source/api-references/quirrel-modules
 source/api-references/dagor-engine-docs
+source/_internal/api-references/projects-quirrel-modules
 _build
 build
+source/_tags
+source/dagor-tools/addons/3ds-max/dagor-maxscript-toolbox/_tags/

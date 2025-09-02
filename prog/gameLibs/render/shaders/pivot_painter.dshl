@@ -21,7 +21,7 @@ endmacro
     MaterialFunction'/Engine/Functions/Engine_MaterialFunctions02/PivotPainter2/PivotPainter2FoliageShader.PivotPainter2FoliageShader'
 */
 
-macro USE_PIVOT_PAINTER_BASE(stage)
+macro INIT_PIVOT_PAINTER_BASE(stage)
   (stage)
   {
     wind_noise_speed_base@f1 = (wind_noise_speed_base);
@@ -36,7 +36,9 @@ macro USE_PIVOT_PAINTER_BASE(stage)
     wind_motion_damp_base@f1 = (wind_motion_damp_base);
     wind_motion_damp_level_mul@f1 = (wind_motion_damp_level_mul);
   }
+endmacro
 
+macro USE_PIVOT_PAINTER_BASE(stage)
   hlsl(stage) {
     // This should be parameter and be EQUAL to houdini's i@gen max value
     static const int MAX_ALLOWED_HIERARCHY = 4;
@@ -123,7 +125,7 @@ macro USE_PIVOT_PAINTER_BASE(stage)
         Data.branchDirExtent[level].xyzw = getParentPivotDirectionAndExtent(currentUV, X, Y, Z);
 
         // False will happen at trunk level
-        if (curIdx != parentIdx)
+        if (curIdx != parentIdx && level < MAX_ALLOWED_HIERARCHY - 1)
         {
           Data.maxHierarchyLevel++;
 
@@ -268,5 +270,6 @@ macro USE_PIVOT_PAINTER()
     float4 sample_pp_dir_tex(float2 tc) { return tex2DLodBindless(get_pp_dir_tex(), float4(tc, 0, 0)); }
   }
 
+  INIT_PIVOT_PAINTER_BASE(vs)
   USE_PIVOT_PAINTER_BASE(vs)
 endmacro

@@ -6,14 +6,14 @@ let txt = @(text) {
 }
 
 let txtFlex = @(text) {
-  size = [flex(), SIZE_TO_CONTENT]
+  size = FLEX_H
   halign = ALIGN_CENTER
   rendObj = ROBJ_TEXT
   text
 }
 
 let txtMin = @(text) {
-  size = [flex(), SIZE_TO_CONTENT]
+  size = FLEX_H
   minWidth = SIZE_TO_CONTENT
   halign = ALIGN_CENTER
   rendObj = ROBJ_TEXT
@@ -21,15 +21,15 @@ let txtMin = @(text) {
 }
 
 let fixedGap = {
-  size = [sh(2), flex()]
+  size = static [sh(2), flex()]
   halign = ALIGN_CENTER
-  children = { rendObj = ROBJ_SOLID size = [1, flex()] }
+  children = { rendObj = ROBJ_SOLID size = static [1, flex()] }
 }
 
 let flexGap = {
   size = flex()
   halign = ALIGN_CENTER
-  children = { rendObj = ROBJ_SOLID size = [1, flex()] }
+  children = { rendObj = ROBJ_SOLID size = static [1, flex()] }
 }
 
 let halfGap = {
@@ -38,7 +38,7 @@ let halfGap = {
 
 return {
   rendObj = ROBJ_FRAME
-  size = [sw(50), SIZE_TO_CONTENT]
+  size = static [sw(50), SIZE_TO_CONTENT]
   hplace = ALIGN_CENTER
   vplace = ALIGN_CENTER
   flow = FLOW_VERTICAL
@@ -48,7 +48,7 @@ return {
   children = [
     {
       rendObj = ROBJ_FRAME
-      size = [flex(), SIZE_TO_CONTENT]
+      size = FLEX_H
       flow = FLOW_HORIZONTAL
       gap = fixedGap
       borderWidth = 1
@@ -65,7 +65,7 @@ return {
 
     {
       rendObj = ROBJ_FRAME
-      size = [flex(), SIZE_TO_CONTENT]
+      size = FLEX_H
       flow = FLOW_HORIZONTAL
       gap = fixedGap
       borderWidth = 1
@@ -82,7 +82,7 @@ return {
 
     {
       rendObj = ROBJ_FRAME
-      size = [flex(), SIZE_TO_CONTENT]
+      size = FLEX_H
       flow = FLOW_HORIZONTAL
       gap = fixedGap
       borderWidth = 1
@@ -99,7 +99,7 @@ return {
 
     {
       rendObj = ROBJ_FRAME
-      size = [flex(), SIZE_TO_CONTENT]
+      size = FLEX_H
       flow = FLOW_HORIZONTAL
       gap = flexGap
       borderWidth = 1
@@ -116,7 +116,7 @@ return {
 
     {
       rendObj = ROBJ_FRAME
-      size = [flex(), SIZE_TO_CONTENT]
+      size = FLEX_H
       flow = FLOW_HORIZONTAL
       borderWidth = 1
       color = 0xFFFFDD66

@@ -3,11 +3,16 @@
 
 #include "intervals.h"
 #include "shaderSave.h"
+#include "shTargetContext.h"
 #include <debug/dag_debug.h>
 #include "varTypes.h"
+#include "commonUtils.h"
 #include <generic/dag_tab.h>
 #include <util/dag_stdint.h>
 #include <EASTL/array.h>
+
+// @TODO: separate logical types from serialized types
+
 
 namespace ShaderVariant
 {
@@ -30,6 +35,9 @@ public:
 class TypeTable
 {
 public:
+  TypeTable() = default;
+  explicit TypeTable(shc::TargetContext &a_ctx) : ctx{&a_ctx} {}
+
   inline int getCount() const { return types.size(); };
   inline void shrinkTo(int cnt) { return types.resize(cnt); }
 
@@ -59,9 +67,12 @@ public:
 
   void reset() { types.clear(); }
 
+  void setContextRef(shc::TargetContext &a_ctx) { ctx = &a_ctx; }
+
 private:
   SerializableTab<VariantType> types;
   BINDUMP_NON_SERIALIZABLE(const IntervalList *iList = nullptr);
+  BINDUMP_NON_SERIALIZABLE(shc::TargetContext *ctx);
 
   // calculate type value range
   void updateTypeValRange(VariantType &t);
@@ -141,14 +152,9 @@ class SearchInfo
 protected:
   friend struct Variant;
 
-  SearchInfo(const SearchInfo &from) : types(from.types) { G_ASSERT(false); }
-  SearchInfo &operator=(const SearchInfo &from)
-  {
-    G_ASSERT(false);
-    return *this;
-  }
-
 public:
+  NON_COPYABLE_TYPE(SearchInfo)
+
   inline SearchInfo(const TypeTable &t, bool fill_with_defaults) : types(t)
   {
     combinedValues = {};
@@ -162,8 +168,6 @@ public:
       }
     }
   }
-
-  inline ~SearchInfo() {}
 
   // fill from partial search info table (slow)
   inline void fillFromPartialSearchInfo(const PartialSearchInfo &psi)
@@ -236,7 +240,8 @@ protected:
   friend class VariantTableSrc;
 
 public:
-  VariantTable();
+  VariantTable() = default;
+  explicit VariantTable(shc::TargetContext &a_ctx);
 
   // create search info values for this variants
   SearchInfo *createSearchInfo(bool fill_with_defaults);
@@ -263,10 +268,17 @@ public:
     types.reset();
   }
 
+  void setContextRef(shc::TargetContext &a_ctx)
+  {
+    ctx = &a_ctx;
+    types.setContextRef(a_ctx);
+  }
+
 private:
   TypeTable types;
   IntervalList intervals;
   SerializableTab<Variant> variants;
   BINDUMP_NON_SERIALIZABLE(mutable int cachedIndex);
+  BINDUMP_NON_SERIALIZABLE(shc::TargetContext *ctx);
 };
 } // namespace ShaderVariant

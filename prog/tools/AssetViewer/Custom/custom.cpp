@@ -15,14 +15,14 @@ class CustomEditorPlugin : public IGenEditorPlugin, public PropPanel::ControlEve
 {
 public:
   CustomEditorPlugin() {}
-  ~CustomEditorPlugin() {}
+  ~CustomEditorPlugin() override {}
 
-  virtual const char *getInternalName() const { return "restAssetEditor"; }
+  const char *getInternalName() const override { return "restAssetEditor"; }
 
-  virtual void registered() {}
-  virtual void unregistered() {}
+  void registered() override {}
+  void unregistered() override {}
 
-  virtual bool begin(DagorAsset *asset)
+  bool begin(DagorAsset *asset) override
   {
     if (!get_app().getScriptChangeFlag())
     {
@@ -34,7 +34,7 @@ public:
 
     return true;
   }
-  virtual bool end()
+  bool end() override
   {
     if (spEditor)
       spEditor->destroyPanel();
@@ -42,30 +42,30 @@ public:
     return true;
   }
 
-  virtual void clearObjects() {}
-  virtual void onSaveLibrary() {}
-  virtual void onLoadLibrary() {}
+  void clearObjects() override {}
+  void onSaveLibrary() override {}
+  void onLoadLibrary() override {}
 
-  virtual bool getSelectionBox(BBox3 &box) const { return false; }
+  bool getSelectionBox(BBox3 &box) const override { return false; }
 
-  virtual void actObjects(float dt) {}
-  virtual void beforeRenderObjects() {}
-  virtual void renderObjects() {}
-  virtual void renderTransObjects() {}
+  void actObjects(float dt) override {}
+  void beforeRenderObjects() override {}
+  void renderObjects() override {}
+  void renderTransObjects() override {}
 
-  virtual bool supportAssetType(const DagorAsset &asset) const
+  bool supportAssetType(const DagorAsset &asset) const override
   {
     return true;
     // return strcmp(asset.getTypeStr(), "composit")==0 ||
     //        strcmp(asset.getTypeStr(), "dynModel")==0;
   }
 
-  virtual void fillPropPanel(PropPanel::ContainerPropertyControl &panel) { panel.setEventHandler(this); }
+  void fillPropPanel(PropPanel::ContainerPropertyControl &panel) override { panel.setEventHandler(this); }
 
 
-  virtual void postFillPropPanel() {}
+  void postFillPropPanel() override {}
 
-  virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) {}
+  void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override {}
 };
 
 static InitOnDemand<CustomEditorPlugin> plugin;

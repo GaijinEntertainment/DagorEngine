@@ -16,6 +16,12 @@
 #include <EASTL/string.h>
 #include <EASTL/vector.h>
 #include <util/dag_delayedAction.h>
+
+#ifdef _MSC_VER
+extern "C" void *_AddressOfReturnAddress(void);
+#pragma intrinsic(_AddressOfReturnAddress)
+#endif
+
 using namespace console_private;
 
 //************************************************************************
@@ -31,7 +37,7 @@ struct TestErrorThread : public DaThread
     if (crash)
       *(volatile int *)0 = 0;
     else
-      test_zero /= test_zero;
+      debug("%f", test_zero / test_zero);
   }
 };
 

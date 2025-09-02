@@ -3,6 +3,8 @@ require DagorStdGuiRender
 require math
 require DagorMath
 
+options no_unused_function_arguments = false
+
 let start_time = ref_time_ticks()
 
 struct TestParams
@@ -54,3 +56,8 @@ def draw_without_params(var ctx: GuiContext&; rdata: ElemRenderData& const; rsta
   let rounding = float4(20,20,20,20)
   let color = E3DCOLOR(Color4(float4(0.50, 0.60+0.3*sin(t*3e-6), 0.80, 1.0)))
   ctx |> render_rounded_box(lt, rb, color, E3DCOLOR(0xFFF0FFF0), rounding, 3.)
+
+
+[export]
+def interop_test(var x: int, var y:float, var elem: Element& const)
+  return float(x) * y * (elem.props |> getFloat("dasInteropExtraMul", -1.0))

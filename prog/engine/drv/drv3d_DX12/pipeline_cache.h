@@ -245,6 +245,7 @@ struct GraphicsPipelineSignature
     RootSignatureStageLayout hsLayout;
     RootSignatureStageLayout dsLayout;
     bool hasVertexInputs = false;
+    bool hasStreamOutput = false;
 #if _TARGET_SCARLETT
     bool hasAccelerationStructure = false;
 #endif

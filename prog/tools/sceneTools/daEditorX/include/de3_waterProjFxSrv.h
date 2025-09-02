@@ -18,7 +18,7 @@ public:
   virtual void init() = 0;
 
   virtual void beforeRender(Stage stage) = 0;
-  virtual void renderGeometry(Stage stage) = 0;
+  void renderGeometry(Stage stage) override = 0;
 
   virtual void render(float waterLevel, float significantWaveHeight) = 0;
 };

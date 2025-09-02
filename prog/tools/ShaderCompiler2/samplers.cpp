@@ -1,18 +1,18 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "samplers.h"
+#include "shSemCode.h"
 #include "globVarSem.h"
 #include "globVar.h"
 #include "varMap.h"
 #include "shLog.h"
+#include "shErrorReporting.h"
 #include "cppStcode.h"
 #include <shaders/dag_shaderVarType.h>
 #include <EASTL/string.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
 
-SamplerTable g_sampler_table{};
-
-Sampler::Sampler(ShaderTerminal::sampler_decl &smp_decl, ShaderTerminal::ShaderSyntaxParser &parser) : mSamplerDecl(&smp_decl)
+Sampler::Sampler(ShaderTerminal::sampler_decl &smp_decl, Parser &parser) : mSamplerDecl(&smp_decl)
 {
   if (mSamplerDecl->state_name.empty())
     return;
@@ -49,13 +49,13 @@ Sampler::Sampler(ShaderTerminal::sampler_decl &smp_decl, ShaderTerminal::ShaderS
         "Incorrect state name '%s' for sampler '%s'\nPossible state names:", state_name.c_str(), mSamplerDecl->name->text);
       for (auto &[sn, _] : state_name_to_values)
         message.append_sprintf(" %s, ", sn.c_str());
-      ShaderParser::error(message.c_str(), mSamplerDecl->state_name[i], parser);
+      report_error(parser, mSamplerDecl->state_name[i], message.c_str());
       return;
     }
     if (found_state->second.begin()->empty() != (mSamplerDecl->expr[i] != nullptr))
     {
-      ShaderParser::error(String(0, "Incorrect state value '%s' for sampler '%s'", state_name.c_str(), mSamplerDecl->name->text),
-        mSamplerDecl->state_name[i], parser);
+      report_error(parser, mSamplerDecl->state_name[i], "Incorrect state value '%s' for sampler '%s'", state_name.c_str(),
+        mSamplerDecl->name->text);
       return;
     }
 
@@ -70,7 +70,7 @@ Sampler::Sampler(ShaderTerminal::sampler_decl &smp_decl, ShaderTerminal::ShaderS
           mSamplerDecl->name->text, state_name.c_str());
         for (auto &sn : found_state->second)
           message.append_sprintf(" %s, ", sn.c_str());
-        ShaderParser::error(message.c_str(), mSamplerDecl->state[i], parser);
+        report_error(parser, mSamplerDecl->state[i], message.c_str());
         return;
       }
     }
@@ -110,7 +110,7 @@ Sampler::Sampler(ShaderTerminal::sampler_decl &smp_decl, ShaderTerminal::ShaderS
   }
 }
 
-void SamplerTable::add(ShaderTerminal::sampler_decl &smp_decl, ShaderTerminal::ShaderSyntaxParser &parser)
+void SamplerTable::add(ShaderTerminal::sampler_decl &smp_decl, Parser &parser)
 {
   int sampler_id = mSamplers.size();
   if (mSamplerIds.count(smp_decl.name->text) > 1)
@@ -119,7 +119,7 @@ void SamplerTable::add(ShaderTerminal::sampler_decl &smp_decl, ShaderTerminal::S
     {
       eastl::string message(eastl::string::CtorSprintf{}, "Redefinition of static sampler variable '%s'. It's not supported yet.",
         smp_decl.name->text);
-      ShaderParser::error(message.c_str(), smp_decl.name, parser);
+      report_error(parser, smp_decl.name, message.c_str());
     }
     return;
   }
@@ -127,17 +127,17 @@ void SamplerTable::add(ShaderTerminal::sampler_decl &smp_decl, ShaderTerminal::S
   mSamplerIds.emplace(smp_decl.name->text, sampler_id);
   mSamplers.emplace_back(Sampler(smp_decl, parser));
 
-  int id = VarMap::addVarId(smp_decl.name->text);
-  int v = ShaderGlobal::get_var_internal_index(id);
-  Tab<ShaderGlobal::Var> &variable_list = ShaderGlobal::getMutableVariableList();
+  int id = varNameMap.addVarId(smp_decl.name->text);
+  int v = globvars.getVarInternalIndex(id);
+  Tab<ShaderGlobal::Var> &variable_list = globvars.getMutableVariableList();
   if (v >= 0)
   {
     if (variable_list[v].value.samplerInfo != mSamplers.back().mSamplerInfo)
     {
       eastl::string message(eastl::string::CtorSprintf{}, "Shader variable '%s' already declared with different properties in ",
         smp_decl.name->text);
-      message += parser.get_lex_parser().get_symbol_location(id, SymbolType::GLOBAL_VARIABLE);
-      ShaderParser::error(message.c_str(), smp_decl.name, parser);
+      message += parser.get_lexer().get_symbol_location(id, SymbolType::GLOBAL_VARIABLE);
+      report_error(parser, smp_decl.name, message.c_str());
     }
     return;
   }
@@ -145,7 +145,7 @@ void SamplerTable::add(ShaderTerminal::sampler_decl &smp_decl, ShaderTerminal::S
   mSamplers.back().mNameId = id;
 
   // @TODO: when the sampler decl is fake, this is a useless and expired pointer registration
-  parser.get_lex_parser().register_symbol(id, SymbolType::GLOBAL_VARIABLE, smp_decl.name);
+  parser.get_lexer().register_symbol(id, SymbolType::GLOBAL_VARIABLE, smp_decl.name);
 
   v = append_items(variable_list, 1);
   variable_list[v].type = SHVT_SAMPLER;
@@ -153,7 +153,7 @@ void SamplerTable::add(ShaderTerminal::sampler_decl &smp_decl, ShaderTerminal::S
   variable_list[v].value.samplerInfo = mSamplers.back().mSamplerInfo;
   variable_list[v].isAlwaysReferenced = smp_decl.is_always_referenced ? true : false;
 
-  g_cppstcode.globVars.setVar(SHVT_SAMPLER, smp_decl.name->text);
+  cppstcode.globVars.setVar(SHVT_SAMPLER, smp_decl.name->text);
 }
 
 void SamplerTable::link(const Tab<Sampler> &new_samplers, Tab<int> &smp_link_table)
@@ -198,23 +198,27 @@ Tab<Sampler> SamplerTable::releaseSamplers()
   return released;
 }
 
-void add_dynamic_sampler_for_stcode(ShaderSemCode &sh_sem_code, ShaderClass &sclass, ShaderTerminal::sampler_decl &smp_decl,
-  ShaderTerminal::ShaderSyntaxParser &parser)
+void SamplerTable::clear()
 {
-  int id = VarMap::addVarId(smp_decl.name->text);
+  clear_and_shrink(mSamplers);
+  clear_and_shrink(mSamplerIds);
+}
+
+void add_dynamic_sampler_for_stcode(ShaderSemCode &sh_sem_code, ShaderClass &sclass, ShaderTerminal::sampler_decl &smp_decl,
+  Parser &parser, VarNameMap &var_name_map)
+{
+  int id = var_name_map.addVarId(smp_decl.name->text);
   int v = sh_sem_code.find_var(id);
   if (v >= 0)
   {
-    ShaderParser::error(
-      eastl::string{eastl::string::CtorSprintf{}, "Shader variable '%s' already declared in ", smp_decl.name->text}.c_str(),
-      smp_decl.name, parser);
+    report_error(parser, smp_decl.name, "Shader variable '%s' already declared in ", smp_decl.name->text);
     return;
   }
 
   Sampler sampler{smp_decl, parser};
 
   // @TODO: when the sampler decl is fake, this is a useless and expired pointer registration
-  parser.get_lex_parser().register_symbol(id, SymbolType::STATIC_VARIABLE, smp_decl.name);
+  parser.get_lexer().register_symbol(id, SymbolType::STATIC_VARIABLE, smp_decl.name);
 
   v = append_items(sh_sem_code.vars, 1);
   sh_sem_code.vars[v].type = SHVT_SAMPLER;
@@ -224,7 +228,7 @@ void add_dynamic_sampler_for_stcode(ShaderSemCode &sh_sem_code, ShaderClass &scl
   sh_sem_code.vars[v].noWarnings = false;
   sh_sem_code.vars[v].used = true;
 
-  sh_sem_code.staticVarRegs.add(smp_decl.name->text, v);
+  sh_sem_code.staticStcodeVars.add(smp_decl.name->text, v);
 
   int sv = sclass.find_static_var(id);
   if (sv < 0)
@@ -238,7 +242,7 @@ void add_dynamic_sampler_for_stcode(ShaderSemCode &sh_sem_code, ShaderClass &scl
   {
     if (sclass.stvar[sv].type != SHVT_SAMPLER || sclass.stvar[sv].defval.samplerInfo != sampler.mSamplerInfo)
     {
-      ShaderParser::error(String("static var '") + smp_decl.name->text + "' defined with different type/value", smp_decl.name, parser);
+      report_error(parser, smp_decl.name, "static var '%s' defined with different type/value", smp_decl.name->text);
       return;
     }
   }

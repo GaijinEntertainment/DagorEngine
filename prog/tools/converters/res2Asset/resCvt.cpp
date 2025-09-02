@@ -163,9 +163,8 @@ static bool copyFileAndTime(const char *srcF, const char *dstF)
 
 static int copyFiles(const char *src, const char *dst, const char *mask, const char *dest_name, bool fullReport)
 {
-  alefind_t ff;
   int cnt = 0;
-  for (bool scan = dd_find_first(String(260, "%s/%s", src, mask), 0, &ff); scan; scan = dd_find_next(&ff))
+  for (const alefind_t &ff : dd_find_iterator(String(260, "%s/%s", src, mask), DA_FILE))
   {
     String srcF(256, "%s%s", src, ff.name);
     const char *tmp = ff.name;
@@ -188,7 +187,6 @@ static int copyFiles(const char *src, const char *dst, const char *mask, const c
 
     cnt++;
   }
-  dd_find_close(&ff);
 
   return cnt;
 }

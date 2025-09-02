@@ -1,3 +1,4 @@
+options indenting = 2
 module base shared
 require math
 require DagorMath
@@ -14,7 +15,7 @@ let
   IDENT_TM = identity3x4()
   VERY_SMALL_NUMBER = 4e-19
 
-let [[ignore_heap_usage]] IDENT_BBOX = BBox3(float3(), 1f) // ignore heap usage because it is used c++ heap
+let @ignore_heap_usage IDENT_BBOX = BBox3(float3(), 1f) // ignore heap usage because it is used c++ heap
 
 [generic]
 def deg_to_rad(val)
@@ -202,14 +203,3 @@ def max(a, b, c)
 [generic]
 def min(a, b, c)
   return min(min(a, b), c)
-
-[generic]
-def perpendicular(var norm : float3)
-  norm = normalize(norm)
-  let threshold = 0.5
-  if (abs(norm.z) < threshold)
-    return cross(norm, float3(-norm.y, norm.x, norm.z))
-  elif (abs(norm.y) < threshold)
-    return cross(norm, float3(-norm.z, norm.y, norm.x))
-  else
-    return cross(norm, float3(norm.x, -norm.z, norm.y))

@@ -1,9 +1,10 @@
-D3D API for work with matrices and perspective object
-=================================================
+D3D API for Working with Matrices and Perspective Object
+========================================================
 
-The file contains depricated methods that shouldn't be a part of d3d API.
-We a re going to remove getters/setters because they are used for global state access.
-Other matric calculation methods should be moved out of d3d namespace.
+The file contains deprecated methods that should not be part of the D3D API. We
+are going to remove the getters and setters, as they are used for accessing
+global state. Other matrix calculation methods should be moved out of the
+``d3d`` namespace.
 
-.. autodoxygenfile:: dag_matricesAndPerspective.h
+.. doxygenfile:: dag_matricesAndPerspective.h
   :project: d3dAPI

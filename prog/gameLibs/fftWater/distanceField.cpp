@@ -35,15 +35,14 @@ void build_distance_field(UniqueTexHolder &distField, int textureSize, int heigh
   ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
   if (shore_waves_on)
   {
-    UniqueTex tempDistField[2]; //|TEXFMT_L8
+    UniqueTex tempDistField[2]; //|TEXFMT_R8
     tempDistField[0] = dag::create_tex(NULL, textureSize, textureSize, TEXCF_RTARGET | TEXFMT_G16R16, 1, "shore_sdf_t0");
     tempDistField[1] = dag::create_tex(NULL, textureSize, textureSize, TEXCF_RTARGET | TEXFMT_G16R16, 1, "shore_sdf_t1");
-    tempDistField[0].getTex2D()->disableSampler();
-    tempDistField[1].getTex2D()->disableSampler();
     {
       d3d::SamplerInfo smpInfo;
       smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
       smpInfo.filter_mode = d3d::FilterMode::Point;
+      smpInfo.mip_map_mode = d3d::MipMapMode::Point;
       ShaderGlobal::set_sampler(get_shader_variable_id("sdf_temp_tex_samplerstate"), d3d::request_sampler(smpInfo));
     }
 
@@ -81,11 +80,10 @@ void build_distance_field(UniqueTexHolder &distField, int textureSize, int heigh
     if (riversCB || detect_rivers_width > 0)
     {
       const int river_levels = 3;
-      river_mask = dag::create_tex(NULL, textureSize, textureSize, TEXCF_RTARGET | TEXFMT_L8, river_levels, "temp_river_mask");
+      river_mask = dag::create_tex(NULL, textureSize, textureSize, TEXCF_RTARGET | TEXFMT_R8, river_levels, "temp_river_mask");
       if (!river_mask.getTex2D())
         river_mask = dag::create_tex(NULL, textureSize, textureSize, TEXCF_RTARGET | TEXFMT_A8R8G8B8, river_levels, "temp_river_mask");
       d3d_err(river_mask.getTex2D());
-      river_mask.getTex2D()->disableSampler();
       {
         d3d::SamplerInfo smpInfo;
         smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
@@ -125,7 +123,6 @@ void build_distance_field(UniqueTexHolder &distField, int textureSize, int heigh
     distField = dag::create_tex(NULL, textureSize, textureSize,
       TEXCF_RTARGET | (high_precision_distance_field ? TEXFMT_A16B16G16R16 : TEXFMT_A8R8G8B8), 1, "shore_distance_field_tex");
 
-    distField.getTex2D()->disableSampler();
     d3d::set_render_target(distField.getTex2D(), 0);
     d3d::clearview(CLEAR_DISCARD_TARGET, 0, 0, 0);
     PostFxRenderer distanceGradientBuilder;
@@ -141,7 +138,7 @@ void build_distance_field(UniqueTexHolder &distField, int textureSize, int heigh
       NULL,
       shoreDistanceFieldTexSize/16,
       shoreDistanceFieldTexSize/16,
-      TEXCF_RTARGET|TEXFMT_L8,
+      TEXCF_RTARGET|TEXFMT_R8,
       1,
       "shoreDistanceFieldTex");
 
@@ -171,7 +168,6 @@ void build_distance_field(UniqueTexHolder &distField, int textureSize, int heigh
     distField = dag::create_tex(NULL, textureSize, textureSize,
       TEXCF_RTARGET | (high_precision_distance_field ? TEXFMT_L16 : TEXFMT_R8), 1, "shore_distance_field_tex");
 
-    distField.getTex2D()->disableSampler();
     d3d::set_render_target(distField.getTex2D(), 0);
     d3d::clearview(CLEAR_DISCARD_TARGET, 0, 0, 0);
     PostFxRenderer copyHeightmap;

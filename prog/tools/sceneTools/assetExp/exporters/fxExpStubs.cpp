@@ -31,9 +31,6 @@ int message_box(int flags, const char *caption, const char *text, const DagorSaf
 
 void dagor_reset_spent_work_time() {}
 
-void *(*CubicCurveSampler::mem_allocator)(size_t) = NULL;
-void (*CubicCurveSampler::mem_free)(void *) = NULL;
-
 #if !_TARGET_STATIC_LIB
 void ShaderGlobal::setBlock(int block_id, int layer, bool flush_cache) {}
 int ShaderGlobal::getBlock(int layer) { return -1; }

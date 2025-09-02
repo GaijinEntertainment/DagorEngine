@@ -330,7 +330,7 @@ class kd_node {
     near_point_query(const vector<ndim> _point, const kd_node* _node)
         : point(_point), node(_node), pq(), dist() {
       while (node->c_neg) {
-        node = (point[node->axis] < node->pos) ? node->c_neg : node->c_pos;
+        node = (point[node->splitpos.axis] < node->splitpos.pos) ? node->c_neg : node->c_pos;
       }
       if (node->parent) {
         dist_to_parent_split = dist(node->parent->splitpos, point);

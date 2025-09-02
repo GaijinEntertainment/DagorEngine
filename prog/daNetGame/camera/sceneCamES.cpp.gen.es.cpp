@@ -9,9 +9,11 @@ static constexpr ecs::component_t team_get_type();
 static ecs::LTComponentList team_component(ECS_HASH("team"), team_get_type(), "prog/daNetGame/camera/sceneCamES.cpp.inl", "", 0);
 static constexpr ecs::component_t transform_get_type();
 static ecs::LTComponentList transform_component(ECS_HASH("transform"), transform_get_type(), "prog/daNetGame/camera/sceneCamES.cpp.inl", "", 0);
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "sceneCamES.cpp.inl"
 ECS_DEF_PULL_VAR(sceneCam);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc scene_cam_es_event_handler_comps[] =
 {

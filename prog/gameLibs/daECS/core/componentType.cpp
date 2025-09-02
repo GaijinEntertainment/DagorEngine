@@ -54,6 +54,16 @@ type_index_t ComponentTypes::registerType(const char *name, component_type_t typ
     type, data_size, flags);
   return getTypeCount() - 1;
 }
+ComponentTypeManager *ComponentTypes::createTypeManagerImpl(type_index_t t)
+{
+  OSSpinlockScopedLock lock(ctmCreationMutex);
+  ComponentTypeManager *ctm = types.get<ComponentTypeManager *>()[t];
+  if (DAGOR_UNLIKELY(ctm != nullptr))
+    return ctm;
+  ctm = (*types.get<create_ctm_t>()[t])(types.get<void *>()[t]);
+  interlocked_release_store_ptr(types.get<ComponentTypeManager *>()[t], ctm);
+  return ctm;
+}
 void ComponentTypes::clear()
 {
   for (int i = 0; i < types.size(); ++i)

@@ -37,6 +37,7 @@
 #include "fastPhysObject.h"
 #include "fastPhysChar.h"
 #include <math/dag_geomNodeUtils.h>
+#include <osApiWrappers/dag_direct.h>
 
 //------------------------------------------------------------------
 
@@ -413,8 +414,14 @@ void FastPhysEditor::revert()
   DagorAsset *asset = mPlugin.getAsset();
   if (asset)
   {
-    const DataBlock blk(asset->getTargetFilePath());
-    asset->props.setFrom(&blk);
+    const char *fn_ext = dd_get_fname_ext(asset->getTargetFilePath());
+    if (fn_ext && strcmp(fn_ext, ".blk") == 0)
+    {
+      const DataBlock blk(asset->getTargetFilePath());
+      asset->props.setFrom(&blk);
+    }
+    else
+      debug("skip reverting virtual asset %s:%s (points to %s)", asset->getName(), asset->getTypeStr(), asset->getTargetFilePath());
 
     load(*asset);
     mPlugin.refillActionTree();
@@ -462,6 +469,8 @@ void FastPhysEditor::load(const DagorAsset &asset)
   // load actions
   initAction->load(*blk.getBlockByNameEx("initAction"), *this);
   updateAction->load(*blk.getBlockByNameEx("updateAction"), *this);
+
+  mPlugin.mRespondsToWind = ((FpdContainerAction *)updateAction.get())->getActionIndexByName("integrate") >= 0;
 
   updateToolbarButtons();
 }
@@ -623,6 +632,8 @@ void FastPhysEditor::startSimulation()
   for (dag::Index16 i(0), ie(tree.nodeCount()); i != ie; ++i)
     savedNodeTms[i.index()] = tree.getNodeTm(i);
 
+  setWind(mPlugin.mWindVel, mPlugin.mWindPower, mPlugin.mWindTurb);
+
   charRoot->character->setFastPhysSystem(physSystem);
 
   getUndoSystem()->begin();
@@ -705,8 +716,14 @@ void FastPhysEditor::render()
 
   ObjectEditor::render();
 
+  ::set_cached_debug_lines_wtm(TMatrix::IDENT);
+
   if (isSimulationActive && isSimDebugVisible && physSystem)
+  {
     physSystem->debugRender();
+    for (auto action : physSystem->updateActions)
+      action->debugRender();
+  }
 
   // skeleton render
   // if (!isSimulationActive && isSkeletonVisible)

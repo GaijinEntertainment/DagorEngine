@@ -1,5 +1,5 @@
-Samplers
+Sampler
 =================================================
 
-.. autodoxygenfile:: dag_sampler.h
+.. doxygenfile:: dag_sampler.h
   :project: d3dAPI

@@ -1,4 +1,4 @@
-# Shader: rendinst_modulate2x_diffuse_decal
+# `rendinst_modulate2x_diffuse_decal`
 
 ## Overview
 

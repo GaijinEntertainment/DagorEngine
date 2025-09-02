@@ -135,7 +135,8 @@ static gamerespackbin::GrpData *load_grp(BinDumpReader &crd, int file_size)
   if (ghdr.label != _MAKE4C('GRP2') && ghdr.label != _MAKE4C('GRP3'))
     return NULL;
   if (ghdr.restFileSize + sizeof(ghdr) != file_size)
-    return NULL;
+    if (!trail_stricmp(crd.getRawReader().getTargetName(), ".grpcache.bin") || ghdr.fullDataSize + sizeof(ghdr) != file_size)
+      return NULL;
 
   gdata = (gamerespackbin::GrpData *)memalloc(ghdr.fullDataSize, tmpmem);
   crd.getRawReader().read(gdata, ghdr.fullDataSize);
@@ -679,7 +680,7 @@ static void dump_dxp_contents(DxpBinData &dxp, BinDumpReader &crd, DataBlock &ou
   for (int i = 0; i < dxp.data->texNames.map.size(); i++)
   {
     TextureMetaData tmd;
-    tmd.decode(dxp.data->texNames.map[i]);
+    tmd.decodeData(dxp.data->texNames.map[i]);
     if (dxp.data->texHdr[i].flags & ddsx::Header::FLG_VOLTEX)
       printf("  [%2d] voltex  f=%08X %4dx%-4dx%d q=%d/%d/%d %s\n", i, dxp.data->texHdr[i].flags, dxp.data->texHdr[i].w,
         dxp.data->texHdr[i].h, dxp.data->texHdr[i].depth, dxp.data->texHdr[i].mQmip, dxp.data->texHdr[i].lQmip,
@@ -956,9 +957,9 @@ int DagorWinMain(bool debugmode)
   DxpBinData *dxp = NULL;
   DataBlock resList;
 
-  if (trail_stricmp(dgs_argv[1], ".grp"))
+  if (trail_stricmp(dgs_argv[1], ".grp") || trail_stricmp(dgs_argv[1], ".grpcache.bin"))
     grp = load_grp(crd, df_length(base_crd.fileHandle));
-  else if (trail_stricmp(dgs_argv[1], ".dxp.bin"))
+  else if (trail_stricmp(dgs_argv[1], ".dxp.bin") || trail_stricmp(dgs_argv[1], ".dxp.bincache.bin"))
     dxp = load_tex_pack(crd);
   else if (trail_stricmp(dgs_argv[1], ".bin"))
     lev = load_level_bin(crd);

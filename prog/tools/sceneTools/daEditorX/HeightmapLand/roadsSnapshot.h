@@ -13,8 +13,8 @@ class RoadsSnapshot : public IRoadsProvider::Roads, public DObject
 {
 public:
   RoadsSnapshot(HmapLandObjectEditor &objEd);
-  virtual void release() { delRef(); }
-  virtual void debugDump();
+  void release() override { delRef(); }
+  void debugDump() override;
 
 protected:
   Tab<IRoadsProvider::RoadSpline> rspl;

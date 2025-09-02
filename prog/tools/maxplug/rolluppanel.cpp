@@ -54,7 +54,7 @@ public:
   virtual int procCombo(const char *val, Tab<String> &items) = 0;
   virtual int procReal(real val) = 0;
   virtual int procStr(const char *val) = 0;
-  virtual int procPoint3(Point3 &val) = 0;
+  virtual int procPoint3(const Point3 &val) = 0;
   int groupId;
   int paramId;
   char *name;
@@ -167,33 +167,33 @@ class FillCB : public EDataBlockCB
 {
 public:
   FillCB(HWND hwnd_, RollupPanel *panel_, bool enable_) : hwnd(hwnd_), panel(panel_), enable(enable_) {}
-  int procCheck(bool val)
+  int procCheck(bool val) override
   {
     panel->addCheck(hwnd, paramId * PARAM_IDC_COUNT, find_info_by_name("caption", name, name), val, enable);
     return ECB_CONT;
   }
-  int procCombo(const char *val, Tab<String> &items)
+  int procCombo(const char *val, Tab<String> &items) override
   {
     // panel->addComboInput( hwnd, paramId*PARAM_IDC_COUNT, name, val, enable, items );
     panel->addButtons(hwnd, paramId * PARAM_IDC_COUNT, find_info_by_name("caption", name, name), val, enable, items);
     return ECB_CONT;
   }
-  int procInt(int val)
+  int procInt(int val) override
   {
     panel->addIntInput(hwnd, paramId * PARAM_IDC_COUNT, find_info_by_name("caption", name, name), val, enable);
     return ECB_CONT;
   }
-  int procReal(real val)
+  int procReal(real val) override
   {
     panel->addRealInput(hwnd, paramId * PARAM_IDC_COUNT, find_info_by_name("caption", name, name), val, enable);
     return ECB_CONT;
   }
-  int procStr(const char *val)
+  int procStr(const char *val) override
   {
     panel->addStrInput(hwnd, paramId * PARAM_IDC_COUNT, find_info_by_name("caption", name, name), val, enable);
     return ECB_CONT;
   }
-  int procPoint3(Point3 &val)
+  int procPoint3(const Point3 &val) override
   {
     const char *xyz = "xyz";
     const char *caption = find_info_by_name("caption", name, name);
@@ -224,14 +224,14 @@ class UpdateCB : public EDataBlockCB
 {
 public:
   UpdateCB(IRollupWindow *i_roll, RollupPanel *panel_, const DataBlock *node_blk) : iRoll(i_roll), panel(panel_), nodeBlk(node_blk) {}
-  int procCheck(bool val)
+  int procCheck(bool val) override
   {
     HWND hwnd = iRoll->GetPanelDlg(groupId);
     clearParam(hwnd, paramId);
     ::CheckDlgButton(hwnd, paramId * PARAM_IDC_COUNT + PARAM_EDIT_IDC, nodeBlk->getBool(name, false));
     return ECB_CONT;
   }
-  int procCombo(const char *val, Tab<String> &items)
+  int procCombo(const char *val, Tab<String> &items) override
   {
     HWND hwnd = iRoll->GetPanelDlg(groupId);
     clearParam(hwnd, paramId);
@@ -244,7 +244,7 @@ public:
     }
     return ECB_CONT;
   }
-  int procInt(int val)
+  int procInt(int val) override
   {
     HWND hwnd = iRoll->GetPanelDlg(groupId);
     clearParam(hwnd, paramId);
@@ -253,7 +253,7 @@ public:
     ReleaseICustEdit(iEdit);
     return ECB_CONT;
   }
-  int procReal(real val)
+  int procReal(real val) override
   {
     HWND hwnd = iRoll->GetPanelDlg(groupId);
     clearParam(hwnd, paramId);
@@ -262,7 +262,7 @@ public:
     ReleaseICustEdit(iEdit);
     return ECB_CONT;
   }
-  int procStr(const char *val)
+  int procStr(const char *val) override
   {
     HWND hwnd = iRoll->GetPanelDlg(groupId);
     clearParam(hwnd, paramId);
@@ -275,7 +275,7 @@ public:
     ReleaseICustEdit(iEdit);
     return ECB_CONT;
   }
-  int procPoint3(Point3 &val)
+  int procPoint3(const Point3 &val) override
   {
     HWND hwnd = iRoll->GetPanelDlg(groupId);
     Point3 val1 = nodeBlk->getPoint3(name, val);
@@ -302,7 +302,7 @@ class UpdateNCCB : public EDataBlockCB
 public:
   UpdateNCCB(IRollupWindow *i_roll, RollupPanel *panel_, const DataBlock *node_blk) : iRoll(i_roll), panel(panel_), nodeBlk(node_blk)
   {}
-  int procCheck(bool val)
+  int procCheck(bool val) override
   {
     HWND hwnd = iRoll->GetPanelDlg(groupId);
     const int valEditIdc = paramId * PARAM_IDC_COUNT + PARAM_EDIT_IDC;
@@ -312,7 +312,7 @@ public:
       ::SetDlgItemText(hwnd, valNCIdc, nc ? _T("-NC") : _T(""));
     return ECB_CONT;
   }
-  int procCombo(const char *val, Tab<String> &items)
+  int procCombo(const char *val, Tab<String> &items) override
   {
     HWND hwnd = iRoll->GetPanelDlg(groupId);
     const int valEditIdc = paramId * PARAM_IDC_COUNT + PARAM_EDIT_IDC;
@@ -329,7 +329,7 @@ public:
       ::SetDlgItemText(hwnd, valNCIdc, nc ? _T("-NC") : _T(""));
     return ECB_CONT;
   }
-  int procInt(int val)
+  int procInt(int val) override
   {
     HWND hwnd = iRoll->GetPanelDlg(groupId);
     const int valEditIdc = paramId * PARAM_IDC_COUNT + PARAM_EDIT_IDC;
@@ -340,7 +340,7 @@ public:
       ::SetDlgItemText(hwnd, valNCIdc, nc ? _T("-NC") : _T(""));
     return ECB_CONT;
   }
-  int procReal(real val)
+  int procReal(real val) override
   {
     HWND hwnd = iRoll->GetPanelDlg(groupId);
     const int valEditIdc = paramId * PARAM_IDC_COUNT + PARAM_EDIT_IDC;
@@ -351,7 +351,7 @@ public:
       ::SetDlgItemText(hwnd, valNCIdc, nc ? _T("-NC") : _T(""));
     return ECB_CONT;
   }
-  int procStr(const char *val)
+  int procStr(const char *val) override
   {
     HWND hwnd = iRoll->GetPanelDlg(groupId);
     const int valEditIdc = paramId * PARAM_IDC_COUNT + PARAM_EDIT_IDC;
@@ -368,7 +368,7 @@ public:
       ::SetDlgItemText(hwnd, valNCIdc, nc ? _T("-NC") : _T(""));
     return ECB_CONT;
   }
-  int procPoint3(Point3 &val)
+  int procPoint3(const Point3 &val) override
   {
     HWND hwnd = iRoll->GetPanelDlg(groupId);
     Point3 val1 = nodeBlk->getPoint3(name, val);
@@ -394,7 +394,7 @@ class UserPropToBlkCB : public EDataBlockCB
 {
 public:
   UserPropToBlkCB(INode *n_, DataBlock *node_blk) : n(n_), nodeBlk(node_blk) {}
-  int procCheck(bool val)
+  int procCheck(bool val) override
   {
     M_STD_STRING old = getName(name);
     if (!old.empty())
@@ -405,7 +405,7 @@ public:
     }
     return ECB_CONT;
   }
-  int procInt(int val)
+  int procInt(int val) override
   {
     M_STD_STRING old = getName(name);
     if (!old.empty())
@@ -416,7 +416,7 @@ public:
     }
     return ECB_CONT;
   }
-  int procCombo(const char *val, Tab<String> &items)
+  int procCombo(const char *val, Tab<String> &items) override
   {
     M_STD_STRING old = getName(name);
     if (!old.empty())
@@ -429,7 +429,7 @@ public:
     }
     return ECB_CONT;
   }
-  int procReal(real val)
+  int procReal(real val) override
   {
     M_STD_STRING old = getName(name);
     if (!old.empty())
@@ -440,7 +440,7 @@ public:
     }
     return ECB_CONT;
   }
-  int procStr(const char *val)
+  int procStr(const char *val) override
   {
     M_STD_STRING old = getName(name);
     if (!old.empty())
@@ -454,7 +454,7 @@ public:
     }
     return ECB_CONT;
   }
-  int procPoint3(Point3 &val)
+  int procPoint3(const Point3 &val) override
   {
     M_STD_STRING old = getName(name);
     if (!old.empty())
@@ -493,14 +493,14 @@ class UserPropCB : public EDataBlockCB
 {
 public:
   UserPropCB(IRollupWindow *i_roll, DataBlock *rez_blk) : iRoll(i_roll), rezBlk(rez_blk) {}
-  int procCheck(bool val)
+  int procCheck(bool val) override
   {
     HWND hwnd = iRoll->GetPanelDlg(groupId);
     const int valControlIdc = paramId * PARAM_IDC_COUNT + PARAM_EDIT_IDC;
     rezBlk->addBool(name, ::IsDlgButtonChecked(hwnd, valControlIdc) ? 1 : 0);
     return ECB_CONT;
   }
-  int procCombo(const char *val, Tab<String> &items)
+  int procCombo(const char *val, Tab<String> &items) override
   {
     HWND hwnd = iRoll->GetPanelDlg(groupId);
     const int valControlIdc = paramId * PARAM_IDC_COUNT + PARAM_EDIT_IDC;
@@ -513,7 +513,7 @@ public:
     }
     return ECB_CONT;
   }
-  int procInt(int val)
+  int procInt(int val) override
   {
     HWND hwnd = iRoll->GetPanelDlg(groupId);
     const int valControlIdc = paramId * PARAM_IDC_COUNT + PARAM_EDIT_IDC;
@@ -522,7 +522,7 @@ public:
     ReleaseICustEdit(iEdit);
     return ECB_CONT;
   }
-  int procReal(real val)
+  int procReal(real val) override
   {
     HWND hwnd = iRoll->GetPanelDlg(groupId);
     const int valControlIdc = paramId * PARAM_IDC_COUNT + PARAM_EDIT_IDC;
@@ -531,7 +531,7 @@ public:
     ReleaseICustEdit(iEdit);
     return ECB_CONT;
   }
-  int procStr(const char *val)
+  int procStr(const char *val) override
   {
     HWND hwnd = iRoll->GetPanelDlg(groupId);
     const int valControlIdc = paramId * PARAM_IDC_COUNT + PARAM_EDIT_IDC;
@@ -544,7 +544,7 @@ public:
     ReleaseICustEdit(iEdit);
     return ECB_CONT;
   }
-  int procPoint3(Point3 &val)
+  int procPoint3(const Point3 &val) override
   {
     HWND hwnd = iRoll->GetPanelDlg(groupId);
     Point3 p3;
@@ -630,8 +630,8 @@ public:
   SyncMaxParams(RollupPanel *panel_, const char *group_, const char *type_, const char *name_) :
     panel(panel_), group(group_), name(name_), type(type_)
   {}
-  virtual ~SyncMaxParams() {}
-  virtual int proc(INode *n)
+  ~SyncMaxParams() override {}
+  int proc(INode *n) override
   {
     if (n->Selected())
     {
@@ -646,14 +646,14 @@ public:
 
       if (stricmp(type, "string") == NULL)
       {
-        char val[0x10000];
+        static char val[0x10000];
         panel->getInput(group, name, val);
         blk.setStr(name, val);
       }
 
       if (stricmp(type, "combo") == NULL)
       {
-        char val[0x10000];
+        static char val[0x10000];
         panel->getCombo(group, name, val);
         blk.setStr(name, val);
       }
@@ -684,8 +684,8 @@ class SyncPanelParams : public ENodeCB
 {
 public:
   SyncPanelParams(RollupPanel *panel_) : panel(panel_), found(false) {}
-  virtual ~SyncPanelParams() {}
-  virtual int proc(INode *n)
+  ~SyncPanelParams() override {}
+  int proc(INode *n) override
   {
     if (n->Selected())
     {
@@ -1071,7 +1071,7 @@ bool RollupPanel::loadStrFromFile(const char *fname, CStr &str)
     return false;
 
   CStr buffer;
-  char buf[0x10000 + 1];
+  static char buf[0x10000 + 1];
 
   size_t count = fread(buf, 1, 0x10000, h);
 

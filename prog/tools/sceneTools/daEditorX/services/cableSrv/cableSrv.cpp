@@ -7,6 +7,8 @@
 #include <de3_cableSrv.h>
 #include <render/cables.h>
 
+#include <EASTL/functional.h>
+
 constexpr int MAX_CABLES = 16384;
 
 class CableService : public ICableService
@@ -15,7 +17,7 @@ public:
   Cables *cables_mgr = NULL;
   Tab<cable_handle_t> removed_cables;
   CableService() {}
-  ~CableService() { close_cables_mgr(); }
+  ~CableService() { release(); }
 
   void init()
   {
@@ -24,7 +26,13 @@ public:
     cables_mgr->setMaxCables(MAX_CABLES);
   }
 
-  virtual cable_handle_t addCable(const Point3 &start, const Point3 &end, float radius, float sag)
+  void release()
+  {
+    close_cables_mgr();
+    cables_mgr = nullptr;
+  }
+
+  cable_handle_t addCable(const Point3 &start, const Point3 &end, float radius, float sag) override
   {
     if (removed_cables.size())
     {
@@ -36,17 +44,17 @@ public:
     return cables_mgr->addCable(start, end, radius, sag);
   }
 
-  virtual void removeCable(cable_handle_t id)
+  void removeCable(cable_handle_t id) override
   {
     removed_cables.push_back(id);
     cables_mgr->setCable(id, Point3(0, 0, 0), Point3(0, 0, 0), 0, 0);
   }
 
-  virtual void beforeRender(float pixel_scale) { cables_mgr->beforeRender(pixel_scale); }
+  void beforeRender(float pixel_scale) override { cables_mgr->beforeRender(pixel_scale); }
 
-  virtual void renderGeometry() { cables_mgr->render(Cables::RENDER_PASS_TRANS); }
+  void renderGeometry() override { cables_mgr->render(Cables::RENDER_PASS_TRANS); }
 
-  virtual void exportCables(BinDumpSaveCB &cwr)
+  void exportCables(BinDumpSaveCB &cwr) override
   {
     Tab<CableData> *data = cables_mgr->getCablesData();
     if (data->size() - removed_cables.size() == 0)
@@ -59,7 +67,7 @@ public:
     }
     else
     {
-      fast_sort(removed_cables, std::less<int>());
+      fast_sort(removed_cables, eastl::less<int>());
       Tab<CableData> to_export;
       int skipped = 0;
       for (int i = 0; i < data->size() - removed_cables.size(); ++i)
@@ -78,14 +86,23 @@ public:
 
 
 static CableService srv;
+static bool is_inited = false;
 
 void *get_generic_cable_service()
 {
-  static bool is_inited = false;
   if (!is_inited)
   {
     is_inited = true;
     srv.init();
   }
   return &srv;
+}
+
+void release_generic_cable_service()
+{
+  if (is_inited)
+  {
+    is_inited = false;
+    srv.release();
+  }
 }

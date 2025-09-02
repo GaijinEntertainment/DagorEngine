@@ -27,6 +27,7 @@ for s in $(SourceDAS) { StringifySourceFile $(s) : $(s).inl : das_ecs_bindings.c
 
 UseProgLibs +=
   1stPartyLibs/daScript
+  engine/workCycle
 ;
 
 if $(Platform) in windows xboxOne scarlett

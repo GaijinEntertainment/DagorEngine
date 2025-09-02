@@ -88,14 +88,14 @@ def charctrl_update_es(evt : UpdateStageInfoAct;
     phys_global__tick = get_phys_tick_at_rel(0.)
 
   for t in range(0, num_ticks)
-    broadcastEventImmediate([[PhysUpdateEvent tick=phys_global__tick + t, dt=phys_step_dt]])
+    broadcastEventImmediate(PhysUpdateEvent(tick=phys_global__tick + t, dt=phys_step_dt))
   phys_global__tick += num_ticks
 
 
 [es(REQUIRE=hero)]
 def charctrl_phys_updated_es(evt : PhysUpdateEvent; eid : EntityId)
-  sendEventImmediate(eid, [[SimulateCharCtrlDynamics tick=evt.tick, dt=evt.dt]])
-  sendEventImmediate(eid, [[IntegrateCharCtrlPose tick=evt.tick, dt=evt.dt]])
+  sendEventImmediate(eid, SimulateCharCtrlDynamics(tick=evt.tick, dt=evt.dt))
+  sendEventImmediate(eid, IntegrateCharCtrlPose(tick=evt.tick, dt=evt.dt))
 
 [es]
 def charctrl_phys_simulate_es(evt : SimulateCharCtrlDynamics;
@@ -131,16 +131,16 @@ def charctrl_phys_simulate_es(evt : SimulateCharCtrlDynamics;
       phys__vel.y += charctrl__jump_vel
     if length_sq(phys__vel) < 1e-8f
       phys__vel = float3(0.f, 0.f, 0.f)
-    charctrl__state.z |= int(CCStateFlag ST_ON_GROUND)
+    charctrl__state.z |= int(CCStateFlag.ST_ON_GROUND)
 
   elif on_ground && t < charctrl__capsule_ofs.y + 0.05f && charctrl__jump_vel > 0.f
     phys__vel.y = charctrl__jump_vel
-    charctrl__state.z |= int(CCStateFlag ST_JUMP)
+    charctrl__state.z |= int(CCStateFlag.ST_JUMP)
 
   else
     phys__vel.y -= 9.81 * dt
     if t > charctrl__capsule_ofs.y + 0.2f
-      charctrl__state.z &= ~int(CCStateFlag ST_ON_GROUND)
+      charctrl__state.z &= ~int(CCStateFlag.ST_ON_GROUND)
 
   let dq = quat_mul(quat_conjugate(phys__rot), quat_from_euler(charctrl__look_ang.x, 0.f, charctrl__look_ang.y))
   phys__wvel = float3(normalize(dq).xyz) / dt * 0.5f

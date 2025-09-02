@@ -203,9 +203,9 @@ struct EsFunctionAnnotation : FunctionAnnotation {
 };
 
 void * getComponentData ( const string & name ) {
-    if (name == "pos") return g_pos.data();
-    else if (name == "vel") return g_vel.data();
-    else if (name == "velBoxed") return g_velBoxed.data();
+    if (name == "pos") return g_pos->data();
+    else if (name == "vel") return g_vel->data();
+    else if (name == "velBoxed") return g_velBoxed->data();
     else return nullptr;
 }
 
@@ -359,7 +359,7 @@ void aotEsRunBlock ( TextWriter & ss, EsAttributeTable * table, const vector<EsC
         });
         if ( a ) ss << ",";
         if ( it != components.end() ) {
-            ss << "g_" << table->attributes[a].name << "[i]";
+            ss << "(*g_" << table->attributes[a].name << ")[i]";
         } else {
             vec4f def = table->attributes[a].def;
             const char * def_s = table->attributes[a].def_s;
@@ -403,13 +403,13 @@ struct QueryEsFunctionAnnotation : FunctionAnnotation {
         auto mb = static_pointer_cast<ExprMakeBlock>(call->arguments[0]);
         auto closure = static_pointer_cast<ExprBlock>(mb->block);
         EsAttributeTable * table = (EsAttributeTable *) closure->annotationData;
-        return aotEsRunBlockName(table, g_components);
+        return aotEsRunBlockName(table, *g_components);
     }
     virtual void aotPrefix ( TextWriter & ss, ExprCallFunc * call ) override {
         auto mb = static_pointer_cast<ExprMakeBlock>(call->arguments[0]);
         auto closure = static_pointer_cast<ExprBlock>(mb->block);
         EsAttributeTable * table = (EsAttributeTable *) closure->annotationData;
-        aotEsRunBlock(ss, table, g_components);
+        aotEsRunBlock(ss, table, *g_components);
     }
     virtual bool verifyCall ( ExprCallFunc * call, const AnnotationArgumentList &, const AnnotationArgumentList &, string & err ) override {
         auto brt = call->arguments[0]->type->firstType;
@@ -441,11 +441,6 @@ struct QueryEsFunctionAnnotation : FunctionAnnotation {
     }
 };
 
-DAS_THREAD_LOCAL vector<float3>          g_pos;
-DAS_THREAD_LOCAL vector<float3>          g_vel;
-DAS_THREAD_LOCAL vector<float3 *>        g_velBoxed;
-DAS_THREAD_LOCAL vector<EsComponent>     g_components;
-
 template <typename TT>
 void releaseVec(vector<TT>& vec) {
     vector<TT> temp;
@@ -453,29 +448,29 @@ void releaseVec(vector<TT>& vec) {
 }
 
 void releaseEsComponents() {
-    releaseVec(g_pos);
-    releaseVec(g_vel);
-    releaseVec(g_velBoxed);
+    releaseVec(*g_pos);
+    releaseVec(*g_vel);
+    releaseVec(*g_velBoxed);
 }
 
 void initEsComponents() {
     // build components
-    g_pos.resize(g_total);
-    g_vel.resize(g_total);
-    g_velBoxed.resize(g_total);
+    g_pos->resize(g_total);
+    g_vel->resize(g_total);
+    g_velBoxed->resize(g_total);
     float f = 1.0f;
     for (int i = 0; i != g_total; ++i, ++f) {
-        g_pos[i] = { f, f + 1, f + 2 };
-        g_vel[i] = { 1.0f, 2.0f, 3.0f };
-        g_velBoxed[i] = &g_vel[i];
+        (*g_pos)[i] = { f, f + 1, f + 2 };
+        (*g_vel)[i] = { 1.0f, 2.0f, 3.0f };
+        (*g_velBoxed)[i] = &(*g_vel)[i];
     }
 }
 
 void initEsComponentsTable() {
-    g_components.clear();
-    g_components.emplace_back("pos",      sizeof(float3), sizeof(float3),   false);
-    g_components.emplace_back("vel",      sizeof(float3), sizeof(float3),   false);
-    g_components.emplace_back("velBoxed", sizeof(float3), sizeof(float3 *), true );
+    g_components->clear();
+    g_components->emplace_back("pos",      sizeof(float3), sizeof(float3),   false);
+    g_components->emplace_back("vel",      sizeof(float3), sizeof(float3),   false);
+    g_components->emplace_back("velBoxed", sizeof(float3), sizeof(float3 *), true );
 }
 
 void verifyEsComponents(Context * context, LineInfoArg * at) {
@@ -488,9 +483,9 @@ void verifyEsComponents(Context * context, LineInfoArg * at) {
         npos.x = apos.x + avel.x * t;
         npos.y = apos.y + avel.y * t;
         npos.z = apos.z + avel.z * t;
-        if ( g_pos[i].x!=npos.x || g_pos[i].y!=npos.y || g_pos[i].z!=npos.z ) {
+        if ( (*g_pos)[i].x!=npos.x || (*g_pos)[i].y!=npos.y || (*g_pos)[i].z!=npos.z ) {
             TextWriter twrt;
-            twrt << "g_pos[" << i << "] (" << g_pos[i] << ") != npos (" << npos << ")\n";
+            twrt << "g_pos[" << i << "] (" << (*g_pos)[i] << ") != npos (" << npos << ")\n";
             context->throw_error_at(at, "verifyEsComponents failed, %s\n", twrt.str().c_str());
         }
     }
@@ -505,14 +500,14 @@ void testEsUpdate ( char * pass, Context * ctx, LineInfoArg * at ) {
     }
     for ( auto & tab : EsGroupData::THAT->g_esPassTable ) {
         if ( tab->pass==pass ) {
-            EsRunPass(*ctx, *tab, g_components, g_total);
+            EsRunPass(*ctx, *tab, *g_components, g_total);
         }
     }
 }
 
 uint32_t queryEs (const Block & block, Context * context, LineInfoArg * at) {
     das_stack_prologue guard(context,sizeof(Prologue), "queryEs " DAS_FILE_LINE);
-    return EsRunBlock(*context, at, block, g_components, g_total);
+    return EsRunBlock(*context, at, block, *g_components, g_total);
 }
 
 #if DAS_USE_EASTL
@@ -939,6 +934,170 @@ void testTableSort ( TArray<int32_t> & tab ) {
     sort(begin, end, [&](int32_t a, int32_t b) { return a > b; });
 }
 
+#define QUEEN_N 8
+
+bool isplaceok(int * a, int n, int c) {
+    for (int i = 0; i < n; i++) {
+        if (a[i] == c || a[i] - i == c - n || a[i] + i == c + n) {
+            return false;
+        }
+    }
+    return true;
+}
+
+int g_solutions = 0;
+
+void addqueen(int * a, int n) {
+    if (n == QUEEN_N) {
+        g_solutions++;
+    } else {
+        for (int c = 0; c < QUEEN_N; c++) {
+            if (isplaceok(a, n, c)) {
+                a[n] = c;
+                addqueen(a, n + 1);
+            }
+        }
+    }
+}
+
+int testQueens() {
+    int a[QUEEN_N];
+    g_solutions = 0;
+    addqueen(a, 0);
+    return g_solutions;
+}
+
+namespace snorm {
+
+    inline int A(int i, int j) {
+        return ((i + j) * (i + j + 1) / 2 + i + 1);
+    }
+
+    double dot(double *v, double *u, int n) {
+        int i;
+        double sum = 0;
+        for (i = 0; i < n; i++)
+            sum += v[i] * u[i];
+        return sum;
+    }
+
+    void mult_Av(double *v, double *out, const int n) {
+        int i, j;
+        double sum;
+        for (i = 0; i < n; i++) {
+            for (sum = j = 0; j < n; j++)
+                sum += v[j] / A(i, j);
+            out[i] = sum;
+        }
+    }
+
+    void mult_Atv(double *v, double *out, const int n) {
+        int i, j;
+        double sum;
+        for (i = 0; i < n; i++) {
+            for (sum = j = 0; j < n; j++)
+                sum += v[j] / A(j, i);
+            out[i] = sum;
+        }
+    }
+
+    static double *tmp;
+    void mult_AtAv(double *v, double *out, const int n) {
+        mult_Av(v, tmp, n);
+        mult_Atv(tmp, out, n);
+    }
+
+    double testSnorm() {
+        int n = 500;
+        double *u, *v;
+        u = (double *)malloc(n * sizeof(double));
+        v = (double *)malloc(n * sizeof(double));
+        tmp = (double *)malloc(n * sizeof(double));
+        int i;
+        for (i = 0; i < n; i++)
+            u[i] = 1;
+        for (i = 0; i < 10; i++) {
+            mult_AtAv(u, v, n);
+            mult_AtAv(v, u, n);
+        }
+        auto result = sqrt(dot(u, v, n) / dot(v, v, n));
+        free(u);
+        free(v);
+        free(tmp);
+        return result;
+    }
+}
+
+double testSnorm() {
+    return snorm::testSnorm();
+}
+
+
+namespace mandelbrot {
+
+    int level ( float2 c ) {
+        int l = 0;
+        float2 z = c;
+        while ( v_extract_x(v_length2_x(z)) < 2.0 && l < 255 ) {
+            z = float2(z.x * z.x - z.y * z.y, z.x * z.y + z.y * z.x);
+            z.x += c.x;
+            z.y += c.y;
+            l++;
+        }
+        return l - 1;
+    }
+
+    int test() {
+        float xmin = -2.0;
+        float xmax = 2.0;
+        float ymin = -2.0;
+        float ymax = 2.0;
+        int N = 64;
+        float dx = (xmax - xmin) / float(N);
+        float dy = (ymax - ymin) / float(N);
+        int S = 0;
+        float2 xy = float2(xmin, ymin);
+        for (int i = 0; i < N; i++) {
+            xy.y = ymin;
+            for (int j = 0; j < N; j++) {
+                S += level(xy);
+                xy.y += dy;
+            }
+            xy.x += dx;
+        }
+        return S;
+    }
+
+}
+
+int testMandelbrot() {
+    return mandelbrot::test();
+}
+
+float test_f2i ( const TArray<char *> & nums, int TOTAL_NUMBERS, int TOTAL_TIMES ) {
+    auto data = (const char **) nums.data;
+    float summ = 0.0f;
+    for ( int i=0; i!=TOTAL_TIMES; ++i ) {
+        for ( int j=0; j!=TOTAL_NUMBERS; ++j ) {
+            summ += float(atof(data[j]));
+        }
+    }
+    return summ;
+}
+
+int32_t test_f2s ( const TArray<float> & nums, int TOTAL_NUMBERS, int TOTAL_TIMES ) {
+    auto data = (const float *) nums.data;
+    int32_t summ = 0;
+    char buffer[128];
+    for ( int i=0; i!=TOTAL_TIMES; ++i ) {
+        for ( int j=0; j!=TOTAL_NUMBERS; ++j ) {
+            snprintf(buffer, 128, "%f", data[j]);
+            summ += (int32_t) strlen(buffer);
+        }
+    }
+    return summ;
+}
+
 class Module_TestProfile : public Module {
 public:
     Module_TestProfile() : Module("testProfile") {
@@ -989,6 +1148,11 @@ public:
         addExtern<DAS_BIND_FUN(testTree)>(*this, lib, "testTree",SideEffects::modifyExternal,"testTree");
         addExtern<DAS_BIND_FUN(testMaxFrom1s)>(*this, lib, "testMaxFrom1s",SideEffects::modifyExternal,"testMaxFrom1s");
         addExtern<DAS_BIND_FUN(testTableSort)>(*this, lib, "testTableSort",SideEffects::modifyExternal,"testTableSort");
+        addExtern<DAS_BIND_FUN(testQueens)>(*this, lib, "testQueens",SideEffects::modifyExternal,"testQueens");
+        addExtern<DAS_BIND_FUN(testSnorm)>(*this, lib, "testSnorm",SideEffects::modifyExternal,"testSnorm");
+        addExtern<DAS_BIND_FUN(testMandelbrot)>(*this, lib, "testMandelbrot",SideEffects::modifyExternal,"testMandelbrot");
+        addExtern<DAS_BIND_FUN(test_f2i)>(*this, lib, "test_f2i",SideEffects::none, "test_f2i");
+        addExtern<DAS_BIND_FUN(test_f2s)>(*this, lib, "test_f2s",SideEffects::none, "test_f2s");
         // its AOT ready
         verifyAotReady();
     }

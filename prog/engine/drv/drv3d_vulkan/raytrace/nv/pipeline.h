@@ -5,6 +5,7 @@
 #include <generic/dag_staticTab.h>
 #include "descriptor_set.h"
 #include "render_pass.h"
+#include "cleanup_queue_tags.h"
 
 namespace drv3d_vulkan
 {
@@ -48,26 +49,19 @@ public:
     CreationInfo() = delete;
   };
 
-  // generic cleanup queue support
-  static constexpr int CLEANUP_DESTROY = 0;
-
-  template <int Tag>
+  template <CleanupTag Tag>
   void onDelayedCleanupBackend()
   {}
 
-  template <int Tag>
-  void onDelayedCleanupFrontend()
-  {}
-
-  template <int Tag>
+  template <CleanupTag Tag>
   void onDelayedCleanupFinish();
 
   const char *resTypeString() { return "RaytracePipeline"; }
 
-  RaytracePipeline(VulkanDevice &dev, ProgramID prog, VulkanPipelineCacheHandle cache, LayoutType *l, const CreationInfo &info);
+  RaytracePipeline(ProgramID prog, VulkanPipelineCacheHandle cache, LayoutType *l, const CreationInfo &info);
 
   VulkanPipelineHandle getHandleForUse();
-  void copyRaytraceShaderGroupHandlesToMemory(VulkanDevice &dev, uint32_t first_group, uint32_t group_count, uint32_t size, void *ptr);
+  void copyRaytraceShaderGroupHandlesToMemory(uint32_t first_group, uint32_t group_count, uint32_t size, void *ptr);
 
 #if VULKAN_LOAD_SHADER_EXTENDED_DEBUG_DATA
   void printDebugInfo()
@@ -90,8 +84,14 @@ public:
   size_t dumpVariantCount() const { return 1; }
 
 private:
-  eastl::vector<ShaderDebugInfo> debugInfo;
+  dag::Vector<ShaderDebugInfo> debugInfo;
   int64_t compilationTime;
+#else
+  String printDebugInfoBuffered()
+  {
+    String ret(0, "pipe %p ", this);
+    return ret;
+  }
 #endif
 };
 

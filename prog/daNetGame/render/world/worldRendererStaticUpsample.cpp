@@ -64,7 +64,7 @@ float get_default_static_resolution_scale()
 // TODO should be determined by benchmark result instead
 #if _TARGET_PC
   auto gpuCfg = d3d_get_gpu_cfg();
-  if (gpuCfg.integrated && gpuCfg.primaryVendor == D3D_VENDOR_INTEL)
+  if (gpuCfg.integrated && gpuCfg.primaryVendor == GpuVendor::INTEL)
   {
     int w, h;
     d3d::get_screen_size(w, h);

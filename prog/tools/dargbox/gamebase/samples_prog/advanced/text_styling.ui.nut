@@ -30,8 +30,8 @@ return {
     rendObj = ROBJ_SOLID
     behavior = Behaviors.Button
     padding = 15
-    color = stateFlags.value & S_HOVER ? 0xCCEE9966 : 0xCCCCCCCC
+    color = stateFlags.get() & S_HOVER ? 0xCCEE9966 : 0xCCCCCCCC
     children = label
-    onElemState = @(sf) stateFlags(sf)
+    onElemState = @(sf) stateFlags.set(sf)
   }
 }

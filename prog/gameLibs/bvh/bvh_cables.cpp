@@ -24,7 +24,7 @@ static const auto blas_flags = RaytraceBuildFlags::FAST_TRACE;
 static constexpr int vertex_stride = sizeof(float) * 3 + sizeof(uint32_t);
 static constexpr int index_stride = sizeof(uint32_t);
 
-static MeshMetaAllocator::AllocId metaAllocId = -1;
+static MeshMetaAllocator::AllocId metaAllocId = MeshMetaAllocator::INVALID_ALLOC_ID;
 
 void init() {}
 
@@ -32,14 +32,17 @@ void teardown() {}
 
 void init(ContextId context_id)
 {
-  G_ASSERT(metaAllocId == -1);
-  metaAllocId = context_id->allocateMetaRegion();
-  MeshMeta &meta = context_id->meshMetaAllocator.get(metaAllocId);
+  G_ASSERT(metaAllocId == MeshMetaAllocator::INVALID_ALLOC_ID);
+  metaAllocId = context_id->allocateMetaRegion(1);
+  MeshMeta &meta = context_id->meshMetaAllocator.get(metaAllocId)[0];
 
   meta.markInitialized();
   meta.setIndexBit(4);
-  meta.materialType |= MeshMeta::bvhMaterialRendinst;
-  meta.texcoordNormalColorOffsetAndVertexStride = 0xFFFF0000U | ((sizeof(float) * 3) << 8) | vertex_stride;
+  meta.materialType |= MeshMeta::bvhMaterialCable;
+  meta.texcoordOffset = 0xFF;
+  meta.normalOffset = 0xFF;
+  meta.colorOffset = sizeof(float) * 3;
+  meta.vertexStride = vertex_stride;
 }
 
 void teardown(ContextId context_id)
@@ -51,7 +54,7 @@ void teardown(ContextId context_id)
   context_id->cableVertices.close();
   context_id->cableIndices.close();
   context_id->cableBLASes.clear();
-  if (metaAllocId > -1)
+  if (metaAllocId != MeshMetaAllocator::INVALID_ALLOC_ID)
     context_id->freeMetaRegion(metaAllocId);
 }
 
@@ -66,6 +69,7 @@ static bool create_blas(ContextId context_id, Cables *cables, int index)
   desc.data.triangles.vertexCount = triangleCount + 2;
   desc.data.triangles.vertexStride = vertex_stride;
   desc.data.triangles.vertexFormat = VSDT_FLOAT3;
+  desc.data.triangles.vertexOffset = desc.data.triangles.vertexCount * index;
   desc.data.triangles.indexBuffer = context_id->cableIndices.getBuf();
   desc.data.triangles.indexCount = triangleCount * 3;
   desc.data.triangles.indexOffset = triangleCount * 3 * index;
@@ -103,6 +107,8 @@ void on_cables_changed(Cables *cables, ContextId context_id)
   if (!cablesData || cablesData->empty())
     return;
 
+  TIME_D3D_PROFILE("on_cables_changed");
+
   auto triPerCable = cables->getTranglesPerCable();
   auto triangleCount = triPerCable * maxCables;
   auto vertexCount = (triPerCable + 2) * maxCables;
@@ -127,9 +133,8 @@ void on_cables_changed(Cables *cables, ContextId context_id)
     uint32_t bindlessIndex;
     context_id->holdBuffer(context_id->cableVertices.getBuf(), bindlessIndex);
 
-    MeshMeta &meta = context_id->meshMetaAllocator.get(metaAllocId);
-    meta.indexAndVertexBufferIndex &= 0xFFFF0000U;
-    meta.indexAndVertexBufferIndex |= bindlessIndex;
+    MeshMeta &meta = context_id->meshMetaAllocator.get(metaAllocId)[0];
+    meta.setVertexBufferIndex(bindlessIndex);
   }
 
   if (!context_id->cableIndices)
@@ -141,9 +146,8 @@ void on_cables_changed(Cables *cables, ContextId context_id)
     uint32_t bindlessIndex;
     context_id->holdBuffer(context_id->cableIndices.getBuf(), bindlessIndex);
 
-    MeshMeta &meta = context_id->meshMetaAllocator.get(metaAllocId);
-    meta.indexAndVertexBufferIndex &= 0xFFFFU;
-    meta.indexAndVertexBufferIndex |= bindlessIndex << 16;
+    MeshMeta &meta = context_id->meshMetaAllocator.get(metaAllocId)[0];
+    meta.setIndexBufferIndex(bindlessIndex);
   }
 
   static int bvh_cables_vertices_buf_reg_no = ShaderGlobal::get_int(get_shader_variable_id("bvh_cables_vertices_buf_reg_no"));
@@ -154,9 +158,26 @@ void on_cables_changed(Cables *cables, ContextId context_id)
 
   cables->render(Cables::RENDER_PASS_BVH);
 
+#if _TARGET_C2
+
+
+#endif
+
   for (auto cableIx : cables->getDirtyCables())
+  {
+    G_ASSERT(cableIx < maxCables);
     if (!create_blas(context_id, cables, cableIx))
       return;
+
+#if _TARGET_C2 // PS5 crashes when too much cables build operations are submitted
+
+
+
+
+
+
+#endif
+  }
 
   cables->getDirtyCables().clear();
 
@@ -167,7 +188,7 @@ void on_cables_changed(Cables *cables, ContextId context_id)
 
 const dag::Vector<UniqueBLAS> &get_blases(ContextId context_id, int &meta_alloc_id)
 {
-  meta_alloc_id = metaAllocId;
+  meta_alloc_id = MeshMetaAllocator::decode(metaAllocId);
   return context_id->cableBLASes;
 }
 

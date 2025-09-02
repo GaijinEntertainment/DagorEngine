@@ -7,6 +7,7 @@
 #include <daGame/timers.h>
 #include <dasModules/dasContextLockGuard.h>
 #include <dasModules/dasScriptsLoader.h>
+#include <dasModules/dasSharedStack.h>
 
 namespace bind_dascript
 {
@@ -27,7 +28,7 @@ inline game::timer_handle_t game_timer_set(const das::Lambda &callback, float de
     argI[0] = das::cast<void *>::from(pCapture);
     if (!context->ownStack)
     {
-      das::SharedStackGuard guard(*context, get_shared_stack());
+      das::SharedFramememStackGuard guard(*context);
       (void)context->call(simFunc, argI, 0);
     }
     else

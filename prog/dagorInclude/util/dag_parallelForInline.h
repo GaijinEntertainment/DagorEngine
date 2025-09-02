@@ -9,8 +9,9 @@
 #include <EASTL/algorithm.h>
 #include <perfMon/dag_statDrv.h>
 #include <stdlib.h> // alloca
-#include <atomic>
+#include <osApiWrappers/dag_atomic_types.h>
 #include <osApiWrappers/dag_miscApi.h>
+#include <supp/dag_alloca.h>
 
 namespace threadpool
 {
@@ -61,31 +62,36 @@ inline void parallel_for_inline(uint32_t begin, uint32_t end, uint32_t quant, Cb
   {
     uint32_t end, quant, workerId, dapToken;
     Cb &cb;
-    std::atomic<uint32_t> &current;
-    ParallelForJob(std::atomic<uint32_t> &counter, Cb &cb_, uint32_t e, uint32_t q, uint32_t worker_id, uint32_t token) :
+    dag::AtomicInteger<uint32_t> &current;
+    ParallelForJob(dag::AtomicInteger<uint32_t> &counter, Cb &cb_, uint32_t e, uint32_t q, uint32_t worker_id, uint32_t token) :
       current(counter), cb(cb_), end(e), quant(q), workerId(worker_id), dapToken(token)
     {}
+    virtual const char *getJobName(bool &) const override { return "ParallelForJob"; }
     virtual void doJob() override
     {
       // would be nice to put marker here...
-      if (current.load(std::memory_order_relaxed) >= end)
+      if (current.load(dag::memory_order_relaxed) >= end)
         return;
       DA_PROFILE_EVENT_DESC(dapToken);
       for (uint32_t at = current.fetch_add(quant); at < end; at = current.fetch_add(quant))
         cb(at, at + eastl::min(quant, end - at), workerId);
     }
   };
-  // to avoid false sharing on job->done, we allocate two cache lines space
+  // To avoid false sharing on `job->done`, we allocate two (on x86) cache lines space
+#if defined(__aarch64__) || defined(_M_ARM64)
+  static constexpr size_t stack_per_job = eastl::max((size_t)64, sizeof(ParallelForJob));
+#else
   static constexpr size_t stack_per_job = eastl::max((size_t)64 * 2, sizeof(ParallelForJob));
-  static constexpr size_t max_stack_usage = 4 << 10; // max 4kb of stack.
-  const uint32_t jobs_count = eastl::min(add_jobs_count, (uint32_t)(max_stack_usage / stack_per_job));
-  std::atomic<uint32_t> current = {begin};
-  const auto wakeOnAdd = (jobs_count <= 2 && wake) ? threadpool::AddFlags::WakeOnAdd : threadpool::AddFlags::None;
+#endif
+  dag::AtomicInteger<uint32_t> current = {begin};
+  const auto wakeOnAdd = (add_jobs_count <= 2 && wake) ? threadpool::AddFlags::WakeOnAdd : threadpool::AddFlags::None;
   uint32_t queue_pos;
   ParallelForJob *lastJob;
-  alignas(64) char jobsStorage[max_stack_usage]; //< alloca is better, however, on windows it causes check stack
-  // char * jobsStorage = (char*)alloca(jobs_count*stack_per_job);
-  char *jobStorage = jobsStorage;
+  alignas(ParallelForJob) char staticJobsStorage[threadpool::MAX_WORKER_COUNT * stack_per_job];
+  char *jobsStorage = DAGOR_LIKELY(add_jobs_count <= threadpool::MAX_WORKER_COUNT)
+                        ? staticJobsStorage
+                        : (char *)alloca(add_jobs_count * sizeof(ParallelForJob)), // To consider: framemem?
+    *jobStorage = jobsStorage;
 
   static uint32_t def_desc = 0;
   if (!dapDescId)
@@ -103,7 +109,7 @@ inline void parallel_for_inline(uint32_t begin, uint32_t end, uint32_t quant, Cb
     add(lastJob, prio, queue_pos, wakeOnAdd | AddFlags::IgnoreNotDone); // we just allocated jobs, job->done == 1 for sure
     ++i;
     jobStorage += stack_per_job;
-  } while (i < jobs_count);
+  } while (i < add_jobs_count);
 
 
   // To consider: instead of explicit wake_all & cb execution we can just call active wait and that's it.
@@ -121,7 +127,7 @@ inline void parallel_for_inline(uint32_t begin, uint32_t end, uint32_t quant, Cb
   // however, we still have to wait for all jobs to write there 'done' flag, otherwise they can spoil stack (when writing jobDone)
 
   jobStorage = jobsStorage;
-  for (int i = 0; i < jobs_count; ++i, jobStorage += stack_per_job)
+  for (int i = 0; i < add_jobs_count; ++i, jobStorage += stack_per_job)
   {
     ParallelForJob *job;
     memcpy(&job, &jobStorage, sizeof(job)); // to avoid UB

@@ -14,6 +14,11 @@
 #include <daECS/net/netEvent.h>
 #include <EASTL/vector_set.h>
 
+
+ECS_UNICAST_EVENT_TYPE(EventAction, /*actionIdx*/ int, /*propsId*/ int);
+ECS_REGISTER_EVENT(EventAction);
+
+
 struct NullActionListener final : public IActionListener
 {
   void onAction(ecs::EntityId, int, int) override {}
@@ -58,8 +63,8 @@ ECS_REGISTER_RELOCATABLE_TYPE(EntityActions, nullptr);
 ECS_AUTO_REGISTER_COMPONENT_DEPS(EntityActions, "actions", nullptr, 0, "animchar", "phys_vars");
 ECS_REGISTER_EVENT(UpdateActionsEvent);
 
-static inline void actions_updater_es(const UpdateActionsEvent &info, ecs::EntityId eid, EntityActions &actions, PhysVars &phys_vars,
-  const ecs::string *actions__animLayer)
+static inline void actions_updater_es(const UpdateActionsEvent &info, ecs::EntityManager &manager, ecs::EntityId eid,
+  EntityActions &actions, PhysVars &phys_vars, const ecs::string *actions__animLayer)
 {
   bool anyActionRunning = false;
   for (int i = 0; i < actions.actions.size(); ++i)
@@ -72,7 +77,7 @@ static inline void actions_updater_es(const UpdateActionsEvent &info, ecs::Entit
       if (a.timer < a.actionTime) // passes the border
       {
         ecs::HashedConstString stateName = actions__animLayer ? ECS_HASH_SLOW(actions__animLayer->c_str()) : ECS_HASH("upper");
-        g_entity_mgr->sendEventImmediate(eid, EventChangeAnimState(stateName, a.stateIdx));
+        manager.sendEventImmediate(eid, EventChangeAnimState(stateName, a.stateIdx));
 
         float relTime = 1.f - (a.timer / a.actionTime);
         phys_vars.setVar(a.varId, relTime);
@@ -82,6 +87,8 @@ static inline void actions_updater_es(const UpdateActionsEvent &info, ecs::Entit
           {
             int propsId = a.overridePropsId >= 0 ? a.overridePropsId : a.propsId;
             listener->onAction(eid, propsId, a.interpDelayTicks);
+
+            manager.sendEvent(eid, EventAction(i, propsId));
           }
         }
         else if (a.prevRel <= a.applyAt && a.applyAt < relTime)
@@ -89,6 +96,8 @@ static inline void actions_updater_es(const UpdateActionsEvent &info, ecs::Entit
           int propsId = a.overridePropsId >= 0 ? a.overridePropsId : a.propsId;
           listener->onAction(eid, propsId, a.interpDelayTicks);
           a.overridePropsId = -1;
+
+          manager.sendEvent(eid, EventAction(i, propsId));
         }
         a.prevRel = relTime;
       }

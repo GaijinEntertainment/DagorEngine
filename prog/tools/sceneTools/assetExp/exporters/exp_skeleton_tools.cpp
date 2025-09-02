@@ -251,7 +251,7 @@ class FindNodesWithIndex : public Node::NodeEnumCB
   const char *name;
   Tab<Node *> &nodes;
   Tab<int> &indexes;
-  virtual int node(Node &c)
+  int node(Node &c) override
   {
     int index = -1;
     if (sscanf(c.name.str(), name, &index) == 1 && strcmp(String(32, name, index).str(), c.name.str()) == 0)
@@ -279,7 +279,7 @@ static void calc_tm(Node *node)
     calc_tm(node->child[i]);
 }
 
-static void remove_suffix(char *buff, const char *str, const char *suffix)
+void remove_suffix(char *buff, const char *str, const char *suffix)
 {
   int suffixLen = i_strlen(suffix);
   if (suffixLen > 0)

@@ -9,6 +9,7 @@
 #include <3d/dag_texMgr.h>
 #include <3d/dag_resPtr.h>
 #include <3d/dag_textureIDHolder.h>
+#include <resourcePool/resourcePool.h>
 #include <drv/3d/dag_consts.h>
 #include <render/viewDependentResource.h>
 #include <generic/dag_carray.h>
@@ -24,7 +25,8 @@ public:
   using ISSAORenderer::render;
 
   SSAORenderer() = delete;
-  SSAORenderer(int w, int h, int num_views, uint32_t flags = SSAO_NONE, bool use_own_textures = true, const char *tag = "");
+  SSAORenderer(int w, int h, int num_views, uint32_t flags = SSAO_NONE, bool use_own_textures = true, const char *tag = "",
+    bool use_own_reprojection_params = true);
   virtual ~SSAORenderer();
 
   void reset() override;
@@ -33,6 +35,11 @@ public:
   TEXTUREID getSSAOTexId() override;
 
   void setCurrentView(int view) override;
+
+  void renderSSAO(const TMatrix &view_tm, const TMatrix4 &proj_tm, BaseTexture *depth_tex_to_use, const ManagedTex *ssao_tex,
+    const ManagedTex *prev_ssao_tex, const DPoint3 *world_pos, SubFrameSample sub_sample, bool clear_rt);
+
+  void applySSAOBlur(const ManagedTex *ssao_tex, const ManagedTex *tmp_tex);
 
 private:
   void render(const TMatrix &view_tm, const TMatrix4 &proj_tm, BaseTexture *ssaoDepthTexUse, const ManagedTex *ssaoTex,
@@ -44,7 +51,7 @@ private:
 
   void updateViewSpecific(const TMatrix &view_tm, const TMatrix4 &proj_tm, const DPoint3 *world_pos);
   void updateFrameNo();
-  void renderSSAO(BaseTexture *depth_to_use, const ManagedTex &ssaoTex, const ManagedTex &prevSsaoTex);
+  void renderSSAO(BaseTexture *depth_to_use, const ManagedTex &ssaoTex, const ManagedTex &prevSsaoTex, bool clear_rt);
   void applyBlur(const ManagedTex &ssaoTex, const ManagedTex &tmpTex);
 
   void generatePoissionPoints(int num_samples, int num_frames);
@@ -63,16 +70,17 @@ private:
     Point4 prevViewVecRB;
     DPoint3 prevWorldPos;
     unsigned int frameNo = 0;
-    int currentSSAOid = 0;
-    UniqueTex ssaoTex[3];
+    RTarget::Ptr ssaoTex;
   };
 
+  RTargetPool::Ptr ssaoRTPool;
   ViewDependentResource<ViewSpecific, 2> viewSpecific;
   UniqueTexHolder randomPatternTex;
   UniqueBufHolder poissonPoints;
 
   eastl::unique_ptr<PostFxRenderer> ssaoBlurRenderer{nullptr};
   bool useOwnTextures;
+  bool useOwnReprojectionParams;
 
   String tag;
 };

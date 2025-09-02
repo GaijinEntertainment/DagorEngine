@@ -3,7 +3,7 @@
 #include <daECS/core/coreEvents.h>
 #include <ecs/core/entityManager.h>
 #include "render/fx/effectEntity.h"
-#include "render/fx/effectManager.h"
+#include <effectManager/effectManager.h>
 
 ECS_ON_EVENT(on_appear)
 ECS_TRACK(*)

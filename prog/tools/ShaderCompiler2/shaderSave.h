@@ -5,10 +5,15 @@
 #include <generic/dag_tab.h>
 #include <util/dag_bindump_ext.h>
 
+namespace shc
+{
+class TargetContext;
+}
+
 struct VarMapAdapter
 {
-  static const char *getName(int id) { return VarMap::getName(id); }
-  static int addName(const char *name) { return VarMap::addVarId(name); }
+  static const char *getName(int id);
+  static int addName(const char *name);
 };
 
 template <typename Adapter>

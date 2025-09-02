@@ -33,7 +33,8 @@ static int tiff_nullMapProc(thandle_t, void **, toff_t *)
 }
 static void tiff_nullUnmapProc(thandle_t, void *, toff_t) { G_ASSERT(0); }
 
-static bool save_tiff(const char *fn, TexImage32 *img, int chan_cnt, unsigned char *app_data, unsigned int app_data_len)
+static bool save_tiff(const char *fn, const TexPixel32 *img, int width, int height, int chan_cnt, int stride, unsigned char *app_data,
+  unsigned int app_data_len)
 {
   G_ASSERTF_RETURN(chan_cnt == 3 || chan_cnt == 4, false, "%s: unsupported chan_cnt=%d", fn, chan_cnt);
   file_ptr_t fp = df_open(fn, DF_CREATE | DF_WRITE);
@@ -46,13 +47,13 @@ static bool save_tiff(const char *fn, TexImage32 *img, int chan_cnt, unsigned ch
     return false;
   }
 
-  int rows = img->h;
-  while (rows > 4 && int64_t(img->w) * rows * chan_cnt > (128 << 10))
+  int rows = height;
+  while (rows > 4 && int64_t(width) * rows * chan_cnt > (128 << 10))
     rows /= 2;
 
   // We need to set some values for basic tags before we can add any data
-  TIFFSetField(tif, TIFFTAG_IMAGEWIDTH, img->w);
-  TIFFSetField(tif, TIFFTAG_IMAGELENGTH, img->h);
+  TIFFSetField(tif, TIFFTAG_IMAGEWIDTH, width);
+  TIFFSetField(tif, TIFFTAG_IMAGELENGTH, height);
   TIFFSetField(tif, TIFFTAG_BITSPERSAMPLE, 8);
   TIFFSetField(tif, TIFFTAG_SAMPLESPERPIXEL, chan_cnt);
   if (chan_cnt > 3)
@@ -77,22 +78,34 @@ static bool save_tiff(const char *fn, TexImage32 *img, int chan_cnt, unsigned ch
     TIFFSetField(tif, TIFFTAG_IMAGEDESCRIPTION, String(0, "%.*s", app_data_len, app_data).str());
 
   // Write the information to the file
-  int ht = img->h, strip = 0, y = 0;
-  char *buf = new char[img->w * chan_cnt * rows + 1];
+  int ht = height, strip = 0, y = 0;
+  const int strideInPixels = stride / sizeof(TexPixel32);
+  char *buf = new char[width * chan_cnt * rows + 1];
   while (ht > 0)
   {
     int h = ht > rows ? rows : ht;
-    TexPixel32 *pix = img->getPixels() + y * img->w;
-    for (char *dst = buf, *dst_e = dst + img->w * h * chan_cnt; dst < dst_e; pix++, dst += chan_cnt)
+    const TexPixel32 *pix = img + y * strideInPixels;
+    int pixOffset = 0;
+    for (char *dst = buf, *dst_e = dst + width * h * chan_cnt; dst < dst_e; dst += chan_cnt)
     {
-      dst[0] = pix->r;
-      dst[1] = pix->g;
-      dst[2] = pix->b;
+      dst[0] = pix[pixOffset].r;
+      dst[1] = pix[pixOffset].g;
+      dst[2] = pix[pixOffset].b;
       if (chan_cnt > 3)
-        dst[3] = pix->a;
+        dst[3] = pix[pixOffset].a;
+
+      if (pixOffset == width - 1)
+      {
+        pix += strideInPixels;
+        pixOffset = 0;
+      }
+      else
+      {
+        ++pixOffset;
+      }
     }
 
-    TIFFWriteEncodedStrip(tif, strip, buf, img->w * h * chan_cnt);
+    TIFFWriteEncodedStrip(tif, strip, buf, width * h * chan_cnt);
     ht -= h;
     y += h;
     strip++;
@@ -104,11 +117,21 @@ static bool save_tiff(const char *fn, TexImage32 *img, int chan_cnt, unsigned ch
   return true;
 }
 
+bool save_tiff32(const char *fn, const TexPixel32 *img, int w, int h, int stride, unsigned char *app_data, unsigned int app_data_len)
+{
+  return save_tiff(fn, img, w, h, 4, stride, app_data, app_data_len);
+}
+
+bool save_tiff24(const char *fn, const TexPixel32 *img, int w, int h, int stride, unsigned char *app_data, unsigned int app_data_len)
+{
+  return save_tiff(fn, img, w, h, 3, stride, app_data, app_data_len);
+}
+
 bool save_tiff32(const char *fn, TexImage32 *img, unsigned char *app_data, unsigned int app_data_len)
 {
-  return save_tiff(fn, img, 4, app_data, app_data_len);
+  return save_tiff(fn, img->getPixels(), img->w, img->h, 4, img->w * 4, app_data, app_data_len);
 }
 bool save_tiff24(const char *fn, TexImage32 *img, unsigned char *app_data, unsigned int app_data_len)
 {
-  return save_tiff(fn, img, 3, app_data, app_data_len);
+  return save_tiff(fn, img->getPixels(), img->w, img->h, 3, img->w * 4, app_data, app_data_len);
 }

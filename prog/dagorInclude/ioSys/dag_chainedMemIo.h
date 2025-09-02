@@ -155,9 +155,7 @@ public:
   KRNLIMP virtual void seekto(int pos);
   virtual void seektoend(int ofs = 0) { MemorySaveCB::seekto(int(MemoryChainedData::calcTotalUsedSize(mcd) + ofs)); }
   KRNLIMP virtual const char *getTargetName() { return "(mem)"; }
-  virtual void flush()
-  { /*noop*/
-  }
+  virtual void flush() { /*noop*/ }
 
   void copyDataTo(IGenSave &dest_cwr)
   {

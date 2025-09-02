@@ -23,7 +23,7 @@ class ExecutionMarkers
 #endif
 
   uint32_t commandIndex = 0;
-  eastl::vector<CommandDebugInfo> commandDebugData;
+  dag::Vector<CommandDebugInfo> commandDebugData;
 
   void markAsPassedIfLessOrEquel(uint32_t id);
 

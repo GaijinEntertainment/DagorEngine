@@ -2,11 +2,11 @@
 #pragma once
 
 #include <dag/dag_vector.h>
+#include <propPanel/control/menu.h>
 #include <propPanel/control/treeInterface.h>
-#include <sepGui/wndMenuInterface.h>
 #include "hmlSplineObject.h"
 
-class NavmeshAreasProcessing : public IMenuEventHandler, public PropPanel::ITreeControlEventHandler
+class NavmeshAreasProcessing : public PropPanel::IMenuEventHandler, public PropPanel::ITreeControlEventHandler
 {
 public:
   void init(HmapLandObjectEditor *obj_ed, const DataBlock *navmesh_props, int navmesh_idx);
@@ -50,7 +50,7 @@ private:
   int getAreaIndexByLeaf(PropPanel::TLeafHandle leafHandle);
   int getAreaIndexByName(const char *name);
 
-  virtual bool onTreeContextMenu(PropPanel::ContainerPropertyControl &tree_panel, int pcb_id,
+  bool onTreeContextMenu(PropPanel::ContainerPropertyControl &tree_panel, int pcb_id,
     PropPanel::ITreeInterface &tree_interface) override;
-  virtual int onMenuItemClick(unsigned id) override;
+  int onMenuItemClick(unsigned id) override;
 };

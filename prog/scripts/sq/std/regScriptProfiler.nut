@@ -1,11 +1,11 @@
 //-file:forbidden-function
+import "console" as console
+from "dagor.system" import DBGLEVEL
+from "dagor.workcycle" import setInterval, clearTimer
+from "dagor.time" import get_time_msec
+from "globalState.nut" import hardPersistWatched
 
-let {DBGLEVEL} = require("dagor.system")
-let { setInterval, clearTimer } = require("dagor.workcycle")
-let console = require("console")
 let log = require("log.nut")()
-let { get_time_msec } = require("dagor.time")
-let { hardPersistWatched } = require("globalState.nut")
 
 function registerScriptProfiler(prefix, logRes = log.console_print, filePath = null) {
   if (DBGLEVEL <= 0)
@@ -23,10 +23,10 @@ function registerScriptProfiler(prefix, logRes = log.console_print, filePath = n
   local st = 0
   function toggleProfiler(newVal = null, fileName = null) {
     local ret
-    if (newVal == isProfileOn.value)
+    if (newVal == isProfileOn.get())
       ret = "already"
-    isProfileOn(newVal ?? !isProfileOn.value)
-    if (isProfileOn.value)
+    isProfileOn.set(newVal ?? !isProfileOn.get())
+    if (isProfileOn.get())
       ret = "on"
     else
       ret = "off"
@@ -51,14 +51,14 @@ function registerScriptProfiler(prefix, logRes = log.console_print, filePath = n
     return ret
   }
   function profileSpikes(){
-    if (profiler_get_total_time() > spikesThresholdMs.value*1000)
+    if (profiler_get_total_time() > spikesThresholdMs.get()*1000)
       profiler_dump()
     profiler_reset()
   }
   function toggleSpikesProfiler(){
-    isSpikesProfileOn(!isSpikesProfileOn.value)
-    if (isSpikesProfileOn.value){
-      logRes("starting spikes profiler with threshold {0}ms".subst(spikesThresholdMs.value))
+    isSpikesProfileOn.set(!isSpikesProfileOn.get())
+    if (isSpikesProfileOn.get()){
+      logRes("starting spikes profiler with threshold {0}ms".subst(spikesThresholdMs.get()))
       clearTimer(profileSpikes)
       profiler_reset()
       profiler.start()
@@ -70,8 +70,8 @@ function registerScriptProfiler(prefix, logRes = log.console_print, filePath = n
     }
   }
   function setSpikesThreshold(val){
-    spikesThresholdMs(val.tofloat())
-    logRes("set spikes threshold to {0} ms".subst(spikesThresholdMs.value))
+    spikesThresholdMs.set(val.tofloat())
+    logRes("set spikes threshold to {0} ms".subst(spikesThresholdMs.get()))
   }
 
   let fileName = filePath ?? $"../../profile_{prefix}.csv"

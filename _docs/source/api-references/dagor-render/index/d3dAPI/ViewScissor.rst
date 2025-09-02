@@ -1,5 +1,5 @@
-View and Scissor d3d API
+View and Scissor D3D API
 =================================================
 
-.. autodoxygenfile:: dag_viewScissor.h
+.. doxygenfile:: dag_viewScissor.h
   :project: d3dAPI

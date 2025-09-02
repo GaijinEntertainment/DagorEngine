@@ -29,7 +29,12 @@ bool d3d::issue_event_query(d3d::EventQuery *fence)
   // external API may issue query without reading its contents
   // so always reset it
   tf->reset();
-  tf->request(Globals::ctx.getCurrentWorkItemId());
+  // we use event query to detect readback completion, yet we don't supply queue that should be used
+  // so report status with extra latency when async readbacks is active
+  size_t extraLatency = 0;
+  if (!Frontend::readbacks.getForWrite().empty())
+    extraLatency = Frontend::readbacks.getLatency();
+  tf->request(Globals::ctx.getCurrentWorkItemId() + extraLatency);
   return true;
 }
 

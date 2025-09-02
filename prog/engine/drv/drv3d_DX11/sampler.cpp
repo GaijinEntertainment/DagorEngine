@@ -20,14 +20,6 @@ void close_samplers()
 }
 
 } // namespace drv3d_dx11
-
-SamplerKey::SamplerKey(const BaseTex *tex)
-{
-  borderColor = tex->borderColor;
-  lodBias = tex->lodBias;
-  k = tex->key & BaseTextureImpl::SAMPLER_KEY_MASK;
-}
-
 static SamplerKey makeKey(const d3d::SamplerInfo &sampler_info)
 {
   SamplerKey key;

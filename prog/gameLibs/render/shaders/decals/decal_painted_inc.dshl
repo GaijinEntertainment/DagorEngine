@@ -1,0 +1,53 @@
+include "paint_details_inc.dshl"
+include "const_color_inc.dshl"
+
+macro INIT_DECAL_PAINTED()
+  INIT_PAINT_DETAILS_STATIC()
+  interval use_painting : painting_off < 1, painting_on;
+
+  static float paint_details = 0; // paint_strength
+  static float paint_white_point = 0.5;
+  static float paint_black_point = 0.1;
+  static float paint_mult = 1;
+  static int paint_palette_row = 1;
+  static int palette_index = 1;
+  static int use_alpha_as_mask = 0;
+
+  (vs) {
+    paint_palette_row_index@f2 = (paint_palette_row, palette_index, 0, 0);
+  }
+  (ps) {
+    paint_scale_bias_mult_details@f4 = (1 / (paint_white_point - paint_black_point), -paint_black_point / (paint_white_point - paint_black_point), paint_mult, paint_details);
+
+    use_alpha_as_mask@i1 = use_alpha_as_mask;
+  }
+  if (use_painting == painting_on)
+  {
+    hlsl {
+      #define COLOR_NEEDED 1
+    }
+  }
+
+  INIT_CONST_COLOR_OVERRIDES(paint_const_color)
+  USE_PAINT_DETAILS()
+endmacro
+
+//Needs to be included after VsOutput is defined
+macro USE_DECAL_PAINTED()
+  hlsl (ps) {
+    half3 apply_paint_to_decal(VsOutput input, half4 diffuseColor)
+    {
+      float3 colorMul = get_color_mul(input, get_paint_const_color());
+
+      half mask = luminance(diffuseColor.rgb);
+      if (get_use_alpha_as_mask())
+      {
+        mask = diffuseColor.a;
+      }
+
+      half details = get_paint_scale_bias_mult_details().w * saturate(mask * get_paint_scale_bias_mult_details().x + get_paint_scale_bias_mult_details().y);
+      return lerp(diffuseColor.rgb, diffuseColor.rgb * colorMul * get_paint_scale_bias_mult_details().z, details);
+    }
+  }
+
+endmacro

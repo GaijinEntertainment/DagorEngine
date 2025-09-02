@@ -1,4 +1,7 @@
 require AnimV20
+options indenting = 2
+
+let TIME_TicksPerSec = 15360.0
 
 [generic]
 def anim_graph_enqueueState(var anim_graph : AnimationGraph;

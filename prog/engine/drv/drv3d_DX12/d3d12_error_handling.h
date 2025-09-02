@@ -6,6 +6,7 @@
 
 #include <debug/dag_log.h>
 #include <drv_log_defs.h>
+#include <drv_assert_defs.h>
 #include <util/dag_compilerDefs.h>
 
 
@@ -50,6 +51,7 @@ inline const char *dxgi_error_code_to_string(HRESULT ec)
     ENUM_CASE(DXGI_ERROR_MODE_CHANGE_IN_PROGRESS);
     ENUM_CASE(E_INVALIDARG);
     ENUM_CASE(E_OUTOFMEMORY);
+    ENUM_CASE(E_ACCESSDENIED);
 #if _TARGET_PC_WIN
     ENUM_CASE(D3D12_ERROR_ADAPTER_NOT_FOUND);
     ENUM_CASE(D3D12_ERROR_DRIVER_VERSION_MISMATCH);
@@ -77,11 +79,11 @@ inline HRESULT dx12_check_result_no_oom_report(HRESULT result, const char *expr,
   auto resultStr = dxgi_error_code_to_string(result);
   if ('\0' == resultStr[0])
   {
-    D3D_ERROR("%s returned unknown return code %u, %s %u", expr, result, file, line);
+    D3D_ERROR("DX12: %s returned unknown return code %u, %s %u", expr, result, file, line);
   }
   else
   {
-    D3D_ERROR("%s returned %s, %s %u", expr, resultStr, file, line);
+    D3D_ERROR("DX12: %s returned %s, %s %u", expr, resultStr, file, line);
   }
 
   return result;
@@ -107,11 +109,11 @@ inline HRESULT dx12_check_result(HRESULT result, const char *expr, const char *f
   auto resultStr = dxgi_error_code_to_string(result);
   if ('\0' == resultStr[0])
   {
-    D3D_ERROR("%s returned unknown return code %u, %s %u", expr, result, file, line);
+    D3D_ERROR("DX12: %s returned unknown return code %u, %s %u", expr, result, file, line);
   }
   else
   {
-    D3D_ERROR("%s returned %s, %s %u", expr, resultStr, file, line);
+    D3D_ERROR("DX12: %s returned %s, %s %u", expr, resultStr, file, line);
   }
 
   return result;
@@ -140,11 +142,11 @@ inline HRESULT dx12_debug_result(HRESULT result, const char *expr, const char *f
   auto resultStr = dxgi_error_code_to_string(result);
   if ('\0' == resultStr[0])
   {
-    logdbg("%s returned unknown return code %u, %s %u", expr, result, file, line);
+    logdbg("DX12: %s returned unknown return code %u, %s %u", expr, result, file, line);
   }
   else
   {
-    logdbg("%s returned %s, %s %u", expr, resultStr, file, line);
+    logdbg("DX12: %s returned %s, %s %u", expr, resultStr, file, line);
   }
 
   return result;
@@ -167,16 +169,13 @@ inline void report_resource_alloc_info_error(const D3D12_RESOURCE_DESC &desc)
 #define DX12_DEBUG_OK(expr)   SUCCEEDED(DX12_DEBUG_RESULT(expr))
 #define DX12_DEBUG_FAIL(expr) FAILED(DX12_DEBUG_RESULT(expr))
 
-#define DX12_CHECK_RESULT(expr)                                                                                         \
-  [result = expr] {                                                                                                     \
-    return DAGOR_LIKELY(SUCCEEDED(result)) ? result : drv3d_dx12::dx12_check_result(result, #expr, __FILE__, __LINE__); \
-  }()
 #define DX12_CHECK_RESULTF(expr, name)                                                                                 \
   [result = expr] {                                                                                                    \
     return DAGOR_LIKELY(SUCCEEDED(result)) ? result : drv3d_dx12::dx12_check_result(result, name, __FILE__, __LINE__); \
   }()
-#define DX12_CHECK_OK(expr)   SUCCEEDED(DX12_CHECK_RESULT(expr))
-#define DX12_CHECK_FAIL(expr) FAILED(DX12_CHECK_RESULT(expr))
+#define DX12_CHECK_RESULT(expr) DX12_CHECK_RESULTF(expr, #expr)
+#define DX12_CHECK_OK(expr)     SUCCEEDED(DX12_CHECK_RESULT(expr))
+#define DX12_CHECK_FAIL(expr)   FAILED(DX12_CHECK_RESULT(expr))
 #define DX12_EXIT_ON_FAIL(expr) \
   if (DX12_CHECK_FAIL(expr))    \
   {                             \

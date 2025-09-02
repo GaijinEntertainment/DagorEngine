@@ -4,6 +4,11 @@
 
 #if _TARGET_PC_WIN
 #include <windows.h> // FIXME
+#include <Shlobj.h>
+#include <direct.h>
+#include <util/dag_string.h>
+#include <osApiWrappers/basePath.h>
+#include <osApiWrappers/dag_progGlobals.h>
 #include <image/dag_texPixel.h>
 
 namespace clipboard
@@ -124,6 +129,62 @@ bool set_clipboard_bmp_image(TexPixel32 *im, int wd, int ht, int stride)
   }
   return false;
 }
+
+bool set_clipboard_file(const char *filename)
+{
+  if (!filename || !*filename)
+    return false;
+
+  String path;
+  if (is_path_abs(filename))
+    path = filename;
+  else
+  {
+    char buf[DAGOR_MAX_PATH * 3]; // x3 to compensate to UTF-8 large 3-byte code points in asian characters
+    if (getcwd(buf, sizeof(buf)))
+      path = buf;
+    if (!path.empty())
+      path += PATH_DELIM;
+    path += filename;
+  }
+
+  bool lockSetDone = false;
+  bool copyClipboardDone = false;
+  // DROPFILES has two '\0' at the end: one from last path null-terminated string, another one to signal the end of the path list
+  // [struct DROPFILES][path_0][\n][path_i][\n][\n]
+  int fileDescSize = sizeof(DROPFILES) + path.size() + 1;
+  HGLOBAL fileDescMemGlobal = GlobalAlloc(GHND, fileDescSize);
+  if (fileDescMemGlobal)
+  {
+    DROPFILES *df = (DROPFILES *)GlobalLock(fileDescMemGlobal);
+    if (df)
+    {
+      df->pFiles = sizeof(DROPFILES);
+      df->fWide = FALSE;
+      char *dfPointer = (char *)df + df->pFiles;
+      memcpy(dfPointer, path.c_str(), path.size());
+      dfPointer += path.size();
+      memset(dfPointer, '\0', 1);
+      GlobalUnlock(df);
+      lockSetDone = true;
+    }
+    HWND thisHWND = (HWND)::win32_get_main_wnd();
+    if (lockSetDone && thisHWND && OpenClipboard(thisHWND))
+    {
+      // We do not use delayed rendering, therefore SetClipboardData should return NULL only on failure
+      if (EmptyClipboard())
+        copyClipboardDone = SetClipboardData(CF_HDROP, fileDescMemGlobal) != NULL;
+      CloseClipboard();
+    }
+  }
+  // If SetClipboardData succeeded, we must not call GlobalFree, because the ownership is transferred to the OS from us.
+  if (fileDescMemGlobal && (!lockSetDone || !copyClipboardDone))
+  {
+    GlobalFree(fileDescMemGlobal);
+    return false;
+  }
+  return copyClipboardDone;
+}
 } // namespace clipboard
 
 #define EXPORT_PULL dll_pull_osapiwrappers_clipboard
@@ -138,5 +199,6 @@ bool set_clipboard_ansi_text(const char *) { return false; }
 bool get_clipboard_utf8_text(char *, int) { return false; }
 bool set_clipboard_utf8_text(const char *) { return false; }
 bool set_clipboard_bmp_image(TexPixel32 * /*im*/, int /*wd*/, int /*ht*/, int /*stride*/) { return false; }
+bool set_clipboard_file(const char * /*filename*/) { return false; }
 } // namespace clipboard
 #endif

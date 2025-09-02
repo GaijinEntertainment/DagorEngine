@@ -35,7 +35,9 @@ static RenderState &g_frameState = g_render_state; // ok for strict aliasing?
 #include <drv/3d/dag_bindless.h>
 #include <drv/3d/dag_texture.h>
 #include <drv/3d/dag_variableRateShading.h>
+#include <drv/3d/dag_streamOutput.h>
 #include <drv/3d/dag_shader.h>
+#include <gpuConfig.h>
 // #undef g_frameState
 
 
@@ -245,6 +247,22 @@ void flush_states(RenderState &rs)
       ContextAutoLock contextLock;
       dx_context->OMSetBlendState(s, rs.blendFactor, 0xffffffff);
     }
+    if (get_gpu_driver_cfg().flushBeforeSepAblendAndBlendFactorForRT1 && rs.nextRtState.isColorUsed(1))
+    {
+      const auto sourceState = render_states.get(current_render_state)->sourceShaderRenderState;
+
+      bool ablendUsed = sourceState.blendParams[0].ablend;
+      if (sourceState.independentBlendEnabled)
+      {
+        for (int i = 1; i < sourceState.NumIndependentBlendParameters && !ablendUsed; ++i)
+          ablendUsed = sourceState.blendParams[i].ablend;
+      }
+      if (ablendUsed)
+      {
+        ContextAutoLock lock;
+        dx_context->Dispatch(0, 0, 0);
+      }
+    }
   }
 
   if (rs.depthStencilModified)
@@ -281,8 +299,8 @@ void flush_samplers(RenderState &rs)
   if (dagor_d3d_force_driver_reset)
     return;
   // Removed RT may become a new sampler.
-  if (rs.texFetchState.resources[STAGE_PS].modifiedMask | rs.texFetchState.resources[STAGE_VS].modifiedMask || rs.rtModified ||
-      rs.texFetchState.lastHDGBitsApplied != rs.hdgBits)
+  if (rs.texFetchState.resources[STAGE_PS].anyModifiedMask() | rs.texFetchState.resources[STAGE_VS].anyModifiedMask() ||
+      rs.rtModified || rs.texFetchState.lastHDGBitsApplied != rs.hdgBits)
   {
     rs.texFetchState.flush(rs.rtModified, rs.hdgBits); // todo: optimize rtModified case
   }
@@ -294,7 +312,7 @@ void flush_cs_objects(RenderState &rs, bool async)
   const uint32_t stage = async ? (uint32_t)STAGE_CS_ASYNC_STATE : (uint32_t)STAGE_CS;
 
   uint32_t uavModifiedMask = rs.texFetchState.uavState[stage].uavModifiedMask;
-  uint32_t resourcesModifiedMask = rs.texFetchState.resources[stage].modifiedMask;
+  uint32_t resourcesModifiedMask = rs.texFetchState.resources[stage].anyModifiedMask();
 
   if (uavModifiedMask | resourcesModifiedMask)
     rs.texFetchState.flush_cs(false, async);
@@ -469,8 +487,8 @@ ID3D11DepthStencilState *DepthStencilState::getStateObject()
   desc.DepthWriteMask = depthWrite ? D3D11_DEPTH_WRITE_MASK_ALL : D3D11_DEPTH_WRITE_MASK_ZERO;
   desc.DepthFunc = (D3D11_COMPARISON_FUNC)depthFunc;
   desc.StencilEnable = toBOOL(stencilEnable);
-  desc.StencilReadMask = stencilMask;
-  desc.StencilWriteMask = stencilMask;
+  desc.StencilReadMask = stencilReadMask;
+  desc.StencilWriteMask = stencilWriteMask;
 
   desc.FrontFace.StencilFailOp = (D3D11_STENCIL_OP)stencilFail;
   desc.FrontFace.StencilDepthFailOp = (D3D11_STENCIL_OP)stencilDepthFail;
@@ -495,16 +513,7 @@ ID3D11DepthStencilState *DepthStencilState::getStateObject()
   return NULL;
 }
 
-ID3D11SamplerState *TextureFetchState::Samplers::getStateObject(const BaseTex *basetex)
-{
-  if (basetex == NULL)
-    return NULL;
-
-  SamplerKey key{basetex};
-  return getStateObject(key);
-}
-
-ID3D11SamplerState *TextureFetchState::Samplers::getStateObject(const SamplerKey &key)
+ID3D11SamplerState *TextureFetchState::Resources::getStateObject(const SamplerKey &key)
 {
   uint8_t anisotropyLevel =
     override_max_anisotropy_level > 0 ? min(override_max_anisotropy_level, uint8_t(key.anisotropyLevel)) : key.anisotropyLevel;
@@ -531,6 +540,8 @@ ID3D11SamplerState *TextureFetchState::Samplers::getStateObject(const SamplerKey
   if (anisotropyLevel > 1)
     texFilter = TEXFILTER_BEST; // 4->1
 
+  // to avoid issues with shader dump, we keeped enum values intact when removing default modes
+  // so table is intact, still contain old entries, yet they are not used now
   // [TEXMIPMAP_][TEXFILTER_]
   static const uint8_t filterMode[4][5] = {
     // TEXMIPMAP_DEFAULT
@@ -586,28 +597,36 @@ ID3D11SamplerState *TextureFetchState::Samplers::getStateObject(const SamplerKey
   return NULL;
 }
 
-bool TextureFetchState::Samplers::flush(unsigned shader_stage, bool force, ID3D11ShaderResourceView **views,
-  ID3D11SamplerState **states, int &firstUsed, int &maxUsed)
+bool TextureFetchState::Resources::flush(unsigned shader_stage, bool force, ID3D11ShaderResourceView **views,
+  ID3D11SamplerState **states, SlotRange &view_range_out, SlotRange &state_range_out)
 {
-  if ((modifiedMask == 0 && !force) || resources.empty()) // Resources CS locked in TextureFetchState::flush.
+  if ((anyModifiedMask() == 0 && !force) || resources.empty()) // Resources CS locked in TextureFetchState::flush.
     return false;
-  firstUsed = 1000;
-  maxUsed = -1;
+
+  view_range_out = SlotRange{};
+  state_range_out = SlotRange{};
+
   if (force)
+  {
     modifiedMask = (1ULL << resources.size()) - 1;
+    samplersModifiedMask = modifiedMask;
+  }
   int nextCnt = 0;
   unsigned i = 0, bit = 1;
   G_STATIC_ASSERT(sizeof(modifiedMask) == sizeof(bit));
   bool btWasModified = false;
 
+  const uint32_t relevantSamplersMask = samplersModifiedMask & SAMPLERS_SLOT_MASK;
+
   // Necessary for access to g_sampler_keys; lock once.
   SamplerKeysAutoLock lock;
 
-  for (SamplerState &ss : resources)
+  for (ResourceSlotState &ss : resources)
   {
     BaseTex *bt = (BaseTex *)ss.texture;
 
     bool slotModified = (modifiedMask & bit) != 0;
+    bool samplerSlotModified = (relevantSamplersMask & bit) != 0;
     bool textureStateModified = (bt && bt->getModified(shader_stage));
 
     if (slotModified || textureStateModified)
@@ -621,7 +640,7 @@ bool TextureFetchState::Samplers::flush(unsigned shader_stage, bool force, ID3D1
         if (bt->dirtyRt)
           resolve_msaa_and_gen_mips(bt);
         const uint32_t maxMip = bt->maxMipLevel;
-        // WARNING! if we set both sampler LOD and resView, we effeciently move min mip TWICE
+        // WARNING! if we set both sampler LOD and resView, we efficiently move min mip TWICE
         ss.viewObject = bt->getResView(0, maxMip, bt->minMipLevel - maxMip + 1);
       }
       else if (ss.buffer != NULL)
@@ -633,37 +652,7 @@ bool TextureFetchState::Samplers::flush(unsigned shader_stage, bool force, ID3D1
         ss.viewObject = NULL;
       }
 
-      if (!ss.buffer && (bt || ss.samplerHandle != d3d::INVALID_SAMPLER_HANDLE) &&
-          (ss.samplerSource != SamplerState::SamplerSource::None))
-      {
-        if (ss.samplerSource == SamplerState::SamplerSource::Texture)
-        {
-          G_ASSERTF(bt, "bt (texture object) must be valid here!");
-          if (bt)
-          {
-            ss.latestSamplerKey = SamplerKey{bt};
-            ss.samplerSource = SamplerState::SamplerSource::Latest;
-          }
-        }
-        else if (ss.samplerSource == SamplerState::SamplerSource::Sampler)
-        {
-          G_ASSERTF(ss.samplerHandle != d3d::INVALID_SAMPLER_HANDLE, "ss.sampler (sampler object) must be valid here!");
-          if (DAGOR_LIKELY(ss.samplerHandle != d3d::INVALID_SAMPLER_HANDLE))
-          {
-            // See `SamplerKeysAutoLock lock;` above.
-            ss.latestSamplerKey = g_sampler_keys[uint64_t(ss.samplerHandle) - 1];
-            ss.samplerSource = SamplerState::SamplerSource::Latest;
-          }
-        }
-        ss.stateObject = getStateObject(ss.latestSamplerKey);
-      }
-      else
-      {
-        ss.stateObject = nullptr;
-      }
-
-      firstUsed = min<int>(firstUsed, i);
-      maxUsed = i;
+      update(view_range_out, i);
     }
 #if CHECK_SHADOW_BUFFERS_CONSISTENCY
     else
@@ -673,13 +662,11 @@ bool TextureFetchState::Samplers::flush(unsigned shader_stage, bool force, ID3D1
         const uint32_t maxMip = bt->maxMipLevel;
         ID3D11ShaderResourceView *view = bt->getResView(0, maxMip, bt->minMipLevel - maxMip + 1);
         G_ASSERT(ss.viewObject == view);
-        // WARNING! if we set both sampler LOD and resView, we effeciently move min mip TWICE
-        G_ASSERT((ss.stateObject == NULL) == ((view ? getStateObject(bt) : NULL) == NULL));
+        // WARNING! if we set both sampler LOD and resView, we efficiently move min mip TWICE
       }
       else if (ss.buffer != NULL)
       {
         G_ASSERT(ss.viewObject == ss.buffer->getResView());
-        G_ASSERT(ss.stateObject == NULL);
       }
       else
       {
@@ -687,6 +674,22 @@ bool TextureFetchState::Samplers::flush(unsigned shader_stage, bool force, ID3D1
       }
     }
 #endif
+
+    if (samplerSlotModified)
+    {
+      if (ss.samplerHandle != d3d::INVALID_SAMPLER_HANDLE)
+      {
+        // See `SamplerKeysAutoLock lock;` above.
+        ss.stateObject = getStateObject(g_sampler_keys[uint64_t(ss.samplerHandle) - 1]);
+      }
+      else
+      {
+        ss.stateObject = nullptr;
+      }
+
+      update(state_range_out, i);
+    }
+
     if (bt || ss.buffer != NULL)
       nextCnt = i + 1;
 
@@ -701,13 +704,18 @@ bool TextureFetchState::Samplers::flush(unsigned shader_stage, bool force, ID3D1
 
   resources.resize(nextCnt);
 
-  if (maxUsed == -1)
-    firstUsed = 0;
-  modifiedMask = 0;
+  if (view_range_out.maxUsed < 0)
+    view_range_out.firstUsed = 0;
+  G_ASSERT(view_range_out.maxUsed < MAX_RESOURCES);
+  if (state_range_out.maxUsed < 0)
+    state_range_out.firstUsed = 0;
+  G_ASSERT(state_range_out.maxUsed < MAX_CS_SAMPLERS && state_range_out.maxUsed < MAX_PS_SAMPLERS &&
+           state_range_out.maxUsed < MAX_VS_SAMPLERS);
+  modifiedMask = samplersModifiedMask = 0;
   // Reset modifications at the end of the flush because one texture can be set twice
   // or more to the different samplers
   if (btWasModified)
-    for (int resNo = firstUsed; resNo <= min<int>(maxUsed, resources.size() - 1); ++resNo)
+    for (int resNo = view_range_out.firstUsed; resNo <= min<int>(view_range_out.maxUsed, resources.size() - 1); ++resNo)
       if (resources[resNo].texture)
         ((BaseTex *)resources[resNo].texture)->unsetModified(shader_stage);
   return true;
@@ -721,44 +729,51 @@ void TextureFetchState::flush(bool force, uint32_t hdg_bits)
   ID3D11SamplerState *states[MAX_RESOURCES];
 
   G_STATIC_ASSERT(MAX_VS_SAMPLERS <= MAX_PS_SAMPLERS);
-  int firstUsed, maxUsed;
-  if (resources[STAGE_PS].flush(STAGE_PS, force, views, states, firstUsed, maxUsed))
+  SlotRange viewRange, samplerRange;
+  if (resources[STAGE_PS].flush(STAGE_PS, force, views, states, viewRange, samplerRange))
   {
     if (!dagor_d3d_force_driver_reset)
     {
       ContextAutoLock contextLock;
-      if (firstUsed < MAX_PS_SAMPLERS)
-        dx_context->PSSetSamplers(firstUsed, min(MAX_PS_SAMPLERS, maxUsed + 1) - firstUsed, &states[firstUsed]);
-      dx_context->PSSetShaderResources(firstUsed, maxUsed + 1 - firstUsed, &views[firstUsed]);
+      if (samplerRange.maxUsed >= 0)
+      {
+        dx_context->PSSetSamplers(samplerRange.firstUsed, samplerRange.maxUsed + 1 - samplerRange.firstUsed,
+          &states[samplerRange.firstUsed]);
+      }
+      dx_context->PSSetShaderResources(viewRange.firstUsed, viewRange.maxUsed + 1 - viewRange.firstUsed, &views[viewRange.firstUsed]);
     }
   }
 
   if (lastHDGBitsApplied != hdg_bits && hdg_bits)
     force = true;
 
-  if (resources[STAGE_VS].flush(STAGE_VS, force, views, states, firstUsed, maxUsed))
+  if (resources[STAGE_VS].flush(STAGE_VS, force, views, states, viewRange, samplerRange))
   {
     if (!dagor_d3d_force_driver_reset)
     {
       ContextAutoLock contextLock;
-      if (firstUsed < MAX_VS_SAMPLERS)
-        dx_context->VSSetSamplers(firstUsed, min(MAX_VS_SAMPLERS, maxUsed + 1) - firstUsed, &states[firstUsed]); // firstUsedSampler!
-      dx_context->VSSetShaderResources(firstUsed, maxUsed + 1 - firstUsed, &views[firstUsed]);
+      if (samplerRange.maxUsed >= 0)
+      {
+        dx_context->VSSetSamplers(samplerRange.firstUsed, samplerRange.maxUsed + 1 - samplerRange.firstUsed,
+          &states[samplerRange.firstUsed]);
+      }
+      dx_context->VSSetShaderResources(viewRange.firstUsed, viewRange.maxUsed + 1 - viewRange.firstUsed, &views[viewRange.firstUsed]);
     }
   }
   else
-    maxUsed = -1;
+    viewRange = samplerRange = {};
 
-  if ((maxUsed >= 0 || lastHDGBitsApplied != hdg_bits) && !dagor_d3d_force_driver_reset)
+  const bool hasVsResources = (viewRange.firstUsed <= viewRange.maxUsed) || (samplerRange.firstUsed <= samplerRange.maxUsed);
+  if ((hasVsResources || lastHDGBitsApplied != hdg_bits) && !dagor_d3d_force_driver_reset)
   {
     ContextAutoLock contextLock;
 
-#define SET_SMP_RES(XS)                                                        \
-  if (hdg_bits & HAS_##XS)                                                     \
-  {                                                                            \
-    if (firstUsed < MAX_VS_SAMPLERS)                                           \
-      dx_context->XS##SetSamplers(firstUsed, smp_cnt, &states[firstUsed]);     \
-    dx_context->XS##SetShaderResources(firstUsed, res_cnt, &views[firstUsed]); \
+#define SET_SMP_RES(XS)                                                                              \
+  if (hdg_bits & HAS_##XS)                                                                           \
+  {                                                                                                  \
+    if (smp_cnt > 0)                                                                                 \
+      dx_context->XS##SetSamplers(samplerRange.firstUsed, smp_cnt, &states[samplerRange.firstUsed]); \
+    dx_context->XS##SetShaderResources(viewRange.firstUsed, res_cnt, &views[viewRange.firstUsed]);   \
   }
 #define CLR_SMP_RES(XS)                                          \
   if ((lastHDGBitsApplied & HAS_##XS) && !(hdg_bits & HAS_##XS)) \
@@ -767,10 +782,10 @@ void TextureFetchState::flush(bool force, uint32_t hdg_bits)
     dx_context->XS##SetShaderResources(0, MAX_RESOURCES, views); \
   }
 
-    if (maxUsed >= 0)
+    if (hasVsResources)
     {
-      int res_cnt = maxUsed + 1 - firstUsed;
-      int smp_cnt = min<int>(MAX_VS_SAMPLERS, maxUsed + 1) - firstUsed;
+      int res_cnt = viewRange.maxUsed + 1 - viewRange.firstUsed;
+      int smp_cnt = samplerRange.maxUsed + 1 - samplerRange.firstUsed;
       SET_SMP_RES(HS);
       SET_SMP_RES(DS);
       SET_SMP_RES(GS);
@@ -825,20 +840,24 @@ void TextureFetchState::flush_cs(bool force, bool async)
   }
 
   ResAutoLock resLock;
-  Samplers &stageResources = resources[stage];
-  int firstUsed, maxUsed;
+  Resources &stageResources = resources[stage];
+  SlotRange viewRange, samplerRange;
   ID3D11ShaderResourceView *views[MAX_RESOURCES];
   ID3D11SamplerState *states[MAX_RESOURCES];
 
-  if (stageResources.flush(stage, force, views, states, firstUsed, maxUsed))
+  if (stageResources.flush(stage, force, views, states, viewRange, samplerRange))
   {
     if (!dagor_d3d_force_driver_reset)
     {
       {
         ContextAutoLock contextLock;
-        if (firstUsed < MAX_CS_SAMPLERS)
-          dx_context->CSSetSamplers(firstUsed, min(MAX_CS_SAMPLERS, maxUsed + 1) - firstUsed, &states[firstUsed]);
-        dx_context->CSSetShaderResources(firstUsed, maxUsed + 1 - firstUsed, &views[firstUsed]);
+        if (samplerRange.maxUsed >= 0)
+        {
+          dx_context->CSSetSamplers(samplerRange.firstUsed, samplerRange.maxUsed + 1 - samplerRange.firstUsed,
+            &states[samplerRange.firstUsed]);
+        }
+        dx_context->CSSetShaderResources(viewRange.firstUsed, viewRange.maxUsed + 1 - viewRange.firstUsed,
+          &views[viewRange.firstUsed]);
       }
     }
   }
@@ -870,6 +889,7 @@ void MiniRenderStateUnsafe::restore()
   rs.depthStencilModified = true;
 
   d3d::set_tex(STAGE_PS, 0, tex0);
+  d3d::set_sampler(STAGE_PS, 0, d3d::request_sampler({}));
   d3d::set_program(BAD_PROGRAM);
   if (memcmp(&rt, &g_render_state.nextRtState, sizeof(rt)) != 0)
   {
@@ -893,12 +913,12 @@ bool d3d::setview(int x, int y, int w, int h, float minz, float maxz)
   g_render_state.viewModified = VIEWMOD_CUSTOM;
   g_render_state.modified = true;
 
-  G_ASSERT(x > D3D11_VIEWPORT_BOUNDS_MIN && x <= D3D11_VIEWPORT_BOUNDS_MAX);
-  G_ASSERT(y > D3D11_VIEWPORT_BOUNDS_MIN && y <= D3D11_VIEWPORT_BOUNDS_MAX);
-  G_ASSERT(w >= 0);
-  G_ASSERT(h >= 0);
-  G_ASSERTF(x + w <= D3D11_VIEWPORT_BOUNDS_MAX, "x=%d w= %d", x, w);
-  G_ASSERTF(y + h <= D3D11_VIEWPORT_BOUNDS_MAX, "y=%d h= %d", y, h);
+  D3D_CONTRACT_ASSERT(x > D3D11_VIEWPORT_BOUNDS_MIN && x <= D3D11_VIEWPORT_BOUNDS_MAX);
+  D3D_CONTRACT_ASSERT(y > D3D11_VIEWPORT_BOUNDS_MIN && y <= D3D11_VIEWPORT_BOUNDS_MAX);
+  D3D_CONTRACT_ASSERT(w >= 0);
+  D3D_CONTRACT_ASSERT(h >= 0);
+  D3D_CONTRACT_ASSERTF(x + w <= D3D11_VIEWPORT_BOUNDS_MAX, "x=%d w= %d", x, w);
+  D3D_CONTRACT_ASSERTF(y + h <= D3D11_VIEWPORT_BOUNDS_MAX, "y=%d h= %d", y, h);
 
   return true;
 }
@@ -1004,16 +1024,26 @@ DriverRenderState drv3d_dx11::shader_render_state_to_driver_render_state(const s
 {
   BlendState blendState;
   blendState.independentBlendEnabled = state.independentBlendEnabled;
-  for (uint32_t i = 0; i < shaders::RenderState::NumIndependentBlendParameters; i++)
+
+  auto translateParam = [](BlendState::BlendParams &dst, const auto &src) {
+    dst.ablendEnable = src.ablend;
+    dst.sepAblendEnable = src.sepablend;
+    dst.ablendOp = src.blendOp;
+    dst.ablendOpA = src.sepablendOp;
+    dst.ablendSrc = src.ablendFactors.src;
+    dst.ablendDst = src.ablendFactors.dst;
+    dst.ablendSrcA = src.sepablendFactors.src;
+    dst.ablendDstA = src.sepablendFactors.dst;
+  };
+
+  if (state.dualSourceBlendEnabled)
   {
-    blendState.params[i].ablendEnable = state.blendParams[i].ablend;
-    blendState.params[i].sepAblendEnable = state.blendParams[i].sepablend;
-    blendState.params[i].ablendOp = state.blendParams[i].blendOp;
-    blendState.params[i].ablendOpA = state.blendParams[i].sepablendOp;
-    blendState.params[i].ablendSrc = state.blendParams[i].ablendFactors.src;
-    blendState.params[i].ablendDst = state.blendParams[i].ablendFactors.dst;
-    blendState.params[i].ablendSrcA = state.blendParams[i].sepablendFactors.src;
-    blendState.params[i].ablendDstA = state.blendParams[i].sepablendFactors.dst;
+    translateParam(blendState.params[0], state.dualSourceBlend.params);
+  }
+  else
+  {
+    for (uint32_t i = 0; i < shaders::RenderState::NumIndependentBlendParameters; i++)
+      translateParam(blendState.params[i], state.blendParams[i]);
   }
   blendState.alphaToCoverage = state.alphaToCoverage;
   uint32_t writeMask = state.colorWr;
@@ -1037,7 +1067,8 @@ DriverRenderState drv3d_dx11::shader_render_state_to_driver_render_state(const s
   if (depthStencilState.stencilEnable)
   {
     depthStencilState.stencilFunc = depthStencilState.stencilBackFunc = state.stencil.func;
-    depthStencilState.stencilMask = state.stencil.writeMask;
+    depthStencilState.stencilWriteMask = state.stencil.writeMask;
+    depthStencilState.stencilReadMask = state.stencil.readMask;
     depthStencilState.stencilFail = depthStencilState.stencilBackFail = state.stencil.fail;
     depthStencilState.stencilDepthFail = depthStencilState.stencilBackDepthFail = state.stencil.zFail;
     depthStencilState.stencilDepthPass = depthStencilState.stencilBackDepthPass = state.stencil.pass;
@@ -1132,9 +1163,9 @@ static void check_content_loaded(BaseTexture *tex)
   if (bt && bt->ddsxNotLoaded)
   {
 #if DAGOR_DBGLEVEL > 0
-    DAG_FATAL("ddsxTex <%s> allocated, but contents was not loaded before usage in d3d::settex()", bt->getResName());
+    DAG_FATAL("ddsxTex <%s> allocated, but contents was not loaded before usage in d3d::settex()", bt->getName());
 #else
-    D3D_ERROR("ddsxTex <%s> allocated, but contents was not loaded before usage in d3d::settex()", bt->getResName());
+    D3D_ERROR("ddsxTex <%s> allocated, but contents was not loaded before usage in d3d::settex()", bt->getName());
 #endif
   }
 }
@@ -1142,18 +1173,18 @@ static void check_content_loaded(BaseTexture *tex)
 
 static const int max_samples[STAGE_MAX] = {MAX_CS_SAMPLERS, MAX_PS_SAMPLERS, MAX_VS_SAMPLERS};
 
-bool d3d::set_tex(unsigned shader_stage, unsigned slot, BaseTexture *tex, bool use_sampler)
+bool d3d::set_tex(unsigned shader_stage, unsigned slot, BaseTexture *tex)
 {
   if (shader_stage >= STAGE_MAX)
   {
-    D3D_ERROR("invalid shader stage number %d", shader_stage);
+    D3D_CONTRACT_ERROR("invalid shader stage number %d", shader_stage);
     return false;
   }
   check_content_loaded(tex);
 
   if (slot >= g_device_desc.maxsimtex || slot >= MAX_RESOURCES)
   {
-    D3D_ERROR("invalid PS sampler number %d", slot);
+    D3D_CONTRACT_ERROR("invalid PS sampler number %d", slot);
     return false;
   }
 
@@ -1168,17 +1199,17 @@ bool d3d::set_tex(unsigned shader_stage, unsigned slot, BaseTexture *tex, bool u
   }
 
   ResAutoLock resLock;
-  TextureFetchState::Samplers &resources = g_render_state.texFetchState.resources[shader_stage];
+  TextureFetchState::Resources &resources = g_render_state.texFetchState.resources[shader_stage];
   resources.resources.resize(max(resources.resources.size(), slot + 1));
-  resources.modifiedMask |= resources.resources[slot].setTex(tex, shader_stage, use_sampler) ? (1 << slot) : 0;
+  resources.modifiedMask |= resources.resources[slot].setTex(tex, shader_stage) ? (1 << slot) : 0;
 
   g_render_state.modified = true;
 
   if (shader_stage == STAGE_CS && d3d::get_driver_desc().caps.hasAsyncCompute)
   {
-    TextureFetchState::Samplers &resources = g_render_state.texFetchState.resources[STAGE_CS_ASYNC_STATE];
+    TextureFetchState::Resources &resources = g_render_state.texFetchState.resources[STAGE_CS_ASYNC_STATE];
     resources.resources.resize(max(resources.resources.size(), slot + 1));
-    resources.modifiedMask |= resources.resources[slot].setTex(tex, shader_stage, use_sampler) ? (1 << slot) : 0;
+    resources.modifiedMask |= resources.resources[slot].setTex(tex, shader_stage) ? (1 << slot) : 0;
   }
   return true;
 }
@@ -1187,26 +1218,20 @@ bool d3d::set_tex(unsigned shader_stage, unsigned slot, BaseTexture *tex, bool u
 void d3d::set_sampler(unsigned shader_stage, unsigned slot, d3d::SamplerHandle sampler)
 {
   ResAutoLock resLock;
-  TextureFetchState::Samplers &resources = g_render_state.texFetchState.resources[shader_stage];
+  TextureFetchState::Resources &resources = g_render_state.texFetchState.resources[shader_stage];
   resources.resources.resize(max(resources.resources.size(), slot + 1));
-  resources.modifiedMask |= resources.resources[slot].setSampler(sampler) ? (1 << slot) : 0;
+  resources.samplersModifiedMask |= resources.resources[slot].setSampler(sampler) ? (1 << slot) : 0;
 
   if (shader_stage == STAGE_CS && d3d::get_driver_desc().caps.hasAsyncCompute)
   {
-    TextureFetchState::Samplers &resources = g_render_state.texFetchState.resources[STAGE_CS_ASYNC_STATE];
+    TextureFetchState::Resources &resources = g_render_state.texFetchState.resources[STAGE_CS_ASYNC_STATE];
     resources.resources.resize(max(resources.resources.size(), slot + 1));
-    resources.modifiedMask |= resources.resources[slot].setSampler(sampler) ? (1 << slot) : 0;
+    resources.samplersModifiedMask |= resources.resources[slot].setSampler(sampler) ? (1 << slot) : 0;
   }
 
   g_render_state.modified = true;
 }
 
-
-uint32_t d3d::register_bindless_sampler(BaseTexture *)
-{
-  G_ASSERTF(false, "d3d::register_bindless_sampler called on API without support");
-  return 0;
-}
 
 uint32_t d3d::register_bindless_sampler(SamplerHandle)
 {
@@ -1214,29 +1239,30 @@ uint32_t d3d::register_bindless_sampler(SamplerHandle)
   return 0;
 }
 
-uint32_t d3d::allocate_bindless_resource_range(uint32_t, uint32_t)
+uint32_t d3d::allocate_bindless_resource_range(D3DResourceType, uint32_t)
 {
   G_ASSERTF(false, "d3d::allocate_bindless_resource_range called on API without support");
   return 0;
 }
 
-uint32_t d3d::resize_bindless_resource_range(uint32_t, uint32_t, uint32_t, uint32_t)
+uint32_t d3d::resize_bindless_resource_range(D3DResourceType, uint32_t, uint32_t, uint32_t)
 {
   G_ASSERTF(false, "d3d::resize_bindless_resource_range called on API without support");
   return 0;
 }
 
-void d3d::free_bindless_resource_range(uint32_t, uint32_t, uint32_t)
+void d3d::free_bindless_resource_range(D3DResourceType, uint32_t, uint32_t)
 {
   G_ASSERTF(false, "d3d::free_bindless_resource_range called on API without support");
 }
 
-void d3d::update_bindless_resource(uint32_t, D3dResource *)
+bool d3d::update_bindless_resource(D3DResourceType, uint32_t, D3dResource *)
 {
   G_ASSERTF(false, "d3d::update_bindless_resource called on API without support");
+  return false;
 }
 
-void d3d::update_bindless_resources_to_null(uint32_t, uint32_t, uint32_t)
+void d3d::update_bindless_resources_to_null(D3DResourceType, uint32_t, uint32_t)
 {
   G_ASSERTF(false, "d3d::update_bindless_resource_to_null called on API without support");
 }
@@ -1247,14 +1273,14 @@ bool d3d::clear_rwtexi(BaseTexture *tex, const unsigned val[4], uint32_t face, u
   if (tex)
   {
     base = (BaseTex *)tex;
-    G_ASSERT(base);
+    D3D_CONTRACT_ASSERT(base);
   }
   if (!base)
     return false;
 
 #if DAGOR_DBGLEVEL > 0
   if (!(base->cflg & TEXCF_UNORDERED))
-    D3D_ERROR("can't clear_rwtex with non UAV texture (use TEXCF_UNORDERED) <%s>", base->getResName());
+    D3D_CONTRACT_ERROR("can't clear_rwtex with non UAV texture (use TEXCF_UNORDERED) <%s>", base->getName());
 #endif
   ID3D11UnorderedAccessView *uav = base->getUaView(face, mip_level, false);
   ContextAutoLock contextLock;
@@ -1267,56 +1293,35 @@ bool d3d::clear_rwtexf(BaseTexture *tex, const float val[4], uint32_t face, uint
   if (tex)
   {
     base = (BaseTex *)tex;
-    G_ASSERT(base);
+    D3D_CONTRACT_ASSERT(base);
   }
   if (!base)
     return false;
 #if DAGOR_DBGLEVEL > 0
   if (!(base->cflg & TEXCF_UNORDERED))
-    D3D_ERROR("can't clear_rwtex with non UAV texture (use TEXCF_UNORDERED) <%s>", base->getResName());
+    D3D_CONTRACT_ERROR("can't clear_rwtex with non UAV texture (use TEXCF_UNORDERED) <%s>", base->getName());
 #endif
   ID3D11UnorderedAccessView *uav = base->getUaView(face, mip_level, false);
   ContextAutoLock lock;
   dx_context->ClearUnorderedAccessViewFloat(uav, val);
   return true;
 }
-bool d3d::clear_rwbufi(Sbuffer *buffer, const unsigned val[4])
+
+bool d3d::zero_rwbufi(Sbuffer *buffer)
 {
-  GenericBuffer *vb = NULL;
-  if (buffer)
-  {
-    G_ASSERT(buffer->getFlags() & SBCF_BIND_UNORDERED);
-    vb = (GenericBuffer *)buffer;
-    G_ASSERT(vb->uav);
-  }
+  if (buffer == nullptr)
+    return false;
 
-  if (vb)
-  {
-    ContextAutoLock contextLock;
-    VALIDATE_GENERIC_RENDER_PASS_CONDITION(!g_render_state.isGenericRenderPassActive,
-      "DX11: clear_rwbufi uses CopyResource inside a generic render pass");
-    dx_context->ClearUnorderedAccessViewUint(vb->uav, val);
-  }
-  return true;
-}
+  D3D_CONTRACT_ASSERT(buffer->getFlags() & SBCF_BIND_UNORDERED);
+  GenericBuffer *vb = (GenericBuffer *)buffer;
 
-bool d3d::clear_rwbuff(Sbuffer *buffer, const float val[4])
-{
-  GenericBuffer *vb = NULL;
-  if (buffer)
-  {
-    G_ASSERT(buffer->getFlags() & SBCF_BIND_UNORDERED);
-    vb = (GenericBuffer *)buffer;
-    G_ASSERT(vb->uav);
-  }
+  ContextAutoLock contextLock;
+  VALIDATE_GENERIC_RENDER_PASS_CONDITION(!g_render_state.isGenericRenderPassActive,
+    "DX11: zero_rwbufi uses ClearUnorderedAccessViewUint inside a generic render pass");
 
-  if (vb)
-  {
-    ContextAutoLock contextLock;
-    VALIDATE_GENERIC_RENDER_PASS_CONDITION(!g_render_state.isGenericRenderPassActive,
-      "DX11: clear_rwbuff uses CopyResource inside a generic render pass");
-    dx_context->ClearUnorderedAccessViewFloat(vb->uav, val);
-  }
+  uint32_t values[4] = {0, 0, 0, 0};
+  dx_context->ClearUnorderedAccessViewUint(vb->uav, values);
+
   return true;
 }
 
@@ -1359,11 +1364,23 @@ bool d3d::clear_rt(const RenderTarget &rt, const ResourceClearValue &clear_val)
   return true;
 }
 
+bool d3d::discard_tex(BaseTexture *tex)
+{
+  CHECK_THREAD;
+  if (!tex)
+  {
+    D3D_CONTRACT_ERROR("discard_tex called with null texture");
+    return false;
+  }
+  auto texture = static_cast<BaseTex *>(tex);
+  return texture->markTexelsUninitialized();
+}
+
 bool d3d::set_rwtex(unsigned shader_stage, unsigned slot, BaseTexture *tex, uint32_t face, uint32_t mip_level, bool as_uint)
 {
   if (featureLevelsSupported < D3D_FEATURE_LEVEL_11_1 && shader_stage > STAGE_PS)
   {
-    D3D_ERROR("invalid stage %d", shader_stage);
+    D3D_CONTRACT_ERROR("invalid stage %d", shader_stage);
     return false;
   }
   if (shader_stage == STAGE_VS)
@@ -1378,7 +1395,7 @@ bool d3d::set_rwtex(unsigned shader_stage, unsigned slot, BaseTexture *tex, uint
       remove_texture_from_samplers(tex);
     uint32_t cflg = base->cflg;
     if (!(base->cflg & TEXCF_UNORDERED))
-      D3D_ERROR("can't setrwtex with non UAV texture (use TEXCF_UNORDERED) <%s>", base->getResName());
+      D3D_CONTRACT_ERROR("can't setrwtex with non UAV texture (use TEXCF_UNORDERED) <%s>", base->getName());
     if (base->needs_clear)
       base->clear();
     uav = base->getUaView(face, mip_level, as_uint);
@@ -1387,7 +1404,7 @@ bool d3d::set_rwtex(unsigned shader_stage, unsigned slot, BaseTexture *tex, uint
 
   if (slot >= MAX_UAV)
   {
-    D3D_ERROR("invalid UAV slot: %d", slot);
+    D3D_CONTRACT_ERROR("invalid UAV slot: %d", slot);
     return false;
   }
   g_render_state.texFetchState.setUav(shader_stage, slot, uav);
@@ -1405,4 +1422,6 @@ void d3d::set_variable_rate_shading_texture(BaseTexture *)
   // could be supported with nvapi? it is mentioned on the nv vrworks page.
 }
 
-void d3d::resource_barrier(ResourceBarrierDesc, GpuPipeline) {}
+void d3d::set_stream_output_buffer(int, const StreamOutputBufferSetup &) {}
+
+void d3d::resource_barrier(const ResourceBarrierDesc &, GpuPipeline) {}

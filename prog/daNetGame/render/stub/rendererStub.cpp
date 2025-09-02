@@ -33,7 +33,7 @@ public:
   real get_cur_height() override { return 1.0f; }
   // setup current console height (0.0f < h <= 1.0f)
   void set_cur_height(real) override {}
-  void set_progress_indicator(const char *, const char *) override{};
+  void set_progress_indicator(const char *, const char *) override {}
 
   void save_text(const char *) override {}
 
@@ -54,6 +54,7 @@ void destroy_world_renderer() {}
 void close_world_renderer() { console::set_visual_driver(NULL, NULL); }
 
 IRenderWorld *get_world_renderer() { return NULL; }
+void update_world_renderer(float, float, const TMatrix &, bool) {}
 
 webui::HttpPlugin *get_renderer_http_plugins()
 {
@@ -71,7 +72,6 @@ void prepare_last_clip() {}
 void invalidate_clipmap(bool) {}
 
 void dump_clipmap() {}
-void prerun_fx() {}
 
 bool get_sun_sph0_color(float, Color3 &, Color3 &) { return false; }
 
@@ -79,8 +79,8 @@ bool get_sun_sph0_color(float, Color3 &, Color3 &) { return false; }
 void init_tex_streaming() { const_cast<DataBlock *>(dgs_get_settings())->addBlock("texStreaming")->setBool("disableTexScan", true); }
 bool have_renderer() { return false; }
 
-void before_draw_scene(int, float, float, ecs::EntityId, TMatrix &) {}
-void draw_scene(const TMatrix &) {}
+void before_draw_scene(int, float, float, ecs::EntityId) {}
+void draw_scene(uint32_t) {}
 
 void push_debug_sphere(const Point3 &) {}
 void set_debug_group_name(const char *) {}
@@ -88,7 +88,7 @@ void init_device_reset() {}
 
 void animated_splash_screen_start(bool) {}
 void animated_splash_screen_stop() {}
-void animated_splash_screen_draw(Texture *) {}
+void animated_splash_screen_draw() {}
 void debug_animated_splash_screen() {}
 bool is_animated_splash_screen_started() { return false; }
 bool is_animated_splash_screen_encoding() { return false; }
@@ -100,6 +100,8 @@ void animated_splash_screen_allow_watchdog_kick(bool) {}
 
 bool should_draw_debug_collision() { return false; }
 bool should_hide_debug() { return false; }
+
+void wait_additional_game_job_done() {}
 
 const TextureIDHolder &init_and_get_perlin_noise_3d(Point3 &, Point3 &)
 {
@@ -124,7 +126,7 @@ DPoint2 get_clouds_origin() { return DPoint2(); }
 void set_strata_clouds_origin(DPoint2) {}
 void set_clouds_origin(DPoint2) {}
 
-void send_gpu_net_event(const char *, int, const uint32_t *) {}
+void send_gpu_net_event(const char *, GpuVendor, const uint32_t *) {}
 
 void dump_periodic_gpu_info() {}
 

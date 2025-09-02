@@ -177,6 +177,7 @@ void add_history_command(const char *cmd)
   {
     commandHistory.pop_back();
   }
+  saveConsoleCommands();
 }
 
 const char *top_history_command() { return !commandHistory.empty() ? commandHistory[0].c_str() : nullptr; }
@@ -235,13 +236,14 @@ bool command(const char *cmd)
 
 
 // process file
-bool process_file(const char *filename)
+bool process_file(const char *filename, bool error_on_missing)
 {
   console::trace_d("Processing commands from %s", filename);
   file_ptr_t h = df_open(filename, DF_READ);
   if (!h)
   {
-    console::error("Can't open file");
+    if (error_on_missing)
+      console::error("Can't open file");
     return false;
   }
   int l = df_length(h);
@@ -668,7 +670,7 @@ bool run_con_batch(const char *pathname)
   file_ptr_t f = df_open(pathname, DF_READ | DF_IGNORE_MISSING);
   if (!f)
   {
-    logwarn("run_con_batch: not found - %s", pathname);
+    debug("run_con_batch: not found - %s", pathname);
     return false;
   }
   char buf[512];

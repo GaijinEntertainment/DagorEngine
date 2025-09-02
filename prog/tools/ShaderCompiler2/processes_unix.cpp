@@ -2,6 +2,8 @@
 
 #include "processes_impl.h"
 #include <debug/dag_assert.h>
+#include <perfMon/dag_cpuFreq.h>
+#include <util/dag_globDef.h>
 
 #include <climits>
 
@@ -37,12 +39,14 @@ static constexpr uint32_t CANCELLATION_TOKEN = 'stop';
 struct ProcessData
 {
   pid_t pid;
+  Pipe outputPipe;
 };
 
 struct ExtraStateData
 {
   Pipe cancellationPipe{};
   sigset_t initialSigmask{};
+  dag::Vector<Pipe> outputPipePool{};
 };
 
 // This has to be a separate static var, cause sigchld handler uses it
@@ -90,7 +94,15 @@ void init_state(ExecutionState &state)
   sigaction(SIGCHLD, &g_sigchld_ctx.sigchldAction, nullptr);
 }
 
-void deinit_state(ExecutionState &state) { delete state.extraData; }
+void deinit_state(ExecutionState &state)
+{
+  for (const auto &pipe : state.extraData->outputPipePool)
+  {
+    close(pipe.read_fd);
+    close(pipe.write_fd);
+  }
+  delete state.extraData;
+}
 
 void start_execution(ExecutionState &state) { g_sigchld_ctx.performerThreadHnd = pthread_self(); }
 
@@ -108,24 +120,25 @@ AwaitResult await_processes(ExecutionState &state, bool listen_to_cancellation_e
 
   ExtraStateData *extra = state.extraData;
 
+  fd_set fds;
+  FD_ZERO(&fds);
+  for (const auto &hnd : state.processes)
+    FD_SET(hnd.processData->outputPipe.read_fd, &fds);
+
   if (listen_to_cancellation_event)
   {
-    fd_set fds;
-    FD_ZERO(&fds);
     FD_SET(extra->cancellationPipe.read_fd, &fds);
+    pselect(state.processes.size() + 1, &fds, nullptr, nullptr, selectTimeoutPtr, &extra->initialSigmask);
 
-    int eventCnt = pselect(1, &fds, nullptr, nullptr, selectTimeoutPtr, &extra->initialSigmask);
-
-    if (eventCnt == 0) // 0 is timeout, on signal it is -1 and errno == EINTR
-      return AwaitResult::TIMEOUT;
-    else if (eventCnt > 0)
+    if (FD_ISSET(extra->cancellationPipe.read_fd, &fds))
     {
       uint32_t token = 0;
-      while (int bytesRead = read(extra->cancellationPipe.read_fd, &token, sizeof(token)))
+      int bytesRead;
+      while ((bytesRead = read(extra->cancellationPipe.read_fd, &token, sizeof(token))) > 0)
       {
         if (token == CANCELLATION_TOKEN)
         {
-          G_ASSERT(state.cancelled.load(std::memory_order_relaxed));
+          G_ASSERT(state.cancelled.load(dag::memory_order_relaxed));
           return AwaitResult::CANCELLED_BY_USER;
         }
       }
@@ -133,12 +146,17 @@ AwaitResult await_processes(ExecutionState &state, bool listen_to_cancellation_e
   }
   else
   {
-    int eventCnt = pselect(0, nullptr, nullptr, nullptr, selectTimeoutPtr, &extra->initialSigmask);
-    if (eventCnt == 0) // Timeout, it's -1 + EINTR on signal
-      return AwaitResult::TIMEOUT;
+    pselect(state.processes.size(), &fds, nullptr, nullptr, selectTimeoutPtr, &extra->initialSigmask);
+  }
+
+  for (auto &hnd : state.processes)
+  {
+    if (FD_ISSET(hnd.processData->outputPipe.read_fd, &fds))
+      serve_process_output(state, hnd);
   }
 
   bool succeeded = true;
+  bool collectedProcs = false;
 
   for (;;)
   {
@@ -148,11 +166,17 @@ AwaitResult await_processes(ExecutionState &state, bool listen_to_cancellation_e
     if (res <= 0)
       break;
 
+    collectedProcs = true;
+
     ProcessTask task;
     for (auto it = state.processes.cbegin(); it != state.processes.cend(); ++it)
     {
       if (it->processData->pid == res)
       {
+        serve_process_output(state, *it);
+        state.sinkPool[eastl::to_underlying(it->sink)].free = true;
+        state.extraData->outputPipePool.push_back(eastl::exchange(it->processData->outputPipe, Pipe{}));
+
         task = eastl::move(it->task);
         delete it->processData;
         state.processes.erase(it);
@@ -161,16 +185,44 @@ AwaitResult await_processes(ExecutionState &state, bool listen_to_cancellation_e
     }
 
     bool processSucceeded = WIFEXITED(status) && WEXITSTATUS(status) == 0;
-    if (!processSucceeded)
-      task.cleanupOnFail();
+    if (processSucceeded)
+      task.onSuccess();
+    else
+      task.onFail();
 
     succeeded &= processSucceeded;
   }
 
-  return succeeded ? AwaitResult::ALL_SUCCEEDED : AwaitResult::SOME_FAILED;
+  if (collectedProcs)
+    return succeeded ? AwaitResult::ALL_SUCCEEDED : AwaitResult::SOME_FAILED;
+  else
+    return AwaitResult::TIMEOUT;
 }
 
-eastl::optional<ProcessHandle> spawn_process(ProcessTask &&task)
+static Pipe get_output_pipe(ExecutionState &state)
+{
+  if (!state.extraData->outputPipePool.empty())
+  {
+    Pipe pipe = state.extraData->outputPipePool.back();
+    state.extraData->outputPipePool.pop_back();
+    return pipe;
+  }
+
+  Pipe outputPipe{};
+
+  G_VERIFY(pipe(outputPipe.fds) == 0);
+
+  // Children should only inherit the write end
+  fcntl(outputPipe.read_fd, F_SETFD, FD_CLOEXEC);
+
+  // This moves the pipe into non-blocking mode
+  int flags = fcntl(outputPipe.read_fd, F_GETFL, 0);
+  fcntl(outputPipe.read_fd, F_SETFL, flags | O_NONBLOCK);
+
+  return outputPipe;
+}
+
+eastl::optional<ProcessHandle> spawn_process(ExecutionState &state, ProcessTask &&task)
 {
   dag::Vector<const char *> argv{};
   for (const eastl::string &arg : task.argv)
@@ -179,25 +231,57 @@ eastl::optional<ProcessHandle> spawn_process(ProcessTask &&task)
 
   const char *cwd = task.cwd.has_value() ? task.cwd->c_str() : nullptr;
 
-  pid_t pid = vfork();
+  Pipe outputPipe = get_output_pipe(state);
+
+  pid_t pid = fork();
   if (pid == 0) // Code in child process
   {
     if (cwd)
     {
       if (chdir(cwd) != 0)
-        exit(2);
+        _exit(2);
     }
 
-    execvp(task.argv[0].c_str(), (char *const *)argv.data());
-    exit(0);
+    dup2(outputPipe.write_fd, STDOUT_FILENO);
+    dup2(outputPipe.write_fd, STDERR_FILENO);
+    close(outputPipe.write_fd);
+
+    _exit(execvp(task.argv[0].c_str(), (char *const *)argv.data()));
   }
   else if (pid == -1)
+  {
     return eastl::nullopt;
+  }
 
   ProcessHandle hnd;
   hnd.task = eastl::move(task);
-  hnd.processData = new ProcessData{pid};
+  hnd.processData = new ProcessData{pid, outputPipe};
   return hnd;
+}
+
+void serve_process_output(ExecutionState &state, ProcessHandle &hnd)
+{
+  auto &sink = state.sinkPool[eastl::to_underlying(hnd.sink)];
+  constexpr int READ_CHUNK_SIZE = 128;
+
+  size_t before = sink.buffer.size();
+
+  for (;;)
+  {
+    sink.buffer.resize(sink.buffer.size() + READ_CHUNK_SIZE);
+    int bytesRead;
+    if (
+      (bytesRead = read(hnd.processData->outputPipe.read_fd, sink.buffer.end() - READ_CHUNK_SIZE, READ_CHUNK_SIZE)) < READ_CHUNK_SIZE)
+    {
+      sink.buffer.resize(sink.buffer.size() - READ_CHUNK_SIZE + max(bytesRead, 0));
+      break;
+    }
+  }
+
+  size_t after = sink.buffer.size();
+
+  sink.lastTs = get_time_msec();
+  hnd.hasCommunicated = true;
 }
 
 void send_interrupt_signal_to_process(const ProcessHandle &process) { kill(process.processData->pid, SIGINT); }

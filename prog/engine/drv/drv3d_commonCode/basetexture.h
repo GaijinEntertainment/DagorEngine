@@ -4,46 +4,29 @@
 #include <drv/3d/dag_driver.h>
 #include <EASTL/tuple.h>
 #include <generic/dag_smallTab.h>
+#include <resourceName.h>
 
 
-class BaseTextureImpl : public BaseTexture
+class BaseTextureImpl : public D3dResourceNameImpl<BaseTexture>
 {
 public:
-  E3DCOLOR borderColor = 0;
-  float lodBias = 0.0f;
-  union
-  {
-    struct
-    {
-      uint32_t anisotropyLevel : 5;
-      uint32_t addrU : 3;
-      uint32_t addrV : 3;
-      uint32_t addrW : 3;
+  uint8_t minMipLevel;
+  uint8_t maxMipLevel;
 
-      uint32_t texFilter : 3;
-      uint32_t mipFilter : 3;
-      uint32_t _res : 4;
-      uint32_t minMipLevel : 4;
-      uint32_t maxMipLevel : 4;
-    };
-    uint32_t key;
-  };
-  static constexpr int SAMPLER_KEY_MASK = (1 << 20) - 1; /// miplevels are not part of key
-
-  int base_format;
+  uint32_t base_format;
   uint32_t cflg;
   uint32_t lockFlags = 0;
   uint16_t width = 1, height = 1, depth = 1;
   uint8_t mipLevels;
-  uint8_t type;
+  D3DResourceType type;
   uint8_t lockedLevel = 0;
 
 
   static bool isSameFormat(int cflg1, int cflg2);
 
-  BaseTextureImpl(int set_cflg, int set_type);
+  BaseTextureImpl(uint32_t cflg, D3DResourceType type);
 
-  int restype() const override { return type; }
+  D3DResourceType getType() const override { return type; }
 
   virtual int update(BaseTexture *src) = 0;
   virtual int updateSubRegion(BaseTexture *src, int src_subres_idx, int src_x, int src_y, int src_z, int src_w, int src_h, int src_d,
@@ -60,20 +43,6 @@ public:
   virtual int generateMips() = 0;
 
   int getinfo(TextureInfo &ti, int level) const override;
-
-#if DAGOR_DBGLEVEL > 0
-  virtual int getTexfilter() const { return texFilter; }
-#endif
-protected:
-  int texaddrImpl(int a) = 0;
-  int texaddruImpl(int a) = 0;
-  int texaddrvImpl(int a) = 0;
-  int texaddrwImpl(int a) = 0;
-  int texbordercolorImpl(E3DCOLOR c) = 0;
-  int texfilterImpl(int m) = 0;
-  int texmipmapImpl(int m) = 0;
-  int texlodImpl(float mipmaplod) = 0;
-  int setAnisotropyImpl(int level) = 0;
 };
 
 int count_mips_if_needed(int w, int h, int32_t flg, int levels);

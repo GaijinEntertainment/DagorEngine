@@ -25,7 +25,7 @@ ChildComponent::ChildComponent(size_t size, type_index_t ti, component_type_t t,
   memcpy(&value, raw_data, sizeof(Value));
 }
 
-void ChildComponent::setRaw(component_type_t component_type, const void *raw_data, CopyType copy_type)
+void ChildComponent::setRaw(ecs::EntityManager &mgr, component_type_t component_type, const void *raw_data, CopyType copy_type)
 {
   if (DAGOR_UNLIKELY(component_type == 0))
   {
@@ -33,7 +33,7 @@ void ChildComponent::setRaw(component_type_t component_type, const void *raw_dat
     return;
   }
   initTypeIndex(component_type);
-  const ComponentType typeInfo = g_entity_mgr->componentTypes.getTypeInfo(componentTypeIndex);
+  const ComponentType typeInfo = mgr.componentTypes.getTypeInfo(componentTypeIndex);
   componentTypeSize = typeInfo.size;
   if (!isAttrBoxedBySize())
   {
@@ -49,8 +49,8 @@ void ChildComponent::setRaw(component_type_t component_type, const void *raw_dat
     return;
   if (need_constructor(typeInfo.flags)) // we will need copy constructor
   {
-    ComponentTypeManager *tm = g_entity_mgr->componentTypes.createTypeManager(componentTypeIndex);
-    tm->copy(getRawData(), raw_data, componentTypeIndex);
+    if (ComponentTypeManager *tm = mgr.componentTypes.createTypeManager(componentTypeIndex))
+      tm->copy(getRawData(), raw_data, componentTypeIndex);
   }
 }
 
@@ -59,7 +59,7 @@ ChildComponent &ChildComponent::operator=(const ChildComponent &a)
   if (DAGOR_UNLIKELY(this == &a))
     return *this;
   free();
-  setRaw(a.getUserType(), a.getRawData());
+  setRaw(*g_entity_mgr, a.getUserType(), a.getRawData());
   return *this;
 }
 
@@ -79,7 +79,7 @@ void ChildComponent::free()
     reset();
 }
 
-ChildComponent::ChildComponent(const EntityComponentRef &a) { setRaw(a.getUserType(), a.getRawData()); }
+ChildComponent::ChildComponent(ecs::EntityManager &mgr, const EntityComponentRef &a) { setRaw(mgr, a.getUserType(), a.getRawData()); }
 
 const EntityComponentRef ChildComponent::getEntityComponentRef() const
 {

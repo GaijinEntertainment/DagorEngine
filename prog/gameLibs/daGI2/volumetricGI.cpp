@@ -37,7 +37,7 @@
   VAR(gi_froxels_atlas_sizei)                            \
   VAR(gi_froxels_dist)
 
-#define VAR(a) static ShaderVariableInfo a##VarId(#a);
+#define VAR(a) static ShaderVariableInfo a##VarId(#a, true);
 GLOBAL_VARS_LIST
 #undef VAR
 
@@ -50,11 +50,25 @@ static void set_frame_info(const DaGIFrameInfo &fi)
   ShaderGlobal::set_color4(gi_froxels_zn_zfarVarId, fi.znear, fi.zfar, 1.f / fi.zfar, (fi.zfar - fi.znear) / (fi.znear * fi.zfar));
 }
 
+void VolumetricGI::resetHistoryAge() { validHistory = false; }
+
 void VolumetricGI::afterReset()
 {
   temporalFrame = 0;
   validHistory = false;
   d3d::GpuAutoLock gpuLock;
+  gi_froxels_radiance[0].dropAliases();
+  if (spatialPasses)
+  {
+    gi_froxels_radiance[1].dropAliases();
+  }
+  gi_froxels_sph0[0].dropAliases();
+  gi_froxels_sph1[0].dropAliases();
+  if (gi_froxels_sph0[1])
+  {
+    gi_froxels_sph0[1].dropAliases();
+    gi_froxels_sph1[1].dropAliases();
+  }
   d3d::clear_rwtexf(gi_froxels_sph0[temporalFrame & 1].getVolTex(), ResourceClearValue{}.asFloat, 0, 0);
   d3d::clear_rwtexf(gi_froxels_sph1[temporalFrame & 1].getVolTex(), ResourceClearValue{}.asFloat, 0, 0);
 }
@@ -134,12 +148,10 @@ void VolumetricGI::allocate(uint32_t tile_sz, uint32_t max_sw_, uint32_t max_sh_
     // this is actually not better than a buffer, since we don't sample it
     gi_froxels_radiance[0] = dag::create_voltex(w * radianceRes, h * radianceRes, tracedSlices, TEXCF_UNORDERED | TEXFMT_R11G11B10F, 1,
       "gi_froxels_radiance0");
-    gi_froxels_radiance[0]->disableSampler();
     if (spatialPasses)
     {
       gi_froxels_radiance[1] = dag::create_voltex(w * radianceRes, h * radianceRes, tracedSlices, TEXCF_UNORDERED | TEXFMT_R11G11B10F,
         1, "gi_froxels_radiance1");
-      gi_froxels_radiance[1]->disableSampler();
     }
   }
   else
@@ -147,14 +159,10 @@ void VolumetricGI::allocate(uint32_t tile_sz, uint32_t max_sw_, uint32_t max_sh_
   debug("create volumetric GI irradiance resolution %dx%dx%d, history %d", w, h, d, reproject_history);
   gi_froxels_sph0[0] = dag::create_voltex(w, h, d, TEXCF_UNORDERED | TEXFMT_R11G11B10F, 1, "gi_froxels_sph0_0");
   gi_froxels_sph1[0] = dag::create_voltex(w, h, d, TEXCF_UNORDERED | TEXFMT_A16B16G16R16F, 1, "gi_froxels_sph1_0");
-  gi_froxels_sph0[0]->disableSampler();
-  gi_froxels_sph1[0]->disableSampler();
   if (reproject_history)
   {
     gi_froxels_sph0[1] = dag::create_voltex(w, h, d, TEXCF_UNORDERED | TEXFMT_R11G11B10F, 1, "gi_froxels_sph0_1");
     gi_froxels_sph1[1] = dag::create_voltex(w, h, d, TEXCF_UNORDERED | TEXFMT_A16B16G16R16F, 1, "gi_froxels_sph1_1");
-    gi_froxels_sph0[1]->disableSampler();
-    gi_froxels_sph1[1]->disableSampler();
   }
 #define CS(a) a.reset(new_compute_shader(#a))
   CS(calc_current_gi_froxels_cs);
@@ -172,6 +180,11 @@ void VolumetricGI::init(uint32_t tile_sz, uint32_t sw, uint32_t sh, uint32_t max
   uint32_t spatial_passes, float irradiance_probe_size, uint32_t irradiance_clip_w, bool reproject_history,
   const ZDistributionParams &z_distr)
 {
+#define VAR(a)     \
+  if (!(a##VarId)) \
+    logerr("mandatory shader variable is missing: %s", #a);
+  GLOBAL_VARS_LIST
+#undef VAR
   allocate(tile_sz, max_sw, max_sh, res, spatial_passes, irradiance_probe_size, irradiance_clip_w, reproject_history, z_distr);
   nextRes.w = (sw + tile_sz - 1) / tile_sz;
   nextRes.h = (sh + tile_sz - 1) / tile_sz;
@@ -203,6 +216,8 @@ void VolumetricGI::calc(const TMatrix &viewItm, const TMatrix4 &projTm, float zn
   const bool useReprojection = gi_froxels_sph0[1].getVolTex() && quality > 0;
   if (!useReprojection)
     temporalFrame = 0;
+  else
+    ++temporalFrame;
 
   const bool changed = nextRes != prevFrameInfo.res;
   FrameInfo cFrameInfo;
@@ -276,8 +291,6 @@ void VolumetricGI::calc(const TMatrix &viewItm, const TMatrix4 &projTm, float zn
     resize_clamp(gi_froxels_sph0[pFrame], w, h, d);
     resize_clamp(gi_froxels_sph1[pFrame], w, h, d);
   }
-  if (useReprojection)
-    ++temporalFrame;
   validHistory = true;
 }
 

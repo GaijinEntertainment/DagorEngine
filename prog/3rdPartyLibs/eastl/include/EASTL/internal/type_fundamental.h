@@ -130,6 +130,10 @@ namespace eastl
 
 	template <> struct is_integral_helper<bool>               : public true_type{};
 	template <> struct is_integral_helper<char>               : public true_type{};
+
+	#if defined(EA_CHAR8_UNIQUE) && EA_CHAR8_UNIQUE
+		template <> struct is_integral_helper<char8_t>        : public true_type{};
+	#endif
 	#if defined(EA_CHAR16_NATIVE) && EA_CHAR16_NATIVE
 		template <> struct is_integral_helper<char16_t>       : public true_type{};
 	#endif
@@ -139,7 +143,7 @@ namespace eastl
 	#ifndef EA_WCHAR_T_NON_NATIVE // If wchar_t is a native type instead of simply a define to an existing type which is already handled above...
 		template <> struct is_integral_helper<wchar_t>        : public true_type{};
 	#endif
-	#if EASTL_INT128_SUPPORTED && (defined(EA_COMPILER_GNUC) || defined(__clang__))
+	#if EASTL_GCC_STYLE_INT128_SUPPORTED
 		template <> struct is_integral_helper<__int128_t>     : public true_type{};
 		template <> struct is_integral_helper<__uint128_t>    : public true_type{};
 	#endif
@@ -149,10 +153,10 @@ namespace eastl
 
 	#define EASTL_DECLARE_INTEGRAL(T)                                             \
 	namespace eastl{                                                              \
-		template <> struct is_integral<T>                : public true_type{};    \
-		template <> struct is_integral<const T>          : public true_type{};    \
-		template <> struct is_integral<volatile T>       : public true_type{};    \
-		template <> struct is_integral<const volatile T> : public true_type{};    \
+		template <> struct EASTL_REMOVE_AT_2024_APRIL is_integral<T>                : public true_type{};    \
+		template <> struct EASTL_REMOVE_AT_2024_APRIL is_integral<const T>          : public true_type{};    \
+		template <> struct EASTL_REMOVE_AT_2024_APRIL is_integral<volatile T>       : public true_type{};    \
+		template <> struct EASTL_REMOVE_AT_2024_APRIL is_integral<const volatile T> : public true_type{};    \
 	}
 
 	#if EASTL_VARIABLE_TEMPLATES_ENABLED
@@ -184,10 +188,10 @@ namespace eastl
 
 	#define EASTL_DECLARE_FLOATING_POINT(T)                                             \
 	namespace eastl{                                                                    \
-		template <> struct is_floating_point<T>                : public true_type{};    \
-		template <> struct is_floating_point<const T>          : public true_type{};    \
-		template <> struct is_floating_point<volatile T>       : public true_type{};    \
-		template <> struct is_floating_point<const volatile T> : public true_type{};    \
+		template <> struct EASTL_REMOVE_AT_2024_APRIL is_floating_point<T>                : public true_type{};    \
+		template <> struct EASTL_REMOVE_AT_2024_APRIL is_floating_point<const T>          : public true_type{};    \
+		template <> struct EASTL_REMOVE_AT_2024_APRIL is_floating_point<volatile T>       : public true_type{};    \
+		template <> struct EASTL_REMOVE_AT_2024_APRIL is_floating_point<const volatile T> : public true_type{};    \
 	}
 
 	#if EASTL_VARIABLE_TEMPLATES_ENABLED
@@ -290,10 +294,12 @@ namespace eastl
 		template <typename T>
 		struct is_enum_helper2
 		{
+			EASTL_INTERNAL_DISABLE_DEPRECATED()
 			typedef type_or<is_arithmetic<T>::value, is_reference<T>::value, is_class<T>::value> selector;
 			typedef is_enum_helper<selector::value> helper_t;
 			typedef typename add_reference<T>::type ref_t;
 			typedef typename helper_t::template nest<ref_t> result;
+			EASTL_INTERNAL_RESTORE_DEPRECATED()
 		};
 
 		template <typename T> 
@@ -310,7 +316,7 @@ namespace eastl
 		EA_CONSTEXPR bool is_enum_v = is_enum<T>::value;
 	#endif
 
-	#define EASTL_DECLARE_ENUM(T) namespace eastl{ template <> struct is_enum<T> : public true_type{}; template <> struct is_enum<const T> : public true_type{}; }
+	#define EASTL_DECLARE_ENUM(T) namespace eastl{ template <> struct EASTL_REMOVE_AT_2024_APRIL is_enum<T> : public true_type{}; template <> struct EASTL_REMOVE_AT_2024_APRIL is_enum<const T> : public true_type{}; }
 
 
 

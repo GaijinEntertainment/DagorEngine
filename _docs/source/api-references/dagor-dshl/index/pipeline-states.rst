@@ -15,7 +15,7 @@ Blending settings can be configured in DSHL shader using the following syntax:
 
 .. code-block:: c
 
-  blend_target = blend_factor;
+    blend_target = blend_factor;
 
 where ``blend_target`` is one of these state variables
 
@@ -66,12 +66,12 @@ Blending is performed using the following pseudocode:
 
 .. code-block:: c
 
-  if (blendEnable) {
-    finalColor.rgb = (srcColorBlendFactor * srcColor.rgb) <colorBlendOp> (dstColorBlendFactor * dstColor.rgb);
-    finalColor.a = (srcAlphaBlendFactor * srcColor.a) <alphaBlendOp> (dstAlphaBlendFactor * dstCoilor.a);
-  } else {
+    if (blendEnable) {
+      finalColor.rgb = (srcColorBlendFactor * srcColor.rgb) <colorBlendOp> (dstColorBlendFactor * dstColor.rgb);
+      finalColor.a = (srcAlphaBlendFactor * srcColor.a) <alphaBlendOp> (dstAlphaBlendFactor * dstColor.a);
+    } else {
       finalColor = srcColor;
-  }
+    }
 
   finalColor = finalColor & colorWriteMask;
 
@@ -79,8 +79,8 @@ Example:
 
 .. code-block:: c
 
-  blend_src = sa; blend_dst = 1;
-  blend_asrc = sa; blend_adst = 1;
+    blend_src = sa; blend_dst = 1;
+    blend_asrc = sa; blend_adst = 1;
 
 .. warning::
   Blending *operations* (as well as blending constants for ``bf`` and ``ibf`` blending modes) need to be configured in C++ code.
@@ -89,8 +89,8 @@ If you don't configure blending factors in the shader, these defaults will be us
 
 .. code-block:: c
 
-  blend_src = 1; blend_dst = 0;
-  blend_asrc = 1; blend_adst = 0;
+    blend_src = 1; blend_dst = 0;
+    blend_asrc = 1; blend_adst = 0;
 
 **Independent blending**
 
@@ -99,8 +99,8 @@ This is done by providing an index to ``blend_src, blend_dst, blend_asrc, blend_
 
 .. code-block:: c
 
-  blend_src[0] = 1; blend_dst[0] = 0;
-  blend_src[1] = 0; blend_dst[1] = 1;
+    blend_src[0] = 1; blend_dst[0] = 0;
+    blend_src[1] = 0; blend_dst[1] = 1;
 
 Without an index, the desired blend factor affects all render targets.
 
@@ -130,9 +130,9 @@ Example:
 
 .. code-block:: c
 
-  z_write = false;
-  z_test = true;
-  z_func = always;
+    z_write = false;
+    z_test = true;
+    z_func = always;
 
 **Stencil state variables**
 
@@ -171,12 +171,12 @@ Example:
 
 .. code-block:: c
 
-  stencil = true;
-  stencil_func = always;
-  stencil_pass = replace;
-  stencil_ref = 255;
-  stencil_zfail = keep;
-  stencil_fail = keep;
+    stencil = true;
+    stencil_func = always;
+    stencil_pass = replace;
+    stencil_ref = 255;
+    stencil_zfail = keep;
+    stencil_fail = keep;
 
 -------
 Culling
@@ -194,7 +194,7 @@ Example:
 
 .. code-block:: c
 
-  cull_mode = cw;
+    cull_mode = cw;
 
 -----------------
 Alpha to coverage
@@ -238,16 +238,16 @@ For example,
 
 .. code-block:: c
 
-  color_write = rg;
-  // color_write = 3 is the same
-  // 3 = 0b0011 = rg
+    color_write = rg;
+    // color_write = 3 is the same
+    // 3 = 0b0011 = rg
 
 Color mask supports multiple render targets, i.e. for each render target the mask can be different.
 You can use ``[]`` operator to specify the mask for the specific render target.
 
 .. code-block:: c
 
-  color_write = true; // sets RGBA for all RT
-  color_write[1] = rg; // sets RG for RT[1]
+    color_write = true; // sets RGBA for all RT
+    color_write[1] = rg; // sets RG for RT[1]
 
 By default, color mask is RGBA for all render targets.

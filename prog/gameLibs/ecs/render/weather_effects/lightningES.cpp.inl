@@ -50,12 +50,9 @@ CONSOLE_FLOAT_VAL("lightning", debug_distance, 6000.0f);
 GLOBAL_VARS_LIST
 #undef VAR
 
-static void init_shader_vars()
-{
 #define VAR(a) a##VarId = get_shader_variable_id(#a, true);
-  GLOBAL_VARS_LIST
+static void init_shader_vars() { GLOBAL_VARS_LIST; }
 #undef VAR
-}
 
 DaSkies *lightning_get_skies();
 int lightning_get_session_id();

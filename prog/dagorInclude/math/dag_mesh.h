@@ -226,8 +226,10 @@ public:
   // remove unused vertices
   // and welding equal ones with squared threshold sqThreshold. If sqThreshold<0 - do not weld
   void kill_unused_verts(float sqThreshold = -1.0);
-  // remove degenerate faces (faces with two or more equal vertex indices)
-  void kill_bad_faces();
+  // remove degenerate faces (faces with two or more equal vertex indices) and faces which doubled square area is less then this
+  void kill_bad_faces(float face_area_threshold = 1e-20f);
+  // remove degenerates by face's area and perimeter to area ratio
+  void kill_bad_faces2(float fa_thresh, float fa_to_check_thresh, float fa_to_perim_ratio_thresh);
   // optimize mapping by removing unused texture coordinate vertices
   // and welding equal ones with squared threshold sqThreshold. If sqThreshold<0 - do not weld
   void optimize_tverts(float sqThreshold = 0.0);
@@ -358,8 +360,6 @@ public:
   // remove unused vertices
   // and welding equal ones with squared threshold sqThreshold. If sqThreshold<0 - do not weld
   void kill_unused_verts(float sqThreshold = -1.0) { MeshData::kill_unused_verts(sqThreshold); }
-  // remove degenerate faces (faces with two or more equal vertex indices)
-  void kill_bad_faces() { MeshData::kill_bad_faces(); }
   // optimize mapping by removing unused texture coordinate vertices
   // and welding equal ones with squared threshold sqThreshold. If sqThreshold<0 - do not weld
   void optimize_tverts(float sqThreshold = 0.0) { MeshData::optimize_tverts(sqThreshold); }

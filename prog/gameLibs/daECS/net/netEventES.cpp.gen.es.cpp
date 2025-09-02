@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "netEventES.cpp.inl"
 ECS_DEF_PULL_VAR(netEvent);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc net_unicast_events_es_event_handler_comps[] =
 {

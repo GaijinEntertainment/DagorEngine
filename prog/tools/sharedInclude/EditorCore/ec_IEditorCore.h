@@ -33,6 +33,7 @@
 
 #include <stdarg.h>
 
+enum ImGuiKey : int;
 
 struct D3dInterfaceTable;
 class StaticGeometryContainer;
@@ -60,6 +61,7 @@ class SphereCreator;
 class PlaneCreator;
 class PointCreator;
 class CylinderCreator;
+class PolygoneZoneCreator;
 class PolyMeshCreator;
 class StairCreator;
 class SpiralStairCreator;
@@ -307,6 +309,8 @@ public:
   virtual bool shaderGlobalSetReal(int id, real val) const = 0;
   virtual bool shaderGlobalSetColor4(int id, const Color4 &val) const = 0;
   virtual bool shaderGlobalSetTexture(int id, TEXTUREID val) const = 0;
+  virtual bool shaderGlobalSetSampler(int id, d3d::SamplerHandle val) const = 0;
+  virtual d3d::SamplerHandle getSeparateSampler(TEXTUREID val) const = 0;
 
   virtual int shaderGlobalGetInt(int id) const = 0;
   virtual real shaderGlobalGetReal(int id) const = 0;
@@ -391,6 +395,9 @@ public:
   virtual TargetCreator *newTargetCreator(IMemAlloc *alloc = NULL) const = 0;
   virtual void deleteTargetCreator(TargetCreator *&creator) const = 0;
 
+  virtual PolygoneZoneCreator *newPolygonZoneCreator(IMemAlloc *alloc = NULL) const = 0;
+  virtual void deletePolyZoneCreator(PolygoneZoneCreator *&creator) const = 0;
+
   virtual void deleteIObjectCreator(IObjectCreator *&creator) const = 0;
 
   // DagSaver
@@ -442,6 +449,17 @@ public:
   DECLARE_DSA_OVERLOADS_FAMILY_LT(inline void addMessage, addMessageFmt);
 #undef DSA_OVERLOADS_PARAM_DECL
 #undef DSA_OVERLOADS_PARAM_PASS
+};
+
+
+// input functions to use from DLLs (see ec_input.h for non-DLL usage)
+class IDagorInput
+{
+public:
+  virtual bool isKeyDown(ImGuiKey key) const = 0;
+  virtual bool isAltKeyDown() const = 0;
+  virtual bool isCtrlKeyDown() const = 0;
+  virtual bool isShiftKeyDown() const = 0;
 };
 
 
@@ -519,6 +537,7 @@ public:
   virtual IDagorRender *getRender() = 0;
   virtual IDagorGeom *getGeom() = 0;
   virtual IDagorConsole *getConsole() = 0;
+  virtual IDagorInput *getInput() = 0;
   virtual IDagorTools *getTools() = 0;
   virtual IDagorScene *getScene() = 0;
   virtual const char *getExePath() = 0;
@@ -531,6 +550,7 @@ namespace editorcore_extapi
 extern IDagorRender *dagRender;
 extern IDagorGeom *dagGeom;
 extern IDagorConsole *dagConsole;
+extern IDagorInput *dagInput;
 extern IDagorTools *dagTools;
 extern IDagorScene *dagScene;
 String make_full_start_path(const char *rel_path);

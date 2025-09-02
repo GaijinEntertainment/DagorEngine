@@ -485,6 +485,8 @@ unsigned stackhlp_fill_stack_exact(void **stack, unsigned max_size, const void *
 
 #include <util/dag_globDef.h>
 #include <string.h>
+
+#define UNW_LOCAL_ONLY
 #include <libunwind.h>
 
 

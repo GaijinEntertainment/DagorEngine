@@ -1,19 +1,25 @@
+options gen2
 [persistent]
-class Foo
+class Foo {
     count : int = 0
-    def Foo ( ic : int )
+    def Foo(ic : int) {
         count = ic
-    def update
+    }
+    def update {
         return count++
+    }
+}
 
 [export]
-def test
+def test {
     var pFoo = new Foo(13)
     let up1 = pFoo->update()
     let up2 = pFoo->update()
-    unsafe
+    unsafe {
         delete pFoo
-    assert(up1==13)
-    assert(up2==14)
+    }
+    assert(up1 == 13)
+    assert(up2 == 14)
     return true
+}
 

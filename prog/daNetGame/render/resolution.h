@@ -8,10 +8,12 @@ void get_display_resolution(int &w, int &h);
 void get_rendering_resolution(int &w, int &h);
 void get_postfx_resolution(int &w, int &h);
 void get_final_render_target_resolution(int &w, int &h);
+void get_max_possible_rendering_resolution(int &w, int &h);
 
 IPoint2 get_display_resolution();
 IPoint2 get_rendering_resolution();
 IPoint2 get_postfx_resolution();
 IPoint2 get_final_render_target_resolution();
+IPoint2 get_max_possible_rendering_resolution();
 bool is_upsampling();
 float get_default_static_resolution_scale();

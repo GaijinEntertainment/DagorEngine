@@ -1,12 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-enum class CustomSkyRequest
-{
-  RENDER_IF_EXISTS,
-  CHECK_ONLY
-};
-
 struct OcclusionData
 {
   mat44f closeGeometryPrevToCurrFrameTransform = {}; // Describes movement of the gun between the previous and the current frame.
@@ -15,7 +9,9 @@ struct OcclusionData
   explicit operator bool() const { return occlusionAvailable; }
 };
 
-bool has_custom_sky_render(CustomSkyRequest request);
+struct Driver3dPerspective;
+bool try_render_custom_sky(const TMatrix &view_tm, const TMatrix4 &proj_tm, const Driver3dPerspective &persp);
+bool has_custom_sky();
 
 // returns if it rendered anything
 bool render_custom_envi_probe(const ManagedTex *cubeTarget, int face_num);

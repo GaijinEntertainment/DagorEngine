@@ -6,7 +6,7 @@ function make_samples() {
 ///utility function to create lots of childs
   let ret = []
   foreach (i in [1 2 3 4 5 6]) {
-    ret.append({size = [sh(5),sh(5)] rendObj = ROBJ_SOLID color= Color(100,100,100) halign = ALIGN_CENTER valign = ALIGN_CENTER children = {rendObj = ROBJ_TEXT size=SIZE_TO_CONTENT text=i}})
+    ret.append({size = sh(5) rendObj = ROBJ_SOLID color= Color(100,100,100) halign = ALIGN_CENTER valign = ALIGN_CENTER children = {rendObj = ROBJ_TEXT size=SIZE_TO_CONTENT text=i}})
   }
   return ret
 }
@@ -26,7 +26,7 @@ let flow_vertical = {
   flow = FLOW_VERTICAL
   size = SIZE_TO_CONTENT
   halign = ALIGN_CENTER
-  gap = {size = [flex(),sh(1.5)] valign=ALIGN_CENTER flow=FLOW_VERTICAL children = {size=[flex(), sh(0.2)] rendObj = ROBJ_SOLID color=Color(40,20,20)}} //gap can be a component!
+  gap = {size = static [flex(),sh(1.5)] valign=ALIGN_CENTER flow=FLOW_VERTICAL children = {size=static [flex(), sh(0.2)] rendObj = ROBJ_SOLID color=Color(40,20,20)}} //gap can be a component!
   children = make_samples()
 }
 
@@ -41,7 +41,7 @@ return {
   size = flex()
   children = [
     {
-      size = [sw(40), sh(50)]
+      size = static [sw(40), sh(50)]
       flow = FLOW_VERTICAL
       halign = ALIGN_CENTER
       gap = sh(2)
@@ -49,7 +49,7 @@ return {
       children = [
         {rendObj = ROBJ_TEXT text = "horizontal flow, with gap"}
         flow_horizontal
-        {size=[0,sh(10)]}
+        {size=static [0,sh(10)]}
         {rendObj = ROBJ_TEXT text = "vertical flow, with gap"}
         flow_vertical
       ]

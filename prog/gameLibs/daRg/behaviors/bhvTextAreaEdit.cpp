@@ -25,6 +25,8 @@
 
 #include <osApiWrappers/dag_clipboard.h>
 #include <osApiWrappers/dag_unicode.h>
+#include <wctype.h>
+
 
 /*
 
@@ -629,7 +631,7 @@ int BhvTextAreaEdit::kbdEvent(ElementTree *etree, Element *elem, InputEvent even
     }
     else if (wc)
     {
-      if (textlayout::is_space(wc))
+      if (iswspace(wc))
       {
         int relChar = -1;
         int curBlockIdx = find_block_right(fmtText, etext->cursorPos, relChar);

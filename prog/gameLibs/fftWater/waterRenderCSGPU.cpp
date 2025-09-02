@@ -159,7 +159,6 @@ bool CSGPUData::initDispArray(const NVWaveWorks_FFT_CPU_Simulation *fft, bool r_
     1, "water3d_disp_cs_array");
   if (!dispArray)
     return false;
-  dispArray->disableSampler();
 
   G_ASSERT(dispArray);
   return true;

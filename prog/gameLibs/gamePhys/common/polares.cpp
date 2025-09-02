@@ -156,7 +156,7 @@ bool gamephys::calc_aoa(const Polares &polares, float cy, float ang, bool conver
   {
     const CalcCy calcCy = {polares, cy, ang, convert_aoa};
     float aoa = 0.0f;
-    if (solve_newton(calcCy, 0.0f, 0.01f, 0.01f, 15u, aoa))
+    if (solve_newton(calcCy, 0.0f, 0.01f, 0.01f, 0.0f, 15u, aoa))
     {
       out_aoa = aoa;
       return true;

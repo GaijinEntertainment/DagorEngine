@@ -5,12 +5,50 @@
 #include "ec_outlinerModel.h"
 #include <gui/dag_imguiUtil.h>
 #include <ioSys/dag_dataBlock.h>
+#include <propPanel/colors.h>
 #include <propPanel/constants.h>
 #include <propPanel/focusHelper.h>
 #include <propPanel/imguiHelper.h>
+#include <propPanel/immediateFocusLossHandler.h>
 #include <propPanel/propPanel.h>
 #include <propPanel/control/menu.h>
+#include <propPanel/control/treeHierarchyLineDrawer.h>
 #include <imgui/imgui.h>
+
+namespace PropPanel
+{
+
+template <>
+inline const Outliner::OutlinerTreeItem *TreeHierarchyLineDrawer<Outliner::OutlinerTreeItem>::nodeGetParent(
+  const Outliner::OutlinerTreeItem &node)
+{
+  // If a node has no parent then it must be the root node.
+  Outliner::OutlinerTreeItem *parent = node.getParent();
+  const bool isRoot = parent->getParent() == nullptr;
+  return isRoot ? nullptr : parent;
+}
+
+template <>
+inline bool TreeHierarchyLineDrawer<Outliner::OutlinerTreeItem>::nodeHasChildren(const Outliner::OutlinerTreeItem &node)
+{
+  return node.getFilteredChildCount() > 0;
+}
+
+template <>
+inline bool TreeHierarchyLineDrawer<Outliner::OutlinerTreeItem>::nodeHasPreviousSibling(const Outliner::OutlinerTreeItem &node)
+{
+  const Outliner::OutlinerTreeItem *parent = node.getParent();
+  return parent->getFilteredChild(0) != &node;
+}
+
+template <>
+inline bool TreeHierarchyLineDrawer<Outliner::OutlinerTreeItem>::nodeHasNextSibling(const Outliner::OutlinerTreeItem &node)
+{
+  const Outliner::OutlinerTreeItem *parent = node.getParent();
+  return parent->getFilteredChild(parent->getFilteredChildCount() - 1) != &node;
+}
+
+} // namespace PropPanel
 
 namespace Outliner
 {
@@ -22,7 +60,7 @@ static const char *OUTLINER_DRAG_AND_DROP_TYPE = "OutlinerObject";
 class TreeItemInlineRenamerControl
 {
 public:
-  explicit TreeItemInlineRenamerControl(const char *initial_name, ImTextureID alert_icon) :
+  explicit TreeItemInlineRenamerControl(const char *initial_name, PropPanel::IconId alert_icon) :
     newName(initial_name), alertIcon(alert_icon)
   {
     PropPanel::focus_helper.requestFocus(&inputFocusId);
@@ -90,7 +128,7 @@ public:
       const ImVec2 textSize = ImGui::GetItemRectSize();
       alertIconPos.x += alertIconLeftPadding;
       alertIconPos.y += (textSize.y - fontSizedIconSize.y) * 0.5f; // Center the icon vertically.
-      drawList->AddImage(alertIcon, alertIconPos, alertIconPos + fontSizedIconSize);
+      drawList->AddImage(PropPanel::get_im_texture_id_from_icon_id(alertIcon), alertIconPos, alertIconPos + fontSizedIconSize);
     }
 
     ImGui::EndGroup();
@@ -128,7 +166,7 @@ public:
 
 private:
   const bool inputFocusId = false; // Only the address of this member is used.
-  const ImTextureID alertIcon;
+  const PropPanel::IconId alertIcon;
   String newName;
   String errorMessage;
 };
@@ -136,7 +174,7 @@ private:
 class LayerTreeItemInlinerRenamerControl : public TreeItemInlineRenamerControl
 {
 public:
-  LayerTreeItemInlinerRenamerControl(const char *initial_name, ImTextureID alert_icon, IOutliner &outliner_interface,
+  LayerTreeItemInlinerRenamerControl(const char *initial_name, PropPanel::IconId alert_icon, IOutliner &outliner_interface,
     OutlinerModel &outliner_model, int in_type, int per_type_layer_index) :
     TreeItemInlineRenamerControl(initial_name, alert_icon),
     outlinerInterface(outliner_interface),
@@ -146,12 +184,12 @@ public:
   {}
 
 private:
-  virtual bool canRenameTreeItem(const String &new_name, String &error_message) override
+  bool canRenameTreeItem(const String &new_name, String &error_message) override
   {
     return outlinerInterface.canRenameLayerTo(type, perTypeLayerIndex, new_name, error_message);
   }
 
-  virtual void renameTreeItem(const String &new_name) override
+  void renameTreeItem(const String &new_name) override
   {
     outlinerInterface.renameLayer(type, perTypeLayerIndex, new_name);
     outlinerModel.onLayerNameChanged(outlinerInterface);
@@ -166,7 +204,7 @@ private:
 class ObjectTreeItemInlinerRenamerControl : public TreeItemInlineRenamerControl
 {
 public:
-  ObjectTreeItemInlinerRenamerControl(RenderableEditableObject &in_object, const char *initial_name, ImTextureID alert_icon,
+  ObjectTreeItemInlinerRenamerControl(RenderableEditableObject &in_object, const char *initial_name, PropPanel::IconId alert_icon,
     IOutliner &outliner_interface) :
     TreeItemInlineRenamerControl(initial_name, alert_icon), object(in_object), outlinerInterface(outliner_interface)
   {}
@@ -174,18 +212,18 @@ public:
   const RenderableEditableObject &getObject() const { return object; }
 
 private:
-  virtual bool canRenameTreeItem(const String &new_name, String &error_message) override
+  bool canRenameTreeItem(const String &new_name, String &error_message) override
   {
     return outlinerInterface.canRenameObject(object, new_name, error_message);
   }
 
-  virtual void renameTreeItem(const String &new_name) override { outlinerInterface.renameObject(object, new_name); }
+  void renameTreeItem(const String &new_name) override { outlinerInterface.renameObject(object, new_name); }
 
   IOutliner &outlinerInterface;
   RenderableEditableObject &object;
 };
 
-ImTextureID OutlinerWindow::Icons::getForType(int type) const
+PropPanel::IconId OutlinerWindow::Icons::getForType(int type) const
 {
   if (type == 0)
     return typeEntity;
@@ -198,7 +236,7 @@ ImTextureID OutlinerWindow::Icons::getForType(int type) const
   return typeEntity;
 }
 
-ImTextureID OutlinerWindow::Icons::getSelectionIcon(OutlinerSelectionState selection_state) const
+PropPanel::IconId OutlinerWindow::Icons::getSelectionIcon(OutlinerSelectionState selection_state) const
 {
   if (selection_state == OutlinerSelectionState::All)
     return selectAll;
@@ -209,36 +247,40 @@ ImTextureID OutlinerWindow::Icons::getSelectionIcon(OutlinerSelectionState selec
   return selectNone;
 }
 
-ImTextureID OutlinerWindow::Icons::getVisibilityIcon(bool visible) const { return visible ? visibilityVisible : visibilityHidden; }
+PropPanel::IconId OutlinerWindow::Icons::getVisibilityIcon(bool visible) const
+{
+  return visible ? visibilityVisible : visibilityHidden;
+}
 
-ImTextureID OutlinerWindow::Icons::getLockIcon(bool locked) const { return locked ? lockClosed : lockOpen; }
+PropPanel::IconId OutlinerWindow::Icons::getLockIcon(bool locked) const { return locked ? lockClosed : lockOpen; }
 
 OutlinerWindow::OutlinerWindow()
 {
-  icons.settings = (ImTextureID)((unsigned)PropPanel::load_icon("filter_default"));
-  icons.settingsOpen = (ImTextureID)((unsigned)PropPanel::load_icon("filter_active"));
-  icons.search = (ImTextureID)((unsigned)PropPanel::load_icon("search"));
-  icons.typeEntity = (ImTextureID)((unsigned)PropPanel::load_icon("layer_entity"));
-  icons.typeSpline = (ImTextureID)((unsigned)PropPanel::load_icon("layer_spline"));
-  icons.typePolygon = (ImTextureID)((unsigned)PropPanel::load_icon("layer_polygon"));
-  icons.layerDefault = (ImTextureID)((unsigned)PropPanel::load_icon("layer_default"));
-  icons.layerActive = (ImTextureID)((unsigned)PropPanel::load_icon("layer_active"));
-  icons.layerLocked = (ImTextureID)((unsigned)PropPanel::load_icon("layer_locked"));
-  icons.layerAdd = (ImTextureID)((unsigned)PropPanel::load_icon("layer_add"));
-  icons.layerCreate = (ImTextureID)((unsigned)PropPanel::load_icon("layer_create"));
-  icons.selectAll = (ImTextureID)((unsigned)PropPanel::load_icon("select_all"));
-  icons.selectPartial = (ImTextureID)((unsigned)PropPanel::load_icon("select_partly"));
-  icons.selectNone = (ImTextureID)((unsigned)PropPanel::load_icon("select_none"));
-  icons.visibilityVisible = (ImTextureID)((unsigned)PropPanel::load_icon("eye_show"));
-  icons.visibilityHidden = (ImTextureID)((unsigned)PropPanel::load_icon("eye_hide"));
-  icons.lockOpen = (ImTextureID)((unsigned)PropPanel::load_icon("lock_open"));
-  icons.lockClosed = (ImTextureID)((unsigned)PropPanel::load_icon("lock_close"));
-  icons.applyToMask = (ImTextureID)((unsigned)PropPanel::load_icon("asset_tifMask"));
-  icons.applyToMaskDisabled = (ImTextureID)((unsigned)PropPanel::load_icon("mask_disabled"));
-  icons.exportLayer = (ImTextureID)((unsigned)PropPanel::load_icon("export"));
-  icons.exportLayerDisabled = (ImTextureID)((unsigned)PropPanel::load_icon("export_disabled"));
-  icons.alert = (ImTextureID)((unsigned)PropPanel::load_icon("alert"));
-  icons.close = (ImTextureID)((unsigned)PropPanel::load_icon("close_editor"));
+  icons.settings = PropPanel::load_icon("filter_default");
+  icons.settingsOpen = PropPanel::load_icon("filter_active");
+  icons.search = PropPanel::load_icon("search");
+  icons.typeEntity = PropPanel::load_icon("layer_entity");
+  icons.typeSpline = PropPanel::load_icon("layer_spline");
+  icons.typePolygon = PropPanel::load_icon("layer_polygon");
+  icons.layerDefault = PropPanel::load_icon("layer_default");
+  icons.layerActive = PropPanel::load_icon("layer_active");
+  icons.layerActiveLocked = PropPanel::load_icon("layer_active_locked");
+  icons.layerLocked = PropPanel::load_icon("layer_locked");
+  icons.layerAdd = PropPanel::load_icon("layer_add");
+  icons.layerCreate = PropPanel::load_icon("layer_create");
+  icons.selectAll = PropPanel::load_icon("select_all");
+  icons.selectPartial = PropPanel::load_icon("select_partly");
+  icons.selectNone = PropPanel::load_icon("select_none");
+  icons.visibilityVisible = PropPanel::load_icon("eye_show");
+  icons.visibilityHidden = PropPanel::load_icon("eye_hide");
+  icons.lockOpen = PropPanel::load_icon("lock_open");
+  icons.lockClosed = PropPanel::load_icon("lock_close");
+  icons.applyToMask = PropPanel::load_icon("mask_enabled");
+  icons.applyToMaskDisabled = PropPanel::load_icon("mask_disabled");
+  icons.exportLayer = PropPanel::load_icon("export");
+  icons.exportLayerDisabled = PropPanel::load_icon("export_disabled");
+  icons.alert = PropPanel::load_icon("alert");
+  icons.close = PropPanel::load_icon("close_editor");
 }
 
 OutlinerWindow::~OutlinerWindow() { PropPanel::remove_delayed_callback(*this); }
@@ -250,7 +292,7 @@ int OutlinerWindow::onMenuItemClick(unsigned id)
     if (!treeInterface)
       return 0;
 
-    const int selectedType = outlinerModel->getExclusiveSelectedType(*treeInterface, showTypes);
+    const int selectedType = outlinerModel->getExclusiveSelectedType(*treeInterface);
     if (selectedType >= 0)
     {
       addingLayerToType = selectedType;
@@ -294,13 +336,12 @@ int OutlinerWindow::onMenuItemClick(unsigned id)
   {
     const bool expand = id == (unsigned)MenuItemId::ExpandLayerChildren;
     LayerTreeItem *targetLayer = getContextMenuTargetLayer();
-    for (ObjectTypeTreeItem *objectTypeTreeItem : outlinerModel->objectTypes)
-      for (LayerTreeItem *layerTreeItem : objectTypeTreeItem->layers)
+    for (ObjectTypeTreeItem *objectTypeTreeItem : outlinerModel->filteredObjectTypes)
+      for (LayerTreeItem *layerTreeItem : objectTypeTreeItem->filteredLayers)
         if (layerTreeItem->isSelected() || layerTreeItem == targetLayer)
         {
-          const int objectCount = layerTreeItem->sortedObjects.size();
-          for (int objectIndex = 0; objectIndex < objectCount; ++objectIndex)
-            layerTreeItem->sortedObjects[objectIndex]->setExpandedRecursive(expand);
+          for (ObjectTreeItem *objectTreeItem : layerTreeItem->filteredSortedObjects)
+            objectTreeItem->setExpandedRecursive(expand);
         }
   }
   else if (id == (unsigned)MenuItemId::RenameLayer)
@@ -369,21 +410,21 @@ void OutlinerWindow::onImguiDelayedCallback(void *user_data)
   }
 }
 
-ImTextureID OutlinerWindow::getObjectAssetTypeIcon(RenderableEditableObject &object)
+PropPanel::IconId OutlinerWindow::getObjectAssetTypeIcon(RenderableEditableObject &object)
 {
   const char *assetTypeName;
   const int assetType = treeInterface->getObjectAssetType(object, assetTypeName);
   if (assetType < 0)
-    return 0;
+    return PropPanel::IconId::Invalid;
 
   if (assetType >= (int)assetTypeIcons.size())
-    assetTypeIcons.resize(assetType + 1, eastl::optional<ImTextureID>());
+    assetTypeIcons.resize(assetType + 1, eastl::optional<PropPanel::IconId>());
 
-  eastl::optional<ImTextureID> &assetTypeIcon = assetTypeIcons[assetType];
+  eastl::optional<PropPanel::IconId> &assetTypeIcon = assetTypeIcons[assetType];
   if (!assetTypeIcon.has_value())
   {
     const String iconName(0, "asset_%s", assetTypeName);
-    assetTypeIcons[assetType] = (ImTextureID)((unsigned)PropPanel::load_icon(iconName));
+    assetTypeIcons[assetType] = PropPanel::load_icon(iconName);
   }
 
   return assetTypeIcon.value();
@@ -397,7 +438,10 @@ void OutlinerWindow::handleDragAndDropDropping(int type, int per_type_layer_inde
   const ImGuiPayload *dragAndDropPayload =
     ImGui::AcceptDragDropPayload(OUTLINER_DRAG_AND_DROP_TYPE, ImGuiDragDropFlags_AcceptBeforeDelivery);
   if (!dragAndDropPayload)
+  {
+    ImGui::EndDragDropTarget();
     return;
+  }
 
   DragData dragData;
   G_ASSERT(dragAndDropPayload->DataSize == sizeof(dragData));
@@ -430,7 +474,7 @@ void OutlinerWindow::handleDragAndDropDropping(int type, int per_type_layer_inde
 }
 
 bool OutlinerWindow::showTypeControls(ObjectTypeTreeItem &tree_item, int type, bool type_visible, bool type_locked,
-  bool dim_type_color, int layer_count, const ImVec4 &dimmed_text_color, float action_buttons_total_width)
+  bool dim_type_color, const ImVec4 &dimmed_text_color, float action_buttons_total_width)
 {
   const bool wasExpanded = tree_item.isExpanded();
   ImGui::SetNextItemOpen(wasExpanded);
@@ -440,14 +484,14 @@ bool OutlinerWindow::showTypeControls(ObjectTypeTreeItem &tree_item, int type, b
 
   ImGuiTreeNodeFlags typeTreeNodeFlags = ImGuiTreeNodeFlags_NavLeftJumpsBackHere | ImGuiTreeNodeFlags_SpanAvailWidth |
                                          ImGuiTreeNodeFlags_AllowOverlap | ImGuiTreeNodeFlags_OpenOnDoubleClick;
-  if (layer_count == 0)
+  if (tree_item.filteredLayers.empty())
     typeTreeNodeFlags |= ImGuiTreeNodeFlags_Leaf;
   if (tree_item.isSelected())
     typeTreeNodeFlags |= ImGuiTreeNodeFlags_Selected;
 
   PropPanel::ImguiHelper::TreeNodeWithSpecialHoverBehaviorEndData endData;
   const bool isExpanded =
-    PropPanel::ImguiHelper::treeNodeWithSpecialHoverBehaviorStart(tree_item.getLabel(), typeTreeNodeFlags, endData);
+    PropPanel::ImguiHelper::treeNodeWithSpecialHoverBehaviorStart(tree_item.getLabel(), typeTreeNodeFlags, endData, true, false);
 
   updateSelectionHead(tree_item);
 
@@ -473,17 +517,21 @@ bool OutlinerWindow::showTypeControls(ObjectTypeTreeItem &tree_item, int type, b
     if (dim_type_color)
       ImGui::PopStyleColor();
 
-    const ImVec2 originaCursorPos = ImGui::GetCursorScreenPos();
+    const ImRect itemRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax());
+    PropPanel::TreeHierarchyLineDrawer<OutlinerTreeItem>::draw(tree_item, *ImGui::GetWindowDrawList(), itemRect, leftIconPos.x,
+      isExpanded, PropPanel::getOverriddenColorU32(PropPanel::ColorOverride::TREE_HIERARCHY_LINE),
+      PropPanel::getOverriddenColorU32(PropPanel::ColorOverride::TREE_OPEN_CLOSE_ICON_INNER));
+
+    const ImVec2 originalCursorPos = ImGui::GetCursorScreenPos();
 
     ImGui::SetCursorScreenPos(leftIconPos);
-    PropPanel::ImguiHelper::setPointSampler();
-    ImGui::Image(icons.getForType(type), fontSizedIconSize);
-    PropPanel::ImguiHelper::setDefaultSampler();
+    const ImTextureID typeIcon = PropPanel::get_im_texture_id_from_icon_id(icons.getForType(type));
+    ImGui::Image(typeIcon, fontSizedIconSize);
 
     ImGui::SetCursorScreenPos(ImVec2(actionButtonsStartX, endData.textPos.y));
 
     const OutlinerSelectionState selectionState = tree_item.getSelectionState();
-    const ImTextureID typeSelectionIcon = icons.getSelectionIcon(selectionState);
+    const PropPanel::IconId typeSelectionIcon = icons.getSelectionIcon(selectionState);
     if (PropPanel::ImguiHelper::imageButtonFramelessOrPlaceholder("type_select", typeSelectionIcon, fontSizedIconSize,
           "Toggle selection", endData.hovered))
     {
@@ -494,7 +542,7 @@ bool OutlinerWindow::showTypeControls(ObjectTypeTreeItem &tree_item, int type, b
     if (showActionButtonVisibility)
     {
       ImGui::SameLine();
-      const ImTextureID typeVisibilityIcon = icons.getVisibilityIcon(type_visible);
+      const PropPanel::IconId typeVisibilityIcon = icons.getVisibilityIcon(type_visible);
       if (PropPanel::ImguiHelper::imageButtonFramelessOrPlaceholder("type_visibility", typeVisibilityIcon, fontSizedIconSize,
             "Toggle visibility", endData.hovered || !type_visible))
         treeInterface->toggleTypeVisibility(type);
@@ -503,13 +551,13 @@ bool OutlinerWindow::showTypeControls(ObjectTypeTreeItem &tree_item, int type, b
     if (showActionButtonLock)
     {
       ImGui::SameLine();
-      const ImTextureID typeLockIcon = icons.getLockIcon(type_locked);
+      const PropPanel::IconId typeLockIcon = icons.getLockIcon(type_locked);
       if (PropPanel::ImguiHelper::imageButtonFramelessOrPlaceholder("type_lock", typeLockIcon, fontSizedIconSize, "Toggle locking",
             endData.hovered || type_locked))
         treeInterface->toggleTypeLock(type);
     }
 
-    ImGui::SetCursorScreenPos(originaCursorPos);
+    ImGui::SetCursorScreenPos(originalCursorPos);
   }
 
   if (isExpanded != wasExpanded)
@@ -523,7 +571,7 @@ bool OutlinerWindow::showTypeControls(ObjectTypeTreeItem &tree_item, int type, b
 }
 
 bool OutlinerWindow::showLayerControls(LayerTreeItem &tree_item, int type, int per_type_layer_index, bool layer_visible,
-  bool layer_locked, bool dim_layer_color, int object_count, const ImVec4 &dimmed_text_color, float action_buttons_total_width,
+  bool layer_locked, bool dim_layer_color, const ImVec4 &dimmed_text_color, float action_buttons_total_width,
   ImGuiMultiSelectIO *multiSelectIo)
 {
   const bool selected = tree_item.isSelected();
@@ -542,7 +590,7 @@ bool OutlinerWindow::showLayerControls(LayerTreeItem &tree_item, int type, int p
 
   ImGuiTreeNodeFlags layerTreeNodeFlags = ImGuiTreeNodeFlags_NavLeftJumpsBackHere | ImGuiTreeNodeFlags_SpanAvailWidth |
                                           ImGuiTreeNodeFlags_AllowOverlap | ImGuiTreeNodeFlags_OpenOnDoubleClick;
-  if (object_count == 0)
+  if (tree_item.filteredSortedObjects.empty())
     layerTreeNodeFlags |= ImGuiTreeNodeFlags_Leaf;
   if (selected)
     layerTreeNodeFlags |= ImGuiTreeNodeFlags_Selected;
@@ -551,7 +599,7 @@ bool OutlinerWindow::showLayerControls(LayerTreeItem &tree_item, int type, int p
 
   PropPanel::ImguiHelper::TreeNodeWithSpecialHoverBehaviorEndData endData;
   const bool isExpanded =
-    PropPanel::ImguiHelper::treeNodeWithSpecialHoverBehaviorStart(tree_item.getLabel(), layerTreeNodeFlags, endData);
+    PropPanel::ImguiHelper::treeNodeWithSpecialHoverBehaviorStart(tree_item.getLabel(), layerTreeNodeFlags, endData, true, false);
 
   updateSelectionHead(tree_item);
 
@@ -580,20 +628,28 @@ bool OutlinerWindow::showLayerControls(LayerTreeItem &tree_item, int type, int p
     if (dim_layer_color)
       ImGui::PopStyleColor();
 
-    const ImVec2 originaCursorPos = ImGui::GetCursorScreenPos();
+    const ImRect itemRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax());
+    PropPanel::TreeHierarchyLineDrawer<OutlinerTreeItem>::draw(tree_item, *ImGui::GetWindowDrawList(), itemRect, leftIconPos.x,
+      isExpanded, PropPanel::getOverriddenColorU32(PropPanel::ColorOverride::TREE_HIERARCHY_LINE),
+      PropPanel::getOverriddenColorU32(PropPanel::ColorOverride::TREE_OPEN_CLOSE_ICON_INNER));
+
+    const ImVec2 originalCursorPos = ImGui::GetCursorScreenPos();
 
     ImGui::SetCursorScreenPos(leftIconPos);
     if (layer_locked)
     {
       const ImGuiID layerButtonId = ImGui::GetCurrentWindow()->GetID("layer");
+      const PropPanel::IconId layerIcon =
+        treeInterface->isLayerActive(type, per_type_layer_index) ? icons.layerActiveLocked : icons.layerLocked;
       ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true); // Using this instead of BeginDisabled to avoid dimming.
-      PropPanel::ImguiHelper::imageButtonFrameless(layerButtonId, icons.layerLocked, fontSizedIconSize);
+      PropPanel::ImguiHelper::imageButtonFrameless(layerButtonId, layerIcon, fontSizedIconSize);
       ImGui::PopItemFlag();
-      PropPanel::set_previous_imgui_control_tooltip((const void *)layerButtonId, "This layer is locked.");
+      PropPanel::set_previous_imgui_control_tooltip((const void *)((uintptr_t)layerButtonId), "This layer is locked.");
     }
     else
     {
-      const ImTextureID layerIcon = treeInterface->isLayerActive(type, per_type_layer_index) ? icons.layerActive : icons.layerDefault;
+      const PropPanel::IconId layerIcon =
+        treeInterface->isLayerActive(type, per_type_layer_index) ? icons.layerActive : icons.layerDefault;
       if (PropPanel::ImguiHelper::imageButtonFrameless("layer", layerIcon, fontSizedIconSize, "Set active layer"))
         treeInterface->setLayerActive(type, per_type_layer_index);
     }
@@ -601,7 +657,7 @@ bool OutlinerWindow::showLayerControls(LayerTreeItem &tree_item, int type, int p
     ImGui::SetCursorScreenPos(ImVec2(actionButtonsStartX, endData.textPos.y));
 
     const OutlinerSelectionState selectionState = tree_item.getSelectionState();
-    const ImTextureID layerSelectionIcon = icons.getSelectionIcon(selectionState);
+    const PropPanel::IconId layerSelectionIcon = icons.getSelectionIcon(selectionState);
     if (PropPanel::ImguiHelper::imageButtonFramelessOrPlaceholder("layer_select", layerSelectionIcon, fontSizedIconSize,
           "Toggle selection", endData.hovered))
     {
@@ -616,7 +672,7 @@ bool OutlinerWindow::showLayerControls(LayerTreeItem &tree_item, int type, int p
         ImGui::BeginDisabled();
 
       ImGui::SameLine();
-      const ImTextureID layerVisibilityIcon = icons.getVisibilityIcon(layer_visible);
+      const PropPanel::IconId layerVisibilityIcon = icons.getVisibilityIcon(layer_visible);
       if (PropPanel::ImguiHelper::imageButtonFramelessOrPlaceholder("layer_visibility", layerVisibilityIcon, fontSizedIconSize,
             "Toggle visibility", endData.hovered || !layer_visible))
         treeInterface->toggleLayerVisibility(type, per_type_layer_index);
@@ -632,7 +688,7 @@ bool OutlinerWindow::showLayerControls(LayerTreeItem &tree_item, int type, int p
         ImGui::BeginDisabled();
 
       ImGui::SameLine();
-      const ImTextureID layerLockIcon = icons.getLockIcon(layer_locked);
+      const PropPanel::IconId layerLockIcon = icons.getLockIcon(layer_locked);
       if (PropPanel::ImguiHelper::imageButtonFramelessOrPlaceholder("layer_lock", layerLockIcon, fontSizedIconSize, "Toggle locking",
             endData.hovered || layer_locked))
         treeInterface->toggleLayerLock(type, per_type_layer_index);
@@ -644,7 +700,7 @@ bool OutlinerWindow::showLayerControls(LayerTreeItem &tree_item, int type, int p
     if (showActionButtonApplyToMask)
     {
       ImGui::SameLine();
-      const ImTextureID layerApplyToMaskIcon = layerApplyToMask ? icons.applyToMask : icons.applyToMaskDisabled;
+      const PropPanel::IconId layerApplyToMaskIcon = layerApplyToMask ? icons.applyToMask : icons.applyToMaskDisabled;
       if (PropPanel::ImguiHelper::imageButtonFramelessOrPlaceholder("layer_apply_to_mask", layerApplyToMaskIcon, fontSizedIconSize,
             "Toggle apply to mask", endData.hovered || !layerApplyToMask))
         treeInterface->toggleLayerApplyToMask(type, per_type_layer_index);
@@ -653,13 +709,13 @@ bool OutlinerWindow::showLayerControls(LayerTreeItem &tree_item, int type, int p
     if (showActionButtonExportLayer)
     {
       ImGui::SameLine();
-      const ImTextureID layerExportedIcon = layerExported ? icons.exportLayer : icons.exportLayerDisabled;
+      const PropPanel::IconId layerExportedIcon = layerExported ? icons.exportLayer : icons.exportLayerDisabled;
       if (PropPanel::ImguiHelper::imageButtonFramelessOrPlaceholder("layer_exported", layerExportedIcon, fontSizedIconSize,
             "Toggle export", endData.hovered || !layerExported))
         treeInterface->toggleLayerExport(type, per_type_layer_index);
     }
 
-    ImGui::SetCursorScreenPos(originaCursorPos);
+    ImGui::SetCursorScreenPos(originalCursorPos);
   }
 
   if (isExpanded != wasExpanded)
@@ -687,8 +743,7 @@ const char *OutlinerWindow::getObjectNoun(int type, int count) const
     return treeInterface->getTypeName(type, count > 1);
 }
 
-bool OutlinerWindow::showObjectControls(ObjectTreeItem &tree_item, int type, int per_type_layer_index, int object_index,
-  bool has_child)
+bool OutlinerWindow::showObjectControls(ObjectTreeItem &tree_item, int type, int per_type_layer_index, bool has_child)
 {
   const bool selected = tree_item.isSelected();
   if (selected && objectRenamer)
@@ -715,7 +770,8 @@ bool OutlinerWindow::showObjectControls(ObjectTreeItem &tree_item, int type, int
   const char *label = tree_item.getLabel();
   if (label == nullptr || *label == 0)
     label = "<empty>";
-  const bool isExpanded = PropPanel::ImguiHelper::treeNodeWithSpecialHoverBehaviorStart(nodeId, treeFlags, label, nullptr, endData);
+  const bool isExpanded =
+    PropPanel::ImguiHelper::treeNodeWithSpecialHoverBehaviorStart(nodeId, treeFlags, label, nullptr, endData, true, false);
 
   updateSelectionHead(tree_item);
 
@@ -751,6 +807,11 @@ bool OutlinerWindow::showObjectControls(ObjectTreeItem &tree_item, int type, int
 
     PropPanel::ImguiHelper::treeNodeWithSpecialHoverBehaviorEnd(endData);
 
+    const ImRect itemRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax());
+    PropPanel::TreeHierarchyLineDrawer<OutlinerTreeItem>::draw(tree_item, *ImGui::GetWindowDrawList(), itemRect, endData.textPos.x,
+      isExpanded, PropPanel::getOverriddenColorU32(PropPanel::ColorOverride::TREE_HIERARCHY_LINE),
+      PropPanel::getOverriddenColorU32(PropPanel::ColorOverride::TREE_OPEN_CLOSE_ICON_INNER));
+
     if (endData.hovered && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
     {
       G_ASSERT(tree_item.getType() == OutlinerTreeItem::ItemType::Object);
@@ -782,16 +843,22 @@ bool OutlinerWindow::showObjectAssetNameControls(ObjectAssetNameTreeItem &tree_i
   ImGui::SetNextItemSelectionUserData(reinterpret_cast<ImGuiSelectionUserData>(&tree_item));
 
   PropPanel::ImguiHelper::TreeNodeWithSpecialHoverBehaviorEndData endData;
-  const bool isExpanded = PropPanel::ImguiHelper::treeNodeWithSpecialHoverBehaviorStart(tree_item.getLabel(), treeFlags, endData);
+  const bool isExpanded =
+    PropPanel::ImguiHelper::treeNodeWithSpecialHoverBehaviorStart(tree_item.getLabel(), treeFlags, endData, true, false);
 
   updateSelectionHead(tree_item);
 
   if (endData.draw)
   {
-    const ImTextureID assetTypeIcon = getObjectAssetTypeIcon(object);
-    if (assetTypeIcon == 0)
+    const PropPanel::IconId assetTypeIcon = getObjectAssetTypeIcon(object);
+    if (assetTypeIcon == PropPanel::IconId::Invalid)
     {
       PropPanel::ImguiHelper::treeNodeWithSpecialHoverBehaviorEnd(endData);
+
+      const ImRect itemRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax());
+      PropPanel::TreeHierarchyLineDrawer<OutlinerTreeItem>::draw(tree_item, *ImGui::GetWindowDrawList(), itemRect, endData.textPos.x,
+        isExpanded, PropPanel::getOverriddenColorU32(PropPanel::ColorOverride::TREE_HIERARCHY_LINE),
+        PropPanel::getOverriddenColorU32(PropPanel::ColorOverride::TREE_OPEN_CLOSE_ICON_INNER));
     }
     else
     {
@@ -802,12 +869,15 @@ bool OutlinerWindow::showObjectAssetNameControls(ObjectAssetNameTreeItem &tree_i
       endData.textPos.x += iconWidthWithSpacing;
       PropPanel::ImguiHelper::treeNodeWithSpecialHoverBehaviorEnd(endData);
 
-      const ImVec2 originaCursorPos = ImGui::GetCursorScreenPos();
+      const ImRect itemRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax());
+      PropPanel::TreeHierarchyLineDrawer<OutlinerTreeItem>::draw(tree_item, *ImGui::GetWindowDrawList(), itemRect, leftIconPos.x,
+        isExpanded, PropPanel::getOverriddenColorU32(PropPanel::ColorOverride::TREE_HIERARCHY_LINE),
+        PropPanel::getOverriddenColorU32(PropPanel::ColorOverride::TREE_OPEN_CLOSE_ICON_INNER));
+
+      const ImVec2 originalCursorPos = ImGui::GetCursorScreenPos();
       ImGui::SetCursorScreenPos(leftIconPos);
-      PropPanel::ImguiHelper::setPointSampler();
-      ImGui::Image(assetTypeIcon, fontSizedIconSize);
-      PropPanel::ImguiHelper::setDefaultSampler();
-      ImGui::SetCursorScreenPos(originaCursorPos);
+      ImGui::Image(PropPanel::get_im_texture_id_from_icon_id(assetTypeIcon), fontSizedIconSize);
+      ImGui::SetCursorScreenPos(originalCursorPos);
     }
 
     if (endData.hovered && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
@@ -831,7 +901,7 @@ void OutlinerWindow::fillTypeContextMenu(int type)
   if (!outlinerModel->isAnyTypeSelected())
     return;
 
-  const int selectedType = outlinerModel->getExclusiveSelectedType(*treeInterface, showTypes);
+  const int selectedType = outlinerModel->getExclusiveSelectedType(*treeInterface);
   if (selectedType >= 0)
   {
     contextMenu->addItem(PropPanel::ROOT_MENU_ITEM, (unsigned)MenuItemId::AddNewLayer, "Add new layer");
@@ -971,7 +1041,7 @@ void OutlinerWindow::createContextMenuByKeyboard()
     }
     else if (outlinerModel->isAnyTypeSelected())
     {
-      type = outlinerModel->getExclusiveSelectedType(*treeInterface, showTypes);
+      type = outlinerModel->getExclusiveSelectedType(*treeInterface);
       if (type >= 0)
         createContextMenu(type);
     }
@@ -1040,11 +1110,9 @@ void OutlinerWindow::fillTree(ImGuiMultiSelectIO *multiSelectIo)
 
   outlinerModel->setSelectionHead(nullptr);
 
-  for (int typeIndex = 0; typeIndex < outlinerModel->objectTypes.size(); ++typeIndex)
+  for (ObjectTypeTreeItem *objectTypeTreeItem : outlinerModel->filteredObjectTypes)
   {
-    ObjectTypeTreeItem *objectTypeTreeItem = outlinerModel->objectTypes[typeIndex];
-    if (!showTypes[typeIndex] || !objectTypeTreeItem->matchesSearchTextRecursive())
-      continue;
+    const int typeIndex = objectTypeTreeItem->objectTypeIndex;
 
     ImGui::PushID(typeIndex);
 
@@ -1052,10 +1120,9 @@ void OutlinerWindow::fillTree(ImGuiMultiSelectIO *multiSelectIo)
     const bool typeLocked = treeInterface->isTypeLocked(typeIndex);
     const bool dimTypeColor = !typeVisible;
     const bool dimTypeChildColor = dimTypeColor || typeLocked;
-    const int layerCount = objectTypeTreeItem->layers.size();
 
-    const bool typeOpen = showTypeControls(*objectTypeTreeItem, typeIndex, typeVisible, typeLocked, dimTypeColor, layerCount,
-      dimmedTextColor, actionButtonsTotalWidth);
+    const bool typeOpen = showTypeControls(*objectTypeTreeItem, typeIndex, typeVisible, typeLocked, dimTypeColor, dimmedTextColor,
+      actionButtonsTotalWidth);
 
     if (typeIndex == addingLayerToType)
       showAddLayerControls();
@@ -1066,11 +1133,9 @@ void OutlinerWindow::fillTree(ImGuiMultiSelectIO *multiSelectIo)
       continue;
     }
 
-    for (int layerIndex = 0; layerIndex < layerCount; ++layerIndex)
+    for (LayerTreeItem *layerTreeItem : objectTypeTreeItem->filteredLayers)
     {
-      LayerTreeItem *layerTreeItem = objectTypeTreeItem->layers[layerIndex];
-      if (!layerTreeItem->matchesSearchTextRecursive())
-        continue;
+      const int layerIndex = layerTreeItem->perTypeLayerIndex;
 
       ImGui::PushID(layerIndex);
 
@@ -1078,10 +1143,9 @@ void OutlinerWindow::fillTree(ImGuiMultiSelectIO *multiSelectIo)
       const bool layerLocked = treeInterface->isLayerLocked(typeIndex, layerIndex);
       const bool dimLayerColor = dimTypeChildColor || !layerVisible;
       const bool dimLayerChildColor = dimLayerColor || layerLocked;
-      const int objectCount = layerTreeItem->sortedObjects.size();
 
       const bool layerOpen = showLayerControls(*layerTreeItem, typeIndex, layerIndex, layerVisible, layerLocked, dimLayerColor,
-        objectCount, dimmedTextColor, actionButtonsTotalWidth, multiSelectIo);
+        dimmedTextColor, actionButtonsTotalWidth, multiSelectIo);
 
       if (!layerOpen)
       {
@@ -1092,15 +1156,11 @@ void OutlinerWindow::fillTree(ImGuiMultiSelectIO *multiSelectIo)
       if (dimLayerChildColor)
         ImGui::PushStyleColor(ImGuiCol_Text, dimmedTextColor);
 
-      for (int objectIndex = 0; objectIndex < objectCount; ++objectIndex)
+      for (ObjectTreeItem *objectTreeItem : layerTreeItem->filteredSortedObjects)
       {
-        ObjectTreeItem *objectTreeItem = layerTreeItem->sortedObjects[objectIndex];
-        if (!objectTreeItem->matchesSearchTextRecursive())
-          continue;
-
         ObjectAssetNameTreeItem *objectAssetNameTreeItem = objectTreeItem->objectAssetNameTreeItem.get();
         const bool hasAssetName = objectAssetNameTreeItem != nullptr;
-        if (!showObjectControls(*objectTreeItem, typeIndex, layerIndex, objectIndex, hasAssetName))
+        if (!showObjectControls(*objectTreeItem, typeIndex, layerIndex, hasAssetName))
           continue;
 
         if (hasAssetName)
@@ -1212,9 +1272,9 @@ bool OutlinerWindow::applyRangeSelectionRequestInternal(const ImGuiSelectionRequ
 
   if (tree_item.isExpanded())
   {
-    const int childCount = tree_item.getChildCount();
+    const int childCount = tree_item.getFilteredChildCount();
     for (int childIndex = 0; childIndex < childCount; ++childIndex)
-      if (!applyRangeSelectionRequestInternal(request, *tree_item.getChild(childIndex), found_first))
+      if (!applyRangeSelectionRequestInternal(request, *tree_item.getFilteredChild(childIndex), found_first))
         return false;
   }
 
@@ -1226,7 +1286,7 @@ void OutlinerWindow::applyRangeSelectionRequest(const ImGuiSelectionRequest &req
   G_ASSERT(request.Type == ImGuiSelectionRequestType_SetRange);
 
   bool foundFirst = false;
-  for (ObjectTypeTreeItem *objectTypeTreeItem : outlinerModel->objectTypes)
+  for (ObjectTypeTreeItem *objectTypeTreeItem : outlinerModel->filteredObjectTypes)
     if (!applyRangeSelectionRequestInternal(request, *objectTypeTreeItem, foundFirst))
       break;
 }
@@ -1239,6 +1299,7 @@ void OutlinerWindow::applySelectionRequests(const ImGuiMultiSelectIO &multi_sele
   if (!started_selecting)
   {
     started_selecting = true;
+    PropPanel::send_immediate_focus_loss_notification();
     treeInterface->startObjectSelection();
   }
 
@@ -1271,16 +1332,16 @@ void OutlinerWindow::applySelectionRequests(const ImGuiMultiSelectIO &multi_sele
           {
             ObjectTreeItem *objectTreeItem = layerTreeItem->sortedObjects[objectIndex];
 
-            const bool selectObject = request.Selected && showTypes[typeIndex] &&
-                                      treeInterface->canSelectObject(*objectTreeItem->renderableEditableObject) &&
-                                      objectTreeItem->matchesSearchTextRecursive();
+            const bool selectObject =
+              request.Selected && treeInterface->canSelectObject(*objectTreeItem->renderableEditableObject) &&
+              layerTreeItem->filteredSortedObjects.find(objectTreeItem) != layerTreeItem->filteredSortedObjects.end();
 
             // This will call onObjectSelectionChanged.
             treeInterface->setObjectSelected(*objectTreeItem->renderableEditableObject, selectObject);
             G_ASSERT(objectTreeItem->isSelected() == selectObject);
 
-            if (objectTreeItem->getChildCount() == 1)
-              objectTreeItem->getChild(0)->setSelected(false);
+            if (objectTreeItem->objectAssetNameTreeItem)
+              objectTreeItem->objectAssetNameTreeItem->setSelected(false);
           }
         }
       }
@@ -1374,7 +1435,7 @@ void OutlinerWindow::showAddLayerControls()
     const ImVec2 textSize = ImGui::GetItemRectSize();
     alertIconPos.x += alertIconLeftPadding;
     alertIconPos.y += (textSize.y - fontSizedIconSize.y) * 0.5f; // Center the icon vertically.
-    drawList->AddImage(icons.alert, alertIconPos, alertIconPos + fontSizedIconSize);
+    drawList->AddImage(PropPanel::get_im_texture_id_from_icon_id(icons.alert), alertIconPos, alertIconPos + fontSizedIconSize);
   }
 
   ImGui::EndGroup();
@@ -1421,24 +1482,24 @@ void OutlinerWindow::showSettingsPanel(const char *popup_id)
 
   const ImVec2 fontSizedIconSize = PropPanel::ImguiHelper::getFontSizedIconSize();
 
-  const ImTextureID visibilityIcon = icons.getVisibilityIcon(showActionButtonVisibility);
+  const PropPanel::IconId visibilityIcon = icons.getVisibilityIcon(showActionButtonVisibility);
   if (PropPanel::ImguiHelper::imageCheckButtonWithBackground("settings_visibility", visibilityIcon, fontSizedIconSize,
         showActionButtonVisibility, "Show the visibility button"))
     showActionButtonVisibility = !showActionButtonVisibility;
 
-  const ImTextureID lockIcon = icons.getLockIcon(!showActionButtonLock);
+  const PropPanel::IconId lockIcon = icons.getLockIcon(!showActionButtonLock);
   ImGui::SameLine();
   if (PropPanel::ImguiHelper::imageCheckButtonWithBackground("settings_lock", lockIcon, fontSizedIconSize, showActionButtonLock,
         "Show the lock button"))
     showActionButtonLock = !showActionButtonLock;
 
-  const ImTextureID applyToMaskIcon = showActionButtonApplyToMask ? icons.applyToMask : icons.applyToMaskDisabled;
+  const PropPanel::IconId applyToMaskIcon = showActionButtonApplyToMask ? icons.applyToMask : icons.applyToMaskDisabled;
   ImGui::SameLine();
   if (PropPanel::ImguiHelper::imageCheckButtonWithBackground("settings_mask", applyToMaskIcon, fontSizedIconSize,
         showActionButtonApplyToMask, "Show the apply to mask button"))
     showActionButtonApplyToMask = !showActionButtonApplyToMask;
 
-  const ImTextureID exportLayerIcon = showActionButtonExportLayer ? icons.exportLayer : icons.exportLayerDisabled;
+  const PropPanel::IconId exportLayerIcon = showActionButtonExportLayer ? icons.exportLayer : icons.exportLayerDisabled;
   ImGui::SameLine();
   if (PropPanel::ImguiHelper::imageCheckButtonWithBackground("settings_export", exportLayerIcon, fontSizedIconSize,
         showActionButtonExportLayer, "Show the export layer button"))
@@ -1449,12 +1510,17 @@ void OutlinerWindow::showSettingsPanel(const char *popup_id)
 
   const int typeCount = treeInterface->getTypeCount();
   for (int typeIndex = 0; typeIndex < typeCount; ++typeIndex)
-    ImGui::Checkbox(treeInterface->getTypeName(typeIndex), &showTypes[typeIndex]);
+  {
+    bool &show = outlinerModel->objectTypes[typeIndex]->objectTypeVisible;
+    const bool pressed = ImGui::Checkbox(treeInterface->getTypeName(typeIndex), &show);
+    if (pressed)
+      outlinerModel->onFilterChanged(*treeInterface);
+  }
 
   ImGui::NewLine();
   bool showAssetNameUnderObjects = outlinerModel->getShowAssetNameUnderObjects();
   const bool showAssetNamePressed = ImGui::Checkbox("Show asset names", &showAssetNameUnderObjects);
-  PropPanel::set_previous_imgui_control_tooltip((const void *)ImGui::GetItemID(),
+  PropPanel::set_previous_imgui_control_tooltip((const void *)((uintptr_t)ImGui::GetItemID()),
     "Display the object's asset name below the object in the tree.");
 
   if (showAssetNamePressed)
@@ -1469,22 +1535,22 @@ void OutlinerWindow::fillTypesAndLayers()
   outlinerModel.reset(new OutlinerModel());
 
   outlinerModel->fillTypesAndLayers(*treeInterface);
-
-  const bool showByDefault = true;
-  showTypes.resize(treeInterface->getTypeCount(), showByDefault);
 }
 
 void OutlinerWindow::loadOutlinerSettings(const DataBlock &settings)
 {
-  if (showTypes.empty())
-    return;
-
   String tempString;
-  for (int i = 0; i < showTypes.size(); ++i)
+  bool allShown = true;
+  for (int i = 0; i < outlinerModel->objectTypes.size(); ++i)
   {
     tempString.printf(12, "showType%d", i);
-    showTypes[i] = settings.getBool(tempString, true);
+    const bool shown = settings.getBool(tempString, true);
+    outlinerModel->objectTypes[i]->objectTypeVisible = shown;
+    allShown &= shown;
   }
+
+  if (!allShown)
+    outlinerModel->onFilterChanged(*treeInterface);
 
   showActionButtonVisibility = settings.getBool("showActionButtonVisibility", true);
   showActionButtonLock = settings.getBool("showActionButtonLock", true);
@@ -1497,14 +1563,11 @@ void OutlinerWindow::loadOutlinerSettings(const DataBlock &settings)
 
 void OutlinerWindow::saveOutlinerSettings(DataBlock &settings) const
 {
-  if (showTypes.empty())
-    return;
-
   String tempString;
-  for (int i = 0; i < showTypes.size(); ++i)
+  for (int i = 0; i < outlinerModel->objectTypes.size(); ++i)
   {
     tempString.printf(12, "showType%d", i);
-    settings.setBool(tempString, showTypes[i]);
+    settings.setBool(tempString, outlinerModel->objectTypes[i]->objectTypeVisible);
   }
 
   settings.setBool("showActionButtonVisibility", showActionButtonVisibility);
@@ -1513,6 +1576,10 @@ void OutlinerWindow::saveOutlinerSettings(DataBlock &settings) const
   settings.setBool("showActionButtonExportLayer", showActionButtonExportLayer);
   settings.setBool("showAssetNameUnderObjects", outlinerModel->getShowAssetNameUnderObjects());
 }
+
+void OutlinerWindow::loadOutlinerState(const DataBlock &state) { outlinerModel->loadOutlinerState(*treeInterface, state); }
+
+void OutlinerWindow::saveOutlinerState(DataBlock &state) const { outlinerModel->saveOutlinerState(state); }
 
 void OutlinerWindow::onAddObject(RenderableEditableObject &object) { outlinerModel->onAddObject(*treeInterface, object); }
 
@@ -1554,14 +1621,13 @@ void OutlinerWindow::updateImgui()
 
   const ImVec2 fontSizedIconSize = PropPanel::ImguiHelper::getFontSizedIconSize();
 
-  const int selectedType = outlinerModel->getExclusiveSelectedType(*treeInterface, showTypes);
+  const int selectedType = outlinerModel->getExclusiveSelectedType(*treeInterface);
   if (selectedType < 0)
     ImGui::BeginDisabled();
 
-  PropPanel::ImguiHelper::setPointSampler();
-  const bool pressedAddLayer = ImGui::ImageButton("addLayer", icons.layerAdd, fontSizedIconSize);
-  PropPanel::ImguiHelper::setDefaultSampler();
-  PropPanel::set_previous_imgui_control_tooltip((const void *)ImGui::GetItemID(), "Add new layer");
+  const bool pressedAddLayer =
+    ImGui::ImageButton("addLayer", PropPanel::get_im_texture_id_from_icon_id(icons.layerAdd), fontSizedIconSize);
+  PropPanel::set_previous_imgui_control_tooltip((const void *)((uintptr_t)ImGui::GetItemID()), "Add new layer");
 
   if (selectedType < 0)
     ImGui::EndDisabled();
@@ -1582,10 +1648,10 @@ void OutlinerWindow::updateImgui()
   ImGui::SameLine();
 
   const char *popupId = "settingsPopup";
-  const ImTextureID settingsButtonIcon = settingsPanelOpen ? icons.settingsOpen : icons.settings;
+  const PropPanel::IconId settingsButtonIcon = settingsPanelOpen ? icons.settingsOpen : icons.settings;
   const bool settingsButtonPressed =
     PropPanel::ImguiHelper::imageButtonWithArrow("settingsButton", settingsButtonIcon, fontSizedIconSize, settingsPanelOpen);
-  PropPanel::set_previous_imgui_control_tooltip((const void *)ImGui::GetItemID(), "Settings");
+  PropPanel::set_previous_imgui_control_tooltip((const void *)((uintptr_t)ImGui::GetItemID()), "Settings");
 
   if (settingsButtonPressed)
   {
@@ -1631,7 +1697,7 @@ void OutlinerWindow::updateImgui()
     if (multiSelectIo)
       applySelectionRequests(*multiSelectIo, startedSelecting);
 
-    ImGui::PushStyleColor(ImGuiCol_Header, PropPanel::Constants::TREE_SELECTION_BACKGROUND_COLOR);
+    ImGui::PushStyleColor(ImGuiCol_Header, PropPanel::getOverriddenColor(PropPanel::ColorOverride::TREE_SELECTION_BACKGROUND));
     fillTree(multiSelectIo);
     ImGui::PopStyleColor();
 

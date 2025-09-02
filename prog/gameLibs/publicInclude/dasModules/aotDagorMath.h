@@ -159,6 +159,8 @@ inline BBox2 make_bbox2(das::float2 min, das::float2 max)
 {
   return BBox2(reinterpret_cast<Point2 &>(min), reinterpret_cast<Point2 &>(max));
 }
+inline bool bbox2_intersect_point(const BBox2 &box, das::float2 pos) { return box & reinterpret_cast<Point2 &>(pos); }
+inline bool bsphere_intersect_point(const BSphere3 &sphere1, das::float3 pos) { return sphere1 & reinterpret_cast<Point3 &>(pos); }
 inline bool bsphere_intersect_bsphere(const BSphere3 &sphere1, const BSphere3 &sphere2) { return sphere1 & sphere2; }
 inline BBox3 make_bbox_from_bsphere(const BSphere3 &sphere) { return BBox3(sphere); }
 inline BSphere3 make_bsphere_from_bbox(const BBox3 &box)

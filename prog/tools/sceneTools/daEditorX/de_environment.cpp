@@ -43,6 +43,9 @@ static inline void updateLight(bool update_var_before = false)
 
 namespace environment
 {
+
+class EnvSetDlg;
+
 enum
 {
   PID_SUN_GROUP,
@@ -60,6 +63,7 @@ enum
   PID_RENDER_TYPE,
   PID_RENDER_OPT,
   PID_RENDER_OPT_LAST = PID_RENDER_OPT + IDynRenderService::ROPT_COUNT,
+  PID_GAMEOBJ_VISIBLE,
   PID_SHADOW_QUALITY,
   PID_EXPOSURE,
 
@@ -99,6 +103,9 @@ static IWindService::PreviewSettings windPreviewSettings;
 static int rdbgType = 0;
 static bool rdbgUseNmap = true, rdbgUseDtex = true, rdbgUseLt = true;
 static bool rdbgUseChrome = true;
+
+static eastl::unique_ptr<EnvSetDlg> environment_settings_dialog;
+static DataBlock de_ui_state;
 
 static E3DCOLOR color4ToE3dcolor(Color4 col, float &brightness)
 {
@@ -180,7 +187,6 @@ static void set_paint_detail_texture()
   if (combinedPaintTex)
   {
     combinedPaintTexId = register_managed_tex("paint_details_tex", combinedPaintTex);
-    combinedPaintTex->texfilter(TEXFILTER_POINT);
     TextureInfo texInfo;
     combinedPaintTex->getinfo(texInfo);
     ShaderGlobal::set_real(get_shader_variable_id("paint_details_tex_inv_h", true), safediv(1.f, (float)texInfo.h));
@@ -192,13 +198,16 @@ static void set_paint_detail_texture()
   release_managed_tex(globalPaintColorsTexId);
   release_managed_tex(localPaintColorsTexId);
   ShaderGlobal::set_texture(paintDetailsVarId, combinedPaintTexId);
+  d3d::SamplerInfo smpInfo;
+  smpInfo.filter_mode = d3d::FilterMode::Point;
+  ShaderGlobal::set_sampler(get_shader_variable_id("paint_details_tex_samplerstate", true), d3d::request_sampler(smpInfo));
 }
 
 class EnvSetDlg : public PropPanel::DialogWindow
 {
 public:
   EnvSetDlg(void *phandle, SunLightProps *sun_props) :
-    DialogWindow(phandle, hdpi::_pxScaled(400), hdpi::_pxScaled(800), "Environment Settings"), sunProps(sun_props)
+    DialogWindow(phandle, hdpi::_pxScaled(300), hdpi::_pxScaled(300), "Environment Settings"), sunProps(sun_props)
   {
     IDynRenderService *drSrv = EDITORCORE->queryEditorInterface<IDynRenderService>();
     PropPanel::ContainerPropertyControl *_panel = getPanel();
@@ -258,7 +267,7 @@ public:
       ltDbgGrp.setInt(PID_LTDBG_GROUP, rdbgType);
     }
 
-    PropPanel::ContainerPropertyControl *_render_grp = _panel->createGroupBox(PID_RENDER_GROUP, "Render");
+    PropPanel::ContainerPropertyControl *_render_grp = _panel->createGroup(PID_RENDER_GROUP, "Render settings");
     {
       static const char *rtypeName[] = {"classic", "dynamic-A", "deferred"};
       dag::ConstSpan<int> rtypes = drSrv->getSupportedRenderTypes();
@@ -268,6 +277,9 @@ public:
         rtypeStr[i] = rtypeName[rtypes[i]];
 
       _render_grp->createCombo(PID_RENDER_TYPE, "render type", rtypeStr, find_value_idx(rtypes, drSrv->getRenderType()));
+
+      if (auto *gameObjSrv = IDaEditor3Engine::get().findService("_goEntMgr"))
+        _render_grp->createCheckBox(PID_GAMEOBJ_VISIBLE, "gameObj previews", gameObjSrv->getServiceVisible());
 
       for (int i = 0; i < drSrv->ROPT_COUNT; i++)
         if (drSrv->getRenderOptSupported(i))
@@ -280,8 +292,8 @@ public:
         _render_grp->createCombo(PID_SHADOW_QUALITY, "shadow quality", shadowQualityStr, drSrv->getShadowQuality());
       }
       if (drSrv->hasExposure())
-        _render_grp->createTrackFloatLogarithmic(PID_EXPOSURE, "exposure (0-10 logarithmic)", drSrv->getExposure(), 0.0f, 10.0f, 0.0f,
-          sqrt(10.0f));
+        _render_grp->createTrackFloatLogarithmic(PID_EXPOSURE, "exposure (0-32 logarithmic)", drSrv->getExposure(), 0.0f, 32.0f, 0.0f,
+          sqrt(32.0f));
 
       rtypeStr.clear();
       rtypeStr.push_back() = "Environment BLK files|envi.blk";
@@ -295,7 +307,7 @@ public:
     }
   }
 
-  virtual void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel)
+  void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) override
   {
     switch (pcb_id)
     {
@@ -310,7 +322,7 @@ public:
     }
   }
 
-  virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel)
+  void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override
   {
     IDynRenderService *drSrv = EDITORCORE->queryEditorInterface<IDynRenderService>();
     switch (pcb_id)
@@ -408,6 +420,13 @@ public:
       }
       break;
 
+      case PID_GAMEOBJ_VISIBLE:
+      {
+        if (auto *gameObjSrv = IDaEditor3Engine::get().findService("_goEntMgr"))
+          gameObjSrv->setServiceVisible(panel->getBool(pcb_id));
+        break;
+      }
+
       case PID_SHADOW_QUALITY: drSrv->setShadowQuality(panel->getInt(pcb_id)); break;
 
       case PID_EXPOSURE: drSrv->setExposure(panel->getFloat(pcb_id)); break;
@@ -447,8 +466,6 @@ public:
           drSrv->setRenderOptEnabled(pcb_id - PID_RENDER_OPT, panel->getBool(pcb_id));
           if (drSrv->getRenderOptEnabled(pcb_id - PID_RENDER_OPT) != panel->getBool(pcb_id))
             panel->setBool(pcb_id, drSrv->getRenderOptEnabled(pcb_id - PID_RENDER_OPT));
-          else if (pcb_id == PID_RENDER_OPT + drSrv->ROPT_NO_POSTFX && !panel->getBool(pcb_id))
-            drSrv->renderFramesToGetStableAdaptation(0.1, 10);
         }
     }
     DAGORED2->repaint();
@@ -503,47 +520,49 @@ protected:
 
 void show_environment_settings(void *phandle)
 {
-  IDynRenderService *drSrv = EDITORCORE->queryEditorInterface<IDynRenderService>();
   ISceneLightService *ltSrv = EDITORCORE->queryEditorInterface<ISceneLightService>();
   if (ltSrv->getSunCount() == 0)
-    return;
-
-  SunLightProps *defSun = ltSrv->getSun(0);
-  SkyLightProps &sky = ltSrv->getSky();
-
-  SunLightProps sunProps = *defSun;
-  SimpleString saved_envBlkFn(envBlkFn);
-  int rtype = drSrv->getRenderType();
-  int shadowQuality = drSrv->getShadowQuality();
-  int saved_dstype = drSrv->getDebugShowType();
-  bool saved_ropt[drSrv->ROPT_COUNT];
-  for (int i = 0; i < drSrv->ROPT_COUNT; i++)
-    saved_ropt[i] = drSrv->getRenderOptEnabled(i);
-  SkyLightProps skyProps = sky;
-
-
-  EnvSetDlg envSetDlg(phandle, defSun);
-  envSetDlg.autoSize();
-
-  // ImGui scrolls to the focused item, which in this case is at the bottom and requires scrolloing. Prevent that.
-  envSetDlg.setInitialFocus(PropPanel::DIALOG_ID_NONE);
-
-  if (envSetDlg.showDialog() != PropPanel::DIALOG_ID_OK)
   {
-    *defSun = sunProps;
-    sky = skyProps;
-    applyRenderDebug();
-    updateLight();
-
-    drSrv->setRenderType(rtype);
-    drSrv->setShadowQuality(shadowQuality);
-    drSrv->setDebugShowType(saved_dstype);
-    for (int i = 0; i < drSrv->ROPT_COUNT; i++)
-      drSrv->setRenderOptEnabled(i, saved_ropt[i]);
-    envBlkFn = saved_envBlkFn;
-    apply_envi_snapshot();
-    drSrv->renderFramesToGetStableAdaptation(0.1, 10);
+    logerr("Sun count is zero. The environment dialog will not be displayed.");
+    return;
   }
+
+  if (!environment_settings_dialog)
+  {
+    SunLightProps *defSun = ltSrv->getSun(0);
+    environment_settings_dialog.reset(new EnvSetDlg(phandle, defSun));
+    environment_settings_dialog->setDialogButtonText(PropPanel::DIALOG_ID_OK, "Close");
+    environment_settings_dialog->removeDialogButton(PropPanel::DIALOG_ID_CANCEL);
+    environment_settings_dialog->getPanel()->loadState(de_ui_state, /*by_name = */ true);
+
+    if (!environment_settings_dialog->hasEverBeenShown())
+      environment_settings_dialog->setWindowSize(IPoint2(hdpi::_pxS(500), (int)(ImGui::GetIO().DisplaySize.y * 0.8f)));
+
+    // ImGui scrolls to the focused item, which in this case is at the bottom and requires scrolling. Prevent that.
+    environment_settings_dialog->setInitialFocus(PropPanel::DIALOG_ID_NONE);
+  }
+
+  if (environment_settings_dialog->isVisible())
+    environment_settings_dialog->hide();
+  else
+    environment_settings_dialog->show();
+}
+
+
+static void get_ui_state_from_dialog()
+{
+  if (environment_settings_dialog)
+  {
+    de_ui_state.clearData();
+    environment_settings_dialog->getPanel()->saveState(de_ui_state, /*by_name = */ true);
+  }
+}
+
+
+void close_environment_settings_dialog()
+{
+  get_ui_state_from_dialog();
+  environment_settings_dialog.reset();
 }
 
 
@@ -603,6 +622,19 @@ void save_settings(DataBlock &blk)
 
   DataBlock &windBlk = *blk.addBlock("ambientWind");
   IWindService::writeSettingsBlk(windBlk, windPreviewSettings);
+}
+
+void load_ui_state(const DataBlock &per_app_settings)
+{
+  de_ui_state.clearData();
+  if (const DataBlock *uiState = per_app_settings.getBlockByName("environmentSettingsUiState"))
+    de_ui_state.setFrom(uiState);
+}
+
+void save_ui_state(DataBlock &per_app_settings)
+{
+  get_ui_state_from_dialog();
+  per_app_settings.addNewBlock(&de_ui_state, "environmentSettingsUiState");
 }
 
 bool on_asset_changed(const DagorAsset &asset)

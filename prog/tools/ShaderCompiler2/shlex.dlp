@@ -8,12 +8,12 @@ tokens_file              = shsyntok;
 tokens_namespace         = SHADER_TOKENS;
 tokens_prefix            = SHTOK_;
 
-input_stream_class               = "ParserInputStream*";
+input_stream_class               = "InputStream*";
 how_to_check_eof                 = "$s->eof()";
 how_to_get_character_from_stream = "$c=$s->get()";
 
 store_lexeme_in_string   = true;
-dolphin_class            = ShaderLexParser;
+dolphin_class            = GeneratedLexer;
 eat_character_upon_error = false;
 append_data_member       = true;
 
@@ -124,7 +124,7 @@ identifier <HLSL_BEGIN> ==> ident;
 //hlsl-text <MAIN> => hlsl_text;
 
 type-identifier <MAIN> ==> type_ident;
-identifier  <MAIN> ==> ident;
+identifier & ~hlsl-text-start <MAIN> ==> ident;
 real-number <MAIN> ==> floatnum;
 int-number  <MAIN> ==> intnum;
 string      <MAIN> ==> string;
@@ -136,6 +136,7 @@ string      <MAIN> ==> string;
 'blend_dst' <MAIN> => blend_dst;
 'blend_op' <MAIN> => blend_op;
 'blend_aop' <MAIN> => blend_aop;
+'blend_factor' <MAIN> => blend_factor;
 'channel' <MAIN> => channel;
 'int4' <MAIN> => int4;
 'float4x4' <MAIN> => float4x4;
@@ -242,6 +243,7 @@ string      <MAIN> ==> string;
 'no_ablend' <MAIN> => no_ablend;
 'no_dynstcode' <MAIN> => no_dynstcode;
 'assume' <MAIN> => assume;
+'assume_if_not_assumed' <MAIN> => assume_if_not_assumed;
 'maybe' <MAIN> => maybe;
 'error' <MAIN> => _error;
 'mesh' <MAIN> => mesh;
@@ -264,7 +266,6 @@ string      <MAIN> ==> string;
 'ushort4n' <MAIN> => ushort4n;
 'udec3' <MAIN> => udec3;
 'dec3n' <MAIN> => dec3n;
-'optional' <MAIN> => optional;
 
 keyword ->
   'ambient' |
@@ -274,6 +275,7 @@ keyword ->
   'blend_dst' |
   'blend_op' |
   'blend_aop' |
+  'blend_factor' |
   'channel' |
   'int4' |
   'float4x4' |
@@ -337,6 +339,7 @@ keyword ->
   'block' |
   'supports' |
   'assume' |
+  'assume_if_not_assumed' |
   'maybe' |
   'error' |
   'mesh' |
@@ -401,8 +404,7 @@ keyword ->
   'ushort2n' |
   'ushort4n' |
   'udec3' |
-  'dec3n' |
-  'optional'
+  'dec3n'
 ;
 
 
@@ -441,12 +443,14 @@ keyword ->
 '*'  <MAIN> ==> mul;
 '/'  <MAIN> ==> div;
 
+"##" <MAIN> ==> macro_concat;
 
 //----- Error handling ------------------------------------------------------
 
 incomplete-comment <MAIN> ==> { return make_error("incomplete comment"); };
 s-string new-line <MAIN> ==> { return make_error("incomplete string"); };
 error <MAIN> ==> { return make_error("illegal char"); };
+error <HLSL_BEGIN> ==> { return make_error("illegal char"); };
 
 //----- My code fragments ---------------------------------------------------
 
@@ -461,20 +465,17 @@ private:
 
 public:
   inline void __clear_lexeme()  {clear_lexeme();}
-  inline ParserInputStream* __input_stream()  {return input_stream;}
+  inline InputStream* __input_stream()  {return input_stream;}
 
   virtual void error(const char *msg=NULL) {};
   virtual void warning(const char*) {};
-
-  virtual void register_symbol(int name_id, SymbolType type, BaseParNamespace::Terminal *symbol) = 0;
-  virtual eastl::string get_symbol_location(int name_id, SymbolType type) = 0;
-  virtual void begin_shader() = 0;
-  virtual void end_shader() = 0;
+  virtual void message(const char*) {};
+  virtual void debug_message(const char*) {};
 
   bool success() const { return !were_errors; }
   void clear_eof() {eof_reached=false;}
-  ParserInputStream *get_input_stream() {return input_stream;}
-  virtual void set_input_stream(ParserInputStream *s) {
+  InputStream *get_input_stream() {return input_stream;}
+  virtual void set_input_stream(InputStream *s) {
     if(!s) return;
     input_stream=s;
     s->stream_set(*this);
@@ -500,13 +501,13 @@ code_in_cpp              = {
 
 #define copy(from,start_pos,end_pos,to) to.insert(to.end(),from.begin() + start_pos,from.begin() + end_pos)
 
-int ShaderLexParser::make_error(const char *e) {
+int GeneratedLexer::make_error(const char *e) {
   were_errors=true;
   set_error(get_cur_file(),get_cur_line(),get_cur_column(),e);
   return SHTOK_TerminalError;
 }
 
-char ShaderLexParser::get_one_char(bool &eof) {
+char GeneratedLexer::get_one_char(bool &eof) {
   if(buffer.size()>0) {
     char c=buffer[0];
     buffer.erase(buffer.begin(),buffer.begin()+1);
@@ -523,7 +524,7 @@ char ShaderLexParser::get_one_char(bool &eof) {
   return c;
 }
 
-bool ShaderLexParser::is_eof() {
+bool GeneratedLexer::is_eof() {
   if(buffer.size()>0) return false;
   return eof_reached;
 }

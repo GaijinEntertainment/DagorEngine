@@ -31,11 +31,11 @@ disable_sound_effect{
   _use:t="disable_sound_control"
 }
 
-moveable_sound_effect{
+moveable_sound_effect_tag{
   "movableSoundEffect:tag"{_tags:t="sound";}
 }
 
-watchable_sound_effect{
+watchable_sound_effect_tag{
   "watchableSoundEffect:tag"{_tags:t="sound";}
 }
 
@@ -58,7 +58,7 @@ sound_effect_speed_var{
 }
 
 sound_effect_2d{
-  _use:t="sound_banks_state"
+  _use:t="sound_preset"
   _use:t="replicating"
 
   _group{
@@ -76,10 +76,13 @@ phys_obj_collision_sound{
     phys_obj_collision_sound__time:r=-0.25
     // setup
     phys_obj_collision_sound__path:t=""
+    phys_obj_collision_sound__enabled:b=yes
     phys_obj_collision_sound__threshold:p2=5, 80
     phys_obj_collision_sound__omegaMul:r=1
     phys_obj_collision_sound__maxRange:r=40
-    phys_obj_collision_sound__lifetime:r=1
+    phys_obj_collision_sound__interval:r=1
+    phys_obj_collision_sound__offset:p3=0,0,0
+    phys_obj_collision_sound__numSounds:i=9999
     "phys_obj_collision_sound__event:SoundEvent"{}
   }
 }
@@ -115,62 +118,53 @@ sound_physmat{
   _use:t="replicating"
   _group{
     _tags:t="sound"
-    "sound_physmat__PMIDToSMID:list<r>"{}
+    "sound_physmat__PMIDToSMID:list<i>"{}
   }
   // setup
   _group{
     _tags:t="sound"
-    sound_physmat__defPhysMatId:r=0
-    sound_physmat__defSoundMatId:r=-1
+    sound_physmat__defPhysMatId:i=0
+    sound_physmat__defSoundMatId:i=-1
     "sound_physmat__soundMaterials:list<t>"{} // order-dependent list of predefined fmod parameters
     "sound_physmat__physmatToSoundmat:object"{} // map physmat.blk material to sound material
   }
   _singleton:b=yes
 }
 
+landmesh_biomes_to_sound_material{
+  _group{
+    _tags:t="sound"
+    "landmesh_biomes_to_sound_material__biomes:object"{
+      "mud:object"{
+        soundmat:t="mud"
+      }
+      "snow:object"{
+        soundmat:t="snow"
+        overrideWater:b=yes
+      }
+    }
+    "landmesh_biomes_to_sound_material__biomeIdToSound:list<ip2>"{} // <soundId, overrideWater(bool)>
+  }
+}
+
 game_effect_sound{
   game_effect_sound__hero:t=""
   game_effect_sound__enemy:t=""
-
   "game_effect_sound__event:SoundEvent"{
     _tags:t="sound"
   }
 }
 
-sound_landmesh_queries{
+dng_sound_listener_tag{
   _group{
     _tags:t="sound"
-    sound_landmesh_queries__lastQueryTime:r=-1
-    // biomes
-    sound_landmesh_queries__biomePhysMatId:i=-1
-    sound_landmesh_queries__biomeOverridesWater:b=no
-    sound_landmesh_queries__biomeQueryId:i=-1
-    "sound_landmesh_queries__biomeToMaterial:list<ip2>"{} // <pmid, overrideWater(bool)>
-    // puddles
-    sound_landmesh_queries__puddleDepth:r=0
-    sound_landmesh_queries__puddleQueryId:i=-1
+    "dngSoundListener:tag"{}
+  }
+}
 
-    // input
-    sound_landmesh_queries_vars__speedSq:r=0
-    sound_landmesh_queries_vars__isOnGround:b=true
-
-    // setup
-    sound_landmesh_queries__farawayThreshold:r=15
-    sound_landmesh_queries__zeroSpeedThreshold:r=0.01
-    sound_landmesh_queries__heroSpeedToQueryInterval:p4=0, 4, 1, 0.2
-    sound_landmesh_queries__enemySpeedToQueryInterval:p4=0, 4, 1.5, 0.5
-    sound_landmesh_queries__heroEnemyInAirInterval:p2=0.1,0.5
-    sound_landmesh_queries__lmeshDiff:r=2
-    sound_landmesh_queries__puddleQueryToDepth:p4=0.1, 0.4, 0, 0.05
-
-    "sound_landmesh_queries__biomes:object"{
-      "mud:object"{
-        physmat:t="mud"
-      }
-      "snow:object"{
-        physmat:t="snow"
-        overrideWater:b=yes
-      }
-    }
+dng_sound_listener_enabled{
+  _group{
+    _tags:t="sound"
+    dng_sound_listener_enabled:b=yes
   }
 }

@@ -69,8 +69,12 @@ void PostFxManager::init(const WorldRenderer &world_renderer)
 
   fireOnScreenTexture = ::get_tex_gameres("flamelet_atlas_8x8_a");
   ShaderGlobal::set_texture(::get_shader_variable_id("fire_on_screen_tex", true), fireOnScreenTexture);
+  ShaderGlobal::set_sampler(::get_shader_variable_id("fire_on_screen_tex_samplerstate", true),
+    get_texture_separate_sampler(fireOnScreenTexture));
   smokeBlackoutTexture = ::get_tex_gameres("smoke_puff_anim_loop_fluid_sparse_8x8_a");
   ShaderGlobal::set_texture(::get_shader_variable_id("smoke_blackout_tex", true), smokeBlackoutTexture);
+  ShaderGlobal::set_sampler(::get_shader_variable_id("smoke_blackout_tex_samplerstate", true),
+    get_texture_separate_sampler(smokeBlackoutTexture));
 }
 
 

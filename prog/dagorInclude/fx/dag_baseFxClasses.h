@@ -24,29 +24,20 @@ enum
   FX_RENDER_BEFORE = 0,
   FX_RENDER_SOLID,
   FX_RENDER_TRANS,
-  FX_RENDER_PROJECTED,
-  FX_RENDER_PROJECTED_TO_TRANS,
-  FX_RENDER_TRANS_BATCH,
 
   FX_RENDER_DISTORTION,
-
-  FX_OCCLUSION_TEST,
-  FX_RENDER_TRANS_PRE_TESTED,
-  FX_RENDER_TRANS_BATCH_PRE_TESTED,
 };
 
 
-static constexpr unsigned HUID_POS = 0xEAFE0942u;             // POS
-static constexpr unsigned HUID_TM = 0xF2642399u;              // TM
-static constexpr unsigned HUID_EMITTER = 0x7276B506u;         // EMITTER
-static constexpr unsigned HUID_EMITTER_TM = 0x767A7D3Du;      // EMITTER_TM
-static constexpr unsigned HUID_STATICVISSPHERE = 0x87DA990Bu; // STATICVISSPHERE
-static constexpr unsigned HUID_RAYTRACER = 0xBAB277C9u;       // RAYTRACER
-static constexpr unsigned HUID_SOUND = 0x9B7EB41Fu;           // SOUND
-static constexpr unsigned HUID_BLOODY_BAKER = 0x74780947u;    // BLOODY_BAKER
-static constexpr unsigned HUID_COLOR_MULT = 0x955247C9u;      // COLOR_MULT
-static constexpr unsigned HUID_COLOR4_MULT = 0x32946177u;     // COLOR4_MULT
-static constexpr unsigned HUID_VELOCITY = 0xD9034E15u;        // VELOCITY
+static constexpr unsigned HUID_POS = 0xEAFE0942u;          // POS
+static constexpr unsigned HUID_TM = 0xF2642399u;           // TM
+static constexpr unsigned HUID_EMITTER = 0x7276B506u;      // EMITTER
+static constexpr unsigned HUID_EMITTER_TM = 0x767A7D3Du;   // EMITTER_TM
+static constexpr unsigned HUID_SOUND = 0x9B7EB41Fu;        // SOUND
+static constexpr unsigned HUID_BLOODY_BAKER = 0x74780947u; // BLOODY_BAKER
+static constexpr unsigned HUID_COLOR_MULT = 0x955247C9u;   // COLOR_MULT
+static constexpr unsigned HUID_COLOR4_MULT = 0x32946177u;  // COLOR4_MULT
+static constexpr unsigned HUID_VELOCITY = 0xD9034E15u;     // VELOCITY
 
 static constexpr unsigned HUID_SPAWN_POS = 0x2B73EB08u; // SPAWN_POS
 static constexpr unsigned HUID_SPAWN_DIR = 0xD29C2755u; // SPAWN_DIR
@@ -65,21 +56,31 @@ static constexpr unsigned HUID_SET_NUMPARTS = 0x61F8DE0Au; // SET_NUMPARTS
 
 static constexpr unsigned HUID_LIGHT = 0x6D95CA7Au; // LIGHT
 
-static constexpr unsigned HUID_BATCH_GROUP = 0x3904D1FCu; // HUID_BATCH_GROUP
-
 static constexpr unsigned HUID_LIGHT_PARAMS = 0x1971045du;
 static constexpr unsigned HUID_LIGHT_POS = 0x1ff30453u;
 
-#define CHECK_FX_VERSION(ptr, len, ver)                                    \
-  G_ASSERT(len >= sizeof(int));                                            \
-  if (*(int *)ptr != (ver))                                                \
-    DAG_FATAL("unsupported version %d (expected %d)\nin %s:%d, %s()", /**/ \
-      *(int *)ptr, (ver), __FILE__, __LINE__, __FUNCTION__);               \
-  len -= sizeof(int);                                                      \
-  ptr += sizeof(int);
+static constexpr unsigned HUID_ACES_IS_ACTIVE = 0xD6872FCEu;
+
+struct BaseEffectEnabled
+{
+  bool enabled;
+  float distanceToCam;
+};
+
+#define CHECK_FX_VERSION_OPT(ptr, len, ver)                             \
+  G_ASSERT(len >= sizeof(int));                                         \
+  int nver = *(int *)ptr;                                               \
+  len -= sizeof(int);                                                   \
+  ptr += sizeof(int);                                                   \
+  if (nver != (ver))                                                    \
+  {                                                                     \
+    logerr("unsupported version %d (expected %d)\nin %s:%d, %s()", /**/ \
+      nver, (ver), __FILE__, __LINE__, __FUNCTION__);                   \
+    return false;                                                       \
+  }
 
 // #define IF_STUB(name) virtual void name(void *value) = 0;
-#define IF_STUB(name, type) virtual void name(const type *){};
+#define IF_STUB(name, type) virtual void name(const type *) {};
 
 class BaseEffectInterface : public BaseParamScript
 {
@@ -96,6 +97,7 @@ public:
   IF_STUB(setVelocityScale, float);
   IF_STUB(setVelocityScaleMinMax, Point2);
   IF_STUB(setWindScale, float);
+  IF_STUB(setFakeBrightnessBackgroundPos, Point3);
 };
 
 class BaseParticleFxEmitter : public BaseEffectInterface
@@ -137,34 +139,6 @@ protected:
       G_ASSERT(refCounter == 0);
     }
   }
-};
-
-
-class IEffectRayTracer
-{
-public:
-  virtual bool traceRay(const Point3 &pos, const Point3 &dir, float &dist, Point3 *out_normal = NULL) = 0;
-  virtual bool traceRay(const Point3 &pos, const Point3 &dir, float &dist, Point3 *out_normal, int *out_pmid)
-  {
-    if (out_pmid)
-      *out_pmid = -1;
-    return traceRay(pos, dir, dist, out_normal);
-  }
-};
-
-
-class IBloodyBaker
-{
-public:
-  virtual void invoke(const Point3 &pos, const Point3 &uvec, const Point3 &vvec, const Point2 &texCoord0, const Point2 &texCoord1,
-    E3DCOLOR color, int texture) = 0;
-};
-
-class ISoundPlayer
-{
-public:
-  virtual void playSound3d(const Point3 &pos) = 0;
-  virtual void playSound3dByMaterial(const Point3 &pos, int pmid) = 0;
 };
 
 class BaseEffectObject : public BaseEffectInterface

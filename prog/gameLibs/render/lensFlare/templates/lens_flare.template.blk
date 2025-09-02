@@ -1,0 +1,187 @@
+lens_flare_renderer {
+  _singleton:b=yes
+  "lens_flare_renderer__render_node:dafg::NodeHandle"{}
+  "lens_flare_renderer__prepare_lights_node:dafg::NodeHandle"{}
+  "lens_flare_renderer:LensFlareRenderer"{}
+  _tags:t="render"
+}
+
+lens_flare_config {
+    _tags:t="render"
+    _track:b=yes
+
+    // Use this in light sources to reference the flare config
+    lens_flare_config__name:t=""
+
+    // Distance from the screen edge, where the flare starts to fade out. Values between [0, 1)
+    lens_flare_config__smooth_screen_fadeout_distance:r=0
+
+    // Artistic option that reduces flare intensity in dark rooms. Valid range: [0, 1]
+    //  0      -> No effect, flare gets more intense with more exposure (linearly)
+    //  (0, 1) -> Flare gets more intense as exposure increases, but not linearly. Flare visible in dark rooms will be less intense.
+    //  1      -> Exposure fully cancelled. The visual strength of the flare is constant, independent of exposure
+    lens_flare_config__exposure_reduction:r=0
+
+    // Global scale, applied to all flare elements
+    lens_flare_config__scale:p2=1,1
+
+    // Global intensity, applied to all flare elements
+    lens_flare_config__intensity:r=1
+
+    // If true => flare intensity is affected by occlusion, volfog and transparent effects, like smoke
+    lens_flare_config__use_occlusion:b=yes
+
+    // Only applies to spotlights.
+    // It's the full angle of the cone, expressed in degrees.
+    // 360 means the flare is visible all around the spotlight, but reaches 0 when viewed directly from behind.
+    // In case this angle is greater than the spotlight's cone angle, the flare intensity will be as follows:
+    //  - [0, spotlight's cone angle]: full flare intensity
+    //  - (spotlight's cone angle, lens_flare_config__spotlight_cone_angle_deg/2]: gradually decreasing intensity
+    //  - (lens_flare_config__spotlight_cone_angle_deg/2, 180]: 0, no flares
+    lens_flare_config__spotlight_cone_angle_deg:r=0
+
+    // Moves the light source closer to the camera when testing for occlusion.
+    // It can be used if the light entity is contained within a lamp body and self occlusion needs to be avoided.
+    lens_flare_config__depth_bias:r=0
+
+    // List of flare components
+    "lens_flare_config__elements:array"{
+        // "flare_component:object" {
+        //     // Enable/disable this component for debugging
+        //     flare_component__enabled:b=yes
+
+        //     // Curve of the fadeout effect: intensity = pow(saturate(edgeDistance/gradient), 1/falloff)
+        //     flare_component__gradient__falloff:r=1
+
+        //     // Distance (between (0, 1]) for the gradient to reach full intensity from 0 intensity
+        //     flare_component__gradient__gradient:r=0.1
+
+        //     // Invert intensity resulting from the gradient
+        //     flare_component__gradient__inverted:b=no
+
+
+        //     // Use radial distortion effects:
+        //     // flare component changes its size depending in the distance between the light source and screen edge / screen center
+        //     flare_component__radial_distortion__enabled:b=no
+
+        //     // yes => Distortion strength increases based on distance from center
+        //     // no =>  Distortion strength increases based on distance from screen edge
+        //     flare_component__radial_distortion__relative_to_center:b=no
+
+        //     // Distortion strength = pow(distance, distortion_curve_pow)
+        //     flare_component__radial_distortion__distortion_curve_pow:r=1
+
+        //     // Size that the flare element reaches at the screen edge (original size is overwritten)
+        //     flare_component__radial_distortion__radial_edge_size:p2=1,1
+
+
+        //     // Size of the element, relative to the screen size (minimum of width and height of screen)
+        //     flare_component__scale:p2=1,1
+
+        //     // Offset flare element left/right, up/down. Relative to screen size
+        //     flare_component__offset:p2=0,0
+
+        //     // Rotate the flare element by this amount (after scaling), in degrees
+        //     flare_component__rotation_offset:r=0
+
+        //     // Rotate the flare element by this amount (before scaling), in degrees
+        //     flare_component__pre_rotation_offset:r=0
+
+        //     // Flare component will turn towards the light source
+        //     flare_component__auto_rotation:b=no
+
+        //     // Position of the element along the axis between the light source and the screen center
+        //     // 0 => light source; 0.5 => screen center; 1 => mirror of light source around screen center
+        //     flare_component__axis_offset:r=0
+
+        //     // Intensity multiplier of this flare element. Final intensity is calculated from light brightness
+        //     flare_component__intensity:r=1
+
+        //     // Round corners: 0 => sharp shape; 1 => circle; any other => roundness is the fraction of the sides that's rounded
+        //     flare_component__roundness:r=0
+
+        //     // Sides of the shape
+        //     flare_component__side_count:i=4
+
+        //     // Multiplier on the light color / white color at the original brightness
+        //     flare_component__tint:p3=1,1,1
+
+        //     // yes => original light color is used; no => white light is used with the original brightness
+        //     flare_component__use_light_color:b=yes
+
+        //     // Flare texture: rgb is used as tint, alpha is used as intensity multiplier
+        //     flare_component__texture:t=""
+        // }
+    }
+}
+
+// Entities of this type will create a lens flare based on the sun's direction and color
+sun_lens_flare {
+    _tags:t="render"
+
+    _tracked:t="sun_flare_provider__flare_config"
+
+    enabled:b=yes
+    sun_flare_provider__flare_config:t=""
+
+    sun_flare_provider__cached_id:i=-1
+    sun_flare_provider__cached_flare_config_id:i=-1
+}
+
+// This entity is a global configuration for all dynamic lights, which has the flares enabled.
+// Currently there is no way to have multiple configs and use them for different lights.
+// Enable this flare config on a light entity by setting:
+//   light__enable_lens_flares:b=yes
+dynamic_light_lens_flare {
+  _tags:t="render"
+  _singleton:b=true
+
+  _tracked:t="dynamic_light_lens_flare__flare_config"
+
+  dynamic_light_lens_flare__flare_config:t=""
+
+  dynamic_light_lens_flare__cached_id:i=-1
+  dynamic_light_lens_flare__cached_flare_config_id:i=-1
+}
+
+// This entity produces a lens flare like an omni or spotlight would, but with more flexibility
+// It has lower performance (entities are processed every frame on the CPU) compared to dynamic lights,
+// so they should be reserved for cases, where the flexibility is needed.
+point_lens_flare_provider {
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+
+  _tracked:t="point_lens_flare_provider__flare_config"
+  _tracked:t="point_lens_flare_provider__angle_cutoff_deg"
+  _tracked:t="point_lens_flare_provider__angle_fade_start_deg"
+
+  _group{
+    _tags:t="render"
+
+    enabled:b=yes
+
+    point_lens_flare_provider__flare_config:t=""
+    point_lens_flare_provider__color:c=255, 250, 200, 255
+    point_lens_flare_provider__intensity:r=1
+
+    // Flares further away than this distance (in meters) are cut off. The cutoff is smooth if the distance attenuation is enabled.
+    point_lens_flare_provider__distance_cutoff:r=100
+
+    // Intensity drops off at the inverse square of the distance between the camera and the provider
+    point_lens_flare_provider__distance_attenuation:b=true
+    // Adds an offset to the distance to avoid high intensity from close up (expressed in meters)
+    point_lens_flare_provider__distance_offset:r=0.5
+
+    // Similar to spotlight's angle attenuation
+    point_lens_flare_provider__angle_attenuation:b=false
+    // At 90 degrees, flare is visible in a hemisphere
+    point_lens_flare_provider__angle_cutoff_deg:r=90
+    // Angle attenuation starts to fade the flare out at this angle
+    point_lens_flare_provider__angle_fade_start_deg:r=45
+    // It's transformed by the transformation matrix
+    point_lens_flare_provider__dir:p3=0,-1,0
+
+    point_lens_flare_provider__cached_id:i=-1
+    point_lens_flare_provider__cached_flare_config_id:i=-1
+    point_lens_flare_provider__cached_params:p2=0, 0
+  }
+}

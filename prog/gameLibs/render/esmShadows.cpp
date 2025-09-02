@@ -16,10 +16,7 @@ void EsmShadows::init(int w, int h, int slices, float esm_exp)
 {
   int fmt = TEXFMT_G16R16F | TEXCF_RTARGET;
   esmShadowArray = dag::create_array_tex(w, h, slices, fmt, 1, "esm_shadows");
-  esmShadowArray->texbordercolor(1);
-  esmShadowArray->texaddr(TEXADDR_CLAMP);
   esmShadowBlurTmp = dag::create_tex(NULL, w, h, fmt, 1, "esm_temp");
-  esmShadowBlurTmp->texaddr(TEXADDR_CLAMP);
   esmBlurRenderer.init("esm_blur");
 
   float esmKExp = pow(2.0f, esm_exp);

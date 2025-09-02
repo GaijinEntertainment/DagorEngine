@@ -44,7 +44,7 @@ namespace acl
 		// C++20 deprecated and renamed some std::memory_order members
 		//////////////////////////////////////////////////////////////////////////
 
-	#if defined(__cplusplus) && __cplusplus >= 202002L
+	#if defined(__cplusplus) && __cplusplus >= 202002L && !defined(_TARGET_C1)
 		constexpr std::memory_order k_memory_order_relaxed = std::memory_order::relaxed;
 	#elif defined(_MSVC_LANG) && _MSVC_LANG >= 202002L
 		constexpr std::memory_order k_memory_order_relaxed = std::memory_order::relaxed;

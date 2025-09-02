@@ -13,11 +13,11 @@ let playPause = mkWatched(persist, "playPause", true)
 let cachedPictures = mkWatched(persist, "cachedPictures",{})
 
 function getPicture(source) {
-  local pic = cachedPictures.value?[source]
+  local pic = cachedPictures.get()?[source]
   if (pic)
     return pic
   pic = LottieAnimation(source)
-  cachedPictures.value[source] <- pic
+  cachedPictures.get()[source] <- pic
   return pic
 }
 
@@ -64,7 +64,7 @@ function lottieWidget(item, params=iconWidgetDef) {
     children = children
     size = [width,height]
     keepAspect = true
-    play = playPause.value
+    play = playPause.get()
   }.__update(params)
 }
 

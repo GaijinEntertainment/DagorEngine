@@ -12,7 +12,7 @@ return {
 
   children = [
     {
-      size = [sh(50), sh(50)]
+      size = sh(50)
       pos = [sh(10), sh(10)]
       rendObj = ROBJ_IMAGE
       image=picture

@@ -44,10 +44,10 @@ if $(Platform) in nswitch {
 
   if $(UseNxProfiler) = yes || $(EnableRenderDoc) = yes {
     Target = $(Target:S=~sdev.lib) ;
-    CPPopt += -DNX_HARDWARE_SDEV=1 ;
+    CPPopt += -DNX_HARDWARE_SDEV ;
 
     if $(UseNxMemoryTracker) = yes && $(UseNxProfiler) = yes {
-      CPPopt += -DUSE_NX_MEMORY_TRACKER=1 ;
+      CPPopt += -DUSE_NX_MEMORY_TRACKER ;
       Target = $(Target:S=~nmp.lib) ;
     }
   } else if $(UseNxMemoryTracker) = yes {

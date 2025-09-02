@@ -3,6 +3,7 @@
 #include <osApiWrappers/dag_localConv.h>
 #include <supp/_platform.h>
 #include <ctype.h>
+#include <string.h>
 
 static unsigned char uptab[256], lwtab[256];
 
@@ -100,6 +101,28 @@ extern "C" int dd_memicmp(const char *a, const char *b, int n)
       return d;
   }
   return d;
+}
+
+extern "C" const char *dd_stristr(const char *haystack, const char *needle)
+{
+  if (!haystack || !needle)
+    return haystack;
+
+  const int needleLength = strlen(needle);
+  if (needleLength == 0)
+    return haystack;
+
+  int haystackLength = strlen(haystack);
+  while (haystackLength >= needleLength)
+  {
+    if (dd_memicmp(haystack, needle, needleLength) == 0)
+      return haystack;
+
+    ++haystack;
+    --haystackLength;
+  }
+
+  return nullptr;
 }
 
 #define EXPORT_PULL dll_pull_osapiwrappers_localCmp

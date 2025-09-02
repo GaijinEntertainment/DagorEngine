@@ -177,7 +177,7 @@ public:
 
       if (t)
       {
-        apply_gen_tex_props(t, tmd);
+        set_texture_separate_sampler(get_managed_texture_id(fn), get_sampler_info(tmd, false));
 
         uint8_t *data = NULL;
         int stride = 0;

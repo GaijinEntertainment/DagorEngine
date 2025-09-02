@@ -54,7 +54,6 @@ UseProgLibs =
   tools/libTools/assetMgr
   tools/libTools/assetMgrHlp
   tools/libTools/util
-  tools/libTools/sepGui
   tools/libTools/dtx
 
   gameLibs/rendInst
@@ -62,19 +61,16 @@ UseProgLibs =
   gameLibs/render
   gameLibs/render/volumetricLights/stub
   gameLibs/render/nodeBasedShader/stub
+  gameLibs/gamePhys/collision/rendinst/stub
   gameLibs/ecs/rendInst/stub
   gameLibs/daECS/gameResStub
 
   tools/libTools/shaderResBuilder
   tools/sceneTools/pointCloudGen/generator
-  tools/sceneTools/daEditorX/services/dxpFactory
 
   3rdPartyLibs/image/libpng-1.4.22
   3rdPartyLibs/image/psdRead
   3rdPartyLibs/arc/zlib-$(UseZlibVer)
-
-  gameLibs/daECS/gameResStub
-  gameLibs/ecs/rendInst/stub
 ;
 
 ImportProgLibs = tools/libTools/daKernel ;

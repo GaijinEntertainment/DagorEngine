@@ -22,3 +22,4 @@ void random_switch_set_selected_node_list_settings(PropPanel::ContainerPropertyC
 void random_switch_remove_node_from_list(PropPanel::ContainerPropertyControl *panel, DataBlock *settings);
 const char *random_switch_get_child_name_by_idx(const DataBlock &settings, int idx);
 String random_switch_get_child_prefix_name(const DataBlock &settings, int idx);
+void random_switch_update_child_name(DataBlock &settings, const char *name, const String &old_name);

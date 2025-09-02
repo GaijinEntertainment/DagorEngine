@@ -3,6 +3,7 @@
 
 #include <EditorCore/ec_rendEdObject.h>
 #include <EditorCore/ec_outlinerInterface.h>
+#include <ioSys/dag_dataBlock.h>
 #include <util/dag_string.h>
 #include <EASTL/unique_ptr.h>
 #include <EASTL/vector_set.h>
@@ -26,6 +27,8 @@ class OutlinerTreeItem
 public:
   enum class ItemType
   {
+    Root = -1,
+
     ObjectType,
     Layer,
     Object,
@@ -34,44 +37,46 @@ public:
     Count,
   };
 
-  explicit OutlinerTreeItem(OutlinerModel &outliner_model) : outlinerModel(outliner_model) {}
+  OutlinerTreeItem(OutlinerModel &outliner_model, OutlinerTreeItem *in_parent) : outlinerModel(outliner_model), parent(in_parent) {}
   virtual ~OutlinerTreeItem();
 
   virtual ItemType getType() const = 0;
   virtual const char *getLabel() const = 0;
-  virtual int getChildCount() const = 0;
-  virtual OutlinerTreeItem *getChild(int index) const = 0;
+  virtual int getUnfilteredChildCount() const = 0;
+  virtual OutlinerTreeItem *getUnfilteredChild(int index) const = 0;
+  virtual int getFilteredChildCount() const = 0;
+  virtual OutlinerTreeItem *getFilteredChild(int index) const = 0;
+  virtual bool doesItemMatchSearch(IOutliner &tree_interface) const = 0;
 
-  virtual bool matchesSearchTextRecursive() const
+  virtual void addToFilteredChildren(OutlinerTreeItem &tree_item)
   {
-    if (getMatchesSearchText())
-      return true;
-
-    const int childCount = getChildCount();
-    for (int childIndex = 0; childIndex < childCount; ++childIndex)
-      if (getChild(childIndex)->matchesSearchTextRecursive())
-        return true;
-
-    return false;
+    G_ASSERT(!tree_item.registeredToFilteredTree);
+    tree_item.registeredToFilteredTree = true;
   }
 
-  virtual void updateSearchMatch(IOutliner &tree_interface);
+  virtual void removeFromFilteredChildren(OutlinerTreeItem &tree_item)
+  {
+    G_ASSERT(tree_item.registeredToFilteredTree);
+    tree_item.registeredToFilteredTree = false;
+  }
 
+  OutlinerTreeItem *getParent() const { return parent; }
+  void setParent(OutlinerTreeItem *in_parent) { parent = in_parent; }
   bool isExpanded() const { return expanded; }
   void setExpanded(bool in_expanded) { expanded = in_expanded; }
   void setExpandedRecursive(bool in_expanded);
   bool isSelected() const { return selected; }
   void setSelected(bool in_selected);
-  bool getMatchesSearchText() const { return matchesSearchText; }
-  void setMatchesSearchText(bool matches) { matchesSearchText = matches; }
+  bool isRegisteredToFilteredTree() const { return registeredToFilteredTree; }
 
 protected:
   OutlinerModel &outlinerModel;
 
 private:
+  OutlinerTreeItem *parent;
   bool expanded = false;
   bool selected = false;
-  bool matchesSearchText = true;
+  bool registeredToFilteredTree = false;
 };
 
 class ObjectAssetNameTreeItem : public OutlinerTreeItem
@@ -79,16 +84,19 @@ class ObjectAssetNameTreeItem : public OutlinerTreeItem
 public:
   using OutlinerTreeItem::OutlinerTreeItem;
 
-  ~ObjectAssetNameTreeItem()
+  ~ObjectAssetNameTreeItem() override
   {
     // To make the per type selection counter correct. Uses a virtual call cannot be in ~OutlinerTreeItem().
     setSelected(false);
   }
 
-  virtual ItemType getType() const override { return ItemType::ObjectAssetName; }
-  virtual const char *getLabel() const override { return assetName; }
-  virtual int getChildCount() const override { return 0; }
-  virtual OutlinerTreeItem *getChild(int index) const override { return nullptr; }
+  ItemType getType() const override { return ItemType::ObjectAssetName; }
+  const char *getLabel() const override { return assetName; }
+  int getUnfilteredChildCount() const override { return 0; }
+  OutlinerTreeItem *getUnfilteredChild(int index) const override { return nullptr; }
+  int getFilteredChildCount() const override { return 0; }
+  OutlinerTreeItem *getFilteredChild(int index) const override { return nullptr; }
+  bool doesItemMatchSearch(IOutliner &tree_interface) const override;
 
   String assetName;
 };
@@ -98,21 +106,22 @@ class ObjectTreeItem : public OutlinerTreeItem
 public:
   using OutlinerTreeItem::OutlinerTreeItem;
 
-  ~ObjectTreeItem();
+  ~ObjectTreeItem() override;
 
-  virtual ItemType getType() const override { return ItemType::Object; }
-  virtual const char *getLabel() const override { return renderableEditableObject->getName(); }
-  virtual int getChildCount() const override { return objectAssetNameTreeItem.get() ? 1 : 0; }
-  virtual OutlinerTreeItem *getChild(int index) const override { return objectAssetNameTreeItem.get(); }
-
-  virtual void updateSearchMatch(IOutliner &tree_interface) override;
+  ItemType getType() const override { return ItemType::Object; }
+  const char *getLabel() const override { return renderableEditableObject->getName(); }
+  int getUnfilteredChildCount() const override { return objectAssetNameTreeItem.get() ? 1 : 0; }
+  OutlinerTreeItem *getUnfilteredChild(int index) const override { return objectAssetNameTreeItem.get(); }
+  int getFilteredChildCount() const override { return objectAssetNameTreeItem.get() ? 1 : 0; }
+  OutlinerTreeItem *getFilteredChild(int index) const override { return objectAssetNameTreeItem.get(); }
+  bool doesItemMatchSearch(IOutliner &tree_interface) const override;
 
   void setAssetName(const char *object_asset_name)
   {
     if (object_asset_name && *object_asset_name)
     {
       if (!objectAssetNameTreeItem)
-        objectAssetNameTreeItem.reset(new ObjectAssetNameTreeItem(outlinerModel));
+        objectAssetNameTreeItem.reset(new ObjectAssetNameTreeItem(outlinerModel, this));
 
       objectAssetNameTreeItem->assetName = object_asset_name;
     }
@@ -144,34 +153,32 @@ struct ObjectTreeItemLess
 class LayerTreeItem : public OutlinerTreeItem
 {
 public:
-  using OutlinerTreeItem::OutlinerTreeItem;
+  LayerTreeItem(OutlinerModel &outliner_model, OutlinerTreeItem *in_parent, int per_type_layer_index) :
+    OutlinerTreeItem(outliner_model, in_parent), perTypeLayerIndex(per_type_layer_index)
+  {}
 
-  ~LayerTreeItem()
+  ~LayerTreeItem() override
   {
-    while (sortedObjects.size() > 0)
+    while (!sortedObjects.empty())
     {
       // Deleting the ObjectTreeItem will also unlink it from the layer.
       // sortedObjects is a vector_set, so erasing from the back should be faster.
-      delete sortedObjects.getContainer().back();
+      delete sortedObjects.back();
     }
 
     // To make the per type selection counter correct. Uses a virtual call cannot be in ~OutlinerTreeItem().
     setSelected(false);
   }
 
-  virtual ItemType getType() const override { return ItemType::Layer; }
-  virtual const char *getLabel() const override { return layerName; }
-  virtual int getChildCount() const override { return sortedObjects.size(); }
-  virtual OutlinerTreeItem *getChild(int index) const override { return sortedObjects[index]; }
-
-  virtual bool matchesSearchTextRecursive() const
-  {
-    if (getMatchesSearchText())
-      return true;
-
-    // A layer can have many children so use our cached value.
-    return objectsMatchingFilterCount > 0;
-  }
+  ItemType getType() const override { return ItemType::Layer; }
+  const char *getLabel() const override { return layerName; }
+  int getUnfilteredChildCount() const override { return sortedObjects.size(); }
+  OutlinerTreeItem *getUnfilteredChild(int index) const override { return sortedObjects[index]; }
+  int getFilteredChildCount() const override { return filteredSortedObjects.size(); }
+  OutlinerTreeItem *getFilteredChild(int index) const override { return filteredSortedObjects[index]; }
+  bool doesItemMatchSearch(IOutliner &tree_interface) const override;
+  void addToFilteredChildren(OutlinerTreeItem &tree_item) override;
+  void removeFromFilteredChildren(OutlinerTreeItem &tree_item) override;
 
   OutlinerSelectionState getSelectionState() const
   {
@@ -209,18 +216,14 @@ public:
       G_ASSERT(selectedObjectCount <= sortedObjects.size());
     }
 
-    if (object_tree_item.getMatchesSearchText())
-    {
-      ++objectsMatchingFilterCount;
-      G_ASSERT(objectsMatchingFilterCount <= sortedObjects.size());
-    }
-
     object_tree_item.layerTreeItem = this;
+    object_tree_item.setParent(this);
   }
 
   void unlinkObjectFromLayer(ObjectTreeItem &object_tree_item)
   {
     object_tree_item.layerTreeItem = nullptr;
+    object_tree_item.setParent(nullptr);
 
     if (object_tree_item.isSelected())
     {
@@ -228,29 +231,25 @@ public:
       G_ASSERT(selectedObjectCount >= 0);
     }
 
-    if (object_tree_item.getMatchesSearchText())
-    {
-      --objectsMatchingFilterCount;
-      G_ASSERT(objectsMatchingFilterCount >= 0);
-    }
-
     G_VERIFY(sortedObjects.erase(&object_tree_item) == 1);
     G_ASSERT(selectedObjectCount <= sortedObjects.size());
-    G_ASSERT(objectsMatchingFilterCount <= sortedObjects.size());
   }
 
+  const int perTypeLayerIndex;
   String layerName;
   eastl::vector_set<ObjectTreeItem *, ObjectTreeItemLess> sortedObjects;
+  eastl::vector_set<ObjectTreeItem *, ObjectTreeItemLess> filteredSortedObjects;
   int selectedObjectCount = 0;
-  int objectsMatchingFilterCount = 0;
 };
 
 class ObjectTypeTreeItem : public OutlinerTreeItem
 {
 public:
-  using OutlinerTreeItem::OutlinerTreeItem;
+  ObjectTypeTreeItem(OutlinerModel &outliner_model, OutlinerTreeItem *in_parent, int object_type_index) :
+    OutlinerTreeItem(outliner_model, in_parent), objectTypeIndex(object_type_index)
+  {}
 
-  ~ObjectTypeTreeItem()
+  ~ObjectTypeTreeItem() override
   {
     clear_all_ptr_items(layers);
 
@@ -258,10 +257,15 @@ public:
     setSelected(false);
   }
 
-  virtual ItemType getType() const override { return ItemType::ObjectType; }
-  virtual const char *getLabel() const override { return objectTypeName; }
-  virtual int getChildCount() const override { return layers.size(); }
-  virtual OutlinerTreeItem *getChild(int index) const override { return layers[index]; }
+  ItemType getType() const override { return ItemType::ObjectType; }
+  const char *getLabel() const override { return objectTypeName; }
+  int getUnfilteredChildCount() const override { return layers.size(); }
+  OutlinerTreeItem *getUnfilteredChild(int index) const override { return layers[index]; }
+  int getFilteredChildCount() const override { return filteredLayers.size(); }
+  OutlinerTreeItem *getFilteredChild(int index) const override { return filteredLayers[index]; }
+  bool doesItemMatchSearch(IOutliner &tree_interface) const override;
+  void addToFilteredChildren(OutlinerTreeItem &tree_item) override;
+  void removeFromFilteredChildren(OutlinerTreeItem &tree_item) override;
 
   OutlinerSelectionState getSelectionState() const
   {
@@ -291,14 +295,40 @@ public:
     return state;
   }
 
+  const int objectTypeIndex;
   String objectTypeName;
   dag::Vector<LayerTreeItem *> layers;
+  dag::Vector<LayerTreeItem *> filteredLayers;
+  bool objectTypeVisible = true;
+};
+
+class RootTreeItem : public OutlinerTreeItem
+{
+public:
+  RootTreeItem(OutlinerModel &outliner_model, dag::Vector<ObjectTypeTreeItem *> &object_types,
+    dag::Vector<ObjectTypeTreeItem *> &filtered_objectTypes) :
+    OutlinerTreeItem(outliner_model, nullptr), objectTypes(object_types), filteredObjectTypes(filtered_objectTypes)
+  {}
+
+  ItemType getType() const override { return ItemType::Root; }
+  const char *getLabel() const override { return nullptr; }
+  int getUnfilteredChildCount() const override { return objectTypes.size(); }
+  OutlinerTreeItem *getUnfilteredChild(int index) const override { return objectTypes[index]; }
+  int getFilteredChildCount() const override { return filteredObjectTypes.size(); }
+  OutlinerTreeItem *getFilteredChild(int index) const override { return filteredObjectTypes[index]; }
+  bool doesItemMatchSearch(IOutliner &tree_interface) const override;
+  void addToFilteredChildren(OutlinerTreeItem &tree_item) override;
+  void removeFromFilteredChildren(OutlinerTreeItem &tree_item) override;
+
+private:
+  dag::Vector<ObjectTypeTreeItem *> &objectTypes;
+  dag::Vector<ObjectTypeTreeItem *> &filteredObjectTypes;
 };
 
 class OutlinerModel
 {
 public:
-  OutlinerModel()
+  OutlinerModel() : rootTreeItem(*this, objectTypes, filteredObjectTypes)
   {
     for (int i = 0; i < (int)OutlinerTreeItem::ItemType::Count; ++i)
       selectionCountPerItemType[i] = 0;
@@ -308,27 +338,51 @@ public:
 
   void expandAll(bool expand)
   {
-    for (ObjectTypeTreeItem *objectTypeTreeItem : objectTypes)
+    for (ObjectTypeTreeItem *objectTypeTreeItem : filteredObjectTypes)
       objectTypeTreeItem->setExpandedRecursive(expand);
+  }
+
+  void loadOutlinerState(IOutliner &tree_interface, const DataBlock &state)
+  {
+    if (const DataBlock *expansionState = state.getBlockByName("expansion"))
+      loadTreeExpansionState(*expansionState, rootTreeItem);
+
+    if (const char *savedTextToSearch = state.getStr("textToSearch"))
+    {
+      textToSearch = savedTextToSearch;
+      onFilterChanged(tree_interface);
+    }
+  }
+
+  void saveOutlinerState(DataBlock &state) const
+  {
+    DataBlock *expansionState = state.addNewBlock("expansion");
+    saveTreeExpansionState(*expansionState, rootTreeItem);
+
+    if (!textToSearch.empty())
+      state.addStr("textToSearch", textToSearch);
   }
 
   void fillTypesAndLayers(IOutliner &tree_interface)
   {
     G_ASSERT(objectTypes.empty());
+    G_ASSERT(filteredObjectTypes.empty());
 
     for (int typeIndex = 0; typeIndex < tree_interface.getTypeCount(); ++typeIndex)
     {
-      ObjectTypeTreeItem *objectTypeTreeItem = new ObjectTypeTreeItem(*this);
+      ObjectTypeTreeItem *objectTypeTreeItem = new ObjectTypeTreeItem(*this, &rootTreeItem, typeIndex);
       objectTypeTreeItem->setExpanded(true);
       objectTypeTreeItem->objectTypeName = tree_interface.getTypeName(typeIndex);
       objectTypes.push_back(objectTypeTreeItem);
+      rootTreeItem.addToFilteredChildren(*objectTypeTreeItem);
 
       for (int layerIndex = 0; layerIndex < tree_interface.getLayerCount(typeIndex); ++layerIndex)
       {
-        LayerTreeItem *layerTreeItem = new LayerTreeItem(*this);
+        LayerTreeItem *layerTreeItem = new LayerTreeItem(*this, objectTypeTreeItem, layerIndex);
         layerTreeItem->setExpanded(true);
         layerTreeItem->layerName = tree_interface.getLayerName(typeIndex, layerIndex);
         objectTypeTreeItem->layers.push_back(layerTreeItem);
+        objectTypeTreeItem->addToFilteredChildren(*layerTreeItem);
       }
     }
   }
@@ -346,7 +400,7 @@ public:
 
         // Layer renaming is very rare, so it does not really matter that updateSearchMatch is really sub-optimal
         // here (because it is recursive).
-        layerTreeItem->updateSearchMatch(tree_interface);
+        updateSearchMatch(tree_interface, *layerTreeItem);
       }
     }
   }
@@ -359,15 +413,16 @@ public:
     if (!tree_interface.getObjectTypeAndPerTypeLayerIndex(object, type, perTypeLayerIndex))
       return;
 
-    ObjectTreeItem *objectTreeItem = new ObjectTreeItem(*this);
+    LayerTreeItem *layerTreeItem = objectTypes[type]->layers[perTypeLayerIndex];
+
+    ObjectTreeItem *objectTreeItem = new ObjectTreeItem(*this, layerTreeItem);
     objectTreeItem->renderableEditableObject = &object;
     objectTreeItem->setSelected(tree_interface.isObjectSelected(object));
     objectTreeItem->setAssetName(showAssetNameUnderObjects ? tree_interface.getObjectAssetName(object) : nullptr);
 
-    LayerTreeItem *layerTreeItem = objectTypes[type]->layers[perTypeLayerIndex];
     layerTreeItem->linkObjectToLayer(*objectTreeItem);
 
-    objectTreeItem->updateSearchMatch(tree_interface);
+    updateSearchMatch(tree_interface, *objectTreeItem);
 
     G_ASSERT(objectToTreeItemMap.find(&object) == objectToTreeItemMap.end());
     objectToTreeItemMap.insert({&object, objectTreeItem});
@@ -386,6 +441,9 @@ public:
     ObjectTreeItem *objectTreeItem = it->second;
     objectToTreeItemMap.erase(&object);
 
+    if (objectTreeItem->isRegisteredToFilteredTree())
+      removeFilteredTreeItem(tree_interface, *objectTreeItem);
+
     // This will also unlink it from the layer.
     delete objectTreeItem;
   }
@@ -402,16 +460,25 @@ public:
     G_ASSERT(it != objectToTreeItemMap.end());
     ObjectTreeItem *objectTreeItem = it->second;
 
-    objectTreeItem->updateSearchMatch(tree_interface);
-
     // It has been already renamed, so we have to find it by pointer.
     G_ASSERT(objectTreeItem->layerTreeItem);
     eastl::vector_set<ObjectTreeItem *, ObjectTreeItemLess> &sortedObjects = objectTreeItem->layerTreeItem->sortedObjects;
-    auto itSortedObjects = eastl::find(sortedObjects.getContainer().begin(), sortedObjects.getContainer().end(), objectTreeItem);
-    G_ASSERT(itSortedObjects != sortedObjects.getContainer().end());
-    sortedObjects.getContainer().erase(itSortedObjects);
+    auto itSortedObjects = eastl::find(sortedObjects.begin(), sortedObjects.end(), objectTreeItem);
+    G_ASSERT(itSortedObjects != sortedObjects.end());
+    sortedObjects.erase(itSortedObjects);
 
     sortedObjects.insert(objectTreeItem);
+
+    // Same for the filtered objects.
+    eastl::vector_set<ObjectTreeItem *, ObjectTreeItemLess> &filteredObjects = objectTreeItem->layerTreeItem->filteredSortedObjects;
+    auto itFilteredObjects = eastl::find(filteredObjects.begin(), filteredObjects.end(), objectTreeItem);
+    if (itFilteredObjects != filteredObjects.end())
+    {
+      filteredObjects.erase(itFilteredObjects);
+      filteredObjects.insert(objectTreeItem);
+    }
+
+    updateSearchMatch(tree_interface, *objectTreeItem);
   }
 
   void onObjectSelectionChanged(IOutliner &tree_interface, RenderableEditableObject &object)
@@ -450,10 +517,10 @@ public:
 
     objectTreeItem->setAssetName(showAssetNameUnderObjects ? tree_interface.getObjectAssetName(object) : nullptr);
 
-    // The match result of ObjectTreeItem depends on its child (see ObjectTreeItem::setMatchesSearchText), so we call
+    // The match result of ObjectTreeItem depends on its child (see ObjectTreeItem::doesItemMatchSearch), so we call
     // updateSearchMatch on ObjectTreeItem instead of on ObjectTreeItem::objectAssetNameTreeItem although only the
     // latter's label could have changed.
-    objectTreeItem->updateSearchMatch(tree_interface);
+    updateSearchMatch(tree_interface, *objectTreeItem);
   }
 
   void onObjectEditLayerChanged(IOutliner &tree_interface, RenderableEditableObject &object)
@@ -477,8 +544,13 @@ public:
 
       if (layerIndex != objectPerTypeLayerIndex)
       {
+        if (objectTreeItem->isRegisteredToFilteredTree())
+          removeFilteredTreeItem(tree_interface, *objectTreeItem);
+
         layerTreeItem->unlinkObjectFromLayer(*objectTreeItem);
         objectTypeTreeItem->layers[objectPerTypeLayerIndex]->linkObjectToLayer(*objectTreeItem);
+
+        updateSearchMatch(tree_interface, *objectTreeItem);
       }
       return;
     }
@@ -489,7 +561,7 @@ public:
   void onFilterChanged(IOutliner &tree_interface)
   {
     for (ObjectTypeTreeItem *objectTypeTreeItem : objectTypes)
-      objectTypeTreeItem->updateSearchMatch(tree_interface);
+      updateSearchMatch(tree_interface, *objectTypeTreeItem);
   }
 
   void addNewLayer(IOutliner &tree_interface, int type, const char *name)
@@ -501,12 +573,14 @@ public:
     ObjectTypeTreeItem *objectTypeTreeItem = objectTypes[type];
     G_ASSERT(newLayerPerTypeLayerIndex == objectTypeTreeItem->layers.size());
 
-    LayerTreeItem *layerTreeItem = new LayerTreeItem(*this);
+    LayerTreeItem *layerTreeItem = new LayerTreeItem(*this, objectTypeTreeItem, newLayerPerTypeLayerIndex);
     layerTreeItem->setExpanded(true);
     layerTreeItem->setSelected(true);
     layerTreeItem->layerName = tree_interface.getLayerName(type, newLayerPerTypeLayerIndex);
     objectTypeTreeItem->layers.push_back(layerTreeItem);
     objectTypeTreeItem->setSelected(false);
+
+    updateSearchMatch(tree_interface, *layerTreeItem);
 
     tree_interface.setLayerActive(type, newLayerPerTypeLayerIndex);
   }
@@ -598,15 +672,14 @@ public:
   bool isOnlyASingleObjectIsSelected() const { return getExclusiveSelectionCount(OutlinerTreeItem::ItemType::Object) == 1; }
 
   // Gets the selected object type index if only one object type is selected and nothing else.
-  int getExclusiveSelectedType(IOutliner &tree_interface, const dag::Vector<bool> &showTypes) const
+  int getExclusiveSelectedType(IOutliner &tree_interface) const
   {
     // All but one object type are disabled via visibility filters
     int typeIndexOnlyShown = -1;
     int shownTypesCount = 0;
     for (int typeIndex = 0; typeIndex < objectTypes.size(); ++typeIndex)
     {
-      const bool shown = typeIndex >= showTypes.size() || showTypes[typeIndex];
-      if (shown)
+      if (objectTypes[typeIndex]->objectTypeVisible)
       {
         typeIndexOnlyShown = typeIndex;
         shownTypesCount++;
@@ -624,8 +697,7 @@ public:
     int hasSelectionTypeIndex = -1;
     for (int typeIndex = 0; typeIndex < objectTypes.size(); ++typeIndex)
     {
-      const bool shown = typeIndex >= showTypes.size() || showTypes[typeIndex];
-      if (!shown)
+      if (!objectTypes[typeIndex]->objectTypeVisible)
         continue;
 
       ObjectTypeTreeItem *objectTypeTreeItem = objectTypes[typeIndex];
@@ -778,10 +850,92 @@ public:
   void setSelectionHead(OutlinerTreeItem *tree_item) { focusedTreeItem = tree_item; }
 
   dag::Vector<ObjectTypeTreeItem *> objectTypes;
+  dag::Vector<ObjectTypeTreeItem *> filteredObjectTypes;
   String textToSearch;
 
 private:
+  void addTreeItemToFilteredItemsTillRootIfNeeded(OutlinerTreeItem &tree_item)
+  {
+    OutlinerTreeItem *parentTreeItem = tree_item.getParent();
+    G_ASSERT(parentTreeItem);
+    parentTreeItem->addToFilteredChildren(tree_item);
+
+    if (!parentTreeItem->isRegisteredToFilteredTree() && parentTreeItem != &rootTreeItem)
+      addTreeItemToFilteredItemsTillRootIfNeeded(*parentTreeItem);
+  }
+
+  void removeFilteredTreeItem(IOutliner &tree_interface, OutlinerTreeItem &tree_item)
+  {
+    OutlinerTreeItem *parentTreeItem = tree_item.getParent();
+    G_ASSERT(parentTreeItem);
+    parentTreeItem->removeFromFilteredChildren(tree_item);
+
+    if (parentTreeItem != &rootTreeItem && parentTreeItem->isRegisteredToFilteredTree() &&
+        parentTreeItem->getFilteredChildCount() == 0 && !parentTreeItem->doesItemMatchSearch(tree_interface))
+      removeFilteredTreeItem(tree_interface, *parentTreeItem);
+  }
+
+  bool updateSearchMatch(IOutliner &tree_interface, OutlinerTreeItem &tree_item)
+  {
+    bool foundMatch = false;
+
+    const int childCount = tree_item.getUnfilteredChildCount();
+    for (int i = 0; i < childCount; ++i)
+      if (updateSearchMatch(tree_interface, *tree_item.getUnfilteredChild(i)))
+        foundMatch = true;
+
+    if (foundMatch || tree_item.doesItemMatchSearch(tree_interface))
+    {
+      if (!tree_item.isRegisteredToFilteredTree())
+        addTreeItemToFilteredItemsTillRootIfNeeded(tree_item);
+
+      return true;
+    }
+    else
+    {
+      if (tree_item.isRegisteredToFilteredTree())
+        removeFilteredTreeItem(tree_interface, tree_item);
+
+      return false;
+    }
+  }
+
+  static void loadTreeExpansionState(const DataBlock &state, OutlinerTreeItem &tree_item)
+  {
+    const int childCount = tree_item.getUnfilteredChildCount();
+    for (int childIndex = 0; childIndex < childCount; ++childIndex)
+    {
+      OutlinerTreeItem *childTreeItem = tree_item.getUnfilteredChild(childIndex);
+      if (childTreeItem->getUnfilteredChildCount() > 0)
+      {
+        const DataBlock *childState = state.getBlockByName(childTreeItem->getLabel());
+        if (childState)
+        {
+          childTreeItem->setExpanded(childState->getBool("expanded", childTreeItem->isExpanded()));
+          loadTreeExpansionState(*childState, *childTreeItem);
+        }
+      }
+    }
+  }
+
+  static void saveTreeExpansionState(DataBlock &state, const OutlinerTreeItem &tree_item)
+  {
+    const int childCount = tree_item.getUnfilteredChildCount();
+    for (int childIndex = 0; childIndex < childCount; ++childIndex)
+    {
+      const OutlinerTreeItem *childTreeItem = tree_item.getUnfilteredChild(childIndex);
+      if (childTreeItem->getUnfilteredChildCount() > 0)
+      {
+        DataBlock *childState = state.addBlock(childTreeItem->getLabel());
+        childState->addBool("expanded", childTreeItem->isExpanded());
+
+        saveTreeExpansionState(*childState, *childTreeItem);
+      }
+    }
+  }
+
   ska::flat_hash_map<RenderableEditableObject *, ObjectTreeItem *> objectToTreeItemMap;
+  RootTreeItem rootTreeItem;
   OutlinerTreeItem *focusedTreeItem = nullptr; // Use getSelectionHead() instead!
   int selectionCountPerItemType[(int)OutlinerTreeItem::ItemType::Count];
   bool showAssetNameUnderObjects = true;

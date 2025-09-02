@@ -1,7 +1,6 @@
+import "math" as math
 from "%darg/ui_imports.nut" import *
-
 let cursors = require("samples_prog/_cursors.nut")
-let math = require("math")
 
 let coord = [50, 0, 50, 16, 36, 26, 36,  30,  0, 60,  52, 45,  110, 125, 110, 120]
 let cmd = [VECTOR_INVERSE_POLY, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0,  0, 0,  0, 0, 0, 0]
@@ -13,7 +12,7 @@ let vectorCanvas = {
   flow = FLOW_HORIZONTAL
   halign = ALIGN_CENTER
   valign = ALIGN_CENTER
-  size = [hdpx(300), hdpx(300)]
+  size = hdpx(300)
   lineWidth = hdpx(2.5)
   color = Color(50, 200, 255)
   fillColor = Color(122, 1, 0, 0)

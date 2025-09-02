@@ -102,7 +102,7 @@ shader rendinst_emissive
     compile("ps_null", "rendinst_render_depth_black_ps");
   } else
   {
-    EMISSIVE_PS()
+    EMISSIVE_PS(true)
   }
   
   compile("target_vs", "simple_vs");

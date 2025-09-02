@@ -29,12 +29,12 @@ int32_t get_device_vram_used_kb();
 int32_t get_shared_vram_used_kb();
 
 #else
-inline void init(){};
+inline void init() {}
 
-inline void start_report(){};
-inline void stop_report(){};
+inline void start_report() {}
+inline void stop_report() {}
 
-inline void register_vram_state_callback(const TVRamStateCallback & /*callback*/){};
+inline void register_vram_state_callback(const TVRamStateCallback & /*callback*/) {}
 
 inline int32_t get_device_vram_used_kb() { return -1; }
 inline int32_t get_shared_vram_used_kb() { return -1; }

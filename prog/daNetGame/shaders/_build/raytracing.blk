@@ -2,20 +2,33 @@ include "../../../../prog/gameLibs/render/denoiser/shaders/build.blk"
 include "../../../../prog/gameLibs/render/rtsm/shaders/build.blk"
 include "../../../../prog/gameLibs/render/rtao/shaders/build.blk"
 include "../../../../prog/gameLibs/render/rtr/shaders/build.blk"
+include "../../../../prog/gameLibs/render/ptgi/shaders/build.blk"
 
 "@override:source"
 {
   file:t = "../../../../prog/gameLibs/bvh/shaders/bvh_debug.dshl"
   file:t = "../../../../prog/gameLibs/bvh/shaders/bvh_hwinstance_copy.dshl"
   file:t = "../../../../prog/gameLibs/bvh/shaders/bvh_process_dynrend_indices.dshl"
+  file:t = "../rt/bvh_process_skinned_vertices.dshl"
   file:t = "../../../../prog/gameLibs/bvh/shaders/bvh_process_impostor_vertices.dshl"
   file:t = "../../../../prog/gameLibs/bvh/shaders/bvh_process_bake_texture_to_vertices.dshl"
   file:t = "../../../../prog/gameLibs/bvh/shaders/bvh_process_tree_vertices.dshl"
   file:t = "../../../../prog/gameLibs/bvh/shaders/bvh_process_flag_vertices.dshl"
+  file:t = "../../../../prog/gameLibs/bvh/shaders/bvh_process_ahs_vertices.dshl"
+  file:t = "../../../../prog/gameLibs/render/shaders/vsm_blur.dshl"
+  file:t = "../../../../prog/gameLibs/render/shaders/rt_glass_apply_inc.dshl"
 }
 
 "@override:Compile" {
   "@override:assume_vars" {
     "@delete:water_rt_enabled":i=0
+    vsm_positive:i=1
+    "@override:vsm_shadowmap":i=1
+    "@delete:glass_rt_reflection":i=0
+    rt_debug_rt_shadow:i=0
+    rt_debug_use_csm:i=1
+    rtr_shadow:i=0
+    rtr_use_csm:i=1
+    rtsm_add_far_screen_space_shadows:i=0
   }
 }

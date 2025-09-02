@@ -15,9 +15,9 @@ Sources =
 ;
 
 if $(Platform) = android {
-  Sources +=
-    android/haptic_vibration.cpp
-  ;
+  Sources += android/haptic_vibration.cpp ;
+  AndroidSources = android/android.bundle/src/DagorHaptic.java src/com/gaijinent/common/DagorHaptic.java ;
+  AndroidLibProguard = android/android.bundle/and.proguard ;
 } else if $(Platform) = iOS {
   Sources +=
     iOS/haptic_vibration.mm

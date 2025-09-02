@@ -80,9 +80,9 @@ typedef float real;
 #define DEG_TO_RAD    (PI / (real)180.0)
 #define RAD_TO_DEG    ((real)180.0 / PI)
 /// converts degrees to radians
-#define DegToRad(deg) ((real)(deg)*DEG_TO_RAD)
+#define DegToRad(deg) ((real)(deg) * DEG_TO_RAD)
 /// converts radians to degrees
-#define RadToDeg(rad) ((real)(rad)*RAD_TO_DEG)
+#define RadToDeg(rad) ((real)(rad) * RAD_TO_DEG)
 
 #define INLINE __forceinline
 

@@ -1,0 +1,15 @@
+macro USE_PACKED_ITM_PRECISE(stage)
+  hlsl(stage)
+  {
+    float3 mul_packed_itm(float3 worldPos, float4x4 packed_itm)
+    {
+      float3 posNoOffset = worldPos.xyz - packed_itm[3].xyz;
+      return mul(posNoOffset, (float3x3)packed_itm).xyz;
+    }
+
+    float3x3 extract_mat33_from_packed_itm(float4x4 packed_itm)
+    {
+      return (float3x3)packed_itm;
+    }
+  }
+endmacro

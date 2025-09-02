@@ -71,7 +71,7 @@ inline void reset_emitter_state(EmitterState &state)
 void create_emitter_state(EmitterState &state, const EmitterData &data, unsigned int elem_limit, float emission_factor);
 
 void create_emitter_randomizer(EmitterRandomizer &randomizer, const EmitterData &data, float emission_factor);
-void apply_emitter_randomizer(const EmitterRandomizer &randomizer, EmitterState &state, int &rng);
+void apply_emitter_randomizer(const EmitterRandomizer &randomizer, EmitterState &state, int &rng, float life_time);
 
 void update_emitters(Context &ctx, float dt, int begin_sid, int end_sid);
 } // namespace dafx

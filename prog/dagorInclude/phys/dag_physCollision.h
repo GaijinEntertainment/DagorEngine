@@ -202,7 +202,7 @@ public:
     if (scl)
       scale = Point3(scl[0], scl[1], scl[2]);
   }
-  void setDebugName(const char *dbgn) { debugName = dbgn; }
+  void setDebugNamePtr(const char *dbgn) { debugName = dbgn; }
   friend class PhysBody;
 };
 
@@ -211,15 +211,16 @@ class PhysConvexHullCollision : public PhysCollision
 {
   const float *vdata;
   unsigned vstride, vnum;
+  float hullTolerance = 1e-3f;
   bool build;
 
 public:
-  PhysConvexHullCollision(const float *vert, unsigned _vnum, unsigned _vstride, bool build_hull) :
-    PhysCollision(TYPE_CONVEXHULL), vdata(vert), vnum(_vnum), vstride(_vstride), build(build_hull)
+  PhysConvexHullCollision(const float *vert, unsigned _vnum, unsigned _vstride, bool build_hull, float hullt = 1e-3f) :
+    PhysCollision(TYPE_CONVEXHULL), vdata(vert), vnum(_vnum), vstride(_vstride), build(build_hull), hullTolerance(hullt)
   {}
   template <typename V, typename T = typename V::value_type>
-  PhysConvexHullCollision(const V &vert, bool build_hull) :
-    PhysConvexHullCollision((const float *)vert.data(), vert.size(), sizeof(T), build_hull)
+  PhysConvexHullCollision(const V &vert, bool build_hull, float hullt = 1e-3f) :
+    PhysConvexHullCollision((const float *)vert.data(), vert.size(), sizeof(T), build_hull, hullt)
   {}
   friend class PhysBody;
 };

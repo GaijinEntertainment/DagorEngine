@@ -80,6 +80,8 @@ struct BlkLoadContext
   {
     ecs::Template::component_set *replicated = NULL, *tracked = NULL, *ignored = NULL, *hidden = NULL, *tagsSkipped = NULL;
   } sets;
+  const TemplateRefs::NameMap *ignoreTypeNm = nullptr;
+  const TemplateRefs::NameMap *ignoreCompNm = nullptr;
 
   void load(const DataBlock &blk, const char *tags, on_empty_comp_type_cb_t on_empty_comp_type_cb = on_empty_comp_type_cb_t{});
   static const char *parseNameType(const char *name, char *sname, eastl::string_view &compName, eastl::string_view &compType);
@@ -178,6 +180,7 @@ static const BlockLoaderDesc block_loaders[] = {LIST_TYPES{TYPENAMEANDLEN("objec
   {TYPENAMEANDLEN("p4"), &load_blk_type<Point4, &DataBlock::getPoint4>, ComponentTypeInfo<Point4>::type},
   {TYPENAMEANDLEN("ip2"), &load_blk_type<IPoint2, &DataBlock::getIPoint2>, ComponentTypeInfo<IPoint2>::type},
   {TYPENAMEANDLEN("ip3"), &load_blk_type<IPoint3, &DataBlock::getIPoint3>, ComponentTypeInfo<IPoint3>::type},
+  {TYPENAMEANDLEN("ip4"), &load_blk_type<IPoint4, &DataBlock::getIPoint4>, ComponentTypeInfo<IPoint4>::type},
   {TYPENAMEANDLEN("b"), &load_blk_type<bool, &DataBlock::getBool>, ComponentTypeInfo<bool>::type},
   {TYPENAMEANDLEN("m"), &load_blk_type<TMatrix, &DataBlock::getTm>, ComponentTypeInfo<TMatrix>::type},
   {TYPENAMEANDLEN("c"), &load_blk_type<E3DCOLOR, &DataBlock::getE3dcolor>, ComponentTypeInfo<E3DCOLOR>::type},
@@ -356,13 +359,26 @@ void BlkLoadContext::load(const DataBlock &blk, const char *tags, on_empty_comp_
     };
     if (compType.empty())
     {
-      if (on_empty_comp_type_cb)
+      bool skip = false;
+      if (!mgr->getDataComponents().hasComponent(hName.hash) && db && db->getComponentType(hName.hash) == 0)
       {
-        if (addDbComponent(userType))
-          on_empty_comp_type_cb(hName);
+        const bool ignoreAllBadTypes = (ignoreTypeNm && !ignoreTypeNm->nameCount());
+        const bool ignoreComp = (ignoreCompNm && (!ignoreCompNm->nameCount() || ignoreCompNm->getNameId(pName) >= 0));
+        if (ignoreAllBadTypes || ignoreComp)
+          skip = true;
       }
-      else
-        logwarn("Empty component type while parsing block name '%s' in template '%s:%s', ignored.", blockName, blkFilePath, templName);
+
+      if (!skip)
+      {
+        if (on_empty_comp_type_cb)
+        {
+          if (addDbComponent(userType))
+            on_empty_comp_type_cb(hName);
+        }
+        else
+          logwarn("Empty component type while parsing block name '%s' in template '%s:%s', ignored.", blockName, blkFilePath,
+            templName);
+      }
     }
     else if (auto typeLoader = find_type_block_loader(compType))
     {
@@ -378,7 +394,7 @@ void BlkLoadContext::load(const DataBlock &blk, const char *tags, on_empty_comp_
     }
     else
     {
-      if (doLoad)
+      if (doLoad && (!ignoreTypeNm || ignoreTypeNm->getNameId(compType.data(), compType.length()) < 0))
       {
         RegisterRet ret = register_component(*mgr, pName, compType, *subBlock);
         if (ret == RegisterRet::OK)
@@ -386,6 +402,8 @@ void BlkLoadContext::load(const DataBlock &blk, const char *tags, on_empty_comp_
           if (addDbComponent(userType))
             clist->emplace_back(pName, ChildComponent());
         }
+        else if (ret == RegisterRet::INVALID_TYPE && ignoreTypeNm && !ignoreTypeNm->nameCount())
+          ; // skip reporting error since empty ignoreTypeNm means ignore all unknown types
         else if (ret == RegisterRet::INVALID_TYPE)
           logerr("Type '%.*s' in block name '%s' at '%s:%s' is unknown and can't be registered", (int)compType.length(),
             compType.data(), blockName, blkFilePath, templName);
@@ -573,7 +591,7 @@ static void resolve_one_import(ecs::EntityManager &mgr, TemplateRefs &templates,
       return;
     }
 
-    find_files_in_folder(files, String(0, "%s%.*s", abs_path ? "" : src_folder.str(), fn_with_ext - imp_fn, imp_fn));
+    find_files_in_folder(files, String(0, "%s%.*s", abs_path || mnt_path ? "" : src_folder.str(), fn_with_ext - imp_fn, imp_fn));
     bool anyFileLoaded = false;
     for (const SimpleString &s : files)
       if (re.test(dd_get_fname(s)))
@@ -641,7 +659,7 @@ static void load_templates_blk_file(ecs::EntityManager &mgr, const char *path, c
   // second pass, create templates
   Template::component_set ignored, replicatedSet, trackedSet, hiddenSet, tagsSkippedSet;
   BlkLoadContext lctx{nullptr, nullptr, path, /*blockName*/ nullptr, &templates, info, &mgr, VALUE_NID(blk), GROUP_NID(blk), replNid,
-    trackNid, ignoreNid, hideNid, infoNid};
+    trackNid, ignoreNid, hideNid, infoNid, {}, templates.getIgnoreTypeNm(), templates.getIgnoreCompNm()};
   templates.reserve(blk.blockCount());
   for (int i = 0, be = blk.blockCount(); i < be; ++i)
   {
@@ -666,10 +684,12 @@ static void load_templates_blk_file(ecs::EntityManager &mgr, const char *path, c
         {
           const char *ftags = tblk.getStr(TAGS_NAME, NULL);
           const bool doLoad = !ftags || (info && ecs::filter_needed(ftags, info->filterTags)); //-V595
-          if (doLoad)
+          if (doLoad && (!lctx.ignoreTypeNm || lctx.ignoreTypeNm->getNameId(compType) < 0))
           {
             RegisterRet ret = register_component(mgr, compName, eastl::string_view(compType), tblk);
-            if (ret == RegisterRet::INVALID_TYPE)
+            if (ret == RegisterRet::INVALID_TYPE && lctx.ignoreTypeNm && !lctx.ignoreTypeNm->nameCount())
+              ; // skip reporting error since empty ignoreTypeNm means ignore all unknown types
+            else if (ret == RegisterRet::INVALID_TYPE)
               logerr("_component block at %s is invalid. Type %s for %sis unknown", path, compType, compName);
             else if (ret != RegisterRet::OK)
               logerr("_component block at %s is invalid. Can't register %s:%s.", path, compName, compType);
@@ -869,7 +889,7 @@ void load_templates_blk(ecs::EntityManager &mgr, dag::ConstSpan<SimpleString> fn
 
 void create_entities_blk(ecs::EntityManager &mgr, const DataBlock &blk, const char *blk_path,
   const on_entity_creation_scheduled_t &on_creation_scheduled_cb, const create_entity_async_cb_t &on_entity_created_cb,
-  const on_import_beginend_cb_t &on_import_beginend_cb)
+  const on_import_beginend_cb_t &on_import_beginend_cb, const template_allowed_cb_t &template_allowed_cb)
 {
   int enid = blk.getNameId("entity"), tnid = blk.getNameId("_template"), impnid = blk.getNameId("import"),
       scnid = blk.getNameId("scene");
@@ -894,6 +914,8 @@ void create_entities_blk(ecs::EntityManager &mgr, const DataBlock &blk, const ch
 
       if (*templName && templName[0])
       {
+        if (template_allowed_cb && !template_allowed_cb(templName))
+          continue;
         if (eb.paramCountById(tnid) != 1)
           logerr("Only single '_template:t' is accepted in entity. (template=%s at '%s')", templName, blk_path);
       }

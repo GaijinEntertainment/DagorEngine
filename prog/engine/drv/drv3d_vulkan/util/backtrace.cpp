@@ -5,7 +5,6 @@
 #include <osApiWrappers/dag_critSec.h>
 #include <util/dag_string.h>
 #include <EASTL/hash_map.h>
-#include <EASTL/vector.h>
 #include <hash/mum_hash.h>
 
 struct BackTraceEntry

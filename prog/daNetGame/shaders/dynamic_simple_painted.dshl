@@ -46,7 +46,7 @@ shader dynamic_simple_painted
     void vs_post_function(VsInput input, inout VsOutput output)
     {
       #if COLOR_NEEDED
-        output.colorMul = getColorMul(get_per_instance_hashval());
+        output.colorMul = getColorMul(GET_PER_INSTANCE_HASHVAL);
       #endif
     }
   }

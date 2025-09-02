@@ -1,7 +1,7 @@
 from "%darg/ui_imports.nut" import *
 
 function input(text_state, state_flags, group, options = {}) {
-  let sf = state_flags.value
+  let sf = state_flags.get()
   return @() {
     rendObj = ROBJ_BOX
     fillColor = (sf & S_KB_FOCUS) ? Color(10,10,10) : Color(50,50,50)
@@ -20,20 +20,20 @@ function input(text_state, state_flags, group, options = {}) {
       size = [flex(), fontH(100)]
       group = group
       behavior = Behaviors.TextInput
-      text = text_state.value
+      text = text_state.get()
       password = options?.password
       key = text_state
       function onChange(val) {
-        text_state.update(val)
+        text_state.set(val)
         vlog(val)
       }
       function onReturn() {
-        vlog($"entered text: {text_state.value}")
-        text_state.update("")
+        vlog($"entered text: {text_state.get()}")
+        text_state.set("")
       }
       function onEscape() {
         vlog("cleared text!")
-        text_state.update("")
+        text_state.set("")
       }
       color = (sf & S_KB_FOCUS) ? Color(255, 255, 255) : Color(160, 160, 160)
     }
@@ -60,7 +60,7 @@ function inputElem(state, params={options={}, title=null}){
       size = size
       flow = FLOW_HORIZONTAL
       valign = ALIGN_CENTER
-      onElemState = @(sf) stateFlags.update(sf)
+      onElemState = @(sf) stateFlags.set(sf)
       children = [ titleCmp input(state, stateFlags, group, options) ]
     }
   }
@@ -72,7 +72,7 @@ return {
   size = flex()
   valign = ALIGN_CENTER
   halign = ALIGN_CENTER
-  cursor = Cursor({ rendObj = ROBJ_IMAGE size = [32, 32] image = Picture("!ui/atlas#cursor.svg:{0}:{0}:K".subst(hdpx(32))) })
+  cursor = Cursor({ rendObj = ROBJ_IMAGE size = 32 image = Picture("!ui/atlas#cursor.svg:{0}:{0}:K".subst(hdpx(32))) })
   children = @() {
     valign  = ALIGN_CENTER
     halign  = ALIGN_CENTER

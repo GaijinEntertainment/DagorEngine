@@ -6,6 +6,7 @@ include "dagi_media_scene_common.dshl"
 include "project_base_hmap.dshl"
 include "world_sdf.dshl"
 include "gbuffer.dshl"
+include "dagi_project_trace_common.dshl"
 
 hlsl {
   #define DAGI_LIT_SCENE_TYPED_UAV_LOAD 1//fixme
@@ -53,6 +54,7 @@ macro RADIANCE_GRID_TRACE_PROBE(code)
   PROJECT_GET_WORLD_RADIANCE_AT(code)
   DAGI_RAD_GRID_LOAD(code)
   DAGI_MEDIA_SCENE_SAMPLE(code)
+  PROJECT_TRACE(code)
   hlsl(code) {
     #include <dagi_rad_grid_math.hlsl>
     float3 radiance_grid_trace_probe(uint startSDF, int3 probeWorldCoordClip, uint radiance_grid_clip, uint2 octCoord, uint frameId, uint radiance_res, out float encoded_dist, float maxT, float biasK)
@@ -89,6 +91,16 @@ macro RADIANCE_GRID_TRACE_PROBE(code)
       //world_sdf_trace_stepOut(worldPos, max(0.125*voxelSize, 0.01), 0.5, startClip);
       uint sdfStartClip = startSDF, sdfClip;
       //sdfStartClip = world_sdf_find_clip(worldPos);//to reduce divirgence between threads
+      #if DAGI_HAS_PROJECT_TRACE
+      DaGiProjectHitRes hit;
+      if (dagi_project_trace_surface(worldPos, 0, rayDir, maxT, hit))
+      {
+        radiance = dagi_get_radiance_at_with_albedo(hit.hitCamPos, hit.hitNormal, hit.hitAlbedo);
+        //radiance = project_get_lit_color_at_trace_hit(hit.hitPos, hit.hitNormal, hit.hitAlbedo);
+        t = hit.hitAt;
+        encoded_dist = saturate(t / (probeSize*sqrt(3)));
+      }
+      #else
       if (//startClip < MAX_WORLD_SDF_CLIPS &&
         //world_sdf_step_out(worldPos, sdfStartClip, 0.05, 0.5) &&
         world_sdf_trace_stepOut(worldPos, max(0.125*probeSize, 0.01), 0.5, sdfStartClip) &&
@@ -104,7 +116,9 @@ macro RADIANCE_GRID_TRACE_PROBE(code)
         //radiance = dagi_get_radiance_at(worldPosAt - rayDir*min(t, world_sdf_voxel_size(sdfClip)*0.5), worldNormal);
         radiance = dagi_get_radiance_at(worldPosAt, worldNormal);
         encoded_dist = saturate(t / (probeSize*sqrt(3)));
-      } else
+      }
+      #endif
+      else
       {
         t = maxT;
         #if DAGI_LIT_SCENE_TYPED_UAV_LOAD

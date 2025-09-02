@@ -1,6 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include "scopeAimRender.h"
+#include <render/scopeAimRender/scopeAimRender.h>
 
 #include <3d/dag_quadIndexBuffer.h>
 #include <camera/sceneCam.h>
@@ -11,7 +11,6 @@
 #include <daECS/core/entitySystem.h>
 #include <ecs/anim/anim.h>
 #include <ecs/anim/animchar_visbits.h>
-#include <ecs/camera/getActiveCameraSetup.h>
 #include <shaders/dag_dynSceneRes.h>
 #include <ecs/render/resPtr.h>
 #include <ecs/render/shaders.h>
@@ -23,6 +22,7 @@
 #include <render/dof/dof_ps.h>
 #include <render/rendererFeatures.h>
 #include <render/renderEvent.h>
+#include <render/world/cameraInCamera.h>
 #include <render/world/dynModelRenderPass.h>
 #include <render/world/dynModelRenderer.h>
 #include <render/world/global_vars.h>
@@ -36,7 +36,6 @@
 #include <drv/3d/dag_draw.h>
 #include <drv/3d/dag_vertexIndexBuffer.h>
 #include <drv/3d/dag_matricesAndPerspective.h>
-#include <math/dag_TMatrix4D.h>
 
 #define SCOPE_AIM_RENDER_VARS \
   VAR(lens_zoom_factor)       \
@@ -47,7 +46,8 @@
   VAR(scope_reticle_tex)      \
   VAR(scope_radius)           \
   VAR(scope_length)           \
-  VAR(night_vision_tex)
+  VAR(night_vision_tex)       \
+  VAR(use_depth_val_as_mask)
 
 #define VAR(a) static ShaderVariableInfo a##VarId(#a, true);
 SCOPE_AIM_RENDER_VARS
@@ -60,6 +60,9 @@ inline void set_scope_lens_phys_params_ecs_query(ecs::EntityId eid, Callable c);
 
 template <typename Callable>
 inline void render_scope_reticle_ecs_query(ecs::EntityId eid, Callable c);
+
+template <typename Callable>
+inline void render_scope_trans_ecs_query(ecs::EntityId eid, Callable c);
 
 template <typename Callable>
 inline void process_animchar_ecs_query(ecs::EntityId eid, Callable c);
@@ -106,9 +109,9 @@ inline static void prepare_scope_aim_rendering_data_ecs_query(Callable c);
 template <typename Callable>
 inline void in_vehicle_cockpit_ecs_query(Callable c);
 
-extern int dynamicSceneBlockId;
-extern int dynamicDepthSceneBlockId;
-extern int dynamicSceneTransBlockId;
+extern ShaderBlockIdHolder dynamicSceneBlockId;
+extern ShaderBlockIdHolder dynamicDepthSceneBlockId;
+extern ShaderBlockIdHolder dynamicSceneTransBlockId;
 
 extern ConVarT<bool, false> vrs_dof;
 
@@ -228,32 +231,30 @@ static void process_animchars_and_render(dag::ConstSpan<ecs::EntityId> eids,
   bool hide,
   bool need_previous_matrices,
   const TexStreamingContext &texCtx,
-  int nodeId = -1)
+  int nodeId = -1,
+  ShaderElement *shader_override = nullptr)
 {
   DynModelRenderingState &state = dynmodel_renderer::get_immediate_state();
   for (ecs::EntityId eid : eids)
   {
     if (eid) // Investigate: does this check really needed?
       process_animchar_ecs_query(eid,
-        [&state, startStage, endStage, nodeId, visMask, hide, need_previous_matrices, texCtx](
-          AnimV20::AnimcharRendComponent &animchar_render, uint8_t &animchar_visbits,
+        [&state, startStage, endStage, nodeId, visMask, hide, need_previous_matrices, texCtx, shader_override](
+          AnimV20::AnimcharRendComponent &animchar_render, animchar_visbits_t &animchar_visbits,
           const ecs::Point4List *additional_data ECS_REQUIRE(eastl::true_type animchar_render__enabled = true)) {
           // VISFLG_COCKPIT_VISIBLE not connected with cockpit render here.
           // Just if there is only VISFLG_COCKPIT_VISIBLE the animchar will
           // be invisible for main animchar render (what we need). Also cockpit is disabled when
           // scope render is enabled. So we can freely use the flag as a filter for visible objects
           // when render occurs several time per frame (for screenshoots now).
-          if ((animchar_visbits & visMask) == visMask || animchar_visbits == VISFLG_COCKPIT_VISIBLE)
+          if ((animchar_visbits & visMask) == visMask || !!(animchar_visbits & VISFLG_COCKPIT_VISIBLE))
           {
-            Point4 zero(0, 0, 0, 0);
-            const bool noAdditionalData = additional_data == nullptr || additional_data->empty();
-            const Point4 *additionalData = noAdditionalData ? &zero : additional_data->data();
-            const uint32_t additionalDataSize = noAdditionalData ? 1 : additional_data->size();
+            auto optionalAditionalData = animchar_additional_data::get_optional_data(additional_data);
             bool needImmediateConstPS = startStage == ShaderMesh::STG_opaque; // for customization decals on planes
             auto scene = animchar_render.getSceneInstance();
             if (DAGOR_LIKELY(nodeId < 0))
             {
-              state.process_animchar(startStage, endStage, scene, additionalData, additionalDataSize, need_previous_matrices, nullptr,
+              state.process_animchar(startStage, endStage, scene, optionalAditionalData, need_previous_matrices, shader_override,
                 nullptr, 0, 0, needImmediateConstPS, RenderPriority::DEFAULT, nullptr, texCtx);
             }
             else
@@ -264,13 +265,13 @@ static void process_animchars_and_render(dag::ConstSpan<ecs::EntityId> eids,
                 nodeVisibility.set(i, !scene->getNodeHidden(i));
                 scene->showNode(i, i == nodeId);
               }
-              state.process_animchar(startStage, endStage, scene, additionalData, additionalDataSize, need_previous_matrices, nullptr,
+              state.process_animchar(startStage, endStage, scene, optionalAditionalData, need_previous_matrices, shader_override,
                 nullptr, 0, 0, needImmediateConstPS, RenderPriority::DEFAULT, nullptr, texCtx);
               for (int i = 0, n = scene->getNodeCount(); i < n; i++)
                 scene->showNode(i, nodeVisibility[i]);
             }
             if (hide)
-              animchar_visbits = VISFLG_COCKPIT_VISIBLE;
+              mark_cockpit_visible(animchar_visbits);
           }
         });
   }
@@ -285,11 +286,15 @@ static void process_animchars_and_render(dag::ConstSpan<ecs::EntityId> eids,
   state.render(buffer->curOffset);
 }
 
-static __forceinline void render_scope_trans(ecs::EntityId eid, int nodeId, const TexStreamingContext &texCtx)
+static __forceinline void render_scope_trans(ecs::EntityId eid,
+  int nodeId,
+  const TexStreamingContext &texCtx,
+  ShaderElement *shader_override = nullptr,
+  const int block_id = dynamicSceneTransBlockId.get())
 {
   G_ASSERT(nodeId >= 0);
-  process_animchars_and_render(make_span_const(&eid, 1), ShaderMesh::STG_trans, ShaderMesh::STG_trans, dynamicSceneTransBlockId, 0,
-    false, false, texCtx, nodeId);
+  process_animchars_and_render(make_span_const(&eid, 1), ShaderMesh::STG_trans, ShaderMesh::STG_trans, block_id, 0, false, false,
+    texCtx, nodeId, shader_override);
 }
 
 static void render_scope_reticle_quad(ecs::EntityId eid, int lens_node_id)
@@ -348,12 +353,40 @@ void render_scope(const ScopeAimRenderingData &scopeAimData, const TexStreamingC
     dynamicSceneBlockId, VISFLG_MAIN_AND_SHADOW_VISIBLE, true, true, texCtx);
 }
 
-void render_scope_lens_mask(const ScopeAimRenderingData &scopeAimData, const TexStreamingContext &texCtx)
+void render_scope_trans_except_lens(const ScopeAimRenderingData &scopeAimData, const TexStreamingContext &texCtx)
+{
+  render_scope_trans_ecs_query(scopeAimData.entityWithScopeLensEid,
+    [&](ECS_REQUIRE(ecs::Tag gunmod__drawScopeTrans) AnimV20::AnimcharRendComponent &animchar_render) {
+      if (!animchar_render.getSceneInstance())
+        return;
+      DynamicRenderableSceneInstance &scopeLensInst = *animchar_render.getSceneInstance();
+      bool lensVisible = false, crosshairVisible = false;
+      if (scopeAimData.lensNodeId >= 0)
+      {
+        lensVisible = !scopeLensInst.isNodeHidden(scopeAimData.lensNodeId);
+        scopeLensInst.showNode(scopeAimData.lensNodeId, false);
+      }
+      if (scopeAimData.crosshairNodeId >= 0)
+      {
+        crosshairVisible = !scopeLensInst.isNodeHidden(scopeAimData.crosshairNodeId);
+        scopeLensInst.showNode(scopeAimData.crosshairNodeId, false);
+      }
+      process_animchars_and_render(make_span_const(&scopeAimData.entityWithScopeLensEid, 1), ShaderMesh::STG_trans,
+        ShaderMesh::STG_trans, dynamicSceneTransBlockId, VISFLG_COCKPIT_VISIBLE, false, false, texCtx, -1);
+      if (scopeAimData.lensNodeId >= 0)
+        scopeLensInst.showNode(scopeAimData.lensNodeId, lensVisible);
+      if (scopeAimData.crosshairNodeId >= 0)
+        scopeLensInst.showNode(scopeAimData.lensNodeId, crosshairVisible);
+    });
+}
+
+void render_scope_lens_mask(const ScopeAimRenderingData &scopeAimData, const TexStreamingContext &texCtx, const bool use_depth_as_val)
 {
   TIME_D3D_PROFILE(render_scope_lens);
   ShaderGlobal::set_int(dyn_model_render_passVarId, eastl::to_underlying(dynmodel::RenderPass::Depth));
   ShaderGlobal::set_int(lens_render_modeVarId, LENS_RENDER_MASK);
   ShaderGlobal::set_int(lens_detail_levelVarId, LENS_DETAIL_REFLECTIONS);
+  ShaderGlobal::set_int(use_depth_val_as_maskVarId, use_depth_as_val ? 1 : 0);
   render_scope_trans(scopeAimData.entityWithScopeLensEid, scopeAimData.lensNodeId, texCtx);
 }
 
@@ -403,7 +436,7 @@ void render_lens_frame(
 
   // What is seen through scope might differ from what is actually behind it (e.g., in case of thermal vision).
   // In such a case, the scope should be filled with what has already been rendered as a source image for it.
-  // TODO: rewrite this using ECS and dabfg::NamedSlot()
+  // TODO: rewrite this using ECS and dafg::NamedSlot()
   if (lensSourceTexId == BAD_TEXTUREID)
     ShaderGlobal::set_texture(lens_frame_texVarId, frameTexId);
   else
@@ -481,7 +514,9 @@ void prepare_aim_dof(const ScopeAimRenderingData &scopeAimData,
         [&](float gunmod__focusPlaneShift, float gunmod__dofNearAmountPercent, float gunmod__dofFarAmountPercent) {
           focusPlaneDist = gunmod__focusPlaneShift;
           nearBlurAmount = scopeAimData.nearDofEnabled ? gunmod__dofNearAmountPercent * 0.01 : 0.0f;
-          farBlurAmount = aim_data.farDofEnabled ? gunmod__dofFarAmountPercent * 0.01 : 0.0f;
+
+          const float farDofValue = camera_in_camera::is_lens_render_active() ? 1.0f : gunmod__dofFarAmountPercent * 0.01f;
+          farBlurAmount = aim_data.farDofEnabled ? farDofValue : 0.0f;
         });
 
       TIME_D3D_PROFILE(scope_aim_dof_prepare);
@@ -548,18 +583,14 @@ static void enable_scope_ri_change(bool enable)
 
 ECS_TAG(render)
 ECS_ON_EVENT(BeforeLoadLevel, ChangeRenderFeatures)
-static void scope_quality_render_features_changed_es(const ecs::Event &evt)
+ECS_TRACK(render_settings__scopeImageQuality)
+static void scope_quality_render_features_changed_es(const ecs::Event &, int render_settings__scopeImageQuality)
 {
-  int scopeImageQuality = ::dgs_get_settings()->getBlockByNameEx("graphics")->getInt("scopeImageQuality", 0);
-  bool aimNearDofEnabled = scopeImageQuality >= 1;
-  bool simplifiedAimDof = scopeImageQuality < 2;
+  bool aimNearDofEnabled = render_settings__scopeImageQuality >= 1;
+  bool simplifiedAimDof = render_settings__scopeImageQuality < 2;
   g_entity_mgr->broadcastEventImmediate(UpdateAimDofSettings(aimNearDofEnabled, simplifiedAimDof));
-
-  if (evt.is<ChangeRenderFeatures>())
-  {
-    enable_scope_lod_change(scopeImageQuality >= 2);
-    enable_scope_ri_change(scopeImageQuality == 3);
-  }
+  enable_scope_lod_change(render_settings__scopeImageQuality >= 2);
+  enable_scope_ri_change(render_settings__scopeImageQuality == 3);
 }
 
 ECS_TAG(render)
@@ -572,16 +603,19 @@ ECS_ON_EVENT(on_disappear)
 ECS_REQUIRE(ShadersECS scope_reticle_shader)
 static void release_scope_reticle_quad_rendering_es_event_handler(const ecs::Event &) { index_buffer::release_quads_16bit(); }
 
-static ScopeAimRenderingData prepare_scope_aim_rendering_data(const CameraParams &camera, const IPoint2 &main_view_res)
+static ScopeAimRenderingData prepare_scope_aim_rendering_data()
 {
   ScopeAimRenderingData scopeAimData;
   prepare_scope_aim_rendering_data_ecs_query(
-    [&scopeAimData, &camera, &main_view_res](ECS_REQUIRE(eastl::true_type camera__active) int aim_data__lensNodeId,
+    [&scopeAimData](ECS_REQUIRE(eastl::true_type camera__active) int aim_data__lensNodeId, int aim_data__lensCollisionNodeId,
       int aim_data__crosshairNodeId, ecs::EntityId aim_data__entityWithScopeLensEid, ecs::EntityId aim_data__gunEid,
       const ecs::EidList &aim_data__scopeLensCockpitEntities, bool aim_data__isAiming, bool aim_data__isAimingThroughScope,
-      bool aim_data__nightVision, bool aim_data__nearDofEnabled, bool aim_data__simplifiedAimDof, const float aim_data__scopeWeaponFov,
-      const int aim_data__scopeWeaponFovType, const float aim_data__scopeWeaponLensZoomFactor) {
+      bool aim_data__nightVision, bool aim_data__nearDofEnabled, bool aim_data__simplifiedAimDof,
+      const float aim_data__scopeWeaponLensZoomFactor) {
+      ShaderGlobal::set_real(lens_zoom_factorVarId, aim_data__scopeWeaponLensZoomFactor);
+
       scopeAimData.lensNodeId = aim_data__lensNodeId;
+      scopeAimData.lensCollisionNodeId = aim_data__lensCollisionNodeId;
       scopeAimData.crosshairNodeId = aim_data__crosshairNodeId;
       scopeAimData.entityWithScopeLensEid = aim_data__entityWithScopeLensEid;
       scopeAimData.gunEid = aim_data__gunEid;
@@ -592,40 +626,24 @@ static ScopeAimRenderingData prepare_scope_aim_rendering_data(const CameraParams
       scopeAimData.nightVision = aim_data__nightVision;
       scopeAimData.nearDofEnabled = aim_data__nearDofEnabled;
       scopeAimData.simplifiedAimDof = aim_data__simplifiedAimDof;
-
-      ShaderGlobal::set_real(lens_zoom_factorVarId, aim_data__scopeWeaponLensZoomFactor);
-
-      if (aim_data__scopeWeaponFov != 0.0f)
-      {
-        const auto [horFov, verFov] =
-          calc_hor_ver_fov(aim_data__scopeWeaponFov, (FovMode)aim_data__scopeWeaponFovType, main_view_res.x, main_view_res.y);
-        TMatrix4D weapJitterProjTm = dmatrix_perspective_reverse(horFov, verFov, camera.jitterPersp.zn, camera.jitterPersp.zf,
-          camera.jitterPersp.ox, camera.jitterPersp.oy);
-
-        scopeAimData.jitterProjTm = (TMatrix4)weapJitterProjTm;
-
-        scopeAimData.noJitterProjTm = scopeAimData.jitterProjTm;
-        scopeAimData.noJitterProjTm(2, 0) -= camera.jitterPersp.ox;
-        scopeAimData.noJitterProjTm(2, 1) -= camera.jitterPersp.oy;
-      }
-      else
-      {
-        scopeAimData.jitterProjTm = camera.jitterProjTm;
-        scopeAimData.noJitterProjTm = camera.noJitterProjTm;
-      }
     });
   return scopeAimData;
 }
 
-dabfg::NodeHandle makeSetupScopeAimRenderingDataNode()
+dafg::NodeHandle makeSetupScopeAimRenderingDataNode()
 {
-  return dabfg::register_node("setup_scope_aim_rendering_data", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
-    auto scopeAimRenderDataHandle = registry.createBlob<ScopeAimRenderingData>("scope_aim_render_data", dabfg::History::No).handle();
-    auto cameraParams = registry.read("current_camera").blob<CameraParams>().handle();
-    auto mainViewResolution = registry.getResolution<2>("main_view");
-    return [scopeAimRenderDataHandle, cameraParams, mainViewResolution]() {
+  return dafg::register_node("setup_scope_aim_rendering_data", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    auto scopeAimRenderDataHandle = registry.createBlob<ScopeAimRenderingData>("scope_aim_render_data", dafg::History::No).handle();
+    registry.multiplex(dafg::multiplexing::Mode::None);
+    return [scopeAimRenderDataHandle]() {
       auto &scopeAimData = scopeAimRenderDataHandle.ref();
-      scopeAimData = prepare_scope_aim_rendering_data(cameraParams.ref(), mainViewResolution.get());
+      scopeAimData = prepare_scope_aim_rendering_data();
     };
   });
+}
+
+void render_scope(
+  const ecs::EntityId entity_with_scope, const int node_id, const TexStreamingContext &tex_ctx, ShaderElement *shader_elem)
+{
+  render_scope_trans(entity_with_scope, node_id, tex_ctx, shader_elem, -1);
 }

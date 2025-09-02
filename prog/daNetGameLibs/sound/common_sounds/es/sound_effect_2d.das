@@ -3,22 +3,14 @@ require soundEvent
 require soundSystem
 
 
-[es(tag=sound, on_appear)]
+[es(tag=sound, on_appear, track=sound_preset__isLoaded)]
 def sound_effect_2d_appear(evt : Event;
-                           sound_banks_state__isPresetLoaded : bool;
+                           sound_preset__isLoaded : bool;
                            sound_effect_2d__path : string;
                            sound_effect_2d__abandonOnReset : bool;
                            var sound_effect_2d__event : SoundEvent&)
-  sound_effect_2d__event.abandonOnReset = sound_effect_2d__abandonOnReset
-  if sound_banks_state__isPresetLoaded
+  if sound_preset__isLoaded
+    sound_effect_2d__event.abandonOnReset = sound_effect_2d__abandonOnReset
     sound_effect_2d__event |> play(sound_effect_2d__path)
-
-
-[es(tag=sound, track=sound_banks_state__isPresetLoaded)]
-def sound_effect_2d_toggle(evt : Event;
-                           sound_banks_state__isPresetLoaded : bool;
-                           sound_effect_2d__path : string;
-                           var sound_effect_2d__event : SoundEvent&)
-  release(sound_effect_2d__event)
-  if sound_banks_state__isPresetLoaded
-    sound_effect_2d__event |> play(sound_effect_2d__path)
+  else
+    sound_effect_2d__event |> release()

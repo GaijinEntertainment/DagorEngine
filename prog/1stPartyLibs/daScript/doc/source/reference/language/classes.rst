@@ -9,66 +9,82 @@ Classes provides single parent inheritance, abstract and virtual methods, initia
 
 The basic class declaration is similar to that of a structure, but with the ``class`` keyword::
 
-    class Foo
+    class Foo {
         x, y : int = 0
-        def Foo                             // custom initializer
+        def Foo {                           // custom initializer
             Foo`set(self,1,1)
-        def set(X,Y:int)                    // inline method
+        }
+        def set(X,Y:int) {                  // inline method
             x = X
             y = Y
+        }
+    }
 
 The initializer is a function with a name matching that of a class.
 Classes can have multiple initializer with different arguments::
 
-    class Foo
+    class Foo {
         ...
-        def Foo(T:int)                      // custom initializer
+        def Foo(T:int) {                    // custom initializer
             self->set(T,T)
-        def Foo(X,Y:int)                    // custom initializer
+        }
+        def Foo(X,Y:int) {                  // custom initializer
             Foo`set(self,X,Y)
+        }
+    }
 
 .. _classes_finalizer:
 
 Finalizers can be defined explicitly as void functions named ``finalize``::
 
-    class Foo
+    class Foo {
         ...
-        def finalize                        // custom finalizer
+        def finalize {                      // custom finalizer
             delFoo ++
+        }
+    }
 
 Alternative syntax is::
 
-    class Foo
+    class Foo {
         ...
-        def operator delete                 // custom finalizer
+        def operator delete {              // custom finalizer
             delFoo ++
+        }
+    }
 
 There are no guarantees that a finalizer is called implicitly (see :ref:`Finalizers <finalizers>`).
 
 Derived classes need to override methods explicitly, using the ``override`` keyword::
 
-    class Foo3D : Foo
+    class Foo3D : Foo {
         z : int = 13
-        def Foo3D                           // overriding default initializer
+        def Foo3D {                         // overriding default initializer
             Foo`Foo(self)                   // call parents initializer explicitly
             z = 3
-        def override set(X,Y:int)           // overriding method variable
+        }
+        def override set(X,Y:int) {         // overriding method variable
             Foo`set(self,X,Y)               // calling generated method function directly
             z = 0
+        }
+    }
 
 Classes can define abstract methods using the ``abstract`` keyword::
 
-    class FooAbstract
+    class FooAbstract {
         def abstract set(X,Y:int) : void             // inline method
+    }
 
 Abstract functions need to be fully qualified, including their return type.
 Class member functions are inferred in the same manner as regular functions.
 
 Sealed functions cannot be overridden. The ``sealed`` keyword is used to prevent overriding::
 
-    class Foo3D : Foo
-        def sealed set(X,Y:int )    // subclasses of Foo3D can no longer override this method
+    class Foo3D : Foo {
+        def sealed set(X,Y:int ) { // subclasses of Foo3D can no longer override this method
             xyz = X + Y
+        }
+    }
 
 Sealed classes can not be inherited from. The ``sealed`` keyword is used to prevent inheritance::
 
@@ -83,12 +99,17 @@ Classes can be created via the ``new`` operator::
 
 Local class variables are unsafe::
 
-    unsafe
+    unsafe {
         var f = Foo()       // unsafe
+    }
 
 Class methods can be invoked using ``->`` syntax::
 
     f->set(1,2)
+
+Alternatively, the . operator can be used (in most cases, short of some macros)::
+
+    f.set(1,2)
 
 A specific version of the method can also be called explicitly::
 
@@ -96,41 +117,54 @@ A specific version of the method can also be called explicitly::
 
 Class methods can be constant::
 
-    class Foo
+    class Foo {
         dir : float3
-        def const length
+        def const length {
             return length(dir)  // dir is const float3 here
+        }
+    }
 
 Class methods can be operators::
 
-    class Foo
+    class Foo {
         dir : float3
-        def Foo ( x,y,z:float )
+        def Foo ( x,y,z:float ) {
             dir = float3(x,y,z)
-        def Foo ( d:float3 )
+        }
+        def Foo ( d:float3 ) {
             dir = d
-        def const operator . length
+        }
+        def const operator . length {
             return length(dir)
-        def operator . length := ( value:float )
+        }
+        def operator . length := ( value:float ) {
             dir = normalize(dir) * value
-        def const operator + ( other:Foo )
+        }
+        def const operator + ( other:Foo ) {
             return Foo(dir + other.dir)
+        }
+    }
 
 Class fields can be declared static, i.e. shared between all instances of the class::
 
-    class Foo
+    class Foo {
         static count : int = 0
-        def Foo
+        def Foo {
             count ++
-        def finalize
+        }
+        def finalize {
             count --
+        }
+    }
 
 Class methods can be declared static. Static methods don't have access to 'self' but can access static fields::
 
-        class Foo
+        class Foo {
             static count : int = 0
-            def static getCount : int
+            def static getCount : int {
                 return count
+            }
+        }
 
 	    let count = Foo`getCount()  // they can be accessed outside of class
 
@@ -142,19 +176,23 @@ Class initializers are generated by adding a local ``self`` variable with `const
 The body of the method is prefixed via a ``with self`` expression.
 The final expression is a ``return <- self``::
 
-    def Foo ( X:int const; Y:int const ) : Foo
-        var self:Foo <- [[Foo()]]
-        with self
+    def Foo ( X:int const; Y:int const ) : Foo {
+        var self:Foo <- Foo(uninitialized)
+        with ( self ) {
             Foo`Foo(self,X,Y)
+        }
         return <- self
+    }
 
 Class methods and finalizers are generated by providing the extra argument ``self``.
 The body of the method is prefixed with a ``with self`` expression::
 
-    def Foo3D`set ( var self:Foo3D; X:int const; Y:int const )
-        with self
+    def Foo3D`set ( var self:Foo3D; X:int const; Y:int const ) {
+        with ( self ) {
             Foo`set(self,X,Y)
             z = 0
+        }
+    }
 
 Calling virtual methods is implemented via invoke::
 
@@ -163,12 +201,13 @@ Calling virtual methods is implemented via invoke::
 Every base class gets an ``__rtti`` pointer, and a ``__finalize`` function pointer.
 Additionally, a function pointer is added for each member function::
 
-    class Foo
-            __rtti : void? = typeinfo(rtti_classinfo type<Foo>)
-            __finalize : function<(self:Foo):void> = @@_::Foo'__finalize
-            x : int = 0
-            y : int = 0
-            set : function<(self:Foo;X:int const;Y:int const):void> = @@_::Foo`set
+    class Foo {
+        __rtti : void? = typeinfo(rtti_classinfo type<Foo>)
+        __finalize : function<(self:Foo):void> = @@_::Foo'__finalize
+        x : int = 0
+        y : int = 0
+        set : function<(self:Foo;X:int const;Y:int const):void> = @@_::Foo`set
+    }
 
 ``__rtti`` contains rtti::TypeInfo for the specific class instance.
 There is helper function in the rtti module to access class_info safely::

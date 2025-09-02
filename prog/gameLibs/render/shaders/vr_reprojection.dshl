@@ -1,5 +1,4 @@
 int use_vr_reprojection = 0;
-interval use_vr_reprojection:off<1, on;
 int use_bounding_vr_reprojection = 0;
 interval use_bounding_vr_reprojection:off<1, on;
 
@@ -24,29 +23,33 @@ macro USE_VR_REPROJECTION(stage)
   hlsl(stage) {
     float4 vr_reproject(float4 pos)
     {
-      ##if use_vr_reprojection == on
+      BRANCH
+      if (use_vr_reprojection == 1)
+      {
         float4 reprojectedTexcoord = mul(pos, vrReprojectionMatrix);
         return reprojectedTexcoord;
-      ##else
+      }
+      else
         return pos;
-      ##endif
     }
 
     float2 vr_reproject(float2 texcoord, float rawDepth)
     {
-      ##if use_vr_reprojection == on
+      BRANCH
+      if (use_vr_reprojection == 1)
+      {
         float4 pos = float4((texcoord - 0.5) * float2(2.0, -2.0), rawDepth, 1.0);
         pos = vr_reproject(pos);
         pos.xy /= pos.w;
         return pos.xy * float2(0.5, -0.5) + 0.5;
-      ##else
+      }
+      else
         return texcoord;
-      ##endif
     }
   }
 endmacro
 
-macro INIT_BOUNDING_VIEW_REPROJECTION(stage)
+macro INIT_BOUNDING_VIEW_REPROJECTION_BASE(stage)
   (stage) {
     vrBoundingViewReprojectionMatrix@f44 = {vr_bounding_view_reprojection_matrix0,
                                             vr_bounding_view_reprojection_matrix1,
@@ -56,7 +59,7 @@ macro INIT_BOUNDING_VIEW_REPROJECTION(stage)
   }
 endmacro
 
-macro USE_BOUNDING_VIEW_REPROJECTION(stage)
+macro USE_BOUNDING_VIEW_REPROJECTION_BASE(stage)
   hlsl(stage) {
     float3 vr_bounding_view_reproject(float2 texcoord, float rawDepth)
     {
@@ -70,4 +73,41 @@ macro USE_BOUNDING_VIEW_REPROJECTION(stage)
       return vr_bounding_view_reproject(texcoord, rawDepth).xy;
     }
   }
+endmacro
+
+
+macro INIT_BOUNDING_VIEW_REPROJECTION_VS()
+  BEGIN_ONCE(init_bounding_view_reprojection_vs)
+  INIT_BOUNDING_VIEW_REPROJECTION_BASE(vs)
+  END_ONCE()
+endmacro
+
+macro USE_BOUNDING_VIEW_REPROJECTION_VS()
+  BEGIN_ONCE(use_bounding_view_reprojection_vs)
+  USE_BOUNDING_VIEW_REPROJECTION_BASE(vs)
+  END_ONCE()
+endmacro
+
+macro INIT_BOUNDING_VIEW_REPROJECTION_PS()
+  BEGIN_ONCE(init_bounding_view_reprojection_ps)
+  INIT_BOUNDING_VIEW_REPROJECTION_BASE(ps)
+  END_ONCE()
+endmacro
+
+macro USE_BOUNDING_VIEW_REPROJECTION_PS()
+  BEGIN_ONCE(use_bounding_view_reprojection_ps)
+  USE_BOUNDING_VIEW_REPROJECTION_BASE(ps)
+  END_ONCE()
+endmacro
+
+macro INIT_BOUNDING_VIEW_REPROJECTION_CS()
+  BEGIN_ONCE(init_bounding_view_reprojection_cs)
+  INIT_BOUNDING_VIEW_REPROJECTION_BASE(cs)
+  END_ONCE()
+endmacro
+
+macro USE_BOUNDING_VIEW_REPROJECTION_CS()
+  BEGIN_ONCE(use_bounding_view_reprojection_cs)
+  USE_BOUNDING_VIEW_REPROJECTION_BASE(cs)
+  END_ONCE()
 endmacro

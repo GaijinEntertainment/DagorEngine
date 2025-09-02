@@ -5,6 +5,7 @@
 #include <drv/3d/dag_consts.h>
 
 #include "vulkan_device.h"
+#include "shader_module.h"
 
 namespace drv3d_vulkan
 {

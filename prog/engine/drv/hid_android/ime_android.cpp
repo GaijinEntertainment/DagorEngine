@@ -188,8 +188,8 @@ static bool softinput::attach(void *activity)
   jvmAttachArgs.group = NULL;
 
   // always attach to the caller's thread
-  jint result = android::get_java_vm(activity)->AttachCurrentThread(&s_Jni, &jvmAttachArgs);
-  if (result == JNI_ERR)
+  jint result = android::attach_current_thread(android::get_java_vm(activity), &s_Jni, &jvmAttachArgs);
+  if (result != JNI_OK)
     return false;
 
   // check if already inited
@@ -320,8 +320,8 @@ bool nvsoftinput::attach(void *activity)
     return false;
 
   // always attach to the caller's thread
-  jint result = android::get_java_vm(activity ? activity : s_AttachedActivity)->AttachCurrentThread(&s_Jni, NULL);
-  if (result == JNI_ERR)
+  jint result = android::attach_current_thread(android::get_java_vm(activity ? activity : s_AttachedActivity), &s_Jni, NULL);
+  if (result != JNI_OK)
     return false;
 
   // check if already inited

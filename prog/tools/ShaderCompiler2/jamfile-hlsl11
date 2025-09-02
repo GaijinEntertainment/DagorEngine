@@ -13,6 +13,6 @@ Sources += hlsl11transcode/asmShaders11.cpp ;
 AddLibs += D3dcompiler.lib
 ;
 
-CPPopt += -D_CROSS_TARGET_DX11=1 -DBINDUMP_TARGET_BE=0 ;
+CPPopt += -D_CROSS_TARGET_DX11 -DBINDUMP_TARGET_BE=0 ;
 
 include $(Root)/prog/_jBuild/build.jam ;

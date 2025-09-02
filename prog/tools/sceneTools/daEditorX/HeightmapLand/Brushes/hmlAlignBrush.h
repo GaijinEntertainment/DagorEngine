@@ -18,23 +18,23 @@ public:
     collisionOffset(-0.1)
   {}
 
-  virtual void fillParams(PropPanel::ContainerPropertyControl &panel);
-  virtual void updateToPanel(PropPanel::ContainerPropertyControl &panel);
+  void fillParams(PropPanel::ContainerPropertyControl &panel) override;
+  void updateToPanel(PropPanel::ContainerPropertyControl &panel) override;
 
-  virtual void onRBBrushPaintStart(int buttons, int key_modif) { onBrushPaintStart(buttons, key_modif); }
-  virtual void onBrushPaintStart(int buttons, int key_modif)
+  void onRBBrushPaintStart(int buttons, int key_modif) override { onBrushPaintStart(buttons, key_modif); }
+  void onBrushPaintStart(int buttons, int key_modif) override
   {
     HmapLandBrush::onBrushPaintStart(buttons, key_modif);
     currentTrail = 1;
     started = false;
   }
-  virtual bool brushPaintApply(int x, int y, float inc, bool rb);
-  virtual void brushPaintApplyStart(const IBBox2 &where);
-  virtual void brushPaintApplyEnd();
-  virtual void saveToBlk(DataBlock &blk) const;
-  virtual void loadFromBlk(const DataBlock &blk);
+  bool brushPaintApply(int x, int y, float inc, bool rb) override;
+  void brushPaintApplyStart(const IBBox2 &where) override;
+  void brushPaintApplyEnd() override;
+  void saveToBlk(DataBlock &blk) const override;
+  void loadFromBlk(const DataBlock &blk) override;
 
-  virtual bool updateFromPanelRef(PropPanel::ContainerPropertyControl &panel, int pid);
+  bool updateFromPanelRef(PropPanel::ContainerPropertyControl &panel, int pid) override;
 
 protected:
   float trail, sigma;

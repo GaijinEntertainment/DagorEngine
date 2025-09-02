@@ -9,6 +9,7 @@
 #include <3d/dag_texStreamingContext.h>
 #include <math/dag_frustum.h>
 #include <math/integer/dag_IPoint2.h>
+#include <math/dag_TMatrix.h>
 #include <EASTL/fixed_function.h>
 #include <EASTL/optional.h>
 
@@ -27,6 +28,7 @@ extern RiGenVisibility *createRIGenVisibility(IMemAlloc *mem);
 extern void setRIGenVisibilityDistMul(RiGenVisibility *visibility, float dist_mul);
 extern void destroyRIGenVisibility(RiGenVisibility *visibility);
 extern void setRIGenVisibilityMinLod(RiGenVisibility *visibility, int ri_lod, int ri_extra_lod);
+extern void setRIForcedLocalPoolOrder(RiGenVisibility *visibility, bool forced_local_pool_order);
 extern void setRIGenVisibilityAtestSkip(RiGenVisibility *visibility, bool skip_atest, bool skip_noatest);
 bool isRiGenVisibilityForcedLodLoaded(const RiGenVisibility *visibility);
 void riGenVisibilityScheduleForcedLodLoading(const RiGenVisibility *visibility);
@@ -35,6 +37,7 @@ extern void setRIGenVisibilityRendering(RiGenVisibility *visibility, VisibilityR
 
 
 using VisibilityExternalFilter = eastl::fixed_function<sizeof(vec4f), bool(vec4f bbmin, vec4f bbmax)>;
+using VisibilityExternalIdFilter = eastl::fixed_function<sizeof(void *), bool(int ri_idx, const TMatrix &tm)>;
 
 // prepares visibility for specified frustum/position.
 // if forShadow is true, only opaque part will be created, and only partially transparent cells are added to opaque
@@ -42,6 +45,9 @@ using VisibilityExternalFilter = eastl::fixed_function<sizeof(vec4f), bool(vec4f
 //  if for_visual_collision is true, only rendinst without collision will be rendered
 extern bool prepareRIGenVisibility(const Frustum &frustum, const Point3 &viewPos, RiGenVisibility *, bool forShadow,
   Occlusion *occlusion, bool for_visual_collision = false, const VisibilityExternalFilter &external_filter = {});
+
+extern void filterRIGenVisibilityById(const RiGenVisibility *visibility, RiGenVisibility *filteredVis,
+  const VisibilityExternalIdFilter &id_filter);
 
 extern void sortRIGenVisibility(RiGenVisibility *visibility, const Point3 &viewPos, const Point3 &viewDir, float vertivalFov,
   float horizontalFov, float areaThreshold, unsigned renderMaskO);
@@ -73,7 +79,7 @@ bool prepareRIGenExtraVisibilityBoxInternal(bbox3f_cref box_cull, int forced_lod
   RiGenVisibility &vbase, bbox3f *result_box);
 void filterVisibility(RiGenVisibility &from, RiGenVisibility &to, const VisibilityExternalFilter &external_filter);
 
-void requestLodsByDistance(const Point3 &view_pos);
+void requestRiExtraLodsByDistance(const Point3 &view_pos);
 
 void sortTransparentRiExtraInstancesByDistance(RiGenVisibility *vb, const Point3 &view_pos);
 void sortTransparentRiExtraInstancesByDistanceAndPartitionOutsideSphere(RiGenVisibility *vb, const Point3 &view_pos,

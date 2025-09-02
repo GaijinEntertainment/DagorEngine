@@ -1,0 +1,16 @@
+Root    ?= ../../../.. ;
+Location = prog/gameLibs/render/enviCover ;
+
+TargetType  = lib ;
+Target      = gameLibs/render/enviCover.lib ;
+
+AddIncludes =
+  $(Root)/prog/engine/dagorInclude
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+Sources =
+  enviCover.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

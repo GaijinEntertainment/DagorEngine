@@ -10,14 +10,16 @@
 #include <EASTL/bitvector.h>
 
 #include "shsem.h"
+#include "shlexterm.h"
 #include "shaderVariant.h"
+#include "shShaderContext.h"
 #include "shVarBool.h"
 #include "nameMap.h"
+#include "hlslStage.h"
 
 /************************************************************************/
 /* forwards
 /************************************************************************/
-struct ShHardwareOptions;
 class CodeSourceBlocks;
 
 
@@ -31,76 +33,52 @@ namespace ShaderParser
 class GatherVarShaderEvalCB : public ShaderEvalCB, public ShaderBoolEvalCB
 {
 public:
-  ShaderVariant::TypeTable varTypes;
-  ShaderVariant::TypeTable dynVarTypes;
-  ShaderVariant::TypeTable allRefStaticVars;
-  eastl::vector<eastl::pair<eastl::string, uint8_t>> assumedIntervals;
-  IntervalList intervals;
-  ShaderSyntaxParser &parser;
-  const ShHardwareOptions &opt;
+  explicit GatherVarShaderEvalCB(shc::ShaderContext &ctx);
 
-  OAHashNameMap<false> staticVars, dynamicVars;
+  void eval_interval_decl(interval &interv) override;
 
-  Terminal *shname_token;
-  bool shaderDebugModeEnabled = false;
-
-
-  GatherVarShaderEvalCB(ShaderSyntaxParser &_parser, const ShHardwareOptions &_opt, Terminal *shname, const char *hlsl_vs,
-    const char *hlsl_hs, const char *hlsl_ds, const char *hlsl_gs, const char *hlsl_ps, const char *hlsl_cs, const char *hlsl_ms,
-    const char *hlsl_as, bool &out_shaderDebugModeEnabled);
-
-  virtual void eval_interval_decl(interval &interv);
-
-  virtual void eval_static(static_var_decl &s);
+  void eval_static(static_var_decl &s) override;
   void eval_bool_decl(bool_decl &) override;
   void decl_bool_alias(const char *name, bool_expr &expr) override;
-  int add_message(const char *message, bool file_name) override;
-  int is_debug_mode_enabled() override { return shaderDebugModeEnabled; }
-  bool is_filename_message(int id) const { return !nonFilenameMessages.test(id, false); }
-  const SCFastNameMap &get_messages() const { return messages; }
 
-  void eval_channel_decl(channel_decl &s, int str_id = 0);
-  void eval_state(state_stat &) {}
-  void eval_zbias_state(zbias_state_stat &) {}
+  void eval_channel_decl(channel_decl &s, int str_id = 0) override;
+  void eval_state(state_stat &) override {}
+  void eval_zbias_state(zbias_state_stat &) override {}
   void eval_external_block(external_state_block &) override;
   void eval_assume_stat(assume_stat &s) override;
-  void eval_render_stage(render_stage_stat &) {}
-  void eval_command(shader_directive &) {}
-  void eval_supports(supports_stat &);
+  void eval_assume_if_not_assumed_stat(assume_if_not_assumed_stat &s) override;
+  void eval_render_stage(render_stage_stat &) override {}
+  void eval_command(shader_directive &) override {}
+  void eval_supports(supports_stat &) override;
 
-  virtual void eval_shader_locdecl(local_var_decl &s) {}
+  void eval_shader_locdecl(local_var_decl &s) override {}
 
-  int eval_if(bool_expr &e);
+  int eval_if(bool_expr &e) override;
 
-  void eval_else(bool_expr &);
-  void eval_endif(bool_expr &);
+  void eval_else(bool_expr &) override;
+  void eval_endif(bool_expr &) override;
 
-  virtual ShVarBool eval_expr(bool_expr &e);
-  virtual ShVarBool eval_bool_value(bool_value &e);
-  virtual int eval_interval_value(const char *ival_name);
+  ShVarBool eval_expr(bool_expr &e) override;
+  ShVarBool eval_bool_value(bool_value &e) override;
+  int eval_interval_value(const char *ival_name) override;
 
-  void error(const char *msg, Symbol *s);
-  void warning(const char *msg, Symbol *s);
-
-  virtual void eval_hlsl_compile(hlsl_compile_class &hlsl_compile) {}
-  virtual void eval_hlsl_decl(hlsl_local_decl_class &hlsl_compile);
-  virtual void eval(immediate_const_block &) override;
-
-  bool end_eval(CodeSourceBlocks &vs, CodeSourceBlocks &hs, CodeSourceBlocks &ds, CodeSourceBlocks &gs, CodeSourceBlocks &ps,
-    CodeSourceBlocks &cs, CodeSourceBlocks &ms, CodeSourceBlocks &as);
+  void eval_hlsl_compile(hlsl_compile_class &hlsl_compile) override {}
+  void eval_hlsl_decl(hlsl_local_decl_class &hlsl_compile) override;
+  void eval(immediate_const_block &) override;
 
 private:
-  Tab<bool> hwStack; // check variables for hardware dependens
-  int hwCount;
-  bool hasHWFlag; // true, if last boolean expression has hardware-depended flag
+  shc::ShaderContext &ctx;
 
+  // Cached refs from ctx
+  shc::TypeTables &types;
+  Parser &parser;
+
+  // Internal pass state
   Tab<bool> dynStack;
   int dynCount;
   bool hasDynFlag;
-  SCFastNameMap messages;
-  eastl::bitvector<> nonFilenameMessages;
 
-  String hlslPs, hlslVs, hlslHs, hlslDs, hlslGs, hlslCs, hlslMs, hlslAs;
+  SCFastNameMap staticVars, dynamicVars;
 
   ShVarBool addInterval(const char *intervalName, Terminal *terminal, bool_value *e);
 

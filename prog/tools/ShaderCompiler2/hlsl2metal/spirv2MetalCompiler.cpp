@@ -106,20 +106,23 @@ static std::vector<uint8_t> compileMSL(const std::string &source, bool use_ios_t
 }
 #endif
 
-static bool HasResource(const spirv_cross::SmallVector<spirv_cross::Resource> &resources, const std::string &res)
+static bool HasResource(const spirv_cross::CompilerMSL &compiler, const spirv_cross::SmallVector<spirv_cross::Resource> &resources,
+  const std::string &res)
 {
   for (const auto &resource : resources)
-    if (resource.name == res || resource.name == ("type." + res))
+    if (resource.name == res || res == compiler.get_name(resource.id))
       return true;
   return false;
 }
 
-static const spirv_cross::Resource *GetResource(const spirv_cross::SmallVector<spirv_cross::Resource> &resources,
-  const std::string &res)
+static const spirv_cross::Resource *GetResource(const spirv_cross::CompilerMSL &compiler,
+  const spirv_cross::SmallVector<spirv_cross::Resource> &resources, const std::string &res)
 {
   for (const auto &resource : resources)
-    if (resource.name == res || resource.name == ("type." + res))
+  {
+    if (resource.name == res || res == compiler.get_name(resource.id))
       return &resource;
+  }
   return nullptr;
 }
 
@@ -139,6 +142,13 @@ static SemanticValue *lookupSemantic(const std::string &key)
       return &val;
   }
   return nullptr;
+}
+
+static drv3d_metal::MetalImageType decodeImageType(spirv_cross::CompilerMSL &msl, int base_type_id)
+{
+  auto &type = msl.get_type(base_type_id);
+  const auto &imageType = type.image;
+  return translateImageType(imageType);
 }
 
 void saveTexuredata(spirv_cross::CompilerMSL &msl, DataAccumulator &header, spirv_cross::SmallVector<spirv_cross::Resource> &images,
@@ -285,6 +295,47 @@ bool CompilerMSLlocal::compileBinaryMSL(const String &mtl_src, std::vector<uint8
 #endif
 }
 
+static int EncodeBufferSlot(drv3d_metal::BufferType type, int slot)
+{
+  drv3d_metal::EncodedBufferRemap enc;
+  enc.remap_type = drv3d_metal::EncodedBufferRemap::RemapType::Buffer;
+  enc.buffer_type = type;
+  enc.slot = slot;
+  return enc.value;
+}
+
+static int EncodeTextureSlot(drv3d_metal::MetalImageType type, int slot)
+{
+  drv3d_metal::EncodedBufferRemap enc;
+  enc.remap_type = drv3d_metal::EncodedBufferRemap::RemapType::Texture;
+  enc.texture_type = type;
+  enc.slot = slot;
+  return enc.value;
+}
+
+static int EncodeSamplerSlot(int slot)
+{
+  drv3d_metal::EncodedBufferRemap enc;
+  enc.remap_type = drv3d_metal::EncodedBufferRemap::RemapType::Sampler;
+  enc.slot = slot;
+  return enc.value;
+}
+
+static spv::ExecutionModel shader_type_to_execution_model(ShaderType type)
+{
+  G_ASSERT(type != ShaderType::Invalid);
+  switch (type)
+  {
+    case ShaderType::Invalid: return spv::ExecutionModelVertex;
+    case ShaderType::Vertex: return spv::ExecutionModelVertex;
+    case ShaderType::Pixel: return spv::ExecutionModelFragment;
+    case ShaderType::Compute: return spv::ExecutionModelGLCompute;
+    case ShaderType::Mesh: return spv::ExecutionModelMeshEXT;
+    case ShaderType::Amplification: return spv::ExecutionModelTaskEXT;
+  }
+  return spv::ExecutionModelVertex;
+}
+
 CompileResult CompilerMSLlocal::convertToMSL(CompileResult &compile_result, eastl::vector<spirv::ReflectionInfo> &resourceMap,
   const char *source, ShaderType shaderType, const char *shader_name, const char *entry, uint64_t shader_variant_hash,
   bool use_binary_msl)
@@ -298,19 +349,20 @@ CompileResult CompilerMSLlocal::convertToMSL(CompileResult &compile_result, east
   std::fill(samplerRemap, samplerRemap + drv3d_metal::MAX_SHADER_TEXTURES, -1);
 
   bool has_raytracing = false;
+  bool has_mesh = shaderType == ShaderType::Mesh || shaderType == ShaderType::Amplification;
 
   auto resources = this->get_shader_resources(this->get_active_interface_variables());
   for (auto resIt = resourceMap.begin(); resIt != resourceMap.end(); /*empty*/)
   {
     std::string name = resIt->name.c_str();
     bool has = name == "$Global" || name == "$Globals";
-    has |= HasResource(resources.uniform_buffers, name);
-    has |= HasResource(resources.storage_buffers, name);
-    has |= HasResource(resources.separate_images, name);
-    has |= HasResource(resources.storage_images, name);
-    has |= HasResource(resources.separate_samplers, name);
+    has |= HasResource(*this, resources.uniform_buffers, name);
+    has |= HasResource(*this, resources.storage_buffers, name);
+    has |= HasResource(*this, resources.separate_images, name);
+    has |= HasResource(*this, resources.storage_images, name);
+    has |= HasResource(*this, resources.separate_samplers, name);
 
-    bool has_acceleration_struct = HasResource(resources.acceleration_structures, name);
+    bool has_acceleration_struct = HasResource(*this, resources.acceleration_structures, name);
     has_raytracing |= has_acceleration_struct;
     has |= has_acceleration_struct;
 
@@ -322,9 +374,7 @@ CompileResult CompilerMSLlocal::convertToMSL(CompileResult &compile_result, east
 
   eastl::vector<std::pair<eastl::string, spirv_cross::MSLResourceBinding>> binds;
   spirv_cross::MSLResourceBinding bind = {};
-  bind.stage = shaderType == ShaderType::Pixel
-                 ? spv::ExecutionModelFragment
-                 : (shaderType == ShaderType::Compute ? spv::ExecutionModelGLCompute : spv::ExecutionModelVertex);
+  bind.stage = shader_type_to_execution_model(shaderType);
 
   uint32_t sampler = 0, texture = 0, buffer_local = drv3d_metal::BIND_POINT + 1;
   uint32_t bindless_texture_id_count = 0, bindless_sampler_id_count = 0, bindless_buffer_id_count = 0;
@@ -350,10 +400,10 @@ CompileResult CompilerMSLlocal::convertToMSL(CompileResult &compile_result, east
       const spirv_cross::Resource *sampler_resource = nullptr;
       const auto res_name = std::string(res.name.c_str());
 
-      texture_resource = GetResource(resources.separate_images, res_name);
+      texture_resource = GetResource(*this, resources.separate_images, res_name);
       if (!texture_resource)
-        texture_resource = GetResource(resources.storage_images, res_name);
-      sampler_resource = GetResource(resources.separate_samplers, res_name);
+        texture_resource = GetResource(*this, resources.storage_images, res_name);
+      sampler_resource = GetResource(*this, resources.separate_samplers, res_name);
 
       if (sampler_resource && IsBindlessResource(*this, sampler_resource))
       {
@@ -367,7 +417,7 @@ CompileResult CompilerMSLlocal::convertToMSL(CompileResult &compile_result, east
 
         bind.msl_sampler = buffer_local++;
         bufferRemap[drv3d_metal::RemapBufferSlot(drv3d_metal::BINDLESS_SAMPLER_ID_BUFFER, bindless_sampler_id_count)] =
-          bind.msl_sampler;
+          EncodeSamplerSlot(bind.msl_sampler);
         bindless_sampler_id_count++;
       }
       else if (texture_resource && IsBindlessResource(*this, texture_resource))
@@ -382,7 +432,7 @@ CompileResult CompilerMSLlocal::convertToMSL(CompileResult &compile_result, east
 
         bind.msl_texture = buffer_local++;
         bufferRemap[drv3d_metal::RemapBufferSlot(drv3d_metal::BINDLESS_TEXTURE_ID_BUFFER, bindless_texture_id_count)] =
-          bind.msl_texture;
+          EncodeTextureSlot(decodeImageType(*this, texture_resource->base_type_id), bind.msl_texture);
         bindless_texture_id_count++;
       }
       else
@@ -401,9 +451,9 @@ CompileResult CompilerMSLlocal::convertToMSL(CompileResult &compile_result, east
           ? (res.uav ? drv3d_metal::RW_BUFFER : drv3d_metal::STRUCT_BUFFER)
           : drv3d_metal::CONST_BUFFER;
 
-      buffer_resource = GetResource(resources.uniform_buffers, res_name);
+      buffer_resource = GetResource(*this, resources.uniform_buffers, res_name);
       if (!buffer_resource)
-        buffer_resource = GetResource(resources.storage_buffers, res_name);
+        buffer_resource = GetResource(*this, resources.storage_buffers, res_name);
 
       if (buffer_resource && IsBindlessResource(*this, buffer_resource))
       {
@@ -416,11 +466,15 @@ CompileResult CompilerMSLlocal::convertToMSL(CompileResult &compile_result, east
         }
 
         bind.msl_buffer = buffer_local++;
-        bufferRemap[drv3d_metal::RemapBufferSlot(drv3d_metal::BINDLESS_BUFFER_ID_BUFFER, bindless_buffer_id_count)] = bind.msl_buffer;
+        bufferRemap[drv3d_metal::RemapBufferSlot(drv3d_metal::BINDLESS_BUFFER_ID_BUFFER, bindless_buffer_id_count)] =
+          EncodeBufferSlot(drv3d_metal::STRUCT_BUFFER, bind.msl_buffer);
         bindless_buffer_id_count++;
       }
       else if (type != drv3d_metal::CONST_BUFFER || bind.binding)
-        bufferRemap[drv3d_metal::RemapBufferSlot(type, bind.binding)] = bind.msl_buffer = buffer_local++;
+      {
+        bind.msl_buffer = buffer_local++;
+        bufferRemap[drv3d_metal::RemapBufferSlot(type, bind.binding)] = EncodeBufferSlot(drv3d_metal::STRUCT_BUFFER, bind.msl_buffer);
+      }
       else
         bind.msl_buffer = drv3d_metal::BIND_POINT;
     }
@@ -518,7 +572,7 @@ CompileResult CompilerMSLlocal::convertToMSL(CompileResult &compile_result, east
         compile_result.errors.sprintf("Spir-V to MSL pixel shader output %s has wrong binding %d\n", stgOutput.name.c_str(), location);
         return compile_result;
       }
-      output_mask += 0xf << (4 * location);
+      output_mask |= 0xf << (4 * location);
     }
     header.append(output_mask);
   }
@@ -649,7 +703,7 @@ CompileResult CompilerMSLlocal::convertToMSL(CompileResult &compile_result, east
   std::vector<uint8_t> mtl_bin;
   if (use_binary_msl)
   {
-    if (!this->compileBinaryMSL(mtl_src, mtl_bin, use_ios_token, has_raytracing, sourceToCompress))
+    if (!this->compileBinaryMSL(mtl_src, mtl_bin, use_ios_token, has_raytracing || has_mesh, sourceToCompress))
     {
       debug("metal source:\n%s\n", mtl_src.c_str());
       eastl::string str;

@@ -32,7 +32,7 @@ register_base64 = yes
 sqstd_register_datetime_lib = yes
 register_dagor_time_module = yes
 sqrat_bind_datablock_module = yes
-
+sqstd_register_io_lib = yes
 sqstd_register_base_libs = yes
 
 ;sqstd_register_bloblib_native_module = no ; class blob.blob, blob.blob.swap4, blob.blob.swap2 ...

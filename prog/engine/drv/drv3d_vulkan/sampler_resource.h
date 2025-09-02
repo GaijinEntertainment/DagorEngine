@@ -36,7 +36,7 @@ public:
 
   void createVulkanObject();
   void destroyVulkanObject();
-  void shutdown(){};
+  void shutdown() {}
   void releaseSharedHandle() { DAG_FATAL("vulkan: no handle reuse for samplers"); };
 
   MemoryRequirementInfo getMemoryReq()
@@ -58,6 +58,9 @@ public:
   void bindMemory() {}
 
   void reuseHandle() { DAG_FATAL("vulkan: no handle reuse for samplers"); }
+
+  void onDeviceReset() {}
+  void afterDeviceReset() {}
 };
 
 } // namespace drv3d_vulkan

@@ -589,6 +589,10 @@ void DefaultDagorVisualConsoleDriver::puts(const char *str, console::LineType li
 {
   WinAutoLock lock(consoleCritSec);
 
+  String line(str);
+  if (line.length() == 0)
+    return;
+
   constexpr int maxImportantLinesCount = 50;
   constexpr int removeImportantLinesFrom = 15;
   if (lineType == CONSOLE_ERROR)
@@ -604,18 +608,20 @@ void DefaultDagorVisualConsoleDriver::puts(const char *str, console::LineType li
     }
   }
 
-  String line(str);
   line.replaceAll("\r", "");
   line.replaceAll("\t", "    ");
   int prevLinesCount = linesList.size();
 
-  while (char *cr = (char *)line.find('\n'))
+  const char *from = line.str();
+  while (char *cr = (char *)line.find('\n', from))
   {
     *cr = 0;
     if (cr != line.str())
-      linesList.push_back({lineType, line});
-    erase_items(line, 0, cr - line.str() + 1);
+      linesList.push_back({lineType, line.mk_sub_str(from, cr)});
+    from = cr + 1;
   }
+
+  erase_items(line, 0, from - line.str());
   if (line.length() > 0)
     linesList.push_back({lineType, line});
 

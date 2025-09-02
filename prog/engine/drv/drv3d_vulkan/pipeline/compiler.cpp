@@ -130,6 +130,9 @@ void PipelineCompiler::shutdown()
   while (compileQueue.waitSubmit(1, 1))
     compileQueue.advance();
   timeBlock.end();
+
+  // mark compiler disabled, so we can keep using it for blocking compilations if requested
+  cfg.disable = true;
 }
 
 void PipelineCompiler::queue(ComputePipeline *compute_pipe)
@@ -171,7 +174,7 @@ void PipelineCompiler::waitFor(ComputePipeline *compute_pipe)
   TIME_PROFILE(vulkan_cs_pipe_wait);
   processQueuedBlocked();
   ComputePipeline *pipe = compute_pipe;
-  spin_wait([pipe]() { return !pipe->checkCompiled(); });
+  spin_wait([pipe]() { return pipe->checkCompiled() == PipelineCompileStatus::PENDING; });
 }
 
 void PipelineCompiler::waitFor(GraphicsPipeline *graphics_pipe)
@@ -184,7 +187,7 @@ void PipelineCompiler::waitFor(GraphicsPipeline *graphics_pipe)
   TIME_PROFILE(vulkan_gr_pipe_wait);
   processQueuedBlocked();
   GraphicsPipeline *pipe = graphics_pipe;
-  spin_wait([pipe]() { return !pipe->checkCompiled(); });
+  spin_wait([pipe]() { return pipe->checkCompiled() == PipelineCompileStatus::PENDING; });
 }
 
 void PipelineCompiler::processQueuedBlocked()
@@ -203,7 +206,7 @@ void PipelineCompiler::processQueuedBlocked()
 
 bool PipelineCompiler::processQueued()
 {
-  if (!timeBlock->queue.size())
+  if (cfg.disable || !timeBlock->queue.size())
     return true;
 
   auto &compileQueue = Globals::timelines.get<PipelineCompileTimeline>();
@@ -215,7 +218,7 @@ bool PipelineCompiler::processQueued()
 
 size_t PipelineCompiler::getQueueLength() { return queueLength.load(); }
 
-void PipelineCompiler::compileBlock(eastl::vector<PipelineCompileQueueItem> &block)
+void PipelineCompiler::compileBlock(dag::Vector<PipelineCompileQueueItem> &block)
 {
   endItem = block.end();
   currentItem = block.begin();

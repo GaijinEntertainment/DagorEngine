@@ -1,6 +1,6 @@
+from "%sqstd/string.nut" import tostring_r
 from "%darg/ui_imports.nut" import *
-let {tostring_r} = require("%sqstd/string.nut")
-let {loginData, gsidData, requestLogin} = require("web_login.nut")
+let { loginData, gsidData, requestLogin } = require("web_login.nut")
 
 
 let txt = @(text, style = null) {rendObj = ROBJ_TEXT text}.__update(style ?? {})
@@ -9,17 +9,17 @@ let txtBtn = function(text, handler=null, opts = null) {
   return @() {
     rendObj = ROBJ_BOX
     watch = stateFlags
-    padding = [hdpx(5), hdpx(10)]
+    padding = static [hdpx(5), hdpx(10)]
     children = txt(text)
     onClick = handler
-    onElemState = @(s) stateFlags(s)
+    onElemState = @(s) stateFlags.set(s)
     borderRadius = hdpx(5)
     behavior = Behaviors.Button
-    fillColor = stateFlags.value & S_HOVER ? Color(60,80,80) : Color(40,40,40)
+    fillColor = stateFlags.get() & S_HOVER ? Color(60,80,80) : Color(40,40,40)
   }.__update(opts ?? {})
 }
 
-let textArea = @(text) {rendObj = ROBJ_TEXTAREA behavior = Behaviors.TextArea text size = [flex(), SIZE_TO_CONTENT], preformatted=true}
+let textArea = @(text) {rendObj = ROBJ_TEXTAREA behavior = Behaviors.TextArea text size = FLEX_H, preformatted=true}
 
 let loginInfo = @() {
   size = flex()
@@ -28,9 +28,9 @@ let loginInfo = @() {
   color = Color(30,30,30)
   padding = sh(2)
   children = textArea(
-    gsidData.value==null
+    gsidData.get()==null
       ? "press login button"
-      : loginData.value != null ? tostring_r(loginData.value) : "waiting for login data ..."
+      : loginData.get() != null ? tostring_r(loginData.get()) : "waiting for login data ..."
   )
 
 }

@@ -13,6 +13,7 @@ enum
 {
   PHYS_DEFAULT = 1,
   PHYS_BULLET,
+  PHYS_JOLT,
   PHYS_TYPE_LAST
 };
 

@@ -1,0 +1,74 @@
+include "decals/deferred_decal_inc.dshl"
+
+macro MODULATE_2X_DECAL_PS(is_deferred_decal)
+  WRITE_GBUFFER()
+
+  if (compatibility_mode == compatibility_mode_off)
+  {
+    static int writemask = 1287;//7|((1|4)<<8) - albedo, smoothness and metalness properties
+  } else
+  {
+    static int writemask = 119;//RT0 rgb | RT1 rgb
+  }
+  color_write = static writemask;
+
+  blend_src = dc; blend_dst = sc;
+  blend_asrc = 0; blend_adst = 1;
+
+  if (is_deferred_decal)
+  {
+    DEFERRED_DECAL_DEPTH()
+  }
+
+  static float4 intensity = (1, 0, 1, 0); //intensity clamp_min clamp_max desaturate
+  static float4 smoothness_metalness = (0, 0, 0, 0);
+  (ps) {
+    diffuse_tex@static = tex;
+    intensity@f4 = intensity;
+    smoothness_metalness@f2 = smoothness_metalness;
+  }
+
+  hlsl(ps) {
+    GBUFFER_OUTPUT simple_decal_ps(VsOutput input)
+    {
+      #if SET_UP_MULTIDRAW
+        SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET(input));
+      #endif
+      float3 color = tex2DBindless(get_diffuse_tex(), input.diffuseTexcoord.xy).rgb;
+      float lum = luminance(color);
+      float dist;
+      if (lum < get_intensity().y || lum > get_intensity().z)
+      {
+        color = float3(0.5, 0.5, 0.5);
+        dist = 0;
+      } else
+      {
+        dist = dot(abs(color - 0.5), float3(1, 1, 1));
+        color = lerp(color, float3(lum, lum, lum), get_intensity().w);
+        color = (color - 0.5) * get_intensity().x + 0.5;
+        ##if is_deferred_decal
+          float4 screen = GET_SCREEN_POS(input.pos);
+          float depth_mask =  read_depth_mask(screen.xy, input.diffuseTexcoord.z, 0.3, 0.4);
+          color = lerp(float3(0.5, 0.5, 0.5), color, depth_mask);
+        ##endif
+      }
+      UnpackedGbuffer result;
+      init_gbuffer(result);
+      init_albedo(result, color);
+      init_smoothness(result, saturate(0.5 + get_smoothness_metalness().x * dist));
+      init_metalness(result, saturate(0.5 + get_smoothness_metalness().y * dist));
+
+      // in second argument encode_gbuffer() need pass pointToEye for possible forward shading,
+      // but it will not work without normal in gbuffer.
+      ##if compatibility_mode == compatibility_mode_on && mobile_render != deferred
+        GBUFFER_OUTPUT ret;
+        ret = apply_gbuffer_rgb(ret, color);
+        return ret;
+      ##else
+        return encode_gbuffer(result, 0, GET_SCREEN_POS(input.pos));
+      ##endif
+    }
+  }
+
+  compile("target_ps", "simple_decal_ps");
+endmacro

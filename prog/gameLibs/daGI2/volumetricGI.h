@@ -26,6 +26,7 @@ struct VolumetricGI
   // debug
   void drawDebug(int debug_type = 0);
   void afterReset();
+  void resetHistoryAge();
 
   struct FroxelsRes
   {

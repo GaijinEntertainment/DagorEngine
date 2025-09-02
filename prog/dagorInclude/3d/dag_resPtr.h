@@ -19,6 +19,7 @@
 #include <EASTL/algorithm.h>
 #include <EASTL/type_traits.h>
 #include <util/dag_preprocessor.h>
+#include <generic/dag_fixedMoveOnlyFunction.h>
 
 #if DAGOR_DBGLEVEL > 1
 #include <EASTL/unordered_set.h>
@@ -130,21 +131,41 @@ struct Helper<ExternalTexWrapper> : Helper<BaseTexture>
   {
     if (res_id == BAD_ID)
       return true;
+    // NOTE: this prevents resMgr from deleting the resource
     if (!change_managed_texture(res_id, nullptr))
       return false;
     release_managed_tex(res_id);
     return true;
   }
 };
+struct ExternalBufWrapper
+{};
+template <>
+struct Helper<ExternalBufWrapper> : Helper<Sbuffer>
+{
+  static bool release(resid_t &res_id, Sbuffer *)
+  {
+    if (res_id == BAD_ID)
+      return true;
+    // NOTE: this prevents resMgr from deleting the resource
+    if (!change_managed_res(res_id, nullptr))
+      return false;
+    release_managed_res(res_id);
+    return true;
+  }
+};
 
-static inline bool isVoltex(D3dResource *res) { return !res || res->restype() == RES3D_VOLTEX; }
-static inline bool isArrtex(D3dResource *res) { return !res || res->restype() == RES3D_ARRTEX || res->restype() == RES3D_CUBEARRTEX; }
+static inline bool isVoltex(D3dResource *res) { return !res || res->getType() == D3DResourceType::VOLTEX; }
+static inline bool isArrtex(D3dResource *res)
+{
+  return !res || res->getType() == D3DResourceType::ARRTEX || res->getType() == D3DResourceType::CUBEARRTEX;
+}
 static inline bool isCubetex(D3dResource *res)
 {
-  return !res || res->restype() == RES3D_CUBETEX || res->restype() == RES3D_CUBEARRTEX;
+  return !res || res->getType() == D3DResourceType::CUBETEX || res->getType() == D3DResourceType::CUBEARRTEX;
 }
-static inline bool isTex2d(D3dResource *res) { return !res || res->restype() == RES3D_TEX; }
-static inline bool isBuf(D3dResource *res) { return !res || res->restype() == RES3D_SBUF; }
+static inline bool isTex2d(D3dResource *res) { return !res || res->getType() == D3DResourceType::TEX; }
+static inline bool isBuf(D3dResource *res) { return !res || res->getType() == D3DResourceType::SBUF; }
 
 struct PrivateDataGetter
 {
@@ -226,20 +247,14 @@ protected:
 
 #define ENABLE_MOVING_BEHAVIOR(Class)                                                                                  \
   Class() = default;                                                                                                   \
-  Class(Class &&other) noexcept                                                                                        \
-  {                                                                                                                    \
-    this->swap(other);                                                                                                 \
-  }                                                                                                                    \
+  Class(Class &&other) noexcept { this->swap(other); }                                                                 \
   Class &operator=(Class &&other)                                                                                      \
   {                                                                                                                    \
     G_ASSERTF(Class::isValidForMoveAssignment(*this, other), "Invalid for move assignment. Call close() before this"); \
     Class(eastl::move(other)).swap(*this);                                                                             \
     return *this;                                                                                                      \
   }                                                                                                                    \
-  void close()                                                                                                         \
-  {                                                                                                                    \
-    *this = Class();                                                                                                   \
-  }
+  void close() { *this = Class(); }
 
 #define ASSIGNMENT_FROM_RESPTR(Class)       \
   Class &operator=(ResPtr<ResType> &&res)   \
@@ -247,6 +262,30 @@ protected:
     close();                                \
     return *this = Class(eastl::move(res)); \
   }
+
+#define ASSIGNMENT_FROM_RESFACTORY(Class)                               \
+  Class &operator=(ResFactory<ResType> &&factory)                       \
+  {                                                                     \
+    close();                                                            \
+    return *this = Class(eastl::move(ResPtrFactory(factory.create()))); \
+  }
+
+template <typename ResType>
+class ResFactory
+{
+public:
+  using CreateFunction = dag::FixedMoveOnlyFunction<128, ResType *()>;
+
+  explicit ResFactory(CreateFunction &&create_callback) : createCallback{eastl::move(create_callback)} {}
+
+  ResFactory(ResFactory &&) = default;
+  ResFactory(const ResFactory &) = delete;
+
+  ResType *create() { return createCallback(); }
+
+private:
+  CreateFunction createCallback;
+};
 
 template <typename ResType>
 class ResPtr : public MoveAssignable
@@ -262,6 +301,18 @@ class ResPtr : public MoveAssignable
 
 public:
   ENABLE_MOVING_BEHAVIOR(ResPtr);
+
+  ResPtr(ResFactory<ResType> &&res) { mResource = res.create(); }
+
+  ResPtr &operator=(ResFactory<ResType> &&res)
+  {
+    if (mResource)
+      mResource->destroy();
+
+    mResource = res.create();
+
+    return *this;
+  }
 
   ~ResPtr()
   {
@@ -324,6 +375,7 @@ public:
 
   ENABLE_MOVING_BEHAVIOR(UniqueRes);
   ASSIGNMENT_FROM_RESPTR(UniqueRes);
+  ASSIGNMENT_FROM_RESFACTORY(UniqueRes);
 
   UniqueRes(ResPtr<ResType> &&res, const char *managed_name = nullptr)
   {
@@ -334,6 +386,16 @@ public:
     this->mResource = eastl::move(res).release();
   }
 
+  UniqueRes(ResFactory<ResType> &&res, const char *managed_name = nullptr) :
+    UniqueRes(eastl::move(ResPtrFactory(res.create())), managed_name)
+  {}
+
+  void changeResource(ResPtr<ResType> &&res)
+  {
+    this->mResource = eastl::move(res).release();
+    change_managed_res(this->mResId, this->mResource);
+  }
+
   ~UniqueRes() { release(this->mResId, this->mResource); }
 
   static void release(typename Helper<ResType>::resid_t &res_id, ResType *res)
@@ -341,8 +403,7 @@ public:
     if (Helper<ResType>::getManagedRefCount(res_id) > 1)
       ShaderGlobal::reset_from_vars(res_id);
     G_ASSERTF(res_id == Helper<ResType>::BAD_ID || Helper<ResType>::getManagedRefCount(res_id) == 1,
-      "resource_name = '%s' res_id=0x%x refCount=%d", res ? res->getResName() : "", res_id,
-      Helper<ResType>::getManagedRefCount(res_id));
+      "resource_name = '%s' res_id=0x%x refCount=%d", res ? res->getName() : "", res_id, Helper<ResType>::getManagedRefCount(res_id));
     Deleter::release(res_id, res);
   }
 };
@@ -472,6 +533,7 @@ class ConcreteResHolder : public ManagedResHolder<typename ManagedResType::BaseT
 public:
   ENABLE_MOVING_BEHAVIOR(ConcreteResHolder);
   ASSIGNMENT_FROM_RESPTR(ConcreteResHolder);
+  ASSIGNMENT_FROM_RESFACTORY(ConcreteResHolder);
 
   ConcreteResHolder(ManagedResType &&resource, const char *shader_var_name = nullptr)
   {
@@ -509,6 +571,10 @@ public:
     ConcreteResHolder(ManagedResType(eastl::move(res)), shader_var_name)
   {}
 
+  ConcreteResHolder(ResFactory<ResType> &&res, const char *shader_var_name = nullptr) :
+    ConcreteResHolder(ManagedResType(eastl::move(res)), shader_var_name)
+  {}
+
   ~ConcreteResHolder()
   {
     releaseShaderVarId(this->mShaderVarId);
@@ -520,6 +586,7 @@ public:
 
 #undef ENABLE_MOVING_BEHAVIOR
 #undef ASSIGNMENT_FROM_RESPTR
+#undef ASSIGNMENT_FROM_RESFACTORY
 
 } // namespace resptr_detail
 
@@ -534,7 +601,7 @@ using UniqueTex = UniqueRes<ManagedTex>;
 using UniqueBuf = UniqueRes<ManagedBuf>;
 
 using ExternalTex = resptr_detail::UniqueRes<ManagedTex, resptr_detail::Helper<resptr_detail::ExternalTexWrapper>>;
-// implement change_managed_buf for ExternalBuf
+using ExternalBuf = resptr_detail::UniqueRes<ManagedBuf, resptr_detail::Helper<resptr_detail::ExternalBufWrapper>>;
 
 template <typename ManagedResType>
 using ManagedResView = resptr_detail::ManagedResView<ManagedResType>;
@@ -555,31 +622,33 @@ using SharedBufHolder = resptr_detail::ConcreteResHolder<SharedBuf>;
 
 template <typename ResType>
 using ResPtr = resptr_detail::ResPtr<ResType>;
+template <typename ResType>
+using ResFactory = resptr_detail::ResFactory<ResType>;
 using TexPtr = ResPtr<BaseTexture>;
 using BufPtr = ResPtr<Sbuffer>;
 
 namespace dag
 {
 
-static inline ResPtr<BaseTexture> create_tex(TexImage32 *img, int w, int h, int flg, int levels, const char *name)
+static inline ResFactory<BaseTexture> create_tex(TexImage32 *img, int w, int h, int flg, int levels, const char *name)
 {
-  return resptr_detail::ResPtrFactory(d3d::create_tex(img, w, h, flg, levels, name));
+  return ResFactory<BaseTexture>([=] { return d3d::create_tex(img, w, h, flg, levels, name); });
 }
-static inline ResPtr<CubeTexture> create_cubetex(int size, int flg, int levels, const char *name)
+static inline ResFactory<CubeTexture> create_cubetex(int size, int flg, int levels, const char *name)
 {
-  return resptr_detail::ResPtrFactory(d3d::create_cubetex(size, flg, levels, name));
+  return ResFactory<CubeTexture>([=] { return d3d::create_cubetex(size, flg, levels, name); });
 }
-static inline ResPtr<VolTexture> create_voltex(int w, int h, int d, int flg, int levels, const char *name)
+static inline ResFactory<VolTexture> create_voltex(int w, int h, int d, int flg, int levels, const char *name)
 {
-  return resptr_detail::ResPtrFactory(d3d::create_voltex(w, h, d, flg, levels, name));
+  return ResFactory<VolTexture>([=] { return d3d::create_voltex(w, h, d, flg, levels, name); });
 }
-static inline ResPtr<ArrayTexture> create_array_tex(int w, int h, int d, int flg, int levels, const char *name)
+static inline ResFactory<ArrayTexture> create_array_tex(int w, int h, int d, int flg, int levels, const char *name)
 {
-  return resptr_detail::ResPtrFactory(d3d::create_array_tex(w, h, d, flg, levels, name));
+  return ResFactory<ArrayTexture>([=] { return d3d::create_array_tex(w, h, d, flg, levels, name); });
 }
-static inline ResPtr<ArrayTexture> create_cube_array_tex(int side, int d, int flg, int levels, const char *name)
+static inline ResFactory<ArrayTexture> create_cube_array_tex(int side, int d, int flg, int levels, const char *name)
 {
-  return resptr_detail::ResPtrFactory(d3d::create_cube_array_tex(side, d, flg, levels, name));
+  return ResFactory<ArrayTexture>([=] { return d3d::create_cube_array_tex(side, d, flg, levels, name); });
 }
 static inline TexPtr create_ddsx_tex(IGenLoad &crd, int flg, int quality_id, int levels = 0, const char *name = nullptr)
 {
@@ -606,17 +675,17 @@ static inline TexPtr alias_cube_array_tex(BaseTexture *base_tex, int side, int d
   return resptr_detail::ResPtrFactory(d3d::alias_cube_array_tex(base_tex, side, d, flg, levels, name));
 }
 
-static inline ResPtr<Vbuffer> create_vb(int sz, int f, const char *name)
+static inline ResFactory<Vbuffer> create_vb(int sz, int f, const char *name)
 {
-  return resptr_detail::ResPtrFactory(d3d::create_vb(sz, f, name));
+  return ResFactory<Vbuffer>([=] { return d3d::create_vb(sz, f, name); });
 }
-static inline ResPtr<Ibuffer> create_ib(int size_bytes, int flags, const char *name)
+static inline ResFactory<Ibuffer> create_ib(int size_bytes, int flags, const char *name)
 {
-  return resptr_detail::ResPtrFactory(d3d::create_ib(size_bytes, flags, name));
+  return ResFactory<Ibuffer>([=] { return d3d::create_ib(size_bytes, flags, name); });
 }
-static inline ResPtr<Sbuffer> create_sbuffer(int struct_size, int elements, unsigned flags, unsigned texfmt, const char *name)
+static inline ResFactory<Sbuffer> create_sbuffer(int struct_size, int elements, unsigned flags, unsigned texfmt, const char *name)
 {
-  return resptr_detail::ResPtrFactory(d3d::create_sbuffer(struct_size, elements, flags, texfmt, name));
+  return ResFactory<Sbuffer>([=] { return d3d::create_sbuffer(struct_size, elements, flags, texfmt, name); });
 }
 
 namespace buffers
@@ -625,104 +694,105 @@ namespace buffers
 using namespace d3d::buffers;
 
 // Such buffers could be updated from time to time and its content will be automatically restored on device reset.
-inline ResPtr<Sbuffer> create_persistent_cb(uint32_t registers_count, const char *name)
+inline ResFactory<Sbuffer> create_persistent_cb(uint32_t registers_count, const char *name)
 {
-  return resptr_detail::ResPtrFactory(d3d::buffers::create_persistent_cb(registers_count, name));
+  return ResFactory<Sbuffer>([=] { return d3d::buffers::create_persistent_cb(registers_count, name); });
 }
 // Such buffers must be updated every frame. Because of that we don't care about its content on device reset.
-inline ResPtr<Sbuffer> create_one_frame_cb(uint32_t registers_count, const char *name)
+inline ResFactory<Sbuffer> create_one_frame_cb(uint32_t registers_count, const char *name)
 {
-  return resptr_detail::ResPtrFactory(d3d::buffers::create_one_frame_cb(registers_count, name));
+  return ResFactory<Sbuffer>([=] { return d3d::buffers::create_one_frame_cb(registers_count, name); });
 }
 
 // (RW)ByteAddressBuffer in shader.
-inline ResPtr<Sbuffer> create_ua_sr_byte_address(uint32_t size_in_dwords, const char *name, Init buffer_init = Init::No)
+inline ResFactory<Sbuffer> create_ua_sr_byte_address(uint32_t size_in_dwords, const char *name, Init buffer_init = Init::No)
 {
-  return resptr_detail::ResPtrFactory(d3d::buffers::create_ua_sr_byte_address(size_in_dwords, name, buffer_init));
+  return ResFactory<Sbuffer>([=] { return d3d::buffers::create_ua_sr_byte_address(size_in_dwords, name, buffer_init); });
 }
 // (RW)StructuredBuffer in shader.
-inline ResPtr<Sbuffer> create_ua_sr_structured(uint32_t structure_size, uint32_t elements_count, const char *name,
+inline ResFactory<Sbuffer> create_ua_sr_structured(uint32_t structure_size, uint32_t elements_count, const char *name,
   Init buffer_init = Init::No)
 {
-  return resptr_detail::ResPtrFactory(d3d::buffers::create_ua_sr_structured(structure_size, elements_count, name, buffer_init));
+  return ResFactory<Sbuffer>([=] { return d3d::buffers::create_ua_sr_structured(structure_size, elements_count, name, buffer_init); });
 }
 
 // RWByteAddressBuffer in shader.
-inline ResPtr<Sbuffer> create_ua_byte_address(uint32_t size_in_dwords, const char *name)
+inline ResFactory<Sbuffer> create_ua_byte_address(uint32_t size_in_dwords, const char *name)
 {
-  return resptr_detail::ResPtrFactory(d3d::buffers::create_ua_byte_address(size_in_dwords, name));
+  return ResFactory<Sbuffer>([=] { return d3d::buffers::create_ua_byte_address(size_in_dwords, name); });
 }
 // RWStructuredBuffer in shader.
-inline ResPtr<Sbuffer> create_ua_structured(uint32_t structure_size, uint32_t elements_count, const char *name)
+inline ResFactory<Sbuffer> create_ua_structured(uint32_t structure_size, uint32_t elements_count, const char *name)
 {
-  return resptr_detail::ResPtrFactory(d3d::buffers::create_ua_structured(structure_size, elements_count, name));
+  return ResFactory<Sbuffer>([=] { return d3d::buffers::create_ua_structured(structure_size, elements_count, name); });
 }
 
 // The same as create_ua_byte_address but its content can be read on CPU
-inline ResPtr<Sbuffer> create_ua_byte_address_readback(uint32_t size_in_dwords, const char *name, Init buffer_init = Init::No)
+inline ResFactory<Sbuffer> create_ua_byte_address_readback(uint32_t size_in_dwords, const char *name, Init buffer_init = Init::No)
 {
-  return resptr_detail::ResPtrFactory(d3d::buffers::create_ua_byte_address_readback(size_in_dwords, name, buffer_init));
+  return ResFactory<Sbuffer>([=] { return d3d::buffers::create_ua_byte_address_readback(size_in_dwords, name, buffer_init); });
 }
 // The same as create_ua_structured but its content can be read on CPU
-inline ResPtr<Sbuffer> create_ua_structured_readback(uint32_t structure_size, uint32_t elements_count, const char *name,
+inline ResFactory<Sbuffer> create_ua_structured_readback(uint32_t structure_size, uint32_t elements_count, const char *name,
   Init buffer_init = Init::No)
 {
-  return resptr_detail::ResPtrFactory(d3d::buffers::create_ua_structured_readback(structure_size, elements_count, name, buffer_init));
+  return ResFactory<Sbuffer>(
+    [=] { return d3d::buffers::create_ua_structured_readback(structure_size, elements_count, name, buffer_init); });
 }
 
 // Indirect buffer filled on GPU
-inline ResPtr<Sbuffer> create_ua_indirect(Indirect indirect_type, uint32_t records_count, const char *name)
+inline ResFactory<Sbuffer> create_ua_indirect(Indirect indirect_type, uint32_t records_count, const char *name)
 {
-  return resptr_detail::ResPtrFactory(d3d::buffers::create_ua_indirect(indirect_type, records_count, name));
+  return ResFactory<Sbuffer>([=] { return d3d::buffers::create_ua_indirect(indirect_type, records_count, name); });
 }
 // Indirect buffer filled on CPU
-inline ResPtr<Sbuffer> create_indirect(Indirect indirect_type, uint32_t records_count, const char *name)
+inline ResFactory<Sbuffer> create_indirect(Indirect indirect_type, uint32_t records_count, const char *name)
 {
-  return resptr_detail::ResPtrFactory(d3d::buffers::create_indirect(indirect_type, records_count, name));
+  return ResFactory<Sbuffer>([=] { return d3d::buffers::create_indirect(indirect_type, records_count, name); });
 }
 
 // A buffer for data transfer on GPU
-inline ResPtr<Sbuffer> create_staging(uint32_t size_in_bytes, const char *name)
+inline ResFactory<Sbuffer> create_staging(uint32_t size_in_bytes, const char *name)
 {
-  return resptr_detail::ResPtrFactory(d3d::buffers::create_staging(size_in_bytes, name));
+  return ResFactory<Sbuffer>([=] { return d3d::buffers::create_staging(size_in_bytes, name); });
 }
 
-inline ResPtr<Sbuffer> create_persistent_sr_tbuf(uint32_t elements_count, uint32_t format, const char *name,
+inline ResFactory<Sbuffer> create_persistent_sr_tbuf(uint32_t elements_count, uint32_t format, const char *name,
   Init buffer_init = Init::No)
 {
-  return resptr_detail::ResPtrFactory(d3d::buffers::create_persistent_sr_tbuf(elements_count, format, name, buffer_init));
+  return ResFactory<Sbuffer>([=] { return d3d::buffers::create_persistent_sr_tbuf(elements_count, format, name, buffer_init); });
 }
 
-inline ResPtr<Sbuffer> create_persistent_sr_byte_address(uint32_t size_in_dwords, const char *name, Init buffer_init = Init::No)
+inline ResFactory<Sbuffer> create_persistent_sr_byte_address(uint32_t size_in_dwords, const char *name, Init buffer_init = Init::No)
 {
-  return resptr_detail::ResPtrFactory(d3d::buffers::create_persistent_sr_byte_address(size_in_dwords, name, buffer_init));
+  return ResFactory<Sbuffer>([=] { return d3d::buffers::create_persistent_sr_byte_address(size_in_dwords, name, buffer_init); });
 }
 
-inline ResPtr<Sbuffer> create_persistent_sr_structured(uint32_t structure_size, uint32_t elements_count, const char *name,
+inline ResFactory<Sbuffer> create_persistent_sr_structured(uint32_t structure_size, uint32_t elements_count, const char *name,
   Init buffer_init = Init::No)
 {
-  return resptr_detail::ResPtrFactory(
-    d3d::buffers::create_persistent_sr_structured(structure_size, elements_count, name, buffer_init));
+  return ResFactory<Sbuffer>(
+    [=] { return d3d::buffers::create_persistent_sr_structured(structure_size, elements_count, name, buffer_init); });
 }
 
-inline ResPtr<Sbuffer> create_one_frame_sr_tbuf(uint32_t elements_count, uint32_t format, const char *name)
+inline ResFactory<Sbuffer> create_one_frame_sr_tbuf(uint32_t elements_count, uint32_t format, const char *name)
 {
-  return resptr_detail::ResPtrFactory(d3d::buffers::create_one_frame_sr_tbuf(elements_count, format, name));
+  return ResFactory<Sbuffer>([=] { return d3d::buffers::create_one_frame_sr_tbuf(elements_count, format, name); });
 }
 
-inline ResPtr<Sbuffer> create_one_frame_sr_byte_address(uint32_t size_in_dwords, const char *name)
+inline ResFactory<Sbuffer> create_one_frame_sr_byte_address(uint32_t size_in_dwords, const char *name)
 {
-  return resptr_detail::ResPtrFactory(d3d::buffers::create_one_frame_sr_byte_address(size_in_dwords, name));
+  return ResFactory<Sbuffer>([=] { return d3d::buffers::create_one_frame_sr_byte_address(size_in_dwords, name); });
 }
 
-inline ResPtr<Sbuffer> create_one_frame_sr_structured(uint32_t structure_size, uint32_t elements_count, const char *name)
+inline ResFactory<Sbuffer> create_one_frame_sr_structured(uint32_t structure_size, uint32_t elements_count, const char *name)
 {
-  return resptr_detail::ResPtrFactory(d3d::buffers::create_one_frame_sr_structured(structure_size, elements_count, name));
+  return ResFactory<Sbuffer>([=] { return d3d::buffers::create_one_frame_sr_structured(structure_size, elements_count, name); });
 }
 
-inline ResPtr<Sbuffer> create_raytrace_scratch_buffer(uint32_t size_in_bytes, const char *name)
+inline ResFactory<Sbuffer> create_raytrace_scratch_buffer(uint32_t size_in_bytes, const char *name)
 {
-  return resptr_detail::ResPtrFactory(d3d::buffers::create_raytrace_scratch_buffer(size_in_bytes, name));
+  return ResFactory<Sbuffer>([=] { return d3d::buffers::create_raytrace_scratch_buffer(size_in_bytes, name); });
 }
 
 } // namespace buffers
@@ -741,16 +811,18 @@ static inline SharedTexHolder add_managed_array_texture(const char *name, dag::C
 {
   return SharedTexHolder(dag::add_managed_array_texture(name, tex_slice_nm), varname);
 }
-static inline TexPtr place_texture_in_resource_heap(ResourceHeap *heap, const ResourceDescription &desc, size_t offset,
-  const ResourceAllocationProperties &alloc_info, const char *name)
+static inline ResFactory<BaseTexture> place_texture_in_resource_heap(ResourceHeap *heap, const ResourceDescription &desc,
+  size_t offset, const ResourceAllocationProperties &alloc_info, const char *name)
 {
-  return resptr_detail::ResPtrFactory(d3d::place_texture_in_resource_heap(heap, desc, offset, alloc_info, name));
+  return ResFactory<BaseTexture>(
+    [heap, desc, offset, alloc_info, name] { return d3d::place_texture_in_resource_heap(heap, desc, offset, alloc_info, name); });
 }
 
-static inline BufPtr place_buffer_in_resource_heap(ResourceHeap *heap, const ResourceDescription &desc, size_t offset,
+static inline ResFactory<Sbuffer> place_buffer_in_resource_heap(ResourceHeap *heap, const ResourceDescription &desc, size_t offset,
   const ResourceAllocationProperties &alloc_info, const char *name)
 {
-  return resptr_detail::ResPtrFactory(d3d::place_buffer_in_resource_heap(heap, desc, offset, alloc_info, name));
+  return ResFactory<Sbuffer>(
+    [heap, desc, offset, alloc_info, name] { return d3d::place_buffer_in_resource_heap(heap, desc, offset, alloc_info, name); });
 }
 
 static inline ExternalTex get_backbuffer() { return ExternalTex(resptr_detail::ResPtrFactory(d3d::get_backbuffer_tex())); }
@@ -759,11 +831,13 @@ static inline ExternalTex get_secondary_backbuffer() // Supposed to be used on X
   return ExternalTex(resptr_detail::ResPtrFactory(d3d::get_secondary_backbuffer_tex()));
 }
 
-static inline TexPtr make_texture_raw(Drv3dMakeTextureParams &makeParams)
+static inline ResFactory<BaseTexture> make_texture_raw(Drv3dMakeTextureParams &makeParams)
 {
-  Texture *wrappedTexture;
-  d3d::driver_command(Drv3dCommand::MAKE_TEXTURE, &makeParams, &wrappedTexture);
-  return resptr_detail::ResPtrFactory(wrappedTexture);
+  return ResFactory<BaseTexture>([=] {
+    Texture *wrappedTexture;
+    d3d::driver_command(Drv3dCommand::MAKE_TEXTURE, (void *)&makeParams, &wrappedTexture);
+    return wrappedTexture;
+  });
 }
 
 static inline SharedTexHolder set_texture(int var_id, SharedTex tex) { return SharedTexHolder(eastl::move(tex), var_id); }

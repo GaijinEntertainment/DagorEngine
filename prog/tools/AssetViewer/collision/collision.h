@@ -6,62 +6,62 @@
 #include <EditorCore/ec_interface.h>
 
 #include <propPanel/c_control_event_handler.h>
+#include <propPanel/control/menu.h>
 #include <propPanel/control/treeInterface.h>
-#include <sepGui/wndMenuInterface.h>
 #include <3d/dag_resPtr.h>
 
 class CollisionResource;
 class GeomNodeTree;
+class IObjEntity;
 
 
 class CollisionPlugin : public IGenEditorPlugin,
                         public PropPanel::ControlEventHandler,
                         public PropPanel::ITreeControlEventHandler,
-                        public IMenuEventHandler
+                        public PropPanel::IMenuEventHandler
 {
 public:
   CollisionPlugin();
-  ~CollisionPlugin() { end(); }
+  ~CollisionPlugin() override { end(); }
 
 
   // IGenEditorPlugin
-  virtual const char *getInternalName() const { return "Collision"; }
+  const char *getInternalName() const override { return "Collision"; }
 
-  virtual void registered() {}
-  virtual void unregistered() {}
+  void registered() override {}
+  void unregistered() override {}
 
-  virtual bool begin(DagorAsset *asset);
-  virtual bool end();
+  bool begin(DagorAsset *asset) override;
+  bool end() override;
 
-  virtual void clearObjects() {}
-  virtual void onSaveLibrary();
-  virtual void onLoadLibrary() {}
+  void clearObjects() override {}
+  void onSaveLibrary() override;
+  void onLoadLibrary() override {}
 
-  virtual bool getSelectionBox(BBox3 &box) const;
+  bool getSelectionBox(BBox3 &box) const override;
 
-  virtual void actObjects(float dt) {}
-  virtual void beforeRenderObjects() {}
-  virtual void renderObjects() {}
-  virtual void renderTransObjects();
+  void actObjects(float dt) override {}
+  void beforeRenderObjects() override {}
+  void renderObjects() override {}
+  void renderTransObjects() override;
 
-  virtual bool supportAssetType(const DagorAsset &asset) const;
+  bool supportAssetType(const DagorAsset &asset) const override;
 
-  virtual void fillPropPanel(PropPanel::ContainerPropertyControl &panel);
-  virtual void postFillPropPanel() {}
+  void fillPropPanel(PropPanel::ContainerPropertyControl &panel) override;
+  void postFillPropPanel() override {}
 
-  virtual void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel);
-  virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel);
-  virtual bool handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
+  void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
+  void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
+  bool handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
 
-  void handleViewportPaint(IGenViewportWnd *wnd)
+  void handleViewportPaint(IGenViewportWnd *wnd) override
   {
     drawObjects(wnd);
     drawInfo(wnd);
   }
 
-  virtual bool onTreeContextMenu(PropPanel::ContainerPropertyControl &tree, int pcb_id,
-    PropPanel::ITreeInterface &tree_interface) override;
-  virtual int onMenuItemClick(unsigned id) override;
+  bool onTreeContextMenu(PropPanel::ContainerPropertyControl &tree, int pcb_id, PropPanel::ITreeInterface &tree_interface) override;
+  int onMenuItemClick(unsigned id) override;
 
 public:
   CollisionPlugin *self;
@@ -80,12 +80,17 @@ protected:
   bool drawSolid;
   bool showFaceOrientation;
 
+  String modelAssetName;
+  IObjEntity *modelEntity = nullptr;
+  bool showModel = false;
+
   void drawObjects(IGenViewportWnd *wnd);
   void printKdopLog();
   void clearAssetStats();
   void fillAssetStats();
   void updateFaceOrientationRenderDepthFromCurRT();
   int getNodeIdx(PropPanel::ContainerPropertyControl *tree, PropPanel::TLeafHandle leaf);
+  void updateModel();
 };
 
 void InitCollisionResource(const DagorAsset &asset, CollisionResource **collision_res, GeomNodeTree **node_tree);

@@ -28,7 +28,7 @@
 #include <de3_interface.h>
 #include <vector>
 
-#include "plugIn.h"
+#include "plugin.h"
 #include "box_csg.h"
 
 #include <EditorCore/ec_IEditorCore.h>

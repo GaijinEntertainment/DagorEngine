@@ -4,10 +4,15 @@
 #include <rapidjson/error/en.h>
 #include <rapidjson/reader.h>
 #include <squirrel.h>
+#include <sqstdblob.h>
 #include <EASTL/fixed_vector.h>
 #include <EASTL/string_view.h>
 #include <EASTL/string.h>
 #include <EASTL/optional.h>
+
+
+#define BLOB_KEY "!blob!"
+
 
 // only 64-bit SQ integers supported
 static_assert(sizeof(SQInteger) == 8);
@@ -170,13 +175,28 @@ eastl::optional<eastl::string> rapidjson_parse(HSQUIRRELVM vm, eastl::string_vie
 
 Sqrat::Object rapidjson_to_quirrel(HSQUIRRELVM vm, const rapidjson::Value &jval)
 {
+  if (jval.IsNull())
+    return Sqrat::Object(vm);
   if (jval.IsObject())
   {
-    Sqrat::Table sqobj(vm);
-    rapidjson::Value::ConstObject obj = jval.GetObject();
-    for (auto &[k, v] : obj)
-      sqobj.SetValue(eastl::string_view{k.GetString(), k.GetStringLength()}, rapidjson_to_quirrel(vm, v));
-    return sqobj;
+    if (jval.HasMember(BLOB_KEY))
+    {
+      const int size = jval[BLOB_KEY].GetInt();
+      const rapidjson::Value &data = jval["data"];
+      char *p = (char *)sqstd_createblob(vm, size);
+      memcpy(p, data.GetString(), data.GetStringLength());
+      Sqrat::Var<Sqrat::Object> blob(vm, -1);
+      sq_pop(vm, 1);
+      return blob.value;
+    }
+    else
+    {
+      Sqrat::Table sqobj(vm);
+      rapidjson::Value::ConstObject obj = jval.GetObject();
+      for (auto &[k, v] : obj)
+        sqobj.SetValue(eastl::string_view{k.GetString(), k.GetStringLength()}, rapidjson_to_quirrel(vm, v));
+      return sqobj;
+    }
   }
   if (jval.IsArray())
   {
@@ -302,15 +322,31 @@ rapidjson::Value quirrel_to_rapidjson_val(Sqrat::Object obj, rapidjson::Document
     rapidjson::Value jval(rapidjson::Type::kObjectType);
     rapidjson::Value::Object jobj = jval.GetObject();
 
-    Sqrat::Object::iterator iter;
-    while (obj.Next(iter))
+    const char *ptr = nullptr;
+    SQInteger size = 0;
+    Sqrat::Var<Sqrat::Object>::push(vm, obj);
+    sqstd_getblob(vm, -1, (SQUserPointer *)&ptr);
+    if (ptr)
+      size = sqstd_getblobsize(vm, -1);
+    sq_pop(vm, 1);
+
+    if (ptr && size >= 0)
     {
-      Sqrat::Object sqKey(iter.getKey(), vm);
-      rapidjson::Value v = sqval_to_json(Sqrat::Object(iter.getValue(), vm), allocator);
-      if (sqKey.GetType() == OT_STRING) // non-string keys skipped
+      jobj.AddMember(BLOB_KEY, size, allocator);
+      jobj.AddMember("data", rapidjson::Value(ptr, size, allocator), allocator);
+    }
+    else
+    {
+      Sqrat::Object::iterator iter;
+      while (obj.Next(iter))
       {
-        rapidjson::Value nameVal(iter.getName(), allocator);
-        jobj.AddMember(nameVal, v, allocator);
+        Sqrat::Object sqKey(iter.getKey(), vm);
+        rapidjson::Value v = sqval_to_json(Sqrat::Object(iter.getValue(), vm), allocator);
+        if (sqKey.GetType() == OT_STRING) // non-string keys skipped
+        {
+          rapidjson::Value nameVal(iter.getName(), allocator);
+          jobj.AddMember(nameVal, v, allocator);
+        }
       }
     }
     return jval;
@@ -339,18 +375,44 @@ rapidjson::Document quirrel_to_rapidjson(Sqrat::Object obj)
     rapidjson::Document::AllocatorType &allocator = jval.GetAllocator();
     rapidjson::Value::Object jobj = jval.GetObject();
 
-    Sqrat::Object::iterator iter;
-    while (obj.Next(iter))
+    const char *ptr = nullptr;
+    SQInteger size = 0;
+    Sqrat::Var<Sqrat::Object>::push(vm, obj);
+    sqstd_getblob(vm, -1, (SQUserPointer *)&ptr);
+    if (ptr)
+      size = sqstd_getblobsize(vm, -1);
+    sq_pop(vm, 1);
+
+    if (ptr && size >= 0)
     {
-      Sqrat::Object sqKey(iter.getKey(), vm);
-      rapidjson::Value v = sqval_to_json(Sqrat::Object(iter.getValue(), vm), allocator);
-      if (sqKey.GetType() == OT_STRING) // non-string keys skipped
+      jobj.AddMember(BLOB_KEY, size, allocator);
+      jobj.AddMember("data", rapidjson::Value(ptr, size, allocator), allocator);
+    }
+    else
+    {
+      Sqrat::Object::iterator iter;
+      while (obj.Next(iter))
       {
-        rapidjson::Value nameVal(iter.getName(), allocator);
-        jobj.AddMember(nameVal, v, allocator);
+        Sqrat::Object sqKey(iter.getKey(), vm);
+        rapidjson::Value v = sqval_to_json(Sqrat::Object(iter.getValue(), vm), allocator);
+        if (sqKey.GetType() == OT_STRING) // non-string keys skipped
+        {
+          rapidjson::Value nameVal(iter.getName(), allocator);
+          jobj.AddMember(nameVal, v, allocator);
+        }
       }
     }
     return jval;
   }
   return sqval_to_json_doc(obj);
+}
+
+
+void rapidjson_set_blob(rapidjson::Document &doc, const char *key, const char *data, int size)
+{
+  rapidjson::Value dataValue = rapidjson::Value(rapidjson::Type::kObjectType);
+  dataValue.AddMember(BLOB_KEY, size, doc.GetAllocator());
+  dataValue.AddMember("data", rapidjson::Value(data, size, doc.GetAllocator()), doc.GetAllocator());
+
+  doc.AddMember(rapidjson::StringRef(key), eastl::move(dataValue), doc.GetAllocator());
 }

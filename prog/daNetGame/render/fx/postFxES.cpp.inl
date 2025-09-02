@@ -253,13 +253,14 @@ static void post_fx_es(const ecs::UpdateStageInfoAct &info,
   const Point4 &damage_indicator__mediumIntensitySaturations,
   const Point4 &damage_indicator__severePulsationFreq,
   const Point4 &damage_indicator__severeIntensities,
-  const Point4 &damage_indicator__severeIntensitySaturations)
+  const Point4 &damage_indicator__severeIntensitySaturations,
+  const bool damage_indicator__enabled = true)
 {
   ecs::EntityId hero = game::get_controlled_hero();
   const float maxHp = manager.getOr(hero, ECS_HASH("hitpoints__maxHp"), 1.0f);
   const float hp = manager.getOr(hero, ECS_HASH("hitpoints__hp"), 1.0f);
   float health = safediv(hp, maxHp); // relative health
-  if (health > 0)
+  if (health > 0 && damage_indicator__enabled)
   {
     int stage = get_damage_indicator_stage(health, damage_indicator__thresholds);
     bool instantChange = false;
@@ -335,7 +336,7 @@ static void post_fx_es(const ecs::UpdateStageInfoAct &info,
       ShaderGlobal::set_real(damage_indicatorVarId, 0);
     }
   }
-  else if (damage_indicator__pulseState[0] > 0)
+  else if (damage_indicator__pulseState[0] > 0 || !damage_indicator__enabled)
   {
     damage_indicator__pulseState = Point3(0, 0, 0);
     damage_indicator__prevLife = 0;

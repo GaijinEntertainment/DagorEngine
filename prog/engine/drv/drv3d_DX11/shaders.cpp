@@ -192,8 +192,8 @@ static ID3D11Buffer *create_const_buffer(int size, const char *name)
 
 ID3D11Buffer *ConstantBuffers::createVsBuffer(int id)
 {
-  G_ASSERT(id >= 0 && id < g_vsbin_sizes_count);
-  G_ASSERT(vsConstBuffer[id] == NULL);
+  D3D_CONTRACT_ASSERT(id >= 0 && id < g_vsbin_sizes_count);
+  D3D_CONTRACT_ASSERT(vsConstBuffer[id] == NULL);
 
   int size = g_vsbin_sizes[id];
   debug("creating vsConstBuffer, id:%d, size:%d", id, size);
@@ -233,13 +233,13 @@ void ConstantBuffers::destroy()
 
 static ID3D11Buffer *nullCbuf = 0;
 #define SET_CONST_BUFFERS(_ST, _START, _NUMS, _BUFFERS, _OFFSETS, _SIZES)                         \
-  if (dx_context1 && needOffsets)                                                                 \
+  if (g_device_desc.caps.hasConstBufferOffset && needOffsets)                                     \
   {                                                                                               \
     if (command_list_wa)                                                                          \
     {                                                                                             \
       dx_context->##_ST##SetConstantBuffers((_START), 1, &nullCbuf);                              \
       if ((_NUMS) > 1)                                                                            \
-        dx_context->##_ST##SetConstantBuffers((_START) + (_NUMS)-1, 1, &nullCbuf);                \
+        dx_context->##_ST##SetConstantBuffers((_START) + (_NUMS) - 1, 1, &nullCbuf);              \
     }                                                                                             \
     dx_context1->##_ST##SetConstantBuffers1((_START), (_NUMS), (_BUFFERS), (_OFFSETS), (_SIZES)); \
   }                                                                                               \
@@ -346,7 +346,7 @@ void ConstantBuffers::flush(uint32_t vsc, uint32_t psc, uint32_t hdg_bits)
     switch (stage)
     {
       case STAGE_VS:
-        if (!constBuffers[0])
+        if (!constBuffers[0] && vsCurrentBuffer >= 0)
         {
           constBuffers[0] = vsConstBuffer[vsCurrentBuffer];
           cbOffsets[0] = 0;
@@ -1048,7 +1048,7 @@ void InputLayout::makeFromVdecl(const VSDTYPE *decl)
           //        case VSDT_DEC3N:    f=DXGI_FORMAT_R11G11B10_FLOAT;    ne = 3; sz = 4; break; //flt?
           //        case VSDT_UDEC3:    //t=D3DDECLTYPE_UDEC3;  4
         default:
-          G_ASSERT(f != DXGI_FORMAT_UNKNOWN); // -V547 "invalid vertex declaration type"
+          D3D_CONTRACT_ASSERT(f != DXGI_FORMAT_UNKNOWN); // -V547 "invalid vertex declaration type"
           break;
       };
 
@@ -1074,7 +1074,7 @@ void InputLayout::makeFromVdecl(const VSDTYPE *decl)
 
 ID3D11InputLayout *InputLayoutCache::getInputLayout(int vdecl)
 {
-  G_ASSERT(vdecl != BAD_VDECL);
+  D3D_CONTRACT_ASSERT(vdecl != BAD_VDECL);
   InputLayout *il = g_input_layouts[vdecl].obj;
 
   COMProxyPtr<ID3D11InputLayout> e;
@@ -1351,29 +1351,29 @@ bool d3d::set_vertex_shader(VPROG handle)
 bool d3d::set_const(unsigned stage, unsigned reg_base, const void *data, unsigned num_regs)
 {
   ConstantBuffers &cb = g_render_state.constants;
-  G_ASSERT_RETURN(stage < STAGE_MAX, false);
+  D3D_CONTRACT_ASSERT_RETURN(stage < STAGE_MAX, false);
 
   // Check OOB
 #if DAGOR_DBGLEVEL > 0
   if (stage == STAGE_PS)
-    G_ASSERTF(reg_base + num_regs <= MAX_PS_CONSTS, "PS: Writing %u regs with base=%u over the limit=%u", num_regs, reg_base,
-      MAX_PS_CONSTS);
+    D3D_CONTRACT_ASSERTF(reg_base + num_regs <= MAX_PS_CONSTS, "PS: Writing %u regs with base=%u over the limit=%u", num_regs,
+      reg_base, MAX_PS_CONSTS);
   else if (stage == STAGE_CS)
   {
-    G_ASSERTF(reg_base + num_regs <= g_csbin_max_size, "CS: Writing %u regs with base=%u over the hard limit=%u", num_regs, reg_base,
-      g_csbin_max_size);
+    D3D_CONTRACT_ASSERTF(reg_base + num_regs <= g_csbin_max_size, "CS: Writing %u regs with base=%u over the hard limit=%u", num_regs,
+      reg_base, g_csbin_max_size);
     const unsigned limit = max<unsigned>(DEF_CS_CONSTS, cb.constsRequired[stage]);
-    G_ASSERTF(reg_base + num_regs <= limit, "CS: Writing %u regs with base=%u over the hard limit=%u, (constsRequired=%u)", num_regs,
-      reg_base, limit, cb.constsRequired[stage]);
+    D3D_CONTRACT_ASSERTF(reg_base + num_regs <= limit, "CS: Writing %u regs with base=%u over the hard limit=%u, (constsRequired=%u)",
+      num_regs, reg_base, limit, cb.constsRequired[stage]);
   }
   else if (stage == STAGE_VS)
   {
     const unsigned limit = max<unsigned>(DEF_VS_CONSTS, cb.constsRequired[stage]);
-    G_ASSERTF(reg_base + num_regs <= limit, "VS: Writing %u regs with base=%u over the hard limit=%u, (constsRequired=%u)", num_regs,
-      reg_base, limit, cb.constsRequired[stage]);
+    D3D_CONTRACT_ASSERTF(reg_base + num_regs <= limit, "VS: Writing %u regs with base=%u over the hard limit=%u, (constsRequired=%u)",
+      num_regs, reg_base, limit, cb.constsRequired[stage]);
   }
   else
-    G_ASSERTF(0, "Invalid stage %d", stage);
+    D3D_CONTRACT_ASSERT_FAIL("Invalid stage %d", stage);
 #endif
 
   if (reg_base < 32 && !cb.constantsModified[stage]) // only do this for first 32 constants. it is unlikely, that later constants won't
@@ -1423,7 +1423,7 @@ int d3d::set_vs_constbuffer_size(int required_size)
 
 VDECL d3d::create_vdecl(VSDTYPE *decl)
 {
-  G_ASSERT(decl != NULL);
+  D3D_CONTRACT_ASSERT(decl != NULL);
   if (decl == NULL) // runtime check
     return BAD_VDECL;
 
@@ -1569,7 +1569,8 @@ void d3d::delete_program(PROGRAM sh)
   if (!g_programs.isIndexValid(sh))
     return;
   g_programs.lock();
-  G_ASSERT(!g_programs.isIndexInFreeListUnsafe(sh));
+  D3D_CONTRACT_ASSERTF(!g_programs.isIndexInFreeListUnsafe(sh),
+    "Double delete of program %d. Refcount was equal to 0 on a previous delete.", sh);
   g_programs[sh].refCntX2 -= 2;
   if (g_programs[sh].refCntX2 > 0)
     return g_programs.unlock();

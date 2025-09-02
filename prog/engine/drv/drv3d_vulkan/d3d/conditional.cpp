@@ -45,7 +45,7 @@ void d3d::free_predicate(int name)
 
 void d3d::begin_conditional_render(int name)
 {
-  G_ASSERTF_RETURN(name >= 0, , "vlukan: driver received an invalid survey name '%d' in begin_conditional_rendering", name);
+  D3D_CONTRACT_ASSERTF_RETURN(name >= 0, , "vlukan: driver received an invalid survey name '%d' in begin_conditional_rendering", name);
 
   VERIFY_GLOBAL_LOCK_ACQUIRED();
   auto &pipeState = Frontend::State::pipe;
@@ -55,7 +55,7 @@ void d3d::begin_conditional_render(int name)
 
 void d3d::end_conditional_render(int name)
 {
-  G_ASSERTF_RETURN(name >= 0, , "vlukan: driver received an invalid survey name '%d' in end_conditional_rendering", name);
+  D3D_CONTRACT_ASSERTF_RETURN(name >= 0, , "vlukan: driver received an invalid survey name '%d' in end_conditional_rendering", name);
 
   VERIFY_GLOBAL_LOCK_ACQUIRED();
   auto &pipeState = Frontend::State::pipe;

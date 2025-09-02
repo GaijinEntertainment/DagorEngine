@@ -1,0 +1,197 @@
+int ri_landclass_changed_indicex_bits = 0;
+float4 rendinst_landscape_area_left_top_right_bottom = (-2048, 2048, 2048, -2048);
+buffer ri_landclass_data_buffer;
+texture deform_hmap_ri_landclass_arr;
+
+macro DECLARE_CLIPMAP_INDIRECTION_OFFSET(use_landclass_params)
+  if (use_landclass_params)
+  {
+    static int ri_landclass_index = -1; // invalid target id by default ->> see RI_INVALID_ID
+  }
+endmacro
+
+macro USE_LANDSCAPE_TC_TO_WORLD(stage)
+  (stage) {
+    ri_landscape_tc_to_world@f4 = (
+      rendinst_landscape_area_left_top_right_bottom.z - rendinst_landscape_area_left_top_right_bottom.x,
+      rendinst_landscape_area_left_top_right_bottom.w - rendinst_landscape_area_left_top_right_bottom.y,
+      rendinst_landscape_area_left_top_right_bottom.x,
+      rendinst_landscape_area_left_top_right_bottom.y);
+  }
+endmacro
+
+macro INIT_CLIPMAP_INDIRECTION_OFFSET_BASE(stage, use_landclass_params)
+  if (use_landclass_params)
+  {
+    (stage) {
+      ri_landclass_changed_indicex_bits@i1 = ri_landclass_changed_indicex_bits;
+
+      ri_landclass_data@cbuf = ri_landclass_data_buffer hlsl {
+        // same number as MAX_RI_VTEX_CNT
+        #define MAX_RI_VTEX_CNT_BUF 15
+        #define MAX_RI_VTEX_CNT_WITHOUT_SECONDARY 7
+
+        cbuffer ri_landclass_data@cbuf
+        {
+          float4 clipmap_ri_landscape2uv_arr[MAX_RI_VTEX_CNT_BUF];
+          float4 ri_landclass_tm_pos_arr[MAX_RI_VTEX_CNT_BUF];
+          float4 ri_landclass_tm_y_arr[MAX_RI_VTEX_CNT_BUF];
+          float4 ri_landclass_mapping_arr[MAX_RI_VTEX_CNT_BUF];
+
+          float4 ri_landclass_inv_tm_x_arr[MAX_RI_VTEX_CNT_BUF];
+          float4 ri_landclass_inv_tm_y_arr[MAX_RI_VTEX_CNT_BUF];
+          float4 ri_landclass_inv_tm_z_arr[MAX_RI_VTEX_CNT_BUF];
+          float4 ri_landclass_inv_tm_w_arr[MAX_RI_VTEX_CNT_BUF];
+
+          float4 world_to_hmap_tex_ofs_ri_landclass_arr[MAX_RI_VTEX_CNT_WITHOUT_SECONDARY];
+          float4 world_to_hmap_ofs_ri_landclass_arr[MAX_RI_VTEX_CNT_WITHOUT_SECONDARY];
+          int4 ri_landclass_closest_indices_arr[4]; // (MAX_RI_VTEX_CNT + 4 - 1) / 4
+        }
+      }
+    }
+  }
+endmacro
+
+macro INIT_CLIPMAP_INDIRECTION_OFFSET(stage, use_landclass_params)
+  INIT_CLIPMAP_INDIRECTION_OFFSET_BASE(stage, use_landclass_params)
+  if (use_landclass_params)
+  {
+    (stage) {
+      ri_landclass_index@i1 = ri_landclass_index;
+    }
+  }
+endmacro
+
+macro USE_CLIPMAP_INDIRECTION_OFFSET_BASE(stage, use_landclass_params, use_ri_index)
+  hlsl (stage) {
+
+    bool is_clipmap_indirection_invalid(uint offset)
+    {
+##if (use_landclass_params)
+      return offset != 0 && ((ri_landclass_changed_indicex_bits >> (offset - 1)) & 1);
+##else
+      return false;
+##endif
+    }
+
+    uint get_clipmap_indirection_offset_by_index(int ri_index)
+    {
+##if (use_landclass_params)
+  #if MAX_RI_VTEX_CNT_BITS > 0
+      // TODO: this could be computed in preshader (if it wouldn't be so dumb)
+      int fallbackLastIndexBit = 1; // so firstbithigh returns 0 if none of them matches
+      int indexBits = fallbackLastIndexBit;
+      UNROLL
+      for (int i = 0; i < (MAX_RI_VTEX_CNT + 4 - 1) / 4; ++i)
+        indexBits |= dot(((int4)ri_index == ri_landclass_closest_indices_arr[i]) << (i*4 + int4(1,2,3,4)), 1);
+      return firstbithigh(indexBits);
+  #else
+      return 0;
+  #endif
+##else
+      return 0;
+##endif
+    }
+
+    uint get_clipmap_indirection_offset()
+    {
+##if (use_landclass_params && use_ri_index)
+      int ri_index = get_ri_landclass_index();
+      return get_clipmap_indirection_offset_by_index(ri_index);
+##else
+      return 0;
+##endif
+    }
+  }
+endmacro
+
+macro USE_CLIPMAP_INDIRECTION_OFFSET(stage, use_landclass_params)
+  USE_CLIPMAP_INDIRECTION_OFFSET_BASE(stage, use_landclass_params, true)
+  hlsl (stage) {
+    float4 get_l2uv(uint indirection_offset)
+    {
+##if (use_landclass_params)
+      if (indirection_offset == 0)
+        return landscape2uv;
+
+      indirection_offset = clamp(indirection_offset-1, 0, MAX_RI_VTEX_CNT - 1);
+      return clipmap_ri_landscape2uv_arr[indirection_offset];
+##else
+      return landscape2uv;
+##endif
+    }
+  }
+endmacro
+
+macro INIT_LANDCLASS_DISPLACEMENT(stage, landclass_displacement_enabled, base_only)
+  if (base_only)
+  {
+    INIT_CLIPMAP_INDIRECTION_OFFSET_BASE(stage, landclass_displacement_enabled)
+  }
+  else
+  {
+    INIT_CLIPMAP_INDIRECTION_OFFSET(stage, landclass_displacement_enabled)
+  }
+  USE_CLIPMAP_INDIRECTION_OFFSET_BASE(stage, landclass_displacement_enabled, !base_only)
+  if (landclass_displacement_enabled)
+  {
+    (stage)
+    {
+      deform_hmap_ri_landclass_arr@smpArray = deform_hmap_ri_landclass_arr;
+    }
+  }
+endmacro
+
+macro USE_LANDCLASS_DISPLACEMENT(stage, landclass_displacement_enabled)
+  if (landclass_displacement_enabled)
+  {
+    hlsl (stage)
+    {
+      float get_hmap_ofs_ri_landclass(int ri_index, float2 worldPosXZ, out float displacementEffect)
+      {
+        float4 world_to_hmap_ofs_ri_landclass = world_to_hmap_ofs_ri_landclass_arr[ri_index];
+        float2 tc = saturate(worldPosXZ*world_to_hmap_ofs_ri_landclass.x + world_to_hmap_ofs_ri_landclass.zw);
+
+        float2 vignette = saturate( abs(tc*2-1) * 10 - 9 );
+        float vignetteEffect = saturate( 1.0 - dot( vignette, vignette ) );
+        float height = 0;
+
+        BRANCH if (vignetteEffect > 0)
+          height = tex3Dlod(deform_hmap_ri_landclass_arr,  float4(tc - world_to_hmap_tex_ofs_ri_landclass_arr[ri_index].xy, ri_index, 0)).x;
+
+        displacementEffect = vignetteEffect;
+        return (height*world_to_hmap_tex_ofs.z + world_to_hmap_tex_ofs.w)*displacementEffect;
+      }
+    }
+  }
+endmacro
+
+macro USE_LANDCLASS_PUDDLES()
+  hlsl (ps)
+  {
+    half addLandclassPuddles(inout UnpackedGbuffer result, float3 realWorldPos, float worldPosHeight,
+      float2 htTc, half porosity, float tc_world_pos_w)
+    {
+      float3 planeNormal = result.normal;
+      uint indirectionOffset = get_clipmap_indirection_offset();
+      float3 puddleWorldPos = float3(realWorldPos.x, worldPosHeight, realWorldPos.z);
+      float3 puddleTcWorldPos = float3(realWorldPos.x, tc_world_pos_w, realWorldPos.z);
+      if (indirectionOffset > 0 && !is_clipmap_indirection_invalid(indirectionOffset))
+      {
+        uint riLandclassIndex = indirectionOffset - 1u;
+        planeNormal = ri_landclass_tm_y_arr[riLandclassIndex].xyz;
+        float4x4 invTm = float4x4(ri_landclass_inv_tm_x_arr[riLandclassIndex],
+                                  ri_landclass_inv_tm_y_arr[riLandclassIndex],
+                                  ri_landclass_inv_tm_z_arr[riLandclassIndex],
+                                  ri_landclass_inv_tm_w_arr[riLandclassIndex]);
+        float3 puddleLocalPos = mulPointTm(puddleWorldPos, invTm).xyz;
+        float3 puddleTcLocalPos = mulPointTm(puddleTcWorldPos, invTm).xyz;
+
+        puddleWorldPos.y = puddleLocalPos.y;
+        puddleTcWorldPos.y = puddleTcLocalPos.y;
+      }
+      return addPuddlesWithConstHeight(result, realWorldPos, puddleTcWorldPos.y, htTc, porosity,
+        puddleWorldPos.y + get_landclass_water_level(), puddleWorldPos.y + get_max_landclass_water_level(), planeNormal);
+    }
+  }
+endmacro

@@ -9,56 +9,53 @@
 #include <EASTL/algorithm.h>
 #include <osApiWrappers/dag_localConv.h>
 
-namespace drv3d_generic
-{
-bool disableResEntryRealloc = false;
-};
 
 // From https://github.com/WebKit/webkit/blob/main/Source/ThirdParty/ANGLE/src/libANGLE/renderer/driver_utils.h#L18 and
 // https://gamedev.stackexchange.com/a/31626
-static const eastl::pair<uint32_t, int> vendor_id_table[] = //
+static const eastl::pair<uint32_t, GpuVendor> vendor_id_table[] = //
   {
-    {0x10DE, D3D_VENDOR_NVIDIA},
+    {0x10DE, GpuVendor::NVIDIA},
 
-    {0x1002, D3D_VENDOR_AMD},
-    {0x1022, D3D_VENDOR_AMD},
+    {0x1002, GpuVendor::AMD},
+    {0x1022, GpuVendor::AMD},
 
-    {0x8086, D3D_VENDOR_INTEL},
-    {0x8087, D3D_VENDOR_INTEL},
-    {0x163C, D3D_VENDOR_INTEL},
+    {0x8086, GpuVendor::INTEL},
+    {0x8087, GpuVendor::INTEL},
+    {0x163C, GpuVendor::INTEL},
 
-    {0x5143, D3D_VENDOR_QUALCOMM},
+    {0x5143, GpuVendor::QUALCOMM},
+    {0x4D4F4351, GpuVendor::QUALCOMM},
 
-    {0x1010, D3D_VENDOR_IMGTEC},
+    {0x1010, GpuVendor::IMGTEC},
 
-    {0x13B5, D3D_VENDOR_ARM},
+    {0x13B5, GpuVendor::ARM},
 
-    {0x05AC, D3D_VENDOR_APPLE},
+    {0x05AC, GpuVendor::APPLE},
 
-    {0x10005, D3D_VENDOR_MESA},
+    {0x10005, GpuVendor::MESA},
 
-    {0x0003, D3D_VENDOR_SHIM_DRIVER},
+    {0x0003, GpuVendor::SHIM_DRIVER},
 
-    {0x144D, D3D_VENDOR_SAMSUNG},
+    {0x144D, GpuVendor::SAMSUNG},
 
-    {0x19E5, D3D_VENDOR_HUAWEI},
+    {0x19E5, GpuVendor::HUAWEI},
 
-    {0x0000, D3D_VENDOR_NONE},
+    {0x0000, GpuVendor::UNKNOWN},
 };
 
-static const carray<const char *, D3D_VENDOR_COUNT> vendor_names = {
-  "Unknown",     // D3D_VENDOR_NONE
-  "Mesa",        // D3D_VENDOR_MESA
-  "ImgTec",      // D3D_VENDOR_IMGTEC
-  "AMD",         // D3D_VENDOR_AMD / D3D_VENDOR_ATI
-  "NVIDIA",      // D3D_VENDOR_NVIDIA
-  "Intel",       // D3D_VENDOR_INTEL
-  "Apple",       // D3D_VENDOR_APPLE
-  "Shim driver", // D3D_VENDOR_SHIM_DRIVER
-  "ARM",         // D3D_VENDOR_ARM
-  "Qualcomm",    // D3D_VENDOR_QUALCOMM
-  "Samsung",     // D3D_VENDOR_SAMSUNG
-  "Huawei",      // D3D_VENDOR_HUAWEI
+static const carray<const char *, GPU_VENDOR_COUNT> vendor_names = {
+  "Unknown",     // GpuVendor::UNKNOWN
+  "Mesa",        // GpuVendor::MESA
+  "ImgTec",      // GpuVendor::IMGTEC
+  "AMD",         // GpuVendor::AMD / GpuVendor::ATI
+  "NVIDIA",      // GpuVendor::NVIDIA
+  "Intel",       // GpuVendor::INTEL
+  "Apple",       // GpuVendor::APPLE
+  "Shim driver", // GpuVendor::SHIM_DRIVER
+  "ARM",         // GpuVendor::ARM
+  "Qualcomm",    // GpuVendor::QUALCOMM
+  "Samsung",     // GpuVendor::SAMSUNG
+  "Huawei",      // GpuVendor::HUAWEI
 };
 
 void d3d_get_render_target(Driver3dRenderTarget &rt) { d3d::get_render_target(rt); }
@@ -92,15 +89,16 @@ void d3d_set_view(int viewX, int viewY, int viewW, int viewH, float viewN, float
   d3d::setscissor(viewX, viewY, viewW, viewH);
 }
 
-const char *d3d_get_vendor_name(int vendor)
+const char *d3d_get_vendor_name(GpuVendor vendor)
 {
-  G_ASSERT(vendor >= 0 && vendor < vendor_names.size());
-  return vendor_names[vendor];
+  int vendorIdx = eastl::to_underlying(vendor);
+  G_ASSERT(vendorIdx >= 0 && vendorIdx < vendor_names.size());
+  return vendor_names[vendorIdx];
 }
 
-int d3d_get_vendor(uint32_t vendor_id, const char *description)
+GpuVendor d3d_get_vendor(uint32_t vendor_id, const char *description)
 {
-  int vendor = D3D_VENDOR_NONE;
+  GpuVendor vendor = GpuVendor::UNKNOWN;
   auto ref =
     eastl::find_if(eastl::begin(vendor_id_table), eastl::end(vendor_id_table), [=](auto &ent) { return ent.first == vendor_id; });
   if (ref != eastl::end(vendor_id_table))
@@ -108,19 +106,19 @@ int d3d_get_vendor(uint32_t vendor_id, const char *description)
   else if (description)
   {
     if (strstr(description, "ATI") || strstr(description, "AMD"))
-      vendor = D3D_VENDOR_AMD;
+      vendor = GpuVendor::AMD;
     else
     {
       if (char *lower = str_dup(description, tmpmem))
       {
         lower = dd_strlwr(lower);
         if (strstr(lower, "radeon"))
-          vendor = D3D_VENDOR_AMD;
+          vendor = GpuVendor::AMD;
         else if (strstr(lower, "geforce") || strstr(lower, "nvidia"))
-          vendor = D3D_VENDOR_NVIDIA;
+          vendor = GpuVendor::NVIDIA;
         else if (strstr(lower, "intel") || strstr(lower, "rdpdd")) // Assume the worst for the Microsoft Mirroring Driver - take it as
                                                                    // it mirrors to Intel driver with broken voltex compression.
-          vendor = D3D_VENDOR_INTEL;
+          vendor = GpuVendor::INTEL;
         memfree(lower, tmpmem);
       }
     }

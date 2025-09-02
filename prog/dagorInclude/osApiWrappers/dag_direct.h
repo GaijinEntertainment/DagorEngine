@@ -108,6 +108,46 @@ extern "C"
 
 #ifdef __cplusplus
 }
+
+// Wrapper for dd_find_first/dd_find_next/dd_find_close
+// Usage:
+//   for (const alefind_t &ff : dd_find_iterator(".txt", DA_FILE))
+//       debug("%s %d", ff.name, ff.size);
+
+struct dd_find_iterator
+{
+private:
+  alefind_t result;
+  bool firstSearchIsSuccessful;
+
+public:
+  struct dd_iterator_iml
+  {
+  private:
+    friend dd_find_iterator;
+    alefind_t &result_ref;
+    bool canContinue;
+    dd_iterator_iml(alefind_t &result, bool can_continue) : result_ref(result), canContinue(can_continue) {}
+
+  public:
+    const alefind_t &operator*() { return result_ref; }
+    void operator++() { canContinue = ::dd_find_next(&result_ref); }
+    bool operator!=(const dd_iterator_iml &other) { return this->canContinue != other.canContinue; }
+  };
+
+  // mask and attributes the same as in 'dd_find_first'
+  dd_find_iterator(const char *mask, char attributes) { firstSearchIsSuccessful = ::dd_find_first(mask, attributes, &result); }
+  ~dd_find_iterator() { ::dd_find_close(&result); }
+
+  dd_find_iterator(const dd_find_iterator &) = delete;
+  dd_find_iterator(dd_find_iterator &&) = delete;
+  dd_find_iterator &operator=(const dd_find_iterator &) = delete;
+  dd_find_iterator &operator=(dd_find_iterator &&) = delete;
+
+  dd_iterator_iml begin() { return dd_iterator_iml(result, firstSearchIsSuccessful); }
+  dd_iterator_iml end() { return dd_iterator_iml(result, false); }
+};
+
 #endif
 
 #include <supp/dag_undef_KRNLIMP.h>

@@ -48,7 +48,7 @@ inline void add_hint(ConsoleProcessorHints &hints, const char *name, int min_arg
   });
 }
 
-inline void console_get_command_history(const das::TBlock<void, das::TTemporary<const das::TArray<const char *>>> &block,
+inline void console_get_command_history(const das::TBlock<void, const das::TTemporary<const das::TArray<const char *>>> &block,
   das::Context *context, das::LineInfoArg *at)
 {
   auto history = console::get_command_history();
@@ -69,8 +69,8 @@ inline const char *console_get_edit_text_before_modify()
   return console ? console->getEditTextBeforeModify() : nullptr;
 }
 
-inline bool find_console_var(const das::TBlock<bool, das::TTemporary<const char *>, ConVarType, float> &block, das::Context *context,
-  das::LineInfoArg *at)
+inline bool find_console_var(const das::TBlock<bool, const das::TTemporary<const char *>, ConVarType, float> &block,
+  das::Context *context, das::LineInfoArg *at)
 {
   bool found = false;
   vec4f args[3];
@@ -92,6 +92,21 @@ inline bool find_console_var(const das::TBlock<bool, das::TTemporary<const char 
     },
     at);
   return found;
+}
+
+inline void visual_log_get_history(const das::TBlock<void, const das::TTemporary<const das::TArray<const char *>>> &block,
+  das::Context *context, das::LineInfoArg *at)
+{
+  dag::ConstSpan<SimpleString> history = visuallog::getHistory();
+
+  das::Array arr;
+  arr.data = (char *)history.data();
+  arr.size = uint32_t(history.size());
+  arr.capacity = arr.size;
+  arr.lock = 1;
+  arr.flags = 0;
+  vec4f arg = das::cast<das::Array *>::from(&arr);
+  context->invoke(block, &arg, nullptr, at);
 }
 
 } // namespace bind_dascript

@@ -350,7 +350,7 @@ void BroadPhaseQuadTree::NotifyBodiesAABBChanged(BodyID *ioBodies, int inNumber,
 		// Find first body with different layer
 		BodyID *b_mid = std::upper_bound(b_start, b_end, broadphase_layer, [tracking](BroadPhaseLayer::Type inLayer, BodyID inBodyID) { return inLayer < tracking[inBodyID.GetIndex()].mBroadPhaseLayer; });
 
-		// Nodify all bodies of the same layer changed
+		// Notify all bodies of the same layer changed
 		mLayers[broadphase_layer].NotifyBodiesAABBChanged(bodies, mTracking, b_start, int(b_mid - b_start));
 
 		// Repeat
@@ -383,7 +383,7 @@ void BroadPhaseQuadTree::NotifyBodiesLayerChanged(BodyID *ioBodies, int inNumber
 			mTracking[index].mObjectLayer = body->GetObjectLayer();
 
 			// Move the body to the end, layer didn't change
-			swap(*body_id, ioBodies[inNumber - 1]);
+			std::swap(*body_id, ioBodies[inNumber - 1]);
 			--inNumber;
 		}
 	}

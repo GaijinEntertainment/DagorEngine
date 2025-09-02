@@ -2,6 +2,8 @@
 
 #include <daECS/core/baseIo.h>
 #include <daECS/core/entityManager.h>
+#include <EASTL/optional.h>
+
 namespace ecs
 {
 

@@ -41,6 +41,7 @@ class ResUpdateBuffer;
  *
  * May return nullptr if either inputs violate the rules above, the driver can currently not provide
  * the memory required or the driver is unable to perform the needed copy operation on update.
+ * @warning Don't call it again for same region if the first call was successful. This may cause a data race.
  */
 ResUpdateBuffer *allocate_update_buffer_for_tex_region(BaseTexture *dest_base_texture, unsigned dest_mip, unsigned dest_slice,
   unsigned offset_x, unsigned offset_y, unsigned offset_z, unsigned width, unsigned height, unsigned depth);
@@ -50,6 +51,7 @@ ResUpdateBuffer *allocate_update_buffer_for_tex_region(BaseTexture *dest_base_te
  * to apply_tex_update_buffer.
  * @warning This method can fail if too much allocations happens in N-frame period.
  * Caller should retry after rendering frame on screen if this happens.
+ * @warning Don't call it again for same mip or slice if the first call was successful. This may cause a data race.
  *
  * @param dest_tex destination texture
  * @param dest_mip destination mip level

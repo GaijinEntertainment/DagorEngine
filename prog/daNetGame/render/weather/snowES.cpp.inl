@@ -8,7 +8,7 @@
 #include <startup/dag_globalSettings.h>
 #include <util/dag_convar.h>
 #include "render/fx/effectEntity.h"
-#include "render/fx/effectManager.h"
+#include <effectManager/effectManager.h>
 
 ECS_ON_EVENT(on_appear)
 ECS_TRACK(*)

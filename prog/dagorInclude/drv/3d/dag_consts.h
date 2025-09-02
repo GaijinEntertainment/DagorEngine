@@ -4,6 +4,8 @@
 //
 #pragma once
 
+#include <cstdint>
+#include <EASTL/utility.h>
 #include <drv/3d/dag_driverCode.h>
 #include <drv/3d/dag_shaderModelVersion.h>
 
@@ -31,6 +33,8 @@ typedef unsigned long long GPUFENCEHANDLE;
 constexpr GPUFENCEHANDLE BAD_GPUFENCEHANDLE = 0;
 
 static constexpr size_t RT_TRANSFORM_SIZE = sizeof(float) * 12;
+
+static constexpr int MAX_STREAM_OUTPUT_SLOTS = 4;
 
 enum ShaderStage
 {
@@ -70,9 +74,9 @@ enum
 #define VSDR_MASK              31
 #define VSDS_MASK              15
 #define VSDS_PER_INSTANCE_DATA 16
-#define GET_VSDREG(a)          ((a)&VSDR_MASK)
+#define GET_VSDREG(a)          ((a) & VSDR_MASK)
 #define MAKE_VSDREG(a)         (a)
-#define GET_VSDSTREAM(a)       ((a)&VSDS_MASK)
+#define GET_VSDSTREAM(a)       ((a) & VSDS_MASK)
 #define MAKE_VSDSTREAM(a)      (a)
 #define VSD_SKIPFLG            (1 << 28)
 #define GET_VSDSKIP(a)         (((a) >> 16) & 15)
@@ -163,6 +167,9 @@ enum
 #else
   SBCF_MISC_ESRAM_ONLY = 0,
 #endif
+
+  SBCF_USAGE_STREAM_OUTPUT_COUNTER = 0x10000000, // Stream output counter buffer
+  SBCF_USAGE_STREAM_OUTPUT = 0x20000000,         // Stream output buffer
 
   // Buffer flag sets.
   // Const buffers
@@ -332,6 +339,256 @@ enum DepthResolveMode : unsigned
   DEPTH_RESOLVE_MODE_MAX = 1 << 3
 };
 
+// The MacOS defines the INTEL and this fixes the compilation error.
+#undef INTEL
+
+/**
+ * Dagor specific ID of the currently used GPU's vendor.
+ */
+enum class GpuVendor : uint8_t
+{
+  UNKNOWN,
+  MESA,
+  IMGTEC,
+  AMD,
+  NVIDIA,
+  INTEL,
+  APPLE,
+  SHIM_DRIVER,
+  ARM,
+  QUALCOMM,
+  SAMSUNG,
+  HUAWEI,
+  ATI = AMD,
+};
+
+/**
+ * Count of the available vendors in GpuVendor enum.
+ */
+static constexpr uint32_t GPU_VENDOR_COUNT = eastl::to_underlying(GpuVendor::HUAWEI) + 1;
+
+/**
+ * \brief Contains non-volatile info about the currently used GPU.
+ */
+struct DeviceAttributesBase
+{
+  static constexpr uint32_t UNKNOWN = 0;
+
+  // Source amd_ags.h
+  enum AmdFamily : uint32_t
+  {
+    PRE_GCN,
+    GCN1,
+    GCN2,
+    GCN3,
+    GCN4,
+    Vega,
+    RDNA,
+    RDNA2,
+    RDNA3,
+    RDNA4,
+  };
+
+  // Source https://github.com/intel/intel-graphics-compiler/blob/master/inc/common/igfxfmid.h
+  enum IntelFamily : uint32_t
+  {
+    SANDYBRIDGE,
+    IVYBRIDGE,
+    HASWELL,
+    VALLEYVIEW,
+    BROADWELL,
+    CHERRYVIEW,
+    SKYLAKE,
+    KABYLAKE,
+    COFFEELAKE,
+    WILLOWVIEW,
+    BROXTON,
+    GEMINILAKE,
+    WHISKEYLAKE,
+    CANNONLAKE,
+    COMETLAKE,
+    ICELAKE,
+    ICELAKE_LP,
+    LAKEFIELD,
+    ELKHARTLAKE,
+    JASPERLAKE,
+    TIGERLAKE_LP,
+    ROCKETLAKE,
+    ALDERLAKE_S,
+    ALDERLAKE_P,
+    ALDERLAKE_N,
+    TWINLAKE,
+    RAPTORLAKE,
+    RAPTORLAKE_S,
+    RAPTORLAKE_P,
+    DG1,
+    XE_HP_SDV,
+    ALCHEMIST,
+    PONTEVECCHIO,
+    METEORLAKE,
+    ARROWLAKE_H,
+    ARROWLAKE_S,
+    BATTLEMAGE,
+    LUNARLAKE,
+    PANTHERLAKE,
+  };
+
+  // Source nvapi.h
+  enum NvidiaFamily : uint32_t
+  {
+    T2X = 0xE0000020,
+    T3X = 0xE0000030,
+    T4X = 0xE0000040,
+    T12X = 0xE0000040,
+    NV40 = 0x00000040,
+    NV50 = 0x00000050,
+    G78 = 0x00000060,
+    G80 = 0x00000080,
+    G90 = 0x00000090,
+    GT200 = 0x000000A0,
+    GF100 = 0x000000C0,
+    GF110 = 0x000000D0,
+    GK100 = 0x000000E0,
+    GK110 = 0x000000F0,
+    GK200 = 0x00000100,
+    GM000 = 0x00000110,
+    GM200 = 0x00000120,
+    GP100 = 0x00000130,
+    GV100 = 0x00000140,
+    GV110 = 0x00000150,
+    TU100 = 0x00000160,
+    GA100 = 0x00000170,
+    AD100 = 0x00000190,
+    GB200 = 0x000001B0,
+  };
+
+  /**
+   * \brief Dagor specific value about the vendor of the currently use GPU.
+   */
+  GpuVendor vendor = GpuVendor::UNKNOWN;
+  /**
+   * \brief Unified Memory Architecture, true if the GPU is integrated.
+   */
+  bool isUMA = false;
+  /**
+   * \brief ID of the vendor.
+   */
+  uint32_t vendorId = UNKNOWN;
+  /**
+   * \brief Internal representation of the currently used GPU's microarchitecture, aka family.
+   */
+  uint32_t family = UNKNOWN;
+};
+
+/**
+ * \brief Optimized device attribute structure, hiding bitfield entries with static const values of known platform features for \xbone.
+ */
+struct DeviceAttributesXboxOne : DeviceAttributesBase
+{
+  static constexpr GpuVendor vendor = GpuVendor::AMD;
+  static constexpr bool isUMA = true;
+  static constexpr uint32_t vendorId = UNKNOWN;
+};
+/**
+ * \brief Optimized device attribute structure, hiding bitfield entries with static const values of known platform features for
+ * \scarlett.
+ */
+struct DeviceAttributesScarlett : DeviceAttributesBase
+{
+  static constexpr GpuVendor vendor = GpuVendor::AMD;
+  static constexpr bool isUMA = true;
+  static constexpr uint32_t vendorId = UNKNOWN;
+  static constexpr uint32_t family = RDNA2;
+};
+/**
+ * \brief Optimized device attribute structure, hiding bitfield entries with static const values of known platform features for \ps4.
+ */
+struct DeviceAttributesPS4 : DeviceAttributesBase
+{
+  static constexpr GpuVendor vendor = GpuVendor::AMD;
+  static constexpr bool isUMA = true;
+  static constexpr uint32_t vendorId = UNKNOWN;
+};
+/**
+ * \brief Optimized device attribute structure, hiding bitfield entries with static const values of known platform features for \ps5.
+ */
+struct DeviceAttributesPS5 : DeviceAttributesBase
+{
+  static constexpr GpuVendor vendor = GpuVendor::AMD;
+  static constexpr bool isUMA = true;
+  static constexpr uint32_t vendorId = UNKNOWN;
+};
+/**
+ * \brief Optimized device attribute structure, hiding bitfield entries with static const values of known platform features for \ios.
+ */
+struct DeviceAttributesIOS : DeviceAttributesBase
+{
+  static constexpr GpuVendor vendor = GpuVendor::APPLE;
+};
+/**
+ * \brief Optimized device attribute structure, hiding bitfield entries with static const values of known platform features for \tvos.
+ */
+struct DeviceAttributesTVOS : DeviceAttributesBase
+{
+  static constexpr GpuVendor vendor = GpuVendor::APPLE;
+};
+/**
+ * \brief Optimized device attribute structure, hiding bitfield entries with static const values of known platform features for
+ * \nswitch.
+ */
+struct DeviceAttributesNintendoSwitch : DeviceAttributesBase
+{
+  static constexpr GpuVendor vendor = GpuVendor::NVIDIA;
+  static constexpr bool isUMA = true;
+};
+/**
+ * \brief Optimized device attribute structure, hiding bitfield entries with static const values of known platform features for
+ * \android.
+ */
+struct DeviceAttributesAndroid : DeviceAttributesBase
+{};
+/**
+ * \brief Optimized device attribute structure, hiding bitfield entries with static const values of known platform features for \mac.
+ */
+struct DeviceAttributesMacOSX : DeviceAttributesBase
+{};
+/**
+ * \brief Optimized device attribute structure, hiding bitfield entries with static const values of known platform features for \linux.
+ */
+struct DeviceAttributesLinux : DeviceAttributesBase
+{};
+/**
+ * \brief Optimized device attribute structure, hiding bitfield entries with static const values of known platform features for
+ * \windows.
+ */
+struct DeviceAttributesWindows : DeviceAttributesBase
+{};
+
+#if _TARGET_XBOXONE
+using DeviceAttributes = DeviceAttributesXboxOne;
+#elif _TARGET_SCARLETT
+using DeviceAttributes = DeviceAttributesScarlett;
+#elif _TARGET_C1
+
+#elif _TARGET_C2
+
+#elif _TARGET_IOS
+using DeviceAttributes = DeviceAttributesIOS;
+#elif _TARGET_TVOS
+using DeviceAttributes = DeviceAttributesTVOS;
+#elif _TARGET_C3
+
+#elif _TARGET_ANDROID
+using DeviceAttributes = DeviceAttributesAndroid;
+#elif _TARGET_PC_MACOSX
+using DeviceAttributes = DeviceAttributesMacOSX;
+#elif _TARGET_PC_LINUX
+using DeviceAttributes = DeviceAttributesLinux;
+#elif _TARGET_PC_WIN
+using DeviceAttributes = DeviceAttributesWindows;
+#else
+using DeviceAttributes = DeviceAttributesBase;
+#endif
 
 /**
  * A boolean bitfield that describes which optional features that are available with the used device / driver combination.
@@ -524,6 +781,13 @@ struct DeviceDriverCapabilitiesBase
    */
   bool hasVariableRateShadingBy4 : 1;
   /**
+   * \capbrief supports stream output.
+   * \someNYI
+   * \platformtable{
+   * hasStreamOutput, c, a, c, a, c, c, c, c, c, c, r}
+   */
+  bool hasStreamOutput : 1;
+  /**
    * \capbrief supports creation of aliased textures.
    * \someNYI
    * \platformtable{hasAliasedTextures,c,a,c,a,c,c,c,c,c,c,r}
@@ -565,23 +829,23 @@ struct DeviceDriverCapabilitiesBase
   bool hasNativeRenderPassSubPasses : 1;
   /**
    * \capbrief supports tiled 2D textures.
-   * \platformtable{hasTiled2DResources,c,a,c,a,c,c,c,c,c,c,r}
+   * \platformtable{hasTiled2DResources,c,a,c,a,c,c,c,r,c,r,r}
    */
   bool hasTiled2DResources : 1;
   /**
    * \capbrief supports tiled 3D textures;
-   * \platformtable{hasTiled3DResources,c,a,c,a,c,c,c,c,c,c,r}
+   * \platformtable{hasTiled3DResources,c,a,c,a,c,c,c,r,c,r,r}
    */
   bool hasTiled3DResources : 1;
   /**
    * \capbrief supports safe read and write access for not mapped tiles of tiled resources. Such reads return 0
    * and writes are ignored.
-   * \platformtable{hasTiledSafeResourcesAccess,c,a,c,a,c,c,c,c,c,c,r}
+   * \platformtable{hasTiledSafeResourcesAccess,c,a,c,a,c,c,c,r,c,r,r}
    */
   bool hasTiledSafeResourcesAccess : 1;
   /**
    * \capbrief supports memory aliasing of multiple tiles.
-   * \platformtable{hasTiledMemoryAliasing,c,a,c,a,c,c,c,c,c,c,r}
+   * \platformtable{hasTiledMemoryAliasing,c,a,c,a,c,c,c,r,c,r,r}
    */
   bool hasTiledMemoryAliasing : 1;
   /**
@@ -605,7 +869,7 @@ struct DeviceDriverCapabilitiesBase
    * \capbrief supports the mesh shader pipeline.
    * \details The mesh shader pipeline is a one or two shader stage that replaces the vertex shader based pre raster portion of the
    * graphics pipeline. Mesh shaders are compute shaders that generate vertices and indices which form primitives like triangles or
-   * lines. \platformtable{hasMeshShader,c,a,c,a,c,c,c,c,c,c,r}
+   * lines. \platformtable{hasMeshShader,c,a,c,a,r,c,c,c,r,c,r}
    */
   bool hasMeshShader : 1;
   /**
@@ -669,7 +933,7 @@ struct DeviceDriverCapabilitiesBase
   /**
    * \capbrief supports UAV access in every shader stage, without this cap UAV is only available in pixel and compute shaders.
    * \someNYI
-   * \platformtable{"hasUAVOnEveryStage",c,a,c,a,c,c,c,c,c,c,r}
+   * \platformtable{"hasUAVOnEveryStage",c,a,c,a,c,c,c,r,c,r,r}
    */
   bool hasUAVOnEveryStage : 1;
   /**
@@ -698,6 +962,12 @@ struct DeviceDriverCapabilitiesBase
    * \platformtable{hasIndirectRayDispatch,c,c,c,a,r,r,c,r,r,r,r}
    */
   bool hasIndirectRayDispatch : 1;
+  /**
+   * \capbrief uses emulation withing gapi for ray tracing features.
+   * \someNYI
+   * \platformtable{hasEmulatedRaytracing,c,c,c,c,r,c,c,c,r,c,c}
+   */
+  bool hasEmulatedRaytracing : 1;
   /**
    * \capbrief supports geometry index information in acceleration structures in ray tracing / ray query shaders.
    * \someNYI
@@ -739,9 +1009,15 @@ struct DeviceDriverCapabilitiesBase
   /**
    * \capbrief hasPersistentShaderHandles indicates that shader handles of pipeline objects, that are used for shader binding tables,
    * are persistent and are the same for derived pipelines and pipelines that use the same shader from the same shader library.
-   * \platformtable{hasNativeRayTracePipelineExpansion,c,c,c,a,r,r,c,r,r,r,r}
+   * \platformtable{hasPersistentShaderHandles,c,c,c,a,r,r,c,r,r,r,r}
    */
   bool hasPersistentShaderHandles : 1;
+  /**
+   * \capbrief hasDualSourceBlending indicates that dual source blending is available (only for one render target).
+   * \someNYI
+   * \platformtable{hasDualSourceBlending,c,a,c,a,c,c,c,r,c,c,c}
+   */
+  bool hasDualSourceBlending : 1;
   /* !!!!! TO ADD NEW VALUES, FOLOW THE STEPS DESCRIBED AT THE REMARK SECTION, KEEP THIS AT THE END OF THIS STRUCT !!!!! */
 };
 /**
@@ -757,8 +1033,8 @@ struct DeviceDriverCapabilitiesXboxOne : DeviceDriverCapabilitiesBase
   static constexpr bool hasStructuredBuffers = true;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasNoOverwriteOnShaderResourceBuffers}
   static constexpr bool hasNoOverwriteOnShaderResourceBuffers = true;
-  //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasForcedSamplerCount}
-  static constexpr bool hasForcedSamplerCount = true;
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasForcedSamplerCount}
+  static constexpr bool hasForcedSamplerCount = false;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasVolMipMap}
   static constexpr bool hasVolMipMap = true;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasAsyncCompute}
@@ -806,6 +1082,8 @@ struct DeviceDriverCapabilitiesXboxOne : DeviceDriverCapabilitiesBase
   static constexpr bool hasVariableRateShadingCombiners = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasVariableRateShadingBy4}
   static constexpr bool hasVariableRateShadingBy4 = false;
+  //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasStreamOutput}
+  static constexpr bool hasStreamOutput = true;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasAliasedTextures}
   static constexpr bool hasAliasedTextures = true;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasResourceHeaps}
@@ -814,8 +1092,8 @@ struct DeviceDriverCapabilitiesXboxOne : DeviceDriverCapabilitiesBase
   static constexpr bool hasBufferOverlapCopy = true;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasBufferOverlapRegionsCopy}
   static constexpr bool hasBufferOverlapRegionsCopy = false;
-  //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasUAVOnlyForcedSampleCount}
-  static constexpr bool hasUAVOnlyForcedSampleCount = true;
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasUAVOnlyForcedSampleCount}
+  static constexpr bool hasUAVOnlyForcedSampleCount = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasShader64BitIntegerResources}
   static constexpr bool hasShader64BitIntegerResources = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasNativeRenderPassSubPasses}
@@ -866,6 +1144,8 @@ struct DeviceDriverCapabilitiesXboxOne : DeviceDriverCapabilitiesBase
   static constexpr bool hasRayDispatch = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasIndirectRayDispatch}
   static constexpr bool hasIndirectRayDispatch = false;
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasEmulatedRaytracing}
+  static constexpr bool hasEmulatedRaytracing = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasGeometryIndexInRayAccelerationStructure}
   static constexpr bool hasGeometryIndexInRayAccelerationStructure = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasSkipPrimitiveTypeInRayTracingShaders}
@@ -880,6 +1160,8 @@ struct DeviceDriverCapabilitiesXboxOne : DeviceDriverCapabilitiesBase
   static constexpr bool hasWaveOps = true;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasPersistentShaderHandles}
   static constexpr bool hasPersistentShaderHandles = false;
+  //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasDualSourceBlending}
+  static constexpr bool hasDualSourceBlending = true;
 };
 /**
  * \brief Optimized capabilities structure, hiding bitfield entries with static const values of known platform features for \scarlett
@@ -915,6 +1197,8 @@ struct DeviceDriverCapabilitiesScarlett : DeviceDriverCapabilitiesXboxOne
   static constexpr bool hasRayDispatch = true;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasIndirectRayDispatch}
   static constexpr bool hasIndirectRayDispatch = true;
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasEmulatedRaytracing}
+  static constexpr bool hasEmulatedRaytracing = false;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasGeometryIndexInRayAccelerationStructure}
   static constexpr bool hasGeometryIndexInRayAccelerationStructure = true;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasSkipPrimitiveTypeInRayTracingShaders}
@@ -991,6 +1275,8 @@ struct DeviceDriverCapabilitiesPS4 : DeviceDriverCapabilitiesBase
   static constexpr bool hasVariableRateShadingCombiners = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasVariableRateShadingBy4}
   static constexpr bool hasVariableRateShadingBy4 = false;
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasStreamOutput}
+  static constexpr bool hasStreamOutput = false;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasAliasedTextures}
   static constexpr bool hasAliasedTextures = true;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasBufferOverlapCopy}
@@ -1049,6 +1335,8 @@ struct DeviceDriverCapabilitiesPS4 : DeviceDriverCapabilitiesBase
   static constexpr bool hasRayDispatch = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasIndirectRayDispatch}
   static constexpr bool hasIndirectRayDispatch = false;
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasEmulatedRaytracing}
+  static constexpr bool hasEmulatedRaytracing = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasGeometryIndexInRayAccelerationStructure}
   static constexpr bool hasGeometryIndexInRayAccelerationStructure = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasSkipPrimitiveTypeInRayTracingShaders}
@@ -1063,6 +1351,8 @@ struct DeviceDriverCapabilitiesPS4 : DeviceDriverCapabilitiesBase
   static constexpr bool hasWaveOps = true;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasPersistentShaderHandles}
   static constexpr bool hasPersistentShaderHandles = false;
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasDualSourceBlending}
+  static constexpr bool hasDualSourceBlending = true;
 };
 /**
  * \brief Optimized capabilities structure, hiding bitfield entries with static const values of known platform features for
@@ -1082,6 +1372,8 @@ struct DeviceDriverCapabilitiesPS5 : DeviceDriverCapabilitiesPS4
   static constexpr bool hasRayDispatch = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasIndirectRayDispatch}
   static constexpr bool hasIndirectRayDispatch = false;
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasEmulatedRaytracing}
+  static constexpr bool hasEmulatedRaytracing = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasGeometryIndexInRayAccelerationStructure}
   static constexpr bool hasGeometryIndexInRayAccelerationStructure = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasSkipPrimitiveTypeInRayTracingShaders}
@@ -1150,12 +1442,11 @@ struct DeviceDriverCapabilitiesIOS : DeviceDriverCapabilitiesBase
   static constexpr bool hasVariableRateShadingCombiners = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasVariableRateShadingBy4}
   static constexpr bool hasVariableRateShadingBy4 = false;
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasStreamOutput}
+  static constexpr bool hasStreamOutput = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasAliasedTextures}
   //! \NYI
   static constexpr bool hasAliasedTextures = false;
-  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasResourceHeaps}
-  //! \NYI
-  static constexpr bool hasResourceHeaps = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasBufferOverlapCopy}
   static constexpr bool hasBufferOverlapCopy = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasBufferOverlapRegionsCopy}
@@ -1181,8 +1472,6 @@ struct DeviceDriverCapabilitiesIOS : DeviceDriverCapabilitiesBase
   static constexpr bool hasXESS = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasDrawID}
   static constexpr bool hasDrawID = false;
-  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasMeshShader}
-  static constexpr bool hasMeshShader = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasBasicViewInstancing}
   static constexpr bool hasBasicViewInstancing = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasOptimizedViewInstancing}
@@ -1209,6 +1498,8 @@ struct DeviceDriverCapabilitiesIOS : DeviceDriverCapabilitiesBase
   static constexpr bool hasWaveOps = true;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasPersistentShaderHandles}
   static constexpr bool hasPersistentShaderHandles = false;
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasDualSourceBlending}
+  static constexpr bool hasDualSourceBlending = true;
 };
 /**
  * \brief Optimized capabilities structure, hiding bitfield entries with static const values of known platform features for
@@ -1273,6 +1564,8 @@ struct DeviceDriverCapabilitiesTVOS : DeviceDriverCapabilitiesBase
   static constexpr bool hasVariableRateShadingCombiners = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasVariableRateShadingBy4}
   static constexpr bool hasVariableRateShadingBy4 = false;
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasStreamOutput}
+  static constexpr bool hasStreamOutput = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasAliasedTextures}
   //! \NYI
   static constexpr bool hasAliasedTextures = false;
@@ -1325,12 +1618,16 @@ struct DeviceDriverCapabilitiesTVOS : DeviceDriverCapabilitiesBase
   static constexpr bool hasRayDispatch = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasIndirectRayDispatch}
   static constexpr bool hasIndirectRayDispatch = false;
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasEmulatedRaytracing}
+  static constexpr bool hasEmulatedRaytracing = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::castingFullyTypedFormatsSupported}
   static constexpr bool castingFullyTypedFormatsSupported = false;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasWaveOps}
   static constexpr bool hasWaveOps = true;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasPersistentShaderHandles}
   static constexpr bool hasPersistentShaderHandles = false;
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasDualSourceBlending}
+  static constexpr bool hasDualSourceBlending = true;
 };
 /**
  * \brief Optimized capabilities structure, hiding bitfield entries with static const values of known platform features for
@@ -1353,7 +1650,7 @@ struct DeviceDriverCapabilitiesNintendoSwitch : DeviceDriverCapabilitiesBase
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasAsyncCompute}
   static constexpr bool hasAsyncCompute = false;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasOcclusionQuery}
-  static constexpr bool hasOcclusionQuery = false;
+  static constexpr bool hasOcclusionQuery = true;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasConstBufferOffset}
   //! \NYI
   static constexpr bool hasConstBufferOffset = false;
@@ -1392,6 +1689,8 @@ struct DeviceDriverCapabilitiesNintendoSwitch : DeviceDriverCapabilitiesBase
   static constexpr bool hasVariableRateShadingCombiners = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasVariableRateShadingBy4}
   static constexpr bool hasVariableRateShadingBy4 = false;
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasStreamOutput}
+  static constexpr bool hasStreamOutput = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasAliasedTextures}
   //! \NYI
   static constexpr bool hasAliasedTextures = false;
@@ -1450,6 +1749,8 @@ struct DeviceDriverCapabilitiesNintendoSwitch : DeviceDriverCapabilitiesBase
   static constexpr bool hasRayDispatch = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasIndirectRayDispatch}
   static constexpr bool hasIndirectRayDispatch = false;
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasEmulatedRaytracing}
+  static constexpr bool hasEmulatedRaytracing = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasGeometryIndexInRayAccelerationStructure}
   static constexpr bool hasGeometryIndexInRayAccelerationStructure = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasSkipPrimitiveTypeInRayTracingShaders}
@@ -1462,6 +1763,8 @@ struct DeviceDriverCapabilitiesNintendoSwitch : DeviceDriverCapabilitiesBase
   static constexpr bool hasNativeRayTracePipelineExpansion = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasPersistentShaderHandles}
   static constexpr bool hasPersistentShaderHandles = false;
+  //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasDualSourceBlending}
+  static constexpr bool hasDualSourceBlending = true;
 };
 /**
  * \brief Optimized capabilities structure, hiding bitfield entries with static const values of known platform features for
@@ -1513,6 +1816,8 @@ struct DeviceDriverCapabilitiesAndroid : DeviceDriverCapabilitiesBase
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasVariableRateShadingBy4}
   //! \NYI
   static constexpr bool hasVariableRateShadingBy4 = false;
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasStreamOutput}
+  static constexpr bool hasStreamOutput = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasAliasedTextures}
   //! \NYI
   static constexpr bool hasAliasedTextures = false;
@@ -1526,14 +1831,6 @@ struct DeviceDriverCapabilitiesAndroid : DeviceDriverCapabilitiesBase
   static constexpr bool hasShader64BitIntegerResources = false;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasNativeRenderPassSubPasses}
   static constexpr bool hasNativeRenderPassSubPasses = true;
-  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasTiled2DResources}
-  static constexpr bool hasTiled2DResources = false;
-  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasTiled3DResources}
-  static constexpr bool hasTiled3DResources = false;
-  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasTiledSafeResourcesAccess}
-  static constexpr bool hasTiledSafeResourcesAccess = false;
-  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasTiledMemoryAliasing}
-  static constexpr bool hasTiledMemoryAliasing = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasDLSS}
   static constexpr bool hasDLSS = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasXESS}
@@ -1554,8 +1851,6 @@ struct DeviceDriverCapabilitiesAndroid : DeviceDriverCapabilitiesBase
   static constexpr bool hasIndirectSupport = true;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasCompareSampler}
   static constexpr bool hasCompareSampler = true;
-  //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasUAVOnEveryStage}
-  static constexpr bool hasUAVOnEveryStage = true;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasBaseVertexSupport}
   static constexpr bool hasBaseVertexSupport = true;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::castingFullyTypedFormatsSupported}
@@ -1620,12 +1915,11 @@ struct DeviceDriverCapabilitiesMacOSX : DeviceDriverCapabilitiesBase
   static constexpr bool hasVariableRateShadingCombiners = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasVariableRateShadingBy4}
   static constexpr bool hasVariableRateShadingBy4 = false;
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasStreamOutput}
+  static constexpr bool hasStreamOutput = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasAliasedTextures}
   //! \NYI
   static constexpr bool hasAliasedTextures = false;
-  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasResourceHeaps}
-  //! \NYI
-  static constexpr bool hasResourceHeaps = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasBufferOverlapCopy}
   static constexpr bool hasBufferOverlapCopy = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasBufferOverlapRegionsCopy}
@@ -1650,8 +1944,6 @@ struct DeviceDriverCapabilitiesMacOSX : DeviceDriverCapabilitiesBase
   static constexpr bool hasDLSS = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasXESS}
   static constexpr bool hasXESS = false;
-  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasMeshShader}
-  static constexpr bool hasMeshShader = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasBasicViewInstancing}
   static constexpr bool hasBasicViewInstancing = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasOptimizedViewInstancing}
@@ -1683,6 +1975,8 @@ struct DeviceDriverCapabilitiesMacOSX : DeviceDriverCapabilitiesBase
   static constexpr bool hasWaveOps = true;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasPersistentShaderHandles}
   static constexpr bool hasPersistentShaderHandles = false;
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasDualSourceBlending}
+  static constexpr bool hasDualSourceBlending = true;
 };
 /**
  * \brief Optimized capabilities structure, hiding bitfield entries with static const values of known platform features for
@@ -1712,14 +2006,6 @@ struct DeviceDriverCapabilitiesLinux : DeviceDriverCapabilitiesBase
   static constexpr bool hasShader64BitIntegerResources = false;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasNativeRenderPassSubPasses}
   static constexpr bool hasNativeRenderPassSubPasses = true;
-  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasTiled2DResources}
-  static constexpr bool hasTiled2DResources = false;
-  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasTiled3DResources}
-  static constexpr bool hasTiled3DResources = false;
-  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasTiledSafeResourcesAccess}
-  static constexpr bool hasTiledSafeResourcesAccess = false;
-  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasTiledMemoryAliasing}
-  static constexpr bool hasTiledMemoryAliasing = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasDLSS}
   static constexpr bool hasDLSS = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasXESS}
@@ -1737,7 +2023,7 @@ struct DeviceDriverCapabilitiesLinux : DeviceDriverCapabilitiesBase
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasAsyncCompute}
   static constexpr bool hasAsyncCompute = false;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasOcclusionQuery}
-  static constexpr bool hasOcclusionQuery = false;
+  static constexpr bool hasOcclusionQuery = true;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasNVApi}
   static constexpr bool hasNVApi = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasATIApi}
@@ -1757,6 +2043,8 @@ struct DeviceDriverCapabilitiesLinux : DeviceDriverCapabilitiesBase
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasVariableRateShadingBy4}
   //! \NYI
   static constexpr bool hasVariableRateShadingBy4 = false;
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasStreamOutput}
+  static constexpr bool hasStreamOutput = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasAliasedTextures}
   //! \NYI
   static constexpr bool hasAliasedTextures = false;
@@ -1779,14 +2067,14 @@ struct DeviceDriverCapabilitiesLinux : DeviceDriverCapabilitiesBase
   static constexpr bool hasIndirectSupport = true;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasCompareSampler}
   static constexpr bool hasCompareSampler = true;
-  //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasUAVOnEveryStage}
-  static constexpr bool hasUAVOnEveryStage = true;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasBaseVertexSupport}
   static constexpr bool hasBaseVertexSupport = true;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::castingFullyTypedFormatsSupported}
   static constexpr bool castingFullyTypedFormatsSupported = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasPersistentShaderHandles}
   static constexpr bool hasPersistentShaderHandles = false;
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasDualSourceBlending}
+  static constexpr bool hasDualSourceBlending = true;
 };
 /**
  * \brief Optimized capabilities structure, hiding bitfield entries with static const values of known platform features for
@@ -1810,6 +2098,8 @@ struct DeviceDriverCapabilitiesWindows : DeviceDriverCapabilitiesBase
   static constexpr bool hasCompareSampler = true;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasBaseVertexSupport}
   static constexpr bool hasBaseVertexSupport = true;
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasDualSourceBlending}
+  static constexpr bool hasDualSourceBlending = true;
 };
 #if _TARGET_XBOXONE
 using DeviceDriverCapabilities = DeviceDriverCapabilitiesXboxOne;
@@ -1917,6 +2207,15 @@ struct DeviceDriverIssuesBase
    */
   bool hasMultisampledAndInstancingHang : 1;
   /**
+   * Some device drivers have device lost when trying to bind multisampled input attachment
+   * \note
+   * Known for certain device driver combinations.
+   * \note
+   * - \constissue{DeviceDriverIssuesNoIssues::hasBrokenMultisampledInputAttachment}
+   * - \runtimeissue{DeviceDriverIssuesAndroid, \android}
+   */
+  bool hasBrokenMultisampledInputAttachment : 1;
+  /**
    * Some device drivers spam device lost error codes while the device still remains functional normally.
    * \note
    * Known for certain device driver combinations.
@@ -1972,15 +2271,6 @@ struct DeviceDriverIssuesBase
    */
   bool hasClearColorBug : 1;
   /**
-   * Image creation during texture reload seems to crash on some devies. Reports exist for Mali G710 and G610.
-   * \note
-   * Known for certain device driver combinations.
-   * \note
-   * - \constissue{DeviceDriverIssuesNoIssues::hasBrokenMTRecreateImage}
-   * - \runtimeissue{DeviceDriverIssuesAndroid, \android}
-   */
-  bool hasBrokenMTRecreateImage : 1;
-  /**
    * Some device drivers have some issues with subpasses.
    * \note
    * Known on the following devices:
@@ -1990,6 +2280,25 @@ struct DeviceDriverIssuesBase
    * - \runtimeissue{DeviceDriverIssuesAndroid, \android}
    */
   bool hasBrokenSubpasses : 1;
+  /**
+   * 572.xx nvidia driver versions have an issue with querying NvApi_GetSleepStatus after device creation.
+   * \note
+   * Known on the following devices:
+   * - \nvidia with 572.xx driver versions
+   * \note
+   * - \constissue{DeviceDriverIssuesNoIssues::hasBrokenNvApiGetSleepStatus}
+   * - \runtimeissue{DeviceDriverIssuesWindows, \win32}
+   */
+  bool hasBrokenNvApiGetSleepStatus : 1;
+  /**
+   * In some sequences of clear, RT switches, and rendering the texture may end up filled with NaNs
+   * \note
+   * Known for certain device driver combinations.
+   * \note
+   * - \constissue{DeviceDriverIssuesNoIssues::hasFloatClearBug}
+   * - \runtimeissue{DeviceDriverIssuesWindows, \win32}
+   */
+  bool hasFloatClearBug : 1;
 };
 
 /**
@@ -2002,6 +2311,11 @@ struct DeviceDriverIssuesAndroid : DeviceDriverIssuesBase
    * \baseissue{DeviceDriverIssuesBase::hasClearColorBug}
    **/
   static constexpr bool hasClearColorBug = false;
+  /**
+   * \brief Is constant false on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \android
+   * \baseissue{DeviceDriverIssuesBase::hasBrokenNvApiGetSleepStatus}
+   **/
+  static constexpr bool hasBrokenNvApiGetSleepStatus = false;
 };
 
 /**
@@ -2046,6 +2360,11 @@ struct DeviceDriverIssuesWindows : DeviceDriverIssuesBase
   static constexpr bool hasMultisampledAndInstancingHang = false;
   /**
    * \brief Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
+   * \baseissue{DeviceDriverIssuesBase::hasBrokenMultisampledInputAttachment}
+   **/
+  static constexpr bool hasBrokenMultisampledInputAttachment = false;
+  /**
+   * \brief Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
    * \baseissue{DeviceDriverIssuesBase::hasIgnoreDeviceLost}
    **/
   static constexpr bool hasIgnoreDeviceLost = false;
@@ -2071,14 +2390,14 @@ struct DeviceDriverIssuesWindows : DeviceDriverIssuesBase
   static constexpr bool hasBrokenComputeFormattedOutput = false;
   /**
    * \brief Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
-   * \baseissue{DeviceDriverIssuesBase::hasBrokenMTRecreateImage}
-   **/
-  static constexpr bool hasBrokenMTRecreateImage = false;
-  /**
-   * \brief Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
    * \baseissue{DeviceDriverIssuesBase::hasBrokenSubpasses}
    **/
   static constexpr bool hasBrokenSubpasses = false;
+  /**
+   * \brief Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
+   * \baseissue{DeviceDriverIssuesBase::hasFloatClearBug}
+   **/
+  static constexpr bool hasFloatClearBug = false;
 };
 
 /**
@@ -2091,6 +2410,11 @@ struct DeviceDriverIssuesNoIssues : DeviceDriverIssuesWindows
    * \baseissue{DeviceDriverIssuesBase::hasClearColorBug}
    **/
   static constexpr bool hasClearColorBug = false;
+  /**
+   * \brief Is constant false on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \android
+   * \baseissue{DeviceDriverIssuesBase::hasBrokenNvApiGetSleepStatus}
+   **/
+  static constexpr bool hasBrokenNvApiGetSleepStatus = false;
 };
 
 #if _TARGET_XBOXONE
@@ -2160,6 +2484,11 @@ struct DeviceDriverRaytraceProperties
   /// shader invoked by the rays miss or hit shader. A value of 2 means that the ray gen
   /// shader shoots the first ray and the invoked hit or miss shader may also shoot one ray.
   unsigned maxRecursionDepth = 0;
+  /// Sizes of acceleration structure pools have to be aligned to this value or the create call will fail.
+  /// May be 0 when pools are not supported.
+  unsigned accelerationStructurePoolSizeAlignment = 0;
+  /// Offsets of acceleration structures in pools have to be aligned to this value or create call will fail.
+  unsigned accelerationStructurePoolOffsetAlignment = 0;
 };
 
 //--- 3d Driver description -------
@@ -2196,6 +2525,7 @@ struct Driver3dDesc // -V730
   unsigned variableRateTextureTileSizeY;
   // When DeviceDriverCapabilities::hasRenderPassDepthResolve is set, this variable enumerates supported resolve modes
   unsigned depthResolveModes = DepthResolveMode::DEPTH_RESOLVE_MODE_NONE;
+  DeviceAttributes info;
   DeviceDriverCapabilities caps;
   DeviceDriverIssues issues;
   DeviceDriverShaderModelVersion shaderModel;
@@ -2245,8 +2575,9 @@ enum class VariableRateShadingCombiner
 
 // Resource barriers
 // Usually RW targets are implicitly transitioned to and need no explicit barrier.
-// Details can be found here https://info.gaijin.lan/display/DE4/Resource+and+Execution+Barriers
-enum ResourceBarrier : int
+// Details can be found here:
+// https://dagor.rtd.gaijin.lan/en/latest/api-references/dagor-render/index/resource_and_execution_barriers.html
+enum ResourceBarrier : uint64_t
 {
   // For resources with color formats the target is render target and for resources with depth
   // stencil format it is depth stencil target. If resource has a depth/stencil format and paired
@@ -2327,6 +2658,13 @@ enum ResourceBarrier : int
   // NOTE: This is only needed to reuse a already used region of the buffer, non overlapping regions
   //       of the buffer do not affect each other, so no flush is needed.
   RB_FLUSH_RAYTRACE_ACCELERATION_BUILD_SCRATCH_USE = 1u << 30,
+
+  // State for buffers that are used as stream output targets.
+  RB_STREAM_OUTPUT = 1u << 31,
+
+  // State for buffers that are used as stream output counters.
+  RB_STREAM_OUTPUT_COUNTER = 1ull << 32,
+
   // Will do the same as RB_ALIAS_TO plus discarding the resource, this initialized the resource
   // into a usable state, the context (texels) will be in a undefined state and are expected to
   // be overwritten with subsequent operations.
@@ -2362,17 +2700,17 @@ enum ResourceBarrier : int
 
 constexpr inline ResourceBarrier operator|(ResourceBarrier l, ResourceBarrier r)
 {
-  return static_cast<ResourceBarrier>(static_cast<unsigned>(l) | static_cast<unsigned>(r));
+  return static_cast<ResourceBarrier>(eastl::to_underlying(l) | eastl::to_underlying(r));
 }
 
 constexpr inline ResourceBarrier operator&(ResourceBarrier l, ResourceBarrier r)
 {
-  return static_cast<ResourceBarrier>(static_cast<unsigned>(l) & static_cast<unsigned>(r));
+  return static_cast<ResourceBarrier>(eastl::to_underlying(l) & eastl::to_underlying(r));
 }
 
 constexpr inline ResourceBarrier operator^(ResourceBarrier l, ResourceBarrier r)
 {
-  return static_cast<ResourceBarrier>(static_cast<unsigned>(l) ^ static_cast<unsigned>(r));
+  return static_cast<ResourceBarrier>(eastl::to_underlying(l) ^ eastl::to_underlying(r));
 }
 
 /** \defgroup RenderPassConsts
@@ -2393,7 +2731,7 @@ enum RenderPassTargetAction : int
   /// \brief Loads clear value to framebuffer instead of doing any memory operation
   RP_TA_LOAD_CLEAR = 1u << 1,
   /// \brief Don't care about loading contents of target (aka discard)
-  /// \warning Initial content of frame buffer is underfined, make sure to handle this
+  /// \warning Initial content of frame buffer is undefined, make sure to handle this
   RP_TA_LOAD_NO_CARE = 1u << 2,
   /// \brief Bitmask of any load operation
   /// \note  load action is performed for each target when
@@ -2447,3 +2785,13 @@ enum RenderPassExtraIndexes : int
 };
 
 /** @}*/
+
+
+namespace raytrace
+{
+/// Acceleration structure pool that can be used to allocate multiple TLAS and BLAS out of it.
+/// For detailed information see the appropriate functions interacting with the type.
+struct AccelerationStructurePoolType;
+using AccelerationStructurePool = AccelerationStructurePoolType *;
+inline constexpr AccelerationStructurePool InvalidAccelerationStructurePool = nullptr;
+} // namespace raytrace

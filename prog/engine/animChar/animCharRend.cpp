@@ -172,7 +172,7 @@ uint16_t AnimcharRendComponent::beforeRender(const AnimcharFinalMat44 &finalWtm,
   if (!visBits || !scene)
     return visBits;
 
-  vec4f rootPos = v_mat43_mul_vec3p(ownerTm, finalWtm.nwtm[0].col3);
+  vec4f rootPos = v_add(v_mat43_mul_vec3p(ownerTm, finalWtm.nwtm[0].col3), finalWtm.wofs);
   const float dist2 = v_extract_x(v_length3_sq_x(v_sub(v_ldu(&cam_pos.x), rootPos)));
   if (dist2 < 0.f)
     return visBits;

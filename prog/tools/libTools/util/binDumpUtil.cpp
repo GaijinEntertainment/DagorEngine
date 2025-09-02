@@ -7,6 +7,7 @@
 #include <math/dag_TMatrix.h>
 #include <math/integer/dag_IPoint2.h>
 #include <math/integer/dag_IPoint3.h>
+#include <math/integer/dag_IPoint4.h>
 // #include <debug/dag_debug.h>
 
 // StrCollector
@@ -155,6 +156,7 @@ void mkbindump::RoDataBlockBuilder::writeData(BinDumpSaveCB &cwr)
 
         case DataBlock::TYPE_IPOINT2:
         case DataBlock::TYPE_IPOINT3:
+        case DataBlock::TYPE_IPOINT4:
         case DataBlock::TYPE_INT64: cwr.writeInt32e(intStor.indexToOffset(params[pi].val) - nameMapOfs); break;
 
 
@@ -236,6 +238,12 @@ void mkbindump::RoDataBlockBuilder::enumDataBlock(const DataBlock &blk, int bi, 
       {
         auto v = blk.getIPoint3(i);
         intStor.getRef(pr.val, &v.x, 3);
+      }
+      break;
+      case DataBlock::TYPE_IPOINT4:
+      {
+        auto v = blk.getIPoint4(i);
+        intStor.getRef(pr.val, &v.x, 4);
       }
       break;
       case DataBlock::TYPE_BOOL: pr.val = blk.getBool(i); break;

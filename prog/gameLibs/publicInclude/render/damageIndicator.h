@@ -12,6 +12,7 @@ struct DamageIndicatorDrawConfig
   bool drawOutline = true;
   bool drawSilhouette = false;
   bool drawTargetingSightLine = false;
+  bool limitSizeToRect = false;
   float rotationOffset = 0.0f;
   Color4 modulateColor = Color4(1, 1, 1, 1);
 };

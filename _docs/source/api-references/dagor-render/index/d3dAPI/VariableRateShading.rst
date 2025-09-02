@@ -1,5 +1,5 @@
-Variable rate shading API
+Variable Rate Shading API
 =================================================
 
-.. autodoxygenfile:: dag_variableRateShading.h
+.. doxygenfile:: dag_variableRateShading.h
   :project: d3dAPI

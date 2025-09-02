@@ -4,7 +4,7 @@
 //
 #pragma once
 
-#include <drv/3d/dag_driver.h>
+struct Driver3dPerspective;
 
 class TexStreamingContext
 {
@@ -17,12 +17,13 @@ public:
   // 2. TexStreamingContext(FLT_MAX) - all used textures will request maximum quality mip level. Should be avoided if possible,
   //    since it reduces effect from texture streaming with computed mip levels. Better try to use some existing context,
   //    built from perspective and width, or create a new one this way.
-  TexStreamingContext() : multiplicator(NAN) {}
+  TexStreamingContext() : multiplicator(-1.f) {}
   TexStreamingContext(float mul) : multiplicator(mul) {}
   // Create a context correctly computing texture mips for streaming
   TexStreamingContext(const Driver3dPerspective &persp, int width);
   int getTexLevel(float texScale, float distSq = 0.0f) const;
 
-  constexpr static int minLevel = 1;
-  constexpr static int maxLevel = 15;
+  constexpr static int MIN_TEX_LEVEL = 1;
+  constexpr static int MIN_NON_STUB_LEVEL = MIN_TEX_LEVEL + 1;
+  constexpr static int MAX_TEX_LEVEL = 15;
 };

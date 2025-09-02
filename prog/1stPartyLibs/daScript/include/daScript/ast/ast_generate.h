@@ -46,7 +46,7 @@ namespace das {
         self.decl := decl.value or self[index].decl = decl.value
     */
     struct MakeFieldDecl;
-    ExpressionPtr convertToCloneExpr ( ExprMakeStruct * expr, int index, MakeFieldDecl * decl );
+    ExpressionPtr convertToCloneExpr ( ExprMakeStruct * expr, int index, MakeFieldDecl * decl, bool ignoreCaptureConst = false );
 
 
     /*

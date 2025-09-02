@@ -1,12 +1,11 @@
-let {parse_json, object_to_json_string} = require("json")
-
-let io = require("io")
-let {read_text_from_file} = require("dagor.fs")
+import "io" as io
+from "json" import parse_json, object_to_json_string
+from "dagor.fs" import read_text_from_file
 
 let defLogger = @(...) print(" ".join(vargv))
-let callableTypes = ["function","table","instance"]
+let callableTypes = {"function":1,"table":1,"instance":1}
 function isCallable(v) {
-  return callableTypes.indexof(type(v)) != null && (v.getfuncinfos() != null)
+  return type(v) in callableTypes && (v.getfuncinfos() != null)
 }
 
 function defSaveJsonFile(file_path, data){
@@ -26,7 +25,7 @@ function save(file_path, data, params = defParamsSave) {
   assert(isCallable(save_text_file), "save_text_file should be Callable")
   assert(type(file_path)=="string", "file_path should be string")
   assert(logger== null || isCallable(logger), @() $"logger should be Callable or null, got {type(logger)}")
-  assert(["function","class","instance","generator"].indexof(type(data))==null)
+  assert(type(data) not in static {"function":1,"class":1,"instance":1,"generator":1}, @() $"unexpected data in json: {type(data)}")
   try {
     data = object_to_json_string(data, pretty_print)
     let res = save_text_file(file_path, data)
@@ -68,7 +67,8 @@ function load(file_path, params = defParamsLoad) {
     return null
   }
 }
-return {
+
+return freeze({
   saveJson = save
   loadJson = load
   jsonToString = object_to_json_string
@@ -76,4 +76,4 @@ return {
   read_text_directly_from_fs_file
   object_to_json_string
   parse_json
-}
+})

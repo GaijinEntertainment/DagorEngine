@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 // clang-format off  // generated text, do not modify!
 #include <generic/dag_tab.h>
 #include <scriptHelpers/tunedParams.h>
@@ -16,7 +18,7 @@ ScriptHelpers::TunedElement *SparkFxValueCurveOpt::createTunedElement(const char
   elems.push_back(ScriptHelpers::create_tuned_bool_param("enabled", false));
   elems.push_back(ScriptHelpers::create_tuned_cubic_curve("curve", E3DCOLOR(255, 255, 0)));
 
-  return ScriptHelpers::create_tuned_struct(name, 1, elems);
+  return ScriptHelpers::create_tuned_struct(name, 2, elems);
 }
 
 
@@ -191,12 +193,25 @@ ScriptHelpers::TunedElement *DafxSparksGlobalParams::createTunedElement(const ch
 ScriptHelpers::TunedElement *DafxSparksOptionalModifiers::createTunedElement(const char *name)
 {
   Tab<ScriptHelpers::TunedElement *> elems(tmpmem);
-  elems.reserve(2);
+  elems.reserve(3);
 
   elems.push_back(SparkFxValueCurveOpt::createTunedElement("widthOverLife"));
   elems.push_back(ScriptHelpers::create_tuned_bool_param("allowScreenProjDiscard", true));
+  {
+    Tab<ScriptHelpers::EnumEntry> enumEntries(tmpmem);
+    enumEntries.resize(3);
 
-  return ScriptHelpers::create_tuned_struct(name, 2, elems);
+    enumEntries[0].name = "default";
+    enumEntries[0].value = 0;
+    enumEntries[1].name = "disabled";
+    enumEntries[1].value = 1;
+    enumEntries[2].name = "relaxed";
+    enumEntries[2].value = 2;
+
+    elems.push_back(ScriptHelpers::create_tuned_enum_param("collision", enumEntries));
+  }
+
+  return ScriptHelpers::create_tuned_struct(name, 3, elems);
 }
 
 

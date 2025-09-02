@@ -2,7 +2,6 @@
 
 #include <util/dag_texMetaData.h>
 #include <util/dag_string.h>
-#include <drv/3d/dag_consts.h>
 #include <drv/3d/dag_tex3d.h>
 #include <ioSys/dag_dataBlock.h>
 #include <math/dag_e3dColor.h>
@@ -684,12 +683,12 @@ int TextureMetaData::d3dTexAddr(unsigned addr)
 }
 int TextureMetaData::d3dTexFilter() const
 {
-  int d3d_filt[] = {0, TEXFILTER_LINEAR, TEXFILTER_BEST, TEXFILTER_NONE, TEXFILTER_POINT, 0};
+  int d3d_filt[] = {TEXFILTER_LINEAR, TEXFILTER_LINEAR, TEXFILTER_BEST, TEXFILTER_NONE, TEXFILTER_POINT, TEXFILTER_LINEAR};
   return d3d_filt[texFilterMode];
 }
 int TextureMetaData::d3dMipFilter() const
 {
-  int d3d_filt[] = {0, 0, 0, TEXMIPMAP_NONE, TEXMIPMAP_POINT, TEXMIPMAP_LINEAR};
+  int d3d_filt[] = {TEXMIPMAP_LINEAR, TEXMIPMAP_LINEAR, TEXMIPMAP_LINEAR, TEXMIPMAP_NONE, TEXMIPMAP_POINT, TEXMIPMAP_LINEAR};
   return d3d_filt[mipFilterMode];
 }
 

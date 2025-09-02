@@ -5,7 +5,7 @@
 #include "../../de_appwnd.h"
 
 #include <oldEditor/de_workspace.h>
-#include <oldEditor/de_clipping.h>
+#include <oldEditor/de_collision.h>
 
 #include <ioSys/dag_dataBlock.h>
 #include <osApiWrappers/dag_direct.h>

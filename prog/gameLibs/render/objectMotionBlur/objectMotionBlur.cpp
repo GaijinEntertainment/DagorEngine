@@ -165,7 +165,12 @@ static void initialize()
 
     g_ctx->resCtx->flattenedVelocityTex =
       dag::create_tex(nullptr, width, height, TEXCF_UNORDERED | TEXFMT_R11G11B10F, 1, "object_motion_blur_flattened_vel_tex");
-    g_ctx->resCtx->flattenedVelocityTex->texfilter(TEXFILTER_POINT);
+    {
+      d3d::SamplerInfo smpInfo;
+      smpInfo.filter_mode = d3d::FilterMode::Point;
+      ShaderGlobal::set_sampler(::get_shader_variable_id("object_motion_blur_flattened_vel_tex_samplerstate", true),
+        d3d::request_sampler(smpInfo));
+    }
 
     if (!g_ctx->resCtx->tileMaxTex || !g_ctx->resCtx->neightborMaxTex || !g_ctx->resCtx->resultTex ||
         !g_ctx->resCtx->flattenedVelocityTex)

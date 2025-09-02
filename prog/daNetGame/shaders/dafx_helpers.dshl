@@ -2,15 +2,15 @@ include "shader_global.dshl"
 include "depth_mask.dshl"
 include "depth_above.dshl"
 include "skyLightParams.dshl"
-include "depth_above.dshl"
 include "heightmap_common.dshl"
 include "underwater_fog.dshl"
 include "flow_map_inc.dshl"
 include "dafx_blocks.dshl"
-
+include "camera_in_camera.dshl"
 
 int dafx_use_underwater_fog = 0;
 int dafx_is_water_proj = 0;
+int dafx_use_fake_adaptation = 1;
 
 float cockpit_radius = 0;
 
@@ -47,7 +47,12 @@ macro DAFXEX_USE_DEPTH_FOR_COLLISION(stage)
 endmacro
 
 macro DAFXEX_USE_DEPTH_MASK(stage)
-  GET_CLOUD_VOLUME_MASK()
+  GET_CLOUD_VOLUME_MASK_STAGE(stage)
+  hlsl(stage)
+  {
+    // #define DAFXEX_CLOUD_MASK_ENABLED // TODO: enable cloud volume mask after properly testing it
+    #define dafx_get_screen_cloud_volume_mask get_screen_cloud_volume_mask
+  }
   if (shader != dafx_modfx_bboard_render_fom)
   {
     DAFXEX_USE_DEPTH(stage)
@@ -77,6 +82,8 @@ endmacro
 macro DAFXEX_USE_FOG()
 if (shader != dafx_modfx_bboard_render_fom)
 {
+  IMPORT_ON_TOP_CAMERA_IN_CAMERA(vs)
+  IMPORT_ON_TOP_CAMERA_IN_CAMERA(ps)
   INIT_ZNZFAR_STAGE(vs) // needed for USE_VOLUMETRIC_LIGHT_VS
   USE_BRUNETON_FOG_VS()
   USE_BRUNETON_FOG()
@@ -119,6 +126,8 @@ if (shader != dafx_modfx_bboard_render_fom)
 endmacro
 
 macro DAFXEX_USE_SHADOW()
+(ps) { dafx_use_fake_adaptation@i1 = dafx_use_fake_adaptation; }
+(vs) { dafx_use_fake_adaptation@i1 = dafx_use_fake_adaptation; }
 if (shader != dafx_modfx_bboard_render_fom)
 {
   hlsl
@@ -129,6 +138,7 @@ if (shader != dafx_modfx_bboard_render_fom)
     #endif
   }
   USE_STATIC_SHADOW_BASE_NUM(vs, 1)
+  USE_STATIC_SHADOW_BASE_NUM(ps, 1)
   USE_FOM_SHADOWS(vs)
   SQ_CLOUDS_SHADOW(vs)
 }
@@ -144,8 +154,11 @@ macro DAFXEX_USE_RAIN_CULLING()
     bool cull_away_rain(float3 wpos)
     {
       float depthVignette = 0;
-      float depthAbove = getWorldBlurredDepth(wpos, depthVignette);
-      return depthAbove > wpos.y || wpos.y < water_level || length(wpos - world_view_pos) < cockpit_radius;
+      float height = water_level;
+      #if DAFX_USE_DEPTH_ABOVE
+        height = max(get_depth_above_fast(wpos, depthVignette), height);
+      #endif
+      return wpos.y < height || length(wpos - world_view_pos) < cockpit_radius;
     }
   }
 endmacro
@@ -201,32 +214,39 @@ macro DAFXEX_USE_PARTICLE_PLACEMENT()
   {
     water_level@f1 = (water_level);
   }
-  INIT_DEPTH_ABOVE(vs, depth_around_transparent)
-  USE_DEPTH_ABOVE(vs, depth_around_transparent)
+  DAFXEX_USE_DEPTH_ABOVE(vs)
   DAFXEX_USE_HMAP(vs)
   hlsl (vs)
   {
-    #include "modfx/modfx_gpu_placement_flags.hlsl"
+    #include "modfx/modfx_gpu_placement_flags.hlsli"
 
     bool place_fx_above(inout float3 wpos, float placement_threshold, uint flags)
     {
-      float height = water_level;
+      const float INVALID_HEIGHT = -1e6;
+      const float EPS = 1e-6;
+      float height = INVALID_HEIGHT;
+
+##if (in_editor_assume == no)
+      FLATTEN if (flags & MODFX_GPU_PLACEMENT_WATER)
+        height = max(height, water_level);
+##endif
+
 #if DAFX_USE_HMAP
       if (flags & MODFX_GPU_PLACEMENT_HMAP)
-        height = getWorldHeight(float2(wpos.x, wpos.z));
+        height = max(getWorldHeight(float2(wpos.x, wpos.z)), height);
 #endif
 
 #if DAFX_USE_DEPTH_ABOVE
       if (flags & MODFX_GPU_PLACEMENT_DEPTH_ABOVE)
       {
         float vignette = 0;
-        float suggestedHeight = getWorldBlurredDepth(wpos, vignette);
-        height = lerp(suggestedHeight, height, vignette);
+        float suggestedHeight = get_depth_above_fast(wpos, vignette);
+        height = max(lerp(suggestedHeight, wpos.y, vignette), height); // must be checked last because of vignette
       }
 #endif
 
-      if (flags & MODFX_GPU_PLACEMENT_WATER)
-        height = max(height, water_level);
+      FLATTEN if (height <= INVALID_HEIGHT + EPS)
+        return true; // no placement
 
       float defaultHeight = wpos.y;
       FLATTEN if (placement_threshold <= 0 || (abs(height - defaultHeight) < placement_threshold)) // apply placement in threshold range
@@ -243,7 +263,10 @@ macro DAFXEX_USE_CFD_WIND(stage)
 endmacro
 
 macro DAFXEX_USE_WATER_FLOWMAP(stage)
-  FX_USE_WATER_FLOWMAP(stage)
+  if (in_editor_assume == no && compatibility_mode == compatibility_mode_off)
+  {
+    FX_USE_WATER_FLOWMAP(stage)
+  }
 endmacro
 
 macro DAFXEX_COMPUTE_INIT()

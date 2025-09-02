@@ -34,7 +34,6 @@ macro SKIP_RAY_WINDOWS(code)
       for (uint i = gridOffset+gridSize, ei = min(gridOffset + gridCount+gridSize, gridSize * 2u); i < ei; ++i)
       {
         uint sampleIndex = structuredBufferAt(windowsGrid, i);
-        // Workaround for https://youtrack.gaijin.team/issue/EEX-4028/top-1-crash-PS4-in-GPUFAULTPAGEFAULTASYNC-after-release-major-0.5.7.40
         // windowsGrid can be filled with garbage while windows buffer is zero-length
         if (sampleIndex >= current_windows_count)
           continue;

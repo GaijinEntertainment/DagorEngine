@@ -1,5 +1,7 @@
+options gen2
 require hidden/hidden
 
 [export]
-def main
+def main {
     print("this is test only thing. it should fail to compile standalone, without hidden defined.\n")
+}

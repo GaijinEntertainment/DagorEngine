@@ -7,8 +7,8 @@
 #include <generic/dag_smallTab.h>
 #include <generic/dag_tab.h>
 #include <stdio.h>
-#include <libtools/csgFaceRemover/csgFaceRemover.h>
-#include <libtools/csgFaceRemover/geomContainerRemover.h>
+#include <libTools/csgFaceRemover/csgFaceRemover.h>
+#include <libTools/csgFaceRemover/geomContainerRemover.h>
 
 struct CSGNode
 {

@@ -1,4 +1,9 @@
 
+hlsl {
+  #define PPCAT_(a_, b_) a_ ## b_
+  #define PPCAT(a_, b_) PPCAT_(a_, b_)
+}
+
 include "assert.dshl"
 
 hlsl {
@@ -306,26 +311,35 @@ hlsl {
     #define PRECISE
   ##endif
 }
+
+macro PS_USE_PRECISE_POSITION()
+  if (hardware.ps4 || hardware.ps5) {
+    hlsl {
+      #pragma __precise_position
+    }
+  }
+endmacro
+
 hlsl {
 ##if hardware.ps4 || hardware.ps5
-  #define shadow2D(a, uv) a.SampleCmpLOD0(a##_cmpSampler, (uv).xy, (uv).z)
-  #define shadow2DArray(a, uv) a.SampleCmpLOD0(a##_cmpSampler, (uv).xyz, (uv).w)
+  #define shadow2D(a, uv) a.SampleCmpLOD0(PPCAT(a, _cmpSampler), (uv).xy, (uv).z)
+  #define shadow2DArray(a, uv) a.SampleCmpLOD0(PPCAT(a, _cmpSampler), (uv).xyz, (uv).w)
+  int4 D3DCOLORtoUBYTE4(float4 x) { return int4(x.zyxw * 255.001953); }
 ##else
-  #define shadow2D(a, uv) a.SampleCmpLevelZero(a##_cmpSampler, (uv).xy, (uv).z)
-  #define shadow2DArray(a, uv) a.SampleCmpLevelZero(a##_cmpSampler, (uv).xyz, (uv).w)
+  #define shadow2D(a, uv) a.SampleCmpLevelZero(PPCAT(a, _cmpSampler), (uv).xy, (uv).z)
+  #define shadow2DArray(a, uv) a.SampleCmpLevelZero(PPCAT(a, _cmpSampler), (uv).xyz, (uv).w)
 ##endif
 }
 
 hlsl(vs) {
   #define SQRT_SAT(x)  sqrt(saturate(x))
 ##if hardware.ps4 || hardware.ps5
-  #define tex2Dlod(a, uv) a.SampleLOD(a##_samplerstate, (uv).xy, (uv).w)
-  #define tex3Dlod(a, uv) a.SampleLOD(a##_samplerstate, (uv).xyz, (uv).w)
-  #define textureGather(a, tc) a.Gather(a##_samplerstate, tc)
+  #define tex2Dlod(a, uv) a.SampleLOD(PPCAT(a, _samplerstate), (uv).xy, (uv).w)
+  #define tex3Dlod(a, uv) a.SampleLOD(PPCAT(a, _samplerstate), (uv).xyz, (uv).w)
+  #define textureGather(a, tc) a.Gather(PPCAT(a, _samplerstate), tc)
   #define texelFetchOffset(a, tc, lod, ofs) a.Load(int3(tc, lod), ofs)
-  #define textureLodOffset(a, tc, lod, ofs) a.SampleLOD(a##_samplerstate, tc, lod, ofs)
+  #define textureLodOffset(a, tc, lod, ofs) a.SampleLOD(PPCAT(a, _samplerstate), tc, lod, ofs)
   #define tex2DLodBindless(a, uv) (a).tex.SampleLOD((a).smp, (uv).xy, (uv).w)
-  int4 D3DCOLORtoUBYTE4(float4 x) { return int4(x.zyxw * 255.001953); }
   #define VS_OUT_POSITION(name)      float4 name:S_POSITION;
   #define VSOUT_POSITION             S_POSITION
   #define CLIPPLANE_OUT
@@ -338,11 +352,11 @@ hlsl(vs) {
   #define SV_primitiveID
   #define SV_RenderTargetArrayIndex  S_RENDER_TARGET_INDEX
 ##elif hardware.dx11 || hardware.vulkan || hardware.metal
-  #define tex2Dlod(a, uv) a.SampleLevel(a##_samplerstate, (uv).xy, (uv).w)
-  #define tex3Dlod(a, uv) a.SampleLevel(a##_samplerstate, (uv).xyz, (uv).w)
-  #define textureGather(a, tc) a.Gather(a##_samplerstate, tc)
+  #define tex2Dlod(a, uv) a.SampleLevel(PPCAT(a, _samplerstate), (uv).xy, (uv).w)
+  #define tex3Dlod(a, uv) a.SampleLevel(PPCAT(a, _samplerstate), (uv).xyz, (uv).w)
+  #define textureGather(a, tc) a.Gather(PPCAT(a, _samplerstate), tc)
   #define texelFetchOffset(a, tc, lod, ofs) a.Load(int3(tc, lod), ofs)
-  #define textureLodOffset(a, tc, lod, ofs) a.SampleLevel(a##_samplerstate, tc, lod, ofs)
+  #define textureLodOffset(a, tc, lod, ofs) a.SampleLevel(PPCAT(a, _samplerstate), tc, lod, ofs)
   ##if hardware.metal
   float4 tex2DLodBindless(TextureSampler a, float4 uv)
   {
@@ -435,31 +449,33 @@ hlsl(ps) {
     //http://www.humus.name/Articles/Persson_LowlevelShaderOptimization.pdf
     return asfloat(BitFieldInsert(face, asuint(normal), asuint(-normal)));
   }
-  #define GetAttributeAtVertex(a, b) GetParameterP##b(a)
+  #define GetAttributeAtVertex(a, b) PPCAT(GetParameterP, b)(a)
   #define INPUT_VFACE , uint vface : SV_IsFrontFace
   #define MUL_VFACE(a) ps4_mul_vface(vface, a)
   #define MUL_VFACE_SATURATE(a) saturate((vface ? (a) : (-a)))
   #define IF_IS_BACK_FACE if (!vface)
   #define SET_IF_IS_BACK_FACE(name, val) if (!vface) name = val;
-  #define tex2Dgrad(a, uv, dx, dy) a.SampleGradient(a##_samplerstate, (uv).xy, dx, dy)
-  #define tex2Dlod(a, uv) a.SampleLOD(a##_samplerstate, (uv).xy, (uv).w)
-  #define tex2DlodSampler(a, b, uv) a.SampleLOD(b##_samplerstate, (uv).xy, (uv).w)
-  #define tex3Dlod(a, uv) a.SampleLOD(a##_samplerstate, (uv).xyz, (uv).w)
-  #define tex3Dgrad(a, uv, dx, dy) a.SampleGradient(a##_samplerstate, uv, dx, dy)
-  #define texCUBElod(a, uv) a.SampleLOD(a##_samplerstate, uv.xyz, uv.w)
-  #define texCUBEArraylod(a, uv, lod) a.SampleLOD(a##_samplerstate, (uv).xyzw, lod)
-  #define tex2Dproj(a, uv) a.Sample(a##_samplerstate, (uv).xy/(uv).w)
-  #define tex2D(a, uv) a.Sample(a##_samplerstate, uv)
-  #define tex3D(a, uv) a.Sample(a##_samplerstate, uv)
-  #define texCUBE(a, uv) a.Sample(a##_samplerstate, uv)
-  #define textureGather(a, tc) a.Gather(a##_samplerstate, tc)
+  #define tex2Dgrad(a, uv, dx, dy) a.SampleGradient(PPCAT(a, _samplerstate), (uv).xy, dx, dy)
+  #define tex2Dlod(a, uv) a.SampleLOD(PPCAT(a, _samplerstate), (uv).xy, (uv).w)
+  #define tex2DlodSampler(a, b, uv) a.SampleLOD(PPCAT(b, _samplerstate), (uv).xy, (uv).w)
+  #define tex2Dbias(a, uv, bias) a.SampleBias(PPCAT(a, _samplerstate), (uv).xy, bias)
+  #define tex3Dlod(a, uv) a.SampleLOD(PPCAT(a, _samplerstate), (uv).xyz, (uv).w)
+  #define tex3Dgrad(a, uv, dx, dy) a.SampleGradient(PPCAT(a, _samplerstate), uv, dx, dy)
+  #define texCUBElod(a, uv) a.SampleLOD(PPCAT(a, _samplerstate), uv.xyz, uv.w)
+  #define texCUBEArraylod(a, uv, lod) a.SampleLOD(PPCAT(a, _samplerstate), (uv).xyzw, lod)
+  #define tex2Dproj(a, uv) a.Sample(PPCAT(a, _samplerstate), (uv).xy/(uv).w)
+  #define tex2D(a, uv) a.Sample(PPCAT(a, _samplerstate), uv)
+  #define tex3D(a, uv) a.Sample(PPCAT(a, _samplerstate), uv)
+  #define texCUBE(a, uv) a.Sample(PPCAT(a, _samplerstate), uv)
+  #define textureGather(a, tc) a.Gather(PPCAT(a, _samplerstate), tc)
   #define texelFetchOffset(a, tc, lod, ofs) a.Load(int3(tc, lod), ofs)
-  #define textureOffset(a, tc, ofs) a.Sample(a##_samplerstate, tc, ofs)
-  #define textureLodOffset(a, tc, lod, ofs) a.SampleLOD(a##_samplerstate, tc, lod, ofs)
+  #define textureOffset(a, tc, ofs) a.Sample(PPCAT(a, _samplerstate), tc, ofs)
+  #define textureLodOffset(a, tc, lod, ofs) a.SampleLOD(PPCAT(a, _samplerstate), tc, lod, ofs)
   #define tex2DBindless(a, uv) (a).tex.Sample((a).smp, uv)
-  #define tex2DBindlessSampler(a, b, uv) (a).tex.Sample((b).smp, uv)
+  #define tex2DBindlessSampler(a, b, uv) (a).Sample((b), uv)
   #define tex2DLodBindless(a, uv) (a).tex.SampleLOD((a).smp, (uv).xy, (uv).w)
   #define tex2DgradBindless(a, uv, dx, dy) (a).tex.SampleGradient((a).smp, (uv).xy, dx, dy)
+  #define tex2DgradBindlessSampler(a, b, uv, dx, dy) (a).SampleGradient((b), (uv).xy, dx, dy)
   #define tex2DprojBindless(a, uv) tex2DBindless((a), (uv).xy/(uv).w)
   #define texCUBEBindless(a, uv) (a).tex.Sample((a).smp, uv)
   #define texCUBELodBindless(a, uv) (a).tex.SampleLOD((a).smp, uv.xyz, uv.w)
@@ -489,21 +505,22 @@ hlsl(ps) {
 
   #define VPOS                       SV_POSITION
 
-  #define tex2Dgrad(a, uv, dx, dy) a.SampleGrad(a##_samplerstate, (uv).xy, dx, dy)
-  #define tex2Dlod(a, uv) a.SampleLevel(a##_samplerstate, (uv).xy, (uv).w)
-  #define tex2DlodSampler(a, b, uv) a.SampleLevel(b##_samplerstate, (uv).xy, (uv).w)
-  #define tex3Dlod(a, uv) a.SampleLevel(a##_samplerstate, (uv).xyz, (uv).w)
-  #define tex3Dgrad(a, uv, dx, dy) a.SampleGrad(a##_samplerstate, uv, dx, dy)
-  #define texCUBElod(a, uv) a.SampleLevel(a##_samplerstate, (uv).xyz, uv.w)
-  #define texCUBEArraylod(a, uv, lod) a.SampleLevel(a##_samplerstate, (uv).xyzw, lod)
-  #define tex2Dproj(a, uv) a.Sample(a##_samplerstate, (uv).xy/(uv).w)
-  #define tex2D(a, uv) a.Sample(a##_samplerstate, uv)
-  #define tex3D(a, uv) a.Sample(a##_samplerstate, uv)
-  #define texCUBE(a, uv) a.Sample(a##_samplerstate, uv)
-  #define textureGather(a, tc) a.Gather(a##_samplerstate, tc)
+  #define tex2Dgrad(a, uv, dx, dy) a.SampleGrad(PPCAT(a, _samplerstate), (uv).xy, dx, dy)
+  #define tex2Dlod(a, uv) a.SampleLevel(PPCAT(a, _samplerstate), (uv).xy, (uv).w)
+  #define tex2DlodSampler(a, b, uv) a.SampleLevel(PPCAT(b, _samplerstate), (uv).xy, (uv).w)
+  #define tex2Dbias(a, uv, bias) a.SampleBias(PPCAT(a, _samplerstate), (uv).xy, bias)
+  #define tex3Dlod(a, uv) a.SampleLevel(PPCAT(a, _samplerstate), (uv).xyz, (uv).w)
+  #define tex3Dgrad(a, uv, dx, dy) a.SampleGrad(PPCAT(a, _samplerstate), uv, dx, dy)
+  #define texCUBElod(a, uv) a.SampleLevel(PPCAT(a, _samplerstate), (uv).xyz, uv.w)
+  #define texCUBEArraylod(a, uv, lod) a.SampleLevel(PPCAT(a, _samplerstate), (uv).xyzw, lod)
+  #define tex2Dproj(a, uv) a.Sample(PPCAT(a, _samplerstate), (uv).xy/(uv).w)
+  #define tex2D(a, uv) a.Sample(PPCAT(a, _samplerstate), uv)
+  #define tex3D(a, uv) a.Sample(PPCAT(a, _samplerstate), uv)
+  #define texCUBE(a, uv) a.Sample(PPCAT(a, _samplerstate), uv)
+  #define textureGather(a, tc) a.Gather(PPCAT(a, _samplerstate), tc)
   #define texelFetchOffset(a, tc, lod, ofs) a.Load(int3(tc, lod), ofs)
-  #define textureOffset(a, tc, ofs) a.Sample(a##_samplerstate, tc, ofs)
-  #define textureLodOffset(a, tc, lod, ofs) a.SampleLevel(a##_samplerstate, tc, lod, ofs)
+  #define textureOffset(a, tc, ofs) a.Sample(PPCAT(a, _samplerstate), tc, ofs)
+  #define textureLodOffset(a, tc, lod, ofs) a.SampleLevel(PPCAT(a, _samplerstate), tc, lod, ofs)
 
   #define INPUT_VFACE , bool vface : SV_IsFrontFace
   ##if hardware.vulkan
@@ -534,10 +551,8 @@ hlsl(ps) {
         return tex.Sample(smp, uv);
     }
 
-    float4 tex2DBindlessSampler(TextureSampler a, TextureSampler b, float2 uv)
+    float4 tex2DBindlessSampler(Texture2D tex, SamplerState smp, float2 uv)
     {
-        Texture2D tex = a.tex;
-        SamplerState smp = b.smp;
         return tex.Sample(smp, uv);
     }
 
@@ -599,9 +614,10 @@ hlsl(ps) {
     ##endif
 
     #define tex2DBindless(a, uv) (a).tex.Sample((a).smp, uv)
-    #define tex2DBindlessSampler(a, b, uv) (a).tex.Sample((b).smp, uv)
+    #define tex2DBindlessSampler(a, b, uv) (a).Sample((b), uv)
     #define tex2DLodBindless(a, uv) (a).tex.SampleLevel((a).smp, (uv).xy, (uv).w)
     #define tex2DgradBindless(a, uv, dx, dy) (a).tex.SampleGradient((a).smp, (uv).xy, dx, dy)
+    #define tex2DgradBindlessSampler(a, b, uv, dx, dy) (a).SampleGradient((b), (uv).xy, dx, dy)
     #define tex2DprojBindless(a, uv) tex2DBindless((a), (uv).xy/(uv).w)
     #define texCUBEBindless(a, uv) (a).tex.Sample((a).smp, uv)
     #define texCUBELodBindless(a, uv) (a).tex.SampleLevel((a).smp, uv.xyz, uv.w)
@@ -634,19 +650,19 @@ hlsl(ps) {
 hlsl(cs) {
   #define SQRT_SAT(x)  sqrt(saturate(x))
 ##if hardware.ps4 || hardware.ps5
-  #define tex2Dgrad(a, uv, dx, dy) a.SampleGradient(a##_samplerstate, (uv).xy, dx, dy)
-  #define tex2Dlod(a, uv) a.SampleLOD(a##_samplerstate, (uv).xy, (uv).w)
-  #define tex3Dlod(a, uv) a.SampleLOD(a##_samplerstate, (uv).xyz, (uv).w)
-  #define texCUBElod(a, uv) a.SampleLOD(a##_samplerstate, uv.xyz, uv.w)
-  #define texCUBEArraylod(a, uv, lod) a.SampleLOD(a##_samplerstate, (uv).xyzw, lod)
-  #define tex2Dproj(a, uv) a.Sample(a##_samplerstate, (uv).xy/(uv).w)
-  #define tex2D(a, uv) a.Sample(a##_samplerstate, uv)
-  #define tex3D(a, uv) a.Sample(a##_samplerstate, uv)
-  #define texCUBE(a, uv) a.Sample(a##_samplerstate, uv)
-  #define textureGather(a, tc) a.Gather(a##_samplerstate, tc)
+  #define tex2Dgrad(a, uv, dx, dy) a.SampleGradient(PPCAT(a, _samplerstate), (uv).xy, dx, dy)
+  #define tex2Dlod(a, uv) a.SampleLOD(PPCAT(a, _samplerstate), (uv).xy, (uv).w)
+  #define tex3Dlod(a, uv) a.SampleLOD(PPCAT(a, _samplerstate), (uv).xyz, (uv).w)
+  #define texCUBElod(a, uv) a.SampleLOD(PPCAT(a, _samplerstate), uv.xyz, uv.w)
+  #define texCUBEArraylod(a, uv, lod) a.SampleLOD(PPCAT(a, _samplerstate), (uv).xyzw, lod)
+  #define tex2Dproj(a, uv) a.Sample(PPCAT(a, _samplerstate), (uv).xy/(uv).w)
+  #define tex2D(a, uv) a.Sample(PPCAT(a, _samplerstate), uv)
+  #define tex3D(a, uv) a.Sample(PPCAT(a, _samplerstate), uv)
+  #define texCUBE(a, uv) a.Sample(PPCAT(a, _samplerstate), uv)
+  #define textureGather(a, tc) a.Gather(PPCAT(a, _samplerstate), tc)
   #define texelFetchOffset(a, tc, lod, ofs) a.Load(int3(tc, lod), ofs)
-  #define textureOffset(a, tc, ofs) a.Sample(a##_samplerstate, tc, ofs)
-  #define textureLodOffset(a, tc, lod, ofs) a.SampleLOD(a##_samplerstate, tc, lod, ofs)
+  #define textureOffset(a, tc, ofs) a.Sample(PPCAT(a, _samplerstate), tc, ofs)
+  #define textureLodOffset(a, tc, lod, ofs) a.SampleLOD(PPCAT(a, _samplerstate), tc, lod, ofs)
   #define half float
   #define half1 float1
   #define half2 float2
@@ -656,19 +672,19 @@ hlsl(cs) {
   #define POSITION                   S_POSITION
 
 ##elif hardware.dx11 || hardware.vulkan || hardware.metal
-  #define tex2Dgrad(a, uv, dx, dy) a.SampleGrad(a##_samplerstate, (uv).xy, dx, dy)
-  #define tex2Dlod(a, uv) a.SampleLevel(a##_samplerstate, (uv).xy, (uv).w)
-  #define tex3Dlod(a, uv) a.SampleLevel(a##_samplerstate, (uv).xyz, (uv).w)
-  #define texCUBElod(a, uv) a.SampleLevel(a##_samplerstate, (uv).xyz, uv.w)
-  #define texCUBEArraylod(a, uv, lod) a.SampleLevel(a##_samplerstate, (uv).xyzw, lod)
-  #define tex2Dproj(a, uv) a.Sample(a##_samplerstate, (uv).xy/(uv).w)
-  #define tex2D(a, uv) a.Sample(a##_samplerstate, uv)
-  #define tex3D(a, uv) a.Sample(a##_samplerstate, uv)
-  #define texCUBE(a, uv) a.Sample(a##_samplerstate, uv)
-  #define textureGather(a, tc) a.Gather(a##_samplerstate, tc)
+  #define tex2Dgrad(a, uv, dx, dy) a.SampleGrad(PPCAT(a, _samplerstate), (uv).xy, dx, dy)
+  #define tex2Dlod(a, uv) a.SampleLevel(PPCAT(a, _samplerstate), (uv).xy, (uv).w)
+  #define tex3Dlod(a, uv) a.SampleLevel(PPCAT(a, _samplerstate), (uv).xyz, (uv).w)
+  #define texCUBElod(a, uv) a.SampleLevel(PPCAT(a, _samplerstate), (uv).xyz, uv.w)
+  #define texCUBEArraylod(a, uv, lod) a.SampleLevel(PPCAT(a, _samplerstate), (uv).xyzw, lod)
+  #define tex2Dproj(a, uv) a.Sample(PPCAT(a, _samplerstate), (uv).xy/(uv).w)
+  #define tex2D(a, uv) a.Sample(PPCAT(a, _samplerstate), uv)
+  #define tex3D(a, uv) a.Sample(PPCAT(a, _samplerstate), uv)
+  #define texCUBE(a, uv) a.Sample(PPCAT(a, _samplerstate), uv)
+  #define textureGather(a, tc) a.Gather(PPCAT(a, _samplerstate), tc)
   #define texelFetchOffset(a, tc, lod, ofs) a.Load(int3(tc, lod), ofs)
-  #define textureOffset(a, tc, ofs) a.Sample(a##_samplerstate, tc, ofs)
-  #define textureLodOffset(a, tc, lod, ofs) a.SampleLevel(a##_samplerstate, tc, lod, ofs)
+  #define textureOffset(a, tc, ofs) a.Sample(PPCAT(a, _samplerstate), tc, ofs)
+  #define textureLodOffset(a, tc, lod, ofs) a.SampleLevel(PPCAT(a, _samplerstate), tc, lod, ofs)
 
 ##endif
 }
@@ -755,6 +771,8 @@ hlsl(ps) {
     #if SHADER_COMPILER_DXC
       #define SUBPASS_RESOURCE(name, reg, iatt_idx) [[vk::input_attachment_index(iatt_idx)]] SubpassInput name;
       #define SUBPASS_LOAD(tgt, tc) tgt.SubpassLoad()
+      #define SUBPASS_RESOURCE_MS(name, reg, iatt_idx) [[vk::input_attachment_index(iatt_idx)]] SubpassInputMS name;
+      #define SUBPASS_LOAD_SAMPLE(tgt, tc, sample_idx) tgt.SubpassLoad(sample_idx)
     #else
       //if pragma somehow don't have needed effect
       #error "this shader can't be compiled with HLSLcc"
@@ -846,6 +864,11 @@ hlsl {
     ##assert(all(uint2(tc) < dim), "[%s:%.f] Out of bounds: Texture `%s` has size (%.f, %.f), but access to (%.f, %.f)",
                                    file, ln, name, dim.x, dim.y, tc.x, tc.y);
   }
+  void checkByteAddressBufferAlignment(int tc, int file, int ln, int name)
+  {
+    ##assert((uint(tc) & 3U) == 0U, "[%s:%.f] Alignment error: ByteAddressBuffer '%s' accessed at offset (%.f), which is not 4-byte aligned",
+                                file, ln, name, tc);
+  }
   #define CHECK_TEXTURE2D                             \
     uint3 dim;                                        \
     a.GetDimensions(lod, dim.x, dim.y, dim.z);        \
@@ -864,46 +887,64 @@ hlsl {
   #define CHECK_TEXTURE3D_EXPR(a, tc)                          \
     a.GetDimensions(bounds_check_3dim.x, bounds_check_3dim.y, bounds_check_3dim.z), \
     checkTexture3DBounds(tc, bounds_check_3dim.xyz, 0, _FILE_, __LINE__, -1)
-  #define CHECK_BUFFER(file, ln, name)                \
-    uint dim;                                         \
-    a.GetDimensions(dim);                             \
-    checkBufferBounds(tc, dim, file, ln, name)
-  #define CHECK_BUFFER_EXPR(a, tc)                    \
-    a.GetDimensions(bounds_check_dim),                \
-    checkBufferBounds(tc, bounds_check_dim, _FILE_, __LINE__, -1)
-  #define CHECK_BUFFER_RANGE(range, file, ln, name)   \
-    uint dim;                                         \
-    a.GetDimensions(dim);                             \
-    checkBufferBoundsRange(tc, range, dim, file, ln, name)
-  #define CHECK_STRUCTURED_BUFFER(file, ln, name)     \
-    uint dim, stride;                                 \
-    a.GetDimensions(dim, stride);                     \
-    checkBufferBoundsStrided(tc, dim, stride, file, ln, name)
-  #define CHECK_STRUCTURED_BUFFER_EXPR(a, tc)               \
-    a.GetDimensions(bounds_check_dim, bounds_check_stride), \
-    checkBufferBoundsStrided(tc, bounds_check_dim, bounds_check_stride, _FILE_, __LINE__, -1)
-  #define CHECK_STENCIL                               \
-    uint2 dim;                                        \
-    a.GetDimensions(dim.x, dim.y);                    \
-    checkStencilBounds(tc, dim, file, ln, name)
+
+  ##if hardware.metal
+    #define CHECK_BUFFER(buf, tc, file, ln, name)
+    #define CHECK_BUFFER_EXPR(buf, tc) 0
+    #define CHECK_BUFFER_RANGE(buf, tc, range, file, ln, name)
+    #define CHECK_STRUCTURED_BUFFER(buf, tc, file, ln, name)
+    #define CHECK_STRUCTURED_BUFFER_EXPR(buf, tc) 0
+    #define CHECK_STENCIL(buf, tc, file, ln, name)
+    #define CHECK_BAB_ALIGNMENT(tc, file, ln, name)
+  ##else
+    #define CHECK_BUFFER(buf, tc, file, ln, name)               \
+      uint dim;                                                 \
+      buf.GetDimensions(dim);                                   \
+      checkBufferBounds(tc, dim, file, ln, name)
+    #define CHECK_BUFFER_EXPR(buf, tc)                          \
+      buf.GetDimensions(bounds_check_dim),                      \
+      checkBufferBounds(tc, bounds_check_dim, _FILE_, __LINE__, -1)
+    #define CHECK_BUFFER_RANGE(buf, tc, range, file, ln, name)  \
+      uint dim;                                                 \
+      buf.GetDimensions(dim);                                   \
+      checkBufferBoundsRange(tc, range, dim, file, ln, name)
+    #define CHECK_STRUCTURED_BUFFER(buf, tc, file, ln, name)    \
+      uint dim, stride;                                         \
+      buf.GetDimensions(dim, stride);                           \
+      checkBufferBoundsStrided(tc, dim, stride, file, ln, name)
+    #define CHECK_STRUCTURED_BUFFER_EXPR(buf, tc)               \
+      buf.GetDimensions(bounds_check_dim, bounds_check_stride), \
+      checkBufferBoundsStrided(tc, bounds_check_dim, bounds_check_stride, _FILE_, __LINE__, -1)
+    #define CHECK_STENCIL(buf, tc, file, ln, name)              \
+      uint2 dim;                                                \
+      buf.GetDimensions(dim.x, dim.y);                          \
+      checkStencilBounds(tc, dim, file, ln, name)
+    #define CHECK_BAB_ALIGNMENT(tc, file, ln, name)      \
+      checkByteAddressBufferAlignment(tc, file, ln, name)
+  ##endif
 ##else
   #define CHECK_TEXTURE2D
   #define CHECK_TEXTURE2D_EXPR(a, tc) 0
   #define CHECK_TEXTURE2DARRAY
   #define CHECK_TEXTURE3D
   #define CHECK_TEXTURE3D_EXPR(a, tc) 0
-  #define CHECK_BUFFER(file, ln, name)
-  #define CHECK_BUFFER_EXPR(a, tc) 0
-  #define CHECK_BUFFER_RANGE(range, file, ln, name)
-  #define CHECK_STRUCTURED_BUFFER(file, ln, name)
-  #define CHECK_STRUCTURED_BUFFER_EXPR(a, tc) 0
-  #define CHECK_STENCIL
+  #define CHECK_BUFFER(buf, tc, file, ln, name)
+  #define CHECK_BUFFER_EXPR(buf, tc) 0
+  #define CHECK_BUFFER_RANGE(buf, tc, range, file, ln, name)
+  #define CHECK_STRUCTURED_BUFFER(buf, tc, file, ln, name)
+  #define CHECK_STRUCTURED_BUFFER_EXPR(buf, tc) 0
+  #define CHECK_STENCIL(buf, tc, file, ln, name)
+  #define CHECK_BAB_ALIGNMENT(tc, file, ln, name)
 ##endif
 
   uint4 texelFetchBase(Texture2D<uint4> a, int2 tc, int lod, int file, int ln, int name) { CHECK_TEXTURE2D; return a.Load(int3(tc, lod)); }
   uint3 texelFetchBase(Texture2D<uint3> a, int2 tc, int lod, int file, int ln, int name) { CHECK_TEXTURE2D; return a.Load(int3(tc, lod)); }
   uint2 texelFetchBase(Texture2D<uint2> a, int2 tc, int lod, int file, int ln, int name) { CHECK_TEXTURE2D; return a.Load(int3(tc, lod)); }
-  uint texelFetchBase(Texture2D<uint>  a, int2 tc, int lod, int file, int ln, int name) { CHECK_TEXTURE2D; return a.Load(int3(tc, lod)); }
+  uint  texelFetchBase(Texture2D<uint>  a, int2 tc, int lod, int file, int ln, int name) { CHECK_TEXTURE2D; return a.Load(int3(tc, lod)); }
+  int4 texelFetchBase(Texture2D<int4> a, int2 tc, int lod, int file, int ln, int name) { CHECK_TEXTURE2D; return a.Load(int3(tc, lod)); }
+  int3 texelFetchBase(Texture2D<int3> a, int2 tc, int lod, int file, int ln, int name) { CHECK_TEXTURE2D; return a.Load(int3(tc, lod)); }
+  int2 texelFetchBase(Texture2D<int2> a, int2 tc, int lod, int file, int ln, int name) { CHECK_TEXTURE2D; return a.Load(int3(tc, lod)); }
+  int  texelFetchBase(Texture2D<int>  a, int2 tc, int lod, int file, int ln, int name) { CHECK_TEXTURE2D; return a.Load(int3(tc, lod)); }
   float4 texelFetchBase(Texture2D<float4> a, int2 tc, int lod, int file, int ln, int name) { CHECK_TEXTURE2D; return a.Load(int3(tc, lod)); }
   float3 texelFetchBase(Texture2D<float3> a, int2 tc, int lod, int file, int ln, int name) { CHECK_TEXTURE2D; return a.Load(int3(tc, lod)); }
   float2 texelFetchBase(Texture2D<float2> a, int2 tc, int lod, int file, int ln, int name) { CHECK_TEXTURE2D; return a.Load(int3(tc, lod)); }
@@ -912,6 +953,22 @@ hlsl {
   float3 texelFetchBase(Texture2DArray<float3> a, int3 tc, int lod, int file, int ln, int name) { CHECK_TEXTURE2DARRAY; return a.Load(int4(tc, lod)); }
   float2 texelFetchBase(Texture2DArray<float2> a, int3 tc, int lod, int file, int ln, int name) { CHECK_TEXTURE2DARRAY; return a.Load(int4(tc, lod)); }
   float  texelFetchBase(Texture2DArray<float>  a, int3 tc, int lod, int file, int ln, int name) { CHECK_TEXTURE2DARRAY; return a.Load(int4(tc, lod)); }
+  uint4 texelFetchBase(Texture2DArray<uint4> a, int3 tc, int lod, int file, int ln, int name) { CHECK_TEXTURE2DARRAY; return a.Load(int4(tc, lod)); }
+  uint3 texelFetchBase(Texture2DArray<uint3> a, int3 tc, int lod, int file, int ln, int name) { CHECK_TEXTURE2DARRAY; return a.Load(int4(tc, lod)); }
+  uint2 texelFetchBase(Texture2DArray<uint2> a, int3 tc, int lod, int file, int ln, int name) { CHECK_TEXTURE2DARRAY; return a.Load(int4(tc, lod)); }
+  uint  texelFetchBase(Texture2DArray<uint>  a, int3 tc, int lod, int file, int ln, int name) { CHECK_TEXTURE2DARRAY; return a.Load(int4(tc, lod)); }
+  int4 texelFetchBase(Texture2DArray<int4> a, int3 tc, int lod, int file, int ln, int name) { CHECK_TEXTURE2DARRAY; return a.Load(int4(tc, lod)); }
+  int3 texelFetchBase(Texture2DArray<int3> a, int3 tc, int lod, int file, int ln, int name) { CHECK_TEXTURE2DARRAY; return a.Load(int4(tc, lod)); }
+  int2 texelFetchBase(Texture2DArray<int2> a, int3 tc, int lod, int file, int ln, int name) { CHECK_TEXTURE2DARRAY; return a.Load(int4(tc, lod)); }
+  int  texelFetchBase(Texture2DArray<int>  a, int3 tc, int lod, int file, int ln, int name) { CHECK_TEXTURE2DARRAY; return a.Load(int4(tc, lod)); }
+  uint4 texelFetchBase(Texture3D<uint4> a, int3 tc, int lod, int file, int ln, int name) { CHECK_TEXTURE3D; return a.Load(int4(tc, lod)); }
+  uint3 texelFetchBase(Texture3D<uint3> a, int3 tc, int lod, int file, int ln, int name) { CHECK_TEXTURE3D; return a.Load(int4(tc, lod)); }
+  uint2 texelFetchBase(Texture3D<uint2> a, int3 tc, int lod, int file, int ln, int name) { CHECK_TEXTURE3D; return a.Load(int4(tc, lod)); }
+  uint  texelFetchBase(Texture3D<uint>  a, int3 tc, int lod, int file, int ln, int name) { CHECK_TEXTURE3D; return a.Load(int4(tc, lod)); }
+  int4 texelFetchBase(Texture3D<int4> a, int3 tc, int lod, int file, int ln, int name) { CHECK_TEXTURE3D; return a.Load(int4(tc, lod)); }
+  int3 texelFetchBase(Texture3D<int3> a, int3 tc, int lod, int file, int ln, int name) { CHECK_TEXTURE3D; return a.Load(int4(tc, lod)); }
+  int2 texelFetchBase(Texture3D<int2> a, int3 tc, int lod, int file, int ln, int name) { CHECK_TEXTURE3D; return a.Load(int4(tc, lod)); }
+  int  texelFetchBase(Texture3D<int>  a, int3 tc, int lod, int file, int ln, int name) { CHECK_TEXTURE3D; return a.Load(int4(tc, lod)); }
   float4 texelFetchBase(Texture3D<float4> a, int3 tc, int lod, int file, int ln, int name) { CHECK_TEXTURE3D; return a.Load(int4(tc, lod)); }
   float3 texelFetchBase(Texture3D<float3> a, int3 tc, int lod, int file, int ln, int name) { CHECK_TEXTURE3D; return a.Load(int4(tc, lod)); }
   float2 texelFetchBase(Texture3D<float2> a, int3 tc, int lod, int file, int ln, int name) { CHECK_TEXTURE3D; return a.Load(int4(tc, lod)); }
@@ -934,38 +991,38 @@ hlsl {
   #define storeBuffer3Base(a, tc, value, file, ln, name) a.Store3(tc, value);
   #define storeBuffer4Base(a, tc, value, file, ln, name) a.Store4(tc, value);
 
-  #define storeBuffer(a, tc, value) { CHECK_BUFFER(_FILE_, __LINE__, -1); a.Store(tc, value); }
-  #define storeBuffer2(a, tc, value) { CHECK_BUFFER(_FILE_, __LINE__, get_name_##a); a.Store2(tc, value); }
-  #define storeBuffer3(a, tc, value) { CHECK_BUFFER(_FILE_, __LINE__, -1); a.Store3(tc, value); }
-  #define storeBuffer4(a, tc, value) { CHECK_BUFFER(_FILE_, __LINE__, -1); a.Store4(tc, value); }
+  #define storeBuffer(a, tc, value) { CHECK_BUFFER(a, tc, _FILE_, __LINE__, -1); a.Store(tc, value); }
+  #define storeBuffer2(a, tc, value) { CHECK_BUFFER(a, tc, _FILE_, __LINE__, get_name_##a); a.Store2(tc, value); }
+  #define storeBuffer3(a, tc, value) { CHECK_BUFFER(a, tc, _FILE_, __LINE__, -1); a.Store3(tc, value); }
+  #define storeBuffer4(a, tc, value) { CHECK_BUFFER(a, tc, _FILE_, __LINE__, -1); a.Store4(tc, value); }
 ##else
-  float4 loadBufferBase(Buffer<float4> a, int tc, int file, int ln, int name) { CHECK_BUFFER(file, ln, name); return a[tc]; }
-  float3 loadBufferBase(Buffer<float3> a, int tc, int file, int ln, int name) { CHECK_BUFFER(file, ln, name); return a[tc]; }
-  float2 loadBufferBase(Buffer<float2> a, int tc, int file, int ln, int name) { CHECK_BUFFER(file, ln, name); return a[tc]; }
-  float  loadBufferBase(Buffer<float>  a, int tc, int file, int ln, int name) { CHECK_BUFFER(file, ln, name); return a[tc]; }
-  uint   loadBufferBase(Buffer<uint>   a, int tc, int file, int ln, int name) { CHECK_BUFFER(file, ln, name); return a[tc]; }
+  float4 loadBufferBase(Buffer<float4> a, int tc, int file, int ln, int name) { CHECK_BUFFER(a, tc, file, ln, name); return a[tc]; }
+  float3 loadBufferBase(Buffer<float3> a, int tc, int file, int ln, int name) { CHECK_BUFFER(a, tc, file, ln, name); return a[tc]; }
+  float2 loadBufferBase(Buffer<float2> a, int tc, int file, int ln, int name) { CHECK_BUFFER(a, tc, file, ln, name); return a[tc]; }
+  float  loadBufferBase(Buffer<float>  a, int tc, int file, int ln, int name) { CHECK_BUFFER(a, tc, file, ln, name); return a[tc]; }
+  uint   loadBufferBase(Buffer<uint>   a, int tc, int file, int ln, int name) { CHECK_BUFFER(a, tc, file, ln, name); return a[tc]; }
   // Used for overloading. Please prefer `structuredBufferAt`.
-  uint   loadBufferBase(StructuredBuffer<uint>   a, int tc, int file, int ln, int name) { CHECK_STRUCTURED_BUFFER(file, ln, name); return a[tc];}
-  uint   loadBufferBase(RWStructuredBuffer<uint> a, int tc, int file, int ln, int name) { CHECK_STRUCTURED_BUFFER(file, ln, name); return a[tc];}
+  uint   loadBufferBase(StructuredBuffer<uint>   a, int tc, int file, int ln, int name) { CHECK_STRUCTURED_BUFFER(a, tc, file, ln, name); return a[tc];}
+  uint   loadBufferBase(RWStructuredBuffer<uint> a, int tc, int file, int ln, int name) { CHECK_STRUCTURED_BUFFER(a, tc, file, ln, name); return a[tc];}
 
-  uint   loadBufferBase(ByteAddressBuffer a, int tc, int file, int ln, int name) { CHECK_BUFFER_RANGE(4, file, ln, name); return a.Load(tc); }
-  uint2  loadBuffer2Base(ByteAddressBuffer a, int tc, int file, int ln, int name) { CHECK_BUFFER_RANGE(8, file, ln, name); return a.Load2(tc); }
-  uint3  loadBuffer3Base(ByteAddressBuffer a, int tc, int file, int ln, int name) { CHECK_BUFFER_RANGE(12, file, ln, name); return a.Load3(tc); }
-  uint4  loadBuffer4Base(ByteAddressBuffer a, int tc, int file, int ln, int name) { CHECK_BUFFER_RANGE(16, file, ln, name); return a.Load4(tc); }
-  uint   loadBufferBase(RWByteAddressBuffer a, int tc, int file, int ln, int name) { CHECK_BUFFER_RANGE(4, file, ln, name); return a.Load(tc); }
-  uint2  loadBuffer2Base(RWByteAddressBuffer a, int tc, int file, int ln, int name) { CHECK_BUFFER_RANGE(8, file, ln, name); return a.Load2(tc); }
-  uint3  loadBuffer3Base(RWByteAddressBuffer a, int tc, int file, int ln, int name) { CHECK_BUFFER_RANGE(12, file, ln, name); return a.Load3(tc); }
-  uint4  loadBuffer4Base(RWByteAddressBuffer a, int tc, int file, int ln, int name) { CHECK_BUFFER_RANGE(16, file, ln, name); return a.Load4(tc); }
+  uint   loadBufferBase(ByteAddressBuffer a, int tc, int file, int ln, int name) { CHECK_BAB_ALIGNMENT(tc, file, ln, name); CHECK_BUFFER_RANGE(a, tc, 4, file, ln, name); return a.Load(tc); }
+  uint2  loadBuffer2Base(ByteAddressBuffer a, int tc, int file, int ln, int name) { CHECK_BAB_ALIGNMENT(tc, file, ln, name); CHECK_BUFFER_RANGE(a, tc, 8, file, ln, name); return a.Load2(tc); }
+  uint3  loadBuffer3Base(ByteAddressBuffer a, int tc, int file, int ln, int name) { CHECK_BAB_ALIGNMENT(tc, file, ln, name); CHECK_BUFFER_RANGE(a, tc, 12, file, ln, name); return a.Load3(tc); }
+  uint4  loadBuffer4Base(ByteAddressBuffer a, int tc, int file, int ln, int name) { CHECK_BAB_ALIGNMENT(tc, file, ln, name); CHECK_BUFFER_RANGE(a, tc, 16, file, ln, name); return a.Load4(tc); }
+  uint   loadBufferBase(RWByteAddressBuffer a, int tc, int file, int ln, int name) { CHECK_BAB_ALIGNMENT(tc, file, ln, name); CHECK_BUFFER_RANGE(a, tc, 4, file, ln, name); return a.Load(tc); }
+  uint2  loadBuffer2Base(RWByteAddressBuffer a, int tc, int file, int ln, int name) { CHECK_BAB_ALIGNMENT(tc, file, ln, name); CHECK_BUFFER_RANGE(a, tc, 8, file, ln, name); return a.Load2(tc); }
+  uint3  loadBuffer3Base(RWByteAddressBuffer a, int tc, int file, int ln, int name) { CHECK_BAB_ALIGNMENT(tc, file, ln, name); CHECK_BUFFER_RANGE(a, tc, 12, file, ln, name); return a.Load3(tc); }
+  uint4  loadBuffer4Base(RWByteAddressBuffer a, int tc, int file, int ln, int name) { CHECK_BAB_ALIGNMENT(tc, file, ln, name); CHECK_BUFFER_RANGE(a, tc, 16, file, ln, name); return a.Load4(tc); }
 
   #define loadBuffer(a, tc) loadBufferBase(a, tc, _FILE_, __LINE__, -1)
   #define loadBuffer2(a, tc) loadBuffer2Base(a, tc, _FILE_, __LINE__, -1)
   #define loadBuffer3(a, tc) loadBuffer3Base(a, tc, _FILE_, __LINE__, -1)
   #define loadBuffer4(a, tc) loadBuffer4Base(a, tc, _FILE_, __LINE__, -1)
 
-  void storeBufferBase(RWByteAddressBuffer a, int tc, uint value, int file, int ln, int name) { CHECK_BUFFER_RANGE(4, file, ln, name); a.Store(tc, value); }
-  void storeBuffer2Base(RWByteAddressBuffer a, int tc, uint2 value, int file, int ln, int name) { CHECK_BUFFER_RANGE(8, file, ln, name); a.Store2(tc, value); }
-  void storeBuffer3Base(RWByteAddressBuffer a, int tc, uint3 value, int file, int ln, int name) { CHECK_BUFFER_RANGE(12, file, ln, name); a.Store3(tc, value); }
-  void storeBuffer4Base(RWByteAddressBuffer a, int tc, uint4 value, int file, int ln, int name) { CHECK_BUFFER_RANGE(16, file, ln, name); a.Store4(tc, value); }
+  void storeBufferBase(RWByteAddressBuffer a, int tc, uint value, int file, int ln, int name) { CHECK_BAB_ALIGNMENT(tc, file, ln, name); CHECK_BUFFER_RANGE(a, tc, 4, file, ln, name); a.Store(tc, value); }
+  void storeBuffer2Base(RWByteAddressBuffer a, int tc, uint2 value, int file, int ln, int name) { CHECK_BAB_ALIGNMENT(tc, file, ln, name); CHECK_BUFFER_RANGE(a, tc, 8, file, ln, name); a.Store2(tc, value); }
+  void storeBuffer3Base(RWByteAddressBuffer a, int tc, uint3 value, int file, int ln, int name) { CHECK_BAB_ALIGNMENT(tc, file, ln, name); CHECK_BUFFER_RANGE(a, tc, 12, file, ln, name); a.Store3(tc, value); }
+  void storeBuffer4Base(RWByteAddressBuffer a, int tc, uint4 value, int file, int ln, int name) { CHECK_BAB_ALIGNMENT(tc, file, ln, name); CHECK_BUFFER_RANGE(a, tc, 16, file, ln, name); a.Store4(tc, value); }
 
   #define storeBuffer(a, tc, value) storeBufferBase(a, tc, value, _FILE_, __LINE__, -1)
   #define storeBuffer2(a, tc, value) storeBuffer2Base(a, tc, value, _FILE_, __LINE__, -1)
@@ -988,9 +1045,9 @@ hlsl {
 #endif
 
 ##if (hardware.xbox && !hardware.dx12) || hardware.vulkan
-  uint stencilFetchBase(Texture2D<uint2> a, int2 tc, int file, int ln, int name) { CHECK_STENCIL; return a[tc].r; }
+  uint stencilFetchBase(Texture2D<uint2> a, int2 tc, int file, int ln, int name) { CHECK_STENCIL(a, tc, file, ln, name); return a[tc].r; }
 ##else
-  uint stencilFetchBase(Texture2D<uint2> a, int2 tc, int file, int ln, int name) { CHECK_STENCIL; return a[tc].g; }
+  uint stencilFetchBase(Texture2D<uint2> a, int2 tc, int file, int ln, int name) { CHECK_STENCIL(a, tc, file, ln, name); return a[tc].g; }
 ##endif
   #define stencilFetch(a, tc) stencilFetchBase(a, tc, _FILE_, __LINE__, get_name_##a)
 }
@@ -1070,26 +1127,21 @@ hlsl
 {
   ##if hardware.bindless
     ##if hardware.ps4 || hardware.ps5
-      #define BINDLESS_TEX_ARRAY(type, name, space)\
-        struct StaticTexImpl ## name \
-        {\
-          type operator[](uint index) \
-          {\
-            return type(static_textures[index]);\
-          }\
+
+      #define PS_BINDLESS_RES_ARRAY(type, target, name, space)\
+        struct PPCAT(target, name) \
+        { \
+            type operator[](uint index) \
+            { \
+              return type(target[index]); \
+            } \
         };\
-        static StaticTexImpl ## name name
-      #define BINDLESS_SMP_ARRAY(type, name, space) RegularBuffer<sce::Gnm::Sampler> name : BINDLESS_SAMPLER_REGISTER;
-      #define BINDLESS_BUF_ARRAY(type, name, space)\
-        RegularBuffer<sceApiBufferDesc> static_buffers_ ## space : BINDLESS_BUF_REGISTER; \
-        struct StaticBufImpl ## name \
-        {\
-          type operator[](uint index) \
-          {\
-            return type(static_buffers_ ## space [index]);\
-          }\
-        };\
-        static StaticBufImpl ## name name
+        static PPCAT(target, name) name;
+
+      #define BINDLESS_TEX_ARRAY(type, name, space) PS_BINDLESS_RES_ARRAY(type, static_textures, name, space)
+      #define BINDLESS_SMP_ARRAY(type, name, space) PS_BINDLESS_RES_ARRAY(type, static_samplers, name, space)
+      #define BINDLESS_BUF_ARRAY(type, name, space) PS_BINDLESS_RES_ARRAY(type, static_buffers, name, space)
+
     ##elif hardware.vulkan
       #define BINDLESS_TEX_ARRAY(type, name, space) [[vk::binding(0, BINDLESS_TEXTURE_SET_META_ID)]] type name[]
       #define BINDLESS_SMP_ARRAY(type, name, space) [[vk::binding(0, BINDLESS_SAMPLER_SET_META_ID)]] type name[]
@@ -1108,4 +1160,31 @@ hlsl
     #define BINDLESS_SMP_ARRAY(type, name, space) error! not supported on this compiler/API/config
     #define BINDLESS_BUF_ARRAY(type, name, space) error! not supported on this compiler/API/config
   ##endif
+}
+
+hlsl(ps)
+{
+##if hardware.vulkan || hardware.metal
+  #define DUAL_SOURCE_BLEND_ATTACHMENTS(type1, name1, type2, name2) \
+    [[vk::location(0), vk::index(0)]] type1 name1 : SV_Target0;     \
+    [[vk::location(0), vk::index(1)]] type2 name2 : SV_Target1
+##elif (hardware.dx11 || hardware.dx12 || hardware.ps4 || hardware.ps5)
+  #define DUAL_SOURCE_BLEND_ATTACHMENTS(type1, name1, type2, name2) \
+    type1 name1 : SV_Target0;                                       \
+    type2 name2 : SV_Target1
+##else // @TODO: impl
+  #define DUAL_SOURCE_BLEND_ATTACHMENTS(...)
+##endif
+}
+
+hlsl(ps)
+{
+  #if MOBILE_DEVICE
+    // shader generates direct write to output from compressed texture sampling,
+    // which is failing on Mali with device lost/crash sometimes
+    // workaround by using fake multiplier that will make this non direct write
+    #define MOBILE_PS_OUTPUT_WRAPPER(a) (a)*0.9999f;
+  #else
+    #define MOBILE_PS_OUTPUT_WRAPPER(a) a
+  #endif
 }

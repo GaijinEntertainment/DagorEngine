@@ -6,13 +6,12 @@
 
 struct RiexPatch
 {
-  uint argsByteOffsetStatic;
   uint argsByteOffsetDynamic;
   uint localCounterIndex; // "Local" to its kind.
   uint indexCount;
   uint materialOffset;
   uint flags;
-  uint _padding[2];
+  uint _padding[3];
 };
 
 #endif // DAGDP_RIEX_HLSLI_INCLUDED

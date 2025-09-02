@@ -6,7 +6,7 @@
 
 #include "fastPhysEd.h"
 #include "fastPhysObject.h"
-#include <render/dynmodelRenderer.h>
+#include <de3_dynRenderService.h>
 #include <render/dag_cur_view.h>
 
 
@@ -65,18 +65,16 @@ void FastPhysCharRoot::renderGeometry(int stage)
 {
   if (!character || !isCharVisible)
     return;
+  IDynRenderService *rs = EDITORCORE->queryEditorInterface<IDynRenderService>();
+  if (!rs)
+    return;
   switch (stage)
   {
     case IRenderingService::STG_BEFORE_RENDER: character->beforeRender(); break;
 
     case IRenderingService::STG_RENDER_DYNAMIC_OPAQUE:
-      if (!dynrend::render_in_tools(character->getSceneInstance(), dynrend::RenderMode::Opaque))
-        character->render(::grs_cur_view.pos);
-      break;
-
     case IRenderingService::STG_RENDER_DYNAMIC_TRANS:
-      if (!dynrend::render_in_tools(character->getSceneInstance(), dynrend::RenderMode::Translucent))
-        character->renderTrans(::grs_cur_view.pos);
+      rs->renderOneDynModelInstance(character->getSceneInstance(), IDynRenderService::Stage(stage));
       break;
   }
 }

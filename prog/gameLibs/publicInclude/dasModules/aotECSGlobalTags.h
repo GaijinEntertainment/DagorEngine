@@ -4,8 +4,6 @@
 //
 #pragma once
 
-#include <daScript/daScript.h>
-#include <dasModules/dasModulesCommon.h>
 #include <generic/dag_tab.h>
 
 Tab<const char *> ecs_get_global_tags_context();

@@ -10,6 +10,7 @@
 #include <render/toroidalStaticShadows.h>
 #include <EASTL/fixed_vector.h>
 #include <shaders/dag_shaders.h>
+#include <vecmath/dag_vecMath.h>
 
 ToroidalStaticShadows::~ToroidalStaticShadows() = default;
 
@@ -85,6 +86,10 @@ ToroidalStaticShadows::ToroidalStaticShadows(int tsz, int cnt, float dist, float
   if (cnt == 0)
     is_array = false;
 
+  // tex type used in shader is bound to hardware.fsh_5_0 and must be matched with tex type created
+  if (getMaxFSHVersion() >= 5.0_sm)
+    is_array = true;
+
   cnt = is_array ? clamp(cnt, 1, 4) : 1;
   cascades.resize(cnt);
   for (int i = 0; i < cnt; ++i)
@@ -98,7 +103,6 @@ ToroidalStaticShadows::ToroidalStaticShadows(int tsz, int cnt, float dist, float
                         : dag::create_tex(nullptr, texSize, texSize, fmt, 1, "static_shadow_tex2d");
   staticShadowTex = UniqueTexHolder(eastl::move(tex), "static_shadow_tex");
   restoreShadowSampler();
-  staticShadowTex->disableSampler();
   clearTexture();
   static_shadows_cascades = get_shader_variable_id("static_shadows_cascades", true);
   // @NOTE: this check is enough as long as we never resize cascades anywhere but here
@@ -116,6 +120,7 @@ void ToroidalStaticShadows::restoreShadowSampler()
 {
   d3d::SamplerInfo smpInfo;
   smpInfo.filter_mode = d3d::FilterMode::Compare;
+  smpInfo.mip_map_mode = d3d::MipMapMode::Point;
   ShaderGlobal::set_sampler(get_shader_variable_id("static_shadow_tex_samplerstate", true), d3d::request_sampler(smpInfo));
 }
 
@@ -362,3 +367,40 @@ bool ToroidalStaticShadows::isAnyCascadeInTransition() const
 }
 
 TMatrix ToroidalStaticShadows::getLightViewProj(const int cascadeId) const { return cascades[cascadeId].getLightViewProj(); }
+
+bool ToroidalStaticShadows::isRegionInsideCascade(mat44f_cref cascade_inv_viewproj, const ViewTransformData &region_data)
+{
+  mat44f cascadeToRegion;
+  v_mat44_mul(cascadeToRegion, region_data.globtm, cascade_inv_viewproj);
+  vec4f cascadeLeftTop = v_make_vec4f(-1, 1, 0, 0);
+  vec4f cascadeMin = v_mat44_mul_vec3p(cascadeToRegion, cascadeLeftTop);
+  vec4f cascadeMax = v_mat44_mul_vec3p(cascadeToRegion, v_neg(cascadeLeftTop));
+  // cascadeMin.xy <= -1 and cascadeMax.xy >= 1 means that our region is totally inside shadow cascade.
+  // Otherwise some part of our region won't be rasterized and we can't verify shadows visibility there.
+  vec4f eps = v_splats(0.00001f); // we lose some precision during matrix inversion/multiplication
+  return v_test_all_bits_ones(v_cmp_ge(v_perm_xyab(v_neg(cascadeMin), cascadeMax), v_sub(V_C_ONE, eps)));
+}
+
+void ToroidalStaticShadows::printCascadesStatistics() const
+{
+#if COLLECT_STATIC_SHADOWS_STATISTICS
+  String statMessage("Static shadows render statistics\n");
+  int cascadeId = 0;
+  for (const ToroidalStaticShadowCascade &cascade : cascades)
+  {
+    statMessage.aprintf(0, "Cascade %d:\n", cascadeId);
+    const ToroidalStaticShadowCascade::StaticShadowsStatistics &s = cascade.staticShadowsStatistics;
+    const uint32_t totalFrames = s.renderRegionFirstTimeFrames + s.invalidateRegionFrames + s.completelyValidFrames;
+    statMessage.aprintf(0, "- render region first time frames %d (%.1f%%)\n", s.renderRegionFirstTimeFrames,
+      100.0f * s.renderRegionFirstTimeFrames / totalFrames);
+    statMessage.aprintf(0, "- invalidate region frames %d (%.1f%%)\n", s.invalidateRegionFrames,
+      100.0f * s.invalidateRegionFrames / totalFrames);
+    statMessage.aprintf(0, "- completely valid frames %d (%.1f%%)\n", s.completelyValidFrames,
+      100.0f * s.completelyValidFrames / totalFrames);
+    statMessage.aprintf(0, "- render region first time count %d\n", s.renderRegionFirstTimeCount);
+    statMessage.aprintf(0, "- invalidate region count %d\n", s.invalidateRegionCount);
+    cascadeId++;
+  }
+  debug("%s", statMessage.c_str());
+#endif
+}

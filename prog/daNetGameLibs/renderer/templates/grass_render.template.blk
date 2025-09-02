@@ -4,5 +4,152 @@ grass_render {
   _singleton:b=yes
   _tags:t="render"
   "grass_render:GrassRenderer"{}
-  "grass_node:dabfg::NodeHandle"{}
+  "grass_node:dafg::NodeHandle"{}
+}
+
+fast_grass_settings {
+  _singleton:b=yes
+  _use:t="replicating"
+  _tags:t="render"
+
+  _group {
+    _track:b=yes
+     "fast_grass__slice_step:r"{
+      value:r=0.5
+      _info { desc:t = "Distance between grass slices." }
+    }
+    "fast_grass__step_scale:r"{
+      value:r=15
+      _info { desc:t = "Distance where slice step doubles. Controls how slices are spaced far away." }
+    }
+    "fast_grass__num_samples:i"{
+      value:i=6
+      _info { desc:t = "Starting number of slice samples. Too few will produce glitches, too many will degrade performance." }
+    }
+    "fast_grass__max_samples:i"{
+      value:i=64
+      _info { desc:t = "Maximum number of samples allowed. Too few might produce holes on slopes and hilltops." }
+    }
+  }
+
+  _group {
+    _track:b=yes
+    "fast_grass__placed_fade_start:r"{
+      value:r=8
+      _info { desc:t = "Distance where placed grass objects start to fade out." }
+    }
+    "fast_grass__placed_fade_end:r"{
+      value:r=10
+      _info { desc:t = "Distance where placed grass objects fade out completely." }
+    }
+    "fast_grass__fade_start:r"{
+      value:r=8
+      _info { desc:t = "Distance where sliced grass starts appearing." }
+    }
+    "fast_grass__fade_end:r"{
+      value:r=9
+      _info { desc:t = "Distance where sliced grass is fully visible." }
+    }
+    "fast_grass__smoothness_fade_start:r"{
+      value:r=1
+      _info { desc:t = "Distance where smoothness and reflectance start to fade out." }
+    }
+    "fast_grass__smoothness_fade_end:r"{
+      value:r=30
+      _info { desc:t = "Distance where smoothness and reflectance fade out completely." }
+    }
+    "fast_grass__normal_fade_start:r"{
+      value:r=20
+      _info { desc:t = "Distance where normal and grass color start to blend with the surface." }
+    }
+    "fast_grass__normal_fade_end:r"{
+      value:r=100
+      _info { desc:t = "Distance where normal and grass color blend with the surface completely." }
+    }
+  }
+
+  _group {
+    _track:b=yes
+    "fast_grass__height_variance_scale:r"{
+      value:r=2
+      _info { desc:t = "Noise scale for height variance." }
+    }
+    "fast_grass__ao_max_strength:r"{
+      value:r=1
+      _info { desc:t = "Maximum strength of AO (close to the ground)." }
+    }
+    "fast_grass__ao_curve:r"{
+      value:r=2
+      _info { desc:t = "Power of AO curve (varying with height)." }
+    }
+  }
+
+  _group {
+    _track:b=yes
+    "fast_grass__hmap_range:r"{
+      value:r=500
+      _info { desc:t = "Grass visible range." }
+    }
+    "fast_grass__hmap_cell_size:r"{
+      value:r=0.5
+      _info { desc:t = "Size of grass shell heightmap cell." }
+    }
+  }
+
+  _group {
+    _track:b=yes
+    "fast_grass__clipmap_resolution:i"{
+      value:i=256
+      _info { desc:t = "Resolution of clipmap cache texture." }
+    }
+    "fast_grass__clipmap_cascades:i"{
+      value:i=4
+      _info { desc:t = "Number of clipmap cache cascades." }
+    }
+  }
+
+  _info { desc:t="Global settings for fast grass." }
+}
+
+fast_grass_type {
+  // for RI "LoD": _use:t="dagdp_placer_grass"
+  _use:t="replicating"
+  "fast_grass_type:tag"{}
+
+  dagdp__density:r=10
+
+  _group {
+    _track:b=yes
+    _tags:t="render"
+    "fast_grass__impostor:t"{
+      value:t=""
+      _info { desc:t = "Name of the fast grass impostor to use." }
+    }
+    "fast_grass__height:r"{
+      value:r=1
+      _info { desc:t = "Maximum height of the grass." }
+    }
+    "fast_grass__weight_to_height_mul:r"{
+      value:r=0.5
+      _info { desc:t = "How much grass height is affected by weight / density mask." }
+    }
+    "fast_grass__height_variance:r"{
+      value:r=0.25
+      _info { desc:t = "How much grass height is randomized." }
+    }
+    "fast_grass__stiffness:r"{
+      value:r=1
+      _info { desc:t = "Stiffness used for the wind effect." }
+    }
+  }
+  _group {
+    _track:b=yes
+    _tags:t="render"
+    fast_grass__color_mask_r_from:c=90, 90, 90, 255
+    fast_grass__color_mask_r_to:c  =90, 90, 90, 255
+    fast_grass__color_mask_g_from:c=90, 90, 90, 255
+    fast_grass__color_mask_g_to:c  =90, 90, 90, 255
+    fast_grass__color_mask_b_from:c=90, 90, 90, 255
+    fast_grass__color_mask_b_to:c  =90, 90, 90, 255
+  }
 }

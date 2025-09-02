@@ -12,6 +12,6 @@ if $(UseD3DMulti) = yes {
   Sources = d3d_stub.cpp ;
 }
 
-CPPopt = -D__B_DRVDX -DINSIDE_DRIVER ;
+CPPopt = -DINSIDE_DRIVER ;
 
 include $(Root)/prog/_jBuild/build.jam ;

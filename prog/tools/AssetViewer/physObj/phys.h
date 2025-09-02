@@ -43,6 +43,7 @@ void *getPhysWorld();
 void beforeRender();
 void renderTrans(bool render_collision, bool render_geom, bool bodies, bool body_center, bool constraints, bool constraints_refsys);
 void render();
+void renderDecals();
 
 void init();
 void close();
@@ -68,6 +69,7 @@ bool shootAtObject(const Point3 &pt, const Point3 &dir, float bullet_impulse = 0
   extern void phys_##PHYS##_before_render();                                                                                       \
   extern void phys_##PHYS##_render_trans();                                                                                        \
   extern void phys_##PHYS##_render();                                                                                              \
+  extern void phys_##PHYS##_render_decals();                                                                                       \
   extern void phys_##PHYS##_render_debug(bool bodies, bool body_center, bool constraints, bool constraints_refsys);                \
   extern bool phys_##PHYS##_get_phys_tm(int obj_idx, int sub_body_idx, TMatrix &phys_tm, bool &obj_active);                        \
   extern void phys_##PHYS##_add_impulse(int obj_idx, int sub_body_idx, const Point3 &pos, const Point3 &delta, real spring_factor, \

@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "additionalDataES.cpp.inl"
 ECS_DEF_PULL_VAR(additionalData);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc additional_data_for_plane_cutting_es_comps[] =
 {
@@ -66,6 +68,68 @@ static ecs::EntitySystemDesc additional_data_for_tracks_es_es_desc
   ecs::EventSetBuilder<UpdateStageInfoBeforeRender>::build(),
   0
 ,"render");
+static constexpr ecs::ComponentDesc additional_data_for_vehicle_camo_es_comps[] =
+{
+//start of 1 rw components at [0]
+  {ECS_HASH("additional_data"), ecs::ComponentTypeInfo<ecs::Point4List>()},
+//start of 3 ro components at [1]
+  {ECS_HASH("vehicle_camo_condition"), ecs::ComponentTypeInfo<float>()},
+  {ECS_HASH("vehicle_camo_scale"), ecs::ComponentTypeInfo<float>()},
+  {ECS_HASH("vehicle_camo_rotation"), ecs::ComponentTypeInfo<float>()}
+};
+static void additional_data_for_vehicle_camo_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  G_FAST_ASSERT(evt.is<UpdateStageInfoBeforeRender>());
+  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
+    additional_data_for_vehicle_camo_es(static_cast<const UpdateStageInfoBeforeRender&>(evt)
+        , ECS_RO_COMP(additional_data_for_vehicle_camo_es_comps, "vehicle_camo_condition", float)
+    , ECS_RO_COMP(additional_data_for_vehicle_camo_es_comps, "vehicle_camo_scale", float)
+    , ECS_RO_COMP(additional_data_for_vehicle_camo_es_comps, "vehicle_camo_rotation", float)
+    , ECS_RW_COMP(additional_data_for_vehicle_camo_es_comps, "additional_data", ecs::Point4List)
+    );
+  while (++comp != compE);
+}
+static ecs::EntitySystemDesc additional_data_for_vehicle_camo_es_es_desc
+(
+  "additional_data_for_vehicle_camo_es",
+  "prog/daNetGame/render/additionalDataES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, additional_data_for_vehicle_camo_es_all_events),
+  make_span(additional_data_for_vehicle_camo_es_comps+0, 1)/*rw*/,
+  make_span(additional_data_for_vehicle_camo_es_comps+1, 3)/*ro*/,
+  empty_span(),
+  empty_span(),
+  ecs::EventSetBuilder<UpdateStageInfoBeforeRender>::build(),
+  0
+,"render");
+static constexpr ecs::ComponentDesc on_vehicle_camo_changed_es_comps[] =
+{
+//start of 1 ro components at [0]
+  {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
+//start of 3 rq components at [1]
+  {ECS_HASH("vehicle_camo_condition"), ecs::ComponentTypeInfo<float>()},
+  {ECS_HASH("vehicle_camo_rotation"), ecs::ComponentTypeInfo<float>()},
+  {ECS_HASH("vehicle_camo_scale"), ecs::ComponentTypeInfo<float>()}
+};
+static void on_vehicle_camo_changed_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
+    on_vehicle_camo_changed_es(evt
+        , ECS_RO_COMP(on_vehicle_camo_changed_es_comps, "eid", ecs::EntityId)
+    );
+  while (++comp != compE);
+}
+static ecs::EntitySystemDesc on_vehicle_camo_changed_es_es_desc
+(
+  "on_vehicle_camo_changed_es",
+  "prog/daNetGame/render/additionalDataES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, on_vehicle_camo_changed_es_all_events),
+  empty_span(),
+  make_span(on_vehicle_camo_changed_es_comps+0, 1)/*ro*/,
+  make_span(on_vehicle_camo_changed_es_comps+1, 3)/*rq*/,
+  empty_span(),
+  ecs::EventSetBuilder<>::build(),
+  0
+,"render","vehicle_camo_condition,vehicle_camo_rotation,vehicle_camo_scale");
 static constexpr ecs::ComponentDesc additional_data_copy_model_tm_es_comps[] =
 {
 //start of 1 rw components at [0]

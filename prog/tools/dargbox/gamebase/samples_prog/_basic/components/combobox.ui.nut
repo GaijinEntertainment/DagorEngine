@@ -23,9 +23,9 @@ let toggleButton = @() {
   behavior = Behaviors.Button
   children = {
     rendObj = ROBJ_TEXT
-    text = comboDisable.value ? "Enable" : "Disable"
+    text = comboDisable.get() ? "Enable" : "Disable"
   }
-  onClick = @() comboDisable.update(!comboDisable.value)
+  onClick = @() comboDisable.set(!comboDisable.get())
   watch = comboDisable
 }
 
@@ -42,7 +42,7 @@ return {
     halign  = ALIGN_CENTER
     flow    = FLOW_VERTICAL
     gap  = sh(2)
-    size = [sh(40), sh(20)]
+    size = static [sh(40), sh(20)]
 
     children = [
       toggleButton

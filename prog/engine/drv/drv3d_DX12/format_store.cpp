@@ -3,6 +3,7 @@
 #include "format_store.h"
 #include "format_traits.h"
 
+#include <EASTL/algorithm.h>
 
 using namespace drv3d_dx12;
 
@@ -103,29 +104,7 @@ struct LastIs<V, IndexList<A>>
   static const bool Value = V == A;
 };
 
-// Use specialization to override defaults for platforms with constant table
-template <DXGI_FORMAT fmt>
-struct DefaultPlaneCount
-{
-  static constexpr uint8_t value = 1;
-};
-
-#if _TARGET_XBOX
-// On xbox one depth stencil formats are planar formats
-struct XboxDepthStencilPlaneCount
-{
-  static constexpr uint8_t value = 2;
-};
-template <>
-struct DefaultPlaneCount<DXGI_FORMAT_R32G8X24_TYPELESS> : XboxDepthStencilPlaneCount
-{};
-template <>
-struct DefaultPlaneCount<DXGI_FORMAT_R24G8_TYPELESS> : XboxDepthStencilPlaneCount
-{};
-#endif
-
-
-template <uint32_t id, DXGI_FORMAT base, DXGI_FORMAT linear, DXGI_FORMAT srgb, uint8_t plane_count = DefaultPlaneCount<base>::value,
+template <uint32_t id, DXGI_FORMAT base, DXGI_FORMAT linear, DXGI_FORMAT srgb,
   uint32_t channel_mask = FormatTrait<linear>::channel_mask, uint32_t block_size = FormatTrait<linear>::bits,
   uint32_t block_x = FormatTrait<linear>::block_width, uint32_t block_y = FormatTrait<linear>::block_height>
 struct FormatInfo
@@ -139,7 +118,6 @@ struct FormatInfo
   static const uint32_t BlockBytes = BlockBits / 8;
   static const uint32_t BlockX = block_x;
   static const uint32_t BlockY = block_y;
-  static const uint32_t Planes = plane_count;
   static const uint32_t ChannelMask = channel_mask;
 };
 
@@ -183,6 +161,14 @@ public:
     uint8_t y;
   };
 
+  struct FormatSupport
+  {
+    D3D12_FORMAT_SUPPORT1 support1;
+    D3D12_FORMAT_SUPPORT2 support2;
+    uint32_t sampleCountSupportMask;
+    uint32_t maxSampleCount;
+  };
+
   typedef FormatInfoTable Type;
 
   typedef IndexList<ExtractIndex<Formats>::Value...> FormatsIndices;
@@ -193,8 +179,14 @@ public:
   static CONST_TABLE DXGI_FORMAT linearFormatArray[sizeof...(Formats)];
   static CONST_TABLE DXGI_FORMAT srgbFormatArray[sizeof...(Formats)];
   static CONST_TABLE BlockInfo blockList[sizeof...(Formats)];
-  static CONST_TABLE uint8_t planeCount[sizeof...(Formats)];
   static CONST_TABLE uint32_t channelMask[sizeof...(Formats)];
+
+  static uint8_t planeCount[sizeof...(Formats)];
+  static FormatSupport linearFormatSupportArray[sizeof...(Formats)];
+  static FormatSupport srgbFormatSupportArray[sizeof...(Formats)];
+
+  static inline bool isConfigured = false;
+
   static constexpr size_t formatCount = sizeof...(Formats);
   // are the indices currently strictly ordered?
   typedef IsContinousList<FormatsIndices> LinearIndexCheck;
@@ -215,8 +207,42 @@ public:
     blockList[index].x = FormatTrait<FB>::block_width;
     blockList[index].y = FormatTrait<FB>::block_height;
   }
-  static void patchTable(ID3D12Device *device, uint32_t vendor)
+#endif
+
+  static FormatSupport configureFormatSupport(ID3D12Device *device, DXGI_FORMAT dxgi_format)
   {
+    D3D12_FEATURE_DATA_FORMAT_SUPPORT supportQuery = {dxgi_format};
+    device->CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, &supportQuery, sizeof(supportQuery));
+
+    uint32_t sampleCountSupportMask = 1u;
+    uint32_t maxSampleCount = 1u;
+    if ((supportQuery.Support1 & D3D12_FORMAT_SUPPORT1_MULTISAMPLE_RENDERTARGET) != 0)
+    {
+      for (uint32_t sampleCount = get_sample_count(TEXCF_SAMPLECOUNT_MAX); sampleCount > 1; sampleCount /= 2)
+      {
+        G_ASSERTF(is_pow2(sampleCount), "Sample count should be power-of-two value. %u is provided", sampleCount);
+
+        D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS multisampleQualityLevels{dxgi_format};
+        multisampleQualityLevels.SampleCount = sampleCount;
+
+        auto result = device->CheckFeatureSupport(D3D12_FEATURE_MULTISAMPLE_QUALITY_LEVELS, //
+          &multisampleQualityLevels, sizeof(multisampleQualityLevels));
+
+        bool isSampleCountSupported = (SUCCEEDED(result) && multisampleQualityLevels.NumQualityLevels > 0);
+        if (isSampleCountSupported)
+        {
+          sampleCountSupportMask |= sampleCount;
+          maxSampleCount = max(maxSampleCount, sampleCount);
+        }
+      }
+    }
+
+    return {supportQuery.Support1, supportQuery.Support2, sampleCountSupportMask, maxSampleCount};
+  }
+
+  static void configureTable(ID3D12Device *device, uint32_t vendor)
+  {
+#if _TARGET_PC_WIN
     static constexpr uint32_t AMD_VENDOR_ID = 0x1002;
     if (AMD_VENDOR_ID == vendor)
     {
@@ -224,20 +250,41 @@ public:
       remapTo<DXGI_FORMAT_R32G8X24_TYPELESS, DXGI_FORMAT_D32_FLOAT_S8X24_UINT, DXGI_FORMAT_D32_FLOAT_S8X24_UINT>(
         TEXFMT_DEPTH24 >> FormatStore::CREATE_FLAGS_FORMAT_SHIFT);
     }
-    logdbg("DX12: Patching planar format info table...");
+#else
+    G_UNUSED(vendor);
+#endif
+
+    logdbg("DX12: Configure planar format info table...");
     // Now patch format table with planar info, most formats have 1 but for depth stencil they can be different
     for (uint32_t i = 0; i < sizeof...(Formats); ++i)
     {
       D3D12_FEATURE_DATA_FORMAT_INFO fmtInfo = {linearFormatArray[i]};
       device->CheckFeatureSupport(D3D12_FEATURE_FORMAT_INFO, &fmtInfo, sizeof(fmtInfo));
       planeCount[i] = fmtInfo.PlaneCount;
-      logdbg("DX12: %s PlantCount %u", dxgi_format_name(linearFormatArray[i]), fmtInfo.PlaneCount);
+      logdbg("DX12: %s PlaneCount %u", dxgi_format_name(linearFormatArray[i]), fmtInfo.PlaneCount);
     }
+
+    logdbg("DX12: Configure format support info tables...");
+    for (uint32_t i = 0; i < sizeof...(Formats); ++i)
+    {
+      linearFormatSupportArray[i] = configureFormatSupport(device, linearFormatArray[i]);
+      srgbFormatSupportArray[i] = configureFormatSupport(device, srgbFormatArray[i]);
+    }
+
+    isConfigured = true;
   }
-#endif
+
+  static inline void checkTableConfigured() { G_ASSERTF(isConfigured, "Trying to access format table before 'configureTable' call"); }
+
+  static inline void checkTableIndex(uint32_t index)
+  {
+    G_UNUSED(index);
+    G_ASSERTF(index < sizeof...(Formats), "Invalid index %u into format table", index);
+  }
+
   static DXGI_FORMAT getFormat(uint32_t index, ColorSpace color_space)
   {
-    G_ASSERTF(index < sizeof...(Formats), "Invalid index %u into format table", index);
+    checkTableIndex(index);
     return color_space == ColorSpace::UNDEFINED ? undefinedFormatArray[index]
            : color_space == ColorSpace::SRGB    ? srgbFormatArray[index]
                                                 : linearFormatArray[index];
@@ -263,19 +310,21 @@ public:
 
   static BlockInfo getBlockInfo(uint32_t index)
   {
-    G_ASSERTF(index < sizeof...(Formats), "Invalid index %u into format table", index);
+    checkTableIndex(index);
     return blockList[index];
   }
 
   static uint8_t getPlaneCount(uint32_t index)
   {
-    G_ASSERTF(index < sizeof...(Formats), "Invalid index %u into format table", index);
+    checkTableConfigured();
+    checkTableIndex(index);
+
     return planeCount[index];
   }
 
   static uint32_t getChannelMask(uint32_t index)
   {
-    G_ASSERTF(index < sizeof...(Formats), "Invalid index %u into format table", index);
+    checkTableIndex(index);
     return channelMask[index];
   }
 
@@ -295,8 +344,26 @@ public:
 
   static bool hasSrgbFormat(uint32_t index)
   {
-    G_ASSERTF(index < sizeof...(Formats), "Invalid index %u into format table", index);
+    checkTableIndex(index);
     return linearFormatArray[index] != srgbFormatArray[index];
+  }
+
+  static FormatSupport getFormatSupport(uint32_t index, bool is_srgb)
+  {
+    checkTableConfigured();
+    checkTableIndex(index);
+
+    const FormatSupport &linearFormatSupport = linearFormatSupportArray[index];
+    const FormatSupport &srgbFormatSupport = srgbFormatSupportArray[index];
+
+    FormatSupport formatSupport = (is_srgb ? srgbFormatSupport : linearFormatSupport);
+    if (is_srgb && hasSrgbFormat(index))
+    {
+      formatSupport.support1 |= linearFormatSupport.support1;
+      formatSupport.support2 |= linearFormatSupport.support2;
+    }
+
+    return formatSupport;
   }
 };
 
@@ -313,12 +380,17 @@ CONST_TABLE typename FormatInfoTable<Formats...>::BlockInfo FormatInfoTable<Form
   typename FormatInfoTable<Formats...>::BlockInfo{Formats::BlockBytes, Formats::BlockX, Formats::BlockY}...};
 
 template <typename... Formats>
-CONST_TABLE uint8_t FormatInfoTable<Formats...>::planeCount[sizeof...(Formats)] = //
-  {Formats::Planes...};
-
-template <typename... Formats>
 CONST_TABLE uint32_t FormatInfoTable<Formats...>::channelMask[sizeof...(Formats)] = //
   {Formats::ChannelMask...};
+
+template <typename... Formats>
+uint8_t FormatInfoTable<Formats...>::planeCount[sizeof...(Formats)];
+
+template <typename... Formats>
+typename FormatInfoTable<Formats...>::FormatSupport FormatInfoTable<Formats...>::linearFormatSupportArray[sizeof...(Formats)];
+
+template <typename... Formats>
+typename FormatInfoTable<Formats...>::FormatSupport FormatInfoTable<Formats...>::srgbFormatSupportArray[sizeof...(Formats)];
 
 template <bool T, typename A, typename B>
 struct SelectType
@@ -476,7 +548,7 @@ struct SortedFormatInfoTable<FormatInfoTable<A, N...>>
 
 // use DummyFormatInfo<index to fill with dummy> to add a dummy for unused slot to make the format table a contiguous list
 template <uint32_t F>
-using DummyFormatInfo = FormatInfo<F, DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_UNKNOWN, 0, 1, 0, 1, 1>;
+using DummyFormatInfo = FormatInfo<F, DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_UNKNOWN, 1, 0, 1, 1>;
 
 // clang-format off
 // this table can be in any order, SortedFormatInfoTable will sort them by TEXFMT_
@@ -645,7 +717,7 @@ bool FormatStore::isHDRFormat() const
     case TEXFMT_R32G32UI >> CREATE_FLAGS_FORMAT_SHIFT:
     case TEXFMT_L16 >> CREATE_FLAGS_FORMAT_SHIFT:
     case TEXFMT_A8 >> CREATE_FLAGS_FORMAT_SHIFT:
-    case TEXFMT_L8 >> CREATE_FLAGS_FORMAT_SHIFT:
+    case TEXFMT_R8 >> CREATE_FLAGS_FORMAT_SHIFT:
     case TEXFMT_R32UI >> CREATE_FLAGS_FORMAT_SHIFT:
     case TEXFMT_R32SI >> CREATE_FLAGS_FORMAT_SHIFT:
     case TEXFMT_R8G8 >> CREATE_FLAGS_FORMAT_SHIFT:
@@ -844,13 +916,60 @@ const char *FormatStore::getNameString() const { return dxgi_format_name(asDxGiF
 
 bool FormatStore::canBeStored(DXGI_FORMAT fmt) { return FormatInfoTableSet::isInList(fmt); }
 
-#if _TARGET_PC_WIN
-void FormatStore::patchFormatTalbe(ID3D12Device *device, uint32_t vendor) { FormatInfoTableSet::patchTable(device, vendor); }
-#endif
+void FormatStore::configureFormatTable(ID3D12Device *device, uint32_t vendor) { FormatInfoTableSet::configureTable(device, vendor); }
 
 FormatPlaneCount FormatStore::getPlanes() const { return FormatPlaneCount::make(FormatInfoTableSet::getPlaneCount(linearFormat)); }
 
 uint32_t FormatStore::getChannelMask() const { return FormatInfoTableSet::getChannelMask(linearFormat); }
+
+bool FormatStore::isSupported(D3D12_FORMAT_SUPPORT1 flags) const
+{
+  return (FormatInfoTableSet::getFormatSupport(linearFormat, isSrgb).support1 & flags) == flags;
+}
+
+bool FormatStore::isSupported(D3D12_FORMAT_SUPPORT2 flags) const
+{
+  return (FormatInfoTableSet::getFormatSupport(linearFormat, isSrgb).support2 & flags) == flags;
+}
+
+bool FormatStore::isSupportedTexture2D() const { return isSupported(D3D12_FORMAT_SUPPORT1_TEXTURE2D); }
+
+bool FormatStore::isSupportedTexture3D() const { return isSupported(D3D12_FORMAT_SUPPORT1_TEXTURE3D); }
+
+bool FormatStore::isSupportedTextureCube() const { return isSupported(D3D12_FORMAT_SUPPORT1_TEXTURECUBE); }
+
+bool FormatStore::isSupportedDepthStencil() const { return isSupported(D3D12_FORMAT_SUPPORT1_DEPTH_STENCIL); }
+
+bool FormatStore::isSupportedRenderTarget() const { return isSupported(D3D12_FORMAT_SUPPORT1_RENDER_TARGET); }
+
+bool FormatStore::isSupportedMultisampleRenderTarget() const { return isSupported(D3D12_FORMAT_SUPPORT1_MULTISAMPLE_RENDERTARGET); }
+
+bool FormatStore::isSupportedMultisampleResolve() const { return isSupported(D3D12_FORMAT_SUPPORT1_MULTISAMPLE_RESOLVE); }
+
+bool FormatStore::isSupportedMultisampleLoad() const { return isSupported(D3D12_FORMAT_SUPPORT1_MULTISAMPLE_LOAD); }
+
+bool FormatStore::isSupportedBlendable() const { return isSupported(D3D12_FORMAT_SUPPORT1_BLENDABLE); }
+
+bool FormatStore::isSupportedShaderSample() const { return isSupported(D3D12_FORMAT_SUPPORT1_SHADER_SAMPLE); }
+
+bool FormatStore::isSupportedTypedUav() const { return isSupported(D3D12_FORMAT_SUPPORT1_TYPED_UNORDERED_ACCESS_VIEW); }
+
+bool FormatStore::isSupportedUavTypedLoad() const { return isSupported(D3D12_FORMAT_SUPPORT2_UAV_TYPED_LOAD); }
+
+bool FormatStore::isSupportedTiled() const { return isSupported(D3D12_FORMAT_SUPPORT2_TILED); }
+
+bool FormatStore::isSampleCountSupported(int32_t sampleCount) const
+{
+  G_ASSERTF(is_pow2(sampleCount), "Sample count should be power-of-two value. %u is provided", sampleCount);
+
+  uint32_t sampleCountSupportMask = FormatInfoTableSet::getFormatSupport(linearFormat, isSrgb).sampleCountSupportMask;
+  return (sampleCountSupportMask & (uint32_t)sampleCount) != 0;
+}
+
+int32_t FormatStore::getMaxSampleCount() const
+{
+  return (int32_t)FormatInfoTableSet::getFormatSupport(linearFormat, isSrgb).maxSampleCount;
+}
 
 bool FormatStore::isCopyConvertible(FormatStore other) const
 {

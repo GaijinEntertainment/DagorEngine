@@ -189,7 +189,7 @@ inline T *radix_sort_3pass(T *e0, T *e1, size_t count, Pred pred)
   T *e0_end = e0 + count;
   T *e1_end = e1 + count;
 
-#define _0(h) ((h)&2047)
+#define _0(h) ((h) & 2047)
 #define _1(h) (((h) >> 11) & 2047)
 #define _2(h) ((h) >> 22)
 
@@ -273,7 +273,7 @@ T *radix_sort_4pass(T *e0, T *e1, size_t count, Pred pred)
   T *e0_end = e0 + count;
   T *e1_end = e1 + count;
 
-#define _0(h) ((h)&255)
+#define _0(h) ((h) & 255)
 #define _1(h) (((h) >> 8) & 255)
 #define _2(h) (((h) >> 16) & 255)
 #define _3(h) ((h) >> 24)

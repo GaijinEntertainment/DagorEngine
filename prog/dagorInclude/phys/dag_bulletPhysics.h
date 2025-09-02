@@ -117,6 +117,7 @@ public:
   void setMassMatrix(real mass, real ixx, real iyy, real izz);
 
   real getMass() const { return safeinv(body->getInvMass()); /*safeinv(0)==0*/ }
+  real getInvMass() const { return body->getInvMass(); }
   void getMassMatrix(real &mass, real &ixx, real &iyy, real &izz);
 
   void getInvMassMatrix(real &mass, real &ixx, real &iyy, real &izz);
@@ -174,10 +175,14 @@ public:
     return to_point3(body->getVelocityInLocalPoint(to_btVector3(world_pt) - body->getWorldTransform().getOrigin()));
   }
 
+  Point3 getCenterOfMassPosition() const { return to_point3(body->getCenterOfMassPosition()); }
+
   void setAcceleration(const Point3 & /*acc*/, bool /*activate*/ = true) { G_ASSERT(0); }
   void setGravity(const Point3 &grav, bool activate = true);
+  void setDamping(float linDamping, float angDamping);
 
   void addImpulse(const Point3 &p, const Point3 &force_x_dt, bool activate = true);
+  void addForce(const Point3 &p, const Point3 &force, bool activate = true);
 
   void setContinuousCollisionMode(bool use);
 
@@ -195,6 +200,7 @@ public:
   // Bullet-specific:
   PhysWorld *getPhysWorld() const { return world; }
   btRigidBody *getActor() const { return body; }
+  btCollisionShape *getShape() const { return body->getCollisionShape(); }
 
   void setCcdParams(float rad, float threshold);
 
@@ -316,8 +322,7 @@ class PhysWorld : public cpujobs::IJob
   OSSpinlock delayedActionsMutex;
 
 public:
-  PhysWorld(real default_static_friction, real default_dynamic_friction, real default_restitution, real default_softness);
-
+  PhysWorld(real default_static_friction = 0.9f, real default_restitution = 0.2f);
   ~PhysWorld();
 
   // interaction layers
@@ -336,6 +341,8 @@ public:
   void startSim(real dt, bool wake_up_thread = true);
   bool fetchSimRes(bool wait, PhysBody *destroying_body = nullptr);
   void clear();
+
+  const char *getJobName(bool &) const override { return "bullet_phys_simulate"; }
 
   virtual void doJob();
 
@@ -623,6 +630,7 @@ protected:
 
   friend class PhysBody;
   friend class PhysCollision;
+  friend struct DestroyBodyAction;
 
   friend void init_bullet_physics_engine(bool);
   friend void close_bullet_physics_engine();

@@ -73,7 +73,7 @@ struct DDSxDataPublicHdr // built on basis of ddsx::Header (engine/sharedInclude
 bool read_ddsx_contents(const char *tex_name, Tab<char> &out_data, DDSxDataPublicHdr &out_desc);
 
 //! fills DDSx header for texture and returns memory size for it (or -1 when tex_name is not registered
-int read_ddsx_header(const char *tex_name, DDSxDataPublicHdr &out_desc, bool full_quality = true);
+int read_ddsx_header(const char *tex_name, DDSxDataPublicHdr &out_desc, bool full_quality = true, int tex_q = 0);
 
 //! sets number of threads to be used to decode DDSx during load, def=0
 //! wcnt <=0 means disabled

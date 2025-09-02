@@ -9,16 +9,13 @@
 #include "globals.h"
 #include "driver_config.h"
 #include "physical_device_set.h"
+#include "vulkan_allocation_callbacks.h"
 
 using namespace drv3d_vulkan;
 
-Tab<RenderPassResource::RenderPassConvertTempData> RenderPassResource::tempDataCache;
-Tab<int> RenderPassResource::tempDataCacheIndexes;
-WinCritSec RenderPassResource::tempDataCritSec;
-
 // conversion of engine RP desc to vk RP desc
 
-void RenderPassResource::fillSubpassDeps(const RenderPassDesc &rp_desc, RenderPassConvertTempData &temp)
+void RenderPassResource::fillSubpassDeps(const RenderPassDesc &rp_desc, RenderPassConvertedDescription &convertedDesc)
 {
   int32_t maxSubpass = 0;
   for (uint32_t i = 0; i < rp_desc.bindCount; ++i)
@@ -153,28 +150,28 @@ void RenderPassResource::fillSubpassDeps(const RenderPassDesc &rp_desc, RenderPa
         //   selfDep.addSrc(isDS ? SubpassDep::depthW() : SubpassDep::colorW());
         // }
 
-        temp.deps.push_back(selfDepVk);
+        convertedDesc.deps.push_back(selfDepVk);
       }
     }
     // handle external deps, externally
     if ((dep.dstSubpass != VK_SUBPASS_EXTERNAL) && (dep.srcSubpass != VK_SUBPASS_EXTERNAL))
     {
       fillVkDependencyFromDriver(bind, lastBindRef, dep, rp_desc, roDSinputAttachment);
-      temp.deps.push_back(dep);
+      convertedDesc.deps.push_back(dep);
     }
   }
 
   // merge & compact
 
-  for (uint32_t i = 0; i < temp.deps.size(); ++i)
+  for (uint32_t i = 0; i < convertedDesc.deps.size(); ++i)
   {
-    VkSubpassDependency &ldep = temp.deps[i];
+    VkSubpassDependency &ldep = convertedDesc.deps[i];
     if (ldep.srcAccessMask == 0)
       continue;
 
-    for (uint32_t j = i + 1; j < temp.deps.size(); ++j)
+    for (uint32_t j = i + 1; j < convertedDesc.deps.size(); ++j)
     {
-      VkSubpassDependency &rdep = temp.deps[j];
+      VkSubpassDependency &rdep = convertedDesc.deps[j];
       if (rdep.srcAccessMask == 0)
         continue;
 
@@ -191,18 +188,18 @@ void RenderPassResource::fillSubpassDeps(const RenderPassDesc &rp_desc, RenderPa
     }
   }
 
-  for (uint32_t i = 0; i < temp.deps.size(); ++i)
+  for (uint32_t i = 0; i < convertedDesc.deps.size(); ++i)
   {
-    VkSubpassDependency &ldep = temp.deps[i];
+    VkSubpassDependency &ldep = convertedDesc.deps[i];
     if (ldep.srcAccessMask == 0)
       continue;
 
     // debug("vulkan: dep [%u] %u -> %u", i, ldep.srcSubpass, ldep.dstSubpass);
 
-    temp.depsR.push_back(ldep);
+    convertedDesc.depsR.push_back(ldep);
   }
 
-  temp.deps = temp.depsR;
+  convertedDesc.deps = convertedDesc.depsR;
 }
 
 void RenderPassResource::fillVkDependencyFromDriver(const RenderPassBind &next_bind, const RenderPassBind &prev_bind,
@@ -256,7 +253,7 @@ uint32_t RenderPassResource::findSubpassCount(const RenderPassDesc &rp_desc)
   return subpassCount;
 }
 
-void RenderPassResource::fillSubpassDescs(const RenderPassDesc &rp_desc, RenderPassConvertTempData &temp)
+void RenderPassResource::fillSubpassDescs(const RenderPassDesc &rp_desc, RenderPassConvertedDescription &convertedDesc)
 {
   // find subpass count
   uint32_t subpasses = findSubpassCount(rp_desc);
@@ -271,11 +268,11 @@ void RenderPassResource::fillSubpassDescs(const RenderPassDesc &rp_desc, RenderP
   dag::RelocatableFixedVector<uint32_t, RenderPassDescription::USUAL_MAX_SUBPASSES> refBaseForSubpass;
   dag::RelocatableFixedVector<uint32_t, RenderPassDescription::USUAL_MAX_SUBPASSES> preservesBaseForSubpass;
 
-  temp.subpasses.reserve(subpasses);
+  convertedDesc.subpasses.reserve(subpasses);
   attCache.reserve(rp_desc.targetCount);
   refBaseForSubpass.reserve(subpasses);
-  temp.preserves.reserve(subpasses);
-  temp.subpass_extensions.resize(subpasses);
+  convertedDesc.preserves.reserve(subpasses);
+  convertedDesc.subpass_extensions.resize(subpasses);
 
   enum
   {
@@ -291,8 +288,8 @@ void RenderPassResource::fillSubpassDescs(const RenderPassDesc &rp_desc, RenderP
   {
     attCache.clear();
     // target_* is flattened arrays
-    refBaseForSubpass.push_back(temp.refs.size());
-    preservesBaseForSubpass.push_back(temp.preserves.size());
+    refBaseForSubpass.push_back(convertedDesc.refs.size());
+    preservesBaseForSubpass.push_back(convertedDesc.preserves.size());
 
     VkSubpassDescription desc{};
     desc.flags = 0;
@@ -326,7 +323,7 @@ void RenderPassResource::fillSubpassDescs(const RenderPassDesc &rp_desc, RenderP
       {
         uint8_t type = ((bind.action & RP_TA_SUBPASS_RESOLVE) == RP_TA_SUBPASS_RESOLVE) ? ATT_DS_RESOLVE : ATT_DS;
         attCache.push_back({type, j});
-        temp.refs.push_back({});
+        convertedDesc.refs.push_back({});
       }
       else
       {
@@ -339,13 +336,13 @@ void RenderPassResource::fillSubpassDescs(const RenderPassDesc &rp_desc, RenderP
           {
             ++desc.inputAttachmentCount;
             attCache.push_back({ATT_INPUT, j});
-            temp.refs.push_back({});
+            convertedDesc.refs.push_back({});
           }
           else
           {
             ++desc.colorAttachmentCount;
             attCache.push_back({ATT_COLOR, j});
-            temp.refs.push_back({});
+            convertedDesc.refs.push_back({});
           }
         }
       }
@@ -360,7 +357,7 @@ void RenderPassResource::fillSubpassDescs(const RenderPassDesc &rp_desc, RenderP
         continue;
       const RenderPassBind &bind = rp_desc.binds[iter.idx];
 
-      temp.preserves.push_back(bind.target);
+      convertedDesc.preserves.push_back(bind.target);
     }
 
     // colors
@@ -370,12 +367,12 @@ void RenderPassResource::fillSubpassDescs(const RenderPassDesc &rp_desc, RenderP
         continue;
       const RenderPassBind &bind = rp_desc.binds[iter.idx];
 
-      G_ASSERTF(bind.slot < desc.colorAttachmentCount,
+      D3D_CONTRACT_ASSERTF(bind.slot < desc.colorAttachmentCount,
         "vulkan: RP desc should not have gaps in attachment lists"
         "<%s> uses color attachment %u when total count is %u for subpass %u",
         rp_desc.debugName, bind.slot, desc.colorAttachmentCount, i);
 
-      VkAttachmentReference &ref = temp.refs[refBaseForSubpass[i] + bind.slot];
+      VkAttachmentReference &ref = convertedDesc.refs[refBaseForSubpass[i] + bind.slot];
 
       ref.attachment = bind.target;
       ref.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -388,12 +385,12 @@ void RenderPassResource::fillSubpassDescs(const RenderPassDesc &rp_desc, RenderP
         continue;
       const RenderPassBind &bind = rp_desc.binds[iter.idx];
 
-      G_ASSERTF(bind.slot < desc.inputAttachmentCount,
+      D3D_CONTRACT_ASSERTF(bind.slot < desc.inputAttachmentCount,
         "vulkan: RP desc should not have gaps in attachment lists"
         "<%s> uses input attachment %u when total count is %u for subpass %u",
         rp_desc.debugName, bind.slot, desc.inputAttachmentCount, i);
 
-      VkAttachmentReference &ref = temp.refs[refBaseForSubpass[i] + bind.slot + desc.colorAttachmentCount];
+      VkAttachmentReference &ref = convertedDesc.refs[refBaseForSubpass[i] + bind.slot + desc.colorAttachmentCount];
 
       ref.attachment = bind.target;
       ref.layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -406,10 +403,10 @@ void RenderPassResource::fillSubpassDescs(const RenderPassDesc &rp_desc, RenderP
         continue;
 
       for (uint32_t j = 0; j < desc.colorAttachmentCount; ++j)
-        temp.refs.push_back({VK_ATTACHMENT_UNUSED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL});
+        convertedDesc.refs.push_back({VK_ATTACHMENT_UNUSED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL});
 
       // hint as we don't have count field
-      desc.pResolveAttachments = temp.refs.data();
+      desc.pResolveAttachments = convertedDesc.refs.data();
       break;
     }
 
@@ -421,7 +418,7 @@ void RenderPassResource::fillSubpassDescs(const RenderPassDesc &rp_desc, RenderP
 
         const RenderPassBind &bind = rp_desc.binds[iter.idx];
         VkAttachmentReference &ref =
-          temp.refs[refBaseForSubpass[i] + bind.slot + desc.colorAttachmentCount + desc.inputAttachmentCount];
+          convertedDesc.refs[refBaseForSubpass[i] + bind.slot + desc.colorAttachmentCount + desc.inputAttachmentCount];
 
         ref.attachment = bind.target;
         ref.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -434,8 +431,8 @@ void RenderPassResource::fillSubpassDescs(const RenderPassDesc &rp_desc, RenderP
         continue;
       const RenderPassBind &bind = rp_desc.binds[iter.idx];
       VkAttachmentReference &ref =
-        temp.refs[refBaseForSubpass[i] + desc.colorAttachmentCount * (1 + (desc.pResolveAttachments ? 1 : 0)) +
-                  desc.inputAttachmentCount];
+        convertedDesc.refs[refBaseForSubpass[i] + desc.colorAttachmentCount * (1 + (desc.pResolveAttachments ? 1 : 0)) +
+                           desc.inputAttachmentCount];
 
       ref.attachment = bind.target;
       if (bind.action & RP_TA_SUBPASS_WRITE)
@@ -443,10 +440,10 @@ void RenderPassResource::fillSubpassDescs(const RenderPassDesc &rp_desc, RenderP
       else if (bind.action & RP_TA_SUBPASS_READ)
         ref.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
 
-      desc.pDepthStencilAttachment = temp.refs.data(); // any ptr to mark that we have DS attachment
+      desc.pDepthStencilAttachment = convertedDesc.refs.data(); // any ptr to mark that we have DS attachment
     }
 
-    temp.subpass_extensions[i].depthStencilResolveAttachmentIdx = -1;
+    convertedDesc.subpass_extensions[i].depthStencilResolveAttachmentIdx = -1;
     for (AttCacheEl iter : attCache)
     {
       if (iter.type != ATT_DS_RESOLVE)
@@ -454,26 +451,26 @@ void RenderPassResource::fillSubpassDescs(const RenderPassDesc &rp_desc, RenderP
       const RenderPassBind &bind = rp_desc.binds[iter.idx];
       const uint32_t refIdx = refBaseForSubpass[i] + desc.colorAttachmentCount * (1 + (desc.pResolveAttachments ? 1 : 0)) +
                               desc.inputAttachmentCount + (desc.pDepthStencilAttachment ? 1 : 0);
-      VkAttachmentReference &ref = temp.refs[refIdx];
+      VkAttachmentReference &ref = convertedDesc.refs[refIdx];
       ref.attachment = bind.target;
       ref.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-      temp.subpass_extensions[i].depthStencilResolveAttachmentIdx = int(refIdx);
+      convertedDesc.subpass_extensions[i].depthStencilResolveAttachmentIdx = int(refIdx);
       break;
     }
 
-    temp.subpasses.push_back(desc);
+    convertedDesc.subpasses.push_back(desc);
   }
 
   // fill array pointers
   for (uint32_t i = 0; i < subpasses; ++i)
   {
-    VkSubpassDescription &desc = temp.subpasses[i];
+    VkSubpassDescription &desc = convertedDesc.subpasses[i];
 
     if (desc.preserveAttachmentCount)
-      desc.pPreserveAttachments = &temp.preserves[preservesBaseForSubpass[i]];
+      desc.pPreserveAttachments = &convertedDesc.preserves[preservesBaseForSubpass[i]];
 
-    VkAttachmentReference *ref = &temp.refs[refBaseForSubpass[i]];
+    VkAttachmentReference *ref = &convertedDesc.refs[refBaseForSubpass[i]];
 
     if (desc.colorAttachmentCount)
     {
@@ -510,9 +507,9 @@ static inline unsigned int getAttachmentTexcf(const RenderPassDesc &rp_desc, int
   return extDesc.texcf;
 }
 
-void RenderPassResource::fillAttachmentDescription(const RenderPassDesc &rp_desc, RenderPassConvertTempData &temp)
+void RenderPassResource::fillAttachmentDescription(const RenderPassDesc &rp_desc, RenderPassConvertedDescription &convertedDesc)
 {
-  temp.attachments.reserve(rp_desc.targetCount);
+  convertedDesc.attachments.reserve(rp_desc.targetCount);
   for (uint32_t i = 0; i < rp_desc.targetCount; ++i)
   {
     VkAttachmentDescription desc{};
@@ -529,6 +526,7 @@ void RenderPassResource::fillAttachmentDescription(const RenderPassDesc &rp_desc
 
     uint32_t lastBind = -1;
     int32_t lastSubpass = -1;
+    bool lastSubpassDS = false;
 
     // detect how attachment was used in last subpass with access to attachment immediate data
     //(not load/store, but "tile" storage RW)
@@ -542,19 +540,27 @@ void RenderPassResource::fillAttachmentDescription(const RenderPassDesc &rp_desc
       if (bind.target != i)
         continue;
 
+      bool isDS = bind.slot == RenderPassExtraIndexes::RP_SLOT_DEPTH_STENCIL;
       if (bind.subpass > lastSubpass)
       {
         lastSubpass = bind.subpass;
         lastBind = j;
+        lastSubpassDS = isDS;
       }
+      else if (bind.subpass == lastSubpass)
+        lastSubpassDS |= isDS;
 
       if ((bind.subpass > lastSubpassWithAccess) && (bind.action & (RP_TA_SUBPASS_READ | RP_TA_SUBPASS_WRITE | RP_TA_SUBPASS_RESOLVE)))
       {
         lastSubpassWithAccess = bind.subpass;
         lastSubpassWithAccessAction = bind.action;
       }
-
-      bool isDS = bind.slot == RenderPassExtraIndexes::RP_SLOT_DEPTH_STENCIL;
+      else if (bind.subpass == lastSubpassWithAccess)
+      {
+        G_ASSERTF(lastSubpassWithAccessAction == bind.action,
+          "vulkan: parallel binding of target %u at subpass %u must have same actions, got %u expected %u", i, bind.subpass,
+          bind.action, lastSubpassWithAccessAction);
+      }
 
       if (bind.action & RP_TA_LOAD_MASK)
       {
@@ -612,28 +618,25 @@ void RenderPassResource::fillAttachmentDescription(const RenderPassDesc &rp_desc
 
     // match layout to last used one for now (instead of dependencyBarrier)
     {
-      G_ASSERTF(lastBind != -1, "vulkan: attachment %u is not used in bindings of render pass <%s>", i, rp_desc.debugName);
-
-      const RenderPassBind &bind = rp_desc.binds[lastBind];
-      bool isDS = bind.slot == RenderPassExtraIndexes::RP_SLOT_DEPTH_STENCIL;
+      D3D_CONTRACT_ASSERTF(lastBind != -1, "vulkan: attachment %u is not used in bindings of render pass <%s>", i, rp_desc.debugName);
 
       if (lastSubpassWithAccessAction & RP_TA_SUBPASS_WRITE)
-        desc.finalLayout = isDS ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        desc.finalLayout = lastSubpassDS ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
       else if (lastSubpassWithAccessAction & RP_TA_SUBPASS_READ)
-        desc.finalLayout = isDS ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        desc.finalLayout = lastSubpassDS ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
       else if (lastSubpassWithAccessAction & RP_TA_SUBPASS_RESOLVE)
-        desc.finalLayout = isDS ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        desc.finalLayout = lastSubpassDS ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
       else
         D3D_ERROR("vulkan: attachment %u of render pass <%s> is unused (not used in any RW actions)", i, rp_desc.debugName);
     }
 
-    G_ASSERTF((storeActions == 1) && (loadActions == 1),
-      "vulkan: native render pass <%s> has an incorrect bind desription for target #%u:\n"
+    D3D_CONTRACT_ASSERTF((storeActions == 1) && (loadActions == 1),
+      "vulkan: native render pass <%s> has an incorrect bind description for target #%u:\n"
       "this target has (%u) stores and (%u) loads. It is expected to describe store and load once for every target.\n"
       "Load and Store are described via RP_TA_LOAD_*, RP_TA_STORE_*\n",
       rp_desc.debugName, i, storeActions, loadActions);
 
-    temp.attachments.push_back(desc);
+    convertedDesc.attachments.push_back(desc);
   }
 }
 
@@ -757,7 +760,7 @@ void RenderPassResource::storeSubpassAttachmentInfos()
                   ((bind.action & (RP_TA_SUBPASS_READ | RP_TA_SUBPASS_WRITE)) > 0);
       if (isDS)
       {
-        G_ASSERTF(depthStencilAttachment < 0, "vulkan: multiple depth stencil binds in rp %s subpass %u binds %u and %u",
+        D3D_CONTRACT_ASSERTF(depthStencilAttachment < 0, "vulkan: multiple depth stencil binds in rp %s subpass %u binds %u and %u",
           rpDesc.debugName, i, j, depthStencilAttachment);
         depthStencilAttachment = bind.target;
       }
@@ -769,7 +772,9 @@ void RenderPassResource::storeSubpassAttachmentInfos()
       const bool hasMultisampleFlags = texcf & TEXCF_SAMPLECOUNT_MASK;
       VkSampleCountFlagBits samples = VkSampleCountFlagBits(get_sample_count(texcf));
       bool isMultisampled = samples > VkSampleCountFlagBits::VK_SAMPLE_COUNT_1_BIT;
-      msaaSamples = eastl::max(msaaSamples, samples);
+      bool isColorOrDepthAttachemnt = isDS || (bind.action & RP_TA_SUBPASS_WRITE);
+      if (isColorOrDepthAttachemnt)
+        msaaSamples = eastl::max(msaaSamples, samples);
       const bool isResolve = bind.action & RP_TA_SUBPASS_RESOLVE;
 
 
@@ -777,7 +782,7 @@ void RenderPassResource::storeSubpassAttachmentInfos()
       {
         hasSampleCountOneNonResolveAttachment = true;
       }
-      if (isMultisampled)
+      if (isMultisampled && isColorOrDepthAttachemnt)
       {
         hasMultisampledAttachment = true;
       }
@@ -1110,14 +1115,14 @@ VkResult RenderPassResource::convertAndCreateRenderPass2(VkRenderPass *dst, cons
     }
     G_ASSERT(attRefHead == int(src_refs.size()));
   }
-  return dev.vkCreateRenderPass2KHR(dev.get(), &rpci, nullptr, dst);
+  return dev.vkCreateRenderPass2KHR(dev.get(), &rpci, VKALLOC(render_pass), dst);
 }
 
 #undef G_MIGRATE_PARAM
 
-bool RenderPassResource::verifyMSAAResolveUsage(const RenderPassDesc &rp_desc, RenderPassConvertTempData &temp)
+bool RenderPassResource::verifyMSAAResolveUsage(const RenderPassDesc &rp_desc, RenderPassConvertedDescription &convertedDesc)
 {
-  for (const VkSubpassDescription &i : temp.subpasses)
+  for (const VkSubpassDescription &i : convertedDesc.subpasses)
   {
     if (!i.pResolveAttachments)
       continue;
@@ -1135,44 +1140,53 @@ bool RenderPassResource::verifyMSAAResolveUsage(const RenderPassDesc &rp_desc, R
 void RenderPassResource::createVulkanObject()
 {
   TIME_PROFILE(vulkan_native_rp_create);
-  G_ASSERTF(desc.externDesc, "vulkan: should provide valid external render pass description");
-  const RenderPassDesc &rpDesc = *desc.externDesc; // -V522
 
-  G_ASSERTF(rpDesc.targetCount < MAX_RENDER_PASS_ATTACHMENTS, "vulkan: too much (%u >= %u) targets for render pass %s",
-    rpDesc.targetCount, MAX_RENDER_PASS_ATTACHMENTS, rpDesc.debugName);
+  RenderPassConvertedDescription &convertedDesc = desc.convertedDesc;
 
-  tempDataCritSec.lock();
-  if (!tempDataCacheIndexes.capacity())
+  if (desc.externDesc)
   {
-    tempDataCache.resize(RenderPassDescription::USUAL_MAX_ASYNC_CREATIONS);
-    tempDataCacheIndexes.reserve(RenderPassDescription::USUAL_MAX_ASYNC_CREATIONS);
-    for (int i = 0; i < RenderPassDescription::USUAL_MAX_ASYNC_CREATIONS; ++i)
-      tempDataCacheIndexes.push_back(i);
-  }
-  RenderPassConvertTempData localTemp;
-  int tempIndex = -1;
-  if (!tempDataCacheIndexes.empty())
-  {
-    tempIndex = tempDataCacheIndexes.back();
-    tempDataCacheIndexes.pop_back();
-  }
-  RenderPassConvertTempData &temp = tempIndex >= 0 ? tempDataCache[tempIndex] : localTemp;
-  tempDataCritSec.unlock();
+    convertedDesc.clear();
+    const RenderPassDesc &rpDesc = *desc.externDesc; // -V522
+    D3D_CONTRACT_ASSERTF(rpDesc.targetCount < MAX_RENDER_PASS_ATTACHMENTS, "vulkan: too much (%u >= %u) targets for render pass %s",
+      rpDesc.targetCount, MAX_RENDER_PASS_ATTACHMENTS, rpDesc.debugName);
 
-  temp.clear();
-  fillSubpassDeps(rpDesc, temp);
-  fillSubpassDescs(rpDesc, temp);
-  fillAttachmentDescription(rpDesc, temp);
+    fillSubpassDeps(rpDesc, convertedDesc);
+    fillSubpassDescs(rpDesc, convertedDesc);
+    fillAttachmentDescription(rpDesc, convertedDesc);
 
 #if DAGOR_DBGLEVEL > 0
-  G_ASSERTF(verifyMSAAResolveUsage(rpDesc, temp), "vulkan: render pass <%s> uses MSAA resolve, but no MSAA attachments found",
-    rpDesc.debugName);
+    D3D_CONTRACT_ASSERTF(verifyMSAAResolveUsage(rpDesc, convertedDesc),
+      "vulkan: render pass <%s> uses MSAA resolve, but no MSAA attachments found", rpDesc.debugName);
 #endif
+    desc.targetCount = rpDesc.targetCount;
+    // externDesc is no longer available outside of creation call chain
+    // store stuff that still needed & cleanup pointer
+    desc.subpasses = convertedDesc.subpasses.size();
+    storeTargetFormats();
+    storeSubpassAttachmentInfos();
+    storeInputAttachments(convertedDesc.subpasses);
+    storeSelfDeps(convertedDesc.deps);
+    storeImageStates(convertedDesc.subpasses, convertedDesc.attachments);
+    storeHash();
+    desc.externDesc = nullptr;
+
+    desc.noOpWithoutDraws = desc.subpasses == 1;
+    // simple LOAD-STORE single subpass RP can be skipped
+    if (desc.noOpWithoutDraws)
+    {
+      for (VkAttachmentDescription &att : convertedDesc.attachments)
+      {
+        desc.noOpWithoutDraws &= (att.loadOp == VK_ATTACHMENT_LOAD_OP_LOAD) || (att.loadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE);
+        desc.noOpWithoutDraws &= att.storeOp == VK_ATTACHMENT_STORE_OP_STORE;
+      }
+      desc.noOpWithoutDraws &= convertedDesc.subpasses[0].pResolveAttachments == nullptr;
+    }
+  }
 
   bool needToUseAPIVersion2 = false;
-  for (int subpassIdx = 0; subpassIdx < temp.subpasses.size(); ++subpassIdx)
+  for (int subpassIdx = 0; subpassIdx < convertedDesc.subpasses.size(); ++subpassIdx)
   {
-    const SubpassExtensions &subpassExtensions = temp.subpass_extensions[subpassIdx];
+    const SubpassExtensions &subpassExtensions = convertedDesc.subpass_extensions[subpassIdx];
     if (subpassExtensions.depthStencilResolveAttachmentIdx >= 0)
     {
       needToUseAPIVersion2 = true;
@@ -1181,12 +1195,12 @@ void RenderPassResource::createVulkanObject()
   }
   {
     VkRenderPassCreateInfo rpci = {VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO};
-    rpci.dependencyCount = temp.deps.size();
-    rpci.pDependencies = temp.deps.data();
-    rpci.subpassCount = temp.subpasses.size();
-    rpci.pSubpasses = temp.subpasses.data();
-    rpci.attachmentCount = temp.attachments.size();
-    rpci.pAttachments = temp.attachments.data();
+    rpci.dependencyCount = convertedDesc.deps.size();
+    rpci.pDependencies = convertedDesc.deps.data();
+    rpci.subpassCount = convertedDesc.subpasses.size();
+    rpci.pSubpasses = convertedDesc.subpasses.data();
+    rpci.attachmentCount = convertedDesc.attachments.size();
+    rpci.pAttachments = convertedDesc.attachments.data();
 
     VulkanDevice &dev = Globals::VK::dev;
 
@@ -1195,49 +1209,21 @@ void RenderPassResource::createVulkanObject()
     {
       if (Globals::cfg.has.createRenderPass2)
       {
-        VULKAN_EXIT_ON_FAIL(convertAndCreateRenderPass2(ptr(ret), rpci, temp.refs, temp.subpass_extensions));
+        VULKAN_EXIT_ON_FAIL(convertAndCreateRenderPass2(ptr(ret), rpci, convertedDesc.refs, convertedDesc.subpass_extensions));
       }
       else
       {
-        DAG_FATAL("vulkan: trying to use unavailable create_renderpass2 for <%s>", rpDesc.debugName);
+        DAG_FATAL("vulkan: trying to use unavailable create_renderpass2 for <%s>",
+          desc.externDesc ? desc.externDesc->debugName : getDebugName());
       }
     }
     else
     {
-      VULKAN_EXIT_ON_FAIL(dev.vkCreateRenderPass(dev.get(), &rpci, nullptr, ptr(ret)));
+      VULKAN_EXIT_ON_FAIL(dev.vkCreateRenderPass(dev.get(), &rpci, VKALLOC(render_pass), ptr(ret)));
     }
     setHandle(generalize(ret));
 
     // dump create info if something is wrong about generated object
     // dumpCreateInfo(rpci);
   }
-
-  // externDesc is no longer available outside of creation call chain
-  // store stuff that still needed & cleanup pointer
-  desc.subpasses = temp.subpasses.size();
-  desc.targetCount = rpDesc.targetCount;
-  storeTargetFormats();
-  storeSubpassAttachmentInfos();
-  storeInputAttachments(temp.subpasses);
-  storeSelfDeps(temp.deps);
-  storeImageStates(temp.subpasses, temp.attachments);
-  storeHash();
-
-  desc.externDesc = nullptr;
-
-  desc.noOpWithoutDraws = desc.subpasses == 1;
-  // simple LOAD-STORE single subpass RP can be skipped
-  if (desc.noOpWithoutDraws)
-  {
-    for (VkAttachmentDescription &att : temp.attachments)
-    {
-      desc.noOpWithoutDraws &= att.loadOp == VK_ATTACHMENT_LOAD_OP_LOAD;
-      desc.noOpWithoutDraws &= att.storeOp == VK_ATTACHMENT_STORE_OP_STORE;
-    }
-    desc.noOpWithoutDraws &= temp.subpasses[0].pResolveAttachments == nullptr;
-  }
-
-  WinAutoLock lock(tempDataCritSec);
-  if (tempIndex >= 0)
-    tempDataCacheIndexes.push_back(tempIndex);
 }

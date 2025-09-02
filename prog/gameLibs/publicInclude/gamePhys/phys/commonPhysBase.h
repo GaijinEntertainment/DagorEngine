@@ -31,13 +31,20 @@ class ICustomPhysStateSyncer
   ICustomPhysStateSyncer *next = nullptr; // Link list
 public:
   virtual void saveHistoryState(int tick) = 0;
-  virtual void saveAuthState(int tick) = 0;
   virtual bool isHistoryStateEqualAuth(int htick, int atick) = 0;
+
+  virtual void saveAuthState(int tick) = 0;
   virtual void serializeAuthState(danet::BitStream &bs, int tick) const = 0;
   virtual bool deserializeAuthState(const danet::BitStream &bs, int tick) = 0;
+
+  virtual void savePartialAuthState(int /*tick*/) {}
+  virtual void serializePartialAuthState(danet::BitStream & /*bs*/, int /*tick*/) const {}
+  virtual bool deserializePartialAuthState(const danet::BitStream & /*bs*/, int /*tick*/) { return true; }
+
   virtual void eraseHistoryStateTail(int tick) = 0;
   virtual void eraseHistoryStateHead(int tick) = 0;
   virtual void applyAuthState(int at_tick) = 0;
+  virtual void applyPartialAuthStateState(int /*at_tick*/) {}
   virtual void clear() = 0;
 };
 
@@ -73,6 +80,22 @@ public:
     alpha = state.alpha;
   }
 };
+
+inline void extrapolate_multiplayer_orient(Quat &out_quat, const Quat &current_quat, const Quat &next_quat, float inbound_mp_rate,
+  float dt)
+{
+  const float viscosity = clamp(inbound_mp_rate, 0.1f, 1.f) / 2.f;
+  const float turnPart = approach(0.f, 1.f, dt, viscosity);
+  out_quat = normalize(qinterp(current_quat, next_quat, turnPart));
+  if (rabs(out_quat.x) < FLT_MIN)
+    out_quat.x = 0.0f;
+  if (rabs(out_quat.y) < FLT_MIN)
+    out_quat.y = 0.0f;
+  if (rabs(out_quat.z) < FLT_MIN)
+    out_quat.z = 0.0f;
+  if (rabs(out_quat.w) < FLT_MIN)
+    out_quat.w = 0.0f;
+}
 
 extern void write_controls_tick_delta(danet::BitStream &bs, int tick, int ctrlTick);
 extern bool read_controls_tick_delta(const danet::BitStream &bs, int tick, int &ctrlTick);
@@ -126,9 +149,85 @@ struct PhysDesyncStats
   uint32_t desyncs() const { return untestable + smallDifference + largeDifference; }
 };
 
+template <typename PhysState>
+static void apply_pseudo_vel_omega_delta_to_state(const DPoint3 &add_pos, const DPoint3 &add_ori, const DPoint3 &center_of_mass,
+  PhysState &state, DPoint3 *out_ccd_add = nullptr)
+{
+  G_ASSERT(lengthSq(add_pos) < sqr(1000.f));
+  DPoint3 centerOfGravityBefore = dpoint3(state.location.O.getQuat() * center_of_mass);
+  Quat orientInc = Quat(add_ori, length(add_ori));
+  state.location.O.setQuat(state.location.O.getQuat() * orientInc);
+  DPoint3 centerOfGravityAfter = dpoint3(state.location.O.getQuat() * center_of_mass);
+
+  DPoint3 add = add_pos + centerOfGravityBefore - centerOfGravityAfter;
+  state.location.P += add;
+  if (out_ccd_add)
+    *out_ccd_add += add;
+}
+
+template <typename PhysState>
+static void apply_vel_omega_delta(const DPoint3 &add_vel, const DPoint3 &add_omega, PhysState &state)
+{
+  state.velocity += add_vel;
+  state.omega += add_omega;
+}
+
+template <typename PhysState>
+static void calc_full_visual_error(bool client_smoothing, float current_time, gamephys::Loc &out_vis_loc_err, float &out_prod_time,
+  const gamephys::Loc &prev_vis_loc, const PhysState &curr_state)
+{
+  if (client_smoothing)
+  {
+    const float visualLocationErrorLowThresholdSq = sqr(20.f);
+    const float visualLocationErrorThresholdSq = max(visualLocationErrorLowThresholdSq, (float)curr_state.velocity.lengthSq());
+    out_vis_loc_err.substract(prev_vis_loc, curr_state.location);
+    if (out_vis_loc_err.P.lengthSq() < visualLocationErrorThresholdSq)
+    {
+      out_prod_time = current_time;
+    }
+    else
+    {
+      out_vis_loc_err.resetLoc();
+      out_prod_time = 0.f;
+    }
+  }
+  else
+  {
+    out_vis_loc_err.resetLoc();
+    out_prod_time = 0.f;
+  }
+}
+
+inline void calc_current_vis_loc_error(float time_since_prod_time, const gamephys::Loc &full_visual_location_error,
+  gamephys::Loc &out_current_visual_location_error)
+{
+  const float errorFixingDuration = 0.33f;
+  if (time_since_prod_time < errorFixingDuration)
+  {
+    float timeFixing = max(0.f, time_since_prod_time);
+    float fixPercent = timeFixing / errorFixingDuration;
+    gamephys::Loc zeroLoc;
+    zeroLoc.resetLoc(); // To consider: use static var instead?
+    out_current_visual_location_error.interpolate(full_visual_location_error, zeroLoc, fixPercent);
+  }
+  else
+    out_current_visual_location_error.resetLoc();
+}
+
+
 #define DEFAULT_EXTRAPOLATION_TIME_MULT 2.0f
 
 #define ALL_COLLISION_OBJECTS ~0ull
+
+enum LocationTypeMask
+{
+  FIRST_LOCATION_MASK = 1ull << 0,
+  VISUAL_LOCATION = FIRST_LOCATION_MASK,
+  CURRENT_LOCATION = 1ull << 1,
+  PREVIOUS_LOCATION = 1ull << 2,
+  MAIN_LOCATION = 1ull << 3,
+  FULL_LOCATION_MASK = (MAIN_LOCATION << 1) - 1, // change if add new location type
+};
 
 template <typename PhysState, typename ControlState, typename PartialState>
 class PhysicsBase : public IPhysBase
@@ -185,7 +284,38 @@ public:
 
   void validateTraceCache() override {}
 
-  int applyUnapprovedCTAsAt(int32_t tick, bool doRemoveOld, int startingAtIndex, uint8_t unitVersion)
+  virtual void calcVisualLocFromLocation(float current_time, const gamephys::Loc &from_location,
+    Tab<gamephys::Loc> &out_visual_locations) const
+  {
+    gamephys::Loc &locationErr = out_visual_locations.push_back();
+    gamephys::Loc curError;
+    calculateCurrentVisualLocationError(current_time, curError);
+    locationErr.add(from_location, curError);
+  }
+  virtual void updateVisualError(bool client_smoothing, float current_time, dag::ConstSpan<gamephys::Loc> prev_visual_locations)
+  {
+    const gamephys::Loc &previousVisualLoc = prev_visual_locations.front();
+    calc_full_visual_error(client_smoothing, current_time, visualLocationError, visualLocationErrorProductionTime, previousVisualLoc,
+      currentState);
+  }
+  virtual void updateVisualErrorForNewCorrection(float current_time, dag::ConstSpan<gamephys::Loc> prev_vis_locs,
+    const gamephys::Loc &next_unit_vis_loc)
+  {
+    const gamephys::Loc &previousVisualLoc = prev_vis_locs.front();
+    visualLocationError.substract(previousVisualLoc, next_unit_vis_loc);
+    visualLocationErrorProductionTime = current_time;
+  }
+  virtual void fixVisualErrors(float at_time)
+  {
+    gamephys::Loc visualBase;
+    visualBase = extrapolatedState.location;
+
+    gamephys::Loc curError;
+    calculateCurrentVisualLocationError(at_time, curError);
+    visualLocation.add(visualBase, curError);
+  }
+
+  int applyUnapprovedCTAsAt(int32_t tick, bool doRemoveOld, int startingAtIndex, uint8_t unitVersion) override
   {
     startingAtIndex = max(0, startingAtIndex);
     for (int i = startingAtIndex + 1; i < unapprovedCT.size(); ++i)
@@ -256,21 +386,12 @@ public:
   {}
   void applyVelOmegaDelta(const DPoint3 &add_vel, const DPoint3 &add_omega) override final
   {
-    currentState.velocity += add_vel;
-    currentState.omega += add_omega;
+    apply_vel_omega_delta(add_vel, add_omega, currentState);
   }
+
   void __forceinline applyPseudoVelOmegaDeltaImpl(const DPoint3 &add_pos, const DPoint3 &add_ori, DPoint3 *out_ccd_add = nullptr)
   {
-    G_ASSERT(lengthSq(add_pos) < sqr(1000.f));
-    DPoint3 centerOfGravityBefore = dpoint3(currentState.location.O.getQuat() * getCenterOfMass());
-    Quat orientInc = Quat(add_ori, length(add_ori));
-    currentState.location.O.setQuat(currentState.location.O.getQuat() * orientInc);
-    DPoint3 centerOfGravityAfter = dpoint3(currentState.location.O.getQuat() * getCenterOfMass());
-
-    DPoint3 add = add_pos + centerOfGravityBefore - centerOfGravityAfter;
-    currentState.location.P += add;
-    if (out_ccd_add)
-      *out_ccd_add += add;
+    apply_pseudo_vel_omega_delta_to_state(add_pos, add_ori, dpoint3(getCenterOfMass()), currentState, out_ccd_add);
   }
   void applyPseudoVelOmegaDelta(const DPoint3 &add_pos, const DPoint3 &add_ori) override
   {
@@ -290,6 +411,7 @@ public:
 
     previousState.location.P = position;
     currentState.location.P = position;
+    extrapolatedState.location.P = position;
     visualLocation.P = position;
 
     visualLocationError.P.zero();
@@ -303,6 +425,7 @@ public:
       authorityApprovedState->location.O = orient;
     previousState.location.O = orient;
     currentState.location.O = orient;
+    extrapolatedState.location.O = orient;
     visualLocation.O = orient;
 
     visualLocationError.O.setQuatToIdentity();
@@ -321,6 +444,8 @@ public:
     previousState.alpha.zero();
     currentState.omega.zero();
     currentState.alpha.zero();
+    extrapolatedState.omega.zero();
+    extrapolatedState.alpha.zero();
 
     visualLocationError.O.setQuatToIdentity();
     currentState.canBeCheckedForSync = false;
@@ -329,11 +454,13 @@ public:
   }
   virtual void setTmRough(TMatrix tm)
   {
-    if (getActor()->isAuthority() && authorityApprovedState)
-      authorityApprovedState->location.O.fromTM(tm);
-    previousState.location.fromTM(tm);
     currentState.location.fromTM(tm);
-    visualLocation.fromTM(tm);
+    previousState.location = currentState.location;
+    extrapolatedState.location = currentState.location;
+    visualLocation = currentState.location;
+
+    if (getActor()->isAuthority() && authorityApprovedState)
+      authorityApprovedState->location.O = currentState.location.O;
 
     visualLocationError.resetLoc();
     currentState.canBeCheckedForSync = false;
@@ -352,11 +479,13 @@ public:
     previousState.acceleration.zero();
     currentState.velocity = velocity;
     currentState.acceleration.zero();
+    extrapolatedState.velocity = velocity;
+    extrapolatedState.acceleration.zero();
 
     visualLocationError.P.zero();
     currentState.canBeCheckedForSync = false;
   }
-  virtual void saveAllStates(int32_t state_tick)
+  void saveAllStates(int32_t state_tick) override
   {
     saveCurrentStateTo(currentState, state_tick);
     saveCurrentStateTo(previousState, state_tick);
@@ -371,6 +500,7 @@ public:
     state = currentState;
     state.atTick = state_tick;
   }
+  virtual void saveCurrentToPreviousState(int32_t state_tick) { saveCurrentStateTo(previousState, state_tick); }
   virtual void savePartialStateTo(PhysPartialState &state, uint8_t unit_version) const
   {
     state.location = currentState.location;
@@ -389,6 +519,7 @@ public:
     saveCurrentStateTo(historyStates.push_back(), currentState.atTick);
   }
   virtual void applyProducedState() { appliedCT = producedCT; }
+  virtual void postPhysExtrapolation(float /*time*/, ExtrapolatedPhysState & /*unit_extrapolated_state*/) {}
   void extrapolateMinimalState(const PhysStateBase &state, float time, ExtrapolatedPhysState &newState) const
   {
     float dt = time - float(state.atTick) * timeStep;
@@ -462,14 +593,22 @@ public:
     return lerpVisualLocImpl(prevState, curState, time_step, at_time);
   }
 
+  virtual void updateVisualPositionForSubPhysics(float /*time_step*/, float /*at_time*/, bool /*is_interpolation*/) {}
+
   void interpolateVisualPosition(float at_time) override final
   {
     const float tsErr = timeStep / 100.f;
     if (currentState.atTick > previousState.atTick && at_time >= (previousState.atTick * timeStep - tsErr) &&
         at_time <= (currentState.atTick * timeStep + tsErr))
+    {
       visualLocation = lerpVisualLoc(previousState, currentState, timeStep, at_time);
+      updateVisualPositionForSubPhysics(timeStep, at_time, true);
+    }
     else
+    {
       visualLocation = currentState.location;
+      updateVisualPositionForSubPhysics(timeStep, at_time, false);
+    }
   }
   virtual void calcPosVelAtTime(double at_time, DPoint3 &out_pos, DPoint3 &out_vel) const
   {
@@ -501,19 +640,10 @@ public:
         previousState.atTick * (double)timeStep, currentState.location.O.getQuat(), dpoint3(currentState.omega), currentStateTime,
         out_quat, out_omega);
   }
-  void calculateCurrentVisualLocationError(float current_time, gamephys::Loc &out_current_visual_location_error) const
+  inline void calculateCurrentVisualLocationError(float current_time, gamephys::Loc &out_current_visual_location_error) const
   {
-    const float errorFixingDuration = 0.33f;
-    if (current_time - visualLocationErrorProductionTime < errorFixingDuration)
-    {
-      float timeFixing = max(0.f, current_time - visualLocationErrorProductionTime);
-      float fixPercent = timeFixing / errorFixingDuration;
-      gamephys::Loc zeroLoc;
-      zeroLoc.resetLoc(); // To consider: use static var instead?
-      out_current_visual_location_error.interpolate(visualLocationError, zeroLoc, fixPercent);
-    }
-    else
-      out_current_visual_location_error.resetLoc();
+    calc_current_vis_loc_error(current_time - visualLocationErrorProductionTime, visualLocationError,
+      out_current_visual_location_error);
   }
   void rescheduleAuthorityApprovedSend(int ticks_threshold = 4) override final
   {
@@ -564,6 +694,9 @@ public:
     return false;
   }
 
+  virtual uint32_t sizeOfPartialState() const { return sizeof(PhysPartialState); }
+  virtual uint32_t sizeOfAuthorityState() const { return sizeof(PhysStateBase); }
+
   template <typename F, typename... Args>
   auto forEachCustomStateSyncer(F cb, Args &&...args)
   {
@@ -610,6 +743,7 @@ public:
       return false;
     if (incomingPartialState.atTick > authorityApprovedPartialState.atTick)
     {
+      forEachCustomStateSyncer([&](auto ss) { return ss->deserializePartialAuthState(bs, incomingPartialState.atTick); });
       authorityApprovedPartialState = eastl::move(incomingPartialState);
       authorityApprovedPartialState.isProcessed = false;
     }
@@ -740,8 +874,7 @@ public:
   void wakeUp() override {}
   void putToSleep() override { G_ASSERTF(0, "%s() is not supported by this physics type", __FUNCTION__); }
 
-  virtual dag::Span<CollisionObject> getMutableCollisionObjects() const { return {}; }
-  virtual uint64_t getActiveCollisionObjectsBitMask() const { return ALL_COLLISION_OBJECTS; }
+  uint64_t getActiveCollisionObjectsBitMask() const override { return ALL_COLLISION_OBJECTS; }
 
   virtual void updatePhysInWorld(const TMatrix &tm)
   {
@@ -763,7 +896,7 @@ public:
     producedCT.producedAtTick = tick;
     producedCT.setUnitVersion(getActor()->getAuthorityUnitVersion());
     producedCT.setSequenceNumber(++lastCTSequenceNumber);
-    unapprovedCT.push_back() = producedCT;
+    unapprovedCT.push_back(producedCT);
   }
 
   virtual float getFriction() const { return 0.f; }
@@ -783,14 +916,8 @@ public:
   bool deserializeMinimalState(const danet::BitStream &bs, const ControlsClass &base_state);      \
   void applyMinimalState(const ControlsClass &minimal_state);                                     \
   void reset();                                                                                   \
-  int getUnitVersion() const                                                                      \
-  {                                                                                               \
-    return unitVersion;                                                                           \
-  }                                                                                               \
-  void setUnitVersion(int version)                                                                \
-  {                                                                                               \
-    unitVersion = version;                                                                        \
-  }
+  int getUnitVersion() const { return unitVersion; }                                              \
+  void setUnitVersion(int version) { unitVersion = version; }
 
 template <typename PhysState, typename ControlState, typename PartialState>
 PhysicsBase<PhysState, ControlState, PartialState>::PhysicsBase(ptrdiff_t physactor_offset, PhysVars *, float time_step,

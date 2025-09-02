@@ -1,3 +1,5 @@
+# Substance Designer Mip Generator
+
 ## Installation
 
 To avoid having to search for the node on your disk every time, you can add it
@@ -13,7 +15,7 @@ If you already have a custom library, you can simply copy the node into it. Once
 added, the node will be available under the **Filters > Transforms** tab and
 accessible via search.
 
-<img src="_images/substance_designer_01.jpg" alt="" align="center" width="">
+<img src="_images/substance_designer_01.jpg" alt="Mip generator node" class="image-center">
 
 ## Usage
 
@@ -38,10 +40,22 @@ will generate a second output – `tex_d_offset`, which doesn't contain mips.
 After configuring the diffuse, remember to connect the normal map input to apply
 the same offset.
 
-:::{grid} 2
-<img src="_images/substance_designer_02.jpg" alt="" align="right" width="20em">
-<img src="_images/substance_designer_03.jpg" alt="" align="left" width="20em">
-:::
+```{eval-rst}
+.. grid:: 1
+   :class-container: center-grid
+
+   .. grid-item::
+      :class: center-cell
+      :child-direction: row
+      :child-align: center
+
+      .. image:: _images/substance_designer_02.jpg
+         :height: 20em
+         :class: image-gap
+
+      .. image:: _images/substance_designer_03.jpg
+         :height: 20em
+```
 
 ### Mip Adjustment
 
@@ -66,10 +80,22 @@ can experiment with a smaller reduction, but you'll need to test in-game to
 ensure no noticeable flickering occurs due to line shifts rather than a
 reduction in cell count.
 
-:::{grid} 2
-<img src="_images/substance_designer_04.jpg" alt="" align="right" width="20em">
-<img src="_images/substance_designer_05.jpg" alt="" align="left" width="20em">
-:::
+```{eval-rst}
+.. grid:: 1
+   :class-container: center-grid
+
+   .. grid-item::
+      :class: center-cell
+      :child-direction: row
+      :child-align: center
+
+      .. image:: _images/substance_designer_04.jpg
+         :height: 20em
+         :class: image-gap
+
+      .. image:: _images/substance_designer_05.jpg
+         :height: 20em
+```
 
 For `mip05`, improving line clarity required reducing the `7x13` grid to `4x8`.
 
@@ -82,10 +108,22 @@ remain two pixels thick on distant mips and contrast adjustments don't help, you
 can manually enter a non-integer offset for problematic mips. Often, a value of
 `0.01` will suffice.
 
-:::{grid} 2
-<img src="_images/substance_designer_06.jpg" alt="" align="right" width="30em">
-<img src="_images/substance_designer_07.jpg" alt="" align="left" width="30em">
-:::
+```{eval-rst}
+.. grid:: 1
+   :class-container: center-grid
+
+   .. grid-item::
+      :class: center-cell
+      :child-direction: row
+      :child-align: center
+
+      .. image:: _images/substance_designer_06.jpg
+         :height: 15em
+         :class: image-gap
+
+      .. image:: _images/substance_designer_07.jpg
+         :height: 15em
+```
 
 Eventually, the texture will degrade into an unreadable cluster of pixels. To
 avoid manually adjusting the "midpoint" for every mip beyond this point, the

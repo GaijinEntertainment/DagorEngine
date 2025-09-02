@@ -18,7 +18,7 @@ public:
     float depthBias;
     float slopedDepthBias;
     uint8_t stencilRef;
-    uint8_t stencilMask;
+    uint16_t stencilMask;
     bool enableScissor;
 
     bool operator==(const DynamicState &v) const
@@ -52,15 +52,15 @@ private:
 
 class RenderStateSystemBackend
 {
-  eastl::vector<GraphicsPipelineStaticState> staticParts;
-  eastl::vector<RenderStateSystem::DynamicState> dynamicParts;
-  eastl::vector<DriverRenderState> states;
+  dag::Vector<GraphicsPipelineStaticState> staticParts;
+  dag::Vector<RenderStateSystem::DynamicState> dynamicParts;
+  dag::Vector<DriverRenderState> states;
 
   GraphicsPipelineStaticState extractStaticState(const shaders::RenderState &state);
   RenderStateSystem::DynamicState extractDynamicState(const shaders::RenderState &state);
 
   template <typename StatePart>
-  LinearStorageIndex addOrReusePart(eastl::vector<StatePart> &array, const StatePart &new_part)
+  LinearStorageIndex addOrReusePart(dag::Vector<StatePart> &array, const StatePart &new_part)
   {
     auto ref = eastl::find(begin(array), end(array), new_part);
 

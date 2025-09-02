@@ -136,15 +136,15 @@ void RenderScene::buildOptSceneData()
   for (int stage = ShaderMesh::STG_opaque; stage < ShaderMesh::STG_COUNT; stage++)
   {
     // debug("--- RenderScene: stage=%d", stage);
-    for (int i = 0; i < obj.size(); ++i)
+    for (int i = 0, ie = obj.size(); i < ie; ++i)
     {
       G_ASSERT_CONTINUE(obj[i].lods.size() == 1);
       dag::Span<ShaderMesh::RElem> el = obj[i].lods[0].mesh->getElems(stage);
-      for (int k = 0; k < el.size(); k++)
+      for (int k = 0, ke = el.size(); k < ke; k++)
       {
         ShaderMaterial *m = el[k].mat;
         int idx = -1;
-        for (int l = 0; l < mats.size(); l++)
+        for (int l = 0, le = mats.size(); l < le; l++)
           if (mats[l] == m)
           {
             idx = l;
@@ -184,14 +184,14 @@ void RenderScene::buildOptSceneData()
     elemPerStage[ShaderMesh::STG_atest], facePerStage[ShaderMesh::STG_atest], elemPerStage[ShaderMesh::STG_trans],
     facePerStage[ShaderMesh::STG_trans], elemPerStage[ShaderMesh::STG_distortion], facePerStage[ShaderMesh::STG_distortion]);
 
-  for (int i = 0; i < obj.size(); ++i)
+  for (int i = 0, ie = obj.size(); i < ie; ++i)
     for (int stage = ShaderMesh::STG_opaque; stage < ShaderMesh::STG_COUNT; stage++)
     {
       dag::Span<ShaderMesh::RElem> el = obj[i].lods[0].mesh->getElems(stage);
-      for (int k = 0; k < el.size(); k++)
+      for (int k = 0, ke = el.size(); k < ke; k++)
       {
         ShaderMaterial *m = el[k].mat;
-        for (int l = 0; l < mats.size(); l++)
+        for (int l = 0, le = mats.size(); l < le; l++)
           if (mats[l] == m)
           {
             elems[perMatCnt[l]] = &el[k];
@@ -201,15 +201,15 @@ void RenderScene::buildOptSceneData()
       }
     }
 
-  for (int i = 0; i < elems.size(); ++i)
+  for (int i = 0, ie = elems.size(); i < ie; ++i)
     if (!elems[i])
       DAG_FATAL("not filled elem %d", i);
 
   elemnum = 0;
   clear_and_resize(optScn.mats, mats.size());
-  for (int i = 0; i < perMatElems.size(); i++)
+  for (int i = 0, ie = perMatElems.size(); i < ie; i++)
   {
-    optScn.mats[i].e = mats[i]->make_elem();
+    optScn.mats[i].e = mats[i] ? mats[i]->make_elem() : nullptr;
     optScn.mats[i].se = elemnum;
     optScn.mats[i].ee = elemnum + perMatElems[i];
     sort(elems, elemnum, perMatElems[i], &sort_mesh_elems);
@@ -217,7 +217,7 @@ void RenderScene::buildOptSceneData()
   }
 
   clear_and_resize(optScn.elems, elems.size());
-  for (int i = 0; i < elems.size(); i++)
+  for (int i = 0, ie = elems.size(); i < ie; i++)
   {
     optScn.elems[i].vd = elems[i]->vertexData;
     optScn.elems[i].sv = elems[i]->sv;
@@ -238,7 +238,7 @@ void RenderScene::buildOptSceneData()
 
   clear_and_resize(objs, obj.size());
   elemnum = 0;
-  for (int i = 0; i < obj.size(); ++i)
+  for (int i = 0, ie = obj.size(); i < ie; ++i)
   {
     auto bbox = obj[i].bbox;
     objs[i].flags = obj[i].flags;
@@ -254,14 +254,14 @@ void RenderScene::buildOptSceneData()
     dag::ConstSpan<ShaderMesh::RElem> relems = obj[i].lods[0].mesh->getAllElems();
     objs[i].first = elemnum;
     objs[i].last = elemnum + relems.size() - 1;
-    for (int j = 0; j < relems.size(); j++)
+    for (int j = 0, je = relems.size(); j < je; j++)
     {
       const ShaderMesh::RElem *e = &relems[j];
 
       int isElemClipmap;
-      isClipmap |= e->mat->getIntVariable(var::is_prefab_clipmap.get_var_id(), isElemClipmap) && isElemClipmap;
+      isClipmap |= e->mat ? e->mat->getIntVariable(var::is_prefab_clipmap.get_var_id(), isElemClipmap) && isElemClipmap : 0;
 
-      for (int k = 0; k < elems.size(); k++)
+      for (int k = 0, ke = elems.size(); k < ke; k++)
         if (elems[k] == e)
         {
           optScn.elemIdxStor[elemnum] = k;
@@ -360,7 +360,6 @@ void RenderScene::render(const VisibilityFinder &vf, int render_id, unsigned ren
   int dprim = 0;
 
   const int lod = 0;
-
   {
     if (!optScn.visData.lastElemNum[lod])
       return;
@@ -398,7 +397,11 @@ void RenderScene::render(const VisibilityFinder &vf, int render_id, unsigned ren
           if (first)
           {
             //== code to be used while get_shader_lightmap() has side effects
-            if (!optScn.mats[i].e->native().setStates())
+
+            auto e = optScn.mats[i].e;
+            if (!e)
+              continue;
+            if (!e->native().setStates())
               break;
             first = false;
           }
@@ -522,9 +525,7 @@ void RenderScene::render_trans()
 
   //  debug("RenderScene:rt");
 
-
   int lod = 0;
-
   {
     if (!optScn.visData.lastElemNum[lod])
       return;

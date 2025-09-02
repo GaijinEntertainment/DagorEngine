@@ -110,7 +110,6 @@ private:
       }
 
       b.id = register_managed_tex(texName, b.data);
-      b.data->disableSampler();
       d3d::SamplerInfo smpInfo;
       smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
       b.smp = d3d::request_sampler(smpInfo);

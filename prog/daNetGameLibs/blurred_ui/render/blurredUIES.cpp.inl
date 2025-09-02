@@ -7,6 +7,7 @@
 #include <daECS/core/entitySystem.h>
 #include <daECS/core/entityManager.h>
 #include <daECS/core/coreEvents.h>
+#include <ecs/render/samplerHandle.h>
 
 #define INSIDE_RENDERER 1
 #include "render/world/private_worldRenderer.h"
@@ -26,19 +27,24 @@ static void set_resolution_blurred_ui_manager_es(const SetResolutionEvent &evt,
   BlurredUI &blurred_ui__manager,
   const uint32_t blurred_ui__levels,
   TEXTUREID &blurred_ui__texid,
-  TEXTUREID &blurred_ui_sdr__texid)
+  d3d::SamplerHandle &blurred_ui__smp,
+  TEXTUREID &blurred_ui_sdr__texid,
+  d3d::SamplerHandle &blurred_ui_sdr__smp)
 {
   if (evt.type != SetResolutionEvent::Type::SETTINGS_CHANGED)
     return;
 
   blurred_ui__manager.init(evt.displayResolution.x, evt.displayResolution.y, blurred_ui__levels, TextureIDPair());
   blurred_ui_sdr__texid = BAD_TEXTUREID;
+  blurred_ui_sdr__smp = d3d::INVALID_SAMPLER_HANDLE;
   if (hdrrender::get_hdr_output_mode() == HdrOutputMode::HDR10_AND_SDR)
   {
     blurred_ui__manager.initSdrTex(evt.displayResolution.x, evt.displayResolution.y, blurred_ui__levels);
     blurred_ui_sdr__texid = blurred_ui__manager.getFinalSdr().getId();
+    blurred_ui_sdr__smp = blurred_ui__manager.getFinalSdrSampler();
   }
   blurred_ui__texid = blurred_ui__manager.getFinal().getId();
+  blurred_ui__smp = blurred_ui__manager.getFinalSampler();
 }
 
 ECS_TAG(render)
@@ -47,7 +53,9 @@ static void init_blurred_ui_manager_es(const ecs::Event &,
   BlurredUI &blurred_ui__manager,
   const uint32_t blurred_ui__levels,
   TEXTUREID &blurred_ui__texid,
-  TEXTUREID &blurred_ui_sdr__texid)
+  d3d::SamplerHandle &blurred_ui__smp,
+  TEXTUREID &blurred_ui_sdr__texid,
+  d3d::SamplerHandle &blurred_ui_sdr__smp)
 {
   WorldRenderer *renderer = (WorldRenderer *)get_world_renderer(); // TODO: remove this WR dependency
   if (!renderer)
@@ -57,12 +65,15 @@ static void init_blurred_ui_manager_es(const ecs::Event &,
   renderer->getRenderingResolution(rr.x, rr.y);
   blurred_ui__manager.init(rr.x, rr.y, blurred_ui__levels, TextureIDPair());
   blurred_ui_sdr__texid = BAD_TEXTUREID;
+  blurred_ui_sdr__smp = d3d::INVALID_SAMPLER_HANDLE;
   if (hdrrender::get_hdr_output_mode() == HdrOutputMode::HDR10_AND_SDR)
   {
     blurred_ui__manager.initSdrTex(rr.x, rr.y, blurred_ui__levels);
     blurred_ui_sdr__texid = blurred_ui__manager.getFinalSdr().getId();
+    blurred_ui_sdr__smp = blurred_ui__manager.getFinalSdrSampler();
   }
   blurred_ui__texid = blurred_ui__manager.getFinal().getId();
+  blurred_ui__smp = blurred_ui__manager.getFinalSampler();
 }
 
 ECS_TAG(render)

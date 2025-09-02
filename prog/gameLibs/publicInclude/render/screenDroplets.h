@@ -6,9 +6,8 @@
 
 #include <EASTL/unique_ptr.h>
 #include <3d/dag_textureIDHolder.h>
-#include <fx/dag_fxInterface.h>
 #include <shaders/dag_postFxRenderer.h>
-#include <3d/dag_resourcePool.h>
+#include <resourcePool/resourcePool.h>
 #include <render/gaussMipRenderer.h>
 #include <math/integer/dag_IPoint2.h>
 

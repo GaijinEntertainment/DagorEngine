@@ -13,6 +13,7 @@
 #include "driver.h"
 #include "driver_config.h"
 #include "globals.h"
+#include <osApiWrappers/dag_direct.h>
 
 #if _TARGET_C3
 
@@ -199,6 +200,7 @@ class CacheFileSaveCB : public IBaseSave
 public:
   CacheFileSaveCB(const char *fname)
   {
+    dd_mkpath(fname);
     fileHandle = df_open(fname, DF_WRITE | DF_CREATE | DF_IGNORE_MISSING);
     targetName = fname;
 

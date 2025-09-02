@@ -1,11 +1,32 @@
 include "globtm.dshl"
 
+texture reprojected_hzb;
+int reprojected_hzb_depth_mip_count;
+
 int downsampled_depth_mip_count;
 
+macro USE_REPROJECTED_HZB_OCCLUSION(code)
+  bool use_reprojected_hzb = true;
+  hlsl (code) {
+    #include <occlusion_type.hlsli>
+    #if OCCLUSION_BUFFER != OCCLUSION_INVWBUFFER
+      #error "shader uses reprojected hzb occlusion culling but current occlusion buffer packing is not supported"
+    #endif
+    #define USE_REPROJECTED_HZB 1
+  }
+endmacro
+
 macro BASE_GPU_OCCLUSION(code)
-  (code) {
-    hzb_tex@smp2d = downsampled_far_depth_tex;
-    downsampled_depth_mip_count@f1 = (downsampled_depth_mip_count);
+  if (maybe(use_reprojected_hzb)) {
+    (code) {
+      hzb_tex@smp2d = reprojected_hzb;
+      downsampled_depth_mip_count@f1 = (reprojected_hzb_depth_mip_count);
+    }
+  } else {
+    (code) {
+      hzb_tex@smp2d = downsampled_far_depth_tex;
+      downsampled_depth_mip_count@f1 = (downsampled_depth_mip_count);
+    }
   }
   hlsl(code)
   {
@@ -40,7 +61,7 @@ macro BASE_GPU_OCCLUSION(code)
 
     //sbox.xyXY in screen TC
     //return closeset raw depth
-    float check_box_occl_visible_tc_base(float4 sbox)
+    float check_box_occl_visible_tc_base(float4 sbox, bool use_last_level)
     {
       uint2 dim;
       hzb_tex.GetDimensions(dim.x, dim.y);
@@ -50,7 +71,13 @@ macro BASE_GPU_OCCLUSION(code)
       #if OCCLUSION_RECT_SZ == 4
         sboxSize *= 0.5;// 0.5 for 4x4
       #endif
+
+      // We use external constant instead of a value from GetDimensions call, because it seems, that
+      // usage of mip levels count from GetDimension is a reason of GPU hung on intel 630 HD
+      const float MAX_LOD = downsampled_depth_mip_count;
+
       float level = ceil( log2( max(1, max( sboxSize.x, sboxSize.y )) ) );
+      level = use_last_level ? MAX_LOD : level;
 
       {
         float  level_lower = max(level - 1, 0);
@@ -65,10 +92,6 @@ macro BASE_GPU_OCCLUSION(code)
 
       //minTc = (floor(sbox_vp.xy/exp2(level))+0.5)/(dim/exp2(level));
 
-      // We use external constant instead of a value from GetDimensions call, because it seems, that
-      // usage of mip levels count from GetDimension is a reason of GPU hung on intel 630 HD
-      const float MAX_LOD = downsampled_depth_mip_count;
-
       if (level >= MAX_LOD)//we don't have all mips, and we are too close anyway
         return 0;
       //float screenRadius = max(saturate(maxTc.x) - minTc.x, saturate(maxTc.y) - minTc.y);
@@ -78,7 +101,13 @@ macro BASE_GPU_OCCLUSION(code)
       OCCLUSION_SAMPLE_RECT(min);
       return min(min(rawDepth.x, rawDepth.y), min(rawDepth.z, rawDepth.w));
     }
+
+    float check_box_occl_visible_tc_base(float4 sbox)
+    {
+      return check_box_occl_visible_tc_base(sbox, false);
+    }
   }
+
 endmacro
 
 macro GPU_OCCLUSION(code)
@@ -105,6 +134,16 @@ macro GPU_OCCLUSION(code)
       return VISIBLE;
     }
 
+    float get_max_screen_depth(float4 max_screen)
+    {
+      #if USE_REPROJECTED_HZB
+        float invW = max_screen.w;
+        return invW;
+      #else
+        return max_screen.z;
+      #endif
+    }
+
     bool check_box_occl_visible_base(float3 minb, float3 maxb, out float4 sbox, out float2 minMaxRawDepth)
     {
       //todo: we can speed it up
@@ -126,9 +165,9 @@ macro GPU_OCCLUSION(code)
         return true;
 
       #undef fun
-      #define fun(i) screenPos[i].xyz/screenPos[i].w
+      #define fun(i) (float4(screenPos[i].xyz, 1.0) / screenPos[i].w)
 
-      float3 minScreen = find_min_max(min), maxScreen = find_min_max(max);
+      float4 minScreen = find_min_max(min), maxScreen = find_min_max(max);
       float4 minMaxTc = float4(minScreen.xy, maxScreen.xy)*float4(0.5,-0.5, 0.5, -0.5) + 0.5;
 
       if (min(minMaxTc.x, minMaxTc.w) > 1 || max(minMaxTc.z, minMaxTc.y) < 0)
@@ -137,7 +176,9 @@ macro GPU_OCCLUSION(code)
       minMaxRawDepth.y = maxScreen.z;
       sbox = saturate(minMaxTc.xwzy);
 
-      if (check_box_occl_visible_tc_base(sbox) > maxScreen.z)
+      float maxScreenDepth = get_max_screen_depth(maxScreen);
+
+      if (check_box_occl_visible_tc_base(sbox) > maxScreenDepth)
         return false;
       return true;
     }

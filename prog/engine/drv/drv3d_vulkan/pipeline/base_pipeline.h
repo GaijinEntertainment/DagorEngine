@@ -10,6 +10,9 @@
 #include <startup/dag_globalSettings.h>
 #include <dag/dag_vector.h>
 #include <osApiWrappers/dag_atomic.h>
+#include "globals.h"
+#include "physical_device_set.h"
+#include "driver_config.h"
 
 namespace drv3d_vulkan
 {
@@ -34,9 +37,11 @@ public:
   size_t activeRegisters;
 
 private:
-  void init(VulkanDevice &device, const CreationInfo &headers)
+  void init(const CreationInfo &headers)
   {
     VulkanDescriptorSetLayoutHandle layoutSet[ShaderConfig::count + spirv::bindless::MAX_SETS];
+    VkPushConstantRange pushConstantSet[ShaderConfig::count + spirv::bindless::MAX_SETS];
+    uint32_t pushConstantsOnExtraStages = 0;
 
     for (int i = 0; i < ShaderConfig::bindlessSetCount; ++i)
     {
@@ -50,47 +55,93 @@ private:
         activeRegisters = i + 1;
 
     shaderStages = 0;
-    for (size_t i = 0; i < activeRegisters; ++i)
-    {
-      if (headers.list[i])
-      {
-        registers.list[i].init(device, headers.list[i]->hash, headers.list[i]->header, ShaderConfig::stages[i]);
-        shaderStages |= headers.list[i]->stage;
-      }
-      else
-        registers.list[i].initEmpty(device);
-
-      layoutSet[ShaderConfig::registerIndexes[i] + ShaderConfig::bindlessSetCount] = registers.list[i].getLayout();
-    }
-
     VkPipelineLayoutCreateInfo plci;
     plci.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     plci.pNext = NULL;
     plci.flags = 0;
     plci.pushConstantRangeCount = 0;
-    plci.pPushConstantRanges = NULL;
+    plci.pPushConstantRanges = pushConstantSet;
     plci.setLayoutCount = activeRegisters + ShaderConfig::bindlessSetCount;
     plci.pSetLayouts = ary(layoutSet);
-
-    VULKAN_EXIT_ON_FAIL(device.vkCreatePipelineLayout(device.get(), &plci, NULL, ptr(handle)));
 
     for (size_t i = 0; i < activeRegisters; ++i)
     {
       if (headers.list[i])
-        registers.list[i].initUpdateTemplate(device, ShaderConfig::bind, handle,
+      {
+        registers.list[i].init(headers.list[i]->hash, headers.list[i]->header, ShaderConfig::stages[i]);
+        shaderStages |= headers.list[i]->stage;
+        if (headers.list[i]->header.pushConstantsCount)
+        {
+          // VS+PS can use different push constant ranges
+          // yet other stages must share range from VS, and is always present in this case
+          // so conunt offsets for VS+PS combo and expand VS range by stage flags for other stages
+          uint32_t pushConstantsSize = (uint32_t)(4 * headers.list[i]->header.pushConstantsCount);
+
+          if (headers.list[i]->stage & (VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_COMPUTE_BIT))
+          {
+            // for PS we use MAX_IMMEDIATE_CONST_WORDS elements hardcoded offset
+            uint32_t offset =
+              (headers.list[i]->stage & VK_SHADER_STAGE_FRAGMENT_BIT) ? MAX_IMMEDIATE_CONST_WORDS * sizeof(uint32_t) : 0;
+            pushConstantSet[plci.pushConstantRangeCount] = {headers.list[i]->stage, offset, pushConstantsSize};
+            ++plci.pushConstantRangeCount;
+          }
+          else
+            pushConstantsOnExtraStages = max(pushConstantsOnExtraStages, pushConstantsSize);
+        }
+      }
+      else
+        registers.list[i].initEmpty();
+
+      layoutSet[ShaderConfig::registerIndexes[i] + ShaderConfig::bindlessSetCount] = registers.list[i].getLayout();
+    }
+
+    // shaders on extra stage should reuse VS push constants, but there is a bit of corner cases to process properly
+    // 1. VS may not use them, so they will be optimized out fully and there will be no range to append stage to
+    // 2. extra stages may use different amount of consts
+    // 3. stage masks for push and range must be equal
+    if (pushConstantsOnExtraStages)
+    {
+      int32_t vsPushRange = -1;
+      for (int32_t i = 0; i < plci.pushConstantRangeCount; ++i)
+      {
+        if (pushConstantSet[i].stageFlags & VK_SHADER_STAGE_VERTEX_BIT)
+          vsPushRange = i;
+      }
+      const VkShaderStageFlags mirroredExtraStagesMask =
+        VK_SHADER_STAGE_GEOMETRY_BIT | VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT | VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
+      // allocate MAX_IMMEDIATE_CONST_WORDS to avoid selecing max at apply (mask select there!)
+      if (!vsPushRange)
+      {
+        pushConstantSet[plci.pushConstantRangeCount] = {
+          VK_SHADER_STAGE_VERTEX_BIT | (mirroredExtraStagesMask & shaderStages), 0, MAX_IMMEDIATE_CONST_WORDS * sizeof(uint32_t)};
+        ++plci.pushConstantRangeCount;
+      }
+      else
+      {
+        pushConstantSet[vsPushRange].stageFlags |= mirroredExtraStagesMask & shaderStages;
+        pushConstantSet[vsPushRange].size = MAX_IMMEDIATE_CONST_WORDS * sizeof(uint32_t);
+      }
+    }
+
+    VULKAN_EXIT_ON_FAIL(Globals::VK::dev.vkCreatePipelineLayout(Globals::VK::dev.get(), &plci, VKALLOC(pipeline_layout), ptr(handle)));
+
+    for (size_t i = 0; i < activeRegisters; ++i)
+    {
+      if (headers.list[i])
+        registers.list[i].initUpdateTemplate(ShaderConfig::bind, handle,
           ShaderConfig::registerIndexes[i] + ShaderConfig::bindlessSetCount);
     }
   }
 
 public:
-  BasePipelineLayout(VulkanDevice &device, const CreationInfo &headers) { init(device, headers); }
+  BasePipelineLayout(const CreationInfo &headers) { init(headers); }
 
-  void shutdown(VulkanDevice &device)
+  void shutdown()
   {
-    VULKAN_LOG_CALL(device.vkDestroyPipelineLayout(device.get(), handle, NULL));
+    VULKAN_LOG_CALL(Globals::VK::dev.vkDestroyPipelineLayout(Globals::VK::dev.get(), handle, VKALLOC(pipeline_layout)));
 
     for (uint32_t i = 0; i < activeRegisters; ++i)
-      registers.list[i].shutdown(device);
+      registers.list[i].shutdown();
   }
 
   bool matches(const CreationInfo &headers) const
@@ -156,6 +207,13 @@ protected:
   LayoutType *layout;
 };
 
+enum class PipelineCompileStatus
+{
+  OK,
+  PENDING,
+  FAIL
+};
+
 template <typename PipelineLayoutType, typename PipelineProgramType>
 class BasePipeline : public CustomPipeline<PipelineLayoutType, PipelineProgramType>
 {
@@ -164,45 +222,62 @@ public:
     CustomPipeline<PipelineLayoutType, PipelineProgramType>(iLayout), handle(), compiledHandle()
   {}
 
-  void shutdown(VulkanDevice &device)
+  void shutdown()
   {
-    VULKAN_LOG_CALL(device.vkDestroyPipeline(device.get(), handle, NULL));
+    if (is_null(handle))
+      return;
+
+    VULKAN_LOG_CALL(Globals::VK::dev.vkDestroyPipeline(Globals::VK::dev.get(), handle, VKALLOC(pipeline)));
     handle = VulkanNullHandle();
   }
 
   VulkanPipelineHandle getHandle() const { return handle; }
 
 #if VK_USE_64_BIT_PTR_DEFINES
-  bool checkCompiled()
+  PipelineCompileStatus checkCompiled()
   {
     if (is_null(handle))
     {
       if (interlocked_relaxed_load_ptr(compiledHandle.value) == VK_NULL_HANDLE)
-        return false;
+        return PipelineCompileStatus::PENDING;
       swapHandles();
+      if (is_null(handle))
+        return PipelineCompileStatus::FAIL;
     }
-    return true;
+    return PipelineCompileStatus::OK;
   }
 
-  void swapHandles() { handle.value = interlocked_acquire_load_ptr(compiledHandle.value); }
-  void setCompiledHandle(VulkanPipelineHandle new_handle) { interlocked_release_store_ptr(compiledHandle.value, new_handle.value); }
+  // use offset to encode fact of failed compilation (i.e. handle is null but compile was completed)
+  static const VulkanHandle compiled_handle_value_offset = 1;
+  VkPipeline decodeCompiledHandle(VkPipeline v) { return (VkPipeline)((VulkanHandle)v - compiled_handle_value_offset); }
+  VkPipeline encodeCompiledHandle(VkPipeline v) { return (VkPipeline)((VulkanHandle)v + compiled_handle_value_offset); }
+
+  void swapHandles() { handle.value = decodeCompiledHandle(interlocked_acquire_load_ptr(compiledHandle.value)); }
+  void setCompiledHandle(VulkanPipelineHandle new_handle)
+  {
+    interlocked_release_store_ptr(compiledHandle.value, encodeCompiledHandle(new_handle.value));
+  }
   void setHandle(VulkanPipelineHandle new_handle) { handle = new_handle; }
   VulkanPipelineHandle getCompiledHandle()
   {
-    VulkanPipelineHandle ret;
-    ret.value = interlocked_acquire_load_ptr(compiledHandle.value);
+    VulkanPipelineHandle ret{};
+    VkPipeline localCopy = interlocked_acquire_load_ptr(compiledHandle.value);
+    if (localCopy)
+      ret.value = decodeCompiledHandle(localCopy);
     return ret;
   }
 #else
-  bool checkCompiled()
+  PipelineCompileStatus checkCompiled()
   {
     if (is_null(handle))
     {
       if (interlocked_relaxed_load(compileSync) == 0)
-        return false;
+        return PipelineCompileStatus::PENDING;
       swapHandles();
+      if (is_null(handle))
+        return PipelineCompileStatus::FAIL;
     }
-    return true;
+    return PipelineCompileStatus::OK;
   }
 
   void swapHandles()
@@ -220,10 +295,84 @@ public:
   VulkanPipelineHandle getCompiledHandle()
   {
     volatile int sync = interlocked_acquire_load(compileSync);
-    G_UNUSED(sync);
-    return compiledHandle;
+    return sync ? compiledHandle : VulkanPipelineHandle{};
   }
 #endif
+
+  // external provided handle to properly process async compilations and other related stuff
+  void dumpExecutablesInfo(VulkanPipelineHandle pipe_handle)
+  {
+    if (!Globals::VK::phy.hasPipelineExecutableInfo || !Globals::cfg.bits.dumpPipelineExecutableStatistics || is_null(pipe_handle))
+      return;
+
+    debug("====%016llX====", generalize(pipe_handle));
+
+    VkPipelineInfoKHR pipeInfo = {VK_STRUCTURE_TYPE_PIPELINE_INFO_KHR, nullptr, pipe_handle};
+    dag::RelocatableFixedVector<VkPipelineExecutablePropertiesKHR, (int)ExtendedShaderStage::MAX> executablesProps;
+    dag::RelocatableFixedVector<VkPipelineExecutableStatisticKHR, 10> executableStats;
+    uint32_t executablesCount = 0;
+
+    if (VULKAN_CHECK_FAIL(
+          Globals::VK::dev.vkGetPipelineExecutablePropertiesKHR(Globals::VK::dev.get(), &pipeInfo, &executablesCount, nullptr)))
+    {
+      debug("executable count query failed");
+      return;
+    }
+
+    executablesProps.resize(executablesCount);
+
+    if (VULKAN_CHECK_FAIL(Globals::VK::dev.vkGetPipelineExecutablePropertiesKHR(Globals::VK::dev.get(), &pipeInfo, &executablesCount,
+          executablesProps.data())))
+    {
+      debug("executables prop query failed");
+      return;
+    }
+
+    for (VkPipelineExecutablePropertiesKHR &i : executablesProps)
+    {
+      uint32_t executableIndex = &i - executablesProps.begin();
+      debug("executable: %u stage %s %s-%s subgroup %u", executableIndex, formatShaderStageFlags(i.stages), i.name, i.description,
+        i.subgroupSize);
+      uint32_t statisticsCount = 0;
+
+      VkPipelineExecutableInfoKHR executableInfo = {
+        VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_INFO_KHR, nullptr, pipe_handle, executableIndex};
+
+      if (VULKAN_CHECK_FAIL(
+            Globals::VK::dev.vkGetPipelineExecutableStatisticsKHR(Globals::VK::dev.get(), &executableInfo, &statisticsCount, nullptr)))
+      {
+        debug("executable statistics count query failed");
+        continue;
+      }
+
+      executableStats.resize(statisticsCount);
+
+      if (VULKAN_CHECK_FAIL(Globals::VK::dev.vkGetPipelineExecutableStatisticsKHR(Globals::VK::dev.get(), &executableInfo,
+            &statisticsCount, executableStats.data())))
+      {
+        debug("executable statistics query failed");
+        continue;
+      }
+
+      for (VkPipelineExecutableStatisticKHR &j : executableStats)
+      {
+        String statLine(128, "stat %u: %s-%s ", &j - executableStats.begin(), j.name, j.description);
+        switch (j.format)
+        {
+          case VK_PIPELINE_EXECUTABLE_STATISTIC_FORMAT_BOOL32_KHR:
+            statLine += String(32, "b %s", j.value.b32 ? "true" : "false");
+            break;
+          case VK_PIPELINE_EXECUTABLE_STATISTIC_FORMAT_INT64_KHR: statLine += String(32, "i %lli", j.value.i64); break;
+          case VK_PIPELINE_EXECUTABLE_STATISTIC_FORMAT_UINT64_KHR: statLine += String(32, "u %llu", j.value.u64); break;
+          case VK_PIPELINE_EXECUTABLE_STATISTIC_FORMAT_FLOAT64_KHR: statLine += String(32, "f %lf", j.value.f64); break;
+          default: statLine += String(32, "unknown fmt %u", (uint32_t)j.format); break;
+        }
+        debug(statLine);
+      }
+    }
+
+    debug("====%016llX====", generalize(pipe_handle));
+  }
 
 private:
   VulkanPipelineHandle handle;
@@ -307,6 +456,11 @@ protected:
   size_t variantCount;
 #else
   void setNameForDescriptorSet(VulkanDescriptorSetHandle, int) {}
+  String printDebugInfoBuffered() const
+  {
+    String ret(0, "pipe %p ", this);
+    return ret;
+  }
 #endif
 };
 

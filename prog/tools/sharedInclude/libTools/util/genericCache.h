@@ -51,7 +51,7 @@ public:
   static unsigned getFileTime(const char *fname, unsigned &out_sz);
 
   static void setSdkRoot(const char *root_dir, const char *subdir = nullptr) { sdkRoot.setSdkRoot(root_dir, subdir); }
-  static const char *mkRelPath(const char *fpath) { return sdkRoot.mkRelPath(fpath); }
+  static const char *mkRelPath(const char *fpath, TwoStepRelPath::storage_t &stor) { return sdkRoot.mkRelPath(fpath, stor); }
 
   bool isTimeChanged() { return timeChanged == 1; }
 

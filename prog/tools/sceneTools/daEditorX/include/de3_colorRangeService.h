@@ -4,7 +4,7 @@
 //
 #pragma once
 
-#include <math/dag_e3dcolor.h>
+#include <math/dag_e3dColor.h>
 
 
 class IColorRangeService

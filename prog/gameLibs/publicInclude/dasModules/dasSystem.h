@@ -11,11 +11,25 @@
 #include <dasModules/dasDataBlock.h>
 #include <daECS/core/internal/typesAndLimits.h>
 #include <util/dag_hash.h>
+#include <debug/dag_logSys.h>
 
 DAS_BIND_ENUM_CAST(ConsoleModel);
 
 namespace bind_dascript
 {
+struct RAIIStackwalkOnLogerr
+{
+  RAIIStackwalkOnLogerr(das::Context *c);
+  ~RAIIStackwalkOnLogerr();
+  das::Context *old;
+};
+
+static debug_log_callback_t orig_debug_log = nullptr;
+
+static int das_stackwalk_log_on_logerr(int lev_tag, const char *fmt, const void *arg, int anum, const char *ctx_file, int ctx_line);
+
+void enable_das_stackwalk_log_on_logerr();
+
 typedef void (*DasExitFunctionPtr)(int);
 void set_das_exit_function_ptr(DasExitFunctionPtr func);
 

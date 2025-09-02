@@ -4,7 +4,7 @@ let cursors = require("samples_prog/_cursors.nut")
 
 
 let item = {
-  size = [sh(20), sh(20)]
+  size = sh(20)
   rendObj = ROBJ_SOLID
   color = Color(220, 180, 120)
 

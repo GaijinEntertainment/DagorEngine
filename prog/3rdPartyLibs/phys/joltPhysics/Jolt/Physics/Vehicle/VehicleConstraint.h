@@ -22,9 +22,9 @@ class PhysicsSystem;
 /// See: https://www.asawicki.info/Mirror/Car%20Physics%20for%20Games/Car%20Physics%20for%20Games.html
 class JPH_EXPORT VehicleConstraintSettings : public ConstraintSettings
 {
-public:
 	JPH_DECLARE_SERIALIZABLE_VIRTUAL(JPH_EXPORT, VehicleConstraintSettings)
 
+public:
 	/// Saves the contents of the constraint settings in binary form to inStream.
 	virtual void				SaveBinaryState(StreamOut &inStream) const override;
 
@@ -32,7 +32,7 @@ public:
 	Vec3						mForward { 0, 0, 1 };						///< Vector indicating forward direction of the vehicle (in local space to the body)
 	float						mMaxPitchRollAngle = JPH_PI;				///< Defines the maximum pitch/roll angle (rad), can be used to avoid the car from getting upside down. The vehicle up direction will stay within a cone centered around the up axis with half top angle mMaxPitchRollAngle, set to pi to turn off.
 	Array<Ref<WheelSettings>>	mWheels;									///< List of wheels and their properties
-	Array<VehicleAntiRollBar>	mAntiRollBars;								///< List of anti rollbars and their properties
+	VehicleAntiRollBars			mAntiRollBars;								///< List of anti rollbars and their properties
 	Ref<VehicleControllerSettings> mController;								///< Defines how the vehicle can accelerate / decelerate
 
 protected:
@@ -88,7 +88,7 @@ public:
 	const CombineFunction &		GetCombineFriction() const					{ return mCombineFriction; }
 
 	/// Callback function to notify of current stage in PhysicsStepListener::OnStep.
-	using StepCallback = function<void(VehicleConstraint &inVehicle, float inDeltaTime, PhysicsSystem &inPhysicsSystem)>;
+	using StepCallback = function<void(VehicleConstraint &inVehicle, const PhysicsStepListenerContext &inContext)>;
 
 	/// Callback function to notify that PhysicsStepListener::OnStep has started for this vehicle. Default is to do nothing.
 	/// Can be used to allow higher-level code to e.g. control steering. This is the last moment that the position/orientation of the vehicle can be changed.
@@ -161,6 +161,10 @@ public:
 	/// @param inWheelUp Unit vector that indicates up in model space of the wheel
 	RMat44						GetWheelWorldTransform(uint inWheelIndex, Vec3Arg inWheelRight, Vec3Arg inWheelUp) const;
 
+	/// Access to the vehicle's anti roll bars
+	const VehicleAntiRollBars &	GetAntiRollBars() const						{ return mAntiRollBars; }
+	VehicleAntiRollBars &		GetAntiRollBars()							{ return mAntiRollBars; }
+
 	/// Number of simulation steps between wheel collision tests when the vehicle is active. Default is 1. 0 = never, 1 = every step, 2 = every other step, etc.
 	/// Note that if a vehicle has multiple wheels and the number of steps > 1, the wheels will be tested in a round robin fashion.
 	/// If there are multiple vehicles, the tests will be spread out based on the BodyID of the vehicle.
@@ -196,7 +200,7 @@ public:
 
 private:
 	// See: PhysicsStepListener
-	virtual void				OnStep(float inDeltaTime, PhysicsSystem &inPhysicsSystem) override;
+	virtual void				OnStep(const PhysicsStepListenerContext &inContext) override;
 
 	// Calculate the position where the suspension and traction forces should be applied in world space, relative to the center of mass of both bodies
 	void						CalculateSuspensionForcePoint(const Wheel &inWheel, Vec3 &outR1PlusU, Vec3 &outR2) const;
@@ -214,7 +218,7 @@ private:
 	Vec3						mUp;										///< Local space up vector for the vehicle
 	Vec3						mWorldUp;									///< Vector indicating the world space up direction (used to limit vehicle pitch/roll)
 	Wheels						mWheels;									///< Wheel states of the vehicle
-	Array<VehicleAntiRollBar>	mAntiRollBars;								///< Anti rollbars of the vehicle
+	VehicleAntiRollBars			mAntiRollBars;								///< Anti rollbars of the vehicle
 	VehicleController *			mController;								///< Controls the acceleration / deceleration of the vehicle
 	bool						mIsActive = false;							///< If this constraint is active
 	uint						mNumStepsBetweenCollisionTestActive = 1;	///< Number of simulation steps between wheel collision tests when the vehicle is active

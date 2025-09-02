@@ -84,10 +84,11 @@
 
 #include <3d/dag_resPtr.h>
 
-#include <render/daBfg/bfg.h>
+#include <render/daFrameGraph/daFG.h>
 #include <render/fx/auroraBorealis.h>
 #include <render/noiseTex.h>
 #include <render/spheres_consts.hlsli>
+#include <render/texDebug.h>
 
 #include "de3_benchmark.h"
 
@@ -134,17 +135,12 @@ static void init_webui(const DataBlock *debug_block)
     debug_block = dgs_get_settings()->getBlockByNameEx("debug");
   if (debug_block->getBool("http_server", true))
   {
-    static webui::HttpPlugin test_http_plugins[] = {
-      webui::profiler_http_plugin,
-      webui::shader_http_plugin,
-      webui::color_pipette_http_plugin,
-      webui::colorpicker_http_plugin,
-      webui::cookie_http_plugin,
+    static webui::HttpPlugin test_http_plugins[] = {webui::profiler_http_plugin, webui::shader_http_plugin,
+      webui::color_pipette_http_plugin, webui::colorpicker_http_plugin, webui::cookie_http_plugin,
 #if USE_WEBUI_VAR_EDITOR == 1
       webui::editvar_http_plugin,
 #endif
-      nullptr
-    };
+      nullptr};
     // webui::plugin_lists[1] = aces_http_plugins;
     webui::plugin_lists[0] = webui::dagor_http_plugins;
     webui::plugin_lists[1] = test_http_plugins;
@@ -244,6 +240,7 @@ public:
 
       d3d::set_render_target(cubeTarget->getCubeTex(), i, 0);
       d3d::settex(2, shadedTarget.getTex2D());
+      d3d::set_sampler(STAGE_PS, 2, d3d::request_sampler({}));
       copy.render();
     }
     d3d::set_render_target(prevRT);
@@ -311,7 +308,7 @@ const Point4 &get_view_vec_RT(const Camera &cam) { return cam.viewVecs.viewVecRT
 const Point4 &get_view_vec_LB(const Camera &cam) { return cam.viewVecs.viewVecLB; }
 const Point4 &get_view_vec_RB(const Camera &cam) { return cam.viewVecs.viewVecRB; }
 
-auto bind_camera(dabfg::Registry registry, const char *name)
+auto bind_camera(dafg::Registry registry, const char *name)
 {
   return registry.read(name)
     .blob<Camera>()
@@ -337,13 +334,13 @@ public:
     CLOUD_VOLUME_D = 32
   };
 
-  virtual Point4 getCascadeShadowAnchor(int cascade_no)
+  Point4 getCascadeShadowAnchor(int cascade_no) override
   {
     TMatrix itm;
     curCamera->getInvViewMatrix(itm);
     return Point4::xyz0(-itm.getcol(3));
   }
-  virtual void renderCascadeShadowDepth(int cascade_no, const Point2 &)
+  void renderCascadeShadowDepth(int cascade_no, const Point2 &) override
   {
     const auto &globtm = csm->getWorldRenderMatrix(cascade_no);
     d3d::settm(TM_VIEW, TMatrix::IDENT);
@@ -352,8 +349,8 @@ public:
     renderOpaque(Frustum(globtm), camPos);
   }
 
-  virtual void getCascadeShadowSparseUpdateParams(int cascade_no, const Frustum &, float &out_min_sparse_dist,
-    int &out_min_sparse_frame)
+  void getCascadeShadowSparseUpdateParams(int cascade_no, const Frustum &, float &out_min_sparse_dist,
+    int &out_min_sparse_frame) override
   {
     out_min_sparse_dist = 100000;
     out_min_sparse_frame = -1000;
@@ -411,9 +408,9 @@ public:
     Point3 min_r, max_r;
     init_and_get_perlin_noise_3d(min_r, max_r);
 
-    dabfg::startup();
-    dabfg::set_resolution("main_view", IPoint2{width, height});
-    dabfg::set_resolution("display", IPoint2{width, height});
+    dafg::startup();
+    dafg::set_resolution("main_view", IPoint2{width, height});
+    dafg::set_resolution("display", IPoint2{width, height});
 
     const int reflW = width / 6, reflH = height / 6;
 
@@ -521,6 +518,7 @@ public:
     heightmap.close();
     heightmapRenderer.close();
 
+    del_it(freeCam);
     cpujobs::stop_job_manager(1, true);
     fft_water::close();
     de3_imgui_term();
@@ -529,7 +527,7 @@ public:
 
   virtual bool rayTrace(const Point3 &p, const Point3 &norm_dir, float trace_dist, float &max_dist) { return false; }
 
-  virtual void actScene()
+  void actScene() override
   {
     cpujobs::release_done_jobs();
     samplebenchmark::quitIfBenchmarkHasEnded();
@@ -581,8 +579,6 @@ public:
           strataClouds.y = blk.getReal("strataCloudsOffsetZ", strataClouds.y);
           daSkies.setCloudsOrigin(clouds.x, clouds.y);
           daSkies.setStrataCloudsOrigin(strataClouds.x, strataClouds.y);
-          if (blk.findParam("cloudsPos") >= 0)
-            daSkies.setCloudsHolePosition(blk.getPoint2("cloudsPos", Point2(0, 0)));
 
           ((SkyAtmosphereParams &)sky_panel) = daSkies.getSkyParams();
           sky_colors.mie_scattering_color = sky_panel.mie_scattering_color;
@@ -707,7 +703,7 @@ public:
       sleep_msec(sleep_msec_val.get());
   }
 
-  virtual void drawScene()
+  void drawScene() override
   {
     TIME_D3D_PROFILE(drawScene)
 
@@ -725,8 +721,8 @@ public:
     extern bool g_ssao_blur;
     g_ssao_blur = ssao_blur.get();
 
-    dabfg::update_external_state(dabfg::ExternalState{::grs_draw_wire, false});
-    dabfg::run_nodes();
+    dafg::update_external_state(dafg::ExternalState{::grs_draw_wire, false});
+    dafg::run_nodes();
 
     static bool firstCubeUpdate = false;
     if (!firstCubeUpdate)
@@ -784,7 +780,7 @@ public:
         }
 
         if (render_panel.findHole)
-          daSkies.resetCloudsHole(itm.getcol(3));
+          daSkies.setCloudsHole(itm.getcol(3), 0);
 
         daSkies.setUseCloudsHole(render_panel.useCloudsHole);
 
@@ -817,7 +813,7 @@ public:
     }
   }
 
-  virtual void beforeDrawScene(int realtime_elapsed_usec, float gametime_elapsed_sec)
+  void beforeDrawScene(int realtime_elapsed_usec, float gametime_elapsed_sec) override
   {
     TIME_D3D_PROFILE(beforeDraw);
     static ShaderVariableInfo enable_god_rays_from_land("enable_god_rays_from_land", true);
@@ -1010,14 +1006,14 @@ public:
     foam_time.set_real(water_time);
   }
 
-  virtual void sceneSelected(DagorGameScene * /*prev_scene*/) { loadScene(); }
+  void sceneSelected(DagorGameScene * /*prev_scene*/) override { loadScene(); }
 
-  virtual void sceneDeselected(DagorGameScene * /*new_scene*/)
+  void sceneDeselected(DagorGameScene * /*new_scene*/) override
   {
     webui::shutdown();
     console::set_visual_driver(nullptr, nullptr);
     delete this;
-    dabfg::shutdown();
+    dafg::shutdown();
   }
 
   // IRenderWorld interface
@@ -1108,7 +1104,7 @@ public:
     renderTrees();
     drawHeightmap(frustum, camera_pos);
   }
-  void renderLightProbeOpaque()
+  void renderLightProbeOpaque() override
   {
     // daSkies.prepare(dir_to_sun);
     TMatrix view, itm;
@@ -1120,7 +1116,7 @@ public:
     drawPlane();
   }
 
-  void renderLightProbeEnvi()
+  void renderLightProbeEnvi() override
   {
     TIME_D3D_PROFILE(cubeenvi)
     TMatrix view, itm;
@@ -1147,7 +1143,7 @@ public:
     pos = itm.getcol(3);
   }
 
-  int calc_resolved_frame_texfmt()
+  uint32_t calc_resolved_frame_texfmt()
   {
     uint32_t rtFmt = TEXFMT_R11G11B10F;
     if (!(d3d::get_texformat_usage(rtFmt) & d3d::USAGE_RTARGET))
@@ -1166,39 +1162,39 @@ public:
     // it should be decoupled as much as possible.
     struct Backbone
     {
-      dabfg::NodeHandle makeCamera;
+      dafg::NodeHandle makeCamera;
 
       struct Opaque
       {
-        dabfg::NodeHandle makeGbuf;
-        dabfg::NodeHandle deferredShading;
+        dafg::NodeHandle makeGbuf;
+        dafg::NodeHandle deferredShading;
       } opaque;
 
       struct Lighting
       {
-        dabfg::NodeHandle ssao;
-        dabfg::NodeHandle ssr;
+        dafg::NodeHandle ssao;
+        dafg::NodeHandle ssr;
       } lighting;
 
       struct Shadows
       {
-        dabfg::NodeHandle csm;
+        dafg::NodeHandle csm;
       } shadows;
 
-      dabfg::NodeHandle downsampleDepth;
+      dafg::NodeHandle downsampleDepth;
 
-      dabfg::NodeHandle startTransparent;
+      dafg::NodeHandle startTransparent;
 
-      dabfg::NodeHandle copyFrame;
+      dafg::NodeHandle copyFrame;
 
-      dabfg::NodeHandle renderPostFx;
+      dafg::NodeHandle renderPostFx;
     } backbone;
 
     // Miscelaneous stuff that extends the backbone. Preferrably, such
     // nodes should be stored inside the storage of the subsystem that
     // they are related to.
-    dag::Vector<dabfg::NodeHandle> opaqueRendering;
-    dag::Vector<dabfg::NodeHandle> transparentRendering;
+    dag::Vector<dafg::NodeHandle> opaqueRendering;
+    dag::Vector<dafg::NodeHandle> transparentRendering;
 
     // These nodes are needed to always display at least something on the
     // screen, specifically the debug GUI, and so they are not part of the
@@ -1206,34 +1202,34 @@ public:
     // case the programmer messes up the backbone.
     struct FinalPresent
     {
-      dabfg::NodeHandle createBackbuffer;
-      dabfg::NodeHandle debugTexOverlay;
-      dabfg::NodeHandle renderGui;
+      dafg::NodeHandle createBackbuffer;
+      dafg::NodeHandle debugTexOverlay;
+      dafg::NodeHandle renderGui;
     } finalPresent;
 
     struct Envi
     {
-      dabfg::NodeHandle renderCloudVolumeForParticles;
-      dabfg::NodeHandle updateSkiesData;
-      dabfg::NodeHandle prepareSkies;
-      dabfg::NodeHandle renderSky;
-      dabfg::NodeHandle renderClouds;
+      dafg::NodeHandle renderCloudVolumeForParticles;
+      dafg::NodeHandle updateSkiesData;
+      dafg::NodeHandle prepareSkies;
+      dafg::NodeHandle renderSky;
+      dafg::NodeHandle renderClouds;
     } envi;
 
     struct Water
     {
       struct Reflections
       {
-        dabfg::NodeHandle makeReflCamera;
-        dabfg::NodeHandle makeReflGbuf;
-        dag::Vector<dabfg::NodeHandle> renderOpaque;
-        dabfg::NodeHandle waterReflResolve;
-        dabfg::NodeHandle waterReflPrepareEnvi;
-        dabfg::NodeHandle waterReflEnvi;
-        dabfg::NodeHandle clipWaterRefl;
+        dafg::NodeHandle makeReflCamera;
+        dafg::NodeHandle makeReflGbuf;
+        dag::Vector<dafg::NodeHandle> renderOpaque;
+        dafg::NodeHandle waterReflResolve;
+        dafg::NodeHandle waterReflPrepareEnvi;
+        dafg::NodeHandle waterReflEnvi;
+        dafg::NodeHandle clipWaterRefl;
       } reflections;
 
-      dabfg::NodeHandle render;
+      dafg::NodeHandle render;
     } water;
   } frameGraph;
 
@@ -1241,45 +1237,43 @@ public:
   {
     FrameGraph::Backbone::Opaque result;
 
-    result.makeGbuf = dabfg::register_node("make_gbuf", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
-      registry.createTexture2d(depth_tex_name, dabfg::History::No,
-        dabfg::Texture2dCreateInfo{TEXFMT_DEPTH32 | TEXCF_RTARGET, registry.getResolution<2>("main_view")});
+    result.makeGbuf = dafg::register_node("make_gbuf", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
+      registry
+        .createTexture2d(depth_tex_name, dafg::History::No,
+          dafg::Texture2dCreateInfo{TEXFMT_DEPTH32 | TEXCF_RTARGET, registry.getResolution<2>("main_view")})
+        .clear(make_clear_value(0.f, 0));
 
       for (int i = 0; i < gbuf_rt; ++i)
-        registry.createTexture2d(gbuf_tex_names[i], dabfg::History::No,
-          dabfg::Texture2dCreateInfo{gbuf_fmts[i] | TEXCF_RTARGET, registry.getResolution<2>("main_view")});
+        registry
+          .createTexture2d(gbuf_tex_names[i], dafg::History::No,
+            dafg::Texture2dCreateInfo{gbuf_fmts[i] | TEXCF_RTARGET, registry.getResolution<2>("main_view")})
+          .clear(make_clear_value(0.f, 0.f, 0.f, 0.f));
 
-      registry.requestRenderPass()
-        .color({gbuf_tex_names[0], gbuf_tex_names[1], gbuf_tex_names[2]})
-        .depthRw(depth_tex_name)
-        .clear(gbuf_tex_names[0], make_clear_value(0.f, 0.f, 0.f, 0.f))
-        .clear(gbuf_tex_names[1], make_clear_value(0.f, 0.f, 0.f, 0.f))
-        .clear(gbuf_tex_names[2], make_clear_value(0.f, 0.f, 0.f, 0.f))
-        .clear(depth_tex_name, make_clear_value(0.f, 0));
+      registry.requestRenderPass().color({gbuf_tex_names[0], gbuf_tex_names[1], gbuf_tex_names[2]}).depthRw(depth_tex_name);
     });
 
-    result.deferredShading = dabfg::register_node("deferred_shading", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
+    result.deferredShading = dafg::register_node("deferred_shading", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
       auto camHndl = bind_camera(registry, "main_camera").handle();
 
-      auto depthHandle = registry.readTexture(depth_tex_name).atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar("depth_gbuf").handle();
+      auto depthHandle = registry.readTexture(depth_tex_name).atStage(dafg::Stage::PS_OR_CS).bindToShaderVar("depth_gbuf").handle();
 
       for (int i = 0; i < gbuf_rt; ++i)
-        registry.readTexture(gbuf_tex_names[i]).atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar();
+        registry.readTexture(gbuf_tex_names[i]).atStage(dafg::Stage::PS_OR_CS).bindToShaderVar();
 
       auto mainViewRes = registry.getResolution<2>("main_view");
 
       const auto rtFmt = calc_resolved_frame_texfmt();
       auto resolvedHandle =
-        registry.createTexture2d("resolved_frame", dabfg::History::No, dabfg::Texture2dCreateInfo{rtFmt | TEXCF_RTARGET, mainViewRes})
-          .atStage(dabfg::Stage::POST_RASTER)
-          .useAs(dabfg::Usage::COLOR_ATTACHMENT)
+        registry.createTexture2d("resolved_frame", dafg::History::No, dafg::Texture2dCreateInfo{rtFmt | TEXCF_RTARGET, mainViewRes})
+          .atStage(dafg::Stage::POST_RASTER)
+          .useAs(dafg::Usage::COLOR_ATTACHMENT)
           .handle();
 
-      registry.read("ssr_target").texture().atStage(dabfg::Stage::PS).bindToShaderVar();
+      registry.read("ssr_target").texture().atStage(dafg::Stage::PS).bindToShaderVar();
       registry.read("ssr_target_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("ssr_target_samplerstate");
-      registry.read("ssao_tex").texture().atStage(dabfg::Stage::PS).bindToShaderVar();
+      registry.read("ssao_tex").texture().atStage(dafg::Stage::PS).bindToShaderVar();
       registry.read("ssao_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("ssao_tex_samplerstate");
-      registry.read("csm").texture().atStage(dabfg::Stage::PS).bindToShaderVar("shadow_cascade_depth_tex");
+      registry.read("csm").texture().atStage(dafg::Stage::PS).bindToShaderVar("shadow_cascade_depth_tex");
       registry.read("csm_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("shadow_cascade_depth_tex_samplerstate");
 
       auto resShading = eastl::make_unique<ShadingResolver>("deferred_shading");
@@ -1305,7 +1299,7 @@ public:
     FrameGraph::Envi result;
 
     result.renderCloudVolumeForParticles =
-      dabfg::register_node("render_clouds_volume_for_particles", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
+      dafg::register_node("render_clouds_volume_for_particles", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
         auto camHndl = bind_camera(registry, "main_camera").handle();
 
         // This texture should be used for faking order independent transparent
@@ -1313,11 +1307,11 @@ public:
         // currently does not in fact use it for anything, but we leave it
         // here to get at least a semblence of correct resource-based ordering
         // of FG nodes.
-        auto cloudVolumeHndl = registry.create("cloud_volume", dabfg::History::No)
-                                 .texture(dabfg::Texture3dCreateInfo{TEXFMT_L8 | TEXCF_RTARGET | TEXCF_UNORDERED,
+        auto cloudVolumeHndl = registry.create("cloud_volume", dafg::History::No)
+                                 .texture(dafg::Texture3dCreateInfo{TEXFMT_R8 | TEXCF_RTARGET | TEXCF_UNORDERED,
                                    IPoint3{CLOUD_VOLUME_W, CLOUD_VOLUME_H, CLOUD_VOLUME_D}, 1})
-                                 .atStage(dabfg::Stage::PS_OR_CS)
-                                 .useAs(dabfg::Usage::SHADER_RESOURCE)
+                                 .atStage(dafg::Stage::PS_OR_CS)
+                                 .useAs(dafg::Usage::SHADER_RESOURCE)
                                  .handle();
 
         return [this, camHndl, cloudVolumeHndl]() {
@@ -1327,10 +1321,10 @@ public:
         };
       });
 
-    result.updateSkiesData = dabfg::register_node("update_skies_data", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
+    result.updateSkiesData = dafg::register_node("update_skies_data", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
       bind_camera(registry, "main_camera");
 
-      auto mainSkiesDataHndl = registry.create("main_cam_skies_data", dabfg::History::No).blob<SkiesData *>().handle();
+      auto mainSkiesDataHndl = registry.create("main_cam_skies_data", dafg::History::No).blob<SkiesData *>().handle();
 
       return [this, mainSkiesDataHndl]() {
         if (render_quality_panel != old_quality_panel)
@@ -1345,38 +1339,39 @@ public:
       };
     });
 
-    result.prepareSkies = dabfg::register_node("prepare_skies", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
+    result.prepareSkies = dafg::register_node("prepare_skies", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
       auto camHndl = bind_camera(registry, "main_camera").handle();
 
       auto mainSkiesDataHndl = registry.modify("main_cam_skies_data").blob<SkiesData *>().handle();
 
       auto fddHandle = registry.readTexture("far_downsampled_depth")
-                         .atStage(dabfg::Stage::PS_OR_CS)
+                         .atStage(dafg::Stage::PS_OR_CS)
                          .bindToShaderVar("downsampled_far_depth_tex")
                          .handle();
       auto prevFddHandle = registry.readTextureHistory("far_downsampled_depth")
-                             .atStage(dabfg::Stage::PS_OR_CS)
-                             .useAs(dabfg::Usage::SHADER_RESOURCE)
+                             .atStage(dafg::Stage::PS_OR_CS)
+                             .useAs(dafg::Usage::SHADER_RESOURCE)
                              .handle();
 
       return [this, camHndl, mainSkiesDataHndl, fddHandle, prevFddHandle]() {
         const auto &cam = camHndl.ref();
         daSkies.prepareSkyAndClouds(render_panel.infinite_skies, dpoint3(cam.worldPos), dpoint3(cam.viewItm.getcol(2)), 3,
-          fddHandle.view(), prevFddHandle.view(), mainSkiesDataHndl.ref(), cam.viewTm, cam.projTm, true, false, 20.0f, aurora.get());
+          fddHandle.view(), prevFddHandle.view(), mainSkiesDataHndl.ref(), cam.viewTm, cam.projTm, UpdateSky::On, false, 20.0f,
+          aurora.get());
       };
     });
 
-    result.renderSky = dabfg::register_node("render_sky", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
+    result.renderSky = dafg::register_node("render_sky", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
       auto camHndl = bind_camera(registry, "main_camera").handle();
 
       auto mainSkiesDataHndl = registry.read("main_cam_skies_data").blob<SkiesData *>().handle();
 
-      registry.read("far_downsampled_depth").texture().atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar("downsampled_far_depth_tex");
+      registry.read("far_downsampled_depth").texture().atStage(dafg::Stage::PS_OR_CS).bindToShaderVar("downsampled_far_depth_tex");
 
       auto resolvedFrameHndl =
-        registry.modify("resolved_frame").texture().atStage(dabfg::Stage::POST_RASTER).useAs(dabfg::Usage::COLOR_ATTACHMENT).handle();
+        registry.modify("resolved_frame").texture().atStage(dafg::Stage::POST_RASTER).useAs(dafg::Usage::COLOR_ATTACHMENT).handle();
       auto depthHndl =
-        registry.read("depth_gbuf").texture().atStage(dabfg::Stage::PS_OR_CS).useAs(dabfg::Usage::DEPTH_ATTACHMENT).handle();
+        registry.read("depth_gbuf").texture().atStage(dafg::Stage::PS_OR_CS).useAs(dafg::Usage::DEPTH_ATTACHMENT).handle();
 
       return [resolvedFrameHndl, depthHndl, mainSkiesDataHndl, camHndl, this]() {
         // TODO: This is a dirty hack due to the fact taht daSkies is not
@@ -1385,15 +1380,16 @@ public:
 
         const auto &cam = camHndl.ref();
 
-        daSkies.renderSky(mainSkiesDataHndl.ref(), cam.viewTm, cam.projTm, cam.persp, true, aurora.get());
+        daSkies.renderSky(mainSkiesDataHndl.ref(), cam.viewTm, cam.projTm, cam.persp, RenderPrepared::LowresOnFarPlane, nullptr,
+          aurora.get());
       };
     });
 
-    result.renderClouds = dabfg::register_node("render_clouds", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
+    result.renderClouds = dafg::register_node("render_clouds", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
       auto camHndl = bind_camera(registry, "main_camera").handle();
 
       auto fddHandle = registry.readTexture("far_downsampled_depth")
-                         .atStage(dabfg::Stage::PS_OR_CS)
+                         .atStage(dafg::Stage::PS_OR_CS)
                          .bindToShaderVar("downsampled_far_depth_tex")
                          .handle();
 
@@ -1403,7 +1399,7 @@ public:
       auto depthReq = registry.read("depth_for_transparent").texture();
       registry.requestRenderPass().color({"color_for_transparent"}).depthRo(depthReq);
       auto depthHndl =
-        eastl::move(depthReq).atStage(dabfg::Stage::POST_RASTER).useAs(dabfg::Usage::DEPTH_ATTACHMENT_AND_SHADER_RESOURCE).handle();
+        eastl::move(depthReq).atStage(dafg::Stage::POST_RASTER).useAs(dafg::Usage::DEPTH_ATTACHMENT_AND_SHADER_RESOURCE).handle();
 
       return [depthHndl, fddHandle, mainSkiesDataHndl, camHndl, this]() {
         const auto &cam = camHndl.ref();
@@ -1420,11 +1416,11 @@ public:
   {
     FrameGraph::Backbone::Lighting result;
 
-    result.ssr = dabfg::register_node("SSR", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
+    result.ssr = dafg::register_node("SSR", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
       bind_camera(registry, "main_camera");
 
-      registry.readTexture("downsampled_normals").atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar();
-      registry.readTexture("far_downsampled_depth").atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar("downsampled_far_depth_tex");
+      registry.readTexture("downsampled_normals").atStage(dafg::Stage::PS_OR_CS).bindToShaderVar();
+      registry.readTexture("far_downsampled_depth").atStage(dafg::Stage::PS_OR_CS).bindToShaderVar("downsampled_far_depth_tex");
 
       uint32_t fmt = 0;
       SSRQuality tmpQuality = SSRQuality::Low;
@@ -1432,16 +1428,16 @@ public:
       fmt |= TEXCF_RTARGET;
       const auto mipCount = static_cast<uint32_t>(ScreenSpaceReflections::getMipCount(SSRQuality::Low));
 
-      auto ssrTargetHndl = registry.create("ssr_target", dabfg::History::ClearZeroOnFirstFrame)
+      auto ssrTargetHndl = registry.create("ssr_target", dafg::History::ClearZeroOnFirstFrame)
                              .texture({fmt, registry.getResolution<2>("main_view", 0.5f), mipCount})
-                             .atStage(dabfg::Stage::PS_OR_CS)
-                             .useAs(dabfg::Usage::COLOR_ATTACHMENT)
+                             .atStage(dafg::Stage::PS_OR_CS)
+                             .useAs(dafg::Usage::COLOR_ATTACHMENT)
                              .handle();
-      registry.create("ssr_target_sampler", dabfg::History::No)
+      registry.create("ssr_target_sampler", dafg::History::No)
         .blob(d3d::request_sampler({}))
         .bindToShaderVar("ssr_target_samplerstate");
       auto ssrTargetHistHndl =
-        registry.historyFor("ssr_target").texture().atStage(dabfg::Stage::PS_OR_CS).useAs(dabfg::Usage::SHADER_RESOURCE).handle();
+        registry.historyFor("ssr_target").texture().atStage(dafg::Stage::PS_OR_CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
 
       auto ssr = eastl::make_unique<ScreenSpaceReflections>(width / 2, height / 2, 1, fmt, SSRQuality::Low, SSRFlag::None);
       return [this, ssrTargetHndl, ssrTargetHistHndl, ssr = eastl::move(ssr)]() {
@@ -1458,42 +1454,42 @@ public:
       };
     });
 
-    result.ssao = dabfg::register_node("SSAO", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
+    result.ssao = dafg::register_node("SSAO", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
       bind_camera(registry, "main_camera");
 
-      registry.readTexture("downsampled_normals").atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar();
+      registry.readTexture("downsampled_normals").atStage(dafg::Stage::PS_OR_CS).bindToShaderVar();
       registry.read("downsampled_normals_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("downsampled_normals_samplerstate");
       auto fddHandle = registry.readTexture("far_downsampled_depth")
-                         .atStage(dabfg::Stage::PS_OR_CS)
+                         .atStage(dafg::Stage::PS_OR_CS)
                          .bindToShaderVar("downsampled_far_depth_tex")
                          .handle();
 
       const auto halfMainViewRes = registry.getResolution<2>("main_view", 0.5f);
       const auto fmt = ssao_detail::creation_flags_to_format(SSAO_NONE);
 
-      auto ssaoHndl = registry.create("ssao_tex", dabfg::History::ClearZeroOnFirstFrame)
+      auto ssaoHndl = registry.create("ssao_tex", dafg::History::ClearZeroOnFirstFrame)
                         .texture({fmt | TEXCF_RTARGET, halfMainViewRes})
-                        .atStage(dabfg::Stage::PS)
-                        .useAs(dabfg::Usage::COLOR_ATTACHMENT)
+                        .atStage(dafg::Stage::PS)
+                        .useAs(dafg::Usage::COLOR_ATTACHMENT)
                         .handle();
 
       auto ssaoHistHndl =
-        registry.historyFor("ssao_tex").texture().atStage(dabfg::Stage::PS).useAs(dabfg::Usage::SHADER_RESOURCE).handle();
+        registry.historyFor("ssao_tex").texture().atStage(dafg::Stage::PS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
 
       {
         d3d::SamplerInfo smpInfo;
         smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
         smpInfo.border_color = d3d::BorderColor::Color::OpaqueWhite;
-        registry.create("ssao_sampler", dabfg::History::No)
+        registry.create("ssao_sampler", dafg::History::No)
           .blob<d3d::SamplerHandle>(d3d::request_sampler(smpInfo))
           .bindToShaderVar("ssao_tex_samplerstate")
           .bindToShaderVar("ssao_prev_tex_samplerstate");
       }
 
-      auto ssaoTmpHndl = registry.create("ssao_tmp_tex", dabfg::History::No)
+      auto ssaoTmpHndl = registry.create("ssao_tmp_tex", dafg::History::No)
                            .texture({fmt | TEXCF_RTARGET, halfMainViewRes})
-                           .atStage(dabfg::Stage::PS)
-                           .useAs(dabfg::Usage::COLOR_ATTACHMENT)
+                           .atStage(dafg::Stage::PS)
+                           .useAs(dafg::Usage::COLOR_ATTACHMENT)
                            .handle();
 
       auto ssao = eastl::make_unique<SSAORenderer>(width / 2, height / 2, 1, SSAO_SKIP_RANDOM_PATTERN_GENERATION, false);
@@ -1521,18 +1517,19 @@ public:
   {
     FrameGraph::Backbone::Shadows result;
 
-    result.csm = dabfg::register_node("CSM", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
+    result.csm = dafg::register_node("CSM", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
       const auto info = csm->getShadowCascadeTexInfo();
-      auto csmHndl = registry.create("csm", dabfg::History::No)
-                       .texture(dabfg::Texture2dCreateInfo{info.cflg, IPoint2{info.w, info.h}, info.mipLevels})
-                       .atStage(dabfg::Stage::POST_RASTER)
-                       .useAs(dabfg::Usage::DEPTH_ATTACHMENT)
+      auto csmHndl = registry.create("csm", dafg::History::No)
+                       .texture(dafg::Texture2dCreateInfo{info.cflg, IPoint2{info.w, info.h}, info.mipLevels})
+                       .atStage(dafg::Stage::POST_RASTER)
+                       .useAs(dafg::Usage::DEPTH_ATTACHMENT)
                        .handle();
       {
         d3d::SamplerInfo smpInfo;
         smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
         smpInfo.filter_mode = d3d::FilterMode::Compare;
-        registry.create("csm_sampler", dabfg::History::No).blob<d3d::SamplerHandle>(d3d::request_sampler(smpInfo));
+        smpInfo.mip_map_mode = d3d::MipMapMode::Point;
+        registry.create("csm_sampler", dafg::History::No).blob<d3d::SamplerHandle>(d3d::request_sampler(smpInfo));
       }
       return [this, csmHndl]() {
         auto csmView = csmHndl.view();
@@ -1542,8 +1539,6 @@ public:
               csm->renderShadowCascadeDepth(i, clear_per_view, csmView);
           },
           csmView);
-
-        csmView->disableSampler();
       };
     });
     return result;
@@ -1553,8 +1548,8 @@ public:
   {
     FrameGraph::Backbone result;
 
-    result.makeCamera = dabfg::register_node("make_camera", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
-      auto camHndl = registry.create("main_camera", dabfg::History::No).blob<Camera>().handle();
+    result.makeCamera = dafg::register_node("make_camera", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
+      auto camHndl = registry.create("main_camera", dafg::History::No).blob<Camera>().handle();
       return [this, camHndl]() {
         auto &cam = camHndl.ref();
         curCamera->getInvViewMatrix(cam.viewItm);
@@ -1572,21 +1567,21 @@ public:
 
     result.opaque = makeOpaqueBackbone();
 
-    result.downsampleDepth = dabfg::register_node("downsample_depth", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
-      auto gbufDepthHandle = registry.readTexture(depth_tex_name).atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar().handle();
+    result.downsampleDepth = dafg::register_node("downsample_depth", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
+      auto gbufDepthHandle = registry.readTexture(depth_tex_name).atStage(dafg::Stage::PS_OR_CS).bindToShaderVar().handle();
 
-      registry.readTexture(normal_tex_name).atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar();
+      registry.readTexture(normal_tex_name).atStage(dafg::Stage::PS_OR_CS).bindToShaderVar();
 
       auto downsampledNormalsHandle = registry
-                                        .createTexture2d("downsampled_normals", dabfg::History::No,
-                                          dabfg::Texture2dCreateInfo{TEXCF_RTARGET, registry.getResolution<2>("main_view", 0.5)})
-                                        .atStage(dabfg::Stage::POST_RASTER)
-                                        .useAs(dabfg::Usage::COLOR_ATTACHMENT)
+                                        .createTexture2d("downsampled_normals", dafg::History::No,
+                                          dafg::Texture2dCreateInfo{TEXCF_RTARGET, registry.getResolution<2>("main_view", 0.5)})
+                                        .atStage(dafg::Stage::POST_RASTER)
+                                        .useAs(dafg::Usage::COLOR_ATTACHMENT)
                                         .handle();
       {
         d3d::SamplerInfo smpInfo;
         smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
-        registry.create("downsampled_normals_sampler", dabfg::History::No).blob<d3d::SamplerHandle>(d3d::request_sampler(smpInfo));
+        registry.create("downsampled_normals_sampler", dafg::History::No).blob<d3d::SamplerHandle>(d3d::request_sampler(smpInfo));
       }
 
       // downsampled depth
@@ -1602,10 +1597,10 @@ public:
 
       auto farDownsampledDepthHandle =
         registry
-          .createTexture2d("far_downsampled_depth", dabfg::History::DiscardOnFirstFrame,
-            dabfg::Texture2dCreateInfo{rfmt | TEXCF_RTARGET, registry.getResolution<2>("main_view", 0.5), numMips})
-          .atStage(dabfg::Stage::POST_RASTER)
-          .useAs(dabfg::Usage::COLOR_ATTACHMENT)
+          .createTexture2d("far_downsampled_depth", dafg::History::DiscardOnFirstFrame,
+            dafg::Texture2dCreateInfo{rfmt | TEXCF_RTARGET, registry.getResolution<2>("main_view", 0.5), numMips})
+          .atStage(dafg::Stage::POST_RASTER)
+          .useAs(dafg::Usage::COLOR_ATTACHMENT)
           .handle();
 
       return [gbufDepthHandle, farDownsampledDepthHandle, downsampledNormalsHandle, this]() {
@@ -1618,13 +1613,13 @@ public:
       };
     });
 
-    result.copyFrame = dabfg::register_node("copy_frame", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
-      auto hndl = registry.readTexture("resolved_frame").atStage(dabfg::Stage::TRANSFER).useAs(dabfg::Usage::BLIT).handle();
+    result.copyFrame = dafg::register_node("copy_frame", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
+      auto hndl = registry.readTexture("resolved_frame").atStage(dafg::Stage::TRANSFER).useAs(dafg::Usage::BLIT).handle();
       const auto rtFmt = calc_resolved_frame_texfmt();
-      auto copyHndl = registry.create("prev_frame", dabfg::History::ClearZeroOnFirstFrame)
-                        .texture(dabfg::Texture2dCreateInfo{rtFmt | TEXCF_RTARGET, registry.getResolution<2>("main_view", 0.5f)})
-                        .atStage(dabfg::Stage::TRANSFER)
-                        .useAs(dabfg::Usage::BLIT)
+      auto copyHndl = registry.create("prev_frame", dafg::History::ClearZeroOnFirstFrame)
+                        .texture(dafg::Texture2dCreateInfo{rtFmt | TEXCF_RTARGET, registry.getResolution<2>("main_view", 0.5f)})
+                        .atStage(dafg::Stage::TRANSFER)
+                        .useAs(dafg::Usage::BLIT)
                         .handle();
 
       return [hndl, copyHndl]() {
@@ -1633,17 +1628,17 @@ public:
       };
     });
 
-    result.startTransparent = dabfg::register_node("start_transparent", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
-      registry.rename("resolved_frame", "color_for_transparent", dabfg::History::No);
-      registry.rename("depth_gbuf", "depth_for_transparent", dabfg::History::No);
+    result.startTransparent = dafg::register_node("start_transparent", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+      registry.rename("resolved_frame", "color_for_transparent", dafg::History::No);
+      registry.rename("depth_gbuf", "depth_for_transparent", dafg::History::No);
     });
 
     result.lighting = makeLightingBackbone();
     result.shadows = makeShadowsBackbone();
 
-    result.renderPostFx = dabfg::register_node("render_postfx", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
-      registry.readTexture("color_for_transparent").atStage(dabfg::Stage::PS).bindToShaderVar("frame_tex");
-      registry.create("frame_sampler", dabfg::History::No).blob(d3d::request_sampler({})).bindToShaderVar("frame_tex_samplerstate");
+    result.renderPostFx = dafg::register_node("render_postfx", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
+      registry.readTexture("color_for_transparent").atStage(dafg::Stage::PS).bindToShaderVar("frame_tex");
+      registry.create("frame_sampler", dafg::History::No).blob(d3d::request_sampler({})).bindToShaderVar("frame_tex_samplerstate");
 
       registry.requestRenderPass().color({"backbuffer"});
 
@@ -1674,11 +1669,11 @@ public:
   {
     FrameGraph::Water::Reflections result;
 
-    auto reflNs = dabfg::root() / "water_refl";
+    auto reflNs = dafg::root() / "water_refl";
 
-    result.makeReflCamera = reflNs.registerNode("make_refl_camera", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
+    result.makeReflCamera = reflNs.registerNode("make_refl_camera", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
       auto mainCamHndl = registry.read("main_camera").blob<Camera>().handle();
-      auto reflCamHndl = registry.create("refl_camera", dabfg::History::No).blob<Camera>().handle();
+      auto reflCamHndl = registry.create("refl_camera", dafg::History::No).blob<Camera>().handle();
 
       return [this, reflCamHndl, mainCamHndl]() {
         if (!(fftWater && water_panel.enabled))
@@ -1707,41 +1702,37 @@ public:
       };
     });
 
-    result.makeReflGbuf = reflNs.registerNode("make_refl_gbuf", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
+    result.makeReflGbuf = reflNs.registerNode("make_refl_gbuf", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
       auto resolution = registry.getResolution<2>("main_view", 1.f / 6.f);
 
-      registry.createTexture2d("depth_gbuf_refl", dabfg::History::No,
-        dabfg::Texture2dCreateInfo{TEXFMT_DEPTH24 | TEXCF_RTARGET, resolution});
+      registry
+        .createTexture2d("depth_gbuf_refl", dafg::History::No, dafg::Texture2dCreateInfo{TEXFMT_DEPTH24 | TEXCF_RTARGET, resolution})
+        .clear(make_clear_value(0.f, 0));
 
       constexpr char const *const refl_gbuf_names[] = {"albedo_gbuf_refl", "normal_gbuf_refl", "material_gbuf_refl"};
       for (int i = 0; i < gbuf_rt; ++i)
-        registry.createTexture2d(refl_gbuf_names[i], dabfg::History::No,
-          dabfg::Texture2dCreateInfo{gbuf_fmts[i] | TEXCF_RTARGET, resolution});
+        registry
+          .createTexture2d(refl_gbuf_names[i], dafg::History::No, dafg::Texture2dCreateInfo{gbuf_fmts[i] | TEXCF_RTARGET, resolution})
+          .clear(make_clear_value(0.f, 0.f, 0.f, 0.f));
 
-      registry.requestRenderPass()
-        .color({refl_gbuf_names[0], refl_gbuf_names[1], refl_gbuf_names[2]})
-        .depthRw("depth_gbuf_refl")
-        .clear(refl_gbuf_names[0], make_clear_value(0.f, 0.f, 0.f, 0.f))
-        .clear(refl_gbuf_names[1], make_clear_value(0.f, 0.f, 0.f, 0.f))
-        .clear(refl_gbuf_names[2], make_clear_value(0.f, 0.f, 0.f, 0.f))
-        .clear("depth_gbuf_refl", make_clear_value(0.f, 0));
+      registry.requestRenderPass().color({refl_gbuf_names[0], refl_gbuf_names[1], refl_gbuf_names[2]}).depthRw("depth_gbuf_refl");
     });
 
-    result.waterReflResolve = reflNs.registerNode("water_reflections_resolve", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
+    result.waterReflResolve = reflNs.registerNode("water_reflections_resolve", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
       auto camHndl = bind_camera(registry, "refl_camera").handle();
 
       auto resolution = registry.getResolution<2>("main_view", 1.f / 6.f);
 
-      registry.read("albedo_gbuf_refl").texture().atStage(dabfg::Stage::PS).bindToShaderVar("albedo_gbuf");
-      registry.read("normal_gbuf_refl").texture().atStage(dabfg::Stage::PS).bindToShaderVar("normal_gbuf");
-      registry.read("material_gbuf_refl").texture().atStage(dabfg::Stage::PS).bindToShaderVar("material_gbuf");
-      registry.read("depth_gbuf_refl").texture().atStage(dabfg::Stage::PS).bindToShaderVar("depth_gbuf");
+      registry.read("albedo_gbuf_refl").texture().atStage(dafg::Stage::PS).bindToShaderVar("albedo_gbuf");
+      registry.read("normal_gbuf_refl").texture().atStage(dafg::Stage::PS).bindToShaderVar("normal_gbuf");
+      registry.read("material_gbuf_refl").texture().atStage(dafg::Stage::PS).bindToShaderVar("material_gbuf");
+      registry.read("depth_gbuf_refl").texture().atStage(dafg::Stage::PS).bindToShaderVar("depth_gbuf");
 
       auto reflHandle = registry
-                          .createTexture2d("water_reflection_tex_temp", dabfg::History::No,
-                            dabfg::Texture2dCreateInfo{TEXFMT_A16B16G16R16F | TEXCF_RTARGET, resolution})
-                          .atStage(dabfg::Stage::POST_RASTER)
-                          .useAs(dabfg::Usage::COLOR_ATTACHMENT)
+                          .createTexture2d("water_reflection_tex_temp", dafg::History::No,
+                            dafg::Texture2dCreateInfo{TEXFMT_A16B16G16R16F | TEXCF_RTARGET, resolution})
+                          .atStage(dafg::Stage::POST_RASTER)
+                          .useAs(dafg::Usage::COLOR_ATTACHMENT)
                           .handle();
 
       auto reflResolver = eastl::make_unique<ShadingResolver>("cube_deferred_shading");
@@ -1751,22 +1742,23 @@ public:
       };
     });
 
-    result.waterReflPrepareEnvi = reflNs.registerNode("water_refl_perpare_envi", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
+    result.waterReflPrepareEnvi = reflNs.registerNode("water_refl_perpare_envi", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
       auto camHndl = bind_camera(registry, "refl_camera").handle();
 
-      auto reflSkiesDataHndl = registry.create("refl_cam_skies_data", dabfg::History::No).blob<SkiesData *>().handle();
+      auto reflSkiesDataHndl = registry.create("refl_cam_skies_data", dafg::History::No).blob<SkiesData *>().handle();
 
       auto depthHndl =
-        registry.read("depth_gbuf_refl").texture().atStage(dabfg::Stage::PS).useAs(dabfg::Usage::SHADER_RESOURCE).handle();
+        registry.read("depth_gbuf_refl").texture().atStage(dafg::Stage::PS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
       return [this, camHndl, depthHndl, reflSkiesDataHndl]() {
         reflSkiesDataHndl.ref() = refl_pov_data.get();
         const auto &cam = camHndl.ref();
         daSkies.prepareSkyAndClouds(render_panel.infinite_skies, dpoint3(cam.worldPos), dpoint3(cam.viewItm.getcol(2)), 3,
-          depthHndl.view(), ManagedTexView{}, reflSkiesDataHndl.ref(), cam.viewTm, cam.projTm, true, false, 20.0f, aurora.get());
+          depthHndl.view(), ManagedTexView{}, reflSkiesDataHndl.ref(), cam.viewTm, cam.projTm, UpdateSky::On, false, 20.0f,
+          aurora.get());
       };
     });
 
-    result.waterReflEnvi = reflNs.registerNode("water_refl_envi", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
+    result.waterReflEnvi = reflNs.registerNode("water_refl_envi", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
       auto camHndl = bind_camera(registry, "refl_camera").handle();
 
       auto reflSkiesDataHndl = registry.read("refl_cam_skies_data").blob<SkiesData *>().handle();
@@ -1774,27 +1766,28 @@ public:
       auto depthReq = registry.read("depth_gbuf_refl").texture();
       registry.requestRenderPass().color({"water_reflection_tex_temp"}).depthRo(depthReq);
       auto depthHndl =
-        eastl::move(depthReq).atStage(dabfg::Stage::PS).useAs(dabfg::Usage::DEPTH_ATTACHMENT_AND_SHADER_RESOURCE).handle();
+        eastl::move(depthReq).atStage(dafg::Stage::PS).useAs(dafg::Usage::DEPTH_ATTACHMENT_AND_SHADER_RESOURCE).handle();
       return [this, camHndl, depthHndl, reflSkiesDataHndl]() {
         const auto &cam = camHndl.ref();
 
-        daSkies.renderSky(reflSkiesDataHndl.ref(), cam.viewTm, cam.projTm, cam.persp, true, aurora.get());
+        daSkies.renderSky(reflSkiesDataHndl.ref(), cam.viewTm, cam.projTm, cam.persp, RenderPrepared::LowresOnFarPlane, nullptr,
+          aurora.get());
         daSkies.renderClouds(render_panel.infinite_skies, depthHndl.view(), depthHndl.d3dResId(), reflSkiesDataHndl.ref(), cam.viewTm,
           cam.projTm);
       };
     });
 
 
-    result.clipWaterRefl = reflNs.registerNode("clip_water_reflection", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
+    result.clipWaterRefl = reflNs.registerNode("clip_water_reflection", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
       auto resolution = registry.getResolution<2>("main_view", 1.f / 6.f);
 
-      auto reflTexReq = registry.createTexture2d("water_reflection_tex", dabfg::History::No,
-        dabfg::Texture2dCreateInfo{TEXFMT_A16B16G16R16F | TEXCF_RTARGET, resolution});
+      auto reflTexReq = registry.createTexture2d("water_reflection_tex", dafg::History::No,
+        dafg::Texture2dCreateInfo{TEXFMT_A16B16G16R16F | TEXCF_RTARGET, resolution});
 
       registry.requestRenderPass().color({reflTexReq});
 
-      registry.readTexture("water_reflection_tex_temp").atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar();
-      registry.create("water_reflection_tex_temp_sampler", dabfg::History::No)
+      registry.readTexture("water_reflection_tex_temp").atStage(dafg::Stage::PS_OR_CS).bindToShaderVar();
+      registry.create("water_reflection_tex_temp_sampler", dafg::History::No)
         .blob(d3d::request_sampler({}))
         .bindToShaderVar("water_reflection_tex_temp_samplerstate");
 
@@ -1810,20 +1803,20 @@ public:
 
     result.reflections = makeWaterReflectionNodes();
 
-    result.render = dabfg::register_node("render_water", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
+    result.render = dafg::register_node("render_water", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
       auto camHndl = bind_camera(registry, "main_camera").handle();
 
-      registry.readTexture("far_downsampled_depth").atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar("depth_tex");
+      registry.readTexture("far_downsampled_depth").atStage(dafg::Stage::PS_OR_CS).bindToShaderVar("depth_tex");
       {
         d3d::SamplerInfo smpInfo;
         smpInfo.filter_mode = d3d::FilterMode::Point;
-        registry.create("water_fdd_sampler", dabfg::History::No)
+        registry.create("water_fdd_sampler", dafg::History::No)
           .blob<d3d::SamplerHandle>(d3d::request_sampler(smpInfo))
           .bindToShaderVar("depth_tex_samplerstate");
       }
 
-      (registry.root() / "water_refl").readTexture("water_reflection_tex").atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar();
-      registry.create("water_reflection_tex_sampler", dabfg::History::No)
+      (registry.root() / "water_refl").readTexture("water_reflection_tex").atStage(dafg::Stage::PS_OR_CS).bindToShaderVar();
+      registry.create("water_reflection_tex_sampler", dafg::History::No)
         .blob(d3d::request_sampler({}))
         .bindToShaderVar("water_reflection_tex_samplerstate");
 
@@ -1832,8 +1825,8 @@ public:
 
       registry.requestState().allowWireframe();
 
-      registry.readTextureHistory("prev_frame").atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar("water_refraction_tex");
-      registry.create("water_refraction_tex_sampler", dabfg::History::No)
+      registry.readTextureHistory("prev_frame").atStage(dafg::Stage::PS_OR_CS).bindToShaderVar("water_refraction_tex");
+      registry.create("water_refraction_tex_sampler", dafg::History::No)
         .blob(d3d::request_sampler({}))
         .bindToShaderVar("water_refraction_tex_samplerstate");
 
@@ -1846,8 +1839,8 @@ public:
         fft_water::set_level(fftWater.get(), water_panel.water_level);
 
         float dimensions = 30;
-        static ShaderVariableInfo water_heightmap_min_max("water_heightmap_min_max", true);
-        water_heightmap_min_max.set_color4(1.f / dimensions, -(water_panel.water_level - 0.5 * dimensions) / dimensions, dimensions,
+        static ShaderVariableInfo shore_heightmap_min_max("shore_heightmap_min_max", true);
+        shore_heightmap_min_max.set_color4(1.f / dimensions, -(water_panel.water_level - 0.5 * dimensions) / dimensions, dimensions,
           water_panel.water_level - 0.5 * dimensions);
 
         const auto &cam = camHndl.ref();
@@ -1863,13 +1856,13 @@ public:
   {
     FrameGraph::FinalPresent result;
 
-    result.createBackbuffer = dabfg::register_node("create_backbuffer", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
+    result.createBackbuffer = dafg::register_node("create_backbuffer", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
       auto bbReq = registry.registerBackBuffer("backbuffer");
       registry.requestRenderPass().color({bbReq});
     });
 
-    result.debugTexOverlay = dabfg::register_node("debug_tex_overlay", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
-      registry.requestRenderPass().color({registry.rename("backbuffer", "backbuffer_with_debug", dabfg::History::No).texture()});
+    result.debugTexOverlay = dafg::register_node("debug_tex_overlay", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
+      registry.requestRenderPass().color({registry.rename("backbuffer", "backbuffer_with_debug", dafg::History::No).texture()});
 
       return [this]() {
         d3d::set_srgb_backbuffer_write(true);
@@ -1879,14 +1872,27 @@ public:
       };
     });
 
-    result.renderGui = dabfg::register_node("render_gui", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
-      registry.requestRenderPass().color({registry.rename("backbuffer_with_debug", "final_backbuffer", dabfg::History::No).texture()});
+    result.renderGui = dafg::register_node("render_gui", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
+      registry.requestRenderPass().color({registry.rename("backbuffer_with_debug", "final_backbuffer", dafg::History::No).texture()});
       return [this]() { renderGui(); };
     });
 
-    dabfg::update_externally_consumed_resource_set({"final_backbuffer"});
+    dafg::update_externally_consumed_resource_set({"final_backbuffer"});
 
     return result;
+  }
+
+  static auto render_to_gbuffer(dafg::Registry registry)
+  {
+    registry.requestState().allowWireframe();
+    registry.requestRenderPass().color({gbuf_tex_names[0], gbuf_tex_names[1], gbuf_tex_names[2]}).depthRw(depth_tex_name);
+    return bind_camera(registry, "main_camera").handle();
+  }
+
+  static auto render_to_refl_gbuffer(dafg::Registry registry)
+  {
+    registry.requestRenderPass().color({"albedo_gbuf_refl", "normal_gbuf_refl", "material_gbuf_refl"}).depthRw("depth_gbuf_refl");
+    return bind_camera(registry, "refl_camera").handle();
   }
 
   [[nodiscard]] FrameGraph makeFrameGraph()
@@ -1904,40 +1910,88 @@ public:
     result.water = makeWaterNodes();
     result.envi = makeEnviNodes();
 
-    result.opaqueRendering.emplace_back(dabfg::register_node("render_opaque", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
-      auto camHndl = bind_camera(registry, "main_camera").handle();
+    result.opaqueRendering.emplace_back(dafg::register_node("draw_plane", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
+      render_to_gbuffer(registry);
 
-      registry.requestState().allowWireframe();
+      return [this]() { drawPlane(); };
+    }));
 
-      registry.requestRenderPass().color({gbuf_tex_names[0], gbuf_tex_names[1], gbuf_tex_names[2]}).depthRw(depth_tex_name);
+    result.opaqueRendering.emplace_back(dafg::register_node("draw_spheres", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
+      render_to_gbuffer(registry);
+
+      return [this]() { drawSpheres(); };
+    }));
+
+    result.opaqueRendering.emplace_back(dafg::register_node("draw_trees", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
+      render_to_gbuffer(registry);
+
+      return [this]() { renderTrees(); };
+    }));
+
+    result.opaqueRendering.emplace_back(dafg::register_node("draw_heightmap", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
+      auto camHndl = render_to_gbuffer(registry);
 
       return [this, camHndl]() {
         const auto &cam = camHndl.ref();
-        renderOpaque(cam.frustum, cam.worldPos);
+        drawHeightmap(cam.frustum, cam.worldPos);
       };
     }));
 
-    result.transparentRendering.emplace_back(dabfg::register_node("render_trans", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
+    result.transparentRendering.emplace_back(dafg::register_node("render_trans", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
       registry.requestRenderPass().color({"color_for_transparent"}).depthRo("depth_for_transparent");
 
       // Pretend that we are actually rendering particles here
-      registry.read("cloud_volume").texture().atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar();
+      registry.read("cloud_volume").texture().atStage(dafg::Stage::PS_OR_CS).bindToShaderVar();
 
       return [this]() { mainRenderTrans(); };
     }));
 
     result.water.reflections.renderOpaque.emplace_back(
-      (dabfg::root() / "water_refl").registerNode("render_opaque_refl", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
-        auto camHndl = bind_camera(registry, "refl_camera").handle();
+      (dafg::root() / "water_refl").registerNode("draw_plane", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
+        render_to_refl_gbuffer(registry);
 
-        registry.requestRenderPass().color({"albedo_gbuf_refl", "normal_gbuf_refl", "material_gbuf_refl"}).depthRw("depth_gbuf_refl");
+        return [this]() {
+          if (!fftWater || !water_panel.enabled)
+            return;
+
+          drawPlane();
+        };
+      }));
+
+    result.water.reflections.renderOpaque.emplace_back(
+      (dafg::root() / "water_refl").registerNode("draw_spheres", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
+        render_to_refl_gbuffer(registry);
+
+        return [this]() {
+          if (!fftWater || !water_panel.enabled)
+            return;
+
+          drawSpheres();
+        };
+      }));
+
+    result.water.reflections.renderOpaque.emplace_back(
+      (dafg::root() / "water_refl").registerNode("draw_trees", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
+        render_to_refl_gbuffer(registry);
+
+        return [this]() {
+          if (!fftWater || !water_panel.enabled)
+            return;
+
+          renderTrees();
+        };
+      }));
+
+    result.water.reflections.renderOpaque.emplace_back(
+      (dafg::root() / "water_refl").registerNode("draw_heightmap", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
+        auto camHndl = render_to_refl_gbuffer(registry);
 
         return [this, camHndl]() {
-          if (!(fftWater && water_panel.enabled))
+          if (!fftWater || !water_panel.enabled)
             return;
 
           const auto &cam = camHndl.ref();
-          renderOpaque(cam.frustum, cam.worldPos);
+          drawHeightmap(cam.frustum, cam.worldPos);
         };
       }));
 
@@ -2022,7 +2076,7 @@ public:
   }
 
   IGameCamera *curCamera; // for console made publuc
-  eastl::unique_ptr<IFreeCameraDriver> freeCam;
+  IFreeCameraDriver *freeCam;
 
 protected:
   eastl::unique_ptr<DynamicRenderableSceneInstance> test;
@@ -2037,7 +2091,7 @@ protected:
     freeCam = create_gamepad_free_camera();
 #else
     global_cls_drv_pnt->getDevice(0)->setRelativeMovementMode(true);
-    freeCam.reset(create_mskbd_free_camera());
+    freeCam = create_mskbd_free_camera();
     freeCam->scaleSensitivity(4, 2);
 #endif
     IFreeCameraDriver::zNear = 0.6;
@@ -2264,7 +2318,7 @@ protected:
       de3_imgui_save_values(env_stg);
     }
 
-    curCamera = freeCam.get();
+    curCamera = freeCam;
     ::set_camera_pos(*curCamera, dgs_get_settings()->getPoint3("camPos", Point3(0, 0, 0)));
 
     samplebenchmark::setupBenchmark(curCamera, []() {
@@ -2520,7 +2574,8 @@ wind_dep0(S[0].windDependency), wind_dep1(S[1].windDependency), wind_dep2(S[2].w
       const char *name;
       DemoGameScene &s;
       LoadJob(DemoGameScene &_scene, const char *_name) : s(_scene), name(_name) {}
-      virtual void doJob()
+      const char *getJobName(bool &) const override { return "LoadJob_scheduleHeightmapLoad"; }
+      void doJob() override
       {
         float cell_sz = 1.0f, scale = 100.0f, h0 = 0.0f;
         TexPtr tex = strcmp(dd_get_fname_ext(name), ".mtw") == 0 ? create_tex_from_mtw(name, &cell_sz, &s.hmapMaxHt, &scale, &h0)
@@ -2553,7 +2608,7 @@ wind_dep0(S[0].windDependency), wind_dep1(S[1].windDependency), wind_dep2(S[2].w
         };
         add_delayed_action(new InitHeightmap(s.heightmap, eastl::move(tex)));
       };
-      virtual void releaseJob() { delete this; }
+      void releaseJob() override { delete this; }
     };
     {
       d3d::SamplerInfo smpInfo;
@@ -2580,7 +2635,8 @@ wind_dep0(S[0].windDependency), wind_dep1(S[1].windDependency), wind_dep2(S[2].w
       LoadJob(eastl::unique_ptr<DynamicRenderableSceneInstance> &_dm, const char *_name, const char *_skel_name, const Point3 &_pos) :
         dm(_dm), name(_name), skelName(_skel_name), pos(_pos)
       {}
-      virtual void doJob()
+      const char *getJobName(bool &) const override { return "LoadJob_scheduleDynModelLoad"; }
+      void doJob() override
       {
         GameResHandle handle = GAMERES_HANDLE_FROM_STRING(name);
         DynamicRenderableSceneInstance *val = nullptr;
@@ -2644,7 +2700,7 @@ wind_dep0(S[0].windDependency), wind_dep1(S[1].windDependency), wind_dep2(S[2].w
         };
         add_delayed_action(new UpdatePtr(dm, val));
       }
-      virtual void releaseJob() { delete this; }
+      void releaseJob() override { delete this; }
     };
     dm.reset();
     cpujobs::add_job(1, new LoadJob(dm, name, skel_name, pos));
@@ -2692,8 +2748,8 @@ public:
 // #include <fx/dag_commonFx.h>
 class TestConsole : public console::ICommandProcessor
 {
-  virtual bool processCommand(const char *argv[], int argc);
-  void destroy() {}
+  bool processCommand(const char *argv[], int argc) override;
+  void destroy() override {}
 };
 
 static bool tobool(const char *s)
@@ -2898,6 +2954,7 @@ void game_demo_init()
   init_webui(nullptr);
 
   PictureManager::init();
+  texdebug::init();
 
   dagor_select_game_scene(new DemoGameScene);
 }
@@ -2907,6 +2964,7 @@ void game_demo_close()
 {
   dagor_select_game_scene(nullptr);
   PictureManager::release();
+  texdebug::teardown();
 }
 
 const fft_water::WavePreset DemoGameScene::Waves;

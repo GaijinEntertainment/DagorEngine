@@ -7,7 +7,6 @@
 #include <EditorCore/ec_ObjectCreator.h>
 #include <EditorCore/ec_gridobject.h>
 #include <EditorCore/ec_rect.h>
-#include <EditorCore/ec_window.h>
 
 #include <winGuiWrapper/wgw_input.h>
 
@@ -954,6 +953,246 @@ void CylinderCreator::render()
     }
   }
 }
+
+// --------------------------------------------------------------
+
+const float POLYGON_POINT_SIZE = 1.0f;
+
+PolygoneZoneCreator::PolygoneZoneCreator() { matrix.identity(); }
+
+int trySelectPoint(const Point3 p, const Tab<Point3> &points, real maxDistance)
+{
+  real bestLen = FLT_MAX;
+  int nearestIndex = -1;
+  for (int i = 0; i < points.size(); i++)
+  {
+    float len = (p - points[i]).length();
+    if (len < bestLen && len < maxDistance)
+    {
+      bestLen = len;
+      nearestIndex = i;
+    }
+  }
+  return nearestIndex;
+}
+
+bool PolygoneZoneCreator::handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif, bool rotate)
+{
+  if (stateFinished)
+    return false;
+
+  if (stageNo == Stages::SetPoints)
+  {
+    Point3 worldPos;
+    real znear, zfar;
+    wnd->getZnearZfar(znear, zfar);
+    if (!IEditorCoreEngine::get()->clientToWorldTrace(wnd, x, y, worldPos, zfar, NULL))
+    {
+      return true;
+    }
+
+    const GridObject &grid = IEditorCoreEngine::get()->getGrid();
+    if (grid.getMoveSnap())
+      worldPos = grid.snapToGrid(worldPos);
+
+    cursorWorldPos = worldPos;
+    IEditorCoreEngine::get()->invalidateViewportCache();
+
+    if (selectedPointIndex != -1 && isMovingPoint)
+    {
+      poly.points[selectedPointIndex] = cursorWorldPos;
+      return true;
+    }
+
+    selectedPointIndex = trySelectPoint(cursorWorldPos, poly.points, POLYGON_POINT_SIZE);
+  }
+
+  if (stageNo == Stages::SetHeight)
+  {
+    real floorY = poly.getMaxFloorY();
+    Point3 floorPoint;
+    for (auto &point : poly.points)
+      if (point.y >= floorY)
+        floorPoint = point;
+    Point2 floorScreenPoint;
+    wnd->worldToClient(floorPoint, floorScreenPoint);
+
+    real height;
+    if (wnd->isOrthogonal())
+    {
+      height = abs(floorScreenPoint.y - y);
+      poly.setHeight(height);
+      IEditorCoreEngine::get()->invalidateViewportCache();
+      return false;
+    }
+
+    Point3 worldPointOriginal, worldDirOriginal;
+    Point3 worldPoint, worldDir;
+    wnd->clientToWorld(Point2(0, floorScreenPoint.y), worldPointOriginal, worldDirOriginal);
+    wnd->clientToWorld(Point2(0, y), worldPoint, worldDir);
+
+    const real scalar = worldDirOriginal * worldDir;
+    height = 2.0f * (1.0f - scalar * scalar) * length(floorPoint - worldPoint);
+
+    const GridObject &grid = IEditorCoreEngine::get()->getGrid();
+    if (grid.getMoveSnap() && grid.getStep())
+      height = floorf(height / grid.getStep()) * grid.getStep();
+
+    poly.setHeight(height);
+    IEditorCoreEngine::get()->invalidateViewportCache();
+  }
+
+  return true;
+}
+
+bool PolygoneZoneCreator::handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif)
+{
+  if (stateFinished)
+    return false;
+
+  if (stageNo == Stages::SetPoints)
+  {
+    Point3 worldPos;
+    real znear, zfar;
+    wnd->getZnearZfar(znear, zfar);
+    if (!IEditorCoreEngine::get()->clientToWorldTrace(wnd, x, y, worldPos, zfar, NULL))
+    {
+      return true;
+    }
+
+    const GridObject &grid = IEditorCoreEngine::get()->getGrid();
+    if (grid.getMoveSnap())
+      worldPos = grid.snapToGrid(worldPos);
+
+    if (selectedPointIndex != -1)
+    {
+      isMovingPoint = true;
+    }
+    else
+    {
+      poly.points.push_back(worldPos);
+    }
+  }
+
+  if (stageNo == Stages::SetHeight)
+    switchStages();
+
+  return true;
+}
+
+bool PolygoneZoneCreator::handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif)
+{
+  if (stateFinished)
+    return false;
+
+  isMovingPoint = false;
+  return true;
+}
+
+bool PolygoneZoneCreator::handleMouseRBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif)
+{
+  if (stateFinished)
+    return false;
+
+  if (stageNo == Stages::SetPoints)
+  {
+    if (selectedPointIndex != -1)
+    {
+      poly.points.erase(poly.points.begin() + selectedPointIndex);
+      return true;
+    }
+
+    switchStages();
+  }
+  else if (stageNo == Stages::SetHeight)
+  {
+    stateFinished = true;
+    stateOk = false;
+  }
+
+  return true;
+}
+
+void renderPoly(const Tab<Point3> &points, bool isClosed)
+{
+  if (points.size() < 2)
+    return;
+
+  for (int i = 1; i < points.size(); i++)
+    draw_debug_line(points[i - 1], points[i], selected_color);
+
+  if (isClosed)
+    draw_debug_line(points.front(), points.back(), selected_color);
+}
+
+void PolygoneZoneCreator::render()
+{
+  if (stageNo == Stages::SetPoints)
+  {
+    draw_debug_sph(cursorWorldPos, POLYGON_POINT_SIZE, selected_color);
+
+    if (poly.points.empty())
+      return;
+
+    for (const Point3 &point : poly.points)
+      draw_debug_sph(point, POLYGON_POINT_SIZE, selected_color);
+
+    if (poly.points.size() == 1)
+      draw_debug_line(cursorWorldPos, poly.points[0], selected_color);
+    if (poly.points.size() >= 2)
+    {
+      renderPoly(poly.points, true);
+      if (selectedPointIndex == -1)
+      {
+        draw_debug_line(cursorWorldPos, poly.points.front(), selected_color);
+        draw_debug_line(cursorWorldPos, poly.points.back(), selected_color);
+      }
+    }
+    if (selectedPointIndex != -1)
+      draw_debug_sph(poly.points[selectedPointIndex], POLYGON_POINT_SIZE, E3DCOLOR(0, 255, 0, 255));
+  }
+  if (stageNo == Stages::SetHeight)
+  {
+    for (const Point3 &point : poly.points)
+    {
+      draw_debug_sph(point, POLYGON_POINT_SIZE, selected_color);
+      Point3 topPoint = point;
+      topPoint.y = poly.topY;
+      draw_debug_line(point, topPoint, selected_color);
+    }
+
+    renderPoly(poly.points, true);
+    renderPoly(poly.getRoofPoints(), true);
+  }
+}
+
+void PolygoneZoneCreator::switchStages()
+{
+  if (stageNo == Stages::SetPoints)
+  {
+    if (poly.points.size() < 3)
+    {
+      stateFinished = true;
+      stateOk = false;
+    }
+
+    if (canEditHeight)
+      stageNo = Stages::SetHeight;
+    else
+    {
+      stateFinished = true;
+      stateOk = true;
+    }
+  }
+  else if (stageNo == Stages::SetHeight)
+  {
+    bool isValid = poly.points.size() >= 3 && poly.getHeight() > 0;
+    stateFinished = true;
+    stateOk = isValid;
+  }
+}
+
+// --------------------------------------------------------------
 
 void CapsuleCreator::render()
 {

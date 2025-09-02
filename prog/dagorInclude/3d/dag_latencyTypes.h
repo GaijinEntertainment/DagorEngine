@@ -44,6 +44,7 @@ struct LatencyData
   // times are measured in ms
   // time points are relative to simStartTime
   uint32_t frameCount = 0;
+  uint32_t latestFrameId = 0;
 
   // These are currently measured by only the NVIDIA low latency sdk
   // but they can be implemented without the sdk
@@ -72,12 +73,9 @@ using LatencyModeFlag = uint8_t;
 enum LatencyMode : LatencyModeFlag
 {
   LATENCY_MODE_OFF = 0,
+  LATENCY_MODE_ON = 1, // present block + sleep before sampling input
 
   // NVIDIA low latency sdk
-  LATENCY_MODE_NV_ON = 1,    // present block + sleep before sampling input
   LATENCY_MODE_NV_BOOST = 2, // ON + gpu clock control
-
-  // other modes
-  LATENCY_MODE_EXPERIMENTAL = 4 // extra custom sleep (+ NV_BOOST if available)
 };
 } // namespace lowlatency

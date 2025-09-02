@@ -34,14 +34,14 @@ static void init_atypes(DagorAssetMgr &mgr)
 class FastPhysExp : public IDagorAssetExporter
 {
 public:
-  virtual const char *__stdcall getExporterIdStr() const { return "fastPhys exp"; }
+  const char *__stdcall getExporterIdStr() const override { return "fastPhys exp"; }
 
-  virtual const char *__stdcall getAssetType() const { return TYPE; }
-  virtual unsigned __stdcall getGameResClassId() const { return FastPhysDataGameResClassId; }
-  virtual unsigned __stdcall getGameResVersion() const { return 4; }
+  const char *__stdcall getAssetType() const override { return TYPE; }
+  unsigned __stdcall getGameResClassId() const override { return FastPhysDataGameResClassId; }
+  unsigned __stdcall getGameResVersion() const override { return 4; }
 
-  virtual void __stdcall onRegister() {}
-  virtual void __stdcall onUnregister() {}
+  void __stdcall onRegister() override {}
+  void __stdcall onUnregister() override {}
 
   void __stdcall gatherSrcDataFiles(const DagorAsset &a, Tab<SimpleString> &files) override
   {
@@ -53,9 +53,9 @@ public:
       files.push_back() = gn_a->getTargetFilePath();
   }
 
-  virtual bool __stdcall isExportableAsset(DagorAsset &a) { return true; }
+  bool __stdcall isExportableAsset(DagorAsset &a) override { return true; }
 
-  virtual bool __stdcall exportAsset(DagorAsset &a, mkbindump::BinDumpSaveCB &cwr, ILogWriter &log)
+  bool __stdcall exportAsset(DagorAsset &a, mkbindump::BinDumpSaveCB &cwr, ILogWriter &log) override
   {
     FpdExporter exp;
     if (!getSkeleton(exp.nodeTree, a.getMgr(), a.props.getStr("skeleton", NULL), log))
@@ -70,16 +70,15 @@ public:
 class FastPhysRefs : public IDagorAssetRefProvider
 {
 public:
-  virtual const char *__stdcall getRefProviderIdStr() const { return "fastPhys refs"; }
+  const char *__stdcall getRefProviderIdStr() const override { return "fastPhys refs"; }
 
-  virtual const char *__stdcall getAssetType() const { return TYPE; }
+  const char *__stdcall getAssetType() const override { return TYPE; }
 
-  virtual void __stdcall onRegister() {}
-  virtual void __stdcall onUnregister() {}
+  void __stdcall onRegister() override {}
+  void __stdcall onUnregister() override {}
 
-  dag::ConstSpan<Ref> __stdcall getAssetRefs(DagorAsset &a) override
+  void __stdcall getAssetRefs(DagorAsset &a, Tab<Ref> &refs) override
   {
-    static Tab<Ref> refs(tmpmem);
     init_atypes(a.getMgr());
 
     refs.clear();
@@ -94,23 +93,22 @@ public:
       else
         r.refAsset = gn_a;
     }
-    return refs;
   }
 };
 
 class FastPhysExporterPlugin : public IDaBuildPlugin
 {
 public:
-  virtual bool __stdcall init(const DataBlock &appblk) { return true; }
-  virtual void __stdcall destroy() { delete this; }
+  bool __stdcall init(const DataBlock &appblk) override { return true; }
+  void __stdcall destroy() override { delete this; }
 
-  virtual int __stdcall getExpCount() { return 1; }
-  virtual const char *__stdcall getExpType(int idx) { return TYPE; }
-  virtual IDagorAssetExporter *__stdcall getExp(int idx) { return &exp; }
+  int __stdcall getExpCount() override { return 1; }
+  const char *__stdcall getExpType(int idx) override { return TYPE; }
+  IDagorAssetExporter *__stdcall getExp(int idx) override { return &exp; }
 
-  virtual int __stdcall getRefProvCount() { return 1; }
-  virtual const char *__stdcall getRefProvType(int idx) { return TYPE; }
-  virtual IDagorAssetRefProvider *__stdcall getRefProv(int idx) { return &ref; }
+  int __stdcall getRefProvCount() override { return 1; }
+  const char *__stdcall getRefProvType(int idx) override { return TYPE; }
+  IDagorAssetRefProvider *__stdcall getRefProv(int idx) override { return &ref; }
 
 protected:
   FastPhysExp exp;

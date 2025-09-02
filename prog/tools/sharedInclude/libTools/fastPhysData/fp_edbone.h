@@ -25,6 +25,7 @@ public:
   {
     DIRECTIONAL,
     LENCONSTR,
+    HINGE,
   };
 
 public:
@@ -34,10 +35,10 @@ public:
     actionName = "boneConstr";
   }
 
-  virtual FpdObject *getObject();
-  virtual void save(DataBlock &blk, const GeomNodeTree &tree);
-  virtual bool load(const DataBlock &blk, IFpdLoad &loader);
-  virtual void exportAction(mkbindump::BinDumpSaveCB &cwr, IFpdExport &exp);
+  FpdObject *getObject() override;
+  void save(DataBlock &blk, const GeomNodeTree &tree) override;
+  bool load(const DataBlock &blk, IFpdLoad &loader) override;
+  void exportAction(mkbindump::BinDumpSaveCB &cwr, IFpdExport &exp) override;
 };
 
 
@@ -52,10 +53,10 @@ public:
 public:
   FpdBoneAngularSpringAction(FpdBone *o) : boneObj(o), springK(0), localAxis(1, 0, 0), orgAxis(1, 0, 0) { actionName = "boneAngSpr"; }
 
-  virtual FpdObject *getObject();
-  virtual void save(DataBlock &blk, const GeomNodeTree &tree);
-  virtual bool load(const DataBlock &blk, IFpdLoad &loader);
-  virtual void exportAction(mkbindump::BinDumpSaveCB &cwr, IFpdExport &exp);
+  FpdObject *getObject() override;
+  void save(DataBlock &blk, const GeomNodeTree &tree) override;
+  bool load(const DataBlock &blk, IFpdLoad &loader) override;
+  void exportAction(mkbindump::BinDumpSaveCB &cwr, IFpdExport &exp) override;
 };
 
 
@@ -76,10 +77,10 @@ public:
     orgTm.identity();
   }
 
-  virtual FpdObject *getObject();
-  virtual void save(DataBlock &blk, const GeomNodeTree &tree);
-  virtual bool load(const DataBlock &blk, IFpdLoad &loader);
-  virtual void exportAction(mkbindump::BinDumpSaveCB &cwr, IFpdExport &exp);
+  FpdObject *getObject() override;
+  void save(DataBlock &blk, const GeomNodeTree &tree) override;
+  bool load(const DataBlock &blk, IFpdLoad &loader) override;
+  void exportAction(mkbindump::BinDumpSaveCB &cwr, IFpdExport &exp) override;
 
   static int getAxisIndex(const Point3 &dir);
   void findNode(IFpdLoad &ld);
@@ -100,14 +101,14 @@ public:
 public:
   FpdBone();
 
-  virtual void save(DataBlock &blk, const GeomNodeTree &tree);
-  virtual bool load(const DataBlock &blk, IFpdLoad &loader);
+  void save(DataBlock &blk, const GeomNodeTree &tree) override;
+  bool load(const DataBlock &blk, IFpdLoad &loader) override;
 
-  virtual void initActions(FpdContainerAction *init_a, FpdContainerAction *upd_a, IFpdLoad &ld);
-  virtual void getActions(Tab<FpdAction *> &actions);
+  void initActions(FpdContainerAction *init_a, FpdContainerAction *upd_a, IFpdLoad &ld) override;
+  void getActions(Tab<FpdAction *> &actions) override;
 
   int getPoints(FpdPoint *&p1, FpdPoint *&p2, IFpdExport &exp) const;
   int getPointsLd(FpdPoint *&p1, FpdPoint *&p2, IFpdLoad &ld) const;
 
-  virtual bool isSubOf(DClassID id) { return id == FpdBone::HUID || FpdObject::isSubOf(id); }
+  bool isSubOf(DClassID id) override { return id == FpdBone::HUID || FpdObject::isSubOf(id); }
 };

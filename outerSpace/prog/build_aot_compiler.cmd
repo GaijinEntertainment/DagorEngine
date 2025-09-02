@@ -1,2 +1,2 @@
 jam -sRoot=../.. -sProjectLocation=outerSpace/prog -sTarget=outer_space-aot -sOutDir=../tools/das-aot ^
-  -f../../prog/daNetGame-das-aot/jamfile
+  -sPlatformArch=x86_64 -f../../prog/daNetGame-das-aot/jamfile

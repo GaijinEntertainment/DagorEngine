@@ -2,11 +2,12 @@
 #pragma once
 
 #include <drv/3d/dag_consts.h>
-
-#include "vulkan_device.h"
 #include <smolv.h>
 #include <spirv.hpp>
 #include <EASTL/optional.h>
+
+#include "vulkan_device.h"
+#include "shader_module.h"
 
 namespace drv3d_vulkan
 {

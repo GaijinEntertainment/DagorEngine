@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "invalidateShadowsES.cpp.inl"
 ECS_DEF_PULL_VAR(invalidateShadows);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc invalidate_ri_shadows_es_comps[] =
 {

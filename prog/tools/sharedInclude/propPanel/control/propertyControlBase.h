@@ -21,13 +21,14 @@ namespace PropPanel
 {
 
 class ContainerPropertyControl;
+class IListBoxControlEventHandler;
 
 class PropertyControlBase : public WindowControlEventHandler
 {
 public:
   PropertyControlBase(int id, ControlEventHandler *event_handler, ContainerPropertyControl *parent, int x = 0, int y = 0,
     hdpi::Px w = hdpi::Px(0), hdpi::Px h = hdpi::Px(0));
-  ~PropertyControlBase();
+  ~PropertyControlBase() override;
 
   // Sets
   virtual void setEnabled(bool enabled) { G_UNUSED(enabled); }
@@ -63,6 +64,7 @@ public:
   virtual void setSelectionValue(const Tab<int> &sels) { G_UNUSED(sels); }
   virtual void setCaptionValue(const char value[]) { G_UNUSED(value); }
   virtual void setButtonPictureValues(const char *fname = nullptr) { G_UNUSED(fname); }
+  virtual void setListBoxEventHandlerValue(IListBoxControlEventHandler *handler) { G_UNUSED(handler); }
 
   virtual int addStringValue(const char *value);
   virtual void removeStringValue(int idx) { G_UNUSED(idx); }
@@ -83,8 +85,10 @@ public:
   virtual void getTextGradientValue(TextGradient &destGradient) const;
   virtual void getCurveCoefsValue(Tab<Point2> &points) const;
   virtual bool getCurveCubicCoefsValue(Tab<Point2> &xy_4c_per_seg) const;
+  virtual const char *getTooltip() const;
 
   virtual int getStringsValue(Tab<String> &vals);
+  virtual dag::ConstSpan<String> getStringsValue();
   virtual int getSelectionValue(Tab<int> &sels);
 
   virtual unsigned getTypeMaskForSet() const = 0;
@@ -116,13 +120,13 @@ public:
   virtual void reset() {}
 
   // WindowControlEventHandler
-  virtual long onWcChanging(WindowBase *source) override;
-  virtual void onWcChange(WindowBase *source) override;
-  virtual void onWcClick(WindowBase *source) override;
-  virtual void onWcDoubleClick(WindowBase *source) override;
-  virtual long onWcKeyDown(WindowBase *source, unsigned v_key) override;
-  virtual void onWcResize(WindowBase *source) override;
-  virtual void onWcPostEvent(unsigned id) override;
+  long onWcChanging(WindowBase *source) override;
+  void onWcChange(WindowBase *source) override;
+  void onWcClick(WindowBase *source) override;
+  void onWcDoubleClick(WindowBase *source) override;
+  long onWcKeyDown(WindowBase *source, unsigned v_key) override;
+  void onWcResize(WindowBase *source) override;
+  void onWcPostEvent(unsigned id) override;
 
   virtual const ContainerPropertyControl *getContainer() const { return nullptr; }
   virtual ContainerPropertyControl *getContainer() { return nullptr; }
@@ -137,15 +141,21 @@ public:
 
   // saving and loading state with datablock
 
-  virtual int saveState(DataBlock &datablk)
+  // by_name: whether to identify groups by their numeric IDs or by their names. Numeric IDs might not be stable
+  //   between builds, on the other hand they work even if the group names differ. So saving by name is likely better
+  //   for restoring the program's state after a restart, while using IDs is likely better while the program is running.
+  virtual int saveState(DataBlock &datablk, bool by_name = false)
   {
     G_UNUSED(datablk);
+    G_UNUSED(by_name);
     return 0;
   }
 
-  virtual int loadState(DataBlock &datablk)
+  // by_name: this should match to parameter given to saveState to successfully restore the state
+  virtual int loadState(DataBlock &datablk, bool by_name = false)
   {
     G_UNUSED(datablk);
+    G_UNUSED(by_name);
     return 0;
   }
 

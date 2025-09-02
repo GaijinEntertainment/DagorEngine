@@ -11,7 +11,6 @@
 #include <generic/dag_smallTab.h>
 #include <generic/dag_patchTab.h>
 #include <math/dag_bounds3.h>
-#include <vecmath/dag_vecMath.h>
 #include <scene/dag_visibility.h>
 #include <scene/dag_buildVisTree.h>
 #include <generic/dag_carray.h>
@@ -311,7 +310,20 @@ public:
     render_id = render_id % MAX_CVIS;
     cVisData[render_id].clear();
   }
-
+  void savePreparedVisCtx(int render_id)
+  {
+    if (!obj.size())
+      return;
+    G_ASSERT(optScn.inited);
+    cVisData[render_id % MAX_CVIS] = optScn.visData;
+  }
+  void restorePreparedVisCtx(int render_id)
+  {
+    if (!obj.size())
+      return;
+    G_ASSERT(optScn.inited);
+    optScn.visData = cVisData[render_id % MAX_CVIS];
+  }
 
   //! checks visibility and renders scene;
   //! render_id<0 forces full render, other values (0..7) are context for visibility finder

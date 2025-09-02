@@ -5,7 +5,7 @@ TargetType  = lib ;
 Target      = tools/libTools/meshOptimize.lib ;
 
 AddIncludes =
-  $(Root)/prog/tools/sharedInclude/libtools
+  $(Root)/prog/tools/sharedInclude/libTools
 ;
 
 Sources =

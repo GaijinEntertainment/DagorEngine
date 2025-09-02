@@ -1,13 +1,21 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#pragma comment(lib, "comctl32.lib")
+#include "formattedTextHandler.h"
+
 #include <generic/dag_tab.h>
 #include <coolConsole/coolConsole.h>
 #include <generic/dag_sort.h>
+#include <propPanel/colors.h>
 #include <util/dag_console.h>
+#include <util/dag_delayedAction.h>
+#include <osApiWrappers/dag_localConv.h>
 #include <osApiWrappers/dag_miscApi.h>
-#include <winGuiWrapper/wgw_input.h>
+#include <winGuiWrapper/wgw_dialogs.h>
 
+#include <drv/3d/dag_lock.h>
+#include <drv/3d/dag_resetDevice.h>
+#include <gui/dag_imgui.h>
+#include <gui/dag_imguiUtil.h>
 #include <util/dag_globDef.h>
 #include <workCycle/dag_workCycle.h>
 #include <ioSys/dag_dataBlock.h>
@@ -18,44 +26,16 @@
 
 #include <libTools/util/hash.h>
 
-#include <windows.h>
-#include <richedit.h>
-#include <commctrl.h>
+#include <imgui/imgui.h>
+#include <imgui/imgui_internal.h>
+
 #include <limits.h>
 
 #include <stdio.h>
 
-#define DESTROY_WND(window)  \
-  if (window)                \
-  {                          \
-    ::DestroyWindow(window); \
-    window = NULL;           \
-  }
-
-#define ABOUT_MESSAGE "CoolConsole version 1.2"
-
-#define PROGRESS_HEIGHT           20
-#define DEF_CON_FONT_HEIGHT       9
-#define DEF_INTERFACE_FONT_HEIGHT 8
-#define EDIT_HEIGHT               (conFontHeight * 1.8)
-
-#define CANCEL_BUTTON_WIDTH 50
-#define CANCEL_BUTTON_ID    1000
-
-#define CMD_COLOR     RGB(0, 0, 0)
-#define PARAM_COLOR   RGB(128, 128, 0)
-#define WARNING_COLOR RGB(0, 128, 0)
-#define ERROR_COLOR   RGB(255, 0, 0)
-#define FATAL_COLOR   RGB(255, 0, 0)
-#define REMARK_COLOR  RGB(128, 128, 128)
+#define ABOUT_MESSAGE "CoolConsole version 1.3"
 
 #define DAGOR_IDLE_CYCLE_CALL_TIMEOUT 1000
-
-
-#ifdef ERROR
-#undef ERROR
-#endif
-
 
 // #define GET_CMD_HASH(cmd) ::get_hash(_strlwr(cmd), 0)
 
@@ -64,16 +44,14 @@
   hash = GET_CMD_HASH(temp.begin());
 
 
-unsigned CoolConsole::wndClassId = 0;
-void *CoolConsole::richEditDll = NULL;
-int CoolConsole::conCount = 0;
-HFONT CoolConsole::conFont = NULL;
-int CoolConsole::conFontHeight = 11;
-HFONT CoolConsole::interfaceFont = NULL;
-// int       CoolConsole::lastDagorIdleCall = 0;
+static FormattedTextHandler formatted_text_handler;
+static bool destroyed = false;
+static bool visible_console_exists = false;
 
 static void call_idle_cycle_seldom(bool important = false)
 {
+  if (destroyed || is_restoring_3d_device())
+    return;
   static int lastDagorIdleCall = 0;
 
   int msec = get_time_msec();
@@ -81,6 +59,21 @@ static void call_idle_cycle_seldom(bool important = false)
   {
     lastDagorIdleCall = msec;
     ::dagor_idle_cycle();
+
+    // We have to call rendering to make messages added during a long running operation visible to the user. But we
+    // cannot call rendering if we are in an ImGui frame. (So long running operations should be started from delayed
+    // messages of PropPanel. This is generally true as button clicks and other common events are sent with delayed
+    // messages.)
+    const ImGuiContext *context = ImGui::GetCurrentContext();
+    if (visible_console_exists && (!context || !context->WithinFrameScope) && d3d::is_inited())
+    {
+      // We intentionally not use dagor_work_cycle() here because that calls act(), which we do not want, it could change
+      // the behavior of the code compared to the non-ImGui-based CoolConsole.
+      d3d::GpuAutoLock gpuLock;
+      dagor_work_cycle_flush_pending_frame();
+      dagor_draw_scene_and_gui(true, true);
+      d3d::update_screen();
+    }
   }
 }
 
@@ -143,16 +136,8 @@ static char *conSttrok(char *str, const char *delim)
   return NULL;
 }
 
-
 //==============================================================================
-CoolConsole::CoolConsole(const char *capt, HWND parent_wnd) :
-  hWnd(NULL),
-  caption(capt),
-  parentWnd(parent_wnd),
-  logWnd(NULL),
-  cancelBtn(NULL),
-  cmdWnd(NULL),
-  progressWnd(NULL),
+CoolConsole::CoolConsole() :
   commands(midmem),
   cmdNames(midmem),
   progressCb(NULL),
@@ -167,27 +152,7 @@ CoolConsole::CoolConsole(const char *capt, HWND parent_wnd) :
   globErrCnt(0),
   globFatalCnt(0)
 {
-  ++conCount;
-
   flags = CC_CAN_CLOSE | CC_CAN_MINIMIZE;
-
-  HDC dc = ::GetDC(NULL);
-
-  if (!conFont)
-  {
-    conFontHeight = MulDiv(DEF_CON_FONT_HEIGHT, GetDeviceCaps(dc, LOGPIXELSY), 72);
-
-    conFont = ::CreateFont(-conFontHeight, 0, 0, 0, FW_NORMAL, 0, 0, 0, DEFAULT_CHARSET, 0, 0, PROOF_QUALITY, 0, "Courier New");
-  }
-
-  if (!interfaceFont)
-  {
-    int fontHeight = MulDiv(DEF_INTERFACE_FONT_HEIGHT, GetDeviceCaps(dc, LOGPIXELSY), 72);
-
-    interfaceFont = ::CreateFont(-fontHeight, 0, 0, 0, FW_NORMAL, 0, 0, 0, DEFAULT_CHARSET, 0, 0, PROOF_QUALITY, 0, "Tahoma");
-  }
-
-  ::ReleaseDC(NULL, dc);
 
   registerCommand("help", this);
   registerCommand("list", this);
@@ -200,21 +165,8 @@ CoolConsole::CoolConsole(const char *capt, HWND parent_wnd) :
 CoolConsole::~CoolConsole()
 {
   console::set_visual_driver_raw(nullptr);
-  --conCount;
-
+  PropPanel::remove_delayed_callback(*this);
   destroyConsole();
-
-  if (conCount <= 0)
-  {
-    ::DeleteObject(conFont);
-    conFont = NULL;
-
-    ::DeleteObject(interfaceFont);
-    interfaceFont = NULL;
-
-    ::FreeLibrary((HMODULE)richEditDll);
-    richEditDll = NULL;
-  }
 }
 
 
@@ -222,201 +174,37 @@ CoolConsole::~CoolConsole()
 int CoolConsole::compareCmd(const String *s1, const String *s2) { return stricmp((const char *)*s1, (const char *)*s2); }
 
 
-//==============================================================================
-bool CoolConsole::registerWndClass()
+String CoolConsole::onCmdArrowKey(bool up, const char *current_command)
 {
-  if (wndClassId)
-    return true;
-
-  richEditDll = ::LoadLibrary("riched20.dll");
-
-  if (!richEditDll)
-  {
-    debug("[CoolConsole::registerWndClass] Unable to load \"riched20.dll\"");
-    return false;
-  }
-
-  INITCOMMONCONTROLSEX initRec;
-
-  initRec.dwSize = sizeof(INITCOMMONCONTROLSEX);
-  initRec.dwICC = ICC_PROGRESS_CLASS;
-
-  if (!InitCommonControlsEx(&initRec))
-  {
-    debug("[CoolConsole::registerWndClass] Unable to init common controls");
-    return false;
-  }
-
-  WNDCLASSEXW wcex;
-
-  wcex.cbSize = sizeof(WNDCLASSEX);
-
-  wcex.style = 0;
-  wcex.lpfnWndProc = (WNDPROC)wndProc;
-  wcex.cbClsExtra = 0;
-  wcex.cbWndExtra = 0;
-  wcex.hInstance = ::GetModuleHandle(NULL);
-  wcex.hIcon = ::LoadIcon(NULL, IDI_INFORMATION);
-  wcex.hIconSm = ::LoadIcon(NULL, IDI_INFORMATION);
-  wcex.hCursor = ::LoadCursor(NULL, IDC_ARROW);
-  wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW);
-  wcex.lpszMenuName = NULL;
-  wcex.lpszClassName = L"CoolConsole";
-
-  wndClassId = RegisterClassExW(&wcex);
-
-  return (bool)wndClassId;
-}
-
-
-//==============================================================================
-intptr_t CALLBACK CoolConsole::wndProc(void *hwnd, unsigned msg, intptr_t w_param, intptr_t l_param)
-{
-  HWND wnd = (HWND)hwnd;
-  PAINTSTRUCT ps;
-  HDC hdc;
-  CoolConsole *console = (CoolConsole *)::GetWindowLongPtr(wnd, GWLP_USERDATA);
-
-  switch (msg)
-  {
-    case WM_PAINT:
-      hdc = ::BeginPaint(wnd, &ps);
-      EndPaint(wnd, &ps);
-      break;
-
-    case WM_SIZE: console->alignControls(); break;
-
-    case WM_SYSCOMMAND:
-      switch (w_param)
-      {
-        case SC_CLOSE:
-          if (!console->isProgress() && console->isCanClose())
-          {
-            if (auto *phwnd = (HWND)console->parentWnd)
-            {
-              ::BringWindowToTop(phwnd);
-              ::SetFocus(phwnd);
-            }
-            console->hideConsole();
-          }
-          break;
-
-        case SC_MINIMIZE:
-          if (!console->isProgress() && console->isCanMinimize())
-            return ::DefWindowProcW(wnd, msg, w_param, l_param);
-          break;
-
-        default: return ::DefWindowProcW(wnd, msg, w_param, l_param);
-      }
-      break;
-
-    case WM_COMMAND:
-      if ((HWND)l_param == console->cmdWnd)
-      {
-        switch (HIWORD(w_param))
-        {
-          case EN_MAXTEXT: console->runCommand(); return 0;
-
-          case EN_CHANGE: console->showCmdList(); break;
-        }
-      }
-      else if ((HWND)l_param == console->cancelBtn && LOWORD(w_param) == CANCEL_BUTTON_ID && console->progressCb)
-      {
-        console->progressCb->onCancel();
-        return 0;
-      }
-
-      return ::DefWindowProcW(wnd, msg, w_param, l_param);
-
-    case WM_KEYDOWN:
-      if (w_param == VK_ESCAPE)
-      {
-        ShowWindow(wnd, SW_HIDE /*SW_MINIMIZE*/);
-        return 0;
-      }
-      return ::DefWindowProcW(wnd, msg, w_param, l_param);
-
-    default: return ::DefWindowProcW(wnd, msg, w_param, l_param);
-  }
-
-  return 0;
-}
-
-static WNDPROC origEditboxWndProc = NULL;
-static intptr_t CALLBACK editboxWndProc(void *hwnd, unsigned msg, intptr_t w_param, intptr_t l_param)
-{
-  HWND wnd = (HWND)hwnd;
-
-  switch (msg)
-  {
-    case WM_KEYDOWN:
-      switch (w_param)
-      {
-        case VK_UP:
-          ((CoolConsole *)::GetWindowLongPtr(wnd, GWLP_USERDATA))->onCmdArrowKey(true, wingw::is_key_pressed(VK_CONTROL));
-          return 0;
-        case VK_DOWN:
-          ((CoolConsole *)::GetWindowLongPtr(wnd, GWLP_USERDATA))->onCmdArrowKey(false, wingw::is_key_pressed(VK_CONTROL));
-          return 0;
-        case VK_ESCAPE: ShowWindow(GetParent(wnd), SW_HIDE /*SW_MINIMIZE*/); return 0;
-      }
-      break;
-  }
-
-  return origEditboxWndProc(wnd, msg, w_param, l_param);
-}
-
-static WNDPROC origLogWndProc = NULL;
-static intptr_t CALLBACK logWndProc(void *hwnd, unsigned msg, intptr_t w_param, intptr_t l_param)
-{
-  HWND wnd = (HWND)hwnd;
-
-  if (msg == WM_KEYDOWN && w_param == VK_ESCAPE)
-  {
-    ShowWindow(GetParent(wnd), SW_HIDE /*SW_MINIMIZE*/);
-    return 0;
-  }
-  return origLogWndProc(wnd, msg, w_param, l_param);
-}
-
-static void moveEditCaretToEnd(HWND wnd)
-{
-  DWORD textSize = ::GetWindowTextLength(wnd);
-  ::SendMessage(wnd, EM_SETSEL, textSize, textSize);
-  ::SendMessage(wnd, EM_SCROLLCARET, 0, 0);
-}
-
-void CoolConsole::onCmdArrowKey(bool up, bool /*ctrl_modif*/)
-{
-  String command;
-  const int cmdLen = (int)::SendMessage(cmdWnd, WM_GETTEXTLENGTH, 0, 0) + 1;
-  command.resize(cmdLen);
-  ::GetWindowText(cmdWnd, command.begin(), cmdLen);
-  command[cmdLen - 1] = 0;
-
   if (up && cmdHistoryPos > 0)
   {
-    if (cmdHistoryPos == cmdHistory.size() && !cmdHistoryLastUnfinished && !command.empty())
+    if (cmdHistoryPos == cmdHistory.size() && !cmdHistoryLastUnfinished && current_command && *current_command)
     {
-      cmdHistory.push_back() = command;
+      cmdHistory.push_back() = current_command;
       cmdHistoryLastUnfinished = true;
     }
     cmdHistoryPos--;
-    ::SetWindowText(cmdWnd, cmdHistory[cmdHistoryPos]);
-    moveEditCaretToEnd(cmdWnd);
+    return cmdHistory[cmdHistoryPos];
   }
   else if (!up && cmdHistoryPos < cmdHistory.size())
   {
     cmdHistoryPos++;
-    ::SetWindowText(cmdWnd, cmdHistoryPos < cmdHistory.size() ? cmdHistory[cmdHistoryPos].str() : NULL);
+
+    String command;
+    if (cmdHistoryPos < cmdHistory.size())
+      command = cmdHistory[cmdHistoryPos];
+
     if (cmdHistoryLastUnfinished && cmdHistoryPos + 1 == cmdHistory.size())
     {
       cmdHistoryLastUnfinished = false;
       cmdHistory.pop_back();
       cmdHistoryPos = cmdHistory.size();
     }
-    moveEditCaretToEnd(cmdWnd);
+
+    return command;
   }
+
+  return String();
 }
 void CoolConsole::saveCmdHistory(DataBlock &blk) const
 {
@@ -438,33 +226,14 @@ void CoolConsole::loadCmdHistory(const DataBlock &blk)
   cmdHistoryPos = cmdHistory.size();
 }
 
-//==============================================================================
-void CoolConsole::setCaption(const char *capt)
-{
-  caption = capt;
-
-  if (hWnd)
-    ::SetWindowText(hWnd, capt);
-}
-
 
 //==============================================================================
-bool CoolConsole::isVisible() const { return ::GetWindowLongPtr(hWnd, GWL_STYLE) & WS_VISIBLE; }
-
-
-//==============================================================================
-bool CoolConsole::isTopmost() const
-{
-  return false; //::GetWindowLongPtr(hWnd, GWL_EXSTYLE) & WS_EX_TOPMOST;
-}
+bool CoolConsole::isVisible() const { return visible; }
 
 
 //==============================================================================
 void CoolConsole::addMessageFmt(MessageType type, const char *fmt, const DagorSafeArg *arg, int anum)
 {
-  if (!hWnd)
-    return;
-
   if (!fmt || !*fmt)
     return;
 
@@ -474,20 +243,21 @@ void CoolConsole::addMessageFmt(MessageType type, const char *fmt, const DagorSa
     return;
   entranceGuard = true;
 
-  unsigned color = 0;
+  unsigned color = PropPanel::ColorOverride::CONSOLE_LOG_TEXT;
+  bool bold = false;
   String con_fmt(0, "CON: %s", fmt);
 
   switch (type)
   {
     case REMARK:
-      color = REMARK_COLOR;
+      color = PropPanel::ColorOverride::CONSOLE_LOG_REMARK_TEXT;
       if (isCountMessages())
         ++notesCnt;
       break;
 
     case WARNING:
       ++globWarnCnt;
-      color = WARNING_COLOR;
+      color = PropPanel::ColorOverride::CONSOLE_LOG_WARNING_TEXT;
       if (isCountMessages())
         ++warningsCnt;
       logmessage_fmt(LOGLEVEL_WARN, con_fmt, arg, anum);
@@ -495,7 +265,7 @@ void CoolConsole::addMessageFmt(MessageType type, const char *fmt, const DagorSa
 
     case ERROR:
       ++globErrCnt;
-      color = ERROR_COLOR;
+      color = PropPanel::ColorOverride::CONSOLE_LOG_ERROR_TEXT;
       if (isCountMessages())
         ++errorsCnt;
       logmessage_fmt(LOGLEVEL_ERR, con_fmt, arg, anum);
@@ -503,7 +273,8 @@ void CoolConsole::addMessageFmt(MessageType type, const char *fmt, const DagorSa
 
     case FATAL:
       ++globFatalCnt;
-      color = FATAL_COLOR;
+      color = PropPanel::ColorOverride::CONSOLE_LOG_FATAL_TEXT;
+      bold = true;
       if (isCountMessages())
         ++fatalsCnt;
       logmessage_fmt(LOGLEVEL_ERR, con_fmt, arg, anum);
@@ -516,274 +287,96 @@ void CoolConsole::addMessageFmt(MessageType type, const char *fmt, const DagorSa
   }
 
   entranceGuard = false;
+  String msg;
 
   if (!is_main_thread())
-    return;
-
-  unsigned logEnd = ::GetWindowTextLength(logWnd);
-
-  if (logEnd)
   {
-    addTextToLog("\n", color, &logEnd);
-    ++logEnd;
+    msg.vprintf(0, String::mk_str_cat("*", fmt), arg, anum);
+    delayed_call([this, msg = eastl::move(msg), color, bold]() { addTextToLog(msg, color, bold); });
+    return;
   }
 
-  String msg;
   msg.vprintf(0, fmt, arg, anum);
-  addTextToLog(msg, color, &logEnd);
+  addTextToLog(msg, color, bold);
 
-  if (isProgress())
-    ::UpdateWindow(logWnd);
+  call_idle_cycle_seldom();
 }
 void CoolConsole::puts(const char *str, console::LineType type)
 {
   if (limitOutputLinesLeft == 0)
     return;
 
-  unsigned color = 0;
+  unsigned color = PropPanel::ColorOverride::CONSOLE_LOG_TEXT;
   switch (type)
   {
-    case console::CONSOLE_INFO: color = REMARK_COLOR; break;
-    case console::CONSOLE_WARNING: color = WARNING_COLOR; break;
-    case console::CONSOLE_ERROR: color = ERROR_COLOR; break;
+    case console::CONSOLE_INFO: color = PropPanel::ColorOverride::CONSOLE_LOG_REMARK_TEXT; break;
+    case console::CONSOLE_WARNING: color = PropPanel::ColorOverride::CONSOLE_LOG_WARNING_TEXT; break;
+    case console::CONSOLE_ERROR: color = PropPanel::ColorOverride::CONSOLE_LOG_ERROR_TEXT; break;
+
+    // to prevent the unhandled switch case error
+    case console::CONSOLE_DEBUG:
+    case console::CONSOLE_TRACE:
+    case console::CONSOLE_DEFAULT: break;
   }
 
-  unsigned logEnd = ::GetWindowTextLength(logWnd);
-  if (logEnd)
-  {
-    addTextToLog("\n", color, &logEnd);
-    ++logEnd;
-  }
-  addTextToLog(str, color, &logEnd);
+  addTextToLog(str, color);
   if (--limitOutputLinesLeft == 0)
-    addTextToLog("\n... too many lines, output omitted (see debug for full log)...\n", WARNING_COLOR);
+    addTextToLog("... too many lines, output omitted (see debug for full log)...\n",
+      PropPanel::ColorOverride::CONSOLE_LOG_WARNING_TEXT);
 }
 
 //==============================================================================
 bool CoolConsole::initConsole()
 {
-  if (hWnd)
-    return true;
-
-  if (!registerWndClass())
-    return false;
-
-  const int sw = ::GetSystemMetrics(SM_CXSCREEN);
-  const int sh = ::GetSystemMetrics(SM_CYSCREEN);
-  const HINSTANCE inst = ::GetModuleHandle(NULL);
-
-  wchar_t wcs_tmp[256];
-  hWnd = ::CreateWindowExW(/*WS_EX_TOPMOST*/ 0, (const wchar_t *)(uintptr_t)MAKELONG(wndClassId, 0),
-    utf8_to_wcs(caption, wcs_tmp, countof(wcs_tmp)), WS_OVERLAPPEDWINDOW, sw / 2, 100, sw / 2 - 10, sh / 2, parentWnd, NULL, inst,
-    NULL);
-
-  if (!hWnd)
-    return false;
-
-  ::SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG_PTR)this);
-
-  logWnd = ::CreateWindowEx(WS_EX_CLIENTEDGE, RICHEDIT_CLASS, NULL,
-    WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_VSCROLL | ES_READONLY | ES_MULTILINE, 0, 0, 10, 10, hWnd, NULL, inst, NULL);
-  ::SetWindowLongPtr(logWnd, GWLP_USERDATA, (LONG_PTR)this);
-  origLogWndProc = (WNDPROC)SetWindowLongPtr(logWnd, GWLP_WNDPROC, (LONG_PTR)logWndProc);
-
-  if (!logWnd)
-  {
-    destroyConsole();
-    return false;
-  }
-
-  ::SendMessage(logWnd, WM_SETFONT, (WPARAM)conFont, 0);
-
-  progressWnd = ::CreateWindow(PROGRESS_CLASS, NULL, WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS, 0, 0, 10, 10, hWnd, NULL, inst, NULL);
-
-  if (!progressWnd)
-  {
-    destroyConsole();
-    return false;
-  }
-
-  cancelBtn = ::CreateWindow("BUTTON", "Stop", WS_CHILD, 0, 0, 10, 10, hWnd, (HMENU)CANCEL_BUTTON_ID, inst, NULL);
-
-  if (!cancelBtn)
-  {
-    destroyConsole();
-    return false;
-  }
-
-  ::SendMessage(cancelBtn, WM_SETFONT, (WPARAM)interfaceFont, 0);
-
-  cmdWnd = ::CreateWindowEx(WS_EX_CLIENTEDGE, "EDIT", NULL,
-    WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | ES_AUTOHSCROLL | ES_MULTILINE | ES_WANTRETURN, 0, 0, 10, 10, hWnd, NULL, inst, NULL);
-
-  if (!cmdWnd)
-  {
-    destroyConsole();
-    return false;
-  }
-
-  ::SendMessage(cmdWnd, WM_SETFONT, (WPARAM)conFont, 0);
-
-  cmdListWnd = ::CreateWindow("LISTBOX", NULL, WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | LBS_HASSTRINGS | LBS_NOTIFY, 0, 0, 10, 10,
-    hWnd, NULL, inst, NULL);
-
-  if (!cmdListWnd)
-  {
-    destroyConsole();
-    return false;
-  }
-
-  ::SendMessage(cmdListWnd, WM_SETFONT, (WPARAM)conFont, 0);
-
-  alignControls();
+  G_ASSERT(!destroyed);
   addMessage(REMARK, ABOUT_MESSAGE);
-
-  ::SetWindowLongPtr(cmdWnd, GWLP_USERDATA, (LONG_PTR)this);
-  origEditboxWndProc = (WNDPROC)SetWindowLongPtr(cmdWnd, GWLP_WNDPROC, (LONG_PTR)editboxWndProc);
   return true;
 }
 
 
 //==============================================================================
-void CoolConsole::destroyConsole()
-{
-  if (cmdWnd)
-    SetWindowLongPtr(cmdWnd, GWLP_WNDPROC, (LONG_PTR)origEditboxWndProc);
-  DESTROY_WND(hWnd);
-  DESTROY_WND(logWnd);
-  DESTROY_WND(progressWnd);
-  DESTROY_WND(cancelBtn);
-  DESTROY_WND(cmdWnd);
-  DESTROY_WND(cmdListWnd);
-}
+void CoolConsole::destroyConsole() { destroyed = true; }
 
 
 //==============================================================================
 void CoolConsole::showConsole(bool activate)
 {
-  if (!hWnd)
-    return;
-
-  //::ShowWindow(hWnd, activate ? SW_SHOW : ::IsWindowVisible(hWnd) ? SW_SHOWNA : SW_SHOWNOACTIVATE);
-  ::ShowWindow(hWnd, SW_RESTORE | SW_SHOWNORMAL);
-  ::ShowWindow(hWnd, activate ? SW_SHOW : SW_SHOWNA);
-  ::BringWindowToTop(hWnd);
-  ::SetFocus(cmdWnd);
+  activateOnShow = activate;
+  scrollToBottomOnShow = true;
+  visible = visible_console_exists = true;
+  justMadeVisible = true;
 }
 
 
 //==============================================================================
-void CoolConsole::hideConsole() const
-{
-  if (!hWnd)
-    return;
-
-  ::ShowWindow(hWnd, SW_HIDE);
-}
+void CoolConsole::hideConsole() { visible = visible_console_exists = false; }
 
 
 //==============================================================================
-void CoolConsole::clearConsole() const
-{
-  if (!hWnd)
-    return;
-
-  ::SetWindowText(logWnd, NULL);
-}
+void CoolConsole::clearConsole() { formatted_text_handler.clear(); }
 
 void CoolConsole::saveToFile(const char *file_name) const
 {
-  if (!hWnd)
-    return;
   FILE *fp = fopen(file_name, "wb");
   if (fp)
   {
-    unsigned textLen = ::GetWindowTextLength(logWnd);
-    String data;
-    data.resize(textLen + 1);
-    ::GetWindowText(logWnd, data.begin(), textLen + 1);
-    fwrite((char *)data, textLen, 1, fp);
+    const String &text = formatted_text_handler.getAsString();
+    fwrite(text.c_str(), text.length(), 1, fp);
     fclose(fp);
   }
   else
   {
-    char msg[MAX_PATH + 100];
-    strcpy(msg, "Could not save log to file \"");
-    strcat(msg, file_name);
-    strcat(msg, "\".");
-    MessageBox(hWnd, msg, "Save log error", MB_OK);
+    wingw::message_box(wingw::MBS_EXCL | wingw::MBS_OK, "Save log error", "Could not save log to file \"%s\".", file_name);
   }
-}
-
-//==============================================================================
-void CoolConsole::moveOnBottom() const
-{
-  if (!parentWnd)
-    hideConsole();
-}
-
-
-//==============================================================================
-void CoolConsole::alignControls(bool align_progress_only)
-{
-  RECT clientRect;
-  ::GetClientRect(hWnd, &clientRect);
-
-  const int cw = clientRect.right;
-  const int ch = clientRect.bottom;
-
-  const int logH = ch - PROGRESS_HEIGHT - conFontHeight * 2;
-
-  if (!align_progress_only)
-  {
-    ::MoveWindow(logWnd, 0, 0, cw, logH, FALSE);
-    ::MoveWindow(progressWnd, 0, logH, cw, PROGRESS_HEIGHT, FALSE);
-    ::MoveWindow(cmdWnd, 0, ch - EDIT_HEIGHT, cw, EDIT_HEIGHT, FALSE);
-
-    const unsigned newLineCnt = ::SendMessage(logWnd, EM_GETLINECOUNT, 0, 0);
-    const unsigned visLine = ::SendMessage(logWnd, EM_GETFIRSTVISIBLELINE, 0, 0);
-
-    RECT logEditRect;
-    ::SendMessage(logWnd, EM_GETRECT, 0, (LPARAM)&logEditRect);
-
-    const unsigned windowLineCnt = (logEditRect.bottom - logEditRect.top) / conFontHeight;
-
-    const int scrollCnt = newLineCnt - visLine - windowLineCnt + 1;
-
-    ::SendMessage(logWnd, EM_LINESCROLL, 0, scrollCnt);
-  }
-  else
-  {
-    if (isProgress() && progressCb)
-    {
-      ::MoveWindow(progressWnd, 0, logH, cw - CANCEL_BUTTON_WIDTH - 1, PROGRESS_HEIGHT, FALSE);
-      ::MoveWindow(cancelBtn, cw - CANCEL_BUTTON_WIDTH, logH, CANCEL_BUTTON_WIDTH, PROGRESS_HEIGHT, FALSE);
-    }
-    else
-      ::MoveWindow(progressWnd, 0, logH, cw, PROGRESS_HEIGHT, FALSE);
-  }
-
-  ::RedrawWindow(hWnd, NULL, NULL, RDW_INVALIDATE);
 }
 
 
 //==============================================================================
 bool CoolConsole::runCommand(const char *cmd)
 {
-  String command(tmpmem);
-
-  if (cmd)
-    command = cmd;
-  else
-  {
-    const int cmdLen = (int)::SendMessage(cmdWnd, WM_GETTEXTLENGTH, 0, 0) + 1;
-
-    command.resize(cmdLen);
-    ::GetWindowText(cmdWnd, command.begin(), cmdLen);
-    command[cmdLen - 1] = 0;
-
-    ::SetWindowText(cmdWnd, NULL);
-  }
+  String command(cmd, tmpmem);
+  if (command.empty())
+    return false;
 
   if (cmdHistoryLastUnfinished)
     cmdHistory.pop_back();
@@ -823,24 +416,12 @@ bool CoolConsole::runCommand(const char *cmd)
   if (!cmdName)
     return false;
 
-  unsigned logEnd = ::GetWindowTextLength(logWnd);
-
-  if (logEnd)
-  {
-    addTextToLog("\n", 0, &logEnd);
-    ++logEnd;
-  }
-
-  addTextToLog(cmdName, CMD_COLOR, &logEnd, true);
-  logEnd += i_strlen(cmdName);
+  addTextToLog(cmdName, PropPanel::ColorOverride::CONSOLE_LOG_COMMAND_TEXT, true);
 
   for (int i = 0; i < params.size(); ++i)
   {
-    addTextToLog(" ", PARAM_COLOR, &logEnd, true);
-    ++logEnd;
-
-    addTextToLog(params[i], PARAM_COLOR, &logEnd, true);
-    logEnd += i_strlen(params[i]);
+    addTextToLog(" ", PropPanel::ColorOverride::CONSOLE_LOG_PARAMETER_TEXT, true, false);
+    addTextToLog(params[i], PropPanel::ColorOverride::CONSOLE_LOG_PARAMETER_TEXT, true, false);
   }
 
   IConsoleCmd *handler = NULL;
@@ -859,7 +440,7 @@ bool CoolConsole::runCommand(const char *cmd)
     limitOutputLinesLeft = -1;
     return true;
   }
-  addTextToLog(String(32, "\nUnknown command \"%s\"", command.c_str()), ERROR_COLOR, &logEnd);
+  addTextToLog(String(32, "Unknown command \"%s\"", command.c_str()), PropPanel::ColorOverride::CONSOLE_LOG_ERROR_TEXT);
   limitOutputLinesLeft = -1;
   return false;
 }
@@ -875,31 +456,23 @@ void CoolConsole::runHelp(const char *command)
     const char *help = handler->onConsoleCommandHelp(command);
     if (help)
     {
-      addTextToLog("\n");
-      addTextToLog(help);
+      addTextToLog(help, PropPanel::ColorOverride::CONSOLE_LOG_TEXT);
       return;
     }
   }
 
-  addTextToLog(String(32, "\nUnknown command '%s'", command));
+  addTextToLog(String(32, "Unknown command '%s'", command), PropPanel::ColorOverride::CONSOLE_LOG_ERROR_TEXT);
 }
 
 
 //==============================================================================
 void CoolConsole::runCmdList()
 {
-  addTextToLog("\nRegistered commands:");
-
-  unsigned logEnd = ::GetWindowTextLength(logWnd);
+  addTextToLog("Registered commands:", PropPanel::ColorOverride::CONSOLE_LOG_TEXT);
 
   for (int i = 0; i < cmdNames.size(); ++i)
-  {
-    addTextToLog("\n", 0, &logEnd);
-    ++logEnd;
+    addTextToLog(cmdNames[i], PropPanel::ColorOverride::CONSOLE_LOG_TEXT);
 
-    addTextToLog(cmdNames[i], 0, &logEnd);
-    logEnd += cmdNames[i].length();
-  }
   console::CommandList mlist;
   console::get_command_list(mlist);
   char cmdText[384];
@@ -907,7 +480,7 @@ void CoolConsole::runCmdList()
   for (int i = 0; i < mlist.size(); ++i)
   {
     const console::CommandStruct &cmd = mlist[i];
-    _snprintf(cmdText, sizeof(cmdText), "\n%s  ", cmd.command.str());
+    _snprintf(cmdText, sizeof(cmdText), "%s  ", cmd.command.str());
     cmdText[sizeof(cmdText) - 1] = 0;
 
     if (!cmd.argsDescription.empty())
@@ -948,58 +521,31 @@ void CoolConsole::runCmdList()
       }
     }
 
-    addTextToLog(cmdText, 0, &logEnd);
-    logEnd += strlen(cmdText);
+    addTextToLog(cmdText, PropPanel::ColorOverride::CONSOLE_LOG_TEXT);
   }
 }
 
 
 //==============================================================================
-void CoolConsole::addTextToLog(const char *text, unsigned color, const unsigned *pos, bool bold)
+void CoolConsole::addTextToLog(const char *text, int color_index, bool bold, bool start_new_line)
 {
-  CHARFORMAT fmt;
-  memset(&fmt, 0, sizeof(fmt));
-
-  fmt.cbSize = sizeof(fmt);
-  fmt.dwMask = CFM_COLOR | CFM_BOLD;
-  fmt.crTextColor = color;
-  if (bold)
-    fmt.dwEffects = CFE_BOLD;
-
-  ::SendMessage(logWnd, EM_SETCHARFORMAT, SCF_SELECTION, (LPARAM)&fmt);
-
-  CHARRANGE cr;
-  cr.cpMin = pos ? *pos : ::GetWindowTextLength(logWnd);
-  cr.cpMax = cr.cpMin;
-
-  ::SendMessage(logWnd, EM_EXSETSEL, 0, (LPARAM)&cr);
-  ::SendMessage(logWnd, EM_REPLACESEL, 0, (LPARAM)text);
-  ::SendMessage(logWnd, EM_SCROLL, SB_BOTTOM, 0);
+  ImFont *font = bold ? imgui_get_bold_font() : nullptr;
+  formatted_text_handler.addText(text, color_index, font, start_new_line);
 }
 
 
 //==============================================================================
 void CoolConsole::startProgress(IProgressCB *progress_cb)
 {
-  if (!hWnd)
-    return;
-
   progressCb = progress_cb;
 
   if (!isProgress())
   {
     lastVisible = isVisible();
     flags |= CC_PROGRESS;
-
-    ::EnableWindow(cmdWnd, FALSE);
-    ::EnableWindow(progressWnd, TRUE);
   }
 
-  showConsole(false);
-
-  ::ShowWindow(cancelBtn, progressCb ? SW_SHOW : SW_HIDE);
-  alignControls(true);
-
+  showConsole(/*activate = */ false);
   call_idle_cycle_seldom(true);
 }
 
@@ -1007,31 +553,16 @@ void CoolConsole::startProgress(IProgressCB *progress_cb)
 //==============================================================================
 void CoolConsole::endProgress()
 {
-  if (!hWnd)
-    return;
-
   flags &= ~CC_PROGRESS;
 
-  ::SendMessage(progressWnd, PBM_SETRANGE, 0, 0);
+  progressCb = nullptr;
+  progressPosition = 0;
+  progressMaxPosition = 0;
 
-  ::EnableWindow(cmdWnd, TRUE);
-  ::EnableWindow(progressWnd, FALSE);
-
-  if (progressCb)
-  {
-    ::ShowWindow(cancelBtn, SW_HIDE);
-    alignControls(true);
-  }
-
-  progressCb = NULL;
-
-  if (lastVisible)
-    ::UpdateWindow(hWnd);
-  else
-  {
+  if (!lastVisible)
     hideConsole();
-    call_idle_cycle_seldom(true);
-  }
+
+  call_idle_cycle_seldom(true);
 }
 
 
@@ -1042,7 +573,7 @@ bool CoolConsole::registerCommand(const char *cmd, IConsoleCmd *handler)
     return false;
 
   String command(cmd);
-  _strlwr((char *)command);
+  dd_strlwr((char *)command);
 
   const bool ret = commands.add(command, handler);
 
@@ -1157,46 +688,9 @@ void CoolConsole::getCmds(const char *prefix, Tab<String> &cmds) const
 
 
 //==============================================================================
-void CoolConsole::showCmdList()
-{
-  const int textLen = ::GetWindowTextLength(cmdWnd);
-  String prefix;
-
-  prefix.resize(textLen + 1);
-
-  ::GetWindowText(cmdWnd, prefix.begin(), textLen);
-
-  int i = prefix.length() - 1;
-
-  if (i < 0 || prefix[i] != '\t')
-    return;
-
-  debug("prefix = %s", (const char *)prefix);
-
-  while (i >= 0 && prefix[i] == '\t')
-    prefix[i--] = 0;
-
-  ::SetWindowText(cmdWnd, prefix);
-
-  Tab<String> cmds(tmpmem);
-
-  getCmds(prefix, cmds);
-
-  RECT rect;
-  ::GetWindowRect(cmdWnd, &rect);
-
-  const int w = rect.right - rect.left;
-
-  ::MoveWindow(cmdListWnd, rect.left, rect.bottom, w, 30, TRUE);
-  ::ShowWindow(cmdListWnd, SW_SHOW);
-}
-
-
-//==============================================================================
 void CoolConsole::setActionDescFmt(const char *desc, const DagorSafeArg *arg, int anum)
 {
   addMessageFmt(NOTE, desc, arg, anum);
-  ::UpdateWindow(hWnd);
   call_idle_cycle_seldom();
 }
 
@@ -1204,8 +698,8 @@ void CoolConsole::setActionDescFmt(const char *desc, const DagorSafeArg *arg, in
 //==============================================================================
 void CoolConsole::setTotal(int total_cnt)
 {
-  ::SendMessage(progressWnd, PBM_SETRANGE, 0, MAKELPARAM(0, total_cnt));
-  ::UpdateWindow(progressWnd);
+  progressMaxPosition = total_cnt;
+  progressPosition = clamp(progressPosition, 0, progressMaxPosition);
   call_idle_cycle_seldom(true);
 }
 
@@ -1213,8 +707,7 @@ void CoolConsole::setTotal(int total_cnt)
 //==============================================================================
 void CoolConsole::setDone(int done_cnt)
 {
-  ::SendMessage(progressWnd, PBM_SETPOS, done_cnt, 0);
-  ::UpdateWindow(progressWnd);
+  progressPosition = clamp(done_cnt, 0, progressMaxPosition);
   call_idle_cycle_seldom(done_cnt == 0);
 }
 
@@ -1222,7 +715,146 @@ void CoolConsole::setDone(int done_cnt)
 //==============================================================================
 void CoolConsole::incDone(int inc)
 {
-  ::SendMessage(progressWnd, PBM_DELTAPOS, inc, 0);
-  ::UpdateWindow(progressWnd);
+  progressPosition = clamp(progressPosition + inc, 0, progressMaxPosition);
   call_idle_cycle_seldom();
+}
+
+
+void CoolConsole::renderLogTextUI(float height)
+{
+  const char *consoleOutputLabel = "##consoleOutput";
+  ImGui::PushStyleColor(ImGuiCol_ChildBg, PropPanel::getOverriddenColor(PropPanel::ColorOverride::CONSOLE_LOG_BACKGROUND));
+  ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding,
+    ImVec2(ImGui::GetStyle().WindowPadding.x * 0.5f, ImGui::GetStyle().WindowPadding.y * 0.5f));
+  ImGui::BeginChild(consoleOutputLabel, ImVec2(0.0f, height), ImGuiChildFlags_AlwaysUseWindowPadding);
+  ImGui::PopStyleVar();
+  ImGui::PopStyleColor();
+
+  const bool scrollbarAtBottom = ImGui::GetScrollY() >= ImGui::GetScrollMaxY();
+  formatted_text_handler.updateImgui();
+  if (scrollToBottomOnShow || scrollbarAtBottom)
+  {
+    // Repeat it in the next frame too if the window just appeared. Otherwise it does not work in docked windows...
+    // Here we are repeating instead of just delaying scrolling to prevent possible flicker in non-docked mode.
+    if (!justMadeVisible)
+      scrollToBottomOnShow = false;
+    ImGui::SetScrollHereY(1.0f);
+  }
+
+  if (formatted_text_handler.hasSelection() && ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_C))
+    ImGui::SetClipboardText(formatted_text_handler.getSelectionAsString());
+
+  if (ImGui::BeginPopupContextWindow(consoleOutputLabel))
+  {
+    if (formatted_text_handler.hasSelection() && ImGui::MenuItem("Copy", "Ctrl+C"))
+      ImGui::SetClipboardText(formatted_text_handler.getSelectionAsString());
+    if (ImGui::MenuItem("Copy all"))
+      ImGui::SetClipboardText(formatted_text_handler.getAsString());
+    ImGui::Separator();
+    if (ImGui::MenuItem("Clear"))
+      clearConsole();
+    ImGui::EndPopup();
+  }
+
+  ImGui::EndChild();
+}
+
+void CoolConsole::renderCommandInputUI()
+{
+  ImGui::SetNextItemWidth(-FLT_MIN);
+
+  const ImGuiInputTextFlags textFlags = ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_CallbackHistory;
+  const bool enterPressed = ImGuiDagor::InputTextWithHint(
+    "##command", "Command", &commandInputText, textFlags,
+    [](ImGuiInputTextCallbackData *data) {
+      CoolConsole *instance = static_cast<CoolConsole *>(data->UserData);
+
+      if (data->EventFlag & ImGuiInputTextFlags_CallbackHistory)
+      {
+        if (data->EventKey == ImGuiKey_UpArrow)
+        {
+          const String prevCmd = instance->onCmdArrowKey(true, instance->commandInputText);
+          if (!prevCmd.empty())
+          {
+            data->DeleteChars(0, data->BufTextLen);
+            data->InsertChars(0, prevCmd);
+          }
+        }
+        else if (data->EventKey == ImGuiKey_DownArrow)
+        {
+          data->DeleteChars(0, data->BufTextLen);
+          const String nextCmd = instance->onCmdArrowKey(false, instance->commandInputText);
+          data->InsertChars(0, nextCmd);
+        }
+      }
+      return 0;
+    },
+    this);
+
+  const ImGuiID inputId = ImGui::GetItemID();
+
+  // Delay initial focus for one frame as a workaround for focusing not working on just opened docked windows.
+  // See: https://github.com/ocornut/imgui/issues/5289
+  if ((activateOnShow || enterPressed) && !justMadeVisible)
+  {
+    activateOnShow = false;
+    ImGui::SetKeyboardFocusHere(-1);
+  }
+
+  if (enterPressed) // Some commands might display PropPanel dialogs, so we can't execute the command immediately from the ImGui frame.
+    PropPanel::request_delayed_callback(*this);
+  else if (ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows) && isCanClose() && !isProgress() &&
+           ImGui::Shortcut(ImGuiKey_Escape, ImGuiInputFlags_None, inputId))
+    hideConsole();
+}
+
+//==============================================================================
+void CoolConsole::onImguiDelayedCallback(void *user_data)
+{
+  runCommand(commandInputText);
+  commandInputText.clear();
+}
+
+//==============================================================================
+void CoolConsole::updateImgui()
+{
+  const float separatorHeight = ImGui::GetStyle().ItemSpacing.y;
+  const float inputHeight = ImGui::GetFrameHeightWithSpacing(); // the progress bar has the same height
+  const bool showProgressBar = isProgress() || progressMaxPosition > 0;
+  const float progressBarHeight = showProgressBar ? (separatorHeight + inputHeight) : 0.0f;
+  const float height = progressBarHeight + separatorHeight + inputHeight;
+
+  renderLogTextUI(-height);
+
+  if (showProgressBar)
+  {
+    float progress = 0.0f;
+    if (progressMaxPosition > 0)
+      progress = static_cast<float>(progressPosition) / progressMaxPosition;
+
+    ImGui::Separator();
+
+    // PropPanel::ImguiHelper::getButtonSize()
+    const char *buttonLabel = "Cancel";
+    const ImVec2 labelSize = ImGui::CalcTextSize(buttonLabel);
+    const ImVec2 buttonSize = ImGui::CalcItemSize(ImVec2(0.0f, 0.0f), labelSize.x + ImGui::GetStyle().FramePadding.x * 2.0f,
+      labelSize.y + ImGui::GetStyle().FramePadding.y * 2.0f);
+
+    ImGui::PushStyleColor(ImGuiCol_FrameBg, PropPanel::getOverriddenColor(PropPanel::ColorOverride::CONSOLE_PROGRESS_BAR_BACKGROUND));
+    ImGui::PushStyleColor(ImGuiCol_PlotHistogram, PropPanel::getOverriddenColor(PropPanel::ColorOverride::CONSOLE_PROGRESS_BAR));
+    ImGui::ProgressBar(progress, ImVec2(progressCb ? -buttonSize.x : -FLT_MIN, 0), "");
+    ImGui::PopStyleColor(2);
+
+    if (progressCb)
+    {
+      ImGui::SameLine();
+      if (ImGui::Button(buttonLabel))
+        progressCb->onCancel();
+    }
+  }
+
+  ImGui::Separator();
+  renderCommandInputUI();
+
+  justMadeVisible = false;
 }

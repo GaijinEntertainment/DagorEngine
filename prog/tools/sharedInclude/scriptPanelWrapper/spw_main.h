@@ -29,7 +29,7 @@ class CSQPanelWrapper : public PropPanel::ControlEventHandler, public FileUpdate
 {
 public:
   CSQPanelWrapper(PropPanel::ContainerPropertyControl *panel);
-  virtual ~CSQPanelWrapper();
+  ~CSQPanelWrapper() override;
 
   bool bindScript(const char script[]);
   bool setDataBlock(DataBlock *blk); // call it AFTER bindScript
@@ -57,13 +57,13 @@ protected:
   void init();
 
   // ControlEventHandler
-  virtual long onChanging(int pcb_id, PropPanel::ContainerPropertyControl *panel);
-  virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel);
-  virtual void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel);
-  virtual void onPostEvent(int pcb_id, PropPanel::ContainerPropertyControl *panel);
+  long onChanging(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
+  void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
+  void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
+  void onPostEvent(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
 
   // FileUpdateCallback
-  virtual void UpdateFile();
+  void UpdateFile() override;
 
   SquirrelVMSys *createCleanVM();
 

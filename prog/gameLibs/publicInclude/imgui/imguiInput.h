@@ -24,5 +24,4 @@ bool imgui_in_hybrid_input_mode();
 void imgui_use_hybrid_input_mode(bool);
 void imgui_switch_state();
 void imgui_switch_overlay();
-void imgui_set_viewport_offset(int offsetX, int offsetY);
 void imgui_draw_mouse_cursor(bool draw_mouse_cursor);

@@ -1,5 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#include "shLog.h"
+
 #include <shaders/shFunc.h>
 #include <debug/dag_debug.h>
 #include <math/dag_color.h>
@@ -142,6 +144,36 @@ shexpr::ValueType getValueType(FunctionId func)
   return shexpr::VT_UNDEFINED;
 }
 
+bool getValueTypeIsInteger(FunctionId func)
+{
+  switch (func)
+  {
+    case BF_TIME_PHASE:
+    case BF_SIN:
+    case BF_COS:
+    case BF_POW:
+    case BF_FSEL:
+    case BF_SQRT:
+    case BF_MIN:
+    case BF_MAX:
+    case BF_ANIM_FRAME:
+    case BF_WIND_COEFF:
+    case BF_VECPOW:
+    case BF_SRGBREAD:
+    case BF_FADE_VAL:
+    case BF_GET_DIMENSIONS:
+    case BF_GET_SIZE:
+    case BF_GET_VIEWPORT:
+    case BF_REQUEST_SAMPLER: return false;
+
+    case BF_EXISTS_TEX:
+    case BF_EXISTS_BUF: return true;
+
+    default: G_ASSERT(0);
+  }
+  return false;
+}
+
 static Color4 anim_frame(float arg0, float arg1, float arg2, float arg3)
 {
   // arg0 - 0..1 - frame index
@@ -150,7 +182,8 @@ static Color4 anim_frame(float arg0, float arg1, float arg2, float arg3)
   int total = (int)arg3; // 3 - total frame count
   if (!x || !y || !total)
   {
-    DAG_FATAL("invalid arguments in shader function 'anim_frame(%.4f, %d, %d, %d)'", arg0, x, y, total);
+    sh_debug(SHLOG_ERROR, "invalid arguments in shader function 'anim_frame(%.4f, %d, %d, %d)'", arg0, x, y, total);
+    return {};
   }
   int picture = (int)(arg0 * (total - 1));
 
@@ -179,7 +212,8 @@ bool evaluate(FunctionId func, Color4 &res, const ArgList &args)
 
       if (x < 0)
       {
-        DAG_FATAL("invalid arguments in shader function 'sqrt(%.4f)'", x);
+        sh_debug(SHLOG_ERROR, "invalid arguments in shader function 'sqrt(%.4f)'", x);
+        return false;
       }
 
       res.r = sqrtf(x);
@@ -189,7 +223,7 @@ bool evaluate(FunctionId func, Color4 &res, const ArgList &args)
     case BF_MAX: res.r = max(args[0].val.r, args[1].val.r); break;
     case BF_ANIM_FRAME: res = anim_frame(args[0].val.r, args[1].val.r, args[2].val.r, args[3].val.r); break;
     case BF_FSEL: res.r = fsel(args[0].val.r, args[1].val.r, args[2].val.r); break;
-    default: DAG_FATAL("evaluate - no code for evaluate: id=%d name='%s'", func, getFuncName(func));
+    default: G_ASSERTF(0, "evaluate - no code for evaluate: id=%d name='%s'", func, getFuncName(func));
   }
   return true;
 }

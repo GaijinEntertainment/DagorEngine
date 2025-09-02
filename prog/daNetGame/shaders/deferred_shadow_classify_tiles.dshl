@@ -9,6 +9,7 @@ shader deferred_shadow_classify_tiles
     dont_render;
   }
 
+  ENABLE_ASSERT(cs)
   INIT_LOAD_GBUFFER_BASE(cs)
   USE_LOAD_GBUFFER_BASE(cs, 0)
   USE_EMISSION_DECODE_COLOR_MAP(cs)
@@ -19,6 +20,7 @@ shader deferred_shadow_classify_tiles
     depth_bounds@f2 = depth_bounds;
     downsampled_close_depth_tex@tex2d = downsampled_close_depth_tex;
     downsampled_far_depth_tex@tex2d = downsampled_far_depth_tex;
+    half_res@f2 = get_dimensions(downsampled_close_depth_tex, 0);
   }
 
   if (dynamic_lights_count != lights_off)
@@ -45,9 +47,12 @@ shader deferred_shadow_classify_tiles
 
     float2 get_raw_depth_range_2x2(uint2 conner_pix_coords)
     {
+      uint2 halfCoord = conner_pix_coords/2;
+      if (any(halfCoord >= half_res))
+        return float2(1, 0);
       return float2(
-        texelFetch(downsampled_close_depth_tex, conner_pix_coords/2, 0).x,
-        texelFetch(downsampled_far_depth_tex, conner_pix_coords/2, 0).x);
+        texelFetch(downsampled_close_depth_tex, halfCoord, 0).x,
+        texelFetch(downsampled_far_depth_tex, halfCoord, 0).x);
     }
 
     uint get_feature_bits_for_range(uint2 light_tile_id, float2 rawDepthRange)
@@ -183,7 +188,7 @@ shader deferred_shadow_prepare_indirect_args
     {
       for (int i = 0; i < RESOLVE_GBUFFER_MAX_PERMUTATIONS; ++i)
       {
-        uint count = g_tile_counters.Load(4 * i);
+        uint count = loadBuffer(g_tile_counters, 4 * i);
         storeBuffer3(g_indirect_arguments, 4 * (3 * i), uint3(count, 1, 1));
         storeBuffer(g_tile_counters, 4 * i, 0u);
       }

@@ -30,7 +30,7 @@ static __forceinline void shadow_occlusion_render_debug_es(const ecs::UpdateStag
   begin_draw_cached_debug_lines();
   animchar_shadow_cull_bounds_debug_render_ecs_query(
     [&](const bbox3f &animchar_shadow_cull_bbox,
-      const uint8_t animchar_visbits ECS_REQUIRE(eastl::true_type animchar_render__enabled)) {
+      const animchar_visbits_t animchar_visbits ECS_REQUIRE(eastl::true_type animchar_render__enabled)) {
       if (!(animchar_visbits & VISFLG_MAIN_VISIBLE) || is_bbox_visible_in_shadows(animCharShadowOcclMgr, animchar_shadow_cull_bbox))
         return;
       BBox3 box;

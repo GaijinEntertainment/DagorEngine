@@ -4,7 +4,9 @@
 //
 #pragma once
 
+#include <memory/dag_genMemAlloc.h>
 #include <generic/dag_tabSort.h>
+#include <generic/dag_smallTab.h>
 #include <math/dag_Point3.h>
 #include <math/dag_Point4.h>
 #include <math/integer/dag_IPoint2.h>
@@ -26,7 +28,7 @@ float rasterize_poly(BitMask &out_bm, float &out_ofs_x, float &out_ofs_z, dag::C
 {
   BBox2 polyBBox;
   polyBBox.setempty();
-  TabSortedInline<float, FloatCmpLambda> pos(tmpmem);
+  TabSortedInline<float, FloatCmpLambda> pos{tmpmem};
   SmallTab<Point4, TmpmemAlloc> seg;
   Point3 p0, p1;
 

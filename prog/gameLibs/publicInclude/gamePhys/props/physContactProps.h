@@ -11,6 +11,7 @@ namespace physmat
 struct PhysContactProps
 {
   bool removePhysContact = true;
+  bool forcedSliding = false;
 
   void load(const DataBlock *blk);
   static const PhysContactProps *get_props(int prop_id);

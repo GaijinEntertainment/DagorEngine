@@ -2,6 +2,7 @@
 
 #include <startup/dag_startupTex.h>
 #include <gameRes/dag_stdGameRes.h>
+#include <gameRes/dag_gameResources.h>
 #include <3d/dag_texMgr.h>
 #include <generic/dag_span.h>
 #include <util/dag_globDef.h>
@@ -10,6 +11,7 @@ void init_shaders() {}
 
 void init_res_factories()
 {
+  ::set_gameres_undefined_res_loglevel(LOGLEVEL_ERR);
   ::register_common_game_tex_factories();
   ::set_default_tex_factory(get_stub_tex_factory());
   ::register_geom_node_tree_gameres_factory();

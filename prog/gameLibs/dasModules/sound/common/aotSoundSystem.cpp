@@ -18,9 +18,11 @@ public:
     // functions
     SND_BIND_FUN(have_sound, das::SideEffects::accessExternal);
     SND_BIND_FUN(get_listener_pos, das::SideEffects::accessExternal);
+    SND_BIND_FUN(get_listener_up, das::SideEffects::accessExternal);
     SND_BIND_FUN(sound_update_listener, das::SideEffects::modifyExternal);
     SND_BIND_FUN(sound_reset_3d_listener, das::SideEffects::modifyExternal);
     SND_BIND_FUN(sound_banks_is_preset_loaded, das::SideEffects::accessExternal);
+    SND_BIND_FUN(sound_banks_is_master_preset_loaded, das::SideEffects::accessExternal);
     SND_BIND_FUN(sound_debug, das::SideEffects::modifyExternal);
     SND_BIND_FUN(sound_enable_distant_delay, das::SideEffects::modifyExternal);
     SND_BIND_FUN(sound_release_delayed_events, das::SideEffects::modifyExternal);
@@ -31,6 +33,8 @@ public:
     SND_BIND_FUN(sound_banks_is_preset_exist, das::SideEffects::accessExternal);
     SND_BIND_FUN(sound_debug_enum_events, das::SideEffects::accessExternal);
     SND_BIND_FUN(sound_debug_enum_events_in_bank, das::SideEffects::modifyArgumentAndAccessExternal);
+    SND_BIND_FUN(sound_init_ri_occluders, das::SideEffects::modifyExternal);
+    SND_BIND_FUN(sound_debug_get_sound_occlusion, das::SideEffects::accessExternal);
 
     verifyAotReady();
   }

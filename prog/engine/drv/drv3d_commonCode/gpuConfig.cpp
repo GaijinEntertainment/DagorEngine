@@ -1,7 +1,8 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "gpuConfig.h"
-#include "gpuVendor.h"
+#include "gpuVendorAmd.h"
+#include "gpuVendorNvidia.h"
 
 
 #include <memory/dag_framemem.h>
@@ -33,12 +34,12 @@ void (*update_gpu_driver_config)(GpuDriverConfig &) = [](GpuDriverConfig &) {};
 
 #if _TARGET_PC_WIN
 #if HAS_NVAPI
-static bool verify_nvidia_settings(int active_vendor, const GpuVideoSettings &video, GpuDriverConfig &out_cfg)
+static bool verify_nvidia_settings(GpuVendor active_vendor, const GpuVideoSettings &video, GpuDriverConfig &out_cfg)
 {
   if (!init_nvapi())
     return false;
 
-  if (active_vendor != D3D_VENDOR_NVIDIA)
+  if (active_vendor != GpuVendor::NVIDIA)
     return true;
 
   NvLogicalGpuHandle nvLogicalGPUHandle[NVAPI_MAX_LOGICAL_GPUS] = {0};
@@ -137,7 +138,7 @@ static bool verify_nvidia_settings(int active_vendor, const GpuVideoSettings &vi
 #pragma warning(disable : 4191)
 #endif
 
-static bool verify_ati_settings(int active_vendor, const GpuVideoSettings &video, GpuDriverConfig &out_cfg)
+static bool verify_ati_settings(GpuVendor active_vendor, const GpuVideoSettings &video, GpuDriverConfig &out_cfg)
 {
   if (!init_ati())
     return false;
@@ -165,7 +166,7 @@ static bool verify_ati_settings(int active_vendor, const GpuVideoSettings &video
     return false;
   }
 
-  if (active_vendor != D3D_VENDOR_ATI)
+  if (active_vendor != GpuVendor::ATI)
     return true;
 
   AdapterInfo *adapterInfo = new AdapterInfo[numAdapters];
@@ -282,7 +283,7 @@ static void check_intel_driver(const GpuVideoSettings &video, const char *gpu_de
   G_UNREFERENCED(gpu_desc);
   G_UNREFERENCED(video);
 
-  // sbuffers (on effects specifically) broken right now on most intel drivers (https://youtrack.gaijin.ru/issue/1-89481)
+  // sbuffers (on effects specifically) broken right now on most intel drivers
   // falling back to non-sbuffer (tbuffer for example)
   out_cfg.disableSbuffers = true;
   const uint32_t version = driver_version[2] * 10000u + driver_version[3];
@@ -315,7 +316,7 @@ static void check_intel_driver(const GpuVideoSettings &video, const char *gpu_de
                                                                            // be no updates.
         {                                                                  // Workaround tested only on compatibility.
           out_cfg.fallbackToCompatibilty = out_cfg.forceDx10 = true;
-          debug("Fallback to compatibilty and force DX10 on D3D_FEATURE_LEVEL_10_1 Intel (hr=0x%08x, supportedFeatureLevel=0x%08x).",
+          debug("Fallback to compatibility and force DX10 on D3D_FEATURE_LEVEL_10_1 Intel (hr=0x%08x, supportedFeatureLevel=0x%08x).",
             hr, supportedFeatureLevel);
         }
 
@@ -327,7 +328,7 @@ static void check_intel_driver(const GpuVideoSettings &video, const char *gpu_de
           if (FAILED(hr)) // SBuffers are broken on DX11 Intels, tested on 20.19.15.5166
           {               // All Intels on Windows 7 will be affected by this workaround, perhaps it is too strict.
             out_cfg.fallbackToCompatibilty = out_cfg.forceDx10 = out_cfg.disableSbuffers = true; //-V1048
-            debug("Fallback to compatibilty and force DX10 on D3D_FEATURE_LEVEL_11 or Win7 Intel (hr=0x%08x)", hr);
+            debug("Fallback to compatibility and force DX10 on D3D_FEATURE_LEVEL_11 or Win7 Intel (hr=0x%08x)", hr);
           }
         }
       }
@@ -386,11 +387,6 @@ static void check_ati_driver(const GpuVideoSettings &video, const char *gpu_desc
     debug("Fallback to compatibility on outdated ATI driver.");
   }
 
-  // disable mesh streaming due to bug
-  // https://youtrack.gaijin.team/issue/1-117527/Graphical-artifacts-during-tank-battles-with-Radeon-GPU
-  // TODO: actual fix
-  out_cfg.disableMeshStreaming = true;
-
   out_cfg.gradientWorkaroud = strstr(gpu_desc, "radeon hd 3");
   if (out_cfg.gradientWorkaroud)
     debug("'Radeon HD 3' detected, gradientWorkaroud enabled");
@@ -439,36 +435,38 @@ static void check_nvidia_driver(const GpuVideoSettings &video, const char *gpu_d
   mac_get_model(macModel);
   debug("Mac nvidia check: model=%s web driver=%d code=%c%c%c%c", macModel.str(), macWebDriver, _DUMP4C(video.drvCode.asFourCC()));
 #endif
+  out_cfg.flushBeforeSepAblendAndBlendFactorForRT1 = String(gpu_desc).toLower().find("rtx 50") != nullptr;
 }
 
-static void check_gpu_driver(const GpuVideoSettings &video, int active_vendor, const String &gpu_desc, const uint32_t driver_version[],
-  const DagorDateTime &driver_date, GpuDriverConfig &out_cfg)
+static void check_gpu_driver(const GpuVideoSettings &video, GpuVendor active_vendor, const String &gpu_desc,
+  const uint32_t driver_version[], const DagorDateTime &driver_date, GpuDriverConfig &out_cfg)
 {
   if (video.ignoreOutdatedDriver)
     return;
 
   switch (active_vendor)
   {
-    case D3D_VENDOR_INTEL: check_intel_driver(video, gpu_desc.str(), driver_version, driver_date, out_cfg); break;
-    case D3D_VENDOR_ATI: check_ati_driver(video, gpu_desc.str(), driver_version, driver_date, out_cfg); break;
-    case D3D_VENDOR_NVIDIA: check_nvidia_driver(video, gpu_desc.str(), driver_version, driver_date, out_cfg); break;
-    case D3D_VENDOR_SHIM_DRIVER: // Actual driver is hidden behind the shim driver, assume the worst and apply basic Intel workarounds.
+    case GpuVendor::INTEL: check_intel_driver(video, gpu_desc.str(), driver_version, driver_date, out_cfg); break;
+    case GpuVendor::ATI: check_ati_driver(video, gpu_desc.str(), driver_version, driver_date, out_cfg); break;
+    case GpuVendor::NVIDIA: check_nvidia_driver(video, gpu_desc.str(), driver_version, driver_date, out_cfg); break;
+    case GpuVendor::SHIM_DRIVER: // Actual driver is hidden behind the shim driver, assume the worst and apply basic Intel workarounds.
     {
       uint32_t noDriverVersion[4] = {0};
       DagorDateTime noDriverDate = {0};
       check_intel_driver(video, gpu_desc.str(), noDriverVersion, noDriverDate, out_cfg);
     }
     break;
+    default: break;
   }
 
-    // sbuffers (on effects specifically) broken right now on some metal hardware, was found on various vendors and drivers
-    // (https://youtrack.gaijin.team/issue/1-99630) falling back to non-sbuffer (tbuffer for example)
+    // sbuffers (on effects specifically) broken right now on some metal hardware, was found on various vendors and drivers falling
+    // back to non-sbuffer (tbuffer for example)
 #if _TARGET_PC_MACOSX
   out_cfg.disableSbuffers = true;
 #endif
 
   // Some drivers (ATI on XP) are not updated since late 2013.
-  // Do not fallback to compatibilty if there are no bugs reported on specific driver version.
+  // Do not fallback to compatibility if there are no bugs reported on specific driver version.
   if (driver_date.year > 0 && driver_date.year < 2013)
   {
     out_cfg.outdatedDriver = true;
@@ -568,7 +566,7 @@ static void update_gpu_settings()
     gpu_driver_config.fallbackToCompatibilty = true;
   }
 
-  if (gpu_driver_config.primaryVendor == D3D_VENDOR_NONE)
+  if (gpu_driver_config.primaryVendor == GpuVendor::UNKNOWN)
   {
     update_gpu_driver_config(gpu_driver_config);
   }
@@ -581,22 +579,27 @@ void d3d_apply_gpu_settings(const GpuVideoSettings &video)
 
   String gpuDescription;
   DagorDateTime gpuDriverDate = {0};
-  int activeVendor =
+  GpuVendor activeVendor =
     d3d::guess_gpu_vendor(&gpuDescription, gpu_driver_config.driverVersion, &gpuDriverDate, &gpu_driver_config.deviceId);
   gpuDescription.toLower();
 
   // Verify vendor user settings
-  gpu_driver_config.primaryVendor = D3D_VENDOR_NONE;
+  gpu_driver_config.primaryVendor = GpuVendor::UNKNOWN;
 #if _TARGET_PC_WIN
 #if HAS_NVAPI
   if (verify_nvidia_settings(activeVendor, video, gpu_driver_config))
-    gpu_driver_config.primaryVendor = D3D_VENDOR_NVIDIA;
+    gpu_driver_config.primaryVendor = GpuVendor::NVIDIA;
 #endif
-  if (gpu_driver_config.primaryVendor == D3D_VENDOR_NONE && verify_ati_settings(activeVendor, video, gpu_driver_config))
-    gpu_driver_config.primaryVendor = D3D_VENDOR_ATI;
+  if (gpu_driver_config.primaryVendor == GpuVendor::UNKNOWN && verify_ati_settings(activeVendor, video, gpu_driver_config))
+    gpu_driver_config.primaryVendor = GpuVendor::ATI;
 #endif
-  if (gpu_driver_config.primaryVendor == D3D_VENDOR_NONE)
+  if (gpu_driver_config.primaryVendor == GpuVendor::UNKNOWN)
     gpu_driver_config.primaryVendor = activeVendor;
+
+#if _TARGET_PC_WIN && _TARGET_C4
+  // Windows Store apps require Full Screen Windowed mode
+  gpu_driver_config.forceFullscreenToWindowed = true;
+#endif
 
 #if _TARGET_PC
   check_mem(video, gpu_driver_config);
@@ -606,19 +609,19 @@ void d3d_apply_gpu_settings(const GpuVideoSettings &video)
   check_gpu_driver(video, activeVendor, gpuDescription, gpu_driver_config.driverVersion, gpuDriverDate, gpu_driver_config);
 
   // Test vendors on bugs
-  if (activeVendor == D3D_VENDOR_INTEL && gpu_driver_config.primaryVendor != activeVendor)
+  if (activeVendor == GpuVendor::INTEL && gpu_driver_config.primaryVendor != activeVendor)
   {
     debug("Integrated GPU selected in switchable configuration (activeGpuVendor=%s, haveNvidia=%d)", d3d_get_vendor_name(activeVendor),
-      (int)(gpu_driver_config.primaryVendor == D3D_VENDOR_NVIDIA));
+      (int)(gpu_driver_config.primaryVendor == GpuVendor::NVIDIA));
     gpu_driver_config.usedSlowIntegrated = true;
     gpu_driver_config.usedSlowIntegratedSwitchableGpu = true;
   }
-  else if (gpu_driver_config.primaryVendor == D3D_VENDOR_INTEL)
+  else if (gpu_driver_config.primaryVendor == GpuVendor::INTEL)
     // In dx11 the gpu type (integrated/dedicated) cannot be detected. Newer dedicated intel gpus
     // all use dx12, so here if the vendor is intel, we can assume that the gpu is an integrated one.
     gpu_driver_config.usedSlowIntegrated = true;
 
-  if (gpu_driver_config.integrated && activeVendor == D3D_VENDOR_INTEL && video.drvCode.is(d3d::dx11))
+  if (gpu_driver_config.integrated && activeVendor == GpuVendor::INTEL && video.drvCode.is(d3d::dx11))
   {
     // On some intels we have problems with z testing if the texture with a depth format was written manually or updated
     // from some other texture

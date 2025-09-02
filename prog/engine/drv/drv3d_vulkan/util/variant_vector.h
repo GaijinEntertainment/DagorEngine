@@ -21,13 +21,7 @@ class VariantVector
   size_t totalSize = 0;
   size_t fillSize = 0;
   eastl::unique_ptr<AtomicType[]> store;
-  void tidy()
-  {
-    size_t pos = 0;
-    while (pos < fillSize)
-      pos += destroyAt(pos);
-    fillSize = 0;
-  }
+  void tidy() { fillSize = 0; }
   void copyFrom(const VariantVector &other)
   {
     grow(other.fillSize);
@@ -135,10 +129,12 @@ class VariantVector
   // Builds an optimized handler that tries to simplifies stuff if they are trivial
   // Second param is to prevent full specialization, as its not allowed in class scope
   template <typename T, bool>
-  struct TypeHandler : TypeHandlerDestructor<T, eastl::is_trivially_destructible<T>::value>,
+  struct TypeHandler : TypeHandlerDestructor<T, true>,
                        TypeHandlerCopyConstructor<T, eastl::is_trivially_copy_constructible<T>::value>,
                        TypeHandlerMoveConstructor<T, eastl::is_trivially_move_constructible<T>::value>
   {
+    // force only trivially destructible types to do fast clear
+    static_assert(eastl::is_trivially_destructible<T>::value == true);
     template <typename U>
     static size_t callOp(void *self, U &u)
     {

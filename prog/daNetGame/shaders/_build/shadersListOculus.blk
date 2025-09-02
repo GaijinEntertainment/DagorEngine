@@ -19,7 +19,6 @@
   file:t = "../shadows_downsample.dshl"
   file:t = "../antialiasing.dshl"
   file:t = "../grass_generate.dshl"
-  file:t = "../rendinst_impostor.dshl"
   file:t = "../generate_imp_mipmaps.dshl"
   file:t = "../rendinst_layered.dshl"
   file:t = "../rendinst_simple.dshl"
@@ -28,8 +27,6 @@
   file:t = "../rendinst_vcolor_layered.dshl"
   file:t = "../rendinst_cliff.dshl"
   file:t = "../rendinst_metatex.dshl"
-  file:t = "../rendinst_vegetation.dshl"
-  file:t = "../rendinst_tree_perlin_layered.dshl"
   file:t = "../clipmap_compression.dshl"
   file:t = "../make_clipmap.dshl"
   file:t = "clipmap_histogram.dshl"
@@ -58,9 +55,7 @@
   file:t = "../yuv.dshl"        //for movie player (FMV and GUI)
 
   file:t = "../apply_lowres_fx.dshl"
-  file:t = "../dafx_lib.dshl"
-  file:t = "../2dparts.dshl"
-  file:t = "../distance_field.dshl"
+  file:t = "distance_field.dshl"
 
   file:t = "depth_above_blur.dshl"
   file:t = "mip_blur_filters.dshl"
@@ -68,13 +63,22 @@
   file:t = "bc4_compression.dshl"
   file:t = "../bc6h_high_quality_cs.dshl"
   file:t = "../node_based_shader_vars.dshl"
-  file:t = "../light_probes_clusterization.dshl"
+  file:t = "light_probes_clusterization.dshl"
   file:t = "texture_util.dshl"
   file:t = "gpu_objects_placer.dshl"
   file:t = "dafx_sparks.dshl"
   file:t = "dafx_modfx.dshl"
   file:t = "dafx_frame_boundary.dshl"
   file:t = "modfx_bboard_render.dshl"
+  file:t = "modfx_bboard_render_xray.dshl"
+  file:t = "modfx_bboard_distortion.dshl"
+  file:t = "modfx_bboard_fom.dshl"
+  file:t = "modfx_bboard_rain.dshl"
+  file:t = "modfx_bboard_ribbon.dshl"
+  file:t = "modfx_bboard_thermal.dshl"
+  file:t = "modfx_bboard_volshape.dshl"
+  file:t = "modfx_bboard_volfog.dshl"
+  file:t = "modfx_bvh.dshl"
   file:t = "antialiasing_fxaa.dshl"
   file:t = "tiledLights.dshl"
   file:t = "find_max_depth_2d.dshl"
@@ -84,8 +88,8 @@
   file:t = "hudprim/gui_aces.dshl"
   file:t = "../rendinst_clipmap.dshl"
   file:t = "../heightmap_patches.dshl"
-  file:t = "../heightmap_holes.dshl"
-  file:t = "../motion_vectors_resolve.dshl"
+  file:t = "../../../gameLibs/groundHolesCore/render/shaders/heightmap_holes.dshl"
+  file:t = "../motion_vec_resolve_and_envi_cover.dshl"
   file:t = "../bbox_occlusion.dshl"
   file:t = "scrollShadow.dshl"
   file:t = "../../../prog/engine/imgui/imgui.dshl"
@@ -100,5 +104,6 @@
 
   include fftWaterList.blk
   include renderLibsList.blk
+  include rendinstImpostorbakeableShadersList.blk
 
   file:t = "../resolve_thin_g_buffer.dshl"

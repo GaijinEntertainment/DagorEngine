@@ -28,6 +28,9 @@ namespace das {
     }
 
     class SetSideEffectVisitor : public Visitor {
+        virtual bool canVisitFunction ( Function * fun ) override {
+            return !fun->isTemplate;    // we don't do a thing with templates
+        }
         // any expression
         virtual void preVisitExpression ( Expression * expr ) override {
             Visitor::preVisitExpression(expr);
@@ -38,6 +41,9 @@ namespace das {
 
     class NoSideEffectVisitor : public Visitor {
     protected:
+        virtual bool canVisitFunction ( Function * fun ) override {
+            return !fun->isTemplate;    // we don't do a thing with templates
+        }
         // virtual bool canVisitStructureFieldInit ( Structure * ) override { return false; }
         // virtual bool canVisitArgumentInit ( Function * , const VariablePtr &, Expression * ) override { return false; }
         // virtual bool canVisitQuoteSubexpression ( ExprQuote * ) override { return false; }
@@ -424,6 +430,9 @@ namespace das {
     public:
         vector<Function *> needRun;
     protected:
+        virtual bool canVisitFunction ( Function * fun ) override {
+            return !fun->isTemplate;    // we don't do a thing with templates
+        }
         // function which is fully a nop
         bool isNop ( const FunctionPtr & func ) {
             if ( func->builtIn ) return false;
@@ -685,7 +694,7 @@ namespace das {
                 for ( uint32_t i=1; i!=numArgs; ++i ) {
                     pCall->arguments.push_back( cloneWithType(expr->arguments[i]) );
                 }
-                pCall->type = make_smart<TypeDecl>(*funcC->result);
+                TypeDecl::clone(pCall->type,funcC->result);
                 reportFolding();
                 return pCall;
             }
@@ -748,6 +757,9 @@ namespace das {
     protected:
         FunctionPtr             func;
     protected:
+        virtual bool canVisitFunction ( Function * fun ) override {
+            return !fun->isTemplate;    // we don't do a thing with templates
+        }
         virtual void preVisit ( Function * f ) override {
             Visitor::preVisit(f);
             func = f;
@@ -825,14 +837,17 @@ namespace das {
 
     class RunFolding : public FoldingVisitor {
     public:
-        RunFolding( const ProgramPtr & prog, const vector<Function *> & _needRun ) : FoldingVisitor(prog),
+        RunFolding( const ProgramPtr & prog, vector<Function *> & _needRun ) : FoldingVisitor(prog),
             runProgram(prog.get()), needRun(_needRun) {
         }
     protected:
         Program * runProgram = nullptr;
-        const vector<Function *> & needRun;
+        vector<Function *> & needRun;
         bool anySimulated = false;
     protected:
+        virtual bool canVisitFunction ( Function * fun ) override {
+            return !fun->isTemplate;    // we don't do a thing with templates
+        }
         // ExprCall
         virtual ExpressionPtr visit ( ExprCall * expr ) override {
             if ( expr->func->result->isFoldable() && (expr->func->sideEffectFlags==0) && !expr->func->builtIn ) {
@@ -843,6 +858,11 @@ namespace das {
                     }
                 }
                 if ( allConst ) {
+                    auto it = find_if(needRun.begin(), needRun.end(), [&](Function * f) { return f==expr->func; });
+                    if ( it==needRun.end() ) {
+                        needRun.push_back(expr->func);
+                        anySimulated = false;
+                    }
                     if ( !anySimulated ) {          // the reason for lazy simulation is that function can be optimized out during the same pass as it was marked for folding
                         anySimulated = true;
                         TextWriter dummy;

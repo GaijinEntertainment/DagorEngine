@@ -1,5 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#include <generic/dag_algorithm.h>
+
 namespace da_profiler
 {
 
@@ -23,23 +25,6 @@ static uintptr_t rewrite_pointer_if_in_stack(const uint8_t *original_stack_botto
   return stack_copy_bottom_uint + (pointer - original_stack_bottom_uint);
 }
 
-
-template <class T>
-static inline T *align_up(T *d, size_t alignment)
-{
-  alignment--;
-  return (T *)((uintptr_t(d) + alignment) & ~alignment);
-}
-
-
-template <class T>
-static inline T *align_down(T *d, size_t alignment)
-{
-  alignment--;
-  return (T *)((uintptr_t(d)) & ~alignment); //-V558
-}
-
-
 static const uint8_t *copy_stack_and_rewrite_pointers(const uint8_t *original_stack_bottom, const uintptr_t *original_stack_top,
   size_t platform_stack_alignment, uintptr_t *stack_buffer_bottom)
 {
@@ -48,7 +33,7 @@ static const uint8_t *copy_stack_and_rewrite_pointers(const uint8_t *original_st
   // values from this point to the end of the stack are possibly rewritten using
   // RewritePointerIfInOriginalStack(). Bytes before this cannot be a pointer
   // because they occupy less space than a pointer would.
-  const uint8_t *first_aligned_address = align_up(byte_src, sizeof(uintptr_t));
+  const uint8_t *first_aligned_address = dag::align_up(byte_src, sizeof(uintptr_t));
 
   // The stack copy bottom, which is offset from |stack_buffer_bottom| by the
   // same alignment as in the original stack. This guarantees identical
@@ -56,7 +41,7 @@ static const uint8_t *copy_stack_and_rewrite_pointers(const uint8_t *original_st
   // platform stack alignment rather than pointer alignment so that the stack
   // copy is aligned to platform expectations.
   uint8_t *stack_copy_bottom =
-    reinterpret_cast<uint8_t *>(stack_buffer_bottom) + (byte_src - align_down(byte_src, platform_stack_alignment));
+    reinterpret_cast<uint8_t *>(stack_buffer_bottom) + (byte_src - dag::align_down(byte_src, platform_stack_alignment));
   uint8_t *byte_dst = stack_copy_bottom;
 
   // Copy bytes verbatim up to the first aligned address.

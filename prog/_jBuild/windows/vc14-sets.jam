@@ -17,28 +17,28 @@ if $(PlatformArch) = x86_64 {
 }
 include $(Root)/prog/_jBuild/_vc/win_sdk.jam ;
 
-local _DEF_C_CMDLINE = -X /c /nologo /Zc:wchar_t /Zp8 /J /D_USING_V110_SDK71_ ;
+local _DEF_C_CMDLINE = -X /c /nologo /Zc:wchar_t /Zp8 /J -D_USING_V110_SDK71_ ;
 switch $(PlatformArch) {
-  case x86 :    _DEF_C_CMDLINE += /DWIN32 ;
-  case x86_64 : _DEF_C_CMDLINE += /DWIN64 ;
+  case x86 :    _DEF_C_CMDLINE += -DWIN32 ;
+  case x86_64 : _DEF_C_CMDLINE += -DWIN64 ;
 }
 if $(BuildDagorEngineIndependentCode) != yes {
   _DEF_C_CMDLINE +=
-    /D_TARGET_PC=1 -D_TARGET_PC_WIN=1 /Dasm=__asm /DWIN32_LEAN_AND_MEAN= /D_USE_MATH_DEFINES
-    /DNOMINMAX
+    -D_TARGET_PC=1 -D_TARGET_PC_WIN=1 -Dasm=__asm -DWIN32_LEAN_AND_MEAN= -D_USE_MATH_DEFINES
+    -DNOMINMAX
     -D_TARGET_SIMD_SSE=$(SSEVersion) -D_ALLOW_KEYWORD_MACROS=
-    /DDELAYIMP_INSECURE_WRITABLE_HOOKS
+    -DDELAYIMP_INSECURE_WRITABLE_HOOKS
     /Zc:forScope
     /Zc:inline /bigobj
   ;
   switch $(PlatformArch) {
-    case x86 :    _DEF_C_CMDLINE += -D__IA32__=1 -D_TARGET_CPU_IA32=1 -Di_strlen=strlen ;
-    case x86_64 : _DEF_C_CMDLINE += -D_TARGET_64BIT=1 -Di_strlen=(int)strlen ; #-D_STD_RTL_MEMORY=1
+    case x86 :    _DEF_C_CMDLINE += -D__IA32__ -Di_strlen=strlen ;
+    case x86_64 : _DEF_C_CMDLINE += -D_TARGET_64BIT -Di_strlen=(int)strlen ; #-D_STD_RTL_MEMORY
   }
 } else {
   _DEF_C_CMDLINE += /FS ;
 }
-if $(Analyze) = yes { _DEF_C_CMDLINE = [ StripStrings $(_DEF_C_CMDLINE) : /D_USING_V110_SDK71_ ] -analyze -WX ; }
+if $(Analyze) = yes { _DEF_C_CMDLINE = [ StripStrings $(_DEF_C_CMDLINE) : -D_USING_V110_SDK71_ ] -analyze -WX ; }
 
 if $(UseWholeOpt) = yes {
   UseLLDLink = no ;
@@ -54,7 +54,7 @@ _LIB          = $(_VC_DIR_BIN)/lib.exe ;
 _CPP_COMPILER = $(_VC_DIR_BIN)/cl.exe $(_DEF_C_CMDLINE) ;
 _C_COMPILER   = $(_VC_DIR_BIN)/cl.exe $(_DEF_C_CMDLINE) ;
 
-_DEP_COMPILER = $(Root)/prog/_jBuild/fastdep-g.exe --cVC80 /D_TARGET_PC=1 -D_TARGET_PC_WIN=1 ;
+_DEP_COMPILER = $(Root)/prog/_jBuild/fastdep-g.exe --cVC80 -D_TARGET_PC=1 -D_TARGET_PC_WIN=1 ;
 
 _RC_COMPILER    = $(_WIN_SDK_BIN)/rc.exe /x /i$(_WIN_SDK_INC) /i$(_VC_DIR)/Include ;
 _MT_UTIL        = $(_WIN_SDK_BIN)/mt.exe ;
@@ -75,7 +75,7 @@ switch $(PlatformArch) {
     _LIB  += /machine:x86 ;
     _ASM_COMPILER  = $(_DEVTOOL)/nasm/nasm.exe -f win32 ;
     _MASM_COMPILER = $(_VC_DIR_BIN)/ml.exe -c -nologo ;
-    _DEP_COMPILER += /DWIN32 /D__IA32__=1 ;
+    _DEP_COMPILER += -DWIN32 -D__IA32__ ;
     _CVTRES_EXE   += /MACHINE:x86 ;
 
   case x86_64 :
@@ -83,7 +83,7 @@ switch $(PlatformArch) {
     _LIB  += /machine:x64 ;
     _ASM_COMPILER  = $(_DEVTOOL)/nasm/nasm.exe -f win64 ;
     _MASM_COMPILER = $(_VC_DIR_BIN)/ml64.exe -c -nologo ;
-    _DEP_COMPILER += /DWIN64 ;
+    _DEP_COMPILER += -DWIN64 ;
     _CVTRES_EXE   += /MACHINE:x64 ;
 
   case arm64 : exit Platform=$(Platform) PlatformArch=$(PlatformArch) is not supported by PlatformSpec=$(PlatformSpec) ;

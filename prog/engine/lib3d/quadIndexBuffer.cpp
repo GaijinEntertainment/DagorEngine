@@ -234,7 +234,7 @@ void start_use_quads_32bit()
   init_and_lock_quads_index_buffer_locks(&quads32bitLock);
   if (!quads32bit && quads32bitIndicesCount)
     try_to_init_quads_32bit();
-  if (quads32bit && (quads32bitCounter == 0 || quads32bitIndicesCount * sizeof(uint32_t) > quads32bit->ressize()))
+  if (quads32bit && (quads32bitCounter == 0 || quads32bitIndicesCount * sizeof(uint32_t) > quads32bit->getSize()))
     try_to_init_quads_32bit();
   d3d_err(d3d::setind(quads32bit));
 }

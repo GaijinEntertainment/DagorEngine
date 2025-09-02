@@ -21,7 +21,7 @@ function makeCells() {
     for (local j=0; j<16; ++j, ++colorIdx) {
       cols.append({
         rendObj = ROBJ_SOLID
-        size = [sh(17), sh(17)]
+        size = sh(17)
         color = colors[colorIdx % colors.len()]
       })
     }
@@ -39,7 +39,7 @@ function makeCells() {
   }
 
   let container = {
-    size = [sw(80), sh(80)]
+    size = static [sw(80), sh(80)]
     rendObj = ROBJ_FRAME
     color = Color(220, 220, 0)
     borderWidth = 4

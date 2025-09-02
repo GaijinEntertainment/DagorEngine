@@ -18,6 +18,7 @@ local AllSrcFolder_ES = ;
 local AllSrcFolder_CPP = ;
 local AllSrcFolder_DAS = ;
 
+AddPullVars += mmEvents ;
 AllSrcFolder_ES +=
   es
 ;

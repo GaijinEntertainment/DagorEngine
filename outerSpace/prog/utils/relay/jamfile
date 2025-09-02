@@ -1,0 +1,35 @@
+Root    ?= ../../../.. ;
+Location = outerSpace/prog/utils/relay ;
+PlatformArch_windows = x86_64 ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+ConsoleExe = yes ;
+TargetType = exe ;
+Target     = outerSpace/relay ;
+GameDir = $(Root)/outerSpace/game ;
+OutDir = $(GameDir)/$(Platform)-$(PlatformArch) ;
+
+Sources =
+  relay.cpp
+;
+
+AddIncludes =
+  $(Root)/prog/engine/dagorInclude
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/3rdPartyLibs/enet/include
+;
+
+UseProgLibs =
+  engine/osApiWrappers
+  engine/kernel
+  engine/memory/rtlStdMemory
+  engine/ioSys
+  engine/startup
+  engine/baseUtil
+  engine/math
+  engine/perfMon/daProfilerStub
+  gameLibs/daNet
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

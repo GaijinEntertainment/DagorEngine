@@ -36,7 +36,7 @@ return {
   valign = ALIGN_CENTER
   children = [
     button("Increment", increment, "^I")
-    @() {rendObj = ROBJ_TEXT text=$"Counter value = {counter.value}" watch=counter }
+    @() {rendObj = ROBJ_TEXT text=$"Counter value = {counter.get()}" watch=counter }
     button("Decrement", decrement, "^D")
   ]
 }

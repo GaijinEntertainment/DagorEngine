@@ -1,12 +1,16 @@
+options gen2
+
 require m
 require b
 
 [unique_transaction, export]
-def testA()
+def testA() {
     print("{p}")
     makeDeltaTransaction(p)
+}
 
 [export]
-def test
+def test {
     testA()
     return true
+}

@@ -32,6 +32,8 @@
 
 namespace SPIRV_CROSS_NAMESPACE
 {
+struct GlslConstantNameMapping;
+
 enum PlsFormat
 {
 	PlsNone = 0,
@@ -66,7 +68,9 @@ enum AccessChainFlagBits
 	ACCESS_CHAIN_SKIP_REGISTER_EXPRESSION_READ_BIT = 1 << 3,
 	ACCESS_CHAIN_LITERAL_MSB_FORCE_ID = 1 << 4,
 	ACCESS_CHAIN_FLATTEN_ALL_MEMBERS_BIT = 1 << 5,
-	ACCESS_CHAIN_FORCE_COMPOSITE_BIT = 1 << 6
+	ACCESS_CHAIN_FORCE_COMPOSITE_BIT = 1 << 6,
+	ACCESS_CHAIN_PTR_CHAIN_POINTER_ARITH_BIT = 1 << 7,
+	ACCESS_CHAIN_PTR_CHAIN_CAST_TO_SCALAR_BIT = 1 << 8
 };
 typedef uint32_t AccessChainFlags;
 
@@ -295,6 +299,9 @@ public:
 		float_formatter = formatter;
 	}
 
+	// Returns the macro name corresponding to constant id
+	std::string constant_value_macro_name(uint32_t id) const;
+
 protected:
 	struct ShaderSubgroupSupportHelper
 	{
@@ -421,6 +428,8 @@ protected:
 	                                                   const uint32_t *args, uint32_t count);
 	virtual void emit_spv_amd_gcn_shader_op(uint32_t result_type, uint32_t result_id, uint32_t op, const uint32_t *args,
 	                                        uint32_t count);
+	void emit_non_semantic_shader_debug_info(uint32_t result_type, uint32_t result_id, uint32_t op,
+	                                         const uint32_t *args, uint32_t count);
 	virtual void emit_header();
 	void emit_line_directive(uint32_t file_id, uint32_t line_literal);
 	void build_workgroup_size(SmallVector<std::string> &arguments, const SpecializationConstant &x,
@@ -438,7 +447,7 @@ protected:
 	virtual void emit_struct_member(const SPIRType &type, uint32_t member_type_id, uint32_t index,
 	                                const std::string &qualifier = "", uint32_t base_offset = 0);
 	virtual void emit_struct_padding_target(const SPIRType &type);
-	virtual std::string image_type_glsl(const SPIRType &type, uint32_t id = 0);
+	virtual std::string image_type_glsl(const SPIRType &type, uint32_t id = 0, bool member = false);
 	std::string constant_expression(const SPIRConstant &c,
 	                                bool inside_block_like_struct_scope = false,
 	                                bool inside_struct_scope = false);
@@ -448,6 +457,7 @@ protected:
 	virtual std::string variable_decl(const SPIRType &type, const std::string &name, uint32_t id = 0);
 	virtual bool variable_decl_is_remapped_storage(const SPIRVariable &var, spv::StorageClass storage) const;
 	virtual std::string to_func_call_arg(const SPIRFunction::Parameter &arg, uint32_t id);
+	virtual void emit_workgroup_initialization(const SPIRVariable &var);
 
 	struct TextureFunctionBaseArguments
 	{
@@ -477,7 +487,7 @@ protected:
 		uint32_t coord = 0, coord_components = 0, dref = 0;
 		uint32_t grad_x = 0, grad_y = 0, lod = 0, offset = 0;
 		uint32_t bias = 0, component = 0, sample = 0, sparse_texel = 0, min_lod = 0;
-		bool nonuniform_expression = false;
+		bool nonuniform_expression = false, has_array_offsets = false;
 	};
 	virtual std::string to_function_args(const TextureFunctionArguments &args, bool *p_forward);
 
@@ -564,8 +574,8 @@ protected:
 
 	Options options;
 
-	virtual std::string type_to_array_glsl(
-	    const SPIRType &type); // Allow Metal to use the array<T> template to make arrays a value type
+	// Allow Metal to use the array<T> template to make arrays a value type
+	virtual std::string type_to_array_glsl(const SPIRType &type, uint32_t variable_id);
 	std::string to_array_size(const SPIRType &type, uint32_t index);
 	uint32_t to_array_size_literal(const SPIRType &type, uint32_t index) const;
 	uint32_t to_array_size_literal(const SPIRType &type) const;
@@ -620,6 +630,8 @@ protected:
 		const char *uint16_t_literal_suffix = "us";
 		const char *nonuniform_qualifier = "nonuniformEXT";
 		const char *boolean_mix_function = "mix";
+		const char *printf_function = "debugPrintfEXT";
+		std::string constant_null_initializer = "";
 		SPIRType::BaseType boolean_in_struct_remapped_type = SPIRType::Boolean;
 		bool swizzle_is_function = false;
 		bool shared_is_implied = false;
@@ -627,6 +639,7 @@ protected:
 		bool explicit_struct_type = false;
 		bool use_initializer_list = false;
 		bool use_typed_initializer_list = false;
+		bool requires_matching_array_initializer = false;
 		bool can_declare_struct_inline = true;
 		bool can_declare_arrays_inline = true;
 		bool native_row_major_matrix = true;
@@ -653,6 +666,7 @@ protected:
 		bool workgroup_size_is_hidden = false;
 		bool requires_relaxed_precision_analysis = false;
 		bool implicit_c_integer_promotion_rules = false;
+		bool supports_spec_constant_array_size = true;
 	} backend;
 
 	void emit_struct(SPIRType &type);
@@ -677,7 +691,6 @@ protected:
 	                                    const SmallVector<uint32_t> &indices);
 	void emit_block_chain(SPIRBlock &block);
 	void emit_hoisted_temporaries(SmallVector<std::pair<TypeID, ID>> &temporaries);
-	std::string constant_value_macro_name(uint32_t id);
 	int get_constant_mapping_to_workgroup_component(const SPIRConstant &constant) const;
 	void emit_constant(const SPIRConstant &constant);
 	void emit_specialization_constant_op(const SPIRConstantOp &constant);
@@ -693,6 +706,7 @@ protected:
 	void emit_variable_temporary_copies(const SPIRVariable &var);
 
 	bool should_dereference(uint32_t id);
+	bool should_dereference_caller_param(uint32_t id);
 	bool should_forward(uint32_t id) const;
 	bool should_suppress_usage_tracking(uint32_t id) const;
 	void emit_mix_op(uint32_t result_type, uint32_t id, uint32_t left, uint32_t right, uint32_t lerp);
@@ -753,10 +767,14 @@ protected:
 	std::string access_chain_internal(uint32_t base, const uint32_t *indices, uint32_t count, AccessChainFlags flags,
 	                                  AccessChainMeta *meta);
 
+	// Only meaningful on backends with physical pointer support ala MSL.
+	// Relevant for PtrAccessChain / BDA.
+	virtual uint32_t get_physical_type_stride(const SPIRType &type) const;
+
 	spv::StorageClass get_expression_effective_storage_class(uint32_t ptr);
 	virtual bool access_chain_needs_stage_io_builtin_translation(uint32_t base);
 
-	virtual void check_physical_type_cast(std::string &expr, const SPIRType *type, uint32_t physical_type);
+	virtual bool check_physical_type_cast(std::string &expr, const SPIRType *type, uint32_t physical_type);
 	virtual bool prepare_access_chain_for_scalar_access(std::string &expr, const SPIRType &type,
 	                                                    spv::StorageClass storage, bool &is_packed);
 
@@ -786,8 +804,13 @@ protected:
 	std::string declare_temporary(uint32_t type, uint32_t id);
 	void emit_uninitialized_temporary(uint32_t type, uint32_t id);
 	SPIRExpression &emit_uninitialized_temporary_expression(uint32_t type, uint32_t id);
-	void append_global_func_args(const SPIRFunction &func, uint32_t index, SmallVector<std::string> &arglist);
+	virtual void append_global_func_args(const SPIRFunction &func, uint32_t index, SmallVector<std::string> &arglist);
 	std::string to_non_uniform_aware_expression(uint32_t id);
+	std::string to_atomic_ptr_expression(uint32_t id);
+	std::string to_pretty_expression_if_int_constant(
+			uint32_t id,
+			const GlslConstantNameMapping *mapping_start, const GlslConstantNameMapping *mapping_end,
+			bool register_expression_read = true);
 	std::string to_expression(uint32_t id, bool register_expression_read = true);
 	std::string to_composite_constructor_expression(const SPIRType &parent_type, uint32_t id, bool block_like_type);
 	std::string to_rerolled_array_expression(const SPIRType &parent_type, const std::string &expr, const SPIRType &type);
@@ -833,7 +856,9 @@ protected:
 	bool buffer_is_packing_standard(const SPIRType &type, BufferPackingStandard packing,
 	                                uint32_t *failed_index = nullptr, uint32_t start_offset = 0,
 	                                uint32_t end_offset = ~(0u));
-	std::string buffer_to_packing_standard(const SPIRType &type, bool support_std430_without_scalar_layout);
+	std::string buffer_to_packing_standard(const SPIRType &type,
+	                                       bool support_std430_without_scalar_layout,
+	                                       bool support_enhanced_layouts);
 
 	uint32_t type_to_packed_base_size(const SPIRType &type, BufferPackingStandard packing);
 	uint32_t type_to_packed_alignment(const SPIRType &type, const Bitset &flags, BufferPackingStandard packing);
@@ -931,6 +956,15 @@ protected:
 		PolyfillMatrixInverse2x2 = 1 << 6,
 		PolyfillMatrixInverse3x3 = 1 << 7,
 		PolyfillMatrixInverse4x4 = 1 << 8,
+		PolyfillNMin16 = 1 << 9,
+		PolyfillNMin32 = 1 << 10,
+		PolyfillNMin64 = 1 << 11,
+		PolyfillNMax16 = 1 << 12,
+		PolyfillNMax32 = 1 << 13,
+		PolyfillNMax64 = 1 << 14,
+		PolyfillNClamp16 = 1 << 15,
+		PolyfillNClamp32 = 1 << 16,
+		PolyfillNClamp64 = 1 << 17,
 	};
 
 	uint32_t required_polyfills = 0;
@@ -992,6 +1026,8 @@ protected:
 	const Instruction *get_next_instruction_in_block(const Instruction &instr);
 	static uint32_t mask_relevant_memory_semantics(uint32_t semantics);
 
+	std::string convert_floate4m3_to_string(const SPIRConstant &value, uint32_t col, uint32_t row);
+	std::string convert_floate5m2_to_string(const SPIRConstant &value, uint32_t col, uint32_t row);
 	std::string convert_half_to_string(const SPIRConstant &value, uint32_t col, uint32_t row);
 	std::string convert_float_to_string(const SPIRConstant &value, uint32_t col, uint32_t row);
 	std::string convert_double_to_string(const SPIRConstant &value, uint32_t col, uint32_t row);

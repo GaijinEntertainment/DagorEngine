@@ -45,7 +45,7 @@ function hashLocFunc(locId, ...) {
 
 let persistLocCache = persist("persistLocCache", @(){})
 let memoizedLoc = memoize(locWithCheck, hashLocFunc, persistLocCache)
-let checkedLoc = @(locId, defLoc=null, params=null) memoizedLoc(locId, defLoc, params)
+let checkedLoc = @[pure](locId, defLoc=null, params=null) memoizedLoc(locId, defLoc, params)
 let debugLocalizations = DBGLEVEL > 0 && __name__ != "__main__" && "__argv" not in getroottable()
 
 function dumpLocalizationErrors(){
@@ -66,8 +66,8 @@ function dumpLocalizationErrors(){
 
 console.register_command(dumpLocalizationErrors, "localization.checkErrors", "dump all unlocalized strings")
 
-return {
+return freeze({
   nativeLoc,
   locCheckWrapper = checkedLoc,
   loc = debugLocalizations ? checkedLoc : nativeLoc
-}
+})

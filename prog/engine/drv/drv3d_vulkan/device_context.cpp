@@ -9,7 +9,6 @@
 #include <drv/3d/dag_renderTarget.h>
 #include <drv/3d/dag_shaderConstants.h>
 #include "globals.h"
-#include "raytrace_scratch_buffer.h"
 #include "device_memory.h"
 #include "resource_manager.h"
 #include "buffer_alignment.h"
@@ -18,7 +17,7 @@
 #include "global_lock.h"
 #include "frontend.h"
 #include "global_const_buffer.h"
-#include "timestamp_queries.h"
+#include "queries.h"
 #include "resource_upload_limit.h"
 #include "execution_timings.h"
 #include "frontend_pod_state.h"
@@ -62,7 +61,7 @@ int DeviceContext::getFramerateLimitingFactor()
   auto &completedTimings = Frontend::timings.get(0);
   bool replayThreadWait = completedTimings.frontendBackendWaitDuration > 0;
   bool replayUnderfeed = completedTimings.backendFrontendWaitDuration > 0;
-  bool gpuOverutilized = (completedTimings.gpuWaitDuration > 0) ||
+  bool gpuOverutilized = (completedTimings.gpuWaitDuration > FRAME_GPU_BOUND_THRESHOLD_US) ||
                          (profile_usec_from_ticks_delta(completedTimings.presentDuration) > LONG_PRESENT_DURATION_THRESHOLD_US);
 
   return (replayThreadWait ? DRV3D_FRAMERATE_LIMITED_BY_REPLAY_WAIT : 0) |
@@ -85,6 +84,7 @@ void DeviceContext::executeDebugFlush(const char *caller)
   // is not used all that often as well, implementing a complicated
   // merging scheme is not worth it.
   if (Globals::cfg.bits.flushAfterEachDrawAndDispatch && !Globals::surveys.anyScopesActive() &&
+      !Globals::occlusionQueries.activeScope() &&
       !Frontend::State::pipe.getRO<StateFieldRenderPassResource, RenderPassResource *, FrontGraphicsState, FrontRenderPassState>())
   {
     int64_t flushTime = 0;
@@ -105,8 +105,11 @@ void DeviceContext::executeDebugFlush(const char *caller)
 
 void DeviceContext::afterBackendFlush()
 {
+  Globals::bindless.afterBackendFlush();
   Frontend::GCB.onFrontFlush();
   Frontend::replay->frontFrameIndex = Frontend::State::pod.frameIndex;
+  Frontend::replay->prevReadbacks = Frontend::readbacks.getForProcess();
+  Frontend::readbacks.advance();
 }
 
 void DeviceContext::beforeSubmitReplay()
@@ -114,7 +117,10 @@ void DeviceContext::beforeSubmitReplay()
   setPipelineState();
   CmdCleanupPendingReferences cleanupCmd{Frontend::State::pipe};
   VULKAN_DISPATCH_COMMAND_NO_LOCK(cleanupCmd);
-  Globals::timestamps.onFrontFlush();
+  Frontend::replay->timestampQueryBlock = Globals::timestamps.onFrontFlush();
+  Frontend::replay->occlusionQueryBlock = Globals::occlusionQueries.onFrontFlush();
+  Frontend::replay->readbacks = Frontend::readbacks.getForProcess();
+  Frontend::replay->nextReadbacks = &Frontend::readbacks.getForWrite();
 }
 
 void DeviceContext::submitReplay() DAG_TS_REQUIRES(mutex)
@@ -197,7 +203,7 @@ void DeviceContext::reportAlliveObjects(FaultReportDump &dump)
 #endif
   Globals::Mem::res.iterateAllocated<Image>(iterCb);
   Globals::Mem::res.iterateAllocated<RenderPassResource>(iterCb);
-#if D3D_HAS_RAY_TRACING
+#if VULKAN_HAS_RAYTRACING
   Globals::Mem::res.iterateAllocated<RaytraceAccelerationStructure>(iterCb);
 #endif
   dump.add(String(32, "%u objects are alive", cnt));
@@ -266,19 +272,45 @@ void DeviceContext::compileComputePipeline()
   executeDebugFlush("compileComputePipeline");
 }
 
-uint64_t DeviceContext::getTimestampResult(TimestampQueryId query_id)
+uint64_t DeviceContext::getTimestampResult(QueryId query_id)
 {
   VULKAN_LOCK_FRONT();
-  return Globals::timestamps.getResult(query_id);
+  return Globals::timestamps.getResult(query_id, 0, 1);
 }
 
-TimestampQueryId DeviceContext::insertTimestamp()
+QueryId DeviceContext::insertTimestamp()
 {
   VULKAN_LOCK_FRONT();
-  TimestampQueryIndex qIdx = Globals::timestamps.allocate();
+  QueryIndex qIdx = Globals::timestamps.allocate();
   CmdInsertTimesampQuery cmd{qIdx};
   VULKAN_DISPATCH_COMMAND_NO_LOCK(cmd);
   return Globals::timestamps.encodeId(qIdx, Frontend::replay->id);
+}
+
+int DeviceContext::getOcclusionQueryResult(QueryId query_id)
+{
+  VULKAN_LOCK_FRONT();
+  uint64_t qres = Globals::occlusionQueries.getResult(query_id, ~0ULL, 0);
+  return qres == ~0ULL ? -1 : (qres > 0);
+}
+
+QueryId DeviceContext::startOcclusionQuery()
+{
+  VULKAN_LOCK_FRONT();
+  QueryIndex qIdx = Globals::occlusionQueries.allocate();
+  Globals::occlusionQueries.activateScope();
+  dispatchCommandNoLock<CmdStartOcclusionQuery>({qIdx});
+  return Globals::occlusionQueries.encodeId(qIdx, Frontend::replay->id);
+}
+
+void DeviceContext::endOcclusionQuery(QueryId query_id)
+{
+  VULKAN_LOCK_FRONT();
+  if (Globals::occlusionQueries.verifyQueryBelongsToWorkItem(query_id, Frontend::replay->id))
+  {
+    Globals::occlusionQueries.deactivateScope();
+    dispatchCommandNoLock<CmdEndOcclusionQuery>({Globals::occlusionQueries.decodeQueryIndex(query_id)});
+  }
 }
 
 void DeviceContext::nativeRenderPassChanged()
@@ -318,7 +350,8 @@ void DeviceContext::copyBufferDiscardReorderable(const BufferRef &source, Buffer
     copyBuffer(source, dest, src_offset, dst_offset, data_size);
     return;
   }
-  logerr("vulkan: reordering buffer copy to %p:%s out of nrp %p:%s", dest.buffer, dest.buffer->getDebugName(), rp, rp->getDebugName());
+  D3D_ERROR("vulkan: reordering buffer copy to %p:%s out of nrp %p:%s", dest.buffer, dest.buffer->getDebugName(), rp,
+    rp->getDebugName());
   // discarding buffer with followup restore of its contents, viable logic, but consumes too much memory
   // BufferRef oldDest = dest;
   // dest = discardBuffer(dest, memory_class, uav_format, buf_flags, 0);
@@ -353,12 +386,18 @@ void DeviceContext::pushEvent(const char *name)
   VULKAN_DISPATCH_COMMAND_NO_LOCK(cmd);
 }
 
-void DeviceContext::clearDepthStencilImage(Image *image, const VkImageSubresourceRange &area, const VkClearDepthStencilValue &value)
+void DeviceContext::clearDepthStencilImage(Image *image, const VkImageSubresourceRange &area, const VkClearDepthStencilValue &value,
+  bool unordered)
 {
   CmdClearDepthStencilTexture cmd{image, area, value};
 
-  if (Globals::lock.isAcquired())
+  if (Globals::lock.isAcquired() && !unordered)
   {
+    if (Frontend::State::pipe.getRO<StateFieldRenderPassResource, RenderPassResource *, FrontGraphicsState, FrontRenderPassState>())
+      DAG_FATAL("vulkan: clear depth called inside native render pass %p:%s! fix application logic to avoid this!",
+        Frontend::State::pipe.getRO<StateFieldRenderPassResource, RenderPassResource *, FrontGraphicsState, FrontRenderPassState>(),
+        Frontend::State::pipe.getRO<StateFieldRenderPassResource, RenderPassResource *, FrontGraphicsState, FrontRenderPassState>()
+          ->getDebugName());
     VULKAN_DISPATCH_COMMAND(cmd);
   }
   else
@@ -370,10 +409,16 @@ void DeviceContext::clearDepthStencilImage(Image *image, const VkImageSubresourc
 
 void DeviceContext::clearColorImage(Image *image, const VkImageSubresourceRange &area, const VkClearColorValue &value, bool unordered)
 {
+  G_ASSERTF(image, "vulkan: trying to clear null image");
   CmdClearColorTexture cmd{image, area, value};
 
   if (Globals::lock.isAcquired() && !unordered)
   {
+    if (Frontend::State::pipe.getRO<StateFieldRenderPassResource, RenderPassResource *, FrontGraphicsState, FrontRenderPassState>())
+      DAG_FATAL("vulkan: clear color called inside native render pass %p:%s! fix application logic to avoid this!",
+        Frontend::State::pipe.getRO<StateFieldRenderPassResource, RenderPassResource *, FrontGraphicsState, FrontRenderPassState>(),
+        Frontend::State::pipe.getRO<StateFieldRenderPassResource, RenderPassResource *, FrontGraphicsState, FrontRenderPassState>()
+          ->getDebugName());
     VULKAN_DISPATCH_COMMAND(cmd);
   }
   else
@@ -434,17 +479,31 @@ void DeviceContext::copyImageToBuffer(Image *image, Buffer *buffer, uint32_t reg
   info.buffer = buffer;
   info.copyCount = region_count;
   VULKAN_LOCK_FRONT();
-  info.copyIndex = Frontend::replay->imageDownloadCopies.size();
-  Frontend::replay->imageDownloads.push_back(info);
-  Frontend::replay->imageDownloadCopies.insert(end(Frontend::replay->imageDownloadCopies), regions, regions + region_count);
+  auto &rb = Frontend::readbacks.getForWrite().images;
+  info.copyIndex = rb.copies.size();
+  rb.info.push_back(info);
+  rb.copies.insert(end(rb.copies), regions, regions + region_count);
 
   // no layout transform here, as we need to know which layout is the last one used for the flush
   if (sync)
-    sync->request(Frontend::replay->id);
+    sync->request(Frontend::replay->id + Frontend::readbacks.getLatency());
 }
 
-void DeviceContext::copyBufferToImage(Buffer *src, Image *dst, uint32_t region_count, VkBufferImageCopy *regions, bool)
+void DeviceContext::copyBufferToImage(Buffer *src, Image *dst, uint32_t region_count, VkBufferImageCopy *regions, bool ordered_copy)
 {
+  if (ordered_copy)
+  {
+    CmdCopyBufferToImageOrdered cmd{dst, src, regions[0]};
+    VULKAN_LOCK_FRONT();
+    VULKAN_DISPATCH_COMMAND_NO_LOCK(cmd);
+
+    for (uint32_t i = 1; i < region_count; ++i)
+    {
+      cmd.region = regions[i];
+      VULKAN_DISPATCH_COMMAND_NO_LOCK(cmd);
+    }
+  }
+  else
   {
     ImageCopyInfo info;
     info.image = dst;
@@ -457,71 +516,65 @@ void DeviceContext::copyBufferToImage(Buffer *src, Image *dst, uint32_t region_c
   }
 }
 
-void DeviceContext::copyBufferToImageOrdered(Buffer *src, Image *dst, uint32_t region_count, VkBufferImageCopy *regions)
-{
-  CmdCopyBufferToImageOrdered cmd{dst, src, regions[0]};
-  VULKAN_LOCK_FRONT();
-  VULKAN_DISPATCH_COMMAND_NO_LOCK(cmd);
-
-  for (uint32_t i = 1; i < region_count; ++i)
-  {
-    cmd.region = regions[i];
-    VULKAN_DISPATCH_COMMAND_NO_LOCK(cmd);
-  }
-}
-
 void DeviceContext::blitImage(Image *src, Image *dst, const VkImageBlit &region, bool whole_subres)
 {
   CmdBlitImage cmd{src, dst, region, whole_subres};
   VULKAN_DISPATCH_COMMAND(cmd);
 }
 
-void DeviceContext::updateBindlessResource(uint32_t index, D3dResource *res)
+bool DeviceContext::updateBindlessResource(uint32_t index, D3dResource *res, bool stub_swap)
 {
-  auto resType = res->restype();
-  if (RES3D_SBUF != resType)
+  G_ASSERTF(Globals::desc.caps.hasBindless, "vulkan: updateBindlessResource somehow reached without bindless available");
+  auto resType = res->getType();
+  if (D3DResourceType::SBUF != resType)
   {
     auto tex = (BaseTex *)res;
-    if (tex->isStub())
+    tex->usedInBindless = true;
+    bool stubBind = tex->isStub();
+    if (stubBind)
+    {
+      if (Globals::desc.caps.hasBindless)
+        tex->enqueueBindlessStubSwap(index);
       tex = tex->getStubTex();
-    Image *image = tex->getDeviceImage();
+    }
+    Image *image = tex->image;
+    G_ASSERT(image);
     const ImageViewState &viewState = tex->getViewInfo();
 
     VULKAN_LOCK_FRONT();
-    Frontend::replay->bindlessTexUpdates.push_back({index, 1, image, viewState});
+    Frontend::replay->bindlessTexUpdates.push_back(BindlessTexUpdateInfo(index, image, viewState, stubBind, stub_swap));
   }
   else
   {
     VULKAN_LOCK_FRONT();
-    Frontend::replay->bindlessBufUpdates.push_back({index, 1, ((GenericBufferInterface *)res)->getBufferRef()});
+    Frontend::replay->bindlessBufUpdates.push_back(BindlessBufUpdateInfo(index, ((GenericBufferInterface *)res)->getBufferRef()));
   }
+
+  return true;
 }
 
-void DeviceContext::updateBindlessResourcesToNull(uint32_t resourceType, uint32_t index, uint32_t count)
+void DeviceContext::updateBindlessResourcesToNull(D3DResourceType type, uint32_t index, uint32_t count)
 {
-  if (RES3D_SBUF != resourceType)
-  {
-    VULKAN_LOCK_FRONT();
-    Frontend::replay->bindlessTexUpdates.push_back({index, count, nullptr, {}});
-  }
+  VULKAN_LOCK_FRONT();
+  if (D3DResourceType::SBUF != type)
+    Frontend::replay->bindlessTexUpdates.push_back(BindlessTexUpdateInfo(index, count));
   else
-  {
-    VULKAN_LOCK_FRONT();
-    Frontend::replay->bindlessBufUpdates.push_back({index, 1, BufferRef{nullptr}});
-  }
+    Frontend::replay->bindlessBufUpdates.push_back(BindlessBufUpdateInfo(index, count));
 }
 
-void DeviceContext::updateBindlessSampler(uint32_t index, SamplerState sampler)
+void DeviceContext::updateBindlessSampler(uint32_t index, const SamplerResource *sampler_res)
 {
   VULKAN_LOCK_FRONT();
-  Frontend::replay->bindlessSamplerUpdates.push_back({index, sampler});
+  Frontend::replay->bindlessSamplerUpdates.push_back({index, sampler_res});
 }
 
-void DeviceContext::copyBindlessDescriptors(uint32_t resource_type, uint32_t src, uint32_t dst, uint32_t count)
+void DeviceContext::copyBindlessDescriptors(D3DResourceType type, uint32_t src, uint32_t dst, uint32_t count)
 {
   VULKAN_LOCK_FRONT();
-  CmdCopyBindlessDescriptors cmd{resource_type, src, dst, count};
-  VULKAN_DISPATCH_COMMAND_NO_LOCK(cmd);
+  if (D3DResourceType::SBUF != type)
+    Frontend::replay->bindlessTexUpdates.push_back(BindlessTexUpdateInfo(src, dst, count));
+  else
+    Frontend::replay->bindlessBufUpdates.push_back(BindlessBufUpdateInfo(src, dst, count));
 }
 
 void DeviceContext::wait()
@@ -533,10 +586,12 @@ void DeviceContext::wait()
   {
     // remove this lock when we are no longer depend on state on submits
     d3d::driver_command(Drv3dCommand::ACQUIRE_OWNERSHIP);
+    // avoid slowdown when we can't treat 2 screen updates as proper frame
+    Frontend::latencyWaiter.reset();
     VULKAN_LOCK_FRONT();
     beforeSubmitReplay();
 
-    fence = Globals::fences.alloc(vkDev, false);
+    fence = Globals::fences.alloc(false);
     CmdFlushAndWait cmd{fence};
     VULKAN_DISPATCH_COMMAND_NO_LOCK(cmd);
     submitReplay();
@@ -545,7 +600,7 @@ void DeviceContext::wait()
   }
   // CmdFlushAndWait will end frame and trigger needed signals
   // so we are free to wait on GPU fence only
-  fence->wait(vkDev);
+  fence->wait();
   {
     VULKAN_LOCK_FRONT();
     Globals::fences.free(fence);
@@ -577,9 +632,10 @@ void DeviceContext::shutdown()
   cleanupFrontendReplayResources();
   Frontend::tempBuffers.shutdown();
   Frontend::frameMemBuffers.shutdown();
-  shutdownSwapchain();
   shutdownImmediateConstBuffers();
 
+  // stop compiler early, to cleanup pending module deletions properly
+  Backend::pipelineCompiler.shutdown();
   // remove any resources that are not fully
   // deleted due to being destroyed in binded state
   CmdShutdownPendingReferences cmd{Frontend::State::pipe};
@@ -589,14 +645,14 @@ void DeviceContext::shutdown()
   shutdownWorkerThread();
   // no more commands can be executed after this point
   executionMode = ExecutionMode::INVALID;
-  // consume semaphores that noone will wait for anymore
+  // consume semaphores that no one will wait for anymore
   Globals::VK::queue.consumeWaitSemaphores(Backend::gpuJob.get());
 
-  Backend::bindless.shutdown(vkDev);
-  Backend::pipelineCompiler.shutdown();
+  Backend::bindless.shutdown();
   Backend::aliasedMemory.shutdown();
   Backend::gpuJob.end();
   Frontend::replay.end();
+  Frontend::readbacks.shutdown();
 }
 
 void DeviceContext::beginSurvey(uint32_t name)
@@ -658,21 +714,22 @@ void DeviceContext::downloadBuffer(const BufferRef &src, Buffer *dst, uint32_t s
   info.dst = dst;
   info.copyCount = 1;
   VULKAN_LOCK_FRONT();
-  info.copyIndex = Frontend::replay->bufferDownloadCopies.size();
-  Frontend::replay->bufferDownloads.push_back(info);
-  Frontend::replay->bufferDownloadCopies.push_back(copy);
+  auto &rb = Frontend::readbacks.getForWrite().buffers;
+  info.copyIndex = rb.copies.size();
+  rb.info.push_back(info);
+  rb.copies.push_back(copy);
 }
 
 void DeviceContext::destroyBuffer(Buffer *buffer)
 {
-  G_ASSERT(buffer != nullptr);
+  D3D_CONTRACT_ASSERT(buffer != nullptr);
   CmdDestroyBuffer cmd{buffer};
   VULKAN_DISPATCH_COMMAND(cmd);
 }
 
 void DeviceContext::destroyRenderPassResource(RenderPassResource *rp)
 {
-  G_ASSERT(rp != nullptr);
+  D3D_CONTRACT_ASSERT(rp != nullptr);
   CmdDestroyRenderPassResource cmd{rp};
   VULKAN_DISPATCH_COMMAND(cmd);
 }
@@ -681,9 +738,8 @@ BufferRef DeviceContext::uploadToDeviceFrameMem(uint32_t size, const void *src)
 {
   // use device resident memory in dedicated configuration to avoid minor device slowdown
   // otherwise use shared host/device memory to avoid issues (PowerVR) and unnecesary memory usage and operations
-  return uploadToFrameMem(Globals::Mem::pool.getMemoryConfiguration() == DeviceMemoryConfiguration::DEDICATED_DEVICE_MEMORY
-                            ? DeviceMemoryClass::DEVICE_RESIDENT_BUFFER
-                            : DeviceMemoryClass::DEVICE_RESIDENT_HOST_WRITE_ONLY_BUFFER,
+  return uploadToFrameMem(Globals::Mem::pool.hasDedicatedMemory() ? DeviceMemoryClass::DEVICE_RESIDENT_BUFFER
+                                                                  : DeviceMemoryClass::DEVICE_RESIDENT_HOST_WRITE_ONLY_BUFFER,
     size, src);
 }
 
@@ -712,7 +768,7 @@ BufferRef DeviceContext::discardBuffer(const BufferRef &src_ref, DeviceMemoryCla
 
   if (bufFlags & SBCF_FRAMEMEM)
   {
-    G_ASSERTF(dynamic_size, "vulkan: framemem discard size must be > 0");
+    D3D_CONTRACT_ASSERTF(dynamic_size, "vulkan: framemem discard size must be > 0");
     ret = Frontend::frameMemBuffers.acquire(dynamic_size, bufFlags);
     if (ret.buffer != src_ref.buffer)
       Frontend::frameMemBuffers.swapRefCounters(src_ref.buffer, ret.buffer);
@@ -726,13 +782,14 @@ BufferRef DeviceContext::discardBuffer(const BufferRef &src_ref, DeviceMemoryCla
   {
     Buffer *buf = src_ref.buffer;
     uint32_t reallocated_size = buf->getBlockSize();
-    G_ASSERTF(dynamic_size <= reallocated_size, "vulkan: discard size (%u) more than max buffer size (%u) requested for buffer %p:%s",
-      dynamic_size, reallocated_size, buf, buf->getDebugName());
+    D3D_CONTRACT_ASSERTF(dynamic_size <= reallocated_size,
+      "vulkan: discard size (%u) more than max buffer size (%u) requested for buffer %p:%s", dynamic_size, reallocated_size, buf,
+      buf->getDebugName());
 
     if (dynamic_size > 0)
     {
       dynamic_size = Globals::VK::bufAlign.alignSize(dynamic_size);
-      G_ASSERTF(!buf->hasView() || (dynamic_size == reallocated_size),
+      D3D_CONTRACT_ASSERTF(!buf->hasView() || (dynamic_size == reallocated_size),
         "vulkan: variable sized discard for sampled buffers is not allowed asked %u bytes while buffer %p:%s size is %u", dynamic_size,
         buf, buf->getDebugName(), reallocated_size);
       reallocated_size = dynamic_size;
@@ -769,12 +826,6 @@ BufferRef DeviceContext::discardBuffer(const BufferRef &src_ref, DeviceMemoryCla
 
   G_ASSERTF(ret.buffer, "vulkan: discard failed for %p:%s", src_ref.buffer, src_ref.buffer->getDebugName());
   return ret;
-}
-
-void DeviceContext::destroyImageDelayed(Image *img)
-{
-  VULKAN_LOCK_FRONT();
-  Frontend::replay->cleanups.enqueue<Image::CLEANUP_DELAYED_DESTROY>(*img);
 }
 
 void DeviceContext::destroyImage(Image *img)
@@ -818,12 +869,16 @@ void DeviceContext::present()
 
   callFrameEndCallbacks();
 
+  Frontend::swapchain.prePresent();
+
+  size_t submittedReplay = 0;
   {
     VULKAN_LOCK_FRONT();
+    submittedReplay = Frontend::replay->id;
     beforeSubmitReplay();
 
     advanceAndCheckTimingRecord();
-    CmdPresent cmd{};
+    CmdPresent cmd = Frontend::swapchain.present();
     VULKAN_DISPATCH_COMMAND_NO_LOCK(cmd);
     submitReplay();
     Frontend::State::pod.frameIndex++;
@@ -834,6 +889,14 @@ void DeviceContext::present()
       Frontend::latencyWaiter.update(Frontend::timings.frontendBackendWaitDuration);
   }
 
+  if (Globals::cfg.bits.allowSharedFenceLatencyWait)
+  {
+    DA_PROFILE_WAIT("vulkan_shared_fence_latency_wait");
+    WinAutoLock lock(Backend::interop.pendingGpuWork.cs);
+    if (submittedReplay > Backend::interop.pendingGpuWork.replayId && Backend::interop.pendingGpuWork.gpuFence)
+      Backend::interop.pendingGpuWork.gpuFence->wait();
+  }
+
   if (Globals::cfg.bits.allowPredictedLatencyWaitApp)
   {
     if (Globals::cfg.bits.autoPredictedLatencyWaitApp)
@@ -841,38 +904,6 @@ void DeviceContext::present()
     else
       Frontend::latencyWaiter.markAsyncWait();
   }
-}
-
-void DeviceContext::changeSwapchainMode(const SwapchainMode &new_mode)
-{
-  waitForItemPushSpace();
-
-  // special case wait,
-  // as we should do some operations after gpu wait and wait for that operations too
-  ThreadedFence *fence;
-  {
-    VULKAN_LOCK_FRONT();
-    beforeSubmitReplay();
-
-    fence = Globals::fences.alloc(vkDev, false);
-    CmdChangeSwapchainMode cmd{new_mode, fence};
-    VULKAN_DISPATCH_COMMAND_NO_LOCK(cmd);
-    submitReplay();
-    afterBackendFlush();
-  }
-
-  fence->wait(vkDev);
-
-  {
-    VULKAN_LOCK_FRONT();
-    Globals::fences.free(fence);
-  }
-}
-
-void DeviceContext::shutdownSwapchain()
-{
-  CmdShutdownSwapchain cmd{};
-  VULKAN_DISPATCH_COMMAND(cmd);
 }
 
 void DeviceContext::writeDebugMessage(const char *msg, intptr_t msg_length, intptr_t severity)
@@ -894,7 +925,7 @@ void DeviceContext::executeFSR(amd::FSR *fsr, const amd::FSR::UpscalingArgs &par
 {
   auto cast_to_image = [](BaseTexture *src) {
     if (src)
-      return cast_to_texture_base(src)->getDeviceImage();
+      return cast_to_texture_base(src)->image;
     return (Image *)nullptr;
   };
 
@@ -908,6 +939,47 @@ void DeviceContext::executeFSR(amd::FSR *fsr, const amd::FSR::UpscalingArgs &par
   cmd.params.reactiveTexture = cast_to_image(params.reactiveTexture);
   cmd.params.transparencyAndCompositionTexture = cast_to_image(params.transparencyAndCompositionTexture);
 
+  VULKAN_DISPATCH_COMMAND(cmd);
+}
+
+void DeviceContext::executeDLSS(const nv::DlssParams<BaseTexture> &params)
+{
+  auto cast_to_image = [](BaseTexture *src) {
+    if (src)
+      return cast_to_texture_base(src)->image;
+    return (Image *)nullptr;
+  };
+
+  CmdExecuteDLSS cmd{convertDlssParams(params, cast_to_image)};
+  VULKAN_DISPATCH_COMMAND(cmd);
+}
+
+void DeviceContext::initializeDLSS(int mode, int width, int height)
+{
+  CmdInitializeDLSS cmd{mode, width, height};
+  VULKAN_DISPATCH_COMMAND(cmd);
+}
+
+void DeviceContext::initializeStreamlineDlss(int width, int height)
+{
+  G_UNUSED(width);
+  G_UNUSED(height);
+
+#if USE_STREAMLINE_FOR_DLSS
+  if (Globals::VK::loader.streamlineAdapter)
+  {
+    CmdInitializeStreamlineDLSS cmd{width, height};
+    VULKAN_DISPATCH_COMMAND(cmd);
+  }
+#endif
+}
+
+void DeviceContext::executeStreamlineDlss(const nv::DlssParams<BaseTexture> &dlss_params, int view_index)
+{
+  nv::DlssParams<Image> dlssParams =
+    nv::convertDlssParams(dlss_params, [](BaseTexture *t) { return t ? cast_to_texture_base(t)->image : nullptr; });
+
+  CmdExecuteStreamlineDLSS cmd{dlssParams, view_index};
   VULKAN_DISPATCH_COMMAND(cmd);
 }
 
@@ -929,18 +1001,6 @@ void DeviceContext::generateMipmaps(Image *img)
   VULKAN_DISPATCH_COMMAND(cmd);
 }
 
-void DeviceContext::startPreRotate(uint32_t binding_slot)
-{
-  CmdStartPreRotate cmd{binding_slot};
-  VULKAN_DISPATCH_COMMAND(cmd);
-}
-
-void DeviceContext::holdPreRotateStateForOneFrame()
-{
-  CmdHoldPreRotate cmd;
-  VULKAN_DISPATCH_COMMAND(cmd);
-}
-
 void DeviceContext::flushBufferToHost(const BufferRef &buffer, ValueRange<uint32_t> range)
 {
   BufferFlushInfo info;
@@ -948,17 +1008,19 @@ void DeviceContext::flushBufferToHost(const BufferRef &buffer, ValueRange<uint32
   info.offset = buffer.bufOffset(range.front());
   info.range = range.size();
   VULKAN_LOCK_FRONT();
-  Frontend::replay->bufferToHostFlushes.push_back(info);
+  Frontend::readbacks.getForWrite().bufferFlushes.push_back(info);
 }
 
 void DeviceContext::waitForIfPending(AsyncCompletionState &sync)
 {
-  bool needWait = !sync.isCompleted();
-  if (needWait)
+  // wait over history length looks unreasonable, so limit with it
+  int waitLimit = REPLAY_TIMELINE_HISTORY_SIZE;
+  while (!sync.isCompleted() && waitLimit)
   {
     wait();
-    G_ASSERTF(sync.isCompleted(), "vulkan: AsyncCompletionState %p not completed after wait");
+    --waitLimit;
   }
+  G_ASSERTF(sync.isCompleted(), "vulkan: AsyncCompletionState %p not completed after wait", &sync);
 }
 
 void drv3d_vulkan::DeviceContext::resourceBarrier(ResourceBarrierDesc desc, GpuPipeline /* gpu_pipeline*/)
@@ -967,8 +1029,11 @@ void drv3d_vulkan::DeviceContext::resourceBarrier(ResourceBarrierDesc desc, GpuP
 
   desc.enumerateTextureBarriers([this](BaseTexture *tex, ResourceBarrier state, unsigned res_index, unsigned res_range) {
     G_ASSERT(tex);
+    // ignore split barrier flags for now, process only end part
+    if (state & RB_FLAG_SPLIT_BARRIER_BEGIN)
+      return;
 
-    Image *image = cast_to_texture_base(tex)->tex.image;
+    Image *image = cast_to_texture_base(tex)->image;
     uint32_t stop_index = (res_range == 0) ? image->getMipLevels() * image->getArrayLayers() : res_range + res_index;
     G_UNUSED(stop_index);
     G_ASSERTF((image->getMipLevels() * image->getArrayLayers()) >= stop_index,
@@ -996,6 +1061,11 @@ void drv3d_vulkan::DeviceContext::resourceBarrier(ResourceBarrierDesc desc, GpuP
     // make proper batch-fashion barriers
     if (state == RB_NONE)
       return;
+
+    // ignore split barrier flags for now, process only end part
+    if (state & RB_FLAG_SPLIT_BARRIER_BEGIN)
+      return;
+
     G_ASSERT(buf);
     auto gbuf = (GenericBufferInterface *)buf;
     CmdBufferBarrier cmd{gbuf->getBufferRef(), state}; //-V522
@@ -1021,17 +1091,17 @@ void DeviceContext::initTempBuffersConfiguration()
   Frontend::frameMemBuffers.init();
 }
 
-#if D3D_HAS_RAY_TRACING
+#if VULKAN_HAS_RAYTRACING
 
 void DeviceContext::deleteRaytraceBottomAccelerationStructure(RaytraceBottomAccelerationStructure *desc)
 {
-  VULKAN_LOCK_FRONT();
-  Frontend::replay->cleanups.enqueue<RaytraceAccelerationStructure::CLEANUP_DESTROY_BOTTOM>(*((RaytraceAccelerationStructure *)desc));
+  CmdDestroyBLAS cmd{(RaytraceAccelerationStructure *)desc};
+  VULKAN_DISPATCH_COMMAND(cmd);
 }
 void DeviceContext::deleteRaytraceTopAccelerationStructure(RaytraceTopAccelerationStructure *desc)
 {
-  VULKAN_LOCK_FRONT();
-  Frontend::replay->cleanups.enqueue<RaytraceAccelerationStructure::CLEANUP_DESTROY_TOP>(*((RaytraceAccelerationStructure *)desc));
+  CmdDestroyTLAS cmd{(RaytraceAccelerationStructure *)desc};
+  VULKAN_DISPATCH_COMMAND(cmd);
 }
 void DeviceContext::traceRays(Buffer *ray_gen_table, uint32_t ray_gen_offset, Buffer *miss_table, uint32_t miss_offset,
   uint32_t miss_stride, Buffer *hit_table, uint32_t hit_offset, uint32_t hit_stride, Buffer *callable_table, uint32_t callable_offset,
@@ -1166,7 +1236,8 @@ void DeviceContext::advanceAndCheckTimingRecord()
   // save current frame data
   uint64_t now = profile_ref_ticks();
   auto &frameTiming = Frontend::timings.next(Frontend::State::pod.frameIndex, now);
-  frameTiming.frontendWaitForSwapchainDuration = Frontend::latencyWaiter.getLastWaitTimeUs();
+  frameTiming.frontendWaitForSwapchainDuration = Frontend::latencyWaiter.getLastWaitTimeTicks();
+  frameTiming.backbufferAcquireDuration = Frontend::timings.acquireBackBufferDuration;
 
   CmdRecordFrameTimings cmd{&frameTiming, now};
   VULKAN_DISPATCH_COMMAND_NO_LOCK(cmd);
@@ -1194,7 +1265,7 @@ void DeviceContext::callFrameEndCallbacks()
   frameEventCallbacks.clear();
 }
 
-DeviceContext::DeviceContext() : vkDev(Globals::VK::dev)
+DeviceContext::DeviceContext()
 {
   Backend::State::exec.reset();
   Backend::State::pipe.reset();

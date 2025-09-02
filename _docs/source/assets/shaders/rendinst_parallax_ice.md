@@ -1,4 +1,4 @@
-# Shader: rendinst_parallax_ice
+# `rendinst_parallax_ice`
 
 ## Overview
 
@@ -43,9 +43,7 @@ All masks in `.folder.blk` must have `gamma=1` for correct operation.
   **Only the red channel is checked**, but for simplicity, it is shown as black
   and white in the example.
 
-  <img src="_images/rendinst_parallax_ice_01.jpg" width="50%" align="center" class="bg-primary">
-
-  <br>
+  <img src="_images/rendinst_parallax_ice_01.jpg" width="33em" class="image-center">
 
 ## Parameters
 
@@ -54,32 +52,42 @@ All masks in `.folder.blk` must have `gamma=1` for correct operation.
 - `inner_layer_depth`: Distance between the surface and the internal layer.
   `min=0.0` (no effect). Default: `0.1`
 
-  <img src="_images/rendinst_parallax_ice_02.gif" width="50%" align="center" class="bg-primary">
+  ```{only} html
+  <img src="_images/rendinst_parallax_ice_02.gif" width="33em" class="image-center">
+  ```
 
-  <br>
+  ```{only} latex
+  [Download animation (GIF)](https://github.com/GaijinEntertainment/DagorEngine/blob/main/_docs/source/assets/shaders/_images/rendinst_parallax_ice_02.gif)
+  ```
 
 - `inner_layer_mul`: Multiplier for the internal layer's diffuse color,
   controlling brightness. Default: `1.0`
 
-  <img src="_images/rendinst_parallax_ice_03.gif" width="50%" align="center" class="bg-primary">
+  ```{only} html
+  <img src="_images/rendinst_parallax_ice_03.gif" width="33em" class="image-center">
+  ```
 
-  <br>
+  ```{only} latex
+  [Download animation (GIF)](https://github.com/GaijinEntertainment/DagorEngine/blob/main/_docs/source/assets/shaders/_images/rendinst_parallax_ice_03.gif)
+  ```
 
 - `inner_layer_power`: Exponent that applied to the internal layer's color after
   multiplication, used to adjust contrast. Default: `1.0`
 
-  <img src="_images/rendinst_parallax_ice_04.gif" width="50%" align="center" class="bg-primary">
+  ```{only} html
+  <img src="_images/rendinst_parallax_ice_04.gif" width="33em" class="image-center">
+  ```
 
-  <br>
+  ```{only} latex
+  [Download animation (GIF)](https://github.com/GaijinEntertainment/DagorEngine/blob/main/_docs/source/assets/shaders/_images/rendinst_parallax_ice_04.gif)
+  ```
 
   Increasing both `power` and `mul` values can produce non-realistic but
   artistic effects, such as enhanced contrast and color saturation that give a
   glowing appearance. Use these settings sparingly. Here's an extreme example
   with `power=3` and `mul=3`:
 
-  <img src="_images/rendinst_parallax_ice_05.jpg" width="50%" align="center" class="bg-primary">
-
-  <br>
+  <img src="_images/rendinst_parallax_ice_05.jpg" width="33em" class="image-center">
 
 - `vcol_masked_mul`: Brightness multiplier for blended detail layers in areas
   marked white in VertexColor.
@@ -93,9 +101,7 @@ All masks in `.folder.blk` must have `gamma=1` for correct operation.
   ice), and an exaggerated `4.0`. Other parameters, including `depth`, are
   identical.
 
-  <img src="_images/rendinst_parallax_ice_06.jpg" width="80%" align="center" class="bg-primary">
-
-  <br>
+  <img src="_images/rendinst_parallax_ice_06.jpg" width="50em" class="image-center">
 
   By default, the shader uses a physically accurate value for ice, but you can
   adjust the `ior` to weaken or exaggerate the effect for visual purposes.
@@ -108,13 +114,50 @@ All masks in `.folder.blk` must have `gamma=1` for correct operation.
   artistic effect. The internal layer becomes less distinct, which can sometimes
   be desirable.
 
-<table style="text-align:center; width:98%"><tr>
-  <th style="text-align:center; width:49%"><p>ior=1.31 and depth=0.1</p></th>
-  <th style="text-align:center; width:49%"><p>ior=4.0 and depth=1</p></th></tr>
-</table>
+```{eval-rst}
+.. grid:: 2
+   :class-container: center-grid
+   :gutter: 2
 
-<img src="_images/rendinst_parallax_ice_07.gif" width="49%" class="bg-primary">
-<img src="_images/rendinst_parallax_ice_08.gif" width="49%" class="bg-primary">
+   .. grid-item::
+      :child-direction: row
+      :child-align: center
+
+      **ior=1.31 and depth=0.1**
+
+   .. grid-item::
+      :child-direction: row
+      :child-align: center
+
+      **ior=4.0 and depth=1**
+
+   .. grid-item::
+      :class: center-cell
+
+      .. only:: html
+
+         .. image:: _images/rendinst_parallax_ice_07.gif
+            :height: 300px
+            :align: center
+
+      .. only:: latex
+
+         `Download animation (GIF) <https://github.com/GaijinEntertainment/DagorEngine/blob/main/_docs/source/assets/shaders/_images/rendinst_parallax_ice_07.gif>`_
+
+   .. grid-item::
+      :class: center-cell
+
+      .. only:: html
+
+         .. image:: _images/rendinst_parallax_ice_08.gif
+            :height: 300px
+            :align: center
+
+      .. only:: latex
+
+         `Download animation (GIF) <https://github.com/GaijinEntertainment/DagorEngine/blob/main/_docs/source/assets/shaders/_images/rendinst_parallax_ice_08.gif>`_
+
+```
 
 **Texture Coordinates:**
 

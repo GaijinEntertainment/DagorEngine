@@ -1,0 +1,916 @@
+//============================================================================================================
+//
+//
+//                  Copyright (c) 2024, Qualcomm Innovation Center, Inc. All rights reserved.
+//                              SPDX-License-Identifier: BSD-3-Clause
+//
+//============================================================================================================
+
+
+//============================================================================================================
+//
+// Several changes applied to use in Dagor:
+// 1) Converted to hlsl and added support for our shadervars
+// 2) Changes for inverse depth:
+// 2.1) min -> max for depth filtering
+// 2.2) if (maxC < 1.0 - 1.0e-05f) -> if (maxC > 1.0e-05f)
+// 2.3) Not stated in docs but is also required:
+// float Depthsep = Ksep_Kfov_diagonal * (1.0 - maxC); -> float Depthsep = Ksep_Kfov_diagonal * maxC;
+// 3) Motion vectors don't need encoding
+// 4) Reprojection uses uv in [0,1] range, not in [-1,1]
+// 5) Motion vectors and reprojection don't need sign change and scaling to apply
+// All changes are marked with "Modified for dagor" comments
+// 6) Alpha output is set to 1 as some devices sometimes hate non-1 alpha
+//
+//============================================================================================================
+
+
+include "shader_global.dshl"
+
+texture depth_resolved;
+texture resolved_motion_vectors;
+texture sgsr2_prev_output;
+texture sgsr2_motion_depth_clip_alpha_buffer;
+texture sgsr2_input_color;
+texture sgsr2_ycocg_color;
+
+float4 sgsr2_clip_to_prev_clip[4];
+float4 sgsr2_render_size;
+float4 sgsr2_output_size;
+float4 sgsr2_jitter_offset;
+float4 sgsr2_upscale_ratio;
+float sgsr2_camera_fov;
+float sgsr2_min_lerp_contrib;
+float sgsr2_pre_exposure;
+int sgsr2_same_camera;
+int sgsr2_reset;
+int sgsr2_same_camera_frame_num;
+
+shader sgsr2_2pass_convert_ps
+{
+  ENABLE_ASSERT(ps)
+
+  supports global_frame;
+  cull_mode  = none;
+  z_test = false;
+  z_write = false;
+
+  POSTFX_VS_TEXCOORD(0, texCoord)
+
+  (ps) {
+    InputDepth@smp2d = depth_resolved;
+    InputVelocity@smp2d = resolved_motion_vectors;
+
+    p_clipToPrevClip@f4[] = sgsr2_clip_to_prev_clip;
+    p_renderSize@f2 = (sgsr2_render_size.xy);
+    p_outputSize@f2 = (sgsr2_output_size.xy);
+    p_renderSizeRcp@f2 = (sgsr2_render_size.zw);
+    p_outputSizeRcp@f2 = (sgsr2_output_size.zw);
+    p_jitterOffset@f2 = sgsr2_jitter_offset;
+    p_scaleRatio@f2 = sgsr2_upscale_ratio;
+    p_cameraFovAngleHor@f1 = sgsr2_camera_fov;
+    p_minLerpContribution@f1 = sgsr2_min_lerp_contrib;
+    p_reset@i1 = sgsr2_reset;
+    p_bSameCamera@f1 = sgsr2_same_camera;
+  }
+
+  INIT_ZNZFAR()
+
+  hlsl(ps) {
+    float2 decodeVelocityFromTexture(float2 ev) {
+      const float inv_div = 1.0f / (0.499f * 0.5f);
+      float2 dv;
+      dv.xy = ev.xy * inv_div - 32767.0f / 65535.0f * inv_div;
+      //dv.z = uintBitsToFloat((uint(round(ev.z * 65535.0f)) << 16) | uint(round(ev.w * 65535.0f)));
+      return dv;
+    }
+
+    float4 main_ps(VsOutput input) : SV_Target0
+    {
+      uint2 InputPos = uint2(input.texCoord * p_renderSize);
+      float2 gatherCoord = input.texCoord - float2(0.5, 0.5) * p_renderSizeRcp;
+
+
+      // texture gather to find nearest depth
+      //      a  b  c  d
+      //      e  f  g  h
+      //      i  j  k  l
+      //      m  n  o  p
+      //btmLeft mnji
+      //btmRight oplk
+      //topLeft  efba
+      //topRight ghdc
+
+      float4 btmLeft = InputDepth.GatherRed(InputDepth_samplerstate, gatherCoord);
+      float2 v10 = float2(p_renderSizeRcp.x * 2.0f, 0.0);
+      float4 btmRight = InputDepth.GatherRed(InputDepth_samplerstate,(gatherCoord+v10));
+      float2 v12 = float2(0.0, p_renderSizeRcp.y * 2.0f);
+      float4 topLeft = InputDepth.GatherRed(InputDepth_samplerstate,(gatherCoord+v12));
+      float2 v14 = float2(p_renderSizeRcp.x * 2.0f, p_renderSizeRcp.y * 2.0f);
+      float4 topRight = InputDepth.GatherRed(InputDepth_samplerstate,(gatherCoord+v14));
+      float maxC = max(max(max(btmLeft.z,btmRight.w),topLeft.y),topRight.x);
+      float btmLeft4 = max(max(max(btmLeft.y,btmLeft.x),btmLeft.z),btmLeft.w);
+      float btmLeftMax9 = max(topLeft.x,max(max(maxC,btmLeft4),btmRight.x));
+
+      float depthclip = 0.0;
+      if (maxC > 1.0e-05f)
+      {
+        float btmRight4 = max(max(max(btmRight.y,btmRight.x),btmRight.z),btmRight.w);
+        float topLeft4 = max(max(max(topLeft.y,topLeft.x),topLeft.z),topLeft.w);
+        float topRight4 = max(max(max(topRight.y,topRight.x),topRight.z),topRight.w);
+
+        float Wdepth = 0.0;
+        float Ksep = 1.37e-05f;
+        float Kfov = p_cameraFovAngleHor;
+        float diagonal_length = length(p_renderSize);
+        float Ksep_Kfov_diagonal = Ksep * Kfov * diagonal_length;
+
+        float Depthsep = Ksep_Kfov_diagonal * maxC;
+        float EPSILON = 1.19e-07f;
+        Wdepth += clamp((Depthsep / (abs(maxC - btmLeft4) + EPSILON)), 0.0, 1.0);
+        Wdepth += clamp((Depthsep / (abs(maxC - btmRight4) + EPSILON)), 0.0, 1.0);
+        Wdepth += clamp((Depthsep / (abs(maxC - topLeft4) + EPSILON)), 0.0, 1.0);
+        Wdepth += clamp((Depthsep / (abs(maxC - topRight4) + EPSILON)), 0.0, 1.0);
+        depthclip = clamp(1.0f - Wdepth * 0.25, 0.0, 1.0);
+      }
+
+      //refer to ue/fsr2 PostProcessFFX_FSR2ConvertVelocity.usf, and using nearest depth for dilated motion
+
+      float4 EncodedVelocity = texelFetch(InputVelocity, int2(InputPos), 0);
+
+      float2 motion;
+      if (EncodedVelocity.x != 0.0 && EncodedVelocity.y != 0.0)
+      {
+        // Modified for dagor: we already encode motion without multiplier and offset
+        // motion = decodeVelocityFromTexture(EncodedVelocity.xy);
+        motion = EncodedVelocity.xy;
+      }
+      else
+      {
+        // Modified for dagor: our reprojection code uses uv in [0,1], not in [-1,1]
+        //float2 ScreenPos = float2(2.0f * texCoord.x - 1.0f, 1.0f - 2.0f * texCoord.y);
+        // float2 ScreenPos = float2(2.0f * input.texCoord - 1.0f);  // NDC Y+ down from viewport Y+ down
+        float2 ScreenPos = input.texCoord;
+        float3 Position = float3(ScreenPos, btmLeftMax9);    //this_clip
+        float4 PreClip = p_clipToPrevClip[3] + ((p_clipToPrevClip[2] * Position.z) + ((p_clipToPrevClip[1] * ScreenPos.y) + (p_clipToPrevClip[0] * ScreenPos.x)));
+        float2 PreScreen = PreClip.xy / PreClip.w;
+        // Modified for dagor: to match motion vectors
+        // motion = Position.xy - PreScreen;
+        motion = PreScreen - Position.xy;
+      }
+      return float4(motion, depthclip, 0.0);
+    }
+  }
+  compile("target_ps_half", "main_ps");
+}
+
+shader sgsr2_2pass_upscale_ps
+{
+  ENABLE_ASSERT(ps)
+
+  supports global_frame;
+  cull_mode  = none;
+  z_test = false;
+  z_write = false;
+
+  POSTFX_VS_TEXCOORD(0, texCoord)
+
+  (ps) {
+    PrevOutput@smp2d = sgsr2_prev_output;
+    MotionDepthClipAlphaBuffer@smp2d = sgsr2_motion_depth_clip_alpha_buffer;
+    InputColor@smp2d = sgsr2_input_color;
+
+    p_clipToPrevClip@f4[] = sgsr2_clip_to_prev_clip;
+    p_renderSize@f2 = (sgsr2_render_size.xy);
+    p_outputSize@f2 = (sgsr2_output_size.xy);
+    p_renderSizeRcp@f2 = (sgsr2_render_size.zw);
+    p_outputSizeRcp@f2 = (sgsr2_output_size.zw);
+    p_jitterOffset@f2 = sgsr2_jitter_offset;
+    p_scaleRatio@f2 = sgsr2_upscale_ratio;
+    p_cameraFovAngleHor@f1 = sgsr2_camera_fov;
+    p_minLerpContribution@f1 = sgsr2_min_lerp_contrib;
+    p_reset@i1 = sgsr2_reset;
+    p_sameCameraFrmNum@i1 = sgsr2_same_camera_frame_num;
+  }
+
+  INIT_ZNZFAR()
+
+  hlsl(ps) {
+    float FastLanczos(float base)
+    {
+      float y = base - 1.0f;
+      float y2 = y * y;
+      float y_temp = 0.75f * y + y2;
+      return y_temp * y2;
+    }
+
+    half4 main_ps(VsOutput input) : SV_Target0
+    {
+      half Biasmax_viewportXScale = p_scaleRatio.x;
+      half scalefactor = p_scaleRatio.y;
+
+      float2 Hruv = input.texCoord;
+
+      float2 Jitteruv;
+      Jitteruv.x = clamp(Hruv.x + (p_jitterOffset.x * p_renderSizeRcp.x), 0.0, 1.0);
+      Jitteruv.y = clamp(Hruv.y + (p_jitterOffset.y * p_renderSizeRcp.y), 0.0, 1.0);
+
+      int2 InputPos = int2(Jitteruv * p_renderSize);
+
+      float3 mda = tex2Dlod(MotionDepthClipAlphaBuffer, float4(Jitteruv, 0.0, 0.0)).xyz;
+      float2 Motion = mda.xy;
+
+      float2 PrevUV;
+      PrevUV.x = clamp(-0.5 * Motion.x + Hruv.x, 0.0, 1.0);
+      PrevUV.y = clamp(-0.5 * Motion.y + Hruv.y, 0.0, 1.0);
+      // Modified for dagor: motion vectors don't need scale and sign change in our case
+      PrevUV.x = clamp(Motion.x + Hruv.x, 0.0, 1.0);
+      PrevUV.y = clamp(Motion.y + Hruv.y, 0.0, 1.0);
+
+      half depthfactor = mda.z;
+
+      half3 HistoryColor = tex2Dlod(PrevOutput, float4(PrevUV, 0.0, 0.0)).xyz;
+
+      /////upsample and compute box
+      half4 Upsampledcw = half4(0,0,0,0);
+      half biasmax = Biasmax_viewportXScale ;
+      half biasmin = max(1.0f, 0.3 + 0.3 * biasmax);
+      half biasfactor = 0.25f * depthfactor;
+      half kernelbias = lerp(biasmax, biasmin, biasfactor);
+      half motion_viewport_len = length(Motion * p_outputSize);
+      half curvebias = lerp(-2.0, -3.0, clamp(motion_viewport_len * 0.02, 0.0, 1.0));
+
+      half3 rectboxcenter = half3(0,0,0);
+      half3 rectboxvar = half3(0,0,0);
+      half rectboxweight = 0.0;
+      float2 srcpos = float2(InputPos) + float2(0.5, 0.5) - p_jitterOffset;
+
+      kernelbias *= 0.5f;
+      half kernelbias2 = kernelbias * kernelbias;
+      half2 srcpos_srcOutputPos = srcpos - Hruv * p_renderSize;  //srcOutputPos = Hruv * p_renderSize;
+      half3 rectboxmin;
+      half3 rectboxmax;
+      half3 topMid = texelFetch(InputColor, InputPos + int2(0, 1), 0).xyz;
+      {
+
+        half3 samplecolor = topMid;
+        half2 baseoffset = srcpos_srcOutputPos + half2(0.0, 1.0);
+        half baseoffset_dot = dot(baseoffset, baseoffset);
+        half base = clamp(baseoffset_dot * kernelbias2, 0.0f, 1.0f);
+        half weight = FastLanczos(base);
+        Upsampledcw += half4(samplecolor * weight, weight);
+        half boxweight = exp(baseoffset_dot * curvebias);
+        rectboxmin = samplecolor;
+        rectboxmax = samplecolor;
+        half3 wsample = samplecolor * boxweight;
+        rectboxcenter += wsample;
+        rectboxvar += (samplecolor * wsample);
+        rectboxweight += boxweight;
+      }
+      half3 rightMid = texelFetch(InputColor, InputPos + int2(1, 0), 0).xyz;
+      {
+
+        half3 samplecolor = rightMid;
+        half2 baseoffset = srcpos_srcOutputPos + half2(1.0, 0.0);
+        half baseoffset_dot = dot(baseoffset, baseoffset);
+        half base = clamp(baseoffset_dot * kernelbias2, 0.0f, 1.0f);
+        half weight = FastLanczos(base);
+        Upsampledcw += half4(samplecolor * weight, weight);
+        half boxweight = exp(baseoffset_dot * curvebias);
+        rectboxmin = min(rectboxmin, samplecolor);
+        rectboxmax = max(rectboxmax, samplecolor);
+        half3 wsample = samplecolor * boxweight;
+        rectboxcenter += wsample;
+        rectboxvar += (samplecolor * wsample);
+        rectboxweight += boxweight;
+      }
+      half3 leftMid = texelFetch(InputColor, InputPos + int2(-1, 0) , 0).xyz;
+      {
+
+        half3 samplecolor = leftMid;
+        half2 baseoffset = srcpos_srcOutputPos + half2(-1.0, 0.0);
+        half baseoffset_dot = dot(baseoffset, baseoffset);
+        half base = clamp(baseoffset_dot * kernelbias2, 0.0f, 1.0f);
+        half weight = FastLanczos(base);
+        Upsampledcw += half4(samplecolor * weight, weight);
+        half boxweight = exp(baseoffset_dot * curvebias);
+        rectboxmin = min(rectboxmin, samplecolor);
+        rectboxmax = max(rectboxmax, samplecolor);
+        half3 wsample = samplecolor * boxweight;
+        rectboxcenter += wsample;
+        rectboxvar += (samplecolor * wsample);
+        rectboxweight += boxweight;
+      }
+      half3 centerMid = texelFetch(InputColor, InputPos + int2(0, 0) , 0).xyz;
+      {
+
+        half3 samplecolor = centerMid;
+        half2 baseoffset = srcpos_srcOutputPos;
+        half baseoffset_dot = dot(baseoffset, baseoffset);
+        half base = clamp(baseoffset_dot * kernelbias2, 0.0f, 1.0f);
+        half weight = FastLanczos(base);
+        Upsampledcw += half4(samplecolor * weight, weight);
+        half boxweight = exp(baseoffset_dot * curvebias);
+        rectboxmin = min(rectboxmin, samplecolor);
+        rectboxmax = max(rectboxmax, samplecolor);
+        half3 wsample = samplecolor * boxweight;
+        rectboxcenter += wsample;
+        rectboxvar += (samplecolor * wsample);
+        rectboxweight += boxweight;
+      }
+      half3 btmMid = texelFetch(InputColor, InputPos + int2(0, -1) , 0).xyz;
+      {
+
+        half3 samplecolor = btmMid;
+        half2 baseoffset = srcpos_srcOutputPos + half2(0.0, -1.0);
+        half baseoffset_dot = dot(baseoffset, baseoffset);
+        half base = clamp(baseoffset_dot * kernelbias2, 0.0f, 1.0f);
+        half weight = FastLanczos(base);
+        Upsampledcw += half4(samplecolor * weight, weight);
+        half boxweight = exp(baseoffset_dot * curvebias);
+        rectboxmin = min(rectboxmin, samplecolor);
+        rectboxmax = max(rectboxmax, samplecolor);
+        half3 wsample = samplecolor * boxweight;
+        rectboxcenter += wsample;
+        rectboxvar += (samplecolor * wsample);
+        rectboxweight += boxweight;
+      }
+
+      //if (p_sameCameraFrmNum!=0u)  //maybe disable this for ultra performance
+      if (false)  //maybe disable this for ultra performance, true could generate more realistic output
+      {
+        {
+          half3 topRight = texelFetch(InputColor, InputPos + int2(1, 1), 0).xyz;
+          half3 samplecolor = topRight;
+          half2 baseoffset = srcpos_srcOutputPos + half2(1.0, 1.0);
+          half baseoffset_dot = dot(baseoffset, baseoffset);
+          half base = clamp(baseoffset_dot * kernelbias2, 0.0, 1.0);
+          half weight = FastLanczos(base);
+          Upsampledcw += half4(samplecolor * weight, weight);
+          half boxweight = exp(baseoffset_dot * curvebias);
+          rectboxmin = min(rectboxmin, samplecolor);
+          rectboxmax = max(rectboxmax, samplecolor);
+          half3 wsample = samplecolor * boxweight;
+          rectboxcenter += wsample;
+          rectboxvar += (samplecolor * wsample);
+          rectboxweight += boxweight;
+        }
+        {
+          half3 topLeft = texelFetch(InputColor, InputPos + int2(-1, 1), 0).xyz;
+          half3 samplecolor = topLeft;
+          half2 baseoffset = srcpos_srcOutputPos + half2(-1.0, 1.0);
+          half baseoffset_dot = dot(baseoffset, baseoffset);
+          half base = clamp(baseoffset_dot * kernelbias2, 0.0f, 1.0f);
+          half weight = FastLanczos(base);
+          Upsampledcw += half4(samplecolor * weight, weight);
+          half boxweight = exp(baseoffset_dot * curvebias);
+          rectboxmin = min(rectboxmin, samplecolor);
+          rectboxmax = max(rectboxmax, samplecolor);
+          half3 wsample = samplecolor * boxweight;
+          rectboxcenter += wsample;
+          rectboxvar += (samplecolor * wsample);
+          rectboxweight += boxweight;
+        }
+        {
+          half3 btmRight = texelFetch(InputColor, InputPos + int2(1, -1) , 0).xyz;
+          half3 samplecolor = btmRight;
+          half2 baseoffset = srcpos_srcOutputPos + half2(1.0, -1.0);
+          half baseoffset_dot = dot(baseoffset, baseoffset);
+          half base = clamp(baseoffset_dot * kernelbias2, 0.0f, 1.0f);
+          half weight = FastLanczos(base);
+          Upsampledcw += half4(samplecolor * weight, weight);
+          half boxweight = exp(baseoffset_dot * curvebias);
+          rectboxmin = min(rectboxmin, samplecolor);
+          rectboxmax = max(rectboxmax, samplecolor);
+          half3 wsample = samplecolor * boxweight;
+          rectboxcenter += wsample;
+          rectboxvar += (samplecolor * wsample);
+          rectboxweight += boxweight;
+        }
+
+        {
+          half3 btmLeft = texelFetch(InputColor, InputPos + int2(-1, -1) , 0).xyz;
+          half3 samplecolor = btmLeft;
+          half2 baseoffset = srcpos_srcOutputPos + half2(-1.0, -1.0);
+          half baseoffset_dot = dot(baseoffset, baseoffset);
+          half base = clamp(baseoffset_dot * kernelbias2, 0.0f, 1.0f);
+          half weight = FastLanczos(base);
+          Upsampledcw += half4(samplecolor * weight, weight);
+          half boxweight = exp(baseoffset_dot * curvebias);
+          rectboxmin = min(rectboxmin, samplecolor);
+          rectboxmax = max(rectboxmax, samplecolor);
+          half3 wsample = samplecolor * boxweight;
+          rectboxcenter += wsample;
+          rectboxvar += (samplecolor * wsample);
+          rectboxweight += boxweight;
+        }
+      }
+
+      rectboxweight = 1.0 / rectboxweight;
+      rectboxcenter *= rectboxweight;
+      rectboxvar *= rectboxweight;
+      rectboxvar = sqrt(abs(rectboxvar - rectboxcenter * rectboxcenter));
+
+      Upsampledcw.xyz =  clamp(Upsampledcw.xyz / Upsampledcw.w, rectboxmin-0.075, rectboxmax+0.075);
+      Upsampledcw.w = Upsampledcw.w * (1.0f / 3.0f) ;
+
+      half baseupdate = 1.0f - depthfactor;
+      baseupdate = min(baseupdate, lerp(baseupdate, Upsampledcw.w *10.0f, clamp(10.0f* motion_viewport_len, 0.0, 1.0)));
+      baseupdate = min(baseupdate, lerp(baseupdate, Upsampledcw.w, clamp(motion_viewport_len *0.05f, 0.0, 1.0)));
+      half basealpha = baseupdate;
+
+      const half EPSILON = 1.192e-07f;
+      half boxscale = max(depthfactor, clamp(motion_viewport_len * 0.05f, 0.0, 1.0));
+      half boxsize = lerp(scalefactor, 1.0f, boxscale);
+      half3 sboxvar = rectboxvar * boxsize;
+      half3 boxmin = rectboxcenter - sboxvar;
+      half3 boxmax = rectboxcenter + sboxvar;
+      rectboxmax = min(rectboxmax, boxmax);
+      rectboxmin = max(rectboxmin, boxmin);
+
+      half3 clampedcolor = clamp(HistoryColor, rectboxmin, rectboxmax);
+      half startLerpValue = p_minLerpContribution;
+      if ((abs(mda.x) + abs(mda.y)) > 0.000001) startLerpValue = 0.0;
+      half lerpcontribution = (any(rectboxmin > HistoryColor) || any(HistoryColor > rectboxmax)) ? startLerpValue : 1.0f;
+
+      HistoryColor = lerp(clampedcolor, HistoryColor, clamp(lerpcontribution, 0.0, 1.0));
+      half basemin = min(basealpha, 0.1f);
+      basealpha = lerp(basemin, basealpha, clamp(lerpcontribution, 0.0, 1.0));
+
+      ////blend color
+      half alphasum = max(EPSILON, basealpha + Upsampledcw.w);
+      half alpha = clamp(Upsampledcw.w / alphasum + p_reset, 0.0, 1.0);
+
+      Upsampledcw.xyz = lerp(HistoryColor, Upsampledcw.xyz, alpha);
+
+      return half4(Upsampledcw.xyz, 1.0);
+    }
+  }
+  compile("target_ps_half", "main_ps");
+}
+
+
+shader sgsr2_2pass_convert_cs
+{
+  ENABLE_ASSERT(cs)
+
+  (cs) {
+    InputDepth@smp2d = depth_resolved;
+    InputVelocity@smp2d = resolved_motion_vectors;
+    InputColor@smp2d = sgsr2_input_color;
+
+    p_clipToPrevClip@f4[] = sgsr2_clip_to_prev_clip;
+    p_renderSize@f2 = (sgsr2_render_size.xy);
+    p_outputSize@f2 = (sgsr2_output_size.xy);
+    p_renderSizeRcp@f2 = (sgsr2_render_size.zw);
+    p_outputSizeRcp@f2 = (sgsr2_output_size.zw);
+    p_ViewportSizeInverse@f2 = (sgsr2_render_size.zw);
+    p_jitterOffset@f2 = sgsr2_jitter_offset;
+    p_scaleRatio@f2 = sgsr2_upscale_ratio;
+    p_cameraFovAngleHor@f1 = sgsr2_camera_fov;
+    p_minLerpContribution@f1 = sgsr2_min_lerp_contrib;
+    p_preExposure@f1 = sgsr2_pre_exposure;
+    p_reset@i1 = sgsr2_reset;
+    p_sameCameraFrmNum@i1 = sgsr2_same_camera_frame_num;
+  }
+
+  hlsl(cs)
+  {
+    float2 decodeVelocityFromTexture(float2 ev) {
+      const float inv_div = 1.0f / (0.499f * 0.5f);
+      float2 dv;
+      dv.xy = ev.xy * inv_div - 32767.0f / 65535.0f * inv_div;
+      //dv.z = uintBitsToFloat((uint(round(ev.z * 65535.0f)) << 16) | uint(round(ev.w * 65535.0f)));
+      return dv;
+    }
+
+    RWTexture2D<float4> MotionDepthClipAlphaBuffer : register(u0);
+    RWTexture2D<uint> YCoCgColor : register(u1);
+
+    [numthreads(8, 8, 1)]
+    void main_cs(uint2 dtId : SV_DispatchThreadID, uint2 tid : SV_GroupThreadID, uint2 gId : SV_GroupID, uint flatTid : SV_GroupIndex)
+    {
+      half Exposure_co_rcp = p_preExposure;
+      float2 ViewportSizeInverse = p_ViewportSizeInverse.xy;
+      uint2 InputPos = dtId.xy;
+
+      float2 gatherCoord = float2(dtId.xy) * ViewportSizeInverse;
+      float2 ViewportUV = gatherCoord + float2(0.5, 0.5) * ViewportSizeInverse;
+
+      //derived from ffx_fsr2_reconstruct_dilated_velocity_and_previous_depth.h
+      //FindNearestDepth
+
+      float4 topleft = InputDepth.GatherRed(InputDepth_samplerstate, gatherCoord, 0);
+      float2 v10 = float2(ViewportSizeInverse.x*2.0, 0.0);
+      float4 topRight = InputDepth.GatherRed(InputDepth_samplerstate,(gatherCoord+v10), 0);
+      float2 v12 = float2(0.0, ViewportSizeInverse.y*2.0);
+      float4 bottomLeft = InputDepth.GatherRed(InputDepth_samplerstate,(gatherCoord+v12), 0);
+      float2 v14 = float2(ViewportSizeInverse.x*2.0, ViewportSizeInverse.y*2.0);
+      float4 bottomRight = InputDepth.GatherRed(InputDepth_samplerstate,(gatherCoord+v14), 0);
+      float maxC = max(max(max(topleft.y,topRight.x),bottomLeft.z),bottomRight.w);
+      float topleft4 = max(max(max(topleft.y,topleft.x),topleft.z),topleft.w);
+      float topLeftMax9 = max(bottomLeft.w,max(max(maxC,topleft4),topRight.w));
+
+      float depthclip = 0.0;
+      if (maxC > 1.0e-05f)
+      {
+        float topRight4 = max(max(max(topRight.y,topRight.x),topRight.z),topRight.w);
+        float bottomLeft4 = max(max(max(bottomLeft.y,bottomLeft.x),bottomLeft.z),bottomLeft.w);
+        float bottomRight4 = max(max(max(bottomRight.y,bottomRight.x),bottomRight.z),bottomRight.w);
+
+        float Wdepth = 0.0;
+        float Ksep = 1.37e-05f;
+        float Kfov = p_cameraFovAngleHor;
+        float diagonal_length = length(float2(p_renderSize));
+        float Ksep_Kfov_diagonal = Ksep * Kfov * diagonal_length;
+
+        float Depthsep = Ksep_Kfov_diagonal * maxC;
+        float EPSILON = 1.19e-07f;
+        Wdepth += clamp((Depthsep / (abs(maxC - topleft4) + EPSILON)), 0.0, 1.0);
+        Wdepth += clamp((Depthsep / (abs(maxC - topRight4) + EPSILON)), 0.0, 1.0);
+        Wdepth += clamp((Depthsep / (abs(maxC - bottomLeft4) + EPSILON)), 0.0, 1.0);
+        Wdepth += clamp((Depthsep / (abs(maxC - bottomRight4) + EPSILON)), 0.0, 1.0);
+        depthclip = clamp(1.0f - Wdepth*0.25, 0.0, 1.0);
+      }
+
+      //refer to ue/fsr2 PostProcessFFX_FSR2ConvertVelocity.usf, and using nearest depth for dilated motion
+
+      float4 EncodedVelocity = texelFetch(InputVelocity, int2(dtId.xy), 0);
+
+      float2 motion;
+      if (EncodedVelocity.x != 0.0 && EncodedVelocity.y != 0.0)
+      {
+        // Modified for dagor: motion vectors don't need decode
+        // motion = decodeVelocityFromTexture(EncodedVelocity.xy);
+        motion = EncodedVelocity.xy;
+      }
+      else
+      {
+        #ifdef REQUEST_NDC_Y_UP
+        float2 ScreenPos = float2(2.0f * ViewportUV.x - 1.0f, 1.0f - 2.0f * ViewportUV.y);
+        #else
+        // Modified for dagor: reprojection uses uv in [0,1] range, not in [-1,1]
+        // float2 ScreenPos = float2(2.0f * ViewportUV - 1.0f);
+        float2 ScreenPos = ViewportUV;
+        #endif
+        float3 Position = float3(ScreenPos, topLeftMax9);    //this_clip
+        float4 PreClip = p_clipToPrevClip[3] + ((p_clipToPrevClip[2] * Position.z) + ((p_clipToPrevClip[1] * ScreenPos.y) + (p_clipToPrevClip[0] * ScreenPos.x)));
+        float2 PreScreen = PreClip.xy / PreClip.w;
+        // Modified for dagor: sign to match motion vectors
+        // motion = Position.xy - PreScreen;
+        motion = PreScreen - Position.xy;
+      }
+
+      ////////////compute luma
+      half3 Colorrgb = texelFetch(InputColor, int2(InputPos), 0).xyz;
+
+      ///simple tonemap
+      float ColorMax = max(max(Colorrgb.x, Colorrgb.y), Colorrgb.z) + Exposure_co_rcp;
+      Colorrgb /= float3(ColorMax, ColorMax, ColorMax);
+
+      float3 Colorycocg;
+      Colorycocg.x = 0.25 * (Colorrgb.x + 2.0 * Colorrgb.y + Colorrgb.z);
+      Colorycocg.y = clamp(0.5 * Colorrgb.x + 0.5 - 0.5 * Colorrgb.z, 0.0, 1.0);
+      Colorycocg.z = clamp(Colorycocg.x + Colorycocg.y - Colorrgb.x, 0.0, 1.0);
+
+      //now color YCoCG all in the range of [0,1]
+      uint x11 = uint(Colorycocg.x * 2047.5);
+      uint y11 = uint(Colorycocg.y * 2047.5);
+      uint z10 = uint(Colorycocg.z * 1023.5);
+
+      YCoCgColor[dtId.xy] = ((x11 << 21u) | (y11 << 10u)) | z10;
+      MotionDepthClipAlphaBuffer[dtId.xy] = float4(motion, depthclip, ColorMax);
+    }
+  }
+  compile("target_cs_half", "main_cs");
+}
+
+shader sgsr2_2pass_upscale_cs
+{
+  ENABLE_ASSERT(cs)
+
+  (cs) {
+    YCoCgColor@smp = sgsr2_ycocg_color hlsl { Texture2D<uint> YCoCgColor@smp; };
+    PrevHistoryOutput@smp2d = sgsr2_prev_output;
+    MotionDepthClipAlphaBuffer@smp2d = sgsr2_motion_depth_clip_alpha_buffer;
+
+    p_clipToPrevClip@f4[] = sgsr2_clip_to_prev_clip;
+    p_renderSize@f2 = (sgsr2_render_size.xy);
+    p_displaySize@f2 = (sgsr2_output_size.xy);
+    p_renderSizeRcp@f2 = (sgsr2_render_size.zw);
+    p_displaySizeRcp@f2 = (sgsr2_output_size.zw);
+    p_ViewportSizeInverse@f2 = (sgsr2_render_size.zw);
+    p_jitterOffset@f2 = sgsr2_jitter_offset;
+    p_scaleRatio@f2 = sgsr2_upscale_ratio;
+    p_cameraFovAngleHor@f1 = sgsr2_camera_fov;
+    p_MinLerpContribution@f1 = sgsr2_min_lerp_contrib;
+    p_preExposure@f1 = sgsr2_pre_exposure;
+    p_reset@i1 = sgsr2_reset;
+    p_sameCameraFrmNum@i1 = sgsr2_same_camera_frame_num;
+  }
+
+  hlsl(cs)
+  {
+    float FastLanczos(float base)
+    {
+      float y = base - 1.0f;
+      float y2 = y * y;
+      float y_temp = 0.75f * y + y2;
+      return y_temp * y2;
+    }
+
+    float3 DecodeColor(uint sample32)
+    {
+      uint x11 = sample32 >> 21u;
+      uint y11 = sample32 & (2047u << 10u);
+      uint z10 = sample32 & 1023u;
+      float3 samplecolor;
+      samplecolor.x = (float(x11) * (1.0 / 2047.5));
+      samplecolor.y = (float(y11) * (4.76953602e-7)) - 0.5;
+      samplecolor.z = (float(z10) * (1.0 / 1023.5)) - 0.5;
+
+      return samplecolor;
+    }
+
+
+    RWTexture2D<float4> HistoryOutput : register(u0);
+    RWTexture2D<float4> SceneColorOutput : register(u1);
+
+    [numthreads(8, 8, 1)]
+    void main_cs(uint2 dtId : SV_DispatchThreadID, uint2 tid : SV_GroupThreadID, uint2 gId : SV_GroupID, uint flatTid : SV_GroupIndex)
+    {
+      float Biasmax_viewportXScale = min(float(p_displaySize.x) / float(p_renderSize.x), 1.99);  //Biasmax_viewportXScale
+      float scalefactor = min(20.0, pow((float(p_displaySize.x) / float(p_renderSize.x)) * (float(p_displaySize.y) / float(p_renderSize.y)), 3.0));
+      float f2 = p_preExposure;            //1.0;   //preExposure
+      float2 HistoryInfoViewportSizeInverse = p_displaySizeRcp;
+      float2 HistoryInfoViewportSize = float2(p_displaySize);
+      float2 InputJitter = p_jitterOffset;
+      float2 InputInfoViewportSize = float2(p_renderSize);
+      float2 Hruv = (float2(dtId.xy) + float2(0.5, 0.5)) * HistoryInfoViewportSizeInverse;
+      float2 Jitteruv;
+      Jitteruv.x = clamp(Hruv.x + (InputJitter.x * p_renderSizeRcp.x), 0.0, 1.0);
+      Jitteruv.y = clamp(Hruv.y + (InputJitter.y * p_renderSizeRcp.y), 0.0, 1.0);
+
+      int2 InputPos = int2(Jitteruv * InputInfoViewportSize);
+      float4 mda = tex2Dlod(MotionDepthClipAlphaBuffer, float4(Jitteruv, 0.0, 0.0)).xyzw;
+      float2 Motion = mda.xy;
+
+      ///ScreenPosToViewportScale&Bias
+      float2 PrevUV;
+      // Modified for dagor: Motion.xy instead of (-0.5 * Motion.xy)
+      PrevUV.x = clamp(Motion.x + Hruv.x, 0.0, 1.0);
+#ifdef REQUEST_NDC_Y_UP
+      PrevUV.y = clamp(Motion.y + Hruv.y, 0.0, 1.0);
+#else
+      PrevUV.y = clamp(Motion.y + Hruv.y, 0.0, 1.0);
+#endif
+
+      float depthfactor = mda.z;
+      float ColorMax = mda.w;
+
+      float4 History = tex2Dlod(PrevHistoryOutput, float4(PrevUV, 0.0, 0.0));
+      float3 HistoryColor = History.xyz;
+      float Historyw = History.w;
+      float Wfactor = clamp(abs(Historyw), 0.0, 1.0);
+
+      /////upsample and compute box
+      float4 Upsampledcw = float4(0, 0, 0, 0);
+      float kernelfactor = clamp(Wfactor + float(p_reset), 0.0, 1.0);
+      float biasmax = Biasmax_viewportXScale - Biasmax_viewportXScale * kernelfactor;
+      float biasmin = max(1.0f, 0.3 + 0.3 * biasmax);
+      float biasfactor = max(0.25f * depthfactor, kernelfactor);
+      float kernelbias = lerp(biasmax, biasmin, biasfactor);
+      float motion_viewport_len = length(Motion * HistoryInfoViewportSize);
+      float curvebias = lerp(-2.0, -3.0, clamp(motion_viewport_len * 0.02, 0.0, 1.0));
+
+      float3 rectboxcenter = float3(0, 0, 0);
+      float3 rectboxvar = float3(0, 0, 0);
+      float rectboxweight = 0.0;
+      float2 srcpos = float2(InputPos) + float2(0.5, 0.5) - InputJitter;
+      float2 srcOutputPos = Hruv * InputInfoViewportSize;
+
+      kernelbias *= 0.5f;
+      float kernelbias2 = kernelbias * kernelbias;
+      float2 srcpos_srcOutputPos = srcpos - srcOutputPos;
+
+      int2 InputPosBtmRight = int2(1, 1) + InputPos;
+      float2 gatherCoord = float2(InputPos) * p_renderSizeRcp;
+      uint btmRight = texelFetch(YCoCgColor, InputPosBtmRight, 0).x;
+      uint4 topleft = textureGather(YCoCgColor, gatherCoord);
+      uint2 topRight;
+      uint2 bottomLeft;
+
+      uint sameCameraFrmNum = p_sameCameraFrmNum;
+
+      if (sameCameraFrmNum!=0u)
+      {
+        topRight = textureGather(YCoCgColor, gatherCoord + float2(p_renderSizeRcp.x, 0.0)).yz;
+        bottomLeft = textureGather(YCoCgColor, gatherCoord + float2(0.0, p_renderSizeRcp.y)).xy;
+      }
+      else
+      {
+        uint2 btmRight = textureGather(YCoCgColor, gatherCoord + float2(p_renderSizeRcp.x, p_renderSizeRcp.y)).xz;
+        bottomLeft.y = btmRight.x;
+        topRight.x = btmRight.y;
+      }
+
+      float3 rectboxmin;
+      float3 rectboxmax;
+      {
+        float3 samplecolor = DecodeColor(bottomLeft.y);
+        float2 baseoffset = srcpos_srcOutputPos + float2(0.0, 1.0);
+        float baseoffset_dot = dot(baseoffset, baseoffset);
+        float base = clamp(baseoffset_dot * kernelbias2, 0.0f, 1.0f);
+        float weight = FastLanczos(base);
+        Upsampledcw += float4(samplecolor * weight, weight);
+        float boxweight = exp(baseoffset_dot * curvebias);
+        rectboxmin = samplecolor;
+        rectboxmax = samplecolor;
+        float3 wsample = samplecolor * boxweight;
+        rectboxcenter += wsample;
+        rectboxvar += (samplecolor * wsample);
+        rectboxweight += boxweight;
+      }
+      {
+        float3 samplecolor = DecodeColor(topRight.x);
+        float2 baseoffset = srcpos_srcOutputPos + float2(1.0, 0.0);
+        float baseoffset_dot = dot(baseoffset, baseoffset);
+        float base = clamp(baseoffset_dot * kernelbias2, 0.0f, 1.0f);
+        float weight = FastLanczos(base);
+        Upsampledcw += float4(samplecolor * weight, weight);
+        float boxweight = exp(baseoffset_dot * curvebias);
+        rectboxmin = min(rectboxmin, samplecolor);
+        rectboxmax = max(rectboxmax, samplecolor);
+        float3 wsample = samplecolor * boxweight;
+        rectboxcenter += wsample;
+        rectboxvar += (samplecolor * wsample);
+        rectboxweight += boxweight;
+      }
+      {
+        float3 samplecolor = DecodeColor(topleft.x);
+        float2 baseoffset = srcpos_srcOutputPos + float2(-1.0, 0.0);
+        float baseoffset_dot = dot(baseoffset, baseoffset);
+        float base = clamp(baseoffset_dot * kernelbias2, 0.0f, 1.0f);
+        float weight = FastLanczos(base);
+        Upsampledcw += float4(samplecolor * weight, weight);
+        float boxweight = exp(baseoffset_dot * curvebias);
+        rectboxmin = min(rectboxmin, samplecolor);
+        rectboxmax = max(rectboxmax, samplecolor);
+        float3 wsample = samplecolor * boxweight;
+        rectboxcenter += wsample;
+        rectboxvar += (samplecolor * wsample);
+        rectboxweight += boxweight;
+      }
+      {
+        float3 samplecolor = DecodeColor(topleft.y);
+        float2 baseoffset = srcpos_srcOutputPos;
+        float baseoffset_dot = dot(baseoffset, baseoffset);
+        float base = clamp(baseoffset_dot * kernelbias2, 0.0f, 1.0f);
+        float weight = FastLanczos(base);
+        Upsampledcw += float4(samplecolor * weight, weight);
+        float boxweight = exp(baseoffset_dot * curvebias);
+        rectboxmin = min(rectboxmin, samplecolor);
+        rectboxmax = max(rectboxmax, samplecolor);
+        float3 wsample = samplecolor * boxweight;
+        rectboxcenter += wsample;
+        rectboxvar += (samplecolor * wsample);
+        rectboxweight += boxweight;
+      }
+      {
+        float3 samplecolor = DecodeColor(topleft.z);
+        float2 baseoffset = srcpos_srcOutputPos + float2(0.0, -1.0);
+        float baseoffset_dot = dot(baseoffset, baseoffset);
+        float base = clamp(baseoffset_dot * kernelbias2, 0.0f, 1.0f);
+        float weight = FastLanczos(base);
+        Upsampledcw += float4(samplecolor * weight, weight);
+        float boxweight = exp(baseoffset_dot * curvebias);
+        rectboxmin = min(rectboxmin, samplecolor);
+        rectboxmax = max(rectboxmax, samplecolor);
+        float3 wsample = samplecolor * boxweight;
+        rectboxcenter += wsample;
+        rectboxvar += (samplecolor * wsample);
+        rectboxweight += boxweight;
+      }
+
+      if (sameCameraFrmNum!=0u)
+      {
+        {
+          float3 samplecolor = DecodeColor(btmRight);
+          float2 baseoffset = srcpos_srcOutputPos + float2(1.0, 1.0);
+          float baseoffset_dot = dot(baseoffset, baseoffset);
+          float base = clamp(baseoffset_dot * kernelbias2, 0.0, 1.0);
+          float weight = FastLanczos(base);
+          Upsampledcw += float4(samplecolor * weight, weight);
+          float boxweight = exp(baseoffset_dot * curvebias);
+          rectboxmin = min(rectboxmin, samplecolor);
+          rectboxmax = max(rectboxmax, samplecolor);
+          float3 wsample = samplecolor * boxweight;
+          rectboxcenter += wsample;
+          rectboxvar += (samplecolor * wsample);
+          rectboxweight += boxweight;
+        }
+        {
+          float3 samplecolor = DecodeColor(bottomLeft.x);
+          float2 baseoffset = srcpos_srcOutputPos + float2(-1.0, 1.0);
+          float baseoffset_dot = dot(baseoffset, baseoffset);
+          float base = clamp(baseoffset_dot * kernelbias2, 0.0f, 1.0f);
+          float weight = FastLanczos(base);
+          Upsampledcw += float4(samplecolor * weight, weight);
+          float boxweight = exp(baseoffset_dot * curvebias);
+          rectboxmin = min(rectboxmin, samplecolor);
+          rectboxmax = max(rectboxmax, samplecolor);
+          float3 wsample = samplecolor * boxweight;
+          rectboxcenter += wsample;
+          rectboxvar += (samplecolor * wsample);
+          rectboxweight += boxweight;
+        }
+        {
+          float3 samplecolor = DecodeColor(topRight.y);
+          float2 baseoffset = srcpos_srcOutputPos + float2(1.0, -1.0);
+          float baseoffset_dot = dot(baseoffset, baseoffset);
+          float base = clamp(baseoffset_dot * kernelbias2, 0.0f, 1.0f);
+          float weight = FastLanczos(base);
+          Upsampledcw += float4(samplecolor * weight, weight);
+          float boxweight = exp(baseoffset_dot * curvebias);
+          rectboxmin = min(rectboxmin, samplecolor);
+          rectboxmax = max(rectboxmax, samplecolor);
+          float3 wsample = samplecolor * boxweight;
+          rectboxcenter += wsample;
+          rectboxvar += (samplecolor * wsample);
+          rectboxweight += boxweight;
+        }
+
+        {
+          float3 samplecolor = DecodeColor(topleft.w);
+          float2 baseoffset = srcpos_srcOutputPos + float2(-1.0, -1.0);
+          float baseoffset_dot = dot(baseoffset, baseoffset);
+          float base = clamp(baseoffset_dot * kernelbias2, 0.0f, 1.0f);
+          float weight = FastLanczos(base);
+          Upsampledcw += float4(samplecolor * weight, weight);
+          float boxweight = exp(baseoffset_dot * curvebias);
+          rectboxmin = min(rectboxmin, samplecolor);
+          rectboxmax = max(rectboxmax, samplecolor);
+          float3 wsample = samplecolor * boxweight;
+          rectboxcenter += wsample;
+          rectboxvar += (samplecolor * wsample);
+          rectboxweight += boxweight;
+        }
+      }
+
+      rectboxweight = 1.0 / rectboxweight;
+      rectboxcenter *= rectboxweight;
+      rectboxvar *= rectboxweight;
+      rectboxvar = sqrt(abs(rectboxvar - rectboxcenter * rectboxcenter));
+
+      Upsampledcw.xyz =  clamp(Upsampledcw.xyz / Upsampledcw.w, rectboxmin-0.05, rectboxmax+0.05);
+      Upsampledcw.w = Upsampledcw.w * (1.0f / 3.0f) ;
+
+      float OneMinusWfactor = 1.0f - Wfactor;
+
+      float baseupdate = OneMinusWfactor - OneMinusWfactor * depthfactor;
+      baseupdate = min(baseupdate, lerp(baseupdate, Upsampledcw.w *10.0f, clamp(10.0f* motion_viewport_len, 0.0, 1.0)));
+      baseupdate = min(baseupdate, lerp(baseupdate, Upsampledcw.w, clamp(motion_viewport_len *0.05f, 0.0, 1.0)));
+      float basealpha = baseupdate;
+
+      const float EPSILON = 1.192e-07f;
+      float boxscale = max(depthfactor, clamp(motion_viewport_len * 0.05f, 0.0, 1.0));
+      float boxsize = lerp(scalefactor, 1.0f, boxscale);
+      float3 sboxvar = rectboxvar * boxsize;
+      float3 boxmin = rectboxcenter - sboxvar;
+      float3 boxmax = rectboxcenter + sboxvar;
+      rectboxmax = min(rectboxmax, boxmax);
+      rectboxmin = max(rectboxmin, boxmin);
+
+      float3 clampedcolor = clamp(HistoryColor, rectboxmin, rectboxmax);
+      float startLerpValue = p_MinLerpContribution; //p_MinLerpContribution; //MinLerpContribution;
+      if ((abs(mda.x) + abs(mda.y)) > 0.000001) startLerpValue = 0.0;
+      float lerpcontribution = (any((rectboxmin > HistoryColor)) || any((HistoryColor > rectboxmax))) ? startLerpValue : 1.0f;
+
+      HistoryColor = lerp(clampedcolor, HistoryColor, clamp(lerpcontribution, 0.0, 1.0));
+      float basemin = min(basealpha, 0.1f);
+      basealpha = lerp(basemin, basealpha, clamp(lerpcontribution, 0.0, 1.0));
+
+      ////blend color
+      float alphasum = max(EPSILON, basealpha + Upsampledcw.w);
+      float alpha = clamp(Upsampledcw.w / alphasum + float(p_reset), 0.0, 1.0);
+      Upsampledcw.xyz = lerp(HistoryColor, Upsampledcw.xyz, alpha);
+
+      HistoryOutput[dtId.xy] = float4(Upsampledcw.xyz, Wfactor);
+
+      ////ycocg to rgb
+      float x_z = Upsampledcw.x - Upsampledcw.z;
+      Upsampledcw.xyz = float3(
+        clamp(x_z + Upsampledcw.y, 0.0, 1.0),
+        clamp(Upsampledcw.x + Upsampledcw.z, 0.0, 1.0),
+        clamp(x_z - Upsampledcw.y, 0.0, 1.0));
+
+      float compMax = max(Upsampledcw.x, Upsampledcw.y);
+      compMax = clamp(max(compMax, Upsampledcw.z), 0.0f, 1.0f);
+      float scale = p_preExposure /  ((1.0f + 600.0f / 65504.0f) - compMax);
+
+      if (ColorMax > 4000.0f) scale = ColorMax;
+      SceneColorOutput[dtId.xy] = float4(Upsampledcw.xyz * scale, 1);
+    }
+  }
+  compile("target_cs_half", "main_cs");
+}

@@ -1,0 +1,80 @@
+buffer hmap_displacement_invalidators_buffer;
+int hmap_displacement_invalidators_count = 0;
+interval hmap_displacement_invalidators_count: count_0 < 1, count_1 < 2, count_2 < 3, count_3 < 4, count_4 < 5, count_8 < 9, count_12 < 13, count_16;
+
+macro INIT_HMAP_DISPLACEMENT_INVALIDATION(stage)
+  if (in_editor_assume == no)
+  {
+    (stage)
+    {
+      hmap_displacement_invalidators_buffer@buf = hmap_displacement_invalidators_buffer hlsl {
+        #include "invalidate_hmap_displacement.hlsli"
+        StructuredBuffer<HmapDisplacementInvalidator> hmap_displacement_invalidators_buffer@buf; };
+    }
+
+    if (hmap_displacement_invalidators_count == count_0)
+    {
+      hlsl(stage) { static const int LOOP_ITERATIONS_COUNT = 0; }
+    }
+    else if (hmap_displacement_invalidators_count == count_1)
+    {
+      hlsl(stage) { static const int LOOP_ITERATIONS_COUNT = 1; }
+    }
+    else if (hmap_displacement_invalidators_count == count_2)
+    {
+      hlsl(stage) { static const int LOOP_ITERATIONS_COUNT = 2; }
+    }
+    else if (hmap_displacement_invalidators_count == count_3)
+    {
+      hlsl(stage) { static const int LOOP_ITERATIONS_COUNT = 3; }
+    }
+    else if (hmap_displacement_invalidators_count == count_4)
+    {
+      hlsl(stage) { static const int LOOP_ITERATIONS_COUNT = 4; }
+    }
+    else if (hmap_displacement_invalidators_count == count_8)
+    {
+      hlsl(stage) { static const int LOOP_ITERATIONS_COUNT = 8; }
+    }
+    else if (hmap_displacement_invalidators_count == count_12)
+    {
+      hlsl(stage) { static const int LOOP_ITERATIONS_COUNT = 12; }
+    }
+    else if (hmap_displacement_invalidators_count == count_16)
+    {
+      hlsl(stage) { static const int LOOP_ITERATIONS_COUNT = 16; }
+    }
+  }
+endmacro
+
+macro USE_HMAP_DISPLACEMENT_INVALIDATION(stage, relevant_coords)
+  hlsl(stage)
+  {
+    float get_hmap_displacement_reduction(float3 worldPos)
+    {
+      float reduction = 0.f;
+      ##if in_editor_assume == no
+        UNROLL
+        for (int i = 0; i < LOOP_ITERATIONS_COUNT; i++)
+        {
+          // If the current iteration does not have a corresponding invalidator, the body of an if-statement below does not get executed:
+          HmapDisplacementInvalidator objectData = hmap_displacement_invalidators_buffer[i];
+          float distanceSquared = dot(worldPos.relevant_coords - objectData.worldPos.relevant_coords,
+                                      worldPos.relevant_coords - objectData.worldPos.relevant_coords);
+          FLATTEN
+          if (distanceSquared < objectData.outerRadius * objectData.outerRadius)
+          {
+            float currentObjectReduction = smoothstep(objectData.outerRadius, objectData.innerRadius, sqrt(distanceSquared));
+            reduction = max(reduction, currentObjectReduction);
+          }
+        }
+      ##endif
+      return reduction;
+    }
+  }
+endmacro
+
+macro INIT_AND_USE_HMAP_DISPLACEMENT_INVALIDATION(stage, relevant_coords)
+  INIT_HMAP_DISPLACEMENT_INVALIDATION(stage)
+  USE_HMAP_DISPLACEMENT_INVALIDATION(stage, relevant_coords)
+endmacro

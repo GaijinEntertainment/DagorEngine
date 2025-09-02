@@ -28,6 +28,12 @@ struct UpdateStageUpdateInput
   dt : float
 
 [cpp_event(unicast)]
+struct CmdPrePhysUpdate
+  tick : int
+  dt : float
+  isForReal : bool
+
+[cpp_event(unicast)]
 struct CmdPostPhysUpdate
   tick : int
   dt : float
@@ -37,7 +43,7 @@ struct CmdPostPhysUpdate
 struct CmdAddInitialEntitiesInNetScope
   connid : int
 
-[cpp_event(broadcast)]
+[event(broadcast)]
 struct CmdAddDefaultEntitiesInNetScope
   connid : int
   viewPos : float3
@@ -67,17 +73,6 @@ struct CmdSetCameraTarget
 [event(unicast, routing=ROUTING_CLIENT_CONTROLLED_ENTITY_TO_SERVER)]
 struct RequestCamSwitch
   isTpsView : bool
-
-[event(unicast, routing=ROUTING_CLIENT_TO_SERVER)]
-struct PassControlInputs
-  lin : float3
-  rot : float3
-  rotateView_rad : float2
-  rotateView_base_quat : float4
-  min_target_ht : float
-  free_look_around : bool
-  use_stabilization : bool
-  use_fwd_stabilization : bool
 
 [event(broadcast)]
 struct PlayerStartQuitGameTimer {}

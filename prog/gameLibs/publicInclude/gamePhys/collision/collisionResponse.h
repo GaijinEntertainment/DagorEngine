@@ -52,10 +52,14 @@ void cache_solved_contacts(dag::ConstSpan<gamephys::SeqImpulseInfo> collisions, 
 void energy_conservation_vel_patch(const Tab<gamephys::SeqImpulseInfo> &collisions, DPoint3 &vel, DPoint3 &omega,
   const ResolveContactParams &params);
 
+typedef eastl::fixed_function<64, void(SolverBodyInfo &)> BodyInnerConstraints;
+
 void contacts_to_solver_data(const SolverBodyInfo *lhs, const SolverBodyInfo *rhs,
   dag::ConstSpan<gamephys::CollisionContactData> contacts, Tab<gamephys::SeqImpulseInfo> &collisions);
 bool resolve_pair_velocity(SolverBodyInfo &lhs, SolverBodyInfo &rhs, dag::Span<gamephys::SeqImpulseInfo> collisions,
-  double fric_k = 0.7, double bounce = 0.0, int num_iter = 5);
+  double fric_k = 0.7, double bounce = 0.0, int num_iter = 5, BodyInnerConstraints l_constraints = BodyInnerConstraints(),
+  BodyInnerConstraints r_constraints = BodyInnerConstraints());
 void resolve_pair_penetration(SolverBodyInfo &lhs, SolverBodyInfo &rhs, dag::ConstSpan<gamephys::SeqImpulseInfo> collisions,
-  double erp = 2.0, int num_iter = 5);
+  double erp = 2.0, int num_iter = 5, BodyInnerConstraints l_constraints = BodyInnerConstraints(),
+  BodyInnerConstraints r_constraints = BodyInnerConstraints());
 } // namespace daphys

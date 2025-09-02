@@ -21,7 +21,7 @@ struct ShaderMatData
     Color4 &c4() { return reinterpret_cast<Color4 &>(c); }
     const Color4 &c4() const { return const_cast<VarValue *>(this)->c4(); }
 
-    VarValue() { memset(c, 0, sizeof(c)); }
+    VarValue() : texId() { memset(c, 0, sizeof(c)); }
     bool operator==(const VarValue &val) const { return memcmp(c, val.c, sizeof(c)) == 0; }
     bool operator!=(const VarValue &val) const { return !(*this == val); }
   };

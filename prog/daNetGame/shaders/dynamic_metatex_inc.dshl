@@ -11,13 +11,13 @@ macro SET_DYNMAT_METATEX_PARAM_GETTERS()
     {
       float4 get_dynmat_data(uint offset)
       {
-        return get_additional_data_unsafe(offset);
+        return get_additional_data_unsafe_raw(offset);
       }
       uint calc_dynmat_param_offset(uint channel_id)
       {
-        uint globalOffset;
-        if (get_dynmat_offset(channel_id, DMT_METATEX, globalOffset))
-          return globalOffset;
+        uint2 globalOffsetCount;
+        if (get_dynmat_offset_count(channel_id, DMT_METATEX, globalOffsetCount))
+          return globalOffsetCount.x; // TODO: maybe pass count too for safety (could have a high perf overhead)
         else
           return 1; // 0th is metadata for offset, also, there is no error check this time
       }

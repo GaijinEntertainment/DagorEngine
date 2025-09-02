@@ -1,10 +1,10 @@
 from "%darg/ui_imports.nut" import *
-from "widgets/simpleComponents.nut" import normalCursor, menuBtn
+from "%scripts/ui/widgets/simpleComponents.nut" import normalCursor, menuBtn
 from "dagor.fs" import read_text_from_file_on_disk
 
-let { makeVertScroll } = require("widgets/scrollbar.nut")
+let { makeVertScroll } = require("%scripts/ui/widgets/scrollbar.nut")
 let { hardPersistWatched } = require("%sqstd/globalState.nut")
-let { isDisableMenu } = require("app_state.nut")
+let { isDisableMenu } = require("%scripts/ui/app_state.nut")
 let { dgs_get_settings} = require("dagor.system")
 let { set_setting_by_blk_path_and_save } = require("settings")
 
@@ -82,15 +82,15 @@ function licenseUi() {
     children = [
       @() {rendObj = ROBJ_TEXT text = licenseTxtFname fontSize = hdpx(30) color = Color(220,200, 150) hplace = ALIGN_LEFT}
       {
-        size = [sw(60), flex()]
+        size = static [sw(60), flex()]
         children = makeVertScroll({
-          size=[flex(), SIZE_TO_CONTENT]
+          size=FLEX_H
           rendObj = ROBJ_SOLID
           padding = hdpx(20)
           color = Color(0,0,0,120)
           children = {
            rendObj = ROBJ_TEXTAREA
-           size = [flex(), SIZE_TO_CONTENT]
+           size = FLEX_H
            behavior = Behaviors.TextArea
            text
            tagsTable

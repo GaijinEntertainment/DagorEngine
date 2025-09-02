@@ -23,6 +23,7 @@
   VAR(ssr_prev_target_samplerstate) \
   VAR(ssr_target_size)              \
   VAR(ssr_frameNo)                  \
+  VAR(force_ignore_history)         \
   VAR(ssr_tile_jitter)
 
 #define VAR(a) static ShaderVariableInfo a##VarId(#a, true);
@@ -73,10 +74,6 @@ ScreenSpaceReflections::ScreenSpaceReflections(const int ssr_w, const int ssr_h,
       String name(128, "ssr_target_%d", view);
       int mipCount = getMipCount(ssr_quality);
       a = dag::create_tex(NULL, ssrW, ssrH, fmt, mipCount, name);
-      a.getTex2D()->texaddr(TEXADDR_CLAMP); // since we don't sample outside the ssr without weightening, there is no reason to have
-                                            // border
-      // moreover clamping helps in reprojection when weight is not zero
-      a.getTex2D()->texbordercolor(0);
       d3d::resource_barrier({a.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
     });
 
@@ -136,8 +133,9 @@ void ScreenSpaceReflections::updatePrevTarget()
 
   d3d::resource_barrier({ssrTarget->getTex2D(), RB_RO_COPY_SOURCE, 0, 1});
   ssrPrevTarget->getTex2D()->updateSubRegion(ssrTarget->getTex2D(), 0, 0, 0, 0, ssrW, ssrH, 1, 0, 0, 0, 0);
-  ssrPrevTarget->getTex2D()->texaddr(TEXADDR_BORDER);
 }
+
+void ScreenSpaceReflections::setHistoryValid(bool valid) { isHistoryValid = valid; }
 
 void ScreenSpaceReflections::render(const TMatrix &view_tm, const TMatrix4 &proj_tm, const DPoint3 &world_pos,
   SubFrameSample sub_sample)
@@ -159,9 +157,6 @@ void ScreenSpaceReflections::render(const TMatrix &view_tm, const TMatrix4 &proj
   }
   else
   {
-    rtTemp0->getTex2D()->texaddr(TEXADDR_BORDER);
-    rtTemp0->getTex2D()->texbordercolor(0);
-
     targetTex = *rtTemp0;
   }
 
@@ -176,6 +171,8 @@ void ScreenSpaceReflections::render(const TMatrix &view_tm, const TMatrix4 &proj
 
   SCOPE_RENDER_TARGET;
 
+  const int prevIgnoreHistory = ShaderGlobal::get_int(force_ignore_historyVarId);
+  STATE_GUARD(ShaderGlobal::set_int(force_ignore_historyVarId, VALUE), !isHistoryValid || prevIgnoreHistory, prevIgnoreHistory);
   Afr &afr = afrs.current();
   set_reprojection(view_tm, proj_tm, afr.prevProjTm, afr.prevWorldPos, afr.prevGlobTm, afr.prevViewVecLT, afr.prevViewVecRT,
     afr.prevViewVecLB, afr.prevViewVecRB, &world_pos);
@@ -265,9 +262,6 @@ void ScreenSpaceReflections::enablePrevTarget(int num_views)
     eastl::string name(eastl::string::CtorSprintf(), "ssr_prev_target_%d", view);
     int mipCount = 1;
     a = dag::create_tex(NULL, ssrW, ssrH, flags, mipCount, name.c_str());
-    a.getTex2D()->texaddr(TEXADDR_CLAMP); // since we don't sample outside the ssr without weightening, there is no reason to have
-                                          // border
-    // moreover clamping helps in reprojection when weight is not zero
   });
   updatePrevTarget();
 }

@@ -85,14 +85,16 @@ static constexpr int ALIGN_TEXEL = 4; // align to 4
 
 int Scene::moveDistThreshold() const { return MOVE_THRESHOLD + ALIGN_TEXEL / 2; }
 
-UpdateResult Scene::updateOrigin(const Point3 &baseOrigin, const voxelize_scene_fun_cb &voxelize_cb)
+UpdateResult Scene::updateOrigin(const Point3 &baseOrigin, const voxelize_scene_fun_cb &voxelize_cb, bool &update_pending)
 {
+  update_pending = false;
   if (!ssgi_clear_scene_25d_cs)
     return UpdateResult::NO_CHANGE;
   Point3 origin = baseOrigin;
   IPoint2 newTexelsOrigin = ipoint2(floor(Point2::xz(origin) / voxelSizeXZ) + Point2(0.5, 0.5));
   newTexelsOrigin = ((newTexelsOrigin + IPoint2(ALIGN_TEXEL / 2, ALIGN_TEXEL / 2)) / ALIGN_TEXEL) * ALIGN_TEXEL; // align to
                                                                                                                  // ALIGN_TEXEL
+  IPoint2 targetOrigin = newTexelsOrigin;
   if (gi_25d_force_update_scene)
     toroidalOrigin = newTexelsOrigin - IPoint2(1000, 10000);
   else if (gi_25d_force_update_scene_partial && abs(toroidalOrigin.x - newTexelsOrigin.x) < MOVE_THRESHOLD)
@@ -185,6 +187,8 @@ UpdateResult Scene::updateOrigin(const Point3 &baseOrigin, const voxelize_scene_
                                                                                // twice
     d3d::resource_barrier({sceneAlpha.getBuf(), RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE});
   }
+
+  update_pending = (toroidalOrigin != targetOrigin); // only 1 axis moved, the other axis will be moved in the next frame
   const uint32_t updatedTexels = res.x * res.y;
   if (updatedTexels >= VOXEL_25D_RESOLUTION_X * VOXEL_25D_RESOLUTION_X)
     return UpdateResult::TELEPORTED;

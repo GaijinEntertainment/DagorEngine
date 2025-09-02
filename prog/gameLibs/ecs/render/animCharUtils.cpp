@@ -7,13 +7,13 @@
 static bool recreate_material_with_new_params(AnimV20::AnimcharRendComponent &animchar_render,
   const eastl::function<bool(const char *)> &shader_name_filter, const eastl::function<void(ShaderMaterial *)> &shader_var_setter)
 {
-  auto scene = animchar_render.getSceneInstance();
+  DynamicRenderableSceneInstance *scene = animchar_render.getSceneInstance();
   if (scene == nullptr)
     return false;
   Tab<ShaderMaterial *> matList(framemem_ptr());
   scene->getLodsResource()->gatherUsedMat(matList);
-  DynamicRenderableSceneLodsResource *newRes = scene->cloneLodsResource();
-  if (newRes == nullptr)
+  Ptr<DynamicRenderableSceneLodsResource> newRes = scene->cloneLodsResource();
+  if (!newRes)
     return false;
 
   Tab<ShaderMaterial *> oldMatList(framemem_ptr()), newMatList(framemem_ptr());
@@ -30,6 +30,7 @@ static bool recreate_material_with_new_params(AnimV20::AnimcharRendComponent &an
 
   DynamicRenderableSceneLodsResource::finalizeDuplicateMaterial(make_span(newMatList));
   newRes->updateShaderElems();
+  scene->changeLodsResource(newRes);
   animchar_render.updateLodResFromSceneInstance();
 
   return true;
@@ -38,8 +39,7 @@ static bool recreate_material_with_new_params(AnimV20::AnimcharRendComponent &an
 bool recreate_material_with_new_params(AnimV20::AnimcharRendComponent &animchar_render,
   eastl::function<void(ShaderMaterial *)> &&shader_var_setter)
 {
-  return recreate_material_with_new_params(
-    animchar_render, [](const char *) { return true; }, eastl::move(shader_var_setter));
+  return recreate_material_with_new_params(animchar_render, [](const char *) { return true; }, eastl::move(shader_var_setter));
 }
 
 bool recreate_material_with_new_params(AnimV20::AnimcharRendComponent &animchar_render, const char *shader_name,

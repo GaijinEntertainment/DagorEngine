@@ -12,25 +12,23 @@ struct HashComputeStreamBase : public IGenSave
   HashComputeStreamBase(IGenSave *cwr) : copyCwr(cwr) {}
 
   virtual int getHash(void *, int, bool) { return 0; }
-  virtual void write(const void *p, int sz) { writeCopy(p, sz); }
-  virtual int tell()
+  void write(const void *p, int sz) override { writeCopy(p, sz); }
+  int tell() override
   {
     G_ASSERT(0);
     return 0;
   }
-  virtual void seekto(int) { G_ASSERT(0); }
-  virtual void seektoend(int = 0) { G_ASSERT(0); }
-  virtual const char *getTargetName() { return "hash://"; }
-  virtual void flush()
-  { /*noop*/
-  }
-  virtual void beginBlock() { G_ASSERT(0); }
-  virtual int getBlockLevel()
+  void seekto(int) override { G_ASSERT(0); }
+  void seektoend(int = 0) override { G_ASSERT(0); }
+  const char *getTargetName() override { return "hash://"; }
+  void flush() override { /*noop*/ }
+  void beginBlock() override { G_ASSERT(0); }
+  int getBlockLevel() override
   {
     G_ASSERT(0);
     return 0;
   }
-  virtual void endBlock(unsigned = 0) { G_ASSERT(0); }
+  void endBlock(unsigned = 0) override { G_ASSERT(0); }
 
   void writeCopy(const void *p, int sz)
   {
@@ -45,12 +43,12 @@ struct HashComputeStreamCRC32 : public HashComputeStreamBase
   unsigned crc;
 
   HashComputeStreamCRC32(IGenSave *cwr) : HashComputeStreamBase(cwr) { crc = 0; }
-  virtual void write(const void *ptr, int size)
+  void write(const void *ptr, int size) override
   {
     writeCopy(ptr, size);
     crc = calc_crc32_continuous((const unsigned char *)ptr, size, crc);
   }
-  virtual int getHash(void *buf, int buf_sz, bool reset)
+  int getHash(void *buf, int buf_sz, bool reset) override
   {
     if (buf_sz < SZ)
       return -SZ;
@@ -67,12 +65,12 @@ struct HashComputeStreamMD5 : public HashComputeStreamBase
   static const int SZ = sizeof(md5_byte_t[16]);
 
   HashComputeStreamMD5(IGenSave *cwr) : HashComputeStreamBase(cwr) { md5_init(&st); }
-  virtual void write(const void *ptr, int size)
+  void write(const void *ptr, int size) override
   {
     writeCopy(ptr, size);
     md5_append(&st, (const md5_byte_t *)ptr, size);
   }
-  virtual int getHash(void *buf, int buf_sz, bool reset)
+  int getHash(void *buf, int buf_sz, bool reset) override
   {
     if (buf_sz < SZ)
       return -SZ;
@@ -89,12 +87,12 @@ struct HashComputeStreamSHA1 : public HashComputeStreamBase
   static const int SZ = sizeof(unsigned char[20]);
 
   HashComputeStreamSHA1(IGenSave *cwr) : HashComputeStreamBase(cwr) { sha1_starts(&st); }
-  virtual void write(const void *ptr, int size)
+  void write(const void *ptr, int size) override
   {
     writeCopy(ptr, size);
     sha1_update(&st, (const unsigned char *)ptr, size);
   }
-  virtual int getHash(void *buf, int buf_sz, bool reset)
+  int getHash(void *buf, int buf_sz, bool reset) override
   {
     if (buf_sz < SZ)
       return -SZ;

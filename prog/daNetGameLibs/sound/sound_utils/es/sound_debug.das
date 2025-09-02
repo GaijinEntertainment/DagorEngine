@@ -5,6 +5,7 @@ require ecs.common
 require ecs.ecs_template
 require soundSystem
 require soundEvent
+require sound_utils.modules.sound_control_common
 require DagorSystem
 require DagorDebug3D
 require DagorConsole
@@ -18,7 +19,7 @@ require RendInst
 def sound_debug_draw_template(evt : Event;
                               eid : EntityId;
                               transform : float3x4)
-  add_debug_text_mark(transform[3], "{eid}={getEntityTemplateName(eid)}", -1, 0., E3DCOLOR(0xFFFFFFFF))
+  add_debug_text_mark(transform[3], "{eid}={getEntityTemplateName(eid)} dist={int(distance(transform[3], get_listener_pos()))}", -1, 0., E3DCOLOR(0xFFFFFFFF))
 
 
 [es(no_order, tag=sound, on_event=EventSoundDrawDebug, REQUIRE=msg_sink)]
@@ -31,14 +32,12 @@ def sound_debug_draw_visual_labels(evt : Event)
 [es(no_order, tag=sound, on_event=EventSoundDrawDebug, REQUIRE=humanSound)]
 def human_sound_debug_draw(evt : Event;
                            eid : EntityId;
-                           is_watched_sound : bool = false;
                            sound_tags : Object const?;
                            sound_event_group : SoundEventGroup const?;
                            human_voice_effect__activeEffects : Object const?;
-                           [[shared_comp]] human_voice_effect__allOrderedEffects : StringList const?;
+                           @shared_comp human_voice_effect__allOrderedEffects : StringList const?;
                            sound_control__allowSound : bool = true;
-                           sound_control__inRange : bool = true;
-                           sound_control__soundEnabled : bool = true;
+                           sound_control__state : int = default_sound_control_state();
                            human_speech__voiceIdx = -1;
                            squad_member__memberIdx = -1;
                            squad_member__squad = INVALID_ENTITY_ID;
@@ -46,14 +45,12 @@ def human_sound_debug_draw(evt : Event;
                            team = -1;
                            transform : float3x4)
 
-  if !sound_control__inRange
+  if !is_hearable_sound_state(sound_control__state)
     return
 
   var text = ""
-  if !sound_control__allowSound
-    text += "-snd: {getEntityTemplateName(eid)}"
-  elif !sound_control__soundEnabled
-    text += "sound disabled"
+  if !have_sound(sound_control__state)
+    text += "-no snd [allow={sound_control__allowSound}; hearable={is_hearable_sound_state(sound_control__state)}; state={sound_control__state}; templ='{getEntityTemplateName(eid)}']- "
 
   if human_voice_effect__allOrderedEffects != null && human_voice_effect__activeEffects != null
 
@@ -75,10 +72,10 @@ def human_sound_debug_draw(evt : Event;
       if !exist
         text += "-'{itFx.key}' is MISSING in human_voice_effect__allOrderedEffects-"
 
-  if sound_tags != null && (is_watched_sound || length(*sound_tags) > 0)
+  if sound_tags != null && (is_watched_sound_state(sound_control__state) || length(*sound_tags) > 0)
     text += "sound tags:{*sound_tags} "
 
-  if sound_event_group != null && (is_watched_sound || get_num_sounds(*sound_event_group) > 0)
+  if sound_event_group != null && (is_watched_sound_state(sound_control__state) || get_num_sounds(*sound_event_group) > 0)
     text += "sound group:{get_num_sounds(*sound_event_group)} "
 
   if !empty(human_speech__locale)
@@ -91,7 +88,7 @@ def human_sound_debug_draw(evt : Event;
     text += "squad=#{squad_member__squad} "
 
   if !empty(text)
-    let color = is_watched_sound ? E3DCOLOR(0xFF0000FF) : E3DCOLOR(0xFF000000)
+    let color = is_watched_sound_state(sound_control__state) ? E3DCOLOR(0xFF0000FF) : E3DCOLOR(0xFF000000)
     let pos = transform[3] + float3(0., 0.5, 0.)
     add_debug_text_mark(pos, text, -1, 0., color)
 

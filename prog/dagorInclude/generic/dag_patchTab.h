@@ -4,6 +4,7 @@
 //
 #pragma once
 
+#include <stddef.h> // ptrdiff_t
 #include <generic/dag_span.h>
 
 /// @addtogroup containers
@@ -42,7 +43,7 @@ public:
   void patch(void *base)
   {
 #if _TARGET_64BIT
-#if _TARGET_BE
+#if _TARGET_CPU_BE
     dag::Span<T>::dcnt = intptr_t(dag::Span<T>::dptr) & 0xFFFFFFFF;
     dag::Span<T>::dptr = dag::Span<T>::dcnt ? (T *)((ptrdiff_t(dag::Span<T>::dptr) >> 32) + ptrdiff_t(base)) : NULL;
 #else

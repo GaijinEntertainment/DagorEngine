@@ -73,6 +73,7 @@ struct NavParams
   float max_path_weight = FLT_MAX; // no limit
   float jump_down_threshold = 0.4f;
   float jump_down_weight = 20.0f;
+  float jump_over_weight = 20.0f;
   float jump_weight = 40.0f;
 };
 
@@ -168,6 +169,10 @@ bool project_to_nearest_navmesh_point_ref(Point3 &pos, const Point3 &extents, dt
 bool project_to_nearest_navmesh_point(Point3 &pos, const Point3 &extents, const CustomNav *custom_nav = nullptr);
 bool project_to_nearest_navmesh_point(Point3 &pos, float horz_extents, const CustomNav *custom_nav = nullptr);
 bool project_to_nearest_navmesh_point_no_obstacles(Point3 &pos, const Point3 &extents, const CustomNav *custom_nav = nullptr);
+bool project_to_nearest_navmesh_point_ex(int nav_mesh_idx, Point3 &pos, float horz_extents, const CustomNav *custom_nav = nullptr);
+bool project_to_nearest_navmesh_point_ex(int nav_mesh_idx, Point3 &pos, const Point3 &extents, const CustomNav *custom_nav = nullptr);
+bool project_to_nearest_navmesh_point_no_obstacles_ex(int nav_mesh_idx, Point3 &pos, const Point3 &extents,
+  const CustomNav *custom_nav = nullptr);
 bool navmesh_point_has_obstacle(const Point3 &pos, const CustomNav *custom_nav = nullptr);
 bool query_navmesh_projections(const Point3 &pos, const Point3 &extents, Tab<Point3> &projections, int points_num = 8,
   const CustomNav *custom_nav = nullptr);
@@ -253,13 +258,14 @@ bool load_nav_mesh_ex(int nav_mesh_idx, const char *kind, IGenLoad &crd, NavMesh
 void init_weights_ex(int nav_mesh_idx, const DataBlock *navQueryFilterWeightsBlk);
 bool is_loaded_ex(int nav_mesh_idx);
 FindPathResult find_path_ex(int nav_mesh_idx, Tab<Point3> &path, FindRequest &req, float step_size, float slop,
-  const CustomNav *custom_nav);
-FindPathResult find_path_ex(int nav_mesh_idx, const Point3 &start_pos, const Point3 &end_pos, Tab<Point3> &path, float dist_to_path,
-  float step_size, float slop, const CustomNav *custom_nav, int incl_flags = POLYFLAGS_WALK | POLYFLAG_JUMP | POLYFLAG_LADDER,
-  int excl_flags = 0);
+  const CustomNav *custom_nav = nullptr);
+FindPathResult find_path_ex(int nav_mesh_idx, const Point3 &start_pos, const Point3 &end_pos, Tab<Point3> &path,
+  float dist_to_path = 10.f, float step_size = 10.f, float slop = 2.5f, const CustomNav *custom_nav = nullptr,
+  const dag::Vector<Point2> &areasCost = {}, int incl_flags = POLYFLAGS_WALK | POLYFLAG_JUMP | POLYFLAG_LADDER,
+  int excl_flags = POLYFLAG_BLOCKED);
 FindPathResult find_path_ex(int nav_mesh_idx, const Point3 &start_pos, const Point3 &end_pos, Tab<Point3> &path, const Point3 &extents,
-  float step_size, float slop, const CustomNav *custom_nav, int incl_flags = POLYFLAGS_WALK | POLYFLAG_JUMP | POLYFLAG_LADDER,
-  int excl_flags = 0);
+  float step_size = 10.f, float slop = 2.5f, const CustomNav *custom_nav = nullptr,
+  int incl_flags = POLYFLAGS_WALK | POLYFLAG_JUMP | POLYFLAG_LADDER, int excl_flags = POLYFLAG_BLOCKED);
 // Checks if path exists without optimizations.
 bool check_path_ex(int nav_mesh_idx, FindRequest &req, float horz_threshold = -1.f, float max_vert_dist = 10.f);
 bool check_path_ex(int nav_mesh_idx, const Point3 &start_pos, const Point3 &end_pos, const Point3 &extents,
@@ -269,6 +275,14 @@ bool get_triangle_by_pos_ex(int nav_mesh_idx, const Point3 &pos, NavMeshTriangle
   int excl_flags, const CustomNav * = nullptr, float max_vert_dist = FLT_MAX);
 bool set_poly_flags_ex(int nav_mesh_idx, dtPolyRef ref, unsigned short flags);
 bool get_poly_flags_ex(int nav_mesh_idx, dtPolyRef ref, unsigned short &result_flags);
+bool find_polys_in_circle_ex(int nav_mesh_idx, dag::Vector<dtPolyRef, framemem_allocator> &polys, const Point3 &pos, float radius,
+  float height_half_offset);
+FindPathResult set_path_corridor_ex(int nav_mesh_idx, dtPathCorridor &corridor, const CorridorInput &inp,
+  const CustomNav *custom_nav = nullptr);
+bool set_corridor_agent_position_ex(int nav_mesh_idx, dtPathCorridor &corridor, const Point3 &pos, dag::ConstSpan<Point2> *areas_cost,
+  const CustomNav *custom_nav = nullptr);
+FindCornersResult find_corridor_corners_ex(int nav_mesh_idx, dtPathCorridor &corridor, Tab<Point3> &corners, int num,
+  const CustomNav *custom_nav = nullptr);
 
 const char *get_nav_mesh_kind(int nav_mesh_idx);
 dtNavMesh *get_nav_mesh_ptr(int nav_mesh_idx);
@@ -345,11 +359,11 @@ void change_navpolys_flags_all(int nav_mesh_idx, unsigned short set_flags, unsig
 
 bool find_nearest_ladder(const Point3 &pos, float radius, Point3 &out_pos, Point3 &out_forw, Point3 &out_along);
 
-int get_poly_count();
-bool store_mesh_state(Tab<PolyState> *buffer = nullptr);
-bool restore_mesh_state(const Tab<PolyState> *buffer = nullptr);
-bool is_stored_state_valid(const Tab<PolyState> *buffer = nullptr);
-Tab<PolyState> &get_internal_stored_state_buffer();
-bool update_walkability(const Tab<TMatrix> &walkableAreas, const Tab<TMatrix> &unwalkableAreas);
+int get_poly_count(int nav_mesh_idx);
+bool store_mesh_state(int nav_mesh_idx, Tab<PolyState> *buffer = nullptr);
+bool restore_mesh_state(int nav_mesh_idx, const Tab<PolyState> *buffer = nullptr);
+bool is_stored_state_valid(int nav_mesh_idx);
+Tab<PolyState> &get_internal_stored_state_buffer(int nav_mesh_idx);
+bool update_walkability(int nav_mesh_idx, const eastl::function<bool(const Point2 &)> &is_walkable_cb);
 
 }; // namespace pathfinder

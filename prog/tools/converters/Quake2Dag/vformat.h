@@ -28,7 +28,7 @@
 class LightMapVertex
 {
 public:
-  LightMapVertex(void){};
+  LightMapVertex(void) {}
 
   LightMapVertex(float x, float y, float z, float u1, float v1, float u2, float v2)
   {

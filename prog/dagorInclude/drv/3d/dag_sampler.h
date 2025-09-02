@@ -19,10 +19,9 @@
  */
 enum
 {
-  TEXMIPMAP_DEFAULT = 0, ///< driver default
-  TEXMIPMAP_NONE = 1,    ///< no mipmapping
-  TEXMIPMAP_POINT = 2,   ///< point mipmapping
-  TEXMIPMAP_LINEAR = 3,  ///< linear mipmapping
+  TEXMIPMAP_NONE = 1,   ///< no mipmapping
+  TEXMIPMAP_POINT = 2,  ///< point mipmapping
+  TEXMIPMAP_LINEAR = 3, ///< linear mipmapping
 };
 
 namespace d3d
@@ -32,10 +31,9 @@ namespace d3d
  */
 enum class MipMapMode : uint32_t
 {
-  Default = TEXMIPMAP_DEFAULT, ///< [DEPRECATED] driver default
-  Disabled = TEXMIPMAP_NONE,   ///< [DEPRECATED] no mipmapping
-  Point = TEXMIPMAP_POINT,     ///< point mipmapping
-  Linear = TEXMIPMAP_LINEAR,   ///< linear mipmapping
+  Disabled = TEXMIPMAP_NONE, ///< [DEPRECATED] no mipmapping
+  Point = TEXMIPMAP_POINT,   ///< point mipmapping
+  Linear = TEXMIPMAP_LINEAR, ///< linear mipmapping
 };
 
 /**
@@ -43,7 +41,6 @@ enum class MipMapMode : uint32_t
  */
 enum class FilterMode : uint32_t
 {
-  Default = TEXFILTER_DEFAULT, ///< [DEPRECATED] driver default
   Disabled = TEXFILTER_NONE,   ///< [DEPRECATED]
   Point = TEXFILTER_POINT,     ///< point sampling
   Linear = TEXFILTER_LINEAR,   ///< linear sampling
@@ -90,8 +87,8 @@ struct BorderColor
  */
 struct SamplerInfo
 {
-  MipMapMode mip_map_mode = MipMapMode::Default;  ///< MipMapMode
-  FilterMode filter_mode = FilterMode::Default;   ///< FilterMode
+  MipMapMode mip_map_mode = MipMapMode::Linear;   ///< MipMapMode
+  FilterMode filter_mode = FilterMode::Linear;    ///< FilterMode
   AddressMode address_mode_u = AddressMode::Wrap; ///< AddressMode for U coordinate
   AddressMode address_mode_v = AddressMode::Wrap; ///< AddressMode for V coordinate
   AddressMode address_mode_w = AddressMode::Wrap; ///< AddressMode for W coordinate

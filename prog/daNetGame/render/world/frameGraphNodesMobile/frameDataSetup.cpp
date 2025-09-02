@@ -6,6 +6,7 @@
 #include <render/antiAliasing.h>
 #include <render/renderEvent.h>
 #include <render/skies.h>
+#include <render/world/reprojectionTm.h>
 #include <render/world/global_vars.h>
 #include <render/world/private_worldRenderer.h>
 
@@ -21,6 +22,7 @@
 #include <fftWater/fftWater.h>
 
 extern ConVarT<float, 1> taa_base_mip_scale;
+extern void update_land_micro_details_sampler(eastl::optional<float> mip_bias = {});
 
 static void storeCurrentGlobTmNoOffsInShader(const TMatrix &view_tm, const TMatrix4 &proj_tm)
 {
@@ -41,19 +43,17 @@ static void storeCurrentGlobTmNoOffsInShader(const TMatrix &view_tm, const TMatr
 }
 
 
-dabfg::NodeHandle mk_frame_data_setup_node()
+dafg::NodeHandle mk_frame_data_setup_node()
 {
-  return dabfg::register_node("frame_data_setup_mobile", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
+  return dafg::register_node("frame_data_setup_mobile", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     registry.requestState().setFrameBlock("global_frame");
 
-    auto cameraHndl = registry.createBlob<CameraParams>("current_camera", dabfg::History::No).handle();
-    auto sunParamsHndl = registry.createBlob<SunParams>("current_sun", dabfg::History::No).handle();
-    auto belowCloudsHndl = registry.createBlob<bool>("below_clouds", dabfg::History::No).handle();
-    auto waterLevelHndl = registry.createBlob<float>("water_level", dabfg::History::No).handle();
-    auto texCtxHndl = registry.createBlob<TexStreamingContext>("tex_ctx", dabfg::History::No).handle();
-    auto occlusionHndl = registry.createBlob<Occlusion *>("current_occlusion", dabfg::History::No).handle();
-    auto riVisibilityHndl = registry.createBlob<RiGenVisibility *>("rendinst_main_visibility", dabfg::History::No).handle();
-    return [cameraHndl, sunParamsHndl, belowCloudsHndl, waterLevelHndl, texCtxHndl, occlusionHndl, riVisibilityHndl] {
+    auto cameraHndl = registry.createBlob<CameraParams>("current_camera", dafg::History::No).handle();
+    auto sunParamsHndl = registry.createBlob<SunParams>("current_sun", dafg::History::No).handle();
+    auto belowCloudsHndl = registry.createBlob<bool>("below_clouds", dafg::History::No).handle();
+    auto waterLevelHndl = registry.createBlob<float>("water_level", dafg::History::No).handle();
+    auto texCtxHndl = registry.createBlob<TexStreamingContext>("tex_ctx", dafg::History::No).handle();
+    return [cameraHndl, sunParamsHndl, belowCloudsHndl, waterLevelHndl, texCtxHndl] {
       auto &wr = *static_cast<WorldRenderer *>(get_world_renderer());
 
       storeCurrentGlobTmNoOffsInShader(wr.currentFrameCamera.viewTm, wr.currentFrameCamera.jitterProjTm);
@@ -69,6 +69,7 @@ dabfg::NodeHandle mk_frame_data_setup_node()
       if (last_mip_scale != cur_mip_scale)
       {
         acesfx::set_default_mip_bias(cur_mip_scale);
+        update_land_micro_details_sampler(cur_mip_scale);
         set_add_lod_bias(cur_mip_scale, "*");
         set_add_lod_bias(cur_mip_scale, "impostor");
         set_add_lod_bias(0, "character_micro_details*");
@@ -92,19 +93,22 @@ dabfg::NodeHandle mk_frame_data_setup_node()
         wr.currentFrameCamera.jitterGlobtm = TMatrix4(wr.currentFrameCamera.viewTm) * wr.currentFrameCamera.jitterProjTm;
         wr.currentFrameCamera.jitterFrustum = wr.currentFrameCamera.jitterGlobtm;
 
-        wr.updateTransformations(jitterOffset, wr.currentFrameCamera.cameraWorldPos - wr.prevFrameCamera.cameraWorldPos);
+        const DPoint3 move = wr.currentFrameCamera.cameraWorldPos - wr.prevFrameCamera.cameraWorldPos;
+        const ReprojectionTransforms reprojectionTms = calc_reprojection_transforms(wr.prevFrameCamera, wr.currentFrameCamera);
+
+        wr.updateTransformations(move, reprojectionTms.jitteredCamPosToUnjitteredHistoryClip,
+          reprojectionTms.prevOrigoRelativeViewProjTm);
       }
 
       const Point3 camPos = wr.currentFrameCamera.viewItm.getcol(3);
 
-      occlusionHndl.ref() = current_occlusion;
       cameraHndl.ref() = wr.currentFrameCamera;
+      cameraHndl.ref().jobsMgr = &wr.mainCameraVisibilityMgr;
       Point3 panoramaDirToSun = wr.dir_to_sun.curr;
       auto skies = get_daskies();
       if (skies != nullptr)
         panoramaDirToSun = skies->calcPanoramaSunDir(camPos);
       sunParamsHndl.ref() = {wr.dir_to_sun.curr, wr.sun, panoramaDirToSun};
-      riVisibilityHndl.ref() = wr.rendinst_main_visibility;
       texCtxHndl.ref() = wr.currentTexCtx;
 
       {

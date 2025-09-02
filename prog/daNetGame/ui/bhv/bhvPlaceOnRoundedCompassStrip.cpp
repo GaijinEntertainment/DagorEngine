@@ -119,6 +119,9 @@ int BhvPlaceRoundCompassOnCompassStrip::update(UpdateStage /*stage*/, darg::Elem
     float y = (radius * s) + radius + fixedPosY;
 
     child->transform->translate = Point2(x, y);
+    if (data.RawGetSlotValue("doNotRotate", false))
+      continue;
+
     child->transform->rotate = rad + (90 * DEG_TO_RAD);
   }
 

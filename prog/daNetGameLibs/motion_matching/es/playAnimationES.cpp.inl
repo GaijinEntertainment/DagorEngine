@@ -4,6 +4,7 @@
 #include <daECS/core/entitySystem.h>
 #include <ecs/anim/anim.h>
 #include <animation/animation_data_base.h>
+#include <animation/mmEvents.h>
 #include <animation/motion_matching.h>
 #include <animation/motion_matching_metrics.h>
 #include <animation/motion_matching_tags.h>
@@ -17,20 +18,31 @@
 #define BRUTE_FORCE_COMPARISON 0 // for development usage, regression testing
 
 ECS_TAG(render)
-ECS_AFTER(mm_trajectory_update)
-ECS_BEFORE(mm_update_goal_features_es)
+ECS_AFTER(after_guns_update_sync, wait_motion_matching_job_es)
+ECS_BEFORE(mm_calculate_root_offset_es)
 static void mm_update_root_orientation_es(const ParallelUpdateFrameDelayed &act,
-  const AnimV20::AnimcharBaseComponent &animchar,
+  const TMatrix &transform,
   const Point3 &mm_trajectory__linearVelocity,
   const Point3 &mm_trajectory__angularVelocity,
-  MotionMatchingController &motion_matching__controller)
+  const ecs::Point3List &mm_trajectory__featureDirections,
+  MotionMatchingController &motion_matching__controller,
+  bool animchar__turnDir = false)
 {
-  motion_matching__controller.updateRoot(act.dt, animchar, mm_trajectory__linearVelocity, mm_trajectory__angularVelocity);
+  mat44f animcharTm;
+  v_mat44_make_from_43cu(animcharTm, transform.array);
+  if (animchar__turnDir)
+  {
+    vec3f col0 = animcharTm.col0;
+    animcharTm.col0 = animcharTm.col2;
+    animcharTm.col2 = v_neg(col0);
+  }
+  motion_matching__controller.updateRoot(act.dt, animcharTm, mm_trajectory__linearVelocity, mm_trajectory__angularVelocity,
+    mm_trajectory__featureDirections.size() ? mm_trajectory__featureDirections.back() : Point3::ZERO);
 }
 
 ECS_TAG(render)
 ECS_AFTER(after_guns_update_sync, wait_motion_matching_job_es)
-ECS_BEFORE(animchar_es)
+ECS_BEFORE(before_animchar_update_sync)
 static void mm_calculate_root_offset_es(const ParallelUpdateFrameDelayed &,
   const TMatrix &transform,
   MotionMatchingController &motion_matching__controller,
@@ -59,7 +71,7 @@ static void mm_calculate_root_offset_es(const ParallelUpdateFrameDelayed &,
 }
 
 ECS_TAG(render)
-ECS_BEFORE(motion_matching_job_es)
+ECS_AFTER(after_animchar_update_sync)
 static void mm_update_goal_features_es(const ParallelUpdateFrameDelayed &act,
   FrameFeatures &motion_matching__goalFeature,
   const ecs::IntList &motion_matching__goalNodesIdx,
@@ -101,32 +113,8 @@ static void mm_update_goal_features_es(const ParallelUpdateFrameDelayed &act,
   }
 }
 
-static void copy_pose_features(FrameFeatures &goal_feature, const MotionMatchingController &controller)
-{
-  const AnimationDataBase &dataBase = *controller.dataBase;
-  NodeFeature dstFeature = goal_feature.get_node_feature(0);
-  // when we play animation
-  if (controller.hasActiveAnimation())
-  {
-    int clip = controller.getCurrentClip();
-    int frame = controller.getCurrentFrame();
-
-    ConstNodeFeature srcFeature = dataBase.clips[clip].features.get_node_feature(frame);
-
-    for (int i = 0; i < dataBase.nodeCount; i++)
-    {
-      dstFeature.nodePositions[i] = srcFeature.nodePositions[i];
-      dstFeature.nodeVelocities[i] = srcFeature.nodeVelocities[i];
-    }
-    int nodeFeaturesOffset =
-      dataBase.clips[clip].featuresNormalizationGroup * dataBase.featuresSize + goal_feature.trajectorySizeInVec4f;
-    denormalize_feature(goal_feature.get_node_features_raw(0), dataBase.featuresAvg.data() + nodeFeaturesOffset,
-      dataBase.featuresStd.data() + nodeFeaturesOffset);
-  }
-}
-
 ECS_TAG(render)
-ECS_BEFORE(motion_matching_job_es)
+ECS_AFTER(after_animchar_update_sync)
 static void update_tag_changes_es(const ParallelUpdateFrameDelayed &,
   MotionMatchingController &motion_matching__controller,
   AnimV20::AnimcharBaseComponent &animchar,
@@ -181,25 +169,6 @@ static void update_tag_changes_es(const ParallelUpdateFrameDelayed &,
   }
 }
 
-static void update_node_weights(MotionMatchingController &controller, bool mm_enabled, float blend_time, float dt)
-{
-  const AnimationClip *curentClip = nullptr;
-  if (mm_enabled && controller.hasActiveAnimation())
-    curentClip = &controller.dataBase->clips[controller.getCurrentClip()];
-  float weightDelta = dt / blend_time;
-  controller.motionMatchingWeight = 0.0f;
-  dag::Vector<float> &nodeWeights = controller.perNodeWeights;
-  for (int i = 0, e = nodeWeights.size(); i < e; ++i)
-  {
-    float targetWeight = curentClip ? curentClip->nodeMask[i] : 0.0f;
-    if (nodeWeights[i] < targetWeight)
-      nodeWeights[i] = min(nodeWeights[i] + weightDelta, targetWeight);
-    else
-      nodeWeights[i] = max(nodeWeights[i] - weightDelta, targetWeight);
-    controller.motionMatchingWeight = max(controller.motionMatchingWeight, nodeWeights[i]);
-  }
-}
-
 template <typename T>
 ECS_REQUIRE(eastl::true_type animchar__visible)
 void motion_matching_ecs_query(T ECS_CAN_PARALLEL_FOR(c, 1));
@@ -210,24 +179,27 @@ public:
   float dt = 0.;
   uint32_t tpqpos = 0;
   int maxMotionMatchingPerFrame = 0;
+  const char *getJobName(bool &) const override { return "motion_matching_job"; }
   void doJob() override
   {
-    TIME_PROFILE(motion_matching_job);
     int processedMotionMatchingCount = 0;
 
     motion_matching_ecs_query(
       [this, &processedMotionMatchingCount](MotionMatchingController &motion_matching__controller,
         float &motion_matching__updateProgress, float &motion_matching__metricaTolerance, float &motion_matching__presetBlendTimeLeft,
         float motion_matching__blendTimeToAnimtree, float motion_matching__distanceFactor, FrameFeatures &motion_matching__goalFeature,
-        int motion_matching__presetIdx, bool motion_matching__enabled) {
+        int motion_matching__presetIdx, bool motion_matching__enabled, const Point3 &mm_trajectory__linearVelocity,
+        const Point3 &mm_trajectory__angularVelocity) {
         G_ASSERT_RETURN(!motion_matching__enabled || motion_matching__controller.dataBase, ); // don't enable until database is loaded
-        update_node_weights(motion_matching__controller, motion_matching__enabled, motion_matching__blendTimeToAnimtree, dt);
+        motion_matching__controller.updateNodeWeights(motion_matching__enabled, motion_matching__blendTimeToAnimtree, dt);
         if (!motion_matching__enabled && motion_matching__controller.motionMatchingWeight <= 0.f)
         {
           // Fully animated by animTree, no need to keep previously matched animation
           motion_matching__controller.currentClipInfo = {};
           return;
         }
+        if (motion_matching__presetIdx < 0)
+          return;
         bool animFinished = motion_matching__controller.willCurrentAnimationEnd(dt);
 
         const AnimationDataBase &dataBase = *motion_matching__controller.dataBase;
@@ -243,10 +215,11 @@ public:
         motion_matching__updateProgress += dt * TICKS_PER_SECOND;
         if (motion_matching__updateProgress >= motion_matching__distanceFactor || animFinished)
         {
-          copy_pose_features(motion_matching__goalFeature, motion_matching__controller);
+          motion_matching__controller.copyPoseFeaturesFromActiveAnimation(motion_matching__goalFeature);
           dag::Span<vec4f> currentFeature;
-          dag::Vector<vec4f, framemem_allocator> normalizedFeatures(dataBase.featuresSize * dataBase.normalizationGroupsCount);
-          for (int i = 0; i < dataBase.normalizationGroupsCount; ++i)
+          int normalizationGroupsCount = dataBase.featuresNormalizationGroups.nameCount();
+          dag::Vector<vec4f, framemem_allocator> normalizedFeatures(dataBase.featuresSize * normalizationGroupsCount);
+          for (int i = 0; i < normalizationGroupsCount; ++i)
           {
             int offset = i * dataBase.featuresSize;
             normalize_feature(make_span(normalizedFeatures.data() + offset, dataBase.featuresSize),
@@ -312,6 +285,7 @@ public:
             }
           }
         }
+        motion_matching__controller.updateAnimationSpeed(mm_trajectory__linearVelocity, mm_trajectory__angularVelocity);
         // Call update after MM search to finish transition faster
         motion_matching__controller.updateAnimationProgress(dt);
       });
@@ -321,9 +295,9 @@ public:
 template <typename T>
 void motion_matching_per_frame_limit_ecs_query(T);
 
+// Uses results of `update_tag_changes_es` and `mm_update_goal_features_es` from previous frame
 ECS_TAG(render)
-ECS_BEFORE(before_net_phys_sync)
-static __forceinline void motion_matching_job_es(const ParallelUpdateFrameDelayed &act)
+static __forceinline void motion_matching_job_es(const MotionMatchingStartSearchJob &act)
 {
   int perFrameLimit = 0;
   motion_matching_per_frame_limit_ecs_query([&perFrameLimit](int main_database__perFrameLimit) {
@@ -352,7 +326,7 @@ void wait_motion_matching_job()
 }
 
 ECS_TAG(render)
-ECS_BEFORE(animchar_es)
+ECS_BEFORE(before_animchar_update_sync)
 ECS_AFTER(after_net_phys_sync)
 static __forceinline void wait_motion_matching_job_es(const ParallelUpdateFrameDelayed &, int main_database__perFrameLimit)
 {

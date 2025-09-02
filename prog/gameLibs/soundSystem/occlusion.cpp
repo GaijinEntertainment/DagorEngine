@@ -1,12 +1,12 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <atomic>
 #include <EASTL/vector_set.h>
 #include <EASTL/fixed_string.h>
 #include <EASTL/fixed_vector.h>
 #include <fmod_studio.hpp>
 #include <ioSys/dag_dataBlock.h>
 #include <osApiWrappers/dag_critSec.h>
+#include <osApiWrappers/dag_atomic_types.h>
 #include <soundSystem/soundSystem.h>
 #include <soundSystem/fmodApi.h>
 #include <soundSystem/debug.h>
@@ -14,6 +14,7 @@
 #include <soundSystem/varId.h>
 #include "internal/events.h"
 #include "internal/fmodCompatibility.h"
+#include "internal/releasing.h"
 #include "internal/occlusion.h"
 #include "internal/debug.h"
 
@@ -31,14 +32,20 @@ static constexpr float g_default_value = 0;
 static FMOD::System *g_low_level_system = nullptr;
 
 static eastl::fixed_string<char, 32, true> g_occlusion_param_name;
+
 static float g_near_attenuation = 0.f;
 static float g_far_attenuation = 0.f;
+
+static constexpr float g_default_near_attenuation = 35.f;
+static constexpr float g_default_far_attenuation = 50.f;
+static constexpr float g_max_occlusion_distance = 100.f;
+
 static Point3 g_listener_pos = {};
 static trace_proc_t g_trace_proc = nullptr;
 static before_trace_proc_t g_before_trace_proc = nullptr;
-static std::atomic_bool g_occlusion_inited = ATOMIC_VAR_INIT(false);
-static std::atomic_bool g_occlusion_enabled = ATOMIC_VAR_INIT(false);
-static std::atomic_bool g_occlusion_valid = ATOMIC_VAR_INIT(false);
+static dag::AtomicInteger<bool> g_occlusion_inited = false;
+static dag::AtomicInteger<bool> g_occlusion_enabled = false;
+static dag::AtomicInteger<bool> g_occlusion_valid = false;
 
 struct Source
 {
@@ -47,9 +54,10 @@ struct Source
   Point3 pos = {};
   VarId varId = {};
   float value = g_uninited_value;
+  float deadlineAt = 0.f;
+  float checkAt = 0.f;
   bool debugUpdate = false;
-  bool markedForRelease = false;
-  bool delayedForRelease = false;
+  bool needAbandon = false;
 
   bool operator==(const Source &other) const { return instance == other.instance && groupId == other.groupId; }
   bool operator!=(const Source &other) const { return instance != other.instance || groupId != other.groupId; }
@@ -83,15 +91,12 @@ static eastl::vector_set<Source, eastl::less<Source>, EASTLAllocatorType,
   eastl::fixed_vector<Source, g_sources_capacity, /*overflow*/ true>>
   g_sources;
 
-struct FindAsGroupId : public eastl::binary_function<group_id_t, Source, bool>
-{
-  bool operator()(group_id_t a, const Source &b) const { return a < b.groupId; }
-  bool operator()(const Source &a, group_id_t b) const { return a.groupId < b; }
-};
+inline bool operator<(const Source &a, group_id_t b) { return a.groupId < b; }
+inline bool operator<(group_id_t a, const Source &b) { return a < b.groupId; }
 
 static Source *find_first_source_in_group(group_id_t group_id)
 {
-  auto fnd = g_sources.find_as(group_id, FindAsGroupId());
+  auto fnd = g_sources.find_as(group_id, eastl::less<>());
   if (fnd == g_sources.end())
     return nullptr;
   for (; fnd > g_sources.begin() && fnd[-1].groupId == fnd->groupId; --fnd) {}
@@ -164,7 +169,7 @@ static void erase(Source *src)
 void append(FMOD::Studio::EventInstance *instance, const FMOD::Studio::EventDescription *description_, const Point3 &pos)
 {
   TIME_PROFILE_DEV(sndsys_occlusion_append);
-  if (!g_occlusion_valid)
+  if (!g_occlusion_valid.load())
     return;
   SNDSYS_OCCLUSION_BLOCK;
 
@@ -179,7 +184,7 @@ void append(FMOD::Studio::EventInstance *instance, const FMOD::Studio::EventDesc
 
 void set_pos(FMOD::Studio::EventInstance &instance, const Point3 &pos)
 {
-  if (!g_occlusion_valid)
+  if (!g_occlusion_valid.load())
     return;
   SNDSYS_OCCLUSION_BLOCK;
 
@@ -189,7 +194,7 @@ void set_pos(FMOD::Studio::EventInstance &instance, const Point3 &pos)
 
 void set_group_pos(group_id_t group_id, const Point3 &pos)
 {
-  if (!g_occlusion_valid)
+  if (!g_occlusion_valid.load())
     return;
   SNDSYS_OCCLUSION_BLOCK;
 
@@ -199,7 +204,7 @@ void set_group_pos(group_id_t group_id, const Point3 &pos)
 
 void set_event_group(EventHandle event_handle, group_id_t group_id)
 {
-  if (!g_occlusion_valid)
+  if (!g_occlusion_valid.load())
     return;
   if (fmod_instance_t *instance = fmodapi::get_instance(event_handle))
   {
@@ -245,14 +250,14 @@ static void set_occlusion(Source &src, float value)
   if (src.value != value && value != g_uninited_value)
   {
     src.value = value;
-    SOUND_VERIFY(src.instance->setParameterByID(as_fmod_param_id(src.varId), value));
+    src.instance->setParameterByID(as_fmod_param_id(src.varId), value);
   }
 }
 
 void oneshot(FMOD::Studio::EventInstance &instance, const Point3 &pos)
 {
   TIME_PROFILE_DEV(sndsys_occlusion_oneshot);
-  if (!g_occlusion_valid)
+  if (!g_occlusion_valid.load())
     return;
   SNDSYS_OCCLUSION_BLOCK;
 
@@ -262,36 +267,37 @@ void oneshot(FMOD::Studio::EventInstance &instance, const Point3 &pos)
   const float value = make_occlusion_impl(pos);
 
   if (value != g_default_value)
-    SOUND_VERIFY(instance.setParameterByName(g_occlusion_param_name.c_str(), value));
+    instance.setParameterByName(g_occlusion_param_name.c_str(), value);
 }
 
 bool release(FMOD::Studio::EventInstance *instance)
 {
-  if (!g_occlusion_valid)
+  if (!g_occlusion_valid.load())
     return false;
   SNDSYS_OCCLUSION_BLOCK;
   if (Source *src = find_source_by_instance_only(instance))
   {
-    src->markedForRelease = true;
+    src->needAbandon = true;
     return true;
   }
   return false;
 }
 
-static inline bool is_playing(FMOD::Studio::EventInstance &event_instance)
+static inline bool is_playing(FMOD::Studio::EventInstance &instance)
 {
   FMOD_STUDIO_PLAYBACK_STATE playbackState = {};
-  SOUND_VERIFY_AND_DO(event_instance.getPlaybackState(&playbackState), return false);
-  return playbackState != FMOD_STUDIO_PLAYBACK_STOPPED;
+  if (FMOD_OK == instance.getPlaybackState(&playbackState))
+    return playbackState != FMOD_STUDIO_PLAYBACK_STOPPED;
+  return false;
 }
 
 static intptr_t g_idx = 0;
 static uint16_t g_debug_update_idx = 0;
 
-void update(const Point3 &listener)
+void update(float cur_time, const Point3 &listener)
 {
   TIME_PROFILE_DEV(sndsys_occlusion_update);
-  if (!g_occlusion_valid)
+  if (!g_occlusion_valid.load())
     return;
   SNDSYS_OCCLUSION_BLOCK;
   g_listener_pos = listener;
@@ -309,19 +315,38 @@ void update(const Point3 &listener)
   for (intptr_t i = 0; i < g_sources.size();)
   {
     Source &src = g_sources[i];
+
     if (!src.instance->isValid())
-      erase(&src);
-    else if (src.delayedForRelease && !is_playing(*src.instance))
     {
-      src.instance->release();
       erase(&src);
+      continue;
     }
-    else
+
+    if (src.deadlineAt > 0.f && cur_time >= src.deadlineAt)
     {
-      ++i;
-      if (is_first_in_group(src) || !is_in_group(src))
-        ++maxTraceable;
+      releasing::debug_warn_about_deadline(*src.instance);
+
+      releasing::release_immediate_impl(*src.instance);
+
+      erase(&src);
+      continue;
     }
+
+    if (src.checkAt > 0.f && cur_time >= src.checkAt)
+    {
+      if (!is_playing(*src.instance))
+      {
+        releasing::release_immediate_impl(*src.instance);
+
+        erase(&src);
+        continue;
+      }
+      src.checkAt = cur_time + releasing::g_check_interval;
+    }
+
+    ++i;
+    if (is_first_in_group(src) || !is_in_group(src))
+      ++maxTraceable;
   }
 
   if (!maxTraceable)
@@ -341,7 +366,13 @@ void update(const Point3 &listener)
   for (Source &src : g_sources)
   {
     src.debugUpdate = false;
-    src.delayedForRelease |= src.markedForRelease;
+
+    if (src.needAbandon)
+    {
+      src.needAbandon = false;
+      src.deadlineAt = cur_time + releasing::g_max_duration;
+      src.checkAt = cur_time + releasing::g_check_interval;
+    }
 
     if (is_first_in_group(src) || !is_in_group(src))
     {
@@ -370,7 +401,7 @@ void update(const Point3 &listener)
 
 void debug_enum_sources(debug_enum_sources_t debug_enum_sources)
 {
-  if (!g_occlusion_enabled)
+  if (!g_occlusion_enabled.load())
     return;
   for (Source &src : g_sources)
     debug_enum_sources(src.instance, src.groupId, src.pos, src.value, is_in_group(src), is_first_in_group(src), src.debugUpdate,
@@ -386,16 +417,16 @@ static float default_trace_proc(const Point3 &from, const Point3 &to, float /*ne
 
 static void default_before_trace_proc(const Point3 &, float) {}
 
-bool is_inited() { return g_occlusion_inited; }
-bool is_enabled() { return g_occlusion_enabled; }
-bool is_valid() { return g_occlusion_valid; }
+bool is_inited() { return g_occlusion_inited.load(); }
+bool is_enabled() { return g_occlusion_enabled.load(); }
+bool is_valid() { return g_occlusion_valid.load(); }
 
 void init(const DataBlock &blk, FMOD::System *low_level_system)
 {
   SNDSYS_OCCLUSION_BLOCK;
 
-  G_ASSERT(!g_occlusion_inited);
-  g_occlusion_inited = false;
+  G_ASSERT(!g_occlusion_inited.load());
+  g_occlusion_inited.store(false);
 
   g_low_level_system = low_level_system;
   G_ASSERT_RETURN(g_low_level_system, );
@@ -403,11 +434,11 @@ void init(const DataBlock &blk, FMOD::System *low_level_system)
   g_occlusion_param_name = blk.getStr("occlusionParamName", "occlusion");
   G_ASSERT_RETURN(!g_occlusion_param_name.empty(), );
 
-  g_near_attenuation = blk.getReal("occlusionNearAttenuation", 20.f);
-  g_far_attenuation = blk.getReal("occlusionFarAttenuation", 40.f);
+  g_near_attenuation = min(blk.getReal("occlusionNearAttenuation", g_default_near_attenuation), g_max_occlusion_distance);
+  g_far_attenuation = min(blk.getReal("occlusionFarAttenuation", g_default_far_attenuation), g_max_occlusion_distance);
 
-  g_occlusion_inited = true;
-  g_occlusion_valid = g_occlusion_inited && g_occlusion_enabled;
+  g_occlusion_inited.store(true);
+  g_occlusion_valid.store(g_occlusion_inited.load() && g_occlusion_enabled.load());
 
   g_trace_proc = &default_trace_proc;
   g_before_trace_proc = &default_before_trace_proc;
@@ -416,15 +447,17 @@ void init(const DataBlock &blk, FMOD::System *low_level_system)
 void close()
 {
   SNDSYS_OCCLUSION_BLOCK;
+  for (auto &it : g_sources)
+    releasing::release_immediate_impl(*it.instance);
   g_sources.clear();
   g_low_level_system = nullptr;
 }
 
 void enable(bool enabled)
 {
-  g_occlusion_enabled = enabled;
-  g_occlusion_valid = g_occlusion_inited && g_occlusion_enabled;
-  if (!g_occlusion_valid)
+  g_occlusion_enabled.store(enabled);
+  g_occlusion_valid.store(g_occlusion_inited.load() && g_occlusion_enabled.load());
+  if (!g_occlusion_valid.load())
     close();
 }
 

@@ -13,6 +13,8 @@ template <typename Callable>
 static void get_vhs_camera_presets_ecs_query(Callable);
 template <typename Callable>
 static void get_vhs_camera_shader_vars_ecs_query(Callable);
+template <typename Callable>
+static void reinit_vhs_camera_fg_node_ecs_query(Callable);
 
 ECS_ON_EVENT(on_appear)
 ECS_REQUIRE(ecs::Tag vhs_camera__isPreset)
@@ -59,8 +61,7 @@ static void vhs_camera_set_shader_params(float vhs_camera__resolutionDownscale,
   ShaderVar vhs_camera__dynamic_range_min,
   ShaderVar vhs_camera__dynamic_range_max,
   ShaderVar vhs_camera__dynamic_range_gamma,
-  ShaderVar vhs_camera__scanline_height,
-  resource_slot::NodeHandleWithSlotsAccess &vhsCamera)
+  ShaderVar vhs_camera__scanline_height)
 {
   vhs_camera__downscale.set_real(vhs_camera__resolutionDownscale);
   vhs_camera__saturation.set_real(vhs_camera__saturationMultiplier);
@@ -69,16 +70,6 @@ static void vhs_camera_set_shader_params(float vhs_camera__resolutionDownscale,
   vhs_camera__dynamic_range_max.set_real(vhs_camera__dynamicRangeMax);
   vhs_camera__dynamic_range_gamma.set_real(vhs_camera__dynamicRangeGamma);
   vhs_camera__scanline_height.set_real(vhs_camera__scanlineHeight);
-  vhsCamera = resource_slot::register_access("vhs_camera", DABFG_PP_NODE_SRC,
-    {resource_slot::Update{"postfx_input_slot", "vhs_frame", 150}},
-    [vhs_camera__resolutionDownscale](resource_slot::State slotsState, dabfg::Registry registry) {
-      registry.createTexture2d(slotsState.resourceToCreateFor("postfx_input_slot"), dabfg::History::No,
-        {TEXFMT_R11G11B10F | TEXCF_RTARGET, registry.getResolution<2>("post_fx", vhs_camera__resolutionDownscale)});
-      registry.requestRenderPass().color({slotsState.resourceToCreateFor("postfx_input_slot")});
-      registry.readTexture(slotsState.resourceToReadFrom("postfx_input_slot")).atStage(dabfg::Stage::PS).bindToShaderVar("frame_tex");
-
-      return [shader = PostFxRenderer("vhs_camera")] { shader.render(); };
-    });
 }
 
 ECS_REQUIRE(ecs::Tag vhs_camera__isPreset)
@@ -98,16 +89,46 @@ static void vhs_camera_preset_params_track_es(const ecs::Event &,
   get_vhs_camera_shader_vars_ecs_query(
     [=](ecs::EidList &vhs_camera__activePresets, ShaderVar vhs_camera__downscale, ShaderVar vhs_camera__saturation,
       ShaderVar vhs_camera__noise_strength, ShaderVar vhs_camera__dynamic_range_min, ShaderVar vhs_camera__dynamic_range_max,
-      ShaderVar vhs_camera__dynamic_range_gamma, ShaderVar vhs_camera__scanline_height,
-      resource_slot::NodeHandleWithSlotsAccess &vhsCamera) {
+      ShaderVar vhs_camera__dynamic_range_gamma, ShaderVar vhs_camera__scanline_height) {
       if (!vhs_camera__activePresets.empty() && vhs_camera__activePresets.back() == eid)
       {
         vhs_camera_set_shader_params(vhs_camera__resolutionDownscale, vhs_camera__saturationMultiplier, vhs_camera__noiseIntensity,
           vhs_camera__dynamicRangeMin, vhs_camera__dynamicRangeMax, vhs_camera__dynamicRangeGamma, vhs_camera__scanlineHeight,
           vhs_camera__downscale, vhs_camera__saturation, vhs_camera__noise_strength, vhs_camera__dynamic_range_min,
-          vhs_camera__dynamic_range_max, vhs_camera__dynamic_range_gamma, vhs_camera__scanline_height, vhsCamera);
+          vhs_camera__dynamic_range_max, vhs_camera__dynamic_range_gamma, vhs_camera__scanline_height);
       }
     });
+}
+
+static void reinit_vhs_camera_fg_node(resource_slot::NodeHandleWithSlotsAccess &vhsCamera, float vhs_camera__resolutionDownscale)
+{
+  vhsCamera =
+    resource_slot::register_access("vhs_camera", DAFG_PP_NODE_SRC, {resource_slot::Update{"postfx_input_slot", "vhs_frame", 150}},
+      [vhs_camera__resolutionDownscale](resource_slot::State slotsState, dafg::Registry registry) {
+        registry.createTexture2d(slotsState.resourceToCreateFor("postfx_input_slot"), dafg::History::No,
+          {TEXFMT_R11G11B10F | TEXCF_RTARGET, registry.getResolution<2>("post_fx", vhs_camera__resolutionDownscale)});
+        registry.requestRenderPass().color({slotsState.resourceToCreateFor("postfx_input_slot")});
+        registry.readTexture(slotsState.resourceToReadFrom("postfx_input_slot")).atStage(dafg::Stage::PS).bindToShaderVar("frame_tex");
+
+        return [shader = PostFxRenderer("vhs_camera")] { shader.render(); };
+      });
+}
+
+ECS_REQUIRE(ecs::Tag vhs_camera__isPreset)
+ECS_REQUIRE(eastl::true_type vhs_camera__isActive)
+ECS_REQUIRE(eastl::true_type camera__active = true)
+ECS_TRACK(vhs_camera__resolutionDownscale)
+static void vhs_camera_fg_node_reinit_on_res_downscale_change_es(
+  const ecs::Event &, const ecs::EntityId eid, const float vhs_camera__resolutionDownscale)
+{
+  reinit_vhs_camera_fg_node_ecs_query([&](ecs::EidList &vhs_camera__activePresets, ShaderVar vhs_camera__downscale,
+                                        resource_slot::NodeHandleWithSlotsAccess &vhsCamera) {
+    if (!vhs_camera__activePresets.empty() && vhs_camera__activePresets.back() == eid)
+    {
+      reinit_vhs_camera_fg_node(vhsCamera, vhs_camera__resolutionDownscale);
+      vhs_camera__downscale.set_real(vhs_camera__resolutionDownscale);
+    }
+  });
 }
 
 ECS_ON_EVENT(on_appear)
@@ -137,6 +158,8 @@ static void vhs_camera_node_parameters_track_es(const ecs::Event &,
       vhs_camera_set_shader_params(vhs_camera__resolutionDownscale, vhs_camera__saturationMultiplier, vhs_camera__noiseIntensity,
         vhs_camera__dynamicRangeMin, vhs_camera__dynamicRangeMax, vhs_camera__dynamicRangeGamma, vhs_camera__scanlineHeight,
         vhs_camera__downscale, vhs_camera__saturation, vhs_camera__noise_strength, vhs_camera__dynamic_range_min,
-        vhs_camera__dynamic_range_max, vhs_camera__dynamic_range_gamma, vhs_camera__scanline_height, vhsCamera);
+        vhs_camera__dynamic_range_max, vhs_camera__dynamic_range_gamma, vhs_camera__scanline_height);
+
+      reinit_vhs_camera_fg_node(vhsCamera, vhs_camera__resolutionDownscale);
     });
 }

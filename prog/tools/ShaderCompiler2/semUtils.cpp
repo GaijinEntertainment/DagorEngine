@@ -33,10 +33,10 @@ static __forceinline bool try_ustr_to_int(const char *s, size_t slen, int radix,
 }
 
 // convert from string to integer
-int semutils::int_number(const char *s)
+bool semutils::try_int_number(const char *s, int &out)
 {
-  G_ASSERT(s);
-  G_ASSERT(s[0]);
+  if (!s || !s[0])
+    return false;
   int l = (int)strlen(s);
   int radix;
   if ((s[0] == '0' && (s[1] == 'x' || s[1] == 'X')) || (s[l - 1] == 'h' || s[l - 1] == 'H'))
@@ -44,16 +44,14 @@ int semutils::int_number(const char *s)
   else
     radix = 10;
 
-  int num = 0;
-  bool res = try_ustr_to_int(s, l, radix, 0, INT_MAX, num);
-  G_ASSERTF(res, "Failed to parse to int: %s", s);
-  return num;
+  return try_ustr_to_int(s, l, radix, 0, INT_MAX, out);
 }
 
 // convert from string to real
-double semutils::real_number(const char *s)
+bool semutils::try_real_number(const char *s, double &out)
 {
-  G_ASSERT(s && s[0]);
+  if (!s || !s[0])
+    return false;
 
   char *endptr;
   errno = 0;
@@ -66,8 +64,23 @@ double semutils::real_number(const char *s)
   // 4: Overflow: man(3) states that return val will be +-HUGE_VAL, and errno will be ERANGE
   // 5: Underflow: man(3) states that return val will be 0.0, and errno will be ERANGE
   if (endptr == s || *endptr != '\0' || (d == 0.0 && errno == EINVAL) || ((abs(d) == HUGE_VAL || d == 0.0) && errno == ERANGE))
-    G_ASSERTF(0, "Failed to parse to double: %s", s);
+    return false;
 
+  out = d;
+  return true;
+}
+
+int semutils::int_number(const char *s)
+{
+  int num = 0;
+  G_VERIFYF(try_int_number(s, num), "Failed to parse to int: %s", s);
+  return num;
+}
+
+double semutils::real_number(const char *s)
+{
+  double d = 0.0;
+  G_VERIFYF(try_real_number(s, d), "Failed to parse to double: %s", s);
   return d;
 }
 

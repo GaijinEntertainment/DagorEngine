@@ -60,8 +60,9 @@ public:
 
 struct FeedbackProperties
 {
-  IPoint2 feedbackSize;     // = Clipmap::FEEDBACK_DEFAULT_SIZE
-  int feedbackOversampling; // = 1
+  IPoint2 feedbackSize;      // = Clipmap::FEEDBACK_DEFAULT_SIZE
+  int feedbackOversampling;  // = 1
+  bool useFeedbackTexFilter; // = false
 };
 
 class Clipmap
@@ -77,13 +78,13 @@ public:
   static const int MAX_TEX_MIP_CNT;
 
   static FeedbackProperties getSuggestedOversampledFeedbackProperties(IPoint2 target_res);
-  static FeedbackProperties getDefaultFeedbackProperties() { return {FEEDBACK_DEFAULT_SIZE, 1}; };
+  static FeedbackProperties getDefaultFeedbackProperties() { return {FEEDBACK_DEFAULT_SIZE, 1, false}; };
+
+  static bool isCompressionAvailable(uint32_t format);
+  static bool is_uav_supported();
 
   void initVirtualTexture(int cacheDimX, int cacheDimY, float maxEffectiveTargetResolution);
   void closeVirtualTexture();
-  bool updateOrigin(const Point3 &cameraPosition, bool update_snap);
-
-  static bool isCompressionAvailable(uint32_t format);
 
   // fallbackTexelSize is fallbackPage size in meters
   // can be set to something like max(4, (1<<(getAlignMips()-1))*getPixelRatio*8) - 8 times bigger texel than last aligned clip, but
@@ -91,15 +92,6 @@ public:
   // pages_dim*pages_dim is amount of pages allocated for fallback
   void initFallbackPage(int pages_dim, float fallback_texel_size);
 
-  bool changeXYOffset(int nx, int ny);                  // return true if chaned
-  bool changeZoom(int newZoom, const Point3 &position); // return true if chaned
-  void update();
-  void updateCache();
-  void checkConsistency();
-  bool checkClipmapInited();
-
-  void GPUrestoreIndirectionFromLRUFull(); // restore completely
-  void GPUrestoreIndirectionFromLRU();
   int getTexMips() const;
   int getAlignMips() const;
   void setMaxTileUpdateCount(int count);
@@ -107,8 +99,10 @@ public:
   float getPixelRatio() const;
 
   void setTexMips(int tex_mips);
+
   Clipmap(bool use_uav_feedback = true);
   ~Clipmap();
+
   // sz - texture size of each clip, clip_count - number of clipmap stack. multiplayer - size of next clip
   // size in meters of latest clip, virtual_texture_mip_cnt - amount of mips(lods) of virtual texture containing tiles
   void init(float st_texel_size, uint32_t feedbackType, FeedbackProperties feedback_properties = getDefaultFeedbackProperties(),
@@ -151,25 +145,29 @@ public:
   void setSoftwareFeedbackRadius(int inner_tiles, int outer_tiles);
   void setSoftwareFeedbackMipTiles(int mip, int tiles_for_mip);
 
-  void enableUAVOutput(bool enable);
+  void startUAVFeedback();
+  void endUAVFeedback();
+  void increaseUAVAtomicPrefix(); // By increasing UAV atomic prefix following UAV feedback operations can overdraw feedback.
+  void resetUAVAtomicPrefix();
 
-  void startUAVFeedback(int reg_no = 6);
-  void endUAVFeedback(int reg_no = 6);
   void copyUAVFeedback();
-  const UniqueTexHolder &getCache(int at);
-  const UniqueTex &getIndirection() const;
   void createCaches(const uint32_t *formats, const uint32_t *uncompressed_formats, uint32_t cnt, const uint32_t *buffer_formats,
     uint32_t buffer_cnt);
+
   // Used to temporarily reduce amount of caches/buffers used in baking without complete reinit
   // For example, when transitioned to a unit type where full clipmap is unnecessary (plane)
   // Negative arguments signal to restore original cache/buffer count, previously registered in createCaches
   void setCacheBufferCount(int cache_count, int buffer_count);
+
+  // The gradients used for feedback/rendering mip resolution will be scaled to keep used/total tile ratio below targetAtlasUsageRatio
+  // newDDScale = oldDDScale + proportionalTerm * (currentAtlasUsageRatio - targetAtlasUsageRatio)
+  // The feature is enabled when targetAtlasUsageRatio > 0
+  void setDynamicDDScale(float targetAtlasUsageRatio, float proportionalTerm);
+
   void beforeReset();
   void afterReset();
 
   int getLastUpdatedTileCount() const;
-
-  static bool is_uav_supported();
 
   // debug
   void toggleManualUpdate(bool manual_update);
@@ -177,6 +175,23 @@ public:
 
   void getRiLandclassIndices(dag::Vector<int> &ri_landclass_indices);
   Point3 getMappedRelativeRiPos(int ri_offset, const Point3 &viewer_position, float &dist_to_ground) const;
+
+  void resetSecondaryFeedbackCenter();
+  void setSecondaryFeedbackCenter(const Point3 &center);
+
+  void startSecondaryFeedback();
+  void endSecondaryFeedback();
+
+  void setHmapOfsAndTexOfs(int idx, const Point4 &hamp_ofs, const Point4 &hmap_tex_ofs);
+  void updateLandclassData();
+
+  enum class DebugMode : int
+  {
+    Disable,
+    FeedbackResponse,
+    TilesColoring,
+  };
+  void setDebugColorMode(DebugMode mode);
 
 private:
   eastl::unique_ptr<ClipmapImpl> clipmapImpl;

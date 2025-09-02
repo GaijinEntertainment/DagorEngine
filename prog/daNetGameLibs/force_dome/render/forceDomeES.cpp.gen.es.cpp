@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "forceDomeES.cpp.inl"
 ECS_DEF_PULL_VAR(forceDome);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc force_dome_resources_created_es_comps[] =
 {

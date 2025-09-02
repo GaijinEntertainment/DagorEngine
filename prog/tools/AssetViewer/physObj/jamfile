@@ -1,5 +1,5 @@
 Root    ?= ../../../.. ;
-Location = prog/tools/AssetViewer/PhysObj ;
+Location = prog/tools/AssetViewer/physObj ;
 
 TargetType  = lib ;
 Target      = tools/AssetViewer/PhysObj-bt$(BulletSdkVer).lib ;
@@ -13,7 +13,6 @@ AddIncludes =
 
   $(Root)/prog/3rdPartyLibs/phys/bullet-$(BulletSdkVer)/src
   $(Root)/prog/3rdPartyLibs/phys/joltPhysics
-  $(Root)/prog/engine/sharedInclude
 ;
 
 Sources =

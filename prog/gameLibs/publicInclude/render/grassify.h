@@ -21,16 +21,16 @@ public:
   typedef eastl::function<bool(const BBox2 &, float &min_ht, float &max_ht)> frustum_heights_cb_t;
 
 public:
-  Grassify(const DataBlock &settings, int grassMaskResolution, float grassDistance);
+  Grassify(const DataBlock &settings, float grassDistance);
   ~Grassify();
 
-  void generate(const Point3 &pos, const TMatrix &view_tm, const Driver3dPerspective &perspective, BaseTexture *grass_mask,
-    IRandomGrassRenderHelper &grassRenderHelper, const GPUGrassBase &gpuGrassBase);
+  void generate(const GrassView view, const Point3 &pos, const TMatrix &view_tm, const Driver3dPerspective &perspective,
+    BaseTexture *grass_mask, IRandomGrassRenderHelper &grassRenderHelper, const GPUGrassBase &gpuGrassBase);
   void generateGrassMask(IRandomGrassRenderHelper &grassRenderHelper);
   void initGrassifyRendinst();
 
 private:
   eastl::unique_ptr<GrassMaskSliceHelper> grassMaskHelper;
   eastl::unique_ptr<GrassGenerateHelper> grassGenHelper;
-  float texelSize = 0.0f;
+  IPoint2 grassifyMaskSize;
 };

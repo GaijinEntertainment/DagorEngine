@@ -47,4 +47,22 @@ float4 UnpackFromYCoCgAlpha(float4 c)
   return float4(UnpackFromYCoCg(c.rgb), c.a);
 }
 
+// YCoCg pack/unpack with all 3 components in [0,1] range
+
+half3 PackToYCoCgUnorm(half3 c)
+{
+  half t = 0.25 * (c.x + c.z);
+  c.y *= 0.5;
+  half Y = c.y + t;
+  half Co = 0.5 * (c.x - c.z) + 0.5;
+  half Cg = c.y + 0.5 - t;
+  return half3(Y, Co, Cg);
+}
+
+half3 UnpackFromYCoCgUnorm(half3 c)
+{
+  half t = c.x - c.z;
+  return half3(t + c.y, c.x + c.z - 0.5, t - c.y + 1);
+}
+
 #endif

@@ -60,9 +60,6 @@ public:
 
     BaseTexture *texMin = regs.getTexture(regMin);
     BaseTexture *texMax = regs.getTexture(regMax);
-    texMin->texaddr(TEXADDR_CLAMP);
-    texMax->texaddr(TEXADDR_CLAMP);
-
 
     {
       DataBlock paramsMin;

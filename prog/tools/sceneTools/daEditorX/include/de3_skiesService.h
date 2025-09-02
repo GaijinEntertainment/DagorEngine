@@ -22,6 +22,7 @@ public:
   virtual void fillPresets(Tab<String> &out_presets, Tab<String> &out_env, Tab<String> &out_weather) = 0;
 
   virtual void setWeather(const char *preset_fn, const char *env, const char *weather) = 0;
+  virtual void overrideShaderVarsFromLevelBlk(const DataBlock *b) = 0;
   virtual void overrideWeather(int prio, const char *env, const char *weather, int global_seed, const DataBlock *custom_w,
     const DataBlock *stars) = 0;
   virtual void setZnZfScale(float znzf_scale) = 0;
@@ -35,6 +36,7 @@ public:
   virtual void beforeRenderSkyOrtho() = 0;
   virtual void renderSky() = 0;
   virtual void renderClouds() = 0;
+  virtual bool areCloudTexturesReady() = 0;
 
   virtual void afterD3DReset(bool full_reset) = 0;
 };

@@ -1,14 +1,14 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#include <gameMath/objgenPrng.h>
 #include <stdlib.h>
 #include <iostream>
 #include <assert.h>
 using namespace std;
-#include <math/random/dag_random.h>
 
 #include "subdivision.h"
 
-
+using namespace objgenerator; // prng
 using namespace delaunay;
 
 Edge *Subdivision::makeEdge(Vec2 &org, Vec2 &dest)
@@ -230,7 +230,7 @@ Edge *Subdivision::locate(const Vec2 &x, Edge *start)
         if (t == 0 && !leftOf(eo->Dest(), e))
           // x on e but subdiv. is to right
           e = e->Sym();
-        else if (_rnd(subdivision_seed) & 1)
+        else if (rnd(subdivision_seed) & 1)
         {         // x is on or above ed and
           t = to; // on or below eo; step randomly
           e = eo;

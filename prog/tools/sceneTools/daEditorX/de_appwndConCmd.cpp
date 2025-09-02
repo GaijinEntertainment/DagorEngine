@@ -15,7 +15,7 @@
 #include <libTools/util/strUtil.h>
 
 #include <winGuiWrapper/wgw_dialogs.h>
-#include <sepGui/wndGlobal.h>
+#include <EditorCore/ec_wndGlobal.h>
 #include <osApiWrappers/dag_direct.h>
 
 #include <perfMon/dag_graphStat.h>
@@ -27,6 +27,29 @@
 #include <stdio.h>
 
 InitOnDemand<DebugTexOverlay> de3_show_tex_helper;
+
+// This does the same as the "tex.show" command but the "Console commands and variables" debug dialog uses a different
+// console system and the command is called "render.show_tex" there.
+class ShowTexConsole : public console::ICommandProcessor
+{
+  bool processCommand(const char *argv[], int argc) override
+  {
+    if (argc < 1)
+      return false;
+    int found = 0;
+    CONSOLE_CHECK_NAME("render", "show_tex", 1, DebugTexOverlay::MAX_CONSOLE_ARGS_CNT)
+    {
+      de3_show_tex_helper.demandInit();
+      String str = de3_show_tex_helper->processConsoleCmd(argv, argc);
+      if (!str.empty())
+        console::print(str);
+    }
+    return found;
+  }
+
+  void destroy() override {}
+};
+static ShowTexConsole show_tex_console;
 
 //==================================================================================================
 void DagorEdAppWindow::registerConsoleCommands()
@@ -54,6 +77,7 @@ void DagorEdAppWindow::registerConsoleCommands()
   REGISTER_COMMAND("screenshot.ortho");
 
   REGISTER_COMMAND("entity.stat");
+  REGISTER_COMMAND("entity.ri_stat");
   REGISTER_COMMAND("shaders.list");
   REGISTER_COMMAND("shaders.set");
   REGISTER_COMMAND("shaderVar");
@@ -74,6 +98,9 @@ void DagorEdAppWindow::registerConsoleCommands()
   REGISTER_COMMAND("render.puddles");
 
 #undef REGISTER_COMMAND
+
+  console::init();
+  add_con_proc(&show_tex_console);
 }
 
 static int __cdecl sort_texid_by_refc(const TEXTUREID *a, const TEXTUREID *b)
@@ -143,6 +170,11 @@ bool DagorEdAppWindow::onConsoleCommand(const char *cmd, dag::ConstSpan<const ch
     spawnEvent(HUID_DumpEntityStat, NULL);
     return true;
   }
+  if (!stricmp(cmd, "entity.ri_stat"))
+  {
+    spawnEvent(HUID_DumpRiEntityStat, (void *)(uintptr_t)(params.size() == 1 ? atoi(params[0]) << 10 : 0));
+    return true;
+  }
   if (!stricmp(cmd, "project.tex_metrics"))
   {
     Tab<IGenEditorPlugin *> buildPlugin(tmpmem);
@@ -187,6 +219,18 @@ bool DagorEdAppWindow::onConsoleCommand(const char *cmd, dag::ConstSpan<const ch
         if (IOnExportNotify *iface = buildPlugin[i]->queryInterface<IOnExportNotify>())
           iface->onAfterExport(targetCode);
     mNeedSuppress = false;
+
+    DataBlock metrixBlk;
+    if (wsp->getMetricsBlk(metrixBlk))
+      if (const DataBlock *levelMetricsBlk = metrixBlk.getBlockByName("whole_level"))
+      {
+        const int custom_tex_cnt = trh.getCustomMetricsTexCount();
+        const float custom_tex_sz = trh.getCustomMetricsTexSizeMb();
+        const int maxTexCount = custom_tex_cnt < 0 ? levelMetricsBlk->getInt("textures_count", 0) : custom_tex_cnt;
+        const int64_t maxTexSize = (custom_tex_sz < 0 ? levelMetricsBlk->getReal("textures_size", 0.f) : custom_tex_sz) * (1 << 20);
+        DAEDITOR3.conNote("Actual metrics: max %d textures, max %dM texture size%s", maxTexCount, maxTexSize >> 20,
+          (custom_tex_cnt >= 0 || custom_tex_sz >= 0) ? " [using custom metrics from level-BLK]" : "");
+      }
     return true;
   }
 
@@ -201,17 +245,17 @@ bool DagorEdAppWindow::onConsoleCommand(const char *cmd, dag::ConstSpan<const ch
 
   if (!stricmp(cmd, "perf.on"))
   {
-    EDITORCORE->queryEditorInterface<IDynRenderService>()->enableFrameProfiler(true);
+    EDITORCORE->queryEditorInterface<IRenderHelperService>()->enableFrameProfiler(true);
     return true;
   }
   if (!stricmp(cmd, "perf.off"))
   {
-    EDITORCORE->queryEditorInterface<IDynRenderService>()->enableFrameProfiler(false);
+    EDITORCORE->queryEditorInterface<IRenderHelperService>()->enableFrameProfiler(false);
     return true;
   }
   if (!stricmp(cmd, "perf.dump"))
   {
-    EDITORCORE->queryEditorInterface<IDynRenderService>()->profilerDumpFrame();
+    EDITORCORE->queryEditorInterface<IRenderHelperService>()->profilerDumpFrame();
     repaint();
     return true;
   }
@@ -392,6 +436,9 @@ const char *DagorEdAppWindow::onConsoleCommandHelp(const char *cmd)
 
   if (!stricmp(cmd, "entity.stat"))
     return "Outputs statistics for entity pools to console.";
+  if (!stricmp(cmd, "entity.ri_stat"))
+    return "entity.ri_stat [min_vb_size_Kb_to_report]\n"
+           "Outputs statistics for RI entities (per-cell), reports all non-empty cells if min VB size is not specified";
   if (!stricmp(cmd, "project.tex_metrics"))
     return "Computes and outputs tex metrics to console.\n  project.tex_metrics [verbose] [nodlg]";
 
@@ -653,6 +700,7 @@ bool DagorEdAppWindow::runShadersListVars(dag::ConstSpan<const char *> params)
     {
       case SHVT_INT: console->addMessage(ILogWriter::NOTE, "[int]   %-40s %d", name, ShaderGlobal::get_int_fast(varId)); break;
       case SHVT_REAL: console->addMessage(ILogWriter::NOTE, "[real]  %-40s %.3f", name, ShaderGlobal::get_real_fast(varId)); break;
+      case SHVT_INT4: console->addMessage(ILogWriter::NOTE, "[int4]  %-40s %@", name, ShaderGlobal::get_int4(varId)); break;
       case SHVT_COLOR4:
         c = ShaderGlobal::get_color4_fast(varId);
         console->addMessage(ILogWriter::NOTE, "[color] %-40s %.3f,%.3f,%.3f,%.3f", name, c.r, c.g, c.b, c.a);

@@ -18,7 +18,7 @@ rendinst::gen::RotationPaletteManager::Palette::Palette(int cnt, int ofs, const 
 rendinst::gen::RotationPaletteManager::PaletteEntry::PaletteEntry(int id, int max)
 {
   if (max > 0)
-    rotationY = float(id) / (max)*2 * M_PI;
+    rotationY = float(id) / (max) * 2 * M_PI;
   else
     rotationY = 0;
   sincos(rotationY, sinY, cosY);

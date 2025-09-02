@@ -999,10 +999,18 @@ const char *get_localized_text_for_lang(const char *key, const char *lang)
 {
   if (!key || !*key || !lang || !*lang || !locTable)
     return NULL;
-  int id = locTable->fullLangList.getNameId(lang);
+  int id = getLangId(lang);
   if (id < 0)
     return NULL;
-  return locTable->getFullText(key, id);
+  return get_localized_text_for_lang_id(key, id);
+}
+
+const char *get_localized_text_for_lang_id(const char *key, int lang_id)
+{
+
+  if (!key || !*key || lang_id < 0)
+    return nullptr;
+  return locTable->getFullText(key, lang_id);
 }
 
 const char *get_fake_loc_for_missing_key(const char *key)
@@ -1427,6 +1435,11 @@ const char *get_default_lang()
     case LANG_SERBIAN_NEUTRAL: return "Serbian";
     case LANG_HUNGARIAN: return "Hungarian";
     case LANG_ROMANIAN: return "Romanian";
+    case LANG_VIETNAMESE: return "Vietnamese";
+    case LANG_GREEK: return "Greek";
+    case LANG_INDONESIAN: return "Indonesian";
+    case LANG_THAI: return "Thai";
+    case LANG_ARABIC: return "Arabic";
     case LANG_CHINESE:
       switch (SUBLANGID(curId))
       {
@@ -1474,8 +1487,16 @@ const char *get_default_lang()
     return "Serbian";
   if (strcmp(lang, "zh") == 0)
     return "Chinese";
-
-  return lang;
+  if (strcmp(lang, "vi") == 0)
+    return "Vietnamese";
+  if (strcmp(lang, "el") == 0)
+    return "Greek";
+  if (strcmp(lang, "id") == 0)
+    return "Indonesian";
+  if (strcmp(lang, "th") == 0)
+    return "Thai";
+  if (strcmp(lang, "ar") == 0)
+    return "Arabic";
 
 #endif
   return "English";
@@ -1568,6 +1589,11 @@ const char *language_to_locale_code(const char *language)
     {"Belarusian", "be-BY"},
     {"Romanian", "ro-RO"},
     {"Hebrew", "he-IL"},
+    {"Vietnamese", "vi-VN"},
+    {"Greek", "el-GR"},
+    {"Indonesian", "id-ID"},
+    {"Thai", "th-TH"},
+    {"Arabic", "ar-SA"},
   };
 
   for (int i = 0; i < countof(language_to_locale_code_map); ++i)
@@ -1615,4 +1641,18 @@ void set_language_to_settings(const char *lang)
 {
   debug("settings language by override: %s", lang);
   const_cast<DataBlock *>(::dgs_get_settings())->setStr("language", lang);
+}
+
+int getLangId(const char *lang)
+{
+  if (!lang || !*lang)
+    return -1;
+  return locTable->fullLangList.getNameId(lang);
+}
+
+const char *getLangById(int id)
+{
+  if (id < 0)
+    return nullptr;
+  return locTable->fullLangList.getName(id);
 }

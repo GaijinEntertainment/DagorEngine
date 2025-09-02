@@ -37,10 +37,10 @@ typedef rendinst::RendInstDesc (*create_tree_rend_inst_destr_cb)(const rendinst:
 typedef void (*remove_tree_rendinst_destr_cb)(const rendinst::RendInstDesc &desc);
 typedef void (*remove_physx_collision_object_callback)(const rendinst::RendInstDesc &desc);
 typedef int (*create_apex_actors_callback)(const char *name, const TMatrix &normalized_tm, const Point3 &scale, const Point3 &pos,
-  const Point3 &impulse, int index, ApexDmgInfo *apex_dmg_info, int ri_idx, const BBox3 &ri_bbox);
+  const Point3 &impulse, int index, ApexDmgInfo *apex_dmg_info, int ri_idx, const BBox3 &ri_bbox, bool is_collision);
 typedef void (*apex_force_remove_actor_callback)(const int);
 typedef void (*on_destr_changed_callback)(const rendinst::RendInstDesc &desc, const TMatrix &ri_tm, const Point3 &pos,
-  const Point3 &impulse);
+  const Point3 &impulse, bool create_destr);
 typedef void (*on_rendinst_destroyed_callback)(rendinst::riex_handle_t riex_handle, const TMatrix &tm, const BBox3 &box);
 typedef eastl::function<void(const rendinst::riex_handle_t)> on_riextra_destroyed_callback;
 typedef eastl::function<void(const rendinst::RendInstDesc &)> on_destr_callback;
@@ -142,15 +142,6 @@ void serialize_destr_update(danet::BitStream &bs, const Point3 *camera_pos, floa
   dag::ConstSpan<DestrUpdateDesc> update_data, bool send_by_default, int max_impulses);
 bool deserialize_destr_update(const danet::BitStream &bs);
 
-void clear_synced_ri_extra_pools();
-void sync_all_ri_extra_pools();
-void sync_ri_extra_pool(int pool_id);
-bool serialize_synced_ri_extra_pools(danet::BitStream &bs, bool full, bool skip_if_no_data);
-bool deserialize_synced_ri_extra_pools(const danet::BitStream &bs);
-int get_client_ri_pool_id(int server_pool_id); // server -> client
-int get_server_ri_pool_id(int client_pool_id); // client -> server
-bool is_server_ri_pool_sync_pending(int server_pool_id);
-
 void startSession(void *phys_wld);
 void endSession();
 void setApexEnabled(bool enabled);
@@ -162,7 +153,7 @@ void testObjToRestorablesIntersection(const BBox3 &obj_box, const TMatrix &obj_t
 
 rendinst::RendInstDesc destroyRendinst(rendinst::RendInstDesc desc, bool add_restorable, const Point3 &pos, const Point3 &impulse,
   float at_time, const rendinst::CollisionInfo *coll_info, bool create_destr_effects, ApexDmgInfo *apex_dmg_info = NULL,
-  int destroy_neighbour_recursive_depth = 1, float impulse_mult_for_child = 1.f, on_destr_callback on_destr_cb = nullptr,
+  int destroy_neighbour_recursive_depth = -1, float impulse_mult_for_child = 1.f, on_destr_callback on_destr_cb = nullptr,
   rendinst::DestrOptionFlags flags = rendinst::DestrOptionFlag::AddDestroyedRi | rendinst::DestrOptionFlag::ForceDestroy);
 void destroyRiExtra(rendinst::riex_handle_t riex_handle, const TMatrix &transform, bool create_destr_effects, const Point3 &impulse,
   const Point3 &impulse_pos, rendinst::DestrOptionFlags flags = {});
@@ -189,9 +180,10 @@ CollisionObject &get_tree_collision();
 void clear_tree_collision();
 
 CachedCollisionObjectInfo *get_cached_collision_object(const rendinst::RendInstDesc &ri_desc);
-void add_cached_collision_object(CachedCollisionObjectInfo *object);
 CachedCollisionObjectInfo *get_or_add_cached_collision_object(const rendinst::RendInstDesc &ri_desc, float at_time);
 CachedCollisionObjectInfo *get_or_add_cached_collision_object(const rendinst::RendInstDesc &ri_desc, float at_time,
+  const rendinst::CollisionInfo &coll_info);
+CachedCollisionObjectInfo *get_or_add_cached_tree_collision_object(const rendinst::RendInstDesc &ri_desc, float impulse, float at_time,
   const rendinst::CollisionInfo &coll_info);
 
 int test_dynobj_to_ri_phys_collision(const CollisionObject &coA, const TMatrix &tmA, float max_rad);

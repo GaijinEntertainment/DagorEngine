@@ -13,12 +13,12 @@ public:
 
   // DialogWindow interface
 
-  virtual bool onOk();
-  virtual bool onCancel() { return true; };
+  bool onOk() override;
+  bool onCancel() override { return true; };
 
   // ControlEventHandler methods from CDialogWindow
 
-  virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel);
+  void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
 
 private:
   EditorWorkspace &wsp;

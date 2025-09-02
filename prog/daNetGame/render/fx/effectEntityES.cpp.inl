@@ -1,7 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "render/fx/effectEntity.h"
-#include "render/fx/effectManager.h"
+#include <effectManager/effectManager.h>
 #include "render/fx/fx.h"
 #include "render/renderer.h"
 #include "render/renderEvent.h"
@@ -28,12 +28,6 @@ static void set_spawn_rate(TheEffect &effect, float effect_spawn_rate)
     fx.fx->setSpawnRate(max(effect_spawn_rate, 0.0f));
 }
 
-static void set_light_fadeout(TheEffect &effect, float light_fadeout)
-{
-  for (ScaledAcesEffect &fx : effect.getEffects())
-    fx.fx->setLightFadeout(light_fadeout);
-}
-
 static void set_wind_scale(TheEffect &effect, float wind_scale)
 {
   for (ScaledAcesEffect &fx : effect.getEffects())
@@ -46,19 +40,18 @@ bool TheEffect::addEffect(const char *fxName,
   float fx_inst_scale,
   const Color4 &fxColorMult,
   bool is_attached,
-  bool with_sound,
   const TMatrix *restriction_box,
   FxSpawnType spawnType)
 {
   int fxType = acesfx::get_type_by_name(fxName);
 
   FxErrorType fxErr = FX_ERR_NONE;
-  AcesEffect *fx = (fxType >= 0) ? acesfx::start_effect(fxType, is_attached ? TMatrix::IDENT : tm, is_attached ? tm : TMatrix::IDENT,
-                                     spawnType == FxSpawnType::Player, with_sound ? &acesfx::defSoundDesc : nullptr, &fxErr)
-                                 : nullptr;
+  AcesEffect *fx = nullptr;
+  if (fxType >= 0)
+    acesfx::start_effect(fxType, is_attached ? TMatrix::IDENT : tm, is_attached ? tm : TMatrix::IDENT,
+      spawnType == FxSpawnType::Player, -1.0f, &fx, &fxErr);
   if (fx)
   {
-    fx->lock();
     fx->setColorMult(fxColorMult);
     fx->setFxScale(fxScale * fx_inst_scale * length(tm.getcol(0)));
     if (restriction_box)
@@ -105,8 +98,7 @@ TheEffect::TheEffect(ecs::EntityManager &mgr, ecs::EntityId eid) : numEffects(0)
   float fxScale = mgr.getOr(eid, ECS_HASH("effect__scale"), 1.0f);
   FxSpawnType spawnType = mgr.getOr(eid, ECS_HASH("effect__spawnOnPlayer"), false) ? FxSpawnType::Player : FxSpawnType::World;
   Color4 fxColorMult = Color4(mgr.getOr(eid, ECS_HASH("effect__colorMult"), E3DCOLOR(0xFFFFFFFF)));
-  bool isAttachedEffect = mgr.has(eid, ECS_HASH("attachedEffect")) || mgr.has(eid, ECS_HASH("attachedNoScaleEffect"));
-  const bool withSound = !mgr.has(eid, ECS_HASH("sound_control__shouldPlay")) && mgr.getOr(eid, ECS_HASH("effect__withSound"), true);
+  bool isAttachedEffect = mgr.has(eid, ECS_HASH("attachedEffect"));
   TMatrix restrictionBox;
   const TMatrix *boxPtr = nullptr;
 
@@ -130,29 +122,18 @@ TheEffect::TheEffect(ecs::EntityManager &mgr, ecs::EntityId eid) : numEffects(0)
   if (const char *fxName = mgr.getOr(eid, ECS_HASH("effect__name"), (const char *)nullptr))
   {
     hasEffectComponents = true;
-    addEffect(fxName, tm, fxScale, 1.f, fxColorMult, isAttachedEffect, withSound, boxPtr, spawnType);
+    addEffect(fxName, tm, fxScale, 1.f, fxColorMult, isAttachedEffect, boxPtr, spawnType);
   }
   if (const ecs::Object *effectsObject = mgr.getNullable<ecs::Object>(eid, ECS_HASH("effects")))
     for (auto &effect : *effectsObject)
     {
       hasEffectComponents = true;
-      addEffect(effect.first.c_str(), tm, fxScale, effect.second.get<float>(), fxColorMult, isAttachedEffect, withSound, boxPtr,
-        spawnType);
+      addEffect(effect.first.c_str(), tm, fxScale, effect.second.get<float>(), fxColorMult, isAttachedEffect, boxPtr, spawnType);
     }
 
   const float *spawnRate = mgr.getNullable<float>(eid, ECS_HASH("effect__spawnRate"));
   if (spawnRate)
     set_spawn_rate(*this, *spawnRate);
-
-  const float *lightFadeout = mgr.getNullable<float>(eid, ECS_HASH("effect__lightFadeout"));
-  if (lightFadeout)
-  {
-    if (*lightFadeout < 0.0f)
-      logerr("Entity %d (%s): effect__lightFadeout should be more than 0.0, current value=%f", eid, mgr.getEntityTemplateName(eid),
-        *lightFadeout);
-
-    set_light_fadeout(*this, *lightFadeout);
-  }
 
   const float *windScale = mgr.getNullable<float>(eid, ECS_HASH("effect__windScale"));
   if (windScale)
@@ -166,7 +147,6 @@ TheEffect::TheEffect(AcesEffect &&effect) : numEffects(1)
 {
   effectsInline[0].fx = &effect;
   effectsInline[0].scale = 1.f;
-  effect.lock();
 }
 
 /*static*/
@@ -222,7 +202,7 @@ ECS_NO_ORDER
 __forceinline void effect_es(const ecs::UpdateStageInfoAct &,
   TheEffect &effect,
   const TMatrix &transform ECS_REQUIRE_NOT(ecs::Tag staticEffect) ECS_REQUIRE_NOT(ecs::Tag attachedEffect)
-    ECS_REQUIRE_NOT(ecs::Tag attachedNoScaleEffect) ECS_REQUIRE_NOT(TMatrix effect_animation__transform))
+    ECS_REQUIRE_NOT(TMatrix effect_animation__transform))
 {
   for (auto &fx : effect.getEffects())
     fx.fx->setEmitterTm(transform);
@@ -231,8 +211,8 @@ __forceinline void effect_es(const ecs::UpdateStageInfoAct &,
 ECS_NO_ORDER
 void effect_debug_es(const ecs::UpdateStageInfoAct &,
   TheEffect &effect,
-  const TMatrix &transform ECS_REQUIRE(ecs::Tag staticEffect) ECS_REQUIRE(ecs::Tag daeditor__selected) ECS_REQUIRE_NOT(
-    ecs::Tag attachedEffect) ECS_REQUIRE_NOT(ecs::Tag attachedNoScaleEffect) ECS_REQUIRE_NOT(TMatrix effect_animation__transform))
+  const TMatrix &transform ECS_REQUIRE(ecs::Tag staticEffect) ECS_REQUIRE(ecs::Tag daeditor__selected)
+    ECS_REQUIRE_NOT(ecs::Tag attachedEffect) ECS_REQUIRE_NOT(TMatrix effect_animation__transform))
 {
   for (auto &fx : effect.getEffects())
     fx.fx->setEmitterTm(transform);
@@ -245,15 +225,6 @@ __forceinline void effect_attached_es(const ecs::UpdateStageInfoAct &,
 {
   for (auto &fx : effect.getEffects())
     fx.fx->setFxTm(transform);
-}
-
-ECS_AFTER(effect_attached_es)
-__forceinline void effect_attached_no_scale_es(const ecs::UpdateStageInfoAct &,
-  TheEffect &effect,
-  const TMatrix &transform ECS_REQUIRE(ecs::Tag attachedNoScaleEffect) ECS_REQUIRE_NOT(TMatrix effect_animation__transform))
-{
-  for (auto &fx : effect.getEffects())
-    fx.fx->setFxTmNoScale(transform);
 }
 
 ECS_AFTER(effect_attached_es)
@@ -273,38 +244,6 @@ __forceinline void effect_attached_anim_es(
     fx.fx->setFxTm(effect_animation__transform);
 }
 
-ECS_AFTER(effect_attached_es)
-__forceinline void effect_attached_no_scale_anim_es(const ecs::UpdateStageInfoAct &,
-  TheEffect &effect,
-  const TMatrix &effect_animation__transform ECS_REQUIRE(ecs::Tag attachedNoScaleEffect))
-{
-  for (auto &fx : effect.getEffects())
-    fx.fx->setFxTmNoScale(effect_animation__transform);
-}
-
-ECS_AFTER(update_projectile_es)
-__forceinline void effect_projectile_waiter_es(const ecs::UpdateStageInfoAct &,
-  ecs::EntityId eid,
-  const ecs::string &effect__templateAfterSuccessWait,
-  const Point3 &projectile__visualPos)
-{
-  if (projectile__visualPos.lengthSq() > 0.0)
-  {
-    g_entity_mgr->reCreateEntityFromAsync(eid, effect__templateAfterSuccessWait.c_str());
-  }
-}
-
-ECS_AFTER(effect_projectile_waiter_es)
-__forceinline void effect_projectile_es(const ecs::UpdateStageInfoAct &, TheEffect &effect, const Point3 &projectile__visualPos)
-{
-  for (auto &fx : effect.getEffects())
-  {
-    TMatrix tm = TMatrix::IDENT;
-    tm.setcol(3, tm.getcol(3) + projectile__visualPos);
-    fx.fx->setEmitterTm(tm);
-  }
-}
-
 ECS_TRACK(effect__scale, transform)
 static inline void effect_scale_es_event_handler(const ecs::Event &, TheEffect &effect, const TMatrix &transform, float effect__scale)
 {
@@ -319,11 +258,18 @@ static inline void effect_velocity_es_event_handler(const ecs::Event &, TheEffec
     fx.fx->setVelocity(effect__velocity);
 }
 
+ECS_TRACK(effect__background_pos)
+static inline void effect_fake_brightness_es_event_handler(const ecs::Event &, TheEffect &effect, const Point3 &effect__background_pos)
+{
+  for (auto &fx : effect.getEffects())
+    fx.fx->setFakeBrightnessBackgroundPos(effect__background_pos);
+}
+
 ECS_TRACK(effect__distance_scale)
 static inline void effect_velocity_scale_es_event_handler(const ecs::Event &, TheEffect &effect, const float &effect__distance_scale)
 {
   for (auto &fx : effect.getEffects())
-    fx.fx->setVelocityScale(effect__distance_scale);
+    fx.fx->setVelocityScaleMinMax(Point2(effect__distance_scale, effect__distance_scale));
 }
 
 ECS_TRACK(effect__windScale)
@@ -338,17 +284,6 @@ static inline void effect_colorMult_es_event_handler(const ecs::Event &, TheEffe
 {
   for (auto &fx : effect.getEffects())
     fx.fx->setColorMult(Color4(effect__colorMult));
-}
-
-ECS_TRACK(sound_control__shouldPlay)
-static inline void effect_sound_enabled_es_event_handler(const ecs::Event &, TheEffect &effect, bool sound_control__shouldPlay)
-{
-  if (sound_control__shouldPlay)
-    for (auto &fx : effect.getEffects())
-      fx.fx->playSound({});
-  else
-    for (auto &fx : effect.getEffects())
-      fx.fx->destroySound();
 }
 
 ECS_TRACK(effect__spawnRate)
@@ -390,8 +325,15 @@ static inline void bound_camera_effect_es(const ecs::UpdateStageInfoAct &info,
   Point3 &camera_prev_vel,
   TMatrix &transform,
   const float effect__smooth_coef,
-  const float effect__bias_coef)
+  const float effect__bias_coef,
+  const bool effect__use_deprecated_bound_camera_logic = true)
 {
+  if (!effect__use_deprecated_bound_camera_logic)
+  {
+    transform.setcol(3, get_cam_itm().getcol(3));
+    return;
+  }
+  // TODO: rewrite this whole thing, it is a mess
   TMatrix camTm = get_cam_itm();
   Point3 velocityVector = clamp(((camTm.getcol(3) - camera_prev_pos) * safeinv(info.dt)), -100.0f, 100.0f);
   camera_prev_pos = camTm.getcol(3);
@@ -415,13 +357,30 @@ static inline void biome_query_init_es(
 }
 
 ECS_TAG(render)
+ECS_ON_EVENT(on_appear, OnLevelLoaded)
+static inline void biome_query_calculate_replacement_id_es(
+  const ecs::Event &, const ecs::StringList &biome_query__biomeReplaceNameList, ecs::IntList &biome_query__biomeReplaceIdList)
+{
+  biome_query__biomeReplaceIdList.clear();
+  for (const ecs::string &biomeClassName : biome_query__biomeReplaceNameList)
+  {
+    int biomeId = biome_query::get_biome_group_id(biomeClassName.c_str());
+    if (biomeId >= 0)
+      biome_query__biomeReplaceIdList.push_back(biomeId);
+  }
+}
+
+template <typename Callable>
+static void get_replacement_color_ecs_query(Callable c);
+
+ECS_TAG(render)
 ECS_TRACK(biome_query__state)
 static inline void create_fx_based_on_biome_es(const ecs::Event &,
   ecs::EntityId eid,
   TMatrix transform,
   int biome_query__state,
   int biome_query__groupId,
-  Point4 biome_query__color,
+  Point4 &biome_query__color,
   const ecs::string &hit_fx_name,
   const ecs::string &biome_query__desiredBiomeName = "")
 {
@@ -438,6 +397,17 @@ static inline void create_fx_based_on_biome_es(const ecs::Event &,
     }
     else
     {
+      get_replacement_color_ecs_query([&biome_query__color, &biome_query__groupId](const ecs::IntList &biome_query__biomeReplaceIdList,
+                                        const Point4 &biome_query__mudBiomeColor) {
+        for (int biomeClassId : biome_query__biomeReplaceIdList)
+        {
+          if (biome_query__groupId == biomeClassId)
+          {
+            biome_query__color = biome_query__mudBiomeColor;
+            break;
+          }
+        }
+      });
       ecs::ComponentsInitializer attrs;
       attrs[ECS_HASH("transform")] = transform;
       attrs[ECS_HASH("paint_color")] = biome_query__color;
@@ -490,8 +460,15 @@ static inline void paint_hit_fx_es(
 }
 
 ECS_TAG(render)
-ECS_ON_EVENT(ecs::EventEntityManagerBeforeClear)
-static inline void destroy_effects_es(const ecs::Event &, TheEffect &effect) { effect.reset(); }
+static inline void enable_fx_imm_mode_es(const ecs::EventEntityManagerBeforeClear &)
+{
+  // flush & clear command buffer
+  acesfx::set_immediate_mode(true, true);
+}
+
+ECS_TAG(render)
+ECS_AFTER(enable_fx_imm_mode_es)
+static inline void destroy_effects_es(const ecs::EventEntityManagerBeforeClear &, TheEffect &effect) { effect.reset(); }
 
 ECS_TAG(dev, render)
 ECS_ON_EVENT(on_appear)
@@ -580,6 +557,18 @@ ECS_ON_EVENT(RecreateEffectEvent)
 static inline void recreate_effect_es(const ecs::Event &, ecs::EntityManager &manager, ecs::EntityId eid, TheEffect &effect)
 {
   effect = TheEffect(manager, eid);
+}
+
+// NOTE: fx_magnification_es should be after shooter_cam_update_tm_es,
+// order between das and cpp es should be specified on das side
+ECS_TAG(render)
+ECS_NO_ORDER
+static inline void fx_magnification_es(const ecs::UpdateStageInfoAct &, float camera__totalMagnification, bool camera__active)
+{
+  if (!camera__active)
+    return;
+
+  EffectManager::setMagnification(camera__totalMagnification);
 }
 
 ECS_TAG(render)

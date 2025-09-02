@@ -30,4 +30,6 @@ struct dag::MemPtrAllocator
   void *realloc(void *p, size_t sz) { return m->realloc(p, sz); }
   bool operator==(const MemPtrAllocator &a) const { return m == a.m; }
   bool operator==(const eastl::allocator &) const { return false; }
+
+  void set_name(const char *) {}
 };

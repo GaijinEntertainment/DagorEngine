@@ -14,6 +14,8 @@
 #include <drv/3d/dag_consts.h>
 #include <drv/3d/dag_shaderLibraryObject.h>
 #include <drv/3d/dag_samplerHandle.h>
+#include <EASTL/variant.h>
+#include <EASTL/span.h>
 
 class BaseTexture;
 
@@ -263,6 +265,193 @@ struct BatchedTopAccelerationStructureBuildInfo
 /// VSDT_FLOAT3, which is always required to be supported, any other format is optional and may or may not return
 /// true.
 bool check_vertex_format_support_for_acceleration_structure_build(uint32_t format);
+
+/// Properties of a acceleration structure pool should be created.
+struct AccelerationStructurePoolCreateInfo
+{
+  /// Debug name for the pool, will be the name shown on buffers in tools like PIX on DX12.
+  const char *debugName = nullptr;
+  /// Total pool size for any kind of structure, must be aligned to the platforms pool size alignment
+  /// DeviceDriverRaytraceProperties::accelerationStructurePoolSizeAlignment.
+  uint32_t sizeInBytes = 0;
+  /// A hint on how many TLAS are going to be allocated from this pool.
+  /// Drivers can use this hint to pre allocate some TLAS specific data, like on DX12
+  /// a small descriptor heap for TLAS descriptors can be allocated.
+  uint32_t topLevelStructureCountHint = 0;
+  /// A hint on how many BLAS are going to be allocated from the pool.
+  /// Drivers can use this hint to pre allocate some BLAS specific data.
+  uint32_t bottomLevelStructureCountHint = 0;
+};
+
+/// Creates a new pool for acceleration structures.
+/// Returns InvalidAccelerationStructurePool on error or when pools are not supported.
+/// A value other than 0 of DeviceDriverRaytraceProperties::accelerationStructurePoolSizeAlignment indicates supports for pools.
+/// Cause for error may be:
+/// - Invalid input
+/// - Insufficient space to satisfy the requested allocation size
+/// - Device error
+/// @param info The properties of the pool to create.
+/// @return A new pool object or InvalidAccelerationStructurePool to indicate an error.
+AccelerationStructurePool create_acceleration_structure_pool(const AccelerationStructurePoolCreateInfo &info);
+/// Destroys the given acceleration structure pool.
+/// Implicitly destroys all TLAS and BLAS created from the given pool.
+/// Drivers will ensure that pending uses of the pool will be executed safely before the pool is actually freed.
+/// This may result in a delayed freeing of the used memory of the pool.
+/// @param pool The ray trace acceleration structure pool to delete.
+void destroy_acceleration_structure_pool(AccelerationStructurePool pool);
+/// Returns the base address (address at offset 0) of the acceleration structure pool.
+/// This can be used to calculate GPU addresses for BLAS and TLAS.
+/// This address will remain constant for the entire lifetime duration of the pool.
+/// Returned value may be 0 on drivers without proper GPU address support.
+/// @param pool The pool to query the base GPU address of.
+/// @return A valid GPU address or 0, depending on the driver support.
+RaytraceAccelerationStructureGpuHandle get_pool_base_address(AccelerationStructurePool pool);
+
+/// Holds sizes to create, build and update acceleration structures.
+/// This may be calculated by calculate_acceleration_structure_sizes.
+struct AccelerationStructureSizes
+{
+  /// Size requirement for the structure.
+  uint32_t structureSizeInBytes = 0;
+  /// Scratch space required for re-build commands (non updates).
+  uint32_t buildScratchBufferSizeInBytes = 0;
+  /// Scratch space required for update build commands, only valid when update support is requested.
+  uint32_t updateScratchBufferSizeInBytes = 0;
+};
+
+/// Hold the information to calculate the required size of a TLAS.
+struct TopAccelerationStructureSizeCalculcationInfo
+{
+  /// Number of elements a TLAS contains.
+  uint32_t elementCount = 0;
+  /// Build flags that may be used with the TLAS, they may influence some sizes.
+  RaytraceBuildFlags flags = RaytraceBuildFlags::NONE;
+};
+
+/// Hold the information to calculate the required size of a BLAS.
+struct BottomAccelerationStructureSizeCalculcationInfo
+{
+  /// Array of descriptions of the geometry that is supposed to be represented by the BLAS.
+  dag::ConstSpan<const RaytraceGeometryDescription> geometryDesc;
+  /// Build flags that may be used with the TLAS, they may influence some sizes.
+  RaytraceBuildFlags flags = RaytraceBuildFlags::NONE;
+};
+
+/// Represents either TLAS or BLAS size calculation info.
+using AccelerationStructureSizeCalculcationInfo =
+  eastl::variant<TopAccelerationStructureSizeCalculcationInfo, BottomAccelerationStructureSizeCalculcationInfo>;
+
+/// Calculates all needed sizes for BLAS or TLAS create, build and update.
+/// Note this may allocate some temporary memory internally to convert some input data arrays to target APIs data structures.
+/// @param info The information about the BLAS or TLAS the size is requested for.
+/// @return Required sizes information or all 0 on error. Cause for error may be invalid inputs to info or a device reset.
+AccelerationStructureSizes calculate_acceleration_structure_sizes(const AccelerationStructureSizeCalculcationInfo &info);
+
+// Alias the types to pull them into the raytrace namespace
+using BottomAccelerationStructure = RaytraceBottomAccelerationStructure;
+using TopAccelerationStructure = RaytraceTopAccelerationStructure;
+using AnyAccelerationStructure = RaytraceAnyAccelerationStructure;
+
+/// Placement information of a TLAS in a raytrace acceleration structure pool.
+struct TopAccelerationStructurePlacementInfo
+{
+  /// Offset where to place the TLAS in the pool. Has to be aligned to
+  /// DeviceDriverRaytraceProperties::accelerationStructurePoolOffsetAlignment.
+  uint32_t offsetInBytes = 0;
+  /// Size if the TLAS to place in the pool. offsetInBytes + this value can not exceed the size of the target pool.
+  uint32_t sizeInBytes = 0;
+};
+
+/// Placement information of a BLAS in a raytrace acceleration structure pool.
+struct BottomAccelerationStructurePlacementInfo
+{
+  /// Offset where to place the BLAS in the pool. Has to be aligned to
+  /// DeviceDriverRaytraceProperties::accelerationStructurePoolOffsetAlignment.
+  uint32_t offsetInBytes = 0;
+  /// Size if the TLAS to place in the pool. offsetInBytes + this value can not exceed the size of the target pool.
+  uint32_t sizeInBytes = 0;
+};
+
+/// Placement information of a TLAS or a BLAS in a raytrace acceleration structure pool.
+using AccelerationStructurePlacementInfo =
+  eastl::variant<TopAccelerationStructurePlacementInfo, BottomAccelerationStructurePlacementInfo>;
+
+/// Creates a TLAS or BLAS at the given location at the offset specified by 'placement_info' in the acceleration structure pool 'pool'
+/// with the size from 'placement_info'. offset and size need to be aligned to the system specific (T/B)LAS alignment values. pool is
+/// for the time being optional, and can be InvalidAccelerationStructurePool.
+///
+/// Concurrent create invocations with the same pool have to be synchronized as modifying access to the pool object is not thread safe.
+///
+/// May return nullptr on error. Cause for error may be:
+/// - when pool is not InvalidAccelerationStructurePool and offset + size is larger than pool size
+/// - when pool is not InvalidAccelerationStructurePool and offset is not aligned to the required alignment
+/// - size if not aligned to the required alignment
+/// - Feature unsupported
+/// @param pool The pool where the TLAS / BLAS should be placed.
+/// @param placement_info Information on where to place the TLAS / BLAS in pool.
+/// @return A TLAS or BLAS object on success or nullptr on error.
+AnyAccelerationStructure create_acceleration_structure(AccelerationStructurePool pool,
+  const AccelerationStructurePlacementInfo &placement_info);
+/// Destroys a acceleration struct, pool has to be the pool where the structure was allocated from.
+/// Providing mismatching pool and structure results in undefined behavior, it may work or it may cause memory corruptions and errors.
+/// @param pool The pool where the TLAS / BLAS was placed into.
+/// @param structure TLAS / BLAS to destroy.
+void destroy_acceleration_structure(AccelerationStructurePool pool, AnyAccelerationStructure structure);
+
+/// Holds all data for a acceleration structure build command.
+/// The structure allows to issue builds of top and bottom structures at the same time.
+/// The execution order of the data structure is as follows:
+/// 1) Build all bottom level structures
+/// 2) Flush bottom level builds, when requested
+/// 3) Build all top level structures
+/// 4) Flush top level builds, when requested
+struct AccelerationStructureBuildParameters
+{
+  /// Span of bottom level acceleration structures to build
+  /// TODO can not be const for the moment...
+  eastl::span<BatchedBottomAccelerationStructureBuildInfo> bottomBuilds;
+  /// Span of top level acceleration structures to build
+  /// TODO can not be const for the moment...
+  eastl::span<BatchedTopAccelerationStructureBuildInfo> topBuilds;
+  /// Should the driver automatically insert a barrier to flush all bottom builds.
+  /// Beware of that some drivers will always do a flush after a batch of builds.
+  bool flushAfterBottomBuild = false;
+  /// Should the driver automatically insert a barrier to flush all top builds.
+  /// Beware of that some drivers will always do a flush after a batch of builds.
+  bool flushAfterTopBuild = false;
+};
+
+enum class AccelerationStructureBuildMode
+{
+  /// Build process is executed as normal and the build results are usable right away.
+  Synchronous,
+  /// This allows the driver to move the build process to a execution queue that is
+  /// executing builds in parallel to the current frame. Those builds are required to be
+  /// completed before the next frame starts (eg aiming for the end of current frame).
+  /// This mode aims to minimizes the impact for the build process to the frame time
+  /// of the current frame with a simple rules change.
+  /// All builds with this mode will be executed in order by one queue, this means
+  /// that resource regions, like scratch buffer regions used by this build process
+  /// are unavailable for builds with other modes than this mode, but can be used
+  /// again with builds with FrameParallel build mode in the same frame.
+  /// Constant resources, like source acceleration structures for compaction, vertex
+  /// index and other buffers, are still usable as normal during the frame, as long
+  /// as they are not modified during the frame in a way that would affect the build
+  /// command. So updating a region of a vertex buffer that is not used by the build
+  /// command during the frame is perfectly fine, but a region the is used by the build
+  /// command, may be not. This is because the driver may reorders internally the
+  /// order in which copies to buffers and the execution of build commands on the
+  /// parallel queue is executed on the GPU.
+  /// Should any resource used by build commands with this mode, be deleted during the
+  /// current frame, the driver has to ensure that the resources are valid until the
+  /// build command is completed.
+  FrameParallel,
+};
+
+/// Issues a build command with the given parameters and mode.
+/// See AccelerationStructureBuildParameters and AccelerationStructureBuildMode for details.
+void build_acceleration_structure(AccelerationStructureBuildParameters build_params,
+  AccelerationStructureBuildMode build_mode = AccelerationStructureBuildMode::Synchronous);
 
 /// Shader group describing a ray gen group
 struct RayGenShaderGroupMember

@@ -35,6 +35,7 @@ namespace das {
         bool das_gen2_make_syntax = false;
         bool das_keyword = false;
         int  das_indent_char = ';';
+        LineInfo last_token_end; // Sometimes we need to know previous matched token end location
         vector<int> das_line_no;
         vector<Nesteds> das_nesteds;
         das_hash_set<string> das_already_include;

@@ -5,8 +5,6 @@
 
 namespace ecs
 {
-static constexpr int MAX_POSSIBLE_WORKERS_COUNT = 8; // max number of parallel workers
-
 typedef uint32_t components_masks_t[2]; // first rw, second ro. should be removed, I assume
 
 typedef uint32_t component_type_t; // this is hash of name

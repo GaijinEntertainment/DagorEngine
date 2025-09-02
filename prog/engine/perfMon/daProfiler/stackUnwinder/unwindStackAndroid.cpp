@@ -2,6 +2,7 @@
 
 #include "daProfilePlatform.h"
 
+#define UNW_LOCAL_ONLY
 #include <libunwind.h>
 #include <unistd.h>
 #include <pthread.h>
@@ -76,8 +77,6 @@ struct UnwindSignalCtx
 
 static std::atomic<UnwindSignalCtx *> g_unwind_signal_ctx = nullptr;
 static std::atomic<bool> g_unwind_signal_done = false;
-static bool g_allow_external_threads_unwind = false;
-
 
 static void unwind_signal_handler(int, siginfo_t *, void *)
 {
@@ -95,9 +94,6 @@ static void unwind_signal_handler(int, siginfo_t *, void *)
     {
       const uint8_t *stack_copy_bottom = copy_stack_and_rewrite_pointers(reinterpret_cast<uint8_t *>(bottom),
         reinterpret_cast<uintptr_t *>(top), platform_stack_alignment, ctx->provider.buffer);
-
-      unw_set_stack_boundaries(&ctx->unwinder.cursor, (unw_word_t)stack_copy_bottom,
-        (unw_word_t)stack_copy_bottom + unw_word_t(top - bottom));
 
 #define REWRITE_REG(reg)                                                                                                      \
   {                                                                                                                           \
@@ -165,9 +161,6 @@ int unwind_thread_stack(ThreadStackUnwindProvider &p, ThreadStackUnwinder &s, ui
 {
   if (gettid() != s.tid)
   {
-    if (!g_allow_external_threads_unwind)
-      return 0;
-
     if (max_size != 0)
       addresses[0] = ~uint64_t(0);
 

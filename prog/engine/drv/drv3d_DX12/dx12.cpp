@@ -8,8 +8,6 @@
 #include <validate_sbuf_flags.h>
 #include <frameStateTM.inc.h>
 
-#include <../hid_mouse/api_wrappers.h>
-
 #include <drv/3d/dag_sampler.h>
 #include <drv/3d/dag_rwResource.h>
 #include <drv/3d/dag_renderStates.h>
@@ -28,12 +26,12 @@
 #include <drv/3d/dag_texture.h>
 #include <drv/3d/dag_res.h>
 #include <drv/3d/dag_variableRateShading.h>
+#include <drv/3d/dag_streamOutput.h>
 #include <drv/3d/dag_commands.h>
 #include <drv/3d/dag_query.h>
 #include <drv/3d/dag_platform.h>
 #include <drv/3d/dag_resetDevice.h>
 #include <drv/3d/dag_shaderLibrary.h>
-#include <3d/dag_nvLowLatency.h>
 #include <3d/dag_lowLatency.h>
 #include <ioSys/dag_genIo.h>
 #include <ioSys/dag_memIo.h>
@@ -60,17 +58,24 @@
 #if _TARGET_PC_WIN
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_unicode.h>
+#include <osApiWrappers/dag_progGlobals.h>
 #include "debug/global_state.h"
 #endif
 
 #include "driver_mutex.h"
+#include <3d/gpuLatency.h>
 
+#if _TARGET_PC_WIN
+GpuLatency *create_gpu_latency_nvidia();
+GpuLatency *create_gpu_latency_amd();
+GpuLatency *create_gpu_latency_intel();
+#endif
 
 #if _TARGET_PC_WIN
 extern "C"
 {
   _declspec(dllexport) extern UINT D3D12SDKVersion = 0;
-  _declspec(dllexport) extern const char *D3D12SDKPath = u8".\\D3D12\\";
+  _declspec(dllexport) extern const char *D3D12SDKPath = ".\\D3D12\\";
 }
 
 namespace drv3d_dx12
@@ -112,13 +117,13 @@ namespace drv3d_dx12
 {
 FrameStateTM g_frameState;
 }
-#define CHECK_MAIN_THREAD()                                                                        \
-  G_ASSERTF(check_is_main_thread(), "DX12: Not thread safe D3D context function called without "   \
-                                    "holding its context lock. If you are taking locks manually "  \
-                                    "and mix it with RAII helpers, like render target scope, the " \
-                                    "lock will be released before the destructor is called with "  \
-                                    "the offending D3D function call, this is because "            \
-                                    "destructors are called on scope exit at the closing }.")
+#define CHECK_MAIN_THREAD()                                                                                   \
+  D3D_CONTRACT_ASSERTF(check_is_main_thread(), "DX12: Not thread safe D3D context function called without "   \
+                                               "holding its context lock. If you are taking locks manually "  \
+                                               "and mix it with RAII helpers, like render target scope, the " \
+                                               "lock will be released before the destructor is called with "  \
+                                               "the offending D3D function call, this is because "            \
+                                               "destructors are called on scope exit at the closing }.")
 #include <frameStateTM.inc.cpp>
 
 namespace drv3d_dx12
@@ -156,18 +161,15 @@ static void report_agility_sdk_error(HRESULT hr)
 
 static PresentationMode get_presentation_mode_from_settings()
 {
-  const DataBlock *videoBlk = ::dgs_get_settings()->getBlockByNameEx("video");
-  PresentationMode mode;
-  // Only Nvidia modes are disabled
-  const lowlatency::LatencyMode latencyMode = lowlatency::get_from_blk();
-  const bool vsyncDisabled = (latencyMode == lowlatency::LATENCY_MODE_NV_ON || latencyMode == lowlatency::LATENCY_MODE_NV_BOOST);
-  if (videoBlk->getBool("vsync", false) && !vsyncDisabled)
-    mode = PresentationMode::VSYNCED;
-  else if (videoBlk->getBool("adaptive_vsync", false))
-    mode = PresentationMode::CONDITIONAL_VSYNCED;
-  else
-    mode = PresentationMode::UNSYNCED;
-  return mode;
+  if (const DataBlock *videoBlk = ::dgs_get_settings()->getBlockByNameEx("video"))
+  {
+    if (videoBlk->getBool("vsync", true))
+      return PresentationMode::VSYNCED;
+    else if (videoBlk->getBool("adaptive_vsync", false))
+      return PresentationMode::CONDITIONAL_VSYNCED;
+  }
+
+  return PresentationMode::UNSYNCED;
 }
 
 struct WindowState
@@ -182,9 +184,6 @@ struct WindowState
 
   // These 2 members are used in exclsuive fullscreen mode only
   bool minimizedExclusiveFullscreen = false;
-  // if in exlcusive fullscreen mode the application is get minimized and the WM_STYLECHANGING was sent to the engine,
-  // then the engine should avoid presenting in swapchain until the restore
-  std::atomic_bool readyForSwapchain = true;
 
   // We have to flush after a mode reset at the end of the next present to avoid multiple backbuffers usage in a single command list.
   bool hasPendingFlushAfterModeReset = false;
@@ -333,6 +332,7 @@ struct ApiState
   debug::GlobalState debugState;
   StreamlineAdapter::InterposerHandleType slInterposer = {nullptr, nullptr};
   ComPtr<DXGIFactory> dxgiFactory;
+  eastl::optional<eastl::pair<APISupport, bool>> supportState = {};
 #endif
 
   dag::Vector<uint8_t> screenCaptureBuffer;
@@ -419,6 +419,8 @@ bool check_is_main_thread() { return api_state.globalLock.validateOwnership(); }
 
 OSSpinlock &drv3d_dx12::get_resource_binding_guard() { return api_state.state.resourceBindingGuard; }
 
+FrontendState &drv3d_dx12::get_frontend_state() { return api_state.state; }
+
 #if _TARGET_PC_WIN
 DAGOR_NOINLINE static void toggle_fullscreen(HWND hWnd, UINT message, WPARAM wParam)
 {
@@ -431,19 +433,11 @@ DAGOR_NOINLINE static void toggle_fullscreen(HWND hWnd, UINT message, WPARAM wPa
   {
     api_state.windowState.minimizedExclusiveFullscreen = false;
     ShowWindow(hWnd, SW_RESTORE);
-    ::delayed_call([]() {
-      if (api_state.device.isInitialized() && api_state.windowState.getMainWindow())
-        api_state.device.getContext().changeFullscreenExclusiveMode(true);
-    });
   }
   else if (!api_state.windowState.minimizedExclusiveFullscreen)
   {
     api_state.windowState.minimizedExclusiveFullscreen = true;
     ShowWindow(hWnd, SW_MINIMIZE);
-    ::delayed_call([]() {
-      if (api_state.device.isInitialized() && api_state.windowState.getMainWindow())
-        api_state.device.getContext().changeFullscreenExclusiveMode(false);
-    });
   }
 }
 
@@ -457,11 +451,6 @@ LRESULT CALLBACK drv3d_dx12::WindowState::windowProcProxy(HWND hWnd, UINT messag
     case WM_ACTIVATEAPP:
     {
       toggle_fullscreen(hWnd, message, wParam);
-      break;
-    }
-    case WM_STYLECHANGING: // During the DXGI present if the window lost the focus, this message will be sent
-    {
-      api_state.windowState.readyForSwapchain.store(!api_state.windowState.minimizedExclusiveFullscreen);
       break;
     }
 #if DX12_REMOVE_DEVICE_HOTKEY
@@ -530,7 +519,7 @@ bool d3d::init_driver()
 {
   if (d3d::is_inited())
   {
-    D3D_ERROR("Driver is already created");
+    D3D_CONTRACT_ERROR("DX12: Driver is already created");
     return false;
   }
   api_state.isInitialized.driver = true;
@@ -620,14 +609,14 @@ void setup_futex()
   auto futexLib = LoadLibraryA("API-MS-Win-Core-Synch-l1-2-0.dll");
   if (futexLib)
   {
-    logdbg("DX12 Memory wait uses WaitOnAddress");
+    logdbg("DX12: Memory wait uses WaitOnAddress");
     reinterpret_cast<FARPROC &>(drv3d_dx12::WaitOnAddress) = GetProcAddress(futexLib, "WaitOnAddress");
     reinterpret_cast<FARPROC &>(drv3d_dx12::WakeByAddressAll) = GetProcAddress(futexLib, "WakeByAddressAll");
     reinterpret_cast<FARPROC &>(drv3d_dx12::WakeByAddressSingle) = GetProcAddress(futexLib, "WakeByAddressSingle");
   }
   else
   {
-    logdbg("DX12 Memory wait uses polling");
+    logdbg("DX12: Memory wait uses polling");
   }
 }
 
@@ -644,7 +633,8 @@ APISupport check_driver_version(const DXGI_ADAPTER_DESC1 &adapter_info, const Dr
     sscanf(vendor.getStr("minDriver", "0.0.0.0"), " %hu . %hu . %hu . %hu", &minVersion.productVersion, &minVersion.majorVersion,
       &minVersion.minorVersion, &minVersion.buildNumber);
 
-    if (version < minVersion)
+    // a buggy driver can report 0.0.0.0 driver version in that case, we continue with the unknown driver
+    if (version.raw != 0 && version < minVersion)
     {
       if (out_min_version)
         *out_min_version = minVersion;
@@ -761,6 +751,13 @@ APISupport check_adapter(const Direct3D12Enviroment &d3d12_env, D3D_FEATURE_LEVE
     return APISupport::NO_DEVICE_FOUND;
   }
 
+  D3D12_FEATURE_DATA_D3D12_OPTIONS options = {};
+  if (device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &options, sizeof(options)) == S_OK)
+  {
+    if (options.ResourceBindingTier < D3D12_RESOURCE_BINDING_TIER_2)
+      return APISupport::INSUFFICIENT_DEVICE;
+  }
+
   logdbg("DX12: Device fulfills requirements, DX12 is available!");
   return APISupport::FULL_SUPPORT;
 }
@@ -873,12 +870,18 @@ bool d3d::init_video(void *hinst, main_wnd_f *wnd_proc, const char *wcname, int 
     logdbg("DX12: ...frame capturing tool active, enabling naming of API objects...");
     deviceCfg.features.set(DeviceFeaturesConfig::NAME_OBJECTS);
   }
-  else if (dxCfg->getBool("nameObjects", false))
+  else if (dxCfg->getBool("nameObjects", (DAGOR_DBGLEVEL > 0)))
   {
     logdbg("DX12: ...naming of API objects enabled by config value...");
     deviceCfg.features.set(DeviceFeaturesConfig::NAME_OBJECTS);
   }
 #endif
+
+  if (dxCfg->getBool("validateBindlessTypes", false))
+  {
+    logdbg("DX12: ...bindless types validation enabled by config value...");
+    deviceCfg.features.set(DeviceFeaturesConfig::VALIDATE_BINDLESS_TYPES);
+  }
 
   api_state.slInterposer = StreamlineAdapter::loadInterposer();
 
@@ -902,12 +905,10 @@ bool d3d::init_video(void *hinst, main_wnd_f *wnd_proc, const char *wcname, int 
     return false;
   }
 
-  auto windowHandle = reinterpret_cast<HWND>(api_state.windowState.getMainWindow());
-
-  SwapchainCreateInfo sci;
-  sci.window = windowHandle;
-  sci.presentMode = get_presentation_mode_from_settings();
-  sci.windowed = dgs_get_window_mode() != WindowMode::FULLSCREEN_EXCLUSIVE;
+  SwapchainCreateInfo sci = {
+    .window = reinterpret_cast<HWND>(api_state.windowState.getMainWindow()),
+    .presentMode = get_presentation_mode_from_settings(),
+  };
   sci.resolution.width = api_state.windowState.settings.resolutionX;
   sci.resolution.height = api_state.windowState.settings.resolutionY;
   set_hdr_config(sci);
@@ -920,7 +921,7 @@ bool d3d::init_video(void *hinst, main_wnd_f *wnd_proc, const char *wcname, int 
     adapter->GetDesc1(&info);
     sci.output = eastl::move(output);
     if (api_state.device.init(api_state.d3d12Env, api_state.debugState, api_state.dxgiFactory, {eastl::move(adapter), info},
-          featureLevel, eastl::move(sci), deviceCfg, dxCfg))
+          featureLevel, eastl::move(sci), deviceCfg))
     {
       char strBuffer[sizeof(DXGI_ADAPTER_DESC1::Description) * 2 + 1];
       const size_t size = wcstombs(strBuffer, info.Description, sizeof(strBuffer));
@@ -942,7 +943,7 @@ bool d3d::init_video(void *hinst, main_wnd_f *wnd_proc, const char *wcname, int 
   if (!api_state.device.isInitialized())
   {
     // use the adapter selected by its luid
-    auto luidValue = cb->desiredAdapter() ? cb->desiredAdapter() : dxCfg->getInt64("AdapterLUID", 0);
+    auto luidValue = cb && cb->desiredAdapter() ? cb->desiredAdapter() : dxCfg->getInt64("AdapterLUID", 0);
     if (luidValue != 0)
     {
       LUID luid{};
@@ -988,6 +989,7 @@ bool d3d::init_video(void *hinst, main_wnd_f *wnd_proc, const char *wcname, int 
     }
 
     logdbg("DX12: Found %u candidates", adapterList.size());
+    watchdog_kick();
 
     ComPtr<IDXGIOutput> output;
     if (const char *displayName = get_monitor_name_from_settings(); displayName)
@@ -1005,7 +1007,7 @@ bool d3d::init_video(void *hinst, main_wnd_f *wnd_proc, const char *wcname, int 
       strBuffer[size] = '\0';
       logdbg("DX12: Trying with device %s", strBuffer);
       if (api_state.device.init(api_state.d3d12Env, api_state.debugState, api_state.dxgiFactory, eastl::move(adapter), featureLevel,
-            eastl::move(sci), deviceCfg, dxCfg))
+            eastl::move(sci), deviceCfg))
       {
         api_state.deviceName = strBuffer;
         break;
@@ -1036,7 +1038,7 @@ bool d3d::init_video(void *hinst, main_wnd_f *wnd_proc, const char *wcname, int 
   api_state.adjustCaps();
 
   if (api_state.driverDesc.caps.hasBindless)
-    api_state.device.initializeBindlessManager();
+    api_state.device.initializeBindlessManager(deviceCfg.features.test(DeviceFeaturesConfig::VALIDATE_BINDLESS_TYPES));
 
   api_state.shaderProgramDatabase.setup(api_state.device.getContext(), dxCfg->getBool("disablePreCache", false)); //
 
@@ -1084,7 +1086,7 @@ bool d3d::init_video(void *hinst, main_wnd_f *wnd_proc, const char *wcname, int 
 #endif
   sci.frameImmediateThresholdPercent = dxCfg->getReal("frameImmediateThresholdPercent", default_immediate_threshold_percent);
 
-  int freqLevel = videoCfg->getInt("freqLevel", 1);
+  int freqLevel = videoCfg->getInt("freqLevel", 2);
   sci.freqLevel = freqLevel > -1 ? freqLevel : 1;
 
   auto deviceCfg = get_device_config(dxCfg);
@@ -1105,7 +1107,7 @@ bool d3d::init_video(void *hinst, main_wnd_f *wnd_proc, const char *wcname, int 
   api_state.adjustCaps();
 
   if (api_state.driverDesc.caps.hasBindless)
-    api_state.device.initializeBindlessManager();
+    api_state.device.initializeBindlessManager(false);
 
   tql::initTexStubs();
 
@@ -1133,6 +1135,11 @@ void d3d::window_destroyed(void *handle)
       api_state.device.getContext().shutdownSwapchain();
     }
     api_state.windowState.params.hwnd = nullptr;
+  }
+  else
+  {
+    if (api_state.device.isInitialized())
+      api_state.device.destroySecondarySwapchainForWindow(static_cast<HWND>(handle));
   }
 #endif
 }
@@ -1215,19 +1222,20 @@ namespace
 {
 void enable_tracking_on_resource(D3dResource *resource)
 {
-  switch (resource->restype())
+  switch (resource->getType())
   {
-    case RES3D_TEX:
-    case RES3D_CUBETEX:
-    case RES3D_VOLTEX:
-    case RES3D_ARRTEX:
-    case RES3D_CUBEARRTEX: static_cast<BaseTex *>(resource)->getDeviceImage()->setReportStateTransitions(); break;
-    case RES3D_SBUF:
+    case D3DResourceType::TEX:
+    case D3DResourceType::CUBETEX:
+    case D3DResourceType::VOLTEX:
+    case D3DResourceType::ARRTEX:
+    case D3DResourceType::CUBEARRTEX: static_cast<BaseTex *>(resource)->getDeviceImage()->setReportStateTransitions(); break;
+    case D3DResourceType::SBUF:
       static_cast<GenericBufferInterface *>(resource)->updateDeviceBuffer(
         [](auto &buf) { buf.resourceId.setReportStateTransitions(); });
       break;
     default:
-      DAG_FATAL("DX12: Invalid type to enable resource state transition tracking %p - %d", resource, resource->restype());
+      DAG_FATAL("DX12: Invalid type to enable resource state transition tracking %p - %d", resource,
+        eastl::to_underlying(resource->getType()));
       break;
   }
 }
@@ -1301,10 +1309,56 @@ int on_get_buffer_gpu_address(void *buffer, void *address)
   }
 
   auto bufferRef = get_any_buffer_ref(static_cast<GenericBufferInterface *>(buffer));
-  *static_cast<uint64_t *>(address) = bufferRef.gpuPointer;
+  *static_cast<uint64_t *>(address) = bufferRef.gpuPointer();
 
   return 1;
 }
+#if DAGOR_DBGLEVEL > 0
+void cause_page_fault()
+{
+  // very simple approach to cause a page fault, we create a 1x1 rgba8 texture and use it as a SRV,
+  // but we destroy it before the GPU executes the command that uses it as SRV.
+  const D3D12_HEAP_PROPERTIES heap{.Type = D3D12_HEAP_TYPE_DEFAULT,
+    .CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
+    .MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN,
+    .CreationNodeMask = 0,
+    .VisibleNodeMask = 0};
+  const D3D12_HEAP_FLAGS flags = D3D12_HEAP_FLAG_NONE;
+  const D3D12_RESOURCE_DESC desc{.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D,
+    .Alignment = 0,
+    .Width = 1,
+    .Height = 1,
+    .DepthOrArraySize = 1,
+    .MipLevels = 1,
+    .Format = DXGI_FORMAT_B8G8R8A8_UNORM,
+    .SampleDesc =
+      {
+        .Count = 1,
+        .Quality = 0,
+      },
+    .Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN,
+    .Flags = D3D12_RESOURCE_FLAG_NONE};
+  const D3D12_RESOURCE_STATES state = D3D12_RESOURCE_STATE_COMMON;
+  ComPtr<ID3D12Resource> faultyResource;
+  if (DX12_CHECK_FAIL(
+        api_state.device.getDevice()->CreateCommittedResource(&heap, flags, &desc, state, nullptr, COM_ARGS(&faultyResource))))
+  {
+    logerr("DX12: Unable to create resource to cause page fault...");
+    return;
+  }
+  // note we are technically leaking the descriptor, but reset should take care of this
+  auto descriptor = api_state.device.allocateResourceDescriptor();
+  const D3D12_SHADER_RESOURCE_VIEW_DESC viewDesc{.Format = desc.Format,
+    .ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D,
+    .Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING,
+    .Texture2D = {.MostDetailedMip = 0, .MipLevels = 1, .PlaneSlice = 0, .ResourceMinLODClamp = 0.f}};
+  api_state.device.getDevice()->CreateShaderResourceView(faultyResource.Get(), &viewDesc, descriptor);
+  api_state.device.getContext().executeFaultyTextureRead(descriptor);
+  logdbg("DX12: Launched faulty texture read command, prepare for possible GPU fault...");
+}
+#else
+void cause_page_fault() {}
+#endif
 } // namespace
 
 int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_unused]] void *par3)
@@ -1312,6 +1366,7 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
   STORE_RETURN_ADDRESS();
   switch (command)
   {
+    case Drv3dCommand::CAUSE_GPU_PAGE_FAULT: cause_page_fault(); break;
     case Drv3dCommand::GET_BUFFER_GPU_ADDRESS: return on_get_buffer_gpu_address(par1, par2);
     case Drv3dCommand::COMPILE_PIPELINE_SET: return on_driver_command_compile_pipeline_set(par1);
     case Drv3dCommand::GET_PIPELINE_COMPILATION_QUEUE_LENGTH:
@@ -1330,7 +1385,7 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
     case Drv3dCommand::DEBUG_BREAK: api_state.device.getContext().debugBreak(); return 1;
     case Drv3dCommand::PROCESS_APP_INACTIVE_UPDATE:
       api_state.state.onFrameEnd(api_state.device.getContext());
-      api_state.device.getContext().finishFrame(false);
+      api_state.device.getContext().finishFrame(0, false);
 #if _TARGET_PC_WIN
       if (api_state.windowState.isWindowOccluded())
         api_state.windowState.updateWindowOcclusionState();
@@ -1392,8 +1447,10 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
         (const char *)par2);
       break;
     case Drv3dCommand::D3D_FLUSH:
+    case Drv3dCommand::GPU_BARRIER_WAIT_ALL_COMMANDS: // TODO: Implement GPU_BARRIER_WAIT_ALL_COMMANDS separately
       api_state.device.getContext().wait();
       api_state.device.getContext().updateFenceProgress();
+      api_state.device.processDebugLog();
       break;
     case Drv3dCommand::FLUSH_STATES:
     {
@@ -1513,16 +1570,49 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
       return 0;
 #endif
     }
-    case Drv3dCommand::GET_DLSS:
+    case Drv3dCommand::GET_XESS_SUPPORTED_GEN_FRAMES:
     {
-      *static_cast<void **>(par1) = api_state.device.getContext().getStreamlineFeature<nv::DLSS>();
+      auto &frames = *(int *)par1;
+      frames = api_state.device.getContext().isXeFGSupported() ? 1 : 0;
       return 1;
     }
-    case Drv3dCommand::GET_REFLEX:
+    case Drv3dCommand::GET_XESS_PRESENTED_FRAME_COUNT:
     {
-      *static_cast<void **>(par1) = api_state.device.getContext().getStreamlineFeature<nv::Reflex>();
+      auto &presented_frames = *(int *)par1;
+      presented_frames = api_state.device.getContext().getXeFgPresentedFrameCount();
       return 1;
     }
+    case Drv3dCommand::GET_XESS_FG_ENABLED:
+    {
+      auto &enabled = *(bool *)par1;
+      enabled = api_state.device.getContext().isXeFGEnabled();
+      return 1;
+    }
+    case Drv3dCommand::XESS_ENABLE_FG:
+    {
+      auto enable = *(bool *)par1;
+      api_state.device.getContext().enableXeFG(enable);
+      return 1;
+    }
+    case Drv3dCommand::XESS_SUPPRESS_FG:
+    {
+      auto suppress = *(bool *)par1;
+      api_state.device.getContext().suppressXeFG(suppress);
+      return 1;
+    }
+    case Drv3dCommand::XESS_SCHEDULE_GEN_FRAME:
+    {
+      auto &params = *(XessFgParams *)par1;
+      api_state.device.getContext().scheduleXeFG(params);
+      return 1;
+    }
+#if _TARGET_PC_WIN
+    case Drv3dCommand::GET_STREAMLINE:
+    {
+      *static_cast<void **>(par1) = api_state.device.getContext().getStreamline();
+      return 1;
+    }
+#endif
     case Drv3dCommand::GET_XESS_RESOLUTION:
     {
       api_state.device.getContext().getXessRenderResolution(*(int *)par1, *(int *)par2);
@@ -1532,7 +1622,7 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
     {
       auto maybeVersionString = api_state.device.getContext().getXessVersion();
       if (!maybeVersionString)
-        logerr("DX12: Failed to get XESS version string. Error: %s", XessWrapper::errorKindToString(maybeVersionString.error()));
+        D3D_ERROR("DX12: Failed to get XESS version string. Error: %s", XessWrapper::errorKindToString(maybeVersionString.error()));
 
       auto versionString = maybeVersionString.value_or("N/A");
 
@@ -1563,6 +1653,12 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
       api_state.device.getContext().executeFSR((amd::FSR *)par1, args);
       return 1;
     }
+    case Drv3dCommand::EXECUTE_FSR_FG:
+    {
+      const amd::FSR::FrameGenArgs &args = *reinterpret_cast<const amd::FSR::FrameGenArgs *>(par2);
+      api_state.device.getContext().executeFSRFG((amd::FSR *)par1, args);
+      return 1;
+    }
     case Drv3dCommand::EXECUTE_FSR2:
     {
       api_state.device.getContext().executeFSR2(*(Fsr2Params *)par1);
@@ -1582,6 +1678,20 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
       api_state.device.getContext().setXessVelocityScale(*(float *)par1, *(float *)par2);
       return 1;
     }
+#if _TARGET_PC_WIN
+    case Drv3dCommand::CREATE_GPU_LATENCY:
+    {
+      switch (*(GpuVendor *)par1)
+      {
+        case GpuVendor::NVIDIA: *(GpuLatency **)par2 = create_gpu_latency_nvidia(); break;
+        case GpuVendor::AMD: *(GpuLatency **)par2 = create_gpu_latency_amd(); break;
+        case GpuVendor::INTEL: *(GpuLatency **)par2 = create_gpu_latency_intel(); break;
+        default: *(GpuLatency **)par2 = nullptr; return 0;
+      }
+
+      return 1;
+    }
+#endif
     case Drv3dCommand::PIX_GPU_BEGIN_CAPTURE:
 #if _TARGET_XBOX
       api_state.device.getContext().flushDraws();
@@ -1795,6 +1905,7 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
     case Drv3dCommand::SET_DRIVER_NETWORD_MANAGER:
     {
       api_state.device.netManager.reset(static_cast<DriverNetManager *>(par1));
+      logdbg("DX12: Driver network manager set to %p", par1);
       return 1;
     }
     case Drv3dCommand::GET_RESOURCE_STATISTICS:
@@ -1809,6 +1920,23 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
       if (api_state.debugState.captureTool().isAnyPIXActive())
         return 1;
 #endif
+      return 0;
+    }
+    case Drv3dCommand::SET_RT_VALIDATION_CALLBACK:
+    {
+#if _TARGET_PC_WIN
+      eastl::function<void()> empty{};
+      auto &callback = par1 ? *static_cast<eastl::function<void()> *>(par1) : empty;
+      return api_state.device.setRtValidationCallback(callback) ? 1 : 0;
+#endif
+      return 0;
+    }
+
+    case Drv3dCommand::PROCESS_PENDING_DEFRAG_REQUESTS:
+    {
+      if (par1)
+        return api_state.device.processDefragmentationForAllGroups();
+
       return 0;
     }
 
@@ -1877,7 +2005,7 @@ void recover_textures()
         tex->recreate();
     });
 
-  api_state.device.getContext().getSwapchainColorTexture()->updateDeviceSampler();
+  api_state.device.getContext().getCurrentSwapchainColorTexture()->updateDeviceSampler();
 }
 void recover_buffers()
 {
@@ -1891,6 +2019,19 @@ void recover_buffers()
   });
 }
 } // namespace
+#endif
+
+// TODO: cursor repositioning due to window size changes is an issue for all api, therefore it would be better to implement it in some
+// common code in the vicinity of reset_device.
+// Until the above-mentioned refactoring is done, mouse_api_* functions are duplicatied in drv3d_DX12 to remove it's dependency on
+// drv/hid_mouse.
+#if _TARGET_PC_WIN
+static bool mouse_api_GetCursorPosRel(POINT *pt, void *w) { return ::GetCursorPos(pt) && ::ScreenToClient((HWND)w, pt); }
+static void mouse_api_SetCursorPosRel(void *w, POINT *pt)
+{
+  if (::ClientToScreen((HWND)w, pt))
+    ::SetCursorPos(pt->x, pt->y);
+}
 #endif
 
 bool d3d::reset_device()
@@ -1971,6 +2112,13 @@ bool d3d::reset_device()
       DAG_FATAL("DX12: Observed an critical error while recovering from a previous critical error, can not continue");
       return false;
     }
+
+    if (d3d::get_driver_desc().issues.hasBrokenNvApiGetSleepStatus)
+    {
+      // trigger a swapchain present and that will update the nvidia internals
+      api_state.device.getContext().finishFrame(0, true);
+      api_state.device.getContext().wait(); // block until the present happens on the backend
+    }
   }
   else if (dagor_d3d_force_driver_mode_reset)
   {
@@ -1980,16 +2128,12 @@ bool d3d::reset_device()
 
     api_state.device.getContext().changePresentMode(get_presentation_mode_from_settings());
 
-    // also update for possible change out of exclusive mode
-    api_state.device.getContext().changeFullscreenExclusiveMode(dgs_get_window_mode() == WindowMode::FULLSCREEN_EXCLUSIVE,
-      get_output_monitor_by_name_or_default(api_state.dxgiFactory.Get(), displayName));
-
     // must refresh these after output (fullscreen mode) change
     if (refreshSwapchain)
     {
       bbres.width = api_state.windowState.settings.resolutionX;
       bbres.height = api_state.windowState.settings.resolutionY;
-      api_state.device.getContext().changeSwapchainExtents(bbres);
+      api_state.device.getContext().changeCurrentSwapchainExtents(bbres);
       api_state.state.notifySwapchainChange();
     }
     api_state.windowState.hasPendingFlushAfterModeReset = true;
@@ -2018,25 +2162,24 @@ bool d3d::reset_device()
 
 namespace
 {
-uint32_t map_dx12_format_features_to_tex_usage(D3D12_FEATURE_DATA_FORMAT_SUPPORT support, FormatStore fmt, int res_type)
+uint32_t map_dx12_format_features_to_tex_usage(FormatStore fmt, D3DResourceType type)
 {
-  G_ASSERT_RETURN(res_type != RES3D_SBUF, false);
+  D3D_CONTRACT_ASSERT_RETURN(type != D3DResourceType::SBUF, false);
   uint32_t result = 0;
-  UINT mask = static_cast<UINT>(support.Support1);
-  if ((res_type == RES3D_TEX || res_type == RES3D_ARRTEX) && !(mask & D3D12_FORMAT_SUPPORT1_TEXTURE2D))
+  if ((type == D3DResourceType::TEX || type == D3DResourceType::ARRTEX) && !fmt.isSupportedTexture2D())
     return 0;
-  if ((res_type == RES3D_VOLTEX) && !(mask & D3D12_FORMAT_SUPPORT1_TEXTURE3D))
+  if ((type == D3DResourceType::VOLTEX) && !fmt.isSupportedTexture3D())
     return 0;
-  if ((res_type == RES3D_CUBETEX) && !(mask & D3D12_FORMAT_SUPPORT1_TEXTURECUBE))
+  if ((type == D3DResourceType::CUBETEX) && !fmt.isSupportedTextureCube())
     return 0;
 
   result = d3d::USAGE_TEXTURE | d3d::USAGE_VERTEXTEXTURE;
   if (fmt.isSrgbCapableFormatType())
     result |= d3d::USAGE_SRGBREAD;
 
-  if (mask & D3D12_FORMAT_SUPPORT1_DEPTH_STENCIL)
+  if (fmt.isSupportedDepthStencil())
     result |= d3d::USAGE_DEPTH;
-  if (mask & D3D12_FORMAT_SUPPORT1_RENDER_TARGET)
+  if (fmt.isSupportedRenderTarget())
   {
     // TODO: if mipgen is done by compute, check this
     // currently mips are generated by bliting
@@ -2044,61 +2187,59 @@ uint32_t map_dx12_format_features_to_tex_usage(D3D12_FEATURE_DATA_FORMAT_SUPPORT
     if (fmt.isSrgbCapableFormatType())
       result |= d3d::USAGE_SRGBWRITE;
   }
-  if (mask & D3D12_FORMAT_SUPPORT1_BLENDABLE)
+  if (fmt.isSupportedBlendable())
     result |= d3d::USAGE_BLEND;
 
-  if (mask & D3D12_FORMAT_SUPPORT1_SHADER_SAMPLE)
+  if (fmt.isSupportedShaderSample())
     result |= d3d::USAGE_FILTER;
 
-  if (mask & D3D12_FORMAT_SUPPORT1_TYPED_UNORDERED_ACCESS_VIEW)
+  if (fmt.isSupportedTypedUav())
   {
     result |= d3d::USAGE_UNORDERED;
-    if (support.Support2 & D3D12_FORMAT_SUPPORT2_UAV_TYPED_LOAD)
+    if (fmt.isSupportedUavTypedLoad())
     {
       result |= d3d::USAGE_UNORDERED_LOAD;
     }
   }
 
-  if (support.Support2 & D3D12_FORMAT_SUPPORT2_TILED)
+  if (fmt.isSupportedTiled())
     result |= d3d::USAGE_TILED;
 
   return result | d3d::USAGE_PIXREADWRITE;
 }
 
-bool check_format_features(int cflg, D3D12_FEATURE_DATA_FORMAT_SUPPORT support, FormatStore fmt, int res_type)
+bool check_format_features(int cflg, FormatStore fmt, D3DResourceType type)
 {
-  G_ASSERT_RETURN(res_type != RES3D_SBUF, false);
-  UINT mask = static_cast<UINT>(support.Support1);
-  if ((res_type == RES3D_TEX || res_type == RES3D_ARRTEX) && !(mask & D3D12_FORMAT_SUPPORT1_TEXTURE2D))
+  D3D_CONTRACT_ASSERT_RETURN(type != D3DResourceType::SBUF, false);
+  if ((type == D3DResourceType::TEX || type == D3DResourceType::ARRTEX) && !fmt.isSupportedTexture2D())
     return false;
-  if ((res_type == RES3D_VOLTEX) && !(mask & D3D12_FORMAT_SUPPORT1_TEXTURE3D))
+  if ((type == D3DResourceType::VOLTEX) && !fmt.isSupportedTexture3D())
     return false;
-  if ((res_type == RES3D_CUBETEX) && !(mask & D3D12_FORMAT_SUPPORT1_TEXTURECUBE))
-    return false;
-
-  if ((cflg & TEXCF_UNORDERED) && (0 == (mask & D3D12_FORMAT_SUPPORT1_TYPED_UNORDERED_ACCESS_VIEW)))
+  if ((type == D3DResourceType::CUBETEX) && !fmt.isSupportedTextureCube())
     return false;
 
-  if ((cflg & TEXCF_RTARGET) && (0 == (mask & (D3D12_FORMAT_SUPPORT1_RENDER_TARGET | D3D12_FORMAT_SUPPORT1_MULTISAMPLE_RENDERTARGET))))
+  if ((cflg & TEXCF_UNORDERED) && !fmt.isSupportedTypedUav())
     return false;
 
-  if (fmt.isDepth() && (0 == (mask & D3D12_FORMAT_SUPPORT1_DEPTH_STENCIL)))
+  if ((cflg & TEXCF_RTARGET) && !fmt.isSupportedRenderTarget() && !fmt.isSupportedMultisampleRenderTarget())
+    return false;
+
+  if (fmt.isDepth() && !fmt.isSupportedDepthStencil())
     return false;
 
   bool isMultisampled = ((cflg & TEXCF_SAMPLECOUNT_MASK) != 0);
 
-  if (isMultisampled && (0 == (mask & D3D12_FORMAT_SUPPORT1_MULTISAMPLE_RENDERTARGET)))
+  if (isMultisampled && !fmt.isSupportedMultisampleRenderTarget())
     return false;
 
-  if (isMultisampled && (fmt.isColor() || d3d::get_driver_desc().caps.hasRenderPassDepthResolve) &&
-      (0 == (mask & D3D12_FORMAT_SUPPORT1_MULTISAMPLE_RESOLVE)))
+  if (
+    isMultisampled && (fmt.isColor() || d3d::get_driver_desc().caps.hasRenderPassDepthResolve) && !fmt.isSupportedMultisampleResolve())
     return false;
 
-  if (isMultisampled && (fmt.isColor() || d3d::get_driver_desc().caps.hasReadMultisampledDepth) &&
-      (0 == (mask & D3D12_FORMAT_SUPPORT1_MULTISAMPLE_LOAD)))
+  if (isMultisampled && (fmt.isColor() || d3d::get_driver_desc().caps.hasReadMultisampledDepth) && !fmt.isSupportedMultisampleLoad())
     return false;
 
-  if ((cflg & TEXCF_TILED_RESOURCE) != 0 && (support.Support2 & D3D12_FORMAT_SUPPORT2_TILED) == 0)
+  if ((cflg & TEXCF_TILED_RESOURCE) != 0 && !fmt.isSupportedTiled())
     return false;
 
   return true;
@@ -2107,20 +2248,15 @@ bool check_format_features(int cflg, D3D12_FEATURE_DATA_FORMAT_SUPPORT support, 
 bool d3d::check_texformat(int cflg)
 {
   auto fmt = FormatStore::fromCreateFlags(cflg);
-  if (!api_state.device.isSamplesCountSupported(fmt.asDxGiFormat(), get_sample_count(cflg)))
+  if (!fmt.isSampleCountSupported(get_sample_count(cflg)))
     return false;
-  auto features = api_state.device.getFormatFeatures(fmt);
-  return check_format_features(cflg, features, fmt, RES3D_TEX);
+  return check_format_features(cflg, fmt, D3DResourceType::TEX);
 }
 
 int d3d::get_max_sample_count(int cflg)
 {
-  auto dxgiFormat = FormatStore::fromCreateFlags(cflg).asDxGiFormat();
-  for (int32_t numSamples = get_sample_count(TEXCF_SAMPLECOUNT_MAX); numSamples > 1; numSamples /= 2)
-    if (api_state.device.isSamplesCountSupported(dxgiFormat, numSamples))
-      return numSamples;
-
-  return 1;
+  auto fmt = FormatStore::fromCreateFlags(cflg);
+  return fmt.getMaxSampleCount();
 }
 
 bool d3d::issame_texformat(int cflg1, int cflg2)
@@ -2133,18 +2269,16 @@ bool d3d::issame_texformat(int cflg1, int cflg2)
 bool d3d::check_cubetexformat(int cflg)
 {
   auto fmt = FormatStore::fromCreateFlags(cflg);
-  auto features = api_state.device.getFormatFeatures(fmt);
-  return check_format_features(cflg, features, fmt, RES3D_CUBETEX);
+  return check_format_features(cflg, fmt, D3DResourceType::CUBETEX);
 }
 
 bool d3d::check_voltexformat(int cflg)
 {
   auto fmt = FormatStore::fromCreateFlags(cflg);
-  auto features = api_state.device.getFormatFeatures(fmt);
-  return check_format_features(cflg, features, fmt, RES3D_VOLTEX);
+  return check_format_features(cflg, fmt, D3DResourceType::VOLTEX);
 }
 
-bool d3d::stretch_rect(BaseTexture *src, BaseTexture *dst, RectInt *rsrc, RectInt *rdst)
+bool d3d::stretch_rect(BaseTexture *src, BaseTexture *dst, const RectInt *rsrc, const RectInt *rdst)
 {
   STORE_RETURN_ADDRESS();
   CHECK_MAIN_THREAD();
@@ -2155,11 +2289,11 @@ bool d3d::stretch_rect(BaseTexture *src, BaseTexture *dst, RectInt *rsrc, RectIn
   TextureInterfaceBase *dstTex = cast_to_texture_base(dst);
   if (!srcTex)
   {
-    srcTex = api_state.device.getContext().getSwapchainColorTexture();
+    srcTex = api_state.device.getContext().getCurrentSwapchainColorTexture();
   }
   if (!dstTex)
   {
-    dstTex = api_state.device.getContext().getSwapchainColorTexture();
+    dstTex = api_state.device.getContext().getCurrentSwapchainColorTexture();
   }
   if (!srcTex || !dstTex)
   {
@@ -2176,9 +2310,9 @@ bool d3d::stretch_rect(BaseTexture *src, BaseTexture *dst, RectInt *rsrc, RectIn
   const bool isC = dstTex->getFormat().isColor();
   if (DAGOR_UNLIKELY(!isRT || !isC))
   {
-    D3D_ERROR("Texture %p <%s> used as a destination for stretch_rect, but destinations have to "
-              "be a color render targets. isRT=%u | isC=%u",
-      dstTex, dstTex->getResName(), isRT, isC);
+    D3D_CONTRACT_ERROR("DX12: Texture %p <%s> used as a destination for stretch_rect, but destinations have to "
+                       "be a color render targets. isRT=%u | isC=%u",
+      dstTex, dstTex->getName(), isRT, isC);
     return false;
   }
 
@@ -2194,8 +2328,8 @@ bool d3d::stretch_rect(BaseTexture *src, BaseTexture *dst, RectInt *rsrc, RectIn
     clampedOffset.y = clamp<decltype(offset.y)>(offset.y, 0, extent.height);
     clampedOffset.z = clamp<decltype(offset.z)>(offset.z, 0, extent.depth);
     if (DAGOR_UNLIKELY(clampedOffset != offset))
-      D3D_ERROR("Texture %p <%s> blit rect (%d %d %d) is out of bounds (%d %d %d)", tex, tex->getResName(), offset.x, offset.y,
-        offset.z, extent.width, extent.height, extent.depth);
+      D3D_CONTRACT_ERROR("DX12: Texture %p <%s> blit rect (%d %d %d) is out of bounds (%d %d %d)", tex, tex->getName(), offset.x,
+        offset.y, offset.z, extent.width, extent.height, extent.depth);
 
     return clampedOffset;
   };
@@ -2248,7 +2382,7 @@ bool d3d::stretch_rect(BaseTexture *src, BaseTexture *dst, RectInt *rsrc, RectIn
 
 bool d3d::copy_from_current_render_target(BaseTexture *to_tex)
 {
-  G_ASSERTF_RETURN(api_state.state.renderTargets.isColorUsed(0), false,
+  D3D_CONTRACT_ASSERTF_RETURN(api_state.state.renderTargets.isColorUsed(0), false,
     "DX12: in copy_from_current_render_target, trying to copy from empty render target");
 
   CHECK_MAIN_THREAD();
@@ -2257,11 +2391,10 @@ bool d3d::copy_from_current_render_target(BaseTexture *to_tex)
 
 // Texture states setup
 
-unsigned d3d::get_texformat_usage(int cflg, int res_type)
+unsigned d3d::get_texformat_usage(int cflg, D3DResourceType type)
 {
   auto fmt = FormatStore::fromCreateFlags(cflg);
-  auto features = api_state.device.getFormatFeatures(fmt);
-  return map_dx12_format_features_to_tex_usage(features, fmt, res_type);
+  return map_dx12_format_features_to_tex_usage(fmt, type);
 }
 
 VPROG d3d::create_vertex_shader(const uint32_t *native_code)
@@ -2281,13 +2414,13 @@ void d3d::delete_vertex_shader(VPROG vs)
 
 int d3d::set_cs_constbuffer_size(int required_size)
 {
-  G_ASSERTF(required_size >= 0, "Negative register count?");
+  D3D_CONTRACT_ASSERTF(required_size >= 0, "Negative register count?");
   return api_state.state.setComputeConstRegisterCount(required_size);
 }
 
 int d3d::set_vs_constbuffer_size(int required_size)
 {
-  G_ASSERTF(required_size >= 0, "Negative register count?");
+  D3D_CONTRACT_ASSERTF(required_size >= 0, "Negative register count?");
   return api_state.state.setVertexConstRegisterCount(required_size);
 }
 
@@ -2423,7 +2556,7 @@ FSHADER d3d::create_pixel_shader_hlsl(const char *, unsigned, const char *, cons
 
 bool d3d::set_const(unsigned stage, unsigned first, const void *data, unsigned count)
 {
-  G_ASSERT(stage < STAGE_MAX);
+  D3D_CONTRACT_ASSERT(stage < STAGE_MAX);
   api_state.state.setConstRegisters(stage, first,
     {reinterpret_cast<const ConstRegisterType *>(data), static_cast<decltype(eastl::dynamic_extent)>(count)});
 
@@ -2437,10 +2570,10 @@ bool d3d::set_blend_factor(E3DCOLOR color)
   return true;
 }
 
-bool d3d::set_tex(unsigned shader_stage, unsigned unit, BaseTexture *tex, bool use_sampler)
+bool d3d::set_tex(unsigned shader_stage, unsigned unit, BaseTexture *tex)
 {
   BaseTex *texture = cast_to_texture_base(tex);
-  api_state.state.setStageSRVTexture(shader_stage, unit, texture, use_sampler);
+  api_state.state.setStageSRVTexture(shader_stage, unit, texture, false);
   return true;
 }
 
@@ -2448,11 +2581,12 @@ bool d3d::set_rwtex(unsigned shader_stage, unsigned unit, BaseTexture *tex, uint
 {
   BaseTex *texture = cast_to_texture_base(tex);
   ImageViewState view;
+  D3D_CONTRACT_ASSERT(shader_stage == STAGE_CS || shader_stage == STAGE_PS || shader_stage == STAGE_VS); // following d3d API docs
   if (texture)
   {
     if (!texture->isUav())
     {
-      D3D_ERROR("Texture %p <%s> used as UAV texture, but has no UAV flag set", texture, texture->getResName());
+      D3D_CONTRACT_ERROR("DX12: Texture %p <%s> used as UAV texture, but has no UAV flag set", texture, texture->getName());
       return false;
     }
     view = texture->getViewInfoUav(MipMapIndex::make(mip_level), ArrayLayerIndex::make(face), as_uint);
@@ -2465,20 +2599,19 @@ bool d3d::clear_rwtexi(BaseTexture *tex, const unsigned val[4], uint32_t face, u
 {
   STORE_RETURN_ADDRESS();
   BaseTex *texture = cast_to_texture_base(tex);
-  if (texture)
+  if (texture == nullptr)
+    return false;
+  if (!texture->isUav())
   {
-    if (!texture->isUav())
-    {
-      D3D_ERROR("Texture %p <%s> cleared as UAV(i) texture, but has no UAV flag set", texture, texture->getResName());
-      return false;
-    }
-    Image *image = texture->getDeviceImage();
-    if (!image)
-      return false;
-    // false for is_uint is same as in DX11 backend
-    api_state.device.getContext().clearUAVTexture(image,
-      texture->getViewInfoUav(MipMapIndex::make(mip_level), ArrayLayerIndex::make(face), false), val);
+    D3D_CONTRACT_ERROR("DX12: Texture %p <%s> cleared as UAV(i) texture, but has no UAV flag set", texture, texture->getName());
+    return false;
   }
+  Image *image = texture->getDeviceImage();
+  if (!image)
+    return false;
+  // false for is_uint is same as in DX11 backend
+  api_state.device.getContext().clearUAVTexture(image,
+    texture->getViewInfoUav(MipMapIndex::make(mip_level), ArrayLayerIndex::make(face), false), val);
   return true;
 }
 
@@ -2486,45 +2619,31 @@ bool d3d::clear_rwtexf(BaseTexture *tex, const float val[4], uint32_t face, uint
 {
   STORE_RETURN_ADDRESS();
   BaseTex *texture = cast_to_texture_base(tex);
-  if (texture)
+  if (texture == nullptr)
+    return false;
+  if (!texture->isUav())
   {
-    if (!texture->isUav())
-    {
-      D3D_ERROR("Texture %p <%s> cleared as UAV(f) texture, but has no UAV flag set", texture, texture->getResName());
-      return false;
-    }
-    Image *image = texture->getDeviceImage();
-    if (!image)
-      return false;
-    api_state.device.getContext().clearUAVTexture(image,
-      texture->getViewInfoUav(MipMapIndex::make(mip_level), ArrayLayerIndex::make(face), false), val);
+    D3D_CONTRACT_ERROR("DX12: Texture %p <%s> cleared as UAV(f) texture, but has no UAV flag set", texture, texture->getName());
+    return false;
   }
+  Image *image = texture->getDeviceImage();
+  if (!image)
+    return false;
+  api_state.device.getContext().clearUAVTexture(image,
+    texture->getViewInfoUav(MipMapIndex::make(mip_level), ArrayLayerIndex::make(face), false), val);
   return true;
 }
 
-bool d3d::clear_rwbufi(Sbuffer *buffer, const unsigned values[4])
+bool d3d::zero_rwbufi(Sbuffer *buffer)
 {
   STORE_RETURN_ADDRESS();
-  if (buffer)
-  {
-    G_ASSERT(buffer->getFlags() & SBCF_BIND_UNORDERED);
-    GenericBufferInterface *vbuf = (GenericBufferInterface *)buffer;
-    vbuf->updateDeviceBuffer([](auto &buf) { buf.resourceId.markUsedAsUAVBuffer(); });
-    api_state.device.getContext().clearBufferInt(vbuf->getDeviceBuffer(), values);
-  }
-  return true;
-}
-
-bool d3d::clear_rwbuff(Sbuffer *buffer, const float values[4])
-{
-  STORE_RETURN_ADDRESS();
-  if (buffer)
-  {
-    G_ASSERT(buffer->getFlags() & SBCF_BIND_UNORDERED);
-    GenericBufferInterface *vbuf = (GenericBufferInterface *)buffer;
-    vbuf->updateDeviceBuffer([](auto &buf) { buf.resourceId.markUsedAsUAVBuffer(); });
-    api_state.device.getContext().clearBufferFloat(vbuf->getDeviceBuffer(), values);
-  }
+  if (buffer == nullptr)
+    return false;
+  D3D_CONTRACT_ASSERT_RETURN(buffer->getFlags() & SBCF_BIND_UNORDERED, false);
+  GenericBufferInterface *vbuf = (GenericBufferInterface *)buffer;
+  vbuf->updateDeviceBuffer([](auto &buf) { buf.resourceId.markUsedAsUAVBuffer(); });
+  uint32_t values[4] = {0, 0, 0, 0};
+  api_state.device.getContext().clearBufferInt(vbuf->getDeviceBuffer(), values);
   return true;
 }
 
@@ -2562,7 +2681,7 @@ bool d3d::clear_rt(const RenderTarget &rt, const ResourceClearValue &clear_val)
   {
     if (!texture->isRenderTarget())
     {
-      D3D_ERROR("Texture %p <%s> clear on non RenderTarget", texture, texture->getResName());
+      D3D_CONTRACT_ERROR("DX12: Texture %p <%s> clear on non RenderTarget", texture, texture->getName());
       return false;
     }
 
@@ -2571,10 +2690,23 @@ bool d3d::clear_rt(const RenderTarget &rt, const ResourceClearValue &clear_val)
   return true;
 }
 
+bool d3d::discard_tex(BaseTexture *tex)
+{
+  STORE_RETURN_ADDRESS();
+  auto texture = cast_to_texture_base(tex);
+  D3D_CONTRACT_ASSERT_RETURN(texture, false);
+  D3D_CONTRACT_ASSERT_RETURN(texture->isRenderTarget() || texture->isUav(), false);
+  api_state.device.getContext().discardTexture(texture);
+  return true;
+}
+
 #include <renderPassGeneric.cpp.inl>
 
 void d3d::clear_render_pass(const RenderPassTarget &target, const RenderPassArea &area, const RenderPassBind &bind)
 {
+  if (!(bind.action & RP_TA_LOAD_CLEAR))
+    return;
+
   STORE_RETURN_ADDRESS();
 
   auto texture = cast_to_texture_base(target.resource.tex);
@@ -2595,13 +2727,15 @@ void d3d::clear_render_pass(const RenderPassTarget &target, const RenderPassArea
 
 bool d3d::set_buffer(unsigned shader_stage, unsigned unit, Sbuffer *buffer)
 {
-  G_ASSERT((nullptr == buffer) || (buffer->getFlags() & (SBCF_BIND_UNORDERED | SBCF_BIND_SHADER_RES))); // todo: remove
-                                                                                                        // SBCF_BIND_UNORDEREDcheck!
+  D3D_CONTRACT_ASSERT(
+    (nullptr == buffer) || (buffer->getFlags() & (SBCF_BIND_UNORDERED | SBCF_BIND_SHADER_RES))); // todo: remove
+                                                                                                 // SBCF_BIND_UNORDEREDcheck!
 #if DAGOR_DBGLEVEL > 0
-                                                                                                        // todo: this check to be
-                                                                                                        // removed
+                                                                                                 // todo: this check to be
+                                                                                                 // removed
   if (buffer && (buffer->getFlags() & (SBCF_BIND_UNORDERED | SBCF_BIND_SHADER_RES)) == SBCF_BIND_UNORDERED)
-    D3D_ERROR("buffer %s is without SBCF_BIND_SHADER_RES flag and can't be used in SRV. Deprecated, fixme!", buffer->getBufName());
+    D3D_CONTRACT_ERROR("DX12: buffer %s is without SBCF_BIND_SHADER_RES flag and can't be used in SRV. Deprecated, fixme!",
+      buffer->getBufName());
 #endif
   api_state.state.setStageTRegisterBuffer(shader_stage, unit, static_cast<GenericBufferInterface *>(buffer));
   return true;
@@ -2611,11 +2745,12 @@ bool d3d::set_rwbuffer(unsigned shader_stage, unsigned unit, Sbuffer *buffer)
 {
   if (buffer)
   {
-    G_ASSERT(buffer->getFlags() & (SBCF_BIND_UNORDERED | SBCF_BIND_SHADER_RES)); // todo: remove SBCF_BIND_SHADER_RES check!
+    D3D_CONTRACT_ASSERT(buffer->getFlags() & (SBCF_BIND_UNORDERED | SBCF_BIND_SHADER_RES)); // todo: remove SBCF_BIND_SHADER_RES check!
 #if DAGOR_DBGLEVEL > 0
-                                                                                 // todo: this check to be removed
+                                                                                            // todo: this check to be removed
     if ((buffer->getFlags() & (SBCF_BIND_UNORDERED | SBCF_BIND_SHADER_RES)) == SBCF_BIND_SHADER_RES)
-      D3D_ERROR("buffer %s is without SBCF_BIND_UNORDERED flag and can't be used in UAV. Deprecated, fixme!", buffer->getBufName());
+      D3D_CONTRACT_ERROR("DX12: buffer %s is without SBCF_BIND_UNORDERED flag and can't be used in UAV. Deprecated, fixme!",
+        buffer->getBufName());
 #endif
     api_state.state.removeTRegisterBuffer(static_cast<GenericBufferInterface *>(buffer));
   }
@@ -2647,9 +2782,9 @@ bool d3d::set_depth(Texture *tex, DepthAccess access)
     const bool isDS = texture->getFormat().isDepth();
     if (!isRT || !isDS)
     {
-      D3D_ERROR("Texture %p <%s> used as depth/stencil target, but lacks the necessary properties: "
-                "isRT=%u | isDS=%u",
-        texture, texture->getResName(), isRT, isDS);
+      D3D_CONTRACT_ERROR("DX12: Texture %p <%s> used as depth/stencil target, but lacks the necessary properties: "
+                         "isRT=%u | isDS=%u",
+        texture, texture->getName(), isRT, isDS);
       return false;
     }
     api_state.state.setDepthStencilTarget(texture, 0, access == DepthAccess::SampledRO);
@@ -2669,17 +2804,17 @@ bool d3d::set_depth(BaseTexture *tex, int layer, DepthAccess access)
     auto texture = cast_to_texture_base(tex);
     TextureInfo info;
     texture->getinfo(info);
-    unsigned short depth_or_slices = info.resType == RES3D_VOLTEX ? info.d : info.a;
+    unsigned short depth_or_slices = info.type == D3DResourceType::VOLTEX ? info.d : info.a;
     G_UNUSED(depth_or_slices);
     const bool isRT = texture->isRenderTarget();
     const bool isDS = texture->getFormat().isDepth();
-    G_ASSERTF_RETURN(layer < depth_or_slices, false, "DX12: in set_depth, 'layer' is %d, while texture <%s> has only %d layers", layer,
-      texture->getResName(), depth_or_slices);
+    D3D_CONTRACT_ASSERTF_RETURN(layer < depth_or_slices, false,
+      "DX12: in set_depth, 'layer' is %d, while texture <%s> has only %d layers", layer, texture->getName(), depth_or_slices);
     if (!isRT || !isDS)
     {
-      D3D_ERROR("Texture %p <%s> used as depth/stencil target, but lacks the necessary properties: "
-                "isRT=%u | isDS=%u",
-        texture, texture->getResName(), isRT, isDS);
+      D3D_CONTRACT_ERROR("DX12: Texture %p <%s> used as depth/stencil target, but lacks the necessary properties: "
+                         "isRT=%u | isDS=%u",
+        texture, texture->getName(), isRT, isDS);
       return false;
     }
     api_state.state.setDepthStencilTarget(texture, layer, access == DepthAccess::SampledRO);
@@ -2689,8 +2824,8 @@ bool d3d::set_depth(BaseTexture *tex, int layer, DepthAccess access)
 
 bool d3d::set_render_target(int ri, Texture *tex, uint8_t level)
 {
-  G_ASSERTF_RETURN(ri < Driver3dRenderTarget::MAX_SIMRT, false, "DX12: in set_render_target, 'ri' is %d, while MAX_SIMRT is %d", ri,
-    Driver3dRenderTarget::MAX_SIMRT);
+  D3D_CONTRACT_ASSERTF_RETURN(ri < Driver3dRenderTarget::MAX_SIMRT, false,
+    "DX12: in set_render_target, 'ri' is %d, while MAX_SIMRT is %d", ri, Driver3dRenderTarget::MAX_SIMRT);
 
   CHECK_MAIN_THREAD();
   ScopedCommitLock ctxLock{api_state.device.getContext()};
@@ -2701,14 +2836,14 @@ bool d3d::set_render_target(int ri, Texture *tex, uint8_t level)
     texture->getinfo(info);
     const bool isRT = texture->isRenderTarget();
     const bool isC = texture->getFormat().isColor();
-    G_ASSERTF_RETURN(level < info.mipLevels, false,
-      "DX12: in set_render_target, 'level' is %d, while texture <%s> has only %d mip levels", level, texture->getResName(),
+    D3D_CONTRACT_ASSERTF_RETURN(level < info.mipLevels, false,
+      "DX12: in set_render_target, 'level' is %d, while texture <%s> has only %d mip levels", level, texture->getName(),
       info.mipLevels);
     if (!isRT || !isC)
     {
-      D3D_ERROR("Texture %p <%s> used as color target, but lacks the necessary properties: isRT=%u | "
-                "isC=%u",
-        texture, texture->getResName(), isRT, isC);
+      D3D_CONTRACT_ERROR("DX12: Texture %p <%s> used as color target, but lacks the necessary properties: isRT=%u | "
+                         "isC=%u",
+        texture, texture->getName(), isRT, isC);
       return false;
     }
     api_state.state.setColorTarget(ri, texture, level, 0);
@@ -2729,8 +2864,8 @@ bool d3d::set_render_target(int ri, Texture *tex, uint8_t level)
 
 bool d3d::set_render_target(int ri, BaseTexture *tex, int layer, uint8_t level)
 {
-  G_ASSERTF_RETURN(ri < Driver3dRenderTarget::MAX_SIMRT, false, "DX12: in set_render_target, 'ri' is %d, while MAX_SIMRT is %d", ri,
-    Driver3dRenderTarget::MAX_SIMRT);
+  D3D_CONTRACT_ASSERTF_RETURN(ri < Driver3dRenderTarget::MAX_SIMRT, false,
+    "DX12: in set_render_target, 'ri' is %d, while MAX_SIMRT is %d", ri, Driver3dRenderTarget::MAX_SIMRT);
 
   CHECK_MAIN_THREAD();
   ScopedCommitLock ctxLock{api_state.device.getContext()};
@@ -2739,21 +2874,20 @@ bool d3d::set_render_target(int ri, BaseTexture *tex, int layer, uint8_t level)
     auto texture = cast_to_texture_base(tex);
     TextureInfo info;
     texture->getinfo(info);
-    unsigned short depth_or_slices = info.resType == RES3D_VOLTEX ? info.d : info.a;
+    unsigned short depth_or_slices = info.type == D3DResourceType::VOLTEX ? info.d : info.a;
     G_UNUSED(depth_or_slices);
     const bool isRT = texture->isRenderTarget();
     const bool isC = texture->getFormat().isColor();
-    G_ASSERTF_RETURN(level < info.mipLevels, false,
-      "DX12: in set_render_target, 'level' is %d, while texture <%s> has only %d mip levels", level, texture->getResName(),
+    D3D_CONTRACT_ASSERTF_RETURN(level < info.mipLevels, false,
+      "DX12: in set_render_target, 'level' is %d, while texture <%s> has only %d mip levels", level, texture->getName(),
       info.mipLevels);
-    G_ASSERTF_RETURN(layer < depth_or_slices, false,
-      "DX12: in set_render_target, 'layer' is %d, while texture <%s> has only %d layers", layer, texture->getResName(),
-      depth_or_slices);
+    D3D_CONTRACT_ASSERTF_RETURN(layer < depth_or_slices, false,
+      "DX12: in set_render_target, 'layer' is %d, while texture <%s> has only %d layers", layer, texture->getName(), depth_or_slices);
     if (!isRT || !isC)
     {
-      D3D_ERROR("Texture %p <%s> used as color target, but lacks the necessary properties: isRT=%u | "
-                "isC=%u",
-        texture, texture->getResName(), isRT, isC);
+      D3D_CONTRACT_ERROR("DX12: Texture %p <%s> used as color target, but lacks the necessary properties: isRT=%u | "
+                         "isC=%u",
+        texture, texture->getName(), isRT, isC);
       return false;
     }
     api_state.state.setColorTarget(ri, texture, level, layer);
@@ -2817,7 +2951,39 @@ bool d3d::get_render_target_size(int &w, int &h, BaseTexture *rt_tex, uint8_t le
 bool d3d::setviews(dag::ConstSpan<Viewport> viewports)
 {
   CHECK_MAIN_THREAD();
-  G_ASSERT(viewports.size() < Viewport::MAX_VIEWPORT_COUNT);
+  D3D_CONTRACT_ASSERT(viewports.size() < Viewport::MAX_VIEWPORT_COUNT);
+
+#if (DAGOR_DBGLEVEL > 0)
+  for (const auto &viewport : viewports)
+  {
+    // DX12 spec refers to the DX11 spec for scissor/viewport behavior
+    // https://microsoft.github.io/DirectX-Specs/d3d/archive/D3D11_3_FunctionalSpec.htm#15.6%20Viewport
+    int left = viewport.x;
+    int right = viewport.x + viewport.w;
+    int top = viewport.y;
+    int bottom = viewport.y + viewport.h;
+
+    // clang-format off
+    bool withinBounds = (-32768 <= left && left <= 32767) &&
+                        (-32768 <= right && right <= 32767) &&
+                        (-32768 <= top && top <= 32767) &&
+                        (-32768 <= bottom && bottom <= 32767);
+    // clang-format on
+
+    D3D_CONTRACT_ASSERTF_RETURN(withinBounds, false,
+      "DX12: in setviews(), all viewport boundary coordinates must be between -32768 and 32767");
+
+    D3D_CONTRACT_ASSERTF_RETURN(viewport.minz <= viewport.maxz, false,
+      "DX12: in setviews(), minz must be less than or equal to maxz for every viewport");
+
+    // Negative widths and heights are not supported right now.
+    // They can be supported however with the Agility SDK:
+    // https://learn.microsoft.com/en-us/windows/win32/api/d3d12/ns-d3d12-d3d12_feature_data_d3d12_options13
+    D3D_CONTRACT_ASSERTF_RETURN(viewport.w >= 0 && viewport.h >= 0, false,
+      "DX12: in setviews(), all viewports must have a positive width and height");
+  }
+#endif
+
   api_state.state.setViewports(make_span_const(reinterpret_cast<const ViewportState *>(viewports.data()), int(viewports.size())));
   return true;
 }
@@ -2852,11 +3018,20 @@ bool d3d::setscissor(int x, int y, int w, int h)
 bool d3d::setscissors(dag::ConstSpan<ScissorRect> scissorRects)
 {
   CHECK_MAIN_THREAD();
-  G_ASSERT(scissorRects.size() < Viewport::MAX_VIEWPORT_COUNT);
+  D3D_CONTRACT_ASSERT(scissorRects.size() < Viewport::MAX_VIEWPORT_COUNT);
+
+#if (DAGOR_DBGLEVEL > 0)
+  for (const auto &scissor : scissorRects)
+  {
+    // https://microsoft.github.io/DirectX-Specs/d3d/archive/D3D11_3_FunctionalSpec.htm#15.9%20Viewport/Scissor%20State
+    D3D_CONTRACT_ASSERTF_RETURN(scissor.x >= 0 && scissor.y >= 0 && scissor.w >= 0 && scissor.h >= 0, false,
+      "DX12: in setscissors(), all scissor components must be greater than or equal to zero");
+  }
+#endif
+
   D3D12_RECT rects[Viewport::MAX_VIEWPORT_COUNT];
-  eastl::transform(scissorRects.begin(), scissorRects.end(), rects, [](auto &scissor) {
-    return D3D12_RECT{scissor.x, scissor.y, scissor.x + scissor.w, scissor.y + scissor.h};
-  });
+  eastl::transform(scissorRects.begin(), scissorRects.end(), rects,
+    [](auto &scissor) { return D3D12_RECT{scissor.x, scissor.y, scissor.x + scissor.w, scissor.y + scissor.h}; });
   api_state.state.setScissorRects(make_span_const(rects, scissorRects.size()));
   return true;
 }
@@ -2873,32 +3048,19 @@ bool d3d::clearview(int what, E3DCOLOR color, float z, uint32_t stencil)
   return true;
 }
 
-bool d3d::update_screen([[maybe_unused]] bool app_active)
+bool d3d::update_screen(uint32_t frame_id, [[maybe_unused]] bool app_active)
 {
   STORE_RETURN_ADDRESS();
   CHECK_MAIN_THREAD();
 
   auto &ctx = api_state.device.getContext();
-  const bool isPresentAsync = ctx.isPresentAsync();
-  if (DAGOR_LIKELY(isPresentAsync) || DAGOR_UNLIKELY(!ctx.wasCurrentFramePresentSubmitted()))
-  {
-    api_state.state.onFrameEnd(ctx);
+  api_state.state.onFrameEnd(ctx);
 
-    bool presentOnSwapchain = true;
-#if _TARGET_PC_WIN
-    presentOnSwapchain = isPresentAsync ? api_state.windowState.readyForSwapchain.load(std::memory_order_relaxed) : true;
-#endif
-    ctx.finishFrame(presentOnSwapchain);
-    api_state.device.processDebugLog();
-  }
-
-  if (DAGOR_UNLIKELY(!isPresentAsync) && (!ctx.swapchainPresentFromMainThread()))
-  {
-    return false;
-  }
+  ctx.finishFrame(frame_id);
+  api_state.device.processDebugLog();
 
 #if _TARGET_PC_WIN
-  if (isPresentAsync && DAGOR_UNLIKELY(api_state.windowState.hasPendingFlushAfterModeReset))
+  if (DAGOR_UNLIKELY(api_state.windowState.hasPendingFlushAfterModeReset))
   {
     api_state.windowState.hasPendingFlushAfterModeReset = false;
     api_state.device.getContext().wait();
@@ -2921,18 +3083,41 @@ bool d3d::update_screen([[maybe_unused]] bool app_active)
 
 void d3d::wait_for_async_present(bool force)
 {
+  STORE_RETURN_ADDRESS();
   if (DAGOR_UNLIKELY(force))
   {
     api_state.device.getContext().wait();
     api_state.device.getContext().updateFenceProgress();
   }
-  else if (DAGOR_UNLIKELY(api_state.device.getContext().isPresentAsync()))
+  else
   {
     api_state.device.getContext().waitForAsyncPresent();
   }
 }
 
-void d3d::gpu_latency_wait() { api_state.device.getContext().gpuLatencyWait(); }
+void d3d::begin_frame(uint32_t frame_id, bool allow_wait) { api_state.device.getContext().beginFrame(frame_id, allow_wait); }
+
+void d3d::mark_simulation_start(uint32_t frame_id)
+{
+  if (auto *lowLatencyModule = GpuLatency::getInstance())
+    lowLatencyModule->setMarker(frame_id, lowlatency::LatencyMarkerType::SIMULATION_START);
+}
+
+void d3d::mark_simulation_end(uint32_t frame_id)
+{
+  if (auto *lowLatencyModule = GpuLatency::getInstance())
+    lowLatencyModule->setMarker(frame_id, lowlatency::LatencyMarkerType::SIMULATION_END);
+}
+
+void d3d::mark_render_start(uint32_t frame_id)
+{
+  api_state.device.getContext().setLatencyMarker(frame_id, lowlatency::LatencyMarkerType::RENDERSUBMIT_START);
+}
+
+void d3d::mark_render_end(uint32_t frame_id)
+{
+  api_state.device.getContext().setLatencyMarker(frame_id, lowlatency::LatencyMarkerType::RENDERSUBMIT_END);
+}
 
 bool d3d::is_window_occluded()
 {
@@ -2943,12 +3128,36 @@ bool d3d::is_window_occluded()
 #endif
 }
 
-bool d3d::should_use_compute_for_image_processing(std::initializer_list<unsigned>) { return false; }
+bool d3d::should_use_compute_for_image_processing(std::initializer_list<unsigned> formats)
+{
+  const uint32_t UAV_OPERATIONS = d3d::USAGE_UNORDERED | d3d::USAGE_UNORDERED_LOAD;
+  for (unsigned format : formats)
+    if ((d3d::get_texformat_usage(format, D3DResourceType::TEX) & UAV_OPERATIONS) != UAV_OPERATIONS)
+    {
+      logdbg("d3d::should_use_compute_for_image_processing is false due to lack of UAV support for %u.", (format & TEXFMT_MASK));
+      return false;
+    }
+  return true;
+}
 
 bool d3d::setvsrc_ex(int stream, Vbuffer *vb, int ofs, int stride_bytes)
 {
   if (vb)
   {
+    auto gbi = static_cast<GenericBufferInterface *>(vb);
+    int bufferSize = gbi->getSize();
+
+    D3D_CONTRACT_ASSERTF_RETURN(ofs >= 0 && ofs < bufferSize, false,
+      "DX12: setvsrc_ex ofs parameter (%i) not within range of the buffer (%i)", ofs, bufferSize);
+    D3D_CONTRACT_ASSERTF_RETURN(stride_bytes <= bufferSize, false,
+      "DX12: setvsrc_ex stride_bytes parameter (%i) must not exceed the buffer size (%i)", stride_bytes, bufferSize);
+
+    // in DX12 IASetVertexBuffers, stride is a UINT and must be non-zero
+    D3D_CONTRACT_ASSERTF_RETURN(stride_bytes > 0, false, "DX12: setvsrc_ex stride_bytes parameter must be greater than zero");
+
+    D3D_CONTRACT_ASSERTF_RETURN((gbi->getFlags() & SBCF_BIND_VERTEX) == SBCF_BIND_VERTEX, false,
+      "DX12: setvsrc_ex vb does not have the SBCF_BIND_VERTEX flag set");
+
     api_state.state.setVertexBuffer(stream, vb, ofs, stride_bytes);
   }
   else
@@ -2960,12 +3169,21 @@ bool d3d::setvsrc_ex(int stream, Vbuffer *vb, int ofs, int stride_bytes)
 
 bool d3d::setind(Ibuffer *ib)
 {
+  if (ib)
+  {
+    auto gbi = static_cast<GenericBufferInterface *>(ib);
+
+    D3D_CONTRACT_ASSERTF_RETURN((gbi->getFlags() & SBCF_BIND_INDEX) == SBCF_BIND_INDEX, false,
+      "DX12: setind ib does not have the SBCF_BIND_INDEX flag set");
+  }
+
   api_state.state.setIndexBuffer(ib);
   return true;
 }
 
 VDECL d3d::create_vdecl(VSDTYPE *vsd)
 {
+  STORE_RETURN_ADDRESS();
   drv3d_dx12::InputLayout layout;
   layout.fromVdecl(vsd);
   return api_state.shaderProgramDatabase.registerInputLayout(api_state.device.getContext(), layout).get();
@@ -3009,7 +3227,7 @@ uint32_t nprim_to_nverts(uint32_t prim_type, uint32_t numprim)
 
 bool d3d::draw_base(int type, int start, int numprim, uint32_t num_instances, uint32_t start_instance)
 {
-  G_ASSERTF_RETURN(num_instances > 0 && numprim > 0, false, "DX12: draw_base has nothing to draw");
+  D3D_CONTRACT_ASSERTF_RETURN(num_instances > 0 && numprim > 0, false, "DX12: draw_base has nothing to draw");
 
   STORE_RETURN_ADDRESS();
   CHECK_MAIN_THREAD();
@@ -3031,7 +3249,7 @@ bool d3d::draw_base(int type, int start, int numprim, uint32_t num_instances, ui
 
 bool d3d::drawind_base(int type, int startind, int numprim, int base_vertex, uint32_t num_instances, uint32_t start_instance)
 {
-  G_ASSERTF_RETURN(num_instances > 0 && numprim > 0, false, "DX12: drawind_base has nothing to draw");
+  D3D_CONTRACT_ASSERTF_RETURN(num_instances > 0 && numprim > 0, false, "DX12: drawind_base has nothing to draw");
 
   STORE_RETURN_ADDRESS();
   D3D12_PRIMITIVE_TOPOLOGY topology = translate_primitive_topology_to_dx12(type);
@@ -3053,8 +3271,8 @@ bool d3d::drawind_base(int type, int startind, int numprim, int base_vertex, uin
 
 bool d3d::draw_up(int type, int numprim, const void *ptr, int stride_bytes)
 {
-  G_ASSERTF_RETURN(nullptr != ptr, false, "DX12: draw_up ptr parameter can not be null");
-  G_ASSERTF_RETURN(numprim > 0, false, "DX12: draw_up has nothing to draw");
+  D3D_CONTRACT_ASSERTF_RETURN(nullptr != ptr, false, "DX12: draw_up ptr parameter can not be null");
+  D3D_CONTRACT_ASSERTF_RETURN(numprim > 0, false, "DX12: draw_up has nothing to draw");
 
   STORE_RETURN_ADDRESS();
   CHECK_MAIN_THREAD();
@@ -3077,9 +3295,9 @@ bool d3d::drawind_up(int type, int minvert, int numvert, int numprim, const uint
 {
   G_UNUSED(minvert);
 
-  G_ASSERTF_RETURN(nullptr != ptr, false, "DX12: drawind_up ptr parameter can not be null");
-  G_ASSERTF_RETURN(nullptr != ind, false, "DX12: drawind_up ind parameter can not be null");
-  G_ASSERTF_RETURN(numprim > 0, false, "DX12: drawind_up has nothing to draw");
+  D3D_CONTRACT_ASSERTF_RETURN(nullptr != ptr, false, "DX12: drawind_up ptr parameter can not be null");
+  D3D_CONTRACT_ASSERTF_RETURN(nullptr != ind, false, "DX12: drawind_up ind parameter can not be null");
+  D3D_CONTRACT_ASSERTF_RETURN(numprim > 0, false, "DX12: drawind_up has nothing to draw");
 
   STORE_RETURN_ADDRESS();
   CHECK_MAIN_THREAD();
@@ -3126,18 +3344,19 @@ bool d3d::multi_draw_indirect(int prim_type, Sbuffer *args, uint32_t draw_count,
 {
   STORE_RETURN_ADDRESS();
   CHECK_MAIN_THREAD();
-  G_ASSERTF_RETURN(args != nullptr, false, "multi_draw_indirect with nullptr buffer is invalid");
-  G_ASSERTF_RETURN(draw_count > 0, false, "multi_draw_indirect has nothing to draw");
+  D3D_CONTRACT_ASSERTF_RETURN(args != nullptr, false, "multi_draw_indirect with nullptr buffer is invalid");
+  D3D_CONTRACT_ASSERTF_RETURN(draw_count > 0, false, "multi_draw_indirect has nothing to draw");
   GenericBufferInterface *buffer = (GenericBufferInterface *)args;
-  G_ASSERTF_RETURN(buffer->getFlags() & SBCF_MISC_DRAWINDIRECT, false, "multi_draw_indirect buffer is not usable as indirect buffer");
+  D3D_CONTRACT_ASSERTF_RETURN(buffer->getFlags() & SBCF_MISC_DRAWINDIRECT, false,
+    "multi_draw_indirect buffer is not usable as indirect buffer");
 
   // It's complicated to get the required size here, because it's actually equal to `byte_offset + (draw_count - 1) * stride_bytes +
   // <drawcall size>`, where <drawcall size> depends on whether we have draw_id in it (depends on the shader being used), which is not
   // known to the frontend currently. So for now we're just less restrictive with possibility of overflow.
-  G_ASSERTF_RETURN(byte_offset + (draw_count - 1) * stride_bytes + sizeof(DrawIndirectArgs) <= buffer->ressize(), false,
+  D3D_CONTRACT_ASSERTF_RETURN(byte_offset + (draw_count - 1) * stride_bytes + sizeof(DrawIndirectArgs) <= buffer->getSize(), false,
     "multi_draw_indirect buffer size is not enough; "
-    "buffer->ressize() = %d, draw_count = %d, stride_bytes = %d, byte_offset = %d",
-    buffer->ressize(), draw_count, stride_bytes, byte_offset);
+    "buffer->getSize() = %d, draw_count = %d, stride_bytes = %d, byte_offset = %d",
+    buffer->getSize(), draw_count, stride_bytes, byte_offset);
 
   D3D12_PRIMITIVE_TOPOLOGY topology = translate_primitive_topology_to_dx12(prim_type);
 
@@ -3161,19 +3380,20 @@ bool d3d::multi_draw_indexed_indirect(int prim_type, Sbuffer *args, uint32_t dra
 {
   STORE_RETURN_ADDRESS();
   CHECK_MAIN_THREAD();
-  G_ASSERTF_RETURN(args != nullptr, false, "multi_draw_indexed_indirect with nullptr buffer is invalid");
-  G_ASSERTF_RETURN(draw_count > 0, false, "multi_draw_indexed_indirect has nothing to draw");
+  D3D_CONTRACT_ASSERTF_RETURN(args != nullptr, false, "multi_draw_indexed_indirect with nullptr buffer is invalid");
+  D3D_CONTRACT_ASSERTF_RETURN(draw_count > 0, false, "multi_draw_indexed_indirect has nothing to draw");
   GenericBufferInterface *buffer = (GenericBufferInterface *)args;
-  G_ASSERTF_RETURN(buffer->getFlags() & SBCF_MISC_DRAWINDIRECT, false,
+  D3D_CONTRACT_ASSERTF_RETURN(buffer->getFlags() & SBCF_MISC_DRAWINDIRECT, false,
     "multi_draw_indexed_indirect buffer is not usable as indirect buffer");
 
   // It's complicated to get the required size here, because it's actually equal to `byte_offset + (draw_count - 1) * stride_bytes +
   // <drawcall size>`, where <drawcall size> depends on whether we have draw_id in it (depends on the shader being used), which is not
   // known to the frontend currently. So for now we're just less restrictive with possibility of overflow.
-  G_ASSERTF_RETURN(byte_offset + (draw_count - 1) * stride_bytes + sizeof(DrawIndexedIndirectArgs) <= buffer->ressize(), false,
+  D3D_CONTRACT_ASSERTF_RETURN(byte_offset + (draw_count - 1) * stride_bytes + sizeof(DrawIndexedIndirectArgs) <= buffer->getSize(),
+    false,
     "multi_draw_indexed_indirect buffer size is not enough; "
-    "buffer->ressize() = %d, draw_count = %d, stride_bytes = %d, byte_offset = %d",
-    buffer->ressize(), draw_count, stride_bytes, byte_offset);
+    "buffer->getSize() = %d, draw_count = %d, stride_bytes = %d, byte_offset = %d",
+    buffer->getSize(), draw_count, stride_bytes, byte_offset);
 
   D3D12_PRIMITIVE_TOPOLOGY topology = translate_primitive_topology_to_dx12(prim_type);
 
@@ -3198,10 +3418,10 @@ bool d3d::dispatch_indirect(Sbuffer *args, uint32_t byte_offset, GpuPipeline gpu
   G_UNUSED(gpu_pipeline);
   STORE_RETURN_ADDRESS();
   CHECK_MAIN_THREAD();
-  G_ASSERTF(args != nullptr, "dispatch_indirect with nullptr buffer is invalid");
-  G_ASSERTF(args->getFlags() & SBCF_BIND_UNORDERED, "dispatch_indirect buffer without SBCF_BIND_UNORDERED flag");
+  D3D_CONTRACT_ASSERTF(args != nullptr, "dispatch_indirect with nullptr buffer is invalid");
+  D3D_CONTRACT_ASSERTF(args->getFlags() & SBCF_BIND_UNORDERED, "dispatch_indirect buffer without SBCF_BIND_UNORDERED flag");
   GenericBufferInterface *buffer = (GenericBufferInterface *)args;
-  G_ASSERTF(buffer->getFlags() & SBCF_MISC_DRAWINDIRECT, "dispatch_indirect buffer is not usable as indirect buffer");
+  D3D_CONTRACT_ASSERTF(buffer->getFlags() & SBCF_MISC_DRAWINDIRECT, "dispatch_indirect buffer is not usable as indirect buffer");
 
   ScopedCommitLock ctxLock{api_state.device.getContext()};
   buffer->updateDeviceBuffer([](auto &buf) { buf.resourceId.markUsedAsIndirectBuffer(); });
@@ -3216,7 +3436,7 @@ bool d3d::dispatch_indirect(Sbuffer *args, uint32_t byte_offset, GpuPipeline gpu
 void d3d::dispatch_mesh(uint32_t thread_group_x, uint32_t thread_group_y, uint32_t thread_group_z)
 {
 #if _TARGET_XBOXONE
-  G_ASSERTF(false, "DX12: dispatch_mesh on XB1 is unsupported");
+  D3D_CONTRACT_ASSERTF(false, "DX12: dispatch_mesh on XB1 is unsupported");
   G_UNUSED(thread_group_x);
   G_UNUSED(thread_group_y);
   G_UNUSED(thread_group_z);
@@ -3238,15 +3458,15 @@ void d3d::dispatch_mesh(uint32_t thread_group_x, uint32_t thread_group_y, uint32
 void d3d::dispatch_mesh_indirect(Sbuffer *args, uint32_t dispatch_count, uint32_t stride_bytes, uint32_t byte_offset)
 {
 #if _TARGET_XBOXONE
-  G_ASSERTF(false, "DX12: dispatch_mesh_indirect on XB1 is unsupported");
+  D3D_CONTRACT_ASSERTF(false, "DX12: dispatch_mesh_indirect on XB1 is unsupported");
   G_UNUSED(args);
   G_UNUSED(dispatch_count);
   G_UNUSED(stride_bytes);
   G_UNUSED(byte_offset);
 #else
-  G_ASSERTF_RETURN(args, , "DX12: dispatch_mesh args parameter can not be null");
+  D3D_CONTRACT_ASSERTF_RETURN(args, , "DX12: dispatch_mesh args parameter can not be null");
   GenericBufferInterface *buffer = (GenericBufferInterface *)args;
-  G_ASSERTF_RETURN(buffer->getFlags() & SBCF_MISC_DRAWINDIRECT, ,
+  D3D_CONTRACT_ASSERTF_RETURN(buffer->getFlags() & SBCF_MISC_DRAWINDIRECT, ,
     "DX12: dispatch_mesh_indirect buffer is not usable as indirect buffer");
 
   STORE_RETURN_ADDRESS();
@@ -3270,7 +3490,7 @@ void d3d::dispatch_mesh_indirect_count(Sbuffer *args, uint32_t args_stride_bytes
   uint32_t count_byte_offset, uint32_t max_count)
 {
 #if _TARGET_XBOXONE
-  G_ASSERTF(false, "DX12: dispatch_mesh_indirect_count on XB1 is unsupported");
+  D3D_CONTRACT_ASSERTF(false, "DX12: dispatch_mesh_indirect_count on XB1 is unsupported");
   G_UNUSED(args);
   G_UNUSED(args_stride_bytes);
   G_UNUSED(args_byte_offset);
@@ -3278,13 +3498,13 @@ void d3d::dispatch_mesh_indirect_count(Sbuffer *args, uint32_t args_stride_bytes
   G_UNUSED(count_byte_offset);
   G_UNUSED(max_count);
 #else
-  G_ASSERTF_RETURN(args, , "DX12: dispatch_mesh args parameter can not be null");
-  G_ASSERTF_RETURN(count, , "DX12: dispatch_mesh count parameter can not be null");
+  D3D_CONTRACT_ASSERTF_RETURN(args, , "DX12: dispatch_mesh args parameter can not be null");
+  D3D_CONTRACT_ASSERTF_RETURN(count, , "DX12: dispatch_mesh count parameter can not be null");
   GenericBufferInterface *argsBuffer = (GenericBufferInterface *)args;
   GenericBufferInterface *countBuffer = (GenericBufferInterface *)count;
-  G_ASSERTF_RETURN(argsBuffer->getFlags() & SBCF_MISC_DRAWINDIRECT, ,
+  D3D_CONTRACT_ASSERTF_RETURN(argsBuffer->getFlags() & SBCF_MISC_DRAWINDIRECT, ,
     "DX12: dispatch_mesh_indirect_count args buffer is not usable as indirect buffer");
-  G_ASSERTF_RETURN(countBuffer->getFlags() & SBCF_MISC_DRAWINDIRECT, ,
+  D3D_CONTRACT_ASSERTF_RETURN(countBuffer->getFlags() & SBCF_MISC_DRAWINDIRECT, ,
     "DX12: dispatch_mesh_indirect_count count buffer is not usable as indirect buffer");
 
   STORE_RETURN_ADDRESS();
@@ -3312,7 +3532,7 @@ void d3d::insert_wait_on_fence(GPUFENCEHANDLE & /*fence*/, GpuPipeline /*gpu_pip
 
 bool d3d::set_const_buffer(uint32_t stage, uint32_t unit, Sbuffer *buffer, uint32_t consts_offset, uint32_t consts_size)
 {
-  G_ASSERT((nullptr == buffer) || (buffer->getFlags() & SBCF_BIND_CONSTANT));
+  D3D_CONTRACT_ASSERT((nullptr == buffer) || (buffer->getFlags() & SBCF_BIND_CONSTANT));
 
   api_state.state.setStageBRegisterBuffer(stage, unit, buffer, consts_offset, consts_size);
   return true;
@@ -3466,9 +3686,34 @@ bool d3d::enable_vsync(bool enable)
 }
 
 #if _TARGET_PC_WIN
-bool d3d::pcwin32::set_capture_full_frame_buffer(bool /*ison*/) { return false; }
+bool d3d::pcwin::set_capture_full_frame_buffer(bool /*ison*/) { return false; }
 
-void d3d::pcwin32::set_present_wnd(void *) {}
+void d3d::pcwin::set_present_wnd(void *hwnd)
+{
+  D3D_CONTRACT_ASSERT_RETURN(hwnd, );
+  const HWND window = static_cast<HWND>(hwnd);
+  ScopedCommitLock ctxLock{api_state.device.getContext()};
+  const uint32_t index = api_state.device.ensureSecondarySwapchainCreatedNoLock(window, api_state.dxgiFactory);
+  api_state.device.getContext().changePresentWindowNoLock(index);
+}
+
+bool d3d::pcwin::can_render_to_window() { return true; }
+
+BaseTexture *d3d::pcwin::get_swapchain_for_window(void *hwnd)
+{
+  D3D_CONTRACT_ASSERT_RETURN(hwnd, nullptr);
+  const HWND window = static_cast<HWND>(hwnd);
+  ScopedCommitLock ctxLock{api_state.device.getContext()};
+  const uint32_t index = api_state.device.ensureSecondarySwapchainCreatedNoLock(window, api_state.dxgiFactory);
+  return api_state.device.getContext().getSwapchainColorTexture(index);
+}
+
+void d3d::pcwin::present_to_window(void *hwnd)
+{
+  D3D_CONTRACT_ASSERT_RETURN(hwnd, );
+  const HWND window = static_cast<HWND>(hwnd);
+  api_state.device.getContext().flushAndPresentToWindow(window);
+}
 #endif
 
 d3d::EventQuery *d3d::create_event_query()
@@ -3530,18 +3775,27 @@ void d3d::get_video_modes_list(Tab<String> &list) { api_state.device.enumerateDi
 
 Vbuffer *d3d::create_vb(int size, int flg, const char *name)
 {
+  STORE_RETURN_ADDRESS();
+
+  D3D_CONTRACT_ASSERTF_RETURN(size > 0, nullptr, "DX12: create_vb size parameter must be greater than 0");
+
   validate_sbuffer_flags(flg | SBCF_BIND_VERTEX, name);
   return api_state.device.newBufferObject(0, size, flg | SBCF_BIND_VERTEX, 0, name);
 }
 
 Ibuffer *d3d::create_ib(int size, int flg, const char *stat_name)
 {
+  STORE_RETURN_ADDRESS();
+
+  D3D_CONTRACT_ASSERTF_RETURN(size > 0, nullptr, "DX12: create_ib size parameter must be greater than 0");
+
   validate_sbuffer_flags(flg | SBCF_BIND_INDEX, stat_name);
   return api_state.device.newBufferObject(0, size, flg | SBCF_BIND_INDEX, 0, stat_name);
 }
 
 Vbuffer *d3d::create_sbuffer(int struct_size, int elements, unsigned flags, unsigned format, const char *name)
 {
+  STORE_RETURN_ADDRESS();
   validate_sbuffer_flags(flags, name);
   return api_state.device.newBufferObject(struct_size, elements, flags, format, name);
 }
@@ -3562,9 +3816,9 @@ void drv3d_dx12::mark_buffer_stages_dirty_no_lock(Sbuffer *buffer, bool check_vb
   api_state.state.markBufferStagesDirtyNoLock(gbi, check_vb, check_const, check_srv, check_uav);
 }
 
-Texture *d3d::get_backbuffer_tex() { return api_state.device.getContext().getSwapchainColorTexture(); }
+Texture *d3d::get_backbuffer_tex() { return api_state.device.getContext().getCurrentSwapchainColorTexture(); }
 
-Texture *d3d::get_secondary_backbuffer_tex() { return api_state.device.getContext().getSwapchainSecondaryColorTexture(); }
+Texture *d3d::get_secondary_backbuffer_tex() { return api_state.device.getContext().getCurrentSwapchainSecondaryColorTexture(); }
 
 #if D3D_HAS_RAY_TRACING
 RaytraceBottomAccelerationStructure *d3d::create_raytrace_bottom_acceleration_structure(RaytraceGeometryDescription *desc,
@@ -3598,7 +3852,10 @@ RaytraceTopAccelerationStructure *d3d::create_raytrace_top_acceleration_structur
 void d3d::delete_raytrace_top_acceleration_structure(RaytraceTopAccelerationStructure *as)
 {
   if (as)
+  {
     api_state.device.getContext().deleteRaytraceTopAccelerationStructure(as);
+    api_state.state.removeRaytraceAccelerationStructureTRegisters(reinterpret_cast<RaytraceAccelerationStructure *>(as));
+  }
 }
 
 void d3d::set_top_acceleration_structure(ShaderStage stage, uint32_t index, RaytraceTopAccelerationStructure *as)
@@ -3611,20 +3868,21 @@ static bool validate_compaction(const ::raytrace::BottomAccelerationStructureBui
   if (RaytraceBuildFlags::ALLOW_COMPACTION == (basbi.flags & RaytraceBuildFlags::ALLOW_COMPACTION))
   {
     auto compactedSizeOutputBuffer = (GenericBufferInterface *)basbi.compactedSizeOutputBuffer;
-    G_ASSERTF_RETURN(compactedSizeOutputBuffer, false, "DX12: Compacted size buffer must be provided when compaction is enabled");
-    G_ASSERTF_RETURN(compactedSizeOutputBuffer->getFlags() & SBCF_BIND_UNORDERED, false,
+    D3D_CONTRACT_ASSERTF_RETURN(compactedSizeOutputBuffer, false,
+      "DX12: Compacted size buffer must be provided when compaction is enabled");
+    D3D_CONTRACT_ASSERTF_RETURN(compactedSizeOutputBuffer->getFlags() & SBCF_BIND_UNORDERED, false,
       "DX12: Compacted size buffer must have an UAV");
-    G_ASSERT_RETURN(compactedSizeOutputBuffer->getElementSize() ==
-                      sizeof(D3D12_RAYTRACING_ACCELERATION_STRUCTURE_POSTBUILD_INFO_COMPACTED_SIZE_DESC),
+    D3D_CONTRACT_ASSERT_RETURN(compactedSizeOutputBuffer->getElementSize() ==
+                                 sizeof(D3D12_RAYTRACING_ACCELERATION_STRUCTURE_POSTBUILD_INFO_COMPACTED_SIZE_DESC),
       false);
-    G_ASSERT_RETURN(basbi.compactedSizeOutputBufferOffsetInBytes %
-                        sizeof(D3D12_RAYTRACING_ACCELERATION_STRUCTURE_POSTBUILD_INFO_COMPACTED_SIZE_DESC) ==
-                      0,
+    D3D_CONTRACT_ASSERT_RETURN(basbi.compactedSizeOutputBufferOffsetInBytes %
+                                   sizeof(D3D12_RAYTRACING_ACCELERATION_STRUCTURE_POSTBUILD_INFO_COMPACTED_SIZE_DESC) ==
+                                 0,
       false);
   }
   else
   {
-    G_ASSERTF_RETURN(!basbi.compactedSizeOutputBuffer, false,
+    D3D_CONTRACT_ASSERTF_RETURN(!basbi.compactedSizeOutputBuffer, false,
       "DX12: Compacted size buffer should not be provided when compaction is disabled");
   }
 
@@ -3650,13 +3908,13 @@ void d3d::build_bottom_acceleration_structure(RaytraceBottomAccelerationStructur
       BufferResourceReferenceAndAddress{get_any_buffer_ref(compactedSizeOutputBuffer), basbi.compactedSizeOutputBufferOffsetInBytes};
   }
 
-  G_ASSERTF_RETURN(basbi.scratchSpaceBuffer, , "DX12: We now always require a user-provided scratch buffer for AS builds!");
+  D3D_CONTRACT_ASSERTF_RETURN(basbi.scratchSpaceBuffer, , "DX12: We now always require a user-provided scratch buffer for AS builds!");
 
   auto scratchSpaceBuffer = (GenericBufferInterface *)basbi.scratchSpaceBuffer;
-  G_ASSERTF_RETURN(SBCF_USAGE_ACCELLERATION_STRUCTURE_BUILD_SCRATCH_SPACE & scratchSpaceBuffer->getFlags(), ,
+  D3D_CONTRACT_ASSERTF_RETURN(SBCF_USAGE_ACCELLERATION_STRUCTURE_BUILD_SCRATCH_SPACE & scratchSpaceBuffer->getFlags(), ,
     "DX12: build_bottom_acceleration_structure: scratchSpaceBuffer must be created with the "
     "SBCF_USAGE_ACCELLERATION_STRUCTURE_BUILD_SCRATCH_SPACE flags set");
-  G_ASSERTF(basbi.scratchSpaceBufferOffsetInBytes % D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BYTE_ALIGNMENT == 0,
+  D3D_CONTRACT_ASSERTF(basbi.scratchSpaceBufferOffsetInBytes % D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BYTE_ALIGNMENT == 0,
     "DX12: All scratch buffer suballocs must be aligned to D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BYTE_ALIGNMENT = %d",
     D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BYTE_ALIGNMENT);
 
@@ -3676,7 +3934,7 @@ void d3d::build_bottom_acceleration_structures(::raytrace::BatchedBottomAccelera
   {
     return;
   }
-  G_ASSERT_RETURN(as_array, );
+  D3D_CONTRACT_ASSERT_RETURN(as_array, );
 
   for (uint32_t ix = 0; ix < as_count; ++ix)
   {
@@ -3686,10 +3944,10 @@ void d3d::build_bottom_acceleration_structures(::raytrace::BatchedBottomAccelera
       return;
     }
 
-    G_ASSERTF_RETURN(basbi.scratchSpaceBuffer, , "DX12: This API requires providing a scatch buffer for the AS builds");
+    D3D_CONTRACT_ASSERTF_RETURN(basbi.scratchSpaceBuffer, , "DX12: This API requires providing a scatch buffer for the AS builds");
 
     auto scratchSpaceBuffer = (GenericBufferInterface *)basbi.scratchSpaceBuffer;
-    G_ASSERTF_RETURN(SBCF_USAGE_ACCELLERATION_STRUCTURE_BUILD_SCRATCH_SPACE & scratchSpaceBuffer->getFlags(), ,
+    D3D_CONTRACT_ASSERTF_RETURN(SBCF_USAGE_ACCELLERATION_STRUCTURE_BUILD_SCRATCH_SPACE & scratchSpaceBuffer->getFlags(), ,
       "DX12: build_bottom_acceleration_structure: scratchSpaceBuffer must be created with the "
       "SBCF_USAGE_ACCELLERATION_STRUCTURE_BUILD_SCRATCH_SPACE flags set");
   }
@@ -3724,7 +3982,8 @@ void d3d::build_top_acceleration_structure(RaytraceTopAccelerationStructure *as,
   STORE_RETURN_ADDRESS();
   if (as)
   {
-    G_ASSERTF_RETURN(tasbi.scratchSpaceBuffer, , "DX12: We now always require a user-provided scratch buffer for AS builds!");
+    D3D_CONTRACT_ASSERTF_RETURN(tasbi.scratchSpaceBuffer, ,
+      "DX12: We now always require a user-provided scratch buffer for AS builds!");
 
     auto buf = (GenericBufferInterface *)tasbi.instanceBuffer;
     auto sbuf = (GenericBufferInterface *)tasbi.scratchSpaceBuffer;
@@ -3739,11 +3998,12 @@ void d3d::build_top_acceleration_structures(::raytrace::BatchedTopAccelerationSt
   {
     return;
   }
-  G_ASSERT_RETURN(as_array, );
+  D3D_CONTRACT_ASSERT_RETURN(as_array, );
 
   for (uint32_t ix = 0; ix < as_count; ++ix)
   {
-    G_ASSERTF_RETURN(as_array[ix].tasbi.scratchSpaceBuffer, , "DX12: This API requires providing a scatch buffer for the AS builds");
+    D3D_CONTRACT_ASSERTF_RETURN(as_array[ix].tasbi.scratchSpaceBuffer, ,
+      "DX12: This API requires providing a scatch buffer for the AS builds");
   }
 
   for (uint32_t ix = 0; ix < as_count; ++ix)
@@ -3751,7 +4011,7 @@ void d3d::build_top_acceleration_structures(::raytrace::BatchedTopAccelerationSt
     auto &elem = as_array[ix];
 
     STORE_RETURN_ADDRESS();
-    G_ASSERT_RETURN(elem.as, );
+    D3D_CONTRACT_ASSERT_RETURN(elem.as, );
 
     auto buf = (GenericBufferInterface *)elem.tasbi.instanceBuffer;
     auto sbuf = (GenericBufferInterface *)elem.tasbi.scratchSpaceBuffer;
@@ -3807,8 +4067,8 @@ void d3d::copy_raytrace_acceleration_structure(RaytraceAnyAccelerationStructure 
 {
   STORE_RETURN_ADDRESS();
 
-  G_ASSERT_RETURN((dst.bottom && src.bottom) || (dst.top && src.top), );
-  G_ASSERT_RETURN(!compact || (dst.bottom && src.bottom), );
+  D3D_CONTRACT_ASSERT_RETURN((dst.bottom && src.bottom) || (dst.top && src.top), );
+  D3D_CONTRACT_ASSERT_RETURN(!compact || (dst.bottom && src.bottom), );
 
   auto rsrc = src.top ? reinterpret_cast<RaytraceAccelerationStructure *>(src.top)
                       : reinterpret_cast<RaytraceAccelerationStructure *>(src.bottom);
@@ -3821,12 +4081,19 @@ void d3d::copy_raytrace_acceleration_structure(RaytraceAnyAccelerationStructure 
 #endif
 
 #if _TARGET_PC_WIN
-APISupport get_dx12_support_status(bool use_any_device = true)
+APISupport get_dx12_support_status(bool use_any_device)
 {
+  if (api_state.supportState.has_value() && api_state.supportState->second == use_any_device)
+  {
+    return api_state.supportState->first;
+  }
+
   const DataBlock &dxCfg = *::dgs_get_settings()->getBlockByNameEx("dx12");
   const DataBlock *gpuCfg = dxCfg.getBlockByName("gpuPreferences");
 
-  if (!gpuCfg && !use_any_device)
+  // if the driver mode is auto but there is no hint in the config how to choose the driver,
+  // then we give up with dx12.
+  if (!use_any_device && !gpuCfg)
   {
     return APISupport::NO_DEVICE_FOUND;
   }
@@ -3856,6 +4123,8 @@ APISupport get_dx12_support_status(bool use_any_device = true)
   auto featureLevel = make_feature_level(dxCfg.getInt("FeatureLevelMajor", min_major_feature_level),
     dxCfg.getInt("FeatureLevelMinor", min_minor_feature_level));
 
+  watchdog_kick();
+
   logdbg("DX12: Scanning for viable devices in performance order...");
 
   UINT index = 0;
@@ -3870,6 +4139,7 @@ APISupport get_dx12_support_status(bool use_any_device = true)
     }
   }
 
+  api_state.supportState.emplace(apiSupport, use_any_device);
   return apiSupport;
 }
 #endif
@@ -3879,8 +4149,8 @@ bool d3d::set_immediate_const(unsigned stage, const uint32_t *data, unsigned num
   STORE_RETURN_ADDRESS();
   // immediate const directly bypasses all state tracking, only stateful command buffer
   // will check for changes and only send updates out if anything did change
-  G_ASSERT(num_words <= MAX_ROOT_CONSTANTS);
-  G_ASSERT(data || !num_words);
+  D3D_CONTRACT_ASSERT(num_words <= MAX_ROOT_CONSTANTS);
+  D3D_CONTRACT_ASSERT(data || !num_words);
 
   const eastl::array<uint32_t, MAX_ROOT_CONSTANTS> defaultData = {};
 
@@ -3918,17 +4188,44 @@ void d3d::set_variable_rate_shading(unsigned rate_x, unsigned rate_y,
   VariableRateShadingCombiner vertex_combiner /*= VariableRateShadingCombiner::VRS_PASSTHROUGH*/,
   VariableRateShadingCombiner pixel_combiner /*= VariableRateShadingCombiner::VRS_PASSTHROUGH*/)
 {
-  G_ASSERTF_RETURN(d3d::get_driver_desc().caps.hasVariableRateShading, , "Variable Shading Rate is unsupported on this device");
+  D3D_CONTRACT_ASSERTF_RETURN(d3d::get_driver_desc().caps.hasVariableRateShading, ,
+    "Variable Shading Rate is unsupported on this device");
 
   api_state.state.setVariableShadingRate(make_shading_rate_from_int_values(rate_x, rate_y),
     map_shading_rate_combiner_to_dx12(vertex_combiner), map_shading_rate_combiner_to_dx12(pixel_combiner));
 }
 void d3d::set_variable_rate_shading_texture(BaseTexture *rate_texture)
 {
-  G_ASSERTF_RETURN(d3d::get_driver_desc().caps.hasVariableRateShadingTexture, , "Can not use shading rate texture on this device");
+  D3D_CONTRACT_ASSERTF_RETURN(d3d::get_driver_desc().caps.hasVariableRateShadingTexture, ,
+    "Can not use shading rate texture on this device");
   api_state.state.setVariableShadingRateTexture(rate_texture);
 }
 #endif
+
+void d3d::set_stream_output_buffer(int slot, const StreamOutputBufferSetup &buffer)
+{
+  STORE_RETURN_ADDRESS();
+
+  D3D_CONTRACT_ASSERT_RETURN(slot < MAX_STREAM_OUTPUT_BUFFERS, );
+  D3D_CONTRACT_ASSERT_RETURN(slot >= 0, );
+  if (buffer.buffer == nullptr)
+  {
+    D3D_CONTRACT_ASSERT_RETURN(buffer.counterBuffer == nullptr, );
+    D3D_CONTRACT_ASSERT_RETURN(buffer.byteOffset == 0, );
+    D3D_CONTRACT_ASSERT_RETURN(buffer.byteOffsetCounter == 0, );
+  }
+  else
+  {
+    D3D_CONTRACT_ASSERT_RETURN(buffer.counterBuffer != nullptr, );
+    D3D_CONTRACT_ASSERT_RETURN(buffer.buffer->getSize() > buffer.byteOffset, );
+    D3D_CONTRACT_ASSERT_RETURN(buffer.counterBuffer->getSize() >= buffer.byteOffsetCounter + sizeof(uint32_t), );
+    D3D_CONTRACT_ASSERT_RETURN(buffer.byteOffsetCounter % 4 == 0, );
+    D3D_CONTRACT_ASSERT_RETURN(buffer.buffer->getFlags() & SBCF_USAGE_STREAM_OUTPUT, );
+    D3D_CONTRACT_ASSERT_RETURN(buffer.counterBuffer->getFlags() & SBCF_USAGE_STREAM_OUTPUT_COUNTER, );
+  }
+
+  api_state.state.setStreamOutputBuffer(slot, buffer);
+}
 
 namespace
 {
@@ -3947,7 +4244,7 @@ void validate_buffer_barrier(ResourceBarrier barrier, GpuPipeline q)
     // flush is a special case and can end up in buffer enum, with the single barrier parameter constructor.
     if (RB_ALIAS_ALL != barrier)
     {
-      D3D_ERROR("DX12: Aliasing barriers are not needed for buffers");
+      D3D_CONTRACT_ERROR("DX12: Aliasing barriers are not needed for buffers");
     }
     return;
   }
@@ -3956,7 +4253,8 @@ void validate_buffer_barrier(ResourceBarrier barrier, GpuPipeline q)
   {
     if (RB_NONE != ((~RB_FLUSH_RAYTRACE_ACCELERATION_BUILD_SCRATCH_USE) & barrier))
     {
-      D3D_ERROR("DX12: A flush raytrace acceleration build scratch use barrier can not be combined with any other barrier flag");
+      D3D_CONTRACT_ERROR(
+        "DX12: A flush raytrace acceleration build scratch use barrier can not be combined with any other barrier flag");
     }
   }
 
@@ -3964,38 +4262,38 @@ void validate_buffer_barrier(ResourceBarrier barrier, GpuPipeline q)
   {
     if (RB_NONE == ((RB_STAGE_VERTEX | RB_STAGE_PIXEL | RB_STAGE_COMPUTE | RB_STAGE_RAYTRACE) & barrier))
     {
-      D3D_ERROR("DX12: A UAV barrier requires a destination stage");
+      D3D_CONTRACT_ERROR("DX12: A UAV barrier requires a destination stage");
     }
     if (RB_NONE == ((RB_SOURCE_STAGE_VERTEX | RB_SOURCE_STAGE_PIXEL | RB_SOURCE_STAGE_COMPUTE | RB_SOURCE_STAGE_RAYTRACE) & barrier))
     {
-      D3D_ERROR("DX12: A UAV barrier requires a source stage");
+      D3D_CONTRACT_ERROR("DX12: A UAV barrier requires a source stage");
     }
     if (RB_NONE != ((~(RB_FLUSH_UAV | RB_STAGE_VERTEX | RB_STAGE_PIXEL | RB_STAGE_COMPUTE | RB_STAGE_RAYTRACE |
                        RB_SOURCE_STAGE_VERTEX | RB_SOURCE_STAGE_PIXEL | RB_SOURCE_STAGE_COMPUTE | RB_SOURCE_STAGE_RAYTRACE)) &
                      barrier))
     {
-      D3D_ERROR("DX12: A UAV barrier can not combined with any other transition");
+      D3D_CONTRACT_ERROR("DX12: A UAV barrier can not combined with any other transition");
     }
   }
   if (RB_NONE != (RB_FLAG_DONT_PRESERVE_CONTENT & barrier))
   {
-    D3D_ERROR("DX12: Buffers do not support destructive transition");
+    D3D_CONTRACT_ERROR("DX12: Buffers do not support destructive transition");
   }
   if (RB_NONE != ((RB_FLAG_SPLIT_BARRIER_BEGIN | RB_FLAG_SPLIT_BARRIER_END) & barrier))
   {
-    D3D_ERROR("DX12: Can not request a split barrier for a buffer barrier");
+    D3D_CONTRACT_ERROR("DX12: Can not request a split barrier for a buffer barrier");
   }
   if (RB_NONE != ((RB_RO_BLIT_SOURCE | RB_RW_BLIT_DEST) & barrier))
   {
-    D3D_ERROR("DX12: A buffer can neither be a blit source nor destination");
+    D3D_CONTRACT_ERROR("DX12: A buffer can neither be a blit source nor destination");
   }
   if (RB_NONE != (RB_RO_VARIABLE_RATE_SHADING_TEXTURE & barrier))
   {
-    D3D_ERROR("DX12: A buffer can not be used as variable rate shading texture");
+    D3D_CONTRACT_ERROR("DX12: A buffer can not be used as variable rate shading texture");
   }
   if (RB_NONE != (RB_RW_RENDER_TARGET & barrier))
   {
-    D3D_ERROR("DX12: A buffer can not be used as render target");
+    D3D_CONTRACT_ERROR("DX12: A buffer can not be used as render target");
   }
   if (RB_NONE != (RB_RW_UAV & barrier))
   {
@@ -4003,7 +4301,7 @@ void validate_buffer_barrier(ResourceBarrier barrier, GpuPipeline q)
                       RB_RO_INDIRECT_BUFFER | RB_RO_COPY_SOURCE | RB_RO_RAYTRACE_ACCELERATION_BUILD_SOURCE) &
                      barrier))
     {
-      D3D_ERROR("DX12: A write state can not be combined with any other states");
+      D3D_CONTRACT_ERROR("DX12: A write state can not be combined with any other states");
     }
   }
   if (RB_NONE != (RB_RW_COPY_DEST & barrier))
@@ -4012,7 +4310,7 @@ void validate_buffer_barrier(ResourceBarrier barrier, GpuPipeline q)
                       RB_RO_COPY_SOURCE | RB_RO_RAYTRACE_ACCELERATION_BUILD_SOURCE) &
                      barrier))
     {
-      D3D_ERROR("DX12: A write state can not be combined with any other states");
+      D3D_CONTRACT_ERROR("DX12: A write state can not be combined with any other states");
     }
   }
   if (RB_NONE == ((RB_RW_COPY_DEST | RB_RO_COPY_SOURCE | RB_RO_INDIRECT_BUFFER | RB_RO_INDEX_BUFFER | RB_RO_VERTEX_BUFFER) & barrier))
@@ -4020,7 +4318,7 @@ void validate_buffer_barrier(ResourceBarrier barrier, GpuPipeline q)
     // shader related state require a stage to be defined, where they are used.
     if (RB_NONE == ((RB_STAGE_VERTEX | RB_STAGE_PIXEL | RB_STAGE_COMPUTE | RB_STAGE_RAYTRACE) & barrier))
     {
-      D3D_ERROR("DX12: Transitioned state requires a target stage");
+      D3D_CONTRACT_ERROR("DX12: Transitioned state requires a target stage");
     }
   }
   if (GpuPipeline::GRAPHICS == q)
@@ -4032,25 +4330,25 @@ void validate_buffer_barrier(ResourceBarrier barrier, GpuPipeline q)
     // compute queue, can only handle compute and ray trace related shaders
     if (RB_NONE != (RB_STAGE_VERTEX & barrier))
     {
-      D3D_ERROR("DX12: Can not target vertex shader stage on compute queue");
+      D3D_CONTRACT_ERROR("DX12: Can not target vertex shader stage on compute queue");
     }
     if (RB_NONE != (RB_STAGE_PIXEL & barrier))
     {
-      D3D_ERROR("DX12: Can not target pixel shader stage on compute queue");
+      D3D_CONTRACT_ERROR("DX12: Can not target pixel shader stage on compute queue");
     }
     if (RB_NONE != (RB_STAGE_RAYTRACE & barrier))
     {
       // as soon as the ray trace interface has the ability to target the compute
       // queue we can remove this
-      D3D_ERROR("DX12: Can not target ray trace shader stage on compute queue (yet!)");
+      D3D_CONTRACT_ERROR("DX12: Can not target ray trace shader stage on compute queue (yet!)");
     }
     if (RB_NONE != (RB_RO_VERTEX_BUFFER & barrier))
     {
-      D3D_ERROR("DX12: Can not transition to vertex buffer on compute queue");
+      D3D_CONTRACT_ERROR("DX12: Can not transition to vertex buffer on compute queue");
     }
     if (RB_NONE != (RB_RO_INDEX_BUFFER & barrier))
     {
-      D3D_ERROR("DX12: Can not transition to index buffer on compute queue");
+      D3D_CONTRACT_ERROR("DX12: Can not transition to index buffer on compute queue");
     }
   }
 }
@@ -4063,7 +4361,7 @@ bool validate_texture_barrier(ResourceBarrier barrier, bool is_depth, bool is_rt
 
   bool isOkayToExecute = true;
   auto reportError = [&isOkayToExecute](auto value) {
-    D3D_ERROR(value);
+    D3D_CONTRACT_ERROR("%s", value);
     isOkayToExecute = false;
   };
 
@@ -4102,7 +4400,7 @@ bool validate_texture_barrier(ResourceBarrier barrier, bool is_depth, bool is_rt
   if (!is_uav && !is_rt)
   {
     reportError("DX12: Barriers for textures without TEXCF_RTARGET and/or TEXCF_UNORDERED creation "
-                "flags are unneccesary");
+                "flags are unnecessary");
   }
 
   if (RB_NONE != (RB_FLUSH_UAV & barrier))
@@ -4237,7 +4535,7 @@ bool validate_texture_barrier(ResourceBarrier barrier, bool is_depth, bool is_rt
 }
 } // namespace
 
-void d3d::resource_barrier(ResourceBarrierDesc desc, GpuPipeline gpu_pipeline /* = GpuPipeline::GRAPHICS*/)
+void d3d::resource_barrier(const ResourceBarrierDesc &desc, GpuPipeline gpu_pipeline /* = GpuPipeline::GRAPHICS*/)
 {
   STORE_RETURN_ADDRESS();
   ScopedCommitLock ctxLock{api_state.device.getContext()};
@@ -4245,7 +4543,7 @@ void d3d::resource_barrier(ResourceBarrierDesc desc, GpuPipeline gpu_pipeline /*
     {
       validate_buffer_barrier(state, gpu_pipeline);
       auto gbuf = (GenericBufferInterface *)buf;
-      BufferResourceReference ref;
+      BufferReference ref;
       if (gbuf)
       {
         if (RB_NONE == (RB_RW_UAV & state))
@@ -4260,14 +4558,14 @@ void d3d::resource_barrier(ResourceBarrierDesc desc, GpuPipeline gpu_pipeline /*
   desc.enumerateTextureBarriers([gpu_pipeline](auto tex, auto state, auto res_index, auto res_range) {
     if (!tex)
     {
-      D3D_ERROR("DX12: Texture barrier with nullptr for texture!");
+      D3D_CONTRACT_ERROR("DX12: Texture barrier with nullptr for texture!");
       return;
     }
 
     auto btex = cast_to_texture_base(tex);
     if (!validate_texture_barrier(state, btex->getFormat().isDepth(), btex->isRenderTarget(), btex->isUav(), gpu_pipeline))
     {
-      D3D_ERROR("DX12: Barrier validation resulted in skipped barrier for %s", btex->getResName());
+      D3D_ERROR("DX12: Barrier validation resulted in skipped barrier for %s", btex->getName());
       return;
     }
 
@@ -4276,21 +4574,25 @@ void d3d::resource_barrier(ResourceBarrierDesc desc, GpuPipeline gpu_pipeline /*
     {
       if (!api_state.device.isRecovering())
       {
-        D3D_ERROR("DX12: Texture barrier for <%s>, image was null", btex->getResName());
+        D3D_ERROR("DX12: Texture barrier for <%s>, image was null", btex->getName());
       }
       return;
     }
     auto range = image->getSubresourceRangeForBarrier(res_index, res_range);
     if (!range.isValidRange())
     {
-      D3D_ERROR("DX12: Barrier with invalid subresource range resulted in skipped barrier %s", btex->getResName());
+      D3D_CONTRACT_ERROR("DX12: Barrier with invalid subresource range resulted in skipped barrier %s", btex->getName());
       return;
     }
 
     api_state.device.getContext().textureBarrier(image, range, btex->cflg, state, gpu_pipeline, false);
   });
 #if D3D_HAS_RAY_TRACING
-  desc.enumerateBlasBarriers([gpu_pipeline](auto blas) { api_state.device.getContext().blasBarrier(blas, gpu_pipeline); });
+  desc.enumerateBlasBarriers([gpu_pipeline](auto blas) {
+    api_state.device.getContext().blasBarrier(reinterpret_cast<RaytraceAccelerationStructure *>(blas), gpu_pipeline);
+  });
+  desc.enumerateAccelerationStructurePoolBarriers(
+    [](auto pool) { api_state.device.getContext().accelerationStructurePoolBarrier(pool); });
 #endif
 }
 
@@ -4301,8 +4603,8 @@ bool validate_sampler_info(const d3d::SamplerInfo &info)
   G_UNUSED(info);
   bool noErrors = true;
 
-  G_ASSERTF_AND_DO(is_pow2(static_cast<unsigned int>(info.anisotropic_max)) && (info.anisotropic_max <= 16.0f), noErrors = false,
-    "DX12: in request_sampler, 'info.anisotropic_max' of %f is invalid", info.anisotropic_max);
+  D3D_CONTRACT_ASSERTF_AND_DO(is_pow2(static_cast<unsigned int>(info.anisotropic_max)) && (info.anisotropic_max <= 16.0f),
+    noErrors = false, "DX12: in request_sampler, 'info.anisotropic_max' of %f is invalid", info.anisotropic_max);
 
   return noErrors;
 }
@@ -4318,22 +4620,15 @@ d3d::SamplerHandle d3d::request_sampler(const d3d::SamplerInfo &info)
 
 void d3d::set_sampler(unsigned shader_stage, unsigned slot, d3d::SamplerHandle handle)
 {
-  G_ASSERTF_RETURN(d3d::INVALID_SAMPLER_HANDLE != handle, , "DX12: in set_sampler, 'handle' is INVALID_SAMPLER_HANDLE");
   api_state.state.setStageSampler(shader_stage, slot, handle);
-}
-
-uint32_t d3d::register_bindless_sampler(BaseTexture *texture)
-{
-  STORE_RETURN_ADDRESS();
-  G_ASSERTF_RETURN(d3d::get_driver_desc().caps.hasBindless, 0, "Bindless resources are not supported on this hardware");
-  G_ASSERTF_RETURN(texture != nullptr, 0, "d3d::register_bindless_sampler texture can not be null");
-  return api_state.device.registerBindlessSampler((BaseTex *)texture);
 }
 
 uint32_t d3d::register_bindless_sampler(d3d::SamplerHandle sampler)
 {
   STORE_RETURN_ADDRESS();
-  G_ASSERTF_RETURN(d3d::get_driver_desc().caps.hasBindless, 0, "Bindless resources are not supported on this hardware");
+  D3D_CONTRACT_ASSERTF_RETURN(d3d::get_driver_desc().caps.hasBindless, 0, "Bindless resources are not supported on this hardware");
+  D3D_CONTRACT_ASSERTF_RETURN(sampler != d3d::INVALID_SAMPLER_HANDLE, 0,
+    "Trying to register invalid sampler handle as a bindless sampler");
   return api_state.device.registerBindlessSampler(sampler);
 }
 
@@ -4352,6 +4647,11 @@ void drv3d_dx12::dirty_sampler(BaseTex *texture, uint32_t stage, Bitset<dxil::MA
   api_state.state.dirtySampler(texture, stage, slots);
 }
 
+void drv3d_dx12::dirty_sampler_no_lock(BaseTex *texture, uint32_t stage, Bitset<dxil::MAX_T_REGISTERS> slots)
+{
+  api_state.state.dirtySamplerNoLock(texture, stage, slots);
+}
+
 void drv3d_dx12::dirty_srv_and_sampler_no_lock(BaseTex *texture, uint32_t stage, Bitset<dxil::MAX_T_REGISTERS> slots)
 {
   api_state.state.dirtySRVandSamplerNoLock(texture, stage, slots);
@@ -4362,9 +4662,9 @@ void drv3d_dx12::dirty_uav_no_lock(BaseTex *texture, uint32_t stage, Bitset<dxil
   api_state.state.dirtyUAVNoLock(texture, stage, slots);
 }
 
-void drv3d_dx12::dirty_rendertarget_no_lock(BaseTex *texture, Bitset<Driver3dRenderTarget::MAX_SIMRT> slots)
+void drv3d_dx12::dirty_rendertarget_no_lock(BaseTex *texture, Bitset<Driver3dRenderTarget::MAX_SIMRT> slots, bool dsv)
 {
-  api_state.state.dirtyRenderTargetNoLock(texture, slots);
+  api_state.state.dirtyRenderTargetNoLock(texture, slots, dsv);
 }
 
 void drv3d_dx12::notify_delete(BaseTex *texture, const Bitset<dxil::MAX_T_REGISTERS> *srvs, const Bitset<dxil::MAX_U_REGISTERS> *uavs,
@@ -4393,17 +4693,22 @@ bool validate_resource_description(const BasicResourceDescription &desc, const c
   return true;
 }
 
+#define CHECK_FLAG_AND_LOG(flag)                                                    \
+  if ((flag & desc.cFlags) != 0)                                                    \
+  {                                                                                 \
+    D3D_CONTRACT_ERROR("DX12: cFlags of %s had incompatible " #flag " flag", what); \
+    noErrors = false;                                                               \
+  }
+
 bool validate_resource_description(const BufferResourceDescription &desc, const char *what)
 {
   bool noErrors = validate_resource_description(static_cast<const BasicResourceDescription &>(desc), what);
 
-  G_ASSERT_DO_AND_LOG(0 == (SBCF_DYNAMIC & desc.cFlags), noErrors = false, "DX12: cFlags of %s had incompatible SBCF_DYNAMIC flag",
-    what);
-  G_ASSERT_DO_AND_LOG(0 == (SBCF_FRAMEMEM & desc.cFlags), noErrors = false, "DX12: cFlags of %s had incompatible SBCF_FRAMEMEM flag",
-    what);
-  G_ASSERT_DO_AND_LOG(0 == (SBCF_ZEROMEM & desc.cFlags), noErrors = false, "DX12: cFlags of %s had incompatible SBCF_ZEROMEM flag",
-    what);
+  CHECK_FLAG_AND_LOG(SBCF_DYNAMIC);
+  CHECK_FLAG_AND_LOG(SBCF_FRAMEMEM);
+  CHECK_FLAG_AND_LOG(SBCF_ZEROMEM);
 
+  D3D_CONTRACT_ASSERTF(noErrors, "Incompatible flags detected. See previous log messages");
   return noErrors;
 }
 
@@ -4411,21 +4716,17 @@ bool validate_resource_description(const BasicTextureResourceDescription &desc, 
 {
   bool noErrors = validate_resource_description(static_cast<const BasicResourceDescription &>(desc), what);
 
-  G_ASSERT_DO_AND_LOG(0 == (TEXCF_SYSTEXCOPY & desc.cFlags), noErrors = false,
-    "DX12: cFlags of %s had incompatible TEXCF_SYSTEXCOPY flag", what);
-  G_ASSERT_DO_AND_LOG(0 == (TEXCF_DYNAMIC & desc.cFlags), noErrors = false, "DX12: cFlags of %s had incompatible TEXCF_DYNAMIC flag",
-    what);
-  G_ASSERT_DO_AND_LOG(0 == (TEXCF_SYSMEM & desc.cFlags), noErrors = false, "DX12: cFlags of %s had incompatible TEXCF_SYSMEM flag",
-    what);
-  G_ASSERT_DO_AND_LOG(0 == (TEXCF_MOVABLE_ESRAM & desc.cFlags), noErrors = false,
-    "DX12: cFlags of %s had incompatible TEXCF_MOVABLE_ESRAM flag", what);
-  G_ASSERT_DO_AND_LOG(0 == (TEXCF_CLEAR_ON_CREATE & desc.cFlags), noErrors = false,
-    "DX12: cFlags of %s had incompatible TEXCF_CLEAR_ON_CREATE flag", what);
-  G_ASSERT_DO_AND_LOG(0 == (TEXCF_TILED_RESOURCE & desc.cFlags), noErrors = false,
-    "DX12: cFlags of %s had incompatible TEXCF_TILED_RESOURCE flag", what);
+  CHECK_FLAG_AND_LOG(TEXCF_SYSTEXCOPY);
+  CHECK_FLAG_AND_LOG(TEXCF_DYNAMIC);
+  CHECK_FLAG_AND_LOG(TEXCF_SYSMEM);
+  CHECK_FLAG_AND_LOG(TEXCF_CLEAR_ON_CREATE);
+  CHECK_FLAG_AND_LOG(TEXCF_TILED_RESOURCE);
 
+  D3D_CONTRACT_ASSERTF(noErrors, "Incompatible flags detected. See previous log messages");
   return noErrors;
 }
+
+#undef CHECK_FLAG_AND_LOG
 
 bool validate_resource_description(const TextureResourceDescription &desc, const char *what)
 {
@@ -4459,14 +4760,14 @@ bool validate_resource_description(const ArrayCubeTextureResourceDescription &de
 
 bool validate_resource_description(const ResourceDescription &desc, const char *what)
 {
-  switch (desc.resType)
+  switch (desc.type)
   {
-    case RES3D_TEX: return validate_resource_description(desc.asTexRes, what);
-    case RES3D_CUBETEX: return validate_resource_description(desc.asCubeTexRes, what);
-    case RES3D_VOLTEX: return validate_resource_description(desc.asVolTexRes, what);
-    case RES3D_ARRTEX: return validate_resource_description(desc.asArrayTexRes, what);
-    case RES3D_CUBEARRTEX: return validate_resource_description(desc.asArrayCubeTexRes, what);
-    case RES3D_SBUF: return validate_resource_description(desc.asBufferRes, what);
+    case D3DResourceType::TEX: return validate_resource_description(desc.asTexRes, what);
+    case D3DResourceType::CUBETEX: return validate_resource_description(desc.asCubeTexRes, what);
+    case D3DResourceType::VOLTEX: return validate_resource_description(desc.asVolTexRes, what);
+    case D3DResourceType::ARRTEX: return validate_resource_description(desc.asArrayTexRes, what);
+    case D3DResourceType::CUBEARRTEX: return validate_resource_description(desc.asArrayCubeTexRes, what);
+    case D3DResourceType::SBUF: return validate_resource_description(desc.asBufferRes, what);
   }
   return false;
 }
@@ -4483,13 +4784,15 @@ ResourceAllocationProperties d3d::get_resource_allocation_properties(const Resou
 
 ResourceHeap *d3d::create_resource_heap(ResourceHeapGroup *heap_group, size_t size, ResourceHeapCreateFlags flags)
 {
-  G_ASSERTF_RETURN(0 != size, nullptr, "DX12: 'size' of create_resource_heap was 0");
+  STORE_RETURN_ADDRESS();
+  D3D_CONTRACT_ASSERTF_RETURN(0 != size, nullptr, "DX12: 'size' of create_resource_heap was 0");
   return api_state.device.newUserHeap(heap_group, size, flags);
 }
 
 void d3d::destroy_resource_heap(ResourceHeap *heap)
 {
-  G_ASSERTF_RETURN(nullptr != heap, , "DX12: 'heap' of destroy_resource_heap was nullptr");
+  STORE_RETURN_ADDRESS();
+  D3D_CONTRACT_ASSERTF_RETURN(nullptr != heap, , "DX12: 'heap' of destroy_resource_heap was nullptr");
   api_state.device.getContext().freeUserHeap(heap);
 }
 
@@ -4497,7 +4800,7 @@ Sbuffer *d3d::place_buffer_in_resource_heap(ResourceHeap *heap, const ResourceDe
   const ResourceAllocationProperties &alloc_info, const char *name)
 {
   STORE_RETURN_ADDRESS();
-  G_ASSERTF_RETURN(nullptr != heap, nullptr, "DX12: 'heap' of place_buffer_in_resource_heap was nullptr");
+  D3D_CONTRACT_ASSERTF_RETURN(nullptr != heap, nullptr, "DX12: 'heap' of place_buffer_in_resource_heap was nullptr");
   // validate already throws asserts, no need to do it again
   if (!validate_resource_description(desc, "'desc' of place_buffer_in_resource_heap"))
   {
@@ -4505,7 +4808,7 @@ Sbuffer *d3d::place_buffer_in_resource_heap(ResourceHeap *heap, const ResourceDe
   }
 
   auto buffer = api_state.device.placeBufferInHeap(heap, desc, offset, alloc_info, name);
-  if (!buffer)
+  if (!buffer && !api_state.device.isIll())
   {
     return nullptr;
   }
@@ -4517,7 +4820,7 @@ BaseTexture *d3d::place_texture_in_resource_heap(ResourceHeap *heap, const Resou
   const ResourceAllocationProperties &alloc_info, const char *name)
 {
   STORE_RETURN_ADDRESS();
-  G_ASSERTF_RETURN(nullptr != heap, nullptr, "DX12: 'heap' of place_texture_in_resource_heap was nullptr");
+  D3D_CONTRACT_ASSERTF_RETURN(nullptr != heap, nullptr, "DX12: 'heap' of place_texture_in_resource_heap was nullptr");
   // validate already throws asserts, no need to do it again
   if (!validate_resource_description(desc, "'desc' of place_texture_in_resource_heap"))
   {
@@ -4525,16 +4828,19 @@ BaseTexture *d3d::place_texture_in_resource_heap(ResourceHeap *heap, const Resou
   }
 
   auto image = api_state.device.placeTextureInHeap(heap, desc, offset, alloc_info, name);
-  if (!image)
+  if (!image && !api_state.device.isIll())
   {
     return nullptr;
   }
-  auto tex = api_state.device.newTextureObject(desc.resType, desc.asBasicRes.cFlags);
-  tex->image = image;
-  tex->realMipLevels = image->getMipLevelRange().count();
-  tex->setParams(image->getBaseExtent().width, image->getBaseExtent().height,
-    image->getType() == D3D12_RESOURCE_DIMENSION_TEXTURE3D ? image->getBaseExtent().depth : image->getArrayLayers().count(),
-    image->getMipLevelRange().count(), name);
+  auto tex = api_state.device.newTextureObject(desc.type, desc.asBasicRes.cFlags);
+  if (image)
+  {
+    tex->image = image;
+    tex->realMipLevels = image->getMipLevelRange().count();
+    tex->setParams(image->getBaseExtent().width, image->getBaseExtent().height,
+      image->getType() == D3D12_RESOURCE_DIMENSION_TEXTURE3D ? image->getBaseExtent().depth : image->getArrayLayers().count(),
+      image->getMipLevelRange().count(), name);
+  }
   return tex;
 }
 
@@ -4545,16 +4851,16 @@ ResourceHeapGroupProperties d3d::get_resource_heap_group_properties(ResourceHeap
 
 void d3d::map_tile_to_resource(BaseTexture *tex, ResourceHeap *heap, const TileMapping *mapping, size_t mapping_count)
 {
-  G_ASSERT_RETURN(tex, );
-  G_ASSERT_RETURN(mapping, );
-  G_ASSERT_RETURN(mapping_count, );
-  G_ASSERT_RETURN(tex->restype() != RES3D_VOLTEX || d3d::get_driver_desc().caps.hasTiled3DResources, );
-  G_ASSERT_RETURN(tex->restype() != RES3D_TEX || d3d::get_driver_desc().caps.hasTiled2DResources, );
-  G_ASSERT_RETURN(tex->restype() != RES3D_CUBETEX || d3d::get_driver_desc().caps.hasTiled2DResources, );
-  G_ASSERT_RETURN(tex->restype() != RES3D_ARRTEX || d3d::get_driver_desc().caps.hasTiled2DResources, );
-  G_ASSERT_RETURN(tex->restype() != RES3D_CUBEARRTEX || d3d::get_driver_desc().caps.hasTiled2DResources, );
+  D3D_CONTRACT_ASSERT_RETURN(tex, );
+  D3D_CONTRACT_ASSERT_RETURN(mapping, );
+  D3D_CONTRACT_ASSERT_RETURN(mapping_count, );
+  D3D_CONTRACT_ASSERT_RETURN(tex->getType() != D3DResourceType::VOLTEX || d3d::get_driver_desc().caps.hasTiled3DResources, );
+  D3D_CONTRACT_ASSERT_RETURN(tex->getType() != D3DResourceType::TEX || d3d::get_driver_desc().caps.hasTiled2DResources, );
+  D3D_CONTRACT_ASSERT_RETURN(tex->getType() != D3DResourceType::CUBETEX || d3d::get_driver_desc().caps.hasTiled2DResources, );
+  D3D_CONTRACT_ASSERT_RETURN(tex->getType() != D3DResourceType::ARRTEX || d3d::get_driver_desc().caps.hasTiled2DResources, );
+  D3D_CONTRACT_ASSERT_RETURN(tex->getType() != D3DResourceType::CUBEARRTEX || d3d::get_driver_desc().caps.hasTiled2DResources, );
   for (int ix = 0; ix < mapping_count; ++ix)
-    G_ASSERT_RETURN(mapping[ix].heapTileSpan > 0, );
+    D3D_CONTRACT_ASSERT_RETURN(mapping[ix].heapTileSpan > 0, );
 
   STORE_RETURN_ADDRESS();
   api_state.device.getContext().mapTileToResource(cast_to_texture_base(tex), heap, mapping, mapping_count);
@@ -4562,7 +4868,7 @@ void d3d::map_tile_to_resource(BaseTexture *tex, ResourceHeap *heap, const TileM
 
 TextureTilingInfo d3d::get_texture_tiling_info(BaseTexture *tex, size_t subresource)
 {
-  G_ASSERT_RETURN(tex, TextureTilingInfo{});
+  D3D_CONTRACT_ASSERT_RETURN(tex, TextureTilingInfo{});
   return api_state.device.getTextureTilingInfo(cast_to_texture_base(tex), subresource);
 }
 
@@ -4586,22 +4892,20 @@ bool check_buffer_activation(ResourceActivationAction action)
 }
 } // namespace
 
-void d3d::activate_buffer(Sbuffer *buf, ResourceActivationAction action, const ResourceClearValue &value,
-  GpuPipeline gpu_pipeline /*= GpuPipeline::GRAPHICS*/)
+void d3d::activate_buffer(Sbuffer *buf, ResourceActivationAction action, GpuPipeline gpu_pipeline /*= GpuPipeline::GRAPHICS*/)
 {
   CHECK_MAIN_THREAD();
-  G_ASSERTF_RETURN(nullptr != buf, , "DX12: 'buf' of activate_buffer was nullptr");
-  G_ASSERTF_RETURN(check_buffer_activation(action), , "DX12: 'activation' of activate_buffer was invalid");
+  D3D_CONTRACT_ASSERTF_RETURN(nullptr != buf, , "DX12: 'buf' of activate_buffer was nullptr");
+  D3D_CONTRACT_ASSERTF_RETURN(check_buffer_activation(action), , "DX12: 'activation' of activate_buffer was invalid");
   STORE_RETURN_ADDRESS();
   decltype(auto) buffer = ((GenericBufferInterface *)buf)->getDeviceBuffer();
-  api_state.device.getContext().activateBuffer(buffer, api_state.device.getResourceMemoryForBuffer(buffer), action, value,
-    gpu_pipeline);
+  api_state.device.getContext().activateBuffer(buffer, action, gpu_pipeline);
 }
 void d3d::activate_texture(BaseTexture *tex, ResourceActivationAction action, const ResourceClearValue &value,
   GpuPipeline gpu_pipeline /*= GpuPipeline::GRAPHICS*/)
 {
   CHECK_MAIN_THREAD();
-  G_ASSERTF_RETURN(nullptr != tex, , "DX12: 'tex' of activate_texture was nullptr");
+  D3D_CONTRACT_ASSERTF_RETURN(nullptr != tex, , "DX12: 'tex' of activate_texture was nullptr");
   STORE_RETURN_ADDRESS();
   api_state.device.getContext().activateTexture(cast_to_texture_base(tex), action, value, gpu_pipeline);
 }
@@ -4613,7 +4917,7 @@ void d3d::deactivate_buffer(Sbuffer *buf, GpuPipeline gpu_pipeline /*= GpuPipeli
   if (buf)
   {
     decltype(auto) buffer = ((GenericBufferInterface *)buf)->getDeviceBuffer();
-    api_state.device.getContext().deactivateBuffer(buffer, api_state.device.getResourceMemoryForBuffer(buffer), gpu_pipeline);
+    api_state.device.getContext().deactivateBuffer(buffer, gpu_pipeline);
   }
   else
   {
@@ -4654,57 +4958,57 @@ REGISTER_IMGUI_WINDOW("DX12", "DX12 Resource Use / Barriers##DX12-Resource-Use-B
 #endif
 
 
-uint32_t d3d::allocate_bindless_resource_range(uint32_t, uint32_t count)
+uint32_t d3d::allocate_bindless_resource_range(D3DResourceType type, uint32_t count)
 {
-  G_ASSERTF_RETURN(d3d::get_driver_desc().caps.hasBindless, 0, "Bindless resources are not supported on this hardware");
-  G_ASSERTF_RETURN(count > 0, 0, "d3d::allocate_bindless_resource_range: 'count' must be larger than 0");
-  return api_state.device.allocateBindlessResourceRange(count);
+  D3D_CONTRACT_ASSERTF_RETURN(d3d::get_driver_desc().caps.hasBindless, 0, "Bindless resources are not supported on this hardware");
+  D3D_CONTRACT_ASSERTF_RETURN(count > 0, 0, "d3d::allocate_bindless_resource_range: 'count' must be larger than 0");
+  return api_state.device.allocateBindlessResourceRange(type, count);
 }
 
-uint32_t d3d::resize_bindless_resource_range(uint32_t, uint32_t index, uint32_t current_count, uint32_t new_count)
+uint32_t d3d::resize_bindless_resource_range(D3DResourceType type, uint32_t index, uint32_t current_count, uint32_t new_count)
 {
-  G_ASSERTF_RETURN(d3d::get_driver_desc().caps.hasBindless, 0, "Bindless resources are not supported on this hardware");
+  D3D_CONTRACT_ASSERTF_RETURN(d3d::get_driver_desc().caps.hasBindless, 0, "Bindless resources are not supported on this hardware");
   STORE_RETURN_ADDRESS();
   if (current_count > 0)
   {
-    return api_state.device.resizeBindlessResourceRange(index, current_count, new_count);
+    return api_state.device.resizeBindlessResourceRange(type, index, current_count, new_count);
   }
   else
   {
-    return api_state.device.allocateBindlessResourceRange(new_count);
+    return api_state.device.allocateBindlessResourceRange(type, new_count);
   }
 }
 
-void d3d::free_bindless_resource_range(uint32_t, uint32_t index, uint32_t count)
+void d3d::free_bindless_resource_range(D3DResourceType type, uint32_t index, uint32_t count)
 {
-  G_ASSERTF_RETURN(d3d::get_driver_desc().caps.hasBindless, , "Bindless resources are not supported on this hardware");
+  D3D_CONTRACT_ASSERTF_RETURN(d3d::get_driver_desc().caps.hasBindless, , "Bindless resources are not supported on this hardware");
   if (count > 0)
   {
-    api_state.device.freeBindlessResourceRange(index, count);
+    api_state.device.freeBindlessResourceRange(type, index, count);
   }
 }
 
-void d3d::update_bindless_resource(uint32_t index, D3dResource *res)
+bool d3d::update_bindless_resource(D3DResourceType, uint32_t index, D3dResource *res)
 {
   STORE_RETURN_ADDRESS();
-  G_ASSERTF_RETURN(d3d::get_driver_desc().caps.hasBindless, , "Bindless resources are not supported on this hardware");
-  G_ASSERTF_RETURN(res != nullptr, , "d3d::update_bindless_resource: 'res' can not be null");
-  auto resType = res->restype();
-  if (RES3D_SBUF == resType)
+  D3D_CONTRACT_ASSERTF_RETURN(d3d::get_driver_desc().caps.hasBindless, false, "Bindless resources are not supported on this hardware");
+  D3D_CONTRACT_ASSERTF_RETURN(res != nullptr, false, "d3d::update_bindless_resource: 'res' can not be null");
+  auto type = res->getType();
+  if (D3DResourceType::SBUF == type)
   {
-    api_state.device.updateBindlessBuffer(index, (GenericBufferInterface *)res);
+    return api_state.device.updateBindlessBuffer(index, (GenericBufferInterface *)res);
   }
   else
   {
-    api_state.device.updateBindlessTexture(index, (BaseTex *)res);
+    return api_state.device.updateBindlessTexture(index, (BaseTex *)res);
   }
 }
 
-void d3d::update_bindless_resources_to_null(uint32_t resource_type, uint32_t index, uint32_t count)
+void d3d::update_bindless_resources_to_null(D3DResourceType type, uint32_t index, uint32_t count)
 {
-  G_ASSERTF_RETURN(d3d::get_driver_desc().caps.hasBindless, , "Bindless resources are not supported on this hardware");
+  D3D_CONTRACT_ASSERTF_RETURN(d3d::get_driver_desc().caps.hasBindless, , "Bindless resources are not supported on this hardware");
   STORE_RETURN_ADDRESS();
-  api_state.device.updateBindlessNull(resource_type, index, count);
+  api_state.device.updateBindlessNull(type, index, count);
 }
 
 #if D3D_HAS_RAY_TRACING
@@ -4837,7 +5141,7 @@ void d3d::raytrace::dispatch(const ::raytrace::ResourceBindingTable &rbt, const 
 {
   G_UNUSED(gpu_pipeline);
 
-  G_ASSERT_RETURN(::raytrace::InvalidPipeline != pipeline, );
+  D3D_CONTRACT_ASSERT_RETURN(::raytrace::InvalidPipeline != pipeline, );
 
   STORE_RETURN_ADDRESS();
   api_state.device.getContext().dispatchRays(rbt, pipeline, rdv);
@@ -4849,10 +5153,10 @@ void d3d::raytrace::dispatch_indirect(const ::raytrace::ResourceBindingTable &rb
 {
   G_UNUSED(gpu_pipeline);
 
-  G_ASSERT_RETURN(::raytrace::InvalidPipeline != pipeline, );
-  G_ASSERTF_RETURN(rdip.indirectBuffer, , "DX12: raytrace::dispatch_rays_indirect args parameter can not be null");
+  D3D_CONTRACT_ASSERT_RETURN(::raytrace::InvalidPipeline != pipeline, );
+  D3D_CONTRACT_ASSERTF_RETURN(rdip.indirectBuffer, , "DX12: raytrace::dispatch_rays_indirect args parameter can not be null");
   GenericBufferInterface *argsBuffer = (GenericBufferInterface *)rdip.indirectBuffer;
-  G_ASSERTF_RETURN(argsBuffer->getFlags() & SBCF_MISC_DRAWINDIRECT, ,
+  D3D_CONTRACT_ASSERTF_RETURN(argsBuffer->getFlags() & SBCF_MISC_DRAWINDIRECT, ,
     "DX12: raytrace::dispatch_rays_indirect indirectBuffer is not usable as indirect buffer");
 
   STORE_RETURN_ADDRESS();
@@ -4864,17 +5168,164 @@ void d3d::raytrace::dispatch_indirect_count(const ::raytrace::ResourceBindingTab
 {
   G_UNUSED(gpu_pipeline);
 
-  G_ASSERT_RETURN(::raytrace::InvalidPipeline != pipeline, );
-  G_ASSERTF_RETURN(rdicp.indirectBuffer, , "DX12: raytrace::dispatch_indirect_count indirectBuffer parameter can not be null");
-  G_ASSERTF_RETURN(rdicp.countBuffer, , "DX12: raytrace::dispatch_indirect_count indirectBuffer parameter can not be null");
+  D3D_CONTRACT_ASSERT_RETURN(::raytrace::InvalidPipeline != pipeline, );
+  D3D_CONTRACT_ASSERTF_RETURN(rdicp.indirectBuffer, ,
+    "DX12: raytrace::dispatch_indirect_count indirectBuffer parameter can not be null");
+  D3D_CONTRACT_ASSERTF_RETURN(rdicp.countBuffer, , "DX12: raytrace::dispatch_indirect_count indirectBuffer parameter can not be null");
   GenericBufferInterface *argsBuffer = (GenericBufferInterface *)rdicp.indirectBuffer;
   GenericBufferInterface *countBuffer = (GenericBufferInterface *)rdicp.countBuffer;
-  G_ASSERTF_RETURN(argsBuffer->getFlags() & SBCF_MISC_DRAWINDIRECT, ,
+  D3D_CONTRACT_ASSERTF_RETURN(argsBuffer->getFlags() & SBCF_MISC_DRAWINDIRECT, ,
     "DX12: raytrace::dispatch_indirect_count indirectBuffer is not usable as indirect buffer");
-  G_ASSERTF_RETURN(countBuffer->getFlags() & SBCF_MISC_DRAWINDIRECT, ,
+  D3D_CONTRACT_ASSERTF_RETURN(countBuffer->getFlags() & SBCF_MISC_DRAWINDIRECT, ,
     "DX12: raytrace::dispatch_indirect_count countBuffer is not usable as indirect buffer");
 
   STORE_RETURN_ADDRESS();
   api_state.device.getContext().dispatchRaysIndirectCount(rbt, pipeline, rdicp);
+}
+
+::raytrace::AccelerationStructurePool d3d::raytrace::create_acceleration_structure_pool(
+  const ::raytrace::AccelerationStructurePoolCreateInfo &info)
+{
+  return api_state.device.createAccelerationStructurePool(info);
+}
+
+void d3d::raytrace::destroy_acceleration_structure_pool(::raytrace::AccelerationStructurePool pool)
+{
+  api_state.device.getContext().deleteRaytraceAccelerationStructurePool(pool);
+}
+
+RaytraceAccelerationStructureGpuHandle d3d::raytrace::get_pool_base_address(::raytrace::AccelerationStructurePool pool)
+{
+  D3D_CONTRACT_ASSERTF_RETURN(::raytrace::InvalidAccelerationStructurePool != pool, {0},
+    "DX12: d3d::raytrace::get_pool_base_address invoked with InvalidAccelerationStructurePool for 'pool' parameter");
+  return {reinterpret_cast<const RayTraceAccelerationStructurePool *>(pool)->baseAddress};
+}
+
+::raytrace::AccelerationStructureSizes d3d::raytrace::calculate_acceleration_structure_sizes(
+  const ::raytrace::AccelerationStructureSizeCalculcationInfo &info)
+{
+  return eastl::visit([](auto &i) { return api_state.device.calculateAccelerationStructureSizes(i); }, info);
+}
+
+::raytrace::AnyAccelerationStructure d3d::raytrace::create_acceleration_structure(::raytrace::AccelerationStructurePool pool,
+  const ::raytrace::AccelerationStructurePlacementInfo &placement_info)
+{
+  if (::raytrace::InvalidAccelerationStructurePool != pool)
+  {
+    return eastl::visit(
+      [pool](auto &info) {
+        return ::raytrace::AnyAccelerationStructure{api_state.device.createRaytraceAccelerationStructure(pool, info)};
+      },
+      placement_info);
+  }
+  else
+  {
+    return eastl::visit(
+      [](auto &info) { return ::raytrace::AnyAccelerationStructure{api_state.device.createRaytraceAccelerationStructure(info)}; },
+      placement_info);
+  }
+}
+
+void d3d::raytrace::destroy_acceleration_structure(::raytrace::AccelerationStructurePool pool,
+  ::raytrace::AnyAccelerationStructure structure)
+{
+  if (::raytrace::InvalidAccelerationStructurePool != pool)
+  {
+    api_state.device.getContext().deleteRaytraceAccelerationStructure(pool, structure);
+  }
+  else
+  {
+    if (structure.top)
+    {
+      api_state.device.getContext().deleteRaytraceTopAccelerationStructure(structure.top);
+    }
+    else if (structure.bottom)
+    {
+      api_state.device.getContext().deleteRaytraceBottomAccelerationStructure(structure.bottom);
+    }
+  }
+}
+
+void d3d::raytrace::build_acceleration_structure(::raytrace::AccelerationStructureBuildParameters build_params,
+  ::raytrace::AccelerationStructureBuildMode)
+{
+  // TODO basic unoptimized version
+  if (!build_params.bottomBuilds.empty())
+  {
+    build_bottom_acceleration_structures(build_params.bottomBuilds.data(), build_params.bottomBuilds.size());
+    if (build_params.flushAfterBottomBuild)
+    {
+      for (auto &build : build_params.bottomBuilds)
+      {
+        if (build.as)
+        {
+          api_state.device.getContext().blasBarrier(reinterpret_cast<RaytraceAccelerationStructure *>(build.as),
+            GpuPipeline::GRAPHICS);
+        }
+      }
+    }
+  }
+  if (!build_params.topBuilds.empty())
+  {
+    build_top_acceleration_structures(build_params.topBuilds.data(), build_params.topBuilds.size());
+
+    if (build_params.flushAfterTopBuild)
+    {
+      for (auto &build : build_params.topBuilds)
+      {
+        if (build.as)
+        {
+          api_state.device.getContext().blasBarrier(reinterpret_cast<RaytraceAccelerationStructure *>(build.as),
+            GpuPipeline::GRAPHICS);
+        }
+      }
+    }
+  }
+}
+
+#endif
+
+#if _TARGET_PC_WIN
+void get_fg_initializers(DXGIFactory *&factory, DXGISwapChain *&swapchain, ID3D12CommandQueue *&graphicsQueue)
+{
+  factory = api_state.dxgiFactory.Get();
+  swapchain = api_state.device.getContext().getDxgiSwapchain();
+  graphicsQueue = api_state.device.getGraphicsCommandQueue();
+
+  factory = StreamlineAdapter::unhook(factory);
+  swapchain = StreamlineAdapter::unhook(swapchain);
+  graphicsQueue = StreamlineAdapter::unhook(graphicsQueue);
+}
+
+namespace
+{
+SwapchainCreateInfo createSci(DXGIFactory *factory)
+{
+  SwapchainCreateInfo sci = {
+    .window = reinterpret_cast<HWND>(api_state.windowState.getMainWindow()),
+    .output = get_output_monitor_by_name_or_default(factory, get_monitor_name_from_settings()),
+  };
+  sci.resolution.width = api_state.windowState.settings.resolutionX;
+  sci.resolution.height = api_state.windowState.settings.resolutionY;
+  set_hdr_config(sci);
+  return sci;
+}
+} // namespace
+
+void shutdown_internal_swapchain() { api_state.device.getContext().shutdownInternalSwapchain(); }
+
+bool adopt_external_swapchain(DXGISwapChain *swapchain)
+{
+  if (!swapchain)
+    return false;
+  DXGIFactory *factory = api_state.dxgiFactory.Get();
+  return api_state.device.getContext().adoptUserSwapchain(swapchain, createSci(factory));
+}
+
+void create_default_swapchain()
+{
+  DXGIFactory *factory = api_state.dxgiFactory.Get();
+  if (!api_state.device.getContext().createDefaultSwapchain(factory, createSci(factory)))
+    DAG_FATAL("DX12: Restoring the DXGI swapchain is failed");
 }
 #endif

@@ -68,4 +68,7 @@ if $(PlatformSpec) in clang gcc && $(PlatformArch) in x86 x86_64 {
   }
 }
 
+# Disable WPO to workaround `collisionGameRes.cpp(1350) : fatal error C1001: Internal compiler error.`
+if $(UseWholeOpt) = yes && $(Platform)-$(PlatformArch) = windows-arm64 && $(PlatformSpec) = vc17 { opt on collisionGameRes.cpp = /GL- ; }
+
 include $(Root)/prog/_jBuild/build.jam ;

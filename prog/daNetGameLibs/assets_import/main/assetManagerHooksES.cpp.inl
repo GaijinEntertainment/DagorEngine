@@ -10,9 +10,6 @@
 static bool (*dabuild_resolve_res_handle)(GameResHandle rh, unsigned class_id, int &out_res_id) = nullptr;
 static bool (*dabuild_release_game_res2)(GameResHandle rh, dag::Span<GameResourceFactory *> f) = nullptr;
 
-template <typename C>
-static void asset_manager_find_asset_ecs_query(C);
-
 static WinCritSec hooksMutex;
 static bool am_resolve_res_handle(GameResHandle rh, unsigned class_id, int &out_res_id)
 {

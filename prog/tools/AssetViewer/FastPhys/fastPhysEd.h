@@ -31,7 +31,7 @@ public:
 
 public:
   FastPhysEditor(FastPhysPlugin &plugin);
-  ~FastPhysEditor();
+  ~FastPhysEditor() override;
 
   void clearAll();
 
@@ -50,35 +50,36 @@ public:
 
   void renderSkeleton();
 
-  virtual UndoSystem *getUndoSystem() { return undoSystem; }
+  UndoSystem *getUndoSystem() override { return undoSystem; }
 
   // ObjectEditor
-  virtual void update(real dt);
-  virtual void render();
+  void update(real dt) override;
+  void render() override;
 
-  virtual void selectionChanged();
-  virtual void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel);
+  void selectionChanged() override;
+  void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
 
   void refillPanel();
-  void updateToolbarButtons();
-  void fillToolBar(PropPanel::ContainerPropertyControl *toolbar);
-  void addButton(PropPanel::ContainerPropertyControl *toolbar, int id, const char *bmp_name, const char *hint, bool check = false);
+  void updateToolbarButtons() override;
+  void fillToolBar(PropPanel::ContainerPropertyControl *toolbar) override;
+  void addButton(PropPanel::ContainerPropertyControl *toolbar, int id, const char *bmp_name, const char *hint,
+    bool check = false) override;
 
   void setWind(const Point3 &vel, float power, float turb);
   void getWind(Point3 &vel, float &power, float &turb);
 
-  virtual void removeObjects(RenderableEditableObject **obj, int num, bool use_undo = true);
+  void removeObjects(RenderableEditableObject **obj, int num, bool use_undo = true) override;
   // void removeDeadActions(FpdAction *action);
 
   // IFpdLoad implementation
-  virtual FpdAction *loadAction(const DataBlock &blk) { return load_action(blk, *this); }
+  FpdAction *loadAction(const DataBlock &blk) override { return load_action(blk, *this); }
 
   GeomNodeTree &getGeomTree() override { return nodeTree; }
-  virtual IFPObject *getWrapObjectByName(const char *name);
-  virtual FpdObject *getEdObjectByName(const char *name);
+  FpdObject *getEdObjectByName(const char *name) override;
 
-  virtual FpdPoint *getPointByName(const char *name);
-  virtual FpdBone *getBoneByName(const char *name);
+  IFPObject *getWrapObjectByName(const char *name);
+  FpdPoint *getPointByName(const char *name);
+  FpdBone *getBoneByName(const char *name);
 
   IFPObject *getSelObject();
 
@@ -106,7 +107,7 @@ protected:
 
   SimpleString mSkeletonName;
 
-  void updateSelection();
+  void updateSelection() override;
 
   void save(DataBlock &blk);
   void exportBinaryDump();

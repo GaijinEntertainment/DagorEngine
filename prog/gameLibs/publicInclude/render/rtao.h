@@ -5,6 +5,9 @@
 #pragma once
 
 #include <drv/3d/dag_resId.h>
+#include <drv/3d/dag_tex3d.h>
+#include <3d/dag_textureIDHolder.h>
+#include <render/denoiser.h>
 
 class Point2;
 class Point3;
@@ -22,9 +25,20 @@ using ContextId = Context *;
 namespace rtao
 {
 
+// The RT system is working with the pointer values, not the string contents!
+// Persistent textures are used during multiple operations in a frame, many need to persist their contents
+// between mupltiple frames.
+// Transient textures are only needed during the render function.
+
+void get_required_persistent_texture_descriptors(denoiser::TexInfoMap &persistent_textures);
+void get_required_transient_texture_descriptors(denoiser::TexInfoMap &transient_textures);
+
 void initialize(bool half_res);
 void teardown();
 
-void render(bvh::ContextId context_id, const TMatrix4 &proj_tm, bool performance_mode, TEXTUREID half_depth);
+void render_noisy(bvh::ContextId context_id, const TMatrix4 &proj_tm, TEXTUREID half_depth, TextureIDPair rtao_tex_unfiltered,
+  bool checkerboard = true);
+void render(bvh::ContextId context_id, const TMatrix4 &proj_tm, bool performance_mode, TEXTUREID half_depth,
+  const denoiser::TexMap &textures, bool checkerboard = true);
 
 } // namespace rtao

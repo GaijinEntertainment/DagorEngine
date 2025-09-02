@@ -15,7 +15,7 @@ namespace drv3d_vulkan
 {
 
 template <>
-void VariatedGraphicsPipeline::onDelayedCleanupFinish<VariatedGraphicsPipeline::CLEANUP_DESTROY>()
+void VariatedGraphicsPipeline::onDelayedCleanupFinish<CleanupTag::DESTROY>()
 {
   if (Globals::cfg.bits.compileSeenGrPipelinesUsingSyncCompile && items.empty())
   {
@@ -30,7 +30,7 @@ void VariatedGraphicsPipeline::onDelayedCleanupFinish<VariatedGraphicsPipeline::
 #endif
   }
 
-  shutdown(Globals::VK::dev);
+  shutdown();
   delete this;
 }
 
@@ -78,24 +78,25 @@ bool VariatedGraphicsPipeline::pendingCompilation()
 {
   for (const auto &[_, pipeline] : items)
   {
-    if (!pipeline->checkCompiled() && !pipeline->isIgnored())
+    if (pipeline->checkCompiled() == PipelineCompileStatus::PENDING)
       return true;
   }
   return false;
 }
 
-void VariatedGraphicsPipeline::shutdown(VulkanDevice &device)
+void VariatedGraphicsPipeline::shutdown()
 {
+  // wait pending compilations before shutdown, to avoid extra tracking for parent-child logic
+  for (const auto &[_, pipeline] : items)
+  {
+    if (pipeline->checkCompiled() == PipelineCompileStatus::PENDING)
+      Backend::pipelineCompiler.waitFor(pipeline);
+  }
   for (const auto &[_, pipeline] : items)
   {
     if (!pipeline->release())
     {
-      if (!pipeline->isIgnored())
-      {
-        if (!pipeline->checkCompiled())
-          Backend::pipelineCompiler.waitFor(pipeline);
-        pipeline->shutdown(device);
-      }
+      pipeline->shutdown();
       delete pipeline;
     }
   }
@@ -158,10 +159,10 @@ GraphicsPipeline *VariatedGraphicsPipeline::compileNewVariant(CompilationContext
     if (tryCached)
     {
       TIME_PROFILE(vulkan_gr_pipeline_compile_cached)
-      ret = new GraphicsPipeline(comp_ctx.dev, comp_ctx.pipeCache, layout,
+      ret = new GraphicsPipeline(comp_ctx.pipeCache, layout,
         {comp_ctx.rsBackend, eDsc.base, eDsc.mask, modules, parentPipe, comp_ctx.nativeRP, csd});
       ret->compile();
-      if (ret->isIgnored())
+      if (ret->checkCompiled() != PipelineCompileStatus::OK)
       {
         delete ret;
         ret = nullptr;
@@ -173,7 +174,7 @@ GraphicsPipeline *VariatedGraphicsPipeline::compileNewVariant(CompilationContext
     }
 
     if (!ret)
-      ret = new GraphicsPipeline(comp_ctx.dev, comp_ctx.pipeCache, layout,
+      ret = new GraphicsPipeline(comp_ctx.pipeCache, layout,
         {comp_ctx.rsBackend, eDsc.base, eDsc.mask, modules, parentPipe, comp_ctx.nativeRP, csd});
     items.push_back(eastl::make_pair(hash, ret));
 
@@ -251,10 +252,11 @@ GraphicsPipeline *VariatedGraphicsPipeline::getVariant(CompilationContext &comp_
     }
   }
 
-  if (!pipe->checkCompiled())
+  PipelineCompileStatus compileStatus = pipe->checkCompiled();
+  if (compileStatus != PipelineCompileStatus::OK)
   {
-    if (comp_ctx.asyncPipeFeedbackPtr)
-      interlocked_increment(*comp_ctx.asyncPipeFeedbackPtr);
+    if (compileStatus == PipelineCompileStatus::PENDING)
+      (*comp_ctx.asyncPipeFeedback)++;
     return nullptr;
   }
 

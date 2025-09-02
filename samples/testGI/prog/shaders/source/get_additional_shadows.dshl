@@ -1,0 +1,43 @@
+texture swrt_shadow_target;
+int swrt_checkerboard_frame;
+int4 swrt_shadow_target_size;
+//int4 swrt_shadow_mask_res;
+define_macro_if_not_defined APPLY_ADDITIONAL_SHADOWS(code)
+  (code) {
+    //swrt_shadow_target@buf = swrt_shadow_target hlsl{ByteAddressBuffer swrt_shadow_target@buf;};
+    swrt_shadow_target@tex2d = swrt_shadow_target;
+    swrt_checkerboard_frame@u1 = swrt_checkerboard_frame;
+    swrt_shadow_target_size@i2 = (swrt_shadow_target_size.z, swrt_shadow_target_size.w,0,0);
+    //swrt_checkerboard_frame@i1 = swrt_checkerboard_frame;
+    //swrt_shadow_mask_res@i1 = swrt_shadow_mask_res;
+  }
+  hlsl(code) {
+    #include <pcg_hash.hlsl>
+    #define HAS_ADDITIONAL_PRE_SHADOW 1
+    float getAdditionalPreShadow(uint2 coord, float3 cameraToOrigin, float2 screenTc, float w)
+    {
+      if (!swrt_shadow_target_size.x)
+        return 1;
+      if (swrt_checkerboard_frame)
+      {
+        uint rand = pcg3d_hash_16bit(uint3(coord, swrt_checkerboard_frame)).x;
+        int2 ofs = select(bool2(rand&1, 1-(rand&1)), (rand&2) - 1, int2(0,0));
+        ofs = select(clamp(int2(coord) + ofs, 0, swrt_shadow_target_size.xy) == int2(coord) + ofs, ofs, -ofs);
+        FLATTEN
+        if ((swrt_checkerboard_frame & 1) != (coord.y & 1))// this is pixel obtained on current frame
+          ofs = 0;
+        //otherwise, this pixel is randomly selected from neighboors
+        coord = coord + ofs;
+        coord.x = coord.x>>1;
+      }
+      return texelFetch(swrt_shadow_target, coord, 0).x;
+    }
+    float getAdditionalShadow(float shadow, float3 cameraToOrigin, float2 screenTc, float w)
+    {
+      return shadow;
+      //uint addr = coord.x + coord.y*swrt_shadow_mask_res.x;
+      //return bool(swrt_shadow_target.Load((addr>>5)<<2) & (1UL<<(addr&31))) ? shadow : 0;
+      //return shadow*tex2Dlod(swrt_shadow_target, float4(screenTc, 0, 0)).x;
+    }
+  }
+endmacro

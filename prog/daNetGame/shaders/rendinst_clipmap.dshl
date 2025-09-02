@@ -1,93 +1,4 @@
-
-
-int ri_landclass_changed_indicex_bits = 0;
-
-float4 clipmap_ri_landscape2uv_arr[7]; // MAX_RI_VTEX_CNT
-int4 ri_landclass_closest_indices_arr[2]; // (MAX_RI_VTEX_CNT + 4 - 1) / 4
-
-float4 rendinst_landscape_area_left_top_right_bottom = (-2048, 2048, 2048, -2048);
-
-texture deform_hmap_ri_landclass_arr;
-
-float4 world_to_hmap_tex_ofs_ri_landclass_arr[7] always_referenced; // MAX_RI_VTEX_CNT
-float4 world_to_hmap_ofs_ri_landclass_arr[7] always_referenced; // MAX_RI_VTEX_CNT
-
-
-macro DECLARE_CLIPMAP_INDIRECTION_OFFSET()
-  if (shader == rendinst_landclass)
-  {
-    static int ri_landclass_index = 0;
-  }
-endmacro
-
-macro INIT_CLIPMAP_INDIRECTION_OFFSET(stage)
-  if (shader == rendinst_landclass)
-  {
-    (stage) {
-      ri_landclass_index@i1 = ri_landclass_index;
-
-      ri_landclass_changed_indicex_bits@i1 = ri_landclass_changed_indicex_bits;
-      clipmap_ri_landscape2uv_arr@f4[] = clipmap_ri_landscape2uv_arr;
-      ri_landclass_closest_indices_arr@i4[] = ri_landclass_closest_indices_arr;
-    }
-  }
-endmacro
-
-macro USE_CLIPMAP_INDIRECTION_OFFSET_BASE(stage)
-  hlsl (stage) {
-
-    bool is_clipmap_indirection_invalid(uint offset)
-    {
-##if (shader == rendinst_landclass)
-      return offset != 0 && ((ri_landclass_changed_indicex_bits >> (offset - 1)) & 1);
-##else
-      return false;
-##endif
-    }
-
-    uint get_clipmap_indirection_offset()
-    {
-##if (shader == rendinst_landclass)
-  #if MAX_RI_VTEX_CNT_BITS > 0
-      int ri_index = get_ri_landclass_index();
-
-      // TODO: this could be computed in preshader (if it wouldn't be so dumb)
-      int fallbackLastIndexBit = 1; // so firstbithigh returns 0 if none of them matches
-      int indexBits = fallbackLastIndexBit;
-      UNROLL
-      for (int i = 0; i < (MAX_RI_VTEX_CNT + 4 - 1) / 4; ++i)
-        indexBits |= dot(((int4)ri_index == ri_landclass_closest_indices_arr[i]) << (i*4 + int4(1,2,3,4)), 1);
-      return firstbithigh(indexBits);
-  #else
-      return 0;
-  #endif
-##else
-      return 0;
-##endif
-    }
-  }
-endmacro
-
-macro USE_CLIPMAP_INDIRECTION_OFFSET(stage)
-  USE_CLIPMAP_INDIRECTION_OFFSET_BASE(stage)
-  hlsl (stage) {
-    float4 get_l2uv(uint indirection_offset)
-    {
-##if (shader == rendinst_landclass)
-      if (indirection_offset == 0)
-        return landscape2uv;
-
-      indirection_offset = clamp(indirection_offset-1, 0, MAX_RI_VTEX_CNT - 1);
-      return clipmap_ri_landscape2uv_arr[indirection_offset];
-##else
-      return landscape2uv;
-##endif
-    }
-  }
-endmacro
-
-
-
+include "landclass_inc.dshl"
 include "rendinst_opaque_inc.dshl"
 include "normaldetail.dshl"
 include "psh_derivate.dshl"
@@ -104,6 +15,7 @@ include "pn_triangulation.dshl"
 include "heightmap_tessellation_inc.dshl"
 include "tessellation_intervals_inc.dshl"
 include "clipmap_common_inc.dshl"
+include "invalidate_hmap_displacement_inc.dshl"
 
 
 shader rendinst_clipmap, rendinst_landclass
@@ -150,8 +62,8 @@ shader rendinst_clipmap, rendinst_landclass
 
   bool grassify_discard_enabled = grassify_enabled && material_has_edge_vcol_mask == yes; // it needs vertex color for discard weight
 
-  DECLARE_CLIPMAP_INDIRECTION_OFFSET()
-  INIT_CLIPMAP_INDIRECTION_OFFSET(ps)
+  DECLARE_CLIPMAP_INDIRECTION_OFFSET(shader == rendinst_landclass)
+  INIT_CLIPMAP_INDIRECTION_OFFSET(ps, shader == rendinst_landclass)
 
   if (pn_triangulation_enabled)
   {
@@ -206,6 +118,10 @@ shader rendinst_clipmap, rendinst_landclass
     // (As -1 meter is the clear puddle depth in `puddle_make.dshl`)
     // (Note: puddle height can vary from -2 meters to 1 meter above ground)
     static float landclass_water_level = -1;
+    // This value was chosen as something that looks good, but with -1
+    // landclass_water_level, the puddles do not reach this level, or
+    // a level to actually show up.
+    static float max_landclass_water_level = 0.05;
   }
 
   channel float3 pos = pos;
@@ -244,6 +160,7 @@ shader rendinst_clipmap, rendinst_landclass
     }
   }
 
+  ENABLE_ASSERT(ps)
   RENDINST_BLOCK()
   RI_VOXELIZE_ALBEDO()
   if (grassify_enabled)
@@ -317,32 +234,19 @@ shader rendinst_clipmap, rendinst_landclass
     };
   }
 
+  USE_LANDSCAPE_TC_TO_WORLD(vs)
+
   if (shader == rendinst_landclass)
   {
     (vs)
     {
       texcoord_scale_offset@f4 = (texcoord_scale_offset.x, texcoord_scale_offset.y, texcoord_scale_offset.z, texcoord_scale_offset.w);
       landclass_water_level@f1 = landclass_water_level;
-
-      ri_landscape_tc_to_world@f4 = (
-        rendinst_landscape_area_left_top_right_bottom.z - rendinst_landscape_area_left_top_right_bottom.x,
-        rendinst_landscape_area_left_top_right_bottom.w - rendinst_landscape_area_left_top_right_bottom.y,
-        rendinst_landscape_area_left_top_right_bottom.x,
-        rendinst_landscape_area_left_top_right_bottom.y);
+      max_landclass_water_level@f1 = max_landclass_water_level;
     }
   }
 
-  if (landclass_displacement_enabled)
-  {
-    INIT_CLIPMAP_INDIRECTION_OFFSET(vs)
-    USE_CLIPMAP_INDIRECTION_OFFSET_BASE(vs)
-    (vs)
-    {
-      deform_hmap_ri_landclass_arr@smpArray = deform_hmap_ri_landclass_arr;
-      world_to_hmap_tex_ofs_ri_landclass_arr@f4[] = world_to_hmap_tex_ofs_ri_landclass_arr;
-      world_to_hmap_ofs_ri_landclass_arr@f4[] = world_to_hmap_ofs_ri_landclass_arr;
-    }
-  }
+  INIT_LANDCLASS_DISPLACEMENT(vs, landclass_displacement_enabled, false)
 
   hlsl(vs) {
     #if PN_TESSELATION
@@ -448,7 +352,6 @@ shader rendinst_clipmap, rendinst_landclass
     USE_CLIPMAP_NORMAL()
     USE_LAND_NORMAL()
     USE_HEIGHTMAP_COMMON_BASE(ps)
-    INIT_UAV_RENDERING_FEEDBACK_RENDINST()
     USE_UAV_RENDERING_FEEDBACK_RENDINST()
     USE_NORMAL_DETAIL()
     USE_LAND_MICRODETAILS_PS()
@@ -464,6 +367,10 @@ shader rendinst_clipmap, rendinst_landclass
     USE_AND_CALCULATE_PUDDLES()
     USE_SPARKLES()
 
+    if (shader == rendinst_landclass)
+    {
+      USE_LANDCLASS_PUDDLES()
+    }
     USE_CLIPMAP_PS(VsOutput, shader == rendinst_landclass)
 
     hlsl(ps) {
@@ -507,6 +414,8 @@ shader rendinst_clipmap, rendinst_landclass
       max_tessellation_factor@f1 = (max_tessellation_factor);
       max_tessellation_quality@f1 = (max_tessellation_quality);
       min_dispacement_distance@f1 = (min_dispacement_distance);
+      max_dispacement_distance@f1 = (max_dispacement_distance);
+      tessellation_transition_distance@f1 = (tessellation_transition_distance);
       displacement_diff_inv@f1 = (1.0 / (max_dispacement_distance - min_dispacement_distance));
     }
 
@@ -565,28 +474,13 @@ shader rendinst_clipmap, rendinst_landclass
       }
     }
 
+    USE_LANDCLASS_DISPLACEMENT(ds, landclass_displacement_enabled)
+    INIT_HMAP_DISPLACEMENT_INVALIDATION(vs)
+    USE_HMAP_DISPLACEMENT_INVALIDATION(ds, xyz)
+
     hlsl(ds)
     {
-
-##if (landclass_displacement_enabled)
-      float get_hmap_ofs_ri_landclass(int ri_index, float2 worldPosXZ, out float displacementEffect)
-      {
-        float4 world_to_hmap_ofs_ri_landclass = world_to_hmap_ofs_ri_landclass_arr[ri_index];
-        float2 tc = saturate(worldPosXZ*world_to_hmap_ofs_ri_landclass.x + world_to_hmap_ofs_ri_landclass.zw);
-
-        float2 vignette = saturate( abs(tc*2-1) * 10 - 9 );
-        float vignetteEffect = saturate( 1.0 - dot( vignette, vignette ) );
-        float height = 0;
-
-        BRANCH if (vignetteEffect > 0)
-          height = tex3Dlod(deform_hmap_ri_landclass_arr,  float4(tc - world_to_hmap_tex_ofs_ri_landclass_arr[ri_index].xy, ri_index, 0)).x;
-
-        displacementEffect = vignetteEffect;
-        return (height*world_to_hmap_tex_ofs.z + world_to_hmap_tex_ofs.w)*displacementEffect;
-      }
-##endif
-
-      void fields_barycentric_values(const OutputPatch<HsControlPoint, 3> input, inout VsOutput output, float3 uvw)
+      void fields_barycentric_values(const OutputPatch<HsControlPoint, 3> input, inout VsOutput output, float3 uvw, float tessellation_transition_weight)
       {
         BARYCENTRIC_COORDS_UNPACK(uvw)
         #if NEED_TC_WORLDPOS
@@ -603,12 +497,15 @@ shader rendinst_clipmap, rendinst_landclass
 
 ##if (landclass_displacement_enabled)
         uint indirectionOffset = get_clipmap_indirection_offset();
-        if (indirectionOffset > 0 && !is_clipmap_indirection_invalid(indirectionOffset))
+        BRANCH
+        if (indirectionOffset > 0 && !is_clipmap_indirection_invalid(indirectionOffset) && tessellation_transition_weight > 0)
         {
           int riLandclassIndex = (int)indirectionOffset - 1;
           float displacementEffectLandclass = 1;
           float heightOffset = get_hmap_ofs_ri_landclass(riLandclassIndex, output.tcWorldPos.xz, displacementEffectLandclass);
-          worldPos += output.upVec * heightOffset * displacementEffectLandclass;
+          float reducedHmapDisplacement = 1. - get_hmap_displacement_reduction(worldPos);
+          displacementEffectLandclass *= reducedHmapDisplacement;
+          worldPos += output.upVec * (heightOffset * reducedHmapDisplacement * tessellation_transition_weight);
         }
 ##endif
 

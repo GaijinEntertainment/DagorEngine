@@ -51,10 +51,10 @@
 #include <debug/dag_debug.h>
 #include <heightMapLand/dag_hmlGetHeight.h>
 
-#include <winGuiWrapper/wgw_input.h>
 #include <winGuiWrapper/wgw_dialogs.h>
 
 using editorcore_extapi::dagGeom;
+using editorcore_extapi::dagInput;
 using editorcore_extapi::dagRender;
 using editorcore_extapi::make_full_start_path;
 
@@ -216,6 +216,11 @@ HmapLandObjectEditor::~HmapLandObjectEditor()
   selectNewObjEntity(NULL);
 
   dagGeom->destroy(zFuncLessStateId);
+
+  dagRender->releaseManagedTex(signTexPt);
+  signTexPt = BAD_TEXTUREID;
+  dagRender->releaseManagedTex(SplinePointObject::texPt);
+  SplinePointObject::texPt = BAD_TEXTUREID;
 }
 
 void HmapLandObjectEditor::clearToDefaultState()
@@ -257,6 +262,7 @@ void HmapLandObjectEditor::addButton(PropPanel::ContainerPropertyControl *tb, in
   // In the Landscape editor instead of the "Select objects by name" dialog we show the Outliner.
   if (id == CM_OBJED_SELECT_BY_NAME)
   {
+    bmp_name = "outliner";
     hint = "Outliner (H)";
     check = true;
   }
@@ -268,7 +274,7 @@ void HmapLandObjectEditor::fillToolBar(PropPanel::ContainerPropertyControl *tool
 {
   PropPanel::ContainerPropertyControl *tb1 = toolbar->createToolbarPanel(0, "");
 
-  addButton(tb1, CM_SHOW_PANEL, "show_hml_panel", "Show properties panel (P)", true);
+  addButton(tb1, CM_SHOW_PANEL, "show_hml_panel", "Show/hide landscape props panel (P)", true);
   //  addButton(tb1, CM_SHOW_LAND_OBJECTS, "show_bounds", "Show land hole boxes", true);
   tb1->createSeparator();
 
@@ -364,6 +370,16 @@ void HmapLandObjectEditor::updateToolbarButtons()
   setButton(CM_OBJED_SELECT_BY_NAME, isOutlinerWindowOpen());
   setButton(CM_USE_PIXEL_PERFECT_SELECTION, usePixelPerfectSelection);
   setButton(CM_SELECT_ONLY_IF_ENTIRE_OBJECT_IN_RECT, selectOnlyIfEntireObjectInRect);
+
+  const int mode = getEditMode();
+  const bool inCreateMode =
+    mode == CM_CREATE_ENTITY || mode == CM_CREATE_SPLINE || mode == CM_CREATE_POLYGON || mode == CM_CREATE_SNOW_SOURCE;
+  enableButton(CM_REFINE_SPLINE, !inCreateMode);
+  enableButton(CM_SPLIT_SPLINE, !inCreateMode);
+  enableButton(CM_SPLIT_POLY, !inCreateMode);
+  enableButton(CM_REVERSE_SPLINE, !inCreateMode);
+  enableButton(CM_CLOSE_SPLINE, !inCreateMode);
+  enableButton(CM_OPEN_SPLINE, !inCreateMode);
 
   if (HmapLandPlugin::self)
     enableButton(CM_SPLINE_REGEN, !autoUpdateSpline);
@@ -468,8 +484,29 @@ void HmapLandObjectEditor::updateSplinesGeom()
 
   chSpl.clear();
 
-  LandscapeEntityObject::rePlaceAllEntitiesOnCollision(*this, geomBuildCntLoft > 0, geomBuildCntPoly > 0, geomBuildCntRoad > 0,
-    changedRegion);
+  if (supportsRealtimeUpdate())
+  {
+    LandscapeEntityObject::rePlaceAllEntitiesOnCollision(*this, geomBuildCntLoft > 0, geomBuildCntPoly > 0, geomBuildCntRoad > 0,
+      changedRegion);
+  }
+}
+
+bool HmapLandObjectEditor::supportsRealtimeUpdate() const
+{
+  if (inGizmo)
+  {
+    for (auto obj : selection)
+    {
+      auto *spline = RTTI_cast<SplineObject>(obj);
+      if (!spline)
+        if (auto *p = RTTI_cast<SplinePointObject>(obj))
+          spline = p->spline;
+
+      if (spline && (spline->isAffectingHmap() || spline->isHeightBake() || spline->getLandClass()))
+        return false; // too heavy for realtime updates
+    }
+  }
+  return true;
 }
 
 void HmapLandObjectEditor::render()
@@ -820,7 +857,7 @@ void HmapLandObjectEditor::gizmoStarted()
         !RTTI_cast<SphereLightObject>(selection[i]) && !RTTI_cast<SnowSourceObject>(selection[i]))
       return;
 
-  if ((wingw::is_key_pressed(wingw::V_SHIFT)) && getEditMode() == CM_OBJED_MODE_MOVE)
+  if (dagInput->isShiftKeyDown() && getEditMode() == CM_OBJED_MODE_MOVE)
   {
     if (!cloneMode)
       cloneMode = true;
@@ -960,9 +997,12 @@ void HmapLandObjectEditor::_removeObjects(RenderableEditableObject **obj, int nu
       remPoints.push_back(remSplines[i]->points[j]);
       erase_item_by_value(remPt0, remSplines[i]->points[j]);
     }
-    if (remSplines[i]->isAffectingHmap())
+    if (remSplines[i]->isAffectingHmap() || remSplines[i]->isHeightBake())
     {
+      const bool prevApplyHeightbake = HmapLandPlugin::self->shouldApplyModOnHeightBakeSplineEdit();
+      HmapLandPlugin::self->setApplyModOnHeightBakeSplineEdit(true);
       remSplines[i]->reApplyModifiers(false);
+      HmapLandPlugin::self->setApplyModOnHeightBakeSplineEdit(prevApplyHeightbake);
       rebuild_hmap_modif = true;
     }
     if (remSplines[i]->isClosed())
@@ -1074,12 +1114,17 @@ void HmapLandObjectEditor::updateSelection()
 
 void HmapLandObjectEditor::fillSelectionMenu(IGenViewportWnd *wnd, PropPanel::IMenu *menu)
 {
+  using PropPanel::ROOT_MENU_ITEM;
+  const bool anySelected = selection.size() > 0;
+  if (!anySelected)
+    return;
+
   wnd->setMenuEventHandler(this);
 
   int type = -1;
   int oneLayer = -1;
   int perTypeLayerCount = 0;
-  bool enabledMoveToLayer = selection.size() > 0;
+  bool enabledMoveToLayer = anySelected;
   HeightmapLandOutlinerInterface outliner(*this);
   for (auto obj : selection)
   {
@@ -1128,7 +1173,9 @@ void HmapLandObjectEditor::fillSelectionMenu(IGenViewportWnd *wnd, PropPanel::IM
   }
 
   menu->addItem(ROOT_MENU_ITEM, CM_EXPORT_AS_COMPOSIT, "Export as composit");
+  menu->setEnabledById(CM_EXPORT_AS_COMPOSIT, anySelected);
   menu->addItem(ROOT_MENU_ITEM, CM_SPLIT_COMPOSIT, "Split composites");
+  menu->setEnabledById(CM_SPLIT_COMPOSIT, anySelected);
 }
 
 
@@ -1145,6 +1192,7 @@ int HmapLandObjectEditor::onMenuItemClick(unsigned id)
     {
       RenderableEditableObject *object = obj;
       if (SplinePointObject *p = RTTI_cast<SplinePointObject>(object))
+      {
         if (p->spline)
         {
           object = p->spline;
@@ -1154,6 +1202,7 @@ int HmapLandObjectEditor::onMenuItemClick(unsigned id)
           objectsToMove.clear();
           break;
         }
+      }
 
       int objType, objLayerIndex;
       if (outliner.getObjectTypeAndPerTypeLayerIndex(*object, objType, objLayerIndex))
@@ -1540,6 +1589,8 @@ void HmapLandObjectEditor::recalcCatmul()
 
 void HmapLandObjectEditor::setEditMode(int cm)
 {
+  stopSplineCreation();
+
   memset(catmul, 0, sizeof(catmul));
 
   DAGORED2->endBrushPaint();
@@ -1696,18 +1747,18 @@ void HmapLandObjectEditor::setSelectMode(int cm)
         redoMode = ed->selectMode;
       }
 
-      virtual void restore(bool save_redo)
+      void restore(bool save_redo) override
       {
         if (save_redo)
           redoMode = ed->selectMode;
         ed->setSelectMode(oldMode);
       }
 
-      virtual void redo() { ed->setSelectMode(redoMode); }
+      void redo() override { ed->setSelectMode(redoMode); }
 
-      virtual size_t size() { return sizeof(*this); }
-      virtual void accepted() {}
-      virtual void get_description(String &s) { s = "UndoEdSelectModeChange"; }
+      size_t size() override { return sizeof(*this); }
+      void accepted() override {}
+      void get_description(String &s) override { s = "UndoEdSelectModeChange"; }
     };
 
     if (desel)

@@ -1,3 +1,4 @@
+include "macro_once_inc.dshl"
 
 buffer assertion_buffer;
 int assertion_buffer_slot = 9;
@@ -11,26 +12,9 @@ interval debug_mode_enabled: no < 1, yes;
 assume debug_mode_enabled = no;
 bool DEBUG = debug_mode_enabled == yes && hardware.fsh_5_0;
 
-macro DEFINE(val)
-  bool val = true;
-endmacro
-
-macro DEFINED(val)
-  (maybe(val))
-endmacro
-
 macro G_ASSERT(expr, msg)
   if (!(expr)) {
     error(msg);
-  }
-endmacro
-
-macro BEGIN_ONCE(name)
-  if (!DEFINED(name)) {
-    DEFINE(name)
-endmacro
-
-macro END_ONCE()
   }
 endmacro
 
@@ -96,8 +80,8 @@ assume assert_enabled_for_stage = no;
 macro ENABLE_ASSERT(stage)
   G_ASSERT(assert_enabled_for_stage == no || assert_enabled_for_stage == stage,
            "You are trying to enable `assert` again with a different stage")
+  assume assert_enabled_for_stage = stage;
   BEGIN_ONCE(enable_assert)
-    assume assert_enabled_for_stage = stage;
     if (assert_enabled_for_stage == ps) {
       ENABLE_ASSERT_STAGE(ps)
       ENABLE_ASSERT_STAGE(vs)

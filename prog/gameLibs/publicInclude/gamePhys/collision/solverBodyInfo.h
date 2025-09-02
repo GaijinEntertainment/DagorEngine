@@ -12,6 +12,7 @@
 
 namespace daphys
 {
+const int NO_CUSTOM_PARENT = -1;
 struct SolverBodyInfo
 {
   TMatrix tm = TMatrix::IDENT;
@@ -31,12 +32,21 @@ struct SolverBodyInfo
   DPoint3 invMoi = DPoint3(0, 0, 0);
   double invMass = 0.0;
 
+  int subPhysInd = NO_CUSTOM_PARENT;
+
   double commonImpulseLimit = VERY_BIG_NUMBER;
   dag::Span<double> impulseLimits = {};
 
   SolverBodyInfo(const TMatrix &in_tm, const TMatrix &in_itm, const DPoint3 &center_of_grav, const DPoint3 &in_vel,
-    const DPoint3 &in_omega, const DPoint3 &inv_moi, double inv_mass) :
-    tm(in_tm), itm(in_itm), cog(center_of_grav), vel(in_vel), omega(in_omega), invMoi(inv_moi), invMass(inv_mass)
+    const DPoint3 &in_omega, const DPoint3 &inv_moi, double inv_mass, int sub_phys_ind = NO_CUSTOM_PARENT) :
+    tm(in_tm),
+    itm(in_itm),
+    cog(center_of_grav),
+    vel(in_vel),
+    omega(in_omega),
+    invMoi(inv_moi),
+    invMass(inv_mass),
+    subPhysInd(sub_phys_ind)
   {}
 };
 }; // namespace daphys

@@ -66,6 +66,8 @@ public:
       *dirIt = '\\';
   }
 
+  const char *getJobName(bool &) const override { return "ShellExecuteJob"; }
+
   virtual void doJob();
 
   virtual int strLenWithZero(const T *str);
@@ -193,8 +195,8 @@ void os_shell_execute(const char *op, const char *file, const char *params, cons
   JavaVM *javaVM = app->activity->vm;
   JNIEnv *jniEnv = app->activity->env;
   debug("open URL: %s", file);
-  jint result = javaVM->AttachCurrentThread(&jniEnv, NULL);
-  if (result == JNI_ERR)
+  jint result = android::attach_current_thread(javaVM, &jniEnv, NULL);
+  if (result != JNI_OK)
   {
     logerr("failed to attach current thread");
     return;

@@ -17,6 +17,10 @@ namespace das
         virtual bool canVisitArgumentInit ( Function * , const VariablePtr &, Expression * ) override { return false; }
         virtual bool canVisitQuoteSubexpression ( ExprQuote * ) override { return false; }
 
+        virtual bool canVisitStructure ( Structure * st ) override {
+            return !st->isTemplate;     // not a thing with templates
+        }
+
         virtual void preVisit ( Structure * var ) override {
             Visitor::preVisit(var);
             for ( const auto & pA : var->annotations ) {

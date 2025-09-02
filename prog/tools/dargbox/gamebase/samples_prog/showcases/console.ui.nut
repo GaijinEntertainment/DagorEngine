@@ -9,7 +9,7 @@ function messageInLog(entry) {
     behavior = Behaviors.TextArea
     preformatted = FMT_NO_WRAP | FMT_KEEP_SPACES
     margin = fsh(0.5)
-    size = [flex(), SIZE_TO_CONTENT]
+    size = FLEX_H
   }.__merge(entry)
 }
 
@@ -18,9 +18,9 @@ let scrollHandler = ScrollHandler()
 function logContent(log_state) {
   return function() {
     return {
-      size = [flex(), SIZE_TO_CONTENT]
+      size = FLEX_H
       flow = FLOW_VERTICAL
-      children = log_state.value.map(messageInLog)
+      children = log_state.get().map(messageInLog)
       watch = log_state
     }
   }
@@ -28,12 +28,12 @@ function logContent(log_state) {
 
 function textLog(log_state) {
   return {
-    size = [flex(), hdpx(300)]
+    size = static [flex(), hdpx(300)]
     borderColor = Color(120, 120, 120)
     fillColor = Color(0,0,0,120)
     rendObj = ROBJ_BOX
-    borderWidth = [hdpx(1), 0]
-    padding = [hdpx(1), 0]
+    borderWidth = static [hdpx(1), 0]
+    padding = static [hdpx(1), 0]
 
     children = makeVertScroll(logContent(log_state), {scrollHandler})
   }
@@ -47,11 +47,11 @@ local key = 0
 local historyCursorPos = 0
 
 let execCode = function(){
-  local s = textSt.value
+  local s = textSt.get()
   if (s=="")
     return
   historyCursorPos = 0
-  consoleLog.mutate(@(v) v.insert(0, {text = textSt.value, key, color = Color(160,160,160)}))
+  consoleLog.mutate(@(v) v.insert(0, {text = textSt.get(), key, color = Color(160,160,160)}))
   history.mutate(@(v) v.append(s))
   try{
     let wrapped = $"return (@()({s}))()"
@@ -61,35 +61,35 @@ let execCode = function(){
   catch(e){
     consoleLog.mutate(@(v) v.insert(0, {text = $"<color=#FF2222>error</color>, {e}", key, color = Color(200,120,120)}))
   }
-  textSt("")
+  textSt.set("")
   key++
 }
 let conTextInput = textInput(textSt, {
   onReturn = execCode
   margin=0
   textmargin = hdpx(4)
-  onBlur = @() textSt("")
+  onBlur = @() textSt.set("")
 })
 
 let hotkeys = {
   hotkeys = [
     ["Tab", function() {
-      let hs = history.value
+      let hs = history.get()
       if (historyCursorPos>=hs.len())
         historyCursorPos=0
       historyCursorPos++
       let found = hs?[hs.len()-historyCursorPos]
-      textSt(found)
+      textSt.set(found)
     }]
   ]
 }
 return {
   rendObj = ROBJ_SOLID
   color = Color(30,40,50)
-  size = [flex(), ph(100)]
+  size = static [flex(), ph(100)]
   flow = FLOW_VERTICAL
   children = [
-    {rendObj = ROBJ_TEXTAREA behavior=Behaviors.TextArea size  = [flex(), SIZE_TO_CONTENT]
+    {rendObj = ROBJ_TEXTAREA behavior=Behaviors.TextArea size  = FLEX_H
       text = "Very fast Proof of concept console. TODO: better to_string, better hotkeys, independet scroll and textInput"},
     conTextInput, hotkeys, textLog(consoleLog)
   ]

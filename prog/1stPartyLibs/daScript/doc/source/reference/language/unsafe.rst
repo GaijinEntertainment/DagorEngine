@@ -10,8 +10,9 @@ Unsafe
 
 The ``unsafe`` keyword denotes unsafe contents, which is required for operations, but could potentially crash the application::
 
-    unsafe
+    unsafe {
         let px = addr(x)
+    }
 
 Expressions (and subexpressions) can also be unsafe::
 
@@ -23,86 +24,101 @@ Individual expressions can cause a `CompilationError::unsafe` error, unless they
 
 The address of expression is unsafe::
 
-    unsafe
+    unsafe {
         let a : int
         let pa = addr(a)
         return pa                               // accessing *pa can potentially corrupt stack
+    }
 
 Lambdas or generators require unsafe sections for the implicit capture by move or by reference::
 
     var a : array<int>
-    unsafe
-        var counter <- @ <| (extra:int) : int
+    unsafe {
+        var counter <- @ (extra:int) : int {
             return a[0] + extra                 // a is implicitly moved
+        }
+    }
 
 Deleting any pointer requires an unsafe section::
 
     var p = new Foo()
     var q = p
-    unsafe
+    unsafe {
         delete p                                // accessing q can potentially corrupt memory
+    }
 
 Upcast and reinterpret cast require an unsafe section::
 
-    unsafe
+    unsafe {
         return reinterpret<void?> 13            // reinterpret can create unsafe pointers
+    }
 
 Indexing into a pointer is unsafe::
 
-    unsafe
+    unsafe {
         var p = new Foo()
         return p[13]                            // accessing out of bounds pointer can potentially corrupt memory
+    }
 
 A safe index is unsafe when not followed by the null coalescing operator::
 
-    var a = {{ 13 => 12 }}
-    unsafe
+    var a = { 13 => 12 }
+    unsafe {
         var t = a?[13] ?? 1234                  // safe
         return a?[13]                           // unsafe; safe index is a form of 'addr' operation
                                                 // it can create pointers to temporary objects
+    }
 
 Variant ``?as`` on local variables is unsafe when not followed by the null coalescing operator::
 
-    unsafe
+    unsafe {
         return a ?as Bar                        // safe as is a form of 'addr' operation
+    }
 
 Variant ``.?field`` is unsafe when not followed by the null coalescing operator::
 
-    unsafe
+    unsafe {
         return a?.Bar                           // safe navigation of a variant is a form of 'addr' operation
+    }
 
 
 Variant ``.field`` is unsafe::
 
-    unsafe
+    unsafe {
         return a.Bar                            // this is potentially a reinterpret cast
+    }
 
 Certain functions and operators are inherently unsafe or marked unsafe via the [unsafe_operation] annotation::
 
-    unsafe
+    unsafe {
         var a : int?
         a += 13                                 // pointer arithmetic can create invalid pointers
         var boo : int[13]
         var it = each(boo)                      // each() of array is unsafe, for it does not capture
+    }
 
 Moving from a smart pointer value requires unsafe, unless that value is the 'new' operator::
 
-    unsafe
+    unsafe {
         var a <- new TestObjectSmart()          // safe, its explicitly new
         var b <- someSmartFunction()            // unsafe since lifetime is not obvious
         b <- a                                  // safe, values are not lost
+    }
 
 Moving or copying classes is unsafe::
 
-    def foo ( var b : TestClass )
-        unsafe
+    def foo ( var b : TestClass ) {
+        unsafe {
             var a : TestClass
             a <- b                              // potentially moving from derived class
+        }
+    }
 
 Local class variables are unsafe::
 
-    unsafe
+    unsafe {
         var g = Goo()                           // potential lifetime issues
+    }
 
 ========
 implicit
@@ -115,4 +131,16 @@ For example::
     def foo ( a : Foo# implicit )   // a will be treated as Foo#, but will also accept Foo as argument
 
 Unfortunately implicit conversions like this are unsafe, so `implicit` is unsafe by definition.
+
+===========
+other cases
+===========
+
+There are several other cases where `unsafe` is required, but not explicitly mentioned in the documentation.
+They are typically controlled via CodeOfPolicies or appropriate option::
+
+    options unsafe_table_lookup = false // makes table indexing safe. refers to CodeOfPolicies::unsafe_table_lookup
+
+    var tab <- { 1=>"one", 2=>"two" }
+    tab[3] = "three"        // this is unsafe, since it can create a pointer to a temporary object
 

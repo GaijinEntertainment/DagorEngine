@@ -66,6 +66,7 @@ static const char *debugTextures2[] = {
   VAR(foam_underfoam_tex)               \
   VAR(foam_underfoam_tex_samplerstate)  \
   VAR(tex)                              \
+  VAR(tex_samplerstate)                 \
   VAR(texsz)                            \
   VAR(foam_tile_uv_scale)               \
   VAR(foam_distortion_scale)            \
@@ -104,11 +105,6 @@ FoamFx::FoamFx(int _width, int _height) : width(_width), height(_height)
   foamBlurX.init("foam_blur_x");
   foamBlurY.init("foam_blur_y");
 
-  shaders::OverrideState state;
-  state.set(shaders::OverrideState::Z_FUNC);
-  state.zFunc = CMPF_ALWAYS;
-  zFuncLeqStateId = shaders::overrides::create(state);
-
   debugTextures[FoamTexture::TILE] = foamGeneratorTileTex.getBaseTex();
   debugTextures[FoamTexture::GRADIENT] = foamGeneratorGradientTex.getBaseTex();
 
@@ -129,6 +125,28 @@ FoamFx::FoamFx(int _width, int _height) : width(_width), height(_height)
 }
 
 FoamFx::~FoamFx() {}
+
+FoamFxParams FoamFx::prepareParams(float tile_uv_scale, float distortion_scale, float normal_scale, float pattern_gamma,
+  float mask_gamma, float gradient_gamma, float underfoam_threshold, float overfoam_threshold, float underfoam_weight,
+  float overfoam_weight, const Point3 &underfoam_color, const Point3 &overfoam_color, float reflectivity, const String &tile_tex,
+  const String &gradient_tex)
+{
+  Point3 scale(tile_uv_scale, distortion_scale, normal_scale);
+  Point3 gamma(pattern_gamma, mask_gamma, gradient_gamma);
+  Point2 threshold(underfoam_threshold, overfoam_threshold);
+  Point2 weight(underfoam_weight, overfoam_weight);
+  FoamFxParams params;
+  params.scale = scale;
+  params.gamma = gamma;
+  params.threshold = threshold;
+  params.weight = weight;
+  params.underfoamColor = underfoam_color;
+  params.overfoamColor = overfoam_color;
+  params.reflectivity = reflectivity;
+  params.tileTex = tile_tex;
+  params.gradientTex = gradient_tex;
+  return params;
+}
 
 void FoamFx::setParams(const FoamFxParams &params)
 {
@@ -159,7 +177,7 @@ void FoamFx::setParams(const FoamFxParams &params)
 
 void FoamFx::prepare(const TMatrix4 &view_tm, const TMatrix4 &proj_tm)
 {
-  TIME_D3D_PROFILE(FoamFx_Preapare);
+  TIME_D3D_PROFILE(FoamFx_Prepare);
 
   set_inv_globtm_to_shader(view_tm, proj_tm, false);
 
@@ -185,10 +203,12 @@ void FoamFx::prepare(const TMatrix4 &view_tm, const TMatrix4 &proj_tm)
 
   d3d::set_render_target(temp->getBaseTex(), 0);
   ShaderGlobal::set_texture(texVarId, underfoam->getTexId());
+  ShaderGlobal::set_sampler(tex_samplerstateVarId, d3d::request_sampler({}));
   foamBlurX.render();
   d3d::set_render_target(underfoam_downsampled->getBaseTex(), 0);
   ShaderGlobal::set_texture(texVarId, temp->getTexId());
   foamBlurY.render();
+  ShaderGlobal::set_sampler(tex_samplerstateVarId, d3d::SamplerHandle::Invalid);
 
   debugTextures[FoamTexture::UNDERFOAM_DOWNSAMPLED] = underfoam_downsampled->getBaseTex();
 }
@@ -216,10 +236,7 @@ void FoamFx::beginMaskRender()
   d3d::set_render_target(maskTarget.getBaseTex(), 0);
   d3d::set_depth(maskDepth.getBaseTex(), DepthAccess::RW);
   d3d::clearview(CLEAR_TARGET | CLEAR_ZBUFFER, 0, 0, 0);
-  shaders::overrides::set(zFuncLeqStateId);
 }
-
-void FoamFx::endMaskRender() { shaders::overrides::reset(); }
 
 void foam_debug()
 {

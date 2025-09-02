@@ -79,13 +79,11 @@ struct DeSerialize<T, 0>
   struct Klass final : public BaseKlass, TU                                                                             \
   {                                                                                                                     \
     typedef TU Tuple;                                                                                                   \
-    ECS_NET_DECL_MSG_CLASS_BASE(Klass, BaseKlass)                                                                       \
-    {}                                                                                                                  \
+    ECS_NET_DECL_MSG_CLASS_BASE(Klass, BaseKlass) {}                                                                    \
     template <typename... Args>                                                                                         \
     Klass(Args &&...args) : Tuple(eastl::forward<Args>(args)...)                                                        \
     {}                                                                                                                  \
-    Klass(Tuple &&tup) : Tuple(eastl::move(tup))                                                                        \
-    {}                                                                                                                  \
+    Klass(Tuple &&tup) : Tuple(eastl::move(tup)) {}                                                                     \
     Klass(Klass &&) = default;                                                                                          \
     virtual void pack(danet::BitStream &bs) const override                                                              \
     {                                                                                                                   \
@@ -105,10 +103,7 @@ struct DeSerialize<T, 0>
     {                                                                                                                   \
       return eastl::get<I>(static_cast<Tuple &>(*this));                                                                \
     }                                                                                                                   \
-    net::IMessage *moveHeap() && override                                                                               \
-    {                                                                                                                   \
-      return new Klass(eastl::move(*this));                                                                             \
-    }                                                                                                                   \
+    net::IMessage *moveHeap() && override { return new Klass(eastl::move(*this)); }                                     \
   }
 
 #define ECS_BUILD_TUPLE(...)               eastl::tuple<__VA_ARGS__>

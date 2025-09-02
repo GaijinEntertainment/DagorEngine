@@ -32,6 +32,7 @@ struct JumpLinksParams
   float edgeMappingAngle;
   float edgeMergeAngle;
   float edgeMergeDist;
+  float edgeMergeDistV1;
 
   float jumpHeight; // up + down
   float jumpLength;

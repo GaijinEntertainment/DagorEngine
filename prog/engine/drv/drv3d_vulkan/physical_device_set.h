@@ -18,11 +18,11 @@ struct PhysicalDeviceSet
   VulkanPhysicalDeviceHandle device;
   VkPhysicalDeviceFeatures features{};
   VkPhysicalDeviceProperties properties{};
-  eastl::vector<VkQueueFamilyProperties> queueFamilyProperties;
+  dag::Vector<VkQueueFamilyProperties> queueFamilyProperties;
   carray<VkFormatProperties, VK_FORMAT_RANGE_SIZE> formatProperties{}; //-V730_NOINIT
   VkPhysicalDeviceMemoryProperties memoryProperties{};
   VkPhysicalDeviceSubgroupProperties subgroupProperties{};
-  eastl::vector<VkExtensionProperties> extensions;
+  dag::Vector<VkExtensionProperties> extensions;
 
 #if VK_KHR_imageless_framebuffer
   VkPhysicalDeviceImagelessFramebufferFeaturesKHR imagelessFramebufferFeature = //
@@ -117,7 +117,32 @@ struct PhysicalDeviceSet
 #if VK_KHR_global_priority
   VkPhysicalDeviceGlobalPriorityQueryFeaturesKHR globalPriorityFeatures = //
     {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_GLOBAL_PRIORITY_QUERY_FEATURES_KHR, nullptr, false};
-  eastl::vector<VkQueueFamilyGlobalPriorityPropertiesKHR> queuesGlobalPriorityProperties;
+  dag::Vector<VkQueueFamilyGlobalPriorityPropertiesKHR> queuesGlobalPriorityProperties;
+#endif
+
+#if VK_KHR_timeline_semaphore
+  VkPhysicalDeviceTimelineSemaphoreFeaturesKHR timelineSemaphoreFeatures = //
+    {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES_KHR, nullptr, false};
+#endif
+
+#if VK_KHR_pipeline_executable_properties
+  VkPhysicalDevicePipelineExecutablePropertiesFeaturesKHR pipelineExecutablePropertiesFeatures = //
+    {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PIPELINE_EXECUTABLE_PROPERTIES_FEATURES_KHR, nullptr, false};
+#endif
+
+#if VK_QCOM_tile_properties
+  VkPhysicalDeviceTilePropertiesFeaturesQCOM tilePropsFeaturesQCOM = //
+    {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TILE_PROPERTIES_FEATURES_QCOM, nullptr, false};
+#endif
+
+#if VK_QCOM_tile_memory_heap
+  VkPhysicalDeviceTileMemoryHeapFeaturesQCOM tileMemoryHeapFeaturesQCOM = //
+    {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TILE_MEMORY_HEAP_FEATURES_QCOM, nullptr, false};
+#endif
+
+#if VK_QCOM_tile_shading
+  VkPhysicalDeviceTileShadingFeaturesQCOM tileShadingFeaturesQCOM = //
+    {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TILE_SHADING_FEATURES_QCOM, nullptr, false};
 #endif
 
   bool hasDevProps2 = false;
@@ -143,6 +168,11 @@ struct PhysicalDeviceSet
   bool hasSixteenBitStorage = false;
   bool hasSynchronization2 = false;
   bool hasGlobalPriority = false;
+  bool hasTimelineSemaphore = false;
+  bool hasPipelineExecutableInfo = false;
+  bool hasTilePropQCOM = false;
+  bool hasTileMemoryHeapQCOM = false;
+  bool hasTileShadingQCOM = false;
   uint32_t maxBindlessTextures = 0;
   uint32_t maxBindlessSamplers = 0;
   uint32_t maxBindlessBuffers = 0;
@@ -167,7 +197,7 @@ struct PhysicalDeviceSet
   VkPhysicalDeviceDescriptorIndexingProperties descriptorIndexingProps = {
     VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_PROPERTIES, nullptr};
 #endif
-  uint32_t vendorId = D3D_VENDOR_NONE;
+  GpuVendor vendor = GpuVendor::UNKNOWN;
   char vendorName[16] = {};
   uint32_t warpSize = 32;
   uint32_t score = 0;
@@ -209,14 +239,21 @@ struct PhysicalDeviceSet
 
   void detectDeviceVendor()
   {
-    vendorId = d3d_get_vendor(properties.vendorID);
-    strcpy(vendorName, d3d_get_vendor_name(vendorId));
+    vendor = d3d_get_vendor(properties.vendorID);
+    strcpy(vendorName, d3d_get_vendor_name(vendor));
   }
 
   void guessWarpSize()
   {
-    if (vendorId == D3D_VENDOR_ATI)
-      warpSize = 64;
+    if (subgroupProperties.subgroupSize == 0)
+    {
+      if (vendor == GpuVendor::AMD)
+        warpSize = 64;
+      else
+        warpSize = 32;
+    }
+    else
+      warpSize = subgroupProperties.subgroupSize;
   }
 
   template <typename T>
@@ -385,6 +422,41 @@ struct PhysicalDeviceSet
     if (hasExtension<GlobalPriorityKHR>())
     {
       chain_structs(target, globalPriorityFeatures);
+    }
+#endif
+
+#if VK_KHR_timeline_semaphore
+    if (hasExtension<TimelineSemaphoreKHR>())
+    {
+      chain_structs(target, timelineSemaphoreFeatures);
+    }
+#endif
+
+#if VK_KHR_pipeline_executable_properties
+    if (hasExtension<PipelineExecutablePropertiesKHR>())
+    {
+      chain_structs(target, pipelineExecutablePropertiesFeatures);
+    }
+#endif
+
+#if VK_QCOM_tile_properties
+    if (hasExtension<TilePropertiesQCOM>())
+    {
+      chain_structs(target, tilePropsFeaturesQCOM);
+    }
+#endif
+
+#if VK_QCOM_tile_memory_heap
+    if (hasExtension<TileMemoryHeapQCOM>())
+    {
+      chain_structs(target, tileMemoryHeapFeaturesQCOM);
+    }
+#endif
+
+#if VK_QCOM_tile_shading
+    if (hasExtension<TileShadingQCOM>())
+    {
+      chain_structs(target, tileShadingFeaturesQCOM);
     }
 #endif
   }
@@ -640,6 +712,56 @@ struct PhysicalDeviceSet
     else
       hasGlobalPriority = false;
 #endif
+
+#if VK_KHR_timeline_semaphore
+    if (hasExtension<TimelineSemaphoreKHR>())
+    {
+      hasTimelineSemaphore = timelineSemaphoreFeatures.timelineSemaphore;
+      timelineSemaphoreFeatures.pNext = nullptr;
+    }
+    else
+      hasTimelineSemaphore = false;
+#endif
+
+#if VK_KHR_pipeline_executable_properties
+    if (hasExtension<PipelineExecutablePropertiesKHR>())
+    {
+      hasPipelineExecutableInfo = pipelineExecutablePropertiesFeatures.pipelineExecutableInfo;
+      pipelineExecutablePropertiesFeatures.pNext = nullptr;
+    }
+    else
+      hasPipelineExecutableInfo = false;
+#endif
+
+#if VK_QCOM_tile_properties
+    if (hasExtension<TilePropertiesQCOM>())
+    {
+      hasTilePropQCOM = tilePropsFeaturesQCOM.tileProperties;
+      tilePropsFeaturesQCOM.pNext = nullptr;
+    }
+    else
+      hasTilePropQCOM = false;
+#endif
+
+#if VK_QCOM_tile_memory_heap
+    if (hasExtension<TileMemoryHeapQCOM>())
+    {
+      hasTileMemoryHeapQCOM = tileMemoryHeapFeaturesQCOM.tileMemoryHeap;
+      tileMemoryHeapFeaturesQCOM.pNext = nullptr;
+    }
+    else
+      hasTileMemoryHeapQCOM = false;
+#endif
+
+#if VK_QCOM_tile_shading
+    if (hasExtension<TileShadingQCOM>())
+    {
+      hasTileShadingQCOM = tileShadingFeaturesQCOM.tileShading;
+      tileShadingFeaturesQCOM.pNext = nullptr;
+    }
+    else
+      hasTileShadingQCOM = false;
+#endif
   }
 
   template <class TargetExt, class DepExt>
@@ -753,7 +875,7 @@ struct PhysicalDeviceSet
     {
       uint32_t qfpc = 0;
       VULKAN_LOG_CALL(instance.vkGetPhysicalDeviceQueueFamilyProperties2KHR(device, &qfpc, nullptr));
-      eastl::vector<VkQueueFamilyProperties2KHR> qf;
+      dag::Vector<VkQueueFamilyProperties2KHR> qf;
       qf.resize(qfpc);
 #if VK_KHR_global_priority
       if (hasExtension<GlobalPriorityKHR>())
@@ -830,23 +952,23 @@ struct PhysicalDeviceSet
   void decodeDriverVersion()
   {
     // https://www.reddit.com/r/vulkan/comments/fmift4/how_to_decode_driverversion_field_of
-    switch (vendorId)
+    switch (vendor)
     {
-      case D3D_VENDOR_NVIDIA:
+      case GpuVendor::NVIDIA:
         driverVersionDecoded[0] = (properties.driverVersion >> 22) & 0x3ff;
         driverVersionDecoded[1] = (properties.driverVersion >> 14) & 0x0ff;
         driverVersionDecoded[2] = (properties.driverVersion >> 6) & 0x0ff;
         driverVersionDecoded[3] = properties.driverVersion & 0x003f;
         break;
 
-      case D3D_VENDOR_AMD:
+      case GpuVendor::AMD:
         driverVersionDecoded[0] = (properties.driverVersion >> 22) & 0x3ff;
         driverVersionDecoded[1] = (properties.driverVersion >> 12) & 0x3ff;
         driverVersionDecoded[2] = properties.driverVersion & 0x0fff;
         driverVersionDecoded[3] = 0;
         break;
 
-      case D3D_VENDOR_INTEL:
+      case GpuVendor::INTEL:
         driverVersionDecoded[0] = (properties.driverVersion >> 14) & 0x0ff;
         driverVersionDecoded[1] = properties.driverVersion & 0x3fff;
         driverVersionDecoded[2] = 0;
@@ -933,9 +1055,9 @@ struct PhysicalDeviceSet
 
   static inline void print(const VkPhysicalDeviceFeatures &set, String &out)
   {
-    apd("robustBufferAccess: %s, fullDrawIndexUint32: %s, imageCubeArray: %s, independentBlend: %s",
+    apd("robustBufferAccess: %s, fullDrawIndexUint32: %s, imageCubeArray: %s, independentBlend: %s, dualSrcBlend: %s",
       bool32ToStr(set.robustBufferAccess), bool32ToStr(set.fullDrawIndexUint32), bool32ToStr(set.imageCubeArray),
-      bool32ToStr(set.independentBlend));
+      bool32ToStr(set.independentBlend), bool32ToStr(set.dualSrcBlend));
     apd("geometryShader: %s, tessellationShader: %s, sampleRateShading: %s, dualSrcBlend: %s", bool32ToStr(set.geometryShader),
       bool32ToStr(set.tessellationShader), bool32ToStr(set.sampleRateShading), bool32ToStr(set.dualSrcBlend));
     apd("logicOp: %s, multiDrawIndirect: %s, drawIndirectFirstInstance: %s, depthClamp: %s", bool32ToStr(set.logicOp),
@@ -1079,7 +1201,7 @@ struct PhysicalDeviceSet
   }
 
 #if VK_KHR_global_priority
-  static inline void print(const eastl::vector<VkQueueFamilyGlobalPriorityPropertiesKHR> &prop, String &out)
+  static inline void print(const dag::Vector<VkQueueFamilyGlobalPriorityPropertiesKHR> &prop, String &out)
   {
     String prios;
     String dump("Queue priorities: [");
@@ -1110,7 +1232,7 @@ struct PhysicalDeviceSet
   }
 #endif
 
-  static inline void print(const eastl::vector<VkQueueFamilyProperties> &qs, String &out)
+  static inline void print(const dag::Vector<VkQueueFamilyProperties> &qs, String &out)
   {
     String flags;
     String dump("Queues: [");
@@ -1396,7 +1518,7 @@ struct PhysicalDeviceSet
       str.chop(1);
   }
 
-  using UniqFeaturesMap = ska::flat_hash_map<VkFormatFeatureFlags, eastl::vector<VkFormat>>;
+  using UniqFeaturesMap = ska::flat_hash_map<VkFormatFeatureFlags, dag::Vector<VkFormat>>;
 
   static inline void print(const UniqFeaturesMap &masks, String &out, const char *feature_type)
   {
@@ -1513,14 +1635,10 @@ struct PhysicalDeviceSet
 
 #if VK_VERSION_1_2
 #define DRV_ID_STR(id, val) \
-  case id:                  \
-    drvTypeStr = val;       \
-    break
+  case id: drvTypeStr = val; break
 #else
 #define DRV_ID_STR(id, val) \
-  case id##_KHR:            \
-    drvTypeStr = val;       \
-    break
+  case id##_KHR: drvTypeStr = val; break
 #endif
 
     switch (drv_props.driverID)
@@ -1595,7 +1713,7 @@ struct PhysicalDeviceSet
     if (memoryBudgetInfoAvailable)
       print(memoryProperties, memoryBudgetInfo, out);
 #endif
-#if D3D_HAS_RAY_TRACING
+#if VULKAN_HAS_RAYTRACING
     apd("raytrace[ShaderHeaderSize, MaxRecursionDepth]: %u,%u", raytraceShaderHeaderSize, raytraceMaxRecursionDepth);
     apd("raytrace[TopAccelerationInstanceElementSize, ScratchBufferAlignment]: %u, %u", raytraceTopAccelerationInstanceElementSize,
       raytraceScratchBufferAlignment);
@@ -1610,7 +1728,25 @@ struct PhysicalDeviceSet
       boolToStr(hasShaderFloat16), boolToStr(hasMemoryPriority), boolToStr(hasPageableDeviceLocalMemory));
     apd("hasPipelineCreationCacheControl: %s", boolToStr(hasPipelineCreationCacheControl));
     apd("hasSixteenBitStorage: %s", boolToStr(hasSixteenBitStorage));
-    apd("hasSynchronization2: %s, hasGlobalPriority: %s", boolToStr(hasSynchronization2), boolToStr(hasGlobalPriority));
+    apd("hasSynchronization2: %s, hasGlobalPriority: %s, hasTimelineSemaphore: %s, hasPipelineExecutableInfo: %s",
+      boolToStr(hasSynchronization2), boolToStr(hasGlobalPriority), boolToStr(hasTimelineSemaphore),
+      boolToStr(hasPipelineExecutableInfo));
+    apd("hasTilePropQCOM: %s, hasTileMemoryHeapQCOM: %s, hasTileShadingQCOM: %s", boolToStr(hasTilePropQCOM),
+      boolToStr(hasTileMemoryHeapQCOM), boolToStr(hasTileShadingQCOM));
+    if (hasTileShadingQCOM)
+    {
+#if VK_QCOM_tile_shading
+      apd("tileShadingQCOM[PS,CA,DA,SA,IA,SA,Draw,Dispatch,DispatchTile,Apron,AnisoApron,Atomic,Processing]:"
+          "%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s",
+        tileShadingFeaturesQCOM.tileShadingFragmentStage, tileShadingFeaturesQCOM.tileShadingColorAttachments,
+        tileShadingFeaturesQCOM.tileShadingDepthAttachments, tileShadingFeaturesQCOM.tileShadingStencilAttachments,
+        tileShadingFeaturesQCOM.tileShadingInputAttachments, tileShadingFeaturesQCOM.tileShadingSampledAttachments,
+        tileShadingFeaturesQCOM.tileShadingPerTileDraw, tileShadingFeaturesQCOM.tileShadingPerTileDispatch,
+        tileShadingFeaturesQCOM.tileShadingDispatchTile, tileShadingFeaturesQCOM.tileShadingApron,
+        tileShadingFeaturesQCOM.tileShadingAnisotropicApron, tileShadingFeaturesQCOM.tileShadingAtomicOps,
+        tileShadingFeaturesQCOM.tileShadingImageProcessing);
+#endif
+    }
   }
 
   inline void print(uint32_t device_index)

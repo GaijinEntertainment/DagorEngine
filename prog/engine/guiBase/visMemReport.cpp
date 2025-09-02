@@ -5,6 +5,7 @@
 #include <gui/dag_stdGuiRender.h>
 #include <3d/tql.h>
 #include <util/memReport.h>
+#include <util/dag_string.h>
 
 void memreport::on_screen_memory_usage_report(int x0, int y0, bool sysmem, bool gpumem)
 {

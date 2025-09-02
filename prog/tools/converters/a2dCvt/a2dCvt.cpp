@@ -283,40 +283,33 @@ static bool convertFile(char *source, const char *dest)
 static void getAllSubDir(const char *path, Tab<SimpleString> *dirList)
 {
   dirList->push_back() = path;
-  alefind_t ff;
   String mask(path);
   mask += "*.*";
-  if (dd_find_first(mask, DA_SUBDIR, &ff))
+  for (const alefind_t &ff : dd_find_iterator(mask, DA_SUBDIR))
   {
-    do
+    if (ff.attr & DA_SUBDIR)
     {
-      if (ff.attr & DA_SUBDIR)
-      {
-        String dirname(path);
-        dirname += ff.name;
-        if (!::dd_dir_exist(dirname))
-          continue;
+      String dirname(path);
+      dirname += ff.name;
+      if (!::dd_dir_exist(dirname))
+        continue;
 
-        dirname += "/";
-        getAllSubDir(dirname, dirList);
-      }
-    } while (dd_find_next(&ff));
-    dd_find_close(&ff);
+      dirname += "/";
+      getAllSubDir(dirname, dirList);
+    }
   }
 }
 
 static int scanAndCvt(const char *srcDir, const char *destDir)
 {
-  alefind_t ff;
   if (!srcDir || !destDir)
     return -1;
 
   dd_mkdir(destDir);
   Tab<SimpleString> files(tmpmem);
 
-  for (bool scan = dd_find_first(String(260, "%s/*.a2d", srcDir), 0, &ff); scan; scan = dd_find_next(&ff))
+  for (const alefind_t &ff : dd_find_iterator(String(260, "%s/*.a2d", srcDir), DA_FILE))
     files.push_back() = ff.name;
-  dd_find_close(&ff);
 
   if (!files.size())
   {

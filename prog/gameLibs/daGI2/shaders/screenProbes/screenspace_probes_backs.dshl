@@ -1,0 +1,113 @@
+include "world_sdf.dshl"
+include "sky_shader_global.dshl"
+include "sq_clouds_shadow.dshl"
+include "screenspace_probes_common.dshl"
+include "screenspace_probes_reprojection.dshl"
+//include "project_is_dynamic_point.dshl"
+//include "gbuffer.dshl"
+include "dagi_lit_scene_helper.dshl"
+include "project_prev_frame_sample_radiance.dshl"
+
+hlsl {
+  #include <sp_calc_common.hlsl>
+}
+
+macro GET_PROBE_COLOR(code)
+  SCREENSPACE_PROBES_POSITIONS_COMMON(code)
+  PROJECT_PREV_FRAME_SAMPLE_REPROJECT(code)
+  SP_INIT_PREV_ZNZFAR_STAGE(code)
+  SP_REPROJECT_MATH(code)
+  READ_WORLD_SDF_MATH(code)
+  READ_WORLD_SDF_INIT(code)
+  READ_WORLD_SDF_USE(code)
+  HISTORY_ONLY_PROBE(code)
+  PROJECT_GET_WORLD_RADIANCE_AT(code)
+  hlsl(code) {
+    #include <screen_probes_encoding.hlsl>
+    uint get_probe_color(float3 uvw, uint encodedNormal, bool isMoving)
+    {
+      float3 camPos = sp_getViewVecOptimized(uvw.xy)*uvw.z;
+      float3 worldPos = sp_world_view_pos + camPos;
+      float3 worldNormal = decodeProbeNormal(encodedNormal);
+      if (isMoving)
+      {
+        uint sdfClip = world_sdf_find_clip(worldPos);//to reduce divirgence between threads
+        if (sdfClip >= dagi_lit_scene_voxels_clip_count() + dagi_lit_scene_voxels_first_sdf_clip())
+          return 0;
+        float3 sdfAtlasTC = world_sdf_clip_tc_to_atlas_tc(sdfClip, world_pos_to_world_sdf_tc(sdfClip, worldPos));
+        if (sample_world_sdf_value_atlas_tc(sdfAtlasTC) > 0.5 + 0.25/MAX_WORLD_SDF_VOXELS_BAND)
+          return 0;
+        //todo: check/reduce normal divirgence?
+        //float3 gradient = world_sdf_sample_gradient_with_atlas_tc(sdfAtlasTC);
+        //float gradLen = length(gradient)
+        //float3 surfaceNormal = gradLen > 0 ? -gradient.xzy/gradLen : worldNormal;
+      }
+      float3 prevNDC = get_screen_probe_campos_history_ndc(camPos);
+      float3 prevUVW = float3(prevNDC.xy*float2(0.5,-0.5) + float2(0.5,0.5), prevNDC.z);
+
+      float3 historyRadiance;
+      bool hasValidHistoryRadiance = false;
+      if (sp_is_valid_history())
+        hasValidHistoryRadiance = sample_prev_frame_radiance(prevUVW, uvw, camPos, true, historyRadiance);
+
+      float3 radiance;
+      if (hasValidHistoryRadiance)
+        radiance = historyRadiance;
+      else
+        radiance = dagi_get_radiance_at(worldPos, worldNormal);
+      //float3 sdfAtlasTC = world_sdf_clip_tc_to_atlas_tc(sdfClip, world_pos_to_world_sdf_tc(sdfClip, worldPos));
+      //float3 gradient = world_sdf_sample_gradient_with_atlas_tc(sdfAtlasTC);
+      //float gradLen = length(gradient);
+      //float3 surfaceNormal = gradLen > 0 ? -gradient.xzy/gradLen : worldNormal;
+      //worldNormal = surfaceNormal;
+      //todo: check/reduce normal divirgence?
+      //alternatively, on lighting we can mark probes with insufficient cone size
+      return encodeProbeColor(radiance);
+    }
+  }
+endmacro
+
+buffer screenspace_tile_classificator;
+
+shader dagi_probes_back_color_cs
+{
+  ENABLE_ASSERT(cs)
+  GET_PROBE_COLOR(cs)
+  SP_USE_BUFFERS_LIST(cs)
+  (cs) {
+    screenspace_tile_classificator@buf = screenspace_tile_classificator hlsl {
+      ByteAddressBuffer screenspace_tile_classificator@buf;
+    }
+  }
+  hlsl(cs) {
+    RWByteAddressBuffer screenspace_probe_pos: register(u0);
+    [numthreads(SP_BACK_COLOR_WARP, 1, 1)]
+    void calc_back_radiance_cs(uint probeIdx : SV_DispatchThreadID)
+    {
+      uint totalCount = loadBuffer(screenspace_probes_list, 0);
+      if (probeIdx >= totalCount)
+        return;
+      uint atlasProbeIndex = loadBuffer(screenspace_probes_list, 8u + probeIdx*4u);
+      uint encodedProbe = sp_loadEncodedProbe(screenspace_probe_pos, atlasProbeIndex);
+      if (!encodedProbe)
+        return;
+      uint color = 0;
+      if (!sp_is_newborn_probe(encodedProbe))
+      {
+        uint encodedNormalOfs = sp_loadEncodedProbeNormalCoord(screenspace_probe_pos, atlasProbeIndex, sp_getNumTotalProbes());
+        uint screenProbeIndex = atlasProbeIndex;
+        if (screenProbeIndex >= sp_getNumScreenProbes())
+          screenProbeIndex = loadBuffer(screenspace_tile_classificator, (sp_getScreenTileClassificatorOffsetDwords() + atlasProbeIndex - sp_getNumScreenProbes())*4);//trace&filter info, index of screen tile
+
+        uint2 coord_ofs = decodeCoordOfs(encodedNormalOfs);
+        uint2 screen_tile_coord = uint2(screenProbeIndex%uint(screenspace_probe_res.x), screenProbeIndex/uint(screenspace_probe_res.x));
+        uint2 probeScreenCoord = min(screen_tile_coord*screenspace_probe_res.z + coord_ofs, screenspace_probe_screen_limit.zw);
+        float3 uv = float3(screenICoordToScreenUV(probeScreenCoord), sp_decodeProbeInfo(encodedProbe).normalizedW*sp_zn_zfar.y);
+
+        color = get_probe_color(uv, encodedNormalOfs, sp_is_moving_probe(encodedProbe));
+      }
+      storeBuffer(screenspace_probe_pos, (atlasProbeIndex*2 + sp_getNumTotalProbes())*4 + 4, color);
+    }
+  }
+  compile("target_cs", "calc_back_radiance_cs");
+}

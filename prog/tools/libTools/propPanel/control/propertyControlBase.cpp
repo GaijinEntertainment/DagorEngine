@@ -62,11 +62,15 @@ bool PropertyControlBase::getCurveCubicCoefsValue(Tab<Point2> &xy_4c_per_seg) co
   return false;
 }
 
+const char *PropertyControlBase::getTooltip() const { return controlTooltip.c_str(); }
+
 int PropertyControlBase::getStringsValue(Tab<String> &vals)
 {
   clear_and_shrink(vals);
   return 0;
 }
+
+dag::ConstSpan<String> PropertyControlBase::getStringsValue() { return dag::ConstSpan<String>(); }
 
 int PropertyControlBase::getSelectionValue(Tab<int> &sels)
 {

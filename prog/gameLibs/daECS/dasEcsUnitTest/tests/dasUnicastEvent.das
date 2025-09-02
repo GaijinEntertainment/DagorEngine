@@ -11,7 +11,7 @@ def send_das_event(info : UpdateStageInfoAct)
   ecs::query() <| $ [es] (eid : EntityId; var ev_pos : float3&; ev_vel : float3; var ev_val : int&)
     ev_pos += info.dt * ev_vel
     ev_val++
-    sendEvent(eid, [[DasUnicastEvent pos = ev_pos, vel = ev_vel, val=ev_val, at=sent]])
+    sendEvent(eid, DasUnicastEvent(pos = ev_pos, vel = ev_vel, val = ev_val, at = sent))
     wasSent = true
   assert(wasSent)
   sent++

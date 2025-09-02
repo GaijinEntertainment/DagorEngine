@@ -1,6 +1,8 @@
+// Built with ECS codegen version 1.0
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "bloomES.cpp.inl"
 ECS_DEF_PULL_VAR(bloom);
-//built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
 //static constexpr ecs::ComponentDesc reset_bloom_es_comps[] ={};
 static void reset_bloom_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
@@ -64,7 +66,7 @@ static ecs::EntitySystemDesc init_bloom_es_es_desc
 static constexpr ecs::ComponentDesc change_bloom_params_with_fg_change_es_comps[] =
 {
 //start of 1 rw components at [0]
-  {ECS_HASH("bloom__upsample_chain"), ecs::ComponentTypeInfo<dag::Vector<dabfg::NodeHandle>>()},
+  {ECS_HASH("bloom__upsample_chain"), ecs::ComponentTypeInfo<dag::Vector<dafg::NodeHandle>>()},
 //start of 5 ro components at [1]
   {ECS_HASH("bloom__upSample"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("bloom__halation_color"), ecs::ComponentTypeInfo<E3DCOLOR>(), ecs::CDF_OPTIONAL},
@@ -76,7 +78,7 @@ static void change_bloom_params_with_fg_change_es_all_events(const ecs::Event &_
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     change_bloom_params_with_fg_change_es(evt
-        , ECS_RW_COMP(change_bloom_params_with_fg_change_es_comps, "bloom__upsample_chain", dag::Vector<dabfg::NodeHandle>)
+        , ECS_RW_COMP(change_bloom_params_with_fg_change_es_comps, "bloom__upsample_chain", dag::Vector<dafg::NodeHandle>)
     , ECS_RO_COMP(change_bloom_params_with_fg_change_es_comps, "bloom__upSample", float)
     , ECS_RO_COMP_OR(change_bloom_params_with_fg_change_es_comps, "bloom__halation_color", E3DCOLOR(E3DCOLOR(255, 0, 0, 0)))
     , ECS_RO_COMP_OR(change_bloom_params_with_fg_change_es_comps, "bloom__halation_brightness", float(2))
@@ -156,8 +158,8 @@ static ecs::EntitySystemDesc init_bloom_nodes_es_es_desc
 static constexpr ecs::ComponentDesc disable_bloom_ecs_query_comps[] =
 {
 //start of 2 rw components at [0]
-  {ECS_HASH("bloom__downsample_chain"), ecs::ComponentTypeInfo<dag::Vector<dabfg::NodeHandle>>()},
-  {ECS_HASH("bloom__upsample_chain"), ecs::ComponentTypeInfo<dag::Vector<dabfg::NodeHandle>>()}
+  {ECS_HASH("bloom__downsample_chain"), ecs::ComponentTypeInfo<dag::Vector<dafg::NodeHandle>>()},
+  {ECS_HASH("bloom__upsample_chain"), ecs::ComponentTypeInfo<dag::Vector<dafg::NodeHandle>>()}
 };
 static ecs::CompileTimeQueryDesc disable_bloom_ecs_query_desc
 (
@@ -175,8 +177,8 @@ inline void disable_bloom_ecs_query(ecs::EntityId eid, Callable function)
         constexpr size_t comp = 0;
         {
           function(
-              ECS_RW_COMP(disable_bloom_ecs_query_comps, "bloom__downsample_chain", dag::Vector<dabfg::NodeHandle>)
-            , ECS_RW_COMP(disable_bloom_ecs_query_comps, "bloom__upsample_chain", dag::Vector<dabfg::NodeHandle>)
+              ECS_RW_COMP(disable_bloom_ecs_query_comps, "bloom__downsample_chain", dag::Vector<dafg::NodeHandle>)
+            , ECS_RW_COMP(disable_bloom_ecs_query_comps, "bloom__upsample_chain", dag::Vector<dafg::NodeHandle>)
             );
 
         }
@@ -186,8 +188,8 @@ inline void disable_bloom_ecs_query(ecs::EntityId eid, Callable function)
 static constexpr ecs::ComponentDesc init_bloom_ecs_query_comps[] =
 {
 //start of 2 rw components at [0]
-  {ECS_HASH("bloom__downsample_chain"), ecs::ComponentTypeInfo<dag::Vector<dabfg::NodeHandle>>()},
-  {ECS_HASH("bloom__upsample_chain"), ecs::ComponentTypeInfo<dag::Vector<dabfg::NodeHandle>>()},
+  {ECS_HASH("bloom__downsample_chain"), ecs::ComponentTypeInfo<dag::Vector<dafg::NodeHandle>>()},
+  {ECS_HASH("bloom__upsample_chain"), ecs::ComponentTypeInfo<dag::Vector<dafg::NodeHandle>>()},
 //start of 5 ro components at [2]
   {ECS_HASH("bloom__upSample"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("bloom__halation_color"), ecs::ComponentTypeInfo<E3DCOLOR>(), ecs::CDF_OPTIONAL},
@@ -211,8 +213,8 @@ inline void init_bloom_ecs_query(ecs::EntityId eid, Callable function)
         constexpr size_t comp = 0;
         {
           function(
-              ECS_RW_COMP(init_bloom_ecs_query_comps, "bloom__downsample_chain", dag::Vector<dabfg::NodeHandle>)
-            , ECS_RW_COMP(init_bloom_ecs_query_comps, "bloom__upsample_chain", dag::Vector<dabfg::NodeHandle>)
+              ECS_RW_COMP(init_bloom_ecs_query_comps, "bloom__downsample_chain", dag::Vector<dafg::NodeHandle>)
+            , ECS_RW_COMP(init_bloom_ecs_query_comps, "bloom__upsample_chain", dag::Vector<dafg::NodeHandle>)
             , ECS_RO_COMP(init_bloom_ecs_query_comps, "bloom__upSample", float)
             , ECS_RO_COMP_OR(init_bloom_ecs_query_comps, "bloom__halation_color", E3DCOLOR(E3DCOLOR(255, 0, 0, 0)))
             , ECS_RO_COMP_OR(init_bloom_ecs_query_comps, "bloom__halation_brightness", float(2))

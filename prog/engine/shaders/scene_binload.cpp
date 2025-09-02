@@ -162,8 +162,8 @@ void RenderScene::loadBinary(IGenLoad &crd, dag::ConstSpan<TEXTUREID> texMap, bo
     for (i = 0; i < smvd->getGlobVDataCount(); ++i)
     {
       GlobalVertexData &vd = *smvd->getGlobVData(i);
-      int vb_size = vd.getVB() ? vd.getVB()->ressize() : 0;
-      int ib_size = vd.getIB() ? vd.getIB()->ressize() : 0;
+      int vb_size = vd.getVB() ? vd.getVB()->getSize() : 0;
+      int ib_size = vd.getIB() ? vd.getIB()->getSize() : 0;
       df_printf(geomDumpFile, "%d;%d;%d;%d;%d;%d;", vb_size, ib_size, vb_size ? vb_size / vd.getStride() : 0,
         ib_size ? ib_size / ((vd.getIB()->getFlags() & SBCF_INDEX32) ? 4 : 2) / 3 : 0, vd.getStride(), 1);
 

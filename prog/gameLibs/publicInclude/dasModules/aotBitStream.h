@@ -9,6 +9,7 @@
 #include <daNet/bitStream.h>
 #include <dasModules/aotEcs.h>
 #include <dasModules/aotDagorMath.h>
+#include "bitStreamWalker.h"
 
 
 MAKE_TYPE_FACTORY(BitStream, danet::BitStream)
@@ -55,6 +56,39 @@ inline void bitstream_write_compressed(danet::BitStream &stream, T value)
 {
   stream.WriteCompressed(value);
 }
+template <BitStreamWalkerMode mode>
+inline vec4f bitstream_read_write_any(das::Context &context, das::SimNode_CallBase *call, vec4f *args)
+{
+  auto *stream = das::cast<typename BitStreamWalker<mode>::BitStreamType *>::to(args[0]);
+  BitStreamWalker<mode> walker(stream, &context, &call->debugInfo);
+
+  auto *data = reinterpret_cast<char *>(das::cast<void *>::to(args[1]));
+  das::TypeInfo *ti = call->types[1];
+  walker.walk(data, ti);
+  return das::cast<bool>::from(!walker.cancel());
+}
 
 inline danet::BitStream *bitstream_addr(danet::BitStream &stream) { return &stream; }
+
+inline void bitstream_data(danet::BitStream &stream, const das::TBlock<void, const das::TTemporary<const das::TArray<uint8_t>>> &blk,
+  das::Context *ctx, das::LineInfoArg *at)
+{
+  das::Array arr;
+  arr.data = (char *)stream.GetData();
+  arr.size = stream.GetNumberOfBytesUsed();
+  arr.capacity = arr.size;
+  arr.lock = 1;
+  arr.flags = 0;
+  vec4f arg = das::cast<das::Array *>::from(&arr);
+  ctx->invoke(blk, &arg, nullptr, at);
+}
+
+inline void bitstream_data_ctor(const das::TArray<uint8_t> &data, const das::TBlock<void, const danet::BitStream &> &blk,
+  das::Context *ctx, das::LineInfoArg *at)
+{
+  danet::BitStream stream((const uint8_t *)data.data, data.size, /*copy*/ false);
+  vec4f arg = das::cast<danet::BitStream &>::from(stream);
+  ctx->invoke(blk, &arg, nullptr, at);
+}
+
 } // namespace bind_dascript

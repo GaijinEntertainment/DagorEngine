@@ -172,19 +172,17 @@ public:
     SND_BIND_FUN_EX(play_with_name, "play", das::SideEffects::modifyExternal);
     SND_BIND_FUN_EX(play_with_name_pos, "play", das::SideEffects::modifyExternal);
     SND_BIND_FUN_EX(play_with_name_path_pos, "play", das::SideEffects::modifyExternal);
-    SND_BIND_FUN_EX(play_with_name_path_pos_far, "play", das::SideEffects::modifyExternal);
-    SND_BIND_FUN_EX(play_with_name_pos_vol, "play", das::SideEffects::modifyExternal);
+    SND_BIND_FUN_EX(play_with_name_path_pos_far, "play_far", das::SideEffects::modifyExternal);
     SND_BIND_FUN_EX(delayed_play_with_name_path_pos, "delayed_play", das::SideEffects::modifyExternal);
 
     SND_BIND_FUN_EX(play_sound_with_name, "play", das::SideEffects::modifyArgumentAndExternal);
     SND_BIND_FUN_EX(play_sound_with_name_pos, "play", das::SideEffects::modifyArgumentAndExternal);
     SND_BIND_FUN_EX(play_sound_with_name_path_pos, "play", das::SideEffects::modifyArgumentAndExternal);
-    SND_BIND_FUN_EX(play_sound_with_name_pos_vol, "play", das::SideEffects::modifyArgumentAndExternal);
-    SND_BIND_FUN_EX(play_sound_with_name_pos_delayed, "delayed_play", das::SideEffects::modifyArgumentAndExternal);
+    SND_BIND_FUN_EX(delayed_play_sound_with_name_pos, "delayed_play", das::SideEffects::modifyArgumentAndExternal);
 
     SND_BIND_FUN_EX(oneshot_with_name_pos, "oneshot", das::SideEffects::modifyExternal);
     SND_BIND_FUN_EX(oneshot_with_name, "oneshot", das::SideEffects::modifyExternal);
-    SND_BIND_FUN_EX(oneshot_with_name_pos_far, "oneshot", das::SideEffects::modifyExternal);
+    SND_BIND_FUN_EX(oneshot_with_name_pos_far, "oneshot_far", das::SideEffects::modifyExternal);
     SND_BIND_FUN_EX(delayed_oneshot_with_name_pos, "delayed_oneshot", das::SideEffects::modifyExternal);
     SND_BIND_FUN_EX(delayed_oneshot_with_name, "delayed_oneshot", das::SideEffects::modifyExternal);
 

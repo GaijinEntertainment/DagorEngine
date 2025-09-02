@@ -20,10 +20,11 @@ void TwoStepRelPath::setSdkRoot(const char *root_dir, const char *subdir)
   debug("setSdkRoot: %s  %d %d", sdkRoot, sdkRootLen, sdkRootLen1);
 }
 
-const char *TwoStepRelPath::mkRelPath(const char *fpath)
+const char *TwoStepRelPath::mkRelPath(const char *fpath, storage_t &buf)
 {
-  strncpy(buf, fpath, 511);
-  buf[511] = 0;
+  G_STATIC_ASSERT(sizeof(buf) == sizeof(storage_t) && sizeof(buf) == 512);
+  strncpy(buf, fpath, sizeof(storage_t) - 1);
+  buf[sizeof(storage_t) - 1] = 0;
   dd_simplify_fname_c(buf);
 
   if (!sdkRootLen)

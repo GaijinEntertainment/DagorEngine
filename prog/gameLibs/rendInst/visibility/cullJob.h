@@ -6,6 +6,7 @@
 #include <generic/dag_span.h>
 #include <generic/dag_smallTab.h>
 #include <osApiWrappers/dag_cpuJobs.h>
+#include <util/dag_threadPool.h>
 
 #include "render/genRender.h"
 #include "riGen/rendInstTiledScene.h"
@@ -29,8 +30,8 @@ struct CullJobSharedState
   dag::ConstSpan<RendinstTiledScene> scenes;
   scene::TiledSceneCullContext *sceneContexts = nullptr;
   const eastl::vector<TiledScenePoolInfo> *poolInfo = nullptr;
-  std::atomic<uint32_t> *riexDataCnt = nullptr;
-  std::atomic<uint32_t> *riexLargeCnt = nullptr;
+  dag::AtomicInteger<uint32_t> *riexDataCnt = nullptr;
+  dag::AtomicInteger<uint32_t> *riexLargeCnt = nullptr;
   SmallTab<Point2, framemem_allocator> *perPoolMinDist = nullptr;
   SmallTab<RiGenExtraVisibility::UVec2, framemem_allocator> *perPoolBestId = nullptr;
 };
@@ -41,6 +42,9 @@ class CullJob final : public cpujobs::IJob
   int jobIdx = 0;
 
 public:
+  CullJob() = default;
+  ~CullJob() { G_FAST_ASSERT(interlocked_relaxed_load(this->done)); }
+
   void set(int job_idx, const CullJobSharedState *parent_)
   {
     jobIdx = job_idx;
@@ -52,8 +56,6 @@ public:
     if (job_idx == 0) // First job wakes the rest
       threadpool::wake_up_all();
 
-    TIME_PROFILE(parallel_ri_cull_job);
-
     mat44f globtm = info->globtm;
     vec4f vpos_distscale = info->vpos_distscale;
     auto use_occlusion = info->use_occlusion;
@@ -62,18 +64,18 @@ public:
     G_ASSERTF(v.forcedExtraLod < 0, "CullJob is expected to not have forcedExtraLod enabled.");
     auto &poolInfo = *info->poolInfo;
     const bool sortLarge = use_occlusion && check_occluders;
-    std::atomic<uint32_t> *riexDataCnt = info->riexDataCnt;
-    std::atomic<uint32_t> *riexLargeCnt = info->riexLargeCnt;
+    dag::AtomicInteger<uint32_t> *riexDataCnt = info->riexDataCnt;
+    dag::AtomicInteger<uint32_t> *riexLargeCnt = info->riexLargeCnt;
 
     [[maybe_unused]] int tiled_scene_idx = 0;
     const scene::TiledSceneCullContext *ctx = info->sceneContexts;
     for (const RendinstTiledScene &tiled_scene : info->scenes)
     {
-      while (!ctx->tilesPassDone.load() || ctx->nextIdxToProcess.load(std::memory_order_relaxed) < ctx->tilesCount)
+      while (!ctx->tilesPassDone.load() || ctx->nextIdxToProcess.load(dag::memory_order_relaxed) < ctx->tilesCount.load())
       {
         const int next_idx = ctx->nextIdxToProcess.fetch_add(1);
-        spin_wait([&] { return next_idx >= ctx->tilesCount && !ctx->tilesPassDone.load(); });
-        if (next_idx >= ctx->tilesCount)
+        spin_wait([&] { return next_idx >= ctx->tilesCount.load() && !ctx->tilesPassDone.load(); });
+        if (next_idx >= ctx->tilesCount.load())
           break;
 
         int tile_idx = ctx->tilesPtr[next_idx];
@@ -104,7 +106,7 @@ public:
           if (new_sz > v.riexData[lod].data()[poolId].size())
           {
             if (sortLarge && lod < LARGE_LOD_CNT && (scene::check_node_flags(m, RendinstTiledScene::LARGE_OCCLUDER)))
-              riexLargeCnt[poolId * LARGE_LOD_CNT + lod]++;
+              riexLargeCnt[poolId * LARGE_LOD_CNT + lod].fetch_add(1);
             return;
           }
 
@@ -167,6 +169,7 @@ public:
       G_FAST_ASSERT(ctx == &info->sceneContexts[++tiled_scene_idx]);
     }
   }
+  const char *getJobName(bool &) const override { return "parallel_ri_cull_job"; }
   void doJob() override { perform_job(jobIdx, parent); }
 };
 

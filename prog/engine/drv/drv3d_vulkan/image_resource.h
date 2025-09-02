@@ -4,6 +4,7 @@
 #include "device_resource.h"
 #include "debug_naming.h"
 #include "image_view_state.h"
+#include "cleanup_queue_tags.h"
 
 namespace drv3d_vulkan
 {
@@ -21,7 +22,7 @@ struct ImageCreateInfo
   uint8_t mips;
   FormatStore format;
   VkImageCreateFlags flags;
-  uint8_t residencyFlags;
+  uint8_t memFlags;
   VkSampleCountFlagBits samples;
 
   void initByTexCreate(uint32_t cflag, bool cube_tex);
@@ -134,16 +135,13 @@ class Image : public ImageImplBase,
   void bindAssignedMemoryId();
 
 public:
-  enum
-  {
-    CLEANUP_DESTROY = 0,
-    CLEANUP_DELAYED_DESTROY = 1
-  };
   static constexpr int MAX_VIEW_FORMAT = 4;
   using ViewFormatList = StaticTab<VkFormat, MAX_VIEW_FORMAT>;
 
+  // external handlers
   void destroyVulkanObject();
   void createVulkanObject();
+  VkSparseImageMemoryRequirements getSparseMemoryReqNonAspected();
   MemoryRequirementInfo getMemoryReq();
   VkMemoryRequirements getSharedHandleMemoryReq();
   void bindMemory();
@@ -158,14 +156,13 @@ public:
   void makeSysCopy(ExecutionContext &ctx);
   bool mayAlias() { return desc.memFlags & MEM_IN_PLACED_HEAP; }
   void delayedRestoreFromSysCopy();
+  void onDeviceReset();
+  void afterDeviceReset();
 
-  template <int Tag>
+  template <CleanupTag Tag>
   void onDelayedCleanupBackend();
 
-  template <int Tag>
-  void onDelayedCleanupFrontend(){};
-
-  template <int Tag>
+  template <CleanupTag Tag>
   void onDelayedCleanupFinish();
 
 public:
@@ -176,10 +173,12 @@ public:
   };
 
 private:
-  eastl::vector<ViewInfo> views;
+  dag::Vector<ViewInfo> views;
   Buffer *hostCopy = nullptr;
-  SamplerState cachedSamplerState; //-V730_NOINIT
-  SamplerInfo *cachedSampler = nullptr;
+
+#if DAGOR_DBGLEVEL > 0
+  bool unsupportedLinearFilterReported = false;
+#endif
 
 public:
   enum
@@ -188,13 +187,13 @@ public:
     MEM_NOT_EVICTABLE = 0x1,
     MEM_LAZY_ALLOCATION = 0x2,
     MEM_DEDICATE_ALLOC = 0x4,
-    MEM_IN_PLACED_HEAP = 0x8
+    MEM_IN_PLACED_HEAP = 0x8,
+    MEM_SPARSE = 0x10,
+    MEM_SWAPCHAIN = 0x20
   };
   static bool lazyAllocationFromCflags(uint32_t cflag) { return cflag & (TEXCF_SAMPLECOUNT_MASK | TEXCF_TRANSIENT); }
 
   ImageLayoutInfo layout;
-
-  SamplerInfo *getSampler(SamplerState sampler_state);
 
   void setDerivedHandle(VulkanImageHandle new_handle)
   {
@@ -211,7 +210,7 @@ public:
   FormatStore getFormat() const { return desc.format; }
   VkImageUsageFlags getUsage() const { return desc.ici.usage; }
   VkImageCreateFlags getCreateFlags() const { return desc.ici.flags; }
-  eastl::vector<ViewInfo>::iterator addView(const ViewInfo &view) { return views.insert(views.end(), view); }
+  dag::Vector<ViewInfo>::iterator addView(const ViewInfo &view) { return views.insert(views.end(), view); }
   VkImageType getType() const { return desc.ici.imageType; }
   uint16_t getArrayLayers() const { return desc.ici.arrayLayers; }
   ValueRange<uint16_t> getArrayLayerRange() const { return {0, desc.ici.arrayLayers}; }
@@ -256,12 +255,16 @@ public:
   }
 
   bool isSampledSRV() { return !isGPUWritable() && (getUsage() & VK_IMAGE_USAGE_SAMPLED_BIT); }
+  bool isSparseAspected();
 
   static Image *create(const ImageCreateInfo &ii);
   static bool checkImageCreate(const VkImageCreateInfo &ici, FormatStore format);
 
-  bool checkImageViewFormat(FormatStore fmt, VkImageUsageFlags usage);
+  bool checkImageViewFormat(FormatStore fmt, VkImageUsageFlags usage) const;
+  VulkanImageViewHandle createNewImageView(ImageViewState state) const;
   VulkanImageViewHandle getImageView(ImageViewState state);
+
+  bool verifyLinearFilteringSupported(const char *usageContextStr, ExecutionContext *ctx);
 };
 
 void viewFormatListFrom(FormatStore format, VkImageUsageFlags usage, Image::ViewFormatList &viewFormats);

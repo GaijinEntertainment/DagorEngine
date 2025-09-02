@@ -16,7 +16,7 @@ CollisionResource *get_collres_from_riextra(ecs::EntityManager &mgr, ecs::Entity
   const rendinst::riex_handle_t *riHandle = mgr.getNullable<rendinst::riex_handle_t>(eid, ECS_HASH("ri_extra__handle"));
   if (riHandle == nullptr)
   {
-    if (const RiExtraComponent *ri_extra = g_entity_mgr->getNullable<RiExtraComponent>(eid, ECS_HASH("ri_extra")))
+    if (const RiExtraComponent *ri_extra = mgr.getNullable<RiExtraComponent>(eid, ECS_HASH("ri_extra")))
       riHandle = &ri_extra->handle;
   }
 

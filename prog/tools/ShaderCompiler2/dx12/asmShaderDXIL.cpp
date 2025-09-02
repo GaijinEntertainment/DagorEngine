@@ -60,7 +60,7 @@ LibPin pinFxcLib;
 namespace
 {
 
-eastl::vector<uint8_t> create_shader_container(eastl::vector<uint8_t> &&data, dxil::StoredShaderType type)
+eastl::vector<uint8_t> create_shader_container(eastl::vector<uint8_t> &&data, dxil::ShaderContainerType type)
 {
   bindump::MemoryWriter writer;
   bindump::Master<dxil::ShaderContainer> container;
@@ -73,7 +73,20 @@ eastl::vector<uint8_t> create_shader_container(eastl::vector<uint8_t> &&data, dx
   return writer.mData;
 }
 
-eastl::vector<uint8_t> pack_shader(const eastl::vector<uint8_t> &dxil_blob, const eastl::vector<char> &shader_source,
+eastl::vector<uint8_t> create_shader_with_stream_output(eastl::vector<uint8_t> &&data,
+  dag::ConstSpan<dxil::StreamOutputComponentInfo> stream_output_components)
+{
+  bindump::MemoryWriter writer;
+  bindump::Master<dxil::ShaderWithStreamOutput> shader;
+  shader.data = eastl::move(data);
+  shader.streamOutputComponents = stream_output_components;
+
+  bindump::streamWrite(shader, writer);
+  writer.mData.resize(writer.mData.size());
+  return writer.mData;
+}
+
+bindump::Master<dxil::Shader> pack_shader_layout(const eastl::vector<uint8_t> &dxil_blob, const eastl::vector<char> &shader_source,
   const ::dxil::ShaderHeader &header)
 {
   bindump::Master<dxil::Shader> shader;
@@ -92,14 +105,39 @@ eastl::vector<uint8_t> pack_shader(const eastl::vector<uint8_t> &dxil_blob, cons
     // for the first phase small.
     level = -1;
 #endif
-    bindump::VecHolder<char> source;
-    source = shader_source;
+    bindump::VecHolder<char> source = shader_source;
     shader.shaderSource.compress(source, level);
   }
+  return shader;
+}
+
+eastl::vector<uint8_t> pack_shader_without_stream_output(const eastl::vector<uint8_t> &dxil_blob,
+  const eastl::vector<char> &shader_source, const ::dxil::ShaderHeader &header)
+{
+  bindump::Master<dxil::Shader> shader = pack_shader_layout(dxil_blob, shader_source, header);
+  bindump::MemoryWriter writer;
+  bindump::streamWrite(shader, writer);
+  return create_shader_container(eastl::move(writer.mData), {dxil::StoredShaderType::singleShader, false});
+}
+
+eastl::vector<uint8_t> pack_shader_with_stream_output(const eastl::vector<uint8_t> &dxil_blob,
+  const eastl::vector<char> &shader_source, const ::dxil::ShaderHeader &header,
+  dag::ConstSpan<dxil::StreamOutputComponentInfo> stream_output_components)
+{
+  bindump::Master<dxil::Shader> shader = pack_shader_layout(dxil_blob, shader_source, header);
   bindump::MemoryWriter writer;
   bindump::streamWrite(shader, writer);
 
-  return create_shader_container(eastl::move(writer.mData), dxil::StoredShaderType::singleShader);
+  auto shaderWithStreamOutput = create_shader_with_stream_output(eastl::move(writer.mData), stream_output_components);
+  return create_shader_container(eastl::move(shaderWithStreamOutput), {dxil::StoredShaderType::singleShader, true});
+}
+
+eastl::vector<uint8_t> pack_shader(const eastl::vector<uint8_t> &dxil_blob, const eastl::vector<char> &shader_source,
+  const ::dxil::ShaderHeader &header, dag::ConstSpan<dxil::StreamOutputComponentInfo> stream_output_components)
+{
+  if (stream_output_components.empty())
+    return pack_shader_without_stream_output(dxil_blob, shader_source, header);
+  return pack_shader_with_stream_output(dxil_blob, shader_source, header, stream_output_components);
 }
 
 struct DecodedShaderContainer
@@ -107,7 +145,19 @@ struct DecodedShaderContainer
   bindump::Master<dxil::Shader> shader;
   eastl::vector<uint8_t> decompressedBuffer;
   eastl::string_view source;
+  dag::ConstSpan<dxil::StreamOutputComponentInfo> streamOutputComponents;
 };
+
+dag::ConstSpan<uint8_t> extract_stream_output_desc_and_get_shader(const bindump::Mapper<dxil::ShaderContainer> *container,
+  dag::ConstSpan<dxil::StreamOutputComponentInfo> &targetSo)
+{
+  if (!container->type.hasStreamOutput)
+    return container->data;
+
+  auto shaderWithStreamOutput = bindump::map<dxil::ShaderWithStreamOutput>(container->data.data());
+  targetSo = shaderWithStreamOutput->streamOutputComponents;
+  return shaderWithStreamOutput->data;
+}
 
 DecodedShaderContainer decode_shader_container(dag::ConstSpan<unsigned> container, bool decompress_source)
 {
@@ -117,13 +167,15 @@ DecodedShaderContainer decode_shader_container(dag::ConstSpan<unsigned> containe
 
   auto *shaderContainer = bindump::map<dxil::ShaderContainer>((const uint8_t *)container.data());
   G_ASSERT(shaderContainer);
-  G_ASSERT(shaderContainer->type == dxil::StoredShaderType::singleShader);
+  G_ASSERT(shaderContainer->type.shaderType == dxil::StoredShaderType::singleShader);
 
-  bindump::MemoryReader reader(shaderContainer->data.data(), shaderContainer->data.size());
+  auto shaderData = extract_stream_output_desc_and_get_shader(shaderContainer, result.streamOutputComponents);
+
+  bindump::MemoryReader reader(shaderData.data(), shaderData.size());
   bindump::streamRead(result.shader, reader);
   if (decompress_source)
   {
-    auto *mapped = bindump::map<dxil::Shader>(shaderContainer->data.data());
+    auto *mapped = bindump::map<dxil::Shader>(shaderData.data());
     if (mapped)
     {
       auto *decompressedSource =
@@ -197,118 +249,122 @@ public:
 };
 
 // this is a signature generator for compute
-eastl::string generate_root_signature_string(bool has_acceleration_structure, const ::dxil::ShaderResourceUsageTable &header)
+eastl::wstring generate_root_signature_string(bool has_acceleration_structure, const ::dxil::ShaderResourceUsageTable &header)
 {
   struct GeneratorCallback
   {
-    eastl::string result;
-    void begin() { result += "\""; }
-    void end() { result += "\""; }
-    void beginFlags() { result += "RootFlags("; }
+    eastl::wstring result;
+    void begin() { result += L"\""; }
+    void end() { result += L"\""; }
+    void beginFlags() { result += L"RootFlags("; }
     void endFlags()
     {
-      if (result.back() == '(')
+      if (result.back() == L'(')
       {
-        result += "0";
+        result += L"0";
       }
-      result += ")";
+      result += L")";
     }
     void hasAccelerationStructure()
     {
-      if (result.back() != '(')
-        result += " | ";
-      result += "XBOX_RAYTRACING";
+      if (result.back() != L'(')
+        result += L" | ";
+      result += L"XBOX_RAYTRACING";
     }
+    void specialConstants(uint32_t space, uint32_t index) { rootConstantBuffer(space, index, 1); }
+    // no extensions on GDK
+    void nvidiaExtension(uint32_t, uint32_t) {}
+    void amdExtension(uint32_t, uint32_t) {}
     void rootConstantBuffer(uint32_t space, uint32_t index, uint32_t dwords)
     {
-      result += ", RootConstants(num32BitConstants = ";
-      result += eastl::to_string(dwords);
-      result += ", b";
-      result += eastl::to_string(index);
-      result += ", space = ";
-      result += eastl::to_string(space);
-      result += ")";
+      result += L", RootConstants(num32BitConstants = ";
+      result += eastl::to_wstring(dwords);
+      result += L", b";
+      result += eastl::to_wstring(index);
+      result += L", space = ";
+      result += eastl::to_wstring(space);
+      result += L")";
     }
     void beginConstantBuffers() {}
     void endConstantBuffers() {}
     void constantBuffer(uint32_t space, uint32_t slot, uint32_t linear_index)
     {
       G_UNUSED(linear_index);
-      result += ", CBV(b";
-      result += eastl::to_string(slot);
-      result += ", space = ";
-      result += eastl::to_string(space);
-      result += ")";
+      result += L", CBV(b";
+      result += eastl::to_wstring(slot);
+      result += L", space = ";
+      result += eastl::to_wstring(space);
+      result += L")";
     }
-    void beginSamplers() { result += ", DescriptorTable("; }
-    void endSamplers() { result += ")"; }
+    void beginSamplers() { result += L", DescriptorTable("; }
+    void endSamplers() { result += L")"; }
     void sampler(uint32_t space, uint32_t slot, uint32_t linear_index)
     {
-      if (result.back() != '(')
-        result += ", ";
-      result += "Sampler(s";
-      result += eastl::to_string(slot);
-      result += ", space = ";
-      result += eastl::to_string(space);
-      result += ", numDescriptors = 1, offset = ";
-      result += eastl::to_string(linear_index);
-      result += ")";
+      if (result.back() != L'(')
+        result += L", ";
+      result += L"Sampler(s";
+      result += eastl::to_wstring(slot);
+      result += L", space = ";
+      result += eastl::to_wstring(space);
+      result += L", numDescriptors = 1, offset = ";
+      result += eastl::to_wstring(linear_index);
+      result += L")";
     }
-    void beginBindlessSamplers() { result += ", DescriptorTable("; }
-    void endBindlessSamplers() { result += ")"; }
+    void beginBindlessSamplers() { result += L", DescriptorTable("; }
+    void endBindlessSamplers() { result += L")"; }
     void bindlessSamplers(uint32_t space, uint32_t index)
     {
-      if (result.back() != '(')
-        result += ", ";
-      result += "Sampler(s";
-      result += eastl::to_string(index);
-      result += ", space = ";
-      result += eastl::to_string(space);
-      result += ", numDescriptors = unbounded, offset = 0)";
+      if (result.back() != L'(')
+        result += L", ";
+      result += L"Sampler(s";
+      result += eastl::to_wstring(index);
+      result += L", space = ";
+      result += eastl::to_wstring(space);
+      result += L", numDescriptors = unbounded, offset = 0)";
     }
-    void beginShaderResourceViews() { result += ", DescriptorTable("; }
-    void endShaderResourceViews() { result += ")"; }
+    void beginShaderResourceViews() { result += L", DescriptorTable("; }
+    void endShaderResourceViews() { result += L")"; }
     void shaderResourceView(uint32_t space, uint32_t slot, uint32_t descriptor_count, uint32_t linear_index)
     {
-      if (result.back() != '(')
-        result += ", ";
-      result += "SRV(t";
-      result += eastl::to_string(slot);
-      result += ", space = ";
-      result += eastl::to_string(space);
-      result += ", numDescriptors = ";
-      result += eastl::to_string(descriptor_count);
-      result += ", offset = ";
-      result += eastl::to_string(linear_index);
-      result += ")";
+      if (result.back() != L'(')
+        result += L", ";
+      result += L"SRV(t";
+      result += eastl::to_wstring(slot);
+      result += L", space = ";
+      result += eastl::to_wstring(space);
+      result += L", numDescriptors = ";
+      result += eastl::to_wstring(descriptor_count);
+      result += L", offset = ";
+      result += eastl::to_wstring(linear_index);
+      result += L")";
     }
-    void beginBindlessShaderResourceViews() { result += ", DescriptorTable("; }
-    void endBindlessShaderResourceViews() { result += ")"; }
+    void beginBindlessShaderResourceViews() { result += L", DescriptorTable("; }
+    void endBindlessShaderResourceViews() { result += L")"; }
     void bindlessShaderResourceViews(uint32_t space, uint32_t index)
     {
-      if (result.back() != '(')
-        result += ", ";
-      result += "SRV(t";
-      result += eastl::to_string(index);
-      result += ", space = ";
-      result += eastl::to_string(space);
-      result += ", numDescriptors = unbounded, offset = 0)";
+      if (result.back() != L'(')
+        result += L", ";
+      result += L"SRV(t";
+      result += eastl::to_wstring(index);
+      result += L", space = ";
+      result += eastl::to_wstring(space);
+      result += L", numDescriptors = unbounded, offset = 0)";
     }
-    void beginUnorderedAccessViews() { result += ", DescriptorTable("; }
-    void endUnorderedAccessViews() { result += ")"; }
+    void beginUnorderedAccessViews() { result += L", DescriptorTable("; }
+    void endUnorderedAccessViews() { result += L")"; }
     void unorderedAccessView(uint32_t space, uint32_t slot, uint32_t descriptor_count, uint32_t linear_index)
     {
-      if (result.back() != '(')
-        result += ", ";
-      result += "UAV(u";
-      result += eastl::to_string(slot);
-      result += ", space = ";
-      result += eastl::to_string(space);
-      result += ", numDescriptors = ";
-      result += eastl::to_string(descriptor_count);
-      result += ", offset = ";
-      result += eastl::to_string(linear_index);
-      result += ")";
+      if (result.back() != L'(')
+        result += L", ";
+      result += L"UAV(u";
+      result += eastl::to_wstring(slot);
+      result += L", space = ";
+      result += eastl::to_wstring(space);
+      result += L", numDescriptors = ";
+      result += eastl::to_wstring(descriptor_count);
+      result += L", offset = ";
+      result += eastl::to_wstring(linear_index);
+      result += L")";
     }
   };
   GeneratorCallback generator;
@@ -316,15 +372,15 @@ eastl::string generate_root_signature_string(bool has_acceleration_structure, co
   return generator.result;
 }
 
-eastl::string generate_root_signature_string(bool has_acceleration_structure, uint32_t vertex_shader_input_mask,
-  const ::dxil::ShaderResourceUsageTable &vs, const ::dxil::ShaderResourceUsageTable &hs, const ::dxil::ShaderResourceUsageTable &ds,
-  const ::dxil::ShaderResourceUsageTable &gs, const ::dxil::ShaderResourceUsageTable &ps)
+eastl::wstring generate_root_signature_string(bool has_acceleration_structure, uint32_t vertex_shader_input_mask,
+  bool has_stream_output, const ::dxil::ShaderResourceUsageTable &vs, const ::dxil::ShaderResourceUsageTable &hs,
+  const ::dxil::ShaderResourceUsageTable &ds, const ::dxil::ShaderResourceUsageTable &gs, const ::dxil::ShaderResourceUsageTable &ps)
 {
   struct GeneratorCallback
   {
-    eastl::string result;
+    eastl::wstring result;
     uint32_t signatureCost = 0;
-    const char *currentVisibility = "SHADER_VISIBILITY_ALL";
+    const wchar_t *currentVisibility = L"SHADER_VISIBILITY_ALL";
     struct BindlessInfo
     {
       uint32_t space;
@@ -349,112 +405,121 @@ eastl::string generate_root_signature_string(bool has_acceleration_structure, ui
     size_t bindlessResourceDescriptorStringPos = eastl::string::npos;
     size_t bindlessResourceSectionSize = 0;
     size_t bindlessResourceStageCount = 0;
-    void begin() { result += "\""; }
-    void end() { result += "\""; }
-    void beginFlags() { result += "RootFlags("; }
+    void begin() { result += L"\""; }
+    void end() { result += L"\""; }
+    void beginFlags() { result += L"RootFlags("; }
     void endFlags()
     {
-      if (result.back() == '(')
+      if (result.back() == L'(')
       {
-        result += "0";
+        result += L"0";
       }
-      result += ")";
+      result += L")";
     }
     void hasVertexInputs()
     {
-      if (result.back() != '(')
-        result += " | ";
-      result += "ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT";
+      if (result.back() != L'(')
+        result += L" | ";
+      result += L"ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT";
     }
     void hasAccelerationStructure()
     {
-      if (result.back() != '(')
-        result += " | ";
-      result += "XBOX_RAYTRACING";
+      if (result.back() != L'(')
+        result += L" | ";
+      result += L"XBOX_RAYTRACING";
     }
     void noVertexShaderResources()
     {
-      if (result.back() != '(')
-        result += " | ";
-      result += "DENY_VERTEX_SHADER_ROOT_ACCESS";
+      if (result.back() != L'(')
+        result += L" | ";
+      result += L"DENY_VERTEX_SHADER_ROOT_ACCESS";
     }
     void noPixelShaderResources()
     {
-      if (result.back() != '(')
-        result += " | ";
-      result += "DENY_PIXEL_SHADER_ROOT_ACCESS";
+      if (result.back() != L'(')
+        result += L" | ";
+      result += L"DENY_PIXEL_SHADER_ROOT_ACCESS";
     }
     void noHullShaderResources()
     {
-      if (result.back() != '(')
-        result += " | ";
-      result += "DENY_HULL_SHADER_ROOT_ACCESS";
+      if (result.back() != L'(')
+        result += L" | ";
+      result += L"DENY_HULL_SHADER_ROOT_ACCESS";
     }
     void noDomainShaderResources()
     {
-      if (result.back() != '(')
-        result += " | ";
-      result += "DENY_DOMAIN_SHADER_ROOT_ACCESS";
+      if (result.back() != L'(')
+        result += L" | ";
+      result += L"DENY_DOMAIN_SHADER_ROOT_ACCESS";
     }
     void noGeometryShaderResources()
     {
-      if (result.back() != '(')
-        result += " | ";
-      result += "DENY_GEOMETRY_SHADER_ROOT_ACCESS";
+      if (result.back() != L'(')
+        result += L" | ";
+      result += L"DENY_GEOMETRY_SHADER_ROOT_ACCESS";
     }
-    void setVisibilityPixelShader() { currentVisibility = "SHADER_VISIBILITY_PIXEL"; }
-    void setVisibilityVertexShader() { currentVisibility = "SHADER_VISIBILITY_VERTEX"; }
-    void setVisibilityHullShader() { currentVisibility = "SHADER_VISIBILITY_HULL"; }
-    void setVisibilityDomainShader() { currentVisibility = "SHADER_VISIBILITY_DOMAIN"; }
-    void setVisibilityGeometryShader() { currentVisibility = "SHADER_VISIBILITY_GEOMETRY"; }
+    void hasStreamOutput()
+    {
+      if (result.back() != L'(')
+        result += L" | ";
+      result += L"ALLOW_STREAM_OUTPUT";
+    }
+    void setVisibilityPixelShader() { currentVisibility = L"SHADER_VISIBILITY_PIXEL"; }
+    void setVisibilityVertexShader() { currentVisibility = L"SHADER_VISIBILITY_VERTEX"; }
+    void setVisibilityHullShader() { currentVisibility = L"SHADER_VISIBILITY_HULL"; }
+    void setVisibilityDomainShader() { currentVisibility = L"SHADER_VISIBILITY_DOMAIN"; }
+    void setVisibilityGeometryShader() { currentVisibility = L"SHADER_VISIBILITY_GEOMETRY"; }
     void rootConstantBuffer(uint32_t space, uint32_t index, uint32_t dwords)
     {
-      result += ", RootConstants(num32BitConstants=";
-      result += eastl::to_string(dwords);
-      result += ", b";
-      result += eastl::to_string(index);
-      result += ", space = ";
-      result += eastl::to_string(space);
-      result += ", visibility = ";
+      result += L", RootConstants(num32BitConstants=";
+      result += eastl::to_wstring(dwords);
+      result += L", b";
+      result += eastl::to_wstring(index);
+      result += L", space = ";
+      result += eastl::to_wstring(space);
+      result += L", visibility = ";
       result += currentVisibility;
-      result += ")";
+      result += L")";
     }
     void specialConstants(uint32_t space, uint32_t index)
     {
-      currentVisibility = "SHADER_VISIBILITY_ALL";
+      currentVisibility = L"SHADER_VISIBILITY_ALL";
       rootConstantBuffer(space, index, 1);
     }
+    // no extensions on GDK
+    void nvidiaExtension(uint32_t, uint32_t) {}
+    void amdExtension(uint32_t, uint32_t) {}
     void beginConstantBuffers() {}
     void endConstantBuffers() {}
     void constantBuffer(uint32_t space, uint32_t slot, uint32_t linear_index)
     {
       G_UNUSED(linear_index);
-      result += ", CBV(b";
-      result += eastl::to_string(slot);
-      result += ", space = ";
-      result += eastl::to_string(space);
-      result += ", visibility = ";
+      result += L", CBV(b";
+      result += eastl::to_wstring(slot);
+      result += L", space = ";
+      result += eastl::to_wstring(space);
+      result += L", visibility = ";
       result += currentVisibility;
-      result += ")";
+      result += L")";
     }
-    void beginSamplers() { result += ", DescriptorTable("; }
+    void beginSamplers() { result += L", DescriptorTable("; }
     void endSamplers()
     {
-      result += ", visibility = ";
+      result += L", visibility = ";
       result += currentVisibility;
-      result += ")";
+      result += L")";
     }
     void sampler(uint32_t space, uint32_t slot, uint32_t linear_index)
     {
-      if (result.back() != '(')
-        result += ", ";
-      result += "Sampler(s";
-      result += eastl::to_string(slot);
-      result += ", space = ";
-      result += eastl::to_string(space);
-      result += ", numDescriptors = 1, offset = ";
-      result += eastl::to_string(linear_index);
-      result += ")";
+      if (result.back() != L'(')
+        result += L", ";
+      result += L"Sampler(s";
+      result += eastl::to_wstring(slot);
+      result += L", space = ";
+      result += eastl::to_wstring(space);
+      result += L", numDescriptors = 1, offset = ";
+      result += eastl::to_wstring(linear_index);
+      result += L")";
     }
     void beginBindlessSamplers()
     {
@@ -467,27 +532,27 @@ eastl::string generate_root_signature_string(bool has_acceleration_structure, ui
     void endBindlessSamplers()
     {
       // we simply rewrite the bindless section
-      eastl::string bindlessSamplerDef;
+      eastl::wstring bindlessSamplerDef;
       eastl::sort(eastl::begin(bindlessSamplerSpaces), eastl::end(bindlessSamplerSpaces));
-      bindlessSamplerDef += ", DescriptorTable(";
+      bindlessSamplerDef += L", DescriptorTable(";
       for (auto &space : bindlessSamplerSpaces)
       {
-        bindlessSamplerDef += "Sampler(s";
-        bindlessSamplerDef += eastl::to_string(space.index);
-        bindlessSamplerDef += ", space = ";
-        bindlessSamplerDef += eastl::to_string(space.space);
-        bindlessSamplerDef += ", numDescriptors = unbounded, offset = 0), ";
+        bindlessSamplerDef += L"Sampler(s";
+        bindlessSamplerDef += eastl::to_wstring(space.index);
+        bindlessSamplerDef += L", space = ";
+        bindlessSamplerDef += eastl::to_wstring(space.space);
+        bindlessSamplerDef += L", numDescriptors = unbounded, offset = 0), ";
       }
-      bindlessSamplerDef += "visibility = ";
+      bindlessSamplerDef += L"visibility = ";
       if (1 == bindlessSamplerStageCount)
       {
         bindlessSamplerDef += currentVisibility;
       }
       else
       {
-        bindlessSamplerDef += "SHADER_VISIBILITY_ALL";
+        bindlessSamplerDef += L"SHADER_VISIBILITY_ALL";
       }
-      bindlessSamplerDef += ")";
+      bindlessSamplerDef += L")";
       result.replace(bindlessSamplerDescriptorStringPos, bindlessSamplerSectionSize, bindlessSamplerDef);
       bindlessSamplerSectionSize = bindlessSamplerDef.size();
     }
@@ -500,26 +565,26 @@ eastl::string generate_root_signature_string(bool has_acceleration_structure, ui
       }
       bindlessSamplerSpaces.push_back({space, index});
     }
-    void beginShaderResourceViews() { result += ", DescriptorTable("; }
+    void beginShaderResourceViews() { result += L", DescriptorTable("; }
     void endShaderResourceViews()
     {
-      result += ", visibility = ";
+      result += L", visibility = ";
       result += currentVisibility;
-      result += ")";
+      result += L")";
     }
     void shaderResourceView(uint32_t space, uint32_t slot, uint32_t descriptor_count, uint32_t linear_index)
     {
-      if (result.back() != '(')
-        result += ", ";
-      result += "SRV(t";
-      result += eastl::to_string(slot);
-      result += ", space = ";
-      result += eastl::to_string(space);
-      result += ", numDescriptors = ";
-      result += eastl::to_string(descriptor_count);
-      result += ", offset = ";
-      result += eastl::to_string(linear_index);
-      result += ")";
+      if (result.back() != L'(')
+        result += L", ";
+      result += L"SRV(t";
+      result += eastl::to_wstring(slot);
+      result += L", space = ";
+      result += eastl::to_wstring(space);
+      result += L", numDescriptors = ";
+      result += eastl::to_wstring(descriptor_count);
+      result += L", offset = ";
+      result += eastl::to_wstring(linear_index);
+      result += L")";
     }
     void beginBindlessShaderResourceViews()
     {
@@ -532,27 +597,27 @@ eastl::string generate_root_signature_string(bool has_acceleration_structure, ui
     void endBindlessShaderResourceViews()
     {
       // we simply rewrite the bindless section
-      eastl::string bindlessResourceDef;
+      eastl::wstring bindlessResourceDef;
       eastl::sort(eastl::begin(bindlessResourceSpaces), eastl::end(bindlessResourceSpaces));
-      bindlessResourceDef += ", DescriptorTable(";
+      bindlessResourceDef += L", DescriptorTable(";
       for (auto &space : bindlessResourceSpaces)
       {
-        bindlessResourceDef += "SRV(t";
-        bindlessResourceDef += eastl::to_string(space.index);
-        bindlessResourceDef += ", space = ";
-        bindlessResourceDef += eastl::to_string(space.space);
-        bindlessResourceDef += ", numDescriptors = unbounded, offset = 0), ";
+        bindlessResourceDef += L"SRV(t";
+        bindlessResourceDef += eastl::to_wstring(space.index);
+        bindlessResourceDef += L", space = ";
+        bindlessResourceDef += eastl::to_wstring(space.space);
+        bindlessResourceDef += L", numDescriptors = unbounded, offset = 0), ";
       }
-      bindlessResourceDef += "visibility = ";
+      bindlessResourceDef += L"visibility = ";
       if (1 == bindlessResourceStageCount)
       {
         bindlessResourceDef += currentVisibility;
       }
       else
       {
-        bindlessResourceDef += "SHADER_VISIBILITY_ALL";
+        bindlessResourceDef += L"SHADER_VISIBILITY_ALL";
       }
-      bindlessResourceDef += ")";
+      bindlessResourceDef += L")";
       result.replace(bindlessResourceDescriptorStringPos, bindlessResourceSectionSize, bindlessResourceDef);
       bindlessResourceSectionSize = bindlessResourceDef.size();
     }
@@ -565,41 +630,43 @@ eastl::string generate_root_signature_string(bool has_acceleration_structure, ui
       }
       bindlessResourceSpaces.push_back({space, index});
     }
-    void beginUnorderedAccessViews() { result += ", DescriptorTable("; }
+    void beginUnorderedAccessViews() { result += L", DescriptorTable("; }
     void endUnorderedAccessViews()
     {
-      result += ", visibility = ";
+      result += L", visibility = ";
       result += currentVisibility;
-      result += ")";
+      result += L")";
     }
     void unorderedAccessView(uint32_t space, uint32_t slot, uint32_t descriptor_count, uint32_t linear_index)
     {
-      if (result.back() != '(')
-        result += ", ";
-      result += "UAV(u";
-      result += eastl::to_string(slot);
-      result += ", space = ";
-      result += eastl::to_string(space);
-      result += ", numDescriptors = ";
-      result += eastl::to_string(descriptor_count);
-      result += ", offset = ";
-      result += eastl::to_string(linear_index);
-      result += ")";
+      if (result.back() != L'(')
+        result += L", ";
+      result += L"UAV(u";
+      result += eastl::to_wstring(slot);
+      result += L", space = ";
+      result += eastl::to_wstring(space);
+      result += L", numDescriptors = ";
+      result += eastl::to_wstring(descriptor_count);
+      result += L", offset = ";
+      result += eastl::to_wstring(linear_index);
+      result += L")";
     }
   };
   GeneratorCallback generator;
-  decode_graphics_root_signature(0 != vertex_shader_input_mask, has_acceleration_structure, vs, ps, hs, ds, gs, generator);
+  decode_graphics_root_signature(0 != vertex_shader_input_mask, has_acceleration_structure, vs, ps, hs, ds, gs, has_stream_output,
+    generator);
   return generator.result;
 }
 
-eastl::string generate_mesh_root_signature_string(bool has_acceleration_structure, bool has_amplification_stage,
-  const ::dxil::ShaderResourceUsageTable &ms, const ::dxil::ShaderResourceUsageTable &as, const ::dxil::ShaderResourceUsageTable &ps)
+eastl::wstring generate_mesh_root_signature_string(bool has_acceleration_structure, bool has_amplification_stage,
+  bool has_stream_output, const ::dxil::ShaderResourceUsageTable &ms, const ::dxil::ShaderResourceUsageTable &as,
+  const ::dxil::ShaderResourceUsageTable &ps)
 {
   struct GeneratorCallback
   {
-    eastl::string result;
+    eastl::wstring result;
     uint32_t signatureCost = 0;
-    const char *currentVisibility = "SHADER_VISIBILITY_ALL";
+    const wchar_t *currentVisibility = L"SHADER_VISIBILITY_ALL";
     struct BindlessInfo
     {
       uint32_t space;
@@ -624,98 +691,107 @@ eastl::string generate_mesh_root_signature_string(bool has_acceleration_structur
     size_t bindlessResourceDescriptorStringPos = eastl::string::npos;
     size_t bindlessResourceSectionSize = 0;
     size_t bindlessResourceStageCount = 0;
-    void begin() { result += "\""; }
-    void end() { result += "\""; }
-    void beginFlags() { result += "RootFlags("; }
+    void begin() { result += L"\""; }
+    void end() { result += L"\""; }
+    void beginFlags() { result += L"RootFlags("; }
     void endFlags()
     {
-      if (result.back() == '(')
+      if (result.back() == L'(')
       {
-        result += "0";
+        result += L"0";
       }
-      result += ")";
+      result += L")";
     }
     void hasAccelerationStructure()
     {
-      if (result.back() != '(')
-        result += " | ";
-      result += "XBOX_RAYTRACING";
+      if (result.back() != L'(')
+        result += L" | ";
+      result += L"XBOX_RAYTRACING";
     }
     void hasAmplificationStage()
     {
-      if (result.back() != '(')
-        result += " | ";
-      result += "XBOX_FORCE_MEMORY_BASED_ABI";
+      if (result.back() != L'(')
+        result += L" | ";
+      result += L"XBOX_FORCE_MEMORY_BASED_ABI";
     }
     void noMeshShaderResources()
     {
-      if (result.back() != '(')
-        result += " | ";
-      result += "DENY_MESH_SHADER_ROOT_ACCESS";
+      if (result.back() != L'(')
+        result += L" | ";
+      result += L"DENY_MESH_SHADER_ROOT_ACCESS";
     }
     void noPixelShaderResources()
     {
-      if (result.back() != '(')
-        result += " | ";
-      result += "DENY_PIXEL_SHADER_ROOT_ACCESS";
+      if (result.back() != L'(')
+        result += L" | ";
+      result += L"DENY_PIXEL_SHADER_ROOT_ACCESS";
     }
     void noAmplificationShaderResources()
     {
-      if (result.back() != '(')
-        result += " | ";
-      result += "DENY_AMPLIFICATION_SHADER_ROOT_ACCESS";
+      if (result.back() != L'(')
+        result += L" | ";
+      result += L"DENY_AMPLIFICATION_SHADER_ROOT_ACCESS";
     }
-    void setVisibilityPixelShader() { currentVisibility = "SHADER_VISIBILITY_PIXEL"; }
-    void setVisibilityMeshShader() { currentVisibility = "SHADER_VISIBILITY_MESH"; }
-    void setVisibilityAmplificationShader() { currentVisibility = "SHADER_VISIBILITY_AMPLIFICATION"; }
+    void hasStreamOutput()
+    {
+      if (result.back() != L'(')
+        result += L" | ";
+      result += L"ALLOW_STREAM_OUTPUT";
+    }
+    void setVisibilityPixelShader() { currentVisibility = L"SHADER_VISIBILITY_PIXEL"; }
+    void setVisibilityMeshShader() { currentVisibility = L"SHADER_VISIBILITY_MESH"; }
+    void setVisibilityAmplificationShader() { currentVisibility = L"SHADER_VISIBILITY_AMPLIFICATION"; }
     void rootConstantBuffer(uint32_t space, uint32_t index, uint32_t dwords)
     {
-      result += ", RootConstants(num32BitConstants=";
-      result += eastl::to_string(dwords);
-      result += ", b";
-      result += eastl::to_string(index);
-      result += ", space = ";
-      result += eastl::to_string(space);
-      result += ", visibility = ";
+      result += L", RootConstants(num32BitConstants=";
+      result += eastl::to_wstring(dwords);
+      result += L", b";
+      result += eastl::to_wstring(index);
+      result += L", space = ";
+      result += eastl::to_wstring(space);
+      result += L", visibility = ";
       result += currentVisibility;
-      result += ")";
+      result += L")";
     }
     void specialConstants(uint32_t space, uint32_t index)
     {
-      currentVisibility = "SHADER_VISIBILITY_ALL";
+      currentVisibility = L"SHADER_VISIBILITY_ALL";
       rootConstantBuffer(space, index, 1);
     }
+    // no extensions on GDK
+    void nvidiaExtension(uint32_t, uint32_t) {}
+    void amdExtension(uint32_t, uint32_t) {}
     void beginConstantBuffers() {}
     void endConstantBuffers() {}
     void constantBuffer(uint32_t space, uint32_t slot, uint32_t linear_index)
     {
       G_UNUSED(linear_index);
-      result += ", CBV(b";
-      result += eastl::to_string(slot);
-      result += ", space = ";
-      result += eastl::to_string(space);
-      result += ", visibility = ";
+      result += L", CBV(b";
+      result += eastl::to_wstring(slot);
+      result += L", space = ";
+      result += eastl::to_wstring(space);
+      result += L", visibility = ";
       result += currentVisibility;
-      result += ")";
+      result += L")";
     }
-    void beginSamplers() { result += ", DescriptorTable("; }
+    void beginSamplers() { result += L", DescriptorTable("; }
     void endSamplers()
     {
-      result += ", visibility = ";
+      result += L", visibility = ";
       result += currentVisibility;
-      result += ")";
+      result += L")";
     }
     void sampler(uint32_t space, uint32_t slot, uint32_t linear_index)
     {
-      if (result.back() != '(')
-        result += ", ";
-      result += "Sampler(s";
-      result += eastl::to_string(slot);
-      result += ", space = ";
-      result += eastl::to_string(space);
-      result += ", numDescriptors = 1, offset = ";
-      result += eastl::to_string(linear_index);
-      result += ")";
+      if (result.back() != L'(')
+        result += L", ";
+      result += L"Sampler(s";
+      result += eastl::to_wstring(slot);
+      result += L", space = ";
+      result += eastl::to_wstring(space);
+      result += L", numDescriptors = 1, offset = ";
+      result += eastl::to_wstring(linear_index);
+      result += L")";
     }
     void beginBindlessSamplers()
     {
@@ -728,27 +804,27 @@ eastl::string generate_mesh_root_signature_string(bool has_acceleration_structur
     void endBindlessSamplers()
     {
       // we simply rewrite the bindless section
-      eastl::string bindlessSamplerDef;
+      eastl::wstring bindlessSamplerDef;
       eastl::sort(eastl::begin(bindlessSamplerSpaces), eastl::end(bindlessSamplerSpaces));
-      bindlessSamplerDef += ", DescriptorTable(";
+      bindlessSamplerDef += L", DescriptorTable(";
       for (auto &space : bindlessSamplerSpaces)
       {
-        bindlessSamplerDef += "Sampler(s";
-        bindlessSamplerDef += eastl::to_string(space.index);
-        bindlessSamplerDef += ", space = ";
-        bindlessSamplerDef += eastl::to_string(space.space);
-        bindlessSamplerDef += ", numDescriptors = unbounded, offset = 0), ";
+        bindlessSamplerDef += L"Sampler(s";
+        bindlessSamplerDef += eastl::to_wstring(space.index);
+        bindlessSamplerDef += L", space = ";
+        bindlessSamplerDef += eastl::to_wstring(space.space);
+        bindlessSamplerDef += L", numDescriptors = unbounded, offset = 0), ";
       }
-      bindlessSamplerDef += "visibility = ";
+      bindlessSamplerDef += L"visibility = ";
       if (1 == bindlessSamplerStageCount)
       {
         bindlessSamplerDef += currentVisibility;
       }
       else
       {
-        bindlessSamplerDef += "SHADER_VISIBILITY_ALL";
+        bindlessSamplerDef += L"SHADER_VISIBILITY_ALL";
       }
-      bindlessSamplerDef += ")";
+      bindlessSamplerDef += L")";
       result.replace(bindlessSamplerDescriptorStringPos, bindlessSamplerSectionSize, bindlessSamplerDef);
       bindlessSamplerSectionSize = bindlessSamplerDef.size();
     }
@@ -761,26 +837,26 @@ eastl::string generate_mesh_root_signature_string(bool has_acceleration_structur
       }
       bindlessSamplerSpaces.push_back({space, index});
     }
-    void beginShaderResourceViews() { result += ", DescriptorTable("; }
+    void beginShaderResourceViews() { result += L", DescriptorTable("; }
     void endShaderResourceViews()
     {
-      result += ", visibility = ";
+      result += L", visibility = ";
       result += currentVisibility;
-      result += ")";
+      result += L")";
     }
     void shaderResourceView(uint32_t space, uint32_t slot, uint32_t descriptor_count, uint32_t linear_index)
     {
       if (result.back() != '(')
-        result += ", ";
-      result += "SRV(t";
-      result += eastl::to_string(slot);
-      result += ", space = ";
-      result += eastl::to_string(space);
-      result += ", numDescriptors = ";
-      result += eastl::to_string(descriptor_count);
-      result += ", offset = ";
-      result += eastl::to_string(linear_index);
-      result += ")";
+        result += L", ";
+      result += L"SRV(t";
+      result += eastl::to_wstring(slot);
+      result += L", space = ";
+      result += eastl::to_wstring(space);
+      result += L", numDescriptors = ";
+      result += eastl::to_wstring(descriptor_count);
+      result += L", offset = ";
+      result += eastl::to_wstring(linear_index);
+      result += L")";
     }
     void beginBindlessShaderResourceViews()
     {
@@ -793,27 +869,27 @@ eastl::string generate_mesh_root_signature_string(bool has_acceleration_structur
     void endBindlessShaderResourceViews()
     {
       // we simply rewrite the bindless section
-      eastl::string bindlessResourceDef;
+      eastl::wstring bindlessResourceDef;
       eastl::sort(eastl::begin(bindlessResourceSpaces), eastl::end(bindlessResourceSpaces));
-      bindlessResourceDef += ", DescriptorTable(";
+      bindlessResourceDef += L", DescriptorTable(";
       for (auto &space : bindlessResourceSpaces)
       {
-        bindlessResourceDef += "SRV(t";
-        bindlessResourceDef += eastl::to_string(space.index);
-        bindlessResourceDef += ", space = ";
-        bindlessResourceDef += eastl::to_string(space.space);
-        bindlessResourceDef += ", numDescriptors = unbounded, offset = 0), ";
+        bindlessResourceDef += L"SRV(t";
+        bindlessResourceDef += eastl::to_wstring(space.index);
+        bindlessResourceDef += L", space = ";
+        bindlessResourceDef += eastl::to_wstring(space.space);
+        bindlessResourceDef += L", numDescriptors = unbounded, offset = 0), ";
       }
-      bindlessResourceDef += "visibility = ";
+      bindlessResourceDef += L"visibility = ";
       if (1 == bindlessResourceStageCount)
       {
         bindlessResourceDef += currentVisibility;
       }
       else
       {
-        bindlessResourceDef += "SHADER_VISIBILITY_ALL";
+        bindlessResourceDef += L"SHADER_VISIBILITY_ALL";
       }
-      bindlessResourceDef += ")";
+      bindlessResourceDef += L")";
       result.replace(bindlessResourceDescriptorStringPos, bindlessResourceSectionSize, bindlessResourceDef);
       bindlessResourceSectionSize = bindlessResourceDef.size();
     }
@@ -826,30 +902,31 @@ eastl::string generate_mesh_root_signature_string(bool has_acceleration_structur
       }
       bindlessResourceSpaces.push_back({space, index});
     }
-    void beginUnorderedAccessViews() { result += ", DescriptorTable("; }
+    void beginUnorderedAccessViews() { result += L", DescriptorTable("; }
     void endUnorderedAccessViews()
     {
-      result += ", visibility = ";
+      result += L", visibility = ";
       result += currentVisibility;
-      result += ")";
+      result += L")";
     }
     void unorderedAccessView(uint32_t space, uint32_t slot, uint32_t descriptor_count, uint32_t linear_index)
     {
-      if (result.back() != '(')
-        result += ", ";
-      result += "UAV(u";
-      result += eastl::to_string(slot);
-      result += ", space = ";
-      result += eastl::to_string(space);
-      result += ", numDescriptors = ";
-      result += eastl::to_string(descriptor_count);
-      result += ", offset = ";
-      result += eastl::to_string(linear_index);
-      result += ")";
+      if (result.back() != L'(')
+        result += L", ";
+      result += L"UAV(u";
+      result += eastl::to_wstring(slot);
+      result += L", space = ";
+      result += eastl::to_wstring(space);
+      result += L", numDescriptors = ";
+      result += eastl::to_wstring(descriptor_count);
+      result += L", offset = ";
+      result += eastl::to_wstring(linear_index);
+      result += L")";
     }
   };
   GeneratorCallback generator;
-  decode_graphics_mesh_root_signature(has_acceleration_structure, ms, ps, has_amplification_stage ? &as : nullptr, generator);
+  decode_graphics_mesh_root_signature(has_acceleration_structure, ms, ps, has_amplification_stage ? &as : nullptr, has_stream_output,
+    generator);
   return generator.result;
 }
 
@@ -859,6 +936,7 @@ struct ShaderCompileResult
   eastl::vector<uint8_t> reflectionData;
   eastl::vector<uint8_t> dxbc;
   eastl::string errorLog;
+  eastl::string messageLog;
 };
 
 ::dxil::ShaderStage get_shader_stage_from_profile(const char *profile)
@@ -946,8 +1024,8 @@ bool is_mesh_profile(const char *profile) { return ('m' == profile[0]) || ('a' =
 
 ShaderCompileResult compileShader(dag::ConstSpan<char> source, const char *profile, const char *entry, bool hlsl2021, bool enableFp16,
   bool skipValidation, bool optimize, bool debug_info, wchar_t *pdb_dir, ::dx12::dxil::Platform platform,
-  eastl::string_view root_signature_def, unsigned phase, bool pipeline_has_ts, bool pipeline_has_gs, bool scarlett_w32,
-  bool warnings_as_errors, DebugLevel debug_level, bool embed_source)
+  eastl::wstring_view root_signature_def, unsigned phase, bool pipeline_has_ts, bool pipeline_has_gs, bool scarlett_w32,
+  bool warnings_as_errors, DebugLevel debug_level, bool embed_source, bool pipeline_has_stream_output)
 {
   ShaderCompileResult result = {};
 
@@ -962,7 +1040,6 @@ ShaderCompileResult compileShader(dag::ConstSpan<char> source, const char *profi
   // having fxc is optional
   if (platformInfo.fxcName)
     pinFxcLib.pin(platformInfo.fxcName);
-  ComPtr<ID3DBlob> ppSource;
 
   ::dxil::DXCSettings compileConfig;
   compileConfig.disableValidation = skipValidation;
@@ -993,6 +1070,7 @@ ShaderCompileResult compileShader(dag::ConstSpan<char> source, const char *profi
   // TODO should not abuse pipeline_has_gs param with a context sensitive meaning
   compileConfig.pipelineHasAmplification = compileConfig.pipelineIsMesh && pipeline_has_gs;
   compileConfig.pipelineHasGeoemetryStage = !compileConfig.pipelineIsMesh && pipeline_has_gs;
+  compileConfig.pipelineHasStreamOutput = pipeline_has_stream_output;
   compileConfig.pipelineHasTesselationStage = pipeline_has_ts;
   compileConfig.scarlettWaveSize32 = scarlett_w32;
 
@@ -1002,81 +1080,89 @@ ShaderCompileResult compileShader(dag::ConstSpan<char> source, const char *profi
   compileConfig.hlsl2021 = hlsl2021;
   compileConfig.enableFp16 = enableFp16;
 
-  {
+  dag::Vector<::dxil::DXCDefine> defines;
+  defines.reserve(16);
+
+  defines.emplace_back(L"SHADER_COMPILER_DXC", L"1");
+  defines.emplace_back(L"__HLSL_VERSION", hlsl2021 ? L"2021" : L"2018");
+  defines.emplace_back(L"NV_SHADER_EXTN_SLOT", L"u0");
+  defines.emplace_back(L"NV_SHADER_EXTN_REGISTER_SPACE", L"space99");
+
+  if (enableFp16)
+    defines.emplace_back(L"SHADER_COMPILER_FP16_ENABLED", L"1");
+
 #if REPLACE_REGISTER_WITH_MACRO
-    static const char macro_def[] = "#define REGISTER(name)"
-                                    " register(name, AUTO_DX12_REGISTER_SPACE)\n";
-    static const char register_key_word[] = "register";
-    static const char register_macro[] = "REGISTER";
+  defines.emplace_back(L"REGISTER(name)", L"register(name,AUTO_DX12_REGISTER_SPACE)");
 
-    eastl::string temp;
-    temp.reserve(source.size() + sizeof(macro_def));
-    temp.append(macro_def, macro_def + sizeof(macro_def) - 1);
-    temp.append(source.data(), source.size());
-    // scan for 'register' key word. Then check if the register is c# or not,
-    // for c# register DXC will emit an error if it has a space parameter.
-    // So for c we skip it and for all others we replace 'register' with
-    // the macro 'REGISTER' that includes the space parameter.
-    auto at = eastl::search(temp.begin() + sizeof(macro_def), temp.end(), register_key_word,
-      register_key_word + sizeof(register_key_word) - 1);
-    while (at != temp.end())
+  static const char register_key_word[] = "register";
+  static const char register_macro[] = "REGISTER";
+
+  // scan for 'register' key word. Then check if the register is c# or not,
+  // for c# register DXC will emit an error if it has a space parameter.
+  // So for c we skip it and for all others we replace 'register' with
+  // the macro 'REGISTER' that includes the space parameter.
+  auto at = eastl::search(source.begin(), source.end(), register_key_word, register_key_word + sizeof(register_key_word) - 1);
+  while (at != source.end())
+  {
+    auto nextChar = skip_space(at + sizeof(register_key_word) - 1, source.end());
+    if (nextChar == source.end())
+      break;
+
+    if (*nextChar == '(')
     {
-      auto nextChar = skip_space(at + sizeof(register_key_word) - 1, temp.end());
-      if (nextChar == temp.end())
-        break;
-
-      if (*nextChar == '(')
+      nextChar = skip_space(nextChar + 1, source.end());
+      if (*nextChar != 'c')
       {
-        nextChar = skip_space(nextChar + 1, temp.end());
-        if (*nextChar != 'c')
-        {
-          eastl::copy(register_macro, register_macro + sizeof(register_macro) - 1, at);
-        }
+        eastl::copy(register_macro, register_macro + sizeof(register_macro) - 1, at);
       }
-      at = eastl::search(at + sizeof(register_key_word) - 1, temp.end(), register_key_word,
-        register_key_word + sizeof(register_key_word) - 1);
     }
-
-    const char *text = temp.c_str();
-    size_t textLength = temp.length();
-#else
-    const char *text = source.data();
-    size_t textLength = source.size();
+    at = eastl::search(at + sizeof(register_key_word) - 1, source.end(), register_key_word,
+      register_key_word + sizeof(register_key_word) - 1);
+  }
 #endif
 
-    D3D_SHADER_MACRO preprocess[4] = {{"SHADER_COMPILER_DXC", "1"}, {"__HLSL_VERSION", hlsl2021 ? "2021" : "2018"}, {}};
-    int nextSlot = 2;
-    if (enableFp16)
-    {
-      preprocess[nextSlot].Name = "SHADER_COMPILER_FP16_ENABLED";
-      preprocess[nextSlot].Definition = "1";
-      nextSlot++;
-    }
+  defines.emplace_back(L"__DSC_INTERNAL_PP_CAT(x, y)", L"x##y");
+  defines.emplace_back(L"BINDLESS_REGISTER(type,index)",
+    L"register(__DSC_INTERNAL_PP_CAT(type, 0), __DSC_INTERNAL_PP_CAT(space, index))");
 
-    // Currently we need to preprocess this with old FXC
-    // as some stuff relies on its MS macro expansion behavior
-    ComPtr<ID3DBlob> error;
-    if (FAILED(D3DPreprocess(text, textLength, nullptr, preprocess, nullptr, &ppSource, &error)))
-    {
-      result.errorLog += "Preprocessor failed because ";
-      result.errorLog += reinterpret_cast<const char *>(error->GetBufferPointer());
-      return result;
-    }
+  // TODO: this is a workaround for PIX crashing when trying to display non-preprocessed
+  // shaders through PDBs. Ideally we don't want to do that, or at least format the preprocessing
+  // result to make it look not that awful.
+
+  auto ppResult = ::dxil::preprocessHLSLWithDXC(source, defines, pinDxcLib.get());
+
+  // empty pp result is correct (empty in -> empty out) so lets just
+  // fail on any pp error/warning whatsoever
+  if (!ppResult.errorLog.empty())
+  {
+    result.errorLog += "Preprocessing of shader failed because of ";
+    result.errorLog += ppResult.errorLog;
+    return result;
+  }
+  else if (!ppResult.messageLog.empty())
+  {
+    result.messageLog += "Preprocessing log:\n";
+    result.messageLog += ppResult.messageLog;
   }
 
-  auto compileResult =
-    ::dxil::compileHLSLWithDXC(make_span(reinterpret_cast<const char *>(ppSource->GetBufferPointer()), ppSource->GetBufferSize() - 1),
-      entry, profile, compileConfig, pinDxcLib.get(), platformInfo.dxcVersion);
+  // To generate a GPU ISA binary we need to provide the root signature to DXC.
+  if (!compileConfig.rootSignatureDefine.empty())
+    compileConfig.defines.emplace_back(L"_AUTO_GENERATED_ROOT_SIGNATURE", compileConfig.rootSignatureDefine);
+
+  auto compileResult = ::dxil::compileHLSLWithDXC({ppResult.preprocessedSource.data(), ppResult.preprocessedSource.size()}, entry,
+    profile, compileConfig, pinDxcLib.get(), platformInfo.dxcVersion);
+
+  result.messageLog += compileResult.messageLog;
 
   if (compileResult.byteCode.empty())
   {
     result.errorLog += "Compilation of shader failed because of ";
-    result.errorLog += compileResult.logMessage;
+    result.errorLog += compileResult.errorLog;
     return result;
   }
 
-  if (!compileResult.logMessage.empty())
-    result.errorLog += compileResult.logMessage;
+  if (!compileResult.errorLog.empty())
+    result.errorLog += compileResult.errorLog;
 
   result.dxil = eastl::move(compileResult.byteCode);
   result.reflectionData = eastl::move(compileResult.reflectionData);
@@ -1123,8 +1209,9 @@ ShaderCompileResult compileShader(dag::ConstSpan<char> source, const char *profi
 }
 
 eastl::vector<uint8_t> recompile_shader(const char *encoded_shader_source, const ::dxil::ShaderHeader &header,
-  const eastl::string &root_signature_def, ::dx12::dxil::Platform platform, bool pipeline_has_ts, bool pipeline_has_gs,
-  wchar_t *pdb_dir, DebugLevel debug_level, bool embed_source)
+  dag::ConstSpan<dxil::StreamOutputComponentInfo> stream_output_desc, const eastl::wstring &root_signature_def,
+  ::dx12::dxil::Platform platform, bool pipeline_has_ts, bool pipeline_has_gs, wchar_t *pdb_dir, DebugLevel debug_level,
+  bool embed_source, bool pipeline_has_stream_output)
 {
   bool skipValidation = encoded_shader_source[encoded_bits::SkipValidation] > '0';
   bool optimize = encoded_shader_source[encoded_bits::Optimize] > '0';
@@ -1140,13 +1227,13 @@ eastl::vector<uint8_t> recompile_shader(const char *encoded_shader_source, const
   // TODO could avoid strlen when encoded_shader_source would be a slice
   auto compileResult = ::compileShader(make_span(sourceStart, strlen(sourceStart)), profileBuf, entryStart, hlsl2021, enableFp16,
     skipValidation, optimize, debugInfo, pdb_dir, platform, root_signature_def, 2, pipeline_has_ts, pipeline_has_gs, scarlettW32,
-    false, debug_level, embed_source);
+    false, debug_level, embed_source, pipeline_has_stream_output);
   if (compileResult.dxil.empty() && compileResult.dxbc.empty())
   {
     debug("recompile_shader failed: %s", compileResult.errorLog.c_str());
     return {};
   }
-  return pack_shader(compileResult.dxil, {}, header);
+  return pack_shader(compileResult.dxil, {}, header, stream_output_desc);
 }
 } // namespace
 
@@ -1165,12 +1252,15 @@ bool has_acceleration_structure(const dxil::ShaderHeader &header)
 
 CompileResult dx12::dxil::compileShader(dag::ConstSpan<char> source, const char *profile, const char *entry, bool need_disasm,
   bool hlsl2021, bool enableFp16, bool skipValidation, bool optimize, bool debug_info, wchar_t *pdb_dir, int max_constants_no,
-  const char *name, Platform platform, bool scarlett_w32, bool warnings_as_errors, DebugLevel debug_level, bool embed_source)
+  const char *name, Platform platform, bool scarlett_w32, bool warnings_as_errors, DebugLevel debug_level, bool embed_source,
+  dag::ConstSpan<::dxil::StreamOutputComponentInfo> stream_output_components)
 {
   auto compileResult = ::compileShader(source, profile, entry, hlsl2021, enableFp16, skipValidation, optimize, debug_info, pdb_dir,
-    platform, {}, 1, true, true, scarlett_w32, warnings_as_errors, debug_level, embed_source);
+    platform, {}, 1, true, true, scarlett_w32, warnings_as_errors, debug_level, embed_source, !stream_output_components.empty());
 
   CompileResult result;
+  result.logs = eastl::move(compileResult.messageLog);
+
   if (compileResult.dxil.empty())
   {
     result.errors = eastl::move(compileResult.errorLog);
@@ -1178,12 +1268,12 @@ CompileResult dx12::dxil::compileShader(dag::ConstSpan<char> source, const char 
   }
 
   auto stage = get_shader_stage_from_profile(profile);
-  auto headerCompileResult =
-    ::dxil::compileHeaderFromReflectionData(stage, compileResult.reflectionData, max_constants_no, pinDxcLib.get());
+  auto headerCompileResult = ::dxil::compileHeaderFromReflectionData(stage, compileResult.reflectionData, max_constants_no,
+    stream_output_components, pinDxcLib.get());
 
   if (!headerCompileResult.isOk)
   {
-    result.errors.sprintf("Compilation of shader header failed because of %s", headerCompileResult.logMessage.c_str());
+    result.errors.append_sprintf("Compilation of shader header failed because of %s", headerCompileResult.logMessage.c_str());
     return result;
   }
 
@@ -1197,9 +1287,50 @@ CompileResult dx12::dxil::compileShader(dag::ConstSpan<char> source, const char 
 #endif
   }
 
-  if (need_disasm)
+  if (::dxil::ExtensionVendor::NoExtensionsUsed != headerCompileResult.header.deviceRequirement.extensionVendor)
   {
-    result.disassembly = ::dxil::disassemble(compileResult.dxil, pinDxcLib.get());
+    auto dxilAsm = ::dxil::disassemble(compileResult.dxil, pinDxcLib.get());
+    if (dxilAsm.empty())
+    {
+      result.errors.append_sprintf("Failed to disassemble DXIL to inspect for used vendor extensions");
+      return result;
+    }
+
+    if (::dxil::ExtensionVendor::NVIDIA == headerCompileResult.header.deviceRequirement.extensionVendor)
+    {
+      auto extensionMask = ::dxil::parse_NVIDIA_extension_use(dxilAsm, result.errors);
+      // when the mask is empty then we failed to figure out which op code sets where used, the driver can not correctly handle this
+      // and so this is a compilation error
+      if (0 == extensionMask)
+      {
+        result.errors.append_sprintf(
+          "Detected use of NVIDIA HLSL extensions, but used extension op codes could not be determined, compiler "
+          "may needs to be updated, to properly detect the used extensions");
+        result.errors.append_sprintf("DXIL:\n%s", dxilAsm.c_str());
+        return result;
+      }
+      headerCompileResult.header.deviceRequirement.vendorExtensionMask = extensionMask;
+    }
+    else if (::dxil::ExtensionVendor::AMD == headerCompileResult.header.deviceRequirement.extensionVendor)
+    {
+      auto extensionMask = ::dxil::parse_AMD_extension_use(dxilAsm, result.errors);
+      // when the mask is empty then we failed to figure out which op code sets where used, the driver can not correctly handle this
+      // and so this is a compilation error
+      if (0 == extensionMask)
+      {
+        result.errors.append_sprintf(
+          "Detected use of AMD HLSL extensions, but used extension op codes could not be determined, compiler may "
+          "needs to be updated, to properly detect the used extensions");
+        result.errors.append_sprintf("DXIL:\n%s", dxilAsm.c_str());
+        return result;
+      }
+      headerCompileResult.header.deviceRequirement.vendorExtensionMask = extensionMask;
+    }
+    else
+    {
+      result.errors.append_sprintf("Missing implementation for a vendor (%u) to handle vendor extensions",
+        (uint32_t)headerCompileResult.header.deviceRequirement.extensionVendor);
+    }
   }
 
   eastl::vector<char> shaderSource;
@@ -1215,11 +1346,13 @@ CompileResult dx12::dxil::compileShader(dag::ConstSpan<char> source, const char 
       auto rootSignatureDefine =
         generate_root_signature_string(hasAccelerationStructure, headerCompileResult.header.resourceUsageTable);
       compileResult = ::compileShader(source, profile, entry, hlsl2021, enableFp16, skipValidation, optimize, debug_info, pdb_dir,
-        platform, rootSignatureDefine, 2, false, false, scarlett_w32, warnings_as_errors, debug_level, embed_source);
+        platform, rootSignatureDefine, 2, false, false, scarlett_w32, warnings_as_errors, debug_level, embed_source,
+        !stream_output_components.empty());
+      result.logs += compileResult.messageLog;
       if (compileResult.dxil.empty())
       {
-        result.errors.sprintf("Error while recompiling compute shader with root signature: "
-                              "%s",
+        result.errors.append_sprintf("Error while recompiling compute shader with root signature: "
+                                     "%s",
           compileResult.errorLog.c_str());
         return result;
       }
@@ -1251,7 +1384,8 @@ CompileResult dx12::dxil::compileShader(dag::ConstSpan<char> source, const char 
 
   result.errors = eastl::move(compileResult.errorLog);
   // only provide name in debug builds
-  result.bytecode = pack_shader(compileResult.dxil, shaderSource, headerCompileResult.header);
+  result.bytecode =
+    pack_shader(compileResult.dxil, shaderSource, headerCompileResult.header, headerCompileResult.streamOutputComponents);
   return result;
 }
 
@@ -1260,11 +1394,15 @@ void dx12::dxil::combineShaders(SmallTab<unsigned, TmpmemAlloc> &target, dag::Co
 {
   bindump::MemoryWriter writer;
   ::dxil::StoredShaderType type = ::dxil::StoredShaderType::combinedVertexShader;
-  auto vertex_shader = decode_shader_container(vs, false).shader;
-  if (vertex_shader.shaderHeader.shaderType == (uint16_t)::dxil::ShaderStage::MESH)
+  dag::ConstSpan<::dxil::StreamOutputComponentInfo> streamOutputComponents;
+
+  auto vertex_shader = decode_shader_container(vs, false);
+  if (!vertex_shader.streamOutputComponents.empty())
+    streamOutputComponents = vertex_shader.streamOutputComponents;
+  if (vertex_shader.shader.shaderHeader.shaderType == (uint16_t)::dxil::ShaderStage::MESH)
   {
     bindump::Master<::dxil::MeshShaderPipeline> layout;
-    *layout.meshShader = vertex_shader;
+    *layout.meshShader = vertex_shader.shader;
     if (!gs.empty())
     {
       layout.amplificationShader.create();
@@ -1278,11 +1416,14 @@ void dx12::dxil::combineShaders(SmallTab<unsigned, TmpmemAlloc> &target, dag::Co
   else
   {
     bindump::Master<::dxil::VertexShaderPipeline> layout;
-    *layout.vertexShader = vertex_shader;
+    *layout.vertexShader = vertex_shader.shader;
     if (!hs.empty())
     {
       layout.hullShader.create();
-      *layout.hullShader = decode_shader_container(hs, false).shader;
+      auto hull_shader = decode_shader_container(hs, false);
+      if (!hull_shader.streamOutputComponents.empty())
+        streamOutputComponents = hull_shader.streamOutputComponents;
+      *layout.hullShader = hull_shader.shader;
     }
     if (!ds.empty())
     {
@@ -1292,12 +1433,22 @@ void dx12::dxil::combineShaders(SmallTab<unsigned, TmpmemAlloc> &target, dag::Co
     if (!gs.empty())
     {
       layout.geometryShader.create();
-      *layout.geometryShader = decode_shader_container(gs, false).shader;
+      auto geometry_shader = decode_shader_container(gs, false);
+      if (!geometry_shader.streamOutputComponents.empty())
+        streamOutputComponents = geometry_shader.streamOutputComponents;
+      *layout.geometryShader = geometry_shader.shader;
     }
     bindump::streamWrite(layout, writer);
   }
 
-  auto packed = create_shader_container(eastl::move(writer.mData), type);
+  eastl::vector<uint8_t> packed;
+  if (streamOutputComponents.empty())
+    packed = create_shader_container(eastl::move(writer.mData), {type, false});
+  else
+  {
+    auto programWithStreamOutput = create_shader_with_stream_output(eastl::move(writer.mData), streamOutputComponents);
+    packed = create_shader_container(eastl::move(programWithStreamOutput), {type, true});
+  }
 
   const size_t dwordsToFitPacked = (packed.size() - 1) / elem_size(target) + 1;
   target.resize(dwordsToFitPacked + 1); // +1 for id at the beginning
@@ -1317,6 +1468,7 @@ dx12::dxil::RootSignatureStore dx12::dxil::generateRootSignatureDefinition(dag::
   result.hasAmplificationStage = result.isMesh && (gs.size() > 0);
   result.vsResources = vsDecoded.shader.shaderHeader.resourceUsageTable;
   result.hasAccelerationStructure = has_acceleration_structure(vsDecoded.shader.shaderHeader);
+  result.hasStreamOutput = !vsDecoded.streamOutputComponents.empty();
 
   if (hs.empty() != ds.empty())
   {
@@ -1329,6 +1481,7 @@ dx12::dxil::RootSignatureStore dx12::dxil::generateRootSignatureDefinition(dag::
     auto hsDecoded = decode_shader_container(hs, false);
     result.hsResources = hsDecoded.shader.shaderHeader.resourceUsageTable;
     result.hasAccelerationStructure = result.hasAccelerationStructure || has_acceleration_structure(hsDecoded.shader.shaderHeader);
+    result.hasStreamOutput |= !hsDecoded.streamOutputComponents.empty();
   }
 
   if (ds.size())
@@ -1336,6 +1489,7 @@ dx12::dxil::RootSignatureStore dx12::dxil::generateRootSignatureDefinition(dag::
     auto dsDecoded = decode_shader_container(ds, false);
     result.dsResources = dsDecoded.shader.shaderHeader.resourceUsageTable;
     result.hasAccelerationStructure = result.hasAccelerationStructure || has_acceleration_structure(dsDecoded.shader.shaderHeader);
+    result.hasStreamOutput |= !dsDecoded.streamOutputComponents.empty();
   }
 
   if (gs.size())
@@ -1343,6 +1497,7 @@ dx12::dxil::RootSignatureStore dx12::dxil::generateRootSignatureDefinition(dag::
     auto gsDecoded = decode_shader_container(gs, false);
     result.gsResources = gsDecoded.shader.shaderHeader.resourceUsageTable;
     result.hasAccelerationStructure = result.hasAccelerationStructure || has_acceleration_structure(gsDecoded.shader.shaderHeader);
+    result.hasStreamOutput |= !gsDecoded.streamOutputComponents.empty();
   }
 
   if (!ps.empty())
@@ -1389,7 +1544,8 @@ bool operator==(const dx12::dxil::RootSignatureStore &l, const dx12::dxil::RootS
 {
   return l.vsResources == r.vsResources && l.hsResources == r.hsResources && l.dsResources == r.dsResources &&
          l.gsResources == r.gsResources && l.psResources == r.psResources && l.hasVertexInput == r.hasVertexInput &&
-         l.hasAmplificationStage == r.hasAmplificationStage && l.hasAccelerationStructure == r.hasAccelerationStructure;
+         l.hasAmplificationStage == r.hasAmplificationStage && l.hasAccelerationStructure == r.hasAccelerationStructure &&
+         l.hasStreamOutput == r.hasStreamOutput;
 }
 
 bool operator!=(const dx12::dxil::RootSignatureStore &l, const dx12::dxil::RootSignatureStore &r) { return !(l == r); }
@@ -1546,18 +1702,19 @@ eastl::optional<eastl::unique_ptr<SmallTab<unsigned, TmpmemAlloc>>> dx12::dxil::
   AutoFuncProfT<AFP_MSEC> funcProfiler("dx12::dxil::recompileVertexProgram: took %dms");
 #endif
 
-  eastl::string progSignature;
+  eastl::wstring progSignature;
   if (header->rootSignature.isMesh)
   {
-    progSignature =
-      generate_mesh_root_signature_string(header->rootSignature.hasAccelerationStructure, header->rootSignature.hasAmplificationStage,
-        header->rootSignature.vsResources, header->rootSignature.gsResources, header->rootSignature.psResources);
+    progSignature = generate_mesh_root_signature_string(header->rootSignature.hasAccelerationStructure,
+      header->rootSignature.hasAmplificationStage, header->rootSignature.hasStreamOutput, header->rootSignature.vsResources,
+      header->rootSignature.gsResources, header->rootSignature.psResources);
   }
   else
   {
-    progSignature = generate_root_signature_string(header->rootSignature.hasAccelerationStructure,
-      header->rootSignature.hasVertexInput, header->rootSignature.vsResources, header->rootSignature.hsResources,
-      header->rootSignature.dsResources, header->rootSignature.gsResources, header->rootSignature.psResources);
+    progSignature =
+      generate_root_signature_string(header->rootSignature.hasAccelerationStructure, header->rootSignature.hasVertexInput,
+        header->rootSignature.hasStreamOutput, header->rootSignature.vsResources, header->rootSignature.hsResources,
+        header->rootSignature.dsResources, header->rootSignature.gsResources, header->rootSignature.psResources);
   }
 
   auto vsDecoded = decode_shader_container(header->vertexShader, true);
@@ -1565,8 +1722,9 @@ eastl::optional<eastl::unique_ptr<SmallTab<unsigned, TmpmemAlloc>>> dx12::dxil::
   auto dsDecoded = decode_shader_container(header->domainShader, true);
   auto gsDecoded = decode_shader_container(header->geomentryShader, true);
 
-  auto rebuildVS = recompile_shader(vsDecoded.source.data(), vsDecoded.shader.shaderHeader, progSignature, platform,
-    hsDecoded.source.size() && dsDecoded.source.size(), gsDecoded.source.size(), pdb_dir, debug_level, embed_source);
+  auto rebuildVS = recompile_shader(vsDecoded.source.data(), vsDecoded.shader.shaderHeader, vsDecoded.streamOutputComponents,
+    progSignature, platform, hsDecoded.source.size() && dsDecoded.source.size(), gsDecoded.source.size(), pdb_dir, debug_level,
+    embed_source, header->rootSignature.hasStreamOutput);
 
   if (rebuildVS.empty())
   {
@@ -1576,8 +1734,9 @@ eastl::optional<eastl::unique_ptr<SmallTab<unsigned, TmpmemAlloc>>> dx12::dxil::
   eastl::vector<uint8_t> rebuildHS;
   if (hsDecoded.source.size())
   {
-    rebuildHS = recompile_shader(hsDecoded.source.data(), hsDecoded.shader.shaderHeader, progSignature, platform, true,
-      gsDecoded.source.size(), pdb_dir, debug_level, embed_source);
+    rebuildHS =
+      recompile_shader(hsDecoded.source.data(), hsDecoded.shader.shaderHeader, hsDecoded.streamOutputComponents, progSignature,
+        platform, true, gsDecoded.source.size(), pdb_dir, debug_level, embed_source, header->rootSignature.hasStreamOutput);
     if (rebuildHS.empty())
     {
       return eastl::nullopt;
@@ -1587,8 +1746,8 @@ eastl::optional<eastl::unique_ptr<SmallTab<unsigned, TmpmemAlloc>>> dx12::dxil::
   eastl::vector<uint8_t> rebuildDS;
   if (dsDecoded.source.size())
   {
-    rebuildDS = recompile_shader(dsDecoded.source.data(), dsDecoded.shader.shaderHeader, progSignature, platform, true,
-      gsDecoded.source.size(), pdb_dir, debug_level, embed_source);
+    rebuildDS = recompile_shader(dsDecoded.source.data(), dsDecoded.shader.shaderHeader, {}, progSignature, platform, true,
+      gsDecoded.source.size(), pdb_dir, debug_level, embed_source, header->rootSignature.hasStreamOutput);
     if (rebuildDS.empty())
     {
       return eastl::nullopt;
@@ -1598,8 +1757,9 @@ eastl::optional<eastl::unique_ptr<SmallTab<unsigned, TmpmemAlloc>>> dx12::dxil::
   eastl::vector<uint8_t> rebuildGS;
   if (gsDecoded.source.size())
   {
-    rebuildGS = recompile_shader(gsDecoded.source.data(), gsDecoded.shader.shaderHeader, progSignature, platform,
-      hsDecoded.source.size() && dsDecoded.source.size(), true, pdb_dir, debug_level, embed_source);
+    rebuildGS = recompile_shader(gsDecoded.source.data(), gsDecoded.shader.shaderHeader, gsDecoded.streamOutputComponents,
+      progSignature, platform, hsDecoded.source.size() && dsDecoded.source.size(), true, pdb_dir, debug_level, embed_source,
+      header->rootSignature.hasStreamOutput);
     if (rebuildGS.empty())
     {
       return eastl::nullopt;
@@ -1643,18 +1803,19 @@ eastl::optional<eastl::unique_ptr<SmallTab<unsigned, TmpmemAlloc>>> dx12::dxil::
   AutoFuncProfT<AFP_MSEC> funcProfiler("dx12::dxil::recompilePixelSader: took %dms");
 #endif
 
-  eastl::string progSignature;
+  eastl::wstring progSignature;
   if (header->rootSignature.isMesh)
   {
-    progSignature =
-      generate_mesh_root_signature_string(header->rootSignature.hasAccelerationStructure, header->rootSignature.hasAmplificationStage,
-        header->rootSignature.vsResources, header->rootSignature.gsResources, header->rootSignature.psResources);
+    progSignature = generate_mesh_root_signature_string(header->rootSignature.hasAccelerationStructure,
+      header->rootSignature.hasAmplificationStage, header->rootSignature.hasStreamOutput, header->rootSignature.vsResources,
+      header->rootSignature.gsResources, header->rootSignature.psResources);
   }
   else
   {
-    progSignature = generate_root_signature_string(header->rootSignature.hasAccelerationStructure,
-      header->rootSignature.hasVertexInput, header->rootSignature.vsResources, header->rootSignature.hsResources,
-      header->rootSignature.dsResources, header->rootSignature.gsResources, header->rootSignature.psResources);
+    progSignature =
+      generate_root_signature_string(header->rootSignature.hasAccelerationStructure, header->rootSignature.hasVertexInput,
+        header->rootSignature.hasStreamOutput, header->rootSignature.vsResources, header->rootSignature.hsResources,
+        header->rootSignature.dsResources, header->rootSignature.gsResources, header->rootSignature.psResources);
   }
 
   DecodedShaderContainer psDecoded;
@@ -1679,8 +1840,8 @@ eastl::optional<eastl::unique_ptr<SmallTab<unsigned, TmpmemAlloc>>> dx12::dxil::
 
   bool hasTS = 0 != (header->compilationFlags & COMPILATION_FLAG_HAS_HD_DS);
   bool hasGS = 0 != (header->compilationFlags & COMPILATION_FLAG_HAS_GS);
-  auto rebuildPS = recompile_shader(psDecoded.source.data(), psDecoded.shader.shaderHeader, progSignature, platform, hasTS, hasGS,
-    pdb_dir, debug_level, embed_source);
+  auto rebuildPS = recompile_shader(psDecoded.source.data(), psDecoded.shader.shaderHeader, {}, progSignature, platform, hasTS, hasGS,
+    pdb_dir, debug_level, embed_source, header->rootSignature.hasStreamOutput);
 
   if (rebuildPS.empty())
   {

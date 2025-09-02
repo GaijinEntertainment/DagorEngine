@@ -1,0 +1,13 @@
+Root    ?= ../../../.. ;
+Location = prog/3rdPartyLibs/uuidv7 ;
+
+TargetType  = lib ;
+Target      = 3rdPartyLibs/uuidv7.lib ;
+
+Sources =
+  uuidv7.cpp
+;
+
+AddIncludes = ;
+
+include $(Root)/prog/_jBuild/build.jam ;

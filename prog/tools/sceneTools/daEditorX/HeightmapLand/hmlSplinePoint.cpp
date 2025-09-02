@@ -7,10 +7,10 @@
 
 #include <EditorCore/ec_IEditorCore.h>
 #include <EditorCore/ec_ObjectEditor.h>
+#include <EditorCore/ec_wndGlobal.h>
 #include <drv/3d/dag_driver.h>
 
 #include <libTools/util/strUtil.h>
-#include <sepGui/wndGlobal.h>
 
 #include "hmlCm.h"
 #include "common.h"
@@ -18,9 +18,8 @@
 
 #include <propPanel/control/container.h>
 
-#include <winGuiWrapper/wgw_input.h>
-
 using editorcore_extapi::dagGeom;
+using editorcore_extapi::dagInput;
 using editorcore_extapi::dagRender;
 using editorcore_extapi::make_full_start_path;
 
@@ -256,8 +255,6 @@ void SplinePointObject::fillProps(PropPanel::ContainerPropertyControl &op, DClas
 
   if (one_type)
   {
-    commonGrp->createCheckBox(PID_USEDEFSET, "Use default spline settings", props.useDefSet);
-
     commonGrp->createEditFloat(PID_SCALE_H, "Scale Height", props.attr.scale_h);
     commonGrp->createEditFloat(PID_SCALE_W, "Scale Width", props.attr.scale_w);
     commonGrp->createTrackFloat(PID_OPACITY, "Opacity", props.attr.opacity, 0.0f, 1.0f, 0.01f);
@@ -286,6 +283,7 @@ void SplinePointObject::fillProps(PropPanel::ContainerPropertyControl &op, DClas
       commonGrp->setInt(PID_ROADBHV, props.attr.roadBhvOverride);
 
       commonGrp->createIndent();
+      commonGrp->createCheckBox(PID_USEDEFSET, "Use default spline settings", props.useDefSet);
       commonGrp->createStatic(-1, "Spline class asset");
       commonGrp->createButton(PID_GENBLKNAME, ::dd_get_fname(props.blkGenName), !props.useDefSet);
 
@@ -488,6 +486,8 @@ void SplinePointObject::onPPBtnPressed(int pid, PropPanel::ContainerPropertyCont
     const char *asset_name = getEffectiveAsset(eff_disp);
 
     asset_name = DAEDITOR3.selectAssetX(asset_name, "Select splineclass", "spline");
+    if (!asset_name)
+      return;
 
     for (int i = 0; i < objects.size(); i++)
     {
@@ -748,7 +748,7 @@ void SplinePointObject::moveObject(const Point3 &delta, IEditorCoreEngine::Basis
 
   objectWasMoved = true;
 
-  if (wingw::is_key_pressed(wingw::V_CONTROL))
+  if (dagInput->isCtrlKeyDown())
   {
     IGenViewportWnd *wnd = DAGORED2->getCurrentViewport();
     HmapLandObjectEditor *ed = (HmapLandObjectEditor *)getObjEditor();
@@ -869,13 +869,14 @@ void SplinePointObject::resetSplineClass()
   destroy_it(splineGenObj);
   effSplineClass = nullptr;
 }
-splineclass::AssetData *SplinePointObject::prepareSplineClass(const char *def_blk_name, splineclass::AssetData *prev)
+splineclass::AssetData *SplinePointObject::prepareSplineClass(const char *def_blk_name, splineclass::AssetData *prev,
+  FastNameMap *out_missing_splcls)
 {
   if (hasSplineClass())
     def_blk_name = props.blkGenName;
 
   if (def_blk_name && def_blk_name[0])
-    importGenerationParams(def_blk_name);
+    importGenerationParams(def_blk_name, out_missing_splcls);
   else if (hasSplineClass())
     resetSplineClass();
   else
@@ -886,7 +887,7 @@ splineclass::AssetData *SplinePointObject::prepareSplineClass(const char *def_bl
 
   return effSplineClass;
 }
-void SplinePointObject::importGenerationParams(const char *blkname)
+void SplinePointObject::importGenerationParams(const char *blkname, FastNameMap *out_missing_splcls)
 {
   effSplineClass = nullptr;
   if (!blkname || !*blkname)
@@ -897,8 +898,12 @@ void SplinePointObject::importGenerationParams(const char *blkname)
 
   static int spline_atype = DAEDITOR3.getAssetTypeId("spline");
   if (!splineGenObj)
+  {
     if (DagorAsset *a = DAEDITOR3.getAssetByName(blkname, spline_atype))
       splineGenObj = DAEDITOR3.createEntity(*a);
+    else if (out_missing_splcls)
+      out_missing_splcls->addNameId(blkname);
+  }
   ISplineGenObj *gen = getSplineGen();
   if (!gen)
     return;

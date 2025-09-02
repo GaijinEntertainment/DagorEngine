@@ -20,7 +20,7 @@ def add_quit_entity_from_args(evt : Event)
   var res : ConversionResult
   var ofs : int
   let input = float(arg, res, ofs)
-  if res == ConversionResult ok && ofs == length(arg)
+  if res == ConversionResult.ok && ofs == length(arg)
     time = input
   else
     logerr("Failed to parse float from quit_in_time argument: '{arg}'")

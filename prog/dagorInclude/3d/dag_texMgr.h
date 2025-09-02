@@ -6,9 +6,13 @@
 
 #include <util/dag_texMetaData.h>
 #include <drv/3d/dag_samplerHandle.h>
-#include <drv/3d/dag_sampler.h>
 #include <3d/dag_resMgr.h>
 #include <generic/dag_tabFwd.h>
+
+namespace d3d
+{
+struct SamplerInfo;
+}
 
 //! \copydoc register_managed_res
 D3DRESID register_managed_tex(const char *name, BaseTexture *res);
@@ -197,6 +201,9 @@ bool is_managed_textures_streaming_active();
 //! \returns `true` if texture streaming is load-on-demand, `false` otherwise
 bool is_managed_textures_streaming_load_on_demand();
 
+//! \brief Dumps current memory usage (Sys/Gpu) state of texture streaming
+void dump_texture_streaming_memory_state();
+
 //! \brief Checks whether the specified texture is split BQ/HQ with missing HQ part
 //! \param id ID of the texture to check
 //! \returns `true` if the texture is missing HQ part, `false` otherwise
@@ -266,6 +273,11 @@ inline TEXTUREID next_managed_texture(TEXTUREID prev_id, int min_rc = 0) { retur
 //! \brief Access to the highest valid texture ID for storing properties of managed textures in arrays.
 //! \returns Highest valid texture ID
 TEXTUREID get_max_managed_texture_id();
+
+//! \brief Get generation of managed texture content, which changes during streaming
+//! \param tid valid ID of texture
+//! \returns Generation of streaming data
+uint16_t get_managed_texture_streaming_generation(TEXTUREID tid);
 
 //! returns true when tid resembles texture ID and (optionally checked) contains valid value (non-BAD and has proper generation)
 inline bool is_managed_texture_id_valid(TEXTUREID tid, bool validate_value)

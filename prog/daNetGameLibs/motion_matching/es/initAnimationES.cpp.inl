@@ -7,22 +7,24 @@
 #include <daECS/core/entityManager.h>
 #include <ecs/core/utility/ecsRecreate.h>
 #include <ecs/anim/anim.h>
+#include <gameRes/dag_gameResSystem.h>
 #include <startup/dag_globalSettings.h>
 #include <animation/animation_data_base.h>
+#include <animation/mmEvents.h>
 #include <animation/motion_matching_controller.h>
 #include <animation/motion_matching_animgraph_nodes.h>
 #include <ioSys/dag_dataBlock.h>
-
-ECS_BROADCAST_EVENT_TYPE(InvalidateAnimationDataBase);
-ECS_REGISTER_EVENT(InvalidateAnimationDataBase);
-ECS_UNICAST_EVENT_TYPE(AnimationDataBaseAssigned);
-ECS_REGISTER_EVENT(AnimationDataBaseAssigned);
 
 static void load_tags(OAHashNameMap<false> &tags_map, const ecs::StringList &available_tags)
 {
   tags_map.clear();
   for (const ecs::string &tag : available_tags)
   {
+    if (tag.empty() || tag[0] == '+' || tag[0] == '-')
+    {
+      logerr("MM: tag name '%s' is not allowed", tag);
+      continue;
+    }
     if (tags_map.nameCount() >= Tags::kSize)
     {
       logerr("MM: tags limit was reached");
@@ -37,6 +39,9 @@ static void resolve_tags_for_presets(const ecs::StringList &preset_names, Animat
   G_ASSERT(preset_names.size() == dataBase.tagsPresets.size());
   for (int i = 0; i < preset_names.size(); ++i)
   {
+    for (int j = 0; j < i; ++j)
+      if (preset_names[j] == preset_names[i])
+        logerr("MM: duplicated preset '%s'", preset_names[i]);
     // todo: use separate string for tags instead of preset name, this way we can specify any combination of tags per preset.
     dataBase.tagsPresets[i].requiredTagIdx = dataBase.tags.getNameId(preset_names[i].c_str());
   }
@@ -119,6 +124,81 @@ static void load_foot_locker_nodes(AnimationDataBase &dataBase, const ecs::Strin
 template <class T>
 inline void get_data_base_ecs_query(T);
 
+template <class T>
+inline void load_data_base_ecs_query(ecs::EntityId, T);
+
+static void load_animation_data_base(ecs::EntityId database_eid, const GeomNodeTree *skeleton, AnimV20::AnimationGraph *anim_graph)
+{
+  G_ASSERT(skeleton && anim_graph);
+  load_data_base_ecs_query(database_eid,
+    [skeleton, anim_graph, database_eid](bool &main_database__loaded, const ecs::StringList &data_bases_paths,
+      const ecs::StringList &main_database__availableTags, const ecs::StringList &main_database__presetsTagsName,
+      const ecs::string &main_database__root_node, const ecs::string &main_database__root_motion_a2d_node,
+      const ecs::StringList &main_database__direction_nodes, const ecs::FloatList &main_database__direction_weights,
+      const ecs::StringList &main_database__center_of_mass_nodes, const ecs::Point4List &main_database__center_of_mass_params,
+      const ecs::string &main_database__nodeMasksPath, const ecs::Object &main_database__pbcWeightOverrides,
+      const ecs::string &main_database__footLockerCtrlName, const ecs::StringList main_database__footLockerNodes,
+      float main_database__validateNextClipPosThreshold, float main_database__validateNextClipRotThreshold,
+      float main_database__validateNextClipSclThreshold, AnimationDataBase &dataBase) {
+      G_ASSERT(!main_database__loaded);
+      AnimationRootMotionConfig rootMotionConfig = load_root_motion_config(main_database__root_node, main_database__direction_nodes,
+        main_database__direction_weights, main_database__center_of_mass_nodes, main_database__center_of_mass_params);
+      DataBlock nodeMasks(main_database__nodeMasksPath.c_str());
+      dataBase.rootMotionA2dNode = main_database__root_motion_a2d_node;
+      dataBase.setReferenceSkeleton(skeleton);
+#if DAGOR_DBGLEVEL > 0
+      dataBase.validateNextClipPosThreshold = main_database__validateNextClipPosThreshold;
+      dataBase.validateNextClipRotThreshold = main_database__validateNextClipRotThreshold;
+      dataBase.validateNextClipSclThreshold = main_database__validateNextClipSclThreshold;
+#else
+      G_UNUSED(main_database__validateNextClipPosThreshold);
+      G_UNUSED(main_database__validateNextClipRotThreshold);
+      G_UNUSED(main_database__validateNextClipSclThreshold);
+#endif
+      load_foot_locker_nodes(dataBase, main_database__footLockerNodes);
+      load_tags(dataBase.tags, main_database__availableTags);
+      resolve_tags_for_presets(main_database__presetsTagsName, dataBase);
+      load_motion_matching_animgraph_nodes(dataBase, anim_graph);
+      load_animations(dataBase, rootMotionConfig, nodeMasks, data_bases_paths);
+      load_post_blend_controller_weight_overrides(dataBase, main_database__pbcWeightOverrides, anim_graph);
+      if (!main_database__footLockerCtrlName.empty())
+      {
+        String footLockerParamName(0, "$%s", main_database__footLockerCtrlName.c_str());
+        dataBase.footLockerParamId = anim_graph->getParamId(footLockerParamName, AnimV20::AnimCommonStateHolder::PT_InlinePtr);
+        if (dataBase.footLockerParamId == -1)
+          logerr("Motion Matching: (%d)<%s> has invalid main_database__footLockerCtrlName = '%s'", (ecs::entity_id_t)database_eid,
+            g_entity_mgr->getEntityTemplateName(database_eid), main_database__footLockerCtrlName.c_str());
+        else
+        {
+          int footLockerNumLegs =
+            anim_graph->getInlinePtrParamMaxSize(dataBase.footLockerParamId) / sizeof(AnimV20::FootLockerIKCtrl::LegData);
+          if (footLockerNumLegs != dataBase.footLockerNodes.size())
+          {
+            logerr("Motion Matching: (%d)<%s> FootLockerIKCtrl has '%d' legs specified while main_database__footLockerNodes has '%s'. "
+                   "They should be equal.",
+              (ecs::entity_id_t)database_eid, g_entity_mgr->getEntityTemplateName(database_eid), footLockerNumLegs,
+              dataBase.footLockerNodes.size());
+            dataBase.footLockerParamId = -1;
+          }
+        }
+      }
+      main_database__loaded = true;
+    });
+}
+
+ECS_ON_EVENT(on_appear, InvalidateAnimationDataBase)
+static void load_animation_data_base_es(
+  const ecs::Event &, ecs::EntityId eid, const ecs::string &main_database__skeletonRes, const ecs::string &main_database__animGraphRes)
+{
+  if (main_database__skeletonRes.empty() || main_database__animGraphRes.empty())
+    return;
+  eastl::unique_ptr<GameResource, GameResDeleter> skeletonRes, animGraphRes;
+  skeletonRes.reset(get_game_resource(GAMERES_HANDLE_FROM_STRING(main_database__skeletonRes.c_str())));
+  animGraphRes.reset(get_game_resource(GAMERES_HANDLE_FROM_STRING(main_database__animGraphRes.c_str())));
+  load_animation_data_base(eid, reinterpret_cast<const GeomNodeTree *>(skeletonRes.get()),
+    reinterpret_cast<AnimCharData *>(animGraphRes.get())->graph);
+}
+
 static bool animation_data_base_entity_is_creating = false;
 
 ECS_TAG(render)
@@ -148,60 +228,39 @@ static void init_animations_es(const ecs::Event &,
     });
   }
 
-  get_data_base_ecs_query(
-    [&](ecs::EntityId eid, bool &main_database__loaded, const ecs::StringList &data_bases_paths,
-      const ecs::StringList &main_database__availableTags, const ecs::StringList &main_database__presetsTagsName,
-      const ecs::string &main_database__root_node, const ecs::string &main_database__root_motion_a2d_node,
-      const ecs::StringList &main_database__direction_nodes, const ecs::FloatList &main_database__direction_weights,
-      const ecs::StringList &main_database__center_of_mass_nodes, const ecs::Point4List &main_database__center_of_mass_params,
-      const ecs::string &main_database__nodeMasksPath, const ecs::Object &main_database__pbcWeightOverrides,
-      const ecs::string &main_database__footLockerCtrlName, const ecs::StringList main_database__footLockerNodes,
-      AnimationDataBase &dataBase) {
-      // current data base entity can be with daeditor_selected subtemplate
-      if (!find_sub_template_name(g_entity_mgr->getEntityTemplateName(eid), dbTemplateName))
-        return;
-      if (!main_database__loaded)
-      {
-        AnimationRootMotionConfig rootMotionConfig = load_root_motion_config(main_database__root_node, main_database__direction_nodes,
-          main_database__direction_weights, main_database__center_of_mass_nodes, main_database__center_of_mass_params);
-        DataBlock nodeMasks(main_database__nodeMasksPath.c_str());
-        dataBase.rootMotionA2dNode = main_database__root_motion_a2d_node;
-        dataBase.setReferenceSkeleton(animchar.getOriginalNodeTree());
-        load_foot_locker_nodes(dataBase, main_database__footLockerNodes);
-        load_tags(dataBase.tags, main_database__availableTags);
-        resolve_tags_for_presets(main_database__presetsTagsName, dataBase);
-        load_motion_matching_animgraph_nodes(dataBase, animchar.getAnimGraph());
-        load_animations(dataBase, rootMotionConfig, nodeMasks, data_bases_paths);
-        load_post_blend_controller_weight_overrides(dataBase, main_database__pbcWeightOverrides, animchar.getAnimGraph());
-        if (!main_database__footLockerCtrlName.empty())
-        {
-          String footLockerParamName(0, "$%s", main_database__footLockerCtrlName.c_str());
-          dataBase.footLockerParamId =
-            animchar.getAnimGraph()->getParamId(footLockerParamName, AnimV20::AnimCommonStateHolder::PT_InlinePtr);
-          int footLockerNumLegs =
-            animchar.getAnimState()->getInlinePtrMaxSz(dataBase.footLockerParamId) / sizeof(AnimV20::FootLockerIKCtrl::LegData);
-          if (footLockerNumLegs != dataBase.footLockerNodes.size())
-          {
-            logerr("Motion Matching: FootLockerIKCtrl has different number of legs");
-            dataBase.footLockerParamId = -1;
-          }
-        }
-        main_database__loaded = true;
-      }
-      if (dataBase.getReferenceSkeleton() != animchar.getOriginalNodeTree())
-      {
-        logerr("Motion Matching: single animation database cannot be used with different skeletons");
-        return;
-      }
-      if (dataBase.referenceAnimGraph != animchar.getAnimGraph())
-      {
-        logerr("Motion Matching: single animation database cannot be used with different AnimTrees/AnimGraphs");
-        return;
-      }
-      motion_matching__dataBaseEid = eid;
-      motion_matching__controller.setup(dataBase, animchar);
-      motion_matching__controller.useTagsFromAnimGraph = dataBase.hasAnimGraphTags();
-    });
+  get_data_base_ecs_query([&](ecs::EntityId eid, bool main_database__loaded, const AnimationDataBase &dataBase) {
+    // current data base entity can be with daeditor_selected subtemplate
+    if (!find_sub_template_name(g_entity_mgr->getEntityTemplateName(eid), dbTemplateName))
+      return;
+    if (!main_database__loaded)
+    {
+      load_animation_data_base(eid, animchar.getOriginalNodeTree(), animchar.getAnimGraph());
+    }
+    if (!dataBase.getReferenceSkeleton())
+    {
+      // most likely `load_data_base_ecs_query` failed and better not to confuse people with next logerr about different skeleton
+      logerr("Motion Matching: failed to load '%s' database", dbTemplateName);
+      return;
+    }
+    if (dataBase.getReferenceSkeleton() != animchar.getOriginalNodeTree())
+    {
+      logerr("Motion Matching: single animation database cannot be used with different skeletons");
+      return;
+    }
+    if (dataBase.referenceAnimGraph != animchar.getAnimGraph())
+    {
+      String dataBaseAnimGraphName, animcharAnimGraphName;
+      get_game_resource_name(dataBase.referenceAnimGraph->resId, dataBaseAnimGraphName);
+      get_game_resource_name(animchar.getAnimGraph()->resId, animcharAnimGraphName);
+      logerr("Motion Matching: single animation database cannot be used with different AnimTrees/AnimGraphs. "
+             "'%s' != '%s' (used by '%s')",
+        animcharAnimGraphName, dataBaseAnimGraphName, g_entity_mgr->getEntityTemplateName(eid));
+      return;
+    }
+    motion_matching__dataBaseEid = eid;
+    motion_matching__controller.setup(dataBase, animchar);
+    motion_matching__controller.useTagsFromAnimGraph = dataBase.hasAnimGraphTags();
+  });
   if (!motion_matching__controller.dataBase) // database is not ready, will try again on next InvalidateAnimationDataBase event
     return;
   motion_matching__enabled = true;

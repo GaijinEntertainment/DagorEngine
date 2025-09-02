@@ -57,7 +57,7 @@ public:
     fillPanel();
   }
 
-  ExportImportDlg::~ExportImportDlg() { DAGORED2->deleteDialog(mDlg); }
+  ~ExportImportDlg() override { DAGORED2->deleteDialog(mDlg); }
 
   bool showDialog()
   {
@@ -114,7 +114,7 @@ public:
     }
   }
 
-  void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel)
+  void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override
   {
     if (!exp)
       return;

@@ -5,7 +5,7 @@
 #pragma once
 
 #include <propPanel/c_common.h> // TLeafHandle
-#include <drv/3d/dag_resId.h>
+#include <propPanel/propPanel.h>
 #include <generic/dag_tab.h>
 #include <math/dag_e3dColor.h>
 #include <util/dag_string.h>
@@ -15,7 +15,7 @@ namespace PropPanel
 
 struct TTreeNode
 {
-  TTreeNode(const char *cap, TEXTUREID icon, void *data, TTreeNode *in_parent) :
+  TTreeNode(const char *cap, IconId icon, void *data, TTreeNode *in_parent) :
     nodes(midmem), name(cap), icon(icon), isExpand(false), textColor(0, 0, 0), userData(data), item(nullptr), parent(in_parent)
   {}
 
@@ -24,7 +24,8 @@ struct TTreeNode
   TTreeNode *getFirstChild() const { return nodes.empty() ? nullptr : nodes[0]; }
 
   String name;
-  TEXTUREID icon;
+  IconId icon;
+  // Note: isExpand might not be always in sync with the filtered tree's state. See updateUnfilteredExpansionStateFromFilteredTree.
   bool isExpand;
   E3DCOLOR textColor;
   void *userData;

@@ -2,9 +2,9 @@
 #pragma once
 
 #include <EditorCore/ec_outlinerInterface.h>
-#include <drv/3d/dag_resId.h>
+#include <propPanel/control/menu.h>
 #include <propPanel/messageQueue.h>
-#include <sepGui/wndMenuInterface.h>
+#include <propPanel/propPanel.h>
 #include <util/dag_string.h>
 #include <EASTL/optional.h>
 #include <EASTL/unique_ptr.h>
@@ -36,7 +36,7 @@ class OutlinerTreeItem;
 class TreeItemInlineRenamerControl;
 enum class OutlinerSelectionState;
 
-class OutlinerWindow : public IMenuEventHandler, public PropPanel::IDelayedCallbackHandler
+class OutlinerWindow : public PropPanel::IMenuEventHandler, public PropPanel::IDelayedCallbackHandler
 {
 public:
   OutlinerWindow();
@@ -49,6 +49,11 @@ public:
   // available.
   virtual void loadOutlinerSettings(const DataBlock &settings);
   virtual void saveOutlinerSettings(DataBlock &settings) const;
+
+  // loadOutlinerState must be called after the objects have been added to properly restore their expansion state, and
+  // saveOutlinerState must be called before removing the objects to be able to get their expansion state.
+  virtual void loadOutlinerState(const DataBlock &state);
+  virtual void saveOutlinerState(DataBlock &state) const;
 
   virtual void onAddObject(RenderableEditableObject &object);
   virtual void onRemoveObject(RenderableEditableObject &object);
@@ -68,35 +73,36 @@ private:
 
   struct Icons
   {
-    ImTextureID getForType(int type) const;
-    ImTextureID getSelectionIcon(OutlinerSelectionState selection_state) const;
-    ImTextureID getVisibilityIcon(bool visible) const;
-    ImTextureID getLockIcon(bool locked) const;
+    PropPanel::IconId getForType(int type) const;
+    PropPanel::IconId getSelectionIcon(OutlinerSelectionState selection_state) const;
+    PropPanel::IconId getVisibilityIcon(bool visible) const;
+    PropPanel::IconId getLockIcon(bool locked) const;
 
-    ImTextureID settings = 0;
-    ImTextureID settingsOpen = 0;
-    ImTextureID search = 0;
-    ImTextureID typeEntity = 0;
-    ImTextureID typeSpline = 0;
-    ImTextureID typePolygon = 0;
-    ImTextureID layerDefault = 0;
-    ImTextureID layerActive = 0;
-    ImTextureID layerLocked = 0;
-    ImTextureID layerAdd = 0;
-    ImTextureID layerCreate = 0;
-    ImTextureID selectAll = 0;
-    ImTextureID selectPartial = 0;
-    ImTextureID selectNone = 0;
-    ImTextureID visibilityVisible = 0;
-    ImTextureID visibilityHidden = 0;
-    ImTextureID lockOpen = 0;
-    ImTextureID lockClosed = 0;
-    ImTextureID applyToMask = 0;
-    ImTextureID applyToMaskDisabled = 0;
-    ImTextureID exportLayer = 0;
-    ImTextureID exportLayerDisabled = 0;
-    ImTextureID alert = 0;
-    ImTextureID close = 0;
+    PropPanel::IconId settings = PropPanel::IconId::Invalid;
+    PropPanel::IconId settingsOpen = PropPanel::IconId::Invalid;
+    PropPanel::IconId search = PropPanel::IconId::Invalid;
+    PropPanel::IconId typeEntity = PropPanel::IconId::Invalid;
+    PropPanel::IconId typeSpline = PropPanel::IconId::Invalid;
+    PropPanel::IconId typePolygon = PropPanel::IconId::Invalid;
+    PropPanel::IconId layerDefault = PropPanel::IconId::Invalid;
+    PropPanel::IconId layerActive = PropPanel::IconId::Invalid;
+    PropPanel::IconId layerActiveLocked = PropPanel::IconId::Invalid;
+    PropPanel::IconId layerLocked = PropPanel::IconId::Invalid;
+    PropPanel::IconId layerAdd = PropPanel::IconId::Invalid;
+    PropPanel::IconId layerCreate = PropPanel::IconId::Invalid;
+    PropPanel::IconId selectAll = PropPanel::IconId::Invalid;
+    PropPanel::IconId selectPartial = PropPanel::IconId::Invalid;
+    PropPanel::IconId selectNone = PropPanel::IconId::Invalid;
+    PropPanel::IconId visibilityVisible = PropPanel::IconId::Invalid;
+    PropPanel::IconId visibilityHidden = PropPanel::IconId::Invalid;
+    PropPanel::IconId lockOpen = PropPanel::IconId::Invalid;
+    PropPanel::IconId lockClosed = PropPanel::IconId::Invalid;
+    PropPanel::IconId applyToMask = PropPanel::IconId::Invalid;
+    PropPanel::IconId applyToMaskDisabled = PropPanel::IconId::Invalid;
+    PropPanel::IconId exportLayer = PropPanel::IconId::Invalid;
+    PropPanel::IconId exportLayerDisabled = PropPanel::IconId::Invalid;
+    PropPanel::IconId alert = PropPanel::IconId::Invalid;
+    PropPanel::IconId close = PropPanel::IconId::Invalid;
   };
 
   enum class MenuItemId
@@ -125,18 +131,17 @@ private:
     Requested,
   };
 
-  virtual int onMenuItemClick(unsigned id) override;
-  virtual void onImguiDelayedCallback(void *user_data) override;
+  int onMenuItemClick(unsigned id) override;
+  void onImguiDelayedCallback(void *user_data) override;
 
-  ImTextureID getObjectAssetTypeIcon(RenderableEditableObject &object);
+  PropPanel::IconId getObjectAssetTypeIcon(RenderableEditableObject &object);
   void handleDragAndDropDropping(int type, int per_type_layer_index);
   bool showTypeControls(ObjectTypeTreeItem &tree_item, int type, bool type_visible, bool type_locked, bool dim_type_color,
-    int layer_count, const ImVec4 &dimmed_text_color, float action_buttons_total_width);
+    const ImVec4 &dimmed_text_color, float action_buttons_total_width);
   bool showLayerControls(LayerTreeItem &tree_item, int type, int per_type_layer_index, bool layer_visible, bool layer_locked,
-    bool dim_layer_color, int object_count, const ImVec4 &dimmed_text_color, float action_buttons_total_width,
-    ImGuiMultiSelectIO *multiSelectIo);
+    bool dim_layer_color, const ImVec4 &dimmed_text_color, float action_buttons_total_width, ImGuiMultiSelectIO *multiSelectIo);
   const char *getObjectNoun(int type, int count) const;
-  bool showObjectControls(ObjectTreeItem &tree_item, int type, int per_type_layer_index, int object_index, bool has_child);
+  bool showObjectControls(ObjectTreeItem &tree_item, int type, int per_type_layer_index, bool has_child);
   bool showObjectAssetNameControls(ObjectAssetNameTreeItem &tree_item, RenderableEditableObject &object);
 
   void fillTypeContextMenu(int type);
@@ -168,7 +173,6 @@ private:
   bool showActionButtonLock = true;
   bool showActionButtonApplyToMask = true;
   bool showActionButtonExportLayer = true;
-  dag::Vector<bool> showTypes;
 
   // Context menu.
   eastl::unique_ptr<PropPanel::IMenu> contextMenu;
@@ -178,7 +182,7 @@ private:
   eastl::unique_ptr<OutlinerModel> outlinerModel;
   eastl::unique_ptr<TreeItemInlineRenamerControl> layerRenamer;
   eastl::unique_ptr<TreeItemInlineRenamerControl> objectRenamer;
-  dag::Vector<eastl::optional<ImTextureID>> assetTypeIcons;
+  dag::Vector<eastl::optional<PropPanel::IconId>> assetTypeIcons;
   RenderableEditableObject *changeAssetRequested = nullptr;
   EnsureVisibleRequestState ensureVisibleRequested = EnsureVisibleRequestState::NoRequest;
   const bool searchInputFocusId = false; // Only the address of this member is used.

@@ -24,17 +24,16 @@ WaterRipples::WaterRipples(float world_size, int simulation_tex_size, float wate
   texBuffers[0] = dag::create_tex(NULL, texSize, texSize, TEXFMT_R16F | TEXCF_RTARGET, 1, "water_ripples_0");
   texBuffers[1] = dag::create_tex(NULL, texSize, texSize, TEXFMT_R16F | TEXCF_RTARGET, 1, "water_ripples_1");
   texBuffers[2] = dag::create_tex(NULL, texSize, texSize, TEXFMT_R16F | TEXCF_RTARGET, 1, "water_ripples_2");
-  for (auto &tex : texBuffers)
-    tex->disableSampler();
 
   // normal texture 2 times larger than solution texture
-  heightNormalTexture = dag::create_tex(NULL, texSize * 2, texSize * 2, TEXFMT_A2R10G10B10 | TEXCF_RTARGET, 1, "water_ripples_normal");
-  heightNormalTexture->disableSampler();
+  heightNormalTexture =
+    UniqueTexHolder(dag::create_tex(NULL, texSize * 2, texSize * 2, TEXFMT_A2R10G10B10 | TEXCF_RTARGET, 1, "water_ripples_normal"),
+      get_shader_variable_id("water_ripples_normal", true));
   {
     d3d::SamplerInfo smpInfo;
     smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
     smpInfo.filter_mode = d3d::FilterMode::Linear;
-    ShaderGlobal::set_sampler(::get_shader_glob_var_id("water_ripples_normal_samplerstate"), d3d::request_sampler(smpInfo));
+    ShaderGlobal::set_sampler(::get_shader_glob_var_id("water_ripples_normal_samplerstate", true), d3d::request_sampler(smpInfo));
   }
 
   dropsBuf = dag::buffers::create_one_frame_cb(MAX_DROPS_PER_BATCH, "water_ripples_drops_buf");
@@ -55,7 +54,7 @@ WaterRipples::WaterRipples(float world_size, int simulation_tex_size, float wate
   waterRipplesDropCountVarId = ::get_shader_glob_var_id("water_ripples_drop_count");
   waterRipplesOriginVarId = ::get_shader_glob_var_id("water_ripples_origin");
   waterRipplesOriginDeltaVarId = ::get_shader_glob_var_id("water_ripples_origin_delta");
-  waterRipplesDisplaceMaxVarId = ::get_shader_glob_var_id("water_ripples_displace_max");
+  waterRipplesDisplaceMaxVarId = ::get_shader_glob_var_id("water_ripples_displace_max", true);
 
   waterRipplesT1VarId = ::get_shader_glob_var_id("water_ripples_t1");
   waterRipplesT1_samplerstateVarId = ::get_shader_glob_var_id("water_ripples_t1_samplerstate");
@@ -65,7 +64,7 @@ WaterRipples::WaterRipples(float world_size, int simulation_tex_size, float wate
 
   waterRipplesFrameNoVarId = ::get_shader_glob_var_id("water_ripples_frame_no");
   waterRipplesFlowmapFrameCountVarId = ::get_shader_glob_var_id("water_ripples_flowmap_frame_count");
-  waterRipplesFlowmapVarId = ::get_shader_glob_var_id("water_ripples_flowmap");
+  waterRipplesFlowmapVarId = ::get_shader_glob_var_id("water_ripples_flowmap", true);
 
   ShaderGlobal::set_real(::get_shader_glob_var_id("water_ripples_pixel_size"), 1.0f / texSize);
   ShaderGlobal::set_real(::get_shader_glob_var_id("water_ripples_size"), worldSize);

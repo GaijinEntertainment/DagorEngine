@@ -19,7 +19,7 @@ public:
     PropertyControlBase(id, event_handler, parent, x, y, w, h), controlCaption(caption), controlMultiline(multiline)
   {}
 
-  ~EditBoxPropertyControl()
+  ~EditBoxPropertyControl() override
   {
     // Prevent ImGui from re-applying changes to another control.
     // Yes, that actually could happen in Mission Editor when editing a variable then switching to another one. In this
@@ -28,10 +28,10 @@ public:
     preventReapplyingEditAtFocusLoss();
   }
 
-  virtual unsigned getTypeMaskForSet() const override { return CONTROL_DATA_TYPE_STRING | CONTROL_CAPTION | CONTROL_DATA_TYPE_BOOL; }
-  virtual unsigned getTypeMaskForGet() const override { return CONTROL_DATA_TYPE_STRING; }
+  unsigned getTypeMaskForSet() const override { return CONTROL_DATA_TYPE_STRING | CONTROL_CAPTION | CONTROL_DATA_TYPE_BOOL; }
+  unsigned getTypeMaskForGet() const override { return CONTROL_DATA_TYPE_STRING; }
 
-  virtual void setTextValue(const char value[]) override
+  void setTextValue(const char value[]) override
   {
     if (strcmp(controlValue, value) == 0)
       return;
@@ -44,20 +44,20 @@ public:
     preventReapplyingEditAtFocusLoss();
   }
 
-  virtual void setCaptionValue(const char value[]) override { controlCaption = value; }
+  void setCaptionValue(const char value[]) override { controlCaption = value; }
 
-  virtual void setBoolValue(bool value) override { needColorIndicate = value; }
+  void setBoolValue(bool value) override { needColorIndicate = value; }
 
-  virtual int getTextValue(char *buffer, int buflen) const override
+  int getTextValue(char *buffer, int buflen) const override
   {
     return ImguiHelper::getTextValueForString(controlValue, buffer, buflen);
   }
 
-  virtual void reset() override { setTextValue(""); }
+  void reset() override { setTextValue(""); }
 
-  virtual void setEnabled(bool enabled) override { controlEnabled = enabled; }
+  void setEnabled(bool enabled) override { controlEnabled = enabled; }
 
-  virtual void updateImgui() override
+  void updateImgui() override
   {
     ScopedImguiBeginDisabled scopedDisabled(!controlEnabled);
 
@@ -80,6 +80,8 @@ public:
         inputState->ReloadUserBufAndMoveToEnd();
     }
 
+    // NOTE: if you add an option to this that will require the changes to be confirmed (for example with the Enter key)
+    // and the changes also will be saved on focus loss then you will have to use IImmediateFocusLossHandler.
     bool textChanged;
     if (controlMultiline)
     {

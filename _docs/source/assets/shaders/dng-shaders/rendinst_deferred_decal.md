@@ -1,4 +1,4 @@
-# Shader: rendinst_deferred_decal
+# `rendinst_deferred_decal`
 
 ## Overview
 

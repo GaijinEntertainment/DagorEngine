@@ -1,3 +1,4 @@
+options indenting = 2
 options strict_smart_pointers = false
 require DagorFiles
 require ecs
@@ -117,7 +118,7 @@ def gen_cpp_event(cppEvents : EventsData; output, file_name : string; exclude_ev
   for eventName, eventData in keys(cppEvents), values(cppEvents)
     if exclude_events |> key_exists(eventName)
       continue
-    process |> emplace <| [[auto eventName, eventData.mod, clone_to_move(eventData.st)]]
+    process |> emplace <| (eventName, eventData.mod, clone_to_move(eventData.st))
   process |> sort <| $(a, b)
     return a.fullName < b.fullName
 
@@ -210,7 +211,7 @@ def gen_cpp_event(cppEvents : EventsData; output, file_name : string; exclude_ev
         unsafe(fio::exit(1))
     else
       print("write {hFile}")
-      cppHeader |> df_puts(cppHeaderCont)
+      cppHeader |> df_write(cppHeaderCont)
 
   df_open(cppFile, check ? DF_READ : DF_CREATE | DF_WRITE) <| $(cpp)
     if cpp == null
@@ -224,43 +225,43 @@ def gen_cpp_event(cppEvents : EventsData; output, file_name : string; exclude_ev
         unsafe(fio::exit(1))
     else
       print("write {cppFile}")
-      cpp |> df_puts(cppCont)
+      cpp |> df_write(cppCont)
 
 
 def isSqIntType(typ)
-  return (typ.baseType == Type tInt || typ.baseType == Type tInt8 || typ.baseType == Type tInt16
-       || typ.baseType == Type tInt64 || typ.baseType == Type tUInt || typ.baseType == Type tUInt8
-       || typ.baseType == Type tUInt16 || typ.baseType == Type tUInt64
-       || typ.baseType == Type tEnumeration || typ.baseType == Type tEnumeration8 || typ.baseType == Type tEnumeration16
-       || typ.baseType == Type tVariant || typ.baseType == Type tBitfield)
+  return (typ.baseType == Type.tInt || typ.baseType == Type.tInt8 || typ.baseType == Type.tInt16
+       || typ.baseType == Type.tInt64 || typ.baseType == Type.tUInt || typ.baseType == Type.tUInt8
+       || typ.baseType == Type.tUInt16 || typ.baseType == Type.tUInt64
+       || typ.baseType == Type.tEnumeration || typ.baseType == Type.tEnumeration8 || typ.baseType == Type.tEnumeration16
+       || typ.baseType == Type.tVariant || typ.baseType == Type.tBitfield)
 
 def get_sq_default_value(typ : smart_ptr<TypeDecl>; stub_name = "")
   if typ == null
     return "null"
 
-  if typ.baseType == Type tBool
+  if typ.baseType == Type.tBool
     return "false"
-  if typ.baseType == Type tFloat || typ.baseType == Type tDouble
+  if typ.baseType == Type.tFloat || typ.baseType == Type.tDouble
     return "0.0"
-  if typ.baseType == Type tString
+  if typ.baseType == Type.tString
     return "\"\""
   if isSqIntType(typ)
     return "0"
-  if typ.baseType == Type tHandle
+  if typ.baseType == Type.tHandle
     if typ.annotation.cppName == " ::ecs::EntityId"
       return "INVALID_ENTITY_ID"
 
-  if typ.baseType == Type tStructure
+  if typ.baseType == Type.tStructure
     if !empty(stub_name)
       return stub_name
 
     error("unsupported type {describe(typ)}, add stub_res_type to quirrel_bind annotation with result type, stub_res_type=\"\\\{\\\}\" or stub_res_type=\"[]\" for example")
     panic("unsupported type")
 
-  if typ.baseType == Type tTable
+  if typ.baseType == Type.tTable
     return "\{\}"
 
-  if typ.baseType == Type tArray
+  if typ.baseType == Type.tArray
     return "[]"
 
   return "null"
@@ -269,22 +270,22 @@ def get_sq_type(typ : smart_ptr<TypeDecl>)
   if typ == null
     return "null"
 
-  if typ.baseType == Type tBool
+  if typ.baseType == Type.tBool
     return "bool"
-  if typ.baseType == Type tFloat || typ.baseType == Type tDouble
+  if typ.baseType == Type.tFloat || typ.baseType == Type.tDouble
     return "float"
-  if typ.baseType == Type tString
+  if typ.baseType == Type.tString
     return "string"
   if isSqIntType(typ)
     return "integer"
-  if typ.baseType == Type tHandle
+  if typ.baseType == Type.tHandle
     if typ.annotation.cppName == " ::ecs::EntityId"
       return "integer"
 
-  if typ.baseType == Type tTable
+  if typ.baseType == Type.tTable
     return "table"
 
-  if typ.baseType == Type tArray
+  if typ.baseType == Type.tArray
     return "array"
 
   return "instance" // float3, ecs::Object, etc
@@ -296,9 +297,9 @@ def get_func_stub(name : string; var fn : smart_ptr<Function>)
   var i = n
   while --i >= 0
     assume arg = fn.arguments[i]
-    if arg._type.baseType != Type tPointer
+    if arg._type.baseType != Type.tPointer
       break
-    if arg._type.firstType.baseType == Type tHandle && arg._type.firstType.annotation._module.name == "quirrel" && arg._type.firstType.annotation.name == "SQVM"
+    if arg._type.firstType.baseType == Type.tHandle && arg._type.firstType.annotation._module.name == "quirrel" && arg._type.firstType.annotation.name == "SQVM"
       continue
     optionalArgsNum += 1
 
@@ -315,7 +316,7 @@ def get_func_stub(name : string; var fn : smart_ptr<Function>)
 
     var first = true
     for arg, idx in fn.arguments, count()
-      if (arg._type.baseType == Type tPointer && arg._type.firstType.baseType == Type tHandle
+      if (arg._type.baseType == Type.tPointer && arg._type.firstType.baseType == Type.tHandle
        && arg._type.firstType.annotation._module.name == "quirrel" && arg._type.firstType.annotation.name == "SQVM")
         continue
       if !first
@@ -328,7 +329,7 @@ def get_func_stub(name : string; var fn : smart_ptr<Function>)
     str |> write(")")
     str |> write("\{")
     for arg in fn.arguments
-      if (arg._type.baseType == Type tPointer && arg._type.firstType.baseType == Type tHandle
+      if (arg._type.baseType == Type.tPointer && arg._type.firstType.baseType == Type.tHandle
        && arg._type.firstType.annotation._module.name == "quirrel" && arg._type.firstType.annotation.name == "SQVM")
         continue
       let sqType = get_sq_type(arg._type)
@@ -433,7 +434,7 @@ def module_name(mod : rtti::Module?)
 
 
 def get_sq_enum_stub(enm : smart_ptr<Enumeration>; var res : EnumsData)
-  var data <- [{ for it in enm.list; "{it.name} = {describe(it.value)}"}]
+  var data <- [ for it in enm.list; "{it.name} = {describe(it.value)}"]
   let longName = "{module_name(enm._module)}{enm.name}"
   res[longName] <- data
 
@@ -452,7 +453,7 @@ def gen_for_module(path : string; verbose : bool; common_paths : array<string>; 
   var cp = CodeOfPolicies()
   cp.ignore_shared_modules = true
   cp.no_optimizations = true
-  var mg = new [[ModuleGroup()]]
+  var mg = new ModuleGroup(uninitialized)
   compile_file(path, access, mg, cp) <| $(ok, program, error)
     if !ok
       print("[E] Failed to compile '{path} file\n{error}")
@@ -498,7 +499,7 @@ def gen_for_module(path : string; verbose : bool; common_paths : array<string>; 
               if ann != null
                 if ann.arguments |> get_bool_argument("with_scheme")
                   if ann.arguments |> get_bool_argument("cpp_gen", true)
-                    emplace((isCommon ? commonCppEvents : cppEvents), longName, [[EventData mod="{mod.name}", st := st]])
+                    emplace((isCommon ? commonCppEvents : cppEvents), longName, EventData(mod = "{mod.name}", st := st))
                   sqStubsList.insert(longName, get_sq_stub(st, /*native_ctor*/true))
 
           mod |> for_each_enumeration <| $(enm)
@@ -529,7 +530,7 @@ def bind_quirrel(dir : string; verbose : bool; var quirrelBindings : table<strin
     var cp = CodeOfPolicies()
     cp.ignore_shared_modules = true
     cp.no_optimizations = true
-    var mg = new [[ModuleGroup()]]
+    var mg = new ModuleGroup(uninitialized)
     var fileNameParts <- path |> replace("\\", "/") |> split("/")
     compile_file(path, access, mg, cp) <| $(ok, program, error)
       if !ok
@@ -557,7 +558,6 @@ def bind_quirrel(dir : string; verbose : bool; var quirrelBindings : table<strin
       delete mg
     delete fileNameParts
 
-
 def get_bool_arg(args : array<string>; name : string; def_val : bool) : bool
   let idx = find_index(args, name)
   return idx >= 0 && idx + 1 < length(args) ? int(args[idx + 1]) != 0 : def_val
@@ -568,6 +568,7 @@ def get_str_arg(args : array<string>; name : string; def_val : string) : string
 
 [export]
 def main()
+  set_is_in_aot(true)
 
   print("Legend:")
   print(" + <event name>")
@@ -588,8 +589,8 @@ def main()
   var cppEventsData : EventsData
   var commonCppEvents : EventsData
 
-  var sqStubsData <- {{ "$::sendNetEvent" => "sendNetEvent = @(_eid, eventInstance, connectids = null) assert(type(eventInstance)==\"instance\" && [\"null\",\"array\"].contains(type(connectids)))";
-                        "$::broadcastNetEvent" => "broadcastNetEvent = @(eventInstance, connectids = null) assert(type(eventInstance)==\"instance\" && [\"null\",\"array\"].contains(type(connectids)))" }}
+  var sqStubsData <- { "$::sendNetEvent" => "sendNetEvent = @(_eid, eventInstance, connectids = null) assert(type(eventInstance)==\"instance\" && [\"null\",\"array\"].contains(type(connectids)))",
+                        "$::broadcastNetEvent" => "broadcastNetEvent = @(eventInstance, connectids = null) assert(type(eventInstance)==\"instance\" && [\"null\",\"array\"].contains(type(connectids)))" }
   var quirrelBindings : table<string; table<string; string>>
   var sqEnumsData : EnumsData
   var cppEventsInclude : array<string>
@@ -611,7 +612,7 @@ def main()
     if length(sqStubsData) > 0
       var sqStubsList : array<tuple<string; string>>
       for k, v in keys(sqStubsData), values(sqStubsData)
-        sqStubsList |> emplace <| [[auto k, v]]
+        sqStubsList |> emplace <| (k, v)
       sqStubsList |> sort <| $(a, b)
         return a._0 < b._0
 
@@ -646,13 +647,13 @@ def main()
             unsafe(fio::exit(1))
         else
           print("write {gameScripts}/dasevents")
-          sqStabsFile |> df_puts(daseventsCont)
+          sqStabsFile |> df_write(daseventsCont)
 
     if length(quirrelBindings) > 0
       for module_name, binds in keys(quirrelBindings), values(quirrelBindings)
         var sqStubsList : array<tuple<string; string>>
         for k, v in keys(binds), values(binds)
-          sqStubsList |> emplace <| [[auto k, v]]
+          sqStubsList |> emplace <| (k, v)
         sqStubsList |> sort <| $(a, b)
           return a._0 < b._0
 
@@ -686,12 +687,12 @@ def main()
               unsafe(fio::exit(1))
           else
             print("write {gameScripts}/{module_name}")
-            dasbindFile |> df_puts(daseventsCont)
+            dasbindFile |> df_write(daseventsCont)
 
     if length(sqEnumsData) > 0
       var sqEnums : array<tuple<string; array<string>>>
       for k, v in keys(sqEnumsData), values(sqEnumsData)
-        sqEnums |> emplace <| [[auto k, v]]
+        sqEnums |> emplace <|  (k, v)
       sqEnums |> sort <| $(a, b)
         return a._0 < b._0
 
@@ -740,6 +741,6 @@ def main()
             unsafe(fio::exit(1))
         else
           print("write {gameGlobals}/dasenums.nut")
-          sqStabs |> df_puts(dasenumsCont)
+          sqStabs |> df_write(dasenumsCont)
 
   gen_cpp_event(cppEventsData, cppFolder, cppFile, commonCppEvents, cppEventsInclude, verbose, check)

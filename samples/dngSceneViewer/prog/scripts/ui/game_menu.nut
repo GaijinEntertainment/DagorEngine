@@ -1,8 +1,8 @@
 from "%scripts/ui/ui_library.nut" import *
 
-let { showSettingsMenu } = require("settings/main_settings.nut")
+let { showSettingsMenu } = require("%scripts/ui/settings/main_settings.nut")
 let { exit_game } = require("app")
-let { textBtn } = require("widgets/simpleComponents.nut")
+let { textBtn } = require("%scripts/ui/widgets/simpleComponents.nut")
 
 let showGameMenu = mkWatched(persist, "showGameMenu", false)
 

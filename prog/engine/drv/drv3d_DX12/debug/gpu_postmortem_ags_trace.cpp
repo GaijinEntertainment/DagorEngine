@@ -8,7 +8,7 @@ namespace drv3d_dx12::debug::gpu_postmortem::ags
 {
 AgsTrace::~AgsTrace() {}
 
-void AgsTrace::beginEvent(ID3D12GraphicsCommandList *command_list, eastl::span<const char>, const eastl::string &full_path)
+void AgsTrace::beginEvent(D3DGraphicsCommandList *command_list, eastl::span<const char>, const eastl::string &full_path)
 {
   if (!deviceInitialized)
     return;
@@ -19,7 +19,7 @@ void AgsTrace::beginEvent(ID3D12GraphicsCommandList *command_list, eastl::span<c
   logwarn("DX12: Failed to push marker to AGS (%d)", agsResult);
 }
 
-void AgsTrace::endEvent(ID3D12GraphicsCommandList *command_list, const eastl::string &)
+void AgsTrace::endEvent(D3DGraphicsCommandList *command_list, const eastl::string &)
 {
   if (!deviceInitialized)
     return;
@@ -35,9 +35,10 @@ void AgsTrace::onDeviceRemoved(D3DDevice *, HRESULT, call_stack::Reporter &)
   logdbg("DX12: Use Radeon GPU Detective to gather information...");
 }
 
-bool AgsTrace::tryCreateDevice(DXGIAdapter *adapter, UUID uuid, D3D_FEATURE_LEVEL minimum_feature_level, void **ptr)
+bool AgsTrace::tryCreateDevice(DXGIAdapter *adapter, UUID uuid, D3D_FEATURE_LEVEL minimum_feature_level, void **ptr,
+  HLSLVendorExtensions &extensions)
 {
-  deviceInitialized = debug::ags::create_device_with_user_markers(agsContext, adapter, uuid, minimum_feature_level, ptr);
+  deviceInitialized = debug::ags::create_device_with_user_markers(agsContext, adapter, uuid, minimum_feature_level, ptr, extensions);
   return deviceInitialized;
 }
 } // namespace drv3d_dx12::debug::gpu_postmortem::ags

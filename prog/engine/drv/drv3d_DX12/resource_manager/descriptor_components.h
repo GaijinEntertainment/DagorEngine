@@ -17,7 +17,7 @@ class TextureDescriptorProvider : public ImageObjectProvider
 {
   using BaseType = ImageObjectProvider;
 
-  DescriptorHeap<ShaderResouceViewStagingPolicy> srvHeap;
+  DescriptorHeap<ShaderResourceViewStagingPolicy> srvHeap;
   DescriptorHeap<RenderTargetViewPolicy> rtvHeap;
   DescriptorHeap<DepthStencilViewPolicy> dsvHeap;
 
@@ -94,7 +94,7 @@ class BufferDescriptorProvider : public TextureDescriptorProvider
 {
   using BaseType = TextureDescriptorProvider;
 
-  ContainerMutexWrapper<DescriptorHeap<ShaderResouceViewStagingPolicy>, OSSpinlock> srvHeap;
+  ContainerMutexWrapper<DescriptorHeap<ShaderResourceViewStagingPolicy>, OSSpinlock> srvHeap;
 
 protected:
   BufferDescriptorProvider() = default;

@@ -3,7 +3,7 @@ from "%darg/ui_imports.nut" import *
 let pic = Picture("ui/ca_cup1.png")
 
 let mkProgress = @(image) {
-  size = [hdpx(100),hdpx(100)]
+  size = hdpx(100)
   rendObj = ROBJ_PROGRESS_CIRCULAR
   image
   bgColor = Color(64,64,255)

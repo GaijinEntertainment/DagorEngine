@@ -11,20 +11,20 @@ let style = {
     return @() {
       behavior = Behaviors.Button
       rendObj = ROBJ_SOLID
-      color = (stateFlags.value & S_HOVER) ? Color(68, 80, 87) : Color(20, 30, 36)
-      size = [flex(), SIZE_TO_CONTENT]
+      color = (stateFlags.get() & S_HOVER) ? Color(68, 80, 87) : Color(20, 30, 36)
+      size = FLEX_H
       group = group
       watch = stateFlags
 
       onClick = action
-      onElemState = @(sf) stateFlags.update(sf)
+      onElemState = @(sf) stateFlags.set(sf)
 
       children = {
         rendObj = ROBJ_TEXT
         margin = sh(0.5)
         text = text
         group = group
-        color = (stateFlags.value & S_HOVER) ? Color(255,255,255) : Color(120,150,160)
+        color = (stateFlags.get() & S_HOVER) ? Color(255,255,255) : Color(120,150,160)
       }
     }
   }

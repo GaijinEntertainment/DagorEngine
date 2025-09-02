@@ -1,0 +1,5 @@
+catch2 v3.8.0
+Unit test framework
+https://github.com/catchorg/Catch2
+https://github.com/catchorg/Catch2/releases/tag/v3.8.0
+https://github.com/catchorg/Catch2/archive/refs/tags/v3.8.0.zip

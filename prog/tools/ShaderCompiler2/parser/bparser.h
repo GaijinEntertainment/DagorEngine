@@ -6,7 +6,7 @@
 #include <memory/dag_mem.h>
 #include "blexpars.h"
 
-class ParserFileInput : public ParserInputStream
+class InputFile : public InputStream
 {
 public:
   struct IncFile
@@ -36,30 +36,29 @@ public:
   {
     int file, line, col, pos;
   };
-  BaseLexicalAnalyzer *parser;
+  BaseLexicalAnalyzer *lexer;
   Tab<IncFile> incfile;
   Tab<FilePos> incstk;
   int curfile;
   unsigned curpos;
   bool at_eof, _keep_all_text;
 
-  ParserFileInput(BaseLexicalAnalyzer *p = NULL);
-  virtual ~ParserFileInput();
-  bool is_real_eof();
-  bool eof();
-  char get();
-  void stream_set(BaseLexicalAnalyzer &);
-  const char *get_filename(int);
-  virtual int find_incfile(const char *filename);
-  virtual bool include(int);
-  virtual bool include(const char *text, unsigned textsize, const char *fn = NULL);
-  virtual bool include_alefile(const char *filename);
-  virtual int get_include_file_index(const char *fn);
-  virtual void err_nomem();
-  virtual void err_fileopen(const char *fn);
-  virtual void err_fileread(const char *fn);
+  InputFile(BaseLexicalAnalyzer *l = nullptr);
+  bool is_real_eof() override;
+  bool eof() override;
+  char get() override;
+  void stream_set(BaseLexicalAnalyzer &) override;
+  const char *get_filename(int) override;
+  int find_incfile(const char *filename);
+  bool include(int);
+  bool include(const char *text, unsigned textsize, const char *fn = NULL);
+  bool include_alefile(const char *filename);
+  int get_include_file_index(const char *fn);
+  void err_nomem();
+  void err_fileopen(const char *fn);
+  void err_fileread(const char *fn);
 };
-DAG_DECLARE_RELOCATABLE(ParserFileInput::IncFile);
+DAG_DECLARE_RELOCATABLE(InputFile::IncFile);
 
 enum
 {
@@ -67,4 +66,5 @@ enum
   DIAG_ERROR,
   DIAG_WARNING,
   DIAG_USER,
+  DIAG_INFO,
 };

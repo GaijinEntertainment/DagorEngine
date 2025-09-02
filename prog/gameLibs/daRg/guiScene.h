@@ -63,6 +63,35 @@ struct VrPointer
 };
 
 
+class Screen
+{
+public:
+  ElementTree etree;
+  RenderList renderList;
+  InputStack inputStack;
+  InputStack cursorStack;
+  InputStack eventHandlersStack;
+  Panel *panel = nullptr;
+
+  bool isMainScreen = false;
+
+  ElementTree *getElementTree() { return &etree; }
+  InputStack &getInputStack() { return inputStack; }
+
+  void rebuildStacks();
+
+  Screen(const Screen &) = delete;
+  Screen &operator=(const Screen &) = delete;
+
+protected:
+  friend class GuiScene;
+
+  Screen(GuiScene *gui_scene);
+  ~Screen() { clear(); }
+  void clear();
+};
+
+
 class GuiScene final : public IGuiScene, public IEventList, public IWndProcComponent
 {
 public:
@@ -108,7 +137,7 @@ public:
   virtual int onJoystickBtnEvent(HumanInput::IGenJoystick *joy, InputEvent event, int key_idx, int dev_n,
     const HumanInput::ButtonBits &buttons, int prev_result = 0) override;
   // returns a combination of BehaviorResult flags
-  virtual int onVrInputEvent(InputEvent event, int hand, int prev_result = 0) override;
+  virtual int onVrInputEvent(InputEvent event, int hand, int button_id, int prev_result = 0) override;
 
   virtual void setVrStickScroll(int hand, const Point2 &scroll) override;
 
@@ -119,6 +148,8 @@ public:
 
   virtual void queueScriptHandler(BaseScriptHandler *h) override;
   virtual void callScriptHandlers(bool is_shutdown = false) override final;
+
+  virtual void forceFrpUpdateDeferred() override final;
 
   virtual void setKbFocus(Element *elem) override;
 
@@ -146,7 +177,6 @@ public:
   virtual StdGuiRender::GuiContext *getGuiContext() const override { return guiContext; }
 
   const Hotkeys &getHotkeys() const { return hotkeys; }
-  ElementTree *getElementTree() { return &etree; }
   virtual IEventList &getEvents() override { return *this; }
 
   void errorMessage(const char *msg);
@@ -172,8 +202,6 @@ public:
   void moveMouseCursorToElem(Element *elem, bool use_transform);
   void moveMouseCursorToElemBox(Element *elem, const BBox2 &bbox, bool jump);
 
-  InputStack &getInputStack() { return inputStack; }
-
   void updateHover();
 
   virtual bool sendEvent(const char *id, const Sqrat::Object &data) override;
@@ -190,6 +218,7 @@ public:
   void removeCursor(Cursor *c);
 
   void onPictureLoaded(const Picture *pic);
+  virtual void setPictureDiscardAllowed(bool discardAllowed) override { pictureDiscardAllowed = discardAllowed; }
 
   static HumanInput::IGenJoystick *getJoystick();
 
@@ -208,7 +237,7 @@ public:
   IPoint2 getDeviceScreenSize() const { return deviceScreenSize; }
 
   void renderPanelTo(int panel_idx, BaseTexture *dst) override;
-  void updateSpatialElements(const VrSceneData &vr_scene) override;
+  void updateSpatialElements(const SpatialSceneData &spatial_scene) override;
   void refreshVrCursorProjections() override;
   bool hasAnyPanels() override;
   bool worldToPanelPixels(int panel_idx, const Point3 &world_target_pos, const Point3 &world_cam_pos, Point2 &out_panel_pos) override;
@@ -229,6 +258,16 @@ public:
   bool isAnyPanelTouchedWithHand(int hand) const override { return spatialInteractionState.isHandTouchingPanel[hand]; }
 
   void spawnDebugRenderBox(const BBox2 &box, E3DCOLOR fillColor, E3DCOLOR borederColor, float life_time);
+
+  Screen *createGuiScreen(int id);
+  Screen *getGuiScreen(int id) const;
+  int getGuiScreenId(Screen *screen) const;
+  bool destroyGuiScreen(int id);
+  bool destroyGuiScreen(Screen *screen);
+  bool setFocusedScreenById(int id);
+  bool setFocusedScreen(Screen *screen);
+  Screen *getFocusedScreen() const { return focusedScreen; }
+  int getFocusedScreenId() const;
 
 private:
   void blurWorld();
@@ -304,6 +343,7 @@ private:
   static SQInteger remove_panel(HSQUIRRELVM vm);
   static SQInteger mark_panel_dirty(HSQUIRRELVM vm);
   static SQInteger force_cursor_active(HSQUIRRELVM vm);
+  static SQInteger get_comp_aabb_by_key(HSQUIRRELVM vm);
 
   sqfrp::ScriptValueObservable *getCursorPresentObservable() { return cursorPresent.get(); }
   sqfrp::ScriptValueObservable *getCursorOverScrollObservable() { return cursorOverStickScroll.get(); }
@@ -355,11 +395,13 @@ private:
   StdGuiRender::GuiContext *guiContext = nullptr;
   bool ownGuiContext = false;
 
-  ElementTree etree;
-  RenderList renderList;
-  InputStack inputStack;
-  InputStack cursorStack;
-  InputStack eventHandlersStack;
+  struct ScreenDeleter
+  {
+    void operator()(Screen *s) const { delete s; }
+  };
+
+  eastl::vector_map<int, eastl::unique_ptr<Screen, ScreenDeleter>> screens;
+  Screen *focusedScreen = nullptr;
 
   GamepadCursor gamepadCursor;
 
@@ -421,8 +463,6 @@ private:
 
   IPoint2 deviceScreenSize = IPoint2(0, 0);
 
-  friend class GamepadCursor;
-
   enum class UpdateHoverRequestState
   {
     None,
@@ -434,13 +474,13 @@ private:
 
   eastl::vector_map<int, eastl::unique_ptr<PanelData>> panels;
 
-  static constexpr int NUM_VR_POINTERS = 2;
+  static constexpr int NUM_VR_POINTERS = SpatialSceneData::AimOrigin::Total;
   struct SpatialInteractionState
   {
     eastl::optional<float> hitDistances[NUM_VR_POINTERS];
-    int closestHitPanelIdxs[NUM_VR_POINTERS] = {-1, -1};
-    Point2 hitPos[NUM_VR_POINTERS] = {{-1.f, -1.f}, {-1.f, -1.f}};
-    bool isHandTouchingPanel[NUM_VR_POINTERS] = {false, false};
+    int closestHitPanelIdxs[NUM_VR_POINTERS] = {-1, -1, -1};
+    Point2 hitPos[NUM_VR_POINTERS] = {{-1.f, -1.f}, {-1.f, -1.f}, {-1.f, -1.f}};
+    bool isHandTouchingPanel[NUM_VR_POINTERS] = {false, false, false};
 
     bool wasVrSurfaceHit(int hand) const { return hitDistances[hand].has_value() && closestHitPanelIdxs[hand] < 0; }
     bool wasPanelHit(int hand) const { return hitDistances[hand].has_value() && closestHitPanelIdxs[hand] >= 0; }
@@ -456,7 +496,7 @@ private:
     }
   };
   SpatialInteractionState spatialInteractionState;
-  void updateSpatialInteractionState(const VrSceneData &vr_scene);
+  void updateSpatialInteractionState(const SpatialSceneData &vr_scene);
 
   VrPointer vrPointers[NUM_VR_POINTERS];
   int vrActiveHand = 1; //< temporary for mapping to mouse
@@ -477,6 +517,8 @@ private:
 
   eastl::vector<eastl::pair<eastl::string, Json::Value>> postedEventsQueue, workingPostedEventsQueue;
   WinCritSec postedEventsQueueCs;
+
+  bool pictureDiscardAllowed = true;
 };
 
 } // namespace darg

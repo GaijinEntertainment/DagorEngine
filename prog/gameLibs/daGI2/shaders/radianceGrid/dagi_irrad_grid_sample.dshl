@@ -360,6 +360,9 @@ macro DAGI_IRRADIANCE_GRID_SAMPLE_USE(code)
         return false;
       half3 ambientBase = dagi_irrad_grid_diffuse_undirectional_cascade_unsafe(cascade, coordF);
       float3 nextLt = dagi_irrad_grid_abs_coord_lt(cascade + 1u);
+      FLATTEN
+      if (cascade + 1u < dagi_irrad_grid_get_clip_count())
+        ambient = ambientBase;
       coordF = coordF*0.5 - nextLt;
       BRANCH
       if (all(and(coordF > 0, coordF < float3(dagi_irrad_grid_get_clip_size().xxy))) && vignette > 0)

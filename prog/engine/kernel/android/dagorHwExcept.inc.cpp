@@ -89,6 +89,10 @@ class AndroidCrashHandler
   {
     g_debug_is_in_fatal = true;
 
+    char detailsBuf[512];
+    signal_get_details(detailsBuf, sizeof(detailsBuf), info);
+    debug("signal %u (SIG%s - %s), details: %s", signal, sys_signame[info->si_signo], sys_siglist[info->si_signo], detailsBuf);
+
     // avoid nested loop if follow up code generates another signal for some reason
     if (alreadyTriggered)
       return;
@@ -101,9 +105,6 @@ class AndroidCrashHandler
     // instead of reporting message box to user,
     // because it somehow does not work good on android
     {
-      char detailsBuf[512];
-      signal_get_details(detailsBuf, sizeof(detailsBuf), info);
-
       stackhelp::CallStackCaptureStore<32> stack;
       stackhelp::ext::CallStackCaptureStore extStack;
       stack.capture();

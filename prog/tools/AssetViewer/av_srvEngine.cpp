@@ -12,13 +12,13 @@
 #include <de3_dynRenderService.h>
 #include <de3_lightService.h>
 #include <de3_skiesService.h>
-#include <de3_dxpFactory.h>
 #include <de3_editorEvents.h>
 #include <de3_splineGenSrv.h>
 #include <assets/asset.h>
 #include <assets/assetFolder.h>
 #include <assets/assetMgr.h>
 #include <assets/assetMsgPipe.h>
+#include <assets/texAssetBuilderTextureFactory.h>
 #include <assetsGui/av_selObjDlg.h>
 #include <EditorCore/ec_imguiInitialization.h>
 #include <EditorCore/ec_interface.h>
@@ -30,7 +30,6 @@
 #include <drv/3d/dag_resetDevice.h>
 #include <3d/dag_texPackMgr2.h>
 #include <gui/dag_stdGuiRender.h>
-// #include <util/dag_texMetaData.h>
 #include <util/dag_oaHashNameMap.h>
 #include <startup/dag_globalSettings.h>
 #include <osApiWrappers/dag_direct.h>
@@ -59,13 +58,13 @@ static Tab<FatalHandlerCtx> fhCtx(inimem);
 static bool fatalStatus = false, fatalQuiet = false;
 
 
-static bool de3_gen_fatal_handler(const char *msg, const char *call_stack, const char *file, int line)
+static bool de3_gen_fatal_handler(const char *msg, [[maybe_unused]] const char *call_stack, const char *file, int line)
 {
   fatalStatus = true;
   if (!fatalQuiet)
   {
     DAEDITOR3.conError("FATAL: %s,%d:\n    %s", file, line, msg);
-    DAEDITOR3.conShow(true);
+    EDITORCORE->getConsole().showConsole();
   }
   return false;
 }
@@ -87,13 +86,13 @@ static int logerr_to_console_callback(int lev_tag, const char *fmt, const void *
           (!logerr_to_console_re_exclude || !logerr_to_console_re_exclude->test(msg)))
       {
         DAEDITOR3.getCon().addMessageFmt(ILogWriter::ERROR, msg, nullptr, 0);
-        DAEDITOR3.conShow(true);
+        EDITORCORE->getConsole().showConsole();
       }
     }
     else
     {
       DAEDITOR3.getCon().addMessageFmt(ILogWriter::ERROR, fmt, (const DagorSafeArg *)arg, anum);
-      DAEDITOR3.conShow(true);
+      EDITORCORE->getConsole().showConsole();
     }
     entrance_guard = false;
     return 1;
@@ -107,9 +106,9 @@ public:
   DaEditor3Engine() { daEditor3InterfaceVer = DAEDITOR3_VERSION; }
   ~DaEditor3Engine() {}
 
-  virtual const char *getBuildString() { return "1.0"; }
+  const char *getBuildString() override { return "1.0"; }
 
-  virtual bool registerService(IEditorService *srv)
+  bool registerService(IEditorService *srv) override
   {
     if (!disabledSrvNames.nameCount())
     {
@@ -141,7 +140,7 @@ public:
     return true;
   }
 
-  virtual bool unregisterService(IEditorService *srv)
+  bool unregisterService(IEditorService *srv) override
   {
     for (int i = srvPlugins.size() - 1; i >= 0; i--)
       if (srvPlugins[i] == srv)
@@ -156,7 +155,15 @@ public:
     return false;
   }
 
-  virtual bool registerEntityMgr(IObjEntityMgr *oemgr)
+  IEditorService *findService(const char *internalName) const override
+  {
+    for (int i = 0; i < srvPlugins.size(); i++)
+      if (strcmp(srvPlugins[i]->getServiceName(), internalName) == 0)
+        return srvPlugins[i];
+    return nullptr;
+  }
+
+  bool registerEntityMgr(IObjEntityMgr *oemgr) override
   {
     for (int i = entityMgrs.size() - 1; i >= 0; i--)
       if (entityMgrs[i] == oemgr)
@@ -168,7 +175,7 @@ public:
     return true;
   }
 
-  virtual bool unregisterEntityMgr(IObjEntityMgr *oemgr)
+  bool unregisterEntityMgr(IObjEntityMgr *oemgr) override
   {
     for (int i = entityMgrs.size() - 1; i >= 0; i--)
       if (entityMgrs[i] == oemgr)
@@ -184,39 +191,37 @@ public:
     return false;
   }
 
-  virtual int getAssetTypeId(const char *entity_name) const { return get_app().getAssetMgr().getAssetTypeId(entity_name); }
+  int getAssetTypeId(const char *entity_name) const override { return get_app().getAssetMgr().getAssetTypeId(entity_name); }
 
-  virtual const char *getAssetTypeName(int cls) const { return get_app().getAssetMgr().getAssetTypeName(cls); }
+  const char *getAssetTypeName(int cls) const override { return get_app().getAssetMgr().getAssetTypeName(cls); }
 
-  virtual IObjEntity *createEntity(const DagorAsset &asset, bool virtual_ent) { return IObjEntity::create(asset, virtual_ent); }
+  IObjEntity *createEntity(const DagorAsset &asset, bool virtual_ent) override { return IObjEntity::create(asset, virtual_ent); }
 
-  virtual IObjEntity *createInvalidEntity(bool virtual_ent)
+  IObjEntity *createInvalidEntity(bool virtual_ent) override
   {
     const DagorAsset *null = NULL;
     return invEntMgr ? invEntMgr->createEntity(*null, virtual_ent) : NULL;
   }
 
-  virtual IObjEntity *cloneEntity(IObjEntity *origin)
+  IObjEntity *cloneEntity(IObjEntity *origin) override
   {
     if (origin->getAssetTypeId() == -1)
       return invEntMgr ? invEntMgr->cloneEntity(origin) : NULL;
     return IObjEntity::clone(origin);
   }
 
-  virtual int registerEntitySubTypeId(const char *subtype_str) { return IObjEntity::registerSubTypeId(subtype_str); }
+  int registerEntitySubTypeId(const char *subtype_str) override { return IObjEntity::registerSubTypeId(subtype_str); }
 
-  virtual unsigned getEntitySubTypeMask(int mask_type) { return IObjEntityFilter::getSubTypeMask(mask_type); }
+  unsigned getEntitySubTypeMask(int mask_type) override { return IObjEntityFilter::getSubTypeMask(mask_type); }
 
-  virtual void setEntitySubTypeMask(int mask_type, unsigned value) { IObjEntityFilter::setSubTypeMask(mask_type, value); }
-  virtual uint64_t getEntityLayerHiddenMask() { return 1ull << 63; }
-  virtual void setEntityLayerHiddenMask(uint64_t /*value*/) {}
+  void setEntitySubTypeMask(int mask_type, unsigned value) override { IObjEntityFilter::setSubTypeMask(mask_type, value); }
+  uint64_t getEntityLayerHiddenMask() override { return 1ull << 63; }
+  void setEntityLayerHiddenMask(uint64_t /*value*/) override {}
 
-  virtual dag::ConstSpan<int> getGenObjAssetTypes() const
+  dag::ConstSpan<int> getGenObjAssetTypes() const override
   {
     if (!genObjTypesInited)
     {
-      const DagorAssetMgr &assetMgr = get_app().getAssetMgr();
-
       // prepare genObjTypes
       const char *genobj_asset_type[] = {"prefab", "rendInst", "fx", "physObj", "composit", "dynModel", "animChar"};
 
@@ -245,7 +250,7 @@ public:
     return genObjTypes;
   }
 
-  virtual DagorAsset *getAssetByName(const char *_name, int asset_type)
+  DagorAsset *getAssetByName(const char *_name, int asset_type) override
   {
     if (!_name || !_name[0])
       return NULL;
@@ -272,7 +277,7 @@ public:
       return assetMgr.findAsset(name, asset_type);
   }
 
-  virtual DagorAsset *getAssetByName(const char *_name, dag::ConstSpan<int> asset_types)
+  DagorAsset *getAssetByName(const char *_name, dag::ConstSpan<int> asset_types) override
   {
     if (!_name || !_name[0])
       return NULL;
@@ -302,18 +307,18 @@ public:
     return assetMgr.findAsset(name, asset_types);
   }
 
-  virtual const DataBlock *getAssetProps(const DagorAsset &asset) override { return &asset.props; }
+  const DataBlock *getAssetProps(const DagorAsset &asset) override { return &asset.props; }
 
-  virtual String getAssetTargetFilePath(const DagorAsset &asset) override { return asset.getTargetFilePath(); }
+  String getAssetTargetFilePath(const DagorAsset &asset) override { return asset.getTargetFilePath(); }
 
-  virtual const char *getAssetParentFolderName(const DagorAsset &asset) override
+  const char *getAssetParentFolderName(const DagorAsset &asset) override
   {
     const int folderIndex = asset.getFolderIndex();
     const DagorAssetFolder &folder = asset.getMgr().getFolder(folderIndex);
     return folder.folderName;
   }
 
-  virtual const char *resolveTexAsset(const char *tex_asset_name)
+  const char *resolveTexAsset(const char *tex_asset_name) override
   {
     static String tmp;
     if (get_app().resolveTextureName(tex_asset_name, tmp))
@@ -321,17 +326,17 @@ public:
     return NULL;
   }
 
-  virtual bool initAssetBase(const char *app_dir) { return false; }
+  bool initAssetBase(const char *) override { return false; }
 
 
   //! simple console messages output
-  virtual ILogWriter &getCon() { return EDITORCORE->getConsole(); }
+  ILogWriter &getCon() override { return EDITORCORE->getConsole(); }
 
-  virtual void conErrorV(const char *fmt, const DagorSafeArg *arg, int anum) { conMessageV(ILogWriter::ERROR, fmt, arg, anum); }
-  virtual void conWarningV(const char *fmt, const DagorSafeArg *arg, int anum) { conMessageV(ILogWriter::WARNING, fmt, arg, anum); }
-  virtual void conNoteV(const char *fmt, const DagorSafeArg *arg, int anum) { conMessageV(ILogWriter::NOTE, fmt, arg, anum); }
-  virtual void conRemarkV(const char *fmt, const DagorSafeArg *arg, int anum) { conMessageV(ILogWriter::REMARK, fmt, arg, anum); }
-  virtual void conShow(bool show_console_wnd)
+  void conErrorV(const char *fmt, const DagorSafeArg *arg, int anum) override { conMessageV(ILogWriter::ERROR, fmt, arg, anum); }
+  void conWarningV(const char *fmt, const DagorSafeArg *arg, int anum) override { conMessageV(ILogWriter::WARNING, fmt, arg, anum); }
+  void conNoteV(const char *fmt, const DagorSafeArg *arg, int anum) override { conMessageV(ILogWriter::NOTE, fmt, arg, anum); }
+  void conRemarkV(const char *fmt, const DagorSafeArg *arg, int anum) override { conMessageV(ILogWriter::REMARK, fmt, arg, anum); }
+  void conShow(bool show_console_wnd) override
   {
     if (show_console_wnd)
       EDITORCORE->getConsole().showConsole(true);
@@ -346,7 +351,8 @@ public:
 #undef DSA_OVERLOADS_PARAM_PASS
   void conMessageV(ILogWriter::MessageType type, const char *msg, const DagorSafeArg *arg, int anum)
   {
-    static String s1, s2;
+    static String s1;
+    String s2;
     String &s = is_main_thread() ? s1 : s2;
 
     s.vprintf(1024, msg, arg, anum);
@@ -354,7 +360,7 @@ public:
   }
 
   //! simple fatal handler interface
-  virtual void setFatalHandler(bool quiet)
+  void setFatalHandler(bool quiet) override
   {
     FatalHandlerCtx &ctx = fhCtx.push_back();
     ctx.handler = dgs_fatal_handler;
@@ -365,10 +371,10 @@ public:
     fatalQuiet = quiet;
   }
 
-  virtual bool getFatalStatus() { return fatalStatus; }
-  virtual void resetFatalStatus() { fatalStatus = false; }
+  bool getFatalStatus() override { return fatalStatus; }
+  void resetFatalStatus() override { fatalStatus = false; }
 
-  virtual void popFatalHandler()
+  void popFatalHandler() override
   {
     if (fhCtx.size() < 1)
       return;
@@ -379,26 +385,15 @@ public:
   }
 
   // asset GUI
-  virtual const char *selectAsset(const char *asset, const char *caption, dag::ConstSpan<int> types, const char *filter_str,
-    bool open_all_grp)
+  const char *selectAsset(const char *asset, const char *caption, dag::ConstSpan<int> types, const char *filter_str,
+    bool open_all_grp) override
   {
     static String buf;
     IWndManager &mgr = *get_app().getWndManager();
 
-    IGenViewportWnd *viewport = EDITORCORE->getCurrentViewport();
-    int _x = 0, _y = 0, _w = hdpi::_pxS(400), _h = hdpi::_pxS(600);
-
-    if (viewport)
-    {
-      int _wt, _ht;
-      viewport->clientToScreen(_x, _y);
-      viewport->getViewportSize(_wt, _ht);
-      _h = _ht;
-      _x += _wt - _w - 5;
-    }
-
     SelectAssetDlg dlg(mgr.getMainWindow(), const_cast<DagorAssetMgr *>(&get_app().getAssetMgr()), caption, "Select asset",
-      "Reset asset", types, _x, _y, _w, _h);
+      "Reset asset", types);
+    dlg.setManualModalSizingEnabled();
 
     dlg.selectObj(asset);
     if (open_all_grp)
@@ -426,32 +421,25 @@ public:
     return "";
   }
 
-  virtual void showAssetWindow(bool show, const char *caption, IAssetBaseViewClient *cli, dag::ConstSpan<int> types) {}
-  virtual void addAssetToRecentlyUsed(const char *asset) override {}
-  virtual bool getTexAssetBuiltDDSx(DagorAsset &a, ddsx::Buffer &dest, unsigned target, const char *profile, ILogWriter *log)
-  {
-    return false;
-  }
-  virtual bool getTexAssetBuiltDDSx(const char *a_name, const DataBlock &a_props, ddsx::Buffer &dest, unsigned target,
-    const char *profile, ILogWriter *log)
+  void showAssetWindow(bool, const char *, IAssetBaseViewClient *, dag::ConstSpan<int>) override {}
+  void addAssetToRecentlyUsed(const char *) override {}
+  bool getTexAssetBuiltDDSx(DagorAsset &, ddsx::Buffer &, unsigned, const char *, ILogWriter *) override { return false; }
+  bool getTexAssetBuiltDDSx(const char *, const DataBlock &, ddsx::Buffer &, unsigned, const char *, ILogWriter *) override
   {
     return false;
   }
 
-  virtual void imguiBegin(const char *name, bool *open, unsigned window_flags) override
-  {
-    editor_core_imgui_begin(name, open, window_flags);
-  }
+  void imguiBegin(const char *name, bool *open, unsigned window_flags) override { editor_core_imgui_begin(name, open, window_flags); }
 
-  virtual void imguiBegin(PropPanel::PanelWindowPropertyControl &panel_window, bool *open, unsigned window_flags) override
+  void imguiBegin(PropPanel::PanelWindowPropertyControl &panel_window, bool *open, unsigned window_flags) override
   {
     panel_window.beforeImguiBegin();
     imguiBegin(panel_window.getStringCaption(), open, window_flags);
   }
 
-  virtual void imguiEnd() override { ImGui::End(); }
+  void imguiEnd() override { ImGui::End(); }
 
-  virtual Outliner::OutlinerWindow *createOutlinerWindow() override
+  Outliner::OutlinerWindow *createOutlinerWindow() override
   {
     G_ASSERT(false);
     return nullptr;
@@ -537,38 +525,38 @@ static bool use_skies = false;
 
 class ServicesRenderPlugin : public IGenEditorPlugin, public ILightingChangeClient
 {
-  virtual bool getVisible() const { return true; }
-  virtual void *queryInterfacePtr(unsigned huid)
+  bool getVisible() const override { return true; }
+  void *queryInterfacePtr(unsigned huid) override
   {
     if (huid == ILightingChangeClient::HUID)
       return static_cast<ILightingChangeClient *>(this);
     return IGenEditorPlugin::queryInterfacePtr(huid);
   }
 
-  virtual const char *getInternalName() const { return "srvRender"; }
+  const char *getInternalName() const override { return "srvRender"; }
 
-  virtual void registered() {}
-  virtual void unregistered() {}
+  void registered() override {}
+  void unregistered() override {}
 
-  virtual bool begin(DagorAsset *asset) { return false; }
-  virtual bool end() { return true; }
+  bool begin(DagorAsset *) override { return false; }
+  bool end() override { return true; }
 
-  virtual void clearObjects() {}
-  virtual void onSaveLibrary() {}
-  virtual void onLoadLibrary() {}
+  void clearObjects() override {}
+  void onSaveLibrary() override {}
+  void onLoadLibrary() override {}
 
-  virtual bool getSelectionBox(BBox3 &box) const { return false; }
+  bool getSelectionBox(BBox3 &) const override { return false; }
 
-  virtual void actObjects(float dt)
+  void actObjects(float dt) override
   {
-    use_skies =
-      av_skies_srv && !av_skies_preset.empty() && !EDITORCORE->queryEditorInterface<IDynRenderService>()->hasEnvironmentSnapshot();
+    use_skies = av_skies_srv && (!av_skies_preset.empty() || get_app().dngBasedSceneRenderUsed()) &&
+                !EDITORCORE->queryEditorInterface<IDynRenderService>()->hasEnvironmentSnapshot();
     if (use_skies)
       av_skies_srv->updateSkies(dt);
     for (int i = 0; i < srvPlugins.size(); i++)
       srvPlugins[i]->actService(dt);
   }
-  virtual void beforeRenderObjects()
+  void beforeRenderObjects() override
   {
     static int water_level_gvid = get_shader_variable_id("water_level", true);
     ShaderGlobal::set_real(water_level_gvid, -3000);
@@ -577,18 +565,18 @@ class ServicesRenderPlugin : public IGenEditorPlugin, public ILightingChangeClie
     for (int i = 0; i < srvPlugins.size(); i++)
       srvPlugins[i]->beforeRenderService();
   }
-  virtual void renderObjects()
+  void renderObjects() override
   {
     for (int i = 0; i < srvPlugins.size(); i++)
       srvPlugins[i]->renderService();
   }
-  virtual void renderTransObjects()
+  void renderTransObjects() override
   {
     for (int i = 0; i < srvPlugins.size(); i++)
       srvPlugins[i]->renderTransService();
   }
 
-  virtual void renderGeometry(Stage stage)
+  void renderGeometry(Stage stage) override
   {
     if (!get_app().canRenderEnvi() && (stage == STG_RENDER_ENVI || stage == STG_RENDER_CLOUDS))
       return;
@@ -642,43 +630,44 @@ class ServicesRenderPlugin : public IGenEditorPlugin, public ILightingChangeClie
     }
   }
 
-  virtual void renderUI()
+  void renderUI() override
   {
     for (int i = 0; i < srvPlugins.size(); i++)
       if (IRenderingService *srv = srvPlugins[i]->queryInterface<IRenderingService>())
         srv->renderUI();
   }
 
-  virtual void onLightingChanged()
+  void onLightingChanged() override
   {
     for (int i = 0; i < srvPlugins.size(); i++)
       if (ILightingChangeClient *srv = srvPlugins[i]->queryInterface<ILightingChangeClient>())
         srv->onLightingChanged();
   }
-  virtual void onLightingSettingsChanged()
+  void onLightingSettingsChanged() override
   {
     for (int i = 0; i < srvPlugins.size(); i++)
       if (ILightingChangeClient *srv = srvPlugins[i]->queryInterface<ILightingChangeClient>())
         srv->onLightingSettingsChanged();
   }
 
-  virtual bool supportAssetType(const DagorAsset &asset) const { return false; }
+  bool supportAssetType(const DagorAsset &) const override { return false; }
 
-  virtual void fillPropPanel(PropPanel::ContainerPropertyControl &panel) {}
-  virtual void postFillPropPanel() {}
-  virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) {}
+  void fillPropPanel(PropPanel::ContainerPropertyControl &) override {}
+  void postFillPropPanel() override {}
 };
 static ServicesRenderPlugin *srvPlugin = NULL;
 
 static struct DagorEdReset3DCallback : public IDrv3DResetCB
 {
-  virtual void beforeReset(bool full_reset)
+  void beforeReset([[maybe_unused]] bool full_reset) override
   {
+    if (IDynRenderService *drSrv = EDITORCORE->queryEditorInterface<IDynRenderService>())
+      drSrv->beforeD3DReset(full_reset);
     for (int i = 0; i < srvPlugins.size(); i++)
       srvPlugins[i]->onBeforeReset3dDevice();
   }
 
-  virtual void afterReset(bool full_reset)
+  void afterReset(bool full_reset) override
   {
     extern void rebuild_shaders_stateblocks();
 
@@ -695,7 +684,6 @@ static struct DagorEdReset3DCallback : public IDrv3DResetCB
     {
       DAEDITOR3.conNote("reloading textures...");
       ddsx::reload_active_textures(0);
-      dxp_factory_after_reset();
     }
     DAEDITOR3.conNote("notifying services...");
     for (int i = 0; i < srvPlugins.size(); i++)
@@ -749,6 +737,7 @@ void terminate_interface_de3()
   del_it(logerr_to_console_re_exclude);
   debug("reset logerr->CON reporter");
   clear_all_ptr_items(srvPlugins);
+  texconvcache::term_build_on_demand_tex_factory();
   IDaEditor3Engine::set(NULL);
   srvPlugin = NULL;
 }

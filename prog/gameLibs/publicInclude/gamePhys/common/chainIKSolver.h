@@ -58,6 +58,8 @@ struct Chain
   TMatrix tmToLocal2DSpace = TMatrix::IDENT;
   float shoulder = -1.f;
 
+  bool needRotateFirst = true;
+
   Joint upperJoint;
   Joint bottomJoint;
 
@@ -74,7 +76,7 @@ class ChainIKSolver
 public:
   eastl::vector<Chain> chains;
 
-  void loadFromBlk(const DataBlock *blk, const GeomNodeTree *tree);
+  void loadFromBlk(const DataBlock *blk, const GeomNodeTree *tree, const char *class_name = nullptr);
   void solve();
   void updateGeomNodeTree(GeomNodeTree *tree, const TMatrix &render_space_tm = TMatrix::IDENT) const;
 

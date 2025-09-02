@@ -31,12 +31,13 @@ namespace das {
     typedef unique_ptr<FusionPoint> FusionPointPtr;
 
     typedef das_hash_map<string,vector<FusionPointPtr>> FusionEngine;   // note: unordered map for thread safety
-    extern DAS_THREAD_LOCAL unique_ptr<FusionEngine> g_fusionEngine;
+    // TODO: at some point we should share fusion engine
+    inline DAS_THREAD_LOCAL(unique_ptr<FusionEngine>) g_fusionEngine;
 
     const char * getSimSourceName(SimSourceType st);
 
-    struct SimNode_Op1Fusion : SimNode {
-        SimNode_Op1Fusion() : SimNode(LineInfo()) {}
+    struct SimNode_Op1Fusion : SimNode_WithErrorMessage {
+        SimNode_Op1Fusion(const char * msg = nullptr) : SimNode_WithErrorMessage(LineInfo(),msg) {}
         void set(const char * opn, Type bt, const LineInfo & at) {
             op = opn;
             baseType = bt;
@@ -48,8 +49,8 @@ namespace das {
         SimSource       subexpr;
     };
 
-    struct SimNode_Op2Fusion : SimNode {
-        SimNode_Op2Fusion() : SimNode(LineInfo()) {}
+    struct SimNode_Op2Fusion : SimNode_WithErrorMessage {
+        SimNode_Op2Fusion(const char * msg = nullptr) : SimNode_WithErrorMessage(LineInfo(),msg) {}
         void set(const char * opn, Type bt, const LineInfo & at) {
             op = opn;
             baseType = bt;

@@ -1,12 +1,17 @@
-def cast_fn(a: int): int
+options gen2
+def cast_fn(a : int) : int {
     return a
+}
 
-def fn(b: int)
+def fn(b : int) {
     return
+}
 
-def draw()
+def draw() {
     fn(cast_fn(1))
+}
 
 [export]
-def test
+def test {
     return true
+}

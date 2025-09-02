@@ -1,0 +1,51 @@
+include "assert.dshl"
+
+int gbuff_dbg_mode = -1;
+
+macro INIT_AND_USE_DBG_GBUFF_TEX()
+
+  if (debug_mode_enabled == yes)
+  {
+    (ps){ gbuff_dbg_mode@i1 = gbuff_dbg_mode; } // Once conditional assumes are a thing: replace it with an interval
+  }
+
+  hlsl (ps)
+  {
+    void init_mipLevel(inout UnpackedGbuffer result, float mip_level)
+    {
+      ##if debug_mode_enabled == yes
+        #include "debug_gbuffer_tex_constants.hlsli"
+        if(gbuff_dbg_mode == 0)
+        {
+          init_debug_info(result, mip_level < 0 ? 1.0 : clamp(mip_level, 0, MAX_DEBUG_MIP_LEVELS_DISPLAYED) / (MAX_DEBUG_MIP_LEVELS_DISPLAYED + 1)); //1 is left for special value
+        }
+      ##endif
+    }
+    void init_texelDensity(inout UnpackedGbuffer result, Texture2D tex, SamplerState smp, float2 tc)
+    {
+      ##if debug_mode_enabled == yes
+        #include "debug_gbuffer_tex_constants.hlsli"
+        if (gbuff_dbg_mode == 1)
+        {
+          uint w, h, levels;
+          float mipLevel = tex.CalculateLevelOfDetail(smp, tc);
+          tex.GetDimensions((uint) floor(mipLevel), w, h, levels);
+          float4 gradients = float4(ddx(tc.xy), ddy(tc.xy));
+          float2 dtex = gradients.xz * gradients.xz + gradients.yw * gradients.yw;
+          dtex = sqrt(dtex);
+          init_debug_info(result, clamp(dtex.x * w * dtex.y * h, 0, MAX_TEXEL_DENSITY_DISPLAYED) / (MAX_TEXEL_DENSITY_DISPLAYED + 1));
+        }
+      ##endif
+    }
+    void init_texelDensity(inout UnpackedGbuffer result, float value)
+    {
+      ##if debug_mode_enabled == yes
+        #include "debug_gbuffer_tex_constants.hlsli"
+        if (gbuff_dbg_mode == 1)
+        {
+          init_debug_info(result, clamp(value, 0, MAX_TEXEL_DENSITY_DISPLAYED) / (MAX_TEXEL_DENSITY_DISPLAYED + 1));
+        }
+      ##endif
+    }
+  }
+endmacro

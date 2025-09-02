@@ -12,8 +12,11 @@ AddIncludes =
 
 
 Sources =
-  src/dummy.cpp # use dummy here, actual format.cpp is in 1stPartyLibs\daScript\src\misc\format.cpp
+  src/format.cc
+  # src/os.cc
 ;
+
+CPPopt += -DFMT_UNICODE=0 ;
 
 if $(Platform) in windows xboxOne scarlett {
   CPPopt += /EHsc -D_HAS_EXCEPTIONS=1 ;

@@ -14,7 +14,7 @@ function sampleDebug() {
   return {
     rendObj = ROBJ_DEBUG
     color = Color(255,230,200)
-    size = [100,30]
+    size = static [100,30]
   }
 }
 
@@ -23,7 +23,7 @@ function sampleSolid() {
   return {
     rendObj = ROBJ_SOLID
     color = Color(250,25,205)
-    size = [100,30]
+    size = static [100,30]
   }
 }
 
@@ -32,7 +32,7 @@ function sampleFrameP(borderWidth=1, color=Color(200,200,200)) {
   return {
     rendObj = ROBJ_FRAME
     color = color
-    size = [40,30]
+    size = static [40,30]
     borderWidth = borderWidth
   }
 }
@@ -42,8 +42,8 @@ function sampleBox() {
     rendObj = ROBJ_BOX
     fillColor = Color(100,50,50)
     borderColor = Color(100,100,200)
-    borderWidth = [4,1,4,1]
-    size = [100,30]
+    borderWidth = static [4,1,4,1]
+    size = static [100,30]
   }
 }
 
@@ -56,7 +56,7 @@ function labeledElem(elem,text) {
     valign = ALIGN_CENTER
     children = [
       {
-        size = [200, 30]
+        size = static [200, 30]
         halign= ALIGN_CENTER
         valign =ALIGN_CENTER
         children = elem
@@ -64,7 +64,7 @@ function labeledElem(elem,text) {
       {
         rendObj = ROBJ_TEXTAREA
         behavior = Behaviors.TextArea
-        size = [flex(),SIZE_TO_CONTENT]
+        size = static [flex(),SIZE_TO_CONTENT]
         text = text
         valign=ALIGN_CENTER
       }
@@ -101,7 +101,7 @@ let vector_canvas = {
   children = [
     {
       rendObj = ROBJ_VECTOR_CANVAS
-      size = [50, 50]
+      size = 50
       lineWidth = 2.5
       color = Color(50, 200, 255)
       fillColor = Color(122, 1, 0, 0)
@@ -118,7 +118,7 @@ let vector_canvas = {
     }
     {
       rendObj = ROBJ_VECTOR_CANVAS
-      size = [50, 50]
+      size = 50
       lineWidth = 2.0
       color = Color(50, 200, 155)
       fillColor = Color(122, 105, 0, 0)
@@ -128,7 +128,7 @@ let vector_canvas = {
     }
     {
       rendObj = ROBJ_VECTOR_CANVAS
-      size = [50, 50]
+      size = 50
       lineWidth = 0.5
       color = Color(50, 200, 255)
       fillColor = Color(122, 1, 0, 0)
@@ -153,7 +153,7 @@ let frames = {
 
 }
 let nine_rect = {
-  size = [100, 50]
+  size = static [100, 50]
   rendObj = ROBJ_9RECT
   image = button_image
   screenOffs = [hdpx(4),hdpx(4),hdpx(5),hdpx(5)]
@@ -167,7 +167,7 @@ let sampleRoundedBox = {
   borderWidth = 2
   borderRadius = [2,2,2,2]
 
-  size = [100,30]
+  size = static [100,30]
 }
 
 let sampleRoundedImage = {
@@ -178,7 +178,7 @@ let sampleRoundedImage = {
   borderWidth = 2
   borderRadius = [8,4,5,1]
 
-  size = [100,30]
+  size = static [100,30]
 }
 
 
@@ -203,7 +203,7 @@ function basicsRoot() {
           labeledElem(sampleBox, "'ROBJ_BOX'. Has 'fillColor', 'borderColor' and 'borderWidth' (= [2,1,2,1] here)")
           labeledElem(sampleRoundedBox, "'ROBJ_BOX'. Has 'fillColor', 'borderColor', 'borderWidth' (= 2 here), borderRadius (= [2,2,2,2] here)")
           labeledElem(sampleRoundedImage, "'ROBJ_BOX'. Has 'fillColor', 'borderColor', 'borderWidth' (= 2 here), borderRadius (= [8, 4, 5, 1] and image here)")
-          labeledElem(images, "'ROBJ_IMAGE'. 1: size =[30, 30], 2: [30, SIZE_TO_CONTENT] (width=30, height=aspect_ratio*30), 3: [SIZE_TO_CONTENT, 30] (height=30, width=30/aspect_ratio) ")
+          labeledElem(images, "'ROBJ_IMAGE'. 1: size =30, 2: [30, SIZE_TO_CONTENT] (width=30, height=aspect_ratio*30), 3: [SIZE_TO_CONTENT, 30] (height=30, width=30/aspect_ratio) ")
           labeledElem(nine_rect, "ROBJ_9RECT. Has 'image', 'screenOffs' and 'texOffs' properties")
           labeledElem(vector_canvas, "ROBJ_VECTOR_CANVAS. Has 'lineWidth', 'color', 'fillColor' and 'commands' properties (like VECTOR_LINE, VECTOR_ELLIPSE and VECTOR_RECTANGL ")
         ]

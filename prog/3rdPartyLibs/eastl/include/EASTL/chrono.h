@@ -313,7 +313,7 @@ namespace chrono
 	duration<typename eastl::common_type<Rep1, Rep2>::type, Period1> EASTL_FORCE_INLINE
 	operator*(const duration<Rep1, Period1>& lhs, const Rep2& rhs)
 	{
-		typedef typename duration<eastl::common_type<Rep1, Rep2>, Period1>::type common_duration_t;
+		typedef duration<typename eastl::common_type<Rep1, Rep2>::type, Period1> common_duration_t;
 		return common_duration_t(common_duration_t(lhs).count() * rhs);
 	}
 
@@ -551,7 +551,7 @@ namespace chrono
 		#elif defined EA_PLATFORM_POSIX
 			#define EASTL_NS_PER_TICK _XTIME_NSECS_PER_TICK
 		#else
-			#define EASTL_NS_PER_TICK 100 
+			#define EASTL_NS_PER_TICK 100
 		#endif
 
 		#if defined(EA_PLATFORM_POSIX) 
@@ -573,7 +573,7 @@ namespace chrono
 			{
 				LARGE_INTEGER frequency;
 				QueryPerformanceFrequency(&frequency);
-				return double(1000000000.0L / frequency.QuadPart);  // nanoseconds per tick
+				return double(1000000000.0L / (long double)frequency.QuadPart);  // nanoseconds per tick
 			};
 
 			auto queryCounter = []
@@ -586,11 +586,36 @@ namespace chrono
 			EA_DISABLE_VC_WARNING(4640)  // warning C4640: construction of local static object is not thread-safe (VS2013)
 			static auto frequency = queryFrequency(); // cache cpu frequency on first call
 			EA_RESTORE_VC_WARNING()
-			return uint64_t(frequency * queryCounter());
+			return uint64_t(frequency * (double)queryCounter());
 		#elif defined(EA_PLATFORM_C)
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 		#elif defined(EA_PLATFORM_APPLE)
-		   return mach_absolute_time();
+			auto queryTimeInfo = []
+			{
+				mach_timebase_info_data_t info;
+				mach_timebase_info(&info);
+				return info;
+			};
+			
+			static auto timeInfo = queryTimeInfo();
+			uint64_t t = mach_absolute_time();
+			t *= timeInfo.numer;
+			t /= timeInfo.denom;
+			return t;
 		#elif defined(EA_PLATFORM_POSIX) // Posix means Linux, Unix, and Macintosh OSX, among others (including Linux-based mobile platforms).
 			#if (defined(CLOCK_REALTIME) || defined(CLOCK_MONOTONIC))
 				timespec ts;
@@ -692,7 +717,12 @@ namespace chrono
 	// chrono_literals  
 	///////////////////////////////////////////////////////////////////////////////
 	#if EASTL_USER_LITERALS_ENABLED && EASTL_INLINE_NAMESPACES_ENABLED
-		EA_DISABLE_VC_WARNING(4455) // disable warning C4455: literal suffix identifiers that do not start with an underscore are reserved
+		// Disabling the Clang/GCC/MSVC warning about using user
+		// defined literals without a leading '_' as they are reserved
+		// for standard libary usage.
+		EA_DISABLE_VC_WARNING(4455)
+		EA_DISABLE_CLANG_WARNING(-Wuser-defined-literals)
+		EA_DISABLE_GCC_WARNING(-Wliteral-suffix)
 		inline namespace literals
 		{
 			inline namespace chrono_literals
@@ -725,7 +755,9 @@ namespace chrono
 
 			} // namespace chrono_literals
 		}// namespace literals
-		EA_RESTORE_VC_WARNING() // warning: 4455
+		EA_RESTORE_GCC_WARNING()	// -Wliteral-suffix
+		EA_RESTORE_CLANG_WARNING()	// -Wuser-defined-literals
+		EA_RESTORE_VC_WARNING()		// warning: 4455
 	#endif
 
 } // namespace eastl

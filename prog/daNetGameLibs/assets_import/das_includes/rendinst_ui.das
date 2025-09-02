@@ -23,7 +23,7 @@ def create_rendinst(name : string; transform : float3x4; template_name : string)
     set(init, "transform", transform)
     set(init, "ri_extra__name", name)
 
-def spawn_rendinst()
+def spawn_rendinst(rendinst_template : string)
   view_dag_assets("rendInst") <| $(assetName)
     init_entity_object_editor()
     let callback <- @ <| (eid : EntityId)
@@ -31,7 +31,7 @@ def spawn_rendinst()
       entity_object_editor_addEntityWithUndo(eid)
       entity_obj_editor_saveComponent(eid, "transform")
       entity_obj_editor_saveComponent(eid, "ri_extra__name")
-    createEntity("rendinst", callback) <| $(init)
+    createEntity(rendinst_template, callback) <| $(init)
       set(init, "transform", find_transform())
       set(init, "ri_extra__name", assetName)
 
@@ -39,7 +39,7 @@ def create_gameobj(transform : float3x4; template_name : string)
   if getTemplateByName(template_name) == null
     return INVALID_ENTITY_ID
 
-  let finalTemplateName = add_sub_template_name(template_name, "game_object");
+  let finalTemplateName = add_sub_template_name(template_name, "game_object")
   let eid = createEntity(finalTemplateName) <| $(init)
     set(init, "transform", transform)
 

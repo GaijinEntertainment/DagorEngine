@@ -1,5 +1,10 @@
 include "combine_shadows_common.dshl"
 include "combine_shadows_modifier.dshl"
+include "camera_in_camera.dshl"
+
+int combined_shadows_allow_half_precision = 0;
+interval combined_shadows_allow_half_precision : no < 1, yes;
+assume_if_not_assumed combined_shadows_allow_half_precision = no;
 
 define_macro_if_not_defined INIT_OPTIONAL_COMBINE_SHADOWS_FEATURES(code)
 endmacro
@@ -20,7 +25,9 @@ endmacro
 
 shader combine_shadows
 {
+  INIT_AND_USE_ON_TOP_CAMERA_IN_CAMERA(ps)
   ENABLE_ASSERT(ps)
+
   supports global_frame;
   no_ablend;
 
@@ -103,6 +110,8 @@ shader combine_shadows
 
     CombinedShadowResult shadows_to_target_ps(VsOutput input HW_USE_SCREEN_POS)
     {
+      DISCARD_IF_INVALID_VIEW_AREA_PS(input.texcoord);
+
       ProcessedGbuffer gbuffer = readProcessedGbuffer(input.texcoord);
       float NoL = dot(gbuffer.normal, -from_sun_direction);
       float additionalLight = load_additional_light(input.texcoord);
@@ -118,6 +127,13 @@ shader combine_shadows
   }
 
   compile("target_vs", "shadows_to_target_vs");
-  compile("target_ps", "shadows_to_target_ps");
+  if (can_use_half_precision == yes && combined_shadows_allow_half_precision == yes)
+  {
+    compile("target_ps_half", "shadows_to_target_ps");
+  }
+  else
+  {
+    compile("target_ps", "shadows_to_target_ps");
+  }
 }
 

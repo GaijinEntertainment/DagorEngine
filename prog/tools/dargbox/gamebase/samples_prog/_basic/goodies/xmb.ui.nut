@@ -2,8 +2,7 @@ from "%darg/ui_imports.nut" import *
 
 let cursors = require("samples_prog/_cursors.nut")
 
-//gui_scene.config.kbCursorControl = true
-require("daRg").gui_scene.config.kbCursorControl = true
+require("daRg").gui_scene.setConfigProps({kbCursorControl= true})
 
 
 try {
@@ -28,7 +27,7 @@ try {
 let xmbDebugCursor = Cursor({
   hotspot = [sh(2), sh(2)]
   rendObj = ROBJ_FRAME
-  size = [sh(4), sh(4)]
+  size = sh(4)
   color = Color(255,0,0)
 })
 
@@ -65,7 +64,7 @@ function btn(params) {
       rendObj = ROBJ_BOX
       fillColor = (sf & S_HOVER) ? Color(200,200,0,200) : Color(200,100,0,200)
       borderColor = Color(220, 220, 180, 180)
-      size = [sh(3), sh(3)]
+      size = sh(3)
       hplace = ALIGN_LEFT
       behavior = Behaviors.Button
       xmbNode = leftBtnNode
@@ -77,7 +76,7 @@ function btn(params) {
       rendObj = ROBJ_BOX
       fillColor = (sf & S_HOVER) ? Color(0,200,200,200) : Color(0,100,200,200)
       borderColor = Color(180, 220, 220, 180)
-      size = [sh(3), sh(3)]
+      size = sh(3)
       hplace = ALIGN_RIGHT
       behavior = Behaviors.Button
       xmbNode = rightBtnNode
@@ -91,7 +90,7 @@ function btn(params) {
       fillColor = (sf & S_HOVER) ? Color(60,80,100) : Color(0,60,75)
       borderColor = (sf & S_HOVER) ? Color(255,255,255) : Color(160,160,160)
       borderWidth = 2
-      size = [flex(), SIZE_TO_CONTENT]
+      size = FLEX_H
       behavior = Behaviors.Button
       function onClick() {
         vlog($"{params.text}")
@@ -123,8 +122,8 @@ function hPanel() {
     return {
       watch = gui_scene.xmbMode
       rendObj = ROBJ_SOLID
-      color = gui_scene.xmbMode.value ? Color(30,30,80) : Color(0,0,50)
-      size = [sh(40), flex()]
+      color = gui_scene.xmbMode.get() ? Color(30,30,80) : Color(0,0,50)
+      size = static [sh(40), flex()]
       flow = FLOW_VERTICAL
       xmbNode = XmbNode({
         canFocus = false
@@ -146,7 +145,7 @@ return function Root() {
     watch = gui_scene.xmbMode
     rendObj = ROBJ_SOLID
     color = Color(30,40,50)
-    cursor = gui_scene.xmbMode.value ? /*null*/ xmbDebugCursor : cursors.normal
+    cursor = gui_scene.xmbMode.get() ? /*null*/ xmbDebugCursor : cursors.normal
     padding = sh(10)
     gap = sh(10)
     halign = ALIGN_CENTER

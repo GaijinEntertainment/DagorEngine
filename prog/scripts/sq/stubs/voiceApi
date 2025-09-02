@@ -14,4 +14,5 @@ return {
   leave_echo_room = @() null
   mute_player_by_name = @(name) assert(type(name)=="string")
   unmute_player_by_name = @(name) assert(type(name)=="string")
+  enable_local_mic_for = @(uri, val) assert(type(uri)=="string" && type(val)=="bool")
 }

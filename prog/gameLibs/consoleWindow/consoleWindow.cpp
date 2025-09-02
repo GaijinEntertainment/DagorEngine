@@ -544,8 +544,11 @@ static void shadervar_widget(const char *var_name, const char *widget_label)
     }
     case SHVT_INT4:
     {
-      // Couldn't find int4 getter in ShaderGlobal::
-      ImGui::LabelText(widget_label, "[int4]");
+      IPoint4 p = ShaderGlobal::get_int4(varId);
+      if (ImGui::DragInt4(widget_label, &p.x))
+      {
+        ShaderGlobal::set_int4(varId, p);
+      }
       break;
     }
     default: break;

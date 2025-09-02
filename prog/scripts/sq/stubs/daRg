@@ -3,7 +3,7 @@ let dw = require_optional("dagor.workcycle")
 
 //This is list of all darg native functions and consts, to use in mockups
 
-function Color(r,g,b,a=255) {
+function [pure] Color(r,g,b,a=255) {
   return (a.tointeger() << 24) + (r.tointeger() << 16) + (g.tointeger() << 8) + b.tointeger()
 }
 
@@ -27,6 +27,7 @@ let Element = class {
   function getContentHeight() {return 0;}
   function getScrollOffsX() {return 0;}
   function getScrollOffsY() {return 0;}
+  function getOverScrollOffsY() {return 0;}
 }
 
 let ScrollHandler = class {
@@ -52,6 +53,7 @@ let gui_scene = {
   getCompAABBbyKey = @(_key) [0,0,1,1]
   keyboardLocks = Watched(0)
   keyboardLayout = Watched("ru")
+  forceCursorActive = function(val){assert(type(val)=="bool")}
   config = {
     defaultFont = 0
     defaultFontSize = 10
@@ -61,6 +63,8 @@ let gui_scene = {
     setClickButtons = @(_list) null
     getClickButtons = @() ["J:A"]
     gamepadCursorControl = true
+    gamepadStickAsDirpad = false
+    ignorePointerVisibilityForHovers = false
     reportNestedWatchedUpdate = false
     gamepadCursorDeadZone = 0.05
     gamepadCursorNonLin = 1.5
@@ -92,6 +96,9 @@ let gui_scene = {
   addPanel = function(_idx, _desc){return 0}
   removePanel = function(_idx){return 0}
   setConfigProps = function(tbl) {assert(type(tbl)=="table", "params must be passed as table")}
+  setFocusedScreen = @(_id) false
+  focusedScreenId = -1
+  enableInput = @(_bool) null
 }
 
 let axis = class{
@@ -123,11 +130,11 @@ let darg = {
   capture_kb_focus = @(_val) null
   Fonts = {}
   move_mouse_cursor = @(_where, _useTransform = true) null
-  calc_comp_size = @(_comp) [0,0]
-  calc_str_box = @(_txt, _params = null) [0,0]
-  getFontDefHt = function(fontname) { assert(type(fontname)=="string"); return 0; }
-  getFontInitialHt = function(fontname) { assert(type(fontname)=="string"); return 0; }
-  setFontDefHt = function(fontname, height) { assert(type(fontname)=="string" && type(height) =="integer") }
+  calc_comp_size = @[pure](_comp) [0,0]
+  calc_str_box = @[pure](_txt, _params = null) [0,0]
+  getFontDefHt = function[pure](fontname) { assert(type(fontname)=="string"); return 0; }
+  getFontInitialHt = function[pure](fontname) { assert(type(fontname)=="string"); return 0; }
+  setFontDefHt = function[pure](fontname, height) { assert(type(fontname)=="string" && type(height) =="integer") }
   locate_element_source = @(_elem) null
   get_element_info = @(_elem) null
   load_das = function(filename) { assert(type(filename)=="string"); return {}; }
@@ -152,15 +159,15 @@ let darg = {
 
   fontH = @(height) height
 
-  flex = @(weight=1) weight*100
+  flex = @[pure](weight=1) weight*100
 
-  sw = @(val) val*1920/100
-  sh = @(val) val*1080/100
-  pw = @(val) val
-  ph = @(val) val
+  sw = @[pure](val) val*1920/100
+  sh = @[pure](val) val*1080/100
+  pw = @[pure](val) val
+  ph = @[pure](val) val
   elemw = @(val) val
   elemh = @(val) val
-  get_font_metrics = function(fontId, fontSize=null) {
+  get_font_metrics = function[pure](fontId, fontSize=null) {
     assert(type(fontId)=="integer")
     assert(fontSize==null || type(fontSize)=="float")
     return {
@@ -171,6 +178,11 @@ let darg = {
   MoveToAreaTarget = class{ function set(_l,_t,_r,_b){}; function clear(){}}
   get_mouse_cursor_pos = @() { x = 0, y = 0 }
   resolve_button = @(_st) { devId = -1, btnId = -1 }
+
+  DasFunction = class {
+    constructor(_das_script, _func_name) {}
+    function _call(...) {}
+  }
 }
 
 
@@ -372,6 +384,7 @@ global const PANEL_RC_FACE_RIGHT_HAND = 2
 global const PANEL_RC_FACE_HEAD = 3
 global const PANEL_RC_FACE_HEAD_LOCK_Y = 4
 global const PANEL_RC_FACE_ENTITY = 5
+global const PANEL_RC_FACE_HEAD_LOCK_PLAYSPACE_Y = 6
 global const PANEL_POINT_EVENT_ENTER = 0
 global const PANEL_POINT_EVENT_LEAVE = 1
 global const PANEL_POINT_EVENT_MOVE = 2
@@ -389,5 +402,7 @@ global const XMB_STOP = 0
 global const XMB_CONTINUE = 1
 
 global const R_PROCESSED = 1
+
+global const MAIN_SCREEN_ID = 1000000
 
 return darg

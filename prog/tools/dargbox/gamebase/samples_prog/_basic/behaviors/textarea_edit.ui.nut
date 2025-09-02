@@ -33,8 +33,8 @@ return {
   gap = sh(2)
   children = [
     {
-      size = [sh(80), sh(50)]
-      //size = [sh(30), sh(30)]
+      size = static [sh(80), sh(50)]
+      //size = sh(30)
       rendObj = ROBJ_BOX
       borderWidth = 2
       padding = hdpx(10)
@@ -58,7 +58,7 @@ return {
     @() {
       watch = lenWatched
       rendObj = ROBJ_TEXT
-      text = $"Text length = {lenWatched.value}"
+      text = $"Text length = {lenWatched.get()}"
     }
   ]
 

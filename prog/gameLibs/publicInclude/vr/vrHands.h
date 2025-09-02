@@ -6,17 +6,21 @@
 
 #include <EASTL/array.h>
 #include <EASTL/optional.h>
-#include <animChar/dag_animCharacter2.h>
 #include <math/dag_geomTree.h>
 #include <math/dag_geomTreeMap.h>
 #include <drv/hid/dag_hiVrInput.h>
 #include <daECS/core/componentType.h>
-#include <gamePhys/collision/collisionObject.h>
 
 class AnimatedPhys;
+namespace AnimV20
+{
+class AnimcharBaseComponent;
+class IAnimCharacter2;
+} // namespace AnimV20
 class PhysVars;
 class TexStreamingContext;
 class CollisionResource;
+struct CollisionObject;
 
 namespace vr
 {
@@ -46,10 +50,12 @@ public:
       Point3 b{};
       float r = 0.0f;
       Point3 pos{};
+      Point3 dir{};
       enum Shape
       {
         SPHERE,
         CYLINDER,
+        CYLINDER_TOP,
         WHEEL
       } shape = CYLINDER;
     } attachment{};
@@ -59,6 +65,7 @@ public:
       bool isHoldingPanel = false;
       Point3 angles{};
       Point3 position{};
+      Point2 halfSize{};
     } panel{};
   };
 
@@ -186,7 +193,8 @@ private:
   float collisionRadius = 0.04f;
   float fingerCollisionRadius = 0.01f;
   float fingertipLength = 0.017f;
-  AnimCharV20::IAnimCharacter2 *animChar[VrInput::Hands::Total] = {nullptr, nullptr};
+  float maxPanelTouchDepth = 0.1f;
+  AnimV20::IAnimCharacter2 *animChar[VrInput::Hands::Total] = {nullptr, nullptr};
   AnimatedPhys *animPhys[VrInput::Hands::Total] = {nullptr, nullptr};
   PhysVars *physVars[VrInput::Hands::Total] = {nullptr, nullptr};
 
@@ -204,6 +212,8 @@ private:
   TMatrix visualIndexFingertipTms[VrInput::Hands::Total]{};
   TMatrix realIndexFingertipTms[VrInput::Hands::Total]{};
   Point3 handPhysPos[VrInput::Hands::Total]{};
+  bool isTouchingPanel[VrInput::Hands::Total]{};
+  bool isAbovePanel[VrInput::Hands::Total]{};
 };
 
 } // namespace vr

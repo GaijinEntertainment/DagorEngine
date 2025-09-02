@@ -1,0 +1,17 @@
+float rtr_max_water_depth;
+
+macro INIT_BVH_WATER_FADE_RTR_MATH(stage)
+  (stage) {
+    rtr_max_water_depth@f1 = rtr_max_water_depth;
+  }
+endmacro
+
+macro USE_BVH_WATER_FADE_RTR_MATH(stage)
+  hlsl(stage) {
+    #define RTR__SSR_FALLBACK 1
+    float calc_underwater_fade_rtr(float depth)
+    {
+      return smoothstep(-rtr_max_water_depth, 0.0, depth);
+    }
+  }
+endmacro

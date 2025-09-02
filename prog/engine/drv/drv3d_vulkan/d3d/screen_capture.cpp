@@ -8,6 +8,7 @@
 #include "globals.h"
 #include "device_context.h"
 #include <image/dag_texPixel.h>
+#include "global_lock.h"
 
 using namespace drv3d_vulkan;
 
@@ -21,8 +22,10 @@ Tab<uint8_t> captureData;
 
 void *d3d::fast_capture_screen(int &w, int &h, int &stride_bytes, int &format)
 {
-  VkExtent2D extent = Globals::swapchain.getMode().extent;
-  FormatStore fmt = Globals::swapchain.getMode().colorFormat;
+  VERIFY_GLOBAL_LOCK_ACQUIRED();
+
+  VkExtent2D extent = Frontend::swapchain.getMode().extent;
+  FormatStore fmt = Frontend::swapchain.getMode().format;
   uint32_t bufferSize = fmt.calculateSlicePich(extent.width, extent.height);
 
   w = extent.width;
@@ -30,16 +33,33 @@ void *d3d::fast_capture_screen(int &w, int &h, int &stride_bytes, int &format)
   stride_bytes = fmt.calculateRowPitch(extent.width);
   format = CAPFMT_X8R8G8B8;
 
-  G_ASSERTF(!captureBuffer, "vulkan: must call d3d::end_fast_capture_screen before calling d3d::fast_capture_screen again");
-  captureBuffer = Buffer::create(bufferSize, DeviceMemoryClass::HOST_RESIDENT_HOST_READ_ONLY_BUFFER, 1, BufferMemoryFlags::TEMP);
+  D3D_CONTRACT_ASSERTF(!captureBuffer, "vulkan: must call d3d::end_fast_capture_screen before calling d3d::fast_capture_screen again");
+  captureBuffer = Buffer::create(bufferSize, DeviceMemoryClass::HOST_RESIDENT_HOST_READ_WRITE_BUFFER, 1, BufferMemoryFlags::TEMP);
   Globals::Dbg::naming.setBufName(captureBuffer, "screen capture staging buf");
 
-  CmdCaptureScreen cmd{captureBuffer};
+  VkFormat swapchainVkFormat = VK_FORMAT_UNDEFINED;
+  CmdCaptureScreen cmd{captureBuffer, Frontend::swapchain.getCurrentTarget(), &swapchainVkFormat};
   Globals::ctx.dispatchCommand(cmd);
   TIME_PROFILE(vulkan_fast_capture_screen);
   Globals::ctx.wait();
   captureBuffer->markNonCoherentRangeLoc(0, bufferSize, false);
-  return captureBuffer->ptrOffsetLoc(0);
+  uint8_t *data = captureBuffer->ptrOffsetLoc(0);
+  if (swapchainVkFormat == VK_FORMAT_R8G8B8A8_UNORM)
+  {
+    for (unsigned int pos = 0; pos < h * stride_bytes; pos += 4)
+    {
+      uint8_t tmp = data[pos];
+      data[pos] = data[pos + 2];
+      data[pos + 2] = tmp;
+    }
+  }
+  else
+  {
+    D3D_CONTRACT_ASSERTF(swapchainVkFormat == VK_FORMAT_B8G8R8A8_UNORM,
+      "vulkan: unexpected swapchain format %s, must be mapped to CAPFMT_X8R8G8B8",
+      FormatStore::fromVkFormat(swapchainVkFormat).getNameString());
+  }
+  return data;
 }
 
 void d3d::end_fast_capture_screen()

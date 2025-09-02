@@ -50,7 +50,7 @@ The following words are reserved as keywords and cannot be used as identifiers:
 +------------+------------+-----------+------------+------------+-------------+
 | assume     | explicit   | sealed    | static     | inscope    | fixed_array |
 +------------+------------+-----------+------------+------------+-------------+
-| typedecl   |            |           |            |            |             |
+| typedecl   | capture    | default   | uninitialized           | template    |
 +------------+------------+-----------+------------+------------+-------------+
 
 The following words are reserved as type names and cannot be used as identifiers:
@@ -132,7 +132,11 @@ Daslang accepts integer numbers, unsigned integers, floating and double point nu
 +-------------------------------+------------------------------------------+
 | ``0xFF00A120``                | Unsigned Integer number(base 16)         |
 +-------------------------------+------------------------------------------+
-| ``0753``                      | Integer number(base 8)                   |
+| 13l                           | Long Integer number(base 10)             |
++-------------------------------+------------------------------------------+
+| ``0xFF00A120ul``              | Long Unsigned Integer number(base 16)    |
++-------------------------------+------------------------------------------+
+| 32u8                          | Unsigned 8-byte integer                  |
 +-------------------------------+------------------------------------------+
 | ``'a'``                       | Integer number                           |
 +-------------------------------+------------------------------------------+
@@ -144,7 +148,7 @@ Daslang accepts integer numbers, unsigned integers, floating and double point nu
 +-------------------------------+------------------------------------------+
 | ``1.52d``                     | Double point number                      |
 +-------------------------------+------------------------------------------+
-| ``1.e2d``                     | Double point number                      |
+| ``1.e2lf``                    | Double point number                      |
 +-------------------------------+------------------------------------------+
 | ``1.e-2d``                    | Double point number                      |
 +-------------------------------+------------------------------------------+
@@ -155,7 +159,7 @@ Daslang accepts integer numbers, unsigned integers, floating and double point nu
 | ``"``                         | String                                   |
 +-------------------------------+------------------------------------------+
 
-Pesudo BNF:
+Pseudo BNF:
 
 .. productionlist::
     IntegerLiteral : [1-9][0-9]* | '0x' [0-9A-Fa-f]+ | ''' [.]+ ''' | 0[0-7]+
@@ -191,13 +195,25 @@ comment.  It is commonly called a *"single-line comment"*::
     // This is a single line comment. This line will be ignored by the compiler.
 
 
-------------------
-Semantic Indenting
-------------------
+----------------------------------------------
+Semantic Indenting and Significant White Space
+----------------------------------------------
+
+.. index:: single: significant white space
+
+Daslang in gen2 automatically places semicolumns inside the code, enclosed with a curly bracers;
+unless its also enclosed in any type of brackets::
+
+    def foo {
+        var a = 0       // das lang will add ; here
+        var b = 1;      // redundant ;
+        var c = ( 1     // no automatic ; here
+            + 2 ) * 3;  // redundant ;
+    }
 
 .. index:: single: indenting
 
-Daslang follows semantic indenting (much like Python).
+Daslang in gen1 sytnax follows semantic indenting (much like Python).
 That means that logical blocks are arranged with the same indenting, and if a control statement requires the nesting of a block (such as the body of a function, block, if, for, etc.), it has to be indented one step more.
 The indenting step is part of the options of the program.  It is either 2, 4 or 8, but always the same for whole file.
 The default indenting is 4, but can be globally overridden per project.

@@ -375,9 +375,11 @@ float4 accumulateFog_impl(uint2 dtId, float4 transformed_znzfar, float2 screen_t
     out_debug.ra = 1;
 #endif
 
-  const float DF_NIGHT_SUN_COS = 0.1;
+  #define VOLFOG_NIGHT_SUN_COS 0.046f // at this magic value it seems to be consistent with surface shadows // TODO: make it make sense!
+  const float shadowMul = from_sun_direction.y > -VOLFOG_NIGHT_SUN_COS ? 0 : 1;
+
   float3 sunColor = sun_color_0.rgb;
-  sunColor *= saturate(-from_sun_direction.y/DF_NIGHT_SUN_COS); // fix low angle (underground) sun color
+  sunColor *= shadowMul;
   sunColor *= calc_sun_phase(viewVecN, from_sun_direction.xyz);
 
   float3 ambientColor = get_base_ambient_color() * phaseFunctionConst();
@@ -608,26 +610,49 @@ void get_occlusion_weights(float2 prev_tc, out float start_step, out float step_
   start_step = sharedFogStart;
 }
 
-DistantFogRaymarchResult accumulateFog(uint2 dtId, uint2 tid)
+struct FogAccumulationStartParams
+{
+  float4 transformedNearFarZ;
+  uint2 raymarchIndexOffset;
+  uint2 reconstructionId;
+  float2 screenTc;
+};
+
+FogAccumulationStartParams construct_fog_accumulation_start_params(uint2 dtId, uint2 tid)
 {
   if (all(tid == 0))
     sharedFogStart = 255;
 
+  FogAccumulationStartParams result;
+  result.transformedNearFarZ = get_transformed_zn_zfar();
+  result.raymarchIndexOffset = get_raymarch_offset(dtId, result.transformedNearFarZ);
+  result.reconstructionId = dtId*2 + result.raymarchIndexOffset;
+
+#if DEBUG_DISTANT_FOG_DISABLE_4_WAY_RECONSTRUCTION
+  result.raymarchIndexOffset = 0;
+  result.reconstructionId = dtId;
+#endif
+
+  result.screenTc = (result.reconstructionId+0.5)*distant_fog_reconstruction_resolution.zw;
+
+  return result;
+}
+
+DistantFogRaymarchResult accumulateFog(uint2 dtId, uint2 tid, FogAccumulationStartParams start_params, CameraView current_view_type)
+{
   DistantFogRaymarchResult result;
 
-  float4 transformed_znzfar = get_transformed_zn_zfar();
-  uint2 raymarch_index_offset = get_raymarch_offset(dtId, transformed_znzfar);
-  uint2 reconstructionId = dtId*2 + raymarch_index_offset;
+  float4 transformed_znzfar = start_params.transformedNearFarZ;
+  uint2 raymarch_index_offset = start_params.raymarchIndexOffset;
+  uint2 reconstructionId = start_params.reconstructionId;
 
-  #if DEBUG_DISTANT_FOG_DISABLE_4_WAY_RECONSTRUCTION
-    raymarch_index_offset = 0;
-    reconstructionId = dtId;
-  #endif
-
-  float2 screenTc = (reconstructionId+0.5)*distant_fog_reconstruction_resolution.zw;
+  float2 screenTc = start_params.screenTc;
   float3 viewVec = calcViewVec(screenTc);
 
   float2 prevTc = calcHistoryUV(getReprojectedOcclusionDepth(screenTc, transformed_znzfar), viewVec);
+
+  CameraView prevViewType = get_prev_frame_camera_view(prevTc);
+  move_uv_to_offscreen_if_not_eq_views(prevTc, prevViewType, current_view_type);
 
   get_occlusion_weights(prevTc, result.fogStart, result.raymarchStepWeight);
 
@@ -645,5 +670,11 @@ DistantFogRaymarchResult accumulateFog(uint2 dtId, uint2 tid)
   return result;
 }
 
+DistantFogRaymarchResult accumulateFog(uint2 dtId, uint2 tid)
+{
+  FogAccumulationStartParams startParams = construct_fog_accumulation_start_params(dtId, tid);
+  CameraView mainView = camera_in_camera_main_view();
+  return accumulateFog(dtId, tid, startParams, mainView);
+}
 
 #endif

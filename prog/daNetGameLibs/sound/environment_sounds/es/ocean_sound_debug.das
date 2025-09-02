@@ -6,7 +6,7 @@ require math.color
 
 
 def get_color(spline_idx : int)
-  let colors = [[E3DCOLOR[6] E3DCOLOR(0xffffffff); E3DCOLOR(0xffffff40); E3DCOLOR(0xffff4040); E3DCOLOR(0xff8040ff); E3DCOLOR(0xff404040); E3DCOLOR(0xff40ff40)]]
+  let colors = fixed_array<E3DCOLOR>(E3DCOLOR(0xffffffff), E3DCOLOR(0xffffff40), E3DCOLOR(0xffff4040), E3DCOLOR(0xff8040ff), E3DCOLOR(0xff404040), E3DCOLOR(0xff40ff40))
   return colors[spline_idx % 6]
 
 

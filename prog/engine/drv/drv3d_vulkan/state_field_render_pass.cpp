@@ -35,7 +35,7 @@ void StateFieldRenderPassTarget::applyTo(uint32_t index, FrontRenderPassStateSto
     return;
 
   image->checkDead();
-  G_ASSERTF(image->isAllowedForFramebuffer(), "vulkan: trying to bind non-RT image %p-%s as NRP attachment %u", image,
+  D3D_CONTRACT_ASSERTF(image->isAllowedForFramebuffer(), "vulkan: trying to bind non-RT image %p-%s as NRP attachment %u", image,
     image->getDebugName(), index);
 
   static_assert(sizeof(att.clearValue.color.uint32) == sizeof(clearValue.asUint), "unit vk clear value have different size");
@@ -51,7 +51,7 @@ void StateFieldRenderPassTarget::applyTo(uint32_t index, FrontRenderPassStateSto
 
   ImageViewState ivs;
   ivs.isCubemap = 0;
-  ivs.setFormat(state.resource.ptr->allowSRGBWrite(index) ? fmt : fmt.getLinearVariant());
+  ivs.setFormat(state.resource.ptr->allowSRGBWrite(index) ? fmt.getSRGBVariant() : fmt.getLinearVariant());
   ivs.setMipBase(mipLevel);
   ivs.setMipCount(1);
 
@@ -234,7 +234,7 @@ void StateFieldRenderPassTarget::set(const StateFieldRenderPassTarget &v)
 void StateFieldRenderPassTarget::set(const RenderPassTarget &v)
 {
   BaseTex *texture = cast_to_texture_base(v.resource.tex);
-  image = texture ? texture->getDeviceImage() : nullptr;
+  image = texture ? texture->image : nullptr;
   layer = v.resource.layer;
   mipLevel = v.resource.mip_level;
   clearValue = v.clearValue;
@@ -243,7 +243,7 @@ void StateFieldRenderPassTarget::set(const RenderPassTarget &v)
 bool StateFieldRenderPassTarget::diff(const RenderPassTarget &v) const
 {
   BaseTex *texture = cast_to_texture_base(v.resource.tex);
-  if (image != (v.resource.tex ? texture->getDeviceImage() : nullptr))
+  if (image != (v.resource.tex ? texture->image : nullptr))
     return true;
   if (layer != v.resource.layer)
     return true;

@@ -96,7 +96,7 @@ hlsl(stage) {
 
   void reproject_ssao(inout SSAO_TYPE ssao, float3 cameraToOrigin, float2 screenTC, float depth)
   {
-    float3 motionVector = fetch_motion_vector(screenTC, depth);
+    float3 motionVector = fetch_motion_vector_unjittered(screenTC, depth);
     float3 historyUVZ = float3(screenTC, linearize_z(depth, zn_zfar.zw)) + motionVector;
 
     float newFrameWeight = 0.07;
@@ -133,7 +133,7 @@ hlsl(stage) {
     if (force_ignore_history == 1)
       return;
 
-    float3 mv = fetch_motion_vector(uv, depth);
+    float3 mv = fetch_motion_vector_unjittered(uv, depth);
     float3 historyUVZ = float3(uv, linearize_z(depth, zn_zfar.zw)) + mv;
     //historyUV = uv;
 
@@ -163,7 +163,7 @@ hlsl(stage) {
       ssaoHistory = clamp(ssaoHistory, min_ao, max_ao);
     }
 
-    ssao = fp16_aware_lerp(ssaoHistory, ssao, saturate(newFrameWeight + 0.07), 1/0.03);
+    ssao = fp16_aware_lerp(ssaoHistory, ssao, saturate(newFrameWeight + 0.04), 1/0.07);
   }
 }
 endmacro

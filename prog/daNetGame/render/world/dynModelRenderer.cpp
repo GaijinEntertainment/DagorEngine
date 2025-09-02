@@ -13,12 +13,15 @@
 #include <shaders/dag_shStateBlockBindless.h>
 #include <3d/dag_multidrawContext.h>
 #include "shaders/dynModelsPackedMultidrawParams.hlsli"
-#include <shaders/animchar_additional_data_types.hlsli>
+#include "render/animchar_additional_data_types.hlsli"
 #include <drv/3d/dag_draw.h>
 #include <drv/3d/dag_shaderConstants.h>
 #include <ecs/render/updateStageRender.h>
 
+static ShaderVariableInfo draw_order_var_info("draw_order");
+
 using namespace dynmodel_renderer;
+using AnimcharAdditionalDataView = animchar_additional_data::AnimcharAdditionalDataView;
 
 static struct DynModelRendering
 {
@@ -58,8 +61,7 @@ void DynModelRenderingState::process_animchar(uint32_t start_stage,
   uint32_t end_stage,
   const DynamicRenderableSceneInstance *scene,
   const DynamicRenderableSceneResource *lodResource,
-  const Point4 *bones_additional_data,
-  uint32_t additional_data_size,
+  const AnimcharAdditionalDataView additional_data,
   bool need_previous_matrices,
   ShaderElement *shader_override,
   const uint8_t *path_filter,
@@ -68,13 +70,11 @@ void DynModelRenderingState::process_animchar(uint32_t start_stage,
   bool need_immediate_const_ps,
   RenderPriority priority,
   const GlobalVariableStates *gvars_state,
-  TexStreamingContext texCtx)
+  TexStreamingContext texCtx,
+  eastl::vector<int, framemem_allocator> *output_offset)
 {
   G_ASSERT(scene->getLodsResource()->getInstanceRefCount() > 0);
   int lodNo = max(scene->getCurrentLodNo(), 0);
-
-  const bool forceNodeCollapser = render_mask & UpdateStageInfoRender::RenderPass::FORCE_NODE_COLLAPSER_ON;
-  render_mask = render_mask & ~UpdateStageInfoRender::RenderPass::FORCE_NODE_COLLAPSER_ON; // for safety
 
   const bool addPreviousMatrices = need_previous_matrices;
   matrixStride = addPreviousMatrices ? MATRIX_ROWS * 2 : MATRIX_ROWS; // 3 rows for matrix and 3 for previous matrix
@@ -82,8 +82,12 @@ void DynModelRenderingState::process_animchar(uint32_t start_stage,
   int reqLevel = texCtx.getTexLevel(scene->getLodsResource()->getTexScale(lodNo), distSq);
 
   auto addMeshToList = [&](const ShaderMesh &mesh, int instId, int bindposeBufferOffset) {
-#if DAGOR_DBGLEVEL > 0
+    if (output_offset)
+      output_offset->emplace_back(instId);
+    if (mode == ONLY_PER_INSTANCE_DATA)
+      return;
     int counter = lodNo;
+#if DAGOR_DBGLEVEL > 0
     if (debug_mesh::is_enabled(debug_mesh::Type::drawElements))
     {
       counter = 0;
@@ -111,18 +115,23 @@ void DynModelRenderingState::process_animchar(uint32_t start_stage,
         curVar = get_dynamic_variant_states(gvars_state, s->native(), prog, state, rstate, cstate, tstate);
         if (curVar < 0)
           continue;
+        RenderPriority renderPriority = priority;
+        int drawOrder;
+        if (elem.mat->getIntVariable(draw_order_var_info.get_var_id(), drawOrder))
+        {
+          if (drawOrder < 0)
+            renderPriority = RenderPriority::HIGH;
+          else if (drawOrder == 0)
+            renderPriority = RenderPriority::DEFAULT;
+          else
+            renderPriority = RenderPriority::LOW;
+        }
         if (!is_packed_material(cstate))
-          list.emplace_back(s, curVar, prog, state, rstate, tstate, cstate, elem.vertexData, reqLevel, priority,
-#if DAGOR_DBGLEVEL > 0
-            (uint8_t)counter,
-#endif
-            instId, elem.si, elem.numf, elem.baseVertex, need_immediate_const_ps, bindposeBufferOffset);
+          list.emplace_back(s, curVar, prog, state, rstate, tstate, cstate, elem.vertexData, reqLevel, renderPriority,
+            (uint8_t)counter, instId, elem.si, elem.numf, elem.baseVertex, need_immediate_const_ps, bindposeBufferOffset);
         else
-          multidrawList.emplace_back(s, curVar, prog, state, rstate, tstate, cstate, elem.vertexData, reqLevel, priority,
-#if DAGOR_DBGLEVEL > 0
-            (uint8_t)counter,
-#endif
-            instId, elem.si, elem.numf, elem.baseVertex, need_immediate_const_ps, bindposeBufferOffset);
+          multidrawList.emplace_back(s, curVar, prog, state, rstate, tstate, cstate, elem.vertexData, reqLevel, renderPriority,
+            (uint8_t)counter, instId, elem.si, elem.numf, elem.baseVertex, need_immediate_const_ps, bindposeBufferOffset);
       }
   };
   // rigids
@@ -137,7 +146,7 @@ void DynModelRenderingState::process_animchar(uint32_t start_stage,
       {
         const int nodeId = currentRigidNo; // or may be rigid no
         const int currentBlockNo = currentRigidNo >> 8;
-        const int addDataSizeSum = (currentBlockNo + 1) * additional_data_size;
+        const int addDataSizeSum = (currentBlockNo + 1) * additional_data.size();
         // additional data placed between blocks of 256 (or less) rigids
 
         if (maxRigidCount <= nodeId)
@@ -162,10 +171,10 @@ void DynModelRenderingState::process_animchar(uint32_t start_stage,
       }
       currentRigidNo++;
     }
-    if (additional_data_size)
+    if (additional_data.size())
       for (int blockNo = 0; blockNo <= maxBlockNo; ++blockNo)
-        ::memcpy(&instanceData[currentInstanceData + blockNo * (additional_data_size + 256 * matrixStride)], bones_additional_data,
-          sizeof(Point4) * additional_data_size);
+        ::memcpy(&instanceData[currentInstanceData + blockNo * (additional_data.size() + 256 * matrixStride)], additional_data.data(),
+          sizeof(Point4) * additional_data.size());
   }
   // skins
   if (lodResource->getSkinsCount())
@@ -175,14 +184,14 @@ void DynModelRenderingState::process_animchar(uint32_t start_stage,
     auto skins = lodResource->getSkins();
     const int currentInstanceData = instanceData.size();
     const ShaderSkinnedMesh &skin = *skins[0]->getMesh();
-    instanceData.resize(instanceData.size() + additional_data_size + ADDITIONAL_BONE_MTX_OFFSET + skin.bonesCount() * matrixStride);
+    instanceData.resize(instanceData.size() + additional_data.size() + ADDITIONAL_BONE_MTX_OFFSET + skin.bonesCount() * matrixStride);
     vec4f *__restrict instanceDataPtr = (vec4f *__restrict)&instanceData[currentInstanceData];
 
-    if (additional_data_size)
-      memcpy(instanceDataPtr, bones_additional_data, sizeof(Point4) * additional_data_size);
-    instanceDataPtr += additional_data_size;
+    if (additional_data.size())
+      memcpy(instanceDataPtr, additional_data.data(), sizeof(Point4) * additional_data.size());
+    instanceDataPtr += additional_data.size();
 
-    if (!forceNodeCollapser && (render_mask & UpdateStageInfoRender::RenderPass::RENDER_SHADOW))
+    if (render_mask == UpdateStageInfoRender::RenderPass::RENDER_SHADOW)
       memset(instanceDataPtr, 0, ADDITIONAL_BONE_MTX_OFFSET * sizeof(Point4));
     else
       fill_node_collapser_data(scene, eastl::span(reinterpret_cast<Point4 *__restrict>(instanceDataPtr), ADDITIONAL_BONE_MTX_OFFSET));
@@ -194,7 +203,7 @@ void DynModelRenderingState::process_animchar(uint32_t start_stage,
     for (int i = 0, e = skinNodes.size(); i < e; i++)
       if ((!path_filter && !scene->isNodeHidden(skinNodes[i])) ||
           (path_filter && (skinNodes[i] >= path_filter_size || ((path_filter[skinNodes[i]]) & render_mask) == render_mask)))
-        addMeshToList(skins[i]->getMesh()->getShaderMesh(), currentInstanceData + additional_data_size,
+        addMeshToList(skins[i]->getMesh()->getShaderMesh(), currentInstanceData + additional_data.size(),
           lodResource->getBindposeBufferIndex(i));
   }
 }
@@ -202,8 +211,7 @@ void DynModelRenderingState::process_animchar(uint32_t start_stage,
 void DynModelRenderingState::process_animchar(uint32_t start_stage,
   uint32_t end_stage,
   const DynamicRenderableSceneInstance *scene,
-  const Point4 *bones_additional_data,
-  uint32_t additional_data_size,
+  const AnimcharAdditionalDataView additional_data,
   bool need_previous_matrices,
   ShaderElement *shader_override,
   const uint8_t *path_filter,
@@ -217,8 +225,8 @@ void DynModelRenderingState::process_animchar(uint32_t start_stage,
   const DynamicRenderableSceneResource *lodResource = scene->getCurSceneResource();
   if (lodResource)
     process_animchar(start_stage, end_stage, // inclusive range of stages
-      scene, lodResource, bones_additional_data, additional_data_size, need_previous_matrices, shader_override, path_filter,
-      path_filter_size, render_mask, need_immediate_const_ps, priority, gvars_state, texCtx);
+      scene, lodResource, additional_data, need_previous_matrices, shader_override, path_filter, path_filter_size, render_mask,
+      need_immediate_const_ps, priority, gvars_state, texCtx);
 }
 
 namespace dynmodel_renderer
@@ -602,7 +610,7 @@ static const DynamicBufferHolder *update_dynmodel_buffer(dag::ConstSpan<Point4> 
 
 const DynamicBufferHolder *DynModelRenderingState::requestBuffer(BufferType type) const
 {
-  if (empty())
+  if (empty() && mode == FOR_RENDERING)
     return nullptr;
   TIME_D3D_PROFILE(update_dynmodel_buffer);
   updateDataForPackedRender();

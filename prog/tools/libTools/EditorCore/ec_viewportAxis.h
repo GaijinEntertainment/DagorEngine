@@ -15,7 +15,8 @@ public:
 
 private:
   void calculateAxisClientPosition(Point3 &ax, Point3 &ay, Point3 &az) const;
-  void drawGizmoArrow(const Point2 &line_start, const Point2 &line_end, E3DCOLOR color, const char *axis_name, bool highlight) const;
+  void drawGizmoArrow(const Point2 &line_start, const Point2 &line_end, E3DCOLOR color, const char *axis_name, bool highlight,
+    float scaled_axis_circle_radius) const;
 
   static TMatrix calculateAxisViewTm();
 
@@ -26,7 +27,6 @@ private:
   const int axisCirclePadding;
   const int axisCircleRadius;
 
-  static inline const float gizmoMeter = 0.01f;
   static const int gizmoPaddingInPixels = 15;
   static const int axisLengthInPixels = 50;
 };

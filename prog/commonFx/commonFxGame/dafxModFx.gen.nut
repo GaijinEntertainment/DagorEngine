@@ -14,7 +14,7 @@ declare_struct("FxValueGradOpt", 3,
   { name="grad", type="gradient_box" },
 ]);
 
-declare_struct("FxValueCurveOpt", 2,
+declare_struct("FxValueCurveOpt", 3,
 [
   { name="enabled", type="bool", defVal=0 },
   { name="curve", type="cubic_curve" },
@@ -26,10 +26,11 @@ declare_struct("FxSpawnFixed", 1,
   { name="count", type="int", defVal=1 },
 ]);
 
-declare_struct("FxSpawnLinear", 2,
+declare_struct("FxSpawnLinear", 3,
 [
   { name="count_min", type="int", defVal=1 },
   { name="count_max", type="int", defVal=1 },
+  { name="subframe_emittion", type="bool", defVal=0 },
 ]);
 
 declare_struct("FxSpawnBurst", 2,
@@ -115,7 +116,13 @@ declare_struct("FxInitGpuPlacement", 2,
   { name="use_normal", type="bool", defVal=0 }, // unused?
 ]);
 
-declare_struct("FxPos", 6,
+declare_struct("FxPosHeightLimit", 2,
+[
+  { name="enabled", type="bool", defVal=0 },
+  { name="height_limit", type="real", defVal=0 },
+]);
+
+declare_struct("FxPos", 7,
 [
   { name="enabled", type="bool", defVal=1 },
   { name="attach_last_part_to_emitter", type="bool", defVal=0 },
@@ -128,6 +135,7 @@ declare_struct("FxPos", 6,
   { name="box", type="FxInitPosBox"},
   { name="sphere_sector", type="FxInitPosSphereSector" },
   { name="gpu_placement", type="FxInitGpuPlacement" },
+  { name="height_limit", type="FxPosHeightLimit" },
 ]);
 
 // radius
@@ -140,8 +148,16 @@ declare_struct("FxRadius", 2,
   { name="over_part_life", type="FxValueCurveOpt" },
 ]);
 
+declare_struct("FxDistanceScale", 2,
+[
+  { name="enabled", type="bool", defVal=0 },
+  { name="begin_distance", type="real", defVal=0 },
+  { name="end_distance", type="real", defVal=100 },
+  { name="curve", type="cubic_curve" },
+]);
+
 // color
-declare_struct("FxColorCurveOpt", 4,
+declare_struct("FxColorCurveOpt", 5,
 [
   { name="enabled", type="bool", defVal=0 },
   { name="mask", type="E3DCOLOR", defVal=Color4(0, 0, 0, 255) },
@@ -150,7 +166,7 @@ declare_struct("FxColorCurveOpt", 4,
   { name="curve", type="cubic_curve" },
 ]);
 
-declare_struct("FxMaskedCurveOpt", 1,
+declare_struct("FxMaskedCurveOpt", 2,
 [
   { name="enabled", type="bool", defVal=0 },
   { name="mask", type="E3DCOLOR", defVal=Color4(255, 255, 255, 255) },
@@ -166,7 +182,17 @@ declare_struct("FxAlphaByVelocity", 2,
   { name="velocity_alpha_curve", type="FxValueCurveOpt" }
 ]);
 
-declare_struct("FxColor", 5,
+
+declare_struct("FxFakeAdaptation", 1,
+[
+  { name="enabled", type="bool", defVal=0 },
+  { name="looking_from_dark_to_dark", type="real", defVal=1 },
+  { name="looking_from_dark_to_light", type="real", defVal=1 },
+  { name="looking_from_light_to_dark", type="real", defVal=1 },
+  { name="looking_from_light_to_light", type="real", defVal=1 },
+]);
+
+declare_struct("FxColor", 6,
 [
   { name="enabled", type="bool", defVal=0 },
   { name="allow_game_override", type="bool", defVal=0 },
@@ -177,6 +203,7 @@ declare_struct("FxColor", 5,
   { name="curve_over_part_life", type="FxColorCurveOpt" },
   { name="curve_over_part_idx", type="FxMaskedCurveOpt" },
   { name="alpha_by_velocity", type="FxAlphaByVelocity" },
+  { name="fake_brightness", type="FxFakeAdaptation" },
 ]);
 
 declare_struct("FxRotation", 2,
@@ -324,7 +351,7 @@ declare_struct("FxCameraVelocity", 1,
 ]
 );
 
-declare_struct("FxVelocity", 14,
+declare_struct("FxVelocity", 16,
 [
   { name="enabled", type="bool", defVal=0 },
   { name="mass", type="real", defVal=1 },
@@ -333,6 +360,8 @@ declare_struct("FxVelocity", 14,
   { name="apply_gravity", type="bool", defVal=1 },
   { name="gravity_transform", type="bool", defVal=0 },
   { name="apply_parent_velocity", type="bool", defVal=0 },
+  { name="force_apply_gravity_zone", type="bool", defVal=0 },
+  { name="apply_parent_velocity_locally", type="bool", defVal=0 },
   { name="start", type="FxVelocityStart" },
   { name="add", type="FxVelocityAdd" },
   { name="force_field", type="FxForceField" },
@@ -355,12 +384,16 @@ declare_struct("FxPlacement", 3,
   { name="align_normals_offset", type="real", defVal=-1 },
 ]);
 
-declare_struct("FxTextureAnim", 1,
+declare_struct("FxTextureAnim", 3,
 [
   { name="enabled", type="bool", defVal=0 },
   { name="animated_flipbook", type="bool", defVal=0 },
   { name="speed_min", type="real", defVal=1 },
   { name="speed_max", type="real", defVal=1 },
+
+  { name="motion_vectors", type="bool", defVal=0 },
+  { name="motion_vectors_min_quality", type="list", list=["low", "medium", "high"] },
+  { name="motion_vectors_strength", type="real", defVal=0.01 },
 
   { name="over_part_life", type="FxValueCurveOpt" },
 ]);
@@ -428,10 +461,32 @@ declare_struct("FxThermalEmission", 2,
   { name="over_part_life", type="FxValueCurveOpt" },
 ]);
 
-declare_struct("FxLighting", 5,
+declare_struct("FxAdvancedTranslucency", 1,
+[
+  { name="enabled", type="bool", defVal=0 },
+  { name="tranclucency_color_mul", type="Point3", defVal=Point3(2.5, 2, 1) },
+  { name="weigh_translucency_by_view_light_degree", type="bool", defVal = 0 },
+  { name="use_alpha_as_translucency", type="bool", defVal=0 },
+  { name="alpha_for_translucent_min", type="real", defVal=0 },
+  { name="alpha_for_translucent_max", type="real", defVal=1 },
+  { name="min_translucency_value", type="real", defVal=0 },
+  { name="max_translucency_value", type="real", defVal=1 },
+  { name="use_normal_as_translucency", type="bool", defVal=0 },
+  { name="use_viewvector_for_normal_based_translucency", type="bool", defVal=0 },
+  { name="invert_accepted_degrees", type="bool", defVal=0 },
+  { name="from_degree", type="real", defVal=0 },
+  { name="to_degree", type="real", defVal=90 },
+]);
+
+declare_struct("FxTranslucency", 1,
+[
+  { name="translucency_val", type="real", defVal=0 },
+  { name="advanced_translucency", type="FxAdvancedTranslucency" },
+]);
+
+declare_struct("FxLighting", 6,
 [
   { name="type", type="list", list=["none", "uniform", "view_disc", "sphere", "normal_map"] },
-  { name="translucency", type="real", defVal=0 },
   { name="sphere_normal_radius", type="real", defVal=1 },
   { name="sphere_normal_power", type="real", defVal=1 },
   { name="normal_softness", type="real", defVal=0 },
@@ -440,13 +495,15 @@ declare_struct("FxLighting", 5,
   { name="specular_strength", type="real", defVal=1 },
   { name="ambient_enabled", type="bool", defVal=0 },
   { name="external_lights_enabled", type="bool", defVal=0 },
+  { name="translucency", type="FxTranslucency" },
 ]);
 
-declare_struct("FxRenderShapeBillboard", 9,
+declare_struct("FxRenderShapeBillboard", 11,
 [
-  { name="orientation", type="list", list=["screen", "view_pos", "velocity", "static_aligned", "adaptive_aligned", "velocity_motion", "start_velocity"] },
+  { name="orientation", type="list", list=["screen", "view_pos", "velocity", "static_aligned", "adaptive_aligned", "velocity_motion", "start_velocity", "static_velocity"] },
   { name="static_aligned_up_vec", type="Point3", defVal=Point3(0, 1, 0) },
   { name="static_aligned_right_vec", type="Point3", defVal=Point3(1, 0, 0) },
+  { name="static_velocity_orientation_vec", type="Point3", defVal=Point3(0, 1, 0) },
   { name="cross_fade_mul", type="real", defVal=0 },
   { name="cross_fade_pow", type="int", defVal=1 },
   { name="cross_fade_threshold", type="real", defVal=0 },
@@ -454,6 +511,7 @@ declare_struct("FxRenderShapeBillboard", 9,
   { name="velocity_to_length", type="real", defVal=1 },
   { name="velocity_to_length_clamp", type="Point2", defVal=Point2(1, 1) },
   { name="screen_view_clamp", type="Point2", defVal=Point2(0, 0) },
+  { name="distance_scale", type="FxDistanceScale" },
 ]);
 
 declare_struct("FxRenderShapeRibbon", 3,
@@ -481,9 +539,9 @@ declare_struct("FxBlending", 1,
   { name="type", type="list", list=["alpha_blend", "premult_alpha", "additive"] },
 ]);
 
-declare_struct("FxRenderGroup", 4,
+declare_struct("FxRenderGroup", 5,
 [
-  { name="type", type="list", list=["lowres", "highres", "distortion", "water_proj", "underwater"] },
+  { name="type", type="list", list=["lowres", "highres", "distortion", "water_proj_advanced", "water_proj", "underwater"] },
 ]);
 
 declare_struct("FxRenderShaderDummy", 1,
@@ -513,18 +571,43 @@ declare_struct("FxRenderVolfogInjection", 1,
   { name="weight_alpha", type="real", defVal=1 },
 ]);
 
-declare_struct("FxRenderShader", 11,
+declare_struct("FxRenderShaderXray", 1,
+[
+  { name="blend_color1", type="E3DCOLOR", defVal=Color4(255, 255, 255, 255) },
+  { name="blend_color2", type="E3DCOLOR", defVal=Color4(255, 255, 255, 255) },
+  { name="blend_distance", type="real", defVal=15 },
+  { name="blend_power", type="real", defVal=1 },
+]);
+
+declare_struct("FxRenderShaderWater", 1,
+[
+  { name="use_height_tex_1", type="bool", defVal = 0 }
+  { name="height_scale", type="real", defVar = 0 }
+  { name="smoothness", type="real", defVar = 0 }
+  { name="reflectance", type="real", defVar = 1 }
+  { name="ao", type="real", defVar = 1 }
+]);
+
+declare_struct("FxRenderShader", 14,
 [
   { name="reverse_part_order", type="bool", defVal=0 },
   { name="shadow_caster", type="bool", defVal=0 },
   { name="allow_screen_proj_discard", type="bool", defVal=1 },
-  { name="shader", type="list", list=["modfx_default", "modfx_bboard_atest", "modfx_bboard_distortion", "modfx_vol_shape", "modfx_bboard_rain", "modfx_bboard_rain_distortion"] },
+  { name="shader", type="list", list=["modfx_default", "modfx_bboard_atest", "modfx_bboard_distortion", "modfx_vol_shape", "modfx_bboard_rain", "modfx_bboard_rain_distortion", "modfx_bboard_xray", "modfx_bboard_water_fx"] },
   { name="modfx_bboard_render", type="FxRenderShaderDummy" },
   { name="modfx_bboard_render_atest", type="FxRenderShaderDummy" },
   { name="modfx_bboard_distortion", type="FxRenderShaderDistortion" },
   { name="modfx_bboard_vol_shape", type="FxRenderShaderVolShape" },
   { name="modfx_bboard_rain", type="FxRenderShaderDummy" },
   { name="modfx_bboard_rain_distortion", type="FxRenderShaderDistortion" },
+  { name="modfx_bbboard_render_xray", type="FxRenderShaderXray" },
+  { name="modfx_bboard_water_fx", type="FxRenderShaderWater" },
+]);
+
+declare_struct("FxFadeByDist", 1,
+[
+  { name="enabled", type="bool", defVal=0 },
+  { name="zfar_start_to_clip", type="real", defVal=0 },
 ]);
 
 declare_struct("FxDepthMask", 3,
@@ -534,6 +617,7 @@ declare_struct("FxDepthMask", 3,
   { name="depth_softness", type="real", defVal=0.5 },
   { name="znear_softness", type="real", defVal=1 },
   { name="znear_clip", type="real", defVal=0.1 },
+  { name="zfar_fadeout", type="FxFadeByDist", defVal=0 },
 ]);
 
 declare_struct("FxPartTrimming", 2,
@@ -545,7 +629,7 @@ declare_struct("FxPartTrimming", 2,
   { name="fade_pow", type="real", defVal=1 },
 ]);
 
-declare_struct("FxGlobalParams", 4,
+declare_struct("FxGlobalParams", 3,
 [
   { name="spawn_range_limit", type="real", defVal=0 },
   { name="max_instances", type="int", defVal=100 },
@@ -563,7 +647,7 @@ declare_struct("FxQuality", 1,
   { name="high_quality", type="bool", defVal=1 },
 ]);
 
-end_declare_params("dafx_modfx", 13,
+end_declare_params("dafx_modfx", 15,
 [
   {struct="FxSpawn"},
   {struct="FxLife"},

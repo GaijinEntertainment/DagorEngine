@@ -20,12 +20,14 @@
 #include <drv/3d/dag_resetDevice.h>
 
 #define MAX_COUNT 4
-#define GLOBAL_VARS_LIST        \
-  VAR(shadow_frame)             \
-  VAR(big_light_reset_temporal) \
-  VAR(big_shadows_tex)          \
-  VAR(big_shadows_cnt)          \
-  VAR(big_shadows_prev_tex)
+#define GLOBAL_VARS_LIST            \
+  VAR(shadow_frame)                 \
+  VAR(big_light_reset_temporal)     \
+  VAR(big_shadows_tex)              \
+  VAR(big_shadows_tex_samplerstate) \
+  VAR(big_shadows_cnt)              \
+  VAR(big_shadows_prev_tex)         \
+  VAR(big_shadows_prev_tex_samplerstate)
 
 #define VAR(a) static int a##VarId = -1;
 GLOBAL_VARS_LIST
@@ -62,7 +64,7 @@ void BigLightsShadows::init(int w_, int h_, unsigned int maxCnt_, const char *pr
   maxCnt = min(maxCnt_, (uint32_t)MAX_COUNT);
   w = w_;
   h = h_;
-  const uint32_t fmt = maxCnt == 1 ? TEXFMT_L8 : maxCnt == 2 ? TEXFMT_R8G8 : TEXFMT_DEFAULT;
+  const uint32_t fmt = maxCnt == 1 ? TEXFMT_R8 : maxCnt == 2 ? TEXFMT_R8G8 : TEXFMT_DEFAULT;
   for (int i = 0; i < MAX_COUNT; ++i)
     big_light_posVarIds[i] = get_shader_variable_id(String(0, "big_light_pos_rad_%d", i), true);
 
@@ -71,8 +73,13 @@ void BigLightsShadows::init(int w_, int h_, unsigned int maxCnt_, const char *pr
     targetTex[i].close();
     String name(128, "%s_big_lights_shadows_tex_%d", prefix ? prefix : "", i);
     targetTex[i] = dag::create_tex(NULL, w, h, fmt | TEXCF_RTARGET, 1, name);
-    targetTex[i].getTex2D()->texbordercolor(0xFFFFFFFF);
-    targetTex[i].getTex2D()->texaddr(TEXADDR_CLAMP);
+  }
+  {
+    d3d::SamplerInfo smpInfo;
+    smpInfo.address_mode_u = smpInfo.address_mode_v = d3d::AddressMode::Clamp;
+    d3d::SamplerHandle sampler = d3d::request_sampler(smpInfo);
+    ShaderGlobal::set_sampler(big_shadows_tex_samplerstateVarId, sampler);
+    ShaderGlobal::set_sampler(big_shadows_prev_tex_samplerstateVarId, sampler);
   }
 
 

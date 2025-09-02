@@ -11,6 +11,11 @@ typedef struct SQVM *HSQUIRRELVM;
 
 typedef void (*TInitDas)();
 
+namespace ecs
+{
+class EntityManager;
+}
+
 namespace bind_dascript
 {
 enum class HotReload;
@@ -63,21 +68,42 @@ struct LoadEntryScriptCtx
 {
   int64_t additionalMemoryUsage = 0;
 };
+
+enum class DasSyntax
+{
+  V1_0,
+  V1_5,
+  V2_0,
+};
+
+struct LoadingDasEcsContextRAII
+{
+  ecs::EntityManager *prev = nullptr;
+  ecs::EntityManager *mgr = nullptr;
+  LoadingDasEcsContextRAII(ecs::EntityManager *mgr_);
+  ~LoadingDasEcsContextRAII();
+};
+
 bool get_always_use_main_thread_env();
 void set_always_use_main_thread_env(bool value);
+void set_worker_threads_mode(bool on);
+bool is_in_worker_threads_mode();
+bool is_in_documentation();
+void set_is_in_documentation(bool value);
 void set_das_root(const char *root_path);
 void free_serializer_buffer(bool success);
 void set_command_line_arguments(int argc, char *argv[]);
 int set_load_threads_num(int load_threads_num);
 int get_load_threads_num();
+DasSyntax set_das_syntax(DasSyntax syntax);
 void set_thread_init_script(const char *file_name);
 ResolveECS get_resolve_ecs_on_load();
 void set_resolve_ecs_on_load(ResolveECS);
-void init_das(AotMode enable_aot, HotReload allow_hot_reload, LogAotErrors log_aot_errors);
+void init_das(AotMode enable_aot, HotReload allow_hot_reload, LogAotErrors log_aot_errors, DasSyntax syntax);
 void pull_das();
 void init_scripts(HotReload hot_reload_mode, LoadDebugCode load_debug_code, const char *pak);
 void init_systems(AotMode aot_mode, HotReload hot_reload_mode, LoadDebugCode load_debug_code, LogAotErrors log_aot_errors,
-  const char *pak = nullptr);
+  DasSyntax syntax, const char *pak = nullptr);
 bool load_das_script(const char *name, const char *program_text);
 bool load_das_script(const char *fname);
 bool load_das_script_debugger(const char *fname);
@@ -85,7 +111,7 @@ bool load_das_script_with_debugcode(const char *fname);
 bool load_entry_script(const char *entry_point_name, TInitDas init, LoadEntryScriptCtx ctx = {});
 // internal use only
 void begin_loading_queue();
-bool stop_loading_queue(TInitDas init);
+bool stop_loading_queue(TInitDas init, void *user_data = nullptr);
 void end_loading_queue(LoadEntryScriptCtx ctx);
 
 bool main_thread_post_load();

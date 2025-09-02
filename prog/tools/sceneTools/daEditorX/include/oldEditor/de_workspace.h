@@ -89,9 +89,9 @@ private:
   bool hmapUseNormalMap;
   float genFwdRadius, genBackRadius, genDiscardRadius;
 
-  virtual bool loadSpecific(const DataBlock &blk);
-  virtual bool loadAppSpecific(const DataBlock &blk);
-  virtual bool saveSpecific(DataBlock &blk);
+  bool loadSpecific(const DataBlock &blk) override;
+  bool loadAppSpecific(const DataBlock &blk) override;
+  bool saveSpecific(DataBlock &blk) override;
 
   void setDefaultLightPresets();
 };

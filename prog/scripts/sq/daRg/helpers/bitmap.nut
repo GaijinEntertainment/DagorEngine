@@ -67,8 +67,8 @@ function mkBitmapPictureLazy(w, h, fillCb, prefix = "") {
   }
 }
 
-return {
+return freeze({
   mkBitmapPicture
   mkBitmapPictureLazy
   function setMaxCachedSize(size) { maxCachedSize = size }
-}
+})

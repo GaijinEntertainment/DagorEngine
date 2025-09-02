@@ -1,4 +1,4 @@
-Register request for access to slots storage
+Register Request for Access to Slots Storage
 ============================================
 
 .. doxygenfunction:: resource_slot::register_access

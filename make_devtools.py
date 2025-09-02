@@ -206,8 +206,8 @@ setup_vs142(True)
 
 
 def setup_vs143(check_again_after_download):
-  vs143_ver = "14.39"
-  vc2022_dest_folder = dest_dir + '/vc2022_17.9.5'
+  vs143_ver = "14.44"
+  vc2022_dest_folder = dest_dir + '/vc2022_17.14.4'
 
   if pathlib.Path(vc2022_dest_folder).exists():
     real_path = ""
@@ -247,7 +247,7 @@ def setup_vs143(check_again_after_download):
       print('+++ VC2022 found at {0}'.format(vc2022_src_folder))
       make_directory_symlink(vc2022_src_folder, vc2022_dest_folder)
     else:
-      print('--- VC2022 not found, install VisualStudio 2022 17.9.5+ and re-run setup')
+      print('--- VC2022 not found, install VisualStudio 2022 17.14.4+ and re-run setup')
       if not check_again_after_download:
         error("Visual Studio 2022 is required but not found at '{0}'".format(vc2022_src_folder))
       microsoft_retry.append(setup_vs143)
@@ -301,6 +301,7 @@ setup_winsdk_81(True)
 
 if len(microsoft_retry) > 0:
   download_url('https://aka.ms/vs/17/release/vs_buildtools.exe')
+  run(dest_dir+"/.packages/vs_buildtools.exe --wait --passive update")
   run(dest_dir+"/.packages/vs_buildtools.exe --wait --passive --addProductLang en-US --add " +
     " Microsoft.VisualStudio.Component.Roslyn.Compiler" +
     " Microsoft.Component.MSBuild" +
@@ -323,31 +324,31 @@ if len(microsoft_retry) > 0:
     " Microsoft.VisualStudio.Component.VC.14.29.16.11.x86.x64 " +
     " Microsoft.VisualStudio.Component.VC.14.29.16.11.ARM64 " +
     " Microsoft.VisualStudio.Component.VC.14.29.16.11.ATL " +
-    " Microsoft.VisualStudio.Component.VC.14.39.17.9.x86.x64 " +
-    " Microsoft.VisualStudio.Component.VC.14.39.17.9.ARM64 " +
-    " Microsoft.VisualStudio.Component.VC.14.39.17.9.ATL " )
+    " Microsoft.VisualStudio.Component.VC.14.44.17.14.x86.x64 " +
+    " Microsoft.VisualStudio.Component.VC.14.44.17.14.ARM64 " +
+    " Microsoft.VisualStudio.Component.VC.14.44.17.14.ATL " )
 
   for fn in microsoft_retry:
     fn(False)
 
 
 
-# LLVM 15.0.7
-llvm_dest_folder = dest_dir+'/LLVM-15.0.7'
+# LLVM 18.1.8
+llvm_dest_folder = dest_dir+'/LLVM-18.1.8'
 if pathlib.Path(llvm_dest_folder).exists():
-  print('=== LLVM 15.0.7 symlink found at {0}, skipping setup'.format(llvm_dest_folder))
+  print('=== LLVM 18.1.8 symlink found at {0}, skipping setup'.format(llvm_dest_folder))
 else:
   llvm_src_folder = '{0}/LLVM'.format(os.environ['ProgramFiles']) #(x86)
   if not pathlib.Path(llvm_src_folder+'/bin').exists():
-    print('--- LLVM 15.0.7 not found, trying to install')
-    download_url('https://github.com/llvm/llvm-project/releases/download/llvmorg-15.0.7/LLVM-15.0.7-win64.exe')
-    run(dest_dir+'/.packages/LLVM-15.0.7-win64.exe /S')
+    print('--- LLVM 18.1.8 not found, trying to install')
+    download_url('https://github.com/llvm/llvm-project/releases/download/llvmorg-18.1.8/LLVM-18.1.8-win64.exe')
+    run(dest_dir+'/.packages/LLVM-18.1.8-win64.exe /S')
 
   if pathlib.Path(llvm_src_folder+'/bin').exists():
-    print('+++ LLVM 15.0.7 found at {0}'.format(llvm_src_folder))
+    print('+++ LLVM 18.1.8 found at {0}'.format(llvm_src_folder))
     make_directory_symlink(llvm_src_folder, llvm_dest_folder)
   else:
-    error("LLVM 15.0.7 not found")
+    error("LLVM 18.1.8 not found")
 
 
 # nasm
@@ -501,28 +502,28 @@ else:
     print('+++ FidelityFX_SC 2.2.1 installed at {0}'.format(ffxsc_dest_folder))
 
 
-# DXC-1.7.2207
-dxc_dest_folder = dest_dir+'/DXC-1.7.2207'
+# DXC-1.8.2407
+dxc_dest_folder = dest_dir+'/DXC-1.8.2407'
 if pathlib.Path(dxc_dest_folder).exists():
-  print('=== DXC Jul 2022 found at {0}, skipping setup'.format(dxc_dest_folder))
+  print('=== DXC Jul 2024 1.8.2407 found at {0}, skipping setup'.format(dxc_dest_folder))
 else:
-  download_url('https://github.com/microsoft/DirectXShaderCompiler/releases/download/v1.7.2207/dxc_2022_07_18.zip')
-  download_url('https://github.com/microsoft/DirectXShaderCompiler/archive/refs/tags/v1.7.2207.zip')
-  with zipfile.ZipFile(os.path.normpath(dest_dir+'/.packages/v1.7.2207.zip'), 'r') as zip_file:
+  download_url('https://github.com/microsoft/DirectXShaderCompiler/releases/download/v1.8.2407/dxc_2024_07_31.zip')
+  download_url('https://github.com/microsoft/DirectXShaderCompiler/archive/refs/tags/v1.8.2407.zip')
+  with zipfile.ZipFile(os.path.normpath(dest_dir+'/.packages/v1.8.2407.zip'), 'r') as zip_file:
     zip_file.extractall(dest_dir+'/.packages/')
-    with zipfile.ZipFile(os.path.normpath(dest_dir+'/.packages/dxc_2022_07_18.zip'), 'r') as zip_file:
-      zip_file.extractall(dest_dir+'/.packages/DirectXShaderCompiler-1.7.2207/_win')
+    with zipfile.ZipFile(os.path.normpath(dest_dir+'/.packages/dxc_2024_07_31.zip'), 'r') as zip_file:
+      zip_file.extractall(dest_dir+'/.packages/DirectXShaderCompiler-1.8.2407/_win')
 
       pathlib.Path(dxc_dest_folder+'/include').mkdir(parents=True, exist_ok=True)
       pathlib.Path(dxc_dest_folder+'/lib').mkdir(parents=True, exist_ok=True)
-      make_directory_symlink(dest_dir+'/.packages/DirectXShaderCompiler-1.7.2207/include/dxc', dxc_dest_folder+'/include/dxc')
-      make_directory_symlink(dest_dir+'/.packages/DirectXShaderCompiler-1.7.2207/_win/bin/x64', dxc_dest_folder+'/lib/win64')
-      make_directory_symlink(dest_dir+'/.packages/DirectXShaderCompiler-1.7.2207/_win/bin/arm64', dxc_dest_folder+'/lib/win-arm64')
-      shutil.copyfile(dest_dir+'/.packages/DirectXShaderCompiler-1.7.2207/LICENSE.TXT', dxc_dest_folder+'/LICENSE.TXT')
-      print('+++ DXC Jul 2022 installed at {0}'.format(dxc_dest_folder))
+      make_directory_symlink(dest_dir+'/.packages/DirectXShaderCompiler-1.8.2407/include/dxc', dxc_dest_folder+'/include/dxc')
+      make_directory_symlink(dest_dir+'/.packages/DirectXShaderCompiler-1.8.2407/_win/bin/x64', dxc_dest_folder+'/lib/win64')
+      make_directory_symlink(dest_dir+'/.packages/DirectXShaderCompiler-1.8.2407/_win/bin/arm64', dxc_dest_folder+'/lib/win-arm64')
+      shutil.copyfile(dest_dir+'/.packages/DirectXShaderCompiler-1.8.2407/LICENSE.TXT', dxc_dest_folder+'/LICENSE.TXT')
+      print('+++ DXC Jul 2024 1.8.2407 installed at {0}'.format(dxc_dest_folder))
 
-# Agility.SDK.1.614.1
-asdk_ver = '1.614.1'
+# Agility.SDK.1.616.1
+asdk_ver = '1.616.1'
 asdk_dest_folder = dest_dir+'/Agility.SDK.'+asdk_ver
 if pathlib.Path(asdk_dest_folder).exists():
   print('=== Agility.SDK.{1} symlink found at {0}, skipping setup'.format(asdk_dest_folder, asdk_ver))

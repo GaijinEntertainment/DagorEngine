@@ -12,7 +12,6 @@ typedef volatile int os_spinlock_t;
 
 KRNLIMP void os_spinlock_init(os_spinlock_t *lock);
 KRNLIMP void os_spinlock_destroy(os_spinlock_t *lock);
-KRNLIMP void os_spinlock_lock_raw(os_spinlock_t *lock); // no profiling
 KRNLIMP void os_spinlock_lock(os_spinlock_t *lock, da_profiler::desc_id_t token = da_profiler::DescSpinlock);
 KRNLIMP bool os_spinlock_trylock(os_spinlock_t *lock);
 KRNLIMP void os_spinlock_unlock(os_spinlock_t *lock);

@@ -243,14 +243,22 @@ int utf8_to_utf16(const char *src, int src_len, uint16_t *dst, int dst_len)
 #error "Not supported on this platform"
 #endif
 
-int utf8_strlen(const char *utf8_str)
+int utf8_strlen(const dag_char8_t *utf8_str)
 {
   int len = 0;
+#ifndef __cpp_char8_t
   for (unsigned char *ptr = (unsigned char *)utf8_str; ptr && *ptr; ptr++)
+#else
+  for (auto ptr = utf8_str; ptr && *ptr; ptr++)
+#endif
     if (((*ptr) & 0xC0) != 0x80)
       len++;
   return len;
 }
+
+#ifdef __cpp_char8_t
+int utf8_strlen(const char *utf8_str) { return utf8_strlen((const dag_char8_t *)utf8_str); }
+#endif
 
 #define EXPORT_PULL dll_pull_osapiwrappers_unicode
 #include <supp/exportPull.h>

@@ -287,20 +287,12 @@ def check_files_with_configs(files, cmdchecks = [], **kwargs):
     print("Check squirrel files using .dreyconfig files")
     for config_str, filesList in cfiles.items():
         config = json.loads(config_str)
-        configchecks = config.get("checks", [])
-
-        totalchecks = configchecks + cmdchecks
+        dis = config.get("__disabled_checks", [])
         cmds = ""
         print("Checking files:\n    {0}{1}".format("\n    ".join(filesList[:10]), "\n        and {0} more".format(len(filesList)-10) if len(filesList) >10 else ""))
-        if "*" in totalchecks:
-            print("All warnings check enabled")
-            cmds = ""
-        else:
-            disabled_checks = [k for k in nametonummap.keys() if k not in totalchecks]
-            print("Disabled checks: {0}".format(" ".join(disabled_checks) if disabled_checks else "None"))
-            totalchecks = [tidtocmd(c) for c in totalchecks]
-            totalchecks = " ".join(totalchecks)
-            cmds = "--inverse-warnings {0}".format(totalchecks)
+        if len(dis) > 0:
+            print("Disabled checks: {0}".format(" ".join(dis) if dis else "None"))
+        cmds = " ".join(["--D:{0}".format(w) for w in dis] if dis else [""])
         extracmds = " ".join([ "--{0}:{1}".format(key.replace("_","-"),value) for key, value in list( kwargs.items() )])
 
         failed.extend(run_tests_on_files(filesList, [cmds, " ".join(csq_args), extracmds]))
@@ -311,7 +303,7 @@ def check_files_with_configs(files, cmdchecks = [], **kwargs):
 
 
 def getNameWarningMap():
-    findre = re.compile("w(\d+)\s*\((.*)\)")
+    findre = re.compile(r"w(\d+)\s*\((.*)\)")
     out = shell("{0} --warnings-list".format(csq_path)).decode('utf-8')
     out = out.splitlines()
     filtered = []
@@ -364,9 +356,12 @@ if __name__ == "__main__":
         gerrit_files = [f for f in gerrit_files if not f.startswith("prog/1stPartyLibs/quirrel/quirrel/testData") and not f.startswith("prog/commonFx/")]
         gerrit_files = [f for f in gerrit_files if not f.startswith("skyquake/prog/scripts")]
         files = gather_files(gerrit_files, args.exclude, use_configs)
-    else:
-        assert len(args.paths)>0
+    elif len(args.paths)>0:
         files = gather_files(args.paths, args.exclude, use_configs)
+    else:
+        parser.print_usage()
+        print("No paths or commit was specified. Exitting...")
+        sys.exit(0)
 
     if args.use_configs: # <- may be use_configs, not args.use_configs?
         check_files_with_configs(files, args.warnings)
