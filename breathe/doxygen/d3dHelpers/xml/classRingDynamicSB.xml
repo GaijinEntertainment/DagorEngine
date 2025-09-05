@@ -1,0 +1,292 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classRingDynamicSB" kind="class" language="C++" prot="public">
+    <compoundname>RingDynamicSB</compoundname>
+    <basecompoundref refid="classRingDynamicBuffer" prot="public" virt="non-virtual">RingDynamicBuffer&lt; UniqueBuf, void &gt;</basecompoundref>
+    <includes refid="dag__ringDynBuf_8h" local="no">dag_ringDynBuf.h</includes>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="classRingDynamicSB_1ad09c53d859b9bce7780904fbc1695e7b" prot="protected" static="no" mutable="no">
+        <type><ref refid="dag__resPtr_8h_1aeb45b68a26629ad747c4a58e8b528a4c" kindref="member">UniqueBuf</ref></type>
+        <definition>UniqueBuf RingDynamicSB::renderBuf</definition>
+        <argsstring></argsstring>
+        <name>renderBuf</name>
+        <qualifiedname>RingDynamicSB::renderBuf</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_ringDynBuf.h" line="202" column="13" bodyfile="dag_ringDynBuf.h" bodystart="202" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classRingDynamicSB_1a049aa4300fac664f7c7e5a9cb1041e0e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>RingDynamicSB::RingDynamicSB</definition>
+        <argsstring>()=default</argsstring>
+        <name>RingDynamicSB</name>
+        <qualifiedname>RingDynamicSB::RingDynamicSB</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_ringDynBuf.h" line="143" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classRingDynamicSB_1a3f45432cb8140910ee46435d417d95d7" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>RingDynamicSB::RingDynamicSB</definition>
+        <argsstring>(RingDynamicSB &amp;&amp;)=default</argsstring>
+        <name>RingDynamicSB</name>
+        <qualifiedname>RingDynamicSB::RingDynamicSB</qualifiedname>
+        <param>
+          <type><ref refid="classRingDynamicSB" kindref="compound">RingDynamicSB</ref> &amp;&amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_ringDynBuf.h" line="144" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classRingDynamicSB_1a3dfaa6824bbffd930ec30ce558414ac9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>RingDynamicSB::~RingDynamicSB</definition>
+        <argsstring>()</argsstring>
+        <name>~RingDynamicSB</name>
+        <qualifiedname>RingDynamicSB::~RingDynamicSB</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_ringDynBuf.h" line="145" column="3" bodyfile="dag_ringDynBuf.h" bodystart="145" bodyend="145"/>
+      </memberdef>
+      <memberdef kind="function" id="classRingDynamicSB_1a0c4d958e3aeda5b5231b5269c1e54f1c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void RingDynamicSB::init</definition>
+        <argsstring>(int v_count, int v_stride, int elem_size, uint32_t flags, uint32_t format, const char *stat_name)</argsstring>
+        <name>init</name>
+        <qualifiedname>RingDynamicSB::init</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>v_count</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>v_stride</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>elem_size</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>flags</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>format</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>stat_name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_ringDynBuf.h" line="146" column="8" bodyfile="dag_ringDynBuf.h" bodystart="146" bodyend="169"/>
+      </memberdef>
+      <memberdef kind="function" id="classRingDynamicSB_1a8413718fd66ae56dcdfac394d6c8e99e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void RingDynamicSB::unlockData</definition>
+        <argsstring>(int used_count)</argsstring>
+        <name>unlockData</name>
+        <qualifiedname>RingDynamicSB::unlockData</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>used_count</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_ringDynBuf.h" line="170" column="8" bodyfile="dag_ringDynBuf.h" bodystart="170" bodyend="176"/>
+      </memberdef>
+      <memberdef kind="function" id="classRingDynamicSB_1a6bb8b5e8319325c15e5439730999952b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void RingDynamicSB::close</definition>
+        <argsstring>()</argsstring>
+        <name>close</name>
+        <qualifiedname>RingDynamicSB::close</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_ringDynBuf.h" line="177" column="8" bodyfile="dag_ringDynBuf.h" bodystart="177" bodyend="181"/>
+      </memberdef>
+      <memberdef kind="function" id="classRingDynamicSB_1a4ede2a5546cadab814546bf34eb57c2a" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>Sbuffer *</type>
+        <definition>Sbuffer * RingDynamicSB::getRenderBuf</definition>
+        <argsstring>() const</argsstring>
+        <name>getRenderBuf</name>
+        <qualifiedname>RingDynamicSB::getRenderBuf</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_ringDynBuf.h" line="182" column="11" bodyfile="dag_ringDynBuf.h" bodystart="182" bodyend="182"/>
+      </memberdef>
+      <memberdef kind="function" id="classRingDynamicSB_1aa45f2c157872419cd531216b1c7fce07" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int RingDynamicSB::addData</definition>
+        <argsstring>(const void *__restrict data, int count)</argsstring>
+        <name>addData</name>
+        <qualifiedname>RingDynamicSB::addData</qualifiedname>
+        <param>
+          <type>const void *__restrict</type>
+          <declname>data</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>count</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_ringDynBuf.h" line="183" column="7" bodyfile="dag_ringDynBuf.h" bodystart="183" bodyend="193"/>
+      </memberdef>
+      <memberdef kind="function" id="classRingDynamicSB_1a8a0a503015adf7c6b10b98719be5f1fd" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>D3DRESID</type>
+        <definition>D3DRESID RingDynamicSB::getBufId</definition>
+        <argsstring>() const</argsstring>
+        <name>getBufId</name>
+        <qualifiedname>RingDynamicSB::getBufId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_ringDynBuf.h" line="194" column="12" bodyfile="dag_ringDynBuf.h" bodystart="194" bodyend="199"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>RingDynamicBuffer&lt; UniqueBuf, void &gt;</label>
+        <link refid="classRingDynamicBuffer"/>
+      </node>
+      <node id="1">
+        <label>RingDynamicSB</label>
+        <link refid="classRingDynamicSB"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="7">
+        <label>ManagedBuf</label>
+        <link refid="classresptr__detail_1_1ManagedRes"/>
+        <childnode refid="8" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>ManagedResType</label>
+      </node>
+      <node id="8">
+        <label>ResourceGetter&lt; ManagedRes&lt; ResType &gt;, ResType &gt;</label>
+      </node>
+      <node id="2">
+        <label>RingDynamicBuffer&lt; UniqueBuf, void &gt;</label>
+        <link refid="classRingDynamicBuffer"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>buf</edgelabel>
+        </childnode>
+      </node>
+      <node id="1">
+        <label>RingDynamicSB</label>
+        <link refid="classRingDynamicSB"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="6" relation="usage">
+          <edgelabel>renderBuf</edgelabel>
+        </childnode>
+      </node>
+      <node id="6">
+        <label>resptr_detail::UniqueRes&lt; ManagedBuf &gt;</label>
+        <link refid="classresptr__detail_1_1UniqueRes"/>
+        <childnode refid="7" relation="public-inheritance">
+        </childnode>
+        <childnode refid="5" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>resptr_detail::UniqueRes&lt; ManagedResType, Deleter &gt;</label>
+        <link refid="classresptr__detail_1_1UniqueRes"/>
+        <childnode refid="4" relation="public-inheritance">
+        </childnode>
+        <childnode refid="5" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>resptr_detail::WeakMoveAssignable</label>
+        <link refid="classresptr__detail_1_1WeakMoveAssignable"/>
+      </node>
+    </collaborationgraph>
+    <location file="dag_ringDynBuf.h" line="140" column="1" bodyfile="dag_ringDynBuf.h" bodystart="141" bodyend="203"/>
+    <listofallmembers>
+      <member refid="classRingDynamicSB_1aa45f2c157872419cd531216b1c7fce07" prot="public" virt="non-virtual"><scope>RingDynamicSB</scope><name>addData</name></member>
+      <member refid="classRingDynamicBuffer_1abb2c1590689241835b1f60c8bd2bd789" prot="public" virt="non-virtual"><scope>RingDynamicSB</scope><name>addRef</name></member>
+      <member refid="classRingDynamicBuffer_1a84ca6e1c670509a73984782f8acc12ed" prot="protected" virt="non-virtual"><scope>RingDynamicSB</scope><name>buf</name></member>
+      <member refid="classRingDynamicBuffer_1a99f83b78cfb029f6fa87df44ab3bdc69" prot="public" virt="non-virtual"><scope>RingDynamicSB</scope><name>bufLeft</name></member>
+      <member refid="classRingDynamicBuffer_1a3eb781ae723963ab73cccd08d06bbed9" prot="public" virt="non-virtual"><scope>RingDynamicSB</scope><name>bufSize</name></member>
+      <member refid="classRingDynamicSB_1a6bb8b5e8319325c15e5439730999952b" prot="public" virt="non-virtual"><scope>RingDynamicSB</scope><name>close</name></member>
+      <member refid="classRingDynamicBuffer_1a5083a83dd1e56a9a010e67cde5db9f2f" prot="public" virt="non-virtual"><scope>RingDynamicSB</scope><name>delRef</name></member>
+      <member refid="classRingDynamicBuffer_1ab7a4c13ffb9526e52d58cb5d9f284752" prot="public" virt="non-virtual"><scope>RingDynamicSB</scope><name>getBuf</name></member>
+      <member refid="classRingDynamicSB_1a8a0a503015adf7c6b10b98719be5f1fd" prot="public" virt="non-virtual"><scope>RingDynamicSB</scope><name>getBufId</name></member>
+      <member refid="classRingDynamicBuffer_1ad1849e9221154bfaf08b94c133351fb9" prot="public" virt="non-virtual"><scope>RingDynamicSB</scope><name>getPos</name></member>
+      <member refid="classRingDynamicBuffer_1af182f9a7ad89013cfd194bf9ab0ff839" prot="public" virt="non-virtual"><scope>RingDynamicSB</scope><name>getProcessedCount</name></member>
+      <member refid="classRingDynamicSB_1a4ede2a5546cadab814546bf34eb57c2a" prot="public" virt="non-virtual"><scope>RingDynamicSB</scope><name>getRenderBuf</name></member>
+      <member refid="classRingDynamicBuffer_1a4e0d95c1429454d1f09a78c57a434159" prot="public" virt="non-virtual"><scope>RingDynamicSB</scope><name>getStride</name></member>
+      <member refid="classRingDynamicSB_1a0c4d958e3aeda5b5231b5269c1e54f1c" prot="public" virt="non-virtual"><scope>RingDynamicSB</scope><name>init</name></member>
+      <member refid="classRingDynamicBuffer_1af797f0a0d9f0ae233a1d73ffcc10f359" prot="public" virt="non-virtual"><scope>RingDynamicSB</scope><name>lockBufferAs</name></member>
+      <member refid="classRingDynamicBuffer_1a1f8dce232b006a8cb44faa9b056b74d4" prot="public" virt="non-virtual"><scope>RingDynamicSB</scope><name>lockData</name></member>
+      <member refid="classRingDynamicBuffer_1adcd1bf8b62685ee1a11191a05d6db02e" prot="protected" virt="non-virtual"><scope>RingDynamicSB</scope><name>pos</name></member>
+      <member refid="classRingDynamicBuffer_1abc4e109a2ef2f4ed7fbc49c7bc2efd1e" prot="protected" virt="non-virtual"><scope>RingDynamicSB</scope><name>refCount</name></member>
+      <member refid="classRingDynamicSB_1ad09c53d859b9bce7780904fbc1695e7b" prot="protected" virt="non-virtual"><scope>RingDynamicSB</scope><name>renderBuf</name></member>
+      <member refid="classRingDynamicBuffer_1acf950570109455ccc7f9ca4514966550" prot="public" virt="non-virtual"><scope>RingDynamicSB</scope><name>resetCounters</name></member>
+      <member refid="classRingDynamicBuffer_1ab13297bc225050733eedaa4ca0cc38d6" prot="public" virt="non-virtual"><scope>RingDynamicSB</scope><name>resetPos</name></member>
+      <member refid="classRingDynamicBuffer_1aef26ed4ab02486bb9c09fd1e5c769a47" prot="public" virt="non-virtual"><scope>RingDynamicSB</scope><name>RingDynamicBuffer</name></member>
+      <member refid="classRingDynamicBuffer_1a185e388bba8d1a022dc702f01460d8c1" prot="public" virt="non-virtual"><scope>RingDynamicSB</scope><name>RingDynamicBuffer</name></member>
+      <member refid="classRingDynamicSB_1a049aa4300fac664f7c7e5a9cb1041e0e" prot="public" virt="non-virtual"><scope>RingDynamicSB</scope><name>RingDynamicSB</name></member>
+      <member refid="classRingDynamicSB_1a3f45432cb8140910ee46435d417d95d7" prot="public" virt="non-virtual"><scope>RingDynamicSB</scope><name>RingDynamicSB</name></member>
+      <member refid="classRingDynamicBuffer_1a06ed9874c13c36eeab0edf6d273bd087" prot="protected" virt="non-virtual"><scope>RingDynamicSB</scope><name>rounds</name></member>
+      <member refid="classRingDynamicBuffer_1ac8e547290b778dd4f8c9b6d9b69772a6" prot="protected" virt="non-virtual"><scope>RingDynamicSB</scope><name>size</name></member>
+      <member refid="classRingDynamicBuffer_1a92f5cf6a10f994f067683570a537f6a6" prot="protected" virt="non-virtual"><scope>RingDynamicSB</scope><name>sPos</name></member>
+      <member refid="classRingDynamicBuffer_1ae9f793a5595698e1468d42bb2a5c1cbd" prot="protected" virt="non-virtual"><scope>RingDynamicSB</scope><name>stride</name></member>
+      <member refid="classRingDynamicSB_1a8413718fd66ae56dcdfac394d6c8e99e" prot="public" virt="non-virtual"><scope>RingDynamicSB</scope><name>unlockData</name></member>
+      <member refid="classRingDynamicBuffer_1a108e11565a39459feab495f024726ebe" prot="public" virt="non-virtual"><scope>RingDynamicSB</scope><name>~RingDynamicBuffer</name></member>
+      <member refid="classRingDynamicSB_1a3dfaa6824bbffd930ec30ce558414ac9" prot="public" virt="non-virtual"><scope>RingDynamicSB</scope><name>~RingDynamicSB</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

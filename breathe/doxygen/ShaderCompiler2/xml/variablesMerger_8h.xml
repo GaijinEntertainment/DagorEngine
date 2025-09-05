@@ -1,0 +1,583 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="variablesMerger_8h" kind="file" language="C++">
+    <compoundname>variablesMerger.h</compoundname>
+    <includes local="yes">shsyn.h</includes>
+    <includes refid="commonUtils_8h" local="yes">commonUtils.h</includes>
+    <includes refid="nameMap_8h" local="yes">nameMap.h</includes>
+    <includes local="no">drv/3d/dag_consts.h</includes>
+    <includes local="no">EASTL/vector.h</includes>
+    <includes local="no">EASTL/string.h</includes>
+    <includes local="no">EASTL/array.h</includes>
+    <includes local="no">EASTL/fixed_vector.h</includes>
+    <includes local="no">EASTL/map.h</includes>
+    <includes local="no">EASTL/optional.h</includes>
+    <includes local="no">EASTL/bitvector.h</includes>
+    <includedby refid="namedConst_8h" local="yes">namedConst.h</includedby>
+    <includedby refid="variablesMerger_8cpp" local="yes">variablesMerger.cpp</includedby>
+    <incdepgraph>
+      <node id="3">
+        <label>commonUtils.h</label>
+        <link refid="commonUtils_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="9">
+        <label>nameMap.h</label>
+        <link refid="nameMap_8h"/>
+        <childnode refid="10" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>variablesMerger.h</label>
+        <link refid="variablesMerger_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+      </node>
+      <node id="13">
+        <label>EASTL/array.h</label>
+      </node>
+      <node id="16">
+        <label>EASTL/bitvector.h</label>
+      </node>
+      <node id="14">
+        <label>EASTL/fixed_vector.h</label>
+      </node>
+      <node id="15">
+        <label>EASTL/map.h</label>
+      </node>
+      <node id="8">
+        <label>EASTL/optional.h</label>
+      </node>
+      <node id="7">
+        <label>EASTL/string.h</label>
+      </node>
+      <node id="12">
+        <label>EASTL/vector.h</label>
+      </node>
+      <node id="11">
+        <label>drv/3d/dag_consts.h</label>
+      </node>
+      <node id="2">
+        <label>shsyn.h</label>
+      </node>
+      <node id="6">
+        <label>util/dag_globDef.h</label>
+      </node>
+      <node id="10">
+        <label>util/dag_oaHashNameMap.h</label>
+      </node>
+      <node id="5">
+        <label>util/dag_safeArg.h</label>
+      </node>
+      <node id="4">
+        <label>utility</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="8">
+        <label>binDumpUtils.cpp</label>
+        <link refid="binDumpUtils_8cpp"/>
+      </node>
+      <node id="7">
+        <label>binDumpUtils.h</label>
+        <link refid="binDumpUtils_8h"/>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="10">
+        <label>codeBlocks.cpp</label>
+        <link refid="codeBlocks_8cpp"/>
+      </node>
+      <node id="9">
+        <label>codeBlocks.h</label>
+        <link refid="codeBlocks_8h"/>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+      </node>
+      <node id="43">
+        <label>condParser.cpp</label>
+        <link refid="condParser_8cpp"/>
+      </node>
+      <node id="35">
+        <label>cppStcodeAssembly.cpp</label>
+        <link refid="cppStcodeAssembly_8cpp"/>
+      </node>
+      <node id="31">
+        <label>cppStcodePasses.cpp</label>
+        <link refid="cppStcodePasses_8cpp"/>
+      </node>
+      <node id="30">
+        <label>cppStcodePasses.h</label>
+        <link refid="cppStcodePasses_8h"/>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+      </node>
+      <node id="19">
+        <label>deSerializationContext.cpp</label>
+        <link refid="deSerializationContext_8cpp"/>
+      </node>
+      <node id="18">
+        <label>deSerializationContext.h</label>
+        <link refid="deSerializationContext_8h"/>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+      </node>
+      <node id="20">
+        <label>intervals.cpp</label>
+        <link refid="intervals_8cpp"/>
+      </node>
+      <node id="23">
+        <label>linkShaders.cpp</label>
+        <link refid="linkShaders_8cpp"/>
+      </node>
+      <node id="22">
+        <label>linkShaders.h</label>
+        <link refid="linkShaders_8h"/>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+      </node>
+      <node id="27">
+        <label>loadShaders.cpp</label>
+        <link refid="loadShaders_8cpp"/>
+      </node>
+      <node id="26">
+        <label>loadShaders.h</label>
+        <link refid="loadShaders_8h"/>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>makeShBinDump.cpp</label>
+        <link refid="makeShBinDump_8cpp"/>
+      </node>
+      <node id="4">
+        <label>namedConst.cpp</label>
+        <link refid="namedConst_8cpp"/>
+      </node>
+      <node id="2">
+        <label>namedConst.h</label>
+        <link refid="namedConst_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="39" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>shCode.cpp</label>
+        <link refid="shCode_8cpp"/>
+      </node>
+      <node id="11">
+        <label>shCompiler.cpp</label>
+        <link refid="shCompiler_8cpp"/>
+      </node>
+      <node id="40">
+        <label>shExpr.cpp</label>
+        <link refid="shExpr_8cpp"/>
+      </node>
+      <node id="13">
+        <label>shExprParser.cpp</label>
+        <link refid="shExprParser_8cpp"/>
+      </node>
+      <node id="24">
+        <label>shSemCode.cpp</label>
+        <link refid="shSemCode_8cpp"/>
+      </node>
+      <node id="28">
+        <label>shShaderContext.h</label>
+        <link refid="shShaderContext_8h"/>
+        <childnode refid="29" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>shTargetContext.h</label>
+        <link refid="shTargetContext_8h"/>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="42" relation="include">
+        </childnode>
+      </node>
+      <node id="41">
+        <label>shTargetStorage.cpp</label>
+        <link refid="shTargetStorage_8cpp"/>
+      </node>
+      <node id="29">
+        <label>shVariantContext.h</label>
+        <link refid="shVariantContext_8h"/>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="34" relation="include">
+        </childnode>
+      </node>
+      <node id="25">
+        <label>sh_stat.cpp</label>
+        <link refid="sh__stat_8cpp"/>
+      </node>
+      <node id="21">
+        <label>shaderSave.cpp</label>
+        <link refid="shaderSave_8cpp"/>
+      </node>
+      <node id="14">
+        <label>shaderSemantic.cpp</label>
+        <link refid="shaderSemantic_8cpp"/>
+      </node>
+      <node id="12">
+        <label>shaderSemantic.h</label>
+        <link refid="shaderSemantic_8h"/>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+      </node>
+      <node id="38">
+        <label>shaderVariant.cpp</label>
+        <link refid="shaderVariant_8cpp"/>
+      </node>
+      <node id="37">
+        <label>shaderVariant.h</label>
+        <link refid="shaderVariant_8h"/>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="38" relation="include">
+        </childnode>
+        <childnode refid="39" relation="include">
+        </childnode>
+      </node>
+      <node id="36">
+        <label>shaderVariantSrc.cpp</label>
+        <link refid="shaderVariantSrc_8cpp"/>
+      </node>
+      <node id="39">
+        <label>shcode.h</label>
+        <link refid="shcode_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+      </node>
+      <node id="44">
+        <label>shlexterm.cpp</label>
+        <link refid="shlexterm_8cpp"/>
+      </node>
+      <node id="15">
+        <label>shsem.cpp</label>
+        <link refid="shsem_8cpp"/>
+      </node>
+      <node id="42">
+        <label>shsem.h</label>
+        <link refid="shsem_8h"/>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="43" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="44" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="33" relation="include">
+        </childnode>
+      </node>
+      <node id="33">
+        <label>variablesMerger.cpp</label>
+        <link refid="variablesMerger_8cpp"/>
+      </node>
+      <node id="1">
+        <label>variablesMerger.h</label>
+        <link refid="variablesMerger_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="33" relation="include">
+        </childnode>
+      </node>
+      <node id="17">
+        <label>variantAssembly.cpp</label>
+        <link refid="variantAssembly_8cpp"/>
+      </node>
+      <node id="32">
+        <label>variantAssembly.h</label>
+        <link refid="variantAssembly_8h"/>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="33" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+      </node>
+      <node id="16">
+        <label>variantSemantic.cpp</label>
+        <link refid="variantSemantic_8cpp"/>
+      </node>
+      <node id="34">
+        <label>variantSemantic.h</label>
+        <link refid="variantSemantic_8h"/>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="33" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="structShaderParser_1_1VariablesMerger" prot="public">ShaderParser::VariablesMerger</innerclass>
+    <innerclass refid="structShaderParser_1_1VariablesMerger_1_1MergedVarInfo" prot="public">ShaderParser::VariablesMerger::MergedVarInfo</innerclass>
+    <innernamespace refid="namespaceshc">shc</innernamespace>
+    <innernamespace refid="namespaceShaderParser">ShaderParser</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;shsyn.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="commonUtils_8h" kindref="compound">commonUtils.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="nameMap_8h" kindref="compound">nameMap.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_consts.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/vector.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/string.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/array.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/fixed_vector.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/map.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/optional.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/bitvector.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceshc" kindref="compound">shc</ref></highlight></codeline>
+<codeline lineno="19"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">TargetContext;</highlight></codeline>
+<codeline lineno="21"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceShaderParser" kindref="compound">ShaderParser</ref></highlight></codeline>
+<codeline lineno="24"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">AssembleShaderEvalCB;</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight></codeline>
+<codeline lineno="28" refid="structShaderParser_1_1VariablesMerger" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structShaderParser_1_1VariablesMerger" kindref="compound">VariablesMerger</ref></highlight></codeline>
+<codeline lineno="29"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">enum</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="32" refid="structShaderParser_1_1VariablesMerger_1aec28a3b5190fad356d4448c355d636d6a33360210747ec48542217e57a753176f" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structShaderParser_1_1VariablesMerger_1aec28a3b5190fad356d4448c355d636d6a33360210747ec48542217e57a753176f" kindref="member">TYPE_FLOAT</ref>,</highlight></codeline>
+<codeline lineno="33" refid="structShaderParser_1_1VariablesMerger_1aec28a3b5190fad356d4448c355d636d6a590b802a1c05f6326ae2e1a25d30854d" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structShaderParser_1_1VariablesMerger_1aec28a3b5190fad356d4448c355d636d6a590b802a1c05f6326ae2e1a25d30854d" kindref="member">TYPE_INT</ref>,</highlight></codeline>
+<codeline lineno="34" refid="structShaderParser_1_1VariablesMerger_1aec28a3b5190fad356d4448c355d636d6a1be76da42f1dd208467ef50253576e7b" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structShaderParser_1_1VariablesMerger_1aec28a3b5190fad356d4448c355d636d6a1be76da42f1dd208467ef50253576e7b" kindref="member">TYPE_UINT</ref>,</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structShaderParser_1_1VariablesMerger_1aec28a3b5190fad356d4448c355d636d6a949110cdaf2cd3cfb33d526cc7208931" kindref="member">TYPE_COUNT</ref></highlight></codeline>
+<codeline lineno="37" refid="structShaderParser_1_1VariablesMerger_1aec28a3b5190fad356d4448c355d636d6a949110cdaf2cd3cfb33d526cc7208931" refkind="member"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight></codeline>
+<codeline lineno="39" refid="structShaderParser_1_1VariablesMerger_1_1MergedVarInfo" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structShaderParser_1_1VariablesMerger_1_1MergedVarInfo" kindref="compound">MergedVarInfo</ref></highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="41" refid="structShaderParser_1_1VariablesMerger_1_1MergedVarInfo_1a1f8ff78ca38911f1e28338643c8a4359" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>eastl::string<sp/><ref refid="structShaderParser_1_1VariablesMerger_1_1MergedVarInfo_1a1f8ff78ca38911f1e28338643c8a4359" kindref="member">name</ref>;</highlight></codeline>
+<codeline lineno="42" refid="structShaderParser_1_1VariablesMerger_1_1MergedVarInfo_1a5ebdf20befa4d36d0249077c96d2f072" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structShaderParser_1_1VariablesMerger_1_1MergedVarInfo_1a5ebdf20befa4d36d0249077c96d2f072" kindref="member">offset</ref>;</highlight></codeline>
+<codeline lineno="43" refid="structShaderParser_1_1VariablesMerger_1_1MergedVarInfo_1ae5c63082885d09ea6bb605ff2b138564" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structShaderParser_1_1VariablesMerger_1_1MergedVarInfo_1ae5c63082885d09ea6bb605ff2b138564" kindref="member">size</ref>;</highlight></codeline>
+<codeline lineno="44" refid="structShaderParser_1_1VariablesMerger_1_1MergedVarInfo_1a9dc1fe2a889baf4b64416703b035d0f3" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structShaderParser_1_1VariablesMerger_1_1MergedVarInfo_1a9dc1fe2a889baf4b64416703b035d0f3" kindref="member">type</ref>;</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"></highlight></codeline>
+<codeline lineno="46" refid="structShaderParser_1_1VariablesMerger_1_1MergedVarInfo_1adc262e443b98e2ec1fab1cd6f6c35530" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>eastl::string<sp/><ref refid="structShaderParser_1_1VariablesMerger_1_1MergedVarInfo_1adc262e443b98e2ec1fab1cd6f6c35530" kindref="member">getSwizzle</ref>()</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="47"><highlight class="keyword"><sp/><sp/><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>swizzles[]<sp/>=<sp/></highlight><highlight class="stringliteral">&quot;xyzw&quot;</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>eastl::string(swizzles<sp/>+<sp/><ref refid="structShaderParser_1_1VariablesMerger_1_1MergedVarInfo_1a5ebdf20befa4d36d0249077c96d2f072" kindref="member">offset</ref>,<sp/><ref refid="structShaderParser_1_1VariablesMerger_1_1MergedVarInfo_1ae5c63082885d09ea6bb605ff2b138564" kindref="member">size</ref>);</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"></highlight></codeline>
+<codeline lineno="52" refid="structShaderParser_1_1VariablesMerger_1_1MergedVarInfo_1a58fb49fa9660bab10e053a392f17bf9d" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="structShaderParser_1_1VariablesMerger_1_1MergedVarInfo_1a58fb49fa9660bab10e053a392f17bf9d" kindref="member">getType</ref>()</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="53"><highlight class="keyword"><sp/><sp/><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">switch</highlight><highlight class="normal"><sp/>(<ref refid="structShaderParser_1_1VariablesMerger_1_1MergedVarInfo_1ae5c63082885d09ea6bb605ff2b138564" kindref="member">size</ref>)</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>1:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="structShaderParser_1_1VariablesMerger_1_1MergedVarInfo_1a9dc1fe2a889baf4b64416703b035d0f3" kindref="member">type</ref><sp/>==<sp/><ref refid="structShaderParser_1_1VariablesMerger_1aec28a3b5190fad356d4448c355d636d6a33360210747ec48542217e57a753176f" kindref="member">TYPE_FLOAT</ref><sp/>?<sp/></highlight><highlight class="stringliteral">&quot;float&quot;</highlight><highlight class="normal"><sp/>:<sp/>(<ref refid="structShaderParser_1_1VariablesMerger_1_1MergedVarInfo_1a9dc1fe2a889baf4b64416703b035d0f3" kindref="member">type</ref><sp/>==<sp/><ref refid="structShaderParser_1_1VariablesMerger_1aec28a3b5190fad356d4448c355d636d6a1be76da42f1dd208467ef50253576e7b" kindref="member">TYPE_UINT</ref><sp/>?<sp/></highlight><highlight class="stringliteral">&quot;uint&quot;</highlight><highlight class="normal"><sp/>:<sp/></highlight><highlight class="stringliteral">&quot;int&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>2:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="structShaderParser_1_1VariablesMerger_1_1MergedVarInfo_1a9dc1fe2a889baf4b64416703b035d0f3" kindref="member">type</ref><sp/>==<sp/><ref refid="structShaderParser_1_1VariablesMerger_1aec28a3b5190fad356d4448c355d636d6a33360210747ec48542217e57a753176f" kindref="member">TYPE_FLOAT</ref><sp/>?<sp/></highlight><highlight class="stringliteral">&quot;float2&quot;</highlight><highlight class="normal"><sp/>:<sp/>(<ref refid="structShaderParser_1_1VariablesMerger_1_1MergedVarInfo_1a9dc1fe2a889baf4b64416703b035d0f3" kindref="member">type</ref><sp/>==<sp/><ref refid="structShaderParser_1_1VariablesMerger_1aec28a3b5190fad356d4448c355d636d6a1be76da42f1dd208467ef50253576e7b" kindref="member">TYPE_UINT</ref><sp/>?<sp/></highlight><highlight class="stringliteral">&quot;uint2&quot;</highlight><highlight class="normal"><sp/>:<sp/></highlight><highlight class="stringliteral">&quot;int2&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>3:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="structShaderParser_1_1VariablesMerger_1_1MergedVarInfo_1a9dc1fe2a889baf4b64416703b035d0f3" kindref="member">type</ref><sp/>==<sp/><ref refid="structShaderParser_1_1VariablesMerger_1aec28a3b5190fad356d4448c355d636d6a33360210747ec48542217e57a753176f" kindref="member">TYPE_FLOAT</ref><sp/>?<sp/></highlight><highlight class="stringliteral">&quot;float3&quot;</highlight><highlight class="normal"><sp/>:<sp/>(<ref refid="structShaderParser_1_1VariablesMerger_1_1MergedVarInfo_1a9dc1fe2a889baf4b64416703b035d0f3" kindref="member">type</ref><sp/>==<sp/><ref refid="structShaderParser_1_1VariablesMerger_1aec28a3b5190fad356d4448c355d636d6a1be76da42f1dd208467ef50253576e7b" kindref="member">TYPE_UINT</ref><sp/>?<sp/></highlight><highlight class="stringliteral">&quot;uint3&quot;</highlight><highlight class="normal"><sp/>:<sp/></highlight><highlight class="stringliteral">&quot;int3&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>4:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="structShaderParser_1_1VariablesMerger_1_1MergedVarInfo_1a9dc1fe2a889baf4b64416703b035d0f3" kindref="member">type</ref><sp/>==<sp/><ref refid="structShaderParser_1_1VariablesMerger_1aec28a3b5190fad356d4448c355d636d6a33360210747ec48542217e57a753176f" kindref="member">TYPE_FLOAT</ref><sp/>?<sp/></highlight><highlight class="stringliteral">&quot;float4&quot;</highlight><highlight class="normal"><sp/>:<sp/>(<ref refid="structShaderParser_1_1VariablesMerger_1_1MergedVarInfo_1a9dc1fe2a889baf4b64416703b035d0f3" kindref="member">type</ref><sp/>==<sp/><ref refid="structShaderParser_1_1VariablesMerger_1aec28a3b5190fad356d4448c355d636d6a1be76da42f1dd208467ef50253576e7b" kindref="member">TYPE_UINT</ref><sp/>?<sp/></highlight><highlight class="stringliteral">&quot;uint4&quot;</highlight><highlight class="normal"><sp/>:<sp/></highlight><highlight class="stringliteral">&quot;int4&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">:<sp/>G_ASSERT_RETURN(0,<sp/></highlight><highlight class="stringliteral">&quot;&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"></highlight></codeline>
+<codeline lineno="65" refid="structShaderParser_1_1VariablesMerger_1a463cd9bd748a74701a70b949b4d2133a" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="structShaderParser_1_1VariablesMerger_1a463cd9bd748a74701a70b949b4d2133a" kindref="member">MergeableStateBlocks</ref><sp/>=<sp/>Tab&lt;ShaderTerminal::state_block_stat<sp/>*&gt;;</highlight></codeline>
+<codeline lineno="66" refid="structShaderParser_1_1VariablesMerger_1abc4220c1a8ab6c610d37a9fd77cf5a4f" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="structShaderParser_1_1VariablesMerger_1abc4220c1a8ab6c610d37a9fd77cf5a4f" kindref="member">MergeableStateBlocksPerStage</ref><sp/>=<sp/>eastl::array&lt;<ref refid="structShaderParser_1_1VariablesMerger_1a463cd9bd748a74701a70b949b4d2133a" kindref="member">MergeableStateBlocks</ref>,<sp/>(int)ShaderStage::STAGE_MAX&gt;;</highlight></codeline>
+<codeline lineno="67" refid="structShaderParser_1_1VariablesMerger_1a24200837b3fe2b55bb079e00ea3f3c01" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="structShaderParser_1_1VariablesMerger_1a24200837b3fe2b55bb079e00ea3f3c01" kindref="member">MergedVars</ref><sp/>=<sp/>eastl::fixed_vector&lt;MergedVarInfo,<sp/>4&gt;;</highlight></codeline>
+<codeline lineno="68" refid="structShaderParser_1_1VariablesMerger_1af5ea6f544b8ef480981a3e7a2a5f1748" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="structShaderParser_1_1VariablesMerger_1af5ea6f544b8ef480981a3e7a2a5f1748" kindref="member">MergedVarsMap</ref><sp/>=<sp/>ska::flat_hash_map&lt;eastl::string,<sp/>MergedVars&gt;;</highlight></codeline>
+<codeline lineno="69" refid="structShaderParser_1_1VariablesMerger_1a69bb3b8a2526e6dccd978cd0be4fde95" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="structShaderParser_1_1VariablesMerger_1a69bb3b8a2526e6dccd978cd0be4fde95" kindref="member">MergedVarsMapsPerStage</ref><sp/>=<sp/>eastl::array&lt;<ref refid="structShaderParser_1_1VariablesMerger_1af5ea6f544b8ef480981a3e7a2a5f1748" kindref="member">MergedVarsMap</ref>,<sp/>(int)ShaderStage::STAGE_MAX&gt;;</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"></highlight></codeline>
+<codeline lineno="71" refid="structShaderParser_1_1VariablesMerger_1a5191f7d6ed38652ff18cbbcdc41ffd45" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structShaderParser_1_1VariablesMerger_1abc4220c1a8ab6c610d37a9fd77cf5a4f" kindref="member">MergeableStateBlocksPerStage</ref><sp/><ref refid="structShaderParser_1_1VariablesMerger_1a5191f7d6ed38652ff18cbbcdc41ffd45" kindref="member">constBlocks</ref>;</highlight></codeline>
+<codeline lineno="72" refid="structShaderParser_1_1VariablesMerger_1af8c33fc6e22fb27cf413376e6f0938d8" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structShaderParser_1_1VariablesMerger_1a69bb3b8a2526e6dccd978cd0be4fde95" kindref="member">MergedVarsMapsPerStage</ref><sp/><ref refid="structShaderParser_1_1VariablesMerger_1af8c33fc6e22fb27cf413376e6f0938d8" kindref="member">constVarsMaps</ref>;</highlight></codeline>
+<codeline lineno="73" refid="structShaderParser_1_1VariablesMerger_1a7d2b252024205943ff8366139305ab56" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structShaderParser_1_1VariablesMerger_1a463cd9bd748a74701a70b949b4d2133a" kindref="member">MergeableStateBlocks</ref><sp/><ref refid="structShaderParser_1_1VariablesMerger_1a7d2b252024205943ff8366139305ab56" kindref="member">bufferedBlocks</ref>;</highlight></codeline>
+<codeline lineno="74" refid="structShaderParser_1_1VariablesMerger_1accceae9931a5f8e682e208a17583c699" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structShaderParser_1_1VariablesMerger_1af5ea6f544b8ef480981a3e7a2a5f1748" kindref="member">MergedVarsMap</ref><sp/><ref refid="structShaderParser_1_1VariablesMerger_1accceae9931a5f8e682e208a17583c699" kindref="member">bufferedVarsMap</ref>;</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"></highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>@TODO:<sp/>this<sp/>is<sp/>to<sp/>prune<sp/>duplicate<sp/>ps/vs<sp/>stat<sp/>pairs<sp/>for<sp/>buffered<sp/>stats.<sp/>Should<sp/>be<sp/>replaced<sp/>with<sp/>actual<sp/>syntax<sp/>tree<sp/>comparison</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>(currently,<sp/>different<sp/>decls<sp/>for<sp/>vs<sp/>and<sp/>ps<sp/>race<sp/>to<sp/>be<sp/>the<sp/>one<sp/>chosen<sp/>for<sp/>buffer)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="78" refid="structShaderParser_1_1VariablesMerger_1a7ccd836270f2fb811d44fc091cdc1e4d" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="nameMap_8h_1ad3f42c540507651a7e4ce93760afc216" kindref="member">SCFastNameMap</ref><sp/><ref refid="structShaderParser_1_1VariablesMerger_1a7ccd836270f2fb811d44fc091cdc1e4d" kindref="member">bufferedStatsNames</ref>;</highlight></codeline>
+<codeline lineno="79" refid="structShaderParser_1_1VariablesMerger_1a5472b091b57e039f8ad569eea39aad53" refkind="member"><highlight class="normal"><sp/><sp/>eastl::bitvector&lt;&gt;<sp/><ref refid="structShaderParser_1_1VariablesMerger_1aa68ebe4816e00de90bd62b65a4d38641" kindref="member">bufferedDeclaredInVs</ref>,<sp/><ref refid="structShaderParser_1_1VariablesMerger_1a5472b091b57e039f8ad569eea39aad53" kindref="member">bufferedDeclaredInPsOrCs</ref>;</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"></highlight></codeline>
+<codeline lineno="81" refid="structShaderParser_1_1VariablesMerger_1a2e882ecad9fe2a972513e6746dcf03cc" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;<ref refid="structShaderParser_1_1VariablesMerger_1a2e882ecad9fe2a972513e6746dcf03cc" kindref="member">ctx</ref>;</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"></highlight></codeline>
+<codeline lineno="83" refid="structShaderParser_1_1VariablesMerger_1aeb5ca5d7a5e0fb3290cbb8e580e6efc6" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">explicit</highlight><highlight class="normal"><sp/><ref refid="structShaderParser_1_1VariablesMerger_1aeb5ca5d7a5e0fb3290cbb8e580e6efc6" kindref="member">VariablesMerger</ref>(<ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;a_ctx)<sp/>:<sp/><ref refid="structShaderParser_1_1VariablesMerger_1a2e882ecad9fe2a972513e6746dcf03cc" kindref="member">ctx</ref>{a_ctx}<sp/>{}</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"></highlight></codeline>
+<codeline lineno="85" refid="structShaderParser_1_1VariablesMerger_1acf31bd757796e4f7b3300dcb6e84bfbd" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structShaderParser_1_1VariablesMerger_1acf31bd757796e4f7b3300dcb6e84bfbd" kindref="member">addConstStat</ref>(ShaderTerminal::state_block_stat<sp/>&amp;state_block,<sp/>ShaderStage<sp/>stage)</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structShaderParser_1_1VariablesMerger_1a5191f7d6ed38652ff18cbbcdc41ffd45" kindref="member">constBlocks</ref>[stage].emplace_back(&amp;state_block);</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structShaderParser_1_1VariablesMerger_1a92a153d67693ab2a85fb236214497778" kindref="member">addBufferedStat</ref>(ShaderTerminal::state_block_stat<sp/>&amp;state_block,<sp/>ShaderStage<sp/>stage);</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"></highlight></codeline>
+<codeline lineno="91" refid="structShaderParser_1_1VariablesMerger_1ad2e11edcf1bbad9c52da74741be55717" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structShaderParser_1_1VariablesMerger_1ad2e11edcf1bbad9c52da74741be55717" kindref="member">mergeAllVars</ref>(<ref refid="classShaderParser_1_1AssembleShaderEvalCB" kindref="compound">AssembleShaderEvalCB</ref><sp/>*ascb)</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(ShaderStage<sp/>stage<sp/>:<sp/>{STAGE_CS,<sp/>STAGE_PS,<sp/>STAGE_VS})</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structShaderParser_1_1VariablesMerger_1a481f4a31bd3565c35942a7b6e3d52002" kindref="member">mergeVars</ref>(ascb,<sp/><ref refid="structShaderParser_1_1VariablesMerger_1a5191f7d6ed38652ff18cbbcdc41ffd45" kindref="member">constBlocks</ref>[stage],<sp/><ref refid="structShaderParser_1_1VariablesMerger_1af8c33fc6e22fb27cf413376e6f0938d8" kindref="member">constVarsMaps</ref>[stage],<sp/>stage);</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structShaderParser_1_1VariablesMerger_1a481f4a31bd3565c35942a7b6e3d52002" kindref="member">mergeVars</ref>(ascb,<sp/><ref refid="structShaderParser_1_1VariablesMerger_1a7d2b252024205943ff8366139305ab56" kindref="member">bufferedBlocks</ref>,<sp/><ref refid="structShaderParser_1_1VariablesMerger_1accceae9931a5f8e682e208a17583c699" kindref="member">bufferedVarsMap</ref>,<sp/>STAGE_PS);<sp/></highlight><highlight class="comment">//<sp/>Both<sp/>STAGE_PS<sp/>and<sp/>STAGE_VS<sp/>are<sp/>ok<sp/>here<sp/>--<sp/>static<sp/>cbuf<sp/>is<sp/>shared</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"></highlight></codeline>
+<codeline lineno="98" refid="structShaderParser_1_1VariablesMerger_1adf6147e427a59714cc526033e12e928a" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structShaderParser_1_1VariablesMerger_1a24200837b3fe2b55bb079e00ea3f3c01" kindref="member">MergedVars</ref><sp/>*<ref refid="structShaderParser_1_1VariablesMerger_1adf6147e427a59714cc526033e12e928a" kindref="member">findOriginalConstVarsInfo</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>eastl::string<sp/>merged_var_name,<sp/>ShaderStage<sp/>stage)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="99"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="structShaderParser_1_1VariablesMerger_1aaa13a8a2774d53489c829703bbbbf455" kindref="member">findOriginalVarsInfo</ref>(merged_var_name,<sp/><ref refid="structShaderParser_1_1VariablesMerger_1af8c33fc6e22fb27cf413376e6f0938d8" kindref="member">constVarsMaps</ref>[stage]);</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="102" refid="structShaderParser_1_1VariablesMerger_1af42dedfbb8fca7c623510e5e8e972316" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structShaderParser_1_1VariablesMerger_1a24200837b3fe2b55bb079e00ea3f3c01" kindref="member">MergedVars</ref><sp/>*<ref refid="structShaderParser_1_1VariablesMerger_1af42dedfbb8fca7c623510e5e8e972316" kindref="member">findOriginalBufferedVarsInfo</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>eastl::string<sp/>merged_var_name)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="103"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="structShaderParser_1_1VariablesMerger_1aaa13a8a2774d53489c829703bbbbf455" kindref="member">findOriginalVarsInfo</ref>(merged_var_name,<sp/><ref refid="structShaderParser_1_1VariablesMerger_1accceae9931a5f8e682e208a17583c699" kindref="member">bufferedVarsMap</ref>);</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"></highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structShaderParser_1_1VariablesMerger_1a481f4a31bd3565c35942a7b6e3d52002" kindref="member">mergeVars</ref>(<ref refid="classShaderParser_1_1AssembleShaderEvalCB" kindref="compound">AssembleShaderEvalCB</ref><sp/>*ascb,<sp/><ref refid="structShaderParser_1_1VariablesMerger_1a463cd9bd748a74701a70b949b4d2133a" kindref="member">MergeableStateBlocks</ref><sp/>&amp;blocks,<sp/><ref refid="structShaderParser_1_1VariablesMerger_1af5ea6f544b8ef480981a3e7a2a5f1748" kindref="member">MergedVarsMap</ref><sp/>&amp;var_map,<sp/>ShaderStage<sp/>stage);</highlight></codeline>
+<codeline lineno="108" refid="structShaderParser_1_1VariablesMerger_1aaa13a8a2774d53489c829703bbbbf455" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structShaderParser_1_1VariablesMerger_1a24200837b3fe2b55bb079e00ea3f3c01" kindref="member">MergedVars</ref><sp/>*<ref refid="structShaderParser_1_1VariablesMerger_1aaa13a8a2774d53489c829703bbbbf455" kindref="member">findOriginalVarsInfo</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>eastl::string<sp/>merged_var_name,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structShaderParser_1_1VariablesMerger_1af5ea6f544b8ef480981a3e7a2a5f1748" kindref="member">MergedVarsMap</ref><sp/>&amp;map)</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>found<sp/>=<sp/>map.find(merged_var_name);</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(found<sp/>==<sp/>map.end())</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"></highlight></codeline>
+<codeline lineno="114"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>&amp;found-&gt;second;</highlight></codeline>
+<codeline lineno="115"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="116"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="117"><highlight class="normal"></highlight></codeline>
+<codeline lineno="118"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>ShaderParser</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="variablesMerger.h"/>
+  </compounddef>
+</doxygen>

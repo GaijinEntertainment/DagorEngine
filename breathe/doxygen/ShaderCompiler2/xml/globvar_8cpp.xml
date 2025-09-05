@@ -1,0 +1,288 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="globvar_8cpp" kind="file" language="C++">
+    <compoundname>globvar.cpp</compoundname>
+    <includes refid="globVar_8h" local="yes">globVar.h</includes>
+    <incdepgraph>
+      <node id="2">
+        <label>globVar.h</label>
+        <link refid="globVar_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>globvar.cpp</label>
+        <link refid="globvar_8cpp"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="16">
+        <label>intervals.h</label>
+        <link refid="intervals_8h"/>
+      </node>
+      <node id="12">
+        <label>nameMap.h</label>
+        <link refid="nameMap_8h"/>
+        <childnode refid="13" relation="include">
+        </childnode>
+      </node>
+      <node id="15">
+        <label>shVarVecTypes.h</label>
+        <link refid="shVarVecTypes_8h"/>
+      </node>
+      <node id="10">
+        <label>shaderSave.h</label>
+        <link refid="shaderSave_8h"/>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+      </node>
+      <node id="11">
+        <label>varMap.h</label>
+        <link refid="varMap_8h"/>
+        <childnode refid="12" relation="include">
+        </childnode>
+      </node>
+      <node id="9">
+        <label>varTypes.h</label>
+        <link refid="varTypes_8h"/>
+      </node>
+      <node id="7">
+        <label>3d/dag_texMgr.h</label>
+      </node>
+      <node id="8">
+        <label>drv/3d/dag_sampler.h</label>
+      </node>
+      <node id="6">
+        <label>generic/dag_tab.h</label>
+      </node>
+      <node id="3">
+        <label>math/dag_color.h</label>
+      </node>
+      <node id="4">
+        <label>math/integer/dag_IPoint4.h</label>
+      </node>
+      <node id="14">
+        <label>util/dag_bindump_ext.h</label>
+      </node>
+      <node id="13">
+        <label>util/dag_oaHashNameMap.h</label>
+      </node>
+      <node id="5">
+        <label>util/dag_string.h</label>
+      </node>
+    </incdepgraph>
+    <innernamespace refid="namespaceShaderGlobal">ShaderGlobal</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="globVar_8h" kindref="compound">globVar.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shTargetContext_8h" kindref="compound">shTargetContext.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="intervals_8h" kindref="compound">intervals.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="varMap_8h" kindref="compound">varMap.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;shaders/dag_shaderCommon.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_tabUtils.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_initOnDemand.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shLog_8h" kindref="compound">shLog.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13" refid="namespaceShaderGlobal" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceShaderGlobal" kindref="compound">ShaderGlobal</ref></highlight></codeline>
+<codeline lineno="14"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="namespaceShaderGlobal_1a4c3f611719624c3be339f689a4c6fabc" kindref="member">get_var_name</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classShaderGlobal_1_1Var" kindref="compound">Var</ref><sp/>&amp;variable,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>ctx.<ref refid="classshc_1_1TargetContext_1a64e71598c4751d165675e9e9f1f70b8e" kindref="member">varNameMap</ref>().<ref refid="classVarNameMap_1a67d66b5cb5d304dcceafb08083f0f839" kindref="member">getName</ref>(variable.<ref refid="classShaderGlobal_1_1Var_1a6be99f3c9b6f487404d17919a34e5f68" kindref="member">nameId</ref>);<sp/>}</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal">Tab&lt;Var&gt;<sp/>&amp;<ref refid="classShaderGlobal_1_1VarTable_1a4dfe6c40fc24b107d212302fd8b4e6e1" kindref="member">VarTable::getMutableVariableList</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>variableList;<sp/>}</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"><ref refid="classIntervalList" kindref="compound">IntervalList</ref><sp/>&amp;<ref refid="classShaderGlobal_1_1VarTable_1afd0083122930c0c8b8a5bbb82729d150" kindref="member">VarTable::getMutableIntervalList</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>intervals;<sp/>}</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Tab&lt;Var&gt;<sp/>&amp;<ref refid="classShaderGlobal_1_1VarTable_1abe0f36dbf6ab831e9a00a9afef6aa972" kindref="member">VarTable::getVariableList</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>variableList;<sp/>}</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight><highlight class="comment">//<sp/>get<sp/>interval<sp/>list</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classIntervalList" kindref="compound">IntervalList</ref><sp/>&amp;<ref refid="classShaderGlobal_1_1VarTable_1ae086b750cd83e12a1f62a310e8792fb1" kindref="member">VarTable::getIntervalList</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>intervals;<sp/>}</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight><highlight class="comment">//<sp/>return<sp/>variable<sp/>by<sp/>ID</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classShaderGlobal_1_1VarTable_1a9fcfbaa4b082de7887ef1eefb1150e0d" kindref="member">VarTable::getVarCount</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>variableList.size();<sp/>}</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><ref refid="classShaderGlobal_1_1Var" kindref="compound">Var</ref><sp/>&amp;<ref refid="classShaderGlobal_1_1VarTable_1a5af47e2e25412b7f5368160f078fa9b5" kindref="member">VarTable::getVar</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>internal_index)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>variableList[internal_index];<sp/>}</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight><highlight class="comment">//<sp/>delete<sp/>all<sp/>variables</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classShaderGlobal_1_1VarTable_1a0a64bbc239150ab70707959e5bbc011e" kindref="member">VarTable::clear</ref>()</highlight></codeline>
+<codeline lineno="33"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/>clear_and_shrink(variableList);</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/>intervals.<ref refid="classIntervalList_1a616c852d6b16b37ce7381465b0fcb102" kindref="member">clear</ref>();</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/>clear_and_shrink(variableByNameId);</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/>variableByNameIdLastBuilt<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="38"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight></codeline>
+<codeline lineno="40"><highlight class="normal"></highlight><highlight class="comment">//<sp/>find<sp/>id<sp/>by<sp/>id</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="41"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classShaderGlobal_1_1VarTable_1a7ff46e733eb4c886cfa07c3c365910a2" kindref="member">VarTable::getVarInternalIndex</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>variable_id)</highlight></codeline>
+<codeline lineno="42"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(variable_id<sp/>==<sp/><ref refid="classVarNameMap_1a682211292035e4cf9a23b13bec51efe7" kindref="member">VarNameMap::BAD_ID</ref>)</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>-1;</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(variable_id<sp/>&lt;<sp/>variableByNameId.size())</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>variableByNameId[variable_id];</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(variableList.size()<sp/>==<sp/>variableByNameIdLastBuilt)</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>-1;</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>variableByNameIdLastBuilt;<sp/>i<sp/>&lt;<sp/>variableList.size();<sp/>++i)</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>nameId<sp/>=<sp/>variableList[i].nameId;</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(variableByNameId.size()<sp/>&lt;=<sp/>nameId)</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>addCnt<sp/>=<sp/>nameId<sp/>-<sp/>variableByNameId.size()<sp/>+<sp/>1;</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>at<sp/>=<sp/>append_items(variableByNameId,<sp/>addCnt);</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>memset(&amp;variableByNameId[at],<sp/>0xFF,<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(variableByNameId[at])<sp/>*<sp/>addCnt);</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"></highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/><sp/><sp/>variableByNameId[nameId]<sp/>=<sp/>i;</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"></highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/>variableByNameIdLastBuilt<sp/>=<sp/>variableList.size();</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"></highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classShaderGlobal_1_1VarTable_1a7ff46e733eb4c886cfa07c3c365910a2" kindref="member">getVarInternalIndex</ref>(variable_id);</highlight></codeline>
+<codeline lineno="67"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"></highlight></codeline>
+<codeline lineno="69"><highlight class="normal"></highlight><highlight class="comment">//<sp/>set<sp/>variable<sp/>value<sp/>from<sp/>string</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="70"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classShaderGlobal_1_1VarTable_1a0b410cf729a6079c55f497e2eab42ed0" kindref="member">VarTable::setVarValue</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>internal_index,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*str)</highlight></codeline>
+<codeline lineno="71"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!tabutils::isCorrectIndex(variableList,<sp/>internal_index)<sp/>||<sp/>!str)</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"></highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/><ref refid="classShaderGlobal_1_1Var" kindref="compound">Var</ref><sp/>&amp;variable<sp/>=<sp/>variableList[internal_index];</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"></highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">switch</highlight><highlight class="normal"><sp/>(variable.<ref refid="classShaderGlobal_1_1Var_1aa0609c924a6e9ca2c3b5bbad89877fe3" kindref="member">type</ref>)</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHVT_INT:</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(sscanf(str,<sp/></highlight><highlight class="stringliteral">&quot;%d&quot;</highlight><highlight class="normal">,<sp/>&amp;variable.<ref refid="classShaderGlobal_1_1Var_1a089a05dad5177dca4aab1dd018732f87" kindref="member">value</ref>.<ref refid="unionShaderGlobal_1_1StVarValue_1abcf4d3bfc37c8a74a77806e229585e52" kindref="member">i</ref>)<sp/>!=<sp/>1)</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHVT_INT4:</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(sscanf(str,<sp/></highlight><highlight class="stringliteral">&quot;%d<sp/>%d<sp/>%d<sp/>%d&quot;</highlight><highlight class="normal">,<sp/>&amp;variable.<ref refid="classShaderGlobal_1_1Var_1a089a05dad5177dca4aab1dd018732f87" kindref="member">value</ref>.<ref refid="unionShaderGlobal_1_1StVarValue_1ab7670370802acf0bf3215e0934583b89" kindref="member">i4</ref>.<ref refid="structshc_1_1Int4_1a939a03678af61ffa3df60dda8bd641c2" kindref="member">x</ref>,<sp/>&amp;variable.<ref refid="classShaderGlobal_1_1Var_1a089a05dad5177dca4aab1dd018732f87" kindref="member">value</ref>.<ref refid="unionShaderGlobal_1_1StVarValue_1ab7670370802acf0bf3215e0934583b89" kindref="member">i4</ref>.<ref refid="structshc_1_1Int4_1ab6e12d7b1b4ab46f7893732af1360a72" kindref="member">y</ref>,<sp/>&amp;variable.<ref refid="classShaderGlobal_1_1Var_1a089a05dad5177dca4aab1dd018732f87" kindref="member">value</ref>.<ref refid="unionShaderGlobal_1_1StVarValue_1ab7670370802acf0bf3215e0934583b89" kindref="member">i4</ref>.<ref refid="structshc_1_1Int4_1a5c73214356dacfc24ccab48e2976b781" kindref="member">z</ref>,<sp/>&amp;variable.<ref refid="classShaderGlobal_1_1Var_1a089a05dad5177dca4aab1dd018732f87" kindref="member">value</ref>.<ref refid="unionShaderGlobal_1_1StVarValue_1ab7670370802acf0bf3215e0934583b89" kindref="member">i4</ref>.<ref refid="structshc_1_1Int4_1a7781f08581090b0ff4efc2799f0beaaa" kindref="member">w</ref>)<sp/>&lt;<sp/>3)</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHVT_REAL:</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(sscanf(str,<sp/></highlight><highlight class="stringliteral">&quot;%f&quot;</highlight><highlight class="normal">,<sp/>&amp;variable.<ref refid="classShaderGlobal_1_1Var_1a089a05dad5177dca4aab1dd018732f87" kindref="member">value</ref>.<ref refid="unionShaderGlobal_1_1StVarValue_1a9aab21fc7889d8f5f44110140c6a8abb" kindref="member">r</ref>)<sp/>!=<sp/>1)</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHVT_COLOR4:</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(sscanf(str,<sp/></highlight><highlight class="stringliteral">&quot;%f<sp/>%f<sp/>%f<sp/>%f&quot;</highlight><highlight class="normal">,<sp/>&amp;variable.<ref refid="classShaderGlobal_1_1Var_1a089a05dad5177dca4aab1dd018732f87" kindref="member">value</ref>.<ref refid="unionShaderGlobal_1_1StVarValue_1aba18c15aa1a08e34b5c4ba158def467a" kindref="member">c4</ref>.<ref refid="structshc_1_1Col4_1a290edbfa06a9174c59bfd0133eb0ea24" kindref="member">r</ref>,<sp/>&amp;variable.<ref refid="classShaderGlobal_1_1Var_1a089a05dad5177dca4aab1dd018732f87" kindref="member">value</ref>.<ref refid="unionShaderGlobal_1_1StVarValue_1aba18c15aa1a08e34b5c4ba158def467a" kindref="member">c4</ref>.<ref refid="structshc_1_1Col4_1aad51e0eb4ed172bb465f0f37413c73b9" kindref="member">g</ref>,<sp/>&amp;variable.<ref refid="classShaderGlobal_1_1Var_1a089a05dad5177dca4aab1dd018732f87" kindref="member">value</ref>.<ref refid="unionShaderGlobal_1_1StVarValue_1aba18c15aa1a08e34b5c4ba158def467a" kindref="member">c4</ref>.<ref refid="structshc_1_1Col4_1a25ec82fbbc73cc41795fc7102e547a37" kindref="member">b</ref>,<sp/>&amp;variable.<ref refid="classShaderGlobal_1_1Var_1a089a05dad5177dca4aab1dd018732f87" kindref="member">value</ref>.<ref refid="unionShaderGlobal_1_1StVarValue_1aba18c15aa1a08e34b5c4ba158def467a" kindref="member">c4</ref>.<ref refid="structshc_1_1Col4_1ad45d77d3ac5390ff1b74fc5dfaaa0956" kindref="member">a</ref>)<sp/>&lt;<sp/>3)</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHVT_TEXTURE:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"></highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="100"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"></highlight></codeline>
+<codeline lineno="102"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classShaderGlobal_1_1Var_1a802b67d3bcbf635b6ac9229ded402eb0" kindref="member">Var::operator==</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classShaderGlobal_1_1Var" kindref="compound">Var</ref><sp/>&amp;right)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="103"><highlight class="keyword"></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/>G_ASSERT(<ref refid="classShaderGlobal_1_1Var_1aa0609c924a6e9ca2c3b5bbad89877fe3" kindref="member">type</ref><sp/>==<sp/>right.<ref refid="classShaderGlobal_1_1Var_1aa0609c924a6e9ca2c3b5bbad89877fe3" kindref="member">type</ref>);</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="classShaderGlobal_1_1Var_1a882dd4c34d67600e188a16178d8a91f3" kindref="member">shouldIgnoreValue</ref><sp/>||<sp/>right.<ref refid="classShaderGlobal_1_1Var_1a882dd4c34d67600e188a16178d8a91f3" kindref="member">shouldIgnoreValue</ref>)</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">switch</highlight><highlight class="normal"><sp/>(<ref refid="classShaderGlobal_1_1Var_1aa0609c924a6e9ca2c3b5bbad89877fe3" kindref="member">type</ref>)</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHVT_INT:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classShaderGlobal_1_1Var_1a089a05dad5177dca4aab1dd018732f87" kindref="member">value</ref>.<ref refid="unionShaderGlobal_1_1StVarValue_1abcf4d3bfc37c8a74a77806e229585e52" kindref="member">i</ref><sp/>==<sp/>right.<ref refid="classShaderGlobal_1_1Var_1a089a05dad5177dca4aab1dd018732f87" kindref="member">value</ref>.<ref refid="unionShaderGlobal_1_1StVarValue_1abcf4d3bfc37c8a74a77806e229585e52" kindref="member">i</ref>;</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHVT_INT4:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>memcmp(&amp;<ref refid="classShaderGlobal_1_1Var_1a089a05dad5177dca4aab1dd018732f87" kindref="member">value</ref>.<ref refid="unionShaderGlobal_1_1StVarValue_1ab7670370802acf0bf3215e0934583b89" kindref="member">i4</ref>,<sp/>&amp;right.<ref refid="classShaderGlobal_1_1Var_1a089a05dad5177dca4aab1dd018732f87" kindref="member">value</ref>.<ref refid="unionShaderGlobal_1_1StVarValue_1ab7670370802acf0bf3215e0934583b89" kindref="member">i4</ref>,<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(<ref refid="classShaderGlobal_1_1Var_1a089a05dad5177dca4aab1dd018732f87" kindref="member">value</ref>.<ref refid="unionShaderGlobal_1_1StVarValue_1ab7670370802acf0bf3215e0934583b89" kindref="member">i4</ref>))<sp/>==<sp/>0;</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHVT_REAL:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classShaderGlobal_1_1Var_1a089a05dad5177dca4aab1dd018732f87" kindref="member">value</ref>.<ref refid="unionShaderGlobal_1_1StVarValue_1a9aab21fc7889d8f5f44110140c6a8abb" kindref="member">r</ref><sp/>==<sp/>right.<ref refid="classShaderGlobal_1_1Var_1a089a05dad5177dca4aab1dd018732f87" kindref="member">value</ref>.<ref refid="unionShaderGlobal_1_1StVarValue_1a9aab21fc7889d8f5f44110140c6a8abb" kindref="member">r</ref>;</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHVT_COLOR4:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>memcmp(&amp;<ref refid="classShaderGlobal_1_1Var_1a089a05dad5177dca4aab1dd018732f87" kindref="member">value</ref>.<ref refid="unionShaderGlobal_1_1StVarValue_1aba18c15aa1a08e34b5c4ba158def467a" kindref="member">c4</ref>,<sp/>&amp;right.<ref refid="classShaderGlobal_1_1Var_1a089a05dad5177dca4aab1dd018732f87" kindref="member">value</ref>.<ref refid="unionShaderGlobal_1_1StVarValue_1aba18c15aa1a08e34b5c4ba158def467a" kindref="member">c4</ref>,<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(<ref refid="classShaderGlobal_1_1Var_1a089a05dad5177dca4aab1dd018732f87" kindref="member">value</ref>.<ref refid="unionShaderGlobal_1_1StVarValue_1aba18c15aa1a08e34b5c4ba158def467a" kindref="member">c4</ref>))<sp/>==<sp/>0;</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHVT_FLOAT4X4:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="114"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHVT_BUFFER:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classShaderGlobal_1_1Var_1a089a05dad5177dca4aab1dd018732f87" kindref="member">value</ref>.<ref refid="unionShaderGlobal_1_1StVarValue_1ad2dd68c86766b56f488ad07b613d9970" kindref="member">bufId</ref><sp/>==<sp/>right.<ref refid="classShaderGlobal_1_1Var_1a089a05dad5177dca4aab1dd018732f87" kindref="member">value</ref>.<ref refid="unionShaderGlobal_1_1StVarValue_1ad2dd68c86766b56f488ad07b613d9970" kindref="member">bufId</ref>;</highlight></codeline>
+<codeline lineno="115"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHVT_TLAS:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classShaderGlobal_1_1Var_1a089a05dad5177dca4aab1dd018732f87" kindref="member">value</ref>.<ref refid="unionShaderGlobal_1_1StVarValue_1a517c4a8df5acb716de927b2ba8caee98" kindref="member">tlas</ref><sp/>==<sp/>right.<ref refid="classShaderGlobal_1_1Var_1a089a05dad5177dca4aab1dd018732f87" kindref="member">value</ref>.<ref refid="unionShaderGlobal_1_1StVarValue_1a517c4a8df5acb716de927b2ba8caee98" kindref="member">tlas</ref>;</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHVT_TEXTURE:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classShaderGlobal_1_1Var_1a089a05dad5177dca4aab1dd018732f87" kindref="member">value</ref>.<ref refid="unionShaderGlobal_1_1StVarValue_1a5a1fb931adbc53fec91798d0f4eebdee" kindref="member">texId</ref><sp/>==<sp/>right.<ref refid="classShaderGlobal_1_1Var_1a089a05dad5177dca4aab1dd018732f87" kindref="member">value</ref>.<ref refid="unionShaderGlobal_1_1StVarValue_1a5a1fb931adbc53fec91798d0f4eebdee" kindref="member">texId</ref>;</highlight></codeline>
+<codeline lineno="117"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHVT_SAMPLER:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>memcmp(&amp;<ref refid="classShaderGlobal_1_1Var_1a089a05dad5177dca4aab1dd018732f87" kindref="member">value</ref>.<ref refid="unionShaderGlobal_1_1StVarValue_1a7083b0c13c0be7e56da7044a1e3bc10b" kindref="member">samplerInfo</ref>,<sp/>&amp;right.<ref refid="classShaderGlobal_1_1Var_1a089a05dad5177dca4aab1dd018732f87" kindref="member">value</ref>.<ref refid="unionShaderGlobal_1_1StVarValue_1a7083b0c13c0be7e56da7044a1e3bc10b" kindref="member">samplerInfo</ref>,<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(<ref refid="classShaderGlobal_1_1Var_1a089a05dad5177dca4aab1dd018732f87" kindref="member">value</ref>.<ref refid="unionShaderGlobal_1_1StVarValue_1a7083b0c13c0be7e56da7044a1e3bc10b" kindref="member">samplerInfo</ref>))<sp/>==<sp/>0;</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">:<sp/>G_ASSERT(0);</highlight></codeline>
+<codeline lineno="119"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="120"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="121"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"></highlight></codeline>
+<codeline lineno="123"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classShaderGlobal_1_1VarTable_1adaea19d3622b083f0956c64981055164" kindref="member">VarTable::link</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Tab&lt;ShaderGlobal::Var&gt;<sp/>&amp;variables,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classIntervalList" kindref="compound">IntervalList</ref><sp/>&amp;intervalsFromFile,<sp/>Tab&lt;int&gt;<sp/>&amp;global_var_link_table,</highlight></codeline>
+<codeline lineno="124"><highlight class="normal"><sp/><sp/>Tab&lt;ShaderVariant::ExtType&gt;<sp/>&amp;interval_link_table)</highlight></codeline>
+<codeline lineno="125"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Global<sp/>vars.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>varsNum<sp/>=<sp/>variables.size();</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/>global_var_link_table.resize(varsNum);</highlight></codeline>
+<codeline lineno="129"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>varNo<sp/>=<sp/>0;<sp/>varNo<sp/>&lt;<sp/>varsNum;<sp/>varNo++)</highlight></codeline>
+<codeline lineno="130"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="131"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classShaderGlobal_1_1Var" kindref="compound">Var</ref><sp/>&amp;var<sp/>=<sp/>variables[varNo];</highlight></codeline>
+<codeline lineno="132"><highlight class="normal"></highlight></codeline>
+<codeline lineno="133"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>exists<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>existingVarId<sp/>=<sp/>0;<sp/>existingVarId<sp/>&lt;<sp/>variableList.size();<sp/>existingVarId++)</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="136"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classShaderGlobal_1_1Var" kindref="compound">Var</ref><sp/>&amp;existingVar<sp/>=<sp/>variableList[existingVarId];</highlight></codeline>
+<codeline lineno="137"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(var.<ref refid="classShaderGlobal_1_1Var_1a6be99f3c9b6f487404d17919a34e5f68" kindref="member">nameId</ref><sp/>==<sp/>existingVar.<ref refid="classShaderGlobal_1_1Var_1a6be99f3c9b6f487404d17919a34e5f68" kindref="member">nameId</ref>)</highlight></codeline>
+<codeline lineno="138"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="139"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>exists<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="140"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>global_var_link_table[varNo]<sp/>=<sp/>existingVarId;</highlight></codeline>
+<codeline lineno="141"><highlight class="normal"></highlight></codeline>
+<codeline lineno="142"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(var.<ref refid="classShaderGlobal_1_1Var_1aa0609c924a6e9ca2c3b5bbad89877fe3" kindref="member">type</ref><sp/>!=<sp/>existingVar.<ref refid="classShaderGlobal_1_1Var_1aa0609c924a6e9ca2c3b5bbad89877fe3" kindref="member">type</ref>)</highlight></codeline>
+<codeline lineno="143"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="shLog_8cpp_1a2926179632c7c86265007652d3d30b14" kindref="member">sh_debug</ref>(<ref refid="shLog_8h_1a66042048eb3ce30a1dccb2ebf8c2fd5ca6112bd3e7c5d175bac1569c33c1630ad" kindref="member">SHLOG_FATAL</ref>,<sp/></highlight><highlight class="stringliteral">&quot;Different<sp/>variable<sp/>types:<sp/>&apos;%s&apos;&quot;</highlight><highlight class="normal">,<sp/>varNameMap.<ref refid="classVarNameMap_1a67d66b5cb5d304dcceafb08083f0f839" kindref="member">getName</ref>(var.<ref refid="classShaderGlobal_1_1Var_1a6be99f3c9b6f487404d17919a34e5f68" kindref="member">nameId</ref>));</highlight></codeline>
+<codeline lineno="144"><highlight class="normal"></highlight></codeline>
+<codeline lineno="145"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(var<sp/>!=<sp/>existingVar)</highlight></codeline>
+<codeline lineno="146"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="shLog_8cpp_1a2926179632c7c86265007652d3d30b14" kindref="member">sh_debug</ref>(<ref refid="shLog_8h_1a66042048eb3ce30a1dccb2ebf8c2fd5ca6112bd3e7c5d175bac1569c33c1630ad" kindref="member">SHLOG_FATAL</ref>,<sp/></highlight><highlight class="stringliteral">&quot;Different<sp/>variable<sp/>values:<sp/>&apos;%s&apos;&quot;</highlight><highlight class="normal">,<sp/>varNameMap.<ref refid="classVarNameMap_1a67d66b5cb5d304dcceafb08083f0f839" kindref="member">getName</ref>(var.<ref refid="classShaderGlobal_1_1Var_1a6be99f3c9b6f487404d17919a34e5f68" kindref="member">nameId</ref>));</highlight></codeline>
+<codeline lineno="147"><highlight class="normal"></highlight></codeline>
+<codeline lineno="148"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(var.<ref refid="classShaderGlobal_1_1Var_1a6fabc3dfee0c8ce739a0d2f321a5d154" kindref="member">isAlwaysReferenced</ref><sp/>!=<sp/>existingVar.<ref refid="classShaderGlobal_1_1Var_1a6fabc3dfee0c8ce739a0d2f321a5d154" kindref="member">isAlwaysReferenced</ref>)</highlight></codeline>
+<codeline lineno="149"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="shLog_8cpp_1a2926179632c7c86265007652d3d30b14" kindref="member">sh_debug</ref>(<ref refid="shLog_8h_1a66042048eb3ce30a1dccb2ebf8c2fd5ca6112bd3e7c5d175bac1569c33c1630ad" kindref="member">SHLOG_FATAL</ref>,<sp/></highlight><highlight class="stringliteral">&quot;Different<sp/>variable<sp/>always_referenced<sp/>states:<sp/>&apos;%s&apos;&quot;</highlight><highlight class="normal">,<sp/>varNameMap.<ref refid="classVarNameMap_1a67d66b5cb5d304dcceafb08083f0f839" kindref="member">getName</ref>(var.<ref refid="classShaderGlobal_1_1Var_1a6be99f3c9b6f487404d17919a34e5f68" kindref="member">nameId</ref>));</highlight></codeline>
+<codeline lineno="150"><highlight class="normal"></highlight></codeline>
+<codeline lineno="151"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(var.<ref refid="classShaderGlobal_1_1Var_1ab9e07558ccdf936baa8164f38258a518" kindref="member">isImplicitlyReferenced</ref><sp/>&amp;&amp;<sp/>!existingVar.<ref refid="classShaderGlobal_1_1Var_1ab9e07558ccdf936baa8164f38258a518" kindref="member">isImplicitlyReferenced</ref>)</highlight></codeline>
+<codeline lineno="152"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>existingVar.<ref refid="classShaderGlobal_1_1Var_1ab9e07558ccdf936baa8164f38258a518" kindref="member">isImplicitlyReferenced</ref><sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="153"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="154"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="155"><highlight class="normal"></highlight></codeline>
+<codeline lineno="156"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!exists)</highlight></codeline>
+<codeline lineno="157"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="158"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>global_var_link_table[varNo]<sp/>=<sp/>variableList.size();</highlight></codeline>
+<codeline lineno="159"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>variableList.push_back(var);</highlight></codeline>
+<codeline lineno="160"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="161"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="162"><highlight class="normal"></highlight></codeline>
+<codeline lineno="163"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Intervals.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="164"><highlight class="normal"><sp/><sp/>interval_link_table.resize(intervalsFromFile.<ref refid="classIntervalList_1a181a3d94256ce9316d66cf0a55a43fb7" kindref="member">getCount</ref>());</highlight></codeline>
+<codeline lineno="165"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>intervalNo<sp/>=<sp/>0;<sp/>intervalNo<sp/>&lt;<sp/>intervalsFromFile.<ref refid="classIntervalList_1a181a3d94256ce9316d66cf0a55a43fb7" kindref="member">getCount</ref>();<sp/>intervalNo++)</highlight></codeline>
+<codeline lineno="166"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="167"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(intervalsFromFile.<ref refid="classIntervalList_1a1d93fe14234f8e96a7821862145e933e" kindref="member">getInterval</ref>(intervalNo))</highlight></codeline>
+<codeline lineno="168"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="169"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>res<sp/>=<sp/>intervals.<ref refid="classIntervalList_1aa6fa1dcc75581680d25e7dcaad970cd0" kindref="member">addInterval</ref>(*intervalsFromFile.<ref refid="classIntervalList_1a1d93fe14234f8e96a7821862145e933e" kindref="member">getInterval</ref>(intervalNo));</highlight></codeline>
+<codeline lineno="170"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!res)</highlight></codeline>
+<codeline lineno="171"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="shLog_8cpp_1a2926179632c7c86265007652d3d30b14" kindref="member">sh_debug</ref>(<ref refid="shLog_8h_1a66042048eb3ce30a1dccb2ebf8c2fd5ca6112bd3e7c5d175bac1569c33c1630ad" kindref="member">SHLOG_FATAL</ref>,<sp/></highlight><highlight class="stringliteral">&quot;Different<sp/>intervals:<sp/>&apos;%s&apos;&quot;</highlight><highlight class="normal">,</highlight></codeline>
+<codeline lineno="172"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>intervalNameMap.<ref refid="classHashStrings_1a473a175102d290dd00e5cb58903fcdd0" kindref="member">getName</ref>(intervalsFromFile.<ref refid="classIntervalList_1a1d93fe14234f8e96a7821862145e933e" kindref="member">getInterval</ref>(intervalNo)-&gt;<ref refid="classInterval_1a748b0a4c7b26f10ca5edfafd46cdb5a5" kindref="member">getNameId</ref>()));</highlight></codeline>
+<codeline lineno="173"><highlight class="normal"></highlight></codeline>
+<codeline lineno="174"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>interval_link_table[intervalNo]<sp/>=<sp/>intervals.<ref refid="classIntervalList_1a9a77d1ff0e92fe7dcab999886e06c533" kindref="member">getIntervalIndex</ref>(intervalsFromFile.<ref refid="classIntervalList_1a1d93fe14234f8e96a7821862145e933e" kindref="member">getInterval</ref>(intervalNo)-&gt;<ref refid="classInterval_1a748b0a4c7b26f10ca5edfafd46cdb5a5" kindref="member">getNameId</ref>());</highlight></codeline>
+<codeline lineno="175"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="176"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="177"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="178"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>interval_link_table[intervalNo]<sp/>=<sp/><ref refid="varTypes_8h_1a68274b768c55a5469a7b292041a74fb8a57d75fe5c8b51fa43dc2bb2dd19daf79" kindref="member">INTERVAL_NOT_INIT</ref>;</highlight></codeline>
+<codeline lineno="179"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="180"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="181"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="182"><highlight class="normal"></highlight></codeline>
+<codeline lineno="183"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>ShaderGlobal</highlight></codeline>
+    </programlisting>
+    <location file="globvar.cpp"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,525 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classShaderParser_1_1ShaderEvalCB" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>ShaderParser::ShaderEvalCB</compoundname>
+    <derivedcompoundref refid="classShaderParser_1_1AssembleShaderEvalCB" prot="public" virt="non-virtual">ShaderParser::AssembleShaderEvalCB</derivedcompoundref>
+    <derivedcompoundref refid="classShaderParser_1_1GatherVarShaderEvalCB" prot="public" virt="non-virtual">ShaderParser::GatherVarShaderEvalCB</derivedcompoundref>
+    <derivedcompoundref refid="classStcodeBranchedBuildEvalCB" prot="public" virt="non-virtual">StcodeBranchedBuildEvalCB</derivedcompoundref>
+    <includes refid="shsem_8h" local="no">shsem.h</includes>
+    <innerclass refid="structShaderParser_1_1ShaderEvalCB_1_1GsclStopProcessingException" prot="public">ShaderParser::ShaderEvalCB::GsclStopProcessingException</innerclass>
+      <sectiondef kind="public-type">
+      <memberdef kind="enum" id="classShaderParser_1_1ShaderEvalCB_1a4e485b7ac1252d1a948698ab76ccd7cf" prot="public" static="no" strong="no">
+        <type></type>
+        <name></name>
+        <qualifiedname>ShaderParser::ShaderEvalCB</qualifiedname>
+        <enumvalue id="classShaderParser_1_1ShaderEvalCB_1a4e485b7ac1252d1a948698ab76ccd7cfa58399c8728006ad1e82d90527d55d3c6" prot="public">
+          <name>IF_FALSE</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classShaderParser_1_1ShaderEvalCB_1a4e485b7ac1252d1a948698ab76ccd7cfa795199991378708f0bd9307c73262846" prot="public">
+          <name>IF_TRUE</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classShaderParser_1_1ShaderEvalCB_1a4e485b7ac1252d1a948698ab76ccd7cfa67354fcef9c601179eef2864b8228b76" prot="public">
+          <name>IF_BOTH</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shsem.h" line="24" column="3" bodyfile="shsem.h" bodystart="25" bodyend="29"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classShaderParser_1_1ShaderEvalCB_1a581f2cf7ed7c9fc774cac32e197b8b35" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>DefineTable *</type>
+        <definition>virtual DefineTable * ShaderParser::ShaderEvalCB::getDefines</definition>
+        <argsstring>()</argsstring>
+        <name>getDefines</name>
+        <qualifiedname>ShaderParser::ShaderEvalCB::getDefines</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shsem.h" line="31" column="30" bodyfile="shsem.h" bodystart="31" bodyend="31"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ShaderEvalCB_1a773524a09efd3b118970955178a69efd" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void ShaderParser::ShaderEvalCB::eval_static</definition>
+        <argsstring>(static_var_decl &amp;)=0</argsstring>
+        <name>eval_static</name>
+        <qualifiedname>ShaderParser::ShaderEvalCB::eval_static</qualifiedname>
+        <reimplementedby refid="classStcodeBranchedBuildEvalCB_1adbc571db3834ce212fe3f60713f80e59">eval_static</reimplementedby>
+        <reimplementedby refid="classShaderParser_1_1AssembleShaderEvalCB_1a8547081625f30f139a633db30fdef8b3">eval_static</reimplementedby>
+        <reimplementedby refid="classShaderParser_1_1GatherVarShaderEvalCB_1afe810aefad98a1151d59ffb1fd09dc2b">eval_static</reimplementedby>
+        <param>
+          <type>static_var_decl &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shsem.h" line="33" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ShaderEvalCB_1ad1e613fd064621334abb0c35002af923" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void ShaderParser::ShaderEvalCB::eval_interval_decl</definition>
+        <argsstring>(interval &amp;interv)=0</argsstring>
+        <name>eval_interval_decl</name>
+        <qualifiedname>ShaderParser::ShaderEvalCB::eval_interval_decl</qualifiedname>
+        <reimplementedby refid="classStcodeBranchedBuildEvalCB_1a7d3efd2035611a00fa6eb90da4805c3c">eval_interval_decl</reimplementedby>
+        <reimplementedby refid="classShaderParser_1_1AssembleShaderEvalCB_1a3766a5b39d47f20c878a715af4d5b947">eval_interval_decl</reimplementedby>
+        <reimplementedby refid="classShaderParser_1_1GatherVarShaderEvalCB_1af91fc4e0d22e1566e511b3d594b15b9b">eval_interval_decl</reimplementedby>
+        <param>
+          <type>interval &amp;</type>
+          <declname>interv</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shsem.h" line="34" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ShaderEvalCB_1a0b1484996b87155daf73af501febbd9d" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void ShaderParser::ShaderEvalCB::eval_bool_decl</definition>
+        <argsstring>(bool_decl &amp;)=0</argsstring>
+        <name>eval_bool_decl</name>
+        <qualifiedname>ShaderParser::ShaderEvalCB::eval_bool_decl</qualifiedname>
+        <reimplementedby refid="classShaderParser_1_1AssembleShaderEvalCB_1a86f0e5f34abfab44d24408407ec9fdd8">eval_bool_decl</reimplementedby>
+        <reimplementedby refid="classShaderParser_1_1GatherVarShaderEvalCB_1a15bc1479f78a3e24c164b6859e8486e8">eval_bool_decl</reimplementedby>
+        <reimplementedby refid="classStcodeBranchedBuildEvalCB_1a3c0f44e8ba116d0bfd5db391892a6a4a">eval_bool_decl</reimplementedby>
+        <param>
+          <type>bool_decl &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shsem.h" line="35" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ShaderEvalCB_1a4feaa347af2510e01f37ebc31027211a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>virtual void ShaderParser::ShaderEvalCB::eval_error_stat</definition>
+        <argsstring>(error_stat &amp;)</argsstring>
+        <name>eval_error_stat</name>
+        <qualifiedname>ShaderParser::ShaderEvalCB::eval_error_stat</qualifiedname>
+        <reimplementedby refid="classShaderParser_1_1AssembleShaderEvalCB_1aba32b080ce1cb3cf207c3c19affa6fba">eval_error_stat</reimplementedby>
+        <reimplementedby refid="classStcodeBranchedBuildEvalCB_1a43d675e8a8e6de383715ecad85348022">eval_error_stat</reimplementedby>
+        <param>
+          <type>error_stat &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shsem.h" line="36" column="16" bodyfile="shsem.h" bodystart="36" bodyend="36"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ShaderEvalCB_1a4342c33792df4746ba4575adeebad9e7" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void ShaderParser::ShaderEvalCB::eval_channel_decl</definition>
+        <argsstring>(channel_decl &amp;, int stream_id=0)=0</argsstring>
+        <name>eval_channel_decl</name>
+        <qualifiedname>ShaderParser::ShaderEvalCB::eval_channel_decl</qualifiedname>
+        <reimplementedby refid="classStcodeBranchedBuildEvalCB_1aa7467ccce89cc9d5602eb4f7fb3bd987">eval_channel_decl</reimplementedby>
+        <reimplementedby refid="classShaderParser_1_1GatherVarShaderEvalCB_1ad62259329d3556617ec48ad8371e04ca">eval_channel_decl</reimplementedby>
+        <reimplementedby refid="classShaderParser_1_1AssembleShaderEvalCB_1a3e8154a7f96876f610141f55f60b1df2">eval_channel_decl</reimplementedby>
+        <param>
+          <type>channel_decl &amp;</type>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>stream_id</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shsem.h" line="37" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ShaderEvalCB_1a484b9919d67d330ad15f99a673aeb3f3" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void ShaderParser::ShaderEvalCB::eval_state</definition>
+        <argsstring>(state_stat &amp;)=0</argsstring>
+        <name>eval_state</name>
+        <qualifiedname>ShaderParser::ShaderEvalCB::eval_state</qualifiedname>
+        <reimplementedby refid="classStcodeBranchedBuildEvalCB_1ad1f11f49eb5b8d05da9f72ebcb3b5253">eval_state</reimplementedby>
+        <reimplementedby refid="classShaderParser_1_1GatherVarShaderEvalCB_1ad36b663671a80f67bcbd04c4c10bec21">eval_state</reimplementedby>
+        <reimplementedby refid="classShaderParser_1_1AssembleShaderEvalCB_1a336c7cd326496ed18d4c80dd3fcbb7ec">eval_state</reimplementedby>
+        <param>
+          <type>state_stat &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shsem.h" line="38" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ShaderEvalCB_1a9bed93ba21bf89440d7b037f4ac2800d" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void ShaderParser::ShaderEvalCB::eval_zbias_state</definition>
+        <argsstring>(zbias_state_stat &amp;)=0</argsstring>
+        <name>eval_zbias_state</name>
+        <qualifiedname>ShaderParser::ShaderEvalCB::eval_zbias_state</qualifiedname>
+        <reimplementedby refid="classStcodeBranchedBuildEvalCB_1a4fdbecaef6f848234523fb1be7f1a843">eval_zbias_state</reimplementedby>
+        <reimplementedby refid="classShaderParser_1_1GatherVarShaderEvalCB_1a8e39492b7887bcae23f131f433e8d980">eval_zbias_state</reimplementedby>
+        <reimplementedby refid="classShaderParser_1_1AssembleShaderEvalCB_1a8d1dd1a14d6d7533dab6195ea1c0c858">eval_zbias_state</reimplementedby>
+        <param>
+          <type>zbias_state_stat &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shsem.h" line="39" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ShaderEvalCB_1af335c328a2c5792ea32c2429be3d308a" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void ShaderParser::ShaderEvalCB::eval_external_block</definition>
+        <argsstring>(external_state_block &amp;)=0</argsstring>
+        <name>eval_external_block</name>
+        <qualifiedname>ShaderParser::ShaderEvalCB::eval_external_block</qualifiedname>
+        <reimplementedby refid="classShaderParser_1_1AssembleShaderEvalCB_1ac5a6d090c23e495087cdda988448979b">eval_external_block</reimplementedby>
+        <reimplementedby refid="classShaderParser_1_1GatherVarShaderEvalCB_1a3634670586826fc1fcd4051395467f56">eval_external_block</reimplementedby>
+        <reimplementedby refid="classStcodeBranchedBuildEvalCB_1a61be14d856626981fbedc0b09d7ea710">eval_external_block</reimplementedby>
+        <param>
+          <type>external_state_block &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shsem.h" line="40" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ShaderEvalCB_1a2a70eff4ba8af3b3efc57fb6eb0ac15c" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void ShaderParser::ShaderEvalCB::eval</definition>
+        <argsstring>(immediate_const_block &amp;)=0</argsstring>
+        <name>eval</name>
+        <qualifiedname>ShaderParser::ShaderEvalCB::eval</qualifiedname>
+        <reimplementedby refid="classShaderParser_1_1AssembleShaderEvalCB_1a5a8a17df94ef7badf4bfb19910ad2a78">eval</reimplementedby>
+        <reimplementedby refid="classStcodeBranchedBuildEvalCB_1a2b708e82c8b592b2478d6ade7fbc3be3">eval</reimplementedby>
+        <reimplementedby refid="classShaderParser_1_1GatherVarShaderEvalCB_1a60f312350d66132eb84c2c05c933bc93">eval</reimplementedby>
+        <param>
+          <type>immediate_const_block &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shsem.h" line="41" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ShaderEvalCB_1a6da845097d790e43f21f1d743f0b4ea7" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void ShaderParser::ShaderEvalCB::eval_supports</definition>
+        <argsstring>(supports_stat &amp;)=0</argsstring>
+        <name>eval_supports</name>
+        <qualifiedname>ShaderParser::ShaderEvalCB::eval_supports</qualifiedname>
+        <reimplementedby refid="classShaderParser_1_1AssembleShaderEvalCB_1a2fbcfc2d67b6deefd9dd09711f92b1a3">eval_supports</reimplementedby>
+        <reimplementedby refid="classStcodeBranchedBuildEvalCB_1a6c1026caed4ec400babc32baf3dc37b0">eval_supports</reimplementedby>
+        <reimplementedby refid="classShaderParser_1_1GatherVarShaderEvalCB_1a66ea2b9fa90e6242720bf13b21e2a9b6">eval_supports</reimplementedby>
+        <param>
+          <type>supports_stat &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shsem.h" line="42" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ShaderEvalCB_1aadbbbbeee8e38a94cfbc2a59f0108b89" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void ShaderParser::ShaderEvalCB::eval_render_stage</definition>
+        <argsstring>(render_stage_stat &amp;)=0</argsstring>
+        <name>eval_render_stage</name>
+        <qualifiedname>ShaderParser::ShaderEvalCB::eval_render_stage</qualifiedname>
+        <reimplementedby refid="classStcodeBranchedBuildEvalCB_1a3da84c8121bbe6888c51fddfd93ccc35">eval_render_stage</reimplementedby>
+        <reimplementedby refid="classShaderParser_1_1GatherVarShaderEvalCB_1ac567248385bc109b4d3dd4992584497b">eval_render_stage</reimplementedby>
+        <reimplementedby refid="classShaderParser_1_1AssembleShaderEvalCB_1ac2ae9bc248d946e895701b0ed15c3ed2">eval_render_stage</reimplementedby>
+        <param>
+          <type>render_stage_stat &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shsem.h" line="43" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ShaderEvalCB_1a4a1e738e214667e11fc939008f4f3c95" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void ShaderParser::ShaderEvalCB::eval_assume_stat</definition>
+        <argsstring>(assume_stat &amp;)=0</argsstring>
+        <name>eval_assume_stat</name>
+        <qualifiedname>ShaderParser::ShaderEvalCB::eval_assume_stat</qualifiedname>
+        <reimplementedby refid="classStcodeBranchedBuildEvalCB_1ac6b6a165847ae0b1cbcf2c7fde5c7a99">eval_assume_stat</reimplementedby>
+        <reimplementedby refid="classShaderParser_1_1AssembleShaderEvalCB_1a380f90903c94fbc7d7150f8d4039fb4a">eval_assume_stat</reimplementedby>
+        <reimplementedby refid="classShaderParser_1_1GatherVarShaderEvalCB_1a7b6a60d97ec16dee92d2797e51eb8b37">eval_assume_stat</reimplementedby>
+        <param>
+          <type>assume_stat &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shsem.h" line="44" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ShaderEvalCB_1a5117e36e50dbf966e0e8d09d291523ff" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void ShaderParser::ShaderEvalCB::eval_assume_if_not_assumed_stat</definition>
+        <argsstring>(assume_if_not_assumed_stat &amp;)=0</argsstring>
+        <name>eval_assume_if_not_assumed_stat</name>
+        <qualifiedname>ShaderParser::ShaderEvalCB::eval_assume_if_not_assumed_stat</qualifiedname>
+        <reimplementedby refid="classStcodeBranchedBuildEvalCB_1a9e556a3ba05e1ff2f8c736d7919b8ea7">eval_assume_if_not_assumed_stat</reimplementedby>
+        <reimplementedby refid="classShaderParser_1_1AssembleShaderEvalCB_1ae573845abdba8e6308f76202c1f08375">eval_assume_if_not_assumed_stat</reimplementedby>
+        <reimplementedby refid="classShaderParser_1_1GatherVarShaderEvalCB_1ac6f560c8041dc8f7cdc2bc64fdc8e3e7">eval_assume_if_not_assumed_stat</reimplementedby>
+        <param>
+          <type>assume_if_not_assumed_stat &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shsem.h" line="45" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ShaderEvalCB_1ab93a6a4886b18225c46688a355703854" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void ShaderParser::ShaderEvalCB::eval_command</definition>
+        <argsstring>(shader_directive &amp;)=0</argsstring>
+        <name>eval_command</name>
+        <qualifiedname>ShaderParser::ShaderEvalCB::eval_command</qualifiedname>
+        <reimplementedby refid="classStcodeBranchedBuildEvalCB_1a2b8ff81cf992f1aaf8e7ccbdf43f7edf">eval_command</reimplementedby>
+        <reimplementedby refid="classShaderParser_1_1GatherVarShaderEvalCB_1a7503dafe082f3d1e8f292edd3e7ff9ae">eval_command</reimplementedby>
+        <reimplementedby refid="classShaderParser_1_1AssembleShaderEvalCB_1a8bc58fb62ecbcc9971c041aa354c25ff">eval_command</reimplementedby>
+        <param>
+          <type>shader_directive &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shsem.h" line="46" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ShaderEvalCB_1a515e729e35d13de79ffbea9eacbd9d70" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int ShaderParser::ShaderEvalCB::eval_if</definition>
+        <argsstring>(bool_expr &amp;)=0</argsstring>
+        <name>eval_if</name>
+        <qualifiedname>ShaderParser::ShaderEvalCB::eval_if</qualifiedname>
+        <reimplementedby refid="classShaderParser_1_1AssembleShaderEvalCB_1a5e9a6d3c7f86c43bd326f57002c3254c">eval_if</reimplementedby>
+        <reimplementedby refid="classStcodeBranchedBuildEvalCB_1a575c7262124851f831592c6921dfc24d">eval_if</reimplementedby>
+        <reimplementedby refid="classShaderParser_1_1GatherVarShaderEvalCB_1a5f5d77772b7370a419e0856fa71bd882">eval_if</reimplementedby>
+        <param>
+          <type>bool_expr &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shsem.h" line="48" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ShaderEvalCB_1a989962b2c720c97dcfc93e7c5d60caea" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void ShaderParser::ShaderEvalCB::eval_else</definition>
+        <argsstring>(bool_expr &amp;)=0</argsstring>
+        <name>eval_else</name>
+        <qualifiedname>ShaderParser::ShaderEvalCB::eval_else</qualifiedname>
+        <reimplementedby refid="classShaderParser_1_1AssembleShaderEvalCB_1ac2ee7f22e484cd1d5ddccda6c664ddbf">eval_else</reimplementedby>
+        <reimplementedby refid="classShaderParser_1_1GatherVarShaderEvalCB_1aeb7575d66f3cac5b49d6b0dbb4bb5915">eval_else</reimplementedby>
+        <reimplementedby refid="classStcodeBranchedBuildEvalCB_1a7c92b276bd47f975ee1f9b9eff947b5b">eval_else</reimplementedby>
+        <param>
+          <type>bool_expr &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shsem.h" line="49" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ShaderEvalCB_1aad4f2cba55111bfe7c17380c714f3383" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void ShaderParser::ShaderEvalCB::eval_endif</definition>
+        <argsstring>(bool_expr &amp;)=0</argsstring>
+        <name>eval_endif</name>
+        <qualifiedname>ShaderParser::ShaderEvalCB::eval_endif</qualifiedname>
+        <reimplementedby refid="classShaderParser_1_1AssembleShaderEvalCB_1aa6a89d6146622fbd7e464ce6466bc2c2">eval_endif</reimplementedby>
+        <reimplementedby refid="classShaderParser_1_1GatherVarShaderEvalCB_1a371829acd19abc128df0ff44bd874a1a">eval_endif</reimplementedby>
+        <reimplementedby refid="classStcodeBranchedBuildEvalCB_1ae9b274d61618116a2b6e982dc28aa29c">eval_endif</reimplementedby>
+        <param>
+          <type>bool_expr &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shsem.h" line="50" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ShaderEvalCB_1a4c4bdf71ee607e8951eaee08654fc954" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void ShaderParser::ShaderEvalCB::eval_shader_locdecl</definition>
+        <argsstring>(local_var_decl &amp;s)=0</argsstring>
+        <name>eval_shader_locdecl</name>
+        <qualifiedname>ShaderParser::ShaderEvalCB::eval_shader_locdecl</qualifiedname>
+        <reimplementedby refid="classShaderParser_1_1AssembleShaderEvalCB_1a2415344cab91b48a6ec6a1bdf1a3cd59">eval_shader_locdecl</reimplementedby>
+        <reimplementedby refid="classStcodeBranchedBuildEvalCB_1a5b8f24b06507d9a86c258e34cf140214">eval_shader_locdecl</reimplementedby>
+        <reimplementedby refid="classShaderParser_1_1GatherVarShaderEvalCB_1a7a864082b90886569dda8ee9629bece5">eval_shader_locdecl</reimplementedby>
+        <param>
+          <type>local_var_decl &amp;</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shsem.h" line="52" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ShaderEvalCB_1a9ea4626b3b1eab41bd7a8fadfad3c349" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void ShaderParser::ShaderEvalCB::eval_hlsl_compile</definition>
+        <argsstring>(hlsl_compile_class &amp;hlsl_compile)=0</argsstring>
+        <name>eval_hlsl_compile</name>
+        <qualifiedname>ShaderParser::ShaderEvalCB::eval_hlsl_compile</qualifiedname>
+        <reimplementedby refid="classStcodeBranchedBuildEvalCB_1a5bed5b796aff51aa9ac8de49ebb5ed75">eval_hlsl_compile</reimplementedby>
+        <reimplementedby refid="classShaderParser_1_1AssembleShaderEvalCB_1a000c2b52b77e52c55bf9f6c535f2983d">eval_hlsl_compile</reimplementedby>
+        <reimplementedby refid="classShaderParser_1_1GatherVarShaderEvalCB_1aa2fb0c1c4408e61f7b6a75234d65ad0a">eval_hlsl_compile</reimplementedby>
+        <param>
+          <type>hlsl_compile_class &amp;</type>
+          <declname>hlsl_compile</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shsem.h" line="54" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ShaderEvalCB_1aeca67333ebe04120b20e000ee0bf826a" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void ShaderParser::ShaderEvalCB::eval_hlsl_decl</definition>
+        <argsstring>(hlsl_local_decl_class &amp;hlsl_compile)=0</argsstring>
+        <name>eval_hlsl_decl</name>
+        <qualifiedname>ShaderParser::ShaderEvalCB::eval_hlsl_decl</qualifiedname>
+        <reimplementedby refid="classStcodeBranchedBuildEvalCB_1af3d893da2f4dd29182e7320e7b707886">eval_hlsl_decl</reimplementedby>
+        <reimplementedby refid="classShaderParser_1_1GatherVarShaderEvalCB_1ae2a7de899ef068a5dd712e4292b2f99b">eval_hlsl_decl</reimplementedby>
+        <reimplementedby refid="classShaderParser_1_1AssembleShaderEvalCB_1a94c02339e46e46ec8270f2f7f59bd68f">eval_hlsl_decl</reimplementedby>
+        <param>
+          <type>hlsl_local_decl_class &amp;</type>
+          <declname>hlsl_compile</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shsem.h" line="55" column="16"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>ShaderParser::AssembleShaderEvalCB</label>
+        <link refid="classShaderParser_1_1AssembleShaderEvalCB"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>ShaderParser::GatherVarShaderEvalCB</label>
+        <link refid="classShaderParser_1_1GatherVarShaderEvalCB"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>ShaderParser::ShaderEvalCB</label>
+        <link refid="classShaderParser_1_1ShaderEvalCB"/>
+      </node>
+      <node id="4">
+        <label>StcodeBranchedBuildEvalCB</label>
+        <link refid="classStcodeBranchedBuildEvalCB"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <location file="shsem.h" line="18" column="1" bodyfile="shsem.h" bodystart="19" bodyend="56"/>
+    <listofallmembers>
+      <member refid="classShaderParser_1_1ShaderEvalCB_1a2a70eff4ba8af3b3efc57fb6eb0ac15c" prot="public" virt="pure-virtual"><scope>ShaderParser::ShaderEvalCB</scope><name>eval</name></member>
+      <member refid="classShaderParser_1_1ShaderEvalCB_1a5117e36e50dbf966e0e8d09d291523ff" prot="public" virt="pure-virtual"><scope>ShaderParser::ShaderEvalCB</scope><name>eval_assume_if_not_assumed_stat</name></member>
+      <member refid="classShaderParser_1_1ShaderEvalCB_1a4a1e738e214667e11fc939008f4f3c95" prot="public" virt="pure-virtual"><scope>ShaderParser::ShaderEvalCB</scope><name>eval_assume_stat</name></member>
+      <member refid="classShaderParser_1_1ShaderEvalCB_1a0b1484996b87155daf73af501febbd9d" prot="public" virt="pure-virtual"><scope>ShaderParser::ShaderEvalCB</scope><name>eval_bool_decl</name></member>
+      <member refid="classShaderParser_1_1ShaderEvalCB_1a4342c33792df4746ba4575adeebad9e7" prot="public" virt="pure-virtual"><scope>ShaderParser::ShaderEvalCB</scope><name>eval_channel_decl</name></member>
+      <member refid="classShaderParser_1_1ShaderEvalCB_1ab93a6a4886b18225c46688a355703854" prot="public" virt="pure-virtual"><scope>ShaderParser::ShaderEvalCB</scope><name>eval_command</name></member>
+      <member refid="classShaderParser_1_1ShaderEvalCB_1a989962b2c720c97dcfc93e7c5d60caea" prot="public" virt="pure-virtual"><scope>ShaderParser::ShaderEvalCB</scope><name>eval_else</name></member>
+      <member refid="classShaderParser_1_1ShaderEvalCB_1aad4f2cba55111bfe7c17380c714f3383" prot="public" virt="pure-virtual"><scope>ShaderParser::ShaderEvalCB</scope><name>eval_endif</name></member>
+      <member refid="classShaderParser_1_1ShaderEvalCB_1a4feaa347af2510e01f37ebc31027211a" prot="public" virt="virtual"><scope>ShaderParser::ShaderEvalCB</scope><name>eval_error_stat</name></member>
+      <member refid="classShaderParser_1_1ShaderEvalCB_1af335c328a2c5792ea32c2429be3d308a" prot="public" virt="pure-virtual"><scope>ShaderParser::ShaderEvalCB</scope><name>eval_external_block</name></member>
+      <member refid="classShaderParser_1_1ShaderEvalCB_1a9ea4626b3b1eab41bd7a8fadfad3c349" prot="public" virt="pure-virtual"><scope>ShaderParser::ShaderEvalCB</scope><name>eval_hlsl_compile</name></member>
+      <member refid="classShaderParser_1_1ShaderEvalCB_1aeca67333ebe04120b20e000ee0bf826a" prot="public" virt="pure-virtual"><scope>ShaderParser::ShaderEvalCB</scope><name>eval_hlsl_decl</name></member>
+      <member refid="classShaderParser_1_1ShaderEvalCB_1a515e729e35d13de79ffbea9eacbd9d70" prot="public" virt="pure-virtual"><scope>ShaderParser::ShaderEvalCB</scope><name>eval_if</name></member>
+      <member refid="classShaderParser_1_1ShaderEvalCB_1ad1e613fd064621334abb0c35002af923" prot="public" virt="pure-virtual"><scope>ShaderParser::ShaderEvalCB</scope><name>eval_interval_decl</name></member>
+      <member refid="classShaderParser_1_1ShaderEvalCB_1aadbbbbeee8e38a94cfbc2a59f0108b89" prot="public" virt="pure-virtual"><scope>ShaderParser::ShaderEvalCB</scope><name>eval_render_stage</name></member>
+      <member refid="classShaderParser_1_1ShaderEvalCB_1a4c4bdf71ee607e8951eaee08654fc954" prot="public" virt="pure-virtual"><scope>ShaderParser::ShaderEvalCB</scope><name>eval_shader_locdecl</name></member>
+      <member refid="classShaderParser_1_1ShaderEvalCB_1a484b9919d67d330ad15f99a673aeb3f3" prot="public" virt="pure-virtual"><scope>ShaderParser::ShaderEvalCB</scope><name>eval_state</name></member>
+      <member refid="classShaderParser_1_1ShaderEvalCB_1a773524a09efd3b118970955178a69efd" prot="public" virt="pure-virtual"><scope>ShaderParser::ShaderEvalCB</scope><name>eval_static</name></member>
+      <member refid="classShaderParser_1_1ShaderEvalCB_1a6da845097d790e43f21f1d743f0b4ea7" prot="public" virt="pure-virtual"><scope>ShaderParser::ShaderEvalCB</scope><name>eval_supports</name></member>
+      <member refid="classShaderParser_1_1ShaderEvalCB_1a9bed93ba21bf89440d7b037f4ac2800d" prot="public" virt="pure-virtual"><scope>ShaderParser::ShaderEvalCB</scope><name>eval_zbias_state</name></member>
+      <member refid="classShaderParser_1_1ShaderEvalCB_1a581f2cf7ed7c9fc774cac32e197b8b35" prot="public" virt="virtual"><scope>ShaderParser::ShaderEvalCB</scope><name>getDefines</name></member>
+      <member refid="classShaderParser_1_1ShaderEvalCB_1a4e485b7ac1252d1a948698ab76ccd7cfa67354fcef9c601179eef2864b8228b76" prot="public" virt="non-virtual"><scope>ShaderParser::ShaderEvalCB</scope><name>IF_BOTH</name></member>
+      <member refid="classShaderParser_1_1ShaderEvalCB_1a4e485b7ac1252d1a948698ab76ccd7cfa58399c8728006ad1e82d90527d55d3c6" prot="public" virt="non-virtual"><scope>ShaderParser::ShaderEvalCB</scope><name>IF_FALSE</name></member>
+      <member refid="classShaderParser_1_1ShaderEvalCB_1a4e485b7ac1252d1a948698ab76ccd7cfa795199991378708f0bd9307c73262846" prot="public" virt="non-virtual"><scope>ShaderParser::ShaderEvalCB</scope><name>IF_TRUE</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

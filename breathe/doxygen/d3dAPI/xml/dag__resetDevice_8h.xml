@@ -1,0 +1,413 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__resetDevice_8h" kind="file" language="C++">
+    <compoundname>dag_resetDevice.h</compoundname>
+    <includes local="no">util/dag_preprocessor.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>dag_resetDevice.h</label>
+        <link refid="dag__resetDevice_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>util/dag_preprocessor.h</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="structIDrv3DResetCB" prot="public">IDrv3DResetCB</innerclass>
+    <innerclass refid="structIDrv3DDeviceLostCB" prot="public">IDrv3DDeviceLostCB</innerclass>
+    <innerclass refid="structD3dResetQueue" prot="public">D3dResetQueue</innerclass>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="dag__resetDevice_8h_1a44a3235857ae36ee51eb9dfcdb82fed4" prot="public" static="no">
+        <name>REGISTER_D3D_BEFORE_RESET_FUNC</name>
+        <param><defname>F</defname></param>
+        <initializer>static <ref refid="structD3dResetQueue" kindref="compound">D3dResetQueue</ref> DAG_CONCAT(AutoD3dResetFunc, __LINE__)(#F, &amp;F, false)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resetDevice.h" line="83" column="9" bodyfile="dag_resetDevice.h" bodystart="83" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resetDevice_8h_1ab433d8b97f99915a4c0dc5db7346354e" prot="public" static="no">
+        <name>REGISTER_D3D_AFTER_RESET_FUNC</name>
+        <param><defname>F</defname></param>
+        <initializer>static <ref refid="structD3dResetQueue" kindref="compound">D3dResetQueue</ref> DAG_CONCAT(AutoD3dResetFunc, __LINE__)(#F, &amp;F, true)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resetDevice.h" line="84" column="9" bodyfile="dag_resetDevice.h" bodystart="84" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="dag__resetDevice_8h_1ae54112c870ee710a79e21baee13245d1" prot="public" static="no" mutable="no">
+        <type><ref refid="structIDrv3DDeviceLostCB" kindref="compound">IDrv3DDeviceLostCB</ref> *</type>
+        <definition>IDrv3DDeviceLostCB* ext_drv3d_device_lost_handler</definition>
+        <argsstring></argsstring>
+        <name>ext_drv3d_device_lost_handler</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resetDevice.h" line="23" column="27" declfile="dag_resetDevice.h" declline="23" declcolumn="27"/>
+      </memberdef>
+      <memberdef kind="variable" id="dag__resetDevice_8h_1a46b6ad6cc2bb500f23b945cb678aa8ff" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool dagor_d3d_force_driver_reset</definition>
+        <argsstring></argsstring>
+        <name>dagor_d3d_force_driver_reset</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resetDevice.h" line="44" column="13" declfile="dag_resetDevice.h" declline="44" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="variable" id="dag__resetDevice_8h_1a492bf72bf858666f5f6667ce118a44a8" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool dagor_d3d_force_driver_mode_reset</definition>
+        <argsstring></argsstring>
+        <name>dagor_d3d_force_driver_mode_reset</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resetDevice.h" line="45" column="13" declfile="dag_resetDevice.h" declline="45" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="variable" id="dag__resetDevice_8h_1a4df51089aa4acbdea81ba256dc3587c4" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool dagor_d3d_notify_fullscreen_state_restored</definition>
+        <argsstring></argsstring>
+        <name>dagor_d3d_notify_fullscreen_state_restored</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resetDevice.h" line="46" column="13" declfile="dag_resetDevice.h" declline="46" declcolumn="13"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="dag__resetDevice_8h_1a3c17f4b876a6c90e2abb094a618eb940" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void set_3d_device_reset_callback</definition>
+        <argsstring>(IDrv3DResetCB *handler)</argsstring>
+        <name>set_3d_device_reset_callback</name>
+        <param>
+          <type><ref refid="structIDrv3DResetCB" kindref="compound">IDrv3DResetCB</ref> *</type>
+          <declname>handler</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resetDevice.h" line="25" column="6" declfile="dag_resetDevice.h" declline="25" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__resetDevice_8h_1acfef4c5aefeb27b8de90ec50c3488c05" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void set_3d_device_lost_callback</definition>
+        <argsstring>(IDrv3DDeviceLostCB *handler)</argsstring>
+        <name>set_3d_device_lost_callback</name>
+        <param>
+          <type><ref refid="structIDrv3DDeviceLostCB" kindref="compound">IDrv3DDeviceLostCB</ref> *</type>
+          <declname>handler</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resetDevice.h" line="26" column="6" declfile="dag_resetDevice.h" declline="26" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__resetDevice_8h_1a2ddb8e01b693c9fbdc578d6ddff8aea8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool check_and_handle_window_resize</definition>
+        <argsstring>()</argsstring>
+        <name>check_and_handle_window_resize</name>
+        <briefdescription>
+<para>returns true if window was resized and therefore <ref refid="namespaced3d" kindref="compound">d3d</ref> reset is needed </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resetDevice.h" line="29" column="6" declfile="dag_resetDevice.h" declline="29" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__resetDevice_8h_1a1650840a8b5405ef08ff5f884eb6a601" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool check_and_restore_3d_device</definition>
+        <argsstring>()</argsstring>
+        <name>check_and_restore_3d_device</name>
+        <briefdescription>
+<para>returns true if drawing is allowed (device is not lost) </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resetDevice.h" line="32" column="6" declfile="dag_resetDevice.h" declline="32" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__resetDevice_8h_1a61cbdc98650a974471d92bb93b334ea9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool is_restoring_3d_device</definition>
+        <argsstring>()</argsstring>
+        <name>is_restoring_3d_device</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resetDevice.h" line="33" column="6" declfile="dag_resetDevice.h" declline="33" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__resetDevice_8h_1a07a71896f84da0e7e19dbac2bf312221" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void before_reset_3d_device</definition>
+        <argsstring>(bool full_reset)</argsstring>
+        <name>before_reset_3d_device</name>
+        <param>
+          <type>bool</type>
+          <declname>full_reset</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resetDevice.h" line="39" column="6" declfile="dag_resetDevice.h" declline="39" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__resetDevice_8h_1afd1dd7023dd78939759c84405884e164" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void after_reset_3d_device</definition>
+        <argsstring>(bool full_reset)</argsstring>
+        <name>after_reset_3d_device</name>
+        <param>
+          <type>bool</type>
+          <declname>full_reset</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resetDevice.h" line="40" column="6" declfile="dag_resetDevice.h" declline="40" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__resetDevice_8h_1a045a66e353f6b1d8eb602b741b62c1df" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void change_driver_reset_request</definition>
+        <argsstring>(bool &amp;out_apply_after_reset_device, bool mode_reset=true)</argsstring>
+        <name>change_driver_reset_request</name>
+        <param>
+          <type>bool &amp;</type>
+          <declname>out_apply_after_reset_device</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>mode_reset</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resetDevice.h" line="41" column="6" declfile="dag_resetDevice.h" declline="41" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__resetDevice_8h_1a6113b77d9230381027157c4059df8302" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void zero_reset_3d_device_counter</definition>
+        <argsstring>()</argsstring>
+        <name>zero_reset_3d_device_counter</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resetDevice.h" line="42" column="6" declfile="dag_resetDevice.h" declline="42" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__resetDevice_8h_1a3993d6bc71bde71dd965a4f0680d104c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool is_window_resizing_by_mouse</definition>
+        <argsstring>()</argsstring>
+        <name>is_window_resizing_by_mouse</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resetDevice.h" line="48" column="6" declfile="dag_resetDevice.h" declline="48" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__resetDevice_8h_1a3a9af5fa8ed824186e865ec14301bdbc" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void set_window_resizing_by_mouse</definition>
+        <argsstring>(bool value)</argsstring>
+        <name>set_window_resizing_by_mouse</name>
+        <param>
+          <type>bool</type>
+          <declname>value</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resetDevice.h" line="49" column="6" declfile="dag_resetDevice.h" declline="49" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__resetDevice_8h_1ac913629a828f5db986a00b7003d552be" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void notify_window_resized</definition>
+        <argsstring>(int w, int h)</argsstring>
+        <name>notify_window_resized</name>
+        <param>
+          <type>int</type>
+          <declname>w</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>h</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resetDevice.h" line="50" column="6" declfile="dag_resetDevice.h" declline="50" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__resetDevice_8h_1a03de16a60ab3d9e083d50102eb784ab6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>unsigned int</type>
+        <definition>unsigned int get_d3d_reset_counter</definition>
+        <argsstring>()</argsstring>
+        <name>get_d3d_reset_counter</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resetDevice.h" line="52" column="14" declfile="dag_resetDevice.h" declline="52" declcolumn="14"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__resetDevice_8h_1ae2a8970b3ddf6348bd7070bfc127bb4f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>unsigned int</type>
+        <definition>unsigned int get_d3d_full_reset_counter</definition>
+        <argsstring>()</argsstring>
+        <name>get_d3d_full_reset_counter</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resetDevice.h" line="53" column="14" declfile="dag_resetDevice.h" declline="53" declcolumn="14"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_preprocessor.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9" refid="structIDrv3DResetCB" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structIDrv3DResetCB" kindref="compound">IDrv3DResetCB</ref></highlight></codeline>
+<codeline lineno="10"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="11" refid="structIDrv3DResetCB_1ac780280ada43dee6e51a6e302b5a8f73" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structIDrv3DResetCB_1ac780280ada43dee6e51a6e302b5a8f73" kindref="member">beforeReset</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>full_reset)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="12" refid="structIDrv3DResetCB_1a8aabdad7c830c829208b11049d76cea2" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structIDrv3DResetCB_1a8aabdad7c830c829208b11049d76cea2" kindref="member">afterReset</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>full_reset)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="13" refid="structIDrv3DResetCB_1a916f797612436f6e7296c8d96dbef91a" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structIDrv3DResetCB_1a916f797612436f6e7296c8d96dbef91a" kindref="member">resetCounter</ref>()<sp/>{}</highlight></codeline>
+<codeline lineno="14" refid="structIDrv3DResetCB_1a7f197ec2a7b34df87b3881cbeef75d29" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structIDrv3DResetCB_1a7f197ec2a7b34df87b3881cbeef75d29" kindref="member">windowResized</ref>()<sp/>{}</highlight></codeline>
+<codeline lineno="15" refid="structIDrv3DResetCB_1a7b0cf2d37ad6446a255a814b3bead51f" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structIDrv3DResetCB_1a7b0cf2d37ad6446a255a814b3bead51f" kindref="member">fullscreenStateRestored</ref>()<sp/>{}</highlight></codeline>
+<codeline lineno="16"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18" refid="structIDrv3DDeviceLostCB" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structIDrv3DDeviceLostCB" kindref="compound">IDrv3DDeviceLostCB</ref></highlight></codeline>
+<codeline lineno="19"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="20" refid="structIDrv3DDeviceLostCB_1a8afd5c142375de51cef1a5eddff20ec2" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structIDrv3DDeviceLostCB_1a8afd5c142375de51cef1a5eddff20ec2" kindref="member">onDeviceLost</ref>()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="21"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/><ref refid="structIDrv3DDeviceLostCB" kindref="compound">IDrv3DDeviceLostCB</ref><sp/>*<ref refid="dag__resetDevice_8h_1ae54112c870ee710a79e21baee13245d1" kindref="member">ext_drv3d_device_lost_handler</ref>;</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight></codeline>
+<codeline lineno="25" refid="dag__resetDevice_8h_1a3c17f4b876a6c90e2abb094a618eb940" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="dag__resetDevice_8h_1a3c17f4b876a6c90e2abb094a618eb940" kindref="member">set_3d_device_reset_callback</ref>(<ref refid="structIDrv3DResetCB" kindref="compound">IDrv3DResetCB</ref><sp/>*handler);</highlight></codeline>
+<codeline lineno="26" refid="dag__resetDevice_8h_1acfef4c5aefeb27b8de90ec50c3488c05" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="dag__resetDevice_8h_1acfef4c5aefeb27b8de90ec50c3488c05" kindref="member">set_3d_device_lost_callback</ref>(<ref refid="structIDrv3DDeviceLostCB" kindref="compound">IDrv3DDeviceLostCB</ref><sp/>*handler);</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight></codeline>
+<codeline lineno="29" refid="dag__resetDevice_8h_1a2ddb8e01b693c9fbdc578d6ddff8aea8" refkind="member"><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="dag__resetDevice_8h_1a2ddb8e01b693c9fbdc578d6ddff8aea8" kindref="member">check_and_handle_window_resize</ref>();</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>_TARGET_PC<sp/>|<sp/>_TARGET_ANDROID</highlight></codeline>
+<codeline lineno="32" refid="dag__resetDevice_8h_1a1650840a8b5405ef08ff5f884eb6a601" refkind="member"><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="dag__resetDevice_8h_1a1650840a8b5405ef08ff5f884eb6a601" kindref="member">check_and_restore_3d_device</ref>();</highlight></codeline>
+<codeline lineno="33" refid="dag__resetDevice_8h_1a61cbdc98650a974471d92bb93b334ea9" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="dag__resetDevice_8h_1a61cbdc98650a974471d92bb93b334ea9" kindref="member">is_restoring_3d_device</ref>();</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="dag__resetDevice_8h_1a1650840a8b5405ef08ff5f884eb6a601" kindref="member">check_and_restore_3d_device</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="dag__resetDevice_8h_1a61cbdc98650a974471d92bb93b334ea9" kindref="member">is_restoring_3d_device</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight></codeline>
+<codeline lineno="39" refid="dag__resetDevice_8h_1a07a71896f84da0e7e19dbac2bf312221" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="dag__resetDevice_8h_1a07a71896f84da0e7e19dbac2bf312221" kindref="member">before_reset_3d_device</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>full_reset);</highlight></codeline>
+<codeline lineno="40" refid="dag__resetDevice_8h_1afd1dd7023dd78939759c84405884e164" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="dag__resetDevice_8h_1afd1dd7023dd78939759c84405884e164" kindref="member">after_reset_3d_device</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>full_reset);</highlight></codeline>
+<codeline lineno="41" refid="dag__resetDevice_8h_1a045a66e353f6b1d8eb602b741b62c1df" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="dag__resetDevice_8h_1a045a66e353f6b1d8eb602b741b62c1df" kindref="member">change_driver_reset_request</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>&amp;out_apply_after_reset_device,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>mode_reset<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="42" refid="dag__resetDevice_8h_1a6113b77d9230381027157c4059df8302" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="dag__resetDevice_8h_1a6113b77d9230381027157c4059df8302" kindref="member">zero_reset_3d_device_counter</ref>();</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"></highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="dag__resetDevice_8h_1a46b6ad6cc2bb500f23b945cb678aa8ff" kindref="member">dagor_d3d_force_driver_reset</ref>;</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="dag__resetDevice_8h_1a492bf72bf858666f5f6667ce118a44a8" kindref="member">dagor_d3d_force_driver_mode_reset</ref>;</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="dag__resetDevice_8h_1a4df51089aa4acbdea81ba256dc3587c4" kindref="member">dagor_d3d_notify_fullscreen_state_restored</ref>;</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight></codeline>
+<codeline lineno="48" refid="dag__resetDevice_8h_1a3993d6bc71bde71dd965a4f0680d104c" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="dag__resetDevice_8h_1a3993d6bc71bde71dd965a4f0680d104c" kindref="member">is_window_resizing_by_mouse</ref>();</highlight></codeline>
+<codeline lineno="49" refid="dag__resetDevice_8h_1a3a9af5fa8ed824186e865ec14301bdbc" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="dag__resetDevice_8h_1a3a9af5fa8ed824186e865ec14301bdbc" kindref="member">set_window_resizing_by_mouse</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>value);</highlight></codeline>
+<codeline lineno="50" refid="dag__resetDevice_8h_1ac913629a828f5db986a00b7003d552be" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="dag__resetDevice_8h_1ac913629a828f5db986a00b7003d552be" kindref="member">notify_window_resized</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>w,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>h);</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"></highlight></codeline>
+<codeline lineno="52" refid="dag__resetDevice_8h_1a03de16a60ab3d9e083d50102eb784ab6" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="dag__resetDevice_8h_1a03de16a60ab3d9e083d50102eb784ab6" kindref="member">get_d3d_reset_counter</ref>();<sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>returns<sp/>current<sp/>reset<sp/>generation,<sp/>never<sp/>0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="53" refid="dag__resetDevice_8h_1ae2a8970b3ddf6348bd7070bfc127bb4f" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="dag__resetDevice_8h_1ae2a8970b3ddf6348bd7070bfc127bb4f" kindref="member">get_d3d_full_reset_counter</ref>();<sp/></highlight><highlight class="comment">//<sp/>returns<sp/>current<sp/>&apos;full&apos;<sp/>reset<sp/>generation,<sp/>never<sp/>0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="54"><highlight class="normal"></highlight></codeline>
+<codeline lineno="55" refid="structD3dResetQueue" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structD3dResetQueue" kindref="compound">D3dResetQueue</ref></highlight></codeline>
+<codeline lineno="56"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="57" refid="structD3dResetQueue_1a48cfa05c7d701c484455fb41f8836700" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/>void<sp/>(*<ref refid="structD3dResetQueue_1a48cfa05c7d701c484455fb41f8836700" kindref="member">reset_func</ref>)(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>full_reset);</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"></highlight></codeline>
+<codeline lineno="59" refid="structD3dResetQueue_1ad647f4724203f07214d7e9ecac8100d5" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structD3dResetQueue" kindref="compound">D3dResetQueue</ref><sp/>*<ref refid="structD3dResetQueue_1ad647f4724203f07214d7e9ecac8100d5" kindref="member">next</ref><sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;<sp/></highlight><highlight class="comment">//<sp/>single-linked<sp/>list</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="60" refid="structD3dResetQueue_1ae99ff95428a963a6d352da0888ccc70b" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structD3dResetQueue_1a48cfa05c7d701c484455fb41f8836700" kindref="member">reset_func</ref><sp/><ref refid="structD3dResetQueue_1ae99ff95428a963a6d352da0888ccc70b" kindref="member">func</ref><sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="61" refid="structD3dResetQueue_1a3ec7ea657951b15ba842ec45f2bdb98e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="structD3dResetQueue_1a3ec7ea657951b15ba842ec45f2bdb98e" kindref="member">name</ref><sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;<sp/></highlight><highlight class="comment">//<sp/>name</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="62"><highlight class="normal"></highlight></codeline>
+<codeline lineno="63" refid="structD3dResetQueue_1a9c246125ae59b409b448871a5d06d204" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structD3dResetQueue_1a9c246125ae59b409b448871a5d06d204" kindref="member">D3dResetQueue</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*n,<sp/><ref refid="structD3dResetQueue_1a48cfa05c7d701c484455fb41f8836700" kindref="member">reset_func</ref><sp/>f,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>add_to_after_reset)<sp/>:<sp/><ref refid="structD3dResetQueue_1a3ec7ea657951b15ba842ec45f2bdb98e" kindref="member">name</ref>(n),<sp/><ref refid="structD3dResetQueue_1ae99ff95428a963a6d352da0888ccc70b" kindref="member">func</ref>(f)</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(add_to_after_reset)</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structD3dResetQueue_1ad647f4724203f07214d7e9ecac8100d5" kindref="member">next</ref><sp/>=<sp/><ref refid="structD3dResetQueue_1a7074638e7ab429950ea34c7bcc26334c" kindref="member">tailAfterReset</ref>;</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structD3dResetQueue_1a7074638e7ab429950ea34c7bcc26334c" kindref="member">tailAfterReset</ref><sp/>=<sp/></highlight><highlight class="keyword">this</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structD3dResetQueue_1ad647f4724203f07214d7e9ecac8100d5" kindref="member">next</ref><sp/>=<sp/><ref refid="structD3dResetQueue_1a9378b6fc1b1d6a5b972ff40c23c1c6b9" kindref="member">tailBeforeReset</ref>;</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structD3dResetQueue_1a9378b6fc1b1d6a5b972ff40c23c1c6b9" kindref="member">tailBeforeReset</ref><sp/>=<sp/></highlight><highlight class="keyword">this</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"></highlight></codeline>
+<codeline lineno="77" refid="structD3dResetQueue_1a7074638e7ab429950ea34c7bcc26334c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/><ref refid="structD3dResetQueue" kindref="compound">D3dResetQueue</ref><sp/>*<ref refid="structD3dResetQueue_1a9378b6fc1b1d6a5b972ff40c23c1c6b9" kindref="member">tailBeforeReset</ref>,<sp/>*<ref refid="structD3dResetQueue_1a7074638e7ab429950ea34c7bcc26334c" kindref="member">tailAfterReset</ref>;</highlight></codeline>
+<codeline lineno="78" refid="structD3dResetQueue_1aaf9594cb3c0308a779f513f5bfd16dd7" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structD3dResetQueue_1aaf9594cb3c0308a779f513f5bfd16dd7" kindref="member">perform_reset_queue</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structD3dResetQueue" kindref="compound">D3dResetQueue</ref><sp/>*q,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>full_reset);</highlight></codeline>
+<codeline lineno="79" refid="structD3dResetQueue_1a1e3f5e2667277718c013fda08c79cbd3" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structD3dResetQueue_1a1e3f5e2667277718c013fda08c79cbd3" kindref="member">perform_before_reset</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>full_reset)<sp/>{<sp/><ref refid="structD3dResetQueue_1aaf9594cb3c0308a779f513f5bfd16dd7" kindref="member">perform_reset_queue</ref>(<ref refid="structD3dResetQueue_1a9378b6fc1b1d6a5b972ff40c23c1c6b9" kindref="member">tailBeforeReset</ref>,<sp/>full_reset);<sp/>}</highlight></codeline>
+<codeline lineno="80" refid="structD3dResetQueue_1a484832fb2f9290c67063a49e155e78b8" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structD3dResetQueue_1a484832fb2f9290c67063a49e155e78b8" kindref="member">perform_after_reset</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>full_reset)<sp/>{<sp/><ref refid="structD3dResetQueue_1aaf9594cb3c0308a779f513f5bfd16dd7" kindref="member">perform_reset_queue</ref>(<ref refid="structD3dResetQueue_1a7074638e7ab429950ea34c7bcc26334c" kindref="member">tailAfterReset</ref>,<sp/>full_reset);<sp/>}</highlight></codeline>
+<codeline lineno="81"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"></highlight></codeline>
+<codeline lineno="83" refid="dag__resetDevice_8h_1a44a3235857ae36ee51eb9dfcdb82fed4" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>REGISTER_D3D_BEFORE_RESET_FUNC(F)<sp/>static<sp/>D3dResetQueue<sp/>DAG_CONCAT(AutoD3dResetFunc,<sp/>__LINE__)(#F,<sp/>&amp;F,<sp/>false)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="84" refid="dag__resetDevice_8h_1ab433d8b97f99915a4c0dc5db7346354e" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>REGISTER_D3D_AFTER_RESET_FUNC(F)<sp/><sp/>static<sp/>D3dResetQueue<sp/>DAG_CONCAT(AutoD3dResetFunc,<sp/>__LINE__)(#F,<sp/>&amp;F,<sp/>true)</highlight></codeline>
+    </programlisting>
+    <location file="dag_resetDevice.h"/>
+  </compounddef>
+</doxygen>

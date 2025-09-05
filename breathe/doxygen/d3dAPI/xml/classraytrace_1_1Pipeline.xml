@@ -1,0 +1,332 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classraytrace_1_1Pipeline" kind="class" language="C++" prot="public">
+    <compoundname>raytrace::Pipeline</compoundname>
+    <includes refid="dag__drvRayTrace_8h" local="no">dag_drvRayTrace.h</includes>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="classraytrace_1_1Pipeline_1a6affa6e295241f1cc88ecfefdc2d771f" prot="protected" static="no" mutable="no">
+        <type>void *</type>
+        <definition>void* raytrace::Pipeline::driverObject</definition>
+        <argsstring></argsstring>
+        <name>driverObject</name>
+        <qualifiedname>raytrace::Pipeline::driverObject</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+<para>Object handle for the driver. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="576" column="8" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="576" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classraytrace_1_1Pipeline_1a7fb6de3153de40a3d2a869c0635a7f7d" prot="protected" static="no" mutable="no">
+        <type>const uint8_t *</type>
+        <definition>const uint8_t* raytrace::Pipeline::shaderHandleTable</definition>
+        <argsstring></argsstring>
+        <name>shaderHandleTable</name>
+        <qualifiedname>raytrace::Pipeline::shaderHandleTable</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+<para>Shader handle table of all shaders of that pipeline, in the order they where defined during creation and expansion. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="578" column="17" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="578" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classraytrace_1_1Pipeline_1aac5f19a27ced71584820c7ff2bae8c75" prot="protected" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::Pipeline::shaderHandleSize</definition>
+        <argsstring></argsstring>
+        <name>shaderHandleSize</name>
+        <qualifiedname>raytrace::Pipeline::shaderHandleSize</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+<para>Size in bytes of a single shader handle in shaderHandleTable. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="580" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="580" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classraytrace_1_1Pipeline_1aafabf506b0f09faa28239e12e7c24b32" prot="protected" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::Pipeline::shaderCount</definition>
+        <argsstring></argsstring>
+        <name>shaderCount</name>
+        <qualifiedname>raytrace::Pipeline::shaderCount</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+<para>Number of shaders of the pipeline and in shaderHandleTable. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="582" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="582" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-func">
+      <memberdef kind="function" id="classraytrace_1_1Pipeline_1ab5b0723459cef5f78b2cca5bd45c47d7" prot="protected" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>raytrace::Pipeline::Pipeline</definition>
+        <argsstring>(void *obj, const uint8_t *sht, uint32_t shs, uint32_t sc)</argsstring>
+        <name>Pipeline</name>
+        <qualifiedname>raytrace::Pipeline::Pipeline</qualifiedname>
+        <param>
+          <type>void *</type>
+          <declname>obj</declname>
+        </param>
+        <param>
+          <type>const uint8_t *</type>
+          <declname>sht</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>shs</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>sc</declname>
+        </param>
+        <briefdescription>
+<para>Drivers implementing this should create a derived type to gain access to this constructor. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="585" column="3" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="585" bodyend="587"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classraytrace_1_1Pipeline_1a99cbaf3302abcb8d0ec6e9d35c23567b" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>constexpr</type>
+        <definition>constexpr raytrace::Pipeline::Pipeline</definition>
+        <argsstring>()=default</argsstring>
+        <name>Pipeline</name>
+        <qualifiedname>raytrace::Pipeline::Pipeline</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="590" column="13"/>
+      </memberdef>
+      <memberdef kind="function" id="classraytrace_1_1Pipeline_1ae779797e28d8d55aa9ffdc4150f5d49a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>raytrace::Pipeline::Pipeline</definition>
+        <argsstring>(const Pipeline &amp;)=default</argsstring>
+        <name>Pipeline</name>
+        <qualifiedname>raytrace::Pipeline::Pipeline</qualifiedname>
+        <param>
+          <type>const <ref refid="classraytrace_1_1Pipeline" kindref="compound">Pipeline</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="592" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classraytrace_1_1Pipeline_1acd67ce4b41805dc80fe2f9bedbb31961" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classraytrace_1_1Pipeline" kindref="compound">Pipeline</ref> &amp;</type>
+        <definition>Pipeline &amp; raytrace::Pipeline::operator=</definition>
+        <argsstring>(const Pipeline &amp;)=default</argsstring>
+        <name>operator=</name>
+        <qualifiedname>raytrace::Pipeline::operator=</qualifiedname>
+        <param>
+          <type>const <ref refid="classraytrace_1_1Pipeline" kindref="compound">Pipeline</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="593" column="12"/>
+      </memberdef>
+      <memberdef kind="function" id="classraytrace_1_1Pipeline_1a8adbebfe2e8b447126fa210ff5c64930" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>raytrace::Pipeline::Pipeline</definition>
+        <argsstring>(Pipeline &amp;&amp;)=default</argsstring>
+        <name>Pipeline</name>
+        <qualifiedname>raytrace::Pipeline::Pipeline</qualifiedname>
+        <param>
+          <type><ref refid="classraytrace_1_1Pipeline" kindref="compound">Pipeline</ref> &amp;&amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="595" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classraytrace_1_1Pipeline_1a8d6619a88cfd0df230a2cb59320d6aba" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classraytrace_1_1Pipeline" kindref="compound">Pipeline</ref> &amp;</type>
+        <definition>Pipeline &amp; raytrace::Pipeline::operator=</definition>
+        <argsstring>(Pipeline &amp;&amp;)=default</argsstring>
+        <name>operator=</name>
+        <qualifiedname>raytrace::Pipeline::operator=</qualifiedname>
+        <param>
+          <type><ref refid="classraytrace_1_1Pipeline" kindref="compound">Pipeline</ref> &amp;&amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="596" column="12"/>
+      </memberdef>
+      <memberdef kind="function" id="classraytrace_1_1Pipeline_1a2801f408bea2003cc4bd3aa56b4c0f7e" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::Pipeline::getShaderCount</definition>
+        <argsstring>() const</argsstring>
+        <name>getShaderCount</name>
+        <qualifiedname>raytrace::Pipeline::getShaderCount</qualifiedname>
+        <briefdescription>
+<para>Returns the number of shaders the pipeline object makes usable. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="599" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="599" bodyend="599"/>
+      </memberdef>
+      <memberdef kind="function" id="classraytrace_1_1Pipeline_1a426320145e28d42bbcfb555593259286" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>dag::ConstSpan&lt; const uint8_t &gt;</type>
+        <definition>dag::ConstSpan&lt; const uint8_t &gt; raytrace::Pipeline::getShaderHandle</definition>
+        <argsstring>(uint32_t index) const</argsstring>
+        <name>getShaderHandle</name>
+        <qualifiedname>raytrace::Pipeline::getShaderHandle</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>index</declname>
+        </param>
+        <briefdescription>
+<para>Returns a shader handle pointer with a size returned by getShaderHandleSize. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="601" column="18" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="601" bodyend="605"/>
+      </memberdef>
+      <memberdef kind="function" id="classraytrace_1_1Pipeline_1a0ac57595d2fac7568a8cdfb5f696ab3d" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void raytrace::Pipeline::writeShaderHandleTo</definition>
+        <argsstring>(uint32_t index, dag::Span&lt; uint8_t &gt; target) const</argsstring>
+        <name>writeShaderHandleTo</name>
+        <qualifiedname>raytrace::Pipeline::writeShaderHandleTo</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>index</declname>
+        </param>
+        <param>
+          <type>dag::Span&lt; uint8_t &gt;</type>
+          <declname>target</declname>
+        </param>
+        <briefdescription>
+<para>Helper to copy a shader handle at the target memory location. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="607" column="8" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="607" bodyend="612"/>
+      </memberdef>
+      <memberdef kind="function" id="classraytrace_1_1Pipeline_1a063a079aada14125fd5f9e622e522756" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::Pipeline::getShaderHandleSize</definition>
+        <argsstring>() const</argsstring>
+        <name>getShaderHandleSize</name>
+        <qualifiedname>raytrace::Pipeline::getShaderHandleSize</qualifiedname>
+        <briefdescription>
+<para>Retrieves the size of a handle returned by getShaderHandle. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="614" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="614" bodyend="614"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="classraytrace_1_1Pipeline_1aa21c102f2565fa7eb17b2a33c6cf50d0" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool operator==</definition>
+        <argsstring>(const Pipeline &amp;l, const Pipeline &amp;r)</argsstring>
+        <name>operator==</name>
+        <qualifiedname>raytrace::Pipeline::operator==</qualifiedname>
+        <param>
+          <type>const <ref refid="classraytrace_1_1Pipeline" kindref="compound">Pipeline</ref> &amp;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classraytrace_1_1Pipeline" kindref="compound">Pipeline</ref> &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="616" column="15" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="616" bodyend="616"/>
+      </memberdef>
+      <memberdef kind="friend" id="classraytrace_1_1Pipeline_1acd67bdd9a2d9729bd75a3f5d9ae70673" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool operator!=</definition>
+        <argsstring>(const Pipeline &amp;l, const Pipeline &amp;r)</argsstring>
+        <name>operator!=</name>
+        <qualifiedname>raytrace::Pipeline::operator!=</qualifiedname>
+        <param>
+          <type>const <ref refid="classraytrace_1_1Pipeline" kindref="compound">Pipeline</ref> &amp;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classraytrace_1_1Pipeline" kindref="compound">Pipeline</ref> &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="617" column="15" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="617" bodyend="617"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para><ref refid="classraytrace_1_1Pipeline" kindref="compound">Pipeline</ref> type, wraps a pipeline object and shader handle table. Drivers that implement pipelines should implement a derived type of this, that provides a appropriate constructor and access to the internals when needed. To adapt input pipelines this can be achieved by a &quot;copy&quot; constructor that uses the copy constructor of this type to initialize the derived object. </para>
+    </detaileddescription>
+    <location file="rayTrace/dag_drvRayTrace.h" line="572" column="1" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="573" bodyend="618"/>
+    <listofallmembers>
+      <member refid="classraytrace_1_1Pipeline_1a6affa6e295241f1cc88ecfefdc2d771f" prot="protected" virt="non-virtual"><scope>raytrace::Pipeline</scope><name>driverObject</name></member>
+      <member refid="classraytrace_1_1Pipeline_1a2801f408bea2003cc4bd3aa56b4c0f7e" prot="public" virt="non-virtual"><scope>raytrace::Pipeline</scope><name>getShaderCount</name></member>
+      <member refid="classraytrace_1_1Pipeline_1a426320145e28d42bbcfb555593259286" prot="public" virt="non-virtual"><scope>raytrace::Pipeline</scope><name>getShaderHandle</name></member>
+      <member refid="classraytrace_1_1Pipeline_1a063a079aada14125fd5f9e622e522756" prot="public" virt="non-virtual"><scope>raytrace::Pipeline</scope><name>getShaderHandleSize</name></member>
+      <member refid="classraytrace_1_1Pipeline_1acd67bdd9a2d9729bd75a3f5d9ae70673" prot="public" virt="non-virtual"><scope>raytrace::Pipeline</scope><name>operator!=</name></member>
+      <member refid="classraytrace_1_1Pipeline_1acd67ce4b41805dc80fe2f9bedbb31961" prot="public" virt="non-virtual"><scope>raytrace::Pipeline</scope><name>operator=</name></member>
+      <member refid="classraytrace_1_1Pipeline_1a8d6619a88cfd0df230a2cb59320d6aba" prot="public" virt="non-virtual"><scope>raytrace::Pipeline</scope><name>operator=</name></member>
+      <member refid="classraytrace_1_1Pipeline_1aa21c102f2565fa7eb17b2a33c6cf50d0" prot="public" virt="non-virtual"><scope>raytrace::Pipeline</scope><name>operator==</name></member>
+      <member refid="classraytrace_1_1Pipeline_1ab5b0723459cef5f78b2cca5bd45c47d7" prot="protected" virt="non-virtual"><scope>raytrace::Pipeline</scope><name>Pipeline</name></member>
+      <member refid="classraytrace_1_1Pipeline_1a99cbaf3302abcb8d0ec6e9d35c23567b" prot="public" virt="non-virtual"><scope>raytrace::Pipeline</scope><name>Pipeline</name></member>
+      <member refid="classraytrace_1_1Pipeline_1ae779797e28d8d55aa9ffdc4150f5d49a" prot="public" virt="non-virtual"><scope>raytrace::Pipeline</scope><name>Pipeline</name></member>
+      <member refid="classraytrace_1_1Pipeline_1a8adbebfe2e8b447126fa210ff5c64930" prot="public" virt="non-virtual"><scope>raytrace::Pipeline</scope><name>Pipeline</name></member>
+      <member refid="classraytrace_1_1Pipeline_1aafabf506b0f09faa28239e12e7c24b32" prot="protected" virt="non-virtual"><scope>raytrace::Pipeline</scope><name>shaderCount</name></member>
+      <member refid="classraytrace_1_1Pipeline_1aac5f19a27ced71584820c7ff2bae8c75" prot="protected" virt="non-virtual"><scope>raytrace::Pipeline</scope><name>shaderHandleSize</name></member>
+      <member refid="classraytrace_1_1Pipeline_1a7fb6de3153de40a3d2a869c0635a7f7d" prot="protected" virt="non-virtual"><scope>raytrace::Pipeline</scope><name>shaderHandleTable</name></member>
+      <member refid="classraytrace_1_1Pipeline_1a0ac57595d2fac7568a8cdfb5f696ab3d" prot="public" virt="non-virtual"><scope>raytrace::Pipeline</scope><name>writeShaderHandleTo</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

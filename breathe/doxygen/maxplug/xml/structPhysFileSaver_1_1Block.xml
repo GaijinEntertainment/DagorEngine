@@ -1,0 +1,30 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structPhysFileSaver_1_1Block" kind="struct" language="C++" prot="protected">
+    <compoundname>PhysFileSaver::Block</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structPhysFileSaver_1_1Block_1a8718b2ea3e4383fabf73055556779d63" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int PhysFileSaver::Block::ofs</definition>
+        <argsstring></argsstring>
+        <name>ofs</name>
+        <qualifiedname>PhysFileSaver::Block::ofs</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="physExport.cpp" line="118" column="9" bodyfile="physExport.cpp" bodystart="118" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="physExport.cpp" line="116" column="3" bodyfile="physExport.cpp" bodystart="117" bodyend="119"/>
+    <listofallmembers>
+      <member refid="structPhysFileSaver_1_1Block_1a8718b2ea3e4383fabf73055556779d63" prot="public" virt="non-virtual"><scope>PhysFileSaver::Block</scope><name>ofs</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

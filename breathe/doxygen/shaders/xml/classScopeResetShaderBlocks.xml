@@ -1,0 +1,92 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classScopeResetShaderBlocks" kind="class" language="C++" prot="public">
+    <compoundname>ScopeResetShaderBlocks</compoundname>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="classScopeResetShaderBlocks_1a705652ed09285d6aaa4375c116f18a36" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ScopeResetShaderBlocks::prevFrameBlockId</definition>
+        <argsstring></argsstring>
+        <name>prevFrameBlockId</name>
+        <qualifiedname>ScopeResetShaderBlocks::prevFrameBlockId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderBlock.h" line="95" column="7" bodyfile="dag_shaderBlock.h" bodystart="95" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classScopeResetShaderBlocks_1a53037fe652ef14799a7edff2c5bb74e9" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ScopeResetShaderBlocks::prevSceneBlockId</definition>
+        <argsstring></argsstring>
+        <name>prevSceneBlockId</name>
+        <qualifiedname>ScopeResetShaderBlocks::prevSceneBlockId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderBlock.h" line="96" column="7" bodyfile="dag_shaderBlock.h" bodystart="96" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classScopeResetShaderBlocks_1a91860f4de6139a78fb1aa69b3c1b405f" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ScopeResetShaderBlocks::prevObjectBlockId</definition>
+        <argsstring></argsstring>
+        <name>prevObjectBlockId</name>
+        <qualifiedname>ScopeResetShaderBlocks::prevObjectBlockId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderBlock.h" line="97" column="7" bodyfile="dag_shaderBlock.h" bodystart="97" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classScopeResetShaderBlocks_1ae46a743a6bb845f9bb6d758641ec8858" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ScopeResetShaderBlocks::ScopeResetShaderBlocks</definition>
+        <argsstring>()</argsstring>
+        <name>ScopeResetShaderBlocks</name>
+        <qualifiedname>ScopeResetShaderBlocks::ScopeResetShaderBlocks</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderBlock.h" line="77" column="3" bodyfile="dag_shaderBlock.h" bodystart="77" bodyend="85"/>
+      </memberdef>
+      <memberdef kind="function" id="classScopeResetShaderBlocks_1a6f96a02b12b5edb296b8bb4955c65bc3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ScopeResetShaderBlocks::~ScopeResetShaderBlocks</definition>
+        <argsstring>()</argsstring>
+        <name>~ScopeResetShaderBlocks</name>
+        <qualifiedname>ScopeResetShaderBlocks::~ScopeResetShaderBlocks</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderBlock.h" line="87" column="3" bodyfile="dag_shaderBlock.h" bodystart="87" bodyend="92"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_shaderBlock.h" line="74" column="1" bodyfile="dag_shaderBlock.h" bodystart="75" bodyend="98"/>
+    <listofallmembers>
+      <member refid="classScopeResetShaderBlocks_1a705652ed09285d6aaa4375c116f18a36" prot="protected" virt="non-virtual"><scope>ScopeResetShaderBlocks</scope><name>prevFrameBlockId</name></member>
+      <member refid="classScopeResetShaderBlocks_1a91860f4de6139a78fb1aa69b3c1b405f" prot="protected" virt="non-virtual"><scope>ScopeResetShaderBlocks</scope><name>prevObjectBlockId</name></member>
+      <member refid="classScopeResetShaderBlocks_1a53037fe652ef14799a7edff2c5bb74e9" prot="protected" virt="non-virtual"><scope>ScopeResetShaderBlocks</scope><name>prevSceneBlockId</name></member>
+      <member refid="classScopeResetShaderBlocks_1ae46a743a6bb845f9bb6d758641ec8858" prot="public" virt="non-virtual"><scope>ScopeResetShaderBlocks</scope><name>ScopeResetShaderBlocks</name></member>
+      <member refid="classScopeResetShaderBlocks_1a6f96a02b12b5edb296b8bb4955c65bc3" prot="public" virt="non-virtual"><scope>ScopeResetShaderBlocks</scope><name>~ScopeResetShaderBlocks</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

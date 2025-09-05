@@ -1,0 +1,230 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="ec__IGizmoObject_8h" kind="file" language="C++">
+    <compoundname>ec_IGizmoObject.h</compoundname>
+    <includes refid="ec__gizmofilter_8h" local="no">EditorCore/ec_gizmofilter.h</includes>
+    <includes local="no">math/dag_math3d.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>ec_IGizmoObject.h</label>
+        <link refid="ec__IGizmoObject_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="11">
+        <label>EditorCore/ec_ViewportWindow.h</label>
+        <link refid="ec__ViewportWindow_8h"/>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+      </node>
+      <node id="15">
+        <label>EditorCore/ec_camera_elem.h</label>
+        <link refid="ec__camera__elem_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>EditorCore/ec_decl.h</label>
+        <link refid="ec__decl_8h"/>
+      </node>
+      <node id="10">
+        <label>EditorCore/ec_geneditordata.h</label>
+        <link refid="ec__geneditordata_8h"/>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>EditorCore/ec_gizmofilter.h</label>
+        <link refid="ec__gizmofilter_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+      </node>
+      <node id="27">
+        <label>EditorCore/ec_gridobject.h</label>
+        <link refid="ec__gridobject_8h"/>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="29" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>EditorCore/ec_interface.h</label>
+        <link refid="ec__interface_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="13">
+        <label>EditorCore/ec_rect.h</label>
+        <link refid="ec__rect_8h"/>
+      </node>
+      <node id="25">
+        <label>EditorCore/ec_status_bar.h</label>
+        <link refid="ec__status__bar_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="14">
+        <label>EditorCore/ec_viewportAxisId.h</label>
+        <link refid="ec__viewportAxisId_8h"/>
+      </node>
+      <node id="19">
+        <label>3d/dag_textureIDHolder.h</label>
+      </node>
+      <node id="18">
+        <label>EASTL/optional.h</label>
+      </node>
+      <node id="32">
+        <label>EASTL/unique_ptr.h</label>
+      </node>
+      <node id="22">
+        <label>dag/dag_vector.h</label>
+      </node>
+      <node id="6">
+        <label>drv/3d/dag_resId.h</label>
+      </node>
+      <node id="28">
+        <label>generic/dag_DObject.h</label>
+      </node>
+      <node id="16">
+        <label>generic/dag_initOnDemand.h</label>
+      </node>
+      <node id="4">
+        <label>generic/dag_tab.h</label>
+      </node>
+      <node id="24">
+        <label>gui/dag_stdGuiRenderEx.h</label>
+      </node>
+      <node id="9">
+        <label>libTools/util/hdpiUtil.h</label>
+      </node>
+      <node id="23">
+        <label>math/dag_Quat.h</label>
+      </node>
+      <node id="29">
+        <label>math/dag_e3dColor.h</label>
+      </node>
+      <node id="5">
+        <label>math/dag_math3d.h</label>
+      </node>
+      <node id="17">
+        <label>propPanel/c_common.h</label>
+      </node>
+      <node id="31">
+        <label>propPanel/commonWindow/dialogWindow.h</label>
+      </node>
+      <node id="8">
+        <label>propPanel/control/menu.h</label>
+      </node>
+      <node id="12">
+        <label>propPanel/messageQueue.h</label>
+      </node>
+      <node id="30">
+        <label>util/dag_globDef.h</label>
+      </node>
+      <node id="20">
+        <label>util/dag_simpleString.h</label>
+      </node>
+      <node id="21">
+        <label>util/dag_stdint.h</label>
+      </node>
+      <node id="26">
+        <label>util/dag_string.h</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="classIGizmoObject" prot="public">IGizmoObject</innerclass>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="ec__gizmofilter_8h" kindref="compound">EditorCore/ec_gizmofilter.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;math/dag_math3d.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9" refid="classIGizmoObject" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classIGizmoObject" kindref="compound">IGizmoObject</ref></highlight></codeline>
+<codeline lineno="10"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>get<sp/>object&apos;s<sp/>matrix</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13" refid="classIGizmoObject_1a9ce7bd3d7425d8cf4adcbbb446023881" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/>TMatrix<sp/><ref refid="classIGizmoObject_1a9ce7bd3d7425d8cf4adcbbb446023881" kindref="member">getTm</ref>()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>set<sp/>object&apos;s<sp/>matrix</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15" refid="classIGizmoObject_1a4dca17c12db7193aa66169e993416e46" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classIGizmoObject_1a4dca17c12db7193aa66169e993416e46" kindref="member">setTm</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TMatrix<sp/>&amp;new_tm)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>calls<sp/>before<sp/>changing<sp/>object&apos;s<sp/>matrix</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="18" refid="classIGizmoObject_1acae9918a5254ec2aef995d428f4f973f" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classIGizmoObject_1acae9918a5254ec2aef995d428f4f973f" kindref="member">onStartChange</ref>()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>get<sp/>object&apos;s<sp/>name<sp/>or<sp/>any<sp/>identifier<sp/>to<sp/>use<sp/>in<sp/>undo<sp/>name</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="21" refid="classIGizmoObject_1aa0e3aba10b87bcd6e8341d00f0d4067d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="classIGizmoObject_1aa0e3aba10b87bcd6e8341d00f0d4067d" kindref="member">getUndoName</ref>()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>get<sp/>axis<sp/>which<sp/>object<sp/>can<sp/>be<sp/>midified</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="24" refid="classIGizmoObject_1a83d901ba4a73d3d6a96f6fab21415aff" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classIGizmoObject_1a83d901ba4a73d3d6a96f6fab21415aff" kindref="member">getAvailableAxis</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classGizmoEventFilter_1a51253ff387eac4c7e3d3de80f5aa7903aa80ef59a2b213e8d3f2e0c61ffb77ab6" kindref="member">GizmoEventFilter::AXIS_X</ref><sp/>|<sp/><ref refid="classGizmoEventFilter_1a51253ff387eac4c7e3d3de80f5aa7903a98d7ec44f8c442b5f08023eaa583ce42" kindref="member">GizmoEventFilter::AXIS_Y</ref><sp/>|<sp/><ref refid="classGizmoEventFilter_1a51253ff387eac4c7e3d3de80f5aa7903a81cd7e2ca8cca72516fda79e5a8035f7" kindref="member">GizmoEventFilter::AXIS_Z</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="25"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="ec_IGizmoObject.h"/>
+  </compounddef>
+</doxygen>

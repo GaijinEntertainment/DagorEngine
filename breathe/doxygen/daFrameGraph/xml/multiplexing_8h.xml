@@ -1,0 +1,130 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="multiplexing_8h" kind="file" language="C++">
+    <compoundname>multiplexing.h</compoundname>
+    <includes local="no">EASTL/utility.h</includes>
+    <includes local="no">math/integer/dag_IPoint2.h</includes>
+    <includedby refid="daFG_8h" local="no">daFG.h</includedby>
+    <includedby refid="externalResources_8h" local="no">externalResources.h</includedby>
+    <includedby refid="registry_8h" local="no">registry.h</includedby>
+    <incdepgraph>
+      <node id="1">
+        <label>multiplexing.h</label>
+        <link refid="multiplexing_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>EASTL/utility.h</label>
+      </node>
+      <node id="3">
+        <label>math/integer/dag_IPoint2.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="2">
+        <label>daFG.h</label>
+        <link refid="daFG_8h"/>
+      </node>
+      <node id="3">
+        <label>externalResources.h</label>
+        <link refid="externalResources_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>multiplexing.h</label>
+        <link refid="multiplexing_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>nameSpaceRequest.h</label>
+        <link refid="nameSpaceRequest_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>registry.h</label>
+        <link refid="registry_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>singleShaders.h</label>
+        <link refid="singleShaders_8h"/>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="structdafg_1_1multiplexing_1_1Extents" prot="public">dafg::multiplexing::Extents</innerclass>
+    <innerclass refid="structdafg_1_1multiplexing_1_1Index" prot="public">dafg::multiplexing::Index</innerclass>
+    <innernamespace refid="namespacedafg">dafg</innernamespace>
+    <innernamespace refid="namespacedafg_1_1multiplexing">dafg::multiplexing</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5<sp/>-<sp/>Game<sp/>Libraries</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/utility.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;math/integer/dag_IPoint2.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18" refid="namespacedafg_1_1multiplexing" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespacedafg_1_1multiplexing" kindref="compound">dafg::multiplexing</ref></highlight></codeline>
+<codeline lineno="19"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight></codeline>
+<codeline lineno="34" refid="structdafg_1_1multiplexing_1_1Extents" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structdafg_1_1multiplexing_1_1Extents" kindref="compound">Extents</ref></highlight></codeline>
+<codeline lineno="35"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="36" refid="structdafg_1_1multiplexing_1_1Extents_1abde7a9ecf1b8f2189cdf46b6bd8175ac" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structdafg_1_1multiplexing_1_1Extents_1abde7a9ecf1b8f2189cdf46b6bd8175ac" kindref="member">superSamples</ref>{1};<sp/></highlight></codeline>
+<codeline lineno="37" refid="structdafg_1_1multiplexing_1_1Extents_1a08600a4d4ad8a30c0baf7c419cc8e650" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structdafg_1_1multiplexing_1_1Extents_1a08600a4d4ad8a30c0baf7c419cc8e650" kindref="member">subSamples</ref>{1};<sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="38" refid="structdafg_1_1multiplexing_1_1Extents_1a770618ec9efef1abcd9aa483ab6f9897" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structdafg_1_1multiplexing_1_1Extents_1a770618ec9efef1abcd9aa483ab6f9897" kindref="member">viewports</ref>{1};<sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="39" refid="structdafg_1_1multiplexing_1_1Extents_1aa41aa29520a96d36d1d0b4bbc0c09337" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structdafg_1_1multiplexing_1_1Extents_1aa41aa29520a96d36d1d0b4bbc0c09337" kindref="member">subCameras</ref>{1};<sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="40"><highlight class="normal"></highlight></codeline>
+<codeline lineno="42" refid="structdafg_1_1multiplexing_1_1Extents_1a95e2d901a481990a3d3993009c36b2f7" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structdafg_1_1multiplexing_1_1Extents_1a95e2d901a481990a3d3993009c36b2f7" kindref="member">operator==</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structdafg_1_1multiplexing_1_1Extents" kindref="compound">Extents</ref><sp/>&amp;other)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="43"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight></codeline>
+<codeline lineno="51" refid="structdafg_1_1multiplexing_1_1Index" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structdafg_1_1multiplexing_1_1Index" kindref="compound">Index</ref></highlight></codeline>
+<codeline lineno="52"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="53" refid="structdafg_1_1multiplexing_1_1Index_1a18941bab9075627c23e327c9a004aad6" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structdafg_1_1multiplexing_1_1Index_1a18941bab9075627c23e327c9a004aad6" kindref="member">superSample</ref>{0};<sp/></highlight></codeline>
+<codeline lineno="54" refid="structdafg_1_1multiplexing_1_1Index_1a749b62f01258283cdefab47fa425ddc5" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structdafg_1_1multiplexing_1_1Index_1a749b62f01258283cdefab47fa425ddc5" kindref="member">subSample</ref>{0};<sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="55" refid="structdafg_1_1multiplexing_1_1Index_1a45bba8b9dea237b47f21c236d7a3db98" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structdafg_1_1multiplexing_1_1Index_1a45bba8b9dea237b47f21c236d7a3db98" kindref="member">viewport</ref>{0};<sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="56" refid="structdafg_1_1multiplexing_1_1Index_1ae67888c36a95efe112fb61e53fab3d83" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structdafg_1_1multiplexing_1_1Index_1ae67888c36a95efe112fb61e53fab3d83" kindref="member">subCamera</ref>{0};<sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="57"><highlight class="normal"></highlight></codeline>
+<codeline lineno="59" refid="structdafg_1_1multiplexing_1_1Index_1a3f65f87ecac10a1b6360d1e0b0e9c2ec" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structdafg_1_1multiplexing_1_1Index_1a3f65f87ecac10a1b6360d1e0b0e9c2ec" kindref="member">operator==</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structdafg_1_1multiplexing_1_1Index" kindref="compound">Index</ref><sp/>&amp;other)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="60"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"></highlight></codeline>
+<codeline lineno="63" refid="namespacedafg_1_1multiplexing_1acdb81a336d4701a3bfdf9f8f5139132b" refkind="member"><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/><ref refid="namespacedafg_1_1multiplexing_1acdb81a336d4701a3bfdf9f8f5139132b" kindref="member">Mode</ref><sp/>:<sp/>uint32_t</highlight></codeline>
+<codeline lineno="64"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/><ref refid="namespacedafg_1_1multiplexing_1acdb81a336d4701a3bfdf9f8f5139132ba6adf97f83acf6453d4a6a4b1070f3754" kindref="member">None</ref><sp/>=<sp/>0b000,</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"></highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/><ref refid="namespacedafg_1_1multiplexing_1acdb81a336d4701a3bfdf9f8f5139132ba600b8d8735a061492ac0b8210b82f080" kindref="member">SuperSampling</ref><sp/>=<sp/>0b001,</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/><ref refid="namespacedafg_1_1multiplexing_1acdb81a336d4701a3bfdf9f8f5139132ba19266e60c709d32887ced4bc7d7f0f12" kindref="member">SubSampling</ref><sp/>=<sp/>0b010,</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/><ref refid="namespacedafg_1_1multiplexing_1acdb81a336d4701a3bfdf9f8f5139132ba8d6f3510a5cca2c1281c9c6afe7e0da2" kindref="member">Viewport</ref><sp/>=<sp/>0b100,</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/><ref refid="namespacedafg_1_1multiplexing_1acdb81a336d4701a3bfdf9f8f5139132baa5ef4f3aa876da9be4cd78b41c529551" kindref="member">CameraInCamera</ref><sp/>=<sp/>0b1000,</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"></highlight></codeline>
+<codeline lineno="77"><highlight class="normal"></highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/><ref refid="namespacedafg_1_1multiplexing_1acdb81a336d4701a3bfdf9f8f5139132ba2003b59fbe2d4c9acbce237f9a129de5" kindref="member">FullMultiplex</ref><sp/>=<sp/><ref refid="namespacedafg_1_1multiplexing_1acdb81a336d4701a3bfdf9f8f5139132ba600b8d8735a061492ac0b8210b82f080" kindref="member">SuperSampling</ref><sp/>|<sp/><ref refid="namespacedafg_1_1multiplexing_1acdb81a336d4701a3bfdf9f8f5139132ba19266e60c709d32887ced4bc7d7f0f12" kindref="member">SubSampling</ref><sp/>|<sp/><ref refid="namespacedafg_1_1multiplexing_1acdb81a336d4701a3bfdf9f8f5139132ba8d6f3510a5cca2c1281c9c6afe7e0da2" kindref="member">Viewport</ref><sp/>|<sp/><ref refid="namespacedafg_1_1multiplexing_1acdb81a336d4701a3bfdf9f8f5139132baa5ef4f3aa876da9be4cd78b41c529551" kindref="member">CameraInCamera</ref>,</highlight></codeline>
+<codeline lineno="80"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"></highlight></codeline>
+<codeline lineno="83" refid="namespacedafg_1_1multiplexing_1a5fc71487a287702f079f789236a5038c" refkind="member"><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="namespacedafg_1_1multiplexing_1acdb81a336d4701a3bfdf9f8f5139132b" kindref="member">Mode</ref><sp/><ref refid="namespacedafg_1_1multiplexing_1a5fc71487a287702f079f789236a5038c" kindref="member">operator|</ref>(<ref refid="namespacedafg_1_1multiplexing_1acdb81a336d4701a3bfdf9f8f5139132b" kindref="member">Mode</ref><sp/>a,<sp/><ref refid="namespacedafg_1_1multiplexing_1acdb81a336d4701a3bfdf9f8f5139132b" kindref="member">Mode</ref><sp/>b)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">static_cast&lt;</highlight><highlight class="normal"><ref refid="namespacedafg_1_1multiplexing_1acdb81a336d4701a3bfdf9f8f5139132b" kindref="member">Mode</ref></highlight><highlight class="keyword">&gt;</highlight><highlight class="normal">(eastl::to_underlying(a)<sp/>|<sp/>eastl::to_underlying(b));<sp/>}</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"></highlight></codeline>
+<codeline lineno="86" refid="namespacedafg_1_1multiplexing_1a0dcc5b505509d902f5401b8264131f76" refkind="member"><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="namespacedafg_1_1multiplexing_1acdb81a336d4701a3bfdf9f8f5139132b" kindref="member">Mode</ref><sp/><ref refid="namespacedafg_1_1multiplexing_1a0dcc5b505509d902f5401b8264131f76" kindref="member">operator&amp;</ref>(<ref refid="namespacedafg_1_1multiplexing_1acdb81a336d4701a3bfdf9f8f5139132b" kindref="member">Mode</ref><sp/>a,<sp/><ref refid="namespacedafg_1_1multiplexing_1acdb81a336d4701a3bfdf9f8f5139132b" kindref="member">Mode</ref><sp/>b)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">static_cast&lt;</highlight><highlight class="normal"><ref refid="namespacedafg_1_1multiplexing_1acdb81a336d4701a3bfdf9f8f5139132b" kindref="member">Mode</ref></highlight><highlight class="keyword">&gt;</highlight><highlight class="normal">(eastl::to_underlying(a)<sp/>&amp;<sp/>eastl::to_underlying(b));<sp/>}</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"></highlight></codeline>
+<codeline lineno="88"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>dafg::multiplexing</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="multiplexing.h"/>
+  </compounddef>
+</doxygen>

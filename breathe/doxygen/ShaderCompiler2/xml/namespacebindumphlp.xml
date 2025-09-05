@@ -1,0 +1,91 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespacebindumphlp" kind="namespace" language="C++">
+    <compoundname>bindumphlp</compoundname>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="namespacebindumphlp_1ae539afd87e6c691c3a927938038c27d8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void bindumphlp::sortShaders</definition>
+        <argsstring>(dag::ConstSpan&lt; ShaderStateBlock * &gt; blocks, shc::TargetContext &amp;ctx)</argsstring>
+        <name>sortShaders</name>
+        <qualifiedname>bindumphlp::sortShaders</qualifiedname>
+        <param>
+          <type>dag::ConstSpan&lt; <ref refid="classShaderStateBlock" kindref="compound">ShaderStateBlock</ref> * &gt;</type>
+          <declname>blocks</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpUtils.h" line="22" column="6" bodyfile="binDumpUtils.cpp" bodystart="294" bodyend="386" declfile="binDumpUtils.h" declline="22" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacebindumphlp_1a9dd98856dab0c04401d3b4d8dafac9be" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void bindumphlp::patchStCode</definition>
+        <argsstring>(dag::Span&lt; int &gt; code, dag::ConstSpan&lt; int &gt; remapTable, dag::ConstSpan&lt; int &gt; smpTable)</argsstring>
+        <name>patchStCode</name>
+        <qualifiedname>bindumphlp::patchStCode</qualifiedname>
+        <param>
+          <type>dag::Span&lt; int &gt;</type>
+          <declname>code</declname>
+        </param>
+        <param>
+          <type>dag::ConstSpan&lt; int &gt;</type>
+          <declname>remapTable</declname>
+        </param>
+        <param>
+          <type>dag::ConstSpan&lt; int &gt;</type>
+          <declname>smpTable</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpUtils.h" line="23" column="6" declfile="binDumpUtils.h" declline="23" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacebindumphlp_1aa0b036af2c3b907f9d9c484f1b3b0256" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void bindumphlp::countRefAndRemapGlobalVars</definition>
+        <argsstring>(Tab&lt; int &gt; &amp;dest_ref, dag::ConstSpan&lt; ShaderClass * &gt; shaderClasses, mkbindump::GatherNameMap &amp;varMap, shc::TargetContext &amp;ctx)</argsstring>
+        <name>countRefAndRemapGlobalVars</name>
+        <qualifiedname>bindumphlp::countRefAndRemapGlobalVars</qualifiedname>
+        <param>
+          <type>Tab&lt; int &gt; &amp;</type>
+          <declname>dest_ref</declname>
+        </param>
+        <param>
+          <type>dag::ConstSpan&lt; <ref refid="classShaderClass" kindref="compound">ShaderClass</ref> * &gt;</type>
+          <declname>shaderClasses</declname>
+        </param>
+        <param>
+          <type>mkbindump::GatherNameMap &amp;</type>
+          <declname>varMap</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpUtils.h" line="26" column="6" bodyfile="binDumpUtils.cpp" bodystart="388" bodyend="408" declfile="binDumpUtils.h" declline="26" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="binDumpUtils.h" line="20" column="1"/>
+  </compounddef>
+</doxygen>

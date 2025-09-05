@@ -1,0 +1,76 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structCodeSourceBlocks_1_1Condition" kind="struct" language="C++" prot="public">
+    <compoundname>CodeSourceBlocks::Condition</compoundname>
+    <includes refid="codeBlocks_8h" local="no">codeBlocks.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structCodeSourceBlocks_1_1Condition_1afebec985ea2d605bcf0072159f45ebbd" prot="public" static="no" mutable="no">
+        <type><ref refid="structCodeSourceBlocks_1_1CondIf" kindref="compound">CondIf</ref></type>
+        <definition>CondIf CodeSourceBlocks::Condition::onIf</definition>
+        <argsstring></argsstring>
+        <name>onIf</name>
+        <qualifiedname>CodeSourceBlocks::Condition::onIf</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="codeBlocks.h" line="38" column="12" bodyfile="codeBlocks.h" bodystart="38" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structCodeSourceBlocks_1_1Condition_1aef14fa985230d68a692f6ad43c7d1bb2" prot="public" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="structCodeSourceBlocks_1_1CondIf" kindref="compound">CondIf</ref> &gt;</type>
+        <definition>Tab&lt;CondIf&gt; CodeSourceBlocks::Condition::onElif</definition>
+        <argsstring></argsstring>
+        <name>onElif</name>
+        <qualifiedname>CodeSourceBlocks::Condition::onElif</qualifiedname>
+        <briefdescription>
+<para>optional list of elif&apos;s </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="codeBlocks.h" line="40" column="9" bodyfile="codeBlocks.h" bodystart="40" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structCodeSourceBlocks_1_1Condition_1a56eaf214e13da54c0070cdcea9533396" prot="public" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="structCodeSourceBlocks_1_1Fragment" kindref="compound">Fragment</ref> &gt;</type>
+        <definition>Tab&lt;Fragment&gt; CodeSourceBlocks::Condition::onElse</definition>
+        <argsstring></argsstring>
+        <name>onElse</name>
+        <qualifiedname>CodeSourceBlocks::Condition::onElse</qualifiedname>
+        <briefdescription>
+<para>code fragments for false branche of condition </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="codeBlocks.h" line="42" column="9" bodyfile="codeBlocks.h" bodystart="42" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>CodeSourceBlocks::CondIf</label>
+        <link refid="structCodeSourceBlocks_1_1CondIf"/>
+      </node>
+      <node id="1">
+        <label>CodeSourceBlocks::Condition</label>
+        <link refid="structCodeSourceBlocks_1_1Condition"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>onIf</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="codeBlocks.h" line="36" column="3" bodyfile="codeBlocks.h" bodystart="37" bodyend="43"/>
+    <listofallmembers>
+      <member refid="structCodeSourceBlocks_1_1Condition_1aef14fa985230d68a692f6ad43c7d1bb2" prot="public" virt="non-virtual"><scope>CodeSourceBlocks::Condition</scope><name>onElif</name></member>
+      <member refid="structCodeSourceBlocks_1_1Condition_1a56eaf214e13da54c0070cdcea9533396" prot="public" virt="non-virtual"><scope>CodeSourceBlocks::Condition</scope><name>onElse</name></member>
+      <member refid="structCodeSourceBlocks_1_1Condition_1afebec985ea2d605bcf0072159f45ebbd" prot="public" virt="non-virtual"><scope>CodeSourceBlocks::Condition</scope><name>onIf</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

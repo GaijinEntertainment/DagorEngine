@@ -1,0 +1,370 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classRegister" kind="class" language="C++" prot="public">
+    <compoundname>Register</compoundname>
+    <includes refid="stcodeBytecode_8h" local="no">stcodeBytecode.h</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classRegister_1a372f68c9da61ea5c57b0bab3e2b1118d" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Register::startReg</definition>
+        <argsstring></argsstring>
+        <name>startReg</name>
+        <qualifiedname>Register::startReg</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stcodeBytecode.h" line="44" column="7" bodyfile="stcodeBytecode.h" bodystart="44" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRegister_1ab1bef8453948683047d1607080423fac" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Register::count</definition>
+        <argsstring></argsstring>
+        <name>count</name>
+        <qualifiedname>Register::count</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stcodeBytecode.h" line="45" column="7" bodyfile="stcodeBytecode.h" bodystart="45" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRegister_1a9c352a090d49f06642793c424f959af4" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Register::currentReg</definition>
+        <argsstring></argsstring>
+        <name>currentReg</name>
+        <qualifiedname>Register::currentReg</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stcodeBytecode.h" line="46" column="7" bodyfile="stcodeBytecode.h" bodystart="46" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRegister_1af4dca6585912f1363b900a57ad5f9180" prot="private" static="no" mutable="no">
+        <type><ref refid="classStcodeVMRegisterAllocator" kindref="compound">StcodeVMRegisterAllocator</ref> *</type>
+        <definition>StcodeVMRegisterAllocator* Register::owner</definition>
+        <argsstring></argsstring>
+        <name>owner</name>
+        <qualifiedname>Register::owner</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stcodeBytecode.h" line="47" column="29" bodyfile="stcodeBytecode.h" bodystart="47" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="classRegister_1ac01bed97bee160f8fdd1986a19e31c61" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>class</type>
+        <definition>friend class StcodeVMRegisterAllocator</definition>
+        <argsstring></argsstring>
+        <name>StcodeVMRegisterAllocator</name>
+        <qualifiedname>Register::StcodeVMRegisterAllocator</qualifiedname>
+        <param>
+          <type><ref refid="classStcodeVMRegisterAllocator" kindref="compound">StcodeVMRegisterAllocator</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stcodeBytecode.h" line="49" column="16" bodyfile="stcodeBytecode.h" bodystart="49" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classRegister_1ab1ae2100b81945594b8de3133e3266e0" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void Register::acquireRegs</definition>
+        <argsstring>(int r, int num)</argsstring>
+        <name>acquireRegs</name>
+        <qualifiedname>Register::acquireRegs</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>r</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>num</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stcodeBytecode.h" line="51" column="8" bodyfile="stcodeBytecode.h" bodystart="51" bodyend="58"/>
+      </memberdef>
+      <memberdef kind="function" id="classRegister_1abb85bdcfc49f059144f30907e2041963" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void Register::releaseRegs</definition>
+        <argsstring>()</argsstring>
+        <name>releaseRegs</name>
+        <qualifiedname>Register::releaseRegs</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stcodeBytecode.h" line="59" column="8" bodyfile="stcodeBytecode.h" bodystart="59" bodyend="67"/>
+      </memberdef>
+      <memberdef kind="function" id="classRegister_1a6a942cc749cc6bbfc1fe99e425206a50" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>Register::Register</definition>
+        <argsstring>(int reg, StcodeVMRegisterAllocator &amp;owner)</argsstring>
+        <name>Register</name>
+        <qualifiedname>Register::Register</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>reg</declname>
+        </param>
+        <param>
+          <type><ref refid="classStcodeVMRegisterAllocator" kindref="compound">StcodeVMRegisterAllocator</ref> &amp;</type>
+          <declname>owner</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stcodeBytecode.h" line="69" column="3" bodyfile="stcodeBytecode.h" bodystart="69" bodyend="69"/>
+      </memberdef>
+      <memberdef kind="function" id="classRegister_1ad2af860f789343e64fd3c3213fe89374" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>Register::Register</definition>
+        <argsstring>(int num, bool aligned, StcodeVMRegisterAllocator &amp;owner)</argsstring>
+        <name>Register</name>
+        <qualifiedname>Register::Register</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>num</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>aligned</declname>
+        </param>
+        <param>
+          <type><ref refid="classStcodeVMRegisterAllocator" kindref="compound">StcodeVMRegisterAllocator</ref> &amp;</type>
+          <declname>owner</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stcodeBytecode.h" line="71" column="3" bodyfile="stcodeBytecode.h" bodystart="71" bodyend="82"/>
+      </memberdef>
+      <memberdef kind="function" id="classRegister_1a0c444fdd42188e28cda98516f6611d3e" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void Register::swap</definition>
+        <argsstring>(Register &amp;r)</argsstring>
+        <name>swap</name>
+        <qualifiedname>Register::swap</qualifiedname>
+        <param>
+          <type><ref refid="classRegister" kindref="compound">Register</ref> &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stcodeBytecode.h" line="84" column="8" bodyfile="stcodeBytecode.h" bodystart="84" bodyend="90"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classRegister_1a7566214f60522ec6d0dc10982ba5f603" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>Register::Register</definition>
+        <argsstring>()=default</argsstring>
+        <name>Register</name>
+        <qualifiedname>Register::Register</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stcodeBytecode.h" line="93" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classRegister_1a7a1b14600123adc23826f30707b7e770" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>Register::Register</definition>
+        <argsstring>(const Register &amp;r)</argsstring>
+        <name>Register</name>
+        <qualifiedname>Register::Register</qualifiedname>
+        <param>
+          <type>const <ref refid="classRegister" kindref="compound">Register</ref> &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stcodeBytecode.h" line="94" column="3" bodyfile="stcodeBytecode.h" bodystart="94" bodyend="98"/>
+      </memberdef>
+      <memberdef kind="function" id="classRegister_1a33b5ba3b01a143ecb6edc88e8b0e0bcf" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classRegister" kindref="compound">Register</ref> &amp;</type>
+        <definition>Register &amp; Register::operator=</definition>
+        <argsstring>(const Register &amp;r)</argsstring>
+        <name>operator=</name>
+        <qualifiedname>Register::operator=</qualifiedname>
+        <param>
+          <type>const <ref refid="classRegister" kindref="compound">Register</ref> &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stcodeBytecode.h" line="99" column="12" bodyfile="stcodeBytecode.h" bodystart="99" bodyend="104"/>
+      </memberdef>
+      <memberdef kind="function" id="classRegister_1a87b8228cc4af2c2377f9bfa792979bdb" prot="public" static="no" const="no" explicit="no" inline="yes" noexcept="yes" virt="non-virtual">
+        <type></type>
+        <definition>Register::Register</definition>
+        <argsstring>(Register &amp;&amp;r) noexcept</argsstring>
+        <name>Register</name>
+        <qualifiedname>Register::Register</qualifiedname>
+        <param>
+          <type><ref refid="classRegister" kindref="compound">Register</ref> &amp;&amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stcodeBytecode.h" line="105" column="3" bodyfile="stcodeBytecode.h" bodystart="105" bodyend="105"/>
+      </memberdef>
+      <memberdef kind="function" id="classRegister_1abd7e2838273dd81db52eb4473ddc332e" prot="public" static="no" const="no" explicit="no" inline="yes" noexcept="yes" virt="non-virtual">
+        <type><ref refid="classRegister" kindref="compound">Register</ref> &amp;</type>
+        <definition>Register &amp; Register::operator=</definition>
+        <argsstring>(Register &amp;&amp;r) noexcept</argsstring>
+        <name>operator=</name>
+        <qualifiedname>Register::operator=</qualifiedname>
+        <param>
+          <type><ref refid="classRegister" kindref="compound">Register</ref> &amp;&amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stcodeBytecode.h" line="106" column="12" bodyfile="stcodeBytecode.h" bodystart="106" bodyend="111"/>
+      </memberdef>
+      <memberdef kind="function" id="classRegister_1a27490bda19cd4bd6ca09b48a795fc060" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>Register::~Register</definition>
+        <argsstring>()</argsstring>
+        <name>~Register</name>
+        <qualifiedname>Register::~Register</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stcodeBytecode.h" line="112" column="3" bodyfile="stcodeBytecode.h" bodystart="112" bodyend="112"/>
+      </memberdef>
+      <memberdef kind="function" id="classRegister_1a5fbe9ff73dd0c365b32c1bc7bd8c2132" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <type>int</type>
+        <definition>int Register::release</definition>
+        <argsstring>() &amp;&amp;</argsstring>
+        <name>release</name>
+        <qualifiedname>Register::release</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stcodeBytecode.h" line="114" column="7" bodyfile="stcodeBytecode.h" bodystart="114" bodyend="121"/>
+      </memberdef>
+      <memberdef kind="function" id="classRegister_1a72ee810e60f2375750a0f1af06e851bf" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void Register::reset</definition>
+        <argsstring>(int r, int num)</argsstring>
+        <name>reset</name>
+        <qualifiedname>Register::reset</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>r</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>num</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stcodeBytecode.h" line="123" column="8" bodyfile="stcodeBytecode.h" bodystart="123" bodyend="128"/>
+      </memberdef>
+      <memberdef kind="function" id="classRegister_1a4d392cce814e941594a8538b67dfd5f4" prot="public" static="no" const="yes" explicit="yes" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>Register::operator int</definition>
+        <argsstring>() const</argsstring>
+        <name>operator int</name>
+        <qualifiedname>Register::operator int</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="stcodeBytecode.h" line="130" column="12" bodyfile="stcodeBytecode.h" bodystart="130" bodyend="134"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="stcodeBytecode.h" line="42" column="1" bodyfile="stcodeBytecode.h" bodystart="43" bodyend="135"/>
+    <listofallmembers>
+      <member refid="classRegister_1ab1ae2100b81945594b8de3133e3266e0" prot="private" virt="non-virtual"><scope>Register</scope><name>acquireRegs</name></member>
+      <member refid="classRegister_1ab1bef8453948683047d1607080423fac" prot="private" virt="non-virtual"><scope>Register</scope><name>count</name></member>
+      <member refid="classRegister_1a9c352a090d49f06642793c424f959af4" prot="private" virt="non-virtual"><scope>Register</scope><name>currentReg</name></member>
+      <member refid="classRegister_1a4d392cce814e941594a8538b67dfd5f4" prot="public" virt="non-virtual"><scope>Register</scope><name>operator int</name></member>
+      <member refid="classRegister_1a33b5ba3b01a143ecb6edc88e8b0e0bcf" prot="public" virt="non-virtual"><scope>Register</scope><name>operator=</name></member>
+      <member refid="classRegister_1abd7e2838273dd81db52eb4473ddc332e" prot="public" virt="non-virtual"><scope>Register</scope><name>operator=</name></member>
+      <member refid="classRegister_1af4dca6585912f1363b900a57ad5f9180" prot="private" virt="non-virtual"><scope>Register</scope><name>owner</name></member>
+      <member refid="classRegister_1a6a942cc749cc6bbfc1fe99e425206a50" prot="private" virt="non-virtual"><scope>Register</scope><name>Register</name></member>
+      <member refid="classRegister_1ad2af860f789343e64fd3c3213fe89374" prot="private" virt="non-virtual"><scope>Register</scope><name>Register</name></member>
+      <member refid="classRegister_1a7566214f60522ec6d0dc10982ba5f603" prot="public" virt="non-virtual"><scope>Register</scope><name>Register</name></member>
+      <member refid="classRegister_1a7a1b14600123adc23826f30707b7e770" prot="public" virt="non-virtual"><scope>Register</scope><name>Register</name></member>
+      <member refid="classRegister_1a87b8228cc4af2c2377f9bfa792979bdb" prot="public" virt="non-virtual"><scope>Register</scope><name>Register</name></member>
+      <member refid="classRegister_1a5fbe9ff73dd0c365b32c1bc7bd8c2132" prot="public" virt="non-virtual"><scope>Register</scope><name>release</name></member>
+      <member refid="classRegister_1abb85bdcfc49f059144f30907e2041963" prot="private" virt="non-virtual"><scope>Register</scope><name>releaseRegs</name></member>
+      <member refid="classRegister_1a72ee810e60f2375750a0f1af06e851bf" prot="public" virt="non-virtual"><scope>Register</scope><name>reset</name></member>
+      <member refid="classRegister_1a372f68c9da61ea5c57b0bab3e2b1118d" prot="private" virt="non-virtual"><scope>Register</scope><name>startReg</name></member>
+      <member refid="classRegister_1ac01bed97bee160f8fdd1986a19e31c61" prot="private" virt="non-virtual"><scope>Register</scope><name>StcodeVMRegisterAllocator</name></member>
+      <member refid="classRegister_1a0c444fdd42188e28cda98516f6611d3e" prot="private" virt="non-virtual"><scope>Register</scope><name>swap</name></member>
+      <member refid="classRegister_1a27490bda19cd4bd6ca09b48a795fc060" prot="public" virt="non-virtual"><scope>Register</scope><name>~Register</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,200 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="binDumpHierBitmap_8h" kind="file" language="C++">
+    <compoundname>binDumpHierBitmap.h</compoundname>
+    <includes refid="makeBindump_8h" local="no">libTools/util/makeBindump.h</includes>
+    <includes local="no">debug/dag_debug.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>binDumpHierBitmap.h</label>
+        <link refid="binDumpHierBitmap_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>libTools/util/makeBindump.h</label>
+        <link refid="makeBindump_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+      </node>
+      <node id="11">
+        <label>libTools/util/targetClass.h</label>
+        <link refid="targetClass_8h"/>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+      </node>
+      <node id="14">
+        <label>debug/dag_debug.h</label>
+      </node>
+      <node id="5">
+        <label>generic/dag_smallTab.h</label>
+      </node>
+      <node id="4">
+        <label>generic/dag_span.h</label>
+      </node>
+      <node id="8">
+        <label>ioSys/dag_chainedMemIo.h</label>
+      </node>
+      <node id="3">
+        <label>math/dag_e3dColor.h</label>
+      </node>
+      <node id="12">
+        <label>util/dag_baseDef.h</label>
+      </node>
+      <node id="7">
+        <label>util/dag_bindump_ext.h</label>
+      </node>
+      <node id="10">
+        <label>util/dag_globDef.h</label>
+      </node>
+      <node id="6">
+        <label>util/dag_oaHashNameMap.h</label>
+      </node>
+      <node id="13">
+        <label>util/dag_simpleString.h</label>
+      </node>
+      <node id="9">
+        <label>util/dag_stdint.h</label>
+      </node>
+    </incdepgraph>
+    <innernamespace refid="namespacemkbindump">mkbindump</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Tech<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="makeBindump_8h" kindref="compound">libTools/util/makeBindump.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;debug/dag_debug.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10" refid="namespacemkbindump" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespacemkbindump" kindref="compound">mkbindump</ref></highlight></codeline>
+<codeline lineno="11"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">class</highlight><highlight class="normal"><sp/>Bitmap&gt;</highlight></codeline>
+<codeline lineno="13" refid="namespacemkbindump_1ace92c3a42c1daec166bbc8a627ee57f0" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespacemkbindump_1ace92c3a42c1daec166bbc8a627ee57f0" kindref="member">build_ro_hier_bitmap</ref>(<ref refid="classmkbindump_1_1BinDumpSaveCB" kindref="compound">BinDumpSaveCB</ref><sp/>&amp;cwr,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Bitmap<sp/>&amp;bm,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>l1_npt,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>l2_npt)</highlight></codeline>
+<codeline lineno="14"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>L1_SZ<sp/>=<sp/>1<sp/>&lt;&lt;<sp/>l1_npt;</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>L2_SZ<sp/>=<sp/>1<sp/>&lt;&lt;<sp/>(l1_npt<sp/>+<sp/>l2_npt);</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>tszx<sp/>=<sp/>(bm.getW()<sp/>+<sp/>L2_SZ<sp/>-<sp/>1)<sp/>/<sp/>L2_SZ,<sp/>tszy<sp/>=<sp/>(bm.getH()<sp/>+<sp/>L2_SZ<sp/>-<sp/>1)<sp/>/<sp/>L2_SZ;</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"><sp/><sp/>Tab&lt;unsigned&gt;<sp/>l2_ofs(tmpmem);</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"><sp/><sp/>Tab&lt;unsigned&gt;<sp/>bits(tmpmem);</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"><sp/><sp/>Tab&lt;unsigned&gt;<sp/>l1_cache(tmpmem);</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"><sp/><sp/>l2_ofs.resize((L2_SZ<sp/>/<sp/>L1_SZ)<sp/>*<sp/>(L2_SZ<sp/>/<sp/>L1_SZ));</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/>bits.resize((L1_SZ<sp/>*<sp/>L1_SZ<sp/>+<sp/>31)<sp/>/<sp/>32);</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/>cwr.<ref refid="classmkbindump_1_1BinDumpSaveCB_1a897f5b71894a9440a0882a79e0b97df7" kindref="member">writeInt32e</ref>(l1_npt);</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/>cwr.<ref refid="classmkbindump_1_1BinDumpSaveCB_1a897f5b71894a9440a0882a79e0b97df7" kindref="member">writeInt32e</ref>(l2_npt);</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/>cwr.<ref refid="classmkbindump_1_1BinDumpSaveCB_1a1cbc4b94c4088f3354970787933072ae" kindref="member">beginBlock</ref>();</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/>cwr.<ref refid="classmkbindump_1_1BinDumpSaveCB_1aa6b93266421cb0f76bbac58dac554059" kindref="member">setOrigin</ref>();</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/>cwr.<ref refid="classmkbindump_1_1BinDumpSaveCB_1a897f5b71894a9440a0882a79e0b97df7" kindref="member">writeInt32e</ref>(tszx);</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/>cwr.<ref refid="classmkbindump_1_1BinDumpSaveCB_1a897f5b71894a9440a0882a79e0b97df7" kindref="member">writeInt32e</ref>(tszy);</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/>cwr.<ref refid="classmkbindump_1_1BinDumpSaveCB_1a418c8c46e197417a321444c8327ce39c" kindref="member">writePtr64e</ref>(cwr.<ref refid="classmkbindump_1_1BinDumpSaveCB_1af51b74dec31efceb3f31c28e8d8f8074" kindref="member">tell</ref>()<sp/>+<sp/>cwr.<ref refid="classmkbindump_1_1BinDumpSaveCB_1ae941955f31943eac28a372ff3206fd8daff93f29c5b9fb98c7c5880a54bfe1173" kindref="member">PTR_SZ</ref>);</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/>cwr.<ref refid="classmkbindump_1_1BinDumpSaveCB_1af373ce8ee134ebaaf66e4c8e5ee74259" kindref="member">writeZeroes</ref>(</highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(uint32_t)<sp/>*<sp/>tszx<sp/>*<sp/>tszy);</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/>cwr.<ref refid="classmkbindump_1_1BinDumpSaveCB_1ae1007d89a438a7ee49c3d5280d9e1d57" kindref="member">align16</ref>();</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>l1_cnt[4]<sp/>=<sp/>{0,<sp/>0,<sp/>0,<sp/>0},<sp/>l2_cnt[4]<sp/>=<sp/>{0,<sp/>0,<sp/>0,<sp/>0};</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>y<sp/>=<sp/>0,<sp/>l2<sp/>=<sp/>0;<sp/>y<sp/>&lt;<sp/>bm.getH();<sp/>y<sp/>+=<sp/>L2_SZ)</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>x<sp/>=<sp/>0;<sp/>x<sp/>&lt;<sp/>bm.getW();<sp/>x<sp/>+=<sp/>L2_SZ,<sp/>l2++)</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>l2_ones_cnt<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>pos<sp/>=<sp/>cwr.<ref refid="classmkbindump_1_1BinDumpSaveCB_1af51b74dec31efceb3f31c28e8d8f8074" kindref="member">tell</ref>();</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>mem_set_0(l2_ofs);</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"></highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>dy<sp/>=<sp/>0,<sp/>l1<sp/>=<sp/>0;<sp/>dy<sp/>&lt;<sp/>L2_SZ;<sp/>dy<sp/>+=<sp/>L1_SZ)</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>dx<sp/>=<sp/>0;<sp/>dx<sp/>&lt;<sp/>L2_SZ;<sp/>dx<sp/>+=<sp/>L1_SZ,<sp/>l1++)</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>l1_ones_cnt<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>mem_set_0(bits);</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"></highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>dy2<sp/>=<sp/>0;<sp/>dy2<sp/>&lt;<sp/>L1_SZ;<sp/>dy2++)</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>dx2<sp/>=<sp/>0;<sp/>dx2<sp/>&lt;<sp/>L1_SZ;<sp/>dx2++)</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(bm.get(x<sp/>+<sp/>dx<sp/>+<sp/>dx2,<sp/>y<sp/>+<sp/>dy<sp/>+<sp/>dy2))</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>l1_ones_cnt++;</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>idx<sp/>=<sp/>(dy2<sp/>&lt;&lt;<sp/>l1_npt)<sp/>+<sp/>dx2;</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>bits[idx<sp/>&gt;&gt;<sp/>5]<sp/>|=<sp/>(1<sp/>&lt;&lt;<sp/>(idx<sp/>&amp;<sp/>0x1F));</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(l1_ones_cnt<sp/>==<sp/>0)</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>l1_cnt[0]++;</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(l1_ones_cnt<sp/>==<sp/>L1_SZ<sp/>*<sp/>L1_SZ)</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>l1_cnt[1]++;</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>l2_ofs[l1]<sp/>=<sp/>1;</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>l2_ones_cnt++;</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>l1_cnt[2]++;</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(cwr.<ref refid="classmkbindump_1_1BinDumpSaveCB_1af51b74dec31efceb3f31c28e8d8f8074" kindref="member">tell</ref>()<sp/>==<sp/>pos)</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>cwr.<ref refid="classmkbindump_1_1BinDumpSaveCB_1af373ce8ee134ebaaf66e4c8e5ee74259" kindref="member">writeZeroes</ref>(data_size(l2_ofs));</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>k<sp/>=<sp/>0;<sp/>k<sp/>&lt;<sp/>l1_cache.size();<sp/>k<sp/>+=<sp/>1<sp/>+<sp/>bits.size())</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(mem_eq(bits,<sp/>&amp;l1_cache[k<sp/>+<sp/>1]))</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>l2_ofs[l1]<sp/>=<sp/>l1_cache[k];</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>l1_cnt[3]++;</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">goto</highlight><highlight class="normal"><sp/>next_l1_block;</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"></highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>l2_ofs[l1]<sp/>=<sp/>cwr.<ref refid="classmkbindump_1_1BinDumpSaveCB_1af51b74dec31efceb3f31c28e8d8f8074" kindref="member">tell</ref>();</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>cwr.<ref refid="classmkbindump_1_1BinDumpSaveCB_1a50c981b9b894c5caeeeffb3669246f34" kindref="member">write32ex</ref>(bits.data(),<sp/>data_size(bits));</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>l1_cache.push_back(l2_ofs[l1]);</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>append_items(l1_cache,<sp/>bits.size(),<sp/>bits.data());</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>next_l1_block:;</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"></highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(l2_ones_cnt<sp/>==<sp/>(L2_SZ<sp/>/<sp/>L1_SZ)<sp/>*<sp/>(L2_SZ<sp/>/<sp/>L1_SZ))</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>l2_cnt[1]++;</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>cwr.<ref refid="classmkbindump_1_1BinDumpSaveCB_1acc7796fecfa830f31110b1fc50e48573" kindref="member">writeInt32eAt</ref>(1,<sp/>cwr.<ref refid="classmkbindump_1_1BinDumpSaveCB_1ae941955f31943eac28a372ff3206fd8daff93f29c5b9fb98c7c5880a54bfe1173" kindref="member">PTR_SZ</ref><sp/>+<sp/>8<sp/>+<sp/>l2<sp/>*<sp/>4);</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(cwr.<ref refid="classmkbindump_1_1BinDumpSaveCB_1af51b74dec31efceb3f31c28e8d8f8074" kindref="member">tell</ref>()<sp/>==<sp/>pos)</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>l2_cnt[0]++;</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="94"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>l2_cnt[2]++;</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>cpos<sp/>=<sp/>cwr.<ref refid="classmkbindump_1_1BinDumpSaveCB_1af51b74dec31efceb3f31c28e8d8f8074" kindref="member">tell</ref>();</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>cwr.<ref refid="classmkbindump_1_1BinDumpSaveCB_1acc7796fecfa830f31110b1fc50e48573" kindref="member">writeInt32eAt</ref>(pos,<sp/>cwr.<ref refid="classmkbindump_1_1BinDumpSaveCB_1ae941955f31943eac28a372ff3206fd8daff93f29c5b9fb98c7c5880a54bfe1173" kindref="member">PTR_SZ</ref><sp/>+<sp/>8<sp/>+<sp/>l2<sp/>*<sp/>4);</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>cwr.<ref refid="classmkbindump_1_1BinDumpSaveCB_1aa14b1cf051f9c5f388b9878ecd3cbf0a" kindref="member">seekto</ref>(pos);</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>cwr.<ref refid="classmkbindump_1_1BinDumpSaveCB_1a50c981b9b894c5caeeeffb3669246f34" kindref="member">write32ex</ref>(l2_ofs.data(),<sp/>data_size(l2_ofs));</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>cwr.<ref refid="classmkbindump_1_1BinDumpSaveCB_1aa14b1cf051f9c5f388b9878ecd3cbf0a" kindref="member">seekto</ref>(cpos);</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"><sp/><sp/>debug(</highlight><highlight class="stringliteral">&quot;%dx%d<sp/>-&gt;<sp/>L1:<sp/>%d/%d/%d/%d<sp/><sp/>L2:<sp/>%d/%d/%d/%d<sp/>-&gt;<sp/>%d&quot;</highlight><highlight class="normal">,<sp/>bm.getW(),<sp/>bm.getH(),<sp/>l1_cnt[0],<sp/>l1_cnt[1],<sp/>l1_cnt[2],<sp/>l1_cnt[3],<sp/>l2_cnt[0],</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/><sp/><sp/>l2_cnt[1],<sp/>l2_cnt[2],<sp/>l2_cnt[3],<sp/>cwr.<ref refid="classmkbindump_1_1BinDumpSaveCB_1af51b74dec31efceb3f31c28e8d8f8074" kindref="member">tell</ref>());</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"></highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/>cwr.<ref refid="classmkbindump_1_1BinDumpSaveCB_1a32df2cedf933ee0832c2eab42837b162" kindref="member">popOrigin</ref>();</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/>cwr.<ref refid="classmkbindump_1_1BinDumpSaveCB_1a209c061073f763cfb4608128c12246da" kindref="member">endBlock</ref>();</highlight></codeline>
+<codeline lineno="108"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="109"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>mkbindump</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="binDumpHierBitmap.h"/>
+  </compounddef>
+</doxygen>

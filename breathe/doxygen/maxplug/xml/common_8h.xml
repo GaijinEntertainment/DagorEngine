@@ -1,0 +1,395 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="common_8h" kind="file" language="C++">
+    <compoundname>common.h</compoundname>
+    <includes local="no">vector</includes>
+    <includes local="no">max.h</includes>
+    <includedby refid="common_8cpp" local="yes">common.cpp</includedby>
+    <includedby refid="dagimp_8cpp" local="yes">dagimp.cpp</includedby>
+    <includedby refid="expUtil_8cpp" local="yes">expUtil.cpp</includedby>
+    <includedby refid="util_8cpp" local="yes">util.cpp</includedby>
+    <incdepgraph>
+      <node id="1">
+        <label>common.h</label>
+        <link refid="common_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>max.h</label>
+      </node>
+      <node id="2">
+        <label>vector</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="2">
+        <label>common.cpp</label>
+        <link refid="common_8cpp"/>
+      </node>
+      <node id="1">
+        <label>common.h</label>
+        <link refid="common_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>dagimp.cpp</label>
+        <link refid="dagimp_8cpp"/>
+      </node>
+      <node id="4">
+        <label>expUtil.cpp</label>
+        <link refid="expUtil_8cpp"/>
+      </node>
+      <node id="5">
+        <label>util.cpp</label>
+        <link refid="util_8cpp"/>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="classAutotoggle" prot="public">Autotoggle</innerclass>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="common_8h_1a2922c0ff799bab73fda7ef905a074c8c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>HWND</type>
+        <definition>HWND add_rollup_page</definition>
+        <argsstring>(Interface *ip, int resource_id, DLGPROC proc, const TCHAR *title, LPARAM param=0, DWORD flags=0)</argsstring>
+        <name>add_rollup_page</name>
+        <param>
+          <type>Interface *</type>
+          <declname>ip</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>resource_id</declname>
+        </param>
+        <param>
+          <type>DLGPROC</type>
+          <declname>proc</declname>
+        </param>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>title</declname>
+        </param>
+        <param>
+          <type>LPARAM</type>
+          <declname>param</declname>
+          <defval>0</defval>
+        </param>
+        <param>
+          <type>DWORD</type>
+          <declname>flags</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="20" column="6" bodyfile="common.cpp" bodystart="9" bodyend="15" declfile="common.h" declline="20" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8h_1ac9901f1c91ba6fca4d76e222820f8b52" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void delete_rollup_page</definition>
+        <argsstring>(Interface *ip, HWND *hw)</argsstring>
+        <name>delete_rollup_page</name>
+        <param>
+          <type>Interface *</type>
+          <declname>ip</declname>
+        </param>
+        <param>
+          <type>HWND *</type>
+          <declname>hw</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="23" column="6" bodyfile="common.cpp" bodystart="17" bodyend="26" declfile="common.h" declline="23" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8h_1ab3996dd0d94c2f2ea13b532cd01a3acf" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>float</type>
+        <definition>float get_master_scale</definition>
+        <argsstring>()</argsstring>
+        <name>get_master_scale</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="27" column="7" bodyfile="common.cpp" bodystart="28" bodyend="37" declfile="common.h" declline="27" declcolumn="7"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8h_1a49afa681b6ba6f6b96b8a8e17a58a362" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>TSTR</type>
+        <definition>TSTR extract_directory</definition>
+        <argsstring>(const TSTR &amp;path)</argsstring>
+        <name>extract_directory</name>
+        <param>
+          <type>const TSTR &amp;</type>
+          <declname>path</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="31" column="6" bodyfile="common.cpp" bodystart="40" bodyend="45" declfile="common.h" declline="31" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8h_1ace8247bb8d3b7d8c28336a7ddfb0e2da" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>TSTR</type>
+        <definition>TSTR extract_basename</definition>
+        <argsstring>(const TSTR &amp;path)</argsstring>
+        <name>extract_basename</name>
+        <param>
+          <type>const TSTR &amp;</type>
+          <declname>path</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="34" column="6" bodyfile="common.cpp" bodystart="47" bodyend="53" declfile="common.h" declline="34" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8h_1a33310586bc60f694d3d4d7c5815cde0c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool is_dag_file</definition>
+        <argsstring>(const TSTR &amp;path)</argsstring>
+        <name>is_dag_file</name>
+        <param>
+          <type>const TSTR &amp;</type>
+          <declname>path</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="37" column="6" bodyfile="common.cpp" bodystart="55" bodyend="61" declfile="common.h" declline="37" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8h_1a83c0e73436ecc6fe3df3f4b066604a80" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>std::vector&lt; TSTR &gt;</type>
+        <definition>std::vector&lt; TSTR &gt; glob</definition>
+        <argsstring>(const TSTR &amp;dir, bool recursive)</argsstring>
+        <name>glob</name>
+        <param>
+          <type>const TSTR &amp;</type>
+          <declname>dir</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>recursive</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="40" column="13" bodyfile="common.cpp" bodystart="90" bodyend="96" declfile="common.h" declline="40" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8h_1ac9fb07f5e9a035c1eca78f6428d9a590" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref></type>
+        <definition>M_STD_STRING strToWide</definition>
+        <argsstring>(const char *sz)</argsstring>
+        <name>strToWide</name>
+        <param>
+          <type>const char *</type>
+          <declname>sz</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="43" column="14" bodyfile="common.cpp" bodystart="99" bodyend="112" declfile="common.h" declline="43" declcolumn="14"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8h_1a9247db5a252f97c6442d08793a38a1d4" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>std::string</type>
+        <definition>std::string wideToStr</definition>
+        <argsstring>(const TCHAR *sw)</argsstring>
+        <name>wideToStr</name>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>sw</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="44" column="13" bodyfile="common.cpp" bodystart="115" bodyend="129" declfile="common.h" declline="44" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8h_1a7987669935f82bfd122e32c8f3ae2d58" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>TSTR</type>
+        <definition>TSTR drop_quotation_marks</definition>
+        <argsstring>(const TSTR &amp;s)</argsstring>
+        <name>drop_quotation_marks</name>
+        <param>
+          <type>const TSTR &amp;</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="47" column="6" bodyfile="common.cpp" bodystart="132" bodyend="138" declfile="common.h" declline="47" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8h_1ae8609934fec47d9be8d04f44eba4f903" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void update_path_edit_control</definition>
+        <argsstring>(HWND hDlg, int id, const TSTR &amp;path)</argsstring>
+        <name>update_path_edit_control</name>
+        <param>
+          <type>HWND</type>
+          <declname>hDlg</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>id</declname>
+        </param>
+        <param>
+          <type>const TSTR &amp;</type>
+          <declname>path</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="49" column="6" bodyfile="common.cpp" bodystart="141" bodyend="145" declfile="common.h" declline="49" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8h_1aa6d335e2aa545c68709f116b7de9298b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int get_save_filename</definition>
+        <argsstring>(HWND owner, const TCHAR *title, FilterList &amp;filter, const TCHAR *def_ext, TSTR &amp;exp_fname)</argsstring>
+        <name>get_save_filename</name>
+        <param>
+          <type>HWND</type>
+          <declname>owner</declname>
+        </param>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>title</declname>
+        </param>
+        <param>
+          <type>FilterList &amp;</type>
+          <declname>filter</declname>
+        </param>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>def_ext</declname>
+        </param>
+        <param>
+          <type>TSTR &amp;</type>
+          <declname>exp_fname</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="51" column="5" bodyfile="common.cpp" bodystart="148" bodyend="188" declfile="common.h" declline="51" declcolumn="5"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8h_1a7eb15367ce26c82682ab764b5a5596e6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool get_open_filename</definition>
+        <argsstring>(HWND owner, TSTR &amp;imp_fname)</argsstring>
+        <name>get_open_filename</name>
+        <param>
+          <type>HWND</type>
+          <declname>owner</declname>
+        </param>
+        <param>
+          <type>TSTR &amp;</type>
+          <declname>imp_fname</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="52" column="6" bodyfile="common.cpp" bodystart="191" bodyend="219" declfile="common.h" declline="52" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;vector&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;max.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="comment">//<sp/>boolean<sp/>guard</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8" refid="classAutotoggle" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classAutotoggle" kindref="compound">Autotoggle</ref></highlight></codeline>
+<codeline lineno="9"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="10"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>&amp;f;</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="13" refid="classAutotoggle_1a48bfacef9c18801952be4ab568b01329" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">explicit</highlight><highlight class="normal"><sp/><ref refid="classAutotoggle_1a48bfacef9c18801952be4ab568b01329" kindref="member">Autotoggle</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>&amp;f_)<sp/>:<sp/>f(f_)<sp/>{<sp/>f<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="14" refid="classAutotoggle_1ab10e9de5afa6b7294c93dd4b6ed3f449" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classAutotoggle_1ab10e9de5afa6b7294c93dd4b6ed3f449" kindref="member">Autotoggle</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>&amp;f_,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>v_)<sp/>:<sp/>f(f_)<sp/>{<sp/>f<sp/>=<sp/>v_;<sp/>}</highlight></codeline>
+<codeline lineno="15" refid="classAutotoggle_1a561dbcdbee6ee8c12b42aa328caa60be" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classAutotoggle_1a561dbcdbee6ee8c12b42aa328caa60be" kindref="member">~Autotoggle</ref>()<sp/>{<sp/>f<sp/>=<sp/>!f;<sp/>}</highlight></codeline>
+<codeline lineno="16"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="comment">//<sp/>add<sp/>rollup<sp/>page<sp/>with<sp/>layout</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal">HWND<sp/><ref refid="common_8h_1a2922c0ff799bab73fda7ef905a074c8c" kindref="member">add_rollup_page</ref>(Interface<sp/>*ip,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>resource_id,<sp/>DLGPROC<sp/>proc,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*title,<sp/>LPARAM<sp/>param<sp/>=<sp/>0,<sp/>DWORD<sp/>flags<sp/>=<sp/>0);</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight><highlight class="comment">//<sp/>delete<sp/>rollup<sp/>page<sp/>and<sp/>reset<sp/>hw</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="common_8h_1ac9901f1c91ba6fca4d76e222820f8b52" kindref="member">delete_rollup_page</ref>(Interface<sp/>*ip,<sp/>HWND<sp/>*hw);</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="common_8h_1ab3996dd0d94c2f2ea13b532cd01a3acf" kindref="member">get_master_scale</ref>();</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight><highlight class="comment">//<sp/>\foo\bar.baz<sp/>--&gt;<sp/>\foo</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal">TSTR<sp/><ref refid="common_8h_1a49afa681b6ba6f6b96b8a8e17a58a362" kindref="member">extract_directory</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TSTR<sp/>&amp;path);</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight><highlight class="comment">//<sp/>\foo\bar.baz<sp/>--&gt;<sp/>bar.baz</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal">TSTR<sp/><ref refid="common_8h_1ace8247bb8d3b7d8c28336a7ddfb0e2da" kindref="member">extract_basename</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TSTR<sp/>&amp;path);</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight><highlight class="comment">//<sp/>file<sp/>extension<sp/>is<sp/>&quot;.dag&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="37"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="common_8h_1a33310586bc60f694d3d4d7c5815cde0c" kindref="member">is_dag_file</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TSTR<sp/>&amp;path);</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight><highlight class="comment">//<sp/>list<sp/>of<sp/>all<sp/>files<sp/>in<sp/>the<sp/>dir</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="40"><highlight class="normal">std::vector&lt;TSTR&gt;<sp/><ref refid="common_8h_1a83c0e73436ecc6fe3df3f4b066604a80" kindref="member">glob</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TSTR<sp/>&amp;dir,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>recursive);</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"></highlight></codeline>
+<codeline lineno="42"><highlight class="normal"></highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref><sp/><ref refid="common_8h_1ac9fb07f5e9a035c1eca78f6428d9a590" kindref="member">strToWide</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*sz);</highlight></codeline>
+<codeline lineno="44"><highlight class="normal">std::string<sp/><ref refid="common_8h_1a9247db5a252f97c6442d08793a38a1d4" kindref="member">wideToStr</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*sw);</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"></highlight></codeline>
+<codeline lineno="46"><highlight class="normal"></highlight><highlight class="comment">//<sp/>&quot;\foo\bar.baz&quot;<sp/>--&gt;<sp/>\foo\bar.baz</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="47"><highlight class="normal">TSTR<sp/><ref refid="common_8h_1a7987669935f82bfd122e32c8f3ae2d58" kindref="member">drop_quotation_marks</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TSTR<sp/>&amp;s);</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"></highlight></codeline>
+<codeline lineno="49"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="common_8h_1ae8609934fec47d9be8d04f44eba4f903" kindref="member">update_path_edit_control</ref>(HWND<sp/>hDlg,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TSTR<sp/>&amp;path);</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight></codeline>
+<codeline lineno="51"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="common_8h_1aa6d335e2aa545c68709f116b7de9298b" kindref="member">get_save_filename</ref>(HWND<sp/>owner,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*title,<sp/>FilterList<sp/>&amp;filter,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*def_ext,<sp/>TSTR<sp/>&amp;exp_fname);</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="common_8h_1a7eb15367ce26c82682ab764b5a5596e6" kindref="member">get_open_filename</ref>(HWND<sp/>owner,<sp/>TSTR<sp/>&amp;imp_fname);</highlight></codeline>
+    </programlisting>
+    <location file="common.h"/>
+  </compounddef>
+</doxygen>

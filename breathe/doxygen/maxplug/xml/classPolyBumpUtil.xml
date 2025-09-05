@@ -1,0 +1,768 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classPolyBumpUtil" kind="class" language="C++" prot="public">
+    <compoundname>PolyBumpUtil</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">UtilityObj</basecompoundref>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classPolyBumpUtil_1a36778f7128651c86258b08a1a2c59153" prot="public" static="no" mutable="no">
+        <type>TCHAR</type>
+        <definition>TCHAR PolyBumpUtil::clsname[MAX_CLSNAME]</definition>
+        <argsstring>[MAX_CLSNAME]</argsstring>
+        <name>clsname</name>
+        <qualifiedname>PolyBumpUtil::clsname</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="32" column="9" bodyfile="polyBumpUtil.cpp" bodystart="32" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classPolyBumpUtil_1abd4a2e6b11575cb7c0f3592b83b45430" prot="public" static="no" mutable="no">
+        <type>TCHAR</type>
+        <definition>TCHAR PolyBumpUtil::output_path[256]</definition>
+        <argsstring>[256]</argsstring>
+        <name>output_path</name>
+        <qualifiedname>PolyBumpUtil::output_path</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="33" column="9" bodyfile="polyBumpUtil.cpp" bodystart="33" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classPolyBumpUtil_1a7e52471af40bf2720f706394582e1f3a" prot="public" static="no" mutable="no">
+        <type>IUtil *</type>
+        <definition>IUtil* PolyBumpUtil::iu</definition>
+        <argsstring></argsstring>
+        <name>iu</name>
+        <qualifiedname>PolyBumpUtil::iu</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="34" column="9" bodyfile="polyBumpUtil.cpp" bodystart="34" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classPolyBumpUtil_1aaf0b372839fa144f48dbe68b65435556" prot="public" static="no" mutable="no">
+        <type>Interface *</type>
+        <definition>Interface* PolyBumpUtil::ip</definition>
+        <argsstring></argsstring>
+        <name>ip</name>
+        <qualifiedname>PolyBumpUtil::ip</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="35" column="13" bodyfile="polyBumpUtil.cpp" bodystart="35" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classPolyBumpUtil_1a7b79eee209469a7069d11bd62dad8d65" prot="public" static="no" mutable="no">
+        <type>HWND</type>
+        <definition>HWND PolyBumpUtil::hPolyPanel</definition>
+        <argsstring></argsstring>
+        <name>hPolyPanel</name>
+        <qualifiedname>PolyBumpUtil::hPolyPanel</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="36" column="8" bodyfile="polyBumpUtil.cpp" bodystart="36" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classPolyBumpUtil_1a4ebbaebab29c1282789474f3c5a034f0" prot="public" static="no" mutable="no">
+        <type>ICustEdit *</type>
+        <definition>ICustEdit* PolyBumpUtil::forwdist_p_eid</definition>
+        <argsstring></argsstring>
+        <name>forwdist_p_eid</name>
+        <qualifiedname>PolyBumpUtil::forwdist_p_eid</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="37" column="13" bodyfile="polyBumpUtil.cpp" bodystart="37" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classPolyBumpUtil_1a3c42a8f6d809517b88d7345cee499fc8" prot="public" static="no" mutable="no">
+        <type>ICustEdit *</type>
+        <definition>ICustEdit* PolyBumpUtil::backdist_p_eid</definition>
+        <argsstring></argsstring>
+        <name>backdist_p_eid</name>
+        <qualifiedname>PolyBumpUtil::backdist_p_eid</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="38" column="13" bodyfile="polyBumpUtil.cpp" bodystart="38" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classPolyBumpUtil_1a061be8c3559c6d6c750d20df02e45be8" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int PolyBumpUtil::antialias</definition>
+        <argsstring></argsstring>
+        <name>antialias</name>
+        <qualifiedname>PolyBumpUtil::antialias</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="39" column="7" bodyfile="polyBumpUtil.cpp" bodystart="39" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classPolyBumpUtil_1aa93deb34a0b9c2b3caf9002814a67791" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int PolyBumpUtil::poly_width</definition>
+        <argsstring></argsstring>
+        <name>poly_width</name>
+        <qualifiedname>PolyBumpUtil::poly_width</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="40" column="7" bodyfile="polyBumpUtil.cpp" bodystart="40" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classPolyBumpUtil_1afd0b004a1e264055c2cd3419843559e1" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int PolyBumpUtil::poly_height</definition>
+        <argsstring></argsstring>
+        <name>poly_height</name>
+        <qualifiedname>PolyBumpUtil::poly_height</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="40" column="18" bodyfile="polyBumpUtil.cpp" bodystart="40" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classPolyBumpUtil_1a6c97b90750ddc1e5b442bfb1e0bb0354" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int PolyBumpUtil::highpolyid</definition>
+        <argsstring></argsstring>
+        <name>highpolyid</name>
+        <qualifiedname>PolyBumpUtil::highpolyid</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="41" column="7" bodyfile="polyBumpUtil.cpp" bodystart="41" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classPolyBumpUtil_1a43a42c6e557867bb15ccc6f15b4d8a26" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int PolyBumpUtil::lowpolyid</definition>
+        <argsstring></argsstring>
+        <name>lowpolyid</name>
+        <qualifiedname>PolyBumpUtil::lowpolyid</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="41" column="18" bodyfile="polyBumpUtil.cpp" bodystart="41" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classPolyBumpUtil_1a452e433bdfc71e9fbe46e4e70fbbdf8d" prot="public" static="no" mutable="no">
+        <type><ref refid="ltmap_8cpp_1a031f8951175b43076c2084a6c2173410" kindref="member">real</ref></type>
+        <definition>real PolyBumpUtil::backdist_p</definition>
+        <argsstring></argsstring>
+        <name>backdist_p</name>
+        <qualifiedname>PolyBumpUtil::backdist_p</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="42" column="8" bodyfile="polyBumpUtil.cpp" bodystart="42" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classPolyBumpUtil_1aba0e5c6dbbc9a21eb6c7dbc2f24391ce" prot="public" static="no" mutable="no">
+        <type><ref refid="ltmap_8cpp_1a031f8951175b43076c2084a6c2173410" kindref="member">real</ref></type>
+        <definition>real PolyBumpUtil::forwdist_p</definition>
+        <argsstring></argsstring>
+        <name>forwdist_p</name>
+        <qualifiedname>PolyBumpUtil::forwdist_p</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="42" column="19" bodyfile="polyBumpUtil.cpp" bodystart="42" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classPolyBumpUtil_1acbd92a4092783fb9b30b7825722ab093" prot="public" static="no" mutable="no">
+        <type><ref refid="ltmap_8cpp_1a031f8951175b43076c2084a6c2173410" kindref="member">real</ref></type>
+        <definition>real PolyBumpUtil::back_weight</definition>
+        <argsstring></argsstring>
+        <name>back_weight</name>
+        <qualifiedname>PolyBumpUtil::back_weight</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="43" column="8" bodyfile="polyBumpUtil.cpp" bodystart="43" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classPolyBumpUtil_1a22f7b945e99b9b84e89d953bb3025364" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool PolyBumpUtil::latest_hit</definition>
+        <argsstring></argsstring>
+        <name>latest_hit</name>
+        <qualifiedname>PolyBumpUtil::latest_hit</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="44" column="8" bodyfile="polyBumpUtil.cpp" bodystart="44" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classPolyBumpUtil_1a265a9db7f44f991aac6f77507c2972a0" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int PolyBumpUtil::expanddist</definition>
+        <argsstring></argsstring>
+        <name>expanddist</name>
+        <qualifiedname>PolyBumpUtil::expanddist</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="45" column="7" bodyfile="polyBumpUtil.cpp" bodystart="45" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classPolyBumpUtil_1a2c89dd2258700dda65cd8cecd1afc5c4" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int PolyBumpUtil::space</definition>
+        <argsstring></argsstring>
+        <name>space</name>
+        <qualifiedname>PolyBumpUtil::space</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="46" column="7" bodyfile="polyBumpUtil.cpp" bodystart="46" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classPolyBumpUtil_1a431a806e8c5377898c1fb49ded61a446" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool PolyBumpUtil::selected_faces</definition>
+        <argsstring></argsstring>
+        <name>selected_faces</name>
+        <qualifiedname>PolyBumpUtil::selected_faces</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="47" column="8" bodyfile="polyBumpUtil.cpp" bodystart="47" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classPolyBumpUtil_1aa9635849c0167980d903a584e293935e" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int PolyBumpUtil::map_channel</definition>
+        <argsstring></argsstring>
+        <name>map_channel</name>
+        <qualifiedname>PolyBumpUtil::map_channel</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="48" column="7" bodyfile="polyBumpUtil.cpp" bodystart="48" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classPolyBumpUtil_1a4fc104113627939c25b9b722ba89341b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>PolyBumpUtil::PolyBumpUtil</definition>
+        <argsstring>()</argsstring>
+        <name>PolyBumpUtil</name>
+        <qualifiedname>PolyBumpUtil::PolyBumpUtil</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="49" column="3" bodyfile="polyBumpUtil.cpp" bodystart="252" bodyend="271"/>
+      </memberdef>
+      <memberdef kind="function" id="classPolyBumpUtil_1a3231042a6af72e969ad9830e92518e4d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void PolyBumpUtil::BeginEditParams</definition>
+        <argsstring>(Interface *ip, IUtil *iu) override</argsstring>
+        <name>BeginEditParams</name>
+        <qualifiedname>PolyBumpUtil::BeginEditParams</qualifiedname>
+        <param>
+          <type>Interface *</type>
+          <declname>ip</declname>
+        </param>
+        <param>
+          <type>IUtil *</type>
+          <declname>iu</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="50" column="8" bodyfile="polyBumpUtil.cpp" bodystart="273" bodyend="279"/>
+      </memberdef>
+      <memberdef kind="function" id="classPolyBumpUtil_1a510c020c904f218ed790076c08aad99b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void PolyBumpUtil::EndEditParams</definition>
+        <argsstring>(Interface *ip, IUtil *iu) override</argsstring>
+        <name>EndEditParams</name>
+        <qualifiedname>PolyBumpUtil::EndEditParams</qualifiedname>
+        <param>
+          <type>Interface *</type>
+          <declname>ip</declname>
+        </param>
+        <param>
+          <type>IUtil *</type>
+          <declname>iu</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="51" column="8" bodyfile="polyBumpUtil.cpp" bodystart="281" bodyend="288"/>
+      </memberdef>
+      <memberdef kind="function" id="classPolyBumpUtil_1a8fed1e7d4b28c186032a8a8631c8a42a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void PolyBumpUtil::DeleteThis</definition>
+        <argsstring>() override</argsstring>
+        <name>DeleteThis</name>
+        <qualifiedname>PolyBumpUtil::DeleteThis</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="52" column="8" bodyfile="polyBumpUtil.cpp" bodystart="52" bodyend="52"/>
+      </memberdef>
+      <memberdef kind="function" id="classPolyBumpUtil_1aa6dd95622760403834ad7ebd24435375" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void PolyBumpUtil::update_ui</definition>
+        <argsstring>()</argsstring>
+        <name>update_ui</name>
+        <qualifiedname>PolyBumpUtil::update_ui</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="53" column="8" bodyfile="polyBumpUtil.cpp" bodystart="53" bodyend="53"/>
+      </memberdef>
+      <memberdef kind="function" id="classPolyBumpUtil_1a5437f76bc052a7761a95db40e6638fc9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void PolyBumpUtil::update_vars</definition>
+        <argsstring>()</argsstring>
+        <name>update_vars</name>
+        <qualifiedname>PolyBumpUtil::update_vars</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="54" column="8" bodyfile="polyBumpUtil.cpp" bodystart="54" bodyend="54"/>
+      </memberdef>
+      <memberdef kind="function" id="classPolyBumpUtil_1a0dcda4440681620609086d6bff2afee0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void PolyBumpUtil::update_poly_dist_ui</definition>
+        <argsstring>()</argsstring>
+        <name>update_poly_dist_ui</name>
+        <qualifiedname>PolyBumpUtil::update_poly_dist_ui</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="55" column="8" bodyfile="polyBumpUtil.cpp" bodystart="290" bodyend="332"/>
+      </memberdef>
+      <memberdef kind="function" id="classPolyBumpUtil_1ab7f78c5161be48fa62c6e8e9154a654f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void PolyBumpUtil::update_poly_mapchannels</definition>
+        <argsstring>()</argsstring>
+        <name>update_poly_mapchannels</name>
+        <qualifiedname>PolyBumpUtil::update_poly_mapchannels</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="56" column="8" bodyfile="polyBumpUtil.cpp" bodystart="334" bodyend="376"/>
+      </memberdef>
+      <memberdef kind="function" id="classPolyBumpUtil_1a8567a4513bd3376410a923313ac828f2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void PolyBumpUtil::update_poly_ui</definition>
+        <argsstring>()</argsstring>
+        <name>update_poly_ui</name>
+        <qualifiedname>PolyBumpUtil::update_poly_ui</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="57" column="8" bodyfile="polyBumpUtil.cpp" bodystart="378" bodyend="439"/>
+      </memberdef>
+      <memberdef kind="function" id="classPolyBumpUtil_1a49e5465b635a69f8cf1714798d173a35" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void PolyBumpUtil::update_poly_vars</definition>
+        <argsstring>()</argsstring>
+        <name>update_poly_vars</name>
+        <qualifiedname>PolyBumpUtil::update_poly_vars</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="58" column="8" bodyfile="polyBumpUtil.cpp" bodystart="441" bodyend="477"/>
+      </memberdef>
+      <memberdef kind="function" id="classPolyBumpUtil_1a380c4ff8036b4a56133605cb69719ff8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void PolyBumpUtil::InitPoly</definition>
+        <argsstring>(HWND hWnd)</argsstring>
+        <name>InitPoly</name>
+        <qualifiedname>PolyBumpUtil::InitPoly</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hWnd</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="60" column="8" bodyfile="polyBumpUtil.cpp" bodystart="479" bodyend="517"/>
+      </memberdef>
+      <memberdef kind="function" id="classPolyBumpUtil_1a22eb6e521a6874d3318830190a244831" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void PolyBumpUtil::DestroyPoly</definition>
+        <argsstring>(HWND hWnd)</argsstring>
+        <name>DestroyPoly</name>
+        <qualifiedname>PolyBumpUtil::DestroyPoly</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hWnd</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="61" column="8" bodyfile="polyBumpUtil.cpp" bodystart="518" bodyend="530"/>
+      </memberdef>
+      <memberdef kind="function" id="classPolyBumpUtil_1ade9ace2d5a330be5de27479eca620b43" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>BOOL</type>
+        <definition>BOOL PolyBumpUtil::polybumpdlg_proc</definition>
+        <argsstring>(HWND hw, UINT msg, WPARAM wParam, LPARAM lParam)</argsstring>
+        <name>polybumpdlg_proc</name>
+        <qualifiedname>PolyBumpUtil::polybumpdlg_proc</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hw</declname>
+        </param>
+        <param>
+          <type>UINT</type>
+          <declname>msg</declname>
+        </param>
+        <param>
+          <type>WPARAM</type>
+          <declname>wParam</declname>
+        </param>
+        <param>
+          <type>LPARAM</type>
+          <declname>lParam</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="62" column="8" bodyfile="polyBumpUtil.cpp" bodystart="219" bodyend="250"/>
+      </memberdef>
+      <memberdef kind="function" id="classPolyBumpUtil_1a6dc2a733b98b7efbd5618337c2b127f5" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool PolyBumpUtil::BrowseOutFile</definition>
+        <argsstring>(TSTR &amp;file)</argsstring>
+        <name>BrowseOutFile</name>
+        <qualifiedname>PolyBumpUtil::BrowseOutFile</qualifiedname>
+        <param>
+          <type>TSTR &amp;</type>
+          <declname>file</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="64" column="8" bodyfile="polyBumpUtil.cpp" bodystart="789" bodyend="875"/>
+      </memberdef>
+      <memberdef kind="function" id="classPolyBumpUtil_1a5fa6fc575d2eb14e1f4e8605943e5150" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool PolyBumpUtil::select_output</definition>
+        <argsstring>()</argsstring>
+        <name>select_output</name>
+        <qualifiedname>PolyBumpUtil::select_output</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="65" column="8" bodyfile="polyBumpUtil.cpp" bodystart="877" bodyend="887"/>
+      </memberdef>
+      <memberdef kind="function" id="classPolyBumpUtil_1ac2ad58129fb0f71d4f314987cf68ae9d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void PolyBumpUtil::build_normal_map</definition>
+        <argsstring>()</argsstring>
+        <name>build_normal_map</name>
+        <qualifiedname>PolyBumpUtil::build_normal_map</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="67" column="8" bodyfile="polyBumpUtil.cpp" bodystart="891" bodyend="1056"/>
+      </memberdef>
+      <memberdef kind="function" id="classPolyBumpUtil_1a4683d4c88f0f0e08e9de2ef929dd9c34" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void PolyBumpUtil::build_normal_map</definition>
+        <argsstring>(BitArray *facesel, Face *face, int numf, Point3 *vert, int numv, TVFace *tf, Point3 *tv, FaceNGr *facengr, Point3 *vertnorm, const Matrix3 &amp;ltm, int wd, int ht, unsigned int *pixels, class Mesh &amp;hm, const Matrix3 &amp;tm, real fordist, real backdist, bool nearest, real backw, int expands, INode *high)</argsstring>
+        <name>build_normal_map</name>
+        <qualifiedname>PolyBumpUtil::build_normal_map</qualifiedname>
+        <param>
+          <type>BitArray *</type>
+          <declname>facesel</declname>
+        </param>
+        <param>
+          <type>Face *</type>
+          <declname>face</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>numf</declname>
+        </param>
+        <param>
+          <type>Point3 *</type>
+          <declname>vert</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>numv</declname>
+        </param>
+        <param>
+          <type>TVFace *</type>
+          <declname>tf</declname>
+        </param>
+        <param>
+          <type>Point3 *</type>
+          <declname>tv</declname>
+        </param>
+        <param>
+          <type><ref refid="polyBumpUtil_8cpp_1a4be4302620be4a0cda3e678fdc4f05fb" kindref="member">FaceNGr</ref> *</type>
+          <declname>facengr</declname>
+        </param>
+        <param>
+          <type>Point3 *</type>
+          <declname>vertnorm</declname>
+        </param>
+        <param>
+          <type>const Matrix3 &amp;</type>
+          <declname>ltm</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>wd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>ht</declname>
+        </param>
+        <param>
+          <type>unsigned int *</type>
+          <declname>pixels</declname>
+        </param>
+        <param>
+          <type>class Mesh &amp;</type>
+          <declname>hm</declname>
+        </param>
+        <param>
+          <type>const Matrix3 &amp;</type>
+          <declname>tm</declname>
+        </param>
+        <param>
+          <type><ref refid="ltmap_8cpp_1a031f8951175b43076c2084a6c2173410" kindref="member">real</ref></type>
+          <declname>fordist</declname>
+        </param>
+        <param>
+          <type><ref refid="ltmap_8cpp_1a031f8951175b43076c2084a6c2173410" kindref="member">real</ref></type>
+          <declname>backdist</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>nearest</declname>
+        </param>
+        <param>
+          <type><ref refid="ltmap_8cpp_1a031f8951175b43076c2084a6c2173410" kindref="member">real</ref></type>
+          <declname>backw</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>expands</declname>
+        </param>
+        <param>
+          <type>INode *</type>
+          <declname>high</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="68" column="8" bodyfile="polyBumpUtil.cpp" bodystart="1441" bodyend="2026"/>
+      </memberdef>
+      <memberdef kind="function" id="classPolyBumpUtil_1ad9a148484867326dec5e1ed602489395" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void PolyBumpUtil::select_highpoly_model</definition>
+        <argsstring>()</argsstring>
+        <name>select_highpoly_model</name>
+        <qualifiedname>PolyBumpUtil::select_highpoly_model</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="73" column="8" bodyfile="polyBumpUtil.cpp" bodystart="1091" bodyend="1095"/>
+      </memberdef>
+      <memberdef kind="function" id="classPolyBumpUtil_1a37c7dd8c8119f4077ee8216af49fe066" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void PolyBumpUtil::select_lowpoly_model</definition>
+        <argsstring>()</argsstring>
+        <name>select_lowpoly_model</name>
+        <qualifiedname>PolyBumpUtil::select_lowpoly_model</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="74" column="8" bodyfile="polyBumpUtil.cpp" bodystart="1085" bodyend="1089"/>
+      </memberdef>
+      <memberdef kind="function" id="classPolyBumpUtil_1a98504dfcfc8197a60e379edba27aa71b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>ULONG</type>
+        <definition>ULONG PolyBumpUtil::get_selected_trinode_id</definition>
+        <argsstring>()</argsstring>
+        <name>get_selected_trinode_id</name>
+        <qualifiedname>PolyBumpUtil::get_selected_trinode_id</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="75" column="9" bodyfile="polyBumpUtil.cpp" bodystart="1060" bodyend="1083"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>PolyBumpUtil</label>
+        <link refid="classPolyBumpUtil"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>UtilityObj</label>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>PolyBumpUtil</label>
+        <link refid="classPolyBumpUtil"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>UtilityObj</label>
+      </node>
+    </collaborationgraph>
+    <location file="polyBumpUtil.cpp" line="29" column="1" bodyfile="polyBumpUtil.cpp" bodystart="30" bodyend="76"/>
+    <listofallmembers>
+      <member refid="classPolyBumpUtil_1a061be8c3559c6d6c750d20df02e45be8" prot="public" virt="non-virtual"><scope>PolyBumpUtil</scope><name>antialias</name></member>
+      <member refid="classPolyBumpUtil_1acbd92a4092783fb9b30b7825722ab093" prot="public" virt="non-virtual"><scope>PolyBumpUtil</scope><name>back_weight</name></member>
+      <member refid="classPolyBumpUtil_1a452e433bdfc71e9fbe46e4e70fbbdf8d" prot="public" virt="non-virtual"><scope>PolyBumpUtil</scope><name>backdist_p</name></member>
+      <member refid="classPolyBumpUtil_1a3c42a8f6d809517b88d7345cee499fc8" prot="public" virt="non-virtual"><scope>PolyBumpUtil</scope><name>backdist_p_eid</name></member>
+      <member refid="classPolyBumpUtil_1a3231042a6af72e969ad9830e92518e4d" prot="public" virt="non-virtual"><scope>PolyBumpUtil</scope><name>BeginEditParams</name></member>
+      <member refid="classPolyBumpUtil_1a6dc2a733b98b7efbd5618337c2b127f5" prot="public" virt="non-virtual"><scope>PolyBumpUtil</scope><name>BrowseOutFile</name></member>
+      <member refid="classPolyBumpUtil_1ac2ad58129fb0f71d4f314987cf68ae9d" prot="public" virt="non-virtual"><scope>PolyBumpUtil</scope><name>build_normal_map</name></member>
+      <member refid="classPolyBumpUtil_1a4683d4c88f0f0e08e9de2ef929dd9c34" prot="public" virt="non-virtual"><scope>PolyBumpUtil</scope><name>build_normal_map</name></member>
+      <member refid="classPolyBumpUtil_1a36778f7128651c86258b08a1a2c59153" prot="public" virt="non-virtual"><scope>PolyBumpUtil</scope><name>clsname</name></member>
+      <member refid="classPolyBumpUtil_1a8fed1e7d4b28c186032a8a8631c8a42a" prot="public" virt="non-virtual"><scope>PolyBumpUtil</scope><name>DeleteThis</name></member>
+      <member refid="classPolyBumpUtil_1a22eb6e521a6874d3318830190a244831" prot="public" virt="non-virtual"><scope>PolyBumpUtil</scope><name>DestroyPoly</name></member>
+      <member refid="classPolyBumpUtil_1a510c020c904f218ed790076c08aad99b" prot="public" virt="non-virtual"><scope>PolyBumpUtil</scope><name>EndEditParams</name></member>
+      <member refid="classPolyBumpUtil_1a265a9db7f44f991aac6f77507c2972a0" prot="public" virt="non-virtual"><scope>PolyBumpUtil</scope><name>expanddist</name></member>
+      <member refid="classPolyBumpUtil_1aba0e5c6dbbc9a21eb6c7dbc2f24391ce" prot="public" virt="non-virtual"><scope>PolyBumpUtil</scope><name>forwdist_p</name></member>
+      <member refid="classPolyBumpUtil_1a4ebbaebab29c1282789474f3c5a034f0" prot="public" virt="non-virtual"><scope>PolyBumpUtil</scope><name>forwdist_p_eid</name></member>
+      <member refid="classPolyBumpUtil_1a98504dfcfc8197a60e379edba27aa71b" prot="public" virt="non-virtual"><scope>PolyBumpUtil</scope><name>get_selected_trinode_id</name></member>
+      <member refid="classPolyBumpUtil_1a6c97b90750ddc1e5b442bfb1e0bb0354" prot="public" virt="non-virtual"><scope>PolyBumpUtil</scope><name>highpolyid</name></member>
+      <member refid="classPolyBumpUtil_1a7b79eee209469a7069d11bd62dad8d65" prot="public" virt="non-virtual"><scope>PolyBumpUtil</scope><name>hPolyPanel</name></member>
+      <member refid="classPolyBumpUtil_1a380c4ff8036b4a56133605cb69719ff8" prot="public" virt="non-virtual"><scope>PolyBumpUtil</scope><name>InitPoly</name></member>
+      <member refid="classPolyBumpUtil_1aaf0b372839fa144f48dbe68b65435556" prot="public" virt="non-virtual"><scope>PolyBumpUtil</scope><name>ip</name></member>
+      <member refid="classPolyBumpUtil_1a7e52471af40bf2720f706394582e1f3a" prot="public" virt="non-virtual"><scope>PolyBumpUtil</scope><name>iu</name></member>
+      <member refid="classPolyBumpUtil_1a22f7b945e99b9b84e89d953bb3025364" prot="public" virt="non-virtual"><scope>PolyBumpUtil</scope><name>latest_hit</name></member>
+      <member refid="classPolyBumpUtil_1a43a42c6e557867bb15ccc6f15b4d8a26" prot="public" virt="non-virtual"><scope>PolyBumpUtil</scope><name>lowpolyid</name></member>
+      <member refid="classPolyBumpUtil_1aa9635849c0167980d903a584e293935e" prot="public" virt="non-virtual"><scope>PolyBumpUtil</scope><name>map_channel</name></member>
+      <member refid="classPolyBumpUtil_1abd4a2e6b11575cb7c0f3592b83b45430" prot="public" virt="non-virtual"><scope>PolyBumpUtil</scope><name>output_path</name></member>
+      <member refid="classPolyBumpUtil_1afd0b004a1e264055c2cd3419843559e1" prot="public" virt="non-virtual"><scope>PolyBumpUtil</scope><name>poly_height</name></member>
+      <member refid="classPolyBumpUtil_1aa93deb34a0b9c2b3caf9002814a67791" prot="public" virt="non-virtual"><scope>PolyBumpUtil</scope><name>poly_width</name></member>
+      <member refid="classPolyBumpUtil_1ade9ace2d5a330be5de27479eca620b43" prot="public" virt="non-virtual"><scope>PolyBumpUtil</scope><name>polybumpdlg_proc</name></member>
+      <member refid="classPolyBumpUtil_1a4fc104113627939c25b9b722ba89341b" prot="public" virt="non-virtual"><scope>PolyBumpUtil</scope><name>PolyBumpUtil</name></member>
+      <member refid="classPolyBumpUtil_1ad9a148484867326dec5e1ed602489395" prot="public" virt="non-virtual"><scope>PolyBumpUtil</scope><name>select_highpoly_model</name></member>
+      <member refid="classPolyBumpUtil_1a37c7dd8c8119f4077ee8216af49fe066" prot="public" virt="non-virtual"><scope>PolyBumpUtil</scope><name>select_lowpoly_model</name></member>
+      <member refid="classPolyBumpUtil_1a5fa6fc575d2eb14e1f4e8605943e5150" prot="public" virt="non-virtual"><scope>PolyBumpUtil</scope><name>select_output</name></member>
+      <member refid="classPolyBumpUtil_1a431a806e8c5377898c1fb49ded61a446" prot="public" virt="non-virtual"><scope>PolyBumpUtil</scope><name>selected_faces</name></member>
+      <member refid="classPolyBumpUtil_1a2c89dd2258700dda65cd8cecd1afc5c4" prot="public" virt="non-virtual"><scope>PolyBumpUtil</scope><name>space</name></member>
+      <member refid="classPolyBumpUtil_1a0dcda4440681620609086d6bff2afee0" prot="public" virt="non-virtual"><scope>PolyBumpUtil</scope><name>update_poly_dist_ui</name></member>
+      <member refid="classPolyBumpUtil_1ab7f78c5161be48fa62c6e8e9154a654f" prot="public" virt="non-virtual"><scope>PolyBumpUtil</scope><name>update_poly_mapchannels</name></member>
+      <member refid="classPolyBumpUtil_1a8567a4513bd3376410a923313ac828f2" prot="public" virt="non-virtual"><scope>PolyBumpUtil</scope><name>update_poly_ui</name></member>
+      <member refid="classPolyBumpUtil_1a49e5465b635a69f8cf1714798d173a35" prot="public" virt="non-virtual"><scope>PolyBumpUtil</scope><name>update_poly_vars</name></member>
+      <member refid="classPolyBumpUtil_1aa6dd95622760403834ad7ebd24435375" prot="public" virt="non-virtual"><scope>PolyBumpUtil</scope><name>update_ui</name></member>
+      <member refid="classPolyBumpUtil_1a5437f76bc052a7761a95db40e6638fc9" prot="public" virt="non-virtual"><scope>PolyBumpUtil</scope><name>update_vars</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

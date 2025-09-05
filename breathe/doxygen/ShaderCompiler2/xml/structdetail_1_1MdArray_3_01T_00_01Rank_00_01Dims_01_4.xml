@@ -1,0 +1,1254 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4" kind="struct" language="C++" prot="public">
+    <compoundname>detail::MdArray&lt; T, Rank, Dims &gt;</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">carray&lt; T, Dims.totalSize()&gt;</basecompoundref>
+    <basecompoundref prot="public" virt="non-virtual">carray&lt; MdArray&lt; T, Rank - 1, Dims.tail()&gt;, Dims.head()&gt;</basecompoundref>
+    <includes refid="mdArray_8h" local="no">mdArray.h</includes>
+    <templateparamlist>
+      <param>
+        <type>class T</type>
+      </param>
+      <param>
+        <type>uint32_t</type>
+        <declname>Rank</declname>
+        <defname>Rank</defname>
+      </param>
+      <param>
+        <type><ref refid="structdetail_1_1MdArrayDimensions" kindref="compound">MdArrayDimensions</ref>&lt; Rank &gt;</type>
+        <declname>Dims</declname>
+        <defname>Dims</defname>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="public-type">
+      <memberdef kind="typedef" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a094c585a10a6b3c261e8aad47d1ec419" prot="public" static="no">
+        <type>carray&lt; T, Dims.totalSize()&gt;</type>
+        <definition>using detail::MdArray&lt; T, Rank, Dims &gt;::BaseType =  carray&lt;T, Dims.totalSize()&gt;</definition>
+        <argsstring></argsstring>
+        <name>BaseType</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::BaseType</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="152" column="3" bodyfile="mdArray.h" bodystart="152" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a326ebfdc734f00ce02985feff93b7592" prot="public" static="no">
+        <type>T</type>
+        <definition>using detail::MdArray&lt; T, Rank, Dims &gt;::SubElementType =  T</definition>
+        <argsstring></argsstring>
+        <name>SubElementType</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::SubElementType</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="153" column="3" bodyfile="mdArray.h" bodystart="153" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a359d87af972633d78e9ef67ecbdfbb90" prot="public" static="no">
+        <type>T</type>
+        <definition>using detail::MdArray&lt; T, Rank, Dims &gt;::ElementType =  T</definition>
+        <argsstring></argsstring>
+        <name>ElementType</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::ElementType</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="154" column="3" bodyfile="mdArray.h" bodystart="154" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a88629c250e12d9c4da8b27aee11b5dea" prot="public" static="no">
+        <type><ref refid="structdetail_1_1MdArrayDimensions" kindref="compound">MdArrayDimensions</ref>&lt; Rank &gt;</type>
+        <definition>using detail::MdArray&lt; T, Rank, Dims &gt;::DimsType =  MdArrayDimensions&lt;Rank&gt;</definition>
+        <argsstring></argsstring>
+        <name>DimsType</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::DimsType</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="155" column="3" bodyfile="mdArray.h" bodystart="155" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1af567aa3ded8853eefc66fd8b5d5673e7" prot="public" static="no">
+        <type><ref refid="structdetail_1_1MdArrayDimensions_3_01Rank_01_4_1a59c10d52c1c2b66bd61ac5e4f5972bf1" kindref="member">DimsType::IndexType</ref></type>
+        <definition>using detail::MdArray&lt; T, Rank, Dims &gt;::IndexType =  DimsType::IndexType</definition>
+        <argsstring></argsstring>
+        <name>IndexType</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::IndexType</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="156" column="3" bodyfile="mdArray.h" bodystart="156" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a78a6fc472ff4bd924e30dbaf83c659c2" prot="public" static="no">
+        <type>carray&lt; <ref refid="structdetail_1_1MdArray" kindref="compound">MdArray</ref>&lt; T, Rank - 1, Dims.tail()&gt;, Dims.head()&gt;</type>
+        <definition>using detail::MdArray&lt; T, Rank, Dims &gt;::BaseType =  carray&lt;MdArray&lt;T, Rank - 1, Dims.tail()&gt;, Dims.head()&gt;</definition>
+        <argsstring></argsstring>
+        <name>BaseType</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::BaseType</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="197" column="3" bodyfile="mdArray.h" bodystart="197" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1ad3b0a56356efe0b67e6bcfee23c13201" prot="public" static="no">
+        <type><ref refid="structdetail_1_1MdArray" kindref="compound">MdArray</ref>&lt; T, Rank - 1, Dims.tail()&gt;</type>
+        <definition>using detail::MdArray&lt; T, Rank, Dims &gt;::SubElementType =  MdArray&lt;T, Rank - 1, Dims.tail()&gt;</definition>
+        <argsstring></argsstring>
+        <name>SubElementType</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::SubElementType</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="198" column="3" bodyfile="mdArray.h" bodystart="198" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a359d87af972633d78e9ef67ecbdfbb90" prot="public" static="no">
+        <type>T</type>
+        <definition>using detail::MdArray&lt; T, Rank, Dims &gt;::ElementType =  T</definition>
+        <argsstring></argsstring>
+        <name>ElementType</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::ElementType</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="199" column="3" bodyfile="mdArray.h" bodystart="199" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a88629c250e12d9c4da8b27aee11b5dea" prot="public" static="no">
+        <type><ref refid="structdetail_1_1MdArrayDimensions" kindref="compound">MdArrayDimensions</ref>&lt; Rank &gt;</type>
+        <definition>using detail::MdArray&lt; T, Rank, Dims &gt;::DimsType =  MdArrayDimensions&lt;Rank&gt;</definition>
+        <argsstring></argsstring>
+        <name>DimsType</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::DimsType</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="200" column="3" bodyfile="mdArray.h" bodystart="200" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1af567aa3ded8853eefc66fd8b5d5673e7" prot="public" static="no">
+        <type><ref refid="structdetail_1_1MdArrayDimensions_3_01Rank_01_4_1a59c10d52c1c2b66bd61ac5e4f5972bf1" kindref="member">DimsType::IndexType</ref></type>
+        <definition>using detail::MdArray&lt; T, Rank, Dims &gt;::IndexType =  DimsType::IndexType</definition>
+        <argsstring></argsstring>
+        <name>IndexType</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::IndexType</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="201" column="3" bodyfile="mdArray.h" bodystart="201" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a9397d8aa585e05c339710933729e155f" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr <ref refid="structdetail_1_1MdArrayDimensions" kindref="compound">MdArrayDimensions</ref></type>
+        <definition>static constexpr MdArrayDimensions detail::MdArray&lt; T, Rank, Dims &gt;::DIMS</definition>
+        <argsstring></argsstring>
+        <name>DIMS</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::DIMS</qualifiedname>
+        <initializer>= Dims</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="158" column="38" bodyfile="mdArray.h" bodystart="158" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a2d8930a0e18c01b407742291a1628cd3" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr uint32_t</type>
+        <definition>static constexpr uint32_t detail::MdArray&lt; T, Rank, Dims &gt;::SIZE</definition>
+        <argsstring></argsstring>
+        <name>SIZE</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::SIZE</qualifiedname>
+        <initializer>= DIMS.totalSize()</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="159" column="29" bodyfile="mdArray.h" bodystart="159" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a3ab12a1308f54ff1c984525b57e11bb8" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr uint32_t</type>
+        <definition>static constexpr uint32_t detail::MdArray&lt; T, Rank, Dims &gt;::RANK</definition>
+        <argsstring></argsstring>
+        <name>RANK</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::RANK</qualifiedname>
+        <initializer>= Rank</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="160" column="29" bodyfile="mdArray.h" bodystart="160" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a58b5e5705c3c2993628828caeb4e741c" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr</type>
+        <definition>constexpr detail::MdArray&lt; T, Rank, Dims &gt;::MdArray</definition>
+        <argsstring>(std::initializer_list&lt; T &gt; initializer)</argsstring>
+        <name>MdArray</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::MdArray</qualifiedname>
+        <param>
+          <type>std::initializer_list&lt; T &gt;</type>
+          <declname>initializer</declname>
+        </param>
+    <requiresclause>(eastl::is_default_constructible_v&lt;T&gt; &amp;&amp; eastl::is_copy_assignable_v&lt;T&gt;)    </requiresclause>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="162" column="13" bodyfile="mdArray.h" bodystart="162" bodyend="166"/>
+      </memberdef>
+      <memberdef kind="function" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a9b8f95acd9802024e3bd8fbd03338eba" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>constexpr</type>
+        <definition>constexpr detail::MdArray&lt; T, Rank, Dims &gt;::MdArray</definition>
+        <argsstring>()=default</argsstring>
+        <name>MdArray</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::MdArray</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="168" column="13"/>
+      </memberdef>
+      <memberdef kind="function" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1ad02a797d0b7cc4d82152639b91c24025" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>constexpr</type>
+        <definition>constexpr detail::MdArray&lt; T, Rank, Dims &gt;::MdArray</definition>
+        <argsstring>(const MdArray &amp;)=default</argsstring>
+        <name>MdArray</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::MdArray</qualifiedname>
+        <param>
+          <type>const <ref refid="structdetail_1_1MdArray" kindref="compound">MdArray</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="169" column="13"/>
+      </memberdef>
+      <memberdef kind="function" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a327ba721382cd237d467fb2b2d4e71d9" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>constexpr</type>
+        <definition>constexpr detail::MdArray&lt; T, Rank, Dims &gt;::MdArray</definition>
+        <argsstring>(MdArray &amp;&amp;)=default</argsstring>
+        <name>MdArray</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::MdArray</qualifiedname>
+        <param>
+          <type><ref refid="structdetail_1_1MdArray" kindref="compound">MdArray</ref> &amp;&amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="170" column="13"/>
+      </memberdef>
+      <memberdef kind="function" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a2389c4b9b6cd7f05203e21e43e5bec18" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>constexpr <ref refid="structdetail_1_1MdArray" kindref="compound">MdArray</ref> &amp;</type>
+        <definition>constexpr MdArray &amp; detail::MdArray&lt; T, Rank, Dims &gt;::operator=</definition>
+        <argsstring>(const MdArray &amp;)=default</argsstring>
+        <name>operator=</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::operator=</qualifiedname>
+        <param>
+          <type>const <ref refid="structdetail_1_1MdArray" kindref="compound">MdArray</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="171" column="21"/>
+      </memberdef>
+      <memberdef kind="function" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1adf5c1b6c8ebf54222fdf94b8141c487d" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>constexpr <ref refid="structdetail_1_1MdArray" kindref="compound">MdArray</ref> &amp;</type>
+        <definition>constexpr MdArray &amp; detail::MdArray&lt; T, Rank, Dims &gt;::operator=</definition>
+        <argsstring>(MdArray &amp;&amp;)=default</argsstring>
+        <name>operator=</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::operator=</qualifiedname>
+        <param>
+          <type><ref refid="structdetail_1_1MdArray" kindref="compound">MdArray</ref> &amp;&amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="172" column="21"/>
+      </memberdef>
+      <memberdef kind="function" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a3d160c2604e949e8c13aa3ab89710ec2" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr T &amp;</type>
+        <definition>constexpr T &amp; detail::MdArray&lt; T, Rank, Dims &gt;::operator[]</definition>
+        <argsstring>(uint32_t idx)</argsstring>
+        <name>operator[]</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::operator[]</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>idx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="174" column="15" bodyfile="mdArray.h" bodystart="174" bodyend="174"/>
+      </memberdef>
+      <memberdef kind="function" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a9165c2edb0f51d2522938a992344356b" prot="public" static="no" constexpr="yes" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr const T &amp;</type>
+        <definition>constexpr const T &amp; detail::MdArray&lt; T, Rank, Dims &gt;::operator[]</definition>
+        <argsstring>(uint32_t idx) const</argsstring>
+        <name>operator[]</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::operator[]</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>idx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="175" column="21" bodyfile="mdArray.h" bodystart="175" bodyend="175"/>
+      </memberdef>
+      <memberdef kind="function" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1ae48e2c4c1d1dc06592120bed60639594" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr T &amp;</type>
+        <definition>constexpr T &amp; detail::MdArray&lt; T, Rank, Dims &gt;::operator[]</definition>
+        <argsstring>(IndexType idxs)</argsstring>
+        <name>operator[]</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::operator[]</qualifiedname>
+        <param>
+          <type><ref refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1af567aa3ded8853eefc66fd8b5d5673e7" kindref="member">IndexType</ref></type>
+          <declname>idxs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="177" column="15" bodyfile="mdArray.h" bodystart="177" bodyend="177"/>
+      </memberdef>
+      <memberdef kind="function" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a84d3a0ad71c3aee2b6ec261ea1d057f2" prot="public" static="no" constexpr="yes" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr const T &amp;</type>
+        <definition>constexpr const T &amp; detail::MdArray&lt; T, Rank, Dims &gt;::operator[]</definition>
+        <argsstring>(IndexType idxs) const</argsstring>
+        <name>operator[]</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::operator[]</qualifiedname>
+        <param>
+          <type><ref refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1af567aa3ded8853eefc66fd8b5d5673e7" kindref="member">IndexType</ref></type>
+          <declname>idxs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="178" column="21" bodyfile="mdArray.h" bodystart="178" bodyend="178"/>
+      </memberdef>
+      <memberdef kind="function" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a1166f5098adab98b06b622ebff39cb6e" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr T &amp;</type>
+        <definition>constexpr T &amp; detail::MdArray&lt; T, Rank, Dims &gt;::at</definition>
+        <argsstring>(uint32_t idx)</argsstring>
+        <name>at</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::at</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>idx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="180" column="15" bodyfile="mdArray.h" bodystart="180" bodyend="180"/>
+      </memberdef>
+      <memberdef kind="function" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1aab365d5426a38df2e91e5e009117862f" prot="public" static="no" constexpr="yes" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr const T &amp;</type>
+        <definition>constexpr const T &amp; detail::MdArray&lt; T, Rank, Dims &gt;::at</definition>
+        <argsstring>(uint32_t idx) const</argsstring>
+        <name>at</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::at</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>idx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="181" column="21" bodyfile="mdArray.h" bodystart="181" bodyend="181"/>
+      </memberdef>
+      <memberdef kind="function" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a1dde76580e02365fcf06d86c82eef9e9" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr T &amp;</type>
+        <definition>constexpr T &amp; detail::MdArray&lt; T, Rank, Dims &gt;::at</definition>
+        <argsstring>(IndexType idxs)</argsstring>
+        <name>at</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::at</qualifiedname>
+        <param>
+          <type><ref refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1af567aa3ded8853eefc66fd8b5d5673e7" kindref="member">IndexType</ref></type>
+          <declname>idxs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="183" column="15" bodyfile="mdArray.h" bodystart="183" bodyend="183"/>
+      </memberdef>
+      <memberdef kind="function" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1ad9331d34883605042fa049d31fad213d" prot="public" static="no" constexpr="yes" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr const T &amp;</type>
+        <definition>constexpr const T &amp; detail::MdArray&lt; T, Rank, Dims &gt;::at</definition>
+        <argsstring>(IndexType idxs) const</argsstring>
+        <name>at</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::at</qualifiedname>
+        <param>
+          <type><ref refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1af567aa3ded8853eefc66fd8b5d5673e7" kindref="member">IndexType</ref></type>
+          <declname>idxs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="184" column="21" bodyfile="mdArray.h" bodystart="184" bodyend="184"/>
+      </memberdef>
+      <memberdef kind="function" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a90aa5d821ecc2154c10a945a15e63a78" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr dag::Span&lt; T &gt;</type>
+        <definition>constexpr dag::Span&lt; T &gt; detail::MdArray&lt; T, Rank, Dims &gt;::rowView</definition>
+        <argsstring>()</argsstring>
+        <name>rowView</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::rowView</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="187" column="23" bodyfile="mdArray.h" bodystart="187" bodyend="187"/>
+      </memberdef>
+      <memberdef kind="function" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a5ec4086ba8b88c82dd38486e22b6faca" prot="public" static="no" constexpr="yes" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr dag::ConstSpan&lt; T &gt;</type>
+        <definition>constexpr dag::ConstSpan&lt; T &gt; detail::MdArray&lt; T, Rank, Dims &gt;::rowView</definition>
+        <argsstring>() const</argsstring>
+        <name>rowView</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::rowView</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="188" column="28" bodyfile="mdArray.h" bodystart="188" bodyend="188"/>
+      </memberdef>
+      <memberdef kind="function" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1ad70ad90eb1f4cffdf0b4859528bc7af4" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr dag::Span&lt; T &gt;</type>
+        <definition>constexpr dag::Span&lt; T &gt; detail::MdArray&lt; T, Rank, Dims &gt;::flatView</definition>
+        <argsstring>()</argsstring>
+        <name>flatView</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::flatView</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="189" column="23" bodyfile="mdArray.h" bodystart="189" bodyend="189"/>
+      </memberdef>
+      <memberdef kind="function" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a237c6c84cdb4602e06a983bddb960195" prot="public" static="no" constexpr="yes" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr dag::ConstSpan&lt; T &gt;</type>
+        <definition>constexpr dag::ConstSpan&lt; T &gt; detail::MdArray&lt; T, Rank, Dims &gt;::flatView</definition>
+        <argsstring>() const</argsstring>
+        <name>flatView</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::flatView</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="190" column="28" bodyfile="mdArray.h" bodystart="190" bodyend="190"/>
+      </memberdef>
+      <memberdef kind="function" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1aca56e3a2a8cfd4a3dac4b51b6e025fd1" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr</type>
+        <definition>constexpr detail::MdArray&lt; T, Rank, Dims &gt;::MdArray</definition>
+        <argsstring>(typename GetMdInitializerList&lt; T, RANK &gt;::type initializer)</argsstring>
+        <name>MdArray</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::MdArray</qualifiedname>
+        <param>
+          <type>typename <ref refid="structdetail_1_1GetMdInitializerList" kindref="compound">GetMdInitializerList</ref>&lt; T, <ref refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a3ab12a1308f54ff1c984525b57e11bb8" kindref="member">RANK</ref> &gt;::type</type>
+          <declname>initializer</declname>
+        </param>
+    <requiresclause>(eastl::is_default_constructible_v&lt;T&gt; &amp;&amp; eastl::is_copy_assignable_v&lt;T&gt;)    </requiresclause>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="207" column="13" bodyfile="mdArray.h" bodystart="207" bodyend="211"/>
+      </memberdef>
+      <memberdef kind="function" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a58b5e5705c3c2993628828caeb4e741c" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr</type>
+        <definition>constexpr detail::MdArray&lt; T, Rank, Dims &gt;::MdArray</definition>
+        <argsstring>(std::initializer_list&lt; T &gt; initializer)</argsstring>
+        <name>MdArray</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::MdArray</qualifiedname>
+        <param>
+          <type>std::initializer_list&lt; T &gt;</type>
+          <declname>initializer</declname>
+        </param>
+    <requiresclause>(eastl::is_default_constructible_v&lt;T&gt; &amp;&amp; eastl::is_copy_assignable_v&lt;T&gt;)    </requiresclause>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="212" column="13" bodyfile="mdArray.h" bodystart="212" bodyend="216"/>
+      </memberdef>
+      <memberdef kind="function" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a9b8f95acd9802024e3bd8fbd03338eba" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>constexpr</type>
+        <definition>constexpr detail::MdArray&lt; T, Rank, Dims &gt;::MdArray</definition>
+        <argsstring>()=default</argsstring>
+        <name>MdArray</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::MdArray</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="218" column="13"/>
+      </memberdef>
+      <memberdef kind="function" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1ad02a797d0b7cc4d82152639b91c24025" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>constexpr</type>
+        <definition>constexpr detail::MdArray&lt; T, Rank, Dims &gt;::MdArray</definition>
+        <argsstring>(const MdArray &amp;)=default</argsstring>
+        <name>MdArray</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::MdArray</qualifiedname>
+        <param>
+          <type>const <ref refid="structdetail_1_1MdArray" kindref="compound">MdArray</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="219" column="13"/>
+      </memberdef>
+      <memberdef kind="function" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a327ba721382cd237d467fb2b2d4e71d9" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>constexpr</type>
+        <definition>constexpr detail::MdArray&lt; T, Rank, Dims &gt;::MdArray</definition>
+        <argsstring>(MdArray &amp;&amp;)=default</argsstring>
+        <name>MdArray</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::MdArray</qualifiedname>
+        <param>
+          <type><ref refid="structdetail_1_1MdArray" kindref="compound">MdArray</ref> &amp;&amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="220" column="13"/>
+      </memberdef>
+      <memberdef kind="function" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a2389c4b9b6cd7f05203e21e43e5bec18" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>constexpr <ref refid="structdetail_1_1MdArray" kindref="compound">MdArray</ref> &amp;</type>
+        <definition>constexpr MdArray &amp; detail::MdArray&lt; T, Rank, Dims &gt;::operator=</definition>
+        <argsstring>(const MdArray &amp;)=default</argsstring>
+        <name>operator=</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::operator=</qualifiedname>
+        <param>
+          <type>const <ref refid="structdetail_1_1MdArray" kindref="compound">MdArray</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="221" column="21"/>
+      </memberdef>
+      <memberdef kind="function" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1adf5c1b6c8ebf54222fdf94b8141c487d" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>constexpr <ref refid="structdetail_1_1MdArray" kindref="compound">MdArray</ref> &amp;</type>
+        <definition>constexpr MdArray &amp; detail::MdArray&lt; T, Rank, Dims &gt;::operator=</definition>
+        <argsstring>(MdArray &amp;&amp;)=default</argsstring>
+        <name>operator=</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::operator=</qualifiedname>
+        <param>
+          <type><ref refid="structdetail_1_1MdArray" kindref="compound">MdArray</ref> &amp;&amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="222" column="21"/>
+      </memberdef>
+      <memberdef kind="function" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a1a3c6dbbb3462017028be6357714cd4b" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr <ref refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a326ebfdc734f00ce02985feff93b7592" kindref="member">SubElementType</ref> &amp;</type>
+        <definition>constexpr SubElementType &amp; detail::MdArray&lt; T, Rank, Dims &gt;::operator[]</definition>
+        <argsstring>(uint32_t idx)</argsstring>
+        <name>operator[]</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::operator[]</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>idx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="239" column="28" bodyfile="mdArray.h" bodystart="239" bodyend="239"/>
+      </memberdef>
+      <memberdef kind="function" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a8608ef2e7694433bb02b9af4c322fb0c" prot="public" static="no" constexpr="yes" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr const <ref refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a326ebfdc734f00ce02985feff93b7592" kindref="member">SubElementType</ref> &amp;</type>
+        <definition>constexpr const SubElementType &amp; detail::MdArray&lt; T, Rank, Dims &gt;::operator[]</definition>
+        <argsstring>(uint32_t idx) const</argsstring>
+        <name>operator[]</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::operator[]</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>idx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="240" column="34" bodyfile="mdArray.h" bodystart="240" bodyend="240"/>
+      </memberdef>
+      <memberdef kind="function" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1af585dad7580fd42af3e2b0d586a4a0c6" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr T &amp;</type>
+        <definition>constexpr T &amp; detail::MdArray&lt; T, Rank, Dims &gt;::operator[]</definition>
+        <argsstring>(const IndexType &amp;idxs)</argsstring>
+        <name>operator[]</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::operator[]</qualifiedname>
+        <param>
+          <type>const <ref refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1af567aa3ded8853eefc66fd8b5d5673e7" kindref="member">IndexType</ref> &amp;</type>
+          <declname>idxs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="242" column="15" bodyfile="mdArray.h" bodystart="242" bodyend="242"/>
+      </memberdef>
+      <memberdef kind="function" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a40952191a61a7657370eb921d0d1e611" prot="public" static="no" constexpr="yes" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr const T &amp;</type>
+        <definition>constexpr const T &amp; detail::MdArray&lt; T, Rank, Dims &gt;::operator[]</definition>
+        <argsstring>(const IndexType &amp;idxs) const</argsstring>
+        <name>operator[]</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::operator[]</qualifiedname>
+        <param>
+          <type>const <ref refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1af567aa3ded8853eefc66fd8b5d5673e7" kindref="member">IndexType</ref> &amp;</type>
+          <declname>idxs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="243" column="21" bodyfile="mdArray.h" bodystart="243" bodyend="243"/>
+      </memberdef>
+      <memberdef kind="function" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a4485809af0a2ccf5920c16a355484d9e" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr <ref refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a326ebfdc734f00ce02985feff93b7592" kindref="member">SubElementType</ref> &amp;</type>
+        <definition>constexpr SubElementType &amp; detail::MdArray&lt; T, Rank, Dims &gt;::at</definition>
+        <argsstring>(uint32_t idx)</argsstring>
+        <name>at</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::at</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>idx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="245" column="28" bodyfile="mdArray.h" bodystart="245" bodyend="245"/>
+      </memberdef>
+      <memberdef kind="function" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a7332539ca7c16e87b94544862717d8e5" prot="public" static="no" constexpr="yes" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr const <ref refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a326ebfdc734f00ce02985feff93b7592" kindref="member">SubElementType</ref> &amp;</type>
+        <definition>constexpr const SubElementType &amp; detail::MdArray&lt; T, Rank, Dims &gt;::at</definition>
+        <argsstring>(uint32_t idx) const</argsstring>
+        <name>at</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::at</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>idx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="246" column="34" bodyfile="mdArray.h" bodystart="246" bodyend="246"/>
+      </memberdef>
+      <memberdef kind="function" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a88fe3cc5c6957d4c527c7d0aa9cadecd" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class...</type>
+            <declname>Ids</declname>
+            <defname>Ids</defname>
+          </param>
+        </templateparamlist>
+        <type>constexpr T &amp;</type>
+        <definition>constexpr T &amp; detail::MdArray&lt; T, Rank, Dims &gt;::at</definition>
+        <argsstring>(Ids... ids)</argsstring>
+        <name>at</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::at</qualifiedname>
+        <param>
+          <type>Ids...</type>
+          <declname>ids</declname>
+        </param>
+    <requiresclause>(are_mdarray_indices&lt;RANK, Ids...&gt;)    </requiresclause>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="250" column="15" bodyfile="mdArray.h" bodystart="250" bodyend="253"/>
+      </memberdef>
+      <memberdef kind="function" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a578e0d0f9e8ea6de22c5b98b5b75d945" prot="public" static="no" constexpr="yes" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class...</type>
+            <declname>Ids</declname>
+            <defname>Ids</defname>
+          </param>
+        </templateparamlist>
+        <type>constexpr const T &amp;</type>
+        <definition>constexpr const T &amp; detail::MdArray&lt; T, Rank, Dims &gt;::at</definition>
+        <argsstring>(Ids... ids) const</argsstring>
+        <name>at</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::at</qualifiedname>
+        <param>
+          <type>Ids...</type>
+          <declname>ids</declname>
+        </param>
+    <requiresclause>(are_mdarray_indices&lt;RANK, Ids...&gt;)    </requiresclause>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="257" column="21" bodyfile="mdArray.h" bodystart="257" bodyend="260"/>
+      </memberdef>
+      <memberdef kind="function" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1afb4b80bb17ca22242ba3a52c633db7c5" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr T &amp;</type>
+        <definition>constexpr T &amp; detail::MdArray&lt; T, Rank, Dims &gt;::at</definition>
+        <argsstring>(const IndexType &amp;idxs)</argsstring>
+        <name>at</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::at</qualifiedname>
+        <param>
+          <type>const <ref refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1af567aa3ded8853eefc66fd8b5d5673e7" kindref="member">IndexType</ref> &amp;</type>
+          <declname>idxs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="262" column="15" bodyfile="mdArray.h" bodystart="262" bodyend="262"/>
+      </memberdef>
+      <memberdef kind="function" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a27698e50f6db75455ffcf73f7f2fdb74" prot="public" static="no" constexpr="yes" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr const T &amp;</type>
+        <definition>constexpr const T &amp; detail::MdArray&lt; T, Rank, Dims &gt;::at</definition>
+        <argsstring>(const IndexType &amp;idxs) const</argsstring>
+        <name>at</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::at</qualifiedname>
+        <param>
+          <type>const <ref refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1af567aa3ded8853eefc66fd8b5d5673e7" kindref="member">IndexType</ref> &amp;</type>
+          <declname>idxs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="263" column="21" bodyfile="mdArray.h" bodystart="263" bodyend="263"/>
+      </memberdef>
+      <memberdef kind="function" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a55625b044b5291297122242f4ea98c0d" prot="public" static="no" constexpr="yes" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr uint32_t</type>
+        <definition>constexpr uint32_t detail::MdArray&lt; T, Rank, Dims &gt;::size</definition>
+        <argsstring>() const</argsstring>
+        <name>size</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::size</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="265" column="22" bodyfile="mdArray.h" bodystart="265" bodyend="265"/>
+      </memberdef>
+      <memberdef kind="function" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a628189b1fb751ecf27d9f5634321e09b" prot="public" static="no" constexpr="yes" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr uint32_t</type>
+        <definition>constexpr uint32_t detail::MdArray&lt; T, Rank, Dims &gt;::capacity</definition>
+        <argsstring>() const</argsstring>
+        <name>capacity</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::capacity</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="266" column="22" bodyfile="mdArray.h" bodystart="266" bodyend="266"/>
+      </memberdef>
+      <memberdef kind="function" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a56aea68d4c5261fff2bb2f5ae0b228f8" prot="public" static="no" constexpr="yes" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr uint32_t</type>
+        <definition>constexpr uint32_t detail::MdArray&lt; T, Rank, Dims &gt;::rank</definition>
+        <argsstring>() const</argsstring>
+        <name>rank</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::rank</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="267" column="22" bodyfile="mdArray.h" bodystart="267" bodyend="267"/>
+      </memberdef>
+      <memberdef kind="function" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a62706b9d81a6dc3005fefceaec52721c" prot="public" static="no" constexpr="yes" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr <ref refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a88629c250e12d9c4da8b27aee11b5dea" kindref="member">DimsType</ref></type>
+        <definition>constexpr DimsType detail::MdArray&lt; T, Rank, Dims &gt;::dimensions</definition>
+        <argsstring>() const</argsstring>
+        <name>dimensions</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::dimensions</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="268" column="22" bodyfile="mdArray.h" bodystart="268" bodyend="268"/>
+      </memberdef>
+      <memberdef kind="function" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a0d61d28482cbb4e39c43b765e8ecf77f" prot="public" static="no" constexpr="yes" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr uint32_t</type>
+        <definition>constexpr uint32_t detail::MdArray&lt; T, Rank, Dims &gt;::dimension</definition>
+        <argsstring>(uint32_t i) const</argsstring>
+        <name>dimension</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::dimension</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>i</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="269" column="22" bodyfile="mdArray.h" bodystart="269" bodyend="269"/>
+      </memberdef>
+      <memberdef kind="function" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a6b136df21e3b8382885d139141e92e91" prot="public" static="no" constexpr="yes" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr uint32_t</type>
+        <definition>constexpr uint32_t detail::MdArray&lt; T, Rank, Dims &gt;::toFlatIndex</definition>
+        <argsstring>(const IndexType &amp;idxs) const</argsstring>
+        <name>toFlatIndex</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::toFlatIndex</qualifiedname>
+        <param>
+          <type>const <ref refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1af567aa3ded8853eefc66fd8b5d5673e7" kindref="member">IndexType</ref> &amp;</type>
+          <declname>idxs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="271" column="22" bodyfile="mdArray.h" bodystart="271" bodyend="271"/>
+      </memberdef>
+      <memberdef kind="function" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a7a757b86e7a8aa66d4384331b3c835a0" prot="public" static="no" constexpr="yes" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr <ref refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1af567aa3ded8853eefc66fd8b5d5673e7" kindref="member">IndexType</ref></type>
+        <definition>constexpr IndexType detail::MdArray&lt; T, Rank, Dims &gt;::toMdIndex</definition>
+        <argsstring>(uint32_t idx) const</argsstring>
+        <name>toMdIndex</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::toMdIndex</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>idx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="272" column="23" bodyfile="mdArray.h" bodystart="272" bodyend="272"/>
+      </memberdef>
+      <memberdef kind="function" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a0ccb37c9962e3c3d4a92d6bee86de613" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>constexpr BaseType::reference</type>
+        <definition>constexpr BaseType::reference detail::MdArray&lt; T, Rank, Dims &gt;::front</definition>
+        <argsstring>()=delete</argsstring>
+        <name>front</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::front</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="274" column="33"/>
+      </memberdef>
+      <memberdef kind="function" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a2d759a19ed467b27ede935a169b94497" prot="public" static="no" constexpr="yes" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>constexpr BaseType::const_reference</type>
+        <definition>constexpr BaseType::const_reference detail::MdArray&lt; T, Rank, Dims &gt;::front</definition>
+        <argsstring>() const =delete</argsstring>
+        <name>front</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::front</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="275" column="39"/>
+      </memberdef>
+      <memberdef kind="function" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a4108da3198755ed0bb8379a0f6b4f305" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>constexpr BaseType::reference</type>
+        <definition>constexpr BaseType::reference detail::MdArray&lt; T, Rank, Dims &gt;::back</definition>
+        <argsstring>()=delete</argsstring>
+        <name>back</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::back</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="276" column="33"/>
+      </memberdef>
+      <memberdef kind="function" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1aa8e734df23913a6671b02fdfa5110da4" prot="public" static="no" constexpr="yes" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>constexpr BaseType::const_reference</type>
+        <definition>constexpr BaseType::const_reference detail::MdArray&lt; T, Rank, Dims &gt;::back</definition>
+        <argsstring>() const =delete</argsstring>
+        <name>back</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::back</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="277" column="39"/>
+      </memberdef>
+      <memberdef kind="function" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a307129269d1dbc5384edda51ffaa20c3" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>constexpr BaseType::iterator</type>
+        <definition>constexpr BaseType::iterator detail::MdArray&lt; T, Rank, Dims &gt;::begin</definition>
+        <argsstring>()=delete</argsstring>
+        <name>begin</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::begin</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="280" column="32"/>
+      </memberdef>
+      <memberdef kind="function" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1af1ca672dcb2445e89e7bc73b18c23534" prot="public" static="no" constexpr="yes" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>constexpr BaseType::const_iterator</type>
+        <definition>constexpr BaseType::const_iterator detail::MdArray&lt; T, Rank, Dims &gt;::begin</definition>
+        <argsstring>() const =delete</argsstring>
+        <name>begin</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::begin</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="281" column="38"/>
+      </memberdef>
+      <memberdef kind="function" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a591224f2b43a01cadcac6183cdec21af" prot="public" static="no" constexpr="yes" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>constexpr BaseType::const_iterator</type>
+        <definition>constexpr BaseType::const_iterator detail::MdArray&lt; T, Rank, Dims &gt;::cbegin</definition>
+        <argsstring>() const =delete</argsstring>
+        <name>cbegin</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::cbegin</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="282" column="38"/>
+      </memberdef>
+      <memberdef kind="function" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a45e7321d0e4385b8119d6fe2d3136d0c" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>constexpr BaseType::iterator</type>
+        <definition>constexpr BaseType::iterator detail::MdArray&lt; T, Rank, Dims &gt;::end</definition>
+        <argsstring>()=delete</argsstring>
+        <name>end</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::end</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="283" column="32"/>
+      </memberdef>
+      <memberdef kind="function" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a2117914f8c930f91393239029fb857dd" prot="public" static="no" constexpr="yes" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>constexpr BaseType::const_iterator</type>
+        <definition>constexpr BaseType::const_iterator detail::MdArray&lt; T, Rank, Dims &gt;::end</definition>
+        <argsstring>() const =delete</argsstring>
+        <name>end</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::end</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="284" column="38"/>
+      </memberdef>
+      <memberdef kind="function" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a88426ca6e7d0aadecaf96e42d5251eb8" prot="public" static="no" constexpr="yes" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>constexpr BaseType::const_iterator</type>
+        <definition>constexpr BaseType::const_iterator detail::MdArray&lt; T, Rank, Dims &gt;::cend</definition>
+        <argsstring>() const =delete</argsstring>
+        <name>cend</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::cend</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="285" column="38"/>
+      </memberdef>
+      <memberdef kind="function" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1af3918e71ea82e8b8800067c766124fbc" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr dag::Span&lt; <ref refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a326ebfdc734f00ce02985feff93b7592" kindref="member">SubElementType</ref> &gt;</type>
+        <definition>constexpr dag::Span&lt; SubElementType &gt; detail::MdArray&lt; T, Rank, Dims &gt;::rowView</definition>
+        <argsstring>()</argsstring>
+        <name>rowView</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::rowView</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="287" column="23" bodyfile="mdArray.h" bodystart="287" bodyend="287"/>
+      </memberdef>
+      <memberdef kind="function" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a9bcb983d93dd27da78765ed6abe7d465" prot="public" static="no" constexpr="yes" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr dag::ConstSpan&lt; <ref refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a326ebfdc734f00ce02985feff93b7592" kindref="member">SubElementType</ref> &gt;</type>
+        <definition>constexpr dag::ConstSpan&lt; SubElementType &gt; detail::MdArray&lt; T, Rank, Dims &gt;::rowView</definition>
+        <argsstring>() const</argsstring>
+        <name>rowView</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::rowView</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="288" column="28" bodyfile="mdArray.h" bodystart="288" bodyend="288"/>
+      </memberdef>
+      <memberdef kind="function" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1ad70ad90eb1f4cffdf0b4859528bc7af4" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr dag::Span&lt; T &gt;</type>
+        <definition>constexpr dag::Span&lt; T &gt; detail::MdArray&lt; T, Rank, Dims &gt;::flatView</definition>
+        <argsstring>()</argsstring>
+        <name>flatView</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::flatView</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="290" column="23" bodyfile="mdArray.h" bodystart="290" bodyend="290"/>
+      </memberdef>
+      <memberdef kind="function" id="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a237c6c84cdb4602e06a983bddb960195" prot="public" static="no" constexpr="yes" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr dag::ConstSpan&lt; T &gt;</type>
+        <definition>constexpr dag::ConstSpan&lt; T &gt; detail::MdArray&lt; T, Rank, Dims &gt;::flatView</definition>
+        <argsstring>() const</argsstring>
+        <name>flatView</name>
+        <qualifiedname>detail::MdArray&lt; T, Rank, Dims &gt;::flatView</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mdArray.h" line="291" column="28" bodyfile="mdArray.h" bodystart="291" bodyend="294"/>
+      </memberdef>
+      </sectiondef>
+    <requiresclause>(Rank == 1)    </requiresclause>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="3">
+        <label>carray&lt; MdArray&lt; T, Rank - 1, Dims.tail()&gt;, Dims.head()&gt;</label>
+      </node>
+      <node id="2">
+        <label>carray&lt; T, Dims.totalSize()&gt;</label>
+      </node>
+      <node id="1">
+        <label>detail::MdArray&lt; T, Rank, Dims &gt;</label>
+        <link refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="3">
+        <label>carray&lt; MdArray&lt; T, Rank - 1, Dims.tail()&gt;, Dims.head()&gt;</label>
+      </node>
+      <node id="2">
+        <label>carray&lt; T, Dims.totalSize()&gt;</label>
+      </node>
+      <node id="1">
+        <label>detail::MdArray&lt; T, Rank, Dims &gt;</label>
+        <link refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+        <childnode refid="4" relation="usage">
+          <edgelabel>DIMS</edgelabel>
+        </childnode>
+      </node>
+      <node id="4">
+        <label>detail::MdArrayDimensions&lt; Rank &gt;</label>
+        <link refid="structdetail_1_1MdArrayDimensions"/>
+      </node>
+    </collaborationgraph>
+    <location file="mdArray.h" line="150" column="1" bodyfile="mdArray.h" bodystart="151" bodyend="191"/>
+    <listofallmembers>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a1166f5098adab98b06b622ebff39cb6e" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>at</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1aab365d5426a38df2e91e5e009117862f" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>at</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a1dde76580e02365fcf06d86c82eef9e9" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>at</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1ad9331d34883605042fa049d31fad213d" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>at</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a4485809af0a2ccf5920c16a355484d9e" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>at</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a7332539ca7c16e87b94544862717d8e5" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>at</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a88fe3cc5c6957d4c527c7d0aa9cadecd" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>at</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a578e0d0f9e8ea6de22c5b98b5b75d945" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>at</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1afb4b80bb17ca22242ba3a52c633db7c5" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>at</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a27698e50f6db75455ffcf73f7f2fdb74" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>at</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a4108da3198755ed0bb8379a0f6b4f305" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>back</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1aa8e734df23913a6671b02fdfa5110da4" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>back</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a094c585a10a6b3c261e8aad47d1ec419" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>BaseType</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a78a6fc472ff4bd924e30dbaf83c659c2" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>BaseType</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a307129269d1dbc5384edda51ffaa20c3" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>begin</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1af1ca672dcb2445e89e7bc73b18c23534" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>begin</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a628189b1fb751ecf27d9f5634321e09b" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>capacity</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a591224f2b43a01cadcac6183cdec21af" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>cbegin</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a88426ca6e7d0aadecaf96e42d5251eb8" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>cend</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a0d61d28482cbb4e39c43b765e8ecf77f" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>dimension</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a62706b9d81a6dc3005fefceaec52721c" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>dimensions</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a9397d8aa585e05c339710933729e155f" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>DIMS</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a88629c250e12d9c4da8b27aee11b5dea" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>DimsType</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a88629c250e12d9c4da8b27aee11b5dea" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>DimsType</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a359d87af972633d78e9ef67ecbdfbb90" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>ElementType</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a359d87af972633d78e9ef67ecbdfbb90" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>ElementType</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a45e7321d0e4385b8119d6fe2d3136d0c" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>end</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a2117914f8c930f91393239029fb857dd" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>end</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1ad70ad90eb1f4cffdf0b4859528bc7af4" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>flatView</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a237c6c84cdb4602e06a983bddb960195" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>flatView</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1ad70ad90eb1f4cffdf0b4859528bc7af4" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>flatView</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a237c6c84cdb4602e06a983bddb960195" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>flatView</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a0ccb37c9962e3c3d4a92d6bee86de613" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>front</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a2d759a19ed467b27ede935a169b94497" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>front</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1af567aa3ded8853eefc66fd8b5d5673e7" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>IndexType</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1af567aa3ded8853eefc66fd8b5d5673e7" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>IndexType</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a58b5e5705c3c2993628828caeb4e741c" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>MdArray</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a9b8f95acd9802024e3bd8fbd03338eba" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>MdArray</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1ad02a797d0b7cc4d82152639b91c24025" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>MdArray</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a327ba721382cd237d467fb2b2d4e71d9" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>MdArray</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1aca56e3a2a8cfd4a3dac4b51b6e025fd1" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>MdArray</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a58b5e5705c3c2993628828caeb4e741c" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>MdArray</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a9b8f95acd9802024e3bd8fbd03338eba" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>MdArray</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1ad02a797d0b7cc4d82152639b91c24025" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>MdArray</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a327ba721382cd237d467fb2b2d4e71d9" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>MdArray</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a2389c4b9b6cd7f05203e21e43e5bec18" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>operator=</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1adf5c1b6c8ebf54222fdf94b8141c487d" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>operator=</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a2389c4b9b6cd7f05203e21e43e5bec18" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>operator=</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1adf5c1b6c8ebf54222fdf94b8141c487d" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>operator=</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a3d160c2604e949e8c13aa3ab89710ec2" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>operator[]</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a9165c2edb0f51d2522938a992344356b" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>operator[]</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1ae48e2c4c1d1dc06592120bed60639594" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>operator[]</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a84d3a0ad71c3aee2b6ec261ea1d057f2" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>operator[]</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a1a3c6dbbb3462017028be6357714cd4b" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>operator[]</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a8608ef2e7694433bb02b9af4c322fb0c" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>operator[]</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1af585dad7580fd42af3e2b0d586a4a0c6" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>operator[]</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a40952191a61a7657370eb921d0d1e611" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>operator[]</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a56aea68d4c5261fff2bb2f5ae0b228f8" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>rank</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a3ab12a1308f54ff1c984525b57e11bb8" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>RANK</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a90aa5d821ecc2154c10a945a15e63a78" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>rowView</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a5ec4086ba8b88c82dd38486e22b6faca" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>rowView</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1af3918e71ea82e8b8800067c766124fbc" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>rowView</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a9bcb983d93dd27da78765ed6abe7d465" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>rowView</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a55625b044b5291297122242f4ea98c0d" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>size</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a2d8930a0e18c01b407742291a1628cd3" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>SIZE</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a326ebfdc734f00ce02985feff93b7592" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>SubElementType</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1ad3b0a56356efe0b67e6bcfee23c13201" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>SubElementType</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a6b136df21e3b8382885d139141e92e91" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>toFlatIndex</name></member>
+      <member refid="structdetail_1_1MdArray_3_01T_00_01Rank_00_01Dims_01_4_1a7a757b86e7a8aa66d4384331b3c835a0" prot="public" virt="non-virtual"><scope>detail::MdArray&lt; T, Rank, Dims &gt;</scope><name>toMdIndex</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

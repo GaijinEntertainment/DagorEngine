@@ -1,0 +1,218 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structXessFgParams" kind="struct" language="C++" prot="public">
+    <compoundname>XessFgParams</compoundname>
+    <includes refid="dag__decl_8h" local="no">dag_decl.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structXessFgParams_1ae5b4bc3aea69e95cfc60f98491b1d19a" prot="public" static="no" mutable="no">
+        <type>TMatrix</type>
+        <definition>TMatrix XessFgParams::viewTm</definition>
+        <argsstring></argsstring>
+        <name>viewTm</name>
+        <qualifiedname>XessFgParams::viewTm</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="309" column="11" bodyfile="dag_decl.h" bodystart="309" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structXessFgParams_1a530cb123fa9a73ea5b0ca09109efb88c" prot="public" static="no" mutable="no">
+        <type>TMatrix4</type>
+        <definition>TMatrix4 XessFgParams::projTm</definition>
+        <argsstring></argsstring>
+        <name>projTm</name>
+        <qualifiedname>XessFgParams::projTm</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="310" column="12" bodyfile="dag_decl.h" bodystart="310" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structXessFgParams_1a9ceb935b38947196efdd16ded8bbb622" prot="public" static="no" mutable="no">
+        <type><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref> *</type>
+        <definition>BaseTexture* XessFgParams::inColorHudless</definition>
+        <argsstring></argsstring>
+        <name>inColorHudless</name>
+        <qualifiedname>XessFgParams::inColorHudless</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="311" column="15" bodyfile="dag_decl.h" bodystart="311" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structXessFgParams_1aec0c81929af7efd3994922feed405f63" prot="public" static="no" mutable="no">
+        <type><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref> *</type>
+        <definition>BaseTexture* XessFgParams::inUi</definition>
+        <argsstring></argsstring>
+        <name>inUi</name>
+        <qualifiedname>XessFgParams::inUi</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="312" column="15" bodyfile="dag_decl.h" bodystart="312" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structXessFgParams_1a1d50284b499c58e16b585a25dbf902dd" prot="public" static="no" mutable="no">
+        <type><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref> *</type>
+        <definition>BaseTexture* XessFgParams::inDepth</definition>
+        <argsstring></argsstring>
+        <name>inDepth</name>
+        <qualifiedname>XessFgParams::inDepth</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="313" column="15" bodyfile="dag_decl.h" bodystart="313" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structXessFgParams_1a4b390461ef6df16652186e990bd48d2a" prot="public" static="no" mutable="no">
+        <type><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref> *</type>
+        <definition>BaseTexture* XessFgParams::inMotionVectors</definition>
+        <argsstring></argsstring>
+        <name>inMotionVectors</name>
+        <qualifiedname>XessFgParams::inMotionVectors</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="314" column="15" bodyfile="dag_decl.h" bodystart="314" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structXessFgParams_1a430518ff1b294fa23cbad3681327be32" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float XessFgParams::inMotionVectorScaleX</definition>
+        <argsstring></argsstring>
+        <name>inMotionVectorScaleX</name>
+        <qualifiedname>XessFgParams::inMotionVectorScaleX</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="315" column="9" bodyfile="dag_decl.h" bodystart="315" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structXessFgParams_1a51fba0afcb1a054e850b4c3ce48a9ab6" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float XessFgParams::inMotionVectorScaleY</definition>
+        <argsstring></argsstring>
+        <name>inMotionVectorScaleY</name>
+        <qualifiedname>XessFgParams::inMotionVectorScaleY</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="316" column="9" bodyfile="dag_decl.h" bodystart="316" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structXessFgParams_1ab8bc24edd3402e1bf31086ca8facde4e" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float XessFgParams::inJitterOffsetX</definition>
+        <argsstring></argsstring>
+        <name>inJitterOffsetX</name>
+        <qualifiedname>XessFgParams::inJitterOffsetX</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="317" column="9" bodyfile="dag_decl.h" bodystart="317" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structXessFgParams_1ac868953a1633ba784c5cc7f423a6a91d" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float XessFgParams::inJitterOffsetY</definition>
+        <argsstring></argsstring>
+        <name>inJitterOffsetY</name>
+        <qualifiedname>XessFgParams::inJitterOffsetY</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="318" column="9" bodyfile="dag_decl.h" bodystart="318" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structXessFgParams_1af023fb51652baa4bc82775093e95e104" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t XessFgParams::inFrameIndex</definition>
+        <argsstring></argsstring>
+        <name>inFrameIndex</name>
+        <qualifiedname>XessFgParams::inFrameIndex</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="319" column="12" bodyfile="dag_decl.h" bodystart="319" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structXessFgParams_1a9b3feaa5cd29e374f64619d1d846c48d" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool XessFgParams::inReset</definition>
+        <argsstring></argsstring>
+        <name>inReset</name>
+        <qualifiedname>XessFgParams::inReset</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="320" column="8" bodyfile="dag_decl.h" bodystart="320" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>BaseTexture</label>
+        <link refid="classBaseTexture"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>D3dResource</label>
+        <link refid="classD3dResource"/>
+      </node>
+      <node id="1">
+        <label>XessFgParams</label>
+        <link refid="structXessFgParams"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>inColorHudless</edgelabel>
+          <edgelabel>inDepth</edgelabel>
+          <edgelabel>inMotionVectors</edgelabel>
+          <edgelabel>inUi</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_decl.h" line="307" column="1" bodyfile="dag_decl.h" bodystart="308" bodyend="321"/>
+    <listofallmembers>
+      <member refid="structXessFgParams_1a9ceb935b38947196efdd16ded8bbb622" prot="public" virt="non-virtual"><scope>XessFgParams</scope><name>inColorHudless</name></member>
+      <member refid="structXessFgParams_1a1d50284b499c58e16b585a25dbf902dd" prot="public" virt="non-virtual"><scope>XessFgParams</scope><name>inDepth</name></member>
+      <member refid="structXessFgParams_1af023fb51652baa4bc82775093e95e104" prot="public" virt="non-virtual"><scope>XessFgParams</scope><name>inFrameIndex</name></member>
+      <member refid="structXessFgParams_1ab8bc24edd3402e1bf31086ca8facde4e" prot="public" virt="non-virtual"><scope>XessFgParams</scope><name>inJitterOffsetX</name></member>
+      <member refid="structXessFgParams_1ac868953a1633ba784c5cc7f423a6a91d" prot="public" virt="non-virtual"><scope>XessFgParams</scope><name>inJitterOffsetY</name></member>
+      <member refid="structXessFgParams_1a4b390461ef6df16652186e990bd48d2a" prot="public" virt="non-virtual"><scope>XessFgParams</scope><name>inMotionVectors</name></member>
+      <member refid="structXessFgParams_1a430518ff1b294fa23cbad3681327be32" prot="public" virt="non-virtual"><scope>XessFgParams</scope><name>inMotionVectorScaleX</name></member>
+      <member refid="structXessFgParams_1a51fba0afcb1a054e850b4c3ce48a9ab6" prot="public" virt="non-virtual"><scope>XessFgParams</scope><name>inMotionVectorScaleY</name></member>
+      <member refid="structXessFgParams_1a9b3feaa5cd29e374f64619d1d846c48d" prot="public" virt="non-virtual"><scope>XessFgParams</scope><name>inReset</name></member>
+      <member refid="structXessFgParams_1aec0c81929af7efd3994922feed405f63" prot="public" virt="non-virtual"><scope>XessFgParams</scope><name>inUi</name></member>
+      <member refid="structXessFgParams_1a530cb123fa9a73ea5b0ca09109efb88c" prot="public" virt="non-virtual"><scope>XessFgParams</scope><name>projTm</name></member>
+      <member refid="structXessFgParams_1ae5b4bc3aea69e95cfc60f98491b1d19a" prot="public" virt="non-virtual"><scope>XessFgParams</scope><name>viewTm</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

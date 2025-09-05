@@ -1,0 +1,83 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespaceec__camera__elem" kind="namespace" language="C++">
+    <compoundname>ec_camera_elem</compoundname>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="namespaceec__camera__elem_1a6df53423b79354657d7e6678a00299cd" prot="public" static="no" mutable="no">
+        <type>InitOnDemand&lt; <ref refid="classFreeCameraElem" kindref="compound">FreeCameraElem</ref> &gt;</type>
+        <definition>InitOnDemand&lt;FreeCameraElem&gt; ec_camera_elem::freeCameraElem</definition>
+        <argsstring></argsstring>
+        <name>freeCameraElem</name>
+        <qualifiedname>ec_camera_elem::freeCameraElem</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="283" column="21" declfile="ec_camera_elem.h" declline="283" declcolumn="21"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceec__camera__elem_1a4fefdd33e28290b29bf8e05824a538d4" prot="public" static="no" mutable="no">
+        <type>InitOnDemand&lt; <ref refid="classMaxCameraElem" kindref="compound">MaxCameraElem</ref> &gt;</type>
+        <definition>InitOnDemand&lt;MaxCameraElem&gt; ec_camera_elem::maxCameraElem</definition>
+        <argsstring></argsstring>
+        <name>maxCameraElem</name>
+        <qualifiedname>ec_camera_elem::maxCameraElem</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="284" column="21" declfile="ec_camera_elem.h" declline="284" declcolumn="21"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceec__camera__elem_1a04925619f952a5d9ec624177e4378383" prot="public" static="no" mutable="no">
+        <type>InitOnDemand&lt; <ref refid="classFpsCameraElem" kindref="compound">FpsCameraElem</ref> &gt;</type>
+        <definition>InitOnDemand&lt;FpsCameraElem&gt; ec_camera_elem::fpsCameraElem</definition>
+        <argsstring></argsstring>
+        <name>fpsCameraElem</name>
+        <qualifiedname>ec_camera_elem::fpsCameraElem</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="285" column="21" declfile="ec_camera_elem.h" declline="285" declcolumn="21"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceec__camera__elem_1a4873dd0b9d4a9be552994ba2bde441dc" prot="public" static="no" mutable="no">
+        <type>InitOnDemand&lt; <ref refid="classTpsCameraElem" kindref="compound">TpsCameraElem</ref> &gt;</type>
+        <definition>InitOnDemand&lt;TpsCameraElem&gt; ec_camera_elem::tpsCameraElem</definition>
+        <argsstring></argsstring>
+        <name>tpsCameraElem</name>
+        <qualifiedname>ec_camera_elem::tpsCameraElem</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="286" column="21" declfile="ec_camera_elem.h" declline="286" declcolumn="21"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceec__camera__elem_1a2e40be7781c1443da8a48057a7935eb8" prot="public" static="no" mutable="no">
+        <type>InitOnDemand&lt; <ref refid="classCarCameraElem" kindref="compound">CarCameraElem</ref> &gt;</type>
+        <definition>InitOnDemand&lt;CarCameraElem&gt; ec_camera_elem::carCameraElem</definition>
+        <argsstring></argsstring>
+        <name>carCameraElem</name>
+        <qualifiedname>ec_camera_elem::carCameraElem</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="287" column="21" declfile="ec_camera_elem.h" declline="287" declcolumn="21"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="ec_camera_elem.h" line="281" column="1"/>
+  </compounddef>
+</doxygen>

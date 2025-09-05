@@ -1,0 +1,1122 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namedConst_8h" kind="file" language="C++">
+    <compoundname>namedConst.h</compoundname>
+    <includes refid="shaderSave_8h" local="yes">shaderSave.h</includes>
+    <includes refid="variablesMerger_8h" local="yes">variablesMerger.h</includes>
+    <includes local="no">generic/dag_tab.h</includes>
+    <includes refid="nameMap_8h" local="yes">nameMap.h</includes>
+    <includes refid="hlslRegisters_8h" local="yes">hlslRegisters.h</includes>
+    <includes refid="globalConfig_8h" local="yes">globalConfig.h</includes>
+    <includes local="no">util/dag_bindump_ext.h</includes>
+    <includes local="no">util/dag_string.h</includes>
+    <includes local="no">EASTL/vector_set.h</includes>
+    <includes local="no">EASTL/array.h</includes>
+    <includedby refid="makeShBinDump_8cpp" local="yes">makeShBinDump.cpp</includedby>
+    <includedby refid="namedConst_8cpp" local="yes">namedConst.cpp</includedby>
+    <includedby refid="shCode_8cpp" local="yes">shCode.cpp</includedby>
+    <includedby refid="shTargetContext_8h" local="yes">shTargetContext.h</includedby>
+    <includedby refid="shcode_8h" local="yes">shcode.h</includedby>
+    <incdepgraph>
+      <node id="52">
+        <label>DebugLevel.h</label>
+        <link refid="DebugLevel_8h"/>
+        <childnode refid="28" relation="include">
+        </childnode>
+      </node>
+      <node id="49">
+        <label>blkHash.h</label>
+        <link refid="blkHash_8h"/>
+      </node>
+      <node id="10">
+        <label>commonUtils.h</label>
+        <link refid="commonUtils_8h"/>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+      </node>
+      <node id="31">
+        <label>cppStcode.h</label>
+        <link refid="cppStcode_8h"/>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="47" relation="include">
+        </childnode>
+        <childnode refid="49" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="46" relation="include">
+        </childnode>
+      </node>
+      <node id="32">
+        <label>cppStcodeAssembly.h</label>
+        <link refid="cppStcodeAssembly_8h"/>
+        <childnode refid="33" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="39" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+        <childnode refid="42" relation="include">
+        </childnode>
+        <childnode refid="43" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="44" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="45" relation="include">
+        </childnode>
+        <childnode refid="46" relation="include">
+        </childnode>
+      </node>
+      <node id="33">
+        <label>cppStcodeBuilder.h</label>
+        <link refid="cppStcodeBuilder_8h"/>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="34" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+      </node>
+      <node id="53">
+        <label>cppStcodePlatformInfo.h</label>
+        <link refid="cppStcodePlatformInfo_8h"/>
+        <childnode refid="28" relation="include">
+        </childnode>
+      </node>
+      <node id="29">
+        <label>globalConfig.h</label>
+        <link refid="globalConfig_8h"/>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="52" relation="include">
+        </childnode>
+        <childnode refid="53" relation="include">
+        </childnode>
+        <childnode refid="54" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="45" relation="include">
+        </childnode>
+      </node>
+      <node id="36">
+        <label>hash.h</label>
+        <link refid="hash_8h"/>
+        <childnode refid="37" relation="include">
+        </childnode>
+        <childnode refid="38" relation="include">
+        </childnode>
+      </node>
+      <node id="22">
+        <label>hlslRegisters.h</label>
+        <link refid="hlslRegisters_8h"/>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>nameMap.h</label>
+        <link refid="nameMap_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>namedConst.h</label>
+        <link refid="namedConst_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="29" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="50" relation="include">
+        </childnode>
+        <childnode refid="55" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+      </node>
+      <node id="47">
+        <label>processes.h</label>
+        <link refid="processes_8h"/>
+        <childnode refid="48" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+      </node>
+      <node id="30">
+        <label>shCompilationInfo.h</label>
+        <link refid="shCompilationInfo_8h"/>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="49" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="50" relation="include">
+        </childnode>
+        <childnode refid="51" relation="include">
+        </childnode>
+      </node>
+      <node id="23">
+        <label>shLog.h</label>
+        <link refid="shLog_8h"/>
+      </node>
+      <node id="2">
+        <label>shaderSave.h</label>
+        <link refid="shaderSave_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="34">
+        <label>shaderTab.h</label>
+        <link refid="shaderTab_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>varMap.h</label>
+        <link refid="varMap_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>variablesMerger.h</label>
+        <link refid="variablesMerger_8h"/>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+      </node>
+      <node id="35">
+        <label>EASTL/algorithm.h</label>
+      </node>
+      <node id="18">
+        <label>EASTL/array.h</label>
+      </node>
+      <node id="21">
+        <label>EASTL/bitvector.h</label>
+      </node>
+      <node id="19">
+        <label>EASTL/fixed_vector.h</label>
+      </node>
+      <node id="20">
+        <label>EASTL/map.h</label>
+      </node>
+      <node id="15">
+        <label>EASTL/optional.h</label>
+      </node>
+      <node id="14">
+        <label>EASTL/string.h</label>
+      </node>
+      <node id="44">
+        <label>EASTL/unique_ptr.h</label>
+      </node>
+      <node id="17">
+        <label>EASTL/vector.h</label>
+      </node>
+      <node id="55">
+        <label>EASTL/vector_set.h</label>
+      </node>
+      <node id="28">
+        <label>cstdint</label>
+      </node>
+      <node id="38">
+        <label>cstring</label>
+      </node>
+      <node id="25">
+        <label>dag/dag_vector.h</label>
+      </node>
+      <node id="26">
+        <label>debug/dag_assert.h</label>
+      </node>
+      <node id="16">
+        <label>drv/3d/dag_consts.h</label>
+      </node>
+      <node id="24">
+        <label>generic/dag_enumerate.h</label>
+      </node>
+      <node id="27">
+        <label>generic/dag_expected.h</label>
+      </node>
+      <node id="48">
+        <label>generic/dag_fixedMoveOnlyFunction.h</label>
+      </node>
+      <node id="6">
+        <label>generic/dag_tab.h</label>
+      </node>
+      <node id="37">
+        <label>hash/BLAKE3/blake3.h</label>
+      </node>
+      <node id="54">
+        <label>ioSys/dag_dataBlock.h</label>
+      </node>
+      <node id="40">
+        <label>memory/dag_mem.h</label>
+      </node>
+      <node id="43">
+        <label>shaders/dag_shaderVarType.h</label>
+      </node>
+      <node id="51">
+        <label>shaders/dag_shaders.h</label>
+      </node>
+      <node id="41">
+        <label>shaders/shExprTypes.h</label>
+      </node>
+      <node id="42">
+        <label>shaders/shFunc.h</label>
+      </node>
+      <node id="46">
+        <label>shaders/shader_layout.h</label>
+      </node>
+      <node id="39">
+        <label>shaders/slotTexturesRange.h</label>
+      </node>
+      <node id="9">
+        <label>shsyn.h</label>
+      </node>
+      <node id="45">
+        <label>ska_hash_map/flat_hash_map2.hpp</label>
+      </node>
+      <node id="7">
+        <label>util/dag_bindump_ext.h</label>
+      </node>
+      <node id="13">
+        <label>util/dag_globDef.h</label>
+      </node>
+      <node id="5">
+        <label>util/dag_oaHashNameMap.h</label>
+      </node>
+      <node id="12">
+        <label>util/dag_safeArg.h</label>
+      </node>
+      <node id="50">
+        <label>util/dag_string.h</label>
+      </node>
+      <node id="11">
+        <label>utility</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="7">
+        <label>binDumpUtils.cpp</label>
+        <link refid="binDumpUtils_8cpp"/>
+      </node>
+      <node id="6">
+        <label>binDumpUtils.h</label>
+        <link refid="binDumpUtils_8h"/>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="9">
+        <label>codeBlocks.cpp</label>
+        <link refid="codeBlocks_8cpp"/>
+      </node>
+      <node id="8">
+        <label>codeBlocks.h</label>
+        <link refid="codeBlocks_8h"/>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+      </node>
+      <node id="42">
+        <label>condParser.cpp</label>
+        <link refid="condParser_8cpp"/>
+      </node>
+      <node id="34">
+        <label>cppStcodeAssembly.cpp</label>
+        <link refid="cppStcodeAssembly_8cpp"/>
+      </node>
+      <node id="30">
+        <label>cppStcodePasses.cpp</label>
+        <link refid="cppStcodePasses_8cpp"/>
+      </node>
+      <node id="29">
+        <label>cppStcodePasses.h</label>
+        <link refid="cppStcodePasses_8h"/>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+      </node>
+      <node id="18">
+        <label>deSerializationContext.cpp</label>
+        <link refid="deSerializationContext_8cpp"/>
+      </node>
+      <node id="17">
+        <label>deSerializationContext.h</label>
+        <link refid="deSerializationContext_8h"/>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+      </node>
+      <node id="19">
+        <label>intervals.cpp</label>
+        <link refid="intervals_8cpp"/>
+      </node>
+      <node id="22">
+        <label>linkShaders.cpp</label>
+        <link refid="linkShaders_8cpp"/>
+      </node>
+      <node id="21">
+        <label>linkShaders.h</label>
+        <link refid="linkShaders_8h"/>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+      </node>
+      <node id="26">
+        <label>loadShaders.cpp</label>
+        <link refid="loadShaders_8cpp"/>
+      </node>
+      <node id="25">
+        <label>loadShaders.h</label>
+        <link refid="loadShaders_8h"/>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>makeShBinDump.cpp</label>
+        <link refid="makeShBinDump_8cpp"/>
+      </node>
+      <node id="3">
+        <label>namedConst.cpp</label>
+        <link refid="namedConst_8cpp"/>
+      </node>
+      <node id="1">
+        <label>namedConst.h</label>
+        <link refid="namedConst_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="38" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>shCode.cpp</label>
+        <link refid="shCode_8cpp"/>
+      </node>
+      <node id="10">
+        <label>shCompiler.cpp</label>
+        <link refid="shCompiler_8cpp"/>
+      </node>
+      <node id="39">
+        <label>shExpr.cpp</label>
+        <link refid="shExpr_8cpp"/>
+      </node>
+      <node id="12">
+        <label>shExprParser.cpp</label>
+        <link refid="shExprParser_8cpp"/>
+      </node>
+      <node id="23">
+        <label>shSemCode.cpp</label>
+        <link refid="shSemCode_8cpp"/>
+      </node>
+      <node id="27">
+        <label>shShaderContext.h</label>
+        <link refid="shShaderContext_8h"/>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>shTargetContext.h</label>
+        <link refid="shTargetContext_8h"/>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+      </node>
+      <node id="40">
+        <label>shTargetStorage.cpp</label>
+        <link refid="shTargetStorage_8cpp"/>
+      </node>
+      <node id="28">
+        <label>shVariantContext.h</label>
+        <link refid="shVariantContext_8h"/>
+        <childnode refid="29" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="33" relation="include">
+        </childnode>
+      </node>
+      <node id="24">
+        <label>sh_stat.cpp</label>
+        <link refid="sh__stat_8cpp"/>
+      </node>
+      <node id="20">
+        <label>shaderSave.cpp</label>
+        <link refid="shaderSave_8cpp"/>
+      </node>
+      <node id="13">
+        <label>shaderSemantic.cpp</label>
+        <link refid="shaderSemantic_8cpp"/>
+      </node>
+      <node id="11">
+        <label>shaderSemantic.h</label>
+        <link refid="shaderSemantic_8h"/>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+      </node>
+      <node id="37">
+        <label>shaderVariant.cpp</label>
+        <link refid="shaderVariant_8cpp"/>
+      </node>
+      <node id="36">
+        <label>shaderVariant.h</label>
+        <link refid="shaderVariant_8h"/>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+        <childnode refid="38" relation="include">
+        </childnode>
+      </node>
+      <node id="35">
+        <label>shaderVariantSrc.cpp</label>
+        <link refid="shaderVariantSrc_8cpp"/>
+      </node>
+      <node id="38">
+        <label>shcode.h</label>
+        <link refid="shcode_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="39" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+      </node>
+      <node id="43">
+        <label>shlexterm.cpp</label>
+        <link refid="shlexterm_8cpp"/>
+      </node>
+      <node id="14">
+        <label>shsem.cpp</label>
+        <link refid="shsem_8cpp"/>
+      </node>
+      <node id="41">
+        <label>shsem.h</label>
+        <link refid="shsem_8h"/>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="42" relation="include">
+        </childnode>
+        <childnode refid="29" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="43" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+      </node>
+      <node id="32">
+        <label>variablesMerger.cpp</label>
+        <link refid="variablesMerger_8cpp"/>
+      </node>
+      <node id="16">
+        <label>variantAssembly.cpp</label>
+        <link refid="variantAssembly_8cpp"/>
+      </node>
+      <node id="31">
+        <label>variantAssembly.h</label>
+        <link refid="variantAssembly_8h"/>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+      </node>
+      <node id="15">
+        <label>variantSemantic.cpp</label>
+        <link refid="variantSemantic_8cpp"/>
+      </node>
+      <node id="33">
+        <label>variantSemantic.h</label>
+        <link refid="variantSemantic_8h"/>
+        <childnode refid="34" relation="include">
+        </childnode>
+        <childnode refid="29" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="structNamedConstBlock" prot="public">NamedConstBlock</innerclass>
+    <innerclass refid="structNamedConstBlock_1_1NamedConst" prot="public">NamedConstBlock::NamedConst</innerclass>
+    <innerclass refid="structNamedConstBlock_1_1RegisterProperties" prot="public">NamedConstBlock::RegisterProperties</innerclass>
+    <innerclass refid="structNamedConstBlock_1_1SlotTextureSubAllocators" prot="public">NamedConstBlock::SlotTextureSubAllocators</innerclass>
+    <innerclass refid="structNamedConstBlock_1_1CstHandle" prot="public">NamedConstBlock::CstHandle</innerclass>
+    <innerclass refid="structNamedConstBlock_1_1AllocatedRegInfo" prot="public">NamedConstBlock::AllocatedRegInfo</innerclass>
+    <innerclass refid="classShaderStateBlock" prot="public">ShaderStateBlock</innerclass>
+    <innerclass refid="structShaderStateBlock_1_1BuildTimeData" prot="public">ShaderStateBlock::BuildTimeData</innerclass>
+    <innerclass refid="classShaderBlockTable" prot="public">ShaderBlockTable</innerclass>
+    <innernamespace refid="namespaceShaderTerminal">ShaderTerminal</innernamespace>
+    <innernamespace refid="namespaceshc">shc</innernamespace>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="namedConst_8h_1a8df4796c58d0d8445eaf37bb57425b6c" prot="public" static="no" strong="yes">
+        <type></type>
+        <name>ShaderBlockLevel</name>
+        <enumvalue id="namedConst_8h_1a8df4796c58d0d8445eaf37bb57425b6cac57e921596445b99ab85558984966184" prot="public">
+          <name>FRAME</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namedConst_8h_1a8df4796c58d0d8445eaf37bb57425b6caf151a543099185593a5a87339c552698" prot="public">
+          <name>SCENE</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namedConst_8h_1a8df4796c58d0d8445eaf37bb57425b6ca8eee8e217391199668cbac89472ace53" prot="public">
+          <name>OBJECT</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namedConst_8h_1a8df4796c58d0d8445eaf37bb57425b6caa05d35337eb28027e70aef2ea40ff1df" prot="public">
+          <name>SHADER</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namedConst_8h_1a8df4796c58d0d8445eaf37bb57425b6cad898411bc00251ab145d6c0d5971f3ab" prot="public">
+          <name>GLOBAL_CONST</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namedConst_8h_1a8df4796c58d0d8445eaf37bb57425b6ca0db45d2a4141101bdfe48e3314cfbca3" prot="public">
+          <name>UNDEFINED</name>
+          <initializer>= -1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="164" column="1" bodyfile="namedConst.h" bodystart="165" bodyend="173"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="namedConst_8h_1ad736eaf66e63df63fdef8ab710d6f88e" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr size_t</type>
+        <definition>constexpr size_t SHADER_BLOCK_HIER_LEVELS</definition>
+        <argsstring></argsstring>
+        <name>SHADER_BLOCK_HIER_LEVELS</name>
+        <initializer>= size_t(<ref refid="namedConst_8h_1a8df4796c58d0d8445eaf37bb57425b6caa05d35337eb28027e70aef2ea40ff1df" kindref="member">ShaderBlockLevel::SHADER</ref>)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="175" column="25" bodyfile="namedConst.h" bodystart="175" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="namedConst_8h_1a6d10201352c83848f5f81cdf6f8b466f" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>static bool operator==</definition>
+        <argsstring>(const Tab&lt; bindump::Address&lt; ShaderStateBlock &gt; &gt; &amp;a, const Tab&lt; bindump::Address&lt; ShaderStateBlock &gt; &gt; &amp;b)</argsstring>
+        <name>operator==</name>
+        <param>
+          <type>const Tab&lt; bindump::Address&lt; <ref refid="classShaderStateBlock" kindref="compound">ShaderStateBlock</ref> &gt; &gt; &amp;</type>
+          <declname>a</declname>
+        </param>
+        <param>
+          <type>const Tab&lt; bindump::Address&lt; <ref refid="classShaderStateBlock" kindref="compound">ShaderStateBlock</ref> &gt; &gt; &amp;</type>
+          <declname>b</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="28" column="13" bodyfile="namedConst.h" bodystart="28" bodyend="34"/>
+      </memberdef>
+      <memberdef kind="function" id="namedConst_8h_1ae8f85f9657d3bf5257401f14a96e2867" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>static bool operator!=</definition>
+        <argsstring>(const Tab&lt; bindump::Address&lt; ShaderStateBlock &gt; &gt; &amp;a, const Tab&lt; bindump::Address&lt; ShaderStateBlock &gt; &gt; &amp;b)</argsstring>
+        <name>operator!=</name>
+        <param>
+          <type>const Tab&lt; bindump::Address&lt; <ref refid="classShaderStateBlock" kindref="compound">ShaderStateBlock</ref> &gt; &gt; &amp;</type>
+          <declname>a</declname>
+        </param>
+        <param>
+          <type>const Tab&lt; bindump::Address&lt; <ref refid="classShaderStateBlock" kindref="compound">ShaderStateBlock</ref> &gt; &gt; &amp;</type>
+          <declname>b</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="36" column="13" bodyfile="namedConst.h" bodystart="36" bodyend="39"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shaderSave_8h" kindref="compound">shaderSave.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="variablesMerger_8h" kindref="compound">variablesMerger.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_tab.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="nameMap_8h" kindref="compound">nameMap.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="hlslRegisters_8h" kindref="compound">hlslRegisters.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="globalConfig_8h" kindref="compound">globalConfig.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_bindump_ext.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_string.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/vector_set.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/array.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structCryptoHash" kindref="compound">CryptoHash</ref>;</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceShaderTerminal" kindref="compound">ShaderTerminal</ref></highlight></codeline>
+<codeline lineno="17"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">named_const;</highlight></codeline>
+<codeline lineno="19"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceshc" kindref="compound">shc</ref></highlight></codeline>
+<codeline lineno="21"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">TargetContext;</highlight></codeline>
+<codeline lineno="23"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classShaderStateBlock" kindref="compound">ShaderStateBlock</ref>;</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="structStcodeRoutine" kindref="compound">StcodeRoutine</ref>;</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>operator==(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Tab&lt;bindump::Address&lt;ShaderStateBlock&gt;&gt;<sp/>&amp;a,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Tab&lt;bindump::Address&lt;ShaderStateBlock&gt;&gt;<sp/>&amp;b)</highlight></codeline>
+<codeline lineno="29"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(a.size()<sp/>!=<sp/>b.size())</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>eastl::equal(a.begin(),<sp/>a.end(),<sp/>b.begin());</highlight></codeline>
+<codeline lineno="34"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>operator!=(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Tab&lt;bindump::Address&lt;ShaderStateBlock&gt;&gt;<sp/>&amp;a,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Tab&lt;bindump::Address&lt;ShaderStateBlock&gt;&gt;<sp/>&amp;b)</highlight></codeline>
+<codeline lineno="37"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>!(a<sp/>==<sp/>b);</highlight></codeline>
+<codeline lineno="39"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"></highlight></codeline>
+<codeline lineno="41" refid="structNamedConstBlock" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structNamedConstBlock" kindref="compound">NamedConstBlock</ref></highlight></codeline>
+<codeline lineno="42"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="43" refid="structNamedConstBlock_1_1NamedConst" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structNamedConstBlock_1_1NamedConst" kindref="compound">NamedConst</ref></highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="45" refid="structNamedConstBlock_1_1NamedConst_1ae359a7880fbc827b5c35dc774f0f16de" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9b" kindref="member">HlslRegisterSpace</ref><sp/><ref refid="structNamedConstBlock_1_1NamedConst_1ae359a7880fbc827b5c35dc774f0f16de" kindref="member">rspace</ref><sp/>=<sp/><ref refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9bad5745a160a89af61c690124ec02558c2" kindref="member">HLSL_RSPACE_INVALID</ref>;</highlight></codeline>
+<codeline lineno="46" refid="structNamedConstBlock_1_1NamedConst_1a9b72aedb4704db42efdfbd0b6afb6ae8" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structNamedConstBlock_1_1NamedConst_1a9b72aedb4704db42efdfbd0b6afb6ae8" kindref="member">regIndex</ref><sp/>=<sp/>-1;</highlight></codeline>
+<codeline lineno="47" refid="structNamedConstBlock_1_1NamedConst_1a295c57d7bf4be34bd42d5c63a1f11b8b" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">short</highlight><highlight class="normal"><sp/><ref refid="structNamedConstBlock_1_1NamedConst_1a295c57d7bf4be34bd42d5c63a1f11b8b" kindref="member">size</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="48" refid="structNamedConstBlock_1_1NamedConst_1a111dba21c4a67faefc3a5ea9c50179d1" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structNamedConstBlock_1_1NamedConst_1a111dba21c4a67faefc3a5ea9c50179d1" kindref="member">isDynamic</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="49" refid="structNamedConstBlock_1_1NamedConst_1a9e3f9c7d3906fef3c287d91624915a8c" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>String<sp/><ref refid="structNamedConstBlock_1_1NamedConst_1a9e3f9c7d3906fef3c287d91624915a8c" kindref="member">hlslDecl</ref>,<sp/><ref refid="structNamedConstBlock_1_1NamedConst_1ae45a5004fb1c8ef223d65c13dd8dc711" kindref="member">hlslPostfix</ref>;</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"></highlight></codeline>
+<codeline lineno="52" refid="structNamedConstBlock_1_1RegisterProperties" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structNamedConstBlock_1_1RegisterProperties" kindref="compound">RegisterProperties</ref></highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="54" refid="structNamedConstBlock_1_1RegisterProperties_1a7d6521b11f3deb710861115f9b2fa40e" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="nameMap_8h_1ad3f42c540507651a7e4ce93760afc216" kindref="member">SCFastNameMap</ref><sp/><ref refid="structNamedConstBlock_1_1RegisterProperties_1a7d6521b11f3deb710861115f9b2fa40e" kindref="member">sn</ref>;</highlight></codeline>
+<codeline lineno="55" refid="structNamedConstBlock_1_1RegisterProperties_1a23a66ec848833d3f1b9da19da7fc8d53" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>Tab&lt;NamedConst&gt;<sp/><ref refid="structNamedConstBlock_1_1RegisterProperties_1a23a66ec848833d3f1b9da19da7fc8d53" kindref="member">sc</ref>;</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"></highlight></codeline>
+<codeline lineno="58" refid="structNamedConstBlock_1_1SlotTextureSubAllocators" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structNamedConstBlock_1_1SlotTextureSubAllocators" kindref="compound">SlotTextureSubAllocators</ref></highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="60" refid="structNamedConstBlock_1_1SlotTextureSubAllocators_1ae1b3ccbc2b85ecaa582df27d143294a3" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classHlslRegAllocator" kindref="compound">HlslRegAllocator</ref><sp/><ref refid="structNamedConstBlock_1_1SlotTextureSubAllocators_1a30b6c56968292c9d25ddd2425bf6a707" kindref="member">vsTex</ref>,<sp/><ref refid="structNamedConstBlock_1_1SlotTextureSubAllocators_1a29602deff0108cbe4897f27f3f77cd35" kindref="member">psTex</ref>,<sp/><ref refid="structNamedConstBlock_1_1SlotTextureSubAllocators_1a52d8054a14fa2623c76bc66cbf44ab79" kindref="member">vsSamplers</ref>,<sp/><ref refid="structNamedConstBlock_1_1SlotTextureSubAllocators_1ae1b3ccbc2b85ecaa582df27d143294a3" kindref="member">psSamplers</ref>;</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"></highlight></codeline>
+<codeline lineno="63" refid="structNamedConstBlock_1_1CstHandle" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structNamedConstBlock_1_1CstHandle" kindref="compound">CstHandle</ref></highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="65" refid="structNamedConstBlock_1_1CstHandle_1ab5539ad6ca527e85b82b8fafdcd2158f" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>ShaderStage<sp/><ref refid="structNamedConstBlock_1_1CstHandle_1ab5539ad6ca527e85b82b8fafdcd2158f" kindref="member">stage</ref>;</highlight></codeline>
+<codeline lineno="66" refid="structNamedConstBlock_1_1CstHandle_1a9c14a2dbd6451ad14c96a3465fd6ad3d" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structNamedConstBlock_1_1CstHandle_1a9c14a2dbd6451ad14c96a3465fd6ad3d" kindref="member">id</ref>;</highlight></codeline>
+<codeline lineno="67" refid="structNamedConstBlock_1_1CstHandle_1a35b9c9d25e488072c1a67c3f5ff827bd" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structNamedConstBlock_1_1CstHandle_1a35b9c9d25e488072c1a67c3f5ff827bd" kindref="member">isBufConst</ref>;</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"></highlight></codeline>
+<codeline lineno="69" refid="structNamedConstBlock_1_1CstHandle_1aa45d3ba008d48ac81af98098b0c9ff00" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">friend</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structNamedConstBlock_1_1CstHandle_1aa45d3ba008d48ac81af98098b0c9ff00" kindref="member">operator==</ref>(<ref refid="structNamedConstBlock_1_1CstHandle" kindref="compound">CstHandle</ref><sp/>l,<sp/><ref refid="structNamedConstBlock_1_1CstHandle" kindref="compound">CstHandle</ref><sp/>r)<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="70" refid="structNamedConstBlock_1_1CstHandle_1ad01dac63e3dd2f26649f0c52c6ece97b" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">friend</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structNamedConstBlock_1_1CstHandle_1ad01dac63e3dd2f26649f0c52c6ece97b" kindref="member">operator!=</ref>(<ref refid="structNamedConstBlock_1_1CstHandle" kindref="compound">CstHandle</ref><sp/>l,<sp/><ref refid="structNamedConstBlock_1_1CstHandle" kindref="compound">CstHandle</ref><sp/>r)<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"></highlight></codeline>
+<codeline lineno="72" refid="structNamedConstBlock_1_1CstHandle_1aee9f8fafa800d22a4799d7d3ec61a2eb" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/><ref refid="structNamedConstBlock_1_1CstHandle" kindref="compound">CstHandle</ref><sp/><ref refid="structNamedConstBlock_1_1CstHandle_1aee9f8fafa800d22a4799d7d3ec61a2eb" kindref="member">makeInvalidHandle</ref>(ShaderStage<sp/><ref refid="structNamedConstBlock_1_1CstHandle_1ab5539ad6ca527e85b82b8fafdcd2158f" kindref="member">stage</ref>,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>is_cbuf_const)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>{<ref refid="structNamedConstBlock_1_1CstHandle_1ab5539ad6ca527e85b82b8fafdcd2158f" kindref="member">stage</ref>,<sp/>-1,<sp/>is_cbuf_const};<sp/>}</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="74" refid="structNamedConstBlock_1a7845e8acb9ea5b24e9c9f4544c0df2a2" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">friend</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structNamedConstBlock_1a7845e8acb9ea5b24e9c9f4544c0df2a2" kindref="member">is_valid</ref>(<ref refid="structNamedConstBlock_1_1CstHandle" kindref="compound">CstHandle</ref><sp/>hnd)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>hnd.<ref refid="structNamedConstBlock_1_1CstHandle_1a9c14a2dbd6451ad14c96a3465fd6ad3d" kindref="member">id</ref><sp/>&gt;=<sp/>0;<sp/>}</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"></highlight></codeline>
+<codeline lineno="76" refid="structNamedConstBlock_1ac743b2af51a72ceb0208258b74d30924" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="structShaderParser_1_1VariablesMerger" kindref="compound">MergedVariablesData</ref><sp/>=<sp/><ref refid="structShaderParser_1_1VariablesMerger" kindref="compound">ShaderParser::VariablesMerger</ref>;</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"></highlight></codeline>
+<codeline lineno="78" refid="structNamedConstBlock_1a0b0fe20e1188c7d7ec4a85335a1cb8ff" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structNamedConstBlock_1a0b0fe20e1188c7d7ec4a85335a1cb8ff" kindref="member">BINDUMP_BEGIN_NON_SERIALIZABLE</ref>();</highlight></codeline>
+<codeline lineno="79" refid="structNamedConstBlock_1af2982e411fef8f5bf02905031cac0bda" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structNamedConstBlock_1_1RegisterProperties" kindref="compound">RegisterProperties</ref><sp/><ref refid="structNamedConstBlock_1af2982e411fef8f5bf02905031cac0bda" kindref="member">pixelProps</ref>,<sp/><ref refid="structNamedConstBlock_1af5d785154eb652eb976e9db509a5331f" kindref="member">vertexProps</ref>;</highlight></codeline>
+<codeline lineno="80" refid="structNamedConstBlock_1a0b41f4029f83c088e31ed2bdbfa5c956" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classShaderStateBlock" kindref="compound">ShaderStateBlock</ref><sp/>*<ref refid="structNamedConstBlock_1a0b41f4029f83c088e31ed2bdbfa5c956" kindref="member">globConstBlk</ref><sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="81" refid="structNamedConstBlock_1a86f9ccf5deda6624677bd710d8b1dd64" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structNamedConstBlock_1a86f9ccf5deda6624677bd710d8b1dd64" kindref="member">multidrawCbuf</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"></highlight></codeline>
+<codeline lineno="83" refid="structNamedConstBlock_1a6efd609ff10279c10300fca36972f50c" refkind="member"><highlight class="normal"><sp/><sp/>eastl::array&lt;HlslRegAllocator,<sp/>HLSL_RSPACE_COUNT&gt;<sp/><ref refid="structNamedConstBlock_1a6efd609ff10279c10300fca36972f50c" kindref="member">vertexRegAllocators</ref><sp/>=</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="hlslRegisters_8cpp_1afd8a77eba3a0edc222131d1646e3113c" kindref="member">make_default_hlsl_reg_allocators</ref>(<ref refid="namespaceshc_1a47efde6b3d493adbe2119a5593807d36" kindref="member">shc::config</ref>().hlslMaximumVsfAllowed);</highlight></codeline>
+<codeline lineno="85" refid="structNamedConstBlock_1a72e11e05584df7e760fd2722129578c7" refkind="member"><highlight class="normal"><sp/><sp/>eastl::array&lt;HlslRegAllocator,<sp/>HLSL_RSPACE_COUNT&gt;<sp/><ref refid="structNamedConstBlock_1a72e11e05584df7e760fd2722129578c7" kindref="member">pixelOrComputeRegAllocators</ref><sp/>=</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="hlslRegisters_8cpp_1afd8a77eba3a0edc222131d1646e3113c" kindref="member">make_default_hlsl_reg_allocators</ref>(<ref refid="namespaceshc_1a47efde6b3d493adbe2119a5593807d36" kindref="member">shc::config</ref>().hlslMaximumPsfAllowed);</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"></highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Either<sp/>for<sp/>global<sp/>const<sp/>block<sp/>(for<sp/>LEV_GLOBAL_CONST),<sp/>or<sp/>static<sp/>cbuf<sp/>(for<sp/>LEV_SHADER)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="89" refid="structNamedConstBlock_1a95442c1d7e1d362c78e8148db109a7b0" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classHlslRegAllocator" kindref="compound">HlslRegAllocator</ref><sp/><ref refid="structNamedConstBlock_1a95442c1d7e1d362c78e8148db109a7b0" kindref="member">bufferedConstsRegAllocator</ref><sp/>=<sp/><ref refid="hlslRegisters_8cpp_1abb0e59f2c06ad028c08d95e56509ea0c" kindref="member">make_default_cbuf_reg_allocator</ref>();</highlight></codeline>
+<codeline lineno="90" refid="structNamedConstBlock_1a933d90bd69ae8545d726e05ca9737fdc" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structNamedConstBlock_1_1RegisterProperties" kindref="compound">RegisterProperties</ref><sp/><ref refid="structNamedConstBlock_1a933d90bd69ae8545d726e05ca9737fdc" kindref="member">bufferedConstProps</ref>{};</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"></highlight></codeline>
+<codeline lineno="92" refid="structNamedConstBlock_1ae6281d37edf661ab1ee8f1728c34dd54" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structNamedConstBlock_1_1SlotTextureSubAllocators" kindref="compound">SlotTextureSubAllocators</ref><sp/><ref refid="structNamedConstBlock_1ae6281d37edf661ab1ee8f1728c34dd54" kindref="member">slotTextureSuballocators</ref>{};</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"></highlight></codeline>
+<codeline lineno="94"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>@TODO:<sp/>better<sp/>(for<sp/>mt?)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="95" refid="structNamedConstBlock_1a72106d5c313c2c0321dde8c4a69c064e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">mutable</highlight><highlight class="normal"><sp/>String<sp/><ref refid="structNamedConstBlock_1a72106d5c313c2c0321dde8c4a69c064e" kindref="member">cachedPixelOrComputeHlsl</ref>,<sp/><ref refid="structNamedConstBlock_1ad027cc67960b6fd8e9a48f9da4f980f5" kindref="member">cachedVertexHlsl</ref>;</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"></highlight></codeline>
+<codeline lineno="97" refid="structNamedConstBlock_1ac2470844efc87eecba9ded085dd44729" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structNamedConstBlock_1ac2470844efc87eecba9ded085dd44729" kindref="member">BINDUMP_END_NON_SERIALIZABLE</ref>();</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"></highlight></codeline>
+<codeline lineno="99" refid="structNamedConstBlock_1ad28a319c4c4d3d6d500653d1fb7614d9" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classSerializableTab" kindref="compound">SerializableTab&lt;bindump::Address&lt;ShaderStateBlock&gt;</ref>&gt;<sp/><ref refid="structNamedConstBlock_1ad28a319c4c4d3d6d500653d1fb7614d9" kindref="member">suppBlk</ref>;</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"></highlight></codeline>
+<codeline lineno="101" refid="structNamedConstBlock_1aea9c8e8174b843788613e665c05bd0d0" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structNamedConstBlock_1aea9c8e8174b843788613e665c05bd0d0" kindref="member">NamedConstBlock</ref>()<sp/>:<sp/><ref refid="structNamedConstBlock_1ad28a319c4c4d3d6d500653d1fb7614d9" kindref="member">suppBlk</ref>(midmem)<sp/>{}</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"></highlight></codeline>
+<codeline lineno="103"><highlight class="normal"><sp/><sp/>CstHandle<sp/><ref refid="structNamedConstBlock_1a05ca2e54e5d452b311791a274b3a89c6" kindref="member">addConst</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>stage,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,<sp/><ref refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9b" kindref="member">HlslRegisterSpace</ref><sp/>reg_space,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>sz,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>hardcoded_reg,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>is_dynamic,</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>is_global_const_block);</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"></highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>@TODO:<sp/>error<sp/>message</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structNamedConstBlock_1a634916d1d120d2df52b9c06556502874" kindref="member">initSlotTextureSuballocators</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>vs_tex_count,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>ps_tex_count);</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"></highlight></codeline>
+<codeline lineno="109" refid="structNamedConstBlock_1a077cdc00515b9c76bd75371533bc4b54" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structNamedConstBlock_1_1NamedConst" kindref="compound">NamedConst</ref><sp/>&amp;<ref refid="structNamedConstBlock_1a077cdc00515b9c76bd75371533bc4b54" kindref="member">getSlot</ref>(<ref refid="structNamedConstBlock_1_1CstHandle" kindref="compound">CstHandle</ref><sp/>hnd)</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(<ref refid="structNamedConstBlock_1a7845e8acb9ea5b24e9c9f4544c0df2a2" kindref="member">is_valid</ref>(hnd));</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(hnd.<ref refid="structNamedConstBlock_1_1CstHandle_1a35b9c9d25e488072c1a67c3f5ff827bd" kindref="member">isBufConst</ref><sp/>?<sp/><ref refid="structNamedConstBlock_1a933d90bd69ae8545d726e05ca9737fdc" kindref="member">bufferedConstProps</ref><sp/>:<sp/>(hnd.<ref refid="structNamedConstBlock_1_1CstHandle_1ab5539ad6ca527e85b82b8fafdcd2158f" kindref="member">stage</ref><sp/>==<sp/>STAGE_VS<sp/>?<sp/><ref refid="structNamedConstBlock_1af5d785154eb652eb976e9db509a5331f" kindref="member">vertexProps</ref><sp/>:<sp/><ref refid="structNamedConstBlock_1af2982e411fef8f5bf02905031cac0bda" kindref="member">pixelProps</ref>)).sc[hnd.<ref refid="structNamedConstBlock_1_1CstHandle_1a9c14a2dbd6451ad14c96a3465fd6ad3d" kindref="member">id</ref>];</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="114" refid="structNamedConstBlock_1acf9d45dff5fc77641076418665f5d0f6" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structNamedConstBlock_1_1NamedConst" kindref="compound">NamedConst</ref><sp/>&amp;<ref refid="structNamedConstBlock_1acf9d45dff5fc77641076418665f5d0f6" kindref="member">getSlot</ref>(<ref refid="structNamedConstBlock_1_1CstHandle" kindref="compound">CstHandle</ref><sp/>hnd)</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const_cast&lt;</highlight><highlight class="normal"><ref refid="structNamedConstBlock" kindref="compound">NamedConstBlock</ref><sp/>*</highlight><highlight class="keyword">&gt;</highlight><highlight class="normal">(</highlight><highlight class="keyword">this</highlight><highlight class="normal">)-&gt;<ref refid="structNamedConstBlock_1acf9d45dff5fc77641076418665f5d0f6" kindref="member">getSlot</ref>(hnd);<sp/>}</highlight></codeline>
+<codeline lineno="115"><highlight class="normal"></highlight></codeline>
+<codeline lineno="116"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structNamedConstBlock_1a0e016ca71cfa266875d521e7cb3b77c4" kindref="member">addHlslDecl</ref>(CstHandle<sp/>hnd,<sp/>String<sp/>&amp;&amp;hlsl_decl,<sp/>String<sp/>&amp;&amp;hlsl_postfix);</highlight></codeline>
+<codeline lineno="117"><highlight class="normal"></highlight></codeline>
+<codeline lineno="118"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structNamedConstBlock_1affe5e403512a894df27f0e2332c6fa0d" kindref="member">patchHlsl</ref>(String<sp/>&amp;src,<sp/>ShaderStage<sp/>stage,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structNamedConstBlock_1ac743b2af51a72ceb0208258b74d30924" kindref="member">MergedVariablesData</ref><sp/>&amp;merged_vars,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;max_const_no_used,</highlight></codeline>
+<codeline lineno="119"><highlight class="normal"><sp/><sp/><sp/><sp/>eastl::string_view<sp/>hw_defines,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>uses_dual_source_blending);</highlight></codeline>
+<codeline lineno="120"><highlight class="normal"></highlight></codeline>
+<codeline lineno="121"><highlight class="normal"><sp/><sp/><ref refid="structCryptoHash" kindref="compound">CryptoHash</ref><sp/><ref refid="structNamedConstBlock_1ad773aa86a998987a7974eee310517ebf" kindref="member">getDigest</ref>(ShaderStage<sp/>stage,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structNamedConstBlock_1ac743b2af51a72ceb0208258b74d30924" kindref="member">MergedVariablesData</ref><sp/>&amp;merged_vars)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"></highlight></codeline>
+<codeline lineno="123"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structNamedConstBlock_1ae9dd74ec617ca8b13f28e5b7d70f2085" kindref="member">buildDrawcallIdHlslDecl</ref>(String<sp/>&amp;out_text)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="124"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structNamedConstBlock_1ac38bd9c5aced5329117ff6f19f16bf8e" kindref="member">buildStaticConstBufHlslDecl</ref>(String<sp/>&amp;out_text,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structNamedConstBlock_1ac743b2af51a72ceb0208258b74d30924" kindref="member">MergedVariablesData</ref><sp/>&amp;merged_vars)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="125"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structNamedConstBlock_1a3064c974ba863cf05116ed392817ea07" kindref="member">buildGlobalConstBufHlslDecl</ref>(String<sp/>&amp;out_text)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="126" refid="structNamedConstBlock_1aca3466647682ba3d4cb29d7dc26d6035" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structNamedConstBlock_1aca3466647682ba3d4cb29d7dc26d6035" kindref="member">buildHlslDeclText</ref>(String<sp/>&amp;out_text,<sp/>ShaderStage<sp/>stage)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="127"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/><sp/><sp/>eastl::vector_set&lt;const<sp/>NamedConstBlock<sp/>*&gt;<sp/>builtBlocks{};</highlight></codeline>
+<codeline lineno="129"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structNamedConstBlock_1abe80b6b60085d82df776e30495e70fe2" kindref="member">doBuildHlslDeclText</ref>(out_text,<sp/>stage,<sp/>builtBlocks);</highlight></codeline>
+<codeline lineno="130"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="131"><highlight class="normal"></highlight></codeline>
+<codeline lineno="132" refid="structNamedConstBlock_1a74354e18dfcc0fd0cf6743b41f78e75a" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structNamedConstBlock_1a74354e18dfcc0fd0cf6743b41f78e75a" kindref="member">buildAllHlsl</ref>(String<sp/>*out_text,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structShaderParser_1_1VariablesMerger" kindref="compound">MergedVariablesData</ref><sp/>&amp;merged_vars,<sp/>ShaderStage<sp/>stage)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="133"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"><sp/><sp/><sp/><sp/>String<sp/>&amp;cache<sp/>=<sp/>stage<sp/>==<sp/>STAGE_VS<sp/>?<sp/><ref refid="structNamedConstBlock_1ad027cc67960b6fd8e9a48f9da4f980f5" kindref="member">cachedVertexHlsl</ref><sp/>:<sp/><ref refid="structNamedConstBlock_1a72106d5c313c2c0321dde8c4a69c064e" kindref="member">cachedPixelOrComputeHlsl</ref>;</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(cache.empty())</highlight></codeline>
+<codeline lineno="136"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="137"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structNamedConstBlock_1ae9dd74ec617ca8b13f28e5b7d70f2085" kindref="member">buildDrawcallIdHlslDecl</ref>(cache);</highlight></codeline>
+<codeline lineno="138"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structNamedConstBlock_1ac38bd9c5aced5329117ff6f19f16bf8e" kindref="member">buildStaticConstBufHlslDecl</ref>(cache,<sp/>merged_vars);</highlight></codeline>
+<codeline lineno="139"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structNamedConstBlock_1aca3466647682ba3d4cb29d7dc26d6035" kindref="member">buildHlslDeclText</ref>(cache,<sp/>stage);</highlight></codeline>
+<codeline lineno="140"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="141"><highlight class="normal"></highlight></codeline>
+<codeline lineno="142"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(out_text)</highlight></codeline>
+<codeline lineno="143"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>out_text-&gt;append(cache.data(),<sp/>cache.length());</highlight></codeline>
+<codeline lineno="144"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="145" refid="structNamedConstBlock_1aeca6aff124ea34a947982809388a8f1c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structNamedConstBlock_1aeca6aff124ea34a947982809388a8f1c" kindref="member">dropHlslCaches</ref>()</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="146"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="147"><highlight class="normal"><sp/><sp/><sp/><sp/>clear_and_shrink(<ref refid="structNamedConstBlock_1ad027cc67960b6fd8e9a48f9da4f980f5" kindref="member">cachedVertexHlsl</ref>);</highlight></codeline>
+<codeline lineno="148"><highlight class="normal"><sp/><sp/><sp/><sp/>clear_and_shrink(<ref refid="structNamedConstBlock_1a72106d5c313c2c0321dde8c4a69c064e" kindref="member">cachedPixelOrComputeHlsl</ref>);</highlight></codeline>
+<codeline lineno="149"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="150"><highlight class="normal"></highlight></codeline>
+<codeline lineno="151"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structNamedConstBlock_1abe80b6b60085d82df776e30495e70fe2" kindref="member">doBuildHlslDeclText</ref>(String<sp/>&amp;out_text,<sp/>ShaderStage<sp/>stage,<sp/>eastl::vector_set&lt;const<sp/>NamedConstBlock<sp/>*&gt;<sp/>&amp;built_blocks)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="152"><highlight class="normal"></highlight></codeline>
+<codeline lineno="153"><highlight class="normal"><sp/><sp/>eastl::pair&lt;int,<sp/>int&gt;<sp/><ref refid="structNamedConstBlock_1ad679b5737b2c1ea6a65d3e0db4bb4e3c" kindref="member">getStaticTexRange</ref>(ShaderStage<sp/>stage)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="154"><highlight class="normal"></highlight></codeline>
+<codeline lineno="155" refid="structNamedConstBlock_1_1AllocatedRegInfo" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structNamedConstBlock_1_1AllocatedRegInfo" kindref="compound">AllocatedRegInfo</ref></highlight></codeline>
+<codeline lineno="156"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="157" refid="structNamedConstBlock_1_1AllocatedRegInfo_1af78566d3b2c7e994c5f23295978a225f" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>eastl::string<sp/><ref refid="structNamedConstBlock_1_1AllocatedRegInfo_1af78566d3b2c7e994c5f23295978a225f" kindref="member">name</ref>;</highlight></codeline>
+<codeline lineno="158" refid="structNamedConstBlock_1_1AllocatedRegInfo_1ae5ae9d0c21d31fbcdce62b1147f7c1ed" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structNamedConstBlock_1_1AllocatedRegInfo_1ae5ae9d0c21d31fbcdce62b1147f7c1ed" kindref="member">size</ref>;</highlight></codeline>
+<codeline lineno="159"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="160"><highlight class="normal"></highlight></codeline>
+<codeline lineno="161"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/><ref refid="structNamedConstBlock_1aa33304bd77fa74220b9ca8cafb0f9ffa" kindref="member">makeInfoProvider</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structNamedConstBlock_1_1RegisterProperties" kindref="compound">RegisterProperties</ref><sp/><ref refid="structNamedConstBlock" kindref="compound">NamedConstBlock</ref>::*props,<sp/><ref refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9b" kindref="member">HlslRegisterSpace</ref><sp/>rspace)<sp/>const;</highlight></codeline>
+<codeline lineno="162"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="163"><highlight class="normal"></highlight></codeline>
+<codeline lineno="164" refid="namedConst_8h_1a8df4796c58d0d8445eaf37bb57425b6c" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/><ref refid="namedConst_8h_1a8df4796c58d0d8445eaf37bb57425b6c" kindref="member">ShaderBlockLevel</ref></highlight></codeline>
+<codeline lineno="165"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="166"><highlight class="normal"><sp/><sp/><ref refid="namedConst_8h_1a8df4796c58d0d8445eaf37bb57425b6cac57e921596445b99ab85558984966184" kindref="member">FRAME</ref>,</highlight></codeline>
+<codeline lineno="167"><highlight class="normal"><sp/><sp/><ref refid="namedConst_8h_1a8df4796c58d0d8445eaf37bb57425b6caf151a543099185593a5a87339c552698" kindref="member">SCENE</ref>,</highlight></codeline>
+<codeline lineno="168"><highlight class="normal"><sp/><sp/><ref refid="namedConst_8h_1a8df4796c58d0d8445eaf37bb57425b6ca8eee8e217391199668cbac89472ace53" kindref="member">OBJECT</ref>,</highlight></codeline>
+<codeline lineno="169"><highlight class="normal"><sp/><sp/><ref refid="namedConst_8h_1a8df4796c58d0d8445eaf37bb57425b6caa05d35337eb28027e70aef2ea40ff1df" kindref="member">SHADER</ref>,</highlight></codeline>
+<codeline lineno="170"><highlight class="normal"><sp/><sp/><ref refid="namedConst_8h_1a8df4796c58d0d8445eaf37bb57425b6cad898411bc00251ab145d6c0d5971f3ab" kindref="member">GLOBAL_CONST</ref>,</highlight></codeline>
+<codeline lineno="171"><highlight class="normal"></highlight></codeline>
+<codeline lineno="172"><highlight class="normal"><sp/><sp/><ref refid="namedConst_8h_1a8df4796c58d0d8445eaf37bb57425b6ca0db45d2a4141101bdfe48e3314cfbca3" kindref="member">UNDEFINED</ref><sp/>=<sp/>-1</highlight></codeline>
+<codeline lineno="173"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="174"><highlight class="normal"></highlight></codeline>
+<codeline lineno="175" refid="namedConst_8h_1ad736eaf66e63df63fdef8ab710d6f88e" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/><ref refid="namedConst_8h_1ad736eaf66e63df63fdef8ab710d6f88e" kindref="member">SHADER_BLOCK_HIER_LEVELS</ref><sp/>=<sp/>size_t(<ref refid="namedConst_8h_1a8df4796c58d0d8445eaf37bb57425b6caa05d35337eb28027e70aef2ea40ff1df" kindref="member">ShaderBlockLevel::SHADER</ref>);</highlight></codeline>
+<codeline lineno="176"><highlight class="normal"></highlight></codeline>
+<codeline lineno="177" refid="classShaderStateBlock" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classShaderStateBlock" kindref="compound">ShaderStateBlock</ref></highlight></codeline>
+<codeline lineno="178"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="179"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="180" refid="classShaderStateBlock_1ae97b8e1bfea9a4ade357f6eb9ecd3019" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classShaderStateBlock_1ae97b8e1bfea9a4ade357f6eb9ecd3019" kindref="member">ShaderStateBlock</ref>()<sp/>:<sp/><ref refid="classShaderStateBlock_1a48a921b68aac65a16fdd0a33e9465069" kindref="member">nameId</ref>(-1),<sp/><ref refid="classShaderStateBlock_1ad840fa4cfc4c554037e143bb93fd056b" kindref="member">stcodeId</ref>(-1),<sp/><ref refid="classShaderStateBlock_1a1ba5283efd19f83cb3c8ee1211b0197f" kindref="member">cppStcodeId</ref>(-1),<sp/><ref refid="classShaderStateBlock_1a73af07c28d4a043e224c03b4dfe891cf" kindref="member">layerLevel</ref>(<ref refid="namedConst_8h_1a8df4796c58d0d8445eaf37bb57425b6c" kindref="member">ShaderBlockLevel</ref>::<ref refid="namedConst_8h_1a8df4796c58d0d8445eaf37bb57425b6ca0db45d2a4141101bdfe48e3314cfbca3" kindref="member">UNDEFINED</ref>),<sp/><ref refid="classShaderStateBlock_1a472973772e4378f4edbdad74be74cac2" kindref="member">regSize</ref>(0)<sp/>{}</highlight></codeline>
+<codeline lineno="181"><highlight class="normal"><sp/><sp/><ref refid="classShaderStateBlock_1ae97b8e1bfea9a4ade357f6eb9ecd3019" kindref="member">ShaderStateBlock</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="classShaderStateBlock_1ad24cbadd146d234944b96fd320d43aad" kindref="member">name</ref>,<sp/><ref refid="namedConst_8h_1a8df4796c58d0d8445eaf37bb57425b6c" kindref="member">ShaderBlockLevel</ref><sp/>lev,<sp/><ref refid="structNamedConstBlock" kindref="compound">NamedConstBlock</ref><sp/>&amp;&amp;ncb,<sp/>dag::Span&lt;int&gt;<sp/><ref refid="namespacestcode" kindref="compound">stcode</ref>,</highlight></codeline>
+<codeline lineno="182"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structDynamicStcodeRoutine" kindref="compound">DynamicStcodeRoutine</ref><sp/>*cpp_stcode,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>maxregsize,<sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;a_ctx);</highlight></codeline>
+<codeline lineno="183"><highlight class="normal"></highlight></codeline>
+<codeline lineno="184" refid="classShaderStateBlock_1ad2b6797f32084d28c04e1c6be57cd17f" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classShaderStateBlock_1ad2b6797f32084d28c04e1c6be57cd17f" kindref="member">canBeSupportedBy</ref>(<ref refid="namedConst_8h_1a8df4796c58d0d8445eaf37bb57425b6c" kindref="member">ShaderBlockLevel</ref><sp/>lev)</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classShaderStateBlock_1a73af07c28d4a043e224c03b4dfe891cf" kindref="member">layerLevel</ref><sp/>&lt;<sp/>lev;<sp/>}</highlight></codeline>
+<codeline lineno="185"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classShaderStateBlock_1a49d5e1246b26d34702756b9dc392d77f" kindref="member">getVsNameId</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="classShaderStateBlock_1ad24cbadd146d234944b96fd320d43aad" kindref="member">name</ref>)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="186"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classShaderStateBlock_1a1c5766a763d6416ed5cc381401683b37" kindref="member">getPsNameId</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="classShaderStateBlock_1ad24cbadd146d234944b96fd320d43aad" kindref="member">name</ref>)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="187"><highlight class="normal"></highlight></codeline>
+<codeline lineno="188" refid="structShaderStateBlock_1_1BuildTimeData" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structShaderStateBlock_1_1BuildTimeData" kindref="compound">BuildTimeData</ref></highlight></codeline>
+<codeline lineno="189"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="190" refid="structShaderStateBlock_1_1BuildTimeData_1a5f1b5c86064dc9718210739a768dca7f" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/><ref refid="structShaderStateBlock_1_1BuildTimeData_1a5f1b5c86064dc9718210739a768dca7f" kindref="member">uidMask</ref><sp/>=<sp/>0,<sp/><ref refid="structShaderStateBlock_1_1BuildTimeData_1a0bd87a2635b1c508da73fc9196415c6c" kindref="member">uidVal</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="191" refid="structShaderStateBlock_1_1BuildTimeData_1a3e8bfd7829a6cbe3f453d8fd4d042818" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structShaderStateBlock_1_1BuildTimeData_1a3e8bfd7829a6cbe3f453d8fd4d042818" kindref="member">suppListOfs</ref><sp/>=<sp/>-1;</highlight></codeline>
+<codeline lineno="192" refid="structShaderStateBlock_1_1BuildTimeData_1a5de53ba58a0405a9a4d150102374ef03" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/><ref refid="structShaderStateBlock_1_1BuildTimeData_1a5de53ba58a0405a9a4d150102374ef03" kindref="member">suppMask</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="193"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="194"><highlight class="normal"></highlight></codeline>
+<codeline lineno="195" refid="classShaderStateBlock_1ae5f9acfd14a6cfe151e09ca904f4805c" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structNamedConstBlock" kindref="compound">NamedConstBlock</ref><sp/><ref refid="classShaderStateBlock_1ae5f9acfd14a6cfe151e09ca904f4805c" kindref="member">shConst</ref>;</highlight></codeline>
+<codeline lineno="196" refid="classShaderStateBlock_1ad24cbadd146d234944b96fd320d43aad" refkind="member"><highlight class="normal"><sp/><sp/>bindump::string<sp/><ref refid="classShaderStateBlock_1ad24cbadd146d234944b96fd320d43aad" kindref="member">name</ref>;</highlight></codeline>
+<codeline lineno="197" refid="classShaderStateBlock_1a48a921b68aac65a16fdd0a33e9465069" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classShaderStateBlock_1a48a921b68aac65a16fdd0a33e9465069" kindref="member">nameId</ref>;</highlight></codeline>
+<codeline lineno="198" refid="classShaderStateBlock_1a472973772e4378f4edbdad74be74cac2" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classShaderStateBlock_1ad840fa4cfc4c554037e143bb93fd056b" kindref="member">stcodeId</ref>,<sp/><ref refid="classShaderStateBlock_1a472973772e4378f4edbdad74be74cac2" kindref="member">regSize</ref>;</highlight></codeline>
+<codeline lineno="199" refid="classShaderStateBlock_1a1ba5283efd19f83cb3c8ee1211b0197f" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classShaderStateBlock_1a1ba5283efd19f83cb3c8ee1211b0197f" kindref="member">cppStcodeId</ref>;</highlight></codeline>
+<codeline lineno="200" refid="classShaderStateBlock_1a73af07c28d4a043e224c03b4dfe891cf" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="namedConst_8h_1a8df4796c58d0d8445eaf37bb57425b6c" kindref="member">ShaderBlockLevel</ref><sp/><ref refid="classShaderStateBlock_1a73af07c28d4a043e224c03b4dfe891cf" kindref="member">layerLevel</ref>;</highlight></codeline>
+<codeline lineno="201"><highlight class="normal"></highlight></codeline>
+<codeline lineno="202" refid="classShaderStateBlock_1af07a94ac2c8be57a3e2eba5ad4724f7d" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classShaderStateBlock_1af07a94ac2c8be57a3e2eba5ad4724f7d" kindref="member">BINDUMP_NON_SERIALIZABLE</ref>(</highlight></codeline>
+<codeline lineno="204"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structShaderStateBlock_1_1BuildTimeData" kindref="compound">BuildTimeData</ref><sp/>btd;);</highlight></codeline>
+<codeline lineno="205"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="206"><highlight class="normal"></highlight></codeline>
+<codeline lineno="207" refid="classShaderBlockTable" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classShaderBlockTable" kindref="compound">ShaderBlockTable</ref></highlight></codeline>
+<codeline lineno="208"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="209"><highlight class="normal"><sp/><sp/>Tab&lt;ShaderStateBlock<sp/>*&gt;<sp/>blocks{};</highlight></codeline>
+<codeline lineno="210"><highlight class="normal"><sp/><sp/>FastNameMap<sp/>blockNames;</highlight></codeline>
+<codeline lineno="211"><highlight class="normal"></highlight></codeline>
+<codeline lineno="212"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>This<sp/>field<sp/>is<sp/>needed<sp/>for<sp/>the<sp/>following<sp/>reason:</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="213"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>the<sp/>main<sp/>table<sp/>is<sp/>structured<sp/>as<sp/>follows:<sp/>each<sp/>block<sp/>is<sp/>created<sp/>on<sp/>the<sp/>heap,<sp/>and<sp/>an<sp/>owning<sp/>pointer<sp/>is<sp/>stored<sp/>in<sp/>blocks<sp/>array<sp/>field.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="214"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>However,<sp/>if<sp/>the<sp/>block<sp/>is<sp/>empty<sp/>(i.<sp/>e.<sp/>supports<sp/>none)<sp/>a<sp/>pointer<sp/>to<sp/>a<sp/>valid<sp/>empty<sp/>block<sp/>has<sp/>to<sp/>be<sp/>registered.<sp/>On<sp/>serialization,<sp/>this</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="215"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>empty<sp/>block<sp/>has<sp/>to<sp/>be<sp/>serialized<sp/>too<sp/>so<sp/>that<sp/>the<sp/>array<sp/>of<sp/>pointers<sp/>is<sp/>serialized<sp/>correctly.<sp/>Since<sp/>this<sp/>table<sp/>is<sp/>used<sp/>for<sp/>building</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="216"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>the<sp/>data<sp/>which<sp/>is<sp/>then<sp/>serialized,<sp/>it<sp/>has<sp/>to<sp/>have<sp/>its<sp/>own<sp/>empty<sp/>block<sp/>so<sp/>that<sp/>it<sp/>can<sp/>then<sp/>be<sp/>serialized<sp/>and<sp/>pointers<sp/>to<sp/>it<sp/>are</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="217"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>valid.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="218"><highlight class="normal"><sp/><sp/>bindump::Ptr&lt;ShaderStateBlock&gt;<sp/>emptyBlk;</highlight></codeline>
+<codeline lineno="219"><highlight class="normal"></highlight></codeline>
+<codeline lineno="220"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="221" refid="classShaderBlockTable_1ad96d22e9c91ae4dd9b148f365c992464" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classShaderBlockTable_1ad96d22e9c91ae4dd9b148f365c992464" kindref="member">ShaderBlockTable</ref>()<sp/>{<sp/>emptyBlk.create()<sp/>=<sp/><ref refid="classShaderStateBlock" kindref="compound">ShaderStateBlock</ref>{};<sp/>}</highlight></codeline>
+<codeline lineno="222"><highlight class="normal"><sp/><sp/><ref refid="classShaderBlockTable_1af5fdea08c003ccf7a805dd32e7afb7e7" kindref="member">~ShaderBlockTable</ref>();</highlight></codeline>
+<codeline lineno="223"><highlight class="normal"></highlight></codeline>
+<codeline lineno="224"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classShaderBlockTable_1ad5ec754c23a14e7d4f73cba66147c486" kindref="member">registerBlock</ref>(<ref refid="classShaderStateBlock" kindref="compound">ShaderStateBlock</ref><sp/>*blk,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>allow_identical_redecl<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="225"><highlight class="normal"><sp/><sp/><ref refid="classShaderStateBlock" kindref="compound">ShaderStateBlock</ref><sp/>*<ref refid="classShaderBlockTable_1a208a9d0ca182b150a9183de1d3d14f6a" kindref="member">findBlock</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="226"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classShaderBlockTable_1a4450c0258b8f233e2ab12aeb91abb676" kindref="member">countBlock</ref>(<ref refid="namedConst_8h_1a8df4796c58d0d8445eaf37bb57425b6c" kindref="member">ShaderBlockLevel</ref><sp/>level<sp/>=<sp/><ref refid="namedConst_8h_1a8df4796c58d0d8445eaf37bb57425b6ca0db45d2a4141101bdfe48e3314cfbca3" kindref="member">ShaderBlockLevel::UNDEFINED</ref>)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="227"><highlight class="normal"></highlight></codeline>
+<codeline lineno="228"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>We<sp/>need<sp/>to<sp/>be<sp/>able<sp/>to<sp/>get<sp/>a<sp/>mutable<sp/>pointer<sp/>to<sp/>empty<sp/>block<sp/>even<sp/>though<sp/>we<sp/>don&apos;t<sp/>mutate<sp/>it,<sp/>as<sp/>it<sp/>can<sp/>be<sp/>put<sp/>in<sp/>blocks<sp/>array.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="229" refid="classShaderBlockTable_1a4ed91dd95664704f8d17f5d6c8357ea9" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classShaderStateBlock" kindref="compound">ShaderStateBlock</ref><sp/>*<ref refid="classShaderBlockTable_1a4ed91dd95664704f8d17f5d6c8357ea9" kindref="member">emptyBlock</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>emptyBlk.get();<sp/>}</highlight></codeline>
+<codeline lineno="230" refid="classShaderBlockTable_1a6c21172f43bb9807f35817c96e063bf1" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classShaderStateBlock" kindref="compound">ShaderStateBlock</ref><sp/>*<ref refid="classShaderBlockTable_1a6c21172f43bb9807f35817c96e063bf1" kindref="member">emptyBlock</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>emptyBlk.get();<sp/>}</highlight></codeline>
+<codeline lineno="231"><highlight class="normal"></highlight></codeline>
+<codeline lineno="232"><highlight class="normal"><sp/><sp/>Tab&lt;ShaderStateBlock<sp/>*&gt;<sp/><ref refid="classShaderBlockTable_1a2d59b777ab3d6b7e1875d8ad295fe560" kindref="member">release</ref>();</highlight></codeline>
+<codeline lineno="233" refid="classShaderBlockTable_1a439f320715d613f530f4e460d05eaf92" refkind="member"><highlight class="normal"><sp/><sp/>bindump::Ptr&lt;ShaderStateBlock&gt;<sp/><ref refid="classShaderBlockTable_1a439f320715d613f530f4e460d05eaf92" kindref="member">releaseEmptyBlock</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>eastl::move(emptyBlk);<sp/>}</highlight></codeline>
+<codeline lineno="234"><highlight class="normal"></highlight></codeline>
+<codeline lineno="235"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classShaderBlockTable_1a969c81dcaa52660a6012dd5213705719" kindref="member">link</ref>(Tab&lt;ShaderStateBlock<sp/>*&gt;<sp/>&amp;loaded_blocks,<sp/>dag::ConstSpan&lt;int&gt;<sp/>stcode_remap,<sp/>dag::ConstSpan&lt;int&gt;<sp/>external_stcode_remap);</highlight></codeline>
+<codeline lineno="236"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="237"><highlight class="normal"></highlight></codeline>
+<codeline lineno="238" refid="structNamedConstBlock_1aa33304bd77fa74220b9ca8cafb0f9ffa" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/><ref refid="structNamedConstBlock_1aa33304bd77fa74220b9ca8cafb0f9ffa" kindref="member">NamedConstBlock::makeInfoProvider</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structNamedConstBlock_1_1RegisterProperties" kindref="compound">RegisterProperties</ref><sp/><ref refid="structNamedConstBlock" kindref="compound">NamedConstBlock</ref>::*props,<sp/><ref refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9b" kindref="member">HlslRegisterSpace</ref><sp/>rspace)<sp/>const</highlight></codeline>
+<codeline lineno="239"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="240"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>[</highlight><highlight class="keyword">this</highlight><highlight class="normal">,<sp/>props,<sp/>rspace](</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>reg)<sp/>{</highlight></codeline>
+<codeline lineno="241"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>getInfoForReg<sp/>=<sp/>[&amp;](</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structNamedConstBlock_1_1RegisterProperties" kindref="compound">RegisterProperties</ref><sp/>&amp;props)<sp/>{</highlight></codeline>
+<codeline lineno="242"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>&amp;[ind,<sp/>cst]<sp/>:<sp/>enumerate(props.sc))</highlight></codeline>
+<codeline lineno="243"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="244"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(cst.rspace<sp/>==<sp/>rspace<sp/>&amp;&amp;<sp/>cst.regIndex<sp/>==<sp/>reg)</highlight></codeline>
+<codeline lineno="245"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>eastl::make_tuple(props.sn.getName(ind),<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal">(cst.size));</highlight></codeline>
+<codeline lineno="246"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="247"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>eastl::make_tuple((</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*)</highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">,<sp/>1);</highlight></codeline>
+<codeline lineno="248"><highlight class="normal"><sp/><sp/><sp/><sp/>};</highlight></codeline>
+<codeline lineno="249"><highlight class="normal"></highlight></codeline>
+<codeline lineno="250"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>&amp;blk<sp/>:<sp/><ref refid="structNamedConstBlock_1ad28a319c4c4d3d6d500653d1fb7614d9" kindref="member">suppBlk</ref>)</highlight></codeline>
+<codeline lineno="251"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="252"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>[name,<sp/>size]<sp/>=<sp/>getInfoForReg(blk-&gt;shConst.*props);<sp/>name)</highlight></codeline>
+<codeline lineno="253"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="254"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="structNamedConstBlock_1_1AllocatedRegInfo" kindref="compound">AllocatedRegInfo</ref>{eastl::string{name}<sp/>+<sp/></highlight><highlight class="stringliteral">&quot;,<sp/>&lt;block<sp/>&quot;</highlight><highlight class="normal"><sp/>+<sp/>blk-&gt;<ref refid="structNamedConstBlock_1_1AllocatedRegInfo_1af78566d3b2c7e994c5f23295978a225f" kindref="member">name</ref>.c_str()<sp/>+<sp/></highlight><highlight class="stringliteral">&quot;&gt;&quot;</highlight><highlight class="normal">,<sp/>size};</highlight></codeline>
+<codeline lineno="255"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="256"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="257"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>[name,<sp/>size]<sp/>=<sp/>getInfoForReg(this-&gt;*props);<sp/>name)</highlight></codeline>
+<codeline lineno="258"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="structNamedConstBlock_1_1AllocatedRegInfo" kindref="compound">AllocatedRegInfo</ref>{eastl::string{name}<sp/>+<sp/></highlight><highlight class="stringliteral">&quot;,<sp/>&lt;shader&gt;&quot;</highlight><highlight class="normal">,<sp/>size};</highlight></codeline>
+<codeline lineno="259"><highlight class="normal"></highlight></codeline>
+<codeline lineno="260"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="structNamedConstBlock_1_1AllocatedRegInfo" kindref="compound">AllocatedRegInfo</ref>{</highlight><highlight class="stringliteral">&quot;&lt;unnamed&gt;&quot;</highlight><highlight class="normal">,<sp/>1};</highlight></codeline>
+<codeline lineno="261"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="262"><highlight class="normal">}</highlight></codeline>
+    </programlisting>
+    <location file="namedConst.h"/>
+  </compounddef>
+</doxygen>

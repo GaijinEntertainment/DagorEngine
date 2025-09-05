@@ -1,0 +1,740 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structNamedConstBlock" kind="struct" language="C++" prot="public">
+    <compoundname>NamedConstBlock</compoundname>
+    <includes refid="namedConst_8h" local="no">namedConst.h</includes>
+    <innerclass refid="structNamedConstBlock_1_1AllocatedRegInfo" prot="public">NamedConstBlock::AllocatedRegInfo</innerclass>
+    <innerclass refid="structNamedConstBlock_1_1CstHandle" prot="public">NamedConstBlock::CstHandle</innerclass>
+    <innerclass refid="structNamedConstBlock_1_1NamedConst" prot="public">NamedConstBlock::NamedConst</innerclass>
+    <innerclass refid="structNamedConstBlock_1_1RegisterProperties" prot="public">NamedConstBlock::RegisterProperties</innerclass>
+    <innerclass refid="structNamedConstBlock_1_1SlotTextureSubAllocators" prot="public">NamedConstBlock::SlotTextureSubAllocators</innerclass>
+      <sectiondef kind="public-type">
+      <memberdef kind="typedef" id="structNamedConstBlock_1ac743b2af51a72ceb0208258b74d30924" prot="public" static="no">
+        <type><ref refid="structShaderParser_1_1VariablesMerger" kindref="compound">ShaderParser::VariablesMerger</ref></type>
+        <definition>using NamedConstBlock::MergedVariablesData =  ShaderParser::VariablesMerger</definition>
+        <argsstring></argsstring>
+        <name>MergedVariablesData</name>
+        <qualifiedname>NamedConstBlock::MergedVariablesData</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="76" column="3" bodyfile="namedConst.h" bodystart="76" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structNamedConstBlock_1af2982e411fef8f5bf02905031cac0bda" prot="public" static="no" mutable="no">
+        <type><ref refid="structNamedConstBlock_1_1RegisterProperties" kindref="compound">RegisterProperties</ref></type>
+        <definition>RegisterProperties NamedConstBlock::pixelProps</definition>
+        <argsstring></argsstring>
+        <name>pixelProps</name>
+        <qualifiedname>NamedConstBlock::pixelProps</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="79" column="22" bodyfile="namedConst.h" bodystart="79" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structNamedConstBlock_1af5d785154eb652eb976e9db509a5331f" prot="public" static="no" mutable="no">
+        <type><ref refid="structNamedConstBlock_1_1RegisterProperties" kindref="compound">RegisterProperties</ref></type>
+        <definition>RegisterProperties NamedConstBlock::vertexProps</definition>
+        <argsstring></argsstring>
+        <name>vertexProps</name>
+        <qualifiedname>NamedConstBlock::vertexProps</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="79" column="33" bodyfile="namedConst.h" bodystart="79" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structNamedConstBlock_1a0b41f4029f83c088e31ed2bdbfa5c956" prot="public" static="no" mutable="no">
+        <type><ref refid="classShaderStateBlock" kindref="compound">ShaderStateBlock</ref> *</type>
+        <definition>ShaderStateBlock* NamedConstBlock::globConstBlk</definition>
+        <argsstring></argsstring>
+        <name>globConstBlk</name>
+        <qualifiedname>NamedConstBlock::globConstBlk</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="80" column="20" bodyfile="namedConst.h" bodystart="80" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structNamedConstBlock_1a86f9ccf5deda6624677bd710d8b1dd64" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool NamedConstBlock::multidrawCbuf</definition>
+        <argsstring></argsstring>
+        <name>multidrawCbuf</name>
+        <qualifiedname>NamedConstBlock::multidrawCbuf</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="81" column="8" bodyfile="namedConst.h" bodystart="81" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structNamedConstBlock_1a6efd609ff10279c10300fca36972f50c" prot="public" static="no" mutable="no">
+        <type>eastl::array&lt; <ref refid="classHlslRegAllocator" kindref="compound">HlslRegAllocator</ref>, <ref refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9baa1b0c0ad8683cfcb48d3ad7402e41ca3" kindref="member">HLSL_RSPACE_COUNT</ref> &gt;</type>
+        <definition>eastl::array&lt;HlslRegAllocator, HLSL_RSPACE_COUNT&gt; NamedConstBlock::vertexRegAllocators</definition>
+        <argsstring></argsstring>
+        <name>vertexRegAllocators</name>
+        <qualifiedname>NamedConstBlock::vertexRegAllocators</qualifiedname>
+        <initializer>=
+    <ref refid="hlslRegisters_8cpp_1afd8a77eba3a0edc222131d1646e3113c" kindref="member">make_default_hlsl_reg_allocators</ref>(<ref refid="namespaceshc_1a47efde6b3d493adbe2119a5593807d36" kindref="member">shc::config</ref>().hlslMaximumVsfAllowed)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="83" column="16" bodyfile="namedConst.h" bodystart="83" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structNamedConstBlock_1a72e11e05584df7e760fd2722129578c7" prot="public" static="no" mutable="no">
+        <type>eastl::array&lt; <ref refid="classHlslRegAllocator" kindref="compound">HlslRegAllocator</ref>, <ref refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9baa1b0c0ad8683cfcb48d3ad7402e41ca3" kindref="member">HLSL_RSPACE_COUNT</ref> &gt;</type>
+        <definition>eastl::array&lt;HlslRegAllocator, HLSL_RSPACE_COUNT&gt; NamedConstBlock::pixelOrComputeRegAllocators</definition>
+        <argsstring></argsstring>
+        <name>pixelOrComputeRegAllocators</name>
+        <qualifiedname>NamedConstBlock::pixelOrComputeRegAllocators</qualifiedname>
+        <initializer>=
+    <ref refid="hlslRegisters_8cpp_1afd8a77eba3a0edc222131d1646e3113c" kindref="member">make_default_hlsl_reg_allocators</ref>(<ref refid="namespaceshc_1a47efde6b3d493adbe2119a5593807d36" kindref="member">shc::config</ref>().hlslMaximumPsfAllowed)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="85" column="16" bodyfile="namedConst.h" bodystart="85" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structNamedConstBlock_1a95442c1d7e1d362c78e8148db109a7b0" prot="public" static="no" mutable="no">
+        <type><ref refid="classHlslRegAllocator" kindref="compound">HlslRegAllocator</ref></type>
+        <definition>HlslRegAllocator NamedConstBlock::bufferedConstsRegAllocator</definition>
+        <argsstring></argsstring>
+        <name>bufferedConstsRegAllocator</name>
+        <qualifiedname>NamedConstBlock::bufferedConstsRegAllocator</qualifiedname>
+        <initializer>= <ref refid="hlslRegisters_8cpp_1abb0e59f2c06ad028c08d95e56509ea0c" kindref="member">make_default_cbuf_reg_allocator</ref>()</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="89" column="20" bodyfile="namedConst.h" bodystart="89" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structNamedConstBlock_1a933d90bd69ae8545d726e05ca9737fdc" prot="public" static="no" mutable="no">
+        <type><ref refid="structNamedConstBlock_1_1RegisterProperties" kindref="compound">RegisterProperties</ref></type>
+        <definition>RegisterProperties NamedConstBlock::bufferedConstProps</definition>
+        <argsstring></argsstring>
+        <name>bufferedConstProps</name>
+        <qualifiedname>NamedConstBlock::bufferedConstProps</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="90" column="22" bodyfile="namedConst.h" bodystart="90" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structNamedConstBlock_1ae6281d37edf661ab1ee8f1728c34dd54" prot="public" static="no" mutable="no">
+        <type><ref refid="structNamedConstBlock_1_1SlotTextureSubAllocators" kindref="compound">SlotTextureSubAllocators</ref></type>
+        <definition>SlotTextureSubAllocators NamedConstBlock::slotTextureSuballocators</definition>
+        <argsstring></argsstring>
+        <name>slotTextureSuballocators</name>
+        <qualifiedname>NamedConstBlock::slotTextureSuballocators</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="92" column="28" bodyfile="namedConst.h" bodystart="92" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structNamedConstBlock_1a72106d5c313c2c0321dde8c4a69c064e" prot="public" static="no" mutable="yes">
+        <type>String</type>
+        <definition>String NamedConstBlock::cachedPixelOrComputeHlsl</definition>
+        <argsstring></argsstring>
+        <name>cachedPixelOrComputeHlsl</name>
+        <qualifiedname>NamedConstBlock::cachedPixelOrComputeHlsl</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="95" column="18" bodyfile="namedConst.h" bodystart="95" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structNamedConstBlock_1ad027cc67960b6fd8e9a48f9da4f980f5" prot="public" static="no" mutable="no">
+        <type>String</type>
+        <definition>String NamedConstBlock::cachedVertexHlsl</definition>
+        <argsstring></argsstring>
+        <name>cachedVertexHlsl</name>
+        <qualifiedname>NamedConstBlock::cachedVertexHlsl</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="95" column="43" bodyfile="namedConst.h" bodystart="95" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structNamedConstBlock_1ad28a319c4c4d3d6d500653d1fb7614d9" prot="public" static="no" mutable="no">
+        <type><ref refid="classSerializableTab" kindref="compound">SerializableTab</ref>&lt; bindump::Address&lt; <ref refid="classShaderStateBlock" kindref="compound">ShaderStateBlock</ref> &gt; &gt;</type>
+        <definition>SerializableTab&lt;bindump::Address&lt;ShaderStateBlock&gt; &gt; NamedConstBlock::suppBlk</definition>
+        <argsstring></argsstring>
+        <name>suppBlk</name>
+        <qualifiedname>NamedConstBlock::suppBlk</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="99" column="19" bodyfile="namedConst.h" bodystart="99" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="structNamedConstBlock_1a7845e8acb9ea5b24e9c9f4544c0df2a2" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool is_valid</definition>
+        <argsstring>(CstHandle hnd)</argsstring>
+        <name>is_valid</name>
+        <qualifiedname>NamedConstBlock::is_valid</qualifiedname>
+        <param>
+          <type><ref refid="structNamedConstBlock_1_1CstHandle" kindref="compound">CstHandle</ref></type>
+          <declname>hnd</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="74" column="15" bodyfile="namedConst.h" bodystart="74" bodyend="74"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structNamedConstBlock_1a0b0fe20e1188c7d7ec4a85335a1cb8ff" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>NamedConstBlock::BINDUMP_BEGIN_NON_SERIALIZABLE</definition>
+        <argsstring>()</argsstring>
+        <name>BINDUMP_BEGIN_NON_SERIALIZABLE</name>
+        <qualifiedname>NamedConstBlock::BINDUMP_BEGIN_NON_SERIALIZABLE</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="78" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="structNamedConstBlock_1ac2470844efc87eecba9ded085dd44729" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>NamedConstBlock::BINDUMP_END_NON_SERIALIZABLE</definition>
+        <argsstring>()</argsstring>
+        <name>BINDUMP_END_NON_SERIALIZABLE</name>
+        <qualifiedname>NamedConstBlock::BINDUMP_END_NON_SERIALIZABLE</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="97" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="structNamedConstBlock_1aea9c8e8174b843788613e665c05bd0d0" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>NamedConstBlock::NamedConstBlock</definition>
+        <argsstring>()</argsstring>
+        <name>NamedConstBlock</name>
+        <qualifiedname>NamedConstBlock::NamedConstBlock</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="101" column="3" bodyfile="namedConst.h" bodystart="101" bodyend="101"/>
+      </memberdef>
+      <memberdef kind="function" id="structNamedConstBlock_1a05ca2e54e5d452b311791a274b3a89c6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structNamedConstBlock_1_1CstHandle" kindref="compound">CstHandle</ref></type>
+        <definition>NamedConstBlock::CstHandle NamedConstBlock::addConst</definition>
+        <argsstring>(int stage, const char *name, HlslRegisterSpace reg_space, int sz, int hardcoded_reg, bool is_dynamic, bool is_global_const_block)</argsstring>
+        <name>addConst</name>
+        <qualifiedname>NamedConstBlock::addConst</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>stage</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type><ref refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9b" kindref="member">HlslRegisterSpace</ref></type>
+          <declname>reg_space</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>sz</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>hardcoded_reg</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>is_dynamic</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>is_global_const_block</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="103" column="13" bodyfile="namedConst.cpp" bodystart="22" bodyend="99"/>
+      </memberdef>
+      <memberdef kind="function" id="structNamedConstBlock_1a634916d1d120d2df52b9c06556502874" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool NamedConstBlock::initSlotTextureSuballocators</definition>
+        <argsstring>(int vs_tex_count, int ps_tex_count)</argsstring>
+        <name>initSlotTextureSuballocators</name>
+        <qualifiedname>NamedConstBlock::initSlotTextureSuballocators</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>vs_tex_count</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>ps_tex_count</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="107" column="8" bodyfile="namedConst.cpp" bodystart="101" bodyend="158"/>
+      </memberdef>
+      <memberdef kind="function" id="structNamedConstBlock_1a077cdc00515b9c76bd75371533bc4b54" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structNamedConstBlock_1_1NamedConst" kindref="compound">NamedConst</ref> &amp;</type>
+        <definition>NamedConst &amp; NamedConstBlock::getSlot</definition>
+        <argsstring>(CstHandle hnd)</argsstring>
+        <name>getSlot</name>
+        <qualifiedname>NamedConstBlock::getSlot</qualifiedname>
+        <param>
+          <type><ref refid="structNamedConstBlock_1_1CstHandle" kindref="compound">CstHandle</ref></type>
+          <declname>hnd</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="109" column="14" bodyfile="namedConst.h" bodystart="109" bodyend="113"/>
+      </memberdef>
+      <memberdef kind="function" id="structNamedConstBlock_1acf9d45dff5fc77641076418665f5d0f6" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="structNamedConstBlock_1_1NamedConst" kindref="compound">NamedConst</ref> &amp;</type>
+        <definition>const NamedConst &amp; NamedConstBlock::getSlot</definition>
+        <argsstring>(CstHandle hnd) const</argsstring>
+        <name>getSlot</name>
+        <qualifiedname>NamedConstBlock::getSlot</qualifiedname>
+        <param>
+          <type><ref refid="structNamedConstBlock_1_1CstHandle" kindref="compound">CstHandle</ref></type>
+          <declname>hnd</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="114" column="20" bodyfile="namedConst.h" bodystart="114" bodyend="114"/>
+      </memberdef>
+      <memberdef kind="function" id="structNamedConstBlock_1a0e016ca71cfa266875d521e7cb3b77c4" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void NamedConstBlock::addHlslDecl</definition>
+        <argsstring>(CstHandle hnd, String &amp;&amp;hlsl_decl, String &amp;&amp;hlsl_postfix)</argsstring>
+        <name>addHlslDecl</name>
+        <qualifiedname>NamedConstBlock::addHlslDecl</qualifiedname>
+        <param>
+          <type><ref refid="structNamedConstBlock_1_1CstHandle" kindref="compound">CstHandle</ref></type>
+          <declname>hnd</declname>
+        </param>
+        <param>
+          <type>String &amp;&amp;</type>
+          <declname>hlsl_decl</declname>
+        </param>
+        <param>
+          <type>String &amp;&amp;</type>
+          <declname>hlsl_postfix</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="116" column="8" bodyfile="namedConst.cpp" bodystart="160" bodyend="165"/>
+      </memberdef>
+      <memberdef kind="function" id="structNamedConstBlock_1affe5e403512a894df27f0e2332c6fa0d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void NamedConstBlock::patchHlsl</definition>
+        <argsstring>(String &amp;src, ShaderStage stage, const MergedVariablesData &amp;merged_vars, int &amp;max_const_no_used, eastl::string_view hw_defines, bool uses_dual_source_blending)</argsstring>
+        <name>patchHlsl</name>
+        <qualifiedname>NamedConstBlock::patchHlsl</qualifiedname>
+        <param>
+          <type>String &amp;</type>
+          <declname>src</declname>
+        </param>
+        <param>
+          <type>ShaderStage</type>
+          <declname>stage</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structNamedConstBlock_1ac743b2af51a72ceb0208258b74d30924" kindref="member">MergedVariablesData</ref> &amp;</type>
+          <declname>merged_vars</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>max_const_no_used</declname>
+        </param>
+        <param>
+          <type>eastl::string_view</type>
+          <declname>hw_defines</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>uses_dual_source_blending</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="118" column="8" bodyfile="namedConst.cpp" bodystart="481" bodyend="560"/>
+      </memberdef>
+      <memberdef kind="function" id="structNamedConstBlock_1ad773aa86a998987a7974eee310517ebf" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structCryptoHash" kindref="compound">CryptoHash</ref></type>
+        <definition>CryptoHash NamedConstBlock::getDigest</definition>
+        <argsstring>(ShaderStage stage, const MergedVariablesData &amp;merged_vars) const</argsstring>
+        <name>getDigest</name>
+        <qualifiedname>NamedConstBlock::getDigest</qualifiedname>
+        <param>
+          <type>ShaderStage</type>
+          <declname>stage</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structNamedConstBlock_1ac743b2af51a72ceb0208258b74d30924" kindref="member">MergedVariablesData</ref> &amp;</type>
+          <declname>merged_vars</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="121" column="14" bodyfile="namedConst.cpp" bodystart="167" bodyend="196"/>
+      </memberdef>
+      <memberdef kind="function" id="structNamedConstBlock_1ae9dd74ec617ca8b13f28e5b7d70f2085" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void NamedConstBlock::buildDrawcallIdHlslDecl</definition>
+        <argsstring>(String &amp;out_text) const</argsstring>
+        <name>buildDrawcallIdHlslDecl</name>
+        <qualifiedname>NamedConstBlock::buildDrawcallIdHlslDecl</qualifiedname>
+        <param>
+          <type>String &amp;</type>
+          <declname>out_text</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="123" column="8" bodyfile="namedConst.cpp" bodystart="200" bodyend="206"/>
+      </memberdef>
+      <memberdef kind="function" id="structNamedConstBlock_1ac38bd9c5aced5329117ff6f19f16bf8e" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void NamedConstBlock::buildStaticConstBufHlslDecl</definition>
+        <argsstring>(String &amp;out_text, const MergedVariablesData &amp;merged_vars) const</argsstring>
+        <name>buildStaticConstBufHlslDecl</name>
+        <qualifiedname>NamedConstBlock::buildStaticConstBufHlslDecl</qualifiedname>
+        <param>
+          <type>String &amp;</type>
+          <declname>out_text</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structNamedConstBlock_1ac743b2af51a72ceb0208258b74d30924" kindref="member">MergedVariablesData</ref> &amp;</type>
+          <declname>merged_vars</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="124" column="8" bodyfile="namedConst.cpp" bodystart="241" bodyend="356"/>
+      </memberdef>
+      <memberdef kind="function" id="structNamedConstBlock_1a3064c974ba863cf05116ed392817ea07" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void NamedConstBlock::buildGlobalConstBufHlslDecl</definition>
+        <argsstring>(String &amp;out_text) const</argsstring>
+        <name>buildGlobalConstBufHlslDecl</name>
+        <qualifiedname>NamedConstBlock::buildGlobalConstBufHlslDecl</qualifiedname>
+        <param>
+          <type>String &amp;</type>
+          <declname>out_text</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="125" column="8" bodyfile="namedConst.cpp" bodystart="358" bodyend="377"/>
+      </memberdef>
+      <memberdef kind="function" id="structNamedConstBlock_1aca3466647682ba3d4cb29d7dc26d6035" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void NamedConstBlock::buildHlslDeclText</definition>
+        <argsstring>(String &amp;out_text, ShaderStage stage) const</argsstring>
+        <name>buildHlslDeclText</name>
+        <qualifiedname>NamedConstBlock::buildHlslDeclText</qualifiedname>
+        <param>
+          <type>String &amp;</type>
+          <declname>out_text</declname>
+        </param>
+        <param>
+          <type>ShaderStage</type>
+          <declname>stage</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="126" column="8" bodyfile="namedConst.h" bodystart="126" bodyend="130"/>
+      </memberdef>
+      <memberdef kind="function" id="structNamedConstBlock_1a74354e18dfcc0fd0cf6743b41f78e75a" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void NamedConstBlock::buildAllHlsl</definition>
+        <argsstring>(String *out_text, const MergedVariablesData &amp;merged_vars, ShaderStage stage) const</argsstring>
+        <name>buildAllHlsl</name>
+        <qualifiedname>NamedConstBlock::buildAllHlsl</qualifiedname>
+        <param>
+          <type>String *</type>
+          <declname>out_text</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structNamedConstBlock_1ac743b2af51a72ceb0208258b74d30924" kindref="member">MergedVariablesData</ref> &amp;</type>
+          <declname>merged_vars</declname>
+        </param>
+        <param>
+          <type>ShaderStage</type>
+          <declname>stage</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="132" column="8" bodyfile="namedConst.h" bodystart="132" bodyend="144"/>
+      </memberdef>
+      <memberdef kind="function" id="structNamedConstBlock_1aeca6aff124ea34a947982809388a8f1c" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void NamedConstBlock::dropHlslCaches</definition>
+        <argsstring>() const</argsstring>
+        <name>dropHlslCaches</name>
+        <qualifiedname>NamedConstBlock::dropHlslCaches</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="145" column="8" bodyfile="namedConst.h" bodystart="145" bodyend="149"/>
+      </memberdef>
+      <memberdef kind="function" id="structNamedConstBlock_1abe80b6b60085d82df776e30495e70fe2" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void NamedConstBlock::doBuildHlslDeclText</definition>
+        <argsstring>(String &amp;out_text, ShaderStage stage, eastl::vector_set&lt; const NamedConstBlock * &gt; &amp;built_blocks) const</argsstring>
+        <name>doBuildHlslDeclText</name>
+        <qualifiedname>NamedConstBlock::doBuildHlslDeclText</qualifiedname>
+        <param>
+          <type>String &amp;</type>
+          <declname>out_text</declname>
+        </param>
+        <param>
+          <type>ShaderStage</type>
+          <declname>stage</declname>
+        </param>
+        <param>
+          <type>eastl::vector_set&lt; const <ref refid="structNamedConstBlock" kindref="compound">NamedConstBlock</ref> * &gt; &amp;</type>
+          <declname>built_blocks</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="151" column="8" bodyfile="namedConst.cpp" bodystart="379" bodyend="406"/>
+      </memberdef>
+      <memberdef kind="function" id="structNamedConstBlock_1ad679b5737b2c1ea6a65d3e0db4bb4e3c" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>eastl::pair&lt; int, int &gt;</type>
+        <definition>eastl::pair&lt; int, int &gt; NamedConstBlock::getStaticTexRange</definition>
+        <argsstring>(ShaderStage stage) const</argsstring>
+        <name>getStaticTexRange</name>
+        <qualifiedname>NamedConstBlock::getStaticTexRange</qualifiedname>
+        <param>
+          <type>ShaderStage</type>
+          <declname>stage</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="153" column="15" bodyfile="namedConst.cpp" bodystart="408" bodyend="422"/>
+      </memberdef>
+      <memberdef kind="function" id="structNamedConstBlock_1aa33304bd77fa74220b9ca8cafb0f9ffa" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>auto</type>
+        <definition>auto NamedConstBlock::makeInfoProvider</definition>
+        <argsstring>(const RegisterProperties NamedConstBlock::*props, HlslRegisterSpace rspace) const</argsstring>
+        <name>makeInfoProvider</name>
+        <qualifiedname>NamedConstBlock::makeInfoProvider</qualifiedname>
+        <param>
+          <type>const <ref refid="structNamedConstBlock_1_1RegisterProperties" kindref="compound">RegisterProperties</ref> NamedConstBlock::*</type>
+          <declname>props</declname>
+        </param>
+        <param>
+          <type><ref refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9b" kindref="member">HlslRegisterSpace</ref></type>
+          <declname>rspace</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="161" column="8" bodyfile="namedConst.h" bodystart="238" bodyend="262"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="4">
+        <label>HlslRegAllocator</label>
+        <link refid="classHlslRegAllocator"/>
+      </node>
+      <node id="1">
+        <label>NamedConstBlock</label>
+        <link refid="structNamedConstBlock"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>bufferedConstProps</edgelabel>
+          <edgelabel>pixelProps</edgelabel>
+          <edgelabel>vertexProps</edgelabel>
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>globConstBlk</edgelabel>
+        </childnode>
+        <childnode refid="4" relation="usage">
+          <edgelabel>bufferedConstsRegAllocator</edgelabel>
+        </childnode>
+        <childnode refid="5" relation="usage">
+          <edgelabel>slotTextureSuballocators</edgelabel>
+        </childnode>
+        <childnode refid="6" relation="usage">
+          <edgelabel>suppBlk</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>NamedConstBlock::RegisterProperties</label>
+        <link refid="structNamedConstBlock_1_1RegisterProperties"/>
+      </node>
+      <node id="5">
+        <label>NamedConstBlock::SlotTextureSubAllocators</label>
+        <link refid="structNamedConstBlock_1_1SlotTextureSubAllocators"/>
+        <childnode refid="4" relation="usage">
+          <edgelabel>psSamplers</edgelabel>
+          <edgelabel>psTex</edgelabel>
+          <edgelabel>vsSamplers</edgelabel>
+          <edgelabel>vsTex</edgelabel>
+        </childnode>
+      </node>
+      <node id="6">
+        <label>SerializableTab&lt; bindump::Address&lt; ShaderStateBlock &gt; &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="7" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>ShaderStateBlock</label>
+        <link refid="classShaderStateBlock"/>
+        <childnode refid="1" relation="usage">
+          <edgelabel>shConst</edgelabel>
+        </childnode>
+      </node>
+      <node id="7">
+        <label>Tab&lt; bindump::Address&lt; ShaderStateBlock &gt; &gt;</label>
+      </node>
+    </collaborationgraph>
+    <location file="namedConst.h" line="41" column="1" bodyfile="namedConst.h" bodystart="42" bodyend="162"/>
+    <listofallmembers>
+      <member refid="structNamedConstBlock_1a05ca2e54e5d452b311791a274b3a89c6" prot="public" virt="non-virtual"><scope>NamedConstBlock</scope><name>addConst</name></member>
+      <member refid="structNamedConstBlock_1a0e016ca71cfa266875d521e7cb3b77c4" prot="public" virt="non-virtual"><scope>NamedConstBlock</scope><name>addHlslDecl</name></member>
+      <member refid="structNamedConstBlock_1a0b0fe20e1188c7d7ec4a85335a1cb8ff" prot="public" virt="non-virtual"><scope>NamedConstBlock</scope><name>BINDUMP_BEGIN_NON_SERIALIZABLE</name></member>
+      <member refid="structNamedConstBlock_1ac2470844efc87eecba9ded085dd44729" prot="public" virt="non-virtual"><scope>NamedConstBlock</scope><name>BINDUMP_END_NON_SERIALIZABLE</name></member>
+      <member refid="structNamedConstBlock_1a933d90bd69ae8545d726e05ca9737fdc" prot="public" virt="non-virtual"><scope>NamedConstBlock</scope><name>bufferedConstProps</name></member>
+      <member refid="structNamedConstBlock_1a95442c1d7e1d362c78e8148db109a7b0" prot="public" virt="non-virtual"><scope>NamedConstBlock</scope><name>bufferedConstsRegAllocator</name></member>
+      <member refid="structNamedConstBlock_1a74354e18dfcc0fd0cf6743b41f78e75a" prot="public" virt="non-virtual"><scope>NamedConstBlock</scope><name>buildAllHlsl</name></member>
+      <member refid="structNamedConstBlock_1ae9dd74ec617ca8b13f28e5b7d70f2085" prot="public" virt="non-virtual"><scope>NamedConstBlock</scope><name>buildDrawcallIdHlslDecl</name></member>
+      <member refid="structNamedConstBlock_1a3064c974ba863cf05116ed392817ea07" prot="public" virt="non-virtual"><scope>NamedConstBlock</scope><name>buildGlobalConstBufHlslDecl</name></member>
+      <member refid="structNamedConstBlock_1aca3466647682ba3d4cb29d7dc26d6035" prot="public" virt="non-virtual"><scope>NamedConstBlock</scope><name>buildHlslDeclText</name></member>
+      <member refid="structNamedConstBlock_1ac38bd9c5aced5329117ff6f19f16bf8e" prot="public" virt="non-virtual"><scope>NamedConstBlock</scope><name>buildStaticConstBufHlslDecl</name></member>
+      <member refid="structNamedConstBlock_1a72106d5c313c2c0321dde8c4a69c064e" prot="public" virt="non-virtual"><scope>NamedConstBlock</scope><name>cachedPixelOrComputeHlsl</name></member>
+      <member refid="structNamedConstBlock_1ad027cc67960b6fd8e9a48f9da4f980f5" prot="public" virt="non-virtual"><scope>NamedConstBlock</scope><name>cachedVertexHlsl</name></member>
+      <member refid="structNamedConstBlock_1abe80b6b60085d82df776e30495e70fe2" prot="public" virt="non-virtual"><scope>NamedConstBlock</scope><name>doBuildHlslDeclText</name></member>
+      <member refid="structNamedConstBlock_1aeca6aff124ea34a947982809388a8f1c" prot="public" virt="non-virtual"><scope>NamedConstBlock</scope><name>dropHlslCaches</name></member>
+      <member refid="structNamedConstBlock_1ad773aa86a998987a7974eee310517ebf" prot="public" virt="non-virtual"><scope>NamedConstBlock</scope><name>getDigest</name></member>
+      <member refid="structNamedConstBlock_1a077cdc00515b9c76bd75371533bc4b54" prot="public" virt="non-virtual"><scope>NamedConstBlock</scope><name>getSlot</name></member>
+      <member refid="structNamedConstBlock_1acf9d45dff5fc77641076418665f5d0f6" prot="public" virt="non-virtual"><scope>NamedConstBlock</scope><name>getSlot</name></member>
+      <member refid="structNamedConstBlock_1ad679b5737b2c1ea6a65d3e0db4bb4e3c" prot="public" virt="non-virtual"><scope>NamedConstBlock</scope><name>getStaticTexRange</name></member>
+      <member refid="structNamedConstBlock_1a0b41f4029f83c088e31ed2bdbfa5c956" prot="public" virt="non-virtual"><scope>NamedConstBlock</scope><name>globConstBlk</name></member>
+      <member refid="structNamedConstBlock_1a634916d1d120d2df52b9c06556502874" prot="public" virt="non-virtual"><scope>NamedConstBlock</scope><name>initSlotTextureSuballocators</name></member>
+      <member refid="structNamedConstBlock_1a7845e8acb9ea5b24e9c9f4544c0df2a2" prot="public" virt="non-virtual"><scope>NamedConstBlock</scope><name>is_valid</name></member>
+      <member refid="structNamedConstBlock_1aa33304bd77fa74220b9ca8cafb0f9ffa" prot="public" virt="non-virtual"><scope>NamedConstBlock</scope><name>makeInfoProvider</name></member>
+      <member refid="structNamedConstBlock_1ac743b2af51a72ceb0208258b74d30924" prot="public" virt="non-virtual"><scope>NamedConstBlock</scope><name>MergedVariablesData</name></member>
+      <member refid="structNamedConstBlock_1a86f9ccf5deda6624677bd710d8b1dd64" prot="public" virt="non-virtual"><scope>NamedConstBlock</scope><name>multidrawCbuf</name></member>
+      <member refid="structNamedConstBlock_1aea9c8e8174b843788613e665c05bd0d0" prot="public" virt="non-virtual"><scope>NamedConstBlock</scope><name>NamedConstBlock</name></member>
+      <member refid="structNamedConstBlock_1affe5e403512a894df27f0e2332c6fa0d" prot="public" virt="non-virtual"><scope>NamedConstBlock</scope><name>patchHlsl</name></member>
+      <member refid="structNamedConstBlock_1a72e11e05584df7e760fd2722129578c7" prot="public" virt="non-virtual"><scope>NamedConstBlock</scope><name>pixelOrComputeRegAllocators</name></member>
+      <member refid="structNamedConstBlock_1af2982e411fef8f5bf02905031cac0bda" prot="public" virt="non-virtual"><scope>NamedConstBlock</scope><name>pixelProps</name></member>
+      <member refid="structNamedConstBlock_1ae6281d37edf661ab1ee8f1728c34dd54" prot="public" virt="non-virtual"><scope>NamedConstBlock</scope><name>slotTextureSuballocators</name></member>
+      <member refid="structNamedConstBlock_1ad28a319c4c4d3d6d500653d1fb7614d9" prot="public" virt="non-virtual"><scope>NamedConstBlock</scope><name>suppBlk</name></member>
+      <member refid="structNamedConstBlock_1af5d785154eb652eb976e9db509a5331f" prot="public" virt="non-virtual"><scope>NamedConstBlock</scope><name>vertexProps</name></member>
+      <member refid="structNamedConstBlock_1a6efd609ff10279c10300fca36972f50c" prot="public" virt="non-virtual"><scope>NamedConstBlock</scope><name>vertexRegAllocators</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

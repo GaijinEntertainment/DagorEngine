@@ -1,0 +1,92 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structNamedConstBlock_1_1SlotTextureSubAllocators" kind="struct" language="C++" prot="public">
+    <compoundname>NamedConstBlock::SlotTextureSubAllocators</compoundname>
+    <includes refid="namedConst_8h" local="no">namedConst.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structNamedConstBlock_1_1SlotTextureSubAllocators_1a30b6c56968292c9d25ddd2425bf6a707" prot="public" static="no" mutable="no">
+        <type><ref refid="classHlslRegAllocator" kindref="compound">HlslRegAllocator</ref></type>
+        <definition>HlslRegAllocator NamedConstBlock::SlotTextureSubAllocators::vsTex</definition>
+        <argsstring></argsstring>
+        <name>vsTex</name>
+        <qualifiedname>NamedConstBlock::SlotTextureSubAllocators::vsTex</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="60" column="22" bodyfile="namedConst.h" bodystart="60" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structNamedConstBlock_1_1SlotTextureSubAllocators_1a29602deff0108cbe4897f27f3f77cd35" prot="public" static="no" mutable="no">
+        <type><ref refid="classHlslRegAllocator" kindref="compound">HlslRegAllocator</ref></type>
+        <definition>HlslRegAllocator NamedConstBlock::SlotTextureSubAllocators::psTex</definition>
+        <argsstring></argsstring>
+        <name>psTex</name>
+        <qualifiedname>NamedConstBlock::SlotTextureSubAllocators::psTex</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="60" column="28" bodyfile="namedConst.h" bodystart="60" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structNamedConstBlock_1_1SlotTextureSubAllocators_1a52d8054a14fa2623c76bc66cbf44ab79" prot="public" static="no" mutable="no">
+        <type><ref refid="classHlslRegAllocator" kindref="compound">HlslRegAllocator</ref></type>
+        <definition>HlslRegAllocator NamedConstBlock::SlotTextureSubAllocators::vsSamplers</definition>
+        <argsstring></argsstring>
+        <name>vsSamplers</name>
+        <qualifiedname>NamedConstBlock::SlotTextureSubAllocators::vsSamplers</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="60" column="34" bodyfile="namedConst.h" bodystart="60" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structNamedConstBlock_1_1SlotTextureSubAllocators_1ae1b3ccbc2b85ecaa582df27d143294a3" prot="public" static="no" mutable="no">
+        <type><ref refid="classHlslRegAllocator" kindref="compound">HlslRegAllocator</ref></type>
+        <definition>HlslRegAllocator NamedConstBlock::SlotTextureSubAllocators::psSamplers</definition>
+        <argsstring></argsstring>
+        <name>psSamplers</name>
+        <qualifiedname>NamedConstBlock::SlotTextureSubAllocators::psSamplers</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="60" column="45" bodyfile="namedConst.h" bodystart="60" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>HlslRegAllocator</label>
+        <link refid="classHlslRegAllocator"/>
+      </node>
+      <node id="1">
+        <label>NamedConstBlock::SlotTextureSubAllocators</label>
+        <link refid="structNamedConstBlock_1_1SlotTextureSubAllocators"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>psSamplers</edgelabel>
+          <edgelabel>psTex</edgelabel>
+          <edgelabel>vsSamplers</edgelabel>
+          <edgelabel>vsTex</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="namedConst.h" line="58" column="3" bodyfile="namedConst.h" bodystart="59" bodyend="61"/>
+    <listofallmembers>
+      <member refid="structNamedConstBlock_1_1SlotTextureSubAllocators_1ae1b3ccbc2b85ecaa582df27d143294a3" prot="public" virt="non-virtual"><scope>NamedConstBlock::SlotTextureSubAllocators</scope><name>psSamplers</name></member>
+      <member refid="structNamedConstBlock_1_1SlotTextureSubAllocators_1a29602deff0108cbe4897f27f3f77cd35" prot="public" virt="non-virtual"><scope>NamedConstBlock::SlotTextureSubAllocators</scope><name>psTex</name></member>
+      <member refid="structNamedConstBlock_1_1SlotTextureSubAllocators_1a52d8054a14fa2623c76bc66cbf44ab79" prot="public" virt="non-virtual"><scope>NamedConstBlock::SlotTextureSubAllocators</scope><name>vsSamplers</name></member>
+      <member refid="structNamedConstBlock_1_1SlotTextureSubAllocators_1a30b6c56968292c9d25ddd2425bf6a707" prot="public" virt="non-virtual"><scope>NamedConstBlock::SlotTextureSubAllocators</scope><name>vsTex</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,78 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygenindex xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="index.xsd" version="1.9.7" xml:lang="en-US">
+  <compound refid="structresource__slot_1_1Create" kind="struct"><name>resource_slot::Create</name>
+    <member refid="structresource__slot_1_1Create_1a8dadba2fe39c58de975923929bd719c4" kind="variable"><name>slot</name></member>
+    <member refid="structresource__slot_1_1Create_1a995c99f12e786847eb90890d72c22ab2" kind="variable"><name>resource</name></member>
+    <member refid="structresource__slot_1_1Create_1a4ff02b7a8cad522ef4047cf653b88648" kind="function"><name>Create</name></member>
+  </compound>
+  <compound refid="structresource__slot_1_1NodeHandleWithSlotsAccess" kind="struct"><name>resource_slot::NodeHandleWithSlotsAccess</name>
+    <member refid="structresource__slot_1_1NodeHandleWithSlotsAccess_1a5bbdf37909fae866175d8eb5bcd0f44b" kind="variable"><name>nameSpace</name></member>
+    <member refid="structresource__slot_1_1NodeHandleWithSlotsAccess_1a4dd12bb0cf636f28608189a3700fdcc5" kind="variable"><name>id</name></member>
+    <member refid="structresource__slot_1_1NodeHandleWithSlotsAccess_1a35bc341e900fbd8a19c03ac442e56a15" kind="variable"><name>generation</name></member>
+    <member refid="structresource__slot_1_1NodeHandleWithSlotsAccess_1a195ef152122ff32dbe6dd1b5bdbdfa29" kind="variable"><name>isValid</name></member>
+    <member refid="structresource__slot_1_1NodeHandleWithSlotsAccess_1a86e1b6dc24fb16eb88b44b2a95a71b9f" kind="function"><name>NodeHandleWithSlotsAccess</name></member>
+    <member refid="structresource__slot_1_1NodeHandleWithSlotsAccess_1a551a8feb88750fa46636fa3552c8dc10" kind="function"><name>NodeHandleWithSlotsAccess</name></member>
+    <member refid="structresource__slot_1_1NodeHandleWithSlotsAccess_1a15d5686de184dfff3248eef5a00250b6" kind="function"><name>operator=</name></member>
+    <member refid="structresource__slot_1_1NodeHandleWithSlotsAccess_1a19f1e1ab8e0a3f21acb218dddbef2544" kind="function"><name>NodeHandleWithSlotsAccess</name></member>
+    <member refid="structresource__slot_1_1NodeHandleWithSlotsAccess_1a92f574ad19bf2b8fae8db0210f52b599" kind="function"><name>operator=</name></member>
+    <member refid="structresource__slot_1_1NodeHandleWithSlotsAccess_1ac64a7b11fdb53aee52bff75ba9ba59b2" kind="function"><name>reset</name></member>
+    <member refid="structresource__slot_1_1NodeHandleWithSlotsAccess_1afdbd3049554d54f4c5bfc4b9ae366398" kind="function"><name>valid</name></member>
+    <member refid="structresource__slot_1_1NodeHandleWithSlotsAccess_1a0af3b823b0da20fc0ce3f6b0e74ea006" kind="function"><name>~NodeHandleWithSlotsAccess</name></member>
+    <member refid="structresource__slot_1_1NodeHandleWithSlotsAccess_1a5ff017e0fe659dd6b2dc6af016097ddf" kind="function"><name>_noteContext</name></member>
+    <member refid="structresource__slot_1_1NodeHandleWithSlotsAccess_1a353da4b8fb1eee260470327a19e6a463" kind="function"><name>NodeHandleWithSlotsAccess</name></member>
+  </compound>
+  <compound refid="structresource__slot_1_1Read" kind="struct"><name>resource_slot::Read</name>
+    <member refid="structresource__slot_1_1Read_1a8102424c4d6ea572d754b03d251c3b9f" kind="variable"><name>slot</name></member>
+    <member refid="structresource__slot_1_1Read_1a6c3d4781dbefd4670a2c81f544828b3a" kind="variable"><name>priority</name></member>
+    <member refid="structresource__slot_1_1Read_1a00e917e7262e2f34ac0ef1baaa376c27" kind="variable"><name>DEFAULT_READ_PRIORITY</name></member>
+    <member refid="structresource__slot_1_1Read_1a5b9c7c4d1d8c8b4d02c858b35b33203a" kind="function"><name>Read</name></member>
+  </compound>
+  <compound refid="structresource__slot_1_1State" kind="struct"><name>resource_slot::State</name>
+    <member refid="structresource__slot_1_1State_1aba494944f8d3c8c6f314e76e3b48c77e" kind="variable"><name>nameSpace</name></member>
+    <member refid="structresource__slot_1_1State_1a8666edac86e2892232009983fc488a3c" kind="variable"><name>nodeId</name></member>
+    <member refid="structresource__slot_1_1State_1a276697757ddc2db6a07f1ff587b0c41a" kind="variable"><name>order</name></member>
+    <member refid="structresource__slot_1_1State_1ab0cb7e93d6023ce963ce83ebf3a844c0" kind="variable"><name>size</name></member>
+    <member refid="structresource__slot_1_1State_1aba51a73e48df1d0b71ceffa59315387d" kind="function"><name>State</name></member>
+    <member refid="structresource__slot_1_1State_1a62a5295a923429a71f86456317ca2275" kind="function"><name>State</name></member>
+    <member refid="structresource__slot_1_1State_1aa0cc554f364b237d587916e549aa410a" kind="function"><name>operator=</name></member>
+    <member refid="structresource__slot_1_1State_1ac462e14dd9304f2a400bcfca3135fe29" kind="function"><name>State</name></member>
+    <member refid="structresource__slot_1_1State_1adb0e3131829b189e3eea48dc62c8cc3a" kind="function"><name>operator=</name></member>
+    <member refid="structresource__slot_1_1State_1a7c115a4c18755452173c3c8707ead590" kind="function"><name>~State</name></member>
+    <member refid="structresource__slot_1_1State_1aff47c210c4d351220b468b4126486168" kind="function"><name>resourceToReadFrom</name></member>
+    <member refid="structresource__slot_1_1State_1a95dc1fbca8fc25ad0ecb9e9300ed92b4" kind="function"><name>resourceToCreateFor</name></member>
+    <member refid="structresource__slot_1_1State_1a4694fbe64d47bd4e6c97a64c7b51a652" kind="function"><name>orderInChain</name></member>
+    <member refid="structresource__slot_1_1State_1a798eedee88dc023e58183e48eef84353" kind="function"><name>sizeOfChain</name></member>
+    <member refid="structresource__slot_1_1State_1a832e383b2cd0997adcb4e02a31d902f5" kind="function"><name>isNodeLastInChain</name></member>
+    <member refid="structresource__slot_1_1State_1a344d9a9e3344188486a8093a61d6eda5" kind="function"><name>State</name></member>
+    <member refid="structresource__slot_1_1State_1ac6326836ea8c7a31367d05b9b3d3eecb" kind="friend"><name>resolve_access</name></member>
+  </compound>
+  <compound refid="structresource__slot_1_1Update" kind="struct"><name>resource_slot::Update</name>
+    <member refid="structresource__slot_1_1Update_1ab13e0a43ec440fd7f685d838381de475" kind="variable"><name>slot</name></member>
+    <member refid="structresource__slot_1_1Update_1a8f622e08f61e11f0b7b2a8d846a6eda6" kind="variable"><name>resource</name></member>
+    <member refid="structresource__slot_1_1Update_1ac8641f37acb487c4610aca2f80dbdb7c" kind="variable"><name>priority</name></member>
+    <member refid="structresource__slot_1_1Update_1a912d02a74981cadaefc459b69c2b22ce" kind="function"><name>Update</name></member>
+  </compound>
+  <compound refid="namespacedafg" kind="namespace"><name>dafg</name>
+    <member refid="state_8h_1a565c0217dd16e34177d6b33b875a263e" kind="function"><name>root</name></member>
+  </compound>
+  <compound refid="namespacedas" kind="namespace"><name>das</name>
+  </compound>
+  <compound refid="namespaceresource__slot" kind="namespace"><name>resource_slot</name>
+    <member refid="nodeHandleWithSlotsAccessVector_8h_1a35fcae9b16cfbf8a92e1ae28da92d52f" kind="typedef"><name>NodeHandleWithSlotsAccessVector</name></member>
+    <member refid="registerAccess_8h_1ad1427ecc850267dc1cfaa29d6afca318" kind="function"><name>register_access</name></member>
+    <member refid="registerAccess_8h_1acf4a05b313288aa0c6d737cf3c542cde" kind="function"><name>register_access</name></member>
+    <member refid="resolveAccess_8h_1afff154ac3725f493ecee9557ec582f9c" kind="function"><name>resolve_access</name></member>
+  </compound>
+  <compound refid="actions_8h" kind="file"><name>actions.h</name>
+  </compound>
+  <compound refid="nodeHandleWithSlotsAccess_8h" kind="file"><name>nodeHandleWithSlotsAccess.h</name>
+  </compound>
+  <compound refid="nodeHandleWithSlotsAccessVector_8h" kind="file"><name>nodeHandleWithSlotsAccessVector.h</name>
+  </compound>
+  <compound refid="registerAccess_8h" kind="file"><name>registerAccess.h</name>
+  </compound>
+  <compound refid="resolveAccess_8h" kind="file"><name>resolveAccess.h</name>
+  </compound>
+  <compound refid="state_8h" kind="file"><name>state.h</name>
+  </compound>
+</doxygenindex>

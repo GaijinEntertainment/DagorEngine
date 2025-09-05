@@ -1,0 +1,179 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classdag__auto__ptr" kind="class" language="C++" prot="public">
+    <compoundname>dag_auto_ptr</compoundname>
+    <includes refid="dag__auto__ptr_8h" local="no">dag_auto_ptr.h</includes>
+    <templateparamlist>
+      <param>
+        <type>class X</type>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classdag__auto__ptr_1a9ea3cc7876e59dfe3c9a6fb4ff7635c5" prot="private" static="no" mutable="yes">
+        <type>X *</type>
+        <definition>X* dag_auto_ptr&lt; X &gt;::ptr</definition>
+        <argsstring></argsstring>
+        <name>ptr</name>
+        <qualifiedname>dag_auto_ptr::ptr</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_auto_ptr.h" line="45" column="13" bodyfile="dag_auto_ptr.h" bodystart="45" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classdag__auto__ptr_1afe37276189366520dbfadb900591d459" prot="public" static="no" const="no" explicit="yes" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>dag_auto_ptr&lt; X &gt;::dag_auto_ptr</definition>
+        <argsstring>(X *p=0)</argsstring>
+        <name>dag_auto_ptr</name>
+        <qualifiedname>dag_auto_ptr::dag_auto_ptr</qualifiedname>
+        <param>
+          <type>X *</type>
+          <declname>p</declname>
+          <defval>0</defval>
+        </param>
+        <exceptions> throw ()</exceptions>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_auto_ptr.h" line="9" column="12" bodyfile="dag_auto_ptr.h" bodystart="9" bodyend="9"/>
+      </memberdef>
+      <memberdef kind="function" id="classdag__auto__ptr_1aa896010c42822c3193e7071bd8241e9c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>dag_auto_ptr&lt; X &gt;::dag_auto_ptr</definition>
+        <argsstring>(const dag_auto_ptr &amp;ap)</argsstring>
+        <name>dag_auto_ptr</name>
+        <qualifiedname>dag_auto_ptr::dag_auto_ptr</qualifiedname>
+        <param>
+          <type>const <ref refid="classdag__auto__ptr" kindref="compound">dag_auto_ptr</ref> &amp;</type>
+          <declname>ap</declname>
+        </param>
+        <exceptions> throw ()</exceptions>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_auto_ptr.h" line="10" column="3" bodyfile="dag_auto_ptr.h" bodystart="10" bodyend="14"/>
+      </memberdef>
+      <memberdef kind="function" id="classdag__auto__ptr_1a1038ff5379fc3f232fa5cc5426fb858f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classdag__auto__ptr" kindref="compound">dag_auto_ptr</ref> &amp;</type>
+        <definition>dag_auto_ptr &amp; dag_auto_ptr&lt; X &gt;::operator=</definition>
+        <argsstring>(const dag_auto_ptr &amp;ap)</argsstring>
+        <name>operator=</name>
+        <qualifiedname>dag_auto_ptr::operator=</qualifiedname>
+        <param>
+          <type>const <ref refid="classdag__auto__ptr" kindref="compound">dag_auto_ptr</ref> &amp;</type>
+          <declname>ap</declname>
+        </param>
+        <exceptions> throw ()</exceptions>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_auto_ptr.h" line="16" column="16" bodyfile="dag_auto_ptr.h" bodystart="16" bodyend="24"/>
+      </memberdef>
+      <memberdef kind="function" id="classdag__auto__ptr_1a127c271bdbeed3809039f29c22658ea6" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>dag_auto_ptr&lt; X &gt;::~dag_auto_ptr</definition>
+        <argsstring>()</argsstring>
+        <name>~dag_auto_ptr</name>
+        <qualifiedname>dag_auto_ptr::~dag_auto_ptr</qualifiedname>
+        <exceptions> throw ()</exceptions>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_auto_ptr.h" line="26" column="3" bodyfile="dag_auto_ptr.h" bodystart="26" bodyend="31"/>
+      </memberdef>
+      <memberdef kind="function" id="classdag__auto__ptr_1ae637f80b666de306345fbf62103d337d" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>X &amp;</type>
+        <definition>X &amp; dag_auto_ptr&lt; X &gt;::operator*</definition>
+        <argsstring>() const</argsstring>
+        <name>operator*</name>
+        <qualifiedname>dag_auto_ptr::operator*</qualifiedname>
+        <exceptions> throw ()</exceptions>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_auto_ptr.h" line="34" column="5" bodyfile="dag_auto_ptr.h" bodystart="34" bodyend="34"/>
+      </memberdef>
+      <memberdef kind="function" id="classdag__auto__ptr_1a3a6e2f4e1497b851e654c5c72c95e576" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>X *</type>
+        <definition>X * dag_auto_ptr&lt; X &gt;::operator-&gt;</definition>
+        <argsstring>() const</argsstring>
+        <name>operator-&gt;</name>
+        <qualifiedname>dag_auto_ptr::operator-&gt;</qualifiedname>
+        <exceptions> throw ()</exceptions>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_auto_ptr.h" line="35" column="5" bodyfile="dag_auto_ptr.h" bodystart="35" bodyend="35"/>
+      </memberdef>
+      <memberdef kind="function" id="classdag__auto__ptr_1a784f37a8bd486bb82b05b07d9ad663f1" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>X *</type>
+        <definition>X * dag_auto_ptr&lt; X &gt;::get</definition>
+        <argsstring>() const</argsstring>
+        <name>get</name>
+        <qualifiedname>dag_auto_ptr::get</qualifiedname>
+        <exceptions> throw ()</exceptions>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_auto_ptr.h" line="36" column="5" bodyfile="dag_auto_ptr.h" bodystart="36" bodyend="36"/>
+      </memberdef>
+      <memberdef kind="function" id="classdag__auto__ptr_1aac684b7d3810a281c214d642b07bc22d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>X *</type>
+        <definition>X * dag_auto_ptr&lt; X &gt;::release</definition>
+        <argsstring>()</argsstring>
+        <name>release</name>
+        <qualifiedname>dag_auto_ptr::release</qualifiedname>
+        <exceptions> throw ()</exceptions>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_auto_ptr.h" line="37" column="5" bodyfile="dag_auto_ptr.h" bodystart="37" bodyend="42"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_auto_ptr.h" line="5" column="1" bodyfile="dag_auto_ptr.h" bodystart="6" bodyend="46"/>
+    <listofallmembers>
+      <member refid="classdag__auto__ptr_1afe37276189366520dbfadb900591d459" prot="public" virt="non-virtual"><scope>dag_auto_ptr</scope><name>dag_auto_ptr</name></member>
+      <member refid="classdag__auto__ptr_1aa896010c42822c3193e7071bd8241e9c" prot="public" virt="non-virtual"><scope>dag_auto_ptr</scope><name>dag_auto_ptr</name></member>
+      <member refid="classdag__auto__ptr_1a784f37a8bd486bb82b05b07d9ad663f1" prot="public" virt="non-virtual"><scope>dag_auto_ptr</scope><name>get</name></member>
+      <member refid="classdag__auto__ptr_1ae637f80b666de306345fbf62103d337d" prot="public" virt="non-virtual"><scope>dag_auto_ptr</scope><name>operator*</name></member>
+      <member refid="classdag__auto__ptr_1a3a6e2f4e1497b851e654c5c72c95e576" prot="public" virt="non-virtual"><scope>dag_auto_ptr</scope><name>operator-&gt;</name></member>
+      <member refid="classdag__auto__ptr_1a1038ff5379fc3f232fa5cc5426fb858f" prot="public" virt="non-virtual"><scope>dag_auto_ptr</scope><name>operator=</name></member>
+      <member refid="classdag__auto__ptr_1a9ea3cc7876e59dfe3c9a6fb4ff7635c5" prot="private" virt="non-virtual"><scope>dag_auto_ptr</scope><name>ptr</name></member>
+      <member refid="classdag__auto__ptr_1aac684b7d3810a281c214d642b07bc22d" prot="public" virt="non-virtual"><scope>dag_auto_ptr</scope><name>release</name></member>
+      <member refid="classdag__auto__ptr_1a127c271bdbeed3809039f29c22658ea6" prot="public" virt="non-virtual"><scope>dag_auto_ptr</scope><name>~dag_auto_ptr</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

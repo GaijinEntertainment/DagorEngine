@@ -1,0 +1,221 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structMatrixBufferHeapManager" kind="struct" language="C++" prot="public">
+    <compoundname>MatrixBufferHeapManager</compoundname>
+    <innerclass refid="structMatrixBufferHeapManager_1_1Heap" prot="public">MatrixBufferHeapManager::Heap</innerclass>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="structMatrixBufferHeapManager_1a8e682e3a36de9076b68f2699859a15e3" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr uint32_t</type>
+        <definition>constexpr uint32_t MatrixBufferHeapManager::ELEM_SIZE</definition>
+        <argsstring></argsstring>
+        <name>ELEM_SIZE</name>
+        <qualifiedname>MatrixBufferHeapManager::ELEM_SIZE</qualifiedname>
+        <initializer>= sizeof(float) * 4</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_linearMatrixBufferAllocator.h" line="18" column="29" bodyfile="dag_linearMatrixBufferAllocator.h" bodystart="18" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structMatrixBufferHeapManager_1a75987d0a3fdfaa63941d72efba3461f1" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr uint32_t</type>
+        <definition>constexpr uint32_t MatrixBufferHeapManager::MTX_SIZE</definition>
+        <argsstring></argsstring>
+        <name>MTX_SIZE</name>
+        <qualifiedname>MatrixBufferHeapManager::MTX_SIZE</qualifiedname>
+        <initializer>= ELEM_SIZE * 3</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_linearMatrixBufferAllocator.h" line="19" column="29" bodyfile="dag_linearMatrixBufferAllocator.h" bodystart="19" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="structMatrixBufferHeapManager_1aa41058eb2b3bb844e1b92f4a44e2c645" prot="protected" static="no" mutable="no">
+        <type><ref refid="structSbufferHeapManager" kindref="compound">SbufferHeapManager</ref></type>
+        <definition>SbufferHeapManager MatrixBufferHeapManager::sbufferHeapManager</definition>
+        <argsstring></argsstring>
+        <name>sbufferHeapManager</name>
+        <qualifiedname>MatrixBufferHeapManager::sbufferHeapManager</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_linearMatrixBufferAllocator.h" line="51" column="22" bodyfile="dag_linearMatrixBufferAllocator.h" bodystart="51" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structMatrixBufferHeapManager_1a0a7f44597f3df4e4402a0f358af253f3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>MatrixBufferHeapManager::MatrixBufferHeapManager</definition>
+        <argsstring>(const char *name)</argsstring>
+        <name>MatrixBufferHeapManager</name>
+        <qualifiedname>MatrixBufferHeapManager::MatrixBufferHeapManager</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_linearMatrixBufferAllocator.h" line="27" column="3" bodyfile="dag_linearMatrixBufferAllocator.h" bodystart="27" bodyend="27"/>
+      </memberdef>
+      <memberdef kind="function" id="structMatrixBufferHeapManager_1a6c7f2841b3fc04fa8ae8158c4b9eaa78" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void MatrixBufferHeapManager::copy</definition>
+        <argsstring>(Heap &amp;to, size_t to_offset, const Heap &amp;from, size_t from_offset, size_t len)</argsstring>
+        <name>copy</name>
+        <qualifiedname>MatrixBufferHeapManager::copy</qualifiedname>
+        <param>
+          <type><ref refid="structMatrixBufferHeapManager_1_1Heap" kindref="compound">Heap</ref> &amp;</type>
+          <declname>to</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>to_offset</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structMatrixBufferHeapManager_1_1Heap" kindref="compound">Heap</ref> &amp;</type>
+          <declname>from</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>from_offset</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>len</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_linearMatrixBufferAllocator.h" line="29" column="8" bodyfile="dag_linearMatrixBufferAllocator.h" bodystart="29" bodyend="35"/>
+      </memberdef>
+      <memberdef kind="function" id="structMatrixBufferHeapManager_1aec5eea68ec0e1ae26bb4077d62d17724" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool MatrixBufferHeapManager::canCopyInSameHeap</definition>
+        <argsstring>() const</argsstring>
+        <name>canCopyInSameHeap</name>
+        <qualifiedname>MatrixBufferHeapManager::canCopyInSameHeap</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_linearMatrixBufferAllocator.h" line="36" column="8" bodyfile="dag_linearMatrixBufferAllocator.h" bodystart="36" bodyend="36"/>
+      </memberdef>
+      <memberdef kind="function" id="structMatrixBufferHeapManager_1a43410e4e7c99fea9893a257a54e0a3d5" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool MatrixBufferHeapManager::canCopyOverlapped</definition>
+        <argsstring>() const</argsstring>
+        <name>canCopyOverlapped</name>
+        <qualifiedname>MatrixBufferHeapManager::canCopyOverlapped</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_linearMatrixBufferAllocator.h" line="37" column="8" bodyfile="dag_linearMatrixBufferAllocator.h" bodystart="37" bodyend="37"/>
+      </memberdef>
+      <memberdef kind="function" id="structMatrixBufferHeapManager_1ac50edf1aa43cbd6593da89d3c449bf31" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool MatrixBufferHeapManager::create</definition>
+        <argsstring>(Heap &amp;h, size_t sz)</argsstring>
+        <name>create</name>
+        <qualifiedname>MatrixBufferHeapManager::create</qualifiedname>
+        <param>
+          <type><ref refid="structMatrixBufferHeapManager_1_1Heap" kindref="compound">Heap</ref> &amp;</type>
+          <declname>h</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>sz</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_linearMatrixBufferAllocator.h" line="38" column="8" bodyfile="dag_linearMatrixBufferAllocator.h" bodystart="38" bodyend="42"/>
+      </memberdef>
+      <memberdef kind="function" id="structMatrixBufferHeapManager_1a1bb441c1298aa4a5030e558dac692751" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void MatrixBufferHeapManager::orphan</definition>
+        <argsstring>(Heap &amp;h)</argsstring>
+        <name>orphan</name>
+        <qualifiedname>MatrixBufferHeapManager::orphan</qualifiedname>
+        <param>
+          <type><ref refid="structMatrixBufferHeapManager_1_1Heap" kindref="compound">Heap</ref> &amp;</type>
+          <declname>h</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_linearMatrixBufferAllocator.h" line="43" column="8" bodyfile="dag_linearMatrixBufferAllocator.h" bodystart="43" bodyend="47"/>
+      </memberdef>
+      <memberdef kind="function" id="structMatrixBufferHeapManager_1af6ed63a4a004ed9fe6428df75831a841" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * MatrixBufferHeapManager::getName</definition>
+        <argsstring>() const</argsstring>
+        <name>getName</name>
+        <qualifiedname>MatrixBufferHeapManager::getName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_linearMatrixBufferAllocator.h" line="48" column="14" bodyfile="dag_linearMatrixBufferAllocator.h" bodystart="48" bodyend="48"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="1">
+        <label>MatrixBufferHeapManager</label>
+        <link refid="structMatrixBufferHeapManager"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>sbufferHeapManager</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>SbufferHeapManager</label>
+        <link refid="structSbufferHeapManager"/>
+      </node>
+    </collaborationgraph>
+    <location file="dag_linearMatrixBufferAllocator.h" line="15" column="1" bodyfile="dag_linearMatrixBufferAllocator.h" bodystart="16" bodyend="52"/>
+    <listofallmembers>
+      <member refid="structMatrixBufferHeapManager_1aec5eea68ec0e1ae26bb4077d62d17724" prot="public" virt="non-virtual"><scope>MatrixBufferHeapManager</scope><name>canCopyInSameHeap</name></member>
+      <member refid="structMatrixBufferHeapManager_1a43410e4e7c99fea9893a257a54e0a3d5" prot="public" virt="non-virtual"><scope>MatrixBufferHeapManager</scope><name>canCopyOverlapped</name></member>
+      <member refid="structMatrixBufferHeapManager_1a6c7f2841b3fc04fa8ae8158c4b9eaa78" prot="public" virt="non-virtual"><scope>MatrixBufferHeapManager</scope><name>copy</name></member>
+      <member refid="structMatrixBufferHeapManager_1ac50edf1aa43cbd6593da89d3c449bf31" prot="public" virt="non-virtual"><scope>MatrixBufferHeapManager</scope><name>create</name></member>
+      <member refid="structMatrixBufferHeapManager_1a8e682e3a36de9076b68f2699859a15e3" prot="public" virt="non-virtual"><scope>MatrixBufferHeapManager</scope><name>ELEM_SIZE</name></member>
+      <member refid="structMatrixBufferHeapManager_1af6ed63a4a004ed9fe6428df75831a841" prot="public" virt="non-virtual"><scope>MatrixBufferHeapManager</scope><name>getName</name></member>
+      <member refid="structMatrixBufferHeapManager_1a0a7f44597f3df4e4402a0f358af253f3" prot="public" virt="non-virtual"><scope>MatrixBufferHeapManager</scope><name>MatrixBufferHeapManager</name></member>
+      <member refid="structMatrixBufferHeapManager_1a75987d0a3fdfaa63941d72efba3461f1" prot="public" virt="non-virtual"><scope>MatrixBufferHeapManager</scope><name>MTX_SIZE</name></member>
+      <member refid="structMatrixBufferHeapManager_1a1bb441c1298aa4a5030e558dac692751" prot="public" virt="non-virtual"><scope>MatrixBufferHeapManager</scope><name>orphan</name></member>
+      <member refid="structMatrixBufferHeapManager_1aa41058eb2b3bb844e1b92f4a44e2c645" prot="protected" virt="non-virtual"><scope>MatrixBufferHeapManager</scope><name>sbufferHeapManager</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

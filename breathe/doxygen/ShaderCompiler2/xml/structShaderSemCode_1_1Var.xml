@@ -1,0 +1,155 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShaderSemCode_1_1Var" kind="struct" language="C++" prot="public">
+    <compoundname>ShaderSemCode::Var</compoundname>
+    <includes refid="shSemCode_8h" local="no">shSemCode.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structShaderSemCode_1_1Var_1a86cdadeac01f2ab2618ead6a2ad21736" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderSemCode::Var::nameId</definition>
+        <argsstring></argsstring>
+        <name>nameId</name>
+        <qualifiedname>ShaderSemCode::Var::nameId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="184" column="9" bodyfile="shSemCode.h" bodystart="184" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderSemCode_1_1Var_1a670250d27af8de5e58c91f0bce515ead" prot="public" static="no" mutable="no">
+        <type>ShaderVarType</type>
+        <definition>ShaderVarType ShaderSemCode::Var::type</definition>
+        <argsstring></argsstring>
+        <name>type</name>
+        <qualifiedname>ShaderSemCode::Var::type</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="185" column="19" bodyfile="shSemCode.h" bodystart="185" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderSemCode_1_1Var_1a95c0c925bab6a7daa97cb06ae076e81f" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderSemCode::Var::slot</definition>
+        <argsstring></argsstring>
+        <name>slot</name>
+        <qualifiedname>ShaderSemCode::Var::slot</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="186" column="9" bodyfile="shSemCode.h" bodystart="186" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderSemCode_1_1Var_1ac84930f25b5f6aab069e88295c8302b6" prot="public" static="no" mutable="no">
+        <type>ShaderVarTextureType</type>
+        <definition>ShaderVarTextureType ShaderSemCode::Var::texType</definition>
+        <argsstring></argsstring>
+        <name>texType</name>
+        <qualifiedname>ShaderSemCode::Var::texType</qualifiedname>
+        <initializer>= ShaderVarTextureType::SHVT_TEX_UNKNOWN</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="187" column="26" bodyfile="shSemCode.h" bodystart="187" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderSemCode_1_1Var_1a15d03f52a51f3979c9f6b1f08cc2d714" prot="public" static="no" mutable="no">
+        <type>void *</type>
+        <definition>void* ShaderSemCode::Var::terminal</definition>
+        <argsstring></argsstring>
+        <name>terminal</name>
+        <qualifiedname>ShaderSemCode::Var::terminal</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="188" column="10" bodyfile="shSemCode.h" bodystart="188" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderSemCode_1_1Var_1a0fec4a32aa8fdba3e34b7aba1518c76f" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ShaderSemCode::Var::used</definition>
+        <argsstring></argsstring>
+        <name>used</name>
+        <qualifiedname>ShaderSemCode::Var::used</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="189" column="10" bodyfile="shSemCode.h" bodystart="189" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderSemCode_1_1Var_1a88b199052f426ef5cd3573f1b5e4bd9b" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ShaderSemCode::Var::dynamic</definition>
+        <argsstring></argsstring>
+        <name>dynamic</name>
+        <qualifiedname>ShaderSemCode::Var::dynamic</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="189" column="15" bodyfile="shSemCode.h" bodystart="189" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderSemCode_1_1Var_1a83075d22200a17a9468ea42d34ffe065" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ShaderSemCode::Var::noWarnings</definition>
+        <argsstring></argsstring>
+        <name>noWarnings</name>
+        <qualifiedname>ShaderSemCode::Var::noWarnings</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="189" column="23" bodyfile="shSemCode.h" bodystart="189" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structShaderSemCode_1_1Var_1aa764633c08c147e3f70001f04bbb64bb" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ShaderSemCode::Var::Var</definition>
+        <argsstring>()</argsstring>
+        <name>Var</name>
+        <qualifiedname>ShaderSemCode::Var::Var</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="191" column="5" bodyfile="shSemCode.h" bodystart="191" bodyend="191"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="shSemCode.h" line="182" column="3" bodyfile="shSemCode.h" bodystart="183" bodyend="192"/>
+    <listofallmembers>
+      <member refid="structShaderSemCode_1_1Var_1a88b199052f426ef5cd3573f1b5e4bd9b" prot="public" virt="non-virtual"><scope>ShaderSemCode::Var</scope><name>dynamic</name></member>
+      <member refid="structShaderSemCode_1_1Var_1a86cdadeac01f2ab2618ead6a2ad21736" prot="public" virt="non-virtual"><scope>ShaderSemCode::Var</scope><name>nameId</name></member>
+      <member refid="structShaderSemCode_1_1Var_1a83075d22200a17a9468ea42d34ffe065" prot="public" virt="non-virtual"><scope>ShaderSemCode::Var</scope><name>noWarnings</name></member>
+      <member refid="structShaderSemCode_1_1Var_1a95c0c925bab6a7daa97cb06ae076e81f" prot="public" virt="non-virtual"><scope>ShaderSemCode::Var</scope><name>slot</name></member>
+      <member refid="structShaderSemCode_1_1Var_1a15d03f52a51f3979c9f6b1f08cc2d714" prot="public" virt="non-virtual"><scope>ShaderSemCode::Var</scope><name>terminal</name></member>
+      <member refid="structShaderSemCode_1_1Var_1ac84930f25b5f6aab069e88295c8302b6" prot="public" virt="non-virtual"><scope>ShaderSemCode::Var</scope><name>texType</name></member>
+      <member refid="structShaderSemCode_1_1Var_1a670250d27af8de5e58c91f0bce515ead" prot="public" virt="non-virtual"><scope>ShaderSemCode::Var</scope><name>type</name></member>
+      <member refid="structShaderSemCode_1_1Var_1a0fec4a32aa8fdba3e34b7aba1518c76f" prot="public" virt="non-virtual"><scope>ShaderSemCode::Var</scope><name>used</name></member>
+      <member refid="structShaderSemCode_1_1Var_1aa764633c08c147e3f70001f04bbb64bb" prot="public" virt="non-virtual"><scope>ShaderSemCode::Var</scope><name>Var</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

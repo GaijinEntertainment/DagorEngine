@@ -1,0 +1,375 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classCfgShader" kind="class" language="C++" prot="public">
+    <compoundname>CfgShader</compoundname>
+    <basecompoundref refid="classCfgReader" prot="public" virt="non-virtual">CfgReader</basecompoundref>
+    <includes refid="cfg_8h" local="no">cfg.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classCfgShader_1a79f7b001f80f47e919a742c0d5c5737b" prot="public" static="no" mutable="no">
+        <type><ref refid="cfg_8h_1ae5ef8cc5d6614eca03380f7efa3eaea5" kindref="member">StringVector</ref></type>
+        <definition>StringVector CfgShader::shader_names</definition>
+        <argsstring></argsstring>
+        <name>shader_names</name>
+        <qualifiedname>CfgShader::shader_names</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="84" column="16" bodyfile="cfg.h" bodystart="84" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classCfgShader_1a43b186d97b492e71fd6d47e7ebd6d309" prot="public" static="no" mutable="no">
+        <type><ref refid="cfg_8h_1ae5ef8cc5d6614eca03380f7efa3eaea5" kindref="member">StringVector</ref></type>
+        <definition>StringVector CfgShader::global_params</definition>
+        <argsstring></argsstring>
+        <name>global_params</name>
+        <qualifiedname>CfgShader::global_params</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="86" column="16" bodyfile="cfg.h" bodystart="86" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classCfgShader_1a8e6eedaba432f0f7ec6584cab98e9c53" prot="public" static="no" mutable="no">
+        <type><ref refid="cfg_8h_1ae5ef8cc5d6614eca03380f7efa3eaea5" kindref="member">StringVector</ref></type>
+        <definition>StringVector CfgShader::shader_params</definition>
+        <argsstring></argsstring>
+        <name>shader_params</name>
+        <qualifiedname>CfgShader::shader_params</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="87" column="16" bodyfile="cfg.h" bodystart="87" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classCfgShader_1a28238933d02d50ee18f20b32ceaccc16" prot="public" static="no" mutable="no">
+        <type><ref refid="cfg_8h_1ae5ef8cc5d6614eca03380f7efa3eaea5" kindref="member">StringVector</ref></type>
+        <definition>StringVector CfgShader::settings_params</definition>
+        <argsstring></argsstring>
+        <name>settings_params</name>
+        <qualifiedname>CfgShader::settings_params</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="88" column="16" bodyfile="cfg.h" bodystart="88" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classCfgShader_1ad57471fbd3a0c141c939031ee0d4a072" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>CfgShader::CfgShader</definition>
+        <argsstring>(M_STD_STRING name)</argsstring>
+        <name>CfgShader</name>
+        <qualifiedname>CfgShader::CfgShader</qualifiedname>
+        <param>
+          <type><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref></type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="90" column="3" bodyfile="cfg.cpp" bodystart="174" bodyend="174"/>
+      </memberdef>
+      <memberdef kind="function" id="classCfgShader_1a68a9d7422cc4df1ca5693e84906d8f00" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type></type>
+        <definition>CfgShader::~CfgShader</definition>
+        <argsstring>()</argsstring>
+        <name>~CfgShader</name>
+        <qualifiedname>CfgShader::~CfgShader</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="91" column="11" bodyfile="cfg.cpp" bodystart="176" bodyend="176"/>
+      </memberdef>
+      <memberdef kind="function" id="classCfgShader_1aee46d6e5791fe688ce137e41351bc9bf" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="cfg_8h_1ae5ef8cc5d6614eca03380f7efa3eaea5" kindref="member">StringVector</ref> *</type>
+        <definition>StringVector * CfgShader::GetShaderNames</definition>
+        <argsstring>()</argsstring>
+        <name>GetShaderNames</name>
+        <qualifiedname>CfgShader::GetShaderNames</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="96" column="16" bodyfile="cfg.cpp" bodystart="201" bodyend="215"/>
+      </memberdef>
+      <memberdef kind="function" id="classCfgShader_1a2a0fd27b5fbc2df5c2c4c68b8630bae6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="cfg_8h_1ae5ef8cc5d6614eca03380f7efa3eaea5" kindref="member">StringVector</ref> *</type>
+        <definition>StringVector * CfgShader::GetGlobalParams</definition>
+        <argsstring>()</argsstring>
+        <name>GetGlobalParams</name>
+        <qualifiedname>CfgShader::GetGlobalParams</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="98" column="16" bodyfile="cfg.cpp" bodystart="217" bodyend="224"/>
+      </memberdef>
+      <memberdef kind="function" id="classCfgShader_1a367f84d7b6bf1139f5e5d3fd05603c97" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="cfg_8h_1ae5ef8cc5d6614eca03380f7efa3eaea5" kindref="member">StringVector</ref> *</type>
+        <definition>StringVector * CfgShader::GetSettingsParams</definition>
+        <argsstring>()</argsstring>
+        <name>GetSettingsParams</name>
+        <qualifiedname>CfgShader::GetSettingsParams</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="99" column="16" bodyfile="cfg.cpp" bodystart="226" bodyend="233"/>
+      </memberdef>
+      <memberdef kind="function" id="classCfgShader_1a26a5264aa69fd5f2fede935ed589800d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="cfg_8h_1ae5ef8cc5d6614eca03380f7efa3eaea5" kindref="member">StringVector</ref> *</type>
+        <definition>StringVector * CfgShader::GetShaderParams</definition>
+        <argsstring>(M_STD_STRING shader)</argsstring>
+        <name>GetShaderParams</name>
+        <qualifiedname>CfgShader::GetShaderParams</qualifiedname>
+        <param>
+          <type><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref></type>
+          <declname>shader</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="100" column="16" bodyfile="cfg.cpp" bodystart="235" bodyend="242"/>
+      </memberdef>
+      <memberdef kind="function" id="classCfgShader_1a69944687d77c008a92f276399c9fe882" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref></type>
+        <definition>M_STD_STRING CfgShader::GetParamOwner</definition>
+        <argsstring>(M_STD_STRING param)</argsstring>
+        <name>GetParamOwner</name>
+        <qualifiedname>CfgShader::GetParamOwner</qualifiedname>
+        <param>
+          <type><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref></type>
+          <declname>param</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="102" column="16" bodyfile="cfg.cpp" bodystart="244" bodyend="270"/>
+      </memberdef>
+      <memberdef kind="function" id="classCfgShader_1a56390a01b587cb4c94a8eeaebe7c02e9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref></type>
+        <definition>M_STD_STRING CfgShader::GetParamValue</definition>
+        <argsstring>(M_STD_STRING owner, M_STD_STRING param)</argsstring>
+        <name>GetParamValue</name>
+        <qualifiedname>CfgShader::GetParamValue</qualifiedname>
+        <param>
+          <type><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref></type>
+          <declname>owner</declname>
+        </param>
+        <param>
+          <type><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref></type>
+          <declname>param</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="103" column="16" bodyfile="cfg.cpp" bodystart="272" bodyend="272"/>
+      </memberdef>
+      <memberdef kind="function" id="classCfgShader_1ad516ef5d1ffaba4eba99c7fbccd6f5eb" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int CfgShader::GetParamType</definition>
+        <argsstring>(M_STD_STRING owner, M_STD_STRING param)</argsstring>
+        <name>GetParamType</name>
+        <qualifiedname>CfgShader::GetParamType</qualifiedname>
+        <param>
+          <type><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref></type>
+          <declname>owner</declname>
+        </param>
+        <param>
+          <type><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref></type>
+          <declname>param</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="104" column="7" bodyfile="cfg.cpp" bodystart="274" bodyend="305"/>
+      </memberdef>
+      <memberdef kind="function" id="classCfgShader_1af1ed0ddf842ac33da7b595c5fd974e4b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int CfgShader::GetParamStatus</definition>
+        <argsstring>(M_STD_STRING owner, M_STD_STRING param)</argsstring>
+        <name>GetParamStatus</name>
+        <qualifiedname>CfgShader::GetParamStatus</qualifiedname>
+        <param>
+          <type><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref></type>
+          <declname>owner</declname>
+        </param>
+        <param>
+          <type><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref></type>
+          <declname>param</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="105" column="7" bodyfile="cfg.cpp" bodystart="307" bodyend="312"/>
+      </memberdef>
+      <memberdef kind="function" id="classCfgShader_1a6283e195ac932b7330dd43398c96e0cd" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int CfgShader::GetParamMode</definition>
+        <argsstring>(M_STD_STRING owner, M_STD_STRING param)</argsstring>
+        <name>GetParamMode</name>
+        <qualifiedname>CfgShader::GetParamMode</qualifiedname>
+        <param>
+          <type><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref></type>
+          <declname>owner</declname>
+        </param>
+        <param>
+          <type><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref></type>
+          <declname>param</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="106" column="7" bodyfile="cfg.cpp" bodystart="314" bodyend="319"/>
+      </memberdef>
+      <memberdef kind="function" id="classCfgShader_1a4ee30547e0f9031dc60e5fd17646f6c5" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="cfg_8h_1ae5ef8cc5d6614eca03380f7efa3eaea5" kindref="member">StringVector</ref></type>
+        <definition>StringVector CfgShader::GetParamData</definition>
+        <argsstring>(M_STD_STRING owner, M_STD_STRING param)</argsstring>
+        <name>GetParamData</name>
+        <qualifiedname>CfgShader::GetParamData</qualifiedname>
+        <param>
+          <type><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref></type>
+          <declname>owner</declname>
+        </param>
+        <param>
+          <type><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref></type>
+          <declname>param</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="107" column="16" bodyfile="cfg.cpp" bodystart="321" bodyend="352"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="classCfgShader_1af916040330d237b1f39f398aee636be5" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void CfgShader::GetCfgFilename</definition>
+        <argsstring>(const TCHAR *cfg, TCHAR *filename)</argsstring>
+        <name>GetCfgFilename</name>
+        <qualifiedname>CfgShader::GetCfgFilename</qualifiedname>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>cfg</declname>
+        </param>
+        <param>
+          <type>TCHAR *</type>
+          <declname>filename</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="94" column="15" bodyfile="cfg.cpp" bodystart="178" bodyend="199"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>CfgReader</label>
+        <link refid="classCfgReader"/>
+      </node>
+      <node id="1">
+        <label>CfgShader</label>
+        <link refid="classCfgShader"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>CfgReader</label>
+        <link refid="classCfgReader"/>
+      </node>
+      <node id="1">
+        <label>CfgShader</label>
+        <link refid="classCfgShader"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="cfg.h" line="81" column="1" bodyfile="cfg.h" bodystart="82" bodyend="108"/>
+    <listofallmembers>
+      <member refid="classCfgReader_1ad79a9527a47b2a9bdc4b91d5e197e504" prot="public" virt="non-virtual"><scope>CfgShader</scope><name>CfgReader</name></member>
+      <member refid="classCfgReader_1a4e307fef803e9965ee07108fb5ec867b" prot="public" virt="non-virtual"><scope>CfgShader</scope><name>CfgReader</name></member>
+      <member refid="classCfgShader_1ad57471fbd3a0c141c939031ee0d4a072" prot="public" virt="non-virtual"><scope>CfgShader</scope><name>CfgShader</name></member>
+      <member refid="classCfgReader_1a44ce811a3ca7ee7279e54da42e8d1448" prot="public" virt="non-virtual"><scope>CfgShader</scope><name>filename</name></member>
+      <member refid="classCfgReader_1a3ffc11138ad6220f6ab2656468c9da92" prot="public" virt="non-virtual"><scope>CfgShader</scope><name>FindSection</name></member>
+      <member refid="classCfgShader_1af916040330d237b1f39f398aee636be5" prot="public" virt="non-virtual"><scope>CfgShader</scope><name>GetCfgFilename</name></member>
+      <member refid="classCfgShader_1a2a0fd27b5fbc2df5c2c4c68b8630bae6" prot="public" virt="non-virtual"><scope>CfgShader</scope><name>GetGlobalParams</name></member>
+      <member refid="classCfgReader_1a50748b567edd53f77e1c7b1ad841fcf9" prot="public" virt="non-virtual"><scope>CfgShader</scope><name>GetKeyValue</name></member>
+      <member refid="classCfgShader_1a4ee30547e0f9031dc60e5fd17646f6c5" prot="public" virt="non-virtual"><scope>CfgShader</scope><name>GetParamData</name></member>
+      <member refid="classCfgShader_1a6283e195ac932b7330dd43398c96e0cd" prot="public" virt="non-virtual"><scope>CfgShader</scope><name>GetParamMode</name></member>
+      <member refid="classCfgShader_1a69944687d77c008a92f276399c9fe882" prot="public" virt="non-virtual"><scope>CfgShader</scope><name>GetParamOwner</name></member>
+      <member refid="classCfgShader_1af1ed0ddf842ac33da7b595c5fd974e4b" prot="public" virt="non-virtual"><scope>CfgShader</scope><name>GetParamStatus</name></member>
+      <member refid="classCfgShader_1ad516ef5d1ffaba4eba99c7fbccd6f5eb" prot="public" virt="non-virtual"><scope>CfgShader</scope><name>GetParamType</name></member>
+      <member refid="classCfgShader_1a56390a01b587cb4c94a8eeaebe7c02e9" prot="public" virt="non-virtual"><scope>CfgShader</scope><name>GetParamValue</name></member>
+      <member refid="classCfgReader_1aa4a382e9af173b41cf92a612a1e156d6" prot="public" virt="non-virtual"><scope>CfgShader</scope><name>GetSectionDatas</name></member>
+      <member refid="classCfgReader_1acb058d3e530f33e0a193ee8ec0e5ec61" prot="public" virt="non-virtual"><scope>CfgShader</scope><name>GetSectionKeys</name></member>
+      <member refid="classCfgReader_1a51b911e3719d0f30b704a0ba76f0e4e3" prot="public" virt="non-virtual"><scope>CfgShader</scope><name>GetSectionNames</name></member>
+      <member refid="classCfgShader_1a367f84d7b6bf1139f5e5d3fd05603c97" prot="public" virt="non-virtual"><scope>CfgShader</scope><name>GetSettingsParams</name></member>
+      <member refid="classCfgShader_1aee46d6e5791fe688ce137e41351bc9bf" prot="public" virt="non-virtual"><scope>CfgShader</scope><name>GetShaderNames</name></member>
+      <member refid="classCfgShader_1a26a5264aa69fd5f2fede935ed589800d" prot="public" virt="non-virtual"><scope>CfgShader</scope><name>GetShaderParams</name></member>
+      <member refid="classCfgShader_1a43b186d97b492e71fd6d47e7ebd6d309" prot="public" virt="non-virtual"><scope>CfgShader</scope><name>global_params</name></member>
+      <member refid="classCfgReader_1aaab34e760450150e8b1a2bd4a3d7b0d4" prot="public" virt="non-virtual"><scope>CfgShader</scope><name>Remove</name></member>
+      <member refid="classCfgReader_1a4e8db9c514a510167a0d87959b824748" prot="public" virt="non-virtual"><scope>CfgShader</scope><name>Replace</name></member>
+      <member refid="classCfgReader_1a206fa92a391db69d9231547bb69220a3" prot="public" virt="non-virtual"><scope>CfgShader</scope><name>section_datas</name></member>
+      <member refid="classCfgReader_1abeeaf1240482d67170c1243ad984dbe6" prot="public" virt="non-virtual"><scope>CfgShader</scope><name>section_keys</name></member>
+      <member refid="classCfgReader_1a70e16c85f1d1c82c5c994d9de5ac90b8" prot="public" virt="non-virtual"><scope>CfgShader</scope><name>section_names</name></member>
+      <member refid="classCfgShader_1a28238933d02d50ee18f20b32ceaccc16" prot="public" virt="non-virtual"><scope>CfgShader</scope><name>settings_params</name></member>
+      <member refid="classCfgShader_1a79f7b001f80f47e919a742c0d5c5737b" prot="public" virt="non-virtual"><scope>CfgShader</scope><name>shader_names</name></member>
+      <member refid="classCfgShader_1a8e6eedaba432f0f7ec6584cab98e9c53" prot="public" virt="non-virtual"><scope>CfgShader</scope><name>shader_params</name></member>
+      <member refid="classCfgReader_1a1b855f546b31eb2792efa54f1ca9ca56" prot="public" virt="non-virtual"><scope>CfgShader</scope><name>WriteKeyVal</name></member>
+      <member refid="classCfgReader_1a8782aa5589495a4ca6fdac31ceb8e4f1" prot="public" virt="non-virtual"><scope>CfgShader</scope><name>~CfgReader</name></member>
+      <member refid="classCfgShader_1a68a9d7422cc4df1ca5693e84906d8f00" prot="public" virt="virtual"><scope>CfgShader</scope><name>~CfgShader</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

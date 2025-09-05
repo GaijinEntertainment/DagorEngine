@@ -1,0 +1,875 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classIGenEventHandlerWrapper" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>IGenEventHandlerWrapper</compoundname>
+    <basecompoundref refid="classIGenEventHandler" prot="public" virt="non-virtual">IGenEventHandler</basecompoundref>
+    <includes refid="ec__interface__ex_8h" local="no">ec_interface_ex.h</includes>
+      <sectiondef kind="user-defined">
+      <header>Mouse events handlers.</header>
+      <memberdef kind="function" id="classIGenEventHandlerWrapper_1ab9d9a7d40d5cd9f850aaac3a94807a0f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>bool IGenEventHandlerWrapper::handleMouseMove</definition>
+        <argsstring>(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override</argsstring>
+        <name>handleMouseMove</name>
+        <qualifiedname>IGenEventHandlerWrapper::handleMouseMove</qualifiedname>
+        <reimplements refid="classIGenEventHandler_1a46164eba137560a326038e89a9240ffe">handleMouseMove</reimplements>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>inside</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>buttons</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>key_modif</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Handles mouse move. If <ref refid="classIGenEventHandlerWrapper_1a1986eb9c1ca13312219a5e3ea24353c8" kindref="member">getWrappedHandler()</ref> returns not NULL then corresponding method (getWrappedHandler()-&gt;handleMouseMove()) will be called. In other case the function returns false.</para>
+<para>Handle mouse move. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window that generated the message </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x,y</bold> coordinates inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">inside</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true</bold> if an event occurred inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">buttons</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- mouse buttons state flags </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key_modif</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if an event successfully processed, <bold>false</bold> in other case   </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface_ex.h" line="146" column="8" bodyfile="ec_interface_ex.h" bodystart="146" bodyend="152"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenEventHandlerWrapper_1ae4da9969c8c6f8a4318f8905f8ee01fe" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>bool IGenEventHandlerWrapper::handleMouseLBPress</definition>
+        <argsstring>(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override</argsstring>
+        <name>handleMouseLBPress</name>
+        <qualifiedname>IGenEventHandlerWrapper::handleMouseLBPress</qualifiedname>
+        <reimplements refid="classIGenEventHandler_1a76d3042ca31425d226f0f72362e2dd56">handleMouseLBPress</reimplements>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>inside</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>buttons</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>key_modif</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Handles mouse left button press. If <ref refid="classIGenEventHandlerWrapper_1a1986eb9c1ca13312219a5e3ea24353c8" kindref="member">getWrappedHandler()</ref> returns not NULL then corresponding method (getWrappedHandler()-&gt;handleMouseLBPress()) will be called. In other case the function returns false.</para>
+<para>Handle mouse left button press <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window that generated the message </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x,y</bold> coordinates inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">inside</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true</bold> if an event occurred inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">buttons</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- mouse buttons state flags </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key_modif</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if an event successfully processed, <bold>false</bold> in other case   </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface_ex.h" line="159" column="8" bodyfile="ec_interface_ex.h" bodystart="159" bodyend="165"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenEventHandlerWrapper_1a736faeaaccb83763bf9a6db61361a5a5" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>bool IGenEventHandlerWrapper::handleMouseLBRelease</definition>
+        <argsstring>(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override</argsstring>
+        <name>handleMouseLBRelease</name>
+        <qualifiedname>IGenEventHandlerWrapper::handleMouseLBRelease</qualifiedname>
+        <reimplements refid="classIGenEventHandler_1a0d282a84127069635a1fae4b454a8d3b">handleMouseLBRelease</reimplements>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>inside</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>buttons</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>key_modif</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Handles mouse left button release. If <ref refid="classIGenEventHandlerWrapper_1a1986eb9c1ca13312219a5e3ea24353c8" kindref="member">getWrappedHandler()</ref> returns not NULL then corresponding method (getWrappedHandler()-&gt;handleMouseLBRelease()) will be called. In other case the function returns false.</para>
+<para>Handle mouse left button release <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window that generated the message </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x,y</bold> coordinates inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">inside</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true</bold> if an event occurred inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">buttons</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- mouse buttons state flags </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key_modif</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if an event successfully processed, <bold>false</bold> in other case   </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface_ex.h" line="172" column="8" bodyfile="ec_interface_ex.h" bodystart="172" bodyend="178"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenEventHandlerWrapper_1a81d64a326bc3a17b1210066ce329f2a4" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>bool IGenEventHandlerWrapper::handleMouseRBPress</definition>
+        <argsstring>(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override</argsstring>
+        <name>handleMouseRBPress</name>
+        <qualifiedname>IGenEventHandlerWrapper::handleMouseRBPress</qualifiedname>
+        <reimplements refid="classIGenEventHandler_1a5efed76d47bfdd603d2c031553b8d64a">handleMouseRBPress</reimplements>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>inside</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>buttons</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>key_modif</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Handles mouse right button press. If <ref refid="classIGenEventHandlerWrapper_1a1986eb9c1ca13312219a5e3ea24353c8" kindref="member">getWrappedHandler()</ref> returns not NULL then corresponding method (getWrappedHandler()-&gt;handleMouseRBPress()) will be called. In other case the function returns false.</para>
+<para>Handle mouse right button press <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window that generated the message </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x,y</bold> coordinates inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">inside</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true</bold> if an event occurred inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">buttons</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- mouse buttons state flags </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key_modif</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if an event successfully processed, <bold>false</bold> in other case   </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface_ex.h" line="185" column="8" bodyfile="ec_interface_ex.h" bodystart="185" bodyend="191"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenEventHandlerWrapper_1aca62211dbef6f8b1590c5e6511e3038a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>bool IGenEventHandlerWrapper::handleMouseRBRelease</definition>
+        <argsstring>(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override</argsstring>
+        <name>handleMouseRBRelease</name>
+        <qualifiedname>IGenEventHandlerWrapper::handleMouseRBRelease</qualifiedname>
+        <reimplements refid="classIGenEventHandler_1a2e35e2b69f623dd8f9ea4289bad0f809">handleMouseRBRelease</reimplements>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>inside</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>buttons</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>key_modif</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Handles mouse right button release. If <ref refid="classIGenEventHandlerWrapper_1a1986eb9c1ca13312219a5e3ea24353c8" kindref="member">getWrappedHandler()</ref> returns not NULL then corresponding method (getWrappedHandler()-&gt;handleMouseRBRelease()) will be called. In other case the function returns false.</para>
+<para>Handle mouse right button release <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window that generated the message </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x,y</bold> coordinates inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">inside</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true</bold> if an event occurred inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">buttons</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- mouse buttons state flags </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key_modif</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if an event successfully processed, <bold>false</bold> in other case   </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface_ex.h" line="198" column="8" bodyfile="ec_interface_ex.h" bodystart="198" bodyend="204"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenEventHandlerWrapper_1a0ed88450f25c0212873a9764919dbd4b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>bool IGenEventHandlerWrapper::handleMouseCBPress</definition>
+        <argsstring>(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override</argsstring>
+        <name>handleMouseCBPress</name>
+        <qualifiedname>IGenEventHandlerWrapper::handleMouseCBPress</qualifiedname>
+        <reimplements refid="classIGenEventHandler_1a39911163de6ae644a30da1c40886cd56">handleMouseCBPress</reimplements>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>inside</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>buttons</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>key_modif</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Handles mouse center button press. If <ref refid="classIGenEventHandlerWrapper_1a1986eb9c1ca13312219a5e3ea24353c8" kindref="member">getWrappedHandler()</ref> returns not NULL then corresponding method (getWrappedHandler()-&gt;handleMouseCBPress()) will be called. In other case the function returns false.</para>
+<para>Handle mouse center button press <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window that generated the message </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x,y</bold> coordinates inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">inside</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true</bold> if an event occurred inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">buttons</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- mouse buttons state flags </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key_modif</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if an event successfully processed, <bold>false</bold> in other case   </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface_ex.h" line="211" column="8" bodyfile="ec_interface_ex.h" bodystart="211" bodyend="217"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenEventHandlerWrapper_1a6002b8ae202439e8699f92ae5bb7de96" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>bool IGenEventHandlerWrapper::handleMouseCBRelease</definition>
+        <argsstring>(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override</argsstring>
+        <name>handleMouseCBRelease</name>
+        <qualifiedname>IGenEventHandlerWrapper::handleMouseCBRelease</qualifiedname>
+        <reimplements refid="classIGenEventHandler_1a611babe0c85315bb93ce54c4986ef80a">handleMouseCBRelease</reimplements>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>inside</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>buttons</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>key_modif</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Handles mouse center button release. If <ref refid="classIGenEventHandlerWrapper_1a1986eb9c1ca13312219a5e3ea24353c8" kindref="member">getWrappedHandler()</ref> returns not NULL then corresponding method (getWrappedHandler()-&gt;handleMouseCBRelease()) will be called. In other case the function returns false.</para>
+<para>Handle mouse center button release <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window that generated the message </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x,y</bold> coordinates inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">inside</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true</bold> if an event occurred inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">buttons</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- mouse buttons state flags </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key_modif</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if an event successfully processed, <bold>false</bold> in other case   </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface_ex.h" line="224" column="8" bodyfile="ec_interface_ex.h" bodystart="224" bodyend="230"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenEventHandlerWrapper_1ab4f89da919878dcb81a4f10eac389601" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>bool IGenEventHandlerWrapper::handleMouseWheel</definition>
+        <argsstring>(IGenViewportWnd *wnd, int wheel_d, int x, int y, int key_modif) override</argsstring>
+        <name>handleMouseWheel</name>
+        <qualifiedname>IGenEventHandlerWrapper::handleMouseWheel</qualifiedname>
+        <reimplements refid="classIGenEventHandler_1ae8879b99e9cf470abb70e4320e38de8c">handleMouseWheel</reimplements>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>wheel_d</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>key_modif</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Handles mouse scroll wheel. If <ref refid="classIGenEventHandlerWrapper_1a1986eb9c1ca13312219a5e3ea24353c8" kindref="member">getWrappedHandler()</ref> returns not NULL then corresponding method (getWrappedHandler()-&gt;handleMouseWheel()) will be called. In other case the function returns false.</para>
+<para>Handle mouse scroll wheel <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window that generated the message </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">wheel_d</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- scroll wheel steps </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x,y</bold> coordinates inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key_modif</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if an event successfully processed, <bold>false</bold> in other case   </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface_ex.h" line="237" column="8" bodyfile="ec_interface_ex.h" bodystart="237" bodyend="243"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenEventHandlerWrapper_1aa2a74fd0d8755be71cba174d3c8f9e3b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>bool IGenEventHandlerWrapper::handleMouseDoubleClick</definition>
+        <argsstring>(IGenViewportWnd *wnd, int x, int y, int key_modif) override</argsstring>
+        <name>handleMouseDoubleClick</name>
+        <qualifiedname>IGenEventHandlerWrapper::handleMouseDoubleClick</qualifiedname>
+        <reimplements refid="classIGenEventHandler_1a320e9235759aacd382f71d66d8138b15">handleMouseDoubleClick</reimplements>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>key_modif</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Handles mouse double-click. If <ref refid="classIGenEventHandlerWrapper_1a1986eb9c1ca13312219a5e3ea24353c8" kindref="member">getWrappedHandler()</ref> returns not NULL then corresponding method (getWrappedHandler()-&gt;handleMouseDoubleClick()) will be called. In other case the function returns false.</para>
+<para>Handle mouse double-click <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window that generated the message </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x,y</bold> coordinates inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key_modif</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if an event successfully processed, <bold>false</bold> in other case   </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface_ex.h" line="250" column="8" bodyfile="ec_interface_ex.h" bodystart="250" bodyend="256"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="user-defined">
+      <header>Viewport redraw/change events handlers.</header>
+      <memberdef kind="function" id="classIGenEventHandlerWrapper_1a677fac11e9d6c664f49d55dfae6f1df6" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>void IGenEventHandlerWrapper::handleViewportPaint</definition>
+        <argsstring>(IGenViewportWnd *wnd) override</argsstring>
+        <name>handleViewportPaint</name>
+        <qualifiedname>IGenEventHandlerWrapper::handleViewportPaint</qualifiedname>
+        <reimplements refid="classIGenEventHandler_1a7f3ce10fef24468691cfb20b568f8f9a">handleViewportPaint</reimplements>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Viewport CTL window redraw. If <ref refid="classIGenEventHandlerWrapper_1a1986eb9c1ca13312219a5e3ea24353c8" kindref="member">getWrappedHandler()</ref> returns not NULL then corresponding method (getWrappedHandler()-&gt;handleViewportPaint()) will be called. In other case the function does nothing.</para>
+<para>Viewport CTL window redraw <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window that generated the message </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">dc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- viewport&apos;s device context   </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface_ex.h" line="267" column="8" bodyfile="ec_interface_ex.h" bodystart="267" bodyend="272"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenEventHandlerWrapper_1a4015955c4ec44dbcf1f88b8ea8cf0bf2" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>void IGenEventHandlerWrapper::handleViewChange</definition>
+        <argsstring>(IGenViewportWnd *wnd) override</argsstring>
+        <name>handleViewChange</name>
+        <qualifiedname>IGenEventHandlerWrapper::handleViewChange</qualifiedname>
+        <reimplements refid="classIGenEventHandler_1af0e97cbbdf5fdeb07f09707ad80e8334">handleViewChange</reimplements>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Viewport view change notification. If <ref refid="classIGenEventHandlerWrapper_1a1986eb9c1ca13312219a5e3ea24353c8" kindref="member">getWrappedHandler()</ref> returns not NULL then corresponding method (getWrappedHandler()-&gt;handleViewChange()) will be called. In other case the function does nothing.</para>
+<para>Viewport view change notification <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window that generated the message   </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface_ex.h" line="279" column="8" bodyfile="ec_interface_ex.h" bodystart="279" bodyend="284"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classIGenEventHandlerWrapper_1a1986eb9c1ca13312219a5e3ea24353c8" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type><ref refid="classIGenEventHandler" kindref="compound">IGenEventHandler</ref> *</type>
+        <definition>virtual IGenEventHandler * IGenEventHandlerWrapper::getWrappedHandler</definition>
+        <argsstring>()=0</argsstring>
+        <name>getWrappedHandler</name>
+        <qualifiedname>IGenEventHandlerWrapper::getWrappedHandler</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get wrapped handler. Get pointer to default event handler. <simplesect kind="return"><para>pointer to default event handler </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface_ex.h" line="136" column="28"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Wrapper for <ref refid="classIGenEventHandler" kindref="compound">IGenEventHandler</ref>. The class is intended for simplification of event handling in <ref refid="classIGenEventHandler" kindref="compound">IGenEventHandler</ref>. Inheriting from this class one may override not all but wanted functions of <ref refid="classIGenEventHandler" kindref="compound">IGenEventHandler</ref> only. Other events will be skipped or handled by event handler obtained by <ref refid="classIGenEventHandlerWrapper_1a1986eb9c1ca13312219a5e3ea24353c8" kindref="member">getWrappedHandler()</ref>. </para>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>IGenEventHandler</label>
+        <link refid="classIGenEventHandler"/>
+      </node>
+      <node id="1">
+        <label>IGenEventHandlerWrapper</label>
+        <link refid="classIGenEventHandlerWrapper"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>IGenEventHandler</label>
+        <link refid="classIGenEventHandler"/>
+      </node>
+      <node id="1">
+        <label>IGenEventHandlerWrapper</label>
+        <link refid="classIGenEventHandlerWrapper"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="ec_interface_ex.h" line="130" column="1" bodyfile="ec_interface_ex.h" bodystart="131" bodyend="286"/>
+    <listofallmembers>
+      <member refid="classIGenEventHandlerWrapper_1a1986eb9c1ca13312219a5e3ea24353c8" prot="public" virt="pure-virtual"><scope>IGenEventHandlerWrapper</scope><name>getWrappedHandler</name></member>
+      <member refid="classIGenEventHandlerWrapper_1a0ed88450f25c0212873a9764919dbd4b" prot="public" virt="virtual"><scope>IGenEventHandlerWrapper</scope><name>handleMouseCBPress</name></member>
+      <member refid="classIGenEventHandlerWrapper_1a6002b8ae202439e8699f92ae5bb7de96" prot="public" virt="virtual"><scope>IGenEventHandlerWrapper</scope><name>handleMouseCBRelease</name></member>
+      <member refid="classIGenEventHandlerWrapper_1aa2a74fd0d8755be71cba174d3c8f9e3b" prot="public" virt="virtual"><scope>IGenEventHandlerWrapper</scope><name>handleMouseDoubleClick</name></member>
+      <member refid="classIGenEventHandlerWrapper_1ae4da9969c8c6f8a4318f8905f8ee01fe" prot="public" virt="virtual"><scope>IGenEventHandlerWrapper</scope><name>handleMouseLBPress</name></member>
+      <member refid="classIGenEventHandlerWrapper_1a736faeaaccb83763bf9a6db61361a5a5" prot="public" virt="virtual"><scope>IGenEventHandlerWrapper</scope><name>handleMouseLBRelease</name></member>
+      <member refid="classIGenEventHandlerWrapper_1ab9d9a7d40d5cd9f850aaac3a94807a0f" prot="public" virt="virtual"><scope>IGenEventHandlerWrapper</scope><name>handleMouseMove</name></member>
+      <member refid="classIGenEventHandlerWrapper_1a81d64a326bc3a17b1210066ce329f2a4" prot="public" virt="virtual"><scope>IGenEventHandlerWrapper</scope><name>handleMouseRBPress</name></member>
+      <member refid="classIGenEventHandlerWrapper_1aca62211dbef6f8b1590c5e6511e3038a" prot="public" virt="virtual"><scope>IGenEventHandlerWrapper</scope><name>handleMouseRBRelease</name></member>
+      <member refid="classIGenEventHandlerWrapper_1ab4f89da919878dcb81a4f10eac389601" prot="public" virt="virtual"><scope>IGenEventHandlerWrapper</scope><name>handleMouseWheel</name></member>
+      <member refid="classIGenEventHandlerWrapper_1a4015955c4ec44dbcf1f88b8ea8cf0bf2" prot="public" virt="virtual"><scope>IGenEventHandlerWrapper</scope><name>handleViewChange</name></member>
+      <member refid="classIGenEventHandlerWrapper_1a677fac11e9d6c664f49d55dfae6f1df6" prot="public" virt="virtual"><scope>IGenEventHandlerWrapper</scope><name>handleViewportPaint</name></member>
+      <member refid="classIGenEventHandler_1adb70e764e4b90c0937dd7dc47261606b" prot="public" virt="virtual"><scope>IGenEventHandlerWrapper</scope><name>~IGenEventHandler</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,104 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structMilkshapeNodeAnim" kind="struct" language="C++" prot="public">
+    <compoundname>MilkshapeNodeAnim</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structMilkshapeNodeAnim_1ad20dbb6beee78ec314ceb34b145ef415" prot="public" static="no" mutable="no">
+        <type>TSTR</type>
+        <definition>TSTR MilkshapeNodeAnim::name</definition>
+        <argsstring></argsstring>
+        <name>name</name>
+        <qualifiedname>MilkshapeNodeAnim::name</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="milkShapeAnimImport.cpp" line="167" column="8" bodyfile="milkShapeAnimImport.cpp" bodystart="167" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structMilkshapeNodeAnim_1a92b94859957503a95474ab97907d3c7b" prot="public" static="no" mutable="no">
+        <type><ref refid="structMilkshapeAnimTrack" kindref="compound">MilkshapeAnimTrack</ref></type>
+        <definition>MilkshapeAnimTrack MilkshapeNodeAnim::pos</definition>
+        <argsstring></argsstring>
+        <name>pos</name>
+        <qualifiedname>MilkshapeNodeAnim::pos</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="milkShapeAnimImport.cpp" line="168" column="22" bodyfile="milkShapeAnimImport.cpp" bodystart="168" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structMilkshapeNodeAnim_1a08aacd5d827f70a2d166ad65052351bc" prot="public" static="no" mutable="no">
+        <type><ref refid="structMilkshapeAnimTrack" kindref="compound">MilkshapeAnimTrack</ref></type>
+        <definition>MilkshapeAnimTrack MilkshapeNodeAnim::rot</definition>
+        <argsstring></argsstring>
+        <name>rot</name>
+        <qualifiedname>MilkshapeNodeAnim::rot</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="milkShapeAnimImport.cpp" line="168" column="26" bodyfile="milkShapeAnimImport.cpp" bodystart="168" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structMilkshapeNodeAnim_1a426fe15212bdd24a5b0ba19d2224e11c" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 MilkshapeNodeAnim::lpos</definition>
+        <argsstring></argsstring>
+        <name>lpos</name>
+        <qualifiedname>MilkshapeNodeAnim::lpos</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="milkShapeAnimImport.cpp" line="169" column="10" bodyfile="milkShapeAnimImport.cpp" bodystart="169" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structMilkshapeNodeAnim_1a79ad01abd33d145de1a626ed54061221" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 MilkshapeNodeAnim::lrot</definition>
+        <argsstring></argsstring>
+        <name>lrot</name>
+        <qualifiedname>MilkshapeNodeAnim::lrot</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="milkShapeAnimImport.cpp" line="169" column="15" bodyfile="milkShapeAnimImport.cpp" bodystart="169" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>MilkshapeAnimTrack</label>
+        <link refid="structMilkshapeAnimTrack"/>
+      </node>
+      <node id="1">
+        <label>MilkshapeNodeAnim</label>
+        <link refid="structMilkshapeNodeAnim"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>pos</edgelabel>
+          <edgelabel>rot</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="milkShapeAnimImport.cpp" line="165" column="1" bodyfile="milkShapeAnimImport.cpp" bodystart="166" bodyend="170"/>
+    <listofallmembers>
+      <member refid="structMilkshapeNodeAnim_1a426fe15212bdd24a5b0ba19d2224e11c" prot="public" virt="non-virtual"><scope>MilkshapeNodeAnim</scope><name>lpos</name></member>
+      <member refid="structMilkshapeNodeAnim_1a79ad01abd33d145de1a626ed54061221" prot="public" virt="non-virtual"><scope>MilkshapeNodeAnim</scope><name>lrot</name></member>
+      <member refid="structMilkshapeNodeAnim_1ad20dbb6beee78ec314ceb34b145ef415" prot="public" virt="non-virtual"><scope>MilkshapeNodeAnim</scope><name>name</name></member>
+      <member refid="structMilkshapeNodeAnim_1a92b94859957503a95474ab97907d3c7b" prot="public" virt="non-virtual"><scope>MilkshapeNodeAnim</scope><name>pos</name></member>
+      <member refid="structMilkshapeNodeAnim_1a08aacd5d827f70a2d166ad65052351bc" prot="public" virt="non-virtual"><scope>MilkshapeNodeAnim</scope><name>rot</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

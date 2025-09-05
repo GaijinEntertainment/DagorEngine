@@ -1,0 +1,46 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structraytrace_1_1CallableShaderGroupMember" kind="struct" language="C++" prot="public">
+    <compoundname>raytrace::CallableShaderGroupMember</compoundname>
+    <includes refid="dag__drvRayTrace_8h" local="no">dag_drvRayTrace.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structraytrace_1_1CallableShaderGroupMember_1a3bd2c3d6ae4549d95bcf158d30dfa2f3" prot="public" static="no" mutable="no">
+        <type><ref refid="structShaderInLibraryReference" kindref="compound">ShaderInLibraryReference</ref></type>
+        <definition>ShaderInLibraryReference raytrace::CallableShaderGroupMember::callable</definition>
+        <argsstring></argsstring>
+        <name>callable</name>
+        <qualifiedname>raytrace::CallableShaderGroupMember::callable</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Reference of a callable shader Has to be a valid reference. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="475" column="28" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="475" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Shader group describing a callable group. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>ShaderInLibraryReference</label>
+        <link refid="structShaderInLibraryReference"/>
+      </node>
+      <node id="1">
+        <label>raytrace::CallableShaderGroupMember</label>
+        <link refid="structraytrace_1_1CallableShaderGroupMember"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>callable</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="rayTrace/dag_drvRayTrace.h" line="471" column="1" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="472" bodyend="476"/>
+    <listofallmembers>
+      <member refid="structraytrace_1_1CallableShaderGroupMember_1a3bd2c3d6ae4549d95bcf158d30dfa2f3" prot="public" virt="non-virtual"><scope>raytrace::CallableShaderGroupMember</scope><name>callable</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

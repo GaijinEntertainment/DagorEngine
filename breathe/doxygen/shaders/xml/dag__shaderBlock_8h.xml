@@ -1,0 +1,191 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__shaderBlock_8h" kind="file" language="C++">
+    <compoundname>dag_shaderBlock.h</compoundname>
+    <includes refid="dag__bindumpReloadListener_8h" local="no">shaders/dag_bindumpReloadListener.h</includes>
+    <incdepgraph>
+      <node id="2">
+        <label>shaders/dag_bindumpReloadListener.h</label>
+        <link refid="dag__bindumpReloadListener_8h_source"/>
+      </node>
+      <node id="1">
+        <label>dag_shaderBlock.h</label>
+        <link refid="dag__shaderBlock_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+    </incdepgraph>
+    <innerclass refid="structShaderBlockSetter" prot="public">ShaderBlockSetter</innerclass>
+    <innerclass refid="classScopeResetShaderBlocks" prot="public">ScopeResetShaderBlocks</innerclass>
+    <innerclass refid="classShaderBlockIdHolder" prot="public">ShaderBlockIdHolder</innerclass>
+    <innernamespace refid="namespaceShaderGlobal">ShaderGlobal</innernamespace>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="dag__shaderBlock_8h_1ac74c587241020d4d460f518b39e81a38" prot="public" static="no">
+        <name>LAYER_GUARD_GLUE</name>
+        <param><defname>a</defname></param>
+        <param><defname>b</defname></param>
+        <initializer>a##b</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderBlock.h" line="69" column="9" bodyfile="dag_shaderBlock.h" bodystart="69" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__shaderBlock_8h_1ad8d4ff6d8e5dce5ef9b14daa0e1039f2" prot="public" static="no">
+        <name>LAYER_GUARD_INTERNAL</name>
+        <param><defname>x</defname></param>
+        <param><defname>line</defname></param>
+        <param><defname>layer</defname></param>
+        <initializer><ref refid="structShaderBlockSetter" kindref="compound">ShaderBlockSetter</ref> LAYER_GUARD_GLUE(layer_guard, line)(x, layer)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderBlock.h" line="70" column="9" bodyfile="dag_shaderBlock.h" bodystart="70" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__shaderBlock_8h_1a4fb6b279914f06a947ecadfc63580435" prot="public" static="no">
+        <name>SCENE_LAYER_GUARD</name>
+        <param><defname>x</defname></param>
+        <initializer>LAYER_GUARD_INTERNAL(x, __LINE__, ShaderGlobal::LAYER_SCENE)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderBlock.h" line="71" column="9" bodyfile="dag_shaderBlock.h" bodystart="71" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__shaderBlock_8h_1a3d461db4a0c068e92217167f31b213fe" prot="public" static="no">
+        <name>FRAME_LAYER_GUARD</name>
+        <param><defname>x</defname></param>
+        <initializer>LAYER_GUARD_INTERNAL(x, __LINE__, ShaderGlobal::LAYER_FRAME)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderBlock.h" line="72" column="9" bodyfile="dag_shaderBlock.h" bodystart="72" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__shaderBlock_8h_1aef91a3da8ce40168129fcc03a1a3dddc" prot="public" static="no">
+        <name>SCOPE_RESET_SHADER_BLOCKS</name>
+        <initializer><ref refid="classScopeResetShaderBlocks" kindref="compound">ScopeResetShaderBlocks</ref> scopeResetShaderBlocks##__LINE__</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderBlock.h" line="116" column="9" bodyfile="dag_shaderBlock.h" bodystart="116" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;shaders/dag_bindumpReloadListener.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">ShaderGlobal</highlight></codeline>
+<codeline lineno="10"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"><sp/><sp/>LAYER_FRAME,</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"><sp/><sp/>LAYER_SCENE,</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"><sp/><sp/>LAYER_OBJECT,</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"><sp/><sp/>LAYER_GLOBAL_CONST</highlight></codeline>
+<codeline lineno="17"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>getBlockId(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*block_name,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>layer<sp/>=<sp/>-1);</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*getBlockName(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>block_id);</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight></codeline>
+<codeline lineno="28"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>setBlock(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>block_id,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>layer,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>invalidate_cached_stblk<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>getBlock(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>layer);</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight></codeline>
+<codeline lineno="35"><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>checkBlockCompatible(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>block_id,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>layer<sp/>=<sp/>-1);</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight></codeline>
+<codeline lineno="38"><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>getCurBlockStateWord();</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight></codeline>
+<codeline lineno="42"><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>decodeBlock(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>block_state_word,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>layer);</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"></highlight></codeline>
+<codeline lineno="50"><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>enableAutoBlockChange(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>enable);</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"></highlight></codeline>
+<codeline lineno="54"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>changeStateWord(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>new_block_state_word);</highlight></codeline>
+<codeline lineno="55"><highlight class="normal">};<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>ShaderGlobal</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="56"><highlight class="normal"></highlight></codeline>
+<codeline lineno="57" refid="structShaderBlockSetter" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structShaderBlockSetter" kindref="compound">ShaderBlockSetter</ref></highlight></codeline>
+<codeline lineno="58"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>oldBlock;</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>currentLayer;</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/><ref refid="structShaderBlockSetter" kindref="compound">ShaderBlockSetter</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>new_block,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>layer)<sp/>:<sp/>oldBlock(ShaderGlobal::getBlock(layer)),<sp/>currentLayer(layer)</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/><sp/><sp/>ShaderGlobal::setBlock(new_block,<sp/>currentLayer);</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"></highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/><ref refid="structShaderBlockSetter" kindref="compound">~ShaderBlockSetter</ref>()<sp/>{<sp/>ShaderGlobal::setBlock(oldBlock,<sp/>currentLayer);<sp/>}</highlight></codeline>
+<codeline lineno="67"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"></highlight></codeline>
+<codeline lineno="69"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>LAYER_GUARD_GLUE(a,<sp/>b)<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>a##b</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="70"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>LAYER_GUARD_INTERNAL(x,<sp/>line,<sp/>layer)<sp/>ShaderBlockSetter<sp/>LAYER_GUARD_GLUE(layer_guard,<sp/>line)(x,<sp/>layer)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="71"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>SCENE_LAYER_GUARD(x)<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>LAYER_GUARD_INTERNAL(x,<sp/>__LINE__,<sp/>ShaderGlobal::LAYER_SCENE)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="72"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>FRAME_LAYER_GUARD(x)<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>LAYER_GUARD_INTERNAL(x,<sp/>__LINE__,<sp/>ShaderGlobal::LAYER_FRAME)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="73"><highlight class="normal"></highlight></codeline>
+<codeline lineno="74" refid="classScopeResetShaderBlocks" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classScopeResetShaderBlocks" kindref="compound">ScopeResetShaderBlocks</ref></highlight></codeline>
+<codeline lineno="75"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/><ref refid="classScopeResetShaderBlocks" kindref="compound">ScopeResetShaderBlocks</ref>()</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/><sp/><sp/>prevFrameBlockId<sp/>=<sp/>ShaderGlobal::getBlock(ShaderGlobal::LAYER_FRAME);</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/><sp/><sp/>prevSceneBlockId<sp/>=<sp/>ShaderGlobal::getBlock(ShaderGlobal::LAYER_SCENE);</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/><sp/><sp/>prevObjectBlockId<sp/>=<sp/>ShaderGlobal::getBlock(ShaderGlobal::LAYER_OBJECT);</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/><sp/><sp/>ShaderGlobal::setBlock(-1,<sp/>ShaderGlobal::LAYER_FRAME);</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/><sp/><sp/>ShaderGlobal::setBlock(-1,<sp/>ShaderGlobal::LAYER_SCENE);</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/><sp/><sp/>ShaderGlobal::setBlock(-1,<sp/>ShaderGlobal::LAYER_OBJECT);</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"></highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/><ref refid="classScopeResetShaderBlocks" kindref="compound">~ScopeResetShaderBlocks</ref>()</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"><sp/><sp/><sp/><sp/>ShaderGlobal::setBlock(prevFrameBlockId,<sp/>ShaderGlobal::LAYER_FRAME);</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/><sp/><sp/>ShaderGlobal::setBlock(prevSceneBlockId,<sp/>ShaderGlobal::LAYER_SCENE);</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/><sp/><sp/>ShaderGlobal::setBlock(prevObjectBlockId,<sp/>ShaderGlobal::LAYER_OBJECT);</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"></highlight></codeline>
+<codeline lineno="94"><highlight class="normal"></highlight><highlight class="keyword">protected</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>prevFrameBlockId;</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>prevSceneBlockId;</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>prevObjectBlockId;</highlight></codeline>
+<codeline lineno="98"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"></highlight></codeline>
+<codeline lineno="100" refid="classShaderBlockIdHolder" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classShaderBlockIdHolder" kindref="compound">ShaderBlockIdHolder</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/><ref refid="classIShaderBindumpReloadListener" kindref="compound">IShaderBindumpReloadListener</ref></highlight></codeline>
+<codeline lineno="101"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal"><sp/>=<sp/>-1;</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name;</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>layer;</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"></highlight></codeline>
+<codeline lineno="106"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">explicit</highlight><highlight class="normal"><sp/><ref refid="classShaderBlockIdHolder" kindref="compound">ShaderBlockIdHolder</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>layer<sp/>=<sp/>-1)<sp/>:<sp/>name{name},<sp/>layer{layer}<sp/>{<sp/>resolve();<sp/>}</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"></highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>get()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>id;<sp/>}</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">operator</highlight><highlight class="normal"><sp/>int()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>id;<sp/>}</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"></highlight></codeline>
+<codeline lineno="112"><highlight class="normal"></highlight><highlight class="keyword">protected</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>resolve()<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="114"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="115"><highlight class="normal"></highlight></codeline>
+<codeline lineno="116"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>SCOPE_RESET_SHADER_BLOCKS<sp/>ScopeResetShaderBlocks<sp/>scopeResetShaderBlocks##__LINE__</highlight></codeline>
+    </programlisting>
+    <location file="dag_shaderBlock.h"/>
+  </compounddef>
+</doxygen>

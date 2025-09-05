@@ -1,0 +1,308 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="ec__genapp__ehfilter_8h" kind="file" language="C++">
+    <compoundname>ec_genapp_ehfilter.h</compoundname>
+    <includes refid="ec__genappwnd_8h" local="no">EditorCore/ec_genappwnd.h</includes>
+    <incdepgraph>
+      <node id="5">
+        <label>EditorCore/ec_ViewportWindow.h</label>
+        <link refid="ec__ViewportWindow_8h"/>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+      </node>
+      <node id="15">
+        <label>EditorCore/ec_camera_elem.h</label>
+        <link refid="ec__camera__elem_8h"/>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>EditorCore/ec_decl.h</label>
+        <link refid="ec__decl_8h"/>
+      </node>
+      <node id="1">
+        <label>ec_genapp_ehfilter.h</label>
+        <link refid="ec__genapp__ehfilter_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>EditorCore/ec_genappwnd.h</label>
+        <link refid="ec__genappwnd_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="34" relation="include">
+        </childnode>
+        <childnode refid="38" relation="include">
+        </childnode>
+        <childnode refid="39" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+        <childnode refid="42" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>EditorCore/ec_geneditordata.h</label>
+        <link refid="ec__geneditordata_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="36">
+        <label>EditorCore/ec_gizmoSettings.h</label>
+        <link refid="ec__gizmoSettings_8h"/>
+      </node>
+      <node id="27">
+        <label>EditorCore/ec_gridobject.h</label>
+        <link refid="ec__gridobject_8h"/>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="29" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>EditorCore/ec_interface.h</label>
+        <link refid="ec__interface_8h"/>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+      </node>
+      <node id="13">
+        <label>EditorCore/ec_rect.h</label>
+        <link refid="ec__rect_8h"/>
+      </node>
+      <node id="37">
+        <label>EditorCore/ec_screenshot.h</label>
+        <link refid="ec__screenshot_8h"/>
+      </node>
+      <node id="25">
+        <label>EditorCore/ec_status_bar.h</label>
+        <link refid="ec__status__bar_8h"/>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="14">
+        <label>EditorCore/ec_viewportAxisId.h</label>
+        <link refid="ec__viewportAxisId_8h"/>
+      </node>
+      <node id="35">
+        <label>EditorCore/ec_wndPublic.h</label>
+        <link refid="ec__wndPublic_8h"/>
+        <childnode refid="12" relation="include">
+        </childnode>
+      </node>
+      <node id="32">
+        <label>EditorCore/ec_workspace.h</label>
+        <link refid="ec__workspace_8h"/>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="33" relation="include">
+        </childnode>
+        <childnode refid="34" relation="include">
+        </childnode>
+      </node>
+      <node id="19">
+        <label>3d/dag_textureIDHolder.h</label>
+      </node>
+      <node id="18">
+        <label>EASTL/optional.h</label>
+      </node>
+      <node id="42">
+        <label>EASTL/unique_ptr.h</label>
+      </node>
+      <node id="41">
+        <label>coolConsole/coolConsole.h</label>
+      </node>
+      <node id="22">
+        <label>dag/dag_vector.h</label>
+      </node>
+      <node id="11">
+        <label>drv/3d/dag_resId.h</label>
+      </node>
+      <node id="28">
+        <label>generic/dag_DObject.h</label>
+      </node>
+      <node id="16">
+        <label>generic/dag_initOnDemand.h</label>
+      </node>
+      <node id="9">
+        <label>generic/dag_tab.h</label>
+      </node>
+      <node id="24">
+        <label>gui/dag_stdGuiRenderEx.h</label>
+      </node>
+      <node id="34">
+        <label>ioSys/dag_dataBlock.h</label>
+      </node>
+      <node id="33">
+        <label>libTools/containers/dag_StrMap.h</label>
+      </node>
+      <node id="12">
+        <label>libTools/util/hdpiUtil.h</label>
+      </node>
+      <node id="38">
+        <label>libTools/util/undo.h</label>
+      </node>
+      <node id="23">
+        <label>math/dag_Quat.h</label>
+      </node>
+      <node id="39">
+        <label>math/dag_TMatrix.h</label>
+      </node>
+      <node id="29">
+        <label>math/dag_e3dColor.h</label>
+      </node>
+      <node id="10">
+        <label>math/dag_math3d.h</label>
+      </node>
+      <node id="40">
+        <label>math/integer/dag_IPoint2.h</label>
+      </node>
+      <node id="17">
+        <label>propPanel/c_common.h</label>
+      </node>
+      <node id="31">
+        <label>propPanel/commonWindow/dialogWindow.h</label>
+      </node>
+      <node id="6">
+        <label>propPanel/control/menu.h</label>
+      </node>
+      <node id="7">
+        <label>propPanel/messageQueue.h</label>
+      </node>
+      <node id="30">
+        <label>util/dag_globDef.h</label>
+      </node>
+      <node id="20">
+        <label>util/dag_simpleString.h</label>
+      </node>
+      <node id="21">
+        <label>util/dag_stdint.h</label>
+      </node>
+      <node id="26">
+        <label>util/dag_string.h</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="classGenericEditorAppWindow_1_1AppEventHandler" prot="public">GenericEditorAppWindow::AppEventHandler</innerclass>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="ec__genappwnd_8h" kindref="compound">EditorCore/ec_genappwnd.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16" refid="classGenericEditorAppWindow_1_1AppEventHandler" refkind="compound"><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classGenericEditorAppWindow_1_1AppEventHandler" kindref="compound">GenericEditorAppWindow::AppEventHandler</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/><ref refid="classIGenEventHandler" kindref="compound">IGenEventHandler</ref></highlight></codeline>
+<codeline lineno="17"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="21" refid="classGenericEditorAppWindow_1_1AppEventHandler_1ae833a285273c8defdb6139c97240349a" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classGenericEditorAppWindow_1_1AppEventHandler_1ae833a285273c8defdb6139c97240349a" kindref="member">AppEventHandler</ref>(<ref refid="classGenericEditorAppWindow" kindref="compound">GenericEditorAppWindow</ref><sp/>&amp;m)<sp/>:<sp/><ref refid="classGenericEditorAppWindow_1_1AppEventHandler_1a4bffa9e4a0e8e7d5d2374c0368e5d274" kindref="member">main</ref>(m)<sp/>{}</highlight></codeline>
+<codeline lineno="23" refid="classGenericEditorAppWindow_1_1AppEventHandler_1a27684d68781446a96bec036ad693510a" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classGenericEditorAppWindow_1_1AppEventHandler_1a27684d68781446a96bec036ad693510a" kindref="member">~AppEventHandler</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{}</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//*****************************************************************</highlight></codeline>
+<codeline lineno="27"><highlight class="comment"></highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>handles<sp/>mouse<sp/>move</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="29" refid="classGenericEditorAppWindow_1_1AppEventHandler_1ab60664c33c7be702e2c3748dd8344d5b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classGenericEditorAppWindow_1_1AppEventHandler_1ab60664c33c7be702e2c3748dd8344d5b" kindref="member">handleMouseMove</ref>(<ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref><sp/>*wnd,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>x,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>y,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>inside,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>buttons,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>key_modif)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>handles<sp/>mouse<sp/>left<sp/>button<sp/>press/releas</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="31" refid="classGenericEditorAppWindow_1_1AppEventHandler_1ac33489f873b63cc8d3a91e8864880adb" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classGenericEditorAppWindow_1_1AppEventHandler_1ac33489f873b63cc8d3a91e8864880adb" kindref="member">handleMouseLBPress</ref>(<ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref><sp/>*wnd,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>x,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>y,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>inside,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>buttons,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>key_modif)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="32" refid="classGenericEditorAppWindow_1_1AppEventHandler_1a4183f6e9c33fa3b615c9c971ee0fbbd9" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classGenericEditorAppWindow_1_1AppEventHandler_1a4183f6e9c33fa3b615c9c971ee0fbbd9" kindref="member">handleMouseLBRelease</ref>(<ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref><sp/>*wnd,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>x,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>y,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>inside,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>buttons,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>key_modif)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>handles<sp/>mouse<sp/>right<sp/>button<sp/>press/releas</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="34" refid="classGenericEditorAppWindow_1_1AppEventHandler_1a94a96920e937134e82db682dec63829d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classGenericEditorAppWindow_1_1AppEventHandler_1a94a96920e937134e82db682dec63829d" kindref="member">handleMouseRBPress</ref>(<ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref><sp/>*wnd,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>x,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>y,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>inside,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>buttons,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>key_modif)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="35" refid="classGenericEditorAppWindow_1_1AppEventHandler_1a227138bf95479988f2f98b2cfb99f824" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classGenericEditorAppWindow_1_1AppEventHandler_1a227138bf95479988f2f98b2cfb99f824" kindref="member">handleMouseRBRelease</ref>(<ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref><sp/>*wnd,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>x,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>y,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>inside,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>buttons,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>key_modif)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>handles<sp/>mouse<sp/>center<sp/>button<sp/>press/releas</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="37" refid="classGenericEditorAppWindow_1_1AppEventHandler_1a442b387e4d49c158af7186f2ffaa3361" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classGenericEditorAppWindow_1_1AppEventHandler_1a442b387e4d49c158af7186f2ffaa3361" kindref="member">handleMouseCBPress</ref>(<ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref><sp/>*wnd,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>x,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>y,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>inside,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>buttons,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>key_modif)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="38" refid="classGenericEditorAppWindow_1_1AppEventHandler_1a7b6cd7304561d6b75ed18bc41a304259" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classGenericEditorAppWindow_1_1AppEventHandler_1a7b6cd7304561d6b75ed18bc41a304259" kindref="member">handleMouseCBRelease</ref>(<ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref><sp/>*wnd,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>x,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>y,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>inside,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>buttons,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>key_modif)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>handles<sp/>mouse<sp/>wheel<sp/>scroll</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="40" refid="classGenericEditorAppWindow_1_1AppEventHandler_1aa608f955a35bdae3e87fcb5e50247181" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classGenericEditorAppWindow_1_1AppEventHandler_1aa608f955a35bdae3e87fcb5e50247181" kindref="member">handleMouseWheel</ref>(<ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref><sp/>*wnd,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>wheel_d,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>x,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>y,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>key_modif)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>handles<sp/>mouse<sp/>double-click</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="42" refid="classGenericEditorAppWindow_1_1AppEventHandler_1a9fe62fdf35ede043a7dd369d13343434" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classGenericEditorAppWindow_1_1AppEventHandler_1a9fe62fdf35ede043a7dd369d13343434" kindref="member">handleMouseDoubleClick</ref>(<ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref><sp/>*wnd,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>x,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>y,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>key_modif)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//*****************************************************************</highlight></codeline>
+<codeline lineno="47"><highlight class="comment"></highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>viewport<sp/>CTL<sp/>window<sp/>redraw</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="49" refid="classGenericEditorAppWindow_1_1AppEventHandler_1a25f749fc65d31be5566a07dae4fe075d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGenericEditorAppWindow_1_1AppEventHandler_1a25f749fc65d31be5566a07dae4fe075d" kindref="member">handleViewportPaint</ref>(<ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref><sp/>*wnd)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>viewport<sp/>view<sp/>change<sp/>notification</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="51" refid="classGenericEditorAppWindow_1_1AppEventHandler_1af55d60c12fe583061e2bfecec2d990ad" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGenericEditorAppWindow_1_1AppEventHandler_1af55d60c12fe583061e2bfecec2d990ad" kindref="member">handleViewChange</ref>(<ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref><sp/>*wnd)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"></highlight></codeline>
+<codeline lineno="54"><highlight class="normal"></highlight><highlight class="keyword">protected</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="55" refid="classGenericEditorAppWindow_1_1AppEventHandler_1a4bffa9e4a0e8e7d5d2374c0368e5d274" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classGenericEditorAppWindow" kindref="compound">GenericEditorAppWindow</ref><sp/>&amp;<ref refid="classGenericEditorAppWindow_1_1AppEventHandler_1a4bffa9e4a0e8e7d5d2374c0368e5d274" kindref="member">main</ref>;</highlight></codeline>
+<codeline lineno="56"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="ec_genapp_ehfilter.h"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,249 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespaceresptr__detail" kind="namespace" language="C++">
+    <compoundname>resptr_detail</compoundname>
+    <innerclass refid="classresptr__detail_1_1BufferGetter" prot="public">resptr_detail::BufferGetter</innerclass>
+    <innerclass refid="classresptr__detail_1_1ConcreteResHolder" prot="public">resptr_detail::ConcreteResHolder</innerclass>
+    <innerclass refid="structresptr__detail_1_1ExternalBufWrapper" prot="public">resptr_detail::ExternalBufWrapper</innerclass>
+    <innerclass refid="structresptr__detail_1_1ExternalTexWrapper" prot="public">resptr_detail::ExternalTexWrapper</innerclass>
+    <innerclass refid="structresptr__detail_1_1Helper" prot="public">resptr_detail::Helper</innerclass>
+    <innerclass refid="structresptr__detail_1_1Helper_3_01BaseTexture_01_4" prot="public">resptr_detail::Helper&lt; BaseTexture &gt;</innerclass>
+    <innerclass refid="structresptr__detail_1_1Helper_3_01ExternalBufWrapper_01_4" prot="public">resptr_detail::Helper&lt; ExternalBufWrapper &gt;</innerclass>
+    <innerclass refid="structresptr__detail_1_1Helper_3_01ExternalTexWrapper_01_4" prot="public">resptr_detail::Helper&lt; ExternalTexWrapper &gt;</innerclass>
+    <innerclass refid="structresptr__detail_1_1Helper_3_01Sbuffer_01_4" prot="public">resptr_detail::Helper&lt; Sbuffer &gt;</innerclass>
+    <innerclass refid="classresptr__detail_1_1ManagedRes" prot="public">resptr_detail::ManagedRes</innerclass>
+    <innerclass refid="classresptr__detail_1_1ManagedResHolder" prot="public">resptr_detail::ManagedResHolder</innerclass>
+    <innerclass refid="classresptr__detail_1_1ManagedResView" prot="public">resptr_detail::ManagedResView</innerclass>
+    <innerclass refid="classresptr__detail_1_1MoveAssignable" prot="public">resptr_detail::MoveAssignable</innerclass>
+    <innerclass refid="structresptr__detail_1_1PrivateDataGetter" prot="public">resptr_detail::PrivateDataGetter</innerclass>
+    <innerclass refid="classresptr__detail_1_1ResFactory" prot="public">resptr_detail::ResFactory</innerclass>
+    <innerclass refid="classresptr__detail_1_1ResizableManagedTex" prot="public">resptr_detail::ResizableManagedTex</innerclass>
+    <innerclass refid="classresptr__detail_1_1ResizableManagedTexHolder" prot="public">resptr_detail::ResizableManagedTexHolder</innerclass>
+    <innerclass refid="classresptr__detail_1_1ResPtr" prot="public">resptr_detail::ResPtr</innerclass>
+    <innerclass refid="classresptr__detail_1_1SharedRes" prot="public">resptr_detail::SharedRes</innerclass>
+    <innerclass refid="classresptr__detail_1_1TextureGetter" prot="public">resptr_detail::TextureGetter</innerclass>
+    <innerclass refid="classresptr__detail_1_1UniqueRes" prot="public">resptr_detail::UniqueRes</innerclass>
+    <innerclass refid="classresptr__detail_1_1WeakMoveAssignable" prot="public">resptr_detail::WeakMoveAssignable</innerclass>
+    <innernamespace refid="namespaceresptr__detail_1_1resizeable__detail">resptr_detail::resizeable_detail</innernamespace>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="namespaceresptr__detail_1a96bf0f1207e8ca9187ea3ff4665bf87c" prot="public" static="no">
+        <type>uint64_t</type>
+        <definition>using resptr_detail::key_t = typedef uint64_t</definition>
+        <argsstring></argsstring>
+        <name>key_t</name>
+        <qualifiedname>resptr_detail::key_t</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resizableTex.h" line="17" column="1" bodyfile="dag_resizableTex.h" bodystart="17" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="namespaceresptr__detail_1adfcc57734bc1b6e952f7fd76c20c0886" prot="public" static="no">
+        <type><ref refid="classresptr__detail_1_1UniqueRes" kindref="compound">UniqueRes</ref>&lt; <ref refid="classresptr__detail_1_1ResizableManagedTex" kindref="compound">ResizableManagedTex</ref> &gt;</type>
+        <definition>using resptr_detail::ResizableTex = typedef UniqueRes&lt;ResizableManagedTex&gt;</definition>
+        <argsstring></argsstring>
+        <name>ResizableTex</name>
+        <qualifiedname>resptr_detail::ResizableTex</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resizableTex.h" line="78" column="1" bodyfile="dag_resizableTex.h" bodystart="78" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="namespaceresptr__detail_1aa0306c8f31acc85489dfb27d1265ca83" prot="public" static="no">
+        <type><ref refid="classresptr__detail_1_1ConcreteResHolder" kindref="compound">ConcreteResHolder</ref>&lt; <ref refid="classresptr__detail_1_1UniqueRes" kindref="compound">UniqueRes</ref>&lt; <ref refid="classresptr__detail_1_1ResizableManagedTexHolder" kindref="compound">ResizableManagedTexHolder</ref> &gt; &gt;</type>
+        <definition>using resptr_detail::ResizableTexHolder = typedef ConcreteResHolder&lt;UniqueRes&lt;ResizableManagedTexHolder&gt; &gt;</definition>
+        <argsstring></argsstring>
+        <name>ResizableTexHolder</name>
+        <qualifiedname>resptr_detail::ResizableTexHolder</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resizableTex.h" line="79" column="1" bodyfile="dag_resizableTex.h" bodystart="79" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="namespaceresptr__detail_1a3a7261d5d1d7a5aa62e04fbcaa4c784f" prot="public" static="no">
+        <templateparamlist>
+          <param>
+            <type>typename Type</type>
+          </param>
+          <param>
+            <type>typename ResType</type>
+          </param>
+        </templateparamlist>
+        <type>eastl::conditional_t&lt; eastl::is_same_v&lt; ResType, Sbuffer &gt;, <ref refid="classresptr__detail_1_1BufferGetter" kindref="compound">BufferGetter</ref>&lt; Type &gt;, <ref refid="classresptr__detail_1_1TextureGetter" kindref="compound">TextureGetter</ref>&lt; Type &gt; &gt;</type>
+        <definition>using resptr_detail::ResourceGetter = typedef eastl::conditional_t&lt;eastl::is_same_v&lt;ResType, Sbuffer&gt;, BufferGetter&lt;Type&gt;, TextureGetter&lt;Type&gt; &gt;</definition>
+        <argsstring></argsstring>
+        <name>ResourceGetter</name>
+        <qualifiedname>resptr_detail::ResourceGetter</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="226" column="1" bodyfile="dag_resPtr.h" bodystart="226" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="namespaceresptr__detail_1a917d46b4944be1c4a61fdc8ce55d5e66" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>static bool resptr_detail::isVoltex</definition>
+        <argsstring>(D3dResource *res)</argsstring>
+        <name>isVoltex</name>
+        <qualifiedname>resptr_detail::isVoltex</qualifiedname>
+        <param>
+          <type>D3dResource *</type>
+          <declname>res</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="158" column="20" bodyfile="dag_resPtr.h" bodystart="158" bodyend="158"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceresptr__detail_1aa5d6f738d9d85abd7929b0eca71cebba" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>static bool resptr_detail::isArrtex</definition>
+        <argsstring>(D3dResource *res)</argsstring>
+        <name>isArrtex</name>
+        <qualifiedname>resptr_detail::isArrtex</qualifiedname>
+        <param>
+          <type>D3dResource *</type>
+          <declname>res</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="159" column="20" bodyfile="dag_resPtr.h" bodystart="159" bodyend="162"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceresptr__detail_1a9984a5fb5abaccf48985aa1c837770f2" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>static bool resptr_detail::isCubetex</definition>
+        <argsstring>(D3dResource *res)</argsstring>
+        <name>isCubetex</name>
+        <qualifiedname>resptr_detail::isCubetex</qualifiedname>
+        <param>
+          <type>D3dResource *</type>
+          <declname>res</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="163" column="20" bodyfile="dag_resPtr.h" bodystart="163" bodyend="166"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceresptr__detail_1af0f6d5a7222c31a2d8bd01b787e2efdb" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>static bool resptr_detail::isTex2d</definition>
+        <argsstring>(D3dResource *res)</argsstring>
+        <name>isTex2d</name>
+        <qualifiedname>resptr_detail::isTex2d</qualifiedname>
+        <param>
+          <type>D3dResource *</type>
+          <declname>res</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="167" column="20" bodyfile="dag_resPtr.h" bodystart="167" bodyend="167"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceresptr__detail_1a2125a34ab16d7d87101800c40c1fbaeb" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>static bool resptr_detail::isBuf</definition>
+        <argsstring>(D3dResource *res)</argsstring>
+        <name>isBuf</name>
+        <qualifiedname>resptr_detail::isBuf</qualifiedname>
+        <param>
+          <type>D3dResource *</type>
+          <declname>res</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="168" column="20" bodyfile="dag_resPtr.h" bodystart="168" bodyend="168"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceresptr__detail_1a17b4a3a7481d0a0c48ceb2ec35b01558" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename ResType</type>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classresptr__detail_1_1ResPtr" kindref="compound">ResPtr</ref>&lt; ResType &gt;</type>
+        <definition>static ResPtr&lt; ResType &gt; resptr_detail::ResPtrFactory</definition>
+        <argsstring>(ResType *res)</argsstring>
+        <name>ResPtrFactory</name>
+        <qualifiedname>resptr_detail::ResPtrFactory</qualifiedname>
+        <param>
+          <type>ResType *</type>
+          <declname>res</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="336" column="22" bodyfile="dag_resPtr.h" bodystart="336" bodyend="339"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceresptr__detail_1ad1e42395ba3204f40b49ba6bba5df816" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void resptr_detail::acquireShaderVarId</definition>
+        <argsstring>(int)</argsstring>
+        <name>acquireShaderVarId</name>
+        <qualifiedname>resptr_detail::acquireShaderVarId</qualifiedname>
+        <param>
+          <type>int</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="491" column="13" bodyfile="dag_resPtr.h" bodystart="491" bodyend="491"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceresptr__detail_1ac94e5d830d4dade05d06324cdad44358" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void resptr_detail::releaseShaderVarId</definition>
+        <argsstring>(int)</argsstring>
+        <name>releaseShaderVarId</name>
+        <qualifiedname>resptr_detail::releaseShaderVarId</qualifiedname>
+        <param>
+          <type>int</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="492" column="13" bodyfile="dag_resPtr.h" bodystart="492" bodyend="492"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_resizableTex.h" line="14" column="1"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,61 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShaderParser_1_1AssembleShaderEvalCB_1_1PreshaderStat" kind="struct" language="C++" prot="public">
+    <compoundname>ShaderParser::AssembleShaderEvalCB::PreshaderStat</compoundname>
+    <includes refid="assemblyShader_8h" local="no">assemblyShader.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structShaderParser_1_1AssembleShaderEvalCB_1_1PreshaderStat_1a3afe4d09a9a2d753e0ba75fafd71db9e" prot="public" static="no" mutable="no">
+        <type>state_block_stat *</type>
+        <definition>state_block_stat* ShaderParser::AssembleShaderEvalCB::PreshaderStat::stat</definition>
+        <argsstring></argsstring>
+        <name>stat</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::PreshaderStat::stat</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="58" column="22" bodyfile="assemblyShader.h" bodystart="58" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderParser_1_1AssembleShaderEvalCB_1_1PreshaderStat_1a01744817374c0d3000f90b2cacbe6b45" prot="public" static="no" mutable="no">
+        <type>ShaderStage</type>
+        <definition>ShaderStage ShaderParser::AssembleShaderEvalCB::PreshaderStat::stage</definition>
+        <argsstring></argsstring>
+        <name>stage</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::PreshaderStat::stage</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="59" column="17" bodyfile="assemblyShader.h" bodystart="59" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderParser_1_1AssembleShaderEvalCB_1_1PreshaderStat_1ae3e373c56d3d0b19d86e20a1c9b0a0ea" prot="public" static="no" mutable="no">
+        <type><ref refid="namespacesemantic_1a1fd7ba909c618ad56fbacae8b3226182" kindref="member">semantic::VariableType</ref></type>
+        <definition>semantic::VariableType ShaderParser::AssembleShaderEvalCB::PreshaderStat::vt</definition>
+        <argsstring></argsstring>
+        <name>vt</name>
+        <qualifiedname>ShaderParser::AssembleShaderEvalCB::PreshaderStat::vt</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.h" line="60" column="28" bodyfile="assemblyShader.h" bodystart="60" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="assemblyShader.h" line="56" column="3" bodyfile="assemblyShader.h" bodystart="57" bodyend="61"/>
+    <listofallmembers>
+      <member refid="structShaderParser_1_1AssembleShaderEvalCB_1_1PreshaderStat_1a01744817374c0d3000f90b2cacbe6b45" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB::PreshaderStat</scope><name>stage</name></member>
+      <member refid="structShaderParser_1_1AssembleShaderEvalCB_1_1PreshaderStat_1a3afe4d09a9a2d753e0ba75fafd71db9e" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB::PreshaderStat</scope><name>stat</name></member>
+      <member refid="structShaderParser_1_1AssembleShaderEvalCB_1_1PreshaderStat_1ae3e373c56d3d0b19d86e20a1c9b0a0ea" prot="public" virt="non-virtual"><scope>ShaderParser::AssembleShaderEvalCB::PreshaderStat</scope><name>vt</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

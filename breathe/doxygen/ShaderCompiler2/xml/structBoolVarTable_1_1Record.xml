@@ -1,0 +1,60 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structBoolVarTable_1_1Record" kind="struct" language="C++" prot="public">
+    <compoundname>BoolVarTable::Record</compoundname>
+    <includes refid="boolVar_8h" local="no">boolVar.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structBoolVarTable_1_1Record_1a7833bf33644af7deb81dfc7b6a8a697d" prot="public" static="no" mutable="no">
+        <type><ref refid="classBoolVar" kindref="compound">BoolVar</ref></type>
+        <definition>BoolVar BoolVarTable::Record::var</definition>
+        <argsstring></argsstring>
+        <name>var</name>
+        <qualifiedname>BoolVarTable::Record::var</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="boolVar.h" line="28" column="13" bodyfile="boolVar.h" bodystart="28" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structBoolVarTable_1_1Record_1a9882b11c56f7ae4e692b5f55021c5946" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int BoolVarTable::Record::declCount</definition>
+        <argsstring></argsstring>
+        <name>declCount</name>
+        <qualifiedname>BoolVarTable::Record::declCount</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="boolVar.h" line="29" column="9" bodyfile="boolVar.h" bodystart="29" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>BoolVar</label>
+        <link refid="classBoolVar"/>
+      </node>
+      <node id="1">
+        <label>BoolVarTable::Record</label>
+        <link refid="structBoolVarTable_1_1Record"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>var</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="boolVar.h" line="26" column="3" bodyfile="boolVar.h" bodystart="27" bodyend="30"/>
+    <listofallmembers>
+      <member refid="structBoolVarTable_1_1Record_1a9882b11c56f7ae4e692b5f55021c5946" prot="public" virt="non-virtual"><scope>BoolVarTable::Record</scope><name>declCount</name></member>
+      <member refid="structBoolVarTable_1_1Record_1a7833bf33644af7deb81dfc7b6a8a697d" prot="public" virt="non-virtual"><scope>BoolVarTable::Record</scope><name>var</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

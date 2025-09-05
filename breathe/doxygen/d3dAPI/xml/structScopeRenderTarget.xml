@@ -1,0 +1,97 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structScopeRenderTarget" kind="struct" language="C++" prot="public">
+    <compoundname>ScopeRenderTarget</compoundname>
+    <includes refid="dag__decl_8h" local="no">dag_decl.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structScopeRenderTarget_1a7087ee5c37e20381f6e5d51093bbc5ec" prot="public" static="no" mutable="no">
+        <type><ref refid="structDriver3dRenderTarget" kindref="compound">Driver3dRenderTarget</ref></type>
+        <definition>Driver3dRenderTarget ScopeRenderTarget::prevRT</definition>
+        <argsstring></argsstring>
+        <name>prevRT</name>
+        <qualifiedname>ScopeRenderTarget::prevRT</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="192" column="24" bodyfile="dag_decl.h" bodystart="192" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structScopeRenderTarget_1ac560396466836118be9f54954745991b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ScopeRenderTarget::ScopeRenderTarget</definition>
+        <argsstring>()</argsstring>
+        <name>ScopeRenderTarget</name>
+        <qualifiedname>ScopeRenderTarget::ScopeRenderTarget</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="193" column="3" bodyfile="dag_decl.h" bodystart="193" bodyend="193"/>
+      </memberdef>
+      <memberdef kind="function" id="structScopeRenderTarget_1abeb3f763856cd8f83a92c4e441f2e63c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ScopeRenderTarget::~ScopeRenderTarget</definition>
+        <argsstring>()</argsstring>
+        <name>~ScopeRenderTarget</name>
+        <qualifiedname>ScopeRenderTarget::~ScopeRenderTarget</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="194" column="3" bodyfile="dag_decl.h" bodystart="194" bodyend="194"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="4">
+        <label>BaseTexture</label>
+        <link refid="classBaseTexture"/>
+        <childnode refid="5" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>D3dResource</label>
+        <link refid="classD3dResource"/>
+      </node>
+      <node id="2">
+        <label>Driver3dRenderTarget</label>
+        <link refid="structDriver3dRenderTarget"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>color</edgelabel>
+          <edgelabel>depth</edgelabel>
+        </childnode>
+      </node>
+      <node id="3">
+        <label>Driver3dRenderTarget::RTState</label>
+        <link refid="structDriver3dRenderTarget_1_1RTState"/>
+        <childnode refid="4" relation="usage">
+          <edgelabel>tex</edgelabel>
+        </childnode>
+      </node>
+      <node id="1">
+        <label>ScopeRenderTarget</label>
+        <link refid="structScopeRenderTarget"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>prevRT</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_decl.h" line="190" column="1" bodyfile="dag_decl.h" bodystart="191" bodyend="195"/>
+    <listofallmembers>
+      <member refid="structScopeRenderTarget_1a7087ee5c37e20381f6e5d51093bbc5ec" prot="public" virt="non-virtual"><scope>ScopeRenderTarget</scope><name>prevRT</name></member>
+      <member refid="structScopeRenderTarget_1ac560396466836118be9f54954745991b" prot="public" virt="non-virtual"><scope>ScopeRenderTarget</scope><name>ScopeRenderTarget</name></member>
+      <member refid="structScopeRenderTarget_1abeb3f763856cd8f83a92c4e441f2e63c" prot="public" virt="non-virtual"><scope>ScopeRenderTarget</scope><name>~ScopeRenderTarget</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

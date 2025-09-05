@@ -1,0 +1,695 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="font_8cpp" kind="file" language="C++">
+    <compoundname>font.cpp</compoundname>
+    <includes local="no">max.h</includes>
+    <includes local="no">utilapi.h</includes>
+    <includes local="no">locale.h</includes>
+    <includes refid="dagor_8h" local="yes">dagor.h</includes>
+    <includes refid="enumnode_8h" local="yes">enumnode.h</includes>
+    <includes refid="resource_8h" local="yes">resource.h</includes>
+    <includes local="no">string</includes>
+    <incdepgraph>
+      <node id="5">
+        <label>dagor.h</label>
+        <link refid="dagor_8h"/>
+      </node>
+      <node id="6">
+        <label>enumnode.h</label>
+        <link refid="enumnode_8h"/>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>font.cpp</label>
+        <link refid="font_8cpp"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>resource.h</label>
+        <link refid="resource_8h"/>
+      </node>
+      <node id="7">
+        <label>ilayer.h</label>
+      </node>
+      <node id="4">
+        <label>locale.h</label>
+      </node>
+      <node id="2">
+        <label>max.h</label>
+      </node>
+      <node id="9">
+        <label>string</label>
+      </node>
+      <node id="3">
+        <label>utilapi.h</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="classFontUtil" prot="public">FontUtil</innerclass>
+    <innerclass refid="classFontUtilDesc" prot="public">FontUtilDesc</innerclass>
+    <innerclass refid="structVDiv" prot="public">VDiv</innerclass>
+    <innerclass refid="structChars" prot="public">Chars</innerclass>
+    <innerclass refid="classFontENCB" prot="public">FontENCB</innerclass>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="font_8cpp_1a398da37e411bb2d829f85232480defea" prot="public" static="no">
+        <name>ERRMSG_DELAY</name>
+        <initializer>3000</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="font.cpp" line="11" column="9" bodyfile="font.cpp" bodystart="11" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="font_8cpp_1a05589fbab0657f08285ebdfe93f5ec9e" prot="public" static="no" strong="no">
+        <type></type>
+        <name></name>
+        <enumvalue id="font_8cpp_1a05589fbab0657f08285ebdfe93f5ec9ea300a714d78f3c7728d510080811538b7" prot="public">
+          <name>CH_FD_FNAME</name>
+          <initializer>= 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="font.cpp" line="57" column="1" bodyfile="font.cpp" bodystart="58" bodyend="60"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="font_8cpp_1ad9240c7b806fa28cf0a34915715e4608" prot="public" static="yes" mutable="no">
+        <type><ref refid="classFontUtil" kindref="compound">FontUtil</ref></type>
+        <definition>FontUtil util</definition>
+        <argsstring></argsstring>
+        <name>util</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="font.cpp" line="36" column="17" bodyfile="font.cpp" bodystart="36" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="font_8cpp_1af7ff221cd3f6c27ced9dff4e0e5333cd" prot="public" static="yes" mutable="no">
+        <type><ref refid="classFontUtilDesc" kindref="compound">FontUtilDesc</ref></type>
+        <definition>FontUtilDesc utilDesc</definition>
+        <argsstring></argsstring>
+        <name>utilDesc</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="font.cpp" line="94" column="21" bodyfile="font.cpp" bodystart="94" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="font_8cpp_1a9247db5a252f97c6442d08793a38a1d4" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>std::string</type>
+        <definition>std::string wideToStr</definition>
+        <argsstring>(const TCHAR *sw)</argsstring>
+        <name>wideToStr</name>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>sw</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="font.cpp" line="13" column="13" bodyfile="common.cpp" bodystart="115" bodyend="129" declfile="font.cpp" declline="13" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="function" id="font_8cpp_1ac9fb07f5e9a035c1eca78f6428d9a590" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref></type>
+        <definition>M_STD_STRING strToWide</definition>
+        <argsstring>(const char *sz)</argsstring>
+        <name>strToWide</name>
+        <param>
+          <type>const char *</type>
+          <declname>sz</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="font.cpp" line="14" column="14" bodyfile="common.cpp" bodystart="99" bodyend="112" declfile="font.cpp" declline="14" declcolumn="14"/>
+      </memberdef>
+      <memberdef kind="function" id="font_8cpp_1aa6d335e2aa545c68709f116b7de9298b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int get_save_filename</definition>
+        <argsstring>(HWND owner, const TCHAR *title, FilterList &amp;filter, const TCHAR *def_ext, TSTR &amp;exp_fname)</argsstring>
+        <name>get_save_filename</name>
+        <param>
+          <type>HWND</type>
+          <declname>owner</declname>
+        </param>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>title</declname>
+        </param>
+        <param>
+          <type>FilterList &amp;</type>
+          <declname>filter</declname>
+        </param>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>def_ext</declname>
+        </param>
+        <param>
+          <type>TSTR &amp;</type>
+          <declname>exp_fname</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="font.cpp" line="16" column="5" bodyfile="common.cpp" bodystart="148" bodyend="188" declfile="font.cpp" declline="16" declcolumn="5"/>
+      </memberdef>
+      <memberdef kind="function" id="font_8cpp_1aa3cc63d87e712361670a0daa08a955da" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>ClassDesc *</type>
+        <definition>ClassDesc * GetFontUtilCD</definition>
+        <argsstring>()</argsstring>
+        <name>GetFontUtilCD</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="font.cpp" line="95" column="11" bodyfile="font.cpp" bodystart="95" bodyend="95"/>
+      </memberdef>
+      <memberdef kind="function" id="font_8cpp_1a3d1f9eb89b61453a36731b9e0057c85b" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>INT_PTR CALLBACK</type>
+        <definition>static INT_PTR CALLBACK FontUtilDlgProc</definition>
+        <argsstring>(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)</argsstring>
+        <name>FontUtilDlgProc</name>
+        <param>
+          <type>HWND</type>
+          <declname>hWnd</declname>
+        </param>
+        <param>
+          <type>UINT</type>
+          <declname>msg</declname>
+        </param>
+        <param>
+          <type>WPARAM</type>
+          <declname>wParam</declname>
+        </param>
+        <param>
+          <type>LPARAM</type>
+          <declname>lParam</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="font.cpp" line="97" column="25" bodyfile="font.cpp" bodystart="97" bodyend="127"/>
+      </memberdef>
+      <memberdef kind="function" id="font_8cpp_1a37b49109f2463de58e5b96f78251b6d0" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>static int float_cmp</definition>
+        <argsstring>(const void *aa, const void *bb)</argsstring>
+        <name>float_cmp</name>
+        <param>
+          <type>const void *</type>
+          <declname>aa</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>bb</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="font.cpp" line="175" column="12" bodyfile="font.cpp" bodystart="175" bodyend="183"/>
+      </memberdef>
+      <memberdef kind="function" id="font_8cpp_1a0066db1e10e8a504332fa6856c291c64" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>static int vdiv_cmp</definition>
+        <argsstring>(const void *aa, const void *bb)</argsstring>
+        <name>vdiv_cmp</name>
+        <param>
+          <type>const void *</type>
+          <declname>aa</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>bb</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="font.cpp" line="185" column="12" bodyfile="font.cpp" bodystart="185" bodyend="195"/>
+      </memberdef>
+      <memberdef kind="function" id="font_8cpp_1a0a9ecefbec3a7e1741de4e81660ed7c2" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>static int chars_cmp</definition>
+        <argsstring>(const void *aa, const void *bb)</argsstring>
+        <name>chars_cmp</name>
+        <param>
+          <type>const void *</type>
+          <declname>aa</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>bb</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="font.cpp" line="197" column="12" bodyfile="font.cpp" bodystart="197" bodyend="205"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;max.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;utilapi.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;locale.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="dagor_8h" kindref="compound">dagor.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="enumnode_8h" kindref="compound">enumnode.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="resource_8h" kindref="compound">resource.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;string&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>ERRMSG_DELAY<sp/>3000</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal">std::string<sp/><ref refid="font_8cpp_1a9247db5a252f97c6442d08793a38a1d4" kindref="member">wideToStr</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*sw);</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref><sp/><ref refid="font_8cpp_1ac9fb07f5e9a035c1eca78f6428d9a590" kindref="member">strToWide</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*sz);</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="font_8cpp_1aa6d335e2aa545c68709f116b7de9298b" kindref="member">get_save_filename</ref>(HWND<sp/>owner,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*title,<sp/>FilterList<sp/>&amp;filter,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*def_ext,<sp/>TSTR<sp/>&amp;exp_fname);</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18" refid="classFontUtil" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classFontUtil" kindref="compound">FontUtil</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/>UtilityObj</highlight></codeline>
+<codeline lineno="19"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"><sp/><sp/>IUtil<sp/>*<ref refid="classFontUtil_1ae47072030530ba2a48ec37fa5ba1d38b" kindref="member">iu</ref>;</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"><sp/><sp/>Interface<sp/>*<ref refid="classFontUtil_1a60125a188457772a89d0e5db775ea167" kindref="member">ip</ref>;</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/>HWND<sp/><ref refid="classFontUtil_1ae05d9a05b2d8319c966ae4397fc4e08e" kindref="member">hPanel</ref>;</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/>TSTR<sp/><ref refid="classFontUtil_1add50d5990fda7cf3ba70c072d783ac83" kindref="member">fd_fname</ref>;</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/><ref refid="classFontUtil_1a65a6dc6f43ab43787ae947262007aa76" kindref="member">FontUtil</ref>();</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classFontUtil_1af16365c32637878354996f7701c8b96b" kindref="member">BeginEditParams</ref>(Interface<sp/>*<ref refid="classFontUtil_1a60125a188457772a89d0e5db775ea167" kindref="member">ip</ref>,<sp/>IUtil<sp/>*<ref refid="classFontUtil_1ae47072030530ba2a48ec37fa5ba1d38b" kindref="member">iu</ref>)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classFontUtil_1af97f4b8d90aedd26cffc2fa4221c5d92" kindref="member">EndEditParams</ref>(Interface<sp/>*<ref refid="classFontUtil_1a60125a188457772a89d0e5db775ea167" kindref="member">ip</ref>,<sp/>IUtil<sp/>*<ref refid="classFontUtil_1ae47072030530ba2a48ec37fa5ba1d38b" kindref="member">iu</ref>)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classFontUtil_1a8a7091f7d278c4eac823da2295a3ca25" kindref="member">DeleteThis</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{}</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classFontUtil_1a07a24e55a8ba2c8f861299d4d1fdfcfb" kindref="member">Init</ref>(HWND<sp/>hWnd);</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classFontUtil_1a7587390a834dc576dc1745f2a2547c52" kindref="member">Destroy</ref>(HWND<sp/>hWnd);</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classFontUtil_1ac445d2fa12829fc3980b25e130f01e63" kindref="member">input_fd_fname</ref>();</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classFontUtil_1ae799572c5841a9fad14e341b649c1eb0" kindref="member">exportData</ref>();</highlight></codeline>
+<codeline lineno="35"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/><ref refid="classFontUtil" kindref="compound">FontUtil</ref><sp/>util;</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"></highlight></codeline>
+<codeline lineno="38" refid="classFontUtilDesc" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classFontUtilDesc" kindref="compound">FontUtilDesc</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/>ClassDesc</highlight></codeline>
+<codeline lineno="39"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classFontUtilDesc_1af4cabd15ceab519130970c4ce5d7ef9b" kindref="member">IsPublic</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>1;<sp/>}</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*<ref refid="classFontUtilDesc_1a396336ee9643196d709337e769db66f2" kindref="member">Create</ref>(BOOL<sp/>loading<sp/>=<sp/>FALSE)</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>&amp;util;<sp/>}</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*<ref refid="classFontUtilDesc_1a006cb0775f95d6481162c924328ce573" kindref="member">ClassName</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="common_8cpp_1aeb87de5dfb5d632579574b4bc8709019" kindref="member">GetString</ref>(<ref refid="resource_8h_1a72bbfd0087a75687b5455bbb22769481" kindref="member">IDS_FONTUTIL_NAME</ref>);<sp/>}</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>defined(MAX_RELEASE_R24)<sp/>&amp;&amp;<sp/>MAX_RELEASE<sp/>&gt;=<sp/>MAX_RELEASE_R24</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="max__cpt_8h_1ac2ec3340fbe0c6ea0663fd3923d13fe5" kindref="member">MCHAR</ref><sp/>*<ref refid="classFontUtilDesc_1a2286ab56ee31f777647fad2041bb50a6" kindref="member">NonLocalizedClassName</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classFontUtilDesc_1a006cb0775f95d6481162c924328ce573" kindref="member">ClassName</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="max__cpt_8h_1ac2ec3340fbe0c6ea0663fd3923d13fe5" kindref="member">MCHAR</ref><sp/>*<ref refid="classFontUtilDesc_1a2286ab56ee31f777647fad2041bb50a6" kindref="member">NonLocalizedClassName</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classFontUtilDesc_1a006cb0775f95d6481162c924328ce573" kindref="member">ClassName</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/>SClass_ID<sp/><ref refid="classFontUtilDesc_1a0278dcd5279ec06073b3cd7ab1246a31" kindref="member">SuperClassID</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>UTILITY_CLASS_ID;<sp/>}</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/>Class_ID<sp/><ref refid="classFontUtilDesc_1a73f547bd38cfa9b07c163c2233cac182" kindref="member">ClassID</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dagor_8h_1abb845c3ee105ad2b6e93802e40f15a73" kindref="member">FontUtil_CID</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*<ref refid="classFontUtilDesc_1ad3ca482e4c0300ed05a94b73f87e36f9" kindref="member">Category</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="common_8cpp_1aeb87de5dfb5d632579574b4bc8709019" kindref="member">GetString</ref>(<ref refid="resource_8h_1a197942343099f043d210a555ea7e026f" kindref="member">IDS_UTIL_CAT</ref>);<sp/>}</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/>BOOL<sp/><ref refid="classFontUtilDesc_1a26a63c00aeaa0906cddc26e4e66595fc" kindref="member">NeedsToSave</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>TRUE;<sp/>}</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/>IOResult<sp/><ref refid="classFontUtilDesc_1a39c75edb6af4e302c7e9f81d9998bff3" kindref="member">Save</ref>(ISave<sp/>*)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/>IOResult<sp/><ref refid="classFontUtilDesc_1a7d0b3c3d6bbbf67ceb349876b3ecf2f1" kindref="member">Load</ref>(ILoad<sp/>*)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="55"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"></highlight></codeline>
+<codeline lineno="57"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="58"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/><ref refid="font_8cpp_1a05589fbab0657f08285ebdfe93f5ec9ea300a714d78f3c7728d510080811538b7" kindref="member">CH_FD_FNAME</ref><sp/>=<sp/>1,</highlight></codeline>
+<codeline lineno="60"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"></highlight></codeline>
+<codeline lineno="62"><highlight class="normal">IOResult<sp/><ref refid="classFontUtilDesc_1a39c75edb6af4e302c7e9f81d9998bff3" kindref="member">FontUtilDesc::Save</ref>(ISave<sp/>*io)</highlight></codeline>
+<codeline lineno="63"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ULONG<sp/>nw;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(util.<ref refid="classFontUtil_1add50d5990fda7cf3ba70c072d783ac83" kindref="member">fd_fname</ref>.Length())</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/><sp/><sp/>io-&gt;BeginChunk(<ref refid="font_8cpp_1a05589fbab0657f08285ebdfe93f5ec9ea300a714d78f3c7728d510080811538b7" kindref="member">CH_FD_FNAME</ref>);</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(io-&gt;WriteCString(util.<ref refid="classFontUtil_1add50d5990fda7cf3ba70c072d783ac83" kindref="member">fd_fname</ref>)<sp/>!=<sp/>IO_OK)</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>IO_ERROR;</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/><sp/><sp/>io-&gt;EndChunk();</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>IO_OK;</highlight></codeline>
+<codeline lineno="73"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"></highlight></codeline>
+<codeline lineno="75"><highlight class="normal">IOResult<sp/><ref refid="classFontUtilDesc_1a7d0b3c3d6bbbf67ceb349876b3ecf2f1" kindref="member">FontUtilDesc::Load</ref>(ILoad<sp/>*io)</highlight></codeline>
+<codeline lineno="76"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ULONG<sp/>nr;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/>TCHAR<sp/>*str;</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">while</highlight><highlight class="normal"><sp/>(io-&gt;OpenChunk()<sp/>==<sp/>IO_OK)</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">switch</highlight><highlight class="normal"><sp/>(io-&gt;CurChunkID())</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/><ref refid="font_8cpp_1a05589fbab0657f08285ebdfe93f5ec9ea300a714d78f3c7728d510080811538b7" kindref="member">CH_FD_FNAME</ref>:</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(io-&gt;ReadCStringChunk(&amp;str)<sp/>!=<sp/>IO_OK)</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>IO_ERROR;</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>util.<ref refid="classFontUtil_1add50d5990fda7cf3ba70c072d783ac83" kindref="member">fd_fname</ref><sp/>=<sp/>str;</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"><sp/><sp/><sp/><sp/>io-&gt;CloseChunk();</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>IO_OK;</highlight></codeline>
+<codeline lineno="92"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"></highlight></codeline>
+<codeline lineno="94"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/><ref refid="classFontUtilDesc" kindref="compound">FontUtilDesc</ref><sp/>utilDesc;</highlight></codeline>
+<codeline lineno="95"><highlight class="normal">ClassDesc<sp/>*<ref refid="font_8cpp_1aa3cc63d87e712361670a0daa08a955da" kindref="member">GetFontUtilCD</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>&amp;utilDesc;<sp/>}</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"></highlight></codeline>
+<codeline lineno="97"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>INT_PTR<sp/>CALLBACK<sp/>FontUtilDlgProc(HWND<sp/>hWnd,<sp/>UINT<sp/>msg,<sp/>WPARAM<sp/>wParam,<sp/>LPARAM<sp/>lParam)</highlight></codeline>
+<codeline lineno="98"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">switch</highlight><highlight class="normal"><sp/>(msg)</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>WM_INITDIALOG:<sp/>util.<ref refid="classFontUtil_1a07a24e55a8ba2c8f861299d4d1fdfcfb" kindref="member">Init</ref>(hWnd);<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"></highlight></codeline>
+<codeline lineno="103"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>WM_DESTROY:<sp/>util.<ref refid="classFontUtil_1a7587390a834dc576dc1745f2a2547c52" kindref="member">Destroy</ref>(hWnd);<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"></highlight></codeline>
+<codeline lineno="105"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>WM_COMMAND:</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">switch</highlight><highlight class="normal"><sp/>(LOWORD(wParam))</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/><ref refid="resource_8h_1a0465e216867b8d35885f89e6c0445d8a" kindref="member">IDC_EXPORT</ref>:</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!util.<ref refid="classFontUtil_1ac445d2fa12829fc3980b25e130f01e63" kindref="member">input_fd_fname</ref>())</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>util.<ref refid="classFontUtil_1ae799572c5841a9fad14e341b649c1eb0" kindref="member">exportData</ref>();</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="114"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="115"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="117"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="118"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>case<sp/>WM_LBUTTONDOWN:</highlight></codeline>
+<codeline lineno="119"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>case<sp/>WM_LBUTTONUP:</highlight></codeline>
+<codeline lineno="120"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>case<sp/>WM_MOUSEMOVE:</highlight></codeline>
+<codeline lineno="121"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>util.ip-&gt;RollupMouseMessage(hWnd,msg,wParam,lParam);</highlight></codeline>
+<codeline lineno="122"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>break;</highlight></codeline>
+<codeline lineno="123"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="124"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>FALSE;</highlight></codeline>
+<codeline lineno="125"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>TRUE;</highlight></codeline>
+<codeline lineno="127"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"></highlight></codeline>
+<codeline lineno="129"><highlight class="normal"><ref refid="classFontUtil_1a65a6dc6f43ab43787ae947262007aa76" kindref="member">FontUtil::FontUtil</ref>()</highlight></codeline>
+<codeline lineno="130"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="131"><highlight class="normal"><sp/><sp/><ref refid="classFontUtil_1ae47072030530ba2a48ec37fa5ba1d38b" kindref="member">iu</ref><sp/>=<sp/>NULL;</highlight></codeline>
+<codeline lineno="132"><highlight class="normal"><sp/><sp/><ref refid="classFontUtil_1a60125a188457772a89d0e5db775ea167" kindref="member">ip</ref><sp/>=<sp/>NULL;</highlight></codeline>
+<codeline lineno="133"><highlight class="normal"><sp/><sp/><ref refid="classFontUtil_1ae05d9a05b2d8319c966ae4397fc4e08e" kindref="member">hPanel</ref><sp/>=<sp/>NULL;</highlight></codeline>
+<codeline lineno="134"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"></highlight></codeline>
+<codeline lineno="136"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classFontUtil_1af16365c32637878354996f7701c8b96b" kindref="member">FontUtil::BeginEditParams</ref>(Interface<sp/>*ip,<sp/>IUtil<sp/>*iu)</highlight></codeline>
+<codeline lineno="137"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="138"><highlight class="normal"><sp/><sp/>this-&gt;iu<sp/>=<sp/><ref refid="classFontUtil_1ae47072030530ba2a48ec37fa5ba1d38b" kindref="member">iu</ref>;</highlight></codeline>
+<codeline lineno="139"><highlight class="normal"><sp/><sp/>this-&gt;ip<sp/>=<sp/><ref refid="classFontUtil_1a60125a188457772a89d0e5db775ea167" kindref="member">ip</ref>;</highlight></codeline>
+<codeline lineno="140"><highlight class="normal"><sp/><sp/><ref refid="classFontUtil_1ae05d9a05b2d8319c966ae4397fc4e08e" kindref="member">hPanel</ref><sp/>=<sp/><ref refid="classFontUtil_1a60125a188457772a89d0e5db775ea167" kindref="member">ip</ref>-&gt;AddRollupPage(<ref refid="dagor_8h_1a74029128723095e7bf00a71d46af8b24" kindref="member">hInstance</ref>,<sp/>MAKEINTRESOURCE(<ref refid="resource_8h_1a074f3a4a3ebffff54b3575087af21c47" kindref="member">IDD_FONTUTIL</ref>),<sp/>FontUtilDlgProc,<sp/><ref refid="common_8cpp_1aeb87de5dfb5d632579574b4bc8709019" kindref="member">GetString</ref>(<ref refid="resource_8h_1ae54d285692aa7e9bfb4994212206746f" kindref="member">IDS_FONTUTIL_ROLL</ref>),<sp/>0);</highlight></codeline>
+<codeline lineno="141"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="142"><highlight class="normal"></highlight></codeline>
+<codeline lineno="143"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classFontUtil_1af97f4b8d90aedd26cffc2fa4221c5d92" kindref="member">FontUtil::EndEditParams</ref>(Interface<sp/>*ip,<sp/>IUtil<sp/>*iu)</highlight></codeline>
+<codeline lineno="144"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="145"><highlight class="normal"><sp/><sp/>this-&gt;iu<sp/>=<sp/>NULL;</highlight></codeline>
+<codeline lineno="146"><highlight class="normal"><sp/><sp/>this-&gt;ip<sp/>=<sp/>NULL;</highlight></codeline>
+<codeline lineno="147"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="classFontUtil_1ae05d9a05b2d8319c966ae4397fc4e08e" kindref="member">hPanel</ref>)</highlight></codeline>
+<codeline lineno="148"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classFontUtil_1a60125a188457772a89d0e5db775ea167" kindref="member">ip</ref>-&gt;DeleteRollupPage(<ref refid="classFontUtil_1ae05d9a05b2d8319c966ae4397fc4e08e" kindref="member">hPanel</ref>);</highlight></codeline>
+<codeline lineno="149"><highlight class="normal"><sp/><sp/><ref refid="classFontUtil_1ae05d9a05b2d8319c966ae4397fc4e08e" kindref="member">hPanel</ref><sp/>=<sp/>NULL;</highlight></codeline>
+<codeline lineno="150"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="151"><highlight class="normal"></highlight></codeline>
+<codeline lineno="152"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classFontUtil_1a07a24e55a8ba2c8f861299d4d1fdfcfb" kindref="member">FontUtil::Init</ref>(HWND<sp/>hWnd)<sp/>{}</highlight></codeline>
+<codeline lineno="153"><highlight class="normal"></highlight></codeline>
+<codeline lineno="154"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classFontUtil_1a7587390a834dc576dc1745f2a2547c52" kindref="member">FontUtil::Destroy</ref>(HWND<sp/>hWnd)<sp/>{}</highlight></codeline>
+<codeline lineno="155"><highlight class="normal"></highlight></codeline>
+<codeline lineno="156"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classFontUtil_1ac445d2fa12829fc3980b25e130f01e63" kindref="member">FontUtil::input_fd_fname</ref>()</highlight></codeline>
+<codeline lineno="157"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="158"><highlight class="normal"><sp/><sp/>FilterList<sp/>fl;</highlight></codeline>
+<codeline lineno="159"><highlight class="normal"><sp/><sp/>fl.Append(<ref refid="common_8cpp_1aeb87de5dfb5d632579574b4bc8709019" kindref="member">GetString</ref>(<ref refid="resource_8h_1a1582e0574618eedd80c19d8951f4595a" kindref="member">IDS_FONTDATA_FILES</ref>));</highlight></codeline>
+<codeline lineno="160"><highlight class="normal"><sp/><sp/>fl.Append(_T(</highlight><highlight class="stringliteral">&quot;*.fd&quot;</highlight><highlight class="normal">));</highlight></codeline>
+<codeline lineno="161"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="font_8cpp_1aa6d335e2aa545c68709f116b7de9298b" kindref="member">get_save_filename</ref>(<ref refid="classFontUtil_1ae05d9a05b2d8319c966ae4397fc4e08e" kindref="member">hPanel</ref>,<sp/><ref refid="common_8cpp_1aeb87de5dfb5d632579574b4bc8709019" kindref="member">GetString</ref>(<ref refid="resource_8h_1a4df3284694ec60470abb5b789a2a8fa2" kindref="member">IDS_SAVE_FONTDATA_TITLE</ref>),<sp/>fl,<sp/>_T(</highlight><highlight class="stringliteral">&quot;fd&quot;</highlight><highlight class="normal">),<sp/><ref refid="classFontUtil_1add50d5990fda7cf3ba70c072d783ac83" kindref="member">fd_fname</ref>);</highlight></codeline>
+<codeline lineno="162"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="163"><highlight class="normal"></highlight></codeline>
+<codeline lineno="164" refid="structVDiv" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structVDiv" kindref="compound">VDiv</ref></highlight></codeline>
+<codeline lineno="165"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="166"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="structVDiv_1a2dcb20115f2fe88fffc2445d5a377a32" kindref="member">u</ref>,<sp/><ref refid="structVDiv_1a64c007e4526d9f63b9c78737770e28b9" kindref="member">v</ref>;</highlight></codeline>
+<codeline lineno="167"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structVDiv_1a057b09d2c19edea0cd80aeed887757c1" kindref="member">d</ref>;</highlight></codeline>
+<codeline lineno="168"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="169" refid="structChars" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structChars" kindref="compound">Chars</ref></highlight></codeline>
+<codeline lineno="170"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="171"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="structChars_1a58d14ebeaa0bb44ce74776d9a7be0a90" kindref="member">v</ref>;</highlight></codeline>
+<codeline lineno="172"><highlight class="normal"><sp/><sp/>TCHAR<sp/>*<ref refid="structChars_1a67771733753d55f8374478619d35a1ad" kindref="member">s</ref>;</highlight></codeline>
+<codeline lineno="173"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="174"><highlight class="normal"></highlight></codeline>
+<codeline lineno="175"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>float_cmp(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*aa,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*bb)</highlight></codeline>
+<codeline lineno="176"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="177"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>a<sp/>=<sp/>*(</highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>*)aa,<sp/>b<sp/>=<sp/>*(</highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>*)bb;</highlight></codeline>
+<codeline lineno="178"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(a<sp/>&lt;<sp/>b)</highlight></codeline>
+<codeline lineno="179"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>-1;</highlight></codeline>
+<codeline lineno="180"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(a<sp/>&gt;<sp/>b)</highlight></codeline>
+<codeline lineno="181"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>+1;</highlight></codeline>
+<codeline lineno="182"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>0;</highlight></codeline>
+<codeline lineno="183"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="184"><highlight class="normal"></highlight></codeline>
+<codeline lineno="185"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>vdiv_cmp(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*aa,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*bb)</highlight></codeline>
+<codeline lineno="186"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="187"><highlight class="normal"><sp/><sp/><ref refid="structVDiv" kindref="compound">VDiv</ref><sp/>*a<sp/>=<sp/>(<ref refid="structVDiv" kindref="compound">VDiv</ref><sp/>*)aa,<sp/>*b<sp/>=<sp/>(<ref refid="structVDiv" kindref="compound">VDiv</ref><sp/>*)bb;</highlight></codeline>
+<codeline lineno="188"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(a-&gt;<ref refid="structVDiv_1a057b09d2c19edea0cd80aeed887757c1" kindref="member">d</ref><sp/>!=<sp/>b-&gt;d)</highlight></codeline>
+<codeline lineno="189"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>a-&gt;<ref refid="structVDiv_1a057b09d2c19edea0cd80aeed887757c1" kindref="member">d</ref><sp/>-<sp/>b-&gt;d;</highlight></codeline>
+<codeline lineno="190"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(a-&gt;<ref refid="structVDiv_1a2dcb20115f2fe88fffc2445d5a377a32" kindref="member">u</ref><sp/>&lt;<sp/>b-&gt;u)</highlight></codeline>
+<codeline lineno="191"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>-1;</highlight></codeline>
+<codeline lineno="192"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(a-&gt;<ref refid="structVDiv_1a2dcb20115f2fe88fffc2445d5a377a32" kindref="member">u</ref><sp/>&gt;<sp/>b-&gt;u)</highlight></codeline>
+<codeline lineno="193"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>+1;</highlight></codeline>
+<codeline lineno="194"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>0;</highlight></codeline>
+<codeline lineno="195"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="196"><highlight class="normal"></highlight></codeline>
+<codeline lineno="197"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>chars_cmp(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*aa,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*bb)</highlight></codeline>
+<codeline lineno="198"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="199"><highlight class="normal"><sp/><sp/><ref refid="structChars" kindref="compound">Chars</ref><sp/>*a<sp/>=<sp/>(<ref refid="structChars" kindref="compound">Chars</ref><sp/>*)aa,<sp/>*b<sp/>=<sp/>(<ref refid="structChars" kindref="compound">Chars</ref><sp/>*)bb;</highlight></codeline>
+<codeline lineno="200"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(a-&gt;<ref refid="structChars_1a58d14ebeaa0bb44ce74776d9a7be0a90" kindref="member">v</ref><sp/>&lt;<sp/>b-&gt;v)</highlight></codeline>
+<codeline lineno="201"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>-1;</highlight></codeline>
+<codeline lineno="202"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(a-&gt;<ref refid="structChars_1a58d14ebeaa0bb44ce74776d9a7be0a90" kindref="member">v</ref><sp/>&gt;<sp/>b-&gt;v)</highlight></codeline>
+<codeline lineno="203"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>+1;</highlight></codeline>
+<codeline lineno="204"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>0;</highlight></codeline>
+<codeline lineno="205"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="206"><highlight class="normal"></highlight></codeline>
+<codeline lineno="207" refid="classFontENCB" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classFontENCB" kindref="compound">FontENCB</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/><ref refid="classENodeCB" kindref="compound">ENodeCB</ref></highlight></codeline>
+<codeline lineno="208"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="209"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="210"><highlight class="normal"><sp/><sp/>Tab&lt;float&gt;<sp/><ref refid="classFontENCB_1ac795bebd1258a0679a35b05da66feee9" kindref="member">hdiv</ref>;</highlight></codeline>
+<codeline lineno="211"><highlight class="normal"><sp/><sp/>Tab&lt;float&gt;<sp/><ref refid="classFontENCB_1a3990e48888c90c5e64815a782b2b5ed5" kindref="member">base</ref>;</highlight></codeline>
+<codeline lineno="212"><highlight class="normal"><sp/><sp/>Tab&lt;VDiv&gt;<sp/><ref refid="classFontENCB_1acae4047db9ab9cdb8a97891226247ae4" kindref="member">vdiv</ref>;</highlight></codeline>
+<codeline lineno="213"><highlight class="normal"><sp/><sp/>Tab&lt;Chars&gt;<sp/><ref refid="classFontENCB_1a7838df52345c79d8bb6089779046ead1" kindref="member">chars</ref>;</highlight></codeline>
+<codeline lineno="214"><highlight class="normal"><sp/><sp/>Matrix3<sp/><ref refid="classFontENCB_1a73f188f8fea81e44cdd2994d81458464" kindref="member">org</ref>;</highlight></codeline>
+<codeline lineno="215"><highlight class="normal"><sp/><sp/>TimeValue<sp/><ref refid="classFontENCB_1a76eab5d511214edab6d3d03f1b5eefd0" kindref="member">time</ref>;</highlight></codeline>
+<codeline lineno="216"><highlight class="normal"></highlight></codeline>
+<codeline lineno="217"><highlight class="normal"><sp/><sp/><ref refid="classFontENCB" kindref="compound">FontENCB</ref>(TimeValue<sp/>t)<sp/>{<sp/><ref refid="classFontENCB_1a76eab5d511214edab6d3d03f1b5eefd0" kindref="member">time</ref><sp/>=<sp/>t;<sp/>}</highlight></codeline>
+<codeline lineno="218"><highlight class="normal"><sp/><sp/><ref refid="classFontENCB_1ab3c355491cd3d4355f4635f4f555f7f1" kindref="member">~FontENCB</ref>()</highlight><highlight class="keyword"><sp/>override</highlight></codeline>
+<codeline lineno="219"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="220"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/><ref refid="classFontENCB_1a7838df52345c79d8bb6089779046ead1" kindref="member">chars</ref>.Count();<sp/>++i)</highlight></codeline>
+<codeline lineno="221"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="classFontENCB_1a7838df52345c79d8bb6089779046ead1" kindref="member">chars</ref>[i].s)</highlight></codeline>
+<codeline lineno="222"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>free(<ref refid="classFontENCB_1a7838df52345c79d8bb6089779046ead1" kindref="member">chars</ref>[i].s);</highlight></codeline>
+<codeline lineno="223"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="224"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classFontENCB_1a12294438fa05e9fafd2e1ef23291fc4f" kindref="member">getuv</ref>(INode<sp/>*n,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>*u,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>*v)</highlight></codeline>
+<codeline lineno="225"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="226"><highlight class="normal"><sp/><sp/><sp/><sp/>Matrix3<sp/>m<sp/>=<sp/>n-&gt;GetNodeTM(<ref refid="classFontENCB_1a76eab5d511214edab6d3d03f1b5eefd0" kindref="member">time</ref>);</highlight></codeline>
+<codeline lineno="227"><highlight class="normal"><sp/><sp/><sp/><sp/>Point3<sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref><sp/>=<sp/><ref refid="classFontENCB_1a73f188f8fea81e44cdd2994d81458464" kindref="member">org</ref><sp/>*<sp/>m.GetTrans();</highlight></codeline>
+<codeline lineno="228"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(u)</highlight></codeline>
+<codeline lineno="229"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>*u<sp/>=<sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>.x;</highlight></codeline>
+<codeline lineno="230"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(v)</highlight></codeline>
+<codeline lineno="231"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>*v<sp/>=<sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>.z;</highlight></codeline>
+<codeline lineno="232"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="233"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classFontENCB_1ac12bf659c8a7253cfa4f74a41e9ae7ec" kindref="member">proc</ref>(INode<sp/>*n)</highlight><highlight class="keyword"><sp/>override</highlight></codeline>
+<codeline lineno="234"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="235"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!n)</highlight></codeline>
+<codeline lineno="236"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="enumnode_8h_1a0411cd49bb5b71852cecd93bcbf0ca2da450653c77f802d8ef4279939698a86da" kindref="member">ECB_CONT</ref>;</highlight></codeline>
+<codeline lineno="237"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(n-&gt;IsNodeHidden())</highlight></codeline>
+<codeline lineno="238"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="enumnode_8h_1a0411cd49bb5b71852cecd93bcbf0ca2da450653c77f802d8ef4279939698a86da" kindref="member">ECB_CONT</ref>;</highlight></codeline>
+<codeline lineno="239"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(n-&gt;GetVisibility(<ref refid="classFontENCB_1a76eab5d511214edab6d3d03f1b5eefd0" kindref="member">time</ref>)<sp/>&lt;<sp/>0)</highlight></codeline>
+<codeline lineno="240"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="enumnode_8h_1a0411cd49bb5b71852cecd93bcbf0ca2da450653c77f802d8ef4279939698a86da" kindref="member">ECB_CONT</ref>;</highlight></codeline>
+<codeline lineno="241"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*nm<sp/>=<sp/>n-&gt;GetName();</highlight></codeline>
+<codeline lineno="242"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(_tcsnicmp(nm,<sp/>_T(</highlight><highlight class="stringliteral">&quot;hdiv&quot;</highlight><highlight class="normal">),<sp/>4)<sp/>==<sp/>0)</highlight></codeline>
+<codeline lineno="243"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="244"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>v;</highlight></codeline>
+<codeline lineno="245"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classFontENCB_1a12294438fa05e9fafd2e1ef23291fc4f" kindref="member">getuv</ref>(n,<sp/>NULL,<sp/>&amp;v);</highlight></codeline>
+<codeline lineno="246"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classFontENCB_1ac795bebd1258a0679a35b05da66feee9" kindref="member">hdiv</ref>.Append(1,<sp/>&amp;v);</highlight></codeline>
+<codeline lineno="247"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="248"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(_tcsnicmp(nm,<sp/>_T(</highlight><highlight class="stringliteral">&quot;base&quot;</highlight><highlight class="normal">),<sp/>4)<sp/>==<sp/>0)</highlight></codeline>
+<codeline lineno="249"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="250"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>v;</highlight></codeline>
+<codeline lineno="251"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classFontENCB_1a12294438fa05e9fafd2e1ef23291fc4f" kindref="member">getuv</ref>(n,<sp/>NULL,<sp/>&amp;v);</highlight></codeline>
+<codeline lineno="252"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classFontENCB_1a3990e48888c90c5e64815a782b2b5ed5" kindref="member">base</ref>.Append(1,<sp/>&amp;v);</highlight></codeline>
+<codeline lineno="253"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="254"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(_tcsnicmp(nm,<sp/>_T(</highlight><highlight class="stringliteral">&quot;vdiv&quot;</highlight><highlight class="normal">),<sp/>4)<sp/>==<sp/>0)</highlight></codeline>
+<codeline lineno="255"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="256"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structVDiv" kindref="compound">VDiv</ref><sp/>d;</highlight></codeline>
+<codeline lineno="257"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classFontENCB_1a12294438fa05e9fafd2e1ef23291fc4f" kindref="member">getuv</ref>(n,<sp/>&amp;d.<ref refid="structVDiv_1a2dcb20115f2fe88fffc2445d5a377a32" kindref="member">u</ref>,<sp/>&amp;d.<ref refid="structVDiv_1a64c007e4526d9f63b9c78737770e28b9" kindref="member">v</ref>);</highlight></codeline>
+<codeline lineno="258"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classFontENCB_1acae4047db9ab9cdb8a97891226247ae4" kindref="member">vdiv</ref>.Append(1,<sp/>&amp;d);</highlight></codeline>
+<codeline lineno="259"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="260"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(_tcsnicmp(nm,<sp/>_T(</highlight><highlight class="stringliteral">&quot;chars&quot;</highlight><highlight class="normal">),<sp/>4)<sp/>==<sp/>0)</highlight></codeline>
+<codeline lineno="261"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="262"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structChars" kindref="compound">Chars</ref><sp/>c;</highlight></codeline>
+<codeline lineno="263"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classFontENCB_1a12294438fa05e9fafd2e1ef23291fc4f" kindref="member">getuv</ref>(n,<sp/>NULL,<sp/>&amp;c.<ref refid="structChars_1a58d14ebeaa0bb44ce74776d9a7be0a90" kindref="member">v</ref>);</highlight></codeline>
+<codeline lineno="264"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>TSTR<sp/>s;</highlight></codeline>
+<codeline lineno="265"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>n-&gt;GetUserPropBuffer(s);</highlight></codeline>
+<codeline lineno="266"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>c.<ref refid="structChars_1a67771733753d55f8374478619d35a1ad" kindref="member">s</ref><sp/>=<sp/>_tcsdup(s);</highlight></codeline>
+<codeline lineno="267"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>assert(c.<ref refid="structChars_1a67771733753d55f8374478619d35a1ad" kindref="member">s</ref>);</highlight></codeline>
+<codeline lineno="268"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classFontENCB_1a7838df52345c79d8bb6089779046ead1" kindref="member">chars</ref>.Append(1,<sp/>&amp;c);</highlight></codeline>
+<codeline lineno="269"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="270"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="enumnode_8h_1a0411cd49bb5b71852cecd93bcbf0ca2da450653c77f802d8ef4279939698a86da" kindref="member">ECB_CONT</ref>;</highlight></codeline>
+<codeline lineno="271"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="272"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classFontENCB_1a6c4259f03784bb8f2fec135f0d5761b4" kindref="member">check</ref>(Interface<sp/>*ip)</highlight></codeline>
+<codeline lineno="273"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="274"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="classFontENCB_1ac795bebd1258a0679a35b05da66feee9" kindref="member">hdiv</ref>.Count()<sp/>!=<sp/><ref refid="classFontENCB_1a3990e48888c90c5e64815a782b2b5ed5" kindref="member">base</ref>.Count()<sp/>||<sp/><ref refid="classFontENCB_1ac795bebd1258a0679a35b05da66feee9" kindref="member">hdiv</ref>.Count()<sp/>!=<sp/><ref refid="classFontENCB_1a7838df52345c79d8bb6089779046ead1" kindref="member">chars</ref>.Count())</highlight></codeline>
+<codeline lineno="275"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="276"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>ip-&gt;DisplayTempPrompt(<ref refid="common_8cpp_1aeb87de5dfb5d632579574b4bc8709019" kindref="member">GetString</ref>(<ref refid="resource_8h_1a28a345a01e3b44c26361f152cc93fc1a" kindref="member">IDS_FONTERR_HDNEBASE</ref>),<sp/><ref refid="font_8cpp_1a398da37e411bb2d829f85232480defea" kindref="member">ERRMSG_DELAY</ref>);</highlight></codeline>
+<codeline lineno="277"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>0;</highlight></codeline>
+<codeline lineno="278"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="279"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="classFontENCB_1ac795bebd1258a0679a35b05da66feee9" kindref="member">hdiv</ref>.Count()<sp/>&lt;=<sp/>0)</highlight></codeline>
+<codeline lineno="280"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="281"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>ip-&gt;DisplayTempPrompt(<ref refid="common_8cpp_1aeb87de5dfb5d632579574b4bc8709019" kindref="member">GetString</ref>(<ref refid="resource_8h_1afc37766f2e8e1e712e75ee467d3c2f34" kindref="member">IDS_FONTERR_NOHDIV</ref>),<sp/><ref refid="font_8cpp_1a398da37e411bb2d829f85232480defea" kindref="member">ERRMSG_DELAY</ref>);</highlight></codeline>
+<codeline lineno="282"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>0;</highlight></codeline>
+<codeline lineno="283"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="284"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classFontENCB_1ac795bebd1258a0679a35b05da66feee9" kindref="member">hdiv</ref>.Sort(float_cmp);</highlight></codeline>
+<codeline lineno="285"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classFontENCB_1a3990e48888c90c5e64815a782b2b5ed5" kindref="member">base</ref>.Sort(float_cmp);</highlight></codeline>
+<codeline lineno="286"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classFontENCB_1a7838df52345c79d8bb6089779046ead1" kindref="member">chars</ref>.Sort(chars_cmp);</highlight></codeline>
+<codeline lineno="287"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i;</highlight></codeline>
+<codeline lineno="288"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/><ref refid="classFontENCB_1acae4047db9ab9cdb8a97891226247ae4" kindref="member">vdiv</ref>.Count();<sp/>++i)</highlight></codeline>
+<codeline lineno="289"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="290"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="classFontENCB_1acae4047db9ab9cdb8a97891226247ae4" kindref="member">vdiv</ref>[i].u<sp/>&lt;<sp/>0<sp/>||<sp/><ref refid="classFontENCB_1acae4047db9ab9cdb8a97891226247ae4" kindref="member">vdiv</ref>[i].u<sp/>&gt;<sp/>256)</highlight></codeline>
+<codeline lineno="291"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="292"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ip-&gt;DisplayTempPrompt(<ref refid="common_8cpp_1aeb87de5dfb5d632579574b4bc8709019" kindref="member">GetString</ref>(<ref refid="resource_8h_1a45cbae5b165c11fc2225f46bcfedeb0a" kindref="member">IDS_FONTERR_VDOUTU</ref>),<sp/><ref refid="font_8cpp_1a398da37e411bb2d829f85232480defea" kindref="member">ERRMSG_DELAY</ref>);</highlight></codeline>
+<codeline lineno="293"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>0;</highlight></codeline>
+<codeline lineno="294"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="295"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>v<sp/>=<sp/><ref refid="classFontENCB_1acae4047db9ab9cdb8a97891226247ae4" kindref="member">vdiv</ref>[i].v;</highlight></codeline>
+<codeline lineno="296"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(v<sp/>&lt;<sp/>0)</highlight></codeline>
+<codeline lineno="297"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="298"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ip-&gt;DisplayTempPrompt(<ref refid="common_8cpp_1aeb87de5dfb5d632579574b4bc8709019" kindref="member">GetString</ref>(<ref refid="resource_8h_1a753c78dcf7f23bf3d600c999cf7e983f" kindref="member">IDS_FONTERR_VDOUTV</ref>),<sp/><ref refid="font_8cpp_1a398da37e411bb2d829f85232480defea" kindref="member">ERRMSG_DELAY</ref>);</highlight></codeline>
+<codeline lineno="299"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>0;</highlight></codeline>
+<codeline lineno="300"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="301"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>j;</highlight></codeline>
+<codeline lineno="302"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(j<sp/>=<sp/>0;<sp/>j<sp/>&lt;<sp/><ref refid="classFontENCB_1ac795bebd1258a0679a35b05da66feee9" kindref="member">hdiv</ref>.Count();<sp/>++j)</highlight></codeline>
+<codeline lineno="303"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(v<sp/>&lt;<sp/><ref refid="classFontENCB_1ac795bebd1258a0679a35b05da66feee9" kindref="member">hdiv</ref>[j])</highlight></codeline>
+<codeline lineno="304"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="305"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(j<sp/>&gt;=<sp/><ref refid="classFontENCB_1ac795bebd1258a0679a35b05da66feee9" kindref="member">hdiv</ref>.Count())</highlight></codeline>
+<codeline lineno="306"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="307"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ip-&gt;DisplayTempPrompt(<ref refid="common_8cpp_1aeb87de5dfb5d632579574b4bc8709019" kindref="member">GetString</ref>(<ref refid="resource_8h_1a753c78dcf7f23bf3d600c999cf7e983f" kindref="member">IDS_FONTERR_VDOUTV</ref>),<sp/><ref refid="font_8cpp_1a398da37e411bb2d829f85232480defea" kindref="member">ERRMSG_DELAY</ref>);</highlight></codeline>
+<codeline lineno="308"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>0;</highlight></codeline>
+<codeline lineno="309"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="310"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classFontENCB_1acae4047db9ab9cdb8a97891226247ae4" kindref="member">vdiv</ref>[i].d<sp/>=<sp/>j;</highlight></codeline>
+<codeline lineno="311"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="312"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classFontENCB_1acae4047db9ab9cdb8a97891226247ae4" kindref="member">vdiv</ref>.Sort(vdiv_cmp);</highlight></codeline>
+<codeline lineno="313"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/><ref refid="classFontENCB_1ac795bebd1258a0679a35b05da66feee9" kindref="member">hdiv</ref>.Count();<sp/>++i)</highlight></codeline>
+<codeline lineno="314"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="315"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>n<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="316"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>j<sp/>=<sp/>0;<sp/>j<sp/>&lt;<sp/><ref refid="classFontENCB_1acae4047db9ab9cdb8a97891226247ae4" kindref="member">vdiv</ref>.Count();<sp/>++j)</highlight></codeline>
+<codeline lineno="317"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="classFontENCB_1acae4047db9ab9cdb8a97891226247ae4" kindref="member">vdiv</ref>[j].d<sp/>==<sp/>i)</highlight></codeline>
+<codeline lineno="318"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>++n;</highlight></codeline>
+<codeline lineno="319"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!(n<sp/>&amp;<sp/>1))</highlight></codeline>
+<codeline lineno="320"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="321"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ip-&gt;DisplayTempPrompt(<ref refid="common_8cpp_1aeb87de5dfb5d632579574b4bc8709019" kindref="member">GetString</ref>(<ref refid="resource_8h_1a1c53bab1356ca3dc64d9fa2c7bc712fa" kindref="member">IDS_FONTERR_VDEVEN</ref>),<sp/><ref refid="font_8cpp_1a398da37e411bb2d829f85232480defea" kindref="member">ERRMSG_DELAY</ref>);</highlight></codeline>
+<codeline lineno="322"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>0;</highlight></codeline>
+<codeline lineno="323"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="324"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="325"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>1;</highlight></codeline>
+<codeline lineno="326"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="327"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classFontENCB_1aafa85ac05d2f229ccb125d488d24a518" kindref="member">save</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*fn,<sp/>Interface<sp/>*ip)</highlight></codeline>
+<codeline lineno="328"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="329"><highlight class="normal"><sp/><sp/><sp/><sp/>FILE<sp/>*<ref refid="polyBumpUtil_8cpp_1a48d03c7323d95df49ef19db24dcb5c71" kindref="member">h</ref><sp/>=<sp/>_tfopen(fn,<sp/>_T(</highlight><highlight class="stringliteral">&quot;wt&quot;</highlight><highlight class="normal">));</highlight></codeline>
+<codeline lineno="330"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!<ref refid="polyBumpUtil_8cpp_1a48d03c7323d95df49ef19db24dcb5c71" kindref="member">h</ref>)</highlight></codeline>
+<codeline lineno="331"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="332"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>ip-&gt;DisplayTempPrompt(<ref refid="common_8cpp_1aeb87de5dfb5d632579574b4bc8709019" kindref="member">GetString</ref>(<ref refid="resource_8h_1afc7d82127662b10bfb79dda48db6237f" kindref="member">IDS_FILE_CREATE_ERR</ref>),<sp/><ref refid="font_8cpp_1a398da37e411bb2d829f85232480defea" kindref="member">ERRMSG_DELAY</ref>);</highlight></codeline>
+<codeline lineno="333"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>0;</highlight></codeline>
+<codeline lineno="334"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="335"><highlight class="normal"><sp/><sp/><sp/><sp/>setlocale(LC_NUMERIC,<sp/></highlight><highlight class="stringliteral">&quot;C&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="336"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/><ref refid="classFontENCB_1ac795bebd1258a0679a35b05da66feee9" kindref="member">hdiv</ref>.Count();<sp/>++i)</highlight></codeline>
+<codeline lineno="337"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="338"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>fprintf(<ref refid="polyBumpUtil_8cpp_1a48d03c7323d95df49ef19db24dcb5c71" kindref="member">h</ref>,<sp/></highlight><highlight class="stringliteral">&quot;\nhdiv<sp/>%g<sp/>%g<sp/>\&quot;&quot;</highlight><highlight class="normal">,<sp/><ref refid="classFontENCB_1ac795bebd1258a0679a35b05da66feee9" kindref="member">hdiv</ref>[i],<sp/><ref refid="classFontENCB_1a3990e48888c90c5e64815a782b2b5ed5" kindref="member">base</ref>[i]);</highlight></codeline>
+<codeline lineno="339"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(TCHAR<sp/>*s<sp/>=<sp/><ref refid="classFontENCB_1a7838df52345c79d8bb6089779046ead1" kindref="member">chars</ref>[i].s;<sp/>*s;<sp/>++s)</highlight></codeline>
+<codeline lineno="340"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="341"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(*s<sp/>==<sp/></highlight><highlight class="charliteral">&apos;\&quot;&apos;</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="342"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>fprintf(<ref refid="polyBumpUtil_8cpp_1a48d03c7323d95df49ef19db24dcb5c71" kindref="member">h</ref>,<sp/></highlight><highlight class="stringliteral">&quot;~\&quot;&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="343"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(*s<sp/>==<sp/></highlight><highlight class="charliteral">&apos;~&apos;</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="344"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>fprintf(<ref refid="polyBumpUtil_8cpp_1a48d03c7323d95df49ef19db24dcb5c71" kindref="member">h</ref>,<sp/></highlight><highlight class="stringliteral">&quot;~~&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="345"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="346"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="347"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>std::string<sp/>s1<sp/>=<sp/><ref refid="font_8cpp_1a9247db5a252f97c6442d08793a38a1d4" kindref="member">wideToStr</ref>(s);</highlight></codeline>
+<codeline lineno="348"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>fputc(*s1.c_str(),<sp/><ref refid="polyBumpUtil_8cpp_1a48d03c7323d95df49ef19db24dcb5c71" kindref="member">h</ref>);</highlight></codeline>
+<codeline lineno="349"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="350"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="351"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>fprintf(<ref refid="polyBumpUtil_8cpp_1a48d03c7323d95df49ef19db24dcb5c71" kindref="member">h</ref>,<sp/></highlight><highlight class="stringliteral">&quot;\&quot;<sp/>{\n&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="352"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>f<sp/>=<sp/>1;</highlight></codeline>
+<codeline lineno="353"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>j<sp/>=<sp/>0;<sp/>j<sp/>&lt;<sp/><ref refid="classFontENCB_1acae4047db9ab9cdb8a97891226247ae4" kindref="member">vdiv</ref>.Count();<sp/>++j)</highlight></codeline>
+<codeline lineno="354"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="classFontENCB_1acae4047db9ab9cdb8a97891226247ae4" kindref="member">vdiv</ref>[j].d<sp/>==<sp/>i)</highlight></codeline>
+<codeline lineno="355"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="356"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(f)</highlight></codeline>
+<codeline lineno="357"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>fprintf(<ref refid="polyBumpUtil_8cpp_1a48d03c7323d95df49ef19db24dcb5c71" kindref="member">h</ref>,<sp/></highlight><highlight class="stringliteral">&quot;%g\n&quot;</highlight><highlight class="normal">,<sp/><ref refid="classFontENCB_1acae4047db9ab9cdb8a97891226247ae4" kindref="member">vdiv</ref>[j].u);</highlight></codeline>
+<codeline lineno="358"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="359"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>fprintf(<ref refid="polyBumpUtil_8cpp_1a48d03c7323d95df49ef19db24dcb5c71" kindref="member">h</ref>,<sp/></highlight><highlight class="stringliteral">&quot;%g<sp/>&quot;</highlight><highlight class="normal">,<sp/><ref refid="classFontENCB_1acae4047db9ab9cdb8a97891226247ae4" kindref="member">vdiv</ref>[j].u);</highlight></codeline>
+<codeline lineno="360"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>f<sp/>=<sp/>!f;</highlight></codeline>
+<codeline lineno="361"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="362"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>fprintf(<ref refid="polyBumpUtil_8cpp_1a48d03c7323d95df49ef19db24dcb5c71" kindref="member">h</ref>,<sp/></highlight><highlight class="stringliteral">&quot;}\n&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="363"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="364"><highlight class="normal"><sp/><sp/><sp/><sp/>setlocale(LC_NUMERIC,<sp/></highlight><highlight class="stringliteral">&quot;&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="365"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="polyBumpUtil_8cpp_1aed5a458133572985ccc7fc10a3159f6b" kindref="member">fclose</ref>(<ref refid="polyBumpUtil_8cpp_1a48d03c7323d95df49ef19db24dcb5c71" kindref="member">h</ref>);</highlight></codeline>
+<codeline lineno="366"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>1;</highlight></codeline>
+<codeline lineno="367"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="368"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="369"><highlight class="normal"></highlight></codeline>
+<codeline lineno="370"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classFontUtil_1ae799572c5841a9fad14e341b649c1eb0" kindref="member">FontUtil::exportData</ref>()</highlight></codeline>
+<codeline lineno="371"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="372"><highlight class="normal"><sp/><sp/><ref refid="classFontENCB" kindref="compound">FontENCB</ref><sp/>cb(<ref refid="classFontUtil_1a60125a188457772a89d0e5db775ea167" kindref="member">ip</ref>-&gt;GetTime());</highlight></codeline>
+<codeline lineno="373"><highlight class="normal"><sp/><sp/>cb.org.IdentityMatrix();</highlight></codeline>
+<codeline lineno="374"><highlight class="normal"><sp/><sp/>INode<sp/>*on<sp/>=<sp/><ref refid="classFontUtil_1a60125a188457772a89d0e5db775ea167" kindref="member">ip</ref>-&gt;GetINodeByName(_T(</highlight><highlight class="stringliteral">&quot;origin&quot;</highlight><highlight class="normal">));</highlight></codeline>
+<codeline lineno="375"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(on)</highlight></codeline>
+<codeline lineno="376"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="377"><highlight class="normal"><sp/><sp/><sp/><sp/>cb.org<sp/>=<sp/>on-&gt;GetNodeTM(<ref refid="classFontUtil_1a60125a188457772a89d0e5db775ea167" kindref="member">ip</ref>-&gt;GetTime());</highlight></codeline>
+<codeline lineno="378"><highlight class="normal"><sp/><sp/><sp/><sp/>cb.org.NoScale();</highlight></codeline>
+<codeline lineno="379"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="380"><highlight class="normal"><sp/><sp/><ref refid="enumnode_8h_1a21ec496f2d47311f5a23a9575be288d7" kindref="member">enum_nodes</ref>(<ref refid="classFontUtil_1a60125a188457772a89d0e5db775ea167" kindref="member">ip</ref>-&gt;GetRootNode(),<sp/>&amp;cb);</highlight></codeline>
+<codeline lineno="381"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!cb.check(<ref refid="classFontUtil_1a60125a188457772a89d0e5db775ea167" kindref="member">ip</ref>))</highlight></codeline>
+<codeline lineno="382"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="383"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!cb.save(<ref refid="classFontUtil_1add50d5990fda7cf3ba70c072d783ac83" kindref="member">fd_fname</ref>.data(),<sp/><ref refid="classFontUtil_1a60125a188457772a89d0e5db775ea167" kindref="member">ip</ref>))</highlight></codeline>
+<codeline lineno="384"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="385"><highlight class="normal">}</highlight></codeline>
+    </programlisting>
+    <location file="font.cpp"/>
+  </compounddef>
+</doxygen>

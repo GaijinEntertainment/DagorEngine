@@ -1,0 +1,70 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structraytrace_1_1ResourceBindingTable_1_1TextureRead" kind="struct" language="C++" prot="public">
+    <compoundname>raytrace::ResourceBindingTable::TextureRead</compoundname>
+    <includes refid="dag__drvRayTrace_8h" local="no">dag_drvRayTrace.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structraytrace_1_1ResourceBindingTable_1_1TextureRead_1a201bf3a857504dd39b9317ebd493cbf6" prot="public" static="no" mutable="no">
+        <type><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref> *</type>
+        <definition>BaseTexture* raytrace::ResourceBindingTable::TextureRead::texture</definition>
+        <argsstring></argsstring>
+        <name>texture</name>
+        <qualifiedname>raytrace::ResourceBindingTable::TextureRead::texture</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+<para>Texture to read from. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="841" column="17" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="841" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1ResourceBindingTable_1_1TextureRead_1ab4dba41b9446656f3fd6b96da859aaca" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::ResourceBindingTable::TextureRead::slot</definition>
+        <argsstring></argsstring>
+        <name>slot</name>
+        <qualifiedname>raytrace::ResourceBindingTable::TextureRead::slot</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+<para>t register slot </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="843" column="14" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="843" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Defines a texture read on a t register slot. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>BaseTexture</label>
+        <link refid="classBaseTexture"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>D3dResource</label>
+        <link refid="classD3dResource"/>
+      </node>
+      <node id="1">
+        <label>raytrace::ResourceBindingTable::TextureRead</label>
+        <link refid="structraytrace_1_1ResourceBindingTable_1_1TextureRead"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>texture</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="rayTrace/dag_drvRayTrace.h" line="838" column="3" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="839" bodyend="844"/>
+    <listofallmembers>
+      <member refid="structraytrace_1_1ResourceBindingTable_1_1TextureRead_1ab4dba41b9446656f3fd6b96da859aaca" prot="public" virt="non-virtual"><scope>raytrace::ResourceBindingTable::TextureRead</scope><name>slot</name></member>
+      <member refid="structraytrace_1_1ResourceBindingTable_1_1TextureRead_1a201bf3a857504dd39b9317ebd493cbf6" prot="public" virt="non-virtual"><scope>raytrace::ResourceBindingTable::TextureRead</scope><name>texture</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

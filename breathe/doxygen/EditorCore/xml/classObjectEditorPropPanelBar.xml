@@ -1,0 +1,547 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classObjectEditorPropPanelBar" kind="class" language="C++" prot="public">
+    <compoundname>ObjectEditorPropPanelBar</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">PropPanel::ControlEventHandler</basecompoundref>
+    <includes refid="ec__ObjectEditor_8h" local="no">ec_ObjectEditor.h</includes>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="classObjectEditorPropPanelBar_1afd36976e6dc3240222f76e0ac5327973" prot="protected" static="no" mutable="no">
+        <type><ref refid="classObjectEditor" kindref="compound">ObjectEditor</ref> *</type>
+        <definition>ObjectEditor* ObjectEditorPropPanelBar::objEd</definition>
+        <argsstring></argsstring>
+        <name>objEd</name>
+        <qualifiedname>ObjectEditorPropPanelBar::objEd</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectEditor.h" line="569" column="16" bodyfile="ec_ObjectEditor.h" bodystart="569" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classObjectEditorPropPanelBar_1aaec9d31729f8876dc0baa573bcf32067" prot="protected" static="no" mutable="no">
+        <type>PtrTab&lt; <ref refid="classRenderableEditableObject" kindref="compound">RenderableEditableObject</ref> &gt;</type>
+        <definition>PtrTab&lt;RenderableEditableObject&gt; ObjectEditorPropPanelBar::objects</definition>
+        <argsstring></argsstring>
+        <name>objects</name>
+        <qualifiedname>ObjectEditorPropPanelBar::objects</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectEditor.h" line="570" column="10" bodyfile="ec_ObjectEditor.h" bodystart="570" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classObjectEditorPropPanelBar_1a8f7df84de4ed0d10e0758831b0d5a83f" prot="protected" static="no" mutable="no">
+        <type>PropPanel::PanelWindowPropertyControl *</type>
+        <definition>PropPanel::PanelWindowPropertyControl* ObjectEditorPropPanelBar::propPanel</definition>
+        <argsstring></argsstring>
+        <name>propPanel</name>
+        <qualifiedname>ObjectEditorPropPanelBar::propPanel</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectEditor.h" line="572" column="41" bodyfile="ec_ObjectEditor.h" bodystart="572" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classObjectEditorPropPanelBar_1afccb0763ab510786ca0cd53572f6d9c4" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ObjectEditorPropPanelBar::ObjectEditorPropPanelBar</definition>
+        <argsstring>(ObjectEditor *obj_ed, void *hwnd, const char *caption)</argsstring>
+        <name>ObjectEditorPropPanelBar</name>
+        <qualifiedname>ObjectEditorPropPanelBar::ObjectEditorPropPanelBar</qualifiedname>
+        <param>
+          <type><ref refid="classObjectEditor" kindref="compound">ObjectEditor</ref> *</type>
+          <declname>obj_ed</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>hwnd</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>caption</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectEditor.h" line="543" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classObjectEditorPropPanelBar_1a7ac0c273cc2a86c57ce57f43318ca48c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ObjectEditorPropPanelBar::~ObjectEditorPropPanelBar</definition>
+        <argsstring>() override</argsstring>
+        <name>~ObjectEditorPropPanelBar</name>
+        <qualifiedname>ObjectEditorPropPanelBar::~ObjectEditorPropPanelBar</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectEditor.h" line="544" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classObjectEditorPropPanelBar_1afd3635b4a753cf551a579cc73c4eb3df" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ObjectEditorPropPanelBar::onChange</definition>
+        <argsstring>(int pcb_id, PropPanel::ContainerPropertyControl *panel) override</argsstring>
+        <name>onChange</name>
+        <qualifiedname>ObjectEditorPropPanelBar::onChange</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>pcb_id</declname>
+        </param>
+        <param>
+          <type>PropPanel::ContainerPropertyControl *</type>
+          <declname>panel</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectEditor.h" line="547" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classObjectEditorPropPanelBar_1a4427979a9cb75f3844fc1d33e790d58a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ObjectEditorPropPanelBar::onClick</definition>
+        <argsstring>(int pcb_id, PropPanel::ContainerPropertyControl *panel) override</argsstring>
+        <name>onClick</name>
+        <qualifiedname>ObjectEditorPropPanelBar::onClick</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>pcb_id</declname>
+        </param>
+        <param>
+          <type>PropPanel::ContainerPropertyControl *</type>
+          <declname>panel</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectEditor.h" line="548" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classObjectEditorPropPanelBar_1af50047e914fac3deba7d11afd47fb0fa" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ObjectEditorPropPanelBar::onPostEvent</definition>
+        <argsstring>(int pcb_id, PropPanel::ContainerPropertyControl *panel) override</argsstring>
+        <name>onPostEvent</name>
+        <qualifiedname>ObjectEditorPropPanelBar::onPostEvent</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>pcb_id</declname>
+        </param>
+        <param>
+          <type>PropPanel::ContainerPropertyControl *</type>
+          <declname>panel</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectEditor.h" line="549" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classObjectEditorPropPanelBar_1a5b9ae1200c05fc435a4cb25aec8fc32b" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void ObjectEditorPropPanelBar::fillPanel</definition>
+        <argsstring>()</argsstring>
+        <name>fillPanel</name>
+        <qualifiedname>ObjectEditorPropPanelBar::fillPanel</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectEditor.h" line="551" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classObjectEditorPropPanelBar_1ab03b7add0a60d72657c6b3919eb4b39d" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void ObjectEditorPropPanelBar::refillPanel</definition>
+        <argsstring>()</argsstring>
+        <name>refillPanel</name>
+        <qualifiedname>ObjectEditorPropPanelBar::refillPanel</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectEditor.h" line="552" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classObjectEditorPropPanelBar_1ac5e890715b91ede692b0dfc2cbddeacf" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>PropPanel::ContainerPropertyControl *</type>
+        <definition>virtual PropPanel::ContainerPropertyControl * ObjectEditorPropPanelBar::createPanelGroup</definition>
+        <argsstring>(int pid)</argsstring>
+        <name>createPanelGroup</name>
+        <qualifiedname>ObjectEditorPropPanelBar::createPanelGroup</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>pid</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectEditor.h" line="553" column="47"/>
+      </memberdef>
+      <memberdef kind="function" id="classObjectEditorPropPanelBar_1a228a4f32f7d4924b61ca0b4185225e18" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void ObjectEditorPropPanelBar::createPanelTransform</definition>
+        <argsstring>(int mode)</argsstring>
+        <name>createPanelTransform</name>
+        <qualifiedname>ObjectEditorPropPanelBar::createPanelTransform</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>mode</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectEditor.h" line="554" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classObjectEditorPropPanelBar_1a9c690128dc9dac009a3230e22da229ba" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void ObjectEditorPropPanelBar::updateName</definition>
+        <argsstring>(const char *name)</argsstring>
+        <name>updateName</name>
+        <qualifiedname>ObjectEditorPropPanelBar::updateName</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectEditor.h" line="555" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classObjectEditorPropPanelBar_1a874ccdf3c8a87b4907c2411f6bfd9260" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void ObjectEditorPropPanelBar::updateTransform</definition>
+        <argsstring>()</argsstring>
+        <name>updateTransform</name>
+        <qualifiedname>ObjectEditorPropPanelBar::updateTransform</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectEditor.h" line="556" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classObjectEditorPropPanelBar_1af5f2cfdc13fa85f4d59d55509ba73ae3" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void ObjectEditorPropPanelBar::loadSettings</definition>
+        <argsstring>(DataBlock &amp;settings)</argsstring>
+        <name>loadSettings</name>
+        <qualifiedname>ObjectEditorPropPanelBar::loadSettings</qualifiedname>
+        <param>
+          <type>DataBlock &amp;</type>
+          <declname>settings</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectEditor.h" line="559" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classObjectEditorPropPanelBar_1a55a94090c0c3bb3e6003f29fa5b03137" prot="public" static="no" const="yes" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void ObjectEditorPropPanelBar::saveSettings</definition>
+        <argsstring>(DataBlock &amp;settings) const</argsstring>
+        <name>saveSettings</name>
+        <qualifiedname>ObjectEditorPropPanelBar::saveSettings</qualifiedname>
+        <param>
+          <type>DataBlock &amp;</type>
+          <declname>settings</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectEditor.h" line="560" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classObjectEditorPropPanelBar_1ab7a2ee0702df3aea9f29ceb565e59586" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>PropPanel::PanelWindowPropertyControl *</type>
+        <definition>PropPanel::PanelWindowPropertyControl * ObjectEditorPropPanelBar::getPanel</definition>
+        <argsstring>()</argsstring>
+        <name>getPanel</name>
+        <qualifiedname>ObjectEditorPropPanelBar::getPanel</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectEditor.h" line="562" column="41" bodyfile="ec_ObjectEditor.h" bodystart="562" bodyend="566"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-func">
+      <memberdef kind="function" id="classObjectEditorPropPanelBar_1a849e1f20f78e9ab894066c95ef7536b4" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ObjectEditorPropPanelBar::getObjects</definition>
+        <argsstring>()</argsstring>
+        <name>getObjects</name>
+        <qualifiedname>ObjectEditorPropPanelBar::getObjects</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectEditor.h" line="574" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classObjectEditorPropPanelBar_1af8b484594c7a603bbc780bc95953bfde" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ObjectEditorPropPanelBar::onTransformChange</definition>
+        <argsstring>(int pcb_id, PropPanel::ContainerPropertyControl *panel, int mode)</argsstring>
+        <name>onTransformChange</name>
+        <qualifiedname>ObjectEditorPropPanelBar::onTransformChange</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>pcb_id</declname>
+        </param>
+        <param>
+          <type>PropPanel::ContainerPropertyControl *</type>
+          <declname>panel</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>mode</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectEditor.h" line="576" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classObjectEditorPropPanelBar_1a4706db035ba36a23b70a500684c3dfcb" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>Point3</type>
+        <definition>Point3 ObjectEditorPropPanelBar::getObjectTransform</definition>
+        <argsstring>(int mode)</argsstring>
+        <name>getObjectTransform</name>
+        <qualifiedname>ObjectEditorPropPanelBar::getObjectTransform</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>mode</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectEditor.h" line="578" column="10"/>
+      </memberdef>
+      <memberdef kind="function" id="classObjectEditorPropPanelBar_1a54ca9f8fecc1cb66cb2720fbbdf81a8c" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ObjectEditorPropPanelBar::setObjectTransform</definition>
+        <argsstring>(int mode, Point3 val)</argsstring>
+        <name>setObjectTransform</name>
+        <qualifiedname>ObjectEditorPropPanelBar::setObjectTransform</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>mode</declname>
+        </param>
+        <param>
+          <type>Point3</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectEditor.h" line="579" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classObjectEditorPropPanelBar_1ab4835429ca3d12fc9a0f55b2a9134815" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ObjectEditorPropPanelBar::updateTransformPart</definition>
+        <argsstring>(int mode)</argsstring>
+        <name>updateTransformPart</name>
+        <qualifiedname>ObjectEditorPropPanelBar::updateTransformPart</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>mode</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectEditor.h" line="581" column="8"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-static-func">
+      <memberdef kind="function" id="classObjectEditorPropPanelBar_1ad52847f56e1e75c666afa6daa71a0c5e" prot="protected" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>static int ObjectEditorPropPanelBar::getPidForEditMode</definition>
+        <argsstring>(int mode)</argsstring>
+        <name>getPidForEditMode</name>
+        <qualifiedname>ObjectEditorPropPanelBar::getPidForEditMode</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>mode</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectEditor.h" line="583" column="14"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>ObjectEditorPropPanelBar</label>
+        <link refid="classObjectEditorPropPanelBar"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>PropPanel::ControlEventHandler</label>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="11">
+        <label>DObject</label>
+      </node>
+      <node id="10">
+        <label>EditableObject</label>
+        <link refid="classEditableObject"/>
+        <childnode refid="11" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>IGenEventHandler</label>
+        <link refid="classIGenEventHandler"/>
+      </node>
+      <node id="4">
+        <label>IGizmoClient</label>
+        <link refid="classIGizmoClient"/>
+      </node>
+      <node id="12">
+        <label>IObjectCreator</label>
+        <link refid="classIObjectCreator"/>
+      </node>
+      <node id="6">
+        <label>IObjectsList</label>
+        <link refid="classIObjectsList"/>
+      </node>
+      <node id="7">
+        <label>IWndManagerWindowHandler</label>
+        <link refid="classIWndManagerWindowHandler"/>
+      </node>
+      <node id="3">
+        <label>ObjectEditor</label>
+        <link refid="classObjectEditor"/>
+        <childnode refid="4" relation="public-inheritance">
+        </childnode>
+        <childnode refid="5" relation="public-inheritance">
+        </childnode>
+        <childnode refid="6" relation="public-inheritance">
+        </childnode>
+        <childnode refid="7" relation="public-inheritance">
+        </childnode>
+        <childnode refid="8" relation="public-inheritance">
+        </childnode>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="9" relation="usage">
+          <edgelabel>sample</edgelabel>
+        </childnode>
+        <childnode refid="12" relation="usage">
+          <edgelabel>creator</edgelabel>
+        </childnode>
+        <childnode refid="1" relation="usage">
+          <edgelabel>objectPropBar</edgelabel>
+        </childnode>
+      </node>
+      <node id="1">
+        <label>ObjectEditorPropPanelBar</label>
+        <link refid="classObjectEditorPropPanelBar"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>objEd</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>PropPanel::ControlEventHandler</label>
+      </node>
+      <node id="8">
+        <label>PropPanel::IMenuEventHandler</label>
+      </node>
+      <node id="9">
+        <label>RenderableEditableObject</label>
+        <link refid="classRenderableEditableObject"/>
+        <childnode refid="10" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>objEditor</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="ec_ObjectEditor.h" line="540" column="1" bodyfile="ec_ObjectEditor.h" bodystart="541" bodyend="584"/>
+    <listofallmembers>
+      <member refid="classObjectEditorPropPanelBar_1ac5e890715b91ede692b0dfc2cbddeacf" prot="public" virt="virtual"><scope>ObjectEditorPropPanelBar</scope><name>createPanelGroup</name></member>
+      <member refid="classObjectEditorPropPanelBar_1a228a4f32f7d4924b61ca0b4185225e18" prot="public" virt="virtual"><scope>ObjectEditorPropPanelBar</scope><name>createPanelTransform</name></member>
+      <member refid="classObjectEditorPropPanelBar_1a5b9ae1200c05fc435a4cb25aec8fc32b" prot="public" virt="virtual"><scope>ObjectEditorPropPanelBar</scope><name>fillPanel</name></member>
+      <member refid="classObjectEditorPropPanelBar_1a849e1f20f78e9ab894066c95ef7536b4" prot="protected" virt="non-virtual"><scope>ObjectEditorPropPanelBar</scope><name>getObjects</name></member>
+      <member refid="classObjectEditorPropPanelBar_1a4706db035ba36a23b70a500684c3dfcb" prot="protected" virt="non-virtual"><scope>ObjectEditorPropPanelBar</scope><name>getObjectTransform</name></member>
+      <member refid="classObjectEditorPropPanelBar_1ab7a2ee0702df3aea9f29ceb565e59586" prot="public" virt="non-virtual"><scope>ObjectEditorPropPanelBar</scope><name>getPanel</name></member>
+      <member refid="classObjectEditorPropPanelBar_1ad52847f56e1e75c666afa6daa71a0c5e" prot="protected" virt="non-virtual"><scope>ObjectEditorPropPanelBar</scope><name>getPidForEditMode</name></member>
+      <member refid="classObjectEditorPropPanelBar_1af5f2cfdc13fa85f4d59d55509ba73ae3" prot="public" virt="virtual"><scope>ObjectEditorPropPanelBar</scope><name>loadSettings</name></member>
+      <member refid="classObjectEditorPropPanelBar_1afccb0763ab510786ca0cd53572f6d9c4" prot="public" virt="non-virtual"><scope>ObjectEditorPropPanelBar</scope><name>ObjectEditorPropPanelBar</name></member>
+      <member refid="classObjectEditorPropPanelBar_1aaec9d31729f8876dc0baa573bcf32067" prot="protected" virt="non-virtual"><scope>ObjectEditorPropPanelBar</scope><name>objects</name></member>
+      <member refid="classObjectEditorPropPanelBar_1afd36976e6dc3240222f76e0ac5327973" prot="protected" virt="non-virtual"><scope>ObjectEditorPropPanelBar</scope><name>objEd</name></member>
+      <member refid="classObjectEditorPropPanelBar_1afd3635b4a753cf551a579cc73c4eb3df" prot="public" virt="non-virtual"><scope>ObjectEditorPropPanelBar</scope><name>onChange</name></member>
+      <member refid="classObjectEditorPropPanelBar_1a4427979a9cb75f3844fc1d33e790d58a" prot="public" virt="non-virtual"><scope>ObjectEditorPropPanelBar</scope><name>onClick</name></member>
+      <member refid="classObjectEditorPropPanelBar_1af50047e914fac3deba7d11afd47fb0fa" prot="public" virt="non-virtual"><scope>ObjectEditorPropPanelBar</scope><name>onPostEvent</name></member>
+      <member refid="classObjectEditorPropPanelBar_1af8b484594c7a603bbc780bc95953bfde" prot="protected" virt="non-virtual"><scope>ObjectEditorPropPanelBar</scope><name>onTransformChange</name></member>
+      <member refid="classObjectEditorPropPanelBar_1a8f7df84de4ed0d10e0758831b0d5a83f" prot="protected" virt="non-virtual"><scope>ObjectEditorPropPanelBar</scope><name>propPanel</name></member>
+      <member refid="classObjectEditorPropPanelBar_1ab03b7add0a60d72657c6b3919eb4b39d" prot="public" virt="virtual"><scope>ObjectEditorPropPanelBar</scope><name>refillPanel</name></member>
+      <member refid="classObjectEditorPropPanelBar_1a55a94090c0c3bb3e6003f29fa5b03137" prot="public" virt="virtual"><scope>ObjectEditorPropPanelBar</scope><name>saveSettings</name></member>
+      <member refid="classObjectEditorPropPanelBar_1a54ca9f8fecc1cb66cb2720fbbdf81a8c" prot="protected" virt="non-virtual"><scope>ObjectEditorPropPanelBar</scope><name>setObjectTransform</name></member>
+      <member refid="classObjectEditorPropPanelBar_1a9c690128dc9dac009a3230e22da229ba" prot="public" virt="virtual"><scope>ObjectEditorPropPanelBar</scope><name>updateName</name></member>
+      <member refid="classObjectEditorPropPanelBar_1a874ccdf3c8a87b4907c2411f6bfd9260" prot="public" virt="virtual"><scope>ObjectEditorPropPanelBar</scope><name>updateTransform</name></member>
+      <member refid="classObjectEditorPropPanelBar_1ab4835429ca3d12fc9a0f55b2a9134815" prot="protected" virt="non-virtual"><scope>ObjectEditorPropPanelBar</scope><name>updateTransformPart</name></member>
+      <member refid="classObjectEditorPropPanelBar_1a7ac0c273cc2a86c57ce57f43318ca48c" prot="public" virt="non-virtual"><scope>ObjectEditorPropPanelBar</scope><name>~ObjectEditorPropPanelBar</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

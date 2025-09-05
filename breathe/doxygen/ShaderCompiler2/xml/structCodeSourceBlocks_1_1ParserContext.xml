@@ -1,0 +1,283 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structCodeSourceBlocks_1_1ParserContext" kind="struct" language="C++" prot="public">
+    <compoundname>CodeSourceBlocks::ParserContext</compoundname>
+    <innerclass refid="structCodeSourceBlocks_1_1ParserContext_1_1Stack" prot="protected">CodeSourceBlocks::ParserContext::Stack</innerclass>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structCodeSourceBlocks_1_1ParserContext_1a8822bb6d961cffb83ad3fbcdac0277f9" prot="public" static="no" mutable="no">
+        <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+        <definition>shc::TargetContext&amp; CodeSourceBlocks::ParserContext::mainCtx</definition>
+        <argsstring></argsstring>
+        <name>mainCtx</name>
+        <qualifiedname>CodeSourceBlocks::ParserContext::mainCtx</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="codeBlocks.cpp" line="68" column="22" bodyfile="codeBlocks.cpp" bodystart="68" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structCodeSourceBlocks_1_1ParserContext_1a04f7eeb9b34f2f5f14d31125cdea26b8" prot="public" static="no" mutable="no">
+        <type><ref refid="classShaderParser_1_1ShaderBoolEvalCB" kindref="compound">ShaderParser::ShaderBoolEvalCB</ref> &amp;</type>
+        <definition>ShaderParser::ShaderBoolEvalCB&amp; CodeSourceBlocks::ParserContext::evalCb</definition>
+        <argsstring></argsstring>
+        <name>evalCb</name>
+        <qualifiedname>CodeSourceBlocks::ParserContext::evalCb</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="codeBlocks.cpp" line="69" column="34" bodyfile="codeBlocks.cpp" bodystart="69" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structCodeSourceBlocks_1_1ParserContext_1ac7906d066425d091f5cfa074cf91981c" prot="public" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* CodeSourceBlocks::ParserContext::stage</definition>
+        <argsstring></argsstring>
+        <name>stage</name>
+        <qualifiedname>CodeSourceBlocks::ParserContext::stage</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="codeBlocks.cpp" line="70" column="14" bodyfile="codeBlocks.cpp" bodystart="70" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structCodeSourceBlocks_1_1ParserContext_1a99fb2984c1caa9880e631e9e4b9af576" prot="public" static="no" mutable="no">
+        <type>dag::Vector&lt; eastl::string &gt;</type>
+        <definition>dag::Vector&lt;eastl::string&gt; CodeSourceBlocks::ParserContext::errors</definition>
+        <argsstring></argsstring>
+        <name>errors</name>
+        <qualifiedname>CodeSourceBlocks::ParserContext::errors</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="codeBlocks.cpp" line="71" column="15" bodyfile="codeBlocks.cpp" bodystart="71" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="structCodeSourceBlocks_1_1ParserContext_1ad994fd571e554e4867f3b8eee76da646" prot="protected" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="structCodeSourceBlocks_1_1ParserContext_1_1Stack" kindref="compound">Stack</ref> &gt;</type>
+        <definition>Tab&lt;Stack&gt; CodeSourceBlocks::ParserContext::stack</definition>
+        <argsstring></argsstring>
+        <name>stack</name>
+        <qualifiedname>CodeSourceBlocks::ParserContext::stack</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="codeBlocks.cpp" line="80" column="7" bodyfile="codeBlocks.cpp" bodystart="80" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structCodeSourceBlocks_1_1ParserContext_1ac2da8340938c4f82aafc13e92e1aa739" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>CodeSourceBlocks::ParserContext::ParserContext</definition>
+        <argsstring>(ShaderParser::ShaderBoolEvalCB &amp;cb, const char *s, shc::TargetContext &amp;a_ctx)</argsstring>
+        <name>ParserContext</name>
+        <qualifiedname>CodeSourceBlocks::ParserContext::ParserContext</qualifiedname>
+        <param>
+          <type><ref refid="classShaderParser_1_1ShaderBoolEvalCB" kindref="compound">ShaderParser::ShaderBoolEvalCB</ref> &amp;</type>
+          <declname>cb</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>a_ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="codeBlocks.cpp" line="40" column="3" bodyfile="codeBlocks.cpp" bodystart="40" bodyend="42"/>
+      </memberdef>
+      <memberdef kind="function" id="structCodeSourceBlocks_1_1ParserContext_1aaabd65065fac4572fc59bba62c422231" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Tab&lt; <ref refid="structCodeSourceBlocks_1_1Fragment" kindref="compound">CodeSourceBlocks::Fragment</ref> &gt; &amp;</type>
+        <definition>Tab&lt; CodeSourceBlocks::Fragment &gt; &amp; CodeSourceBlocks::ParserContext::topProg</definition>
+        <argsstring>()</argsstring>
+        <name>topProg</name>
+        <qualifiedname>CodeSourceBlocks::ParserContext::topProg</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="codeBlocks.cpp" line="44" column="7" bodyfile="codeBlocks.cpp" bodystart="44" bodyend="44"/>
+      </memberdef>
+      <memberdef kind="function" id="structCodeSourceBlocks_1_1ParserContext_1a44f526c215b5308bf7bb6a169033426c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int CodeSourceBlocks::ParserContext::topState</definition>
+        <argsstring>()</argsstring>
+        <name>topState</name>
+        <qualifiedname>CodeSourceBlocks::ParserContext::topState</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="codeBlocks.cpp" line="45" column="7" bodyfile="codeBlocks.cpp" bodystart="45" bodyend="45"/>
+      </memberdef>
+      <memberdef kind="function" id="structCodeSourceBlocks_1_1ParserContext_1a3684f389356353604f51f99a81410aff" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classCodeSourceBlocks_1a32e3a067a09b1c3c6b13a9a95e5c7a3c" kindref="member">ExprValue</ref></type>
+        <definition>ExprValue CodeSourceBlocks::ParserContext::topCondEval</definition>
+        <argsstring>()</argsstring>
+        <name>topCondEval</name>
+        <qualifiedname>CodeSourceBlocks::ParserContext::topCondEval</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="codeBlocks.cpp" line="46" column="13" bodyfile="codeBlocks.cpp" bodystart="46" bodyend="46"/>
+      </memberdef>
+      <memberdef kind="function" id="structCodeSourceBlocks_1_1ParserContext_1af90d499388f4fb3b9784d7461247752b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int CodeSourceBlocks::ParserContext::topHasTrue</definition>
+        <argsstring>()</argsstring>
+        <name>topHasTrue</name>
+        <qualifiedname>CodeSourceBlocks::ParserContext::topHasTrue</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="codeBlocks.cpp" line="47" column="7" bodyfile="codeBlocks.cpp" bodystart="47" bodyend="47"/>
+      </memberdef>
+      <memberdef kind="function" id="structCodeSourceBlocks_1_1ParserContext_1a62b2177fe873e2c54187a5e413414129" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int CodeSourceBlocks::ParserContext::topHasAny</definition>
+        <argsstring>()</argsstring>
+        <name>topHasAny</name>
+        <qualifiedname>CodeSourceBlocks::ParserContext::topHasAny</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="codeBlocks.cpp" line="48" column="7" bodyfile="codeBlocks.cpp" bodystart="48" bodyend="48"/>
+      </memberdef>
+      <memberdef kind="function" id="structCodeSourceBlocks_1_1ParserContext_1ade343fafcbc475b73dc62a0c3fbdfdd5" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int CodeSourceBlocks::ParserContext::stackSize</definition>
+        <argsstring>()</argsstring>
+        <name>stackSize</name>
+        <qualifiedname>CodeSourceBlocks::ParserContext::stackSize</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="codeBlocks.cpp" line="49" column="7" bodyfile="codeBlocks.cpp" bodystart="49" bodyend="49"/>
+      </memberdef>
+      <memberdef kind="function" id="structCodeSourceBlocks_1_1ParserContext_1a5e1aa4b6fd31bcee46472a225b1b399a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void CodeSourceBlocks::ParserContext::push_back</definition>
+        <argsstring>(Tab&lt; CodeSourceBlocks::Fragment &gt; *prog, int state, ExprValue cond, int has_1, int has_any)</argsstring>
+        <name>push_back</name>
+        <qualifiedname>CodeSourceBlocks::ParserContext::push_back</qualifiedname>
+        <param>
+          <type>Tab&lt; <ref refid="structCodeSourceBlocks_1_1Fragment" kindref="compound">CodeSourceBlocks::Fragment</ref> &gt; *</type>
+          <declname>prog</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>state</declname>
+        </param>
+        <param>
+          <type><ref refid="classCodeSourceBlocks_1a32e3a067a09b1c3c6b13a9a95e5c7a3c" kindref="member">ExprValue</ref></type>
+          <declname>cond</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>has_1</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>has_any</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="codeBlocks.cpp" line="51" column="8" bodyfile="codeBlocks.cpp" bodystart="51" bodyend="59"/>
+      </memberdef>
+      <memberdef kind="function" id="structCodeSourceBlocks_1_1ParserContext_1a2fad2502284214ed63041c5e4fa57dcf" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void CodeSourceBlocks::ParserContext::pop_back</definition>
+        <argsstring>()</argsstring>
+        <name>pop_back</name>
+        <qualifiedname>CodeSourceBlocks::ParserContext::pop_back</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="codeBlocks.cpp" line="60" column="8" bodyfile="codeBlocks.cpp" bodystart="60" bodyend="65"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="1">
+        <label>CodeSourceBlocks::ParserContext</label>
+        <link refid="structCodeSourceBlocks_1_1ParserContext"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>mainCtx</edgelabel>
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>evalCb</edgelabel>
+        </childnode>
+      </node>
+      <node id="3">
+        <label>ShaderParser::ShaderBoolEvalCB</label>
+        <link refid="classShaderParser_1_1ShaderBoolEvalCB"/>
+      </node>
+      <node id="2">
+        <label>shc::TargetContext</label>
+        <link refid="classshc_1_1TargetContext"/>
+      </node>
+    </collaborationgraph>
+    <location file="codeBlocks.cpp" line="38" column="1" bodyfile="codeBlocks.cpp" bodystart="39" bodyend="81"/>
+    <listofallmembers>
+      <member refid="structCodeSourceBlocks_1_1ParserContext_1a99fb2984c1caa9880e631e9e4b9af576" prot="public" virt="non-virtual"><scope>CodeSourceBlocks::ParserContext</scope><name>errors</name></member>
+      <member refid="structCodeSourceBlocks_1_1ParserContext_1a04f7eeb9b34f2f5f14d31125cdea26b8" prot="public" virt="non-virtual"><scope>CodeSourceBlocks::ParserContext</scope><name>evalCb</name></member>
+      <member refid="structCodeSourceBlocks_1_1ParserContext_1a8822bb6d961cffb83ad3fbcdac0277f9" prot="public" virt="non-virtual"><scope>CodeSourceBlocks::ParserContext</scope><name>mainCtx</name></member>
+      <member refid="structCodeSourceBlocks_1_1ParserContext_1ac2da8340938c4f82aafc13e92e1aa739" prot="public" virt="non-virtual"><scope>CodeSourceBlocks::ParserContext</scope><name>ParserContext</name></member>
+      <member refid="structCodeSourceBlocks_1_1ParserContext_1a2fad2502284214ed63041c5e4fa57dcf" prot="public" virt="non-virtual"><scope>CodeSourceBlocks::ParserContext</scope><name>pop_back</name></member>
+      <member refid="structCodeSourceBlocks_1_1ParserContext_1a5e1aa4b6fd31bcee46472a225b1b399a" prot="public" virt="non-virtual"><scope>CodeSourceBlocks::ParserContext</scope><name>push_back</name></member>
+      <member refid="structCodeSourceBlocks_1_1ParserContext_1ad994fd571e554e4867f3b8eee76da646" prot="protected" virt="non-virtual"><scope>CodeSourceBlocks::ParserContext</scope><name>stack</name></member>
+      <member refid="structCodeSourceBlocks_1_1ParserContext_1ade343fafcbc475b73dc62a0c3fbdfdd5" prot="public" virt="non-virtual"><scope>CodeSourceBlocks::ParserContext</scope><name>stackSize</name></member>
+      <member refid="structCodeSourceBlocks_1_1ParserContext_1ac7906d066425d091f5cfa074cf91981c" prot="public" virt="non-virtual"><scope>CodeSourceBlocks::ParserContext</scope><name>stage</name></member>
+      <member refid="structCodeSourceBlocks_1_1ParserContext_1a3684f389356353604f51f99a81410aff" prot="public" virt="non-virtual"><scope>CodeSourceBlocks::ParserContext</scope><name>topCondEval</name></member>
+      <member refid="structCodeSourceBlocks_1_1ParserContext_1a62b2177fe873e2c54187a5e413414129" prot="public" virt="non-virtual"><scope>CodeSourceBlocks::ParserContext</scope><name>topHasAny</name></member>
+      <member refid="structCodeSourceBlocks_1_1ParserContext_1af90d499388f4fb3b9784d7461247752b" prot="public" virt="non-virtual"><scope>CodeSourceBlocks::ParserContext</scope><name>topHasTrue</name></member>
+      <member refid="structCodeSourceBlocks_1_1ParserContext_1aaabd65065fac4572fc59bba62c422231" prot="public" virt="non-virtual"><scope>CodeSourceBlocks::ParserContext</scope><name>topProg</name></member>
+      <member refid="structCodeSourceBlocks_1_1ParserContext_1a44f526c215b5308bf7bb6a169033426c" prot="public" virt="non-virtual"><scope>CodeSourceBlocks::ParserContext</scope><name>topState</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

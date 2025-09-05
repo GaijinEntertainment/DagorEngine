@@ -1,0 +1,1072 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="shLog_8h" kind="file" language="C++">
+    <compoundname>shLog.h</compoundname>
+    <includedby refid="condParser_8cpp" local="yes">condParser.cpp</includedby>
+    <includedby refid="cppStcode_8cpp" local="yes">cppStcode.cpp</includedby>
+    <includedby refid="gitRunner_8cpp" local="yes">gitRunner.cpp</includedby>
+    <includedby refid="hlslRegisters_8h" local="yes">hlslRegisters.h</includedby>
+    <includedby refid="hwSemantic_8cpp" local="yes">hwSemantic.cpp</includedby>
+    <includedby refid="intervals_8cpp" local="yes">intervals.cpp</includedby>
+    <includedby refid="main_8cpp" local="yes">main.cpp</includedby>
+    <includedby refid="makeShBinDump_8cpp" local="yes">makeShBinDump.cpp</includedby>
+    <includedby refid="namedConst_8cpp" local="yes">namedConst.cpp</includedby>
+    <includedby refid="samplers_8cpp" local="yes">samplers.cpp</includedby>
+    <includedby refid="shAssumes_8cpp" local="yes">shAssumes.cpp</includedby>
+    <includedby refid="shCode_8cpp" local="yes">shCode.cpp</includedby>
+    <includedby refid="shCompilationInfo_8cpp" local="yes">shCompilationInfo.cpp</includedby>
+    <includedby refid="shCompiler_8cpp" local="yes">shCompiler.cpp</includedby>
+    <includedby refid="shExprParser_8cpp" local="yes">shExprParser.cpp</includedby>
+    <includedby refid="shFunc_8cpp" local="yes">shFunc.cpp</includedby>
+    <includedby refid="shLog_8cpp" local="yes">shLog.cpp</includedby>
+    <includedby refid="shMacro_8cpp" local="yes">shMacro.cpp</includedby>
+    <includedby refid="sh__stat_8cpp" local="yes">sh_stat.cpp</includedby>
+    <includedby refid="shaderVariant_8cpp" local="yes">shaderVariant.cpp</includedby>
+    <includedby refid="shlexterm_8cpp" local="yes">shlexterm.cpp</includedby>
+    <includedby refid="shsem_8cpp" local="yes">shsem.cpp</includedby>
+    <includedby refid="transcodeShader_8cpp" local="yes">transcodeShader.cpp</includedby>
+    <invincdepgraph>
+      <node id="8">
+        <label>binDumpUtils.cpp</label>
+        <link refid="binDumpUtils_8cpp"/>
+      </node>
+      <node id="7">
+        <label>binDumpUtils.h</label>
+        <link refid="binDumpUtils_8h"/>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="25">
+        <label>codeBlocks.cpp</label>
+        <link refid="codeBlocks_8cpp"/>
+      </node>
+      <node id="24">
+        <label>codeBlocks.h</label>
+        <link refid="codeBlocks_8h"/>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>condParser.cpp</label>
+        <link refid="condParser_8cpp"/>
+      </node>
+      <node id="3">
+        <label>cppStcode.cpp</label>
+        <link refid="cppStcode_8cpp"/>
+      </node>
+      <node id="10">
+        <label>cppStcode.h</label>
+        <link refid="cppStcode_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="57" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+      </node>
+      <node id="11">
+        <label>cppStcodeAssembly.cpp</label>
+        <link refid="cppStcodeAssembly_8cpp"/>
+      </node>
+      <node id="6">
+        <label>cppStcodeAssembly.h</label>
+        <link refid="cppStcodeAssembly_8h"/>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="62" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+        <childnode refid="63" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="54" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="57" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+      </node>
+      <node id="46">
+        <label>cppStcodePasses.cpp</label>
+        <link refid="cppStcodePasses_8cpp"/>
+      </node>
+      <node id="45">
+        <label>cppStcodePasses.h</label>
+        <link refid="cppStcodePasses_8h"/>
+        <childnode refid="46" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+      </node>
+      <node id="62">
+        <label>cppStcodeUtils.h</label>
+        <link refid="cppStcodeUtils_8h"/>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="54" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="57" relation="include">
+        </childnode>
+      </node>
+      <node id="34">
+        <label>deSerializationContext.cpp</label>
+        <link refid="deSerializationContext_8cpp"/>
+      </node>
+      <node id="33">
+        <label>deSerializationContext.h</label>
+        <link refid="deSerializationContext_8h"/>
+        <childnode refid="34" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>gitRunner.cpp</label>
+        <link refid="gitRunner_8cpp"/>
+      </node>
+      <node id="16">
+        <label>globalConfig.cpp</label>
+        <link refid="globalConfig_8cpp"/>
+      </node>
+      <node id="15">
+        <label>globalConfig.h</label>
+        <link refid="globalConfig_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="39" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="58" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+      </node>
+      <node id="17">
+        <label>hlslRegisters.cpp</label>
+        <link refid="hlslRegisters_8cpp"/>
+      </node>
+      <node id="5">
+        <label>hlslRegisters.h</label>
+        <link refid="hlslRegisters_8h"/>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="60" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+      </node>
+      <node id="18">
+        <label>hwAssembly.cpp</label>
+        <link refid="hwAssembly_8cpp"/>
+      </node>
+      <node id="19">
+        <label>hwSemantic.cpp</label>
+        <link refid="hwSemantic_8cpp"/>
+      </node>
+      <node id="60">
+        <label>hwSemantic.h</label>
+        <link refid="hwSemantic_8h"/>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+      </node>
+      <node id="35">
+        <label>intervals.cpp</label>
+        <link refid="intervals_8cpp"/>
+      </node>
+      <node id="38">
+        <label>linkShaders.cpp</label>
+        <link refid="linkShaders_8cpp"/>
+      </node>
+      <node id="37">
+        <label>linkShaders.h</label>
+        <link refid="linkShaders_8h"/>
+        <childnode refid="38" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="39" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+      </node>
+      <node id="42">
+        <label>loadShaders.cpp</label>
+        <link refid="loadShaders_8cpp"/>
+      </node>
+      <node id="41">
+        <label>loadShaders.h</label>
+        <link refid="loadShaders_8h"/>
+        <childnode refid="42" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+      </node>
+      <node id="20">
+        <label>main.cpp</label>
+        <link refid="main_8cpp"/>
+      </node>
+      <node id="9">
+        <label>makeShBinDump.cpp</label>
+        <link refid="makeShBinDump_8cpp"/>
+      </node>
+      <node id="63">
+        <label>makeShBinDump.h</label>
+        <link refid="makeShBinDump_8h"/>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="12">
+        <label>namedConst.cpp</label>
+        <link refid="namedConst_8cpp"/>
+      </node>
+      <node id="21">
+        <label>namedConst.h</label>
+        <link refid="namedConst_8h"/>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="53" relation="include">
+        </childnode>
+      </node>
+      <node id="13">
+        <label>samplers.cpp</label>
+        <link refid="samplers_8cpp"/>
+      </node>
+      <node id="64">
+        <label>shAssumes.cpp</label>
+        <link refid="shAssumes_8cpp"/>
+      </node>
+      <node id="22">
+        <label>shCode.cpp</label>
+        <link refid="shCode_8cpp"/>
+      </node>
+      <node id="59">
+        <label>shCompContext.h</label>
+        <link refid="shCompContext_8h"/>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="60" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="57" relation="include">
+        </childnode>
+      </node>
+      <node id="61">
+        <label>shCompilationInfo.cpp</label>
+        <link refid="shCompilationInfo_8cpp"/>
+      </node>
+      <node id="14">
+        <label>shCompilationInfo.h</label>
+        <link refid="shCompilationInfo_8h"/>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="59" relation="include">
+        </childnode>
+        <childnode refid="61" relation="include">
+        </childnode>
+        <childnode refid="57" relation="include">
+        </childnode>
+      </node>
+      <node id="26">
+        <label>shCompiler.cpp</label>
+        <link refid="shCompiler_8cpp"/>
+      </node>
+      <node id="54">
+        <label>shExpr.cpp</label>
+        <link refid="shExpr_8cpp"/>
+      </node>
+      <node id="28">
+        <label>shExprParser.cpp</label>
+        <link refid="shExprParser_8cpp"/>
+      </node>
+      <node id="65">
+        <label>shFunc.cpp</label>
+        <link refid="shFunc_8cpp"/>
+      </node>
+      <node id="66">
+        <label>shLog.cpp</label>
+        <link refid="shLog_8cpp"/>
+      </node>
+      <node id="1">
+        <label>shLog.h</label>
+        <link refid="shLog_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="64" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="61" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="65" relation="include">
+        </childnode>
+        <childnode refid="66" relation="include">
+        </childnode>
+        <childnode refid="67" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+        <childnode refid="52" relation="include">
+        </childnode>
+        <childnode refid="57" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="68" relation="include">
+        </childnode>
+      </node>
+      <node id="67">
+        <label>shMacro.cpp</label>
+        <link refid="shMacro_8cpp"/>
+      </node>
+      <node id="39">
+        <label>shSemCode.cpp</label>
+        <link refid="shSemCode_8cpp"/>
+      </node>
+      <node id="43">
+        <label>shShaderContext.h</label>
+        <link refid="shShaderContext_8h"/>
+        <childnode refid="44" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="50" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+      </node>
+      <node id="23">
+        <label>shTargetContext.h</label>
+        <link refid="shTargetContext_8h"/>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="33" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="43" relation="include">
+        </childnode>
+        <childnode refid="51" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="56" relation="include">
+        </childnode>
+      </node>
+      <node id="55">
+        <label>shTargetStorage.cpp</label>
+        <link refid="shTargetStorage_8cpp"/>
+      </node>
+      <node id="44">
+        <label>shVariantContext.h</label>
+        <link refid="shVariantContext_8h"/>
+        <childnode refid="45" relation="include">
+        </childnode>
+        <childnode refid="39" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="47" relation="include">
+        </childnode>
+        <childnode refid="49" relation="include">
+        </childnode>
+      </node>
+      <node id="40">
+        <label>sh_stat.cpp</label>
+        <link refid="sh__stat_8cpp"/>
+      </node>
+      <node id="58">
+        <label>shaderBytecodeCache.cpp</label>
+        <link refid="shaderBytecodeCache_8cpp"/>
+      </node>
+      <node id="36">
+        <label>shaderSave.cpp</label>
+        <link refid="shaderSave_8cpp"/>
+      </node>
+      <node id="29">
+        <label>shaderSemantic.cpp</label>
+        <link refid="shaderSemantic_8cpp"/>
+      </node>
+      <node id="27">
+        <label>shaderSemantic.h</label>
+        <link refid="shaderSemantic_8h"/>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="29" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+      </node>
+      <node id="52">
+        <label>shaderVariant.cpp</label>
+        <link refid="shaderVariant_8cpp"/>
+      </node>
+      <node id="51">
+        <label>shaderVariant.h</label>
+        <link refid="shaderVariant_8h"/>
+        <childnode refid="39" relation="include">
+        </childnode>
+        <childnode refid="43" relation="include">
+        </childnode>
+        <childnode refid="52" relation="include">
+        </childnode>
+        <childnode refid="53" relation="include">
+        </childnode>
+      </node>
+      <node id="50">
+        <label>shaderVariantSrc.cpp</label>
+        <link refid="shaderVariantSrc_8cpp"/>
+      </node>
+      <node id="53">
+        <label>shcode.h</label>
+        <link refid="shcode_8h"/>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="54" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="43" relation="include">
+        </childnode>
+        <childnode refid="55" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+      </node>
+      <node id="57">
+        <label>shlexterm.cpp</label>
+        <link refid="shlexterm_8cpp"/>
+      </node>
+      <node id="30">
+        <label>shsem.cpp</label>
+        <link refid="shsem_8cpp"/>
+      </node>
+      <node id="56">
+        <label>shsem.h</label>
+        <link refid="shsem_8h"/>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="45" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="43" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="57" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="48" relation="include">
+        </childnode>
+      </node>
+      <node id="68">
+        <label>transcodeShader.cpp</label>
+        <link refid="transcodeShader_8cpp"/>
+      </node>
+      <node id="48">
+        <label>variablesMerger.cpp</label>
+        <link refid="variablesMerger_8cpp"/>
+      </node>
+      <node id="32">
+        <label>variantAssembly.cpp</label>
+        <link refid="variantAssembly_8cpp"/>
+      </node>
+      <node id="47">
+        <label>variantAssembly.h</label>
+        <link refid="variantAssembly_8h"/>
+        <childnode refid="46" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="48" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+      </node>
+      <node id="31">
+        <label>variantSemantic.cpp</label>
+        <link refid="variantSemantic_8cpp"/>
+      </node>
+      <node id="49">
+        <label>variantSemantic.h</label>
+        <link refid="variantSemantic_8h"/>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="45" relation="include">
+        </childnode>
+        <childnode refid="48" relation="include">
+        </childnode>
+        <childnode refid="47" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="classIVariantInfoProvider" prot="public">IVariantInfoProvider</innerclass>
+    <innerclass refid="structErrorCounter" prot="public">ErrorCounter</innerclass>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="shLog_8h_1a66042048eb3ce30a1dccb2ebf8c2fd5c" prot="public" static="no" strong="no">
+        <type></type>
+        <name>ShLogMode</name>
+        <enumvalue id="shLog_8h_1a66042048eb3ce30a1dccb2ebf8c2fd5ca5395b0c35e96d97ae9ac7f83b0665310" prot="public">
+          <name>SHLOG_NORMAL</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="shLog_8h_1a66042048eb3ce30a1dccb2ebf8c2fd5ca0012c8acb382f295fe614046a64bba11" prot="public">
+          <name>SHLOG_INFO</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="shLog_8h_1a66042048eb3ce30a1dccb2ebf8c2fd5caec73ac89ba721ca7dec737875111fddd" prot="public">
+          <name>SHLOG_WARNING</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="shLog_8h_1a66042048eb3ce30a1dccb2ebf8c2fd5caae3b70b41400c8a36e8a094ac1dbe43c" prot="public">
+          <name>SHLOG_ERROR</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="shLog_8h_1a66042048eb3ce30a1dccb2ebf8c2fd5ca6112bd3e7c5d175bac1569c33c1630ad" prot="public">
+          <name>SHLOG_FATAL</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="shLog_8h_1a66042048eb3ce30a1dccb2ebf8c2fd5ca4ea3534cac287f53aeb37fbec9f6f10c" prot="public">
+          <name>__SHLOG_MODE_COUNT</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shLog.h" line="29" column="1" bodyfile="shLog.h" bodystart="30" bodyend="37"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="shLog_8h_1a698cdf1ac2d9bb09227d2f1af9adfc8c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>DECLARE_DSA_OVERLOADS_FAMILY</definition>
+        <argsstring>(static inline void sh_printf, void sh_printf, sh_printf)</argsstring>
+        <name>DECLARE_DSA_OVERLOADS_FAMILY</name>
+        <param>
+          <type>static inline void</type>
+          <declname>sh_printf</declname>
+        </param>
+        <param>
+          <type>void</type>
+          <declname>sh_printf</declname>
+        </param>
+        <param>
+          <type><ref refid="shLog_8cpp_1a7993d478733f9722863bb366b7b90711" kindref="member">sh_printf</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shLog.h" line="60" column="1" declfile="shLog.h" declline="60" declcolumn="1"/>
+      </memberdef>
+      <memberdef kind="function" id="shLog_8h_1a5cc537f6d805e06eb165cad48159d055" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>DECLARE_DSA_OVERLOADS_FAMILY</definition>
+        <argsstring>(static inline void sh_fprintf, void sh_fprintf, sh_fprintf)</argsstring>
+        <name>DECLARE_DSA_OVERLOADS_FAMILY</name>
+        <param>
+          <type>static inline void</type>
+          <declname>sh_fprintf</declname>
+        </param>
+        <param>
+          <type>void</type>
+          <declname>sh_fprintf</declname>
+        </param>
+        <param>
+          <type><ref refid="shLog_8cpp_1a1762f388bc556d30ea5861437144a14f" kindref="member">sh_fprintf</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shLog.h" line="66" column="1" declfile="shLog.h" declline="66" declcolumn="1"/>
+      </memberdef>
+      <memberdef kind="function" id="shLog_8h_1a4f78b316bef41518d114137466e1228c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>DECLARE_DSA_OVERLOADS_FAMILY</definition>
+        <argsstring>(static inline void sh_debug, void sh_debug, sh_debug)</argsstring>
+        <name>DECLARE_DSA_OVERLOADS_FAMILY</name>
+        <param>
+          <type>static inline void</type>
+          <declname>sh_debug</declname>
+        </param>
+        <param>
+          <type>void</type>
+          <declname>sh_debug</declname>
+        </param>
+        <param>
+          <type><ref refid="shLog_8cpp_1a2926179632c7c86265007652d3d30b14" kindref="member">sh_debug</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shLog.h" line="73" column="1" declfile="shLog.h" declline="73" declcolumn="1"/>
+      </memberdef>
+      <memberdef kind="function" id="shLog_8h_1a38afa0ea9a8eea51d74aaf290197f611" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void sh_close_debug</definition>
+        <argsstring>()</argsstring>
+        <name>sh_close_debug</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shLog.h" line="78" column="6" bodyfile="shLog.cpp" bodystart="196" bodyend="201" declfile="shLog.h" declline="78" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="shLog_8h_1a1645d310ca3c7fe3e3dc882fb7962e9d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void sh_process_errors</definition>
+        <argsstring>()</argsstring>
+        <name>sh_process_errors</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shLog.h" line="81" column="6" bodyfile="shLog.cpp" bodystart="214" bodyend="247" declfile="shLog.h" declline="81" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="shLog_8h_1a338351dd1c335633c5e57fba23710c2b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void sh_set_current_shader</definition>
+        <argsstring>(const char *shader)</argsstring>
+        <name>sh_set_current_shader</name>
+        <param>
+          <type>const char *</type>
+          <declname>shader</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shLog.h" line="84" column="6" bodyfile="shLog.cpp" bodystart="251" bodyend="251" declfile="shLog.h" declline="84" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="shLog_8h_1a62eed7ecd82f09c561ab7e758e18cd60" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void sh_set_current_variant</definition>
+        <argsstring>(const IVariantInfoProvider *var)</argsstring>
+        <name>sh_set_current_variant</name>
+        <param>
+          <type>const <ref refid="classIVariantInfoProvider" kindref="compound">IVariantInfoProvider</ref> *</type>
+          <declname>var</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shLog.h" line="85" column="6" bodyfile="shLog.cpp" bodystart="252" bodyend="256" declfile="shLog.h" declline="85" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="shLog_8h_1a13c739ae2e3faaa3cf559a75d265cd5c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void sh_set_current_dyn_variant</definition>
+        <argsstring>(const IVariantInfoProvider *var)</argsstring>
+        <name>sh_set_current_dyn_variant</name>
+        <param>
+          <type>const <ref refid="classIVariantInfoProvider" kindref="compound">IVariantInfoProvider</ref> *</type>
+          <declname>var</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shLog.h" line="86" column="6" bodyfile="shLog.cpp" bodystart="257" bodyend="261" declfile="shLog.h" declline="86" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="shLog_8h_1ab80b7ea7af8abc6c90ad6a2773972358" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>String</type>
+        <definition>String sh_get_compile_context</definition>
+        <argsstring>()</argsstring>
+        <name>sh_get_compile_context</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shLog.h" line="87" column="8" bodyfile="shLog.cpp" bodystart="78" bodyend="83" declfile="shLog.h" declline="87" declcolumn="8"/>
+      </memberdef>
+      <memberdef kind="function" id="shLog_8h_1a8004b71ad4939195c1e883cd7c87c70d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void enable_sh_debug_con</definition>
+        <argsstring>(bool e)</argsstring>
+        <name>enable_sh_debug_con</name>
+        <param>
+          <type>bool</type>
+          <declname>e</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shLog.h" line="90" column="6" bodyfile="shLog.cpp" bodystart="76" bodyend="76" declfile="shLog.h" declline="90" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="shLog_8h_1a794ef7520972337b62c8b6882b20dd19" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void sh_console_quet_output</definition>
+        <argsstring>(bool e)</argsstring>
+        <name>sh_console_quet_output</name>
+        <param>
+          <type>bool</type>
+          <declname>e</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shLog.h" line="91" column="6" bodyfile="shLog.cpp" bodystart="263" bodyend="263" declfile="shLog.h" declline="91" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="shLog_8h_1a09285f956f8c497bbd25f7d135371075" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void sh_console_print_warnings</definition>
+        <argsstring>(bool e)</argsstring>
+        <name>sh_console_print_warnings</name>
+        <param>
+          <type>bool</type>
+          <declname>e</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shLog.h" line="92" column="6" bodyfile="shLog.cpp" bodystart="265" bodyend="265" declfile="shLog.h" declline="92" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="shLog_8h_1abe31b55808a17803dbb52babf0362366" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void sh_dump_warn_info</definition>
+        <argsstring>()</argsstring>
+        <name>sh_dump_warn_info</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shLog.h" line="94" column="6" bodyfile="shLog.cpp" bodystart="204" bodyend="210" declfile="shLog.h" declline="94" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="shLog_8h_1ac79c3f04485b544659105a27cdf26f48" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void sh_change_mode</definition>
+        <argsstring>(ShLogMode mode, ShLogMode mode_other)</argsstring>
+        <name>sh_change_mode</name>
+        <param>
+          <type><ref refid="shLog_8h_1a66042048eb3ce30a1dccb2ebf8c2fd5c" kindref="member">ShLogMode</ref></type>
+          <declname>mode</declname>
+        </param>
+        <param>
+          <type><ref refid="shLog_8h_1a66042048eb3ce30a1dccb2ebf8c2fd5c" kindref="member">ShLogMode</ref></type>
+          <declname>mode_other</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shLog.h" line="95" column="6" bodyfile="shLog.cpp" bodystart="58" bodyend="58" declfile="shLog.h" declline="95" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="shLog_8h_1ae5740091cd92f25f73853765a3c0426e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void sh_enter_atomic_debug</definition>
+        <argsstring>()</argsstring>
+        <name>sh_enter_atomic_debug</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shLog.h" line="97" column="6" bodyfile="shLog.cpp" bodystart="44" bodyend="44" declfile="shLog.h" declline="97" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="shLog_8h_1a1b3981430a0adb318471eea6d5531bbb" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void sh_leave_atomic_debug</definition>
+        <argsstring>()</argsstring>
+        <name>sh_leave_atomic_debug</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shLog.h" line="98" column="6" bodyfile="shLog.cpp" bodystart="45" bodyend="45" declfile="shLog.h" declline="98" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">/************************************************************************</highlight></codeline>
+<codeline lineno="5"><highlight class="comment"><sp/><sp/>shader&apos;s<sp/>log-file</highlight></codeline>
+<codeline lineno="6"><highlight class="comment"></highlight><highlight class="comment">/************************************************************************/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#ifndef<sp/>__SHLOG_H</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>__SHLOG_H</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_string.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;cstdio&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="comment">/************************************************************************/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>forwards</highlight></codeline>
+<codeline lineno="15"><highlight class="comment"></highlight><highlight class="comment">/************************************************************************/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16" refid="classIVariantInfoProvider" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classIVariantInfoProvider" kindref="compound">IVariantInfoProvider</ref></highlight></codeline>
+<codeline lineno="17"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="19" refid="classIVariantInfoProvider_1a40b0ddaebccbe7371dc979943bf40734" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classIVariantInfoProvider_1a40b0ddaebccbe7371dc979943bf40734" kindref="member">IVariantInfoProvider</ref>()<sp/>{}</highlight></codeline>
+<codeline lineno="20" refid="classIVariantInfoProvider_1a07b64136e4db6c08ed6d93cc27db357f" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/><ref refid="classIVariantInfoProvider_1a07b64136e4db6c08ed6d93cc27db357f" kindref="member">~IVariantInfoProvider</ref>()<sp/>{}</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>return<sp/>string<sp/>info<sp/>about<sp/>variant</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="23" refid="classIVariantInfoProvider_1a0c653de85fffc902eaa038f7a4bb561d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/>String<sp/><ref refid="classIVariantInfoProvider_1a0c653de85fffc902eaa038f7a4bb561d" kindref="member">getVarStringInfo</ref>()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="24"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight><highlight class="comment">/************************************************************************/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight><highlight class="comment">/*<sp/>shader<sp/>message<sp/>mode</highlight></codeline>
+<codeline lineno="28"><highlight class="comment"></highlight><highlight class="comment">/************************************************************************/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="29" refid="shLog_8h_1a66042048eb3ce30a1dccb2ebf8c2fd5c" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/><ref refid="shLog_8h_1a66042048eb3ce30a1dccb2ebf8c2fd5c" kindref="member">ShLogMode</ref></highlight></codeline>
+<codeline lineno="30"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="31" refid="shLog_8h_1a66042048eb3ce30a1dccb2ebf8c2fd5ca5395b0c35e96d97ae9ac7f83b0665310" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="shLog_8h_1a66042048eb3ce30a1dccb2ebf8c2fd5ca5395b0c35e96d97ae9ac7f83b0665310" kindref="member">SHLOG_NORMAL</ref>,</highlight></codeline>
+<codeline lineno="32" refid="shLog_8h_1a66042048eb3ce30a1dccb2ebf8c2fd5ca0012c8acb382f295fe614046a64bba11" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="shLog_8h_1a66042048eb3ce30a1dccb2ebf8c2fd5ca0012c8acb382f295fe614046a64bba11" kindref="member">SHLOG_INFO</ref>,</highlight></codeline>
+<codeline lineno="33" refid="shLog_8h_1a66042048eb3ce30a1dccb2ebf8c2fd5caec73ac89ba721ca7dec737875111fddd" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="shLog_8h_1a66042048eb3ce30a1dccb2ebf8c2fd5caec73ac89ba721ca7dec737875111fddd" kindref="member">SHLOG_WARNING</ref>,</highlight></codeline>
+<codeline lineno="34" refid="shLog_8h_1a66042048eb3ce30a1dccb2ebf8c2fd5caae3b70b41400c8a36e8a094ac1dbe43c" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="shLog_8h_1a66042048eb3ce30a1dccb2ebf8c2fd5caae3b70b41400c8a36e8a094ac1dbe43c" kindref="member">SHLOG_ERROR</ref>,</highlight></codeline>
+<codeline lineno="35" refid="shLog_8h_1a66042048eb3ce30a1dccb2ebf8c2fd5ca6112bd3e7c5d175bac1569c33c1630ad" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="shLog_8h_1a66042048eb3ce30a1dccb2ebf8c2fd5ca6112bd3e7c5d175bac1569c33c1630ad" kindref="member">SHLOG_FATAL</ref>,</highlight></codeline>
+<codeline lineno="36" refid="shLog_8h_1a66042048eb3ce30a1dccb2ebf8c2fd5ca4ea3534cac287f53aeb37fbec9f6f10c" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="shLog_8h_1a66042048eb3ce30a1dccb2ebf8c2fd5ca4ea3534cac287f53aeb37fbec9f6f10c" kindref="member">__SHLOG_MODE_COUNT</ref>,</highlight></codeline>
+<codeline lineno="37"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight></codeline>
+<codeline lineno="39" refid="structErrorCounter" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structErrorCounter" kindref="compound">ErrorCounter</ref></highlight></codeline>
+<codeline lineno="40"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="41" refid="structErrorCounter_1ab283c399f4e862a8a02b0c684af1bc9b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structErrorCounter_1ab283c399f4e862a8a02b0c684af1bc9b" kindref="member">err</ref>;</highlight></codeline>
+<codeline lineno="42" refid="structErrorCounter_1a1d92b341c7ea5c6908a819e3a48f3696" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structErrorCounter_1a1d92b341c7ea5c6908a819e3a48f3696" kindref="member">warn</ref>;</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"></highlight></codeline>
+<codeline lineno="44" refid="structErrorCounter_1a36e07b31e8bf5e20b5c765974269d109" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="structErrorCounter_1a36e07b31e8bf5e20b5c765974269d109" kindref="member">ErrorCounter</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*_prefix)<sp/>:<sp/>prefix(_prefix)<sp/>{<sp/><ref refid="structErrorCounter_1ad8248b42e27a526ddd06e3789a44da4e" kindref="member">reset</ref>();<sp/>};</highlight></codeline>
+<codeline lineno="45" refid="structErrorCounter_1ad8248b42e27a526ddd06e3789a44da4e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structErrorCounter_1ad8248b42e27a526ddd06e3789a44da4e" kindref="member">reset</ref>()<sp/>{<sp/><ref refid="structErrorCounter_1ab283c399f4e862a8a02b0c684af1bc9b" kindref="member">err</ref><sp/>=<sp/><ref refid="structErrorCounter_1a1d92b341c7ea5c6908a819e3a48f3696" kindref="member">warn</ref><sp/>=<sp/>0;<sp/>};</highlight></codeline>
+<codeline lineno="46" refid="structErrorCounter_1acf46b2f01622d87794f341c074ec35f7" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structErrorCounter_1acf46b2f01622d87794f341c074ec35f7" kindref="member">isEmpty</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(<ref refid="structErrorCounter_1ab283c399f4e862a8a02b0c684af1bc9b" kindref="member">err</ref><sp/>==<sp/>0)<sp/>&amp;&amp;<sp/>(<ref refid="structErrorCounter_1a1d92b341c7ea5c6908a819e3a48f3696" kindref="member">warn</ref><sp/>==<sp/>0);<sp/>};</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structErrorCounter_1ab1b9b0bb91181fa7f9c030df30326f0a" kindref="member">dumpInfo</ref>();</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"></highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/><ref refid="structErrorCounter" kindref="compound">ErrorCounter</ref><sp/>&amp;<ref refid="structErrorCounter_1a16e83af848da6b273387e7f9078aff89" kindref="member">curShader</ref>();</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/><ref refid="structErrorCounter" kindref="compound">ErrorCounter</ref><sp/>&amp;<ref refid="structErrorCounter_1a0d2712090dcb5df49be0c244026e048a" kindref="member">allShaders</ref>();</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/><ref refid="structErrorCounter" kindref="compound">ErrorCounter</ref><sp/>&amp;<ref refid="structErrorCounter_1aa46ade65761e3575cd41be7fa765975f" kindref="member">allCompilations</ref>();</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"></highlight></codeline>
+<codeline lineno="53"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*prefix;</highlight></codeline>
+<codeline lineno="55"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"></highlight></codeline>
+<codeline lineno="57"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Function<sp/>for<sp/>correct<sp/>output</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="58"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>DSA_OVERLOADS_PARAM_DECL</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="59"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>DSA_OVERLOADS_PARAM_PASS</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="60" refid="shLog_8h_1a698cdf1ac2d9bb09227d2f1af9adfc8c" refkind="member"><highlight class="normal"><ref refid="shLog_8h_1a698cdf1ac2d9bb09227d2f1af9adfc8c" kindref="member">DECLARE_DSA_OVERLOADS_FAMILY</ref>(</highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="shLog_8cpp_1a7993d478733f9722863bb366b7b90711" kindref="member">sh_printf</ref>,<sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="shLog_8cpp_1a7993d478733f9722863bb366b7b90711" kindref="member">sh_printf</ref>,<sp/><ref refid="shLog_8cpp_1a7993d478733f9722863bb366b7b90711" kindref="member">sh_printf</ref>);</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"></highlight><highlight class="preprocessor">#undef<sp/>DSA_OVERLOADS_PARAM_DECL</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="62"><highlight class="normal"></highlight><highlight class="preprocessor">#undef<sp/>DSA_OVERLOADS_PARAM_PASS</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="63"><highlight class="normal"></highlight></codeline>
+<codeline lineno="64"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>DSA_OVERLOADS_PARAM_DECL<sp/>FILE<sp/>*file,</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="65"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>DSA_OVERLOADS_PARAM_PASS<sp/>file,</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="66" refid="shLog_8h_1a5cc537f6d805e06eb165cad48159d055" refkind="member"><highlight class="normal"><ref refid="shLog_8h_1a698cdf1ac2d9bb09227d2f1af9adfc8c" kindref="member">DECLARE_DSA_OVERLOADS_FAMILY</ref>(</highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="shLog_8cpp_1a1762f388bc556d30ea5861437144a14f" kindref="member">sh_fprintf</ref>,<sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="shLog_8cpp_1a1762f388bc556d30ea5861437144a14f" kindref="member">sh_fprintf</ref>,<sp/><ref refid="shLog_8cpp_1a1762f388bc556d30ea5861437144a14f" kindref="member">sh_fprintf</ref>);</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"></highlight><highlight class="preprocessor">#undef<sp/>DSA_OVERLOADS_PARAM_DECL</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="68"><highlight class="normal"></highlight><highlight class="preprocessor">#undef<sp/>DSA_OVERLOADS_PARAM_PASS</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="69"><highlight class="normal"></highlight></codeline>
+<codeline lineno="70"><highlight class="normal"></highlight><highlight class="comment">//<sp/>output<sp/>to<sp/>shader<sp/>log</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="71"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>DSA_OVERLOADS_PARAM_DECL<sp/>ShLogMode<sp/>mode,</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="72"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>DSA_OVERLOADS_PARAM_PASS<sp/>mode,</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="73" refid="shLog_8h_1a4f78b316bef41518d114137466e1228c" refkind="member"><highlight class="normal"><ref refid="shLog_8h_1a698cdf1ac2d9bb09227d2f1af9adfc8c" kindref="member">DECLARE_DSA_OVERLOADS_FAMILY</ref>(</highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="shLog_8cpp_1a2926179632c7c86265007652d3d30b14" kindref="member">sh_debug</ref>,<sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="shLog_8cpp_1a2926179632c7c86265007652d3d30b14" kindref="member">sh_debug</ref>,<sp/><ref refid="shLog_8cpp_1a2926179632c7c86265007652d3d30b14" kindref="member">sh_debug</ref>);</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"></highlight><highlight class="preprocessor">#undef<sp/>DSA_OVERLOADS_PARAM_DECL</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="75"><highlight class="normal"></highlight><highlight class="preprocessor">#undef<sp/>DSA_OVERLOADS_PARAM_PASS</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="76"><highlight class="normal"></highlight></codeline>
+<codeline lineno="77"><highlight class="normal"></highlight><highlight class="comment">//<sp/>close<sp/>shader<sp/>debug<sp/>file</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="78"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="shLog_8h_1a38afa0ea9a8eea51d74aaf290197f611" kindref="member">sh_close_debug</ref>();</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"></highlight></codeline>
+<codeline lineno="80"><highlight class="normal"></highlight><highlight class="comment">//<sp/>if<sp/>has<sp/>errors,<sp/>terminate<sp/>program</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="81"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="shLog_8h_1a1645d310ca3c7fe3e3dc882fb7962e9d" kindref="member">sh_process_errors</ref>();</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"></highlight></codeline>
+<codeline lineno="83"><highlight class="normal"></highlight><highlight class="comment">//<sp/>set<sp/>current<sp/>variant<sp/>to<sp/>output</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="84"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="shLog_8h_1a338351dd1c335633c5e57fba23710c2b" kindref="member">sh_set_current_shader</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*shader);</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="shLog_8h_1a62eed7ecd82f09c561ab7e758e18cd60" kindref="member">sh_set_current_variant</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classIVariantInfoProvider" kindref="compound">IVariantInfoProvider</ref><sp/>*var);</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="shLog_8h_1a13c739ae2e3faaa3cf559a75d265cd5c" kindref="member">sh_set_current_dyn_variant</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classIVariantInfoProvider" kindref="compound">IVariantInfoProvider</ref><sp/>*var);</highlight></codeline>
+<codeline lineno="87"><highlight class="normal">String<sp/><ref refid="shLog_8h_1ab80b7ea7af8abc6c90ad6a2773972358" kindref="member">sh_get_compile_context</ref>();</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"></highlight></codeline>
+<codeline lineno="89"><highlight class="normal"></highlight><highlight class="comment">//<sp/>enable<sp/>output<sp/>to<sp/>console</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="90"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="shLog_8h_1a8004b71ad4939195c1e883cd7c87c70d" kindref="member">enable_sh_debug_con</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>e);</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="shLog_8h_1a794ef7520972337b62c8b6882b20dd19" kindref="member">sh_console_quet_output</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>e);</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="shLog_8h_1a09285f956f8c497bbd25f7d135371075" kindref="member">sh_console_print_warnings</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>e);</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"></highlight></codeline>
+<codeline lineno="94"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="shLog_8h_1abe31b55808a17803dbb52babf0362366" kindref="member">sh_dump_warn_info</ref>();</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="shLog_8h_1ac79c3f04485b544659105a27cdf26f48" kindref="member">sh_change_mode</ref>(<ref refid="shLog_8h_1a66042048eb3ce30a1dccb2ebf8c2fd5c" kindref="member">ShLogMode</ref><sp/>mode,<sp/><ref refid="shLog_8h_1a66042048eb3ce30a1dccb2ebf8c2fd5c" kindref="member">ShLogMode</ref><sp/>mode_other);</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"></highlight></codeline>
+<codeline lineno="97"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="shLog_8h_1ae5740091cd92f25f73853765a3c0426e" kindref="member">sh_enter_atomic_debug</ref>();</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="shLog_8h_1a1b3981430a0adb318471eea6d5531bbb" kindref="member">sh_leave_atomic_debug</ref>();</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"></highlight></codeline>
+<codeline lineno="100"><highlight class="normal"></highlight><highlight class="preprocessor">#endif<sp/></highlight><highlight class="comment">//__SHLOG_H</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="shLog.h"/>
+  </compounddef>
+</doxygen>

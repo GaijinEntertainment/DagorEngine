@@ -1,0 +1,84 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="ver__obj__dxc_8cpp" kind="file" language="C++">
+    <compoundname>ver_obj_dxc.cpp</compoundname>
+    <includes refid="ver__obj__dxc_8h" local="yes">ver_obj_dxc.h</includes>
+    <includes local="yes">util/dag_baseDef.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>ver_obj_dxc.cpp</label>
+        <link refid="ver__obj__dxc_8cpp"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ver_obj_dxc.h</label>
+        <link refid="ver__obj__dxc_8h"/>
+      </node>
+      <node id="3">
+        <label>util/dag_baseDef.h</label>
+      </node>
+    </incdepgraph>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="ver__obj__dxc_8cpp_1a8c0b4a780d076e0b5c21a721f00c3ac5" prot="public" static="no" mutable="no">
+        <type>const int</type>
+        <definition>const int VER_OBJ_DXC_VAL</definition>
+        <argsstring></argsstring>
+        <name>VER_OBJ_DXC_VAL</name>
+        <initializer>= _MAKE4C(&apos;13.7&apos;)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ver_obj_dxc.cpp" line="8" column="18" declfile="ver_obj_dxc.cpp" declline="8" declcolumn="18"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="ver__obj__dxc_8h" kindref="compound">ver_obj_dxc.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;util/dag_baseDef.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Increase<sp/>this<sp/>number<sp/>if<sp/>changes<sp/>in<sp/>the<sp/>compiler<sp/>invalidate<sp/>.obj<sp/>for<sp/>dx12</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="ver__obj__dxc_8cpp_1a8c0b4a780d076e0b5c21a721f00c3ac5" kindref="member">VER_OBJ_DXC_VAL</ref><sp/>=<sp/>_MAKE4C(</highlight><highlight class="stringliteral">&apos;13.7&apos;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>_CROSS_TARGET_DX12</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/shadersMetaData/dxil/compiled_shader_header.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Assertions<sp/>made<sp/>to<sp/>make<sp/>sure<sp/>cache<sp/>version<sp/>is<sp/>up<sp/>to<sp/>date</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal">G_STATIC_ASSERT(dxil::MAX_B_REGISTERS<sp/>==<sp/>14);</highlight></codeline>
+<codeline lineno="18"><highlight class="normal">G_STATIC_ASSERT(dxil::MAX_T_REGISTERS<sp/>==<sp/>32);</highlight></codeline>
+<codeline lineno="19"><highlight class="normal">G_STATIC_ASSERT(dxil::MAX_U_REGISTERS<sp/>==<sp/>13);</highlight></codeline>
+<codeline lineno="20"><highlight class="normal">G_STATIC_ASSERT(dxil::ROOT_CONSTANT_BUFFER_REGISTER_INDEX<sp/>==<sp/>8);</highlight></codeline>
+<codeline lineno="21"><highlight class="normal">G_STATIC_ASSERT(dxil::ROOT_CONSTANT_BUFFER_REGISTER_SPACE_OFFSET<sp/>==<sp/>1);</highlight></codeline>
+<codeline lineno="22"><highlight class="normal">G_STATIC_ASSERT(dxil::SPECIAL_CONSTANTS_REGISTER_INDEX<sp/>==<sp/>7);</highlight></codeline>
+<codeline lineno="23"><highlight class="normal">G_STATIC_ASSERT(dxil::DRAW_ID_REGISTER_SPACE<sp/>==<sp/>1);</highlight></codeline>
+<codeline lineno="24"><highlight class="normal">G_STATIC_ASSERT(dxil::MAX_UNBOUNDED_REGISTER_SPACES<sp/>==<sp/>8);</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal">G_STATIC_ASSERT(dxil::REGULAR_RESOURCES_SPACE_INDEX<sp/>==<sp/>0);</highlight></codeline>
+<codeline lineno="27"><highlight class="normal">G_STATIC_ASSERT(dxil::BINDLESS_REGISTER_INDEX<sp/>==<sp/>0);</highlight></codeline>
+<codeline lineno="28"><highlight class="normal">G_STATIC_ASSERT(dxil::BINDLESS_SAMPLERS_SPACE_COUNT<sp/>==<sp/>2);</highlight></codeline>
+<codeline lineno="29"><highlight class="normal">G_STATIC_ASSERT(dxil::BINDLESS_SAMPLERS_SPACE_OFFSET<sp/>==<sp/>1);</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal">G_STATIC_ASSERT(dxil::BINDLESS_RESOURCES_SPACE_COUNT<sp/>==<sp/>30);</highlight></codeline>
+<codeline lineno="32"><highlight class="normal">G_STATIC_ASSERT(dxil::BINDLESS_RESOURCES_SPACE_OFFSET<sp/>==<sp/>1);</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal">G_STATIC_ASSERT(dxil::BINDLESS_SAMPLERS_SPACE_BITS_SHIFT<sp/>==<sp/>0);</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight></codeline>
+    </programlisting>
+    <location file="ver_obj_dxc.cpp"/>
+  </compounddef>
+</doxygen>

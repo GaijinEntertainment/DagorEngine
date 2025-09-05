@@ -1,0 +1,489 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="ec__rendEdObject_8h" kind="file" language="C++">
+    <compoundname>ec_rendEdObject.h</compoundname>
+    <includes refid="ec__object_8h" local="no">EditorCore/ec_object.h</includes>
+    <includes refid="ec__interface_8h" local="no">EditorCore/ec_interface.h</includes>
+    <includes local="no">libTools/util/undo.h</includes>
+    <includes local="no">propPanel/control/container.h</includes>
+    <includedby refid="ec__ObjectEditor_8h" local="no">ec_ObjectEditor.h</includedby>
+    <incdepgraph>
+      <node id="3">
+        <label>EditorCore/ec_decl.h</label>
+        <link refid="ec__decl_8h"/>
+      </node>
+      <node id="7">
+        <label>EditorCore/ec_interface.h</label>
+        <link refid="ec__interface_8h"/>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>EditorCore/ec_object.h</label>
+        <link refid="ec__object_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>ec_rendEdObject.h</label>
+        <link refid="ec__rendEdObject_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+      </node>
+      <node id="9">
+        <label>drv/3d/dag_resId.h</label>
+      </node>
+      <node id="6">
+        <label>generic/dag_DObject.h</label>
+      </node>
+      <node id="8">
+        <label>generic/dag_tab.h</label>
+      </node>
+      <node id="11">
+        <label>libTools/util/hdpiUtil.h</label>
+      </node>
+      <node id="12">
+        <label>libTools/util/undo.h</label>
+      </node>
+      <node id="4">
+        <label>math/dag_math3d.h</label>
+      </node>
+      <node id="13">
+        <label>propPanel/control/container.h</label>
+      </node>
+      <node id="10">
+        <label>propPanel/control/menu.h</label>
+      </node>
+      <node id="5">
+        <label>util/dag_string.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="2">
+        <label>ec_ObjectEditor.h</label>
+        <link refid="ec__ObjectEditor_8h"/>
+      </node>
+      <node id="1">
+        <label>ec_rendEdObject.h</label>
+        <link refid="ec__rendEdObject_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="classRenderableEditableObject" prot="public">RenderableEditableObject</innerclass>
+    <innerclass refid="classRenderableEditableObject_1_1UndoObjFlags" prot="protected">RenderableEditableObject::UndoObjFlags</innerclass>
+    <innerclass refid="classRenderableEditableObject_1_1UndoMove" prot="protected">RenderableEditableObject::UndoMove</innerclass>
+    <innerclass refid="classRenderableEditableObject_1_1UndoMatrix" prot="protected">RenderableEditableObject::UndoMatrix</innerclass>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="ec__rendEdObject_8h_1aeaf2d99901d9e51120912745fcb3013a" prot="public" static="no">
+        <name>EO_IMPLEMENT_RTTI</name>
+        <param><defname>CID</defname></param>
+        <initializer><ref refid="group__EditorCore_1ga8187112d800c6222b0cde94907a214c3" kindref="member">EO_IMPLEMENT_RTTI_EX</ref>(CID, <ref refid="classRenderableEditableObject" kindref="compound">RenderableEditableObject</ref>)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="415" column="9" bodyfile="ec_rendEdObject.h" bodystart="415" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="ec__rendEdObject_8h_1adb7e440d0e6d431b18b457088ddadcc9" prot="public" static="yes" mutable="no">
+        <type>const int</type>
+        <definition>const int CID_RenderableEditableObject</definition>
+        <argsstring></argsstring>
+        <name>CID_RenderableEditableObject</name>
+        <initializer>= 0x6437E6D5</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="26" column="18" bodyfile="ec_rendEdObject.h" bodystart="26" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="ec__rendEdObject_8h_1a703a97150a4d82e734d5d143c119f154" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool is_sphere_hit_by_point</definition>
+        <argsstring>(const Point3 &amp;world_center, real world_rad, IGenViewportWnd *vp, int x, int y)</argsstring>
+        <name>is_sphere_hit_by_point</name>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>world_center</declname>
+        </param>
+        <param>
+          <type>real</type>
+          <declname>world_rad</declname>
+        </param>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>vp</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="18" column="6" declfile="ec_rendEdObject.h" declline="18" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="ec__rendEdObject_8h_1a99669c1d52c890adc7d5ee33f7f336ee" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool is_sphere_hit_by_rect</definition>
+        <argsstring>(const Point3 &amp;world_center, real world_rad, IGenViewportWnd *vp, const EcRect &amp;rect)</argsstring>
+        <name>is_sphere_hit_by_rect</name>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>world_center</declname>
+        </param>
+        <param>
+          <type>real</type>
+          <declname>world_rad</declname>
+        </param>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>vp</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structEcRect" kindref="compound">EcRect</ref> &amp;</type>
+          <declname>rect</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="20" column="6" declfile="ec_rendEdObject.h" declline="20" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="ec__rendEdObject_8h_1a1c67a969b106ecf25c9f9e9d3c7873ce" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>real</type>
+        <definition>real get_world_rad</definition>
+        <argsstring>(const Point3 &amp;size)</argsstring>
+        <name>get_world_rad</name>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>size</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rendEdObject.h" line="22" column="6" declfile="ec_rendEdObject.h" declline="22" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="ec__object_8h" kindref="compound">EditorCore/ec_object.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="ec__interface_8h" kindref="compound">EditorCore/ec_interface.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;libTools/util/undo.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;propPanel/control/container.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classObjectEditor" kindref="compound">ObjectEditor</ref>;</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structEcRect" kindref="compound">EcRect</ref>;</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Hit-test<sp/>helper<sp/>functions.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="18" refid="ec__rendEdObject_8h_1a703a97150a4d82e734d5d143c119f154" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="ec__rendEdObject_8h_1a703a97150a4d82e734d5d143c119f154" kindref="member">is_sphere_hit_by_point</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point3<sp/>&amp;world_center,<sp/>real<sp/>world_rad,<sp/><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref><sp/>*vp,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>x,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>y);</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20" refid="ec__rendEdObject_8h_1a99669c1d52c890adc7d5ee33f7f336ee" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="ec__rendEdObject_8h_1a99669c1d52c890adc7d5ee33f7f336ee" kindref="member">is_sphere_hit_by_rect</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point3<sp/>&amp;world_center,<sp/>real<sp/>world_rad,<sp/><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref><sp/>*vp,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structEcRect" kindref="compound">EcRect</ref><sp/>&amp;rect);</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight></codeline>
+<codeline lineno="22" refid="ec__rendEdObject_8h_1a1c67a969b106ecf25c9f9e9d3c7873ce" refkind="member"><highlight class="normal">real<sp/><ref refid="ec__rendEdObject_8h_1a1c67a969b106ecf25c9f9e9d3c7873ce" kindref="member">get_world_rad</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point3<sp/>&amp;size);</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight><highlight class="comment">//<sp/>RenderableEditableObject<sp/>class<sp/>ID</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>CID_RenderableEditableObject<sp/>=<sp/>0x6437E6D5;</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight></codeline>
+<codeline lineno="36" refid="classRenderableEditableObject" refkind="compound"><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classRenderableEditableObject" kindref="compound">RenderableEditableObject</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/><ref refid="classEditableObject" kindref="compound">EditableObject</ref></highlight></codeline>
+<codeline lineno="37"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/><ref refid="group__EditorCore_1ga8187112d800c6222b0cde94907a214c3" kindref="member">EO_IMPLEMENT_RTTI_EX</ref>(CID_RenderableEditableObject,<sp/><ref refid="classEditableObject" kindref="compound">EditableObject</ref>)</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"></highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/></highlight></codeline>
+<codeline lineno="42" refid="classRenderableEditableObject_1a131eff388fe36fadd5e841d3a892563e" refkind="member"><highlight class="normal"><sp/><sp/>enum<sp/><ref refid="classRenderableEditableObject_1a131eff388fe36fadd5e841d3a892563e" kindref="member">RenderableEditableObjectFlags</ref></highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="44" refid="classRenderableEditableObject_1a131eff388fe36fadd5e841d3a892563ea3dcf4e499e18084fc6771a25481b7347" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRenderableEditableObject_1a131eff388fe36fadd5e841d3a892563ea3dcf4e499e18084fc6771a25481b7347" kindref="member">FLG_SELECTED</ref><sp/>=<sp/>1<sp/>&lt;&lt;<sp/>0,<sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="45" refid="classRenderableEditableObject_1a131eff388fe36fadd5e841d3a892563eaaf959889ea65fa1369e388b9531c6287" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRenderableEditableObject_1a131eff388fe36fadd5e841d3a892563eaaf959889ea65fa1369e388b9531c6287" kindref="member">FLG_HIDDEN</ref><sp/>=<sp/>1<sp/>&lt;&lt;<sp/>1,<sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="46" refid="classRenderableEditableObject_1a131eff388fe36fadd5e841d3a892563eaa92146a5f5625b10d55408ada7dfdee7" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRenderableEditableObject_1a131eff388fe36fadd5e841d3a892563eaa92146a5f5625b10d55408ada7dfdee7" kindref="member">FLG_FROZEN</ref><sp/>=<sp/>1<sp/>&lt;&lt;<sp/>2,<sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="47" refid="classRenderableEditableObject_1a131eff388fe36fadd5e841d3a892563eaf685eb4443012de9c647f4b77a8df786" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRenderableEditableObject_1a131eff388fe36fadd5e841d3a892563eaf685eb4443012de9c647f4b77a8df786" kindref="member">FLG_HIGHLIGHTED</ref><sp/>=<sp/>1<sp/>&lt;&lt;<sp/>3,<sp/><sp/></highlight></codeline>
+<codeline lineno="48" refid="classRenderableEditableObject_1a131eff388fe36fadd5e841d3a892563ea7ae65b762a55e4953cb65f72472f151f" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRenderableEditableObject_1a131eff388fe36fadd5e841d3a892563ea7ae65b762a55e4953cb65f72472f151f" kindref="member">FLG_WANTRESELECT</ref><sp/>=<sp/>1<sp/>&lt;&lt;<sp/>4,<sp/></highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight></codeline>
+<codeline lineno="52" refid="classRenderableEditableObject_1a8b123a3f946e97bcc975a44833a51d13" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classRenderableEditableObject_1a8b123a3f946e97bcc975a44833a51d13" kindref="member">RenderableEditableObject</ref>()<sp/>:<sp/><ref refid="classRenderableEditableObject_1afeba09ae8377138c62372ec82e331dd2" kindref="member">objFlags</ref>(0),<sp/><ref refid="classRenderableEditableObject_1a0bbe447654aefde4edbc8f8364d1e757" kindref="member">objEditor</ref>(NULL)<sp/>{}</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"></highlight></codeline>
+<codeline lineno="55" refid="classRenderableEditableObject_1ae77e35fa59f08be83977fa715c94301d" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classRenderableEditableObject_1ae77e35fa59f08be83977fa715c94301d" kindref="member">RenderableEditableObject</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject" kindref="compound">RenderableEditableObject</ref><sp/>*fo)<sp/>:<sp/><ref refid="classEditableObject" kindref="compound">EditableObject</ref>(*fo),<sp/><ref refid="classRenderableEditableObject_1afeba09ae8377138c62372ec82e331dd2" kindref="member">objFlags</ref>(fo-&gt;<ref refid="classRenderableEditableObject_1afeba09ae8377138c62372ec82e331dd2" kindref="member">objFlags</ref>),<sp/><ref refid="classRenderableEditableObject_1a0bbe447654aefde4edbc8f8364d1e757" kindref="member">objEditor</ref>(NULL)<sp/>{}</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"></highlight></codeline>
+<codeline lineno="58" refid="classRenderableEditableObject_1a1be6b5fb857e060eec0d75b6e7d9b29f" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classRenderableEditableObject_1a1be6b5fb857e060eec0d75b6e7d9b29f" kindref="member">~RenderableEditableObject</ref>()<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"></highlight></codeline>
+<codeline lineno="61" refid="classRenderableEditableObject_1a35d711ee430929be10d48ab82a5b6b0b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1a35d711ee430929be10d48ab82a5b6b0b" kindref="member">removeFromEditor</ref>();</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"></highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//*****************************************************************</highlight></codeline>
+<codeline lineno="65"><highlight class="comment"></highlight></codeline>
+<codeline lineno="66"></codeline>
+<codeline lineno="70" refid="classRenderableEditableObject_1a3c14ce348d46f0072fffa0a6abbaef3a" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1a3c14ce348d46f0072fffa0a6abbaef3a" kindref="member">update</ref>(real<sp/>dt)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"></highlight></codeline>
+<codeline lineno="74" refid="classRenderableEditableObject_1a61bc2b31cce925ccd37b517e2ced60ec" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1a61bc2b31cce925ccd37b517e2ced60ec" kindref="member">beforeRender</ref>()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"></highlight></codeline>
+<codeline lineno="79" refid="classRenderableEditableObject_1a6f5fcf234952c1d208d9d2920f3b10cd" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1a6f5fcf234952c1d208d9d2920f3b10cd" kindref="member">render</ref>()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"></highlight></codeline>
+<codeline lineno="82" refid="classRenderableEditableObject_1ac138a64ca29e7af2c228c66944ad0eb4" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1ac138a64ca29e7af2c228c66944ad0eb4" kindref="member">renderTrans</ref>()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"></highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//*****************************************************************</highlight></codeline>
+<codeline lineno="88"><highlight class="comment"></highlight></codeline>
+<codeline lineno="89"></codeline>
+<codeline lineno="91" refid="classRenderableEditableObject_1a3a6e24f567c5719c7b29139b10da5416" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1a3a6e24f567c5719c7b29139b10da5416" kindref="member">isHidden</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1afeba09ae8377138c62372ec82e331dd2" kindref="member">objFlags</ref><sp/>&amp;<sp/><ref refid="classRenderableEditableObject_1a131eff388fe36fadd5e841d3a892563eaaf959889ea65fa1369e388b9531c6287" kindref="member">FLG_HIDDEN</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"></highlight></codeline>
+<codeline lineno="95" refid="classRenderableEditableObject_1a9fd18c20df73aa41a91b00227bba740c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1a9fd18c20df73aa41a91b00227bba740c" kindref="member">isFrozen</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1afeba09ae8377138c62372ec82e331dd2" kindref="member">objFlags</ref><sp/>&amp;<sp/><ref refid="classRenderableEditableObject_1a131eff388fe36fadd5e841d3a892563eaa92146a5f5625b10d55408ada7dfdee7" kindref="member">FLG_FROZEN</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"></highlight></codeline>
+<codeline lineno="99" refid="classRenderableEditableObject_1a5c4c0c38278965a5c15f8ec664479781" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1a5c4c0c38278965a5c15f8ec664479781" kindref="member">isSelected</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1afeba09ae8377138c62372ec82e331dd2" kindref="member">objFlags</ref><sp/>&amp;<sp/><ref refid="classRenderableEditableObject_1a131eff388fe36fadd5e841d3a892563ea3dcf4e499e18084fc6771a25481b7347" kindref="member">FLG_SELECTED</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"></highlight></codeline>
+<codeline lineno="103" refid="classRenderableEditableObject_1a8358625555b455c5f31f2c670a26015c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1a8358625555b455c5f31f2c670a26015c" kindref="member">isHighlighted</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1afeba09ae8377138c62372ec82e331dd2" kindref="member">objFlags</ref><sp/>&amp;<sp/><ref refid="classRenderableEditableObject_1a131eff388fe36fadd5e841d3a892563eaf685eb4443012de9c647f4b77a8df786" kindref="member">FLG_HIGHLIGHTED</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"></highlight></codeline>
+<codeline lineno="105"><highlight class="normal"></highlight></codeline>
+<codeline lineno="108" refid="classRenderableEditableObject_1a528a9a8b53df52e5395eb6be9c89d525" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1a528a9a8b53df52e5395eb6be9c89d525" kindref="member">getFlags</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1afeba09ae8377138c62372ec82e331dd2" kindref="member">objFlags</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"></highlight></codeline>
+<codeline lineno="115" refid="classRenderableEditableObject_1aa4ffb38d004993ffc4dcc23356852253" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1aa4ffb38d004993ffc4dcc23356852253" kindref="member">setFlags</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>value,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>mask,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>use_undo<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"></highlight></codeline>
+<codeline lineno="119" refid="classRenderableEditableObject_1a92babd4def099db839aa246c87e39209" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1a92babd4def099db839aa246c87e39209" kindref="member">hideObject</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>hide<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">)<sp/>{<sp/><ref refid="classRenderableEditableObject_1aa4ffb38d004993ffc4dcc23356852253" kindref="member">setFlags</ref>(hide<sp/>?<sp/><ref refid="classRenderableEditableObject_1a131eff388fe36fadd5e841d3a892563eaaf959889ea65fa1369e388b9531c6287" kindref="member">FLG_HIDDEN</ref><sp/>:<sp/>0,<sp/><ref refid="classRenderableEditableObject_1a131eff388fe36fadd5e841d3a892563eaaf959889ea65fa1369e388b9531c6287" kindref="member">FLG_HIDDEN</ref><sp/>|<sp/>(hide<sp/>?<sp/><ref refid="classRenderableEditableObject_1a131eff388fe36fadd5e841d3a892563ea3dcf4e499e18084fc6771a25481b7347" kindref="member">FLG_SELECTED</ref><sp/>:<sp/>0));<sp/>}</highlight></codeline>
+<codeline lineno="120"><highlight class="normal"></highlight></codeline>
+<codeline lineno="123" refid="classRenderableEditableObject_1ad9654b59c59a730fb7a10149fda59b75" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1ad9654b59c59a730fb7a10149fda59b75" kindref="member">freezeObject</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>freeze<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">)<sp/>{<sp/><ref refid="classRenderableEditableObject_1aa4ffb38d004993ffc4dcc23356852253" kindref="member">setFlags</ref>(freeze<sp/>?<sp/><ref refid="classRenderableEditableObject_1a131eff388fe36fadd5e841d3a892563eaa92146a5f5625b10d55408ada7dfdee7" kindref="member">FLG_FROZEN</ref><sp/>:<sp/>0,<sp/><ref refid="classRenderableEditableObject_1a131eff388fe36fadd5e841d3a892563eaa92146a5f5625b10d55408ada7dfdee7" kindref="member">FLG_FROZEN</ref><sp/>|<sp/>(freeze<sp/>?<sp/><ref refid="classRenderableEditableObject_1a131eff388fe36fadd5e841d3a892563ea3dcf4e499e18084fc6771a25481b7347" kindref="member">FLG_SELECTED</ref><sp/>:<sp/>0));<sp/>}</highlight></codeline>
+<codeline lineno="124"><highlight class="normal"></highlight></codeline>
+<codeline lineno="128" refid="classRenderableEditableObject_1a60e06c8828a3ae705a53c5d4b14d2e60" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1a60e06c8828a3ae705a53c5d4b14d2e60" kindref="member">highlightObject</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>highlight<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">)<sp/>{<sp/><ref refid="classRenderableEditableObject_1aa4ffb38d004993ffc4dcc23356852253" kindref="member">setFlags</ref>(highlight<sp/>?<sp/><ref refid="classRenderableEditableObject_1a131eff388fe36fadd5e841d3a892563eaf685eb4443012de9c647f4b77a8df786" kindref="member">FLG_HIGHLIGHTED</ref><sp/>:<sp/>0,<sp/><ref refid="classRenderableEditableObject_1a131eff388fe36fadd5e841d3a892563eaf685eb4443012de9c647f4b77a8df786" kindref="member">FLG_HIGHLIGHTED</ref>);<sp/>}</highlight></codeline>
+<codeline lineno="129"><highlight class="normal"></highlight></codeline>
+<codeline lineno="133" refid="classRenderableEditableObject_1a22666616046bc27f87d01510e7d2c433" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1a22666616046bc27f87d01510e7d2c433" kindref="member">selectObject</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>select<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">)<sp/>{<sp/><ref refid="classRenderableEditableObject_1aa4ffb38d004993ffc4dcc23356852253" kindref="member">setFlags</ref>(select<sp/>?<sp/><ref refid="classRenderableEditableObject_1a131eff388fe36fadd5e841d3a892563ea3dcf4e499e18084fc6771a25481b7347" kindref="member">FLG_SELECTED</ref><sp/>:<sp/>0,<sp/><ref refid="classRenderableEditableObject_1a131eff388fe36fadd5e841d3a892563ea3dcf4e499e18084fc6771a25481b7347" kindref="member">FLG_SELECTED</ref>);<sp/>}</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"></highlight></codeline>
+<codeline lineno="136"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//*****************************************************************</highlight></codeline>
+<codeline lineno="138"><highlight class="comment"></highlight></codeline>
+<codeline lineno="139"></codeline>
+<codeline lineno="143" refid="classRenderableEditableObject_1a15ecb9a0dc275931c74ce17d20fb08f5" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1a15ecb9a0dc275931c74ce17d20fb08f5" kindref="member">isSelectedByRectangle</ref>(<ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref><sp/>*vp,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structEcRect" kindref="compound">EcRect</ref><sp/>&amp;rect)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="144"><highlight class="normal"></highlight></codeline>
+<codeline lineno="148" refid="classRenderableEditableObject_1a7167c50bbc6b5fec855b81e51823579a" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1a7167c50bbc6b5fec855b81e51823579a" kindref="member">getWorldBox</ref>(BBox3<sp/>&amp;box)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="149"><highlight class="normal"></highlight></codeline>
+<codeline lineno="153" refid="classRenderableEditableObject_1a3cf284f83e12136cd591dc0c671b12ff" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1a3cf284f83e12136cd591dc0c671b12ff" kindref="member">setName</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*nm)</highlight><highlight class="keyword"><sp/>override</highlight></codeline>
+<codeline lineno="154"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="155"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classEditableObject_1a9aa0b0d654aff5ebd01999b9d826ecf1" kindref="member">name</ref><sp/>=<sp/>nm;</highlight></codeline>
+<codeline lineno="156"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="157"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="158"><highlight class="normal"></highlight></codeline>
+<codeline lineno="162" refid="classRenderableEditableObject_1a241b8406e5271652d99e7ea95eeac463" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1a241b8406e5271652d99e7ea95eeac463" kindref="member">setPos</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point3<sp/>&amp;p)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="163"><highlight class="normal"></highlight></codeline>
+<codeline lineno="167" refid="classRenderableEditableObject_1a46daaeba0c8cbdf5e4bdd805531e41d6" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1a46daaeba0c8cbdf5e4bdd805531e41d6" kindref="member">setSize</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point3<sp/>&amp;p);</highlight></codeline>
+<codeline lineno="168"><highlight class="normal"></highlight></codeline>
+<codeline lineno="171" refid="classRenderableEditableObject_1a62f822a783c93493f3a7e6644c832ac8" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/>Point3<sp/><ref refid="classRenderableEditableObject_1a62f822a783c93493f3a7e6644c832ac8" kindref="member">getSize</ref>()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="172"><highlight class="normal"></highlight></codeline>
+<codeline lineno="176" refid="classRenderableEditableObject_1a7ed68c6d79bd4aa08c71f7a82b31cbcb" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1a7ed68c6d79bd4aa08c71f7a82b31cbcb" kindref="member">setRotM3</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Matrix3<sp/>&amp;tm);</highlight></codeline>
+<codeline lineno="180" refid="classRenderableEditableObject_1a4a9bc4e91fbe8507e0fa3f5975ecd369" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1a4a9bc4e91fbe8507e0fa3f5975ecd369" kindref="member">setRotTm</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TMatrix<sp/>&amp;tm);</highlight></codeline>
+<codeline lineno="181"><highlight class="normal"></highlight></codeline>
+<codeline lineno="184" refid="classRenderableEditableObject_1a92b1339e57e830e9e38f639ac6f70e78" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/>Matrix3<sp/><ref refid="classRenderableEditableObject_1a92b1339e57e830e9e38f639ac6f70e78" kindref="member">getRotM3</ref>()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="187" refid="classRenderableEditableObject_1ad484e758d0dd3fbd132f6f122beb28ac" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/>TMatrix<sp/><ref refid="classRenderableEditableObject_1ad484e758d0dd3fbd132f6f122beb28ac" kindref="member">getRotTm</ref>()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="188"><highlight class="normal"></highlight></codeline>
+<codeline lineno="191" refid="classRenderableEditableObject_1afff36c49c3aa27b08690219616fb2066" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/>Matrix3<sp/><ref refid="classRenderableEditableObject_1afff36c49c3aa27b08690219616fb2066" kindref="member">getMatrix</ref>()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="194" refid="classRenderableEditableObject_1a5782c3f563f28adf8412f246f8dd0135" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1a5782c3f563f28adf8412f246f8dd0135" kindref="member">setMatrix</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Matrix3<sp/>&amp;tm);</highlight></codeline>
+<codeline lineno="195"><highlight class="normal"></highlight></codeline>
+<codeline lineno="198" refid="classRenderableEditableObject_1ab62cf6ff5f8d9510326c5616cbe5f932" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TMatrix<sp/>&amp;<ref refid="classRenderableEditableObject_1ab62cf6ff5f8d9510326c5616cbe5f932" kindref="member">getWtm</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classEditableObject_1ab662b669c6fca7253d99b37ad23be306" kindref="member">matrix</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="201" refid="classRenderableEditableObject_1a10e1a75cf5d27a8cb73ce197154f675b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1a10e1a75cf5d27a8cb73ce197154f675b" kindref="member">setWtm</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TMatrix<sp/>&amp;wtm);</highlight></codeline>
+<codeline lineno="203"><highlight class="normal"></highlight></codeline>
+<codeline lineno="204"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//*****************************************************************</highlight></codeline>
+<codeline lineno="206"><highlight class="comment"></highlight></codeline>
+<codeline lineno="207"></codeline>
+<codeline lineno="210" refid="classRenderableEditableObject_1a38b62158a69f67d0452c30b514c48b2b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1a38b62158a69f67d0452c30b514c48b2b" kindref="member">moveObject</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point3<sp/>&amp;delta,<sp/><ref refid="classIEditorCoreEngine_1aa5e65738760339984ca2e44e7b5f75df" kindref="member">IEditorCoreEngine::BasisType</ref><sp/>basis);</highlight></codeline>
+<codeline lineno="211"><highlight class="normal"></highlight></codeline>
+<codeline lineno="215" refid="classRenderableEditableObject_1ae95e10c2d79fe9e0dece7c780f8b77e3" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1ae95e10c2d79fe9e0dece7c780f8b77e3" kindref="member">moveSurfObject</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point3<sp/>&amp;delta,<sp/><ref refid="classIEditorCoreEngine_1aa5e65738760339984ca2e44e7b5f75df" kindref="member">IEditorCoreEngine::BasisType</ref><sp/>basis);</highlight></codeline>
+<codeline lineno="216"><highlight class="normal"></highlight></codeline>
+<codeline lineno="222" refid="classRenderableEditableObject_1ae2c4a2cf380aab0d1879ca065e0dab1d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1ae2c4a2cf380aab0d1879ca065e0dab1d" kindref="member">rotateObject</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point3<sp/>&amp;delta,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point3<sp/>&amp;origin,<sp/><ref refid="classIEditorCoreEngine_1aa5e65738760339984ca2e44e7b5f75df" kindref="member">IEditorCoreEngine::BasisType</ref><sp/>basis);</highlight></codeline>
+<codeline lineno="223"><highlight class="normal"></highlight></codeline>
+<codeline lineno="228" refid="classRenderableEditableObject_1a14e8116d45cacdddb3a295870a714cb1" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1a14e8116d45cacdddb3a295870a714cb1" kindref="member">scaleObject</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point3<sp/>&amp;delta,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point3<sp/>&amp;origin,<sp/><ref refid="classIEditorCoreEngine_1aa5e65738760339984ca2e44e7b5f75df" kindref="member">IEditorCoreEngine::BasisType</ref><sp/>basis);</highlight></codeline>
+<codeline lineno="230"><highlight class="normal"></highlight></codeline>
+<codeline lineno="231"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//*****************************************************************</highlight></codeline>
+<codeline lineno="233"><highlight class="comment"></highlight></codeline>
+<codeline lineno="234"><highlight class="normal"></highlight></codeline>
+<codeline lineno="235" refid="classRenderableEditableObject_1a101e1fe224a6fba8a1c7f2a1bb0b7a32" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1a101e1fe224a6fba8a1c7f2a1bb0b7a32" kindref="member">putMoveUndo</ref>();</highlight></codeline>
+<codeline lineno="237" refid="classRenderableEditableObject_1ade20ebf97c90b25dd9fba87b76598463" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1ade20ebf97c90b25dd9fba87b76598463" kindref="member">putRotateUndo</ref>();</highlight></codeline>
+<codeline lineno="239" refid="classRenderableEditableObject_1a286a09a8c6ca58f78ddbc4eef5353b1e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1a286a09a8c6ca58f78ddbc4eef5353b1e" kindref="member">putScaleUndo</ref>();</highlight></codeline>
+<codeline lineno="241"><highlight class="normal"></highlight></codeline>
+<codeline lineno="242"><highlight class="normal"></highlight></codeline>
+<codeline lineno="245" refid="classRenderableEditableObject_1afb4e0bc1b2fae32a0c0519542e19d7ed" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1afb4e0bc1b2fae32a0c0519542e19d7ed" kindref="member">mayDelete</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="246"><highlight class="normal"></highlight></codeline>
+<codeline lineno="249" refid="classRenderableEditableObject_1afaa1fbf641b4d47988f7d79d27e060bb" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1afaa1fbf641b4d47988f7d79d27e060bb" kindref="member">mayRename</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="250"><highlight class="normal"></highlight></codeline>
+<codeline lineno="255" refid="classRenderableEditableObject_1a221e8db23dc5b4db1af7cafe00c46e8e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1a221e8db23dc5b4db1af7cafe00c46e8e" kindref="member">onObjectNameChange</ref>([[maybe_unused]]<sp/><ref refid="classRenderableEditableObject" kindref="compound">RenderableEditableObject</ref><sp/>*obj,<sp/>[[maybe_unused]]<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*old_name,</highlight></codeline>
+<codeline lineno="256"><highlight class="normal"><sp/><sp/><sp/><sp/>[[maybe_unused]]<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*new_name)</highlight></codeline>
+<codeline lineno="257"><highlight class="normal"><sp/><sp/>{}</highlight></codeline>
+<codeline lineno="258"><highlight class="normal"></highlight></codeline>
+<codeline lineno="261" refid="classRenderableEditableObject_1aa7a4d3b350be0728a5900e88fa9ee2f6" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classObjectEditor" kindref="compound">ObjectEditor</ref><sp/>*<ref refid="classRenderableEditableObject_1aa7a4d3b350be0728a5900e88fa9ee2f6" kindref="member">getObjEditor</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1a0bbe447654aefde4edbc8f8364d1e757" kindref="member">objEditor</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="262"><highlight class="normal"></highlight></codeline>
+<codeline lineno="263"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//*****************************************************************</highlight></codeline>
+<codeline lineno="265"><highlight class="comment"></highlight></codeline>
+<codeline lineno="266"></codeline>
+<codeline lineno="272" refid="classRenderableEditableObject_1aab374e4bfce280e3e3ebdbbb6bb139fe" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/>DClassID<sp/><ref refid="classRenderableEditableObject_1aab374e4bfce280e3e3ebdbbb6bb139fe" kindref="member">getCommonClassId</ref>(<ref refid="classRenderableEditableObject" kindref="compound">RenderableEditableObject</ref><sp/>**objects,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>num);</highlight></codeline>
+<codeline lineno="273"><highlight class="normal"></highlight></codeline>
+<codeline lineno="275"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">enum</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="276"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="277" refid="classRenderableEditableObject_1aeee71706985824a40b07073f5e0d4763a19a4aad95091c5fa0284520f830dc5bb" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRenderableEditableObject_1aeee71706985824a40b07073f5e0d4763a19a4aad95091c5fa0284520f830dc5bb" kindref="member">PID_COMMON_GROUP</ref><sp/>=<sp/>100000,</highlight></codeline>
+<codeline lineno="278" refid="classRenderableEditableObject_1aeee71706985824a40b07073f5e0d4763a1ed2b40f6ad5c92835b0061dafaf0c57" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRenderableEditableObject_1aeee71706985824a40b07073f5e0d4763a1ed2b40f6ad5c92835b0061dafaf0c57" kindref="member">PID_TRANSFORM_GROUP</ref><sp/>=<sp/>200000,</highlight></codeline>
+<codeline lineno="279" refid="classRenderableEditableObject_1aeee71706985824a40b07073f5e0d4763a8bc7df03361ecfce2002c2d74aec845d" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRenderableEditableObject_1aeee71706985824a40b07073f5e0d4763a8bc7df03361ecfce2002c2d74aec845d" kindref="member">PID_SEED_GROUP</ref><sp/>=<sp/>300000,</highlight></codeline>
+<codeline lineno="280"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="281"><highlight class="normal"></highlight></codeline>
+<codeline lineno="287" refid="classRenderableEditableObject_1a4aaedfd67f8e3db54745d320c987ab10" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1a4aaedfd67f8e3db54745d320c987ab10" kindref="member">fillProps</ref>(PropPanel::ContainerPropertyControl<sp/>&amp;panel,<sp/>DClassID<sp/>for_class_id,</highlight></codeline>
+<codeline lineno="288"><highlight class="normal"><sp/><sp/><sp/><sp/>dag::ConstSpan&lt;RenderableEditableObject<sp/>*&gt;<sp/>objects);</highlight></codeline>
+<codeline lineno="289"><highlight class="normal"></highlight></codeline>
+<codeline lineno="295" refid="classRenderableEditableObject_1a46a06cda89d6ea40701563fda78b1d7d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1a46a06cda89d6ea40701563fda78b1d7d" kindref="member">onPPChange</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>pid,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>edit_finished,<sp/>PropPanel::ContainerPropertyControl<sp/>&amp;panel,</highlight></codeline>
+<codeline lineno="296"><highlight class="normal"><sp/><sp/><sp/><sp/>dag::ConstSpan&lt;RenderableEditableObject<sp/>*&gt;<sp/>objects)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="297"><highlight class="normal"></highlight></codeline>
+<codeline lineno="301" refid="classRenderableEditableObject_1a492b2982fa165520b37a654c8b897ee0" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1a492b2982fa165520b37a654c8b897ee0" kindref="member">onPPClose</ref>([[maybe_unused]]<sp/>PropPanel::ContainerPropertyControl<sp/>&amp;panel,</highlight></codeline>
+<codeline lineno="302"><highlight class="normal"><sp/><sp/><sp/><sp/>[[maybe_unused]]<sp/>dag::ConstSpan&lt;RenderableEditableObject<sp/>*&gt;<sp/>objects)</highlight></codeline>
+<codeline lineno="303"><highlight class="normal"><sp/><sp/>{}</highlight></codeline>
+<codeline lineno="304"><highlight class="normal"></highlight></codeline>
+<codeline lineno="308" refid="classRenderableEditableObject_1a9d8199bfb6c44530daba8f69605c39a6" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1a9d8199bfb6c44530daba8f69605c39a6" kindref="member">onPPClear</ref>([[maybe_unused]]<sp/>PropPanel::ContainerPropertyControl<sp/>&amp;panel,</highlight></codeline>
+<codeline lineno="309"><highlight class="normal"><sp/><sp/><sp/><sp/>[[maybe_unused]]<sp/>dag::ConstSpan&lt;RenderableEditableObject<sp/>*&gt;<sp/>objects)</highlight></codeline>
+<codeline lineno="310"><highlight class="normal"><sp/><sp/>{}</highlight></codeline>
+<codeline lineno="311"><highlight class="normal"></highlight></codeline>
+<codeline lineno="316" refid="classRenderableEditableObject_1a21ecfa77d4b7f6752411a9790512cc72" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1a21ecfa77d4b7f6752411a9790512cc72" kindref="member">onPPBtnPressed</ref>([[maybe_unused]]<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>pid,<sp/>[[maybe_unused]]<sp/>PropPanel::ContainerPropertyControl<sp/>&amp;panel,</highlight></codeline>
+<codeline lineno="317"><highlight class="normal"><sp/><sp/><sp/><sp/>[[maybe_unused]]<sp/>dag::ConstSpan&lt;RenderableEditableObject<sp/>*&gt;<sp/>objects)</highlight></codeline>
+<codeline lineno="318"><highlight class="normal"><sp/><sp/>{}</highlight></codeline>
+<codeline lineno="320"><highlight class="normal"></highlight></codeline>
+<codeline lineno="321" refid="classRenderableEditableObject_1a6512b8c1cb62e568a715c18ab920f421" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1a6512b8c1cb62e568a715c18ab920f421" kindref="member">onRemove</ref>([[maybe_unused]]<sp/><ref refid="classObjectEditor" kindref="compound">ObjectEditor</ref><sp/>*obj_ed)<sp/>{}</highlight></codeline>
+<codeline lineno="322" refid="classRenderableEditableObject_1a294704ab3e7513cb0d62258ff18ad2ee" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1a294704ab3e7513cb0d62258ff18ad2ee" kindref="member">onAdd</ref>([[maybe_unused]]<sp/><ref refid="classObjectEditor" kindref="compound">ObjectEditor</ref><sp/>*obj_ed)<sp/>{}</highlight></codeline>
+<codeline lineno="323"><highlight class="normal"></highlight></codeline>
+<codeline lineno="324" refid="classRenderableEditableObject_1a33c6ca8973b9ad33bf4bb8fb2f3728aa" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1a33c6ca8973b9ad33bf4bb8fb2f3728aa" kindref="member">rememberSurfaceDist</ref>();</highlight></codeline>
+<codeline lineno="325" refid="classRenderableEditableObject_1ac926e61901551954429edc683af9751c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1ac926e61901551954429edc683af9751c" kindref="member">zeroSurfaceDist</ref>()<sp/>{<sp/><ref refid="classRenderableEditableObject_1a760b9c3a609071af63868bd5ecf2c74f" kindref="member">surfaceDist</ref><sp/>=<sp/>0.0;<sp/>}</highlight></codeline>
+<codeline lineno="326" refid="classRenderableEditableObject_1ae591b0b52a5dbddc85f1d17df01cd7a8" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/>real<sp/><ref refid="classRenderableEditableObject_1ae591b0b52a5dbddc85f1d17df01cd7a8" kindref="member">getSurfaceDist</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1a760b9c3a609071af63868bd5ecf2c74f" kindref="member">surfaceDist</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="327"><highlight class="normal"></highlight></codeline>
+<codeline lineno="328" refid="classRenderableEditableObject_1a07904d5b33c8debfb483b7cf0eb43721" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point3<sp/>&amp;<ref refid="classRenderableEditableObject_1a07904d5b33c8debfb483b7cf0eb43721" kindref="member">getSavedPlacementNormal</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1a75c97a62485d56883cea9df47e1dd162" kindref="member">savedPlacementNormal</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="329" refid="classRenderableEditableObject_1a0f5c5299848d547f1dd807249c7269c2" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1a0f5c5299848d547f1dd807249c7269c2" kindref="member">setSavedPlacementNormal</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point3<sp/>&amp;n)<sp/>{<sp/><ref refid="classRenderableEditableObject_1a75c97a62485d56883cea9df47e1dd162" kindref="member">savedPlacementNormal</ref><sp/>=<sp/>n;<sp/>}</highlight></codeline>
+<codeline lineno="330" refid="classRenderableEditableObject_1acac6b268838555b0324a49e74266ae9f" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1acac6b268838555b0324a49e74266ae9f" kindref="member">usesRendinstPlacement</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="331" refid="classRenderableEditableObject_1a9bff7d8d64a5749daefc21535397f529" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1a9bff7d8d64a5749daefc21535397f529" kindref="member">setCollisionIgnored</ref>()<sp/>{}</highlight></codeline>
+<codeline lineno="332" refid="classRenderableEditableObject_1a6496e954921f658b51aeb38f10dc834f" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1a6496e954921f658b51aeb38f10dc834f" kindref="member">resetCollisionIgnored</ref>()<sp/>{}</highlight></codeline>
+<codeline lineno="333"><highlight class="normal"></highlight></codeline>
+<codeline lineno="334"><highlight class="normal"></highlight><highlight class="keyword">protected</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="335" refid="classRenderableEditableObject_1a02eb971f479bd708e3475bd3852f00cf" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">friend</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classObjectEditor" kindref="compound">ObjectEditor</ref>;</highlight></codeline>
+<codeline lineno="336"><highlight class="normal"></highlight></codeline>
+<codeline lineno="337" refid="classRenderableEditableObject_1afeba09ae8377138c62372ec82e331dd2" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1afeba09ae8377138c62372ec82e331dd2" kindref="member">objFlags</ref>;</highlight></codeline>
+<codeline lineno="338" refid="classRenderableEditableObject_1a0bbe447654aefde4edbc8f8364d1e757" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classObjectEditor" kindref="compound">ObjectEditor</ref><sp/>*<ref refid="classRenderableEditableObject_1a0bbe447654aefde4edbc8f8364d1e757" kindref="member">objEditor</ref>;</highlight></codeline>
+<codeline lineno="339"><highlight class="normal"></highlight></codeline>
+<codeline lineno="340" refid="classRenderableEditableObject_1a760b9c3a609071af63868bd5ecf2c74f" refkind="member"><highlight class="normal"><sp/><sp/>real<sp/><ref refid="classRenderableEditableObject_1a760b9c3a609071af63868bd5ecf2c74f" kindref="member">surfaceDist</ref>;</highlight></codeline>
+<codeline lineno="341" refid="classRenderableEditableObject_1a75c97a62485d56883cea9df47e1dd162" refkind="member"><highlight class="normal"><sp/><sp/>Point3<sp/><ref refid="classRenderableEditableObject_1a75c97a62485d56883cea9df47e1dd162" kindref="member">savedPlacementNormal</ref><sp/>=<sp/>Point3(0,<sp/>1,<sp/>0);</highlight></codeline>
+<codeline lineno="342"><highlight class="normal"></highlight></codeline>
+<codeline lineno="343" refid="classRenderableEditableObject_1_1UndoObjFlags" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classRenderableEditableObject_1_1UndoObjFlags" kindref="compound">UndoObjFlags</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/>UndoRedoObject</highlight></codeline>
+<codeline lineno="344"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="345"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="346" refid="classRenderableEditableObject_1_1UndoObjFlags_1aa9de9fee5af8d0e0391a0d2bb2e50dfd" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>Ptr&lt;RenderableEditableObject&gt;<sp/><ref refid="classRenderableEditableObject_1_1UndoObjFlags_1aa9de9fee5af8d0e0391a0d2bb2e50dfd" kindref="member">obj</ref>;</highlight></codeline>
+<codeline lineno="347" refid="classRenderableEditableObject_1_1UndoObjFlags_1a4954b181d64f14868332a76657b8af89" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1_1UndoObjFlags_1a4954b181d64f14868332a76657b8af89" kindref="member">prevFlags</ref>,<sp/><ref refid="classRenderableEditableObject_1_1UndoObjFlags_1a0331bd34440d358f833f10a28a1ac509" kindref="member">redoFlags</ref>;</highlight></codeline>
+<codeline lineno="348"><highlight class="normal"></highlight></codeline>
+<codeline lineno="349"><highlight class="normal"></highlight></codeline>
+<codeline lineno="350" refid="classRenderableEditableObject_1_1UndoObjFlags_1a93e131a7f089e214efeba6dee4c958fa" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRenderableEditableObject_1_1UndoObjFlags_1a93e131a7f089e214efeba6dee4c958fa" kindref="member">UndoObjFlags</ref>(<ref refid="classRenderableEditableObject" kindref="compound">RenderableEditableObject</ref><sp/>*o)<sp/>:<sp/><ref refid="classRenderableEditableObject_1_1UndoObjFlags_1aa9de9fee5af8d0e0391a0d2bb2e50dfd" kindref="member">obj</ref>(o),<sp/><ref refid="classRenderableEditableObject_1_1UndoObjFlags_1a4954b181d64f14868332a76657b8af89" kindref="member">prevFlags</ref>(o-&gt;<ref refid="classRenderableEditableObject_1a528a9a8b53df52e5395eb6be9c89d525" kindref="member">getFlags</ref>())<sp/>{<sp/><ref refid="classRenderableEditableObject_1_1UndoObjFlags_1a0331bd34440d358f833f10a28a1ac509" kindref="member">redoFlags</ref><sp/>=<sp/><ref refid="classRenderableEditableObject_1_1UndoObjFlags_1a4954b181d64f14868332a76657b8af89" kindref="member">prevFlags</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="351"><highlight class="normal"></highlight></codeline>
+<codeline lineno="352" refid="classRenderableEditableObject_1_1UndoObjFlags_1a92a9af5cb11f66efb443e86e1591b499" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1_1UndoObjFlags_1a92a9af5cb11f66efb443e86e1591b499" kindref="member">restore</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>save_redo)</highlight><highlight class="keyword"><sp/>override</highlight></codeline>
+<codeline lineno="353"><highlight class="keyword"><sp/><sp/><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="354"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(save_redo)</highlight></codeline>
+<codeline lineno="355"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classRenderableEditableObject_1_1UndoObjFlags_1a0331bd34440d358f833f10a28a1ac509" kindref="member">redoFlags</ref><sp/>=<sp/><ref refid="classRenderableEditableObject_1_1UndoObjFlags_1aa9de9fee5af8d0e0391a0d2bb2e50dfd" kindref="member">obj</ref>-&gt;getFlags();</highlight></codeline>
+<codeline lineno="356"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classRenderableEditableObject_1_1UndoObjFlags_1aa9de9fee5af8d0e0391a0d2bb2e50dfd" kindref="member">obj</ref>-&gt;setFlags(<ref refid="classRenderableEditableObject_1_1UndoObjFlags_1a4954b181d64f14868332a76657b8af89" kindref="member">prevFlags</ref>,<sp/>~0);</highlight></codeline>
+<codeline lineno="357"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="358"><highlight class="normal"></highlight></codeline>
+<codeline lineno="359" refid="classRenderableEditableObject_1_1UndoObjFlags_1a91e01d10dbeb2c8c7e3a4cfb6dc83ff1" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1_1UndoObjFlags_1a91e01d10dbeb2c8c7e3a4cfb6dc83ff1" kindref="member">redo</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/><ref refid="classRenderableEditableObject_1_1UndoObjFlags_1aa9de9fee5af8d0e0391a0d2bb2e50dfd" kindref="member">obj</ref>-&gt;setFlags(<ref refid="classRenderableEditableObject_1_1UndoObjFlags_1a0331bd34440d358f833f10a28a1ac509" kindref="member">redoFlags</ref>,<sp/>~0);<sp/>}</highlight></codeline>
+<codeline lineno="360"><highlight class="normal"></highlight></codeline>
+<codeline lineno="361" refid="classRenderableEditableObject_1_1UndoObjFlags_1a209f155ef17cde345d3699b89dbe56b3" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1_1UndoObjFlags_1a209f155ef17cde345d3699b89dbe56b3" kindref="member">size</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(*this);<sp/>}</highlight></codeline>
+<codeline lineno="362" refid="classRenderableEditableObject_1_1UndoObjFlags_1a5f109c17fe7fd13c134952bacdb11ac1" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1_1UndoObjFlags_1a5f109c17fe7fd13c134952bacdb11ac1" kindref="member">accepted</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{}</highlight></codeline>
+<codeline lineno="363" refid="classRenderableEditableObject_1_1UndoObjFlags_1a95184004344c9140e857e283ceae275f" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1_1UndoObjFlags_1a95184004344c9140e857e283ceae275f" kindref="member">get_description</ref>(String<sp/>&amp;s)</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/>s<sp/>=<sp/></highlight><highlight class="stringliteral">&quot;UndoObjFlags&quot;</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="364"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="365"><highlight class="normal"></highlight></codeline>
+<codeline lineno="366"><highlight class="normal"></highlight></codeline>
+<codeline lineno="367" refid="classRenderableEditableObject_1_1UndoMove" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classRenderableEditableObject_1_1UndoMove" kindref="compound">UndoMove</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/>UndoRedoObject</highlight></codeline>
+<codeline lineno="368"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="369"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="370" refid="classRenderableEditableObject_1_1UndoMove_1a934c1f56f92f8bfba3554ce7b313e552" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>Ptr&lt;RenderableEditableObject&gt;<sp/><ref refid="classRenderableEditableObject_1_1UndoMove_1a934c1f56f92f8bfba3554ce7b313e552" kindref="member">obj</ref>;</highlight></codeline>
+<codeline lineno="371" refid="classRenderableEditableObject_1_1UndoMove_1a8f0368b243355c0c4b2b87ef1771f928" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>Point3<sp/><ref refid="classRenderableEditableObject_1_1UndoMove_1a8f0368b243355c0c4b2b87ef1771f928" kindref="member">oldPos</ref>,<sp/><ref refid="classRenderableEditableObject_1_1UndoMove_1aab9af9e8fe40fb3605c03b0ee4308d02" kindref="member">redoPos</ref>;</highlight></codeline>
+<codeline lineno="372"><highlight class="normal"></highlight></codeline>
+<codeline lineno="373"><highlight class="normal"></highlight></codeline>
+<codeline lineno="374" refid="classRenderableEditableObject_1_1UndoMove_1aa8594a6566518e870e0f501bb0abb534" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRenderableEditableObject_1_1UndoMove_1aa8594a6566518e870e0f501bb0abb534" kindref="member">UndoMove</ref>(<ref refid="classRenderableEditableObject" kindref="compound">RenderableEditableObject</ref><sp/>*o)<sp/>:<sp/><ref refid="classRenderableEditableObject_1_1UndoMove_1a934c1f56f92f8bfba3554ce7b313e552" kindref="member">obj</ref>(o)<sp/>{<sp/><ref refid="classRenderableEditableObject_1_1UndoMove_1a8f0368b243355c0c4b2b87ef1771f928" kindref="member">oldPos</ref><sp/>=<sp/><ref refid="classRenderableEditableObject_1_1UndoMove_1aab9af9e8fe40fb3605c03b0ee4308d02" kindref="member">redoPos</ref><sp/>=<sp/><ref refid="classRenderableEditableObject_1_1UndoMove_1a934c1f56f92f8bfba3554ce7b313e552" kindref="member">obj</ref>-&gt;getPos();<sp/>}</highlight></codeline>
+<codeline lineno="375"><highlight class="normal"></highlight></codeline>
+<codeline lineno="376" refid="classRenderableEditableObject_1_1UndoMove_1a5f27350af39324c8d151532744a36256" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1_1UndoMove_1a5f27350af39324c8d151532744a36256" kindref="member">restore</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>save_redo)</highlight><highlight class="keyword"><sp/>override</highlight></codeline>
+<codeline lineno="377"><highlight class="keyword"><sp/><sp/><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="378"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(save_redo)</highlight></codeline>
+<codeline lineno="379"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classRenderableEditableObject_1_1UndoMove_1aab9af9e8fe40fb3605c03b0ee4308d02" kindref="member">redoPos</ref><sp/>=<sp/><ref refid="classRenderableEditableObject_1_1UndoMove_1a934c1f56f92f8bfba3554ce7b313e552" kindref="member">obj</ref>-&gt;getPos();</highlight></codeline>
+<codeline lineno="380"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classRenderableEditableObject_1_1UndoMove_1a934c1f56f92f8bfba3554ce7b313e552" kindref="member">obj</ref>-&gt;setPos(<ref refid="classRenderableEditableObject_1_1UndoMove_1a8f0368b243355c0c4b2b87ef1771f928" kindref="member">oldPos</ref>);</highlight></codeline>
+<codeline lineno="381"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="382"><highlight class="normal"></highlight></codeline>
+<codeline lineno="383" refid="classRenderableEditableObject_1_1UndoMove_1a2395e0ae8ca0bb84e39050ef38a79cee" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1_1UndoMove_1a2395e0ae8ca0bb84e39050ef38a79cee" kindref="member">redo</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/><ref refid="classRenderableEditableObject_1_1UndoMove_1a934c1f56f92f8bfba3554ce7b313e552" kindref="member">obj</ref>-&gt;setPos(<ref refid="classRenderableEditableObject_1_1UndoMove_1aab9af9e8fe40fb3605c03b0ee4308d02" kindref="member">redoPos</ref>);<sp/>}</highlight></codeline>
+<codeline lineno="384"><highlight class="normal"></highlight></codeline>
+<codeline lineno="385" refid="classRenderableEditableObject_1_1UndoMove_1a68c6daf24d5dc2800beeebb463f58201" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1_1UndoMove_1a68c6daf24d5dc2800beeebb463f58201" kindref="member">size</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(*this);<sp/>}</highlight></codeline>
+<codeline lineno="386" refid="classRenderableEditableObject_1_1UndoMove_1a4d8946fc026368907c9b3dda3bb90b68" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1_1UndoMove_1a4d8946fc026368907c9b3dda3bb90b68" kindref="member">accepted</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{}</highlight></codeline>
+<codeline lineno="387" refid="classRenderableEditableObject_1_1UndoMove_1a03ae037a748a77c2b8365ea1ce56fa07" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1_1UndoMove_1a03ae037a748a77c2b8365ea1ce56fa07" kindref="member">get_description</ref>(String<sp/>&amp;s)</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/>s<sp/>=<sp/></highlight><highlight class="stringliteral">&quot;UndoMove&quot;</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="388"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="389"><highlight class="normal"></highlight></codeline>
+<codeline lineno="390"><highlight class="normal"></highlight></codeline>
+<codeline lineno="391" refid="classRenderableEditableObject_1_1UndoMatrix" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classRenderableEditableObject_1_1UndoMatrix" kindref="compound">UndoMatrix</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/>UndoRedoObject</highlight></codeline>
+<codeline lineno="392"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="393"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="394" refid="classRenderableEditableObject_1_1UndoMatrix_1a8767b472692d7e8ae289df61933bd500" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>Ptr&lt;RenderableEditableObject&gt;<sp/><ref refid="classRenderableEditableObject_1_1UndoMatrix_1a8767b472692d7e8ae289df61933bd500" kindref="member">obj</ref>;</highlight></codeline>
+<codeline lineno="395" refid="classRenderableEditableObject_1_1UndoMatrix_1aee7d4a5469dda3b659bbca0a1ba83254" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>Matrix3<sp/><ref refid="classRenderableEditableObject_1_1UndoMatrix_1aee7d4a5469dda3b659bbca0a1ba83254" kindref="member">oldMatrix</ref>,<sp/><ref refid="classRenderableEditableObject_1_1UndoMatrix_1a08552794a35c960469ea138ab5eef270" kindref="member">redoMatrix</ref>;</highlight></codeline>
+<codeline lineno="396"><highlight class="normal"></highlight></codeline>
+<codeline lineno="397"><highlight class="normal"></highlight></codeline>
+<codeline lineno="398" refid="classRenderableEditableObject_1_1UndoMatrix_1a9493a8ae3d65bdaaa18520f57a10c7ad" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRenderableEditableObject_1_1UndoMatrix_1a9493a8ae3d65bdaaa18520f57a10c7ad" kindref="member">UndoMatrix</ref>(<ref refid="classRenderableEditableObject" kindref="compound">RenderableEditableObject</ref><sp/>*o)<sp/>:<sp/><ref refid="classRenderableEditableObject_1_1UndoMatrix_1a8767b472692d7e8ae289df61933bd500" kindref="member">obj</ref>(o)<sp/>{<sp/><ref refid="classRenderableEditableObject_1_1UndoMatrix_1aee7d4a5469dda3b659bbca0a1ba83254" kindref="member">oldMatrix</ref><sp/>=<sp/><ref refid="classRenderableEditableObject_1_1UndoMatrix_1a08552794a35c960469ea138ab5eef270" kindref="member">redoMatrix</ref><sp/>=<sp/><ref refid="classRenderableEditableObject_1_1UndoMatrix_1a8767b472692d7e8ae289df61933bd500" kindref="member">obj</ref>-&gt;getMatrix();<sp/>}</highlight></codeline>
+<codeline lineno="399"><highlight class="normal"></highlight></codeline>
+<codeline lineno="400" refid="classRenderableEditableObject_1_1UndoMatrix_1abc2671f3a69954d5264514fd9347a089" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1_1UndoMatrix_1abc2671f3a69954d5264514fd9347a089" kindref="member">restore</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>save_redo)</highlight><highlight class="keyword"><sp/>override</highlight></codeline>
+<codeline lineno="401"><highlight class="keyword"><sp/><sp/><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="402"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(save_redo)</highlight></codeline>
+<codeline lineno="403"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classRenderableEditableObject_1_1UndoMatrix_1a08552794a35c960469ea138ab5eef270" kindref="member">redoMatrix</ref><sp/>=<sp/><ref refid="classRenderableEditableObject_1_1UndoMatrix_1a8767b472692d7e8ae289df61933bd500" kindref="member">obj</ref>-&gt;getMatrix();</highlight></codeline>
+<codeline lineno="404"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classRenderableEditableObject_1_1UndoMatrix_1a8767b472692d7e8ae289df61933bd500" kindref="member">obj</ref>-&gt;setMatrix(<ref refid="classRenderableEditableObject_1_1UndoMatrix_1aee7d4a5469dda3b659bbca0a1ba83254" kindref="member">oldMatrix</ref>);</highlight></codeline>
+<codeline lineno="405"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="406"><highlight class="normal"></highlight></codeline>
+<codeline lineno="407" refid="classRenderableEditableObject_1_1UndoMatrix_1afe52fb0560cf882226fc160156292a32" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1_1UndoMatrix_1afe52fb0560cf882226fc160156292a32" kindref="member">redo</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/><ref refid="classRenderableEditableObject_1_1UndoMatrix_1a8767b472692d7e8ae289df61933bd500" kindref="member">obj</ref>-&gt;setMatrix(<ref refid="classRenderableEditableObject_1_1UndoMatrix_1a08552794a35c960469ea138ab5eef270" kindref="member">redoMatrix</ref>);<sp/>}</highlight></codeline>
+<codeline lineno="408"><highlight class="normal"></highlight></codeline>
+<codeline lineno="409" refid="classRenderableEditableObject_1_1UndoMatrix_1ae4c6cb80ccdbe548093da04c076b74a0" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1_1UndoMatrix_1ae4c6cb80ccdbe548093da04c076b74a0" kindref="member">size</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(*this);<sp/>}</highlight></codeline>
+<codeline lineno="410" refid="classRenderableEditableObject_1_1UndoMatrix_1ae4f941c2b3ee7e57f2585c58e1c1658a" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1_1UndoMatrix_1ae4f941c2b3ee7e57f2585c58e1c1658a" kindref="member">accepted</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{}</highlight></codeline>
+<codeline lineno="411" refid="classRenderableEditableObject_1_1UndoMatrix_1a254b300d2b69fc598ca709855c60e725" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRenderableEditableObject_1_1UndoMatrix_1a254b300d2b69fc598ca709855c60e725" kindref="member">get_description</ref>(String<sp/>&amp;s)</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/>s<sp/>=<sp/></highlight><highlight class="stringliteral">&quot;UndoMatrix&quot;</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="412"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="413"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="414"><highlight class="normal"></highlight></codeline>
+<codeline lineno="415" refid="ec__rendEdObject_8h_1aeaf2d99901d9e51120912745fcb3013a" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>EO_IMPLEMENT_RTTI(CID)<sp/>EO_IMPLEMENT_RTTI_EX(CID,<sp/>RenderableEditableObject)</highlight></codeline>
+    </programlisting>
+    <location file="ec_rendEdObject.h"/>
+  </compounddef>
+</doxygen>

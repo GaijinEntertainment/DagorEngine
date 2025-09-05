@@ -1,0 +1,257 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="ec__input_8h" kind="file" language="C++">
+    <compoundname>ec_input.h</compoundname>
+    <includes local="no">math/integer/dag_IPoint2.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>ec_input.h</label>
+        <link refid="ec__input_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>math/integer/dag_IPoint2.h</label>
+      </node>
+    </incdepgraph>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="ec__input_8h_1adf764cbdea00d65edcd07bb9953ad2b7" prot="public" static="no" strong="no">
+        <type></type>
+        <name></name>
+        <enumvalue id="ec__input_8h_1adf764cbdea00d65edcd07bb9953ad2b7a07045b203d6dce1abb0cad1854f1eb93" prot="public">
+          <name>EC_MK_LBUTTON</name>
+          <initializer>= 0x1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__input_8h_1adf764cbdea00d65edcd07bb9953ad2b7a827b02dd6a79deb426b1a7e28abfd901" prot="public">
+          <name>EC_MK_RBUTTON</name>
+          <initializer>= 0x2</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__input_8h_1adf764cbdea00d65edcd07bb9953ad2b7af5fdac116c6cb136fecaad4b11d06990" prot="public">
+          <name>EC_MK_MBUTTON</name>
+          <initializer>= 0x10</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_input.h" line="11" column="1" bodyfile="ec_input.h" bodystart="12" bodyend="16"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="ec__input_8h_1adc1bc364098a2d644ff3fa699f95d8cd" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr int</type>
+        <definition>constexpr int EC_WHEEL_DELTA</definition>
+        <argsstring></argsstring>
+        <name>EC_WHEEL_DELTA</name>
+        <initializer>= 120</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_input.h" line="8" column="22" bodyfile="ec_input.h" bodystart="8" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="ec__input_8h_1a680281790b78c3a4af568fd40f43d774" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>IPoint2</type>
+        <definition>IPoint2 ec_get_cursor_pos</definition>
+        <argsstring>()</argsstring>
+        <name>ec_get_cursor_pos</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_input.h" line="19" column="9" declfile="ec_input.h" declline="19" declcolumn="9"/>
+      </memberdef>
+      <memberdef kind="function" id="ec__input_8h_1a4be4f2550efdd5994e9c4423e18a7b9d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ec_set_cursor_pos</definition>
+        <argsstring>(IPoint2 pos)</argsstring>
+        <name>ec_set_cursor_pos</name>
+        <param>
+          <type>IPoint2</type>
+          <declname>pos</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_input.h" line="22" column="6" declfile="ec_input.h" declline="22" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="ec__input_8h_1ae2be09646f9b4e8c161f18f5a3543d04" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ec_show_cursor</definition>
+        <argsstring>(bool show)</argsstring>
+        <name>ec_show_cursor</name>
+        <param>
+          <type>bool</type>
+          <declname>show</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_input.h" line="25" column="6" declfile="ec_input.h" declline="25" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="ec__input_8h_1a4a92b1f0333c40702a29f150ed64dcb2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ec_set_busy</definition>
+        <argsstring>(bool busy)</argsstring>
+        <name>ec_set_busy</name>
+        <param>
+          <type>bool</type>
+          <declname>busy</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_input.h" line="29" column="6" declfile="ec_input.h" declline="29" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="ec__input_8h_1adb42d990ef4de302fc0f2d333ecbff96" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ec_get_busy</definition>
+        <argsstring>()</argsstring>
+        <name>ec_get_busy</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_input.h" line="32" column="6" declfile="ec_input.h" declline="32" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="ec__input_8h_1a2c0168d645633801a13c172464665128" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ec_is_key_down</definition>
+        <argsstring>(ImGuiKey key)</argsstring>
+        <name>ec_is_key_down</name>
+        <param>
+          <type>ImGuiKey</type>
+          <declname>key</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_input.h" line="35" column="6" declfile="ec_input.h" declline="35" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="ec__input_8h_1a592049336cc48683a38ed04dde326313" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ec_is_alt_key_down</definition>
+        <argsstring>()</argsstring>
+        <name>ec_is_alt_key_down</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_input.h" line="38" column="6" declfile="ec_input.h" declline="38" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="ec__input_8h_1a501fc8c776d007bf057205ec7f8187d5" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ec_is_ctrl_key_down</definition>
+        <argsstring>()</argsstring>
+        <name>ec_is_ctrl_key_down</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_input.h" line="41" column="6" declfile="ec_input.h" declline="41" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="ec__input_8h_1a714092370f69476024f09ade9ad9493b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ec_is_shift_key_down</definition>
+        <argsstring>()</argsstring>
+        <name>ec_is_shift_key_down</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_input.h" line="44" column="6" declfile="ec_input.h" declline="44" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;math/integer/dag_IPoint2.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/>ImGuiKey<sp/>:<sp/>int;</highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>EC_WHEEL_DELTA<sp/>=<sp/>120;<sp/></highlight><highlight class="comment">//<sp/>Use<sp/>the<sp/>WHEEL_DELTA<sp/>delta<sp/>value<sp/>from<sp/>Windows.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Correctponds<sp/>to<sp/>MK_LBUTTON,<sp/>MK_RBUTTON<sp/>and<sp/>MK_MBUTTON.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="13" refid="ec__input_8h_1adf764cbdea00d65edcd07bb9953ad2b7a07045b203d6dce1abb0cad1854f1eb93" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__input_8h_1adf764cbdea00d65edcd07bb9953ad2b7a07045b203d6dce1abb0cad1854f1eb93" kindref="member">EC_MK_LBUTTON</ref><sp/>=<sp/>0x1,</highlight></codeline>
+<codeline lineno="14" refid="ec__input_8h_1adf764cbdea00d65edcd07bb9953ad2b7a827b02dd6a79deb426b1a7e28abfd901" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__input_8h_1adf764cbdea00d65edcd07bb9953ad2b7a827b02dd6a79deb426b1a7e28abfd901" kindref="member">EC_MK_RBUTTON</ref><sp/>=<sp/>0x2,</highlight></codeline>
+<codeline lineno="15" refid="ec__input_8h_1adf764cbdea00d65edcd07bb9953ad2b7af5fdac116c6cb136fecaad4b11d06990" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__input_8h_1adf764cbdea00d65edcd07bb9953ad2b7af5fdac116c6cb136fecaad4b11d06990" kindref="member">EC_MK_MBUTTON</ref><sp/>=<sp/>0x10,</highlight></codeline>
+<codeline lineno="16"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Get<sp/>the<sp/>mouse<sp/>cursor&apos;s<sp/>current<sp/>position<sp/>in<sp/>screen<sp/>coordinates.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="19" refid="ec__input_8h_1a680281790b78c3a4af568fd40f43d774" refkind="member"><highlight class="normal">IPoint2<sp/><ref refid="ec__input_8h_1a680281790b78c3a4af568fd40f43d774" kindref="member">ec_get_cursor_pos</ref>();</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Set<sp/>the<sp/>mouse<sp/>cursor&apos;s<sp/>current<sp/>position<sp/>in<sp/>screen<sp/>coordinates.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="22" refid="ec__input_8h_1a4be4f2550efdd5994e9c4423e18a7b9d" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="ec__input_8h_1a4be4f2550efdd5994e9c4423e18a7b9d" kindref="member">ec_set_cursor_pos</ref>(IPoint2<sp/>pos);</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Set<sp/>the<sp/>mouse<sp/>cursor&apos;s<sp/>visibility.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="25" refid="ec__input_8h_1ae2be09646f9b4e8c161f18f5a3543d04" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="ec__input_8h_1ae2be09646f9b4e8c161f18f5a3543d04" kindref="member">ec_show_cursor</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>show);</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Set<sp/>busy<sp/>(waiting)<sp/>cursor<sp/>for<sp/>the<sp/>application.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Returns<sp/>with<sp/>the<sp/>previous<sp/>busy<sp/>state.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="29" refid="ec__input_8h_1a4a92b1f0333c40702a29f150ed64dcb2" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="ec__input_8h_1a4a92b1f0333c40702a29f150ed64dcb2" kindref="member">ec_set_busy</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>busy);</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Checks<sp/>whether<sp/>the<sp/>busy<sp/>cursor<sp/>should<sp/>be<sp/>shown<sp/>by<sp/>the<sp/>application.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="32" refid="ec__input_8h_1adb42d990ef4de302fc0f2d333ecbff96" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="ec__input_8h_1adb42d990ef4de302fc0f2d333ecbff96" kindref="member">ec_get_busy</ref>();</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Checks<sp/>whether<sp/>the<sp/>specified<sp/>key<sp/>is<sp/>currently<sp/>pressed.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="35" refid="ec__input_8h_1a2c0168d645633801a13c172464665128" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="ec__input_8h_1a2c0168d645633801a13c172464665128" kindref="member">ec_is_key_down</ref>(ImGuiKey<sp/>key);</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight></codeline>
+<codeline lineno="37"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Checks<sp/>whether<sp/>the<sp/>Alt<sp/>key<sp/>is<sp/>currently<sp/>pressed.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="38" refid="ec__input_8h_1a592049336cc48683a38ed04dde326313" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="ec__input_8h_1a592049336cc48683a38ed04dde326313" kindref="member">ec_is_alt_key_down</ref>();</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight></codeline>
+<codeline lineno="40"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Checks<sp/>whether<sp/>the<sp/>Ctrl<sp/>key<sp/>is<sp/>currently<sp/>pressed.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="41" refid="ec__input_8h_1a501fc8c776d007bf057205ec7f8187d5" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="ec__input_8h_1a501fc8c776d007bf057205ec7f8187d5" kindref="member">ec_is_ctrl_key_down</ref>();</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"></highlight></codeline>
+<codeline lineno="43"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Checks<sp/>whether<sp/>the<sp/>Shift<sp/>key<sp/>is<sp/>currently<sp/>pressed.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="44" refid="ec__input_8h_1a714092370f69476024f09ade9ad9493b" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="ec__input_8h_1a714092370f69476024f09ade9ad9493b" kindref="member">ec_is_shift_key_down</ref>();</highlight></codeline>
+    </programlisting>
+    <location file="ec_input.h"/>
+  </compounddef>
+</doxygen>

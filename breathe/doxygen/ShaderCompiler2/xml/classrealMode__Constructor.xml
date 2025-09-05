@@ -1,0 +1,30 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classrealMode__Constructor" kind="class" language="C++" prot="public">
+    <compoundname>realMode_Constructor</compoundname>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classrealMode__Constructor_1aeb915d07f29733bbf8d3904bcc7f823d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>realMode_Constructor::realMode_Constructor</definition>
+        <argsstring>()</argsstring>
+        <name>realMode_Constructor</name>
+        <qualifiedname>realMode_Constructor::realMode_Constructor</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shLog.cpp" line="50" column="3" bodyfile="shLog.cpp" bodystart="50" bodyend="54"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="shLog.cpp" line="47" column="8" bodyfile="shLog.cpp" bodystart="48" bodyend="55"/>
+    <listofallmembers>
+      <member refid="classrealMode__Constructor_1aeb915d07f29733bbf8d3904bcc7f823d" prot="public" virt="non-virtual"><scope>realMode_Constructor</scope><name>realMode_Constructor</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

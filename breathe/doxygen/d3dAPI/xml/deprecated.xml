@@ -1,0 +1,72 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="deprecated" kind="page">
+    <compoundname>deprecated</compoundname>
+    <title>Deprecated List</title>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para><variablelist>
+<varlistentry><term>Member <ref refid="namespaced3d_1a22d902e70dc17470d49601388d84f6db" kindref="member">d3d::alias_tex</ref>  (<ref refid="classBaseTexture" kindref="compound">BaseTexture</ref> *baseTexture, TexImage32 *img, int w, int h, int flg, int levels, const char *stat_name=nullptr)</term></varlistentry>
+<listitem><para><anchor id="deprecated_1_deprecated000018"/>Always prefer higher-level APIs for saving memory (e.g. frame graph, ResizableTex). Avoid using this as much as possible, it will be removed in favor of using heaps via a frame graph system.  </para>
+</listitem>
+<varlistentry><term>Member <ref refid="namespaced3d_1adac2b4d45c26f003f9b9800ec1298a37" kindref="member">d3d::draw_up</ref>  (int type, int numprim, const void *ptr, int stride_bytes)</term></varlistentry>
+<listitem><para><anchor id="deprecated_1_deprecated000001"/>Remove this method. It uncontrollably allocates memory in driver. </para>
+</listitem>
+<varlistentry><term>Member <ref refid="namespaced3d_1a0aa110e2b523339984d628c2668f63ee" kindref="member">d3d::drawind_up</ref>  (int type, int minvert, int numvert, int numprim, const uint16_t *ind, const void *ptr, int stride_bytes)</term></varlistentry>
+<listitem><para><anchor id="deprecated_1_deprecated000002"/>Remove this method. It uncontrollably allocates memory in driver. </para>
+</listitem>
+<varlistentry><term>Member <ref refid="namespaced3d_1af9749109c1cffb149f8cbb717dbcfcdd" kindref="member">d3d::get_render_target</ref>  (<ref refid="structDriver3dRenderTarget" kindref="compound">Driver3dRenderTarget</ref> &amp;out_rt)</term></varlistentry>
+<listitem><para><anchor id="deprecated_1_deprecated000015"/>Don&apos;t use it since the method relies on a global state. </para>
+</listitem>
+<varlistentry><term>Member <ref refid="namespaced3d_1a195d3165dc9677bc46b7f4909514eeae" kindref="member">d3d::get_render_target_size</ref>  (int &amp;w, int &amp;h, <ref refid="classBaseTexture" kindref="compound">BaseTexture</ref> *rt_tex, uint8_t level=0)</term></varlistentry>
+<listitem><para><anchor id="deprecated_1_deprecated000017"/>If you need to use the method, it seems that you are doing something wrong. </para>
+</listitem>
+<varlistentry><term>Member <ref refid="namespaced3d_1a32ba0b93e0029c75fad830eb591e4453" kindref="member">d3d::get_target_size</ref>  (int &amp;w, int &amp;h)</term></varlistentry>
+<listitem><para><anchor id="deprecated_1_deprecated000016"/>If you need to use the method, it seems that you are doing something wrong. </para>
+</listitem>
+<varlistentry><term>Member <ref refid="namespaced3d_1ae994d9ffbc69f1173d41f9e895aff55b" kindref="member">d3d::getglobtm</ref>  (Matrix44 &amp;out)</term></varlistentry>
+<listitem><para><anchor id="deprecated_1_deprecated000008"/> </para>
+</listitem>
+<varlistentry><term>Member <ref refid="namespaced3d_1a0c08cfdf31217c419b2bdb8311dbc60b" kindref="member">d3d::getglobtm</ref>  (mat44f &amp;out)</term></varlistentry>
+<listitem><para><anchor id="deprecated_1_deprecated000009"/> </para>
+</listitem>
+<varlistentry><term>Member <ref refid="namespaced3d_1a84f7ca4a4b476bb7514cdbc3e5b006f8" kindref="member">d3d::getm2vtm</ref>  (TMatrix &amp;out_m2v)</term></varlistentry>
+<listitem><para><anchor id="deprecated_1_deprecated000007"/> </para>
+</listitem>
+<varlistentry><term>Member <ref refid="namespaced3d_1ae329e546e7635ff77e65b4c2ce39301b" kindref="member">d3d::getpersp</ref>  (<ref refid="structDriver3dPerspective" kindref="compound">Driver3dPerspective</ref> &amp;p)</term></varlistentry>
+<listitem><para><anchor id="deprecated_1_deprecated000010"/> </para>
+</listitem>
+<varlistentry><term>Member <ref refid="namespaced3d_1a5c501a5c13ce5250256aa427ee437ea7" kindref="member">d3d::gettm</ref>  (int which, mat44f &amp;out_tm)</term></varlistentry>
+<listitem><para><anchor id="deprecated_1_deprecated000005"/> </para>
+</listitem>
+<varlistentry><term>Member <ref refid="namespaced3d_1a753de7137efe4815dfe733f259939fcf" kindref="member">d3d::gettm</ref>  (int which, TMatrix &amp;out_tm)</term></varlistentry>
+<listitem><para><anchor id="deprecated_1_deprecated000004"/> </para>
+</listitem>
+<varlistentry><term>Member <ref refid="namespaced3d_1a65183d3b8ddd93cf9c90410150849725" kindref="member">d3d::gettm</ref>  (int which, Matrix44 *out_tm)</term></varlistentry>
+<listitem><para><anchor id="deprecated_1_deprecated000003"/> </para>
+</listitem>
+<varlistentry><term>Member <ref refid="namespaced3d_1a0adc48a974938b6555b007ed36af3005" kindref="member">d3d::gettm_cref</ref>  (int which)</term></varlistentry>
+<listitem><para><anchor id="deprecated_1_deprecated000006"/> </para>
+</listitem>
+<varlistentry><term>Member <ref refid="namespaced3d_1a5a66dc48dfc93a9b2f9e42019072bd5d" kindref="member">d3d::getview</ref>  (int &amp;x, int &amp;y, int &amp;w, int &amp;h, float &amp;minz, float &amp;maxz)</term></varlistentry>
+<listitem><para><anchor id="deprecated_1_deprecated000019"/>Don&apos;t use it since this method relies on the global state. </para>
+</listitem>
+<varlistentry><term>Member <ref refid="namespaced3d_1ad9a81f30be394f004099ba1950b7334e" kindref="member">d3d::set_render_target</ref>  (int rt_index, <ref refid="classBaseTexture" kindref="compound">BaseTexture</ref> *, int fc, uint8_t level)</term></varlistentry>
+<listitem><para><anchor id="deprecated_1_deprecated000011"/>Use <ref refid="namespaced3d_1aa77495ed9ff6ae729c089323ac72f4ce" kindref="member">set_render_target(RenderTarget depth, DepthAccess depth_access, dag::ConstSpan&lt;RenderTarget&gt; colors)</ref> instead. </para>
+</listitem>
+<varlistentry><term>Member <ref refid="namespaced3d_1a1e62ac21a8d9982ae14e04de9d92f22d" kindref="member">d3d::set_render_target</ref>  (int rt_index, <ref refid="classBaseTexture" kindref="compound">BaseTexture</ref> *, uint8_t level)</term></varlistentry>
+<listitem><para><anchor id="deprecated_1_deprecated000012"/>Use <ref refid="namespaced3d_1aa77495ed9ff6ae729c089323ac72f4ce" kindref="member">set_render_target(RenderTarget depth, DepthAccess depth_access, dag::ConstSpan&lt;RenderTarget&gt; colors)</ref> instead. </para>
+</listitem>
+<varlistentry><term>Member <ref refid="namespaced3d_1a0c9762a8b10d55794a731a8229addcea" kindref="member">d3d::set_render_target</ref>  (<ref refid="classBaseTexture" kindref="compound">BaseTexture</ref> *t, uint8_t level)</term></varlistentry>
+<listitem><para><anchor id="deprecated_1_deprecated000013"/>Use <ref refid="namespaced3d_1aa77495ed9ff6ae729c089323ac72f4ce" kindref="member">set_render_target(RenderTarget depth, DepthAccess depth_access, dag::ConstSpan&lt;RenderTarget&gt; colors)</ref> instead. </para>
+</listitem>
+<varlistentry><term>Member <ref refid="namespaced3d_1afd6679cb8c61d1b5b767b0e79dc45797" kindref="member">d3d::set_render_target</ref>  (<ref refid="classBaseTexture" kindref="compound">BaseTexture</ref> *t, int fc, uint8_t level)</term></varlistentry>
+<listitem><para><anchor id="deprecated_1_deprecated000014"/>Use <ref refid="namespaced3d_1aa77495ed9ff6ae729c089323ac72f4ce" kindref="member">set_render_target(RenderTarget depth, DepthAccess depth_access, dag::ConstSpan&lt;RenderTarget&gt; colors)</ref> instead.</para>
+</listitem>
+</variablelist>
+</para>
+    </detaileddescription>
+    <location file="deprecated"/>
+  </compounddef>
+</doxygen>

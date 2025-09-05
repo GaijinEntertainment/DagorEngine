@@ -1,0 +1,68 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structraytrace_1_1AccelerationStructureSizes" kind="struct" language="C++" prot="public">
+    <compoundname>raytrace::AccelerationStructureSizes</compoundname>
+    <includes refid="dag__drvRayTrace_8h" local="no">dag_drvRayTrace.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structraytrace_1_1AccelerationStructureSizes_1acdd0972877800ed1f1f0f99803845ddd" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::AccelerationStructureSizes::structureSizeInBytes</definition>
+        <argsstring></argsstring>
+        <name>structureSizeInBytes</name>
+        <qualifiedname>raytrace::AccelerationStructureSizes::structureSizeInBytes</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+<para>Size requirement for the structure. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="315" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="315" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1AccelerationStructureSizes_1ab7a6e754c46c38b04d9a33a21e3c5254" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::AccelerationStructureSizes::buildScratchBufferSizeInBytes</definition>
+        <argsstring></argsstring>
+        <name>buildScratchBufferSizeInBytes</name>
+        <qualifiedname>raytrace::AccelerationStructureSizes::buildScratchBufferSizeInBytes</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+<para>Scratch space required for re-build commands (non updates). </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="317" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="317" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1AccelerationStructureSizes_1ac0a91e7d00ab25beb864c5312b3ce12f" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::AccelerationStructureSizes::updateScratchBufferSizeInBytes</definition>
+        <argsstring></argsstring>
+        <name>updateScratchBufferSizeInBytes</name>
+        <qualifiedname>raytrace::AccelerationStructureSizes::updateScratchBufferSizeInBytes</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+<para>Scratch space required for update build commands, only valid when update support is requested. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="319" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="319" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Holds sizes to create, build and update acceleration structures. This may be calculated by calculate_acceleration_structure_sizes. </para>
+    </detaileddescription>
+    <location file="rayTrace/dag_drvRayTrace.h" line="312" column="1" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="313" bodyend="320"/>
+    <listofallmembers>
+      <member refid="structraytrace_1_1AccelerationStructureSizes_1ab7a6e754c46c38b04d9a33a21e3c5254" prot="public" virt="non-virtual"><scope>raytrace::AccelerationStructureSizes</scope><name>buildScratchBufferSizeInBytes</name></member>
+      <member refid="structraytrace_1_1AccelerationStructureSizes_1acdd0972877800ed1f1f0f99803845ddd" prot="public" virt="non-virtual"><scope>raytrace::AccelerationStructureSizes</scope><name>structureSizeInBytes</name></member>
+      <member refid="structraytrace_1_1AccelerationStructureSizes_1ac0a91e7d00ab25beb864c5312b3ce12f" prot="public" virt="non-virtual"><scope>raytrace::AccelerationStructureSizes</scope><name>updateScratchBufferSizeInBytes</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

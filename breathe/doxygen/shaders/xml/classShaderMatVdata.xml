@@ -1,0 +1,820 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classShaderMatVdata" kind="class" language="C++" prot="public">
+    <compoundname>ShaderMatVdata</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">DObject</basecompoundref>
+    <basecompoundref prot="public" virt="non-virtual">Sbuffer::IReloadData</basecompoundref>
+    <innerclass refid="structShaderMatVdata_1_1MatVdataSrc" prot="protected">ShaderMatVdata::MatVdataSrc</innerclass>
+    <innerclass refid="structShaderMatVdata_1_1ModelLoadStats" prot="public">ShaderMatVdata::ModelLoadStats</innerclass>
+    <innerclass refid="structShaderMatVdata_1_1VdataSrcRef" prot="protected">ShaderMatVdata::VdataSrcRef</innerclass>
+      <sectiondef kind="protected-static-attrib">
+      <memberdef kind="variable" id="classShaderMatVdata_1ab7f4f002e21526a8955411dbd8b408c6" prot="protected" static="yes" mutable="no">
+        <type><ref refid="structShaderMatVdata_1_1ModelLoadStats" kindref="compound">ModelLoadStats</ref></type>
+        <definition>ModelLoadStats ShaderMatVdata::modelLoadStats[1+2]</definition>
+        <argsstring>[1+2]</argsstring>
+        <name>modelLoadStats</name>
+        <qualifiedname>ShaderMatVdata::modelLoadStats</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="270" column="25" bodyfile="dag_shaderMesh.h" bodystart="270" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="classShaderMatVdata_1abe7f9abec7d72739883d9f1c11c1a082" prot="protected" static="no" mutable="no">
+        <type>dag::Span&lt; TEXTUREID &gt;</type>
+        <definition>dag::Span&lt;TEXTUREID&gt; ShaderMatVdata::tex</definition>
+        <argsstring></argsstring>
+        <name>tex</name>
+        <qualifiedname>ShaderMatVdata::tex</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="276" column="13" bodyfile="dag_shaderMesh.h" bodystart="276" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderMatVdata_1afb05f45afbb1375ed9c4b1fda7e15a1e" prot="protected" static="no" mutable="no">
+        <type>dag::Span&lt; <ref refid="classShaderMaterial" kindref="compound">ShaderMaterial</ref> * &gt;</type>
+        <definition>dag::Span&lt;ShaderMaterial *&gt; ShaderMatVdata::mat</definition>
+        <argsstring></argsstring>
+        <name>mat</name>
+        <qualifiedname>ShaderMatVdata::mat</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="277" column="13" bodyfile="dag_shaderMesh.h" bodystart="277" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderMatVdata_1a998ece7bd3019d5f0d065fbc434f5749" prot="protected" static="no" mutable="no">
+        <type>dag::Span&lt; <ref refid="classGlobalVertexData" kindref="compound">GlobalVertexData</ref> &gt;</type>
+        <definition>dag::Span&lt;GlobalVertexData&gt; ShaderMatVdata::vdata</definition>
+        <argsstring></argsstring>
+        <name>vdata</name>
+        <qualifiedname>ShaderMatVdata::vdata</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="278" column="13" bodyfile="dag_shaderMesh.h" bodystart="278" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderMatVdata_1a50f86ce72fc8bad296c90efccde78f39" prot="protected" static="no" mutable="no">
+        <type>struct <ref refid="structShaderMatVdata_1_1MatVdataSrc" kindref="compound">ShaderMatVdata::MatVdataSrc</ref></type>
+        <definition>struct ShaderMatVdata::MatVdataSrc ShaderMatVdata::matVdataSrc</definition>
+        <argsstring></argsstring>
+        <name>matVdataSrc</name>
+        <qualifiedname>ShaderMatVdata::matVdataSrc</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="316" column="15"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderMatVdata_1a23ddab2ca86fa5f7242873a86e874228" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderMatVdata::matVdataHdrSz</definition>
+        <argsstring></argsstring>
+        <name>matVdataHdrSz</name>
+        <qualifiedname>ShaderMatVdata::matVdataHdrSz</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="317" column="7" bodyfile="dag_shaderMesh.h" bodystart="317" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderMatVdata_1abd7f0157d24b46419eb2837addd2b297" prot="protected" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ShaderMatVdata::lodsAreSplit</definition>
+        <argsstring></argsstring>
+        <name>lodsAreSplit</name>
+        <qualifiedname>ShaderMatVdata::lodsAreSplit</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="318" column="12" bodyfile="dag_shaderMesh.h" bodystart="318" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderMatVdata_1afa458ca89b2ad89620e480b708094057" prot="protected" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ShaderMatVdata::modelType</definition>
+        <argsstring></argsstring>
+        <name>modelType</name>
+        <qualifiedname>ShaderMatVdata::modelType</qualifiedname>
+        <bitfield> 2</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="318" column="26" bodyfile="dag_shaderMesh.h" bodystart="318" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderMatVdata_1ab902275ae2d6a3e6b6eed193b479de53" prot="protected" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ShaderMatVdata::_resv</definition>
+        <argsstring></argsstring>
+        <name>_resv</name>
+        <qualifiedname>ShaderMatVdata::_resv</qualifiedname>
+        <bitfield> 21</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="318" column="37" bodyfile="dag_shaderMesh.h" bodystart="318" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderMatVdata_1a799aec5ed2b1201dee7443352a18b3ff" prot="protected" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ShaderMatVdata::vdataFullCount</definition>
+        <argsstring></argsstring>
+        <name>vdataFullCount</name>
+        <qualifiedname>ShaderMatVdata::vdataFullCount</qualifiedname>
+        <bitfield> 8</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="318" column="44" bodyfile="dag_shaderMesh.h" bodystart="318" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderMatVdata_1a657dbacb0d47faa305623779fedfff07" prot="protected" static="no" mutable="no">
+        <type>struct <ref refid="structShaderMatVdata_1_1VdataSrcRef" kindref="compound">ShaderMatVdata::VdataSrcRef</ref></type>
+        <definition>struct ShaderMatVdata::VdataSrcRef ShaderMatVdata::matVdataSrcRef</definition>
+        <argsstring></argsstring>
+        <name>matVdataSrcRef</name>
+        <qualifiedname>ShaderMatVdata::matVdataSrcRef</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="328" column="18"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="classShaderMatVdata_1a2bc847ade58fd596ca26f92b897250a6" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classShaderMatVdata" kindref="compound">ShaderMatVdata</ref> *</type>
+        <definition>static ShaderMatVdata * ShaderMatVdata::create</definition>
+        <argsstring>(int tex_num, int mat_num, int vdata_num, int mvhdr_sz, unsigned model_type=0)</argsstring>
+        <name>create</name>
+        <qualifiedname>ShaderMatVdata::create</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>tex_num</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>mat_num</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>vdata_num</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>mvhdr_sz</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>model_type</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="208" column="25"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMatVdata_1a2c93b9a491a797d4ae98510270277576" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classShaderMatVdata" kindref="compound">ShaderMatVdata</ref> *</type>
+        <definition>static ShaderMatVdata * ShaderMatVdata::make_tmp_copy</definition>
+        <argsstring>(ShaderMatVdata *smv, int apply_skip_first_lods_cnt=-1)</argsstring>
+        <name>make_tmp_copy</name>
+        <qualifiedname>ShaderMatVdata::make_tmp_copy</qualifiedname>
+        <param>
+          <type><ref refid="classShaderMatVdata" kindref="compound">ShaderMatVdata</ref> *</type>
+          <declname>smv</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>apply_skip_first_lods_cnt</declname>
+          <defval>-1</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="210" column="25"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMatVdata_1a4b0fdbd23c59645cf0851c783ee15d65" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void ShaderMatVdata::update_vdata_from_tmp_copy</definition>
+        <argsstring>(ShaderMatVdata *dest, ShaderMatVdata *src)</argsstring>
+        <name>update_vdata_from_tmp_copy</name>
+        <qualifiedname>ShaderMatVdata::update_vdata_from_tmp_copy</qualifiedname>
+        <param>
+          <type><ref refid="classShaderMatVdata" kindref="compound">ShaderMatVdata</ref> *</type>
+          <declname>dest</declname>
+        </param>
+        <param>
+          <type><ref refid="classShaderMatVdata" kindref="compound">ShaderMatVdata</ref> *</type>
+          <declname>src</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="211" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMatVdata_1a8315ebc1312bd9cf529973687ebb0b3f" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void ShaderMatVdata::closeTlsReloadCrd</definition>
+        <argsstring>()</argsstring>
+        <name>closeTlsReloadCrd</name>
+        <qualifiedname>ShaderMatVdata::closeTlsReloadCrd</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="249" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMatVdata_1ae4ad3f7e08f3ef4942426a41c5f0d83b" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>static int ShaderMatVdata::cmp_src_file_and_ofs</definition>
+        <argsstring>(const ShaderMatVdata &amp;a, const ShaderMatVdata &amp;b)</argsstring>
+        <name>cmp_src_file_and_ofs</name>
+        <qualifiedname>ShaderMatVdata::cmp_src_file_and_ofs</qualifiedname>
+        <param>
+          <type>const <ref refid="classShaderMatVdata" kindref="compound">ShaderMatVdata</ref> &amp;</type>
+          <declname>a</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classShaderMatVdata" kindref="compound">ShaderMatVdata</ref> &amp;</type>
+          <declname>b</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="251" column="14" bodyfile="dag_shaderMesh.h" bodystart="251" bodyend="255"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMatVdata_1a0acdc9f4ec645899bda1b8f2ce3fa257" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="structShaderMatVdata_1_1ModelLoadStats" kindref="compound">ModelLoadStats</ref> &amp;</type>
+        <definition>static const ModelLoadStats &amp; ShaderMatVdata::get_model_load_stats</definition>
+        <argsstring>(unsigned model_type)</argsstring>
+        <name>get_model_load_stats</name>
+        <qualifiedname>ShaderMatVdata::get_model_load_stats</qualifiedname>
+        <param>
+          <type>unsigned</type>
+          <declname>model_type</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="267" column="31" bodyfile="dag_shaderMesh.h" bodystart="267" bodyend="267"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classShaderMatVdata_1a6e20e2aec6b7353d4ee70038b00a1576" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int ShaderMatVdata::getMaterialCount</definition>
+        <argsstring>() const</argsstring>
+        <name>getMaterialCount</name>
+        <qualifiedname>ShaderMatVdata::getMaterialCount</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="213" column="14" bodyfile="dag_shaderMesh.h" bodystart="213" bodyend="213"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMatVdata_1a421ccfe7597acb24dc5a0fe0bacf953a" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classShaderMaterial" kindref="compound">ShaderMaterial</ref> *</type>
+        <definition>ShaderMaterial * ShaderMatVdata::getMaterial</definition>
+        <argsstring>(int idx) const</argsstring>
+        <name>getMaterial</name>
+        <qualifiedname>ShaderMatVdata::getMaterial</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>idx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="214" column="25" bodyfile="dag_shaderMesh.h" bodystart="214" bodyend="214"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMatVdata_1a8a5ca41c7cdcb527f436805a5c249b16" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int ShaderMatVdata::getGlobVDataCount</definition>
+        <argsstring>() const</argsstring>
+        <name>getGlobVDataCount</name>
+        <qualifiedname>ShaderMatVdata::getGlobVDataCount</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="215" column="14" bodyfile="dag_shaderMesh.h" bodystart="215" bodyend="215"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMatVdata_1a745e0b26de3e97364a9ec3516daead5c" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classGlobalVertexData" kindref="compound">GlobalVertexData</ref> *</type>
+        <definition>GlobalVertexData * ShaderMatVdata::getGlobVData</definition>
+        <argsstring>(int idx) const</argsstring>
+        <name>getGlobVData</name>
+        <qualifiedname>ShaderMatVdata::getGlobVData</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>idx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="216" column="27" bodyfile="dag_shaderMesh.h" bodystart="216" bodyend="216"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMatVdata_1a97383f64efd240f35e8ae23147bb79c8" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderMatVdata::setGlobVData</definition>
+        <argsstring>(dag::Span&lt; GlobalVertexData &gt; vd)</argsstring>
+        <name>setGlobVData</name>
+        <qualifiedname>ShaderMatVdata::setGlobVData</qualifiedname>
+        <param>
+          <type>dag::Span&lt; <ref refid="classGlobalVertexData" kindref="compound">GlobalVertexData</ref> &gt;</type>
+          <declname>vd</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="217" column="15" bodyfile="dag_shaderMesh.h" bodystart="217" bodyend="217"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMatVdata_1a0dca5981b52b80fdb81618751da4b7b1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderMatVdata::loadTexStr</definition>
+        <argsstring>(IGenLoad &amp;crd, bool sym_tex, const char *base_path=NULL)</argsstring>
+        <name>loadTexStr</name>
+        <qualifiedname>ShaderMatVdata::loadTexStr</qualifiedname>
+        <param>
+          <type>IGenLoad &amp;</type>
+          <declname>crd</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>sym_tex</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>base_path</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="219" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMatVdata_1ac97fb4c223290c776b0ded1503f194bc" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderMatVdata::loadTexIdx</definition>
+        <argsstring>(IGenLoad &amp;crd, dag::ConstSpan&lt; TEXTUREID &gt; texMap)</argsstring>
+        <name>loadTexIdx</name>
+        <qualifiedname>ShaderMatVdata::loadTexIdx</qualifiedname>
+        <param>
+          <type>IGenLoad &amp;</type>
+          <declname>crd</declname>
+        </param>
+        <param>
+          <type>dag::ConstSpan&lt; TEXTUREID &gt;</type>
+          <declname>texMap</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="220" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMatVdata_1aba4acb456abcadbb75f17e7a288e54cf" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderMatVdata::getTexIdx</definition>
+        <argsstring>(const ShaderMatVdata &amp;other_smvd)</argsstring>
+        <name>getTexIdx</name>
+        <qualifiedname>ShaderMatVdata::getTexIdx</qualifiedname>
+        <param>
+          <type>const <ref refid="classShaderMatVdata" kindref="compound">ShaderMatVdata</ref> &amp;</type>
+          <declname>other_smvd</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="221" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMatVdata_1a0b9464e0ce89a543427ce5f0f8fcc6b1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderMatVdata::makeTexAndMat</definition>
+        <argsstring>(const DataBlock &amp;texBlk, const DataBlock &amp;matBlk)</argsstring>
+        <name>makeTexAndMat</name>
+        <qualifiedname>ShaderMatVdata::makeTexAndMat</qualifiedname>
+        <param>
+          <type>const DataBlock &amp;</type>
+          <declname>texBlk</declname>
+        </param>
+        <param>
+          <type>const DataBlock &amp;</type>
+          <declname>matBlk</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="223" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMatVdata_1a7ecb9fda0f9c9476d04102c52c9060d4" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderMatVdata::loadMatVdata</definition>
+        <argsstring>(const char *name, IGenLoad &amp;crd, unsigned flags)</argsstring>
+        <name>loadMatVdata</name>
+        <qualifiedname>ShaderMatVdata::loadMatVdata</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>IGenLoad &amp;</type>
+          <declname>crd</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>flags</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="224" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMatVdata_1a3863477d94c288da843455df09361c46" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderMatVdata::preloadTex</definition>
+        <argsstring>()</argsstring>
+        <name>preloadTex</name>
+        <qualifiedname>ShaderMatVdata::preloadTex</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="226" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMatVdata_1ab6af24aacaae79b85aef6054e3a821db" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderMatVdata::finalizeMatRefs</definition>
+        <argsstring>()</argsstring>
+        <name>finalizeMatRefs</name>
+        <qualifiedname>ShaderMatVdata::finalizeMatRefs</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="227" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMatVdata_1a7282cdf3c5cd6d52ca7a5ef668fab1e6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderMatVdata::unpackBuffersTo</definition>
+        <argsstring>(dag::Span&lt; Sbuffer * &gt; buf, int *buf_byte_ofs, dag::Span&lt; int &gt; start_end_stride, Tab&lt; uint8_t &gt; &amp;buf_stor)</argsstring>
+        <name>unpackBuffersTo</name>
+        <qualifiedname>ShaderMatVdata::unpackBuffersTo</qualifiedname>
+        <param>
+          <type>dag::Span&lt; Sbuffer * &gt;</type>
+          <declname>buf</declname>
+        </param>
+        <param>
+          <type>int *</type>
+          <declname>buf_byte_ofs</declname>
+        </param>
+        <param>
+          <type>dag::Span&lt; int &gt;</type>
+          <declname>start_end_stride</declname>
+        </param>
+        <param>
+          <type>Tab&lt; uint8_t &gt; &amp;</type>
+          <declname>buf_stor</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="229" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMatVdata_1aec2ca8020ffe1400f4619fbbe7ea2b7f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderMatVdata::clearVdataSrc</definition>
+        <argsstring>()</argsstring>
+        <name>clearVdataSrc</name>
+        <qualifiedname>ShaderMatVdata::clearVdataSrc</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="230" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMatVdata_1acef3fca1ae796198c81c3608f95f4020" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderMatVdata::isReloadable</definition>
+        <argsstring>() const</argsstring>
+        <name>isReloadable</name>
+        <qualifiedname>ShaderMatVdata::isReloadable</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="231" column="8" bodyfile="dag_shaderMesh.h" bodystart="231" bodyend="231"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMatVdata_1a50a6488443b94a61ff54c1f2e025060b" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderMatVdata::areLodsSplit</definition>
+        <argsstring>() const</argsstring>
+        <name>areLodsSplit</name>
+        <qualifiedname>ShaderMatVdata::areLodsSplit</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="233" column="8" bodyfile="dag_shaderMesh.h" bodystart="233" bodyend="233"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMatVdata_1a99b59f595be084c74c1beaea60c05794" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderMatVdata::setLodsAreSplit</definition>
+        <argsstring>()</argsstring>
+        <name>setLodsAreSplit</name>
+        <qualifiedname>ShaderMatVdata::setLodsAreSplit</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="234" column="8" bodyfile="dag_shaderMesh.h" bodystart="234" bodyend="234"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMatVdata_1a7b2a5f3a0187679797b83495d4361e77" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderMatVdata::applyFirstLodsSkippedCount</definition>
+        <argsstring>(int skip_first_lods_cnt)</argsstring>
+        <name>applyFirstLodsSkippedCount</name>
+        <qualifiedname>ShaderMatVdata::applyFirstLodsSkippedCount</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>skip_first_lods_cnt</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="235" column="8" bodyfile="dag_shaderMesh.h" bodystart="235" bodyend="247"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMatVdata_1a8f170f61beec4a20c51b21f06bd86cbc" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderMatVdata::reloadD3dRes</definition>
+        <argsstring>(Sbuffer *) override</argsstring>
+        <name>reloadD3dRes</name>
+        <qualifiedname>ShaderMatVdata::reloadD3dRes</qualifiedname>
+        <param>
+          <type>Sbuffer *</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="258" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMatVdata_1a819d93a85fdecb99c8f5da86953c92ca" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderMatVdata::destroySelf</definition>
+        <argsstring>() override</argsstring>
+        <name>destroySelf</name>
+        <qualifiedname>ShaderMatVdata::destroySelf</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="259" column="8" bodyfile="dag_shaderMesh.h" bodystart="259" bodyend="259"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-func">
+      <memberdef kind="function" id="classShaderMatVdata_1ab09b1f0dab667eda9960a3a45f0310ae" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ShaderMatVdata::ShaderMatVdata</definition>
+        <argsstring>(int tex_num, int mat_num, int vdata_num, int mvhdr_sz, unsigned model_type)</argsstring>
+        <name>ShaderMatVdata</name>
+        <qualifiedname>ShaderMatVdata::ShaderMatVdata</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>tex_num</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>mat_num</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>vdata_num</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>mvhdr_sz</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>model_type</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="273" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderMatVdata_1a94f4da3d6ee97338546e5eb71e658104" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ShaderMatVdata::~ShaderMatVdata</definition>
+        <argsstring>()</argsstring>
+        <name>~ShaderMatVdata</name>
+        <qualifiedname>ShaderMatVdata::~ShaderMatVdata</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="274" column="3"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>DObject</label>
+      </node>
+      <node id="3">
+        <label>Sbuffer::IReloadData</label>
+      </node>
+      <node id="1">
+        <label>ShaderMatVdata</label>
+        <link refid="classShaderMatVdata"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>DObject</label>
+      </node>
+      <node id="3">
+        <label>Sbuffer::IReloadData</label>
+      </node>
+      <node id="1">
+        <label>ShaderMatVdata</label>
+        <link refid="classShaderMatVdata"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+        <childnode refid="4" relation="usage">
+          <edgelabel>modelLoadStats</edgelabel>
+        </childnode>
+        <childnode refid="5" relation="usage">
+          <edgelabel>matVdataSrc</edgelabel>
+        </childnode>
+        <childnode refid="6" relation="usage">
+          <edgelabel>matVdataSrcRef</edgelabel>
+        </childnode>
+      </node>
+      <node id="5">
+        <label>ShaderMatVdata::MatVdataSrc</label>
+        <link refid="structShaderMatVdata_1_1MatVdataSrc"/>
+      </node>
+      <node id="4">
+        <label>ShaderMatVdata::ModelLoadStats</label>
+        <link refid="structShaderMatVdata_1_1ModelLoadStats"/>
+      </node>
+      <node id="6">
+        <label>ShaderMatVdata::VdataSrcRef</label>
+        <link refid="structShaderMatVdata_1_1VdataSrcRef"/>
+      </node>
+    </collaborationgraph>
+    <location file="dag_shaderMesh.h" line="203" column="1" bodyfile="dag_shaderMesh.h" bodystart="204" bodyend="332"/>
+    <listofallmembers>
+      <member refid="classShaderMatVdata_1ab902275ae2d6a3e6b6eed193b479de53" prot="protected" virt="non-virtual"><scope>ShaderMatVdata</scope><name>_resv</name></member>
+      <member refid="classShaderMatVdata_1a7b2a5f3a0187679797b83495d4361e77" prot="public" virt="non-virtual"><scope>ShaderMatVdata</scope><name>applyFirstLodsSkippedCount</name></member>
+      <member refid="classShaderMatVdata_1a50a6488443b94a61ff54c1f2e025060b" prot="public" virt="non-virtual"><scope>ShaderMatVdata</scope><name>areLodsSplit</name></member>
+      <member refid="classShaderMatVdata_1aec2ca8020ffe1400f4619fbbe7ea2b7f" prot="public" virt="non-virtual"><scope>ShaderMatVdata</scope><name>clearVdataSrc</name></member>
+      <member refid="classShaderMatVdata_1a8315ebc1312bd9cf529973687ebb0b3f" prot="public" virt="non-virtual"><scope>ShaderMatVdata</scope><name>closeTlsReloadCrd</name></member>
+      <member refid="classShaderMatVdata_1ae4ad3f7e08f3ef4942426a41c5f0d83b" prot="public" virt="non-virtual"><scope>ShaderMatVdata</scope><name>cmp_src_file_and_ofs</name></member>
+      <member refid="classShaderMatVdata_1a2bc847ade58fd596ca26f92b897250a6" prot="public" virt="non-virtual"><scope>ShaderMatVdata</scope><name>create</name></member>
+      <member refid="classShaderMatVdata_1a819d93a85fdecb99c8f5da86953c92ca" prot="public" virt="non-virtual"><scope>ShaderMatVdata</scope><name>destroySelf</name></member>
+      <member refid="classShaderMatVdata_1ab6af24aacaae79b85aef6054e3a821db" prot="public" virt="non-virtual"><scope>ShaderMatVdata</scope><name>finalizeMatRefs</name></member>
+      <member refid="classShaderMatVdata_1a0acdc9f4ec645899bda1b8f2ce3fa257" prot="public" virt="non-virtual"><scope>ShaderMatVdata</scope><name>get_model_load_stats</name></member>
+      <member refid="classShaderMatVdata_1a745e0b26de3e97364a9ec3516daead5c" prot="public" virt="non-virtual"><scope>ShaderMatVdata</scope><name>getGlobVData</name></member>
+      <member refid="classShaderMatVdata_1a8a5ca41c7cdcb527f436805a5c249b16" prot="public" virt="non-virtual"><scope>ShaderMatVdata</scope><name>getGlobVDataCount</name></member>
+      <member refid="classShaderMatVdata_1a421ccfe7597acb24dc5a0fe0bacf953a" prot="public" virt="non-virtual"><scope>ShaderMatVdata</scope><name>getMaterial</name></member>
+      <member refid="classShaderMatVdata_1a6e20e2aec6b7353d4ee70038b00a1576" prot="public" virt="non-virtual"><scope>ShaderMatVdata</scope><name>getMaterialCount</name></member>
+      <member refid="classShaderMatVdata_1aba4acb456abcadbb75f17e7a288e54cf" prot="public" virt="non-virtual"><scope>ShaderMatVdata</scope><name>getTexIdx</name></member>
+      <member refid="classShaderMatVdata_1acef3fca1ae796198c81c3608f95f4020" prot="public" virt="non-virtual"><scope>ShaderMatVdata</scope><name>isReloadable</name></member>
+      <member refid="classShaderMatVdata_1a7ecb9fda0f9c9476d04102c52c9060d4" prot="public" virt="non-virtual"><scope>ShaderMatVdata</scope><name>loadMatVdata</name></member>
+      <member refid="classShaderMatVdata_1ac97fb4c223290c776b0ded1503f194bc" prot="public" virt="non-virtual"><scope>ShaderMatVdata</scope><name>loadTexIdx</name></member>
+      <member refid="classShaderMatVdata_1a0dca5981b52b80fdb81618751da4b7b1" prot="public" virt="non-virtual"><scope>ShaderMatVdata</scope><name>loadTexStr</name></member>
+      <member refid="classShaderMatVdata_1abd7f0157d24b46419eb2837addd2b297" prot="protected" virt="non-virtual"><scope>ShaderMatVdata</scope><name>lodsAreSplit</name></member>
+      <member refid="classShaderMatVdata_1a2c93b9a491a797d4ae98510270277576" prot="public" virt="non-virtual"><scope>ShaderMatVdata</scope><name>make_tmp_copy</name></member>
+      <member refid="classShaderMatVdata_1a0b9464e0ce89a543427ce5f0f8fcc6b1" prot="public" virt="non-virtual"><scope>ShaderMatVdata</scope><name>makeTexAndMat</name></member>
+      <member refid="classShaderMatVdata_1afb05f45afbb1375ed9c4b1fda7e15a1e" prot="protected" virt="non-virtual"><scope>ShaderMatVdata</scope><name>mat</name></member>
+      <member refid="classShaderMatVdata_1a23ddab2ca86fa5f7242873a86e874228" prot="protected" virt="non-virtual"><scope>ShaderMatVdata</scope><name>matVdataHdrSz</name></member>
+      <member refid="classShaderMatVdata_1a50f86ce72fc8bad296c90efccde78f39" prot="protected" virt="non-virtual"><scope>ShaderMatVdata</scope><name>matVdataSrc</name></member>
+      <member refid="classShaderMatVdata_1a657dbacb0d47faa305623779fedfff07" prot="protected" virt="non-virtual"><scope>ShaderMatVdata</scope><name>matVdataSrcRef</name></member>
+      <member refid="classShaderMatVdata_1ab7f4f002e21526a8955411dbd8b408c6" prot="protected" virt="non-virtual"><scope>ShaderMatVdata</scope><name>modelLoadStats</name></member>
+      <member refid="classShaderMatVdata_1afa458ca89b2ad89620e480b708094057" prot="protected" virt="non-virtual"><scope>ShaderMatVdata</scope><name>modelType</name></member>
+      <member refid="classShaderMatVdata_1a3863477d94c288da843455df09361c46" prot="public" virt="non-virtual"><scope>ShaderMatVdata</scope><name>preloadTex</name></member>
+      <member refid="classShaderMatVdata_1a8f170f61beec4a20c51b21f06bd86cbc" prot="public" virt="non-virtual"><scope>ShaderMatVdata</scope><name>reloadD3dRes</name></member>
+      <member refid="classShaderMatVdata_1a97383f64efd240f35e8ae23147bb79c8" prot="public" virt="non-virtual"><scope>ShaderMatVdata</scope><name>setGlobVData</name></member>
+      <member refid="classShaderMatVdata_1a99b59f595be084c74c1beaea60c05794" prot="public" virt="non-virtual"><scope>ShaderMatVdata</scope><name>setLodsAreSplit</name></member>
+      <member refid="classShaderMatVdata_1ab09b1f0dab667eda9960a3a45f0310ae" prot="protected" virt="non-virtual"><scope>ShaderMatVdata</scope><name>ShaderMatVdata</name></member>
+      <member refid="classShaderMatVdata_1abe7f9abec7d72739883d9f1c11c1a082" prot="protected" virt="non-virtual"><scope>ShaderMatVdata</scope><name>tex</name></member>
+      <member refid="classShaderMatVdata_1a7282cdf3c5cd6d52ca7a5ef668fab1e6" prot="public" virt="non-virtual"><scope>ShaderMatVdata</scope><name>unpackBuffersTo</name></member>
+      <member refid="classShaderMatVdata_1a4b0fdbd23c59645cf0851c783ee15d65" prot="public" virt="non-virtual"><scope>ShaderMatVdata</scope><name>update_vdata_from_tmp_copy</name></member>
+      <member refid="classShaderMatVdata_1a998ece7bd3019d5f0d065fbc434f5749" prot="protected" virt="non-virtual"><scope>ShaderMatVdata</scope><name>vdata</name></member>
+      <member refid="classShaderMatVdata_1a799aec5ed2b1201dee7443352a18b3ff" prot="protected" virt="non-virtual"><scope>ShaderMatVdata</scope><name>vdataFullCount</name></member>
+      <member refid="classShaderMatVdata_1a94f4da3d6ee97338546e5eb71e658104" prot="protected" virt="non-virtual"><scope>ShaderMatVdata</scope><name>~ShaderMatVdata</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

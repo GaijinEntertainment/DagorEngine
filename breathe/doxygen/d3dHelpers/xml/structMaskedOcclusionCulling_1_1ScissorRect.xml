@@ -1,0 +1,133 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structMaskedOcclusionCulling_1_1ScissorRect" kind="struct" language="C++" prot="public">
+    <compoundname>MaskedOcclusionCulling::ScissorRect</compoundname>
+    <includes refid="dag__maskedOcclusionCulling_8h" local="no">dag_maskedOcclusionCulling.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structMaskedOcclusionCulling_1_1ScissorRect_1a62dfc7341a5e5955382ddf7d7238e05d" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int MaskedOcclusionCulling::ScissorRect::mMinX</definition>
+        <argsstring></argsstring>
+        <name>mMinX</name>
+        <qualifiedname>MaskedOcclusionCulling::ScissorRect::mMinX</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Screen space X coordinate for left side of scissor rect, inclusive and must be a multiple of 32 </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_maskedOcclusionCulling.h" line="181" column="9" bodyfile="dag_maskedOcclusionCulling.h" bodystart="181" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structMaskedOcclusionCulling_1_1ScissorRect_1a71f81e24acc64800c804e756f3d76df6" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int MaskedOcclusionCulling::ScissorRect::mMinY</definition>
+        <argsstring></argsstring>
+        <name>mMinY</name>
+        <qualifiedname>MaskedOcclusionCulling::ScissorRect::mMinY</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Screen space Y coordinate for bottom side of scissor rect, inclusive and must be a multiple of 8 </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_maskedOcclusionCulling.h" line="183" column="9" bodyfile="dag_maskedOcclusionCulling.h" bodystart="183" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structMaskedOcclusionCulling_1_1ScissorRect_1a47da6c2e21a14a6bcd5e09c78a5a49ab" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int MaskedOcclusionCulling::ScissorRect::mMaxX</definition>
+        <argsstring></argsstring>
+        <name>mMaxX</name>
+        <qualifiedname>MaskedOcclusionCulling::ScissorRect::mMaxX</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Screen space X coordinate for right side of scissor rect, <bold>non</bold> inclusive and must be a multiple of 32 </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_maskedOcclusionCulling.h" line="185" column="9" bodyfile="dag_maskedOcclusionCulling.h" bodystart="185" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structMaskedOcclusionCulling_1_1ScissorRect_1aa031c4359ba5be1f89c0b0203f19cb2b" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int MaskedOcclusionCulling::ScissorRect::mMaxY</definition>
+        <argsstring></argsstring>
+        <name>mMaxY</name>
+        <qualifiedname>MaskedOcclusionCulling::ScissorRect::mMaxY</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Screen space Y coordinate for top side of scissor rect, <bold>non</bold> inclusive and must be a multiple of 8 </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_maskedOcclusionCulling.h" line="187" column="9" bodyfile="dag_maskedOcclusionCulling.h" bodystart="187" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structMaskedOcclusionCulling_1_1ScissorRect_1a8a609403ef7591fe8a0306d13727a84d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>MaskedOcclusionCulling::ScissorRect::ScissorRect</definition>
+        <argsstring>()</argsstring>
+        <name>ScissorRect</name>
+        <qualifiedname>MaskedOcclusionCulling::ScissorRect::ScissorRect</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_maskedOcclusionCulling.h" line="178" column="5" bodyfile="dag_maskedOcclusionCulling.h" bodystart="178" bodyend="178"/>
+      </memberdef>
+      <memberdef kind="function" id="structMaskedOcclusionCulling_1_1ScissorRect_1a9ad8547c33bea770739779650388bbff" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>MaskedOcclusionCulling::ScissorRect::ScissorRect</definition>
+        <argsstring>(int minX, int minY, int maxX, int maxY)</argsstring>
+        <name>ScissorRect</name>
+        <qualifiedname>MaskedOcclusionCulling::ScissorRect::ScissorRect</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>minX</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>minY</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>maxX</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>maxY</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_maskedOcclusionCulling.h" line="179" column="5" bodyfile="dag_maskedOcclusionCulling.h" bodystart="179" bodyend="179"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Used to control scissoring during rasterization. Note that we only provide coarse scissor support. The scissor box x coordinates must be a multiple of 32, and the y coordinates a multiple of 8. Scissoring is mainly meant as a means of enabling binning (sort middle) rasterizers in case application developers want to use that approach for multithreading. </para>
+    </detaileddescription>
+    <location file="dag_maskedOcclusionCulling.h" line="176" column="3" bodyfile="dag_maskedOcclusionCulling.h" bodystart="177" bodyend="189"/>
+    <listofallmembers>
+      <member refid="structMaskedOcclusionCulling_1_1ScissorRect_1a47da6c2e21a14a6bcd5e09c78a5a49ab" prot="public" virt="non-virtual"><scope>MaskedOcclusionCulling::ScissorRect</scope><name>mMaxX</name></member>
+      <member refid="structMaskedOcclusionCulling_1_1ScissorRect_1aa031c4359ba5be1f89c0b0203f19cb2b" prot="public" virt="non-virtual"><scope>MaskedOcclusionCulling::ScissorRect</scope><name>mMaxY</name></member>
+      <member refid="structMaskedOcclusionCulling_1_1ScissorRect_1a62dfc7341a5e5955382ddf7d7238e05d" prot="public" virt="non-virtual"><scope>MaskedOcclusionCulling::ScissorRect</scope><name>mMinX</name></member>
+      <member refid="structMaskedOcclusionCulling_1_1ScissorRect_1a71f81e24acc64800c804e756f3d76df6" prot="public" virt="non-virtual"><scope>MaskedOcclusionCulling::ScissorRect</scope><name>mMinY</name></member>
+      <member refid="structMaskedOcclusionCulling_1_1ScissorRect_1a8a609403ef7591fe8a0306d13727a84d" prot="public" virt="non-virtual"><scope>MaskedOcclusionCulling::ScissorRect</scope><name>ScissorRect</name></member>
+      <member refid="structMaskedOcclusionCulling_1_1ScissorRect_1a9ad8547c33bea770739779650388bbff" prot="public" virt="non-virtual"><scope>MaskedOcclusionCulling::ScissorRect</scope><name>ScissorRect</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

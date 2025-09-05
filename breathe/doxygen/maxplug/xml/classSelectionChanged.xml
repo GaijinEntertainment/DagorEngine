@@ -1,0 +1,172 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classSelectionChanged" kind="class" language="C++" prot="public">
+    <compoundname>SelectionChanged</compoundname>
+    <basecompoundref refid="classENodeCB" prot="public" virt="non-virtual">ENodeCB</basecompoundref>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classSelectionChanged_1abcb820469e81db66a119ca1eccc326d5" prot="private" static="no" mutable="no">
+        <type>Tab&lt; bool &gt; &amp;</type>
+        <definition>Tab&lt;bool&gt;&amp; SelectionChanged::selectedNodes</definition>
+        <argsstring></argsstring>
+        <name>selectedNodes</name>
+        <qualifiedname>SelectionChanged::selectedNodes</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="objectPropertiesEditor.cpp" line="203" column="7" bodyfile="objectPropertiesEditor.cpp" bodystart="203" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classSelectionChanged_1a44c6409ef8fcf9dbba56fcc3d30c538f" prot="private" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool SelectionChanged::needUpdate</definition>
+        <argsstring></argsstring>
+        <name>needUpdate</name>
+        <qualifiedname>SelectionChanged::needUpdate</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="objectPropertiesEditor.cpp" line="204" column="8" bodyfile="objectPropertiesEditor.cpp" bodystart="204" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classSelectionChanged_1ae8a5a8ee1367a3947daccb1c0c4c9e05" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int SelectionChanged::i</definition>
+        <argsstring></argsstring>
+        <name>i</name>
+        <qualifiedname>SelectionChanged::i</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="objectPropertiesEditor.cpp" line="205" column="7" bodyfile="objectPropertiesEditor.cpp" bodystart="205" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classSelectionChanged_1a43442d52f61b0c7ba9ddc61e08ddb8cf" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>SelectionChanged::SelectionChanged</definition>
+        <argsstring>(Tab&lt; bool &gt; &amp;selected_nodes)</argsstring>
+        <name>SelectionChanged</name>
+        <qualifiedname>SelectionChanged::SelectionChanged</qualifiedname>
+        <param>
+          <type>Tab&lt; bool &gt; &amp;</type>
+          <declname>selected_nodes</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="objectPropertiesEditor.cpp" line="174" column="3" bodyfile="objectPropertiesEditor.cpp" bodystart="174" bodyend="174"/>
+      </memberdef>
+      <memberdef kind="function" id="classSelectionChanged_1ad6df13cbf44d6155e884dc94f0f6f67f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>SelectionChanged::~SelectionChanged</definition>
+        <argsstring>() override</argsstring>
+        <name>~SelectionChanged</name>
+        <qualifiedname>SelectionChanged::~SelectionChanged</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="objectPropertiesEditor.cpp" line="175" column="3" bodyfile="objectPropertiesEditor.cpp" bodystart="175" bodyend="175"/>
+      </memberdef>
+      <memberdef kind="function" id="classSelectionChanged_1a2d2aee3ce7da755b387a3abbf97df946" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool SelectionChanged::need</definition>
+        <argsstring>()</argsstring>
+        <name>need</name>
+        <qualifiedname>SelectionChanged::need</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="objectPropertiesEditor.cpp" line="176" column="8" bodyfile="objectPropertiesEditor.cpp" bodystart="176" bodyend="176"/>
+      </memberdef>
+      <memberdef kind="function" id="classSelectionChanged_1a313785a7a7d86c15fa7030dc7bba119e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void SelectionChanged::resize</definition>
+        <argsstring>()</argsstring>
+        <name>resize</name>
+        <qualifiedname>SelectionChanged::resize</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="objectPropertiesEditor.cpp" line="177" column="8" bodyfile="objectPropertiesEditor.cpp" bodystart="177" bodyend="184"/>
+      </memberdef>
+      <memberdef kind="function" id="classSelectionChanged_1a675edd26b192f6d24e28da90495f209a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>int</type>
+        <definition>int SelectionChanged::proc</definition>
+        <argsstring>(INode *n) override</argsstring>
+        <name>proc</name>
+        <qualifiedname>SelectionChanged::proc</qualifiedname>
+        <reimplements refid="classENodeCB_1ad287b227ea11aa5f7d22d4f768193c17">proc</reimplements>
+        <param>
+          <type>INode *</type>
+          <declname>n</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="objectPropertiesEditor.cpp" line="185" column="7" bodyfile="objectPropertiesEditor.cpp" bodystart="185" bodyend="200"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>ENodeCB</label>
+        <link refid="classENodeCB"/>
+      </node>
+      <node id="1">
+        <label>SelectionChanged</label>
+        <link refid="classSelectionChanged"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>ENodeCB</label>
+        <link refid="classENodeCB"/>
+      </node>
+      <node id="1">
+        <label>SelectionChanged</label>
+        <link refid="classSelectionChanged"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="objectPropertiesEditor.cpp" line="171" column="1" bodyfile="objectPropertiesEditor.cpp" bodystart="172" bodyend="206"/>
+    <listofallmembers>
+      <member refid="classSelectionChanged_1ae8a5a8ee1367a3947daccb1c0c4c9e05" prot="private" virt="non-virtual"><scope>SelectionChanged</scope><name>i</name></member>
+      <member refid="classSelectionChanged_1a2d2aee3ce7da755b387a3abbf97df946" prot="public" virt="non-virtual"><scope>SelectionChanged</scope><name>need</name></member>
+      <member refid="classSelectionChanged_1a44c6409ef8fcf9dbba56fcc3d30c538f" prot="private" virt="non-virtual"><scope>SelectionChanged</scope><name>needUpdate</name></member>
+      <member refid="classSelectionChanged_1a675edd26b192f6d24e28da90495f209a" prot="public" virt="virtual"><scope>SelectionChanged</scope><name>proc</name></member>
+      <member refid="classSelectionChanged_1a313785a7a7d86c15fa7030dc7bba119e" prot="public" virt="non-virtual"><scope>SelectionChanged</scope><name>resize</name></member>
+      <member refid="classSelectionChanged_1abcb820469e81db66a119ca1eccc326d5" prot="private" virt="non-virtual"><scope>SelectionChanged</scope><name>selectedNodes</name></member>
+      <member refid="classSelectionChanged_1a43442d52f61b0c7ba9ddc61e08ddb8cf" prot="public" virt="non-virtual"><scope>SelectionChanged</scope><name>SelectionChanged</name></member>
+      <member refid="classENodeCB_1afb82335a7b99836b8661a70665c9f5e9" prot="public" virt="virtual"><scope>SelectionChanged</scope><name>~ENodeCB</name></member>
+      <member refid="classSelectionChanged_1ad6df13cbf44d6155e884dc94f0f6f67f" prot="public" virt="non-virtual"><scope>SelectionChanged</scope><name>~SelectionChanged</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

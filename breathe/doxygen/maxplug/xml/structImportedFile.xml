@@ -1,0 +1,104 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structImportedFile" kind="struct" language="C++" prot="public">
+    <compoundname>ImportedFile</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structImportedFile_1a4d2d29f48fd7a5609dd590ae9d7fe0a3" prot="public" static="no" mutable="no">
+        <type>std::wstring</type>
+        <definition>std::wstring ImportedFile::fullpath</definition>
+        <argsstring></argsstring>
+        <name>fullpath</name>
+        <qualifiedname>ImportedFile::fullpath</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="320" column="16" bodyfile="dagimp.cpp" bodystart="320" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structImportedFile_1a517bdf5f4b421874b9f3a0faff1f3396" prot="public" static="no" mutable="no">
+        <type>std::wstring</type>
+        <definition>std::wstring ImportedFile::basename</definition>
+        <argsstring></argsstring>
+        <name>basename</name>
+        <qualifiedname>ImportedFile::basename</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="321" column="16" bodyfile="dagimp.cpp" bodystart="321" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structImportedFile_1a31a96ec3ea1294b31c46bd5a3bdf2464" prot="public" static="no" const="no" explicit="yes" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ImportedFile::ImportedFile</definition>
+        <argsstring>(const TCHAR *fname)</argsstring>
+        <name>ImportedFile</name>
+        <qualifiedname>ImportedFile::ImportedFile</qualifiedname>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>fname</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="323" column="12" bodyfile="dagimp.cpp" bodystart="323" bodyend="323"/>
+      </memberdef>
+      <memberdef kind="function" id="structImportedFile_1a9c2c99b5b688be7fbe28776051ffdfa4" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ImportedFile::operator==</definition>
+        <argsstring>(const ImportedFile &amp;other) const</argsstring>
+        <name>operator==</name>
+        <qualifiedname>ImportedFile::operator==</qualifiedname>
+        <param>
+          <type>const <ref refid="structImportedFile" kindref="compound">ImportedFile</ref> &amp;</type>
+          <declname>other</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="324" column="8" bodyfile="dagimp.cpp" bodystart="324" bodyend="324"/>
+      </memberdef>
+      <memberdef kind="function" id="structImportedFile_1a09595d53f87ec9e467a5ec71ba53e13e" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ImportedFile::equalBasename</definition>
+        <argsstring>(const TSTR &amp;bname) const</argsstring>
+        <name>equalBasename</name>
+        <qualifiedname>ImportedFile::equalBasename</qualifiedname>
+        <param>
+          <type>const TSTR &amp;</type>
+          <declname>bname</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="325" column="8" bodyfile="dagimp.cpp" bodystart="325" bodyend="325"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dagimp.cpp" line="318" column="1" bodyfile="dagimp.cpp" bodystart="319" bodyend="326"/>
+    <listofallmembers>
+      <member refid="structImportedFile_1a517bdf5f4b421874b9f3a0faff1f3396" prot="public" virt="non-virtual"><scope>ImportedFile</scope><name>basename</name></member>
+      <member refid="structImportedFile_1a09595d53f87ec9e467a5ec71ba53e13e" prot="public" virt="non-virtual"><scope>ImportedFile</scope><name>equalBasename</name></member>
+      <member refid="structImportedFile_1a4d2d29f48fd7a5609dd590ae9d7fe0a3" prot="public" virt="non-virtual"><scope>ImportedFile</scope><name>fullpath</name></member>
+      <member refid="structImportedFile_1a31a96ec3ea1294b31c46bd5a3bdf2464" prot="public" virt="non-virtual"><scope>ImportedFile</scope><name>ImportedFile</name></member>
+      <member refid="structImportedFile_1a9c2c99b5b688be7fbe28776051ffdfa4" prot="public" virt="non-virtual"><scope>ImportedFile</scope><name>operator==</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

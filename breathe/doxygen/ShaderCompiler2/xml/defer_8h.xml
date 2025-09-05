@@ -1,0 +1,94 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="defer_8h" kind="file" language="C++">
+    <compoundname>defer.h</compoundname>
+    <includes local="no">util/dag_preprocessor.h</includes>
+    <includedby refid="cppStcode_8cpp" local="yes">cppStcode.cpp</includedby>
+    <includedby refid="processes_8cpp" local="yes">processes.cpp</includedby>
+    <includedby refid="variantSemantic_8cpp" local="yes">variantSemantic.cpp</includedby>
+    <incdepgraph>
+      <node id="1">
+        <label>defer.h</label>
+        <link refid="defer_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>util/dag_preprocessor.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="2">
+        <label>cppStcode.cpp</label>
+        <link refid="cppStcode_8cpp"/>
+      </node>
+      <node id="1">
+        <label>defer.h</label>
+        <link refid="defer_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>processes.cpp</label>
+        <link refid="processes_8cpp"/>
+      </node>
+      <node id="4">
+        <label>variantSemantic.cpp</label>
+        <link refid="variantSemantic_8cpp"/>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="classdefer_1_1detail_1_1Defer" prot="public">defer::detail::Defer</innerclass>
+    <innernamespace refid="namespacedefer">defer</innernamespace>
+    <innernamespace refid="namespacedefer_1_1detail">defer::detail</innernamespace>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="defer_8h_1afa2f02cf7da6a0b58c4f01e20ccd1384" prot="public" static="no">
+        <name>DEFER</name>
+        <param><defname>func_</defname></param>
+        <initializer><ref refid="classdefer_1_1detail_1_1Defer" kindref="compound">defer::detail::Defer</ref> DAG_CONCAT(defer__, __COUNTER__)(func_)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="defer.h" line="25" column="9" bodyfile="defer.h" bodystart="25" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_preprocessor.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight></codeline>
+<codeline lineno="6" refid="namespacedefer" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespacedefer" kindref="compound">defer</ref></highlight></codeline>
+<codeline lineno="7"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="8" refid="namespacedefer_1_1detail" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespacedetail" kindref="compound">detail</ref></highlight></codeline>
+<codeline lineno="9"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">typename</highlight><highlight class="normal"><sp/>TCallable&gt;</highlight></codeline>
+<codeline lineno="12" refid="classdefer_1_1detail_1_1Defer" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classdefer_1_1detail_1_1Defer" kindref="compound">Defer</ref></highlight></codeline>
+<codeline lineno="13"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="15" refid="classdefer_1_1detail_1_1Defer_1a5113825de9467520162b1cca0e5b8aa5" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdefer_1_1detail_1_1Defer_1a5113825de9467520162b1cca0e5b8aa5" kindref="member">Defer</ref>(TCallable<sp/>&amp;&amp;a_callable)<sp/>:<sp/>callable(a_callable)<sp/>{}</highlight></codeline>
+<codeline lineno="16" refid="classdefer_1_1detail_1_1Defer_1ab6797c7a229471b85328d96e94b9e3c7" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdefer_1_1detail_1_1Defer_1ab6797c7a229471b85328d96e94b9e3c7" kindref="member">~Defer</ref>()<sp/>{<sp/>callable();<sp/>}</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"><sp/><sp/>TCallable<sp/>callable;</highlight></codeline>
+<codeline lineno="20"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>detail</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>defer</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight></codeline>
+<codeline lineno="25" refid="defer_8h_1afa2f02cf7da6a0b58c4f01e20ccd1384" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>DEFER(func_)<sp/>defer::detail::Defer<sp/>DAG_CONCAT(defer__,<sp/>__COUNTER__)(func_)</highlight></codeline>
+    </programlisting>
+    <location file="defer.h"/>
+  </compounddef>
+</doxygen>

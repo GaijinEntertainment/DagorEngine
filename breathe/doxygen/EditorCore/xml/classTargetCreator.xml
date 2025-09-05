@@ -1,0 +1,492 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classTargetCreator" kind="class" language="C++" prot="public">
+    <compoundname>TargetCreator</compoundname>
+    <basecompoundref refid="classIObjectCreator" prot="public" virt="non-virtual">IObjectCreator</basecompoundref>
+    <includes refid="ec__ObjectCreator_8h" local="no">ec_ObjectCreator.h</includes>
+      <sectiondef kind="user-defined">
+      <header>Mouse events handlers.</header>
+      <memberdef kind="variable" id="classTargetCreator_1a741eb992175e567807d42e0c6e0d383b" prot="protected" static="no" mutable="no">
+        <type>unsigned int</type>
+        <definition>unsigned int TargetCreator::stageNo</definition>
+        <argsstring></argsstring>
+        <name>stageNo</name>
+        <qualifiedname>TargetCreator::stageNo</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectCreator.h" line="277" column="16" bodyfile="ec_ObjectCreator.h" bodystart="277" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classTargetCreator_1aeed720ddeb4dea715b816430156888b1" prot="protected" static="no" mutable="no">
+        <type>Point2</type>
+        <definition>Point2 TargetCreator::client0</definition>
+        <argsstring></argsstring>
+        <name>client0</name>
+        <qualifiedname>TargetCreator::client0</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectCreator.h" line="278" column="10" bodyfile="ec_ObjectCreator.h" bodystart="278" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classTargetCreator_1a520ef58d95c1227e51868d93097ec042" prot="protected" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 TargetCreator::point0</definition>
+        <argsstring></argsstring>
+        <name>point0</name>
+        <qualifiedname>TargetCreator::point0</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectCreator.h" line="279" column="10" bodyfile="ec_ObjectCreator.h" bodystart="279" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="function" id="classTargetCreator_1a9e39add572372ca1e61fc819bc07d601" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>bool</type>
+        <definition>bool TargetCreator::handleMouseMove</definition>
+        <argsstring>(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif, bool rotate=true) override</argsstring>
+        <name>handleMouseMove</name>
+        <qualifiedname>TargetCreator::handleMouseMove</qualifiedname>
+        <reimplements refid="classIObjectCreator_1a82310296dee9c4c0c75950969a8d928b">handleMouseMove</reimplements>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>inside</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>buttons</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>key_modif</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>rotate</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Mouse move event handler. Called from program code that created <ref refid="classTargetCreator" kindref="compound">TargetCreator</ref>. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window that generated the message </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x,y</bold> coordinates inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">inside</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true</bold> if the event occurred inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">buttons</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- mouse buttons state flags </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key_modif</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if event handling successful, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectCreator.h" line="239" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classTargetCreator_1aa957e98a4dcedb99b3772b5c25e8b8ef" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>bool</type>
+        <definition>bool TargetCreator::handleMouseLBPress</definition>
+        <argsstring>(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override</argsstring>
+        <name>handleMouseLBPress</name>
+        <qualifiedname>TargetCreator::handleMouseLBPress</qualifiedname>
+        <reimplements refid="classIObjectCreator_1a09ec2ee738ee050be9cc3efa1cdc190a">handleMouseLBPress</reimplements>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>inside</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>buttons</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>key_modif</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Mouse left button press event handler. Called from program code that created <ref refid="classTargetCreator" kindref="compound">TargetCreator</ref>. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window that generated the message </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x,y</bold> coordinates inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">inside</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true</bold> if the event occurred inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">buttons</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- mouse buttons state flags </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key_modif</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if event handling successful, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectCreator.h" line="249" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classTargetCreator_1a33e5e2d2ff65c984d642a53b9524efce" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>bool</type>
+        <definition>bool TargetCreator::handleMouseLBRelease</definition>
+        <argsstring>(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override</argsstring>
+        <name>handleMouseLBRelease</name>
+        <qualifiedname>TargetCreator::handleMouseLBRelease</qualifiedname>
+        <reimplements refid="classIObjectCreator_1a5424963405a354e4d3d3dbd186dcdbfb">handleMouseLBRelease</reimplements>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>inside</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>buttons</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>key_modif</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Mouse left button release event handler. Called from program code that created <ref refid="classTargetCreator" kindref="compound">TargetCreator</ref>. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window that generated the message </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x,y</bold> coordinates inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">inside</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true</bold> if the event occurred inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">buttons</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- mouse buttons state flags </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key_modif</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if event handling successful, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectCreator.h" line="259" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classTargetCreator_1a295898ae90a9a1c5d66c687d63a78ef0" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>bool</type>
+        <definition>bool TargetCreator::handleMouseRBPress</definition>
+        <argsstring>(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override</argsstring>
+        <name>handleMouseRBPress</name>
+        <qualifiedname>TargetCreator::handleMouseRBPress</qualifiedname>
+        <reimplements refid="classIObjectCreator_1a673bf26b31164117f1d028c82abeae50">handleMouseRBPress</reimplements>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>inside</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>buttons</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>key_modif</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Mouse right button press event handler. Called from program code that created <ref refid="classTargetCreator" kindref="compound">TargetCreator</ref>. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window that generated the message </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x,y</bold> coordinates inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">inside</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true</bold> if the event occurred inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">buttons</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- mouse buttons state flags </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key_modif</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if event handling successful, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectCreator.h" line="269" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classTargetCreator_1a6492eca1fbf0dfb38e023b49cf9597bb" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void TargetCreator::render</definition>
+        <argsstring>() override</argsstring>
+        <name>render</name>
+        <qualifiedname>TargetCreator::render</qualifiedname>
+        <reimplements refid="classIObjectCreator_1a176ce9b187bc9a72b22c52156cf61b00">render</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Render <ref refid="classTargetCreator" kindref="compound">TargetCreator</ref>. Called from program code that created <ref refid="classBoxCreator" kindref="compound">BoxCreator</ref>. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectCreator.h" line="274" column="8"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classTargetCreator_1af6eef00e0d2d5d91c672ea8ed4b9fa12" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 TargetCreator::target</definition>
+        <argsstring></argsstring>
+        <name>target</name>
+        <qualifiedname>TargetCreator::target</qualifiedname>
+        <briefdescription>
+<para>Camera target position. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectCreator.h" line="224" column="10" bodyfile="ec_ObjectCreator.h" bodystart="224" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classTargetCreator_1a650d8751f82baf6eb00d9606168b78db" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>TargetCreator::TargetCreator</definition>
+        <argsstring>()</argsstring>
+        <name>TargetCreator</name>
+        <qualifiedname>TargetCreator::TargetCreator</qualifiedname>
+        <briefdescription>
+<para>Constructor. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectCreator.h" line="227" column="3"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Used for creating camera targets on scene with mouse. </para>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>IObjectCreator</label>
+        <link refid="classIObjectCreator"/>
+      </node>
+      <node id="1">
+        <label>TargetCreator</label>
+        <link refid="classTargetCreator"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>IObjectCreator</label>
+        <link refid="classIObjectCreator"/>
+      </node>
+      <node id="1">
+        <label>TargetCreator</label>
+        <link refid="classTargetCreator"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="ec_ObjectCreator.h" line="220" column="1" bodyfile="ec_ObjectCreator.h" bodystart="221" bodyend="280"/>
+    <listofallmembers>
+      <member refid="classTargetCreator_1aeed720ddeb4dea715b816430156888b1" prot="protected" virt="non-virtual"><scope>TargetCreator</scope><name>client0</name></member>
+      <member refid="classTargetCreator_1aa957e98a4dcedb99b3772b5c25e8b8ef" prot="public" virt="virtual"><scope>TargetCreator</scope><name>handleMouseLBPress</name></member>
+      <member refid="classTargetCreator_1a33e5e2d2ff65c984d642a53b9524efce" prot="public" virt="virtual"><scope>TargetCreator</scope><name>handleMouseLBRelease</name></member>
+      <member refid="classTargetCreator_1a9e39add572372ca1e61fc819bc07d601" prot="public" virt="virtual"><scope>TargetCreator</scope><name>handleMouseMove</name></member>
+      <member refid="classTargetCreator_1a295898ae90a9a1c5d66c687d63a78ef0" prot="public" virt="virtual"><scope>TargetCreator</scope><name>handleMouseRBPress</name></member>
+      <member refid="classIObjectCreator_1a329744f60005a03f1d0c7a0c01457b01" prot="public" virt="non-virtual"><scope>TargetCreator</scope><name>IObjectCreator</name></member>
+      <member refid="classIObjectCreator_1ac4a428a645503de2ee32a59539b40671" prot="public" virt="non-virtual"><scope>TargetCreator</scope><name>isFinished</name></member>
+      <member refid="classIObjectCreator_1a6176e974fe1e9bcd327f7c2897d054ef" prot="public" virt="non-virtual"><scope>TargetCreator</scope><name>isOk</name></member>
+      <member refid="classIObjectCreator_1a5b997ac5828c3903443903c6ea1e9e36" prot="public" virt="non-virtual"><scope>TargetCreator</scope><name>matrix</name></member>
+      <member refid="classTargetCreator_1a520ef58d95c1227e51868d93097ec042" prot="protected" virt="non-virtual"><scope>TargetCreator</scope><name>point0</name></member>
+      <member refid="classTargetCreator_1a6492eca1fbf0dfb38e023b49cf9597bb" prot="public" virt="virtual"><scope>TargetCreator</scope><name>render</name></member>
+      <member refid="classTargetCreator_1a741eb992175e567807d42e0c6e0d383b" prot="protected" virt="non-virtual"><scope>TargetCreator</scope><name>stageNo</name></member>
+      <member refid="classIObjectCreator_1aded570cbf7c7853c4c9ea78f4b8cef53" prot="protected" virt="non-virtual"><scope>TargetCreator</scope><name>stateFinished</name></member>
+      <member refid="classIObjectCreator_1ab2e28bdda145f0d6f241e14ca57b0d97" prot="protected" virt="non-virtual"><scope>TargetCreator</scope><name>stateOk</name></member>
+      <member refid="classTargetCreator_1af6eef00e0d2d5d91c672ea8ed4b9fa12" prot="public" virt="non-virtual"><scope>TargetCreator</scope><name>target</name></member>
+      <member refid="classTargetCreator_1a650d8751f82baf6eb00d9606168b78db" prot="public" virt="non-virtual"><scope>TargetCreator</scope><name>TargetCreator</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,120 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structExportENCB_1_1AnimKeyQuat" kind="struct" language="C++" prot="public">
+    <compoundname>ExportENCB::AnimKeyQuat</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structExportENCB_1_1AnimKeyQuat_1a32c54a6d72163e71bf0faa9bbb931664" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float ExportENCB::AnimKeyQuat::pw</definition>
+        <argsstring></argsstring>
+        <name>pw</name>
+        <qualifiedname>ExportENCB::AnimKeyQuat::pw</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="3314" column="11" bodyfile="expUtil.cpp" bodystart="3314" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structExportENCB_1_1AnimKeyQuat_1ab8275c8a7da882a5e70eb214a8b63130" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float ExportENCB::AnimKeyQuat::bw</definition>
+        <argsstring></argsstring>
+        <name>bw</name>
+        <qualifiedname>ExportENCB::AnimKeyQuat::bw</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="3314" column="14" bodyfile="expUtil.cpp" bodystart="3314" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structExportENCB_1_1AnimKeyQuat_1a89c451ad947532533297de5747fdc058" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float ExportENCB::AnimKeyQuat::sinpw</definition>
+        <argsstring></argsstring>
+        <name>sinpw</name>
+        <qualifiedname>ExportENCB::AnimKeyQuat::sinpw</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="3315" column="11" bodyfile="expUtil.cpp" bodystart="3315" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structExportENCB_1_1AnimKeyQuat_1a68d5215aeb629a8fe1862568f4e3db46" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float ExportENCB::AnimKeyQuat::sinbw</definition>
+        <argsstring></argsstring>
+        <name>sinbw</name>
+        <qualifiedname>ExportENCB::AnimKeyQuat::sinbw</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="3315" column="17" bodyfile="expUtil.cpp" bodystart="3315" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structExportENCB_1_1AnimKeyQuat_1aba761809c4adf8b20b48a459cab349d1" prot="public" static="no" mutable="no">
+        <type>Quat</type>
+        <definition>Quat ExportENCB::AnimKeyQuat::p</definition>
+        <argsstring></argsstring>
+        <name>p</name>
+        <qualifiedname>ExportENCB::AnimKeyQuat::p</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="3316" column="10" bodyfile="expUtil.cpp" bodystart="3316" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structExportENCB_1_1AnimKeyQuat_1a5b95269c26c2ad828b2dfdf950b5bdb0" prot="public" static="no" mutable="no">
+        <type>Quat</type>
+        <definition>Quat ExportENCB::AnimKeyQuat::b0</definition>
+        <argsstring></argsstring>
+        <name>b0</name>
+        <qualifiedname>ExportENCB::AnimKeyQuat::b0</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="3316" column="12" bodyfile="expUtil.cpp" bodystart="3316" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structExportENCB_1_1AnimKeyQuat_1acb52c6d37f367ee5f6054439511e3228" prot="public" static="no" mutable="no">
+        <type>Quat</type>
+        <definition>Quat ExportENCB::AnimKeyQuat::b1</definition>
+        <argsstring></argsstring>
+        <name>b1</name>
+        <qualifiedname>ExportENCB::AnimKeyQuat::b1</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="3316" column="15" bodyfile="expUtil.cpp" bodystart="3316" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="expUtil.cpp" line="3312" column="3" bodyfile="expUtil.cpp" bodystart="3313" bodyend="3317"/>
+    <listofallmembers>
+      <member refid="structExportENCB_1_1AnimKeyQuat_1a5b95269c26c2ad828b2dfdf950b5bdb0" prot="public" virt="non-virtual"><scope>ExportENCB::AnimKeyQuat</scope><name>b0</name></member>
+      <member refid="structExportENCB_1_1AnimKeyQuat_1acb52c6d37f367ee5f6054439511e3228" prot="public" virt="non-virtual"><scope>ExportENCB::AnimKeyQuat</scope><name>b1</name></member>
+      <member refid="structExportENCB_1_1AnimKeyQuat_1ab8275c8a7da882a5e70eb214a8b63130" prot="public" virt="non-virtual"><scope>ExportENCB::AnimKeyQuat</scope><name>bw</name></member>
+      <member refid="structExportENCB_1_1AnimKeyQuat_1aba761809c4adf8b20b48a459cab349d1" prot="public" virt="non-virtual"><scope>ExportENCB::AnimKeyQuat</scope><name>p</name></member>
+      <member refid="structExportENCB_1_1AnimKeyQuat_1a32c54a6d72163e71bf0faa9bbb931664" prot="public" virt="non-virtual"><scope>ExportENCB::AnimKeyQuat</scope><name>pw</name></member>
+      <member refid="structExportENCB_1_1AnimKeyQuat_1a68d5215aeb629a8fe1862568f4e3db46" prot="public" virt="non-virtual"><scope>ExportENCB::AnimKeyQuat</scope><name>sinbw</name></member>
+      <member refid="structExportENCB_1_1AnimKeyQuat_1a89c451ad947532533297de5747fdc058" prot="public" virt="non-virtual"><scope>ExportENCB::AnimKeyQuat</scope><name>sinpw</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

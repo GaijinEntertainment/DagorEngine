@@ -1,0 +1,2550 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classIEditorCoreEngine" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>IEditorCoreEngine</compoundname>
+    <includes refid="ec__interface_8h" local="no">ec_interface.h</includes>
+      <sectiondef kind="user-defined">
+      <header>Gizmo enums.</header>
+      <memberdef kind="enum" id="classIEditorCoreEngine_1ac0d075ac36ece35fd29aa489e2542d06" prot="public" static="no" strong="no">
+        <type></type>
+        <name>ModeType</name>
+        <qualifiedname>IEditorCoreEngine::ModeType</qualifiedname>
+        <enumvalue id="classIEditorCoreEngine_1ac0d075ac36ece35fd29aa489e2542d06ab25798ab3f872ecffdd80788ecb90fb9" prot="public">
+          <name>MODE_None</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+<para>No Gizmo modes selected. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classIEditorCoreEngine_1ac0d075ac36ece35fd29aa489e2542d06a97239178a6c9492c620bce7ba0c0d234" prot="public">
+          <name>MODE_Move</name>
+          <initializer>= 0x0100</initializer>
+          <briefdescription>
+<para>Gizmo is in &apos;Move&apos; mode. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classIEditorCoreEngine_1ac0d075ac36ece35fd29aa489e2542d06afbbdfe367525516b01fecc8183571359" prot="public">
+          <name>MODE_Scale</name>
+          <initializer>= 0x0200</initializer>
+          <briefdescription>
+<para>Gizmo is in &apos;Scale&apos; mode. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classIEditorCoreEngine_1ac0d075ac36ece35fd29aa489e2542d06acd1440c3153b88910717c50068198708" prot="public">
+          <name>MODE_Rotate</name>
+          <initializer>= 0x0400</initializer>
+          <briefdescription>
+<para>Gizmo is in &apos;Rotate&apos; mode. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classIEditorCoreEngine_1ac0d075ac36ece35fd29aa489e2542d06a547f80fb173eb9c02104850436882c00" prot="public">
+          <name>MODE_MoveSurface</name>
+          <initializer>= 0x0800</initializer>
+          <briefdescription>
+<para>Gizmo is in &apos;Move on surface&apos; mode. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+<para>Gizmo modes. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="474" column="3" bodyfile="ec_interface.h" bodystart="475" bodyend="481"/>
+      </memberdef>
+      <memberdef kind="enum" id="classIEditorCoreEngine_1aa5e65738760339984ca2e44e7b5f75df" prot="public" static="no" strong="no">
+        <type></type>
+        <name>BasisType</name>
+        <qualifiedname>IEditorCoreEngine::BasisType</qualifiedname>
+        <enumvalue id="classIEditorCoreEngine_1aa5e65738760339984ca2e44e7b5f75dfacf77cddea3189155f1cfcca9c6968a44" prot="public">
+          <name>BASIS_None</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+<para>No Gizmo basis. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classIEditorCoreEngine_1aa5e65738760339984ca2e44e7b5f75dfa3159ad4c640a216498100dbf85f5826b" prot="public">
+          <name>BASIS_World</name>
+          <initializer>= 0x0001</initializer>
+          <briefdescription>
+<para>Gizmo has &apos;World&apos; basis. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classIEditorCoreEngine_1aa5e65738760339984ca2e44e7b5f75dfaa581d424afae4f0ae452004ac889e911" prot="public">
+          <name>BASIS_Local</name>
+          <initializer>= 0x0002</initializer>
+          <briefdescription>
+<para>Gizmo has &apos;Local&apos; basis. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classIEditorCoreEngine_1aa5e65738760339984ca2e44e7b5f75dfa0115e5ee4651632d441b017e9ab9bf25" prot="public">
+          <name>BASIS_Parent</name>
+          <initializer>= 0x0004</initializer>
+          <briefdescription>
+<para>Gizmo has &apos;Parent&apos; basis. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+<para>Gizmo basis. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="484" column="3" bodyfile="ec_interface.h" bodystart="485" bodyend="490"/>
+      </memberdef>
+      <memberdef kind="enum" id="classIEditorCoreEngine_1ab1d7d307c148796e018de11977385fbd" prot="public" static="no" strong="no">
+        <type></type>
+        <name></name>
+        <qualifiedname>IEditorCoreEngine</qualifiedname>
+        <enumvalue id="classIEditorCoreEngine_1ab1d7d307c148796e018de11977385fbda28b941fefce1333518c046da12e1e531" prot="public">
+          <name>GIZMO_MASK_Mode</name>
+          <initializer>= 0xFF00</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Mask for getting Gizmo mode (see <ref refid="classIEditorCoreEngine_1ac0d075ac36ece35fd29aa489e2542d06" kindref="member">ModeType</ref>). </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classIEditorCoreEngine_1ab1d7d307c148796e018de11977385fbda997b4f221973beb959e059c4d275b683" prot="public">
+          <name>GIZMO_MASK_Basis</name>
+          <initializer>= 0x00FF</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Mask for getting type of Gizmo basis (see <ref refid="classIEditorCoreEngine_1aa5e65738760339984ca2e44e7b5f75df" kindref="member">BasisType</ref>). </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classIEditorCoreEngine_1ab1d7d307c148796e018de11977385fbda37a2579eeb79ac2a324d095e33d5362f" prot="public">
+          <name>GIZMO_MASK_CENTER</name>
+          <initializer>= 0xFF0000</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Mask for getting type of Gizmo center (see <ref refid="classIEditorCoreEngine_1aafb4f8662da5f0764868f25fd3cc3eaa" kindref="member">CenterType</ref>). </para>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+<para>Gizmo bit masks. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="492" column="3" bodyfile="ec_interface.h" bodystart="493" bodyend="500"/>
+      </memberdef>
+      <memberdef kind="enum" id="classIEditorCoreEngine_1aafb4f8662da5f0764868f25fd3cc3eaa" prot="public" static="no" strong="no">
+        <type></type>
+        <name>CenterType</name>
+        <qualifiedname>IEditorCoreEngine::CenterType</qualifiedname>
+        <enumvalue id="classIEditorCoreEngine_1aafb4f8662da5f0764868f25fd3cc3eaaa3fa0401c65a4bac5740da02bd20af954" prot="public">
+          <name>CENTER_None</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+<para>No Gizmo center type. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classIEditorCoreEngine_1aafb4f8662da5f0764868f25fd3cc3eaaaf106109c42a910ae0622d6c8d16cfa41" prot="public">
+          <name>CENTER_Pivot</name>
+          <initializer>= 0x010000</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Gizmo has &apos;Pivot&apos; center type. Gizmo center is coincides with center of first selected object. </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classIEditorCoreEngine_1aafb4f8662da5f0764868f25fd3cc3eaaa086436759a30e1009553561c2578be93" prot="public">
+          <name>CENTER_Selection</name>
+          <initializer>= 0x020000</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Gizmo has &apos;Selection&apos; center type. Gizmo center is in geometric center of selected objects. </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classIEditorCoreEngine_1aafb4f8662da5f0764868f25fd3cc3eaaa59ab6a80898bfac5e912e9f63ac8b46a" prot="public">
+          <name>CENTER_Coordinates</name>
+          <initializer>= 0x040000</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Gizmo is set in center of world coordinates (0,0,0) </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classIEditorCoreEngine_1aafb4f8662da5f0764868f25fd3cc3eaaa7f505401a850919bed78c385909b58f8" prot="public">
+          <name>CENTER_SelectionNotRotObj</name>
+          <initializer>= 0x080000</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Gizmo not rotates objects in group of selected objects. </para>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+<para>Gizmo center types. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="503" column="3" bodyfile="ec_interface.h" bodystart="504" bodyend="516"/>
+      </memberdef>
+      <memberdef kind="enum" id="classIEditorCoreEngine_1a23b74277e03431d74270ac370d98c428" prot="public" static="no" strong="no">
+        <type></type>
+        <name>ViewportCacheMode</name>
+        <qualifiedname>IEditorCoreEngine::ViewportCacheMode</qualifiedname>
+        <enumvalue id="classIEditorCoreEngine_1a23b74277e03431d74270ac370d98c428a911b6f6b5b191ad3fb5eaed4fa312c5a" prot="public">
+          <name>VCM_NoCacheAll</name>
+          <briefdescription>
+<para>Cache disabled. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classIEditorCoreEngine_1a23b74277e03431d74270ac370d98c428a3d60aeda5f6591aa1522bc06c0ea0ca0" prot="public">
+          <name>VCM_CacheAll</name>
+          <briefdescription>
+<para>Cache all viewports. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classIEditorCoreEngine_1a23b74277e03431d74270ac370d98c428a321f710bd0f815eb85bee94e174e4583" prot="public">
+          <name>VCM_CacheAllButActive</name>
+          <briefdescription>
+<para>Cache all viewports except active one. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+<para>Viewport cache modes. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="521" column="3" bodyfile="ec_interface.h" bodystart="522" bodyend="526"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1a9880154061233454ba3d017df66965fc" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>IEditorCoreEngine::IEditorCoreEngine</definition>
+        <argsstring>()</argsstring>
+        <name>IEditorCoreEngine</name>
+        <qualifiedname>IEditorCoreEngine::IEditorCoreEngine</qualifiedname>
+        <briefdescription>
+<para>Constructor. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="530" column="10" bodyfile="ec_interface.h" bodystart="530" bodyend="530"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1abb79bb6c0d3511b35e18c9f1133004dc" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool IEditorCoreEngine::checkVersion</definition>
+        <argsstring>()</argsstring>
+        <name>checkVersion</name>
+        <qualifiedname>IEditorCoreEngine::checkVersion</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Interface version check. <simplesect kind="return"><para><bold>true</bold> if version check successful, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="534" column="15" bodyfile="ec_interface.h" bodystart="534" bodyend="534"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="user-defined">
+      <header>Internal interface (NOT TO BE USED BY PLUGINS!).</header>
+      <memberdef kind="variable" id="classIEditorCoreEngine_1af465a4814f9dd6de9797bdbeed715688" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int IEditorCoreEngine::interfaceVer</definition>
+        <argsstring></argsstring>
+        <name>interfaceVer</name>
+        <qualifiedname>IEditorCoreEngine::interfaceVer</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="918" column="7" bodyfile="ec_interface.h" bodystart="918" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classIEditorCoreEngine_1aed805e91a16ea812f641308c093ee817" prot="private" static="yes" mutable="no">
+        <type><ref refid="classIEditorCoreEngine" kindref="compound">IEditorCoreEngine</ref> *</type>
+        <definition>IEditorCoreEngine* IEditorCoreEngine::__global_instance</definition>
+        <argsstring></argsstring>
+        <name>__global_instance</name>
+        <qualifiedname>IEditorCoreEngine::__global_instance</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="920" column="28" bodyfile="ec_interface.h" bodystart="920" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1a9491b76f8c5fae0a3b0015a0804eda59" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IEditorCoreEngine::actObjects</definition>
+        <argsstring>(real dt)=0</argsstring>
+        <name>actObjects</name>
+        <qualifiedname>IEditorCoreEngine::actObjects</qualifiedname>
+        <param>
+          <type>real</type>
+          <declname>dt</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Objects in &apos;Animation&apos; stage <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>dt</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="866" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1a970c3702a37bd3290252c3f974e0f3a1" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IEditorCoreEngine::beforeRenderObjects</definition>
+        <argsstring>()=0</argsstring>
+        <name>beforeRenderObjects</name>
+        <qualifiedname>IEditorCoreEngine::beforeRenderObjects</qualifiedname>
+        <briefdescription>
+<para>Objects in &apos;before Render&apos; stage. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="869" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1a4ff2e6c745d570ff8b7d4b8041624df6" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IEditorCoreEngine::renderObjects</definition>
+        <argsstring>()=0</argsstring>
+        <name>renderObjects</name>
+        <qualifiedname>IEditorCoreEngine::renderObjects</qualifiedname>
+        <briefdescription>
+<para>Objects in &apos;Render&apos; stage. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="872" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1a99d29d13617d1b9249ab68e733f11e48" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IEditorCoreEngine::renderIslDecalObjects</definition>
+        <argsstring>()=0</argsstring>
+        <name>renderIslDecalObjects</name>
+        <qualifiedname>IEditorCoreEngine::renderIslDecalObjects</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="874" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1ace52e51fd582d78a0daa13a6bc868dbf" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IEditorCoreEngine::renderTransObjects</definition>
+        <argsstring>()=0</argsstring>
+        <name>renderTransObjects</name>
+        <qualifiedname>IEditorCoreEngine::renderTransObjects</qualifiedname>
+        <briefdescription>
+<para>Transparent objects in &apos;Render&apos; stage. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="877" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1a240f7bc68d4398f52db47d9a733e37d8" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>Point3</type>
+        <definition>virtual Point3 IEditorCoreEngine::snapToGrid</definition>
+        <argsstring>(const Point3 &amp;p) const =0</argsstring>
+        <name>snapToGrid</name>
+        <qualifiedname>IEditorCoreEngine::snapToGrid</qualifiedname>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>p</declname>
+        </param>
+        <briefdescription>
+<para>Snap functions. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="881" column="18"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1ae99a1e95d34fadf3e492d33e4452a7dd" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>Point3</type>
+        <definition>virtual Point3 IEditorCoreEngine::snapToAngle</definition>
+        <argsstring>(const Point3 &amp;p) const =0</argsstring>
+        <name>snapToAngle</name>
+        <qualifiedname>IEditorCoreEngine::snapToAngle</qualifiedname>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>p</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="882" column="18"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1a5e01d0e4aa747534826c96e02091a427" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>Point3</type>
+        <definition>virtual Point3 IEditorCoreEngine::snapToScale</definition>
+        <argsstring>(const Point3 &amp;p) const =0</argsstring>
+        <name>snapToScale</name>
+        <qualifiedname>IEditorCoreEngine::snapToScale</qualifiedname>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>p</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="883" column="18"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1a3c6ed9e89e16dbebee70a0b7758d8cdd" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void *</type>
+        <definition>virtual void * IEditorCoreEngine::queryEditorInterfacePtr</definition>
+        <argsstring>(unsigned huid)=0</argsstring>
+        <name>queryEditorInterfacePtr</name>
+        <qualifiedname>IEditorCoreEngine::queryEditorInterfacePtr</qualifiedname>
+        <param>
+          <type>unsigned</type>
+          <declname>huid</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="887" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1a2977bae53c3af029177d2572fcba62e0" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class T</type>
+          </param>
+        </templateparamlist>
+        <type>T *</type>
+        <definition>T * IEditorCoreEngine::queryEditorInterface</definition>
+        <argsstring>()</argsstring>
+        <name>queryEditorInterface</name>
+        <qualifiedname>IEditorCoreEngine::queryEditorInterface</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="889" column="5" bodyfile="ec_interface.h" bodystart="889" bodyend="892"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1ac3c242dd46ff5c84538e4b7787237991" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class T</type>
+          </param>
+        </templateparamlist>
+        <type>T *</type>
+        <definition>T * IEditorCoreEngine::getInterfaceEx</definition>
+        <argsstring>()</argsstring>
+        <name>getInterfaceEx</name>
+        <qualifiedname>IEditorCoreEngine::getInterfaceEx</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="895" column="5" bodyfile="ec_interface.h" bodystart="895" bodyend="898"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1a661694eae675b3066d718df978f2e455" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class T</type>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void IEditorCoreEngine::getInterfacesEx</definition>
+        <argsstring>(Tab&lt; T * &gt; &amp;tab)</argsstring>
+        <name>getInterfacesEx</name>
+        <qualifiedname>IEditorCoreEngine::getInterfacesEx</qualifiedname>
+        <param>
+          <type>Tab&lt; T * &gt; &amp;</type>
+          <declname>tab</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="900" column="8" bodyfile="ec_interface.h" bodystart="900" bodyend="903"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1a2230ab1fc52742e35bc8b60ce37b508e" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>const char *</type>
+        <definition>virtual const char * IEditorCoreEngine::getLibDir</definition>
+        <argsstring>() const =0</argsstring>
+        <name>getLibDir</name>
+        <qualifiedname>IEditorCoreEngine::getLibDir</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="905" column="22"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1af0bc2450c0cb107504b13770ff606cef" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>class LibCache *</type>
+        <definition>virtual class LibCache * IEditorCoreEngine::getLibCachePtr</definition>
+        <argsstring>()=0</argsstring>
+        <name>getLibCachePtr</name>
+        <qualifiedname>IEditorCoreEngine::getLibCachePtr</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="906" column="25"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1ad9e519dfb2de285f164aa69272a46464" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>Tab&lt; struct <ref refid="structWspLibData" kindref="compound">WspLibData</ref> &gt; *</type>
+        <definition>virtual Tab&lt; struct WspLibData &gt; * IEditorCoreEngine::getLibData</definition>
+        <argsstring>()=0</argsstring>
+        <name>getLibData</name>
+        <qualifiedname>IEditorCoreEngine::getLibData</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="907" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1ae678797f11f4b2375cacc8c3f9c9c5f5" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IEditorCoreEngine::setColliders</definition>
+        <argsstring>(dag::ConstSpan&lt; IDagorEdCustomCollider * &gt; c, unsigned filter_mask) const =0</argsstring>
+        <name>setColliders</name>
+        <qualifiedname>IEditorCoreEngine::setColliders</qualifiedname>
+        <param>
+          <type>dag::ConstSpan&lt; IDagorEdCustomCollider * &gt;</type>
+          <declname>c</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>filter_mask</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="909" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1afb74338a68cbcac23737ea37aad7655c" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IEditorCoreEngine::restoreEditorColliders</definition>
+        <argsstring>() const =0</argsstring>
+        <name>restoreEditorColliders</name>
+        <qualifiedname>IEditorCoreEngine::restoreEditorColliders</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="910" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1a1c71f956bf258cc3e942e56ef7d2330e" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>float</type>
+        <definition>virtual float IEditorCoreEngine::getMaxTraceDistance</definition>
+        <argsstring>() const =0</argsstring>
+        <name>getMaxTraceDistance</name>
+        <qualifiedname>IEditorCoreEngine::getMaxTraceDistance</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="911" column="17"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1ae53bad425c45547e534bf5bcf4091131" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>const <ref refid="classEditorWorkspace" kindref="compound">EditorWorkspace</ref> &amp;</type>
+        <definition>virtual const EditorWorkspace &amp; IEditorCoreEngine::getBaseWorkspace</definition>
+        <argsstring>()=0</argsstring>
+        <name>getBaseWorkspace</name>
+        <qualifiedname>IEditorCoreEngine::getBaseWorkspace</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="912" column="33"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1a5f69fee89439442ba06d793b0f7393c4" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IEditorCoreEngine::setShowMessageAt</definition>
+        <argsstring>(int x, int y, const SimpleString &amp;msg)=0</argsstring>
+        <name>setShowMessageAt</name>
+        <qualifiedname>IEditorCoreEngine::setShowMessageAt</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>const SimpleString &amp;</type>
+          <declname>msg</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="914" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1ae84a8378e26bb2a9f398dbafa9940e32" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IEditorCoreEngine::showMessageAt</definition>
+        <argsstring>()=0</argsstring>
+        <name>showMessageAt</name>
+        <qualifiedname>IEditorCoreEngine::showMessageAt</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="915" column="16"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="user-defined">
+      <header>Register / unregister Plugin.</header>
+      <memberdef kind="function" id="classIEditorCoreEngine_1a393034c6f4e4d17552454fde6fddecd0" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IEditorCoreEngine::registerPlugin</definition>
+        <argsstring>(IGenEditorPlugin *plugin)=0</argsstring>
+        <name>registerPlugin</name>
+        <qualifiedname>IEditorCoreEngine::registerPlugin</qualifiedname>
+        <param>
+          <type>IGenEditorPlugin *</type>
+          <declname>plugin</declname>
+        </param>
+        <briefdescription>
+<para>Every plugin should be registered once. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Register plugin (every plugin should be registered once). <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">plugin</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to plugin </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if register successful, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="546" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1a4c8f512bbe3a54e21c63016e2436c957" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IEditorCoreEngine::unregisterPlugin</definition>
+        <argsstring>(IGenEditorPlugin *plugin)=0</argsstring>
+        <name>unregisterPlugin</name>
+        <qualifiedname>IEditorCoreEngine::unregisterPlugin</qualifiedname>
+        <param>
+          <type>IGenEditorPlugin *</type>
+          <declname>plugin</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Unregister plugin <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">plugin</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to plugin </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if unregister successful, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="551" column="16"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="user-defined">
+      <header>Plugins management.</header>
+      <memberdef kind="function" id="classIEditorCoreEngine_1af62bd92e390d25c98304b6b9dedfad9b" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int IEditorCoreEngine::getPluginCount</definition>
+        <argsstring>()=0</argsstring>
+        <name>getPluginCount</name>
+        <qualifiedname>IEditorCoreEngine::getPluginCount</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get a number of registered plugins. <simplesect kind="return"><para>number of registered plugins </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="560" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1a0f06063811351170993ef6006f834da2" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>IGenEditorPlugin *</type>
+        <definition>virtual IGenEditorPlugin * IEditorCoreEngine::getPlugin</definition>
+        <argsstring>(int idx)=0</argsstring>
+        <name>getPlugin</name>
+        <qualifiedname>IEditorCoreEngine::getPlugin</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>idx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get a pointer to plugin by index. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">idx</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- index in plugins array </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>pointer to plugin </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="565" column="28"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1a2d82155af7aa6255047a2930e24ceb24" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type><ref refid="classIGenEditorPluginBase" kindref="compound">IGenEditorPluginBase</ref> *</type>
+        <definition>virtual IGenEditorPluginBase * IEditorCoreEngine::getPluginBase</definition>
+        <argsstring>(int idx)=0</argsstring>
+        <name>getPluginBase</name>
+        <qualifiedname>IEditorCoreEngine::getPluginBase</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>idx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="566" column="32"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1a135072c00af3bb6c41cbed87cb02bb72" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>IGenEditorPlugin *</type>
+        <definition>virtual IGenEditorPlugin * IEditorCoreEngine::curPlugin</definition>
+        <argsstring>()=0</argsstring>
+        <name>curPlugin</name>
+        <qualifiedname>IEditorCoreEngine::curPlugin</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get a pointer to current (active) plugin. <simplesect kind="return"><para>pointer to current plugin </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="570" column="28"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1a1a493db958f57b52ed3b4c769f65842f" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type><ref refid="classIGenEditorPluginBase" kindref="compound">IGenEditorPluginBase</ref> *</type>
+        <definition>virtual IGenEditorPluginBase * IEditorCoreEngine::curPluginBase</definition>
+        <argsstring>()=0</argsstring>
+        <name>curPluginBase</name>
+        <qualifiedname>IEditorCoreEngine::curPluginBase</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="571" column="32"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1a009dcc7a99b3fa11ec64f9ff94b8816f" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void *</type>
+        <definition>virtual void * IEditorCoreEngine::getInterface</definition>
+        <argsstring>(int interface_uid)=0</argsstring>
+        <name>getInterface</name>
+        <qualifiedname>IEditorCoreEngine::getInterface</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>interface_uid</declname>
+        </param>
+        <briefdescription>
+<para>Get a pointer to the desired interface. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="574" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1a3d584eecd5dfd0e5cc0351a796670c51" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IEditorCoreEngine::getInterfaces</definition>
+        <argsstring>(int interface_uid, Tab&lt; void * &gt; &amp;interfaces)=0</argsstring>
+        <name>getInterfaces</name>
+        <qualifiedname>IEditorCoreEngine::getInterfaces</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>interface_uid</declname>
+        </param>
+        <param>
+          <type>Tab&lt; void * &gt; &amp;</type>
+          <declname>interfaces</declname>
+        </param>
+        <briefdescription>
+<para>Get a set of pointers to the desired interface. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="577" column="16"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="user-defined">
+      <header>UI management</header>
+      <memberdef kind="function" id="classIEditorCoreEngine_1ab805eb67f2a6723ff750049c8614c27f" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type><ref refid="classIWndManager" kindref="compound">IWndManager</ref> *</type>
+        <definition>virtual IWndManager * IEditorCoreEngine::getWndManager</definition>
+        <argsstring>() const =0</argsstring>
+        <name>getWndManager</name>
+        <qualifiedname>IEditorCoreEngine::getWndManager</qualifiedname>
+        <briefdescription>
+<para>Get pointer to the window manager. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="583" column="23"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1aaeb03cf31f08e1cec0b99c6dc044b9fb" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>PropPanel::ContainerPropertyControl *</type>
+        <definition>virtual PropPanel::ContainerPropertyControl * IEditorCoreEngine::getCustomPanel</definition>
+        <argsstring>(int id) const =0</argsstring>
+        <name>getCustomPanel</name>
+        <qualifiedname>IEditorCoreEngine::getCustomPanel</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+<para>Get custom panel (property/toolbar/etc) </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="586" column="47"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1a81f371a22e90cdfac44006546e0295d3" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IEditorCoreEngine::addPropPanel</definition>
+        <argsstring>(int type, hdpi::Px width)=0</argsstring>
+        <name>addPropPanel</name>
+        <qualifiedname>IEditorCoreEngine::addPropPanel</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>hdpi::Px</type>
+          <declname>width</declname>
+        </param>
+        <briefdescription>
+<para>Create new property panel. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="589" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1a84394e24a8c4a9e8a2a5c4542e92cbe4" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IEditorCoreEngine::removePropPanel</definition>
+        <argsstring>(void *hwnd)=0</argsstring>
+        <name>removePropPanel</name>
+        <qualifiedname>IEditorCoreEngine::removePropPanel</qualifiedname>
+        <param>
+          <type>void *</type>
+          <declname>hwnd</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="590" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1a9f6b0e5d2558e1b69d8266949b40a7a0" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IEditorCoreEngine::managePropPanels</definition>
+        <argsstring>()=0</argsstring>
+        <name>managePropPanels</name>
+        <qualifiedname>IEditorCoreEngine::managePropPanels</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="591" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1a09377e7af3935401a4bd8ed499ea4ade" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IEditorCoreEngine::skipManagePropPanels</definition>
+        <argsstring>(bool skip)=0</argsstring>
+        <name>skipManagePropPanels</name>
+        <qualifiedname>IEditorCoreEngine::skipManagePropPanels</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>skip</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="592" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1a72228540e8632f01bb05bd78d88dd857" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>PropPanel::PanelWindowPropertyControl *</type>
+        <definition>virtual PropPanel::PanelWindowPropertyControl * IEditorCoreEngine::createPropPanel</definition>
+        <argsstring>(PropPanel::ControlEventHandler *eh, const char *caption)=0</argsstring>
+        <name>createPropPanel</name>
+        <qualifiedname>IEditorCoreEngine::createPropPanel</qualifiedname>
+        <param>
+          <type>PropPanel::ControlEventHandler *</type>
+          <declname>eh</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>caption</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="593" column="49"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1aa58a776a9637510c7b9cd12820368003" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>PropPanel::IMenu *</type>
+        <definition>virtual PropPanel::IMenu * IEditorCoreEngine::getMainMenu</definition>
+        <argsstring>()=0</argsstring>
+        <name>getMainMenu</name>
+        <qualifiedname>IEditorCoreEngine::getMainMenu</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="594" column="28"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1a25d5e0cbf3b03b8b93d32d2e273fd8d8" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IEditorCoreEngine::deleteCustomPanel</definition>
+        <argsstring>(PropPanel::ContainerPropertyControl *panel)=0</argsstring>
+        <name>deleteCustomPanel</name>
+        <qualifiedname>IEditorCoreEngine::deleteCustomPanel</qualifiedname>
+        <param>
+          <type>PropPanel::ContainerPropertyControl *</type>
+          <declname>panel</declname>
+        </param>
+        <briefdescription>
+<para>Delete custom panel. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="597" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1aa3c3814dfa16a789c13c19db6ec7c116" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>PropPanel::DialogWindow *</type>
+        <definition>virtual PropPanel::DialogWindow * IEditorCoreEngine::createDialog</definition>
+        <argsstring>(hdpi::Px w, hdpi::Px h, const char *title)=0</argsstring>
+        <name>createDialog</name>
+        <qualifiedname>IEditorCoreEngine::createDialog</qualifiedname>
+        <param>
+          <type>hdpi::Px</type>
+          <declname>w</declname>
+        </param>
+        <param>
+          <type>hdpi::Px</type>
+          <declname>h</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>title</declname>
+        </param>
+        <briefdescription>
+<para>Create dialog with property panel. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="600" column="35"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1a99b7ec1388a084a941d3c99fd3bfa60e" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IEditorCoreEngine::deleteDialog</definition>
+        <argsstring>(PropPanel::DialogWindow *dlg)=0</argsstring>
+        <name>deleteDialog</name>
+        <qualifiedname>IEditorCoreEngine::deleteDialog</qualifiedname>
+        <param>
+          <type>PropPanel::DialogWindow *</type>
+          <declname>dlg</declname>
+        </param>
+        <briefdescription>
+<para>Delete dialog. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="602" column="16"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="user-defined">
+      <header>Viewport methods.</header>
+      <memberdef kind="function" id="classIEditorCoreEngine_1ae110d8087065188c243a4243785aaaa5" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IEditorCoreEngine::updateViewports</definition>
+        <argsstring>()=0</argsstring>
+        <name>updateViewports</name>
+        <qualifiedname>IEditorCoreEngine::updateViewports</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Inform editor that viewports need redraw. Usually used before <ref refid="classIEditorCoreEngine_1a5a9884e591dc02ad40f29f4f9fa1b3d5" kindref="member">invalidateViewportCache()</ref>. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="611" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1a5a9884e591dc02ad40f29f4f9fa1b3d5" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IEditorCoreEngine::invalidateViewportCache</definition>
+        <argsstring>()=0</argsstring>
+        <name>invalidateViewportCache</name>
+        <qualifiedname>IEditorCoreEngine::invalidateViewportCache</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Immediately redraw viewports. Usually used after <ref refid="classIEditorCoreEngine_1ae110d8087065188c243a4243785aaaa5" kindref="member">updateViewports()</ref>. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="615" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1ae062bc8062738cd77353f8449e6c3105" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IEditorCoreEngine::setViewportCacheMode</definition>
+        <argsstring>(ViewportCacheMode mode)=0</argsstring>
+        <name>setViewportCacheMode</name>
+        <qualifiedname>IEditorCoreEngine::setViewportCacheMode</qualifiedname>
+        <param>
+          <type><ref refid="classIEditorCoreEngine_1a23b74277e03431d74270ac370d98c428" kindref="member">ViewportCacheMode</ref></type>
+          <declname>mode</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Set viewport cache mode. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">mode</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- viewport cache mode (see <ref refid="classIEditorCoreEngine_1a23b74277e03431d74270ac370d98c428" kindref="member">ViewportCacheMode</ref>) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="619" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1a46dccb264ce51ec4bcc7784101331016" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int IEditorCoreEngine::getViewportCount</definition>
+        <argsstring>()=0</argsstring>
+        <name>getViewportCount</name>
+        <qualifiedname>IEditorCoreEngine::getViewportCount</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get number of viewports. <simplesect kind="return"><para>number of viewports </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="623" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1ad7b67a19f63fe4732080a1126d62fca3" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+        <definition>virtual IGenViewportWnd * IEditorCoreEngine::getViewport</definition>
+        <argsstring>(int n)=0</argsstring>
+        <name>getViewport</name>
+        <qualifiedname>IEditorCoreEngine::getViewport</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>n</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get a pointer to viewport by index. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">n</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- viewport index </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>pointer to viewport </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="628" column="27"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1a87c02970f258a98635c3e5c1b85bf78a" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+        <definition>virtual IGenViewportWnd * IEditorCoreEngine::getRenderViewport</definition>
+        <argsstring>()=0</argsstring>
+        <name>getRenderViewport</name>
+        <qualifiedname>IEditorCoreEngine::getRenderViewport</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get a pointer to viewport that is rendering now. Used in plugins during a rendering stage. <simplesect kind="return"><para>pointer to rendering viewport </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="633" column="27"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1ae07d6b39ac4657c817e79ee77d5c2de0" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+        <definition>virtual IGenViewportWnd * IEditorCoreEngine::getCurrentViewport</definition>
+        <argsstring>()=0</argsstring>
+        <name>getCurrentViewport</name>
+        <qualifiedname>IEditorCoreEngine::getCurrentViewport</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get a pointer to the last active viewport. <simplesect kind="return"><para>- pointer to the last active viewport <linebreak/>
+- <bold>NULL</bold> if no viewports were active yet </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="638" column="27"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1a1f48466c01b2c861b10e2e49e456e106" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IEditorCoreEngine::setViewportZnearZfar</definition>
+        <argsstring>(real zn, real zf)=0</argsstring>
+        <name>setViewportZnearZfar</name>
+        <qualifiedname>IEditorCoreEngine::setViewportZnearZfar</qualifiedname>
+        <param>
+          <type>real</type>
+          <declname>zn</declname>
+        </param>
+        <param>
+          <type>real</type>
+          <declname>zf</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Set visibility bounds (z-near, z-far) in all viewports. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">zn</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- z-near, a distance to nearest visible parts of scene (all parts more close to camera will be invisible) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">zf</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- z-far, a distance to the farthest visible parts of scene (all parts more distant from camera will be invisible) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="645" column="16"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="user-defined">
+      <header>Ray tracing methods.</header>
+      <memberdef kind="function" id="classIEditorCoreEngine_1a24949da75fb141a79816dff926a14ff1" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+        <definition>virtual IGenViewportWnd * IEditorCoreEngine::screenToViewport</definition>
+        <argsstring>(int &amp;x, int &amp;y)=0</argsstring>
+        <name>screenToViewport</name>
+        <qualifiedname>IEditorCoreEngine::screenToViewport</qualifiedname>
+        <param>
+          <type>int &amp;</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>y</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Convert screen coordinates to coordinates of one of viewports. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x,y</bold> screen coordinates </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="out">x</parametername>
+<parametername direction="out">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x,y</bold> viewport coordinates </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>pointer to viewport where output coordinates reside or <bold>NULL</bold> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="656" column="27"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1a48a8045cc74814e615e54bfdc889900b" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IEditorCoreEngine::screenToWorldTrace</definition>
+        <argsstring>(int x, int y, Point3 &amp;world, real maxdist=1000, Point3 *out_norm=NULL)=0</argsstring>
+        <name>screenToWorldTrace</name>
+        <qualifiedname>IEditorCoreEngine::screenToWorldTrace</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>Point3 &amp;</type>
+          <declname>world</declname>
+        </param>
+        <param>
+          <type>real</type>
+          <declname>maxdist</declname>
+          <defval>1000</defval>
+        </param>
+        <param>
+          <type>Point3 *</type>
+          <declname>out_norm</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Do a ray tracing from screen point to world point. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x, y</bold> screen coordinates </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="out">world</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- world coordinates </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">maxdist</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- max distance of ray tracing. If max distance achieved and intersection with clipping surface not occurred function returns <bold>false</bold>. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="out">out_norm</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- surface normal in world point, NULL allowed. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if intersection with clipping surface occurred, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="667" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1a43f1458c5b77ff2a44a5319432a1c261" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IEditorCoreEngine::clientToWorldTrace</definition>
+        <argsstring>(IGenViewportWnd *wnd, int x, int y, Point3 &amp;world, real maxdist=1000, Point3 *out_norm=NULL)=0</argsstring>
+        <name>clientToWorldTrace</name>
+        <qualifiedname>IEditorCoreEngine::clientToWorldTrace</qualifiedname>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>Point3 &amp;</type>
+          <declname>world</declname>
+        </param>
+        <param>
+          <type>real</type>
+          <declname>maxdist</declname>
+          <defval>1000</defval>
+        </param>
+        <param>
+          <type>Point3 *</type>
+          <declname>out_norm</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Do a ray tracing from viewport point to world point. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x, y</bold> viewport coordinates </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="out">world</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- world coordinates </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">maxdist</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- max distance of ray tracing. If max distance achieved and intersection with clipping surface not occurred function returns <bold>false</bold>. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="out">out_norm</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- surface normal in world point, NULL allowed. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if intersection with clipping surface occurred, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="679" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1a67fab79b05f208e4328bd5f0b579bca6" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IEditorCoreEngine::setupColliderParams</definition>
+        <argsstring>(int mode, const BBox3 &amp;area)=0</argsstring>
+        <name>setupColliderParams</name>
+        <qualifiedname>IEditorCoreEngine::setupColliderParams</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>mode</declname>
+        </param>
+        <param>
+          <type>const BBox3 &amp;</type>
+          <declname>area</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Setup collider params for ray tracing <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">mode</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- mode of ray tracing </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">area</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- area to prepare </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="685" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1a019b3c370e50c02f2db2a83292d726ba" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IEditorCoreEngine::traceRay</definition>
+        <argsstring>(const Point3 &amp;src, const Point3 &amp;dir, real &amp;dist, Point3 *out_norm=NULL, bool use_zero_plane=true)=0</argsstring>
+        <name>traceRay</name>
+        <qualifiedname>IEditorCoreEngine::traceRay</qualifiedname>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>src</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>dir</declname>
+        </param>
+        <param>
+          <type>real &amp;</type>
+          <declname>dist</declname>
+        </param>
+        <param>
+          <type>Point3 *</type>
+          <declname>out_norm</declname>
+          <defval>NULL</defval>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>use_zero_plane</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Do a ray tracing from world point to a given direction. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">src</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- start point of ray tracing </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">dir</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- ray tracing direction </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">dist</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- max distance of ray tracing </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="out">dist</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- the distance from start point to clipping point </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="out">out_norm</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- surface normal in clipping point, NULL allowed. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">use_zero_plane</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- trace to zero plane if no other collision occurred. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if intersection with collision surface occurred, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="696" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1a81adbf6c7a5a7400192324567bd805c6" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>real</type>
+        <definition>virtual real IEditorCoreEngine::clipCapsuleStatic</definition>
+        <argsstring>(const Capsule &amp;c, Point3 &amp;cap_pt, Point3 &amp;world_pt)</argsstring>
+        <name>clipCapsuleStatic</name>
+        <qualifiedname>IEditorCoreEngine::clipCapsuleStatic</qualifiedname>
+        <param>
+          <type>const Capsule &amp;</type>
+          <declname>c</declname>
+        </param>
+        <param>
+          <type>Point3 &amp;</type>
+          <declname>cap_pt</declname>
+        </param>
+        <param>
+          <type>Point3 &amp;</type>
+          <declname>world_pt</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get intersection of the capsule and the collision surface. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">c</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- reference to the capsule </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="out">cap_pt</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- capsule point that is placed most deeply behind collision surface </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="out">world_pt</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- point of collision surface that is placed most deeply inside capsule </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>distance between cap_pt and world_pt. If capsule not intersects collision surface the function <bold>returns 0</bold> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="706" column="16" bodyfile="ec_interface.h" bodystart="706" bodyend="709"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1a50090c6c95dce2ee5152029f745bbb1e" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IEditorCoreEngine::getSelectionBox</definition>
+        <argsstring>(BBox3 &amp;box)=0</argsstring>
+        <name>getSelectionBox</name>
+        <qualifiedname>IEditorCoreEngine::getSelectionBox</qualifiedname>
+        <param>
+          <type>BBox3 &amp;</type>
+          <declname>box</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get current selection box. Selection box depends on plugin active and objects selected. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="out">box</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- selection box </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if operation successful, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="717" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1a6d23aa94c0dd93c294747033d93d4f88" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IEditorCoreEngine::zoomAndCenter</definition>
+        <argsstring>()=0</argsstring>
+        <name>zoomAndCenter</name>
+        <qualifiedname>IEditorCoreEngine::zoomAndCenter</qualifiedname>
+        <briefdescription>
+<para>Zoom and center objects. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="720" column="16"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="user-defined">
+      <header>Gizmo methods.</header>
+      <memberdef kind="function" id="classIEditorCoreEngine_1a079714eb24dde440345606cd593befbb" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IEditorCoreEngine::setGizmo</definition>
+        <argsstring>(IGizmoClient *gc, ModeType type)=0</argsstring>
+        <name>setGizmo</name>
+        <qualifiedname>IEditorCoreEngine::setGizmo</qualifiedname>
+        <param>
+          <type><ref refid="classIGizmoClient" kindref="compound">IGizmoClient</ref> *</type>
+          <declname>gc</declname>
+        </param>
+        <param>
+          <type><ref refid="classIEditorCoreEngine_1ac0d075ac36ece35fd29aa489e2542d06" kindref="member">ModeType</ref></type>
+          <declname>type</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Set Gizmo. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">gc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to object of an interface class <ref refid="classIGizmoClient" kindref="compound">IGizmoClient</ref> </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">type</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- Gizmo type and mode </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="729" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1a3c39b4a90b18757daf08eb7a3b8c0d7d" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IEditorCoreEngine::startGizmo</definition>
+        <argsstring>(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif)=0</argsstring>
+        <name>startGizmo</name>
+        <qualifiedname>IEditorCoreEngine::startGizmo</qualifiedname>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>inside</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>buttons</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>key_modif</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Force start of changing objects with Gizmo, as if user clicks Gizmo. Function calls handleMouseLBPress() method of Gizmo&apos;s event handler <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x,y</bold> coordinates inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">inside</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true</bold> if event occurred inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">buttons</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- mouse buttons state flags </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key_modif</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if event successfully processed, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="739" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1a1c93bb7220c16c2f5164cad7aafa3ebc" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IEditorCoreEngine::endGizmo</definition>
+        <argsstring>(bool apply)=0</argsstring>
+        <name>endGizmo</name>
+        <qualifiedname>IEditorCoreEngine::endGizmo</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>apply</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>End the currently onging gizmo operation the same way as if the user finished it by releasing the left mouse button or canceled it by pressing the right mouse button. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">apply</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- whether the apply or cancel the onging operation </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="744" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1a9c104126744b818d0d7f3e8ae3f9dcf5" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type><ref refid="classIEditorCoreEngine_1ac0d075ac36ece35fd29aa489e2542d06" kindref="member">ModeType</ref></type>
+        <definition>virtual ModeType IEditorCoreEngine::getGizmoModeType</definition>
+        <argsstring>()=0</argsstring>
+        <name>getGizmoModeType</name>
+        <qualifiedname>IEditorCoreEngine::getGizmoModeType</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get Gizmo mode. <simplesect kind="return"><para>Gizmo mode (see <ref refid="classIEditorCoreEngine_1ac0d075ac36ece35fd29aa489e2542d06" kindref="member">ModeType</ref>) </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="748" column="20"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1a57161077501a04ddc114bb0931aefc96" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type><ref refid="classIEditorCoreEngine_1aa5e65738760339984ca2e44e7b5f75df" kindref="member">BasisType</ref></type>
+        <definition>virtual BasisType IEditorCoreEngine::getGizmoBasisType</definition>
+        <argsstring>()=0</argsstring>
+        <name>getGizmoBasisType</name>
+        <qualifiedname>IEditorCoreEngine::getGizmoBasisType</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get Gizmo basis. <simplesect kind="return"><para>Gizmo basis (see <ref refid="classIEditorCoreEngine_1aa5e65738760339984ca2e44e7b5f75df" kindref="member">BasisType</ref>) </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="752" column="21"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1a59c2878705ab3df3ca78236e67b798f0" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type><ref refid="classIEditorCoreEngine_1aa5e65738760339984ca2e44e7b5f75df" kindref="member">BasisType</ref></type>
+        <definition>virtual BasisType IEditorCoreEngine::getGizmoBasisTypeForMode</definition>
+        <argsstring>(ModeType tp)=0</argsstring>
+        <name>getGizmoBasisTypeForMode</name>
+        <qualifiedname>IEditorCoreEngine::getGizmoBasisTypeForMode</qualifiedname>
+        <param>
+          <type><ref refid="classIEditorCoreEngine_1ac0d075ac36ece35fd29aa489e2542d06" kindref="member">ModeType</ref></type>
+          <declname>tp</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get Gizmo basis for a specific mode. <simplesect kind="return"><para>Gizmo basis for a specific mode (see <ref refid="classIEditorCoreEngine_1aa5e65738760339984ca2e44e7b5f75df" kindref="member">BasisType</ref> and see <ref refid="classIEditorCoreEngine_1ac0d075ac36ece35fd29aa489e2542d06" kindref="member">ModeType</ref>) </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="756" column="21"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1ab129143013ff56a95785092831a99370" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type><ref refid="classIEditorCoreEngine_1aafb4f8662da5f0764868f25fd3cc3eaa" kindref="member">CenterType</ref></type>
+        <definition>virtual CenterType IEditorCoreEngine::getGizmoCenterType</definition>
+        <argsstring>()=0</argsstring>
+        <name>getGizmoCenterType</name>
+        <qualifiedname>IEditorCoreEngine::getGizmoCenterType</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get Gizmo center type. <simplesect kind="return"><para>Gizmo center type (see <ref refid="classIEditorCoreEngine_1aafb4f8662da5f0764868f25fd3cc3eaa" kindref="member">CenterType</ref>) </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="760" column="22"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1a8595243d3cec755b51872d7fccd93e63" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type><ref refid="classIEditorCoreEngine_1aafb4f8662da5f0764868f25fd3cc3eaa" kindref="member">CenterType</ref></type>
+        <definition>virtual CenterType IEditorCoreEngine::getGizmoCenterTypeForMode</definition>
+        <argsstring>(ModeType tp)=0</argsstring>
+        <name>getGizmoCenterTypeForMode</name>
+        <qualifiedname>IEditorCoreEngine::getGizmoCenterTypeForMode</qualifiedname>
+        <param>
+          <type><ref refid="classIEditorCoreEngine_1ac0d075ac36ece35fd29aa489e2542d06" kindref="member">ModeType</ref></type>
+          <declname>tp</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get Gizmo center type for a specific mode. <simplesect kind="return"><para>Gizmo center type a specific mode (see <ref refid="classIEditorCoreEngine_1aafb4f8662da5f0764868f25fd3cc3eaa" kindref="member">CenterType</ref> and see <ref refid="classIEditorCoreEngine_1ac0d075ac36ece35fd29aa489e2542d06" kindref="member">ModeType</ref>) </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="764" column="22"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1ad6b78799675ea5491db4d310cfed5f54" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IEditorCoreEngine::isGizmoOperationStarted</definition>
+        <argsstring>() const =0</argsstring>
+        <name>isGizmoOperationStarted</name>
+        <qualifiedname>IEditorCoreEngine::isGizmoOperationStarted</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Tests whether a gizmo operation is in progress. (For example pressing the left mouse button on the translation gizmo and moving an object.) <simplesect kind="return"><para><bold>true</bold> if operation is in progress </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="769" column="16"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="user-defined">
+      <header>Brush methods.</header>
+      <memberdef kind="function" id="classIEditorCoreEngine_1a3634ee82d2b3eab011cc681dda79dc82" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IEditorCoreEngine::beginBrushPaint</definition>
+        <argsstring>()=0</argsstring>
+        <name>beginBrushPaint</name>
+        <qualifiedname>IEditorCoreEngine::beginBrushPaint</qualifiedname>
+        <briefdescription>
+<para>Force the core to begin working with brush. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="779" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1aea1508117bf5242e2396f47891cef804" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IEditorCoreEngine::renderBrush</definition>
+        <argsstring>()=0</argsstring>
+        <name>renderBrush</name>
+        <qualifiedname>IEditorCoreEngine::renderBrush</qualifiedname>
+        <briefdescription>
+<para>Force the core to render brush. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="782" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1a2265b8cbf4916e472b4e1c40af244eb3" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IEditorCoreEngine::setBrush</definition>
+        <argsstring>(Brush *brush)=0</argsstring>
+        <name>setBrush</name>
+        <qualifiedname>IEditorCoreEngine::setBrush</qualifiedname>
+        <param>
+          <type><ref refid="classBrush" kindref="compound">Brush</ref> *</type>
+          <declname>brush</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Set brush. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">brush</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to brush </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="786" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1a3101b4169be65e567b621800b4cf580a" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type><ref refid="classBrush" kindref="compound">Brush</ref> *</type>
+        <definition>virtual Brush * IEditorCoreEngine::getBrush</definition>
+        <argsstring>() const =0</argsstring>
+        <name>getBrush</name>
+        <qualifiedname>IEditorCoreEngine::getBrush</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get current brush. <simplesect kind="return"><para>brush - pointer to <ref refid="classBrush" kindref="compound">Brush</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="790" column="17"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1abff2d30e2c6ca69e779b88452b32924d" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IEditorCoreEngine::endBrushPaint</definition>
+        <argsstring>()=0</argsstring>
+        <name>endBrushPaint</name>
+        <qualifiedname>IEditorCoreEngine::endBrushPaint</qualifiedname>
+        <briefdescription>
+<para>Stop working with brush. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="793" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1ad5851810e350c09b21124543dd2a62bc" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IEditorCoreEngine::isBrushPainting</definition>
+        <argsstring>() const =0</argsstring>
+        <name>isBrushPainting</name>
+        <qualifiedname>IEditorCoreEngine::isBrushPainting</qualifiedname>
+        <briefdescription>
+<para>Is working with brush. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="795" column="16"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="user-defined">
+      <header>Spatial cursor handling.</header>
+      <memberdef kind="function" id="classIEditorCoreEngine_1a3bb5c7730035bf266e54670eb569a47e" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IEditorCoreEngine::showUiCursor</definition>
+        <argsstring>(bool vis)=0</argsstring>
+        <name>showUiCursor</name>
+        <qualifiedname>IEditorCoreEngine::showUiCursor</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>vis</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Show / hide spatial cursor. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">vis</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- true / false: show / hide </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="804" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1a0741dd62800813cfb302ebe84ea70ca2" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IEditorCoreEngine::setUiCursorPos</definition>
+        <argsstring>(const Point3 &amp;pos, const Point3 *norm=NULL)=0</argsstring>
+        <name>setUiCursorPos</name>
+        <qualifiedname>IEditorCoreEngine::setUiCursorPos</qualifiedname>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>pos</declname>
+        </param>
+        <param>
+          <type>const Point3 *</type>
+          <declname>norm</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Set spatial cursor position. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">pos</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- world coordinates </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">norm</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to surface normal (if NULL then surface normal to be considered as Point3(0, 1, 0)) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="810" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1a22cc209c9ea7c2bba4b13938747606d3" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IEditorCoreEngine::getUiCursorPos</definition>
+        <argsstring>(Point3 &amp;pos, Point3 &amp;norm)=0</argsstring>
+        <name>getUiCursorPos</name>
+        <qualifiedname>IEditorCoreEngine::getUiCursorPos</qualifiedname>
+        <param>
+          <type>Point3 &amp;</type>
+          <declname>pos</declname>
+        </param>
+        <param>
+          <type>Point3 &amp;</type>
+          <declname>norm</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get spatial cursor position and surface normal. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="out">pos</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- world coordinates </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="out">norm</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- surface normal </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="815" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1ae7594f0da6d073ad538196c319635ac9" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IEditorCoreEngine::setUiCursorTex</definition>
+        <argsstring>(TEXTUREID tex_id)=0</argsstring>
+        <name>setUiCursorTex</name>
+        <qualifiedname>IEditorCoreEngine::setUiCursorTex</qualifiedname>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>tex_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Set spatial cursor texture. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">tex_id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- texture&apos;s id </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="819" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1aa3d6e4bd0438321f2832cca7999ea8c6" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IEditorCoreEngine::setUiCursorProps</definition>
+        <argsstring>(real size, bool always_xz)=0</argsstring>
+        <name>setUiCursorProps</name>
+        <qualifiedname>IEditorCoreEngine::setUiCursorProps</qualifiedname>
+        <param>
+          <type>real</type>
+          <declname>size</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>always_xz</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Set spatial cursor properties. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">size</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- size (in metres) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">always_xz</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true</bold> - UI cursor surface always lies on XZ surface </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="824" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1a5805f0391b8d4ad0af13e9c07b63c8d1" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IEditorCoreEngine::showSelectWindow</definition>
+        <argsstring>(IObjectsList *obj_list, const char *obj_list_owner_name=NULL)=0</argsstring>
+        <name>showSelectWindow</name>
+        <qualifiedname>IEditorCoreEngine::showSelectWindow</qualifiedname>
+        <param>
+          <type><ref refid="classIObjectsList" kindref="compound">IObjectsList</ref> *</type>
+          <declname>obj_list</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>obj_list_owner_name</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Show dialog window &apos;Select by name&apos;. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">obj_list</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to objects list (see <ref refid="classIObjectsList" kindref="compound">IObjectsList</ref>) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="831" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1a6ee39df14bf111aad823b5e971dd0399" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>UndoSystem *</type>
+        <definition>virtual UndoSystem * IEditorCoreEngine::getUndoSystem</definition>
+        <argsstring>()=0</argsstring>
+        <name>getUndoSystem</name>
+        <qualifiedname>IEditorCoreEngine::getUndoSystem</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get pointer to editor&apos;s render buffer. <simplesect kind="return"><para>pointer to editor&apos;s render buffer Get pointer to editor&apos;s undo system. </para>
+</simplesect>
+<simplesect kind="return"><para>pointer to editor&apos;s undo system </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="839" column="22"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1ab90dfaf9003c64f84e734698732c7c9d" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>CoolConsole &amp;</type>
+        <definition>virtual CoolConsole &amp; IEditorCoreEngine::getConsole</definition>
+        <argsstring>()=0</argsstring>
+        <name>getConsole</name>
+        <qualifiedname>IEditorCoreEngine::getConsole</qualifiedname>
+        <briefdescription>
+<para>Returns link to the application console. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="842" column="23"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1a6b8325396ecca5922b597af2a2979287" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type><ref refid="classGridObject" kindref="compound">GridObject</ref> &amp;</type>
+        <definition>virtual GridObject &amp; IEditorCoreEngine::getGrid</definition>
+        <argsstring>()=0</argsstring>
+        <name>getGrid</name>
+        <qualifiedname>IEditorCoreEngine::getGrid</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get Grid object. <simplesect kind="return"><para>reference to grid </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="846" column="22"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1a5390870f4a276410aed9b33b9597d4fd" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type><ref refid="classGizmoEventFilter" kindref="compound">GizmoEventFilter</ref> &amp;</type>
+        <definition>virtual GizmoEventFilter &amp; IEditorCoreEngine::getGizmoEventFilter</definition>
+        <argsstring>()=0</argsstring>
+        <name>getGizmoEventFilter</name>
+        <qualifiedname>IEditorCoreEngine::getGizmoEventFilter</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get gizmo event filter. <simplesect kind="return"><para>reference to gizmo event filter </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="850" column="28"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1adc400f9a84a3beed7559a5f90aef743d" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classIEditorCoreEngine" kindref="compound">IEditorCoreEngine</ref> *</type>
+        <definition>static IEditorCoreEngine * IEditorCoreEngine::get</definition>
+        <argsstring>()</argsstring>
+        <name>get</name>
+        <qualifiedname>IEditorCoreEngine::get</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get pointer to current editor core instance. <simplesect kind="return"><para>pointer to current editor core instance </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="854" column="35" bodyfile="ec_interface.h" bodystart="854" bodyend="854"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCoreEngine_1ae6886c3189bd353b5a05a02eb01b8b2c" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>static void IEditorCoreEngine::set</definition>
+        <argsstring>(IEditorCoreEngine *eng)</argsstring>
+        <name>set</name>
+        <qualifiedname>IEditorCoreEngine::set</qualifiedname>
+        <param>
+          <type><ref refid="classIEditorCoreEngine" kindref="compound">IEditorCoreEngine</ref> *</type>
+          <declname>eng</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Set current editor core instance. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">eng</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- editor core instance </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="858" column="22" bodyfile="ec_interface.h" bodystart="858" bodyend="858"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="classIEditorCoreEngine_1a193731eb3d3e947a185c7244246977ea" prot="public" static="yes" mutable="no">
+        <type>const int</type>
+        <definition>const int IEditorCoreEngine::VERSION</definition>
+        <argsstring></argsstring>
+        <name>VERSION</name>
+        <qualifiedname>IEditorCoreEngine::VERSION</qualifiedname>
+        <initializer>= 0x203</initializer>
+        <briefdescription>
+<para>Current version of interface. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface.h" line="467" column="20" bodyfile="ec_interface.h" bodystart="467" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Interface class to editor core. Used to call core functions. Editor interface to be used by plugins. </para>
+    </detaileddescription>
+    <location file="ec_interface.h" line="463" column="1" bodyfile="ec_interface.h" bodystart="464" bodyend="921"/>
+    <listofallmembers>
+      <member refid="classIEditorCoreEngine_1aed805e91a16ea812f641308c093ee817" prot="private" virt="non-virtual"><scope>IEditorCoreEngine</scope><name>__global_instance</name></member>
+      <member refid="classIEditorCoreEngine_1a9491b76f8c5fae0a3b0015a0804eda59" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>actObjects</name></member>
+      <member refid="classIEditorCoreEngine_1a81f371a22e90cdfac44006546e0295d3" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>addPropPanel</name></member>
+      <member refid="classIEditorCoreEngine_1aa5e65738760339984ca2e44e7b5f75dfaa581d424afae4f0ae452004ac889e911" prot="public" virt="non-virtual"><scope>IEditorCoreEngine</scope><name>BASIS_Local</name></member>
+      <member refid="classIEditorCoreEngine_1aa5e65738760339984ca2e44e7b5f75dfacf77cddea3189155f1cfcca9c6968a44" prot="public" virt="non-virtual"><scope>IEditorCoreEngine</scope><name>BASIS_None</name></member>
+      <member refid="classIEditorCoreEngine_1aa5e65738760339984ca2e44e7b5f75dfa0115e5ee4651632d441b017e9ab9bf25" prot="public" virt="non-virtual"><scope>IEditorCoreEngine</scope><name>BASIS_Parent</name></member>
+      <member refid="classIEditorCoreEngine_1aa5e65738760339984ca2e44e7b5f75dfa3159ad4c640a216498100dbf85f5826b" prot="public" virt="non-virtual"><scope>IEditorCoreEngine</scope><name>BASIS_World</name></member>
+      <member refid="classIEditorCoreEngine_1aa5e65738760339984ca2e44e7b5f75df" prot="public" virt="non-virtual"><scope>IEditorCoreEngine</scope><name>BasisType</name></member>
+      <member refid="classIEditorCoreEngine_1a970c3702a37bd3290252c3f974e0f3a1" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>beforeRenderObjects</name></member>
+      <member refid="classIEditorCoreEngine_1a3634ee82d2b3eab011cc681dda79dc82" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>beginBrushPaint</name></member>
+      <member refid="classIEditorCoreEngine_1aafb4f8662da5f0764868f25fd3cc3eaaa59ab6a80898bfac5e912e9f63ac8b46a" prot="public" virt="non-virtual"><scope>IEditorCoreEngine</scope><name>CENTER_Coordinates</name></member>
+      <member refid="classIEditorCoreEngine_1aafb4f8662da5f0764868f25fd3cc3eaaa3fa0401c65a4bac5740da02bd20af954" prot="public" virt="non-virtual"><scope>IEditorCoreEngine</scope><name>CENTER_None</name></member>
+      <member refid="classIEditorCoreEngine_1aafb4f8662da5f0764868f25fd3cc3eaaaf106109c42a910ae0622d6c8d16cfa41" prot="public" virt="non-virtual"><scope>IEditorCoreEngine</scope><name>CENTER_Pivot</name></member>
+      <member refid="classIEditorCoreEngine_1aafb4f8662da5f0764868f25fd3cc3eaaa086436759a30e1009553561c2578be93" prot="public" virt="non-virtual"><scope>IEditorCoreEngine</scope><name>CENTER_Selection</name></member>
+      <member refid="classIEditorCoreEngine_1aafb4f8662da5f0764868f25fd3cc3eaaa7f505401a850919bed78c385909b58f8" prot="public" virt="non-virtual"><scope>IEditorCoreEngine</scope><name>CENTER_SelectionNotRotObj</name></member>
+      <member refid="classIEditorCoreEngine_1aafb4f8662da5f0764868f25fd3cc3eaa" prot="public" virt="non-virtual"><scope>IEditorCoreEngine</scope><name>CenterType</name></member>
+      <member refid="classIEditorCoreEngine_1abb79bb6c0d3511b35e18c9f1133004dc" prot="public" virt="non-virtual"><scope>IEditorCoreEngine</scope><name>checkVersion</name></member>
+      <member refid="classIEditorCoreEngine_1a43f1458c5b77ff2a44a5319432a1c261" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>clientToWorldTrace</name></member>
+      <member refid="classIEditorCoreEngine_1a81adbf6c7a5a7400192324567bd805c6" prot="public" virt="virtual"><scope>IEditorCoreEngine</scope><name>clipCapsuleStatic</name></member>
+      <member refid="classIEditorCoreEngine_1aa3c3814dfa16a789c13c19db6ec7c116" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>createDialog</name></member>
+      <member refid="classIEditorCoreEngine_1a72228540e8632f01bb05bd78d88dd857" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>createPropPanel</name></member>
+      <member refid="classIEditorCoreEngine_1a135072c00af3bb6c41cbed87cb02bb72" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>curPlugin</name></member>
+      <member refid="classIEditorCoreEngine_1a1a493db958f57b52ed3b4c769f65842f" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>curPluginBase</name></member>
+      <member refid="classIEditorCoreEngine_1a25d5e0cbf3b03b8b93d32d2e273fd8d8" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>deleteCustomPanel</name></member>
+      <member refid="classIEditorCoreEngine_1a99b7ec1388a084a941d3c99fd3bfa60e" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>deleteDialog</name></member>
+      <member refid="classIEditorCoreEngine_1abff2d30e2c6ca69e779b88452b32924d" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>endBrushPaint</name></member>
+      <member refid="classIEditorCoreEngine_1a1c93bb7220c16c2f5164cad7aafa3ebc" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>endGizmo</name></member>
+      <member refid="classIEditorCoreEngine_1adc400f9a84a3beed7559a5f90aef743d" prot="public" virt="non-virtual"><scope>IEditorCoreEngine</scope><name>get</name></member>
+      <member refid="classIEditorCoreEngine_1ae53bad425c45547e534bf5bcf4091131" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>getBaseWorkspace</name></member>
+      <member refid="classIEditorCoreEngine_1a3101b4169be65e567b621800b4cf580a" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>getBrush</name></member>
+      <member refid="classIEditorCoreEngine_1ab90dfaf9003c64f84e734698732c7c9d" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>getConsole</name></member>
+      <member refid="classIEditorCoreEngine_1ae07d6b39ac4657c817e79ee77d5c2de0" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>getCurrentViewport</name></member>
+      <member refid="classIEditorCoreEngine_1aaeb03cf31f08e1cec0b99c6dc044b9fb" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>getCustomPanel</name></member>
+      <member refid="classIEditorCoreEngine_1a57161077501a04ddc114bb0931aefc96" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>getGizmoBasisType</name></member>
+      <member refid="classIEditorCoreEngine_1a59c2878705ab3df3ca78236e67b798f0" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>getGizmoBasisTypeForMode</name></member>
+      <member refid="classIEditorCoreEngine_1ab129143013ff56a95785092831a99370" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>getGizmoCenterType</name></member>
+      <member refid="classIEditorCoreEngine_1a8595243d3cec755b51872d7fccd93e63" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>getGizmoCenterTypeForMode</name></member>
+      <member refid="classIEditorCoreEngine_1a5390870f4a276410aed9b33b9597d4fd" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>getGizmoEventFilter</name></member>
+      <member refid="classIEditorCoreEngine_1a9c104126744b818d0d7f3e8ae3f9dcf5" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>getGizmoModeType</name></member>
+      <member refid="classIEditorCoreEngine_1a6b8325396ecca5922b597af2a2979287" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>getGrid</name></member>
+      <member refid="classIEditorCoreEngine_1a009dcc7a99b3fa11ec64f9ff94b8816f" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>getInterface</name></member>
+      <member refid="classIEditorCoreEngine_1ac3c242dd46ff5c84538e4b7787237991" prot="public" virt="non-virtual"><scope>IEditorCoreEngine</scope><name>getInterfaceEx</name></member>
+      <member refid="classIEditorCoreEngine_1a3d584eecd5dfd0e5cc0351a796670c51" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>getInterfaces</name></member>
+      <member refid="classIEditorCoreEngine_1a661694eae675b3066d718df978f2e455" prot="public" virt="non-virtual"><scope>IEditorCoreEngine</scope><name>getInterfacesEx</name></member>
+      <member refid="classIEditorCoreEngine_1af0bc2450c0cb107504b13770ff606cef" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>getLibCachePtr</name></member>
+      <member refid="classIEditorCoreEngine_1ad9e519dfb2de285f164aa69272a46464" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>getLibData</name></member>
+      <member refid="classIEditorCoreEngine_1a2230ab1fc52742e35bc8b60ce37b508e" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>getLibDir</name></member>
+      <member refid="classIEditorCoreEngine_1aa58a776a9637510c7b9cd12820368003" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>getMainMenu</name></member>
+      <member refid="classIEditorCoreEngine_1a1c71f956bf258cc3e942e56ef7d2330e" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>getMaxTraceDistance</name></member>
+      <member refid="classIEditorCoreEngine_1a0f06063811351170993ef6006f834da2" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>getPlugin</name></member>
+      <member refid="classIEditorCoreEngine_1a2d82155af7aa6255047a2930e24ceb24" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>getPluginBase</name></member>
+      <member refid="classIEditorCoreEngine_1af62bd92e390d25c98304b6b9dedfad9b" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>getPluginCount</name></member>
+      <member refid="classIEditorCoreEngine_1a87c02970f258a98635c3e5c1b85bf78a" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>getRenderViewport</name></member>
+      <member refid="classIEditorCoreEngine_1a50090c6c95dce2ee5152029f745bbb1e" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>getSelectionBox</name></member>
+      <member refid="classIEditorCoreEngine_1a22cc209c9ea7c2bba4b13938747606d3" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>getUiCursorPos</name></member>
+      <member refid="classIEditorCoreEngine_1a6ee39df14bf111aad823b5e971dd0399" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>getUndoSystem</name></member>
+      <member refid="classIEditorCoreEngine_1ad7b67a19f63fe4732080a1126d62fca3" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>getViewport</name></member>
+      <member refid="classIEditorCoreEngine_1a46dccb264ce51ec4bcc7784101331016" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>getViewportCount</name></member>
+      <member refid="classIEditorCoreEngine_1ab805eb67f2a6723ff750049c8614c27f" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>getWndManager</name></member>
+      <member refid="classIEditorCoreEngine_1ab1d7d307c148796e018de11977385fbda997b4f221973beb959e059c4d275b683" prot="public" virt="non-virtual"><scope>IEditorCoreEngine</scope><name>GIZMO_MASK_Basis</name></member>
+      <member refid="classIEditorCoreEngine_1ab1d7d307c148796e018de11977385fbda37a2579eeb79ac2a324d095e33d5362f" prot="public" virt="non-virtual"><scope>IEditorCoreEngine</scope><name>GIZMO_MASK_CENTER</name></member>
+      <member refid="classIEditorCoreEngine_1ab1d7d307c148796e018de11977385fbda28b941fefce1333518c046da12e1e531" prot="public" virt="non-virtual"><scope>IEditorCoreEngine</scope><name>GIZMO_MASK_Mode</name></member>
+      <member refid="classIEditorCoreEngine_1a9880154061233454ba3d017df66965fc" prot="public" virt="non-virtual"><scope>IEditorCoreEngine</scope><name>IEditorCoreEngine</name></member>
+      <member refid="classIEditorCoreEngine_1af465a4814f9dd6de9797bdbeed715688" prot="private" virt="non-virtual"><scope>IEditorCoreEngine</scope><name>interfaceVer</name></member>
+      <member refid="classIEditorCoreEngine_1a5a9884e591dc02ad40f29f4f9fa1b3d5" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>invalidateViewportCache</name></member>
+      <member refid="classIEditorCoreEngine_1ad5851810e350c09b21124543dd2a62bc" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>isBrushPainting</name></member>
+      <member refid="classIEditorCoreEngine_1ad6b78799675ea5491db4d310cfed5f54" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>isGizmoOperationStarted</name></member>
+      <member refid="classIEditorCoreEngine_1a9f6b0e5d2558e1b69d8266949b40a7a0" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>managePropPanels</name></member>
+      <member refid="classIEditorCoreEngine_1ac0d075ac36ece35fd29aa489e2542d06a97239178a6c9492c620bce7ba0c0d234" prot="public" virt="non-virtual"><scope>IEditorCoreEngine</scope><name>MODE_Move</name></member>
+      <member refid="classIEditorCoreEngine_1ac0d075ac36ece35fd29aa489e2542d06a547f80fb173eb9c02104850436882c00" prot="public" virt="non-virtual"><scope>IEditorCoreEngine</scope><name>MODE_MoveSurface</name></member>
+      <member refid="classIEditorCoreEngine_1ac0d075ac36ece35fd29aa489e2542d06ab25798ab3f872ecffdd80788ecb90fb9" prot="public" virt="non-virtual"><scope>IEditorCoreEngine</scope><name>MODE_None</name></member>
+      <member refid="classIEditorCoreEngine_1ac0d075ac36ece35fd29aa489e2542d06acd1440c3153b88910717c50068198708" prot="public" virt="non-virtual"><scope>IEditorCoreEngine</scope><name>MODE_Rotate</name></member>
+      <member refid="classIEditorCoreEngine_1ac0d075ac36ece35fd29aa489e2542d06afbbdfe367525516b01fecc8183571359" prot="public" virt="non-virtual"><scope>IEditorCoreEngine</scope><name>MODE_Scale</name></member>
+      <member refid="classIEditorCoreEngine_1ac0d075ac36ece35fd29aa489e2542d06" prot="public" virt="non-virtual"><scope>IEditorCoreEngine</scope><name>ModeType</name></member>
+      <member refid="classIEditorCoreEngine_1a2977bae53c3af029177d2572fcba62e0" prot="public" virt="non-virtual"><scope>IEditorCoreEngine</scope><name>queryEditorInterface</name></member>
+      <member refid="classIEditorCoreEngine_1a3c6ed9e89e16dbebee70a0b7758d8cdd" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>queryEditorInterfacePtr</name></member>
+      <member refid="classIEditorCoreEngine_1a393034c6f4e4d17552454fde6fddecd0" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>registerPlugin</name></member>
+      <member refid="classIEditorCoreEngine_1a84394e24a8c4a9e8a2a5c4542e92cbe4" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>removePropPanel</name></member>
+      <member refid="classIEditorCoreEngine_1aea1508117bf5242e2396f47891cef804" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>renderBrush</name></member>
+      <member refid="classIEditorCoreEngine_1a99d29d13617d1b9249ab68e733f11e48" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>renderIslDecalObjects</name></member>
+      <member refid="classIEditorCoreEngine_1a4ff2e6c745d570ff8b7d4b8041624df6" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>renderObjects</name></member>
+      <member refid="classIEditorCoreEngine_1ace52e51fd582d78a0daa13a6bc868dbf" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>renderTransObjects</name></member>
+      <member refid="classIEditorCoreEngine_1afb74338a68cbcac23737ea37aad7655c" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>restoreEditorColliders</name></member>
+      <member refid="classIEditorCoreEngine_1a24949da75fb141a79816dff926a14ff1" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>screenToViewport</name></member>
+      <member refid="classIEditorCoreEngine_1a48a8045cc74814e615e54bfdc889900b" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>screenToWorldTrace</name></member>
+      <member refid="classIEditorCoreEngine_1ae6886c3189bd353b5a05a02eb01b8b2c" prot="public" virt="non-virtual"><scope>IEditorCoreEngine</scope><name>set</name></member>
+      <member refid="classIEditorCoreEngine_1a2265b8cbf4916e472b4e1c40af244eb3" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>setBrush</name></member>
+      <member refid="classIEditorCoreEngine_1ae678797f11f4b2375cacc8c3f9c9c5f5" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>setColliders</name></member>
+      <member refid="classIEditorCoreEngine_1a079714eb24dde440345606cd593befbb" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>setGizmo</name></member>
+      <member refid="classIEditorCoreEngine_1a5f69fee89439442ba06d793b0f7393c4" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>setShowMessageAt</name></member>
+      <member refid="classIEditorCoreEngine_1a0741dd62800813cfb302ebe84ea70ca2" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>setUiCursorPos</name></member>
+      <member refid="classIEditorCoreEngine_1aa3d6e4bd0438321f2832cca7999ea8c6" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>setUiCursorProps</name></member>
+      <member refid="classIEditorCoreEngine_1ae7594f0da6d073ad538196c319635ac9" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>setUiCursorTex</name></member>
+      <member refid="classIEditorCoreEngine_1a67fab79b05f208e4328bd5f0b579bca6" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>setupColliderParams</name></member>
+      <member refid="classIEditorCoreEngine_1ae062bc8062738cd77353f8449e6c3105" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>setViewportCacheMode</name></member>
+      <member refid="classIEditorCoreEngine_1a1f48466c01b2c861b10e2e49e456e106" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>setViewportZnearZfar</name></member>
+      <member refid="classIEditorCoreEngine_1ae84a8378e26bb2a9f398dbafa9940e32" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>showMessageAt</name></member>
+      <member refid="classIEditorCoreEngine_1a5805f0391b8d4ad0af13e9c07b63c8d1" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>showSelectWindow</name></member>
+      <member refid="classIEditorCoreEngine_1a3bb5c7730035bf266e54670eb569a47e" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>showUiCursor</name></member>
+      <member refid="classIEditorCoreEngine_1a09377e7af3935401a4bd8ed499ea4ade" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>skipManagePropPanels</name></member>
+      <member refid="classIEditorCoreEngine_1ae99a1e95d34fadf3e492d33e4452a7dd" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>snapToAngle</name></member>
+      <member refid="classIEditorCoreEngine_1a240f7bc68d4398f52db47d9a733e37d8" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>snapToGrid</name></member>
+      <member refid="classIEditorCoreEngine_1a5e01d0e4aa747534826c96e02091a427" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>snapToScale</name></member>
+      <member refid="classIEditorCoreEngine_1a3c39b4a90b18757daf08eb7a3b8c0d7d" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>startGizmo</name></member>
+      <member refid="classIEditorCoreEngine_1a019b3c370e50c02f2db2a83292d726ba" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>traceRay</name></member>
+      <member refid="classIEditorCoreEngine_1a4c8f512bbe3a54e21c63016e2436c957" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>unregisterPlugin</name></member>
+      <member refid="classIEditorCoreEngine_1ae110d8087065188c243a4243785aaaa5" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>updateViewports</name></member>
+      <member refid="classIEditorCoreEngine_1a23b74277e03431d74270ac370d98c428a3d60aeda5f6591aa1522bc06c0ea0ca0" prot="public" virt="non-virtual"><scope>IEditorCoreEngine</scope><name>VCM_CacheAll</name></member>
+      <member refid="classIEditorCoreEngine_1a23b74277e03431d74270ac370d98c428a321f710bd0f815eb85bee94e174e4583" prot="public" virt="non-virtual"><scope>IEditorCoreEngine</scope><name>VCM_CacheAllButActive</name></member>
+      <member refid="classIEditorCoreEngine_1a23b74277e03431d74270ac370d98c428a911b6f6b5b191ad3fb5eaed4fa312c5a" prot="public" virt="non-virtual"><scope>IEditorCoreEngine</scope><name>VCM_NoCacheAll</name></member>
+      <member refid="classIEditorCoreEngine_1a193731eb3d3e947a185c7244246977ea" prot="public" virt="non-virtual"><scope>IEditorCoreEngine</scope><name>VERSION</name></member>
+      <member refid="classIEditorCoreEngine_1a23b74277e03431d74270ac370d98c428" prot="public" virt="non-virtual"><scope>IEditorCoreEngine</scope><name>ViewportCacheMode</name></member>
+      <member refid="classIEditorCoreEngine_1a6d23aa94c0dd93c294747033d93d4f88" prot="public" virt="pure-virtual"><scope>IEditorCoreEngine</scope><name>zoomAndCenter</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

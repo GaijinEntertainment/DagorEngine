@@ -1,0 +1,337 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classIDagorTools" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>IDagorTools</compoundname>
+    <includes refid="ec__IEditorCore_8h" local="no">ec_IEditorCore.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classIDagorTools_1af064821d68817909ad2cdcc924efe886" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IDagorTools::ddsConvertImage</definition>
+        <argsstring>(ddstexture::Converter &amp;converter, IGenSave &amp;cb, TexPixel32 *pixels, int width, int height, int stride) const =0</argsstring>
+        <name>ddsConvertImage</name>
+        <qualifiedname>IDagorTools::ddsConvertImage</qualifiedname>
+        <param>
+          <type>ddstexture::Converter &amp;</type>
+          <declname>converter</declname>
+        </param>
+        <param>
+          <type>IGenSave &amp;</type>
+          <declname>cb</declname>
+        </param>
+        <param>
+          <type>TexPixel32 *</type>
+          <declname>pixels</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>width</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>height</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>stride</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="470" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorTools_1ae4762808d2237c7f355c35c44c3f7250" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IDagorTools::loadmaskloadMaskFromFile</definition>
+        <argsstring>(const char *filename, SmallTab&lt; float, TmpmemAlloc &gt; &amp;hmap, int &amp;w, int &amp;h) const =0</argsstring>
+        <name>loadmaskloadMaskFromFile</name>
+        <qualifiedname>IDagorTools::loadmaskloadMaskFromFile</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>filename</declname>
+        </param>
+        <param>
+          <type>SmallTab&lt; float, TmpmemAlloc &gt; &amp;</type>
+          <declname>hmap</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>w</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>h</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="474" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorTools_1afb7363a1c75b8aa3a2d01844a9bfa1ad" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>AnimV20::AnimData *</type>
+        <definition>virtual AnimV20::AnimData * IDagorTools::newAnimData</definition>
+        <argsstring>(IMemAlloc *alloc=NULL) const =0</argsstring>
+        <name>newAnimData</name>
+        <qualifiedname>IDagorTools::newAnimData</qualifiedname>
+        <param>
+          <type>IMemAlloc *</type>
+          <declname>alloc</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="477" column="29"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorTools_1a446e51d416f870857c11e396516bcb9e" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IDagorTools::animDataLoad</definition>
+        <argsstring>(AnimV20::AnimData &amp;anim, IGenLoad &amp;cb, IMemAlloc *alloc=midmem) const =0</argsstring>
+        <name>animDataLoad</name>
+        <qualifiedname>IDagorTools::animDataLoad</qualifiedname>
+        <param>
+          <type>AnimV20::AnimData &amp;</type>
+          <declname>anim</declname>
+        </param>
+        <param>
+          <type>IGenLoad &amp;</type>
+          <declname>cb</declname>
+        </param>
+        <param>
+          <type>IMemAlloc *</type>
+          <declname>alloc</declname>
+          <defval>midmem</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="478" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorTools_1a475e9bbfbb9283b6cf35e96d8e0a80c6" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>unsigned</type>
+        <definition>virtual unsigned IDagorTools::getSimpleHash</definition>
+        <argsstring>(const char *s, unsigned int init_val) const =0</argsstring>
+        <name>getSimpleHash</name>
+        <qualifiedname>IDagorTools::getSimpleHash</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type>unsigned int</type>
+          <declname>init_val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="481" column="20"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorTools_1a925bab72c282192708a9587bb6b1a95f" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void *</type>
+        <definition>virtual void * IDagorTools::win32GetMainWnd</definition>
+        <argsstring>() const =0</argsstring>
+        <name>win32GetMainWnd</name>
+        <qualifiedname>IDagorTools::win32GetMainWnd</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="483" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorTools_1a304830c39d38efffa28b24303182e743" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int IDagorTools::getTimeMsec</definition>
+        <argsstring>() const =0</argsstring>
+        <name>getTimeMsec</name>
+        <qualifiedname>IDagorTools::getTimeMsec</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="486" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorTools_1a14955b2e4da16dcdfe0a4875965db8a2" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>__int64</type>
+        <definition>virtual __int64 IDagorTools::refTimeUsec</definition>
+        <argsstring>() const =0</argsstring>
+        <name>refTimeUsec</name>
+        <qualifiedname>IDagorTools::refTimeUsec</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="487" column="19"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorTools_1a9642b8e78fa06a066f42ebf02103792b" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorTools::ddsxShutdownPlugins</definition>
+        <argsstring>()=0</argsstring>
+        <name>ddsxShutdownPlugins</name>
+        <qualifiedname>IDagorTools::ddsxShutdownPlugins</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="490" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorTools_1afdaba7f61d349fc38d100e8388b1defb" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IDagorTools::ddsxConvertDds</definition>
+        <argsstring>(unsigned targ_code, ddsx::Buffer &amp;dest, void *dds_data, int dds_len, const ddsx::ConvertParams &amp;p)=0</argsstring>
+        <name>ddsxConvertDds</name>
+        <qualifiedname>IDagorTools::ddsxConvertDds</qualifiedname>
+        <param>
+          <type>unsigned</type>
+          <declname>targ_code</declname>
+        </param>
+        <param>
+          <type>ddsx::Buffer &amp;</type>
+          <declname>dest</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>dds_data</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>dds_len</declname>
+        </param>
+        <param>
+          <type>const ddsx::ConvertParams &amp;</type>
+          <declname>p</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="491" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorTools_1ae1ae174f0f162d135b58389f87b0ed30" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>const char *</type>
+        <definition>virtual const char * IDagorTools::ddsxGetLastErrorText</definition>
+        <argsstring>()=0</argsstring>
+        <name>ddsxGetLastErrorText</name>
+        <qualifiedname>IDagorTools::ddsxGetLastErrorText</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="492" column="22"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorTools_1ab228e3cca097fcca5a6f42320f9d6c00" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorTools::ddsxFreeBuffer</definition>
+        <argsstring>(ddsx::Buffer &amp;b)=0</argsstring>
+        <name>ddsxFreeBuffer</name>
+        <qualifiedname>IDagorTools::ddsxFreeBuffer</qualifiedname>
+        <param>
+          <type>ddsx::Buffer &amp;</type>
+          <declname>b</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="493" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorTools_1a1ae993ce030e47e7d05a63d386a5d74e" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IDagorTools::copyFile</definition>
+        <argsstring>(const char *src, const char *dest, bool overwrite=true) const =0</argsstring>
+        <name>copyFile</name>
+        <qualifiedname>IDagorTools::copyFile</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>src</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>dest</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>overwrite</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="496" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorTools_1a6cc984fc92643c1f44611bd27c0a27e4" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IDagorTools::compareFile</definition>
+        <argsstring>(const char *path1, const char *path2) const =0</argsstring>
+        <name>compareFile</name>
+        <qualifiedname>IDagorTools::compareFile</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>path1</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>path2</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="497" column="16"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="ec_IEditorCore.h" line="466" column="1" bodyfile="ec_IEditorCore.h" bodystart="467" bodyend="498"/>
+    <listofallmembers>
+      <member refid="classIDagorTools_1a446e51d416f870857c11e396516bcb9e" prot="public" virt="pure-virtual"><scope>IDagorTools</scope><name>animDataLoad</name></member>
+      <member refid="classIDagorTools_1a6cc984fc92643c1f44611bd27c0a27e4" prot="public" virt="pure-virtual"><scope>IDagorTools</scope><name>compareFile</name></member>
+      <member refid="classIDagorTools_1a1ae993ce030e47e7d05a63d386a5d74e" prot="public" virt="pure-virtual"><scope>IDagorTools</scope><name>copyFile</name></member>
+      <member refid="classIDagorTools_1af064821d68817909ad2cdcc924efe886" prot="public" virt="pure-virtual"><scope>IDagorTools</scope><name>ddsConvertImage</name></member>
+      <member refid="classIDagorTools_1afdaba7f61d349fc38d100e8388b1defb" prot="public" virt="pure-virtual"><scope>IDagorTools</scope><name>ddsxConvertDds</name></member>
+      <member refid="classIDagorTools_1ab228e3cca097fcca5a6f42320f9d6c00" prot="public" virt="pure-virtual"><scope>IDagorTools</scope><name>ddsxFreeBuffer</name></member>
+      <member refid="classIDagorTools_1ae1ae174f0f162d135b58389f87b0ed30" prot="public" virt="pure-virtual"><scope>IDagorTools</scope><name>ddsxGetLastErrorText</name></member>
+      <member refid="classIDagorTools_1a9642b8e78fa06a066f42ebf02103792b" prot="public" virt="pure-virtual"><scope>IDagorTools</scope><name>ddsxShutdownPlugins</name></member>
+      <member refid="classIDagorTools_1a475e9bbfbb9283b6cf35e96d8e0a80c6" prot="public" virt="pure-virtual"><scope>IDagorTools</scope><name>getSimpleHash</name></member>
+      <member refid="classIDagorTools_1a304830c39d38efffa28b24303182e743" prot="public" virt="pure-virtual"><scope>IDagorTools</scope><name>getTimeMsec</name></member>
+      <member refid="classIDagorTools_1ae4762808d2237c7f355c35c44c3f7250" prot="public" virt="pure-virtual"><scope>IDagorTools</scope><name>loadmaskloadMaskFromFile</name></member>
+      <member refid="classIDagorTools_1afb7363a1c75b8aa3a2d01844a9bfa1ad" prot="public" virt="pure-virtual"><scope>IDagorTools</scope><name>newAnimData</name></member>
+      <member refid="classIDagorTools_1a14955b2e4da16dcdfe0a4875965db8a2" prot="public" virt="pure-virtual"><scope>IDagorTools</scope><name>refTimeUsec</name></member>
+      <member refid="classIDagorTools_1a925bab72c282192708a9587bb6b1a95f" prot="public" virt="pure-virtual"><scope>IDagorTools</scope><name>win32GetMainWnd</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

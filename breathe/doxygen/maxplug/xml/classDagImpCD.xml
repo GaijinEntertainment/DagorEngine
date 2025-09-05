@@ -1,0 +1,177 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classDagImpCD" kind="class" language="C++" prot="public">
+    <compoundname>DagImpCD</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">ClassDesc</basecompoundref>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classDagImpCD_1a47f56acc8b8044454a05d3b27b41fc18" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int DagImpCD::IsPublic</definition>
+        <argsstring>() override</argsstring>
+        <name>IsPublic</name>
+        <qualifiedname>DagImpCD::IsPublic</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="405" column="7" bodyfile="dagimp.cpp" bodystart="405" bodyend="405"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagImpCD_1a33f657bd8bc726efb8e4ecef4ce029a3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void *</type>
+        <definition>void * DagImpCD::Create</definition>
+        <argsstring>(BOOL loading) override</argsstring>
+        <name>Create</name>
+        <qualifiedname>DagImpCD::Create</qualifiedname>
+        <param>
+          <type>BOOL</type>
+          <declname>loading</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="406" column="8" bodyfile="dagimp.cpp" bodystart="406" bodyend="406"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagImpCD_1a450c26d8ef344ffb18a0e6599b665b31" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * DagImpCD::ClassName</definition>
+        <argsstring>() override</argsstring>
+        <name>ClassName</name>
+        <qualifiedname>DagImpCD::ClassName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="407" column="15" bodyfile="dagimp.cpp" bodystart="407" bodyend="407"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagImpCD_1ae496ec44a4376165b99a378741ad030d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="max__cpt_8h_1ac2ec3340fbe0c6ea0663fd3923d13fe5" kindref="member">MCHAR</ref> *</type>
+        <definition>const MCHAR * DagImpCD::NonLocalizedClassName</definition>
+        <argsstring>()</argsstring>
+        <name>NonLocalizedClassName</name>
+        <qualifiedname>DagImpCD::NonLocalizedClassName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="411" column="15" bodyfile="dagimp.cpp" bodystart="411" bodyend="411"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagImpCD_1a1803a96315fdebe759933677df69f733" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>SClass_ID</type>
+        <definition>SClass_ID DagImpCD::SuperClassID</definition>
+        <argsstring>() override</argsstring>
+        <name>SuperClassID</name>
+        <qualifiedname>DagImpCD::SuperClassID</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="413" column="13" bodyfile="dagimp.cpp" bodystart="413" bodyend="413"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagImpCD_1af33fa9c5e4ea659014eb7dec055229b0" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Class_ID</type>
+        <definition>Class_ID DagImpCD::ClassID</definition>
+        <argsstring>() override</argsstring>
+        <name>ClassID</name>
+        <qualifiedname>DagImpCD::ClassID</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="414" column="12" bodyfile="dagimp.cpp" bodystart="414" bodyend="414"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagImpCD_1a04bbee1bd68bdb682f4b8919c10b3418" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * DagImpCD::Category</definition>
+        <argsstring>() override</argsstring>
+        <name>Category</name>
+        <qualifiedname>DagImpCD::Category</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="415" column="15" bodyfile="dagimp.cpp" bodystart="415" bodyend="415"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagImpCD_1a78b119ab29f2d5976bfd6010706a047f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * DagImpCD::InternalName</definition>
+        <argsstring>() override</argsstring>
+        <name>InternalName</name>
+        <qualifiedname>DagImpCD::InternalName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="417" column="15" bodyfile="dagimp.cpp" bodystart="417" bodyend="417"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagImpCD_1accfa0c35947e2acdf3bd268e04b303f6" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>HINSTANCE</type>
+        <definition>HINSTANCE DagImpCD::HInstance</definition>
+        <argsstring>() override</argsstring>
+        <name>HInstance</name>
+        <qualifiedname>DagImpCD::HInstance</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="418" column="13" bodyfile="dagimp.cpp" bodystart="418" bodyend="418"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>ClassDesc</label>
+      </node>
+      <node id="1">
+        <label>DagImpCD</label>
+        <link refid="classDagImpCD"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>ClassDesc</label>
+      </node>
+      <node id="1">
+        <label>DagImpCD</label>
+        <link refid="classDagImpCD"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dagimp.cpp" line="402" column="1" bodyfile="dagimp.cpp" bodystart="403" bodyend="419"/>
+    <listofallmembers>
+      <member refid="classDagImpCD_1a04bbee1bd68bdb682f4b8919c10b3418" prot="public" virt="non-virtual"><scope>DagImpCD</scope><name>Category</name></member>
+      <member refid="classDagImpCD_1af33fa9c5e4ea659014eb7dec055229b0" prot="public" virt="non-virtual"><scope>DagImpCD</scope><name>ClassID</name></member>
+      <member refid="classDagImpCD_1a450c26d8ef344ffb18a0e6599b665b31" prot="public" virt="non-virtual"><scope>DagImpCD</scope><name>ClassName</name></member>
+      <member refid="classDagImpCD_1a33f657bd8bc726efb8e4ecef4ce029a3" prot="public" virt="non-virtual"><scope>DagImpCD</scope><name>Create</name></member>
+      <member refid="classDagImpCD_1accfa0c35947e2acdf3bd268e04b303f6" prot="public" virt="non-virtual"><scope>DagImpCD</scope><name>HInstance</name></member>
+      <member refid="classDagImpCD_1a78b119ab29f2d5976bfd6010706a047f" prot="public" virt="non-virtual"><scope>DagImpCD</scope><name>InternalName</name></member>
+      <member refid="classDagImpCD_1a47f56acc8b8044454a05d3b27b41fc18" prot="public" virt="non-virtual"><scope>DagImpCD</scope><name>IsPublic</name></member>
+      <member refid="classDagImpCD_1ae496ec44a4376165b99a378741ad030d" prot="public" virt="non-virtual"><scope>DagImpCD</scope><name>NonLocalizedClassName</name></member>
+      <member refid="classDagImpCD_1a1803a96315fdebe759933677df69f733" prot="public" virt="non-virtual"><scope>DagImpCD</scope><name>SuperClassID</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

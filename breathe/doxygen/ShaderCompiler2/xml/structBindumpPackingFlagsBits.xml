@@ -1,0 +1,64 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structBindumpPackingFlagsBits" kind="struct" language="C++" prot="public">
+    <compoundname>BindumpPackingFlagsBits</compoundname>
+    <includes refid="makeShBinDump_8h" local="no">makeShBinDump.h</includes>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="structBindumpPackingFlagsBits_1a8f1b8124ca43e20fc82a5acfa0060a35" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr uint32_t</type>
+        <definition>constexpr uint32_t BindumpPackingFlagsBits::NONE</definition>
+        <argsstring></argsstring>
+        <name>NONE</name>
+        <qualifiedname>BindumpPackingFlagsBits::NONE</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeShBinDump.h" line="13" column="29" bodyfile="makeShBinDump.h" bodystart="13" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structBindumpPackingFlagsBits_1af6ce521b95d1ea33e3463753a874e8da" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr uint32_t</type>
+        <definition>constexpr uint32_t BindumpPackingFlagsBits::SHADER_GROUPS</definition>
+        <argsstring></argsstring>
+        <name>SHADER_GROUPS</name>
+        <qualifiedname>BindumpPackingFlagsBits::SHADER_GROUPS</qualifiedname>
+        <initializer>= 1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeShBinDump.h" line="14" column="29" bodyfile="makeShBinDump.h" bodystart="14" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structBindumpPackingFlagsBits_1a62bee7765f0657bba97f2a5924cb6c5d" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr uint32_t</type>
+        <definition>constexpr uint32_t BindumpPackingFlagsBits::WHOLE_BINARY</definition>
+        <argsstring></argsstring>
+        <name>WHOLE_BINARY</name>
+        <qualifiedname>BindumpPackingFlagsBits::WHOLE_BINARY</qualifiedname>
+        <initializer>= 1 &lt;&lt; 1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeShBinDump.h" line="15" column="29" bodyfile="makeShBinDump.h" bodystart="15" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="makeShBinDump.h" line="11" column="1" bodyfile="makeShBinDump.h" bodystart="12" bodyend="16"/>
+    <listofallmembers>
+      <member refid="structBindumpPackingFlagsBits_1a8f1b8124ca43e20fc82a5acfa0060a35" prot="public" virt="non-virtual"><scope>BindumpPackingFlagsBits</scope><name>NONE</name></member>
+      <member refid="structBindumpPackingFlagsBits_1af6ce521b95d1ea33e3463753a874e8da" prot="public" virt="non-virtual"><scope>BindumpPackingFlagsBits</scope><name>SHADER_GROUPS</name></member>
+      <member refid="structBindumpPackingFlagsBits_1a62bee7765f0657bba97f2a5924cb6c5d" prot="public" virt="non-virtual"><scope>BindumpPackingFlagsBits</scope><name>WHOLE_BINARY</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

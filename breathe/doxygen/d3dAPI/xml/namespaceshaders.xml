@@ -1,0 +1,52 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespaceshaders" kind="namespace" language="C++">
+    <compoundname>shaders</compoundname>
+    <innerclass refid="classshaders_1_1DriverRenderStateIdDummy" prot="public">shaders::DriverRenderStateIdDummy</innerclass>
+    <innerclass refid="structshaders_1_1RenderState" prot="public">shaders::RenderState</innerclass>
+    <innerclass refid="structshaders_1_1RenderStateBits" prot="public">shaders::RenderStateBits</innerclass>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="namespaceshaders_1a735d1a3cb2bc85a77c7e3b5edadda029" prot="public" static="no" strong="yes">
+        <type>uint32_t</type>
+        <name>RenderStateId</name>
+        <qualifiedname>shaders::RenderStateId</qualifiedname>
+        <enumvalue id="namespaceshaders_1a735d1a3cb2bc85a77c7e3b5edadda029a4bbb8f967da6d1a610596d7257179c2b" prot="public">
+          <name>Invalid</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderStateId.h" line="13" column="1" bodyfile="dag_renderStateId.h" bodystart="14" bodyend="16"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="namespaceshaders_1a18d95bd7603b031ab4919fb4e4ad8022" prot="public" static="no">
+        <type>GenerationRefId&lt; 8, <ref refid="classshaders_1_1DriverRenderStateIdDummy" kindref="compound">DriverRenderStateIdDummy</ref> &gt;</type>
+        <definition>using shaders::DriverRenderStateId = typedef GenerationRefId&lt;8, DriverRenderStateIdDummy&gt;</definition>
+        <argsstring></argsstring>
+        <name>DriverRenderStateId</name>
+        <qualifiedname>shaders::DriverRenderStateId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderStateId.h" line="20" column="1" bodyfile="dag_renderStateId.h" bodystart="20" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_renderStateId.h" line="9" column="1"/>
+  </compounddef>
+</doxygen>

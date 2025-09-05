@@ -1,0 +1,138 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structraytrace_1_1BottomAccelerationCreateInfo" kind="struct" language="C++" prot="public">
+    <compoundname>raytrace::BottomAccelerationCreateInfo</compoundname>
+    <derivedcompoundref refid="structraytrace_1_1BottomAccelerationStructureBuildInfo" prot="public" virt="non-virtual">raytrace::BottomAccelerationStructureBuildInfo</derivedcompoundref>
+    <includes refid="dag__drvRayTrace_8h" local="no">dag_drvRayTrace.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structraytrace_1_1BottomAccelerationCreateInfo_1a00d0d9477498782178c362b54a8efb30" prot="public" static="no" mutable="no">
+        <type>const <ref refid="structRaytraceGeometryDescription" kindref="compound">RaytraceGeometryDescription</ref> *</type>
+        <definition>const RaytraceGeometryDescription* raytrace::BottomAccelerationCreateInfo::geometryDesc</definition>
+        <argsstring></argsstring>
+        <name>geometryDesc</name>
+        <qualifiedname>raytrace::BottomAccelerationCreateInfo::geometryDesc</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+<para>An array of geometry descriptions that describes all the geometry the structure should encapsulate. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="173" column="37" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="173" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1BottomAccelerationCreateInfo_1a7fdae582d957f54a415d9e56072c6f16" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::BottomAccelerationCreateInfo::geometryDescCount</definition>
+        <argsstring></argsstring>
+        <name>geometryDescCount</name>
+        <qualifiedname>raytrace::BottomAccelerationCreateInfo::geometryDescCount</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+<para>Array size of geometryDesc. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="175" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="175" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1BottomAccelerationCreateInfo_1a08b2b87e1886d937d9ff43e6ba5d97ba" prot="public" static="no" mutable="no">
+        <type><ref refid="dag__drvRayTrace_8h_1a46397cc51b1c10848f986af0c0bd49c8" kindref="member">RaytraceBuildFlags</ref></type>
+        <definition>RaytraceBuildFlags raytrace::BottomAccelerationCreateInfo::flags</definition>
+        <argsstring></argsstring>
+        <name>flags</name>
+        <qualifiedname>raytrace::BottomAccelerationCreateInfo::flags</qualifiedname>
+        <initializer>= <ref refid="dag__drvRayTrace_8h_1a46397cc51b1c10848f986af0c0bd49c8ab50339a10e1de285ac99d4c3990b8693" kindref="member">RaytraceBuildFlags::NONE</ref></initializer>
+        <briefdescription>
+<para>Flags that influence some characteristics and valid usage of the structure. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="177" column="22" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="177" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>raytrace::BottomAccelerationCreateInfo</label>
+        <link refid="structraytrace_1_1BottomAccelerationCreateInfo"/>
+      </node>
+      <node id="2">
+        <label>raytrace::BottomAccelerationStructureBuildInfo</label>
+        <link refid="structraytrace_1_1BottomAccelerationStructureBuildInfo"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="6">
+        <label>D3dResource</label>
+        <link refid="classD3dResource"/>
+      </node>
+      <node id="2">
+        <label>RaytraceGeometryDescription</label>
+        <link refid="structRaytraceGeometryDescription"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>data</edgelabel>
+        </childnode>
+      </node>
+      <node id="4">
+        <label>RaytraceGeometryDescription::AABBsInfo</label>
+        <link refid="structRaytraceGeometryDescription_1_1AABBsInfo"/>
+        <childnode refid="5" relation="usage">
+          <edgelabel>buffer</edgelabel>
+        </childnode>
+      </node>
+      <node id="3">
+        <label>RaytraceGeometryDescription::AnyInfo</label>
+        <link refid="unionRaytraceGeometryDescription_1_1AnyInfo"/>
+        <childnode refid="4" relation="usage">
+          <edgelabel>aabbs</edgelabel>
+        </childnode>
+        <childnode refid="8" relation="usage">
+          <edgelabel>triangles</edgelabel>
+        </childnode>
+      </node>
+      <node id="8">
+        <label>RaytraceGeometryDescription::TrianglesInfo</label>
+        <link refid="structRaytraceGeometryDescription_1_1TrianglesInfo"/>
+        <childnode refid="5" relation="usage">
+          <edgelabel>indexBuffer</edgelabel>
+          <edgelabel>transformBuffer</edgelabel>
+          <edgelabel>vertexBuffer</edgelabel>
+        </childnode>
+      </node>
+      <node id="7">
+        <label>ResourceChecker</label>
+        <link refid="structResourceChecker"/>
+      </node>
+      <node id="5">
+        <label>Sbuffer</label>
+        <link refid="classSbuffer"/>
+        <childnode refid="6" relation="public-inheritance">
+        </childnode>
+        <childnode refid="7" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>raytrace::BottomAccelerationCreateInfo</label>
+        <link refid="structraytrace_1_1BottomAccelerationCreateInfo"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>geometryDesc</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="rayTrace/dag_drvRayTrace.h" line="170" column="1" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="171" bodyend="178"/>
+    <listofallmembers>
+      <member refid="structraytrace_1_1BottomAccelerationCreateInfo_1a08b2b87e1886d937d9ff43e6ba5d97ba" prot="public" virt="non-virtual"><scope>raytrace::BottomAccelerationCreateInfo</scope><name>flags</name></member>
+      <member refid="structraytrace_1_1BottomAccelerationCreateInfo_1a00d0d9477498782178c362b54a8efb30" prot="public" virt="non-virtual"><scope>raytrace::BottomAccelerationCreateInfo</scope><name>geometryDesc</name></member>
+      <member refid="structraytrace_1_1BottomAccelerationCreateInfo_1a7fdae582d957f54a415d9e56072c6f16" prot="public" virt="non-virtual"><scope>raytrace::BottomAccelerationCreateInfo</scope><name>geometryDescCount</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

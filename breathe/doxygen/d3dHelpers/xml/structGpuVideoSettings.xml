@@ -1,0 +1,206 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structGpuVideoSettings" kind="struct" language="C++" prot="public">
+    <compoundname>GpuVideoSettings</compoundname>
+    <includes refid="dag__gpuConfig_8h" local="no">dag_gpuConfig.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structGpuVideoSettings_1a945c0124982431101ffc1203ba463aca" prot="public" static="no" mutable="no">
+        <type>DriverCode</type>
+        <definition>DriverCode GpuVideoSettings::drvCode</definition>
+        <argsstring></argsstring>
+        <name>drvCode</name>
+        <qualifiedname>GpuVideoSettings::drvCode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuConfig.h" line="15" column="14" bodyfile="dag_gpuConfig.h" bodystart="15" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGpuVideoSettings_1a5fe73c9d2879eb8dcd90ce4a10306645" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool GpuVideoSettings::disableNvTweaks</definition>
+        <argsstring></argsstring>
+        <name>disableNvTweaks</name>
+        <qualifiedname>GpuVideoSettings::disableNvTweaks</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuConfig.h" line="16" column="8" bodyfile="dag_gpuConfig.h" bodystart="16" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGpuVideoSettings_1a6aa3cd4dc22065dfdfa44d8c936ba2a4" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool GpuVideoSettings::disableAtiTweaks</definition>
+        <argsstring></argsstring>
+        <name>disableAtiTweaks</name>
+        <qualifiedname>GpuVideoSettings::disableAtiTweaks</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuConfig.h" line="17" column="8" bodyfile="dag_gpuConfig.h" bodystart="17" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGpuVideoSettings_1ae027f6adb3571e215f5bbb6ae9e8568a" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool GpuVideoSettings::ignoreOutdatedDriver</definition>
+        <argsstring></argsstring>
+        <name>ignoreOutdatedDriver</name>
+        <qualifiedname>GpuVideoSettings::ignoreOutdatedDriver</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuConfig.h" line="18" column="8" bodyfile="dag_gpuConfig.h" bodystart="18" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGpuVideoSettings_1ac25a782024b4b78d995ad1f3e3a05649" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool GpuVideoSettings::configCompatibilityMode</definition>
+        <argsstring></argsstring>
+        <name>configCompatibilityMode</name>
+        <qualifiedname>GpuVideoSettings::configCompatibilityMode</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuConfig.h" line="19" column="8" bodyfile="dag_gpuConfig.h" bodystart="19" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGpuVideoSettings_1a4164d6f9245c49698ef3db8c991c5de5" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool GpuVideoSettings::allowDx10Fallback</definition>
+        <argsstring></argsstring>
+        <name>allowDx10Fallback</name>
+        <qualifiedname>GpuVideoSettings::allowDx10Fallback</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuConfig.h" line="20" column="8" bodyfile="dag_gpuConfig.h" bodystart="20" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGpuVideoSettings_1a4e5bfa9ad11e4585d06909905446e453" prot="public" static="no" mutable="no">
+        <type>eastl::vector&lt; String &gt;</type>
+        <definition>eastl::vector&lt;String&gt; GpuVideoSettings::oldHardwareList</definition>
+        <argsstring></argsstring>
+        <name>oldHardwareList</name>
+        <qualifiedname>GpuVideoSettings::oldHardwareList</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuConfig.h" line="21" column="17" bodyfile="dag_gpuConfig.h" bodystart="21" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGpuVideoSettings_1a09254cf1a65ae645810a1c3de6f1b4e3" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool GpuVideoSettings::adjustVideoSettings</definition>
+        <argsstring></argsstring>
+        <name>adjustVideoSettings</name>
+        <qualifiedname>GpuVideoSettings::adjustVideoSettings</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuConfig.h" line="22" column="8" bodyfile="dag_gpuConfig.h" bodystart="22" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGpuVideoSettings_1a0388581ff2cc5ce54745630678b4ac3d" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int GpuVideoSettings::lowVideoMemMb</definition>
+        <argsstring></argsstring>
+        <name>lowVideoMemMb</name>
+        <qualifiedname>GpuVideoSettings::lowVideoMemMb</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuConfig.h" line="23" column="7" bodyfile="dag_gpuConfig.h" bodystart="23" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGpuVideoSettings_1a286adedc50140736bb8a8bc9f45b2836" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int GpuVideoSettings::ultraLowVideoMemMb</definition>
+        <argsstring></argsstring>
+        <name>ultraLowVideoMemMb</name>
+        <qualifiedname>GpuVideoSettings::ultraLowVideoMemMb</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuConfig.h" line="24" column="7" bodyfile="dag_gpuConfig.h" bodystart="24" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGpuVideoSettings_1adf66bfa94b36cb5168d943aa38b1b668" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int GpuVideoSettings::lowSystemMemAtMb</definition>
+        <argsstring></argsstring>
+        <name>lowSystemMemAtMb</name>
+        <qualifiedname>GpuVideoSettings::lowSystemMemAtMb</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuConfig.h" line="25" column="7" bodyfile="dag_gpuConfig.h" bodystart="25" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGpuVideoSettings_1a8df478b01453ec4372d6870b51647947" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int GpuVideoSettings::ultralowSystemMemAtMb</definition>
+        <argsstring></argsstring>
+        <name>ultralowSystemMemAtMb</name>
+        <qualifiedname>GpuVideoSettings::ultralowSystemMemAtMb</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuConfig.h" line="26" column="7" bodyfile="dag_gpuConfig.h" bodystart="26" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_gpuConfig.h" line="13" column="1" bodyfile="dag_gpuConfig.h" bodystart="14" bodyend="27"/>
+    <listofallmembers>
+      <member refid="structGpuVideoSettings_1a09254cf1a65ae645810a1c3de6f1b4e3" prot="public" virt="non-virtual"><scope>GpuVideoSettings</scope><name>adjustVideoSettings</name></member>
+      <member refid="structGpuVideoSettings_1a4164d6f9245c49698ef3db8c991c5de5" prot="public" virt="non-virtual"><scope>GpuVideoSettings</scope><name>allowDx10Fallback</name></member>
+      <member refid="structGpuVideoSettings_1ac25a782024b4b78d995ad1f3e3a05649" prot="public" virt="non-virtual"><scope>GpuVideoSettings</scope><name>configCompatibilityMode</name></member>
+      <member refid="structGpuVideoSettings_1a6aa3cd4dc22065dfdfa44d8c936ba2a4" prot="public" virt="non-virtual"><scope>GpuVideoSettings</scope><name>disableAtiTweaks</name></member>
+      <member refid="structGpuVideoSettings_1a5fe73c9d2879eb8dcd90ce4a10306645" prot="public" virt="non-virtual"><scope>GpuVideoSettings</scope><name>disableNvTweaks</name></member>
+      <member refid="structGpuVideoSettings_1a945c0124982431101ffc1203ba463aca" prot="public" virt="non-virtual"><scope>GpuVideoSettings</scope><name>drvCode</name></member>
+      <member refid="structGpuVideoSettings_1ae027f6adb3571e215f5bbb6ae9e8568a" prot="public" virt="non-virtual"><scope>GpuVideoSettings</scope><name>ignoreOutdatedDriver</name></member>
+      <member refid="structGpuVideoSettings_1adf66bfa94b36cb5168d943aa38b1b668" prot="public" virt="non-virtual"><scope>GpuVideoSettings</scope><name>lowSystemMemAtMb</name></member>
+      <member refid="structGpuVideoSettings_1a0388581ff2cc5ce54745630678b4ac3d" prot="public" virt="non-virtual"><scope>GpuVideoSettings</scope><name>lowVideoMemMb</name></member>
+      <member refid="structGpuVideoSettings_1a4e5bfa9ad11e4585d06909905446e453" prot="public" virt="non-virtual"><scope>GpuVideoSettings</scope><name>oldHardwareList</name></member>
+      <member refid="structGpuVideoSettings_1a8df478b01453ec4372d6870b51647947" prot="public" virt="non-virtual"><scope>GpuVideoSettings</scope><name>ultralowSystemMemAtMb</name></member>
+      <member refid="structGpuVideoSettings_1a286adedc50140736bb8a8bc9f45b2836" prot="public" virt="non-virtual"><scope>GpuVideoSettings</scope><name>ultraLowVideoMemMb</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

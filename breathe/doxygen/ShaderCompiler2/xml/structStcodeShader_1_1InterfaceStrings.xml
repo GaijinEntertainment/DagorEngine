@@ -1,0 +1,61 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structStcodeShader_1_1InterfaceStrings" kind="struct" language="C++" prot="public">
+    <compoundname>StcodeShader::InterfaceStrings</compoundname>
+    <includes refid="cppStcodeAssembly_8h" local="no">cppStcodeAssembly.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structStcodeShader_1_1InterfaceStrings_1aafe0e6bca724c730c8ac52f675ef6b6f" prot="public" static="no" mutable="no">
+        <type>eastl::string</type>
+        <definition>eastl::string StcodeShader::InterfaceStrings::regTable</definition>
+        <argsstring></argsstring>
+        <name>regTable</name>
+        <qualifiedname>StcodeShader::InterfaceStrings::regTable</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="394" column="19" bodyfile="cppStcodeAssembly.h" bodystart="394" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structStcodeShader_1_1InterfaceStrings_1aae8a27b3b3c53600fe169ee076942052" prot="public" static="no" mutable="no">
+        <type>eastl::string</type>
+        <definition>eastl::string StcodeShader::InterfaceStrings::dynamicFuncPointerTable</definition>
+        <argsstring></argsstring>
+        <name>dynamicFuncPointerTable</name>
+        <qualifiedname>StcodeShader::InterfaceStrings::dynamicFuncPointerTable</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="395" column="19" bodyfile="cppStcodeAssembly.h" bodystart="395" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structStcodeShader_1_1InterfaceStrings_1ab475f1bbc0694453ff526fdf570f5faa" prot="public" static="no" mutable="no">
+        <type>eastl::string</type>
+        <definition>eastl::string StcodeShader::InterfaceStrings::staticFuncPointerTable</definition>
+        <argsstring></argsstring>
+        <name>staticFuncPointerTable</name>
+        <qualifiedname>StcodeShader::InterfaceStrings::staticFuncPointerTable</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="396" column="19" bodyfile="cppStcodeAssembly.h" bodystart="396" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="cppStcodeAssembly.h" line="392" column="3" bodyfile="cppStcodeAssembly.h" bodystart="393" bodyend="397"/>
+    <listofallmembers>
+      <member refid="structStcodeShader_1_1InterfaceStrings_1aae8a27b3b3c53600fe169ee076942052" prot="public" virt="non-virtual"><scope>StcodeShader::InterfaceStrings</scope><name>dynamicFuncPointerTable</name></member>
+      <member refid="structStcodeShader_1_1InterfaceStrings_1aafe0e6bca724c730c8ac52f675ef6b6f" prot="public" virt="non-virtual"><scope>StcodeShader::InterfaceStrings</scope><name>regTable</name></member>
+      <member refid="structStcodeShader_1_1InterfaceStrings_1ab475f1bbc0694453ff526fdf570f5faa" prot="public" virt="non-virtual"><scope>StcodeShader::InterfaceStrings</scope><name>staticFuncPointerTable</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

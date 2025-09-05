@@ -1,0 +1,89 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classBoolVar" kind="class" language="C++" prot="public">
+    <compoundname>BoolVar</compoundname>
+    <includes refid="boolVar_8h" local="no">boolVar.h</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classBoolVar_1ac345247d402b6f0cbc008889304f7d93" prot="private" static="no" mutable="no">
+        <type>ShaderTerminal::bool_expr *</type>
+        <definition>ShaderTerminal::bool_expr* BoolVar::mExpr</definition>
+        <argsstring></argsstring>
+        <name>mExpr</name>
+        <qualifiedname>BoolVar::mExpr</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="boolVar.h" line="12" column="29" bodyfile="boolVar.h" bodystart="12" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBoolVar_1aacd8ec16f7ae9c00bef09d7ea1b76a8c" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int BoolVar::id</definition>
+        <argsstring></argsstring>
+        <name>id</name>
+        <qualifiedname>BoolVar::id</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="boolVar.h" line="13" column="7" bodyfile="boolVar.h" bodystart="13" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="classBoolVar_1a1bee8c8162866d05d65daafb8974e378" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>class</type>
+        <definition>friend class BoolVarTable</definition>
+        <argsstring></argsstring>
+        <name>BoolVarTable</name>
+        <qualifiedname>BoolVar::BoolVarTable</qualifiedname>
+        <param>
+          <type><ref refid="classBoolVarTable" kindref="compound">BoolVarTable</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="boolVar.h" line="15" column="16" bodyfile="boolVar.h" bodystart="15" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classBoolVar_1ad1fa34d9dccecc5cb9d08fb5fafb2db4" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>BoolVar::BoolVar</definition>
+        <argsstring>(ShaderTerminal::bool_expr *expr)</argsstring>
+        <name>BoolVar</name>
+        <qualifiedname>BoolVar::BoolVar</qualifiedname>
+        <param>
+          <type>ShaderTerminal::bool_expr *</type>
+          <declname>expr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="boolVar.h" line="17" column="3" bodyfile="boolVar.h" bodystart="17" bodyend="17"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="boolVar.h" line="10" column="1" bodyfile="boolVar.h" bodystart="11" bodyend="21"/>
+    <listofallmembers>
+      <member refid="classBoolVar_1ad1fa34d9dccecc5cb9d08fb5fafb2db4" prot="private" virt="non-virtual"><scope>BoolVar</scope><name>BoolVar</name></member>
+      <member refid="classBoolVar_1a1bee8c8162866d05d65daafb8974e378" prot="private" virt="non-virtual"><scope>BoolVar</scope><name>BoolVarTable</name></member>
+      <member refid="classBoolVar_1aacd8ec16f7ae9c00bef09d7ea1b76a8c" prot="private" virt="non-virtual"><scope>BoolVar</scope><name>id</name></member>
+      <member refid="classBoolVar_1ac345247d402b6f0cbc008889304f7d93" prot="private" virt="non-virtual"><scope>BoolVar</scope><name>mExpr</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

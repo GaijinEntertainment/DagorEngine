@@ -1,0 +1,1536 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classIDagorRender" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>IDagorRender</compoundname>
+    <includes refid="ec__IEditorCore_8h" local="no">ec_IEditorCore.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classIDagorRender_1a829a3f6fc617a0ebbbc8fc7693138f7e" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorRender::fillD3dInterfaceTable</definition>
+        <argsstring>(D3dInterfaceTable &amp;d3dit) const =0</argsstring>
+        <name>fillD3dInterfaceTable</name>
+        <qualifiedname>IDagorRender::fillD3dInterfaceTable</qualifiedname>
+        <param>
+          <type>D3dInterfaceTable &amp;</type>
+          <declname>d3dit</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="123" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorRender_1aa744088a51e8e75450a977f17b871ed6" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>DagorCurView &amp;</type>
+        <definition>virtual DagorCurView &amp; IDagorRender::curView</definition>
+        <argsstring>() const =0</argsstring>
+        <name>curView</name>
+        <qualifiedname>IDagorRender::curView</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="126" column="24"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorRender_1abca9da7b1ea2a302971663ffad440639" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorRender::startLinesRender</definition>
+        <argsstring>(bool test_z=true, bool write_z=true, bool z_func_less=false) const =0</argsstring>
+        <name>startLinesRender</name>
+        <qualifiedname>IDagorRender::startLinesRender</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>test_z</declname>
+          <defval>true</defval>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>write_z</declname>
+          <defval>true</defval>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>z_func_less</declname>
+          <defval>false</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="129" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorRender_1a7f9633a1a836f8a52c2daf3e3f5eaff2" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorRender::setLinesTm</definition>
+        <argsstring>(const TMatrix &amp;tm) const =0</argsstring>
+        <name>setLinesTm</name>
+        <qualifiedname>IDagorRender::setLinesTm</qualifiedname>
+        <param>
+          <type>const TMatrix &amp;</type>
+          <declname>tm</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="130" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorRender_1af83a3c9e873a28bb69730846dfd069a1" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorRender::endLinesRender</definition>
+        <argsstring>() const =0</argsstring>
+        <name>endLinesRender</name>
+        <qualifiedname>IDagorRender::endLinesRender</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="131" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorRender_1a141f4f9387571d1ab1051caacff7ea41" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorRender::renderLine</definition>
+        <argsstring>(const Point3 &amp;p0, const Point3 &amp;p1, E3DCOLOR color) const =0</argsstring>
+        <name>renderLine</name>
+        <qualifiedname>IDagorRender::renderLine</qualifiedname>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>p0</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>p1</declname>
+        </param>
+        <param>
+          <type>E3DCOLOR</type>
+          <declname>color</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="133" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorRender_1ad3283fc65b9b51549fd3c2cdffd8f309" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorRender::renderLine</definition>
+        <argsstring>(const Point3 *points, int count, E3DCOLOR color) const =0</argsstring>
+        <name>renderLine</name>
+        <qualifiedname>IDagorRender::renderLine</qualifiedname>
+        <param>
+          <type>const Point3 *</type>
+          <declname>points</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>count</declname>
+        </param>
+        <param>
+          <type>E3DCOLOR</type>
+          <declname>color</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="134" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorRender_1a509ec32225c6242d2dfd632f4d9d3e14" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorRender::renderBox</definition>
+        <argsstring>(const BBox3 &amp;box, E3DCOLOR color) const =0</argsstring>
+        <name>renderBox</name>
+        <qualifiedname>IDagorRender::renderBox</qualifiedname>
+        <param>
+          <type>const BBox3 &amp;</type>
+          <declname>box</declname>
+        </param>
+        <param>
+          <type>E3DCOLOR</type>
+          <declname>color</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="135" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorRender_1aafaf536ac25f2725aa9184c1e6690f00" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorRender::renderBox</definition>
+        <argsstring>(const Point3 &amp;p, const Point3 &amp;ax, const Point3 &amp;ay, const Point3 &amp;az, E3DCOLOR color) const =0</argsstring>
+        <name>renderBox</name>
+        <qualifiedname>IDagorRender::renderBox</qualifiedname>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>ax</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>ay</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>az</declname>
+        </param>
+        <param>
+          <type>E3DCOLOR</type>
+          <declname>color</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="136" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorRender_1aa1ef5c6edccafffdf183df51cb97cfd9" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorRender::renderSphere</definition>
+        <argsstring>(const Point3 &amp;center, real rad, E3DCOLOR col, int segs=24) const =0</argsstring>
+        <name>renderSphere</name>
+        <qualifiedname>IDagorRender::renderSphere</qualifiedname>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>center</declname>
+        </param>
+        <param>
+          <type>real</type>
+          <declname>rad</declname>
+        </param>
+        <param>
+          <type>E3DCOLOR</type>
+          <declname>col</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>segs</declname>
+          <defval>24</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="137" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorRender_1af9a3eaa173cd6edb7617d11e796dac09" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorRender::renderCircle</definition>
+        <argsstring>(const Point3 &amp;center, const Point3 &amp;ax1, const Point3 &amp;ax2, real radius, E3DCOLOR col, int segs=24) const =0</argsstring>
+        <name>renderCircle</name>
+        <qualifiedname>IDagorRender::renderCircle</qualifiedname>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>center</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>ax1</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>ax2</declname>
+        </param>
+        <param>
+          <type>real</type>
+          <declname>radius</declname>
+        </param>
+        <param>
+          <type>E3DCOLOR</type>
+          <declname>col</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>segs</declname>
+          <defval>24</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="138" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorRender_1a1c5361642566fbf260b6e5e8e25a5c6d" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorRender::renderXZCircle</definition>
+        <argsstring>(const Point3 &amp;center, real radius, E3DCOLOR col, int segs=24) const =0</argsstring>
+        <name>renderXZCircle</name>
+        <qualifiedname>IDagorRender::renderXZCircle</qualifiedname>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>center</declname>
+        </param>
+        <param>
+          <type>real</type>
+          <declname>radius</declname>
+        </param>
+        <param>
+          <type>E3DCOLOR</type>
+          <declname>col</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>segs</declname>
+          <defval>24</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="140" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorRender_1ad654409a0d845105e0fc9a0359c5d036" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorRender::renderCapsuleW</definition>
+        <argsstring>(const Capsule &amp;cap, E3DCOLOR c) const =0</argsstring>
+        <name>renderCapsuleW</name>
+        <qualifiedname>IDagorRender::renderCapsuleW</qualifiedname>
+        <param>
+          <type>const Capsule &amp;</type>
+          <declname>cap</declname>
+        </param>
+        <param>
+          <type>E3DCOLOR</type>
+          <declname>c</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="141" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorRender_1a7af89d0e11ce5b2818c16ef20c3ae223" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorRender::renderCylinder</definition>
+        <argsstring>(const TMatrix &amp;tm, float rad, float height, E3DCOLOR c) const =0</argsstring>
+        <name>renderCylinder</name>
+        <qualifiedname>IDagorRender::renderCylinder</qualifiedname>
+        <param>
+          <type>const TMatrix &amp;</type>
+          <declname>tm</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>rad</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>height</declname>
+        </param>
+        <param>
+          <type>E3DCOLOR</type>
+          <declname>c</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="142" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorRender_1a23c984bd6176b327515af8d09ddc947a" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>DebugPrimitivesVbuffer *</type>
+        <definition>virtual DebugPrimitivesVbuffer * IDagorRender::newDebugPrimitivesVbuffer</definition>
+        <argsstring>(const char *name, IMemAlloc *alloc=NULL) const =0</argsstring>
+        <name>newDebugPrimitivesVbuffer</name>
+        <qualifiedname>IDagorRender::newDebugPrimitivesVbuffer</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>IMemAlloc *</type>
+          <declname>alloc</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="144" column="34"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorRender_1ae311839378c7e31b1726d206cdf345d5" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorRender::deleteDebugPrimitivesVbuffer</definition>
+        <argsstring>(DebugPrimitivesVbuffer *&amp;vbuf) const =0</argsstring>
+        <name>deleteDebugPrimitivesVbuffer</name>
+        <qualifiedname>IDagorRender::deleteDebugPrimitivesVbuffer</qualifiedname>
+        <param>
+          <type>DebugPrimitivesVbuffer *&amp;</type>
+          <declname>vbuf</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="145" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorRender_1aef28a2fdc186e6954e411a0266964463" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorRender::beginDebugLinesCacheToVbuffer</definition>
+        <argsstring>(DebugPrimitivesVbuffer &amp;vbuf) const =0</argsstring>
+        <name>beginDebugLinesCacheToVbuffer</name>
+        <qualifiedname>IDagorRender::beginDebugLinesCacheToVbuffer</qualifiedname>
+        <param>
+          <type>DebugPrimitivesVbuffer &amp;</type>
+          <declname>vbuf</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="146" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorRender_1ab83aee6e9db0ce9c68e97b65315498e3" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorRender::endDebugLinesCacheToVbuffer</definition>
+        <argsstring>(DebugPrimitivesVbuffer &amp;vbuf) const =0</argsstring>
+        <name>endDebugLinesCacheToVbuffer</name>
+        <qualifiedname>IDagorRender::endDebugLinesCacheToVbuffer</qualifiedname>
+        <param>
+          <type>DebugPrimitivesVbuffer &amp;</type>
+          <declname>vbuf</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="147" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorRender_1a50b148ca5b4e9ca5edc1682c88eef2b9" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorRender::invalidateDebugPrimitivesVbuffer</definition>
+        <argsstring>(DebugPrimitivesVbuffer &amp;vbuf) const =0</argsstring>
+        <name>invalidateDebugPrimitivesVbuffer</name>
+        <qualifiedname>IDagorRender::invalidateDebugPrimitivesVbuffer</qualifiedname>
+        <param>
+          <type>DebugPrimitivesVbuffer &amp;</type>
+          <declname>vbuf</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="148" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorRender_1a1ddebfa4df59494b382fb7b349c3cce9" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorRender::renderLinesFromVbuffer</definition>
+        <argsstring>(DebugPrimitivesVbuffer &amp;vbuf) const =0</argsstring>
+        <name>renderLinesFromVbuffer</name>
+        <qualifiedname>IDagorRender::renderLinesFromVbuffer</qualifiedname>
+        <param>
+          <type>DebugPrimitivesVbuffer &amp;</type>
+          <declname>vbuf</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="149" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorRender_1a7c1f4ae92ef63de2c6196f8effe118cb" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorRender::renderLinesFromVbuffer</definition>
+        <argsstring>(DebugPrimitivesVbuffer &amp;vbuf, E3DCOLOR c) const =0</argsstring>
+        <name>renderLinesFromVbuffer</name>
+        <qualifiedname>IDagorRender::renderLinesFromVbuffer</qualifiedname>
+        <param>
+          <type>DebugPrimitivesVbuffer &amp;</type>
+          <declname>vbuf</declname>
+        </param>
+        <param>
+          <type>E3DCOLOR</type>
+          <declname>c</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="150" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorRender_1aa5205060879e342434a2e90fada8df76" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorRender::renderLinesFromVbuffer</definition>
+        <argsstring>(DebugPrimitivesVbuffer &amp;vbuf, bool z_test, bool z_write, bool z_func_less, Color4 color_multiplier) const =0</argsstring>
+        <name>renderLinesFromVbuffer</name>
+        <qualifiedname>IDagorRender::renderLinesFromVbuffer</qualifiedname>
+        <param>
+          <type>DebugPrimitivesVbuffer &amp;</type>
+          <declname>vbuf</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>z_test</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>z_write</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>z_func_less</declname>
+        </param>
+        <param>
+          <type>Color4</type>
+          <declname>color_multiplier</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="151" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorRender_1aa74b7d5a51b815f30d3485f79242530d" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorRender::addLineToVbuffer</definition>
+        <argsstring>(DebugPrimitivesVbuffer &amp;vbuf, const Point3 &amp;p0, const Point3 &amp;p1, E3DCOLOR c) const =0</argsstring>
+        <name>addLineToVbuffer</name>
+        <qualifiedname>IDagorRender::addLineToVbuffer</qualifiedname>
+        <param>
+          <type>DebugPrimitivesVbuffer &amp;</type>
+          <declname>vbuf</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>p0</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>p1</declname>
+        </param>
+        <param>
+          <type>E3DCOLOR</type>
+          <declname>c</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="153" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorRender_1a016f4ff411a5da9ab1814c80a53c682a" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorRender::addHatchedBoxToVbuffer</definition>
+        <argsstring>(DebugPrimitivesVbuffer &amp;vbuf, const TMatrix &amp;box_tm, float hatching_step, E3DCOLOR color) const =0</argsstring>
+        <name>addHatchedBoxToVbuffer</name>
+        <qualifiedname>IDagorRender::addHatchedBoxToVbuffer</qualifiedname>
+        <param>
+          <type>DebugPrimitivesVbuffer &amp;</type>
+          <declname>vbuf</declname>
+        </param>
+        <param>
+          <type>const TMatrix &amp;</type>
+          <declname>box_tm</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>hatching_step</declname>
+        </param>
+        <param>
+          <type>E3DCOLOR</type>
+          <declname>color</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="154" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorRender_1aa377aa0340df5f314fd79cf3aa529589" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorRender::addBoxToVbuffer</definition>
+        <argsstring>(DebugPrimitivesVbuffer &amp;vbuf, const Point3 &amp;p, const Point3 &amp;ax, const Point3 &amp;ay, const Point3 &amp;az, E3DCOLOR color) const =0</argsstring>
+        <name>addBoxToVbuffer</name>
+        <qualifiedname>IDagorRender::addBoxToVbuffer</qualifiedname>
+        <param>
+          <type>DebugPrimitivesVbuffer &amp;</type>
+          <declname>vbuf</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>ax</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>ay</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>az</declname>
+        </param>
+        <param>
+          <type>E3DCOLOR</type>
+          <declname>color</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="156" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorRender_1a3ff050faf4a4f0423d7ba5bd4c22b5d2" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorRender::addSolidBoxToVbuffer</definition>
+        <argsstring>(DebugPrimitivesVbuffer &amp;vbuf, const Point3 &amp;p, const Point3 &amp;ax, const Point3 &amp;ay, const Point3 &amp;az, E3DCOLOR color) const =0</argsstring>
+        <name>addSolidBoxToVbuffer</name>
+        <qualifiedname>IDagorRender::addSolidBoxToVbuffer</qualifiedname>
+        <param>
+          <type>DebugPrimitivesVbuffer &amp;</type>
+          <declname>vbuf</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>ax</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>ay</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>az</declname>
+        </param>
+        <param>
+          <type>E3DCOLOR</type>
+          <declname>color</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="158" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorRender_1a1416f7922eee2256b09324badf37074f" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorRender::addBoxToVbuffer</definition>
+        <argsstring>(DebugPrimitivesVbuffer &amp;vbuf, const BBox3 &amp;box, E3DCOLOR color) const =0</argsstring>
+        <name>addBoxToVbuffer</name>
+        <qualifiedname>IDagorRender::addBoxToVbuffer</qualifiedname>
+        <param>
+          <type>DebugPrimitivesVbuffer &amp;</type>
+          <declname>vbuf</declname>
+        </param>
+        <param>
+          <type>const BBox3 &amp;</type>
+          <declname>box</declname>
+        </param>
+        <param>
+          <type>E3DCOLOR</type>
+          <declname>color</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="160" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorRender_1aec5741f7ae93d45938c2d98990889d04" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorRender::addTriangleToVbuffer</definition>
+        <argsstring>(DebugPrimitivesVbuffer &amp;vbuf, const Point3 p[3], E3DCOLOR color) const =0</argsstring>
+        <name>addTriangleToVbuffer</name>
+        <qualifiedname>IDagorRender::addTriangleToVbuffer</qualifiedname>
+        <param>
+          <type>DebugPrimitivesVbuffer &amp;</type>
+          <declname>vbuf</declname>
+        </param>
+        <param>
+          <type>const Point3</type>
+          <declname>p</declname>
+          <array>[3]</array>
+        </param>
+        <param>
+          <type>E3DCOLOR</type>
+          <declname>color</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="161" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorRender_1afe7dae02b098eb0afbf1d2b72f8a6b21" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IDagorRender::isLinesVbufferValid</definition>
+        <argsstring>(DebugPrimitivesVbuffer &amp;vbuf) const =0</argsstring>
+        <name>isLinesVbufferValid</name>
+        <qualifiedname>IDagorRender::isLinesVbufferValid</qualifiedname>
+        <param>
+          <type>DebugPrimitivesVbuffer &amp;</type>
+          <declname>vbuf</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="162" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorRender_1abcdff0e6b9d6411117a5126bf75a55fb" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorRender::setVbufferTm</definition>
+        <argsstring>(DebugPrimitivesVbuffer &amp;vbuf, const TMatrix &amp;tm) const =0</argsstring>
+        <name>setVbufferTm</name>
+        <qualifiedname>IDagorRender::setVbufferTm</qualifiedname>
+        <param>
+          <type>DebugPrimitivesVbuffer &amp;</type>
+          <declname>vbuf</declname>
+        </param>
+        <param>
+          <type>const TMatrix &amp;</type>
+          <declname>tm</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="163" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorRender_1acf5758cc5d605529116300b5ef2ac0ce" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>DynamicShadersBuffer *</type>
+        <definition>virtual DynamicShadersBuffer * IDagorRender::newDynamicShadersBuffer</definition>
+        <argsstring>(IMemAlloc *alloc=NULL) const =0</argsstring>
+        <name>newDynamicShadersBuffer</name>
+        <qualifiedname>IDagorRender::newDynamicShadersBuffer</qualifiedname>
+        <param>
+          <type>IMemAlloc *</type>
+          <declname>alloc</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="166" column="32"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorRender_1a3bb980a69453b446410c52b33d8cf918" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>DynamicShadersBuffer *</type>
+        <definition>virtual DynamicShadersBuffer * IDagorRender::newDynamicShadersBuffer</definition>
+        <argsstring>(CompiledShaderChannelId *channels, int channel_count, int max_verts, int max_faces, IMemAlloc *alloc=NULL) const =0</argsstring>
+        <name>newDynamicShadersBuffer</name>
+        <qualifiedname>IDagorRender::newDynamicShadersBuffer</qualifiedname>
+        <param>
+          <type>CompiledShaderChannelId *</type>
+          <declname>channels</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>channel_count</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>max_verts</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>max_faces</declname>
+        </param>
+        <param>
+          <type>IMemAlloc *</type>
+          <declname>alloc</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="167" column="32"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorRender_1a3bc89cefd67c97cf7ec4d76cefe483d3" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorRender::deleteDynamicShadersBuffer</definition>
+        <argsstring>(DynamicShadersBuffer *&amp;buf) const =0</argsstring>
+        <name>deleteDynamicShadersBuffer</name>
+        <qualifiedname>IDagorRender::deleteDynamicShadersBuffer</qualifiedname>
+        <param>
+          <type>DynamicShadersBuffer *&amp;</type>
+          <declname>buf</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="169" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorRender_1aa996a714b2e0a5894b57a8248c11b653" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorRender::dynShaderBufferSetCurrentShader</definition>
+        <argsstring>(DynamicShadersBuffer &amp;buf, ShaderElement *shader) const =0</argsstring>
+        <name>dynShaderBufferSetCurrentShader</name>
+        <qualifiedname>IDagorRender::dynShaderBufferSetCurrentShader</qualifiedname>
+        <param>
+          <type>DynamicShadersBuffer &amp;</type>
+          <declname>buf</declname>
+        </param>
+        <param>
+          <type>ShaderElement *</type>
+          <declname>shader</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="171" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorRender_1ab83a26cfc96d6cd6b2aa3dca44022b73" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorRender::dynShaderBufferAddFaces</definition>
+        <argsstring>(DynamicShadersBuffer &amp;buf, const void *vertex_data, int num_verts, const int *indices, int num_faces) const =0</argsstring>
+        <name>dynShaderBufferAddFaces</name>
+        <qualifiedname>IDagorRender::dynShaderBufferAddFaces</qualifiedname>
+        <param>
+          <type>DynamicShadersBuffer &amp;</type>
+          <declname>buf</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>vertex_data</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>num_verts</declname>
+        </param>
+        <param>
+          <type>const int *</type>
+          <declname>indices</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>num_faces</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="172" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorRender_1a35de2b85a59732e024919b92183aac80" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorRender::dynShaderBufferFlush</definition>
+        <argsstring>(DynamicShadersBuffer &amp;buf) const =0</argsstring>
+        <name>dynShaderBufferFlush</name>
+        <qualifiedname>IDagorRender::dynShaderBufferFlush</qualifiedname>
+        <param>
+          <type>DynamicShadersBuffer &amp;</type>
+          <declname>buf</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="174" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorRender_1a2d8f829948900f1275bce80fcb73ebcb" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>DynRenderBuffer *</type>
+        <definition>virtual DynRenderBuffer * IDagorRender::newDynRenderBuffer</definition>
+        <argsstring>(const char *class_name, IMemAlloc *alloc) const =0</argsstring>
+        <name>newDynRenderBuffer</name>
+        <qualifiedname>IDagorRender::newDynRenderBuffer</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>class_name</declname>
+        </param>
+        <param>
+          <type>IMemAlloc *</type>
+          <declname>alloc</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="177" column="27"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorRender_1a065f3bfae3cd2692738c34028ebb3489" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorRender::deleteDynRenderBuffer</definition>
+        <argsstring>(DynRenderBuffer *&amp;buf) const =0</argsstring>
+        <name>deleteDynRenderBuffer</name>
+        <qualifiedname>IDagorRender::deleteDynRenderBuffer</qualifiedname>
+        <param>
+          <type>DynRenderBuffer *&amp;</type>
+          <declname>buf</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="178" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorRender_1afde414236632bbdac2badff0798bc55f" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorRender::dynRenderBufferClearBuf</definition>
+        <argsstring>(DynRenderBuffer &amp;buf) const =0</argsstring>
+        <name>dynRenderBufferClearBuf</name>
+        <qualifiedname>IDagorRender::dynRenderBufferClearBuf</qualifiedname>
+        <param>
+          <type>DynRenderBuffer &amp;</type>
+          <declname>buf</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="180" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorRender_1ab09f3c1e19f12ec2ece23f0f24c38911" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorRender::dynRenderBufferFlush</definition>
+        <argsstring>(DynRenderBuffer &amp;buf) const =0</argsstring>
+        <name>dynRenderBufferFlush</name>
+        <qualifiedname>IDagorRender::dynRenderBufferFlush</qualifiedname>
+        <param>
+          <type>DynRenderBuffer &amp;</type>
+          <declname>buf</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="181" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorRender_1ac5ff5d553c263e4a53077ddf2700c33f" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorRender::dynRenderBufferFlushToBuffer</definition>
+        <argsstring>(DynRenderBuffer &amp;buf, TEXTUREID tid) const =0</argsstring>
+        <name>dynRenderBufferFlushToBuffer</name>
+        <qualifiedname>IDagorRender::dynRenderBufferFlushToBuffer</qualifiedname>
+        <param>
+          <type>DynRenderBuffer &amp;</type>
+          <declname>buf</declname>
+        </param>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>tid</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="182" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorRender_1aa437c11173da014c7721616162968215" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorRender::dynRenderBufferDrawQuad</definition>
+        <argsstring>(DynRenderBuffer &amp;buf, const Point3 &amp;p0, const Point3 &amp;p1, const Point3 &amp;p2, const Point3 &amp;p3, E3DCOLOR color, float u=1, float v=1) const =0</argsstring>
+        <name>dynRenderBufferDrawQuad</name>
+        <qualifiedname>IDagorRender::dynRenderBufferDrawQuad</qualifiedname>
+        <param>
+          <type>DynRenderBuffer &amp;</type>
+          <declname>buf</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>p0</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>p1</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>p2</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>p3</declname>
+        </param>
+        <param>
+          <type>E3DCOLOR</type>
+          <declname>color</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>u</declname>
+          <defval>1</defval>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>v</declname>
+          <defval>1</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="184" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorRender_1a4c37c91fb2bd2b6e6e85f5a0e28160ad" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorRender::dynRenderBufferDrawLine</definition>
+        <argsstring>(DynRenderBuffer &amp;buf, const Point3 &amp;from, const Point3 &amp;to, real width, E3DCOLOR color) const =0</argsstring>
+        <name>dynRenderBufferDrawLine</name>
+        <qualifiedname>IDagorRender::dynRenderBufferDrawLine</qualifiedname>
+        <param>
+          <type>DynRenderBuffer &amp;</type>
+          <declname>buf</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>from</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>to</declname>
+        </param>
+        <param>
+          <type>real</type>
+          <declname>width</declname>
+        </param>
+        <param>
+          <type>E3DCOLOR</type>
+          <declname>color</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="186" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorRender_1a35f573c9c7837248a8895c5bd3fb515e" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorRender::dynRenderBufferDrawSquare</definition>
+        <argsstring>(DynRenderBuffer &amp;buf, const Point3 &amp;p, real radius, E3DCOLOR color) const =0</argsstring>
+        <name>dynRenderBufferDrawSquare</name>
+        <qualifiedname>IDagorRender::dynRenderBufferDrawSquare</qualifiedname>
+        <param>
+          <type>DynRenderBuffer &amp;</type>
+          <declname>buf</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type>real</type>
+          <declname>radius</declname>
+        </param>
+        <param>
+          <type>E3DCOLOR</type>
+          <declname>color</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="188" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorRender_1a034aa4cfa21b3786e6898e36f1df720a" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorRender::dynRenderBufferDrawBox</definition>
+        <argsstring>(DynRenderBuffer &amp;buf, const TMatrix &amp;tm, E3DCOLOR color) const =0</argsstring>
+        <name>dynRenderBufferDrawBox</name>
+        <qualifiedname>IDagorRender::dynRenderBufferDrawBox</qualifiedname>
+        <param>
+          <type>DynRenderBuffer &amp;</type>
+          <declname>buf</declname>
+        </param>
+        <param>
+          <type>const TMatrix &amp;</type>
+          <declname>tm</declname>
+        </param>
+        <param>
+          <type>E3DCOLOR</type>
+          <declname>color</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="189" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorRender_1ad282007a05c1fbcf75a2eb6aaf4f565a" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void *</type>
+        <definition>virtual void * IDagorRender::dynRenderBufferDrawNetSurface</definition>
+        <argsstring>(DynRenderBuffer &amp;buf, int w, int h) const =0</argsstring>
+        <name>dynRenderBufferDrawNetSurface</name>
+        <qualifiedname>IDagorRender::dynRenderBufferDrawNetSurface</qualifiedname>
+        <param>
+          <type>DynRenderBuffer &amp;</type>
+          <declname>buf</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>w</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>h</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="190" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorRender_1a245f66f0efd9af6ce264f9a399f1df46" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>TEXTUREID</type>
+        <definition>virtual TEXTUREID IDagorRender::addManagedTexture</definition>
+        <argsstring>(const char *name) const =0</argsstring>
+        <name>addManagedTexture</name>
+        <qualifiedname>IDagorRender::addManagedTexture</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="192" column="21"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorRender_1a2281d3c2563192bc8684b3fdf5e07a5f" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>TEXTUREID</type>
+        <definition>virtual TEXTUREID IDagorRender::registerManagedTex</definition>
+        <argsstring>(const char *name, BaseTexture *basetex) const =0</argsstring>
+        <name>registerManagedTex</name>
+        <qualifiedname>IDagorRender::registerManagedTex</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>BaseTexture *</type>
+          <declname>basetex</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="193" column="21"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorRender_1a764e5818962a85c2d613602d746bd7fe" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>BaseTexture *</type>
+        <definition>virtual BaseTexture * IDagorRender::acquireManagedTex</definition>
+        <argsstring>(TEXTUREID id) const =0</argsstring>
+        <name>acquireManagedTex</name>
+        <qualifiedname>IDagorRender::acquireManagedTex</qualifiedname>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="194" column="23"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorRender_1a9ae4daf246c71ee94f8ef5d06cdcc6cd" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorRender::releaseManagedTex</definition>
+        <argsstring>(TEXTUREID id) const =0</argsstring>
+        <name>releaseManagedTex</name>
+        <qualifiedname>IDagorRender::releaseManagedTex</qualifiedname>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="195" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorRender_1aa161c338acd5adb7169f841d9da01fb6" prot="public" static="no" const="yes" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void IDagorRender::releaseManagedResVerified</definition>
+        <argsstring>(TEXTUREID &amp;id, D3dResource *cmp) const</argsstring>
+        <name>releaseManagedResVerified</name>
+        <qualifiedname>IDagorRender::releaseManagedResVerified</qualifiedname>
+        <param>
+          <type>TEXTUREID &amp;</type>
+          <declname>id</declname>
+        </param>
+        <param>
+          <type>D3dResource *</type>
+          <declname>cmp</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="196" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorRender_1a12d8bc23da832463e5fd5cb4b40979e0" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class T</type>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void IDagorRender::releaseManagedTexVerified</definition>
+        <argsstring>(D3DRESID &amp;id, T &amp;tex)</argsstring>
+        <name>releaseManagedTexVerified</name>
+        <qualifiedname>IDagorRender::releaseManagedTexVerified</qualifiedname>
+        <param>
+          <type>D3DRESID &amp;</type>
+          <declname>id</declname>
+        </param>
+        <param>
+          <type>T &amp;</type>
+          <declname>tex</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="198" column="15" bodyfile="ec_IEditorCore.h" bodystart="198" bodyend="202"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorRender_1a0bf973fe078da729b0da49758e96aee4" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>E3DCOLOR</type>
+        <definition>virtual E3DCOLOR IDagorRender::normalizeColor4</definition>
+        <argsstring>(const Color4 &amp;color, real &amp;bright) const =0</argsstring>
+        <name>normalizeColor4</name>
+        <qualifiedname>IDagorRender::normalizeColor4</qualifiedname>
+        <param>
+          <type>const Color4 &amp;</type>
+          <declname>color</declname>
+        </param>
+        <param>
+          <type>real &amp;</type>
+          <declname>bright</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="205" column="20"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorRender_1aecf330c22978207f482c536342e78f88" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int IDagorRender::getHdrMode</definition>
+        <argsstring>() const =0</argsstring>
+        <name>getHdrMode</name>
+        <qualifiedname>IDagorRender::getHdrMode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="206" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorRender_1a52a4df344e8f08d69952a20089aa43c4" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorRender::renderTextFmt</definition>
+        <argsstring>(real x, real y, E3DCOLOR color, const char *format, const DagorSafeArg *arg, int anum) const =0</argsstring>
+        <name>renderTextFmt</name>
+        <qualifiedname>IDagorRender::renderTextFmt</qualifiedname>
+        <param>
+          <type>real</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>real</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>E3DCOLOR</type>
+          <declname>color</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>format</declname>
+        </param>
+        <param>
+          <type>const DagorSafeArg *</type>
+          <declname>arg</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>anum</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="209" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorRender_1a47515f3c4c94139aab04a5ee060f0596" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>BBox2</type>
+        <definition>virtual BBox2 IDagorRender::getTextBBox</definition>
+        <argsstring>(const char *str, int len=-1) const =0</argsstring>
+        <name>getTextBBox</name>
+        <qualifiedname>IDagorRender::getTextBBox</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>str</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>len</declname>
+          <defval>-1</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="210" column="17"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorRender_1a034391bb157119be91fe1659ba10fb81" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int IDagorRender::setTextFont</definition>
+        <argsstring>(int font_id, int font_kern=0) const =0</argsstring>
+        <name>setTextFont</name>
+        <qualifiedname>IDagorRender::setTextFont</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>font_id</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>font_kern</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="211" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorRender_1a9b1619dbd740f54dd8394bb1e26014bc" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorRender::getFontAscentAndDescent</definition>
+        <argsstring>(int &amp;ascent, int &amp;descent) const =0</argsstring>
+        <name>getFontAscentAndDescent</name>
+        <qualifiedname>IDagorRender::getFontAscentAndDescent</qualifiedname>
+        <param>
+          <type>int &amp;</type>
+          <declname>ascent</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>descent</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="212" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorRender_1a6d1c287964494463ed7bb1c96ab152d7" prot="public" static="no" const="yes" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void IDagorRender::drawSolidRectangle</definition>
+        <argsstring>(real left, real top, real right, real bottom, E3DCOLOR color) const</argsstring>
+        <name>drawSolidRectangle</name>
+        <qualifiedname>IDagorRender::drawSolidRectangle</qualifiedname>
+        <param>
+          <type>real</type>
+          <declname>left</declname>
+        </param>
+        <param>
+          <type>real</type>
+          <declname>top</declname>
+        </param>
+        <param>
+          <type>real</type>
+          <declname>right</declname>
+        </param>
+        <param>
+          <type>real</type>
+          <declname>bottom</declname>
+        </param>
+        <param>
+          <type>E3DCOLOR</type>
+          <declname>color</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="213" column="16"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="ec_IEditorCore.h" line="119" column="1" bodyfile="ec_IEditorCore.h" bodystart="120" bodyend="220"/>
+    <listofallmembers>
+      <member refid="classIDagorRender_1a764e5818962a85c2d613602d746bd7fe" prot="public" virt="pure-virtual"><scope>IDagorRender</scope><name>acquireManagedTex</name></member>
+      <member refid="classIDagorRender_1aa377aa0340df5f314fd79cf3aa529589" prot="public" virt="pure-virtual"><scope>IDagorRender</scope><name>addBoxToVbuffer</name></member>
+      <member refid="classIDagorRender_1a1416f7922eee2256b09324badf37074f" prot="public" virt="pure-virtual"><scope>IDagorRender</scope><name>addBoxToVbuffer</name></member>
+      <member refid="classIDagorRender_1a016f4ff411a5da9ab1814c80a53c682a" prot="public" virt="pure-virtual"><scope>IDagorRender</scope><name>addHatchedBoxToVbuffer</name></member>
+      <member refid="classIDagorRender_1aa74b7d5a51b815f30d3485f79242530d" prot="public" virt="pure-virtual"><scope>IDagorRender</scope><name>addLineToVbuffer</name></member>
+      <member refid="classIDagorRender_1a245f66f0efd9af6ce264f9a399f1df46" prot="public" virt="pure-virtual"><scope>IDagorRender</scope><name>addManagedTexture</name></member>
+      <member refid="classIDagorRender_1a3ff050faf4a4f0423d7ba5bd4c22b5d2" prot="public" virt="pure-virtual"><scope>IDagorRender</scope><name>addSolidBoxToVbuffer</name></member>
+      <member refid="classIDagorRender_1aec5741f7ae93d45938c2d98990889d04" prot="public" virt="pure-virtual"><scope>IDagorRender</scope><name>addTriangleToVbuffer</name></member>
+      <member refid="classIDagorRender_1aef28a2fdc186e6954e411a0266964463" prot="public" virt="pure-virtual"><scope>IDagorRender</scope><name>beginDebugLinesCacheToVbuffer</name></member>
+      <member refid="classIDagorRender_1aa744088a51e8e75450a977f17b871ed6" prot="public" virt="pure-virtual"><scope>IDagorRender</scope><name>curView</name></member>
+      <member refid="classIDagorRender_1ae311839378c7e31b1726d206cdf345d5" prot="public" virt="pure-virtual"><scope>IDagorRender</scope><name>deleteDebugPrimitivesVbuffer</name></member>
+      <member refid="classIDagorRender_1a3bc89cefd67c97cf7ec4d76cefe483d3" prot="public" virt="pure-virtual"><scope>IDagorRender</scope><name>deleteDynamicShadersBuffer</name></member>
+      <member refid="classIDagorRender_1a065f3bfae3cd2692738c34028ebb3489" prot="public" virt="pure-virtual"><scope>IDagorRender</scope><name>deleteDynRenderBuffer</name></member>
+      <member refid="classIDagorRender_1a6d1c287964494463ed7bb1c96ab152d7" prot="public" virt="virtual"><scope>IDagorRender</scope><name>drawSolidRectangle</name></member>
+      <member refid="classIDagorRender_1afde414236632bbdac2badff0798bc55f" prot="public" virt="pure-virtual"><scope>IDagorRender</scope><name>dynRenderBufferClearBuf</name></member>
+      <member refid="classIDagorRender_1a034aa4cfa21b3786e6898e36f1df720a" prot="public" virt="pure-virtual"><scope>IDagorRender</scope><name>dynRenderBufferDrawBox</name></member>
+      <member refid="classIDagorRender_1a4c37c91fb2bd2b6e6e85f5a0e28160ad" prot="public" virt="pure-virtual"><scope>IDagorRender</scope><name>dynRenderBufferDrawLine</name></member>
+      <member refid="classIDagorRender_1ad282007a05c1fbcf75a2eb6aaf4f565a" prot="public" virt="pure-virtual"><scope>IDagorRender</scope><name>dynRenderBufferDrawNetSurface</name></member>
+      <member refid="classIDagorRender_1aa437c11173da014c7721616162968215" prot="public" virt="pure-virtual"><scope>IDagorRender</scope><name>dynRenderBufferDrawQuad</name></member>
+      <member refid="classIDagorRender_1a35f573c9c7837248a8895c5bd3fb515e" prot="public" virt="pure-virtual"><scope>IDagorRender</scope><name>dynRenderBufferDrawSquare</name></member>
+      <member refid="classIDagorRender_1ab09f3c1e19f12ec2ece23f0f24c38911" prot="public" virt="pure-virtual"><scope>IDagorRender</scope><name>dynRenderBufferFlush</name></member>
+      <member refid="classIDagorRender_1ac5ff5d553c263e4a53077ddf2700c33f" prot="public" virt="pure-virtual"><scope>IDagorRender</scope><name>dynRenderBufferFlushToBuffer</name></member>
+      <member refid="classIDagorRender_1ab83a26cfc96d6cd6b2aa3dca44022b73" prot="public" virt="pure-virtual"><scope>IDagorRender</scope><name>dynShaderBufferAddFaces</name></member>
+      <member refid="classIDagorRender_1a35de2b85a59732e024919b92183aac80" prot="public" virt="pure-virtual"><scope>IDagorRender</scope><name>dynShaderBufferFlush</name></member>
+      <member refid="classIDagorRender_1aa996a714b2e0a5894b57a8248c11b653" prot="public" virt="pure-virtual"><scope>IDagorRender</scope><name>dynShaderBufferSetCurrentShader</name></member>
+      <member refid="classIDagorRender_1ab83aee6e9db0ce9c68e97b65315498e3" prot="public" virt="pure-virtual"><scope>IDagorRender</scope><name>endDebugLinesCacheToVbuffer</name></member>
+      <member refid="classIDagorRender_1af83a3c9e873a28bb69730846dfd069a1" prot="public" virt="pure-virtual"><scope>IDagorRender</scope><name>endLinesRender</name></member>
+      <member refid="classIDagorRender_1a829a3f6fc617a0ebbbc8fc7693138f7e" prot="public" virt="pure-virtual"><scope>IDagorRender</scope><name>fillD3dInterfaceTable</name></member>
+      <member refid="classIDagorRender_1a9b1619dbd740f54dd8394bb1e26014bc" prot="public" virt="pure-virtual"><scope>IDagorRender</scope><name>getFontAscentAndDescent</name></member>
+      <member refid="classIDagorRender_1aecf330c22978207f482c536342e78f88" prot="public" virt="pure-virtual"><scope>IDagorRender</scope><name>getHdrMode</name></member>
+      <member refid="classIDagorRender_1a47515f3c4c94139aab04a5ee060f0596" prot="public" virt="pure-virtual"><scope>IDagorRender</scope><name>getTextBBox</name></member>
+      <member refid="classIDagorRender_1a50b148ca5b4e9ca5edc1682c88eef2b9" prot="public" virt="pure-virtual"><scope>IDagorRender</scope><name>invalidateDebugPrimitivesVbuffer</name></member>
+      <member refid="classIDagorRender_1afe7dae02b098eb0afbf1d2b72f8a6b21" prot="public" virt="pure-virtual"><scope>IDagorRender</scope><name>isLinesVbufferValid</name></member>
+      <member refid="classIDagorRender_1a23c984bd6176b327515af8d09ddc947a" prot="public" virt="pure-virtual"><scope>IDagorRender</scope><name>newDebugPrimitivesVbuffer</name></member>
+      <member refid="classIDagorRender_1acf5758cc5d605529116300b5ef2ac0ce" prot="public" virt="pure-virtual"><scope>IDagorRender</scope><name>newDynamicShadersBuffer</name></member>
+      <member refid="classIDagorRender_1a3bb980a69453b446410c52b33d8cf918" prot="public" virt="pure-virtual"><scope>IDagorRender</scope><name>newDynamicShadersBuffer</name></member>
+      <member refid="classIDagorRender_1a2d8f829948900f1275bce80fcb73ebcb" prot="public" virt="pure-virtual"><scope>IDagorRender</scope><name>newDynRenderBuffer</name></member>
+      <member refid="classIDagorRender_1a0bf973fe078da729b0da49758e96aee4" prot="public" virt="pure-virtual"><scope>IDagorRender</scope><name>normalizeColor4</name></member>
+      <member refid="classIDagorRender_1a2281d3c2563192bc8684b3fdf5e07a5f" prot="public" virt="pure-virtual"><scope>IDagorRender</scope><name>registerManagedTex</name></member>
+      <member refid="classIDagorRender_1aa161c338acd5adb7169f841d9da01fb6" prot="public" virt="virtual"><scope>IDagorRender</scope><name>releaseManagedResVerified</name></member>
+      <member refid="classIDagorRender_1a9ae4daf246c71ee94f8ef5d06cdcc6cd" prot="public" virt="pure-virtual"><scope>IDagorRender</scope><name>releaseManagedTex</name></member>
+      <member refid="classIDagorRender_1a12d8bc23da832463e5fd5cb4b40979e0" prot="public" virt="non-virtual"><scope>IDagorRender</scope><name>releaseManagedTexVerified</name></member>
+      <member refid="classIDagorRender_1a509ec32225c6242d2dfd632f4d9d3e14" prot="public" virt="pure-virtual"><scope>IDagorRender</scope><name>renderBox</name></member>
+      <member refid="classIDagorRender_1aafaf536ac25f2725aa9184c1e6690f00" prot="public" virt="pure-virtual"><scope>IDagorRender</scope><name>renderBox</name></member>
+      <member refid="classIDagorRender_1ad654409a0d845105e0fc9a0359c5d036" prot="public" virt="pure-virtual"><scope>IDagorRender</scope><name>renderCapsuleW</name></member>
+      <member refid="classIDagorRender_1af9a3eaa173cd6edb7617d11e796dac09" prot="public" virt="pure-virtual"><scope>IDagorRender</scope><name>renderCircle</name></member>
+      <member refid="classIDagorRender_1a7af89d0e11ce5b2818c16ef20c3ae223" prot="public" virt="pure-virtual"><scope>IDagorRender</scope><name>renderCylinder</name></member>
+      <member refid="classIDagorRender_1a141f4f9387571d1ab1051caacff7ea41" prot="public" virt="pure-virtual"><scope>IDagorRender</scope><name>renderLine</name></member>
+      <member refid="classIDagorRender_1ad3283fc65b9b51549fd3c2cdffd8f309" prot="public" virt="pure-virtual"><scope>IDagorRender</scope><name>renderLine</name></member>
+      <member refid="classIDagorRender_1a1ddebfa4df59494b382fb7b349c3cce9" prot="public" virt="pure-virtual"><scope>IDagorRender</scope><name>renderLinesFromVbuffer</name></member>
+      <member refid="classIDagorRender_1a7c1f4ae92ef63de2c6196f8effe118cb" prot="public" virt="pure-virtual"><scope>IDagorRender</scope><name>renderLinesFromVbuffer</name></member>
+      <member refid="classIDagorRender_1aa5205060879e342434a2e90fada8df76" prot="public" virt="pure-virtual"><scope>IDagorRender</scope><name>renderLinesFromVbuffer</name></member>
+      <member refid="classIDagorRender_1aa1ef5c6edccafffdf183df51cb97cfd9" prot="public" virt="pure-virtual"><scope>IDagorRender</scope><name>renderSphere</name></member>
+      <member refid="classIDagorRender_1a52a4df344e8f08d69952a20089aa43c4" prot="public" virt="pure-virtual"><scope>IDagorRender</scope><name>renderTextFmt</name></member>
+      <member refid="classIDagorRender_1a1c5361642566fbf260b6e5e8e25a5c6d" prot="public" virt="pure-virtual"><scope>IDagorRender</scope><name>renderXZCircle</name></member>
+      <member refid="classIDagorRender_1a7f9633a1a836f8a52c2daf3e3f5eaff2" prot="public" virt="pure-virtual"><scope>IDagorRender</scope><name>setLinesTm</name></member>
+      <member refid="classIDagorRender_1a034391bb157119be91fe1659ba10fb81" prot="public" virt="pure-virtual"><scope>IDagorRender</scope><name>setTextFont</name></member>
+      <member refid="classIDagorRender_1abcdff0e6b9d6411117a5126bf75a55fb" prot="public" virt="pure-virtual"><scope>IDagorRender</scope><name>setVbufferTm</name></member>
+      <member refid="classIDagorRender_1abca9da7b1ea2a302971663ffad440639" prot="public" virt="pure-virtual"><scope>IDagorRender</scope><name>startLinesRender</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

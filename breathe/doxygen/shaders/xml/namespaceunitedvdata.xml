@@ -1,0 +1,104 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespaceunitedvdata" kind="namespace" language="C++">
+    <compoundname>unitedvdata</compoundname>
+    <innerclass refid="structunitedvdata_1_1BufChunk" prot="public">unitedvdata::BufChunk</innerclass>
+    <innerclass refid="structunitedvdata_1_1BufConfig" prot="public">unitedvdata::BufConfig</innerclass>
+    <innerclass refid="structunitedvdata_1_1BufPool" prot="public">unitedvdata::BufPool</innerclass>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="dag__shaderResUnitedData_8h_1a15218c64e56ea9790dfe0a9f9024a2f3" prot="public" static="no">
+        <type>StaticTab&lt; <ref refid="structunitedvdata_1_1BufChunk" kindref="compound">BufChunk</ref>, MAX_CHUNK_CNT &gt;</type>
+        <definition>typedef StaticTab&lt;BufChunk, MAX_CHUNK_CNT&gt; unitedvdata::BufChunkTab</definition>
+        <argsstring></argsstring>
+        <name>BufChunkTab</name>
+        <qualifiedname>unitedvdata::BufChunkTab</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="57" column="19" bodyfile="dag_shaderResUnitedData.h" bodystart="57" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="dag__shaderResUnitedData_8h_1aeaecf2dd906d40d61056c38123666386" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr int</type>
+        <definition>constexpr int unitedvdata::MAX_VBIDX_CNT</definition>
+        <argsstring></argsstring>
+        <name>MAX_VBIDX_CNT</name>
+        <qualifiedname>unitedvdata::MAX_VBIDX_CNT</qualifiedname>
+        <initializer>= 16</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="22" column="22" bodyfile="dag_shaderResUnitedData.h" bodystart="22" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="dag__shaderResUnitedData_8h_1a3d2c817609b5d45371e1dc88a3751bad" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr int</type>
+        <definition>constexpr int unitedvdata::MAX_CHUNK_CNT</definition>
+        <argsstring></argsstring>
+        <name>MAX_CHUNK_CNT</name>
+        <qualifiedname>unitedvdata::MAX_CHUNK_CNT</qualifiedname>
+        <initializer>= 32</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="23" column="22" bodyfile="dag_shaderResUnitedData.h" bodystart="23" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="dag__shaderResUnitedData_8h_1a0db1d7411f00ef1b63bc523a00df3e6a" prot="public" static="no" mutable="no">
+        <type><ref refid="classShaderResUnitedVdata" kindref="compound">ShaderResUnitedVdata</ref>&lt; DynamicRenderableSceneLodsResource &gt;</type>
+        <definition>ShaderResUnitedVdata&lt;DynamicRenderableSceneLodsResource&gt; unitedvdata::dmUnitedVdata</definition>
+        <argsstring></argsstring>
+        <name>dmUnitedVdata</name>
+        <qualifiedname>unitedvdata::dmUnitedVdata</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="268" column="29" declfile="dag_shaderResUnitedData.h" declline="268" declcolumn="29"/>
+      </memberdef>
+      <memberdef kind="variable" id="dag__shaderResUnitedData_8h_1aa9c037747e306c100faee46c555aedd3" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int unitedvdata::dmUnitedVdataUsed</definition>
+        <argsstring></argsstring>
+        <name>dmUnitedVdataUsed</name>
+        <qualifiedname>unitedvdata::dmUnitedVdataUsed</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="269" column="12" declfile="dag_shaderResUnitedData.h" declline="269" declcolumn="12"/>
+      </memberdef>
+      <memberdef kind="variable" id="dag__shaderResUnitedData_8h_1ade11810f8366ebf4cb152e02d7ca44be" prot="public" static="no" mutable="no">
+        <type><ref refid="classShaderResUnitedVdata" kindref="compound">ShaderResUnitedVdata</ref>&lt; RenderableInstanceLodsResource &gt;</type>
+        <definition>ShaderResUnitedVdata&lt;RenderableInstanceLodsResource&gt; unitedvdata::riUnitedVdata</definition>
+        <argsstring></argsstring>
+        <name>riUnitedVdata</name>
+        <qualifiedname>unitedvdata::riUnitedVdata</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="271" column="29" declfile="dag_shaderResUnitedData.h" declline="271" declcolumn="29"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_shaderMesh.h" line="34" column="1"/>
+  </compounddef>
+</doxygen>

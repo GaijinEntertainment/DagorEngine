@@ -1,0 +1,61 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShaderSemCode_1_1PassTab" kind="struct" language="C++" prot="public">
+    <compoundname>ShaderSemCode::PassTab</compoundname>
+    <includes refid="shSemCode_8h" local="no">shSemCode.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structShaderSemCode_1_1PassTab_1a510383fcc909f26223207e76596b4e69" prot="public" static="no" mutable="no">
+        <type>eastl::optional&lt; <ref refid="structSemanticShaderPass" kindref="compound">SemanticShaderPass</ref> &gt;</type>
+        <definition>eastl::optional&lt;SemanticShaderPass&gt; ShaderSemCode::PassTab::pass</definition>
+        <argsstring></argsstring>
+        <name>pass</name>
+        <qualifiedname>ShaderSemCode::PassTab::pass</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="202" column="21" bodyfile="shSemCode.h" bodystart="202" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderSemCode_1_1PassTab_1ab1dcfc9dcecf5b96d07bb11c38570f86" prot="public" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="classShaderStateBlock" kindref="compound">ShaderStateBlock</ref> * &gt;</type>
+        <definition>Tab&lt;ShaderStateBlock *&gt; ShaderSemCode::PassTab::suppBlk</definition>
+        <argsstring></argsstring>
+        <name>suppBlk</name>
+        <qualifiedname>ShaderSemCode::PassTab::suppBlk</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="203" column="9" bodyfile="shSemCode.h" bodystart="203" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderSemCode_1_1PassTab_1a64cc7b61943435f13a1267d947563506" prot="public" static="no" mutable="no">
+        <type>Tab&lt; int &gt;</type>
+        <definition>Tab&lt;int&gt; ShaderSemCode::PassTab::varmap</definition>
+        <argsstring></argsstring>
+        <name>varmap</name>
+        <qualifiedname>ShaderSemCode::PassTab::varmap</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="205" column="9" bodyfile="shSemCode.h" bodystart="205" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="shSemCode.h" line="200" column="3" bodyfile="shSemCode.h" bodystart="201" bodyend="206"/>
+    <listofallmembers>
+      <member refid="structShaderSemCode_1_1PassTab_1a510383fcc909f26223207e76596b4e69" prot="public" virt="non-virtual"><scope>ShaderSemCode::PassTab</scope><name>pass</name></member>
+      <member refid="structShaderSemCode_1_1PassTab_1ab1dcfc9dcecf5b96d07bb11c38570f86" prot="public" virt="non-virtual"><scope>ShaderSemCode::PassTab</scope><name>suppBlk</name></member>
+      <member refid="structShaderSemCode_1_1PassTab_1a64cc7b61943435f13a1267d947563506" prot="public" virt="non-virtual"><scope>ShaderSemCode::PassTab</scope><name>varmap</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,262 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="shCompiler_8h" kind="file" language="C++">
+    <compoundname>shCompiler.h</compoundname>
+    <includedby refid="loadShaders_8h" local="yes">loadShaders.h</includedby>
+    <includedby refid="main_8cpp" local="yes">main.cpp</includedby>
+    <includedby refid="makeShBinDump_8cpp" local="yes">makeShBinDump.cpp</includedby>
+    <includedby refid="processes_8cpp" local="yes">processes.cpp</includedby>
+    <includedby refid="shCompiler_8cpp" local="yes">shCompiler.cpp</includedby>
+    <includedby refid="shLog_8cpp" local="yes">shLog.cpp</includedby>
+    <includedby refid="shSemCode_8cpp" local="yes">shSemCode.cpp</includedby>
+    <includedby refid="shaderVariant_8cpp" local="yes">shaderVariant.cpp</includedby>
+    <includedby refid="shaderVariantSrc_8cpp" local="yes">shaderVariantSrc.cpp</includedby>
+    <includedby refid="shlexterm_8cpp" local="yes">shlexterm.cpp</includedby>
+    <includedby refid="shsem_8cpp" local="yes">shsem.cpp</includedby>
+    <invincdepgraph>
+      <node id="3">
+        <label>loadShaders.cpp</label>
+        <link refid="loadShaders_8cpp"/>
+      </node>
+      <node id="2">
+        <label>loadShaders.h</label>
+        <link refid="loadShaders_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>main.cpp</label>
+        <link refid="main_8cpp"/>
+      </node>
+      <node id="4">
+        <label>makeShBinDump.cpp</label>
+        <link refid="makeShBinDump_8cpp"/>
+      </node>
+      <node id="7">
+        <label>processes.cpp</label>
+        <link refid="processes_8cpp"/>
+      </node>
+      <node id="5">
+        <label>shCompiler.cpp</label>
+        <link refid="shCompiler_8cpp"/>
+      </node>
+      <node id="1">
+        <label>shCompiler.h</label>
+        <link refid="shCompiler_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>shLog.cpp</label>
+        <link refid="shLog_8cpp"/>
+      </node>
+      <node id="9">
+        <label>shSemCode.cpp</label>
+        <link refid="shSemCode_8cpp"/>
+      </node>
+      <node id="10">
+        <label>shaderVariant.cpp</label>
+        <link refid="shaderVariant_8cpp"/>
+      </node>
+      <node id="11">
+        <label>shaderVariantSrc.cpp</label>
+        <link refid="shaderVariantSrc_8cpp"/>
+      </node>
+      <node id="12">
+        <label>shlexterm.cpp</label>
+        <link refid="shlexterm_8cpp"/>
+      </node>
+      <node id="13">
+        <label>shsem.cpp</label>
+        <link refid="shsem_8cpp"/>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="structshc_1_1Job" prot="public">shc::Job</innerclass>
+    <innernamespace refid="namespaceshc">shc</innernamespace>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="shCompiler_8h_1af049975952f79ea4bf6cb1582447a384" prot="public" static="no" strong="yes">
+        <type></type>
+        <name>CompilerAction</name>
+        <enumvalue id="shCompiler_8h_1af049975952f79ea4bf6cb1582447a384a8697250efc73639dd2a6e7da243ac68b" prot="public">
+          <name>NOTHING</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="shCompiler_8h_1af049975952f79ea4bf6cb1582447a384aa50e5c6c2b6ca607ff7a488cacf8ceaa" prot="public">
+          <name>COMPILE_ONLY</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="shCompiler_8h_1af049975952f79ea4bf6cb1582447a384a6d561cf452ba2bf08c1019a174343d63" prot="public">
+          <name>LINK_ONLY</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="shCompiler_8h_1af049975952f79ea4bf6cb1582447a384abc6833fcf79fcc7be638a59cac023efb" prot="public">
+          <name>COMPILE_AND_LINK</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.h" line="21" column="1" bodyfile="shCompiler.h" bodystart="22" bodyend="27"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">/************************************************************************</highlight></codeline>
+<codeline lineno="5"><highlight class="comment"><sp/><sp/>shader<sp/>compiler<sp/>interface</highlight></codeline>
+<codeline lineno="6"><highlight class="comment"></highlight><highlight class="comment">/************************************************************************/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_string.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="const3d_8h" kindref="compound">const3d.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="makeShBinDump_8h" kindref="compound">makeShBinDump.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;shaders/dag_shaders.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;ioSys/dag_dataBlock.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;osApiWrappers/dag_cpuJobs.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shCompilationInfo_8h" kindref="compound">shCompilationInfo.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shaderVariantSrc_8h" kindref="compound">shaderVariantSrc.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="linkShaders_8h" kindref="compound">linkShaders.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;osApiWrappers/dag_cpuJobs.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="comment">//<sp/>@TODO:<sp/>split<sp/>this<sp/>file<sp/>(and<sp/>the<sp/>cpp)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight></codeline>
+<codeline lineno="21" refid="shCompiler_8h_1af049975952f79ea4bf6cb1582447a384" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/><ref refid="shCompiler_8h_1af049975952f79ea4bf6cb1582447a384" kindref="member">CompilerAction</ref></highlight></codeline>
+<codeline lineno="22"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/><ref refid="shCompiler_8h_1af049975952f79ea4bf6cb1582447a384a8697250efc73639dd2a6e7da243ac68b" kindref="member">NOTHING</ref>,</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/><ref refid="shCompiler_8h_1af049975952f79ea4bf6cb1582447a384aa50e5c6c2b6ca607ff7a488cacf8ceaa" kindref="member">COMPILE_ONLY</ref>,</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/><ref refid="shCompiler_8h_1af049975952f79ea4bf6cb1582447a384a6d561cf452ba2bf08c1019a174343d63" kindref="member">LINK_ONLY</ref>,</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/><ref refid="shCompiler_8h_1af049975952f79ea4bf6cb1582447a384abc6833fcf79fcc7be638a59cac023efb" kindref="member">COMPILE_AND_LINK</ref></highlight></codeline>
+<codeline lineno="27"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceshc" kindref="compound">shc</ref></highlight></codeline>
+<codeline lineno="30"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">CompilationContext;</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight><highlight class="comment">//<sp/>init<sp/>compiler</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceshc_1a8a4e1a65eb73ac377392e1321448660f" kindref="member">startup</ref>();</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight></codeline>
+<codeline lineno="37"><highlight class="normal"></highlight><highlight class="comment">//<sp/>close<sp/>compiler</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceshc_1ac8d2ced91ea1a4e72195b0c33e8584a0" kindref="member">shutdown</ref>();</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight></codeline>
+<codeline lineno="40"><highlight class="normal"></highlight><highlight class="comment">//<sp/>reset<sp/>shader<sp/>compiler<sp/>internal<sp/>structures<sp/>(before<sp/>next<sp/>compilation)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="41"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceshc_1a684865d8e3b21456d251eb3400fee52f" kindref="member">resetCompiler</ref>();</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"></highlight></codeline>
+<codeline lineno="43"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Reset<sp/>between<sp/>source<sp/>files<sp/>of<sp/>one<sp/>target.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceshc_1a68edf3f17609b3f932b935fe388cd910" kindref="member">reset_source_file</ref>();</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"></highlight></codeline>
+<codeline lineno="46"><highlight class="normal"></highlight><highlight class="comment">//<sp/>check<sp/>shader<sp/>file<sp/>cache<sp/>&amp;<sp/>return<sp/>true,<sp/>if<sp/>cache<sp/>needs<sp/>recompilation</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><ref refid="shCompiler_8h_1af049975952f79ea4bf6cb1582447a384" kindref="member">CompilerAction</ref><sp/><ref refid="namespaceshc_1a28066fa836fbd40b415cd40fb61a2023" kindref="member">should_recompile</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classShCompilationInfo" kindref="compound">ShCompilationInfo</ref><sp/>&amp;comp);</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaceshc_1a7446716e9cbf38d49b9caed94e2f0782" kindref="member">should_recompile_sh</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classShCompilationInfo" kindref="compound">ShCompilationInfo</ref><sp/>&amp;comp,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>String<sp/>&amp;sourceFileName);</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"></highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight><highlight class="comment">//<sp/>compile<sp/>shader<sp/>files<sp/>&amp;<sp/>generate<sp/>variants<sp/>to<sp/>disk.<sp/>return<sp/>false,<sp/>if<sp/>error<sp/>occurs</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="51"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceshc_1a8c442ebc036376c0817dc83bd46434d0" kindref="member">compileShader</ref>(<ref refid="shCompiler_8h_1af049975952f79ea4bf6cb1582447a384" kindref="member">CompilerAction</ref><sp/>compiler_action,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>no_save,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>should_rebuild,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classshc_1_1CompilationContext" kindref="compound">shc::CompilationContext</ref><sp/>&amp;comp);</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"></highlight></codeline>
+<codeline lineno="53"><highlight class="normal"></highlight><highlight class="comment">//<sp/>build<sp/>shader<sp/>binary<sp/>dump<sp/>from<sp/>compiled<sp/>shaders<sp/>(*.cached<sp/>files)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="54"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaceshc_1ae6471d14423f7b8cd5b71d7055d79c75" kindref="member">buildShaderBinDump</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*bindump_fn,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*sh_fn,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>forceRebuild,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>minidump,<sp/><ref refid="makeShBinDump_8h_1a7e4c9039c4d793938486d7f1c089329f" kindref="member">BindumpPackingFlags</ref><sp/>pack_flags,</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classshc_1_1CompilationContext" kindref="compound">shc::CompilationContext</ref><sp/>&amp;comp);</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"></highlight></codeline>
+<codeline lineno="57"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaceshc_1a0c336a7ebfd6800dacceeeaacbe41fdd" kindref="member">try_enter_shutdown</ref>();</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaceshc_1a3f0d9ab9c11d14d3fb28a7305ae48164" kindref="member">try_lock_shutdown</ref>();</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceshc_1a8a417be34944424a38dbc16575d9e4ef" kindref="member">unlock_shutdown</ref>();</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"></highlight></codeline>
+<codeline lineno="61"><highlight class="normal">String<sp/><ref refid="namespaceshc_1a721ecfdbb88fa2a042d32ee935757308" kindref="member">get_obj_file_name_from_source</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>String<sp/>&amp;source_file_name,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classShCompilationInfo" kindref="compound">ShCompilationInfo</ref><sp/>&amp;comp);</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"></highlight></codeline>
+<codeline lineno="63"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceshc_1a0f186f2ce7014f20aa47f31446439dbe" kindref="member">setRequiredShadersBlock</ref>(DataBlock<sp/>*block);</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceshc_1a76f9fbee49ca2f49bfd7aee5b06bb529" kindref="member">setRequiredShadersDef</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>on);</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceshc_1a92cbda8ac75d5cf670a548ef272d6825" kindref="member">clearFlobVarRefList</ref>();</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceshc_1a4170f0d930cdf92ed2b78bed24168644" kindref="member">addExplicitGlobVarRef</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*var_name);</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"></highlight></codeline>
+<codeline lineno="68"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaceshc_1a0e6b3705eca44599c1964ff3953e6a75" kindref="member">isShaderRequired</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*shader_name);</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaceshc_1a924aa4883ff8d5dfd8c3bea14a4de2fb" kindref="member">isGlobVarRequired</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*var_name);</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"></highlight></codeline>
+<codeline lineno="71"><highlight class="normal"></highlight></codeline>
+<codeline lineno="72"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceshc_1ab66b53336232f9618b2312d6eebe10ab" kindref="member">setValidVariantsBlock</ref>(DataBlock<sp/>*block);</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceshc_1a68f3fb95029d4b4646af3bd76dd3bac1" kindref="member">setInvalidAsNullDef</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>on);</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"></highlight></codeline>
+<codeline lineno="75"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceshc_1a950f822ed9707332f0fb4c602ea82c32" kindref="member">prepareTestVariantShader</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name);</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceshc_1a76cbe60a6ca21ca5a6760ce4beabca8e" kindref="member">prepareTestVariant</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classShaderVariant_1_1TypeTable" kindref="compound">ShaderVariant::TypeTable</ref><sp/>*sv,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classShaderVariant_1_1TypeTable" kindref="compound">ShaderVariant::TypeTable</ref><sp/>*dv);</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaceshc_1aba09c71513e9342dcc4f03d128304ba2" kindref="member">isValidVariant</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classShaderVariant_1_1VariantSrc" kindref="compound">ShaderVariant::VariantSrc</ref><sp/>*sv,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classShaderVariant_1_1VariantSrc" kindref="compound">ShaderVariant::VariantSrc</ref><sp/>*dv);</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaceshc_1af50955b1a5a2daa082f696535dbd19c3" kindref="member">shouldMarkInvalidAsNull</ref>();</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"></highlight></codeline>
+<codeline lineno="80"><highlight class="normal">String<sp/><ref refid="namespaceshc_1ae9d7e1fe461404fcd0feb93ca58da37f" kindref="member">search_include_with_pathes</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*fn);</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"></highlight></codeline>
+<codeline lineno="82"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceshc_1a2c0f7d473897e78b8669d30936452b73" kindref="member">setOutputUpdbPath</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*path);</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="namespaceshc_1a3f38be8e25161985591a2a48a7162572" kindref="member">getOutputUpdbPath</ref>();</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"></highlight></codeline>
+<codeline lineno="85"><highlight class="normal"></highlight></codeline>
+<codeline lineno="86" refid="structshc_1_1Job" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structshc_1_1Job" kindref="compound">Job</ref><sp/>:<sp/>cpujobs::IJob</highlight></codeline>
+<codeline lineno="87"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"><sp/><sp/><ref refid="structshc_1_1Job_1a52d7c6fb892f01ed0f54176dbc5d2930" kindref="member">Job</ref>();</highlight></codeline>
+<codeline lineno="90" refid="structshc_1_1Job_1a2f0e44530de43b280559dd4ff807d9dd" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="structshc_1_1Job_1a2f0e44530de43b280559dd4ff807d9dd" kindref="member">getJobName</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>&amp;)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">final</highlight><highlight class="normal"><sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="stringliteral">&quot;ShaderCompilerJob&quot;</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structshc_1_1Job_1a0db61e3f075b115844f23da94bc912a0" kindref="member">doJob</ref>()<sp/>final;</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structshc_1_1Job_1a511710ba0cb8538630fd63b83396dc31" kindref="member">releaseJob</ref>()<sp/>final;</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"></highlight></codeline>
+<codeline lineno="94"><highlight class="normal">protected:</highlight></codeline>
+<codeline lineno="95" refid="structshc_1_1Job_1a511cbc0ba7e66ed3a03a31d195225e57" refkind="member"><highlight class="normal"><sp/><sp/>virtual<sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structshc_1_1Job_1a511cbc0ba7e66ed3a03a31d195225e57" kindref="member">doJobBody</ref>()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="96" refid="structshc_1_1Job_1af5ccf84f47357898495b7aa2a29d4971" refkind="member"><highlight class="normal"><sp/><sp/>virtual<sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structshc_1_1Job_1af5ccf84f47357898495b7aa2a29d4971" kindref="member">releaseJobBody</ref>()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="97"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"></highlight></codeline>
+<codeline lineno="99" refid="namespaceshc_1a053e03af98ca26e8ba24b8ac5f78fa45" refkind="member"><highlight class="normal">enum<sp/>class<sp/><ref refid="namespaceshc_1a053e03af98ca26e8ba24b8ac5f78fa45" kindref="member">JobMgrChoiceStrategy</ref></highlight></codeline>
+<codeline lineno="100"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"><sp/><sp/><ref refid="namespaceshc_1a053e03af98ca26e8ba24b8ac5f78fa45a1ebd8dbf8c34e255f5cbf28f35860b71" kindref="member">ROUND_ROBIN</ref>,</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"><sp/><sp/><ref refid="namespaceshc_1a053e03af98ca26e8ba24b8ac5f78fa45a9b3d3b71c41c604f6de20bd2280df393" kindref="member">LEAST_BUSY_COOPERATIVE</ref></highlight></codeline>
+<codeline lineno="103"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"></highlight></codeline>
+<codeline lineno="105"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceshc_1ac431d98c07031953b228af74422abfe2" kindref="member">init_jobs</ref>(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>num_workers);</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceshc_1a78b0761985dc08fccb004298cb2184bd" kindref="member">deinit_jobs</ref>();</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/><ref refid="namespaceshc_1a15322df1795feb5f2e78c9a9338c6bf0" kindref="member">worker_count</ref>();</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/><ref refid="namespaceshc_1a52533646036e68290d71cf996b716fc0" kindref="member">max_allowed_process_count</ref>();</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaceshc_1abe61f9b56246b7ac56d190cf23d55011" kindref="member">is_multithreaded</ref>();</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaceshc_1a72c2e791a45b155ec5e3a04a7368455e" kindref="member">is_in_worker</ref>();</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceshc_1aa29b1afa394d7f6e2b8d62ef87c3a88f" kindref="member">await_all_jobs</ref>(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>(*on_released_cb)()<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceshc_1a196bec5ea00287d23be548089457adff" kindref="member">add_job</ref>(<ref refid="structshc_1_1Job_1a52d7c6fb892f01ed0f54176dbc5d2930" kindref="member">Job</ref><sp/>*job,<sp/><ref refid="namespaceshc_1a053e03af98ca26e8ba24b8ac5f78fa45" kindref="member">JobMgrChoiceStrategy</ref><sp/>mgr_choice_strat);</highlight></codeline>
+<codeline lineno="113"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>shc</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="shCompiler.h"/>
+  </compounddef>
+</doxygen>

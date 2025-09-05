@@ -1,0 +1,133 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="genericCache_8h" kind="file" language="C++">
+    <compoundname>genericCache.h</compoundname>
+    <includes local="no">util/dag_oaHashNameMap.h</includes>
+    <includes local="no">util/dag_simpleString.h</includes>
+    <includes local="no">util/dag_hierBitArray.h</includes>
+    <includes local="no">generic/dag_tab.h</includes>
+    <includes refid="twoStepRelPath_8h" local="no">libTools/util/twoStepRelPath.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>genericCache.h</label>
+        <link refid="genericCache_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>libTools/util/twoStepRelPath.h</label>
+        <link refid="twoStepRelPath_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>generic/dag_tab.h</label>
+      </node>
+      <node id="4">
+        <label>util/dag_hierBitArray.h</label>
+      </node>
+      <node id="2">
+        <label>util/dag_oaHashNameMap.h</label>
+      </node>
+      <node id="3">
+        <label>util/dag_simpleString.h</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="classGenericBuildCache" prot="public">GenericBuildCache</innerclass>
+    <innerclass refid="structGenericBuildCache_1_1FileDataHash" prot="protected">GenericBuildCache::FileDataHash</innerclass>
+    <innernamespace refid="namespacemkbindump">mkbindump</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Tech<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_oaHashNameMap.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_simpleString.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_hierBitArray.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_tab.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="twoStepRelPath_8h" kindref="compound">libTools/util/twoStepRelPath.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">DataBlock;</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespacemkbindump" kindref="compound">mkbindump</ref></highlight></codeline>
+<codeline lineno="16"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">BinDumpSaveCB;</highlight></codeline>
+<codeline lineno="18"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20" refid="classGenericBuildCache" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classGenericBuildCache" kindref="compound">GenericBuildCache</ref></highlight></codeline>
+<codeline lineno="21"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="23" refid="classGenericBuildCache_1aaf7e558b87ca5d1a95d14ad8a09b610e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classGenericBuildCache_1aaf7e558b87ca5d1a95d14ad8a09b610e" kindref="member">HASH_SZ</ref><sp/>=<sp/>16;</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight></codeline>
+<codeline lineno="25" refid="classGenericBuildCache_1a2b4a2b9584a0d9165be125ea439c991a" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classGenericBuildCache_1a2b4a2b9584a0d9165be125ea439c991a" kindref="member">GenericBuildCache</ref>()<sp/>:<sp/><ref refid="classGenericBuildCache_1ab075d16a4b91ec672e4bd37b2b72938c" kindref="member">rec</ref>(midmem)</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/><sp/><sp/>memset(&amp;<ref refid="classGenericBuildCache_1a6f130e6f00398a1b9d4fa81e13847077" kindref="member">target</ref>,<sp/>0,<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(<ref refid="classGenericBuildCache_1a6f130e6f00398a1b9d4fa81e13847077" kindref="member">target</ref>));</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classGenericBuildCache_1ae8d6ba24503cdbfe13b42245083b7740" kindref="member">timeChanged</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight></codeline>
+<codeline lineno="31" refid="classGenericBuildCache_1a91d0af3507845781e71c2b886639d0e5" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGenericBuildCache_1a91d0af3507845781e71c2b886639d0e5" kindref="member">reset</ref>();</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight></codeline>
+<codeline lineno="33" refid="classGenericBuildCache_1aa82aec2464bd70e893991ea09c7583d5" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classGenericBuildCache_1aa82aec2464bd70e893991ea09c7583d5" kindref="member">load</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*cache_fname,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>*end_pos<sp/>=<sp/>NULL);</highlight></codeline>
+<codeline lineno="34" refid="classGenericBuildCache_1a21f34dbfa2d15fb07f29aba98f058a27" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classGenericBuildCache_1a21f34dbfa2d15fb07f29aba98f058a27" kindref="member">save</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*cache_fname,<sp/><ref refid="classmkbindump_1_1BinDumpSaveCB" kindref="compound">mkbindump::BinDumpSaveCB</ref><sp/>*a_data<sp/>=<sp/>NULL);</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight></codeline>
+<codeline lineno="36" refid="classGenericBuildCache_1ac012aca85cd3f27fa47d438f5de68e8e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGenericBuildCache_1ac012aca85cd3f27fa47d438f5de68e8e" kindref="member">resetTouchMark</ref>();</highlight></codeline>
+<codeline lineno="37" refid="classGenericBuildCache_1a2f7cd04b0d91da5904ee5758a038902f" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classGenericBuildCache_1a2f7cd04b0d91da5904ee5758a038902f" kindref="member">checkAllTouched</ref>();</highlight></codeline>
+<codeline lineno="38" refid="classGenericBuildCache_1a29e2df354bfa64d9a634570d1b2d82f5" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGenericBuildCache_1a29e2df354bfa64d9a634570d1b2d82f5" kindref="member">removeUntouched</ref>();</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight></codeline>
+<codeline lineno="40" refid="classGenericBuildCache_1a5be5be2dd3297b88e48b24b0080f0ed1" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classGenericBuildCache_1a5be5be2dd3297b88e48b24b0080f0ed1" kindref="member">checkFileChanged</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*fname);</highlight></codeline>
+<codeline lineno="41" refid="classGenericBuildCache_1a0970fa3785cee50b5d2ce9797ade4bd0" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classGenericBuildCache_1a0970fa3785cee50b5d2ce9797ade4bd0" kindref="member">checkDataBlockChanged</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*fname_ref,<sp/>DataBlock<sp/>&amp;blk);</highlight></codeline>
+<codeline lineno="42" refid="classGenericBuildCache_1a7c906355e4fa334e1c4c9c7ba2a7bd0d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classGenericBuildCache_1a7c906355e4fa334e1c4c9c7ba2a7bd0d" kindref="member">checkTargetFileChanged</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*fname);</highlight></codeline>
+<codeline lineno="43" refid="classGenericBuildCache_1a4758844ba0c4b212004a13f657bdd189" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGenericBuildCache_1a4758844ba0c4b212004a13f657bdd189" kindref="member">updateFileHash</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*fname);</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight></codeline>
+<codeline lineno="45" refid="classGenericBuildCache_1ac9abe087e3d3ec94a40147e9aa589e54" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>NameMapCI<sp/>&amp;<ref refid="classGenericBuildCache_1ac9abe087e3d3ec94a40147e9aa589e54" kindref="member">getNameList</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classGenericBuildCache_1a12e5e1b0b07bc9fe0791bc9d52ff4727" kindref="member">fnames</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"></highlight></codeline>
+<codeline lineno="47" refid="classGenericBuildCache_1a634c2aeddfd5e254bca78ea6844acf21" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGenericBuildCache_1a634c2aeddfd5e254bca78ea6844acf21" kindref="member">setTargetFileHash</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*fname);</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"></highlight></codeline>
+<codeline lineno="49" refid="classGenericBuildCache_1a024adaff0a6292c65dc3f6a7bee79ecf" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classGenericBuildCache_1a024adaff0a6292c65dc3f6a7bee79ecf" kindref="member">getFileHash</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*fname,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>out_hash[<ref refid="classGenericBuildCache_1aaf7e558b87ca5d1a95d14ad8a09b610e" kindref="member">HASH_SZ</ref>]);</highlight></codeline>
+<codeline lineno="50" refid="classGenericBuildCache_1a2bacaa2166c6684c005087a7f42a5289" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGenericBuildCache_1a2bacaa2166c6684c005087a7f42a5289" kindref="member">getDataHash</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*data,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>data_len,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>out_hash[<ref refid="classGenericBuildCache_1aaf7e558b87ca5d1a95d14ad8a09b610e" kindref="member">HASH_SZ</ref>]);</highlight></codeline>
+<codeline lineno="51" refid="classGenericBuildCache_1ab30e914036d2cd4126d6b68b2572d802" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/><ref refid="classGenericBuildCache_1ab30e914036d2cd4126d6b68b2572d802" kindref="member">getFileTime</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*fname,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>&amp;out_sz);</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"></highlight></codeline>
+<codeline lineno="53" refid="classGenericBuildCache_1ae8cdb760156adfad1028ad55992e0a66" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGenericBuildCache_1ae8cdb760156adfad1028ad55992e0a66" kindref="member">setSdkRoot</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*root_dir,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*subdir<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">)<sp/>{<sp/><ref refid="classGenericBuildCache_1a7dfb205f5400f21e7cf383f550e59de4" kindref="member">sdkRoot</ref>.<ref refid="structTwoStepRelPath_1a381c774dd151fd936cd0d5f2ee5ff697" kindref="member">setSdkRoot</ref>(root_dir,<sp/>subdir);<sp/>}</highlight></codeline>
+<codeline lineno="54" refid="classGenericBuildCache_1ac0ccb25b3739bf49b3c1b5af6a8db484" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="classGenericBuildCache_1ac0ccb25b3739bf49b3c1b5af6a8db484" kindref="member">mkRelPath</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*fpath,<sp/><ref refid="structTwoStepRelPath_1ae0f90060e5c48b1fece187077f9c3c60" kindref="member">TwoStepRelPath::storage_t</ref><sp/>&amp;stor)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classGenericBuildCache_1a7dfb205f5400f21e7cf383f550e59de4" kindref="member">sdkRoot</ref>.<ref refid="structTwoStepRelPath_1a4409a76c58b0d3c602445562e7d3f5e9" kindref="member">mkRelPath</ref>(fpath,<sp/>stor);<sp/>}</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"></highlight></codeline>
+<codeline lineno="56" refid="classGenericBuildCache_1a06707ed37240d0abd9583c77797fe6c3" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classGenericBuildCache_1a06707ed37240d0abd9583c77797fe6c3" kindref="member">isTimeChanged</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classGenericBuildCache_1ae8d6ba24503cdbfe13b42245083b7740" kindref="member">timeChanged</ref><sp/>==<sp/>1;<sp/>}</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"></highlight></codeline>
+<codeline lineno="58"><highlight class="normal"></highlight><highlight class="keyword">protected</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="59" refid="structGenericBuildCache_1_1FileDataHash" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structGenericBuildCache_1_1FileDataHash" kindref="compound">FileDataHash</ref></highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="61" refid="structGenericBuildCache_1_1FileDataHash_1a984138a66c8c6b1c6ff8b156181df852" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/><ref refid="structGenericBuildCache_1_1FileDataHash_1a984138a66c8c6b1c6ff8b156181df852" kindref="member">hash</ref>[<ref refid="classGenericBuildCache_1aaf7e558b87ca5d1a95d14ad8a09b610e" kindref="member">HASH_SZ</ref>];</highlight></codeline>
+<codeline lineno="62" refid="structGenericBuildCache_1_1FileDataHash_1ab8663d0c3e6d67b62238f0584872132e" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/><ref refid="structGenericBuildCache_1_1FileDataHash_1ab8663d0c3e6d67b62238f0584872132e" kindref="member">timeStamp</ref>;</highlight></codeline>
+<codeline lineno="63" refid="structGenericBuildCache_1_1FileDataHash_1abb4f7f719c18441ed50b4a45299b29ea" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/><ref refid="structGenericBuildCache_1_1FileDataHash_1abb4f7f719c18441ed50b4a45299b29ea" kindref="member">changed</ref><sp/>:<sp/>1;</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"></highlight></codeline>
+<codeline lineno="66" refid="classGenericBuildCache_1a12e5e1b0b07bc9fe0791bc9d52ff4727" refkind="member"><highlight class="normal"><sp/><sp/>NameMapCI<sp/><ref refid="classGenericBuildCache_1a12e5e1b0b07bc9fe0791bc9d52ff4727" kindref="member">fnames</ref>;</highlight></codeline>
+<codeline lineno="67" refid="classGenericBuildCache_1ab075d16a4b91ec672e4bd37b2b72938c" refkind="member"><highlight class="normal"><sp/><sp/>Tab&lt;FileDataHash&gt;<sp/><ref refid="classGenericBuildCache_1ab075d16a4b91ec672e4bd37b2b72938c" kindref="member">rec</ref>;</highlight></codeline>
+<codeline lineno="68" refid="classGenericBuildCache_1a6f130e6f00398a1b9d4fa81e13847077" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structGenericBuildCache_1_1FileDataHash" kindref="compound">FileDataHash</ref><sp/><ref refid="classGenericBuildCache_1a6f130e6f00398a1b9d4fa81e13847077" kindref="member">target</ref>;</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"></highlight></codeline>
+<codeline lineno="70" refid="classGenericBuildCache_1a0e9ada516319eed6330df46381d349f3" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/>HierBitArray&lt;ConstSizeBitArray&lt;8&gt;&gt;<sp/><ref refid="classGenericBuildCache_1a0e9ada516319eed6330df46381d349f3" kindref="member">bitarray_t</ref>;</highlight></codeline>
+<codeline lineno="71" refid="classGenericBuildCache_1a409012dff15c317c20a9b1bd3ead4d34" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classGenericBuildCache_1a0e9ada516319eed6330df46381d349f3" kindref="member">bitarray_t</ref><sp/><ref refid="classGenericBuildCache_1a409012dff15c317c20a9b1bd3ead4d34" kindref="member">touchMark</ref>;</highlight></codeline>
+<codeline lineno="72" refid="classGenericBuildCache_1aad9316a924a0094381bff9df5a7c5581" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classGenericBuildCache_1aad9316a924a0094381bff9df5a7c5581" kindref="member">touchMarkSz</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="73" refid="classGenericBuildCache_1ae8d6ba24503cdbfe13b42245083b7740" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/><ref refid="classGenericBuildCache_1ae8d6ba24503cdbfe13b42245083b7740" kindref="member">timeChanged</ref><sp/>:<sp/>1;</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"></highlight></codeline>
+<codeline lineno="75" refid="classGenericBuildCache_1a7dfb205f5400f21e7cf383f550e59de4" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/><ref refid="structTwoStepRelPath" kindref="compound">TwoStepRelPath</ref><sp/><ref refid="classGenericBuildCache_1a7dfb205f5400f21e7cf383f550e59de4" kindref="member">sdkRoot</ref>;</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"></highlight></codeline>
+<codeline lineno="77" refid="classGenericBuildCache_1a0ac6e12676bfd54b0ef5be250f71747a" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classGenericBuildCache_1a0ac6e12676bfd54b0ef5be250f71747a" kindref="member">touch</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i)<sp/>{<sp/>(i<sp/>&lt;<sp/><ref refid="classGenericBuildCache_1aad9316a924a0094381bff9df5a7c5581" kindref="member">touchMarkSz</ref>)<sp/>?<sp/><ref refid="classGenericBuildCache_1a409012dff15c317c20a9b1bd3ead4d34" kindref="member">touchMark</ref>.set(i)<sp/>:<sp/>(void)0;<sp/>}</highlight></codeline>
+<codeline lineno="78"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="genericCache.h"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,77 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structStcodeBranchedRoutineDataTable" kind="struct" language="C++" prot="public">
+    <compoundname>StcodeBranchedRoutineDataTable</compoundname>
+    <includes refid="cppStcodeAssembly_8h" local="no">cppStcodeAssembly.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structStcodeBranchedRoutineDataTable_1a71dd9604fe6e3dc1b1c4396dc28c3497" prot="public" static="no" mutable="no">
+        <type>ska::flat_hash_map&lt; <ref refid="structSemanticShaderPass" kindref="compound">SemanticShaderPass</ref> *, Tab&lt; int &gt; &gt;</type>
+        <definition>ska::flat_hash_map&lt;SemanticShaderPass *, Tab&lt;int&gt; &gt; StcodeBranchedRoutineDataTable::passRegisterTables</definition>
+        <argsstring></argsstring>
+        <name>passRegisterTables</name>
+        <qualifiedname>StcodeBranchedRoutineDataTable::passRegisterTables</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="442" column="22" bodyfile="cppStcodeAssembly.h" bodystart="442" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structStcodeBranchedRoutineDataTable_1ad47b8fbd9efb2df2c31afc53aa7f0250" prot="public" static="no" mutable="no">
+        <type><ref refid="structHlslRegRange" kindref="compound">HlslRegRange</ref></type>
+        <definition>HlslRegRange StcodeBranchedRoutineDataTable::commonVsConstRange</definition>
+        <argsstring></argsstring>
+        <name>commonVsConstRange</name>
+        <qualifiedname>StcodeBranchedRoutineDataTable::commonVsConstRange</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="443" column="16" bodyfile="cppStcodeAssembly.h" bodystart="443" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structStcodeBranchedRoutineDataTable_1a8f390d0921ee27383104fa4216eeb9c6" prot="public" static="no" mutable="no">
+        <type><ref refid="structHlslRegRange" kindref="compound">HlslRegRange</ref></type>
+        <definition>HlslRegRange StcodeBranchedRoutineDataTable::commonPsOrCsConstRange</definition>
+        <argsstring></argsstring>
+        <name>commonPsOrCsConstRange</name>
+        <qualifiedname>StcodeBranchedRoutineDataTable::commonPsOrCsConstRange</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="444" column="16" bodyfile="cppStcodeAssembly.h" bodystart="444" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>HlslRegRange</label>
+        <link refid="structHlslRegRange"/>
+      </node>
+      <node id="1">
+        <label>StcodeBranchedRoutineDataTable</label>
+        <link refid="structStcodeBranchedRoutineDataTable"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>commonPsOrCsConstRange</edgelabel>
+          <edgelabel>commonVsConstRange</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="cppStcodeAssembly.h" line="440" column="1" bodyfile="cppStcodeAssembly.h" bodystart="441" bodyend="445"/>
+    <listofallmembers>
+      <member refid="structStcodeBranchedRoutineDataTable_1a8f390d0921ee27383104fa4216eeb9c6" prot="public" virt="non-virtual"><scope>StcodeBranchedRoutineDataTable</scope><name>commonPsOrCsConstRange</name></member>
+      <member refid="structStcodeBranchedRoutineDataTable_1ad47b8fbd9efb2df2c31afc53aa7f0250" prot="public" virt="non-virtual"><scope>StcodeBranchedRoutineDataTable</scope><name>commonVsConstRange</name></member>
+      <member refid="structStcodeBranchedRoutineDataTable_1a71dd9604fe6e3dc1b1c4396dc28c3497" prot="public" virt="non-virtual"><scope>StcodeBranchedRoutineDataTable</scope><name>passRegisterTables</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

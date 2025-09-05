@@ -1,0 +1,170 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structraytrace_1_1TopAccelerationStructureBuildInfo" kind="struct" language="C++" prot="public">
+    <compoundname>raytrace::TopAccelerationStructureBuildInfo</compoundname>
+    <includes refid="dag__drvRayTrace_8h" local="no">dag_drvRayTrace.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structraytrace_1_1TopAccelerationStructureBuildInfo_1ace5bf05e1a07e436bb364bc868967c5e" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool raytrace::TopAccelerationStructureBuildInfo::doUpdate</definition>
+        <argsstring></argsstring>
+        <name>doUpdate</name>
+        <qualifiedname>raytrace::TopAccelerationStructureBuildInfo::doUpdate</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Do an update instead of a rebuild. Only valid to use when previous rebuilds had the flag <ref refid="dag__drvRayTrace_8h_1a46397cc51b1c10848f986af0c0bd49c8a079a30b0592505b5965a5db0388c511c" kindref="member">RaytraceBuildFlags::ALLOW_UPDATE</ref> set. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="227" column="8" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="227" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1TopAccelerationStructureBuildInfo_1a44be890d589d4253401195daf28bb3c0" prot="public" static="no" mutable="no">
+        <type><ref refid="classSbuffer" kindref="compound">Sbuffer</ref> *</type>
+        <definition>Sbuffer* raytrace::TopAccelerationStructureBuildInfo::instanceBuffer</definition>
+        <argsstring></argsstring>
+        <name>instanceBuffer</name>
+        <qualifiedname>raytrace::TopAccelerationStructureBuildInfo::instanceBuffer</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+<para>A buffer, filled with instance descriptors. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="229" column="11" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="229" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1TopAccelerationStructureBuildInfo_1a8ca4d52e651caf4672bb85eeb851b215" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::TopAccelerationStructureBuildInfo::instanceCount</definition>
+        <argsstring></argsstring>
+        <name>instanceCount</name>
+        <qualifiedname>raytrace::TopAccelerationStructureBuildInfo::instanceCount</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+<para>The number of instance descriptors in the instanceBuffer. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="231" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="231" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1TopAccelerationStructureBuildInfo_1ad83b361e6c918bce04971139d0448586" prot="public" static="no" mutable="no">
+        <type><ref refid="classSbuffer" kindref="compound">Sbuffer</ref> *</type>
+        <definition>Sbuffer* raytrace::TopAccelerationStructureBuildInfo::scratchSpaceBuffer</definition>
+        <argsstring></argsstring>
+        <name>scratchSpaceBuffer</name>
+        <qualifiedname>raytrace::TopAccelerationStructureBuildInfo::scratchSpaceBuffer</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Buffer that provides scratch space needed for the build, size requirements are derived from scratchSpaceBufferOffsetInBytes + scratchSpaceBufferSizeInBytes. <simplesect kind="note"><para>Multiple builds can safely use the same buffer without synchronization as long as they do not overlap in used region of the buffer. </para>
+</simplesect>
+<simplesect kind="note"><para>May be nullptr when the corresponding scratch buffer size provided by d3d::create_raytrace_top_acceleration_structure was 0. </para>
+</simplesect>
+<simplesect kind="note"><para>A frame end is a implicit flush of every buffer. So no synchronization in between frames is needed. </para>
+</simplesect>
+<simplesect kind="warning"><para>Currently this is optional, but this behavior is deprecated until all users have updated to provide this buffer when needed. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="242" column="11" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="242" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1TopAccelerationStructureBuildInfo_1a5e88af7a2bf94ec9ccb68ca8a9221ed6" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::TopAccelerationStructureBuildInfo::scratchSpaceBufferOffsetInBytes</definition>
+        <argsstring></argsstring>
+        <name>scratchSpaceBufferOffsetInBytes</name>
+        <qualifiedname>raytrace::TopAccelerationStructureBuildInfo::scratchSpaceBufferOffsetInBytes</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Offset into scratchSpaceBuffer, buffer has to be large enough to provide space for scratchSpaceBufferOffsetInBytes + scratchSpaceBufferSizeInBytes. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="245" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="245" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1TopAccelerationStructureBuildInfo_1a343765f3dd95910083be83601b86fe28" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::TopAccelerationStructureBuildInfo::scratchSpaceBufferSizeInBytes</definition>
+        <argsstring></argsstring>
+        <name>scratchSpaceBufferSizeInBytes</name>
+        <qualifiedname>raytrace::TopAccelerationStructureBuildInfo::scratchSpaceBufferSizeInBytes</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Usable space of scratchSpaceBuffer, this has to be at least as large as the provided build_scratch_size_in_bytes value for the build structure for a rebuild or update_scratch_size_in_bytes for updates. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="249" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="249" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1TopAccelerationStructureBuildInfo_1acf63b0c4fb1dc86b123fc77e47e3cd63" prot="public" static="no" mutable="no">
+        <type><ref refid="dag__drvRayTrace_8h_1a46397cc51b1c10848f986af0c0bd49c8" kindref="member">RaytraceBuildFlags</ref></type>
+        <definition>RaytraceBuildFlags raytrace::TopAccelerationStructureBuildInfo::flags</definition>
+        <argsstring></argsstring>
+        <name>flags</name>
+        <qualifiedname>raytrace::TopAccelerationStructureBuildInfo::flags</qualifiedname>
+        <initializer>= <ref refid="dag__drvRayTrace_8h_1a46397cc51b1c10848f986af0c0bd49c8ab50339a10e1de285ac99d4c3990b8693" kindref="member">RaytraceBuildFlags::NONE</ref></initializer>
+        <briefdescription>
+<para>Flags that influence some characteristics and valid usage of the structure. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="251" column="22" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="251" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Provides all necessary information to build or update a ray trace top acceleration structure. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="3">
+        <label>D3dResource</label>
+        <link refid="classD3dResource"/>
+      </node>
+      <node id="4">
+        <label>ResourceChecker</label>
+        <link refid="structResourceChecker"/>
+      </node>
+      <node id="2">
+        <label>Sbuffer</label>
+        <link refid="classSbuffer"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+        <childnode refid="4" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>raytrace::TopAccelerationStructureBuildInfo</label>
+        <link refid="structraytrace_1_1TopAccelerationStructureBuildInfo"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>instanceBuffer</edgelabel>
+          <edgelabel>scratchSpaceBuffer</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="rayTrace/dag_drvRayTrace.h" line="223" column="1" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="224" bodyend="252"/>
+    <listofallmembers>
+      <member refid="structraytrace_1_1TopAccelerationStructureBuildInfo_1ace5bf05e1a07e436bb364bc868967c5e" prot="public" virt="non-virtual"><scope>raytrace::TopAccelerationStructureBuildInfo</scope><name>doUpdate</name></member>
+      <member refid="structraytrace_1_1TopAccelerationStructureBuildInfo_1acf63b0c4fb1dc86b123fc77e47e3cd63" prot="public" virt="non-virtual"><scope>raytrace::TopAccelerationStructureBuildInfo</scope><name>flags</name></member>
+      <member refid="structraytrace_1_1TopAccelerationStructureBuildInfo_1a44be890d589d4253401195daf28bb3c0" prot="public" virt="non-virtual"><scope>raytrace::TopAccelerationStructureBuildInfo</scope><name>instanceBuffer</name></member>
+      <member refid="structraytrace_1_1TopAccelerationStructureBuildInfo_1a8ca4d52e651caf4672bb85eeb851b215" prot="public" virt="non-virtual"><scope>raytrace::TopAccelerationStructureBuildInfo</scope><name>instanceCount</name></member>
+      <member refid="structraytrace_1_1TopAccelerationStructureBuildInfo_1ad83b361e6c918bce04971139d0448586" prot="public" virt="non-virtual"><scope>raytrace::TopAccelerationStructureBuildInfo</scope><name>scratchSpaceBuffer</name></member>
+      <member refid="structraytrace_1_1TopAccelerationStructureBuildInfo_1a5e88af7a2bf94ec9ccb68ca8a9221ed6" prot="public" virt="non-virtual"><scope>raytrace::TopAccelerationStructureBuildInfo</scope><name>scratchSpaceBufferOffsetInBytes</name></member>
+      <member refid="structraytrace_1_1TopAccelerationStructureBuildInfo_1a343765f3dd95910083be83601b86fe28" prot="public" virt="non-virtual"><scope>raytrace::TopAccelerationStructureBuildInfo</scope><name>scratchSpaceBufferSizeInBytes</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

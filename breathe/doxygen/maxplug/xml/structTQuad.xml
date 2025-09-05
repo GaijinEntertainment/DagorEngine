@@ -1,0 +1,162 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structTQuad" kind="struct" language="C++" prot="public">
+    <compoundname>TQuad</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structTQuad_1a1c8d8f9ffee42c4cc81997fdc9ce1894" prot="public" static="no" mutable="no">
+        <type>Face</type>
+        <definition>Face TQuad::f[2]</definition>
+        <argsstring>[2]</argsstring>
+        <name>f</name>
+        <qualifiedname>TQuad::f</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="4873" column="8" bodyfile="util.cpp" bodystart="4873" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structTQuad_1aba342e29d28bc3fa1094924d39256a1a" prot="public" static="no" mutable="no">
+        <type>TVFace</type>
+        <definition>TVFace TQuad::tf[MESHSMOOTHMAPS_SUPPORT][2]</definition>
+        <argsstring>[MESHSMOOTHMAPS_SUPPORT][2]</argsstring>
+        <name>tf</name>
+        <qualifiedname>TQuad::tf</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="4874" column="10" bodyfile="util.cpp" bodystart="4874" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structTQuad_1a2d56e6d3bc87949e4650d61d0231e5e0" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int TQuad::v2v1[3]</definition>
+        <argsstring>[3]</argsstring>
+        <name>v2v1</name>
+        <qualifiedname>TQuad::v2v1</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="4875" column="7" bodyfile="util.cpp" bodystart="4875" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structTQuad_1ae29052989a190c332beb8097cf6bf3de" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int TQuad::v2v2[3]</definition>
+        <argsstring>[3]</argsstring>
+        <name>v2v2</name>
+        <qualifiedname>TQuad::v2v2</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="4875" column="12" bodyfile="util.cpp" bodystart="4875" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structTQuad_1a0a92ff050a986800ffef5b8b56cafc99" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>TQuad::TQuad</definition>
+        <argsstring>()</argsstring>
+        <name>TQuad</name>
+        <qualifiedname>TQuad::TQuad</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="4877" column="3" bodyfile="util.cpp" bodystart="4877" bodyend="4877"/>
+      </memberdef>
+      <memberdef kind="function" id="structTQuad_1a8caf0a1566db9994f2f1b18f65dcb4d6" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>TQuad::TQuad</definition>
+        <argsstring>(int vr[4], int fc1, int fc2, Mesh &amp;m)</argsstring>
+        <name>TQuad</name>
+        <qualifiedname>TQuad::TQuad</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>vr</declname>
+          <array>[4]</array>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>fc1</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>fc2</declname>
+        </param>
+        <param>
+          <type>Mesh &amp;</type>
+          <declname>m</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="4878" column="3" bodyfile="util.cpp" bodystart="4878" bodyend="4936"/>
+      </memberdef>
+      <memberdef kind="function" id="structTQuad_1a310e2077dbfed6aac19b1d0e81a50f43" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void TQuad::GetAnalogueQuad</definition>
+        <argsstring>(int fv[4], int ft[MESHSMOOTHMAPS_SUPPORT][4], Face &amp;fc1, Face &amp;fc2, TVFace tfc1[MESHSMOOTHMAPS_SUPPORT][2])</argsstring>
+        <name>GetAnalogueQuad</name>
+        <qualifiedname>TQuad::GetAnalogueQuad</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>fv</declname>
+          <array>[4]</array>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>ft</declname>
+          <array>[MESHSMOOTHMAPS_SUPPORT][4]</array>
+        </param>
+        <param>
+          <type>Face &amp;</type>
+          <declname>fc1</declname>
+        </param>
+        <param>
+          <type>Face &amp;</type>
+          <declname>fc2</declname>
+        </param>
+        <param>
+          <type>TVFace</type>
+          <declname>tfc1</declname>
+          <array>[MESHSMOOTHMAPS_SUPPORT][2]</array>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="4937" column="8" bodyfile="util.cpp" bodystart="4937" bodyend="4970"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="util.cpp" line="4868" column="1" bodyfile="util.cpp" bodystart="4869" bodyend="4971"/>
+    <listofallmembers>
+      <member refid="structTQuad_1a1c8d8f9ffee42c4cc81997fdc9ce1894" prot="public" virt="non-virtual"><scope>TQuad</scope><name>f</name></member>
+      <member refid="structTQuad_1a310e2077dbfed6aac19b1d0e81a50f43" prot="public" virt="non-virtual"><scope>TQuad</scope><name>GetAnalogueQuad</name></member>
+      <member refid="structTQuad_1aba342e29d28bc3fa1094924d39256a1a" prot="public" virt="non-virtual"><scope>TQuad</scope><name>tf</name></member>
+      <member refid="structTQuad_1a0a92ff050a986800ffef5b8b56cafc99" prot="public" virt="non-virtual"><scope>TQuad</scope><name>TQuad</name></member>
+      <member refid="structTQuad_1a8caf0a1566db9994f2f1b18f65dcb4d6" prot="public" virt="non-virtual"><scope>TQuad</scope><name>TQuad</name></member>
+      <member refid="structTQuad_1a2d56e6d3bc87949e4650d61d0231e5e0" prot="public" virt="non-virtual"><scope>TQuad</scope><name>v2v1</name></member>
+      <member refid="structTQuad_1ae29052989a190c332beb8097cf6bf3de" prot="public" virt="non-virtual"><scope>TQuad</scope><name>v2v2</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

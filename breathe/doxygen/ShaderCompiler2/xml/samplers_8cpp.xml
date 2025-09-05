@@ -1,0 +1,689 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="samplers_8cpp" kind="file" language="C++">
+    <compoundname>samplers.cpp</compoundname>
+    <includes refid="samplers_8h" local="yes">samplers.h</includes>
+    <includes refid="shSemCode_8h" local="yes">shSemCode.h</includes>
+    <includes refid="globVarSem_8h" local="yes">globVarSem.h</includes>
+    <includes refid="globVar_8h" local="yes">globVar.h</includes>
+    <includes refid="varMap_8h" local="yes">varMap.h</includes>
+    <includes refid="shLog_8h" local="yes">shLog.h</includes>
+    <includes refid="shErrorReporting_8h" local="yes">shErrorReporting.h</includes>
+    <includes refid="cppStcode_8h" local="yes">cppStcode.h</includes>
+    <includes local="no">shaders/dag_shaderVarType.h</includes>
+    <includes local="no">EASTL/string.h</includes>
+    <includes local="no">ska_hash_map/flat_hash_map2.hpp</includes>
+    <incdepgraph>
+      <node id="57">
+        <label>blkHash.h</label>
+        <link refid="blkHash_8h"/>
+      </node>
+      <node id="6">
+        <label>commonUtils.h</label>
+        <link refid="commonUtils_8h"/>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="32">
+        <label>cppStcode.h</label>
+        <link refid="cppStcode_8h"/>
+        <childnode refid="33" relation="include">
+        </childnode>
+        <childnode refid="55" relation="include">
+        </childnode>
+        <childnode refid="57" relation="include">
+        </childnode>
+        <childnode refid="44" relation="include">
+        </childnode>
+        <childnode refid="54" relation="include">
+        </childnode>
+      </node>
+      <node id="33">
+        <label>cppStcodeAssembly.h</label>
+        <link refid="cppStcodeAssembly_8h"/>
+        <childnode refid="34" relation="include">
+        </childnode>
+        <childnode refid="39" relation="include">
+        </childnode>
+        <childnode refid="42" relation="include">
+        </childnode>
+        <childnode refid="47" relation="include">
+        </childnode>
+        <childnode refid="48" relation="include">
+        </childnode>
+        <childnode refid="49" relation="include">
+        </childnode>
+        <childnode refid="50" relation="include">
+        </childnode>
+        <childnode refid="51" relation="include">
+        </childnode>
+        <childnode refid="52" relation="include">
+        </childnode>
+        <childnode refid="53" relation="include">
+        </childnode>
+        <childnode refid="45" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="54" relation="include">
+        </childnode>
+      </node>
+      <node id="34">
+        <label>cppStcodeBuilder.h</label>
+        <link refid="cppStcodeBuilder_8h"/>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="38" relation="include">
+        </childnode>
+      </node>
+      <node id="12">
+        <label>globVar.h</label>
+        <link refid="globVar_8h"/>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+      </node>
+      <node id="29">
+        <label>globVarSem.h</label>
+        <link refid="globVarSem_8h"/>
+      </node>
+      <node id="39">
+        <label>hash.h</label>
+        <link refid="hash_8h"/>
+        <childnode refid="40" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+      </node>
+      <node id="42">
+        <label>hlslRegisters.h</label>
+        <link refid="hlslRegisters_8h"/>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="43" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+        <childnode refid="44" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="45" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="46" relation="include">
+        </childnode>
+      </node>
+      <node id="26">
+        <label>intervals.h</label>
+        <link refid="intervals_8h"/>
+      </node>
+      <node id="22">
+        <label>nameMap.h</label>
+        <link refid="nameMap_8h"/>
+        <childnode refid="23" relation="include">
+        </childnode>
+      </node>
+      <node id="55">
+        <label>processes.h</label>
+        <link refid="processes_8h"/>
+        <childnode refid="56" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>samplers.cpp</label>
+        <link refid="samplers_8cpp"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="29" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="51" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>samplers.h</label>
+        <link refid="samplers_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+      </node>
+      <node id="31">
+        <label>shErrorReporting.h</label>
+        <link refid="shErrorReporting_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="30">
+        <label>shLog.h</label>
+        <link refid="shLog_8h"/>
+      </node>
+      <node id="5">
+        <label>shMacro.h</label>
+        <link refid="shMacro_8h"/>
+      </node>
+      <node id="28">
+        <label>shSemCode.h</label>
+        <link refid="shSemCode_8h"/>
+      </node>
+      <node id="25">
+        <label>shVarVecTypes.h</label>
+        <link refid="shVarVecTypes_8h"/>
+      </node>
+      <node id="20">
+        <label>shaderSave.h</label>
+        <link refid="shaderSave_8h"/>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+      </node>
+      <node id="35">
+        <label>shaderTab.h</label>
+        <link refid="shaderTab_8h"/>
+        <childnode refid="20" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>shlexterm.h</label>
+        <link refid="shlexterm_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+      <node id="21">
+        <label>varMap.h</label>
+        <link refid="varMap_8h"/>
+        <childnode refid="22" relation="include">
+        </childnode>
+      </node>
+      <node id="19">
+        <label>varTypes.h</label>
+        <link refid="varTypes_8h"/>
+      </node>
+      <node id="17">
+        <label>3d/dag_texMgr.h</label>
+      </node>
+      <node id="38">
+        <label>EASTL/algorithm.h</label>
+      </node>
+      <node id="45">
+        <label>EASTL/array.h</label>
+      </node>
+      <node id="11">
+        <label>EASTL/optional.h</label>
+      </node>
+      <node id="10">
+        <label>EASTL/string.h</label>
+      </node>
+      <node id="53">
+        <label>EASTL/unique_ptr.h</label>
+      </node>
+      <node id="46">
+        <label>cstdint</label>
+      </node>
+      <node id="41">
+        <label>cstring</label>
+      </node>
+      <node id="37">
+        <label>dag/dag_vector.h</label>
+      </node>
+      <node id="36">
+        <label>debug/dag_assert.h</label>
+      </node>
+      <node id="52">
+        <label>drv/3d/dag_consts.h</label>
+      </node>
+      <node id="18">
+        <label>drv/3d/dag_sampler.h</label>
+      </node>
+      <node id="43">
+        <label>generic/dag_enumerate.h</label>
+      </node>
+      <node id="44">
+        <label>generic/dag_expected.h</label>
+      </node>
+      <node id="56">
+        <label>generic/dag_fixedMoveOnlyFunction.h</label>
+      </node>
+      <node id="16">
+        <label>generic/dag_tab.h</label>
+      </node>
+      <node id="40">
+        <label>hash/BLAKE3/blake3.h</label>
+      </node>
+      <node id="13">
+        <label>math/dag_color.h</label>
+      </node>
+      <node id="14">
+        <label>math/integer/dag_IPoint4.h</label>
+      </node>
+      <node id="48">
+        <label>memory/dag_mem.h</label>
+      </node>
+      <node id="51">
+        <label>shaders/dag_shaderVarType.h</label>
+      </node>
+      <node id="49">
+        <label>shaders/shExprTypes.h</label>
+      </node>
+      <node id="50">
+        <label>shaders/shFunc.h</label>
+      </node>
+      <node id="54">
+        <label>shaders/shader_layout.h</label>
+      </node>
+      <node id="47">
+        <label>shaders/slotTexturesRange.h</label>
+      </node>
+      <node id="3">
+        <label>shsyn.h</label>
+      </node>
+      <node id="27">
+        <label>ska_hash_map/flat_hash_map2.hpp</label>
+      </node>
+      <node id="24">
+        <label>util/dag_bindump_ext.h</label>
+      </node>
+      <node id="9">
+        <label>util/dag_globDef.h</label>
+      </node>
+      <node id="23">
+        <label>util/dag_oaHashNameMap.h</label>
+      </node>
+      <node id="8">
+        <label>util/dag_safeArg.h</label>
+      </node>
+      <node id="15">
+        <label>util/dag_string.h</label>
+      </node>
+      <node id="7">
+        <label>utility</label>
+      </node>
+    </incdepgraph>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="samplers_8cpp_1afd9387060e378c81caebfbe6d7b8f56a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void add_dynamic_sampler_for_stcode</definition>
+        <argsstring>(ShaderSemCode &amp;sh_sem_code, ShaderClass &amp;sclass, ShaderTerminal::sampler_decl &amp;smp_decl, Parser &amp;parser, VarNameMap &amp;var_name_map)</argsstring>
+        <name>add_dynamic_sampler_for_stcode</name>
+        <param>
+          <type><ref refid="classShaderSemCode" kindref="compound">ShaderSemCode</ref> &amp;</type>
+          <declname>sh_sem_code</declname>
+        </param>
+        <param>
+          <type><ref refid="classShaderClass" kindref="compound">ShaderClass</ref> &amp;</type>
+          <declname>sclass</declname>
+        </param>
+        <param>
+          <type>ShaderTerminal::sampler_decl &amp;</type>
+          <declname>smp_decl</declname>
+        </param>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <param>
+          <type><ref refid="classVarNameMap" kindref="compound">VarNameMap</ref> &amp;</type>
+          <declname>var_name_map</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="samplers.cpp" line="207" column="6" bodyfile="samplers.cpp" bodystart="207" bodyend="255"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="samplers_8h" kindref="compound">samplers.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shSemCode_8h" kindref="compound">shSemCode.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="globVarSem_8h" kindref="compound">globVarSem.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="globVar_8h" kindref="compound">globVar.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="varMap_8h" kindref="compound">varMap.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shLog_8h" kindref="compound">shLog.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shErrorReporting_8h" kindref="compound">shErrorReporting.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="cppStcode_8h" kindref="compound">cppStcode.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;shaders/dag_shaderVarType.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/string.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;ska_hash_map/flat_hash_map2.hpp&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"><ref refid="classSampler_1aef1f8a2271b1995a5d522b150280339c" kindref="member">Sampler::Sampler</ref>(ShaderTerminal::sampler_decl<sp/>&amp;smp_decl,<sp/><ref refid="structParser" kindref="compound">Parser</ref><sp/>&amp;parser)<sp/>:<sp/>mSamplerDecl(&amp;smp_decl)</highlight></codeline>
+<codeline lineno="16"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(mSamplerDecl-&gt;state_name.empty())</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"><sp/><sp/>mIsStaticSampler<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"><sp/><sp/>ska::flat_hash_map&lt;eastl::string,<sp/>ska::flat_hash_set&lt;eastl::string&gt;&gt;<sp/>state_name_to_values<sp/>=<sp/>{</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight><highlight class="stringliteral">&quot;mipmap_mode&quot;</highlight><highlight class="normal">,</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="stringliteral">&quot;point&quot;</highlight><highlight class="normal">,</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="stringliteral">&quot;linear&quot;</highlight><highlight class="normal">,</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}},</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight><highlight class="stringliteral">&quot;filter&quot;</highlight><highlight class="normal">,</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="stringliteral">&quot;point&quot;</highlight><highlight class="normal">,</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="stringliteral">&quot;linear&quot;</highlight><highlight class="normal">,</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}},</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight><highlight class="stringliteral">&quot;address_u&quot;</highlight><highlight class="normal">,<sp/>{</highlight><highlight class="stringliteral">&quot;wrap&quot;</highlight><highlight class="normal">,<sp/></highlight><highlight class="stringliteral">&quot;mirror&quot;</highlight><highlight class="normal">,<sp/></highlight><highlight class="stringliteral">&quot;clamp&quot;</highlight><highlight class="normal">,<sp/></highlight><highlight class="stringliteral">&quot;border&quot;</highlight><highlight class="normal">,<sp/></highlight><highlight class="stringliteral">&quot;mirror_once&quot;</highlight><highlight class="normal">}},</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight><highlight class="stringliteral">&quot;address_v&quot;</highlight><highlight class="normal">,<sp/>{</highlight><highlight class="stringliteral">&quot;wrap&quot;</highlight><highlight class="normal">,<sp/></highlight><highlight class="stringliteral">&quot;mirror&quot;</highlight><highlight class="normal">,<sp/></highlight><highlight class="stringliteral">&quot;clamp&quot;</highlight><highlight class="normal">,<sp/></highlight><highlight class="stringliteral">&quot;border&quot;</highlight><highlight class="normal">,<sp/></highlight><highlight class="stringliteral">&quot;mirror_once&quot;</highlight><highlight class="normal">}},</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight><highlight class="stringliteral">&quot;address_w&quot;</highlight><highlight class="normal">,<sp/>{</highlight><highlight class="stringliteral">&quot;wrap&quot;</highlight><highlight class="normal">,<sp/></highlight><highlight class="stringliteral">&quot;mirror&quot;</highlight><highlight class="normal">,<sp/></highlight><highlight class="stringliteral">&quot;clamp&quot;</highlight><highlight class="normal">,<sp/></highlight><highlight class="stringliteral">&quot;border&quot;</highlight><highlight class="normal">,<sp/></highlight><highlight class="stringliteral">&quot;mirror_once&quot;</highlight><highlight class="normal">}},</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight><highlight class="stringliteral">&quot;border_color&quot;</highlight><highlight class="normal">,<sp/>{{}}},</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight><highlight class="stringliteral">&quot;anisotropic_max&quot;</highlight><highlight class="normal">,<sp/>{{}}},</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight><highlight class="stringliteral">&quot;mipmap_bias&quot;</highlight><highlight class="normal">,<sp/>{{}}},</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight><highlight class="stringliteral">&quot;comparison_func&quot;</highlight><highlight class="normal">,<sp/>{</highlight><highlight class="stringliteral">&quot;less&quot;</highlight><highlight class="normal">}},</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"></highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/>mSamplerDecl-&gt;state_name.size();<sp/>i++)</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/><sp/><sp/>eastl::string<sp/>state_name<sp/>=<sp/>mSamplerDecl-&gt;state_name[i]-&gt;text;</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>found_state<sp/>=<sp/>state_name_to_values.find(state_name);</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(found_state<sp/>==<sp/>state_name_to_values.end())</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>eastl::string<sp/>message(eastl::string::CtorSprintf{},</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="stringliteral">&quot;Incorrect<sp/>state<sp/>name<sp/>&apos;%s&apos;<sp/>for<sp/>sampler<sp/>&apos;%s&apos;\nPossible<sp/>state<sp/>names:&quot;</highlight><highlight class="normal">,<sp/>state_name.c_str(),<sp/>mSamplerDecl-&gt;name-&gt;text);</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>&amp;[sn,<sp/>_]<sp/>:<sp/>state_name_to_values)</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>message.append_sprintf(</highlight><highlight class="stringliteral">&quot;<sp/>%s,<sp/>&quot;</highlight><highlight class="normal">,<sp/>sn.c_str());</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="shErrorReporting_8h_1a634f6d6ca9a9f22c5eea4c9b8e20ef31" kindref="member">report_error</ref>(parser,<sp/>mSamplerDecl-&gt;state_name[i],<sp/>message.c_str());</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(found_state-&gt;second.begin()-&gt;empty()<sp/>!=<sp/>(mSamplerDecl-&gt;expr[i]<sp/>!=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">))</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="shErrorReporting_8h_1a634f6d6ca9a9f22c5eea4c9b8e20ef31" kindref="member">report_error</ref>(parser,<sp/>mSamplerDecl-&gt;state_name[i],<sp/></highlight><highlight class="stringliteral">&quot;Incorrect<sp/>state<sp/>value<sp/>&apos;%s&apos;<sp/>for<sp/>sampler<sp/>&apos;%s&apos;&quot;</highlight><highlight class="normal">,<sp/>state_name.c_str(),</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>mSamplerDecl-&gt;name-&gt;text);</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"></highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/><sp/><sp/>eastl::string<sp/>state_value<sp/>=<sp/>mSamplerDecl-&gt;state[i]<sp/>?<sp/>mSamplerDecl-&gt;state[i]-&gt;text<sp/>:<sp/></highlight><highlight class="stringliteral">&quot;&quot;</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(mSamplerDecl-&gt;state[i])</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>found_value<sp/>=<sp/>found_state-&gt;second.find(state_value);</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(found_value<sp/>==<sp/>found_state-&gt;second.end())</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>eastl::string<sp/>message(eastl::string::CtorSprintf{},</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="stringliteral">&quot;Incorrect<sp/>state<sp/>value<sp/>&apos;%s&apos;<sp/>for<sp/>sampler<sp/>state<sp/>&apos;%s::%s&apos;\nPossible<sp/>state<sp/>values:&quot;</highlight><highlight class="normal">,<sp/>state_value.c_str(),</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>mSamplerDecl-&gt;name-&gt;text,<sp/>state_name.c_str());</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>&amp;sn<sp/>:<sp/>found_state-&gt;second)</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>message.append_sprintf(</highlight><highlight class="stringliteral">&quot;<sp/>%s,<sp/>&quot;</highlight><highlight class="normal">,<sp/>sn.c_str());</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="shErrorReporting_8h_1a634f6d6ca9a9f22c5eea4c9b8e20ef31" kindref="member">report_error</ref>(parser,<sp/>mSamplerDecl-&gt;state[i],<sp/>message.c_str());</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"></highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(state_name<sp/>==<sp/></highlight><highlight class="stringliteral">&quot;comparison_func&quot;</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>mSamplerInfo.filter_mode<sp/>=<sp/>d3d::FilterMode::Compare;</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(state_name<sp/>==<sp/></highlight><highlight class="stringliteral">&quot;mipmap_mode&quot;</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>mSamplerInfo.mip_map_mode<sp/>=<sp/>state_value<sp/>==<sp/></highlight><highlight class="stringliteral">&quot;point&quot;</highlight><highlight class="normal"><sp/>?<sp/>d3d::MipMapMode::Point<sp/>:<sp/>d3d::MipMapMode::Linear;</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(state_name<sp/>==<sp/></highlight><highlight class="stringliteral">&quot;filter&quot;</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>mSamplerInfo.filter_mode<sp/>=<sp/>state_value<sp/>==<sp/></highlight><highlight class="stringliteral">&quot;point&quot;</highlight><highlight class="normal"><sp/>?<sp/>d3d::FilterMode::Point<sp/>:<sp/>d3d::FilterMode::Linear;</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(state_name<sp/>==<sp/></highlight><highlight class="stringliteral">&quot;address_u&quot;</highlight><highlight class="normal"><sp/>||<sp/>state_name<sp/>==<sp/></highlight><highlight class="stringliteral">&quot;address_v&quot;</highlight><highlight class="normal"><sp/>||<sp/>state_name<sp/>==<sp/></highlight><highlight class="stringliteral">&quot;address_w&quot;</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>ska::flat_hash_map&lt;eastl::string,<sp/>d3d::AddressMode&gt;<sp/>value_to_mode<sp/>=<sp/>{</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight><highlight class="stringliteral">&quot;wrap&quot;</highlight><highlight class="normal">,<sp/>d3d::AddressMode::Wrap},</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight><highlight class="stringliteral">&quot;mirror&quot;</highlight><highlight class="normal">,<sp/>d3d::AddressMode::Mirror},</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight><highlight class="stringliteral">&quot;clamp&quot;</highlight><highlight class="normal">,<sp/>d3d::AddressMode::Clamp},</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight><highlight class="stringliteral">&quot;border&quot;</highlight><highlight class="normal">,<sp/>d3d::AddressMode::Border},</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight><highlight class="stringliteral">&quot;mirror_once&quot;</highlight><highlight class="normal">,<sp/>d3d::AddressMode::MirrorOnce},</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>};</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>d3d::AddressMode<sp/>mode<sp/>=<sp/>value_to_mode.find(state_value)-&gt;second;</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"></highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(state_name<sp/>==<sp/></highlight><highlight class="stringliteral">&quot;address_u&quot;</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>mSamplerInfo.address_mode_u<sp/>=<sp/>mode;</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(state_name<sp/>==<sp/></highlight><highlight class="stringliteral">&quot;address_v&quot;</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>mSamplerInfo.address_mode_v<sp/>=<sp/>mode;</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>mSamplerInfo.address_mode_w<sp/>=<sp/>mode;</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(state_name<sp/>==<sp/></highlight><highlight class="stringliteral">&quot;border_color&quot;</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>mBorderColor<sp/>=<sp/>mSamplerDecl-&gt;expr[i];</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(state_name<sp/>==<sp/></highlight><highlight class="stringliteral">&quot;anisotropic_max&quot;</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>mAnisotropicMax<sp/>=<sp/>mSamplerDecl-&gt;expr[i];</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(state_name<sp/>==<sp/></highlight><highlight class="stringliteral">&quot;mipmap_bias&quot;</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>mMipmapBias<sp/>=<sp/>mSamplerDecl-&gt;expr[i];</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>G_ASSERT(</highlight><highlight class="keyword">false</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="111"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"></highlight></codeline>
+<codeline lineno="113"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classSamplerTable_1afe3dd516a03bff06a65ea05d9464c62a" kindref="member">SamplerTable::add</ref>(ShaderTerminal::sampler_decl<sp/>&amp;smp_decl,<sp/><ref refid="structParser" kindref="compound">Parser</ref><sp/>&amp;parser)</highlight></codeline>
+<codeline lineno="114"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="115"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>sampler_id<sp/>=<sp/>mSamplers.size();</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(mSamplerIds.count(smp_decl.name-&gt;text)<sp/>&gt;<sp/>1)</highlight></codeline>
+<codeline lineno="117"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(mSamplers[mSamplerIds[smp_decl.name-&gt;text]].mIsStaticSampler<sp/>||<sp/>mSamplers[sampler_id].mIsStaticSampler)</highlight></codeline>
+<codeline lineno="119"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="120"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>eastl::string<sp/>message(eastl::string::CtorSprintf{},<sp/></highlight><highlight class="stringliteral">&quot;Redefinition<sp/>of<sp/>static<sp/>sampler<sp/>variable<sp/>&apos;%s&apos;.<sp/>It&apos;s<sp/>not<sp/>supported<sp/>yet.&quot;</highlight><highlight class="normal">,</highlight></codeline>
+<codeline lineno="121"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>smp_decl.name-&gt;text);</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="shErrorReporting_8h_1a634f6d6ca9a9f22c5eea4c9b8e20ef31" kindref="member">report_error</ref>(parser,<sp/>smp_decl.name,<sp/>message.c_str());</highlight></codeline>
+<codeline lineno="123"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="124"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="125"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"></highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/>mSamplerIds.emplace(smp_decl.name-&gt;text,<sp/>sampler_id);</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/>mSamplers.emplace_back(<ref refid="classSampler" kindref="compound">Sampler</ref>(smp_decl,<sp/>parser));</highlight></codeline>
+<codeline lineno="129"><highlight class="normal"></highlight></codeline>
+<codeline lineno="130"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal"><sp/>=<sp/>varNameMap.<ref refid="classVarNameMap_1a1aee6745dfff43ef84ae9b292dc9e130" kindref="member">addVarId</ref>(smp_decl.name-&gt;text);</highlight></codeline>
+<codeline lineno="131"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>v<sp/>=<sp/>globvars.<ref refid="classShaderGlobal_1_1VarTable_1a7ff46e733eb4c886cfa07c3c365910a2" kindref="member">getVarInternalIndex</ref>(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="132"><highlight class="normal"><sp/><sp/>Tab&lt;ShaderGlobal::Var&gt;<sp/>&amp;variable_list<sp/>=<sp/>globvars.<ref refid="classShaderGlobal_1_1VarTable_1a4dfe6c40fc24b107d212302fd8b4e6e1" kindref="member">getMutableVariableList</ref>();</highlight></codeline>
+<codeline lineno="133"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(v<sp/>&gt;=<sp/>0)</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(variable_list[v].value.samplerInfo<sp/>!=<sp/>mSamplers.back().mSamplerInfo)</highlight></codeline>
+<codeline lineno="136"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="137"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>eastl::string<sp/>message(eastl::string::CtorSprintf{},<sp/></highlight><highlight class="stringliteral">&quot;Shader<sp/>variable<sp/>&apos;%s&apos;<sp/>already<sp/>declared<sp/>with<sp/>different<sp/>properties<sp/>in<sp/>&quot;</highlight><highlight class="normal">,</highlight></codeline>
+<codeline lineno="138"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>smp_decl.name-&gt;text);</highlight></codeline>
+<codeline lineno="139"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>message<sp/>+=<sp/>parser.<ref refid="structParser_1a9e9bc1e12aec4ba300d71598132ae8ec" kindref="member">get_lexer</ref>().<ref refid="classLexer_1ae065a46a94e418ea39223d730939ce3c" kindref="member">get_symbol_location</ref>(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/>SymbolType::GLOBAL_VARIABLE);</highlight></codeline>
+<codeline lineno="140"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="shErrorReporting_8h_1a634f6d6ca9a9f22c5eea4c9b8e20ef31" kindref="member">report_error</ref>(parser,<sp/>smp_decl.name,<sp/>message.c_str());</highlight></codeline>
+<codeline lineno="141"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="142"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="143"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="144"><highlight class="normal"><sp/><sp/>mSamplers.back().mId<sp/>=<sp/>sampler_id;</highlight></codeline>
+<codeline lineno="145"><highlight class="normal"><sp/><sp/>mSamplers.back().mNameId<sp/>=<sp/>id;</highlight></codeline>
+<codeline lineno="146"><highlight class="normal"></highlight></codeline>
+<codeline lineno="147"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>@TODO:<sp/>when<sp/>the<sp/>sampler<sp/>decl<sp/>is<sp/>fake,<sp/>this<sp/>is<sp/>a<sp/>useless<sp/>and<sp/>expired<sp/>pointer<sp/>registration</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="148"><highlight class="normal"><sp/><sp/>parser.<ref refid="structParser_1a9e9bc1e12aec4ba300d71598132ae8ec" kindref="member">get_lexer</ref>().<ref refid="classLexer_1ab844a140350220e5e04a80336dca9ae8" kindref="member">register_symbol</ref>(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/>SymbolType::GLOBAL_VARIABLE,<sp/>smp_decl.name);</highlight></codeline>
+<codeline lineno="149"><highlight class="normal"></highlight></codeline>
+<codeline lineno="150"><highlight class="normal"><sp/><sp/>v<sp/>=<sp/>append_items(variable_list,<sp/>1);</highlight></codeline>
+<codeline lineno="151"><highlight class="normal"><sp/><sp/>variable_list[v].type<sp/>=<sp/>SHVT_SAMPLER;</highlight></codeline>
+<codeline lineno="152"><highlight class="normal"><sp/><sp/>variable_list[v].nameId<sp/>=<sp/>id;</highlight></codeline>
+<codeline lineno="153"><highlight class="normal"><sp/><sp/>variable_list[v].value.samplerInfo<sp/>=<sp/>mSamplers.back().mSamplerInfo;</highlight></codeline>
+<codeline lineno="154"><highlight class="normal"><sp/><sp/>variable_list[v].isAlwaysReferenced<sp/>=<sp/>smp_decl.is_always_referenced<sp/>?<sp/>true<sp/>:<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="155"><highlight class="normal"></highlight></codeline>
+<codeline lineno="156"><highlight class="normal"><sp/><sp/>cppstcode.<ref refid="structStcodeShader_1a01c03b612786960a7e5fe1909f5cac30" kindref="member">globVars</ref>.<ref refid="structStcodeGlobalVars_1ab2f9e5dd6a9e752be67ea7951fd4e6f1" kindref="member">setVar</ref>(SHVT_SAMPLER,<sp/>smp_decl.name-&gt;text);</highlight></codeline>
+<codeline lineno="157"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="158"><highlight class="normal"></highlight></codeline>
+<codeline lineno="159"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classSamplerTable_1a29ec9847d0c38b0b5068d5cba1689eab" kindref="member">SamplerTable::link</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Tab&lt;Sampler&gt;<sp/>&amp;new_samplers,<sp/>Tab&lt;int&gt;<sp/>&amp;smp_link_table)</highlight></codeline>
+<codeline lineno="160"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="161"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>smp_num<sp/>=<sp/>new_samplers.size();</highlight></codeline>
+<codeline lineno="162"><highlight class="normal"><sp/><sp/>smp_link_table.resize(smp_num);</highlight></codeline>
+<codeline lineno="163"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/>smp_num;<sp/>i++)</highlight></codeline>
+<codeline lineno="164"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="165"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>&amp;smp<sp/>=<sp/>new_samplers[i];</highlight></codeline>
+<codeline lineno="166"><highlight class="normal"></highlight></codeline>
+<codeline lineno="167"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>exists<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="168"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>existing_var<sp/>=<sp/>0;<sp/>existing_var<sp/>&lt;<sp/>mSamplers.size();<sp/>existing_var++)</highlight></codeline>
+<codeline lineno="169"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="170"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(smp.mNameId<sp/>==<sp/>mSamplers[existing_var].mNameId)</highlight></codeline>
+<codeline lineno="171"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="172"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>&amp;existing_smp<sp/>=<sp/>mSamplers[existing_var];</highlight></codeline>
+<codeline lineno="173"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>exists<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="174"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>smp_link_table[i]<sp/>=<sp/>existing_var;</highlight></codeline>
+<codeline lineno="175"><highlight class="normal"></highlight></codeline>
+<codeline lineno="176"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(memcmp(&amp;smp.mSamplerInfo,<sp/>&amp;existing_smp.mSamplerInfo,<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(d3d::SamplerInfo))<sp/>!=<sp/>0)</highlight></codeline>
+<codeline lineno="177"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="shLog_8cpp_1a2926179632c7c86265007652d3d30b14" kindref="member">sh_debug</ref>(<ref refid="shLog_8h_1a66042048eb3ce30a1dccb2ebf8c2fd5ca6112bd3e7c5d175bac1569c33c1630ad" kindref="member">SHLOG_FATAL</ref>,<sp/></highlight><highlight class="stringliteral">&quot;Different<sp/>sampler<sp/>values:<sp/>&apos;%i&apos;&quot;</highlight><highlight class="normal">,<sp/>smp.mNameId);</highlight></codeline>
+<codeline lineno="178"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="179"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="180"><highlight class="normal"></highlight></codeline>
+<codeline lineno="181"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!exists)</highlight></codeline>
+<codeline lineno="182"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="183"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>smp_link_table[i]<sp/>=<sp/>mSamplers.size();</highlight></codeline>
+<codeline lineno="184"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>mSamplers.push_back(smp);</highlight></codeline>
+<codeline lineno="185"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="186"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="187"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="188"><highlight class="normal"></highlight></codeline>
+<codeline lineno="189"><highlight class="normal"><ref refid="classSampler" kindref="compound">Sampler</ref><sp/>*<ref refid="classSamplerTable_1a1c33dc6753383f00e5b365e45a541194" kindref="member">SamplerTable::get</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name)</highlight></codeline>
+<codeline lineno="190"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="191"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>found<sp/>=<sp/>mSamplerIds.find(name);</highlight></codeline>
+<codeline lineno="192"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>found<sp/>==<sp/>mSamplerIds.end()<sp/>?<sp/>nullptr<sp/>:<sp/>&amp;mSamplers[found-&gt;second];</highlight></codeline>
+<codeline lineno="193"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="194"><highlight class="normal"></highlight></codeline>
+<codeline lineno="195"><highlight class="normal">Tab&lt;Sampler&gt;<sp/><ref refid="classSamplerTable_1a4385cbae1f97351063aa29390f99d48c" kindref="member">SamplerTable::releaseSamplers</ref>()</highlight></codeline>
+<codeline lineno="196"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="197"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>released<sp/>=<sp/>eastl::move(mSamplers);</highlight></codeline>
+<codeline lineno="198"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>released;</highlight></codeline>
+<codeline lineno="199"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="200"><highlight class="normal"></highlight></codeline>
+<codeline lineno="201"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classSamplerTable_1aefae0ffd54c1adbe26f005ec41a46be1" kindref="member">SamplerTable::clear</ref>()</highlight></codeline>
+<codeline lineno="202"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="203"><highlight class="normal"><sp/><sp/>clear_and_shrink(mSamplers);</highlight></codeline>
+<codeline lineno="204"><highlight class="normal"><sp/><sp/>clear_and_shrink(mSamplerIds);</highlight></codeline>
+<codeline lineno="205"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="206"><highlight class="normal"></highlight></codeline>
+<codeline lineno="207"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="samplers_8cpp_1afd9387060e378c81caebfbe6d7b8f56a" kindref="member">add_dynamic_sampler_for_stcode</ref>(<ref refid="classShaderSemCode" kindref="compound">ShaderSemCode</ref><sp/>&amp;sh_sem_code,<sp/><ref refid="classShaderClass" kindref="compound">ShaderClass</ref><sp/>&amp;sclass,<sp/>ShaderTerminal::sampler_decl<sp/>&amp;smp_decl,</highlight></codeline>
+<codeline lineno="208"><highlight class="normal"><sp/><sp/><ref refid="structParser" kindref="compound">Parser</ref><sp/>&amp;parser,<sp/><ref refid="classVarNameMap" kindref="compound">VarNameMap</ref><sp/>&amp;var_name_map)</highlight></codeline>
+<codeline lineno="209"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="210"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal"><sp/>=<sp/>var_name_map.<ref refid="classVarNameMap_1a1aee6745dfff43ef84ae9b292dc9e130" kindref="member">addVarId</ref>(smp_decl.name-&gt;text);</highlight></codeline>
+<codeline lineno="211"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>v<sp/>=<sp/>sh_sem_code.<ref refid="classShaderSemCode_1a65b81634f689797e098f940d0029be3f" kindref="member">find_var</ref>(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="212"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(v<sp/>&gt;=<sp/>0)</highlight></codeline>
+<codeline lineno="213"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="214"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="shErrorReporting_8h_1a634f6d6ca9a9f22c5eea4c9b8e20ef31" kindref="member">report_error</ref>(parser,<sp/>smp_decl.name,<sp/></highlight><highlight class="stringliteral">&quot;Shader<sp/>variable<sp/>&apos;%s&apos;<sp/>already<sp/>declared<sp/>in<sp/>&quot;</highlight><highlight class="normal">,<sp/>smp_decl.name-&gt;text);</highlight></codeline>
+<codeline lineno="215"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="216"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="217"><highlight class="normal"></highlight></codeline>
+<codeline lineno="218"><highlight class="normal"><sp/><sp/><ref refid="classSampler" kindref="compound">Sampler</ref><sp/>sampler{smp_decl,<sp/>parser};</highlight></codeline>
+<codeline lineno="219"><highlight class="normal"></highlight></codeline>
+<codeline lineno="220"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>@TODO:<sp/>when<sp/>the<sp/>sampler<sp/>decl<sp/>is<sp/>fake,<sp/>this<sp/>is<sp/>a<sp/>useless<sp/>and<sp/>expired<sp/>pointer<sp/>registration</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="221"><highlight class="normal"><sp/><sp/>parser.<ref refid="structParser_1a9e9bc1e12aec4ba300d71598132ae8ec" kindref="member">get_lexer</ref>().<ref refid="classLexer_1ab844a140350220e5e04a80336dca9ae8" kindref="member">register_symbol</ref>(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/>SymbolType::STATIC_VARIABLE,<sp/>smp_decl.name);</highlight></codeline>
+<codeline lineno="222"><highlight class="normal"></highlight></codeline>
+<codeline lineno="223"><highlight class="normal"><sp/><sp/>v<sp/>=<sp/>append_items(sh_sem_code.<ref refid="classShaderSemCode_1abe6ed6468793a4cbe55a75133a83d393" kindref="member">vars</ref>,<sp/>1);</highlight></codeline>
+<codeline lineno="224"><highlight class="normal"><sp/><sp/>sh_sem_code.<ref refid="classShaderSemCode_1abe6ed6468793a4cbe55a75133a83d393" kindref="member">vars</ref>[v].type<sp/>=<sp/>SHVT_SAMPLER;</highlight></codeline>
+<codeline lineno="225"><highlight class="normal"><sp/><sp/>sh_sem_code.<ref refid="classShaderSemCode_1abe6ed6468793a4cbe55a75133a83d393" kindref="member">vars</ref>[v].nameId<sp/>=<sp/>id;</highlight></codeline>
+<codeline lineno="226"><highlight class="normal"><sp/><sp/>sh_sem_code.<ref refid="classShaderSemCode_1abe6ed6468793a4cbe55a75133a83d393" kindref="member">vars</ref>[v].terminal<sp/>=<sp/>smp_decl.name;</highlight></codeline>
+<codeline lineno="227"><highlight class="normal"><sp/><sp/>sh_sem_code.<ref refid="classShaderSemCode_1abe6ed6468793a4cbe55a75133a83d393" kindref="member">vars</ref>[v].dynamic<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="228"><highlight class="normal"><sp/><sp/>sh_sem_code.<ref refid="classShaderSemCode_1abe6ed6468793a4cbe55a75133a83d393" kindref="member">vars</ref>[v].noWarnings<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="229"><highlight class="normal"><sp/><sp/>sh_sem_code.<ref refid="classShaderSemCode_1abe6ed6468793a4cbe55a75133a83d393" kindref="member">vars</ref>[v].used<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="230"><highlight class="normal"></highlight></codeline>
+<codeline lineno="231"><highlight class="normal"><sp/><sp/>sh_sem_code.<ref refid="classShaderSemCode_1a6ea9abdd5eacef897f3aca48a7c7c571" kindref="member">staticStcodeVars</ref>.<ref refid="structStcodeStaticVars_1a308290d19e9ced6925e09b2eb1fc2525" kindref="member">add</ref>(smp_decl.name-&gt;text,<sp/>v);</highlight></codeline>
+<codeline lineno="232"><highlight class="normal"></highlight></codeline>
+<codeline lineno="233"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>sv<sp/>=<sp/>sclass.<ref refid="classShaderClass_1a50005ffa656290b8617a38a80ecda50f" kindref="member">find_static_var</ref>(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="234"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(sv<sp/>&lt;<sp/>0)</highlight></codeline>
+<codeline lineno="235"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="236"><highlight class="normal"><sp/><sp/><sp/><sp/>sv<sp/>=<sp/>append_items(sclass.<ref refid="classShaderClass_1af6a928a5bd7e66cc342af3b4778c280c" kindref="member">stvar</ref>,<sp/>1);</highlight></codeline>
+<codeline lineno="237"><highlight class="normal"><sp/><sp/><sp/><sp/>sclass.<ref refid="classShaderClass_1af6a928a5bd7e66cc342af3b4778c280c" kindref="member">stvar</ref>[sv].type<sp/>=<sp/>SHVT_SAMPLER;</highlight></codeline>
+<codeline lineno="238"><highlight class="normal"><sp/><sp/><sp/><sp/>sclass.<ref refid="classShaderClass_1af6a928a5bd7e66cc342af3b4778c280c" kindref="member">stvar</ref>[sv].nameId<sp/>=<sp/>id;</highlight></codeline>
+<codeline lineno="239"><highlight class="normal"><sp/><sp/><sp/><sp/>sclass.<ref refid="classShaderClass_1af6a928a5bd7e66cc342af3b4778c280c" kindref="member">stvar</ref>[sv].defval.samplerInfo<sp/>=<sp/>sampler.mSamplerInfo;</highlight></codeline>
+<codeline lineno="240"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="241"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="242"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="243"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(sclass.<ref refid="classShaderClass_1af6a928a5bd7e66cc342af3b4778c280c" kindref="member">stvar</ref>[sv].type<sp/>!=<sp/>SHVT_SAMPLER<sp/>||<sp/>sclass.<ref refid="classShaderClass_1af6a928a5bd7e66cc342af3b4778c280c" kindref="member">stvar</ref>[sv].defval.samplerInfo<sp/>!=<sp/>sampler.mSamplerInfo)</highlight></codeline>
+<codeline lineno="244"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="245"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="shErrorReporting_8h_1a634f6d6ca9a9f22c5eea4c9b8e20ef31" kindref="member">report_error</ref>(parser,<sp/>smp_decl.name,<sp/></highlight><highlight class="stringliteral">&quot;static<sp/>var<sp/>&apos;%s&apos;<sp/>defined<sp/>with<sp/>different<sp/>type/value&quot;</highlight><highlight class="normal">,<sp/>smp_decl.name-&gt;text);</highlight></codeline>
+<codeline lineno="246"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="247"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="248"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="249"><highlight class="normal"></highlight></codeline>
+<codeline lineno="250"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="251"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>append_items(sh_sem_code.<ref refid="classShaderSemCode_1a22aaacb40c47624c706112ca7e107518" kindref="member">stvarmap</ref>,<sp/>1);</highlight></codeline>
+<codeline lineno="252"><highlight class="normal"><sp/><sp/><sp/><sp/>sh_sem_code.<ref refid="classShaderSemCode_1a22aaacb40c47624c706112ca7e107518" kindref="member">stvarmap</ref>[i].v<sp/>=<sp/>v;</highlight></codeline>
+<codeline lineno="253"><highlight class="normal"><sp/><sp/><sp/><sp/>sh_sem_code.<ref refid="classShaderSemCode_1a22aaacb40c47624c706112ca7e107518" kindref="member">stvarmap</ref>[i].sv<sp/>=<sp/>sv;</highlight></codeline>
+<codeline lineno="254"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="255"><highlight class="normal">}</highlight></codeline>
+    </programlisting>
+    <location file="samplers.cpp"/>
+  </compounddef>
+</doxygen>

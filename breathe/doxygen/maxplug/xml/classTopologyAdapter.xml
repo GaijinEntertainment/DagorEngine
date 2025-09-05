@@ -1,0 +1,216 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classTopologyAdapter" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>TopologyAdapter</compoundname>
+    <derivedcompoundref refid="classColorTopologyAdapter" prot="public" virt="non-virtual">ColorTopologyAdapter</derivedcompoundref>
+    <derivedcompoundref refid="classGeometryTopologyAdapter" prot="public" virt="non-virtual">GeometryTopologyAdapter</derivedcompoundref>
+    <derivedcompoundref refid="classTextureTopologyAdapter" prot="public" virt="non-virtual">TextureTopologyAdapter</derivedcompoundref>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classTopologyAdapter_1a4b911200f72e8750549aeed13616caaa" prot="public" static="no" mutable="no">
+        <type>Mesh *</type>
+        <definition>Mesh* TopologyAdapter::mesh</definition>
+        <argsstring></argsstring>
+        <name>mesh</name>
+        <qualifiedname>TopologyAdapter::mesh</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="273" column="8" bodyfile="util.cpp" bodystart="273" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classTopologyAdapter_1a8331add32d3e423f7dafa6df2b4c48b2" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>TopologyAdapter::TopologyAdapter</definition>
+        <argsstring>(Mesh *in_mesh)</argsstring>
+        <name>TopologyAdapter</name>
+        <qualifiedname>TopologyAdapter::TopologyAdapter</qualifiedname>
+        <param>
+          <type>Mesh *</type>
+          <declname>in_mesh</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="275" column="3" bodyfile="util.cpp" bodystart="275" bodyend="275"/>
+      </memberdef>
+      <memberdef kind="function" id="classTopologyAdapter_1a74618dd737317e724e6a32909bf9b985" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>unsigned int</type>
+        <definition>virtual unsigned int TopologyAdapter::getNumVerts</definition>
+        <argsstring>()=0</argsstring>
+        <name>getNumVerts</name>
+        <qualifiedname>TopologyAdapter::getNumVerts</qualifiedname>
+        <reimplementedby refid="classGeometryTopologyAdapter_1a06d15a4cbe4a2aa17b8f03f2bd080485">getNumVerts</reimplementedby>
+        <reimplementedby refid="classTextureTopologyAdapter_1af0b50f9f32c3ab350fdb6255fea5128b">getNumVerts</reimplementedby>
+        <reimplementedby refid="classColorTopologyAdapter_1ae43a935c133c2da81d1ed609649fea3d">getNumVerts</reimplementedby>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="276" column="24"/>
+      </memberdef>
+      <memberdef kind="function" id="classTopologyAdapter_1a3e89ed43fbd20e531c7d2bfba5f51724" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void TopologyAdapter::setNumVerts</definition>
+        <argsstring>(unsigned int num_verts)=0</argsstring>
+        <name>setNumVerts</name>
+        <qualifiedname>TopologyAdapter::setNumVerts</qualifiedname>
+        <reimplementedby refid="classGeometryTopologyAdapter_1a26d8f367f13c2370b5e56da03d88fc09">setNumVerts</reimplementedby>
+        <reimplementedby refid="classTextureTopologyAdapter_1a7cb4931967fbb07d9b4869062a43950e">setNumVerts</reimplementedby>
+        <reimplementedby refid="classColorTopologyAdapter_1a30b218695434af72c2e68ca0eb039cd9">setNumVerts</reimplementedby>
+        <param>
+          <type>unsigned int</type>
+          <declname>num_verts</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="277" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classTopologyAdapter_1ac5508a6816cfaa80da161986790dd8f2" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>unsigned int</type>
+        <definition>virtual unsigned int TopologyAdapter::getIndex</definition>
+        <argsstring>(unsigned int face_no, unsigned int index_no)=0</argsstring>
+        <name>getIndex</name>
+        <qualifiedname>TopologyAdapter::getIndex</qualifiedname>
+        <reimplementedby refid="classGeometryTopologyAdapter_1aa257ab5e1d026608e8192338f71ff47b">getIndex</reimplementedby>
+        <reimplementedby refid="classTextureTopologyAdapter_1af90b025ddaab3caac4cbeb9a5d244b02">getIndex</reimplementedby>
+        <reimplementedby refid="classColorTopologyAdapter_1a36930688d92f9697c820453a156067e8">getIndex</reimplementedby>
+        <param>
+          <type>unsigned int</type>
+          <declname>face_no</declname>
+        </param>
+        <param>
+          <type>unsigned int</type>
+          <declname>index_no</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="278" column="24"/>
+      </memberdef>
+      <memberdef kind="function" id="classTopologyAdapter_1aefd41553d07b99978cf1fcb66c684b95" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void TopologyAdapter::setIndex</definition>
+        <argsstring>(unsigned int face_no, unsigned int index_no, unsigned int index)=0</argsstring>
+        <name>setIndex</name>
+        <qualifiedname>TopologyAdapter::setIndex</qualifiedname>
+        <reimplementedby refid="classGeometryTopologyAdapter_1ab161bd2a64c673b3a192ec0aa5fd5ece">setIndex</reimplementedby>
+        <reimplementedby refid="classTextureTopologyAdapter_1a6736109d2f7b55cb3cc3f6d53025e586">setIndex</reimplementedby>
+        <reimplementedby refid="classColorTopologyAdapter_1ae9c548e9855d6ee610d9ade553fc83da">setIndex</reimplementedby>
+        <param>
+          <type>unsigned int</type>
+          <declname>face_no</declname>
+        </param>
+        <param>
+          <type>unsigned int</type>
+          <declname>index_no</declname>
+        </param>
+        <param>
+          <type>unsigned int</type>
+          <declname>index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="279" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classTopologyAdapter_1a9bc1ce9635db21b7e646cc840b037911" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void TopologyAdapter::copyVertex</definition>
+        <argsstring>(unsigned int from, unsigned int to)=0</argsstring>
+        <name>copyVertex</name>
+        <qualifiedname>TopologyAdapter::copyVertex</qualifiedname>
+        <reimplementedby refid="classGeometryTopologyAdapter_1a84310f693f4704b08ad4db6c07df258e">copyVertex</reimplementedby>
+        <reimplementedby refid="classTextureTopologyAdapter_1acf8a5d72e6e1d327ed08cd60bf9d162d">copyVertex</reimplementedby>
+        <reimplementedby refid="classColorTopologyAdapter_1a10b6148fa8691f77f2329f87d7acf933">copyVertex</reimplementedby>
+        <param>
+          <type>unsigned int</type>
+          <declname>from</declname>
+        </param>
+        <param>
+          <type>unsigned int</type>
+          <declname>to</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="280" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classTopologyAdapter_1a6e20f644fa451516aec7bc9fc0176301" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>virtual bool TopologyAdapter::countRemovedVertices</definition>
+        <argsstring>()</argsstring>
+        <name>countRemovedVertices</name>
+        <qualifiedname>TopologyAdapter::countRemovedVertices</qualifiedname>
+        <reimplementedby refid="classGeometryTopologyAdapter_1adaa71c4dd913c0af27503d1580b4bdc1">countRemovedVertices</reimplementedby>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="281" column="16" bodyfile="util.cpp" bodystart="281" bodyend="281"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>ColorTopologyAdapter</label>
+        <link refid="classColorTopologyAdapter"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>GeometryTopologyAdapter</label>
+        <link refid="classGeometryTopologyAdapter"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>TextureTopologyAdapter</label>
+        <link refid="classTextureTopologyAdapter"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>TopologyAdapter</label>
+        <link refid="classTopologyAdapter"/>
+      </node>
+    </inheritancegraph>
+    <location file="util.cpp" line="270" column="1" bodyfile="util.cpp" bodystart="271" bodyend="282"/>
+    <listofallmembers>
+      <member refid="classTopologyAdapter_1a9bc1ce9635db21b7e646cc840b037911" prot="public" virt="pure-virtual"><scope>TopologyAdapter</scope><name>copyVertex</name></member>
+      <member refid="classTopologyAdapter_1a6e20f644fa451516aec7bc9fc0176301" prot="public" virt="virtual"><scope>TopologyAdapter</scope><name>countRemovedVertices</name></member>
+      <member refid="classTopologyAdapter_1ac5508a6816cfaa80da161986790dd8f2" prot="public" virt="pure-virtual"><scope>TopologyAdapter</scope><name>getIndex</name></member>
+      <member refid="classTopologyAdapter_1a74618dd737317e724e6a32909bf9b985" prot="public" virt="pure-virtual"><scope>TopologyAdapter</scope><name>getNumVerts</name></member>
+      <member refid="classTopologyAdapter_1a4b911200f72e8750549aeed13616caaa" prot="public" virt="non-virtual"><scope>TopologyAdapter</scope><name>mesh</name></member>
+      <member refid="classTopologyAdapter_1aefd41553d07b99978cf1fcb66c684b95" prot="public" virt="pure-virtual"><scope>TopologyAdapter</scope><name>setIndex</name></member>
+      <member refid="classTopologyAdapter_1a3e89ed43fbd20e531c7d2bfba5f51724" prot="public" virt="pure-virtual"><scope>TopologyAdapter</scope><name>setNumVerts</name></member>
+      <member refid="classTopologyAdapter_1a8331add32d3e423f7dafa6df2b4c48b2" prot="public" virt="non-virtual"><scope>TopologyAdapter</scope><name>TopologyAdapter</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

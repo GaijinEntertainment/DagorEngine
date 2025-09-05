@@ -1,0 +1,826 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classMaterDlg2" kind="class" language="C++" prot="public">
+    <compoundname>MaterDlg2</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">ParamDlg</basecompoundref>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classMaterDlg2_1a4bee61f67f2b26265e1be0aa750e3f6e" prot="public" static="no" mutable="no">
+        <type>HWND</type>
+        <definition>HWND MaterDlg2::hwmedit</definition>
+        <argsstring></argsstring>
+        <name>hwmedit</name>
+        <qualifiedname>MaterDlg2::hwmedit</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="211" column="8" bodyfile="mater2.cpp" bodystart="211" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classMaterDlg2_1a59cd905f693cb6f5057a3ef9e6245638" prot="public" static="no" mutable="no">
+        <type>IMtlParams *</type>
+        <definition>IMtlParams* MaterDlg2::ip</definition>
+        <argsstring></argsstring>
+        <name>ip</name>
+        <qualifiedname>MaterDlg2::ip</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="212" column="14" bodyfile="mater2.cpp" bodystart="212" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classMaterDlg2_1a4cbcc4d5515ede440462e95feee7b00d" prot="public" static="no" mutable="no">
+        <type>class <ref refid="classDagorMat2" kindref="compound">DagorMat2</ref> *</type>
+        <definition>class DagorMat2* MaterDlg2::theMtl</definition>
+        <argsstring></argsstring>
+        <name>theMtl</name>
+        <qualifiedname>MaterDlg2::theMtl</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="213" column="18" bodyfile="mater2.cpp" bodystart="213" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classMaterDlg2_1a06e1812c60e02abb36a29f925faf9458" prot="public" static="no" mutable="no">
+        <type>HWND</type>
+        <definition>HWND MaterDlg2::hPanel</definition>
+        <argsstring></argsstring>
+        <name>hPanel</name>
+        <qualifiedname>MaterDlg2::hPanel</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="214" column="8" bodyfile="mater2.cpp" bodystart="214" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classMaterDlg2_1a082ebf1dbb7674dd869fed42f275b5de" prot="public" static="no" mutable="no">
+        <type>BOOL</type>
+        <definition>BOOL MaterDlg2::valid</definition>
+        <argsstring></argsstring>
+        <name>valid</name>
+        <qualifiedname>MaterDlg2::valid</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="215" column="8" bodyfile="mater2.cpp" bodystart="215" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classMaterDlg2_1a9cd1158628a7e55ce3a0c1e944ccf351" prot="public" static="no" mutable="no">
+        <type>BOOL</type>
+        <definition>BOOL MaterDlg2::isActive</definition>
+        <argsstring></argsstring>
+        <name>isActive</name>
+        <qualifiedname>MaterDlg2::isActive</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="216" column="8" bodyfile="mater2.cpp" bodystart="216" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classMaterDlg2_1aa946a96a63ef2bf1856a9b6761cb4412" prot="public" static="no" mutable="no">
+        <type>IColorSwatch *</type>
+        <definition>IColorSwatch* MaterDlg2::csa</definition>
+        <argsstring></argsstring>
+        <name>csa</name>
+        <qualifiedname>MaterDlg2::csa</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="217" column="16" bodyfile="mater2.cpp" bodystart="217" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classMaterDlg2_1ac777e26fe16d4d8fe6e82515346724c1" prot="public" static="no" mutable="no">
+        <type>IColorSwatch *</type>
+        <definition>IColorSwatch * MaterDlg2::csd</definition>
+        <argsstring></argsstring>
+        <name>csd</name>
+        <qualifiedname>MaterDlg2::csd</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="217" column="20" bodyfile="mater2.cpp" bodystart="217" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classMaterDlg2_1abb0e62f2f846d439ded7b289d22a0b63" prot="public" static="no" mutable="no">
+        <type>IColorSwatch *</type>
+        <definition>IColorSwatch * MaterDlg2::css</definition>
+        <argsstring></argsstring>
+        <name>css</name>
+        <qualifiedname>MaterDlg2::css</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="217" column="24" bodyfile="mater2.cpp" bodystart="217" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classMaterDlg2_1af9fb31a25286adadce05e54c7c1ef16a" prot="public" static="no" mutable="no">
+        <type>IColorSwatch *</type>
+        <definition>IColorSwatch * MaterDlg2::cse</definition>
+        <argsstring></argsstring>
+        <name>cse</name>
+        <qualifiedname>MaterDlg2::cse</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="217" column="28" bodyfile="mater2.cpp" bodystart="217" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classMaterDlg2_1ab78af5b8e696a5ff6bf0421dad3a65e0" prot="public" static="no" mutable="no">
+        <type>BOOL</type>
+        <definition>BOOL MaterDlg2::creating</definition>
+        <argsstring></argsstring>
+        <name>creating</name>
+        <qualifiedname>MaterDlg2::creating</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="218" column="8" bodyfile="mater2.cpp" bodystart="218" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classMaterDlg2_1a8c5d74acad67c06ebe292233fda3d949" prot="public" static="no" mutable="no">
+        <type>TexDADMgr</type>
+        <definition>TexDADMgr MaterDlg2::dadmgr</definition>
+        <argsstring></argsstring>
+        <name>dadmgr</name>
+        <qualifiedname>MaterDlg2::dadmgr</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="219" column="13" bodyfile="mater2.cpp" bodystart="219" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classMaterDlg2_1a70d288833457224806c78c7b9cdd6193" prot="public" static="no" mutable="no">
+        <type>std::array&lt; ICustButton *, <ref refid="texmaps_8h_1aff91cf36fd3ffe965f4d5e1155bb06f3" kindref="member">NUMTEXMAPS</ref> &gt;</type>
+        <definition>std::array&lt;ICustButton *, NUMTEXMAPS&gt; MaterDlg2::texbut</definition>
+        <argsstring></argsstring>
+        <name>texbut</name>
+        <qualifiedname>MaterDlg2::texbut</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="221" column="14" bodyfile="mater2.cpp" bodystart="221" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classMaterDlg2_1a5581f119a36bfe5cc8cf2dc592ada53c" prot="public" static="no" mutable="no">
+        <type>POINT</type>
+        <definition>POINT MaterDlg2::paramOrg</definition>
+        <argsstring></argsstring>
+        <name>paramOrg</name>
+        <qualifiedname>MaterDlg2::paramOrg</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="222" column="9" bodyfile="mater2.cpp" bodystart="222" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classMaterDlg2_1a4c6aa5a367ac1ce4d30e9259ce5792b0" prot="public" static="no" mutable="no">
+        <type>std::vector&lt; std::unique_ptr&lt; <ref refid="classMaterPar2" kindref="compound">MaterPar2</ref> &gt; &gt;</type>
+        <definition>std::vector&lt;std::unique_ptr&lt;MaterPar2&gt; &gt; MaterDlg2::parameters</definition>
+        <argsstring></argsstring>
+        <name>parameters</name>
+        <qualifiedname>MaterDlg2::parameters</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="224" column="15" bodyfile="mater2.cpp" bodystart="224" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classMaterDlg2_1a5683e2cceb7d84183cd5a5003a1eed5c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void MaterDlg2::DialogsReposition</definition>
+        <argsstring>()</argsstring>
+        <name>DialogsReposition</name>
+        <qualifiedname>MaterDlg2::DialogsReposition</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="210" column="8" bodyfile="mater2.cpp" bodystart="2717" bodyend="2754"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaterDlg2_1a2d66f2a95dc4ff1d744807330f132348" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>MaterDlg2::MaterDlg2</definition>
+        <argsstring>(HWND hwMtlEdit, IMtlParams *imp, DagorMat2 *m)</argsstring>
+        <name>MaterDlg2</name>
+        <qualifiedname>MaterDlg2::MaterDlg2</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hwMtlEdit</declname>
+        </param>
+        <param>
+          <type>IMtlParams *</type>
+          <declname>imp</declname>
+        </param>
+        <param>
+          <type><ref refid="classDagorMat2" kindref="compound">DagorMat2</ref> *</type>
+          <declname>m</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="226" column="3" bodyfile="mater2.cpp" bodystart="493" bodyend="504"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaterDlg2_1aae270718c2dcf385a83f88cb0a741218" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>MaterDlg2::~MaterDlg2</definition>
+        <argsstring>() override</argsstring>
+        <name>~MaterDlg2</name>
+        <qualifiedname>MaterDlg2::~MaterDlg2</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="227" column="3" bodyfile="mater2.cpp" bodystart="506" bodyend="516"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaterDlg2_1a62dda9e6b431b396efcb1c971378f1b2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void MaterDlg2::RestoreParams</definition>
+        <argsstring>()</argsstring>
+        <name>RestoreParams</name>
+        <qualifiedname>MaterDlg2::RestoreParams</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="229" column="8" bodyfile="mater2.cpp" bodystart="629" bodyend="666"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaterDlg2_1a0c9ea9bda9c2b97406d99d5b9b85258d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void MaterDlg2::SaveParams</definition>
+        <argsstring>()</argsstring>
+        <name>SaveParams</name>
+        <qualifiedname>MaterDlg2::SaveParams</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="230" column="8" bodyfile="mater2.cpp" bodystart="668" bodyend="692"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaterDlg2_1a286454e2bd812bdb84ae6aabd7b79fec" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void MaterDlg2::FillSlotNames</definition>
+        <argsstring>()</argsstring>
+        <name>FillSlotNames</name>
+        <qualifiedname>MaterDlg2::FillSlotNames</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="232" column="8" bodyfile="mater2.cpp" bodystart="1034" bodyend="1037"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaterDlg2_1ae520f4f7fcd0e17e6d0906b51e6a54d0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref></type>
+        <definition>M_STD_STRING MaterDlg2::GetShaderName</definition>
+        <argsstring>()</argsstring>
+        <name>GetShaderName</name>
+        <qualifiedname>MaterDlg2::GetShaderName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="234" column="16" bodyfile="mater2.cpp" bodystart="703" bodyend="715"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaterDlg2_1a51db1636f48b27b99a205715c453291d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void MaterDlg2::UpdateShaderName</definition>
+        <argsstring>()</argsstring>
+        <name>UpdateShaderName</name>
+        <qualifiedname>MaterDlg2::UpdateShaderName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="235" column="8" bodyfile="mater2.cpp" bodystart="717" bodyend="722"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaterDlg2_1ac0299db5d74caffa16003bd253b57199" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void MaterDlg2::ChangeShaderName</definition>
+        <argsstring>()</argsstring>
+        <name>ChangeShaderName</name>
+        <qualifiedname>MaterDlg2::ChangeShaderName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="236" column="8" bodyfile="mater2.cpp" bodystart="724" bodyend="742"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaterDlg2_1a0235aaeeb2d80803d0b4f9646eda2402" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void MaterDlg2::UpdateEnum2Sided</definition>
+        <argsstring>()</argsstring>
+        <name>UpdateEnum2Sided</name>
+        <qualifiedname>MaterDlg2::UpdateEnum2Sided</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="237" column="8" bodyfile="mater2.cpp" bodystart="744" bodyend="748"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaterDlg2_1a46c8b8462bcae7a059dbf98f0d1e453d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void MaterDlg2::AddParam</definition>
+        <argsstring>(int type, M_STD_STRING name, M_STD_STRING value=M_STD_STRING())</argsstring>
+        <name>AddParam</name>
+        <qualifiedname>MaterDlg2::AddParam</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref></type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref></type>
+          <declname>value</declname>
+          <defval><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref>()</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="238" column="8" bodyfile="mater2.cpp" bodystart="750" bodyend="768"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaterDlg2_1ae49405098c08c0bae787c328bb507819" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classMaterPar2" kindref="compound">MaterPar2</ref> *</type>
+        <definition>MaterPar2 * MaterDlg2::GetParam</definition>
+        <argsstring>(M_STD_STRING name)</argsstring>
+        <name>GetParam</name>
+        <qualifiedname>MaterDlg2::GetParam</qualifiedname>
+        <param>
+          <type><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref></type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="239" column="13" bodyfile="mater2.cpp" bodystart="770" bodyend="776"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaterDlg2_1a5e1311833f1c676e6b942e8096823142" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void MaterDlg2::RemParam</definition>
+        <argsstring>(M_STD_STRING name)</argsstring>
+        <name>RemParam</name>
+        <qualifiedname>MaterDlg2::RemParam</qualifiedname>
+        <param>
+          <type><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref></type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="240" column="8" bodyfile="mater2.cpp" bodystart="778" bodyend="786"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaterDlg2_1a94c18bef789fcb9c9ca4bdd062ff4ac0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void MaterDlg2::MarkUnknownParams</definition>
+        <argsstring>(CfgShader &amp;cfg)</argsstring>
+        <name>MarkUnknownParams</name>
+        <qualifiedname>MaterDlg2::MarkUnknownParams</qualifiedname>
+        <param>
+          <type><ref refid="classCfgShader" kindref="compound">CfgShader</ref> &amp;</type>
+          <declname>cfg</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="241" column="8" bodyfile="mater2.cpp" bodystart="518" bodyend="545"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaterDlg2_1abd00775d2097ac601d49e7f0efd75fb0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>BOOL</type>
+        <definition>BOOL MaterDlg2::WndProc</definition>
+        <argsstring>(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)</argsstring>
+        <name>WndProc</name>
+        <qualifiedname>MaterDlg2::WndProc</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hWnd</declname>
+        </param>
+        <param>
+          <type>UINT</type>
+          <declname>msg</declname>
+        </param>
+        <param>
+          <type>WPARAM</type>
+          <declname>wParam</declname>
+        </param>
+        <param>
+          <type>LPARAM</type>
+          <declname>lParam</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="243" column="8" bodyfile="mater2.cpp" bodystart="804" bodyend="1032"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaterDlg2_1a9ccb03cac018a532347726bcda2f8fd0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void MaterDlg2::Invalidate</definition>
+        <argsstring>()</argsstring>
+        <name>Invalidate</name>
+        <qualifiedname>MaterDlg2::Invalidate</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="244" column="8" bodyfile="mater2.cpp" bodystart="1039" bodyend="1047"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaterDlg2_1a2df7a4df208f15feb11a1afc7431d73b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void MaterDlg2::UpdateMtlDisplay</definition>
+        <argsstring>()</argsstring>
+        <name>UpdateMtlDisplay</name>
+        <qualifiedname>MaterDlg2::UpdateMtlDisplay</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="245" column="8" bodyfile="mater2.cpp" bodystart="245" bodyend="245"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaterDlg2_1a784d11828e2185fb3ee932a1bf170a47" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void MaterDlg2::UpdateTexDisplay</definition>
+        <argsstring>(int i)</argsstring>
+        <name>UpdateTexDisplay</name>
+        <qualifiedname>MaterDlg2::UpdateTexDisplay</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>i</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="246" column="8" bodyfile="mater2.cpp" bodystart="1059" bodyend="1072"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaterDlg2_1a2a6ba9d93bb5d3553ff6f70d6f66c0ad" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int MaterDlg2::FindSubTexFromHWND</definition>
+        <argsstring>(HWND hw) override</argsstring>
+        <name>FindSubTexFromHWND</name>
+        <qualifiedname>MaterDlg2::FindSubTexFromHWND</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hw</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="249" column="7" bodyfile="mater2.cpp" bodystart="694" bodyend="701"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaterDlg2_1a3c6320c140367b9e651c7ddd82b8df67" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void MaterDlg2::ReloadDialog</definition>
+        <argsstring>() override</argsstring>
+        <name>ReloadDialog</name>
+        <qualifiedname>MaterDlg2::ReloadDialog</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="250" column="8" bodyfile="mater2.cpp" bodystart="1074" bodyend="1093"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaterDlg2_1abe80eb6eae78fc7068abe81c04dc65df" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Class_ID</type>
+        <definition>Class_ID MaterDlg2::ClassID</definition>
+        <argsstring>() override</argsstring>
+        <name>ClassID</name>
+        <qualifiedname>MaterDlg2::ClassID</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="251" column="12" bodyfile="mater2.cpp" bodystart="251" bodyend="251"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaterDlg2_1a3ade8334f7c47993b2ae765dbea4b49e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>BOOL</type>
+        <definition>BOOL MaterDlg2::KeyAtCurTime</definition>
+        <argsstring>(int id)</argsstring>
+        <name>KeyAtCurTime</name>
+        <qualifiedname>MaterDlg2::KeyAtCurTime</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="252" column="8" bodyfile="mater2.cpp" bodystart="1057" bodyend="1057"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaterDlg2_1addd0f622653a678a6a1179e95f99c1de" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void MaterDlg2::SetThing</definition>
+        <argsstring>(ReferenceTarget *m) override</argsstring>
+        <name>SetThing</name>
+        <qualifiedname>MaterDlg2::SetThing</qualifiedname>
+        <param>
+          <type>ReferenceTarget *</type>
+          <declname>m</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="253" column="8" bodyfile="mater2.cpp" bodystart="1049" bodyend="1055"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaterDlg2_1a1c53abddfe5e7b3aff4a0d5834b7a12a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>ReferenceTarget *</type>
+        <definition>ReferenceTarget * MaterDlg2::GetThing</definition>
+        <argsstring>() override</argsstring>
+        <name>GetThing</name>
+        <qualifiedname>MaterDlg2::GetThing</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="254" column="19" bodyfile="mater2.cpp" bodystart="254" bodyend="254"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaterDlg2_1a6b4b8d4dca4403aaaf218215646ac9a6" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void MaterDlg2::DeleteThis</definition>
+        <argsstring>() override</argsstring>
+        <name>DeleteThis</name>
+        <qualifiedname>MaterDlg2::DeleteThis</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="255" column="8" bodyfile="mater2.cpp" bodystart="255" bodyend="255"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaterDlg2_1a375523fb747d67b98eac8acd8bf4b1d5" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void MaterDlg2::SetTime</definition>
+        <argsstring>(TimeValue t) override</argsstring>
+        <name>SetTime</name>
+        <qualifiedname>MaterDlg2::SetTime</qualifiedname>
+        <param>
+          <type>TimeValue</type>
+          <declname>t</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="256" column="8" bodyfile="mater2.cpp" bodystart="256" bodyend="256"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaterDlg2_1afae4a1306a8ea5b7f9b843d8b32897d5" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void MaterDlg2::ActivateDlg</definition>
+        <argsstring>(BOOL onOff) override</argsstring>
+        <name>ActivateDlg</name>
+        <qualifiedname>MaterDlg2::ActivateDlg</qualifiedname>
+        <param>
+          <type>BOOL</type>
+          <declname>onOff</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="257" column="8" bodyfile="mater2.cpp" bodystart="257" bodyend="263"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaterDlg2_1ab54a684e7d20555d352b8c8c0963cd6e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>HWND</type>
+        <definition>HWND MaterDlg2::AppendDialog</definition>
+        <argsstring>(const TCHAR *paramName, long Resource, DLGPROC lpDialogProc, LPARAM param)</argsstring>
+        <name>AppendDialog</name>
+        <qualifiedname>MaterDlg2::AppendDialog</qualifiedname>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>paramName</declname>
+        </param>
+        <param>
+          <type>long</type>
+          <declname>Resource</declname>
+        </param>
+        <param>
+          <type>DLGPROC</type>
+          <declname>lpDialogProc</declname>
+        </param>
+        <param>
+          <type>LPARAM</type>
+          <declname>param</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="265" column="8" bodyfile="mater2.cpp" bodystart="788" bodyend="802"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>MaterDlg2</label>
+        <link refid="classMaterDlg2"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ParamDlg</label>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="3">
+        <label>DagorMat2</label>
+        <link refid="classDagorMat2"/>
+        <childnode refid="4" relation="public-inheritance">
+        </childnode>
+        <childnode refid="5" relation="public-inheritance">
+        </childnode>
+        <childnode refid="1" relation="usage">
+          <edgelabel>dlg</edgelabel>
+        </childnode>
+        <childnode refid="6" relation="usage">
+          <edgelabel>texmaps</edgelabel>
+        </childnode>
+        <childnode refid="8" relation="usage">
+          <edgelabel>postLoadCallback</edgelabel>
+        </childnode>
+      </node>
+      <node id="8">
+        <label>DagorMat2PostLoadCallback</label>
+        <link refid="classDagorMat2PostLoadCallback"/>
+        <childnode refid="9" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>parent</edgelabel>
+        </childnode>
+      </node>
+      <node id="5">
+        <label>IDagorMat</label>
+        <link refid="classIDagorMat"/>
+      </node>
+      <node id="1">
+        <label>MaterDlg2</label>
+        <link refid="classMaterDlg2"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>theMtl</edgelabel>
+        </childnode>
+      </node>
+      <node id="4">
+        <label>Mtl</label>
+      </node>
+      <node id="2">
+        <label>ParamDlg</label>
+      </node>
+      <node id="9">
+        <label>PostLoadCallback</label>
+      </node>
+      <node id="7">
+        <label>TexmapContainer</label>
+      </node>
+      <node id="6">
+        <label>Texmaps</label>
+        <link refid="classTexmaps"/>
+        <childnode refid="7" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="mater2.cpp" line="207" column="1" bodyfile="mater2.cpp" bodystart="208" bodyend="266"/>
+    <listofallmembers>
+      <member refid="classMaterDlg2_1afae4a1306a8ea5b7f9b843d8b32897d5" prot="public" virt="non-virtual"><scope>MaterDlg2</scope><name>ActivateDlg</name></member>
+      <member refid="classMaterDlg2_1a46c8b8462bcae7a059dbf98f0d1e453d" prot="public" virt="non-virtual"><scope>MaterDlg2</scope><name>AddParam</name></member>
+      <member refid="classMaterDlg2_1ab54a684e7d20555d352b8c8c0963cd6e" prot="public" virt="non-virtual"><scope>MaterDlg2</scope><name>AppendDialog</name></member>
+      <member refid="classMaterDlg2_1ac0299db5d74caffa16003bd253b57199" prot="public" virt="non-virtual"><scope>MaterDlg2</scope><name>ChangeShaderName</name></member>
+      <member refid="classMaterDlg2_1abe80eb6eae78fc7068abe81c04dc65df" prot="public" virt="non-virtual"><scope>MaterDlg2</scope><name>ClassID</name></member>
+      <member refid="classMaterDlg2_1ab78af5b8e696a5ff6bf0421dad3a65e0" prot="public" virt="non-virtual"><scope>MaterDlg2</scope><name>creating</name></member>
+      <member refid="classMaterDlg2_1aa946a96a63ef2bf1856a9b6761cb4412" prot="public" virt="non-virtual"><scope>MaterDlg2</scope><name>csa</name></member>
+      <member refid="classMaterDlg2_1ac777e26fe16d4d8fe6e82515346724c1" prot="public" virt="non-virtual"><scope>MaterDlg2</scope><name>csd</name></member>
+      <member refid="classMaterDlg2_1af9fb31a25286adadce05e54c7c1ef16a" prot="public" virt="non-virtual"><scope>MaterDlg2</scope><name>cse</name></member>
+      <member refid="classMaterDlg2_1abb0e62f2f846d439ded7b289d22a0b63" prot="public" virt="non-virtual"><scope>MaterDlg2</scope><name>css</name></member>
+      <member refid="classMaterDlg2_1a8c5d74acad67c06ebe292233fda3d949" prot="public" virt="non-virtual"><scope>MaterDlg2</scope><name>dadmgr</name></member>
+      <member refid="classMaterDlg2_1a6b4b8d4dca4403aaaf218215646ac9a6" prot="public" virt="non-virtual"><scope>MaterDlg2</scope><name>DeleteThis</name></member>
+      <member refid="classMaterDlg2_1a5683e2cceb7d84183cd5a5003a1eed5c" prot="public" virt="non-virtual"><scope>MaterDlg2</scope><name>DialogsReposition</name></member>
+      <member refid="classMaterDlg2_1a286454e2bd812bdb84ae6aabd7b79fec" prot="public" virt="non-virtual"><scope>MaterDlg2</scope><name>FillSlotNames</name></member>
+      <member refid="classMaterDlg2_1a2a6ba9d93bb5d3553ff6f70d6f66c0ad" prot="public" virt="non-virtual"><scope>MaterDlg2</scope><name>FindSubTexFromHWND</name></member>
+      <member refid="classMaterDlg2_1ae49405098c08c0bae787c328bb507819" prot="public" virt="non-virtual"><scope>MaterDlg2</scope><name>GetParam</name></member>
+      <member refid="classMaterDlg2_1ae520f4f7fcd0e17e6d0906b51e6a54d0" prot="public" virt="non-virtual"><scope>MaterDlg2</scope><name>GetShaderName</name></member>
+      <member refid="classMaterDlg2_1a1c53abddfe5e7b3aff4a0d5834b7a12a" prot="public" virt="non-virtual"><scope>MaterDlg2</scope><name>GetThing</name></member>
+      <member refid="classMaterDlg2_1a06e1812c60e02abb36a29f925faf9458" prot="public" virt="non-virtual"><scope>MaterDlg2</scope><name>hPanel</name></member>
+      <member refid="classMaterDlg2_1a4bee61f67f2b26265e1be0aa750e3f6e" prot="public" virt="non-virtual"><scope>MaterDlg2</scope><name>hwmedit</name></member>
+      <member refid="classMaterDlg2_1a9ccb03cac018a532347726bcda2f8fd0" prot="public" virt="non-virtual"><scope>MaterDlg2</scope><name>Invalidate</name></member>
+      <member refid="classMaterDlg2_1a59cd905f693cb6f5057a3ef9e6245638" prot="public" virt="non-virtual"><scope>MaterDlg2</scope><name>ip</name></member>
+      <member refid="classMaterDlg2_1a9cd1158628a7e55ce3a0c1e944ccf351" prot="public" virt="non-virtual"><scope>MaterDlg2</scope><name>isActive</name></member>
+      <member refid="classMaterDlg2_1a3ade8334f7c47993b2ae765dbea4b49e" prot="public" virt="non-virtual"><scope>MaterDlg2</scope><name>KeyAtCurTime</name></member>
+      <member refid="classMaterDlg2_1a94c18bef789fcb9c9ca4bdd062ff4ac0" prot="public" virt="non-virtual"><scope>MaterDlg2</scope><name>MarkUnknownParams</name></member>
+      <member refid="classMaterDlg2_1a2d66f2a95dc4ff1d744807330f132348" prot="public" virt="non-virtual"><scope>MaterDlg2</scope><name>MaterDlg2</name></member>
+      <member refid="classMaterDlg2_1a4c6aa5a367ac1ce4d30e9259ce5792b0" prot="public" virt="non-virtual"><scope>MaterDlg2</scope><name>parameters</name></member>
+      <member refid="classMaterDlg2_1a5581f119a36bfe5cc8cf2dc592ada53c" prot="public" virt="non-virtual"><scope>MaterDlg2</scope><name>paramOrg</name></member>
+      <member refid="classMaterDlg2_1a3c6320c140367b9e651c7ddd82b8df67" prot="public" virt="non-virtual"><scope>MaterDlg2</scope><name>ReloadDialog</name></member>
+      <member refid="classMaterDlg2_1a5e1311833f1c676e6b942e8096823142" prot="public" virt="non-virtual"><scope>MaterDlg2</scope><name>RemParam</name></member>
+      <member refid="classMaterDlg2_1a62dda9e6b431b396efcb1c971378f1b2" prot="public" virt="non-virtual"><scope>MaterDlg2</scope><name>RestoreParams</name></member>
+      <member refid="classMaterDlg2_1a0c9ea9bda9c2b97406d99d5b9b85258d" prot="public" virt="non-virtual"><scope>MaterDlg2</scope><name>SaveParams</name></member>
+      <member refid="classMaterDlg2_1addd0f622653a678a6a1179e95f99c1de" prot="public" virt="non-virtual"><scope>MaterDlg2</scope><name>SetThing</name></member>
+      <member refid="classMaterDlg2_1a375523fb747d67b98eac8acd8bf4b1d5" prot="public" virt="non-virtual"><scope>MaterDlg2</scope><name>SetTime</name></member>
+      <member refid="classMaterDlg2_1a70d288833457224806c78c7b9cdd6193" prot="public" virt="non-virtual"><scope>MaterDlg2</scope><name>texbut</name></member>
+      <member refid="classMaterDlg2_1a4cbcc4d5515ede440462e95feee7b00d" prot="public" virt="non-virtual"><scope>MaterDlg2</scope><name>theMtl</name></member>
+      <member refid="classMaterDlg2_1a0235aaeeb2d80803d0b4f9646eda2402" prot="public" virt="non-virtual"><scope>MaterDlg2</scope><name>UpdateEnum2Sided</name></member>
+      <member refid="classMaterDlg2_1a2df7a4df208f15feb11a1afc7431d73b" prot="public" virt="non-virtual"><scope>MaterDlg2</scope><name>UpdateMtlDisplay</name></member>
+      <member refid="classMaterDlg2_1a51db1636f48b27b99a205715c453291d" prot="public" virt="non-virtual"><scope>MaterDlg2</scope><name>UpdateShaderName</name></member>
+      <member refid="classMaterDlg2_1a784d11828e2185fb3ee932a1bf170a47" prot="public" virt="non-virtual"><scope>MaterDlg2</scope><name>UpdateTexDisplay</name></member>
+      <member refid="classMaterDlg2_1a082ebf1dbb7674dd869fed42f275b5de" prot="public" virt="non-virtual"><scope>MaterDlg2</scope><name>valid</name></member>
+      <member refid="classMaterDlg2_1abd00775d2097ac601d49e7f0efd75fb0" prot="public" virt="non-virtual"><scope>MaterDlg2</scope><name>WndProc</name></member>
+      <member refid="classMaterDlg2_1aae270718c2dcf385a83f88cb0a741218" prot="public" virt="non-virtual"><scope>MaterDlg2</scope><name>~MaterDlg2</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,51 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structraytrace_1_1TopAccelerationStructureSizeCalculcationInfo" kind="struct" language="C++" prot="public">
+    <compoundname>raytrace::TopAccelerationStructureSizeCalculcationInfo</compoundname>
+    <includes refid="dag__drvRayTrace_8h" local="no">dag_drvRayTrace.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structraytrace_1_1TopAccelerationStructureSizeCalculcationInfo_1aabb5bcb6f1cc80d6e292bae22054e96e" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::TopAccelerationStructureSizeCalculcationInfo::elementCount</definition>
+        <argsstring></argsstring>
+        <name>elementCount</name>
+        <qualifiedname>raytrace::TopAccelerationStructureSizeCalculcationInfo::elementCount</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+<para>Number of elements a TLAS contains. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="326" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="326" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1TopAccelerationStructureSizeCalculcationInfo_1a4ca3c6257d29b00a7b17bdb90825fe09" prot="public" static="no" mutable="no">
+        <type><ref refid="dag__drvRayTrace_8h_1a46397cc51b1c10848f986af0c0bd49c8" kindref="member">RaytraceBuildFlags</ref></type>
+        <definition>RaytraceBuildFlags raytrace::TopAccelerationStructureSizeCalculcationInfo::flags</definition>
+        <argsstring></argsstring>
+        <name>flags</name>
+        <qualifiedname>raytrace::TopAccelerationStructureSizeCalculcationInfo::flags</qualifiedname>
+        <initializer>= <ref refid="dag__drvRayTrace_8h_1a46397cc51b1c10848f986af0c0bd49c8ab50339a10e1de285ac99d4c3990b8693" kindref="member">RaytraceBuildFlags::NONE</ref></initializer>
+        <briefdescription>
+<para>Build flags that may be used with the TLAS, they may influence some sizes. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="328" column="22" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="328" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Hold the information to calculate the required size of a TLAS. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="rayTrace/dag_drvRayTrace.h" line="323" column="1" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="324" bodyend="329"/>
+    <listofallmembers>
+      <member refid="structraytrace_1_1TopAccelerationStructureSizeCalculcationInfo_1aabb5bcb6f1cc80d6e292bae22054e96e" prot="public" virt="non-virtual"><scope>raytrace::TopAccelerationStructureSizeCalculcationInfo</scope><name>elementCount</name></member>
+      <member refid="structraytrace_1_1TopAccelerationStructureSizeCalculcationInfo_1a4ca3c6257d29b00a7b17bdb90825fe09" prot="public" virt="non-virtual"><scope>raytrace::TopAccelerationStructureSizeCalculcationInfo</scope><name>flags</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,45 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structshc_1_1ShaderValidVariantList_1_1VarVal" kind="struct" language="C++" prot="public">
+    <compoundname>shc::ShaderValidVariantList::VarVal</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structshc_1_1ShaderValidVariantList_1_1VarVal_1af67bea296efb2892b5ec7164844530d2" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int shc::ShaderValidVariantList::VarVal::nameId</definition>
+        <argsstring></argsstring>
+        <name>nameId</name>
+        <qualifiedname>shc::ShaderValidVariantList::VarVal::nameId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="663" column="9" bodyfile="shCompiler.cpp" bodystart="663" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1ShaderValidVariantList_1_1VarVal_1aaa21f6defa47c658a223e5b1d34f5915" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float shc::ShaderValidVariantList::VarVal::val</definition>
+        <argsstring></argsstring>
+        <name>val</name>
+        <qualifiedname>shc::ShaderValidVariantList::VarVal::val</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompiler.cpp" line="664" column="11" bodyfile="shCompiler.cpp" bodystart="664" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="shCompiler.cpp" line="661" column="3" bodyfile="shCompiler.cpp" bodystart="662" bodyend="665"/>
+    <listofallmembers>
+      <member refid="structshc_1_1ShaderValidVariantList_1_1VarVal_1af67bea296efb2892b5ec7164844530d2" prot="public" virt="non-virtual"><scope>shc::ShaderValidVariantList::VarVal</scope><name>nameId</name></member>
+      <member refid="structshc_1_1ShaderValidVariantList_1_1VarVal_1aaa21f6defa47c658a223e5b1d34f5915" prot="public" virt="non-virtual"><scope>shc::ShaderValidVariantList::VarVal</scope><name>val</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

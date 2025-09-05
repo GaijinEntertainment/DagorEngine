@@ -1,0 +1,1054 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structDeviceDriverCapabilitiesTVOS" kind="struct" language="C++" prot="public">
+    <compoundname>DeviceDriverCapabilitiesTVOS</compoundname>
+    <basecompoundref refid="structDeviceDriverCapabilitiesBase" prot="public" virt="non-virtual">DeviceDriverCapabilitiesBase</basecompoundref>
+    <includes refid="dag__consts_8h" local="no">dag_consts.h</includes>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesTVOS_1a793e45f120bb8cfa0b7f97fd7aa8b5a1" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesTVOS::hasAnisotropicFilter</definition>
+        <argsstring></argsstring>
+        <name>hasAnisotropicFilter</name>
+        <qualifiedname>DeviceDriverCapabilitiesTVOS::hasAnisotropicFilter</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1ae16465605571449cdaa401557c4730fc" kindref="member">DeviceDriverCapabilitiesBase::hasAnisotropicFilter</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1511" column="25" bodyfile="dag_consts.h" bodystart="1511" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesTVOS_1ad8b3f9425b9f7bf6183251aa0774722a" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesTVOS::hasDepthReadOnly</definition>
+        <argsstring></argsstring>
+        <name>hasDepthReadOnly</name>
+        <qualifiedname>DeviceDriverCapabilitiesTVOS::hasDepthReadOnly</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1aa0f3c5d16e0868323a12940250cd1a39" kindref="member">DeviceDriverCapabilitiesBase::hasDepthReadOnly</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1513" column="25" bodyfile="dag_consts.h" bodystart="1513" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesTVOS_1aad7b686f0b288922dc48cf815a20e077" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesTVOS::hasStructuredBuffers</definition>
+        <argsstring></argsstring>
+        <name>hasStructuredBuffers</name>
+        <qualifiedname>DeviceDriverCapabilitiesTVOS::hasStructuredBuffers</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1a20407785ef1e8f4efde8f5f5ba093569" kindref="member">DeviceDriverCapabilitiesBase::hasStructuredBuffers</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1515" column="25" bodyfile="dag_consts.h" bodystart="1515" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesTVOS_1a55df662402bcd3224026456dd6db092d" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesTVOS::hasNoOverwriteOnShaderResourceBuffers</definition>
+        <argsstring></argsstring>
+        <name>hasNoOverwriteOnShaderResourceBuffers</name>
+        <qualifiedname>DeviceDriverCapabilitiesTVOS::hasNoOverwriteOnShaderResourceBuffers</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1ac092d99b3a894db094a2c80af9e33ca8" kindref="member">DeviceDriverCapabilitiesBase::hasNoOverwriteOnShaderResourceBuffers</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1517" column="25" bodyfile="dag_consts.h" bodystart="1517" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesTVOS_1ad52c9820c75803f881b5a76082d1db37" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesTVOS::hasForcedSamplerCount</definition>
+        <argsstring></argsstring>
+        <name>hasForcedSamplerCount</name>
+        <qualifiedname>DeviceDriverCapabilitiesTVOS::hasForcedSamplerCount</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1abdaed640d68bcbc1b926f133d9d2465a" kindref="member">DeviceDriverCapabilitiesBase::hasForcedSamplerCount</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1519" column="25" bodyfile="dag_consts.h" bodystart="1519" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesTVOS_1a86e7ab2f0f275bdda018f84198ee0ba3" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesTVOS::hasVolMipMap</definition>
+        <argsstring></argsstring>
+        <name>hasVolMipMap</name>
+        <qualifiedname>DeviceDriverCapabilitiesTVOS::hasVolMipMap</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1a97d97eed28fac297ea5042de79ea48a5" kindref="member">DeviceDriverCapabilitiesBase::hasVolMipMap</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1521" column="25" bodyfile="dag_consts.h" bodystart="1521" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesTVOS_1a0e14b40b2e39b2c9256c5d0759825481" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesTVOS::hasAsyncCompute</definition>
+        <argsstring></argsstring>
+        <name>hasAsyncCompute</name>
+        <qualifiedname>DeviceDriverCapabilitiesTVOS::hasAsyncCompute</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1ae421f36c3e5e3382c12c9189b6ebc0b0" kindref="member">DeviceDriverCapabilitiesBase::hasAsyncCompute</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1523" column="25" bodyfile="dag_consts.h" bodystart="1523" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesTVOS_1a84a8d4d7eb51e57cc3db1c5fa37b6f7d" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesTVOS::hasOcclusionQuery</definition>
+        <argsstring></argsstring>
+        <name>hasOcclusionQuery</name>
+        <qualifiedname>DeviceDriverCapabilitiesTVOS::hasOcclusionQuery</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1a7717801667587b0dc2e2744030722791" kindref="member">DeviceDriverCapabilitiesBase::hasOcclusionQuery</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1525" column="25" bodyfile="dag_consts.h" bodystart="1525" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesTVOS_1a0bf33c2ec262b26cab44168fb237b966" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesTVOS::hasConstBufferOffset</definition>
+        <argsstring></argsstring>
+        <name>hasConstBufferOffset</name>
+        <qualifiedname>DeviceDriverCapabilitiesTVOS::hasConstBufferOffset</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a5c94dd02ee82ff737873cdd9f9404be0" kindref="member">DeviceDriverCapabilitiesBase::hasConstBufferOffset</ref>} \NYI </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1528" column="25" bodyfile="dag_consts.h" bodystart="1528" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesTVOS_1abf3e2a5c3c6f686fea7179c09d2adb3c" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesTVOS::hasDepthBoundsTest</definition>
+        <argsstring></argsstring>
+        <name>hasDepthBoundsTest</name>
+        <qualifiedname>DeviceDriverCapabilitiesTVOS::hasDepthBoundsTest</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1abda4bbbdebdb5c18b289e9053895e193" kindref="member">DeviceDriverCapabilitiesBase::hasDepthBoundsTest</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1530" column="25" bodyfile="dag_consts.h" bodystart="1530" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesTVOS_1aa42ef7e648f019901be82a67b8b723bb" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesTVOS::hasConditionalRender</definition>
+        <argsstring></argsstring>
+        <name>hasConditionalRender</name>
+        <qualifiedname>DeviceDriverCapabilitiesTVOS::hasConditionalRender</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1afe2a9e7878afb130d24e36d28f7355d6" kindref="member">DeviceDriverCapabilitiesBase::hasConditionalRender</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1532" column="25" bodyfile="dag_consts.h" bodystart="1532" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesTVOS_1a330149303440005e9ed6d3c731c1ca49" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesTVOS::hasResourceCopyConversion</definition>
+        <argsstring></argsstring>
+        <name>hasResourceCopyConversion</name>
+        <qualifiedname>DeviceDriverCapabilitiesTVOS::hasResourceCopyConversion</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1a45e3ac7640df3354d5baef8e7fa1c4c7" kindref="member">DeviceDriverCapabilitiesBase::hasResourceCopyConversion</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1534" column="25" bodyfile="dag_consts.h" bodystart="1534" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesTVOS_1acf105a22f45c11e28a18a9a6c137a301" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesTVOS::hasAsyncCopy</definition>
+        <argsstring></argsstring>
+        <name>hasAsyncCopy</name>
+        <qualifiedname>DeviceDriverCapabilitiesTVOS::hasAsyncCopy</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a014bd49e2e0103c34524f0da355be4ea" kindref="member">DeviceDriverCapabilitiesBase::hasAsyncCopy</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1536" column="25" bodyfile="dag_consts.h" bodystart="1536" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesTVOS_1af791b1c66546e092c10b336b39d6517f" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesTVOS::hasReadMultisampledDepth</definition>
+        <argsstring></argsstring>
+        <name>hasReadMultisampledDepth</name>
+        <qualifiedname>DeviceDriverCapabilitiesTVOS::hasReadMultisampledDepth</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1acf749555446d427feee38076de754d83" kindref="member">DeviceDriverCapabilitiesBase::hasReadMultisampledDepth</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1538" column="25" bodyfile="dag_consts.h" bodystart="1538" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesTVOS_1aab35c60b3aae8b6427fedb3b1fa4dd80" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesTVOS::hasInstanceID</definition>
+        <argsstring></argsstring>
+        <name>hasInstanceID</name>
+        <qualifiedname>DeviceDriverCapabilitiesTVOS::hasInstanceID</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1a2ca9ae722f66c5f6f0c3b76cd0424c07" kindref="member">DeviceDriverCapabilitiesBase::hasInstanceID</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1540" column="25" bodyfile="dag_consts.h" bodystart="1540" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesTVOS_1ace1e2b858a7f8f4a905182db4bb0be29" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesTVOS::hasConservativeRassterization</definition>
+        <argsstring></argsstring>
+        <name>hasConservativeRassterization</name>
+        <qualifiedname>DeviceDriverCapabilitiesTVOS::hasConservativeRassterization</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a903377bb582a3da6b2b8c276d6cbc463" kindref="member">DeviceDriverCapabilitiesBase::hasConservativeRassterization</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1542" column="25" bodyfile="dag_consts.h" bodystart="1542" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesTVOS_1af134af83c8cb9f042f8c02fb86432356" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesTVOS::hasQuadTessellation</definition>
+        <argsstring></argsstring>
+        <name>hasQuadTessellation</name>
+        <qualifiedname>DeviceDriverCapabilitiesTVOS::hasQuadTessellation</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a3cdee766ed89fafff0f7804eaa4c2ab1" kindref="member">DeviceDriverCapabilitiesBase::hasQuadTessellation</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1544" column="25" bodyfile="dag_consts.h" bodystart="1544" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesTVOS_1acef1812766f6314524baf140771de892" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesTVOS::hasGather4</definition>
+        <argsstring></argsstring>
+        <name>hasGather4</name>
+        <qualifiedname>DeviceDriverCapabilitiesTVOS::hasGather4</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1a575b7ccfb7413bbb1246e526bc2608ab" kindref="member">DeviceDriverCapabilitiesBase::hasGather4</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1546" column="25" bodyfile="dag_consts.h" bodystart="1546" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesTVOS_1acd0a5db7f458dc0e78f96c40c351c938" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesTVOS::hasAlphaCoverage</definition>
+        <argsstring></argsstring>
+        <name>hasAlphaCoverage</name>
+        <qualifiedname>DeviceDriverCapabilitiesTVOS::hasAlphaCoverage</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1a743899e2f26692b8e09a379c35379894" kindref="member">DeviceDriverCapabilitiesBase::hasAlphaCoverage</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1548" column="25" bodyfile="dag_consts.h" bodystart="1548" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesTVOS_1a72ded3f07d85a0416bb8e1bab8124dc9" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesTVOS::hasWellSupportedIndirect</definition>
+        <argsstring></argsstring>
+        <name>hasWellSupportedIndirect</name>
+        <qualifiedname>DeviceDriverCapabilitiesTVOS::hasWellSupportedIndirect</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1ac087fa09d2db1f17bff24b8fa09ccb64" kindref="member">DeviceDriverCapabilitiesBase::hasWellSupportedIndirect</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1550" column="25" bodyfile="dag_consts.h" bodystart="1550" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesTVOS_1a07154dbf4d669fb94d427877e1519f36" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesTVOS::hasBindless</definition>
+        <argsstring></argsstring>
+        <name>hasBindless</name>
+        <qualifiedname>DeviceDriverCapabilitiesTVOS::hasBindless</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1ad952e7b7a5b7b522dceed7748323a9cf" kindref="member">DeviceDriverCapabilitiesBase::hasBindless</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1552" column="25" bodyfile="dag_consts.h" bodystart="1552" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesTVOS_1a06c23ded44d5421bc5d016211126f68c" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesTVOS::hasNVApi</definition>
+        <argsstring></argsstring>
+        <name>hasNVApi</name>
+        <qualifiedname>DeviceDriverCapabilitiesTVOS::hasNVApi</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a70f1d993da596178f563efe1b9d1a0d3" kindref="member">DeviceDriverCapabilitiesBase::hasNVApi</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1554" column="25" bodyfile="dag_consts.h" bodystart="1554" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesTVOS_1ab999ecd244e072289e50ffeef79de83e" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesTVOS::hasATIApi</definition>
+        <argsstring></argsstring>
+        <name>hasATIApi</name>
+        <qualifiedname>DeviceDriverCapabilitiesTVOS::hasATIApi</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a7ecec7232a1c179b81acf6a1837ca525" kindref="member">DeviceDriverCapabilitiesBase::hasATIApi</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1556" column="25" bodyfile="dag_consts.h" bodystart="1556" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesTVOS_1a1f395de2528e5860365bd1b2dc393d1b" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesTVOS::hasVariableRateShading</definition>
+        <argsstring></argsstring>
+        <name>hasVariableRateShading</name>
+        <qualifiedname>DeviceDriverCapabilitiesTVOS::hasVariableRateShading</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a361352040deb2285dfcb2b47a1acca29" kindref="member">DeviceDriverCapabilitiesBase::hasVariableRateShading</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1558" column="25" bodyfile="dag_consts.h" bodystart="1558" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesTVOS_1a6004451937ad7a8b9ec647ce5edfd16e" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesTVOS::hasVariableRateShadingTexture</definition>
+        <argsstring></argsstring>
+        <name>hasVariableRateShadingTexture</name>
+        <qualifiedname>DeviceDriverCapabilitiesTVOS::hasVariableRateShadingTexture</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1aaf2ce88f773e67be7d02c2f7ccf2b70b" kindref="member">DeviceDriverCapabilitiesBase::hasVariableRateShadingTexture</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1560" column="25" bodyfile="dag_consts.h" bodystart="1560" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesTVOS_1aa2d2e603138bec5675e78addb2682f96" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesTVOS::hasVariableRateShadingShaderOutput</definition>
+        <argsstring></argsstring>
+        <name>hasVariableRateShadingShaderOutput</name>
+        <qualifiedname>DeviceDriverCapabilitiesTVOS::hasVariableRateShadingShaderOutput</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a7ce9b3abe5faade3dcff505c9eac93eb" kindref="member">DeviceDriverCapabilitiesBase::hasVariableRateShadingShaderOutput</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1562" column="25" bodyfile="dag_consts.h" bodystart="1562" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesTVOS_1ace193496dc6847eed209f7064f07cde3" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesTVOS::hasVariableRateShadingCombiners</definition>
+        <argsstring></argsstring>
+        <name>hasVariableRateShadingCombiners</name>
+        <qualifiedname>DeviceDriverCapabilitiesTVOS::hasVariableRateShadingCombiners</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a5d97ef345373aa5c4378dc310c328bf8" kindref="member">DeviceDriverCapabilitiesBase::hasVariableRateShadingCombiners</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1564" column="25" bodyfile="dag_consts.h" bodystart="1564" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesTVOS_1a5916dcfcb6f07c2a1bb535747b953b70" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesTVOS::hasVariableRateShadingBy4</definition>
+        <argsstring></argsstring>
+        <name>hasVariableRateShadingBy4</name>
+        <qualifiedname>DeviceDriverCapabilitiesTVOS::hasVariableRateShadingBy4</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a435cca220d7b33031869f4bf83e3c212" kindref="member">DeviceDriverCapabilitiesBase::hasVariableRateShadingBy4</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1566" column="25" bodyfile="dag_consts.h" bodystart="1566" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesTVOS_1a4f1cdb73c8a927e37babcc8db01bd5eb" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesTVOS::hasStreamOutput</definition>
+        <argsstring></argsstring>
+        <name>hasStreamOutput</name>
+        <qualifiedname>DeviceDriverCapabilitiesTVOS::hasStreamOutput</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a80623316c230f4bcd411685bfa56dacd" kindref="member">DeviceDriverCapabilitiesBase::hasStreamOutput</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1568" column="25" bodyfile="dag_consts.h" bodystart="1568" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesTVOS_1a084ece740f143cf5c72b80a7418b7b3b" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesTVOS::hasAliasedTextures</definition>
+        <argsstring></argsstring>
+        <name>hasAliasedTextures</name>
+        <qualifiedname>DeviceDriverCapabilitiesTVOS::hasAliasedTextures</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a047263b73dcac68b784f2640c9c6e6c8" kindref="member">DeviceDriverCapabilitiesBase::hasAliasedTextures</ref>} \NYI </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1571" column="25" bodyfile="dag_consts.h" bodystart="1571" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesTVOS_1ad2854b2136e4ff49564ee67ba101b9ae" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesTVOS::hasResourceHeaps</definition>
+        <argsstring></argsstring>
+        <name>hasResourceHeaps</name>
+        <qualifiedname>DeviceDriverCapabilitiesTVOS::hasResourceHeaps</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a43f7898db5a17c29a9acb8767d66353c" kindref="member">DeviceDriverCapabilitiesBase::hasResourceHeaps</ref>} \NYI </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1574" column="25" bodyfile="dag_consts.h" bodystart="1574" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesTVOS_1a7b41751f954e12e0079d238ee943f20c" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesTVOS::hasBufferOverlapCopy</definition>
+        <argsstring></argsstring>
+        <name>hasBufferOverlapCopy</name>
+        <qualifiedname>DeviceDriverCapabilitiesTVOS::hasBufferOverlapCopy</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1ae5831194a86c0c053c638a41ae7e51c0" kindref="member">DeviceDriverCapabilitiesBase::hasBufferOverlapCopy</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1576" column="25" bodyfile="dag_consts.h" bodystart="1576" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesTVOS_1a061b040066923ffc1e892d95ddcc99d3" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesTVOS::hasBufferOverlapRegionsCopy</definition>
+        <argsstring></argsstring>
+        <name>hasBufferOverlapRegionsCopy</name>
+        <qualifiedname>DeviceDriverCapabilitiesTVOS::hasBufferOverlapRegionsCopy</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a98747b0ded147a7dd1d42851c0e813bf" kindref="member">DeviceDriverCapabilitiesBase::hasBufferOverlapRegionsCopy</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1578" column="25" bodyfile="dag_consts.h" bodystart="1578" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesTVOS_1aefeb14a017db0f2611613b017d48efff" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesTVOS::hasUAVOnlyForcedSampleCount</definition>
+        <argsstring></argsstring>
+        <name>hasUAVOnlyForcedSampleCount</name>
+        <qualifiedname>DeviceDriverCapabilitiesTVOS::hasUAVOnlyForcedSampleCount</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a5d1ae04840c96746888e1c476d4544e4" kindref="member">DeviceDriverCapabilitiesBase::hasUAVOnlyForcedSampleCount</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1580" column="25" bodyfile="dag_consts.h" bodystart="1580" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesTVOS_1ac90f30b163af578bd22e222d386bb75e" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesTVOS::hasShader64BitIntegerResources</definition>
+        <argsstring></argsstring>
+        <name>hasShader64BitIntegerResources</name>
+        <qualifiedname>DeviceDriverCapabilitiesTVOS::hasShader64BitIntegerResources</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1af3cfbb31804f081b404e6c40b51597e8" kindref="member">DeviceDriverCapabilitiesBase::hasShader64BitIntegerResources</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1582" column="25" bodyfile="dag_consts.h" bodystart="1582" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesTVOS_1ae51775abbbbe880e76984ae011115652" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesTVOS::hasNativeRenderPassSubPasses</definition>
+        <argsstring></argsstring>
+        <name>hasNativeRenderPassSubPasses</name>
+        <qualifiedname>DeviceDriverCapabilitiesTVOS::hasNativeRenderPassSubPasses</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a088d0cfbb513e08dd419ae745e40640b" kindref="member">DeviceDriverCapabilitiesBase::hasNativeRenderPassSubPasses</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1584" column="25" bodyfile="dag_consts.h" bodystart="1584" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesTVOS_1a6fb495363686559f4466ff1e7292e91e" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesTVOS::hasTiled2DResources</definition>
+        <argsstring></argsstring>
+        <name>hasTiled2DResources</name>
+        <qualifiedname>DeviceDriverCapabilitiesTVOS::hasTiled2DResources</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a1256aefcb50fe90f33131b96e4ab8604" kindref="member">DeviceDriverCapabilitiesBase::hasTiled2DResources</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1586" column="25" bodyfile="dag_consts.h" bodystart="1586" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesTVOS_1a273a588e506ab524a2b677585197e9cc" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesTVOS::hasTiled3DResources</definition>
+        <argsstring></argsstring>
+        <name>hasTiled3DResources</name>
+        <qualifiedname>DeviceDriverCapabilitiesTVOS::hasTiled3DResources</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1ad941e8c9ddcc176912cdaf700baacedc" kindref="member">DeviceDriverCapabilitiesBase::hasTiled3DResources</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1588" column="25" bodyfile="dag_consts.h" bodystart="1588" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesTVOS_1af73e35e90a37dc8ea9f1761fa74c017d" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesTVOS::hasTiledSafeResourcesAccess</definition>
+        <argsstring></argsstring>
+        <name>hasTiledSafeResourcesAccess</name>
+        <qualifiedname>DeviceDriverCapabilitiesTVOS::hasTiledSafeResourcesAccess</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a35c0a7730631d8d76e0a6c743c013687" kindref="member">DeviceDriverCapabilitiesBase::hasTiledSafeResourcesAccess</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1590" column="25" bodyfile="dag_consts.h" bodystart="1590" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesTVOS_1a3f6f220a080c49c124a5a5152f1222df" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesTVOS::hasTiledMemoryAliasing</definition>
+        <argsstring></argsstring>
+        <name>hasTiledMemoryAliasing</name>
+        <qualifiedname>DeviceDriverCapabilitiesTVOS::hasTiledMemoryAliasing</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1af2bdf1eeee49a8ce966d270d0cda8912" kindref="member">DeviceDriverCapabilitiesBase::hasTiledMemoryAliasing</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1592" column="25" bodyfile="dag_consts.h" bodystart="1592" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesTVOS_1a889e56039cdf3c44ca07baffffccf9f0" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesTVOS::hasDLSS</definition>
+        <argsstring></argsstring>
+        <name>hasDLSS</name>
+        <qualifiedname>DeviceDriverCapabilitiesTVOS::hasDLSS</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a5b72be5df4ac92123cb5fdadc8c5fd26" kindref="member">DeviceDriverCapabilitiesBase::hasDLSS</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1594" column="25" bodyfile="dag_consts.h" bodystart="1594" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesTVOS_1a81f77a7d14fc400169ac7c5cb9821e83" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesTVOS::hasXESS</definition>
+        <argsstring></argsstring>
+        <name>hasXESS</name>
+        <qualifiedname>DeviceDriverCapabilitiesTVOS::hasXESS</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a85f03c7770a69873ee823471624e2eb0" kindref="member">DeviceDriverCapabilitiesBase::hasXESS</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1596" column="25" bodyfile="dag_consts.h" bodystart="1596" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesTVOS_1a160cf37696d9fd17e0cb7d4bb6f704aa" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesTVOS::hasDrawID</definition>
+        <argsstring></argsstring>
+        <name>hasDrawID</name>
+        <qualifiedname>DeviceDriverCapabilitiesTVOS::hasDrawID</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1ac55b9335193037fe5418fe78360b6007" kindref="member">DeviceDriverCapabilitiesBase::hasDrawID</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1598" column="25" bodyfile="dag_consts.h" bodystart="1598" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesTVOS_1a4cff96981d6a5774d8df4bb00ac096b9" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesTVOS::hasMeshShader</definition>
+        <argsstring></argsstring>
+        <name>hasMeshShader</name>
+        <qualifiedname>DeviceDriverCapabilitiesTVOS::hasMeshShader</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1ac81371eb952342553cb264f9a693e299" kindref="member">DeviceDriverCapabilitiesBase::hasMeshShader</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1600" column="25" bodyfile="dag_consts.h" bodystart="1600" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesTVOS_1a5cb77b10873c65477884b5a1cc0a381b" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesTVOS::hasBasicViewInstancing</definition>
+        <argsstring></argsstring>
+        <name>hasBasicViewInstancing</name>
+        <qualifiedname>DeviceDriverCapabilitiesTVOS::hasBasicViewInstancing</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a502c6dc246d193bbc994f965b66557be" kindref="member">DeviceDriverCapabilitiesBase::hasBasicViewInstancing</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1602" column="25" bodyfile="dag_consts.h" bodystart="1602" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesTVOS_1a8dfeeff521cd6a2579c35a1847a0fd29" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesTVOS::hasOptimizedViewInstancing</definition>
+        <argsstring></argsstring>
+        <name>hasOptimizedViewInstancing</name>
+        <qualifiedname>DeviceDriverCapabilitiesTVOS::hasOptimizedViewInstancing</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a823d60c14bb74e8026a6f1f6cc86add4" kindref="member">DeviceDriverCapabilitiesBase::hasOptimizedViewInstancing</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1604" column="25" bodyfile="dag_consts.h" bodystart="1604" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesTVOS_1a96ffd392a5488e171ae96f72ddc24ea2" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesTVOS::hasAcceleratedViewInstancing</definition>
+        <argsstring></argsstring>
+        <name>hasAcceleratedViewInstancing</name>
+        <qualifiedname>DeviceDriverCapabilitiesTVOS::hasAcceleratedViewInstancing</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a77ded90a2500a44d0a83d80ce2098067" kindref="member">DeviceDriverCapabilitiesBase::hasAcceleratedViewInstancing</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1606" column="25" bodyfile="dag_consts.h" bodystart="1606" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesTVOS_1af8c11b0fffb0463d1db78a9aa3542711" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesTVOS::hasStereoExpansion</definition>
+        <argsstring></argsstring>
+        <name>hasStereoExpansion</name>
+        <qualifiedname>DeviceDriverCapabilitiesTVOS::hasStereoExpansion</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1abb3185b7ae25ba49f1f8acf86cf3c10c" kindref="member">DeviceDriverCapabilitiesBase::hasStereoExpansion</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1608" column="25" bodyfile="dag_consts.h" bodystart="1608" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesTVOS_1ae3cbe2f853a40636dd4de88c27e14a27" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesTVOS::hasTileBasedArchitecture</definition>
+        <argsstring></argsstring>
+        <name>hasTileBasedArchitecture</name>
+        <qualifiedname>DeviceDriverCapabilitiesTVOS::hasTileBasedArchitecture</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1a77e1bec0aeab74ee052cd9e631c8a5eb" kindref="member">DeviceDriverCapabilitiesBase::hasTileBasedArchitecture</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1610" column="25" bodyfile="dag_consts.h" bodystart="1610" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesTVOS_1addae6e787c48e23321fe1845d823c9c9" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesTVOS::hasLazyMemory</definition>
+        <argsstring></argsstring>
+        <name>hasLazyMemory</name>
+        <qualifiedname>DeviceDriverCapabilitiesTVOS::hasLazyMemory</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a1714da16235832e261182e86645e3e33" kindref="member">DeviceDriverCapabilitiesBase::hasLazyMemory</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1612" column="25" bodyfile="dag_consts.h" bodystart="1612" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesTVOS_1a8ea17314d0fafc3db26381ec04c72352" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesTVOS::hasShaderFloat16Support</definition>
+        <argsstring></argsstring>
+        <name>hasShaderFloat16Support</name>
+        <qualifiedname>DeviceDriverCapabilitiesTVOS::hasShaderFloat16Support</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1a7588b357693368f73ca7b1c8c3a2fe2c" kindref="member">DeviceDriverCapabilitiesBase::hasShaderFloat16Support</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1614" column="25" bodyfile="dag_consts.h" bodystart="1614" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesTVOS_1ac23e4cfc720f39f529bd3e92a95e6e99" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesTVOS::hasUAVOnEveryStage</definition>
+        <argsstring></argsstring>
+        <name>hasUAVOnEveryStage</name>
+        <qualifiedname>DeviceDriverCapabilitiesTVOS::hasUAVOnEveryStage</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1aa3d398f37cc15f74274507f0bf19e4a6" kindref="member">DeviceDriverCapabilitiesBase::hasUAVOnEveryStage</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1616" column="25" bodyfile="dag_consts.h" bodystart="1616" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesTVOS_1a2d34486b32f036ca85f9cd9442fb8090" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesTVOS::hasRayDispatch</definition>
+        <argsstring></argsstring>
+        <name>hasRayDispatch</name>
+        <qualifiedname>DeviceDriverCapabilitiesTVOS::hasRayDispatch</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a8897412ad54b5e792d30b5b13df45e48" kindref="member">DeviceDriverCapabilitiesBase::hasRayDispatch</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1618" column="25" bodyfile="dag_consts.h" bodystart="1618" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesTVOS_1ac1b80f0994807f644969202fccda4906" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesTVOS::hasIndirectRayDispatch</definition>
+        <argsstring></argsstring>
+        <name>hasIndirectRayDispatch</name>
+        <qualifiedname>DeviceDriverCapabilitiesTVOS::hasIndirectRayDispatch</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a63c165f96d513681e2fe122901b9b29c" kindref="member">DeviceDriverCapabilitiesBase::hasIndirectRayDispatch</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1620" column="25" bodyfile="dag_consts.h" bodystart="1620" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesTVOS_1af3a50a4d0517e47388a4d25f7f5df95d" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesTVOS::hasEmulatedRaytracing</definition>
+        <argsstring></argsstring>
+        <name>hasEmulatedRaytracing</name>
+        <qualifiedname>DeviceDriverCapabilitiesTVOS::hasEmulatedRaytracing</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a10ea248bb571bbd8677237f662877f79" kindref="member">DeviceDriverCapabilitiesBase::hasEmulatedRaytracing</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1622" column="25" bodyfile="dag_consts.h" bodystart="1622" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesTVOS_1a282939d0f92a335fc2e29dc1a0f463bc" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesTVOS::castingFullyTypedFormatsSupported</definition>
+        <argsstring></argsstring>
+        <name>castingFullyTypedFormatsSupported</name>
+        <qualifiedname>DeviceDriverCapabilitiesTVOS::castingFullyTypedFormatsSupported</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1abf96cd9a616dde8f7f438bebaa99e0dc" kindref="member">DeviceDriverCapabilitiesBase::castingFullyTypedFormatsSupported</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1624" column="25" bodyfile="dag_consts.h" bodystart="1624" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesTVOS_1a2a6f0140b7365810a57d84e3e1fce618" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesTVOS::hasWaveOps</definition>
+        <argsstring></argsstring>
+        <name>hasWaveOps</name>
+        <qualifiedname>DeviceDriverCapabilitiesTVOS::hasWaveOps</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{true, <ref refid="structDeviceDriverCapabilitiesBase_1a446ec37dfad1d989b6cc6e999fdac555" kindref="member">DeviceDriverCapabilitiesBase::hasWaveOps</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1626" column="25" bodyfile="dag_consts.h" bodystart="1626" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesTVOS_1aca246eba74c33950ad33ace7fabf07bb" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesTVOS::hasPersistentShaderHandles</definition>
+        <argsstring></argsstring>
+        <name>hasPersistentShaderHandles</name>
+        <qualifiedname>DeviceDriverCapabilitiesTVOS::hasPersistentShaderHandles</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a652988c1f8556fb13029d4e187c0bfb9" kindref="member">DeviceDriverCapabilitiesBase::hasPersistentShaderHandles</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1628" column="25" bodyfile="dag_consts.h" bodystart="1628" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverCapabilitiesTVOS_1a51b9271f866bad0f3a93e43a374f5cc5" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesTVOS::hasDualSourceBlending</definition>
+        <argsstring></argsstring>
+        <name>hasDualSourceBlending</name>
+        <qualifiedname>DeviceDriverCapabilitiesTVOS::hasDualSourceBlending</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>\briefconstcap{false, <ref refid="structDeviceDriverCapabilitiesBase_1a442fe87d834a1c836ba3ea5c4cc908fd" kindref="member">DeviceDriverCapabilitiesBase::hasDualSourceBlending</ref>} </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="1630" column="25" bodyfile="dag_consts.h" bodystart="1630" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Optimized capabilities structure, hiding bitfield entries with static const values of known platform features for \tvos. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>DeviceDriverCapabilitiesBase</label>
+        <link refid="structDeviceDriverCapabilitiesBase"/>
+      </node>
+      <node id="1">
+        <label>DeviceDriverCapabilitiesTVOS</label>
+        <link refid="structDeviceDriverCapabilitiesTVOS"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>DeviceDriverCapabilitiesBase</label>
+        <link refid="structDeviceDriverCapabilitiesBase"/>
+      </node>
+      <node id="1">
+        <label>DeviceDriverCapabilitiesTVOS</label>
+        <link refid="structDeviceDriverCapabilitiesTVOS"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_consts.h" line="1508" column="1" bodyfile="dag_consts.h" bodystart="1509" bodyend="1631"/>
+    <listofallmembers>
+      <member refid="structDeviceDriverCapabilitiesTVOS_1a282939d0f92a335fc2e29dc1a0f463bc" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>castingFullyTypedFormatsSupported</name></member>
+      <member refid="structDeviceDriverCapabilitiesTVOS_1a96ffd392a5488e171ae96f72ddc24ea2" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasAcceleratedViewInstancing</name></member>
+      <member refid="structDeviceDriverCapabilitiesTVOS_1a084ece740f143cf5c72b80a7418b7b3b" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasAliasedTextures</name></member>
+      <member refid="structDeviceDriverCapabilitiesTVOS_1acd0a5db7f458dc0e78f96c40c351c938" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasAlphaCoverage</name></member>
+      <member refid="structDeviceDriverCapabilitiesTVOS_1a793e45f120bb8cfa0b7f97fd7aa8b5a1" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasAnisotropicFilter</name></member>
+      <member refid="structDeviceDriverCapabilitiesTVOS_1a0e14b40b2e39b2c9256c5d0759825481" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasAsyncCompute</name></member>
+      <member refid="structDeviceDriverCapabilitiesTVOS_1acf105a22f45c11e28a18a9a6c137a301" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasAsyncCopy</name></member>
+      <member refid="structDeviceDriverCapabilitiesTVOS_1ab999ecd244e072289e50ffeef79de83e" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasATIApi</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1a2ad251d9ab91c67940961cc658de268d" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasBaseVertexSupport</name></member>
+      <member refid="structDeviceDriverCapabilitiesTVOS_1a5cb77b10873c65477884b5a1cc0a381b" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasBasicViewInstancing</name></member>
+      <member refid="structDeviceDriverCapabilitiesTVOS_1a07154dbf4d669fb94d427877e1519f36" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasBindless</name></member>
+      <member refid="structDeviceDriverCapabilitiesTVOS_1a7b41751f954e12e0079d238ee943f20c" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasBufferOverlapCopy</name></member>
+      <member refid="structDeviceDriverCapabilitiesTVOS_1a061b040066923ffc1e892d95ddcc99d3" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasBufferOverlapRegionsCopy</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1a351b50cc43e2279a4a7ccde48e885d90" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasCompareSampler</name></member>
+      <member refid="structDeviceDriverCapabilitiesTVOS_1aa42ef7e648f019901be82a67b8b723bb" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasConditionalRender</name></member>
+      <member refid="structDeviceDriverCapabilitiesTVOS_1ace1e2b858a7f8f4a905182db4bb0be29" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasConservativeRassterization</name></member>
+      <member refid="structDeviceDriverCapabilitiesTVOS_1a0bf33c2ec262b26cab44168fb237b966" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasConstBufferOffset</name></member>
+      <member refid="structDeviceDriverCapabilitiesTVOS_1abf3e2a5c3c6f686fea7179c09d2adb3c" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasDepthBoundsTest</name></member>
+      <member refid="structDeviceDriverCapabilitiesTVOS_1ad8b3f9425b9f7bf6183251aa0774722a" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasDepthReadOnly</name></member>
+      <member refid="structDeviceDriverCapabilitiesTVOS_1a889e56039cdf3c44ca07baffffccf9f0" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasDLSS</name></member>
+      <member refid="structDeviceDriverCapabilitiesTVOS_1a160cf37696d9fd17e0cb7d4bb6f704aa" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasDrawID</name></member>
+      <member refid="structDeviceDriverCapabilitiesTVOS_1a51b9271f866bad0f3a93e43a374f5cc5" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasDualSourceBlending</name></member>
+      <member refid="structDeviceDriverCapabilitiesTVOS_1af3a50a4d0517e47388a4d25f7f5df95d" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasEmulatedRaytracing</name></member>
+      <member refid="structDeviceDriverCapabilitiesTVOS_1ad52c9820c75803f881b5a76082d1db37" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasForcedSamplerCount</name></member>
+      <member refid="structDeviceDriverCapabilitiesTVOS_1acef1812766f6314524baf140771de892" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasGather4</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1a466ed11695907ffdb48bbede3b80cc38" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasGeometryIndexInRayAccelerationStructure</name></member>
+      <member refid="structDeviceDriverCapabilitiesTVOS_1ac1b80f0994807f644969202fccda4906" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasIndirectRayDispatch</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1a337e032527346eef4e0b46025419c508" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasIndirectSupport</name></member>
+      <member refid="structDeviceDriverCapabilitiesTVOS_1aab35c60b3aae8b6427fedb3b1fa4dd80" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasInstanceID</name></member>
+      <member refid="structDeviceDriverCapabilitiesTVOS_1addae6e787c48e23321fe1845d823c9c9" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasLazyMemory</name></member>
+      <member refid="structDeviceDriverCapabilitiesTVOS_1a4cff96981d6a5774d8df4bb00ac096b9" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasMeshShader</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1ac174acf81286aa4aa23a94972a785c35" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasNativeRayTracePipelineExpansion</name></member>
+      <member refid="structDeviceDriverCapabilitiesTVOS_1ae51775abbbbe880e76984ae011115652" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasNativeRenderPassSubPasses</name></member>
+      <member refid="structDeviceDriverCapabilitiesTVOS_1a55df662402bcd3224026456dd6db092d" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasNoOverwriteOnShaderResourceBuffers</name></member>
+      <member refid="structDeviceDriverCapabilitiesTVOS_1a06c23ded44d5421bc5d016211126f68c" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasNVApi</name></member>
+      <member refid="structDeviceDriverCapabilitiesTVOS_1a84a8d4d7eb51e57cc3db1c5fa37b6f7d" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasOcclusionQuery</name></member>
+      <member refid="structDeviceDriverCapabilitiesTVOS_1a8dfeeff521cd6a2579c35a1847a0fd29" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasOptimizedViewInstancing</name></member>
+      <member refid="structDeviceDriverCapabilitiesTVOS_1aca246eba74c33950ad33ace7fabf07bb" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasPersistentShaderHandles</name></member>
+      <member refid="structDeviceDriverCapabilitiesTVOS_1af134af83c8cb9f042f8c02fb86432356" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasQuadTessellation</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1aff575ee7120e0f388dc928e659b08982" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasRayAccelerationStructure</name></member>
+      <member refid="structDeviceDriverCapabilitiesTVOS_1a2d34486b32f036ca85f9cd9442fb8090" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasRayDispatch</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1ae925b799a026c8c5845bf5e5b10cc3c7" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasRayQuery</name></member>
+      <member refid="structDeviceDriverCapabilitiesTVOS_1af791b1c66546e092c10b336b39d6517f" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasReadMultisampledDepth</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1ab44fea56b8cf5eb698c3b63b3b5b25ab" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasRenderPassDepthResolve</name></member>
+      <member refid="structDeviceDriverCapabilitiesTVOS_1a330149303440005e9ed6d3c731c1ca49" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasResourceCopyConversion</name></member>
+      <member refid="structDeviceDriverCapabilitiesTVOS_1ad2854b2136e4ff49564ee67ba101b9ae" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasResourceHeaps</name></member>
+      <member refid="structDeviceDriverCapabilitiesTVOS_1ac90f30b163af578bd22e222d386bb75e" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasShader64BitIntegerResources</name></member>
+      <member refid="structDeviceDriverCapabilitiesTVOS_1a8ea17314d0fafc3db26381ec04c72352" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasShaderFloat16Support</name></member>
+      <member refid="structDeviceDriverCapabilitiesBase_1a16cd5a96afd2c679e04d854619cdd189" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasSkipPrimitiveTypeInRayTracingShaders</name></member>
+      <member refid="structDeviceDriverCapabilitiesTVOS_1af8c11b0fffb0463d1db78a9aa3542711" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasStereoExpansion</name></member>
+      <member refid="structDeviceDriverCapabilitiesTVOS_1a4f1cdb73c8a927e37babcc8db01bd5eb" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasStreamOutput</name></member>
+      <member refid="structDeviceDriverCapabilitiesTVOS_1aad7b686f0b288922dc48cf815a20e077" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasStructuredBuffers</name></member>
+      <member refid="structDeviceDriverCapabilitiesTVOS_1ae3cbe2f853a40636dd4de88c27e14a27" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasTileBasedArchitecture</name></member>
+      <member refid="structDeviceDriverCapabilitiesTVOS_1a6fb495363686559f4466ff1e7292e91e" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasTiled2DResources</name></member>
+      <member refid="structDeviceDriverCapabilitiesTVOS_1a273a588e506ab524a2b677585197e9cc" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasTiled3DResources</name></member>
+      <member refid="structDeviceDriverCapabilitiesTVOS_1a3f6f220a080c49c124a5a5152f1222df" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasTiledMemoryAliasing</name></member>
+      <member refid="structDeviceDriverCapabilitiesTVOS_1af73e35e90a37dc8ea9f1761fa74c017d" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasTiledSafeResourcesAccess</name></member>
+      <member refid="structDeviceDriverCapabilitiesTVOS_1ac23e4cfc720f39f529bd3e92a95e6e99" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasUAVOnEveryStage</name></member>
+      <member refid="structDeviceDriverCapabilitiesTVOS_1aefeb14a017db0f2611613b017d48efff" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasUAVOnlyForcedSampleCount</name></member>
+      <member refid="structDeviceDriverCapabilitiesTVOS_1a1f395de2528e5860365bd1b2dc393d1b" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasVariableRateShading</name></member>
+      <member refid="structDeviceDriverCapabilitiesTVOS_1a5916dcfcb6f07c2a1bb535747b953b70" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasVariableRateShadingBy4</name></member>
+      <member refid="structDeviceDriverCapabilitiesTVOS_1ace193496dc6847eed209f7064f07cde3" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasVariableRateShadingCombiners</name></member>
+      <member refid="structDeviceDriverCapabilitiesTVOS_1aa2d2e603138bec5675e78addb2682f96" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasVariableRateShadingShaderOutput</name></member>
+      <member refid="structDeviceDriverCapabilitiesTVOS_1a6004451937ad7a8b9ec647ce5edfd16e" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasVariableRateShadingTexture</name></member>
+      <member refid="structDeviceDriverCapabilitiesTVOS_1a86e7ab2f0f275bdda018f84198ee0ba3" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasVolMipMap</name></member>
+      <member refid="structDeviceDriverCapabilitiesTVOS_1a2a6f0140b7365810a57d84e3e1fce618" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasWaveOps</name></member>
+      <member refid="structDeviceDriverCapabilitiesTVOS_1a72ded3f07d85a0416bb8e1bab8124dc9" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasWellSupportedIndirect</name></member>
+      <member refid="structDeviceDriverCapabilitiesTVOS_1a81f77a7d14fc400169ac7c5cb9821e83" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesTVOS</scope><name>hasXESS</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

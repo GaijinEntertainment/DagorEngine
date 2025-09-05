@@ -1,0 +1,406 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="objectPropertiesEditor_8cpp" kind="file" language="C++">
+    <compoundname>objectPropertiesEditor.cpp</compoundname>
+    <includes local="no">max.h</includes>
+    <includes local="no">utilapi.h</includes>
+    <includes local="no">meshadj.h</includes>
+    <includes local="no">mnmath.h</includes>
+    <includes local="no">stdmat.h</includes>
+    <includes refid="dagor_8h" local="yes">dagor.h</includes>
+    <includes refid="resource_8h" local="yes">resource.h</includes>
+    <includes refid="math3d_8h" local="yes">math3d.h</includes>
+    <includes refid="rolluppanel_8h" local="yes">rolluppanel.h</includes>
+    <includes refid="enumnode_8h" local="yes">enumnode.h</includes>
+    <incdepgraph>
+      <node id="7">
+        <label>dagor.h</label>
+        <link refid="dagor_8h"/>
+      </node>
+      <node id="14">
+        <label>datablk.h</label>
+        <link refid="datablk_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+      </node>
+      <node id="17">
+        <label>enumnode.h</label>
+        <link refid="enumnode_8h"/>
+        <childnode refid="18" relation="include">
+        </childnode>
+      </node>
+      <node id="9">
+        <label>math3d.h</label>
+        <link refid="math3d_8h"/>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>objectPropertiesEditor.cpp</label>
+        <link refid="objectPropertiesEditor_8cpp"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>resource.h</label>
+        <link refid="resource_8h"/>
+      </node>
+      <node id="13">
+        <label>rolluppanel.h</label>
+        <link refid="rolluppanel_8h"/>
+        <childnode refid="14" relation="include">
+        </childnode>
+      </node>
+      <node id="15">
+        <label>e3dcolor.h</label>
+      </node>
+      <node id="12">
+        <label>float.h</label>
+      </node>
+      <node id="18">
+        <label>ilayer.h</label>
+      </node>
+      <node id="10">
+        <label>math.h</label>
+      </node>
+      <node id="2">
+        <label>max.h</label>
+      </node>
+      <node id="4">
+        <label>meshadj.h</label>
+      </node>
+      <node id="5">
+        <label>mnmath.h</label>
+      </node>
+      <node id="11">
+        <label>stdlib.h</label>
+      </node>
+      <node id="6">
+        <label>stdmat.h</label>
+      </node>
+      <node id="16">
+        <label>str.h</label>
+      </node>
+      <node id="3">
+        <label>utilapi.h</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="classObjectPropertiesEditorDesc" prot="public">ObjectPropertiesEditorDesc</innerclass>
+    <innerclass refid="classObjectPropertiesEditor" prot="public">ObjectPropertiesEditor</innerclass>
+    <innerclass refid="classObjectPropertiesEditorRedrawViewsCallback" prot="public">ObjectPropertiesEditorRedrawViewsCallback</innerclass>
+    <innerclass refid="classSelectionChanged" prot="public">SelectionChanged</innerclass>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="objectPropertiesEditor_8cpp_1af6e03e7176c99fd528d346af976b8dd5" prot="public" static="yes" mutable="no">
+        <type><ref refid="classObjectPropertiesEditorDesc" kindref="compound">ObjectPropertiesEditorDesc</ref></type>
+        <definition>ObjectPropertiesEditorDesc object_properties_editor_desc</definition>
+        <argsstring></argsstring>
+        <name>object_properties_editor_desc</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="objectPropertiesEditor.cpp" line="63" column="35" bodyfile="objectPropertiesEditor.cpp" bodystart="63" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="objectPropertiesEditor_8cpp_1a615bb4e48eb1620900f841b4d7d9a8d3" prot="public" static="yes" mutable="no">
+        <type><ref refid="classObjectPropertiesEditor" kindref="compound">ObjectPropertiesEditor</ref></type>
+        <definition>ObjectPropertiesEditor object_properties_editor</definition>
+        <argsstring></argsstring>
+        <name>object_properties_editor</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="objectPropertiesEditor.cpp" line="64" column="31" bodyfile="objectPropertiesEditor.cpp" bodystart="64" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="objectPropertiesEditor_8cpp_1a3d7cd15ca7ed6a5dd9c55e2da66385c2" prot="public" static="yes" mutable="no">
+        <type><ref refid="classObjectPropertiesEditorRedrawViewsCallback" kindref="compound">ObjectPropertiesEditorRedrawViewsCallback</ref></type>
+        <definition>ObjectPropertiesEditorRedrawViewsCallback object_properties_editor_redraw_views_callback</definition>
+        <argsstring></argsstring>
+        <name>object_properties_editor_redraw_views_callback</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="objectPropertiesEditor.cpp" line="65" column="50" bodyfile="objectPropertiesEditor.cpp" bodystart="65" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="objectPropertiesEditor_8cpp_1aac208454072ecfdbe8427f0557853d64" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>ClassDesc *</type>
+        <definition>ClassDesc * GetObjectPropertiesEditorCD</definition>
+        <argsstring>()</argsstring>
+        <name>GetObjectPropertiesEditorCD</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="objectPropertiesEditor.cpp" line="68" column="11" bodyfile="objectPropertiesEditor.cpp" bodystart="68" bodyend="68"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;max.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;utilapi.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;meshadj.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;mnmath.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;stdmat.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="dagor_8h" kindref="compound">dagor.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="resource_8h" kindref="compound">resource.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="math3d_8h" kindref="compound">math3d.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="rolluppanel_8h" kindref="compound">rolluppanel.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="enumnode_8h" kindref="compound">enumnode.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight></codeline>
+<codeline lineno="14" refid="classObjectPropertiesEditorDesc" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classObjectPropertiesEditorDesc" kindref="compound">ObjectPropertiesEditorDesc</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/>ClassDesc</highlight></codeline>
+<codeline lineno="15"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classObjectPropertiesEditorDesc_1a101c43133cdfdbb3cdcee95913f955d9" kindref="member">IsPublic</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>1;<sp/>}</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*<ref refid="classObjectPropertiesEditorDesc_1ac11333df1ffc48717bb4c571a4539bdc" kindref="member">Create</ref>(BOOL<sp/>loading<sp/>=<sp/>FALSE)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*<ref refid="classObjectPropertiesEditorDesc_1ac3910b64bbd563cc0f935dee0f6e995c" kindref="member">ClassName</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="common_8cpp_1aeb87de5dfb5d632579574b4bc8709019" kindref="member">GetString</ref>(<ref refid="resource_8h_1a2ca6e6bc6e22d7e9e1cab58a58d6ff01" kindref="member">IDS_OBJECT_PROPERTIES_EDITOR_NAME</ref>);<sp/>}</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>defined(MAX_RELEASE_R24)<sp/>&amp;&amp;<sp/>MAX_RELEASE<sp/>&gt;=<sp/>MAX_RELEASE_R24</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="max__cpt_8h_1ac2ec3340fbe0c6ea0663fd3923d13fe5" kindref="member">MCHAR</ref><sp/>*<ref refid="classObjectPropertiesEditorDesc_1a48d6ee5308ff0273af4a120406516d2e" kindref="member">NonLocalizedClassName</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classObjectPropertiesEditorDesc_1ac3910b64bbd563cc0f935dee0f6e995c" kindref="member">ClassName</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="max__cpt_8h_1ac2ec3340fbe0c6ea0663fd3923d13fe5" kindref="member">MCHAR</ref><sp/>*<ref refid="classObjectPropertiesEditorDesc_1a48d6ee5308ff0273af4a120406516d2e" kindref="member">NonLocalizedClassName</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classObjectPropertiesEditorDesc_1ac3910b64bbd563cc0f935dee0f6e995c" kindref="member">ClassName</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/>SClass_ID<sp/><ref refid="classObjectPropertiesEditorDesc_1ac2514fc481870949867f52fcda2c659f" kindref="member">SuperClassID</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>UTILITY_CLASS_ID;<sp/>}</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/>Class_ID<sp/><ref refid="classObjectPropertiesEditorDesc_1a8c35f586e388f5d58105db1a57b18033" kindref="member">ClassID</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dagor_8h_1ab8b0e4433f1afdb81476a439a469ba3c" kindref="member">OBJECT_PROPERTIES_EDITOR_CID</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*<ref refid="classObjectPropertiesEditorDesc_1a0fa8f7d04ed035fa17372d5630545c54" kindref="member">Category</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="common_8cpp_1aeb87de5dfb5d632579574b4bc8709019" kindref="member">GetString</ref>(<ref refid="resource_8h_1a197942343099f043d210a555ea7e026f" kindref="member">IDS_UTIL_CAT</ref>);<sp/>}</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classObjectPropertiesEditorDesc_1ae2a6960bcabb0ab233643d411cd78e0d" kindref="member">ResetClassParams</ref>(BOOL<sp/>fileReset)</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{}</highlight></codeline>
+<codeline lineno="29"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight></codeline>
+<codeline lineno="32" refid="classObjectPropertiesEditor" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classObjectPropertiesEditor" kindref="compound">ObjectPropertiesEditor</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/>UtilityObj</highlight></codeline>
+<codeline lineno="33"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/><ref refid="classObjectPropertiesEditor_1ab6236e758fb749e7a66185f50d63860d" kindref="member">ObjectPropertiesEditor</ref>();</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classObjectPropertiesEditor_1a285263375298d0cb66e1afb11f0685d0" kindref="member">Init</ref>();</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classObjectPropertiesEditor_1a573ceb98ebcd1941168b01dfa29582e2" kindref="member">Destroy</ref>();</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classObjectPropertiesEditor_1a93ae8ad512daa24a8e92e97e779ac617" kindref="member">BeginEditParams</ref>(Interface<sp/>*,<sp/>IUtil<sp/>*)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classObjectPropertiesEditor_1a5cdfe992732040e544ec005dc5d9134a" kindref="member">EndEditParams</ref>(Interface<sp/>*,<sp/>IUtil<sp/>*)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classObjectPropertiesEditor_1af7ff96ecccbe2fdcfde5ac1687f1deb0" kindref="member">DeleteThis</ref>()<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classObjectPropertiesEditor_1a10bec84adfa62a8ed7ac212a5fe73ada" kindref="member">UpdateControls</ref>(Interface<sp/>*interface_pointer);</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"></highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>INT_PTR<sp/>CALLBACK<sp/><ref refid="classObjectPropertiesEditor_1a6d08c03998f27df9d2337ff279b512e1" kindref="member">DialogProc</ref>(HWND<sp/>hWnd,<sp/>UINT<sp/>msg,<sp/>WPARAM<sp/>wParam,<sp/>LPARAM<sp/>lParam);</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"></highlight></codeline>
+<codeline lineno="46"><highlight class="normal"></highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight><highlight class="keyword">protected</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/><ref refid="classRollupPanel" kindref="compound">RollupPanel</ref><sp/>*<ref refid="classObjectPropertiesEditor_1a83b90627581c8bf52e6b7fbb0bad7cad" kindref="member">panel</ref>;</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"></highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/>HWND<sp/><ref refid="classObjectPropertiesEditor_1ac7f9af73fc169d8b47825ac21122c902" kindref="member">m_hPanel</ref>;</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/>Interface<sp/>*<ref refid="classObjectPropertiesEditor_1ac3cc83864714ffb9a5e5ccac55fc5e1f" kindref="member">m_pInterface</ref>;</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/>Tab&lt;bool&gt;<sp/><ref refid="classObjectPropertiesEditor_1af08555d2288155efd8ef81ff3f562f56" kindref="member">selectedNodes</ref>;</highlight></codeline>
+<codeline lineno="53"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"></highlight></codeline>
+<codeline lineno="55"><highlight class="normal"></highlight></codeline>
+<codeline lineno="56" refid="classObjectPropertiesEditorRedrawViewsCallback" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classObjectPropertiesEditorRedrawViewsCallback" kindref="compound">ObjectPropertiesEditorRedrawViewsCallback</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/>RedrawViewsCallback</highlight></codeline>
+<codeline lineno="57"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classObjectPropertiesEditorRedrawViewsCallback_1a56aca0c169917b880dfd03209bf7bcea" kindref="member">proc</ref>(Interface<sp/>*interface_pointer)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="60"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"></highlight></codeline>
+<codeline lineno="62"><highlight class="normal"></highlight></codeline>
+<codeline lineno="63"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/><ref refid="classObjectPropertiesEditorDesc" kindref="compound">ObjectPropertiesEditorDesc</ref><sp/>object_properties_editor_desc;</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/><ref refid="classObjectPropertiesEditor" kindref="compound">ObjectPropertiesEditor</ref><sp/>object_properties_editor;</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/><ref refid="classObjectPropertiesEditorRedrawViewsCallback" kindref="compound">ObjectPropertiesEditorRedrawViewsCallback</ref><sp/>object_properties_editor_redraw_views_callback;</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"></highlight></codeline>
+<codeline lineno="67"><highlight class="normal"></highlight></codeline>
+<codeline lineno="68"><highlight class="normal">ClassDesc<sp/>*<ref refid="objectPropertiesEditor_8cpp_1aac208454072ecfdbe8427f0557853d64" kindref="member">GetObjectPropertiesEditorCD</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>&amp;object_properties_editor_desc;<sp/>}</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"></highlight></codeline>
+<codeline lineno="70"><highlight class="normal"></highlight></codeline>
+<codeline lineno="71"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*<ref refid="classObjectPropertiesEditorDesc_1ac11333df1ffc48717bb4c571a4539bdc" kindref="member">ObjectPropertiesEditorDesc::Create</ref>(BOOL<sp/>loading)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>&amp;object_properties_editor;<sp/>}</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"></highlight></codeline>
+<codeline lineno="73"><highlight class="normal"></highlight></codeline>
+<codeline lineno="74"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classObjectPropertiesEditorRedrawViewsCallback_1a56aca0c169917b880dfd03209bf7bcea" kindref="member">ObjectPropertiesEditorRedrawViewsCallback::proc</ref>(Interface<sp/>*interface_pointer)</highlight></codeline>
+<codeline lineno="75"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/>object_properties_editor.<ref refid="classObjectPropertiesEditor_1a10bec84adfa62a8ed7ac212a5fe73ada" kindref="member">UpdateControls</ref>(interface_pointer);</highlight></codeline>
+<codeline lineno="77"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"></highlight></codeline>
+<codeline lineno="79"><highlight class="normal"></highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><ref refid="classObjectPropertiesEditor_1ab6236e758fb749e7a66185f50d63860d" kindref="member">ObjectPropertiesEditor::ObjectPropertiesEditor</ref>()</highlight></codeline>
+<codeline lineno="81"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/><ref refid="classObjectPropertiesEditor_1ac7f9af73fc169d8b47825ac21122c902" kindref="member">m_hPanel</ref><sp/>=<sp/>NULL;</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/><ref refid="classObjectPropertiesEditor_1ac3cc83864714ffb9a5e5ccac55fc5e1f" kindref="member">m_pInterface</ref><sp/>=<sp/>NULL;</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/><ref refid="classObjectPropertiesEditor_1a83b90627581c8bf52e6b7fbb0bad7cad" kindref="member">panel</ref><sp/>=<sp/>NULL;</highlight></codeline>
+<codeline lineno="85"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"></highlight></codeline>
+<codeline lineno="87"><highlight class="normal"></highlight></codeline>
+<codeline lineno="88"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classObjectPropertiesEditor_1a285263375298d0cb66e1afb11f0685d0" kindref="member">ObjectPropertiesEditor::Init</ref>()<sp/>{<sp/><ref refid="classObjectPropertiesEditor_1ac3cc83864714ffb9a5e5ccac55fc5e1f" kindref="member">m_pInterface</ref>-&gt;RegisterRedrawViewsCallback(&amp;object_properties_editor_redraw_views_callback);<sp/>}</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"></highlight></codeline>
+<codeline lineno="90"><highlight class="normal"></highlight></codeline>
+<codeline lineno="91"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classObjectPropertiesEditor_1a573ceb98ebcd1941168b01dfa29582e2" kindref="member">ObjectPropertiesEditor::Destroy</ref>()</highlight></codeline>
+<codeline lineno="92"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="classObjectPropertiesEditor_1a83b90627581c8bf52e6b7fbb0bad7cad" kindref="member">panel</ref>)</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal"><sp/><ref refid="classObjectPropertiesEditor_1a83b90627581c8bf52e6b7fbb0bad7cad" kindref="member">panel</ref>;</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classObjectPropertiesEditor_1a83b90627581c8bf52e6b7fbb0bad7cad" kindref="member">panel</ref><sp/>=<sp/>NULL;</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/><ref refid="classObjectPropertiesEditor_1ac3cc83864714ffb9a5e5ccac55fc5e1f" kindref="member">m_pInterface</ref>-&gt;UnRegisterRedrawViewsCallback(&amp;object_properties_editor_redraw_views_callback);</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/><ref refid="classObjectPropertiesEditor_1ac3cc83864714ffb9a5e5ccac55fc5e1f" kindref="member">m_pInterface</ref>-&gt;UnRegisterDlgWnd(<ref refid="classObjectPropertiesEditor_1ac7f9af73fc169d8b47825ac21122c902" kindref="member">m_hPanel</ref>);</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/><ref refid="classObjectPropertiesEditor_1ac7f9af73fc169d8b47825ac21122c902" kindref="member">m_hPanel</ref><sp/>=<sp/>NULL;</highlight></codeline>
+<codeline lineno="101"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"></highlight></codeline>
+<codeline lineno="103"><highlight class="normal"></highlight></codeline>
+<codeline lineno="104"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classObjectPropertiesEditor_1a93ae8ad512daa24a8e92e97e779ac617" kindref="member">ObjectPropertiesEditor::BeginEditParams</ref>(Interface<sp/>*in_pInterface,<sp/>IUtil<sp/>*util)</highlight></codeline>
+<codeline lineno="105"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/><ref refid="classObjectPropertiesEditor_1ac3cc83864714ffb9a5e5ccac55fc5e1f" kindref="member">m_pInterface</ref><sp/>=<sp/>in_pInterface;</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"></highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="classObjectPropertiesEditor_1ac7f9af73fc169d8b47825ac21122c902" kindref="member">m_hPanel</ref>)</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/><sp/><sp/>SetActiveWindow(<ref refid="classObjectPropertiesEditor_1ac7f9af73fc169d8b47825ac21122c902" kindref="member">m_hPanel</ref>);</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="113"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="114"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classObjectPropertiesEditor_1a285263375298d0cb66e1afb11f0685d0" kindref="member">Init</ref>();</highlight></codeline>
+<codeline lineno="115"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classObjectPropertiesEditor_1ac7f9af73fc169d8b47825ac21122c902" kindref="member">m_hPanel</ref><sp/>=<sp/>CreateDialogParam(<ref refid="dagor_8h_1a74029128723095e7bf00a71d46af8b24" kindref="member">hInstance</ref>,<sp/>MAKEINTRESOURCE(<ref refid="resource_8h_1a14933936f228079ea550c77e687c5092" kindref="member">IDD_OBJECT_PROPERTIES_FROM_BLK</ref>),<sp/><ref refid="classObjectPropertiesEditor_1ac3cc83864714ffb9a5e5ccac55fc5e1f" kindref="member">m_pInterface</ref>-&gt;GetMAXHWnd(),</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classObjectPropertiesEditor_1a6d08c03998f27df9d2337ff279b512e1" kindref="member">ObjectPropertiesEditor::DialogProc</ref>,<sp/>(LPARAM)</highlight><highlight class="keyword">this</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="117"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classObjectPropertiesEditor_1ac3cc83864714ffb9a5e5ccac55fc5e1f" kindref="member">m_pInterface</ref>-&gt;RegisterDlgWnd(<ref refid="classObjectPropertiesEditor_1ac7f9af73fc169d8b47825ac21122c902" kindref="member">m_hPanel</ref>);</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="119"><highlight class="normal"></highlight></codeline>
+<codeline lineno="120"><highlight class="normal"><sp/><sp/>util-&gt;CloseUtility();</highlight></codeline>
+<codeline lineno="121"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"></highlight></codeline>
+<codeline lineno="123"><highlight class="normal"></highlight></codeline>
+<codeline lineno="124"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classObjectPropertiesEditor_1a5cdfe992732040e544ec005dc5d9134a" kindref="member">ObjectPropertiesEditor::EndEditParams</ref>(Interface<sp/>*in_pInterface,<sp/>IUtil<sp/>*)</highlight></codeline>
+<codeline lineno="125"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Do<sp/>nothing.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="127"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"></highlight></codeline>
+<codeline lineno="129"><highlight class="normal"></highlight></codeline>
+<codeline lineno="130"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classObjectPropertiesEditor_1af7ff96ecccbe2fdcfde5ac1687f1deb0" kindref="member">ObjectPropertiesEditor::DeleteThis</ref>()</highlight></codeline>
+<codeline lineno="131"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="132"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Do<sp/>nothing.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="133"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"></highlight></codeline>
+<codeline lineno="135"><highlight class="normal"></highlight></codeline>
+<codeline lineno="136"><highlight class="normal">INT_PTR<sp/>CALLBACK<sp/><ref refid="classObjectPropertiesEditor_1a6d08c03998f27df9d2337ff279b512e1" kindref="member">ObjectPropertiesEditor::DialogProc</ref>(HWND<sp/>hWnd,<sp/>UINT<sp/>msg,<sp/>WPARAM<sp/>wParam,<sp/>LPARAM<sp/>lParam)</highlight></codeline>
+<codeline lineno="137"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="138"><highlight class="normal"><sp/><sp/><ref refid="classObjectPropertiesEditor" kindref="compound">ObjectPropertiesEditor</ref><sp/>*pThis<sp/>=<sp/>(<ref refid="classObjectPropertiesEditor" kindref="compound">ObjectPropertiesEditor</ref><sp/>*)GetWindowLongPtr(hWnd,<sp/>GWLP_USERDATA);</highlight></codeline>
+<codeline lineno="139"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>((!pThis<sp/>||<sp/>!pThis-&gt;<ref refid="classObjectPropertiesEditor_1ac7f9af73fc169d8b47825ac21122c902" kindref="member">m_hPanel</ref>)<sp/>&amp;&amp;<sp/>msg<sp/>!=<sp/>WM_INITDIALOG)</highlight></codeline>
+<codeline lineno="140"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="141"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>FALSE;</highlight></codeline>
+<codeline lineno="142"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="143"><highlight class="normal"></highlight></codeline>
+<codeline lineno="144"><highlight class="normal"></highlight></codeline>
+<codeline lineno="145"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">switch</highlight><highlight class="normal"><sp/>(msg)</highlight></codeline>
+<codeline lineno="146"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="147"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>WM_INITDIALOG:</highlight></codeline>
+<codeline lineno="148"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="149"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classObjectPropertiesEditor" kindref="compound">ObjectPropertiesEditor</ref><sp/>*pThis<sp/>=<sp/>(<ref refid="classObjectPropertiesEditor" kindref="compound">ObjectPropertiesEditor</ref><sp/>*)lParam;</highlight></codeline>
+<codeline lineno="150"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>SetWindowLongPtr(hWnd,<sp/>GWLP_USERDATA,<sp/>(LONG_PTR)pThis);</highlight></codeline>
+<codeline lineno="151"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>pThis-&gt;<ref refid="classObjectPropertiesEditor_1ac7f9af73fc169d8b47825ac21122c902" kindref="member">m_hPanel</ref><sp/>=<sp/>hWnd;</highlight></codeline>
+<codeline lineno="152"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>CenterWindow(hWnd,<sp/>GetParent(hWnd));</highlight></codeline>
+<codeline lineno="153"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>pThis-&gt;<ref refid="classObjectPropertiesEditor_1a83b90627581c8bf52e6b7fbb0bad7cad" kindref="member">panel</ref><sp/>=<sp/></highlight><highlight class="keyword">new</highlight><highlight class="normal"><sp/><ref refid="classRollupPanel" kindref="compound">RollupPanel</ref>(pThis-&gt;<ref refid="classObjectPropertiesEditor_1ac3cc83864714ffb9a5e5ccac55fc5e1f" kindref="member">m_pInterface</ref>,<sp/>hWnd);</highlight></codeline>
+<codeline lineno="154"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>pThis-&gt;<ref refid="classObjectPropertiesEditor_1a83b90627581c8bf52e6b7fbb0bad7cad" kindref="member">panel</ref>-&gt;<ref refid="classRollupPanel_1ac2b676eac4198b25981bbb033845a7ad" kindref="member">fillPanel</ref>();</highlight></codeline>
+<codeline lineno="155"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>TRUE;</highlight></codeline>
+<codeline lineno="156"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="157"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="158"><highlight class="normal"></highlight></codeline>
+<codeline lineno="159"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>WM_CLOSE:</highlight></codeline>
+<codeline lineno="160"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="161"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>EndDialog(pThis-&gt;<ref refid="classObjectPropertiesEditor_1ac7f9af73fc169d8b47825ac21122c902" kindref="member">m_hPanel</ref>,<sp/>FALSE);</highlight></codeline>
+<codeline lineno="162"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>pThis-&gt;<ref refid="classObjectPropertiesEditor_1a573ceb98ebcd1941168b01dfa29582e2" kindref="member">Destroy</ref>();</highlight></codeline>
+<codeline lineno="163"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="164"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="165"><highlight class="normal"></highlight></codeline>
+<codeline lineno="166"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>FALSE;</highlight></codeline>
+<codeline lineno="167"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="168"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>TRUE;</highlight></codeline>
+<codeline lineno="169"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="170"><highlight class="normal"></highlight></codeline>
+<codeline lineno="171" refid="classSelectionChanged" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classSelectionChanged" kindref="compound">SelectionChanged</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/><ref refid="classENodeCB" kindref="compound">ENodeCB</ref></highlight></codeline>
+<codeline lineno="172"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="173"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="174"><highlight class="normal"><sp/><sp/><ref refid="classSelectionChanged" kindref="compound">SelectionChanged</ref>(Tab&lt;bool&gt;<sp/>&amp;selected_nodes)<sp/>:<sp/>selectedNodes(selected_nodes),<sp/>i(0),<sp/>needUpdate(</highlight><highlight class="keyword">false</highlight><highlight class="normal">)<sp/>{}</highlight></codeline>
+<codeline lineno="175"><highlight class="normal"><sp/><sp/><ref refid="classSelectionChanged_1ad6df13cbf44d6155e884dc94f0f6f67f" kindref="member">~SelectionChanged</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{}</highlight></codeline>
+<codeline lineno="176"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classSelectionChanged_1a2d2aee3ce7da755b387a3abbf97df946" kindref="member">need</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>needUpdate;<sp/>}</highlight></codeline>
+<codeline lineno="177"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classSelectionChanged_1a313785a7a7d86c15fa7030dc7bba119e" kindref="member">resize</ref>()</highlight></codeline>
+<codeline lineno="178"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="179"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(i<sp/>&lt;<sp/>selectedNodes.Count())</highlight></codeline>
+<codeline lineno="180"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="181"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>selectedNodes.Resize(i);</highlight></codeline>
+<codeline lineno="182"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>needUpdate<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="183"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="184"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="185"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classSelectionChanged_1a675edd26b192f6d24e28da90495f209a" kindref="member">proc</ref>(INode<sp/>*n)</highlight><highlight class="keyword"><sp/>override</highlight></codeline>
+<codeline lineno="186"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="187"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(i<sp/>&lt;<sp/>selectedNodes.Count()<sp/>&amp;&amp;<sp/>selectedNodes[i]<sp/>!=<sp/>(n-&gt;Selected()<sp/>!=<sp/>0))</highlight></codeline>
+<codeline lineno="188"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="189"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>selectedNodes[i]<sp/>=<sp/>n-&gt;Selected()<sp/>!=<sp/>0;</highlight></codeline>
+<codeline lineno="190"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>needUpdate<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="191"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="192"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(i<sp/>&gt;=<sp/>selectedNodes.Count())</highlight></codeline>
+<codeline lineno="193"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="194"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>b<sp/>=<sp/>n-&gt;Selected()<sp/>!=<sp/>0;</highlight></codeline>
+<codeline lineno="195"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>selectedNodes.Append(1,<sp/>&amp;b);</highlight></codeline>
+<codeline lineno="196"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>needUpdate<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="197"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="198"><highlight class="normal"><sp/><sp/><sp/><sp/>i++;</highlight></codeline>
+<codeline lineno="199"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="enumnode_8h_1a0411cd49bb5b71852cecd93bcbf0ca2da450653c77f802d8ef4279939698a86da" kindref="member">ECB_CONT</ref>;</highlight></codeline>
+<codeline lineno="200"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="201"><highlight class="normal"></highlight></codeline>
+<codeline lineno="202"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="203"><highlight class="normal"><sp/><sp/>Tab&lt;bool&gt;<sp/>&amp;selectedNodes;</highlight></codeline>
+<codeline lineno="204"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>needUpdate;</highlight></codeline>
+<codeline lineno="205"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i;</highlight></codeline>
+<codeline lineno="206"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="207"><highlight class="normal"></highlight></codeline>
+<codeline lineno="208"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classObjectPropertiesEditor_1a10bec84adfa62a8ed7ac212a5fe73ada" kindref="member">ObjectPropertiesEditor::UpdateControls</ref>(Interface<sp/>*ip)</highlight></codeline>
+<codeline lineno="209"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="210"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="classObjectPropertiesEditor_1a83b90627581c8bf52e6b7fbb0bad7cad" kindref="member">panel</ref>)</highlight></codeline>
+<codeline lineno="211"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="212"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classSelectionChanged" kindref="compound">SelectionChanged</ref><sp/>cb(<ref refid="classObjectPropertiesEditor_1af08555d2288155efd8ef81ff3f562f56" kindref="member">selectedNodes</ref>);</highlight></codeline>
+<codeline lineno="213"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="enumnode_8h_1a21ec496f2d47311f5a23a9575be288d7" kindref="member">enum_nodes</ref>(ip-&gt;GetRootNode(),<sp/>&amp;cb);</highlight></codeline>
+<codeline lineno="214"><highlight class="normal"><sp/><sp/><sp/><sp/>cb.resize();</highlight></codeline>
+<codeline lineno="215"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(cb.need())</highlight></codeline>
+<codeline lineno="216"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="217"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classObjectPropertiesEditor_1a83b90627581c8bf52e6b7fbb0bad7cad" kindref="member">panel</ref>-&gt;<ref refid="classRollupPanel_1ac2b676eac4198b25981bbb033845a7ad" kindref="member">fillPanel</ref>();</highlight></codeline>
+<codeline lineno="218"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="219"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="220"><highlight class="normal">}</highlight></codeline>
+    </programlisting>
+    <location file="objectPropertiesEditor.cpp"/>
+  </compounddef>
+</doxygen>

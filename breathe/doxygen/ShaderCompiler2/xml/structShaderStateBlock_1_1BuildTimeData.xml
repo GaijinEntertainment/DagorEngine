@@ -1,0 +1,80 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShaderStateBlock_1_1BuildTimeData" kind="struct" language="C++" prot="public">
+    <compoundname>ShaderStateBlock::BuildTimeData</compoundname>
+    <includes refid="namedConst_8h" local="no">namedConst.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structShaderStateBlock_1_1BuildTimeData_1a5f1b5c86064dc9718210739a768dca7f" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ShaderStateBlock::BuildTimeData::uidMask</definition>
+        <argsstring></argsstring>
+        <name>uidMask</name>
+        <qualifiedname>ShaderStateBlock::BuildTimeData::uidMask</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="190" column="14" bodyfile="namedConst.h" bodystart="190" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderStateBlock_1_1BuildTimeData_1a0bd87a2635b1c508da73fc9196415c6c" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ShaderStateBlock::BuildTimeData::uidVal</definition>
+        <argsstring></argsstring>
+        <name>uidVal</name>
+        <qualifiedname>ShaderStateBlock::BuildTimeData::uidVal</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="190" column="23" bodyfile="namedConst.h" bodystart="190" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderStateBlock_1_1BuildTimeData_1a3e8bfd7829a6cbe3f453d8fd4d042818" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderStateBlock::BuildTimeData::suppListOfs</definition>
+        <argsstring></argsstring>
+        <name>suppListOfs</name>
+        <qualifiedname>ShaderStateBlock::BuildTimeData::suppListOfs</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="191" column="9" bodyfile="namedConst.h" bodystart="191" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderStateBlock_1_1BuildTimeData_1a5de53ba58a0405a9a4d150102374ef03" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ShaderStateBlock::BuildTimeData::suppMask</definition>
+        <argsstring></argsstring>
+        <name>suppMask</name>
+        <qualifiedname>ShaderStateBlock::BuildTimeData::suppMask</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namedConst.h" line="192" column="14" bodyfile="namedConst.h" bodystart="192" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="namedConst.h" line="188" column="3" bodyfile="namedConst.h" bodystart="189" bodyend="193"/>
+    <listofallmembers>
+      <member refid="structShaderStateBlock_1_1BuildTimeData_1a3e8bfd7829a6cbe3f453d8fd4d042818" prot="public" virt="non-virtual"><scope>ShaderStateBlock::BuildTimeData</scope><name>suppListOfs</name></member>
+      <member refid="structShaderStateBlock_1_1BuildTimeData_1a5de53ba58a0405a9a4d150102374ef03" prot="public" virt="non-virtual"><scope>ShaderStateBlock::BuildTimeData</scope><name>suppMask</name></member>
+      <member refid="structShaderStateBlock_1_1BuildTimeData_1a5f1b5c86064dc9718210739a768dca7f" prot="public" virt="non-virtual"><scope>ShaderStateBlock::BuildTimeData</scope><name>uidMask</name></member>
+      <member refid="structShaderStateBlock_1_1BuildTimeData_1a0bd87a2635b1c508da73fc9196415c6c" prot="public" virt="non-virtual"><scope>ShaderStateBlock::BuildTimeData</scope><name>uidVal</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

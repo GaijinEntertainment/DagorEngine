@@ -1,0 +1,44 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classSimpleAscentCompare" kind="class" language="C++" prot="public">
+    <compoundname>SimpleAscentCompare</compoundname>
+    <includes refid="qsort_8h" local="no">qsort.h</includes>
+    <templateparamlist>
+      <param>
+        <type>class T</type>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="classSimpleAscentCompare_1acf61683d94deb9af9b58c0ce981d213b" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>static int SimpleAscentCompare&lt; T &gt;::compare</definition>
+        <argsstring>(const T &amp;a, const T &amp;b)</argsstring>
+        <name>compare</name>
+        <qualifiedname>SimpleAscentCompare::compare</qualifiedname>
+        <param>
+          <type>const T &amp;</type>
+          <declname>a</declname>
+        </param>
+        <param>
+          <type>const T &amp;</type>
+          <declname>b</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="qsort.h" line="222" column="21" bodyfile="qsort.h" bodystart="222" bodyend="230"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="qsort.h" line="219" column="1" bodyfile="qsort.h" bodystart="220" bodyend="231"/>
+    <listofallmembers>
+      <member refid="classSimpleAscentCompare_1acf61683d94deb9af9b58c0ce981d213b" prot="public" virt="non-virtual"><scope>SimpleAscentCompare</scope><name>compare</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

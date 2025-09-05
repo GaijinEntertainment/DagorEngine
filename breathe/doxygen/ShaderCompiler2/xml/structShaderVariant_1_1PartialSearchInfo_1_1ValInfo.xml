@@ -1,0 +1,60 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShaderVariant_1_1PartialSearchInfo_1_1ValInfo" kind="struct" language="C++" prot="private">
+    <compoundname>ShaderVariant::PartialSearchInfo::ValInfo</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structShaderVariant_1_1PartialSearchInfo_1_1ValInfo_1abfa6e818aa2f8959a85cff3e3276f255" prot="public" static="no" mutable="no">
+        <type><ref refid="namespaceShaderVariant_1a2ead6f90546c0e0030738ab5579421cb" kindref="member">BaseType</ref></type>
+        <definition>BaseType ShaderVariant::PartialSearchInfo::ValInfo::type</definition>
+        <argsstring></argsstring>
+        <name>type</name>
+        <qualifiedname>ShaderVariant::PartialSearchInfo::ValInfo::type</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="113" column="14" bodyfile="shaderVariant.h" bodystart="113" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderVariant_1_1PartialSearchInfo_1_1ValInfo_1ac4ec8eb4c74e08e6af4ed94c4cad42fa" prot="public" static="no" mutable="no">
+        <type><ref refid="namespaceShaderVariant_1a576d584c5c88f3e1685c515c843bb30a" kindref="member">ExtType</ref></type>
+        <definition>ExtType ShaderVariant::PartialSearchInfo::ValInfo::extType</definition>
+        <argsstring></argsstring>
+        <name>extType</name>
+        <qualifiedname>ShaderVariant::PartialSearchInfo::ValInfo::extType</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="114" column="13" bodyfile="shaderVariant.h" bodystart="114" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderVariant_1_1PartialSearchInfo_1_1ValInfo_1ae1d9a4f49e5ca0809476d1f6b899fb38" prot="public" static="no" mutable="no">
+        <type>real</type>
+        <definition>real ShaderVariant::PartialSearchInfo::ValInfo::val</definition>
+        <argsstring></argsstring>
+        <name>val</name>
+        <qualifiedname>ShaderVariant::PartialSearchInfo::ValInfo::val</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="115" column="10" bodyfile="shaderVariant.h" bodystart="115" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="shaderVariant.h" line="111" column="3" bodyfile="shaderVariant.h" bodystart="112" bodyend="116"/>
+    <listofallmembers>
+      <member refid="structShaderVariant_1_1PartialSearchInfo_1_1ValInfo_1ac4ec8eb4c74e08e6af4ed94c4cad42fa" prot="public" virt="non-virtual"><scope>ShaderVariant::PartialSearchInfo::ValInfo</scope><name>extType</name></member>
+      <member refid="structShaderVariant_1_1PartialSearchInfo_1_1ValInfo_1abfa6e818aa2f8959a85cff3e3276f255" prot="public" virt="non-virtual"><scope>ShaderVariant::PartialSearchInfo::ValInfo</scope><name>type</name></member>
+      <member refid="structShaderVariant_1_1PartialSearchInfo_1_1ValInfo_1ae1d9a4f49e5ca0809476d1f6b899fb38" prot="public" virt="non-virtual"><scope>ShaderVariant::PartialSearchInfo::ValInfo</scope><name>val</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>
