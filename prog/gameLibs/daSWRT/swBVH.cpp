@@ -221,7 +221,7 @@ static int createBVHNodeSAH(bbox3f *bboxData, bbox3f *end, SplitHelper &h, int d
       if (i.c == 1 || i.cost < 0)
         break;
       --childrenCount;
-      Point2 area, cost;
+      Point2 area(0, 0), cost(0, 0);
       const uint32_t split = findBestSplit(bboxData + i.s, bboxData + i.s + i.c, h, area, cost);
       // debug("depth %d: split %d..%d range childrenCount=%d/%d, split = %d cost %@ currentCost = %f",
       //  depth, i.s, i.c, childrenCount, curChildrenCount,
