@@ -10,7 +10,7 @@
 #include <perfMon/dag_statDrv.h>
 #include <util/dag_hashedKeyMap.h>
 #include <EASTL/bitvector.h>
-#include <util/dag_conVar.h>
+#include <util/dag_convar.h>
 #include <generic/dag_relocatableFixedVector.h>
 #include <drv/3d/dag_matricesAndPerspective.h>
 

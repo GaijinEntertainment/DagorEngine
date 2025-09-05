@@ -18,7 +18,7 @@
 #include <util/dag_parallelFor.h>
 #include <osApiWrappers/dag_spinlock.h>
 #include <shaders/dag_computeShaders.h>
-#include <util/dag_conVar.h>
+#include <util/dag_convar.h>
 #include <math/dag_viewMatrix.h>
 #include <math/dag_hlsl_floatx.h>
 
