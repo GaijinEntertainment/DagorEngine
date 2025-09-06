@@ -3,6 +3,7 @@ _OBJ_SUFFIX  = .obj ;
 
 _CLANG_LIB_FOLDER = $(CLangVer:B) ;
 _CLANG_LIB_FOLDER = $(_CLANG_LIB_FOLDER:B) ;
+local COMPILER_AND_STL_VERSION_MISMATCH = ;
 
 if $(_CLANG_LIB_FOLDER) = 15 {
   _VC_DIR         = $(_DEVTOOL)/vc2019_16.11.34 ;
@@ -11,6 +12,11 @@ if $(_CLANG_LIB_FOLDER) = 15 {
 } else if $(_CLANG_LIB_FOLDER) in 16 17 18 19 20 21 {
   _VC_DIR         = $(_DEVTOOL)/vc2022_17.9.5 ;
   _MSC_VER        = 19.39.33523 ;
+  if ! [ GLOB $(_VC_DIR)    : * ] {
+    _VC_DIR         = $(_DEVTOOL)/vc2022_17.14.4 ;
+    _MSC_VER        = 19.44.35209 ;
+    if $(_CLANG_LIB_FOLDER) in 16 17 18 { COMPILER_AND_STL_VERSION_MISMATCH = -D_ALLOW_COMPILER_AND_STL_VERSION_MISMATCH ; }
+  }
 } else {
     exit Unknown CLangVer $(CLangVer) ;
 }
@@ -71,6 +77,7 @@ local _DEF_C_CMDLINE =
   -Werror=invalid-noreturn
   -Werror=return-type
   # -Wunused-parameter -Wunused-variable
+  $(COMPILER_AND_STL_VERSION_MISMATCH)
 ;
 
 if $(ClangThreadSafety) = yes {

@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import sys
 import shutil
-import notify_ops
 import os
 
 sys.path.append('../..')

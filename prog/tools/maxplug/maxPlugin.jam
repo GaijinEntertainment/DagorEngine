@@ -44,7 +44,7 @@ if $(Platform)-$(PlatformArch) = windows-x86_64 {
     case Max2022 : PlatformSpec = vc15 ; WinSdkVer = win.sdk.100 ; VCUpdateVer = 15.9.5 ;   WinSdkUpdateVer = 18362 ; #17134
     case Max2023 : PlatformSpec = vc16 ; WinSdkVer = win.sdk.100 ; VCUpdateVer = 16.11.34 ; WinSdkUpdateVer = 19041 ;
     case Max2024 : PlatformSpec = vc16 ; WinSdkVer = win.sdk.100 ; VCUpdateVer = 16.11.34 ; WinSdkUpdateVer = 19041 ;
-    case Max2025 : PlatformSpec = vc17 ; WinSdkVer = win.sdk.100 ; VCUpdateVer = 17.9.5 ;   WinSdkUpdateVer = 22621 ;
+    case Max2025 : PlatformSpec = vc17 ; WinSdkVer = win.sdk.100 ; VCUpdateVer = 17.14.4 ;  WinSdkUpdateVer = 22621 ;
     case * : exit $(MaxVer) not supported for $(Platform) ;
   }
 } else {
