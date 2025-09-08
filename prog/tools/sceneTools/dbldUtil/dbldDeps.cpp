@@ -700,3 +700,7 @@ void custom_get_land_min_max(BBox2, float &out_min, float &out_max)
 // stub it
 #include <eventLog/eventLog.h>
 void event_log::send_udp(const char *, const void *, uint32_t, Json::Value *) {}
+
+#if _TARGET_PC_MACOSX
+void destroy_cached_window_data(void *) {}
+#endif
