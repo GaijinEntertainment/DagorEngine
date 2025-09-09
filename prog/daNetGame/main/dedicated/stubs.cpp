@@ -9,23 +9,9 @@ void start_local_profile_server() {}
 void pull_client_das() {}
 
 #if _TARGET_PC_MACOSX // startup for dedicated server for macOS
-#define __DEBUG_FILEPATH                            dng_get_log_prefix()
 #define __DAGOR_OVERRIDE_DEFAULT_ROOT_RELATIVE_PATH ".."
-
-#include "net/dedicated.h"
-#include <startup/dag_globalSettings.h>
-#include <util/dag_string.h>
-
-static String dng_get_log_prefix()
-{
-  if (::dgs_get_argv("stdout"))
-    return String("*");
-  String prefix(dedicated::setup_log());
-  if (!prefix.empty())
-    return prefix;
-  return String(".game_logs/");
-}
-
+#include "main/setup_log_prefix.h"
+#define __DEBUG_FILEPATH dng_get_log_prefix(false)
 #include <startup/dag_mainCon.inc.cpp>
 extern void DagorWinMainInit(int, bool);
 extern int DagorWinMain(int, bool);
