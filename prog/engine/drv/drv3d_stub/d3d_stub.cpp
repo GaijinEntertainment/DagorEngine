@@ -1952,3 +1952,7 @@ void d3d::stop_capture() {}
 
 #define CHECK_MAIN_THREAD()
 #include "frameStateTM.inc.cpp"
+
+#if _TARGET_PC_MACOSX && !defined(_TARGET_WAS_MULTI)
+void destroy_cached_window_data(void *) {}
+#endif
