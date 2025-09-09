@@ -7,7 +7,6 @@ include $(Root)/prog/daNetGame/target_name_rules.jam ; # Note - $(Platform) is n
 
 TargetType ?= exe ;
 if $(Dedicated) != yes { TargetType = exe ; }
-UseHostedInternalServer = yes ;
 Target     ?= [ CorrectTargetName ] ;
 TargetCodeName = $(Game) ; # this will hold target name unchanged even if non-default phys engine is used
 UseSystemOpenSSL = no ;
@@ -25,6 +24,7 @@ AotJamfile = $(Root)/prog/daNetGame-das-aot/jamfile ;
 AotCompilerBaseName = $(Root)/$(Location)/../tools/das-aot/outer_space-aot ;
 include $(Root)/prog/daNetGame/setup.jam ; # Note - $(Platform) is not defined before this line unless passed in command line
 DAS_AOT_COMPILER_OPT = -- --config outer_space_aot_config.blk -sConfig $(Config) ;
+if $(Platform) in windows { UseHostedInternalServer = yes ; }
 
 if $(Dedicated) != yes && $(Platform) in windows && $(PlatformArch) != arm64 {
   VRDeviceSupport ?= yes ;
