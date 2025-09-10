@@ -34,12 +34,12 @@ let mkSelect = kwarg(function(options, selected, title = "SELECT", label = null,
       if (multiselect) {
         let idx = selected.get()?.findindex(@(v) v==opt)
         if (idx!=null)
-          selected(selected.get().filter(@(v) v!=opt))
+          selected.set(selected.get().filter(@(v) v!=opt))
         else
           selected.mutate(@(v) v.append(opt))
       }
       else
-        selected(opt)
+        selected.set(opt)
       closeSelectMenu()
     }
     return watchElemState(@(sf) {
