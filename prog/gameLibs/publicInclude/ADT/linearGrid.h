@@ -18,7 +18,7 @@
 #include <EASTL/bitvector.h>
 #include <EASTL/array.h>
 
-#if _TARGET_PC_MACOSX // Disable vectorcall calling convention due to clang 15.0 code generation bug on macOS
+#if _TARGET_PC_MACOSX && __SSE__ // Disable vectorcall calling convention due to clang 15.0 code generation bug on macOS
 #undef VECTORCALL
 #define VECTORCALL
 #endif
@@ -2177,7 +2177,7 @@ public:
   unsigned configReserveObjectsOnGrow = 4;
   unsigned configChangesBeforeRebuild = 64;
 };
-#if _TARGET_PC_MACOSX // Disable vectorcall calling convention due to clang 15.0 code generation bug on macOS
+#if _TARGET_PC_MACOSX && __SSE__ // Disable vectorcall calling convention due to clang 15.0 code generation bug on macOS
 #undef VECTORCALL
 #define VECTORCALL [[clang::vectorcall]]
 #endif
