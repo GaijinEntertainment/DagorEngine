@@ -246,6 +246,7 @@ bool exit_button_pressed = false;
 
 static bool enable_taa_override = false;
 static bool use_snapdragon_super_resolution = false;
+
 static float snapdragon_super_resolution_scale = 0.75f;
 static uint32_t gi_fmt = TEXFMT_R11G11B10F; // TEXFMT_R32UI; // TEXFMT_R11G11B10F; // TEXFMT_R32UI;//
 
@@ -3677,6 +3678,7 @@ void game_demo_init()
   df_close(file);*/
 
   debug("[DEMO] registering factories");
+
   const DataBlock &blk = *dgs_get_settings();
   ::enable_tex_mgr_mt(true, blk.getInt("max_tex_count", 2048));
   ::set_gameres_sys_ver(2);
