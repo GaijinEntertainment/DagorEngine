@@ -996,7 +996,8 @@ public:
 
     __forceinline void setSampler(StageStorage &storage, int slot, id<MTLSamplerState> sampler, float bias)
     {
-      G_ASSERT(slot < 16);
+      if (slot >= 16)
+        return;
       if (sampler)
       {
         if (samplers[slot] != sampler)
