@@ -23,6 +23,8 @@
 #include <drv/3d/dag_res.h>
 #include <drv/3d/dag_resUpdateBuffer.h>
 #include <drv/3d/dag_shaderLibrary.h>
+#include <drv/3d/dag_capture.h>
+#include <drv/3d/dag_renderPass.h>
 #include <math/dag_Point2.h>
 #include <vecmath/dag_vecMath.h>
 #include <generic/dag_span.h>
@@ -282,6 +284,9 @@ bool d3d::setgamma(float p) { return false; }
 float d3d::get_screen_aspect_ratio() { return 4.0f / 3.0f; }
 void d3d::change_screen_aspect_ratio(float) {}
 
+bool d3d::start_capture(const char *, const char *) { return false; }
+void d3d::stop_capture() {}
+
 void *d3d::fast_capture_screen(int &w, int &h, int &stride_bytes, int &format) { return NULL; }
 void d3d::end_fast_capture_screen() {}
 
@@ -401,3 +406,13 @@ ShaderLibrary d3d::create_shader_library(const ShaderLibraryCreateInfo &) { retu
 void d3d::destroy_shader_library(ShaderLibrary) {}
 
 #include "../drv3d_commonCode/rayTracingStub.inc.cpp"
+
+d3d::RenderPass *d3d::create_render_pass(const RenderPassDesc &) { return nullptr; }
+void d3d::delete_render_pass(d3d::RenderPass *) {}
+void d3d::begin_render_pass(d3d::RenderPass *, const RenderPassArea, const RenderPassTarget *) {}
+void d3d::next_subpass() {}
+void d3d::end_render_pass() {}
+
+#if DAGOR_DBGLEVEL > 0
+void d3d::allow_render_pass_target_load() {}
+#endif
